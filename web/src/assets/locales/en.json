@@ -261,7 +261,7 @@
         "metadata_download_successful": "Metadata downloaded successfully",
         "no_permission": "You are not allowed to access the debug information",
         "metadata_exec_title": "Rerun pipeline locally",
-        "metadata_exec_desc": "Download this pipeline's metadata to run it locally. This allows you to troubleshoot issues and test changes before committing them. `woodpecker-cli` matching the Crow CI Server version must be installed locally."
+        "metadata_exec_desc": "Download this pipeline's metadata to run it locally. This allows you to troubleshoot issues and test changes before committing them. `crow-cli` matching the Crow CI Server version must be installed locally."
       }
     }
   },
