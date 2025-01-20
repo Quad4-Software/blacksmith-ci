@@ -16,6 +16,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"time"
 
@@ -582,7 +583,15 @@ var flags = append([]cli.Flag{
 func datasourceDefaultValue() string {
 	found := getFirstNonEmptyEnvVar("WOODPECKER_IN_CONTAINER", "CROW_IN_CONTAINER")
 	if found != "" {
-		return "/var/lib/crow/crow.sqlite"
+		if _, err := os.Stat("/var/lib/woodpecker/woodpecker.sqlite"); err == nil {
+			if _, err := os.Stat("/var/lib/crow/crow.sqlite"); err == nil {
+				fmt.Println("Both woodpecker.sqlite and crow.sqlite found. Using woodpecker.sqlite.")
+			}
+			return "/var/lib/woodpecker/woodpecker.sqlite"
+		}
+		if _, err := os.Stat("/var/lib/crow/crow.sqlite"); err == nil {
+			return "/var/lib/crow/crow.sqlite"
+		}
 	}
 	return "crow.sqlite"
 }
