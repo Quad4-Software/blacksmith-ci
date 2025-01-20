@@ -10,11 +10,15 @@ This minimizes costs and prevents the expense of maintaining large idle instance
 
 The Crow CI Autoscaler currently works with the following cloud providers:
 
-- AWS
-- Hetzner Cloud
-- Linode
-- Scaleway
-- Vultr
+- [AWS](https://github.com/crowci/autoscaler/blob/main/providers/aws/flags.go)
+- [Hetzner Cloud](https://github.com/crowci/autoscaler/blob/main/providers/hetzner/flags.go)
+- [Linode](https://github.com/crowci/autoscaler/blob/main/providers/linode/flags.go)
+- [Scaleway](https://github.com/crowci/autoscaler/blob/main/providers/scaleway/flags.go)
+- [Vultr](https://github.com/crowci/autoscaler/blob/main/providers/vultr/flags.go)
+
+!!! tip
+
+    The links above show all available flags/env vars for the specific providers.
 
 More providers which provide a golang SDK can be added - contributions welcome!
 
