@@ -44,6 +44,10 @@ repos:
         language: fail
         files: .yml$
         exclude: '^(.gitpod.yml|.github/ISSUE_TEMPLATE/config.yml)$'
+  - repo: https://github.com/editorconfig-checker/editorconfig-checker
+    rev: v3.1.2
+    hooks:
+      - id: editorconfig-checker
 
 ci:
   autofix_commit_msg: |
