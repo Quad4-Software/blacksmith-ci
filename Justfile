@@ -27,6 +27,8 @@ CGO_CFLAGS := if HAS_GO == "GO" { `go env CGO_CFLAGS` } else { "" }
 ## general
 
 fmt:
+		prettier -w .
+		cd web/ && prettier -w .
 		gci write --skip-vendor --skip-generated -s standard -s default -s "prefix(github.com/crowci/crow)" --custom-order .
 
 test: test-agent test-server test-server-datastore test-cli test-lib
