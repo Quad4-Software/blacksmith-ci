@@ -39,8 +39,8 @@ func TestEnvironmentMapYaml(t *testing.T) {
 	d, err := yaml.Marshal(&s)
 	assert.NoError(t, err)
 	str = `foos:
-    bar: baz
-    far: faz
+		bar: baz
+		far: faz
 `
 	assert.EqualValues(t, str, string(d))
 

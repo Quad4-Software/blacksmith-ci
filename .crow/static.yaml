@@ -4,8 +4,8 @@ when:
     branch: ${CI_REPO_DEFAULT_BRANCH}
 
 steps:
-  - name: lint-editorconfig
-    image: docker.io/woodpeckerci/plugin-editorconfig-checker:0.2.0
+  - name: editorconfig
+    image: mstruebing/editorconfig-checker:v3.1.2
     depends_on: []
 
   - name: spellcheck

@@ -28,46 +28,46 @@ import (
 var containerYaml = []byte(`
 image: golang:latest
 commands:
-  - go build
-  - go test
+	- go build
+	- go test
 detach: true
 devices:
-  - /dev/ttyUSB0:/dev/ttyUSB0
+	- /dev/ttyUSB0:/dev/ttyUSB0
 directory: example/
 dns: 8.8.8.8
 dns_search: example.com
 entrypoint: [/bin/sh, -c]
 environment:
-  RACK_ENV: development
-  SHOW: true
+	RACK_ENV: development
+	SHOW: true
 extra_hosts:
- - somehost:162.242.195.82
- - otherhost:50.31.209.229
- - ipv6:2001:db8::10
+	- somehost:162.242.195.82
+	- otherhost:50.31.209.229
+	- ipv6:2001:db8::10
 name: my-build-container
 network_mode: bridge
 networks:
-  - some-network
-  - other-network
+	- some-network
+	- other-network
 pull: true
 privileged: true
 volumes:
-  - /var/lib/mysql
-  - /opt/data:/var/lib/mysql
-  - /etc/configs:/etc/configs/:ro
+	- /var/lib/mysql
+	- /opt/data:/var/lib/mysql
+	- /etc/configs:/etc/configs/:ro
 tmpfs:
-  - /var/lib/test
+	- /var/lib/test
 when:
-  - branch: main
-  - event: cron
-    cron: job1
+	- branch: main
+	- event: cron
+		cron: job1
 settings:
-  foo: bar
-  baz: false
+	foo: bar
+	baz: false
 ports:
-  - 8080
-  - 4443/tcp
-  - 51820/udp
+	- 8080
+	- 4443/tcp
+	- 51820/udp
 `)
 
 func TestUnmarshalContainer(t *testing.T) {
@@ -152,15 +152,15 @@ func TestUnmarshalContainers(t *testing.T) {
 		},
 		{
 			from: `publish-agent:
-    image: print/env
-    settings:
-      repo: woodpeckerci/woodpecker-agent
-      dry_run: true
-      dockerfile: docker/Dockerfile.agent
-      tag: [next, latest]
-    when:
-      branch: ${CI_REPO_DEFAULT_BRANCH}
-      event: push`,
+		image: print/env
+		settings:
+			repo: woodpeckerci/woodpecker-agent
+			dry_run: true
+			dockerfile: docker/Dockerfile.agent
+			tag: [next, latest]
+		when:
+			branch: ${CI_REPO_DEFAULT_BRANCH}
+			event: push`,
 			want: []*Container{
 				{
 					Name:  "publish-agent",
@@ -184,14 +184,14 @@ func TestUnmarshalContainers(t *testing.T) {
 		},
 		{
 			from: `publish-cli:
-    image: print/env
-    settings:
-      repo: woodpeckerci/woodpecker-cli
-      dockerfile: docker/Dockerfile.cli
-      tag: [next]
-    when:
-      branch: ${CI_REPO_DEFAULT_BRANCH}
-      event: push`,
+		image: print/env
+		settings:
+			repo: woodpeckerci/woodpecker-cli
+			dockerfile: docker/Dockerfile.cli
+			tag: [next]
+		when:
+			branch: ${CI_REPO_DEFAULT_BRANCH}
+			event: push`,
 			want: []*Container{
 				{
 					Name:  "publish-cli",
@@ -214,11 +214,11 @@ func TestUnmarshalContainers(t *testing.T) {
 		},
 		{
 			from: `publish-cli:
-    image: print/env
-    when:
-      - branch: ${CI_REPO_DEFAULT_BRANCH}
-        event: push
-      - event: pull_request`,
+		image: print/env
+		when:
+			- branch: ${CI_REPO_DEFAULT_BRANCH}
+				event: push
+			- event: pull_request`,
 			want: []*Container{
 				{
 					Name:  "publish-cli",

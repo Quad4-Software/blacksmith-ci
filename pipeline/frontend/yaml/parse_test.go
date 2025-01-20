@@ -123,28 +123,28 @@ func TestMatch(t *testing.T) {
 func TestParseLegacy(t *testing.T) {
 	sampleYamlPipeline := `
 labels:
-  platform: linux/amd64
+	platform: linux/amd64
 
 steps:
-  say hello:
-    image: bash
-    commands: echo hello
+	say hello:
+		image: bash
+		commands: echo hello
 `
 
 	sampleYamlPipelineLegacyIgnore := `
 platform: windows/amd64
 labels:
-  platform: linux/amd64
+	platform: linux/amd64
 
 steps:
-  say hello:
-    image: bash
-    commands: echo hello
+	say hello:
+		image: bash
+		commands: echo hello
 
 pipeline:
-  old crap:
-    image: bash
-    commands: meh!
+	old crap:
+		image: bash
+		commands: meh!
 `
 
 	workflow1, err := ParseString(sampleYamlPipeline)
@@ -165,75 +165,75 @@ pipeline:
 var sampleYaml = `
 image: hello-world
 when:
-  - event:
-    - tester
-    - tester2
-  - branch:
-    - tester
+	- event:
+		- tester
+		- tester2
+	- branch:
+		- tester
 build:
-  context: .
-  dockerfile: Dockerfile
+	context: .
+	dockerfile: Dockerfile
 workspace:
-  path: src/github.com/octocat/hello-world
-  base: /go
+	path: src/github.com/octocat/hello-world
+	base: /go
 steps:
-  test:
-    image: golang
-    commands:
-      - go install
-      - go test
-  build:
-    image: golang
-    network_mode: container:name
-    commands:
-      - go build
-    when:
-      event: push
-  notify:
-    image: slack
-    channel: dev
-    when:
-      event: failure
+	test:
+		image: golang
+		commands:
+			- go install
+			- go test
+	build:
+		image: golang
+		network_mode: container:name
+		commands:
+			- go build
+		when:
+			event: push
+	notify:
+		image: slack
+		channel: dev
+		when:
+			event: failure
 services:
-  database:
-    image: mysql
+	database:
+		image: mysql
 labels:
-  com.example.type: "build"
-  com.example.team: "frontend"
+	com.example.type: "build"
+	com.example.team: "frontend"
 depends_on:
-  - lint
-  - test
+	- lint
+	- test
 runs_on:
-  - success
-  - failure
+	- success
+	- failure
 `
 
 var simpleYamlAnchors = `
 vars:
-  image: &image plugins/slack
+	image: &image plugins/slack
 steps:
-  notify_success:
-    image: *image
+	notify_success:
+		image: *image
 `
 
 var sampleVarYaml = `
 _slack: &SLACK
-  image: plugins/slack
+	image: plugins/slack
 steps:
-  notify_fail: *SLACK
-  notify_success:
-    << : *SLACK
-    when:
-      event: success
+	notify_fail: *SLACK
+	notify_success:
+		<< : *SLACK
+		when:
+			event: success
 `
 
 var sampleSliceYaml = `
 steps:
-  nil_slice:
-    image: plugins/slack
-  empty_slice:
-    image: plugins/slack
-    depends_on: []
+	nil_slice:
+		image: plugins/slack
+	empty_slice:
+		image: plugins/slack
+		depends_on: []
 `
 
 func TestSlice(t *testing.T) {

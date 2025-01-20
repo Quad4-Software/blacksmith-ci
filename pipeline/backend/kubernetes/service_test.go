@@ -40,39 +40,39 @@ func TestServiceName(t *testing.T) {
 func TestService(t *testing.T) {
 	expected := `
 	{
-	  "metadata": {
-	    "name": "wp-svc-01he8bebctabr3kgk0qj36d2me-0-bar",
-	    "namespace": "foo",
-	    "creationTimestamp": null
-	  },
-	  "spec": {
-	    "ports": [
-	      {
-	        "name": "port-1",
-	        "port": 1,
-	        "targetPort": 1
-	      },
-	      {
-	        "name": "port-2",
-	        "protocol": "TCP",
-	        "port": 2,
-	        "targetPort": 2
-	      },
-	      {
-	        "name": "port-3",
-	        "protocol": "UDP",
-	        "port": 3,
-	        "targetPort": 3
-	      }
-	    ],
-	    "selector": {
-	      "service": "wp-svc-01he8bebctabr3kgk0qj36d2me-0-bar"
-	    },
-	    "type": "ClusterIP"
-	  },
-	  "status": {
-	    "loadBalancer": {}
-	  }
+		"metadata": {
+			"name": "wp-svc-01he8bebctabr3kgk0qj36d2me-0-bar",
+			"namespace": "foo",
+			"creationTimestamp": null
+		},
+		"spec": {
+			"ports": [
+				{
+					"name": "port-1",
+					"port": 1,
+					"targetPort": 1
+				},
+				{
+					"name": "port-2",
+					"protocol": "TCP",
+					"port": 2,
+					"targetPort": 2
+				},
+				{
+					"name": "port-3",
+					"protocol": "UDP",
+					"port": 3,
+					"targetPort": 3
+				}
+			],
+			"selector": {
+				"service": "wp-svc-01he8bebctabr3kgk0qj36d2me-0-bar"
+			},
+			"type": "ClusterIP"
+		},
+		"status": {
+			"loadBalancer": {}
+		}
 	}`
 	ports := []types.Port{
 		{Number: 1},

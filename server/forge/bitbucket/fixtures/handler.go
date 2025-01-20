@@ -213,31 +213,31 @@ const tokenNotFoundPayload = `
 
 const repoPayload = `
 {
-  "full_name": "test_name/repo_name",
-  "scm": "git",
-  "is_private": true
+	"full_name": "test_name/repo_name",
+	"scm": "git",
+	"is_private": true
 }
 `
 
 const permissionRepoPayload = `
 {
-  "full_name": "test_name/%s",
-  "scm": "git",
-  "is_private": true
+	"full_name": "test_name/%s",
+	"scm": "git",
+	"is_private": true
 }
 `
 
 const repoHookPayload = `
 {
-  "pagelen": 10,
-  "values": [
-  	{
-  	  "uuid": "{afe61e14-2c5f-49e8-8b68-ad1fb55fc052}",
-  	  "url": "http://127.0.0.1"
-  	}
-  ],
-  "page": 1,
-  "size": 1
+	"pagelen": 10,
+	"values": [
+		{
+			"uuid": "{afe61e14-2c5f-49e8-8b68-ad1fb55fc052}",
+			"url": "http://127.0.0.1"
+		}
+	],
+	"page": 1,
+	"size": 1
 }
 `
 
@@ -245,153 +245,153 @@ const repoFilePayload = "dummy payload"
 
 const repoDirPayload = `
 {
-    "pagelen": 10,
-    "page": 1,
-    "values": [
-        {
-            "path": "README.md",
-            "type": "commit_file"
-        },
-        {
-            "path": "test",
-            "type": "commit_directory"
-        },
-        {
-            "path": ".gitignore",
-            "type": "commit_file"
-        }
-    ]
+		"pagelen": 10,
+		"page": 1,
+		"values": [
+				{
+						"path": "README.md",
+						"type": "commit_file"
+				},
+				{
+						"path": "test",
+						"type": "commit_directory"
+				},
+				{
+						"path": ".gitignore",
+						"type": "commit_file"
+				}
+		]
 }
 `
 
 const branchCommitsPayload = `
 {
-    "values": [
-        {
-            "hash": "branch_head_name",
+		"values": [
+				{
+						"hash": "branch_head_name",
 						"links": {
 							"html": {
 								"href": "https://bitbucket.org/commitlink"
 							}
 						}
-        },
-        {
-            "hash": "random1"
-        },
-        {
-            "hash": "random2"
-        }
-    ]
+				},
+				{
+						"hash": "random1"
+				},
+				{
+						"hash": "random2"
+				}
+		]
 }
 `
 
 const pullRequestsPayload = `
 {
-		 "values": [
-        {
-            "id": 123,
+			"values":	[
+				{
+						"id": 123,
 						"title": "PRs title"
-        },
-        {
-            "id": 456,
+				},
+				{
+						"id": 456,
 						"title": "Another PRs title"
-        }
-    ],
+				}
+		],
 		"pagelen": 10,
-    "size": 2,
-    "page": 1
+		"size": 2,
+		"page": 1
 }
 `
 
 const userPayload = `
 {
 	"uuid": "{4d8c0f46-cd62-4b77-b0cf-faa3e4d932c6}",
-  "username": "superman",
-  "links": {
-    "avatar": {
-      "href": "http:\/\/i.imgur.com\/ZygP55A.jpg"
-    }
-  },
-  "type": "user"
+	"username": "superman",
+	"links": {
+		"avatar": {
+			"href": "http:\/\/i.imgur.com\/ZygP55A.jpg"
+		}
+	},
+	"type": "user"
 }
 `
 
 const userRepoPayload = `
 {
-  "page": 1,
-  "pagelen": 10,
-  "size": 1,
-  "values": [
-    {
-      "links": {
-        "avatar": {
-            "href": "http:\/\/i.imgur.com\/ZygP55A.jpg"
-        }
-      },
-      "full_name": "test_name/repo_name",
-      "scm": "git",
-      "is_private": true
-    }
-  ]
+	"page": 1,
+	"pagelen": 10,
+	"size": 1,
+	"values": [
+		{
+			"links": {
+				"avatar": {
+						"href": "http:\/\/i.imgur.com\/ZygP55A.jpg"
+				}
+			},
+			"full_name": "test_name/repo_name",
+			"scm": "git",
+			"is_private": true
+		}
+	]
 }
 `
 
 const workspacesPayload = `
 {
 	"page": 1,
-  "pagelen": 100,
+	"pagelen": 100,
 	"size": 1,
-  "values": [
-    {
+	"values": [
+		{
 			"type": "workspace",
 			"uuid": "{c7a04a76-fa20-43e4-dc42-a7506db4c95b}",
 			"name": "Ueber Dev",
 			"slug": "ueberdev42",
-      "links": {
+			"links": {
 				"avatar": {
-				  "href": "https://bitbucket.org/workspaces/ueberdev42/avatar/?ts=1658761964"
-			  },
-			  "html": {
-				  "href": "https://bitbucket.org/ueberdev42/"
-			  },
-			  "self": {
-				  "href": "https://api.bitbucket.org/2.0/workspaces/ueberdev42"
-			  }
-      }
-    }
-  ]
+					"href": "https://bitbucket.org/workspaces/ueberdev42/avatar/?ts=1658761964"
+				},
+				"html": {
+					"href": "https://bitbucket.org/ueberdev42/"
+				},
+				"self": {
+					"href": "https://api.bitbucket.org/2.0/workspaces/ueberdev42"
+				}
+			}
+		}
+	]
 }
 `
 
 const permissionsPayLoad = `
 {
-  "pagelen": 100,
+	"pagelen": 100,
 	"page": 1,
-  "values": [
-    {
-      "repository": {
-        "full_name": "test_name/repo_name"
-      },
-      "permission": "read"
-    },
+	"values": [
 		{
-      "repository": {
-        "full_name": "test_name/permission_read"
-      },
-      "permission": "read"
-    },
+			"repository": {
+				"full_name": "test_name/repo_name"
+			},
+			"permission": "read"
+		},
 		{
-      "repository": {
-        "full_name": "test_name/permission_write"
-      },
-      "permission": "write"
-    },
+			"repository": {
+				"full_name": "test_name/permission_read"
+			},
+			"permission": "read"
+		},
 		{
-      "repository": {
-        "full_name": "test_name/permission_admin"
-      },
-      "permission": "admin"
-    }
-  ]
+			"repository": {
+				"full_name": "test_name/permission_write"
+			},
+			"permission": "write"
+		},
+		{
+			"repository": {
+				"full_name": "test_name/permission_admin"
+			},
+			"permission": "admin"
+		}
+	]
 }
 `

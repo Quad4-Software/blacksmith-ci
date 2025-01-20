@@ -39,7 +39,7 @@ CGO_ENABLED ?= 1 # only used to compile server
 
 HAS_GO = $(shell hash go > /dev/null 2>&1 && echo "GO" || echo "NOGO" )
 ifeq ($(HAS_GO),GO)
-  # renovate: datasource=docker depName=docker.io/techknowlogick/xgo
+	# renovate: datasource=docker depName=docker.io/techknowlogick/xgo
 	XGO_VERSION ?= go-1.23.x
 	CGO_CFLAGS ?= $(shell go env CGO_CFLAGS)
 endif
@@ -47,12 +47,12 @@ CGO_CFLAGS ?=
 
 # If the first argument is "in_docker"...
 ifeq (in_docker,$(firstword $(MAKECMDGOALS)))
-  # use the rest as arguments for "in_docker"
-  MAKE_ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
-  # Ignore the next args
-  $(eval $(MAKE_ARGS):;@:)
+	# use the rest as arguments for "in_docker"
+	MAKE_ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+	# Ignore the next args
+	$(eval $(MAKE_ARGS):;@:)
 
-  in_docker:
+	in_docker:
 	@[ "1" -eq "$(shell docker image ls woodpecker/make:local -a | wc -l)" ] && docker buildx build -f ./docker/Dockerfile.make -t woodpecker/make:local --load . || echo reuse existing docker image
 	@echo run in docker:
 	@docker run -it \
@@ -204,14 +204,14 @@ build-cli: ## Build cli
 
 build-tarball: ## Build tar archive
 	mkdir -p ${DIST_DIR} && tar chzvf ${DIST_DIR}/woodpecker-src.tar.gz \
-	  --exclude="*.exe" \
-	  --exclude="./.pnpm-store" \
-	  --exclude="node_modules" \
-	  --exclude="./dist" \
-	  --exclude="./data" \
-	  --exclude="./build" \
-	  --exclude="./.git" \
-	  .
+		--exclude="*.exe" \
+		--exclude="./.pnpm-store" \
+		--exclude="node_modules" \
+		--exclude="./dist" \
+		--exclude="./data" \
+		--exclude="./build" \
+		--exclude="./.git" \
+		.
 
 .PHONY: build
 build: build-agent build-server build-cli ## Build all binaries
@@ -237,24 +237,24 @@ release-server-xgo: check-xgo ## Create server binaries for release using xgo
 	CGO_CFLAGS="$(CGO_CFLAGS)" xgo -go $(XGO_VERSION) -dest ${DIST_DIR}/server/$(TARGETOS)_$(TARGETARCH_BUILDX) -tags 'netgo osusergo grpcnotrace $(TAGS)' -ldflags '-linkmode external $(LDFLAGS)' -targets '$(TARGETOS)/$(TARGETARCH_XGO)' -out woodpecker-server -pkg cmd/server .
 	# move binary into subfolder depending on target os and arch
 	@if [ "$${XGO_IN_XGO:-0}" -eq "1" ]; then \
-	  echo "inside xgo image"; \
-	  mkdir -p ${DIST_DIR}/server/$(TARGETOS)_$(TARGETARCH_BUILDX); \
-	  mv -vf /build/woodpecker-server* ${DIST_DIR}/server/$(TARGETOS)_$(TARGETARCH_BUILDX)/woodpecker-server$(BIN_SUFFIX); \
+		echo "inside xgo image"; \
+		mkdir -p ${DIST_DIR}/server/$(TARGETOS)_$(TARGETARCH_BUILDX); \
+		mv -vf /build/woodpecker-server* ${DIST_DIR}/server/$(TARGETOS)_$(TARGETARCH_BUILDX)/woodpecker-server$(BIN_SUFFIX); \
 	else \
-	  echo "outside xgo image"; \
-	  [ -f "${DIST_DIR}/server/$(TARGETOS)_$(TARGETARCH_BUILDX)/woodpecker-server$(BIN_SUFFIX)" ] && rm -v ${DIST_DIR}/server/$(TARGETOS)_$(TARGETARCH_BUILDX)/woodpecker-server$(BIN_SUFFIX); \
-	  mv -v ${DIST_DIR}/server/$(TARGETOS)_$(TARGETARCH_XGO)/woodpecker-server* ${DIST_DIR}/server/$(TARGETOS)_$(TARGETARCH_BUILDX)/woodpecker-server$(BIN_SUFFIX); \
+		echo "outside xgo image"; \
+		[ -f "${DIST_DIR}/server/$(TARGETOS)_$(TARGETARCH_BUILDX)/woodpecker-server$(BIN_SUFFIX)" ] && rm -v ${DIST_DIR}/server/$(TARGETOS)_$(TARGETARCH_BUILDX)/woodpecker-server$(BIN_SUFFIX); \
+		mv -v ${DIST_DIR}/server/$(TARGETOS)_$(TARGETARCH_XGO)/woodpecker-server* ${DIST_DIR}/server/$(TARGETOS)_$(TARGETARCH_BUILDX)/woodpecker-server$(BIN_SUFFIX); \
 	fi
 	# if enabled package it in an archive
 	@if [ "$${ARCHIVE_IT:-0}" -eq "1" ]; then \
-	  if [ "$(BIN_SUFFIX)" = ".exe" ]; then \
-		  rm -f  ${DIST_DIR}/woodpecker-server_$(TARGETOS)_$(TARGETARCH_BUILDX).zip; \
-	    zip -j ${DIST_DIR}/woodpecker-server_$(TARGETOS)_$(TARGETARCH_BUILDX).zip ${DIST_DIR}/server/$(TARGETOS)_$(TARGETARCH_BUILDX)/woodpecker-server.exe; \
-	  else \
-	    tar -cvzf ${DIST_DIR}/woodpecker-server_$(TARGETOS)_$(TARGETARCH_BUILDX).tar.gz -C ${DIST_DIR}/server/$(TARGETOS)_$(TARGETARCH_BUILDX) woodpecker-server$(BIN_SUFFIX); \
-	  fi; \
+		if [ "$(BIN_SUFFIX)" = ".exe" ]; then \
+			rm -f  ${DIST_DIR}/woodpecker-server_$(TARGETOS)_$(TARGETARCH_BUILDX).zip; \
+			zip -j ${DIST_DIR}/woodpecker-server_$(TARGETOS)_$(TARGETARCH_BUILDX).zip ${DIST_DIR}/server/$(TARGETOS)_$(TARGETARCH_BUILDX)/woodpecker-server.exe; \
+		else \
+			tar -cvzf ${DIST_DIR}/woodpecker-server_$(TARGETOS)_$(TARGETARCH_BUILDX).tar.gz -C ${DIST_DIR}/server/$(TARGETOS)_$(TARGETARCH_BUILDX) woodpecker-server$(BIN_SUFFIX); \
+		fi; \
 	else \
-	  echo "skip creating '${DIST_DIR}/woodpecker-server_$(TARGETOS)_$(TARGETARCH_BUILDX).tar.gz'"; \
+		echo "skip creating '${DIST_DIR}/woodpecker-server_$(TARGETOS)_$(TARGETARCH_BUILDX).tar.gz'"; \
 	fi
 
 release-server: ## Create server binaries for release
@@ -262,9 +262,9 @@ release-server: ## Create server binaries for release
 	GOOS=$(TARGETOS) GOARCH=$(TARGETARCH) CGO_ENABLED=${CGO_ENABLED} go build -ldflags '${LDFLAGS}' -tags 'grpcnotrace $(TAGS)' -o ${DIST_DIR}/server/$(TARGETOS)_$(TARGETARCH)/woodpecker-server$(BIN_SUFFIX) github.com/crowci/crow/v3/cmd/server
 	# tar binary files
 	if [ "$(BIN_SUFFIX)" == ".exe" ]; then \
-	  zip -j ${DIST_DIR}/woodpecker-server_$(TARGETOS)_$(TARGETARCH).zip ${DIST_DIR}/server/$(TARGETOS)_$(TARGETARCH)/woodpecker-server.exe; \
+		zip -j ${DIST_DIR}/woodpecker-server_$(TARGETOS)_$(TARGETARCH).zip ${DIST_DIR}/server/$(TARGETOS)_$(TARGETARCH)/woodpecker-server.exe; \
 	else \
-	  tar -cvzf ${DIST_DIR}/woodpecker-server_$(TARGETOS)_$(TARGETARCH).tar.gz -C ${DIST_DIR}/server/$(TARGETOS)_$(TARGETARCH) woodpecker-server$(BIN_SUFFIX); \
+		tar -cvzf ${DIST_DIR}/woodpecker-server_$(TARGETOS)_$(TARGETARCH).tar.gz -C ${DIST_DIR}/server/$(TARGETOS)_$(TARGETARCH) woodpecker-server$(BIN_SUFFIX); \
 	fi
 
 release-agent: ## Create agent binaries for release
@@ -332,9 +332,9 @@ bundle: bundle-agent bundle-server bundle-cli ## Create all bundles
 spellcheck:
 	pnpx cspell lint --no-progress --gitignore '{**,.*}/{*,.*}'
 	tree --gitignore \
-	  -I 012_columns_rename_procs_to_steps.go \
-	  -I versioned_docs -I '*opensource.svg' | \
-	  pnpx cspell lint --no-progress stdin
+		-I 012_columns_rename_procs_to_steps.go \
+		-I versioned_docs -I '*opensource.svg' | \
+		pnpx cspell lint --no-progress stdin
 
 ##@ Docs
 .PHONY: docs-dependencies

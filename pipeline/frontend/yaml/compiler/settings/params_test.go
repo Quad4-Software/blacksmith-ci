@@ -123,20 +123,20 @@ float: 1.2
 bool: true
 slice: [1, 2, 3]
 my_secret:
-  from_secret: secret_token
+	from_secret: secret_token
 map:
-  key: "value"
-  entry2:
-    - "a"
-    - "b"
-    - 3
-  secret:
-    from_secret: secret_token
+	key: "value"
+	entry2:
+		- "a"
+		- "b"
+		- 3
+	secret:
+		from_secret: secret_token
 list.map:
-  - registry: https://codeberg.org
-    username: "6543"
-    password:
-      from_secret: cb_password
+	- registry: https://codeberg.org
+		username: "6543"
+		password:
+			from_secret: cb_password
 `)
 	var from map[string]any
 	err := yaml.Unmarshal(fromYAML, &from)
@@ -173,7 +173,7 @@ list.map:
 
 func TestYAMLToParamsToEnvError(t *testing.T) {
 	fromYAML := []byte(`my_secret:
-  from_secret: not_a_secret
+	from_secret: not_a_secret
 `)
 	var from map[string]any
 	err := yaml.Unmarshal(fromYAML, &from)

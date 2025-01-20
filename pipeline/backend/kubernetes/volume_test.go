@@ -44,44 +44,44 @@ func TestPvcMount(t *testing.T) {
 func TestPersistentVolumeClaim(t *testing.T) {
 	expectedRwx := `
 	{
-	  "metadata": {
-	    "name": "somename",
-	    "namespace": "someNamespace",
-	    "creationTimestamp": null
-	  },
-	  "spec": {
-	    "accessModes": [
-	      "ReadWriteMany"
-	    ],
-	    "resources": {
-	      "requests": {
-	        "storage": "1Gi"
-	      }
-	    },
-	    "storageClassName": "local-storage"
-	  },
-	  "status": {}
+		"metadata": {
+			"name": "somename",
+			"namespace": "someNamespace",
+			"creationTimestamp": null
+		},
+		"spec": {
+			"accessModes": [
+				"ReadWriteMany"
+			],
+			"resources": {
+				"requests": {
+					"storage": "1Gi"
+				}
+			},
+			"storageClassName": "local-storage"
+		},
+		"status": {}
 	}`
 
 	expectedRwo := `
 	{
-	  "metadata": {
-	    "name": "somename",
-	    "namespace": "someNamespace",
-	    "creationTimestamp": null
-	  },
-	  "spec": {
-	    "accessModes": [
-	      "ReadWriteOnce"
-	    ],
-	    "resources": {
-	      "requests": {
-	        "storage": "1Gi"
-	      }
-	    },
-	    "storageClassName": "local-storage"
-	  },
-	  "status": {}
+		"metadata": {
+			"name": "somename",
+			"namespace": "someNamespace",
+			"creationTimestamp": null
+		},
+		"spec": {
+			"accessModes": [
+				"ReadWriteOnce"
+			],
+			"resources": {
+				"requests": {
+					"storage": "1Gi"
+				}
+			},
+			"storageClassName": "local-storage"
+		},
+		"status": {}
 	}`
 
 	pvc, err := mkPersistentVolumeClaim(&config{

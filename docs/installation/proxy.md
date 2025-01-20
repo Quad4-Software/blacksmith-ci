@@ -1,3 +1,4 @@
+<!-- markdownlint-disable MD041 -->
 In the following, different reverse proxy setups are given (in alphabetical order) to make Crow work behind a reverse proxy:
 
 ## Apache

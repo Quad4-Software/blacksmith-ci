@@ -12,6 +12,8 @@
     "cmd/server/openapi/docs.go",
     "_test.go",
     "Makefile",
-    "Justfile"
+    "Justfile",
+    "venv",
+    "site"
   ]
 }

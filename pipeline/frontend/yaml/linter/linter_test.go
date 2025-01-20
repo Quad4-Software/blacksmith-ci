@@ -28,64 +28,64 @@ func TestLint(t *testing.T) {
 	testdatas := []struct{ Title, Data string }{{
 		Title: "map", Data: `
 when:
-  event: push
+	event: push
 
 steps:
-  build:
-    image: docker
-    volumes:
-      - /tmp:/tmp
-    commands:
-      - go build
-      - go test
-  publish:
-    image: woodpeckerci/plugin-kaniko
-    settings:
-      repo: foo/bar
-      foo: bar
+	build:
+		image: docker
+		volumes:
+			- /tmp:/tmp
+		commands:
+			- go build
+			- go test
+	publish:
+		image: woodpeckerci/plugin-kaniko
+		settings:
+			repo: foo/bar
+			foo: bar
 services:
-  redis:
-    image: redis
+	redis:
+		image: redis
 `,
 	}, {
 		Title: "list", Data: `
 when:
-  event: push
+	event: push
 
 steps:
-  - name: build
-    image: docker
-    volumes:
-      - /tmp:/tmp
-    commands:
-      - go build
-      - go test
-  - name: publish
-    image: woodpeckerci/plugin-kaniko
-    settings:
-      repo: foo/bar
-      foo: bar
+	- name: build
+		image: docker
+		volumes:
+			- /tmp:/tmp
+		commands:
+			- go build
+			- go test
+	- name: publish
+		image: woodpeckerci/plugin-kaniko
+		settings:
+			repo: foo/bar
+			foo: bar
 services:
-  - name: redis
-    image: redis
+	- name: redis
+		image: redis
 `,
 	}, {
 		Title: "merge maps", Data: `
 when:
-  event: push
+	event: push
 
 variables:
-  step_template: &base-step
-    image: golang:1.19
-    commands:
-      - go version
+	step_template: &base-step
+		image: golang:1.19
+		commands:
+			- go version
 
 steps:
-  test base step:
-    <<: *base-step
-  test base step with latest image:
-    <<: *base-step
-    image: golang:latest
+	test base step:
+		<<: *base-step
+	test base step with latest image:
+		<<: *base-step
+		image: golang:latest
 `,
 	}}
 
