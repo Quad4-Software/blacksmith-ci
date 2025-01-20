@@ -7,7 +7,8 @@
       :name="service ? 'settings' : `status-${status}`"
       size="1.5rem"
       :class="{
-        'text-wp-error-100': pipelineStatusColors[status] === 'red',
+        'text-wp-error-100': !isDarkMode && pipelineStatusColors[status] === 'red',
+        'wp-error-dark-custom': isDarkMode && pipelineStatusColors[status] === 'red',
         'text-wp-state-neutral-100': pipelineStatusColors[status] === 'gray',
         'text-wp-state-ok-100': pipelineStatusColors[status] === 'green',
         'text-wp-state-info-100': pipelineStatusColors[status] === 'blue',
@@ -19,6 +20,7 @@
 </template>
 
 <script lang="ts" setup>
+import { onMounted, onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Icon from '~/components/atomic/Icon.vue';
@@ -48,4 +50,22 @@ const statusDescriptions = {
   // eslint-disable-next-line no-unused-vars
   [_ in PipelineStatus]: string;
 };
+
+const isDarkMode = ref(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+const updateDarkMode = (e: MediaQueryListEvent) => {
+  isDarkMode.value = e.matches;
+};
+
+onMounted(() => {
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateDarkMode);
+  }
+});
+
+onUnmounted(() => {
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').removeEventListener('change', updateDarkMode);
+  }
+});
 </script>

@@ -5,6 +5,9 @@
   --wp-background-300: theme('colors.gray.200');
   --wp-background-400: theme('colors.gray.300');
 
+  /* navbar bg */
+  --wp-secondary-800: theme('colors.int-wp-secondary.800');
+
   --wp-text-100: theme('colors.gray.600');
   --wp-text-200: theme('colors.gray.700');
   --wp-text-alt-100: theme('colors.gray.500');
@@ -43,22 +46,30 @@
 
   --wp-code-inline-text-100: theme('colors.gray.600');
 
-  --wp-code-100: theme('colors.int-wp-secondary.300');
+  --wp-code-100: theme('colors.gray.800');
   --wp-code-200: theme('colors.int-wp-secondary.600');
-  --wp-code-300: theme('colors.int-wp-secondary.600');
+  --wp-code-300: theme('colors.gray.100');
 
-  --wp-code-text-100: theme('colors.gray.200');
-  --wp-code-text-alt-100: theme('colors.gray.300');
+  --wp-code-text-100: theme('colors.gray.800');
+  --wp-code-text-alt-100: theme('colors.gray.200');
+
+  --wp-code-text-line-numbers-100: theme('colors.gray.400');
+  --wp-code-text-line-numbers-200: theme('colors.gray.600');
 
   --wp-link-100: theme('colors.blue.600');
   --wp-link-200: theme('colors.blue.700');
+  --wp-link-300: theme('colors.blue.800');
 }
 
 :root[data-theme='dark'] {
+  --wp-background-50: theme('colors.int-wp-secondary.200');
   --wp-background-100: theme('colors.int-wp-secondary.300');
   --wp-background-200: theme('colors.int-wp-secondary.400');
   --wp-background-300: theme('colors.int-wp-secondary.500');
   --wp-background-400: theme('colors.int-wp-secondary.600');
+
+  /* navbar bg */
+  --wp-secondary-800: theme('colors.int-wp-secondary.800');
 
   --wp-text-100: theme('colors.gray.300');
   --wp-text-200: theme('colors.gray.200');
@@ -81,11 +92,11 @@
   --wp-control-ok-200: theme('colors.int-wp-control-ok-dark.200');
   --wp-control-ok-300: theme('colors.int-wp-control-ok-dark.300');
 
-  --wp-error-100: theme('colors.int-wp-error.200');
+  --wp-error-100: theme('colors.int-wp-error-dark.100');
   --wp-error-200: theme('colors.int-wp-error.300');
   --wp-error-300: theme('colors.int-wp-error.300');
 
-  --wp-state-neutral-100: theme('colors.int-wp-state-neutral.100');
+  --wp-state-neutral-100: theme('colors.int-wp-state-neutral-dark.100');
   --wp-state-ok-100: theme('colors.int-wp-state-ok-dark.100');
   --wp-state-info-100: theme('colors.int-wp-state-info-dark.100');
   --wp-state-warn-100: theme('colors.int-wp-state-warn-dark.100');
@@ -105,8 +116,12 @@
   --wp-code-text-100: theme('colors.gray.200');
   --wp-code-text-alt-100: theme('colors.gray.400');
 
-  --wp-link-100: theme('colors.blue.400');
-  --wp-link-200: theme('colors.blue.500');
+  --wp-code-text-line-numbers-100: theme('colors.gray.400');
+  --wp-code-text-line-numbers-200: theme('colors.gray.600');
+
+  --wp-link-100: theme('colors.blue.300');
+  --wp-link-200: theme('colors.blue.400');
+  --wp-link-300: theme('colors.blue.500');
 }
 
 html,

@@ -1,10 +1,10 @@
 <template>
   <header
-    class="border-b border-wp-background-400 bg-wp-background-100 text-wp-text-100 dark:border-wp-background-100 dark:bg-wp-background-300"
+    class="border-wp-background-400 bg-wp-background-100 text-wp-text-100 shadow-sm dark:border-wp-background-100 dark:bg-wp-background-300"
     :class="{ 'md:px-4': fullWidth }"
   >
     <Container :full-width="fullWidth" class="!py-0">
-      <div class="flex w-full flex-col gap-2 py-3 md:flex-row md:items-center md:justify-between md:gap-10">
+      <div class="flex w-full flex-col gap-2 py-2 md:flex-row md:items-center md:justify-between md:gap-10">
         <div
           class="flex min-h-10 content-start items-center"
           :class="{

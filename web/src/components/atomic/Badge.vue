@@ -1,9 +1,11 @@
 <template>
   <span class="inline-flex text-xs font-medium">
     <span
-      class="flex items-center rounded-l-full border-2 border-wp-state-neutral-100 bg-wp-state-neutral-100 py-0.5 pl-2 pr-1 text-gray-300"
+      class="flex items-center rounded-l-full border border-wp-state-neutral-100 py-0.5 pl-2 pr-1 text-gray-300 text-wp-text-100"
       :class="{
         'rounded-r-full pr-2': value === undefined,
+        '!border-wp-error-100': label === 'global secret',
+        '!border-wp-hint-warn-200': label === 'organization secret',
       }"
     >
       {{ label }}

@@ -33,20 +33,20 @@
           <div class="flex content-start gap-x-2">
             <Button
               v-if="pipeline.status === 'pending' || pipeline.status === 'running'"
-              class="flex-shrink-0"
+              class="flex-shrink-0 !py-0"
               :text="$t('repo.pipeline.actions.cancel')"
               :is-loading="isCancelingPipeline"
               @click="cancelPipeline"
             />
             <Button
-              class="flex-shrink-0"
+              class="flex-shrink-0 !py-0"
               :text="$t('repo.pipeline.actions.restart')"
               :is-loading="isRestartingPipeline"
               @click="restartPipeline"
             />
             <Button
               v-if="pipeline.status === 'success' && repo.allow_deploy"
-              class="flex-shrink-0"
+              class="flex-shrink-0 !py-0"
               :text="$t('repo.pipeline.actions.deploy')"
               @click="showDeployPipelinePopup = true"
             />

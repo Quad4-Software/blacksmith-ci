@@ -1,12 +1,12 @@
 <template>
   <div v-if="pipeline" class="flex flex-col pt-10 md:pt-0">
     <div
-      class="code-box-log flex flex-grow flex-col overflow-hidden !p-0 shadow md:mt-0 md:!rounded-md"
+      class="code-box-log flex flex-grow flex-col overflow-hidden !p-0 shadow-md md:mt-0 md:!rounded-lg"
       @mouseover="showActions = true"
       @mouseleave="showActions = false"
     >
       <div
-        class="fixed left-0 top-0 flex w-full flex-row items-center bg-wp-code-100 px-4 py-2 md:relative md:left-auto md:top-auto"
+        class="fixed left-0 top-0 flex w-full flex-row items-center bg-wp-code-100 px-4 py-1 md:relative md:left-auto md:top-auto"
       >
         <span class="text-base font-bold text-wp-code-text-alt-100">
           <span class="md:display-unset hidden">{{ $t('repo.pipeline.log_title') }}</span>
@@ -18,14 +18,14 @@
             v-if="step?.finished !== undefined && hasLogs"
             :is-loading="downloadInProgress"
             :title="$t('repo.pipeline.actions.log_download')"
-            class="hover:!bg-white hover:!bg-opacity-10"
+            class="text-wp-code-text-alt-100 hover:!bg-white hover:!bg-opacity-10"
             icon="download"
             @click="download"
           />
           <IconButton
             v-if="step?.finished !== undefined && hasLogs && hasPushPermission"
             :title="$t('repo.pipeline.actions.log_delete')"
-            class="hover:!bg-white hover:!bg-opacity-10"
+            class="text-wp-code-text-alt-100 hover:!bg-white hover:!bg-opacity-10"
             icon="trash"
             @click="deleteLogs"
           />
@@ -55,7 +55,7 @@
           <a
             :id="`L${line.number}`"
             :href="`#L${line.number}`"
-            class="select-none whitespace-nowrap pl-2 pr-6 text-right text-wp-code-text-alt-100"
+            class="select-none whitespace-nowrap pl-2 pr-6 text-right text-wp-code-text-line-numbers-100"
             :class="{
               'bg-red-600 bg-opacity-40 dark:bg-red-800 dark:bg-opacity-50': line.type === 'error',
               'bg-yellow-600 bg-opacity-40 dark:bg-yellow-800 dark:bg-opacity-50': line.type === 'warning',
@@ -77,7 +77,7 @@
           />
           <!-- eslint-enable vue/no-v-html -->
           <span
-            class="select-none whitespace-nowrap pr-1 text-right text-wp-code-text-alt-100"
+            class="select-none whitespace-nowrap pr-1 text-right text-wp-code-text-line-numbers-100"
             :class="{
               'bg-red-600 bg-opacity-40 dark:bg-red-800 dark:bg-opacity-50': line.type === 'error',
               'bg-yellow-600 bg-opacity-40 dark:bg-yellow-800 dark:bg-opacity-50': line.type === 'warning',
@@ -98,7 +98,7 @@
 
       <div
         v-if="step?.finished !== undefined"
-        class="text-md flex w-full items-center bg-wp-code-100 p-4 font-bold text-wp-code-text-alt-100"
+        class="text-md flex w-full items-center bg-wp-code-100 px-4 py-1 font-bold text-wp-code-text-alt-100 md:min-h-[27px]"
       >
         <PipelineStatusIcon :status="step.state" class="!h-4 !w-4" />
         <span v-if="step?.error" class="px-2">{{ step.error }}</span>

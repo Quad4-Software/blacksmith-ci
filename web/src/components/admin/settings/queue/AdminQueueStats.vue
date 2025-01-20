@@ -1,7 +1,7 @@
 <template>
   <div v-if="stats" class="flex justify-center">
     <div
-      class="w-full rounded-md border border-wp-background-300 bg-wp-background-200 px-5 py-5 text-wp-text-100 dark:bg-wp-background-100"
+      class="w-full rounded-md border border-wp-background-300 bg-wp-background-200 px-5 py-5 text-wp-text-100 shadow-md dark:bg-wp-background-100"
     >
       <div class="flex w-full">
         <h3 class="flex-1 text-lg font-semibold uppercase leading-tight">

@@ -25,6 +25,15 @@ const customColors = {
     700: '#222631',
     800: '#1B1F28',
   },
+  'custom-dark': {
+    100: '#a22323', // red error color
+    200: '#1b313b', // info bg
+    300: '#00b8d4', // info border
+  },
+  'custom-light': {
+    200: '#e5f8fb', // info bg
+    300: '#00b8d4', // info border
+  },
 };
 
 export default {
@@ -82,8 +91,14 @@ export default {
           200: colors.red[800],
           300: colors.red[900],
         },
+        'int-wp-error-dark': {
+          100: customColors['custom-dark'][100],
+        },
         'int-wp-state-neutral': {
           100: colors.gray[600],
+        },
+        'int-wp-state-neutral-dark': {
+          100: colors.gray[500],
         },
         'int-wp-state-ok': {
           100: colors.green[600],
@@ -105,20 +120,26 @@ export default {
         },
 
         'int-wp-hint-warn': {
-          100: colors.yellow[100],
-          200: colors.yellow[300],
+          100: customColors['custom-light'][200],
+          200: customColors['custom-light'][300],
         },
         'int-wp-hint-warn-dark': {
-          100: tinycolor(colors.yellow[300]).desaturate(60).toString(),
-          200: tinycolor(colors.yellow[500]).desaturate(60).toString(),
+          100: customColors['custom-dark'][200],
+          200: customColors['custom-dark'][300],
         },
 
         // Theme colors
         'wp-background': {
+          50: 'var(--wp-background-50)',
           100: 'var(--wp-background-100)',
           200: 'var(--wp-background-200)',
           300: 'var(--wp-background-300)',
           400: 'var(--wp-background-400)',
+        },
+
+        'wp-background-secondary': {
+          200: 'var(--wp-secondary-200)',
+          800: 'var(--wp-secondary-800)',
         },
 
         'wp-text': {
@@ -197,6 +218,11 @@ export default {
         },
         'wp-code-text-alt': {
           100: 'var(--wp-code-text-alt-100)',
+        },
+
+        'wp-code-text-line-numbers': {
+          100: 'var(--wp-code-text-line-numbers-100)',
+          200: 'var(--wp-code-text-line-numbers-200)',
         },
 
         'wp-link': {

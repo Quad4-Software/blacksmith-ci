@@ -5,9 +5,7 @@
     @click="toggle"
   >
     <div v-if="pipelineCount > 0" class="spinner" />
-    <div
-      class="z-0 flex h-full w-full items-center justify-center rounded-md bg-white bg-opacity-15 font-bold dark:bg-black dark:bg-opacity-10"
-    >
+    <div class="z-0 flex h-full w-full items-center justify-center rounded-md bg-white bg-opacity-10 font-bold">
       <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
       {{ pipelineCount > 9 ? '9+' : pipelineCount }}
     </div>
@@ -41,7 +39,7 @@ onMounted(async () => {
   overflow: hidden;
 }
 .spinner::before {
-  @apply absolute bg-wp-primary-200 dark:bg-wp-primary-300;
+  @apply absolute bg-wp-state-info-100;
   content: '';
   left: -50%;
   top: -50%;
@@ -55,7 +53,7 @@ onMounted(async () => {
   animation: rotate 1.5s linear infinite;
 }
 .spinner::after {
-  @apply absolute inset-0.5 bg-wp-primary-200 dark:bg-wp-primary-300;
+  @apply absolute inset-0.5 bg-wp-state-info-100;
   /*
   The nested border radius needs to be calculated correctly to look right:
   https://www.30secondsofcode.org/css/s/nested-border-radius/

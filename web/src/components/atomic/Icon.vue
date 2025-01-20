@@ -33,7 +33,7 @@
   <SvgIcon v-else-if="name === 'status-skipped'" :path="mdiMinusCircle" size="1.3rem" />
   <SvgIcon v-else-if="name === 'status-success'" :path="mdiCheckCircle" size="1.3rem" />
   <SvgIcon v-else-if="name === 'alert'" :path="mdiAlertCircle" size="1.3rem" />
-  <SvgIcon v-else-if="name === 'question'" :path="mdiHelpCircle" size="1.3rem" />
+  <SvgIcon v-else-if="name === 'question'" :path="mdiInformationSlabCircleOutline" size="1.3rem" />
   <SvgIcon v-else-if="name === 'plus'" :path="mdiPlus" size="1.3rem" />
   <SvgIcon v-else-if="name === 'list'" :path="mdiFormatListBulleted" size="1.3rem" />
   <SvgIcon v-else-if="name === 'heal'" :path="mdiWrenchCogOutline" size="1.3rem" />
@@ -103,7 +103,7 @@ import {
   mdiGit,
   mdiGithub,
   mdiGitlab,
-  mdiHelpCircle,
+  mdiInformationSlabCircleOutline,
   mdiLockOpenOutline,
   mdiLockOutline,
   mdiMinusCircle,
