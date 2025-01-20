@@ -49,26 +49,26 @@ func TestMatrixIncluded(t *testing.T) {
 
 var fakeMatrix = `
 matrix:
-	go_version:
-		- go1
-		- go1.2
-	python_version:
-		- 3.2
-		- 3.3
-	django_version:
-		- 1.7
-		- 1.7.1
-		- 1.7.2
-	redis_version:
-		- 2.6
-		- 2.8
+  go_version:
+    - go1
+    - go1.2
+  python_version:
+    - 3.2
+    - 3.3
+  django_version:
+    - 1.7
+    - 1.7.1
+    - 1.7.2
+  redis_version:
+    - 2.6
+    - 2.8
 `
 
 var fakeMatrixInclude = `
 matrix:
-	include:
-		- go_version: 1.5
-			python_version: 3.4
-		- go_version: 1.6
-			python_version: 3.4
+  include:
+    - go_version: 1.5
+      python_version: 3.4
+    - go_version: 1.6
+      python_version: 3.4
 `

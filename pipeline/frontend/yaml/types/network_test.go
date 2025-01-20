@@ -58,9 +58,9 @@ network2: {}
 				},
 			},
 			expected: `network1:
-		aliases:
-				- alias1
-				- alias2
+    aliases:
+        - alias1
+        - alias2
 network2: {}
 `,
 		},
@@ -79,12 +79,12 @@ network2: {}
 				},
 			},
 			expected: `network1:
-		aliases:
-				- alias1
-				- alias2
+    aliases:
+        - alias1
+        - alias2
 network2:
-		ipv4_address: 172.16.238.10
-		ipv6_address: 2001:3984:3989::10
+    ipv4_address: 172.16.238.10
+    ipv6_address: 2001:3984:3989::10
 `,
 		},
 	}
@@ -136,9 +136,9 @@ func TestUnmarshalNetworks(t *testing.T) {
 		},
 		{
 			yaml: `network1:
-	aliases:
-		- alias1
-		- alias2`,
+  aliases:
+    - alias1
+    - alias2`,
 			expected: &Networks{
 				Networks: []*Network{
 					{
@@ -150,11 +150,11 @@ func TestUnmarshalNetworks(t *testing.T) {
 		},
 		{
 			yaml: `network1:
-	aliases:
-		- alias1
-		- alias2
-	ipv4_address: 172.16.238.10
-	ipv6_address: 2001:3984:3989::10`,
+  aliases:
+    - alias1
+    - alias2
+  ipv4_address: 172.16.238.10
+  ipv6_address: 2001:3984:3989::10`,
 			expected: &Networks{
 				Networks: []*Network{
 					{
