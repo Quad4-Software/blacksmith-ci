@@ -76,6 +76,10 @@ copyright: >
 
 plugins:
   - privacy
+  # - typeset
+  - social:
+      cards_layout_options:
+        logo: layouts/crow-logo-white-bg.png
   - search:
       separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
   - minify:
@@ -107,6 +111,7 @@ nav:
       - Docker compose: installation/docker-compose.md
       - Helm: installation/helm.md
       - Reverse proxy setup: installation/proxy.md
+      - CLI: installation/cli.md
       - Migration from other apps: installation/migration.md
   - Configuration:
       - configuration/index.md
@@ -116,6 +121,17 @@ nav:
       - All environment variables: configuration/env-vars.md
   - Usage:
       - usage/index.md
+      - Pipelines & Workflows: usage/pipelines.md
+      - Workflow syntax: usage/workflow-syntax.md
+      - Repository settings: usage/settings.md
+      - Secrets: usage/secrets.md
+      - Cron jobs: usage/cron.md
+      - Deployment jobs: usage/deployment.md
+      - Volumes: usage/volumes.md
+      - Environment variables: usage/env-vars-usage.md
+      - Registries: usage/registries.md
+      - Services: usage/services.md
+      - Advanced: usage/advanced.md
   - Plugins:
       - plugins/index.md
   - Ecosystem:
