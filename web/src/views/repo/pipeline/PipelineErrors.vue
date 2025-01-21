@@ -72,6 +72,6 @@ function isDeprecationError(
 }
 
 function isBadHabitError(error: PipelineError): error is PipelineError<{ file?: string; field: string; docs: string }> {
-  return error.type === 'bad_habit';
+  return error.type === 'Best practice';
 }
 </script>

@@ -5765,7 +5765,7 @@ const docTemplate = `{
                 "deprecation",
                 "compiler",
                 "generic",
-                "bad_habit"
+                "Best practice"
             ],
             "x-enum-comments": {
                 "PipelineErrorTypeBadHabit": "some bad-habit error",
