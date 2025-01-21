@@ -17,7 +17,7 @@
   "pipeline_feed": "Pipeline feed",
   "empty_list": "No {entity} found!",
   "not_found": {
-    "not_found": "Whoa 404, either we broke something or you had a typing mishap :-/",
+    "not_found": "404 - page not found",
     "back_home": "Back to home"
   },
   "errors": {
@@ -42,14 +42,14 @@
       "show_pipelines": "Show pipelines"
     },
     "deploy_pipeline": {
-      "title": "Trigger a deployment for current pipeline #{pipelineId}",
+      "title": "Trigger a deployment for the current pipeline #{pipelineId}",
       "enter_target": "Target environment for deployment",
       "enter_task": "Deployment task",
       "trigger": "Deploy",
       "variables": {
         "delete": "Delete variable",
         "title": "Additional pipeline variables",
-        "desc": "Specify additional variables to be used in your pipeline. Variables with the same name are overwritten.",
+        "desc": "Specify additional variables to be used in the pipeline. Variables with the same name are overwritten.",
         "name": "Variable name",
         "value": "Variable value"
       }
@@ -62,9 +62,9 @@
     "not_allowed": "You are not allowed to access this repository",
     "enable": {
       "enable": "Enable",
-      "enabled": "Already enabled",
+      "enabled": "Repository is already enabled",
       "disabled": "Disabled",
-      "success": "Repository enabled"
+      "success": "Repository enabled successfully"
     },
     "open_in_forge": "Open repository in forge",
     "visibility": {
@@ -79,7 +79,7 @@
       },
       "internal": {
         "internal": "Internal",
-        "desc": "Only authenticated users of the Crow CI instance can see this project."
+        "desc": "Only authenticated users of this Crow CI instance can see this project."
       }
     },
     "settings": {
@@ -91,35 +91,35 @@
         "success": "Project settings updated",
         "pipeline_path": {
           "path": "Pipeline path",
-          "default": "By default: .crow/*.{'{yaml,yml}'} -> .woodpecker.yaml -> .woodpecker.yml",
+          "default": "By default: .crow/*.{'{yaml,yml}'} or .woodpecker/*.{'{yaml,yml}'} -> .crow.yaml -> .crow.yml -> .woodpecker.yaml -> .woodpecker.yml",
           "desc": "Path to your pipeline config (for example {0}). Folders should end with a {1}.",
           "desc_path_example": "my/path/"
         },
         "allow_pr": {
           "allow": "Allow Pull Requests",
-          "desc": "Allow the execution of pipelines on pull requests."
+          "desc": "Allow the execution of pipelines for pull requests events."
         },
         "allow_deploy": {
           "allow": "Allow Deployments",
-          "desc": "Allow deployments for successful pipelines. All users with push permissions can trigger these, so use with caution."
+          "desc": "Allow 'deployments' for successful pipelines. All users with push permissions are allowed to trigger these."
         },
         "netrc_only_trusted": {
           "netrc_only_trusted": "Custom trusted clone plugins",
-          "desc": "Plugins that get access to netrc credentials that can be used to clone repositories from the forge or push them into the forge."
+          "desc": "Plugins that have access to .netrc credentials, which can be utilized for cloning repositories or pushing changes back to them."
         },
         "trusted": {
-          "trusted": "Trusted",
+          "trusted": "Privileges & Security",
           "network": {
             "network": "Network",
-            "desc": "Pipeline containers get access to network privileges like changing DNS."
+            "desc": "Allow access to network-related privileges, for example changing DNS settings."
           },
           "volumes": {
             "volumes": "Volumes",
-            "desc": "Pipeline containers are allowed to mount volumes."
+            "desc": "Allow access to volume-related privileges. Required to mount volumes."
           },
           "security": {
             "security": "Security",
-            "desc": "Pipeline containers get access to security privileges."
+            "desc": "Allow access to security-related privileges, for example changing `securityContext`."
           }
         },
         "timeout": {
@@ -133,10 +133,10 @@
       },
       "crons": {
         "crons": "Crons",
-        "desc": "Cron jobs can be used to trigger pipelines on a regular basis.",
+        "desc": "Cron jobs can be used to trigger pipelines on a regular basis, e.g. daily or weekly",
         "show": "Show crons",
         "add": "Add cron",
-        "none": "There are no crons yet.",
+        "none": "There are no crons jobs defined.",
         "save": "Save cron",
         "created": "Cron created",
         "saved": "Cron saved",
@@ -146,14 +146,14 @@
         "run": "Run now",
         "branch": {
           "title": "Branch",
-          "placeholder": "Branch (uses default branch if empty)"
+          "placeholder": "Branch (uses the default branch, if empty)"
         },
         "name": {
           "name": "Name",
           "placeholder": "Name of the cron job"
         },
         "schedule": {
-          "title": "Schedule (based on UTC)",
+          "title": "Schedule (UTC)",
           "placeholder": "Schedule"
         },
         "edit": "Edit cron",
@@ -171,20 +171,20 @@
         "actions": "Actions",
         "repair": {
           "repair": "Repair repository",
-          "success": "Repository repaired"
+          "success": "Repository repaired successfully"
         },
         "disable": {
           "disable": "Disable repository",
-          "success": "Repository disabled"
+          "success": "Repository disabled successfully"
         },
         "enable": {
           "enable": "Enable repository",
-          "success": "Repository enabled"
+          "success": "Repository enabled successfully"
         },
         "delete": {
           "delete": "Delete repository",
-          "confirm": "All data will be lost after this action!\n\nDo you really want to proceed?",
-          "success": "Repository deleted"
+          "confirm": "All stored data (runs, logs, etc.) will be lost when proceeding!\n\nDo you want to proceed?",
+          "success": "Repository deleted successfully"
         }
       }
     },
@@ -194,7 +194,7 @@
       "files": "Changed files",
       "no_pipelines": "No pipelines have been started yet.",
       "no_pipeline_steps": "No pipeline steps available!",
-      "step_not_started": "This step hasn't started yet.",
+      "step_not_started": "This step has not started yet.",
       "pipelines_for": "Pipelines for branch \"{branch}\"",
       "pipelines_for_pr": "Pipelines for pull request #{index}",
       "exit_code": "Exit Code {exitCode}",
@@ -204,7 +204,7 @@
       "log_title": "Step Logs",
       "log_download_error": "An error occurred while downloading the log file",
       "log_delete_confirm": "Do you really want to delete the step logs?",
-      "log_delete_error": "An error occurred when deleting the step logs",
+      "log_delete_error": "An error occurred while deleting the step logs",
       "actions": {
         "cancel": "Cancel",
         "restart": "Restart",
@@ -214,14 +214,14 @@
         "restart_success": "Pipeline restarted",
         "log_download": "Download",
         "log_delete": "Delete",
-        "log_auto_scroll": "Enable automatic scrolling",
-        "log_auto_scroll_off": "Disable automatic scrolling"
+        "log_auto_scroll": "Enable automatic log scrolling",
+        "log_auto_scroll_off": "Disable automatic log scrolling"
       },
       "protected": {
-        "awaits": "This pipeline is awaiting approval from a maintainer!",
+        "awaits": "This pipeline is awaiting approval from a maintainer.",
         "approve": "Approve",
         "decline": "Decline",
-        "declined": "This pipeline has been declined!",
+        "declined": "This pipeline has been declined.",
         "approve_success": "Pipeline approved",
         "decline_success": "Pipeline declined"
       },
@@ -260,8 +260,8 @@
         "metadata_download_error": "Error downloading metadata",
         "metadata_download_successful": "Metadata downloaded successfully",
         "no_permission": "You are not allowed to access the debug information",
-        "metadata_exec_title": "Rerun pipeline locally",
-        "metadata_exec_desc": "Download this pipeline's metadata to run it locally. This allows you to troubleshoot issues and test changes before committing them. `crow-cli` matching the Crow CI Server version must be installed locally."
+        "metadata_exec_title": "Re-run pipeline locally",
+        "metadata_exec_desc": "Download this pipeline's metadata to run it locally. This allows troubleshooting issues and testing changes before committing them. `crow-cli` matching the Crow CI Server version must be installed locally."
       }
     }
   },
@@ -269,10 +269,10 @@
     "settings": {
       "not_allowed": "You are not allowed to access the settings of this organization",
       "secrets": {
-        "desc": "Organization secrets can be used in the pipelines of all repositories owned by the organization."
+        "desc": "Organization secrets can be used in all pipelines belonging to the respective organization."
       },
       "registries": {
-        "desc": "Organization registry credentials can be added to use private images for all pipelines of an organization."
+        "desc": "Organization registry credentials allow using private images for all pipelines belonging to the respective organization."
       },
       "agents": {
         "desc": "Agents registered for this organization."
@@ -283,12 +283,12 @@
     "settings": {
       "not_allowed": "You are not allowed to access server settings",
       "secrets": {
-        "desc": "Global secrets can be used in the pipelines of all repositories.",
-        "warning": "These secrets are available to all users."
+        "desc": "Global secrets can be used in any pipeline by any user.",
+        "warning": "These secrets are available to all users"
       },
       "registries": {
-        "desc": "Global registry credentials can be added to use private images for all pipelines.",
-        "warning": "These registry credentials are available to all users."
+        "desc": "Global registry credentials allow pulling private images for any pipeline of any user.",
+        "warning": "These registry credentials are available to all users"
       },
       "agents": {
         "agents": "Agents",
@@ -320,7 +320,7 @@
         },
         "capacity": {
           "capacity": "Capacity",
-          "desc": "The maximum amount of parallel pipelines executed by this agent.",
+          "desc": "The maximum amount of parallel workflows executed by this agent.",
           "badge": "capacity"
         },
         "custom_labels": {
@@ -418,10 +418,10 @@
         }
       },
       "secrets": {
-        "desc": "User secrets can be used in the pipelines of all repositories owned by the user."
+        "desc": "User secrets can be used in the pipelines of all repositories belonging to the respective user."
       },
       "registries": {
-        "desc": "User registry credentials can be added to use private images for all personal pipelines."
+        "desc": "User registry credentials can be added to use private images for all pipelines belonging to the respective user."
       },
       "cli_and_api": {
         "cli_and_api": "CLI & API",
@@ -452,12 +452,12 @@
     "created": "Secret created",
     "saved": "Secret saved",
     "plugins": {
-      "images": "Available only for the following plugins",
-      "desc": "List of plugin images where this secret is available. Leave empty to allow all plugins and normal steps."
+      "images": "Restrict secret to specific plugins",
+      "desc": "Leave empty to allow any plugin and image (only restrictions for plugins are supported)."
     },
     "events": {
-      "events": "Available at the following events",
-      "warning": "Exposing secrets to pull requests could allow bad actors to steal your secrets with a malicious pull request."
+      "events": "Restrict secret for specific events",
+      "warning": "Exposing secrets to pull requests could allow bad actors to expose/steal your secrets with a malicious pull request."
     },
     "edit": "Edit secret",
     "delete": "Delete secret"
@@ -503,10 +503,10 @@
   "org_access_denied": "You are not a member of the organization which allows logging into Crow CI (the organization is set via env var `CROW_ORGS').",
   "invalid_state": "The OAuth state is invalid",
   "require_approval": {
-    "desc": "Prevent malicious pipelines from exposing secrets or running harmful tasks by approving them before execution.",
+    "desc": "These options help to control the approval process for pipeline execution. By default, 'Pull request from forked repository' is set to prevent potentially malicious pipelines from forked repos to expose secrets or execute harmful steps.",
     "require_approval_for": "Approval requirements",
     "none": "None",
-    "none_desc": "Every event triggers pipelines, including pull requests. This setting can be dangerous and is only recommended for private instances.",
+    "none_desc": "Any event triggers pipelines runs. This setting can be dangerous as it allows unsupervised pull request pipelines from forks and is therefore only recommended for private instances.",
     "forks": "Pull request from forked repository",
     "pull_requests": "All pull requests",
     "all_events": "All events from forge"
