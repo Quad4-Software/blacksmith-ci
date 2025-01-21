@@ -122,48 +122,48 @@ func TestLintErrors(t *testing.T) {
 		},
 		{
 			from: "steps: { build: { image: golang, privileged: true }  }",
-			want: "Insufficient trust level to use `privileged` mode",
+			want: "Insufficient `security` privileges. To allow, check the 'security' option in the 'Privileges & Security' repository settings.",
 		},
 		{
 			from: "steps: { build: { image: golang, dns: [ 8.8.8.8 ] }  }",
-			want: "Insufficient trust level to use custom `dns`",
+			want: "Insufficient `network` privileges. To allow using 'dns' options, check the 'Network' option in the 'Privileges & Security' repository settings.",
 		},
 
 		{
 			from: "steps: { build: { image: golang, dns_search: [ example.com ] }  }",
-			want: "Insufficient trust level to use `dns_search`",
+			want: "Insufficient `network` privileges. To allow using 'dns_search' options, check the 'Network' option in the 'Privileges & Security' repository settings.",
 		},
 		{
 			from: "steps: { build: { image: golang, devices: [ '/dev/tty0:/dev/tty0' ] }  }",
-			want: "Insufficient trust level to use `devices`",
+			want: "Insufficient `volumes` privileges. To allow using 'devices' options, check the 'Volumes' option in the 'Privileges & Security' repository settings.",
 		},
 		{
 			from: "steps: { build: { image: golang, extra_hosts: [ 'somehost:162.242.195.82' ] }  }",
-			want: "Insufficient trust level to use `extra_hosts`",
+			want: "Insufficient `network` privileges. To allow using 'extra_hosts' options, check the 'Network' option in the 'Privileges & Security' repository settings.",
 		},
 		{
 			from: "steps: { build: { image: golang, network_mode: host }  }",
-			want: "Insufficient trust level to use `network_mode`",
+			want: "Insufficient `network` privileges. To allow using 'network_mode' options, check the 'Network' option in the 'Privileges & Security' repository settings.",
 		},
 		{
 			from: "steps: { build: { image: golang, volumes: [ '/opt/data:/var/lib/mysql' ] }  }",
-			want: "Insufficient trust level to use `volumes`",
+			want: "Insufficient `volumes` privileges. To allow using 'volumes' options, check the 'Volumes' option in the 'Privileges & Security' repository settings.",
 		},
 		{
 			from: "steps: { build: { image: golang, network_mode: 'container:name' }  }",
-			want: "Insufficient trust level to use `network_mode`",
+			want: "Insufficient `network` privileges. To allow using 'network_mode' options, check the 'Network' option in the 'Privileges & Security' repository settings.",
 		},
 		{
 			from: "steps: { build: { image: golang, settings: { test: 'true' }, commands: [ 'echo ja', 'echo nein' ] } }",
-			want: "Cannot configure both `commands` and `settings`",
+			want: "Using both `commands:` and `settings:` at the same time is not allowed.",
 		},
 		{
 			from: "steps: { build: { image: golang, settings: { test: 'true' }, entrypoint: [ '/bin/fish' ] } }",
-			want: "Cannot configure both `entrypoint` and `settings`",
+			want: "Using both `entrypoint:` and `settings:` at the same time is not allowed.",
 		},
 		{
 			from: "steps: { build: { image: golang, settings: { test: 'true' }, environment: { 'TEST': 'true' } } }",
-			want: "Should not configure both `environment` and `settings`",
+			want: "Using both `environment:` and `settings:` at the same time is not allowed.",
 		},
 		{
 			from: "{pipeline: { build: { image: golang, settings: { test: 'true' } } }, when: { branch: main, event: push } }",
@@ -171,23 +171,23 @@ func TestLintErrors(t *testing.T) {
 		},
 		{
 			from: "{steps: { build: { image: plugins/docker, settings: { test: 'true' } } }, when: { branch: main, event: push } } }",
-			want: "The formerly privileged plugin `plugins/docker` is no longer privileged by default, if required, add it to `WOODPECKER_PLUGINS_PRIVILEGED`",
+			want: "The formerly privileged plugin `plugins/docker` is no longer privileged by default since v3. To use it, add it to (server) env var `CROW_PLUGINS_PRIVILEGED` (must be done by an instance administrator).",
 		},
 		{
 			from: "{steps: { build: { image: golang, settings: { test: 'true' } } }, when: { branch: main, event: push }, clone: { git: { image: some-other/plugin-git:v1.1.0 } } }",
-			want: "Specified clone image does not match allow list, netrc is not injected",
+			want: "The specified clone image does not match the images in the allow list (`CROW_PLUGINS_TRUSTED_CLONE`), not injecting `.netrc` credentials.",
 		},
 		{
 			from: "steps: { build: { image: golang, secrets: [ { source: mysql_username, target: mysql_username } ] } }",
-			want: "Usage of `secrets` is deprecated, use `environment` in combination with `from_secret`",
+			want: "The usage of `secrets:` is deprecated since v2.8.x and was removed in >=3.x. Use `environment:` in combination with `from_secret:`.",
 		},
 		{
 			from: "steps: { build: { image: golang, secrets: [ 'mysql_username' ] } }",
-			want: "Usage of `secrets` is deprecated, use `environment` in combination with `from_secret`",
+			want: "The usage of `secrets:` is deprecated since v2.8.x and was removed in >=3.x. Use `environment:` in combination with `from_secret:`.",
 		},
 		{
 			from: "steps: { build: { image: golang }, publish: { image: golang, depends_on: [ binary ] } }",
-			want: "One or more of the specified dependencies do not exist",
+			want: "One or more of the specified step dependencies do not exist. Double-check for typos.",
 		},
 	}
 
@@ -221,11 +221,11 @@ func TestBadHabits(t *testing.T) {
 	}{
 		{
 			from: "steps: { build: { image: golang } }",
-			want: "Set an event filter for all steps or the entire workflow on all items of the `when` block",
+			want: "Either set an event filter (`when:`) for all individual steps or for the entire workflow.",
 		},
 		{
 			from: "when: [{branch: xyz}, {event: push}]\nsteps: { build: { image: golang } }",
-			want: "Set an event filter for all steps or the entire workflow on all items of the `when` block",
+			want: "Either set an event filter (`when:`) for all individual steps or for the entire workflow.",
 		},
 	}
 
