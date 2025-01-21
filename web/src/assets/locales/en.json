@@ -43,8 +43,14 @@
     },
     "deploy_pipeline": {
       "title": "Trigger a deployment for the current pipeline #{pipelineId}",
-      "enter_target": "Target environment for deployment",
-      "enter_task": "Deployment task",
+      "enter_target": {
+        "title": "Target environment for deployment",
+        "desc": "(Required) A target environment like 'production'. Evaluated as a filter against the 'environment' subkey of the 'deployment' event in the pipeline configuration (if set)."
+      },
+      "enter_task": {
+        "title": "Deployment task",
+        "desc": "(Optional) A target task to execute like 'deploy-my-app'. If specified, it is evaluated as a filter against the 'task' subkey of the 'deployment' event in the pipeline configuration."
+      },
       "trigger": "Deploy",
       "variables": {
         "delete": "Delete variable",

@@ -5,10 +5,12 @@
         <span class="text-xl text-wp-text-100">{{
           $t('repo.deploy_pipeline.title', { pipelineId: pipelineNumber })
         }}</span>
-        <InputField v-slot="{ id }" :label="$t('repo.deploy_pipeline.enter_target')">
+        <InputField v-slot="{ id }" :label="$t('repo.deploy_pipeline.enter_target.title')">
+          <span class="mb-2 text-sm text-wp-text-alt-100">{{ $t('repo.deploy_pipeline.enter_target.desc') }}</span>
           <TextField :id="id" v-model="payload.environment" required />
         </InputField>
-        <InputField v-slot="{ id }" :label="$t('repo.deploy_pipeline.enter_task')">
+        <InputField v-slot="{ id }" :label="$t('repo.deploy_pipeline.enter_task.title')">
+          <span class="mb-2 text-sm text-wp-text-alt-100">{{ $t('repo.deploy_pipeline.enter_task.desc') }}</span>
           <TextField :id="id" v-model="payload.task" />
         </InputField>
         <InputField v-slot="{ id }" :label="$t('repo.deploy_pipeline.variables.title')">
