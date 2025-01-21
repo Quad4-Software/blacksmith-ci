@@ -97,6 +97,9 @@ docs-mike ARG:
 docs-serve:
 		fish -c 'source venv/bin/activate.fish && mkdocs --version && mkdocs serve'
 
+docs-build:
+		fish -c 'source venv/bin/activate.fish && mkdocs --version && mkdocs build && cp -r site/* ~/git/codeberg.org/crowci/pages/ && cd ~/git/codeberg.org/crowci/pages/ && git add -A && git commit -m "update docs" && git push -u origin'
+
 docs-deploy:
 		fish -c 'source venv/bin/activate.fish && mkdocs --version && mkdocs gh-deploy'
 
