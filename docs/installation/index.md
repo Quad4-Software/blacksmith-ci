@@ -66,7 +66,7 @@ Agent tokens can be handed over to individual agents via `crow_AGENT_SECRET`, ma
 Registration of a new agent through UI
 ///
 
-[^2]: This is primarily because Crow (still) stores pipeline logs in the DB. A refactoring to storing these outside the DB by default is planned but now yet implemented.
+[^2]: This is primarily because Crow (still) stores pipeline logs in the DB. A refactoring to storing these outside the DB by default is planned but not yet implemented.
 
 ## Image tags
 
