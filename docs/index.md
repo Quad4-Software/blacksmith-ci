@@ -63,7 +63,7 @@ Crow CI is licensed under the Apache 2.0 license (following inheritance from Woo
 
 [^1]: [This RedHat blog post explains the concept of CI/CD in more detail.](https://www.redhat.com/en/topics/devops/what-is-ci-cd)
 
-[^2]: This is primarily because Crow (still) stores pipeline logs in the DB. A refactoring to storing these outside the DB by default is planned but now yet implemented.
+[^2]: This is primarily because Crow (still) stores pipeline logs in the DB. A refactoring to storing these outside the DB by default is planned but not yet implemented.
 
 <!-- markdownlint-enable -->
 
