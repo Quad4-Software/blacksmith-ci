@@ -19,9 +19,9 @@ steps:
       - cat CHANGELOG.md
 
   'Create release':
-  image: docker.io/woodpeckerci/plugin-release:0.2.3
-  settings:
-    files:
-      - CHANGELOG.md
-    api_key:
-      from_secret: codeberg_bot_token
+    image: docker.io/woodpeckerci/plugin-release:0.2.3
+    settings:
+      files:
+        - CHANGELOG.md
+      api_key:
+        from_secret: codeberg_bot_token
