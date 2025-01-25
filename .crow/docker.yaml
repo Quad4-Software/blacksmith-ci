@@ -13,14 +13,15 @@ variables:
 
   # vars used on push / tag events only
   - publish_logins: &publish_logins # Default DockerHub login
-      - registry: https://ghcr.io/v2/
-        username: crowci-bot
+      - registry: https://codeberg.org
+        username:
+          from_secret: crowci-bot
         password:
-          from_secret: GITHUB_PKGS_TOKEN
+          from_secret: codeberg_bot_token
       - registry: https://index.docker.io/v1/
         username: devxygmbh
         password:
-          from_secret: docker_password
+          from_secret: dockerhub_password
   - &publish_repos_server 'ghcr.io/crowci/crow-server'
   - &publish_repos_agent 'ghcr.io/crowci/crow-agent'
   - &publish_repos_cli 'ghcr.io/crowci/crow-cli'

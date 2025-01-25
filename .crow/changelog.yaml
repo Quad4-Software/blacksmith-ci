@@ -12,17 +12,15 @@ steps:
   - name: 'Upcoming Changelog'
     environment:
       GITHUB_TOKEN:
-        from_secret: ISSUE_TOKEN
+        from_secret: codeberg_bot_token
     image: docker.io/thegeeklab/git-sv:1.0.10
     commands: |
-      apk add -q --no-cache jq github-cli
-
+      apk add -q --no-cache curl jq
       export RELEASE_NOTES=$(git sv rn)
-      echo -e "RELEASE_NOTES: $RELEASE_NOTES"
-      export ISSUE_NUMBER=$(gh issue list --json number --state open --search "Changelog for upcoming version" | jq -r '.[] | .number')
+      export ISSUE_NUMBER=$(curl -s "${CI_FORGE_URL}/api/v1/repos/${CI_REPO}/issues?state=open&q=Changelog%20for%20upcoming%20version" | jq '.[].number')
 
       if [ -z "$ISSUE_NUMBER" ]; then
-        gh issue create --title "Changelog for upcoming version" --body "$RELEASE_NOTES"
+        curl -s -X POST "${CI_FORGE_URL}/api/v1/repos/${CI_REPO}/issues?token=$ISSUE_TOKEN" -H 'Content-Type: application/json' -d "{\"title\":\"Changelog for upcoming version\", \"body\":\"$RELEASE_NOTES\" }"
       else
-        gh issue edit $ISSUE_NUMBER --body "$RELEASE_NOTES"
+        curl -s -X PATCH "${CI_FORGE_URL}/api/v1/repos/${CI_REPO}/issues/$ISSUE_NUMBER?token=$ISSUE_TOKEN" -H 'Content-Type: application/json' -d "{\"title\":\"Changelog for upcoming version\", \"body\":\"$RELEASE_NOTES\" }"
       fi
