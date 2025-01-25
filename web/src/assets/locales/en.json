@@ -177,20 +177,20 @@
         "actions": "Actions",
         "repair": {
           "repair": "Repair repository",
-          "success": "Repository repaired successfully"
+          "success": "Repository successfully repaired "
         },
         "disable": {
           "disable": "Disable repository",
-          "success": "Repository disabled successfully"
+          "success": "Repository successfully disabled"
         },
         "enable": {
           "enable": "Enable repository",
-          "success": "Repository enabled successfully"
+          "success": "Repository successfully enabled"
         },
         "delete": {
           "delete": "Delete repository",
           "confirm": "All stored data (runs, logs, etc.) will be lost when proceeding!\n\nDo you want to proceed?",
-          "success": "Repository deleted successfully"
+          "success": "Repository successfully deleted"
         }
       }
     },
