@@ -246,32 +246,32 @@ release-checksums:
 image-server:
 		just build-ui
 		just cross-compile-server
-		echo $GITHUB_PKGS_TOKEN | docker login ghcr.io -u crowci-bot --password-stdin
-		FIXED_PLATFORMS=$(echo $PLATFORMS | sed "s/|/\//g; s/;/,/g") && docker buildx build --platform $FIXED_PLATFORMS -t ghcr.io/crowci/crow-server:dev -f docker/Dockerfile.server.multiarch.rootless --push .
+		echo $codeberg_bot_token | docker login codeberg.org -u crowci-bot --password-stdin
+		FIXED_PLATFORMS=$(echo $PLATFORMS | sed "s/|/\//g; s/;/,/g") && docker buildx build --platform $FIXED_PLATFORMS -t codeberg.org/crowci/crow-server:dev -f docker/Dockerfile.server.multiarch.rootless --push .
 
 # env PLATFORMS='linux|amd64;linux|arm64' just image-server-alpine
 image-server-alpine:
 		just build-ui
 		just cross-compile-server
-		echo $GITHUB_PKGS_TOKEN | docker login ghcr.io -u crowci-bot --password-stdin
-		FIXED_PLATFORMS=$(echo $PLATFORMS | sed "s/|/\//g; s/;/,/g") && docker buildx build --platform $FIXED_PLATFORMS -t ghcr.io/crowci/crow-server:dev-alpine -f docker/Dockerfile.server.alpine.multiarch.rootless --push .
+		echo $codeberg_bot_token | docker login codeberg.org -u crowci-bot --password-stdin
+		FIXED_PLATFORMS=$(echo $PLATFORMS | sed "s/|/\//g; s/;/,/g") && docker buildx build --platform $FIXED_PLATFORMS -t codeberg.org/crowci/crow-server:dev-alpine -f docker/Dockerfile.server.alpine.multiarch.rootless --push .
 
 # env PLATFORMS='linux/amd64,linux/arm64' just image-agent
 image-agent:
-		echo $GITHUB_PKGS_TOKEN | docker login ghcr.io -u crowci-bot --password-stdin
-		docker buildx build --platform $PLATFORMS -t ghcr.io/crowci/crow-agent:dev -f docker/Dockerfile.agent.multiarch --push .
+		echo $codeberg_bot_token | docker login codeberg.org -u crowci-bot --password-stdin
+		docker buildx build --platform $PLATFORMS -t codeberg.org/crowci/crow-agent:dev -f docker/Dockerfile.agent.multiarch --push .
 
 # env PLATFORMS='linux/amd64,linux/arm64' just image-agent-alpine
 image-agent-alpine:
-		echo $GITHUB_PKGS_TOKEN | docker login ghcr.io -u crowci-bot --password-stdin
-		docker buildx build --platform $PLATFORMS -t ghcr.io/crowci/crow-agent:dev-alpine -f docker/Dockerfile.agent.alpine.multiarch --push .
+		echo $codeberg_bot_token | docker login codeberg.org -u crowci-bot --password-stdin
+		docker buildx build --platform $PLATFORMS -t codeberg.org/crowci/crow-agent:dev-alpine -f docker/Dockerfile.agent.alpine.multiarch --push .
 
 # env PLATFORMS='linux/amd64,linux/arm64' just image-cli
 image-cli:
-		echo $GITHUB_PKGS_TOKEN | docker login ghcr.io -u crowci-bot --password-stdin
-		docker buildx build --platform $PLATFORMS -t ghcr.io/crowci/crow-cli:dev -f docker/Dockerfile.cli.multiarch.rootless --push .
+		echo $codeberg_bot_token | docker login codeberg.org -u crowci-bot --password-stdin
+		docker buildx build --platform $PLATFORMS -t codeberg.org/crowci/crow-cli:dev -f docker/Dockerfile.cli.multiarch.rootless --push .
 
 # env PLATFORMS='linux/amd64,linux/arm64' just image-cli-alpine
 image-cli-alpine:
-		echo $GITHUB_PKGS_TOKEN | docker login ghcr.io -u crowci-bot --password-stdin
-		docker buildx build --platform $PLATFORMS -t ghcr.io/crowci/crow-cli:dev-alpine -f docker/Dockerfile.cli.alpine.multiarch.rootless --push .
+		echo $codeberg_bot_token | docker login codeberg.org -u crowci-bot --password-stdin
+		docker buildx build --platform $PLATFORMS -t codeberg.org/crowci/crow-cli:dev-alpine -f docker/Dockerfile.cli.alpine.multiarch.rootless --push .
