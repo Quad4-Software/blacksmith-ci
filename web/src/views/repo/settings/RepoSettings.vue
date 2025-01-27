@@ -30,7 +30,8 @@
 </template>
 
 <script lang="ts" setup>
-import { inject, onMounted, type Ref } from 'vue';
+import { inject, onMounted } from 'vue';
+import type { Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
