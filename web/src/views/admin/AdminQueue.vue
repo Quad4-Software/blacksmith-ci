@@ -52,8 +52,8 @@
               "
               :class="{
                 'text-wp-error-100': task.status === 'waiting_on_deps',
-                'text-wp-state-info-100': task.status === 'running',
-                'text-wp-state-neutral-100': task.status === 'pending',
+                'text-wp-custom-highlight-100': task.status === 'running',
+                'text-wp-state-pending-100': task.status === 'pending',
               }"
             />
           </div>

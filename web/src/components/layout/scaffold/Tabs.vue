@@ -6,8 +6,8 @@
       :key="tab.title"
       :to="tab.to"
       class="flex cursor-pointer items-center whitespace-nowrap border-b-2 border-transparent py-1 text-wp-text-100"
-      :active-class="tab.matchChildren ? '!border-wp-text-100' : ''"
-      :exact-active-class="tab.matchChildren ? '' : '!border-wp-text-100'"
+      :active-class="tab.matchChildren ? '!border-wp-custom-highlight-100' : ''"
+      :exact-active-class="tab.matchChildren ? '' : '!border-wp-custom-highlight-100'"
     >
       <span
         class="flex w-full min-w-20 flex-row items-center justify-center gap-2 rounded-md px-2 py-1 hover:bg-wp-background-200 dark:hover:bg-wp-background-100"

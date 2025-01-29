@@ -7,12 +7,12 @@
       :name="service ? 'settings' : `status-${status}`"
       size="1.5rem"
       :class="{
-        'text-wp-error-100': pipelineStatusColors[status] === 'red',
-        'text-wp-state-neutral-100': pipelineStatusColors[status] === 'gray',
-        'text-wp-state-ok-100': pipelineStatusColors[status] === 'green',
-        'text-wp-state-info-100': pipelineStatusColors[status] === 'blue',
-        'text-wp-state-warn-100': pipelineStatusColors[status] === 'orange',
-        'animate-spin': service && pipelineStatusColors[status] === 'blue',
+        'text-wp-error-100': pipelineStatusColors[status] === 'red', // error, declined
+        'text-wp-text-alt-100': pipelineStatusColors[status] === 'gray', // blocked, killed, skipped
+        'text-wp-state-ok-100': pipelineStatusColors[status] === 'green', // success
+        'text-wp-custom-highlight-100': pipelineStatusColors[status] === 'orange', // running, started
+        'text-wp-state-pending-100': pipelineStatusColors[status] === 'yellow', // pending
+        'animate-spin': service && pipelineStatusColors[status] === 'blue', // services
       }"
     />
   </div>

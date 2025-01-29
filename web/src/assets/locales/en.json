@@ -325,9 +325,9 @@
           "badge": "backend"
         },
         "capacity": {
-          "capacity": "Capacity",
+          "capacity": "Maximum Workflows",
           "desc": "The maximum amount of parallel workflows executed by this agent.",
-          "badge": "capacity"
+          "badge": "max. workflows"
         },
         "custom_labels": {
           "custom_labels": "Custom Labels",

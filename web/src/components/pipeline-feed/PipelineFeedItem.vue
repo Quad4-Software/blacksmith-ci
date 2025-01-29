@@ -7,18 +7,20 @@
           name: 'repo',
           params: { repoId: pipeline.repo_id },
         }"
-        class="underline"
+        class="underline decoration-wp-custom-highlight-100"
       >
         <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
         {{ repo?.owner }} / {{ repo?.name }}
       </router-link>
-      <span class="overflow-hidden overflow-ellipsis whitespace-nowrap" :title="message">{{ shortMessage }}</span>
+      <span class="overflow-hidden overflow-ellipsis whitespace-nowrap italic" :title="message">{{
+        shortMessage
+      }}</span>
       <div class="mt-2 flex flex-col">
-        <div class="flex items-center space-x-2" :title="created">
+        <div class="mb-1 flex items-center space-x-2" :title="created">
           <Icon name="since" />
           <span>{{ since }}</span>
         </div>
-        <div class="flex items-center space-x-2">
+        <div class="mb-1 flex items-center space-x-2">
           <Icon name="duration" />
           <span>{{ duration }}</span>
         </div>

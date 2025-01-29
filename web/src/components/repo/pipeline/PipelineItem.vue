@@ -1,22 +1,12 @@
 <template>
   <ListItem v-if="pipeline" class="w-full !p-0">
-    <div class="flex w-11 items-center">
-      <div
-        class="h-full w-3"
-        :class="{
-          'bg-wp-state-warn-100': pipeline.status === 'pending',
-          'bg-wp-error-100': pipelineStatusColors[pipeline.status] === 'red',
-          'bg-wp-state-neutral-100': pipelineStatusColors[pipeline.status] === 'gray',
-          'bg-wp-state-ok-100': pipelineStatusColors[pipeline.status] === 'green',
-          'bg-wp-state-info-100': pipelineStatusColors[pipeline.status] === 'blue',
-        }"
-      />
+    <div class="flex w-11 flex-shrink-0 items-center">
       <div class="flex h-full w-6 flex-wrap items-center justify-between">
         <PipelineStatusIcon class="mx-2 md:mx-3" :status="pipeline.status" />
       </div>
     </div>
 
-    <div class="flex min-w-0 flex-grow flex-wrap px-4 py-0.5 md:flex-nowrap">
+    <div class="flex min-w-0 flex-grow flex-wrap px-4 py-0.5 !pl-0.5 md:flex-nowrap">
       <div class="hidden flex-shrink-0 items-center md:flex">
         <Icon v-if="pipeline.event === 'cron'" name="stopwatch" class="text-wp-text-100" />
         <img v-else class="w-6 rounded-md" :src="pipeline.author_avatar" />
@@ -40,19 +30,19 @@
       >
         <div class="flex min-w-0 items-center space-x-2">
           <span :title="pipelineEventTitle">
-            <Icon v-if="pipeline.event === 'pull_request'" name="pull-request" />
-            <Icon v-else-if="pipeline.event === 'pull_request_closed'" name="pull-request-closed" />
-            <Icon v-else-if="pipeline.event === 'deployment'" name="deployment" />
-            <Icon v-else-if="pipeline.event === 'tag' || pipeline.event === 'release'" name="tag" />
-            <Icon v-else-if="pipeline.event === 'cron'" name="push" />
-            <Icon v-else-if="pipeline.event === 'manual'" name="manual-pipeline" />
-            <Icon v-else name="push" />
+            <Icon v-if="pipeline.event === 'pull_request'" name="pull-request" class="" />
+            <Icon v-else-if="pipeline.event === 'pull_request_closed'" name="pull-request-closed" class="" />
+            <Icon v-else-if="pipeline.event === 'deployment'" name="deployment" class="" />
+            <Icon v-else-if="pipeline.event === 'tag' || pipeline.event === 'release'" name="tag" class="" />
+            <Icon v-else-if="pipeline.event === 'cron'" name="push" class="" />
+            <Icon v-else-if="pipeline.event === 'manual'" name="manual-pipeline" class="" />
+            <Icon v-else name="push" class="" />
           </span>
           <span class="truncate">{{ prettyRef }}</span>
         </div>
 
         <div class="flex min-w-0 items-center space-x-2">
-          <Icon name="commit" />
+          <Icon name="commit" class="" />
           <span class="truncate">{{ pipeline.commit.slice(0, 10) }}</span>
         </div>
 
@@ -76,7 +66,6 @@ import { useI18n } from 'vue-i18n';
 
 import Icon from '~/components/atomic/Icon.vue';
 import ListItem from '~/components/atomic/ListItem.vue';
-import { pipelineStatusColors } from '~/components/repo/pipeline/pipeline-status';
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
 import usePipeline from '~/compositions/usePipeline';
 import type { Pipeline } from '~/lib/api/types';

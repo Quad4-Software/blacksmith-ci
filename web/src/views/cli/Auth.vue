@@ -21,7 +21,7 @@
     </div>
 
     <div v-if="state === 'confirm'" class="flex justify-center gap-4">
-      <Button :text="$t('login_to_cli')" color="green" @click="sendToken(false)" />
+      <Button :text="$t('login_to_cli')" color="default" @click="sendToken(false)" />
       <Button :text="$t('abort')" color="red" @click="abortLogin" />
     </div>
   </div>

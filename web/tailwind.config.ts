@@ -29,10 +29,12 @@ const customColors = {
     100: '#a22323', // red error color
     200: '#1b313b', // info bg
     300: '#00b8d4', // info border
+    400: '#f47003', // tab underline
   },
   'custom-light': {
     200: '#e5f8fb', // info bg
     300: '#00b8d4', // info border
+    400: '#FF9B00', // tab underline
   },
 };
 
@@ -128,6 +130,14 @@ export default {
           200: customColors['custom-dark'][300],
         },
 
+        'int-wp-custom-highlight': {
+          100: customColors['custom-light'][400],
+        },
+
+        'int-wp-custom-highlight-dark': {
+          100: customColors['custom-dark'][400],
+        },
+
         // Theme colors
         'wp-background': {
           50: 'var(--wp-background-50)',
@@ -192,6 +202,9 @@ export default {
         'wp-state-warn': {
           100: 'var(--wp-state-warn-100)',
         },
+        'wp-state-pending': {
+          100: 'var(--wp-state-pending-100)',
+        },
 
         'wp-hint-warn': {
           100: 'var(--wp-hint-warn-100)',
@@ -222,12 +235,28 @@ export default {
 
         'wp-code-text-line-numbers': {
           100: 'var(--wp-code-text-line-numbers-100)',
+          150: 'var(--wp-code-text-line-numbers-150)',
           200: 'var(--wp-code-text-line-numbers-200)',
         },
 
         'wp-link': {
           100: 'var(--wp-link-100)',
           200: 'var(--wp-link-200)',
+        },
+
+        'wp-custom-highlight': {
+          100: 'var(--wp-custom-highlight-100)',
+        },
+
+        'wp-orange': {
+          100: 'var(--wp-orange-100)',
+          200: 'var(--wp-orange-200)',
+          300: 'var(--wp-orange-300)',
+          400: 'var(--wp-orange-400)',
+          500: 'var(--wp-orange-500)',
+          600: 'var(--wp-orange-600)',
+          700: 'var(--wp-orange-700)',
+          800: 'var(--wp-orange-800)',
         },
       },
       spacing: {

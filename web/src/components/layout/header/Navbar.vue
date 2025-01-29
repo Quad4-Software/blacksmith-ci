@@ -1,11 +1,11 @@
 <template>
   <nav
-    class="text-neutral-content flex border-wp-background-100 bg-wp-background-secondary-800 p-4 font-bold text-wp-primary-text-100"
+    class="text-neutral-content flex border-wp-background-100 bg-wp-background-secondary-800 p-3 text-wp-primary-text-100"
   >
     <div class="flex items-center space-x-2">
       <router-link :to="{ name: 'home' }" class="-my-2 flex flex-col px-2">
         <CrowLogo class="h-8 w-8" />
-        <span class="text-center text-xs" :title="version?.current">{{ version?.currentShort }}</span>
+        <!-- <span class="text-center text-xs" :title="version?.current">{{ version?.currentShort }}</span> -->
       </router-link>
       <router-link v-if="user" :to="{ name: 'repos' }" class="navbar-clickable navbar-link">
         <span class="flex md:hidden">{{ $t('repos') }}</span>

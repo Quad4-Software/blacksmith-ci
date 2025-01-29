@@ -25,7 +25,7 @@
               <span class="text-xl">{{ $t('repo.pipeline.protected.awaits') }}</span>
               <div v-if="repoPermissions!.push" class="flex flex-wrap items-center justify-center gap-2">
                 <Button
-                  color="green"
+                  color="default"
                   :text="$t('repo.pipeline.protected.approve')"
                   :is-loading="isApprovingPipeline"
                   @click="approvePipeline"

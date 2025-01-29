@@ -1,11 +1,13 @@
+<!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
 <template>
   <Scaffold v-if="repo && repoPermissions && route.meta.repoHeader" enable-tabs>
     <template #title>
       <span class="flex">
-        <router-link :to="{ name: 'org', params: { orgId: repo.org_id } }" class="hover:underline">{{
-          repo.owner
-          /* eslint-disable-next-line @intlify/vue-i18n/no-raw-text */
-        }}</router-link>
+        <router-link
+          :to="{ name: 'org', params: { orgId: repo.org_id } }"
+          class="hover:underline hover:decoration-wp-custom-highlight-100"
+          >{{ repo.owner }}</router-link
+        >
         &nbsp;/
         {{ repo.name }}
       </span>

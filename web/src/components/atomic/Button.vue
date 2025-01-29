@@ -2,13 +2,13 @@
   <component
     :is="to === undefined ? 'button' : httpLink ? 'a' : 'router-link'"
     v-bind="btnAttrs"
-    class="relative flex flex-shrink-0 cursor-pointer items-center overflow-hidden whitespace-nowrap rounded-md border px-2 py-1 shadow-md transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-50"
+    class="relative flex flex-shrink-0 cursor-pointer items-center overflow-hidden whitespace-nowrap rounded-md border border-wp-custom-highlight-100 px-2 py-1 shadow-sm transition-all duration-150 hover:border-wp-orange-300 hover:bg-wp-orange-300 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:border-orange-600 dark:hover:bg-orange-600"
     :class="{
       'border-wp-control-neutral-300 bg-wp-control-neutral-100 text-wp-text-100 hover:bg-wp-control-neutral-200':
         color === 'gray',
-      'border-wp-control-ok-100 bg-wp-control-ok-100 text-white hover:bg-wp-control-ok-200 dark:text-wp-text-200':
-        color === 'green',
-      'border-wp-control-info-100 bg-wp-control-info-100 text-white hover:bg-wp-control-info-200 dark:text-wp-text-200':
+      'border-wp-custom-highlight-100 bg-wp-control-neutral-100 text-wp-text-100 hover:border-wp-orange-300 hover:bg-wp-orange-300':
+        color === 'default',
+      'border-wp-control-info-100 bg-wp-control-info-100 text-white hover:border-wp-orange-300 hover:bg-wp-orange-300 dark:text-wp-text-200 dark:hover:border-orange-600 dark:hover:bg-orange-600':
         color === 'blue',
       'border-wp-error-100 bg-wp-error-100 text-white hover:bg-wp-error-200 dark:text-wp-text-200': color === 'red',
       ...passedClasses,
@@ -30,12 +30,11 @@
         class="absolute bottom-0 left-0 right-0 top-0 flex items-center justify-center"
         :class="{
           'bg-wp-control-neutral-200': color === 'gray',
-          'bg-wp-control-ok-200': color === 'green',
-          'bg-wp-control-info-200': color === 'blue',
+          'bg-wp-custom-highlight-100': color === 'default',
           'bg-wp-error-200': color === 'red',
         }"
       >
-        <Icon name="spinner" />
+        <Icon name="spinner" class="h-5 w-5" />
       </div>
     </slot>
   </component>
@@ -54,7 +53,7 @@ const props = withDefaults(
     title?: string;
     disabled?: boolean;
     to?: RouteLocationRaw;
-    color?: 'blue' | 'green' | 'red' | 'gray';
+    color?: 'blue' | 'default' | 'red' | 'gray';
     startIcon?: IconNames;
     endIcon?: IconNames;
     isLoading?: boolean;

@@ -14,7 +14,7 @@
     </Error>
 
     <div
-      class="flex min-h-sm w-full flex-col overflow-hidden border border-wp-background-400 bg-wp-background-100 shadow-md dark:bg-wp-background-200 md:m-8 md:w-3xl md:flex-row md:rounded-md"
+      class="flex min-h-sm w-full flex-col overflow-hidden border border-wp-background-400 bg-wp-background-100 shadow-sm dark:bg-wp-background-200 md:m-8 md:w-3xl md:flex-row md:rounded-md"
     >
       <div class="flex min-h-48 items-center justify-center bg-wp-primary-200 dark:bg-wp-primary-300 md:w-3/5">
         <CrowLogo preserveAspectRatio="xMinYMin slice" class="h-32 w-auto md:h-48" />

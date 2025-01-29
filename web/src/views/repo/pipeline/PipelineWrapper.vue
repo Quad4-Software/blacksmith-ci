@@ -1,3 +1,4 @@
+<!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
 <template>
   <Scaffold
     v-if="pipeline && repo"
@@ -8,10 +9,11 @@
   >
     <template #title>
       <span>
-        <router-link :to="{ name: 'org', params: { orgId: repo.org_id } }" class="hover:underline">{{
-          repo.owner
-          /* eslint-disable-next-line @intlify/vue-i18n/no-raw-text */
-        }}</router-link>
+        <router-link
+          :to="{ name: 'org', params: { orgId: repo.org_id } }"
+          class="hover:underline hover:decoration-wp-custom-highlight-100"
+          >{{ repo.owner }}</router-link
+        >
         /
         <router-link :to="{ name: 'repo' }" class="hover:underline">{{ repo.name }}</router-link>
       </span>

@@ -15,14 +15,10 @@
   <SvgIcon v-else-if="name === 'settings'" :path="mdiCog" size="1.3rem" />
   <SvgIcon v-else-if="name === 'settings-outline'" :path="mdiCogOutline" size="1.3rem" />
   <SvgIcon v-else-if="name === 'trash'" :path="mdiTrashCanOutline" size="1.3rem" />
-  <SvgIcon v-else-if="name === 'status-blocked'" :path="mdiPlayCircle" size="1.3rem" />
-  <SvgIcon v-else-if="name === 'status-declined'" :path="mdiStopCircle" size="1.3rem" />
-  <SvgIcon
-    v-else-if="name === 'status-failure' || name === 'status-error' || name === 'status-killed'"
-    type="mdi"
-    :path="mdiCloseCircle"
-    size="1.3rem"
-  />
+  <SvgIcon v-else-if="name === 'status-blocked'" :path="mdiPlay" size="1.3rem" />
+  <SvgIcon v-else-if="name === 'status-declined'" :path="mdiStop" size="1.3rem" />
+  <SvgIcon v-else-if="name === 'status-killed'" :path="mdiStop" size="1.3rem" />
+  <SvgIcon v-else-if="name === 'status-failure' || name === 'status-error'" type="mdi" :path="mdiClose" size="1.3rem" />
   <SvgIcon v-else-if="name === 'status-pending'" :path="mdiRadioboxBlank" size="1.3rem" />
   <SvgIcon
     v-else-if="name === 'status-running' || name === 'status-started'"
@@ -30,8 +26,8 @@
     :path="mdiRadioboxIndeterminateVariant"
     size="1.3rem"
   />
-  <SvgIcon v-else-if="name === 'status-skipped'" :path="mdiMinusCircle" size="1.3rem" />
-  <SvgIcon v-else-if="name === 'status-success'" :path="mdiCheckCircle" size="1.3rem" />
+  <SvgIcon v-else-if="name === 'status-skipped'" :path="mdiMinus" size="1.3rem" />
+  <SvgIcon v-else-if="name === 'status-success'" :path="mdiCheck" size="1.3rem" />
   <SvgIcon v-else-if="name === 'alert'" :path="mdiAlertCircle" size="1.3rem" />
   <SvgIcon v-else-if="name === 'question'" :path="mdiInformationSlabCircleOutline" size="1.3rem" />
   <SvgIcon v-else-if="name === 'plus'" :path="mdiPlus" size="1.3rem" />
@@ -87,11 +83,10 @@ import {
   mdiAlertCircle,
   mdiArrowLeft,
   mdiBitbucket,
-  mdiCheckCircle,
+  mdiCheck,
   mdiChevronRight,
   mdiClockTimeEightOutline,
   mdiClose,
-  mdiCloseCircle,
   mdiCog,
   mdiCogOutline,
   mdiDotsVertical,
@@ -106,12 +101,11 @@ import {
   mdiInformationSlabCircleOutline,
   mdiLockOpenOutline,
   mdiLockOutline,
-  mdiMinusCircle,
+  mdiMinus,
   mdiPackageVariant,
   mdiPause,
   mdiPencilOutline,
   mdiPlay,
-  mdiPlayCircle,
   mdiPlayOutline,
   mdiPlus,
   mdiPower,
@@ -121,7 +115,7 @@ import {
   mdiSourceCommit,
   mdiSourceMerge,
   mdiSourcePull,
-  mdiStopCircle,
+  mdiStop,
   mdiTagOutline,
   mdiTimerOutline,
   mdiTrashCanOutline,

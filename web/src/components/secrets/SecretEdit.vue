@@ -45,7 +45,7 @@
         <Button type="button" color="gray" :text="$t('cancel')" @click="$emit('cancel')" />
         <Button
           type="submit"
-          color="green"
+          color="default"
           :is-loading="isSaving"
           :text="isEditingSecret ? $t('secrets.save') : $t('secrets.add')"
         />

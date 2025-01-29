@@ -5,6 +5,15 @@
   --wp-background-300: theme('colors.gray.200');
   --wp-background-400: theme('colors.gray.300');
 
+  --wp-orange-100: theme('colors.orange.100');
+  --wp-orange-200: theme('colors.orange.200');
+  --wp-orange-300: theme('colors.orange.300');
+  --wp-orange-400: theme('colors.orange.400');
+  --wp-orange-500: theme('colors.orange.500');
+  --wp-orange-600: theme('colors.orange.600');
+  --wp-orange-700: theme('colors.orange.700');
+  --wp-orange-800: theme('colors.orange.800');
+
   /* navbar bg */
   --wp-secondary-800: theme('colors.int-wp-secondary.800');
 
@@ -37,6 +46,7 @@
   --wp-state-ok-100: theme('colors.int-wp-state-ok.100');
   --wp-state-info-100: theme('colors.int-wp-state-info.100');
   --wp-state-warn-100: theme('colors.int-wp-state-warn.100');
+  --wp-state-pending-100: theme('colors.gray.800');
 
   --wp-hint-warn-100: theme('colors.int-wp-hint-warn.100');
   --wp-hint-warn-200: theme('colors.int-wp-hint-warn.200');
@@ -48,17 +58,20 @@
 
   --wp-code-100: theme('colors.gray.800');
   --wp-code-200: theme('colors.int-wp-secondary.600');
-  --wp-code-300: theme('colors.gray.100');
+  --wp-code-300: theme('colors.white');
 
   --wp-code-text-100: theme('colors.gray.800');
   --wp-code-text-alt-100: theme('colors.gray.200');
 
   --wp-code-text-line-numbers-100: theme('colors.gray.400');
+  --wp-code-text-line-numbers-150: theme('colors.gray.500');
   --wp-code-text-line-numbers-200: theme('colors.gray.600');
 
-  --wp-link-100: theme('colors.blue.600');
-  --wp-link-200: theme('colors.blue.700');
+  --wp-link-100: theme('colors.int-wp-custom-highlight-dark.100');
+  --wp-link-200: theme('colors.int-wp-custom-highlight-dark.100');
   --wp-link-300: theme('colors.blue.800');
+
+  --wp-custom-highlight-100: theme('colors.int-wp-custom-highlight-dark.100');
 }
 
 :root[data-theme='dark'] {
@@ -66,7 +79,16 @@
   --wp-background-100: theme('colors.int-wp-secondary.300');
   --wp-background-200: theme('colors.int-wp-secondary.400');
   --wp-background-300: theme('colors.int-wp-secondary.500');
-  --wp-background-400: theme('colors.int-wp-secondary.600');
+  --wp-background-400: theme('colors.gray.600');
+
+  --wp-orange-100: theme('colors.orange.100');
+  --wp-orange-200: theme('colors.orange.200');
+  --wp-orange-300: theme('colors.orange.300');
+  --wp-orange-400: theme('colors.orange.400');
+  --wp-orange-500: theme('colors.orange.500');
+  --wp-orange-600: theme('colors.orange.600');
+  --wp-orange-700: theme('colors.orange.700');
+  --wp-orange-800: theme('colors.orange.800');
 
   /* navbar bg */
   --wp-secondary-800: theme('colors.int-wp-secondary.800');
@@ -100,6 +122,7 @@
   --wp-state-ok-100: theme('colors.int-wp-state-ok-dark.100');
   --wp-state-info-100: theme('colors.int-wp-state-info-dark.100');
   --wp-state-warn-100: theme('colors.int-wp-state-warn-dark.100');
+  --wp-state-pending-100: theme('colors.int-wp-state-warn-dark.100');
 
   --wp-hint-warn-100: theme('colors.int-wp-hint-warn-dark.100');
   --wp-hint-warn-200: theme('colors.int-wp-hint-warn-dark.200');
@@ -117,11 +140,14 @@
   --wp-code-text-alt-100: theme('colors.gray.400');
 
   --wp-code-text-line-numbers-100: theme('colors.gray.400');
+  --wp-code-text-line-numbers-150: theme('colors.gray.500');
   --wp-code-text-line-numbers-200: theme('colors.gray.600');
 
-  --wp-link-100: theme('colors.blue.300');
-  --wp-link-200: theme('colors.blue.400');
+  --wp-link-100: theme('colors.int-wp-custom-highlight-dark.100');
+  --wp-link-200: theme('colors.int-wp-custom-highlight-dark.100');
   --wp-link-300: theme('colors.blue.500');
+
+  --wp-custom-highlight-100: theme('colors.int-wp-custom-highlight-dark.100');
 }
 
 html,
@@ -140,7 +166,7 @@ body,
 }
 
 .vue-notification.success {
-  @apply !border-l-wp-control-ok-300 !bg-wp-control-ok-100;
+  @apply border border-l-8 border-wp-control-neutral-200 border-l-int-wp-state-ok-100 !bg-transparent text-wp-text-100 shadow-lg dark:border-l-8 dark:border-wp-code-text-line-numbers-150 dark:border-l-int-wp-state-ok-100;
 }
 
 .vue-notification.error {

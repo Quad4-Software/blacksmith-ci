@@ -17,7 +17,7 @@
           <Badge v-if="agent.backend" :label="$t('admin.settings.agents.backend.badge')" :value="agent.backend" />
           <Badge v-if="agent.capacity" :label="$t('admin.settings.agents.capacity.badge')" :value="agent.capacity" />
         </span>
-        <span class="ml-2">{{
+        <span title="Last contact" class="ml-2">{{
           agent.last_contact ? date.timeAgo(agent.last_contact * 1000) : $t('admin.settings.agents.never')
         }}</span>
       </span>
