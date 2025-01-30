@@ -123,7 +123,7 @@ nav:
       - usage/index.md
       - Pipelines & Workflows: usage/pipelines.md
       - Workflow syntax: usage/workflow-syntax.md
-      - Repository settings: usage/settings.md
+      - Repository settings: usage/repo-settings.md
       - Secrets: usage/secrets.md
       - Cron jobs: usage/cron.md
       - Deployment jobs: usage/deployment.md

@@ -56,3 +56,4 @@ docs/venv
 site/
 .envrc
 local.sh
+*.bkp

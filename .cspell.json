@@ -251,6 +251,7 @@
     "zerologger"
   ],
   "ignorePaths": [
+    "*.drawio",
     "*.excalidraw",
     "*.svg",
     "*_test.go",

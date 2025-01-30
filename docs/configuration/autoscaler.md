@@ -185,6 +185,36 @@ The values must be passed as a comma-separated list:
 CROW_AGENT_ENV: CROW_HEALTHCHECK=false,CROW_LOG_LEVEL=debug
 ```
 
+### Combining static and autoscaled agents
+
+!!! information
+
+    A "static" agent is an agent which was **not** provisioned by Crow Autoscaler but through a different deployment.
+    It is always 24/7 for new builds and is the exact opposite of an autoscaling agent which is only available if task are to be processed and decommissioned afterwards.
+
+In specific cases a combination of static and autoscaled agents can make sense and improve the overall capabilities of your CI environment.
+One use case can be if there are many builds with low resource requirements.
+In this case, it is not efficient to wait for the autoscaler to spin up a powerful machine which then processes these builds in a few seconds.
+
+In such a situation, a static agent on a small host (e.g. next to the Crow CI server and autoscaler) can help to process such builds.
+The autoscaler will then only kick in once this agent cannot process these builds.
+
+To achieve this, there must a heuristic to decide if the static agent can process these builds in question.
+Ideally this would be a mix of a dynamic rule based on resource requests and a static ones based on manual filters.
+Currently, only the latter is available through "agent labels" (`CROW_AGENT_LABELS`).
+This options allows to set filters which only process specific builds that match these.
+For example, if the mentioned builds in question only occur within one repository, the agent can be passed the following label through the env var `CROW_AGENT_LABELS`:
+
+```yaml
+CROW_AGENT_LABELS: 'repo=<owner>/<repo>'
+```
+
+This configuration ensures that only builds from this specific repository are processed.[^1]
+
+When a Crow CI autoscaler instance is active, it first checks whether an existing agent registered with the Crow CI server can handle a pending task.
+If no suitable agent is available, the autoscaler will launch a new agent.
+If an agent is available, no action is taken, and the build is handled by the static agent.
+
 ### GRPC proxy configuration
 
 As mentioned above, the GRPC connection between the agent and the server needs to be secured.
@@ -239,3 +269,5 @@ http:
         servers:
           - url: http://crow-server:9000
 ```
+
+[^1]: Multiple labels can be passed, even of the same type.
