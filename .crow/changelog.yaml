@@ -16,15 +16,16 @@ steps:
     image: docker.io/thegeeklab/git-sv:1.0.10
     commands: |
       apk add -q --no-cache curl jq sed
-      # A string input with (escaped) linebreaks (\n) is needed for valid JSON in the API call
       git sv rn -o changelog.md
-      export RELEASE_NOTES=$(cat changelog.md | sed ':a;N;$!ba;s/\n/\\\\n/g')
+      export RELEASE_NOTES=$(cat changelog.md)
       export ISSUE_NUMBER=$(curl -s "${CI_FORGE_URL}/api/v1/repos/${CI_REPO}/issues?state=open&q=Changelog%20for%20upcoming%20version" | jq '.[].number')
 
       echo $RELEASE_NOTES
 
+      JSON_DATA=$(echo "" | jq -Rs --arg title 'Changelog for upcoming version' --arg body "$(cat changelog.md)" '{title: $title, body: $body}')
+
       if [ -z "$ISSUE_NUMBER" ]; then
-        curl -s -X POST "${CI_FORGE_URL}/api/v1/repos/${CI_REPO}/issues?token=$ISSUE_TOKEN" -H 'Content-Type: application/json' -d "{\"title\":\"Changelog for upcoming version\", \"body\":\"$RELEASE_NOTES\"}"
+        curl -s -X POST "${CI_FORGE_URL}/api/v1/repos/${CI_REPO}/issues?token=$ISSUE_TOKEN" -H "Content-Type: application/json" -d "$JSON_DATA"
       else
-        curl -s -X PATCH "${CI_FORGE_URL}/api/v1/repos/${CI_REPO}/issues/$ISSUE_NUMBER?token=$ISSUE_TOKEN" -H 'Content-Type: application/json' -d "{\"title\":\"Changelog for upcoming version\", \"body\":\"$RELEASE_NOTES\"}"
+        curl -s -X PATCH "${CI_FORGE_URL}/api/v1/repos/${CI_REPO}/issues/$ISSUE_NUMBER?token=$ISSUE_TOKEN" -H "Content-Type: application/json" -d "$JSON_DATA"
       fi
