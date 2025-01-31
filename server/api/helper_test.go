@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/crowci/crow/v3/server/pipeline"
+	"codeberg.org/crowci/crow/v3/server/pipeline"
 )
 
 func TestHandlePipelineError(t *testing.T) {

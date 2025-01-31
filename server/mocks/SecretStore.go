@@ -3,7 +3,7 @@
 package mocks
 
 import (
-	model "github.com/crowci/crow/v3/server/model"
+	model "codeberg.org/crowci/crow/v3/server/model"
 	mock "github.com/stretchr/testify/mock"
 )
 

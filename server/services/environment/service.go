@@ -14,7 +14,7 @@
 
 package environment
 
-import "github.com/crowci/crow/v3/server/model"
+import "codeberg.org/crowci/crow/v3/server/model"
 
 //go:generate mockery --name Service --output mocks --case underscore
 

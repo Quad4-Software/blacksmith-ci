@@ -25,8 +25,8 @@ import (
 
 	"code.gitea.io/sdk/gitea"
 
-	"github.com/crowci/crow/v3/server/model"
-	"github.com/crowci/crow/v3/shared/utils"
+	"codeberg.org/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v3/shared/utils"
 )
 
 // toRepo converts a Gitea repository to a Woodpecker repository.

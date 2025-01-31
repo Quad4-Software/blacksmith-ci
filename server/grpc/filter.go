@@ -15,9 +15,9 @@
 package grpc
 
 import (
-	"github.com/crowci/crow/v3/pipeline/rpc"
-	"github.com/crowci/crow/v3/server/model"
-	"github.com/crowci/crow/v3/server/queue"
+	"codeberg.org/crowci/crow/v3/pipeline/rpc"
+	"codeberg.org/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v3/server/queue"
 )
 
 func createFilterFunc(agentFilter rpc.Filter) queue.FilterFn {

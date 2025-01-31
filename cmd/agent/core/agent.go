@@ -38,14 +38,14 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
-	"github.com/crowci/crow/v3/agent"
-	agent_rpc "github.com/crowci/crow/v3/agent/rpc"
-	"github.com/crowci/crow/v3/pipeline/backend"
-	"github.com/crowci/crow/v3/pipeline/backend/types"
-	"github.com/crowci/crow/v3/pipeline/rpc"
-	"github.com/crowci/crow/v3/shared/logger"
-	"github.com/crowci/crow/v3/shared/utils"
-	"github.com/crowci/crow/v3/version"
+	"codeberg.org/crowci/crow/v3/agent"
+	agent_rpc "codeberg.org/crowci/crow/v3/agent/rpc"
+	"codeberg.org/crowci/crow/v3/pipeline/backend"
+	"codeberg.org/crowci/crow/v3/pipeline/backend/types"
+	"codeberg.org/crowci/crow/v3/pipeline/rpc"
+	"codeberg.org/crowci/crow/v3/shared/logger"
+	"codeberg.org/crowci/crow/v3/shared/utils"
+	"codeberg.org/crowci/crow/v3/version"
 )
 
 const (

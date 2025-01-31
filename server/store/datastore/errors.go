@@ -17,7 +17,7 @@ package datastore
 import (
 	"fmt"
 
-	"github.com/crowci/crow/v3/server/store/types"
+	"codeberg.org/crowci/crow/v3/server/store/types"
 )
 
 type ErrorRepoNotExist struct {

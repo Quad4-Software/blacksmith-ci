@@ -19,8 +19,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/crowci/crow/v3/pipeline/frontend/metadata"
-	yaml_base_types "github.com/crowci/crow/v3/pipeline/frontend/yaml/types/base"
+	"codeberg.org/crowci/crow/v3/pipeline/frontend/metadata"
+	yaml_base_types "codeberg.org/crowci/crow/v3/pipeline/frontend/yaml/types/base"
 )
 
 func TestParse(t *testing.T) {

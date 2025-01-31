@@ -19,9 +19,9 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/crowci/crow/v3/pipeline/frontend/yaml/constraint"
-	"github.com/crowci/crow/v3/pipeline/frontend/yaml/types/base"
-	"github.com/crowci/crow/v3/pipeline/frontend/yaml/utils"
+	"codeberg.org/crowci/crow/v3/pipeline/frontend/yaml/constraint"
+	"codeberg.org/crowci/crow/v3/pipeline/frontend/yaml/types/base"
+	"codeberg.org/crowci/crow/v3/pipeline/frontend/yaml/utils"
 )
 
 type (

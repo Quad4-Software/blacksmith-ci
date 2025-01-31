@@ -23,8 +23,8 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/crowci/crow/v3/pipeline/rpc"
-	"github.com/crowci/crow/v3/pipeline/shared"
+	"codeberg.org/crowci/crow/v3/pipeline/rpc"
+	"codeberg.org/crowci/crow/v3/pipeline/shared"
 )
 
 // LineWriter sends logs to the client.

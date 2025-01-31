@@ -15,7 +15,7 @@
 package types
 
 import (
-	"github.com/crowci/crow/v3/pipeline/frontend/yaml/constraint"
+	"codeberg.org/crowci/crow/v3/pipeline/frontend/yaml/constraint"
 )
 
 type (

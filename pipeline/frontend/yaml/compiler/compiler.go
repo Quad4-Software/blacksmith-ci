@@ -18,11 +18,11 @@ import (
 	"fmt"
 	"path"
 
-	backend_types "github.com/crowci/crow/v3/pipeline/backend/types"
-	"github.com/crowci/crow/v3/pipeline/frontend/metadata"
-	yaml_types "github.com/crowci/crow/v3/pipeline/frontend/yaml/types"
-	"github.com/crowci/crow/v3/pipeline/frontend/yaml/utils"
-	"github.com/crowci/crow/v3/shared/constant"
+	backend_types "codeberg.org/crowci/crow/v3/pipeline/backend/types"
+	"codeberg.org/crowci/crow/v3/pipeline/frontend/metadata"
+	yaml_types "codeberg.org/crowci/crow/v3/pipeline/frontend/yaml/types"
+	"codeberg.org/crowci/crow/v3/pipeline/frontend/yaml/utils"
+	"codeberg.org/crowci/crow/v3/shared/constant"
 )
 
 const (

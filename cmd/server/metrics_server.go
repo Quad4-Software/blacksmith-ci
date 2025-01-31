@@ -23,8 +23,8 @@ import (
 	prometheus_auto "github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/rs/zerolog/log"
 
-	"github.com/crowci/crow/v3/server"
-	"github.com/crowci/crow/v3/server/store"
+	"codeberg.org/crowci/crow/v3/server"
+	"codeberg.org/crowci/crow/v3/server/store"
 )
 
 func startMetricsCollector(ctx context.Context, _store store.Store) {

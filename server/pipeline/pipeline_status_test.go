@@ -23,9 +23,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/crowci/crow/v3/server/model"
-	"github.com/crowci/crow/v3/server/store"
-	"github.com/crowci/crow/v3/server/store/mocks"
+	"codeberg.org/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v3/server/store"
+	"codeberg.org/crowci/crow/v3/server/store/mocks"
 )
 
 func mockStorePipeline(t *testing.T) store.Store {

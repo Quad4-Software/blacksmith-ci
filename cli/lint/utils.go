@@ -7,7 +7,7 @@ import (
 
 	term_env "github.com/muesli/termenv"
 
-	pipeline_errors "github.com/crowci/crow/v3/pipeline/errors"
+	pipeline_errors "codeberg.org/crowci/crow/v3/pipeline/errors"
 )
 
 func FormatLintError(file string, err error, strict bool) (string, error) {

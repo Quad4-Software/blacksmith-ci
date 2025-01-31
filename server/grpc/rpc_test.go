@@ -23,9 +23,9 @@ import (
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc/metadata"
 
-	"github.com/crowci/crow/v3/pipeline/rpc"
-	"github.com/crowci/crow/v3/server/model"
-	mocks_store "github.com/crowci/crow/v3/server/store/mocks"
+	"codeberg.org/crowci/crow/v3/pipeline/rpc"
+	"codeberg.org/crowci/crow/v3/server/model"
+	mocks_store "codeberg.org/crowci/crow/v3/server/store/mocks"
 )
 
 func TestRegisterAgent(t *testing.T) {

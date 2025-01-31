@@ -19,12 +19,12 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/crowci/crow/v3/cmd/agent/core"
-	"github.com/crowci/crow/v3/pipeline/backend/docker"
-	"github.com/crowci/crow/v3/pipeline/backend/kubernetes"
-	"github.com/crowci/crow/v3/pipeline/backend/local"
-	backendTypes "github.com/crowci/crow/v3/pipeline/backend/types"
-	"github.com/crowci/crow/v3/shared/utils"
+	"codeberg.org/crowci/crow/v3/cmd/agent/core"
+	"codeberg.org/crowci/crow/v3/pipeline/backend/docker"
+	"codeberg.org/crowci/crow/v3/pipeline/backend/kubernetes"
+	"codeberg.org/crowci/crow/v3/pipeline/backend/local"
+	backendTypes "codeberg.org/crowci/crow/v3/pipeline/backend/types"
+	"codeberg.org/crowci/crow/v3/shared/utils"
 )
 
 var backends = []backendTypes.Backend{

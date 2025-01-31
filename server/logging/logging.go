@@ -18,7 +18,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v3/server/model"
 )
 
 // ErrNotFound is returned when the log does not exist.

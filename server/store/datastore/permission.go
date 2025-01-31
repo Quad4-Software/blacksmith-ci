@@ -20,7 +20,7 @@ import (
 	"xorm.io/builder"
 	"xorm.io/xorm"
 
-	"github.com/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v3/server/model"
 )
 
 func (s storage) PermFind(user *model.User, repo *model.Repo) (*model.Perm, error) {

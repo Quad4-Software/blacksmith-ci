@@ -94,12 +94,12 @@ Images are currently solely provided through the GitHub Container Registry (ghcr
 
     If there funds available to cover a DockerHub team subscription, images will also be there.
 
-- [crow-server (ghcr.io)](https://github.com/crowci/crow/pkgs/container/crow-server)
+- [crow-server (ghcr.io)](https://codeberg.org/crowci/crow/pkgs/container/crow-server)
 
-- [crow-agent (ghcr.io)](https://github.com/crowci/crow/pkgs/container/crow-agent)
+- [crow-agent (ghcr.io)](https://codeberg.org/crowci/crow/pkgs/container/crow-agent)
 
-- [crow-cli (ghcr.io)](https://github.com/crowci/crow/pkgs/container/crow-cli)
+- [crow-cli (ghcr.io)](https://codeberg.org/crowci/crow/pkgs/container/crow-cli)
 
-- [crow-autoscaler (ghcr.io)](https://github.com/crowci/crow/pkgs/container/crow-autoscaler)
+- [crow-autoscaler (ghcr.io)](https://codeberg.org/crowci/crow/pkgs/container/crow-autoscaler)
 
 [^1]: An Ansible role is in the works.

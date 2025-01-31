@@ -21,8 +21,8 @@ import (
 	"xorm.io/xorm"
 	xlog "xorm.io/xorm/log"
 
-	"github.com/crowci/crow/v3/server/store"
-	"github.com/crowci/crow/v3/server/store/datastore/migration"
+	"codeberg.org/crowci/crow/v3/server/store"
+	"codeberg.org/crowci/crow/v3/server/store/datastore/migration"
 )
 
 type storage struct {

@@ -1,4 +1,4 @@
-module github.com/crowci/crow/v3
+module codeberg.org/crowci/crow/v3
 
 go 1.23.4
 

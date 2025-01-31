@@ -18,9 +18,9 @@ package pipeline
 import (
 	"time"
 
-	"github.com/crowci/crow/v3/pipeline/errors"
-	"github.com/crowci/crow/v3/server/model"
-	"github.com/crowci/crow/v3/server/store"
+	"codeberg.org/crowci/crow/v3/pipeline/errors"
+	"codeberg.org/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v3/server/store"
 )
 
 func UpdateToStatusRunning(store store.Store, pipeline model.Pipeline, started int64) (*model.Pipeline, error) {

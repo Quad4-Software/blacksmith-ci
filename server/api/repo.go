@@ -27,13 +27,13 @@ import (
 	"github.com/gorilla/securecookie"
 	"github.com/rs/zerolog/log"
 
-	"github.com/crowci/crow/v3/server"
-	"github.com/crowci/crow/v3/server/forge"
-	"github.com/crowci/crow/v3/server/model"
-	"github.com/crowci/crow/v3/server/router/middleware/session"
-	"github.com/crowci/crow/v3/server/store"
-	"github.com/crowci/crow/v3/server/store/types"
-	"github.com/crowci/crow/v3/shared/token"
+	"codeberg.org/crowci/crow/v3/server"
+	"codeberg.org/crowci/crow/v3/server/forge"
+	"codeberg.org/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v3/server/router/middleware/session"
+	"codeberg.org/crowci/crow/v3/server/store"
+	"codeberg.org/crowci/crow/v3/server/store/types"
+	"codeberg.org/crowci/crow/v3/shared/token"
 )
 
 // PostRepo

@@ -15,8 +15,8 @@
 package main
 
 import (
-	"github.com/crowci/crow/v3/cmd/server/openapi"
-	"github.com/crowci/crow/v3/version"
+	"codeberg.org/crowci/crow/v3/cmd/server/openapi"
+	"codeberg.org/crowci/crow/v3/version"
 )
 
 // Generate docs/openapi.json via:

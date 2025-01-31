@@ -19,10 +19,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/crowci/crow/v3/server"
-	"github.com/crowci/crow/v3/server/forge"
-	"github.com/crowci/crow/v3/server/router/middleware/session"
-	"github.com/crowci/crow/v3/server/store"
+	"codeberg.org/crowci/crow/v3/server"
+	"codeberg.org/crowci/crow/v3/server/forge"
+	"codeberg.org/crowci/crow/v3/server/router/middleware/session"
+	"codeberg.org/crowci/crow/v3/server/store"
 )
 
 func Refresh(c *gin.Context) {

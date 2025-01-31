@@ -28,13 +28,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 
-	"github.com/crowci/crow/v3/server"
-	"github.com/crowci/crow/v3/server/model"
-	"github.com/crowci/crow/v3/server/pipeline"
-	"github.com/crowci/crow/v3/server/pipeline/stepbuilder"
-	"github.com/crowci/crow/v3/server/router/middleware/session"
-	"github.com/crowci/crow/v3/server/store"
-	"github.com/crowci/crow/v3/server/store/types"
+	"codeberg.org/crowci/crow/v3/server"
+	"codeberg.org/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v3/server/pipeline"
+	"codeberg.org/crowci/crow/v3/server/pipeline/stepbuilder"
+	"codeberg.org/crowci/crow/v3/server/router/middleware/session"
+	"codeberg.org/crowci/crow/v3/server/store"
+	"codeberg.org/crowci/crow/v3/server/store/types"
 )
 
 // CreatePipeline

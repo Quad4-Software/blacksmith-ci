@@ -21,13 +21,13 @@ import (
 	"github.com/jellydator/ttlcache/v3"
 	"github.com/urfave/cli/v3"
 
-	"github.com/crowci/crow/v3/server/forge"
-	"github.com/crowci/crow/v3/server/model"
-	"github.com/crowci/crow/v3/server/services/config"
-	"github.com/crowci/crow/v3/server/services/environment"
-	"github.com/crowci/crow/v3/server/services/registry"
-	"github.com/crowci/crow/v3/server/services/secret"
-	"github.com/crowci/crow/v3/server/store"
+	"codeberg.org/crowci/crow/v3/server/forge"
+	"codeberg.org/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v3/server/services/config"
+	"codeberg.org/crowci/crow/v3/server/services/environment"
+	"codeberg.org/crowci/crow/v3/server/services/registry"
+	"codeberg.org/crowci/crow/v3/server/services/secret"
+	"codeberg.org/crowci/crow/v3/server/store"
 )
 
 //go:generate mockery --name Manager --output mocks --case underscore --note "+build test"

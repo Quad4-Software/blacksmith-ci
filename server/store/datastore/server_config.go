@@ -14,7 +14,7 @@
 
 package datastore
 
-import "github.com/crowci/crow/v3/server/model"
+import "codeberg.org/crowci/crow/v3/server/model"
 
 func (s storage) ServerConfigGet(key string) (string, error) {
 	config := new(model.ServerConfig)

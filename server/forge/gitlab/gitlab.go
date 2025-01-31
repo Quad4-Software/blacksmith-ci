@@ -31,13 +31,13 @@ import (
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 	"golang.org/x/oauth2"
 
-	"github.com/crowci/crow/v3/server"
-	"github.com/crowci/crow/v3/server/forge"
-	"github.com/crowci/crow/v3/server/forge/common"
-	forge_types "github.com/crowci/crow/v3/server/forge/types"
-	"github.com/crowci/crow/v3/server/model"
-	"github.com/crowci/crow/v3/server/store"
-	"github.com/crowci/crow/v3/shared/utils"
+	"codeberg.org/crowci/crow/v3/server"
+	"codeberg.org/crowci/crow/v3/server/forge"
+	"codeberg.org/crowci/crow/v3/server/forge/common"
+	forge_types "codeberg.org/crowci/crow/v3/server/forge/types"
+	"codeberg.org/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v3/server/store"
+	"codeberg.org/crowci/crow/v3/shared/utils"
 )
 
 const (

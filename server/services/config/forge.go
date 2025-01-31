@@ -23,10 +23,10 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/crowci/crow/v3/server/forge"
-	"github.com/crowci/crow/v3/server/forge/types"
-	"github.com/crowci/crow/v3/server/model"
-	"github.com/crowci/crow/v3/shared/constant"
+	"codeberg.org/crowci/crow/v3/server/forge"
+	"codeberg.org/crowci/crow/v3/server/forge/types"
+	"codeberg.org/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v3/shared/constant"
 )
 
 type forgeFetcher struct {

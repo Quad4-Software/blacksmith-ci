@@ -23,14 +23,14 @@ import (
 	openapi_files "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
-	"github.com/crowci/crow/v3/cmd/server/openapi"
-	"github.com/crowci/crow/v3/server"
-	"github.com/crowci/crow/v3/server/api"
-	"github.com/crowci/crow/v3/server/api/metrics"
-	"github.com/crowci/crow/v3/server/router/middleware/header"
-	"github.com/crowci/crow/v3/server/router/middleware/session"
-	"github.com/crowci/crow/v3/server/router/middleware/token"
-	"github.com/crowci/crow/v3/server/web"
+	"codeberg.org/crowci/crow/v3/cmd/server/openapi"
+	"codeberg.org/crowci/crow/v3/server"
+	"codeberg.org/crowci/crow/v3/server/api"
+	"codeberg.org/crowci/crow/v3/server/api/metrics"
+	"codeberg.org/crowci/crow/v3/server/router/middleware/header"
+	"codeberg.org/crowci/crow/v3/server/router/middleware/session"
+	"codeberg.org/crowci/crow/v3/server/router/middleware/token"
+	"codeberg.org/crowci/crow/v3/server/web"
 )
 
 // Load loads the router.

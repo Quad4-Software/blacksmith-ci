@@ -23,7 +23,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/crowci/crow/v3/pipeline/log"
+	"codeberg.org/crowci/crow/v3/pipeline/log"
 )
 
 type testWriter struct {

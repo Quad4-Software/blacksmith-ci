@@ -3,7 +3,7 @@
 package mocks
 
 import (
-	pubsub "github.com/crowci/crow/v3/server/pubsub"
+	pubsub "codeberg.org/crowci/crow/v3/server/pubsub"
 	mock "github.com/stretchr/testify/mock"
 )
 

@@ -15,10 +15,10 @@
 package pipeline
 
 import (
-	forge_types "github.com/crowci/crow/v3/server/forge/types"
-	"github.com/crowci/crow/v3/server/model"
-	"github.com/crowci/crow/v3/server/pipeline/stepbuilder"
-	"github.com/crowci/crow/v3/server/store"
+	forge_types "codeberg.org/crowci/crow/v3/server/forge/types"
+	"codeberg.org/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v3/server/pipeline/stepbuilder"
+	"codeberg.org/crowci/crow/v3/server/store"
 )
 
 func findOrPersistPipelineConfig(store store.Store, currentPipeline *model.Pipeline, forgeYamlConfig *forge_types.FileMeta) (*model.Config, error) {

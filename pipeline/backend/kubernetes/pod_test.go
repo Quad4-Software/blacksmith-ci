@@ -22,7 +22,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 
-	"github.com/crowci/crow/v3/pipeline/backend/types"
+	"codeberg.org/crowci/crow/v3/pipeline/backend/types"
 )
 
 func TestPodName(t *testing.T) {

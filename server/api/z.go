@@ -21,8 +21,8 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"github.com/crowci/crow/v3/server/store"
-	"github.com/crowci/crow/v3/version"
+	"codeberg.org/crowci/crow/v3/server/store"
+	"codeberg.org/crowci/crow/v3/version"
 )
 
 // Health
@@ -52,7 +52,7 @@ func Health(c *gin.Context) {
 //	@Tags			System
 func Version(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
-		"source":  "https://github.com/crowci/crow",
+		"source":  "https://codeberg.org/crowci/crow",
 		"version": version.String(),
 	})
 }

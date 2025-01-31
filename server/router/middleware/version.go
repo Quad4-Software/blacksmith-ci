@@ -17,7 +17,7 @@ package middleware
 import (
 	"github.com/gin-gonic/gin"
 
-	"github.com/crowci/crow/v3/version"
+	"codeberg.org/crowci/crow/v3/version"
 )
 
 // Version is a middleware function that appends the Woodpecker version information

@@ -32,7 +32,7 @@ steps:
       - vendor
     image: *golang_image
     commands:
-      - go run github.com/crowci/crow/v3/cmd/cli lint
+      - go run codeberg.org/crowci/crow/v3/cmd/cli lint
     environment:
       CROW_DISABLE_UPDATE_CHECK: true
       CROW_LINT_STRICT: true

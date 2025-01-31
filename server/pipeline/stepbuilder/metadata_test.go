@@ -19,9 +19,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/crowci/crow/v3/pipeline/frontend/metadata"
-	"github.com/crowci/crow/v3/server/forge/mocks"
-	"github.com/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v3/pipeline/frontend/metadata"
+	"codeberg.org/crowci/crow/v3/server/forge/mocks"
+	"codeberg.org/crowci/crow/v3/server/model"
 )
 
 func TestMetadataFromStruct(t *testing.T) {

@@ -19,8 +19,8 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/crowci/crow/v3/server/forge"
-	"github.com/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v3/server/forge"
+	"codeberg.org/crowci/crow/v3/server/model"
 )
 
 func updatePipelineStatus(ctx context.Context, forge forge.Forge, pipeline *model.Pipeline, repo *model.Repo, user *model.User) {

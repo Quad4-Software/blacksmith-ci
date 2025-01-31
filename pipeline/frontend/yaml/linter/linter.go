@@ -20,12 +20,12 @@ import (
 	"codeberg.org/6543/xyaml"
 	"go.uber.org/multierr"
 
-	"github.com/crowci/crow/v3/pipeline/errors"
-	errorTypes "github.com/crowci/crow/v3/pipeline/errors/types"
-	"github.com/crowci/crow/v3/pipeline/frontend/yaml/linter/schema"
-	"github.com/crowci/crow/v3/pipeline/frontend/yaml/types"
-	"github.com/crowci/crow/v3/pipeline/frontend/yaml/utils"
-	"github.com/crowci/crow/v3/shared/constant"
+	"codeberg.org/crowci/crow/v3/pipeline/errors"
+	errorTypes "codeberg.org/crowci/crow/v3/pipeline/errors/types"
+	"codeberg.org/crowci/crow/v3/pipeline/frontend/yaml/linter/schema"
+	"codeberg.org/crowci/crow/v3/pipeline/frontend/yaml/types"
+	"codeberg.org/crowci/crow/v3/pipeline/frontend/yaml/utils"
+	"codeberg.org/crowci/crow/v3/shared/constant"
 )
 
 // A Linter lints a pipeline configuration.

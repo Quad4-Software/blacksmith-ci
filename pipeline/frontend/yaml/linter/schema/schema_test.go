@@ -21,7 +21,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/crowci/crow/v3/pipeline/frontend/yaml/linter/schema"
+	"codeberg.org/crowci/crow/v3/pipeline/frontend/yaml/linter/schema"
 )
 
 func TestSchema(t *testing.T) {

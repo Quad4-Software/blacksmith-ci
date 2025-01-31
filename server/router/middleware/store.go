@@ -17,7 +17,7 @@ package middleware
 import (
 	"github.com/gin-gonic/gin"
 
-	"github.com/crowci/crow/v3/server/store"
+	"codeberg.org/crowci/crow/v3/server/store"
 )
 
 // Store is a middleware function that initializes the Datastore and attaches to

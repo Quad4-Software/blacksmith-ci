@@ -19,7 +19,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/crowci/crow/v3/pipeline/frontend/metadata"
+	"codeberg.org/crowci/crow/v3/pipeline/frontend/metadata"
 )
 
 // Option configures a compiler option.

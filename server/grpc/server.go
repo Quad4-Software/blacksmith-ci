@@ -22,13 +22,13 @@ import (
 	prometheus_auto "github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/rs/zerolog/log"
 
-	"github.com/crowci/crow/v3/pipeline/rpc"
-	"github.com/crowci/crow/v3/pipeline/rpc/proto"
-	"github.com/crowci/crow/v3/server/logging"
-	"github.com/crowci/crow/v3/server/pubsub"
-	"github.com/crowci/crow/v3/server/queue"
-	"github.com/crowci/crow/v3/server/store"
-	"github.com/crowci/crow/v3/version"
+	"codeberg.org/crowci/crow/v3/pipeline/rpc"
+	"codeberg.org/crowci/crow/v3/pipeline/rpc/proto"
+	"codeberg.org/crowci/crow/v3/server/logging"
+	"codeberg.org/crowci/crow/v3/server/pubsub"
+	"codeberg.org/crowci/crow/v3/server/queue"
+	"codeberg.org/crowci/crow/v3/server/store"
+	"codeberg.org/crowci/crow/v3/version"
 )
 
 // CrowServer is a grpc server implementation.

@@ -24,8 +24,8 @@ import (
 
 	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo"
 
-	"github.com/crowci/crow/v3/server/model"
-	"github.com/crowci/crow/v3/shared/utils"
+	"codeberg.org/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v3/shared/utils"
 )
 
 // toRepo converts a Forgejo repository to a Woodpecker repository.

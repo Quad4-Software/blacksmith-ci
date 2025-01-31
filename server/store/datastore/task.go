@@ -15,7 +15,7 @@
 package datastore
 
 import (
-	"github.com/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v3/server/model"
 )
 
 func (s storage) TaskList() ([]*model.Task, error) {

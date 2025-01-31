@@ -19,7 +19,7 @@ package store
 import (
 	"context"
 
-	"github.com/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v3/server/model"
 )
 
 // TODO: CreateX func should return new object to not indirect let storage change an existing object (alter ID etc...)

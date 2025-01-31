@@ -24,10 +24,10 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"github.com/crowci/crow/v3/cli/common"
-	"github.com/crowci/crow/v3/pipeline/frontend/yaml"
-	"github.com/crowci/crow/v3/pipeline/frontend/yaml/linter"
-	"github.com/crowci/crow/v3/shared/constant"
+	"codeberg.org/crowci/crow/v3/cli/common"
+	"codeberg.org/crowci/crow/v3/pipeline/frontend/yaml"
+	"codeberg.org/crowci/crow/v3/pipeline/frontend/yaml/linter"
+	"codeberg.org/crowci/crow/v3/shared/constant"
 )
 
 // Command exports the info command.

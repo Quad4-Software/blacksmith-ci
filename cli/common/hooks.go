@@ -8,8 +8,8 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v3"
 
-	"github.com/crowci/crow/v3/cli/internal/config"
-	"github.com/crowci/crow/v3/cli/update"
+	"codeberg.org/crowci/crow/v3/cli/internal/config"
+	"codeberg.org/crowci/crow/v3/cli/update"
 )
 
 var (

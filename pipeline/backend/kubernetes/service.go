@@ -25,7 +25,7 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	int_str "k8s.io/apimachinery/pkg/util/intstr"
 
-	"github.com/crowci/crow/v3/pipeline/backend/types"
+	"codeberg.org/crowci/crow/v3/pipeline/backend/types"
 )
 
 const (

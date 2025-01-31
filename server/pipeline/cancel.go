@@ -20,11 +20,11 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/crowci/crow/v3/server"
-	"github.com/crowci/crow/v3/server/forge"
-	"github.com/crowci/crow/v3/server/model"
-	"github.com/crowci/crow/v3/server/queue"
-	"github.com/crowci/crow/v3/server/store"
+	"codeberg.org/crowci/crow/v3/server"
+	"codeberg.org/crowci/crow/v3/server/forge"
+	"codeberg.org/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v3/server/queue"
+	"codeberg.org/crowci/crow/v3/server/store"
 )
 
 // Cancel the pipeline and returns the status.

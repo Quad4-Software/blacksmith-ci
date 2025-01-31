@@ -20,7 +20,7 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"github.com/crowci/crow/v3/cli/internal"
+	"codeberg.org/crowci/crow/v3/cli/internal"
 )
 
 var repoRepairCmd = &cli.Command{

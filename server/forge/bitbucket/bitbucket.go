@@ -26,13 +26,13 @@ import (
 
 	"golang.org/x/oauth2"
 
-	"github.com/crowci/crow/v3/server"
-	"github.com/crowci/crow/v3/server/forge"
-	"github.com/crowci/crow/v3/server/forge/bitbucket/internal"
-	"github.com/crowci/crow/v3/server/forge/common"
-	forge_types "github.com/crowci/crow/v3/server/forge/types"
-	"github.com/crowci/crow/v3/server/model"
-	shared_utils "github.com/crowci/crow/v3/shared/utils"
+	"codeberg.org/crowci/crow/v3/server"
+	"codeberg.org/crowci/crow/v3/server/forge"
+	"codeberg.org/crowci/crow/v3/server/forge/bitbucket/internal"
+	"codeberg.org/crowci/crow/v3/server/forge/common"
+	forge_types "codeberg.org/crowci/crow/v3/server/forge/types"
+	"codeberg.org/crowci/crow/v3/server/model"
+	shared_utils "codeberg.org/crowci/crow/v3/shared/utils"
 )
 
 // Bitbucket cloud endpoints.

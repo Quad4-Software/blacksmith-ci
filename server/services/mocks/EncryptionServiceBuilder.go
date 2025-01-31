@@ -3,7 +3,7 @@
 package mocks
 
 import (
-	types "github.com/crowci/crow/v3/server/services/encryption/types"
+	types "codeberg.org/crowci/crow/v3/server/services/encryption/types"
 	mock "github.com/stretchr/testify/mock"
 )
 

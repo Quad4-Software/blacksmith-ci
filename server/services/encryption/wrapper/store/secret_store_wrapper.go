@@ -21,8 +21,8 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/crowci/crow/v3/server/model"
-	"github.com/crowci/crow/v3/server/services/encryption/types"
+	"codeberg.org/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v3/server/services/encryption/types"
 )
 
 type EncryptedSecretStore struct {

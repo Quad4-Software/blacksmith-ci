@@ -19,11 +19,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	backend_types "github.com/crowci/crow/v3/pipeline/backend/types"
-	"github.com/crowci/crow/v3/pipeline/frontend/metadata"
-	yaml_types "github.com/crowci/crow/v3/pipeline/frontend/yaml/types"
-	yaml_base_types "github.com/crowci/crow/v3/pipeline/frontend/yaml/types/base"
-	"github.com/crowci/crow/v3/shared/constant"
+	backend_types "codeberg.org/crowci/crow/v3/pipeline/backend/types"
+	"codeberg.org/crowci/crow/v3/pipeline/frontend/metadata"
+	yaml_types "codeberg.org/crowci/crow/v3/pipeline/frontend/yaml/types"
+	yaml_base_types "codeberg.org/crowci/crow/v3/pipeline/frontend/yaml/types/base"
+	"codeberg.org/crowci/crow/v3/shared/constant"
 )
 
 func TestSecretAvailable(t *testing.T) {

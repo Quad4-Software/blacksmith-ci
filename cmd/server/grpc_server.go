@@ -24,10 +24,10 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 
-	"github.com/crowci/crow/v3/pipeline/rpc/proto"
-	"github.com/crowci/crow/v3/server"
-	crowGrpcServer "github.com/crowci/crow/v3/server/grpc"
-	"github.com/crowci/crow/v3/server/store"
+	"codeberg.org/crowci/crow/v3/pipeline/rpc/proto"
+	"codeberg.org/crowci/crow/v3/server"
+	crowGrpcServer "codeberg.org/crowci/crow/v3/server/grpc"
+	"codeberg.org/crowci/crow/v3/server/store"
 )
 
 func runGrpcServer(ctx context.Context, c *cli.Command, _store store.Store) error {

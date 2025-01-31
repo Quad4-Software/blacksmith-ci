@@ -21,8 +21,8 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/crowci/crow/v3/server"
-	"github.com/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v3/server"
+	"codeberg.org/crowci/crow/v3/server/model"
 )
 
 func GetPipelineStatusContext(repo *model.Repo, pipeline *model.Pipeline, workflow *model.Workflow) string {

@@ -5,7 +5,7 @@ package mocks
 import (
 	context "context"
 
-	proto "github.com/crowci/crow/v3/pipeline/rpc/proto"
+	proto "codeberg.org/crowci/crow/v3/pipeline/rpc/proto"
 	mock "github.com/stretchr/testify/mock"
 )
 

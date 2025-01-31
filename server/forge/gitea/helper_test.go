@@ -22,8 +22,8 @@ import (
 	"code.gitea.io/sdk/gitea"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/crowci/crow/v3/server/forge/gitea/fixtures"
-	"github.com/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v3/server/forge/gitea/fixtures"
+	"codeberg.org/crowci/crow/v3/server/model"
 )
 
 func Test_parsePush(t *testing.T) {

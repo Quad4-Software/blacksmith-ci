@@ -17,7 +17,7 @@ package pipeline
 import (
 	"io"
 
-	backend "github.com/crowci/crow/v3/pipeline/backend/types"
+	backend "codeberg.org/crowci/crow/v3/pipeline/backend/types"
 )
 
 // Logger handles the process logging.

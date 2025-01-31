@@ -21,10 +21,10 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/crowci/crow/v3/pipeline/rpc/proto"
-	"github.com/crowci/crow/v3/server/model"
-	"github.com/crowci/crow/v3/server/store"
-	"github.com/crowci/crow/v3/server/store/types"
+	"codeberg.org/crowci/crow/v3/pipeline/rpc/proto"
+	"codeberg.org/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v3/server/store"
+	"codeberg.org/crowci/crow/v3/server/store/types"
 )
 
 type CrowAuthServer struct {

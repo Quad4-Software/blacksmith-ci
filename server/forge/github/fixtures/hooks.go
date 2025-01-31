@@ -48,10 +48,10 @@ const HookPush = `{
 			"type": "Organization",
 			"site_admin": false
 		},
-		"html_url": "https://github.com/crowci/crow",
+		"html_url": "https://codeberg.org/crowci/crow",
 		"description": "Woodpecker is a simple, yet powerful CI/CD engine with great extensibility.",
 		"fork": false,
-		"url": "https://github.com/crowci/crow",
+		"url": "https://codeberg.org/crowci/crow",
 		"forks_url": "https://api.github.com/repos/crowci/crow/forks",
 		"keys_url": "https://api.github.com/repos/crowci/crow/keys{/key_id}",
 		"collaborators_url": "https://api.github.com/repos/crowci/crow/collaborators{/collaborator}",
@@ -91,10 +91,10 @@ const HookPush = `{
 		"created_at": 1554314798,
 		"updated_at": "2022-01-16T20:19:33Z",
 		"pushed_at": 1642370257,
-		"git_url": "git://github.com/crowci/crow.git",
+		"git_url": "git://codeberg.org/crowci/crow.git",
 		"ssh_url": "git@github.com:crowci/crow.git",
-		"clone_url": "https://github.com/crowci/crow.git",
-		"svn_url": "https://github.com/crowci/crow",
+		"clone_url": "https://codeberg.org/crowci/crow.git",
+		"svn_url": "https://codeberg.org/crowci/crow",
 		"homepage": "https://woodpecker-ci.org",
 		"size": 81324,
 		"stargazers_count": 659,
@@ -178,7 +178,7 @@ const HookPush = `{
 	"deleted": false,
 	"forced": false,
 	"base_ref": null,
-	"compare": "https://github.com/crowci/crow/compare/2f780193b136...366701fde727",
+	"compare": "https://codeberg.org/crowci/crow/compare/2f780193b136...366701fde727",
 	"commits": [
 		{
 			"id": "366701fde727cb7a9e7f21eb88264f59f6f9b89c",
@@ -186,7 +186,7 @@ const HookPush = `{
 			"distinct": true,
 			"message": "Fix multiline secrets replacer (#700)\n\n* Fix multiline secrets replacer\r\n\r\n* Add tests",
 			"timestamp": "2022-01-16T22:57:37+01:00",
-			"url": "https://github.com/crowci/crow/commit/366701fde727cb7a9e7f21eb88264f59f6f9b89c",
+			"url": "https://codeberg.org/crowci/crow/commit/366701fde727cb7a9e7f21eb88264f59f6f9b89c",
 			"author": {
 				"name": "Philipp",
 				"email": "noreply@philipp.xzy",
@@ -215,7 +215,7 @@ const HookPush = `{
 		"distinct": true,
 		"message": "Fix multiline secrets replacer (#700)\n\n* Fix multiline secrets replacer\r\n\r\n* Add tests",
 		"timestamp": "2022-01-16T22:57:37+01:00",
-		"url": "https://github.com/crowci/crow/commit/366701fde727cb7a9e7f21eb88264f59f6f9b89c",
+		"url": "https://codeberg.org/crowci/crow/commit/366701fde727cb7a9e7f21eb88264f59f6f9b89c",
 		"author": {
 			"name": "Philipp",
 			"email": "admin@philipp.info",

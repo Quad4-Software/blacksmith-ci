@@ -19,7 +19,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/crowci/crow/v3/pipeline/backend/types"
+	"codeberg.org/crowci/crow/v3/pipeline/backend/types"
 )
 
 const (

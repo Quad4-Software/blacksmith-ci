@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli/v3"
 
-	"github.com/crowci/crow/v3/cli/common"
-	crow "github.com/crowci/crow/v3/crow-go/crow"
+	"codeberg.org/crowci/crow/v3/cli/common"
+	crow "codeberg.org/crowci/crow/v3/crow-go/crow"
 )
 
 func TestPipelineOutput(t *testing.T) {

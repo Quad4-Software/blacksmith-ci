@@ -1,6 +1,6 @@
 package log
 
-import "github.com/crowci/crow/v3/server/model"
+import "codeberg.org/crowci/crow/v3/server/model"
 
 type Service interface {
 	LogFind(step *model.Step) ([]*model.LogEntry, error)

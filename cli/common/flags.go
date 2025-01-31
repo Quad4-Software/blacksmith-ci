@@ -17,7 +17,7 @@ package common
 import (
 	"github.com/urfave/cli/v3"
 
-	"github.com/crowci/crow/v3/shared/logger"
+	"codeberg.org/crowci/crow/v3/shared/logger"
 )
 
 var GlobalFlags = append([]cli.Flag{

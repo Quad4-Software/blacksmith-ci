@@ -29,7 +29,7 @@ CGO_CFLAGS := if HAS_GO == "GO" { `go env CGO_CFLAGS` } else { "" }
 fmt:
 		prettier -w .
 		cd web/ && prettier -w .
-		gci write --skip-vendor --skip-generated -s standard -s default -s "prefix(github.com/crowci/crow)" --custom-order .
+		gci write --skip-vendor --skip-generated -s standard -s default -s "prefix(codeberg.org/crowci/crow)" --custom-order .
 
 test: test-agent test-server test-server-datastore test-cli test-lib
 
@@ -59,20 +59,20 @@ install-tools:
 ## test
 
 test-agent:
-		CGO_ENABLED=1 go test -race -cover -coverprofile agent-coverage.out -timeout 60s -tags 'test {{ TAGS }}' github.com/crowci/crow/v3/cmd/agent github.com/crowci/crow/v3/agent/...
+		CGO_ENABLED=1 go test -race -cover -coverprofile agent-coverage.out -timeout 60s -tags 'test {{ TAGS }}' codeberg.org/crowci/crow/v3/cmd/agent codeberg.org/crowci/crow/v3/agent/...
 
 test-server:
-		CGO_ENABLED=1 go test -race -cover -coverprofile server-coverage.out -timeout 60s -tags 'test {{ TAGS }}' github.com/crowci/crow/v3/cmd/server `go list github.com/crowci/crow/v3/server/... | grep -v '/store'`
+		CGO_ENABLED=1 go test -race -cover -coverprofile server-coverage.out -timeout 60s -tags 'test {{ TAGS }}' codeberg.org/crowci/crow/v3/cmd/server `go list codeberg.org/crowci/crow/v3/server/... | grep -v '/store'`
 
 test-cli:
-		CGO_ENABLED=1 go test -race -cover -coverprofile cli-coverage.out -timeout 60s -tags 'test {{ TAGS }}' github.com/crowci/crow/v3/cmd/cli github.com/crowci/crow/v3/cli/...
+		CGO_ENABLED=1 go test -race -cover -coverprofile cli-coverage.out -timeout 60s -tags 'test {{ TAGS }}' codeberg.org/crowci/crow/v3/cmd/cli codeberg.org/crowci/crow/v3/cli/...
 
 test-server-datastore:
-		CGO_ENABLED=1 go test -timeout 300s -tags 'test {{ TAGS }}' -run TestMigrate github.com/crowci/crow/v3/server/store/...
-		go test -race -timeout 100s -tags 'test {{ TAGS }}' -skip TestMigrate github.com/crowci/crow/v3/server/store/...
+		CGO_ENABLED=1 go test -timeout 300s -tags 'test {{ TAGS }}' -run TestMigrate codeberg.org/crowci/crow/v3/server/store/...
+		go test -race -timeout 100s -tags 'test {{ TAGS }}' -skip TestMigrate codeberg.org/crowci/crow/v3/server/store/...
 
 test-server-datastore-coverage:
-		CGO_ENABLED=1 go test -race -cover -coverprofile datastore-coverage.out -timeout 300s -tags 'test {{ TAGS }}' github.com/crowci/crow/v3/server/store/...
+		CGO_ENABLED=1 go test -race -cover -coverprofile datastore-coverage.out -timeout 300s -tags 'test {{ TAGS }}' codeberg.org/crowci/crow/v3/server/store/...
 
 # FIXME: feature of 1.38.0 [working-directory('web')]
 test-ui:
@@ -123,10 +123,10 @@ build-ui:
 		cd web/ && pnpm build
 
 build-agent:
-		CGO_ENABLED=0 GOOS={{ TARGETOS }} GOARCH={{ TARGETARCH }} go build -tags '{{ TAGS }}' -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/crow-agent{{ BIN_SUFFIX }} github.com/crowci/crow/v3/cmd/agent
+		CGO_ENABLED=0 GOOS={{ TARGETOS }} GOARCH={{ TARGETARCH }} go build -tags '{{ TAGS }}' -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/crow-agent{{ BIN_SUFFIX }} codeberg.org/crowci/crow/v3/cmd/agent
 
 build-cli:
-		CGO_ENABLED=0 GOOS={{ TARGETOS }} GOARCH={{ TARGETARCH }} go build -tags '{{ TAGS }}' -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/crow-cli{{ BIN_SUFFIX }} github.com/crowci/crow/v3/cmd/cli
+		CGO_ENABLED=0 GOOS={{ TARGETOS }} GOARCH={{ TARGETARCH }} go build -tags '{{ TAGS }}' -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/crow-cli{{ BIN_SUFFIX }} codeberg.org/crowci/crow/v3/cmd/cli
 
 # build-server
 
@@ -173,7 +173,7 @@ release-server-xgo: check-xgo
 		@echo "- os: ${TARGETOS}"
 		@echo "- arch (xgo): ${TARGETARCH}"
 		@echo "------------------"
-		CGO_CFLAGS="{{ CGO_CFLAGS }}" xgo -go {{ XGO_VERSION }} -dest {{ DIST_DIR }}/server/${TARGETOS}_${TARGETARCH} -tags 'netgo osusergo grpcnotrace {{ TAGS }}' -ldflags '-linkmode external {{ LDFLAGS }} -X github.com/crowci/crow/v3/version.Version={{ VERSION }}' -targets ${TARGETOS}/${TARGETARCH} -out crow-server -pkg cmd/server .
+		CGO_CFLAGS="{{ CGO_CFLAGS }}" xgo -go {{ XGO_VERSION }} -dest {{ DIST_DIR }}/server/${TARGETOS}_${TARGETARCH} -tags 'netgo osusergo grpcnotrace {{ TAGS }}' -ldflags '-linkmode external {{ LDFLAGS }} -X codeberg.org/crowci/crow/v3/version.Version={{ VERSION }}' -targets ${TARGETOS}/${TARGETARCH} -out crow-server -pkg cmd/server .
 		# move binary into subfolder depending on target os and arch
 		if [ "${XGO_IN_XGO:-0}" -eq "1" ]; then \
 			echo "inside xgo image"; \
@@ -188,12 +188,12 @@ release-server-xgo: check-xgo
 ## agent
 
 release-agent:
-		GOOS=linux   GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -tags 'grpcnotrace {{ TAGS }}' -o {{ DIST_DIR }}/agent/linux_amd64/crow-agent       github.com/crowci/crow/v3/cmd/agent
-		GOOS=linux   GOARCH=arm64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -tags 'grpcnotrace {{ TAGS }}' -o {{ DIST_DIR }}/agent/linux_arm64/crow-agent       github.com/crowci/crow/v3/cmd/agent
-		GOOS=linux   GOARCH=arm   CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -tags 'grpcnotrace {{ TAGS }}' -o {{ DIST_DIR }}/agent/linux_arm/crow-agent         github.com/crowci/crow/v3/cmd/agent
-		GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -tags 'grpcnotrace {{ TAGS }}' -o {{ DIST_DIR }}/agent/windows_amd64/crow-agent.exe github.com/crowci/crow/v3/cmd/agent
-		GOOS=darwin  GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -tags 'grpcnotrace {{ TAGS }}' -o {{ DIST_DIR }}/agent/darwin_amd64/crow-agent      github.com/crowci/crow/v3/cmd/agent
-		GOOS=darwin  GOARCH=arm64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -tags 'grpcnotrace {{ TAGS }}' -o {{ DIST_DIR }}/agent/darwin_arm64/crow-agent      github.com/crowci/crow/v3/cmd/agent
+		GOOS=linux   GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -tags 'grpcnotrace {{ TAGS }}' -o {{ DIST_DIR }}/agent/linux_amd64/crow-agent       codeberg.org/crowci/crow/v3/cmd/agent
+		GOOS=linux   GOARCH=arm64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -tags 'grpcnotrace {{ TAGS }}' -o {{ DIST_DIR }}/agent/linux_arm64/crow-agent       codeberg.org/crowci/crow/v3/cmd/agent
+		GOOS=linux   GOARCH=arm   CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -tags 'grpcnotrace {{ TAGS }}' -o {{ DIST_DIR }}/agent/linux_arm/crow-agent         codeberg.org/crowci/crow/v3/cmd/agent
+		GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -tags 'grpcnotrace {{ TAGS }}' -o {{ DIST_DIR }}/agent/windows_amd64/crow-agent.exe codeberg.org/crowci/crow/v3/cmd/agent
+		GOOS=darwin  GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -tags 'grpcnotrace {{ TAGS }}' -o {{ DIST_DIR }}/agent/darwin_amd64/crow-agent      codeberg.org/crowci/crow/v3/cmd/agent
+		GOOS=darwin  GOARCH=arm64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -tags 'grpcnotrace {{ TAGS }}' -o {{ DIST_DIR }}/agent/darwin_arm64/crow-agent      codeberg.org/crowci/crow/v3/cmd/agent
 		# tar binary files
 		tar -cvzf {{ DIST_DIR }}/crow-agent_linux_amd64.tar.gz   -C {{ DIST_DIR }}/agent/linux_amd64   crow-agent
 		tar -cvzf {{ DIST_DIR }}/crow-agent_linux_arm64.tar.gz   -C {{ DIST_DIR }}/agent/linux_arm64   crow-agent
@@ -207,12 +207,12 @@ release-agent:
 ## cli
 
 release-cli:
-		GOOS=linux   GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/linux_amd64/crow-cli       github.com/crowci/crow/v3/cmd/cli
-		GOOS=linux   GOARCH=arm64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/linux_arm64/crow-cli       github.com/crowci/crow/v3/cmd/cli
-		GOOS=linux   GOARCH=arm   CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/linux_arm/crow-cli         github.com/crowci/crow/v3/cmd/cli
-		GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/windows_amd64/crow-cli.exe github.com/crowci/crow/v3/cmd/cli
-		GOOS=darwin  GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/darwin_amd64/crow-cli      github.com/crowci/crow/v3/cmd/cli
-		GOOS=darwin  GOARCH=arm64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/darwin_arm64/crow-cli      github.com/crowci/crow/v3/cmd/cli
+		GOOS=linux   GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/linux_amd64/crow-cli       codeberg.org/crowci/crow/v3/cmd/cli
+		GOOS=linux   GOARCH=arm64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/linux_arm64/crow-cli       codeberg.org/crowci/crow/v3/cmd/cli
+		GOOS=linux   GOARCH=arm   CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/linux_arm/crow-cli         codeberg.org/crowci/crow/v3/cmd/cli
+		GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/windows_amd64/crow-cli.exe codeberg.org/crowci/crow/v3/cmd/cli
+		GOOS=darwin  GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/darwin_amd64/crow-cli      codeberg.org/crowci/crow/v3/cmd/cli
+		GOOS=darwin  GOARCH=arm64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/darwin_arm64/crow-cli      codeberg.org/crowci/crow/v3/cmd/cli
 		# tar binary files
 		tar -cvzf {{ DIST_DIR }}/crow-cli_linux_amd64.tar.gz   -C {{ DIST_DIR }}/cli/linux_amd64   crow-cli
 		tar -cvzf {{ DIST_DIR }}/crow-cli_linux_arm64.tar.gz   -C {{ DIST_DIR }}/cli/linux_arm64   crow-cli

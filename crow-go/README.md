@@ -1,8 +1,10 @@
+<!-- markdownlint-disable MD041 -->
+
 # crow-go
 
 ```Go
 import (
-  "github.com/crowci/crow/v3/crow-go/crow"
+  "codeberg.org/crowci/crow/v3/crow-go/crow"
   "golang.org/x/oauth2"
 )
 

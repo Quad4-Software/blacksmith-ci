@@ -22,7 +22,7 @@ import (
 	bb "github.com/neticdk/go-bitbucket/bitbucket"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v3/server/model"
 )
 
 func Test_convertStatus(t *testing.T) {

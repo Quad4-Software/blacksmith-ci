@@ -19,7 +19,7 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	crow "github.com/crowci/crow/v3/crow-go/crow"
+	crow "codeberg.org/crowci/crow/v3/crow-go/crow"
 )
 
 // Command exports the secret command.

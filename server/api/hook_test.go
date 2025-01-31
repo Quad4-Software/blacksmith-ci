@@ -11,17 +11,17 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/crowci/crow/v3/server"
-	"github.com/crowci/crow/v3/server/api"
-	mocks_forge "github.com/crowci/crow/v3/server/forge/mocks"
-	"github.com/crowci/crow/v3/server/model"
-	mocks_config_service "github.com/crowci/crow/v3/server/services/config/mocks"
-	mocks_services "github.com/crowci/crow/v3/server/services/mocks"
-	"github.com/crowci/crow/v3/server/services/permissions"
-	mocks_registry_service "github.com/crowci/crow/v3/server/services/registry/mocks"
-	mocks_secret_service "github.com/crowci/crow/v3/server/services/secret/mocks"
-	mocks_store "github.com/crowci/crow/v3/server/store/mocks"
-	"github.com/crowci/crow/v3/shared/token"
+	"codeberg.org/crowci/crow/v3/server"
+	"codeberg.org/crowci/crow/v3/server/api"
+	mocks_forge "codeberg.org/crowci/crow/v3/server/forge/mocks"
+	"codeberg.org/crowci/crow/v3/server/model"
+	mocks_config_service "codeberg.org/crowci/crow/v3/server/services/config/mocks"
+	mocks_services "codeberg.org/crowci/crow/v3/server/services/mocks"
+	"codeberg.org/crowci/crow/v3/server/services/permissions"
+	mocks_registry_service "codeberg.org/crowci/crow/v3/server/services/registry/mocks"
+	mocks_secret_service "codeberg.org/crowci/crow/v3/server/services/secret/mocks"
+	mocks_store "codeberg.org/crowci/crow/v3/server/store/mocks"
+	"codeberg.org/crowci/crow/v3/shared/token"
 )
 
 func TestHook(t *testing.T) {

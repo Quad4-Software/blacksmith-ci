@@ -15,7 +15,7 @@
 package addon
 
 import (
-	"github.com/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v3/server/model"
 )
 
 type argumentsAuth struct {

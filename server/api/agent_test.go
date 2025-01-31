@@ -25,13 +25,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/crowci/crow/v3/server"
-	"github.com/crowci/crow/v3/server/model"
-	"github.com/crowci/crow/v3/server/queue"
-	queue_mocks "github.com/crowci/crow/v3/server/queue/mocks"
-	mocks_manager "github.com/crowci/crow/v3/server/services/mocks"
-	store_mocks "github.com/crowci/crow/v3/server/store/mocks"
-	"github.com/crowci/crow/v3/server/store/types"
+	"codeberg.org/crowci/crow/v3/server"
+	"codeberg.org/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v3/server/queue"
+	queue_mocks "codeberg.org/crowci/crow/v3/server/queue/mocks"
+	mocks_manager "codeberg.org/crowci/crow/v3/server/services/mocks"
+	store_mocks "codeberg.org/crowci/crow/v3/server/store/mocks"
+	"codeberg.org/crowci/crow/v3/server/store/types"
 )
 
 var fakeAgent = &model.Agent{

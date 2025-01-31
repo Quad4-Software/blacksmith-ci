@@ -20,7 +20,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 
-	"github.com/crowci/crow/v3/pipeline/frontend/metadata"
+	"codeberg.org/crowci/crow/v3/pipeline/frontend/metadata"
 )
 
 func TestConstraint(t *testing.T) {

@@ -19,9 +19,9 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/crowci/crow/v3/server/forge/bitbucket/internal"
-	"github.com/crowci/crow/v3/server/forge/types"
-	"github.com/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v3/server/forge/bitbucket/internal"
+	"codeberg.org/crowci/crow/v3/server/forge/types"
+	"codeberg.org/crowci/crow/v3/server/model"
 )
 
 const (

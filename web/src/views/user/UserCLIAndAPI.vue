@@ -62,7 +62,7 @@ const usageWithCurl = computed(() => {
 
 const usageWithCli = `# crow-cli setup --server ${address}`;
 
-const cliDownload = 'https://github.com/crowci/crow/releases';
+const cliDownload = 'https://codeberg.org/crowci/crow/releases';
 
 const resetToken = async () => {
   token.value = await apiClient.resetToken();

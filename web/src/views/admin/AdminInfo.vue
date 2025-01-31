@@ -13,7 +13,7 @@
         <i18n-t keypath="update_crow" tag="span">
           <a
             v-if="!version.usesNext"
-            :href="`https://github.com/crowci/crow/releases/tag/${version.latest}`"
+            :href="`https://codeberg.org/crowci/crow/releases/tag/${version.latest}`"
             target="_blank"
             rel="noopener noreferrer"
             class="underline"
