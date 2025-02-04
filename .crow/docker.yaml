@@ -14,8 +14,7 @@ variables:
   # vars used on push / tag events only
   - publish_logins: &publish_logins # Default DockerHub login
       - registry: https://codeberg.org
-        username:
-          from_secret: crowci-bot
+        username: crowci-bot
         password:
           from_secret: codeberg_bot_token
       - registry: https://index.docker.io/v1/
