@@ -21,9 +21,9 @@ variables:
         username: devxygmbh
         password:
           from_secret: dockerhub_password
-  - &publish_repos_server 'ghcr.io/crowci/crow-server'
-  - &publish_repos_agent 'ghcr.io/crowci/crow-agent'
-  - &publish_repos_cli 'ghcr.io/crowci/crow-cli'
+  - &publish_repos_server 'codeberg.org/crowci/crow-server'
+  - &publish_repos_agent 'codeberg.org/crowci/crow-agent'
+  - &publish_repos_cli 'codeberg.org/crowci/crow-cli'
   - path: &when_path # web source code
       - 'web/**'
       # api source code
