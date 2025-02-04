@@ -3,14 +3,14 @@
     <input
       :id="`radio-${id}-${option.value}`"
       type="radio"
-      class="radio relative h-5 w-5 flex-shrink-0 cursor-pointer rounded-full border border-wp-background-400 bg-wp-control-neutral-100 shadow-sm checked:border-wp-background-secondary-800 checked:bg-wp-background-secondary-800 focus-visible:border-wp-control-neutral-300 checked:focus-visible:border-wp-control-ok-300"
+      class="radio border-wp-background-400 bg-wp-control-neutral-100 checked:border-wp-background-secondary-800 checked:bg-wp-background-secondary-800 focus-visible:border-wp-control-neutral-300 checked:focus-visible:border-wp-control-ok-300 relative h-5 w-5 flex-shrink-0 cursor-pointer rounded-full border shadow-sm"
       :value="option.value"
       :checked="innerValue?.includes(option.value)"
       @click="innerValue = option.value"
     />
     <div class="ml-4 flex flex-col">
-      <label class="cursor-pointer text-wp-text-100" :for="`radio-${id}-${option.value}`">{{ option.text }}</label>
-      <span v-if="option.description" class="text-sm text-wp-text-alt-100">{{ option.description }}</span>
+      <label class="text-wp-text-100 cursor-pointer" :for="`radio-${id}-${option.value}`">{{ option.text }}</label>
+      <span v-if="option.description" class="text-wp-text-alt-100 text-sm">{{ option.description }}</span>
     </div>
   </div>
 </template>

@@ -2,7 +2,7 @@
   <Scaffold v-if="org" enable-tabs :go-back="goBack">
     <template #title>
       <span>
-        <router-link :to="{ name: 'org' }" class="hover:underline hover:decoration-wp-custom-highlight-100">{{
+        <router-link :to="{ name: 'org' }" class="hover:decoration-wp-custom-highlight-100 hover:underline">{{
           org.name
           /* eslint-disable-next-line @intlify/vue-i18n/no-raw-text */
         }}</router-link>

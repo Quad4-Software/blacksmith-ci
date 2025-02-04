@@ -3,13 +3,13 @@
     <input
       :id="`checkbox-${id}`"
       type="checkbox"
-      class="checkbox relative h-5 w-5 flex-shrink-0 cursor-pointer border border-wp-background-400 bg-wp-control-neutral-100 shadow-sm transition-colors duration-150 checked:border-wp-background-secondary-800 checked:bg-wp-background-secondary-800 focus-visible:border-wp-control-neutral-300 checked:focus-visible:border-wp-control-ok-300"
+      class="checkbox border-wp-background-400 bg-wp-control-neutral-100 checked:border-wp-background-secondary-800 checked:bg-wp-background-secondary-800 focus-visible:border-wp-control-neutral-300 checked:focus-visible:border-wp-control-ok-300 relative h-5 w-5 flex-shrink-0 cursor-pointer border shadow-sm transition-colors duration-150"
       :checked="innerValue"
       @click="innerValue = !innerValue"
     />
     <div class="ml-4 flex flex-col">
-      <label class="cursor-pointer text-wp-text-100" :for="`checkbox-${id}`">{{ label }}</label>
-      <span v-if="description" class="text-sm text-wp-text-alt-100">{{ description }}</span>
+      <label class="text-wp-text-100 cursor-pointer" :for="`checkbox-${id}`">{{ label }}</label>
+      <span v-if="description" class="text-wp-text-alt-100 text-sm">{{ description }}</span>
     </div>
   </div>
 </template>

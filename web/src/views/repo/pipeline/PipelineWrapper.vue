@@ -11,7 +11,7 @@
       <span>
         <router-link
           :to="{ name: 'org', params: { orgId: repo.org_id } }"
-          class="hover:underline hover:decoration-wp-custom-highlight-100"
+          class="hover:decoration-wp-custom-highlight-100 hover:underline"
           >{{ repo.owner }}</router-link
         >
         /
