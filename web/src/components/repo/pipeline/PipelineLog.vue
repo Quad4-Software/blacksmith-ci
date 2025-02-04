@@ -34,7 +34,7 @@
             :title="
               autoScroll ? $t('repo.pipeline.actions.log_auto_scroll_off') : $t('repo.pipeline.actions.log_auto_scroll')
             "
-            class="hover:!bg-white hover:!bg-opacity-10"
+            class="text-wp-code-text-alt-100 hover:!bg-white hover:!bg-opacity-10"
             :icon="autoScroll ? 'auto-scroll' : 'auto-scroll-off'"
             @click="autoScroll = !autoScroll"
           />
