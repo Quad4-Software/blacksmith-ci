@@ -5,11 +5,11 @@ import "fmt"
 type PipelineErrorType string
 
 const (
-	PipelineErrorTypeLinter      PipelineErrorType = "linter"      // some error with the config syntax
-	PipelineErrorTypeDeprecation PipelineErrorType = "deprecation" // using some deprecated feature
-	PipelineErrorTypeCompiler    PipelineErrorType = "compiler"    // some error with the config semantics
-	PipelineErrorTypeGeneric     PipelineErrorType = "generic"     // some generic error
-	PipelineErrorTypeBadHabit    PipelineErrorType = "Best practice"   // some bad-habit error
+	PipelineErrorTypeLinter      PipelineErrorType = "linter"        // some error with the config syntax
+	PipelineErrorTypeDeprecation PipelineErrorType = "deprecation"   // using some deprecated feature
+	PipelineErrorTypeCompiler    PipelineErrorType = "compiler"      // some error with the config semantics
+	PipelineErrorTypeGeneric     PipelineErrorType = "generic"       // some generic error
+	PipelineErrorTypeBadHabit    PipelineErrorType = "Best practice" // some bad-habit error
 )
 
 type PipelineError struct {

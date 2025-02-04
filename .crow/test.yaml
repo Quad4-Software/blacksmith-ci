@@ -36,6 +36,7 @@ steps:
     environment:
       CROW_DISABLE_UPDATE_CHECK: true
       CROW_LINT_STRICT: true
+      CROW_PLUGINS_TRUSTED_CLONE: docker.io/thegeeklab/wp-git-clone,docker.io/woodpeckerci/plugin-git
       CROW_PLUGINS_PRIVILEGED: 'docker.io/woodpeckerci/plugin-docker-buildx'
     when:
       - event: pull_request
@@ -55,7 +56,7 @@ steps:
       - vendor
     image: *golang_image
     commands:
-      - apk add --no-cache -q just git
+      - apk add --no-cache -q just git sqlite-dev libc-dev gcc g++ build-base musl-dev binutils binutils-gold
       - just lint
     when: *when
 
