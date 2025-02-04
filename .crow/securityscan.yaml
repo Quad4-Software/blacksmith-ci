@@ -1,40 +1,21 @@
 when:
-  - event: [pull_request]
-  - event: push
-    branch: ${CI_REPO_DEFAULT_BRANCH}
-
-variables:
-  - &trivy_plugin docker.io/woodpeckerci/plugin-trivy:1.3.0
+  - event: cron
+    cron: securityscan
 
 steps:
-  backend:
-    depends_on: []
-    image: *trivy_plugin
-    settings:
-      server: trivy-server
-      skip-dirs: web/,docs/
+  - name: scan
+    image: docker.io/aquasec/trivy:0.59.0
+    environment:
+      TRIVY_DISABLE_VEX_NOTICE: true
+    commands:
+      - trivy fs --format template --template @assets/trivy-markdown.tpl --skip-dirs vendor,node_modules/,extras . > scan.md
 
-  docs:
-    depends_on: []
-    image: *trivy_plugin
-    settings:
-      server: trivy-server
-      skip-dirs: node_modules/,plugins/woodpecker-plugins/node_modules/
-      dir: docs/
-
-  ui:
-    depends_on: []
-    image: *trivy_plugin
-    settings:
-      server: trivy-server
-      skip-dirs: node_modules/
-      dir: web/
-
-services:
-  trivy-server:
-    image: *trivy_plugin
-    settings:
-      service: true
-      db-repository: mirror.gcr.io/aquasec/trivy-db:2
-    ports:
-      - 10000
+  - name: Update issue
+    image: docker.io/alpine:3.21
+    environment:
+      ISSUE_TOKEN:
+        from_secret: codeberg_bot_token
+    commands:
+      - apk add -q --no-cache jq curl
+      - JSON_DATA=$(echo "" | jq -Rs --arg title 'Vulnerability dashboard' --arg body "$(cat scan.md)" '{title:$title, body:$body}')
+      - curl -s -X PATCH "${CI_FORGE_URL}/api/v1/repos/${CI_REPO}/issues/20?token=$ISSUE_TOKEN" -H "Content-Type:application/json" -d "$JSON_DATA"
