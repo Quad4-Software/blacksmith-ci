@@ -262,7 +262,7 @@ image-agent TAG:
 		echo $codeberg_bot_token | docker login codeberg.org -u crowci-bot --password-stdin
 		docker buildx build --platform $PLATFORMS -t codeberg.org/crowci/crow-agent:{{TAG}} -f docker/Dockerfile.agent.multiarch --push .
 
-# env PLATFORMS='linux/amd64,linux/arm64' just image-agent-alpine
+# env PLATFORMS='linux/amd64,linux/arm64' just image-agent-alpine dev
 image-agent-alpine TAG:
 		echo $codeberg_bot_token | docker login codeberg.org -u crowci-bot --password-stdin
 		docker buildx build --platform $PLATFORMS -t codeberg.org/crowci/crow-agent:{{TAG}}-alpine -f docker/Dockerfile.agent.alpine.multiarch --push .
