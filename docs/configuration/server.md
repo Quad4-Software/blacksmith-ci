@@ -142,10 +142,11 @@ Every step is executed in a distinct pod.
 This allows every step to be run on a different node, ensuring maximum flexibility with respect to resource distribution.
 
 !!!info
-There are plans to add a "one pod per pipeline" setting which executes all steps as containers of a single pod.
-This has the advantage of not requiring a RWX volume for file persistence between pods but would at the same time reduce the scheduling flexibility (as it would require the pod to be scheduled on a node that can take the step with the higher resource need).
 
-### Private Registries
+    There are plans to add a "one pod per pipeline" setting which executes all steps as containers of a single pod.
+    This has the advantage of not requiring a RWX volume for file persistence between pods but would at the same time reduce the scheduling flexibility (as it would require the pod to be scheduled on a node that can take the step with the higher resource need).
+
+#### Private Registries
 
 Images from private registries require authentication.
 This is commonly done by providing a `imagePullSecret` in Kubernetes.
@@ -160,16 +161,18 @@ The Kubernetes secret must be of type `kubernetes.io/dockerconfigjson` and look 
 ```
 
 !!!tip
-The secret value can be obtained by issuing a local login to the registry and then extracting the created config value from `~/.docker/config.json`.
 
-### Backend options
+    The secret value can be obtained by issuing a local login to the registry and then extracting the created config value from `~/.docker/config.json`.
+
+#### Backend options {backend-options-kubernetes}
 
 The Kubernetes backend allows specifying requests and limits on a per-step basic, most commonly for CPU and memory.
 
 !!!note
-Adding a `resources` definition to all steps is essential for the Kubernetes backend to ensure efficient scheduling.
 
-#### General
+    Adding a `resources` definition to all steps is essential for the Kubernetes backend to ensure efficient scheduling.
+
+##### General
 
 ```yaml
 steps:
@@ -199,7 +202,7 @@ The following other common pod settings in Kubernetes are supported in `backend_
 
 If your unfamiliar with some, please check the corresponding upstream documentation in Kubernetes.
 
-#### Noteworthy options and adaptations
+##### Noteworthy options and adaptations
 
 In the following, special/uncommon settings are explained in more detail.
 
@@ -209,23 +212,25 @@ In the following, special/uncommon settings are explained in more detail.
   If `runtimeClassName` is not set, the default `RuntimeHandler` will be used.
   See the [Kubernetes documentation on runtime classes](https://kubernetes.io/docs/concepts/containers/runtime-class/) for more information.
 
-- To allow annotations and labels, the env var `crow_BACKEND_K8S_POD_ANNOTATIONS_ALLOW_FROM_STEP` and/or `crow_BACKEND_K8S_POD_LABELS_ALLOW_FROM_STEP` must be set to `true`.
+- To allow annotations and labels, the env var `CROW_BACKEND_K8S_POD_ANNOTATIONS_ALLOW_FROM_STEP` and/or `CROW_BACKEND_K8S_POD_LABELS_ALLOW_FROM_STEP` must be set to `true`.
 
 - Users of [crio-o](https://github.com/cri-o/cri-o) need to configure the workspace for all pipelines centrally in order ensure correct execution (see [this issue](https://github.com/crow-ci/crow/issues/2510)):
 
-  ```yaml
-  workspace:
-  base: '/crow'
-  path: '/'
-  ```
+      ```yaml
+      workspace:
+      base: '/crow'
+      path: '/'
+      ```
 
 ### Local
 
 !!!danger
-The local backend executes pipelines on the local system without any isolation.
+
+    The local backend executes pipelines on the local system without any isolation.
 
 !!!note
-This backend does not support 'services'.
+
+    This backend does not support 'services'.
 
 This backend should only be used in private environments where the code and pipeline can be trusted.
 It should not be used for public instances where unknown users can add new repositories and execute code.
@@ -274,30 +279,30 @@ scrape_configs:
 
 To access the endpoint, a user-level API token must be created by an admin and handed over in the Prometheus configuration file as a bearer token:
 
-```diff
- global:
-   scrape_interval: 60s
+```yaml hl_lines="6"
+global:
+  scrape_interval: 60s
 
- scrape_configs:
-   - job_name: 'crow'
-+    bearer_token: <token>
+scrape_configs:
+  - job_name: 'crow'
+    bearer_token: <token>
 
-     static_configs:
-        - targets: ['crow.domain.com']
+    static_configs:
+       - targets: ['crow.domain.com']
 ```
 
 Alternatively, the token can be read from a file:
 
-```diff
- global:
-   scrape_interval: 60s
+```yaml hl_lines="6"
+global:
+  scrape_interval: 60s
 
- scrape_configs:
-   - job_name: 'crow'
-+    bearer_token_file: /etc/secrets/crow-monitoring-token
+scrape_configs:
+  - job_name: 'crow'
+    bearer_token_file: /etc/secrets/crow-monitoring-token
 
-     static_configs:
-        - targets: ['crow.domain.com']
+    static_configs:
+       - targets: ['crow.domain.com']
 ```
 
 ### Reference
@@ -355,27 +360,27 @@ SSL support is provided using the [ListenAndServeTLS](https://pkg.go.dev/net/htt
 
 In addition to the ports shown in [the docker-compose installation](../installation/docker-compose.md), port 443 must be exposed:
 
-```yaml
- services:
-   crow-server:
-     [...]
-     ports:
-+      - 80:80
-+      - 443:443
-       - 9000:9000
+```yaml hl_lines="5 6"
+services:
+  crow-server:
+    [...]
+    ports:
+      - 80:80
+      - 443:443
+      - 9000:9000
 ```
 
 Additionally, the certificate and key must be mounted and referenced:
 
-```yaml
- services:
-   crow-server:
-     environment:
-+      - CROW_SERVER_CERT=/etc/certs/crow.example.com/server.crt
-+      - CROW_SERVER_KEY=/etc/certs/crow.example.com/server.key
-     volumes:
-+      - /etc/certs/crow.example.com/server.crt:/etc/certs/crow.example.com/server.crt
-+      - /etc/certs/crow.example.com/server.key:/etc/certs/crow.example.com/server.key
+```yaml hl_lines="4 5 7 8"
+services:
+  crow-server:
+    environment:
+      - CROW_SERVER_CERT=/etc/certs/crow.example.com/server.crt
+      - CROW_SERVER_KEY=/etc/certs/crow.example.com/server.key
+    volumes:
+      - /etc/certs/crow.example.com/server.crt:/etc/certs/crow.example.com/server.crt
+      - /etc/certs/crow.example.com/server.key:/etc/certs/crow.example.com/server.key
 ```
 
 ## Logging
@@ -402,16 +407,18 @@ CROW_LOG_STORE_FILE_PATH
 By default, Crow streams the server and agent output to `stderr` and does not persist it.
 
 !!!note
-There is a difference between Server/Agent logs and Pipeline logs.
-The former are the logs describing the application runtime itself, the latter are the logs from the executed pipelines.
+
+    There is a difference between Server/Agent logs and Pipeline logs.
+    The former are the logs describing the application runtime itself, the latter are the logs from the executed pipelines.
 
 Setting `CROW_LOG_FILE` alongside with `CROW_LOG_STORE_FILE_PATH` enables file-based logging.
 
 If `CROW_DATABASE_LOG=true` is set, logs are written into the configured database.
 
 !!! warning
-Database logging might quickly increase the size of the DB, depending on the chosen log level.
-It is recommended to use file-based logging with automatic log-rotation (not configured automatically).
+
+    Database logging might quickly increase the size of the DB, depending on the chosen log level.
+    It is recommended to use file-based logging with automatic log-rotation (not configured automatically).
 
 ### Pipeline logs
 
@@ -426,7 +433,8 @@ CROW_LOG_STORE_FILE_PATH=<path>
 ```
 
 !!! info
-Support for external S3-based logging is planned.
+
+    Support for external S3-based logging is planned.
 
 ## External configuration API
 
