@@ -60,6 +60,8 @@ This keyword also works for dependency resolution with steps.
     runs_on: [ success, failure ]
     ```
 
+Changes to files are persisted throughout the steps of a workflow as the same (temporary) volume is mounted to all steps.
+
 ## Event triggers
 
 Event triggers are _mandatory_ and define under which conditions a workflow is executed.
@@ -83,3 +85,127 @@ There are more ways to define event triggers using both list and map notation.
 Please see FIXME for all available options.
 
 ## Matrix workflows
+
+Matrix workflows execute a separate workflow for each combination in the specified matrix.
+This simplifies testing and building against multiple configurations without copying the full pipeline definition but only declare the variable parts.
+
+Example:
+
+```yaml
+matrix:
+  GO_VERSION:
+    - 1.4
+    - 1.3
+  REDIS_VERSION:
+    - 2.6
+    - 2.8
+    - 3.0
+```
+
+Each definition can also be a combination of variables.
+In this case, nest the definitions below the `include` keyword:
+
+```yaml hl_lines="2"
+matrix:
+  include:
+    - GO_VERSION: 1.4
+      REDIS_VERSION: 2.8
+    - GO_VERSION: 1.5
+      REDIS_VERSION: 2.8
+```
+
+### Interpolation
+
+Matrix variables are interpolated in the YAML using the `${VARIABLE}` syntax, **before the YAML is parsed**.
+This is an example YAML file **before** interpolating matrix parameters:
+
+```yaml
+matrix:
+  GO_VERSION:
+    - 1.4
+    - 1.3
+  DATABASE:
+    - mysql:8
+    - mysql:5
+    - mariadb:10.1
+
+steps:
+  - name: build
+    image: golang:${GO_VERSION}
+    commands:
+      - go get
+      - go build
+      - go test
+
+services:
+  - name: database
+    image: ${DATABASE}
+```
+
+And after:
+
+```yaml hl_lines="3 9 10 14"
+ steps:
+   - name: build
+     image: golang:1.4
+     commands:
+       - go get
+       - go build
+       - go test
+     environment:
+       - GO_VERSION=1.4
+       - DATABASE=mysql:8
+
+ services:
+   - name: database
+     image: mysql:8
+```
+
+### Examples
+
+- Matrix pipeline with a variable image tag:
+
+    ```yaml
+    matrix:
+      IMAGE:
+        - golang:1.7
+        - golang:1.8
+        - golang:latest
+
+    steps:
+      - name: build
+        image: ${IMAGE}
+        commands:
+          - go build
+          - go test
+    ```
+
+- Matrix pipeline using multiple platforms:
+
+    ```yaml
+    matrix:
+      platform:
+        - linux/amd64
+        - linux/arm64
+
+    steps:
+      - name: test
+        image: <image>
+        commands:
+          - echo "Running on ${platform}"
+
+      - name: test-arm
+        image: <image>
+        commands:
+          - echo "Running on ${platform}"
+        when:
+          platform: linux/arm*
+    ```
+
+    !!! tip
+
+        For the kubernetes backend, architecture-specific pipelines should be controlled via the [`nodeSelector` backend option](../configuration/server.md#backend-options-backend-options-kubernetes.
+
+## Skipping commits
+
+Commits can be prohibited from triggering a webhook by adding `[SKIP CI]` or `[CI SKIP]` (case-insensitive) to the commit message.
