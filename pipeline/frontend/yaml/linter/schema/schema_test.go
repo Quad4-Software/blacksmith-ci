@@ -81,6 +81,10 @@ func TestSchema(t *testing.T) {
 			testFile: ".crow/test-merge-map-and-sequence.yaml",
 		},
 		{
+			name:     "Backend options",
+			testFile: ".woodpecker/test-backend-options.yaml",
+		},
+		{
 			name:     "Broken Config",
 			testFile: ".crow/test-broken.yaml",
 			fail:     true,
