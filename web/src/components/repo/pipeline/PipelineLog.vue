@@ -1,5 +1,5 @@
 <template>
-  <div v-if="pipeline" class="flex flex-col pt-10 md:pt-0">
+  <div v-if="pipeline" class="flex flex-col pt-8 md:pt-0">
     <div
       class="code-box-log flex flex-grow flex-col overflow-hidden !p-0 shadow-md md:mt-0 md:!rounded-lg"
       @mouseover="showActions = true"
