@@ -39,7 +39,7 @@
             @click="autoScroll = !autoScroll"
           />
           <IconButton
-            class="hover:!bg-white hover:!bg-opacity-10 md:!hidden"
+            class="text-wp-code-text-alt-100 hover:!bg-white hover:!bg-opacity-10 md:!hidden"
             icon="close"
             @click="$emit('update:step-id', null)"
           />
