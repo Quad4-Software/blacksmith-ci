@@ -2,15 +2,15 @@
   <component
     :is="to === undefined ? 'button' : httpLink ? 'a' : 'router-link'"
     v-bind="btnAttrs"
-    class="border-wp-custom-highlight-100 hover:border-wp-orange-300 hover:bg-wp-orange-300 relative flex flex-shrink-0 cursor-pointer items-center overflow-hidden rounded-md border px-2 py-1 whitespace-nowrap shadow-sm transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:border-orange-600 dark:hover:bg-orange-600"
+    class="relative flex flex-shrink-0 cursor-pointer items-center overflow-hidden whitespace-nowrap rounded-md border border-wp-custom-highlight-100 px-2 py-1 shadow-sm transition-all duration-150 hover:border-wp-orange-300 hover:bg-wp-orange-300 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:border-orange-600 dark:hover:bg-orange-600"
     :class="{
       'border-wp-control-neutral-300 bg-wp-control-neutral-100 text-wp-text-100 hover:bg-wp-control-neutral-200':
         color === 'gray',
       'border-wp-custom-highlight-100 bg-wp-control-neutral-100 text-wp-text-100 hover:border-wp-orange-300 hover:bg-wp-orange-300':
         color === 'default',
-      'border-wp-control-info-100 bg-wp-control-info-100 hover:border-wp-orange-300 hover:bg-wp-orange-300 dark:text-wp-text-200 text-white dark:hover:border-orange-600 dark:hover:bg-orange-600':
+      'border-wp-control-info-100 bg-wp-control-info-100 text-white hover:border-wp-orange-300 hover:bg-wp-orange-300 dark:text-wp-text-200 dark:hover:border-orange-600 dark:hover:bg-orange-600':
         color === 'blue',
-      'border-wp-error-100 bg-wp-error-100 hover:bg-wp-error-200 dark:text-wp-text-200 text-white': color === 'red',
+      'border-wp-error-100 bg-wp-error-100 text-white hover:bg-wp-error-200 dark:text-wp-text-200': color === 'red',
       ...passedClasses,
     }"
     :title="title"
@@ -20,14 +20,14 @@
       <Icon
         v-if="startIcon"
         :name="startIcon"
-        class="dark:text-wp-text-200 !h-5 !w-5"
+        class="!h-5 !w-5 dark:text-wp-text-200"
         :class="{ invisible: isLoading, 'mr-1': text }"
       />
       <span :class="{ invisible: isLoading }">{{ text }}</span>
       <Icon v-if="endIcon" :name="endIcon" class="ml-2 h-6 w-6" :class="{ invisible: isLoading }" />
       <div
         v-if="isLoading"
-        class="absolute top-0 right-0 bottom-0 left-0 flex items-center justify-center"
+        class="absolute bottom-0 left-0 right-0 top-0 flex items-center justify-center"
         :class="{
           'bg-wp-control-neutral-200': color === 'gray',
           'bg-wp-custom-highlight-100': color === 'default',

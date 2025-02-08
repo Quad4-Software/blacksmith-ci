@@ -1,7 +1,7 @@
 <template>
   <span class="inline-flex text-xs font-medium">
     <span
-      class="border-wp-custom-highlight-100 text-wp-text-100 flex items-center rounded-l-full border py-0.5 pr-1 pl-2 text-gray-300"
+      class="flex items-center rounded-l-full border border-wp-custom-highlight-100 py-0.5 pl-2 pr-1 text-gray-300 text-wp-text-100"
       :class="{
         'rounded-r-full pr-2': value === undefined,
         '!border-wp-error-100': label === 'global secret',
@@ -12,7 +12,7 @@
     </span>
     <span
       v-if="value !== undefined"
-      class="border-wp-custom-highlight-100 flex items-center rounded-r-full border border-l-0 py-0.5 pr-2 pl-1"
+      class="flex items-center rounded-r-full border border-l-0 border-wp-custom-highlight-100 py-0.5 pl-1 pr-2"
     >
       {{ value }}
     </span>

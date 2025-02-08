@@ -1,5 +1,5 @@
 <template>
-  <div v-if="pipeline" class="text-wp-text-100 flex w-full">
+  <div v-if="pipeline" class="flex w-full text-wp-text-100">
     <PipelineStatusIcon :status="pipeline.status" class="flex items-center" />
     <div class="ml-4 flex min-w-0 flex-col">
       <router-link
@@ -7,7 +7,7 @@
           name: 'repo',
           params: { repoId: pipeline.repo_id },
         }"
-        class="decoration-wp-custom-highlight-100 underline"
+        class="underline decoration-wp-custom-highlight-100"
       >
         <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
         {{ repo?.owner }} / {{ repo?.name }}

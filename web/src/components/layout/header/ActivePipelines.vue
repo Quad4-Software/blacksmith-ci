@@ -6,7 +6,7 @@
   >
     <div v-if="pipelineCount > 0" class="spinner" />
     <div
-      class="border-wp-custom-highlight-100 bg-opacity-10 z-0 flex h-full w-full items-center justify-center rounded-md border bg-white font-bold"
+      class="z-0 flex h-full w-full items-center justify-center rounded-md border border-wp-custom-highlight-100 bg-white bg-opacity-10 font-bold"
     >
       <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
       {{ pipelineCount > 9 ? '9+' : pipelineCount }}
@@ -41,7 +41,7 @@ onMounted(async () => {
   overflow: hidden;
 }
 .spinner::before {
-  @apply bg-wp-custom-highlight-100 absolute;
+  @apply absolute bg-wp-custom-highlight-100;
   content: '';
   left: -50%;
   top: -50%;
@@ -55,7 +55,7 @@ onMounted(async () => {
   animation: rotate 1.5s linear infinite;
 }
 .spinner::after {
-  @apply bg-wp-custom-highlight-100 absolute inset-0.5;
+  @apply absolute inset-0.5 bg-wp-custom-highlight-100;
   /*
   The nested border radius needs to be calculated correctly to look right:
   https://www.30secondsofcode.org/css/s/nested-border-radius/
