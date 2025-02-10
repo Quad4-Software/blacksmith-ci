@@ -61,7 +61,7 @@ This is an alternative way to tell the server about persistent agents and their 
 
 Agent tokens can be handed over to individual agents via `crow_AGENT_SECRET`, making it possible to register additional unique agents.
 
-![Agent creation](img/new-agent-registration.png){ width="500", loading=lazy }
+![Agent creation](img/new-agent-registration.png){ width="500" }
 /// caption
 Registration of a new agent through UI
 ///
@@ -88,18 +88,18 @@ Registration of a new agent through UI
 
 ## Image registries
 
-Images are currently solely provided through the GitHub Container Registry (ghcr.io).
+Images are currently solely provided through the Codeberg Container Registry (codeberg.org).
 
 !!!info
 
     If there funds available to cover a DockerHub team subscription, images will also be there.
 
-- [crow-server (ghcr.io)](https://codeberg.org/crowci/crow/pkgs/container/crow-server)
+- [crow-server (codeberg.org)](https://codeberg.org/crowci/crow/pkgs/container/crow-server)
 
-- [crow-agent (ghcr.io)](https://codeberg.org/crowci/crow/pkgs/container/crow-agent)
+- [crow-agent (codeberg.org)](https://codeberg.org/crowci/crow/pkgs/container/crow-agent)
 
-- [crow-cli (ghcr.io)](https://codeberg.org/crowci/crow/pkgs/container/crow-cli)
+- [crow-cli (codeberg.org)](https://codeberg.org/crowci/crow/pkgs/container/crow-cli)
 
-- [crow-autoscaler (ghcr.io)](https://codeberg.org/crowci/crow/pkgs/container/crow-autoscaler)
+- [crow-autoscaler (codeberg.org)](https://codeberg.org/crowci/crow/pkgs/container/crow-autoscaler)
 
 [^1]: An Ansible role is in the works.
