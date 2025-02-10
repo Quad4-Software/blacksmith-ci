@@ -8,7 +8,7 @@ theme:
   logo: logo.svg
   favicon: favicon.png
   icon:
-    repo: fontawesome/brands/git-alt
+    repo: simple/codeberg
     edit: material/pencil
     view: material/eye
   palette:
@@ -79,8 +79,11 @@ plugins:
   # https://github.com/blueswen/mkdocs-glightbox#usage
   - glightbox:
       width: 80%
+
 extra_css:
   - stylesheets/extra.css
+extra_javascript:
+  - javascripts/extra.js
 
 markdown_extensions:
   - pymdownx.highlight:
