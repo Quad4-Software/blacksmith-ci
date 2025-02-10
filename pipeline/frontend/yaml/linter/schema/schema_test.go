@@ -82,7 +82,7 @@ func TestSchema(t *testing.T) {
 		},
 		{
 			name:     "Backend options",
-			testFile: ".woodpecker/test-backend-options.yaml",
+			testFile: ".crow/test-backend-options.yaml",
 		},
 		{
 			name:     "Broken Config",
