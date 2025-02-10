@@ -62,7 +62,7 @@ func configFromCli(c *cli.Command) (config, error) {
 		parts, err := splitVolumeParts(v)
 		if err != nil {
 			log.Error().Err(err).Msgf("can not parse volume config")
-			return conf, fmt.Errorf("invalid volume '%s' provided in WOODPECKER_BACKEND_DOCKER_VOLUMES: %w", v, err)
+			return conf, fmt.Errorf("invalid volume '%s' provided in CROW_BACKEND_DOCKER_VOLUMES: %w", v, err)
 		}
 		conf.volumes = append(conf.volumes, strings.Join(parts, ":"))
 	}
