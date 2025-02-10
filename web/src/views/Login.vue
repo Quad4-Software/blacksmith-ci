@@ -16,7 +16,7 @@
     <div
       class="flex min-h-sm w-full flex-col overflow-hidden border border-wp-background-400 bg-wp-background-100 shadow-sm dark:bg-wp-background-200 md:m-8 md:w-3xl md:flex-row md:rounded-md"
     >
-      <div class="flex min-h-48 items-center justify-center bg-wp-primary-200 dark:bg-wp-primary-300 md:w-3/5">
+      <div class="flex min-h-48 items-center justify-center bg-wp-background-secondary-800 dark:bg-wp-primary-300 md:w-3/5">
         <CrowLogo preserveAspectRatio="xMinYMin slice" class="h-32 w-auto md:h-48" />
       </div>
       <div class="flex min-h-48 flex-col items-center justify-center gap-4 p-4 text-center md:w-2/5">
