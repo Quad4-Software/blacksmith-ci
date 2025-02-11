@@ -33,7 +33,7 @@ Persistent volumes, which are referenced from the PVCs, must be created manually
 
 !!! important
 
-    If the PVC is of type "ReadWriteOnce", you may also need to use affinity and/or nodeSelector settings through [`backend_options`](../configuration/server/#backend-options-kubernetes) to ensure that the steps are executed on the same node the PVC is attached to.
+    If the PVC is of type "ReadWriteOnce", you may also need to use affinity and/or nodeSelector settings through [`backend_options`](../configuration/server.md#backend-options_1) to ensure that the steps are executed on the same node the PVC is attached to.
 
 !!! tip
 
