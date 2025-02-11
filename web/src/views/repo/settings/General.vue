@@ -1,10 +1,7 @@
 <template>
   <Settings :title="$t('repo.settings.general.project')">
     <form v-if="repoSettings" class="flex flex-col" @submit.prevent="saveRepoSettings">
-      <InputField
-        docs-url="docs/usage/project-settings#project-settings-1"
-        :label="$t('repo.settings.general.general')"
-      >
+      <InputField docs-url="usage/project-settings#general" :label="$t('repo.settings.general.general')">
         <Checkbox
           v-model="repoSettings.allow_pr"
           :label="$t('repo.settings.general.allow_pr.allow')"
@@ -19,7 +16,7 @@
 
       <InputField
         :label="$t('repo.settings.general.netrc_only_trusted.netrc_only_trusted')"
-        docs-url="docs/usage/project-settings#custom-trusted-clone-plugins"
+        docs-url="usage/project-settings#custom-trusted-clone-plugins"
       >
         <template #default="{ id }">
           <div class="flex flex-col gap-2">
@@ -40,7 +37,7 @@
 
       <InputField
         v-if="user?.admin"
-        docs-url="docs/usage/project-settings#project-settings-1"
+        docs-url="usage/repo-settings/#privileges-security"
         :label="$t('repo.settings.general.trusted.trusted')"
       >
         <Checkbox
@@ -63,6 +60,7 @@
       <InputField :label="$t('require_approval.require_approval_for')">
         <RadioField
           v-model="repoSettings.require_approval"
+          docs-url="usage/repo-settings/#approval-requirements"
           :options="[
             {
               value: RepoRequireApproval.None,
@@ -88,13 +86,13 @@
         </template>
       </InputField>
 
-      <InputField docs-url="docs/usage/project-settings#project-visibility" :label="$t('repo.visibility.visibility')">
+      <InputField docs-url="usage/project-settings#project-visibility" :label="$t('repo.visibility.visibility')">
         <RadioField v-model="repoSettings.visibility" :options="projectVisibilityOptions" />
       </InputField>
 
       <InputField
         v-slot="{ id }"
-        docs-url="docs/usage/project-settings#timeout"
+        docs-url="usage/project-settings#timeout"
         :label="$t('repo.settings.general.timeout.timeout')"
       >
         <div class="flex items-center">
@@ -104,7 +102,7 @@
       </InputField>
 
       <InputField
-        docs-url="docs/usage/project-settings#pipeline-path"
+        docs-url="usage/project-settings#pipeline-path"
         :label="$t('repo.settings.general.pipeline_path.path')"
       >
         <template #default="{ id }">
@@ -126,7 +124,7 @@
       </InputField>
 
       <InputField
-        docs-url="docs/usage/project-settings#cancel-previous-pipelines"
+        docs-url="usage/project-settings#cancel-previous-pipelines"
         :label="$t('repo.settings.general.cancel_prev.cancel')"
       >
         <CheckboxesField
