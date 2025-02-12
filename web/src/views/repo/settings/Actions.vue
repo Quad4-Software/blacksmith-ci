@@ -1,16 +1,15 @@
 <template>
-  <Settings :title="$t('repo.settings.actions.actions')">
+   <Settings :title="$t('repo.settings.actions.actions')"
+    >
     <div class="flex flex-wrap items-center">
-      <Button
+       <Button
         class="my-1 mr-4"
         color="default"
         start-icon="heal"
         :is-loading="isRepairingRepo"
         :text="$t('repo.settings.actions.repair.repair')"
         @click="repairRepo"
-      />
-
-      <Button
+      /> <Button
         v-if="isActive"
         color="default"
         class="my-1 mr-4"
@@ -18,8 +17,7 @@
         :is-loading="isDeactivatingRepo"
         :text="$t('repo.settings.actions.disable.disable')"
         @click="deactivateRepo"
-      />
-      <Button
+      /> <Button
         v-else
         class="my-1 mr-4"
         color="default"
@@ -27,9 +25,7 @@
         :is-loading="isActivatingRepo"
         :text="$t('repo.settings.actions.enable.enable')"
         @click="activateRepo"
-      />
-
-      <Button
+      /> <Button
         class="my-1 mr-4"
         color="red"
         start-icon="trash"
@@ -38,7 +34,8 @@
         @click="deleteRepo"
       />
     </div>
-  </Settings>
+     </Settings
+  >
 </template>
 
 <script lang="ts" setup>

@@ -1,21 +1,14 @@
 <template>
-  <Scaffold v-if="org && orgPermissions && route.meta.orgHeader">
-    <template #title>
-      {{ org.name }}
-    </template>
-
-    <template #headerActions>
-      <IconButton
+   <Scaffold v-if="org && orgPermissions && route.meta.orgHeader"
+    > <template #title> {{ org.name }} </template> <template #headerActions
+      > <IconButton
         v-if="orgPermissions.admin"
         :to="{ name: org.is_user ? 'user' : 'org-settings-secrets' }"
         :title="$t('settings')"
         icon="settings"
-      />
-    </template>
-
-    <router-view />
-  </Scaffold>
-  <router-view v-else-if="org && orgPermissions" />
+      /> </template
+    > <router-view /> </Scaffold
+  > <router-view v-else-if="org && orgPermissions" />
 </template>
 
 <script lang="ts" setup>

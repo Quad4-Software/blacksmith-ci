@@ -1,49 +1,48 @@
 <template>
-  <!-- Main tabs container -->
+   <!-- Main tabs container -->
   <div ref="tabsRef" class="flex min-w-0 flex-auto gap-4">
-    <router-link
+     <router-link
       v-for="tab in visibleTabs"
       :key="tab.title"
       :to="tab.to"
       class="flex cursor-pointer items-center whitespace-nowrap border-b-2 border-transparent py-1 text-wp-text-100"
       :active-class="tab.matchChildren ? '!border-wp-custom-highlight-100' : ''"
       :exact-active-class="tab.matchChildren ? '' : '!border-wp-custom-highlight-100'"
-    >
-      <span
+      > <span
         class="flex w-full min-w-20 flex-row items-center justify-center gap-2 rounded-md px-2 py-1 hover:bg-wp-background-200 dark:hover:bg-wp-background-100"
-      >
-        <Icon v-if="tab.icon" :name="tab.icon" :class="tab.iconClass" class="flex-shrink-0" />
-        <span>{{ tab.title }}</span>
-        <CountBadge v-if="tab.count" :value="tab.count" />
-      </span>
-    </router-link>
-
-    <!-- Overflow dropdown -->
+        > <Icon v-if="tab.icon" :name="tab.icon" :class="tab.iconClass" class="flex-shrink-0" /> <span>{{
+          tab.title
+        }}</span
+        > <CountBadge v-if="tab.count" :value="tab.count" /> </span
+      > </router-link
+    > <!-- Overflow dropdown -->
     <div v-if="hiddenTabs.length" class="relative border-b-2 border-transparent py-1">
-      <IconButton icon="dots" class="tabs-more-button h-8 w-8" @click="toggleDropdown" />
-
+       <IconButton icon="dots" class="tabs-more-button h-8 w-8" @click="toggleDropdown" />
       <div
         v-if="isDropdownOpen"
         class="tabs-dropdown absolute z-20 mt-1 rounded-md border border-wp-background-400 bg-wp-background-100 shadow-lg dark:bg-wp-background-200"
         :class="[visibleTabs.length === 0 ? 'left-0' : 'right-0']"
       >
-        <router-link
+         <router-link
           v-for="tab in hiddenTabs"
           :key="tab.title"
           :to="tab.to"
           class="block w-full whitespace-nowrap p-1 text-left"
           @click="isDropdownOpen = false"
-        >
-          <span
+          > <span
             class="flex w-full min-w-20 flex-row items-center justify-center gap-2 rounded-md px-2 py-1 hover:bg-wp-background-200 dark:hover:bg-wp-background-100"
-          >
-            <Icon v-if="tab.icon" :name="tab.icon" :class="tab.iconClass" class="flex-shrink-0" />
-            <span>{{ tab.title }}</span>
-          </span>
-        </router-link>
+            > <Icon v-if="tab.icon" :name="tab.icon" :class="tab.iconClass" class="flex-shrink-0" /> <span>{{
+              tab.title
+            }}</span
+            > </span
+          > </router-link
+        >
       </div>
+
     </div>
+
   </div>
+
 </template>
 
 <script setup lang="ts">

@@ -1,5 +1,6 @@
 <template>
-  <span v-if="started" class="ml-auto text-sm">{{ duration }}</span>
+   <span v-if="started" class="ml-auto text-sm">{{ duration }}</span
+  >
 </template>
 
 <script lang="ts" setup>

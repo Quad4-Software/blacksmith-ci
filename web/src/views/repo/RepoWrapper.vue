@@ -1,54 +1,45 @@
 <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
 <template>
-  <Scaffold v-if="repo && repoPermissions && route.meta.repoHeader" enable-tabs>
-    <template #title>
-      <span class="flex">
-        <router-link
+   <Scaffold v-if="repo && repoPermissions && route.meta.repoHeader" enable-tabs
+    > <template #title
+      > <span class="flex"
+        > <router-link
           :to="{ name: 'org', params: { orgId: repo.org_id } }"
           class="hover:underline hover:decoration-wp-custom-highlight-100"
           >{{ repo.owner }}</router-link
-        >
-        &nbsp;/
-        {{ repo.name }}
-      </span>
-    </template>
-    <template #headerActions>
-      <IconButton :href="repo.forge_url" :title="$t('repo.open_in_forge')" :icon="forgeIcon" class="forge h-8 w-8" />
+        > &nbsp;/ {{ repo.name }} </span
+      > </template
+    > <template #headerActions
+      > <IconButton :href="repo.forge_url" :title="$t('repo.open_in_forge')" :icon="forgeIcon" class="forge h-8 w-8" />
       <IconButton
         v-if="repoPermissions.admin"
         :to="{ name: 'repo-settings' }"
         :title="$t('settings')"
         icon="settings"
-      />
-    </template>
-
-    <template #tabActions>
-      <Button
+      /> </template
+    > <template #tabActions
+      > <Button
         v-if="repoPermissions.push && route.name !== 'repo-manual'"
         :text="$t('repo.manual_pipeline.trigger')"
         start-icon="manual-pipeline"
         :to="{ name: 'repo-manual' }"
-      />
-      <Button
+      /> <Button
         v-else-if="repoPermissions.push"
         :text="$t('repo.manual_pipeline.show_pipelines')"
         start-icon="back"
         :to="{ name: 'repo' }"
-      />
-    </template>
-
-    <Tab :to="{ name: 'repo' }" :title="$t('repo.activity')" />
-    <Tab :to="{ name: 'repo-branches' }" match-children :title="$t('repo.branches')" />
-    <Tab
+      /> </template
+    > <Tab :to="{ name: 'repo' }" :title="$t('repo.activity')" /> <Tab
+      :to="{ name: 'repo-branches' }"
+      match-children
+      :title="$t('repo.branches')"
+    /> <Tab
       v-if="repo.pr_enabled && repo.allow_pr"
       :to="{ name: 'repo-pull-requests' }"
       match-children
       :title="$t('repo.pull_requests')"
-    />
-
-    <router-view />
-  </Scaffold>
-  <router-view v-else-if="repo && repoPermissions" />
+    /> <router-view /> </Scaffold
+  > <router-view v-else-if="repo && repoPermissions" />
 </template>
 
 <script lang="ts" setup>

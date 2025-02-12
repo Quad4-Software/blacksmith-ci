@@ -1,6 +1,4 @@
-<template>
-  <PipelineList :pipelines="pipelines" :repo="repo" />
-</template>
+<template> <PipelineList :pipelines="pipelines" :repo="repo" /> </template>
 
 <script lang="ts" setup>
 import { inject } from 'vue';

@@ -1,5 +1,5 @@
 <template>
-  <AgentManager
+   <AgentManager
     :description="$t('org.settings.agents.desc')"
     :load-agents="loadAgents"
     :create-agent="createAgent"

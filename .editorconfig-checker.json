@@ -14,6 +14,7 @@
     "Makefile",
     "Justfile",
     "venv",
-    "site"
+    "site",
+    ".vue"
   ]
 }

@@ -1,22 +1,33 @@
 <template>
+
   <div v-if="stats" class="flex justify-center">
+
     <div
       class="w-full rounded-md border border-wp-background-300 bg-wp-background-200 px-5 py-5 text-wp-text-100 shadow-md dark:bg-wp-background-100"
     >
+
       <div class="flex w-full">
+
         <h3 class="flex-1 text-lg font-semibold uppercase leading-tight">
-          {{ $t('admin.settings.queue.stats.completed_count') }}
+           {{ $t('admin.settings.queue.stats.completed_count') }}
         </h3>
+
       </div>
+
       <div class="relative overflow-hidden transition-all duration-500">
+
         <div>
+
           <div class="pb-4 lg:pb-6">
-            <h4 class="inline-block text-2xl font-semibold leading-tight lg:text-3xl">
-              {{ stats.completed_count }}
-            </h4>
+
+            <h4 class="inline-block text-2xl font-semibold leading-tight lg:text-3xl"> {{ stats.completed_count }} </h4>
+
           </div>
+
           <div v-if="total > 0" class="pb-4 lg:pb-6">
+
             <div class="flex h-3 overflow-hidden rounded-full transition-all duration-500">
+
               <div
                 v-for="item in data"
                 :key="item.key"
@@ -24,30 +35,42 @@
                 :class="`${item.color}`"
                 :style="{ width: `${item.percentage}%` }"
               >
-                &nbsp;
+                 &nbsp;
               </div>
+
             </div>
+
           </div>
+
           <div class="-mx-4 flex sm:flex-wrap">
+
             <div
               v-for="(item, index) in data"
               :key="item.key"
               class="px-4 sm:w-full md:w-1/4"
               :class="{ 'border-gray-300 dark:border-gray-600 md:border-l': index !== 0 }"
             >
+
               <div class="overflow-hidden text-ellipsis whitespace-nowrap text-sm">
-                <span class="mr-1 inline-block h-2 w-2 rounded-full align-middle" :class="`${item.color}`">&nbsp;</span>
-                <span class="align-middle">{{ item.label }}</span>
+                 <span class="mr-1 inline-block h-2 w-2 rounded-full align-middle" :class="`${item.color}`">&nbsp;</span
+                > <span class="align-middle">{{ item.label }}</span
+                >
               </div>
-              <div class="text-lg font-medium">
-                {{ item.value }}
-              </div>
+
+              <div class="text-lg font-medium"> {{ item.value }} </div>
+
             </div>
+
           </div>
+
         </div>
+
       </div>
+
     </div>
+
   </div>
+
 </template>
 
 <script lang="ts" setup>

@@ -1,25 +1,21 @@
 <template>
-  <Scaffold v-if="org && orgPermissions" v-model:search="search">
-    <template #title>
-      {{ org.name }}
-    </template>
-
-    <template #headerActions>
-      <IconButton
+   <Scaffold v-if="org && orgPermissions" v-model:search="search"
+    > <template #title> {{ org.name }} </template> <template #headerActions
+      > <IconButton
         v-if="orgPermissions.admin"
         icon="settings"
         :to="{ name: org.is_user ? 'user' : 'org-settings-secrets' }"
         :title="$t('settings')"
-      />
-    </template>
+      /> </template
+    >
+    <div class="flex flex-col gap-4"> <RepoItem v-for="repo in reposLastActivity" :key="repo.id" :repo="repo" /> </div>
 
-    <div class="flex flex-col gap-4">
-      <RepoItem v-for="repo in reposLastActivity" :key="repo.id" :repo="repo" />
-    </div>
     <div v-if="(reposLastActivity || []).length <= 0" class="text-center">
-      <span class="m-auto text-wp-text-100">{{ $t('repo.user_none') }}</span>
+       <span class="m-auto text-wp-text-100">{{ $t('repo.user_none') }}</span
+      >
     </div>
-  </Scaffold>
+     </Scaffold
+  >
 </template>
 
 <script lang="ts" setup>

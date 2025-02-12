@@ -1,28 +1,28 @@
 <template>
+
   <div class="space-y-4">
-    <template v-if="pullRequests.length > 0">
-      <ListItem
+     <template v-if="pullRequests.length > 0"
+      > <ListItem
         v-for="pullRequest in pullRequests"
         :key="pullRequest.index"
         class="text-wp-text-100"
         :to="{ name: 'repo-pull-request', params: { pullRequest: pullRequest.index } }"
-      >
-        <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-        <span class="md:display-unset hidden text-wp-text-alt-100">#{{ pullRequest.index }}</span>
-        <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-        <span class="md:display-unset mx-2 hidden text-wp-text-alt-100">-</span>
-        <span class="overflow-hidden overflow-ellipsis whitespace-nowrap text-wp-text-100 underline md:no-underline">{{
-          pullRequest.title
-        }}</span>
-      </ListItem>
-    </template>
-    <div v-else-if="loading" class="flex justify-center text-wp-text-100">
-      <Icon name="spinner" />
-    </div>
-    <Panel v-else class="flex justify-center">
-      {{ $t('empty_list', { entity: $t('repo.pull_requests') }) }}
-    </Panel>
+        > <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text --> <span
+          class="md:display-unset hidden text-wp-text-alt-100"
+          >#{{ pullRequest.index }}</span
+        > <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text --> <span
+          class="md:display-unset mx-2 hidden text-wp-text-alt-100"
+          >-</span
+        > <span
+          class="overflow-hidden overflow-ellipsis whitespace-nowrap text-wp-text-100 underline md:no-underline"
+          >{{ pullRequest.title }}</span
+        > </ListItem
+      > </template
+    >
+    <div v-else-if="loading" class="flex justify-center text-wp-text-100"> <Icon name="spinner" /> </div>
+     <Panel v-else class="flex justify-center"> {{ $t('empty_list', { entity: $t('repo.pull_requests') }) }} </Panel>
   </div>
+
 </template>
 
 <script lang="ts" setup>

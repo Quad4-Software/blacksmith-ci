@@ -1,17 +1,18 @@
 <template>
-  <IconButton
+   <IconButton
     :title="pipelineCount > 0 ? `${$t('pipeline_feed')} (${pipelineCount})` : $t('pipeline_feed')"
     class="active-pipelines-toggle relative !p-1.5 text-current"
     @click="toggle"
-  >
+    >
     <div v-if="pipelineCount > 0" class="spinner" />
+
     <div
       class="z-0 flex h-full w-full items-center justify-center rounded-md border border-wp-custom-highlight-100 bg-white bg-opacity-10 font-bold"
     >
-      <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-      {{ pipelineCount > 9 ? '9+' : pipelineCount }}
+       <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text --> {{ pipelineCount > 9 ? '9+' : pipelineCount }}
     </div>
-  </IconButton>
+     </IconButton
+  >
 </template>
 
 <script lang="ts" setup>

@@ -1,20 +1,14 @@
 <template>
-  <Header
+   <Header
     :go-back="goBack"
     :enable-tabs="enableTabs"
     :search="search"
     :full-width="fullWidthHeader"
     @update:search="(value) => $emit('update:search', value)"
-  >
-    <template #title><slot name="title" /></template>
-    <template v-if="$slots.headerActions" #headerActions><slot name="headerActions" /></template>
-    <template v-if="$slots.tabActions" #tabActions><slot name="tabActions" /></template>
-  </Header>
-
-  <slot v-if="fluidContent" />
-  <Container v-else>
-    <slot />
-  </Container>
+    > <template #title><slot name="title" /></template> <template v-if="$slots.headerActions" #headerActions
+      ><slot name="headerActions" /></template
+    > <template v-if="$slots.tabActions" #tabActions><slot name="tabActions" /></template> </Header
+  > <slot v-if="fluidContent" /> <Container v-else> <slot /> </Container>
 </template>
 
 <script setup lang="ts">

@@ -1,36 +1,35 @@
 <template>
-  <Settings :title="$t('admin.settings.orgs.orgs')" :description="$t('admin.settings.orgs.desc')">
+   <Settings :title="$t('admin.settings.orgs.orgs')" :description="$t('admin.settings.orgs.desc')"
+    >
     <div class="space-y-4 text-wp-text-100">
-      <ListItem
+       <ListItem
         v-for="org in orgs"
         :key="org.id"
         class="items-center gap-2 !bg-wp-background-200 dark:!bg-wp-background-100"
-      >
-        <span>{{ org.name }}</span>
-        <IconButton
+        > <span>{{ org.name }}</span
+        > <IconButton
           icon="chevron-right"
           :title="$t('admin.settings.orgs.view')"
           class="ml-auto h-8 w-8"
           :to="{ name: 'org', params: { orgId: org.id } }"
-        />
-        <IconButton
+        /> <IconButton
           icon="settings-outline"
           :title="$t('admin.settings.orgs.org_settings')"
           class="h-8 w-8"
           :to="{ name: 'org-settings', params: { orgId: org.id } }"
-        />
-        <IconButton
+        /> <IconButton
           icon="trash"
           :title="$t('admin.settings.orgs.delete_org')"
           class="ml-2 h-8 w-8 hover:text-wp-error-100"
           :is-loading="isDeleting"
           @click="deleteOrg(org)"
-        />
-      </ListItem>
-
+        /> </ListItem
+      >
       <div v-if="orgs?.length === 0" class="ml-2">{{ $t('admin.settings.orgs.none') }}</div>
+
     </div>
-  </Settings>
+     </Settings
+  >
 </template>
 
 <script lang="ts" setup>

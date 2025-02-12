@@ -1,30 +1,29 @@
 <template>
-  <Settings
+   <Settings
     :title="$t('secrets.secrets')"
     :description="$t('user.settings.secrets.desc')"
     docs-url="docs/usage/secrets"
-  >
-    <template #headerActions>
-      <Button v-if="selectedSecret" :text="$t('secrets.show')" start-icon="back" @click="selectedSecret = undefined" />
-      <Button v-else :text="$t('secrets.add')" start-icon="plus" @click="showAddSecret" />
-    </template>
-
-    <SecretList
+    > <template #headerActions
+      > <Button
+        v-if="selectedSecret"
+        :text="$t('secrets.show')"
+        start-icon="back"
+        @click="selectedSecret = undefined"
+      /> <Button v-else :text="$t('secrets.add')" start-icon="plus" @click="showAddSecret" /> </template
+    > <SecretList
       v-if="!selectedSecret"
       v-model="secrets"
       :is-deleting="isDeleting"
       @edit="editSecret"
       @delete="deleteSecret"
-    />
-
-    <SecretEdit
+    /> <SecretEdit
       v-else
       v-model="selectedSecret"
       :is-saving="isSaving"
       @save="createSecret"
       @cancel="selectedSecret = undefined"
-    />
-  </Settings>
+    /> </Settings
+  >
 </template>
 
 <script lang="ts" setup>

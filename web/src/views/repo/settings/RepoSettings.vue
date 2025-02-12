@@ -1,32 +1,29 @@
 <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
 <template>
-  <Scaffold enable-tabs :go-back="goBack">
-    <template #title>
-      <span>
-        <router-link
+   <Scaffold enable-tabs :go-back="goBack"
+    > <template #title
+      > <span
+        > <router-link
           :to="{ name: 'org', params: { orgId: repo!.org_id } }"
           class="hover:underline hover:decoration-wp-custom-highlight-100"
           >{{ repo!.owner }}</router-link
-        >
-        /
-        <router-link :to="{ name: 'repo' }" class="hover:underline hover:decoration-wp-custom-highlight-100">{{
+        > / <router-link :to="{ name: 'repo' }" class="hover:underline hover:decoration-wp-custom-highlight-100">{{
           repo!.name
           /* eslint-disable-next-line @intlify/vue-i18n/no-raw-text */
-        }}</router-link>
-        /
-        {{ $t('settings') }}
-      </span>
-    </template>
-
-    <Tab :to="{ name: 'repo-settings' }" :title="$t('repo.settings.general.general')" />
-    <Tab :to="{ name: 'repo-settings-secrets' }" :title="$t('secrets.secrets')" />
-    <Tab :to="{ name: 'repo-settings-registries' }" :title="$t('registries.registries')" />
-    <Tab :to="{ name: 'repo-settings-crons' }" :title="$t('repo.settings.crons.crons')" />
-    <Tab :to="{ name: 'repo-settings-badge' }" :title="$t('repo.settings.badge.badge')" />
-    <Tab :to="{ name: 'repo-settings-actions' }" :title="$t('repo.settings.actions.actions')" />
-
-    <router-view />
-  </Scaffold>
+        }}</router-link
+        > / {{ $t('settings') }} </span
+      > </template
+    > <Tab :to="{ name: 'repo-settings' }" :title="$t('repo.settings.general.general')" /> <Tab
+      :to="{ name: 'repo-settings-secrets' }"
+      :title="$t('secrets.secrets')"
+    /> <Tab :to="{ name: 'repo-settings-registries' }" :title="$t('registries.registries')" /> <Tab
+      :to="{ name: 'repo-settings-crons' }"
+      :title="$t('repo.settings.crons.crons')"
+    /> <Tab :to="{ name: 'repo-settings-badge' }" :title="$t('repo.settings.badge.badge')" /> <Tab
+      :to="{ name: 'repo-settings-actions' }"
+      :title="$t('repo.settings.actions.actions')"
+    /> <router-view /> </Scaffold
+  >
 </template>
 
 <script lang="ts" setup>

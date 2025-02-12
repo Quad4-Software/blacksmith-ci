@@ -1,5 +1,5 @@
 <template>
-  <Checkbox
+   <Checkbox
     v-for="option in options"
     :key="option.value"
     :model-value="innerValue.includes(option.value)"

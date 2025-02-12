@@ -1,7 +1,9 @@
 <template>
-  <svg fill="currentColor" :width="size" :height="size" viewBox="0 0 24 24">
+   <svg fill="currentColor" :width="size" :height="size" viewBox="0 0 24 24">
+
     <path :d="path" />
-  </svg>
+     </svg
+  >
 </template>
 
 <script lang="ts" setup>

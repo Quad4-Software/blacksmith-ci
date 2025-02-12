@@ -1,10 +1,9 @@
 <template>
-  <Settings :title="$t('user.settings.general.general')">
-    <InputField v-slot="{ id }" :label="$t('user.settings.general.language')">
-      <SelectField :id="id" v-model="selectedLocale" :options="localeOptions" />
-    </InputField>
-    <InputField v-slot="{ id }" :label="$t('user.settings.general.theme.theme')">
-      <SelectField
+   <Settings :title="$t('user.settings.general.general')"
+    > <InputField v-slot="{ id }" :label="$t('user.settings.general.language')"
+      > <SelectField :id="id" v-model="selectedLocale" :options="localeOptions" /> </InputField
+    > <InputField v-slot="{ id }" :label="$t('user.settings.general.theme.theme')"
+      > <SelectField
         :id="id"
         v-model="storeTheme"
         :options="[
@@ -12,9 +11,9 @@
           { value: 'light', text: $t('user.settings.general.theme.light') },
           { value: 'dark', text: $t('user.settings.general.theme.dark') },
         ]"
-      />
-    </InputField>
-  </Settings>
+      /> </InputField
+    > </Settings
+  >
 </template>
 
 <script lang="ts" setup>

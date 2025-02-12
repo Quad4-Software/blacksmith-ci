@@ -1,20 +1,33 @@
 <template>
-  <template v-if="repoPermissions && repoPermissions.push">
-    <Panel>
-      <InputField :label="$t('repo.pipeline.debug.metadata_exec_title')">
+   <template v-if="repoPermissions && repoPermissions.push"
+    > <Panel
+      > <InputField :label="$t('repo.pipeline.debug.metadata_exec_title')"
+        >
         <p class="mb-2 text-sm text-wp-text-alt-100">{{ $t('repo.pipeline.debug.metadata_exec_desc') }}</p>
+
         <pre class="code-box">{{ cliExecWithMetadata }}</pre>
-      </InputField>
+         </InputField
+      >
       <div class="flex items-center space-x-4">
-        <Button :is-loading="isLoading" :text="$t('repo.pipeline.debug.download_metadata')" @click="downloadMetadata" />
+         <Button
+          :is-loading="isLoading"
+          :text="$t('repo.pipeline.debug.download_metadata')"
+          @click="downloadMetadata"
+        />
       </div>
-    </Panel>
-  </template>
+       </Panel
+    > </template
+  >
   <div v-else class="flex h-full items-center justify-center">
+
     <div class="rounded-lg bg-wp-error-100 p-8 text-center shadow-lg dark:bg-wp-error-200">
+
       <p class="text-2xl font-bold text-white">{{ $t('repo.pipeline.debug.no_permission') }}</p>
+
     </div>
+
   </div>
+
 </template>
 
 <script setup lang="ts">

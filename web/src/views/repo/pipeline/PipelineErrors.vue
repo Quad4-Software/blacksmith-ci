@@ -1,50 +1,52 @@
 <template>
-  <Panel>
+   <Panel
+    >
     <div class="flex flex-col gap-y-4">
-      <template v-for="(error, _index) in pipeline!.errors" :key="_index">
+       <template v-for="(error, _index) in pipeline!.errors" :key="_index"
+        >
         <div>
+
           <div class="grid grid-cols-[minmax(10rem,auto),3fr]">
-            <span class="flex items-center gap-x-2">
-              <Icon
+             <span class="flex items-center gap-x-2"
+              > <Icon
                 name="alert"
                 class="my-1 flex-shrink-0"
                 :class="{
                   'text-wp-state-warn-100': error.is_warning,
                   'text-wp-error-100': !error.is_warning,
                 }"
-              />
-              <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-              <span>
-                <code>{{ error.type }}</code>
-              </span>
-            </span>
-            <span
+              /> <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text --> <span
+                > <code>{{ error.type }}</code
+                > </span
+              > </span
+            > <span
               v-if="isLinterError(error) || isDeprecationError(error) || isBadHabitError(error)"
               class="flex items-center gap-x-2 whitespace-nowrap"
-            >
-              <span>
-                <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-                <span v-if="error.data?.file" class="font-bold">{{ error.data?.file }}: </span>
-                <span>{{ error.data?.field }}</span>
-              </span>
-              <DocsLink
+              > <span
+                > <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text --> <span
+                  v-if="error.data?.file"
+                  class="font-bold"
+                  >{{ error.data?.file }}: </span
+                > <span>{{ error.data?.field }}</span
+                > </span
+              > <DocsLink
                 v-if="isDeprecationError(error) || isBadHabitError(error)"
                 :topic="error.data?.field || ''"
                 :url="error.data?.docs || ''"
-              />
-            </span>
-            <span v-else />
+              /> </span
+            > <span v-else />
           </div>
+
           <div class="col-start-2 grid grid-cols-[minmax(10rem,auto),4fr]">
-            <span />
-            <span>
-              <RenderMarkdown :content="error.message" />
-            </span>
+             <span /> <span> <RenderMarkdown :content="error.message" /> </span>
           </div>
+
         </div>
-      </template>
+         </template
+      >
     </div>
-  </Panel>
+     </Panel
+  >
 </template>
 
 <script lang="ts" setup>

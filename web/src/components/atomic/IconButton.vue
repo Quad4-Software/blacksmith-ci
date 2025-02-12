@@ -1,10 +1,7 @@
 <template>
-  <router-link v-if="to" :to="to" :title="title" :aria-label="title" class="icon-button h-8 w-8">
-    <slot>
-      <Icon v-if="icon" :name="icon" />
-    </slot>
-  </router-link>
-  <a
+   <router-link v-if="to" :to="to" :title="title" :aria-label="title" class="icon-button h-8 w-8"
+    > <slot> <Icon v-if="icon" :name="icon" /> </slot> </router-link
+  > <a
     v-else-if="href"
     :href="href"
     :title="title"
@@ -12,19 +9,14 @@
     class="icon-button"
     target="_blank"
     rel="noopener noreferrer"
-  >
-    <slot>
-      <Icon v-if="icon" :name="icon" />
-    </slot>
-  </a>
-  <button v-else :disabled="disabled" class="icon-button" type="button" :title="title" :aria-label="title">
-    <slot>
-      <Icon v-if="icon" :name="icon" />
-    </slot>
+    > <slot> <Icon v-if="icon" :name="icon" /> </slot> </a
+  > <button v-else :disabled="disabled" class="icon-button" type="button" :title="title" :aria-label="title">
+     <slot> <Icon v-if="icon" :name="icon" /> </slot>
     <div v-if="isLoading" class="absolute bottom-0 left-0 right-0 top-0 flex items-center justify-center">
-      <Icon name="loading" class="animate-spin" />
+       <Icon name="loading" class="animate-spin" />
     </div>
-  </button>
+     </button
+  >
 </template>
 
 <script lang="ts" setup>

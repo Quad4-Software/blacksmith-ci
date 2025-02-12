@@ -1,34 +1,31 @@
 <template>
-  <Scaffold v-model:search="search" :go-back="goBack">
-    <template #title>
-      {{ $t('repo.add') }}
-    </template>
-
+   <Scaffold v-model:search="search" :go-back="goBack"
+    > <template #title> {{ $t('repo.add') }} </template>
     <div class="space-y-4">
-      <template v-if="repos !== undefined && repos.length > 0">
-        <ListItem
+       <template v-if="repos !== undefined && repos.length > 0"
+        > <ListItem
           v-for="repo in searchedRepos"
           :key="repo.id"
           class="items-center"
           :to="repo.active ? { name: 'repo', params: { repoId: repo.id } } : undefined"
-        >
-          <span class="text-wp-text-100">{{ repo.full_name }}</span>
-          <span v-if="repo.active" class="ml-auto text-wp-text-alt-100">{{ $t('repo.enable.enabled') }}</span>
+          > <span class="text-wp-text-100">{{ repo.full_name }}</span
+          > <span v-if="repo.active" class="ml-auto text-wp-text-alt-100">{{ $t('repo.enable.enabled') }}</span
+          >
           <div v-else class="ml-auto flex items-center">
-            <Badge v-if="repo.id" class="md:display-unset mr-2 hidden" :label="$t('repo.enable.disabled')" />
-            <Button
+             <Badge v-if="repo.id" class="md:display-unset mr-2 hidden" :label="$t('repo.enable.disabled')" /> <Button
               :text="$t('repo.enable.enable')"
               :is-loading="isActivatingRepo && repoToActivate?.forge_remote_id === repo.forge_remote_id"
               @click="activateRepo(repo)"
             />
           </div>
-        </ListItem>
-      </template>
-      <div v-else-if="loading" class="flex justify-center text-wp-text-100">
-        <Icon name="spinner" />
-      </div>
+           </ListItem
+        > </template
+      >
+      <div v-else-if="loading" class="flex justify-center text-wp-text-100"> <Icon name="spinner" /> </div>
+
     </div>
-  </Scaffold>
+     </Scaffold
+  >
 </template>
 
 <script lang="ts" setup>

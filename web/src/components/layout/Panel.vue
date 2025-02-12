@@ -1,22 +1,21 @@
 <template>
+
   <div
     class="w-full overflow-hidden rounded-md border border-wp-background-400 bg-wp-background-100 shadow-sm dark:bg-wp-background-200"
   >
-    <component
+     <component
       :is="collapsable ? 'button' : 'div'"
       v-if="title"
       type="button"
       class="flex w-full gap-2 bg-wp-background-300 px-4 py-2 font-bold text-wp-text-100"
       @click="_collapsed = !_collapsed"
-    >
-      <Icon
+      > <Icon
         v-if="collapsable"
         name="chevron-right"
         class="h-6 min-w-6 transition-transform duration-150"
         :class="{ 'rotate-90 transform': !collapsed }"
-      />
-      {{ title }}
-    </component>
+      /> {{ title }} </component
+    >
     <div
       :class="{
         'max-h-auto': !collapsed,
@@ -24,11 +23,13 @@
       }"
       class="overflow-hidden transition-height duration-150"
     >
-      <div class="w-full p-4 text-wp-text-100">
-        <slot />
-      </div>
+
+      <div class="w-full p-4 text-wp-text-100"> <slot /> </div>
+
     </div>
+
   </div>
+
 </template>
 
 <script lang="ts" setup>

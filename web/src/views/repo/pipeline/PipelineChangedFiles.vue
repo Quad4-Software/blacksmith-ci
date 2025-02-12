@@ -1,9 +1,13 @@
 <template>
-  <Panel>
+   <Panel
+    >
     <ul class="w-full list-inside list-disc">
+
       <li v-for="file in pipeline!.changed_files" :key="file">{{ file }}</li>
+
     </ul>
-  </Panel>
+     </Panel
+  >
 </template>
 
 <script lang="ts" setup>

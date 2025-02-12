@@ -1,63 +1,81 @@
 <template>
-  <ListItem v-if="pipeline" class="w-full !p-0">
+   <ListItem v-if="pipeline" class="w-full !p-0"
+    >
     <div class="flex w-11 flex-shrink-0 items-center">
+
       <div class="flex h-full w-6 flex-wrap items-center justify-between">
-        <PipelineStatusIcon class="mx-2 md:mx-3" :status="pipeline.status" />
+         <PipelineStatusIcon class="mx-2 md:mx-3" :status="pipeline.status" />
       </div>
+
     </div>
 
     <div class="flex min-w-0 flex-grow flex-wrap px-4 py-0.5 !pl-0.5 md:flex-nowrap">
+
       <div class="hidden flex-shrink-0 items-center md:flex">
-        <Icon v-if="pipeline.event === 'cron'" name="stopwatch" class="text-wp-text-100" />
-        <img v-else class="w-6 rounded-md" :src="pipeline.author_avatar" />
+         <Icon v-if="pipeline.event === 'cron'" name="stopwatch" class="text-wp-text-100" /> <img
+          v-else
+          class="w-6 rounded-md"
+          :src="pipeline.author_avatar"
+        />
       </div>
 
       <div class="flex w-full min-w-0 items-center md:mx-4 md:w-auto">
-        <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-        <span class="md:display-unset hidden text-wp-text-alt-100">#{{ pipeline.number }}</span>
-        <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-        <span class="md:display-unset mx-2 hidden text-wp-text-alt-100">-</span>
-        <span
+         <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text --> <span
+          class="md:display-unset hidden text-wp-text-alt-100"
+          >#{{ pipeline.number }}</span
+        > <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text --> <span
+          class="md:display-unset mx-2 hidden text-wp-text-alt-100"
+          >-</span
+        > <span
           class="overflow-hidden overflow-ellipsis whitespace-nowrap text-wp-text-100 underline md:no-underline"
           :title="message"
+          > {{ shortMessage }} </span
         >
-          {{ shortMessage }}
-        </span>
       </div>
 
       <div
         class="grid w-full flex-shrink-0 grid-flow-col grid-cols-2 grid-rows-2 gap-x-4 gap-y-2 py-2 text-wp-text-100 md:ml-auto md:w-80"
       >
+
         <div class="flex min-w-0 items-center space-x-2">
-          <span :title="pipelineEventTitle">
-            <Icon v-if="pipeline.event === 'pull_request'" name="pull-request" class="" />
-            <Icon v-else-if="pipeline.event === 'pull_request_closed'" name="pull-request-closed" class="" />
-            <Icon v-else-if="pipeline.event === 'deployment'" name="deployment" class="" />
-            <Icon v-else-if="pipeline.event === 'tag' || pipeline.event === 'release'" name="tag" class="" />
-            <Icon v-else-if="pipeline.event === 'cron'" name="push" class="" />
-            <Icon v-else-if="pipeline.event === 'manual'" name="manual-pipeline" class="" />
-            <Icon v-else name="push" class="" />
-          </span>
-          <span class="truncate">{{ prettyRef }}</span>
+           <span :title="pipelineEventTitle"
+            > <Icon v-if="pipeline.event === 'pull_request'" name="pull-request" class="" /> <Icon
+              v-else-if="pipeline.event === 'pull_request_closed'"
+              name="pull-request-closed"
+              class=""
+            /> <Icon v-else-if="pipeline.event === 'deployment'" name="deployment" class="" /> <Icon
+              v-else-if="pipeline.event === 'tag' || pipeline.event === 'release'"
+              name="tag"
+              class=""
+            /> <Icon v-else-if="pipeline.event === 'cron'" name="push" class="" /> <Icon
+              v-else-if="pipeline.event === 'manual'"
+              name="manual-pipeline"
+              class=""
+            /> <Icon v-else name="push" class="" /> </span
+          > <span class="truncate">{{ prettyRef }}</span
+          >
         </div>
 
         <div class="flex min-w-0 items-center space-x-2">
-          <Icon name="commit" class="" />
-          <span class="truncate">{{ pipeline.commit.slice(0, 10) }}</span>
+           <Icon name="commit" class="" /> <span class="truncate">{{ pipeline.commit.slice(0, 10) }}</span
+          >
         </div>
 
         <div class="flex min-w-0 items-center space-x-2" :title="$t('repo.pipeline.duration')">
-          <Icon name="duration" />
-          <span class="truncate">{{ duration }}</span>
+           <Icon name="duration" /> <span class="truncate">{{ duration }}</span
+          >
         </div>
 
         <div class="flex min-w-0 items-center space-x-2" :title="$t('repo.pipeline.created', { created })">
-          <Icon name="since" />
-          <span class="truncate">{{ since }}</span>
+           <Icon name="since" /> <span class="truncate">{{ since }}</span
+          >
         </div>
+
       </div>
+
     </div>
-  </ListItem>
+     </ListItem
+  >
 </template>
 
 <script lang="ts" setup>

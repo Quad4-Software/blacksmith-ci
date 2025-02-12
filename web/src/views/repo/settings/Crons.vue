@@ -1,107 +1,101 @@
 <template>
-  <Settings
+   <Settings
     :title="$t('repo.settings.crons.crons')"
     :description="$t('repo.settings.crons.desc')"
     docs-url="docs/usage/cron"
-  >
-    <template #headerActions>
-      <Button
+    > <template #headerActions
+      > <Button
         v-if="selectedCron"
         start-icon="back"
         :text="$t('repo.settings.crons.show')"
         @click="selectedCron = undefined"
-      />
-      <Button v-else start-icon="plus" :text="$t('repo.settings.crons.add')" @click="selectedCron = {}" />
-    </template>
-
+      /> <Button v-else start-icon="plus" :text="$t('repo.settings.crons.add')" @click="selectedCron = {}" /> </template
+    >
     <div v-if="!selectedCron" class="space-y-4 text-wp-text-100">
-      <ListItem
+       <ListItem
         v-for="cron in crons"
         :key="cron.id"
         class="items-center !bg-wp-background-200 shadow-md dark:!bg-wp-background-100"
-      >
-        <span class="grid w-full grid-cols-3">
-          <span>{{ cron.name }}</span>
-          <span v-if="cron.next_exec && cron.next_exec > 0" class="md:display-unset col-span-2 hidden">
-            <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-            {{ $t('repo.settings.crons.next_exec') }}: {{ date.toLocaleString(new Date(cron.next_exec * 1000)) }}
-          </span>
-          <span v-else class="md:display-unset col-span-2 hidden">{{
+        > <span class="grid w-full grid-cols-3"
+          > <span>{{ cron.name }}</span
+          > <span v-if="cron.next_exec && cron.next_exec > 0" class="md:display-unset col-span-2 hidden"
+            > <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text --> {{ $t('repo.settings.crons.next_exec') }}:
+            {{ date.toLocaleString(new Date(cron.next_exec * 1000)) }} </span
+          > <span v-else class="md:display-unset col-span-2 hidden">{{
             $t('repo.settings.crons.not_executed_yet')
-          }}</span>
-        </span>
-        <IconButton
+          }}</span
+          > </span
+        > <IconButton
           icon="play-outline"
           class="ml-auto h-8 w-8"
           :title="$t('repo.settings.crons.run')"
           @click="runCron(cron)"
-        />
-        <IconButton icon="edit" class="h-8 w-8" :title="$t('repo.settings.crons.edit')" @click="selectedCron = cron" />
-        <IconButton
+        /> <IconButton
+          icon="edit"
+          class="h-8 w-8"
+          :title="$t('repo.settings.crons.edit')"
+          @click="selectedCron = cron"
+        /> <IconButton
           icon="trash"
           class="h-8 w-8 hover:text-wp-error-100"
           :is-loading="isDeleting"
           :title="$t('repo.settings.crons.delete')"
           @click="deleteCron(cron)"
-        />
-      </ListItem>
-
+        /> </ListItem
+      >
       <div v-if="crons?.length === 0" class="ml-2">{{ $t('repo.settings.crons.none') }}</div>
+
     </div>
 
     <div v-else class="space-y-4">
+
       <form @submit.prevent="createCron">
-        <InputField v-slot="{ id }" :label="$t('repo.settings.crons.name.name')">
-          <TextField
+         <InputField v-slot="{ id }" :label="$t('repo.settings.crons.name.name')"
+          > <TextField
             :id="id"
             v-model="selectedCron.name"
             :placeholder="$t('repo.settings.crons.name.placeholder')"
             required
-          />
-        </InputField>
-
-        <InputField v-slot="{ id }" :label="$t('repo.settings.crons.branch.title')">
-          <TextField
+          /> </InputField
+        > <InputField v-slot="{ id }" :label="$t('repo.settings.crons.branch.title')"
+          > <TextField
             :id="id"
             v-model="selectedCron.branch"
             :placeholder="$t('repo.settings.crons.branch.placeholder')"
-          />
-        </InputField>
-
-        <InputField
+          /> </InputField
+        > <InputField
           v-slot="{ id }"
           :label="$t('repo.settings.crons.schedule.title')"
           docs-url="https://pkg.go.dev/github.com/gdgvda/cron#hdr-CRON_Expression_Format"
-        >
-          <TextField
+          > <TextField
             :id="id"
             v-model="selectedCron.schedule"
             :placeholder="$t('repo.settings.crons.schedule.placeholder')"
             required
-          />
-        </InputField>
-
+          /> </InputField
+        >
         <div v-if="isEditingCron" class="mb-4 ml-auto">
-          <span v-if="selectedCron.next_exec && selectedCron.next_exec > 0" class="text-wp-text-100">
-            <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-            {{ $t('repo.settings.crons.next_exec') }}:
-            {{ date.toLocaleString(new Date(selectedCron.next_exec * 1000)) }}
-          </span>
-          <span v-else class="text-wp-text-100">{{ $t('repo.settings.crons.not_executed_yet') }}</span>
+           <span v-if="selectedCron.next_exec && selectedCron.next_exec > 0" class="text-wp-text-100"
+            > <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text --> {{ $t('repo.settings.crons.next_exec') }}:
+            {{ date.toLocaleString(new Date(selectedCron.next_exec * 1000)) }} </span
+          > <span v-else class="text-wp-text-100">{{ $t('repo.settings.crons.not_executed_yet') }}</span
+          >
         </div>
 
         <div class="flex gap-2">
-          <Button type="button" color="gray" :text="$t('cancel')" @click="selectedCron = undefined" />
-          <Button
+           <Button type="button" color="gray" :text="$t('cancel')" @click="selectedCron = undefined" /> <Button
             type="submit"
             color="default"
             :is-loading="isSaving"
             :text="isEditingCron ? $t('repo.settings.crons.save') : $t('repo.settings.crons.add')"
           />
         </div>
+
       </form>
+
     </div>
-  </Settings>
+     </Settings
+  >
 </template>
 
 <script lang="ts" setup>

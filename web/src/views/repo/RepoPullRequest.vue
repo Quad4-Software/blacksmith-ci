@@ -1,8 +1,10 @@
 <template>
+
   <div class="mb-4 flex w-full justify-center">
-    <span class="text-xl text-wp-text-100">{{ $t('repo.pipeline.pipelines_for_pr', { index: pullRequest }) }}</span>
+     <span class="text-xl text-wp-text-100">{{ $t('repo.pipeline.pipelines_for_pr', { index: pullRequest }) }}</span
+    >
   </div>
-  <PipelineList :pipelines="pipelines" :repo="repo" />
+   <PipelineList :pipelines="pipelines" :repo="repo" />
 </template>
 
 <script lang="ts" setup>

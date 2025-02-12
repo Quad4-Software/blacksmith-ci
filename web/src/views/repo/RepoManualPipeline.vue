@@ -1,27 +1,26 @@
 <template>
-  <Panel v-if="!loading">
+   <Panel v-if="!loading"
+    >
     <form @submit.prevent="triggerManualPipeline">
-      <span class="text-xl text-wp-text-100">{{ $t('repo.manual_pipeline.title') }}</span>
-      <InputField v-slot="{ id }" :label="$t('repo.manual_pipeline.select_branch')">
-        <SelectField :id="id" v-model="payload.branch" :options="branches" required />
-      </InputField>
-      <InputField v-slot="{ id }" :label="$t('repo.manual_pipeline.variables.title')">
-        <span class="mb-2 text-sm text-wp-text-alt-100">{{ $t('repo.manual_pipeline.variables.desc') }}</span>
-        <KeyValueEditor
+       <span class="text-xl text-wp-text-100">{{ $t('repo.manual_pipeline.title') }}</span
+      > <InputField v-slot="{ id }" :label="$t('repo.manual_pipeline.select_branch')"
+        > <SelectField :id="id" v-model="payload.branch" :options="branches" required /> </InputField
+      > <InputField v-slot="{ id }" :label="$t('repo.manual_pipeline.variables.title')"
+        > <span class="mb-2 text-sm text-wp-text-alt-100">{{ $t('repo.manual_pipeline.variables.desc') }}</span
+        > <KeyValueEditor
           :id="id"
           v-model="payload.variables"
           :key-placeholder="$t('repo.manual_pipeline.variables.name')"
           :value-placeholder="$t('repo.manual_pipeline.variables.value')"
           :delete-title="$t('repo.manual_pipeline.variables.delete')"
           @update:is-valid="isVariablesValid = $event"
-        />
-      </InputField>
-      <Button type="submit" :text="$t('repo.manual_pipeline.trigger')" :disabled="!isFormValid" />
+        /> </InputField
+      > <Button type="submit" :text="$t('repo.manual_pipeline.trigger')" :disabled="!isFormValid" />
     </form>
-  </Panel>
-  <div v-else class="flex justify-center text-wp-text-100">
-    <Icon name="spinner" />
-  </div>
+     </Panel
+  >
+  <div v-else class="flex justify-center text-wp-text-100"> <Icon name="spinner" /> </div>
+
 </template>
 
 <script lang="ts" setup>

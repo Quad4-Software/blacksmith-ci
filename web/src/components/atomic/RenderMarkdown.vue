@@ -1,6 +1,4 @@
-<template>
-  <span v-html="contentHTML" />
-</template>
+<template> <span v-html="contentHTML" /> </template>
 
 <script setup lang="ts">
 import DOMPurify from 'dompurify';

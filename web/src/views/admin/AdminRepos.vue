@@ -1,45 +1,44 @@
 <template>
-  <Settings :title="$t('admin.settings.repos.repos')" :description="$t('admin.settings.repos.desc')">
-    <template #headerActions>
-      <Button
+   <Settings :title="$t('admin.settings.repos.repos')" :description="$t('admin.settings.repos.desc')"
+    > <template #headerActions
+      > <Button
         start-icon="heal"
         :is-loading="isRepairingRepos"
         :text="$t('admin.settings.repos.repair.repair')"
         @click="repairRepos"
-      />
-    </template>
-
+      /> </template
+    >
     <div class="space-y-4 text-wp-text-100">
-      <ListItem
+       <ListItem
         v-for="repo in repos"
         :key="repo.id"
         class="items-center gap-2 bg-wp-background-200 dark:!bg-wp-background-100"
-      >
-        <span>{{ repo.full_name }}</span>
+        > <span>{{ repo.full_name }}</span
+        >
         <div class="ml-auto flex items-center">
-          <Badge
+           <Badge
             v-if="!repo.active"
             class="md:display-unset mr-2 hidden"
             :label="$t('admin.settings.repos.disabled')"
-          />
-          <IconButton
+          /> <IconButton
             icon="chevron-right"
             :title="$t('admin.settings.repos.view')"
             class="h-8 w-8"
             :to="{ name: 'repo', params: { repoId: repo.id } }"
-          />
-          <IconButton
+          /> <IconButton
             icon="settings-outline"
             :title="$t('admin.settings.repos.settings')"
             class="h-8 w-8"
             :to="{ name: 'repo-settings', params: { repoId: repo.id } }"
           />
         </div>
-      </ListItem>
-
+         </ListItem
+      >
       <div v-if="repos?.length === 0" class="ml-2">{{ $t('admin.settings.repos.none') }}</div>
+
     </div>
-  </Settings>
+     </Settings
+  >
 </template>
 
 <script lang="ts" setup>

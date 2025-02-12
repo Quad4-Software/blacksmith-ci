@@ -1,42 +1,41 @@
 <template>
+
   <div v-if="innerValue" class="space-y-4">
+
     <form @submit.prevent="save">
-      <InputField v-slot="{ id }" :label="$t('registries.address.address')">
-        <!-- TODO: check input field Address is a valid address -->
-        <TextField
+       <InputField v-slot="{ id }" :label="$t('registries.address.address')"
+        > <!-- TODO: check input field Address is a valid address --> <TextField
           :id="id"
           v-model="innerValue.address"
           :placeholder="$t('registries.address.desc')"
           required
           :disabled="isEditing || isReadOnly"
-        />
-      </InputField>
-
-      <InputField v-slot="{ id }" :label="$t('username')">
-        <TextField
+        /> </InputField
+      > <InputField v-slot="{ id }" :label="$t('username')"
+        > <TextField
           :id="id"
           v-model="innerValue.username"
           :placeholder="$t('username')"
           required
           :disabled="isReadOnly"
-        />
-      </InputField>
-
-      <InputField v-if="!isReadOnly" v-slot="{ id }" :label="$t('password')">
-        <TextField :id="id" v-model="innerValue.password" :placeholder="$t('password')" :required="!isEditing" />
-      </InputField>
-
+        /> </InputField
+      > <InputField v-if="!isReadOnly" v-slot="{ id }" :label="$t('password')"
+        > <TextField :id="id" v-model="innerValue.password" :placeholder="$t('password')" :required="!isEditing" />
+        </InputField
+      >
       <div v-if="!isReadOnly" class="flex gap-2">
-        <Button type="button" color="gray" :text="$t('cancel')" @click="$emit('cancel')" />
-        <Button
+         <Button type="button" color="gray" :text="$t('cancel')" @click="$emit('cancel')" /> <Button
           type="submit"
           color="default"
           :is-loading="isSaving"
           :text="isEditing ? $t('registries.save') : $t('registries.add')"
         />
       </div>
+
     </form>
+
   </div>
+
 </template>
 
 <script lang="ts" setup>

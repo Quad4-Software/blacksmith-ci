@@ -1,6 +1,4 @@
-<template>
-  <CrowIcon class="crow h-15" />
-</template>
+<template> <CrowIcon class="crow h-15" /> </template>
 
 <script lang="ts" setup>
 import CrowIcon from '~/assets/crow.svg?component';

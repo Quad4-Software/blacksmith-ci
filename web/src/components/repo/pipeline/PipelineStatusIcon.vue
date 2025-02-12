@@ -1,9 +1,10 @@
 <template>
+
   <div
     class="flex items-center justify-center"
     :title="$t('repo.pipeline.status.status', { status: statusDescriptions[status] })"
   >
-    <Icon
+     <Icon
       :name="service ? 'settings' : `status-${status}`"
       size="1.5rem"
       :class="{
@@ -16,6 +17,7 @@
       }"
     />
   </div>
+
 </template>
 
 <script lang="ts" setup>

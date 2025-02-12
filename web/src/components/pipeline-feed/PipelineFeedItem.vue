@@ -1,32 +1,38 @@
 <template>
+
   <div v-if="pipeline" class="flex w-full text-wp-text-100">
-    <PipelineStatusIcon :status="pipeline.status" class="flex items-center" />
+     <PipelineStatusIcon :status="pipeline.status" class="flex items-center" />
     <div class="ml-4 flex min-w-0 flex-col">
-      <router-link
+       <router-link
         :to="{
           name: 'repo',
           params: { repoId: pipeline.repo_id },
         }"
         class="underline decoration-wp-custom-highlight-100"
-      >
-        <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-        {{ repo?.owner }} / {{ repo?.name }}
-      </router-link>
-      <span class="overflow-hidden overflow-ellipsis whitespace-nowrap italic" :title="message">{{
+        > <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text --> {{ repo?.owner }} / {{ repo?.name }}
+        </router-link
+      > <span class="overflow-hidden overflow-ellipsis whitespace-nowrap italic" :title="message">{{
         shortMessage
-      }}</span>
+      }}</span
+      >
       <div class="mt-2 flex flex-col">
+
         <div class="mb-1 flex items-center space-x-2" :title="created">
-          <Icon name="since" />
-          <span>{{ since }}</span>
+           <Icon name="since" /> <span>{{ since }}</span
+          >
         </div>
+
         <div class="mb-1 flex items-center space-x-2">
-          <Icon name="duration" />
-          <span>{{ duration }}</span>
+           <Icon name="duration" /> <span>{{ duration }}</span
+          >
         </div>
+
       </div>
+
     </div>
+
   </div>
+
 </template>
 
 <script lang="ts" setup>
