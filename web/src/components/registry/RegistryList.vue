@@ -1,29 +1,28 @@
 <template>
-
   <div class="space-y-4 text-wp-text-100">
-     <ListItem
+    <ListItem
       v-for="registry in registries"
       :key="registry.id"
       class="items-center !bg-wp-background-200 shadow-md dark:!bg-wp-background-100"
-      > <span>{{ registry.address }}</span
-      > <IconButton
+    >
+      <span>{{ registry.address }}</span>
+      <IconButton
         :icon="registry.readonly ? 'chevron-right' : 'edit'"
         class="ml-auto h-8 w-8"
         :title="registry.readonly ? $t('registries.view') : $t('registries.edit')"
         @click="editRegistry(registry)"
-      /> <IconButton
+      />
+      <IconButton
         v-if="!registry.readonly"
         icon="trash"
         class="h-8 w-8 hover:text-wp-error-100"
         :is-loading="isDeleting"
         :title="$t('registries.delete')"
         @click="deleteRegistry(registry)"
-      /> </ListItem
-    >
+      />
+    </ListItem>
     <div v-if="registries?.length === 0" class="ml-2">{{ $t('registries.none') }}</div>
-
   </div>
-
 </template>
 
 <script lang="ts" setup>

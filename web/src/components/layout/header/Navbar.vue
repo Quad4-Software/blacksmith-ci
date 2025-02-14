@@ -1,46 +1,41 @@
 <template>
-
   <nav
     class="text-neutral-content flex border-wp-background-100 bg-wp-background-secondary-800 p-3 text-wp-primary-text-100"
   >
-
     <div class="flex items-center space-x-2">
-       <router-link :to="{ name: 'home' }" class="-my-2 flex flex-col px-2"
-        > <CrowLogo class="h-8 w-8" /> <!-- <span class="text-center text-xs" :title="version?.current">{{ version?.currentShort }}</span> -->
-        </router-link
-      > <router-link v-if="user" :to="{ name: 'repos' }" class="navbar-clickable navbar-link"
-        > <span class="flex md:hidden">{{ $t('repos') }}</span
-        > <span class="hidden md:flex">{{ $t('repositories') }}</span
-        > </router-link
-      > <a href="https://crowci.dev/" target="_blank" class="navbar-clickable navbar-link hidden md:flex">{{
+      <router-link :to="{ name: 'home' }" class="-my-2 flex flex-col px-2">
+        <CrowLogo class="h-8 w-8" />
+        <!-- <span class="text-center text-xs" :title="version?.current">{{ version?.currentShort }}</span> -->
+      </router-link>
+      <router-link v-if="user" :to="{ name: 'repos' }" class="navbar-clickable navbar-link">
+        <span class="flex md:hidden">{{ $t('repos') }}</span>
+        <span class="hidden md:flex">{{ $t('repositories') }}</span>
+      </router-link>
+      <a href="https://crowci.dev/" target="_blank" class="navbar-clickable navbar-link hidden md:flex">{{
         $t('docs')
-      }}</a
-      > <a v-if="enableSwagger" :href="apiUrl" target="_blank" class="navbar-clickable navbar-link hidden md:flex">{{
+      }}</a>
+      <a v-if="enableSwagger" :href="apiUrl" target="_blank" class="navbar-clickable navbar-link hidden md:flex">{{
         $t('api')
-      }}</a
-      >
+      }}</a>
     </div>
 
     <div class="-m-1.5 ml-auto flex items-center space-x-2">
-       <IconButton
+      <IconButton
         v-if="user?.admin"
         class="navbar-icon relative"
         :title="$t('settings')"
         :to="{ name: 'admin-settings' }"
-        > <Icon name="settings" />
+      >
+        <Icon name="settings" />
         <div v-if="version?.needsUpdate" class="absolute right-2 top-2 h-3 w-3 rounded-full bg-wp-error-100" />
-         </IconButton
-      > <ActivePipelines v-if="user" class="navbar-icon !p-1.5" /> <IconButton
-        v-if="user"
-        :to="{ name: 'user' }"
-        :title="$t('user.settings.settings')"
-        class="navbar-icon !p-1.5"
-        > <img v-if="user && user.avatar_url" class="rounded-md" :src="`${user.avatar_url}`" /> </IconButton
-      > <Button v-else :text="$t('login')" :to="`/login?url=${route.fullPath}`" />
+      </IconButton>
+      <ActivePipelines v-if="user" class="navbar-icon !p-1.5" />
+      <IconButton v-if="user" :to="{ name: 'user' }" :title="$t('user.settings.settings')" class="navbar-icon !p-1.5">
+        <img v-if="user && user.avatar_url" class="rounded-md" :src="`${user.avatar_url}`" />
+      </IconButton>
+      <Button v-else :text="$t('login')" :to="`/login?url=${route.fullPath}`" />
     </div>
-
   </nav>
-
 </template>
 
 <script lang="ts" setup>

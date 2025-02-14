@@ -1,5 +1,5 @@
 <template>
-   <input
+  <input
     v-if="lines === 1"
     v-model="innerValue"
     class="w-full rounded-md border border-wp-background-400 bg-wp-background-100 px-2 py-1 shadow-md focus-visible:border-wp-control-neutral-300 focus-visible:outline-none"
@@ -7,7 +7,8 @@
     :disabled="disabled"
     :type="type"
     :placeholder="placeholder"
-  /> <textarea
+  />
+  <textarea
     v-else
     v-model="innerValue"
     class="w-full rounded-md border border-wp-background-400 bg-wp-background-100 px-2 py-1 shadow-md focus-visible:border-wp-control-neutral-300 focus-visible:outline-none"

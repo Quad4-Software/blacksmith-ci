@@ -1,97 +1,97 @@
 <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
 <template>
-   <Scaffold
+  <Scaffold
     v-if="pipeline && repo"
     enable-tabs
     :go-back="goBack"
     :fluid-content="route.name === 'repo-pipeline'"
     full-width-header
-    > <template #title
-      > <span
-        > <router-link
+  >
+    <template #title>
+      <span>
+        <router-link
           :to="{ name: 'org', params: { orgId: repo.org_id } }"
           class="hover:underline hover:decoration-wp-custom-highlight-100"
           >{{ repo.owner }}</router-link
-        > / <router-link :to="{ name: 'repo' }" class="hover:underline">{{ repo.name }}</router-link
-        > </span
-      > </template
-    > <template #headerActions
-      >
+        >
+        / <router-link :to="{ name: 'repo' }" class="hover:underline">{{ repo.name }}</router-link>
+      </span>
+    </template>
+    <template #headerActions>
       <div class="flex w-full items-center justify-between gap-2">
-
         <div class="flex min-w-0 content-start gap-2">
-           <PipelineStatusIcon :status="pipeline.status" class="flex flex-shrink-0" /> <span
-            class="flex-shrink-0 text-center"
-            >{{ $t('repo.pipeline.pipeline', { pipelineId }) }}</span
-          > <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text --> <span class="hidden md:inline-block">-</span
-          > <span class="min-w-0 overflow-hidden overflow-ellipsis whitespace-nowrap" :title="message">{{
+          <PipelineStatusIcon :status="pipeline.status" class="flex flex-shrink-0" />
+          <span class="flex-shrink-0 text-center">{{ $t('repo.pipeline.pipeline', { pipelineId }) }}</span>
+          <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
+          <span class="hidden md:inline-block">-</span>
+          <span class="min-w-0 overflow-hidden overflow-ellipsis whitespace-nowrap" :title="message">{{
             shortMessage
-          }}</span
-          >
+          }}</span>
         </div>
-         <template v-if="repoPermissions!.push && pipeline.status !== 'blocked'"
-          >
+        <template v-if="repoPermissions!.push && pipeline.status !== 'blocked'">
           <div class="flex content-start gap-x-2">
-             <Button
+            <Button
               v-if="pipeline.status === 'pending' || pipeline.status === 'running'"
               class="flex-shrink-0 !py-0"
               :text="$t('repo.pipeline.actions.cancel')"
               :is-loading="isCancelingPipeline"
               @click="cancelPipeline"
-            /> <Button
+            />
+            <Button
               class="flex-shrink-0 !py-0"
               :text="$t('repo.pipeline.actions.restart')"
               :is-loading="isRestartingPipeline"
               @click="restartPipeline"
-            /> <Button
+            />
+            <Button
               v-if="pipeline.status === 'success' && repo.allow_deploy"
               class="flex-shrink-0 !py-0"
               :text="$t('repo.pipeline.actions.deploy')"
               @click="showDeployPipelinePopup = true"
-            /> <DeployPipelinePopup
+            />
+            <DeployPipelinePopup
               :pipeline-number="pipelineId"
               :open="showDeployPipelinePopup"
               @close="showDeployPipelinePopup = false"
             />
           </div>
-           </template
-        >
+        </template>
       </div>
-       </template
-    > <template #tabActions
-      >
+    </template>
+    <template #tabActions>
       <div class="flex flex-wrap gap-4 md:flex-nowrap">
-
         <div class="flex flex-shrink-0 items-center gap-2" :title="$t('repo.pipeline.created', { created })">
-           <Icon name="since" /> <span>{{ since }}</span
-          >
+          <Icon name="since" /> <span>{{ since }}</span>
         </div>
 
         <div class="flex flex-shrink-0 items-center gap-2" :title="$t('repo.pipeline.duration')">
-           <Icon name="duration" /> <span>{{ duration }}</span
-          >
+          <Icon name="duration" /> <span>{{ duration }}</span>
         </div>
-
       </div>
-       </template
-    > <Tab :to="{ name: 'repo-pipeline' }" :title="$t('repo.pipeline.tasks')" /> <Tab
+    </template>
+    <Tab :to="{ name: 'repo-pipeline' }" :title="$t('repo.pipeline.tasks')" />
+    <Tab
       v-if="pipeline.errors && pipeline.errors.length > 0"
       :to="{ name: 'repo-pipeline-errors' }"
       icon="alert"
       :title="pipeline.errors.some((e) => !e.is_warning) ? $t('repo.pipeline.errors') : $t('repo.pipeline.warnings')"
       :count="pipeline.errors?.length"
       :icon-class="pipeline.errors.some((e) => !e.is_warning) ? 'text-wp-error-100' : 'text-wp-state-warn-100'"
-    /> <Tab :to="{ name: 'repo-pipeline-config' }" :title="$t('repo.pipeline.config')" /> <Tab
+    />
+    <Tab :to="{ name: 'repo-pipeline-config' }" :title="$t('repo.pipeline.config')" />
+    <Tab
       v-if="pipeline.changed_files && pipeline.changed_files.length > 0"
       :to="{ name: 'repo-pipeline-changed-files' }"
       :title="$t('repo.pipeline.files')"
       :count="pipeline.changed_files?.length"
-    /> <Tab
+    />
+    <Tab
       v-if="repoPermissions && repoPermissions.push"
       :to="{ name: 'repo-pipeline-debug' }"
       :title="$t('repo.pipeline.debug.title')"
-    /> <router-view /> </Scaffold
-  >
+    />
+    <router-view />
+  </Scaffold>
 </template>
 
 <script lang="ts" setup>

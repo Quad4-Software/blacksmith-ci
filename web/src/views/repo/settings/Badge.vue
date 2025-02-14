@@ -1,9 +1,10 @@
 <template>
-   <Settings :title="$t('repo.settings.badge.badge')"
-    > <template #titleActions
-      > <a v-if="badgeUrl" :href="badgeUrl" target="_blank"> <img :src="badgeUrl" /> </a> </template
-    > <InputField v-slot="{ id }" :label="$t('repo.settings.badge.type')"
-      > <SelectField
+  <Settings :title="$t('repo.settings.badge.badge')">
+    <template #titleActions>
+      <a v-if="badgeUrl" :href="badgeUrl" target="_blank"> <img :src="badgeUrl" /> </a>
+    </template>
+    <InputField v-slot="{ id }" :label="$t('repo.settings.badge.type')">
+      <SelectField
         :id="id"
         v-model="badgeType"
         :options="[
@@ -21,21 +22,17 @@
           },
         ]"
         required
-      /> </InputField
-    > <InputField v-slot="{ id }" :label="$t('repo.settings.badge.branch')"
-      > <SelectField :id="id" v-model="branch" :options="branches" required /> </InputField
-    >
+      />
+    </InputField>
+    <InputField v-slot="{ id }" :label="$t('repo.settings.badge.branch')">
+      <SelectField :id="id" v-model="branch" :options="branches" required />
+    </InputField>
     <div v-if="badgeContent" class="flex flex-col space-y-4">
-
       <div>
-
         <pre class="code-box">{{ badgeContent }}</pre>
-
       </div>
-
     </div>
-     </Settings
-  >
+  </Settings>
 </template>
 
 <script lang="ts" setup>

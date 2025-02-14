@@ -1,22 +1,23 @@
 <template>
-   <Scaffold v-if="org" enable-tabs :go-back="goBack"
-    > <template #title
-      > <span
-        > <router-link :to="{ name: 'org' }" class="hover:underline hover:decoration-wp-custom-highlight-100">{{
+  <Scaffold v-if="org" enable-tabs :go-back="goBack">
+    <template #title>
+      <span>
+        <router-link :to="{ name: 'org' }" class="hover:underline hover:decoration-wp-custom-highlight-100">{{
           org.name
-          /* eslint-disable-next-line @intlify/vue-i18n/no-raw-text */
+          /* eslint-disable @intlify/vue-i18n/no-raw-text */
         }}</router-link
-        > / {{ $t('settings') }} </span
-      > </template
-    > <Tab :to="{ name: 'org-settings-secrets' }" :title="$t('secrets.secrets')" /> <Tab
-      :to="{ name: 'org-settings-registries' }"
-      :title="$t('registries.registries')"
-    /> <Tab
+        ><Text>/</Text>{{ $t('settings') }}
+      </span>
+    </template>
+    <Tab :to="{ name: 'org-settings-secrets' }" :title="$t('secrets.secrets')" />
+    <Tab :to="{ name: 'org-settings-registries' }" :title="$t('registries.registries')" />
+    <Tab
       v-if="useConfig().userRegisteredAgents"
       :to="{ name: 'org-settings-agents' }"
       :title="$t('admin.settings.agents.agents')"
-    /> <router-view /> </Scaffold
-  >
+    />
+    <router-view />
+  </Scaffold>
 </template>
 
 <script lang="ts" setup>

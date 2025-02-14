@@ -1,26 +1,29 @@
 <template>
-   <Settings :title="$t('registries.credentials')" :description="$t('registries.desc')" docs-url="docs/usage/registries"
-    > <template #headerActions
-      > <Button
+  <Settings :title="$t('registries.credentials')" :description="$t('registries.desc')" docs-url="docs/usage/registries">
+    <template #headerActions>
+      <Button
         v-if="selectedRegistry"
         :text="$t('registries.show')"
         start-icon="back"
         @click="selectedRegistry = undefined"
-      /> <Button v-else :text="$t('registries.add')" start-icon="plus" @click="showAddRegistry" /> </template
-    > <RegistryList
+      />
+      <Button v-else :text="$t('registries.add')" start-icon="plus" @click="showAddRegistry" />
+    </template>
+    <RegistryList
       v-if="!selectedRegistry"
       v-model="registries"
       :is-deleting="isDeleting"
       @edit="editRegistry"
       @delete="deleteRegistry"
-    /> <RegistryEdit
+    />
+    <RegistryEdit
       v-else
       v-model="selectedRegistry"
       :is-saving="isSaving"
       @save="createRegistry"
       @cancel="selectedRegistry = undefined"
-    /> </Settings
-  >
+    />
+  </Settings>
 </template>
 
 <script lang="ts" setup>

@@ -1,49 +1,43 @@
 <template>
-
   <main class="flex h-full w-full flex-col items-center justify-center">
-     <Error v-if="errorMessage" class="w-full md:w-3xl"
-      > <span class="whitespace-pre">{{ errorMessage }}</span
-      > <span v-if="errorDescription" class="mt-1 whitespace-pre">{{ errorDescription }}</span
-      > <a
+    <Error v-if="errorMessage" class="w-full md:w-3xl">
+      <span class="whitespace-pre">{{ errorMessage }}</span>
+      <span v-if="errorDescription" class="mt-1 whitespace-pre">{{ errorDescription }}</span>
+      <a
         v-if="errorUri"
         :href="errorUri"
         target="_blank"
         class="mt-1 cursor-pointer text-wp-link-100 hover:text-wp-link-200"
-        > <span>{{ errorUri }}</span
-        > </a
-      > </Error
-    >
+      >
+        <span>{{ errorUri }}</span>
+      </a>
+    </Error>
     <div
       class="flex min-h-sm w-full flex-col overflow-hidden border border-wp-background-400 bg-wp-background-100 shadow-sm dark:bg-wp-background-200 md:m-8 md:w-3xl md:flex-row md:rounded-md"
     >
-
       <div
         class="flex min-h-48 items-center justify-center bg-wp-background-secondary-800 dark:bg-wp-primary-300 md:w-3/5"
       >
-         <CrowLogo preserveAspectRatio="xMinYMin slice" class="h-32 w-auto md:h-48" />
+        <CrowLogo preserveAspectRatio="xMinYMin slice" class="h-32 w-auto md:h-48" />
       </div>
 
       <div class="flex min-h-48 flex-col items-center justify-center gap-4 p-4 text-center md:w-2/5">
-
         <h1 class="text-xl text-wp-text-100">{{ $t('welcome') }}</h1>
 
         <div class="flex flex-col gap-2">
-           <Button
+          <Button
             v-for="forge in forges"
             :key="forge.id"
             :start-icon="forge.type === 'addon' ? 'repo' : forge.type"
             class="!whitespace-normal"
             @click="doLogin(forge.id)"
-            > {{ $t('login_with', { forge: getHostFromUrl(forge) }) }} </Button
           >
+            {{ $t('login_with', { forge: getHostFromUrl(forge) }) }}
+          </Button>
         </div>
-
       </div>
-
     </div>
-
   </main>
-
 </template>
 
 <script lang="ts" setup>

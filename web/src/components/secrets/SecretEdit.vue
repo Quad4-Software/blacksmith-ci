@@ -1,68 +1,53 @@
 <template>
-
   <div v-if="innerValue" class="space-y-4">
-
     <form @submit.prevent="save">
-       <InputField v-slot="{ id }" :label="$t('secrets.name')"
-        > <TextField
+      <InputField v-slot="{ id }" :label="$t('secrets.name')">
+        <TextField
           :id="id"
           v-model="innerValue.name"
           :placeholder="$t('secrets.name')"
           required
           :disabled="isEditingSecret"
-        /> </InputField
-      > <InputField v-slot="{ id }" :label="$t('secrets.value')"
-        > <TextField
+        />
+      </InputField>
+      <InputField v-slot="{ id }" :label="$t('secrets.value')">
+        <TextField
           :id="id"
           v-model="innerValue.value"
           :placeholder="$t('secrets.value')"
           :lines="5"
           :required="!isEditingSecret"
-        /> </InputField
-      > <InputField v-slot="{ id }" :label="$t('secrets.plugins.images')"
-        > <span class="mb-2 ml-1 text-wp-text-alt-100">{{ $t('secrets.plugins.desc') }}</span
-        >
+        />
+      </InputField>
+      <InputField v-slot="{ id }" :label="$t('secrets.plugins.images')">
+        <span class="mb-2 ml-1 text-wp-text-alt-100">{{ $t('secrets.plugins.desc') }}</span>
         <div class="flex flex-col gap-2">
-
           <div v-for="image in innerValue.images" :key="image" class="flex gap-2">
-             <TextField :id="id" :model-value="image" disabled /> <Button
-              type="button"
-              color="gray"
-              start-icon="trash"
-              @click="removeImage(image)"
-            />
+            <TextField :id="id" :model-value="image" disabled />
+            <Button type="button" color="gray" start-icon="trash" @click="removeImage(image)" />
           </div>
 
           <div class="flex gap-2">
-             <TextField :id="id" v-model="newImage" @keydown.enter.prevent="addNewImage" /> <Button
-              type="button"
-              color="gray"
-              start-icon="plus"
-              @click="addNewImage"
-            />
+            <TextField :id="id" v-model="newImage" @keydown.enter.prevent="addNewImage" />
+            <Button type="button" color="gray" start-icon="plus" @click="addNewImage" />
           </div>
-
         </div>
-         </InputField
-      > <InputField :label="$t('secrets.events.events')"
-        > <Warning class="mb-4 text-sm" :text="$t('secrets.events.warning')" /> <CheckboxesField
-          v-model="innerValue.events"
-          :options="secretEventsOptions"
-        /> </InputField
-      >
+      </InputField>
+      <InputField :label="$t('secrets.events.events')">
+        <Warning class="mb-4 text-sm" :text="$t('secrets.events.warning')" />
+        <CheckboxesField v-model="innerValue.events" :options="secretEventsOptions" />
+      </InputField>
       <div class="flex gap-2">
-         <Button type="button" color="gray" :text="$t('cancel')" @click="$emit('cancel')" /> <Button
+        <Button type="button" color="gray" :text="$t('cancel')" @click="$emit('cancel')" />
+        <Button
           type="submit"
           color="default"
           :is-loading="isSaving"
           :text="isEditingSecret ? $t('secrets.save') : $t('secrets.add')"
         />
       </div>
-
     </form>
-
   </div>
-
 </template>
 
 <script lang="ts" setup>

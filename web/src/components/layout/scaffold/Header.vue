@@ -1,30 +1,26 @@
 <template>
-
   <header
     class="border-wp-background-400 bg-wp-background-100 text-wp-text-100 shadow-sm dark:border-wp-background-100 dark:bg-wp-background-300"
     :class="{ 'md:px-4': fullWidth }"
   >
-     <Container :full-width="fullWidth" class="!py-0"
-      >
+    <Container :full-width="fullWidth" class="!py-0">
       <div class="flex w-full flex-col gap-2 py-2 md:flex-row md:items-center md:justify-between md:gap-10">
-
         <div
           class="flex min-h-10 content-start items-center"
           :class="{
             'md:flex-1': searchBoxPresent,
           }"
         >
-           <IconButton
+          <IconButton
             v-if="goBack"
             icon="back"
             :title="$t('back')"
             class="md:display-unset mr-2 hidden h-8 w-8 flex-shrink-0 md:justify-between"
             @click="goBack"
           />
-          <h1 class="flex min-w-0 items-center gap-x-2 text-xl italic text-wp-text-100"> <slot name="title" /> </h1>
-
+          <h1 class="flex min-w-0 items-center gap-x-2 text-xl italic text-wp-text-100"><slot name="title" /></h1>
         </div>
-         <TextField
+        <TextField
           v-if="searchBoxPresent"
           class="order-3 w-full flex-grow md:order-none md:w-auto"
           :aria-label="$t('search')"
@@ -39,22 +35,18 @@
             'md:flex-1': searchBoxPresent,
           }"
         >
-           <slot name="headerActions" />
+          <slot name="headerActions" />
         </div>
-
       </div>
 
       <div v-if="enableTabs" class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between md:py-0">
-         <Tabs class="order-2 md:order-none" />
+        <Tabs class="order-2 md:order-none" />
         <div v-if="$slots.headerActions" class="flex flex-wrap content-start pb-2 md:justify-end">
-           <slot name="tabActions" />
+          <slot name="tabActions" />
         </div>
-
       </div>
-       </Container
-    >
+    </Container>
   </header>
-
 </template>
 
 <script setup lang="ts">

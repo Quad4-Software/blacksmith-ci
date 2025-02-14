@@ -1,7 +1,6 @@
 <template>
-
   <div v-if="pipelines" class="space-y-4">
-     <PipelineItem
+    <PipelineItem
       v-for="pipeline in pipelines"
       :key="pipeline.id"
       :to="{
@@ -9,12 +8,11 @@
         params: { pipelineId: pipeline.number },
       }"
       :pipeline="pipeline"
-    /> <Panel v-if="pipelines.length === 0"
-      > <span class="text-wp-text-100">{{ $t('repo.pipeline.no_pipelines') }}</span
-      > </Panel
-    >
+    />
+    <Panel v-if="pipelines.length === 0">
+      <span class="text-wp-text-100">{{ $t('repo.pipeline.no_pipelines') }}</span>
+    </Panel>
   </div>
-
 </template>
 
 <script lang="ts" setup>

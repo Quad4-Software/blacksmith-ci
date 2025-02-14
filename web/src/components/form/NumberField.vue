@@ -1,4 +1,4 @@
-<template> <TextField v-model="innerValue" :placeholder="placeholder" type="number" /> </template>
+<template><TextField v-model="innerValue" :placeholder="placeholder" type="number" /></template>
 
 <script lang="ts" setup>
 import { computed, toRef } from 'vue';

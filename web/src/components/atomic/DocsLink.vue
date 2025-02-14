@@ -1,11 +1,12 @@
 <template>
-   <a
+  <a
     :href="`${docsUrl}`"
     :title="$t('documentation_for', { topic })"
     target="_blank"
     class="hover:text-wp-link-300 cursor-pointer text-wp-custom-highlight-100"
-    > <Icon name="question" class="!h-5 !w-5" /> </a
   >
+    <Icon name="question" class="!h-5 !w-5" />
+  </a>
 </template>
 
 <script lang="ts" setup>

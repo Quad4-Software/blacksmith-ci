@@ -1,18 +1,18 @@
 <template>
-   <Scaffold enable-tabs
-    > <template #title>{{ $t('user.settings.settings') }}</template
-    > <template #headerActions><Button :text="$t('logout')" :to="`${address}/logout`" /></template> <Tab
-      :to="{ name: 'user' }"
-      :title="$t('user.settings.general.general')"
-    /> <Tab :to="{ name: 'user-secrets' }" :title="$t('secrets.secrets')" /> <Tab
-      :to="{ name: 'user-registries' }"
-      :title="$t('registries.registries')"
-    /> <Tab :to="{ name: 'user-cli-and-api' }" :title="$t('user.settings.cli_and_api.cli_and_api')" /> <Tab
+  <Scaffold enable-tabs>
+    <template #title>{{ $t('user.settings.settings') }}</template>
+    <template #headerActions><Button :text="$t('logout')" :to="`${address}/logout`" /></template>
+    <Tab :to="{ name: 'user' }" :title="$t('user.settings.general.general')" />
+    <Tab :to="{ name: 'user-secrets' }" :title="$t('secrets.secrets')" />
+    <Tab :to="{ name: 'user-registries' }" :title="$t('registries.registries')" />
+    <Tab :to="{ name: 'user-cli-and-api' }" :title="$t('user.settings.cli_and_api.cli_and_api')" />
+    <Tab
       v-if="useConfig().userRegisteredAgents"
       :to="{ name: 'user-agents' }"
       :title="$t('admin.settings.agents.agents')"
-    /> <router-view /> </Scaffold
-  >
+    />
+    <router-view />
+  </Scaffold>
 </template>
 
 <script lang="ts" setup>

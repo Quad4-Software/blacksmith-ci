@@ -46,16 +46,6 @@ steps:
       - pnpm lint
     when: *when
 
-  format-check:
-    depends_on:
-      - install-dependencies
-    image: *node_image
-    directory: web/
-    commands:
-      - corepack enable
-      - pnpm format:check
-    when: *when
-
   typecheck:
     depends_on:
       - install-dependencies
@@ -69,7 +59,6 @@ steps:
   test:
     depends_on:
       - install-dependencies
-      - format-check # wait for it else test artifacts are falsely detected as wrong
     image: *node_image
     directory: web/
     commands:

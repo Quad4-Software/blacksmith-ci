@@ -12,8 +12,6 @@
     "build": "vite build --base=/BASE_PATH",
     "serve": "vite preview",
     "lint": "eslint --max-warnings 0 .",
-    "format": "prettier --write .",
-    "format:check": "prettier -c .",
     "typecheck": "vue-tsc --noEmit",
     "test": "vitest"
   },

@@ -1,32 +1,33 @@
 <template>
-   <Popup :open="open" @close="$emit('close')"
-    > <Panel v-if="!loading"
-      >
+  <Popup :open="open" @close="$emit('close')">
+    <Panel v-if="!loading">
       <form @submit.prevent="triggerDeployPipeline">
-         <span class="text-xl text-wp-text-100">{{
+        <span class="text-xl text-wp-text-100">{{
           $t('repo.deploy_pipeline.title', { pipelineId: pipelineNumber })
-        }}</span
-        > <InputField v-slot="{ id }" :label="$t('repo.deploy_pipeline.enter_target.title')"
-          > <span class="mb-2 text-sm text-wp-text-alt-100">{{ $t('repo.deploy_pipeline.enter_target.desc') }}</span
-          > <TextField :id="id" v-model="payload.environment" required /> </InputField
-        > <InputField v-slot="{ id }" :label="$t('repo.deploy_pipeline.enter_task.title')"
-          > <span class="mb-2 text-sm text-wp-text-alt-100">{{ $t('repo.deploy_pipeline.enter_task.desc') }}</span
-          > <TextField :id="id" v-model="payload.task" /> </InputField
-        > <InputField v-slot="{ id }" :label="$t('repo.deploy_pipeline.variables.title')"
-          > <span class="mb-2 text-sm text-wp-text-alt-100">{{ $t('repo.deploy_pipeline.variables.desc') }}</span
-          > <KeyValueEditor
+        }}</span>
+        <InputField v-slot="{ id }" :label="$t('repo.deploy_pipeline.enter_target.title')">
+          <span class="mb-2 text-sm text-wp-text-alt-100">{{ $t('repo.deploy_pipeline.enter_target.desc') }}</span>
+          <TextField :id="id" v-model="payload.environment" required />
+        </InputField>
+        <InputField v-slot="{ id }" :label="$t('repo.deploy_pipeline.enter_task.title')">
+          <span class="mb-2 text-sm text-wp-text-alt-100">{{ $t('repo.deploy_pipeline.enter_task.desc') }}</span>
+          <TextField :id="id" v-model="payload.task" />
+        </InputField>
+        <InputField v-slot="{ id }" :label="$t('repo.deploy_pipeline.variables.title')">
+          <span class="mb-2 text-sm text-wp-text-alt-100">{{ $t('repo.deploy_pipeline.variables.desc') }}</span>
+          <KeyValueEditor
             :id="id"
             v-model="payload.variables"
             :key-placeholder="$t('repo.deploy_pipeline.variables.name')"
             :value-placeholder="$t('repo.deploy_pipeline.variables.value')"
             :delete-title="$t('repo.deploy_pipeline.variables.delete')"
             @update:is-valid="isVariablesValid = $event"
-          /> </InputField
-        > <Button type="submit" :text="$t('repo.deploy_pipeline.trigger')" :disabled="!isFormValid" />
+          />
+        </InputField>
+        <Button type="submit" :text="$t('repo.deploy_pipeline.trigger')" :disabled="!isFormValid" />
       </form>
-       </Panel
-    > </Popup
-  >
+    </Panel>
+  </Popup>
 </template>
 
 <script lang="ts" setup>

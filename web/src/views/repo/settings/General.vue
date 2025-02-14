@@ -1,64 +1,60 @@
 <template>
-   <Settings :title="$t('repo.settings.general.project')"
-    >
+  <Settings :title="$t('repo.settings.general.project')">
     <form v-if="repoSettings" class="flex flex-col" @submit.prevent="saveRepoSettings">
-       <InputField docs-url="usage/project-settings#general" :label="$t('repo.settings.general.general')"
-        > <Checkbox
+      <InputField docs-url="usage/project-settings#general" :label="$t('repo.settings.general.general')">
+        <Checkbox
           v-model="repoSettings.allow_pr"
           :label="$t('repo.settings.general.allow_pr.allow')"
           :description="$t('repo.settings.general.allow_pr.desc')"
-        /> <Checkbox
+        />
+        <Checkbox
           v-model="repoSettings.allow_deploy"
           :label="$t('repo.settings.general.allow_deploy.allow')"
           :description="$t('repo.settings.general.allow_deploy.desc')"
-        /> </InputField
-      > <InputField
+        />
+      </InputField>
+      <InputField
         :label="$t('repo.settings.general.netrc_only_trusted.netrc_only_trusted')"
         docs-url="usage/project-settings#custom-trusted-clone-plugins"
-        > <template #default="{ id }"
-          >
+      >
+        <template #default="{ id }">
           <div class="flex flex-col gap-2">
-
             <div v-for="image in repoSettings.netrc_trusted" :key="image" class="flex gap-2">
-               <TextField :id="id" :model-value="image" disabled /> <Button
-                type="button"
-                color="gray"
-                start-icon="trash"
-                @click="removeImage(image)"
-              />
+              <TextField :id="id" :model-value="image" disabled />
+              <Button type="button" color="gray" start-icon="trash" @click="removeImage(image)" />
             </div>
 
             <div class="flex gap-2">
-               <TextField :id="id" v-model="newImage" @keydown.enter.prevent="addNewImage" /> <Button
-                type="button"
-                color="gray"
-                start-icon="plus"
-                @click="addNewImage"
-              />
+              <TextField :id="id" v-model="newImage" @keydown.enter.prevent="addNewImage" />
+              <Button type="button" color="gray" start-icon="plus" @click="addNewImage" />
             </div>
-
           </div>
-           </template
-        > <template #description> {{ $t('repo.settings.general.netrc_only_trusted.desc') }} </template> </InputField
-      > <InputField
+        </template>
+        <template #description> {{ $t('repo.settings.general.netrc_only_trusted.desc') }} </template>
+      </InputField>
+      <InputField
         v-if="user?.admin"
         docs-url="usage/repo-settings/#privileges-security"
         :label="$t('repo.settings.general.trusted.trusted')"
-        > <Checkbox
+      >
+        <Checkbox
           v-model="repoSettings.trusted.network"
           :label="$t('repo.settings.general.trusted.network.network')"
           :description="$t('repo.settings.general.trusted.network.desc')"
-        /> <Checkbox
+        />
+        <Checkbox
           v-model="repoSettings.trusted.volumes"
           :label="$t('repo.settings.general.trusted.volumes.volumes')"
           :description="$t('repo.settings.general.trusted.volumes.desc')"
-        /> <Checkbox
+        />
+        <Checkbox
           v-model="repoSettings.trusted.security"
           :label="$t('repo.settings.general.trusted.security.security')"
           :description="$t('repo.settings.general.trusted.security.desc')"
-        /> </InputField
-      > <InputField :label="$t('require_approval.require_approval_for')"
-        > <RadioField
+        />
+      </InputField>
+      <InputField :label="$t('require_approval.require_approval_for')">
+        <RadioField
           v-model="repoSettings.require_approval"
           docs-url="usage/repo-settings/#approval-requirements"
           :options="[
@@ -80,44 +76,53 @@
               text: $t('require_approval.all_events'),
             },
           ]"
-        /> <template #description> {{ $t('require_approval.desc') }} </template> </InputField
-      > <InputField docs-url="usage/project-settings#project-visibility" :label="$t('repo.visibility.visibility')"
-        > <RadioField v-model="repoSettings.visibility" :options="projectVisibilityOptions" /> </InputField
-      > <InputField
+        />
+        <template #description> {{ $t('require_approval.desc') }} </template>
+      </InputField>
+      <InputField docs-url="usage/project-settings#project-visibility" :label="$t('repo.visibility.visibility')">
+        <RadioField v-model="repoSettings.visibility" :options="projectVisibilityOptions" />
+      </InputField>
+      <InputField
         v-slot="{ id }"
         docs-url="usage/project-settings#timeout"
         :label="$t('repo.settings.general.timeout.timeout')"
-        >
+      >
         <div class="flex items-center">
-           <NumberField :id="id" v-model="repoSettings.timeout" class="w-24" /> <span
-            class="ml-4 text-wp-text-alt-100"
-            >{{ $t('repo.settings.general.timeout.minutes') }}</span
-          >
+          <NumberField :id="id" v-model="repoSettings.timeout" class="w-24" />
+          <span class="ml-4 text-wp-text-alt-100">{{ $t('repo.settings.general.timeout.minutes') }}</span>
         </div>
-         </InputField
-      > <InputField
+      </InputField>
+      <InputField
         docs-url="usage/project-settings#pipeline-path"
         :label="$t('repo.settings.general.pipeline_path.path')"
-        > <template #default="{ id }"
-          > <TextField
+      >
+        <template #default="{ id }">
+          <TextField
             :id="id"
             v-model="repoSettings.config_file"
             :placeholder="$t('repo.settings.general.pipeline_path.default')"
-          /> </template
-        > <!-- eslint-disable @intlify/vue-i18n/no-raw-text --> <template #description
-          > <i18n-t keypath="repo.settings.general.pipeline_path.desc"
-            > <span class="code-box-inline">{{ $t('repo.settings.general.pipeline_path.desc_path_example') }}</span
-            > <span class="code-box-inline">/</span> </i18n-t
-          > </template
-        > <!-- eslint-enable @intlify/vue-i18n/no-raw-text --> </InputField
-      > <InputField
+          />
+        </template>
+        <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
+        <template #description>
+          <i18n-t keypath="repo.settings.general.pipeline_path.desc">
+            <span class="code-box-inline">{{ $t('repo.settings.general.pipeline_path.desc_path_example') }}</span>
+            <span class="code-box-inline">/</span>
+          </i18n-t>
+        </template>
+        <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
+      </InputField>
+      <InputField
         docs-url="usage/project-settings#cancel-previous-pipelines"
         :label="$t('repo.settings.general.cancel_prev.cancel')"
-        > <CheckboxesField
+      >
+        <CheckboxesField
           v-model="repoSettings.cancel_previous_pipeline_events"
           :options="cancelPreviousPipelineEventsOptions"
-        /> <template #description> {{ $t('repo.settings.general.cancel_prev.desc') }} </template> </InputField
-      > <Button
+        />
+        <template #description> {{ $t('repo.settings.general.cancel_prev.desc') }} </template>
+      </InputField>
+      <Button
         type="submit"
         class="mr-auto"
         color="default"
@@ -125,8 +130,7 @@
         :text="$t('repo.settings.general.save')"
       />
     </form>
-     </Settings
-  >
+  </Settings>
 </template>
 
 <script lang="ts" setup>

@@ -1,9 +1,7 @@
 <template>
-
   <div class="flex flex-col gap-2">
-
     <div v-for="(item, index) in displayItems" :key="index" class="flex gap-4">
-       <TextField
+      <TextField
         :id="`${id}-key-${index}`"
         :model-value="item.key"
         :placeholder="keyPlaceholder"
@@ -12,28 +10,27 @@
             isDuplicateKey(item.key, index) || (item.key === '' && index !== displayItems.length - 1),
         }"
         @update:model-value="updateItem(index, 'key', $event)"
-      /> <TextField
+      />
+      <TextField
         :id="`${id}-value-${index}`"
         :model-value="item.value"
         :placeholder="valuePlaceholder"
         @update:model-value="updateItem(index, 'value', $event)"
       />
       <div class="w-10 flex-shrink-0">
-         <Button
+        <Button
           v-if="index !== displayItems.length - 1"
           type="button"
           color="red"
           class="ml-auto"
           :title="deleteTitle"
           @click="deleteItem(index)"
-          > <Icon name="close" /> </Button
         >
+          <Icon name="close" />
+        </Button>
       </div>
-
     </div>
-
   </div>
-
 </template>
 
 <script lang="ts" setup>

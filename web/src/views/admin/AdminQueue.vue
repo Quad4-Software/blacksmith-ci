@@ -1,16 +1,16 @@
 <template>
-   <Settings :title="$t('admin.settings.queue.queue')" :description="$t('admin.settings.queue.desc')"
-    > <template #headerActions
-      >
+  <Settings :title="$t('admin.settings.queue.queue')" :description="$t('admin.settings.queue.desc')">
+    <template #headerActions>
       <div v-if="queueInfo">
-
         <div class="flex items-center gap-2">
-           <Button
+          <Button
             v-if="queueInfo.paused"
             :text="$t('admin.settings.queue.resume')"
             start-icon="play"
             @click="resumeQueue"
-          /> <Button v-else :text="$t('admin.settings.queue.pause')" start-icon="pause" @click="pauseQueue" /> <Icon
+          />
+          <Button v-else :text="$t('admin.settings.queue.pause')" start-icon="pause" @click="pauseQueue" />
+          <Icon
             :name="queueInfo.paused ? 'pause' : 'play'"
             class="h-6 w-6"
             :class="{
@@ -19,20 +19,17 @@
             }"
           />
         </div>
-
       </div>
-       </template
-    >
+    </template>
     <div class="flex flex-col">
-       <AdminQueueStats :stats="queueInfo?.stats" />
+      <AdminQueueStats :stats="queueInfo?.stats" />
       <div v-if="tasks.length > 0" class="flex flex-col">
-
         <p class="mb-2 mt-6 text-xl">{{ $t('admin.settings.queue.tasks') }}</p>
-         <ListItem
+        <ListItem
           v-for="task in tasks"
           :key="task.id"
           class="mb-2 items-center !bg-wp-background-200 shadow-md dark:!bg-wp-background-100"
-          >
+        >
           <div
             class="flex items-center"
             :title="
@@ -43,7 +40,7 @@
                   : $t('admin.settings.queue.task_waiting_on_deps')
             "
           >
-             <Icon
+            <Icon
               :name="
                 task.status === 'pending'
                   ? 'status-pending'
@@ -58,23 +55,22 @@
               }"
             />
           </div>
-           <span class="ml-2">{{ task.id }}</span
-          > <span class="ml-auto flex gap-2"
-            > <Badge v-if="task.agent_id !== 0" :label="$t('admin.settings.queue.agent')" :value="task.agent_id" />
-            <template v-for="(value, label) in task.labels"
-              > <Badge v-if="value" :key="label" :label="label.toString()" :value="value" /> </template
-            > <Badge
+          <span class="ml-2">{{ task.id }}</span>
+          <span class="ml-auto flex gap-2">
+            <Badge v-if="task.agent_id !== 0" :label="$t('admin.settings.queue.agent')" :value="task.agent_id" />
+            <template v-for="(value, label) in task.labels">
+              <Badge v-if="value" :key="label" :label="label.toString()" :value="value" />
+            </template>
+            <Badge
               v-if="task.dependencies"
               :label="$t('admin.settings.queue.waiting_for')"
               :value="task.dependencies.join(', ')"
-            /> </span
-          > </ListItem
-        >
+            />
+          </span>
+        </ListItem>
       </div>
-
     </div>
-     </Settings
-  >
+  </Settings>
 </template>
 
 <script lang="ts" setup>

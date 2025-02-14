@@ -1,17 +1,15 @@
 <template>
-
   <div class="flex flex-col gap-y-6">
-     <Panel
+    <Panel
       v-for="pipelineConfig in pipelineConfigsDecoded"
       :key="pipelineConfig.hash"
       :collapsable="pipelineConfigsDecoded && pipelineConfigsDecoded.length > 1"
       collapsed-by-default
       :title="pipelineConfigsDecoded && pipelineConfigsDecoded.length > 1 ? pipelineConfig.name : ''"
-      > <SyntaxHighlight class="overflow-auto whitespace-pre font-mono" language="yaml" :code="pipelineConfig.data" />
-      </Panel
     >
+      <SyntaxHighlight class="overflow-auto whitespace-pre font-mono" language="yaml" :code="pipelineConfig.data" />
+    </Panel>
   </div>
-
 </template>
 
 <script lang="ts" setup>

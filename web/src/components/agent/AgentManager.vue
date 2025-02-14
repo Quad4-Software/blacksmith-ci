@@ -1,13 +1,15 @@
 <template>
-   <Settings :title="$t('admin.settings.agents.agents')" :description
-    > <template #headerActions
-      > <Button
+  <Settings :title="$t('admin.settings.agents.agents')" :description>
+    <template #headerActions>
+      <Button
         v-if="selectedAgent"
         :text="$t('admin.settings.agents.show')"
         start-icon="back"
         @click="selectedAgent = undefined"
-      /> <Button v-else :text="$t('admin.settings.agents.add')" start-icon="plus" @click="showAddAgent" /> </template
-    > <AgentList
+      />
+      <Button v-else :text="$t('admin.settings.agents.add')" start-icon="plus" @click="showAddAgent" />
+    </template>
+    <AgentList
       v-if="!selectedAgent"
       :loading="loading"
       :agents="agents"
@@ -15,15 +17,16 @@
       :is-admin="isAdmin"
       @edit="editAgent"
       @delete="deleteAgent"
-    /> <AgentForm
+    />
+    <AgentForm
       v-else
       v-model="selectedAgent"
       :is-editing-agent="isEditingAgent"
       :is-saving="isSaving"
       @save="saveAgent"
       @cancel="selectedAgent = undefined"
-    /> </Settings
-  >
+    />
+  </Settings>
 </template>
 
 <script lang="ts" setup>

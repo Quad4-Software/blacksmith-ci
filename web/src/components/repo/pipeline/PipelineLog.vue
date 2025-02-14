@@ -1,36 +1,34 @@
 <template>
-
   <div v-if="pipeline" class="flex flex-col pt-8 md:pt-0">
-
     <div
       class="code-box-log flex flex-grow flex-col overflow-hidden !p-0 shadow-md md:mt-0 md:!rounded-lg"
       @mouseover="showActions = true"
       @mouseleave="showActions = false"
     >
-
       <div
         class="fixed left-0 top-0 flex w-full flex-row items-center bg-wp-code-100 px-4 py-1 md:relative md:left-auto md:top-auto"
       >
-         <span class="text-base font-bold text-wp-code-text-alt-100"
-          > <span class="md:display-unset hidden">{{ $t('repo.pipeline.log_title') }}</span
-          > <span class="md:hidden">{{ step?.name }}</span
-          > </span
-        >
+        <span class="text-base font-bold text-wp-code-text-alt-100">
+          <span class="md:display-unset hidden">{{ $t('repo.pipeline.log_title') }}</span>
+          <span class="md:hidden">{{ step?.name }}</span>
+        </span>
         <div class="ml-auto flex flex-row items-center gap-x-2">
-           <IconButton
+          <IconButton
             v-if="step?.finished !== undefined && hasLogs"
             :is-loading="downloadInProgress"
             :title="$t('repo.pipeline.actions.log_download')"
             class="text-wp-code-text-alt-100 hover:!bg-white hover:!bg-opacity-10"
             icon="download"
             @click="download"
-          /> <IconButton
+          />
+          <IconButton
             v-if="step?.finished !== undefined && hasLogs && hasPushPermission"
             :title="$t('repo.pipeline.actions.log_delete')"
             class="text-wp-code-text-alt-100 hover:!bg-white hover:!bg-opacity-10"
             icon="trash"
             @click="deleteLogs"
-          /> <IconButton
+          />
+          <IconButton
             v-if="step?.finished === undefined"
             :title="
               autoScroll ? $t('repo.pipeline.actions.log_auto_scroll_off') : $t('repo.pipeline.actions.log_auto_scroll')
@@ -38,13 +36,13 @@
             class="text-wp-code-text-alt-100 hover:!bg-white hover:!bg-opacity-10"
             :icon="autoScroll ? 'auto-scroll' : 'auto-scroll-off'"
             @click="autoScroll = !autoScroll"
-          /> <IconButton
+          />
+          <IconButton
             class="text-wp-code-text-alt-100 hover:!bg-white hover:!bg-opacity-10 md:!hidden"
             icon="close"
             @click="$emit('update:step-id', null)"
           />
         </div>
-
       </div>
 
       <div
@@ -52,9 +50,8 @@
         ref="consoleElement"
         class="grid w-full max-w-full flex-grow auto-rows-min grid-cols-[min-content,minmax(0,1fr),min-content] overflow-y-auto overflow-x-hidden p-4 text-xs md:text-sm"
       >
-
         <div v-for="line in log" :key="line.index" class="contents font-mono">
-           <a
+          <a
             :id="`L${line.number}`"
             :href="`#L${line.number}`"
             class="select-none whitespace-nowrap pl-2 pr-6 text-right text-wp-code-text-line-numbers-100"
@@ -64,8 +61,11 @@
               'bg-blue-600 bg-opacity-30': isSelected(line),
               underline: isSelected(line),
             }"
-            > {{ line.number }} </a
-          > <!-- eslint-disable vue/no-v-html --> <span
+          >
+            {{ line.number }}
+          </a>
+          <!-- eslint-disable vue/no-v-html -->
+          <span
             class="whitespace-pre-wrap break-words align-top"
             :class="{
               'bg-10.168.64.121-600 bg-opacity-40 dark:bg-red-800 dark:bg-opacity-50': line.type === 'error',
@@ -73,44 +73,39 @@
               'bg-blue-600 bg-opacity-30': isSelected(line),
             }"
             v-html="line.text"
-          /> <!-- eslint-enable vue/no-v-html --> <span
+          />
+          <!-- eslint-enable vue/no-v-html -->
+          <span
             class="select-none whitespace-nowrap pr-1 text-right text-wp-code-text-line-numbers-100"
             :class="{
               'bg-red-600 bg-opacity-40 dark:bg-red-800 dark:bg-opacity-50': line.type === 'error',
               'bg-yellow-600 bg-opacity-40 dark:bg-yellow-800 dark:bg-opacity-50': line.type === 'warning',
               'bg-blue-600 bg-opacity-30': isSelected(line),
             }"
-            > {{ formatTime(line.time) }} </span
           >
+            {{ formatTime(line.time) }}
+          </span>
         </div>
-
       </div>
 
       <div class="m-auto text-xl text-wp-text-alt-100">
-         <span v-if="step?.state === 'skipped'">{{ $t('repo.pipeline.actions.canceled') }}</span
-        > <span v-else-if="!step?.started">{{ $t('repo.pipeline.step_not_started') }}</span
-        >
+        <span v-if="step?.state === 'skipped'">{{ $t('repo.pipeline.actions.canceled') }}</span>
+        <span v-else-if="!step?.started">{{ $t('repo.pipeline.step_not_started') }}</span>
         <div v-else-if="!loadedLogs">{{ $t('repo.pipeline.loading') }}</div>
 
         <div v-else-if="log?.length === 0">{{ $t('repo.pipeline.no_logs') }}</div>
-
       </div>
 
       <div
         v-if="step?.finished !== undefined"
         class="text-md flex w-full items-center bg-wp-code-100 px-4 py-1 font-bold text-wp-code-text-alt-100 md:min-h-[27px]"
       >
-         <PipelineStatusIcon :status="step.state" class="!h-4 !w-4" /> <span v-if="step?.error" class="px-2">{{
-          step.error
-        }}</span
-        > <span v-else class="px-2">{{ $t('repo.pipeline.exit_code', { exitCode: step.exit_code }) }}</span
-        >
+        <PipelineStatusIcon :status="step.state" class="!h-4 !w-4" />
+        <span v-if="step?.error" class="px-2">{{ step.error }}</span>
+        <span v-else class="px-2">{{ $t('repo.pipeline.exit_code', { exitCode: step.exit_code }) }}</span>
       </div>
-
     </div>
-
   </div>
-
 </template>
 
 <script lang="ts" setup>

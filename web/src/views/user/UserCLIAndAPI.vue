@@ -1,34 +1,33 @@
 <template>
-   <Settings :title="$t('user.settings.cli_and_api.cli_and_api')" :description="$t('user.settings.cli_and_api.desc')"
-    > <InputField :label="$t('user.settings.cli_and_api.cli_usage')"
-      > <template #headerActions
-        > <a :href="cliDownload" target="_blank" class="ml-4 text-wp-link-100 hover:text-wp-link-200">{{
+  <Settings :title="$t('user.settings.cli_and_api.cli_and_api')" :description="$t('user.settings.cli_and_api.desc')">
+    <InputField :label="$t('user.settings.cli_and_api.cli_usage')">
+      <template #headerActions>
+        <a :href="cliDownload" target="_blank" class="ml-4 text-wp-link-100 hover:text-wp-link-200">{{
           $t('user.settings.cli_and_api.download_cli')
-        }}</a
-        > </template
-      >
+        }}</a>
+      </template>
       <pre class="code-box">{{ usageWithCli }}</pre>
-       </InputField
-    > <InputField :label="$t('user.settings.cli_and_api.token')"
-      > <template #titleActions
-        > <Button class="ml-auto" :text="$t('user.settings.cli_and_api.reset_token')" @click="resetToken" /> </template
-      >
+    </InputField>
+    <InputField :label="$t('user.settings.cli_and_api.token')">
+      <template #titleActions>
+        <Button class="ml-auto" :text="$t('user.settings.cli_and_api.reset_token')" @click="resetToken" />
+      </template>
       <pre class="code-box">{{ token }}</pre>
-       </InputField
-    > <InputField :label="$t('user.settings.cli_and_api.api_usage')"
-      > <template #headerActions
-        > <a
+    </InputField>
+    <InputField :label="$t('user.settings.cli_and_api.api_usage')">
+      <template #headerActions>
+        <a
           v-if="enableSwagger"
           :href="`${address}/swagger/index.html`"
           target="_blank"
           class="ml-4 text-wp-link-100 hover:text-wp-link-200"
-          > {{ $t('user.settings.cli_and_api.swagger_ui') }} </a
-        > </template
-      >
+        >
+          {{ $t('user.settings.cli_and_api.swagger_ui') }}
+        </a>
+      </template>
       <pre class="code-box">{{ usageWithCurl }}</pre>
-       </InputField
-    > </Settings
-  >
+    </InputField>
+  </Settings>
 </template>
 
 <script lang="ts" setup>

@@ -1,78 +1,77 @@
 <template>
-   <Settings :title="$t('admin.settings.users.users')" :description="$t('admin.settings.users.desc')"
-    > <template #headerActions
-      > <Button
+  <Settings :title="$t('admin.settings.users.users')" :description="$t('admin.settings.users.desc')">
+    <template #headerActions>
+      <Button
         v-if="selectedUser"
         :text="$t('admin.settings.users.show')"
         start-icon="back"
         @click="selectedUser = undefined"
-      /> <Button v-else :text="$t('admin.settings.users.add')" start-icon="plus" @click="showAddUser" /> </template
-    >
+      />
+      <Button v-else :text="$t('admin.settings.users.add')" start-icon="plus" @click="showAddUser" />
+    </template>
     <div v-if="!selectedUser" class="space-y-4 text-wp-text-100">
-       <ListItem
+      <ListItem
         v-for="user in users"
         :key="user.id"
         class="items-center gap-2 !bg-wp-background-200 dark:!bg-wp-background-100"
-        > <img v-if="user.avatar_url" class="h-6 rounded-md" :src="user.avatar_url" /> <span>{{ user.login }}</span
-        > <Badge
+      >
+        <img v-if="user.avatar_url" class="h-6 rounded-md" :src="user.avatar_url" /> <span>{{ user.login }}</span>
+        <Badge
           v-if="user.admin"
           class="md:display-unset ml-auto hidden"
           :label="$t('admin.settings.users.admin.admin')"
-        /> <IconButton
+        />
+        <IconButton
           icon="edit"
           :title="$t('admin.settings.users.edit_user')"
           class="md:display-unset h-8 w-8"
           :class="{ 'ml-auto': !user.admin, 'ml-2': user.admin }"
           @click="editUser(user)"
-        /> <IconButton
+        />
+        <IconButton
           icon="trash"
           :title="$t('admin.settings.users.delete_user')"
           class="ml-2 h-8 w-8 hover:text-wp-error-100"
           :is-loading="isDeleting"
           @click="deleteUser(user)"
-        /> </ListItem
-      >
+        />
+      </ListItem>
       <div v-if="users?.length === 0" class="ml-2">{{ $t('admin.settings.users.none') }}</div>
-
     </div>
 
     <div v-else>
-
       <form @submit.prevent="saveUser">
-         <InputField v-slot="{ id }" :label="$t('admin.settings.users.login')"
-          > <TextField :id="id" v-model="selectedUser.login" :disabled="isEditingUser" /> </InputField
-        > <InputField v-slot="{ id }" :label="$t('admin.settings.users.email')"
-          > <TextField :id="id" v-model="selectedUser.email" /> </InputField
-        > <InputField v-slot="{ id }" :label="$t('admin.settings.users.avatar_url')"
-          >
+        <InputField v-slot="{ id }" :label="$t('admin.settings.users.login')">
+          <TextField :id="id" v-model="selectedUser.login" :disabled="isEditingUser" />
+        </InputField>
+        <InputField v-slot="{ id }" :label="$t('admin.settings.users.email')">
+          <TextField :id="id" v-model="selectedUser.email" />
+        </InputField>
+        <InputField v-slot="{ id }" :label="$t('admin.settings.users.avatar_url')">
           <div class="flex gap-2">
-             <img v-if="selectedUser.avatar_url" class="h-8 w-8 rounded-md" :src="selectedUser.avatar_url" /> <TextField
-              :id="id"
-              v-model="selectedUser.avatar_url"
-            />
+            <img v-if="selectedUser.avatar_url" class="h-8 w-8 rounded-md" :src="selectedUser.avatar_url" />
+            <TextField :id="id" v-model="selectedUser.avatar_url" />
           </div>
-           </InputField
-        > <InputField :label="$t('admin.settings.users.admin.admin')"
-          > <Checkbox
+        </InputField>
+        <InputField :label="$t('admin.settings.users.admin.admin')">
+          <Checkbox
             :model-value="selectedUser.admin || false"
             :label="$t('admin.settings.users.admin.placeholder')"
             @update:model-value="selectedUser!.admin = $event"
-          /> </InputField
-        >
+          />
+        </InputField>
         <div class="flex gap-2">
-           <Button :text="$t('admin.settings.users.cancel')" @click="selectedUser = undefined" /> <Button
+          <Button :text="$t('admin.settings.users.cancel')" @click="selectedUser = undefined" />
+          <Button
             :is-loading="isSaving"
             type="submit"
             color="default"
             :text="isEditingUser ? $t('admin.settings.users.save') : $t('admin.settings.users.add')"
           />
         </div>
-
       </form>
-
     </div>
-     </Settings
-  >
+  </Settings>
 </template>
 
 <script lang="ts" setup>
