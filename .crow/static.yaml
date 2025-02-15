@@ -19,11 +19,10 @@ steps:
       - tree --gitignore -I 012_columns_rename_procs_to_steps.go -I versioned_docs -I '*opensource.svg'| pnpx cspell lint --no-progress stdin
 
   - name: prettier
-    image: docker.io/woodpeckerci/plugin-prettier:next
+    image: docker.io/woodpeckerci/plugin-prettier:1.2.1
     pull: true
     depends_on: []
     settings:
-      version: 3.3.3
       plugins:
         - 'prettier-plugin-tailwindcss'
         - '@ianvs/prettier-plugin-sort-imports'

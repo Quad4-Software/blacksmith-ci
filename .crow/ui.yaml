@@ -27,10 +27,9 @@ steps:
   prettier:
     depends_on:
       - install-dependencies
-    image: docker.io/woodpeckerci/plugin-prettier:next
+    image: docker.io/woodpeckerci/plugin-prettier:1.2.1
     pull: true
     settings:
-      version: 3.3.3
       plugins:
         - 'prettier-plugin-tailwindcss'
         - '@ianvs/prettier-plugin-sort-imports'
