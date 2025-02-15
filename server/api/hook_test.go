@@ -13,26 +13,30 @@ import (
 
 	"codeberg.org/crowci/crow/v3/server"
 	"codeberg.org/crowci/crow/v3/server/api"
-	mocks_forge "codeberg.org/crowci/crow/v3/server/forge/mocks"
+	forge_mocks "codeberg.org/crowci/crow/v3/server/forge/mocks"
 	"codeberg.org/crowci/crow/v3/server/model"
 	mocks_config_service "codeberg.org/crowci/crow/v3/server/services/config/mocks"
 	mocks_services "codeberg.org/crowci/crow/v3/server/services/mocks"
 	"codeberg.org/crowci/crow/v3/server/services/permissions"
 	mocks_registry_service "codeberg.org/crowci/crow/v3/server/services/registry/mocks"
 	mocks_secret_service "codeberg.org/crowci/crow/v3/server/services/secret/mocks"
-	mocks_store "codeberg.org/crowci/crow/v3/server/store/mocks"
+	store_mocks "codeberg.org/crowci/crow/v3/server/store/mocks"
 	"codeberg.org/crowci/crow/v3/shared/token"
 )
 
 func TestHook(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	_manager := mocks_services.NewManager(t)
-	_forge := mocks_forge.NewForge(t)
-	_store := mocks_store.NewStore(t)
-	_configService := mocks_config_service.NewService(t)
-	_secretService := mocks_secret_service.NewService(t)
-	_registryService := mocks_registry_service.NewService(t)
+	// _manager := new(mocks_services.MockManager)
+	_manager := new(mocks_services.MockManager)
+	_forge := new(forge_mocks.MockForge)
+	_store := new(store_mocks.MockStore)
+	// _configService := mocks_config_service.NewService(t)
+	_configService := new(mocks_config_service.MockService)
+	// _secretService := mocks_secret_service.NewService(t)
+	_secretService := new(mocks_secret_service.MockService)
+	// _registryService := mocks_registry_service.NewService(t)
+	_registryService := new(mocks_registry_service.MockService)
 	server.Config.Services.Manager = _manager
 	server.Config.Permissions.Open = true
 	server.Config.Permissions.Orgs = permissions.NewOrgs(nil)

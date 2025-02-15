@@ -47,7 +47,8 @@ func TestGetAgents(t *testing.T) {
 	t.Run("should get agents", func(t *testing.T) {
 		agents := []*model.Agent{fakeAgent}
 
-		mockStore := store_mocks.NewStore(t)
+		// mockStore := new(store_mocks.MockStore)
+		mockStore := new(store_mocks.MockStore)
 		mockStore.On("AgentList", mock.Anything).Return(agents, nil)
 
 		w := httptest.NewRecorder()
@@ -71,7 +72,7 @@ func TestGetAgent(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	t.Run("should get agent", func(t *testing.T) {
-		mockStore := store_mocks.NewStore(t)
+		mockStore := new(store_mocks.MockStore)
 		mockStore.On("AgentFind", int64(1)).Return(fakeAgent, nil)
 
 		w := httptest.NewRecorder()
@@ -103,7 +104,7 @@ func TestGetAgent(t *testing.T) {
 	})
 
 	t.Run("should return not found for non-existent agent", func(t *testing.T) {
-		mockStore := store_mocks.NewStore(t)
+		mockStore := new(store_mocks.MockStore)
 		mockStore.On("AgentFind", int64(2)).Return((*model.Agent)(nil), types.RecordNotExist)
 
 		w := httptest.NewRecorder()
@@ -125,11 +126,12 @@ func TestPatchAgent(t *testing.T) {
 		updatedAgent := *fakeAgent
 		updatedAgent.Name = "updated-agent"
 
-		mockStore := store_mocks.NewStore(t)
+		mockStore := new(store_mocks.MockStore)
 		mockStore.On("AgentFind", int64(1)).Return(fakeAgent, nil)
 		mockStore.On("AgentUpdate", mock.AnythingOfType("*model.Agent")).Return(nil)
 
-		mockManager := mocks_manager.NewManager(t)
+		// 		mockManager := new(mocks_manager.MockManager)
+		mockManager := new(mocks_manager.MockManager)
 		server.Config.Services.Manager = mockManager
 
 		w := httptest.NewRecorder()
@@ -162,7 +164,7 @@ func TestPostAgent(t *testing.T) {
 			NoSchedule: false,
 		}
 
-		mockStore := store_mocks.NewStore(t)
+		mockStore := new(store_mocks.MockStore)
 		mockStore.On("AgentCreate", mock.AnythingOfType("*model.Agent")).Return(nil)
 
 		w := httptest.NewRecorder()
@@ -190,14 +192,15 @@ func TestDeleteAgent(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	t.Run("should delete agent", func(t *testing.T) {
-		mockStore := store_mocks.NewStore(t)
+		mockStore := new(store_mocks.MockStore)
 		mockStore.On("AgentFind", int64(1)).Return(fakeAgent, nil)
 		mockStore.On("AgentDelete", mock.AnythingOfType("*model.Agent")).Return(nil)
 
-		mockManager := mocks_manager.NewManager(t)
+		mockManager := new(mocks_manager.MockManager)
 		server.Config.Services.Manager = mockManager
 
-		mockQueue := queue_mocks.NewQueue(t)
+		// mockQueue := queue_mocks.NewQueue(t)
+		mockQueue := new(queue_mocks.MockQueue)
 		mockQueue.On("Info", mock.Anything).Return(queue.InfoT{})
 		mockQueue.On("KickAgentWorkers", int64(1)).Return()
 		server.Config.Services.Queue = mockQueue
@@ -217,13 +220,13 @@ func TestDeleteAgent(t *testing.T) {
 	})
 
 	t.Run("should not delete agent with running tasks", func(t *testing.T) {
-		mockStore := store_mocks.NewStore(t)
+		mockStore := new(store_mocks.MockStore)
 		mockStore.On("AgentFind", int64(1)).Return(fakeAgent, nil)
 
-		mockManager := mocks_manager.NewManager(t)
+		mockManager := new(mocks_manager.MockManager)
 		server.Config.Services.Manager = mockManager
 
-		mockQueue := queue_mocks.NewQueue(t)
+		mockQueue := new(queue_mocks.MockQueue)
 		mockQueue.On("Info", mock.Anything).Return(queue.InfoT{
 			Running: []*model.Task{{AgentID: 1}},
 		})
@@ -247,7 +250,7 @@ func TestPostOrgAgent(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	t.Run("create org agent should succeed", func(t *testing.T) {
-		mockStore := store_mocks.NewStore(t)
+		mockStore := new(store_mocks.MockStore)
 		mockStore.On("AgentCreate", mock.AnythingOfType("*model.Agent")).Return(nil)
 
 		w := httptest.NewRecorder()

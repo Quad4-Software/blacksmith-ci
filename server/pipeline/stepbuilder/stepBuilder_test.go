@@ -23,7 +23,7 @@ import (
 
 	"codeberg.org/crowci/crow/v3/pipeline/errors"
 	"codeberg.org/crowci/crow/v3/server/forge"
-	"codeberg.org/crowci/crow/v3/server/forge/mocks"
+	forge_mocks "codeberg.org/crowci/crow/v3/server/forge/mocks"
 	forge_types "codeberg.org/crowci/crow/v3/server/forge/types"
 	"codeberg.org/crowci/crow/v3/server/model"
 )
@@ -32,7 +32,7 @@ func TestGlobalEnvsubst(t *testing.T) {
 	t.Parallel()
 
 	b := StepBuilder{
-		Forge: getMockForge(t),
+		Forge: getMockForge(),
 		Envs: map[string]string{
 			"KEY_K": "VALUE_V",
 			"IMAGE": "scratch",
@@ -71,7 +71,7 @@ func TestMissingGlobalEnvsubst(t *testing.T) {
 	t.Parallel()
 
 	b := StepBuilder{
-		Forge: getMockForge(t),
+		Forge: getMockForge(),
 		Envs: map[string]string{
 			"KEY_K":    "VALUE_V",
 			"NO_IMAGE": "scratch",
@@ -110,7 +110,7 @@ func TestMultilineEnvsubst(t *testing.T) {
 	t.Parallel()
 
 	b := StepBuilder{
-		Forge: getMockForge(t),
+		Forge: getMockForge(),
 		Repo:  &model.Repo{},
 		Curr: &model.Pipeline{
 			Message: `aaa
@@ -154,7 +154,7 @@ func TestMultiPipeline(t *testing.T) {
 	t.Parallel()
 
 	b := StepBuilder{
-		Forge: getMockForge(t),
+		Forge: getMockForge(),
 		Repo:  &model.Repo{},
 		Curr: &model.Pipeline{
 			Event: model.EventPush,
@@ -195,7 +195,7 @@ func TestDependsOn(t *testing.T) {
 	t.Parallel()
 
 	b := StepBuilder{
-		Forge: getMockForge(t),
+		Forge: getMockForge(),
 		Repo:  &model.Repo{},
 		Curr: &model.Pipeline{
 			Event: model.EventPush,
@@ -250,7 +250,7 @@ func TestRunsOn(t *testing.T) {
 	t.Parallel()
 
 	b := StepBuilder{
-		Forge: getMockForge(t),
+		Forge: getMockForge(),
 		Repo:  &model.Repo{},
 		Curr: &model.Pipeline{
 			Event: model.EventPush,
@@ -291,7 +291,7 @@ func TestPipelineName(t *testing.T) {
 	t.Parallel()
 
 	b := StepBuilder{
-		Forge: getMockForge(t),
+		Forge: getMockForge(),
 		Repo:  &model.Repo{Config: ".woodpecker"},
 		Curr: &model.Pipeline{
 			Event: model.EventPush,
@@ -333,7 +333,7 @@ func TestBranchFilter(t *testing.T) {
 	t.Parallel()
 
 	b := StepBuilder{
-		Forge: getMockForge(t),
+		Forge: getMockForge(),
 		Repo:  &model.Repo{},
 		Curr: &model.Pipeline{
 			Branch: "dev",
@@ -379,7 +379,7 @@ func TestRootWhenFilter(t *testing.T) {
 	t.Parallel()
 
 	b := StepBuilder{
-		Forge: getMockForge(t),
+		Forge: getMockForge(),
 		Repo:  &model.Repo{},
 		Curr:  &model.Pipeline{Event: "tag"},
 		Prev:  &model.Pipeline{},
@@ -429,7 +429,7 @@ func TestZeroSteps(t *testing.T) {
 	}
 
 	b := StepBuilder{
-		Forge: getMockForge(t),
+		Forge: getMockForge(),
 		Repo:  &model.Repo{},
 		Curr:  pipeline,
 		Prev:  &model.Pipeline{},
@@ -469,7 +469,7 @@ func TestZeroStepsAsMultiPipelineDeps(t *testing.T) {
 	}
 
 	b := StepBuilder{
-		Forge: getMockForge(t),
+		Forge: getMockForge(),
 		Repo:  &model.Repo{},
 		Curr:  pipeline,
 		Prev:  &model.Pipeline{},
@@ -527,7 +527,7 @@ func TestZeroStepsAsMultiPipelineTransitiveDeps(t *testing.T) {
 	}
 
 	b := StepBuilder{
-		Forge: getMockForge(t),
+		Forge: getMockForge(),
 		Repo:  &model.Repo{},
 		Curr:  pipeline,
 		Prev:  &model.Pipeline{},
@@ -624,8 +624,8 @@ func TestSanitizePath(t *testing.T) {
 	}
 }
 
-func getMockForge(t *testing.T) forge.Forge {
-	forge := mocks.NewForge(t)
+func getMockForge() forge.Forge {
+	forge := new(forge_mocks.MockForge)
 	forge.On("Name").Return("mock")
 	forge.On("URL").Return("https://codeberg.org")
 	return forge

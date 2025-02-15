@@ -11,7 +11,7 @@ import (
 	"github.com/urfave/cli/v3"
 
 	crow "codeberg.org/crowci/crow/v3/crow-go/crow"
-	"codeberg.org/crowci/crow/v3/crow-go/crow/mocks"
+	crow_mocks "codeberg.org/crowci/crow/v3/crow-go/crow/mocks"
 )
 
 func TestPipelinePurge(t *testing.T) {
@@ -76,7 +76,7 @@ func TestPipelinePurge(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockClient := mocks.NewClient(t)
+			mockClient := new(crow_mocks.MockClient)
 			mockClient.On("RepoLookup", mock.Anything).Maybe().Return(&crow.Repo{ID: tt.repoID}, nil)
 
 			mockClient.On("PipelineList", mock.Anything, mock.Anything).Return(func(_ int64, opt crow.PipelineListOptions) ([]*crow.Pipeline, error) {

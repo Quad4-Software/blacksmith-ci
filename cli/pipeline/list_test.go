@@ -11,7 +11,7 @@ import (
 	"github.com/urfave/cli/v3"
 
 	"codeberg.org/crowci/crow/v3/crow-go/crow"
-	"codeberg.org/crowci/crow/v3/crow-go/crow/mocks"
+	crow_mocks "codeberg.org/crowci/crow/v3/crow-go/crow/mocks"
 )
 
 func TestPipelineList(t *testing.T) {
@@ -65,7 +65,7 @@ func TestPipelineList(t *testing.T) {
 
 	for _, tt := range testtases {
 		t.Run(tt.name, func(t *testing.T) {
-			mockClient := mocks.NewClient(t)
+			mockClient := new(crow_mocks.MockClient)
 			mockClient.On("PipelineList", mock.Anything, mock.Anything).Return(func(_ int64, opt crow.PipelineListOptions) ([]*crow.Pipeline, error) {
 				if tt.pipelineErr != nil {
 					return nil, tt.pipelineErr

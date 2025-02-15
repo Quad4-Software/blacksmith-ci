@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"codeberg.org/crowci/crow/v3/server/forge/mocks"
+	forge_mocks "codeberg.org/crowci/crow/v3/server/forge/mocks"
 	forge_types "codeberg.org/crowci/crow/v3/server/forge/types"
 	"codeberg.org/crowci/crow/v3/server/model"
 	"codeberg.org/crowci/crow/v3/server/services/config"
@@ -284,7 +284,7 @@ func TestFetch(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := &model.Repo{Owner: "laszlocph", Name: "multipipeline", Config: tt.repoConfig}
 
-			f := new(mocks.Forge)
+			f := new(forge_mocks.MockForge)
 			dirs := map[string][]*forge_types.FileMeta{}
 			for _, file := range tt.files {
 				f.On("File", mock.Anything, mock.Anything, mock.Anything, mock.Anything, file.name).Once().Return(file.data, nil)

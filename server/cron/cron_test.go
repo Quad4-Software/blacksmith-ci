@@ -23,16 +23,16 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"codeberg.org/crowci/crow/v3/server"
-	mocks_forge "codeberg.org/crowci/crow/v3/server/forge/mocks"
+	forge_mocks "codeberg.org/crowci/crow/v3/server/forge/mocks"
 	"codeberg.org/crowci/crow/v3/server/model"
 	mocks_manager "codeberg.org/crowci/crow/v3/server/services/mocks"
-	mocks_store "codeberg.org/crowci/crow/v3/server/store/mocks"
+	store_mocks "codeberg.org/crowci/crow/v3/server/store/mocks"
 )
 
 func TestCreatePipeline(t *testing.T) {
-	_manager := mocks_manager.NewManager(t)
-	_forge := mocks_forge.NewForge(t)
-	store := mocks_store.NewStore(t)
+	_manager := new(mocks_manager.MockManager)
+	_forge := new(forge_mocks.MockForge)
+	store := new(store_mocks.MockStore)
 	ctx := context.Background()
 
 	creator := &model.User{

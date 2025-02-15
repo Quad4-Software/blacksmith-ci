@@ -20,12 +20,12 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"codeberg.org/crowci/crow/v3/pipeline/frontend/metadata"
-	"codeberg.org/crowci/crow/v3/server/forge/mocks"
+	forge_mocks "codeberg.org/crowci/crow/v3/server/forge/mocks"
 	"codeberg.org/crowci/crow/v3/server/model"
 )
 
 func TestMetadataFromStruct(t *testing.T) {
-	forge := mocks.NewForge(t)
+	forge := new(forge_mocks.MockForge)
 	forge.On("Name").Return("gitea")
 	forge.On("URL").Return("https://gitea.com")
 

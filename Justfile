@@ -20,7 +20,7 @@ LDFLAGS := if STATIC_BUILD == "true" { "-s -w -extldflags '-static'" } else { ""
 
 CGO_ENABLED := "1"
 HAS_GO := `hash go > /dev/null 2>&1 && echo "GO" || echo "NOGO"`
-XGO_VERSION := if HAS_GO == "GO" { "go-1.23.x" } else { "" }
+XGO_VERSION := if HAS_GO == "GO" { "go-1.24.x" } else { "" }
 CGO_CFLAGS := if HAS_GO == "GO" { `go env CGO_CFLAGS` } else { "" }
 
 ### Recipes
@@ -42,11 +42,7 @@ generate-openapi: install-tools
 		CGO_ENABLED=0 go generate cmd/server/openapi.go
 
 mockery: install-tools
-		cd crow-go/crow && mockery --all
-		cd pipeline && mockery --all
-		cd server && mockery --all
-		cd agent && mockery --all
-		cd cli && mockery --all
+		mockery
 
 install-tools:
 		@hash golangci-lint > /dev/null 2>&1 || go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest

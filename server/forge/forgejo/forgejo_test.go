@@ -28,7 +28,7 @@ import (
 	"codeberg.org/crowci/crow/v3/server/forge/forgejo/fixtures"
 	"codeberg.org/crowci/crow/v3/server/model"
 	"codeberg.org/crowci/crow/v3/server/store"
-	mocks_store "codeberg.org/crowci/crow/v3/server/store/mocks"
+	store_mocks "codeberg.org/crowci/crow/v3/server/store/mocks"
 )
 
 func TestNew(t *testing.T) {
@@ -52,7 +52,7 @@ func Test_forgejo(t *testing.T) {
 		SkipVerify: true,
 	})
 
-	mockStore := mocks_store.NewStore(t)
+	mockStore := new(store_mocks.MockStore)
 	ctx := store.InjectToContext(context.Background(), mockStore)
 
 	t.Run("netrc with user token", func(t *testing.T) {

@@ -22,7 +22,7 @@ import (
 
 	"codeberg.org/crowci/crow/v3/server/model"
 	"codeberg.org/crowci/crow/v3/server/services/secret"
-	mocks_store "codeberg.org/crowci/crow/v3/server/store/mocks"
+	store_mocks "codeberg.org/crowci/crow/v3/server/store/mocks"
 )
 
 var (
@@ -52,7 +52,7 @@ var (
 )
 
 func TestSecretListPipeline(t *testing.T) {
-	mockStore := mocks_store.NewStore(t)
+	mockStore := new(store_mocks.MockStore)
 
 	mockStore.On("SecretList", mock.Anything, mock.Anything, mock.Anything).Once().Return([]*model.Secret{
 		globalSecret,

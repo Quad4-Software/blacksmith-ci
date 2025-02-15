@@ -22,11 +22,11 @@ import (
 
 	"codeberg.org/crowci/crow/v3/pipeline/log"
 	"codeberg.org/crowci/crow/v3/pipeline/rpc"
-	"codeberg.org/crowci/crow/v3/pipeline/rpc/mocks"
+	rpc_mocks "codeberg.org/crowci/crow/v3/pipeline/rpc/mocks"
 )
 
 func TestLineWriter(t *testing.T) {
-	peer := mocks.NewPeer(t)
+	peer := new(rpc_mocks.MockPeer)
 	peer.On("EnqueueLog", mock.Anything)
 
 	secrets := []string{"world"}
