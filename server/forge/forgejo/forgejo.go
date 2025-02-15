@@ -26,7 +26,7 @@ import (
 	"strings"
 	"time"
 
-	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo"
+	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
 
@@ -288,7 +288,7 @@ func (c *Forgejo) Dir(ctx context.Context, u *model.User, r *model.Repo, b *mode
 	}
 
 	// List files in repository. Path from root
-	tree, _, err := client.GetTrees(r.Owner, r.Name, b.Commit, true)
+	tree, _, err := client.GetTrees(r.Owner, r.Name, b.Commit, forgejo.GetTreesOptions{Recursive: true})
 	if err != nil {
 		return nil, err
 	}

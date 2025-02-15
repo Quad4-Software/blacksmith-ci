@@ -18,7 +18,7 @@ import (
 	"bytes"
 	"testing"
 
-	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo"
+	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2"
 	"github.com/stretchr/testify/assert"
 
 	"codeberg.org/crowci/crow/v3/server/forge/forgejo/fixtures"

@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo"
+	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2"
 
 	"codeberg.org/crowci/crow/v3/server/model"
 	"codeberg.org/crowci/crow/v3/shared/utils"
