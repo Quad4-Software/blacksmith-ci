@@ -3257,9 +3257,9 @@ func (_c *MockStore_OrgDelete_Call) RunAndReturn(run func(int64) error) *MockSto
 	return _c
 }
 
-// OrgFindByName provides a mock function with given fields: _a0
-func (_m *MockStore) OrgFindByName(_a0 string) (*model.Org, error) {
-	ret := _m.Called(_a0)
+// OrgFindByName provides a mock function with given fields: _a0, _a1
+func (_m *MockStore) OrgFindByName(_a0 string, _a1 int64) (*model.Org, error) {
+	ret := _m.Called(_a0, _a1)
 
 	if len(ret) == 0 {
 		panic("no return value specified for OrgFindByName")
@@ -3267,19 +3267,19 @@ func (_m *MockStore) OrgFindByName(_a0 string) (*model.Org, error) {
 
 	var r0 *model.Org
 	var r1 error
-	if rf, ok := ret.Get(0).(func(string) (*model.Org, error)); ok {
-		return rf(_a0)
+	if rf, ok := ret.Get(0).(func(string, int64) (*model.Org, error)); ok {
+		return rf(_a0, _a1)
 	}
-	if rf, ok := ret.Get(0).(func(string) *model.Org); ok {
-		r0 = rf(_a0)
+	if rf, ok := ret.Get(0).(func(string, int64) *model.Org); ok {
+		r0 = rf(_a0, _a1)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*model.Org)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(_a0)
+	if rf, ok := ret.Get(1).(func(string, int64) error); ok {
+		r1 = rf(_a0, _a1)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -3294,13 +3294,14 @@ type MockStore_OrgFindByName_Call struct {
 
 // OrgFindByName is a helper method to define mock.On call
 //   - _a0 string
-func (_e *MockStore_Expecter) OrgFindByName(_a0 interface{}) *MockStore_OrgFindByName_Call {
-	return &MockStore_OrgFindByName_Call{Call: _e.mock.On("OrgFindByName", _a0)}
+//   - _a1 int64
+func (_e *MockStore_Expecter) OrgFindByName(_a0 interface{}, _a1 interface{}) *MockStore_OrgFindByName_Call {
+	return &MockStore_OrgFindByName_Call{Call: _e.mock.On("OrgFindByName", _a0, _a1)}
 }
 
-func (_c *MockStore_OrgFindByName_Call) Run(run func(_a0 string)) *MockStore_OrgFindByName_Call {
+func (_c *MockStore_OrgFindByName_Call) Run(run func(_a0 string, _a1 int64)) *MockStore_OrgFindByName_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		run(args[0].(string), args[1].(int64))
 	})
 	return _c
 }
@@ -3310,7 +3311,7 @@ func (_c *MockStore_OrgFindByName_Call) Return(_a0 *model.Org, _a1 error) *MockS
 	return _c
 }
 
-func (_c *MockStore_OrgFindByName_Call) RunAndReturn(run func(string) (*model.Org, error)) *MockStore_OrgFindByName_Call {
+func (_c *MockStore_OrgFindByName_Call) RunAndReturn(run func(string, int64) (*model.Org, error)) *MockStore_OrgFindByName_Call {
 	_c.Call.Return(run)
 	return _c
 }
