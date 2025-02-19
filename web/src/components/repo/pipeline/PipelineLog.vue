@@ -101,8 +101,10 @@
         class="text-md flex w-full items-center bg-wp-code-100 px-4 py-1 font-bold text-wp-code-text-alt-100 md:min-h-[27px]"
       >
         <PipelineStatusIcon :status="step.state" class="!h-4 !w-4" />
-        <span v-if="step?.error" class="px-2">{{ step.error }}</span>
-        <span v-else class="px-2">{{ $t('repo.pipeline.exit_code', { exitCode: step.exit_code }) }}</span>
+        <span v-if="step?.error" class="ml-2 border border-wp-error-100 rounded-full px-2">{{ step.error }}</span>
+        <span v-else class="ml-2 border border-wp-control-ok-300 rounded-full px-2">{{
+          $t('repo.pipeline.exit_code', { exitCode: step.exit_code })
+        }}</span>
       </div>
     </div>
   </div>
