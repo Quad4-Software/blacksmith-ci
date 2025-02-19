@@ -181,56 +181,6 @@ release-server-xgo: check-xgo
 			mv -v {{ DIST_DIR }}/server/${TARGETOS}_${TARGETARCH}/crow-server* {{ DIST_DIR }}/server/${TARGETOS}_${TARGETARCH}/crow-server{{ BIN_SUFFIX }}; \
 		fi
 
-## agent
-
-release-agent:
-		GOOS=linux   GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -tags 'grpcnotrace {{ TAGS }}' -o {{ DIST_DIR }}/agent/linux_amd64/crow-agent       codeberg.org/crowci/crow/v3/cmd/agent
-		GOOS=linux   GOARCH=arm64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -tags 'grpcnotrace {{ TAGS }}' -o {{ DIST_DIR }}/agent/linux_arm64/crow-agent       codeberg.org/crowci/crow/v3/cmd/agent
-		GOOS=linux   GOARCH=arm   CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -tags 'grpcnotrace {{ TAGS }}' -o {{ DIST_DIR }}/agent/linux_arm/crow-agent         codeberg.org/crowci/crow/v3/cmd/agent
-		GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -tags 'grpcnotrace {{ TAGS }}' -o {{ DIST_DIR }}/agent/windows_amd64/crow-agent.exe codeberg.org/crowci/crow/v3/cmd/agent
-		GOOS=darwin  GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -tags 'grpcnotrace {{ TAGS }}' -o {{ DIST_DIR }}/agent/darwin_amd64/crow-agent      codeberg.org/crowci/crow/v3/cmd/agent
-		GOOS=darwin  GOARCH=arm64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -tags 'grpcnotrace {{ TAGS }}' -o {{ DIST_DIR }}/agent/darwin_arm64/crow-agent      codeberg.org/crowci/crow/v3/cmd/agent
-		# tar binary files
-		tar -cvzf {{ DIST_DIR }}/crow-agent_linux_amd64.tar.gz   -C {{ DIST_DIR }}/agent/linux_amd64   crow-agent
-		tar -cvzf {{ DIST_DIR }}/crow-agent_linux_arm64.tar.gz   -C {{ DIST_DIR }}/agent/linux_arm64   crow-agent
-		tar -cvzf {{ DIST_DIR }}/crow-agent_linux_arm.tar.gz     -C {{ DIST_DIR }}/agent/linux_arm     crow-agent
-		tar -cvzf {{ DIST_DIR }}/crow-agent_darwin_amd64.tar.gz  -C {{ DIST_DIR }}/agent/darwin_amd64  crow-agent
-		tar -cvzf {{ DIST_DIR }}/crow-agent_darwin_arm64.tar.gz  -C {{ DIST_DIR }}/agent/darwin_arm64  crow-agent
-		# zip binary files
-		rm -f  {{ DIST_DIR }}/crow-agent_windows_amd64.zip
-		zip -j {{ DIST_DIR }}/crow-agent_windows_amd64.zip          {{ DIST_DIR }}/agent/windows_amd64/crow-agent.exe
-
-## cli
-
-release-cli:
-		GOOS=linux   GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/linux_amd64/crow-cli       codeberg.org/crowci/crow/v3/cmd/cli
-		GOOS=linux   GOARCH=arm64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/linux_arm64/crow-cli       codeberg.org/crowci/crow/v3/cmd/cli
-		GOOS=linux   GOARCH=arm   CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/linux_arm/crow-cli         codeberg.org/crowci/crow/v3/cmd/cli
-		GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/windows_amd64/crow-cli.exe codeberg.org/crowci/crow/v3/cmd/cli
-		GOOS=darwin  GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/darwin_amd64/crow-cli      codeberg.org/crowci/crow/v3/cmd/cli
-		GOOS=darwin  GOARCH=arm64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/darwin_arm64/crow-cli      codeberg.org/crowci/crow/v3/cmd/cli
-		# tar binary files
-		tar -cvzf {{ DIST_DIR }}/crow-cli_linux_amd64.tar.gz   -C {{ DIST_DIR }}/cli/linux_amd64   crow-cli
-		tar -cvzf {{ DIST_DIR }}/crow-cli_linux_arm64.tar.gz   -C {{ DIST_DIR }}/cli/linux_arm64   crow-cli
-		tar -cvzf {{ DIST_DIR }}/crow-cli_linux_arm.tar.gz     -C {{ DIST_DIR }}/cli/linux_arm     crow-cli
-		tar -cvzf {{ DIST_DIR }}/crow-cli_darwin_amd64.tar.gz  -C {{ DIST_DIR }}/cli/darwin_amd64  crow-cli
-		tar -cvzf {{ DIST_DIR }}/crow-cli_darwin_arm64.tar.gz  -C {{ DIST_DIR }}/cli/darwin_arm64  crow-cli
-		# zip binary files
-		rm -f  {{ DIST_DIR }}/crow-cli_windows_amd64.zip
-		zip -j {{ DIST_DIR }}/crow-cli_windows_amd64.zip          {{ DIST_DIR }}/cli/windows_amd64/crow-cli.exe
-
-# Build tar archive
-build-tarball:
-		mkdir -p {{ DIST_DIR }} && tar chzvf {{ DIST_DIR }}/crow-src.tar.gz \
-			--exclude="*.exe" \
-			--exclude="./.pnpm-store" \
-			--exclude="node_modules" \
-			--exclude="./dist" \
-			--exclude="./data" \
-			--exclude="./build" \
-			--exclude="./.git" \
-			.
-
 # # Create checksums for all release files
 release-checksums:
 		(cd {{ DIST_DIR }}/; sha256sum *.* > checksums.txt)
