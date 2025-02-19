@@ -79,7 +79,12 @@ const pipelineOptions = computed(() => ({
 const loading = ref(true);
 onMounted(async () => {
   if (!repoPermissions.value.push) {
-    notifications.notify({ type: 'error', title: i18n.t('repo.settings.not_allowed') });
+    notifications.notify({
+      title: i18n.t('notify_title_error'),
+      type: 'error',
+      duration: 9000,
+      text: i18n.t('repo.settings.notify_text_not_allowed'),
+    });
     await router.replace({ name: 'home' });
   }
 

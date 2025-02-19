@@ -63,7 +63,12 @@ onMounted(async () => {
 const { doSubmit: activateRepo, isLoading: isActivatingRepo } = useAsyncAction(async (repo: Repo) => {
   repoToActivate.value = repo;
   const _repo = await apiClient.activateRepo(repo.forge_remote_id);
-  notifications.notify({ title: i18n.t('repo.enable.success'), type: 'success' });
+  notifications.notify({
+    title: i18n.t('notify_title_success'),
+    text: i18n.t('repo.enable.notify_text_enabled'),
+    type: 'success',
+    duration: 6000,
+  });
   repoToActivate.value = undefined;
   await router.push({ name: 'repo', params: { repoId: _repo.id } });
 });

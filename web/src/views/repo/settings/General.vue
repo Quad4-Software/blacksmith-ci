@@ -202,7 +202,12 @@ const { doSubmit: saveRepoSettings, isLoading: isSaving } = useAsyncAction(async
 
   await apiClient.updateRepo(repo.value.id, repoSettings.value);
   await loadRepo();
-  notifications.notify({ title: i18n.t('repo.settings.general.success'), type: 'success' });
+  notifications.notify({
+    title: i18n.t('notify_title_success'),
+    text: i18n.t('repo.settings.general.notify_text_updated'),
+    type: 'success',
+    duration: 6000,
+  });
 });
 
 onMounted(() => {

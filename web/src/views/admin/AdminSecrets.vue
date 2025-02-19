@@ -74,8 +74,10 @@ const { doSubmit: createSecret, isLoading: isSaving } = useAsyncAction(async () 
     await apiClient.createGlobalSecret(selectedSecret.value);
   }
   notifications.notify({
-    title: isEditingSecret.value ? i18n.t('secrets.saved') : i18n.t('secrets.created'),
+    title: i18n.t('notify_title_success'),
+    text: isEditingSecret.value ? i18n.t('secrets.notify_text_saved') : i18n.t('secrets.notify_text_created'),
     type: 'success',
+    duration: 6000,
   });
   selectedSecret.value = undefined;
   resetPage();
@@ -83,7 +85,12 @@ const { doSubmit: createSecret, isLoading: isSaving } = useAsyncAction(async () 
 
 const { doSubmit: deleteSecret, isLoading: isDeleting } = useAsyncAction(async (_secret: Secret) => {
   await apiClient.deleteGlobalSecret(_secret.name);
-  notifications.notify({ title: i18n.t('secrets.deleted'), type: 'success' });
+  notifications.notify({
+    title: i18n.t('notify_title_success'),
+    text: i18n.t('secrets.notify_text_deleted'),
+    type: 'success',
+    duration: 6000,
+  });
   resetPage();
 });
 

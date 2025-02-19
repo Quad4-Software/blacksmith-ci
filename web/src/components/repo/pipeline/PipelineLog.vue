@@ -260,8 +260,13 @@ async function download() {
   try {
     downloadInProgress.value = true;
     logs = await apiClient.getLogs(repo.value.id, pipeline.value.number, step.value.id);
-  } catch (e) {
-    notifications.notifyError(e as Error, i18n.t('repo.pipeline.log_download_error'));
+  } catch {
+    notifications.notify({
+      title: i18n.t('notify_title_error'),
+      text: i18n.t('repo.pipeline.log_download_error'),
+      type: 'error',
+      duration: 9000,
+    });
     return;
   } finally {
     downloadInProgress.value = false;
@@ -333,8 +338,13 @@ async function deleteLogs() {
   try {
     await apiClient.deleteLogs(repo.value.id, pipeline.value.number, step.value.id);
     log.value = [];
-  } catch (e) {
-    notifications.notifyError(e as Error, i18n.t('repo.pipeline.log_delete_error'));
+  } catch {
+    notifications.notify({
+      title: i18n.t('notify_title_error'),
+      text: i18n.t('repo.pipeline.log_delete_error'),
+      type: 'error',
+      duration: 9000,
+    });
   }
 }
 

@@ -65,7 +65,12 @@ const { doSubmit: repairRepo, isLoading: isRepairingRepo } = useAsyncAction(asyn
   }
 
   await apiClient.repairRepo(repo.value.id);
-  notifications.notify({ title: i18n.t('repo.settings.actions.repair.success'), type: 'success' });
+  notifications.notify({
+    title: i18n.t('notify_title_success'),
+    text: i18n.t('repo.settings.actions.repair.notify_text_success'),
+    type: 'success',
+    duration: 6000,
+  });
 });
 
 const { doSubmit: deleteRepo, isLoading: isDeletingRepo } = useAsyncAction(async () => {
@@ -75,12 +80,17 @@ const { doSubmit: deleteRepo, isLoading: isDeletingRepo } = useAsyncAction(async
 
   // TODO: use proper dialog
   // eslint-disable-next-line no-alert
-  if (!confirm(i18n.t('repo.settings.actions.delete.confirm'))) {
+  if (!confirm(i18n.t('repo.settings.actions.delete.notify_text_confirm'))) {
     return;
   }
 
   await apiClient.deleteRepo(repo.value.id);
-  notifications.notify({ title: i18n.t('repo.settings.actions.delete.success'), type: 'success' });
+  notifications.notify({
+    title: i18n.t('notify_title_success'),
+    text: i18n.t('repo.settings.actions.delete.notify_text_success'),
+    type: 'success',
+    duration: 6000,
+  });
   await router.replace({ name: 'repos' });
 });
 
@@ -90,7 +100,12 @@ const { doSubmit: activateRepo, isLoading: isActivatingRepo } = useAsyncAction(a
   }
 
   await apiClient.activateRepo(repo.value.forge_remote_id);
-  notifications.notify({ title: i18n.t('repo.settings.actions.enable.success'), type: 'success' });
+  notifications.notify({
+    title: i18n.t('notify_title_success'),
+    text: i18n.t('repo.settings.actions.enable.notify_text_success'),
+    type: 'success',
+    duration: 6000,
+  });
 });
 
 const { doSubmit: deactivateRepo, isLoading: isDeactivatingRepo } = useAsyncAction(async () => {
@@ -99,7 +114,12 @@ const { doSubmit: deactivateRepo, isLoading: isDeactivatingRepo } = useAsyncActi
   }
 
   await apiClient.deleteRepo(repo.value.id, false);
-  notifications.notify({ title: i18n.t('repo.settings.actions.disable.success'), type: 'success' });
+  notifications.notify({
+    title: i18n.t('notify_title_success'),
+    text: i18n.t('repo.settings.actions.disable.notify_text_success'),
+    type: 'success',
+    duration: 6000,
+  });
   await router.replace({ name: 'repos' });
 });
 

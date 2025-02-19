@@ -179,7 +179,12 @@ const { doSubmit: cancelPipeline, isLoading: isCancelingPipeline } = useAsyncAct
   }
 
   await apiClient.cancelPipeline(repo.value.id, pipeline.value.number);
-  notifications.notify({ title: i18n.t('repo.pipeline.actions.cancel_success'), type: 'success' });
+  notifications.notify({
+    title: i18n.t('notify_title_success'),
+    text: i18n.t('repo.pipeline.actions.notify_text_cancel_success'),
+    type: 'success',
+    duration: 6000,
+  });
 });
 
 const { doSubmit: restartPipeline, isLoading: isRestartingPipeline } = useAsyncAction(async () => {
@@ -190,7 +195,12 @@ const { doSubmit: restartPipeline, isLoading: isRestartingPipeline } = useAsyncA
   const newPipeline = await apiClient.restartPipeline(repo.value.id, pipelineId.value, {
     fork: true,
   });
-  notifications.notify({ title: i18n.t('repo.pipeline.actions.restart_success'), type: 'success' });
+  notifications.notify({
+    title: i18n.t('notify_title_success'),
+    text: i18n.t('repo.pipeline.actions.notify_text_restart_success'),
+    type: 'success',
+    duration: 6000,
+  });
   await router.push({
     name: 'repo-pipeline',
     params: { pipelineId: newPipeline.number },

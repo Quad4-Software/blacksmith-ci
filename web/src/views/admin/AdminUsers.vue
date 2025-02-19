@@ -114,13 +114,15 @@ const { doSubmit: saveUser, isLoading: isSaving } = useAsyncAction(async () => {
   if (isEditingUser.value) {
     await apiClient.updateUser(selectedUser.value);
     notifications.notify({
-      title: t('admin.settings.users.saved'),
+      title: t('notify_title_success'),
+      text: t('admin.settings.users.notify_text_saved'),
       type: 'success',
     });
   } else {
     selectedUser.value = await apiClient.createUser(selectedUser.value);
     notifications.notify({
-      title: t('admin.settings.users.created'),
+      title: t('notify_title_success'),
+      text: t('admin.settings.users.notify_text_created'),
       type: 'success',
     });
   }
@@ -135,7 +137,12 @@ const { doSubmit: deleteUser, isLoading: isDeleting } = useAsyncAction(async (_u
   }
 
   await apiClient.deleteUser(_user);
-  notifications.notify({ title: t('admin.settings.users.deleted'), type: 'success' });
+  notifications.notify({
+    title: t('notify_title_success'),
+    text: t('admin.settings.users.notify_text_deleted'),
+    type: 'success',
+    duration: 6000,
+  });
   resetPage();
 });
 

@@ -61,7 +61,12 @@ const { doSubmit: deleteOrg, isLoading: isDeleting } = useAsyncAction(async (_or
   }
 
   await apiClient.deleteOrg(_org);
-  notifications.notify({ title: t('admin.settings.orgs.deleted'), type: 'success' });
+  notifications.notify({
+    title: t('notify_title_success'),
+    text: t('admin.settings.orgs.notify_text_deleted'),
+    type: 'success',
+    duration: 6000,
+  });
   resetPage();
 });
 </script>

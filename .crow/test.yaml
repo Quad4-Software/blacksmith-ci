@@ -67,8 +67,8 @@ steps:
     commands:
       - apk add --no-cache -q just git
       - 'just generate-openapi'
-      - 'DIFF=$(git diff | head)'
-      - '[ -n "$DIFF" ] && { echo "openapi not up to date, exec `just generate-openapi` and commit"; exit 1; } || true'
+      - 'DIFF=$(git diff)'
+      - '[ -n "$DIFF" ] && { echo "openapi not up to date, exec `just generate-openapi` and commit"; echo "$DIFF"; exit 1; } || true'
     when: *when
 
   lint-license-header:

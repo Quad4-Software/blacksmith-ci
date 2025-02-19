@@ -44,6 +44,7 @@
 
   --wp-state-neutral-100: theme('colors.int-wp-state-neutral.100');
   --wp-state-ok-100: theme('colors.int-wp-state-ok.100');
+  --wp-state-error-100: theme('colors.int-wp-state-error.100');
   --wp-state-info-100: theme('colors.int-wp-state-info.100');
   --wp-state-warn-100: theme('colors.int-wp-state-warn.100');
   --wp-state-pending-100: theme('colors.gray.800');
@@ -161,16 +162,12 @@ body,
   @apply rounded-md border-l-4 text-base;
 }
 
-.vue-notification .notification-title {
-  @apply text-base font-normal;
-}
-
 .vue-notification.success {
-  @apply border border-l-8 border-wp-control-neutral-200 border-l-int-wp-state-ok-100 !bg-transparent text-wp-text-100 shadow-lg dark:border-l-8 dark:border-wp-code-text-line-numbers-150 dark:border-l-int-wp-state-ok-100;
+  @apply border border-l-8 border-wp-control-neutral-200 border-l-int-wp-state-ok-100 !bg-white dark:!bg-wp-background-200 text-wp-text-100 shadow-lg dark:border-l-8 dark:border-wp-code-text-line-numbers-150 dark:border-l-int-wp-state-ok-100;
 }
 
 .vue-notification.error {
-  @apply !border-l-wp-error-200 !bg-wp-error-100;
+  @apply border border-l-8 border-wp-control-neutral-200 border-l-int-wp-state-error-100 !bg-white dark:!bg-wp-background-200 text-wp-text-100 shadow-lg dark:border-l-8 dark:border-wp-background-400 dark:border-l-int-wp-state-error-100;
 }
 
 *::-webkit-scrollbar {

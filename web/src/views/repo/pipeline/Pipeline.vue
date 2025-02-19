@@ -142,7 +142,12 @@ const { doSubmit: approvePipeline, isLoading: isApprovingPipeline } = useAsyncAc
   }
 
   await apiClient.approvePipeline(repo.value.id, `${pipeline.value.number}`);
-  notifications.notify({ title: i18n.t('repo.pipeline.protected.approve_success'), type: 'success' });
+  notifications.notify({
+    title: i18n.t('notify_title_success'),
+    text: i18n.t('repo.pipeline.protected.notify_text_approve_success'),
+    type: 'success',
+    duration: 6000,
+  });
 });
 
 const { doSubmit: declinePipeline, isLoading: isDecliningPipeline } = useAsyncAction(async () => {
@@ -151,6 +156,11 @@ const { doSubmit: declinePipeline, isLoading: isDecliningPipeline } = useAsyncAc
   }
 
   await apiClient.declinePipeline(repo.value.id, `${pipeline.value.number}`);
-  notifications.notify({ title: i18n.t('repo.pipeline.protected.decline_success'), type: 'success' });
+  notifications.notify({
+    title: i18n.t('notify_title_success'),
+    text: i18n.t('repo.pipeline.protected.notify_text_decline_success'),
+    type: 'success',
+    duration: 6000,
+  });
 });
 </script>

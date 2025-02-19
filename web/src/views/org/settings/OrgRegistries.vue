@@ -85,8 +85,10 @@ const { doSubmit: createRegistry, isLoading: isSaving } = useAsyncAction(async (
     await apiClient.createOrgRegistry(org.value.id, selectedRegistry.value);
   }
   notifications.notify({
-    title: isEditing.value ? i18n.t('registries.saved') : i18n.t('registries.created'),
+    title: i18n.t('notify_title_success'),
+    text: isEditing.value ? i18n.t('registries.notify_text_saved') : i18n.t('registries.notify_text_created'),
     type: 'success',
+    duration: 6000,
   });
   selectedRegistry.value = undefined;
   resetPage();
@@ -98,7 +100,12 @@ const { doSubmit: deleteRegistry, isLoading: isDeleting } = useAsyncAction(async
   }
 
   await apiClient.deleteOrgRegistry(org.value.id, _registry.address);
-  notifications.notify({ title: i18n.t('registries.deleted'), type: 'success' });
+  notifications.notify({
+    title: i18n.t('notify_title_success'),
+    text: i18n.t('registries.notify_text_deleted'),
+    type: 'success',
+    duration: 6000,
+  });
   resetPage();
 });
 

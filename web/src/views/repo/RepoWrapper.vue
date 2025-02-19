@@ -100,7 +100,12 @@ const forgeIcon = computed<IconNames>(() => {
 async function loadRepo() {
   repoPermissions.value = await apiClient.getRepoPermissions(repositoryId.value);
   if (!repoPermissions.value.pull) {
-    notifications.notify({ type: 'error', title: i18n.t('repo.not_allowed') });
+    notifications.notify({
+      type: 'error',
+      duration: 9000,
+      title: i18n.t('notify_title_error'),
+      text: i18n.t('repo.notify_text_not_allowed'),
+    });
     // no access and not authenticated, redirect to login
     if (!isAuthenticated) {
       await router.replace({ name: 'login', query: { url: route.fullPath } });

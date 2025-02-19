@@ -72,7 +72,7 @@ func Restart(ctx context.Context, store store.Store, lastPipeline *model.Pipelin
 	}
 
 	if len(configs) == 0 {
-		newPipeline, uErr := UpdateToStatusError(store, *newPipeline, errors.New("pipeline definition not found"))
+		newPipeline, uErr := UpdateToStatusError(store, *newPipeline, errors.New("There was an error loading the pipeline definition of the current run. This is usually caused by connectivity/timeout issues on the forge side. Restarting the build will not help, a new (fresh) commit (or force-push) must be issued to trigger a clean reload.")) //nolint
 		if uErr != nil {
 			log.Debug().Err(uErr).Msg("failure to update pipeline status")
 		} else {

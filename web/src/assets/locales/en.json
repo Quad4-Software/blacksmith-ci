@@ -16,6 +16,8 @@
   "documentation_for": "Documentation for \"{topic}\"",
   "pipeline_feed": "Pipeline feed",
   "empty_list": "No {entity} found!",
+  "notify_title_success": "✅️ Success",
+  "notify_title_error": "❌️ Error",
   "not_found": {
     "not_found": "404 - page not found",
     "back_home": "Back to home"
@@ -65,12 +67,12 @@
     "pull_requests": "Pull requests",
     "add": "Add repository",
     "user_none": "This organization/user has no projects yet",
-    "not_allowed": "You are not allowed to access this repository",
+    "notify_text_not_allowed": "Missing permissions. You are either not logged in, your access token has expired or you do not have access to the repository.",
     "enable": {
       "enable": "Enable",
       "enabled": "Repository is already enabled",
       "disabled": "Disabled",
-      "success": "Repository enabled successfully"
+      "notify_text_enabled": "Repository enabled"
     },
     "open_in_forge": "Open repository in forge",
     "visibility": {
@@ -89,12 +91,12 @@
       }
     },
     "settings": {
-      "not_allowed": "You are not allowed to access the settings of this repository",
+      "notify_text_not_allowed": "Missing permissions to access the settings of this repository",
       "general": {
         "general": "General",
         "project": "Project settings",
         "save": "Save settings",
-        "success": "Project settings updated",
+        "notify_text_updated": "Project settings updated",
         "pipeline_path": {
           "path": "Pipeline path",
           "default": "By default: .crow/*.{'{yaml,yml}'} or .woodpecker/*.{'{yaml,yml}'} -> .crow.yaml -> .crow.yml -> .woodpecker.yaml -> .woodpecker.yml",
@@ -144,9 +146,9 @@
         "add": "Add cron",
         "none": "There are no crons jobs defined.",
         "save": "Save cron",
-        "created": "Cron created",
-        "saved": "Cron saved",
-        "deleted": "Cron deleted",
+        "notify_text_created": "Cron created",
+        "notify_text_saved": "Cron saved",
+        "notify_text_deleted": "Cron deleted",
         "next_exec": "Next execution",
         "not_executed_yet": "Not executed yet",
         "run": "Run now",
@@ -177,20 +179,20 @@
         "actions": "Actions",
         "repair": {
           "repair": "Repair repository",
-          "success": "Repository successfully repaired "
+          "notify_text_success": "Repository successfully repaired "
         },
         "disable": {
           "disable": "Disable repository",
-          "success": "Repository successfully disabled"
+          "notify_text_success": "Repository successfully disabled"
         },
         "enable": {
           "enable": "Enable repository",
-          "success": "Repository successfully enabled"
+          "notify_text_success": "Repository successfully enabled"
         },
         "delete": {
           "delete": "Delete repository",
-          "confirm": "All stored data (runs, logs, etc.) will be lost when proceeding!\n\nDo you want to proceed?",
-          "success": "Repository successfully deleted"
+          "notify_text_confirm": "All stored data (runs, logs, etc.) will be lost when proceeding!\n\nDo you want to proceed?",
+          "notify_text_success": "Repository successfully deleted"
         }
       }
     },
@@ -215,9 +217,9 @@
         "cancel": "Cancel",
         "restart": "Restart",
         "canceled": "This step has been canceled.",
-        "cancel_success": "Pipeline canceled",
+        "notify_text_cancel_success": "Pipeline canceled",
         "deploy": "Deploy",
-        "restart_success": "Pipeline restarted",
+        "notify_text_restart_success": "Pipeline restarted",
         "log_download": "Download",
         "log_delete": "Delete",
         "log_auto_scroll": "Enable automatic log scrolling",
@@ -228,8 +230,8 @@
         "approve": "Approve",
         "decline": "Decline",
         "declined": "This pipeline has been declined.",
-        "approve_success": "Pipeline approved",
-        "decline_success": "Pipeline declined"
+        "notify_text_approve_success": "Pipeline approved",
+        "notify_text_decline_success": "Pipeline declined"
       },
       "event": {
         "push": "Push",
@@ -263,9 +265,9 @@
       "debug": {
         "title": "Debug",
         "download_metadata": "Download metadata",
-        "metadata_download_error": "Error downloading metadata",
-        "metadata_download_successful": "Metadata downloaded successfully",
-        "no_permission": "You are not allowed to access the debug information",
+        "notify_text_metadata_download_error": "Error downloading metadata",
+        "notify_text_metadata_download_successful": "Metadata downloaded successfully",
+        "no_permission": "Missing permissions to access the debug information",
         "metadata_exec_title": "Re-run pipeline locally",
         "metadata_exec_desc": "Download this pipeline's metadata to run it locally. This allows troubleshooting issues and testing changes before committing them. `crow-cli` matching the Crow CI Server version must be installed locally."
       }
@@ -273,7 +275,7 @@
   },
   "org": {
     "settings": {
-      "not_allowed": "You are not allowed to access the settings of this organization",
+      "notify_text_not_allowed": "Missing permissions to access the settings of this organization",
       "secrets": {
         "desc": "Organization secrets can be used in all pipelines belonging to the respective organization."
       },
@@ -287,7 +289,7 @@
   },
   "admin": {
     "settings": {
-      "not_allowed": "You are not allowed to access server settings",
+      "notify_text_not_allowed": "Missing permissions to access server settings",
       "secrets": {
         "desc": "Global secrets can be used in any pipeline by any user.",
         "warning": "These secrets are available to all users"
@@ -304,9 +306,9 @@
         "add": "Add agent",
         "save": "Save agent",
         "show": "Show agents",
-        "created": "Agent created",
-        "saved": "Agent saved",
-        "deleted": "Agent deleted",
+        "notify_text_created": "Agent created",
+        "notify_text_saved": "Agent saved",
+        "notify_text_deleted": "Agent deleted",
         "name": {
           "name": "Name",
           "placeholder": "Name of the agent"
@@ -348,8 +350,8 @@
         "desc": "Tasks waiting to be executed by agents.",
         "pause": "Pause",
         "resume": "Resume",
-        "paused": "Queue is paused",
-        "resumed": "Queue is resumed",
+        "notify_text_paused": "Queue is paused",
+        "notify_text_resumed": "Queue is resumed",
         "tasks": "Tasks",
         "task_running": "Task is running",
         "task_pending": "Task is pending",
@@ -376,9 +378,9 @@
         "add": "Add user",
         "none": "There are no users yet.",
         "delete_confirm": "Do you really want to delete this user? This will also delete all repositories owned by this user.",
-        "deleted": "User deleted",
-        "created": "User created",
-        "saved": "User saved",
+        "notify_text_deleted": "User deleted",
+        "notify_text_created": "User created",
+        "notify_text_saved": "User saved",
         "admin": {
           "admin": "Admin",
           "placeholder": "User is an admin"
@@ -392,7 +394,7 @@
         "none": "There are no organizations yet.",
         "org_settings": "Organization settings",
         "delete_org": "Delete organization",
-        "deleted": "Organization deleted",
+        "notify_text_deleted": "Organization deleted",
         "delete_confirm": "Do you really want to delete this organization? This will also delete all repositories owned by this organization.",
         "view": "View organization"
       },
@@ -405,7 +407,7 @@
         "disabled": "Disabled",
         "repair": {
           "repair": "Repair all",
-          "success": "Repositories repaired"
+          "notify_text_success": "Repositories repaired"
         }
       }
     }
@@ -454,9 +456,9 @@
     "name": "Name",
     "value": "Value",
     "delete_confirm": "Do you really want to delete this secret?",
-    "deleted": "Secret deleted",
-    "created": "Secret created",
-    "saved": "Secret saved",
+    "notify_text_deleted": "Secret deleted",
+    "notify_text_created": "Secret created",
+    "notify_text_saved": "Secret saved",
     "plugins": {
       "images": "Restrict secret to specific plugins",
       "desc": "Leave empty to allow any plugin and image (only restrictions for plugins are supported)."
@@ -484,9 +486,9 @@
     "edit": "Edit registry",
     "delete": "Delete registry",
     "delete_confirm": "Do you really want to delete this registry?",
-    "created": "Registry credentials created",
-    "saved": "Registry credentials saved",
-    "deleted": "Registry credentials deleted"
+    "notify_text_created": "Registry credentials created",
+    "notify_text_saved": "Registry credentials saved",
+    "notify_text_deleted": "Registry credentials deleted"
   },
   "default": "default",
   "info": "Info",
@@ -505,7 +507,7 @@
   "oauth_error": "Error while authenticating against OAuth provider",
   "internal_error": "Internal error occurred",
   "registration_closed": "The registration is closed",
-  "access_denied": "You are not allowed to access this instance",
+  "access_denied": "Missing permissions to access this instance",
   "org_access_denied": "You are not a member of the organization which allows logging into Crow CI (the organization is set via env var `CROW_ORGS').",
   "invalid_state": "The OAuth state is invalid",
   "require_approval": {

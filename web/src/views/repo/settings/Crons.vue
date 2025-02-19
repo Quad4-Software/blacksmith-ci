@@ -153,8 +153,12 @@ const { doSubmit: createCron, isLoading: isSaving } = useAsyncAction(async () =>
     await apiClient.createCron(repo.value.id, selectedCron.value);
   }
   notifications.notify({
-    title: isEditingCron.value ? i18n.t('repo.settings.crons.saved') : i18n.t('repo.settings.crons.created'),
+    title: i18n.t('notify_title_success'),
+    text: isEditingCron.value
+      ? i18n.t('repo.settings.crons.notify_text_saved')
+      : i18n.t('repo.settings.crons.notify_text_created'),
     type: 'success',
+    duration: 6000,
   });
   selectedCron.value = undefined;
   resetPage();
@@ -166,7 +170,12 @@ const { doSubmit: deleteCron, isLoading: isDeleting } = useAsyncAction(async (_c
   }
 
   await apiClient.deleteCron(repo.value.id, _cron.id);
-  notifications.notify({ title: i18n.t('repo.settings.crons.deleted'), type: 'success' });
+  notifications.notify({
+    title: i18n.t('notify_title_success'),
+    text: i18n.t('repo.settings.crons.notify_text_deleted'),
+    type: 'success',
+    duration: 6000,
+  });
   resetPage();
 });
 

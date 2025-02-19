@@ -47,7 +47,12 @@ const cliExecWithMetadata = computed(() => `# crow-cli exec --metadata-file ${me
 
 async function downloadMetadata() {
   if (!repo?.value || !pipeline?.value || !repoPermissions?.value?.push) {
-    notifications.notify({ type: 'error', title: t('repo.pipeline.debug.metadata_download_error') });
+    notifications.notify({
+      title: t('notify_title_error'),
+      type: 'error',
+      duration: 9000,
+      text: t('repo.pipeline.debug.notify_text_metadata_download_error'),
+    });
     return;
   }
 
@@ -68,10 +73,19 @@ async function downloadMetadata() {
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
 
-    notifications.notify({ type: 'success', title: t('repo.pipeline.debug.metadata_download_successful') });
+    notifications.notify({
+      title: t('notify_title_success'),
+      type: 'success',
+      text: t('repo.pipeline.debug.notify_text_metadata_download_successful'),
+    });
   } catch (error) {
     console.error('Error fetching metadata:', error);
-    notifications.notify({ type: 'error', title: t('repo.pipeline.debug.metadata_download_error') });
+    notifications.notify({
+      title: t('notify_title_error'),
+      type: 'error',
+      duration: 9000,
+      text: t('repo.pipeline.debug.notify_text_metadata_download_error'),
+    });
   } finally {
     isLoading.value = false;
   }

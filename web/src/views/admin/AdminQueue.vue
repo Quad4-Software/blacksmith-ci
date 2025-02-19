@@ -124,8 +124,10 @@ async function pauseQueue() {
   await apiClient.pauseQueue();
   await loadQueueInfo();
   notifications.notify({
-    title: t('admin.settings.queue.paused'),
+    title: t('notify_title_success'),
+    text: t('admin.settings.queue.notify_text_paused'),
     type: 'success',
+    duration: 6000,
   });
 }
 
@@ -133,8 +135,10 @@ async function resumeQueue() {
   await apiClient.resumeQueue();
   await loadQueueInfo();
   notifications.notify({
-    title: t('admin.settings.queue.resumed'),
+    title: t('notify_title_success'),
+    text: t('admin.settings.queue.notify_text_resumed'),
     type: 'success',
+    duration: 6000,
   });
 }
 

@@ -66,6 +66,11 @@ const { data: repos } = usePagination(loadRepos);
 
 const { doSubmit: repairRepos, isLoading: isRepairingRepos } = useAsyncAction(async () => {
   await apiClient.repairAllRepos();
-  notifications.notify({ title: i18n.t('admin.settings.repos.repair.success'), type: 'success' });
+  notifications.notify({
+    title: i18n.t('notify_title_success'),
+    text: i18n.t('admin.settings.repos.repair.notify_text_success'),
+    type: 'success',
+    duration: 6000,
+  });
 });
 </script>

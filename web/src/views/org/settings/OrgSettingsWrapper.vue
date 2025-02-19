@@ -41,7 +41,12 @@ const orgPermissions = inject('org-permissions');
 
 onMounted(async () => {
   if (!orgPermissions.value?.admin) {
-    notifications.notify({ type: 'error', title: i18n.t('org.settings.not_allowed') });
+    notifications.notify({
+      title: i18n.t('notify_title_error'),
+      type: 'error',
+      duration: 9000,
+      text: i18n.t('org.settings.notify_text_not_allowed'),
+    });
     await router.replace({ name: 'home' });
   }
 });

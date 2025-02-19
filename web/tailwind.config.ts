@@ -120,6 +120,9 @@ export default {
         'int-wp-state-warn-dark': {
           100: tinycolor(colors.yellow[400]).desaturate(20).toString(),
         },
+        'int-wp-state-error': {
+          100: colors.red[700],
+        },
 
         'int-wp-hint-warn': {
           100: customColors['custom-light'][200],
