@@ -33,3 +33,9 @@ A slim and self-hostable CI/CD engine with great extensibility.
    📦️ Autoscaler
   </a>
 </p>
+
+<p align="center">
+  <a href="https://crowci.dev">
+   📖️ Documentation
+  </a>
+</p>
