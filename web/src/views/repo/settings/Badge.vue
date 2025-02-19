@@ -52,7 +52,7 @@ import type { Repo } from '~/lib/api/types';
 const apiClient = useApiClient();
 const repo = inject<Ref<Repo>>('repo');
 
-const badgeType = useStorage('woodpecker:last-badge-type', 'markdown');
+const badgeType = useStorage('crow:last-badge-type', 'markdown');
 
 if (!repo) {
   throw new Error('Unexpected: "repo" should be provided at this place');

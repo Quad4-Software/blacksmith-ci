@@ -6,7 +6,7 @@ interface UserConfig {
   redirectUrl: string;
 }
 
-const config = useStorage<UserConfig>('woodpecker:user-config', {
+const config = useStorage<UserConfig>('crow:user-config', {
   isPipelineFeedOpen: false,
   redirectUrl: '',
 });

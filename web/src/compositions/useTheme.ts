@@ -6,7 +6,7 @@ const {
   state: resolvedTheme,
   system: systemTheme,
 } = useColorMode({
-  storageKey: 'woodpecker:theme',
+  storageKey: 'crow:theme',
 });
 
 function updateTheme() {

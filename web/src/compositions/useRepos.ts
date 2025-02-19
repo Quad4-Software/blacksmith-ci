@@ -6,7 +6,7 @@ import { usePipelineStore } from '~/store/pipelines';
 
 export default function useRepos() {
   const pipelineStore = usePipelineStore();
-  const lastAccess = useStorage('woodpecker:repo-last-access', new Map<number, number>());
+  const lastAccess = useStorage('crow:repo-last-access', new Map<number, number>());
 
   function repoWithLastPipeline(repo: Repo): Repo {
     if (repo.last_pipeline_number === undefined) {

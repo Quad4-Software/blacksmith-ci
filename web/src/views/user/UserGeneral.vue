@@ -39,7 +39,7 @@ const localeOptions = computed(() =>
   })),
 );
 
-const storedLocale = useStorage('woodpecker:locale', locale.value);
+const storedLocale = useStorage('crow:locale', locale.value);
 const selectedLocale = computed<string>({
   async set(_selectedLocale) {
     await setI18nLanguage(_selectedLocale);

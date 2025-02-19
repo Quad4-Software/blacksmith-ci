@@ -6,7 +6,7 @@ import { useDate } from './useDate';
 
 export function getUserLanguage(): string {
   const browserLocale = navigator.language.split('-')[0];
-  const selectedLocale = useStorage('woodpecker:locale', browserLocale).value;
+  const selectedLocale = useStorage('crow:locale', browserLocale).value;
 
   return selectedLocale;
 }
