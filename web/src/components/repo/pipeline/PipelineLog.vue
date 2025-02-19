@@ -103,6 +103,9 @@
       >
         <PipelineStatusIcon :status="step.state" class="!h-4 !w-4" />
         <span v-if="step?.error" class="ml-2 border border-wp-error-100 rounded-full px-2">{{ step.error }}</span>
+        <span v-if="step.exit_code === 1" class="ml-2 border border-wp-error-100 rounded-full px-2">{{
+          $t('repo.pipeline.exit_code', { exitCode: step.exit_code })
+        }}</span>
         <span v-else class="ml-2 border border-wp-control-ok-300 rounded-full px-2">{{
           $t('repo.pipeline.exit_code', { exitCode: step.exit_code })
         }}</span>
