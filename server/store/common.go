@@ -14,7 +14,11 @@
 
 package store
 
-import "time"
+import (
+	"time"
+
+	"codeberg.org/crowci/crow/v3/server/model"
+)
 
 type XORM struct {
 	Log             bool
@@ -29,4 +33,9 @@ type Opts struct {
 	Driver string
 	Config string
 	XORM   XORM
+}
+
+type PipelineListKeyset interface {
+	GetPipelineListKeyset(repo *model.Repo, lastID, beforeDate int64, limit int) ([]*model.Pipeline, error)
+	GetPipelineCount(repo *model.Repo) (int64, error)
 }

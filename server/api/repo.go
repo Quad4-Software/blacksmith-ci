@@ -35,6 +35,7 @@ import (
 	"codeberg.org/crowci/crow/v3/server/store"
 	"codeberg.org/crowci/crow/v3/server/store/types"
 	"codeberg.org/crowci/crow/v3/shared/token"
+	shared_utils "codeberg.org/crowci/crow/v3/shared/utils"
 )
 
 // PostRepo
@@ -114,6 +115,8 @@ func PostRepo(c *gin.Context) {
 		repo.AllowPull = true
 		repo.AllowDeploy = false
 		repo.CancelPreviousPipelineEvents = server.Config.Pipeline.DefaultCancelPreviousPipelineEvents
+		repo.LogsDurationKeep = server.Config.Pipeline.LogsDurationKeep
+		repo.LogsPipelinesKeepMin = server.Config.Pipeline.LogsPipelinesKeepMin
 	}
 	repo.IsActive = true
 	repo.UserID = user.ID
@@ -130,6 +133,9 @@ func PostRepo(c *gin.Context) {
 	} else if repo.Timeout > server.Config.Pipeline.MaxTimeout {
 		repo.Timeout = server.Config.Pipeline.MaxTimeout
 	}
+
+	repo.LogsPipelinesKeepMin = server.Config.Pipeline.LogsPipelinesKeepMin
+	repo.LogsDurationKeep = server.Config.Pipeline.LogsDurationKeep
 
 	if repo.Hash == "" {
 		repo.Hash = base32.StdEncoding.EncodeToString(
@@ -253,6 +259,26 @@ func PatchRepo(c *gin.Context) {
 		return
 	}
 
+	valid, err := shared_utils.IsValidKeepMinValue(in.LogsPipelinesKeepMin)
+	if err != nil || !valid {
+		log.Error().Err(err).Msgf("The provided minimum pipeline log retention value is invalid")
+		// Return a JSON response with a specific error field for the frontend
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Sprintf("The provided minimum pipeline log retention value is invalid. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
+		})
+		return
+	}
+
+	err = shared_utils.ValidateDuration(in.LogsDurationKeep)
+	if err != nil {
+		log.Error().Err(err).Msgf("The provided maximum pipeline log duration retention value is invalid. Did you forget the unit indicator or use an invalid one?")
+		// Return a JSON response with a specific error field for the frontend
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Sprintf("The provided maximum pipeline log duration retention value is invalid. Did you forget the unit indicator or use an invalid one? Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
+		})
+		return
+	}
+
 	if in.Timeout != nil && *in.Timeout > server.Config.Pipeline.MaxTimeout {
 		log.Error().Msg("Timeout is not allowed to be higher than max. configured timeout")
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -324,7 +350,10 @@ func PatchRepo(c *gin.Context) {
 		}
 	}
 
-	err := _store.UpdateRepo(repo)
+	repo.LogsPipelinesKeepMin = in.LogsPipelinesKeepMin
+	repo.LogsDurationKeep = in.LogsDurationKeep
+
+	err = _store.UpdateRepo(repo)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to update repo")
 		_ = c.AbortWithError(http.StatusInternalServerError, err)

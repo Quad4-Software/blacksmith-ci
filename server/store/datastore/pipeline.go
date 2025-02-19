@@ -127,6 +127,10 @@ func (s storage) GetPipelineCount() (int64, error) {
 	return s.engine.Count(new(model.Pipeline))
 }
 
+func (s storage) GetPipelineCountByRepo(repoID int64) (int64, error) {
+	return s.engine.Where("repo_id = ?", repoID).Count(new(model.Pipeline))
+}
+
 func (s storage) CreatePipeline(pipeline *model.Pipeline, stepList ...*model.Step) error {
 	sess := s.engine.NewSession()
 	defer sess.Close()
@@ -205,4 +209,38 @@ func (s storage) deletePipeline(sess *xorm.Session, pipelineID int64) error {
 		return err
 	}
 	return wrapDelete(sess.ID(pipelineID).Delete(new(model.Pipeline)))
+}
+
+func (s storage) SetPipelineLogPurged(pipeline *model.Pipeline) error {
+	pipeline.LogsDeleted = true
+	_, err := s.engine.ID(pipeline.ID).Cols("logs_deleted").Update(pipeline)
+	return err
+}
+
+func (s storage) GetPipelineLogPurged(pipeline *model.Pipeline) (bool, error) {
+	var logsPurged bool
+	has, err := s.engine.
+		Table("pipelines").
+		Select("logs_deleted").
+		Where("id = ?", pipeline.ID).
+		Get(&logsPurged)
+	if !has {
+		return false, err
+	}
+	return logsPurged, err
+}
+
+func (s storage) GetPipelineListKeyset(repo *model.Repo, lastID int64, beforeDate int64, limit int) ([]*model.Pipeline, error) {
+	pipelines := make([]*model.Pipeline, 0)
+	return pipelines, s.engine.
+		Where(builder.Lt{"id": lastID}.
+			And(builder.Lt{"created": beforeDate}).
+			And(builder.Eq{"repo_id": repo.ID})).
+		OrderBy("id DESC").
+		Limit(limit, 0).
+		Find(&pipelines)
+}
+
+func (s storage) GetRepoSpecificPipelineCount(repo *model.Repo) (int64, error) {
+	return s.engine.Where(builder.Eq{"repo_id": repo.ID}).Count(new(model.Pipeline))
 }

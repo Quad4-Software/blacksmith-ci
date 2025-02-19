@@ -82,16 +82,24 @@ type Store interface {
 	GetRepoLatestPipelines([]int64) ([]*model.Pipeline, error)
 	// GetActivePipelineList gets a list of the active pipelines for the repository
 	GetActivePipelineList(repo *model.Repo) ([]*model.Pipeline, error)
+	// GetPipelineListKeyset gets a list of pipelines for the repository using keyset pagination.
+	GetPipelineListKeyset(repo *model.Repo, startID int64, beforeDate int64, limit int) ([]*model.Pipeline, error)
 	// GetPipelineQueue gets a list of pipelines in queue.
 	GetPipelineQueue() ([]*model.Feed, error)
 	// GetPipelineCount gets a count of all pipelines in the system.
 	GetPipelineCount() (int64, error)
+	// GetPipelineCountByRepo gets a count of all pipelines for a specific repo.
+	GetPipelineCountByRepo(int64) (int64, error)
 	// CreatePipeline creates a new pipeline and steps.
 	CreatePipeline(*model.Pipeline, ...*model.Step) error
 	// UpdatePipeline updates a pipeline.
 	UpdatePipeline(*model.Pipeline) error
 	// DeletePipeline deletes a pipeline.
 	DeletePipeline(*model.Pipeline) error
+	// Set indicator that pipelineLogs were purged
+	SetPipelineLogPurged(*model.Pipeline) error
+	// Get indicator if pipelineLogs were purged
+	GetPipelineLogPurged(*model.Pipeline) (bool, error)
 
 	// Feeds
 	UserFeed(*model.User) ([]*model.Feed, error)

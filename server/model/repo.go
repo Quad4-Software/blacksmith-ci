@@ -71,6 +71,8 @@ type Repo struct {
 	Perm                         *Perm                `json:"-"                               xorm:"-"`
 	CancelPreviousPipelineEvents []WebhookEvent       `json:"cancel_previous_pipeline_events" xorm:"json 'cancel_previous_pipeline_events'"`
 	NetrcTrustedPlugins          []string             `json:"netrc_trusted"                   xorm:"json 'netrc_trusted'"`
+	LogsPipelinesKeepMin         int64                `json:"logs_keep_min,omitempty"         xorm:"logs_keep_min"`
+	LogsDurationKeep             string               `json:"logs_keep_duration"              xorm:"varchar(500) 'logs_keep_duration'"`
 } //	@name Repo
 
 // TableName return database table name for xorm.
@@ -134,6 +136,8 @@ type RepoPatch struct {
 	AllowPull                    *bool                      `json:"allow_pr,omitempty"`
 	AllowDeploy                  *bool                      `json:"allow_deploy,omitempty"`
 	CancelPreviousPipelineEvents *[]WebhookEvent            `json:"cancel_previous_pipeline_events"`
+	LogsPipelinesKeepMin         int64                      `json:"logs_keep_min"`
+	LogsDurationKeep             string                     `json:"logs_keep_duration"`
 	NetrcTrusted                 *[]string                  `json:"netrc_trusted"`
 	Trusted                      *TrustedConfigurationPatch `json:"trusted"`
 } //	@name RepoPatch

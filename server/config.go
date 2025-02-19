@@ -74,6 +74,8 @@ var Config = struct {
 		Networks                            []string
 		PrivilegedPlugins                   []string
 		DefaultTimeout                      int64
+		LogsDurationKeep                    string
+		LogsPipelinesKeepMin                int64
 		MaxTimeout                          int64
 		Proxy                               struct {
 			No    string

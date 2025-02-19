@@ -7,7 +7,7 @@ linters-settings:
   misspell:
     locale: US
   gofumpt:
-    extra-rules: true
+    extra-rules: false
   forbidigo:
     forbid:
       - context\.WithCancel$

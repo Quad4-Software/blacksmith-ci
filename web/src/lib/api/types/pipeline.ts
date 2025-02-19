@@ -85,6 +85,9 @@ export interface Pipeline {
   workflows?: PipelineWorkflow[];
 
   changed_files?: string[];
+
+  // Whether the logs were deleted or not
+  logs_deleted: number;
 }
 
 export type PipelineStatus =

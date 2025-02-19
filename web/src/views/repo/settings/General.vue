@@ -1,7 +1,7 @@
 <template>
   <Settings :title="$t('repo.settings.general.project')">
     <form v-if="repoSettings" class="flex flex-col" @submit.prevent="saveRepoSettings">
-      <InputField docs-url="usage/project-settings#general" :label="$t('repo.settings.general.general')">
+      <InputField docs-url="usage/repo-settings#general" :label="$t('repo.settings.general.general')">
         <Checkbox
           v-model="repoSettings.allow_pr"
           :label="$t('repo.settings.general.allow_pr.allow')"
@@ -15,7 +15,7 @@
       </InputField>
       <InputField
         :label="$t('repo.settings.general.netrc_only_trusted.netrc_only_trusted')"
-        docs-url="usage/project-settings#custom-trusted-clone-plugins"
+        docs-url="usage/repo-settings#custom-trusted-clone-plugins"
       >
         <template #default="{ id }">
           <div class="flex flex-col gap-2">
@@ -79,23 +79,20 @@
         />
         <template #description> {{ $t('require_approval.desc') }} </template>
       </InputField>
-      <InputField docs-url="usage/project-settings#project-visibility" :label="$t('repo.visibility.visibility')">
+      <InputField docs-url="usage/repo-settings#project-visibility" :label="$t('repo.visibility.visibility')">
         <RadioField v-model="repoSettings.visibility" :options="projectVisibilityOptions" />
       </InputField>
       <InputField
         v-slot="{ id }"
-        docs-url="usage/project-settings#timeout"
+        docs-url="usage/repo-settings#timeout"
         :label="$t('repo.settings.general.timeout.timeout')"
       >
         <div class="flex items-center">
-          <NumberField :id="id" v-model="repoSettings.timeout" class="w-24" />
+          <NumberField :id="id" v-model="repoSettings.timeout" class="max-w-[6rem]" />
           <span class="ml-4 text-wp-text-alt-100">{{ $t('repo.settings.general.timeout.minutes') }}</span>
         </div>
       </InputField>
-      <InputField
-        docs-url="usage/project-settings#pipeline-path"
-        :label="$t('repo.settings.general.pipeline_path.path')"
-      >
+      <InputField docs-url="usage/repo-settings#pipeline-path" :label="$t('repo.settings.general.pipeline_path.path')">
         <template #default="{ id }">
           <TextField
             :id="id"
@@ -113,7 +110,7 @@
         <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
       </InputField>
       <InputField
-        docs-url="usage/project-settings#cancel-previous-pipelines"
+        docs-url="usage/repo-settings#cancel-previous-pipelines"
         :label="$t('repo.settings.general.cancel_prev.cancel')"
       >
         <CheckboxesField
@@ -122,12 +119,25 @@
         />
         <template #description> {{ $t('repo.settings.general.cancel_prev.desc') }} </template>
       </InputField>
+      <InputField docs-url="usage/repo-settings#log-retention" :label="$t('repo.settings.general.purge_logs.title')">
+        <span class="mb-2 text-wp-text-alt-100">{{ $t('repo.settings.general.purge_logs.desc') }}</span>
+        <div class="flex items-center">
+          <TextField v-model="repoSettings.logs_keep_duration" class="max-w-[6rem]" />
+          <span class="ml-4 text-wp-text-alt-100">{{ $t('repo.settings.general.purge_logs.duration') }}</span>
+        </div>
+
+        <div class="flex items-center">
+          <NumberField v-model="repoSettings.logs_keep_min" class="max-w-[6rem]" />
+          <span class="ml-4 text-wp-text-alt-100">{{ $t('repo.settings.general.purge_logs.keep_min') }}</span>
+        </div>
+      </InputField>
       <Button
         type="submit"
         class="mr-auto"
         color="default"
         :is-loading="isSaving"
         :text="$t('repo.settings.general.save')"
+        @click.prevent="saveRepoSettings"
       />
     </form>
   </Settings>
@@ -178,6 +188,8 @@ function loadRepoSettings() {
     allow_pr: repo.value.allow_pr,
     allow_deploy: repo.value.allow_deploy,
     cancel_previous_pipeline_events: repo.value.cancel_previous_pipeline_events || [],
+    logs_keep_duration: repo.value.logs_keep_duration ?? '',
+    logs_keep_min: repo.value.logs_keep_min ?? 90,
     netrc_trusted: repo.value.netrc_trusted || [],
   };
 }

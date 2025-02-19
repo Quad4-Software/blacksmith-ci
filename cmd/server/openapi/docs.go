@@ -4925,6 +4925,9 @@ const docTemplate = `{
                 "from_fork": {
                     "type": "boolean"
                 },
+                "logs_deleted": {
+                    "type": "boolean"
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -5091,6 +5094,12 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "logs_keep_duration": {
+                    "type": "string"
+                },
+                "logs_keep_min": {
+                    "type": "integer"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -5178,6 +5187,12 @@ const docTemplate = `{
                 "last_pipeline": {
                     "$ref": "#/definitions/Pipeline"
                 },
+                "logs_keep_duration": {
+                    "type": "string"
+                },
+                "logs_keep_min": {
+                    "type": "integer"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -5230,6 +5245,12 @@ const docTemplate = `{
                 },
                 "config_file": {
                     "type": "string"
+                },
+                "logs_keep_duration": {
+                    "type": "string"
+                },
+                "logs_keep_min": {
+                    "type": "integer"
                 },
                 "netrc_trusted": {
                     "type": "array",

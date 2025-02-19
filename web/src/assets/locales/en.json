@@ -137,6 +137,12 @@
         "cancel_prev": {
           "cancel": "Cancel previous pipelines",
           "desc": "Selected event triggers cancel pending and running pipelines of the same event before starting the next one."
+        },
+        "purge_logs": {
+          "title": "Log retention",
+          "desc": "Purging strategy for old pipeline logs. A purge is attempted for each pipeline run if at least one option is set to a valid value. Multiple options are combined with 'AND'. Set to '-1' or empty to avoid purging.",
+          "duration": "duration (e.g. '24h'). Only minutes (m) and hours (h) are allowed. Leave empty to ignore.",
+          "keep_min": "pipelines (min. # of pipelines). Set to '-1' to ignore."
         }
       },
       "crons": {
@@ -208,6 +214,7 @@
       "exit_code": "Exit Code {exitCode}",
       "loading": "Loading…",
       "no_logs": "No logs",
+      "logs_deleted": "🧹️ Logs have been wiped",
       "pipeline": "Pipeline #{pipelineId}",
       "log_title": "Step Logs",
       "log_download_error": "An error occurred while downloading the log file",

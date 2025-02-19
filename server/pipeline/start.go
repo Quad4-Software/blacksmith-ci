@@ -33,6 +33,19 @@ func start(ctx context.Context, forge forge.Forge, store store.Store, activePipe
 		log.Error().Err(err).Msg("failed to cancel previous pipelines")
 	}
 
+	// Purge logs before pipeline starts asynchronously
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Error().Msgf("Recovered from panic in log purge: %v", r)
+			}
+		}()
+
+		if err := pipelineLogPurge(store, repo); err != nil {
+			log.Error().Err(err).Msg("Error purging logs")
+		}
+	}()
+
 	publishPipeline(ctx, forge, activePipeline, repo, user)
 
 	if err := queuePipeline(ctx, repo, pipelineItems); err != nil {

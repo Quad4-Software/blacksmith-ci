@@ -576,6 +576,17 @@ var flags = append([]cli.Flag{
 		Name:    "encryption-disable-flag",
 		Usage:   "Flag to decrypt all encrypted data and disable encryption on server",
 	},
+	&cli.IntFlag{
+		Sources: cli.EnvVars("WOODPECKER_DEFAULT_LOGS_KEEP_DURATION", "CROW_DEFAULT_LOGS_KEEP_DURATION"),
+		Name:    "logs-duration-keep",
+		Usage:   "The default time (as duration) for which pipeline logs of historic runs are preserved",
+	},
+	&cli.IntFlag{
+		Sources: cli.EnvVars("WOODPECKER_DEFAULT_LOGS_PIPELINES_KEEP_MIN", "CROW_DEFAULT_LOGS_PIPELINES_KEEP_MIN"),
+		Name:    "logs-pipelines-keep-min",
+		Usage:   "The default amount of pipelines for which logs are preserved",
+		Value:   90,
+	},
 }, logger.GlobalLoggerFlags...)
 
 // If crow is running inside a container the default value for

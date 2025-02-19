@@ -98,6 +98,18 @@ If the pipeline has not finished within the timeout, it will be treated as timed
 
 This option defines whether previous pipelines of the same event and context should be canceled before starting the newly triggered one.
 
+## Log retention
+
+These settings determine for how long the step logs of pipelines are being stored.
+By default, logs are stored for 90 days, no matter how many pipelines were run.
+
+The purging is happening on each pipeline run and not on schedule.
+This means, if a pipeline has been run 95 days ago and there was no pipeline within the last 5 days, the logs are still there and will be purged at the start of the next run.
+
+If both options have valid values, they will be merged to determine which logs to purge.
+
+Once logs are purged, an indicator is set on the corresponding pipeline, ensuring that the purge process will not run again unnecessarily in future executions.
+
 [^1]:
     Only applies to the Kubernetes backend.
     See the [official documentation for "securityContext"](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/).

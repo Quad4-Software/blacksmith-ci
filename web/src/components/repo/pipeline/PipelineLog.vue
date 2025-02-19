@@ -93,6 +93,7 @@
         <span v-else-if="!step?.started">{{ $t('repo.pipeline.step_not_started') }}</span>
         <div v-else-if="!loadedLogs">{{ $t('repo.pipeline.loading') }}</div>
 
+        <div v-else-if="logsDeleted">{{ $t('repo.pipeline.logs_deleted') }}</div>
         <div v-else-if="log?.length === 0">{{ $t('repo.pipeline.no_logs') }}</div>
       </div>
 
@@ -160,6 +161,7 @@ const step = computed(() => pipeline.value && findStep(pipeline.value.workflows 
 const stream = ref<EventSource>();
 const log = ref<LogLine[]>();
 const consoleElement = ref<Element>();
+const logsDeleted = computed(() => pipeline.value.logs_deleted);
 
 const loadedLogs = computed(() => !!log.value);
 const hasLogs = computed(

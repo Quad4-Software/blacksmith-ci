@@ -76,6 +76,12 @@ export interface Repo {
   // Events that will cancel running pipelines before starting a new one
   cancel_previous_pipeline_events: string[];
 
+  // maximum amount of days for which to keep old pipeline logs
+  logs_keep_duration: string;
+
+  // minimum amount of pipelines for which to keep old pipeline logs
+  logs_keep_min: number;
+
   netrc_trusted: string[];
 }
 
@@ -104,6 +110,8 @@ export type RepoSettings = Pick<
   | 'allow_pr'
   | 'allow_deploy'
   | 'cancel_previous_pipeline_events'
+  | 'logs_keep_duration'
+  | 'logs_keep_min'
   | 'netrc_trusted'
 >;
 

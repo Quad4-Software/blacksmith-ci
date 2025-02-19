@@ -74,17 +74,21 @@ type (
 		Config                       string               `json:"config_file"`
 		CancelPreviousPipelineEvents []string             `json:"cancel_previous_pipeline_events"`
 		NetrcTrustedPlugins          []string             `json:"netrc_trusted"`
+		LogsPipelinesKeepMin         int64                `json:"logs_keep_min"`
+		LogsDurationKeep             string               `json:"logs_keep_duration"`
 	}
 
 	// RepoPatch defines a repository patch request.
 	RepoPatch struct {
-		Config          *string       `json:"config_file,omitempty"`
-		IsTrusted       *bool         `json:"trusted,omitempty"`
-		RequireApproval *ApprovalMode `json:"require_approval,omitempty"`
-		Timeout         *int64        `json:"timeout,omitempty"`
-		Visibility      *string       `json:"visibility"`
-		AllowPull       *bool         `json:"allow_pr,omitempty"`
-		PipelineCounter *int          `json:"pipeline_counter,omitempty"`
+		Config               *string       `json:"config_file,omitempty"`
+		IsTrusted            *bool         `json:"trusted,omitempty"`
+		RequireApproval      *ApprovalMode `json:"require_approval,omitempty"`
+		Timeout              *int64        `json:"timeout,omitempty"`
+		Visibility           *string       `json:"visibility"`
+		AllowPull            *bool         `json:"allow_pr,omitempty"`
+		PipelineCounter      *int          `json:"pipeline_counter,omitempty"`
+		LogsPipelinesKeepMin *int64        `json:"logs_keep_min"`
+		LogsDurationKeep     *string       `json:"logs_keep_duration"`
 	}
 
 	PipelineError struct {

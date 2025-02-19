@@ -521,7 +521,8 @@ Exemplary request from Crow:
     "timestamp": 1645962783,
     "title": "",
     "updated_at": 0,
-    "verified": false
+    "verified": false,
+    "logs_deleted": 0
   },
   "netrc": {
     "machine": "https://example.com",

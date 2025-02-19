@@ -63,6 +63,14 @@ var repoUpdateCmd = &cli.Command{
 			Name:  "unsafe",
 			Usage: "allow unsafe operations",
 		},
+		&cli.IntFlag{
+			Name:  "logs-pipelines-keep-min",
+			Usage: "minimum amount of pipelines to keep logs for",
+		},
+		&cli.StringFlag{
+			Name:  "logs-duration-keep",
+			Usage: "maximum age of pipeline logs to keep",
+		},
 	},
 }
 
@@ -78,13 +86,15 @@ func repoUpdate(ctx context.Context, c *cli.Command) error {
 	}
 
 	var (
-		visibility      = c.String("visibility")
-		config          = c.String("config")
-		timeout         = c.Duration("timeout")
-		trusted         = c.Bool("trusted")
-		requireApproval = c.String("require-approval")
-		pipelineCounter = int(c.Int("pipeline-counter"))
-		unsafe          = c.Bool("unsafe")
+		visibility           = c.String("visibility")
+		config               = c.String("config")
+		timeout              = c.Duration("timeout")
+		LogsPipelinesKeepMin = int(c.Int("logs-pipelines-keep-min"))
+		LogsDurationKeep     = c.String("logs-duration-keep")
+		trusted              = c.Bool("trusted")
+		requireApproval      = c.String("require-approval")
+		pipelineCounter      = int(c.Int("pipeline-counter"))
+		unsafe               = c.Bool("unsafe")
 	)
 
 	patch := new(crow.RepoPatch)
@@ -107,6 +117,13 @@ func repoUpdate(ctx context.Context, c *cli.Command) error {
 	if c.IsSet("timeout") {
 		v := int64(timeout / time.Minute)
 		patch.Timeout = &v
+	}
+	if c.IsSet("LogsPipelinesKeepMin") {
+		v := int64(LogsPipelinesKeepMin)
+		patch.LogsPipelinesKeepMin = &v
+	}
+	if c.IsSet("LogsDurationKeep") {
+		patch.LogsDurationKeep = &LogsDurationKeep
 	}
 	if c.IsSet("config") {
 		patch.Config = &config

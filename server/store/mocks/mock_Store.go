@@ -1749,6 +1749,62 @@ func (_c *MockStore_GetPipelineCount_Call) RunAndReturn(run func() (int64, error
 	return _c
 }
 
+// GetPipelineCountByRepo provides a mock function with given fields: _a0
+func (_m *MockStore) GetPipelineCountByRepo(_a0 int64) (int64, error) {
+	ret := _m.Called(_a0)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetPipelineCountByRepo")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(int64) (int64, error)); ok {
+		return rf(_a0)
+	}
+	if rf, ok := ret.Get(0).(func(int64) int64); ok {
+		r0 = rf(_a0)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(int64) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockStore_GetPipelineCountByRepo_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetPipelineCountByRepo'
+type MockStore_GetPipelineCountByRepo_Call struct {
+	*mock.Call
+}
+
+// GetPipelineCountByRepo is a helper method to define mock.On call
+//   - _a0 int64
+func (_e *MockStore_Expecter) GetPipelineCountByRepo(_a0 interface{}) *MockStore_GetPipelineCountByRepo_Call {
+	return &MockStore_GetPipelineCountByRepo_Call{Call: _e.mock.On("GetPipelineCountByRepo", _a0)}
+}
+
+func (_c *MockStore_GetPipelineCountByRepo_Call) Run(run func(_a0 int64)) *MockStore_GetPipelineCountByRepo_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(int64))
+	})
+	return _c
+}
+
+func (_c *MockStore_GetPipelineCountByRepo_Call) Return(_a0 int64, _a1 error) *MockStore_GetPipelineCountByRepo_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockStore_GetPipelineCountByRepo_Call) RunAndReturn(run func(int64) (int64, error)) *MockStore_GetPipelineCountByRepo_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetPipelineLast provides a mock function with given fields: _a0, _a1
 func (_m *MockStore) GetPipelineLast(_a0 *model.Repo, _a1 string) (*model.Pipeline, error) {
 	ret := _m.Called(_a0, _a1)
@@ -1924,6 +1980,123 @@ func (_c *MockStore_GetPipelineList_Call) Return(_a0 []*model.Pipeline, _a1 erro
 }
 
 func (_c *MockStore_GetPipelineList_Call) RunAndReturn(run func(*model.Repo, *model.ListOptions, *model.PipelineFilter) ([]*model.Pipeline, error)) *MockStore_GetPipelineList_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetPipelineListKeyset provides a mock function with given fields: repo, startID, beforeDate, limit
+func (_m *MockStore) GetPipelineListKeyset(repo *model.Repo, startID int64, beforeDate int64, limit int) ([]*model.Pipeline, error) {
+	ret := _m.Called(repo, startID, beforeDate, limit)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetPipelineListKeyset")
+	}
+
+	var r0 []*model.Pipeline
+	var r1 error
+	if rf, ok := ret.Get(0).(func(*model.Repo, int64, int64, int) ([]*model.Pipeline, error)); ok {
+		return rf(repo, startID, beforeDate, limit)
+	}
+	if rf, ok := ret.Get(0).(func(*model.Repo, int64, int64, int) []*model.Pipeline); ok {
+		r0 = rf(repo, startID, beforeDate, limit)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.Pipeline)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(*model.Repo, int64, int64, int) error); ok {
+		r1 = rf(repo, startID, beforeDate, limit)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockStore_GetPipelineListKeyset_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetPipelineListKeyset'
+type MockStore_GetPipelineListKeyset_Call struct {
+	*mock.Call
+}
+
+// GetPipelineListKeyset is a helper method to define mock.On call
+//   - repo *model.Repo
+//   - startID int64
+//   - beforeDate int64
+//   - limit int
+func (_e *MockStore_Expecter) GetPipelineListKeyset(repo interface{}, startID interface{}, beforeDate interface{}, limit interface{}) *MockStore_GetPipelineListKeyset_Call {
+	return &MockStore_GetPipelineListKeyset_Call{Call: _e.mock.On("GetPipelineListKeyset", repo, startID, beforeDate, limit)}
+}
+
+func (_c *MockStore_GetPipelineListKeyset_Call) Run(run func(repo *model.Repo, startID int64, beforeDate int64, limit int)) *MockStore_GetPipelineListKeyset_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(*model.Repo), args[1].(int64), args[2].(int64), args[3].(int))
+	})
+	return _c
+}
+
+func (_c *MockStore_GetPipelineListKeyset_Call) Return(_a0 []*model.Pipeline, _a1 error) *MockStore_GetPipelineListKeyset_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockStore_GetPipelineListKeyset_Call) RunAndReturn(run func(*model.Repo, int64, int64, int) ([]*model.Pipeline, error)) *MockStore_GetPipelineListKeyset_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetPipelineLogPurged provides a mock function with given fields: _a0
+func (_m *MockStore) GetPipelineLogPurged(_a0 *model.Pipeline) (bool, error) {
+	ret := _m.Called(_a0)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetPipelineLogPurged")
+	}
+
+	var r0 bool
+	var r1 error
+	if rf, ok := ret.Get(0).(func(*model.Pipeline) (bool, error)); ok {
+		return rf(_a0)
+	}
+	if rf, ok := ret.Get(0).(func(*model.Pipeline) bool); ok {
+		r0 = rf(_a0)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	if rf, ok := ret.Get(1).(func(*model.Pipeline) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockStore_GetPipelineLogPurged_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetPipelineLogPurged'
+type MockStore_GetPipelineLogPurged_Call struct {
+	*mock.Call
+}
+
+// GetPipelineLogPurged is a helper method to define mock.On call
+//   - _a0 *model.Pipeline
+func (_e *MockStore_Expecter) GetPipelineLogPurged(_a0 interface{}) *MockStore_GetPipelineLogPurged_Call {
+	return &MockStore_GetPipelineLogPurged_Call{Call: _e.mock.On("GetPipelineLogPurged", _a0)}
+}
+
+func (_c *MockStore_GetPipelineLogPurged_Call) Run(run func(_a0 *model.Pipeline)) *MockStore_GetPipelineLogPurged_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(*model.Pipeline))
+	})
+	return _c
+}
+
+func (_c *MockStore_GetPipelineLogPurged_Call) Return(_a0 bool, _a1 error) *MockStore_GetPipelineLogPurged_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockStore_GetPipelineLogPurged_Call) RunAndReturn(run func(*model.Pipeline) (bool, error)) *MockStore_GetPipelineLogPurged_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -4919,6 +5092,52 @@ func (_c *MockStore_ServerConfigSet_Call) Return(_a0 error) *MockStore_ServerCon
 }
 
 func (_c *MockStore_ServerConfigSet_Call) RunAndReturn(run func(string, string) error) *MockStore_ServerConfigSet_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SetPipelineLogPurged provides a mock function with given fields: _a0
+func (_m *MockStore) SetPipelineLogPurged(_a0 *model.Pipeline) error {
+	ret := _m.Called(_a0)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SetPipelineLogPurged")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*model.Pipeline) error); ok {
+		r0 = rf(_a0)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockStore_SetPipelineLogPurged_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetPipelineLogPurged'
+type MockStore_SetPipelineLogPurged_Call struct {
+	*mock.Call
+}
+
+// SetPipelineLogPurged is a helper method to define mock.On call
+//   - _a0 *model.Pipeline
+func (_e *MockStore_Expecter) SetPipelineLogPurged(_a0 interface{}) *MockStore_SetPipelineLogPurged_Call {
+	return &MockStore_SetPipelineLogPurged_Call{Call: _e.mock.On("SetPipelineLogPurged", _a0)}
+}
+
+func (_c *MockStore_SetPipelineLogPurged_Call) Run(run func(_a0 *model.Pipeline)) *MockStore_SetPipelineLogPurged_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(*model.Pipeline))
+	})
+	return _c
+}
+
+func (_c *MockStore_SetPipelineLogPurged_Call) Return(_a0 error) *MockStore_SetPipelineLogPurged_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockStore_SetPipelineLogPurged_Call) RunAndReturn(run func(*model.Pipeline) error) *MockStore_SetPipelineLogPurged_Call {
 	_c.Call.Return(run)
 	return _c
 }

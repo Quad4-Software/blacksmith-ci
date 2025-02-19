@@ -34,7 +34,7 @@ const (
 )
 
 func testDriver() string {
-	driver := os.Getenv("WOODPECKER_DATABASE_DRIVER")
+	driver := os.Getenv("CROW_DATABASE_DRIVER")
 	if len(driver) == 0 {
 		return "sqlite3"
 	}
@@ -76,7 +76,7 @@ func testDB(t *testing.T, initNewDB bool) (engine *xorm.Engine, closeDB func()) 
 		}
 		return
 	case "mysql", "postgres":
-		config := os.Getenv("WOODPECKER_DATABASE_DATASOURCE")
+		config := os.Getenv("CROW_DATABASE_DATASOURCE")
 		if !initNewDB {
 			t.Logf("do not have dump to test against")
 			t.SkipNow()
