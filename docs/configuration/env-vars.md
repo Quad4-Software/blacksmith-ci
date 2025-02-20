@@ -108,6 +108,12 @@
 
 ---
 
+### DEFAULT_ALLOW_PULL_REQUESTS
+
+- Name: `CROW_DEFAULT_ALLOW_PULL_REQUESTS`
+- Description: The default value for the 'Approval requirements' section of new repos.
+- Default: `default-allow-pull-requests`
+
 ## Agent
 
 ### AGENT_CONFIG_FILE
