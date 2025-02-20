@@ -15,8 +15,9 @@ document$.subscribe(async () => {
     const forks = document.createElement('li');
     forks.className = 'md-source__fact md-source__fact--forks';
 
-    const tag = data?.gb?.tag;
+    const tag = data['version'];
     version.innerText = tag !== undefined ? tag : 'unreleased';
+
     stars.innerText = data['stars'];
     forks.innerText = data['forks'];
 
