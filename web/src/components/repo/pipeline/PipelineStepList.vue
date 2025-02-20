@@ -57,7 +57,7 @@
           class="rounded-md border border-wp-background-400 bg-wp-background-100 p-2 shadow-sm dark:bg-wp-background-200"
         >
           <div class="flex flex-col gap-2">
-            <div v-if="workflow.environ" class="flex flex-wrap justify-end gap-x-1 gap-y-2 pr-1 pt-1 text-xs">
+            <div v-if="workflow.environ" class="flex flex-wrap justify-end gap-x-1 gap-y-2 pr-1 pt-1 text-xs pb-2">
               <div v-for="(value, key) in workflow.environ" :key="key"><Badge :label="key" :value="value" /></div>
             </div>
             <button
