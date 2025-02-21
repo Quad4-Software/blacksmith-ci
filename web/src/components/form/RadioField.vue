@@ -3,7 +3,7 @@
     <input
       :id="`radio-${id}-${option.value}`"
       type="radio"
-      class="radio relative h-5 w-5 flex-shrink-0 cursor-pointer rounded-full border border-wp-background-400 bg-wp-control-neutral-100 shadow-sm checked:border-wp-background-secondary-800 checked:bg-wp-background-secondary-800 focus-visible:border-wp-control-neutral-300 checked:focus-visible:border-wp-control-ok-300"
+      class="radio relative h-5 w-5 shrink-0 cursor-pointer rounded-full border border-wp-background-400 bg-wp-control-neutral-100 shadow-xs checked:border-wp-background-secondary-800 checked:bg-wp-background-secondary-800 focus-visible:border-wp-control-neutral-300 checked:focus-visible:border-wp-control-ok-300"
       :value="option.value"
       :checked="innerValue?.includes(option.value)"
       @click="innerValue = option.value"
@@ -41,6 +41,8 @@ const id = (Math.random() + 1).toString(36).substring(7);
 </script>
 
 <style scoped>
+@reference '~/tailwind.css';
+
 .radio {
   width: 1.3rem;
   height: 1.3rem;
@@ -62,7 +64,6 @@ const id = (Math.random() + 1).toString(36).substring(7);
   background: white;
   transform: translate(-50%, -50%);
   opacity: 0;
-  @apply dark:bg-white;
 }
 
 .radio:checked::before {

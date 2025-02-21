@@ -1,7 +1,7 @@
 <template>
   <div v-if="pipeline" class="flex flex-col pt-8 md:pt-0">
     <div
-      class="code-box-log flex flex-grow flex-col overflow-hidden !p-0 shadow-md md:mt-0 md:!rounded-lg"
+      class="code-box-log flex grow flex-col overflow-hidden p-0! shadow-md md:mt-0 md:rounded-lg!"
       @mouseover="showActions = true"
       @mouseleave="showActions = false"
     >
@@ -17,14 +17,14 @@
             v-if="step?.finished !== undefined && hasLogs"
             :is-loading="downloadInProgress"
             :title="$t('repo.pipeline.actions.log_download')"
-            class="text-wp-code-text-alt-100 hover:!bg-white hover:!bg-opacity-10"
+            class="text-wp-code-text-alt-100 hover:bg-white/10!"
             icon="download"
             @click="download"
           />
           <IconButton
             v-if="step?.finished !== undefined && hasLogs && hasPushPermission"
             :title="$t('repo.pipeline.actions.log_delete')"
-            class="text-wp-code-text-alt-100 hover:!bg-white hover:!bg-opacity-10"
+            class="text-wp-code-text-alt-100 hover:bg-white/10"
             icon="trash"
             @click="deleteLogs"
           />
@@ -33,12 +33,12 @@
             :title="
               autoScroll ? $t('repo.pipeline.actions.log_auto_scroll_off') : $t('repo.pipeline.actions.log_auto_scroll')
             "
-            class="text-wp-code-text-alt-100 hover:!bg-white hover:!bg-opacity-10"
+            class="text-wp-code-text-alt-100 hover:bg-white/10!"
             :icon="autoScroll ? 'auto-scroll' : 'auto-scroll-off'"
             @click="autoScroll = !autoScroll"
           />
           <IconButton
-            class="text-wp-code-text-alt-100 hover:!bg-white hover:!bg-opacity-10 md:!hidden"
+            class="text-wp-code-text-alt-100 hover:bg-white/10! md:hidden!"
             icon="close"
             @click="$emit('update:step-id', null)"
           />
@@ -48,7 +48,7 @@
       <div
         v-show="hasLogs && loadedLogs && (log?.length || 0) > 0"
         ref="consoleElement"
-        class="grid w-full max-w-full flex-grow auto-rows-min grid-cols-[min-content,minmax(0,1fr),min-content] overflow-y-auto overflow-x-hidden p-4 text-xs md:text-sm"
+        class="grid w-full max-w-full grow auto-rows-min grid-cols-[min-content_minmax(0,1fr)_min-content] overflow-y-auto overflow-x-hidden p-4 text-xs md:text-sm"
       >
         <div v-for="line in log" :key="line.index" class="contents font-mono">
           <a
@@ -56,9 +56,9 @@
             :href="`#L${line.number}`"
             class="select-none whitespace-nowrap pl-2 pr-6 text-right text-wp-code-text-line-numbers-100"
             :class="{
-              'bg-red-600 bg-opacity-40 dark:bg-red-800 dark:bg-opacity-50': line.type === 'error',
-              'bg-yellow-600 bg-opacity-40 dark:bg-yellow-800 dark:bg-opacity-50': line.type === 'warning',
-              'bg-blue-600 bg-opacity-30': isSelected(line),
+              'bg-red-600/40 dark:bg-red-800/50': line.type === 'error',
+              'bg-yellow-600/40 dark:bg-yellow-800/50': line.type === 'warning',
+              'bg-blue-600/30': isSelected(line),
               underline: isSelected(line),
             }"
           >
@@ -68,9 +68,9 @@
           <span
             class="whitespace-pre-wrap break-words align-top"
             :class="{
-              'bg-10.168.64.121-600 bg-opacity-40 dark:bg-red-800 dark:bg-opacity-50': line.type === 'error',
-              'bg-yellow-600 bg-opacity-40 dark:bg-yellow-800 dark:bg-opacity-50': line.type === 'warning',
-              'bg-blue-600 bg-opacity-30': isSelected(line),
+              'bg-red-600/40 dark:bg-red-800/50': line.type === 'error',
+              'bg-yellow-600/40 dark:bg-yellow-800/50': line.type === 'warning',
+              'bg-blue-600/30': isSelected(line),
             }"
             v-html="line.text"
           />
@@ -78,9 +78,9 @@
           <span
             class="select-none whitespace-nowrap pr-1 text-right text-wp-code-text-line-numbers-100"
             :class="{
-              'bg-red-600 bg-opacity-40 dark:bg-red-800 dark:bg-opacity-50': line.type === 'error',
-              'bg-yellow-600 bg-opacity-40 dark:bg-yellow-800 dark:bg-opacity-50': line.type === 'warning',
-              'bg-blue-600 bg-opacity-30': isSelected(line),
+              'bg-red-600 bg-opacity-40 dark:bg-red-800/50': line.type === 'error',
+              'bg-yellow-600/40 dark:bg-yellow-800/50': line.type === 'warning',
+              'bg-blue-600/30': isSelected(line),
             }"
           >
             {{ formatTime(line.time) }}
@@ -101,7 +101,7 @@
         v-if="step?.finished !== undefined"
         class="text-md flex w-full items-center bg-wp-code-100 px-4 py-1 font-bold text-wp-code-text-alt-100 md:min-h-[27px]"
       >
-        <PipelineStatusIcon :status="step.state" class="!h-4 !w-4" />
+        <PipelineStatusIcon :status="step.state" class="h-4! w-4!" />
         <span v-if="step?.error" class="ml-2 border border-wp-error-100 rounded-full px-2">{{ step.error }}</span>
         <span v-if="step.exit_code === 1" class="ml-2 border border-wp-error-100 rounded-full px-2">{{
           $t('repo.pipeline.exit_code', { exitCode: step.exit_code })

@@ -3,7 +3,7 @@
     <input
       :id="`checkbox-${id}`"
       type="checkbox"
-      class="checkbox relative h-5 w-5 flex-shrink-0 cursor-pointer border border-wp-background-400 bg-wp-control-neutral-100 shadow-sm transition-colors duration-150 checked:border-wp-background-secondary-800 checked:bg-wp-background-secondary-800 focus-visible:border-wp-control-neutral-300 checked:focus-visible:border-wp-control-ok-300"
+      class="checkbox flex relative h-5 w-5 shrink-0 cursor-pointer border border-wp-background-400 bg-wp-control-neutral-100 shadow-xs transition-colors duration-150 checked:border-wp-background-secondary-800 checked:bg-wp-background-secondary-800 focus-visible:border-wp-control-neutral-300 checked:focus-visible:border-wp-control-ok-300"
       :checked="innerValue"
       @click="innerValue = !innerValue"
     />
@@ -39,6 +39,7 @@ const id = (Math.random() + 1).toString(36).substring(7);
 </script>
 
 <style scoped>
+@reference '~/tailwind.css';
 .checkbox {
   width: 1.3rem;
   height: 1.3rem;
@@ -61,7 +62,6 @@ const id = (Math.random() + 1).toString(36).substring(7);
   border-width: 0 2px 2px 0;
   transform: translate(-50%, -60%) rotate(45deg);
   opacity: 0;
-  @apply dark:border-white;
 }
 
 .checkbox:checked::before {

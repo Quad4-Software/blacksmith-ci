@@ -2,13 +2,13 @@
   <component
     :is="to === undefined ? 'button' : httpLink ? 'a' : 'router-link'"
     v-bind="btnAttrs"
-    class="relative flex flex-shrink-0 cursor-pointer items-center overflow-hidden whitespace-nowrap rounded-md border border-wp-custom-highlight-100 px-2 py-1 shadow-sm transition-all duration-150 hover:border-wp-orange-300 hover:bg-wp-orange-300 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:border-orange-600 dark:hover:bg-orange-600"
+    class="relative flex shrink-0 cursor-pointer items-center overflow-hidden whitespace-nowrap rounded-md border border-wp-custom-highlight-100 px-2 py-1 shadow-xs transition-all duration-150 hover:border-wp-orange-300 hover:bg-wp-orange-300 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:border-wp-custom-hover-100 dark:hover:bg-wp-custom-hover-100"
     :class="{
       'border-wp-control-neutral-300 bg-wp-control-neutral-100 text-wp-text-100 hover:bg-wp-control-neutral-200':
         color === 'gray',
       'border-wp-custom-highlight-100 bg-wp-control-neutral-100 text-wp-text-100 hover:border-wp-orange-300 hover:bg-wp-orange-300':
         color === 'default',
-      'border-wp-control-info-100 bg-wp-control-info-100 text-white hover:border-wp-orange-300 hover:bg-wp-orange-300 dark:text-wp-text-200 dark:hover:border-orange-600 dark:hover:bg-orange-600':
+      'border-wp-control-info-100 bg-wp-control-info-100 text-white hover:border-wp-orange-300 hover:bg-wp-orange-300 dark:text-wp-text-200 dark:hover:border-wp-custom-hover-100 ill-dark:hover:bg-wp-custom-hover-100':
         color === 'blue',
       'border-wp-error-100 bg-wp-error-100 text-white hover:bg-wp-error-200 dark:text-wp-text-200': color === 'red',
       ...passedClasses,
@@ -20,7 +20,7 @@
       <Icon
         v-if="startIcon"
         :name="startIcon"
-        class="!h-5 !w-5 dark:text-wp-text-200"
+        class="h-5! w-5! dark:text-wp-text-200"
         :class="{ invisible: isLoading, 'mr-1': text }"
       />
       <span :class="{ invisible: isLoading }">{{ text }}</span>

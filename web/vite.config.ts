@@ -8,6 +8,7 @@ import prismjs from 'vite-plugin-prismjs';
 import svgLoader from 'vite-svg-loader';
 import type { ViteUserConfig } from 'vitest/config';
 import { defineConfig } from 'vitest/config';
+import tailwindcss from '@tailwindcss/vite';
 
 function woodpeckerInfoPlugin(): Plugin {
   return {
@@ -43,6 +44,7 @@ function externalCSSPlugin(): Plugin {
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
+    tailwindcss(),
     vue(),
     VueI18nPlugin({
       include: path.resolve(__dirname, 'src/assets/locales/**'),

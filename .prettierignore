@@ -9,3 +9,4 @@ venv/
 web/pnpm-lock.yaml
 web/src/assets/locales/*.json
 !web/src/assets/locales/en.json
+.pnpm-store/

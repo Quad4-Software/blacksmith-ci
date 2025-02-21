@@ -4,7 +4,7 @@
     <template v-else>
       <Navbar />
       <main class="relative flex h-full min-h-0">
-        <div id="scroll-component" class="flex flex-grow flex-col overflow-y-auto"><router-view /></div>
+        <div id="scroll-component" class="flex grow flex-col overflow-y-auto"><router-view /></div>
         <transition name="slide-right">
           <PipelineFeedSidebar class="absolute bottom-0 right-0 top-0 w-full max-w-80 border-l shadow-md xl:max-w-96" />
         </transition>

@@ -1,13 +1,12 @@
 <template>
   <IconButton
     :title="pipelineCount > 0 ? `${$t('pipeline_feed')} (${pipelineCount})` : $t('pipeline_feed')"
-    class="active-pipelines-toggle relative !p-1.5 text-current"
+    class="active-pipelines-toggle relative p-1.5! text-current"
     @click="toggle"
   >
     <div v-if="pipelineCount > 0" class="spinner" />
-
     <div
-      class="z-0 flex h-full w-full items-center justify-center rounded-md border border-wp-custom-highlight-100 bg-white bg-opacity-10 font-bold"
+      class="z-0 flex h-full w-full items-center justify-center border border-wp-custom-highlight-100 rounded-md bg-white/10 font-bold"
     >
       <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
       {{ pipelineCount > 9 ? '9+' : pipelineCount }}
@@ -32,6 +31,8 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+@reference '~/tailwind.css';
+
 @keyframes rotate {
   100% {
     transform: rotate(1turn);
@@ -42,7 +43,7 @@ onMounted(async () => {
   overflow: hidden;
 }
 .spinner::before {
-  @apply absolute bg-wp-custom-highlight-100;
+  @apply bg-wp-custom-highlight-100 absolute;
   content: '';
   left: -50%;
   top: -50%;
@@ -56,7 +57,7 @@ onMounted(async () => {
   animation: rotate 1.5s linear infinite;
 }
 .spinner::after {
-  @apply absolute inset-0.5 bg-wp-custom-highlight-100;
+  @apply bg-wp-custom-highlight-100 absolute inset-0.5;
   /*
   The nested border radius needs to be calculated correctly to look right:
   https://www.30secondsofcode.org/css/s/nested-border-radius/

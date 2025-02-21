@@ -1,3 +1,5 @@
+@reference '~/tailwind.css';
+
 :root,
 :root[data-theme='light'] {
   --wp-background-100: theme('colors.white');
@@ -73,6 +75,7 @@
   --wp-link-300: theme('colors.blue.800');
 
   --wp-custom-highlight-100: theme('colors.int-wp-custom-highlight-dark.100');
+  --wp-custom-hover-100: theme('colors.int-wp-custom-hover.100');
 }
 
 :root[data-theme='dark'] {
@@ -149,6 +152,7 @@
   --wp-link-300: theme('colors.blue.500');
 
   --wp-custom-highlight-100: theme('colors.int-wp-custom-highlight-dark.100');
+  --wp-custom-hover-100: theme('colors.int-wp-custom-hover.100');
 }
 
 html,
@@ -168,28 +172,6 @@ body,
 
 .vue-notification.error {
   @apply border border-l-8 border-wp-control-neutral-200 border-l-int-wp-state-error-100 !bg-white dark:!bg-wp-background-200 text-wp-text-100 shadow-lg dark:border-l-8 dark:border-wp-background-400 dark:border-l-int-wp-state-error-100;
-}
-
-*::-webkit-scrollbar {
-  @apply h-3 w-3 bg-transparent;
-}
-
-* {
-  scrollbar-width: thin;
-}
-
-*::-webkit-scrollbar-thumb {
-  transition: background 0.2s ease-in-out;
-  border: 3px solid transparent;
-  @apply rounded-full bg-gray-200 bg-clip-content dark:bg-wp-background-200;
-}
-
-*::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-300 dark:bg-wp-background-100;
-}
-
-*::-webkit-scrollbar-corner {
-  @apply bg-transparent;
 }
 
 .code-box {

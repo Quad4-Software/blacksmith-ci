@@ -13,7 +13,7 @@
       </a>
     </Error>
     <div
-      class="flex min-h-sm w-full flex-col overflow-hidden border border-wp-background-400 bg-wp-background-100 shadow-sm dark:bg-wp-background-200 md:m-8 md:w-3xl md:flex-row md:rounded-md"
+      class="flex min-h-sm w-full flex-col overflow-hidden border border-wp-background-400 bg-wp-background-100 shadow-xs dark:bg-wp-background-200 md:m-8 md:w-3xl md:flex-row md:rounded-md"
     >
       <div
         class="flex min-h-48 items-center justify-center bg-wp-background-secondary-800 dark:bg-wp-primary-300 md:w-3/5"
@@ -29,7 +29,7 @@
             v-for="forge in forges"
             :key="forge.id"
             :start-icon="forge.type === 'addon' ? 'repo' : forge.type"
-            class="!whitespace-normal"
+            class="whitespace-normal!"
             @click="doLogin(forge.id)"
           >
             {{ $t('login_with', { forge: getHostFromUrl(forge) }) }}
