@@ -26,7 +26,7 @@ There are currently two official ways[^1] how to install Crow:
 
 To allow secure communication between the _server_ and _agent_ via GRPC, a token is required.
 
-There are two ways types of tokens:
+There are two types of tokens:
 
 - System token
 - Agent token
@@ -59,7 +59,7 @@ If a system token is set, the registration process is as follows:
 Agent tokens are created in the UI of the server (`Settings -> Agents -> Add agent`).
 This is an alternative way to tell the server about persistent agents and their possible connections.
 
-Agent tokens can be handed over to individual agents via `crow_AGENT_SECRET`, making it possible to register additional unique agents.
+Agent tokens can be handed over to individual agents via `CROW_AGENT_SECRET`, making it possible to register additional unique agents.
 
 ![Agent creation](img/new-agent-registration.png){ width="500" }
 /// caption

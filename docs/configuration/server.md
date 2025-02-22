@@ -20,8 +20,9 @@ Registration is closed by default (`CROW_OPEN=false`).
 If registration is open (`CROW_OPEN=true`) then every user with an account at the configured forge can login and by this register an account.
 
 !!! warning
-It is highly recommended to restrict login to a specific subset of users, e.g. members of an organization. Otherwise, there is no control about who can register and create repositories to run pipelines. This is also recommended for _private_ Crow instances.
-Org-based restrictions can be done by setting `CROW_ORGS`:
+
+    It is highly recommended to restrict login to a specific subset of users, e.g. members of an organization. Otherwise, there is no control about who can register and create repositories to run pipelines. This is also recommended for _private_ Crow instances.
+    Org-based restrictions can be done by setting `CROW_ORGS`:
 
     ```yaml
     CROW_ORGS=org1
@@ -81,12 +82,14 @@ There are two production-grade backends:
 In addition, the `local` backends exists which allows executing pipelines on the local machine that runs the agent directly.
 
 !!! warning
-the `local` backend is aimed at local debugging and development and should not be used in production.
+
+    the `local` backend is aimed at local debugging and development and should not be used in production.
 
 !!! info
-Podman is not supported as a backend and cannot be used as a backend engine for the "docker" backend.
-This backend needs a dedicated integration using the podman-specific golang libraries.
-Contributions welcome!
+
+    Podman is not supported as a backend and cannot be used as a backend engine for the "docker" backend.
+    This backend needs a dedicated integration using the podman-specific golang libraries.
+    Contributions welcome!
 
 ### Docker
 
@@ -451,7 +454,8 @@ You can get the public key for the verification of the http-signature from http(
 A simplistic example configuration service can be found [here](https://github.com/woodpecker-ci/example-config-service).
 
 !!! warning
-The external config service must be trusted as it is receiving secret information about the repository and pipeline and has the ability to change pipeline configs that could potentially execute malicious tasks.
+
+    The external config service must be trusted as it is receiving secret information about the repository and pipeline and has the ability to change pipeline configs that could potentially execute malicious tasks.
 
 ### Configuration
 
