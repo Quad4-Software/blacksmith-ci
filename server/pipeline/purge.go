@@ -27,6 +27,7 @@ func pipelineLogPurge(store store.Store, repo *model.Repo) error {
 	for _, pipeline := range pipelinesToPurge {
 		// check if logs were already purged
 		logsPurged, err := store.GetPipelineLogPurged(pipeline)
+		log.Trace().Msgf("Logs for pipeline %d have already been purged.", pipeline.Number)
 		if err != nil {
 			return fmt.Errorf("failed to check if pipeline %d logs are purged: %w", pipeline.Number, err)
 		}
@@ -38,6 +39,7 @@ func pipelineLogPurge(store store.Store, repo *model.Repo) error {
 		}
 		// prevents additional purge calls in the future
 		if err := store.SetPipelineLogPurged(pipeline); err != nil {
+			log.Trace().Msgf("Setting 'logs_purged' indicator for pipeline %d", pipeline.Number)
 			log.Error().Err(err).Msgf("Failed to mark pipeline %d logs as purged", pipeline.Number)
 		}
 	}
@@ -108,7 +110,7 @@ func fetchFilteredPipelines(store store.Store, repo *model.Repo, olderThan time.
 		processed int64
 	)
 
-	for processed < purgeLimit {
+	for processed < totalCount {
 		batch, err := store.GetPipelineListKeyset(
 			repo,
 			lastID,
@@ -137,31 +139,38 @@ func fetchFilteredPipelines(store store.Store, repo *model.Repo, olderThan time.
 			allPipelines = append(allPipelines, p)
 		}
 
-		if len(allPipelines) > int(purgeLimit) {
-			sort.Slice(allPipelines, func(i, j int) bool {
-				return allPipelines[i].Created < allPipelines[j].Created
-			})
-			allPipelines = allPipelines[:purgeLimit]
-		}
-
 		log.Debug().
 			Int64("processed", processed).
 			Int64("total", totalCount).
 			Int64("keepMin", keepMin).
 			Msgf("Processed pipeline batch")
 
-		// Break if processed exceeds or equals purgeLimit
-		if processed >= purgeLimit {
+		if processed >= totalCount {
 			break
 		}
 	}
+
+	sort.Slice(allPipelines, func(i, j int) bool {
+		return allPipelines[i].Created < allPipelines[j].Created
+	})
+	log.Debug().Msgf("Oldest pipeline ID for purging (before filtering): %d", allPipelines[0].ID)
+	log.Debug().Msgf("Most recent pipeline ID for purging (before filtering): %d", allPipelines[len(allPipelines)-1].ID)
+	log.Debug().Msgf("Purge limit: %d", purgeLimit)
+	log.Debug().Msgf("len(allPipelines): %d", len(allPipelines))
+
+	if int64(len(allPipelines)) > purgeLimit {
+		allPipelines = allPipelines[:purgeLimit]
+	}
+
+	log.Debug().Msgf("Oldest pipeline ID for purging (after filtering): %d", allPipelines[0].ID)
+	log.Debug().Msgf("Most recent pipeline ID for purging (after filtering): %d", allPipelines[len(allPipelines)-1].ID)
 
 	if len(allPipelines) > 0 {
 		log.Debug().
 			Int("count", len(allPipelines)).
 			Dur("olderThan", olderThan).
 			Int64("keepMin", keepMin).
-			Msgf("Found pipelines for log purging")
+			Msgf("Possible pipelines eligible for log purging")
 	}
 
 	return allPipelines, nil
