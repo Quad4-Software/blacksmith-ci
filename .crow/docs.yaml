@@ -1,0 +1,40 @@
+when:
+  - event: push
+    branch: ${CI_REPO_DEFAULT_BRANCH}
+    path: ['docs/', '.crow/docs.yaml']
+  - event: pull_request
+    path: ['docs/', '.crow/docs.yaml']
+
+steps:
+  - name: 'Build docs'
+    image: alpine:3.21
+    commands:
+      - apk add --no-cache -q git py3-pip cairo
+      - python3 -m venv venv
+      - source venv/bin/activate && pip3 install -r docs/requirements.txt
+      - mkdocs build
+      - mv site/domains site/.domains
+
+  - name: 'Clone pages repo and update files'
+    image: alpine:3.21
+    commands:
+      - apk add --no-cache -q git
+      - git clone --depth 1 https://codeberg.org/crowci/pages
+      - cp -r site/* pages/
+
+  - name: 'Deploy to CB pages'
+    image: appleboy/drone-git-push:1.1.1
+    directory: pages
+    when:
+      - event: push
+        branch: ${CI_REPO_DEFAULT_BRANCH}
+    settings:
+      remote_name: origin
+      branch: main
+      force: true
+      commit: true
+      author_name: crowci-bot
+      author_email: bot@crowci.dev
+      commit_message: 'update docs (${CI_COMMIT_SHA})'
+      ssh_key:
+        from_secret: crowci-bot-ssh-key
