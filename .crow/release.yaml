@@ -10,8 +10,8 @@ clone:
     settings:
       tags: true
 
-depends_on:
-  - docker
+# depends_on:
+#   - docker
 
 steps:
   vendor:
@@ -22,7 +22,7 @@ steps:
   build-cli:
     image: *golang_image
     commands:
-      - apk add --no-cache -q just git sqlite-dev libc-dev gcc g++ build-base musl-dev binutils binutils-gold
+      - apk add --no-cache -q just git sqlite-dev libc-dev gcc g++ build-base musl-dev binutils binutils-gold zip
       - just release-cli
 
   changelog:
