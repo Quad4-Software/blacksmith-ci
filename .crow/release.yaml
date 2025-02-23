@@ -2,7 +2,7 @@ when:
   - event: tag
 
 variables:
-  - &golang_image 'docker.io/golang:1.24'
+  - &golang_image 'docker.io/golang:1.24-alpine'
 
 clone:
   git:
@@ -20,12 +20,9 @@ steps:
       - go mod vendor
 
   build-cli:
-    depends_on:
-      - vendor
     image: *golang_image
     commands:
-      - apt update
-      - apt install -y zip
+      - apk add --no-cache -q just git sqlite-dev libc-dev gcc g++ build-base musl-dev binutils binutils-gold
       - just release-cli
 
   changelog:
