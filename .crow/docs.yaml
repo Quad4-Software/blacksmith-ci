@@ -29,7 +29,6 @@ steps:
       - event: push
         branch: ${CI_REPO_DEFAULT_BRANCH}
     settings:
-      remote_name: origin
       branch: main
       force: true
       commit: true
