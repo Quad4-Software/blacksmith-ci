@@ -9,6 +9,7 @@
     "node"
   ],
   "words": [
+    "commitlint",
     "venv",
     "Mockwriter",
     "javascripts",

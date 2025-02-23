@@ -26,3 +26,10 @@ steps:
       plugins:
         - 'prettier-plugin-tailwindcss'
         - '@ianvs/prettier-plugin-sort-imports'
+
+  - name: commitlint
+    when:
+      - event: pull_request
+    image: commitlint/commitlint:19.7.1
+    commands:
+      - echo $${CI_COMMIT_PULL_REQUEST_TITLE} | commitlint

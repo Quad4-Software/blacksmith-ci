@@ -55,6 +55,7 @@ type (
 		Commit     Commit `json:"commit,omitempty"`
 		Parent     int64  `json:"parent,omitempty"`
 		Cron       string `json:"cron,omitempty"`
+		Title      string `json:"title,omitempty"`
 	}
 
 	// Commit defines runtime metadata for a commit.

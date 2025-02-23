@@ -291,6 +291,11 @@ var flags = []cli.Flag{
 		Name:    "commit-pull-labels",
 		Usage:   "Set the metadata environment variable \"CI_COMMIT_PULL_REQUEST_LABELS\".",
 	},
+	&cli.StringSliceFlag{
+		Sources: cli.EnvVars("CI_COMMIT_PULL_REQUEST_TITLE"),
+		Name:    "commit-pull-title",
+		Usage:   "Set the metadata environment variable \"CI_COMMIT_PULL_REQUEST_TITLE\".",
+	},
 	&cli.BoolFlag{
 		Sources: cli.EnvVars("CI_COMMIT_PRERELEASE", "CROW_COMMIT_PRERELEASE"),
 		Name:    "commit-release-is-pre",

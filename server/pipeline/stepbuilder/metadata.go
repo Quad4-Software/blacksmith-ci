@@ -85,7 +85,7 @@ func MetadataFromStruct(forge metadata.ServerForge, repo *model.Repo, pipeline, 
 		Workflow: fWorkflow,
 		Step:     metadata.Step{},
 		Sys: metadata.System{
-			Name:     "woodpecker",
+			Name:     "crow",
 			URL:      sysURL,
 			Host:     host,
 			Platform: "", // will be set by pipeline platform option or by agent
@@ -136,6 +136,7 @@ func metadataPipelineFromModelPipeline(pipeline *model.Pipeline, includeParent b
 			PullRequestLabels: pipeline.PullRequestLabels,
 			IsPrerelease:      pipeline.IsPrerelease,
 		},
-		Cron: cron,
+		Cron:  cron,
+		Title: pipeline.Title,
 	}
 }
