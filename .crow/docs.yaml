@@ -36,5 +36,6 @@ steps:
       author_name: crowci-bot
       author_email: bot@crowci.dev
       commit_message: 'update docs (${CI_COMMIT_SHA})'
+      remote: git@codeberg.org:crowci/pages.git
       ssh_key:
         from_secret: crowci-bot-ssh-key
