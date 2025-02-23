@@ -1,5 +1,10 @@
 ## Installation
 
+!!! important
+
+    Until the Crow helm chart has been released, the [Woodpecker CI Helm chart](https://github.com/woodpecker-ci/helm) can be used.
+    Only the image must be changed.
+
 Crow provides a [Helm chart](https://github.com/crowci/helm) for Kubernetes environments:
 
 ```sh
