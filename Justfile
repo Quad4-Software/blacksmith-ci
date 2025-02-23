@@ -185,6 +185,24 @@ release-server-xgo: check-xgo
 release-checksums:
 		(cd {{ DIST_DIR }}/; sha256sum *.* > checksums.txt)
 
+release-cli: ## Create cli binaries for release
+	# compile
+	GOOS=linux   GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{LDFLAGS}}' -o {{DIST_DIR}}/cli/linux_amd64/crow-cli       codeberg.org/crowci/crow/v3/cmd/cli
+	GOOS=linux   GOARCH=arm64 CGO_ENABLED=0 go build -ldflags '{{LDFLAGS}}' -o {{DIST_DIR}}/cli/linux_arm64/crow-cli       codeberg.org/crowci/crow/v3/cmd/cli
+	GOOS=linux   GOARCH=arm   CGO_ENABLED=0 go build -ldflags '{{LDFLAGS}}' -o {{DIST_DIR}}/cli/linux_arm/crow-cli         codeberg.org/crowci/crow/v3/cmd/cli
+	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{LDFLAGS}}' -o {{DIST_DIR}}/cli/windows_amd64/crow-cli.exe codeberg.org/crowci/crow/v3/cmd/cli
+	GOOS=darwin  GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{LDFLAGS}}' -o {{DIST_DIR}}/cli/darwin_amd64/crow-cli      codeberg.org/crowci/crow/v3/cmd/cli
+	GOOS=darwin  GOARCH=arm64 CGO_ENABLED=0 go build -ldflags '{{LDFLAGS}}' -o {{DIST_DIR}}/cli/darwin_arm64/crow-cli      codeberg.org/crowci/crow/v3/cmd/cli
+	# tar binary files
+	tar -cvzf {{DIST_DIR}}/crow-cli_linux_amd64.tar.gz   -C {{DIST_DIR}}/cli/linux_amd64   crow-cli
+	tar -cvzf {{DIST_DIR}}/crow-cli_linux_arm64.tar.gz   -C {{DIST_DIR}}/cli/linux_arm64   crow-cli
+	tar -cvzf {{DIST_DIR}}/crow-cli_linux_arm.tar.gz     -C {{DIST_DIR}}/cli/linux_arm     crow-cli
+	tar -cvzf {{DIST_DIR}}/crow-cli_darwin_amd64.tar.gz  -C {{DIST_DIR}}/cli/darwin_amd64  crow-cli
+	tar -cvzf {{DIST_DIR}}/crow-cli_darwin_arm64.tar.gz  -C {{DIST_DIR}}/cli/darwin_arm64  crow-cli
+	# zip binary files
+	rm -f  {{DIST_DIR}}/crow-cli_windows_amd64.zip
+	zip -j {{DIST_DIR}}/crow-cli_windows_amd64.zip          {{DIST_DIR}}/cli/windows_amd64/crow-cli.exe
+
 ## images
 # platforms must be handed over via this syntax for the underlying cross-compile-server step which applies some string splitting on a list of items
 
