@@ -16,7 +16,7 @@ steps:
 [...]
 ```
 
-![CRON project configuration](cron.png)
+![CRON project configuration](img/cron.png)
 /// caption
 CRON project configuration
 ///
