@@ -15,26 +15,40 @@ steps:
       - mkdocs build
       - mv site/domains site/.domains
 
-  - name: 'Clone pages repo and update files'
-    image: alpine:3.21
-    commands:
-      - apk add --no-cache -q git
-      - git clone --depth 1 https://codeberg.org/crowci/pages
-      - cp -r site/* pages/
-
-  - name: 'Deploy to CB pages'
-    image: appleboy/drone-git-push:1.1.1
-    directory: pages
-    when:
-      - event: push
-        branch: ${CI_REPO_DEFAULT_BRANCH}
+  - name: s3-sync
+    image: plugins/s3:1.5.1
     settings:
-      branch: main
-      force: true
-      commit: true
-      author_name: crowci-bot
-      author_email: bot@crowci.dev
-      commit_message: 'update docs (${CI_COMMIT_SHA})'
-      remote: git@codeberg.org:crowci/pages.git
-      ssh_key:
-        from_secret: crowci-bot-ssh-key
+      bucket: crow-docs
+      region: fsn1
+      endpoint: https://fsn1.your-objectstorage.com
+      access_key:
+        from_secret: HETZNER_S3_ACCESS_KEY
+      secret_key:
+        from_secret: HETZNER_S3_SECRET_KEY
+      source: _site/**/*
+      strip_prefix: _site/
+      target: /
+
+  # - name: 'Clone pages repo and update files'
+  #   image: alpine:3.21
+  #   commands:
+  #     - apk add --no-cache -q git
+  #     - git clone --depth 1 https://codeberg.org/crowci/pages
+  #     - cp -r site/* pages/
+
+  # - name: 'Deploy to CB pages'
+  #   image: appleboy/drone-git-push:1.1.1
+  #   directory: pages
+  #   when:
+  #     - event: push
+  #       branch: ${CI_REPO_DEFAULT_BRANCH}
+  #   settings:
+  #     branch: main
+  #     force: true
+  #     commit: true
+  #     author_name: crowci-bot
+  #     author_email: bot@crowci.dev
+  #     commit_message: 'update docs (${CI_COMMIT_SHA})'
+  #     remote: git@codeberg.org:crowci/pages.git
+  #     ssh_key:
+  #       from_secret: crowci-bot-ssh-key
