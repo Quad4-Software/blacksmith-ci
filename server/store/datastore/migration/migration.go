@@ -52,9 +52,10 @@ var migrationTasks = []*xormigrate.Migration{
 	&renameTokenFields,
 	&setNewDefaultsForRequireApproval,
 	&removeRepoScm,
-	&unSanitizeOrgAndUserNames,
+	&unsanitizeOrgAndUserNames,
 	&addLogsDeletedToPipelines,
 	&addLogsKeepToRepos,
+	&replaceZeroForgeIDsInOrgs,
 }
 
 var allBeans = []any{
