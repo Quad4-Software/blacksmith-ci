@@ -16,55 +16,45 @@ package repo
 
 import (
 	"context"
-	"os"
-	"text/template"
 
 	"github.com/urfave/cli/v3"
 
 	"codeberg.org/crowci/crow/v3/cli/common"
 	"codeberg.org/crowci/crow/v3/cli/internal"
+	crow "codeberg.org/crowci/crow/v3/crow-go/crow"
 )
 
 var repoShowCmd = &cli.Command{
 	Name:      "show",
 	Usage:     "show repository information",
 	ArgsUsage: "<repo-id|repo-full-name>",
-	Action:    repoShow,
-	Flags:     []cli.Flag{common.FormatFlag(tmplRepoInfo)},
+	Action:    Show,
+	Flags:     common.OutputFlags("table"),
 }
 
-func repoShow(ctx context.Context, c *cli.Command) error {
-	repoIDOrFullName := c.Args().First()
+func Show(ctx context.Context, c *cli.Command) error {
 	client, err := internal.NewClient(ctx, c)
 	if err != nil {
 		return err
 	}
-	repoID, err := internal.ParseRepo(client, repoIDOrFullName)
+	repo, err := repoShow(c, client)
 	if err != nil {
 		return err
+	}
+	return repoOutput(c, []*crow.Repo{repo})
+}
+
+func repoShow(c *cli.Command, client crow.Client) (*crow.Repo, error) {
+	repoIDOrFullName := c.Args().First()
+	repoID, err := internal.ParseRepo(client, repoIDOrFullName)
+	if err != nil {
+		return nil, err
 	}
 
 	repo, err := client.Repo(repoID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	tmpl, err := template.New("_").Parse(c.String("format"))
-	if err != nil {
-		return err
-	}
-	return tmpl.Execute(os.Stdout, repo)
+	return repo, nil
 }
-
-// tTemplate for repo information.
-var tmplRepoInfo = `Owner: {{ .Owner }}
-Repo: {{ .Name }}
-URL: {{ .ForgeURL }}
-Config path: {{ .Config }}
-Visibility: {{ .Visibility }}
-Private: {{ .IsSCMPrivate }}
-Trusted: {{ .IsTrusted }}
-Require approval for: {{ .RequireApproval }}
-Clone url: {{ .Clone }}
-Allow pull-requests: {{ .AllowPullRequests }}
-`
