@@ -31,8 +31,9 @@ crow-agent.example.com {
 }
 ```
 
-!!!info
-    The above configuration shows how to create reverse-proxies for server and agent communication. If the agent is configured to use SSL, do not forget to enable `CROW_GRPC_SECURE`.
+/// info
+The above configuration shows how to create reverse-proxies for server and agent communication. If the agent is configured to use SSL, do not forget to enable `CROW_GRPC_SECURE`.
+///
 
 ## Nginx
 
@@ -56,8 +57,9 @@ server {
 }
 ```
 
-!!!info
-    This does not cover an SSL configuration with NGINX but only shows how to properly forward incoming requests through NGINX to Crow.
+/// info
+This does not cover an SSL configuration with NGINX but only shows how to properly forward incoming requests through NGINX to Crow.
+///
 
 ## Ngrok
 

@@ -94,10 +94,24 @@ markdown_extensions:
   - pymdownx.snippets
   - pymdownx.superfences
   - footnotes
-  - admonition
   - attr_list
   - md_in_html
   - pymdownx.blocks.caption
+  - pymdownx.blocks.admonition:
+      types:
+        - note
+        - abstract
+        - info
+        - important
+        - tip
+        - success
+        - question
+        - warning
+        - failure
+        - danger
+        - bug
+        - example
+        - quote
 
 nav:
   - Getting started: index.md

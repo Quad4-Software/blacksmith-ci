@@ -3,10 +3,10 @@
 "Deployments" in Crow are *manually* triggered events on top of *finished* pipelines.
 They relate to the idea to "deploy" successful builds to a specific environment (e.g. "production").
 
-!!! important
-
-    Deployments are not enabled by default.
-    They must be explicitly allowed in the repo settings within the "General" section.
+/// important
+Deployments are not enabled by default.
+They must be explicitly allowed in the repo settings within the "General" section.
+///
 
 If enabled, the "Deploy" button is shown.
 

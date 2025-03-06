@@ -13,19 +13,19 @@ Three different levels of secrets are available:
 1. **Global secrets**: Global secret are available to all pipelines of the entire Crow CI instance.
    Can only be set by instance administrators.
 
-!!! note
+/// note
+If a secret is defined at multiple levels, repository secrets take precedence over organization secrets, which in turn override global secrets, following this hierarchy.
+///
 
-    If a secret is defined at multiple levels, repository secrets take precedence over organization secrets, which in turn override global secrets, following this hierarchy.
+/// tip
+In addition to native secrets, external secret providers can be utilized by interacting with them directly within steps.
+Access to these external providers can be configured using Crow CI secrets.
+///
 
-!!! tip
-
-    In addition to native secrets, external secret providers can be utilized by interacting with them directly within steps.
-    Access to these external providers can be configured using Crow CI secrets.
-
-!!! warning
-
-    Crow CI masks native secrets in the log output, but it cannot do so for external secrets.
-    As a result, external secrets may be exposed in the logs!
+/// warning
+Crow CI masks native secrets in the log output, but it cannot do so for external secrets.
+As a result, external secrets may be exposed in the logs!
+///
 
 ## Defining secrets
 
@@ -58,21 +58,20 @@ Secrets can also be used for `settings:` in plugins:
          from_secret: secret_token
 ```
 
-!!! important
-
-    Parameter expressions like secrets undergo pre-processing, meaning they are evaluated before the workflow starts.
-    If secrets are to be used in commands directly, they must be properly escaped (using `$$`) to ensure correct handling.
-
-    ```yaml hl_lines="5"
-    steps:
-      - name: docker
-        image: docker
-        commands:
-         - echo $${TOKEN_ENV}
-        environment:
-          TOKEN_ENV:
-            from_secret: secret_token
-    ```
+/// important
+Parameter expressions like secrets undergo pre-processing, meaning they are evaluated before the workflow starts.
+If secrets are to be used in commands directly, they must be properly escaped (using `$$`) to ensure correct handling.
+```yaml hl_lines="5"
+steps:
+  - name: docker
+    image: docker
+    commands:
+     - echo $${TOKEN_ENV}
+    environment:
+      TOKEN_ENV:
+        from_secret: secret_token
+```
+///
 
 ## Filtering
 
@@ -80,10 +79,10 @@ To prevent secrets from potential abuse in arbitrary steps, they can be limited 
 
 Plugins offer the advantage of not being able to execute arbitrary commands (in contrast to normal steps), and by this inherently prohibit the possibility of exposing secrets in any kind of way.
 
-!!! important
-
-    Filtering only works for plugins, not for arbitrary images.
-    Applying it to the latter would not make sense as malicious actors could simply use the specified image to exploit the secret.
+/// important
+Filtering only works for plugins, not for arbitrary images.
+Applying it to the latter would not make sense as malicious actors could simply use the specified image to exploit the secret.
+///
 
 ## Adding secrets via CLI
 

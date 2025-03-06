@@ -8,9 +8,10 @@ CROW_AGENT_SECRET="<token>"
 
 ## Workflows per agent
 
-!!!note
+/// note
 A pipeline often consists of multiple workflows.
 It is recommended therefore to increase this setting to a value matching the resources of the surrounding environment (i.e. if builds are executed on a server with 4GB memory, allowing 100 workflows in parallel is likely not a good match).
+///
 
 By default, every agent is allowed to execute on workflow at a time.
 This can be controlled via `CROW_MAX_WORKFLOWS` to increase the amount of parallel workflows an agent is allowed to process.

@@ -6,13 +6,13 @@ This allows to authenticate against the respective registry and pull private ima
 Registry hostnames are matched to each image in the YAML config.
 If the hostname matches, the stored registry credentials are used to authenticate and pull the image.
 
-!!! important
+/// important
+Credentials are used by the agent and are never exposed to build containers.
+///
 
-    Credentials are used by the agent and are never exposed to build containers.
-
-!!! information
-
-    The implicit default when not specifying a registry is always `docker.io`.
+/// info
+The implicit default when not specifying a registry is always `docker.io`.
+///
 
 Examples:
 

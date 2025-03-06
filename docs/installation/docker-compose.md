@@ -7,12 +7,12 @@ The bundled SQLite DB is stored in `/var/lib/crow` and is the most important par
 
 The server uses the default port 8000 and gets exposed to the host here, so Crow can be accessed through this port on the host or by a reverse proxy sitting in front of it.
 
-!!! information
-
-    The deployment of `crow-autoscaler` is optional.
-    Only a brief skeleton is added below for demonstration purposes.
-    Please check [the Autoscaler documentation](../configuration/autoscaler.md) and decide whether or not the Autoscaler is a good fit for your environment.
-    It also contains the information how to configure the Autoscaler in detail.
+/// info
+The deployment of `crow-autoscaler` is optional.
+Only a brief skeleton is added below for demonstration purposes.
+Please check [the Autoscaler documentation](../configuration/autoscaler.md) and decide whether or not the Autoscaler is a good fit for your environment.
+It also contains the information how to configure the Autoscaler in detail.
+///
 
 ```yaml
 services:

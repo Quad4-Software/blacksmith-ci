@@ -18,10 +18,10 @@ If disabled, no pipelines will be triggered for PR events.
 When enabled, pipelines can be started via "deployment" events.
 This includes both webhook triggers from forges for this event and the use of the "deployment" button in the Crow CI UI, which is shown when **all steps** of a pipelines succeeded.
 
-!!! warning
-
-    "Deployment" events can be triggered from all users with "write" access to the repository.
-    Do not enable this option if this is not desired.
+/// warning
+"Deployment" events can be triggered from all users with "write" access to the repository.
+Do not enable this option if this is not desired.
+///
 
 ## Custom trusted clone plugins
 
@@ -33,10 +33,10 @@ With these credentials, it is possible to perform arbitrary Git operations, incl
 To prevent unauthorized access or misuse, a plugin allowlist is required, either on the instance level or the repository level.
 Without such, a malicious contributor could use a custom clone plugin in a pull request to reveal or transfer these credentials.
 
-!!! important
-
-    This setting does not affect subsequent steps, **nor does it allow direct pushes to the repository**.
-    To enable pushing changes within a workflow, inject Git credentials as a secret or use a dedicated plugin, such as [appleboy/drone-git-push](https://github.com/appleboy/drone-git-push).
+/// important
+This setting does not affect subsequent steps, **nor does it allow direct pushes to the repository**.
+To enable pushing changes within a workflow, inject Git credentials as a secret or use a dedicated plugin, such as [appleboy/drone-git-push](https://github.com/appleboy/drone-git-push).
+///
 
 ## Privileges & Security
 
@@ -85,10 +85,10 @@ Settings, Secrets and Registries can only be seen by owners.
 - `Internal`: Only authenticated users of the CrowCI instance can see the project.
 - `Private`: Only you (and other owners) of the repository can see the project.
 
-!!! note
-
-    Instance administrators cannot see the project by default.
-    Yet they can access it using the full URL or via the global repository list.
+/// note
+Instance administrators cannot see the project by default.
+Yet they can access it using the full URL or via the global repository list.
+///
 
 ## Timeout
 

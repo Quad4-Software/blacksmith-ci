@@ -16,9 +16,9 @@ The Crow CI Autoscaler currently works with the following cloud providers:
 - [Scaleway](https://github.com/crowci/autoscaler/blob/main/providers/scaleway/flags.go)
 - [Vultr](https://github.com/crowci/autoscaler/blob/main/providers/vultr/flags.go)
 
-!!! tip
-
-    The links above show all available flags/env vars for the specific providers.
+/// tip
+The links above show all available flags/env vars for the specific providers.
+///
 
 More providers which provide a golang SDK can be added - contributions welcome!
 
@@ -50,10 +50,10 @@ Often, allowing only one powerful server is enough, as this one will be able to 
 Similar, `CROW_WORKFLOWS_PER_AGENT` defines how many workflows can be processed in parallel for each agent (each server has its own unique agent).
 A good value for this setting depends on the resources of the server and the jobs which run on it, hence it is not possible to give a general recommendation that would fit all use cases.
 
-!!! tip
-
-    Monitor the resource usage of the first builds and see how many resources are needed.
-    Then adjust the autoscaler settings accordingly.
+/// tip
+Monitor the resource usage of the first builds and see how many resources are needed.
+Then adjust the autoscaler settings accordingly.
+///
 
 ```yaml hl_lines="10 11 12"
 [...]
@@ -187,10 +187,10 @@ CROW_AGENT_ENV: CROW_HEALTHCHECK=false,CROW_LOG_LEVEL=debug
 
 ### Combining static and autoscaled agents
 
-!!! information
-
-    A "static" agent is an agent which was **not** provisioned by Crow Autoscaler but through a different deployment.
-    It is always 24/7 for new builds and is the exact opposite of an autoscaling agent which is only available if task are to be processed and decommissioned afterwards.
+/// information
+A "static" agent is an agent which was **not** provisioned by Crow Autoscaler but through a different deployment.
+It is always 24/7 for new builds and is the exact opposite of an autoscaling agent which is only available if task are to be processed and decommissioned afterwards.
+///
 
 In specific cases a combination of static and autoscaled agents can make sense and improve the overall capabilities of your CI environment.
 One use case can be if there are many builds with low resource requirements.
@@ -223,10 +223,10 @@ This is done by setting up a reverse proxy which listens on a https connection a
 In the following examples for different reverse proxies are shown.
 These are only minimal examples and you usually want to set additional headers and other options to secure the connection further.
 
-!!! note
-
-    The SSL certificate can be created like any other certificate for public servers.
-    Let's Encrypt is a good choice for this.
+/// note
+The SSL certificate can be created like any other certificate for public servers.
+Let's Encrypt is a good choice for this.
+///
 
 #### Nginx
 

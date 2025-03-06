@@ -3,9 +3,9 @@
 A pipeline consists of **one or more** workflows.
 A workflow consist of **one or more** steps.
 
-!!! important
-
-    Pipeline > Workflow > Step
+/// important
+Pipeline > Workflow > Step
+///
 
 A YAML file in `.crow/` defines _one workflow_.
 The following file tree would consist of _four_ workflows:
@@ -26,10 +26,10 @@ Each workflow can be
 
 depending on the configuration of the respective _event triggers_ and `depends_on` configuration in each individual workflow.
 
-!!! important
-
-    Each workflow is isolated from other workflows with respect to its working directory and file access.
-    *Steps* within a workflow have access to the same files.
+/// important
+Each workflow is isolated from other workflows with respect to its working directory and file access.
+*Steps* within a workflow have access to the same files.
+///
 
 ## Execution control
 
@@ -51,14 +51,14 @@ depends_on:
 
 This keyword also works for dependency resolution with steps.
 
-!!! note
+/// note
+Workflows which depend on others only start if the dependent ones finished successfully.
+A workflow can be forced to execute no matter the exit status of other workflows by setting
 
-    Workflows which depend on others only start if the dependent ones finished successfully.
-    A workflow can be forced to execute no matter the exit status of other workflows by setting
-
-    ```yaml
-    runs_on: [ success, failure ]
-    ```
+```yaml
+runs_on: [ success, failure ]
+```
+///
 
 Changes to files are persisted throughout the steps of a workflow as the same (temporary) volume is mounted to all steps.
 
@@ -202,9 +202,9 @@ And after:
           platform: linux/arm*
     ```
 
-    !!! tip
-
-        For the kubernetes backend, architecture-specific pipelines should be controlled via the [`nodeSelector` backend option](../configuration/server.md#backend-options-backend-options-kubernetes.
+    /// tip
+    For the kubernetes backend, architecture-specific pipelines should be controlled via the [`nodeSelector` backend option](../configuration/server.md#backend-options-backend-options-kubernetes.
+    ///
 
 ## Skipping commits
 

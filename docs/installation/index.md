@@ -13,9 +13,9 @@ After the builds finished, the VMs are destroyed again (after a short transition
 Crow ships and uses a SQLite DB by default.
 For larger instances it is recommended to use it with a Postgres or MariaDB instance.[^2]
 
-!!! note
-
-    The deployment of an external database is not covered here. There are many existing public guides for deploying databases. An alternative option is to use a managed DB service from a Cloud provider. If you are unsure what you need and if Crow is a good fit for you in general, you can also proceed with the SQLite DB first and decide later.
+/// note
+The deployment of an external database is not covered here. There are many existing public guides for deploying databases. An alternative option is to use a managed DB service from a Cloud provider. If you are unsure what you need and if Crow is a good fit for you in general, you can also proceed with the SQLite DB first and decide later.
+///
 
 There are currently two official ways[^1] how to install Crow:
 
@@ -47,12 +47,12 @@ If a system token is set, the registration process is as follows:
 3. The agent stores the received ID in a config file (path is defined by `CROW_AGENT_CONFIG_FILE`)
 4. At the subsequent starts of the agent, it uses this token and its received ID to identify itself to the server
 
-!!! info
-
-    If the ID is not stored/persisted in `CROW_AGENT_CONFIG_FILE` and the agent connects with a matching agent token, a new agent is registered in the DB and the UI.
-    This will happen every time the agent container is restarted.
-    While this is not an issue at runtime, the list of registered agents will grow and leave behind "zombie" agents which are registered in the DB but not active anymore.
-    It is therefore recommended to persist `CROW_AGENT_CONFIG_FILE` to ensure idempotent agent registrations.
+/// info
+If the ID is not stored/persisted in `CROW_AGENT_CONFIG_FILE` and the agent connects with a matching agent token, a new agent is registered in the DB and the UI.
+This will happen every time the agent container is restarted.
+While this is not an issue at runtime, the list of registered agents will grow and leave behind "zombie" agents which are registered in the DB but not active anymore.
+It is therefore recommended to persist `CROW_AGENT_CONFIG_FILE` to ensure idempotent agent registrations.
+///
 
 ### Agent token
 
@@ -70,11 +70,11 @@ Registration of a new agent through UI
 
 ## Image tags
 
-!!!info
-
-    No `latest` tag exists to prevent accidental major version upgrades.
-    Either use a Semver tag or one of the rolling major/minor version tags.
-    Alternatively, the `dev` tag can be used for rolling builds from the `main` branch.
+/// info
+No `latest` tag exists to prevent accidental major version upgrades.
+Either use a Semver tag or one of the rolling major/minor version tags.
+Alternatively, the `dev` tag can be used for rolling builds from the `main` branch.
+///
 
 - `vX.Y.Z`: SemVer tags for specific releases, no entrypoint shell (scratch image)
     - `vX.Y`
@@ -90,9 +90,9 @@ Registration of a new agent through UI
 
 Images are currently solely provided through the Codeberg Container Registry (codeberg.org).
 
-!!!info
-
-    If there funds available to cover a DockerHub team subscription, images will also be there.
+/// info
+If there funds available to cover a DockerHub team subscription, images will also be there.
+///
 
 - [crow-server (codeberg.org)](https://codeberg.org/crowci/crow/pkgs/container/crow-server)
 

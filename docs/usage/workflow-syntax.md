@@ -6,10 +6,10 @@ The Workflow section defines a list of steps to build, test and deploy.
 Steps are executed serially in the order in which they are defined.
 If a step returns a non-zero exit code, the workflow and therefore the entire workflow terminates and returns an error status.
 
-!!! note
-
-    An exception to this behavior are steps which have `status: [failure]` set.
-    This ensures that they are executed even if a previous step failed.
+/// note
+An exception to this behavior are steps which have `#!yaml status: [failure]` set.
+This ensures that they are executed even if a previous step failed.
+///
 
 Exemplary step definition:
 
@@ -30,10 +30,10 @@ Besides `steps:`, various other top-level commands are understood which allow co
 
 ## clone
 
-!!! important
-
-    A default clone step is already implicitly defined.
-    This option only needs to be used if the default cloning behavior should be altered.
+/// important
+A default clone step is already implicitly defined.
+This option only needs to be used if the default cloning behavior should be altered.
+///
 
 A common use case is to disable partial cloning, to allow for a possible `git push` in a follow-up step (which does not work with a partial clone).
 
@@ -78,10 +78,10 @@ steps:
       - go test
 ```
 
-!!! important
-
-    Setting a custom label also requires assigning this label to at least one agent.
-    Otherwise, the workflow will never be run.
+/// important
+Setting a custom label also requires assigning this label to at least one agent.
+Otherwise, the workflow will never be run.
+///
 
 ## matrix
 
@@ -94,16 +94,16 @@ For more details check the dedicated documentation on [matrix builds](pipelines.
 Steps can be given "privileged" capabilities.
 Doing so is a security risk and should only be used in private environments, and even there only as the last resort.
 
-!!! information
+/// information
+Adding `privileged: true` in the YAML definition must be combined with enabling security-related project options.
+The latter can only be enabled by an instance admin.
+This prevents potential abuse by users, as enabling privileged containers combined with running as `root` can potentially lead to a host/agent takeover.
+///
 
-    Adding `privileged: true` in the YAML definition must be combined with enabling security-related project options.
-    The latter can only be enabled by an instance admin.
-    This prevents potential abuse by users, as enabling privileged containers combined with running as `root` can potentially lead to a host/agent takeover.
-
-!!! tip
-
-    A secure alternative to allow running privileged steps is to create a plugin and add it to `CROW_PLUGINS_PRIVILEGED`.
-    A plugin cannot execute arbitrary steps and hence running a privileged container as a plugin highly reduces the attack surface.
+/// tip
+A secure alternative to allow running privileged steps is to create a plugin and add it to `CROW_PLUGINS_PRIVILEGED`.
+A plugin cannot execute arbitrary steps and hence running a privileged container as a plugin highly reduces the attack surface.
+///
 
 ## runs_on
 
@@ -129,12 +129,12 @@ The implicit clone step, which can be configured through the [`clone`](#clone) k
 skip_clone: true
 ```
 
-!!! tip
+/// tip
+When running with the Kubernetes backend, skipping the automatic cloning can save various seconds (especially when using a RWX for the temporary workflow volume).
 
-    When running with the Kubernetes backend, skipping the automatic cloning can save various seconds (especially when using a RWX for the temporary workflow volume).
-
-    The clone step is often done on a different node than the actual workflow steps, and the mount/umount operation across nodes might take some time.
-    It can therefore be beneficial to skip it and add another manual `git clone <repo>` command as the first command in the workflow.
+The clone step is often done on a different node than the actual workflow steps, and the mount/umount operation across nodes might take some time.
+It can therefore be beneficial to skip it and add another manual `git clone <repo>` command as the first command in the workflow.
+///
 
 ## variables
 
@@ -150,9 +150,9 @@ The `when:` defines the events when a workflow is triggered.
 If at least one of the conditions in the `when` block evaluates to true, the step is executed, otherwise it is skipped.
 A condition is evaluated to `true` if all sub-conditions are true.
 
-!!! important
-
-    Skipped workflows do not block other dependent workflows from starting.
+/// important
+Skipped workflows do not block other dependent workflows from starting.
+///
 
 ```yaml
 when:
@@ -174,10 +174,10 @@ The workspace defines the shared volume and working directory which is shared by
 The default workspace base is `/crow` and the path is extended with the repository URL (`src/{url-without-schema}`).
 A full example would be `/crow/src/github.com/octocat/hello-world`.
 
-!!! note
-
-    This setting usually does not need to be altered.
-    Plugins will always have the workspace base at `/crow`.
+/// note
+This setting usually does not need to be altered.
+Plugins will always have the workspace base at `/crow`.
+///
 
 The base attribute defines a shared base volume available to all steps.
 This ensures that source code, dependencies and other dynamic assets are persisted and shared between steps.
@@ -227,7 +227,7 @@ steps:
       go test
 ```
 
-### depends_on {depends_on_steps}
+### depends_on { #depends_on_steps }
 
 Normally, workflow steps are executed serially in the order in which they are defined.
 As soon as `depends_on` is set for one or more steps, a [directed acyclic graph](https://en.wikipedia.org/wiki/Directed_acyclic_graph) (DAG) will be created and all steps of the workflow will be executed in parallel.
@@ -252,10 +252,10 @@ Only the steps that have a dependency set to another step via `depends_on` are e
        - go test
 ```
 
-!!! tip
-
-    A step can be started immediately by using an empty `depends_on: []`.
-    Doing so for a single step will cause all other steps to be executed immediately if no further dependencies are specified.
+/// tip
+A step can be started immediately by using an empty `depends_on: []`.
+Doing so for a single step will cause all other steps to be executed immediately if no further dependencies are specified.
+///
 
 ### detach
 
@@ -270,9 +270,9 @@ The `directory` options allows setting a subdirectory inside the container in wh
 
 The container entrypoint.
 
-!!! important
-
-    This must be a list of the command and its arguments, e.g., `["/bin/sh", "-c"]`.
+/// important
+This must be a list of the command and its arguments, e.g., `["/bin/sh", "-c"]`.
+///
 
 The default entrypoint is
 
@@ -319,9 +319,9 @@ steps:
 
 The container image to use for the step.
 
-!!! important
-
-    When using the local backend, the `image` value is used to specify the shell, such as `bash` or `fish`.
+/// important
+When using the local backend, the `image` value is used to specify the shell, such as `bash` or `fish`.
+///
 
 ```yaml
 steps:
@@ -351,10 +351,10 @@ A condition is evaluated to `true` if all sub-conditions are true.
 
 #### branch
 
-!!! important
-
-    The step below is triggered on branch `main`.
-    Besides normal "push" events, this also includes pull requests for which the target branch is `main`.
+/// important
+The step below is triggered on branch `main`.
+Besides normal "push" events, this also includes pull requests for which the target branch is `main`.
+///
 
 ```yaml
 steps:
@@ -423,9 +423,9 @@ when:
 
 #### cron
 
-!!! important
-
-    Make sure to also define a global `cron` event trigger.
+/// important
+Make sure to also define a global `cron` event trigger.
+///
 
 ```yaml
 when:
@@ -485,7 +485,7 @@ A list of all available events:
 - `tag`: triggered when a tag is pushed.
 - `release`: triggered when a release, pre-release or draft is created. (Further filters can be applied using [evaluate](#evaluate) in combination with environment variables.)
 - `deployment`: triggered when a "deployment" is created in the repository. (There are two ways to trigger this event: from the Crow UI directly or from a forge which supports "deployment" events (e.g., GitHub))
-- `cron`: triggered when a cron job is executed.
+- `cron`: triggered when a cron job is executed. Requires a cron job to be configured in the dashboard.
 - `manual`: triggered when a user manually triggers a pipeline in UI or via CLI.
 
 Event triggers can be combined.
@@ -510,7 +510,7 @@ when:
   #     - deployment
 ```
 
-#### matrix {matrix_step}
+#### matrix { #matrix_step }
 
 Execute a step for a single matrix permutation:
 
@@ -543,16 +543,16 @@ when:
       on_empty: true
 ```
 
-!!! important
-
-    Passing a custom ignore-message like `[ALL]` inside the commit message will take precedence and ignore all `path` conditions and the `on_empty` setting.
+/// important
+Passing a custom ignore-message like `[ALL]` inside the commit message will take precedence and ignore all `path` conditions and the `on_empty` setting.
+///
 
 #### platform
 
-!!! important
-
-    This filter should not be used with the kubernetes backend.
-    Instead, use affinity and nodeSelector options within the `backed_options`.
+/// important
+This filter should not be used with the kubernetes backend.
+Instead, use affinity and nodeSelector options within the `backed_options`.
+///
 
 Execute a step for a specific platform:
 

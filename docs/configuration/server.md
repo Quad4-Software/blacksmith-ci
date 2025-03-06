@@ -19,16 +19,16 @@ As Crow does not have its own user registry, users are provided from the linked 
 Registration is closed by default (`CROW_OPEN=false`).
 If registration is open (`CROW_OPEN=true`) then every user with an account at the configured forge can login and by this register an account.
 
-!!! warning
+/// warning
+It is highly recommended to restrict login to a specific subset of users, e.g. members of an organization. Otherwise, there is no control about who can register and create repositories to run pipelines. This is also recommended for _private_ Crow instances.
+Org-based restrictions can be done by setting `CROW_ORGS`:
 
-    It is highly recommended to restrict login to a specific subset of users, e.g. members of an organization. Otherwise, there is no control about who can register and create repositories to run pipelines. This is also recommended for _private_ Crow instances.
-    Org-based restrictions can be done by setting `CROW_ORGS`:
+```yaml
+CROW_ORGS=org1
+```
 
-    ```yaml
-    CROW_ORGS=org1
-    ```
-
-    This would limit the use of Crow to member of this organization, allowing administrative control about users.
+This would limit the use of Crow to member of this organization, allowing administrative control about users.
+///
 
 ## Admin users
 
@@ -81,15 +81,15 @@ There are two production-grade backends:
 
 In addition, the `local` backends exists which allows executing pipelines on the local machine that runs the agent directly.
 
-!!! warning
+/// warning
+the `local` backend is aimed at local debugging and development and should not be used in production.
+///
 
-    the `local` backend is aimed at local debugging and development and should not be used in production.
-
-!!! info
-
-    Podman is not supported as a backend and cannot be used as a backend engine for the "docker" backend.
-    This backend needs a dedicated integration using the podman-specific golang libraries.
-    Contributions welcome!
+/// info
+Podman is not supported as a backend and cannot be used as a backend engine for the "docker" backend.
+This backend needs a dedicated integration using the podman-specific golang libraries.
+Contributions welcome!
+///
 
 ### Docker
 
@@ -144,10 +144,10 @@ For every pipeline, a temporary PVC is created for the lifetime of the pipeline 
 Every step is executed in a distinct pod.
 This allows every step to be run on a different node, ensuring maximum flexibility with respect to resource distribution.
 
-!!!info
-
-    There are plans to add a "one pod per pipeline" setting which executes all steps as containers of a single pod.
-    This has the advantage of not requiring a RWX volume for file persistence between pods but would at the same time reduce the scheduling flexibility (as it would require the pod to be scheduled on a node that can take the step with the higher resource need).
+/// info
+There are plans to add a "one pod per pipeline" setting which executes all steps as containers of a single pod.
+This has the advantage of not requiring a RWX volume for file persistence between pods but would at the same time reduce the scheduling flexibility (as it would require the pod to be scheduled on a node that can take the step with the higher resource need).
+///
 
 #### Private Registries
 
@@ -163,17 +163,17 @@ The Kubernetes secret must be of type `kubernetes.io/dockerconfigjson` and look 
 .dockerconfigjson: '{"auths":{"https://index.docker.io/v1/":{"auth":"<auth>","password":"<pw>","username":"<username>"}}}'
 ```
 
-!!!tip
+/// tip
+The secret value can be obtained by issuing a local login to the registry and then extracting the created config value from `~/.docker/config.json`.
+///
 
-    The secret value can be obtained by issuing a local login to the registry and then extracting the created config value from `~/.docker/config.json`.
-
-#### Backend options {backend-options-kubernetes}
+#### Backend options { #backend_options_kubernetes }
 
 The Kubernetes backend allows specifying requests and limits on a per-step basic, most commonly for CPU and memory.
 
-!!!note
-
-    Adding a `resources` definition to all steps is essential for the Kubernetes backend to ensure efficient scheduling.
+/// note
+Adding a `resources` definition to all steps is essential for the Kubernetes backend to ensure efficient scheduling.
+///
 
 ##### General
 
@@ -227,13 +227,13 @@ In the following, special/uncommon settings are explained in more detail.
 
 ### Local
 
-!!!danger
+/// danger
+The local backend executes pipelines on the local system without any isolation.
+///
 
-    The local backend executes pipelines on the local system without any isolation.
-
-!!!note
-
-    This backend does not support 'services'.
+/// note
+This backend does not support 'services'.
+///
 
 This backend should only be used in private environments where the code and pipeline can be trusted.
 It should not be used for public instances where unknown users can add new repositories and execute code.
@@ -346,9 +346,9 @@ crow_worker_count 4
 
 ## SSL
 
-!!!tip
-
-    Using a [reverse proxy](../installation/proxy.md) instead of configuring SSL within Crow provides more flexibility and security and adheres more to "best practices" for deploying applications.
+/// tip
+Using a [reverse proxy](../installation/proxy.md) instead of configuring SSL within Crow provides more flexibility and security and adheres more to "best practices" for deploying applications.
+///
 
 To enable Crow to terminate TLS directly, the following settings are available:
 
@@ -409,19 +409,19 @@ CROW_LOG_STORE_FILE_PATH
 
 By default, Crow streams the server and agent output to `stderr` and does not persist it.
 
-!!!note
-
-    There is a difference between Server/Agent logs and Pipeline logs.
-    The former are the logs describing the application runtime itself, the latter are the logs from the executed pipelines.
+/// note
+There is a difference between Server/Agent logs and Pipeline logs.
+The former are the logs describing the application runtime itself, the latter are the logs from the executed pipelines.
+///
 
 Setting `CROW_LOG_FILE` alongside with `CROW_LOG_STORE_FILE_PATH` enables file-based logging.
 
 If `CROW_DATABASE_LOG=true` is set, logs are written into the configured database.
 
-!!! warning
-
-    Database logging might quickly increase the size of the DB, depending on the chosen log level.
-    It is recommended to use file-based logging with automatic log-rotation (not configured automatically).
+/// warning
+Database logging might quickly increase the size of the DB, depending on the chosen log level.
+It is recommended to use file-based logging with automatic log-rotation (not configured automatically).
+///
 
 ### Pipeline logs
 
@@ -435,9 +435,9 @@ CROW_LOG_STORE=file
 CROW_LOG_STORE_FILE_PATH=<path>
 ```
 
-!!! info
-
-    Support for external S3-based logging is planned.
+/// info
+Support for external S3-based logging is planned.
+///
 
 ## External configuration API
 
@@ -453,9 +453,9 @@ You can get the public key for the verification of the http-signature from http(
 
 A simplistic example configuration service can be found [here](https://github.com/woodpecker-ci/example-config-service).
 
-!!! warning
-
-    The external config service must be trusted as it is receiving secret information about the repository and pipeline and has the ability to change pipeline configs that could potentially execute malicious tasks.
+/// warning
+The external config service must be trusted as it is receiving secret information about the repository and pipeline and has the ability to change pipeline configs that could potentially execute malicious tasks.
+///
 
 ### Configuration
 
