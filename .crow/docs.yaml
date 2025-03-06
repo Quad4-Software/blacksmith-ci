@@ -1,9 +1,9 @@
 when:
   - event: push
     branch: ${CI_REPO_DEFAULT_BRANCH}
-    path: ['docs/', '.crow/docs.yaml']
+    path: ['docs/*', '.crow/docs.yaml', 'mkdocs.yaml']
   - event: pull_request
-    path: ['docs/', '.crow/docs.yaml']
+    path: ['docs/*', '.crow/docs.yaml', 'mkdocs.yaml']
 
 steps:
   - name: 'Build docs'
