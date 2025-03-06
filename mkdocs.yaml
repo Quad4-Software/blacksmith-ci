@@ -2,7 +2,7 @@ site_name: Crow CI
 site_url: https://www.crowci.dev
 repo_url: https://codeberg.org/crowci/crow
 repo_name: crowci/crow
-edit_uri: edit/main/docs/
+edit_uri: _edit/main/docs/
 theme:
   name: material
   logo: logo.svg
