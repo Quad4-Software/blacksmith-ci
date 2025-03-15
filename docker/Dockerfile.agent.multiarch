@@ -3,8 +3,7 @@ FROM --platform=$BUILDPLATFORM docker.io/golang:1.24-alpine3.21 AS build
 RUN addgroup -g 1000 -S crow && \
   adduser -u 1000 -G crow -S crow && \
   mkdir -p /etc/crow && \
-  ln -s /etc/crow /etc/woodpecker && \
-  chown -R crow:crow /etc/crow /etc/woodpecker
+  ln -s /etc/crow /etc/woodpecker
 
 RUN apk add --no-cache -q just git
 
@@ -27,7 +26,7 @@ EXPOSE 3000
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 # copy agent binary
 COPY --from=build /src/dist/crow-agent /bin/
-COPY --from=build /etc/crow /etc
+COPY --from=build --chown=crow:crow /etc/crow /etc
 COPY --from=build /etc/passwd /etc/passwd
 COPY --from=build /etc/group /etc/group
 
