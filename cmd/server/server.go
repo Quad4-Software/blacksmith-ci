@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cenkalti/backoff/v5"
 	"github.com/gin-gonic/gin"
 	prometheus_http "github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
@@ -36,6 +37,7 @@ import (
 	"codeberg.org/crowci/crow/v3/server/cron"
 	"codeberg.org/crowci/crow/v3/server/router"
 	"codeberg.org/crowci/crow/v3/server/router/middleware"
+	"codeberg.org/crowci/crow/v3/server/store"
 	"codeberg.org/crowci/crow/v3/server/web"
 	"codeberg.org/crowci/crow/v3/shared/logger"
 	"codeberg.org/crowci/crow/v3/version"
@@ -91,10 +93,19 @@ func run(ctx context.Context, c *cli.Command) error {
 		)
 	}
 
-	_store, err := setupStore(ctx, c)
+	_store, err := backoff.Retry(ctx,
+		func() (store.Store, error) {
+			return setupStore(ctx, c)
+		},
+		backoff.WithBackOff(backoff.NewExponentialBackOff()),
+		backoff.WithMaxTries(uint(c.Uint("db-max-retries"))),
+		backoff.WithNotify(func(err error, delay time.Duration) {
+			log.Error().Msgf("failed to setup store: %v: retry in %v", err, delay)
+		}))
 	if err != nil {
-		return fmt.Errorf("can't setup store: %w", err)
+		return err
 	}
+
 	defer func() {
 		if err := _store.Close(); err != nil {
 			log.Error().Err(err).Msg("could not close store")
