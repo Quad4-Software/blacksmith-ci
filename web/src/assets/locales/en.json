@@ -340,7 +340,8 @@
         },
         "custom_labels": {
           "custom_labels": "Custom Labels",
-          "desc": "The custom labels set by the agent admin on agent startup."
+          "desc": "The custom labels set by the agent admin on agent startup.",
+          "badge": "custom"
         },
         "org": {
           "badge": "org"

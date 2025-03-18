@@ -13,6 +13,12 @@
             :label="$t('admin.settings.agents.org.badge')"
             :value="agent.org_id"
           />
+          <Badge
+            v-for="(value, key) in agent.custom_labels"
+            :key="`${key}-${value}`"
+            :label="$t('admin.settings.agents.custom_labels.badge')"
+            :value="`${key}: ${value}`"
+          />
           <Badge v-if="agent.platform" :label="$t('admin.settings.agents.platform.badge')" :value="agent.platform" />
           <Badge v-if="agent.backend" :label="$t('admin.settings.agents.backend.badge')" :value="agent.backend" />
           <Badge v-if="agent.capacity" :label="$t('admin.settings.agents.capacity.badge')" :value="agent.capacity" />
