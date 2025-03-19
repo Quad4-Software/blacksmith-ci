@@ -5,9 +5,8 @@
       :key="agent.id"
       class="items-center bg-wp-background-200! shadow-md dark:bg-wp-background-100!"
     >
-      <!-- <span>{{ agent.name || `Agent ${agent.id}` }} [ID: {{ agent.id }}]</span> -->
-      <span>{{ getAgentDisplayName(agent) }}</span>
-      <span class="ml-auto">
+      <span class="inline-block md:min-w-[100px]">{{ getAgentDisplayName(agent) }}</span>
+      <span class="mx-auto space-x-2 space-y-1.5">
         <span class="hidden space-x-2 md:inline-block">
           <Badge
             v-if="props.isAdmin === true && agent.org_id !== -1"

@@ -59,6 +59,65 @@ func TestStringSliceAddToMap(t *testing.T) {
 			expected: map[string]string{},
 			err:      true,
 		},
+		{
+			name: "multiple values for same key in different entries",
+			sl:   []string{"org=value1", "org=value2"},
+			m:    make(map[string]string),
+			expected: map[string]string{
+				"org": "value1|value2",
+			},
+			err: false,
+		},
+		{
+			name: "multiple values for same key in same entry",
+			sl:   []string{"org=value1,org=value2"},
+			m:    make(map[string]string),
+			expected: map[string]string{
+				"org": "value1|value2",
+			},
+			err: false,
+		},
+		{
+			name: "multiple key-value pairs in one entry",
+			sl:   []string{"org=value1,repo=value2"},
+			m:    make(map[string]string),
+			expected: map[string]string{
+				"org":  "value1",
+				"repo": "value2",
+			},
+			err: false,
+		},
+		{
+			name: "complex example with multiple keys and values",
+			sl:   []string{"org=value1,org=value2,repo=test"},
+			m:    make(map[string]string),
+			expected: map[string]string{
+				"org":  "value1|value2",
+				"repo": "test",
+			},
+			err: false,
+		},
+		{
+			name: "value containing equals sign",
+			sl:   []string{"key=value=with=equals"},
+			m:    make(map[string]string),
+			expected: map[string]string{
+				"key": "value=with=equals",
+			},
+			err: false,
+		},
+		{
+			name: "appending to existing map",
+			sl:   []string{"new=value"},
+			m: map[string]string{
+				"existing": "data",
+			},
+			expected: map[string]string{
+				"existing": "data",
+				"new":      "value",
+			},
+			err: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -68,6 +127,7 @@ func TestStringSliceAddToMap(t *testing.T) {
 			if tt.err {
 				assert.Error(t, err)
 			} else {
+				assert.NoError(t, err)
 				assert.EqualValues(t, tt.expected, tt.m)
 			}
 		})
