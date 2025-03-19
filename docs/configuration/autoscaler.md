@@ -101,7 +101,7 @@ In addition, it needs to know where to connect to, which is why `CROW_GRPC_ADDR`
       - CROW_MIN_AGENTS=0
       - CROW_MAX_AGENTS=1
       - CROW_WORKFLOWS_PER_AGENT=5
-      - CROW_GRPC_ADDR=https://grpc.your-crow-server.com # must be a public URL
+      - CROW_GRPC_ADDR=grpc.your-crow-server.com # must be a public URL
       - CROW_GRPC_SECURE=true
 ```
 
@@ -124,7 +124,7 @@ The naming of this env var and the related provider-specific ones vary, dependin
       - CROW_MIN_AGENTS=0
       - CROW_MAX_AGENTS=1
       - CROW_WORKFLOWS_PER_AGENT=5
-      - CROW_GRPC_ADDR=https://grpc.your-crow-server.com # must be a public URL
+      - CROW_GRPC_ADDR=grpc.your-crow-server.com # must be a public URL
       - CROW_GRPC_SECURE=true
       - CROW_PROVIDER=hetznercloud
       - CROW_HETZNERCLOUD_API_TOKEN=${CROW_HETZNERCLOUD_API_TOKEN}
@@ -161,7 +161,7 @@ In this case, the autoscaler will recognize this and shut down the instance to a
       - CROW_MIN_AGENTS=0
       - CROW_MAX_AGENTS=1
       - CROW_WORKFLOWS_PER_AGENT=5
-      - CROW_GRPC_ADDR=https://grpc.your-crow-server.com # must be a public URL
+      - CROW_GRPC_ADDR=grpc.your-crow-server.com # must be a public URL
       - CROW_GRPC_SECURE=true
       - CROW_PROVIDER=hetznercloud
       - CROW_HETZNERCLOUD_API_TOKEN=${CROW_HETZNERCLOUD_API_TOKEN}

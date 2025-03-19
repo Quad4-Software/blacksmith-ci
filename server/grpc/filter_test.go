@@ -119,6 +119,106 @@ func TestCreateFilterFunc(t *testing.T) {
 			wantMatched: true,
 			wantScore:   2,
 		},
+		// New test cases for pipe-separated org and repo labels
+		{
+			name: "Org pipe-separated match - first value",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{"org-id": "123|456|789", "platform": "linux"},
+			},
+			task: &model.Task{
+				Labels: map[string]string{"org-id": "123", "platform": "linux"},
+			},
+			wantMatched: true,
+			wantScore:   20,
+		},
+		{
+			name: "Org pipe-separated match - middle value",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{"org-id": "123|456|789", "platform": "linux"},
+			},
+			task: &model.Task{
+				Labels: map[string]string{"org-id": "456", "platform": "linux"},
+			},
+			wantMatched: true,
+			wantScore:   20,
+		},
+		{
+			name: "Org pipe-separated match - last value",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{"org-id": "123|456|789", "platform": "linux"},
+			},
+			task: &model.Task{
+				Labels: map[string]string{"org-id": "789", "platform": "linux"},
+			},
+			wantMatched: true,
+			wantScore:   20,
+		},
+		{
+			name: "Org pipe-separated no match",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{"org-id": "123|456|789", "platform": "linux"},
+			},
+			task: &model.Task{
+				Labels: map[string]string{"org-id": "999", "platform": "linux"},
+			},
+			wantMatched: false,
+			wantScore:   0,
+		},
+		{
+			name: "Repo pipe-separated match",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{"repo": "test|demo|prod", "platform": "linux"},
+			},
+			task: &model.Task{
+				Labels: map[string]string{"repo": "demo", "platform": "linux"},
+			},
+			wantMatched: true,
+			wantScore:   20,
+		},
+		{
+			name: "Repo pipe-separated no match",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{"repo": "test|demo|prod", "platform": "linux"},
+			},
+			task: &model.Task{
+				Labels: map[string]string{"repo": "other", "platform": "linux"},
+			},
+			wantMatched: false,
+			wantScore:   0,
+		},
+		{
+			name: "Both org and repo pipe-separated matches",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{"org-id": "123|456", "repo": "test|demo", "platform": "linux"},
+			},
+			task: &model.Task{
+				Labels: map[string]string{"org-id": "456", "repo": "demo", "platform": "linux"},
+			},
+			wantMatched: true,
+			wantScore:   30,
+		},
+		{
+			name: "Org wildcard with repo pipe-separated match",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{"org-id": "*", "repo": "test|demo", "platform": "linux"},
+			},
+			task: &model.Task{
+				Labels: map[string]string{"org-id": "any", "repo": "demo", "platform": "linux"},
+			},
+			wantMatched: true,
+			wantScore:   21,
+		},
+		{
+			name: "Repo wildcard with org pipe-separated match",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{"org-id": "123|456", "repo": "*", "platform": "linux"},
+			},
+			task: &model.Task{
+				Labels: map[string]string{"org-id": "456", "repo": "any", "platform": "linux"},
+			},
+			wantMatched: true,
+			wantScore:   21,
+		},
 	}
 
 	for _, tt := range tests {
