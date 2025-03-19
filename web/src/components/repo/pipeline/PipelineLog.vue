@@ -109,6 +109,7 @@
         <span v-else class="ml-2 border border-wp-control-ok-300 rounded-full px-2">{{
           $t('repo.pipeline.exit_code', { exitCode: step.exit_code })
         }}</span>
+        <span class="ml-2 px-2">{{ $t('repo.pipeline.agent', { agentId: workflow?.agent_id || '' }) }}</span>
       </div>
     </div>
   </div>
@@ -161,6 +162,9 @@ const route = useRoute();
 const loadedStepSlug = ref<string>();
 const stepSlug = computed(() => `${repo?.value.owner} - ${repo?.value.name} - ${pipeline.value.id} - ${stepId.value}`);
 const step = computed(() => pipeline.value && findStep(pipeline.value.workflows || [], stepId.value));
+const workflow = computed(() => {
+  return findWorkflow(pipeline.value.workflows || [], stepId.value);
+});
 const stream = ref<EventSource>();
 const log = ref<LogLine[]>();
 const consoleElement = ref<Element>();
@@ -375,6 +379,46 @@ function findStep(workflows: PipelineWorkflow[], pid: number): PipelineStep | un
       return prev;
     },
     undefined as PipelineStep | undefined,
+  );
+}
+
+function findWorkflow(workflows: PipelineWorkflow[], pid: number): PipelineWorkflow | undefined {
+  // Handle empty workflows case
+  if (!workflows || !workflows.length) {
+    return undefined;
+  }
+
+  // First try to find the workflow with a direct step match
+  for (const workflow of workflows) {
+    if (!workflow.children || !workflow.children.length) continue;
+
+    // Check if any child step matches the pid
+    if (workflow.children.some((step) => step.pid === pid)) {
+      return workflow;
+    }
+  }
+
+  // If direct lookup fails, use the original reduce logic as fallback
+  return workflows.reduce(
+    (prev, workflow) => {
+      if (!workflow.children) return prev;
+
+      const foundWorkflow = workflow.children.reduce(
+        (prevChild, step) => {
+          if (step.pid === pid) {
+            return workflow;
+          }
+          return prevChild;
+        },
+        undefined as PipelineWorkflow | undefined,
+      );
+
+      if (foundWorkflow) {
+        return foundWorkflow;
+      }
+      return prev;
+    },
+    undefined as PipelineWorkflow | undefined,
   );
 }
 

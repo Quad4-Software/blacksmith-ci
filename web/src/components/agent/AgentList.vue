@@ -5,7 +5,8 @@
       :key="agent.id"
       class="items-center bg-wp-background-200! shadow-md dark:bg-wp-background-100!"
     >
-      <span>{{ agent.name || `Agent ${agent.id}` }}</span>
+      <!-- <span>{{ agent.name || `Agent ${agent.id}` }} [ID: {{ agent.id }}]</span> -->
+      <span>{{ getAgentDisplayName(agent) }}</span>
       <span class="ml-auto">
         <span class="hidden space-x-2 md:inline-block">
           <Badge
@@ -66,6 +67,11 @@ defineEmits<{
   (e: 'edit', agent: Agent): void;
   (e: 'delete', agent: Agent): void;
 }>();
+
+function getAgentDisplayName(agent: Agent): string {
+  const name = agent.name || `Agent ${agent.id}`;
+  return `${name} [ID: ${agent.id}]`;
+}
 
 const date = useDate();
 </script>
