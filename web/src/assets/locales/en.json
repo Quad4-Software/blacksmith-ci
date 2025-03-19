@@ -4,7 +4,17 @@
   "login": "Login",
   "welcome": "Welcome to Crow CI",
   "repos": "Repos",
-  "repositories": "Repositories",
+  "repositories": {
+    "title": "Repositories",
+    "all": {
+      "title": "All repositories",
+      "desc": "Repositories sorted by last pipeline creation"
+    },
+    "last": {
+      "title": "Last visited",
+      "desc": "Most recently visited repositories sorted by access time"
+    }
+  },
   "docs": "Docs",
   "api": "API",
   "logout": "Logout",
@@ -528,6 +538,5 @@
     "pull_requests": "All pull requests",
     "all_events": "All events from forge"
   },
-  "all_repositories": "All repositories",
   "no_search_results": "No results found"
 }
