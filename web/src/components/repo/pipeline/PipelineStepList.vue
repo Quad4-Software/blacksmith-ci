@@ -64,7 +64,7 @@
               v-if="!singleConfig"
               type="button"
               :title="workflow.name"
-              class="hover-effect flex items-center gap-2 rounded-md px-1 py-2 hover:bg-wp-background-300 dark:hover:bg-wp-background-400"
+              class="hover-effect flex cursor-pointer items-center gap-2 rounded-md px-1 py-2 hover:bg-wp-background-300 dark:hover:bg-wp-background-400"
               @click="workflowsCollapsed[workflow.id] = !workflowsCollapsed[workflow.id]"
             >
               <Icon
@@ -91,7 +91,7 @@
               :key="step.pid"
               type="button"
               :title="step.name"
-              class="hover-effect flex w-full items-center gap-2 rounded-md border-2 border-transparent p-2 hover:bg-wp-background-300 dark:hover:bg-wp-background-400"
+              class="hover-effect flex w-full cursor-pointer items-center gap-2 rounded-md border-2 border-transparent p-2 hover:bg-wp-background-300 dark:hover:bg-wp-background-400"
               :class="{
                 'bg-wp-background-300 dark:bg-wp-background-400': selectedStepId && selectedStepId === step.pid,
                 'mt-1': !singleConfig || (workflow.children && step.pid !== workflow.children[0].pid),
