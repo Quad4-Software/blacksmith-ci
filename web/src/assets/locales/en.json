@@ -212,6 +212,7 @@
       "pipelines_for": "Pipelines for branch \"{branch}\"",
       "pipelines_for_pr": "Pipelines for pull request #{index}",
       "exit_code": "Exit Code {exitCode}",
+      "agent": "Agent ID: {agentId}",
       "loading": "Loading…",
       "no_logs": "No logs",
       "logs_deleted": "🧹️ Logs have been wiped",
