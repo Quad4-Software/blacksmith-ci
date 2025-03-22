@@ -28,12 +28,13 @@ import (
 	"github.com/rs/zerolog/log"
 	grpcMetadata "google.golang.org/grpc/metadata"
 
+	"codeberg.org/crowci/crow/v4/pipeline"
 	"codeberg.org/crowci/crow/v4/pipeline/rpc"
 	"codeberg.org/crowci/crow/v4/server"
 	"codeberg.org/crowci/crow/v4/server/forge"
 	"codeberg.org/crowci/crow/v4/server/logging"
 	"codeberg.org/crowci/crow/v4/server/model"
-	"codeberg.org/crowci/crow/v4/server/pipeline"
+	serverPipeline "codeberg.org/crowci/crow/v4/server/pipeline"
 	"codeberg.org/crowci/crow/v4/server/pubsub"
 	"codeberg.org/crowci/crow/v4/server/queue"
 	"codeberg.org/crowci/crow/v4/server/store"
@@ -51,11 +52,43 @@ type RPC struct {
 	pipelineCount *prometheus.CounterVec
 }
 
+// Replaces legacy filter labels with new ones.
+func migrateFilterLabels(filter rpc.Filter) rpc.Filter {
+	if value, ok := filter.Labels["repo"]; ok {
+		filter.Labels[pipeline.LabelRepoFullName] = value
+		delete(filter.Labels, "repo")
+	}
+
+	if value, ok := filter.Labels["platform"]; ok {
+		filter.Labels[pipeline.LabelPlatform] = value
+		delete(filter.Labels, "platform")
+	}
+
+	if value, ok := filter.Labels["hostname"]; ok {
+		filter.Labels[pipeline.LabelHostname] = value
+		delete(filter.Labels, "hostname")
+	}
+
+	if value, ok := filter.Labels["backend"]; ok {
+		filter.Labels[pipeline.LabelBackend] = value
+		delete(filter.Labels, "backend")
+	}
+
+	if value, ok := filter.Labels["org-id"]; ok {
+		filter.Labels[pipeline.LabelOrgID] = value
+		delete(filter.Labels, "org-id")
+	}
+
+	return filter
+}
+
 // Next blocks until it provides the next workflow to execute.
 func (s *RPC) Next(c context.Context, agentFilter rpc.Filter) (*rpc.Workflow, error) {
 	if hostname, err := s.getHostnameFromContext(c); err == nil {
 		log.Debug().Msgf("agent connected: %s: polling", hostname)
 	}
+
+	agentFilter = migrateFilterLabels(agentFilter)
 
 	agent, err := s.getAgentFromContext(c)
 	if err != nil {
@@ -185,7 +218,7 @@ func (s *RPC) Update(c context.Context, strWorkflowID string, state rpc.StepStat
 		return err
 	}
 
-	if err := pipeline.UpdateStepStatus(s.store, step, state); err != nil {
+	if err := serverPipeline.UpdateStepStatus(s.store, step, state); err != nil {
 		log.Error().Err(err).Msg("rpc.update: cannot update step")
 	}
 
@@ -249,7 +282,7 @@ func (s *RPC) Init(c context.Context, strWorkflowID string, state rpc.WorkflowSt
 	}
 
 	if currentPipeline.Status == model.StatusPending {
-		if currentPipeline, err = pipeline.UpdateToStatusRunning(s.store, *currentPipeline, state.Started); err != nil {
+		if currentPipeline, err = serverPipeline.UpdateToStatusRunning(s.store, *currentPipeline, state.Started); err != nil {
 			log.Error().Err(err).Msgf("init: cannot update pipeline %d state", currentPipeline.ID)
 		}
 	}
@@ -275,7 +308,7 @@ func (s *RPC) Init(c context.Context, strWorkflowID string, state rpc.WorkflowSt
 		s.pubsub.Publish(message)
 	}()
 
-	workflow, err = pipeline.UpdateWorkflowStatusToRunning(s.store, *workflow, state)
+	workflow, err = serverPipeline.UpdateWorkflowStatusToRunning(s.store, *workflow, state)
 	if err != nil {
 		return err
 	}
@@ -337,8 +370,8 @@ func (s *RPC) Done(c context.Context, strWorkflowID string, state rpc.WorkflowSt
 
 	logger.Trace().Msgf("gRPC Done with state: %#v", state)
 
-	if workflow, err = pipeline.UpdateWorkflowStatusToDone(s.store, *workflow, state); err != nil {
-		logger.Error().Err(err).Msgf("pipeline.UpdateWorkflowStatusToDone: cannot update workflow state: %s", err)
+	if workflow, err = serverPipeline.UpdateWorkflowStatusToDone(s.store, *workflow, state); err != nil {
+		logger.Error().Err(err).Msgf("serverPipeline.UpdateWorkflowStatusToDone: cannot update workflow state: %s", err)
 	}
 
 	var queueErr error
@@ -358,8 +391,8 @@ func (s *RPC) Done(c context.Context, strWorkflowID string, state rpc.WorkflowSt
 	s.completeChildrenIfParentCompleted(workflow)
 
 	if !model.IsThereRunningStage(currentPipeline.Workflows) {
-		if currentPipeline, err = pipeline.UpdateStatusToDone(s.store, *currentPipeline, model.PipelineStatus(currentPipeline.Workflows), workflow.Finished); err != nil {
-			logger.Error().Err(err).Msgf("pipeline.UpdateStatusToDone: cannot update workflows final state")
+		if currentPipeline, err = serverPipeline.UpdateStatusToDone(s.store, *currentPipeline, model.PipelineStatus(currentPipeline.Workflows), workflow.Finished); err != nil {
+			logger.Error().Err(err).Msgf("serverPipeline.UpdateStatusToDone: cannot update workflows final state")
 		}
 	}
 
@@ -553,7 +586,7 @@ func (s *RPC) checkAgentPermissionByWorkflow(_ context.Context, agent *model.Age
 func (s *RPC) completeChildrenIfParentCompleted(completedWorkflow *model.Workflow) {
 	for _, c := range completedWorkflow.Children {
 		if c.Running() {
-			if _, err := pipeline.UpdateStepToStatusSkipped(s.store, *c, completedWorkflow.Finished); err != nil {
+			if _, err := serverPipeline.UpdateStepToStatusSkipped(s.store, *c, completedWorkflow.Finished); err != nil {
 				log.Error().Err(err).Msgf("done: cannot update step_id %d child state", c.ID)
 			}
 		}

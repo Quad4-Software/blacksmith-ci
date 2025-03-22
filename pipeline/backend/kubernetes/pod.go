@@ -27,12 +27,16 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"codeberg.org/crowci/crow/v4/pipeline"
 	"codeberg.org/crowci/crow/v4/pipeline/backend/common"
 	"codeberg.org/crowci/crow/v4/pipeline/backend/types"
 )
 
 const (
-	StepLabel              = "step"
+	// StepLabelLegacy is the legacy label name from before the introduction of the crowci namespace.
+	// This will be removed in the future.
+	StepLabelLegacy        = "step"
+	StepLabel              = "crowci/step"
 	podPrefix              = "crow-"
 	servicePodPrefix       = "crow-svc-"
 	defaultFSGroup   int64 = 1000
@@ -138,12 +142,18 @@ func podLabels(step *types.Step, config *config, options BackendOptions) (map[st
 	var err error
 	labels := make(map[string]string)
 
-	// Add consistent labels for all Crow-managed resources
-	labels["app.kubernetes.io/managed-by"] = "crow"
+	for k, v := range step.WorkflowLabels {
+		// Only copy user labels if allowed by agent config.
+		// Internal labels are filtered on the server-side.
+		if config.PodLabelsAllowFromStep || strings.HasPrefix(k, pipeline.InternalLabelPrefix) {
+			labels[k] = v
+		}
+	}
 
 	if len(options.Labels) > 0 {
 		if config.PodLabelsAllowFromStep {
 			log.Trace().Msgf("using labels from the backend options: %v", options.Labels)
+			// TODO should we filter out label with internal prefix?
 			maps.Copy(labels, options.Labels)
 		} else {
 			log.Debug().Msg("Pod labels were defined in backend options, but its using disallowed by instance configuration")
@@ -151,10 +161,15 @@ func podLabels(step *types.Step, config *config, options BackendOptions) (map[st
 	}
 	if len(config.PodLabels) > 0 {
 		log.Trace().Msgf("using labels from the configuration: %v", config.PodLabels)
+		// TODO should we filter out label with internal prefix?
 		maps.Copy(labels, config.PodLabels)
 	}
 	if isService(step) {
 		labels[ServiceLabel], _ = serviceName(step)
+	}
+	labels[StepLabelLegacy], err = stepLabel(step)
+	if err != nil {
+		return labels, err
 	}
 	labels[StepLabel], err = stepLabel(step)
 	if err != nil {

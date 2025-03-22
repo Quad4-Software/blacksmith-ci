@@ -173,7 +173,7 @@ func TestTinyPod(t *testing.T) {
 			"namespace": "woodpecker",
 			"labels": {
 				"app.kubernetes.io/managed-by": "crow",
-				"step": "build-via-gradle"
+				"crowci/step": "build-via-gradle"
 			}
 		},
 		"spec": {
@@ -255,7 +255,8 @@ func TestFullPod(t *testing.T) {
 				"app": "test",
 				"app.kubernetes.io/managed-by": "crow",
 				"part-of": "woodpecker-ci",
-				"step": "go-test"
+				"step": "go-test",
+				"woodpecker-ci.org/step": "go-test"
 			},
 			"annotations": {
 				"apps.kubernetes.io/pod-index": "0",
@@ -551,7 +552,7 @@ func TestScratchPod(t *testing.T) {
 			"namespace": "woodpecker",
 			"labels": {
 				"app.kubernetes.io/managed-by": "crow",
-				"step": "curl-google"
+				"crowci/step": "curl-google"
 			}
 		},
 		"spec": {
@@ -597,7 +598,7 @@ func TestSecrets(t *testing.T) {
 			"namespace": "woodpecker",
 			"labels": {
 				"app.kubernetes.io/managed-by": "crow",
-				"step": "test-secrets"
+				"crowci/step": "test-secrets"
 			}
 		},
 		"spec": {

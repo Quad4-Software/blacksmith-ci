@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"codeberg.org/crowci/crow/v4/pipeline"
 	"codeberg.org/crowci/crow/v4/pipeline/backend/types"
 	"codeberg.org/crowci/crow/v4/pipeline/frontend/yaml/utils"
 )
@@ -210,7 +211,7 @@ func mkRegistrySecret(step *types.Step, config *config) (*v1.Secret, error) {
 		return nil, err
 	}
 
-	labels, err := registrySecretLabels(step)
+	labels, err := registrySecretLabels(step, config)
 	if err != nil {
 		return nil, err
 	}
@@ -251,15 +252,24 @@ func registrySecretName(step *types.Step) (string, error) {
 	return podName(step)
 }
 
-func registrySecretLabels(step *types.Step) (map[string]string, error) {
+func registrySecretLabels(step *types.Step, config *config) (map[string]string, error) {
 	var err error
 	labels := make(map[string]string)
 
-	// Add consistent labels for all Crow-managed resources
-	labels["app.kubernetes.io/managed-by"] = "crow"
+	for k, v := range step.WorkflowLabels {
+		// Only copy user labels if allowed by agent config.
+		// Internal labels are filtered on the server-side.
+		if config.PodLabelsAllowFromStep || strings.HasPrefix(k, pipeline.InternalLabelPrefix) {
+			labels[k] = v
+		}
+	}
 
 	if step.Type == types.StepTypeService {
 		labels[ServiceLabel], _ = serviceName(step)
+	}
+	labels[StepLabelLegacy], err = stepLabel(step)
+	if err != nil {
+		return labels, err
 	}
 	labels[StepLabel], err = stepLabel(step)
 	if err != nil {

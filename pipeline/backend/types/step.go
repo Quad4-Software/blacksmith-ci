@@ -44,6 +44,7 @@ type Step struct {
 	NetworkMode         string            `json:"network_mode,omitempty"`
 	Ports               []Port            `json:"ports,omitempty"`
 	BackendOptions      map[string]any    `json:"backend_options,omitempty"`
+	WorkflowLabels      map[string]string `json:"workflow_labels,omitempty"`
 	ContainerNameScheme string            `json:"container_name_scheme,omitempty"`
 	DependsOn           []string          `json:"depends_on,omitempty"`
 }

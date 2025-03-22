@@ -173,7 +173,7 @@ func (c *Compiler) Compile(conf *yaml_types.Workflow) (*backend_types.Config, er
 		for k, v := range c.cloneEnv {
 			container.Environment[k] = v
 		}
-		step, err := c.createProcess(container, backend_types.StepTypeClone)
+		step, err := c.createProcess(container, conf, backend_types.StepTypeClone)
 		if err != nil {
 			return nil, err
 		}
@@ -204,7 +204,7 @@ func (c *Compiler) Compile(conf *yaml_types.Workflow) (*backend_types.Config, er
 		for k, v := range c.cloneEnv {
 			container.Environment[k] = v
 		}
-		step, err := c.createProcess(container, backend_types.StepTypeClone)
+		step, err := c.createProcess(container, conf, backend_types.StepTypeClone)
 		if err != nil {
 			return nil, err
 		}
@@ -224,7 +224,7 @@ func (c *Compiler) Compile(conf *yaml_types.Workflow) (*backend_types.Config, er
 				return nil, err
 			}
 
-			step, err := c.createProcess(container, backend_types.StepTypeClone)
+			step, err := c.createProcess(container, conf, backend_types.StepTypeClone)
 			if err != nil {
 				return nil, err
 			}
@@ -241,6 +241,27 @@ func (c *Compiler) Compile(conf *yaml_types.Workflow) (*backend_types.Config, er
 				dependsOn: container.DependsOn,
 			})
 		}
+	}
+
+	// add services steps
+	if len(conf.Services.ContainerList) != 0 {
+		stage := new(backend_types.Stage)
+
+		for _, container := range conf.Services.ContainerList {
+			if match, err := container.When.Match(c.metadata, false, c.env); !match && err == nil {
+				continue
+			} else if err != nil {
+				return nil, err
+			}
+
+			step, err := c.createProcess(container, conf, backend_types.StepTypeService)
+			if err != nil {
+				return nil, err
+			}
+
+			stage.Steps = append(stage.Steps, step)
+		}
+		config.Stages = append(config.Stages, stage)
 	}
 
 	// add pipeline steps
@@ -260,7 +281,7 @@ func (c *Compiler) Compile(conf *yaml_types.Workflow) (*backend_types.Config, er
 		if container.IsPlugin() {
 			stepType = backend_types.StepTypePlugin
 		}
-		step, err := c.createProcess(container, stepType)
+		step, err := c.createProcess(container, conf, stepType)
 		if err != nil {
 			return nil, err
 		}
@@ -293,7 +314,7 @@ func (c *Compiler) Compile(conf *yaml_types.Workflow) (*backend_types.Config, er
 				return nil, err
 			}
 
-			step, err := c.createProcess(container, backend_types.StepTypeService)
+			step, err := c.createProcess(container, conf, backend_types.StepTypeService)
 			if err != nil {
 				return nil, err
 			}

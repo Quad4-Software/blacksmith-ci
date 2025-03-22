@@ -42,6 +42,7 @@ import (
 
 	"codeberg.org/crowci/crow/v4/agent"
 	agent_rpc "codeberg.org/crowci/crow/v4/agent/rpc"
+	"codeberg.org/crowci/crow/v4/pipeline"
 	"codeberg.org/crowci/crow/v4/pipeline/backend"
 	"codeberg.org/crowci/crow/v4/pipeline/backend/types"
 	"codeberg.org/crowci/crow/v4/pipeline/rpc"
@@ -324,10 +325,9 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 
 	// set default labels ...
 	labels := map[string]string{
-		"hostname": hostname,
-		"platform": engInfo.Platform,
-		"backend":  backendEngine.Name(),
-		"repo":     "*", // allow all repos by default
+		pipeline.LabelHostname: hostname,
+		pipeline.LabelPlatform: engInfo.Platform,
+		pipeline.LabelBackend:  backendEngine.Name(),
 	}
 	// ... and let it overwrite by custom ones
 	maps.Copy(labels, customLabels)

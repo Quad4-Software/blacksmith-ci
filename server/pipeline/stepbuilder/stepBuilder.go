@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"maps"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -27,6 +28,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"go.uber.org/multierr"
 
+	"codeberg.org/crowci/crow/v4/pipeline"
 	backend_types "codeberg.org/crowci/crow/v4/pipeline/backend/types"
 	pipeline_errors "codeberg.org/crowci/crow/v4/pipeline/errors"
 	errorTypes "codeberg.org/crowci/crow/v4/pipeline/errors/types"
@@ -252,6 +254,29 @@ func (b *StepBuilder) genItemForWorkflow(workflow *model.Workflow, axis matrix.A
 		item.Labels = make(map[string]string, len(b.DefaultLabels))
 		// Set default labels if no labels are defined in the pipeline
 		maps.Copy(item.Labels, b.DefaultLabels)
+	}
+
+	// "crowci" namespace is reserved for internal use
+	for key := range item.Labels {
+		if strings.HasPrefix(key, pipeline.InternalLabelPrefix) {
+			log.Debug().Str("forge", b.Forge.Name()).Str("repo", b.Repo.FullName).Str("label", key).Msg("dropped pipeline label with reserved prefix crowci")
+			delete(item.Labels, key)
+		}
+	}
+
+	// Add Crow managed labels to the pipeline
+	item.Labels[pipeline.LabelForgeRemoteID] = b.Forge.Name()
+	item.Labels[pipeline.LabelRepoForgeID] = string(b.Repo.ForgeRemoteID)
+	item.Labels[pipeline.LabelRepoID] = strconv.FormatInt(b.Repo.ID, 10)
+	item.Labels[pipeline.LabelRepoName] = b.Repo.Name
+	item.Labels[pipeline.LabelRepoFullName] = b.Repo.FullName
+	item.Labels[pipeline.LabelBranch] = b.Repo.Branch
+	item.Labels[pipeline.LabelOrgID] = strconv.FormatInt(b.Repo.OrgID, 10)
+
+	for stageI := range item.Config.Stages {
+		for stepI := range item.Config.Stages[stageI].Steps {
+			item.Config.Stages[stageI].Steps[stepI].WorkflowLabels = item.Labels
+		}
 	}
 
 	return item, errorsAndWarnings

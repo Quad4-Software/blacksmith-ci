@@ -17,6 +17,8 @@ package model
 import (
 	"fmt"
 	"strings"
+
+	"codeberg.org/crowci/crow/v4/pipeline"
 )
 
 // Task defines scheduled pipeline Task.
@@ -52,8 +54,8 @@ func (t *Task) ApplyLabelsFromRepo(r *Repo) error {
 	if t.Labels == nil {
 		t.Labels = make(map[string]string)
 	}
-	t.Labels["repo"] = r.FullName
-	t.Labels[agentFilterOrgID] = fmt.Sprintf("%d", r.OrgID)
+	t.Labels[pipeline.LabelRepoFullName] = r.FullName
+	t.Labels[pipeline.LabelOrgID] = fmt.Sprintf("%d", r.OrgID)
 	return nil
 }
 

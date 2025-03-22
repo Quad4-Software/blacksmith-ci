@@ -19,6 +19,8 @@ import (
 	"fmt"
 
 	"github.com/gorilla/securecookie"
+
+	"codeberg.org/crowci/crow/v4/pipeline"
 )
 
 type Agent struct {
@@ -48,8 +50,7 @@ type AgentWithStats struct {
 }
 
 const (
-	IDNotSet         = -1
-	agentFilterOrgID = "org-id"
+	IDNotSet = -1
 )
 
 // TableName return database table name for xorm.
@@ -70,9 +71,9 @@ func (a *Agent) GetServerLabels() (map[string]string, error) {
 
 	// enforce filters for user and organization agents
 	if a.OrgID != IDNotSet {
-		filters[agentFilterOrgID] = fmt.Sprintf("%d", a.OrgID)
+		filters[pipeline.LabelOrgID] = fmt.Sprintf("%d", a.OrgID)
 	} else {
-		filters[agentFilterOrgID] = "*"
+		filters[pipeline.LabelOrgID] = "*"
 	}
 
 	return filters, nil
