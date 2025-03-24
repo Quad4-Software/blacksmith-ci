@@ -103,7 +103,7 @@
     "settings": {
       "notify_text_not_allowed": "Missing permissions to access the settings of this repository",
       "general": {
-        "general": "General",
+        "general": "Project",
         "project": "Project settings",
         "save": "Save settings",
         "notify_text_updated": "Project settings updated",
@@ -435,7 +435,7 @@
     "settings": {
       "settings": "User Settings",
       "general": {
-        "general": "General",
+        "general": "Account",
         "language": "Language",
         "theme": {
           "theme": "Theme",
