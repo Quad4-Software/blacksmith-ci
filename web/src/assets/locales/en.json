@@ -42,7 +42,7 @@
   "repo": {
     "manual_pipeline": {
       "title": "Trigger a manual pipeline run",
-      "trigger": "Run pipeline",
+      "trigger": "Manual pipeline run",
       "select_branch": "Select branch",
       "variables": {
         "delete": "Delete variable",
@@ -408,7 +408,7 @@
         "edit_user": "Edit user"
       },
       "orgs": {
-        "orgs": "Organizations",
+        "orgs": "Orgs",
         "desc": "Organizations owning repositories on this server.",
         "none": "There are no organizations yet.",
         "org_settings": "Organization settings",
@@ -418,7 +418,7 @@
         "view": "View organization"
       },
       "repos": {
-        "repos": "Repositories",
+        "repos": "Repos",
         "desc": "Repositories that are or were activated on this server.",
         "none": "There are no repositories yet.",
         "view": "View repository",

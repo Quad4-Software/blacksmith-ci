@@ -7,14 +7,20 @@ import type { RouteLocationRaw } from 'vue-router';
 import type { IconNames } from '~/components/atomic/Icon.vue';
 import { useTabsClient } from '~/compositions/useTabs';
 
-const props = defineProps<{
-  to: RouteLocationRaw;
-  title: string;
-  count?: number;
-  icon?: IconNames;
-  iconClass?: string;
-  matchChildren?: boolean;
-}>();
+const props = withDefaults(
+  defineProps<{
+    to: RouteLocationRaw;
+    title: string;
+    count?: number;
+    icon?: IconNames;
+    iconSize?: string;
+    iconClass?: string;
+    matchChildren?: boolean;
+  }>(),
+  {
+    iconSize: '1.3rem',
+  },
+);
 
 const { tabs } = useTabsClient();
 
@@ -35,6 +41,7 @@ onMounted(() => {
     title: props.title,
     count: props.count,
     icon: props.icon,
+    iconSize: props.iconSize,
     iconClass: props.iconClass,
     matchChildren: props.matchChildren,
   });

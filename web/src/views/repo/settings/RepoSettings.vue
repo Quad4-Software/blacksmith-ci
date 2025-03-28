@@ -16,7 +16,12 @@
         / {{ $t('settings') }}
       </span>
     </template>
-    <Tab icon="settings-outline" :to="{ name: 'repo-settings' }" :title="$t('repo.settings.general.general')" />
+    <Tab
+      icon="settings-outline"
+      icon-size="1rem"
+      :to="{ name: 'repo-settings' }"
+      :title="$t('repo.settings.general.general')"
+    />
     <Tab icon="secret" :to="{ name: 'repo-settings-secrets' }" :title="$t('secrets.secrets')" />
     <Tab icon="docker" :to="{ name: 'repo-settings-registries' }" :title="$t('registries.registries')" />
     <Tab icon="cron" :to="{ name: 'repo-settings-crons' }" :title="$t('repo.settings.crons.crons')" />
