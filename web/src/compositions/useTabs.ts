@@ -10,6 +10,7 @@ export interface Tab {
   title: string;
   count?: number;
   icon?: IconNames;
+  iconSize?: string;
   iconClass?: string;
   matchChildren?: boolean;
 }

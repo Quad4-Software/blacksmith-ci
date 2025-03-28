@@ -12,7 +12,7 @@
       <span
         class="flex w-full min-w-20 flex-row items-center justify-center gap-2 rounded-md px-2 py-1 hover:bg-wp-background-200 dark:hover:bg-wp-background-100"
       >
-        <Icon v-if="tab.icon" :name="tab.icon" :class="tab.iconClass" class="shrink-0" />
+        <Icon v-if="tab.icon" :name="tab.icon" :size="tab.iconSize" :class="tab.iconClass" class="shrink-0" />
         <span>{{ tab.title }}</span> <CountBadge v-if="tab.count" :value="tab.count" />
       </span>
     </router-link>
@@ -34,7 +34,7 @@
           <span
             class="flex w-full min-w-20 flex-row items-center justify-center gap-2 rounded-md px-2 py-1 hover:bg-wp-background-200 dark:hover:bg-wp-background-100"
           >
-            <Icon v-if="tab.icon" :name="tab.icon" :class="tab.iconClass" class="shrink-0" />
+            <Icon v-if="tab.icon" :name="tab.icon" :size="tab.iconSize" :class="tab.iconClass" class="shrink-0" />
             <span>{{ tab.title }}</span>
           </span>
         </router-link>

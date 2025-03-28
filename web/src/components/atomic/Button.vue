@@ -20,7 +20,8 @@
       <Icon
         v-if="startIcon"
         :name="startIcon"
-        class="h-5! w-5! dark:text-wp-text-200"
+        icon-size="1rem"
+        class="dark:text-wp-text-200"
         :class="{ invisible: isLoading, 'mr-1': text }"
       />
       <span :class="{ invisible: isLoading }">{{ text }}</span>

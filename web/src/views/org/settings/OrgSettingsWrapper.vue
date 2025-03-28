@@ -15,6 +15,7 @@
     <Tab
       v-if="useConfig().userRegisteredAgents"
       icon="agent"
+      icon-size="1rem"
       :to="{ name: 'org-settings-agents' }"
       :title="$t('admin.settings.agents.agents')"
     />
