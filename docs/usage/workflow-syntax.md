@@ -565,7 +565,7 @@ Execute a step for a specific platform using wildcards:
 
 ```yaml
 when:
-  - platform: [linux/*, windows/amd64]
+  - platform: ['linux/*', 'windows/amd64']
 ```
 
 #### ref
