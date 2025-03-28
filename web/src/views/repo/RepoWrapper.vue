@@ -34,7 +34,7 @@
         :to="{ name: 'repo' }"
       />
     </template>
-    <Tab icon="list-group" :to="{ name: 'repo' }" :title="$t('repo.activity')" />
+    <Tab icon="pipelines" :to="{ name: 'repo' }" :title="$t('repo.activity')" />
     <Tab icon="branch" :to="{ name: 'repo-branches' }" match-children :title="$t('repo.branches')" />
     <Tab
       v-if="repo.pr_enabled && repo.allow_pr"

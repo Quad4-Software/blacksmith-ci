@@ -10,7 +10,7 @@
     <Tab icon="user" :to="{ name: 'admin-settings-users' }" :title="$t('admin.settings.users.users')" />
     <Tab icon="org" :to="{ name: 'admin-settings-orgs' }" :title="$t('admin.settings.orgs.orgs')" />
     <Tab icon="agent" :to="{ name: 'admin-settings-agents' }" :title="$t('admin.settings.agents.agents')" />
-    <Tab icon="tray-full" :to="{ name: 'admin-settings-queue' }" :title="$t('admin.settings.queue.queue')" />
+    <Tab icon="tasks" :to="{ name: 'admin-settings-queue' }" :title="$t('admin.settings.queue.queue')" />
 
     <router-view />
   </Scaffold>
