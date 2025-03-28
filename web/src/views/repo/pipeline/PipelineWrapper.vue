@@ -69,7 +69,7 @@
         </div>
       </div>
     </template>
-    <Tab icon="tray-full" :to="{ name: 'repo-pipeline' }" :title="$t('repo.pipeline.tasks')" />
+    <Tab icon="tasks" :to="{ name: 'repo-pipeline' }" :title="$t('repo.pipeline.tasks')" />
     <Tab
       v-if="pipeline.errors && pipeline.errors.length > 0"
       :to="{ name: 'repo-pipeline-errors' }"

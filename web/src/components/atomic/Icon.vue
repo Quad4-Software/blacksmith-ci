@@ -28,7 +28,7 @@
   <SvgIcon v-else-if="name === 'status-skipped'" :path="mdiMinus" size="1.3rem" />
   <SvgIcon v-else-if="name === 'status-success'" :path="mdiCheck" size="1.3rem" />
   <SvgIcon v-else-if="name === 'status-pending'" :path="mdiRadioboxBlank" size="1.3rem" />
-  <SvgIcon v-else-if="name === 'list-group'" :path="mdiFormatListGroup" size="1.3rem" />
+  <SvgIcon v-else-if="name === 'pipelines'" :path="mdiFormatListCheckbox" size="1.3rem" />
   <SvgIcon v-else-if="name === 'secret'" :path="mdiShieldKeyOutline" size="1.3rem" />
   <SvgIcon v-else-if="name === 'console'" :path="mdiConsole" size="1.3rem" />
   <SvgIcon v-else-if="name === 'agent'" :path="mdiPlayNetworkOutline" size="1.3rem" />
@@ -54,7 +54,7 @@
   <SvgIcon v-else-if="name === 'play'" :path="mdiPlay" size="1.3rem" />
   <SvgIcon v-else-if="name === 'play-outline'" :path="mdiPlayOutline" size="1.3rem" />
   <SvgIcon v-else-if="name === 'dots'" :path="mdiDotsVertical" size="1.3rem" />
-  <SvgIcon v-else-if="name === 'tray-full'" :path="mdiTrayFull" size="1.3rem" />
+  <SvgIcon v-else-if="name === 'tasks'" :path="mdiFormatListBulletedType" size="1.3rem" />
   <SvgIcon v-else-if="name === 'file-cog-outlined'" :path="mdiFileCogOutline" size="1.3rem" />
   <SvgIcon v-else-if="name === 'bug-outline'" :path="mdiBugOutline" size="1rem" />
   <SvgIcon v-else-if="name === 'docker'" :path="mdiDocker" size="1.3rem" />
@@ -140,8 +140,9 @@ import {
   mdiTimerOutline,
   mdiToolboxOutline,
   mdiTrashCanOutline,
-  mdiTrayFull,
+  mdiFormatListBulletedType,
   mdiWrenchCogOutline,
+  mdiFormatListCheckbox,
 } from '@mdi/js';
 import { siForgejo, siGitea } from 'simple-icons';
 
@@ -200,10 +201,10 @@ export type IconNames =
   | 'visibility-private'
   | 'visibility-internal'
   | 'dots'
-  | 'tray-full'
+  | 'tasks'
   | 'file-cog-outlined'
   | 'bug-outline'
-  | 'list-group'
+  | 'pipelines'
   | 'secret'
   | 'docker'
   | 'console'
