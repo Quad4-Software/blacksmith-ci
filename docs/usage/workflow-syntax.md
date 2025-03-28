@@ -94,7 +94,7 @@ For more details check the dedicated documentation on [matrix builds](pipelines.
 Steps can be given "privileged" capabilities.
 Doing so is a security risk and should only be used in private environments, and even there only as the last resort.
 
-/// information
+/// info
 Adding `privileged: true` in the YAML definition must be combined with enabling security-related project options.
 The latter can only be enabled by an instance admin.
 This prevents potential abuse by users, as enabling privileged containers combined with running as `root` can potentially lead to a host/agent takeover.
@@ -234,22 +234,22 @@ As soon as `depends_on` is set for one or more steps, a [directed acyclic graph]
 Only the steps that have a dependency set to another step via `depends_on` are executed serially:
 
 ```yaml hl_lines="11"
- steps:
-   - name: build # will be executed immediately
-     image: <image>
-     commands:
-       - go build
+steps:
+  - name: build # will be executed immediately
+    image: <image>
+    commands:
+      - go build
 
-   - name: deploy
-     image: <image>
-     settings:
-       repo: foo/bar
-     depends_on: [build, test] # deploy will be executed after 'build' and 'test' finished
+  - name: deploy
+    image: <image>
+    settings:
+      repo: foo/bar
+    depends_on: [build, test] # deploy will be executed after 'build' and 'test' finished
 
-   - name: test # will be executed immediately as no dependencies are set
-     image: <image>
-     commands:
-       - go test
+  - name: test # will be executed immediately as no dependencies are set
+    image: <image>
+    commands:
+      - go test
 ```
 
 /// tip
@@ -594,5 +594,5 @@ To execute steps on failure of previous pipelines, for example to send notificat
 
 ```yaml
 when:
-  - status: [ success, failure ]
+  - status: [success, failure]
 ```
