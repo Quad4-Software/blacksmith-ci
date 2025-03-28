@@ -6,8 +6,6 @@
   --md-typeset-a-color: #f47003;
 }
 
-
-
 [data-md-color-scheme='custom-light'] {
   --md-primary-bg-color: white;
   /* --md-primary-bg-color--light: green; */
@@ -31,7 +29,7 @@
 
   --md-primary-fg-color: #161616;
 
-  --md-typeset-a-color: #FF9B00;
+  --md-typeset-a-color: #ff9b00;
 
   /* hover */
   --md-accent-fg-color: #f47003;
@@ -45,6 +43,16 @@
 @media (prefers-color-scheme: dark) {
   .md-button {
     color: rgba(226, 228, 233, 0.82) !important;
-    border: .1rem #161616 solid !important;
+    border: 0.1rem #161616 solid !important;
   }
+}
+
+.explicit-col-width th:nth-child(1) {
+  width: 17%;
+}
+.explicit-col-width th:nth-child(2) {
+  width: 20%;
+}
+.explicit-col-width th:nth-child(3) {
+  width: 15%;
 }
