@@ -187,7 +187,7 @@ CROW_AGENT_ENV: CROW_HEALTHCHECK=false,CROW_LOG_LEVEL=debug
 
 ### Combining static and autoscaled agents
 
-/// information
+/// info
 A "static" agent is an agent which was **not** provisioned by Crow Autoscaler but through a different deployment.
 It is always 24/7 for new builds and is the exact opposite of an autoscaling agent which is only available if task are to be processed and decommissioned afterwards.
 ///
