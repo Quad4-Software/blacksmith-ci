@@ -1,0 +1,40 @@
+when:
+  - event: tag
+  - event: deployment
+
+steps:
+  - name: Prepare
+    image: alpine:3.21
+    commands:
+      - mkdir site/
+
+  - name: 'Update dev version hash'
+    image: alpine:3.21
+    commands:
+      - apk add --no-cache -q jq
+      - jq '.dev = "dev-${CI_COMMIT_SHA:0:10}"' ./site/version.json > ./site/version.json.tmp
+      - mv ./site/version.json.tmp ./site/version.json
+
+  - name: 'Update release version hash'
+    image: alpine:3.21
+    commands:
+      - apk add --no-cache -q jq
+      - if [[ "${CI_COMMIT_TAG}" != *"rc"* ]] ; then jq '.latest = "${CI_COMMIT_TAG}"' ./site/version.json > ./site/version.json.tmp && mv ./site/version.json.tmp ./site/version.json ; fi
+      - jq '.rc = "${CI_COMMIT_TAG}"' ./site/version.json > ./site/version.json.tmp
+      - mv ./site/version.json.tmp ./site/version.json
+    when:
+      - event: tag
+
+  - name: s3-sync
+    image: plugins/s3:1.5.1
+    settings:
+      bucket: crow-docs
+      region: fsn1
+      endpoint: https://fsn1.your-objectstorage.com
+      access_key:
+        from_secret: HETZNER_S3_ACCESS_KEY
+      secret_key:
+        from_secret: HETZNER_S3_SECRET_KEY
+      source: site/version.json
+      strip_prefix: site/
+      target: /
