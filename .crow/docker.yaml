@@ -35,7 +35,7 @@ variables:
       - '.crow/docker.yaml'
 
 when:
-  - event: [pull_request, deployment]
+  - event: [pull_request, deployment, tag]
 
 steps:
   vendor:

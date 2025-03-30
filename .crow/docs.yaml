@@ -4,6 +4,7 @@ when:
     path: ['docs/**', '.crow/docs.yaml', 'mkdocs.yaml']
   - event: pull_request
     path: ['docs/**', '.crow/docs.yaml', 'mkdocs.yaml']
+  - event: tag
 
 steps:
   - name: 'Build docs'
