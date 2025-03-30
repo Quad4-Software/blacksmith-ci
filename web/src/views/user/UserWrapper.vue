@@ -2,13 +2,19 @@
   <Scaffold enable-tabs>
     <template #title>{{ $t('user.settings.settings') }}</template>
     <template #headerActions><Button :text="$t('logout')" :to="`${address}/logout`" /></template>
-    <Tab icon="settings-outline" :to="{ name: 'user' }" :title="$t('user.settings.general.general')" />
-    <Tab icon="secret" :to="{ name: 'user-secrets' }" :title="$t('secrets.secrets')" />
+    <Tab icon="settings-outline" icon-size="1rem" :to="{ name: 'user' }" :title="$t('user.settings.general.general')" />
+    <Tab icon="secret" icon-size="1rem" :to="{ name: 'user-secrets' }" :title="$t('secrets.secrets')" />
     <Tab icon="docker" :to="{ name: 'user-registries' }" :title="$t('registries.registries')" />
-    <Tab icon="console" :to="{ name: 'user-cli-and-api' }" :title="$t('user.settings.cli_and_api.cli_and_api')" />
+    <Tab
+      icon="console"
+      icon-size="1rem"
+      :to="{ name: 'user-cli-and-api' }"
+      :title="$t('user.settings.cli_and_api.cli_and_api')"
+    />
     <Tab
       v-if="useConfig().userRegisteredAgents"
       icon="agent"
+      icon-size="1rem"
       :to="{ name: 'user-agents' }"
       :title="$t('admin.settings.agents.agents')"
     />

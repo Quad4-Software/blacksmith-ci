@@ -22,11 +22,16 @@
       :to="{ name: 'repo-settings' }"
       :title="$t('repo.settings.general.general')"
     />
-    <Tab icon="secret" :to="{ name: 'repo-settings-secrets' }" :title="$t('secrets.secrets')" />
+    <Tab icon="secret" icon-size="1rem" :to="{ name: 'repo-settings-secrets' }" :title="$t('secrets.secrets')" />
     <Tab icon="docker" :to="{ name: 'repo-settings-registries' }" :title="$t('registries.registries')" />
-    <Tab icon="cron" :to="{ name: 'repo-settings-crons' }" :title="$t('repo.settings.crons.crons')" />
-    <Tab icon="tag" :to="{ name: 'repo-settings-badge' }" :title="$t('repo.settings.badge.badge')" />
-    <Tab icon="toolbox" :to="{ name: 'repo-settings-actions' }" :title="$t('repo.settings.actions.actions')" />
+    <Tab icon="cron" icon-size="1rem" :to="{ name: 'repo-settings-crons' }" :title="$t('repo.settings.crons.crons')" />
+    <Tab icon="tag" icon-size="1rem" :to="{ name: 'repo-settings-badge' }" :title="$t('repo.settings.badge.badge')" />
+    <Tab
+      icon="toolbox"
+      icon-size="1rem"
+      :to="{ name: 'repo-settings-actions' }"
+      :title="$t('repo.settings.actions.actions')"
+    />
 
     <router-view />
   </Scaffold>

@@ -12,7 +12,7 @@
           v-if="repo.visibility === RepoVisibility.Private"
           :title="`${$t('repo.visibility.visibility')}: ${$t(`repo.visibility.private.private`)}`"
         >
-          <Icon name="visibility-private" />
+          <Icon name="visibility-private" size="1.3rem" />
         </div>
 
         <div
@@ -31,7 +31,7 @@
           </div>
 
           <div class="ml-auto flex shrink-0 items-center gap-x-1">
-            <Icon name="since" /> <span>{{ since }}</span>
+            <Icon name="since" size="1rem" /> <span>{{ since }}</span>
           </div>
         </template>
         <div v-else class="flex gap-x-2">

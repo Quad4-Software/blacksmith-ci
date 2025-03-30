@@ -20,7 +20,7 @@
       <Icon
         v-if="startIcon"
         :name="startIcon"
-        icon-size="1rem"
+        size="1rem"
         class="dark:text-wp-text-200"
         :class="{ invisible: isLoading, 'mr-1': text }"
       />
