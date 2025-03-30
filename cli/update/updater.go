@@ -18,7 +18,7 @@ import (
 )
 
 func CheckForUpdate(ctx context.Context, force bool) (*NewVersion, error) {
-	return checkForUpdate(ctx, woodpeckerVersionURL, force)
+	return checkForUpdate(ctx, crowVersionURL, force)
 }
 
 func checkForUpdate(ctx context.Context, versionURL string, force bool) (*NewVersion, error) {
@@ -67,7 +67,7 @@ func checkForUpdate(ctx context.Context, versionURL string, force bool) (*NewVer
 
 	log.Debug().Msgf("new version available: %s", upstreamVersion)
 
-	assetURL := fmt.Sprintf(githubBinaryURL, upstreamVersion, runtime.GOOS, runtime.GOARCH)
+	assetURL := fmt.Sprintf(BinaryURL, upstreamVersion, runtime.GOOS, runtime.GOARCH)
 	return &NewVersion{
 		Version:  upstreamVersion,
 		AssetURL: assetURL,
@@ -92,7 +92,7 @@ func downloadNewVersion(ctx context.Context, downloadURL string) (string, error)
 		return "", errors.New("failed to download the new version")
 	}
 
-	file, err := os.CreateTemp("", "woodpecker-cli-*.tar.gz")
+	file, err := os.CreateTemp("", "crow-cli-*.tar.gz")
 	if err != nil {
 		return "", err
 	}
@@ -117,7 +117,7 @@ func extractNewVersion(tarFilePath string) (string, error) {
 
 	defer tarFile.Close()
 
-	tmpDir, err := os.MkdirTemp("", "woodpecker-cli-*")
+	tmpDir, err := os.MkdirTemp("", "crow-cli-*")
 	if err != nil {
 		return "", err
 	}
@@ -134,5 +134,5 @@ func extractNewVersion(tarFilePath string) (string, error) {
 
 	log.Debug().Msgf("new version extracted to %s", tmpDir)
 
-	return path.Join(tmpDir, "woodpecker-cli"), nil
+	return path.Join(tmpDir, "crow-cli"), nil
 }

@@ -41,25 +41,14 @@ export function useVersion() {
   const config = useConfig();
   const current = config.version as string;
   const currentSemver = semverCoerce(current);
-  const usesNext = current.startsWith('next');
+  const usesNext = current.startsWith('dev');
 
   const { user } = useAuthentication();
   if (config.skipVersionCheck || user?.admin !== true) {
     version.value = {
       latest: undefined,
       current,
-      currentShort: usesNext ? 'next' : current,
-      needsUpdate: false,
-      usesNext,
-    };
-    return version;
-  }
-
-  if (current === 'dev') {
-    version.value = {
-      latest: undefined,
-      current,
-      currentShort: current,
+      currentShort: usesNext ? 'dev' : current,
       needsUpdate: false,
       usesNext,
     };
