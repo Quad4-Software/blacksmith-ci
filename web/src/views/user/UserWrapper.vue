@@ -18,6 +18,7 @@
       :to="{ name: 'user-agents' }"
       :title="$t('admin.settings.agents.agents')"
     />
+    <Tab icon="info" icon-size="1rem" :to="{ name: 'user-info' }" :title="$t('info')" />
     <router-view />
   </Scaffold>
 </template>
