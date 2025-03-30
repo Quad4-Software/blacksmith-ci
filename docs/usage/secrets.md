@@ -1,4 +1,5 @@
 <!-- markdownlint-disable MD041 -->
+
 # Secrets
 
 ## General
@@ -32,14 +33,14 @@ As a result, external secrets may be exposed in the logs!
 Secrets are defined using the `from_secret:` keyword in the `environment:` section:
 
 ```yaml hl_lines="7 8"
- steps:
-   - name: 'step name'
-     image: registry/repo/image:tag
-     commands:
+steps:
+  - name: 'step name'
+    image: registry/repo/image:tag
+    commands:
       - echo "The secret is $TOKEN_ENV"
-     environment:
-       TOKEN_ENV:
-         from_secret: secret_token
+    environment:
+      TOKEN_ENV:
+        from_secret: secret_token
 ```
 
 Secrets names can be uppercase or lowercase.
@@ -48,29 +49,31 @@ The same applies to the environment variables they are assigned to.
 Secrets can also be used for `settings:` in plugins:
 
 ```yaml hl_lines="7 8"
- steps:
-   - name: 'step name'
-     image: registry/repo/image:tag
-     commands:
+steps:
+  - name: 'step name'
+    image: registry/repo/image:tag
+    commands:
       - echo "The secret is $TOKEN_ENV"
-     settings:
-       TOKEN:
-         from_secret: secret_token
+    settings:
+      TOKEN:
+        from_secret: secret_token
 ```
 
 /// important
 Parameter expressions like secrets undergo pre-processing, meaning they are evaluated before the workflow starts.
 If secrets are to be used in commands directly, they must be properly escaped (using `$$`) to ensure correct handling.
+
 ```yaml hl_lines="5"
 steps:
   - name: docker
     image: docker
     commands:
-     - echo $${TOKEN_ENV}
+      - echo $${TOKEN_ENV}
     environment:
       TOKEN_ENV:
         from_secret: secret_token
 ```
+
 ///
 
 ## Filtering
@@ -92,19 +95,19 @@ By default, secrets will be available without any restriction:
 
 ```yaml
 crow-cli repo secret add \
-  --repository octocat/hello-world \
-  --name my_secret \
-  --value <value>
+--repository octocat/hello-world \
+--name my_secret \
+--value <value>
 ```
 
 Limit it to a specific plugin:
 
 ```yaml hl_lines="3"
 crow-cli secret add \
-  --repository octocat/hello-world \
-  --image woodpeckerci/plugin-s3 \
-  --name aws_access_key_id \
-  --value <value>
+--repository octocat/hello-world \
+--image woodpeckerci/plugin-s3 \
+--name aws_access_key_id \
+--value <value>
 ```
 
 The `--image` can also be passed multiple times.
@@ -113,21 +116,21 @@ Limit to specific events:
 
 ```yaml hl_lines="4 5 6"
 crow-cli repo secret add \
-  --repository octocat/hello-world \
-  --image woodpeckerci/plugin-s3 \
-  --event pull_request \
-  --event push \
-  --event tag \
-  --name aws_access_key_id \
-  --value <value>
+--repository octocat/hello-world \
+--image woodpeckerci/plugin-s3 \
+--event pull_request \
+--event push \
+--event tag \
+--name aws_access_key_id \
+--value <value>
 ```
 
 Secret can also be loaded from a file on disk.
 This can be useful for multi-line secrets like SSH keys:
 
 ```yaml hl_lines="4"
- crow-cli repo secret add \
-   -repository octocat/hello-world \
-   -name ssh_key \
-   -value @/root/ssh/id_rsa
+crow-cli repo secret add \
+-repository octocat/hello-world \
+-name ssh_key \
+-value @/root/ssh/id_rsa
 ```
