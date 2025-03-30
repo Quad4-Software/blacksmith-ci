@@ -225,7 +225,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: '',
         name: 'admin-settings',
-        component: (): Component => import('~/views/admin/AdminInfo.vue'),
+        component: (): Component => import('~/views/instance/InstanceInfo.vue'),
         props: true,
       },
       {
@@ -307,6 +307,12 @@ const routes: RouteRecordRaw[] = [
         path: 'agents',
         name: 'user-agents',
         component: (): Component => import('~/views/user/UserAgents.vue'),
+        props: true,
+      },
+      {
+        path: 'info',
+        name: 'user-info',
+        component: (): Component => import('~/views/instance/InstanceInfo.vue'),
         props: true,
       },
     ],
