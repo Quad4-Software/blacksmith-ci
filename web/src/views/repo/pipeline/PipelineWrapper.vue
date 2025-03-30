@@ -69,7 +69,7 @@
         </div>
       </div>
     </template>
-    <Tab icon="tasks" size="1rem" :to="{ name: 'repo-pipeline' }" :title="$t('repo.pipeline.tasks')" />
+    <Tab icon="tasks" icon-size="1rem" :to="{ name: 'repo-pipeline' }" :title="$t('repo.pipeline.tasks')" />
     <Tab
       v-if="pipeline.errors && pipeline.errors.length > 0"
       :to="{ name: 'repo-pipeline-errors' }"
@@ -80,7 +80,7 @@
     />
     <Tab
       icon="file-cog-outlined"
-      size="1rem"
+      icon-size="1rem"
       :to="{ name: 'repo-pipeline-config' }"
       :title="$t('repo.pipeline.config')"
     />
