@@ -93,6 +93,7 @@
     <Tab
       v-if="repoPermissions && repoPermissions.push"
       icon="bug-outline"
+      icon-size="1rem"
       :to="{ name: 'repo-pipeline-debug' }"
       :title="$t('repo.pipeline.debug.title')"
     />
