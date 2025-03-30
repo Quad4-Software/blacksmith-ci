@@ -116,8 +116,6 @@ import {
   mdiEyeOutline,
   mdiFileCogOutline,
   mdiFormatListBulleted,
-  mdiFormatListGroup,
-  mdiGestureTap,
   mdiGit,
   mdiGithub,
   mdiGitlab,
