@@ -241,7 +241,9 @@
         "log_download": "Download",
         "log_delete": "Delete",
         "log_auto_scroll": "Enable automatic log scrolling",
-        "log_auto_scroll_off": "Disable automatic log scrolling"
+        "log_auto_scroll_off": "Disable automatic log scrolling",
+        "log_scroll_to_bottom": "Scroll to bottom",
+        "log_scroll_to_top": "Scroll to top"
       },
       "protected": {
         "awaits": "This pipeline is awaiting approval from a maintainer.",

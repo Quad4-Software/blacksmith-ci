@@ -110,6 +110,49 @@
           $t('repo.pipeline.exit_code', { exitCode: step.exit_code })
         }}</span>
         <span class="ml-2 px-2">{{ $t('repo.pipeline.agent', { agentId: workflow?.agent_id || '' }) }}</span>
+        <div class="ml-auto flex flex-row items-center gap-x-2">
+          <div
+            class="cursor-pointer rounded-full border border-wp-custom-highlight-100 bg-wp-code-100 p-1 shadow-lg transition-opacity duration-300 flex items-center justify-center"
+            :title="$t('repo.pipeline.actions.log_scroll_to_bottom')"
+            @click="scrollToBottom"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="text-wp-code-text-alt-100"
+            >
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+
+          <div
+            class="cursor-pointer rounded-full border border-wp-custom-highlight-100 bg-wp-code-100 p-1 shadow-lg transition-opacity duration-300 flex items-center justify-center"
+            :title="$t('repo.pipeline.actions.log_scroll_to_top')"
+            @click="scrollToTop"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="text-wp-code-text-alt-100"
+            >
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -214,13 +257,20 @@ function writeLog(line: Partial<LogLine>) {
   });
 }
 
-function scrollDown() {
+function scrollToBottom() {
   nextTick(() => {
     if (!consoleElement.value) {
       return;
     }
     consoleElement.value.scrollTop = consoleElement.value.scrollHeight;
   });
+}
+
+function scrollToTop() {
+  if (!consoleElement.value) {
+    return;
+  }
+  consoleElement.value.scrollTop = 0;
 }
 
 const flushLogs = debounce((scroll: boolean) => {
@@ -259,7 +309,7 @@ const flushLogs = debounce((scroll: boolean) => {
   if (route.hash.length > 0) {
     nextTick(() => document.getElementById(route.hash.substring(1))?.scrollIntoView());
   } else if (scroll && autoScroll.value) {
-    scrollDown();
+    scrollToBottom();
   }
 }, 500);
 
@@ -437,7 +487,7 @@ watch(stepSlug, async () => {
 watch(step, async (newStep, oldStep) => {
   if (oldStep?.name === newStep?.name) {
     if (oldStep?.finished !== newStep?.finished && autoScroll.value) {
-      scrollDown();
+      scrollToBottom();
     }
 
     if (oldStep?.state !== newStep?.state) {
