@@ -10,8 +10,8 @@ clone:
     settings:
       tags: true
 
-# depends_on:
-#   - docker
+depends_on:
+  - docker
 
 steps:
   vendor:
