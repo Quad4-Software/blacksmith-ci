@@ -28,7 +28,7 @@ depending on the configuration of the respective _event triggers_ and `depends_o
 
 /// important
 Each workflow is isolated from other workflows with respect to its working directory and file access.
-*Steps* within a workflow have access to the same files.
+_Steps_ within a workflow have access to the same files.
 ///
 
 ## Execution control
@@ -38,15 +38,15 @@ An execution order can be enforced by using `depends_on`:
 
 ```yaml hl_lines="7 8 9 10"
 steps:
- - name: deploy
-   image: <image>:<tag>
-   commands:
-     - some command
+  - name: deploy
+    image: <image>:<tag>
+    commands:
+      - some command
 
 depends_on:
- - lint
- - build
- - test
+  - lint
+  - build
+  - test
 ```
 
 This keyword also works for dependency resolution with steps.
@@ -56,8 +56,9 @@ Workflows which depend on others only start if the dependent ones finished succe
 A workflow can be forced to execute no matter the exit status of other workflows by setting
 
 ```yaml
-runs_on: [ success, failure ]
+runs_on: [success, failure]
 ```
+
 ///
 
 Changes to files are persisted throughout the steps of a workflow as the same (temporary) volume is mounted to all steps.
@@ -145,66 +146,66 @@ services:
 And after:
 
 ```yaml hl_lines="3 9 10 14"
- steps:
-   - name: build
-     image: golang:1.4
-     commands:
-       - go get
-       - go build
-       - go test
-     environment:
-       - GO_VERSION=1.4
-       - DATABASE=mysql:8
+steps:
+  - name: build
+    image: golang:1.4
+    commands:
+      - go get
+      - go build
+      - go test
+    environment:
+      - GO_VERSION=1.4
+      - DATABASE=mysql:8
 
- services:
-   - name: database
-     image: mysql:8
+services:
+  - name: database
+    image: mysql:8
 ```
 
 ### Examples
 
 - Matrix pipeline with a variable image tag:
 
-    ```yaml
-    matrix:
-      IMAGE:
-        - golang:1.7
-        - golang:1.8
-        - golang:latest
+  ```yaml
+  matrix:
+    IMAGE:
+      - golang:1.7
+      - golang:1.8
+      - golang:latest
 
-    steps:
-      - name: build
-        image: ${IMAGE}
-        commands:
-          - go build
-          - go test
-    ```
+  steps:
+    - name: build
+      image: ${IMAGE}
+      commands:
+        - go build
+        - go test
+  ```
 
 - Matrix pipeline using multiple platforms:
 
-    ```yaml
-    matrix:
-      platform:
-        - linux/amd64
-        - linux/arm64
+  ```yaml
+  matrix:
+    platform:
+      - linux/amd64
+      - linux/arm64
 
-    steps:
-      - name: test
-        image: <image>
-        commands:
-          - echo "Running on ${platform}"
+  steps:
+    - name: test
+      image: <image>
+      commands:
+        - echo "Running on ${platform}"
 
-      - name: test-arm
-        image: <image>
-        commands:
-          - echo "Running on ${platform}"
-        when:
-          platform: linux/arm*
-    ```
+    - name: test-arm
+      image: <image>
+      commands:
+        - echo "Running on ${platform}"
+      when:
+        platform: linux/arm*
+  ```
 
-    /// tip
-    For the kubernetes backend, architecture-specific pipelines should be controlled via the [`nodeSelector` backend option](../configuration/server.md#backend-options-backend-options-kubernetes.
-    ///
+  /// tip
+  For the kubernetes backend, architecture-specific pipelines should be controlled via the [`nodeSelector` backend option](../configuration/server.md#backend-options-backend-options-kubernetes.
+  ///
 
 ## Skipping commits
 
