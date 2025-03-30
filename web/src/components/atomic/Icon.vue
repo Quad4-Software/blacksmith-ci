@@ -2,11 +2,11 @@
 <template>
   <SvgIcon v-if="name === 'duration'" :path="mdiTimerOutline" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'since'" :path="mdiClockTimeEightOutline" :size="size || '1.3rem'" />
-  <SvgIcon v-else-if="name === 'branch'" :path="mdiSourceBranch" size="1rem" />
-  <SvgIcon v-else-if="name === 'pull-request'" :path="mdiSourcePull" size="1rem" />
-  <SvgIcon v-else-if="name === 'pull-request-closed'" :path="mdiSourceMerge" size="1rem" />
+  <SvgIcon v-else-if="name === 'branch'" :path="mdiSourceBranch" :size="size || '1rem'" />
+  <SvgIcon v-else-if="name === 'pull-request'" :path="mdiSourcePull" :size="size || '1rem'" />
+  <SvgIcon v-else-if="name === 'pull-request-closed'" :path="mdiSourceMerge" :size="size || '1rem'" />
   <SvgIcon v-else-if="name === 'manual-pipeline'" :path="mdiPlayCircleOutline" :size="size || '1.3rem'" />
-  <SvgIcon v-else-if="name === 'tag'" :path="mdiTagOutline" size="1rem" />
+  <SvgIcon v-else-if="name === 'tag'" :path="mdiTagOutline" :size="size || '1rem'" />
   <SvgIcon v-else-if="name === 'deployment'" :path="mdiPackageVariant" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'commit'" :path="mdiSourceCommit" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'back'" :path="mdiArrowLeft" :size="size || '1.3rem'" />
@@ -33,15 +33,15 @@
   <SvgIcon v-else-if="name === 'status-skipped'" :path="mdiMinus" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'status-success'" :path="mdiCheck" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'status-pending'" :path="mdiRadioboxBlank" :size="size || '1.3rem'" />
-  <SvgIcon v-else-if="name === 'pipelines'" :path="mdiFormatListCheckbox" size="1rem" />
-  <SvgIcon v-else-if="name === 'secret'" :path="mdiShieldKeyOutline" size="1rem" />
+  <SvgIcon v-else-if="name === 'pipelines'" :path="mdiFormatListCheckbox" :size="size || '1rem'" />
+  <SvgIcon v-else-if="name === 'secret'" :path="mdiShieldKeyOutline" :size="size || '1rem'" />
   <SvgIcon v-else-if="name === 'console'" :path="mdiConsole" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'agent'" :path="mdiPlayNetworkOutline" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'info'" :path="mdiInformationSlabCircleOutline" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'user'" :path="mdiAccountOutline" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'org'" :path="mdiAccountGroupOutline" :size="size || '1.3rem'" />
-  <SvgIcon v-else-if="name === 'cron'" :path="mdiCalendarClockOutline" size="1rem" />
-  <SvgIcon v-else-if="name === 'toolbox'" :path="mdiToolboxOutline" size="1rem" />
+  <SvgIcon v-else-if="name === 'cron'" :path="mdiCalendarClockOutline" :size="size || '1rem'" />
+  <SvgIcon v-else-if="name === 'toolbox'" :path="mdiToolboxOutline" :size="size || '1rem'" />
   <SvgIcon v-else-if="name === 'alert'" :path="mdiAlertCircle" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'question'" :path="mdiInformationSlabCircleOutline" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'plus'" :path="mdiPlus" :size="size || '1.3rem'" />
@@ -61,8 +61,8 @@
   <SvgIcon v-else-if="name === 'dots'" :path="mdiDotsVertical" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'tasks'" :path="mdiFormatListBulletedType" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'file-cog-outlined'" :path="mdiFileCogOutline" :size="size || '1.3rem'" />
-  <SvgIcon v-else-if="name === 'bug-outline'" :path="mdiBugOutline" size="1rem" />
-  <SvgIcon v-else-if="name === 'docker'" :path="mdiDocker" size="1rem" />
+  <SvgIcon v-else-if="name === 'bug-outline'" :path="mdiBugOutline" :size="size || '1rem'" />
+  <SvgIcon v-else-if="name === 'docker'" :path="mdiDocker" :size="size || '1rem'" />
   <SvgIcon v-else-if="name === 'visibility-private'" :path="mdiLockOutline" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'visibility-internal'" :path="mdiLockOpenOutline" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'forgejo'" :path="siForgejo.path" :size="size || '1.3rem'" />

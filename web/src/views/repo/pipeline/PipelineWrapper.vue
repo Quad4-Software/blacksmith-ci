@@ -61,15 +61,15 @@
     <template #tabActions>
       <div class="flex flex-wrap gap-4 md:flex-nowrap">
         <div class="flex shrink-0 items-center gap-2" :title="$t('repo.pipeline.created', { created })">
-          <Icon name="since" /> <span>{{ since }}</span>
+          <Icon name="since" size="1rem" /> <span>{{ since }}</span>
         </div>
 
         <div class="flex shrink-0 items-center gap-2" :title="$t('repo.pipeline.duration')">
-          <Icon name="duration" /> <span>{{ duration }}</span>
+          <Icon name="duration" size="1rem" /> <span>{{ duration }}</span>
         </div>
       </div>
     </template>
-    <Tab icon="tasks" icon-size="1rem" :to="{ name: 'repo-pipeline' }" :title="$t('repo.pipeline.tasks')" />
+    <Tab icon="tasks" size="1rem" :to="{ name: 'repo-pipeline' }" :title="$t('repo.pipeline.tasks')" />
     <Tab
       v-if="pipeline.errors && pipeline.errors.length > 0"
       :to="{ name: 'repo-pipeline-errors' }"
@@ -80,7 +80,7 @@
     />
     <Tab
       icon="file-cog-outlined"
-      icon-size="1rem"
+      size="1rem"
       :to="{ name: 'repo-pipeline-config' }"
       :title="$t('repo.pipeline.config')"
     />

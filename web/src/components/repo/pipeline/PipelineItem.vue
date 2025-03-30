@@ -36,7 +36,7 @@
             <Icon v-else-if="pipeline.event === 'tag' || pipeline.event === 'release'" name="tag" class="" />
             <Icon v-else-if="pipeline.event === 'cron'" name="branch" class="" />
             <Icon v-else-if="pipeline.event === 'manual'" name="manual-pipeline" class="" />
-            <Icon v-else name="branch" icon-size="1.3rem" class="" />
+            <Icon v-else name="branch" size="1.3rem" class="" />
           </span>
           <span class="truncate">{{ prettyRef }}</span>
         </div>
