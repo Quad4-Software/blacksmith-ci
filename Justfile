@@ -5,16 +5,38 @@ TARGETOS := `go env GOOS`
 TARGETARCH := `go env GOARCH`
 BIN_SUFFIX := if TARGETOS == "windows" { ".exe" } else { "" }
 DIST_DIR := "dist"
-VERSION := "dev"
-VERSION_NUMBER := "0.0.0"
-CI_COMMIT_SHA := `git rev-parse HEAD`
+# VERSION := env_var_or_default("VERSION", "dev")
+CI_COMMIT_SHA := env_var_or_default("CI_COMMIT_SHA", `git rev-parse HEAD`)
 TAGS := ""
 STATIC_BUILD := "true"
+
+# Set version based on CI environment
+VERSION := if env_var_or_default("CI_COMMIT_TAG", "") != "" {
+    replace(env_var("CI_COMMIT_TAG"), "v", "")
+} else if env_var_or_default("CI_COMMIT_BRANCH", "") != "" {
+    if `echo $CI_COMMIT_BRANCH | cut -c -9` == "release/v" {
+        `echo $CI_COMMIT_BRANCH | cut -c 10-` + "-" + `echo $CI_COMMIT_SHA | cut -c -10`
+    } else {
+        env_var_or_default("VERSION", "dev")
+    }
+} else {
+		"dev-" + `echo "${CI_COMMIT_SHA:-$(git rev-parse HEAD)}" | cut -c -10 2>/dev/null || echo "unknown"`
+}
+
+VERSION_NUMBER := if env_var_or_default("CI_COMMIT_TAG", "") != "" {
+    replace(env_var("CI_COMMIT_TAG"), "v", "")
+} else {
+    env_var_or_default("VERSION_NUMBER", "0.0.0")
+}
 
 # Conditional assignment for LDFLAGS if STATIC_BUILD is true
 # FIXME: https://github.com/casey/just/issues/11
 
-LDFLAGS := if STATIC_BUILD == "true" { "-s -w -extldflags '-static'" } else { "" }
+LDFLAGS := if STATIC_BUILD == "true" {
+    "-s -w -extldflags '-static' -X codeberg.org/crowci/crow/v3/version.Version=" + VERSION
+} else {
+    "-X codeberg.org/crowci/crow/v3/version.Version=" + VERSION
+}
 
 # only used to compile server
 
@@ -25,6 +47,9 @@ CGO_CFLAGS := if HAS_GO == "GO" { `go env CGO_CFLAGS` } else { "" }
 
 ### Recipes
 ## general
+
+version:
+	@echo "{{VERSION}}"
 
 fmt:
 		prettier -w .

@@ -12,6 +12,6 @@ type NewVersion struct {
 }
 
 const (
-	woodpeckerVersionURL = "https://woodpecker-ci.org/version.json"
-	githubBinaryURL      = "https://codeberg.org/crowci/crow/releases/download/v%s/crow-cli_%s_%s.tar.gz"
+	crowVersionURL = "https://crowci.dev/version.json"
+	BinaryURL      = "https://codeberg.org/crowci/crow/releases/download/v%s/crow-cli_%s_%s.tar.gz"
 )
