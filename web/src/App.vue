@@ -10,7 +10,7 @@
         </transition>
       </main>
     </template>
-    <notifications position="bottom right" width="340px" />
+    <notifications position="bottom right" width="340px" dangerously-set-inner-html="true" />
   </div>
 </template>
 

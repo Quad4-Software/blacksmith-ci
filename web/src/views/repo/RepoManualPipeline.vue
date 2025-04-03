@@ -23,11 +23,12 @@
 </template>
 
 <script lang="ts" setup>
-import { useNotification } from '@kyvg/vue3-notification';
 import type { Ref } from 'vue';
 import { computed, onMounted, ref, inject as vueInject } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
+
+import useNotifications from '~/compositions/useNotifications';
 
 import Button from '~/components/atomic/Button.vue';
 import Icon from '~/components/atomic/Icon.vue';
@@ -49,7 +50,7 @@ const emit = defineEmits<{
 }>();
 
 const apiClient = useApiClient();
-const notifications = useNotification();
+const notifications = useNotifications();
 const i18n = useI18n();
 
 const repo = inject('repo');
@@ -98,17 +99,32 @@ onMounted(async () => {
 
 async function triggerManualPipeline() {
   loading.value = true;
-  const pipeline = await apiClient.createPipeline(repo.value.id, pipelineOptions.value);
 
-  emit('close');
+  try {
+    const pipeline = await apiClient.createPipeline(repo.value.id, pipelineOptions.value);
 
-  await router.push({
-    name: 'repo-pipeline',
-    params: {
-      pipelineId: pipeline.number,
-    },
-  });
+    emit('close');
 
-  loading.value = false;
+    await router.push({
+      name: 'repo-pipeline',
+      params: {
+        pipelineId: pipeline.number,
+      },
+    });
+  } catch (error: any) {
+    const helpUrl = 'https://www.crowci.dev/usage/workflow-syntax/?h=manual#event';
+    const baseMessage = i18n.t('repo.manual_pipeline.notify_text_failed');
+    const helpText = i18n.t('repo.manual_pipeline.manual_event_help');
+
+    notifications.notify({
+      title: i18n.t('notify_title_error'),
+      type: 'error',
+      duration: 9000,
+      text: `${baseMessage} <a href='${helpUrl}' target='_blank' class='text-wp-custom-highlight-100 underline'>${helpText}</a>`,
+    });
+    console.error('Failed to trigger pipeline:', error);
+  } finally {
+    loading.value = false;
+  }
 }
 </script>

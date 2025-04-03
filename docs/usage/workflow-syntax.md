@@ -488,6 +488,10 @@ A list of all available events:
 - `cron`: triggered when a cron job is executed. Requires a cron job to be configured in the dashboard.
 - `manual`: triggered when a user manually triggers a pipeline in UI or via CLI.
 
+/// info
+If you want to run pipelines via the "Manual pipeline run" button in the UI, make sure to add the `manual` event trigger to the `when:` section.
+///
+
 Event triggers can be combined.
 If this is used, **all** conditions need to evaluate to `true`.
 Example: Execute a step if the pipeline event is a push to a specified branch:
@@ -502,12 +506,13 @@ Execute a step for multiple events:
 
 ```yaml
 when:
-  - event: [push, tag, deployment]
+  - event: [push, tag, deployment, manual]
   # alternative syntax
   # - event:
   #     - push
   #     - tag
   #     - deployment
+  #     - manual
 ```
 
 #### matrix { #matrix_step }

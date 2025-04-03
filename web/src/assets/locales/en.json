@@ -51,7 +51,9 @@
         "name": "Variable name",
         "value": "Variable value"
       },
-      "show_pipelines": "Show pipelines"
+      "show_pipelines": "Show pipelines",
+      "notify_text_failed": "Manual pipeline creation failed.",
+      "manual_event_help": "Did you forget to add the 'manual' event trigger?"
     },
     "deploy_pipeline": {
       "title": "Trigger a deployment for the current pipeline #{pipelineId}",
