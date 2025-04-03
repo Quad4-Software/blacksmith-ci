@@ -8,7 +8,7 @@ import useConfig from './useConfig';
 interface VersionInfo {
   latest: string;
   rc: string;
-  next: string;
+  dev: string;
 }
 
 const version = ref<{
@@ -16,7 +16,7 @@ const version = ref<{
   current: string;
   currentShort: string;
   needsUpdate: boolean;
-  usesNext: boolean;
+  usesDev: boolean;
 }>();
 
 async function fetchVersion(): Promise<VersionInfo | undefined> {
@@ -41,16 +41,16 @@ export function useVersion() {
   const config = useConfig();
   const current = config.version as string;
   const currentSemver = semverCoerce(current);
-  const usesNext = current.startsWith('dev');
+  const usesDev = current.startsWith('dev');
 
   const { user } = useAuthentication();
   if (config.skipVersionCheck || user?.admin !== true) {
     version.value = {
       latest: undefined,
       current,
-      currentShort: usesNext ? 'dev' : current,
+      currentShort: usesDev ? 'dev' : current,
       needsUpdate: false,
-      usesNext,
+      usesDev,
     };
     return version;
   }
@@ -60,8 +60,8 @@ export function useVersion() {
 
     let latest;
     if (versionInfo) {
-      if (usesNext) {
-        latest = versionInfo.next;
+      if (usesDev) {
+        latest = versionInfo.dev;
       } else if (current.includes('rc')) {
         latest = versionInfo.rc;
       } else {
@@ -70,7 +70,7 @@ export function useVersion() {
     }
 
     let needsUpdate = false;
-    if (usesNext) {
+    if (usesDev) {
       needsUpdate = latest !== current;
     } else if (latest !== undefined && currentSemver !== null) {
       needsUpdate = semverGt(latest, currentSemver);
@@ -79,9 +79,9 @@ export function useVersion() {
     version.value = {
       latest,
       current,
-      currentShort: usesNext ? 'next' : current,
+      currentShort: usesDev ? 'dev' : current,
       needsUpdate,
-      usesNext,
+      usesDev,
     };
   });
 
