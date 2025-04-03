@@ -1,5 +1,7 @@
 FROM --platform=$BUILDPLATFORM docker.io/golang:1.24-alpine3.21 AS build
 
+RUN adduser -u 1000 -g 1000 -D woodpecker
+
 WORKDIR /src
 COPY . .
 ARG TARGETOS TARGETARCH CI_COMMIT_SHA CI_COMMIT_TAG CI_COMMIT_BRANCH
@@ -14,7 +16,7 @@ FROM scratch
 WORKDIR /woodpecker
 
 ENV GODEBUG=netdns=go
-ENV WOODPECKER_DISABLE_UPDATE_CHECK=true
+ENV CROW_DISABLE_UPDATE_CHECK=true
 
 # copy certs from build image
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
