@@ -29,6 +29,9 @@ steps:
       source: site/**/*
       strip_prefix: site/
       target: /
+    when:
+      - event: push
+        branch: ${CI_REPO_DEFAULT_BRANCH}
 
   # - name: 'Clone pages repo and update files'
   #   image: alpine:3.21
