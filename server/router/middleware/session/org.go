@@ -75,12 +75,11 @@ func SetOrg() gin.HandlerFunc {
 func MustOrg() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		org := Org(c)
-		switch {
-		case org == nil:
+		if org == nil {
 			c.String(http.StatusNotFound, "Organization not loaded")
 			c.Abort()
-		default:
-			c.Next()
+			return
 		}
+		c.Next()
 	}
 }

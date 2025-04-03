@@ -62,12 +62,12 @@ func createFilterFunc(agentFilter rpc.Filter) queue.FilterFn {
 				}
 			} else {
 				// Standard matching for other labels
-				switch {
+				switch agentLabelValue {
 				// if agent label has a wildcard
-				case agentLabelValue == "*":
+				case "*":
 					score++
 				// if agent label has an exact match
-				case agentLabelValue == taskLabelValue:
+				case taskLabelValue:
 					score += 10
 				// agent doesn't match
 				default:

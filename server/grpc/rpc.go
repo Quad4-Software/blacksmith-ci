@@ -491,8 +491,7 @@ func (s *RPC) ReportHealth(ctx context.Context, status string) error {
 	}
 
 	if status != "I am alive!" {
-		//nolint:stylecheck
-		return errors.New("Are you alive?")
+		return errors.New("are you alive?")
 	}
 
 	agent.LastContact = time.Now().Unix()
