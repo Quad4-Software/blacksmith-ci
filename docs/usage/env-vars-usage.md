@@ -121,7 +121,7 @@ Variables:
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
 | `CI_PIPELINE_NUMBER`        | pipeline number                                                                                                    | `8`                                                                                        |
 | `CI_PIPELINE_PARENT`        | number of parent pipeline                                                                                          | `0`                                                                                        |
-| `CI_PIPELINE_EVENT`         | pipeline event (see [`event`](../workflow-syntax#event))                                                           | `push`, `pull_request`, `pull_request_closed`, `tag`, `release`, `manual`, `cron`          |
+| `CI_PIPELINE_EVENT`         | pipeline event (see [`event`](workflow-syntax.md#event))                                                           | `push`, `pull_request`, `pull_request_closed`, `tag`, `release`, `manual`, `cron`          |
 | `CI_PIPELINE_URL`           | link to the web UI for the pipeline                                                                                | `https://ci.example.com/repos/7/pipeline/8`                                                |
 | `CI_PIPELINE_FORGE_URL`     | link to the forge's web UI for the commit(s) or tag that triggered the pipeline                                    | `https://git.example.com/john-doe/my-repo/commit/eba09b46064473a1d345da7abf28b477468e8dbd` |
 | `CI_PIPELINE_DEPLOY_TARGET` | pipeline deploy target for `deployment` events                                                                     | `production`                                                                               |
@@ -175,19 +175,19 @@ Variables:
 
 ### Previous pipeline
 
-| NAME                             | Description                                                                      | Example                                                                                    |
-| -------------------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `CI_PREV_PIPELINE_NUMBER`        | previous pipeline number                                                         | `7`                                                                                        |
-| `CI_PREV_PIPELINE_PARENT`        | previous pipeline number of parent pipeline                                      | `0`                                                                                        |
-| `CI_PREV_PIPELINE_EVENT`         | previous pipeline event (see [`event`](../20-usage/20-workflow-syntax.md#event)) | `push`, `pull_request`, `pull_request_closed`, `tag`, `release`, `manual`, `cron`          |
-| `CI_PREV_PIPELINE_URL`           | previous pipeline link in CI                                                     | `https://ci.example.com/repos/7/pipeline/7`                                                |
-| `CI_PREV_PIPELINE_FORGE_URL`     | previous pipeline link to event in forge                                         | `https://git.example.com/john-doe/my-repo/commit/15784117e4e103f36cba75a9e29da48046eb82c4` |
-| `CI_PREV_PIPELINE_DEPLOY_TARGET` | previous pipeline deploy target for `deployment` events                          | `production`                                                                               |
-| `CI_PREV_PIPELINE_DEPLOY_TASK`   | previous pipeline deploy task for `deployment` events                            | `migration`                                                                                |
-| `CI_PREV_PIPELINE_STATUS`        | previous pipeline status                                                         | `success`, `failure`                                                                       |
-| `CI_PREV_PIPELINE_CREATED`       | previous pipeline created UNIX timestamp                                         | `1722610173`                                                                               |
-| `CI_PREV_PIPELINE_STARTED`       | previous pipeline started UNIX timestamp                                         | `1722610173`                                                                               |
-| `CI_PREV_PIPELINE_FINISHED`      | previous pipeline finished UNIX timestamp                                        | `1722610383`                                                                               |
+| NAME                             | Description                                                       | Example                                                                                    |
+| -------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `CI_PREV_PIPELINE_NUMBER`        | previous pipeline number                                          | `7`                                                                                        |
+| `CI_PREV_PIPELINE_PARENT`        | previous pipeline number of parent pipeline                       | `0`                                                                                        |
+| `CI_PREV_PIPELINE_EVENT`         | previous pipeline event (see [`event`](workflow-syntax.md#event)) | `push`, `pull_request`, `pull_request_closed`, `tag`, `release`, `manual`, `cron`          |
+| `CI_PREV_PIPELINE_URL`           | previous pipeline link in CI                                      | `https://ci.example.com/repos/7/pipeline/7`                                                |
+| `CI_PREV_PIPELINE_FORGE_URL`     | previous pipeline link to event in forge                          | `https://git.example.com/john-doe/my-repo/commit/15784117e4e103f36cba75a9e29da48046eb82c4` |
+| `CI_PREV_PIPELINE_DEPLOY_TARGET` | previous pipeline deploy target for `deployment` events           | `production`                                                                               |
+| `CI_PREV_PIPELINE_DEPLOY_TASK`   | previous pipeline deploy task for `deployment` events             | `migration`                                                                                |
+| `CI_PREV_PIPELINE_STATUS`        | previous pipeline status                                          | `success`, `failure`                                                                       |
+| `CI_PREV_PIPELINE_CREATED`       | previous pipeline created UNIX timestamp                          | `1722610173`                                                                               |
+| `CI_PREV_PIPELINE_STARTED`       | previous pipeline started UNIX timestamp                          | `1722610173`                                                                               |
+| `CI_PREV_PIPELINE_FINISHED`      | previous pipeline finished UNIX timestamp                         | `1722610383`                                                                               |
 
 <!-- markdownlint-disable-next-line MD033 -->
 </div>

@@ -7,12 +7,10 @@ They can be used for any kind of operation: to deploy code, publish artifacts, s
 
 Why do plugins exist? What can they do better than just specifying commands in normal steps?
 
-!!! information
+Plugins fulfill the following needs:
 
-    Plugins fulfill the following needs:
-
-    - Secure security-sensitive operations
-    - Simplify complicated tasks
+- Secure security-sensitive operations
+- Simplify complicated tasks
 
 ## Security-sensitive commands
 
@@ -31,10 +29,10 @@ The advantage of this is two-fold: a cleaner/shorter YAML config and a small exe
 
 A variety of plugins exist from different sources and projects.
 
-!!! note
-
-    Historically, Drone plugins still exist and should work in theory.
-    However, many of these are not well maintained and might not comply anymore with the requirement of not allowing arbitrary env vars in the `environment:` section, which is enforced since Crow/Woodpecker 3.0.
+/// note
+Historically, Drone plugins still exist and should work in theory.
+However, many of these are not well maintained and might not comply anymore with the requirement of not allowing arbitrary env vars in the `environment:` section, which is enforced since Crow/Woodpecker 3.0.
+///
 
 A non-comprehensive list of available plugins:
 
