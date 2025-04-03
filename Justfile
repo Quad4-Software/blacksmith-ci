@@ -70,7 +70,7 @@ mockery: install-tools
 		mockery
 
 install-tools:
-		@hash golangci-lint > /dev/null 2>&1 || go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+		# @hash golangci-lint > /dev/null 2>&1 || go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 		@hash gofumpt > /dev/null 2>&1 || go install mvdan.cc/gofumpt@latest
 		@hash addlicense > /dev/null 2>&1 || go install github.com/google/addlicense@latest
 		@hash mockery > /dev/null 2>&1 || go install github.com/vektra/mockery/v2@latest
