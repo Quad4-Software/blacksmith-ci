@@ -61,7 +61,8 @@
   <SvgIcon v-else-if="name === 'play-outline'" :path="mdiPlayOutline" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'dots'" :path="mdiDotsVertical" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'tasks'" :path="mdiFormatListBulletedType" :size="size || '1.3rem'" />
-  <SvgIcon v-else-if="name === 'file-cog-outlined'" :path="mdiFileCogOutline" :size="size || '1.3rem'" />
+  <SvgIcon v-else-if="name === 'file-cog-outline'" :path="mdiFileCogOutline" :size="size || '1.3rem'" />
+  <SvgIcon v-else-if="name === 'file-edit-outline'" :path="mdiFileEditOutline" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'bug-outline'" :path="mdiBugOutline" :size="size || '1rem'" />
   <SvgIcon v-else-if="name === 'docker'" :path="mdiDocker" :size="size || '1rem'" />
   <SvgIcon v-else-if="name === 'visibility-private'" :path="mdiLockOutline" :size="size || '1.3rem'" />
@@ -116,6 +117,7 @@ import {
   mdiEyeOffOutline,
   mdiEyeOutline,
   mdiFileCogOutline,
+  mdiFileEditOutline,
   mdiFormatListBulleted,
   mdiGit,
   mdiGithub,
@@ -208,7 +210,8 @@ export type IconNames =
   | 'visibility-internal'
   | 'dots'
   | 'tasks'
-  | 'file-cog-outlined'
+  | 'file-cog-outline'
+  | 'file-edit-outline'
   | 'bug-outline'
   | 'pipelines'
   | 'secret'
