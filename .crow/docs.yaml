@@ -17,7 +17,7 @@ steps:
       - mv site/domains site/.domains
 
   - name: s3-sync
-    image: plugins/s3:1.5.1
+    image: plugins/s3:1.5.2
     settings:
       bucket: crow-docs
       region: fsn1
