@@ -9,17 +9,22 @@ when:
 steps:
   - name: 'Build docs'
     image: alpine:3.21
+    environment:
+      IS_CI: true
+      MKDOCS_MATERIAL_VERSION: 9.6.11-insiders-4.53.16
+      GH_TOKEN_MKDOCS_MATERIAL:
+        from_secret: gh_token_mkdocs_material
     commands:
-      - apk add --no-cache -q git py3-pip cairo
+      - apk add --no-cache -q git py3-pip cairo just fish go pngquant
       - python3 -m venv venv
-      - source venv/bin/activate && pip3 install -r docs/requirements.txt
-      - mkdocs build
+      - just docs-venv-fish
+      - just docs-build
       - mv site/domains site/.domains
 
   - name: s3-sync
     image: plugins/s3:1.5.2
     settings:
-      bucket: crow-docs
+      bucket: crow-docs-nbg1
       region: nbg1
       endpoint: https://nbg1.your-objectstorage.com
       access_key:

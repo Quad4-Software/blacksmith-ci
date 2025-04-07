@@ -9,6 +9,9 @@ DIST_DIR := "dist"
 CI_COMMIT_SHA := env_var_or_default("CI_COMMIT_SHA", `git rev-parse HEAD`)
 TAGS := ""
 STATIC_BUILD := "true"
+GH_TOKEN_MKDOCS_MATERIAL := env_var_or_default("GH_TOKEN_MKDOCS_MATERIAL", "")
+MKDOCS_MATERIAL_VERSION := env_var_or_default("MKDOCS_MATERIAL_VERSION", "latest")
+CI := env_var_or_default("CI", "false")
 
 # Set version based on CI environment
 VERSION := if env_var_or_default("CI_COMMIT_TAG", "") != "" {
@@ -109,8 +112,8 @@ test-lib:
 ## docs
 
 docs-venv-fish:
-		python3 -m venv venv
-		fish -c 'source venv/bin/activate.fish && pip3 install -r docs/requirements.txt'
+    test -d venv || python3 -m venv venv
+    fish -c 'if set -q GH_TOKEN_MKDOCS_MATERIAL; source venv/bin/activate.fish; and pip3 install -r docs/requirements-insiders.txt; else; source venv/bin/activate.fish; and pip3 install -r docs/requirements.txt; end'
 
 docs-mike ARG:
 		fish -c 'source venv/bin/activate.fish && mike {{ ARG }}'
@@ -119,7 +122,7 @@ docs-serve:
 		fish -c 'source venv/bin/activate.fish && mkdocs --version && mkdocs serve'
 
 docs-build:
-		fish -c 'source venv/bin/activate.fish && mkdocs --version && mkdocs build && cp -r site/* ../pages/ && cd ~/git/codeberg.org/crowci/pages/ && mv domains .domains && git add -A && git commit -m "update docs" && git push -u origin'
+		fish -c 'source venv/bin/activate.fish && mkdocs --version && CI={{CI}} mkdocs build'
 
 docs-deploy:
 		fish -c 'source venv/bin/activate.fish && mkdocs --version && mkdocs gh-deploy'

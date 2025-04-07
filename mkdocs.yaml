@@ -42,9 +42,6 @@ theme:
     code: Roboto Mono
   features:
     # https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/#instant-loading
-    - navigation.instant
-    - navigation.instant.prefetch
-    - navigation.instant.progress
     - navigation.tracking
     - navigation.tabs
     - navigation.tabs.sticky
@@ -59,6 +56,10 @@ theme:
     - content.action.edit
     - content.code.copy
     - announce.dismiss
+    # insiders
+    - navigation.instant.preview
+    - navigation.instant.prefetch
+    - navigation.instant.progress
 
 extra:
   # version:
@@ -73,7 +74,7 @@ plugins:
   # - typeset
   - social:
       cards_layout_options:
-        logo: layouts/crow-logo-white-bg.png
+        logo: docs/layout/crow-logo-white-bg.png
   - search:
       separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
   - minify:
@@ -82,10 +83,23 @@ plugins:
   - glightbox:
       width: 80%
 
+  - group:
+      enabled: !ENV IS_CI
+      plugins:
+        - optimize
+        - privacy
+  # local execution
+  - group:
+      enabled: !ENV INSIDERS
+      plugins:
+        - optimize
+        - privacy
+
 extra_css:
   - stylesheets/extra.css
 extra_javascript:
   - javascripts/extra.js
+  - javascripts/buymeacoffee.js
 
 markdown_extensions:
   - pymdownx.highlight:
