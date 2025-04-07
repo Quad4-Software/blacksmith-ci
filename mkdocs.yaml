@@ -5,6 +5,7 @@ repo_name: crowci/crow
 edit_uri: _edit/main/docs/
 theme:
   name: material
+  custom_dir: docs/overrides
   logo: logo.svg
   favicon: favicon.png
   icon:
@@ -57,6 +58,7 @@ theme:
     - header.autohide
     - content.action.edit
     - content.code.copy
+    - announce.dismiss
 
 extra:
   # version:

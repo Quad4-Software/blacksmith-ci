@@ -56,3 +56,17 @@
 .explicit-col-width th:nth-child(3) {
   width: 15%;
 }
+
+.bmc-btn-container {
+  height: auto !important;
+  width: auto !important;
+  /* margin: 20px; */
+}
+
+.bmc-btn {
+  font-size: 0.7rem !important;
+  min-width: 5px !important;
+  padding: 0px 10px !important;
+  height: auto !important;
+  width: auto !important;
+}

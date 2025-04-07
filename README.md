@@ -39,3 +39,18 @@ A slim and self-hostable CI/CD engine with great extensibility.
    📖️ Documentation
   </a>
 </p>
+
+## Docs
+
+Built with [mkdocs-material](https://squidfunk.github.io/mkdocs-material/).
+
+### Theme changes
+
+Generally, all theme changes are in `stylesheets/extra.css`.
+
+The following is a list of notes to keep an overview:
+
+- Custom primary color
+- Custom dark background color
+- `.explicit-col-width` classes to be able to have tables with fixed column widths.
+- Custom "donation" button in `header.html` from "buymeacoffee.com" (including custom css classes `.bmc-btn-container ` and `.bmc-btn`)
