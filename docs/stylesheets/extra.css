@@ -57,16 +57,14 @@
   width: 15%;
 }
 
-.bmc-btn-container {
-  height: auto !important;
-  width: auto !important;
-  /* margin: 20px; */
-}
-
-.bmc-btn {
-  font-size: 0.7rem !important;
-  min-width: 5px !important;
-  padding: 0px 10px !important;
-  height: auto !important;
-  width: auto !important;
+.support-btn {
+  font-size: 0.7rem;
+  color: black;
+  min-width: 5px;
+  padding: 3px 10px;
+  height: auto;
+  width: auto;
+  /* static light theme link color  */
+  background-color: #ff9b00;
+  border-radius: 12px;
 }

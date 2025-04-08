@@ -2,7 +2,7 @@
 
 <p align="center">
   <a href="https://squidfunk.github.io/mkdocs-material/">
-    <img src="https://codeberg.org/crowci/crow/raw/branch/main/assets/crow-logo-white-bg-round.png" width="350" alt="Material for MkDocs">
+    <img src="https://codeberg.org/crowci/crow/raw/branch/main/assets/crow-logo-gray-bg-round.png" width="350" alt="Material for MkDocs">
   </a>
 </p>
 
@@ -40,7 +40,21 @@ A slim and self-hostable CI/CD engine with great extensibility.
   </a>
 </p>
 
-## Docs
+<p align="center">
+  <img src="https://img.shields.io/liberapay/receives/crowci.svg?logo=liberapay">
+</p>
+
+<p align="center">
+  <a href="https://liberapay.com/pat-s/donate">
+    <img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg">
+  </a>
+</p>
+
+<p align="center">
+👉️ <strong>See it in action at <a href="https://ci.crowci.dev">ci.crowci.dev</a></strong>
+</p>
+
+## Docs (Developer)
 
 Built with [mkdocs-material](https://squidfunk.github.io/mkdocs-material/).
 
@@ -53,4 +67,4 @@ The following is a list of notes to keep an overview:
 - Custom primary color
 - Custom dark background color
 - `.explicit-col-width` classes to be able to have tables with fixed column widths.
-- Custom "donation" button in `header.html` from "buymeacoffee.com" (including custom css classes `.bmc-btn-container ` and `.bmc-btn`)
+- Custom "support" button in `header.html` (including custom css classes `.support-btn`)
