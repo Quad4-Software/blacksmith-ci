@@ -68,3 +68,9 @@ The following is a list of notes to keep an overview:
 - Custom dark background color
 - `.explicit-col-width` classes to be able to have tables with fixed column widths.
 - Custom "support" button in `header.html` (including custom css classes `.support-btn`)
+
+### Versioning
+
+A new docs version is published to the `gh-pages` branch via [mike](https://github.com/jimporter/mike) for every release and push to `main` (="dev").
+(`mike` does not allow to use a different branch name than `gh-pages` as it is heavily focused on GitHub Pages.)
+From this branch, the assets will be synced to S3.
