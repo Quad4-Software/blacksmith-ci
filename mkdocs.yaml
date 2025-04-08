@@ -71,10 +71,13 @@ copyright: >
 
 plugins:
   - privacy
-  # - typeset
   - social:
+      cards_layout: default/variant
       cards_layout_options:
-        logo: docs/layout/crow-logo-white-bg.png
+        color: '#fff'
+        background_color: '#1e2129'
+        font_family: Inter
+        description: Crow CI is a Continuous Integration & Continuous Delivery (CI/CD) application. It is designed to be lightweight, simple to use and fast.
   - search:
       separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
   - minify:
