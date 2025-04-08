@@ -45,7 +45,7 @@ A slim and self-hostable CI/CD engine with great extensibility.
 </p>
 
 <p align="center">
-  <a href="https://liberapay.com/pat-s/donate">
+  <a href="https://liberapay.com/crowci/donate">
     <img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg">
   </a>
 </p>
