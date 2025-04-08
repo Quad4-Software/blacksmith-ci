@@ -156,8 +156,7 @@ nav:
       - Registries: usage/registries.md
       - Services: usage/services.md
       - Advanced: usage/advanced.md
-  - Plugins:
-      - plugins/index.md
+  - Plugins: plugins/index.md
   - Ecosystem:
       - ecosystem/index.md
       - Socials: ecosystem/socials.md

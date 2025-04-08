@@ -1,6 +1,11 @@
-<!-- markdownlint-disable MD041 -->
+---
+hide:
+  - navigation
+---
 
-# Plugins
+## <!-- markdownlint-disable MD041 -->
+
+<!-- # Plugins -->
 
 Plugins are special pipeline steps that perform **pre-defined tasks**.
 They can be used for any kind of operation: to deploy code, publish artifacts, send notification, and more.
