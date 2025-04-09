@@ -131,7 +131,7 @@ const { doSubmit: deleteSecret, isLoading: isDeleting } = useAsyncAction(async (
 
   await apiClient.deleteSecret(repo.value.id, _secret.name);
   notifications.notify({
-    title: i18n.t('notify_title_error'),
+    title: i18n.t('notify_title_success'),
     text: i18n.t('secrets.notify_text_deleted'),
     type: 'success',
     duration: 6000,
