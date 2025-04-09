@@ -26,7 +26,7 @@ steps:
       - git remote set-url origin https://crowci-bot:${CODEBERG_TOKEN}@codeberg.org/crowci/crow.git
       # build & deploy
       - just docs-venv-fish
-      - just docs-mike "deploy dev"
+      - just docs-mike "deploy dev --push"
       - mv site/domains site/.domains
 
   - name: 'Build docs (tag)'
