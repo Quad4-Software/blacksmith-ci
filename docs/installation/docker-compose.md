@@ -1,4 +1,10 @@
+---
+hide:
+  - toc
+---
+
 <!-- markdownlint-disable MD041 -->
+
 This exemplary docker-compose setup shows the deployment of a Crow instance connected to GitHub (`CROW_GITHUB=true`).
 If you are using another forge, please change this including the respective secret settings.
 

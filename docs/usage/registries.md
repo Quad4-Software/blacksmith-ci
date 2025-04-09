@@ -1,3 +1,8 @@
+---
+hide:
+  - toc
+---
+
 <!-- markdownlint-disable MD041 -->
 
 Container registry credentials can be added in the repository settings.

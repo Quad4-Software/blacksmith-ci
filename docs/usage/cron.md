@@ -1,3 +1,8 @@
+---
+hide:
+  - toc
+---
+
 <!-- markdownlint-disable MD041 -->
 
 # CRON

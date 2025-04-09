@@ -1,6 +1,11 @@
+---
+hide:
+  - toc
+---
+
 <!-- markdownlint-disable MD041 -->
 
-"Deployments" in Crow are *manually* triggered events on top of *finished* pipelines.
+"Deployments" in Crow are _manually_ triggered events on top of _finished_ pipelines.
 They relate to the idea to "deploy" successful builds to a specific environment (e.g. "production").
 
 /// important

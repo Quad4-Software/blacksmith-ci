@@ -1,7 +1,5 @@
 <!-- markdownlint-disable MD041 -->
 
-WIP - Please see the [Woodpecker documentation](https://woodpecker-ci.org/docs/intro) in the meantime.
-
 # Repository settings
 
 The owner of a repository in the linked forge can change the related Crow CI settings via the web interface.
