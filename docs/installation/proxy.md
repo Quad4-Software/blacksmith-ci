@@ -1,4 +1,5 @@
 <!-- markdownlint-disable MD041 -->
+
 In the following, different reverse proxy setups are given (in alphabetical order) to make Crow work behind a reverse proxy:
 
 ## Apache
@@ -19,35 +20,44 @@ ProxyPassReverse / http://127.0.0.1:8000/
 
 ## Caddy
 
-```txt
-# WebUI and API
+### Server
+
+```conf
 crow.example.com {
   reverse_proxy crow-server:8000
 }
+```
 
-# expose gRPC
-crow-agent.example.com {
+### GRPC
+
+/// note
+This is only needed when agents on remote servers should be connected over the public internet.
+///
+
+```conf
+grpc.crow.example.com {
   reverse_proxy h2c://crow-server:9000
 }
 ```
 
-/// info
-The above configuration shows how to create reverse-proxies for server and agent communication. If the agent is configured to use SSL, do not forget to enable `CROW_GRPC_SECURE`.
-///
-
 ## Nginx
+
+### Server
 
 ```conf
 server {
-    listen 80;
+    listen 443 ssl;
     server_name crow.example.com;
+
+    ssl_certificate path/to/cert;
+    ssl_certificate_key path/to/key;
 
     location / {
         proxy_set_header X-Forwarded-For $remote_addr;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header Host $http_host;
 
-        proxy_pass http://127.0.0.1:8000;
+        proxy_pass http://0.0.0.0:8000;
         proxy_redirect off;
         proxy_http_version 1.1;
         proxy_buffering off;
@@ -60,6 +70,26 @@ server {
 /// info
 This does not cover an SSL configuration with NGINX but only shows how to properly forward incoming requests through NGINX to Crow.
 ///
+
+### GRPC
+
+/// note
+This is only needed when agents on remote servers should be connected over the public internet.
+///
+
+```conf
+server {
+    listen 443 ssl;
+    server_name grpc.example.com;
+
+    ssl_certificate path/to/cert;
+    ssl_certificate_key path/to/key;
+
+    location / {
+      grpc_pass grpc://0.0.0.0:9000;
+    }
+}
+```
 
 ## Ngrok
 
@@ -83,22 +113,20 @@ Set `CROW_HOST` to the returned URL (e.g. exx.tunnelmole.net) and (re)start Crow
 
 ## Traefik
 
-To install the crow server behind a Traefik load balancer, both the http and the gRPC ports must be exposed and configured.
+This is a comprehensive example, which uses `traefik` running via docker compose and applies TLS termination and automatic redirection from http to https.
 
-Here is a comprehensive example, which uses `traefik` running via docker compose and applies TLS termination and automatic redirection from http to https.
+### Server
 
 ```yaml
 services:
   server:
-    image: ghcr.io/crowci/crow-server:latest
+    image: <image>
     environment:
-      # Crow settings ...
-
+      # [..] Crow settings
     networks:
       - dmz # externally defined network, so that traefik can connect to the server
     volumes:
       - crow-server-data:/var/lib/crow/
-
     deploy:
       labels:
         - traefik.enable=true
@@ -119,18 +147,26 @@ services:
         - traefik.http.middlewares.crow-redirect.redirectscheme.scheme=https
         - traefik.http.middlewares.crow-redirect.redirectscheme.permanent=true
         - traefik.http.routers.crow.middlewares=crow-redirect@docker
+```
 
-        #  gRPC service
+### GRPC
+
+/// note
+This is only needed when agents on remote servers should be connected over the public internet.
+///
+
+```yaml
+# [...] continued from previous block
         - traefik.http.services.crow-grpc.loadbalancer.server.port=9000
         - traefik.http.services.crow-grpc.loadbalancer.server.scheme=h2c
 
-        - traefik.http.routers.crow-grpc-secure.rule=Host(`crow-grpc.your-domain.com`)
+        - traefik.http.routers.crow-grpc-secure.rule=Host(`grpc.crow.example.com`)
         - traefik.http.routers.crow-grpc-secure.tls=true
         - traefik.http.routers.crow-grpc-secure.tls.certresolver=letsencrypt
         - traefik.http.routers.crow-grpc-secure.entrypoints=web-secure
         - traefik.http.routers.crow-grpc-secure.service=crow-grpc
 
-        - traefik.http.routers.crow-grpc.rule=Host(`crow-grpc.your-domain.com`)
+        - traefik.http.routers.crow-grpc.rule=Host(`grpc.crow.example.com`)
         - traefik.http.routers.crow-grpc.entrypoints=web
         - traefik.http.routers.crow-grpc.service=crow-grpc
 
@@ -141,4 +177,43 @@ services:
 networks:
   dmz:
     external: true
+```
+
+## HAProxy
+
+General frontend configuration:
+
+```conf
+frontend https_in
+    mode http
+    bind :::443 v4v6 ssl crt <cert>
+
+    acl is_ci_subdomain hdr(host) -i crow.example.com
+    acl is_grpc_ci_subdomain hdr(host) -i grpc.crow.example.com
+
+    use_backend crowci_backend if is_ci_subdomain
+    use_backend crowci_grpc_backend if is_grpc_ci_subdomain
+```
+
+### Server
+
+```conf
+backend crowci_backend
+    mode http
+    balance roundrobin
+
+    http-request del-header X-Forwarded-For
+    http-request del-header X-Real-IP
+    # add an X-Forwarded-For header to the request, containing the actual IP address of the client
+    option forwardfor
+
+    server crowci 0.0.0.0:8000 maxconn 100000 check
+```
+
+### GRPC
+
+```conf
+backend crowci_grpc_backend
+    mode http
+    server crowci_grpc 0.0.0.0:9000 maxconn 100000 no-check proto h2
 ```

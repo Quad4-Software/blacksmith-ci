@@ -1,3 +1,7 @@
+<!-- markdownlint-disable MD041 -->
+
+# Installation
+
 ## General
 
 Crow consists out of essential components (the "server" and the "agent") and an optional one (the "autoscaler").
@@ -22,7 +26,7 @@ There are currently two official ways[^1] how to install Crow:
 - Via [`docker-compose`](docker-compose.md) for single servers.
 - Via [`helm`](helm.md) for Kubernetes.
 
-## Crow agent secret
+## Crow agent tokens
 
 To allow secure communication between the _server_ and _agent_ via GRPC, a token is required.
 
@@ -37,7 +41,7 @@ In the best case, no further configuration is required.
 
 ### System token
 
-The system token is set via the env var `CROW_AGENT_SECRET` for both server and agent.
+The system token is set via the env var `CROW_AGENT_SECRET` for both server and agent deployments.
 **There can only ever be one system token at the same time, therefore.**
 
 If a system token is set, the registration process is as follows:
@@ -56,10 +60,12 @@ It is therefore recommended to persist `CROW_AGENT_CONFIG_FILE` to ensure idempo
 
 ### Agent token
 
-Agent tokens are created in the UI of the server (`Settings -> Agents -> Add agent`).
-This is an alternative way to tell the server about persistent agents and their possible connections.
+Agent tokens come into play when one wants to provision multiple agents, which, optionally, have certain restrictions set with respect to which workflows they are processing.
 
-Agent tokens can be handed over to individual agents via `CROW_AGENT_SECRET`, making it possible to register additional unique agents.
+Such tokens can be created in the UI of the server (`Settings -> Agents -> Add agent`) or through the API.
+
+The resulting tokens can be handed over to individual agents and referenced via `CROW_AGENT_SECRET`.
+Once an agent connects to the server for the first time with a matching agent token, the server registers the agent and allows it to process workflows.
 
 ![Agent creation](img/new-agent-registration.png){ width="500" }
 /// caption
@@ -67,6 +73,75 @@ Registration of a new agent through UI
 ///
 
 [^2]: This is primarily because Crow (still) stores pipeline logs in the DB. A refactoring to storing these outside the DB by default is planned but not yet implemented.
+
+## Installing agents on separate machines
+
+/// note
+Ensure you register an agent in the Crow server first and then use the resulting agent token when connecting the remote agent.
+///
+
+The simplest and most straightforward setup is to deploy agents on the same machine where the Crow server is running.
+In this case, agents can connect directly to the server's GRPC port (default `9000`) over a local connection.
+
+Yet, there are several reasons to deploy agents on remote servers and have them process builds.
+First and foremost, you might want to do this if the Crow server is deployed on a small machine (or with other low-resource deployments) but builds need to be run on more powerful hardware.
+
+In such scenarios, the connectivity must happen between two different machines, which are possibly connected over the public internet.
+In the following sections, we'll explore both scenarios: connecting an agent running on a separate machine over an internal network, and connecting via a public internet connection.
+
+### Internal
+
+In this case, the setup is not much different from the default scenario of running the agent alongside the server on the same machine.
+The agent must be deployed with the following env vars:
+
+```yaml
+# address of the Crow server: private ip (e.g. 10.x.x.x) + port
+CROW_SERVER: <private server ip>:8000
+CROW_GRPC_ADDR: <private server ip>:9000
+# agent token, previously created in Crow server
+CROW_AGENT_SECRET: <token>
+# (optional) agent labels to restrict workflows processing to matching labels
+CROW_AGENT_LABELS: <labels>
+# [...] additional agent settings
+```
+
+### Public
+
+When the public route must be used (which is the case when adding an agent without controlling the Crow server instance), the process becomes a bit more complex.
+This is because a secure SSL connection must be used for the GRPC connection between the server and agent, as otherwise the token exchanged between both could be intercepted.
+
+When using an SSL-GRPC connection, you must have a TLS-ready ingress on the Crow server machine that can process incoming requests adequately.
+This means, there must be
+
+- a subdomain for the GRPC service of Crow server
+- an SSL certificate for this subdomain
+
+Once this exists, the agent configuration would look as follows:
+
+```yaml
+CROW_SERVER: crow.mydomain.com
+CROW_GRPC_ADDR: grpc.crow.mydomain.com
+CROW_GRPC_SECURE: 'true'
+# agent token, previously created in Crow server
+CROW_AGENT_SECRET: <token>
+# (optional) agent labels to restrict workflows processing to matching labels
+CROW_AGENT_LABELS: <labels>
+# [...] additional agent settings
+```
+
+//// warning
+Do not prepend "https" before the domain name for the `CROW_SERVER` var.
+////
+
+Some notes:
+
+- `CROW_GRPC_SECURE` is important here as it tells the agent to use an SSL-backed connection when trying to establish the connection.
+- If you struggle to configure a proxy server on port 443 taking the subdomain requests, you can also use something like `crow.mydomain.com:<port>`.
+  The important part is that the receiving proxy is able to handle the TLS termination and forward the request to the Crow server service.
+
+/// tip
+Examples of common GRPC-based ingress configurations are provided in the [Reverse proxy setup](./proxy.md) page.
+///
 
 ## Image tags
 
@@ -77,13 +152,13 @@ Alternatively, the `dev` tag can be used for rolling builds from the `main` bran
 ///
 
 - `vX.Y.Z`: SemVer tags for specific releases, no entrypoint shell (scratch image)
-    - `vX.Y`
-    - `vX`
+  - `vX.Y`
+  - `vX`
 - `vX.Y.Z-alpine`: SemVer tags for specific releases, rootless for Server and CLI
-    - `vX.Y-alpine`
-    - `vX-alpine`
+  - `vX.Y-alpine`
+  - `vX-alpine`
 - `dev`: Built from the `main` branch
-    - `dev-<hash>`
+  - `dev-<hash>`
 - `pull_<PR_ID>`: Images built from Pull Request branches.
 
 ## Image registries
