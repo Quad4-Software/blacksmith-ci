@@ -57,6 +57,18 @@ steps:
       - mv site/domains site/.domains
       - just docs-mike "set-default --push latest"
 
+  - name: PR docs preview
+    image: docker.io/woodpeckerci/plugin-surge-preview:1.3.5
+    settings:
+      path: 'site/'
+      surge_token:
+        from_secret: surge_token
+      forge_repo_token:
+        from_secret: codeberg_bot_token
+    failure: ignore
+    when:
+      - event: [pull_request, pull_request_closed]
+
   - name: Clone gh-pages branch for S3 sync
     image: alpine:3.21
     commands:
