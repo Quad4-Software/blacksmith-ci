@@ -26,7 +26,7 @@ require (
 	github.com/getkin/kin-openapi v0.131.0
 	github.com/gin-gonic/gin v1.10.0
 	github.com/gitsight/go-vcsurl v1.0.1
-	github.com/go-sql-driver/mysql v1.9.1
+	github.com/go-sql-driver/mysql v1.9.2
 	github.com/go-viper/mapstructure/v2 v2.2.1
 	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/google/go-github/v70 v70.0.0
@@ -45,7 +45,7 @@ require (
 	github.com/neticdk/go-bitbucket v1.0.1
 	github.com/oklog/ulid/v2 v2.1.0
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.21.1
+	github.com/prometheus/client_golang v1.22.0
 	github.com/rs/zerolog v1.34.0
 	github.com/stretchr/testify v1.10.0
 	github.com/swaggo/files v1.0.1
@@ -58,8 +58,8 @@ require (
 	github.com/zalando/go-keyring v0.2.6
 	gitlab.com/gitlab-org/api/client-go v0.127.0
 	go.uber.org/multierr v1.11.0
-	golang.org/x/crypto v0.36.0
-	golang.org/x/net v0.38.0
+	golang.org/x/crypto v0.37.0
+	golang.org/x/net v0.39.0
 	golang.org/x/oauth2 v0.29.0
 	golang.org/x/sync v0.13.0
 	golang.org/x/term v0.31.0
@@ -139,7 +139,6 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/julienschmidt/httprouter v1.3.0 // indirect
-	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/lestrrat-go/blackmagic v1.0.2 // indirect
