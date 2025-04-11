@@ -560,7 +560,10 @@ func (s *RPC) updateForgeStatus(ctx context.Context, repo *model.Repo, pipeline 
 		return
 	}
 
-	forge.Refresh(ctx, _forge, s.store, user)
+	if err := forge.Refresh(ctx, _forge, s.store, user); err != nil {
+		log.Error().Err(err).Msg("Failed to refresh user auth token")
+		return
+	}
 
 	// only do status updates for parent steps
 	if workflow != nil {

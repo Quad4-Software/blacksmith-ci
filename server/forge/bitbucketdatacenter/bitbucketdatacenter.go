@@ -532,7 +532,10 @@ func (c *client) getUserAndRepo(ctx context.Context, r *model.Repo) (*model.User
 	}
 	log.Trace().Any("user", user).Msg("got user")
 
-	forge.Refresh(ctx, c, _store, user)
+	if err := forge.Refresh(ctx, c, _store, user); err != nil {
+		log.Error().Err(err).Msgf("failed to refresh OAuth token for user '%s'", user.Login)
+		return nil, nil, err
+	}
 
 	return user, repo, nil
 }

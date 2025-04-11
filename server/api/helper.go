@@ -62,7 +62,14 @@ func refreshUserToken(c *gin.Context, user *model.User) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	forge.Refresh(c, _forge, _store, user)
+	refreshErr := forge.Refresh(c, _forge, _store, user)
+	if refreshErr != nil {
+		log.Error().Err(refreshErr).Msg("Failed to refresh user auth token")
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Your authorization has expired and couldn't be refreshed automatically. Please log in again",
+		})
+		return
+	}
 }
 
 // pipelineDeleteAllowed checks if the given pipeline can be deleted based on its status.

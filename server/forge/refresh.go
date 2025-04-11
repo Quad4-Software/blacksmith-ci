@@ -31,7 +31,7 @@ type Refresher interface {
 	Refresh(context.Context, *model.User) (bool, error)
 }
 
-func Refresh(c context.Context, forge Forge, _store store.Store, user *model.User) {
+func Refresh(c context.Context, forge Forge, _store store.Store, user *model.User) error {
 	// Remaining ttl of 30 minutes (1800 seconds) until a token is refreshed.
 	const tokenMinTTL = 1800
 
@@ -40,16 +40,18 @@ func Refresh(c context.Context, forge Forge, _store store.Store, user *model.Use
 		// will expire within the next 30 minutes (1800 seconds).
 		// If not, there is nothing we really need to do here.
 		if time.Now().UTC().Unix() < (user.Expiry - tokenMinTTL) {
-			return
+			return nil
 		}
 
 		ok, err := refresher.Refresh(c, user)
 		if err != nil {
-			log.Error().Err(err).Msgf("refresh oauth token of user '%s' failed", user.Login)
+			log.Error().Err(err).Msgf("refreshing oauth token of user '%s' failed", user.Login)
 		} else if ok {
 			if err := _store.UpdateUser(user); err != nil {
-				log.Error().Err(err).Msg("fail to save user to store after refresh oauth token")
+				log.Error().Err(err).Msg("failed saving user to DB after refreshing oauth token")
 			}
 		}
 	}
+
+	return nil
 }

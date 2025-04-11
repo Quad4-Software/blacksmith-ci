@@ -63,7 +63,10 @@ func Create(ctx context.Context, _store store.Store, repo *model.Repo, pipeline 
 	// If the forge has a refresh token, the current access token
 	// may be stale. Therefore, we should refresh prior to dispatching
 	// the pipeline.
-	forge.Refresh(ctx, _forge, _store, repoUser)
+	if err := forge.Refresh(ctx, _forge, _store, repoUser); err != nil {
+		log.Error().Err(err).Msgf("failed to refresh OAuth token for user '%s'", repoUser.Login)
+		return nil, fmt.Errorf("failed to authenticate with version control system: %w", err)
+	}
 
 	// update some pipeline fields
 	pipeline.RepoID = repo.ID

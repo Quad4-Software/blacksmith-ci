@@ -18,6 +18,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 
 	"codeberg.org/crowci/crow/v3/server"
 	"codeberg.org/crowci/crow/v3/server/forge"
@@ -34,7 +35,13 @@ func Refresh(c *gin.Context) {
 			return
 		}
 
-		forge.Refresh(c, _forge, store.FromContext(c), user)
+		if err := forge.Refresh(c, _forge, store.FromContext(c), user); err != nil {
+			log.Error().Err(err).Msgf("failed to refresh OAuth token for user '%s'", user.Login)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": "Your authorization has expired and could not be refreshed. Please log in again.",
+			})
+			return
+		}
 	}
 
 	c.Next()

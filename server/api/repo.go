@@ -466,7 +466,14 @@ func GetRepoBranches(c *gin.Context) {
 		return
 	}
 
-	forge.Refresh(c, _forge, _store, repoUser)
+	refreshErr := forge.Refresh(c, _forge, _store, repoUser)
+	if refreshErr != nil {
+		log.Error().Err(refreshErr).Msg("Failed to refresh user auth token")
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Your authorization has expired and couldn't be refreshed automatically. Please log in again",
+		})
+		return
+	}
 
 	branches, err := _forge.Branches(c, repoUser, repo, session.Pagination(c))
 	if err != nil {
@@ -514,7 +521,14 @@ func GetRepoPullRequests(c *gin.Context) {
 		return
 	}
 
-	forge.Refresh(c, _forge, _store, repoUser)
+	refreshErr := forge.Refresh(c, _forge, _store, repoUser)
+	if refreshErr != nil {
+		log.Error().Err(refreshErr).Msg("Failed to refresh user auth token")
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Your authorization has expired and couldn't be refreshed automatically. Please log in again",
+		})
+		return
+	}
 
 	prs, err := _forge.PullRequests(c, repoUser, repo, session.Pagination(c))
 	if err != nil {
