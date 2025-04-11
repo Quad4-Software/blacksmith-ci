@@ -74,11 +74,11 @@ func Config(c *gin.Context) {
 }
 
 const configTemplate = `
-window.WOODPECKER_USER = {{ json .user }};
-window.WOODPECKER_CSRF = "{{ .csrf }}";
-window.WOODPECKER_VERSION = "{{ .version }}";
-window.WOODPECKER_ROOT_PATH = "{{ .root_path }}";
-window.WOODPECKER_ENABLE_SWAGGER = {{ .enable_swagger }};
-window.WOODPECKER_SKIP_VERSION_CHECK = {{ .skip_version_check }}
-window.WOODPECKER_USER_REGISTERED_AGENTS = {{ .user_registered_agents }}
+window.CROW_USER = {{ json .user }};
+window.CROW_CSRF = "{{ .csrf }}";
+window.CROW_VERSION = "{{ .version }}";
+window.CROW_ROOT_PATH = "{{ .root_path }}";
+window.CROW_ENABLE_SWAGGER = {{ .enable_swagger }};
+window.CROW_SKIP_VERSION_CHECK = {{ .skip_version_check }}
+window.CROW_USER_REGISTERED_AGENTS = {{ .user_registered_agents }}
 `

@@ -2,22 +2,22 @@ import type { User } from '~/lib/api/types';
 
 declare global {
   interface Window {
-    WOODPECKER_USER: User | undefined;
-    WOODPECKER_VERSION: string | undefined;
-    WOODPECKER_SKIP_VERSION_CHECK: boolean | undefined;
-    WOODPECKER_CSRF: string | undefined;
-    WOODPECKER_ROOT_PATH: string | undefined;
-    WOODPECKER_ENABLE_SWAGGER: boolean | undefined;
-    WOODPECKER_USER_REGISTERED_AGENTS: boolean | undefined;
+    CROW_USER: User | undefined;
+    CROW_VERSION: string | undefined;
+    CROW_SKIP_VERSION_CHECK: boolean | undefined;
+    CROW_CSRF: string | undefined;
+    CROW_ROOT_PATH: string | undefined;
+    CROW_ENABLE_SWAGGER: boolean | undefined;
+    CROW_USER_REGISTERED_AGENTS: boolean | undefined;
   }
 }
 
 export default () => ({
-  user: window.WOODPECKER_USER ?? null,
-  version: window.WOODPECKER_VERSION,
-  skipVersionCheck: window.WOODPECKER_SKIP_VERSION_CHECK === true || false,
-  csrf: window.WOODPECKER_CSRF ?? null,
-  rootPath: window.WOODPECKER_ROOT_PATH ?? '',
-  enableSwagger: window.WOODPECKER_ENABLE_SWAGGER === true || false,
-  userRegisteredAgents: window.WOODPECKER_USER_REGISTERED_AGENTS || false,
+  user: window.CROW_USER ?? null,
+  version: window.CROW_VERSION,
+  skipVersionCheck: window.CROW_SKIP_VERSION_CHECK === true || false,
+  csrf: window.CROW_CSRF ?? null,
+  rootPath: window.CROW_ROOT_PATH ?? '',
+  enableSwagger: window.CROW_ENABLE_SWAGGER === true || false,
+  userRegisteredAgents: window.CROW_USER_REGISTERED_AGENTS || false,
 });

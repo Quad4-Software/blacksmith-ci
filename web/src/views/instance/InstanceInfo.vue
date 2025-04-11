@@ -7,20 +7,19 @@
       <i18n-t keypath="running_version" tag="p" class="text-center text-xl">
         <span class="font-bold">{{ version?.current }}</span>
       </i18n-t>
-      <Error v-if="version?.needsUpdate">
+      <div v-if="version?.needsUpdate">
         <i18n-t keypath="update_crow" tag="span">
           <a
             v-if="!version.usesDev"
             :href="`https://codeberg.org/crowci/crow/releases/tag/${version.latest}`"
             target="_blank"
             rel="noopener noreferrer"
-            class="underline"
           >
             {{ version.latest }}
           </a>
-          <span v-else> {{ version.latest }} </span>
+          <span v-else class="font-bold"> {{ version.latest }} </span>
         </i18n-t>
-      </Error>
+      </div>
     </div>
   </Settings>
 </template>
@@ -28,9 +27,7 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
 
-// import CrowLogoDark from '~/assets/logo-dark.svg?component';
 import CrowLogo from '~/assets/logo.svg?component';
-import Error from '~/components/atomic/Error.vue';
 import Settings from '~/components/layout/Settings.vue';
 import { useVersion } from '~/compositions/useVersion';
 

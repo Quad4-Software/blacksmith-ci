@@ -48,7 +48,18 @@ export function useVersion() {
     version.value = {
       latest: undefined,
       current,
-      currentShort: usesDev ? 'dev' : current,
+      currentShort: current,
+      needsUpdate: false,
+      usesDev,
+    };
+    return version;
+  }
+
+  if (current === 'dev') {
+    version.value = {
+      latest: undefined,
+      current,
+      currentShort: current,
       needsUpdate: false,
       usesDev,
     };
@@ -79,7 +90,7 @@ export function useVersion() {
     version.value = {
       latest,
       current,
-      currentShort: usesDev ? 'dev' : current,
+      currentShort: current,
       needsUpdate,
       usesDev,
     };

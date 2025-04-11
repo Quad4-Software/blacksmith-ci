@@ -516,7 +516,7 @@
   "default": "default",
   "info": "Info",
   "running_version": "You are running Crow CI {0}",
-  "update_crow": "Please update your Crow CI instance to {0}",
+  "update_crow": "(A newer version of Crow CI is available: {0})",
   "global_level_secret": "global secret",
   "org_level_secret": "organization secret",
   "login_to_cli": "Login to CLI",
