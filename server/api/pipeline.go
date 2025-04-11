@@ -84,6 +84,20 @@ func CreatePipeline(c *gin.Context) {
 }
 
 func createTmpPipeline(event model.WebhookEvent, commit *model.Commit, user *model.User, opts *model.PipelineOptions) *model.Pipeline {
+	messageText := "Manual run"
+	if len(opts.Variables) > 0 {
+		varsText := ""
+		first := true
+		for k, v := range opts.Variables {
+			if !first {
+				varsText += ", "
+			}
+			varsText += k + ":" + fmt.Sprint(v)
+			first = false
+		}
+		messageText += ". Extra vars: " + varsText
+	}
+
 	return &model.Pipeline{
 		Event:     event,
 		Commit:    commit.SHA,
@@ -91,7 +105,7 @@ func createTmpPipeline(event model.WebhookEvent, commit *model.Commit, user *mod
 		Timestamp: time.Now().UTC().Unix(),
 
 		Avatar:  user.Avatar,
-		Message: "MANUAL PIPELINE @ " + opts.Branch,
+		Message: messageText,
 
 		Ref:                 opts.Branch,
 		AdditionalVariables: opts.Variables,
