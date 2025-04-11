@@ -1,7 +1,7 @@
 <!-- cSpell:ignore radiobox timelapse -->
 <template>
   <SvgIcon v-if="name === 'duration'" :path="mdiTimerOutline" :size="size || '1.3rem'" />
-  <SvgIcon v-else-if="name === 'since'" :path="mdiClockTimeEightOutline" :size="size || '1.3rem'" />
+  <SvgIcon v-else-if="name === 'startDate'" :path="mdiClockTimeEightOutline" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'branch'" :path="mdiSourceBranch" :size="size || '1rem'" />
   <SvgIcon v-else-if="name === 'pull-request'" :path="mdiSourcePull" :size="size || '1rem'" />
   <SvgIcon v-else-if="name === 'pull-request-closed'" :path="mdiSourceMerge" :size="size || '1rem'" />
@@ -154,7 +154,7 @@ import SvgIcon from './SvgIcon.vue';
 
 export type IconNames =
   | 'duration'
-  | 'since'
+  | 'startDate'
   | 'branch'
   | 'pull-request'
   | 'pull-request-closed'

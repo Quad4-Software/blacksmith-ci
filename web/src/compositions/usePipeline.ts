@@ -7,7 +7,7 @@ import { useDate } from '~/compositions/useDate';
 import { useElapsedTime } from '~/compositions/useElapsedTime';
 import type { Pipeline } from '~/lib/api/types';
 
-const { toLocaleString, timeAgo, prettyDuration } = useDate();
+const { toLocaleString, prettyDuration } = useDate();
 
 export default (pipeline: Ref<Pipeline | undefined>) => {
   const sinceRaw = computed(() => {
@@ -20,24 +20,26 @@ export default (pipeline: Ref<Pipeline | undefined>) => {
     return start * 1000;
   });
 
-  const sinceUnderOneHour = computed(
-    () => sinceRaw.value !== undefined && sinceRaw.value > 0 && sinceRaw.value <= 1000 * 60 * 60,
-  );
-  const { time: sinceElapsed } = useElapsedTime(sinceUnderOneHour, sinceRaw);
-
   const i18n = useI18n();
-  const since = computed(() => {
+  const startDate = computed(() => {
     if (sinceRaw.value === 0) {
       // return i18n.t('time.not_started');
       return '-';
     }
 
-    if (sinceElapsed.value === undefined) {
+    // Format as YYYY-MM-DD HH:mm:ss
+    if (sinceRaw.value === undefined) {
       return null;
     }
+    const date = new Date(sinceRaw.value);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
 
-    // TODO: check whether elapsed works
-    return timeAgo(sinceElapsed.value);
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
   });
 
   const durationRaw = computed(() => {
@@ -115,5 +117,5 @@ export default (pipeline: Ref<Pipeline | undefined>) => {
     return toLocaleString(new Date(start * 1000));
   });
 
-  return { since, duration, message, shortMessage, prTitle, prTitleWithDescription, prettyRef, created };
+  return { startDate, duration, message, shortMessage, prTitle, prTitleWithDescription, prettyRef, created };
 };

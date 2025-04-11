@@ -31,7 +31,7 @@
           </div>
 
           <div class="ml-auto flex shrink-0 items-center gap-x-1">
-            <Icon name="since" size="1rem" /> <span>{{ since }}</span>
+            <Icon name="startDate" size="1rem" /> <span>{{ startDate }}</span>
           </div>
         </template>
         <div v-else class="flex gap-x-2">
@@ -56,5 +56,5 @@ const props = defineProps<{
 }>();
 
 const lastPipeline = computed(() => props.repo.last_pipeline);
-const { since, shortMessage } = usePipeline(lastPipeline);
+const { startDate, shortMessage } = usePipeline(lastPipeline);
 </script>

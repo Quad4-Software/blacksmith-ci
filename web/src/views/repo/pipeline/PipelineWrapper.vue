@@ -61,7 +61,7 @@
     <template #tabActions>
       <div class="flex flex-wrap gap-4 md:flex-nowrap">
         <div class="flex shrink-0 items-center gap-2" :title="$t('repo.pipeline.created', { created })">
-          <Icon name="since" size="1rem" /> <span>{{ since }}</span>
+          <Icon name="startDate" size="1rem" /> <span>{{ startDate }}</span>
         </div>
 
         <div class="flex shrink-0 items-center gap-2" :title="$t('repo.pipeline.duration')">
@@ -146,7 +146,7 @@ if (!repo || !repoPermissions) {
 }
 
 const pipeline = pipelineStore.getPipeline(repositoryId, pipelineId);
-const { since, duration, created, message, shortMessage } = usePipeline(pipeline);
+const { startDate, duration, created, message, shortMessage } = usePipeline(pipeline);
 provide('pipeline', pipeline);
 
 const pipelineConfigs = ref<PipelineConfig[]>();

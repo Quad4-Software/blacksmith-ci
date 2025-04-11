@@ -26,7 +26,7 @@
       </div>
 
       <div
-        class="grid w-full shrink-0 grid-flow-col grid-cols-2 grid-rows-2 gap-x-4 gap-y-2 py-2 text-wp-text-100 md:ml-auto md:w-80"
+        class="grid w-full shrink-0 grid-flow-col grid-cols-1 grid-rows-2 gap-y-2 py-2 text-wp-text-100 md:ml-auto md:w-85"
       >
         <div class="flex min-w-0 items-center space-x-2">
           <span :title="pipelineEventTitle">
@@ -50,7 +50,7 @@
         </div>
 
         <div class="flex min-w-0 items-center space-x-2" :title="$t('repo.pipeline.created', { created })">
-          <Icon name="since" /> <span class="truncate">{{ since }}</span>
+          <Icon name="startDate" /> <span class="truncate">{{ startDate }}</span>
         </div>
       </div>
     </div>
@@ -74,7 +74,7 @@ const props = defineProps<{
 const { t } = useI18n();
 
 const pipeline = toRef(props, 'pipeline');
-const { since, duration, message, shortMessage, prettyRef, created } = usePipeline(pipeline);
+const { startDate, duration, message, shortMessage, prettyRef, created } = usePipeline(pipeline);
 
 const pipelineEventTitle = computed(() => {
   switch (pipeline.value.event) {

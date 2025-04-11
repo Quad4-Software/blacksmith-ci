@@ -60,16 +60,33 @@ function prettyDuration(durationMs: number) {
   const t = splitDuration(durationMs);
 
   if (t.totalHours > 1) {
-    return Intl.NumberFormat(currentLocale, { style: 'unit', unit: 'hour', unitDisplay: 'long' }).format(
-      Math.round(t.totalHours),
-    );
+    const hours = Math.floor(t.totalHours);
+    const totalMinutesRemaining = (t.totalHours - hours) * 60;
+    const minutes = Math.floor(totalMinutesRemaining);
+    const seconds = Math.round((totalMinutesRemaining - minutes) * 60);
+    return `${hours}h ${minutes}m ${seconds}s`;
   }
   if (t.totalMinutes > 1) {
-    return Intl.NumberFormat(currentLocale, { style: 'unit', unit: 'minute', unitDisplay: 'long' }).format(
-      Math.round(t.totalMinutes),
-    );
+    const minutes = Math.floor(t.totalMinutes);
+    const seconds = Math.round((t.totalMinutes - minutes) * 60);
+    const remainingSeconds = Math.round(seconds % 60);
+    const formattedMinutes =
+      minutes > 0
+        ? Intl.NumberFormat(currentLocale, { style: 'unit', unit: 'minute', unitDisplay: 'short' }).format(minutes)
+        : '';
+
+    const formattedSeconds =
+      remainingSeconds > 0 || minutes === 0
+        ? Intl.NumberFormat(currentLocale, { style: 'unit', unit: 'second', unitDisplay: 'short' }).format(
+            remainingSeconds,
+          )
+        : '';
+
+    return minutes > 0 && remainingSeconds > 0
+      ? `${formattedMinutes} ${formattedSeconds}`
+      : `${formattedMinutes}${formattedSeconds}`;
   }
-  return Intl.NumberFormat(currentLocale, { style: 'unit', unit: 'second', unitDisplay: 'long' }).format(
+  return Intl.NumberFormat(currentLocale, { style: 'unit', unit: 'second', unitDisplay: 'short' }).format(
     Math.round(t.totalSeconds),
   );
 }

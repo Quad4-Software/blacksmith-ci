@@ -15,7 +15,7 @@
       <span class="overflow-hidden text-ellipsis whitespace-nowrap italic" :title="message">{{ shortMessage }}</span>
       <div class="mt-2 flex flex-col">
         <div class="mb-1 flex items-center space-x-2" :title="created">
-          <Icon name="since" /> <span>{{ since }}</span>
+          <Icon name="startDate" /> <span>{{ startDate }}</span>
         </div>
 
         <div class="mb-1 flex items-center space-x-2">
@@ -44,5 +44,5 @@ const repoStore = useRepoStore();
 const pipeline = toRef(props, 'pipeline');
 const repo = repoStore.getRepo(computed(() => pipeline.value.repo_id));
 
-const { since, duration, shortMessage, message, created } = usePipeline(pipeline);
+const { startDate, duration, shortMessage, message, created } = usePipeline(pipeline);
 </script>
