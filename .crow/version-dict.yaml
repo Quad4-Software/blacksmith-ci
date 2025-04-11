@@ -27,13 +27,13 @@ steps:
   - name: s3-sync
     image: plugins/s3:1.5.2
     settings:
-      bucket: crow-docs
-      region: fsn1
-      endpoint: https://fsn1.your-objectstorage.com
+      bucket: crow-docs-nbg1
+      region: nbg1
+      endpoint: https://nbg1.your-objectstorage.com
       access_key:
-        from_secret: HETZNER_S3_ACCESS_KEY
+        from_secret: HETZNER_S3_ACCESS_KEY_NBG1
       secret_key:
-        from_secret: HETZNER_S3_SECRET_KEY
+        from_secret: HETZNER_S3_SECRET_KEY_NBG1
       source: upload/version.json
       strip_prefix: upload/
       target: /
