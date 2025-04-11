@@ -35,10 +35,6 @@ var repoUpdateCmd = &cli.Command{
 			Name:  "trusted",
 			Usage: "repository is trusted",
 		},
-		&cli.BoolFlag{
-			Name:   "gated", // TODO: remove in next release
-			Hidden: true,
-		},
 		&cli.StringFlag{
 			Name:  "require-approval",
 			Usage: "repository requires approval for",
@@ -100,11 +96,6 @@ func repoUpdate(ctx context.Context, c *cli.Command) error {
 	patch := new(crow.RepoPatch)
 	if c.IsSet("trusted") {
 		patch.IsTrusted = &trusted
-	}
-
-	// TODO: remove in next release
-	if c.IsSet("gated") {
-		return fmt.Errorf("'gated' option has been set in version 2.8, use 'require-approval' in >= 3.0")
 	}
 
 	if c.IsSet("require-approval") {

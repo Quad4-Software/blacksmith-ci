@@ -8,7 +8,7 @@ import (
 	"codeberg.org/crowci/crow/v3/server/model"
 )
 
-func TestSetGatedState(t *testing.T) {
+func TestSetRequireApprovalState(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
