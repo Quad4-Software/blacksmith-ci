@@ -148,6 +148,7 @@ steps:
       platforms: *platforms_server
       tag: [dev, 'dev-${CI_COMMIT_SHA:0:10}']
       logins: *publish_logins
+      build_args: *build_args
     when: &when-publish-dev
       event: deployment
 
@@ -161,6 +162,7 @@ steps:
       platforms: *platforms_alpine
       tag: [dev-alpine, 'dev-${CI_COMMIT_SHA:0:10}-alpine']
       logins: *publish_logins
+      build_args: *build_args
     when: *when-publish-dev
 
   release-server:
@@ -173,6 +175,7 @@ steps:
       platforms: *platforms_server
       tag: ['${CI_COMMIT_TAG%%.*}', '${CI_COMMIT_TAG%.*}', '${CI_COMMIT_TAG}']
       logins: *publish_logins
+      build_args: *build_args
     when: &when-release
       event: tag
 
@@ -186,6 +189,7 @@ steps:
       platforms: *platforms_alpine
       tag: ['${CI_COMMIT_TAG%%.*}-alpine', '${CI_COMMIT_TAG%.*}-alpine', '${CI_COMMIT_TAG}-alpine']
       logins: *publish_logins
+      build_args: *build_args
     when: *when-release
 
   #############
