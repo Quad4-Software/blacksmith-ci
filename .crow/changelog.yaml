@@ -5,8 +5,9 @@ clone:
       tags: true
 
 when:
-  event: [push, manual]
-  branch: ${CI_REPO_DEFAULT_BRANCH}
+  - event: push
+    branch: ${CI_REPO_DEFAULT_BRANCH}
+  - event: manual
 
 steps:
   - name: 'Upcoming Changelog'
