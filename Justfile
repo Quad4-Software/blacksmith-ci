@@ -16,14 +16,13 @@ CI := env_var_or_default("CI", "false")
 # Set version based on CI environment
 VERSION := if env_var_or_default("CI_COMMIT_TAG", "") != "" {
     replace(env_var("CI_COMMIT_TAG"), "v", "")
-} else if env_var_or_default("CI_COMMIT_BRANCH", "") != "" {
+} else {
     if `echo $CI_COMMIT_BRANCH | cut -c -9` == "release/v" {
         `echo $CI_COMMIT_BRANCH | cut -c 10-` + "-" + `echo $CI_COMMIT_SHA | cut -c -10`
-    } else {
-        env_var_or_default("VERSION", "dev")
     }
-} else {
-		"dev-" + `echo "${CI_COMMIT_SHA:-$(git rev-parse HEAD)}" | cut -c -10 2>/dev/null || echo "unknown"`
+    else {
+        "dev-" + `echo "${CI_COMMIT_SHA:-$(git rev-parse HEAD)}" | cut -c -10 2>/dev/null || echo "unknown"`
+    }
 }
 
 VERSION_NUMBER := if env_var_or_default("CI_COMMIT_TAG", "") != "" {
