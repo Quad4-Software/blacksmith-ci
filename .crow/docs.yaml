@@ -55,7 +55,7 @@ steps:
       - git remote set-url origin https://crowci-bot:$${CODEBERG_BOT_TOKEN}@codeberg.org/crowci/crow.git
       # build & deploy
       - just docs-venv
-      - just docs-mike "deploy ${CI_COMMIT_TAG#v} --push"
+      - just docs-mike "deploy $(echo ${CI_COMMIT_TAG#v} | cut -d. -f1,2) --push"
       - mv site/domains site/.domains
 
   - name: PR docs preview
