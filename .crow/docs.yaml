@@ -31,6 +31,10 @@ steps:
       - just docs-venv
       - just docs-mike "deploy dev --push"
       - mv site/domains site/.domains
+    when:
+      - event: push
+        branch: ${CI_REPO_DEFAULT_BRANCH}
+      - event: pull_request
 
   - name: 'Build docs (tag)'
     when:
@@ -51,9 +55,8 @@ steps:
       - git remote set-url origin https://crowci-bot:$${CODEBERG_BOT_TOKEN}@codeberg.org/crowci/crow.git
       # build & deploy
       - just docs-venv
-      - just docs-mike "deploy ${CI_COMMIT_TAG} latest"
+      - just docs-mike "deploy ${CI_COMMIT_TAG#v} --push"
       - mv site/domains site/.domains
-      - just docs-mike "set-default --push latest"
 
   - name: PR docs preview
     image: docker.io/woodpeckerci/plugin-surge-preview:1.3.5
