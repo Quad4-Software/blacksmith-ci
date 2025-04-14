@@ -64,14 +64,14 @@ test: test-agent test-server test-server-datastore test-cli test-lib
 generate: generate-openapi
 	CGO_ENABLED=0 go generate ./...
 
-generate-openapi: install-tools
+generate-openapi: install-dev-deps
 		go run github.com/swaggo/swag/cmd/swag fmt
 		CGO_ENABLED=0 go generate cmd/server/openapi.go
 
-mockery: install-tools
+mockery: install-dev-deps
 		mockery
 
-install-tools:
+install-dev-deps:
 		# @hash golangci-lint > /dev/null 2>&1 || go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 		@hash gofumpt > /dev/null 2>&1 || go install mvdan.cc/gofumpt@latest
 		@hash addlicense > /dev/null 2>&1 || go install github.com/google/addlicense@latest
@@ -110,7 +110,7 @@ test-lib:
 
 ## docs
 
-docs-venv-fish:
+docs-venv:
     test -d venv || python3 -m venv venv
     fish -c 'if set -q GH_TOKEN_MKDOCS_MATERIAL; source venv/bin/activate.fish; and pip3 install -r docs/requirements-insiders.txt; else; source venv/bin/activate.fish; and pip3 install -r docs/requirements.txt; end'
 
@@ -118,7 +118,7 @@ docs-mike ARG:
 		fish -c 'source venv/bin/activate.fish && mike {{ ARG }}'
 
 docs-serve:
-		fish -c 'source venv/bin/activate.fish && mkdocs --version && mkdocs serve'
+		fish -c 'source venv/bin/activate.fish && mkdocs --version && mkdocs serve -a localhost:5555'
 
 docs-build:
 		fish -c 'source venv/bin/activate.fish && mkdocs --version && CI={{CI}} mkdocs build'
@@ -133,11 +133,11 @@ cherry-pick COMMIT:
 
 ## build
 
-lint: install-tools
+lint-backend: install-dev-deps
 		golangci-lint run
 
 # FIXME: feature of 1.38.0 [working-directory('web')]
-lint-ui:
+lint-frontend:
 		cd web/ && pnpm lint --quiet
 
 # FIXME: feature of 1.38.0 [working-directory('web')]
@@ -257,12 +257,12 @@ image-agent-alpine TAG:
 		echo $codeberg_bot_token | docker login codeberg.org -u crowci-bot --password-stdin
 		docker buildx build --platform $PLATFORMS -t codeberg.org/crowci/crow-agent:{{TAG}}-alpine -f docker/Dockerfile.agent.alpine.multiarch --push .
 
-# env PLATFORMS='linux/amd64,linux/arm64' just image-cli
+# env PLATFORMS='linux/amd64,linux/arm64' just image-cli dev
 image-cli TAG:
 		echo $codeberg_bot_token | docker login codeberg.org -u crowci-bot --password-stdin
 		docker buildx build --platform $PLATFORMS -t codeberg.org/crowci/crow-cli:{{TAG}} -f docker/Dockerfile.cli.multiarch.rootless --push .
 
-# env PLATFORMS='linux/amd64,linux/arm64' just image-cli-alpine
+# env PLATFORMS='linux/amd64,linux/arm64' just image-cli-alpine dev
 image-cli-alpine TAG:
 		echo $codeberg_bot_token | docker login codeberg.org -u crowci-bot --password-stdin
 		docker buildx build --platform $PLATFORMS -t codeberg.org/crowci/crow-cli:{{TAG}}-alpine -f docker/Dockerfile.cli.alpine.multiarch.rootless --push .

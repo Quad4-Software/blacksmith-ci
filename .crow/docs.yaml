@@ -13,8 +13,6 @@ clone:
 
 steps:
   - name: 'Build docs'
-    when:
-      - event: push
     image: alpine:3.21
     environment:
       IS_CI: true
@@ -30,7 +28,7 @@ steps:
       - git config --global user.name "crowci-bot"
       - git remote set-url origin https://crowci-bot:$${CODEBERG_BOT_TOKEN}@codeberg.org/crowci/crow.git
       # build & deploy
-      - just docs-venv-fish
+      - just docs-venv
       - just docs-mike "deploy dev --push"
       - mv site/domains site/.domains
 
