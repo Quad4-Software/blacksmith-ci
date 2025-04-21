@@ -59,7 +59,7 @@ func setupSecretService(store store.Store) secret.Service {
 
 func setupConfigService(c *cli.Command, privateSignatureKey ed25519.PrivateKey) (config.Service, error) {
 	timeout := c.Duration("forge-timeout")
-	retries := c.Uint("forge-retry")
+	retries := c.Uint64("forge-retry")
 	if retries == 0 {
 		return nil, fmt.Errorf("CROW_FORGE_RETRY can not be 0")
 	}

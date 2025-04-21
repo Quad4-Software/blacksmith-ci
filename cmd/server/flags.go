@@ -39,13 +39,13 @@ var flags = append([]cli.Flag{
 		Aliases: []string{"log-xorm-sql"}, // TODO: remove in v4.0.0
 		Usage:   "enable logging of sql commands",
 	},
-	&cli.IntFlag{
+	&cli.Int64Flag{
 		Sources: cli.EnvVars("WOODPECKER_DATABASE_MAX_CONNECTIONS", "CROW_DATABASE_MAX_CONNECTIONS"),
 		Name:    "db-max-open-connections",
 		Usage:   "max connections xorm is allowed create",
 		Value:   100,
 	},
-	&cli.IntFlag{
+	&cli.Int64Flag{
 		Sources: cli.EnvVars("WOODPECKER_DATABASE_IDLE_CONNECTIONS", "CROW_DATABASE_IDLE_CONNECTIONS"),
 		Name:    "db-max-idle-connections",
 		Usage:   "amount of connections xorm will hold open",
@@ -169,13 +169,13 @@ var flags = append([]cli.Flag{
 		Usage:   "The default docker image to be used when cloning the repo",
 		Value:   constant.DefaultClonePlugin,
 	},
-	&cli.IntFlag{
+	&cli.Int64Flag{
 		Sources: cli.EnvVars("WOODPECKER_DEFAULT_PIPELINE_TIMEOUT", "CROW_DEFAULT_PIPELINE_TIMEOUT"),
 		Name:    "default-pipeline-timeout",
 		Usage:   "The default time in minutes for a repo in minutes before a pipeline gets killed",
 		Value:   60,
 	},
-	&cli.IntFlag{
+	&cli.Int64Flag{
 		Sources: cli.EnvVars("WOODPECKER_MAX_PIPELINE_TIMEOUT", "CROW_MAX_PIPELINE_TIMEOUT"),
 		Name:    "max-pipeline-timeout",
 		Usage:   "The maximum time in minutes you can set in the repo settings before a pipeline gets killed",
@@ -588,12 +588,12 @@ var flags = append([]cli.Flag{
 		Name:    "encryption-disable-flag",
 		Usage:   "Flag to decrypt all encrypted data and disable encryption on server",
 	},
-	&cli.IntFlag{
+	&cli.Int64Flag{
 		Sources: cli.EnvVars("WOODPECKER_DEFAULT_LOGS_KEEP_DURATION", "CROW_DEFAULT_LOGS_KEEP_DURATION"),
 		Name:    "logs-duration-keep",
 		Usage:   "The default time (as duration) for which pipeline logs of historic runs are preserved",
 	},
-	&cli.IntFlag{
+	&cli.Int64Flag{
 		Sources: cli.EnvVars("WOODPECKER_DEFAULT_LOGS_PIPELINES_KEEP_MIN", "CROW_DEFAULT_LOGS_PIPELINES_KEEP_MIN"),
 		Name:    "logs-pipelines-keep-min",
 		Usage:   "The default amount of pipelines for which logs are preserved",

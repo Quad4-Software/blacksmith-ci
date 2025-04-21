@@ -70,7 +70,7 @@ var flags = []cli.Flag{
 		Aliases: []string{"filter"}, // remove in v4.x
 		Usage:   "List of labels to filter tasks on. An agent must be assigned every tag listed in a task to be selected.",
 	},
-	&cli.IntFlag{
+	&cli.Int64Flag{
 		Sources: cli.EnvVars("WOODPECKER_MAX_WORKFLOWS", "WOODPECKER_MAX_PROCS", "CROW_MAX_WORKFLOWS", "CROW_MAX_PROCS"), // cspell:words PROCS
 		Name:    "max-workflows",
 		Usage:   "agent parallel workflows",
@@ -105,7 +105,7 @@ var flags = []cli.Flag{
 		Usage:   "backend to run pipelines on",
 		Value:   "auto-detect",
 	},
-	&cli.IntFlag{
+	&cli.Int64Flag{
 		Sources: cli.EnvVars("WOODPECKER_CONNECT_RETRY_COUNT", "CROW_CONNECT_RETRY_COUNT"),
 		Name:    "connect-retry-count",
 		Usage:   "number of times to retry connecting to the server",

@@ -51,7 +51,7 @@ var repoUpdateCmd = &cli.Command{
 			Name:  "config",
 			Usage: "repository configuration path. Example: .woodpecker.yml",
 		},
-		&cli.IntFlag{
+		&cli.Int64Flag{
 			Name:  "pipeline-counter",
 			Usage: "repository starting pipeline number",
 		},
@@ -59,7 +59,7 @@ var repoUpdateCmd = &cli.Command{
 			Name:  "unsafe",
 			Usage: "allow unsafe operations",
 		},
-		&cli.IntFlag{
+		&cli.Int64Flag{
 			Name:  "logs-pipelines-keep-min",
 			Usage: "minimum amount of pipelines to keep logs for",
 		},
@@ -85,11 +85,11 @@ func repoUpdate(ctx context.Context, c *cli.Command) error {
 		visibility           = c.String("visibility")
 		config               = c.String("config")
 		timeout              = c.Duration("timeout")
-		LogsPipelinesKeepMin = int(c.Int("logs-pipelines-keep-min"))
+		LogsPipelinesKeepMin = int(c.Int64("logs-pipelines-keep-min"))
 		LogsDurationKeep     = c.String("logs-duration-keep")
 		trusted              = c.Bool("trusted")
 		requireApproval      = c.String("require-approval")
-		pipelineCounter      = int(c.Int("pipeline-counter"))
+		pipelineCounter      = int(c.Int64("pipeline-counter"))
 		unsafe               = c.Bool("unsafe")
 	)
 
