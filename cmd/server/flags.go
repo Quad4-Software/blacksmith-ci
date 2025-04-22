@@ -344,7 +344,7 @@ var flags = append([]cli.Flag{
 		Usage:   "how many seconds before timeout when fetching the Woodpecker configuration from a Forge",
 		Value:   time.Second * 5,
 	},
-	&cli.UintFlag{
+	&cli.Uint64Flag{
 		Sources: cli.EnvVars("WOODPECKER_FORGE_RETRY", "CROW_FORGE_RETRY"),
 		Name:    "forge-retry",
 		Usage:   "How many retries of fetching the Woodpecker configuration from a forge are done before we fail",
@@ -616,7 +616,7 @@ func datasourceDefaultValue() string {
 			return "/var/lib/crow/crow.sqlite"
 		}
 	}
-	return "crow.sqlite"
+	return "/var/lib/crow/crow.sqlite"
 }
 
 func getFirstNonEmptyEnvVar(envVars ...string) string {
