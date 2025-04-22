@@ -20,6 +20,7 @@ steps:
   - name: commitlint
     when:
       - event: pull_request
+      - event: pull_request_edited
     image: commitlint/commitlint:19.8.0
     commands:
       - echo $${CI_COMMIT_PULL_REQUEST_TITLE} | commitlint

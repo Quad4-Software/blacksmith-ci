@@ -5,6 +5,7 @@
   <SvgIcon v-else-if="name === 'branch'" :path="mdiSourceBranch" :size="size || '1rem'" />
   <SvgIcon v-else-if="name === 'pull-request'" :path="mdiSourcePull" :size="size || '1rem'" />
   <SvgIcon v-else-if="name === 'pull-request-closed'" :path="mdiSourceMerge" :size="size || '1rem'" />
+  <SvgIcon v-else-if="name === 'pull-request-edited'" :path="mdiPencilOutline" size="1.3rem" />
   <SvgIcon v-else-if="name === 'manual-pipeline'" :path="mdiPlayCircleOutline" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'tag'" :path="mdiTagOutline" :size="size || '1rem'" />
   <SvgIcon v-else-if="name === 'deployment'" :path="mdiPackageVariant" :size="size || '1.3rem'" />
@@ -158,6 +159,7 @@ export type IconNames =
   | 'branch'
   | 'pull-request'
   | 'pull-request-closed'
+  | 'pull-request-edited'
   | 'manual-pipeline'
   | 'tag'
   | 'deployment'

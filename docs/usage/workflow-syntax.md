@@ -482,6 +482,7 @@ A list of all available events:
 - `push`: triggered when a commit is pushed to a branch.
 - `pull_request`: triggered when a pull request is opened or a new commit is pushed to it.
 - `pull_request_closed`: triggered when a pull request is closed or merged.
+- `pull_request_edited`: triggered when a pull request is edited (the PR title or body).
 - `tag`: triggered when a tag is pushed.
 - `release`: triggered when a release, pre-release or draft is created. (Further filters can be applied using [evaluate](#evaluate) in combination with environment variables.)
 - `deployment`: triggered when a "deployment" is created in the repository. (There are two ways to trigger this event: from the Crow UI directly or from a forge which supports "deployment" events (e.g., GitHub))

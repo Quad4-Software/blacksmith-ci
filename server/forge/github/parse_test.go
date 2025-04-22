@@ -102,6 +102,15 @@ func Test_parseHook(t *testing.T) {
 		assert.NotNil(t, p)
 		assert.Equal(t, model.EventPullClosed, b.Event)
 	})
+	t.Run("PR edited hook", func(t *testing.T) {
+		req := testHookRequest([]byte(fixtures.HookPullRequestEdited), hookPull)
+		p, r, b, err := parseHook(req, false)
+		assert.NoError(t, err)
+		assert.NotNil(t, r)
+		assert.NotNil(t, b)
+		assert.NotNil(t, p)
+		assert.Equal(t, model.EventPullEdited, b.Event)
+	})
 
 	t.Run("deploy hook", func(t *testing.T) {
 		req := testHookRequest([]byte(fixtures.HookDeploy), hookDeploy)

@@ -34,6 +34,27 @@ steps:
     when:
       - event: push
         branch: ${CI_REPO_DEFAULT_BRANCH}
+
+  - name: 'Build docs (PR)'
+    image: alpine:3.21
+    environment:
+      IS_CI: true
+      MKDOCS_MATERIAL_VERSION: 9.6.11-insiders-4.53.16
+      GH_TOKEN_MKDOCS_MATERIAL:
+        from_secret: gh_token_mkdocs_material
+      CODEBERG_BOT_TOKEN:
+        from_secret: codeberg_bot_token
+    commands:
+      - apk add --no-cache -q git py3-pip cairo just fish go pngquant
+      - python3 -m venv venv
+      - git config --global user.email "admin@crowci.dev"
+      - git config --global user.name "crowci-bot"
+      - git remote set-url origin https://crowci-bot:$${CODEBERG_BOT_TOKEN}@codeberg.org/crowci/crow.git
+      # build & deploy
+      - just docs-venv
+      - just docs-build
+      - mv site/domains site/.domains
+    when:
       - event: pull_request
 
   - name: 'Build docs (tag)'
