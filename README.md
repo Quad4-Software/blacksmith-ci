@@ -1,9 +1,7 @@
 <!-- markdownlint-disable -->
 
 <p align="center">
-  <a href="https://squidfunk.github.io/mkdocs-material/">
-    <img src="https://codeberg.org/crowci/crow/raw/branch/main/assets/crow-logo-gray-bg-round.png" width="350" alt="Material for MkDocs">
-  </a>
+  <img src="https://codeberg.org/crowci/crow/raw/branch/main/assets/crow-logo-gray-bg-round.svg">
 </p>
 
 <p align="center">

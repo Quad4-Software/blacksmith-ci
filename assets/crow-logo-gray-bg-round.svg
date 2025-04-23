@@ -3,86 +3,18 @@
    version="1.1"
    viewBox="0 0 445.54792 216.61351"
    id="svg13"
-   sodipodi:docname="crow-logo-white-bg-round.svg"
    width="445.54791"
    height="216.61351"
-   inkscape:version="1.4 (e7c3feb1, 2024-10-09)"
-   inkscape:export-filename="crow-logo-white-bg-round.png"
-   inkscape:export-xdpi="301.0947"
-   inkscape:export-ydpi="301.0947"
-   inkscape:dataloss="true"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns="http://www.w3.org/2000/svg"
    xmlns:svg="http://www.w3.org/2000/svg"
    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
    xmlns:cc="http://creativecommons.org/ns#"
    xmlns:dc="http://purl.org/dc/elements/1.1/">
-  <sodipodi:namedview
-     id="namedview13"
-     pagecolor="#ffffff"
-     bordercolor="#000000"
-     borderopacity="0.25"
-     inkscape:showpageshadow="2"
-     inkscape:pageopacity="0.0"
-     inkscape:pagecheckerboard="0"
-     inkscape:deskcolor="#d1d1d1"
-     showgrid="false"
-     inkscape:zoom="1.01"
-     inkscape:cx="257.92079"
-     inkscape:cy="35.643564"
-     inkscape:window-width="1440"
-     inkscape:window-height="999"
-     inkscape:window-x="0"
-     inkscape:window-y="25"
-     inkscape:window-maximized="0"
-     inkscape:current-layer="svg13"
-     inkscape:export-bgcolor="#ffffff00">
-    <inkscape:grid
-       id="grid14"
-       units="px"
-       originx="-280.51382"
-       originy="-119.50127"
-       spacingx="1"
-       spacingy="1"
-       empcolor="#0099e5"
-       empopacity="0.30196078"
-       color="#0099e5"
-       opacity="0.14901961"
-       empspacing="5"
-       enabled="true"
-       visible="false" />
-    <inkscape:page
-       x="0"
-       y="0"
-       width="445.54791"
-       height="216.61351"
-       id="page1"
-       margin="0"
-       bleed="0" />
-  </sodipodi:namedview>
   <title
      id="title1">logo</title>
   <defs
      id="defs6">
-    <inkscape:path-effect
-       effect="fillet_chamfer"
-       id="path-effect5"
-       is_visible="true"
-       lpeversion="1"
-       nodesatellites_param="F,0,0,1,0,0,0,1 @ F,0,0,1,0,0,0,1 @ F,0,0,1,0,0,0,1 @ F,0,0,1,0,0,0,1 @ F,0,0,1,0,0,0,1 @ F,0,0,1,0,0,0,1"
-       radius="0"
-       unit="px"
-       method="auto"
-       mode="F"
-       chamfer_steps="1"
-       flexible="false"
-       use_knot_distance="true"
-       apply_no_radius="true"
-       apply_with_radius="true"
-       only_selected="false"
-       hide_knots="false" />
     <path
        id="path-1"
        d="m 17.242,38.731 c -6.8054,27.167 6.8875,33.335 14.129,37.388 1.4979,0.92671 2.9135,1.5621 4.1143,1.8813 0,0 33.917,-62.41 -33.633,-77 L -1e-4,1.34531 c 0,0 25.146,6.0689 17.576,36.287 z" />
@@ -148,14 +80,12 @@
     </linearGradient>
   </defs>
   <path
-     style="color:#000000;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:medium;line-height:normal;font-family:sans-serif;font-variant-ligatures:normal;font-variant-position:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-alternates:normal;font-variant-east-asian:normal;font-feature-settings:normal;font-variation-settings:normal;text-indent:0;text-align:start;text-decoration-line:none;text-decoration-style:solid;text-decoration-color:#000000;letter-spacing:normal;word-spacing:normal;text-transform:none;writing-mode:lr-tb;direction:ltr;text-orientation:mixed;dominant-baseline:auto;baseline-shift:baseline;text-anchor:start;white-space:normal;shape-padding:0;shape-margin:0;inline-size:0;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;vector-effect:none;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;-inkscape-stroke:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate;stop-color:#000000;stop-opacity:1"
+     style="color:#000000;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:medium;line-height:normal;font-family:sans-serif;font-variant-ligatures:normal;font-variant-position:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-alternates:normal;font-variant-east-asian:normal;font-feature-settings:normal;font-variation-settings:normal;text-indent:0;text-align:start;text-decoration-line:none;text-decoration-style:solid;text-decoration-color:#000000;letter-spacing:normal;word-spacing:normal;text-transform:none;writing-mode:lr-tb;direction:ltr;text-orientation:mixed;dominant-baseline:auto;baseline-shift:baseline;text-anchor:start;white-space:normal;shape-padding:0;shape-margin:0;inline-size:0;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;vector-effect:none;fill:#fafafa;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;-inkscape-stroke:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate;stop-color:#000000;stop-opacity:1"
      id="rect1"
      width="525.74255"
      height="290.09891"
      x="-45.544556"
      y="-34.653465"
-     sodipodi:type="rect"
-     inkscape:path-effect="#path-effect5"
      d="M 104.45544,-34.653465 H 330.198 c 83.1,0 150,64.692056 150,145.049455 0,80.3574 -66.9,145.04945 -150,145.04945 H 104.45544 c -83.099996,0 -149.999996,-64.69205 -149.999996,-145.04945 0,-80.357399 66.9,-145.049455 149.999996,-145.049455 z"
      rx="150"
      transform="matrix(0.84746402,0,0,0.74668845,38.597372,25.875342)" />
@@ -267,7 +197,6 @@
      x="25.97123"
      y="140.11926"
      id="text13"><tspan
-       sodipodi:role="line"
        id="tspan13"
        x="25.97123"
        y="140.11926"
@@ -278,7 +207,6 @@
      x="367.62231"
      y="137.73425"
      id="text13-3"><tspan
-       sodipodi:role="line"
        id="tspan13-9"
        x="367.62231"
        y="137.73425"
