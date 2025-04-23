@@ -6,7 +6,7 @@
         <router-link
           :to="{ name: 'org', params: { orgId: repo!.org_id } }"
           class="hover:underline hover:decoration-wp-custom-highlight-100"
-          >{{ repo!.owner }}</router-link
+          >{{ repo.owner }}</router-link
         >
         /
         <router-link :to="{ name: 'repo' }" class="hover:underline hover:decoration-wp-custom-highlight-100">{{
@@ -38,30 +38,22 @@
 </template>
 
 <script lang="ts" setup>
-import { inject, onMounted } from 'vue';
-import type { Ref } from 'vue';
+import { onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import Scaffold from '~/components/layout/scaffold/Scaffold.vue';
 import Tab from '~/components/layout/scaffold/Tab.vue';
+import { requiredInject } from '~/compositions/useInjectProvide';
 import useNotifications from '~/compositions/useNotifications';
 import { useRouteBack } from '~/compositions/useRouteBack';
-import type { Repo, RepoPermissions } from '~/lib/api/types';
 
 const notifications = useNotifications();
 const router = useRouter();
 const i18n = useI18n();
 
-const repoPermissions = inject<Ref<RepoPermissions>>('repo-permissions');
-if (!repoPermissions) {
-  throw new Error('Unexpected: "repoPermissions" should be provided at this place');
-}
-
-const repo = inject<Ref<Repo>>('repo');
-if (!repo) {
-  throw new Error('Unexpected: "repo" should be provided at this place');
-}
+const repoPermissions = requiredInject('repo-permissions');
+const repo = requiredInject('repo');
 
 onMounted(async () => {
   if (!repoPermissions.value.admin) {

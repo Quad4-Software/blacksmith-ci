@@ -49,7 +49,8 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, provide, ref, toRef, watch } from 'vue';
+import type { Ref } from 'vue';
+import { computed, onMounted, ref, toRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -61,9 +62,10 @@ import Tab from '~/components/layout/scaffold/Tab.vue';
 import useApiClient from '~/compositions/useApiClient';
 import useAuthentication from '~/compositions/useAuthentication';
 import { useForgeStore } from '~/compositions/useForgeStore';
+import { provide } from '~/compositions/useInjectProvide';
 import useNotifications from '~/compositions/useNotifications';
 import useRepos from '~/compositions/useRepos';
-import type { Forge, RepoPermissions } from '~/lib/api/types';
+import type { Forge, Repo, RepoPermissions } from '~/lib/api/types';
 import { usePipelineStore } from '~/store/pipelines';
 import { useRepoStore } from '~/store/repos';
 
@@ -87,8 +89,8 @@ const { updateLastAccess } = useRepos();
 const repo = repoStore.getRepo(repositoryId);
 const repoPermissions = ref<RepoPermissions>();
 const pipelines = pipelineStore.getRepoPipelines(repositoryId);
-provide('repo', repo);
-provide('repo-permissions', repoPermissions);
+provide('repo', repo as Ref<Repo>); // can't be undefined because of v-if in template
+provide('repo-permissions', repoPermissions as Ref<RepoPermissions>); // can't be undefined because of v-if in template
 provide('pipelines', pipelines);
 const forge = ref<Forge>();
 const forgeIcon = computed<IconNames>(() => {
