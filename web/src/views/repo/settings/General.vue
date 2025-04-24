@@ -144,7 +144,7 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Button from '~/components/atomic/Button.vue';
@@ -161,6 +161,7 @@ import { useAsyncAction } from '~/compositions/useAsyncAction';
 import useAuthentication from '~/compositions/useAuthentication';
 import { requiredInject } from '~/compositions/useInjectProvide';
 import useNotifications from '~/compositions/useNotifications';
+import { useCrowTitle } from '~/compositions/useCrowTitle';
 import { RepoRequireApproval, RepoVisibility, WebhookEvents } from '~/lib/api/types';
 import type { RepoSettings } from '~/lib/api/types';
 import { useRepoStore } from '~/store/repos';
@@ -257,4 +258,6 @@ function removeImage(image: string) {
 
   repoSettings.value.netrc_trusted = repoSettings.value.netrc_trusted.filter((i) => i !== image);
 }
+
+useCrowTitle(computed(() => [i18n.t('repo.settings.general.project'), repo.value.full_name]));
 </script>

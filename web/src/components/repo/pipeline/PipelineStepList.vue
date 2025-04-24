@@ -113,7 +113,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, nextTick, ref, toRef, useTemplateRef, watch } from 'vue';
+import { computed, ref, toRef } from 'vue';
 
 import Badge from '~/components/atomic/Badge.vue';
 import Icon from '~/components/atomic/Icon.vue';

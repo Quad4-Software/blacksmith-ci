@@ -313,6 +313,7 @@
   "admin": {
     "settings": {
       "notify_text_not_allowed": "Missing permissions to access server settings",
+      "settings": "Admin Settings",
       "secrets": {
         "desc": "Global secrets can be used in any pipeline by any user.",
         "warning": "These secrets are available to all users"

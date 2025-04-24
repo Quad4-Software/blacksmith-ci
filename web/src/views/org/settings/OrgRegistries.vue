@@ -44,6 +44,7 @@ import { useAsyncAction } from '~/compositions/useAsyncAction';
 import { requiredInject } from '~/compositions/useInjectProvide';
 import useNotifications from '~/compositions/useNotifications';
 import { usePagination } from '~/compositions/usePaginate';
+import { useCrowTitle } from '~/compositions/useCrowTitle';
 import type { Registry } from '~/lib/api/types';
 
 const emptyRegistry: Partial<Registry> = {
@@ -104,4 +105,6 @@ function editRegistry(registry: Registry) {
 function showAddRegistry() {
   selectedRegistry.value = cloneDeep(emptyRegistry);
 }
+
+useCrowTitle(computed(() => [i18n.t('registries.registries'), org.value.name]));
 </script>

@@ -39,6 +39,7 @@ import { useAsyncAction } from '~/compositions/useAsyncAction';
 import useAuthentication from '~/compositions/useAuthentication';
 import useNotifications from '~/compositions/useNotifications';
 import { usePagination } from '~/compositions/usePaginate';
+import { useCrowTitle } from '~/compositions/useCrowTitle';
 import { WebhookEvents } from '~/lib/api/types';
 import type { Secret } from '~/lib/api/types';
 
@@ -108,4 +109,6 @@ function editSecret(secret: Secret) {
 function showAddSecret() {
   selectedSecret.value = cloneDeep(emptySecret);
 }
+
+useCrowTitle(computed(() => [i18n.t('secrets.secrets'), i18n.t('user.settings.settings')]));
 </script>

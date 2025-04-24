@@ -33,6 +33,7 @@
 </template>
 
 <script lang="ts" setup>
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import IconButton from '~/components/atomic/IconButton.vue';
@@ -42,6 +43,7 @@ import useApiClient from '~/compositions/useApiClient';
 import { useAsyncAction } from '~/compositions/useAsyncAction';
 import useNotifications from '~/compositions/useNotifications';
 import { usePagination } from '~/compositions/usePaginate';
+import { useCrowTitle } from '~/compositions/useCrowTitle';
 import type { Org } from '~/lib/api/types';
 
 const apiClient = useApiClient();
@@ -69,4 +71,6 @@ const { doSubmit: deleteOrg, isLoading: isDeleting } = useAsyncAction(async (_or
   });
   resetPage();
 });
+
+useCrowTitle(computed(() => [t('admin.settings.orgs.orgs'), t('admin.settings.settings')]));
 </script>

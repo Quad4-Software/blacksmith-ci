@@ -45,6 +45,7 @@ import useApiClient from '~/compositions/useApiClient';
 import { useAsyncAction } from '~/compositions/useAsyncAction';
 import useNotifications from '~/compositions/useNotifications';
 import { usePagination } from '~/compositions/usePaginate';
+import { useCrowTitle } from '~/compositions/useCrowTitle';
 import type { Registry } from '~/lib/api/types';
 
 const emptyRegistry: Partial<Registry> = {
@@ -104,4 +105,6 @@ function editRegistry(registry: Registry) {
 function showAddRegistry() {
   selectedRegistry.value = cloneDeep(emptyRegistry);
 }
+
+useCrowTitle(computed(() => [i18n.t('registries.registries'), i18n.t('admin.settings.settings')]));
 </script>

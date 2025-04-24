@@ -38,6 +38,7 @@ import Panel from '~/components/layout/Panel.vue';
 import useApiClient from '~/compositions/useApiClient';
 import { requiredInject } from '~/compositions/useInjectProvide';
 import { usePaginate } from '~/compositions/usePaginate';
+import { useCrowTitle } from '~/compositions/useCrowTitle';
 
 defineProps<{
   open: boolean;
@@ -122,4 +123,6 @@ async function triggerManualPipeline() {
     loading.value = false;
   }
 }
+
+useCrowTitle(computed(() => [i18n.t('repo.manual_pipeline.trigger'), repo.value.full_name]));
 </script>

@@ -40,6 +40,7 @@ import useApiClient from '~/compositions/useApiClient';
 import { useAsyncAction } from '~/compositions/useAsyncAction';
 import useNotifications from '~/compositions/useNotifications';
 import { usePagination } from '~/compositions/usePaginate';
+import { useCrowTitle } from '~/compositions/useCrowTitle';
 import type { Secret } from '~/lib/api/types';
 import { WebhookEvents } from '~/lib/api/types';
 
@@ -101,4 +102,6 @@ function editSecret(secret: Secret) {
 function showAddSecret() {
   selectedSecret.value = cloneDeep(emptySecret);
 }
+
+useCrowTitle(computed(() => [i18n.t('secrets.secrets'), i18n.t('admin.settings.settings')]));
 </script>

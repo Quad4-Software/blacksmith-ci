@@ -41,7 +41,7 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -50,6 +50,7 @@ import Button from '~/components/atomic/Button.vue';
 import Error from '~/components/atomic/Error.vue';
 import useApiClient from '~/compositions/useApiClient';
 import useAuthentication from '~/compositions/useAuthentication';
+import { useCrowTitle } from '~/compositions/useCrowTitle';
 import type { Forge } from '~/lib/api/types';
 
 const route = useRoute();
@@ -100,4 +101,6 @@ onMounted(async () => {
     errorMessage.value = authErrorMessages[error] ?? error;
   }
 });
+
+useCrowTitle(computed(() => [i18n.t('login')]));
 </script>

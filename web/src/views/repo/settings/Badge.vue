@@ -38,6 +38,7 @@
 <script lang="ts" setup>
 import { useStorage } from '@vueuse/core';
 import { computed, onMounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import type { SelectOption } from '~/components/form/form.types';
 import InputField from '~/components/form/InputField.vue';
@@ -47,6 +48,7 @@ import useApiClient from '~/compositions/useApiClient';
 import useConfig from '~/compositions/useConfig';
 import { requiredInject } from '~/compositions/useInjectProvide';
 import { usePaginate } from '~/compositions/usePaginate';
+import { useCrowTitle } from '~/compositions/useCrowTitle';
 
 const apiClient = useApiClient();
 const repo = requiredInject('repo');
@@ -105,4 +107,7 @@ onMounted(() => {
 watch(repo, () => {
   loadBranches();
 });
+
+const { t } = useI18n();
+useCrowTitle(computed(() => [t('repo.settings.badge.badge'), repo.value.full_name]));
 </script>

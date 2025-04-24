@@ -32,12 +32,14 @@
 
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import Button from '~/components/atomic/Button.vue';
 import InputField from '~/components/form/InputField.vue';
 import Settings from '~/components/layout/Settings.vue';
 import useApiClient from '~/compositions/useApiClient';
 import useConfig from '~/compositions/useConfig';
+import { useCrowTitle } from '~/compositions/useCrowTitle';
 
 const { rootPath, enableSwagger } = useConfig();
 
@@ -66,4 +68,7 @@ const resetToken = async () => {
   token.value = await apiClient.resetToken();
   window.location.href = `${address}/logout`;
 };
+
+const { t } = useI18n();
+useCrowTitle(computed(() => [t('user.settings.cli_and_api.cli_and_api'), t('user.settings.settings')]));
 </script>

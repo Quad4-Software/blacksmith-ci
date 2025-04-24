@@ -7,9 +7,11 @@
 
 <script lang="ts" setup>
 import { computed, toRef } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import PipelineList from '~/components/repo/pipeline/PipelineList.vue';
 import { requiredInject } from '~/compositions/useInjectProvide';
+import { useCrowTitle } from '~/compositions/useCrowTitle';
 
 const props = defineProps<{
   branch: string;
@@ -28,4 +30,7 @@ const pipelines = computed(() =>
       b.event !== 'pull_request_edited',
   ),
 );
+
+const { t } = useI18n();
+useCrowTitle(computed(() => [t('repo.activity'), branch.value, repo.value.full_name]));
 </script>

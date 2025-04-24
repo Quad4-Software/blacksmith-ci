@@ -50,6 +50,7 @@ import useApiClient from '~/compositions/useApiClient';
 import { useAsyncAction } from '~/compositions/useAsyncAction';
 import { requiredInject } from '~/compositions/useInjectProvide';
 import useNotifications from '~/compositions/useNotifications';
+import { useCrowTitle } from '~/compositions/useCrowTitle';
 
 const apiClient = useApiClient();
 const router = useRouter();
@@ -107,4 +108,6 @@ const { doSubmit: deactivateRepo, isLoading: isDeactivatingRepo } = useAsyncActi
 });
 
 const isActive = computed(() => repo?.value.active);
+
+useCrowTitle(computed(() => [i18n.t('repo.settings.actions.actions'), repo.value.full_name]));
 </script>

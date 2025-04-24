@@ -41,6 +41,7 @@
 </template>
 
 <script lang="ts" setup>
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Badge from '~/components/atomic/Badge.vue';
@@ -52,6 +53,7 @@ import useApiClient from '~/compositions/useApiClient';
 import { useAsyncAction } from '~/compositions/useAsyncAction';
 import useNotifications from '~/compositions/useNotifications';
 import { usePagination } from '~/compositions/usePaginate';
+import { useCrowTitle } from '~/compositions/useCrowTitle';
 import type { Repo } from '~/lib/api/types';
 
 const apiClient = useApiClient();
@@ -73,4 +75,6 @@ const { doSubmit: repairRepos, isLoading: isRepairingRepos } = useAsyncAction(as
     duration: 6000,
   });
 });
+
+useCrowTitle(computed(() => [i18n.t('admin.settings.repos.repos'), i18n.t('admin.settings.settings')]));
 </script>

@@ -7,8 +7,22 @@
 </template>
 
 <script lang="ts" setup>
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+
 import Panel from '~/components/layout/Panel.vue';
 import { requiredInject } from '~/compositions/useInjectProvide';
+import { useCrowTitle } from '~/compositions/useCrowTitle';
 
+const repo = requiredInject('repo');
 const pipeline = requiredInject('pipeline');
+
+const { t } = useI18n();
+useCrowTitle(
+  computed(() => [
+    t('repo.pipeline.files'),
+    t('repo.pipeline.pipeline', { pipelineId: pipeline.value.id }),
+    repo.value.full_name,
+  ]),
+);
 </script>

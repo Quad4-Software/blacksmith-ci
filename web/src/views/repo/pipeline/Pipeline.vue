@@ -74,6 +74,7 @@ import useApiClient from '~/compositions/useApiClient';
 import { useAsyncAction } from '~/compositions/useAsyncAction';
 import { requiredInject } from '~/compositions/useInjectProvide';
 import useNotifications from '~/compositions/useNotifications';
+import { useCrowTitle } from '~/compositions/useCrowTitle';
 import type { PipelineStep } from '~/lib/api/types';
 
 const props = defineProps<{
@@ -152,4 +153,12 @@ const { doSubmit: declinePipeline, isLoading: isDecliningPipeline } = useAsyncAc
     duration: 6000,
   });
 });
+
+useCrowTitle(
+  computed(() => [
+    i18n.t('repo.pipeline.tasks'),
+    i18n.t('repo.pipeline.pipeline', { pipelineId: pipeline.value.id }),
+    repo.value.full_name,
+  ]),
+);
 </script>

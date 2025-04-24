@@ -91,6 +91,7 @@ import useApiClient from '~/compositions/useApiClient';
 import { useAsyncAction } from '~/compositions/useAsyncAction';
 import useNotifications from '~/compositions/useNotifications';
 import { usePagination } from '~/compositions/usePaginate';
+import { useCrowTitle } from '~/compositions/useCrowTitle';
 import type { User } from '~/lib/api/types';
 
 const apiClient = useApiClient();
@@ -153,4 +154,6 @@ function editUser(user: User) {
 function showAddUser() {
   selectedUser.value = cloneDeep({ login: '' });
 }
+
+useCrowTitle(computed(() => [t('admin.settings.users.users'), t('admin.settings.settings')]));
 </script>
