@@ -95,3 +95,8 @@ The custom labels will be shown in the agent list and highlighted in a different
 ![Multi-org Agent](img/multi-org-agent.png)
 /// caption
 Multi-org Agent
+
+## Backend options
+
+Global backend options, like setting limits for cpu and memory per container, can be defined on the agent level.
+All available options are shown in the ["All environment variables"](env-vars.md) section with the backend-specific ones prefixed with `CROW_BACKEND_`.

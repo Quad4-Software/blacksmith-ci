@@ -96,19 +96,36 @@ Contributions welcome!
 The `docker` backend can be seen as the "default" backend.
 It executes each step inside a separate container started on the agent.
 
+### Private Registries
+
+Besides specifying registry credentials in the Crow UI, one can use docker credential helpers and pass a config file through `CROW_DOCKER_CONFIG` environment variable.
+
+/// note
+The credential helper must be part of the image, i.e., a custom image must be built which includes the credential helper.
+///
+
+/// warning
+If credentials are handed over through the server image, they are available to **all pipelines**.
+///
+
 #### Backend Options
 
-The following `backend_options` are available:
+By default, each container runs as the user set in the image.
+This behaviour can be changed through the `docker.user` option as shown below:
 
 ```yaml
 steps:
   - name: test
   [...]
     backend_options:
+      # same as 'docker run --user'
       docker:
-        # same as 'docker run --user'
-        user:
+        user: 65534:65534 # uid:gid
 ```
+
+/// tip
+[Backend-specific env vars](env-vars.md) (e.g. `CROW_BACKEND_DOCKER_LIMIT_MEM`) are defined in the agent and can be used to enforce different limits for specific agents on the same server.
+///
 
 #### Housekeeping
 
@@ -291,7 +308,7 @@ scrape_configs:
     bearer_token: <token>
 
     static_configs:
-       - targets: ['crow.domain.com']
+      - targets: ['crow.domain.com']
 ```
 
 Alternatively, the token can be read from a file:
@@ -305,7 +322,7 @@ scrape_configs:
     bearer_token_file: /etc/secrets/crow-monitoring-token
 
     static_configs:
-       - targets: ['crow.domain.com']
+      - targets: ['crow.domain.com']
 ```
 
 ### Reference

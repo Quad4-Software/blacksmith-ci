@@ -1,5 +1,141 @@
 ## Server
 
+### LOG_LEVEL
+
+- Name: `CROW_LOG_LEVEL`
+- Description: Logging level. Possible values are `trace`, `debug`, `info`, `warn`, `error`, `fatal`, `panic`, and `disabled`.
+- Default: none
+
+---
+
+### LOG_FILE
+
+- Name: `CROW_LOG_FILE`
+- Description: Output destination for logs. `stdout` and `stderr` can be used as special keywords.
+- Default: `stderr`
+
+---
+
+### DEFAULT_ALLOW_PULL_REQUESTS
+
+- Name: `CROW_DEFAULT_ALLOW_PULL_REQUESTS`
+- Description: The default value for the 'Approval requirements' section of new repos.
+- Default: `default-allow-pull-requests`
+
+## Agent
+
+### AGENT_CONFIG_FILE
+
+- Name: `CROW_AGENT_CONFIG_FILE`
+- Description: Filepath containing agent config, e.g. `/etc/woodpecker/agent.conf`
+- Default: none
+
+---
+
+### AGENT_LABELS
+
+- Name: `CROW_AGENT_LABELS`
+- Description: Configures custom labels for the agent, to enable workflow filtering. Accepts a list of key-value pairs like `key=value,second-key=*`.
+  Agents provide three additional labels `platform=os/arch`, `hostname=my-agent` and `repo=*` which can be overwritten if needed.
+- Default: none
+
+---
+
+### AGENT_SECRET_FILE
+
+- Name: `CROW_AGENT_SECRET_FILE`
+- Description: Filepath containing the agent secret, e.g. `/etc/woodpecker/agent-secret.conf`
+- Default: none
+
+---
+
+### AGENT_SECRET
+
+- Name: `CROW_AGENT_SECRET`
+- Description: A shared secret used by server and agents to authenticate communication.
+  A secret can be generated via `openssl rand -hex 32`.
+- Default: none
+
+---
+
+### BACKEND
+
+- Name: `CROW_BACKEND`
+- Description: Woodpecker backend to use. Possible values are `auto-detect`, `docker`, `local` or `kubernetes`.
+- Default: `auto-detect`
+
+---
+
+### BACKEND_DOCKER_NETWORK
+
+- Name: `CROW_BACKEND_DOCKER_NETWORK`
+- Description: Docker network which will be attached to all pipeline steps. Careful: this allows containers of different steps to communicate with each other.
+- Default: none
+
+---
+
+### BACKEND_DOCKER_ENABLED_IPV6
+
+- Name: `CROW_BACKEND_DOCKER_ENABLED_IPV6`
+- Description: Whether to enable IPv6 support in Docker containers. Requires the Docker daemon to be configured with IPv6 support.
+- Default: `false`
+
+---
+
+### BACKEND_DOCKER_VOLUMES
+
+- Name: `CROW_BACKEND_DOCKER_VOLUMES`
+- Description: Additional volumes to mount in Docker containers.
+- Default: none
+
+---
+
+### BACKEND_DOCKER_LIMIT_MEM_SWAP
+
+- Name: `CROW_BACKEND_DOCKER_LIMIT_MEM_SWAP`
+- Description: Whether to limit memory swap usage in Docker containers. No limit is applied if set to `0`.
+- Default: `0`
+
+---
+
+### BACKEND_DOCKER_LIMIT_MEM
+
+- Name: `CROW_BACKEND_DOCKER_LIMIT_MEM`
+- Description: Whether to limit memory usage in Docker containers. No limit is applied if set to `0`.
+- Default: `0`
+
+---
+
+### BACKEND_DOCKER_LIMIT_SHM_SIZE
+
+- Name: `CROW_BACKEND_DOCKER_LIMIT_SHM_SIZE`
+- Description: Whether to limit shared memory size in Docker containers. No limit is applied if set to `0`.
+- Default: `0`
+
+---
+
+### BACKEND_DOCKER_LIMIT_CPU_QUOTA
+
+- Name: `CROW_BACKEND_DOCKER_LIMIT_CPU_QUOTA`
+- Description: Microseconds per CPU quota before throttling takes place. No limit is applied if set to `0`.
+- Default: `0`
+
+---
+
+### BACKEND_DOCKER_LIMIT_CPU_SHARES
+
+- Name: `CROW_BACKEND_DOCKER_LIMIT_CPU_SHARES`
+- Description: CPU shares (relative weight) for Docker containers. No limit is applied if set to `0`.
+- Default: `0`
+
+---
+
+### BACKEND_DOCKER_LIMIT_CPU_SET
+
+- Name: `CROW_BACKEND_DOCKER_LIMIT_CPU_SET`
+- Description: Comma-separated list of specific CPU cores the pipelines are limited to. No limit is applied if set to `0`.
+- Default: none
+
 ### BACKEND_K8S_NAMESPACE
 
 - Name: `CROW_BACKEND_K8S_NAMESPACE`
@@ -92,72 +228,6 @@
 
 ---
 
-### LOG_LEVEL
-
-- Name: `CROW_LOG_LEVEL`
-- Description: Logging level. Possible values are `trace`, `debug`, `info`, `warn`, `error`, `fatal`, `panic`, and `disabled`.
-- Default: none
-
----
-
-### LOG_FILE
-
-- Name: `CROW_LOG_FILE`
-- Description: Output destination for logs. `stdout` and `stderr` can be used as special keywords.
-- Default: `stderr`
-
----
-
-### DEFAULT_ALLOW_PULL_REQUESTS
-
-- Name: `CROW_DEFAULT_ALLOW_PULL_REQUESTS`
-- Description: The default value for the 'Approval requirements' section of new repos.
-- Default: `default-allow-pull-requests`
-
-## Agent
-
-### AGENT_CONFIG_FILE
-
-- Name: `CROW_AGENT_CONFIG_FILE`
-- Description: Filepath containing agent config, e.g. `/etc/woodpecker/agent.conf`
-- Default: none
-
----
-
-### AGENT_LABELS
-
-- Name: `CROW_AGENT_LABELS`
-- Description: Configures custom labels for the agent, to enable workflow filtering. Accepts a list of key-value pairs like `key=value,second-key=*`.
-  Agents provide three additional labels `platform=os/arch`, `hostname=my-agent` and `repo=*` which can be overwritten if needed.
-- Default: none
-
----
-
-### AGENT_SECRET_FILE
-
-- Name: `CROW_AGENT_SECRET_FILE`
-- Description: Filepath containing the agent secret, e.g. `/etc/woodpecker/agent-secret.conf`
-- Default: none
-
----
-
-### AGENT_SECRET
-
-- Name: `CROW_AGENT_SECRET`
-- Description: A shared secret used by server and agents to authenticate communication.
-  A secret can be generated via `openssl rand -hex 32`.
-- Default: none
-
----
-
-### BACKEND
-
-- Name: `CROW_BACKEND`
-- Description: Woodpecker backend to use. Possible values are `auto-detect`, `docker`, `local` or `kubernetes`.
-- Default: `auto-detect`
-
----
-
 ### CONNECT_RETRY_COUNT
 
 - Name: `CROW_CONNECT_RETRY_COUNT`
@@ -247,6 +317,7 @@
 ---
 
 <!-- markdownlint-disable MD024 -->
+
 ### LOG_LEVEL
 
 - Name: `CROW_LOG_LEVEL`
@@ -319,8 +390,8 @@
 - Description: time an agent is allowed to be inactive before it can be terminated as duration string like `2h45m`
 - Default: `10m`
 - Synonyms:
-    - `CROW_AGENT_ALLOWED_STARTUP_TIME`
-    - `CROW_AGENT_SERVER_CONNECTION_TIMEOUT`
+  - `CROW_AGENT_ALLOWED_STARTUP_TIME`
+  - `CROW_AGENT_SERVER_CONNECTION_TIMEOUT`
 
 ---
 
@@ -330,5 +401,6 @@
 - Description: time an agent is allowed to be idle before it can be terminated as duration string like `2h45m`
 - Default: `10m`
 
-[^1]: The provider-specific settings are documented in their respective source files to keep this page tidy.
-  All links can be found [here](autoscaler.md).
+[^1]:
+    The provider-specific settings are documented in their respective source files to keep this page tidy.
+    All links can be found [here](autoscaler.md).
