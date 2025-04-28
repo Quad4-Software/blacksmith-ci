@@ -17,7 +17,6 @@ package gitea
 
 import (
 	"bytes"
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -54,7 +53,7 @@ func Test_gitea(t *testing.T) {
 	})
 
 	mockStore := new(store_mocks.MockStore)
-	ctx := store.InjectToContext(context.Background(), mockStore)
+	ctx := store.InjectToContext(t.Context(), mockStore)
 
 	t.Run("netrc with user token", func(t *testing.T) {
 		forge, _ := New(Opts{})
