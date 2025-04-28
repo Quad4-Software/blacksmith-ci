@@ -58,7 +58,7 @@ steps:
     commands:
       - apk add --no-cache -q just git sqlite-dev libc-dev gcc g++ build-base musl-dev binutils binutils-gold
       # FIXME: until v2 appears in golang-alpine image
-      - wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s v2.0.2 && mv ./bin/golangci-lint /bin/
+      - wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s v2.1.5 && mv ./bin/golangci-lint /bin/
       - just lint-backend
     when: *when
 
