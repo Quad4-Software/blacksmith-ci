@@ -1,4 +1,6 @@
-## CLI
+<!-- markdownlint-disable MD041 -->
+
+# CLI
 
 The CLI can be installed through the provided assets of the respective releases on Codeberg.
 

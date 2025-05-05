@@ -139,6 +139,7 @@ nav:
       - installation/index.md
       - Docker compose: installation/docker-compose.md
       - Helm: installation/helm.md
+      - Ansible: installation/ansible.md
       - Reverse proxy setup: installation/proxy.md
       - CLI: installation/cli.md
       - Migration from other apps: installation/migration.md
