@@ -38,7 +38,7 @@ repos:
         language: fail
         files: .yml$
   - repo: https://github.com/editorconfig-checker/editorconfig-checker
-    rev: v3.2.1
+    rev: v3.3.0
     hooks:
       - id: editorconfig-checker
 
