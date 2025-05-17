@@ -18,9 +18,9 @@
   "dependencies": {
     "@kyvg/vue3-notification": "^3.4.1",
     "@mdi/js": "^7.4.47",
-    "@tailwindcss/postcss": "4.1.6",
+    "@tailwindcss/postcss": "4.1.7",
     "@tailwindcss/typography": "^0.5.16",
-    "@tailwindcss/vite": "4.1.6",
+    "@tailwindcss/vite": "4.1.7",
     "@vueuse/core": "^13.0.0",
     "ansi_up": "^6.0.2",
     "dompurify": "^3.2.4",
