@@ -2,7 +2,7 @@ when:
   - event: push
     branch: ${CI_REPO_DEFAULT_BRANCH}
     path: ['docs/**', '.crow/docs.yaml', 'mkdocs.yaml']
-  - event: pull_request
+  - event: [pull_request, pull_request_closed]
     path: ['docs/**', '.crow/docs.yaml', 'mkdocs.yaml']
   - event: tag
 
@@ -80,7 +80,7 @@ steps:
       - mv site/domains site/.domains
 
   - name: PR docs preview
-    image: docker.io/woodpeckerci/plugin-surge-preview:1.3.6
+    image: docker.io/woodpeckerci/plugin-surge-preview:1.4.0
     settings:
       path: 'site/'
       surge_token:
