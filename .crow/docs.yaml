@@ -13,7 +13,7 @@ clone:
 
 steps:
   - name: 'Build docs'
-    image: alpine:3.21
+    image: alpine:3.22
     environment:
       IS_CI: true
       MKDOCS_MATERIAL_VERSION: 9.6.11-insiders-4.53.16
@@ -36,7 +36,7 @@ steps:
         branch: ${CI_REPO_DEFAULT_BRANCH}
 
   - name: 'Build docs (PR)'
-    image: alpine:3.21
+    image: alpine:3.22
     environment:
       IS_CI: true
       MKDOCS_MATERIAL_VERSION: 9.6.11-insiders-4.53.16
@@ -60,7 +60,7 @@ steps:
   - name: 'Build docs (tag)'
     when:
       - event: tag
-    image: alpine:3.21
+    image: alpine:3.22
     environment:
       IS_CI: true
       MKDOCS_MATERIAL_VERSION: 9.6.11-insiders-4.53.16
@@ -92,7 +92,7 @@ steps:
       - event: [pull_request, pull_request_closed]
 
   - name: Clone gh-pages branch for S3 sync
-    image: alpine:3.21
+    image: alpine:3.22
     commands:
       - apk add --no-cache -q git
       - git clone --branch gh-pages --depth 1 https://codeberg.org/crowci/crow docs_versioned

@@ -4,19 +4,19 @@ when:
 
 steps:
   - name: Prepare
-    image: alpine:3.21
+    image: alpine:3.22
     commands:
       - mkdir upload/
 
   - name: 'Update dev version hash'
-    image: alpine:3.21
+    image: alpine:3.22
     commands:
       - apk add --no-cache -q yq curl
       - curl -sL https://crowci.dev/version.json -o upload/version.json
       - yq -iP '.dev = "dev-${CI_COMMIT_SHA:0:10}"' upload/version.json
 
   - name: 'Update release version hash'
-    image: alpine:3.21
+    image: alpine:3.22
     commands:
       - apk add --no-cache -q yq
       - if [[ "${CI_COMMIT_TAG}" != *"rc"* ]] ; then yq -iP '.latest = "${CI_COMMIT_TAG}"' upload/version.json ; fi
