@@ -11,7 +11,7 @@ steps:
       - trivy fs --format template --template @assets/trivy-markdown.tpl --skip-dirs vendor,node_modules/,extras . > scan.md
 
   - name: Update issue
-    image: docker.io/alpine:3.21
+    image: docker.io/alpine:3.22
     environment:
       ISSUE_TOKEN:
         from_secret: codeberg_bot_token
