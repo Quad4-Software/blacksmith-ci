@@ -895,7 +895,6 @@ var HookPullRequestEdited = []byte(`
 }
 `)
 
-
 var HookPullRequestMerged = []byte(`
 {
 	"object_kind": "merge_request",
