@@ -17,12 +17,12 @@ require (
 	github.com/charmbracelet/huh v0.7.0
 	github.com/charmbracelet/huh/spinner v0.0.0-20240327025511-ec643317aa10
 	github.com/distribution/reference v0.6.0
-	github.com/docker/cli v28.1.1+incompatible
-	github.com/docker/docker v28.1.1+incompatible
+	github.com/docker/cli v28.2.2+incompatible
+	github.com/docker/docker v28.2.2+incompatible
 	github.com/docker/go-connections v0.5.0
 	github.com/docker/go-units v0.5.0
 	github.com/drone/envsubst v1.0.3
-	github.com/expr-lang/expr v1.17.3
+	github.com/expr-lang/expr v1.17.4
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/gdgvda/cron v0.4.0
 	github.com/getkin/kin-openapi v0.132.0
@@ -41,7 +41,7 @@ require (
 	github.com/kinbiko/jsonassert v1.2.0
 	github.com/lib/pq v1.10.9
 	github.com/mattn/go-sqlite3 v1.14.28
-	github.com/moby/moby v28.1.1+incompatible
+	github.com/moby/moby v28.2.2+incompatible
 	github.com/moby/term v0.5.2
 	github.com/muesli/termenv v0.16.0
 	github.com/neticdk/go-bitbucket v1.0.2
@@ -66,7 +66,7 @@ require (
 	golang.org/x/sync v0.14.0
 	golang.org/x/term v0.32.0
 	golang.org/x/text v0.25.0
-	google.golang.org/grpc v1.72.1
+	google.golang.org/grpc v1.72.2
 	google.golang.org/protobuf v1.36.6
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.33.1
@@ -100,6 +100,8 @@ require (
 	github.com/charmbracelet/x/term v0.2.1 // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect
 	github.com/cloudwego/iasm v0.2.0 // indirect
+	github.com/containerd/errdefs v1.0.0 // indirect
+	github.com/containerd/errdefs/pkg v0.3.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
 	github.com/danieljoos/wincred v1.2.2 // indirect
