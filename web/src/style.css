@@ -53,6 +53,7 @@
 
   --wp-hint-warn-100: theme('colors.int-wp-hint-warn.100');
   --wp-hint-warn-200: theme('colors.int-wp-hint-warn.200');
+  --wp-hint-warn-300: theme('colors.int-wp-hint-warn.300');
 
   --wp-code-inline-100: theme('colors.gray.200');
   --wp-code-inline-200: theme('colors.gray.200');

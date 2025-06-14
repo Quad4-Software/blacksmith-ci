@@ -18,6 +18,7 @@
       :agents="agents"
       :is-deleting="isDeleting"
       :is-admin="isAdmin"
+      :user-org-id="userOrgId"
       @edit="editAgent"
       @delete="deleteAgent"
     />
@@ -54,6 +55,7 @@ const props = defineProps<{
   updateAgent: (agent: Agent) => Promise<Agent | void>;
   deleteAgent: (agent: Agent) => Promise<unknown>;
   isAdmin?: boolean;
+  userOrgId?: number;
 }>();
 
 const notifications = useNotifications();

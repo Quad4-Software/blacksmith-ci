@@ -5,10 +5,8 @@
     :create-agent="createAgent"
     :update-agent="updateAgent"
     :delete-agent="deleteAgent"
+    :user-org-id="user.org_id"
   >
-    <template #headerEnd>
-      <Warning class="mt-4 text-sm" :text="$t('user.settings.agents.warning')" />
-    </template>
   </AgentManager>
 </template>
 
@@ -17,7 +15,6 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import AgentManager from '~/components/agent/AgentManager.vue';
-import Warning from '~/components/atomic/Warning.vue';
 import useApiClient from '~/compositions/useApiClient';
 import useAuthentication from '~/compositions/useAuthentication';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
@@ -30,7 +27,7 @@ if (!user) {
   throw new Error('Unexpected: User should be authenticated');
 }
 
-const loadAgents = (page: number) => apiClient.getOrgAgents(user.org_id, { page });
+const loadAgents = (page: number) => apiClient.getAgents({ page });
 const createAgent = (agent: Partial<Agent>) => apiClient.createOrgAgent(user.org_id, agent);
 const updateAgent = (agent: Agent) => apiClient.updateOrgAgent(user.org_id, agent.id, agent);
 const deleteAgent = (agent: Agent) => apiClient.deleteOrgAgent(user.org_id, agent.id);

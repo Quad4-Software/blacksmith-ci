@@ -68,6 +68,7 @@
 
   --color-int-wp-hint-warn-100: #e5f8fb;
   --color-int-wp-hint-warn-200: #00b8d4;
+  --color-int-wp-hint-warn-300: #148f0a;
 
   --color-int-wp-hint-warn-dark-100: #1b313b;
   --color-int-wp-hint-warn-dark-200: #00b8d4;
@@ -125,6 +126,7 @@
 
   --color-wp-hint-warn-100: var(--wp-hint-warn-100);
   --color-wp-hint-warn-200: var(--wp-hint-warn-200);
+  --color-wp-hint-warn-300: var(--wp-hint-warn-300);
 
   --color-wp-code-inline-100: var(--wp-code-inline-100);
   --color-wp-code-inline-200: var(--wp-code-inline-200);

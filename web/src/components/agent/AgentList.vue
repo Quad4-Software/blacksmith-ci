@@ -6,13 +6,14 @@
       class="items-center bg-wp-background-200! shadow-md dark:bg-wp-background-100!"
     >
       <span class="inline-block md:min-w-[100px]">{{ getAgentDisplayName(agent) }}</span>
-      <span class="mx-auto space-x-2 space-y-1.5">
+      <span class="ml-auto space-x-2 space-y-1.5">
         <span class="hidden space-x-2 md:inline-block">
           <Badge
             v-if="props.isAdmin === true && agent.org_id !== -1"
             :label="$t('admin.settings.agents.org.badge')"
             :value="agent.org_id"
           />
+          <Badge v-if="agent.org_id === -1" :label="$t('admin.settings.agents.type.badge')" value="global" />
           <Badge
             v-for="(value, key) in agent.custom_labels"
             :key="`${key}-${value}`"
@@ -28,12 +29,14 @@
         }}</span>
       </span>
       <IconButton
+        v-if="props.isAdmin || agent.org_id === props.userOrgId"
         icon="edit"
         :title="$t('admin.settings.agents.edit_agent')"
         class="ml-2 h-8 w-8"
         @click="$emit('edit', agent)"
       />
       <IconButton
+        v-if="props.isAdmin || agent.org_id === props.userOrgId"
         icon="trash"
         :title="$t('admin.settings.agents.delete_agent')"
         class="ml-2 h-8 w-8 hover:text-wp-error-100"
@@ -60,6 +63,7 @@ const props = defineProps<{
   isDeleting: boolean;
   loading: boolean;
   isAdmin?: boolean;
+  userOrgId?: number;
 }>();
 
 defineEmits<{

@@ -7,6 +7,7 @@
         'border-wp-error-100!': label === 'global secret',
         // custom == 'custom label' from agents
         'border-wp-hint-warn-200!': label === 'organization secret' || label === 'custom',
+        'border-wp-hint-warn-300!': label === 'type' && value === 'global',
       }"
     >
       {{ label }}
@@ -17,6 +18,7 @@
       :class="{
         'border-wp-hint-warn-200!':
           label === 'custom' || (label && (label.startsWith('org:') || label.startsWith('repo:'))),
+        'border-wp-hint-warn-300!': label === 'type' && value === 'global',
       }"
     >
       {{ value }}
