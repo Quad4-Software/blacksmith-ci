@@ -37,7 +37,7 @@
         v-else
         :text="$t('login')"
         :to="`/login?url=${route.fullPath}`"
-        class="navbar-link !text-wp-primary-text-100 bg-wp-primary-200 dark:bg-wp-primary-300 !border-transparent !shadow-none"
+        class="navbar-link !text-wp-primary-text-100 bg-wp-custom-highlight-100 !border-transparent !shadow-none"
       />
     </div>
   </nav>
