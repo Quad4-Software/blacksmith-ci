@@ -5,7 +5,11 @@
     :create-agent="createAgent"
     :update-agent="updateAgent"
     :delete-agent="deleteAgent"
-  />
+  >
+    <template #headerEnd>
+      <Warning class="mt-4 text-sm" :text="$t('user.settings.agents.warning')" />
+    </template>
+  </AgentManager>
 </template>
 
 <script lang="ts" setup>
@@ -13,6 +17,7 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import AgentManager from '~/components/agent/AgentManager.vue';
+import Warning from '~/components/atomic/Warning.vue';
 import useApiClient from '~/compositions/useApiClient';
 import useAuthentication from '~/compositions/useAuthentication';
 import { useCrowTitle } from '~/compositions/useCrowTitle';

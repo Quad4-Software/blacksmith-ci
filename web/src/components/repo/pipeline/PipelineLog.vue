@@ -13,6 +13,55 @@
           <span class="md:hidden">{{ step?.name }}</span>
         </span>
         <div class="ml-auto flex flex-row items-center gap-x-2">
+          <span class="ml-2 px-2">
+            <a v-if="repoPermissions?.admin" href="/admin/agents/" class="text-wp-link-100 hover:text-wp-link-200">
+              {{ $t('repo.pipeline.agent', { agentId: workflow?.agent_id || '' }) }}
+            </a>
+            <a v-else href="/user/agents/" class="text-wp-link-100 hover:text-wp-link-200">
+              {{ $t('repo.pipeline.agent', { agentId: workflow?.agent_id || '' }) }}
+            </a>
+          </span>
+          <div
+            class="cursor-pointer rounded-full border border-wp-custom-highlight-100 bg-wp-code-100 p-1 shadow-lg transition-opacity duration-300 flex items-center justify-center"
+            :title="$t('repo.pipeline.actions.log_scroll_to_bottom')"
+            @click="scrollToBottom"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="8"
+              height="8"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="text-wp-code-text-alt-100"
+            >
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+
+          <div
+            class="cursor-pointer rounded-full border border-wp-custom-highlight-100 bg-wp-code-100 p-1 shadow-lg transition-opacity duration-300 flex items-center justify-center"
+            :title="$t('repo.pipeline.actions.log_scroll_to_top')"
+            @click="scrollToTop"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="8"
+              height="8"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="text-wp-code-text-alt-100"
+            >
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+          </div>
           <IconButton
             v-if="step?.finished !== undefined && hasLogs"
             :is-loading="downloadInProgress"
@@ -109,50 +158,6 @@
         <span v-else class="ml-2 border border-wp-control-ok-300 rounded-full px-2">{{
           $t('repo.pipeline.exit_code', { exitCode: step.exit_code })
         }}</span>
-        <span class="ml-2 px-2">{{ $t('repo.pipeline.agent', { agentId: workflow?.agent_id || '' }) }}</span>
-        <div class="ml-auto flex flex-row items-center gap-x-2">
-          <div
-            class="cursor-pointer rounded-full border border-wp-custom-highlight-100 bg-wp-code-100 p-1 shadow-lg transition-opacity duration-300 flex items-center justify-center"
-            :title="$t('repo.pipeline.actions.log_scroll_to_bottom')"
-            @click="scrollToBottom"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="text-wp-code-text-alt-100"
-            >
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </div>
-
-          <div
-            class="cursor-pointer rounded-full border border-wp-custom-highlight-100 bg-wp-code-100 p-1 shadow-lg transition-opacity duration-300 flex items-center justify-center"
-            :title="$t('repo.pipeline.actions.log_scroll_to_top')"
-            @click="scrollToTop"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="text-wp-code-text-alt-100"
-            >
-              <polyline points="18 15 12 9 6 15"></polyline>
-            </svg>
-          </div>
-        </div>
       </div>
     </div>
   </div>
