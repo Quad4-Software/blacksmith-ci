@@ -55,6 +55,30 @@ Motivation for the fork was built around the improvement of infrastructure-relat
 
 Woodpecker itself is a fork of Drone CI (v0.8.91) from April 2019 with the first standalone version being released on September 9th 2019.
 
+### Crow vs. Woodpecker
+
+/// note
+This list is provided for informational purposes only and is not intended to devalue Woodpecker.
+In fact, Crow welcomes any improvements that are ported to Woodpecker and aims for a harmonious collaboration
+///
+
+As of 2025-06, the following unique features exist in Crow:
+
+- Log retention: Each repository can define its own retention policy. A global default of 90 days is used
+- Descriptive error message: Errors are transparently parsed back to the user in the UI. Almost no "An unknown error occurred" messages are shown
+- Multi-org agents: Admins can deploy agents which are allowed to process builds from multiple organizations/users
+- Agent list: All instance agents are listed in the UI, also for non-admin users.
+- New `pull_request_edited` event trigger
+- Early fail when "manual" event triggers are not allowed in the repo: Instead of silently returning nothing, Crow shows a descriptive error message to the user
+- The agent ID a specific workflow was processed by is shown in the top panel of the log view
+- Custom agent labels are shown in the agent list
+- Added `CI_COMMIT_PULL_REQUEST_TITLE` env var
+- Manual pipeline runs show possible extra variables that have been passed during the UI
+
+Additionally, for the Crow Autoscaler:
+
+- Ability to account for static agents: only deploy new (autoscaled) agents if static agents cannot process the queued builds
+
 ## License
 
 Crow CI is licensed under the Apache 2.0 license (following inheritance from Woodpecker and Drone).
