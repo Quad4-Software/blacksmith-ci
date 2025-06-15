@@ -605,6 +605,16 @@ var flags = append([]cli.Flag{
 // the datasource is different from running outside a container.
 func datasourceDefaultValue() string {
 	found := getFirstNonEmptyEnvVar("WOODPECKER_IN_CONTAINER", "CROW_IN_CONTAINER")
+	if _, err := os.Stat("woodpecker.sqlite"); err == nil {
+		if _, err := os.Stat("crow.sqlite"); err == nil {
+			fmt.Println("Both woodpecker.sqlite and crow.sqlite found in current directory. Using woodpecker.sqlite.")
+		}
+		return "woodpecker.sqlite"
+	}
+	if _, err := os.Stat("crow.sqlite"); err == nil {
+		return "crow.sqlite"
+	}
+
 	if found != "" {
 		if _, err := os.Stat("/var/lib/woodpecker/woodpecker.sqlite"); err == nil {
 			if _, err := os.Stat("/var/lib/crow/crow.sqlite"); err == nil {
