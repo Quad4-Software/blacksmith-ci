@@ -153,3 +153,9 @@ Most features for development do not rely on the "insiders" build.
 When you open a PR in the repository, the `surge-preview` plugin will automatically build and deploy the documentation state of the PR to a temporary URL.
 This can be an alternative way to work on the documentation if you are facing troubles getting the local development server to work.
 ///
+
+### Versioning
+
+A new docs version is published to the `gh-pages` branch via [mike](https://github.com/jimporter/mike) for every release and push to `main` (="dev").
+(`mike` does not allow to use a different branch name than `gh-pages` as it is heavily focused on GitHub Pages.)
+From this branch, the assets will be synced to S3.
