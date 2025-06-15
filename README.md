@@ -1,7 +1,7 @@
 <!-- markdownlint-disable -->
 
 <p align="center">
-  <img src="https://codeberg.org/crowci/crow/raw/branch/main/assets/crow-logo-gray-bg-round.svg">
+  <img src="https://codeberg.org/crowci/crow/raw/branch/main/assets/crow-logo-gray-bg-round.png">
 </p>
 
 <p align="center">
