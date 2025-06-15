@@ -74,6 +74,7 @@ As of 2025-06, the following unique features exist in Crow:
 - Custom agent labels are shown in the agent list
 - Added `CI_COMMIT_PULL_REQUEST_TITLE` env var
 - Manual pipeline runs show possible extra variables that have been passed during the UI
+- Log view: Top/Down buttons to jump to the top or bottom of the log view
 
 Additionally, for the Crow Autoscaler:
 
