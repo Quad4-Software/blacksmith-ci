@@ -1,37 +1,114 @@
 <template>
-  <AgentManager
-    :description="$t('user.settings.agents.desc')"
-    :load-agents="loadAgents"
-    :create-agent="createAgent"
-    :update-agent="updateAgent"
-    :delete-agent="deleteAgent"
-    :user-org-id="user.org_id"
-  >
-  </AgentManager>
+  <div class="mx-auto w-full max-w-none px-4">
+    <Settings :title="$t('admin.settings.agents.agents')" :description="$t('user.settings.agents.desc')">
+      <template #headerActions>
+        <Button
+          v-if="selectedAgent"
+          :text="$t('admin.settings.agents.show')"
+          start-icon="back"
+          @click="selectedAgent = undefined"
+        />
+        <Button v-else :text="$t('admin.settings.agents.add')" start-icon="plus" @click="showAddAgent" />
+      </template>
+
+      <AgentList
+        v-if="!selectedAgent"
+        :loading="loading"
+        :agents="agents"
+        :is-deleting="isDeleting"
+        :user-org-id="user.org_id"
+        @edit="editAgent"
+        @delete="deleteAgent"
+      />
+      <AgentForm
+        v-else
+        v-model="selectedAgent"
+        :is-editing-agent="isEditingAgent"
+        :is-saving="isSaving"
+        @save="saveAgent"
+        @cancel="selectedAgent = undefined"
+      />
+    </Settings>
+  </div>
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue';
+import { cloneDeep } from 'lodash';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import AgentManager from '~/components/agent/AgentManager.vue';
+import Button from '~/components/atomic/Button.vue';
+import Settings from '~/components/layout/Settings.vue';
+import AgentForm from '~/components/agent/AgentForm.vue';
+import AgentList from '~/components/agent/AgentList.vue';
 import useApiClient from '~/compositions/useApiClient';
+import { useAsyncAction } from '~/compositions/useAsyncAction';
 import useAuthentication from '~/compositions/useAuthentication';
+import useNotifications from '~/compositions/useNotifications';
+import { usePagination } from '~/compositions/usePaginate';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
 import type { Agent } from '~/lib/api/types';
 
 const apiClient = useApiClient();
+const notifications = useNotifications();
 const { user } = useAuthentication();
+const { t } = useI18n();
 
 if (!user) {
   throw new Error('Unexpected: User should be authenticated');
 }
 
-const loadAgents = (page: number) => apiClient.getAgents({ page });
-const createAgent = (agent: Partial<Agent>) => apiClient.createOrgAgent(user.org_id, agent);
-const updateAgent = (agent: Agent) => apiClient.updateOrgAgent(user.org_id, agent.id, agent);
-const deleteAgent = (agent: Agent) => apiClient.deleteOrgAgent(user.org_id, agent.id);
+const selectedAgent = ref<Partial<Agent>>();
+const isEditingAgent = computed(() => !!selectedAgent.value?.id);
 
-const { t } = useI18n();
+const loadAgents = (page: number) => apiClient.getAgents({ page });
+const { resetPage, data: agents, loading } = usePagination(loadAgents);
+
+const { doSubmit: saveAgent, isLoading: isSaving } = useAsyncAction(async () => {
+  if (!selectedAgent.value) {
+    throw new Error("Unexpected: Can't get agent");
+  }
+
+  if (isEditingAgent.value) {
+    await apiClient.updateOrgAgent(user.org_id, selectedAgent.value.id!, selectedAgent.value);
+    selectedAgent.value = undefined;
+  } else {
+    selectedAgent.value = await apiClient.createOrgAgent(user.org_id, selectedAgent.value);
+  }
+  notifications.notify({
+    title: t('notify_title_success'),
+    text: isEditingAgent.value
+      ? t('admin.settings.agents.notify_text_saved')
+      : t('admin.settings.agents.notify_text_created'),
+    type: 'success',
+    duration: 6000,
+  });
+  resetPage();
+});
+
+const { doSubmit: deleteAgent, isLoading: isDeleting } = useAsyncAction(async (_agent: Agent) => {
+  // eslint-disable-next-line no-alert
+  if (!confirm(t('admin.settings.agents.delete_confirm'))) {
+    return;
+  }
+
+  await apiClient.deleteOrgAgent(user.org_id, _agent.id);
+  notifications.notify({
+    title: t('notify_title_success'),
+    text: t('admin.settings.agents.notify_text_deleted'),
+    type: 'success',
+    duration: 6000,
+  });
+  resetPage();
+});
+
+function editAgent(agent: Agent) {
+  selectedAgent.value = cloneDeep(agent);
+}
+
+function showAddAgent() {
+  selectedAgent.value = { name: '' };
+}
+
 useCrowTitle(computed(() => [t('admin.settings.agents.agents'), t('user.settings.settings')]));
 </script>

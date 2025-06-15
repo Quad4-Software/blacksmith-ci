@@ -1,18 +1,54 @@
 <template>
-  <div v-if="!props.loading" class="space-y-4 text-wp-text-100">
-    <ListItem
-      v-for="agent in props.agents"
-      :key="agent.id"
-      class="items-center bg-wp-background-200! shadow-md dark:bg-wp-background-100!"
-    >
-      <span class="inline-block md:min-w-[100px]">{{ getAgentDisplayName(agent) }}</span>
-      <span class="ml-auto space-x-2 space-y-1.5">
-        <span class="hidden space-x-2 md:inline-block">
-          <Badge
-            v-if="props.isAdmin === true && agent.org_id !== -1"
-            :label="$t('admin.settings.agents.org.badge')"
-            :value="agent.org_id"
+  <div
+    v-if="!props.loading"
+    class="space-y-2 text-wp-text-100 md:grid md:auto-rows-min md:grid-cols-[min-content_1fr_min-content] md:gap-x-2 md:gap-y-2 md:space-y-0"
+  >
+    <template v-for="agent in props.agents" :key="agent.id">
+      <!-- Mobile: Agent Info + Actions Row / Desktop: First Row for this agent -->
+      <div
+        class="grid grid-cols-[1fr_auto] pb-2 gap-1 bg-wp-background-100 px-4 pt-4 dark:bg-wp-background-200 md:border-b md:border-wp-background-400 md:p-2 md:max-w-48"
+      >
+        <!-- Agent Name/Info -->
+        <div class="flex flex-col justify-center md:block">
+          <span class="text-xs font-medium text-wp-text-100 truncate block">{{ getAgentDisplayName(agent) }}</span>
+          <div class="text-xs text-wp-text-alt-100" title="Agent ID">{{ `ID: ${agent.id}` }}</div>
+          <div class="text-xs text-wp-text-alt-100" title="Last contact">
+            {{ agent.last_contact ? date.timeAgo(agent.last_contact * 1000) : $t('admin.settings.agents.never') }}
+          </div>
+        </div>
+
+        <!-- Action Buttons - Mobile only -->
+        <div
+          v-if="props.isAdmin || agent.org_id === props.userOrgId"
+          class="flex items-center justify-start gap-1 md:hidden"
+        >
+          <IconButton
+            icon="edit"
+            :title="$t('admin.settings.agents.edit_agent')"
+            class="h-8 w-8"
+            @click="$emit('edit', agent)"
           />
+          <IconButton
+            icon="trash"
+            :title="$t('admin.settings.agents.delete_agent')"
+            class="h-8 w-8 hover:text-wp-error-100"
+            :is-loading="props.isDeleting"
+            @click="$emit('delete', agent)"
+          />
+        </div>
+        <div v-else class="flex items-center justify-start md:hidden">
+          <Icon name="visibility-private" class="h-6 w-6 text-wp-text-alt-100" />
+        </div>
+      </div>
+
+      <!-- Desktop: Badges Column / Mobile: Badges Row -->
+      <div
+        class="min-w-0 flex items-center border-b border-wp-background-400 bg-wp-background-100 pb-4 md:pb-1 p-1 dark:bg-wp-background-200 md:border-b md:overflow-hidden"
+      >
+        <div class="flex flex-wrap items-center gap-2">
+          <router-link v-if="agent.org_id !== -1" :to="`/orgs/${agent.org_id}`" class="hover:opacity-80">
+            <Badge :label="$t('admin.settings.agents.org.badge')" :value="agent.org_id" />
+          </router-link>
           <Badge v-if="agent.org_id === -1" :label="$t('admin.settings.agents.type.badge')" value="global" />
           <Badge
             v-for="(value, key) in agent.custom_labels"
@@ -23,28 +59,36 @@
           <Badge v-if="agent.platform" :label="$t('admin.settings.agents.platform.badge')" :value="agent.platform" />
           <Badge v-if="agent.backend" :label="$t('admin.settings.agents.backend.badge')" :value="agent.backend" />
           <Badge v-if="agent.capacity" :label="$t('admin.settings.agents.capacity.badge')" :value="agent.capacity" />
-        </span>
-        <span title="Last contact" class="ml-2">{{
-          agent.last_contact ? date.timeAgo(agent.last_contact * 1000) : $t('admin.settings.agents.never')
-        }}</span>
-      </span>
-      <IconButton
+        </div>
+      </div>
+
+      <!-- Desktop: Action Buttons Column -->
+      <div
         v-if="props.isAdmin || agent.org_id === props.userOrgId"
-        icon="edit"
-        :title="$t('admin.settings.agents.edit_agent')"
-        class="ml-2 h-8 w-8"
-        @click="$emit('edit', agent)"
-      />
-      <IconButton
-        v-if="props.isAdmin || agent.org_id === props.userOrgId"
-        icon="trash"
-        :title="$t('admin.settings.agents.delete_agent')"
-        class="ml-2 h-8 w-8 hover:text-wp-error-100"
-        :is-loading="props.isDeleting"
-        @click="$emit('delete', agent)"
-      />
-    </ListItem>
-    <div v-if="props.agents?.length === 0" class="ml-2">{{ $t('admin.settings.agents.none') }}</div>
+        class="hidden md:flex md:items-center md:justify-start md:gap-1 md:bg-wp-background-100 md:p-2 md:dark:bg-wp-background-200 md:border-b md:border-wp-background-400"
+      >
+        <IconButton
+          icon="edit"
+          :title="$t('admin.settings.agents.edit_agent')"
+          class="h-8 w-8"
+          @click="$emit('edit', agent)"
+        />
+        <IconButton
+          icon="trash"
+          :title="$t('admin.settings.agents.delete_agent')"
+          class="h-8 w-8 hover:text-wp-error-100"
+          :is-loading="props.isDeleting"
+          @click="$emit('delete', agent)"
+        />
+      </div>
+      <div
+        v-else
+        class="hidden md:flex md:items-center md:justify-end md:bg-wp-background-100 md:p-2 md:dark:bg-wp-background-200 md:border-b md:border-wp-background-400"
+      >
+        <Icon name="visibility-private" class="h-6 w-6 text-wp-text-alt-100" />
+      </div>
+    </template>
+    <div v-if="props.agents?.length === 0" class="ml-2 md:col-span-3">{{ $t('admin.settings.agents.none') }}</div>
   </div>
 
   <div v-else class="flex justify-center"><Icon name="loading" class="animate-spin" /></div>
@@ -54,7 +98,6 @@
 import Badge from '~/components/atomic/Badge.vue';
 import Icon from '~/components/atomic/Icon.vue';
 import IconButton from '~/components/atomic/IconButton.vue';
-import ListItem from '~/components/atomic/ListItem.vue';
 import { useDate } from '~/compositions/useDate';
 import type { Agent } from '~/lib/api/types';
 
@@ -72,8 +115,7 @@ defineEmits<{
 }>();
 
 function getAgentDisplayName(agent: Agent): string {
-  const name = agent.name || `Agent ${agent.id}`;
-  return `${name} [ID: ${agent.id}]`;
+  return agent.name || `Agent ${agent.id}`;
 }
 
 const date = useDate();
