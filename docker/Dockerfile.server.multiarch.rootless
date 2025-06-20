@@ -6,6 +6,15 @@ RUN addgroup -g 1000 -S crow && \
   ln -s /var/lib/crow /var/lib/woodpecker
 
 FROM scratch
+
+LABEL org.label-schema.license="Apache-2.0" \
+      org.label-schema.vcs-url="https://codeberg.org/crowci/crow" \
+      org.label-schema.vendor="Crow CI" \
+      org.opencontainers.image.created="${DOCKER_IMAGE_CREATED}" \
+      org.opencontainers.image.description="Crow CI server" \
+      io.artifacthub.package.readme-url="https://codeberg.org/crowci/crow/raw/branch/main/README.md" \
+      maintainer="Crow Authors <admin@crowci.dev>"
+
 ARG TARGETOS TARGETARCH
 ENV GODEBUG=netdns=go
 # Internal setting do NOT change! Signals that crow is running inside a container
