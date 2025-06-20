@@ -156,7 +156,7 @@ func TestUnmarshalContainers(t *testing.T) {
     settings:
       repo: woodpeckerci/woodpecker-agent
       dry_run: true
-      dockerfile: docker/Dockerfile.agent
+      dockerfile: images/Containerfile.agent
       tag: [next, latest]
     when:
       branch: ${CI_REPO_DEFAULT_BRANCH}
@@ -167,7 +167,7 @@ func TestUnmarshalContainers(t *testing.T) {
 					Image: "print/env",
 					Settings: map[string]any{
 						"repo":       "woodpeckerci/woodpecker-agent",
-						"dockerfile": "docker/Dockerfile.agent",
+						"dockerfile": "images/Containerfile.agent",
 						"tag":        stringsToInterface("next", "latest"),
 						"dry_run":    true,
 					},
@@ -187,7 +187,7 @@ func TestUnmarshalContainers(t *testing.T) {
     image: print/env
     settings:
       repo: woodpeckerci/woodpecker-cli
-      dockerfile: docker/Dockerfile.cli
+      dockerfile: images/Containerfile.cli
       tag: [next]
     when:
       branch: ${CI_REPO_DEFAULT_BRANCH}
@@ -198,7 +198,7 @@ func TestUnmarshalContainers(t *testing.T) {
 					Image: "print/env",
 					Settings: map[string]any{
 						"repo":       "woodpeckerci/woodpecker-cli",
-						"dockerfile": "docker/Dockerfile.cli",
+						"dockerfile": "images/Containerfile.cli",
 						"tag":        stringsToInterface("next"),
 					},
 					When: constraint.When{

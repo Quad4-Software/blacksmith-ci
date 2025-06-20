@@ -238,31 +238,31 @@ image-server TAG:
 		just build-ui
 		just cross-compile-server
 		echo $codeberg_bot_token | docker login codeberg.org -u crowci-bot --password-stdin
-		FIXED_PLATFORMS=$(echo $PLATFORMS | sed "s/|/\//g; s/;/,/g") && docker buildx build --platform $FIXED_PLATFORMS -t codeberg.org/crowci/crow-server:{{TAG}} -f docker/Dockerfile.server.multiarch.rootless --push .
+		FIXED_PLATFORMS=$(echo $PLATFORMS | sed "s/|/\//g; s/;/,/g") && docker buildx build --platform $FIXED_PLATFORMS -t codeberg.org/crowci/crow-server:{{TAG}} -f images/Containerfile.server.multiarch.rootless --push .
 
 # env PLATFORMS='linux|amd64;linux|arm64' just image-server-alpine dev
 image-server-alpine TAG:
 		just build-ui
 		just cross-compile-server
 		echo $codeberg_bot_token | docker login codeberg.org -u crowci-bot --password-stdin
-		FIXED_PLATFORMS=$(echo $PLATFORMS | sed "s/|/\//g; s/;/,/g") && docker buildx build --platform $FIXED_PLATFORMS -t codeberg.org/crowci/crow-server:{{TAG}}-alpine -f docker/Dockerfile.server.alpine.multiarch.rootless --push .
+		FIXED_PLATFORMS=$(echo $PLATFORMS | sed "s/|/\//g; s/;/,/g") && docker buildx build --platform $FIXED_PLATFORMS -t codeberg.org/crowci/crow-server:{{TAG}}-alpine -f images/Containerfile.server.alpine.multiarch.rootless --push .
 
 # env PLATFORMS='linux/amd64,linux/arm64' just image-agent
 image-agent TAG:
 		echo $codeberg_bot_token | docker login codeberg.org -u crowci-bot --password-stdin
-		docker buildx build --platform $PLATFORMS -t codeberg.org/crowci/crow-agent:{{TAG}} -f docker/Dockerfile.agent.multiarch --push .
+		docker buildx build --platform $PLATFORMS -t codeberg.org/crowci/crow-agent:{{TAG}} -f images/Containerfile.agent.multiarch --push .
 
 # env PLATFORMS='linux/amd64,linux/arm64' just image-agent-alpine dev
 image-agent-alpine TAG:
 		echo $codeberg_bot_token | docker login codeberg.org -u crowci-bot --password-stdin
-		docker buildx build --platform $PLATFORMS -t codeberg.org/crowci/crow-agent:{{TAG}}-alpine -f docker/Dockerfile.agent.alpine.multiarch --push .
+		docker buildx build --platform $PLATFORMS -t codeberg.org/crowci/crow-agent:{{TAG}}-alpine -f images/Containerfile.agent.alpine.multiarch --push .
 
 # env PLATFORMS='linux/amd64,linux/arm64' just image-cli dev
 image-cli TAG:
 		echo $codeberg_bot_token | docker login codeberg.org -u crowci-bot --password-stdin
-		docker buildx build --platform $PLATFORMS -t codeberg.org/crowci/crow-cli:{{TAG}} -f docker/Dockerfile.cli.multiarch.rootless --push .
+		docker buildx build --platform $PLATFORMS -t codeberg.org/crowci/crow-cli:{{TAG}} -f images/Containerfile.cli.multiarch.rootless --push .
 
 # env PLATFORMS='linux/amd64,linux/arm64' just image-cli-alpine dev
 image-cli-alpine TAG:
 		echo $codeberg_bot_token | docker login codeberg.org -u crowci-bot --password-stdin
-		docker buildx build --platform $PLATFORMS -t codeberg.org/crowci/crow-cli:{{TAG}}-alpine -f docker/Dockerfile.cli.alpine.multiarch.rootless --push .
+		docker buildx build --platform $PLATFORMS -t codeberg.org/crowci/crow-cli:{{TAG}}-alpine -f images/Containerfile.cli.alpine.multiarch.rootless --push .
