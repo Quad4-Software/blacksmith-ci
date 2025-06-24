@@ -1,19 +1,22 @@
 <template>
   <div
-    v-if="!props.loading"
+    v-if="!props.loading && props.agents"
     class="space-y-2 text-wp-text-100 md:grid md:auto-rows-min md:grid-cols-[min-content_1fr_min-content] md:gap-x-2 md:gap-y-2 md:space-y-0"
   >
     <template v-for="agent in props.agents" :key="agent.id">
       <!-- Mobile: Agent Info + Actions Row / Desktop: First Row for this agent -->
       <div
-        class="grid grid-cols-[1fr_auto] pb-2 gap-1 bg-wp-background-100 px-4 pt-4 dark:bg-wp-background-200 md:border-b md:border-wp-background-400 md:p-2 md:max-w-48"
+        class="grid grid-cols-[1fr_auto] pb-2 gap-1 bg-wp-background-100 pt-4 dark:bg-wp-background-200 md:border-b md:border-wp-background-400 md:py-2 md:max-w-48 py-2"
       >
         <!-- Agent Name/Info -->
-        <div class="flex flex-col justify-center md:block">
+        <div class="flex flex-col md:block min-w-[70px] md:pl-0 pl-1 text-left">
           <span class="text-xs font-medium text-wp-text-100 truncate block">{{ getAgentDisplayName(agent) }}</span>
           <div class="text-xs text-wp-text-alt-100" title="Agent ID">{{ `ID: ${agent.id}` }}</div>
           <div class="text-xs text-wp-text-alt-100" title="Last contact">
             {{ agent.last_contact ? date.timeAgo(agent.last_contact * 1000) : $t('admin.settings.agents.never') }}
+          </div>
+          <div v-if="agent.capacity" class="text-xs text-wp-text-alt-100" title="Current/Max Workflows">
+            {{ `Workflows: ${agent.running_workflows ?? 0}/${agent.capacity}` }}
           </div>
         </div>
 
@@ -58,7 +61,11 @@
           />
           <Badge v-if="agent.platform" :label="$t('admin.settings.agents.platform.badge')" :value="agent.platform" />
           <Badge v-if="agent.backend" :label="$t('admin.settings.agents.backend.badge')" :value="agent.backend" />
-          <Badge v-if="agent.capacity" :label="$t('admin.settings.agents.capacity.badge')" :value="agent.capacity" />
+          <Badge
+            v-if="agent.capacity"
+            :label="$t('admin.settings.agents.capacity.badge')"
+            :value="`${agent.running_workflows ?? 0}/${agent.capacity}`"
+          />
         </div>
       </div>
 

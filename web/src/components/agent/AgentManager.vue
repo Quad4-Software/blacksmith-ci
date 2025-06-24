@@ -7,7 +7,12 @@
         start-icon="back"
         @click="selectedAgent = undefined"
       />
-      <Button v-else :text="$t('admin.settings.agents.add')" start-icon="plus" @click="showAddAgent" />
+      <template v-if="!selectedAgent">
+        <div class="flex flex-col md:flex-row items-center justify-center">
+          <Button text="Refresh" class="md:mr-2 mb-2 md:mb-0" @click="resetPage" />
+          <Button :text="$t('admin.settings.agents.add')" start-icon="plus" @click="showAddAgent" />
+        </div>
+      </template>
     </template>
     <template #headerEnd>
       <slot name="headerEnd" />

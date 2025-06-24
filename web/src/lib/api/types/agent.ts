@@ -13,4 +13,5 @@ export interface Agent {
   version: string;
   no_schedule: boolean;
   custom_labels: Record<string, string>;
+  running_workflows: number;
 }

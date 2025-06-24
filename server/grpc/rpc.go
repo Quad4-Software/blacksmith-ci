@@ -280,6 +280,7 @@ func (s *RPC) Init(c context.Context, strWorkflowID string, state rpc.WorkflowSt
 	}
 	s.updateForgeStatus(c, repo, currentPipeline, workflow)
 
+	s.publishAgentStats(c, agent.ID)
 	return s.updateAgentLastWork(agent)
 }
 
@@ -379,6 +380,7 @@ func (s *RPC) Done(c context.Context, strWorkflowID string, state rpc.WorkflowSt
 		s.pipelineTime.WithLabelValues(repo.FullName, currentPipeline.Branch, string(workflow.State), workflow.Name).Set(float64(workflow.Finished - workflow.Started))
 	}
 
+	s.publishAgentStats(c, agent.ID)
 	return s.updateAgentLastWork(agent)
 }
 
@@ -635,4 +637,31 @@ func (s *RPC) updateAgentLastWork(agent *model.Agent) error {
 	}
 
 	return nil
+}
+
+// Helper to publish agent stats update.
+func (s *RPC) publishAgentStats(ctx context.Context, agentID int64) {
+	// Get agent info
+	agent, err := s.store.AgentFind(agentID)
+	if err != nil || agent == nil {
+		return
+	}
+	// Count running workflows for this agent
+	info := s.queue.Info(ctx)
+	running := 0
+	for _, task := range info.Running {
+		if task.AgentID == agentID {
+			running++
+		}
+	}
+	agentWithStats := model.AgentWithStats{
+		Agent:            *agent,
+		RunningWorkflows: running,
+	}
+	data, err := json.Marshal(map[string]any{"agent": agentWithStats})
+	if err != nil {
+		return
+	}
+	s.pubsub.Publish(pubsub.Message{Data: data})
+	log.Debug().Interface("agent_event", agentWithStats).Msg("Publishing agent stats event")
 }

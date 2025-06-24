@@ -40,6 +40,12 @@ type Agent struct {
 	OrgID int64 `json:"org_id"        xorm:"INDEX 'org_id'"`
 } //	@name Agent
 
+// AgentWithStats is used for API responses to include runtime stats.
+type AgentWithStats struct {
+	Agent
+	RunningWorkflows int `json:"running_workflows"`
+}
+
 const (
 	IDNotSet         = -1
 	agentFilterOrgID = "org-id"

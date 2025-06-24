@@ -46,7 +46,28 @@ func GetAgents(c *gin.Context) {
 		c.String(http.StatusInternalServerError, "Error getting agent list. %s", err)
 		return
 	}
-	c.JSON(http.StatusOK, agents)
+
+	// Count running workflows per agent
+	info := server.Config.Services.Queue.Info(c)
+	runningCount := make(map[int64]int)
+	for _, task := range info.Running {
+		runningCount[task.AgentID]++
+	}
+
+	// Build response
+	resp := make([]model.AgentWithStats, 0, len(agents))
+	for _, agent := range agents {
+		if agent == nil {
+			continue // Skip nil agents
+		}
+		rws := runningCount[agent.ID]
+		resp = append(resp, model.AgentWithStats{
+			Agent:            *agent,
+			RunningWorkflows: rws,
+		})
+	}
+
+	c.JSON(http.StatusOK, resp)
 }
 
 // GetAgent
@@ -300,7 +321,27 @@ func GetOrgAgents(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, agents)
+	// Count running workflows per agent
+	info := server.Config.Services.Queue.Info(c)
+	runningCount := make(map[int64]int)
+	for _, task := range info.Running {
+		runningCount[task.AgentID]++
+	}
+
+	// Build response
+	resp := make([]model.AgentWithStats, 0, len(agents))
+	for _, agent := range agents {
+		if agent == nil {
+			continue // Skip nil agents
+		}
+		rws := runningCount[agent.ID]
+		resp = append(resp, model.AgentWithStats{
+			Agent:            *agent,
+			RunningWorkflows: rws,
+		})
+	}
+
+	c.JSON(http.StatusOK, resp)
 }
 
 // PatchOrgAgent

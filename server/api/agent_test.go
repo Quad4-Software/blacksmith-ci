@@ -47,9 +47,12 @@ func TestGetAgents(t *testing.T) {
 	t.Run("should get agents", func(t *testing.T) {
 		agents := []*model.Agent{fakeAgent}
 
-		// mockStore := new(store_mocks.MockStore)
 		mockStore := new(store_mocks.MockStore)
 		mockStore.On("AgentList", mock.Anything).Return(agents, nil)
+
+		mockQueue := new(queue_mocks.MockQueue)
+		mockQueue.On("Info", mock.Anything).Return(queue.InfoT{})
+		server.Config.Services.Queue = mockQueue
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
@@ -59,12 +62,16 @@ func TestGetAgents(t *testing.T) {
 		c.Writer.WriteHeaderNow()
 
 		mockStore.AssertCalled(t, "AgentList", mock.Anything)
+		mockQueue.AssertCalled(t, "Info", mock.Anything)
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response []*model.Agent
+		var response []model.AgentWithStats
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Equal(t, agents, response)
+		assert.Len(t, response, 1)
+		assert.Equal(t, fakeAgent.ID, response[0].ID)
+		assert.Equal(t, fakeAgent.Name, response[0].Name)
+		assert.Equal(t, 0, response[0].RunningWorkflows)
 	})
 }
 
