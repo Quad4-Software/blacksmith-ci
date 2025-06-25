@@ -121,6 +121,15 @@ func WithEscalated(images ...string) Option {
 	}
 }
 
+// WithEscalatedWithMatchType configures the compiler to automatically execute
+// images as privileged containers if they match the given list, using the specified match type.
+func WithEscalatedWithMatchType(images []string, matchType string) Option {
+	return func(compiler *Compiler) {
+		compiler.escalated = images
+		compiler.escalatedMatchType = matchType
+	}
+}
+
 // WithPrefix configures the compiler with the prefix. The prefix is
 // used to prefix container, volume and network names to avoid
 // collision at runtime.

@@ -370,3 +370,57 @@ func Test_matchHostname(t *testing.T) {
 		assert.Equal(t, test.want, MatchHostname(test.image, test.hostname))
 	}
 }
+
+func Test_MatchImageWithType(t *testing.T) {
+	t.Run("semver major", func(t *testing.T) {
+		assert.True(t, MatchImageWithType("foo/bar:6.1.2", "semver", "foo/bar:6"))
+		assert.False(t, MatchImageWithType("foo/bar:7.1.2", "semver", "foo/bar:6"))
+	})
+	t.Run("semver major.minor", func(t *testing.T) {
+		assert.True(t, MatchImageWithType("foo/bar:6.3.5", "semver", "foo/bar:6.3"))
+		assert.False(t, MatchImageWithType("foo/bar:6.4.1", "semver", "foo/bar:6.3"))
+	})
+	t.Run("semver full", func(t *testing.T) {
+		assert.True(t, MatchImageWithType("foo/bar:6.3.1", "semver", "foo/bar:6.3.1"))
+		assert.False(t, MatchImageWithType("foo/bar:6.3.2", "semver", "foo/bar:6.3.1"))
+	})
+	t.Run("semver no tag in pattern", func(t *testing.T) {
+		assert.True(t, MatchImageWithType("foo/bar:6.3.1", "semver", "foo/bar"))
+	})
+	t.Run("semver-range basic", func(t *testing.T) {
+		// Simple test to debug
+		result := MatchImageWithType("foo/bar:6.1.2", "semver-range", "foo/bar:>=6")
+		assert.True(t, result)
+	})
+	t.Run("semver-range greater than or equal", func(t *testing.T) {
+		assert.True(t, MatchImageWithType("foo/bar:6.1.2", "semver-range", "foo/bar:>=6"))
+		assert.True(t, MatchImageWithType("foo/bar:7.0.0", "semver-range", "foo/bar:>=6"))
+		assert.False(t, MatchImageWithType("foo/bar:5.9.9", "semver-range", "foo/bar:>=6"))
+	})
+	t.Run("semver-range less than", func(t *testing.T) {
+		assert.True(t, MatchImageWithType("foo/bar:6.9.9", "semver-range", "foo/bar:<7"))
+		assert.False(t, MatchImageWithType("foo/bar:7.0.0", "semver-range", "foo/bar:<7"))
+	})
+	t.Run("semver-range tilde", func(t *testing.T) {
+		assert.True(t, MatchImageWithType("foo/bar:6.3.5", "semver-range", "foo/bar:>=6.3.0,<6.4.0"))
+		assert.True(t, MatchImageWithType("foo/bar:6.3.0", "semver-range", "foo/bar:>=6.3.0,<6.4.0"))
+		assert.False(t, MatchImageWithType("foo/bar:6.4.0", "semver-range", "foo/bar:>=6.3.0,<6.4.0"))
+	})
+	t.Run("semver-range caret", func(t *testing.T) {
+		assert.True(t, MatchImageWithType("foo/bar:6.3.5", "semver-range", "foo/bar:>=6.3.0,<7.0.0"))
+		assert.True(t, MatchImageWithType("foo/bar:6.9.0", "semver-range", "foo/bar:>=6.3.0,<7.0.0"))
+		assert.False(t, MatchImageWithType("foo/bar:7.0.0", "semver-range", "foo/bar:>=6.3.0,<7.0.0"))
+	})
+	t.Run("semver-range complex", func(t *testing.T) {
+		assert.True(t, MatchImageWithType("foo/bar:6.5.0", "semver-range", "foo/bar:>=6.0.0,<7.0.0"))
+		assert.False(t, MatchImageWithType("foo/bar:7.0.0", "semver-range", "foo/bar:>=6.0.0,<7.0.0"))
+	})
+	t.Run("regex", func(t *testing.T) {
+		assert.True(t, MatchImageWithType("foo/bar:6.1.2", "regex", ".*:6\\..*"))
+		assert.False(t, MatchImageWithType("foo/bar:7.1.2", "regex", ".*:6\\..*"))
+	})
+	t.Run("exact", func(t *testing.T) {
+		assert.True(t, MatchImageWithType("foo/bar:6.1.2", "exact", "foo/bar:6.1.2"))
+		assert.False(t, MatchImageWithType("foo/bar:6.1.2", "exact", "foo/bar:6.1.3"))
+	})
+}

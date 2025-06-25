@@ -88,6 +88,7 @@ func (s *Secret) Match(event string) bool {
 type Compiler struct {
 	local                   bool
 	escalated               []string
+	escalatedMatchType      string
 	prefix                  string
 	volumes                 []string
 	networks                []string

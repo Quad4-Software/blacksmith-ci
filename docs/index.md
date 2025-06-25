@@ -76,6 +76,7 @@ As of 2025-06, the following unique features exist in Crow:
 - Manual pipeline runs show possible extra variables that have been passed during the UI
 - Log view: Top/Down buttons to jump to the top or bottom of the log view
 - Agents display their remaining workflow capacity in the agent list
+- Added support for multiple match types when specifying `CROW_PLUGINS_PRIVILEGED`: `semver`, `semver-range`, `match` and `regex`
 
 Additionally, for the Crow Autoscaler:
 

@@ -15,10 +15,15 @@
 package utils
 
 import (
+	"regexp"
 	"strings"
 
 	"github.com/distribution/reference"
+	version "github.com/hashicorp/go-version"
 )
+
+// MajorMinorVersionSegments represents the number of segments for major.minor version format.
+const majorMinorVersionSegments = 2
 
 // trimImage returns the short image name without tag.
 func trimImage(name string) string {
@@ -104,4 +109,157 @@ func MatchHostname(image, hostname string) bool {
 		hostname = "docker.io"
 	}
 	return reference.Domain(named) == hostname
+}
+
+// MatchImageWithType matches an image against a list using the specified match type: semver, semver-range, regex, or exact.
+func MatchImageWithType(from, matchType string, to ...string) bool {
+	switch matchType {
+	case "regex":
+		for _, pattern := range to {
+			matched, err := regexp.MatchString(pattern, from)
+			if err == nil && matched {
+				return true
+			}
+		}
+		return false
+	case "exact":
+		for _, pattern := range to {
+			if from == pattern {
+				return true
+			}
+		}
+		return false
+	case "semver":
+		return matchImageSemver(from, to...)
+	case "semver-range":
+		return matchImageSemverRange(from, to...)
+	default:
+		return matchImageSemver(from, to...)
+	}
+}
+
+// getImageTag extracts the tag from an image string, or returns an empty string if none.
+func getImageTag(image string) string {
+	parts := strings.Split(image, ":")
+	if len(parts) > 1 {
+		return parts[len(parts)-1]
+	}
+	return ""
+}
+
+// matchImageSemver matches image tags using semver logic (major, major.minor, or full version).
+func matchImageSemver(from string, to ...string) bool {
+	fromRef, err := reference.ParseAnyReference(from)
+	if err != nil {
+		return false
+	}
+	fromNamed, err := reference.ParseNamed(fromRef.String())
+	if err != nil {
+		return false
+	}
+	fromNamed = reference.TrimNamed(fromNamed)
+	fromName := reference.FamiliarName(fromNamed)
+	var fromTag string
+	if tagged, ok := fromNamed.(reference.Tagged); ok {
+		fromTag = tagged.Tag()
+	} else {
+		fromTag = getImageTag(from)
+	}
+	for _, pattern := range to {
+		patternRef, err := reference.ParseAnyReference(pattern)
+		if err != nil {
+			continue
+		}
+		patternNamed, err := reference.ParseNamed(patternRef.String())
+		if err != nil {
+			continue
+		}
+		patternNamed = reference.TrimNamed(patternNamed)
+		patternName := reference.FamiliarName(patternNamed)
+		var patternTag string
+		if tagged, ok := patternNamed.(reference.Tagged); ok {
+			patternTag = tagged.Tag()
+		} else {
+			patternTag = getImageTag(pattern)
+		}
+		if fromName != patternName {
+			continue
+		}
+		if patternTag == "" {
+			if !strings.Contains(pattern, ":") {
+				return true
+			}
+			continue
+		}
+		if fromTag == patternTag {
+			return true
+		}
+		fromVer, err1 := version.NewVersion(fromTag)
+		patternVer, err2 := version.NewVersion(patternTag)
+		if err1 == nil && err2 == nil {
+			if len(strings.Split(patternTag, ".")) == 1 {
+				if fromVer.Segments()[0] == patternVer.Segments()[0] {
+					return true
+				}
+			}
+			if len(strings.Split(patternTag, ".")) == majorMinorVersionSegments {
+				if len(fromVer.Segments()) >= majorMinorVersionSegments && fromVer.Segments()[0] == patternVer.Segments()[0] && fromVer.Segments()[1] == patternVer.Segments()[1] {
+					return true
+				}
+			}
+			if patternTag == fromTag {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// matchImageSemverRange matches image tags using semver range constraints (e.g., >=6, <7.0, ~6.3).
+func matchImageSemverRange(from string, to ...string) bool {
+	fromRef, err := reference.ParseAnyReference(from)
+	if err != nil {
+		return false
+	}
+	fromNamed, err := reference.ParseNamed(fromRef.String())
+	if err != nil {
+		return false
+	}
+	fromNamed = reference.TrimNamed(fromNamed)
+	fromName := reference.FamiliarName(fromNamed)
+	var fromTag string
+	if tagged, ok := fromNamed.(reference.Tagged); ok {
+		fromTag = tagged.Tag()
+	} else {
+		fromTag = getImageTag(from)
+	}
+	for _, pattern := range to {
+		// For semver-range, we need to parse the pattern differently
+		// Pattern format: "image:constraint" where constraint is a semver constraint
+		const expectedParts = 2
+		parts := strings.SplitN(pattern, ":", expectedParts)
+		if len(parts) != expectedParts {
+			continue
+		}
+		patternName := parts[0]
+		constraintStr := parts[1]
+
+		if fromName != patternName {
+			continue
+		}
+
+		// Try semver range match
+		fromVer, err1 := version.NewVersion(fromTag)
+		if err1 != nil {
+			continue
+		}
+		constraints, err2 := version.NewConstraint(constraintStr)
+		if err2 != nil {
+			continue
+		}
+		if constraints.Check(fromVer) {
+			return true
+		}
+	}
+	return false
 }

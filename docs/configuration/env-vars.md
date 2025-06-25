@@ -401,6 +401,20 @@
 - Description: time an agent is allowed to be idle before it can be terminated as duration string like `2h45m`
 - Default: `10m`
 
+### PLUGINS_PRIVILEGED
+
+- Name: `CROW_PLUGINS_PRIVILEGED`
+- Description: List of plugin images allowed to run in privileged mode. Matching is controlled by `CROW_PLUGINS_PRIVILEGED_MATCH_TYPE`.
+- Default: none
+
+---
+
+### PLUGINS_PRIVILEGED_MATCH_TYPE
+
+- Name: `CROW_PLUGINS_PRIVILEGED_MATCH_TYPE`
+- Description: Type of match for privileged plugins. Possible values are `semver` (default), `semver-range`, `regex`, or `exact`. Controls how entries in `CROW_PLUGINS_PRIVILEGED` are matched against plugin images. See below for details.
+- Default: `semver`
+
 [^1]:
     The provider-specific settings are documented in their respective source files to keep this page tidy.
-    All links can be found [here](autoscaler.md).
+    All links can be found [in the Autoscaler documentation](autoscaler.md).

@@ -105,6 +105,56 @@ A secure alternative to allow running privileged steps is to create a plugin and
 A plugin cannot execute arbitrary steps and hence running a privileged container as a plugin highly reduces the attack surface.
 ///
 
+### Privileged plugin image matching
+
+The environment variable `CROW_PLUGINS_PRIVILEGED` controls which plugin images are allowed to run in privileged mode.
+The way images are matched is controlled by `CROW_PLUGINS_PRIVILEGED_MATCH_TYPE` (default: `semver`).
+
+#### Match types
+
+- **semver** (default):
+  - `<image>:6` matches all plugin versions with major version 6 (e.g., `<image>:6.1.2`).
+  - `<image>:6.3` matches all plugin versions with major version 6 and minor version 3 (e.g., `<image>:6.3.5`).
+  - `<image>:6.3.1` matches only the specific version 6.3.1.
+- **semver-range**: Uses semver constraint syntax for more flexible version matching:
+  - `<image>:>=6` matches any version 6.0.0 or higher.
+  - `<image>:<7.0` matches any version less than 7.0.0.
+  - `<image>:>=6.0.0,<7.0.0` matches any version from 6.0.0 (inclusive) to 7.0.0 (exclusive).
+  - `<image>:~6.3` equivalent to `<image>:>=6.3.0,<6.4.0` (allows patch-level changes).
+  - `<image>:^6.3` equivalent to `<image>:>=6.3.0,<7.0.0` (allows minor-level changes).
+- **regex**: Each entry in `CROW_PLUGINS_PRIVILEGED` is treated as a regular expression and matched against the full image name (including tag).
+- **exact**: Only exact string matches are allowed.
+
+#### Example usage
+
+```sh
+export CROW_PLUGINS_PRIVILEGED="plugins/docker:6,plugins/gcr:7.2"
+export CROW_PLUGINS_PRIVILEGED_MATCH_TYPE=semver
+```
+
+- This will allow any `plugins/docker` image with a major version 6 tag, and any `plugins/gcr` image with a 7.2.x tag, to run in privileged mode.
+
+```sh
+export CROW_PLUGINS_PRIVILEGED="plugins/docker:6\\..*"
+export CROW_PLUGINS_PRIVILEGED_MATCH_TYPE=regex
+```
+
+- This will allow any `plugins/docker` image with a tag starting with 6.
+
+```sh
+export CROW_PLUGINS_PRIVILEGED="plugins/docker:6.3.1"
+export CROW_PLUGINS_PRIVILEGED_MATCH_TYPE=exact
+```
+
+- This will only allow the exact image `plugins/docker:6.3.1` to run in privileged mode.
+
+```sh
+export CROW_PLUGINS_PRIVILEGED="plugins/docker:>=6.0.0,<7.0.0"
+export CROW_PLUGINS_PRIVILEGED_MATCH_TYPE=semver-range
+```
+
+- This will allow any `plugins/docker` image with a version from 6.0.0 (inclusive) to 7.0.0 (exclusive) to run in privileged mode.
+
 ## runs_on
 
 Workflows that should run even if dependent workflows failed.

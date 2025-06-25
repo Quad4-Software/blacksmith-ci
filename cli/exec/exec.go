@@ -204,6 +204,7 @@ func execWithAxis(ctx context.Context, c *cli.Command, file, repoPath string, ax
 	}
 
 	privilegedPlugins := c.StringSlice("plugins-privileged")
+	privilegedPluginsMatchType := c.String("plugins-privileged-match-type")
 
 	// lint the yaml file
 	err = linter.New(
@@ -212,7 +213,7 @@ func execWithAxis(ctx context.Context, c *cli.Command, file, repoPath string, ax
 			Network:  c.Bool("repo-trusted-network"),
 			Volumes:  c.Bool("repo-trusted-volumes"),
 		}),
-		linter.PrivilegedPlugins(privilegedPlugins),
+		linter.PrivilegedPluginsWithMatchType(privilegedPlugins, privilegedPluginsMatchType),
 		linter.WithTrustedClonePlugins(constant.TrustedClonePlugins),
 	).Lint([]*linter.WorkflowConfig{{
 		File:      path.Base(file),
@@ -229,8 +230,9 @@ func execWithAxis(ctx context.Context, c *cli.Command, file, repoPath string, ax
 
 	// compiles the yaml file
 	compiled, err := compiler.New(
-		compiler.WithEscalated(
-			privilegedPlugins...,
+		compiler.WithEscalatedWithMatchType(
+			privilegedPlugins,
+			privilegedPluginsMatchType,
 		),
 		compiler.WithVolumes(volumes...),
 		compiler.WithWorkspace(

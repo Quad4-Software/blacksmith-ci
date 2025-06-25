@@ -30,9 +30,10 @@ import (
 
 // A Linter lints a pipeline configuration.
 type Linter struct {
-	trusted             TrustedConfiguration
-	privilegedPlugins   *[]string
-	trustedClonePlugins *[]string
+	trusted                    TrustedConfiguration
+	privilegedPlugins          *[]string
+	privilegedPluginsMatchType string
+	trustedClonePlugins        *[]string
 }
 
 type TrustedConfiguration struct {
@@ -204,7 +205,7 @@ func (l *Linter) lintPrivilegedPlugins(config *WorkflowConfig, c *types.Containe
 	if utils.MatchImage(c.Image, "plugins/docker", "plugins/gcr", "plugins/ecr", "woodpeckerci/plugin-docker-buildx") {
 		msg := fmt.Sprintf("The formerly privileged plugin `%s` is no longer privileged by default since v3. To use it, add it to (server) env var `CROW_PLUGINS_PRIVILEGED` (must be done by an instance administrator).", c.Image)
 		// check first if user did not add them back
-		if l.privilegedPlugins != nil && !utils.MatchImageDynamic(c.Image, *l.privilegedPlugins...) {
+		if l.privilegedPlugins != nil && !utils.MatchImageWithType(c.Image, l.privilegedPluginsMatchType, *l.privilegedPlugins...) {
 			return newLinterError(msg, config.File, fmt.Sprintf("%s.%s", area, c.Name), false)
 		} else if l.privilegedPlugins == nil {
 			// if linter has no info of current privileged plugins, it's just a warning

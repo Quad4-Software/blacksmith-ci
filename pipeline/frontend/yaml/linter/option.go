@@ -37,3 +37,11 @@ func WithTrustedClonePlugins(plugins []string) Option {
 		linter.trustedClonePlugins = &plugins
 	}
 }
+
+// PrivilegedPluginsWithMatchType adds the list of privileged plugins and the match type.
+func PrivilegedPluginsWithMatchType(plugins []string, matchType string) Option {
+	return func(linter *Linter) {
+		linter.privilegedPlugins = &plugins
+		linter.privilegedPluginsMatchType = matchType
+	}
+}
