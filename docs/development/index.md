@@ -14,7 +14,7 @@ The following tools are required for development:
 | Technology/Tool                                                 | Component/Purpose  | Comment                                    |
 | --------------------------------------------------------------- | ------------------ | ------------------------------------------ |
 | [Go](https://go.dev/dl/)                                        | Backend            |                                            |
-| [pnpm](https://pnpm.io/installation)                            | Frontend           |                                            |
+| [Bun](https://bun.sh/)                                          | Frontend           |                                            |
 | [Just](https://github.com/casey/just)                           | Frontend & Backend | modern `make` alternative                  |
 | [mkdocs-material](https://github.com/squidfunk/mkdocs-material) | Docs               |                                            |
 | [Python](https://www.python.org/downloads/)                     | Docs               | `mkdocs` uses Python                       |

@@ -44,8 +44,8 @@
       "matchUpdateTypes": ["minor", "patch"]
     },
     {
-      "matchManagers": ["npm"],
-      "matchFileNames": ["web/package.json"],
+      "matchManagers": ["bun"],
+      "matchFileNames": ["web/bun.lock"],
       "addLabels": ["ui"]
     },
     {
@@ -54,8 +54,8 @@
       "addLabels": ["documentation"]
     },
     {
-      "groupName": "web npm deps non-major",
-      "matchManagers": ["npm"],
+      "groupName": "web bun deps non-major",
+      "matchManagers": ["bun"],
       "matchUpdateTypes": ["minor", "patch"],
       "matchFileNames": ["web/package.json"]
     },

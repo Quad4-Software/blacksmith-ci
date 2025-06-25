@@ -5,7 +5,7 @@ when:
       - release/*
 
 variables:
-  - &node_image 'docker.io/node:23-alpine'
+  - &node_image 'docker.io/oven/bun:1.2-alpine'
   - &when
     path:
       # related config files
@@ -20,8 +20,7 @@ steps:
     image: *node_image
     directory: web/
     commands:
-      - corepack enable
-      - pnpm install --frozen-lockfile
+      - bun install --frozen-lockfile
     when: *when
 
   prettier:
@@ -41,8 +40,7 @@ steps:
     image: *node_image
     directory: web/
     commands:
-      - corepack enable
-      - pnpm lint
+      - bun run lint
     when: *when
 
   typecheck:
@@ -51,8 +49,9 @@ steps:
     image: *node_image
     directory: web/
     commands:
-      - corepack enable
-      - pnpm typecheck
+      # FIXME: https://github.com/oven-sh/bun/issues/12153#issuecomment-2217275888
+      - apk add -q --no-cache nodejs
+      - bun run typecheck
     when: *when
 
   test:
@@ -61,6 +60,7 @@ steps:
     image: *node_image
     directory: web/
     commands:
-      - corepack enable
-      - pnpm test
+      # FIXME: https://github.com/oven-sh/bun/issues/12153#issuecomment-2217275888
+      - apk add -q --no-cache nodejs
+      - bun run test
     when: *when

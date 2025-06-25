@@ -99,11 +99,11 @@ test-server-datastore-coverage:
 
 # FIXME: feature of 1.38.0 [working-directory('web')]
 test-ui:
-		cd web && pnpm install --frozen-lockfile
-		cd web && pnpm run lint
-		cd web && pnpm run format:check
-		cd web && pnpm run typecheck
-		cd web && pnpm run test
+		cd web && bun install --frozen-lockfile
+		cd web && bun run lint
+		cd web && bun run format:check
+		cd web && bun run typecheck
+		cd web && bun run test
 
 test-lib:
 		CGO_ENABLED=1 go test -race -cover -coverprofile coverage.out -timeout 60s -tags 'test {{ TAGS }}' `go list ./... | grep -v '/cmd\|/agent\|/cli\|/server'`
@@ -138,12 +138,12 @@ lint-backend: install-dev-deps
 
 # FIXME: feature of 1.38.0 [working-directory('web')]
 lint-frontend:
-		cd web/ && pnpm lint --quiet
+		cd web/ && bun run lint --quiet
 
 # FIXME: feature of 1.38.0 [working-directory('web')]
 build-ui:
-		cd web/ && pnpm install --frozen-lockfile
-		cd web/ && pnpm build
+		cd web/ && bun install --frozen-lockfile
+		cd web/ && bun run build
 
 build-agent:
 		CGO_ENABLED=0 GOOS={{ TARGETOS }} GOARCH={{ TARGETARCH }} go build -tags '{{ TAGS }}' -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/crow-agent{{ BIN_SUFFIX }} codeberg.org/crowci/crow/v3/cmd/agent

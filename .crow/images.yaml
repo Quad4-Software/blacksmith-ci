@@ -1,6 +1,6 @@
 variables:
   - &golang_image 'docker.io/golang:1.24-alpine3.22'
-  - &node_image 'docker.io/node:23-alpine'
+  - &node_image 'docker.io/oven/bun:1.2-alpine'
   - &xgo_image 'docker.io/techknowlogick/xgo:go-1.24.x'
   - &buildx_plugin 'docker.io/woodpeckerci/plugin-docker-buildx:6.0.1'
   - &platforms_release 'linux/arm/v6,linux/arm/v7,linux/arm64/v8,linux/386,linux/amd64,linux/ppc64le,linux/riscv64,linux/s390x,freebsd/arm64,freebsd/amd64,openbsd/arm64,openbsd/amd64'
@@ -12,7 +12,9 @@ variables:
   # cspell:words netgo
 
   # vars used on push / tag events only
-  - publish_logins: &publish_logins # Default DockerHub login
+  - publish_logins:
+      # Default DockerHub login
+      &publish_logins
       - registry: https://codeberg.org
         username: crowci-bot
         password:
@@ -20,7 +22,9 @@ variables:
   - &publish_repos_server 'codeberg.org/crowci/crow-server'
   - &publish_repos_agent 'codeberg.org/crowci/crow-agent'
   - &publish_repos_cli 'codeberg.org/crowci/crow-cli'
-  - path: &when_path # web source code
+  - path:
+      # web source code
+      &when_path
       - 'web/**'
       # api source code
       - 'server/api/**'
@@ -58,9 +62,8 @@ steps:
     image: *node_image
     directory: web/
     commands:
-      - corepack enable
-      - pnpm install --frozen-lockfile
-      - pnpm build
+      - bun install --frozen-lockfile
+      - bun run build
     when:
       - event: pull_request
         evaluate: 'CI_COMMIT_PULL_REQUEST_LABELS contains "build_pr_images"'
