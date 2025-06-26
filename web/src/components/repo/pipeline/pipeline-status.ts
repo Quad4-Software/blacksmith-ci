@@ -5,7 +5,7 @@ export const pipelineStatusColors: Record<PipelineStatus, 'green' | 'gray' | 're
   declined: 'red',
   error: 'red',
   failure: 'red',
-  killed: 'gray',
+  killed: 'red',
   pending: 'yellow',
   skipped: 'gray',
   running: 'orange',

@@ -62,16 +62,32 @@ type MockQueue_Done_Call struct {
 }
 
 // Done is a helper method to define mock.On call
-//   - c
-//   - id
-//   - exitStatus
+//   - c context.Context
+//   - id string
+//   - exitStatus model.StatusValue
 func (_e *MockQueue_Expecter) Done(c interface{}, id interface{}, exitStatus interface{}) *MockQueue_Done_Call {
 	return &MockQueue_Done_Call{Call: _e.mock.On("Done", c, id, exitStatus)}
 }
 
 func (_c *MockQueue_Done_Call) Run(run func(c context.Context, id string, exitStatus model.StatusValue)) *MockQueue_Done_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(model.StatusValue))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 model.StatusValue
+		if args[2] != nil {
+			arg2 = args[2].(model.StatusValue)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
 	})
 	return _c
 }
@@ -109,16 +125,32 @@ type MockQueue_Error_Call struct {
 }
 
 // Error is a helper method to define mock.On call
-//   - c
-//   - id
-//   - err
+//   - c context.Context
+//   - id string
+//   - err error
 func (_e *MockQueue_Expecter) Error(c interface{}, id interface{}, err interface{}) *MockQueue_Error_Call {
 	return &MockQueue_Error_Call{Call: _e.mock.On("Error", c, id, err)}
 }
 
 func (_c *MockQueue_Error_Call) Run(run func(c context.Context, id string, err error)) *MockQueue_Error_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(error))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 error
+		if args[2] != nil {
+			arg2 = args[2].(error)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
 	})
 	return _c
 }
@@ -156,16 +188,32 @@ type MockQueue_ErrorAtOnce_Call struct {
 }
 
 // ErrorAtOnce is a helper method to define mock.On call
-//   - c
-//   - ids
-//   - err
+//   - c context.Context
+//   - ids []string
+//   - err error
 func (_e *MockQueue_Expecter) ErrorAtOnce(c interface{}, ids interface{}, err interface{}) *MockQueue_ErrorAtOnce_Call {
 	return &MockQueue_ErrorAtOnce_Call{Call: _e.mock.On("ErrorAtOnce", c, ids, err)}
 }
 
 func (_c *MockQueue_ErrorAtOnce_Call) Run(run func(c context.Context, ids []string, err error)) *MockQueue_ErrorAtOnce_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].([]string), args[2].(error))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 []string
+		if args[1] != nil {
+			arg1 = args[1].([]string)
+		}
+		var arg2 error
+		if args[2] != nil {
+			arg2 = args[2].(error)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
 	})
 	return _c
 }
@@ -203,15 +251,26 @@ type MockQueue_Evict_Call struct {
 }
 
 // Evict is a helper method to define mock.On call
-//   - c
-//   - id
+//   - c context.Context
+//   - id string
 func (_e *MockQueue_Expecter) Evict(c interface{}, id interface{}) *MockQueue_Evict_Call {
 	return &MockQueue_Evict_Call{Call: _e.mock.On("Evict", c, id)}
 }
 
 func (_c *MockQueue_Evict_Call) Run(run func(c context.Context, id string)) *MockQueue_Evict_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -249,15 +308,26 @@ type MockQueue_EvictAtOnce_Call struct {
 }
 
 // EvictAtOnce is a helper method to define mock.On call
-//   - c
-//   - ids
+//   - c context.Context
+//   - ids []string
 func (_e *MockQueue_Expecter) EvictAtOnce(c interface{}, ids interface{}) *MockQueue_EvictAtOnce_Call {
 	return &MockQueue_EvictAtOnce_Call{Call: _e.mock.On("EvictAtOnce", c, ids)}
 }
 
 func (_c *MockQueue_EvictAtOnce_Call) Run(run func(c context.Context, ids []string)) *MockQueue_EvictAtOnce_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].([]string))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 []string
+		if args[1] != nil {
+			arg1 = args[1].([]string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -295,16 +365,32 @@ type MockQueue_Extend_Call struct {
 }
 
 // Extend is a helper method to define mock.On call
-//   - c
-//   - agentID
-//   - workflowID
+//   - c context.Context
+//   - agentID int64
+//   - workflowID string
 func (_e *MockQueue_Expecter) Extend(c interface{}, agentID interface{}, workflowID interface{}) *MockQueue_Extend_Call {
 	return &MockQueue_Extend_Call{Call: _e.mock.On("Extend", c, agentID, workflowID)}
 }
 
 func (_c *MockQueue_Extend_Call) Run(run func(c context.Context, agentID int64, workflowID string)) *MockQueue_Extend_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(int64), args[2].(string))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
 	})
 	return _c
 }
@@ -342,14 +428,20 @@ type MockQueue_Info_Call struct {
 }
 
 // Info is a helper method to define mock.On call
-//   - c
+//   - c context.Context
 func (_e *MockQueue_Expecter) Info(c interface{}) *MockQueue_Info_Call {
 	return &MockQueue_Info_Call{Call: _e.mock.On("Info", c)}
 }
 
 func (_c *MockQueue_Info_Call) Run(run func(c context.Context)) *MockQueue_Info_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -376,14 +468,20 @@ type MockQueue_KickAgentWorkers_Call struct {
 }
 
 // KickAgentWorkers is a helper method to define mock.On call
-//   - agentID
+//   - agentID int64
 func (_e *MockQueue_Expecter) KickAgentWorkers(agentID interface{}) *MockQueue_KickAgentWorkers_Call {
 	return &MockQueue_KickAgentWorkers_Call{Call: _e.mock.On("KickAgentWorkers", agentID)}
 }
 
 func (_c *MockQueue_KickAgentWorkers_Call) Run(run func(agentID int64)) *MockQueue_KickAgentWorkers_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -465,16 +563,32 @@ type MockQueue_Poll_Call struct {
 }
 
 // Poll is a helper method to define mock.On call
-//   - c
-//   - agentID
-//   - f
+//   - c context.Context
+//   - agentID int64
+//   - f queue.FilterFn
 func (_e *MockQueue_Expecter) Poll(c interface{}, agentID interface{}, f interface{}) *MockQueue_Poll_Call {
 	return &MockQueue_Poll_Call{Call: _e.mock.On("Poll", c, agentID, f)}
 }
 
 func (_c *MockQueue_Poll_Call) Run(run func(c context.Context, agentID int64, f queue.FilterFn)) *MockQueue_Poll_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(int64), args[2].(queue.FilterFn))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		var arg2 queue.FilterFn
+		if args[2] != nil {
+			arg2 = args[2].(queue.FilterFn)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
 	})
 	return _c
 }
@@ -512,15 +626,26 @@ type MockQueue_Push_Call struct {
 }
 
 // Push is a helper method to define mock.On call
-//   - c
-//   - task
+//   - c context.Context
+//   - task *model.Task
 func (_e *MockQueue_Expecter) Push(c interface{}, task interface{}) *MockQueue_Push_Call {
 	return &MockQueue_Push_Call{Call: _e.mock.On("Push", c, task)}
 }
 
 func (_c *MockQueue_Push_Call) Run(run func(c context.Context, task *model.Task)) *MockQueue_Push_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*model.Task))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *model.Task
+		if args[1] != nil {
+			arg1 = args[1].(*model.Task)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -558,15 +683,26 @@ type MockQueue_PushAtOnce_Call struct {
 }
 
 // PushAtOnce is a helper method to define mock.On call
-//   - c
-//   - tasks
+//   - c context.Context
+//   - tasks []*model.Task
 func (_e *MockQueue_Expecter) PushAtOnce(c interface{}, tasks interface{}) *MockQueue_PushAtOnce_Call {
 	return &MockQueue_PushAtOnce_Call{Call: _e.mock.On("PushAtOnce", c, tasks)}
 }
 
 func (_c *MockQueue_PushAtOnce_Call) Run(run func(c context.Context, tasks []*model.Task)) *MockQueue_PushAtOnce_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].([]*model.Task))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 []*model.Task
+		if args[1] != nil {
+			arg1 = args[1].([]*model.Task)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -637,15 +773,26 @@ type MockQueue_Wait_Call struct {
 }
 
 // Wait is a helper method to define mock.On call
-//   - c
-//   - id
+//   - c context.Context
+//   - id string
 func (_e *MockQueue_Expecter) Wait(c interface{}, id interface{}) *MockQueue_Wait_Call {
 	return &MockQueue_Wait_Call{Call: _e.mock.On("Wait", c, id)}
 }
 
 func (_c *MockQueue_Wait_Call) Run(run func(c context.Context, id string)) *MockQueue_Wait_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }

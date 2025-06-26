@@ -73,17 +73,38 @@ type MockMembershipService_Get_Call struct {
 }
 
 // Get is a helper method to define mock.On call
-//   - ctx
-//   - _forge
-//   - u
-//   - org
+//   - ctx context.Context
+//   - _forge forge.Forge
+//   - u *model.User
+//   - org string
 func (_e *MockMembershipService_Expecter) Get(ctx interface{}, _forge interface{}, u interface{}, org interface{}) *MockMembershipService_Get_Call {
 	return &MockMembershipService_Get_Call{Call: _e.mock.On("Get", ctx, _forge, u, org)}
 }
 
 func (_c *MockMembershipService_Get_Call) Run(run func(ctx context.Context, _forge forge.Forge, u *model.User, org string)) *MockMembershipService_Get_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(forge.Forge), args[2].(*model.User), args[3].(string))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 forge.Forge
+		if args[1] != nil {
+			arg1 = args[1].(forge.Forge)
+		}
+		var arg2 *model.User
+		if args[2] != nil {
+			arg2 = args[2].(*model.User)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
 	})
 	return _c
 }

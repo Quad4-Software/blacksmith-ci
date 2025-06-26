@@ -70,14 +70,20 @@ type MockReadOnlyService_GlobalRegistryFind_Call struct {
 }
 
 // GlobalRegistryFind is a helper method to define mock.On call
-//   - s
+//   - s string
 func (_e *MockReadOnlyService_Expecter) GlobalRegistryFind(s interface{}) *MockReadOnlyService_GlobalRegistryFind_Call {
 	return &MockReadOnlyService_GlobalRegistryFind_Call{Call: _e.mock.On("GlobalRegistryFind", s)}
 }
 
 func (_c *MockReadOnlyService_GlobalRegistryFind_Call) Run(run func(s string)) *MockReadOnlyService_GlobalRegistryFind_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -126,14 +132,20 @@ type MockReadOnlyService_GlobalRegistryList_Call struct {
 }
 
 // GlobalRegistryList is a helper method to define mock.On call
-//   - listOptions
+//   - listOptions *model.ListOptions
 func (_e *MockReadOnlyService_Expecter) GlobalRegistryList(listOptions interface{}) *MockReadOnlyService_GlobalRegistryList_Call {
 	return &MockReadOnlyService_GlobalRegistryList_Call{Call: _e.mock.On("GlobalRegistryList", listOptions)}
 }
 
 func (_c *MockReadOnlyService_GlobalRegistryList_Call) Run(run func(listOptions *model.ListOptions)) *MockReadOnlyService_GlobalRegistryList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.ListOptions))
+		var arg0 *model.ListOptions
+		if args[0] != nil {
+			arg0 = args[0].(*model.ListOptions)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }

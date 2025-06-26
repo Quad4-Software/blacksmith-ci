@@ -107,14 +107,20 @@ type MockStreamContextWrapper_RecvMsg_Call struct {
 }
 
 // RecvMsg is a helper method to define mock.On call
-//   - m
+//   - m any
 func (_e *MockStreamContextWrapper_Expecter) RecvMsg(m interface{}) *MockStreamContextWrapper_RecvMsg_Call {
 	return &MockStreamContextWrapper_RecvMsg_Call{Call: _e.mock.On("RecvMsg", m)}
 }
 
 func (_c *MockStreamContextWrapper_RecvMsg_Call) Run(run func(m any)) *MockStreamContextWrapper_RecvMsg_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(any))
+		var arg0 any
+		if args[0] != nil {
+			arg0 = args[0].(any)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -152,14 +158,20 @@ type MockStreamContextWrapper_SendHeader_Call struct {
 }
 
 // SendHeader is a helper method to define mock.On call
-//   - mD
+//   - mD metadata.MD
 func (_e *MockStreamContextWrapper_Expecter) SendHeader(mD interface{}) *MockStreamContextWrapper_SendHeader_Call {
 	return &MockStreamContextWrapper_SendHeader_Call{Call: _e.mock.On("SendHeader", mD)}
 }
 
 func (_c *MockStreamContextWrapper_SendHeader_Call) Run(run func(mD metadata.MD)) *MockStreamContextWrapper_SendHeader_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(metadata.MD))
+		var arg0 metadata.MD
+		if args[0] != nil {
+			arg0 = args[0].(metadata.MD)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -197,14 +209,20 @@ type MockStreamContextWrapper_SendMsg_Call struct {
 }
 
 // SendMsg is a helper method to define mock.On call
-//   - m
+//   - m any
 func (_e *MockStreamContextWrapper_Expecter) SendMsg(m interface{}) *MockStreamContextWrapper_SendMsg_Call {
 	return &MockStreamContextWrapper_SendMsg_Call{Call: _e.mock.On("SendMsg", m)}
 }
 
 func (_c *MockStreamContextWrapper_SendMsg_Call) Run(run func(m any)) *MockStreamContextWrapper_SendMsg_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(any))
+		var arg0 any
+		if args[0] != nil {
+			arg0 = args[0].(any)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -231,14 +249,20 @@ type MockStreamContextWrapper_SetContext_Call struct {
 }
 
 // SetContext is a helper method to define mock.On call
-//   - context1
+//   - context1 context.Context
 func (_e *MockStreamContextWrapper_Expecter) SetContext(context1 interface{}) *MockStreamContextWrapper_SetContext_Call {
 	return &MockStreamContextWrapper_SetContext_Call{Call: _e.mock.On("SetContext", context1)}
 }
 
 func (_c *MockStreamContextWrapper_SetContext_Call) Run(run func(context1 context.Context)) *MockStreamContextWrapper_SetContext_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -276,14 +300,20 @@ type MockStreamContextWrapper_SetHeader_Call struct {
 }
 
 // SetHeader is a helper method to define mock.On call
-//   - mD
+//   - mD metadata.MD
 func (_e *MockStreamContextWrapper_Expecter) SetHeader(mD interface{}) *MockStreamContextWrapper_SetHeader_Call {
 	return &MockStreamContextWrapper_SetHeader_Call{Call: _e.mock.On("SetHeader", mD)}
 }
 
 func (_c *MockStreamContextWrapper_SetHeader_Call) Run(run func(mD metadata.MD)) *MockStreamContextWrapper_SetHeader_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(metadata.MD))
+		var arg0 metadata.MD
+		if args[0] != nil {
+			arg0 = args[0].(metadata.MD)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -310,14 +340,20 @@ type MockStreamContextWrapper_SetTrailer_Call struct {
 }
 
 // SetTrailer is a helper method to define mock.On call
-//   - mD
+//   - mD metadata.MD
 func (_e *MockStreamContextWrapper_Expecter) SetTrailer(mD interface{}) *MockStreamContextWrapper_SetTrailer_Call {
 	return &MockStreamContextWrapper_SetTrailer_Call{Call: _e.mock.On("SetTrailer", mD)}
 }
 
 func (_c *MockStreamContextWrapper_SetTrailer_Call) Run(run func(mD metadata.MD)) *MockStreamContextWrapper_SetTrailer_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(metadata.MD))
+		var arg0 metadata.MD
+		if args[0] != nil {
+			arg0 = args[0].(metadata.MD)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }

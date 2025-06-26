@@ -510,7 +510,7 @@ func CancelPipeline(c *gin.Context) {
 	if err := pipeline.Cancel(c, _forge, _store, repo, user, pl); err != nil {
 		handlePipelineErr(c, err)
 	} else {
-		c.Status(http.StatusNoContent)
+		c.AbortWithStatus(http.StatusNoContent)
 	}
 }
 
@@ -722,4 +722,50 @@ func DeletePipelineLogs(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+// CancelWorkflow
+//
+//	@Summary	Cancel a specific workflow in a pipeline
+//	@Router		/repos/{repo_id}/pipelines/{number}/workflows/{workflow_id}/cancel [post]
+//	@Produce	plain
+//	@Success	200
+//	@Tags		Pipelines
+//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
+//	@Param		repo_id			path	int		true	"the repository id"
+//	@Param		number			path	int		true	"the number of the pipeline"
+//	@Param		workflow_id		path	int		true	"the id of the workflow to cancel"
+func CancelWorkflow(c *gin.Context) {
+	_store := store.FromContext(c)
+	repo := session.Repo(c)
+	user := session.User(c)
+	_forge, err := server.Config.Services.Manager.ForgeFromRepo(repo)
+	if err != nil {
+		log.Error().Err(err).Msg("Cannot get forge from repo")
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	num, err := strconv.ParseInt(c.Params.ByName("number"), 10, 64)
+	if err != nil {
+		_ = c.AbortWithError(http.StatusBadRequest, err)
+		return
+	}
+	workflowID, err := strconv.ParseInt(c.Params.ByName("workflow_id"), 10, 64)
+	if err != nil {
+		_ = c.AbortWithError(http.StatusBadRequest, err)
+		return
+	}
+
+	pl, err := _store.GetPipelineNumber(repo, num)
+	if err != nil {
+		handleDBError(c, err)
+		return
+	}
+
+	if err := pipeline.CancelWorkflow(c, _forge, _store, repo, user, pl, workflowID); err != nil {
+		handlePipelineErr(c, err)
+	} else {
+		c.AbortWithStatus(http.StatusNoContent)
+	}
 }

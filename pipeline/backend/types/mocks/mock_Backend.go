@@ -63,16 +63,32 @@ type MockBackend_DestroyStep_Call struct {
 }
 
 // DestroyStep is a helper method to define mock.On call
-//   - ctx
-//   - step
-//   - taskUUID
+//   - ctx context.Context
+//   - step *types.Step
+//   - taskUUID string
 func (_e *MockBackend_Expecter) DestroyStep(ctx interface{}, step interface{}, taskUUID interface{}) *MockBackend_DestroyStep_Call {
 	return &MockBackend_DestroyStep_Call{Call: _e.mock.On("DestroyStep", ctx, step, taskUUID)}
 }
 
 func (_c *MockBackend_DestroyStep_Call) Run(run func(ctx context.Context, step *types.Step, taskUUID string)) *MockBackend_DestroyStep_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*types.Step), args[2].(string))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *types.Step
+		if args[1] != nil {
+			arg1 = args[1].(*types.Step)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
 	})
 	return _c
 }
@@ -110,16 +126,32 @@ type MockBackend_DestroyWorkflow_Call struct {
 }
 
 // DestroyWorkflow is a helper method to define mock.On call
-//   - ctx
-//   - conf
-//   - taskUUID
+//   - ctx context.Context
+//   - conf *types.Config
+//   - taskUUID string
 func (_e *MockBackend_Expecter) DestroyWorkflow(ctx interface{}, conf interface{}, taskUUID interface{}) *MockBackend_DestroyWorkflow_Call {
 	return &MockBackend_DestroyWorkflow_Call{Call: _e.mock.On("DestroyWorkflow", ctx, conf, taskUUID)}
 }
 
 func (_c *MockBackend_DestroyWorkflow_Call) Run(run func(ctx context.Context, conf *types.Config, taskUUID string)) *MockBackend_DestroyWorkflow_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*types.Config), args[2].(string))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *types.Config
+		if args[1] != nil {
+			arg1 = args[1].(*types.Config)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
 	})
 	return _c
 }
@@ -203,14 +235,20 @@ type MockBackend_IsAvailable_Call struct {
 }
 
 // IsAvailable is a helper method to define mock.On call
-//   - ctx
+//   - ctx context.Context
 func (_e *MockBackend_Expecter) IsAvailable(ctx interface{}) *MockBackend_IsAvailable_Call {
 	return &MockBackend_IsAvailable_Call{Call: _e.mock.On("IsAvailable", ctx)}
 }
 
 func (_c *MockBackend_IsAvailable_Call) Run(run func(ctx context.Context)) *MockBackend_IsAvailable_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -259,14 +297,20 @@ type MockBackend_Load_Call struct {
 }
 
 // Load is a helper method to define mock.On call
-//   - ctx
+//   - ctx context.Context
 func (_e *MockBackend_Expecter) Load(ctx interface{}) *MockBackend_Load_Call {
 	return &MockBackend_Load_Call{Call: _e.mock.On("Load", ctx)}
 }
 
 func (_c *MockBackend_Load_Call) Run(run func(ctx context.Context)) *MockBackend_Load_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -348,16 +392,32 @@ type MockBackend_SetupWorkflow_Call struct {
 }
 
 // SetupWorkflow is a helper method to define mock.On call
-//   - ctx
-//   - conf
-//   - taskUUID
+//   - ctx context.Context
+//   - conf *types.Config
+//   - taskUUID string
 func (_e *MockBackend_Expecter) SetupWorkflow(ctx interface{}, conf interface{}, taskUUID interface{}) *MockBackend_SetupWorkflow_Call {
 	return &MockBackend_SetupWorkflow_Call{Call: _e.mock.On("SetupWorkflow", ctx, conf, taskUUID)}
 }
 
 func (_c *MockBackend_SetupWorkflow_Call) Run(run func(ctx context.Context, conf *types.Config, taskUUID string)) *MockBackend_SetupWorkflow_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*types.Config), args[2].(string))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *types.Config
+		if args[1] != nil {
+			arg1 = args[1].(*types.Config)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
 	})
 	return _c
 }
@@ -395,16 +455,32 @@ type MockBackend_StartStep_Call struct {
 }
 
 // StartStep is a helper method to define mock.On call
-//   - ctx
-//   - step
-//   - taskUUID
+//   - ctx context.Context
+//   - step *types.Step
+//   - taskUUID string
 func (_e *MockBackend_Expecter) StartStep(ctx interface{}, step interface{}, taskUUID interface{}) *MockBackend_StartStep_Call {
 	return &MockBackend_StartStep_Call{Call: _e.mock.On("StartStep", ctx, step, taskUUID)}
 }
 
 func (_c *MockBackend_StartStep_Call) Run(run func(ctx context.Context, step *types.Step, taskUUID string)) *MockBackend_StartStep_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*types.Step), args[2].(string))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *types.Step
+		if args[1] != nil {
+			arg1 = args[1].(*types.Step)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
 	})
 	return _c
 }
@@ -453,16 +529,32 @@ type MockBackend_TailStep_Call struct {
 }
 
 // TailStep is a helper method to define mock.On call
-//   - ctx
-//   - step
-//   - taskUUID
+//   - ctx context.Context
+//   - step *types.Step
+//   - taskUUID string
 func (_e *MockBackend_Expecter) TailStep(ctx interface{}, step interface{}, taskUUID interface{}) *MockBackend_TailStep_Call {
 	return &MockBackend_TailStep_Call{Call: _e.mock.On("TailStep", ctx, step, taskUUID)}
 }
 
 func (_c *MockBackend_TailStep_Call) Run(run func(ctx context.Context, step *types.Step, taskUUID string)) *MockBackend_TailStep_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*types.Step), args[2].(string))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *types.Step
+		if args[1] != nil {
+			arg1 = args[1].(*types.Step)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
 	})
 	return _c
 }
@@ -511,16 +603,32 @@ type MockBackend_WaitStep_Call struct {
 }
 
 // WaitStep is a helper method to define mock.On call
-//   - ctx
-//   - step
-//   - taskUUID
+//   - ctx context.Context
+//   - step *types.Step
+//   - taskUUID string
 func (_e *MockBackend_Expecter) WaitStep(ctx interface{}, step interface{}, taskUUID interface{}) *MockBackend_WaitStep_Call {
 	return &MockBackend_WaitStep_Call{Call: _e.mock.On("WaitStep", ctx, step, taskUUID)}
 }
 
 func (_c *MockBackend_WaitStep_Call) Run(run func(ctx context.Context, step *types.Step, taskUUID string)) *MockBackend_WaitStep_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*types.Step), args[2].(string))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *types.Step
+		if args[1] != nil {
+			arg1 = args[1].(*types.Step)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
 	})
 	return _c
 }

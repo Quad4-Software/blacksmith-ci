@@ -9,25 +9,27 @@ import (
 )
 
 const (
-	pathRepoPost       = "%s/api/repos"
+	pathRepos          = "%s/api/repos"
 	pathRepo           = "%s/api/repos/%d"
 	pathRepoLookup     = "%s/api/repos/lookup/%s"
+	pathRepoChown      = "%s/api/repos/%d/chown"
+	pathRepoRepair     = "%s/api/repos/%d/repair"
 	pathRepoMove       = "%s/api/repos/%d/move"
-	pathChown          = "%s/api/repos/%d/chown"
-	pathRepair         = "%s/api/repos/%d/repair"
-	pathPipelines      = "%s/api/repos/%d/pipelines"
-	pathPipeline       = "%s/api/repos/%d/pipelines/%v"
-	pathPipelineLogs   = "%s/api/repos/%d/logs/%d"
-	pathStepLogs       = "%s/api/repos/%d/logs/%d/%d"
-	pathApprove        = "%s/api/repos/%d/pipelines/%d/approve"
-	pathDecline        = "%s/api/repos/%d/pipelines/%d/decline"
-	pathStop           = "%s/api/repos/%d/pipelines/%d/cancel"
 	pathRepoSecrets    = "%s/api/repos/%d/secrets"
 	pathRepoSecret     = "%s/api/repos/%d/secrets/%s"
 	pathRepoRegistries = "%s/api/repos/%d/registries"
 	pathRepoRegistry   = "%s/api/repos/%d/registries/%s"
 	pathRepoCrons      = "%s/api/repos/%d/cron"
 	pathRepoCron       = "%s/api/repos/%d/cron/%d"
+	pathPipelines      = "%s/api/repos/%d/pipelines"
+	pathPipeline       = "%s/api/repos/%d/pipelines/%s"
+	pathPipelineID     = "%s/api/repos/%d/pipelines/%d"
+	pathStop           = "%s/api/repos/%d/pipelines/%d/cancel"
+	pathWorkflowCancel = "%s/api/repos/%d/pipelines/%d/workflows/%d/cancel"
+	pathApprove        = "%s/api/repos/%d/pipelines/%d/approve"
+	pathDecline        = "%s/api/repos/%d/pipelines/%d/decline"
+	pathPipelineLogs   = "%s/api/repos/%d/logs/%d"
+	pathStepLogs       = "%s/api/repos/%d/logs/%d/%d"
 )
 
 type PipelineListOptions struct {
@@ -155,7 +157,7 @@ func (c *client) RepoLookup(fullName string) (*Repo, error) {
 // RepoPost activates a repository.
 func (c *client) RepoPost(opt RepoPostOptions) (*Repo, error) {
 	out := new(Repo)
-	uri, _ := url.Parse(fmt.Sprintf(pathRepoPost, c.addr))
+	uri, _ := url.Parse(fmt.Sprintf(pathRepos, c.addr))
 	uri.RawQuery = opt.QueryEncode()
 	err := c.post(uri.String(), nil, out)
 	return out, err
@@ -164,14 +166,14 @@ func (c *client) RepoPost(opt RepoPostOptions) (*Repo, error) {
 // RepoChown updates a repository owner.
 func (c *client) RepoChown(repoID int64) (*Repo, error) {
 	out := new(Repo)
-	uri := fmt.Sprintf(pathChown, c.addr, repoID)
+	uri := fmt.Sprintf(pathRepoChown, c.addr, repoID)
 	err := c.post(uri, nil, out)
 	return out, err
 }
 
 // RepoRepair repairs the repository hooks.
 func (c *client) RepoRepair(repoID int64) error {
-	uri := fmt.Sprintf(pathRepair, c.addr, repoID)
+	uri := fmt.Sprintf(pathRepoRepair, c.addr, repoID)
 	return c.post(uri, nil, nil)
 }
 
@@ -314,7 +316,7 @@ func (c *client) CronGet(repoID, cronID int64) (*Cron, error) {
 // Pipeline returns a repository pipeline by pipeline-id.
 func (c *client) Pipeline(repoID, pipeline int64) (*Pipeline, error) {
 	out := new(Pipeline)
-	uri := fmt.Sprintf(pathPipeline, c.addr, repoID, pipeline)
+	uri := fmt.Sprintf(pathPipelineID, c.addr, repoID, pipeline)
 	err := c.get(uri, out)
 	return out, err
 }
@@ -340,7 +342,7 @@ func (c *client) PipelineList(repoID int64, opt PipelineListOptions) ([]*Pipelin
 
 // PipelineDelete deletes a pipeline by the specified repository ID and pipeline ID.
 func (c *client) PipelineDelete(repoID, pipeline int64) error {
-	uri := fmt.Sprintf(pathPipeline, c.addr, repoID, pipeline)
+	uri := fmt.Sprintf(pathPipelineID, c.addr, repoID, pipeline)
 	err := c.delete(uri)
 	return err
 }
@@ -356,7 +358,7 @@ func (c *client) PipelineCreate(repoID int64, options *PipelineOptions) (*Pipeli
 // PipelineStart re-starts a stopped pipeline.
 func (c *client) PipelineStart(repoID, pipeline int64, opt PipelineStartOptions) (*Pipeline, error) {
 	out := new(Pipeline)
-	uri, _ := url.Parse(fmt.Sprintf(pathPipeline, c.addr, repoID, pipeline))
+	uri, _ := url.Parse(fmt.Sprintf(pathPipelineID, c.addr, repoID, pipeline))
 	uri.RawQuery = opt.QueryEncode()
 	err := c.post(uri.String(), nil, out)
 	return out, err
@@ -365,6 +367,13 @@ func (c *client) PipelineStart(repoID, pipeline int64, opt PipelineStartOptions)
 // PipelineStop cancels the running step.
 func (c *client) PipelineStop(repoID, pipeline int64) error {
 	uri := fmt.Sprintf(pathStop, c.addr, repoID, pipeline)
+	err := c.post(uri, nil, nil)
+	return err
+}
+
+// WorkflowCancel cancels a specific workflow in a pipeline.
+func (c *client) WorkflowCancel(repoID, pipeline, workflowID int64) error {
+	uri := fmt.Sprintf(pathWorkflowCancel, c.addr, repoID, pipeline, workflowID)
 	err := c.post(uri, nil, nil)
 	return err
 }
@@ -396,7 +405,7 @@ func (c *client) LogsPurge(repoID, pipeline int64) error {
 // specified target environment.
 func (c *client) Deploy(repoID, pipeline int64, opt DeployOptions) (*Pipeline, error) {
 	out := new(Pipeline)
-	uri, _ := url.Parse(fmt.Sprintf(pathPipeline, c.addr, repoID, pipeline))
+	uri, _ := url.Parse(fmt.Sprintf(pathPipelineID, c.addr, repoID, pipeline))
 	uri.RawQuery = opt.QueryEncode()
 	err := c.post(uri.String(), nil, out)
 	return out, err

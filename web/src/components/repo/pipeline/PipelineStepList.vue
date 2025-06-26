@@ -1,5 +1,5 @@
 <template>
-  <div class="md:min-w-xs flex w-full flex-col gap-2 pb-2 text-wp-text-100 md:w-3/12 md:max-w-md">
+  <div class="md:min-w-xs flex w-full flex-col gap-1 pb-2 text-wp-text-100 md:w-3/12 md:max-w-md">
     <div
       class="flex shrink-0 flex-wrap justify-between gap-1 rounded-md border border-wp-background-400 bg-wp-background-100 p-4 shadow-xs dark:bg-wp-background-200"
     >
@@ -60,53 +60,82 @@
           :key="workflow.id"
           class="rounded-md border border-wp-background-400 bg-wp-background-100 p-2 shadow-xs dark:bg-wp-background-200"
         >
-          <div class="flex flex-col gap-2">
-            <div v-if="workflow.environ" class="flex flex-wrap justify-end gap-x-1 gap-y-2 pr-1 pt-1 text-xs pb-2">
-              <div v-for="(value, key) in workflow.environ" :key="key"><Badge :label="key" :value="value" /></div>
-            </div>
-            <button
-              v-if="!singleConfig"
-              type="button"
-              :title="workflow.name"
-              class="hover-effect flex cursor-pointer items-center gap-2 rounded-md px-1 py-2 hover:bg-wp-background-300 dark:hover:bg-wp-background-400"
-              @click="workflowsCollapsed[workflow.id] = !workflowsCollapsed[workflow.id]"
-            >
+          <!-- Workflow Labels -->
+          <div v-if="workflow.environ" class="flex flex-wrap justify-end gap-x-1 gap-y-2 pr-1 pt-1 text-xs pb-2">
+            <div v-for="(value, key) in workflow.environ" :key="key"><Badge :label="key" :value="value" /></div>
+          </div>
+          <!-- Workflow Row -->
+          <div
+            class="grid grid-cols-[1.25rem_2rem_1fr_2rem_4rem] gap-1 items-center transition-colors hover:bg-wp-background-300 dark:hover:bg-wp-background-400 cursor-pointer"
+            @click="toggleWorkflow(workflow.id)"
+          >
+            <!-- Chevron -->
+            <span class="flex items-center justify-center h-8 w-8">
               <Icon
                 name="chevron-right"
-                class="h-6 min-w-6 transition-transform duration-150"
+                class="transition-transform duration-150"
                 :class="{ 'rotate-90 transform': !workflowsCollapsed[workflow.id] }"
               />
-              <PipelineStatusIcon :status="workflow.state" class="h-4! w-4!" />
-              <span class="truncate">{{ workflow.name }}</span>
-              <PipelineStepDuration
-                v-if="workflow.started !== workflow.finished"
-                :workflow="workflow"
-                class="pr-2px mr-1"
+            </span>
+            <!-- Status Icon -->
+            <span class="flex items-center justify-center h-8 w-8">
+              <PipelineStatusIcon :status="workflow.state" class="h-5 w-5" />
+            </span>
+            <!-- Name -->
+            <span class="min-w-0 break-words font-medium">
+              {{ workflow.name }}
+            </span>
+            <!-- Cancel Button -->
+            <span class="flex items-center justify-center h-8 w-8">
+              <IconButton
+                v-if="hasPushPermission && (workflow.state === 'pending' || workflow.state === 'running')"
+                :is-loading="isCancelingWorkflow[workflow.id]"
+                icon="close"
+                class="border border-wp-error-100 h-6 w-6 p-0.5"
+                :title="$t('repo.pipeline.actions.cancel')"
+                size="0.8rem"
+                color="red"
+                @click.stop="cancelWorkflow(workflow.id)"
               />
-            </button>
+            </span>
+            <!-- Timer -->
+            <span class="flex justify-end pr-2">
+              <PipelineStepDuration v-if="workflow.started !== workflow.finished" :workflow="workflow" />
+            </span>
           </div>
-
+          <!-- Canceled Message -->
+          <div v-if="workflow.state === 'killed'" class="grid grid-cols-[1.25rem_2rem_1fr_2rem_4rem]">
+            <span></span>
+            <span class="flex items-center justify-center h-8 w-8"></span>
+            <span
+              class="italic flex items-center text-xs text-wp-error-100 dark:text-wp-error-300 ml-[0.5rem]"
+              style="font-size: 0.85em; line-height: 1.5"
+            >
+              {{ $t('repo.pipeline.actions.canceled_by_user') }}
+            </span>
+            <span></span>
+            <span></span>
+          </div>
+          <!-- Steps -->
           <div
             class="overflow-hidden transition-height duration-150"
-            :class="{ 'max-h-0': workflowsCollapsed[workflow.id], 'ml-[1.6rem]': !singleConfig }"
+            :class="{ 'max-h-0': workflowsCollapsed[workflow.id] }"
           >
-            <button
+            <div
               v-for="step in workflow.children"
-              ref="steps"
               :key="step.pid"
-              :data-step-id="step.pid"
-              type="button"
-              :title="step.name"
-              class="hover-effect flex w-full cursor-pointer items-center gap-2 rounded-md border-2 border-transparent p-2 hover:bg-wp-background-300 dark:hover:bg-wp-background-400"
-              :class="{
-                'bg-wp-background-300 dark:bg-wp-background-400': selectedStepId && selectedStepId === step.pid,
-                'mt-1': !singleConfig || (workflow.children && step.pid !== workflow.children[0].pid),
-              }"
-              @click="$emit('update:selected-step-id', step.pid)"
+              class="grid grid-cols-[1.25rem_2rem_1fr_2rem_4rem] gap-1 items-center transition-colors hover:bg-wp-background-300 dark:hover:bg-wp-background-400 cursor-pointer"
             >
-              <PipelineStatusIcon :service="step.type === StepType.Service" :status="step.state" class="h-4! w-4!" />
-              <span class="truncate">{{ step.name }}</span> <PipelineStepDuration :step="step" />
-            </button>
+              <span></span>
+              <span class="flex items-center justify-center h-8 w-8">
+                <PipelineStatusIcon :service="step.type === StepType.Service" :status="step.state" class="h-5 w-5" />
+              </span>
+              <span class="min-w-0 break-words">{{ step.name }}</span>
+              <span></span>
+              <span class="flex justify-end pr-2">
+                <PipelineStepDuration :step="step" />
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -115,9 +144,8 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, nextTick, ref, toRef, useTemplateRef, watch } from 'vue';
+import { computed, ref, toRef } from 'vue';
 
-import Badge from '~/components/atomic/Badge.vue';
 import Icon from '~/components/atomic/Icon.vue';
 import Panel from '~/components/layout/Panel.vue';
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
@@ -126,6 +154,12 @@ import { requiredInject } from '~/compositions/useInjectProvide';
 import usePipeline from '~/compositions/usePipeline';
 import { StepType } from '~/lib/api/types';
 import type { Pipeline, PipelineStep } from '~/lib/api/types';
+import IconButton from '~/components/atomic/IconButton.vue';
+import useApiClient from '~/compositions/useApiClient';
+import useNotifications from '~/compositions/useNotifications';
+import { usePipelineStore } from '~/store/pipelines';
+import { useI18n } from 'vue-i18n';
+import Badge from '~/components/atomic/Badge.vue';
 
 const props = defineProps<{
   pipeline: Pipeline;
@@ -139,7 +173,12 @@ defineEmits<{
 const pipeline = toRef(props, 'pipeline');
 const selectedStepId = toRef(props, 'selectedStepId');
 const { prettyRef } = usePipeline(pipeline);
-const pipelineConfigs = requiredInject('pipeline-configs');
+const repo = requiredInject('repo');
+const repoPermissions = requiredInject('repo-permissions');
+const apiClient = useApiClient();
+const notifications = useNotifications();
+const pipelineStore = usePipelineStore();
+const i18n = useI18n();
 
 const workflowsCollapsed = ref<Record<PipelineStep['id'], boolean>>(
   pipeline.value.workflows && pipeline.value.workflows.length > 1
@@ -155,21 +194,38 @@ const workflowsCollapsed = ref<Record<PipelineStep['id'], boolean>>(
     : {},
 );
 
-const singleConfig = computed(
-  () => pipelineConfigs?.value?.length === 1 && pipeline.value.workflows && pipeline.value.workflows.length === 1,
-);
+const isCancelingWorkflow = ref<Record<number, boolean>>({});
 
-const steps = useTemplateRef('steps');
-watch(selectedStepId, async (newSelectedStepId, oldSelectedStepId) => {
-  if (!oldSelectedStepId && newSelectedStepId) {
-    await nextTick();
-    const step = steps.value?.find((s) => s.dataset.stepId === newSelectedStepId.toString());
-    if (step) {
-      step.scrollIntoView({
-        behavior: 'auto',
-        block: 'start',
-      });
-    }
+const hasPushPermission = computed(() => repoPermissions.value && repoPermissions.value.push);
+
+function toggleWorkflow(id: number) {
+  workflowsCollapsed.value[id] = !workflowsCollapsed.value[id];
+}
+
+async function cancelWorkflow(workflowId: number) {
+  if (!repo.value || !pipeline.value?.number) return;
+  isCancelingWorkflow.value = { ...isCancelingWorkflow.value, [workflowId]: true };
+  try {
+    await apiClient.cancelWorkflow(repo.value.id, pipeline.value.number, workflowId);
+    // Add a small delay to ensure the backend has time to process the cancel request
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    // Reload the pipeline from the backend to get the real workflow state
+    await pipelineStore.loadPipeline(repo.value.id, pipeline.value.number);
+    notifications.notify({
+      title: i18n.t('notify_title_success'),
+      text: i18n.t('repo.pipeline.actions.notify_text_cancel_success'),
+      type: 'success',
+      duration: 6000,
+    });
+  } catch {
+    notifications.notify({
+      title: i18n.t('notify_title_error'),
+      text: i18n.t('unknown_error'),
+      type: 'error',
+      duration: 9000,
+    });
+  } finally {
+    isCancelingWorkflow.value = { ...isCancelingWorkflow.value, [workflowId]: false };
   }
-});
+}
 </script>

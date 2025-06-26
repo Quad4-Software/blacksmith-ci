@@ -74,20 +74,56 @@ type MockService_Fetch_Call struct {
 }
 
 // Fetch is a helper method to define mock.On call
-//   - ctx
-//   - forge1
-//   - user
-//   - repo
-//   - pipeline
-//   - oldConfigData
-//   - restart
+//   - ctx context.Context
+//   - forge1 forge.Forge
+//   - user *model.User
+//   - repo *model.Repo
+//   - pipeline *model.Pipeline
+//   - oldConfigData []*types.FileMeta
+//   - restart bool
 func (_e *MockService_Expecter) Fetch(ctx interface{}, forge1 interface{}, user interface{}, repo interface{}, pipeline interface{}, oldConfigData interface{}, restart interface{}) *MockService_Fetch_Call {
 	return &MockService_Fetch_Call{Call: _e.mock.On("Fetch", ctx, forge1, user, repo, pipeline, oldConfigData, restart)}
 }
 
 func (_c *MockService_Fetch_Call) Run(run func(ctx context.Context, forge1 forge.Forge, user *model.User, repo *model.Repo, pipeline *model.Pipeline, oldConfigData []*types.FileMeta, restart bool)) *MockService_Fetch_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(forge.Forge), args[2].(*model.User), args[3].(*model.Repo), args[4].(*model.Pipeline), args[5].([]*types.FileMeta), args[6].(bool))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 forge.Forge
+		if args[1] != nil {
+			arg1 = args[1].(forge.Forge)
+		}
+		var arg2 *model.User
+		if args[2] != nil {
+			arg2 = args[2].(*model.User)
+		}
+		var arg3 *model.Repo
+		if args[3] != nil {
+			arg3 = args[3].(*model.Repo)
+		}
+		var arg4 *model.Pipeline
+		if args[4] != nil {
+			arg4 = args[4].(*model.Pipeline)
+		}
+		var arg5 []*types.FileMeta
+		if args[5] != nil {
+			arg5 = args[5].([]*types.FileMeta)
+		}
+		var arg6 bool
+		if args[6] != nil {
+			arg6 = args[6].(bool)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+			arg5,
+			arg6,
+		)
 	})
 	return _c
 }

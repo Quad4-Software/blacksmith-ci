@@ -68,14 +68,20 @@ type MockPipelineListKeyset_GetPipelineCount_Call struct {
 }
 
 // GetPipelineCount is a helper method to define mock.On call
-//   - repo
+//   - repo *model.Repo
 func (_e *MockPipelineListKeyset_Expecter) GetPipelineCount(repo interface{}) *MockPipelineListKeyset_GetPipelineCount_Call {
 	return &MockPipelineListKeyset_GetPipelineCount_Call{Call: _e.mock.On("GetPipelineCount", repo)}
 }
 
 func (_c *MockPipelineListKeyset_GetPipelineCount_Call) Run(run func(repo *model.Repo)) *MockPipelineListKeyset_GetPipelineCount_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Repo))
+		var arg0 *model.Repo
+		if args[0] != nil {
+			arg0 = args[0].(*model.Repo)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -124,17 +130,38 @@ type MockPipelineListKeyset_GetPipelineListKeyset_Call struct {
 }
 
 // GetPipelineListKeyset is a helper method to define mock.On call
-//   - repo
-//   - lastID
-//   - beforeDate
-//   - limit
+//   - repo *model.Repo
+//   - lastID int64
+//   - beforeDate int64
+//   - limit int
 func (_e *MockPipelineListKeyset_Expecter) GetPipelineListKeyset(repo interface{}, lastID interface{}, beforeDate interface{}, limit interface{}) *MockPipelineListKeyset_GetPipelineListKeyset_Call {
 	return &MockPipelineListKeyset_GetPipelineListKeyset_Call{Call: _e.mock.On("GetPipelineListKeyset", repo, lastID, beforeDate, limit)}
 }
 
 func (_c *MockPipelineListKeyset_GetPipelineListKeyset_Call) Run(run func(repo *model.Repo, lastID int64, beforeDate int64, limit int)) *MockPipelineListKeyset_GetPipelineListKeyset_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Repo), args[1].(int64), args[2].(int64), args[3].(int))
+		var arg0 *model.Repo
+		if args[0] != nil {
+			arg0 = args[0].(*model.Repo)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		var arg2 int64
+		if args[2] != nil {
+			arg2 = args[2].(int64)
+		}
+		var arg3 int
+		if args[3] != nil {
+			arg3 = args[3].(int)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
 	})
 	return _c
 }

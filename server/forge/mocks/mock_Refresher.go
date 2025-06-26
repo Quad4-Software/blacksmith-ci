@@ -70,15 +70,26 @@ type MockRefresher_Refresh_Call struct {
 }
 
 // Refresh is a helper method to define mock.On call
-//   - context1
-//   - user
+//   - context1 context.Context
+//   - user *model.User
 func (_e *MockRefresher_Expecter) Refresh(context1 interface{}, user interface{}) *MockRefresher_Refresh_Call {
 	return &MockRefresher_Refresh_Call{Call: _e.mock.On("Refresh", context1, user)}
 }
 
 func (_c *MockRefresher_Refresh_Call) Run(run func(context1 context.Context, user *model.User)) *MockRefresher_Refresh_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*model.User))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *model.User
+		if args[1] != nil {
+			arg1 = args[1].(*model.User)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }

@@ -72,15 +72,26 @@ type MockCrowServer_Done_Call struct {
 }
 
 // Done is a helper method to define mock.On call
-//   - context1
-//   - doneRequest
+//   - context1 context.Context
+//   - doneRequest *proto.DoneRequest
 func (_e *MockCrowServer_Expecter) Done(context1 interface{}, doneRequest interface{}) *MockCrowServer_Done_Call {
 	return &MockCrowServer_Done_Call{Call: _e.mock.On("Done", context1, doneRequest)}
 }
 
 func (_c *MockCrowServer_Done_Call) Run(run func(context1 context.Context, doneRequest *proto.DoneRequest)) *MockCrowServer_Done_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*proto.DoneRequest))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *proto.DoneRequest
+		if args[1] != nil {
+			arg1 = args[1].(*proto.DoneRequest)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -129,15 +140,26 @@ type MockCrowServer_Extend_Call struct {
 }
 
 // Extend is a helper method to define mock.On call
-//   - context1
-//   - extendRequest
+//   - context1 context.Context
+//   - extendRequest *proto.ExtendRequest
 func (_e *MockCrowServer_Expecter) Extend(context1 interface{}, extendRequest interface{}) *MockCrowServer_Extend_Call {
 	return &MockCrowServer_Extend_Call{Call: _e.mock.On("Extend", context1, extendRequest)}
 }
 
 func (_c *MockCrowServer_Extend_Call) Run(run func(context1 context.Context, extendRequest *proto.ExtendRequest)) *MockCrowServer_Extend_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*proto.ExtendRequest))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *proto.ExtendRequest
+		if args[1] != nil {
+			arg1 = args[1].(*proto.ExtendRequest)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -186,15 +208,26 @@ type MockCrowServer_Init_Call struct {
 }
 
 // Init is a helper method to define mock.On call
-//   - context1
-//   - initRequest
+//   - context1 context.Context
+//   - initRequest *proto.InitRequest
 func (_e *MockCrowServer_Expecter) Init(context1 interface{}, initRequest interface{}) *MockCrowServer_Init_Call {
 	return &MockCrowServer_Init_Call{Call: _e.mock.On("Init", context1, initRequest)}
 }
 
 func (_c *MockCrowServer_Init_Call) Run(run func(context1 context.Context, initRequest *proto.InitRequest)) *MockCrowServer_Init_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*proto.InitRequest))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *proto.InitRequest
+		if args[1] != nil {
+			arg1 = args[1].(*proto.InitRequest)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -243,15 +276,26 @@ type MockCrowServer_Log_Call struct {
 }
 
 // Log is a helper method to define mock.On call
-//   - context1
-//   - logRequest
+//   - context1 context.Context
+//   - logRequest *proto.LogRequest
 func (_e *MockCrowServer_Expecter) Log(context1 interface{}, logRequest interface{}) *MockCrowServer_Log_Call {
 	return &MockCrowServer_Log_Call{Call: _e.mock.On("Log", context1, logRequest)}
 }
 
 func (_c *MockCrowServer_Log_Call) Run(run func(context1 context.Context, logRequest *proto.LogRequest)) *MockCrowServer_Log_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*proto.LogRequest))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *proto.LogRequest
+		if args[1] != nil {
+			arg1 = args[1].(*proto.LogRequest)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -300,15 +344,26 @@ type MockCrowServer_Next_Call struct {
 }
 
 // Next is a helper method to define mock.On call
-//   - context1
-//   - nextRequest
+//   - context1 context.Context
+//   - nextRequest *proto.NextRequest
 func (_e *MockCrowServer_Expecter) Next(context1 interface{}, nextRequest interface{}) *MockCrowServer_Next_Call {
 	return &MockCrowServer_Next_Call{Call: _e.mock.On("Next", context1, nextRequest)}
 }
 
 func (_c *MockCrowServer_Next_Call) Run(run func(context1 context.Context, nextRequest *proto.NextRequest)) *MockCrowServer_Next_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*proto.NextRequest))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *proto.NextRequest
+		if args[1] != nil {
+			arg1 = args[1].(*proto.NextRequest)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -357,15 +412,26 @@ type MockCrowServer_RegisterAgent_Call struct {
 }
 
 // RegisterAgent is a helper method to define mock.On call
-//   - context1
-//   - registerAgentRequest
+//   - context1 context.Context
+//   - registerAgentRequest *proto.RegisterAgentRequest
 func (_e *MockCrowServer_Expecter) RegisterAgent(context1 interface{}, registerAgentRequest interface{}) *MockCrowServer_RegisterAgent_Call {
 	return &MockCrowServer_RegisterAgent_Call{Call: _e.mock.On("RegisterAgent", context1, registerAgentRequest)}
 }
 
 func (_c *MockCrowServer_RegisterAgent_Call) Run(run func(context1 context.Context, registerAgentRequest *proto.RegisterAgentRequest)) *MockCrowServer_RegisterAgent_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*proto.RegisterAgentRequest))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *proto.RegisterAgentRequest
+		if args[1] != nil {
+			arg1 = args[1].(*proto.RegisterAgentRequest)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -414,15 +480,26 @@ type MockCrowServer_ReportHealth_Call struct {
 }
 
 // ReportHealth is a helper method to define mock.On call
-//   - context1
-//   - reportHealthRequest
+//   - context1 context.Context
+//   - reportHealthRequest *proto.ReportHealthRequest
 func (_e *MockCrowServer_Expecter) ReportHealth(context1 interface{}, reportHealthRequest interface{}) *MockCrowServer_ReportHealth_Call {
 	return &MockCrowServer_ReportHealth_Call{Call: _e.mock.On("ReportHealth", context1, reportHealthRequest)}
 }
 
 func (_c *MockCrowServer_ReportHealth_Call) Run(run func(context1 context.Context, reportHealthRequest *proto.ReportHealthRequest)) *MockCrowServer_ReportHealth_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*proto.ReportHealthRequest))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *proto.ReportHealthRequest
+		if args[1] != nil {
+			arg1 = args[1].(*proto.ReportHealthRequest)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -471,15 +548,26 @@ type MockCrowServer_UnregisterAgent_Call struct {
 }
 
 // UnregisterAgent is a helper method to define mock.On call
-//   - context1
-//   - empty
+//   - context1 context.Context
+//   - empty *proto.Empty
 func (_e *MockCrowServer_Expecter) UnregisterAgent(context1 interface{}, empty interface{}) *MockCrowServer_UnregisterAgent_Call {
 	return &MockCrowServer_UnregisterAgent_Call{Call: _e.mock.On("UnregisterAgent", context1, empty)}
 }
 
 func (_c *MockCrowServer_UnregisterAgent_Call) Run(run func(context1 context.Context, empty *proto.Empty)) *MockCrowServer_UnregisterAgent_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*proto.Empty))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *proto.Empty
+		if args[1] != nil {
+			arg1 = args[1].(*proto.Empty)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -528,15 +616,26 @@ type MockCrowServer_Update_Call struct {
 }
 
 // Update is a helper method to define mock.On call
-//   - context1
-//   - updateRequest
+//   - context1 context.Context
+//   - updateRequest *proto.UpdateRequest
 func (_e *MockCrowServer_Expecter) Update(context1 interface{}, updateRequest interface{}) *MockCrowServer_Update_Call {
 	return &MockCrowServer_Update_Call{Call: _e.mock.On("Update", context1, updateRequest)}
 }
 
 func (_c *MockCrowServer_Update_Call) Run(run func(context1 context.Context, updateRequest *proto.UpdateRequest)) *MockCrowServer_Update_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*proto.UpdateRequest))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *proto.UpdateRequest
+		if args[1] != nil {
+			arg1 = args[1].(*proto.UpdateRequest)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -585,15 +684,26 @@ type MockCrowServer_Version_Call struct {
 }
 
 // Version is a helper method to define mock.On call
-//   - context1
-//   - empty
+//   - context1 context.Context
+//   - empty *proto.Empty
 func (_e *MockCrowServer_Expecter) Version(context1 interface{}, empty interface{}) *MockCrowServer_Version_Call {
 	return &MockCrowServer_Version_Call{Call: _e.mock.On("Version", context1, empty)}
 }
 
 func (_c *MockCrowServer_Version_Call) Run(run func(context1 context.Context, empty *proto.Empty)) *MockCrowServer_Version_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*proto.Empty))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *proto.Empty
+		if args[1] != nil {
+			arg1 = args[1].(*proto.Empty)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -642,15 +752,26 @@ type MockCrowServer_Wait_Call struct {
 }
 
 // Wait is a helper method to define mock.On call
-//   - context1
-//   - waitRequest
+//   - context1 context.Context
+//   - waitRequest *proto.WaitRequest
 func (_e *MockCrowServer_Expecter) Wait(context1 interface{}, waitRequest interface{}) *MockCrowServer_Wait_Call {
 	return &MockCrowServer_Wait_Call{Call: _e.mock.On("Wait", context1, waitRequest)}
 }
 
 func (_c *MockCrowServer_Wait_Call) Run(run func(context1 context.Context, waitRequest *proto.WaitRequest)) *MockCrowServer_Wait_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*proto.WaitRequest))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *proto.WaitRequest
+		if args[1] != nil {
+			arg1 = args[1].(*proto.WaitRequest)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }

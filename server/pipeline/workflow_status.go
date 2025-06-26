@@ -34,13 +34,22 @@ func UpdateWorkflowToStatusSkipped(store store.Store, workflow model.Workflow) (
 func UpdateWorkflowStatusToDone(store store.Store, workflow model.Workflow, state rpc.WorkflowState) (*model.Workflow, error) {
 	workflow.Finished = state.Finished
 	workflow.Error = state.Error
-	if state.Started == 0 {
-		workflow.State = model.StatusSkipped
-	} else {
-		workflow.State = model.WorkflowStatus(workflow.Children)
+
+	// Preserve killed state if workflow was already marked as killed
+	if workflow.State != model.StatusKilled {
+		if state.Started == 0 {
+			workflow.State = model.StatusSkipped
+		} else {
+			workflow.State = model.WorkflowStatus(workflow.Children)
+		}
 	}
-	if workflow.Error != "" {
+	if workflow.Error != "" && workflow.State != model.StatusKilled {
 		workflow.State = model.StatusFailure
 	}
+	return &workflow, store.WorkflowUpdate(&workflow)
+}
+
+func UpdateWorkflowToStatusKilled(store store.Store, workflow model.Workflow) (*model.Workflow, error) {
+	workflow.State = model.StatusKilled
 	return &workflow, store.WorkflowUpdate(&workflow)
 }

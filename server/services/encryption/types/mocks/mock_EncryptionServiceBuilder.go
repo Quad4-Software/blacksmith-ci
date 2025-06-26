@@ -116,14 +116,20 @@ type MockEncryptionServiceBuilder_WithClients_Call struct {
 }
 
 // WithClients is a helper method to define mock.On call
-//   - clients
+//   - clients []types.EncryptionClient
 func (_e *MockEncryptionServiceBuilder_Expecter) WithClients(clients interface{}) *MockEncryptionServiceBuilder_WithClients_Call {
 	return &MockEncryptionServiceBuilder_WithClients_Call{Call: _e.mock.On("WithClients", clients)}
 }
 
 func (_c *MockEncryptionServiceBuilder_WithClients_Call) Run(run func(clients []types.EncryptionClient)) *MockEncryptionServiceBuilder_WithClients_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].([]types.EncryptionClient))
+		var arg0 []types.EncryptionClient
+		if args[0] != nil {
+			arg0 = args[0].([]types.EncryptionClient)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }

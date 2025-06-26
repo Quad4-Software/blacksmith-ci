@@ -72,15 +72,26 @@ type MockCrowAuthServer_Auth_Call struct {
 }
 
 // Auth is a helper method to define mock.On call
-//   - context1
-//   - authRequest
+//   - context1 context.Context
+//   - authRequest *proto.AuthRequest
 func (_e *MockCrowAuthServer_Expecter) Auth(context1 interface{}, authRequest interface{}) *MockCrowAuthServer_Auth_Call {
 	return &MockCrowAuthServer_Auth_Call{Call: _e.mock.On("Auth", context1, authRequest)}
 }
 
 func (_c *MockCrowAuthServer_Auth_Call) Run(run func(context1 context.Context, authRequest *proto.AuthRequest)) *MockCrowAuthServer_Auth_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*proto.AuthRequest))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *proto.AuthRequest
+		if args[1] != nil {
+			arg1 = args[1].(*proto.AuthRequest)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }

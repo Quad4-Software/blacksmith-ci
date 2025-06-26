@@ -131,6 +131,10 @@ export default class CrowClient extends ApiClient {
     return this._post(`/api/repos/${repoId}/pipelines/${pipelineNumber}/cancel`);
   }
 
+  async cancelWorkflow(repoId: number, pipelineNumber: number, workflowId: number): Promise<unknown> {
+    return this._post(`/api/repos/${repoId}/pipelines/${pipelineNumber}/workflows/${workflowId}/cancel`);
+  }
+
   async approvePipeline(repoId: number, pipelineNumber: string): Promise<unknown> {
     return this._post(`/api/repos/${repoId}/pipelines/${pipelineNumber}/approve`);
   }

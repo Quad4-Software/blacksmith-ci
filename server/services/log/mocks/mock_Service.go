@@ -59,15 +59,26 @@ type MockService_LogAppend_Call struct {
 }
 
 // LogAppend is a helper method to define mock.On call
-//   - step
-//   - logEntries
+//   - step *model.Step
+//   - logEntries []*model.LogEntry
 func (_e *MockService_Expecter) LogAppend(step interface{}, logEntries interface{}) *MockService_LogAppend_Call {
 	return &MockService_LogAppend_Call{Call: _e.mock.On("LogAppend", step, logEntries)}
 }
 
 func (_c *MockService_LogAppend_Call) Run(run func(step *model.Step, logEntries []*model.LogEntry)) *MockService_LogAppend_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Step), args[1].([]*model.LogEntry))
+		var arg0 *model.Step
+		if args[0] != nil {
+			arg0 = args[0].(*model.Step)
+		}
+		var arg1 []*model.LogEntry
+		if args[1] != nil {
+			arg1 = args[1].([]*model.LogEntry)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -105,14 +116,20 @@ type MockService_LogDelete_Call struct {
 }
 
 // LogDelete is a helper method to define mock.On call
-//   - step
+//   - step *model.Step
 func (_e *MockService_Expecter) LogDelete(step interface{}) *MockService_LogDelete_Call {
 	return &MockService_LogDelete_Call{Call: _e.mock.On("LogDelete", step)}
 }
 
 func (_c *MockService_LogDelete_Call) Run(run func(step *model.Step)) *MockService_LogDelete_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Step))
+		var arg0 *model.Step
+		if args[0] != nil {
+			arg0 = args[0].(*model.Step)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -161,14 +178,20 @@ type MockService_LogFind_Call struct {
 }
 
 // LogFind is a helper method to define mock.On call
-//   - step
+//   - step *model.Step
 func (_e *MockService_Expecter) LogFind(step interface{}) *MockService_LogFind_Call {
 	return &MockService_LogFind_Call{Call: _e.mock.On("LogFind", step)}
 }
 
 func (_c *MockService_LogFind_Call) Run(run func(step *model.Step)) *MockService_LogFind_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Step))
+		var arg0 *model.Step
+		if args[0] != nil {
+			arg0 = args[0].(*model.Step)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }

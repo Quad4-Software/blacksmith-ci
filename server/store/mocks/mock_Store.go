@@ -61,14 +61,20 @@ type MockStore_AgentCreate_Call struct {
 }
 
 // AgentCreate is a helper method to define mock.On call
-//   - agent
+//   - agent *model.Agent
 func (_e *MockStore_Expecter) AgentCreate(agent interface{}) *MockStore_AgentCreate_Call {
 	return &MockStore_AgentCreate_Call{Call: _e.mock.On("AgentCreate", agent)}
 }
 
 func (_c *MockStore_AgentCreate_Call) Run(run func(agent *model.Agent)) *MockStore_AgentCreate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Agent))
+		var arg0 *model.Agent
+		if args[0] != nil {
+			arg0 = args[0].(*model.Agent)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -106,14 +112,20 @@ type MockStore_AgentDelete_Call struct {
 }
 
 // AgentDelete is a helper method to define mock.On call
-//   - agent
+//   - agent *model.Agent
 func (_e *MockStore_Expecter) AgentDelete(agent interface{}) *MockStore_AgentDelete_Call {
 	return &MockStore_AgentDelete_Call{Call: _e.mock.On("AgentDelete", agent)}
 }
 
 func (_c *MockStore_AgentDelete_Call) Run(run func(agent *model.Agent)) *MockStore_AgentDelete_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Agent))
+		var arg0 *model.Agent
+		if args[0] != nil {
+			arg0 = args[0].(*model.Agent)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -162,14 +174,20 @@ type MockStore_AgentFind_Call struct {
 }
 
 // AgentFind is a helper method to define mock.On call
-//   - n
+//   - n int64
 func (_e *MockStore_Expecter) AgentFind(n interface{}) *MockStore_AgentFind_Call {
 	return &MockStore_AgentFind_Call{Call: _e.mock.On("AgentFind", n)}
 }
 
 func (_c *MockStore_AgentFind_Call) Run(run func(n int64)) *MockStore_AgentFind_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -218,14 +236,20 @@ type MockStore_AgentFindByToken_Call struct {
 }
 
 // AgentFindByToken is a helper method to define mock.On call
-//   - s
+//   - s string
 func (_e *MockStore_Expecter) AgentFindByToken(s interface{}) *MockStore_AgentFindByToken_Call {
 	return &MockStore_AgentFindByToken_Call{Call: _e.mock.On("AgentFindByToken", s)}
 }
 
 func (_c *MockStore_AgentFindByToken_Call) Run(run func(s string)) *MockStore_AgentFindByToken_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -274,14 +298,20 @@ type MockStore_AgentList_Call struct {
 }
 
 // AgentList is a helper method to define mock.On call
-//   - p
+//   - p *model.ListOptions
 func (_e *MockStore_Expecter) AgentList(p interface{}) *MockStore_AgentList_Call {
 	return &MockStore_AgentList_Call{Call: _e.mock.On("AgentList", p)}
 }
 
 func (_c *MockStore_AgentList_Call) Run(run func(p *model.ListOptions)) *MockStore_AgentList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.ListOptions))
+		var arg0 *model.ListOptions
+		if args[0] != nil {
+			arg0 = args[0].(*model.ListOptions)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -330,15 +360,26 @@ type MockStore_AgentListForOrg_Call struct {
 }
 
 // AgentListForOrg is a helper method to define mock.On call
-//   - orgID
-//   - opt
+//   - orgID int64
+//   - opt *model.ListOptions
 func (_e *MockStore_Expecter) AgentListForOrg(orgID interface{}, opt interface{}) *MockStore_AgentListForOrg_Call {
 	return &MockStore_AgentListForOrg_Call{Call: _e.mock.On("AgentListForOrg", orgID, opt)}
 }
 
 func (_c *MockStore_AgentListForOrg_Call) Run(run func(orgID int64, opt *model.ListOptions)) *MockStore_AgentListForOrg_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(*model.ListOptions))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 *model.ListOptions
+		if args[1] != nil {
+			arg1 = args[1].(*model.ListOptions)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -376,14 +417,20 @@ type MockStore_AgentUpdate_Call struct {
 }
 
 // AgentUpdate is a helper method to define mock.On call
-//   - agent
+//   - agent *model.Agent
 func (_e *MockStore_Expecter) AgentUpdate(agent interface{}) *MockStore_AgentUpdate_Call {
 	return &MockStore_AgentUpdate_Call{Call: _e.mock.On("AgentUpdate", agent)}
 }
 
 func (_c *MockStore_AgentUpdate_Call) Run(run func(agent *model.Agent)) *MockStore_AgentUpdate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Agent))
+		var arg0 *model.Agent
+		if args[0] != nil {
+			arg0 = args[0].(*model.Agent)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -476,14 +523,20 @@ type MockStore_ConfigPersist_Call struct {
 }
 
 // ConfigPersist is a helper method to define mock.On call
-//   - config
+//   - config *model.Config
 func (_e *MockStore_Expecter) ConfigPersist(config interface{}) *MockStore_ConfigPersist_Call {
 	return &MockStore_ConfigPersist_Call{Call: _e.mock.On("ConfigPersist", config)}
 }
 
 func (_c *MockStore_ConfigPersist_Call) Run(run func(config *model.Config)) *MockStore_ConfigPersist_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Config))
+		var arg0 *model.Config
+		if args[0] != nil {
+			arg0 = args[0].(*model.Config)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -532,14 +585,20 @@ type MockStore_ConfigsForPipeline_Call struct {
 }
 
 // ConfigsForPipeline is a helper method to define mock.On call
-//   - pipelineID
+//   - pipelineID int64
 func (_e *MockStore_Expecter) ConfigsForPipeline(pipelineID interface{}) *MockStore_ConfigsForPipeline_Call {
 	return &MockStore_ConfigsForPipeline_Call{Call: _e.mock.On("ConfigsForPipeline", pipelineID)}
 }
 
 func (_c *MockStore_ConfigsForPipeline_Call) Run(run func(pipelineID int64)) *MockStore_ConfigsForPipeline_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -583,8 +642,8 @@ type MockStore_CreatePipeline_Call struct {
 }
 
 // CreatePipeline is a helper method to define mock.On call
-//   - pipeline
-//   - steps
+//   - pipeline *model.Pipeline
+//   - steps ...*model.Step
 func (_e *MockStore_Expecter) CreatePipeline(pipeline interface{}, steps ...interface{}) *MockStore_CreatePipeline_Call {
 	return &MockStore_CreatePipeline_Call{Call: _e.mock.On("CreatePipeline",
 		append([]interface{}{pipeline}, steps...)...)}
@@ -592,13 +651,20 @@ func (_e *MockStore_Expecter) CreatePipeline(pipeline interface{}, steps ...inte
 
 func (_c *MockStore_CreatePipeline_Call) Run(run func(pipeline *model.Pipeline, steps ...*model.Step)) *MockStore_CreatePipeline_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		variadicArgs := make([]*model.Step, len(args)-1)
-		for i, a := range args[1:] {
-			if a != nil {
-				variadicArgs[i] = a.(*model.Step)
-			}
+		var arg0 *model.Pipeline
+		if args[0] != nil {
+			arg0 = args[0].(*model.Pipeline)
 		}
-		run(args[0].(*model.Pipeline), variadicArgs...)
+		var arg1 []*model.Step
+		var variadicArgs []*model.Step
+		if len(args) > 1 {
+			variadicArgs = args[1].([]*model.Step)
+		}
+		arg1 = variadicArgs
+		run(
+			arg0,
+			arg1...,
+		)
 	})
 	return _c
 }
@@ -636,14 +702,20 @@ type MockStore_CreateRedirection_Call struct {
 }
 
 // CreateRedirection is a helper method to define mock.On call
-//   - redirection
+//   - redirection *model.Redirection
 func (_e *MockStore_Expecter) CreateRedirection(redirection interface{}) *MockStore_CreateRedirection_Call {
 	return &MockStore_CreateRedirection_Call{Call: _e.mock.On("CreateRedirection", redirection)}
 }
 
 func (_c *MockStore_CreateRedirection_Call) Run(run func(redirection *model.Redirection)) *MockStore_CreateRedirection_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Redirection))
+		var arg0 *model.Redirection
+		if args[0] != nil {
+			arg0 = args[0].(*model.Redirection)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -681,14 +753,20 @@ type MockStore_CreateRepo_Call struct {
 }
 
 // CreateRepo is a helper method to define mock.On call
-//   - repo
+//   - repo *model.Repo
 func (_e *MockStore_Expecter) CreateRepo(repo interface{}) *MockStore_CreateRepo_Call {
 	return &MockStore_CreateRepo_Call{Call: _e.mock.On("CreateRepo", repo)}
 }
 
 func (_c *MockStore_CreateRepo_Call) Run(run func(repo *model.Repo)) *MockStore_CreateRepo_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Repo))
+		var arg0 *model.Repo
+		if args[0] != nil {
+			arg0 = args[0].(*model.Repo)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -726,14 +804,20 @@ type MockStore_CreateUser_Call struct {
 }
 
 // CreateUser is a helper method to define mock.On call
-//   - user
+//   - user *model.User
 func (_e *MockStore_Expecter) CreateUser(user interface{}) *MockStore_CreateUser_Call {
 	return &MockStore_CreateUser_Call{Call: _e.mock.On("CreateUser", user)}
 }
 
 func (_c *MockStore_CreateUser_Call) Run(run func(user *model.User)) *MockStore_CreateUser_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.User))
+		var arg0 *model.User
+		if args[0] != nil {
+			arg0 = args[0].(*model.User)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -771,14 +855,20 @@ type MockStore_CronCreate_Call struct {
 }
 
 // CronCreate is a helper method to define mock.On call
-//   - cron
+//   - cron *model.Cron
 func (_e *MockStore_Expecter) CronCreate(cron interface{}) *MockStore_CronCreate_Call {
 	return &MockStore_CronCreate_Call{Call: _e.mock.On("CronCreate", cron)}
 }
 
 func (_c *MockStore_CronCreate_Call) Run(run func(cron *model.Cron)) *MockStore_CronCreate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Cron))
+		var arg0 *model.Cron
+		if args[0] != nil {
+			arg0 = args[0].(*model.Cron)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -816,15 +906,26 @@ type MockStore_CronDelete_Call struct {
 }
 
 // CronDelete is a helper method to define mock.On call
-//   - repo
-//   - n
+//   - repo *model.Repo
+//   - n int64
 func (_e *MockStore_Expecter) CronDelete(repo interface{}, n interface{}) *MockStore_CronDelete_Call {
 	return &MockStore_CronDelete_Call{Call: _e.mock.On("CronDelete", repo, n)}
 }
 
 func (_c *MockStore_CronDelete_Call) Run(run func(repo *model.Repo, n int64)) *MockStore_CronDelete_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Repo), args[1].(int64))
+		var arg0 *model.Repo
+		if args[0] != nil {
+			arg0 = args[0].(*model.Repo)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -873,15 +974,26 @@ type MockStore_CronFind_Call struct {
 }
 
 // CronFind is a helper method to define mock.On call
-//   - repo
-//   - n
+//   - repo *model.Repo
+//   - n int64
 func (_e *MockStore_Expecter) CronFind(repo interface{}, n interface{}) *MockStore_CronFind_Call {
 	return &MockStore_CronFind_Call{Call: _e.mock.On("CronFind", repo, n)}
 }
 
 func (_c *MockStore_CronFind_Call) Run(run func(repo *model.Repo, n int64)) *MockStore_CronFind_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Repo), args[1].(int64))
+		var arg0 *model.Repo
+		if args[0] != nil {
+			arg0 = args[0].(*model.Repo)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -928,15 +1040,26 @@ type MockStore_CronGetLock_Call struct {
 }
 
 // CronGetLock is a helper method to define mock.On call
-//   - cron
-//   - n
+//   - cron *model.Cron
+//   - n int64
 func (_e *MockStore_Expecter) CronGetLock(cron interface{}, n interface{}) *MockStore_CronGetLock_Call {
 	return &MockStore_CronGetLock_Call{Call: _e.mock.On("CronGetLock", cron, n)}
 }
 
 func (_c *MockStore_CronGetLock_Call) Run(run func(cron *model.Cron, n int64)) *MockStore_CronGetLock_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Cron), args[1].(int64))
+		var arg0 *model.Cron
+		if args[0] != nil {
+			arg0 = args[0].(*model.Cron)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -985,15 +1108,26 @@ type MockStore_CronList_Call struct {
 }
 
 // CronList is a helper method to define mock.On call
-//   - repo
-//   - listOptions
+//   - repo *model.Repo
+//   - listOptions *model.ListOptions
 func (_e *MockStore_Expecter) CronList(repo interface{}, listOptions interface{}) *MockStore_CronList_Call {
 	return &MockStore_CronList_Call{Call: _e.mock.On("CronList", repo, listOptions)}
 }
 
 func (_c *MockStore_CronList_Call) Run(run func(repo *model.Repo, listOptions *model.ListOptions)) *MockStore_CronList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Repo), args[1].(*model.ListOptions))
+		var arg0 *model.Repo
+		if args[0] != nil {
+			arg0 = args[0].(*model.Repo)
+		}
+		var arg1 *model.ListOptions
+		if args[1] != nil {
+			arg1 = args[1].(*model.ListOptions)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -1042,15 +1176,26 @@ type MockStore_CronListNextExecute_Call struct {
 }
 
 // CronListNextExecute is a helper method to define mock.On call
-//   - n
-//   - n1
+//   - n int64
+//   - n1 int64
 func (_e *MockStore_Expecter) CronListNextExecute(n interface{}, n1 interface{}) *MockStore_CronListNextExecute_Call {
 	return &MockStore_CronListNextExecute_Call{Call: _e.mock.On("CronListNextExecute", n, n1)}
 }
 
 func (_c *MockStore_CronListNextExecute_Call) Run(run func(n int64, n1 int64)) *MockStore_CronListNextExecute_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(int64))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -1088,15 +1233,26 @@ type MockStore_CronUpdate_Call struct {
 }
 
 // CronUpdate is a helper method to define mock.On call
-//   - repo
-//   - cron
+//   - repo *model.Repo
+//   - cron *model.Cron
 func (_e *MockStore_Expecter) CronUpdate(repo interface{}, cron interface{}) *MockStore_CronUpdate_Call {
 	return &MockStore_CronUpdate_Call{Call: _e.mock.On("CronUpdate", repo, cron)}
 }
 
 func (_c *MockStore_CronUpdate_Call) Run(run func(repo *model.Repo, cron *model.Cron)) *MockStore_CronUpdate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Repo), args[1].(*model.Cron))
+		var arg0 *model.Repo
+		if args[0] != nil {
+			arg0 = args[0].(*model.Repo)
+		}
+		var arg1 *model.Cron
+		if args[1] != nil {
+			arg1 = args[1].(*model.Cron)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -1134,14 +1290,20 @@ type MockStore_DeletePipeline_Call struct {
 }
 
 // DeletePipeline is a helper method to define mock.On call
-//   - pipeline
+//   - pipeline *model.Pipeline
 func (_e *MockStore_Expecter) DeletePipeline(pipeline interface{}) *MockStore_DeletePipeline_Call {
 	return &MockStore_DeletePipeline_Call{Call: _e.mock.On("DeletePipeline", pipeline)}
 }
 
 func (_c *MockStore_DeletePipeline_Call) Run(run func(pipeline *model.Pipeline)) *MockStore_DeletePipeline_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Pipeline))
+		var arg0 *model.Pipeline
+		if args[0] != nil {
+			arg0 = args[0].(*model.Pipeline)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -1179,14 +1341,20 @@ type MockStore_DeleteRepo_Call struct {
 }
 
 // DeleteRepo is a helper method to define mock.On call
-//   - repo
+//   - repo *model.Repo
 func (_e *MockStore_Expecter) DeleteRepo(repo interface{}) *MockStore_DeleteRepo_Call {
 	return &MockStore_DeleteRepo_Call{Call: _e.mock.On("DeleteRepo", repo)}
 }
 
 func (_c *MockStore_DeleteRepo_Call) Run(run func(repo *model.Repo)) *MockStore_DeleteRepo_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Repo))
+		var arg0 *model.Repo
+		if args[0] != nil {
+			arg0 = args[0].(*model.Repo)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -1224,14 +1392,20 @@ type MockStore_DeleteUser_Call struct {
 }
 
 // DeleteUser is a helper method to define mock.On call
-//   - user
+//   - user *model.User
 func (_e *MockStore_Expecter) DeleteUser(user interface{}) *MockStore_DeleteUser_Call {
 	return &MockStore_DeleteUser_Call{Call: _e.mock.On("DeleteUser", user)}
 }
 
 func (_c *MockStore_DeleteUser_Call) Run(run func(user *model.User)) *MockStore_DeleteUser_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.User))
+		var arg0 *model.User
+		if args[0] != nil {
+			arg0 = args[0].(*model.User)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -1269,14 +1443,20 @@ type MockStore_ForgeCreate_Call struct {
 }
 
 // ForgeCreate is a helper method to define mock.On call
-//   - forge
+//   - forge *model.Forge
 func (_e *MockStore_Expecter) ForgeCreate(forge interface{}) *MockStore_ForgeCreate_Call {
 	return &MockStore_ForgeCreate_Call{Call: _e.mock.On("ForgeCreate", forge)}
 }
 
 func (_c *MockStore_ForgeCreate_Call) Run(run func(forge *model.Forge)) *MockStore_ForgeCreate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Forge))
+		var arg0 *model.Forge
+		if args[0] != nil {
+			arg0 = args[0].(*model.Forge)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -1314,14 +1494,20 @@ type MockStore_ForgeDelete_Call struct {
 }
 
 // ForgeDelete is a helper method to define mock.On call
-//   - forge
+//   - forge *model.Forge
 func (_e *MockStore_Expecter) ForgeDelete(forge interface{}) *MockStore_ForgeDelete_Call {
 	return &MockStore_ForgeDelete_Call{Call: _e.mock.On("ForgeDelete", forge)}
 }
 
 func (_c *MockStore_ForgeDelete_Call) Run(run func(forge *model.Forge)) *MockStore_ForgeDelete_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Forge))
+		var arg0 *model.Forge
+		if args[0] != nil {
+			arg0 = args[0].(*model.Forge)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -1370,14 +1556,20 @@ type MockStore_ForgeGet_Call struct {
 }
 
 // ForgeGet is a helper method to define mock.On call
-//   - n
+//   - n int64
 func (_e *MockStore_Expecter) ForgeGet(n interface{}) *MockStore_ForgeGet_Call {
 	return &MockStore_ForgeGet_Call{Call: _e.mock.On("ForgeGet", n)}
 }
 
 func (_c *MockStore_ForgeGet_Call) Run(run func(n int64)) *MockStore_ForgeGet_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -1426,14 +1618,20 @@ type MockStore_ForgeList_Call struct {
 }
 
 // ForgeList is a helper method to define mock.On call
-//   - p
+//   - p *model.ListOptions
 func (_e *MockStore_Expecter) ForgeList(p interface{}) *MockStore_ForgeList_Call {
 	return &MockStore_ForgeList_Call{Call: _e.mock.On("ForgeList", p)}
 }
 
 func (_c *MockStore_ForgeList_Call) Run(run func(p *model.ListOptions)) *MockStore_ForgeList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.ListOptions))
+		var arg0 *model.ListOptions
+		if args[0] != nil {
+			arg0 = args[0].(*model.ListOptions)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -1471,14 +1669,20 @@ type MockStore_ForgeUpdate_Call struct {
 }
 
 // ForgeUpdate is a helper method to define mock.On call
-//   - forge
+//   - forge *model.Forge
 func (_e *MockStore_Expecter) ForgeUpdate(forge interface{}) *MockStore_ForgeUpdate_Call {
 	return &MockStore_ForgeUpdate_Call{Call: _e.mock.On("ForgeUpdate", forge)}
 }
 
 func (_c *MockStore_ForgeUpdate_Call) Run(run func(forge *model.Forge)) *MockStore_ForgeUpdate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Forge))
+		var arg0 *model.Forge
+		if args[0] != nil {
+			arg0 = args[0].(*model.Forge)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -1527,14 +1731,20 @@ type MockStore_GetActivePipelineList_Call struct {
 }
 
 // GetActivePipelineList is a helper method to define mock.On call
-//   - repo
+//   - repo *model.Repo
 func (_e *MockStore_Expecter) GetActivePipelineList(repo interface{}) *MockStore_GetActivePipelineList_Call {
 	return &MockStore_GetActivePipelineList_Call{Call: _e.mock.On("GetActivePipelineList", repo)}
 }
 
 func (_c *MockStore_GetActivePipelineList_Call) Run(run func(repo *model.Repo)) *MockStore_GetActivePipelineList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Repo))
+		var arg0 *model.Repo
+		if args[0] != nil {
+			arg0 = args[0].(*model.Repo)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -1583,14 +1793,20 @@ type MockStore_GetPipeline_Call struct {
 }
 
 // GetPipeline is a helper method to define mock.On call
-//   - n
+//   - n int64
 func (_e *MockStore_Expecter) GetPipeline(n interface{}) *MockStore_GetPipeline_Call {
 	return &MockStore_GetPipeline_Call{Call: _e.mock.On("GetPipeline", n)}
 }
 
 func (_c *MockStore_GetPipeline_Call) Run(run func(n int64)) *MockStore_GetPipeline_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -1639,15 +1855,26 @@ type MockStore_GetPipelineBadge_Call struct {
 }
 
 // GetPipelineBadge is a helper method to define mock.On call
-//   - repo
-//   - s
+//   - repo *model.Repo
+//   - s string
 func (_e *MockStore_Expecter) GetPipelineBadge(repo interface{}, s interface{}) *MockStore_GetPipelineBadge_Call {
 	return &MockStore_GetPipelineBadge_Call{Call: _e.mock.On("GetPipelineBadge", repo, s)}
 }
 
 func (_c *MockStore_GetPipelineBadge_Call) Run(run func(repo *model.Repo, s string)) *MockStore_GetPipelineBadge_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Repo), args[1].(string))
+		var arg0 *model.Repo
+		if args[0] != nil {
+			arg0 = args[0].(*model.Repo)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -1747,14 +1974,20 @@ type MockStore_GetPipelineCountByRepo_Call struct {
 }
 
 // GetPipelineCountByRepo is a helper method to define mock.On call
-//   - n
+//   - n int64
 func (_e *MockStore_Expecter) GetPipelineCountByRepo(n interface{}) *MockStore_GetPipelineCountByRepo_Call {
 	return &MockStore_GetPipelineCountByRepo_Call{Call: _e.mock.On("GetPipelineCountByRepo", n)}
 }
 
 func (_c *MockStore_GetPipelineCountByRepo_Call) Run(run func(n int64)) *MockStore_GetPipelineCountByRepo_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -1803,15 +2036,26 @@ type MockStore_GetPipelineLast_Call struct {
 }
 
 // GetPipelineLast is a helper method to define mock.On call
-//   - repo
-//   - s
+//   - repo *model.Repo
+//   - s string
 func (_e *MockStore_Expecter) GetPipelineLast(repo interface{}, s interface{}) *MockStore_GetPipelineLast_Call {
 	return &MockStore_GetPipelineLast_Call{Call: _e.mock.On("GetPipelineLast", repo, s)}
 }
 
 func (_c *MockStore_GetPipelineLast_Call) Run(run func(repo *model.Repo, s string)) *MockStore_GetPipelineLast_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Repo), args[1].(string))
+		var arg0 *model.Repo
+		if args[0] != nil {
+			arg0 = args[0].(*model.Repo)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -1860,16 +2104,32 @@ type MockStore_GetPipelineLastBefore_Call struct {
 }
 
 // GetPipelineLastBefore is a helper method to define mock.On call
-//   - repo
-//   - s
-//   - n
+//   - repo *model.Repo
+//   - s string
+//   - n int64
 func (_e *MockStore_Expecter) GetPipelineLastBefore(repo interface{}, s interface{}, n interface{}) *MockStore_GetPipelineLastBefore_Call {
 	return &MockStore_GetPipelineLastBefore_Call{Call: _e.mock.On("GetPipelineLastBefore", repo, s, n)}
 }
 
 func (_c *MockStore_GetPipelineLastBefore_Call) Run(run func(repo *model.Repo, s string, n int64)) *MockStore_GetPipelineLastBefore_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Repo), args[1].(string), args[2].(int64))
+		var arg0 *model.Repo
+		if args[0] != nil {
+			arg0 = args[0].(*model.Repo)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 int64
+		if args[2] != nil {
+			arg2 = args[2].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
 	})
 	return _c
 }
@@ -1918,16 +2178,32 @@ type MockStore_GetPipelineList_Call struct {
 }
 
 // GetPipelineList is a helper method to define mock.On call
-//   - repo
-//   - listOptions
-//   - pipelineFilter
+//   - repo *model.Repo
+//   - listOptions *model.ListOptions
+//   - pipelineFilter *model.PipelineFilter
 func (_e *MockStore_Expecter) GetPipelineList(repo interface{}, listOptions interface{}, pipelineFilter interface{}) *MockStore_GetPipelineList_Call {
 	return &MockStore_GetPipelineList_Call{Call: _e.mock.On("GetPipelineList", repo, listOptions, pipelineFilter)}
 }
 
 func (_c *MockStore_GetPipelineList_Call) Run(run func(repo *model.Repo, listOptions *model.ListOptions, pipelineFilter *model.PipelineFilter)) *MockStore_GetPipelineList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Repo), args[1].(*model.ListOptions), args[2].(*model.PipelineFilter))
+		var arg0 *model.Repo
+		if args[0] != nil {
+			arg0 = args[0].(*model.Repo)
+		}
+		var arg1 *model.ListOptions
+		if args[1] != nil {
+			arg1 = args[1].(*model.ListOptions)
+		}
+		var arg2 *model.PipelineFilter
+		if args[2] != nil {
+			arg2 = args[2].(*model.PipelineFilter)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
 	})
 	return _c
 }
@@ -1976,17 +2252,38 @@ type MockStore_GetPipelineListKeyset_Call struct {
 }
 
 // GetPipelineListKeyset is a helper method to define mock.On call
-//   - repo
-//   - startID
-//   - beforeDate
-//   - limit
+//   - repo *model.Repo
+//   - startID int64
+//   - beforeDate int64
+//   - limit int
 func (_e *MockStore_Expecter) GetPipelineListKeyset(repo interface{}, startID interface{}, beforeDate interface{}, limit interface{}) *MockStore_GetPipelineListKeyset_Call {
 	return &MockStore_GetPipelineListKeyset_Call{Call: _e.mock.On("GetPipelineListKeyset", repo, startID, beforeDate, limit)}
 }
 
 func (_c *MockStore_GetPipelineListKeyset_Call) Run(run func(repo *model.Repo, startID int64, beforeDate int64, limit int)) *MockStore_GetPipelineListKeyset_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Repo), args[1].(int64), args[2].(int64), args[3].(int))
+		var arg0 *model.Repo
+		if args[0] != nil {
+			arg0 = args[0].(*model.Repo)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		var arg2 int64
+		if args[2] != nil {
+			arg2 = args[2].(int64)
+		}
+		var arg3 int
+		if args[3] != nil {
+			arg3 = args[3].(int)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
 	})
 	return _c
 }
@@ -2033,14 +2330,20 @@ type MockStore_GetPipelineLogPurged_Call struct {
 }
 
 // GetPipelineLogPurged is a helper method to define mock.On call
-//   - pipeline
+//   - pipeline *model.Pipeline
 func (_e *MockStore_Expecter) GetPipelineLogPurged(pipeline interface{}) *MockStore_GetPipelineLogPurged_Call {
 	return &MockStore_GetPipelineLogPurged_Call{Call: _e.mock.On("GetPipelineLogPurged", pipeline)}
 }
 
 func (_c *MockStore_GetPipelineLogPurged_Call) Run(run func(pipeline *model.Pipeline)) *MockStore_GetPipelineLogPurged_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Pipeline))
+		var arg0 *model.Pipeline
+		if args[0] != nil {
+			arg0 = args[0].(*model.Pipeline)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -2089,15 +2392,26 @@ type MockStore_GetPipelineNumber_Call struct {
 }
 
 // GetPipelineNumber is a helper method to define mock.On call
-//   - repo
-//   - n
+//   - repo *model.Repo
+//   - n int64
 func (_e *MockStore_Expecter) GetPipelineNumber(repo interface{}, n interface{}) *MockStore_GetPipelineNumber_Call {
 	return &MockStore_GetPipelineNumber_Call{Call: _e.mock.On("GetPipelineNumber", repo, n)}
 }
 
 func (_c *MockStore_GetPipelineNumber_Call) Run(run func(repo *model.Repo, n int64)) *MockStore_GetPipelineNumber_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Repo), args[1].(int64))
+		var arg0 *model.Repo
+		if args[0] != nil {
+			arg0 = args[0].(*model.Repo)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -2201,14 +2515,20 @@ type MockStore_GetRepo_Call struct {
 }
 
 // GetRepo is a helper method to define mock.On call
-//   - n
+//   - n int64
 func (_e *MockStore_Expecter) GetRepo(n interface{}) *MockStore_GetRepo_Call {
 	return &MockStore_GetRepo_Call{Call: _e.mock.On("GetRepo", n)}
 }
 
 func (_c *MockStore_GetRepo_Call) Run(run func(n int64)) *MockStore_GetRepo_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -2310,14 +2630,20 @@ type MockStore_GetRepoForgeID_Call struct {
 }
 
 // GetRepoForgeID is a helper method to define mock.On call
-//   - forgeRemoteID
+//   - forgeRemoteID model.ForgeRemoteID
 func (_e *MockStore_Expecter) GetRepoForgeID(forgeRemoteID interface{}) *MockStore_GetRepoForgeID_Call {
 	return &MockStore_GetRepoForgeID_Call{Call: _e.mock.On("GetRepoForgeID", forgeRemoteID)}
 }
 
 func (_c *MockStore_GetRepoForgeID_Call) Run(run func(forgeRemoteID model.ForgeRemoteID)) *MockStore_GetRepoForgeID_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(model.ForgeRemoteID))
+		var arg0 model.ForgeRemoteID
+		if args[0] != nil {
+			arg0 = args[0].(model.ForgeRemoteID)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -2366,14 +2692,20 @@ type MockStore_GetRepoLatestPipelines_Call struct {
 }
 
 // GetRepoLatestPipelines is a helper method to define mock.On call
-//   - int64s
+//   - int64s []int64
 func (_e *MockStore_Expecter) GetRepoLatestPipelines(int64s interface{}) *MockStore_GetRepoLatestPipelines_Call {
 	return &MockStore_GetRepoLatestPipelines_Call{Call: _e.mock.On("GetRepoLatestPipelines", int64s)}
 }
 
 func (_c *MockStore_GetRepoLatestPipelines_Call) Run(run func(int64s []int64)) *MockStore_GetRepoLatestPipelines_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].([]int64))
+		var arg0 []int64
+		if args[0] != nil {
+			arg0 = args[0].([]int64)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -2422,14 +2754,20 @@ type MockStore_GetRepoName_Call struct {
 }
 
 // GetRepoName is a helper method to define mock.On call
-//   - s
+//   - s string
 func (_e *MockStore_Expecter) GetRepoName(s interface{}) *MockStore_GetRepoName_Call {
 	return &MockStore_GetRepoName_Call{Call: _e.mock.On("GetRepoName", s)}
 }
 
 func (_c *MockStore_GetRepoName_Call) Run(run func(s string)) *MockStore_GetRepoName_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -2478,15 +2816,26 @@ type MockStore_GetRepoNameFallback_Call struct {
 }
 
 // GetRepoNameFallback is a helper method to define mock.On call
-//   - remoteID
-//   - fullName
+//   - remoteID model.ForgeRemoteID
+//   - fullName string
 func (_e *MockStore_Expecter) GetRepoNameFallback(remoteID interface{}, fullName interface{}) *MockStore_GetRepoNameFallback_Call {
 	return &MockStore_GetRepoNameFallback_Call{Call: _e.mock.On("GetRepoNameFallback", remoteID, fullName)}
 }
 
 func (_c *MockStore_GetRepoNameFallback_Call) Run(run func(remoteID model.ForgeRemoteID, fullName string)) *MockStore_GetRepoNameFallback_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(model.ForgeRemoteID), args[1].(string))
+		var arg0 model.ForgeRemoteID
+		if args[0] != nil {
+			arg0 = args[0].(model.ForgeRemoteID)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -2535,14 +2884,20 @@ type MockStore_GetUser_Call struct {
 }
 
 // GetUser is a helper method to define mock.On call
-//   - n
+//   - n int64
 func (_e *MockStore_Expecter) GetUser(n interface{}) *MockStore_GetUser_Call {
 	return &MockStore_GetUser_Call{Call: _e.mock.On("GetUser", n)}
 }
 
 func (_c *MockStore_GetUser_Call) Run(run func(n int64)) *MockStore_GetUser_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -2644,14 +2999,20 @@ type MockStore_GetUserList_Call struct {
 }
 
 // GetUserList is a helper method to define mock.On call
-//   - p
+//   - p *model.ListOptions
 func (_e *MockStore_Expecter) GetUserList(p interface{}) *MockStore_GetUserList_Call {
 	return &MockStore_GetUserList_Call{Call: _e.mock.On("GetUserList", p)}
 }
 
 func (_c *MockStore_GetUserList_Call) Run(run func(p *model.ListOptions)) *MockStore_GetUserList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.ListOptions))
+		var arg0 *model.ListOptions
+		if args[0] != nil {
+			arg0 = args[0].(*model.ListOptions)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -2700,14 +3061,20 @@ type MockStore_GetUserLogin_Call struct {
 }
 
 // GetUserLogin is a helper method to define mock.On call
-//   - s
+//   - s string
 func (_e *MockStore_Expecter) GetUserLogin(s interface{}) *MockStore_GetUserLogin_Call {
 	return &MockStore_GetUserLogin_Call{Call: _e.mock.On("GetUserLogin", s)}
 }
 
 func (_c *MockStore_GetUserLogin_Call) Run(run func(s string)) *MockStore_GetUserLogin_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -2756,15 +3123,26 @@ type MockStore_GetUserRemoteID_Call struct {
 }
 
 // GetUserRemoteID is a helper method to define mock.On call
-//   - forgeRemoteID
-//   - s
+//   - forgeRemoteID model.ForgeRemoteID
+//   - s string
 func (_e *MockStore_Expecter) GetUserRemoteID(forgeRemoteID interface{}, s interface{}) *MockStore_GetUserRemoteID_Call {
 	return &MockStore_GetUserRemoteID_Call{Call: _e.mock.On("GetUserRemoteID", forgeRemoteID, s)}
 }
 
 func (_c *MockStore_GetUserRemoteID_Call) Run(run func(forgeRemoteID model.ForgeRemoteID, s string)) *MockStore_GetUserRemoteID_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(model.ForgeRemoteID), args[1].(string))
+		var arg0 model.ForgeRemoteID
+		if args[0] != nil {
+			arg0 = args[0].(model.ForgeRemoteID)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -2813,14 +3191,20 @@ type MockStore_GlobalRegistryFind_Call struct {
 }
 
 // GlobalRegistryFind is a helper method to define mock.On call
-//   - s
+//   - s string
 func (_e *MockStore_Expecter) GlobalRegistryFind(s interface{}) *MockStore_GlobalRegistryFind_Call {
 	return &MockStore_GlobalRegistryFind_Call{Call: _e.mock.On("GlobalRegistryFind", s)}
 }
 
 func (_c *MockStore_GlobalRegistryFind_Call) Run(run func(s string)) *MockStore_GlobalRegistryFind_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -2869,14 +3253,20 @@ type MockStore_GlobalRegistryList_Call struct {
 }
 
 // GlobalRegistryList is a helper method to define mock.On call
-//   - listOptions
+//   - listOptions *model.ListOptions
 func (_e *MockStore_Expecter) GlobalRegistryList(listOptions interface{}) *MockStore_GlobalRegistryList_Call {
 	return &MockStore_GlobalRegistryList_Call{Call: _e.mock.On("GlobalRegistryList", listOptions)}
 }
 
 func (_c *MockStore_GlobalRegistryList_Call) Run(run func(listOptions *model.ListOptions)) *MockStore_GlobalRegistryList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.ListOptions))
+		var arg0 *model.ListOptions
+		if args[0] != nil {
+			arg0 = args[0].(*model.ListOptions)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -2925,14 +3315,20 @@ type MockStore_GlobalSecretFind_Call struct {
 }
 
 // GlobalSecretFind is a helper method to define mock.On call
-//   - s
+//   - s string
 func (_e *MockStore_Expecter) GlobalSecretFind(s interface{}) *MockStore_GlobalSecretFind_Call {
 	return &MockStore_GlobalSecretFind_Call{Call: _e.mock.On("GlobalSecretFind", s)}
 }
 
 func (_c *MockStore_GlobalSecretFind_Call) Run(run func(s string)) *MockStore_GlobalSecretFind_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -2981,14 +3377,20 @@ type MockStore_GlobalSecretList_Call struct {
 }
 
 // GlobalSecretList is a helper method to define mock.On call
-//   - listOptions
+//   - listOptions *model.ListOptions
 func (_e *MockStore_Expecter) GlobalSecretList(listOptions interface{}) *MockStore_GlobalSecretList_Call {
 	return &MockStore_GlobalSecretList_Call{Call: _e.mock.On("GlobalSecretList", listOptions)}
 }
 
 func (_c *MockStore_GlobalSecretList_Call) Run(run func(listOptions *model.ListOptions)) *MockStore_GlobalSecretList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.ListOptions))
+		var arg0 *model.ListOptions
+		if args[0] != nil {
+			arg0 = args[0].(*model.ListOptions)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -3035,15 +3437,26 @@ type MockStore_HasRedirectionForRepo_Call struct {
 }
 
 // HasRedirectionForRepo is a helper method to define mock.On call
-//   - n
-//   - s
+//   - n int64
+//   - s string
 func (_e *MockStore_Expecter) HasRedirectionForRepo(n interface{}, s interface{}) *MockStore_HasRedirectionForRepo_Call {
 	return &MockStore_HasRedirectionForRepo_Call{Call: _e.mock.On("HasRedirectionForRepo", n, s)}
 }
 
 func (_c *MockStore_HasRedirectionForRepo_Call) Run(run func(n int64, s string)) *MockStore_HasRedirectionForRepo_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(string))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -3081,15 +3494,26 @@ type MockStore_LogAppend_Call struct {
 }
 
 // LogAppend is a helper method to define mock.On call
-//   - step
-//   - logEntrys
+//   - step *model.Step
+//   - logEntrys []*model.LogEntry
 func (_e *MockStore_Expecter) LogAppend(step interface{}, logEntrys interface{}) *MockStore_LogAppend_Call {
 	return &MockStore_LogAppend_Call{Call: _e.mock.On("LogAppend", step, logEntrys)}
 }
 
 func (_c *MockStore_LogAppend_Call) Run(run func(step *model.Step, logEntrys []*model.LogEntry)) *MockStore_LogAppend_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Step), args[1].([]*model.LogEntry))
+		var arg0 *model.Step
+		if args[0] != nil {
+			arg0 = args[0].(*model.Step)
+		}
+		var arg1 []*model.LogEntry
+		if args[1] != nil {
+			arg1 = args[1].([]*model.LogEntry)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -3127,14 +3551,20 @@ type MockStore_LogDelete_Call struct {
 }
 
 // LogDelete is a helper method to define mock.On call
-//   - step
+//   - step *model.Step
 func (_e *MockStore_Expecter) LogDelete(step interface{}) *MockStore_LogDelete_Call {
 	return &MockStore_LogDelete_Call{Call: _e.mock.On("LogDelete", step)}
 }
 
 func (_c *MockStore_LogDelete_Call) Run(run func(step *model.Step)) *MockStore_LogDelete_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Step))
+		var arg0 *model.Step
+		if args[0] != nil {
+			arg0 = args[0].(*model.Step)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -3183,14 +3613,20 @@ type MockStore_LogFind_Call struct {
 }
 
 // LogFind is a helper method to define mock.On call
-//   - step
+//   - step *model.Step
 func (_e *MockStore_Expecter) LogFind(step interface{}) *MockStore_LogFind_Call {
 	return &MockStore_LogFind_Call{Call: _e.mock.On("LogFind", step)}
 }
 
 func (_c *MockStore_LogFind_Call) Run(run func(step *model.Step)) *MockStore_LogFind_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Step))
+		var arg0 *model.Step
+		if args[0] != nil {
+			arg0 = args[0].(*model.Step)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -3228,15 +3664,26 @@ type MockStore_Migrate_Call struct {
 }
 
 // Migrate is a helper method to define mock.On call
-//   - context1
-//   - b
+//   - context1 context.Context
+//   - b bool
 func (_e *MockStore_Expecter) Migrate(context1 interface{}, b interface{}) *MockStore_Migrate_Call {
 	return &MockStore_Migrate_Call{Call: _e.mock.On("Migrate", context1, b)}
 }
 
 func (_c *MockStore_Migrate_Call) Run(run func(context1 context.Context, b bool)) *MockStore_Migrate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(bool))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 bool
+		if args[1] != nil {
+			arg1 = args[1].(bool)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -3274,14 +3721,20 @@ type MockStore_OrgCreate_Call struct {
 }
 
 // OrgCreate is a helper method to define mock.On call
-//   - org
+//   - org *model.Org
 func (_e *MockStore_Expecter) OrgCreate(org interface{}) *MockStore_OrgCreate_Call {
 	return &MockStore_OrgCreate_Call{Call: _e.mock.On("OrgCreate", org)}
 }
 
 func (_c *MockStore_OrgCreate_Call) Run(run func(org *model.Org)) *MockStore_OrgCreate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Org))
+		var arg0 *model.Org
+		if args[0] != nil {
+			arg0 = args[0].(*model.Org)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -3319,14 +3772,20 @@ type MockStore_OrgDelete_Call struct {
 }
 
 // OrgDelete is a helper method to define mock.On call
-//   - n
+//   - n int64
 func (_e *MockStore_Expecter) OrgDelete(n interface{}) *MockStore_OrgDelete_Call {
 	return &MockStore_OrgDelete_Call{Call: _e.mock.On("OrgDelete", n)}
 }
 
 func (_c *MockStore_OrgDelete_Call) Run(run func(n int64)) *MockStore_OrgDelete_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -3375,15 +3834,26 @@ type MockStore_OrgFindByName_Call struct {
 }
 
 // OrgFindByName is a helper method to define mock.On call
-//   - s
-//   - n
+//   - s string
+//   - n int64
 func (_e *MockStore_Expecter) OrgFindByName(s interface{}, n interface{}) *MockStore_OrgFindByName_Call {
 	return &MockStore_OrgFindByName_Call{Call: _e.mock.On("OrgFindByName", s, n)}
 }
 
 func (_c *MockStore_OrgFindByName_Call) Run(run func(s string, n int64)) *MockStore_OrgFindByName_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string), args[1].(int64))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -3432,14 +3902,20 @@ type MockStore_OrgGet_Call struct {
 }
 
 // OrgGet is a helper method to define mock.On call
-//   - n
+//   - n int64
 func (_e *MockStore_Expecter) OrgGet(n interface{}) *MockStore_OrgGet_Call {
 	return &MockStore_OrgGet_Call{Call: _e.mock.On("OrgGet", n)}
 }
 
 func (_c *MockStore_OrgGet_Call) Run(run func(n int64)) *MockStore_OrgGet_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -3488,14 +3964,20 @@ type MockStore_OrgList_Call struct {
 }
 
 // OrgList is a helper method to define mock.On call
-//   - listOptions
+//   - listOptions *model.ListOptions
 func (_e *MockStore_Expecter) OrgList(listOptions interface{}) *MockStore_OrgList_Call {
 	return &MockStore_OrgList_Call{Call: _e.mock.On("OrgList", listOptions)}
 }
 
 func (_c *MockStore_OrgList_Call) Run(run func(listOptions *model.ListOptions)) *MockStore_OrgList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.ListOptions))
+		var arg0 *model.ListOptions
+		if args[0] != nil {
+			arg0 = args[0].(*model.ListOptions)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -3544,15 +4026,26 @@ type MockStore_OrgRegistryFind_Call struct {
 }
 
 // OrgRegistryFind is a helper method to define mock.On call
-//   - n
-//   - s
+//   - n int64
+//   - s string
 func (_e *MockStore_Expecter) OrgRegistryFind(n interface{}, s interface{}) *MockStore_OrgRegistryFind_Call {
 	return &MockStore_OrgRegistryFind_Call{Call: _e.mock.On("OrgRegistryFind", n, s)}
 }
 
 func (_c *MockStore_OrgRegistryFind_Call) Run(run func(n int64, s string)) *MockStore_OrgRegistryFind_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(string))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -3601,15 +4094,26 @@ type MockStore_OrgRegistryList_Call struct {
 }
 
 // OrgRegistryList is a helper method to define mock.On call
-//   - n
-//   - listOptions
+//   - n int64
+//   - listOptions *model.ListOptions
 func (_e *MockStore_Expecter) OrgRegistryList(n interface{}, listOptions interface{}) *MockStore_OrgRegistryList_Call {
 	return &MockStore_OrgRegistryList_Call{Call: _e.mock.On("OrgRegistryList", n, listOptions)}
 }
 
 func (_c *MockStore_OrgRegistryList_Call) Run(run func(n int64, listOptions *model.ListOptions)) *MockStore_OrgRegistryList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(*model.ListOptions))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 *model.ListOptions
+		if args[1] != nil {
+			arg1 = args[1].(*model.ListOptions)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -3658,15 +4162,26 @@ type MockStore_OrgRepoList_Call struct {
 }
 
 // OrgRepoList is a helper method to define mock.On call
-//   - org
-//   - listOptions
+//   - org *model.Org
+//   - listOptions *model.ListOptions
 func (_e *MockStore_Expecter) OrgRepoList(org interface{}, listOptions interface{}) *MockStore_OrgRepoList_Call {
 	return &MockStore_OrgRepoList_Call{Call: _e.mock.On("OrgRepoList", org, listOptions)}
 }
 
 func (_c *MockStore_OrgRepoList_Call) Run(run func(org *model.Org, listOptions *model.ListOptions)) *MockStore_OrgRepoList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Org), args[1].(*model.ListOptions))
+		var arg0 *model.Org
+		if args[0] != nil {
+			arg0 = args[0].(*model.Org)
+		}
+		var arg1 *model.ListOptions
+		if args[1] != nil {
+			arg1 = args[1].(*model.ListOptions)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -3715,15 +4230,26 @@ type MockStore_OrgSecretFind_Call struct {
 }
 
 // OrgSecretFind is a helper method to define mock.On call
-//   - n
-//   - s
+//   - n int64
+//   - s string
 func (_e *MockStore_Expecter) OrgSecretFind(n interface{}, s interface{}) *MockStore_OrgSecretFind_Call {
 	return &MockStore_OrgSecretFind_Call{Call: _e.mock.On("OrgSecretFind", n, s)}
 }
 
 func (_c *MockStore_OrgSecretFind_Call) Run(run func(n int64, s string)) *MockStore_OrgSecretFind_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(string))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -3772,15 +4298,26 @@ type MockStore_OrgSecretList_Call struct {
 }
 
 // OrgSecretList is a helper method to define mock.On call
-//   - n
-//   - listOptions
+//   - n int64
+//   - listOptions *model.ListOptions
 func (_e *MockStore_Expecter) OrgSecretList(n interface{}, listOptions interface{}) *MockStore_OrgSecretList_Call {
 	return &MockStore_OrgSecretList_Call{Call: _e.mock.On("OrgSecretList", n, listOptions)}
 }
 
 func (_c *MockStore_OrgSecretList_Call) Run(run func(n int64, listOptions *model.ListOptions)) *MockStore_OrgSecretList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(*model.ListOptions))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 *model.ListOptions
+		if args[1] != nil {
+			arg1 = args[1].(*model.ListOptions)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -3818,14 +4355,20 @@ type MockStore_OrgUpdate_Call struct {
 }
 
 // OrgUpdate is a helper method to define mock.On call
-//   - org
+//   - org *model.Org
 func (_e *MockStore_Expecter) OrgUpdate(org interface{}) *MockStore_OrgUpdate_Call {
 	return &MockStore_OrgUpdate_Call{Call: _e.mock.On("OrgUpdate", org)}
 }
 
 func (_c *MockStore_OrgUpdate_Call) Run(run func(org *model.Org)) *MockStore_OrgUpdate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Org))
+		var arg0 *model.Org
+		if args[0] != nil {
+			arg0 = args[0].(*model.Org)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -3874,15 +4417,26 @@ type MockStore_PermFind_Call struct {
 }
 
 // PermFind is a helper method to define mock.On call
-//   - user
-//   - repo
+//   - user *model.User
+//   - repo *model.Repo
 func (_e *MockStore_Expecter) PermFind(user interface{}, repo interface{}) *MockStore_PermFind_Call {
 	return &MockStore_PermFind_Call{Call: _e.mock.On("PermFind", user, repo)}
 }
 
 func (_c *MockStore_PermFind_Call) Run(run func(user *model.User, repo *model.Repo)) *MockStore_PermFind_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.User), args[1].(*model.Repo))
+		var arg0 *model.User
+		if args[0] != nil {
+			arg0 = args[0].(*model.User)
+		}
+		var arg1 *model.Repo
+		if args[1] != nil {
+			arg1 = args[1].(*model.Repo)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -3920,14 +4474,20 @@ type MockStore_PermUpsert_Call struct {
 }
 
 // PermUpsert is a helper method to define mock.On call
-//   - perm
+//   - perm *model.Perm
 func (_e *MockStore_Expecter) PermUpsert(perm interface{}) *MockStore_PermUpsert_Call {
 	return &MockStore_PermUpsert_Call{Call: _e.mock.On("PermUpsert", perm)}
 }
 
 func (_c *MockStore_PermUpsert_Call) Run(run func(perm *model.Perm)) *MockStore_PermUpsert_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Perm))
+		var arg0 *model.Perm
+		if args[0] != nil {
+			arg0 = args[0].(*model.Perm)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -4009,14 +4569,20 @@ type MockStore_PipelineConfigCreate_Call struct {
 }
 
 // PipelineConfigCreate is a helper method to define mock.On call
-//   - pipelineConfig
+//   - pipelineConfig *model.PipelineConfig
 func (_e *MockStore_Expecter) PipelineConfigCreate(pipelineConfig interface{}) *MockStore_PipelineConfigCreate_Call {
 	return &MockStore_PipelineConfigCreate_Call{Call: _e.mock.On("PipelineConfigCreate", pipelineConfig)}
 }
 
 func (_c *MockStore_PipelineConfigCreate_Call) Run(run func(pipelineConfig *model.PipelineConfig)) *MockStore_PipelineConfigCreate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.PipelineConfig))
+		var arg0 *model.PipelineConfig
+		if args[0] != nil {
+			arg0 = args[0].(*model.PipelineConfig)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -4054,14 +4620,20 @@ type MockStore_RegistryCreate_Call struct {
 }
 
 // RegistryCreate is a helper method to define mock.On call
-//   - registry
+//   - registry *model.Registry
 func (_e *MockStore_Expecter) RegistryCreate(registry interface{}) *MockStore_RegistryCreate_Call {
 	return &MockStore_RegistryCreate_Call{Call: _e.mock.On("RegistryCreate", registry)}
 }
 
 func (_c *MockStore_RegistryCreate_Call) Run(run func(registry *model.Registry)) *MockStore_RegistryCreate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Registry))
+		var arg0 *model.Registry
+		if args[0] != nil {
+			arg0 = args[0].(*model.Registry)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -4099,14 +4671,20 @@ type MockStore_RegistryDelete_Call struct {
 }
 
 // RegistryDelete is a helper method to define mock.On call
-//   - registry
+//   - registry *model.Registry
 func (_e *MockStore_Expecter) RegistryDelete(registry interface{}) *MockStore_RegistryDelete_Call {
 	return &MockStore_RegistryDelete_Call{Call: _e.mock.On("RegistryDelete", registry)}
 }
 
 func (_c *MockStore_RegistryDelete_Call) Run(run func(registry *model.Registry)) *MockStore_RegistryDelete_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Registry))
+		var arg0 *model.Registry
+		if args[0] != nil {
+			arg0 = args[0].(*model.Registry)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -4155,15 +4733,26 @@ type MockStore_RegistryFind_Call struct {
 }
 
 // RegistryFind is a helper method to define mock.On call
-//   - repo
-//   - s
+//   - repo *model.Repo
+//   - s string
 func (_e *MockStore_Expecter) RegistryFind(repo interface{}, s interface{}) *MockStore_RegistryFind_Call {
 	return &MockStore_RegistryFind_Call{Call: _e.mock.On("RegistryFind", repo, s)}
 }
 
 func (_c *MockStore_RegistryFind_Call) Run(run func(repo *model.Repo, s string)) *MockStore_RegistryFind_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Repo), args[1].(string))
+		var arg0 *model.Repo
+		if args[0] != nil {
+			arg0 = args[0].(*model.Repo)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -4212,16 +4801,32 @@ type MockStore_RegistryList_Call struct {
 }
 
 // RegistryList is a helper method to define mock.On call
-//   - repo
-//   - b
-//   - listOptions
+//   - repo *model.Repo
+//   - b bool
+//   - listOptions *model.ListOptions
 func (_e *MockStore_Expecter) RegistryList(repo interface{}, b interface{}, listOptions interface{}) *MockStore_RegistryList_Call {
 	return &MockStore_RegistryList_Call{Call: _e.mock.On("RegistryList", repo, b, listOptions)}
 }
 
 func (_c *MockStore_RegistryList_Call) Run(run func(repo *model.Repo, b bool, listOptions *model.ListOptions)) *MockStore_RegistryList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Repo), args[1].(bool), args[2].(*model.ListOptions))
+		var arg0 *model.Repo
+		if args[0] != nil {
+			arg0 = args[0].(*model.Repo)
+		}
+		var arg1 bool
+		if args[1] != nil {
+			arg1 = args[1].(bool)
+		}
+		var arg2 *model.ListOptions
+		if args[2] != nil {
+			arg2 = args[2].(*model.ListOptions)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
 	})
 	return _c
 }
@@ -4314,14 +4919,20 @@ type MockStore_RegistryUpdate_Call struct {
 }
 
 // RegistryUpdate is a helper method to define mock.On call
-//   - registry
+//   - registry *model.Registry
 func (_e *MockStore_Expecter) RegistryUpdate(registry interface{}) *MockStore_RegistryUpdate_Call {
 	return &MockStore_RegistryUpdate_Call{Call: _e.mock.On("RegistryUpdate", registry)}
 }
 
 func (_c *MockStore_RegistryUpdate_Call) Run(run func(registry *model.Registry)) *MockStore_RegistryUpdate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Registry))
+		var arg0 *model.Registry
+		if args[0] != nil {
+			arg0 = args[0].(*model.Registry)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -4370,16 +4981,32 @@ type MockStore_RepoList_Call struct {
 }
 
 // RepoList is a helper method to define mock.On call
-//   - user
-//   - owned
-//   - active
+//   - user *model.User
+//   - owned bool
+//   - active bool
 func (_e *MockStore_Expecter) RepoList(user interface{}, owned interface{}, active interface{}) *MockStore_RepoList_Call {
 	return &MockStore_RepoList_Call{Call: _e.mock.On("RepoList", user, owned, active)}
 }
 
 func (_c *MockStore_RepoList_Call) Run(run func(user *model.User, owned bool, active bool)) *MockStore_RepoList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.User), args[1].(bool), args[2].(bool))
+		var arg0 *model.User
+		if args[0] != nil {
+			arg0 = args[0].(*model.User)
+		}
+		var arg1 bool
+		if args[1] != nil {
+			arg1 = args[1].(bool)
+		}
+		var arg2 bool
+		if args[2] != nil {
+			arg2 = args[2].(bool)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
 	})
 	return _c
 }
@@ -4428,15 +5055,26 @@ type MockStore_RepoListAll_Call struct {
 }
 
 // RepoListAll is a helper method to define mock.On call
-//   - active
-//   - p
+//   - active bool
+//   - p *model.ListOptions
 func (_e *MockStore_Expecter) RepoListAll(active interface{}, p interface{}) *MockStore_RepoListAll_Call {
 	return &MockStore_RepoListAll_Call{Call: _e.mock.On("RepoListAll", active, p)}
 }
 
 func (_c *MockStore_RepoListAll_Call) Run(run func(active bool, p *model.ListOptions)) *MockStore_RepoListAll_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(bool), args[1].(*model.ListOptions))
+		var arg0 bool
+		if args[0] != nil {
+			arg0 = args[0].(bool)
+		}
+		var arg1 *model.ListOptions
+		if args[1] != nil {
+			arg1 = args[1].(*model.ListOptions)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -4485,14 +5123,20 @@ type MockStore_RepoListLatest_Call struct {
 }
 
 // RepoListLatest is a helper method to define mock.On call
-//   - user
+//   - user *model.User
 func (_e *MockStore_Expecter) RepoListLatest(user interface{}) *MockStore_RepoListLatest_Call {
 	return &MockStore_RepoListLatest_Call{Call: _e.mock.On("RepoListLatest", user)}
 }
 
 func (_c *MockStore_RepoListLatest_Call) Run(run func(user *model.User)) *MockStore_RepoListLatest_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.User))
+		var arg0 *model.User
+		if args[0] != nil {
+			arg0 = args[0].(*model.User)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -4530,14 +5174,20 @@ type MockStore_SecretCreate_Call struct {
 }
 
 // SecretCreate is a helper method to define mock.On call
-//   - secret
+//   - secret *model.Secret
 func (_e *MockStore_Expecter) SecretCreate(secret interface{}) *MockStore_SecretCreate_Call {
 	return &MockStore_SecretCreate_Call{Call: _e.mock.On("SecretCreate", secret)}
 }
 
 func (_c *MockStore_SecretCreate_Call) Run(run func(secret *model.Secret)) *MockStore_SecretCreate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Secret))
+		var arg0 *model.Secret
+		if args[0] != nil {
+			arg0 = args[0].(*model.Secret)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -4575,14 +5225,20 @@ type MockStore_SecretDelete_Call struct {
 }
 
 // SecretDelete is a helper method to define mock.On call
-//   - secret
+//   - secret *model.Secret
 func (_e *MockStore_Expecter) SecretDelete(secret interface{}) *MockStore_SecretDelete_Call {
 	return &MockStore_SecretDelete_Call{Call: _e.mock.On("SecretDelete", secret)}
 }
 
 func (_c *MockStore_SecretDelete_Call) Run(run func(secret *model.Secret)) *MockStore_SecretDelete_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Secret))
+		var arg0 *model.Secret
+		if args[0] != nil {
+			arg0 = args[0].(*model.Secret)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -4631,15 +5287,26 @@ type MockStore_SecretFind_Call struct {
 }
 
 // SecretFind is a helper method to define mock.On call
-//   - repo
-//   - s
+//   - repo *model.Repo
+//   - s string
 func (_e *MockStore_Expecter) SecretFind(repo interface{}, s interface{}) *MockStore_SecretFind_Call {
 	return &MockStore_SecretFind_Call{Call: _e.mock.On("SecretFind", repo, s)}
 }
 
 func (_c *MockStore_SecretFind_Call) Run(run func(repo *model.Repo, s string)) *MockStore_SecretFind_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Repo), args[1].(string))
+		var arg0 *model.Repo
+		if args[0] != nil {
+			arg0 = args[0].(*model.Repo)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -4688,16 +5355,32 @@ type MockStore_SecretList_Call struct {
 }
 
 // SecretList is a helper method to define mock.On call
-//   - repo
-//   - b
-//   - listOptions
+//   - repo *model.Repo
+//   - b bool
+//   - listOptions *model.ListOptions
 func (_e *MockStore_Expecter) SecretList(repo interface{}, b interface{}, listOptions interface{}) *MockStore_SecretList_Call {
 	return &MockStore_SecretList_Call{Call: _e.mock.On("SecretList", repo, b, listOptions)}
 }
 
 func (_c *MockStore_SecretList_Call) Run(run func(repo *model.Repo, b bool, listOptions *model.ListOptions)) *MockStore_SecretList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Repo), args[1].(bool), args[2].(*model.ListOptions))
+		var arg0 *model.Repo
+		if args[0] != nil {
+			arg0 = args[0].(*model.Repo)
+		}
+		var arg1 bool
+		if args[1] != nil {
+			arg1 = args[1].(bool)
+		}
+		var arg2 *model.ListOptions
+		if args[2] != nil {
+			arg2 = args[2].(*model.ListOptions)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
 	})
 	return _c
 }
@@ -4790,14 +5473,20 @@ type MockStore_SecretUpdate_Call struct {
 }
 
 // SecretUpdate is a helper method to define mock.On call
-//   - secret
+//   - secret *model.Secret
 func (_e *MockStore_Expecter) SecretUpdate(secret interface{}) *MockStore_SecretUpdate_Call {
 	return &MockStore_SecretUpdate_Call{Call: _e.mock.On("SecretUpdate", secret)}
 }
 
 func (_c *MockStore_SecretUpdate_Call) Run(run func(secret *model.Secret)) *MockStore_SecretUpdate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Secret))
+		var arg0 *model.Secret
+		if args[0] != nil {
+			arg0 = args[0].(*model.Secret)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -4835,14 +5524,20 @@ type MockStore_ServerConfigDelete_Call struct {
 }
 
 // ServerConfigDelete is a helper method to define mock.On call
-//   - s
+//   - s string
 func (_e *MockStore_Expecter) ServerConfigDelete(s interface{}) *MockStore_ServerConfigDelete_Call {
 	return &MockStore_ServerConfigDelete_Call{Call: _e.mock.On("ServerConfigDelete", s)}
 }
 
 func (_c *MockStore_ServerConfigDelete_Call) Run(run func(s string)) *MockStore_ServerConfigDelete_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -4889,14 +5584,20 @@ type MockStore_ServerConfigGet_Call struct {
 }
 
 // ServerConfigGet is a helper method to define mock.On call
-//   - s
+//   - s string
 func (_e *MockStore_Expecter) ServerConfigGet(s interface{}) *MockStore_ServerConfigGet_Call {
 	return &MockStore_ServerConfigGet_Call{Call: _e.mock.On("ServerConfigGet", s)}
 }
 
 func (_c *MockStore_ServerConfigGet_Call) Run(run func(s string)) *MockStore_ServerConfigGet_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -4934,15 +5635,26 @@ type MockStore_ServerConfigSet_Call struct {
 }
 
 // ServerConfigSet is a helper method to define mock.On call
-//   - s
-//   - s1
+//   - s string
+//   - s1 string
 func (_e *MockStore_Expecter) ServerConfigSet(s interface{}, s1 interface{}) *MockStore_ServerConfigSet_Call {
 	return &MockStore_ServerConfigSet_Call{Call: _e.mock.On("ServerConfigSet", s, s1)}
 }
 
 func (_c *MockStore_ServerConfigSet_Call) Run(run func(s string, s1 string)) *MockStore_ServerConfigSet_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string), args[1].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -4980,14 +5692,20 @@ type MockStore_SetPipelineLogPurged_Call struct {
 }
 
 // SetPipelineLogPurged is a helper method to define mock.On call
-//   - pipeline
+//   - pipeline *model.Pipeline
 func (_e *MockStore_Expecter) SetPipelineLogPurged(pipeline interface{}) *MockStore_SetPipelineLogPurged_Call {
 	return &MockStore_SetPipelineLogPurged_Call{Call: _e.mock.On("SetPipelineLogPurged", pipeline)}
 }
 
 func (_c *MockStore_SetPipelineLogPurged_Call) Run(run func(pipeline *model.Pipeline)) *MockStore_SetPipelineLogPurged_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Pipeline))
+		var arg0 *model.Pipeline
+		if args[0] != nil {
+			arg0 = args[0].(*model.Pipeline)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -5036,14 +5754,20 @@ type MockStore_StepByUUID_Call struct {
 }
 
 // StepByUUID is a helper method to define mock.On call
-//   - s
+//   - s string
 func (_e *MockStore_Expecter) StepByUUID(s interface{}) *MockStore_StepByUUID_Call {
 	return &MockStore_StepByUUID_Call{Call: _e.mock.On("StepByUUID", s)}
 }
 
 func (_c *MockStore_StepByUUID_Call) Run(run func(s string)) *MockStore_StepByUUID_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -5092,16 +5816,32 @@ type MockStore_StepChild_Call struct {
 }
 
 // StepChild is a helper method to define mock.On call
-//   - pipeline
-//   - n
-//   - s
+//   - pipeline *model.Pipeline
+//   - n int
+//   - s string
 func (_e *MockStore_Expecter) StepChild(pipeline interface{}, n interface{}, s interface{}) *MockStore_StepChild_Call {
 	return &MockStore_StepChild_Call{Call: _e.mock.On("StepChild", pipeline, n, s)}
 }
 
 func (_c *MockStore_StepChild_Call) Run(run func(pipeline *model.Pipeline, n int, s string)) *MockStore_StepChild_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Pipeline), args[1].(int), args[2].(string))
+		var arg0 *model.Pipeline
+		if args[0] != nil {
+			arg0 = args[0].(*model.Pipeline)
+		}
+		var arg1 int
+		if args[1] != nil {
+			arg1 = args[1].(int)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
 	})
 	return _c
 }
@@ -5150,15 +5890,26 @@ type MockStore_StepFind_Call struct {
 }
 
 // StepFind is a helper method to define mock.On call
-//   - pipeline
-//   - n
+//   - pipeline *model.Pipeline
+//   - n int
 func (_e *MockStore_Expecter) StepFind(pipeline interface{}, n interface{}) *MockStore_StepFind_Call {
 	return &MockStore_StepFind_Call{Call: _e.mock.On("StepFind", pipeline, n)}
 }
 
 func (_c *MockStore_StepFind_Call) Run(run func(pipeline *model.Pipeline, n int)) *MockStore_StepFind_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Pipeline), args[1].(int))
+		var arg0 *model.Pipeline
+		if args[0] != nil {
+			arg0 = args[0].(*model.Pipeline)
+		}
+		var arg1 int
+		if args[1] != nil {
+			arg1 = args[1].(int)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -5207,14 +5958,20 @@ type MockStore_StepList_Call struct {
 }
 
 // StepList is a helper method to define mock.On call
-//   - pipeline
+//   - pipeline *model.Pipeline
 func (_e *MockStore_Expecter) StepList(pipeline interface{}) *MockStore_StepList_Call {
 	return &MockStore_StepList_Call{Call: _e.mock.On("StepList", pipeline)}
 }
 
 func (_c *MockStore_StepList_Call) Run(run func(pipeline *model.Pipeline)) *MockStore_StepList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Pipeline))
+		var arg0 *model.Pipeline
+		if args[0] != nil {
+			arg0 = args[0].(*model.Pipeline)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -5263,14 +6020,20 @@ type MockStore_StepListFromWorkflowFind_Call struct {
 }
 
 // StepListFromWorkflowFind is a helper method to define mock.On call
-//   - workflow
+//   - workflow *model.Workflow
 func (_e *MockStore_Expecter) StepListFromWorkflowFind(workflow interface{}) *MockStore_StepListFromWorkflowFind_Call {
 	return &MockStore_StepListFromWorkflowFind_Call{Call: _e.mock.On("StepListFromWorkflowFind", workflow)}
 }
 
 func (_c *MockStore_StepListFromWorkflowFind_Call) Run(run func(workflow *model.Workflow)) *MockStore_StepListFromWorkflowFind_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Workflow))
+		var arg0 *model.Workflow
+		if args[0] != nil {
+			arg0 = args[0].(*model.Workflow)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -5319,14 +6082,20 @@ type MockStore_StepLoad_Call struct {
 }
 
 // StepLoad is a helper method to define mock.On call
-//   - n
+//   - n int64
 func (_e *MockStore_Expecter) StepLoad(n interface{}) *MockStore_StepLoad_Call {
 	return &MockStore_StepLoad_Call{Call: _e.mock.On("StepLoad", n)}
 }
 
 func (_c *MockStore_StepLoad_Call) Run(run func(n int64)) *MockStore_StepLoad_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -5364,14 +6133,20 @@ type MockStore_StepUpdate_Call struct {
 }
 
 // StepUpdate is a helper method to define mock.On call
-//   - step
+//   - step *model.Step
 func (_e *MockStore_Expecter) StepUpdate(step interface{}) *MockStore_StepUpdate_Call {
 	return &MockStore_StepUpdate_Call{Call: _e.mock.On("StepUpdate", step)}
 }
 
 func (_c *MockStore_StepUpdate_Call) Run(run func(step *model.Step)) *MockStore_StepUpdate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Step))
+		var arg0 *model.Step
+		if args[0] != nil {
+			arg0 = args[0].(*model.Step)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -5409,14 +6184,20 @@ type MockStore_TaskDelete_Call struct {
 }
 
 // TaskDelete is a helper method to define mock.On call
-//   - s
+//   - s string
 func (_e *MockStore_Expecter) TaskDelete(s interface{}) *MockStore_TaskDelete_Call {
 	return &MockStore_TaskDelete_Call{Call: _e.mock.On("TaskDelete", s)}
 }
 
 func (_c *MockStore_TaskDelete_Call) Run(run func(s string)) *MockStore_TaskDelete_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -5454,14 +6235,20 @@ type MockStore_TaskInsert_Call struct {
 }
 
 // TaskInsert is a helper method to define mock.On call
-//   - task
+//   - task *model.Task
 func (_e *MockStore_Expecter) TaskInsert(task interface{}) *MockStore_TaskInsert_Call {
 	return &MockStore_TaskInsert_Call{Call: _e.mock.On("TaskInsert", task)}
 }
 
 func (_c *MockStore_TaskInsert_Call) Run(run func(task *model.Task)) *MockStore_TaskInsert_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Task))
+		var arg0 *model.Task
+		if args[0] != nil {
+			arg0 = args[0].(*model.Task)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -5554,14 +6341,20 @@ type MockStore_UpdatePipeline_Call struct {
 }
 
 // UpdatePipeline is a helper method to define mock.On call
-//   - pipeline
+//   - pipeline *model.Pipeline
 func (_e *MockStore_Expecter) UpdatePipeline(pipeline interface{}) *MockStore_UpdatePipeline_Call {
 	return &MockStore_UpdatePipeline_Call{Call: _e.mock.On("UpdatePipeline", pipeline)}
 }
 
 func (_c *MockStore_UpdatePipeline_Call) Run(run func(pipeline *model.Pipeline)) *MockStore_UpdatePipeline_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Pipeline))
+		var arg0 *model.Pipeline
+		if args[0] != nil {
+			arg0 = args[0].(*model.Pipeline)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -5599,14 +6392,20 @@ type MockStore_UpdateRepo_Call struct {
 }
 
 // UpdateRepo is a helper method to define mock.On call
-//   - repo
+//   - repo *model.Repo
 func (_e *MockStore_Expecter) UpdateRepo(repo interface{}) *MockStore_UpdateRepo_Call {
 	return &MockStore_UpdateRepo_Call{Call: _e.mock.On("UpdateRepo", repo)}
 }
 
 func (_c *MockStore_UpdateRepo_Call) Run(run func(repo *model.Repo)) *MockStore_UpdateRepo_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Repo))
+		var arg0 *model.Repo
+		if args[0] != nil {
+			arg0 = args[0].(*model.Repo)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -5644,14 +6443,20 @@ type MockStore_UpdateUser_Call struct {
 }
 
 // UpdateUser is a helper method to define mock.On call
-//   - user
+//   - user *model.User
 func (_e *MockStore_Expecter) UpdateUser(user interface{}) *MockStore_UpdateUser_Call {
 	return &MockStore_UpdateUser_Call{Call: _e.mock.On("UpdateUser", user)}
 }
 
 func (_c *MockStore_UpdateUser_Call) Run(run func(user *model.User)) *MockStore_UpdateUser_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.User))
+		var arg0 *model.User
+		if args[0] != nil {
+			arg0 = args[0].(*model.User)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -5700,14 +6505,20 @@ type MockStore_UserFeed_Call struct {
 }
 
 // UserFeed is a helper method to define mock.On call
-//   - user
+//   - user *model.User
 func (_e *MockStore_Expecter) UserFeed(user interface{}) *MockStore_UserFeed_Call {
 	return &MockStore_UserFeed_Call{Call: _e.mock.On("UserFeed", user)}
 }
 
 func (_c *MockStore_UserFeed_Call) Run(run func(user *model.User)) *MockStore_UserFeed_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.User))
+		var arg0 *model.User
+		if args[0] != nil {
+			arg0 = args[0].(*model.User)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -5756,14 +6567,20 @@ type MockStore_WorkflowGetTree_Call struct {
 }
 
 // WorkflowGetTree is a helper method to define mock.On call
-//   - pipeline
+//   - pipeline *model.Pipeline
 func (_e *MockStore_Expecter) WorkflowGetTree(pipeline interface{}) *MockStore_WorkflowGetTree_Call {
 	return &MockStore_WorkflowGetTree_Call{Call: _e.mock.On("WorkflowGetTree", pipeline)}
 }
 
 func (_c *MockStore_WorkflowGetTree_Call) Run(run func(pipeline *model.Pipeline)) *MockStore_WorkflowGetTree_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Pipeline))
+		var arg0 *model.Pipeline
+		if args[0] != nil {
+			arg0 = args[0].(*model.Pipeline)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -5812,14 +6629,20 @@ type MockStore_WorkflowLoad_Call struct {
 }
 
 // WorkflowLoad is a helper method to define mock.On call
-//   - n
+//   - n int64
 func (_e *MockStore_Expecter) WorkflowLoad(n interface{}) *MockStore_WorkflowLoad_Call {
 	return &MockStore_WorkflowLoad_Call{Call: _e.mock.On("WorkflowLoad", n)}
 }
 
 func (_c *MockStore_WorkflowLoad_Call) Run(run func(n int64)) *MockStore_WorkflowLoad_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -5857,14 +6680,20 @@ type MockStore_WorkflowUpdate_Call struct {
 }
 
 // WorkflowUpdate is a helper method to define mock.On call
-//   - workflow
+//   - workflow *model.Workflow
 func (_e *MockStore_Expecter) WorkflowUpdate(workflow interface{}) *MockStore_WorkflowUpdate_Call {
 	return &MockStore_WorkflowUpdate_Call{Call: _e.mock.On("WorkflowUpdate", workflow)}
 }
 
 func (_c *MockStore_WorkflowUpdate_Call) Run(run func(workflow *model.Workflow)) *MockStore_WorkflowUpdate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Workflow))
+		var arg0 *model.Workflow
+		if args[0] != nil {
+			arg0 = args[0].(*model.Workflow)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -5902,14 +6731,20 @@ type MockStore_WorkflowsCreate_Call struct {
 }
 
 // WorkflowsCreate is a helper method to define mock.On call
-//   - workflows
+//   - workflows []*model.Workflow
 func (_e *MockStore_Expecter) WorkflowsCreate(workflows interface{}) *MockStore_WorkflowsCreate_Call {
 	return &MockStore_WorkflowsCreate_Call{Call: _e.mock.On("WorkflowsCreate", workflows)}
 }
 
 func (_c *MockStore_WorkflowsCreate_Call) Run(run func(workflows []*model.Workflow)) *MockStore_WorkflowsCreate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].([]*model.Workflow))
+		var arg0 []*model.Workflow
+		if args[0] != nil {
+			arg0 = args[0].([]*model.Workflow)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -5947,15 +6782,26 @@ type MockStore_WorkflowsReplace_Call struct {
 }
 
 // WorkflowsReplace is a helper method to define mock.On call
-//   - pipeline
-//   - workflows
+//   - pipeline *model.Pipeline
+//   - workflows []*model.Workflow
 func (_e *MockStore_Expecter) WorkflowsReplace(pipeline interface{}, workflows interface{}) *MockStore_WorkflowsReplace_Call {
 	return &MockStore_WorkflowsReplace_Call{Call: _e.mock.On("WorkflowsReplace", pipeline, workflows)}
 }
 
 func (_c *MockStore_WorkflowsReplace_Call) Run(run func(pipeline *model.Pipeline, workflows []*model.Workflow)) *MockStore_WorkflowsReplace_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Pipeline), args[1].([]*model.Workflow))
+		var arg0 *model.Pipeline
+		if args[0] != nil {
+			arg0 = args[0].(*model.Pipeline)
+		}
+		var arg1 []*model.Workflow
+		if args[1] != nil {
+			arg1 = args[1].([]*model.Workflow)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }

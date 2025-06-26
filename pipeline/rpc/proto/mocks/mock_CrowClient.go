@@ -79,9 +79,9 @@ type MockCrowClient_Done_Call struct {
 }
 
 // Done is a helper method to define mock.On call
-//   - ctx
-//   - in
-//   - opts
+//   - ctx context.Context
+//   - in *proto.DoneRequest
+//   - opts ...grpc.CallOption
 func (_e *MockCrowClient_Expecter) Done(ctx interface{}, in interface{}, opts ...interface{}) *MockCrowClient_Done_Call {
 	return &MockCrowClient_Done_Call{Call: _e.mock.On("Done",
 		append([]interface{}{ctx, in}, opts...)...)}
@@ -89,13 +89,25 @@ func (_e *MockCrowClient_Expecter) Done(ctx interface{}, in interface{}, opts ..
 
 func (_c *MockCrowClient_Done_Call) Run(run func(ctx context.Context, in *proto.DoneRequest, opts ...grpc.CallOption)) *MockCrowClient_Done_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		variadicArgs := make([]grpc.CallOption, len(args)-2)
-		for i, a := range args[2:] {
-			if a != nil {
-				variadicArgs[i] = a.(grpc.CallOption)
-			}
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
 		}
-		run(args[0].(context.Context), args[1].(*proto.DoneRequest), variadicArgs...)
+		var arg1 *proto.DoneRequest
+		if args[1] != nil {
+			arg1 = args[1].(*proto.DoneRequest)
+		}
+		var arg2 []grpc.CallOption
+		var variadicArgs []grpc.CallOption
+		if len(args) > 2 {
+			variadicArgs = args[2].([]grpc.CallOption)
+		}
+		arg2 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2...,
+		)
 	})
 	return _c
 }
@@ -150,9 +162,9 @@ type MockCrowClient_Extend_Call struct {
 }
 
 // Extend is a helper method to define mock.On call
-//   - ctx
-//   - in
-//   - opts
+//   - ctx context.Context
+//   - in *proto.ExtendRequest
+//   - opts ...grpc.CallOption
 func (_e *MockCrowClient_Expecter) Extend(ctx interface{}, in interface{}, opts ...interface{}) *MockCrowClient_Extend_Call {
 	return &MockCrowClient_Extend_Call{Call: _e.mock.On("Extend",
 		append([]interface{}{ctx, in}, opts...)...)}
@@ -160,13 +172,25 @@ func (_e *MockCrowClient_Expecter) Extend(ctx interface{}, in interface{}, opts 
 
 func (_c *MockCrowClient_Extend_Call) Run(run func(ctx context.Context, in *proto.ExtendRequest, opts ...grpc.CallOption)) *MockCrowClient_Extend_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		variadicArgs := make([]grpc.CallOption, len(args)-2)
-		for i, a := range args[2:] {
-			if a != nil {
-				variadicArgs[i] = a.(grpc.CallOption)
-			}
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
 		}
-		run(args[0].(context.Context), args[1].(*proto.ExtendRequest), variadicArgs...)
+		var arg1 *proto.ExtendRequest
+		if args[1] != nil {
+			arg1 = args[1].(*proto.ExtendRequest)
+		}
+		var arg2 []grpc.CallOption
+		var variadicArgs []grpc.CallOption
+		if len(args) > 2 {
+			variadicArgs = args[2].([]grpc.CallOption)
+		}
+		arg2 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2...,
+		)
 	})
 	return _c
 }
@@ -221,9 +245,9 @@ type MockCrowClient_Init_Call struct {
 }
 
 // Init is a helper method to define mock.On call
-//   - ctx
-//   - in
-//   - opts
+//   - ctx context.Context
+//   - in *proto.InitRequest
+//   - opts ...grpc.CallOption
 func (_e *MockCrowClient_Expecter) Init(ctx interface{}, in interface{}, opts ...interface{}) *MockCrowClient_Init_Call {
 	return &MockCrowClient_Init_Call{Call: _e.mock.On("Init",
 		append([]interface{}{ctx, in}, opts...)...)}
@@ -231,13 +255,25 @@ func (_e *MockCrowClient_Expecter) Init(ctx interface{}, in interface{}, opts ..
 
 func (_c *MockCrowClient_Init_Call) Run(run func(ctx context.Context, in *proto.InitRequest, opts ...grpc.CallOption)) *MockCrowClient_Init_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		variadicArgs := make([]grpc.CallOption, len(args)-2)
-		for i, a := range args[2:] {
-			if a != nil {
-				variadicArgs[i] = a.(grpc.CallOption)
-			}
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
 		}
-		run(args[0].(context.Context), args[1].(*proto.InitRequest), variadicArgs...)
+		var arg1 *proto.InitRequest
+		if args[1] != nil {
+			arg1 = args[1].(*proto.InitRequest)
+		}
+		var arg2 []grpc.CallOption
+		var variadicArgs []grpc.CallOption
+		if len(args) > 2 {
+			variadicArgs = args[2].([]grpc.CallOption)
+		}
+		arg2 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2...,
+		)
 	})
 	return _c
 }
@@ -292,9 +328,9 @@ type MockCrowClient_Log_Call struct {
 }
 
 // Log is a helper method to define mock.On call
-//   - ctx
-//   - in
-//   - opts
+//   - ctx context.Context
+//   - in *proto.LogRequest
+//   - opts ...grpc.CallOption
 func (_e *MockCrowClient_Expecter) Log(ctx interface{}, in interface{}, opts ...interface{}) *MockCrowClient_Log_Call {
 	return &MockCrowClient_Log_Call{Call: _e.mock.On("Log",
 		append([]interface{}{ctx, in}, opts...)...)}
@@ -302,13 +338,25 @@ func (_e *MockCrowClient_Expecter) Log(ctx interface{}, in interface{}, opts ...
 
 func (_c *MockCrowClient_Log_Call) Run(run func(ctx context.Context, in *proto.LogRequest, opts ...grpc.CallOption)) *MockCrowClient_Log_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		variadicArgs := make([]grpc.CallOption, len(args)-2)
-		for i, a := range args[2:] {
-			if a != nil {
-				variadicArgs[i] = a.(grpc.CallOption)
-			}
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
 		}
-		run(args[0].(context.Context), args[1].(*proto.LogRequest), variadicArgs...)
+		var arg1 *proto.LogRequest
+		if args[1] != nil {
+			arg1 = args[1].(*proto.LogRequest)
+		}
+		var arg2 []grpc.CallOption
+		var variadicArgs []grpc.CallOption
+		if len(args) > 2 {
+			variadicArgs = args[2].([]grpc.CallOption)
+		}
+		arg2 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2...,
+		)
 	})
 	return _c
 }
@@ -363,9 +411,9 @@ type MockCrowClient_Next_Call struct {
 }
 
 // Next is a helper method to define mock.On call
-//   - ctx
-//   - in
-//   - opts
+//   - ctx context.Context
+//   - in *proto.NextRequest
+//   - opts ...grpc.CallOption
 func (_e *MockCrowClient_Expecter) Next(ctx interface{}, in interface{}, opts ...interface{}) *MockCrowClient_Next_Call {
 	return &MockCrowClient_Next_Call{Call: _e.mock.On("Next",
 		append([]interface{}{ctx, in}, opts...)...)}
@@ -373,13 +421,25 @@ func (_e *MockCrowClient_Expecter) Next(ctx interface{}, in interface{}, opts ..
 
 func (_c *MockCrowClient_Next_Call) Run(run func(ctx context.Context, in *proto.NextRequest, opts ...grpc.CallOption)) *MockCrowClient_Next_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		variadicArgs := make([]grpc.CallOption, len(args)-2)
-		for i, a := range args[2:] {
-			if a != nil {
-				variadicArgs[i] = a.(grpc.CallOption)
-			}
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
 		}
-		run(args[0].(context.Context), args[1].(*proto.NextRequest), variadicArgs...)
+		var arg1 *proto.NextRequest
+		if args[1] != nil {
+			arg1 = args[1].(*proto.NextRequest)
+		}
+		var arg2 []grpc.CallOption
+		var variadicArgs []grpc.CallOption
+		if len(args) > 2 {
+			variadicArgs = args[2].([]grpc.CallOption)
+		}
+		arg2 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2...,
+		)
 	})
 	return _c
 }
@@ -434,9 +494,9 @@ type MockCrowClient_RegisterAgent_Call struct {
 }
 
 // RegisterAgent is a helper method to define mock.On call
-//   - ctx
-//   - in
-//   - opts
+//   - ctx context.Context
+//   - in *proto.RegisterAgentRequest
+//   - opts ...grpc.CallOption
 func (_e *MockCrowClient_Expecter) RegisterAgent(ctx interface{}, in interface{}, opts ...interface{}) *MockCrowClient_RegisterAgent_Call {
 	return &MockCrowClient_RegisterAgent_Call{Call: _e.mock.On("RegisterAgent",
 		append([]interface{}{ctx, in}, opts...)...)}
@@ -444,13 +504,25 @@ func (_e *MockCrowClient_Expecter) RegisterAgent(ctx interface{}, in interface{}
 
 func (_c *MockCrowClient_RegisterAgent_Call) Run(run func(ctx context.Context, in *proto.RegisterAgentRequest, opts ...grpc.CallOption)) *MockCrowClient_RegisterAgent_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		variadicArgs := make([]grpc.CallOption, len(args)-2)
-		for i, a := range args[2:] {
-			if a != nil {
-				variadicArgs[i] = a.(grpc.CallOption)
-			}
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
 		}
-		run(args[0].(context.Context), args[1].(*proto.RegisterAgentRequest), variadicArgs...)
+		var arg1 *proto.RegisterAgentRequest
+		if args[1] != nil {
+			arg1 = args[1].(*proto.RegisterAgentRequest)
+		}
+		var arg2 []grpc.CallOption
+		var variadicArgs []grpc.CallOption
+		if len(args) > 2 {
+			variadicArgs = args[2].([]grpc.CallOption)
+		}
+		arg2 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2...,
+		)
 	})
 	return _c
 }
@@ -505,9 +577,9 @@ type MockCrowClient_ReportHealth_Call struct {
 }
 
 // ReportHealth is a helper method to define mock.On call
-//   - ctx
-//   - in
-//   - opts
+//   - ctx context.Context
+//   - in *proto.ReportHealthRequest
+//   - opts ...grpc.CallOption
 func (_e *MockCrowClient_Expecter) ReportHealth(ctx interface{}, in interface{}, opts ...interface{}) *MockCrowClient_ReportHealth_Call {
 	return &MockCrowClient_ReportHealth_Call{Call: _e.mock.On("ReportHealth",
 		append([]interface{}{ctx, in}, opts...)...)}
@@ -515,13 +587,25 @@ func (_e *MockCrowClient_Expecter) ReportHealth(ctx interface{}, in interface{},
 
 func (_c *MockCrowClient_ReportHealth_Call) Run(run func(ctx context.Context, in *proto.ReportHealthRequest, opts ...grpc.CallOption)) *MockCrowClient_ReportHealth_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		variadicArgs := make([]grpc.CallOption, len(args)-2)
-		for i, a := range args[2:] {
-			if a != nil {
-				variadicArgs[i] = a.(grpc.CallOption)
-			}
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
 		}
-		run(args[0].(context.Context), args[1].(*proto.ReportHealthRequest), variadicArgs...)
+		var arg1 *proto.ReportHealthRequest
+		if args[1] != nil {
+			arg1 = args[1].(*proto.ReportHealthRequest)
+		}
+		var arg2 []grpc.CallOption
+		var variadicArgs []grpc.CallOption
+		if len(args) > 2 {
+			variadicArgs = args[2].([]grpc.CallOption)
+		}
+		arg2 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2...,
+		)
 	})
 	return _c
 }
@@ -576,9 +660,9 @@ type MockCrowClient_UnregisterAgent_Call struct {
 }
 
 // UnregisterAgent is a helper method to define mock.On call
-//   - ctx
-//   - in
-//   - opts
+//   - ctx context.Context
+//   - in *proto.Empty
+//   - opts ...grpc.CallOption
 func (_e *MockCrowClient_Expecter) UnregisterAgent(ctx interface{}, in interface{}, opts ...interface{}) *MockCrowClient_UnregisterAgent_Call {
 	return &MockCrowClient_UnregisterAgent_Call{Call: _e.mock.On("UnregisterAgent",
 		append([]interface{}{ctx, in}, opts...)...)}
@@ -586,13 +670,25 @@ func (_e *MockCrowClient_Expecter) UnregisterAgent(ctx interface{}, in interface
 
 func (_c *MockCrowClient_UnregisterAgent_Call) Run(run func(ctx context.Context, in *proto.Empty, opts ...grpc.CallOption)) *MockCrowClient_UnregisterAgent_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		variadicArgs := make([]grpc.CallOption, len(args)-2)
-		for i, a := range args[2:] {
-			if a != nil {
-				variadicArgs[i] = a.(grpc.CallOption)
-			}
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
 		}
-		run(args[0].(context.Context), args[1].(*proto.Empty), variadicArgs...)
+		var arg1 *proto.Empty
+		if args[1] != nil {
+			arg1 = args[1].(*proto.Empty)
+		}
+		var arg2 []grpc.CallOption
+		var variadicArgs []grpc.CallOption
+		if len(args) > 2 {
+			variadicArgs = args[2].([]grpc.CallOption)
+		}
+		arg2 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2...,
+		)
 	})
 	return _c
 }
@@ -647,9 +743,9 @@ type MockCrowClient_Update_Call struct {
 }
 
 // Update is a helper method to define mock.On call
-//   - ctx
-//   - in
-//   - opts
+//   - ctx context.Context
+//   - in *proto.UpdateRequest
+//   - opts ...grpc.CallOption
 func (_e *MockCrowClient_Expecter) Update(ctx interface{}, in interface{}, opts ...interface{}) *MockCrowClient_Update_Call {
 	return &MockCrowClient_Update_Call{Call: _e.mock.On("Update",
 		append([]interface{}{ctx, in}, opts...)...)}
@@ -657,13 +753,25 @@ func (_e *MockCrowClient_Expecter) Update(ctx interface{}, in interface{}, opts 
 
 func (_c *MockCrowClient_Update_Call) Run(run func(ctx context.Context, in *proto.UpdateRequest, opts ...grpc.CallOption)) *MockCrowClient_Update_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		variadicArgs := make([]grpc.CallOption, len(args)-2)
-		for i, a := range args[2:] {
-			if a != nil {
-				variadicArgs[i] = a.(grpc.CallOption)
-			}
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
 		}
-		run(args[0].(context.Context), args[1].(*proto.UpdateRequest), variadicArgs...)
+		var arg1 *proto.UpdateRequest
+		if args[1] != nil {
+			arg1 = args[1].(*proto.UpdateRequest)
+		}
+		var arg2 []grpc.CallOption
+		var variadicArgs []grpc.CallOption
+		if len(args) > 2 {
+			variadicArgs = args[2].([]grpc.CallOption)
+		}
+		arg2 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2...,
+		)
 	})
 	return _c
 }
@@ -718,9 +826,9 @@ type MockCrowClient_Version_Call struct {
 }
 
 // Version is a helper method to define mock.On call
-//   - ctx
-//   - in
-//   - opts
+//   - ctx context.Context
+//   - in *proto.Empty
+//   - opts ...grpc.CallOption
 func (_e *MockCrowClient_Expecter) Version(ctx interface{}, in interface{}, opts ...interface{}) *MockCrowClient_Version_Call {
 	return &MockCrowClient_Version_Call{Call: _e.mock.On("Version",
 		append([]interface{}{ctx, in}, opts...)...)}
@@ -728,13 +836,25 @@ func (_e *MockCrowClient_Expecter) Version(ctx interface{}, in interface{}, opts
 
 func (_c *MockCrowClient_Version_Call) Run(run func(ctx context.Context, in *proto.Empty, opts ...grpc.CallOption)) *MockCrowClient_Version_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		variadicArgs := make([]grpc.CallOption, len(args)-2)
-		for i, a := range args[2:] {
-			if a != nil {
-				variadicArgs[i] = a.(grpc.CallOption)
-			}
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
 		}
-		run(args[0].(context.Context), args[1].(*proto.Empty), variadicArgs...)
+		var arg1 *proto.Empty
+		if args[1] != nil {
+			arg1 = args[1].(*proto.Empty)
+		}
+		var arg2 []grpc.CallOption
+		var variadicArgs []grpc.CallOption
+		if len(args) > 2 {
+			variadicArgs = args[2].([]grpc.CallOption)
+		}
+		arg2 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2...,
+		)
 	})
 	return _c
 }
@@ -789,9 +909,9 @@ type MockCrowClient_Wait_Call struct {
 }
 
 // Wait is a helper method to define mock.On call
-//   - ctx
-//   - in
-//   - opts
+//   - ctx context.Context
+//   - in *proto.WaitRequest
+//   - opts ...grpc.CallOption
 func (_e *MockCrowClient_Expecter) Wait(ctx interface{}, in interface{}, opts ...interface{}) *MockCrowClient_Wait_Call {
 	return &MockCrowClient_Wait_Call{Call: _e.mock.On("Wait",
 		append([]interface{}{ctx, in}, opts...)...)}
@@ -799,13 +919,25 @@ func (_e *MockCrowClient_Expecter) Wait(ctx interface{}, in interface{}, opts ..
 
 func (_c *MockCrowClient_Wait_Call) Run(run func(ctx context.Context, in *proto.WaitRequest, opts ...grpc.CallOption)) *MockCrowClient_Wait_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		variadicArgs := make([]grpc.CallOption, len(args)-2)
-		for i, a := range args[2:] {
-			if a != nil {
-				variadicArgs[i] = a.(grpc.CallOption)
-			}
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
 		}
-		run(args[0].(context.Context), args[1].(*proto.WaitRequest), variadicArgs...)
+		var arg1 *proto.WaitRequest
+		if args[1] != nil {
+			arg1 = args[1].(*proto.WaitRequest)
+		}
+		var arg2 []grpc.CallOption
+		var variadicArgs []grpc.CallOption
+		if len(args) > 2 {
+			variadicArgs = args[2].([]grpc.CallOption)
+		}
+		arg2 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2...,
+		)
 	})
 	return _c
 }

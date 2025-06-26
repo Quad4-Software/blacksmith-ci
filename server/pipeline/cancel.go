@@ -163,3 +163,99 @@ func cancelPreviousPipelines(
 
 	return nil
 }
+
+// CancelWorkflow cancels a specific workflow and returns the status.
+func CancelWorkflow(ctx context.Context, _forge forge.Forge, store store.Store, repo *model.Repo, user *model.User, pipeline *model.Pipeline, workflowID int64) error {
+	if pipeline.Status != model.StatusRunning && pipeline.Status != model.StatusPending && pipeline.Status != model.StatusBlocked {
+		return &ErrBadRequest{Msg: "Cannot cancel a workflow in a non-running or non-pending or non-blocked pipeline"}
+	}
+
+	workflows, err := store.WorkflowGetTree(pipeline)
+	if err != nil {
+		return &ErrNotFound{Msg: err.Error()}
+	}
+
+	// Find the specific workflow to cancel
+	var targetWorkflow *model.Workflow
+	for _, workflow := range workflows {
+		if workflow.ID == workflowID {
+			targetWorkflow = workflow
+			break
+		}
+	}
+
+	if targetWorkflow == nil {
+		return &ErrNotFound{Msg: fmt.Sprintf("Workflow with ID %d not found in pipeline", workflowID)}
+	}
+
+	if targetWorkflow.State != model.StatusRunning && targetWorkflow.State != model.StatusPending {
+		return &ErrBadRequest{Msg: fmt.Sprintf("Cannot cancel a workflow with status %s", targetWorkflow.State)}
+	}
+
+	// Cancel/evict the specific workflow
+	switch targetWorkflow.State {
+	case model.StatusRunning:
+		if err := server.Config.Services.Queue.Error(ctx, fmt.Sprint(targetWorkflow.ID), queue.ErrCancel); err != nil {
+			log.Error().Err(err).Msgf("queue: error: %v", targetWorkflow.ID)
+		}
+	case model.StatusPending:
+		if err := server.Config.Services.Queue.Evict(ctx, fmt.Sprint(targetWorkflow.ID)); err != nil {
+			log.Error().Err(err).Msgf("queue: evict: %v", targetWorkflow.ID)
+		}
+		if err := server.Config.Services.Queue.Error(ctx, fmt.Sprint(targetWorkflow.ID), queue.ErrCancel); err != nil {
+			log.Error().Err(err).Msgf("queue: evict: %v", targetWorkflow.ID)
+		}
+	}
+
+	// Update the DB status for the specific workflow
+	switch targetWorkflow.State {
+	case model.StatusPending:
+		if _, err = UpdateWorkflowToStatusSkipped(store, *targetWorkflow); err != nil {
+			log.Error().Err(err).Msgf("cannot update workflow with id %d state", targetWorkflow.ID)
+		}
+	case model.StatusRunning:
+		if _, err = UpdateWorkflowToStatusKilled(store, *targetWorkflow); err != nil {
+			log.Error().Err(err).Msgf("cannot update workflow with id %d state to killed", targetWorkflow.ID)
+		}
+	}
+	for _, step := range targetWorkflow.Children {
+		switch step.State {
+		case model.StatusPending:
+			if _, err = UpdateStepToStatusSkipped(store, *step, 0); err != nil {
+				log.Error().Err(err).Msgf("cannot update step with id %d state", step.ID)
+			}
+		case model.StatusRunning:
+			if _, err = UpdateStepToStatusKilled(store, *step); err != nil {
+				log.Error().Err(err).Msgf("cannot update step with id %d state to killed", step.ID)
+			}
+		}
+	}
+
+	// Update pipeline status if needed
+	if pipeline.Workflows, err = store.WorkflowGetTree(pipeline); err != nil {
+		return err
+	}
+
+	// Check if all workflows are now completed/failed
+	allCompleted := true
+	for _, workflow := range pipeline.Workflows {
+		if workflow.Running() {
+			allCompleted = false
+			break
+		}
+	}
+
+	// If all workflows are completed, update pipeline status
+	if allCompleted {
+		pipeline.Status = model.PipelineStatus(pipeline.Workflows)
+		if err := store.UpdatePipeline(pipeline); err != nil {
+			log.Error().Err(err).Msgf("UpdatePipeline: %v", pipeline)
+			return err
+		}
+		updatePipelineStatus(ctx, _forge, pipeline, repo, user)
+	}
+
+	publishToTopic(pipeline, repo)
+
+	return nil
+}

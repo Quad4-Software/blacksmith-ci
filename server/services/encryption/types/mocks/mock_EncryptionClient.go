@@ -103,14 +103,20 @@ type MockEncryptionClient_MigrateEncryption_Call struct {
 }
 
 // MigrateEncryption is a helper method to define mock.On call
-//   - newEncryption
+//   - newEncryption types.EncryptionService
 func (_e *MockEncryptionClient_Expecter) MigrateEncryption(newEncryption interface{}) *MockEncryptionClient_MigrateEncryption_Call {
 	return &MockEncryptionClient_MigrateEncryption_Call{Call: _e.mock.On("MigrateEncryption", newEncryption)}
 }
 
 func (_c *MockEncryptionClient_MigrateEncryption_Call) Run(run func(newEncryption types.EncryptionService)) *MockEncryptionClient_MigrateEncryption_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(types.EncryptionService))
+		var arg0 types.EncryptionService
+		if args[0] != nil {
+			arg0 = args[0].(types.EncryptionService)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -148,14 +154,20 @@ type MockEncryptionClient_SetEncryptionService_Call struct {
 }
 
 // SetEncryptionService is a helper method to define mock.On call
-//   - encryption
+//   - encryption types.EncryptionService
 func (_e *MockEncryptionClient_Expecter) SetEncryptionService(encryption interface{}) *MockEncryptionClient_SetEncryptionService_Call {
 	return &MockEncryptionClient_SetEncryptionService_Call{Call: _e.mock.On("SetEncryptionService", encryption)}
 }
 
 func (_c *MockEncryptionClient_SetEncryptionService_Call) Run(run func(encryption types.EncryptionService)) *MockEncryptionClient_SetEncryptionService_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(types.EncryptionService))
+		var arg0 types.EncryptionService
+		if args[0] != nil {
+			arg0 = args[0].(types.EncryptionService)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }

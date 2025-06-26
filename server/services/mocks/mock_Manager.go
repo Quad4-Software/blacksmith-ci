@@ -68,14 +68,20 @@ type MockManager_ConfigServiceFromRepo_Call struct {
 }
 
 // ConfigServiceFromRepo is a helper method to define mock.On call
-//   - repo
+//   - repo *model.Repo
 func (_e *MockManager_Expecter) ConfigServiceFromRepo(repo interface{}) *MockManager_ConfigServiceFromRepo_Call {
 	return &MockManager_ConfigServiceFromRepo_Call{Call: _e.mock.On("ConfigServiceFromRepo", repo)}
 }
 
 func (_c *MockManager_ConfigServiceFromRepo_Call) Run(run func(repo *model.Repo)) *MockManager_ConfigServiceFromRepo_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Repo))
+		var arg0 *model.Repo
+		if args[0] != nil {
+			arg0 = args[0].(*model.Repo)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -170,14 +176,20 @@ type MockManager_ForgeByID_Call struct {
 }
 
 // ForgeByID is a helper method to define mock.On call
-//   - forgeID
+//   - forgeID int64
 func (_e *MockManager_Expecter) ForgeByID(forgeID interface{}) *MockManager_ForgeByID_Call {
 	return &MockManager_ForgeByID_Call{Call: _e.mock.On("ForgeByID", forgeID)}
 }
 
 func (_c *MockManager_ForgeByID_Call) Run(run func(forgeID int64)) *MockManager_ForgeByID_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -226,14 +238,20 @@ type MockManager_ForgeFromRepo_Call struct {
 }
 
 // ForgeFromRepo is a helper method to define mock.On call
-//   - repo
+//   - repo *model.Repo
 func (_e *MockManager_Expecter) ForgeFromRepo(repo interface{}) *MockManager_ForgeFromRepo_Call {
 	return &MockManager_ForgeFromRepo_Call{Call: _e.mock.On("ForgeFromRepo", repo)}
 }
 
 func (_c *MockManager_ForgeFromRepo_Call) Run(run func(repo *model.Repo)) *MockManager_ForgeFromRepo_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Repo))
+		var arg0 *model.Repo
+		if args[0] != nil {
+			arg0 = args[0].(*model.Repo)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -282,14 +300,20 @@ type MockManager_ForgeFromUser_Call struct {
 }
 
 // ForgeFromUser is a helper method to define mock.On call
-//   - user
+//   - user *model.User
 func (_e *MockManager_Expecter) ForgeFromUser(user interface{}) *MockManager_ForgeFromUser_Call {
 	return &MockManager_ForgeFromUser_Call{Call: _e.mock.On("ForgeFromUser", user)}
 }
 
 func (_c *MockManager_ForgeFromUser_Call) Run(run func(user *model.User)) *MockManager_ForgeFromUser_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.User))
+		var arg0 *model.User
+		if args[0] != nil {
+			arg0 = args[0].(*model.User)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -375,14 +399,20 @@ type MockManager_RegistryServiceFromRepo_Call struct {
 }
 
 // RegistryServiceFromRepo is a helper method to define mock.On call
-//   - repo
+//   - repo *model.Repo
 func (_e *MockManager_Expecter) RegistryServiceFromRepo(repo interface{}) *MockManager_RegistryServiceFromRepo_Call {
 	return &MockManager_RegistryServiceFromRepo_Call{Call: _e.mock.On("RegistryServiceFromRepo", repo)}
 }
 
 func (_c *MockManager_RegistryServiceFromRepo_Call) Run(run func(repo *model.Repo)) *MockManager_RegistryServiceFromRepo_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Repo))
+		var arg0 *model.Repo
+		if args[0] != nil {
+			arg0 = args[0].(*model.Repo)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -468,14 +498,20 @@ type MockManager_SecretServiceFromRepo_Call struct {
 }
 
 // SecretServiceFromRepo is a helper method to define mock.On call
-//   - repo
+//   - repo *model.Repo
 func (_e *MockManager_Expecter) SecretServiceFromRepo(repo interface{}) *MockManager_SecretServiceFromRepo_Call {
 	return &MockManager_SecretServiceFromRepo_Call{Call: _e.mock.On("SecretServiceFromRepo", repo)}
 }
 
 func (_c *MockManager_SecretServiceFromRepo_Call) Run(run func(repo *model.Repo)) *MockManager_SecretServiceFromRepo_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Repo))
+		var arg0 *model.Repo
+		if args[0] != nil {
+			arg0 = args[0].(*model.Repo)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }

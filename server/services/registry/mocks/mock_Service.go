@@ -59,14 +59,20 @@ type MockService_GlobalRegistryCreate_Call struct {
 }
 
 // GlobalRegistryCreate is a helper method to define mock.On call
-//   - registry
+//   - registry *model.Registry
 func (_e *MockService_Expecter) GlobalRegistryCreate(registry interface{}) *MockService_GlobalRegistryCreate_Call {
 	return &MockService_GlobalRegistryCreate_Call{Call: _e.mock.On("GlobalRegistryCreate", registry)}
 }
 
 func (_c *MockService_GlobalRegistryCreate_Call) Run(run func(registry *model.Registry)) *MockService_GlobalRegistryCreate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Registry))
+		var arg0 *model.Registry
+		if args[0] != nil {
+			arg0 = args[0].(*model.Registry)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -104,14 +110,20 @@ type MockService_GlobalRegistryDelete_Call struct {
 }
 
 // GlobalRegistryDelete is a helper method to define mock.On call
-//   - s
+//   - s string
 func (_e *MockService_Expecter) GlobalRegistryDelete(s interface{}) *MockService_GlobalRegistryDelete_Call {
 	return &MockService_GlobalRegistryDelete_Call{Call: _e.mock.On("GlobalRegistryDelete", s)}
 }
 
 func (_c *MockService_GlobalRegistryDelete_Call) Run(run func(s string)) *MockService_GlobalRegistryDelete_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -160,14 +172,20 @@ type MockService_GlobalRegistryFind_Call struct {
 }
 
 // GlobalRegistryFind is a helper method to define mock.On call
-//   - s
+//   - s string
 func (_e *MockService_Expecter) GlobalRegistryFind(s interface{}) *MockService_GlobalRegistryFind_Call {
 	return &MockService_GlobalRegistryFind_Call{Call: _e.mock.On("GlobalRegistryFind", s)}
 }
 
 func (_c *MockService_GlobalRegistryFind_Call) Run(run func(s string)) *MockService_GlobalRegistryFind_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -216,14 +234,20 @@ type MockService_GlobalRegistryList_Call struct {
 }
 
 // GlobalRegistryList is a helper method to define mock.On call
-//   - listOptions
+//   - listOptions *model.ListOptions
 func (_e *MockService_Expecter) GlobalRegistryList(listOptions interface{}) *MockService_GlobalRegistryList_Call {
 	return &MockService_GlobalRegistryList_Call{Call: _e.mock.On("GlobalRegistryList", listOptions)}
 }
 
 func (_c *MockService_GlobalRegistryList_Call) Run(run func(listOptions *model.ListOptions)) *MockService_GlobalRegistryList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.ListOptions))
+		var arg0 *model.ListOptions
+		if args[0] != nil {
+			arg0 = args[0].(*model.ListOptions)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -261,14 +285,20 @@ type MockService_GlobalRegistryUpdate_Call struct {
 }
 
 // GlobalRegistryUpdate is a helper method to define mock.On call
-//   - registry
+//   - registry *model.Registry
 func (_e *MockService_Expecter) GlobalRegistryUpdate(registry interface{}) *MockService_GlobalRegistryUpdate_Call {
 	return &MockService_GlobalRegistryUpdate_Call{Call: _e.mock.On("GlobalRegistryUpdate", registry)}
 }
 
 func (_c *MockService_GlobalRegistryUpdate_Call) Run(run func(registry *model.Registry)) *MockService_GlobalRegistryUpdate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Registry))
+		var arg0 *model.Registry
+		if args[0] != nil {
+			arg0 = args[0].(*model.Registry)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -306,15 +336,26 @@ type MockService_OrgRegistryCreate_Call struct {
 }
 
 // OrgRegistryCreate is a helper method to define mock.On call
-//   - n
-//   - registry
+//   - n int64
+//   - registry *model.Registry
 func (_e *MockService_Expecter) OrgRegistryCreate(n interface{}, registry interface{}) *MockService_OrgRegistryCreate_Call {
 	return &MockService_OrgRegistryCreate_Call{Call: _e.mock.On("OrgRegistryCreate", n, registry)}
 }
 
 func (_c *MockService_OrgRegistryCreate_Call) Run(run func(n int64, registry *model.Registry)) *MockService_OrgRegistryCreate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(*model.Registry))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 *model.Registry
+		if args[1] != nil {
+			arg1 = args[1].(*model.Registry)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -352,15 +393,26 @@ type MockService_OrgRegistryDelete_Call struct {
 }
 
 // OrgRegistryDelete is a helper method to define mock.On call
-//   - n
-//   - s
+//   - n int64
+//   - s string
 func (_e *MockService_Expecter) OrgRegistryDelete(n interface{}, s interface{}) *MockService_OrgRegistryDelete_Call {
 	return &MockService_OrgRegistryDelete_Call{Call: _e.mock.On("OrgRegistryDelete", n, s)}
 }
 
 func (_c *MockService_OrgRegistryDelete_Call) Run(run func(n int64, s string)) *MockService_OrgRegistryDelete_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(string))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -409,15 +461,26 @@ type MockService_OrgRegistryFind_Call struct {
 }
 
 // OrgRegistryFind is a helper method to define mock.On call
-//   - n
-//   - s
+//   - n int64
+//   - s string
 func (_e *MockService_Expecter) OrgRegistryFind(n interface{}, s interface{}) *MockService_OrgRegistryFind_Call {
 	return &MockService_OrgRegistryFind_Call{Call: _e.mock.On("OrgRegistryFind", n, s)}
 }
 
 func (_c *MockService_OrgRegistryFind_Call) Run(run func(n int64, s string)) *MockService_OrgRegistryFind_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(string))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -466,15 +529,26 @@ type MockService_OrgRegistryList_Call struct {
 }
 
 // OrgRegistryList is a helper method to define mock.On call
-//   - n
-//   - listOptions
+//   - n int64
+//   - listOptions *model.ListOptions
 func (_e *MockService_Expecter) OrgRegistryList(n interface{}, listOptions interface{}) *MockService_OrgRegistryList_Call {
 	return &MockService_OrgRegistryList_Call{Call: _e.mock.On("OrgRegistryList", n, listOptions)}
 }
 
 func (_c *MockService_OrgRegistryList_Call) Run(run func(n int64, listOptions *model.ListOptions)) *MockService_OrgRegistryList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(*model.ListOptions))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 *model.ListOptions
+		if args[1] != nil {
+			arg1 = args[1].(*model.ListOptions)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -512,15 +586,26 @@ type MockService_OrgRegistryUpdate_Call struct {
 }
 
 // OrgRegistryUpdate is a helper method to define mock.On call
-//   - n
-//   - registry
+//   - n int64
+//   - registry *model.Registry
 func (_e *MockService_Expecter) OrgRegistryUpdate(n interface{}, registry interface{}) *MockService_OrgRegistryUpdate_Call {
 	return &MockService_OrgRegistryUpdate_Call{Call: _e.mock.On("OrgRegistryUpdate", n, registry)}
 }
 
 func (_c *MockService_OrgRegistryUpdate_Call) Run(run func(n int64, registry *model.Registry)) *MockService_OrgRegistryUpdate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(*model.Registry))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 *model.Registry
+		if args[1] != nil {
+			arg1 = args[1].(*model.Registry)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -558,15 +643,26 @@ type MockService_RegistryCreate_Call struct {
 }
 
 // RegistryCreate is a helper method to define mock.On call
-//   - repo
-//   - registry
+//   - repo *model.Repo
+//   - registry *model.Registry
 func (_e *MockService_Expecter) RegistryCreate(repo interface{}, registry interface{}) *MockService_RegistryCreate_Call {
 	return &MockService_RegistryCreate_Call{Call: _e.mock.On("RegistryCreate", repo, registry)}
 }
 
 func (_c *MockService_RegistryCreate_Call) Run(run func(repo *model.Repo, registry *model.Registry)) *MockService_RegistryCreate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Repo), args[1].(*model.Registry))
+		var arg0 *model.Repo
+		if args[0] != nil {
+			arg0 = args[0].(*model.Repo)
+		}
+		var arg1 *model.Registry
+		if args[1] != nil {
+			arg1 = args[1].(*model.Registry)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -604,15 +700,26 @@ type MockService_RegistryDelete_Call struct {
 }
 
 // RegistryDelete is a helper method to define mock.On call
-//   - repo
-//   - s
+//   - repo *model.Repo
+//   - s string
 func (_e *MockService_Expecter) RegistryDelete(repo interface{}, s interface{}) *MockService_RegistryDelete_Call {
 	return &MockService_RegistryDelete_Call{Call: _e.mock.On("RegistryDelete", repo, s)}
 }
 
 func (_c *MockService_RegistryDelete_Call) Run(run func(repo *model.Repo, s string)) *MockService_RegistryDelete_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Repo), args[1].(string))
+		var arg0 *model.Repo
+		if args[0] != nil {
+			arg0 = args[0].(*model.Repo)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -661,15 +768,26 @@ type MockService_RegistryFind_Call struct {
 }
 
 // RegistryFind is a helper method to define mock.On call
-//   - repo
-//   - s
+//   - repo *model.Repo
+//   - s string
 func (_e *MockService_Expecter) RegistryFind(repo interface{}, s interface{}) *MockService_RegistryFind_Call {
 	return &MockService_RegistryFind_Call{Call: _e.mock.On("RegistryFind", repo, s)}
 }
 
 func (_c *MockService_RegistryFind_Call) Run(run func(repo *model.Repo, s string)) *MockService_RegistryFind_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Repo), args[1].(string))
+		var arg0 *model.Repo
+		if args[0] != nil {
+			arg0 = args[0].(*model.Repo)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -718,15 +836,26 @@ type MockService_RegistryList_Call struct {
 }
 
 // RegistryList is a helper method to define mock.On call
-//   - repo
-//   - listOptions
+//   - repo *model.Repo
+//   - listOptions *model.ListOptions
 func (_e *MockService_Expecter) RegistryList(repo interface{}, listOptions interface{}) *MockService_RegistryList_Call {
 	return &MockService_RegistryList_Call{Call: _e.mock.On("RegistryList", repo, listOptions)}
 }
 
 func (_c *MockService_RegistryList_Call) Run(run func(repo *model.Repo, listOptions *model.ListOptions)) *MockService_RegistryList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Repo), args[1].(*model.ListOptions))
+		var arg0 *model.Repo
+		if args[0] != nil {
+			arg0 = args[0].(*model.Repo)
+		}
+		var arg1 *model.ListOptions
+		if args[1] != nil {
+			arg1 = args[1].(*model.ListOptions)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -775,15 +904,26 @@ type MockService_RegistryListPipeline_Call struct {
 }
 
 // RegistryListPipeline is a helper method to define mock.On call
-//   - repo
-//   - pipeline
+//   - repo *model.Repo
+//   - pipeline *model.Pipeline
 func (_e *MockService_Expecter) RegistryListPipeline(repo interface{}, pipeline interface{}) *MockService_RegistryListPipeline_Call {
 	return &MockService_RegistryListPipeline_Call{Call: _e.mock.On("RegistryListPipeline", repo, pipeline)}
 }
 
 func (_c *MockService_RegistryListPipeline_Call) Run(run func(repo *model.Repo, pipeline *model.Pipeline)) *MockService_RegistryListPipeline_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Repo), args[1].(*model.Pipeline))
+		var arg0 *model.Repo
+		if args[0] != nil {
+			arg0 = args[0].(*model.Repo)
+		}
+		var arg1 *model.Pipeline
+		if args[1] != nil {
+			arg1 = args[1].(*model.Pipeline)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -821,15 +961,26 @@ type MockService_RegistryUpdate_Call struct {
 }
 
 // RegistryUpdate is a helper method to define mock.On call
-//   - repo
-//   - registry
+//   - repo *model.Repo
+//   - registry *model.Registry
 func (_e *MockService_Expecter) RegistryUpdate(repo interface{}, registry interface{}) *MockService_RegistryUpdate_Call {
 	return &MockService_RegistryUpdate_Call{Call: _e.mock.On("RegistryUpdate", repo, registry)}
 }
 
 func (_c *MockService_RegistryUpdate_Call) Run(run func(repo *model.Repo, registry *model.Registry)) *MockService_RegistryUpdate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Repo), args[1].(*model.Registry))
+		var arg0 *model.Repo
+		if args[0] != nil {
+			arg0 = args[0].(*model.Repo)
+		}
+		var arg1 *model.Registry
+		if args[1] != nil {
+			arg1 = args[1].(*model.Registry)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }

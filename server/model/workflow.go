@@ -63,6 +63,9 @@ func PipelineStatus(workflows []*Workflow) StatusValue {
 	status := StatusSuccess
 
 	for _, p := range workflows {
+		if p.State == StatusKilled {
+			return StatusKilled
+		}
 		if p.Failing() {
 			status = p.State
 		}
@@ -76,9 +79,11 @@ func WorkflowStatus(steps []*Step) StatusValue {
 	status := StatusSuccess
 
 	for _, p := range steps {
+		if p.State == StatusKilled {
+			return StatusKilled
+		}
 		if p.Failing() {
 			status = p.State
-			break
 		}
 	}
 

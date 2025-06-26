@@ -62,15 +62,26 @@ type MockLog_Close_Call struct {
 }
 
 // Close is a helper method to define mock.On call
-//   - c
-//   - stepID
+//   - c context.Context
+//   - stepID int64
 func (_e *MockLog_Expecter) Close(c interface{}, stepID interface{}) *MockLog_Close_Call {
 	return &MockLog_Close_Call{Call: _e.mock.On("Close", c, stepID)}
 }
 
 func (_c *MockLog_Close_Call) Run(run func(c context.Context, stepID int64)) *MockLog_Close_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(int64))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -108,15 +119,26 @@ type MockLog_Open_Call struct {
 }
 
 // Open is a helper method to define mock.On call
-//   - c
-//   - stepID
+//   - c context.Context
+//   - stepID int64
 func (_e *MockLog_Expecter) Open(c interface{}, stepID interface{}) *MockLog_Open_Call {
 	return &MockLog_Open_Call{Call: _e.mock.On("Open", c, stepID)}
 }
 
 func (_c *MockLog_Open_Call) Run(run func(c context.Context, stepID int64)) *MockLog_Open_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(int64))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -154,16 +176,32 @@ type MockLog_Tail_Call struct {
 }
 
 // Tail is a helper method to define mock.On call
-//   - c
-//   - stepID
-//   - handler
+//   - c context.Context
+//   - stepID int64
+//   - handler logging.LogChan
 func (_e *MockLog_Expecter) Tail(c interface{}, stepID interface{}, handler interface{}) *MockLog_Tail_Call {
 	return &MockLog_Tail_Call{Call: _e.mock.On("Tail", c, stepID, handler)}
 }
 
 func (_c *MockLog_Tail_Call) Run(run func(c context.Context, stepID int64, handler logging.LogChan)) *MockLog_Tail_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(int64), args[2].(logging.LogChan))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		var arg2 logging.LogChan
+		if args[2] != nil {
+			arg2 = args[2].(logging.LogChan)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
 	})
 	return _c
 }
@@ -201,16 +239,32 @@ type MockLog_Write_Call struct {
 }
 
 // Write is a helper method to define mock.On call
-//   - c
-//   - stepID
-//   - entries
+//   - c context.Context
+//   - stepID int64
+//   - entries []*model.LogEntry
 func (_e *MockLog_Expecter) Write(c interface{}, stepID interface{}, entries interface{}) *MockLog_Write_Call {
 	return &MockLog_Write_Call{Call: _e.mock.On("Write", c, stepID, entries)}
 }
 
 func (_c *MockLog_Write_Call) Run(run func(c context.Context, stepID int64, entries []*model.LogEntry)) *MockLog_Write_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(int64), args[2].([]*model.LogEntry))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		var arg2 []*model.LogEntry
+		if args[2] != nil {
+			arg2 = args[2].([]*model.LogEntry)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
 	})
 	return _c
 }

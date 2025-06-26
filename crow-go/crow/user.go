@@ -6,10 +6,10 @@ import (
 )
 
 const (
-	pathSelf  = "%s/api/user"
-	pathRepos = "%s/api/user/repos"
-	pathUsers = "%s/api/users"
-	pathUser  = "%s/api/users/%s"
+	pathSelf      = "%s/api/user"
+	pathUserRepos = "%s/api/user/repos"
+	pathUsers     = "%s/api/users"
+	pathUser      = "%s/api/users/%s"
 )
 
 type RepoListOptions struct {
@@ -81,7 +81,7 @@ func (c *client) UserDel(login string) error {
 // the user has explicit access in the host system.
 func (c *client) RepoList(opt RepoListOptions) ([]*Repo, error) {
 	var out []*Repo
-	uri, _ := url.Parse(fmt.Sprintf(pathRepos, c.addr))
+	uri, _ := url.Parse(fmt.Sprintf(pathUserRepos, c.addr))
 	uri.RawQuery = opt.QueryEncode()
 	err := c.get(uri.String(), &out)
 	return out, err

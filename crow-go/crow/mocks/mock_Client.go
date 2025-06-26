@@ -72,14 +72,20 @@ type MockClient_Agent_Call struct {
 }
 
 // Agent is a helper method to define mock.On call
-//   - n
+//   - n int64
 func (_e *MockClient_Expecter) Agent(n interface{}) *MockClient_Agent_Call {
 	return &MockClient_Agent_Call{Call: _e.mock.On("Agent", n)}
 }
 
 func (_c *MockClient_Agent_Call) Run(run func(n int64)) *MockClient_Agent_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -128,14 +134,20 @@ type MockClient_AgentCreate_Call struct {
 }
 
 // AgentCreate is a helper method to define mock.On call
-//   - agent
+//   - agent *crow.Agent
 func (_e *MockClient_Expecter) AgentCreate(agent interface{}) *MockClient_AgentCreate_Call {
 	return &MockClient_AgentCreate_Call{Call: _e.mock.On("AgentCreate", agent)}
 }
 
 func (_c *MockClient_AgentCreate_Call) Run(run func(agent *crow.Agent)) *MockClient_AgentCreate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*crow.Agent))
+		var arg0 *crow.Agent
+		if args[0] != nil {
+			arg0 = args[0].(*crow.Agent)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -173,14 +185,20 @@ type MockClient_AgentDelete_Call struct {
 }
 
 // AgentDelete is a helper method to define mock.On call
-//   - n
+//   - n int64
 func (_e *MockClient_Expecter) AgentDelete(n interface{}) *MockClient_AgentDelete_Call {
 	return &MockClient_AgentDelete_Call{Call: _e.mock.On("AgentDelete", n)}
 }
 
 func (_c *MockClient_AgentDelete_Call) Run(run func(n int64)) *MockClient_AgentDelete_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -284,14 +302,20 @@ type MockClient_AgentTasksList_Call struct {
 }
 
 // AgentTasksList is a helper method to define mock.On call
-//   - n
+//   - n int64
 func (_e *MockClient_Expecter) AgentTasksList(n interface{}) *MockClient_AgentTasksList_Call {
 	return &MockClient_AgentTasksList_Call{Call: _e.mock.On("AgentTasksList", n)}
 }
 
 func (_c *MockClient_AgentTasksList_Call) Run(run func(n int64)) *MockClient_AgentTasksList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -340,14 +364,20 @@ type MockClient_AgentUpdate_Call struct {
 }
 
 // AgentUpdate is a helper method to define mock.On call
-//   - agent
+//   - agent *crow.Agent
 func (_e *MockClient_Expecter) AgentUpdate(agent interface{}) *MockClient_AgentUpdate_Call {
 	return &MockClient_AgentUpdate_Call{Call: _e.mock.On("AgentUpdate", agent)}
 }
 
 func (_c *MockClient_AgentUpdate_Call) Run(run func(agent *crow.Agent)) *MockClient_AgentUpdate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*crow.Agent))
+		var arg0 *crow.Agent
+		if args[0] != nil {
+			arg0 = args[0].(*crow.Agent)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -396,15 +426,26 @@ type MockClient_CronCreate_Call struct {
 }
 
 // CronCreate is a helper method to define mock.On call
-//   - repoID
-//   - cron
+//   - repoID int64
+//   - cron *crow.Cron
 func (_e *MockClient_Expecter) CronCreate(repoID interface{}, cron interface{}) *MockClient_CronCreate_Call {
 	return &MockClient_CronCreate_Call{Call: _e.mock.On("CronCreate", repoID, cron)}
 }
 
 func (_c *MockClient_CronCreate_Call) Run(run func(repoID int64, cron *crow.Cron)) *MockClient_CronCreate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(*crow.Cron))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 *crow.Cron
+		if args[1] != nil {
+			arg1 = args[1].(*crow.Cron)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -442,15 +483,26 @@ type MockClient_CronDelete_Call struct {
 }
 
 // CronDelete is a helper method to define mock.On call
-//   - repoID
-//   - cronID
+//   - repoID int64
+//   - cronID int64
 func (_e *MockClient_Expecter) CronDelete(repoID interface{}, cronID interface{}) *MockClient_CronDelete_Call {
 	return &MockClient_CronDelete_Call{Call: _e.mock.On("CronDelete", repoID, cronID)}
 }
 
 func (_c *MockClient_CronDelete_Call) Run(run func(repoID int64, cronID int64)) *MockClient_CronDelete_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(int64))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -499,15 +551,26 @@ type MockClient_CronGet_Call struct {
 }
 
 // CronGet is a helper method to define mock.On call
-//   - repoID
-//   - cronID
+//   - repoID int64
+//   - cronID int64
 func (_e *MockClient_Expecter) CronGet(repoID interface{}, cronID interface{}) *MockClient_CronGet_Call {
 	return &MockClient_CronGet_Call{Call: _e.mock.On("CronGet", repoID, cronID)}
 }
 
 func (_c *MockClient_CronGet_Call) Run(run func(repoID int64, cronID int64)) *MockClient_CronGet_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(int64))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -556,15 +619,26 @@ type MockClient_CronList_Call struct {
 }
 
 // CronList is a helper method to define mock.On call
-//   - repoID
-//   - opt
+//   - repoID int64
+//   - opt crow.CronListOptions
 func (_e *MockClient_Expecter) CronList(repoID interface{}, opt interface{}) *MockClient_CronList_Call {
 	return &MockClient_CronList_Call{Call: _e.mock.On("CronList", repoID, opt)}
 }
 
 func (_c *MockClient_CronList_Call) Run(run func(repoID int64, opt crow.CronListOptions)) *MockClient_CronList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(crow.CronListOptions))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 crow.CronListOptions
+		if args[1] != nil {
+			arg1 = args[1].(crow.CronListOptions)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -613,15 +687,26 @@ type MockClient_CronUpdate_Call struct {
 }
 
 // CronUpdate is a helper method to define mock.On call
-//   - repoID
-//   - cron
+//   - repoID int64
+//   - cron *crow.Cron
 func (_e *MockClient_Expecter) CronUpdate(repoID interface{}, cron interface{}) *MockClient_CronUpdate_Call {
 	return &MockClient_CronUpdate_Call{Call: _e.mock.On("CronUpdate", repoID, cron)}
 }
 
 func (_c *MockClient_CronUpdate_Call) Run(run func(repoID int64, cron *crow.Cron)) *MockClient_CronUpdate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(*crow.Cron))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 *crow.Cron
+		if args[1] != nil {
+			arg1 = args[1].(*crow.Cron)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -670,16 +755,32 @@ type MockClient_Deploy_Call struct {
 }
 
 // Deploy is a helper method to define mock.On call
-//   - repoID
-//   - pipeline
-//   - opt
+//   - repoID int64
+//   - pipeline int64
+//   - opt crow.DeployOptions
 func (_e *MockClient_Expecter) Deploy(repoID interface{}, pipeline interface{}, opt interface{}) *MockClient_Deploy_Call {
 	return &MockClient_Deploy_Call{Call: _e.mock.On("Deploy", repoID, pipeline, opt)}
 }
 
 func (_c *MockClient_Deploy_Call) Run(run func(repoID int64, pipeline int64, opt crow.DeployOptions)) *MockClient_Deploy_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(int64), args[2].(crow.DeployOptions))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		var arg2 crow.DeployOptions
+		if args[2] != nil {
+			arg2 = args[2].(crow.DeployOptions)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
 	})
 	return _c
 }
@@ -728,14 +829,20 @@ type MockClient_GlobalRegistry_Call struct {
 }
 
 // GlobalRegistry is a helper method to define mock.On call
-//   - registry
+//   - registry string
 func (_e *MockClient_Expecter) GlobalRegistry(registry interface{}) *MockClient_GlobalRegistry_Call {
 	return &MockClient_GlobalRegistry_Call{Call: _e.mock.On("GlobalRegistry", registry)}
 }
 
 func (_c *MockClient_GlobalRegistry_Call) Run(run func(registry string)) *MockClient_GlobalRegistry_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -784,14 +891,20 @@ type MockClient_GlobalRegistryCreate_Call struct {
 }
 
 // GlobalRegistryCreate is a helper method to define mock.On call
-//   - registry
+//   - registry *crow.Registry
 func (_e *MockClient_Expecter) GlobalRegistryCreate(registry interface{}) *MockClient_GlobalRegistryCreate_Call {
 	return &MockClient_GlobalRegistryCreate_Call{Call: _e.mock.On("GlobalRegistryCreate", registry)}
 }
 
 func (_c *MockClient_GlobalRegistryCreate_Call) Run(run func(registry *crow.Registry)) *MockClient_GlobalRegistryCreate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*crow.Registry))
+		var arg0 *crow.Registry
+		if args[0] != nil {
+			arg0 = args[0].(*crow.Registry)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -829,14 +942,20 @@ type MockClient_GlobalRegistryDelete_Call struct {
 }
 
 // GlobalRegistryDelete is a helper method to define mock.On call
-//   - registry
+//   - registry string
 func (_e *MockClient_Expecter) GlobalRegistryDelete(registry interface{}) *MockClient_GlobalRegistryDelete_Call {
 	return &MockClient_GlobalRegistryDelete_Call{Call: _e.mock.On("GlobalRegistryDelete", registry)}
 }
 
 func (_c *MockClient_GlobalRegistryDelete_Call) Run(run func(registry string)) *MockClient_GlobalRegistryDelete_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -885,14 +1004,20 @@ type MockClient_GlobalRegistryList_Call struct {
 }
 
 // GlobalRegistryList is a helper method to define mock.On call
-//   - opt
+//   - opt crow.RegistryListOptions
 func (_e *MockClient_Expecter) GlobalRegistryList(opt interface{}) *MockClient_GlobalRegistryList_Call {
 	return &MockClient_GlobalRegistryList_Call{Call: _e.mock.On("GlobalRegistryList", opt)}
 }
 
 func (_c *MockClient_GlobalRegistryList_Call) Run(run func(opt crow.RegistryListOptions)) *MockClient_GlobalRegistryList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(crow.RegistryListOptions))
+		var arg0 crow.RegistryListOptions
+		if args[0] != nil {
+			arg0 = args[0].(crow.RegistryListOptions)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -941,14 +1066,20 @@ type MockClient_GlobalRegistryUpdate_Call struct {
 }
 
 // GlobalRegistryUpdate is a helper method to define mock.On call
-//   - registry
+//   - registry *crow.Registry
 func (_e *MockClient_Expecter) GlobalRegistryUpdate(registry interface{}) *MockClient_GlobalRegistryUpdate_Call {
 	return &MockClient_GlobalRegistryUpdate_Call{Call: _e.mock.On("GlobalRegistryUpdate", registry)}
 }
 
 func (_c *MockClient_GlobalRegistryUpdate_Call) Run(run func(registry *crow.Registry)) *MockClient_GlobalRegistryUpdate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*crow.Registry))
+		var arg0 *crow.Registry
+		if args[0] != nil {
+			arg0 = args[0].(*crow.Registry)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -997,14 +1128,20 @@ type MockClient_GlobalSecret_Call struct {
 }
 
 // GlobalSecret is a helper method to define mock.On call
-//   - secret
+//   - secret string
 func (_e *MockClient_Expecter) GlobalSecret(secret interface{}) *MockClient_GlobalSecret_Call {
 	return &MockClient_GlobalSecret_Call{Call: _e.mock.On("GlobalSecret", secret)}
 }
 
 func (_c *MockClient_GlobalSecret_Call) Run(run func(secret string)) *MockClient_GlobalSecret_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -1053,14 +1190,20 @@ type MockClient_GlobalSecretCreate_Call struct {
 }
 
 // GlobalSecretCreate is a helper method to define mock.On call
-//   - secret
+//   - secret *crow.Secret
 func (_e *MockClient_Expecter) GlobalSecretCreate(secret interface{}) *MockClient_GlobalSecretCreate_Call {
 	return &MockClient_GlobalSecretCreate_Call{Call: _e.mock.On("GlobalSecretCreate", secret)}
 }
 
 func (_c *MockClient_GlobalSecretCreate_Call) Run(run func(secret *crow.Secret)) *MockClient_GlobalSecretCreate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*crow.Secret))
+		var arg0 *crow.Secret
+		if args[0] != nil {
+			arg0 = args[0].(*crow.Secret)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -1098,14 +1241,20 @@ type MockClient_GlobalSecretDelete_Call struct {
 }
 
 // GlobalSecretDelete is a helper method to define mock.On call
-//   - secret
+//   - secret string
 func (_e *MockClient_Expecter) GlobalSecretDelete(secret interface{}) *MockClient_GlobalSecretDelete_Call {
 	return &MockClient_GlobalSecretDelete_Call{Call: _e.mock.On("GlobalSecretDelete", secret)}
 }
 
 func (_c *MockClient_GlobalSecretDelete_Call) Run(run func(secret string)) *MockClient_GlobalSecretDelete_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -1154,14 +1303,20 @@ type MockClient_GlobalSecretList_Call struct {
 }
 
 // GlobalSecretList is a helper method to define mock.On call
-//   - opt
+//   - opt crow.SecretListOptions
 func (_e *MockClient_Expecter) GlobalSecretList(opt interface{}) *MockClient_GlobalSecretList_Call {
 	return &MockClient_GlobalSecretList_Call{Call: _e.mock.On("GlobalSecretList", opt)}
 }
 
 func (_c *MockClient_GlobalSecretList_Call) Run(run func(opt crow.SecretListOptions)) *MockClient_GlobalSecretList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(crow.SecretListOptions))
+		var arg0 crow.SecretListOptions
+		if args[0] != nil {
+			arg0 = args[0].(crow.SecretListOptions)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -1210,14 +1365,20 @@ type MockClient_GlobalSecretUpdate_Call struct {
 }
 
 // GlobalSecretUpdate is a helper method to define mock.On call
-//   - secret
+//   - secret *crow.Secret
 func (_e *MockClient_Expecter) GlobalSecretUpdate(secret interface{}) *MockClient_GlobalSecretUpdate_Call {
 	return &MockClient_GlobalSecretUpdate_Call{Call: _e.mock.On("GlobalSecretUpdate", secret)}
 }
 
 func (_c *MockClient_GlobalSecretUpdate_Call) Run(run func(secret *crow.Secret)) *MockClient_GlobalSecretUpdate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*crow.Secret))
+		var arg0 *crow.Secret
+		if args[0] != nil {
+			arg0 = args[0].(*crow.Secret)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -1310,15 +1471,26 @@ type MockClient_LogsPurge_Call struct {
 }
 
 // LogsPurge is a helper method to define mock.On call
-//   - repoID
-//   - pipeline
+//   - repoID int64
+//   - pipeline int64
 func (_e *MockClient_Expecter) LogsPurge(repoID interface{}, pipeline interface{}) *MockClient_LogsPurge_Call {
 	return &MockClient_LogsPurge_Call{Call: _e.mock.On("LogsPurge", repoID, pipeline)}
 }
 
 func (_c *MockClient_LogsPurge_Call) Run(run func(repoID int64, pipeline int64)) *MockClient_LogsPurge_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(int64))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -1367,14 +1539,20 @@ type MockClient_Org_Call struct {
 }
 
 // Org is a helper method to define mock.On call
-//   - orgID
+//   - orgID int64
 func (_e *MockClient_Expecter) Org(orgID interface{}) *MockClient_Org_Call {
 	return &MockClient_Org_Call{Call: _e.mock.On("Org", orgID)}
 }
 
 func (_c *MockClient_Org_Call) Run(run func(orgID int64)) *MockClient_Org_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -1423,14 +1601,20 @@ type MockClient_OrgLookup_Call struct {
 }
 
 // OrgLookup is a helper method to define mock.On call
-//   - orgName
+//   - orgName string
 func (_e *MockClient_Expecter) OrgLookup(orgName interface{}) *MockClient_OrgLookup_Call {
 	return &MockClient_OrgLookup_Call{Call: _e.mock.On("OrgLookup", orgName)}
 }
 
 func (_c *MockClient_OrgLookup_Call) Run(run func(orgName string)) *MockClient_OrgLookup_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -1479,15 +1663,26 @@ type MockClient_OrgRegistry_Call struct {
 }
 
 // OrgRegistry is a helper method to define mock.On call
-//   - orgID
-//   - registry
+//   - orgID int64
+//   - registry string
 func (_e *MockClient_Expecter) OrgRegistry(orgID interface{}, registry interface{}) *MockClient_OrgRegistry_Call {
 	return &MockClient_OrgRegistry_Call{Call: _e.mock.On("OrgRegistry", orgID, registry)}
 }
 
 func (_c *MockClient_OrgRegistry_Call) Run(run func(orgID int64, registry string)) *MockClient_OrgRegistry_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(string))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -1536,15 +1731,26 @@ type MockClient_OrgRegistryCreate_Call struct {
 }
 
 // OrgRegistryCreate is a helper method to define mock.On call
-//   - orgID
-//   - registry
+//   - orgID int64
+//   - registry *crow.Registry
 func (_e *MockClient_Expecter) OrgRegistryCreate(orgID interface{}, registry interface{}) *MockClient_OrgRegistryCreate_Call {
 	return &MockClient_OrgRegistryCreate_Call{Call: _e.mock.On("OrgRegistryCreate", orgID, registry)}
 }
 
 func (_c *MockClient_OrgRegistryCreate_Call) Run(run func(orgID int64, registry *crow.Registry)) *MockClient_OrgRegistryCreate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(*crow.Registry))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 *crow.Registry
+		if args[1] != nil {
+			arg1 = args[1].(*crow.Registry)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -1582,15 +1788,26 @@ type MockClient_OrgRegistryDelete_Call struct {
 }
 
 // OrgRegistryDelete is a helper method to define mock.On call
-//   - orgID
-//   - registry
+//   - orgID int64
+//   - registry string
 func (_e *MockClient_Expecter) OrgRegistryDelete(orgID interface{}, registry interface{}) *MockClient_OrgRegistryDelete_Call {
 	return &MockClient_OrgRegistryDelete_Call{Call: _e.mock.On("OrgRegistryDelete", orgID, registry)}
 }
 
 func (_c *MockClient_OrgRegistryDelete_Call) Run(run func(orgID int64, registry string)) *MockClient_OrgRegistryDelete_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(string))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -1639,15 +1856,26 @@ type MockClient_OrgRegistryList_Call struct {
 }
 
 // OrgRegistryList is a helper method to define mock.On call
-//   - orgID
-//   - opt
+//   - orgID int64
+//   - opt crow.RegistryListOptions
 func (_e *MockClient_Expecter) OrgRegistryList(orgID interface{}, opt interface{}) *MockClient_OrgRegistryList_Call {
 	return &MockClient_OrgRegistryList_Call{Call: _e.mock.On("OrgRegistryList", orgID, opt)}
 }
 
 func (_c *MockClient_OrgRegistryList_Call) Run(run func(orgID int64, opt crow.RegistryListOptions)) *MockClient_OrgRegistryList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(crow.RegistryListOptions))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 crow.RegistryListOptions
+		if args[1] != nil {
+			arg1 = args[1].(crow.RegistryListOptions)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -1696,15 +1924,26 @@ type MockClient_OrgRegistryUpdate_Call struct {
 }
 
 // OrgRegistryUpdate is a helper method to define mock.On call
-//   - orgID
-//   - registry
+//   - orgID int64
+//   - registry *crow.Registry
 func (_e *MockClient_Expecter) OrgRegistryUpdate(orgID interface{}, registry interface{}) *MockClient_OrgRegistryUpdate_Call {
 	return &MockClient_OrgRegistryUpdate_Call{Call: _e.mock.On("OrgRegistryUpdate", orgID, registry)}
 }
 
 func (_c *MockClient_OrgRegistryUpdate_Call) Run(run func(orgID int64, registry *crow.Registry)) *MockClient_OrgRegistryUpdate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(*crow.Registry))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 *crow.Registry
+		if args[1] != nil {
+			arg1 = args[1].(*crow.Registry)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -1753,15 +1992,26 @@ type MockClient_OrgSecret_Call struct {
 }
 
 // OrgSecret is a helper method to define mock.On call
-//   - orgID
-//   - secret
+//   - orgID int64
+//   - secret string
 func (_e *MockClient_Expecter) OrgSecret(orgID interface{}, secret interface{}) *MockClient_OrgSecret_Call {
 	return &MockClient_OrgSecret_Call{Call: _e.mock.On("OrgSecret", orgID, secret)}
 }
 
 func (_c *MockClient_OrgSecret_Call) Run(run func(orgID int64, secret string)) *MockClient_OrgSecret_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(string))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -1810,15 +2060,26 @@ type MockClient_OrgSecretCreate_Call struct {
 }
 
 // OrgSecretCreate is a helper method to define mock.On call
-//   - orgID
-//   - secret
+//   - orgID int64
+//   - secret *crow.Secret
 func (_e *MockClient_Expecter) OrgSecretCreate(orgID interface{}, secret interface{}) *MockClient_OrgSecretCreate_Call {
 	return &MockClient_OrgSecretCreate_Call{Call: _e.mock.On("OrgSecretCreate", orgID, secret)}
 }
 
 func (_c *MockClient_OrgSecretCreate_Call) Run(run func(orgID int64, secret *crow.Secret)) *MockClient_OrgSecretCreate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(*crow.Secret))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 *crow.Secret
+		if args[1] != nil {
+			arg1 = args[1].(*crow.Secret)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -1856,15 +2117,26 @@ type MockClient_OrgSecretDelete_Call struct {
 }
 
 // OrgSecretDelete is a helper method to define mock.On call
-//   - orgID
-//   - secret
+//   - orgID int64
+//   - secret string
 func (_e *MockClient_Expecter) OrgSecretDelete(orgID interface{}, secret interface{}) *MockClient_OrgSecretDelete_Call {
 	return &MockClient_OrgSecretDelete_Call{Call: _e.mock.On("OrgSecretDelete", orgID, secret)}
 }
 
 func (_c *MockClient_OrgSecretDelete_Call) Run(run func(orgID int64, secret string)) *MockClient_OrgSecretDelete_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(string))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -1913,15 +2185,26 @@ type MockClient_OrgSecretList_Call struct {
 }
 
 // OrgSecretList is a helper method to define mock.On call
-//   - orgID
-//   - opt
+//   - orgID int64
+//   - opt crow.SecretListOptions
 func (_e *MockClient_Expecter) OrgSecretList(orgID interface{}, opt interface{}) *MockClient_OrgSecretList_Call {
 	return &MockClient_OrgSecretList_Call{Call: _e.mock.On("OrgSecretList", orgID, opt)}
 }
 
 func (_c *MockClient_OrgSecretList_Call) Run(run func(orgID int64, opt crow.SecretListOptions)) *MockClient_OrgSecretList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(crow.SecretListOptions))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 crow.SecretListOptions
+		if args[1] != nil {
+			arg1 = args[1].(crow.SecretListOptions)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -1970,15 +2253,26 @@ type MockClient_OrgSecretUpdate_Call struct {
 }
 
 // OrgSecretUpdate is a helper method to define mock.On call
-//   - orgID
-//   - secret
+//   - orgID int64
+//   - secret *crow.Secret
 func (_e *MockClient_Expecter) OrgSecretUpdate(orgID interface{}, secret interface{}) *MockClient_OrgSecretUpdate_Call {
 	return &MockClient_OrgSecretUpdate_Call{Call: _e.mock.On("OrgSecretUpdate", orgID, secret)}
 }
 
 func (_c *MockClient_OrgSecretUpdate_Call) Run(run func(orgID int64, secret *crow.Secret)) *MockClient_OrgSecretUpdate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(*crow.Secret))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 *crow.Secret
+		if args[1] != nil {
+			arg1 = args[1].(*crow.Secret)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -2027,15 +2321,26 @@ type MockClient_Pipeline_Call struct {
 }
 
 // Pipeline is a helper method to define mock.On call
-//   - repoID
-//   - pipeline
+//   - repoID int64
+//   - pipeline int64
 func (_e *MockClient_Expecter) Pipeline(repoID interface{}, pipeline interface{}) *MockClient_Pipeline_Call {
 	return &MockClient_Pipeline_Call{Call: _e.mock.On("Pipeline", repoID, pipeline)}
 }
 
 func (_c *MockClient_Pipeline_Call) Run(run func(repoID int64, pipeline int64)) *MockClient_Pipeline_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(int64))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -2084,15 +2389,26 @@ type MockClient_PipelineApprove_Call struct {
 }
 
 // PipelineApprove is a helper method to define mock.On call
-//   - repoID
-//   - pipeline
+//   - repoID int64
+//   - pipeline int64
 func (_e *MockClient_Expecter) PipelineApprove(repoID interface{}, pipeline interface{}) *MockClient_PipelineApprove_Call {
 	return &MockClient_PipelineApprove_Call{Call: _e.mock.On("PipelineApprove", repoID, pipeline)}
 }
 
 func (_c *MockClient_PipelineApprove_Call) Run(run func(repoID int64, pipeline int64)) *MockClient_PipelineApprove_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(int64))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -2141,15 +2457,26 @@ type MockClient_PipelineCreate_Call struct {
 }
 
 // PipelineCreate is a helper method to define mock.On call
-//   - repoID
-//   - opts
+//   - repoID int64
+//   - opts *crow.PipelineOptions
 func (_e *MockClient_Expecter) PipelineCreate(repoID interface{}, opts interface{}) *MockClient_PipelineCreate_Call {
 	return &MockClient_PipelineCreate_Call{Call: _e.mock.On("PipelineCreate", repoID, opts)}
 }
 
 func (_c *MockClient_PipelineCreate_Call) Run(run func(repoID int64, opts *crow.PipelineOptions)) *MockClient_PipelineCreate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(*crow.PipelineOptions))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 *crow.PipelineOptions
+		if args[1] != nil {
+			arg1 = args[1].(*crow.PipelineOptions)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -2198,15 +2525,26 @@ type MockClient_PipelineDecline_Call struct {
 }
 
 // PipelineDecline is a helper method to define mock.On call
-//   - repoID
-//   - pipeline
+//   - repoID int64
+//   - pipeline int64
 func (_e *MockClient_Expecter) PipelineDecline(repoID interface{}, pipeline interface{}) *MockClient_PipelineDecline_Call {
 	return &MockClient_PipelineDecline_Call{Call: _e.mock.On("PipelineDecline", repoID, pipeline)}
 }
 
 func (_c *MockClient_PipelineDecline_Call) Run(run func(repoID int64, pipeline int64)) *MockClient_PipelineDecline_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(int64))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -2244,15 +2582,26 @@ type MockClient_PipelineDelete_Call struct {
 }
 
 // PipelineDelete is a helper method to define mock.On call
-//   - repoID
-//   - pipeline
+//   - repoID int64
+//   - pipeline int64
 func (_e *MockClient_Expecter) PipelineDelete(repoID interface{}, pipeline interface{}) *MockClient_PipelineDelete_Call {
 	return &MockClient_PipelineDelete_Call{Call: _e.mock.On("PipelineDelete", repoID, pipeline)}
 }
 
 func (_c *MockClient_PipelineDelete_Call) Run(run func(repoID int64, pipeline int64)) *MockClient_PipelineDelete_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(int64))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -2301,15 +2650,26 @@ type MockClient_PipelineLast_Call struct {
 }
 
 // PipelineLast is a helper method to define mock.On call
-//   - repoID
-//   - opt
+//   - repoID int64
+//   - opt crow.PipelineLastOptions
 func (_e *MockClient_Expecter) PipelineLast(repoID interface{}, opt interface{}) *MockClient_PipelineLast_Call {
 	return &MockClient_PipelineLast_Call{Call: _e.mock.On("PipelineLast", repoID, opt)}
 }
 
 func (_c *MockClient_PipelineLast_Call) Run(run func(repoID int64, opt crow.PipelineLastOptions)) *MockClient_PipelineLast_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(crow.PipelineLastOptions))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 crow.PipelineLastOptions
+		if args[1] != nil {
+			arg1 = args[1].(crow.PipelineLastOptions)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -2358,15 +2718,26 @@ type MockClient_PipelineList_Call struct {
 }
 
 // PipelineList is a helper method to define mock.On call
-//   - repoID
-//   - opt
+//   - repoID int64
+//   - opt crow.PipelineListOptions
 func (_e *MockClient_Expecter) PipelineList(repoID interface{}, opt interface{}) *MockClient_PipelineList_Call {
 	return &MockClient_PipelineList_Call{Call: _e.mock.On("PipelineList", repoID, opt)}
 }
 
 func (_c *MockClient_PipelineList_Call) Run(run func(repoID int64, opt crow.PipelineListOptions)) *MockClient_PipelineList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(crow.PipelineListOptions))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 crow.PipelineListOptions
+		if args[1] != nil {
+			arg1 = args[1].(crow.PipelineListOptions)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -2415,15 +2786,26 @@ type MockClient_PipelineMetadata_Call struct {
 }
 
 // PipelineMetadata is a helper method to define mock.On call
-//   - repoID
-//   - pipelineNumber
+//   - repoID int64
+//   - pipelineNumber int
 func (_e *MockClient_Expecter) PipelineMetadata(repoID interface{}, pipelineNumber interface{}) *MockClient_PipelineMetadata_Call {
 	return &MockClient_PipelineMetadata_Call{Call: _e.mock.On("PipelineMetadata", repoID, pipelineNumber)}
 }
 
 func (_c *MockClient_PipelineMetadata_Call) Run(run func(repoID int64, pipelineNumber int)) *MockClient_PipelineMetadata_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(int))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int
+		if args[1] != nil {
+			arg1 = args[1].(int)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -2527,16 +2909,32 @@ type MockClient_PipelineStart_Call struct {
 }
 
 // PipelineStart is a helper method to define mock.On call
-//   - repoID
-//   - num
-//   - opt
+//   - repoID int64
+//   - num int64
+//   - opt crow.PipelineStartOptions
 func (_e *MockClient_Expecter) PipelineStart(repoID interface{}, num interface{}, opt interface{}) *MockClient_PipelineStart_Call {
 	return &MockClient_PipelineStart_Call{Call: _e.mock.On("PipelineStart", repoID, num, opt)}
 }
 
 func (_c *MockClient_PipelineStart_Call) Run(run func(repoID int64, num int64, opt crow.PipelineStartOptions)) *MockClient_PipelineStart_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(int64), args[2].(crow.PipelineStartOptions))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		var arg2 crow.PipelineStartOptions
+		if args[2] != nil {
+			arg2 = args[2].(crow.PipelineStartOptions)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
 	})
 	return _c
 }
@@ -2574,15 +2972,26 @@ type MockClient_PipelineStop_Call struct {
 }
 
 // PipelineStop is a helper method to define mock.On call
-//   - repoID
-//   - pipeline
+//   - repoID int64
+//   - pipeline int64
 func (_e *MockClient_Expecter) PipelineStop(repoID interface{}, pipeline interface{}) *MockClient_PipelineStop_Call {
 	return &MockClient_PipelineStop_Call{Call: _e.mock.On("PipelineStop", repoID, pipeline)}
 }
 
 func (_c *MockClient_PipelineStop_Call) Run(run func(repoID int64, pipeline int64)) *MockClient_PipelineStop_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(int64))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -2686,15 +3095,26 @@ type MockClient_Registry_Call struct {
 }
 
 // Registry is a helper method to define mock.On call
-//   - repoID
-//   - hostname
+//   - repoID int64
+//   - hostname string
 func (_e *MockClient_Expecter) Registry(repoID interface{}, hostname interface{}) *MockClient_Registry_Call {
 	return &MockClient_Registry_Call{Call: _e.mock.On("Registry", repoID, hostname)}
 }
 
 func (_c *MockClient_Registry_Call) Run(run func(repoID int64, hostname string)) *MockClient_Registry_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(string))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -2743,15 +3163,26 @@ type MockClient_RegistryCreate_Call struct {
 }
 
 // RegistryCreate is a helper method to define mock.On call
-//   - repoID
-//   - registry
+//   - repoID int64
+//   - registry *crow.Registry
 func (_e *MockClient_Expecter) RegistryCreate(repoID interface{}, registry interface{}) *MockClient_RegistryCreate_Call {
 	return &MockClient_RegistryCreate_Call{Call: _e.mock.On("RegistryCreate", repoID, registry)}
 }
 
 func (_c *MockClient_RegistryCreate_Call) Run(run func(repoID int64, registry *crow.Registry)) *MockClient_RegistryCreate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(*crow.Registry))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 *crow.Registry
+		if args[1] != nil {
+			arg1 = args[1].(*crow.Registry)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -2789,15 +3220,26 @@ type MockClient_RegistryDelete_Call struct {
 }
 
 // RegistryDelete is a helper method to define mock.On call
-//   - repoID
-//   - hostname
+//   - repoID int64
+//   - hostname string
 func (_e *MockClient_Expecter) RegistryDelete(repoID interface{}, hostname interface{}) *MockClient_RegistryDelete_Call {
 	return &MockClient_RegistryDelete_Call{Call: _e.mock.On("RegistryDelete", repoID, hostname)}
 }
 
 func (_c *MockClient_RegistryDelete_Call) Run(run func(repoID int64, hostname string)) *MockClient_RegistryDelete_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(string))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -2846,15 +3288,26 @@ type MockClient_RegistryList_Call struct {
 }
 
 // RegistryList is a helper method to define mock.On call
-//   - repoID
-//   - opt
+//   - repoID int64
+//   - opt crow.RegistryListOptions
 func (_e *MockClient_Expecter) RegistryList(repoID interface{}, opt interface{}) *MockClient_RegistryList_Call {
 	return &MockClient_RegistryList_Call{Call: _e.mock.On("RegistryList", repoID, opt)}
 }
 
 func (_c *MockClient_RegistryList_Call) Run(run func(repoID int64, opt crow.RegistryListOptions)) *MockClient_RegistryList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(crow.RegistryListOptions))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 crow.RegistryListOptions
+		if args[1] != nil {
+			arg1 = args[1].(crow.RegistryListOptions)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -2903,15 +3356,26 @@ type MockClient_RegistryUpdate_Call struct {
 }
 
 // RegistryUpdate is a helper method to define mock.On call
-//   - repoID
-//   - registry
+//   - repoID int64
+//   - registry *crow.Registry
 func (_e *MockClient_Expecter) RegistryUpdate(repoID interface{}, registry interface{}) *MockClient_RegistryUpdate_Call {
 	return &MockClient_RegistryUpdate_Call{Call: _e.mock.On("RegistryUpdate", repoID, registry)}
 }
 
 func (_c *MockClient_RegistryUpdate_Call) Run(run func(repoID int64, registry *crow.Registry)) *MockClient_RegistryUpdate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(*crow.Registry))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 *crow.Registry
+		if args[1] != nil {
+			arg1 = args[1].(*crow.Registry)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -2960,14 +3424,20 @@ type MockClient_Repo_Call struct {
 }
 
 // Repo is a helper method to define mock.On call
-//   - repoID
+//   - repoID int64
 func (_e *MockClient_Expecter) Repo(repoID interface{}) *MockClient_Repo_Call {
 	return &MockClient_Repo_Call{Call: _e.mock.On("Repo", repoID)}
 }
 
 func (_c *MockClient_Repo_Call) Run(run func(repoID int64)) *MockClient_Repo_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -3016,14 +3486,20 @@ type MockClient_RepoChown_Call struct {
 }
 
 // RepoChown is a helper method to define mock.On call
-//   - repoID
+//   - repoID int64
 func (_e *MockClient_Expecter) RepoChown(repoID interface{}) *MockClient_RepoChown_Call {
 	return &MockClient_RepoChown_Call{Call: _e.mock.On("RepoChown", repoID)}
 }
 
 func (_c *MockClient_RepoChown_Call) Run(run func(repoID int64)) *MockClient_RepoChown_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -3061,14 +3537,20 @@ type MockClient_RepoDel_Call struct {
 }
 
 // RepoDel is a helper method to define mock.On call
-//   - repoID
+//   - repoID int64
 func (_e *MockClient_Expecter) RepoDel(repoID interface{}) *MockClient_RepoDel_Call {
 	return &MockClient_RepoDel_Call{Call: _e.mock.On("RepoDel", repoID)}
 }
 
 func (_c *MockClient_RepoDel_Call) Run(run func(repoID int64)) *MockClient_RepoDel_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -3117,14 +3599,20 @@ type MockClient_RepoList_Call struct {
 }
 
 // RepoList is a helper method to define mock.On call
-//   - opt
+//   - opt crow.RepoListOptions
 func (_e *MockClient_Expecter) RepoList(opt interface{}) *MockClient_RepoList_Call {
 	return &MockClient_RepoList_Call{Call: _e.mock.On("RepoList", opt)}
 }
 
 func (_c *MockClient_RepoList_Call) Run(run func(opt crow.RepoListOptions)) *MockClient_RepoList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(crow.RepoListOptions))
+		var arg0 crow.RepoListOptions
+		if args[0] != nil {
+			arg0 = args[0].(crow.RepoListOptions)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -3173,14 +3661,20 @@ type MockClient_RepoLookup_Call struct {
 }
 
 // RepoLookup is a helper method to define mock.On call
-//   - repoFullName
+//   - repoFullName string
 func (_e *MockClient_Expecter) RepoLookup(repoFullName interface{}) *MockClient_RepoLookup_Call {
 	return &MockClient_RepoLookup_Call{Call: _e.mock.On("RepoLookup", repoFullName)}
 }
 
 func (_c *MockClient_RepoLookup_Call) Run(run func(repoFullName string)) *MockClient_RepoLookup_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -3218,15 +3712,26 @@ type MockClient_RepoMove_Call struct {
 }
 
 // RepoMove is a helper method to define mock.On call
-//   - repoID
-//   - opt
+//   - repoID int64
+//   - opt crow.RepoMoveOptions
 func (_e *MockClient_Expecter) RepoMove(repoID interface{}, opt interface{}) *MockClient_RepoMove_Call {
 	return &MockClient_RepoMove_Call{Call: _e.mock.On("RepoMove", repoID, opt)}
 }
 
 func (_c *MockClient_RepoMove_Call) Run(run func(repoID int64, opt crow.RepoMoveOptions)) *MockClient_RepoMove_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(crow.RepoMoveOptions))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 crow.RepoMoveOptions
+		if args[1] != nil {
+			arg1 = args[1].(crow.RepoMoveOptions)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -3275,15 +3780,26 @@ type MockClient_RepoPatch_Call struct {
 }
 
 // RepoPatch is a helper method to define mock.On call
-//   - repoID
-//   - repo
+//   - repoID int64
+//   - repo *crow.RepoPatch
 func (_e *MockClient_Expecter) RepoPatch(repoID interface{}, repo interface{}) *MockClient_RepoPatch_Call {
 	return &MockClient_RepoPatch_Call{Call: _e.mock.On("RepoPatch", repoID, repo)}
 }
 
 func (_c *MockClient_RepoPatch_Call) Run(run func(repoID int64, repo *crow.RepoPatch)) *MockClient_RepoPatch_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(*crow.RepoPatch))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 *crow.RepoPatch
+		if args[1] != nil {
+			arg1 = args[1].(*crow.RepoPatch)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -3332,14 +3848,20 @@ type MockClient_RepoPost_Call struct {
 }
 
 // RepoPost is a helper method to define mock.On call
-//   - opt
+//   - opt crow.RepoPostOptions
 func (_e *MockClient_Expecter) RepoPost(opt interface{}) *MockClient_RepoPost_Call {
 	return &MockClient_RepoPost_Call{Call: _e.mock.On("RepoPost", opt)}
 }
 
 func (_c *MockClient_RepoPost_Call) Run(run func(opt crow.RepoPostOptions)) *MockClient_RepoPost_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(crow.RepoPostOptions))
+		var arg0 crow.RepoPostOptions
+		if args[0] != nil {
+			arg0 = args[0].(crow.RepoPostOptions)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -3377,14 +3899,20 @@ type MockClient_RepoRepair_Call struct {
 }
 
 // RepoRepair is a helper method to define mock.On call
-//   - repoID
+//   - repoID int64
 func (_e *MockClient_Expecter) RepoRepair(repoID interface{}) *MockClient_RepoRepair_Call {
 	return &MockClient_RepoRepair_Call{Call: _e.mock.On("RepoRepair", repoID)}
 }
 
 func (_c *MockClient_RepoRepair_Call) Run(run func(repoID int64)) *MockClient_RepoRepair_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -3433,15 +3961,26 @@ type MockClient_Secret_Call struct {
 }
 
 // Secret is a helper method to define mock.On call
-//   - repoID
-//   - secret
+//   - repoID int64
+//   - secret string
 func (_e *MockClient_Expecter) Secret(repoID interface{}, secret interface{}) *MockClient_Secret_Call {
 	return &MockClient_Secret_Call{Call: _e.mock.On("Secret", repoID, secret)}
 }
 
 func (_c *MockClient_Secret_Call) Run(run func(repoID int64, secret string)) *MockClient_Secret_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(string))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -3490,15 +4029,26 @@ type MockClient_SecretCreate_Call struct {
 }
 
 // SecretCreate is a helper method to define mock.On call
-//   - repoID
-//   - secret
+//   - repoID int64
+//   - secret *crow.Secret
 func (_e *MockClient_Expecter) SecretCreate(repoID interface{}, secret interface{}) *MockClient_SecretCreate_Call {
 	return &MockClient_SecretCreate_Call{Call: _e.mock.On("SecretCreate", repoID, secret)}
 }
 
 func (_c *MockClient_SecretCreate_Call) Run(run func(repoID int64, secret *crow.Secret)) *MockClient_SecretCreate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(*crow.Secret))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 *crow.Secret
+		if args[1] != nil {
+			arg1 = args[1].(*crow.Secret)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -3536,15 +4086,26 @@ type MockClient_SecretDelete_Call struct {
 }
 
 // SecretDelete is a helper method to define mock.On call
-//   - repoID
-//   - secret
+//   - repoID int64
+//   - secret string
 func (_e *MockClient_Expecter) SecretDelete(repoID interface{}, secret interface{}) *MockClient_SecretDelete_Call {
 	return &MockClient_SecretDelete_Call{Call: _e.mock.On("SecretDelete", repoID, secret)}
 }
 
 func (_c *MockClient_SecretDelete_Call) Run(run func(repoID int64, secret string)) *MockClient_SecretDelete_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(string))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -3593,15 +4154,26 @@ type MockClient_SecretList_Call struct {
 }
 
 // SecretList is a helper method to define mock.On call
-//   - repoID
-//   - opt
+//   - repoID int64
+//   - opt crow.SecretListOptions
 func (_e *MockClient_Expecter) SecretList(repoID interface{}, opt interface{}) *MockClient_SecretList_Call {
 	return &MockClient_SecretList_Call{Call: _e.mock.On("SecretList", repoID, opt)}
 }
 
 func (_c *MockClient_SecretList_Call) Run(run func(repoID int64, opt crow.SecretListOptions)) *MockClient_SecretList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(crow.SecretListOptions))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 crow.SecretListOptions
+		if args[1] != nil {
+			arg1 = args[1].(crow.SecretListOptions)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -3650,15 +4222,26 @@ type MockClient_SecretUpdate_Call struct {
 }
 
 // SecretUpdate is a helper method to define mock.On call
-//   - repoID
-//   - secret
+//   - repoID int64
+//   - secret *crow.Secret
 func (_e *MockClient_Expecter) SecretUpdate(repoID interface{}, secret interface{}) *MockClient_SecretUpdate_Call {
 	return &MockClient_SecretUpdate_Call{Call: _e.mock.On("SecretUpdate", repoID, secret)}
 }
 
 func (_c *MockClient_SecretUpdate_Call) Run(run func(repoID int64, secret *crow.Secret)) *MockClient_SecretUpdate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(*crow.Secret))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 *crow.Secret
+		if args[1] != nil {
+			arg1 = args[1].(*crow.Secret)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -3740,14 +4323,20 @@ type MockClient_SetAddress_Call struct {
 }
 
 // SetAddress is a helper method to define mock.On call
-//   - s
+//   - s string
 func (_e *MockClient_Expecter) SetAddress(s interface{}) *MockClient_SetAddress_Call {
 	return &MockClient_SetAddress_Call{Call: _e.mock.On("SetAddress", s)}
 }
 
 func (_c *MockClient_SetAddress_Call) Run(run func(s string)) *MockClient_SetAddress_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -3774,14 +4363,20 @@ type MockClient_SetClient_Call struct {
 }
 
 // SetClient is a helper method to define mock.On call
-//   - client
+//   - client *http.Client
 func (_e *MockClient_Expecter) SetClient(client interface{}) *MockClient_SetClient_Call {
 	return &MockClient_SetClient_Call{Call: _e.mock.On("SetClient", client)}
 }
 
 func (_c *MockClient_SetClient_Call) Run(run func(client *http.Client)) *MockClient_SetClient_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*http.Client))
+		var arg0 *http.Client
+		if args[0] != nil {
+			arg0 = args[0].(*http.Client)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -3830,14 +4425,20 @@ type MockClient_SetLogLevel_Call struct {
 }
 
 // SetLogLevel is a helper method to define mock.On call
-//   - logLevel
+//   - logLevel *crow.LogLevel
 func (_e *MockClient_Expecter) SetLogLevel(logLevel interface{}) *MockClient_SetLogLevel_Call {
 	return &MockClient_SetLogLevel_Call{Call: _e.mock.On("SetLogLevel", logLevel)}
 }
 
 func (_c *MockClient_SetLogLevel_Call) Run(run func(logLevel *crow.LogLevel)) *MockClient_SetLogLevel_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*crow.LogLevel))
+		var arg0 *crow.LogLevel
+		if args[0] != nil {
+			arg0 = args[0].(*crow.LogLevel)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -3886,16 +4487,32 @@ type MockClient_StepLogEntries_Call struct {
 }
 
 // StepLogEntries is a helper method to define mock.On call
-//   - repoID
-//   - pipeline
-//   - stepID
+//   - repoID int64
+//   - pipeline int64
+//   - stepID int64
 func (_e *MockClient_Expecter) StepLogEntries(repoID interface{}, pipeline interface{}, stepID interface{}) *MockClient_StepLogEntries_Call {
 	return &MockClient_StepLogEntries_Call{Call: _e.mock.On("StepLogEntries", repoID, pipeline, stepID)}
 }
 
 func (_c *MockClient_StepLogEntries_Call) Run(run func(repoID int64, pipeline int64, stepID int64)) *MockClient_StepLogEntries_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(int64), args[2].(int64))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		var arg2 int64
+		if args[2] != nil {
+			arg2 = args[2].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
 	})
 	return _c
 }
@@ -3933,16 +4550,32 @@ type MockClient_StepLogsPurge_Call struct {
 }
 
 // StepLogsPurge is a helper method to define mock.On call
-//   - repoID
-//   - pipelineNumber
-//   - stepID
+//   - repoID int64
+//   - pipelineNumber int64
+//   - stepID int64
 func (_e *MockClient_Expecter) StepLogsPurge(repoID interface{}, pipelineNumber interface{}, stepID interface{}) *MockClient_StepLogsPurge_Call {
 	return &MockClient_StepLogsPurge_Call{Call: _e.mock.On("StepLogsPurge", repoID, pipelineNumber, stepID)}
 }
 
 func (_c *MockClient_StepLogsPurge_Call) Run(run func(repoID int64, pipelineNumber int64, stepID int64)) *MockClient_StepLogsPurge_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(int64), args[2].(int64))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		var arg2 int64
+		if args[2] != nil {
+			arg2 = args[2].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
 	})
 	return _c
 }
@@ -3991,14 +4624,20 @@ type MockClient_User_Call struct {
 }
 
 // User is a helper method to define mock.On call
-//   - s
+//   - s string
 func (_e *MockClient_Expecter) User(s interface{}) *MockClient_User_Call {
 	return &MockClient_User_Call{Call: _e.mock.On("User", s)}
 }
 
 func (_c *MockClient_User_Call) Run(run func(s string)) *MockClient_User_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -4036,14 +4675,20 @@ type MockClient_UserDel_Call struct {
 }
 
 // UserDel is a helper method to define mock.On call
-//   - s
+//   - s string
 func (_e *MockClient_Expecter) UserDel(s interface{}) *MockClient_UserDel_Call {
 	return &MockClient_UserDel_Call{Call: _e.mock.On("UserDel", s)}
 }
 
 func (_c *MockClient_UserDel_Call) Run(run func(s string)) *MockClient_UserDel_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -4092,14 +4737,20 @@ type MockClient_UserList_Call struct {
 }
 
 // UserList is a helper method to define mock.On call
-//   - opt
+//   - opt crow.UserListOptions
 func (_e *MockClient_Expecter) UserList(opt interface{}) *MockClient_UserList_Call {
 	return &MockClient_UserList_Call{Call: _e.mock.On("UserList", opt)}
 }
 
 func (_c *MockClient_UserList_Call) Run(run func(opt crow.UserListOptions)) *MockClient_UserList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(crow.UserListOptions))
+		var arg0 crow.UserListOptions
+		if args[0] != nil {
+			arg0 = args[0].(crow.UserListOptions)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -4148,14 +4799,20 @@ type MockClient_UserPatch_Call struct {
 }
 
 // UserPatch is a helper method to define mock.On call
-//   - user
+//   - user *crow.User
 func (_e *MockClient_Expecter) UserPatch(user interface{}) *MockClient_UserPatch_Call {
 	return &MockClient_UserPatch_Call{Call: _e.mock.On("UserPatch", user)}
 }
 
 func (_c *MockClient_UserPatch_Call) Run(run func(user *crow.User)) *MockClient_UserPatch_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*crow.User))
+		var arg0 *crow.User
+		if args[0] != nil {
+			arg0 = args[0].(*crow.User)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -4204,14 +4861,20 @@ type MockClient_UserPost_Call struct {
 }
 
 // UserPost is a helper method to define mock.On call
-//   - user
+//   - user *crow.User
 func (_e *MockClient_Expecter) UserPost(user interface{}) *MockClient_UserPost_Call {
 	return &MockClient_UserPost_Call{Call: _e.mock.On("UserPost", user)}
 }
 
 func (_c *MockClient_UserPost_Call) Run(run func(user *crow.User)) *MockClient_UserPost_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*crow.User))
+		var arg0 *crow.User
+		if args[0] != nil {
+			arg0 = args[0].(*crow.User)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -4222,6 +4885,69 @@ func (_c *MockClient_UserPost_Call) Return(user1 *crow.User, err error) *MockCli
 }
 
 func (_c *MockClient_UserPost_Call) RunAndReturn(run func(user *crow.User) (*crow.User, error)) *MockClient_UserPost_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// WorkflowCancel provides a mock function for the type MockClient
+func (_mock *MockClient) WorkflowCancel(repoID int64, pipeline int64, workflowID int64) error {
+	ret := _mock.Called(repoID, pipeline, workflowID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WorkflowCancel")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, int64) error); ok {
+		r0 = returnFunc(repoID, pipeline, workflowID)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockClient_WorkflowCancel_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WorkflowCancel'
+type MockClient_WorkflowCancel_Call struct {
+	*mock.Call
+}
+
+// WorkflowCancel is a helper method to define mock.On call
+//   - repoID int64
+//   - pipeline int64
+//   - workflowID int64
+func (_e *MockClient_Expecter) WorkflowCancel(repoID interface{}, pipeline interface{}, workflowID interface{}) *MockClient_WorkflowCancel_Call {
+	return &MockClient_WorkflowCancel_Call{Call: _e.mock.On("WorkflowCancel", repoID, pipeline, workflowID)}
+}
+
+func (_c *MockClient_WorkflowCancel_Call) Run(run func(repoID int64, pipeline int64, workflowID int64)) *MockClient_WorkflowCancel_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		var arg2 int64
+		if args[2] != nil {
+			arg2 = args[2].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_WorkflowCancel_Call) Return(err error) *MockClient_WorkflowCancel_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockClient_WorkflowCancel_Call) RunAndReturn(run func(repoID int64, pipeline int64, workflowID int64) error) *MockClient_WorkflowCancel_Call {
 	_c.Call.Return(run)
 	return _c
 }

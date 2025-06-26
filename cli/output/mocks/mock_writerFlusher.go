@@ -111,14 +111,20 @@ type mockwriterFlusher_Write_Call struct {
 }
 
 // Write is a helper method to define mock.On call
-//   - p
+//   - p []byte
 func (_e *mockwriterFlusher_Expecter) Write(p interface{}) *mockwriterFlusher_Write_Call {
 	return &mockwriterFlusher_Write_Call{Call: _e.mock.On("Write", p)}
 }
 
 func (_c *mockwriterFlusher_Write_Call) Run(run func(p []byte)) *mockwriterFlusher_Write_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].([]byte))
+		var arg0 []byte
+		if args[0] != nil {
+			arg0 = args[0].([]byte)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }

@@ -245,7 +245,8 @@
         "log_auto_scroll": "Enable automatic log scrolling",
         "log_auto_scroll_off": "Disable automatic log scrolling",
         "log_scroll_to_bottom": "Scroll to bottom",
-        "log_scroll_to_top": "Scroll to top"
+        "log_scroll_to_top": "Scroll to top",
+        "canceled_by_user": "Canceled by user"
       },
       "protected": {
         "awaits": "This pipeline is awaiting approval from a maintainer.",

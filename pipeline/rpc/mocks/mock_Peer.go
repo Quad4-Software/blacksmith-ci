@@ -61,16 +61,32 @@ type MockPeer_Done_Call struct {
 }
 
 // Done is a helper method to define mock.On call
-//   - c
-//   - workflowID
-//   - state
+//   - c context.Context
+//   - workflowID string
+//   - state rpc.WorkflowState
 func (_e *MockPeer_Expecter) Done(c interface{}, workflowID interface{}, state interface{}) *MockPeer_Done_Call {
 	return &MockPeer_Done_Call{Call: _e.mock.On("Done", c, workflowID, state)}
 }
 
 func (_c *MockPeer_Done_Call) Run(run func(c context.Context, workflowID string, state rpc.WorkflowState)) *MockPeer_Done_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(rpc.WorkflowState))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 rpc.WorkflowState
+		if args[2] != nil {
+			arg2 = args[2].(rpc.WorkflowState)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
 	})
 	return _c
 }
@@ -97,14 +113,20 @@ type MockPeer_EnqueueLog_Call struct {
 }
 
 // EnqueueLog is a helper method to define mock.On call
-//   - logEntry
+//   - logEntry *rpc.LogEntry
 func (_e *MockPeer_Expecter) EnqueueLog(logEntry interface{}) *MockPeer_EnqueueLog_Call {
 	return &MockPeer_EnqueueLog_Call{Call: _e.mock.On("EnqueueLog", logEntry)}
 }
 
 func (_c *MockPeer_EnqueueLog_Call) Run(run func(logEntry *rpc.LogEntry)) *MockPeer_EnqueueLog_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*rpc.LogEntry))
+		var arg0 *rpc.LogEntry
+		if args[0] != nil {
+			arg0 = args[0].(*rpc.LogEntry)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -142,15 +164,26 @@ type MockPeer_Extend_Call struct {
 }
 
 // Extend is a helper method to define mock.On call
-//   - c
-//   - workflowID
+//   - c context.Context
+//   - workflowID string
 func (_e *MockPeer_Expecter) Extend(c interface{}, workflowID interface{}) *MockPeer_Extend_Call {
 	return &MockPeer_Extend_Call{Call: _e.mock.On("Extend", c, workflowID)}
 }
 
 func (_c *MockPeer_Extend_Call) Run(run func(c context.Context, workflowID string)) *MockPeer_Extend_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -188,16 +221,32 @@ type MockPeer_Init_Call struct {
 }
 
 // Init is a helper method to define mock.On call
-//   - c
-//   - workflowID
-//   - state
+//   - c context.Context
+//   - workflowID string
+//   - state rpc.WorkflowState
 func (_e *MockPeer_Expecter) Init(c interface{}, workflowID interface{}, state interface{}) *MockPeer_Init_Call {
 	return &MockPeer_Init_Call{Call: _e.mock.On("Init", c, workflowID, state)}
 }
 
 func (_c *MockPeer_Init_Call) Run(run func(c context.Context, workflowID string, state rpc.WorkflowState)) *MockPeer_Init_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(rpc.WorkflowState))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 rpc.WorkflowState
+		if args[2] != nil {
+			arg2 = args[2].(rpc.WorkflowState)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
 	})
 	return _c
 }
@@ -246,15 +295,26 @@ type MockPeer_Next_Call struct {
 }
 
 // Next is a helper method to define mock.On call
-//   - c
-//   - f
+//   - c context.Context
+//   - f rpc.Filter
 func (_e *MockPeer_Expecter) Next(c interface{}, f interface{}) *MockPeer_Next_Call {
 	return &MockPeer_Next_Call{Call: _e.mock.On("Next", c, f)}
 }
 
 func (_c *MockPeer_Next_Call) Run(run func(c context.Context, f rpc.Filter)) *MockPeer_Next_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(rpc.Filter))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 rpc.Filter
+		if args[1] != nil {
+			arg1 = args[1].(rpc.Filter)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -301,15 +361,26 @@ type MockPeer_RegisterAgent_Call struct {
 }
 
 // RegisterAgent is a helper method to define mock.On call
-//   - ctx
-//   - info
+//   - ctx context.Context
+//   - info rpc.AgentInfo
 func (_e *MockPeer_Expecter) RegisterAgent(ctx interface{}, info interface{}) *MockPeer_RegisterAgent_Call {
 	return &MockPeer_RegisterAgent_Call{Call: _e.mock.On("RegisterAgent", ctx, info)}
 }
 
 func (_c *MockPeer_RegisterAgent_Call) Run(run func(ctx context.Context, info rpc.AgentInfo)) *MockPeer_RegisterAgent_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(rpc.AgentInfo))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 rpc.AgentInfo
+		if args[1] != nil {
+			arg1 = args[1].(rpc.AgentInfo)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -347,14 +418,20 @@ type MockPeer_ReportHealth_Call struct {
 }
 
 // ReportHealth is a helper method to define mock.On call
-//   - c
+//   - c context.Context
 func (_e *MockPeer_Expecter) ReportHealth(c interface{}) *MockPeer_ReportHealth_Call {
 	return &MockPeer_ReportHealth_Call{Call: _e.mock.On("ReportHealth", c)}
 }
 
 func (_c *MockPeer_ReportHealth_Call) Run(run func(c context.Context)) *MockPeer_ReportHealth_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -392,14 +469,20 @@ type MockPeer_UnregisterAgent_Call struct {
 }
 
 // UnregisterAgent is a helper method to define mock.On call
-//   - ctx
+//   - ctx context.Context
 func (_e *MockPeer_Expecter) UnregisterAgent(ctx interface{}) *MockPeer_UnregisterAgent_Call {
 	return &MockPeer_UnregisterAgent_Call{Call: _e.mock.On("UnregisterAgent", ctx)}
 }
 
 func (_c *MockPeer_UnregisterAgent_Call) Run(run func(ctx context.Context)) *MockPeer_UnregisterAgent_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -437,16 +520,32 @@ type MockPeer_Update_Call struct {
 }
 
 // Update is a helper method to define mock.On call
-//   - c
-//   - workflowID
-//   - state
+//   - c context.Context
+//   - workflowID string
+//   - state rpc.StepState
 func (_e *MockPeer_Expecter) Update(c interface{}, workflowID interface{}, state interface{}) *MockPeer_Update_Call {
 	return &MockPeer_Update_Call{Call: _e.mock.On("Update", c, workflowID, state)}
 }
 
 func (_c *MockPeer_Update_Call) Run(run func(c context.Context, workflowID string, state rpc.StepState)) *MockPeer_Update_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(rpc.StepState))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 rpc.StepState
+		if args[2] != nil {
+			arg2 = args[2].(rpc.StepState)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
 	})
 	return _c
 }
@@ -495,14 +594,20 @@ type MockPeer_Version_Call struct {
 }
 
 // Version is a helper method to define mock.On call
-//   - c
+//   - c context.Context
 func (_e *MockPeer_Expecter) Version(c interface{}) *MockPeer_Version_Call {
 	return &MockPeer_Version_Call{Call: _e.mock.On("Version", c)}
 }
 
 func (_c *MockPeer_Version_Call) Run(run func(c context.Context)) *MockPeer_Version_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -540,15 +645,26 @@ type MockPeer_Wait_Call struct {
 }
 
 // Wait is a helper method to define mock.On call
-//   - c
-//   - workflowID
+//   - c context.Context
+//   - workflowID string
 func (_e *MockPeer_Expecter) Wait(c interface{}, workflowID interface{}) *MockPeer_Wait_Call {
 	return &MockPeer_Wait_Call{Call: _e.mock.On("Wait", c, workflowID)}
 }
 
 func (_c *MockPeer_Wait_Call) Run(run func(c context.Context, workflowID string)) *MockPeer_Wait_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }

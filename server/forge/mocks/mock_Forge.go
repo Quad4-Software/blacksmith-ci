@@ -63,17 +63,38 @@ type MockForge_Activate_Call struct {
 }
 
 // Activate is a helper method to define mock.On call
-//   - ctx
-//   - u
-//   - r
-//   - link
+//   - ctx context.Context
+//   - u *model.User
+//   - r *model.Repo
+//   - link string
 func (_e *MockForge_Expecter) Activate(ctx interface{}, u interface{}, r interface{}, link interface{}) *MockForge_Activate_Call {
 	return &MockForge_Activate_Call{Call: _e.mock.On("Activate", ctx, u, r, link)}
 }
 
 func (_c *MockForge_Activate_Call) Run(run func(ctx context.Context, u *model.User, r *model.Repo, link string)) *MockForge_Activate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*model.User), args[2].(*model.Repo), args[3].(string))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *model.User
+		if args[1] != nil {
+			arg1 = args[1].(*model.User)
+		}
+		var arg2 *model.Repo
+		if args[2] != nil {
+			arg2 = args[2].(*model.Repo)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
 	})
 	return _c
 }
@@ -120,16 +141,32 @@ type MockForge_Auth_Call struct {
 }
 
 // Auth is a helper method to define mock.On call
-//   - ctx
-//   - token
-//   - secret
+//   - ctx context.Context
+//   - token string
+//   - secret string
 func (_e *MockForge_Expecter) Auth(ctx interface{}, token interface{}, secret interface{}) *MockForge_Auth_Call {
 	return &MockForge_Auth_Call{Call: _e.mock.On("Auth", ctx, token, secret)}
 }
 
 func (_c *MockForge_Auth_Call) Run(run func(ctx context.Context, token string, secret string)) *MockForge_Auth_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(string))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
 	})
 	return _c
 }
@@ -178,17 +215,38 @@ type MockForge_BranchHead_Call struct {
 }
 
 // BranchHead is a helper method to define mock.On call
-//   - ctx
-//   - u
-//   - r
-//   - branch
+//   - ctx context.Context
+//   - u *model.User
+//   - r *model.Repo
+//   - branch string
 func (_e *MockForge_Expecter) BranchHead(ctx interface{}, u interface{}, r interface{}, branch interface{}) *MockForge_BranchHead_Call {
 	return &MockForge_BranchHead_Call{Call: _e.mock.On("BranchHead", ctx, u, r, branch)}
 }
 
 func (_c *MockForge_BranchHead_Call) Run(run func(ctx context.Context, u *model.User, r *model.Repo, branch string)) *MockForge_BranchHead_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*model.User), args[2].(*model.Repo), args[3].(string))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *model.User
+		if args[1] != nil {
+			arg1 = args[1].(*model.User)
+		}
+		var arg2 *model.Repo
+		if args[2] != nil {
+			arg2 = args[2].(*model.Repo)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
 	})
 	return _c
 }
@@ -237,17 +295,38 @@ type MockForge_Branches_Call struct {
 }
 
 // Branches is a helper method to define mock.On call
-//   - ctx
-//   - u
-//   - r
-//   - p
+//   - ctx context.Context
+//   - u *model.User
+//   - r *model.Repo
+//   - p *model.ListOptions
 func (_e *MockForge_Expecter) Branches(ctx interface{}, u interface{}, r interface{}, p interface{}) *MockForge_Branches_Call {
 	return &MockForge_Branches_Call{Call: _e.mock.On("Branches", ctx, u, r, p)}
 }
 
 func (_c *MockForge_Branches_Call) Run(run func(ctx context.Context, u *model.User, r *model.Repo, p *model.ListOptions)) *MockForge_Branches_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*model.User), args[2].(*model.Repo), args[3].(*model.ListOptions))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *model.User
+		if args[1] != nil {
+			arg1 = args[1].(*model.User)
+		}
+		var arg2 *model.Repo
+		if args[2] != nil {
+			arg2 = args[2].(*model.Repo)
+		}
+		var arg3 *model.ListOptions
+		if args[3] != nil {
+			arg3 = args[3].(*model.ListOptions)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
 	})
 	return _c
 }
@@ -285,17 +364,38 @@ type MockForge_Deactivate_Call struct {
 }
 
 // Deactivate is a helper method to define mock.On call
-//   - ctx
-//   - u
-//   - r
-//   - link
+//   - ctx context.Context
+//   - u *model.User
+//   - r *model.Repo
+//   - link string
 func (_e *MockForge_Expecter) Deactivate(ctx interface{}, u interface{}, r interface{}, link interface{}) *MockForge_Deactivate_Call {
 	return &MockForge_Deactivate_Call{Call: _e.mock.On("Deactivate", ctx, u, r, link)}
 }
 
 func (_c *MockForge_Deactivate_Call) Run(run func(ctx context.Context, u *model.User, r *model.Repo, link string)) *MockForge_Deactivate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*model.User), args[2].(*model.Repo), args[3].(string))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *model.User
+		if args[1] != nil {
+			arg1 = args[1].(*model.User)
+		}
+		var arg2 *model.Repo
+		if args[2] != nil {
+			arg2 = args[2].(*model.Repo)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
 	})
 	return _c
 }
@@ -344,18 +444,44 @@ type MockForge_Dir_Call struct {
 }
 
 // Dir is a helper method to define mock.On call
-//   - ctx
-//   - u
-//   - r
-//   - b
-//   - f
+//   - ctx context.Context
+//   - u *model.User
+//   - r *model.Repo
+//   - b *model.Pipeline
+//   - f string
 func (_e *MockForge_Expecter) Dir(ctx interface{}, u interface{}, r interface{}, b interface{}, f interface{}) *MockForge_Dir_Call {
 	return &MockForge_Dir_Call{Call: _e.mock.On("Dir", ctx, u, r, b, f)}
 }
 
 func (_c *MockForge_Dir_Call) Run(run func(ctx context.Context, u *model.User, r *model.Repo, b *model.Pipeline, f string)) *MockForge_Dir_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*model.User), args[2].(*model.Repo), args[3].(*model.Pipeline), args[4].(string))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *model.User
+		if args[1] != nil {
+			arg1 = args[1].(*model.User)
+		}
+		var arg2 *model.Repo
+		if args[2] != nil {
+			arg2 = args[2].(*model.Repo)
+		}
+		var arg3 *model.Pipeline
+		if args[3] != nil {
+			arg3 = args[3].(*model.Pipeline)
+		}
+		var arg4 string
+		if args[4] != nil {
+			arg4 = args[4].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+		)
 	})
 	return _c
 }
@@ -404,18 +530,44 @@ type MockForge_File_Call struct {
 }
 
 // File is a helper method to define mock.On call
-//   - ctx
-//   - u
-//   - r
-//   - b
-//   - f
+//   - ctx context.Context
+//   - u *model.User
+//   - r *model.Repo
+//   - b *model.Pipeline
+//   - f string
 func (_e *MockForge_Expecter) File(ctx interface{}, u interface{}, r interface{}, b interface{}, f interface{}) *MockForge_File_Call {
 	return &MockForge_File_Call{Call: _e.mock.On("File", ctx, u, r, b, f)}
 }
 
 func (_c *MockForge_File_Call) Run(run func(ctx context.Context, u *model.User, r *model.Repo, b *model.Pipeline, f string)) *MockForge_File_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*model.User), args[2].(*model.Repo), args[3].(*model.Pipeline), args[4].(string))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *model.User
+		if args[1] != nil {
+			arg1 = args[1].(*model.User)
+		}
+		var arg2 *model.Repo
+		if args[2] != nil {
+			arg2 = args[2].(*model.Repo)
+		}
+		var arg3 *model.Pipeline
+		if args[3] != nil {
+			arg3 = args[3].(*model.Pipeline)
+		}
+		var arg4 string
+		if args[4] != nil {
+			arg4 = args[4].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+		)
 	})
 	return _c
 }
@@ -472,15 +624,26 @@ type MockForge_Hook_Call struct {
 }
 
 // Hook is a helper method to define mock.On call
-//   - ctx
-//   - r
+//   - ctx context.Context
+//   - r *http.Request
 func (_e *MockForge_Expecter) Hook(ctx interface{}, r interface{}) *MockForge_Hook_Call {
 	return &MockForge_Hook_Call{Call: _e.mock.On("Hook", ctx, r)}
 }
 
 func (_c *MockForge_Hook_Call) Run(run func(ctx context.Context, r *http.Request)) *MockForge_Hook_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*http.Request))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *http.Request
+		if args[1] != nil {
+			arg1 = args[1].(*http.Request)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -535,15 +698,26 @@ type MockForge_Login_Call struct {
 }
 
 // Login is a helper method to define mock.On call
-//   - ctx
-//   - r
+//   - ctx context.Context
+//   - r *types.OAuthRequest
 func (_e *MockForge_Expecter) Login(ctx interface{}, r interface{}) *MockForge_Login_Call {
 	return &MockForge_Login_Call{Call: _e.mock.On("Login", ctx, r)}
 }
 
 func (_c *MockForge_Login_Call) Run(run func(ctx context.Context, r *types.OAuthRequest)) *MockForge_Login_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*types.OAuthRequest))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *types.OAuthRequest
+		if args[1] != nil {
+			arg1 = args[1].(*types.OAuthRequest)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -636,15 +810,26 @@ type MockForge_Netrc_Call struct {
 }
 
 // Netrc is a helper method to define mock.On call
-//   - u
-//   - r
+//   - u *model.User
+//   - r *model.Repo
 func (_e *MockForge_Expecter) Netrc(u interface{}, r interface{}) *MockForge_Netrc_Call {
 	return &MockForge_Netrc_Call{Call: _e.mock.On("Netrc", u, r)}
 }
 
 func (_c *MockForge_Netrc_Call) Run(run func(u *model.User, r *model.Repo)) *MockForge_Netrc_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.User), args[1].(*model.Repo))
+		var arg0 *model.User
+		if args[0] != nil {
+			arg0 = args[0].(*model.User)
+		}
+		var arg1 *model.Repo
+		if args[1] != nil {
+			arg1 = args[1].(*model.Repo)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -693,16 +878,32 @@ type MockForge_Org_Call struct {
 }
 
 // Org is a helper method to define mock.On call
-//   - ctx
-//   - u
-//   - org
+//   - ctx context.Context
+//   - u *model.User
+//   - org string
 func (_e *MockForge_Expecter) Org(ctx interface{}, u interface{}, org interface{}) *MockForge_Org_Call {
 	return &MockForge_Org_Call{Call: _e.mock.On("Org", ctx, u, org)}
 }
 
 func (_c *MockForge_Org_Call) Run(run func(ctx context.Context, u *model.User, org string)) *MockForge_Org_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*model.User), args[2].(string))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *model.User
+		if args[1] != nil {
+			arg1 = args[1].(*model.User)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
 	})
 	return _c
 }
@@ -751,16 +952,32 @@ type MockForge_OrgMembership_Call struct {
 }
 
 // OrgMembership is a helper method to define mock.On call
-//   - ctx
-//   - u
-//   - org
+//   - ctx context.Context
+//   - u *model.User
+//   - org string
 func (_e *MockForge_Expecter) OrgMembership(ctx interface{}, u interface{}, org interface{}) *MockForge_OrgMembership_Call {
 	return &MockForge_OrgMembership_Call{Call: _e.mock.On("OrgMembership", ctx, u, org)}
 }
 
 func (_c *MockForge_OrgMembership_Call) Run(run func(ctx context.Context, u *model.User, org string)) *MockForge_OrgMembership_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*model.User), args[2].(string))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *model.User
+		if args[1] != nil {
+			arg1 = args[1].(*model.User)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
 	})
 	return _c
 }
@@ -809,17 +1026,38 @@ type MockForge_PullRequests_Call struct {
 }
 
 // PullRequests is a helper method to define mock.On call
-//   - ctx
-//   - u
-//   - r
-//   - p
+//   - ctx context.Context
+//   - u *model.User
+//   - r *model.Repo
+//   - p *model.ListOptions
 func (_e *MockForge_Expecter) PullRequests(ctx interface{}, u interface{}, r interface{}, p interface{}) *MockForge_PullRequests_Call {
 	return &MockForge_PullRequests_Call{Call: _e.mock.On("PullRequests", ctx, u, r, p)}
 }
 
 func (_c *MockForge_PullRequests_Call) Run(run func(ctx context.Context, u *model.User, r *model.Repo, p *model.ListOptions)) *MockForge_PullRequests_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*model.User), args[2].(*model.Repo), args[3].(*model.ListOptions))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *model.User
+		if args[1] != nil {
+			arg1 = args[1].(*model.User)
+		}
+		var arg2 *model.Repo
+		if args[2] != nil {
+			arg2 = args[2].(*model.Repo)
+		}
+		var arg3 *model.ListOptions
+		if args[3] != nil {
+			arg3 = args[3].(*model.ListOptions)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
 	})
 	return _c
 }
@@ -868,18 +1106,44 @@ type MockForge_Repo_Call struct {
 }
 
 // Repo is a helper method to define mock.On call
-//   - ctx
-//   - u
-//   - remoteID
-//   - owner
-//   - name
+//   - ctx context.Context
+//   - u *model.User
+//   - remoteID model.ForgeRemoteID
+//   - owner string
+//   - name string
 func (_e *MockForge_Expecter) Repo(ctx interface{}, u interface{}, remoteID interface{}, owner interface{}, name interface{}) *MockForge_Repo_Call {
 	return &MockForge_Repo_Call{Call: _e.mock.On("Repo", ctx, u, remoteID, owner, name)}
 }
 
 func (_c *MockForge_Repo_Call) Run(run func(ctx context.Context, u *model.User, remoteID model.ForgeRemoteID, owner string, name string)) *MockForge_Repo_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*model.User), args[2].(model.ForgeRemoteID), args[3].(string), args[4].(string))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *model.User
+		if args[1] != nil {
+			arg1 = args[1].(*model.User)
+		}
+		var arg2 model.ForgeRemoteID
+		if args[2] != nil {
+			arg2 = args[2].(model.ForgeRemoteID)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		var arg4 string
+		if args[4] != nil {
+			arg4 = args[4].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+		)
 	})
 	return _c
 }
@@ -928,15 +1192,26 @@ type MockForge_Repos_Call struct {
 }
 
 // Repos is a helper method to define mock.On call
-//   - ctx
-//   - u
+//   - ctx context.Context
+//   - u *model.User
 func (_e *MockForge_Expecter) Repos(ctx interface{}, u interface{}) *MockForge_Repos_Call {
 	return &MockForge_Repos_Call{Call: _e.mock.On("Repos", ctx, u)}
 }
 
 func (_c *MockForge_Repos_Call) Run(run func(ctx context.Context, u *model.User)) *MockForge_Repos_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*model.User))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *model.User
+		if args[1] != nil {
+			arg1 = args[1].(*model.User)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -974,18 +1249,44 @@ type MockForge_Status_Call struct {
 }
 
 // Status is a helper method to define mock.On call
-//   - ctx
-//   - u
-//   - r
-//   - b
-//   - p
+//   - ctx context.Context
+//   - u *model.User
+//   - r *model.Repo
+//   - b *model.Pipeline
+//   - p *model.Workflow
 func (_e *MockForge_Expecter) Status(ctx interface{}, u interface{}, r interface{}, b interface{}, p interface{}) *MockForge_Status_Call {
 	return &MockForge_Status_Call{Call: _e.mock.On("Status", ctx, u, r, b, p)}
 }
 
 func (_c *MockForge_Status_Call) Run(run func(ctx context.Context, u *model.User, r *model.Repo, b *model.Pipeline, p *model.Workflow)) *MockForge_Status_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*model.User), args[2].(*model.Repo), args[3].(*model.Pipeline), args[4].(*model.Workflow))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *model.User
+		if args[1] != nil {
+			arg1 = args[1].(*model.User)
+		}
+		var arg2 *model.Repo
+		if args[2] != nil {
+			arg2 = args[2].(*model.Repo)
+		}
+		var arg3 *model.Pipeline
+		if args[3] != nil {
+			arg3 = args[3].(*model.Pipeline)
+		}
+		var arg4 *model.Workflow
+		if args[4] != nil {
+			arg4 = args[4].(*model.Workflow)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+		)
 	})
 	return _c
 }
@@ -1034,15 +1335,26 @@ type MockForge_Teams_Call struct {
 }
 
 // Teams is a helper method to define mock.On call
-//   - ctx
-//   - u
+//   - ctx context.Context
+//   - u *model.User
 func (_e *MockForge_Expecter) Teams(ctx interface{}, u interface{}) *MockForge_Teams_Call {
 	return &MockForge_Teams_Call{Call: _e.mock.On("Teams", ctx, u)}
 }
 
 func (_c *MockForge_Teams_Call) Run(run func(ctx context.Context, u *model.User)) *MockForge_Teams_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*model.User))
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *model.User
+		if args[1] != nil {
+			arg1 = args[1].(*model.User)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }

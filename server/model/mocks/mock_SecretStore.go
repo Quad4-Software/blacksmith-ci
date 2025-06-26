@@ -70,14 +70,20 @@ type MockSecretStore_GlobalSecretFind_Call struct {
 }
 
 // GlobalSecretFind is a helper method to define mock.On call
-//   - s
+//   - s string
 func (_e *MockSecretStore_Expecter) GlobalSecretFind(s interface{}) *MockSecretStore_GlobalSecretFind_Call {
 	return &MockSecretStore_GlobalSecretFind_Call{Call: _e.mock.On("GlobalSecretFind", s)}
 }
 
 func (_c *MockSecretStore_GlobalSecretFind_Call) Run(run func(s string)) *MockSecretStore_GlobalSecretFind_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -126,14 +132,20 @@ type MockSecretStore_GlobalSecretList_Call struct {
 }
 
 // GlobalSecretList is a helper method to define mock.On call
-//   - listOptions
+//   - listOptions *model.ListOptions
 func (_e *MockSecretStore_Expecter) GlobalSecretList(listOptions interface{}) *MockSecretStore_GlobalSecretList_Call {
 	return &MockSecretStore_GlobalSecretList_Call{Call: _e.mock.On("GlobalSecretList", listOptions)}
 }
 
 func (_c *MockSecretStore_GlobalSecretList_Call) Run(run func(listOptions *model.ListOptions)) *MockSecretStore_GlobalSecretList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.ListOptions))
+		var arg0 *model.ListOptions
+		if args[0] != nil {
+			arg0 = args[0].(*model.ListOptions)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -182,15 +194,26 @@ type MockSecretStore_OrgSecretFind_Call struct {
 }
 
 // OrgSecretFind is a helper method to define mock.On call
-//   - n
-//   - s
+//   - n int64
+//   - s string
 func (_e *MockSecretStore_Expecter) OrgSecretFind(n interface{}, s interface{}) *MockSecretStore_OrgSecretFind_Call {
 	return &MockSecretStore_OrgSecretFind_Call{Call: _e.mock.On("OrgSecretFind", n, s)}
 }
 
 func (_c *MockSecretStore_OrgSecretFind_Call) Run(run func(n int64, s string)) *MockSecretStore_OrgSecretFind_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(string))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -239,15 +262,26 @@ type MockSecretStore_OrgSecretList_Call struct {
 }
 
 // OrgSecretList is a helper method to define mock.On call
-//   - n
-//   - listOptions
+//   - n int64
+//   - listOptions *model.ListOptions
 func (_e *MockSecretStore_Expecter) OrgSecretList(n interface{}, listOptions interface{}) *MockSecretStore_OrgSecretList_Call {
 	return &MockSecretStore_OrgSecretList_Call{Call: _e.mock.On("OrgSecretList", n, listOptions)}
 }
 
 func (_c *MockSecretStore_OrgSecretList_Call) Run(run func(n int64, listOptions *model.ListOptions)) *MockSecretStore_OrgSecretList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int64), args[1].(*model.ListOptions))
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 *model.ListOptions
+		if args[1] != nil {
+			arg1 = args[1].(*model.ListOptions)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -285,14 +319,20 @@ type MockSecretStore_SecretCreate_Call struct {
 }
 
 // SecretCreate is a helper method to define mock.On call
-//   - secret
+//   - secret *model.Secret
 func (_e *MockSecretStore_Expecter) SecretCreate(secret interface{}) *MockSecretStore_SecretCreate_Call {
 	return &MockSecretStore_SecretCreate_Call{Call: _e.mock.On("SecretCreate", secret)}
 }
 
 func (_c *MockSecretStore_SecretCreate_Call) Run(run func(secret *model.Secret)) *MockSecretStore_SecretCreate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Secret))
+		var arg0 *model.Secret
+		if args[0] != nil {
+			arg0 = args[0].(*model.Secret)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -330,14 +370,20 @@ type MockSecretStore_SecretDelete_Call struct {
 }
 
 // SecretDelete is a helper method to define mock.On call
-//   - secret
+//   - secret *model.Secret
 func (_e *MockSecretStore_Expecter) SecretDelete(secret interface{}) *MockSecretStore_SecretDelete_Call {
 	return &MockSecretStore_SecretDelete_Call{Call: _e.mock.On("SecretDelete", secret)}
 }
 
 func (_c *MockSecretStore_SecretDelete_Call) Run(run func(secret *model.Secret)) *MockSecretStore_SecretDelete_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Secret))
+		var arg0 *model.Secret
+		if args[0] != nil {
+			arg0 = args[0].(*model.Secret)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -386,15 +432,26 @@ type MockSecretStore_SecretFind_Call struct {
 }
 
 // SecretFind is a helper method to define mock.On call
-//   - repo
-//   - s
+//   - repo *model.Repo
+//   - s string
 func (_e *MockSecretStore_Expecter) SecretFind(repo interface{}, s interface{}) *MockSecretStore_SecretFind_Call {
 	return &MockSecretStore_SecretFind_Call{Call: _e.mock.On("SecretFind", repo, s)}
 }
 
 func (_c *MockSecretStore_SecretFind_Call) Run(run func(repo *model.Repo, s string)) *MockSecretStore_SecretFind_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Repo), args[1].(string))
+		var arg0 *model.Repo
+		if args[0] != nil {
+			arg0 = args[0].(*model.Repo)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -443,16 +500,32 @@ type MockSecretStore_SecretList_Call struct {
 }
 
 // SecretList is a helper method to define mock.On call
-//   - repo
-//   - b
-//   - listOptions
+//   - repo *model.Repo
+//   - b bool
+//   - listOptions *model.ListOptions
 func (_e *MockSecretStore_Expecter) SecretList(repo interface{}, b interface{}, listOptions interface{}) *MockSecretStore_SecretList_Call {
 	return &MockSecretStore_SecretList_Call{Call: _e.mock.On("SecretList", repo, b, listOptions)}
 }
 
 func (_c *MockSecretStore_SecretList_Call) Run(run func(repo *model.Repo, b bool, listOptions *model.ListOptions)) *MockSecretStore_SecretList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Repo), args[1].(bool), args[2].(*model.ListOptions))
+		var arg0 *model.Repo
+		if args[0] != nil {
+			arg0 = args[0].(*model.Repo)
+		}
+		var arg1 bool
+		if args[1] != nil {
+			arg1 = args[1].(bool)
+		}
+		var arg2 *model.ListOptions
+		if args[2] != nil {
+			arg2 = args[2].(*model.ListOptions)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
 	})
 	return _c
 }
@@ -545,14 +618,20 @@ type MockSecretStore_SecretUpdate_Call struct {
 }
 
 // SecretUpdate is a helper method to define mock.On call
-//   - secret
+//   - secret *model.Secret
 func (_e *MockSecretStore_Expecter) SecretUpdate(secret interface{}) *MockSecretStore_SecretUpdate_Call {
 	return &MockSecretStore_SecretUpdate_Call{Call: _e.mock.On("SecretUpdate", secret)}
 }
 
 func (_c *MockSecretStore_SecretUpdate_Call) Run(run func(secret *model.Secret)) *MockSecretStore_SecretUpdate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*model.Secret))
+		var arg0 *model.Secret
+		if args[0] != nil {
+			arg0 = args[0].(*model.Secret)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }

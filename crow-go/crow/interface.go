@@ -96,6 +96,9 @@ type Client interface {
 	// PipelineStop stops the given pipeline.
 	PipelineStop(repoID, pipeline int64) error
 
+	// WorkflowCancel cancels a specific workflow in a pipeline.
+	WorkflowCancel(repoID, pipeline, workflowID int64) error
+
 	// PipelineApprove approves a blocked pipeline.
 	PipelineApprove(repoID, pipeline int64) (*Pipeline, error)
 

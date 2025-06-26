@@ -67,15 +67,26 @@ type MockEncryptionService_Decrypt_Call struct {
 }
 
 // Decrypt is a helper method to define mock.On call
-//   - ciphertext
-//   - associatedData
+//   - ciphertext string
+//   - associatedData string
 func (_e *MockEncryptionService_Expecter) Decrypt(ciphertext interface{}, associatedData interface{}) *MockEncryptionService_Decrypt_Call {
 	return &MockEncryptionService_Decrypt_Call{Call: _e.mock.On("Decrypt", ciphertext, associatedData)}
 }
 
 func (_c *MockEncryptionService_Decrypt_Call) Run(run func(ciphertext string, associatedData string)) *MockEncryptionService_Decrypt_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string), args[1].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
@@ -166,15 +177,26 @@ type MockEncryptionService_Encrypt_Call struct {
 }
 
 // Encrypt is a helper method to define mock.On call
-//   - plaintext
-//   - associatedData
+//   - plaintext string
+//   - associatedData string
 func (_e *MockEncryptionService_Expecter) Encrypt(plaintext interface{}, associatedData interface{}) *MockEncryptionService_Encrypt_Call {
 	return &MockEncryptionService_Encrypt_Call{Call: _e.mock.On("Encrypt", plaintext, associatedData)}
 }
 
 func (_c *MockEncryptionService_Encrypt_Call) Run(run func(plaintext string, associatedData string)) *MockEncryptionService_Encrypt_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string), args[1].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
 	})
 	return _c
 }
