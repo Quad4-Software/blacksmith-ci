@@ -148,7 +148,7 @@ func (b *StepBuilder) genItemForWorkflow(workflow *model.Workflow, axis matrix.A
 			Volumes:  b.Repo.Trusted.Volumes,
 			Security: b.Repo.Trusted.Security,
 		}),
-		linter.PrivilegedPlugins(server.Config.Pipeline.PrivilegedPlugins),
+		linter.PrivilegedPluginsWithMatchType(server.Config.Pipeline.PrivilegedPlugins, server.Config.Pipeline.PrivilegedPluginsMatchType),
 		linter.WithTrustedClonePlugins(server.Config.Pipeline.TrustedClonePlugins),
 	).Lint([]*linter.WorkflowConfig{{
 		Workflow:  parsed,
@@ -277,7 +277,7 @@ func (b *StepBuilder) toInternalRepresentation(parsed *yaml_types.Workflow, envi
 		compiler.WithEnviron(environ),
 		compiler.WithEnviron(b.Envs),
 		// TODO: server deps should be moved into StepBuilder fields and set on StepBuilder creation
-		compiler.WithEscalated(server.Config.Pipeline.PrivilegedPlugins...),
+		compiler.WithEscalatedWithMatchType(server.Config.Pipeline.PrivilegedPlugins, server.Config.Pipeline.PrivilegedPluginsMatchType),
 		compiler.WithVolumes(server.Config.Pipeline.Volumes...),
 		compiler.WithNetworks(server.Config.Pipeline.Networks...),
 		compiler.WithLocal(false),

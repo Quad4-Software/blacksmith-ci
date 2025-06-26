@@ -249,6 +249,7 @@ func setupEvilGlobals(ctx context.Context, c *cli.Command, s store.Store) (err e
 	server.Config.WebUI.EnableSwagger = c.Bool("enable-swagger")
 	server.Config.WebUI.SkipVersionCheck = c.Bool("skip-version-check")
 	server.Config.Pipeline.PrivilegedPlugins = c.StringSlice("plugins-privileged")
+	server.Config.Pipeline.PrivilegedPluginsMatchType = c.String("plugins-privileged-match-type")
 
 	// prometheus
 	server.Config.Prometheus.AuthToken = c.String("prometheus-auth-token")

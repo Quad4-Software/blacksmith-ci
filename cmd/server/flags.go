@@ -197,6 +197,12 @@ var flags = append([]cli.Flag{
 		Name:    "plugins-privileged",
 		Usage:   "Allow plugins to run in privileged mode, if environment variable is defined but empty there will be none",
 	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("WOODPECKER_PLUGINS_PRIVILEGED_MATCH_TYPE", "CROW_PLUGINS_PRIVILEGED_MATCH_TYPE"),
+		Name:    "plugins-privileged-match-type",
+		Usage:   "Type of match for privileged plugins: semver, semver-range, regex, or exact (default: semver)",
+		Value:   "semver",
+	},
 	&cli.StringSliceFlag{
 		Sources: cli.EnvVars("WOODPECKER_PLUGINS_TRUSTED_CLONE", "CROW_PLUGINS_TRUSTED_CLONE"),
 		Name:    "plugins-trusted-clone",

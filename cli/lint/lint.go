@@ -42,6 +42,12 @@ var Command = &cli.Command{
 			Name:    "plugins-privileged",
 			Usage:   "plugins allowed to run 'privileged'",
 		},
+		&cli.StringFlag{
+			Sources: cli.EnvVars("WOODPECKER_PLUGINS_PRIVILEGED_MATCH_TYPE", "CROW_PLUGINS_PRIVILEGED_MATCH_TYPE"),
+			Name:    "plugins-privileged-match-type",
+			Usage:   "Type of match for privileged plugins: semver, semver-range, regex, or exact (default: semver)",
+			Value:   "semver",
+		},
 		&cli.StringSliceFlag{
 			Sources: cli.EnvVars("WOODPECKER_PLUGINS_TRUSTED_CLONE", "CROW_PLUGINS_TRUSTED_CLONE"),
 			Name:    "plugins-trusted-clone",
@@ -120,7 +126,7 @@ func lintFile(_ context.Context, c *cli.Command, file string) error {
 			Volumes:  true,
 			Security: true,
 		}),
-		linter.PrivilegedPlugins(c.StringSlice("plugins-privileged")),
+		linter.PrivilegedPluginsWithMatchType(c.StringSlice("plugins-privileged"), c.String("plugins-privileged-match-type")),
 		linter.WithTrustedClonePlugins(c.StringSlice("plugins-trusted-clone")),
 	).Lint([]*linter.WorkflowConfig{config})
 	if err != nil {

@@ -203,11 +203,20 @@ func (l *Linter) lintImage(config *WorkflowConfig, c *types.Container, area stri
 func (l *Linter) lintPrivilegedPlugins(config *WorkflowConfig, c *types.Container, area string) error {
 	// lint for conflicts of https://github.com/woodpecker-ci/woodpecker/pull/3918
 	if utils.MatchImage(c.Image, "plugins/docker", "plugins/gcr", "plugins/ecr", "woodpeckerci/plugin-docker-buildx") {
-		msg := fmt.Sprintf("The formerly privileged plugin `%s` is no longer privileged by default since v3. To use it, add it to (server) env var `CROW_PLUGINS_PRIVILEGED` (must be done by an instance administrator).", c.Image)
-		// check first if user did not add them back
 		if l.privilegedPlugins != nil && !utils.MatchImageWithType(c.Image, l.privilegedPluginsMatchType, *l.privilegedPlugins...) {
+			msg := fmt.Sprintf(
+				"The plugin image '%s' is not allowed to run in privileged mode.\n"+
+					"Required pattern(s): %v\n"+
+					"Match type: '%s'.\n"+
+					"Only plugins set via the admin env var `CROW_PLUGINS_PRIVILEGED` can run in privileged mode.",
+				c.Image, *l.privilegedPlugins, l.privilegedPluginsMatchType,
+			)
 			return newLinterError(msg, config.File, fmt.Sprintf("%s.%s", area, c.Name), false)
 		} else if l.privilegedPlugins == nil {
+			msg := fmt.Sprintf(
+				"The formerly privileged plugin '%s' is no longer privileged by default since v3. To use it, add it to (server) env var `CROW_PLUGINS_PRIVILEGED` (must be done by an instance administrator).",
+				c.Image,
+			)
 			// if linter has no info of current privileged plugins, it's just a warning
 			return newLinterError(msg, config.File, fmt.Sprintf("%s.%s", area, c.Name), true)
 		}

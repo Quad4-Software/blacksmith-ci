@@ -74,6 +74,7 @@ var Config = struct {
 		Volumes                             []string
 		Networks                            []string
 		PrivilegedPlugins                   []string
+		PrivilegedPluginsMatchType          string
 		DefaultTimeout                      int64
 		LogsDurationKeep                    string
 		LogsPipelinesKeepMin                int64

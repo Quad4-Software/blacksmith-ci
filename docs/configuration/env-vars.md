@@ -412,7 +412,7 @@
 ### PLUGINS_PRIVILEGED_MATCH_TYPE
 
 - Name: `CROW_PLUGINS_PRIVILEGED_MATCH_TYPE`
-- Description: Type of match for privileged plugins. Possible values are `semver` (default), `semver-range`, `regex`, or `exact`. Controls how entries in `CROW_PLUGINS_PRIVILEGED` are matched against plugin images. See below for details.
+- Description: Type of match for privileged plugins. Possible values are `semver`, `semver-range`, `regex`, or `exact`. Controls how entries in `CROW_PLUGINS_PRIVILEGED` are matched against plugin images.
 - Default: `semver`
 
 [^1]:
