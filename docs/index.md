@@ -77,6 +77,7 @@ As of 2025-06, the following unique features exist in Crow:
 - Log view: Top/Down buttons to jump to the top or bottom of the log view
 - Agents display their remaining workflow capacity in the agent list
 - Added support for multiple match types when specifying `CROW_PLUGINS_PRIVILEGED`: `semver`, `semver-range`, `match` and `regex`
+- Ability to cancel single workflows in matrix workflows
 
 Additionally, for the Crow Autoscaler:
 
