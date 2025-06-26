@@ -12,6 +12,6 @@ type NewVersion struct {
 }
 
 const (
-	crowVersionURL = "https://crowci.dev/version.json"
+	crowVersionURL = "https://crowci.dev/versions.json"
 	BinaryURL      = "https://codeberg.org/crowci/crow/releases/download/v%s/crow-cli_%s_%s.tar.gz"
 )

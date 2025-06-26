@@ -13,7 +13,7 @@ import (
 func TestCheckForUpdate(t *testing.T) {
 	version.Version = "1.0.0"
 	fixtureHandler := func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/version.json" {
+		if r.URL.Path != "/versions.json" {
 			http.NotFound(w, r)
 			return
 		}
@@ -23,7 +23,7 @@ func TestCheckForUpdate(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(fixtureHandler))
 	defer ts.Close()
 
-	newVersion, err := checkForUpdate(t.Context(), ts.URL+"/version.json", false)
+	newVersion, err := checkForUpdate(t.Context(), ts.URL+"/versions.json", false)
 	if err != nil {
 		t.Fatalf("Failed to check for updates: %v", err)
 	}
