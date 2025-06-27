@@ -392,7 +392,7 @@ const { doSubmit: declinePipeline, isLoading: isDecliningPipeline } = useAsyncAc
 useCrowTitle(
   computed(() => [
     i18n.t('repo.pipeline.tasks'),
-    i18n.t('repo.pipeline.pipeline', { pipelineId: pipeline.value.id }),
+    i18n.t('repo.pipeline.pipeline', { pipelineId: pipeline.value.number }),
     repo.value.full_name,
   ]),
 );

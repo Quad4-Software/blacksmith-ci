@@ -78,7 +78,7 @@ const { t } = useI18n();
 useCrowTitle(
   computed(() => [
     pipeline.value.errors?.some((e) => !e.is_warning) ? t('repo.pipeline.errors') : t('repo.pipeline.warnings'),
-    t('repo.pipeline.pipeline', { pipelineId: pipeline.value.id }),
+    t('repo.pipeline.pipeline', { pipelineId: pipeline.value.number }),
     repo.value.full_name,
   ]),
 );
