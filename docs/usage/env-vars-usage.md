@@ -106,7 +106,6 @@ Variables:
 | `CI_COMMIT_MESSAGE`             | commit message                                                                                 | `Initial commit`                                       |
 | `CI_COMMIT_AUTHOR`              | commit author username                                                                         | `john-doe`                                             |
 | `CI_COMMIT_AUTHOR_EMAIL`        | commit author email address                                                                    | `john-doe@example.com`                                 |
-| `CI_COMMIT_AUTHOR_AVATAR`       | commit author avatar                                                                           | `https://git.example.com/avatars/5dcbcadbce6f87f8abef` |
 | `CI_COMMIT_PRERELEASE`          | release is a pre-release (empty if event is not `release`)                                     | `false`                                                |
 
 <!-- markdownlint-disable-next-line MD033 -->
@@ -129,6 +128,8 @@ Variables:
 | `CI_PIPELINE_CREATED`       | pipeline created UNIX timestamp                                                                                    | `1722617519`                                                                               |
 | `CI_PIPELINE_STARTED`       | pipeline started UNIX timestamp                                                                                    | `1722617519`                                                                               |
 | `CI_PIPELINE_FILES`         | changed files (empty if event is not `push` or `pull_request`), it is undefined if more than 500 files are touched | `[]`, `[".crow.yml","README.md"]`                                                          |
+| `CI_PIPELINE_AUTHOR`        | pipeline author username                                                                                           | `octocat`                                                                                  |
+| `CI_PIPELINE_AVATAR`        | pipeline author avatar URL                                                                                         | `https://git.example.com/avatars/5dcbcadbce6f87f8abef`                                     |
 
 <!-- markdownlint-disable-next-line MD033 -->
 </div>
@@ -165,7 +166,6 @@ Variables:
 | `CI_PREV_COMMIT_MESSAGE`       | previous commit message                                                                      | `test`                                                                                     |
 | `CI_PREV_COMMIT_AUTHOR`        | previous commit author username                                                              | `john-doe`                                                                                 |
 | `CI_PREV_COMMIT_AUTHOR_EMAIL`  | previous commit author email address                                                         | `john-doe@example.com`                                                                     |
-| `CI_PREV_COMMIT_AUTHOR_AVATAR` | previous commit author avatar                                                                | `https://git.example.com/avatars/12`                                                       |
 
 <!-- markdownlint-disable-next-line MD033 -->
 </div>
@@ -188,6 +188,8 @@ Variables:
 | `CI_PREV_PIPELINE_CREATED`       | previous pipeline created UNIX timestamp                          | `1722610173`                                                                               |
 | `CI_PREV_PIPELINE_STARTED`       | previous pipeline started UNIX timestamp                          | `1722610173`                                                                               |
 | `CI_PREV_PIPELINE_FINISHED`      | previous pipeline finished UNIX timestamp                         | `1722610383`                                                                               |
+| `CI_PREV_PIPELINE_AUTHOR`        | previous pipeline author username                                                                                           | `octocat`                                                                                  |
+| `CI_PREV_PIPELINE_AVATAR`        | previous pipeline author avatar URL                                                                                         | `https://git.example.com/avatars/5dcbcadbce6f87f8abef`                                     |
 
 <!-- markdownlint-disable-next-line MD033 -->
 </div>

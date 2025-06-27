@@ -56,6 +56,8 @@ type (
 		Parent     int64  `json:"parent,omitempty"`
 		Cron       string `json:"cron,omitempty"`
 		Title      string `json:"title,omitempty"`
+		Author     string `json:"author,omitempty"`
+		Avatar     string `json:"avatar,omitempty"`
 	}
 
 	// Commit defines runtime metadata for a commit.
