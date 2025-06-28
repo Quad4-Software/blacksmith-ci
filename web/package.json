@@ -51,7 +51,7 @@
     "@intlify/eslint-plugin-vue-i18n": "4.0.1",
     "@intlify/unplugin-vue-i18n": "^6.0.3",
     "@types/lodash": "^4.17.16",
-    "@types/node": "^22.13.10",
+    "@types/node": "^24.0.0",
     "@types/prismjs": "^1.26.5",
     "@types/semver": "^7.5.8",
     "@types/tinycolor2": "^1.4.6",
