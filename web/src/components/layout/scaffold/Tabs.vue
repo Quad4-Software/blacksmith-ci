@@ -1,11 +1,12 @@
 <template>
   <!-- Main tabs container -->
-  <div ref="tabsRef" class="flex min-w-0 flex-auto gap-4">
+  <div ref="tabsRef" class="flex min-w-0 flex-auto gap-0 px-2 md:px-0 md:gap-4">
     <router-link
-      v-for="tab in visibleTabs"
+      v-for="(tab, index) in visibleTabs"
       :key="tab.title"
       :to="tab.to"
       class="flex cursor-pointer items-center whitespace-nowrap border-b-2 border-transparent py-1 text-wp-text-100"
+      :class="{ '-ml-2 md:ml-0': index === 0 }"
       :active-class="tab.matchChildren ? 'border-wp-custom-highlight-100!' : ''"
       :exact-active-class="tab.matchChildren ? '' : 'border-wp-custom-highlight-100!'"
     >

@@ -43,7 +43,7 @@
       },
       "not_allowed": "Vous n'êtes pas autorisé à accéder aux réglages du serveur.",
       "orgs": {
-        "delete_confirm": "Voulez-vous vraiment supprimer cette organisation ? Cela supprimera tous les dépôts que possède cette organisation.",
+        "delete_confirm": "Voulez-vous vraiment supprimer cette organisation ? Cela supprimera tous les dépôts que possède cette organisation.",
         "delete_org": "Supprimer l'organisation",
         "deleted": "Organisation supprimée",
         "desc": "Organisations possédant des dépôts sur ce serveur.",
@@ -54,7 +54,7 @@
       },
       "queue": {
         "agent": "agent",
-        "desc": "Tâches en attente d’exécution par des agents",
+        "desc": "Tâches en attente d'exécution par des agents",
         "pause": "Mettre en pause",
         "paused": "La queue est en pause",
         "queue": "Queue",
@@ -63,12 +63,12 @@
         "stats": {
           "completed_count": "Tâches complétées",
           "pending_count": "En attente",
-          "running_count": "En cours d’exécution",
+          "running_count": "En cours d'exécution",
           "waiting_on_deps_count": "En attente de dépendances",
           "worker_count": "Libre"
         },
         "task_pending": "La tâche est en attente",
-        "task_running": "La tâche est en cours d’exécution",
+        "task_running": "La tâche est en cours d'exécution",
         "task_waiting_on_deps": "La tâche est en attente de ses dépendances",
         "tasks": "Tâches",
         "waiting_for": "en attente de"
@@ -89,13 +89,13 @@
         "add": "Ajouter un secret",
         "created": "Secret global crée",
         "deleted": "Secret global supprimé",
-        "desc": "Les secrets globaux sont transmis sous forme de variable d’environnement lors de l’exécution de toutes les étapes d'un pipeline.",
+        "desc": "Les secrets globaux sont transmis sous forme de variable d'environnement lors de l'exécution de toutes les étapes d'un pipeline.",
         "events": {
           "events": "Disponible pour les événements suivants",
           "pr_warning": "Faites attention avec cette option car un acteur malicieux peut soumettre une pull request qui révélerait vos secrets."
         },
         "images": {
-          "desc": "Liste des images pour lesquelles ce secret est accessible, laisser vide pour donner l’accès à toutes les images",
+          "desc": "Liste des images pour lesquelles ce secret est accessible, laisser vide pour donner l'accès à toutes les images",
           "images": "Disponible pour les images suivantes"
         },
         "name": "Nom",
@@ -132,7 +132,7 @@
         "users": "Utilisateurs"
       },
       "registries": {
-        "warning": "Ces codes d’accès au registre seront disponibles pour tout les utilisateurs.",
+        "warning": "Ces codes d'accès au registre seront disponibles pour tout les utilisateurs.",
         "desc": "Les codes d'accès aux registres globaux peuvent être ajouter pour utiliser les images privées sur tout les pipelines."
       }
     }
@@ -156,18 +156,18 @@
   },
   "org": {
     "settings": {
-      "not_allowed": "Vous n’êtes pas autorisé à accéder aux réglages de cette organisation",
+      "not_allowed": "Vous n'êtes pas autorisé à accéder aux réglages de cette organisation",
       "secrets": {
         "add": "Ajouter un secret",
         "created": "Secret d'organisation crée",
         "deleted": "Secret d'organisation supprimé",
-        "desc": "Les secrets d'organisation sont transmis sous forme de variable d’environnement à chaque étape d'un pipeline de tout les dépôts de l'organisation.",
+        "desc": "Les secrets d'organisation sont transmis sous forme de variable d'environnement à chaque étape d'un pipeline de tout les dépôts de l'organisation.",
         "events": {
           "events": "Disponible pour les événements suivants",
           "pr_warning": "Faites attention avec cette option car un acteur malicieux pourrait soumettre une pull request qui va afficher vos secrets."
         },
         "images": {
-          "desc": "Liste des images pour lesquelles ce secret est accessible, laisser vide pour donner l’accès à toutes les images",
+          "desc": "Liste des images pour lesquelles ce secret est accessible, laisser vide pour donner l'accès à toutes les images",
           "images": "Disponible pour les images suivantes"
         },
         "name": "Nom",
@@ -261,7 +261,7 @@
       "log_download_error": "Il y a eu une erreur lors du téléchargement du fichier de journal",
       "log_title": "Journal des étapes",
       "no_files": "Aucun fichier n'a été modifié.",
-      "no_pipeline_steps": "Aucune étape disponible !",
+      "no_pipeline_steps": "Aucune étape disponible !",
       "no_pipelines": "Aucun pipeline n'a démarré pour le moment.",
       "pipeline": "Pipeline #{pipelineId}",
       "pipelines_for": "Pipelines pour la branche \"{branch}\"",
@@ -269,10 +269,10 @@
       "protected": {
         "approve": "Approuver",
         "approve_success": "Pipeline approuvé",
-        "awaits": "Ce pipeline attend d'être approuvé par un mainteneur !",
+        "awaits": "Ce pipeline attend d'être approuvé par un mainteneur !",
         "decline": "Refuser",
         "decline_success": "Pipeline refusé",
-        "declined": "Le pipeline a été refusé !",
+        "declined": "Le pipeline a été refusé !",
         "review": "Vérifier les changements"
       },
       "show_errors": "Afficher les erreurs",
@@ -286,30 +286,32 @@
         "running": "en cours",
         "skipped": "sauté",
         "started": "démarré",
-        "status": "État : {status}",
+        "status": "État : {status}",
         "success": "réussi"
       },
       "step_not_started": "L'étape n'a pas démarré encore.",
       "tasks": "Tâches",
       "warnings": "Avertissements ({count})",
-      "we_got_some_errors": "Oh non, il y a des erreurs !",
+      "we_got_some_errors": "Oh non, une erreur s'est produite !",
       "log_delete_error": "Il y a eu une erreur lors de la suppression des logs",
       "log_delete_confirm": "Voulez vous vraiment supprimer les logs de cette étape ?",
       "no_logs": "Aucun logs",
       "duration": "Durée du pipeline",
-      "created": "Crée : {created}",
+      "created": "Crée : {created}",
       "debug": {
         "title": "Débogage",
         "download_metadata": "Télécharger les métadonnées",
         "metadata_download_error": "Erreur lors du téléchargement des métadonnées"
-      }
+      },
+      "previous_step": "Étape précédente",
+      "next_step": "Étape suivante"
     },
     "pull_requests": "Pull requests",
     "settings": {
       "actions": {
         "actions": "Actions",
         "delete": {
-          "confirm": "Toutes les données vont être perdues aprés cette action ! ! !\n\nVoulez vous vraiment continuer ?",
+          "confirm": "Toutes les données vont être perdues aprés cette action ! ! !\n\nVoulez vous vraiment continuer ?",
           "delete": "Supprimer le dépôt",
           "success": "Dépôt supprimé"
         },
@@ -377,7 +379,7 @@
           "netrc_only_trusted": "Plugins de clonage personnalisés de confiance"
         },
         "pipeline_path": {
-          "default": "Par défaut : .crow/*.{'{yaml,yml}'} -> .woodpecker.yaml -> .woodpecker.yml",
+          "default": "Par défaut : .crow/*.{'{yaml,yml}'} -> .woodpecker.yaml -> .woodpecker.yml",
           "desc": "Le chemin vers votre configuration de pipeline (par example {0}). Les dossiers doivent finir par {1}.",
           "desc_path_example": "mon/chemin/",
           "path": "Chemin vers le pipeline"
@@ -391,7 +393,7 @@
         "success": "Paramètres du projet mis à jour",
         "timeout": {
           "minutes": "minutes",
-          "timeout": "Délai d’inactivité"
+          "timeout": "Délai d'inactivité"
         },
         "trusted": {
           "desc": "Les conteneurs du pipeline ont accès à des capacités privilégiées (comme le montage de volumes).",
@@ -439,7 +441,7 @@
         "deleted": "Authentifiant de connexion à un registre supprimé",
         "desc": "Des authentifiants de connexion pour les registres peuvent être ajouté pour permettre d'utiliser des images privées pour vos pipelines.",
         "edit": "Modifier le registre",
-        "none": "Il n'y a pas d’authentifiant de connexion à un registre pour le moment.",
+        "none": "Il n'y a pas d'authentifiant de connexion à un registre pour le moment.",
         "registries": "Registres",
         "save": "Enregistrer le registre",
         "saved": "Authentifiant de connexion à un registre enregistré",
@@ -451,14 +453,14 @@
         "delete": "Supprimer le secret",
         "delete_confirm": "Voulez vous vraiment supprimer ce secret ?",
         "deleted": "Secret supprimé",
-        "desc": "Les secrets sont transmis sous forme de variable d’environnement lors de l’exécution d'une étape d'un pipeline.",
+        "desc": "Les secrets sont transmis sous forme de variable d'environnement lors de l'exécution d'une étape d'un pipeline.",
         "edit": "Modifier le secret",
         "events": {
           "events": "Disponible pour les événements suivants",
           "pr_warning": "Faites attention avec cette option car un acteur malicieux pourrait soumettre une pull request qui va afficher vos secrets."
         },
         "images": {
-          "desc": "Liste des images pour lesquelles ce secret est accessible, laisser vide pour donner l’accès à toutes les images",
+          "desc": "Liste des images pour lesquelles ce secret est accessible, laisser vide pour donner l'accès à toutes les images",
           "images": "Disponible pour les images suivantes"
         },
         "name": "Nom",
@@ -509,7 +511,7 @@
   "user": {
     "access_denied": "Vous n'êtes pas autorisé à vous connecter",
     "internal_error": "Une erreur interne est arrivé",
-    "oauth_error": "Erreur lors de l’authentification auprès du fournisseur OAuth",
+    "oauth_error": "Erreur lors de l'authentification auprès du fournisseur OAuth",
     "settings": {
       "api": {
         "api": "API",
@@ -570,7 +572,7 @@
   },
   "username": "Nom d'utilisateur",
   "welcome": "Bienvenue sur Crow",
-  "empty_list": "Aucune {entity} trouvée !",
+  "empty_list": "Aucune {entity} trouvée !",
   "login_to_cli": "Login en ligne de commande",
   "abort": "Abandonner",
   "cli_login_success": "Connexion en ligne de commande réussie",
@@ -596,7 +598,7 @@
     "saved": "Secret sauvegardé",
     "events": {
       "events": "Disponible lors des événements suivants",
-      "pr_warning": "Soyez prudent avec cette option : un acteur malveillant peut soumettre une pull request qui expose vos secrets."
+      "pr_warning": "Soyez prudent avec cette option : un acteur malveillant peut soumettre une pull request qui expose vos secrets."
     },
     "plugins_only": "Uniquement disponible pour les plugins",
     "edit": "Modifier le secret",
@@ -613,10 +615,10 @@
   "settings": "Réglages",
   "registries": {
     "registries": "Registres",
-    "delete_confirm": "Voulez vous vraiment supprimer ce registre ?",
+    "delete_confirm": "Voulez vous vraiment supprimer ce registre ?",
     "deleted": "Codes d'accès aux registres supprimés",
     "desc": "Les codes d'accès aux registres peuvent être ajouté pour utiliser des images privées sur les pipelines.",
-    "credentials": "Codes d’accès aux registres",
+    "credentials": "Codes d'accès aux registres",
     "edit": "Éditer le registre",
     "delete": "Supprimer le registre",
     "add": "Ajouter un registre",
@@ -628,8 +630,8 @@
       "desc": "Adresse du registre (e.g. docker.io)"
     },
     "saved": "Codes d'accès aux registres enregistrés",
-    "created": "Codes d’accès aux registres crées",
-    "none": "Il n'y a pas de code d’accès aux registres."
+    "created": "Codes d'accès aux registres crées",
+    "none": "Il n'y a pas de code d'accès aux registres."
   },
   "invalid_state": "L'état OAuth est invalide",
   "by_user": "par {user}",

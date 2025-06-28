@@ -286,6 +286,8 @@
       "we_got_some_errors": "Oh no, an error occurred!",
       "duration": "Pipeline duration",
       "created": "Created: {created}",
+      "previous_step": "Previous step",
+      "next_step": "Next step",
       "debug": {
         "title": "Debug",
         "download_metadata": "Download metadata",

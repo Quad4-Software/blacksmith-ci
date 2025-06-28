@@ -303,7 +303,7 @@
       "step_not_started": "Dieser Schritt hat noch nicht begonnen.",
       "tasks": "Vorgänge",
       "warnings": "Warnungen",
-      "we_got_some_errors": "Oh nein, es gab einige Fehler!",
+      "we_got_some_errors": "Oh nein, ein Fehler ist aufgetreten!",
       "log_delete_confirm": "Möchtest du die Logs diesen Schrittes wirklich löschen?",
       "log_delete_error": "Es gab einen Fehler beim Löschen der Logs des Schrittes",
       "duration": "Pipeline-Dauer",
@@ -317,7 +317,9 @@
         "title": "Debug",
         "metadata_exec_title": "Pipeline lokal erneut ausführen",
         "metadata_exec_desc": "Lade die Metadaten dieser Pipeline herunter, um diese lokal auszuführen. Dies erlaubt dir, Fehler zu beheben und Änderungen zu testen, bevor du einen Commit erstellst. `crow-cli` muss in der zum Server passenden Version lokal installiert sein."
-      }
+      },
+      "previous_step": "Vorheriger Schritt",
+      "next_step": "Nächster Schritt"
     },
     "pull_requests": "Pull-Requests",
     "settings": {

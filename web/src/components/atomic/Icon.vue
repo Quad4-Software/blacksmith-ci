@@ -11,6 +11,7 @@
   <SvgIcon v-else-if="name === 'deployment'" :path="mdiPackageVariant" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'commit'" :path="mdiSourceCommit" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'back'" :path="mdiArrowLeft" :size="size || '1.3rem'" />
+  <SvgIcon v-else-if="name === 'next'" :path="mdiArrowRight" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'github'" :path="mdiGithub" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'repo'" :path="mdiGit" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'settings'" :path="mdiCog" :size="size || '1.3rem'" />
@@ -101,6 +102,7 @@ import {
   mdiAlarm,
   mdiAlertCircle,
   mdiArrowLeft,
+  mdiArrowRight,
   mdiBitbucket,
   mdiCheck,
   mdiBugOutline,
@@ -167,6 +169,7 @@ export type IconNames =
   | 'deployment'
   | 'commit'
   | 'back'
+  | 'next'
   | 'github'
   | 'repo'
   | 'settings'

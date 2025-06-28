@@ -1,9 +1,10 @@
 <template>
-  <div class="md:min-w-xs flex w-full flex-col gap-1 pb-2 text-wp-text-100 md:w-3/12 md:max-w-md">
+  <div class="max-w-lg flex w-full flex-col gap-1 pb-2 text-wp-text-100">
     <div
       class="flex shrink-0 flex-wrap justify-between gap-1 rounded-md border border-wp-background-400 bg-wp-background-100 p-4 shadow-xs dark:bg-wp-background-200"
     >
       <div class="flex shrink-0 items-center space-x-1">
+        <slot name="panel-chevron" />
         <div class="flex items-center">
           <Icon v-if="pipeline.event === 'cron'" name="stopwatch" />
           <img v-else class="w-6 rounded-md" :src="pipeline.author_avatar" />
@@ -54,7 +55,7 @@
       <span>{{ $t('repo.pipeline.no_pipeline_steps') }}</span>
     </Panel>
     <div class="relative min-h-0 w-full grow">
-      <div class="absolute left-0 right-0 top-0 flex h-full flex-col gap-y-2 md:overflow-y-auto">
+      <div class="flex flex-col gap-y-2 md:overflow-y-auto">
         <div
           v-for="workflow in pipeline.workflows"
           :key="workflow.id"
@@ -82,7 +83,7 @@
               <PipelineStatusIcon :status="workflow.state" class="h-5 w-5" />
             </span>
             <!-- Name -->
-            <span class="min-w-0 break-words font-medium">
+            <span class="min-w-0 font-medium md:whitespace-nowrap lg:whitespace-normal break-words">
               {{ workflow.name }}
             </span>
             <!-- Cancel Button -->
@@ -124,7 +125,12 @@
             <div
               v-for="step in workflow.children"
               :key="step.pid"
-              class="grid grid-cols-[1.25rem_2rem_1fr_2rem_4rem] gap-1 items-center transition-colors hover:bg-wp-background-300 dark:hover:bg-wp-background-400 cursor-pointer"
+              class="grid grid-cols-[1.25rem_2rem_1fr_2rem_4rem] gap-1 items-center transition-colors hover:bg-wp-background-300 dark:hover:bg-wp-background-400 cursor-pointer border-b border-wp-background-300 last:border-b-0 dark:border-wp-background-400"
+              :class="{
+                'border-t border-wp-background-300 dark:border-t-wp-background-400': step === workflow.children[0],
+                'bg-wp-background-300 dark:bg-wp-background-400': step.pid === selectedStepId,
+              }"
+              @click="selectStep(step.pid)"
             >
               <span></span>
               <span class="flex items-center justify-center h-8 w-8">
@@ -166,7 +172,7 @@ const props = defineProps<{
   selectedStepId?: number | null;
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
   (event: 'update:selected-step-id', selectedStepId: number): void;
 }>();
 
@@ -227,5 +233,9 @@ async function cancelWorkflow(workflowId: number) {
   } finally {
     isCancelingWorkflow.value = { ...isCancelingWorkflow.value, [workflowId]: false };
   }
+}
+
+function selectStep(stepId: number) {
+  emit('update:selected-step-id', stepId);
 }
 </script>

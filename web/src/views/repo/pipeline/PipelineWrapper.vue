@@ -18,7 +18,7 @@
       </span>
     </template>
     <template #headerActions>
-      <div class="flex w-full items-center justify-between gap-2">
+      <div class="flex w-full items-center justify-between gap-2 px-1 md:px-2">
         <div class="flex min-w-0 content-start gap-2">
           <PipelineStatusIcon :status="pipeline.status" class="flex shrink-0" />
           <span class="shrink-0 text-center">{{ $t('repo.pipeline.pipeline', { pipelineId }) }}</span>
@@ -59,7 +59,7 @@
       </div>
     </template>
     <template #tabActions>
-      <div class="flex flex-wrap gap-4 md:flex-nowrap">
+      <div class="flex flex-wrap gap-4 pl-2 md:pl-0 md:flex-nowrap">
         <div class="flex shrink-0 items-center gap-2" :title="$t('repo.pipeline.created', { created })">
           <Icon name="startDate" size="1rem" /> <span>{{ startDate }}</span>
         </div>

@@ -1,13 +1,12 @@
 <template>
-  <div v-if="pipeline" class="flex flex-col pt-8 md:pt-0">
+  <div v-if="pipeline" class="flex flex-col md:pt-0">
     <div
       class="code-box-log flex grow flex-col overflow-hidden p-0! shadow-md md:mt-0 md:rounded-lg!"
       @mouseover="showActions = true"
       @mouseleave="showActions = false"
     >
-      <div
-        class="fixed left-0 top-0 flex w-full flex-row items-center bg-wp-code-100 px-4 py-1 md:relative md:left-auto md:top-auto"
-      >
+      <!-- Desktop header - hidden on mobile since we have a mobile header in the parent -->
+      <div class="hidden md:flex flex-row items-center bg-wp-code-100 px-4 py-1">
         <span class="text-base font-bold text-wp-code-text-alt-100">
           <span class="md:display-unset hidden">{{ $t('repo.pipeline.log_title') }}</span>
           <span class="md:hidden">{{ step?.name }}</span>
@@ -86,10 +85,86 @@
             :icon="autoScroll ? 'auto-scroll' : 'auto-scroll-off'"
             @click="autoScroll = !autoScroll"
           />
+        </div>
+      </div>
+
+      <!-- Mobile action buttons - foldable floating buttons in top-right corner -->
+      <div class="md:hidden absolute top-2 right-2 z-10">
+        <!-- Toggle button to show/hide action buttons -->
+        <button
+          class="rounded-full border border-wp-custom-highlight-100 bg-white dark:bg-wp-code-100 p-2 shadow-lg transition-all duration-200 flex items-center justify-center mb-2"
+          :class="{ 'bg-gray-100 dark:bg-wp-code-200': mobileButtonsVisible }"
+          title="Toggle actions"
+          @click="mobileButtonsVisible = !mobileButtonsVisible"
+        >
+          <Icon name="settings" class="w-4 h-4 text-gray-700 dark:text-wp-code-text-alt-100" />
+        </button>
+
+        <!-- Floating action buttons -->
+        <div v-show="mobileButtonsVisible" class="flex flex-col gap-2">
+          <div
+            class="cursor-pointer rounded-full border border-wp-custom-highlight-100 bg-white dark:bg-wp-code-100 p-2 shadow-lg transition-opacity duration-300 flex items-center justify-center"
+            :title="$t('repo.pipeline.actions.log_scroll_to_bottom')"
+            @click="scrollToBottom"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="text-gray-700 dark:text-wp-code-text-alt-100"
+            >
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+          <div
+            class="cursor-pointer rounded-full border border-wp-custom-highlight-100 bg-white dark:bg-wp-code-100 p-2 shadow-lg transition-opacity duration-300 flex items-center justify-center"
+            :title="$t('repo.pipeline.actions.log_scroll_to_top')"
+            @click="scrollToTop"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="text-gray-700 dark:text-wp-code-text-alt-100"
+            >
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+          </div>
           <IconButton
-            class="text-wp-code-text-alt-100 hover:bg-white/10! md:hidden!"
-            icon="close"
-            @click="$emit('update:step-id', null)"
+            v-if="step?.finished !== undefined && hasLogs"
+            :is-loading="downloadInProgress"
+            :title="$t('repo.pipeline.actions.log_download')"
+            class="text-gray-700 dark:text-wp-code-text-alt-100 hover:bg-gray-100 dark:hover:bg-white/10! bg-white dark:bg-wp-code-100 border border-wp-custom-highlight-100 shadow-lg"
+            icon="download"
+            @click="download"
+          />
+          <IconButton
+            v-if="step?.finished !== undefined && hasLogs && hasPushPermission"
+            :title="$t('repo.pipeline.actions.log_delete')"
+            class="text-gray-700 dark:text-wp-code-text-alt-100 hover:bg-gray-100 dark:hover:bg-white/10 bg-white dark:bg-wp-code-100 border border-wp-custom-highlight-100 shadow-lg"
+            icon="trash"
+            @click="deleteLogs"
+          />
+          <IconButton
+            v-if="step?.finished === undefined"
+            :title="
+              autoScroll ? $t('repo.pipeline.actions.log_auto_scroll_off') : $t('repo.pipeline.actions.log_auto_scroll')
+            "
+            class="text-gray-700 dark:text-wp-code-text-alt-100 hover:bg-gray-100 dark:hover:bg-white/10! bg-white dark:bg-wp-code-100 border border-wp-custom-highlight-100 shadow-lg"
+            :icon="autoScroll ? 'auto-scroll' : 'auto-scroll-off'"
+            @click="autoScroll = !autoScroll"
           />
         </div>
       </div>
@@ -97,7 +172,7 @@
       <div
         v-show="hasLogs && loadedLogs && (log?.length || 0) > 0"
         ref="consoleElement"
-        class="grid w-full max-w-full grow auto-rows-min grid-cols-[min-content_minmax(0,1fr)_min-content] overflow-y-auto overflow-x-hidden p-4 text-xs md:text-sm"
+        class="grid w-full max-w-full grow auto-rows-min grid-cols-[min-content_minmax(0,1fr)_min-content] overflow-y-auto overflow-x-hidden p-4 text-xs md:text-sm h-[calc(100vh-200px)]"
       >
         <div v-for="line in log" :key="line.index" class="contents font-mono">
           <a
@@ -175,6 +250,7 @@ import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 
 import IconButton from '~/components/atomic/IconButton.vue';
+import Icon from '~/components/atomic/Icon.vue';
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
 import useApiClient from '~/compositions/useApiClient';
 import { requiredInject } from '~/compositions/useInjectProvide';
@@ -234,6 +310,8 @@ const logBuffer = ref<LogLine[]>([]);
 const maxLineCount = 5000; // TODO(2653): set back to 500 and implement lazy-loading support
 const hasPushPermission = computed(() => repoPermissions?.value?.push);
 
+const mobileButtonsVisible = ref(false);
+
 function isSelected(line: LogLine): boolean {
   return route.hash === `#L${line.number}`;
 }
@@ -265,17 +343,49 @@ function writeLog(line: Partial<LogLine>) {
 function scrollToBottom() {
   nextTick(() => {
     if (!consoleElement.value) {
+      console.warn('consoleElement not found for scrollToBottom');
       return;
     }
-    consoleElement.value.scrollTop = consoleElement.value.scrollHeight;
+
+    const element = consoleElement.value as HTMLElement;
+    if (element.scrollHeight <= element.clientHeight) {
+      console.warn('Element not scrollable - content fits in viewport');
+      return;
+    }
+
+    element.scrollTop = element.scrollHeight;
+    console.warn(
+      'Scrolled to bottom - scrollTop:',
+      element.scrollTop,
+      'scrollHeight:',
+      element.scrollHeight,
+      'clientHeight:',
+      element.clientHeight,
+    );
   });
 }
 
 function scrollToTop() {
   if (!consoleElement.value) {
+    console.warn('consoleElement not found for scrollToTop');
     return;
   }
-  consoleElement.value.scrollTop = 0;
+
+  const element = consoleElement.value as HTMLElement;
+  if (element.scrollHeight <= element.clientHeight) {
+    console.warn('Element not scrollable - content fits in viewport');
+    return;
+  }
+
+  element.scrollTop = 0;
+  console.warn(
+    'Scrolled to top - scrollTop:',
+    element.scrollTop,
+    'scrollHeight:',
+    element.scrollHeight,
+    'clientHeight:',
+    element.clientHeight,
+  );
 }
 
 const flushLogs = debounce((scroll: boolean) => {
