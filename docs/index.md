@@ -78,6 +78,8 @@ As of 2025-06, the following unique features exist in Crow:
 - Agents display their remaining workflow capacity in the agent list
 - Added support for multiple match types when specifying `CROW_PLUGINS_PRIVILEGED`: `semver`, `semver-range`, `match` and `regex`
 - Ability to cancel single workflows in matrix workflows
+- Improved mobile layout view (spacing, alignment)
+- Ability to fold the workflow panel and have a full-width log view
 
 Additionally, for the Crow Autoscaler:
 
