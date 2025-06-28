@@ -536,6 +536,7 @@
   "return_to_cli": "You can now close this tab and return to the CLI.",
   "settings": "Settings",
   "oauth_error": "Error while authenticating against OAuth provider",
+  "stale_token_error": "Your authentication token has expired and could not be refreshed automatically.",
   "internal_error": "Internal error occurred",
   "registration_closed": "The registration is closed",
   "access_denied": "Missing permissions to access this instance",

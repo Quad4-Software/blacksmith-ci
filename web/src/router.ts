@@ -359,6 +359,8 @@ router.beforeEach(async (to, _, next) => {
   const { redirectUrl } = config.userConfig.value;
   if (redirectUrl !== '' && to.name !== 'login') {
     config.setUserConfig('redirectUrl', '');
+    // Clear any existing notifications when redirecting after successful login
+    window.dispatchEvent(new CustomEvent('clearNotifications'));
     next(redirectUrl);
   }
 

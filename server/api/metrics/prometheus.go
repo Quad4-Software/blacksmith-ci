@@ -44,6 +44,7 @@ func PromHandler() gin.HandlerFunc {
 
 		if header == "" {
 			c.String(http.StatusUnauthorized, errInvalidToken.Error())
+			c.Abort()
 			return
 		}
 

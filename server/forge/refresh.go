@@ -38,14 +38,16 @@ func Refresh(c context.Context, forge Forge, _store store.Store, user *model.Use
 	if refresher, ok := forge.(Refresher); ok {
 		// Check to see if the user token is expired or
 		// will expire within the next 30 minutes (1800 seconds).
-		// If not, there is nothing we really need to do here.
-		if time.Now().UTC().Unix() < (user.Expiry - tokenMinTTL) {
+		// If the token is still valid and not expiring soon, there is nothing we need to do here.
+		currentTime := time.Now().UTC().Unix()
+		if currentTime < (user.Expiry - tokenMinTTL) {
 			return nil
 		}
 
 		ok, err := refresher.Refresh(c, user)
 		if err != nil {
 			log.Error().Err(err).Msgf("refreshing oauth token of user '%s' failed", user.Login)
+			return err
 		} else if ok {
 			if err := _store.UpdateUser(user); err != nil {
 				log.Error().Err(err).Msg("failed saving user to DB after refreshing oauth token")

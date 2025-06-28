@@ -206,9 +206,9 @@ func PostHook(c *gin.Context) {
 	refreshErr := forge.Refresh(c, _forge, _store, user)
 	if refreshErr != nil {
 		log.Error().Err(refreshErr).Msg("Failed to refresh user auth token")
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "Your authorization has expired and couldn't be refreshed automatically. Please log in again",
-		})
+		c.Header("Content-Type", "text/plain; charset=utf-8")
+		c.String(http.StatusUnauthorized, "Your authorization has expired and couldn't be refreshed automatically. Please log in again")
+		c.Abort()
 		return
 	}
 

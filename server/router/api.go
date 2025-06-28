@@ -22,10 +22,12 @@ import (
 	"codeberg.org/crowci/crow/v3/server/api"
 	"codeberg.org/crowci/crow/v3/server/api/debug"
 	"codeberg.org/crowci/crow/v3/server/router/middleware/session"
+	"codeberg.org/crowci/crow/v3/server/router/middleware/token"
 )
 
 func apiRoutes(e *gin.RouterGroup) {
 	apiBase := e.Group("/api")
+	apiBase.Use(token.Refresh)
 	{
 		user := apiBase.Group("/user")
 		{

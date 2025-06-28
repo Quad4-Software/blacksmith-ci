@@ -28,6 +28,7 @@ func AuthorizeAgent(c *gin.Context) {
 	secret, _ := c.MustGet("agent").(string)
 	if secret == "" {
 		c.String(http.StatusUnauthorized, "invalid or empty token.")
+		c.Abort()
 		return
 	}
 

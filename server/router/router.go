@@ -29,7 +29,6 @@ import (
 	"codeberg.org/crowci/crow/v3/server/api/metrics"
 	"codeberg.org/crowci/crow/v3/server/router/middleware/header"
 	"codeberg.org/crowci/crow/v3/server/router/middleware/session"
-	"codeberg.org/crowci/crow/v3/server/router/middleware/token"
 	"codeberg.org/crowci/crow/v3/server/web"
 )
 
@@ -49,7 +48,6 @@ func Load(noRouteHandler http.HandlerFunc, middleware ...gin.HandlerFunc) http.H
 	e.Use(header.Secure)
 	e.Use(middleware...)
 	e.Use(session.SetUser())
-	e.Use(token.Refresh)
 
 	e.NoRoute(gin.WrapF(noRouteHandler))
 

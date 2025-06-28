@@ -37,9 +37,14 @@ func Refresh(c *gin.Context) {
 
 		if err := forge.Refresh(c, _forge, store.FromContext(c), user); err != nil {
 			log.Error().Err(err).Msgf("failed to refresh OAuth token for user '%s'", user.Login)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+
+			// Always return JSON for token refresh errors to ensure proper frontend handling
+			c.Header("Content-Type", "application/json; charset=utf-8")
+			c.JSON(http.StatusUnauthorized, gin.H{
 				"error": "Your authorization has expired and could not be refreshed. Please log in again.",
+				"code":  "TOKEN_REFRESH_FAILED",
 			})
+			c.Abort()
 			return
 		}
 	}

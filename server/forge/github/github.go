@@ -152,11 +152,15 @@ func (c *client) Auth(ctx context.Context, token, _ string) (string, error) {
 	return *user.Login, nil
 }
 
-// Refresh refreshes the Gitlab oauth2 access token. If the token is
+// Refresh refreshes the GitHub oauth2 access token. If the token is
 // refreshed the user is updated and a true value is returned.
 func (c *client) Refresh(ctx context.Context, user *model.User) (bool, error) {
 	// when using Github oAuth app no refresh token is provided
 	if user.RefreshToken == "" {
+		// If the token is expired and there's no refresh token, return an error
+		if time.Now().UTC().Unix() >= user.Expiry {
+			return false, fmt.Errorf("token expired and refresh token is not set")
+		}
 		return false, nil
 	}
 
