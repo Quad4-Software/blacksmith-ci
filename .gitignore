@@ -56,3 +56,4 @@ site/
 .envrc
 local.sh
 *.bkp
+.DS_Store
