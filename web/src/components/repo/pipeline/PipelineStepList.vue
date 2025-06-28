@@ -80,22 +80,21 @@
             </span>
             <!-- Status Icon -->
             <span class="flex items-center justify-center h-8 w-8">
-              <PipelineStatusIcon :status="workflow.state" class="h-5 w-5" />
+              <PipelineStatusIcon :status="workflow.state" class="h-4 w-4" />
             </span>
             <!-- Name -->
             <span class="min-w-0 font-medium md:whitespace-nowrap lg:whitespace-normal break-words">
               {{ workflow.name }}
             </span>
             <!-- Cancel Button -->
-            <span class="flex items-center justify-center h-8 w-8">
+            <span class="flex items-center justify-center h-4 w-8">
               <IconButton
                 v-if="hasPushPermission && (workflow.state === 'pending' || workflow.state === 'running')"
                 :is-loading="isCancelingWorkflow[workflow.id]"
                 icon="close"
-                class="border border-wp-error-100 h-6 w-6 p-0.5"
+                class="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                 :title="$t('repo.pipeline.actions.cancel')"
-                size="0.8rem"
-                color="red"
+                size="1.3rem"
                 @click.stop="cancelWorkflow(workflow.id)"
               />
             </span>
@@ -134,7 +133,7 @@
             >
               <span></span>
               <span class="flex items-center justify-center h-8 w-8">
-                <PipelineStatusIcon :service="step.type === StepType.Service" :status="step.state" class="h-5 w-5" />
+                <PipelineStatusIcon :service="step.type === StepType.Service" :status="step.state" class="h-4 w-4" />
               </span>
               <span class="min-w-0 break-words">{{ step.name }}</span>
               <span></span>
