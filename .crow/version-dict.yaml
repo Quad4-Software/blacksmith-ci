@@ -2,38 +2,48 @@ when:
   - event: tag
   - event: deployment
 
-steps:
-  - name: Prepare
-    image: alpine:3.22
-    commands:
-      - mkdir upload/
+clone:
+  git:
+    image: woodpeckerci/plugin-git:2.6.5
+    settings:
+      branch: gh-pages
+      ref: gh-pages
+      depth: 0
 
+steps:
   - name: 'Update dev version hash'
     image: alpine:3.22
     commands:
       - apk add --no-cache -q yq curl
-      - curl -sL https://crowci.dev/versions.json -o upload/versions.json
-      - yq -iP '.dev = "dev-${CI_COMMIT_SHA:0:10}"' upload/versions.json
+      - ls -la
+      - curl -sL https://crowci.dev/versions.json -o versions.json
+      - |
+        yq -i '
+          (.[] | select(.title == "dev") ).version = "dev-${CI_COMMIT_SHA:0:10}"
+        ' versions.json
 
   - name: 'Update release version hash'
     image: alpine:3.22
     commands:
       - apk add --no-cache -q yq
-      - if [[ "${CI_COMMIT_TAG}" != *"rc"* ]] ; then yq -iP '.latest = "${CI_COMMIT_TAG}"' upload/versions.json ; fi
-      - yq -iP '.rc = "${CI_COMMIT_TAG}"' upload/versions.json
+      - if [[ "${CI_COMMIT_TAG}" != *"rc"* ]] ; then yq -iP '.latest = "${CI_COMMIT_TAG}"' versions.json ; fi
+      - |
+        yq -i '
+          (.[] | select(.title == "dev") ).version = "dev-${CI_COMMIT_SHA:0:10}"
+        ' versions.json
+      - git status
     when:
       - event: tag
 
-  - name: s3-sync
-    image: plugins/s3:1.5.3
+  - name: 'Push changes to branch'
+    image: docker.io/appleboy/drone-git-push:1.1.1
     settings:
-      bucket: crow-docs-nbg1
-      region: nbg1
-      endpoint: https://nbg1.your-objectstorage.com
-      access_key:
-        from_secret: HETZNER_S3_ACCESS_KEY_NBG1
-      secret_key:
-        from_secret: HETZNER_S3_SECRET_KEY_NBG1
-      source: upload/versions.json
-      strip_prefix: upload/
-      target: /
+      remote: ${CI_REPO_CLONE_SSH_URL}
+      branch: gh-pages
+      commit: true
+      force: true
+      ssh_key:
+        from_secret: crowci-bot-ssh-key
+      commit_message: '[skip ci] Update version.json ${CI_COMMIT_SHA}'
+      author_name: crowci-bot
+      author_email: admin@crowci.dev
