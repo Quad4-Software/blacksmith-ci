@@ -59,6 +59,10 @@ func (f *forgeFetcher) Fetch(ctx context.Context, forge forge.Forge, user *model
 	for i := 0; i < int(f.retryCount); i++ {
 		files, err = ffc.fetch(ctx, strings.TrimSpace(repo.Config))
 		if err != nil {
+			// Don't retry if the error is ErrConfigNotFound - retrying won't help
+			if errors.Is(err, &types.ErrConfigNotFound{}) {
+				return nil, err
+			}
 			log.Trace().Err(err).Msgf("Fetching config files: Attempt #%d failed", i+1)
 		} else {
 			break
@@ -92,6 +96,11 @@ func (f *forgeFetcherContext) fetch(c context.Context, config string) ([]*types.
 			return fileMetas, nil
 		}
 
+		// Preserve ErrConfigNotFound error type for proper handling in upstream functions
+		if errors.Is(err, &types.ErrConfigNotFound{}) {
+			return nil, err
+		}
+
 		return nil, fmt.Errorf("user defined config '%s' not found: %w", config, err)
 	}
 
@@ -106,6 +115,10 @@ func (f *forgeFetcherContext) fetch(c context.Context, config string) ([]*types.
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	default:
+		// Preserve ErrConfigNotFound error type for proper handling in upstream functions
+		if errors.Is(err, &types.ErrConfigNotFound{}) {
+			return nil, err
+		}
 		return nil, fmt.Errorf("configFetcher: fallback did not find config: %w", err)
 	}
 }
@@ -147,6 +160,10 @@ func (f *forgeFetcherContext) getFirstAvailableConfig(c context.Context, configs
 			// if folder is not supported we will get a "Not implemented" error and continue
 			if err != nil {
 				if !errors.Is(err, types.ErrNotImplemented) && !errors.Is(err, &types.ErrConfigNotFound{}) {
+					// Check if this is a "not found" type error that should be treated as 'config not found'
+					if isNotFoundError(err) {
+						continue
+					}
 					log.Error().Err(err).Str("repo", f.repo.FullName).Str("user", f.user.Login).Msgf("could not get folder from forge: %s", err)
 					forgeErr = append(forgeErr, err)
 				}
@@ -164,6 +181,10 @@ func (f *forgeFetcherContext) getFirstAvailableConfig(c context.Context, configs
 			log.Trace().Msgf("configFetcher[%s]: found file: '%s'", f.repo.FullName, fileOrFolder)
 			return fileMeta, nil
 		} else if !errors.Is(err, &types.ErrConfigNotFound{}) {
+			// Check if this is a "not found" type error that should be treated as 'config not found'
+			if isNotFoundError(err) {
+				continue
+			}
 			forgeErr = append(forgeErr, err)
 		}
 	}
@@ -173,6 +194,26 @@ func (f *forgeFetcherContext) getFirstAvailableConfig(c context.Context, configs
 		return nil, errors.Join(forgeErr...)
 	}
 
-	// nothing found
+	configList := strings.Join(configs, ", ")
+	log.Debug().
+		Str("repo", f.repo.FullName).
+		Str("branch", f.pipeline.Ref).
+		Str("configs", configList).
+		Msgf("no config files found in branch '%s' - searched for: %s", f.pipeline.Ref, configList)
 	return nil, &types.ErrConfigNotFound{Configs: configs}
+}
+
+// isNotFoundError checks if an error represents a "not found" condition
+// that should be treated as 'config not found' rather than a forge error.
+func isNotFoundError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	errStr := err.Error()
+
+	// Check for common not found error patterns
+	return strings.Contains(errStr, "GetContentsOrList") ||
+		strings.Contains(errStr, "file not found") ||
+		strings.Contains(errStr, "directory not found")
 }

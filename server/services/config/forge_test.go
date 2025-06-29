@@ -15,6 +15,7 @@
 package config_test
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"testing"
@@ -277,6 +278,27 @@ func TestFetch(t *testing.T) {
 			expectedFileNames: []string{},
 			expectedError:     true,
 		},
+		{
+			name:              "Default config - No config files found (should preserve ErrConfigNotFound)",
+			repoConfig:        "",
+			files:             []file{},
+			expectedFileNames: []string{},
+			expectedError:     true,
+		},
+		{
+			name:              "Custom config - No config files found (should preserve ErrConfigNotFound)",
+			repoConfig:        ".my-custom-config.yml",
+			files:             []file{},
+			expectedFileNames: []string{},
+			expectedError:     true,
+		},
+		{
+			name:              "GetContentsOrList error should be treated as config not found",
+			repoConfig:        "",
+			files:             []file{},
+			expectedFileNames: []string{},
+			expectedError:     true,
+		},
 	}
 
 	for _, tt := range testTable {
@@ -301,8 +323,30 @@ func TestFetch(t *testing.T) {
 			}
 
 			// if the previous mocks do not match return not found errors
-			f.On("File", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, fmt.Errorf("file not found"))
-			f.On("Dir", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, fmt.Errorf("directory not found"))
+			switch tt.name {
+			case "Default config - No config files found (should preserve ErrConfigNotFound)",
+				"Custom config - No config files found (should preserve ErrConfigNotFound)":
+				// Return ErrConfigNotFound for all config files
+				f.On("File", mock.Anything, mock.Anything, mock.Anything, mock.Anything, ".crow.yaml").Return(nil, &forge_types.ErrConfigNotFound{Configs: []string{".crow.yaml"}})
+				f.On("File", mock.Anything, mock.Anything, mock.Anything, mock.Anything, ".crow.yml").Return(nil, &forge_types.ErrConfigNotFound{Configs: []string{".crow.yml"}})
+				f.On("File", mock.Anything, mock.Anything, mock.Anything, mock.Anything, ".woodpecker.yaml").Return(nil, &forge_types.ErrConfigNotFound{Configs: []string{".woodpecker.yaml"}})
+				f.On("File", mock.Anything, mock.Anything, mock.Anything, mock.Anything, ".woodpecker.yml").Return(nil, &forge_types.ErrConfigNotFound{Configs: []string{".woodpecker.yml"}})
+				f.On("File", mock.Anything, mock.Anything, mock.Anything, mock.Anything, ".my-custom-config.yml").Return(nil, &forge_types.ErrConfigNotFound{Configs: []string{".my-custom-config.yml"}})
+				f.On("Dir", mock.Anything, mock.Anything, mock.Anything, mock.Anything, ".crow").Return(nil, &forge_types.ErrConfigNotFound{Configs: []string{".crow"}})
+				f.On("Dir", mock.Anything, mock.Anything, mock.Anything, mock.Anything, ".woodpecker").Return(nil, &forge_types.ErrConfigNotFound{Configs: []string{".woodpecker"}})
+			case "GetContentsOrList error should be treated as config not found":
+				// Return GetContentsOrList errors for all config files
+				f.On("File", mock.Anything, mock.Anything, mock.Anything, mock.Anything, ".crow.yaml").Return(nil, fmt.Errorf("GetContentsOrList"))
+				f.On("File", mock.Anything, mock.Anything, mock.Anything, mock.Anything, ".crow.yml").Return(nil, fmt.Errorf("GetContentsOrList"))
+				f.On("File", mock.Anything, mock.Anything, mock.Anything, mock.Anything, ".woodpecker.yaml").Return(nil, fmt.Errorf("GetContentsOrList"))
+				f.On("File", mock.Anything, mock.Anything, mock.Anything, mock.Anything, ".woodpecker.yml").Return(nil, fmt.Errorf("GetContentsOrList"))
+				f.On("Dir", mock.Anything, mock.Anything, mock.Anything, mock.Anything, ".crow").Return(nil, fmt.Errorf("GetContentsOrList"))
+				f.On("Dir", mock.Anything, mock.Anything, mock.Anything, mock.Anything, ".woodpecker").Return(nil, fmt.Errorf("GetContentsOrList"))
+			default:
+				// For existing tests, keep the generic error behavior
+				f.On("File", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, fmt.Errorf("file not found"))
+				f.On("Dir", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, fmt.Errorf("directory not found"))
+			}
 
 			configFetcher := config.NewForge(
 				time.Second*3,
@@ -321,6 +365,20 @@ func TestFetch(t *testing.T) {
 				t.Fatal("expected an error")
 			} else if !tt.expectedError && err != nil {
 				t.Fatal("error fetching config:", err)
+			}
+
+			// Test that ErrConfigNotFound is preserved for proper upstream handling
+			if tt.expectedError && err != nil {
+				var configNotFoundErr *forge_types.ErrConfigNotFound
+				if errors.As(err, &configNotFoundErr) {
+					t.Logf("Correctly preserved ErrConfigNotFound error: %v", err)
+				} else {
+					if errors.Is(err, &forge_types.ErrConfigNotFound{}) {
+						t.Logf("Correctly wrapped but detectable ErrConfigNotFound error: %v", err)
+					} else {
+						t.Errorf("Expected ErrConfigNotFound error, but got: %v", err)
+					}
+				}
 			}
 
 			matchingFiles := make([]string, len(files))

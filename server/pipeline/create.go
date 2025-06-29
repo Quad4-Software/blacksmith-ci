@@ -83,7 +83,13 @@ func Create(ctx context.Context, _store store.Store, repo *model.Repo, pipeline 
 	configService := server.Config.Services.Manager.ConfigServiceFromRepo(repo)
 	forgeYamlConfigs, configFetchErr := configService.Fetch(ctx, _forge, repoUser, repo, pipeline, nil, false)
 	if errors.Is(configFetchErr, &forge_types.ErrConfigNotFound{}) {
-		log.Debug().Str("repo", repo.FullName).Err(configFetchErr).Msgf("cannot find config '%s' in '%s' with user: '%s'", repo.Config, pipeline.Ref, repoUser.Login)
+		log.Debug().
+			Str("repo", repo.FullName).
+			Str("branch", pipeline.Ref).
+			Str("commit", pipeline.Commit).
+			Str("user", repoUser.Login).
+			Err(configFetchErr).
+			Msgf("skipping pipeline for branch '%s' - no config file found (searched for: %s)", pipeline.Ref, repo.Config)
 		if err := _store.DeletePipeline(pipeline); err != nil {
 			log.Error().Str("repo", repo.FullName).Err(err).Msg("failed to delete pipeline without config")
 		}
