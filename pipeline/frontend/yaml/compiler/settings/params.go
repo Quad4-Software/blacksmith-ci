@@ -27,7 +27,9 @@ import (
 func captureInjectedSecret(k string, secretMapping map[string]string, getSecretValue func(name string) (string, error)) func(name string) (string, error) {
 	return func(name string) (string, error) {
 		v, err := getSecretValue(name)
-		secretMapping[k] = v
+		if secretMapping != nil {
+			secretMapping[k] = v
+		}
 		return v, err
 	}
 }
@@ -113,36 +115,26 @@ func sanitizeParamValue(v any, getSecretValue func(name string) (string, error))
 			return "", nil
 		}
 
-		// if it's an interface unwrap and element check happen for each iteration later
-		if t.Elem().Kind() == reflect.Interface ||
-			// else check directly if element is not complex
-			!isComplex(t.Elem().Kind()) {
-			containsComplex := false
-			in := make([]string, vv.Len())
-
-			for i := 0; i < vv.Len(); i++ {
-				v := vv.Index(i).Interface()
-
-				// if we handle a list with a nil entry we just return a empty list
-				if v == nil {
-					continue
-				}
-
-				// ensure each element is not complex
-				if isComplex(reflect.TypeOf(v).Kind()) {
-					containsComplex = true
-					break
-				}
-
-				var err error
-				if in[i], err = sanitizeParamValue(v, getSecretValue); err != nil {
-					return "", err
-				}
+		allPrimitive := true
+		in := make([]string, vv.Len())
+		for i := 0; i < vv.Len(); i++ {
+			el := vv.Index(i).Interface()
+			if el == nil {
+				continue
 			}
-
-			if !containsComplex {
-				return strings.Join(in, ","), nil
+			// If any element is complex, we must serialize the whole slice as JSON
+			if isComplex(reflect.TypeOf(el).Kind()) {
+				allPrimitive = false
+				break
 			}
+			var err error
+			in[i], err = sanitizeParamValue(el, getSecretValue)
+			if err != nil {
+				return "", err
+			}
+		}
+		if allPrimitive {
+			return strings.Join(in, ","), nil
 		}
 	}
 

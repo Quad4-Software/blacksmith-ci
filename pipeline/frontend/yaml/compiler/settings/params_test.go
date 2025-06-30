@@ -232,3 +232,49 @@ func TestSecretNotFound(t *testing.T) {
 		ParamsToEnv(from, got, "PLUGIN_", true, getSecretValue, secretMapping),
 		fmt.Sprintf("secret %q not found or not allowed to be used", "secret_token"))
 }
+
+func TestParamsToEnv_LoginsListOfMaps(t *testing.T) {
+	// Regression test for v3.7.0: logins as list of maps must serialize as JSON array
+	logins := []any{
+		map[string]any{
+			"registry": "https://dummy.registry/1",
+			"username": "user1",
+			"password": map[string]any{"from_secret": "SECRET_1"},
+		},
+		map[string]any{
+			"registry": "https://dummy.registry/2",
+			"username": "user2",
+			"password": map[string]any{"from_secret": "SECRET_2"},
+		},
+		map[string]any{
+			"registry": "https://dummy.registry/3",
+			"username": "user3",
+			"password": map[string]any{"from_secret": "SECRET_3"},
+		},
+	}
+	from := map[string]any{
+		"logins": logins,
+	}
+	secrets := map[string]string{
+		"secret_1": "DUMMY1",
+		"secret_2": "DUMMY2",
+		"secret_3": "DUMMY3",
+	}
+	getSecretValue := func(name string) (string, error) {
+		name = strings.ToLower(name)
+		secret, ok := secrets[name]
+		if ok {
+			return secret, nil
+		}
+		return "", fmt.Errorf("secret %q not found", name)
+	}
+	got := map[string]string{}
+	assert.NoError(t, ParamsToEnv(from, got, "PLUGIN_", true, getSecretValue, nil))
+	// Should be a JSON array of objects with secrets injected
+	expected := `[
+		{"registry": "https://dummy.registry/1", "username": "user1", "password": "DUMMY1"},
+		{"registry": "https://dummy.registry/2", "username": "user2", "password": "DUMMY2"},
+		{"registry": "https://dummy.registry/3", "username": "user3", "password": "DUMMY3"}
+	]`
+	assert.JSONEq(t, expected, got["PLUGIN_LOGINS"], "logins should be serialized as JSON array of objects")
+}
