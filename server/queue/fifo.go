@@ -212,27 +212,53 @@ func (q *fifo) Extend(_ context.Context, agentID int64, taskID string) error {
 // Info returns internal queue information.
 func (q *fifo) Info(_ context.Context) InfoT {
 	q.Lock()
-	stats := InfoT{}
-	stats.Stats.Workers = len(q.workers)
-	stats.Stats.Pending = q.pending.Len()
-	stats.Stats.WaitingOnDeps = q.waitingOnDeps.Len()
-	stats.Stats.Running = len(q.running)
+	defer q.Unlock()
+
+	info := InfoT{
+		Stats: struct {
+			Workers       int `json:"worker_count"`
+			Pending       int `json:"pending_count"`
+			WaitingOnDeps int `json:"waiting_on_deps_count"`
+			Running       int `json:"running_count"`
+		}{
+			Workers:       len(q.workers),
+			Pending:       q.pending.Len(),
+			Running:       len(q.running),
+			WaitingOnDeps: q.waitingOnDeps.Len(),
+		},
+		Paused: q.paused,
+	}
+
+	for _, entry := range q.running {
+		info.Running = append(info.Running, entry.item)
+	}
 
 	for element := q.pending.Front(); element != nil; element = element.Next() {
-		task, _ := element.Value.(*model.Task)
-		stats.Pending = append(stats.Pending, task)
+		if task, ok := element.Value.(*model.Task); ok {
+			info.Pending = append(info.Pending, task)
+		}
 	}
-	for element := q.waitingOnDeps.Front(); element != nil; element = element.Next() {
-		task, _ := element.Value.(*model.Task)
-		stats.WaitingOnDeps = append(stats.WaitingOnDeps, task)
-	}
-	for _, entry := range q.running {
-		stats.Running = append(stats.Running, entry.item)
-	}
-	stats.Paused = q.paused
 
-	q.Unlock()
-	return stats
+	for element := q.waitingOnDeps.Front(); element != nil; element = element.Next() {
+		if task, ok := element.Value.(*model.Task); ok {
+			info.WaitingOnDeps = append(info.WaitingOnDeps, task)
+		}
+	}
+
+	return info
+}
+
+// GetRunningWorkflowIDs returns a list of workflow IDs that are currently running
+// This is useful for cleanup operations.
+func (q *fifo) GetRunningWorkflowIDs() []string {
+	q.Lock()
+	defer q.Unlock()
+
+	var ids []string
+	for id := range q.running {
+		ids = append(ids, id)
+	}
+	return ids
 }
 
 // Pause stops the queue from handing out new work items in Poll.

@@ -6815,3 +6815,54 @@ func (_c *MockStore_WorkflowsReplace_Call) RunAndReturn(run func(pipeline *model
 	_c.Call.Return(run)
 	return _c
 }
+
+// CleanupOrphanedWorkflows provides a mock function for the type MockStore
+func (_mock *MockStore) CleanupOrphanedWorkflows(workflowIDs []string) error {
+	ret := _mock.Called(workflowIDs)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CleanupOrphanedWorkflows")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func([]string) error); ok {
+		r0 = returnFunc(workflowIDs)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_CleanupOrphanedWorkflows_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CleanupOrphanedWorkflows'
+type MockStore_CleanupOrphanedWorkflows_Call struct {
+	*mock.Call
+}
+
+// CleanupOrphanedWorkflows is a helper method to define mock.On call
+//   - workflowIDs []string
+func (_e *MockStore_Expecter) CleanupOrphanedWorkflows(workflowIDs interface{}) *MockStore_CleanupOrphanedWorkflows_Call {
+	return &MockStore_CleanupOrphanedWorkflows_Call{Call: _e.mock.On("CleanupOrphanedWorkflows", workflowIDs)}
+}
+
+func (_c *MockStore_CleanupOrphanedWorkflows_Call) Run(run func(workflowIDs []string)) *MockStore_CleanupOrphanedWorkflows_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 []string
+		if args[0] != nil {
+			arg0 = args[0].([]string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_CleanupOrphanedWorkflows_Call) Return(err error) *MockStore_CleanupOrphanedWorkflows_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_CleanupOrphanedWorkflows_Call) RunAndReturn(run func(workflowIDs []string) error) *MockStore_CleanupOrphanedWorkflows_Call {
+	_c.Call.Return(run)
+	return _c
+}

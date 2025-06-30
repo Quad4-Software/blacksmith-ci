@@ -108,6 +108,10 @@ type Queue interface {
 	// Info returns internal queue information.
 	Info(c context.Context) InfoT
 
+	// GetRunningWorkflowIDs returns a list of workflow IDs that are currently running
+	// This is useful for cleanup operations
+	GetRunningWorkflowIDs() []string
+
 	// Pause stops the queue from handing out new work items in Poll
 	Pause()
 

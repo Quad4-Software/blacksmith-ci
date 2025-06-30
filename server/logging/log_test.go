@@ -77,3 +77,133 @@ func TestLogging(t *testing.T) {
 	wg.Wait()
 	cancel(nil)
 }
+
+func TestLog_Close_ExistingStream(t *testing.T) {
+	t.Parallel()
+
+	// Setup
+	logger := New()
+	stepID := int64(123)
+
+	// Open a stream first
+	err := logger.Open(t.Context(), stepID)
+	assert.NoError(t, err)
+
+	// Close the existing stream
+	err = logger.Close(t.Context(), stepID)
+	assert.NoError(t, err)
+
+	// Verify stream was removed
+	err = logger.Close(t.Context(), stepID)
+	assert.NoError(t, err) // Should not return error for already closed stream
+}
+
+func TestLog_Close_NonExistentStream(t *testing.T) {
+	t.Parallel()
+
+	// Setup
+	logger := New()
+	stepID := int64(123)
+
+	// Try to close a stream that doesn't exist
+	err := logger.Close(t.Context(), stepID)
+	assert.NoError(t, err) // Should return nil, not ErrNotFound
+}
+
+func TestLog_Close_MultipleCalls(t *testing.T) {
+	t.Parallel()
+
+	// Setup
+	logger := New()
+	stepID := int64(123)
+
+	// Open a stream
+	err := logger.Open(t.Context(), stepID)
+	assert.NoError(t, err)
+
+	// Close it multiple times
+	err = logger.Close(t.Context(), stepID)
+	assert.NoError(t, err)
+
+	err = logger.Close(t.Context(), stepID)
+	assert.NoError(t, err)
+
+	err = logger.Close(t.Context(), stepID)
+	assert.NoError(t, err)
+}
+
+func TestLog_Write_ToNonExistentStream(t *testing.T) {
+	t.Parallel()
+
+	// Setup
+	logger := New()
+	stepID := int64(123)
+
+	// Write to a stream that doesn't exist (should auto-create)
+	entries := []*model.LogEntry{
+		{
+			StepID: stepID,
+			Line:   1,
+			Data:   []byte("test log entry"),
+		},
+	}
+
+	err := logger.Write(t.Context(), stepID, entries)
+	assert.NoError(t, err)
+
+	// Verify stream was created and can be closed
+	err = logger.Close(t.Context(), stepID)
+	assert.NoError(t, err)
+}
+
+func TestLog_Tail_NonExistentStream(t *testing.T) {
+	t.Parallel()
+
+	// Setup
+	logger := New()
+	stepID := int64(123)
+
+	// Try to tail a stream that doesn't exist
+	receiver := make(LogChan, 1)
+	err := logger.Tail(t.Context(), stepID, receiver)
+	assert.Error(t, err)
+	assert.Equal(t, ErrNotFound, err)
+}
+
+func TestLog_Integration_OpenWriteClose(t *testing.T) {
+	t.Parallel()
+
+	// Setup
+	logger := New()
+	stepID := int64(123)
+	ctx := t.Context()
+
+	// Open stream
+	err := logger.Open(ctx, stepID)
+	assert.NoError(t, err)
+
+	// Write some entries
+	entries := []*model.LogEntry{
+		{
+			StepID: stepID,
+			Line:   1,
+			Data:   []byte("first log entry"),
+		},
+		{
+			StepID: stepID,
+			Line:   2,
+			Data:   []byte("second log entry"),
+		},
+	}
+
+	err = logger.Write(ctx, stepID, entries)
+	assert.NoError(t, err)
+
+	// Close stream
+	err = logger.Close(ctx, stepID)
+	assert.NoError(t, err)
+
+	// Try to close again (should not error)
+	err = logger.Close(ctx, stepID)
+	assert.NoError(t, err)
+}

@@ -686,3 +686,93 @@ func TestFifoWithScoring(t *testing.T) {
 		assert.Contains(t, expectedAgents, agentID, "Task %s should be assigned to one of the expected agents", taskID)
 	}
 }
+
+func TestFifo_GetRunningWorkflowIDs(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	q := NewMemoryQueue(ctx)
+
+	t.Run("empty queue", func(t *testing.T) {
+		ids := q.GetRunningWorkflowIDs()
+		assert.Empty(t, ids)
+	})
+
+	t.Run("with running workflows", func(t *testing.T) {
+		// Add some tasks to the queue
+		task1 := &model.Task{ID: "1", Labels: map[string]string{}}
+		task2 := &model.Task{ID: "2", Labels: map[string]string{}}
+		task3 := &model.Task{ID: "3", Labels: map[string]string{}}
+
+		err := q.PushAtOnce(ctx, []*model.Task{task1, task2, task3})
+		assert.NoError(t, err)
+
+		// Poll tasks to make them running
+		filter := func(_ *model.Task) (bool, int) {
+			return true, 1
+		}
+
+		// Poll all tasks
+		_, err = q.Poll(ctx, 1, filter)
+		assert.NoError(t, err)
+		_, err = q.Poll(ctx, 1, filter)
+		assert.NoError(t, err)
+		_, err = q.Poll(ctx, 1, filter)
+		assert.NoError(t, err)
+
+		// Check running workflow IDs
+		ids := q.GetRunningWorkflowIDs()
+		assert.Len(t, ids, 3)
+		assert.Contains(t, ids, "1")
+		assert.Contains(t, ids, "2")
+		assert.Contains(t, ids, "3")
+
+		// Complete one workflow
+		err = q.Done(ctx, "1", model.StatusSuccess)
+		assert.NoError(t, err)
+
+		// Check running workflow IDs again
+		ids = q.GetRunningWorkflowIDs()
+		assert.Len(t, ids, 2)
+		assert.NotContains(t, ids, "1")
+		assert.Contains(t, ids, "2")
+		assert.Contains(t, ids, "3")
+	})
+
+	t.Run("after queue pause and resume", func(t *testing.T) {
+		var err error
+		// Complete previous running workflows before adding the new one
+		err = q.Done(ctx, "2", model.StatusSuccess)
+		assert.NoError(t, err)
+		err = q.Done(ctx, "3", model.StatusSuccess)
+		assert.NoError(t, err)
+
+		// Add a task
+		task := &model.Task{ID: "4", Labels: map[string]string{}}
+		err = q.Push(ctx, task)
+		assert.NoError(t, err)
+
+		// Poll to make it running
+		filter := func(_ *model.Task) (bool, int) {
+			return true, 1
+		}
+		_, err = q.Poll(ctx, 1, filter)
+		assert.NoError(t, err)
+
+		// Pause queue
+		q.Pause()
+
+		// Check running workflow IDs
+		ids := q.GetRunningWorkflowIDs()
+		assert.Len(t, ids, 1)
+		assert.Contains(t, ids, "4")
+
+		// Resume queue
+		q.Resume()
+
+		// Check running workflow IDs again
+		ids = q.GetRunningWorkflowIDs()
+		assert.Len(t, ids, 1)
+		assert.Contains(t, ids, "4")
+	})
+}

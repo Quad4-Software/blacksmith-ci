@@ -15,16 +15,22 @@
 package grpc
 
 import (
+	"errors"
 	"testing"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc/metadata"
 
 	"codeberg.org/crowci/crow/v3/pipeline/rpc"
+	"codeberg.org/crowci/crow/v3/server/logging"
 	"codeberg.org/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v3/server/pubsub"
+	queue_mocks "codeberg.org/crowci/crow/v3/server/queue/mocks"
 	store_mocks "codeberg.org/crowci/crow/v3/server/store/mocks"
+	"codeberg.org/crowci/crow/v3/server/store/types"
 )
 
 func TestRegisterAgent(t *testing.T) {
@@ -158,4 +164,89 @@ func TestUpdateAgentLastWork(t *testing.T) {
 
 		assert.Equal(t, lastWork, agent.LastWork)
 	})
+}
+
+func TestRPC_Done_MissingWorkflow(t *testing.T) {
+	t.Parallel()
+
+	// Setup
+	mockStore := new(store_mocks.MockStore)
+	mockQueue := new(queue_mocks.MockQueue)
+	mockLogger := logging.New()
+
+	rpcServer := &RPC{
+		queue:         mockQueue,
+		pubsub:        pubsub.New(),
+		logger:        mockLogger,
+		store:         mockStore,
+		pipelineTime:  prometheus.NewGaugeVec(prometheus.GaugeOpts{}, []string{"repo", "branch", "status", "type"}),
+		pipelineCount: prometheus.NewCounterVec(prometheus.CounterOpts{}, []string{"repo", "branch", "status", "type"}),
+	}
+
+	// Create context with required metadata
+	ctx := metadata.NewIncomingContext(
+		t.Context(),
+		metadata.Pairs("agent_id", "1"),
+	)
+
+	workflowID := "12345"
+	state := rpc.WorkflowState{}
+
+	// Mock store to return "workflow not found" error
+	mockStore.On("WorkflowLoad", int64(12345)).Return(nil, types.RecordNotExist)
+
+	// Mock queue to expect Done call for missing workflow
+	mockQueue.On("Done", ctx, workflowID, model.StatusError).Return(nil)
+
+	// Execute
+	err := rpcServer.Done(ctx, workflowID, state)
+
+	// Assert
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, types.RecordNotExist))
+	mockStore.AssertExpectations(t)
+	mockQueue.AssertExpectations(t)
+}
+
+func TestRPC_Done_MissingWorkflow_QueueError(t *testing.T) {
+	t.Parallel()
+
+	// Setup
+	mockStore := new(store_mocks.MockStore)
+	mockQueue := new(queue_mocks.MockQueue)
+	mockLogger := logging.New()
+
+	rpcServer := &RPC{
+		queue:         mockQueue,
+		pubsub:        pubsub.New(),
+		logger:        mockLogger,
+		store:         mockStore,
+		pipelineTime:  prometheus.NewGaugeVec(prometheus.GaugeOpts{}, []string{"repo", "branch", "status", "type"}),
+		pipelineCount: prometheus.NewCounterVec(prometheus.CounterOpts{}, []string{"repo", "branch", "status", "type"}),
+	}
+
+	// Create context with required metadata
+	ctx := metadata.NewIncomingContext(
+		t.Context(),
+		metadata.Pairs("agent_id", "1"),
+	)
+
+	workflowID := "12345"
+	state := rpc.WorkflowState{}
+
+	// Mock store to return "workflow not found" error
+	mockStore.On("WorkflowLoad", int64(12345)).Return(nil, types.RecordNotExist)
+
+	// Mock queue to return error when trying to ack missing workflow
+	queueErr := errors.New("queue error")
+	mockQueue.On("Done", ctx, workflowID, model.StatusError).Return(queueErr)
+
+	// Execute
+	err := rpcServer.Done(ctx, workflowID, state)
+
+	// Assert
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, types.RecordNotExist))
+	mockStore.AssertExpectations(t)
+	mockQueue.AssertExpectations(t)
 }

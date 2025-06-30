@@ -214,4 +214,8 @@ type Store interface {
 	Ping() error
 	Close() error
 	Migrate(context.Context, bool) error
+
+	// CleanupOrphanedWorkflows checks for workflows that exist in the queue but not in the database
+	// This helps prevent "sql: no rows in result set" errors
+	CleanupOrphanedWorkflows(workflowIDs []string) error
 }

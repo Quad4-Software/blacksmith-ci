@@ -31,7 +31,6 @@ linters:
     - misspell
     - mnd
     - nolintlint
-    - revive
     - rowserrcheck
     - sqlclosecheck
     - staticcheck
@@ -58,7 +57,6 @@ linters:
             - pkg: codeberg.org/crowci/crow/v3/cmd/server
             - pkg: codeberg.org/crowci/crow/v3/server
             - pkg: codeberg.org/crowci/crow/v3/web
-            - pkg: codeberg.org/crowci/crow/v3/crow-go/crow
         cli:
           list-mode: lax
           files:

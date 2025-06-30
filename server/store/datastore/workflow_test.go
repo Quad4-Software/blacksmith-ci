@@ -118,3 +118,69 @@ func TestWorkflowUpdate(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, model.StatusValue("success"), workflowGet.State)
 }
+
+func TestCleanupOrphanedWorkflows(t *testing.T) {
+	t.Run("empty workflow IDs", func(t *testing.T) {
+		store, closer := newTestStore(t, new(model.Step), new(model.Pipeline), new(model.Workflow))
+		defer closer()
+		err := store.CleanupOrphanedWorkflows([]string{})
+		assert.NoError(t, err)
+	})
+
+	t.Run("invalid workflow IDs", func(t *testing.T) {
+		store, closer := newTestStore(t, new(model.Step), new(model.Pipeline), new(model.Workflow))
+		defer closer()
+		err := store.CleanupOrphanedWorkflows([]string{"invalid", "also-invalid"})
+		assert.NoError(t, err)
+	})
+
+	t.Run("mix of valid and invalid IDs", func(t *testing.T) {
+		store, closer := newTestStore(t, new(model.Step), new(model.Pipeline), new(model.Workflow))
+		defer closer()
+		// Create a workflow in the database
+		wf := &model.Workflow{
+			PipelineID: 1,
+			PID:        1,
+			Name:       "test-workflow",
+		}
+		assert.NoError(t, store.WorkflowsCreate([]*model.Workflow{wf}))
+
+		// Test with mix of existing and non-existing workflow IDs
+		workflowIDs := []string{"1", "999", "invalid", "2"}
+		err := store.CleanupOrphanedWorkflows(workflowIDs)
+		assert.NoError(t, err)
+	})
+
+	t.Run("all existing workflows", func(t *testing.T) {
+		store, closer := newTestStore(t, new(model.Step), new(model.Pipeline), new(model.Workflow))
+		defer closer()
+		// Create multiple workflows
+		workflows := []*model.Workflow{
+			{
+				PipelineID: 1,
+				PID:        1,
+				Name:       "workflow-1",
+			},
+			{
+				PipelineID: 1,
+				PID:        2,
+				Name:       "workflow-2",
+			},
+		}
+		assert.NoError(t, store.WorkflowsCreate(workflows))
+
+		// Test with all existing workflow IDs
+		workflowIDs := []string{"1", "2"}
+		err := store.CleanupOrphanedWorkflows(workflowIDs)
+		assert.NoError(t, err)
+	})
+
+	t.Run("all non-existing workflows", func(t *testing.T) {
+		store, closer := newTestStore(t, new(model.Step), new(model.Pipeline), new(model.Workflow))
+		defer closer()
+		// Test with all non-existing workflow IDs
+		workflowIDs := []string{"999", "1000", "1001"}
+		err := store.CleanupOrphanedWorkflows(workflowIDs)
+		assert.NoError(t, err)
+	})
+}

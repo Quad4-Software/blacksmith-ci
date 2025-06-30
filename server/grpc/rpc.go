@@ -293,7 +293,12 @@ func (s *RPC) Done(c context.Context, strWorkflowID string, state rpc.WorkflowSt
 
 	workflow, err := s.store.WorkflowLoad(workflowID)
 	if err != nil {
-		log.Error().Err(err).Msgf("cannot find workflow with id %d", workflowID)
+		log.Error().Err(err).Msgf("cannot find workflow with id %d - workflow may have been deleted or database is inconsistent", workflowID)
+		// Try to acknowledge the workflow in the queue even if it's not found in the database
+		// This prevents queue items from getting stuck
+		if queueErr := s.queue.Done(c, strWorkflowID, model.StatusError); queueErr != nil {
+			log.Trace().Err(queueErr).Msgf("queue.Done: cannot ack missing workflow %d - workflow may have been already cleaned up", workflowID)
+		}
 		return err
 	}
 
@@ -342,7 +347,7 @@ func (s *RPC) Done(c context.Context, strWorkflowID string, state rpc.WorkflowSt
 		queueErr = s.queue.Done(c, strWorkflowID, workflow.State)
 	}
 	if queueErr != nil {
-		logger.Error().Err(queueErr).Msg("queue.Done: cannot ack workflow")
+		logger.Error().Err(queueErr).Msg("queue.Done: cannot ack workflow - this may indicate database inconsistency or race condition")
 	}
 
 	currentPipeline.Workflows, err = s.store.WorkflowGetTree(currentPipeline)
@@ -363,7 +368,7 @@ func (s *RPC) Done(c context.Context, strWorkflowID string, state rpc.WorkflowSt
 	go func() {
 		for _, step := range workflow.Children {
 			if err := s.logger.Close(c, step.ID); err != nil {
-				logger.Error().Err(err).Msgf("done: cannot close log stream for step %d", step.ID)
+				logger.Error().Err(err).Msgf("done: cannot close log stream for step %d - stream may have been already closed or step was cleaned up", step.ID)
 			}
 		}
 	}()

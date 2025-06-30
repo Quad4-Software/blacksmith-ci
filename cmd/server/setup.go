@@ -111,10 +111,32 @@ func checkSqliteFileExist(path string) error {
 }
 
 func setupQueue(ctx context.Context, s store.Store) (queue.Queue, error) {
-	return queue.New(ctx, queue.Config{
+	q, err := queue.New(ctx, queue.Config{
 		Backend: queue.TypeMemory,
 		Store:   s,
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Clean up orphaned workflows on startup
+	go func() {
+		// Wait a bit for the server to fully start
+		time.Sleep(5 * time.Second)
+
+		// Use reflection to check if this is a fifo queue and get running workflow IDs
+		if getter, ok := q.(interface{ GetRunningWorkflowIDs() []string }); ok {
+			runningIDs := getter.GetRunningWorkflowIDs()
+			if len(runningIDs) > 0 {
+				log.Info().Strs("workflow_ids", runningIDs).Msg("checking for orphaned workflows on startup")
+				if err := s.CleanupOrphanedWorkflows(runningIDs); err != nil {
+					log.Error().Err(err).Msg("failed to cleanup orphaned workflows")
+				}
+			}
+		}
+	}()
+
+	return q, nil
 }
 
 func setupMembershipService(_ context.Context, _store store.Store) cache.MembershipService {

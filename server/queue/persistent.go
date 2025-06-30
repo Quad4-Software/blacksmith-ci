@@ -91,7 +91,11 @@ func (q *persistentQueue) Poll(c context.Context, agentID int64, f FilterFn) (*m
 func (q *persistentQueue) Evict(c context.Context, id string) error {
 	err := q.Queue.Evict(c, id)
 	if err == nil {
-		return q.store.TaskDelete(id)
+		if err := q.store.TaskDelete(id); err != nil {
+			// Log the error but don't fail the operation
+			// This prevents missing tasks from failing the eviction
+			log.Trace().Err(err).Msgf("queue: evict: failed to delete task %s from database - task may have been already deleted", id)
+		}
 	}
 	return err
 }
@@ -103,7 +107,9 @@ func (q *persistentQueue) EvictAtOnce(c context.Context, ids []string) error {
 	}
 	for _, id := range ids {
 		if err := q.store.TaskDelete(id); err != nil {
-			return err
+			// Log the error but continue processing other tasks
+			// This prevents one missing task from failing the entire operation
+			log.Trace().Err(err).Msgf("queue: evict_at_once: failed to delete task %s from database - task may have been already deleted", id)
 		}
 	}
 	return nil
@@ -114,7 +120,12 @@ func (q *persistentQueue) Error(c context.Context, id string, err error) error {
 	if err := q.Queue.Error(c, id, err); err != nil {
 		return err
 	}
-	return q.store.TaskDelete(id)
+	if err := q.store.TaskDelete(id); err != nil {
+		// Log the error but don't fail the operation
+		// This prevents missing tasks from failing the error operation
+		log.Trace().Err(err).Msgf("queue: error: failed to delete task %s from database - task may have been already deleted", id)
+	}
+	return nil
 }
 
 // ErrorAtOnce signals multiple tasks are done with an error.
@@ -124,7 +135,9 @@ func (q *persistentQueue) ErrorAtOnce(c context.Context, ids []string, err error
 	}
 	for _, id := range ids {
 		if err := q.store.TaskDelete(id); err != nil {
-			return err
+			// Log the error but continue processing other tasks
+			// This prevents one missing task from failing the entire operation
+			log.Trace().Err(err).Msgf("queue: error_at_once: failed to delete task %s from database - task may have been already deleted", id)
 		}
 	}
 	return nil

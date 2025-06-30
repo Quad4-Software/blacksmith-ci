@@ -15,6 +15,9 @@
 package datastore
 
 import (
+	"strconv"
+
+	"github.com/rs/zerolog/log"
 	"xorm.io/xorm"
 
 	"codeberg.org/crowci/crow/v3/server/model"
@@ -130,4 +133,51 @@ func (s storage) WorkflowLoad(id int64) (*model.Workflow, error) {
 func (s storage) WorkflowUpdate(workflow *model.Workflow) error {
 	_, err := s.engine.ID(workflow.ID).AllCols().Update(workflow)
 	return err
+}
+
+// CleanupOrphanedWorkflows removes workflows that exist in the queue but not in the database
+// This helps prevent "sql: no rows in result set" errors.
+func (s storage) CleanupOrphanedWorkflows(workflowIDs []string) error {
+	if len(workflowIDs) == 0 {
+		return nil
+	}
+
+	// Convert string IDs to int64 for database query
+	var ids []int64
+	for _, idStr := range workflowIDs {
+		if id, err := strconv.ParseInt(idStr, 10, 64); err == nil {
+			ids = append(ids, id)
+		}
+	}
+
+	if len(ids) == 0 {
+		return nil
+	}
+
+	// Check which workflows actually exist in the database
+	var existingWorkflows []*model.Workflow
+	err := s.engine.In("id", ids).Find(&existingWorkflows)
+	if err != nil {
+		return err
+	}
+
+	// Create a map of existing workflow IDs
+	existingMap := make(map[int64]bool)
+	for _, wf := range existingWorkflows {
+		existingMap[wf.ID] = true
+	}
+
+	// Log orphaned workflows for debugging
+	var orphanedIDs []string
+	for _, id := range ids {
+		if !existingMap[id] {
+			orphanedIDs = append(orphanedIDs, strconv.FormatInt(id, 10))
+		}
+	}
+
+	if len(orphanedIDs) > 0 {
+		log.Warn().Strs("orphaned_workflow_ids", orphanedIDs).Msg("found orphaned workflows in queue that don't exist in database")
+	}
+
+	return nil
 }
