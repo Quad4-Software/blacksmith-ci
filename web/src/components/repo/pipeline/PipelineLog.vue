@@ -20,47 +20,6 @@
               {{ $t('repo.pipeline.agent', { agentId: workflow?.agent_id || '' }) }}
             </a>
           </span>
-          <div
-            class="cursor-pointer rounded-full border border-wp-custom-highlight-100 bg-wp-code-100 p-1 shadow-lg transition-opacity duration-300 flex items-center justify-center"
-            :title="$t('repo.pipeline.actions.log_scroll_to_bottom')"
-            @click="scrollToBottom"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="8"
-              height="8"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="text-wp-code-text-alt-100"
-            >
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </div>
-
-          <div
-            class="cursor-pointer rounded-full border border-wp-custom-highlight-100 bg-wp-code-100 p-1 shadow-lg transition-opacity duration-300 flex items-center justify-center"
-            :title="$t('repo.pipeline.actions.log_scroll_to_top')"
-            @click="scrollToTop"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="8"
-              height="8"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="text-wp-code-text-alt-100"
-            >
-              <polyline points="18 15 12 9 6 15"></polyline>
-            </svg>
-          </div>
           <IconButton
             v-if="step?.finished !== undefined && hasLogs"
             :is-loading="downloadInProgress"
@@ -169,46 +128,97 @@
         </div>
       </div>
 
+      <!-- Log area with floating scroll buttons wrapper -->
       <div
         v-show="hasLogs && loadedLogs && (log?.length || 0) > 0"
-        ref="consoleElement"
-        class="grid w-full max-w-full grow auto-rows-min grid-cols-[min-content_minmax(0,1fr)_min-content] overflow-y-auto overflow-x-hidden p-4 text-xs md:text-sm h-[calc(100vh-200px)]"
+        class="relative w-full max-w-full grow h-[calc(100vh-200px)]"
       >
-        <div v-for="line in log" :key="line.index" class="contents font-mono">
-          <a
-            :id="`L${line.number}`"
-            :href="`#L${line.number}`"
-            class="select-none whitespace-nowrap pl-2 pr-6 text-right text-wp-code-text-line-numbers-100"
-            :class="{
-              'bg-red-600/40 dark:bg-red-800/50': line.type === 'error',
-              'bg-yellow-600/40 dark:bg-yellow-800/50': line.type === 'warning',
-              'bg-blue-600/30': isSelected(line),
-              underline: isSelected(line),
-            }"
+        <!-- Floating scroll buttons -->
+        <div v-if="isScrollable" class="hidden md:flex flex-col gap-2 absolute bottom-4 right-4 z-20">
+          <button
+            v-if="!atTop"
+            class="rounded-full border border-wp-custom-highlight-100 bg-wp-code-100 p-1 shadow-lg flex items-center justify-center mb-1 hover:bg-wp-code-200 transition"
+            :title="$t('repo.pipeline.actions.log_scroll_to_top')"
+            @click="scrollToTop"
           >
-            {{ line.number }}
-          </a>
-          <!-- eslint-disable vue/no-v-html -->
-          <span
-            class="whitespace-pre-wrap break-words align-top"
-            :class="{
-              'bg-red-600/40 dark:bg-red-800/50': line.type === 'error',
-              'bg-yellow-600/40 dark:bg-yellow-800/50': line.type === 'warning',
-              'bg-blue-600/30': isSelected(line),
-            }"
-            v-html="line.text"
-          />
-          <!-- eslint-enable vue/no-v-html -->
-          <span
-            class="select-none whitespace-nowrap pr-1 text-right text-wp-code-text-line-numbers-100"
-            :class="{
-              'bg-red-600 bg-opacity-40 dark:bg-red-800/50': line.type === 'error',
-              'bg-yellow-600/40 dark:bg-yellow-800/50': line.type === 'warning',
-              'bg-blue-600/30': isSelected(line),
-            }"
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="text-wp-code-text-alt-100"
+            >
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+          </button>
+          <button
+            v-if="!atBottom"
+            class="rounded-full border border-wp-custom-highlight-100 bg-wp-code-100 p-1 shadow-lg flex items-center justify-center hover:bg-wp-code-200 transition"
+            :title="$t('repo.pipeline.actions.log_scroll_to_bottom')"
+            @click="scrollToBottom"
           >
-            {{ formatTime(line.time) }}
-          </span>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="text-wp-code-text-alt-100"
+            >
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+        </div>
+        <!-- Log grid -->
+        <div
+          ref="consoleElement"
+          class="grid w-full max-w-full h-full auto-rows-min grid-cols-[min-content_minmax(0,1fr)_min-content] overflow-y-auto overflow-x-hidden p-4 text-xs md:text-sm"
+        >
+          <div v-for="line in log" :key="line.index" class="contents font-mono">
+            <a
+              :id="`L${line.number}`"
+              :href="`#L${line.number}`"
+              class="select-none whitespace-nowrap pl-2 pr-6 text-right text-wp-code-text-line-numbers-100"
+              :class="{
+                'bg-red-600/40 dark:bg-red-800/50': line.type === 'error',
+                'bg-yellow-600/40 dark:bg-yellow-800/50': line.type === 'warning',
+                'bg-blue-600/30': isSelected(line),
+                underline: isSelected(line),
+              }"
+            >
+              {{ line.number }}
+            </a>
+            <!-- eslint-disable vue/no-v-html -->
+            <span
+              class="whitespace-pre-wrap break-words align-top"
+              :class="{
+                'bg-red-600/40 dark:bg-red-800/50': line.type === 'error',
+                'bg-yellow-600/40 dark:bg-yellow-800/50': line.type === 'warning',
+                'bg-blue-600/30': isSelected(line),
+              }"
+              v-html="line.text"
+            />
+            <!-- eslint-enable vue/no-v-html -->
+            <span
+              class="select-none whitespace-nowrap pr-1 text-right text-wp-code-text-line-numbers-100"
+              :class="{
+                'bg-red-600 bg-opacity-40 dark:bg-red-800/50': line.type === 'error',
+                'bg-yellow-600/40 dark:bg-yellow-800/50': line.type === 'warning',
+                'bg-blue-600/30': isSelected(line),
+              }"
+            >
+              {{ formatTime(line.time) }}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -311,6 +321,9 @@ const maxLineCount = 5000; // TODO(2653): set back to 500 and implement lazy-loa
 const hasPushPermission = computed(() => repoPermissions?.value?.push);
 
 const mobileButtonsVisible = ref(false);
+const atTop = ref(true);
+const atBottom = ref(false);
+const isScrollable = ref(false);
 
 function isSelected(line: LogLine): boolean {
   return route.hash === `#L${line.number}`;
@@ -582,6 +595,34 @@ function findWorkflow(workflows: PipelineWorkflow[], pid: number): PipelineWorkf
     undefined as PipelineWorkflow | undefined,
   );
 }
+
+function updateScrollState() {
+  const el = consoleElement.value as HTMLElement | undefined;
+  if (!el) return;
+  isScrollable.value = el.scrollHeight > el.clientHeight;
+  atTop.value = el.scrollTop === 0;
+  atBottom.value = el.scrollTop + el.clientHeight >= el.scrollHeight - 5; // more forgiving for rounding
+}
+
+onMounted(() => {
+  if (consoleElement.value) {
+    (consoleElement.value as HTMLElement).addEventListener('scroll', updateScrollState);
+    nextTick(updateScrollState);
+  }
+});
+
+watch(log, () => {
+  nextTick(() => {
+    updateScrollState();
+    setTimeout(updateScrollState, 50); // ensure update after rendering
+  });
+});
+
+onBeforeUnmount(() => {
+  if (consoleElement.value) {
+    (consoleElement.value as HTMLElement).removeEventListener('scroll', updateScrollState);
+  }
+});
 
 onMounted(async () => {
   await loadLogs();
