@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"regexp"
 	"strings"
 
 	"github.com/rs/zerolog/log"
@@ -31,9 +32,11 @@ import (
 )
 
 const (
-	StepLabel            = "step"
-	podPrefix            = "wp-"
-	defaultFSGroup int64 = 1000
+	StepLabel              = "step"
+	podPrefix              = "crow-"
+	servicePodPrefix       = "crow-svc-"
+	defaultFSGroup   int64 = 1000
+	maxK8sNameLength       = 64
 )
 
 func mkPod(step *types.Step, config *config, podName, goos string, options BackendOptions) (*v1.Pod, error) {
@@ -77,7 +80,30 @@ func stepToPodName(step *types.Step) (name string, err error) {
 }
 
 func podName(step *types.Step) (string, error) {
+	scheme := step.ContainerNameScheme
+	if scheme == "descriptive" {
+		repo := step.Environment["CI_REPO_NAME"]
+		pipeline := step.Environment["CI_PIPELINE_NUMBER"]
+		workflow := step.Environment["CI_WORKFLOW_NUMBER"]
+		name := repo + "-" + pipeline + "-" + workflow
+		return dnsName(sanitizeAndTruncateName(name, maxK8sNameLength))
+	}
+	if isService(step) {
+		return dnsName(servicePodPrefix + step.UUID + "-" + step.Name)
+	}
 	return dnsName(podPrefix + step.UUID)
+}
+
+// sanitizeAndTruncateName makes a name safe for Kubernetes and truncates to maxLen.
+func sanitizeAndTruncateName(name string, maxLen int) string {
+	name = strings.ToLower(name)
+	name = regexp.MustCompile(`[^a-z0-9\-]`).ReplaceAllString(name, "-")
+	name = regexp.MustCompile(`-+`).ReplaceAllString(name, "-")
+	if len(name) > maxLen {
+		runes := []rune(name)
+		name = string(runes[:maxLen])
+	}
+	return strings.Trim(name, "-")
 }
 
 func podMeta(step *types.Step, config *config, options BackendOptions, podName string) (meta_v1.ObjectMeta, error) {
@@ -585,4 +611,21 @@ func stopPod(ctx context.Context, engine *kube, step *types.Step, deleteOpts met
 		return nil
 	}
 	return err
+}
+
+const (
+	ServiceLabel  = "service"
+	servicePrefix = "crow-svc-"
+)
+
+func serviceName(step *types.Step) (string, error) {
+	scheme := step.ContainerNameScheme
+	if scheme == "descriptive" {
+		repo := step.Environment["CI_REPO_NAME"]
+		pipeline := step.Environment["CI_PIPELINE_NUMBER"]
+		workflow := step.Environment["CI_WORKFLOW_NUMBER"]
+		name := repo + "-" + pipeline + "-" + workflow
+		return dnsName(sanitizeAndTruncateName(name, maxK8sNameLength))
+	}
+	return dnsName(servicePrefix + step.UUID + "-" + step.Name)
 }

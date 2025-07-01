@@ -28,11 +28,6 @@ import (
 	"codeberg.org/crowci/crow/v3/pipeline/backend/types"
 )
 
-const (
-	ServiceLabel  = "service"
-	servicePrefix = "wp-svc-"
-)
-
 func mkService(step *types.Step, config *config) (*v1.Service, error) {
 	name, err := serviceName(step)
 	if err != nil {
@@ -60,10 +55,6 @@ func mkService(step *types.Step, config *config) (*v1.Service, error) {
 			Ports:    svcPorts,
 		},
 	}, nil
-}
-
-func serviceName(step *types.Step) (string, error) {
-	return dnsName(servicePrefix + step.UUID + "-" + step.Name)
 }
 
 func servicePort(port types.Port) v1.ServicePort {

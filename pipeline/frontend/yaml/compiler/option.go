@@ -211,3 +211,10 @@ func WithProxy(opt ProxyOptions) Option {
 		},
 	)
 }
+
+// WithContainerNameScheme configures the compiler with the container naming scheme.
+func WithContainerNameScheme(scheme string) Option {
+	return func(compiler *Compiler) {
+		compiler.ContainerNameScheme = scheme
+	}
+}

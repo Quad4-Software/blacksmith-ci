@@ -125,8 +125,36 @@ var (
 )
 
 func TestToContainerName(t *testing.T) {
-	assert.EqualValues(t, "wp_f51821af-4cb8-435e-a3c2-3a684185d828", toContainerName(testCmdStep))
-	assert.EqualValues(t, "wp_d841ee40-e66e-4275-bb3f-55bf89744b21", toContainerName(testPluginStep))
+	assert.EqualValues(t, "crow_f51821af-4cb8-435e-a3c2-3a684185d828", toContainerName(testCmdStep))
+	assert.EqualValues(t, "crow_d841ee40-e66e-4275-bb3f-55bf89744b21", toContainerName(testPluginStep))
+
+	descriptiveStep := &backend.Step{
+		Name:                "build",
+		UUID:                "irrelevant",
+		ContainerNameScheme: "descriptive",
+		Environment: map[string]string{
+			"CI_REPO_NAME":       "myrepo",
+			"CI_PIPELINE_NUMBER": "123",
+			"CI_WORKFLOW_NUMBER": "456",
+		},
+	}
+	assert.EqualValues(t, "myrepo-123-456", toContainerName(descriptiveStep))
+
+	// Test truncation
+	longRepo := &backend.Step{
+		Name:                "build",
+		UUID:                "irrelevant",
+		ContainerNameScheme: "descriptive",
+		Environment: map[string]string{
+			"CI_REPO_NAME":       strings.Repeat("a", 70),
+			"CI_PIPELINE_NUMBER": "123",
+			"CI_WORKFLOW_NUMBER": "456",
+		},
+	}
+	name := toContainerName(longRepo)
+	if len(name) > 64 {
+		t.Errorf("container name too long: %d chars", len(name))
+	}
 }
 
 func TestStepToConfig(t *testing.T) {

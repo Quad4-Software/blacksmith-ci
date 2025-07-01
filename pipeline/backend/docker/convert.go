@@ -20,6 +20,7 @@ import (
 	"maps"
 	"regexp"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/docker/docker/api/types/container"
 
@@ -28,7 +29,10 @@ import (
 )
 
 // Valid container volumes must have at least two components, source and destination.
-const minVolumeComponents = 2
+const (
+	minVolumeComponents    = 2
+	maxContainerNameLength = 64
+)
 
 // returns a container configuration.
 func (e *docker) toConfig(step *types.Step, options BackendOptions) *container.Config {
@@ -70,7 +74,28 @@ func (e *docker) toConfig(step *types.Step, options BackendOptions) *container.C
 }
 
 func toContainerName(step *types.Step) string {
-	return "wp_" + step.UUID
+	scheme := step.ContainerNameScheme
+	if scheme == "descriptive" {
+		repo := step.Environment["CI_REPO_NAME"]
+		pipeline := step.Environment["CI_PIPELINE_NUMBER"]
+		workflow := step.Environment["CI_WORKFLOW_NUMBER"]
+		name := repo + "-" + pipeline + "-" + workflow
+		return sanitizeAndTruncateName(name, maxContainerNameLength)
+	}
+	return "crow_" + step.UUID
+}
+
+// sanitizeAndTruncateName makes a name safe for Docker/Kubernetes and truncates to maxLen.
+func sanitizeAndTruncateName(name string, maxLen int) string {
+	// Lowercase, replace invalid chars with '-', collapse multiple '-'.
+	name = strings.ToLower(name)
+	name = regexp.MustCompile(`[^a-z0-9\-]`).ReplaceAllString(name, "-")
+	name = regexp.MustCompile(`-+`).ReplaceAllString(name, "-")
+	if utf8.RuneCountInString(name) > maxLen {
+		runes := []rune(name)
+		name = string(runes[:maxLen])
+	}
+	return strings.Trim(name, "-")
 }
 
 // returns a container host configuration.

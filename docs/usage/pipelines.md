@@ -210,3 +210,26 @@ services:
 ## Skipping commits
 
 Commits can be prohibited from triggering a webhook by adding `[SKIP CI]` or `[CI SKIP]` (case-insensitive) to the commit message.
+
+## Container Naming Scheme
+
+Crow supports configurable container naming schemes which determines the names of containers (and pods/services in Kubernetes) created during pipeline execution.
+
+There are two supported schemes:
+
+1. Descriptive (default)
+
+   - **Format:** `<repo name>-<pipeline id>-<workflow id>`
+   - **Example:** `myrepo-42-3`
+
+2. Hash-based (legacy)
+
+   - **Format:** `crow_<hash>`
+   - **Example:** `crow_123e4567-e89b-12d3-a456-426614174000`
+   - This was previously the default (until 3.x) (as `wp_<hash>`), now updated to `crow_` for clarity.
+
+/// note
+Names are sanitized and truncated to 64 characters for Kubernetes compatibility.
+///
+
+The naming scheme can be set via the server environment variable `CROW_CONTAINER_NAME_SCHEME`.

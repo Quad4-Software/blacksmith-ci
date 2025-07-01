@@ -84,6 +84,7 @@ var Config = struct {
 			HTTP  string
 			HTTPS string
 		}
+		ContainerNameScheme string // 'hash' or 'descriptive'
 	}
 	Permissions struct {
 		Open            bool

@@ -605,6 +605,12 @@ var flags = append([]cli.Flag{
 		Usage:   "The default amount of pipelines for which logs are preserved",
 		Value:   90,
 	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("WOODPECKER_CONTAINER_NAME_SCHEME", "CROW_CONTAINER_NAME_SCHEME"),
+		Name:    "container-name-scheme",
+		Usage:   "Container naming scheme: 'hash' (crow_<hash>) or 'descriptive' (<repo>-<pipeline>-<workflow>). Default: 'descriptive'",
+		Value:   "descriptive",
+	},
 }, logger.GlobalLoggerFlags...)
 
 // If crow is running inside a container the default value for

@@ -343,6 +343,7 @@ func (b *StepBuilder) toInternalRepresentation(parsed *yaml_types.Workflow, envi
 		compiler.WithWorkspaceFromURL(compiler.DefaultWorkspaceBase, b.Repo.ForgeURL),
 		compiler.WithMetadata(metadata),
 		compiler.WithTrustedSecurity(b.Repo.Trusted.Security),
+		compiler.WithContainerNameScheme(server.Config.Pipeline.ContainerNameScheme),
 	).Compile(parsed)
 }
 

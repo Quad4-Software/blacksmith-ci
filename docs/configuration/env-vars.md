@@ -1,5 +1,11 @@
 ## Server
 
+## CONTAINER_NAME_SCHEME
+
+- Name: `CROW_CONTAINER_NAME_SCHEME`
+- Description: Determines the naming scheme type for containers. Possible values are `descriptive` and `hash`
+- Default: `descriptive`
+
 ### LOG_LEVEL
 
 - Name: `CROW_LOG_LEVEL`
