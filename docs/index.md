@@ -80,6 +80,7 @@ As of 2025-06, the following unique features exist in Crow:
 - Ability to cancel single workflows in matrix workflows
 - Improved mobile layout view (spacing, alignment)
 - Ability to fold the workflow panel and have a full-width log view
+- Support for setting custom workflow names for single and matrix pipelines via the `name:` field
 
 Additionally, for the Crow Autoscaler:
 

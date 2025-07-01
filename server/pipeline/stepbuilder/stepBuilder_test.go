@@ -316,6 +316,44 @@ steps:
   build:
     image: scratch
 `)},
+			// Top-level name
+			{Name: ".crow/named.yml", Data: []byte(`
+name: Custom Workflow Name
+when:
+  event: push
+steps:
+  build:
+    image: scratch
+`)},
+			// Matrix NAME with variable
+			{Name: ".crow/matrix.yml", Data: []byte(`
+matrix:
+  include:
+    - ENVIRONMENT: dev
+      NAME: Matrix for ${ENVIRONMENT}
+    - ENVIRONMENT: prod
+      NAME: Matrix for ${ENVIRONMENT}
+when:
+  event: push
+steps:
+  build:
+    image: scratch
+`)},
+			// Both matrix NAME and top-level name, matrix NAME should take precedence
+			{Name: ".crow/matrix2.yml", Data: []byte(`
+name: Top Level Name
+matrix:
+  include:
+    - ENVIRONMENT: qa
+      NAME: Matrix QA
+    - ENVIRONMENT: staging
+      NAME: Matrix Staging
+when:
+  event: push
+steps:
+  build:
+    image: scratch
+`)},
 		},
 	}
 
@@ -323,9 +361,25 @@ steps:
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelineNames := []string{pipelineItems[0].Workflow.Name, pipelineItems[1].Workflow.Name}
+	pipelineNames := make([]string, len(pipelineItems))
+	for i, item := range pipelineItems {
+		pipelineNames[i] = item.Workflow.Name
+	}
+	// File-based
 	if !containsItemWithName("lint", pipelineItems) || !containsItemWithName("test", pipelineItems) {
 		t.Fatalf("Pipeline name should be 'lint' and 'test' but are '%v'", pipelineNames)
+	}
+	// Top-level name
+	if !containsItemWithName("Custom Workflow Name", pipelineItems) {
+		t.Fatalf("Pipeline name should include 'Custom Workflow Name' but are '%v'", pipelineNames)
+	}
+	// Matrix NAME with variable substitution
+	if !containsItemWithName("Matrix for dev", pipelineItems) || !containsItemWithName("Matrix for prod", pipelineItems) {
+		t.Fatalf("Pipeline names should include 'Matrix for dev' and 'Matrix for prod' but are '%v'", pipelineNames)
+	}
+	// Matrix NAME takes precedence over top-level name
+	if !containsItemWithName("Matrix QA", pipelineItems) || !containsItemWithName("Matrix Staging", pipelineItems) {
+		t.Fatalf("Pipeline names should include 'Matrix QA' and 'Matrix Staging' but are '%v'", pipelineNames)
 	}
 }
 

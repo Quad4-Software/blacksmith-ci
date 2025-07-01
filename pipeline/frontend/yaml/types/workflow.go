@@ -21,6 +21,7 @@ import (
 type (
 	// Workflow defines a workflow configuration.
 	Workflow struct {
+		Name      string            `yaml:"name,omitempty"`
 		When      constraint.When   `yaml:"when,omitempty"`
 		Workspace Workspace         `yaml:"workspace,omitempty"`
 		Clone     ContainerList     `yaml:"clone,omitempty"`

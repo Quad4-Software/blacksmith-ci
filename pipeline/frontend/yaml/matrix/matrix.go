@@ -31,6 +31,7 @@ const (
 type Matrix map[string][]string
 
 // Axis represents a single permutation of entries from the pipeline matrix.
+// If a NAME (case-insensitive) key is present, it is used for workflow naming and not passed as an environment variable.
 type Axis map[string]string
 
 // String returns a string representation of an Axis as a comma-separated list

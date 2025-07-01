@@ -51,6 +51,10 @@
       "items": {
         "type": "string"
       }
+    },
+    "name": {
+      "type": "string",
+      "description": "Optional workflow name. If set, overrides the default name derived from the file name. Supports variable substitution."
     }
   },
   "definitions": {
@@ -876,23 +880,22 @@
       "additionalProperties": true
     },
     "matrix": {
-      "description": "Execute pipeline for each matrix combination",
+      "description": "Matrix definition for matrix builds.",
       "type": "object",
       "properties": {
         "include": {
           "type": "array",
           "items": {
-            "type": "object"
-          },
-          "minLength": 1
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "NAME": {
+                "type": "string",
+                "description": "Optional workflow name for this matrix permutation. Supports variable substitution. Case-insensitive."
+              }
+            }
+          }
         }
-      },
-      "additionalProperties": {
-        "type": "array",
-        "items": {
-          "type": ["boolean", "string", "number"]
-        },
-        "minLength": 1
       }
     },
     "labels": {

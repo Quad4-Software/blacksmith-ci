@@ -47,6 +47,32 @@ clone:
 
 See the [default configuration of the clone plugin](https://woodpecker-ci.org/plugins/Git%20Clone) to check for possible options to change.
 
+## name
+
+The `name` field allows to set a custom name for a pipeline.
+By default, the workflow name is derived from the YAML file name (e.g., `build.yaml` → `build`).
+
+For matrix pipelines, a `NAME` (case-insensitive) key can be provided for each matrix entry:
+
+```yaml
+matrix:
+  include:
+    - NAME: name1
+      VAR1: value1
+    - NAME: name2
+      VAR1: value2
+```
+
+Both `name` and `NAME` support variable substitution (e.g., `${ENVIRONMENT}`).
+If a matrix `NAME` is set, it takes priority over other options.
+Otherwise, the top-level `name` is used.
+If neither is set, the file name is used.
+
+/// important
+`name` and `NAME` are reserved keys and will not be available as environment variables in steps or matrix includes.
+If set, they are only used for workflow naming and not passed to the environment.
+///
+
 ## depends_on
 
 Multiple workflows can be set up for a repository.

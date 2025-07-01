@@ -20,6 +20,7 @@ import (
 	"maps"
 	"path/filepath"
 	"strings"
+	"unicode"
 
 	"github.com/oklog/ulid/v2"
 	"github.com/rs/zerolog/log"
@@ -79,11 +80,49 @@ func (b *StepBuilder) Build() (items []*Item, errorsAndWarnings error) {
 		}
 
 		for i, axis := range axes {
+			// Prepare environment for variable substitution
+			env := make(map[string]string)
+			for k, v := range axis {
+				env[k] = v
+			}
+
+			// 1. Check for matrix NAME (case-insensitive)
+			matrixName, hasMatrixName := getCaseInsensitive(axis, "NAME")
+			if hasMatrixName {
+				delete(axis, matrixName) // Remove NAME from axis/env
+			}
+
+			// 2. Parse YAML for top-level name (after env subst)
+			parsedYAML, _ := yaml.ParseString(string(y.Data))
+			yamlName := ""
+			if parsedYAML != nil && parsedYAML.Name != "" {
+				yamlName = parsedYAML.Name
+			}
+
+			// 3. Variable substitution for names
+			var workflowName string
+			switch {
+			case hasMatrixName && matrixName != "":
+				if subst, _ := metadata.EnvVarSubst(matrixName, env); subst != "" {
+					workflowName = subst
+				} else {
+					workflowName = matrixName
+				}
+			case yamlName != "":
+				if subst, _ := metadata.EnvVarSubst(yamlName, env); subst != "" {
+					workflowName = subst
+				} else {
+					workflowName = yamlName
+				}
+			default:
+				workflowName = SanitizePath(y.Name)
+			}
+
 			workflow := &model.Workflow{
 				PID:     pidSequence,
 				State:   model.StatusPending,
 				Environ: axis,
-				Name:    SanitizePath(y.Name),
+				Name:    workflowName,
 			}
 			if len(axes) > 1 {
 				workflow.AxisID = i + 1
@@ -313,4 +352,27 @@ func SanitizePath(path string) string {
 	path = strings.TrimSuffix(path, ".yaml")
 	path = strings.TrimPrefix(path, ".")
 	return path
+}
+
+// getCaseInsensitive returns the value and true if the key exists in the map (case-insensitive).
+func getCaseInsensitive(m map[string]string, key string) (string, bool) {
+	for k, v := range m {
+		if equalFold(k, key) {
+			return v, true
+		}
+	}
+	return "", false
+}
+
+// equalFold is a simple ASCII case-insensitive comparison.
+func equalFold(a, b string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := 0; i < len(a); i++ {
+		if unicode.ToLower(rune(a[i])) != unicode.ToLower(rune(b[i])) {
+			return false
+		}
+	}
+	return true
 }
