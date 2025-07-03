@@ -44,16 +44,26 @@ func checkForUpdate(ctx context.Context, versionURL string, force bool) (*NewVer
 		return nil, errors.New("failed to fetch the latest release")
 	}
 
-	var versionData VersionData
-	if err := json.NewDecoder(resp.Body).Decode(&versionData); err != nil {
+	var versionEntries []VersionEntry
+	if err := json.NewDecoder(resp.Body).Decode(&versionEntries); err != nil {
 		return nil, err
 	}
 
-	upstreamVersion := versionData.Latest
-	if strings.HasPrefix(version.String(), "next-") {
-		upstreamVersion = versionData.Next
-	} else if strings.HasSuffix(version.String(), "rc-") {
-		upstreamVersion = versionData.RC
+	var upstreamVersion string
+	for _, entry := range versionEntries {
+		for _, alias := range entry.Aliases {
+			if alias == "latest" {
+				upstreamVersion = entry.Version
+				break
+			}
+		}
+		if upstreamVersion != "" {
+			break
+		}
+	}
+
+	if upstreamVersion == "" {
+		return nil, errors.New("could not find latest version in version list")
 	}
 
 	installedVersion := strings.TrimPrefix(version.Version, "v")

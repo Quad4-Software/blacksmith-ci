@@ -5,10 +5,10 @@ import { onMounted, ref } from 'vue';
 import useAuthentication from './useAuthentication';
 import useConfig from './useConfig';
 
-interface VersionInfo {
-  latest: string;
-  rc: string;
-  dev: string;
+interface VersionEntry {
+  version: string;
+  title: string;
+  aliases: string[];
 }
 
 const version = ref<{
@@ -19,14 +19,22 @@ const version = ref<{
   usesDev: boolean;
 }>();
 
-async function fetchVersion(): Promise<VersionInfo | undefined> {
+async function fetchVersion(): Promise<{ latest?: string; rc?: string; dev?: string }> {
   try {
     const resp = await fetch('https://crowci.dev/versions.json');
-    const json = (await resp.json()) as VersionInfo;
-    return json;
+    const json = (await resp.json()) as VersionEntry[];
+    console.error('Fetched versions.json:', json);
+    let latest, rc, dev;
+    for (const entry of json) {
+      if (entry.aliases.includes('latest')) latest = entry.version;
+      if (entry.title === 'rc' || entry.aliases.includes('rc')) rc = entry.version;
+      if (entry.title === 'dev' || entry.aliases.includes('dev')) dev = entry.version;
+    }
+    console.error('Extracted versions:', { latest, rc, dev });
+    return { latest, rc, dev };
   } catch (error) {
     console.error('Failed to fetch version info', error);
-    return undefined;
+    return {};
   }
 }
 
@@ -70,7 +78,11 @@ export function useVersion() {
     const versionInfo = await fetchVersion();
 
     let latest;
-    if (versionInfo) {
+    if (
+      typeof versionInfo.latest !== 'undefined' ||
+      typeof versionInfo.rc !== 'undefined' ||
+      typeof versionInfo.dev !== 'undefined'
+    ) {
       if (usesDev) {
         latest = versionInfo.dev;
       } else if (current.includes('rc')) {

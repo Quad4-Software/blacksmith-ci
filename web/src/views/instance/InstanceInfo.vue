@@ -8,7 +8,7 @@
         <span class="font-bold">{{ version?.current }}</span>
       </i18n-t>
       <div v-if="version?.needsUpdate">
-        <i18n-t keypath="update_crow" tag="span">
+        <i18n-t keypath="update_crow" tag="span" :arguments="[version.latest]">
           <a
             v-if="!version.usesDev"
             :href="`https://codeberg.org/crowci/crow/releases/tag/${version.latest}`"
