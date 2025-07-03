@@ -535,6 +535,10 @@
   },
   "username": "用户名",
   "welcome": "欢迎来到 Crow",
+  "welcome_to_crow": "欢迎来到 Crow CI",
+  "login_oauth_message": "请使用您的 OAuth 提供商安全登录。",
+  "sign_in_with_github": "使用 GitHub 登录",
+  "login_with": "使用 {forge} 登录",
   "empty_list": "找不到 {entity} ！",
   "login_to_cli": "登录到 CLI",
   "global_level_secret": "全局密钥",
@@ -544,6 +548,5 @@
   "cli_login_failed": "登录到 CLI 失败",
   "cli_login_denied": "登录 CLI 被拒绝",
   "login_to_cli_description": "点击继续以登录到 CLI。",
-  "return_to_cli": "您现在可以关闭此选项卡并返回 CLI。",
-  "login_with": "使用 {forge} 登录"
+  "return_to_cli": "您现在可以关闭此选项卡并返回 CLI。"
 }

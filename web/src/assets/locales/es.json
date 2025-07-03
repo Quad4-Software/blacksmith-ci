@@ -508,6 +508,10 @@
   },
   "username": "Nombre de usuario",
   "welcome": "Bienvenidos a Crow",
+  "welcome_to_crow": "Bienvenido a Crow CI",
+  "login_oauth_message": "Inicie sesión de forma segura con su proveedor OAuth.",
+  "sign_in_with_github": "Iniciar sesión con GitHub",
+  "login_with": "Iniciar sesión con {forge}",
   "empty_list": "¡No {entidad} encontrado!",
   "org_level_secret": "secreto de organización",
   "global_level_secret": "secreto global"

@@ -507,5 +507,9 @@
     }
   },
   "username": "Nama pengguna",
-  "welcome": "Selamat datang di Crow"
+  "welcome": "Selamat datang di Crow",
+  "welcome_to_crow": "Selamat datang di Crow CI",
+  "login_oauth_message": "Masuk dengan aman menggunakan penyedia OAuth Anda.",
+  "sign_in_with_github": "Masuk dengan GitHub",
+  "login_with": "Masuk dengan {forge}"
 }

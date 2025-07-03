@@ -1,8 +1,6 @@
 {
   "cancel": "Cancel",
-  "login_with": "Login with {forge}",
   "login": "Login",
-  "welcome": "Welcome to Crow CI",
   "repos": "Repos",
   "repositories": {
     "title": "Repositories",
@@ -551,5 +549,7 @@
     "pull_requests": "All pull requests",
     "all_events": "All events from forge"
   },
-  "no_search_results": "No results found"
+  "no_search_results": "No results found",
+  "welcome_to_crow": "Welcome to Crow CI",
+  "login_oauth_message": "Sign in with OAuth"
 }

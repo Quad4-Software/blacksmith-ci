@@ -644,5 +644,8 @@
   "pipeline_since": "Pipeline crée {created} minutes ago",
   "pipeline_has_warnings": "Le pipeline a des alertes",
   "pipeline_has_errors": "Le pipeline a des erreurs",
-  "login_with": "Se connecter avec {forge}"
+  "login_with": "Se connecter avec {forge}",
+  "welcome_to_crow": "Bienvenue sur Crow CI",
+  "login_oauth_message": "Connectez-vous en toute sécurité avec votre fournisseur OAuth.",
+  "sign_in_with_github": "Se connecter avec GitHub"
 }

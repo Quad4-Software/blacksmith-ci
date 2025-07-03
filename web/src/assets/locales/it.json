@@ -473,6 +473,9 @@
   },
   "username": "Nome utente",
   "welcome": "Benvenuti in Crow",
+  "welcome_to_crow": "Benvenuti in Crow CI",
+  "login_oauth_message": "Accedi in modo sicuro con il tuo provider OAuth.",
+  "sign_in_with_github": "Accedi con GitHub",
   "secrets": {
     "created": "Segreto creato",
     "saved": "Segreto salvato",

@@ -465,6 +465,10 @@
   },
   "username": "Nazwa użytkownika",
   "welcome": "Witamy w Crow",
+  "welcome_to_crow": "Witamy w Crow CI",
+  "login_oauth_message": "Zaloguj się bezpiecznie za pomocą swojego dostawcy OAuth.",
+  "sign_in_with_github": "Zaloguj się przez GitHub",
+  "login_with": "Zaloguj się przez {forge}",
   "empty_list": "Nie znaleziono {entity}!",
   "api": "API"
 }

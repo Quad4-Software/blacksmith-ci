@@ -486,5 +486,7 @@
     }
   },
   "username": "Uživatelské jméno",
-  "welcome": "Vítejte ve Crow"
+  "welcome": "Vítejte ve Crow",
+  "welcome_to_crow": "Vítejte v Crow CI",
+  "login_oauth_message": "Přihlásit se pomocí OAuth."
 }

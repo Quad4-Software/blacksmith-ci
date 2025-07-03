@@ -9,5 +9,9 @@
   "search": "搜索…",
   "unknown_error": "出現未知錯誤",
   "url": "URL",
-  "welcome": "歡迎使用 Crow"
+  "welcome": "歡迎使用 Crow",
+  "welcome_to_crow": "歡迎來到 Crow CI",
+  "login_oauth_message": "請使用您的 OAuth 提供者安全登入。",
+  "sign_in_with_github": "使用 GitHub 登入",
+  "login_with": "使用 {forge} 登入"
 }

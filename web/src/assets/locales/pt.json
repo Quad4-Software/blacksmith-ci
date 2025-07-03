@@ -288,6 +288,8 @@
   "url": "URL",
   "username": "Nome de usuário",
   "welcome": "Bem-vindo ao Crow",
+  "welcome_to_crow": "Bem-vindo ao Crow CI",
+  "login_oauth_message": "Entrar com OAuth",
   "admin": {
     "settings": {
       "queue": {

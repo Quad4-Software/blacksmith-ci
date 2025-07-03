@@ -668,7 +668,6 @@
   "pipeline_since": "Die Pipeline wurde vor {created} Minuten erstellt",
   "pipeline_has_warnings": "Die Pipeline hat Warnungen",
   "pipeline_has_errors": "Die Pipeline hat Fehler",
-  "login_with": "Mit {forge} anmelden",
   "all_repositories": "Alle Repositorys",
   "no_search_results": "Keine Ergebnisse gefunden",
   "require_approval": {
@@ -679,5 +678,7 @@
     "pull_requests": "Alle Pull-Requests",
     "all_events": "Alle Ereignisse von der Forge",
     "desc": "Verhindere, dass bösartige Pipelines Geheimnisse preisgeben oder schädliche Aufgaben ausführen, indem du diese vor der Ausführung genehmigst."
-  }
+  },
+  "welcome_to_crow": "Willkommen bei Crow CI",
+  "login_oauth_message": "Mit OAuth anmelden"
 }
