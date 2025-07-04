@@ -62,7 +62,7 @@ var flags = []cli.Flag{
 		Sources: cli.EnvVars("WOODPECKER_AGENT_CONFIG_FILE", "CROW_AGENT_CONFIG_FILE"),
 		Name:    "agent-config",
 		Usage:   "agent config file path, if set empty the agent will be stateless and unregister on termination",
-		Value:   "/etc/woodpecker/agent.conf",
+		Value:   "/etc/crow/agent.conf",
 	},
 	&cli.StringSliceFlag{
 		Sources: cli.EnvVars("WOODPECKER_AGENT_LABELS", "WOODPECKER_FILTER_LABELS", "CROW_AGENT_LABELS", "CROW_FILTER_LABELS"), // remove WOODPECKER_FILTER_LABELS in v4.x

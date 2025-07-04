@@ -82,7 +82,19 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 
 	serviceWaitingGroup := errgroup.Group{}
 
-	agentConfigPath := c.String("agent-config")
+	const crowDefault = "/etc/crow/agent.conf"
+	const woodpeckerDefault = "/etc/woodpecker/agent.conf"
+	userConfigPath := c.String("agent-config")
+	agentConfigPath := userConfigPath
+	if userConfigPath == crowDefault || userConfigPath == "" {
+		// Only fallback if user did not specify a custom path
+		if _, err := os.Stat(crowDefault); os.IsNotExist(err) {
+			if _, err2 := os.Stat(woodpeckerDefault); err2 == nil {
+				agentConfigPath = woodpeckerDefault
+			}
+		}
+	}
+
 	hostname := c.String("hostname")
 	if len(hostname) == 0 {
 		hostname, _ = os.Hostname()

@@ -59,3 +59,26 @@ func TestReadAgentIDFileExists(t *testing.T) {
 	actual = readAgentConfig(tmpF2.Name())
 	assert.EqualValues(t, 33, actual.AgentID)
 }
+
+func TestReadAgentConfigFallback(t *testing.T) {
+	dir := t.TempDir()
+	crowPath := dir + "/agent.crow.conf"
+	woodpeckerPath := dir + "/agent.woodpecker.conf"
+
+	// Neither file exists
+	conf := readAgentConfig(crowPath)
+	assert.EqualValues(t, -1, conf.AgentID)
+
+	// Only woodpecker exists
+	err := os.WriteFile(woodpeckerPath, []byte(`{"agent_id":42}`), 0o644)
+	assert.NoError(t, err)
+	conf = readAgentConfig(woodpeckerPath)
+	assert.EqualValues(t, 42, conf.AgentID)
+
+	// Only crow exists
+	_ = os.Remove(woodpeckerPath)
+	err = os.WriteFile(crowPath, []byte(`{"agent_id":99}`), 0o644)
+	assert.NoError(t, err)
+	conf = readAgentConfig(crowPath)
+	assert.EqualValues(t, 99, conf.AgentID)
+}
