@@ -10,7 +10,7 @@ The following ones are currently supported:
 - Bitbucket Datacenter
 
 ```yaml
-CROW_FORGE=github # gitlab,gitea,forgejo,bitbucket
+CROW_FORGEJO=true # github,gitea,gitlab,bitbucket
 ```
 
 As Crow does not have its own user registry, users are provided from the linked forge via OAuth2.
@@ -468,7 +468,7 @@ The external API can then send back new pipeline configurations that will be use
 Every request sent by Crow is signed using a http-signature by a private key (ed25519) generated on the first start of the Crow server.
 You can get the public key for the verification of the http-signature from http(s)://your-woodpecker-server/api/signature/public-key.
 
-A simplistic example configuration service can be found [here](https://github.com/woodpecker-ci/example-config-service).
+A simplistic example configuration service can be found [in the Woodpecker docs](https://github.com/woodpecker-ci/example-config-service).
 
 /// warning
 The external config service must be trusted as it is receiving secret information about the repository and pipeline and has the ability to change pipeline configs that could potentially execute malicious tasks.
