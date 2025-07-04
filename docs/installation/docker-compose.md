@@ -23,7 +23,7 @@ It also contains the information how to configure the Autoscaler in detail.
 ```yaml
 services:
   crow-server:
-    image: ghcr.io/crowci/crow-server:<tag>
+    image: codeberg.org/crowci/crow-server:<tag>
     ports:
       - 8000:8000
     volumes:
@@ -37,7 +37,7 @@ services:
       - CROW_AGENT_SECRET=${CROW_AGENT_SECRET}
 
   crow-agent:
-    image: ghcr.io/crowci/crow-agent:<tag>
+    image: codeberg.org/crowci/crow-agent:<tag>
     restart: always
     depends_on:
       - crow-server
@@ -50,7 +50,7 @@ services:
 
   # OPTIONAL
   crow-autoscaler:
-    image: ghcr.io/crowci/crow-autoscaler:<tag>
+    image: codeberg.org/crowci/crow-autoscaler:<tag>
     restart: always
     depends_on:
       - crow-server

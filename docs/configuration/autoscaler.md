@@ -31,7 +31,7 @@ The token is used to add and remove agents from the server and must be from an a
 ```yaml hl_lines="8 9"
 [...]
   crow-autoscaler:
-    image: ghcr.io/crowci/crow-autoscaler:<tag>
+    image: codeberg.org/crowci/crow-autoscaler:<tag>
     restart: always
     depends_on:
       - crow-server
@@ -58,7 +58,7 @@ Then adjust the autoscaler settings accordingly.
 ```yaml hl_lines="10 11 12"
 [...]
   crow-autoscaler:
-    image: ghcr.io/crowci/crow-autoscaler:<tag>
+    image: codeberg.org/crowci/crow-autoscaler:<tag>
     restart: always
     depends_on:
       - crow-server
@@ -91,7 +91,7 @@ In addition, it needs to know where to connect to, which is why `CROW_GRPC_ADDR`
 ```yaml hl_lines="13 14"
 [...]
   crow-autoscaler:
-    image: ghcr.io/crowci/crow-autoscaler:<tag>
+    image: codeberg.org/crowci/crow-autoscaler:<tag>
     restart: always
     depends_on:
       - crow-server
@@ -114,7 +114,7 @@ The naming of this env var and the related provider-specific ones vary, dependin
 ```yaml hl_lines="15 16 17 18 19 20 21 22"
 [...]
   crow-autoscaler:
-    image: ghcr.io/crowci/crow-autoscaler:<tag>
+    image: codeberg.org/crowci/crow-autoscaler:<tag>
     restart: always
     depends_on:
       - crow-server
@@ -151,7 +151,7 @@ In this case, the autoscaler will recognize this and shut down the instance to a
 ```yaml hl_lines="23 24"
 [...]
   crow-autoscaler:
-    image: ghcr.io/crowci/crow-autoscaler:<tag>
+    image: codeberg.org/crowci/crow-autoscaler:<tag>
     restart: always
     depends_on:
       - crow-server
