@@ -18,7 +18,12 @@ func TestCheckForUpdate(t *testing.T) {
 			return
 		}
 
-		_, _ = io.WriteString(w, `{"latest": "1.0.1", "next": "1.0.2", "rc": "1.0.3"}`)
+		// Return a JSON array of VersionEntry objects
+		_, _ = io.WriteString(w, `[
+			{"version": "1.0.1", "title": "Release 1.0.1", "aliases": ["latest"]},
+			{"version": "1.0.2", "title": "Release 1.0.2", "aliases": ["dev"]},
+			{"version": "1.0.3", "title": "Release 1.0.3", "aliases": ["rc"]}
+		]`)
 	}
 	ts := httptest.NewServer(http.HandlerFunc(fixtureHandler))
 	defer ts.Close()
