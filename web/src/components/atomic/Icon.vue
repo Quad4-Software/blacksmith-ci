@@ -72,6 +72,12 @@
   <SvgIcon v-else-if="name === 'gitea'" :path="siGitea.path" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'gitlab'" :path="mdiGitlab" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'bitbucket' || name === 'bitbucket-dc'" :path="mdiBitbucket" :size="size || '1.3rem'" />
+  <Icon
+    v-else-if="name === 'graph'"
+    icon="hugeicons:workflow-square-01"
+    :width="size || '1.3rem'"
+    :height="size || '1.3rem'"
+  />
   <svg v-else-if="name === 'spinner'" width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
     <path
       fill="currentColor"
@@ -155,6 +161,7 @@ import {
 } from '@mdi/js';
 import { siForgejo, siGitea } from 'simple-icons';
 
+import { Icon } from '@iconify/vue';
 import SvgIcon from './SvgIcon.vue';
 
 export type IconNames =
@@ -226,7 +233,8 @@ export type IconNames =
   | 'user'
   | 'org'
   | 'cron'
-  | 'toolbox';
+  | 'toolbox'
+  | 'graph';
 
 defineProps<{
   name: IconNames;

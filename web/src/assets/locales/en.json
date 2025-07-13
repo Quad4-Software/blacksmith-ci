@@ -20,6 +20,8 @@
   "username": "Username",
   "password": "Password",
   "back": "Back",
+  "clear": "Clear",
+  "download": "Download",
   "unknown_error": "An unknown error occurred",
   "documentation_for": "Documentation for \"{topic}\"",
   "pipeline_feed": "Pipeline feed",
@@ -214,6 +216,10 @@
     },
     "pipeline": {
       "tasks": "Tasks",
+      "graph": {
+        "title": "DAG",
+        "loading": "Building workflow graph..."
+      },
       "config": "Config",
       "files": "Changed files",
       "no_pipelines": "No pipelines have been started yet.",
@@ -294,6 +300,20 @@
         "no_permission": "Missing permissions to access the debug information",
         "metadata_exec_title": "Re-run pipeline locally",
         "metadata_exec_desc": "Download the metadata of this pipeline to run it locally. This allows you to fix problems and test changes before committing them. The Crow CLI must be installed locally in the same version as the server."
+      },
+      "progress": "Pipeline Progress",
+      "steps": "steps",
+      "workflow_dependencies": "Workflow Dependencies",
+      "no_matching_steps": "No steps match your filters",
+      "filter": {
+        "all_states": "All States",
+        "success": "Success",
+        "failed": "Failed",
+        "running": "Running",
+        "pending": "Pending",
+        "skipped": "Skipped",
+        "killed": "Killed",
+        "all_workflows": "All Workflows"
       }
     }
   },

@@ -302,6 +302,10 @@
       },
       "step_not_started": "Dieser Schritt hat noch nicht begonnen.",
       "tasks": "Vorgänge",
+      "graph": {
+        "title": "DAG",
+        "loading": "Workflow-Graph wird erstellt..."
+      },
       "warnings": "Warnungen",
       "we_got_some_errors": "Oh nein, ein Fehler ist aufgetreten!",
       "log_delete_confirm": "Möchtest du die Logs diesen Schrittes wirklich löschen?",

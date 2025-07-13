@@ -4,7 +4,7 @@
     v-if="pipeline && repo"
     enable-tabs
     :go-back="goBack"
-    :fluid-content="route.name === 'repo-pipeline'"
+    :fluid-content="route.name === 'repo-pipeline' || route.name === 'repo-pipeline-graph'"
     full-width-header
   >
     <template #title>
@@ -84,6 +84,7 @@
       :to="{ name: 'repo-pipeline-config' }"
       :title="$t('repo.pipeline.config')"
     />
+    <Tab icon="graph" icon-size="1rem" :to="{ name: 'repo-pipeline-graph' }" :title="$t('repo.pipeline.graph.title')" />
     <Tab
       v-if="pipeline.changed_files && pipeline.changed_files.length > 0"
       :to="{ name: 'repo-pipeline-changed-files' }"

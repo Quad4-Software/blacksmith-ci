@@ -287,6 +287,285 @@ runs_on:
 	}
 }
 
+func TestDependsOnWithNamedWorkflow(t *testing.T) {
+	t.Parallel()
+
+	b := StepBuilder{
+		Forge: getMockForge(),
+		Repo:  &model.Repo{},
+		Curr: &model.Pipeline{
+			Event: model.EventPush,
+		},
+		Prev:  &model.Pipeline{},
+		Netrc: &model.Netrc{},
+		Secs:  []*model.Secret{},
+		Regs:  []*model.Registry{},
+		Host:  "",
+		Yamls: []*forge_types.FileMeta{
+			{Name: "mat.yaml", Data: []byte(`
+when:
+  event: push
+steps:
+  build:
+    image: scratch
+`)},
+			{Name: "myworkflow.yaml", Data: []byte(`
+when:
+  event: push
+
+name: myname
+
+depends_on:
+ - mat
+
+steps:
+  test:
+    image: bash
+    commands:
+      - sleep 30
+`)},
+		},
+	}
+
+	pipelineItems, err := b.Build()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Should have 2 workflows: "mat" and "myname"
+	if len(pipelineItems) != 2 {
+		t.Fatalf("Expected 2 workflows, got %d", len(pipelineItems))
+	}
+
+	// Find the workflows
+	var matWorkflow, mynameWorkflow *Item
+	for _, item := range pipelineItems {
+		switch item.Workflow.Name {
+		case "mat":
+			matWorkflow = item
+		case "myname":
+			mynameWorkflow = item
+		}
+	}
+
+	if matWorkflow == nil {
+		t.Fatal("mat workflow not found")
+	}
+	if mynameWorkflow == nil {
+		t.Fatal("myname workflow not found")
+	}
+
+	// Check dependencies
+	if len(matWorkflow.DependsOn) != 0 {
+		t.Fatal("mat workflow should have no dependencies")
+	}
+	if len(mynameWorkflow.DependsOn) != 1 || mynameWorkflow.DependsOn[0] != "mat" {
+		t.Fatalf("myname workflow should depend on mat, got: %v", mynameWorkflow.DependsOn)
+	}
+}
+
+func TestDependsOnWithManualEvent(t *testing.T) {
+	t.Parallel()
+
+	b := StepBuilder{
+		Forge: getMockForge(),
+		Repo:  &model.Repo{},
+		Curr: &model.Pipeline{
+			Event: model.EventManual,
+		},
+		Prev:  &model.Pipeline{},
+		Netrc: &model.Netrc{},
+		Secs:  []*model.Secret{},
+		Regs:  []*model.Registry{},
+		Host:  "",
+		Yamls: []*forge_types.FileMeta{
+			{Name: "mat.yaml", Data: []byte(`
+when:
+  event: ['manual', 'push']
+steps:
+  build:
+    image: bash
+    commands:
+      - echo "mat workflow"
+`)},
+			{Name: "myworkflow.yaml", Data: []byte(`
+when:
+  event: ['manual', 'push']
+
+name: myname
+
+depends_on:
+ - mat
+
+steps:
+  - name: test
+    image: bash
+    commands:
+      - sleep 30
+
+  - name: a step with a very long title
+    image: bash
+    commands:
+      - sleep 15
+
+  - name: test3
+    image: bash
+    depends_on: test
+    commands:
+      - exit 1
+`)},
+		},
+	}
+
+	pipelineItems, err := b.Build()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Debug output
+	t.Logf("Generated %d pipeline items", len(pipelineItems))
+	for i, item := range pipelineItems {
+		t.Logf("Item %d: name=%s, depends_on=%v", i, item.Workflow.Name, item.DependsOn)
+	}
+
+	// Should have 2 workflows: "mat" and "myname"
+	if len(pipelineItems) != 2 {
+		t.Fatalf("Expected 2 workflows, got %d", len(pipelineItems))
+	}
+
+	// Find the workflows
+	var matWorkflow, mynameWorkflow *Item
+	for _, item := range pipelineItems {
+		switch item.Workflow.Name {
+		case "mat":
+			matWorkflow = item
+		case "myname":
+			mynameWorkflow = item
+		}
+	}
+
+	if matWorkflow == nil {
+		t.Fatal("mat workflow not found")
+	}
+	if mynameWorkflow == nil {
+		t.Fatal("myname workflow not found")
+	}
+
+	// Check dependencies
+	if len(matWorkflow.DependsOn) != 0 {
+		t.Fatal("mat workflow should have no dependencies")
+	}
+	if len(mynameWorkflow.DependsOn) != 1 || mynameWorkflow.DependsOn[0] != "mat" {
+		t.Fatalf("myname workflow should depend on mat, got: %v", mynameWorkflow.DependsOn)
+	}
+}
+
+func TestMatrixDependsOnIssue(t *testing.T) {
+	t.Parallel()
+
+	// This test reproduces the issue where matrix workflows break depends_on
+	// because the workflow name changes from the filename to the matrix instance name
+	b := StepBuilder{
+		Forge: getMockForge(),
+		Repo:  &model.Repo{},
+		Curr: &model.Pipeline{
+			Event: model.EventPush,
+		},
+		Prev:  &model.Pipeline{},
+		Netrc: &model.Netrc{},
+		Secs:  []*model.Secret{},
+		Regs:  []*model.Registry{},
+		Host:  "",
+		Yamls: []*forge_types.FileMeta{
+			// Matrix workflow - this should be named "mat" but will be named "run1"
+			{Name: "mat.yaml", Data: []byte(`
+matrix:
+  include:
+    - NAME: run1
+      VAR: value1
+    - NAME: run2
+      VAR: value2
+when:
+  event: push
+steps:
+  build:
+    image: bash
+    commands:
+      - echo "Building $VAR"
+`)},
+			// Workflow that depends on "mat" - this should fail to find the dependency
+			{Name: "dependent.yaml", Data: []byte(`
+when:
+  event: push
+
+depends_on:
+ - mat
+
+steps:
+  test:
+    image: bash
+    commands:
+      - echo "Testing"
+`)},
+		},
+	}
+
+	pipelineItems, err := b.Build()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Print out what we actually got for debugging
+	t.Logf("Found %d pipeline items:", len(pipelineItems))
+	for i, item := range pipelineItems {
+		t.Logf("  %d: Name=%s, DependsOn=%v, File=%s", i, item.Workflow.Name, item.DependsOn, item.Workflow.Name)
+	}
+
+	// Find the dependent workflow
+	var dependentWorkflow *Item
+	for _, item := range pipelineItems {
+		if item.Workflow.Name == "dependent" {
+			dependentWorkflow = item
+			break
+		}
+	}
+
+	if dependentWorkflow == nil {
+		t.Fatal("dependent workflow not found")
+	}
+
+	// Check if the dependency is satisfied
+	// The depends_on should be able to find "mat" even though matrix created "run1" and "run2"
+	expectedDep := "mat"
+	found := false
+	for _, item := range pipelineItems {
+		if item.Workflow.Name == expectedDep || item.OriginalName == expectedDep {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		t.Fatalf("Expected to find workflow named or originally named '%s' but not found", expectedDep)
+	}
+
+	// The depends_on should reference the original filename, not the matrix instance name
+	if len(dependentWorkflow.DependsOn) != 1 || dependentWorkflow.DependsOn[0] != "mat" {
+		t.Fatalf("dependent workflow should depend on 'mat', got: %v", dependentWorkflow.DependsOn)
+	}
+
+	// Verify that matrix workflows have the correct original name
+	matrixWorkflows := 0
+	for _, item := range pipelineItems {
+		if item.OriginalName == "mat" {
+			matrixWorkflows++
+		}
+	}
+	if matrixWorkflows != 2 {
+		t.Fatalf("Expected 2 matrix workflows with OriginalName='mat', got %d", matrixWorkflows)
+	}
+}
+
 func TestPipelineName(t *testing.T) {
 	t.Parallel()
 

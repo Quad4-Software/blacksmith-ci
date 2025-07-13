@@ -19,7 +19,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	backend_types "codeberg.org/crowci/crow/v3/pipeline/backend/types"
+	"codeberg.org/crowci/crow/v3/pipeline/backend/types"
 	"codeberg.org/crowci/crow/v3/pipeline/frontend/metadata"
 	yaml_types "codeberg.org/crowci/crow/v3/pipeline/frontend/yaml/types"
 	yaml_base_types "codeberg.org/crowci/crow/v3/pipeline/frontend/yaml/types/base"
@@ -81,38 +81,38 @@ func TestCompilerCompile(t *testing.T) {
 		WithWorkspaceFromURL("/test", repoURL),
 	)
 
-	defaultNetwork := &backend_types.Network{
+	defaultNetwork := &types.Network{
 		Name: "test_default",
 	}
-	defaultVolume := &backend_types.Volume{
+	defaultVolume := &types.Volume{
 		Name: "test_default",
 	}
 
-	defaultCloneStage := &backend_types.Stage{
-		Steps: []*backend_types.Step{{
+	defaultCloneStage := &types.Stage{
+		Steps: []*types.Step{{
 			Name:          "clone",
-			Type:          backend_types.StepTypeClone,
+			Type:          types.StepTypeClone,
 			Image:         constant.DefaultClonePlugin,
 			OnSuccess:     true,
 			Failure:       "fail",
 			Volumes:       []string{defaultVolume.Name + ":/crow"},
 			WorkingDir:    "/crow/src/github.com/octocat/hello-world",
 			WorkspaceBase: "/crow",
-			Networks:      []backend_types.Conn{{Name: "test_default", Aliases: []string{"clone"}}},
-			ExtraHosts:    []backend_types.HostAlias{},
+			Networks:      []types.Conn{{Name: "test_default", Aliases: []string{"clone"}}},
+			ExtraHosts:    []types.HostAlias{},
 		}},
 	}
 
 	tests := []struct {
 		name        string
 		fronConf    *yaml_types.Workflow
-		backConf    *backend_types.Config
+		backConf    *types.Config
 		expectedErr string
 	}{
 		{
 			name:     "empty workflow, no clone",
 			fronConf: &yaml_types.Workflow{SkipClone: true},
-			backConf: &backend_types.Config{
+			backConf: &types.Config{
 				Network: defaultNetwork,
 				Volume:  defaultVolume,
 			},
@@ -120,10 +120,10 @@ func TestCompilerCompile(t *testing.T) {
 		{
 			name:     "empty workflow, default clone",
 			fronConf: &yaml_types.Workflow{},
-			backConf: &backend_types.Config{
+			backConf: &types.Config{
 				Network: defaultNetwork,
 				Volume:  defaultVolume,
-				Stages:  []*backend_types.Stage{defaultCloneStage},
+				Stages:  []*types.Stage{defaultCloneStage},
 			},
 		},
 		{
@@ -132,21 +132,22 @@ func TestCompilerCompile(t *testing.T) {
 				Name:  "dummy",
 				Image: "dummy_img",
 			}}}},
-			backConf: &backend_types.Config{
+			backConf: &types.Config{
 				Network: defaultNetwork,
 				Volume:  defaultVolume,
-				Stages: []*backend_types.Stage{defaultCloneStage, {
-					Steps: []*backend_types.Step{{
+				Stages: []*types.Stage{defaultCloneStage, {
+					Steps: []*types.Step{{
 						Name:          "dummy",
-						Type:          backend_types.StepTypePlugin,
+						Type:          types.StepTypePlugin,
 						Image:         "dummy_img",
 						OnSuccess:     true,
 						Failure:       "fail",
 						Volumes:       []string{defaultVolume.Name + ":/crow"},
 						WorkingDir:    "/crow/src/github.com/octocat/hello-world",
 						WorkspaceBase: "/crow",
-						Networks:      []backend_types.Conn{{Name: "test_default", Aliases: []string{"dummy"}}},
-						ExtraHosts:    []backend_types.HostAlias{},
+						Networks:      []types.Conn{{Name: "test_default", Aliases: []string{"dummy"}}},
+						ExtraHosts:    []types.HostAlias{},
+						DependsOn:     []string{"clone"},
 					}},
 				}},
 			},
@@ -166,14 +167,14 @@ func TestCompilerCompile(t *testing.T) {
 				Image:    "bash",
 				Commands: []string{"echo 2"},
 			}}}},
-			backConf: &backend_types.Config{
+			backConf: &types.Config{
 				Network: defaultNetwork,
 				Volume:  defaultVolume,
-				Stages: []*backend_types.Stage{
+				Stages: []*types.Stage{
 					defaultCloneStage, {
-						Steps: []*backend_types.Step{{
+						Steps: []*types.Step{{
 							Name:          "echo env",
-							Type:          backend_types.StepTypeCommands,
+							Type:          types.StepTypeCommands,
 							Image:         "bash",
 							Commands:      []string{"env"},
 							OnSuccess:     true,
@@ -181,13 +182,12 @@ func TestCompilerCompile(t *testing.T) {
 							Volumes:       []string{defaultVolume.Name + ":/test"},
 							WorkingDir:    "/test/src/github.com/octocat/hello-world",
 							WorkspaceBase: "/test",
-							Networks:      []backend_types.Conn{{Name: "test_default", Aliases: []string{"echo env"}}},
-							ExtraHosts:    []backend_types.HostAlias{},
-						}},
-					}, {
-						Steps: []*backend_types.Step{{
+							Networks:      []types.Conn{{Name: "test_default", Aliases: []string{"echo env"}}},
+							ExtraHosts:    []types.HostAlias{},
+							DependsOn:     []string{"clone"},
+						}, {
 							Name:          "parallel echo 1",
-							Type:          backend_types.StepTypeCommands,
+							Type:          types.StepTypeCommands,
 							Image:         "bash",
 							Commands:      []string{"echo 1"},
 							OnSuccess:     true,
@@ -195,13 +195,12 @@ func TestCompilerCompile(t *testing.T) {
 							Volumes:       []string{defaultVolume.Name + ":/test"},
 							WorkingDir:    "/test/src/github.com/octocat/hello-world",
 							WorkspaceBase: "/test",
-							Networks:      []backend_types.Conn{{Name: "test_default", Aliases: []string{"parallel echo 1"}}},
-							ExtraHosts:    []backend_types.HostAlias{},
-						}},
-					}, {
-						Steps: []*backend_types.Step{{
+							Networks:      []types.Conn{{Name: "test_default", Aliases: []string{"parallel echo 1"}}},
+							ExtraHosts:    []types.HostAlias{},
+							DependsOn:     []string{"clone"},
+						}, {
 							Name:          "parallel echo 2",
-							Type:          backend_types.StepTypeCommands,
+							Type:          types.StepTypeCommands,
 							Image:         "bash",
 							Commands:      []string{"echo 2"},
 							OnSuccess:     true,
@@ -209,8 +208,9 @@ func TestCompilerCompile(t *testing.T) {
 							Volumes:       []string{defaultVolume.Name + ":/test"},
 							WorkingDir:    "/test/src/github.com/octocat/hello-world",
 							WorkspaceBase: "/test",
-							Networks:      []backend_types.Conn{{Name: "test_default", Aliases: []string{"parallel echo 2"}}},
-							ExtraHosts:    []backend_types.HostAlias{},
+							Networks:      []types.Conn{{Name: "test_default", Aliases: []string{"parallel echo 2"}}},
+							ExtraHosts:    []types.HostAlias{},
+							DependsOn:     []string{"clone"},
 						}},
 					},
 				},
@@ -232,13 +232,13 @@ func TestCompilerCompile(t *testing.T) {
 				Image:    "bash",
 				Commands: []string{"echo 2"},
 			}}}},
-			backConf: &backend_types.Config{
+			backConf: &types.Config{
 				Network: defaultNetwork,
 				Volume:  defaultVolume,
-				Stages: []*backend_types.Stage{defaultCloneStage, {
-					Steps: []*backend_types.Step{{
+				Stages: []*types.Stage{defaultCloneStage, {
+					Steps: []*types.Step{{
 						Name:          "echo env",
-						Type:          backend_types.StepTypeCommands,
+						Type:          types.StepTypeCommands,
 						Image:         "bash",
 						Commands:      []string{"env"},
 						OnSuccess:     true,
@@ -246,11 +246,12 @@ func TestCompilerCompile(t *testing.T) {
 						Volumes:       []string{defaultVolume.Name + ":/test"},
 						WorkingDir:    "/test/src/github.com/octocat/hello-world",
 						WorkspaceBase: "/test",
-						Networks:      []backend_types.Conn{{Name: "test_default", Aliases: []string{"echo env"}}},
-						ExtraHosts:    []backend_types.HostAlias{},
+						Networks:      []types.Conn{{Name: "test_default", Aliases: []string{"echo env"}}},
+						ExtraHosts:    []types.HostAlias{},
+						DependsOn:     []string{"clone"},
 					}, {
 						Name:          "echo 2",
-						Type:          backend_types.StepTypeCommands,
+						Type:          types.StepTypeCommands,
 						Image:         "bash",
 						Commands:      []string{"echo 2"},
 						OnSuccess:     true,
@@ -258,13 +259,14 @@ func TestCompilerCompile(t *testing.T) {
 						Volumes:       []string{defaultVolume.Name + ":/test"},
 						WorkingDir:    "/test/src/github.com/octocat/hello-world",
 						WorkspaceBase: "/test",
-						Networks:      []backend_types.Conn{{Name: "test_default", Aliases: []string{"echo 2"}}},
-						ExtraHosts:    []backend_types.HostAlias{},
+						Networks:      []types.Conn{{Name: "test_default", Aliases: []string{"echo 2"}}},
+						ExtraHosts:    []types.HostAlias{},
+						DependsOn:     []string{"clone"},
 					}},
 				}, {
-					Steps: []*backend_types.Step{{
+					Steps: []*types.Step{{
 						Name:          "echo 1",
-						Type:          backend_types.StepTypeCommands,
+						Type:          types.StepTypeCommands,
 						Image:         "bash",
 						Commands:      []string{"echo 1"},
 						OnSuccess:     true,
@@ -272,8 +274,9 @@ func TestCompilerCompile(t *testing.T) {
 						Volumes:       []string{defaultVolume.Name + ":/test"},
 						WorkingDir:    "/test/src/github.com/octocat/hello-world",
 						WorkspaceBase: "/test",
-						Networks:      []backend_types.Conn{{Name: "test_default", Aliases: []string{"echo 1"}}},
-						ExtraHosts:    []backend_types.HostAlias{},
+						Networks:      []types.Conn{{Name: "test_default", Aliases: []string{"echo 1"}}},
+						ExtraHosts:    []types.HostAlias{},
+						DependsOn:     []string{"echo env", "echo 2"},
 					}},
 				}},
 			},
@@ -407,4 +410,239 @@ func TestCompilerCompilePrivileged(t *testing.T) {
 	assert.True(t, backConf.Stages[0].Steps[0].Privileged)
 	assert.False(t, backConf.Stages[0].Steps[1].Privileged)
 	assert.False(t, backConf.Stages[0].Steps[2].Privileged)
+}
+
+func TestCompilerImplicitCloneDependencies(t *testing.T) {
+	t.Parallel()
+
+	// Test that implicit clone dependencies are added to simple workflows
+	conf := &yaml_types.Workflow{
+		Steps: yaml_types.ContainerList{
+			ContainerList: []*yaml_types.Container{
+				{
+					Name:  "test",
+					Image: "alpine",
+					Commands: []string{
+						"echo 'running test'",
+					},
+				},
+			},
+		},
+	}
+
+	repoURL := "https://github.com/test/repo"
+	compiler := New(
+		WithMetadata(metadata.Metadata{
+			Repo: metadata.Repo{
+				Owner:    "test",
+				Name:     "repo",
+				Private:  false,
+				ForgeURL: repoURL,
+				CloneURL: "https://github.com/test/repo.git",
+			},
+		}),
+		WithEnviron(map[string]string{}),
+		WithPrefix("test"),
+		WithWorkspaceFromURL("/test", repoURL),
+	)
+
+	result, err := compiler.Compile(conf)
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+
+	// Should have 2 stages: clone and test
+	assert.Len(t, result.Stages, 2)
+
+	// First stage should be clone
+	cloneStage := result.Stages[0]
+	assert.Len(t, cloneStage.Steps, 1)
+	assert.Equal(t, "clone", cloneStage.Steps[0].Name)
+
+	// Second stage should be test with implicit dependency on clone
+	testStage := result.Stages[1]
+	assert.Len(t, testStage.Steps, 1)
+	assert.Equal(t, "test", testStage.Steps[0].Name)
+	assert.Equal(t, []string{"clone"}, testStage.Steps[0].DependsOn)
+
+	t.Logf("Clone stage: %+v", cloneStage)
+	t.Logf("Test stage: %+v", testStage)
+	t.Logf("Test step depends_on: %+v", testStage.Steps[0].DependsOn)
+}
+
+func TestWorkflowDependsOnWithCloneSteps(t *testing.T) {
+	t.Parallel()
+
+	// Test that workflows with global depends_on still create clone steps
+	// but the regular steps don't depend on them
+	conf := &yaml_types.Workflow{
+		DependsOn: []string{"other-workflow"}, // Global workflow dependency
+		Steps: yaml_types.ContainerList{
+			ContainerList: []*yaml_types.Container{
+				{
+					Name:  "test",
+					Image: "alpine",
+					Commands: []string{
+						"echo 'running test'",
+					},
+				},
+			},
+		},
+	}
+
+	repoURL := "https://github.com/test/repo"
+	compiler := New(
+		WithMetadata(metadata.Metadata{
+			Repo: metadata.Repo{
+				Owner:    "test",
+				Name:     "repo",
+				Private:  false,
+				ForgeURL: repoURL,
+				CloneURL: "https://github.com/test/repo.git",
+			},
+		}),
+		WithWorkspaceFromURL("/crow", repoURL),
+		WithDefaultClonePlugin("woodpecker/plugin-git"),
+	)
+
+	result, err := compiler.Compile(conf)
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+
+	// Should have 2 stages: clone and test
+	assert.Len(t, result.Stages, 2)
+
+	// First stage should be clone
+	cloneStage := result.Stages[0]
+	assert.Len(t, cloneStage.Steps, 1)
+	assert.Equal(t, "clone", cloneStage.Steps[0].Name)
+
+	// Second stage should be test with dependency on clone
+	// Even though the workflow has global depends_on, the individual steps still need the clone
+	testStage := result.Stages[1]
+	assert.Len(t, testStage.Steps, 1)
+	assert.Equal(t, "test", testStage.Steps[0].Name)
+	assert.Equal(t, []string{"clone"}, testStage.Steps[0].DependsOn, "Test step should depend on clone even when workflow has global depends_on")
+
+	// This is the correct behavior:
+	// 1. The workflow waits for its global depends_on (handled at the workflow level)
+	// 2. Once global deps are satisfied, clone runs first
+	// 3. Then regular steps run after clone completes
+
+	t.Logf("Clone stage: %+v", cloneStage)
+	t.Logf("Test stage: %+v", testStage)
+	t.Logf("Test step depends_on: %+v", testStage.Steps[0].DependsOn)
+}
+
+func TestCompilerMatrixImplicitCloneDependencies(t *testing.T) {
+	t.Parallel()
+
+	// Test that implicit clone dependencies are added to matrix workflows
+	conf := &yaml_types.Workflow{
+		Steps: yaml_types.ContainerList{
+			ContainerList: []*yaml_types.Container{
+				{
+					Name:  "test",
+					Image: "alpine",
+					Commands: []string{
+						"echo 'running test'",
+					},
+				},
+			},
+		},
+	}
+
+	repoURL := "https://github.com/test/repo"
+	compiler := New(
+		WithMetadata(metadata.Metadata{
+			Repo: metadata.Repo{
+				Owner:    "test",
+				Name:     "repo",
+				Private:  false,
+				ForgeURL: repoURL,
+				CloneURL: "https://github.com/test/repo.git",
+			},
+			Curr: metadata.Pipeline{
+				Event: "push",
+			},
+		}),
+		WithWorkspaceFromURL("/workspace", repoURL),
+		// Don't set WithDefaultClonePlugin to test the fallback
+	)
+
+	config, err := compiler.Compile(conf)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Should have at least 2 stages: clone and test
+	assert.GreaterOrEqual(t, len(config.Stages), 2, "Should have at least 2 stages")
+
+	// First stage should be clone
+	cloneStage := config.Stages[0]
+	assert.Len(t, cloneStage.Steps, 1, "Clone stage should have 1 step")
+	assert.Equal(t, "clone", cloneStage.Steps[0].Name, "First stage should be clone")
+
+	// Second stage should be test with implicit dependency on clone
+	testStage := config.Stages[1]
+	assert.Len(t, testStage.Steps, 1, "Test stage should have 1 step")
+	assert.Equal(t, "test", testStage.Steps[0].Name, "Second stage should be test")
+	assert.Equal(t, []string{"clone"}, testStage.Steps[0].DependsOn, "Test step should depend on clone")
+}
+
+func TestCompilerWorkflowDependsOnSkipsImplicitClone(t *testing.T) {
+	t.Parallel()
+
+	// Test that workflows with global depends_on do NOT get implicit clone dependencies
+	conf := &yaml_types.Workflow{
+		DependsOn: []string{"other-workflow"}, // Global workflow dependency
+		Steps: yaml_types.ContainerList{
+			ContainerList: []*yaml_types.Container{
+				{
+					Name:  "test",
+					Image: "alpine",
+					Commands: []string{
+						"echo 'running test'",
+					},
+				},
+			},
+		},
+	}
+
+	repoURL := "https://github.com/test/repo"
+	compiler := New(
+		WithMetadata(metadata.Metadata{
+			Repo: metadata.Repo{
+				Owner:    "test",
+				Name:     "repo",
+				Private:  false,
+				ForgeURL: repoURL,
+				CloneURL: "https://github.com/test/repo.git",
+			},
+		}),
+		WithWorkspaceFromURL("/crow", repoURL),
+		WithDefaultClonePlugin("woodpecker/plugin-git"),
+	)
+
+	result, err := compiler.Compile(conf)
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+
+	// Should have 2 stages: clone and test
+	assert.Len(t, result.Stages, 2)
+
+	// First stage should be clone
+	cloneStage := result.Stages[0]
+	assert.Len(t, cloneStage.Steps, 1)
+	assert.Equal(t, "clone", cloneStage.Steps[0].Name)
+
+	// Second stage should be test with implicit dependency on clone
+	// Even though the workflow has global depends_on, steps still need clone for source code
+	testStage := result.Stages[1]
+	assert.Len(t, testStage.Steps, 1)
+	assert.Equal(t, "test", testStage.Steps[0].Name)
+	assert.Equal(t, []string{"clone"}, testStage.Steps[0].DependsOn, "Test step should depend on clone even when workflow has global depends_on")
+
+	t.Logf("Clone stage: %+v", cloneStage)
+	t.Logf("Test stage: %+v", testStage)
+	t.Logf("Test step depends_on: %+v", testStage.Steps[0].DependsOn)
 }

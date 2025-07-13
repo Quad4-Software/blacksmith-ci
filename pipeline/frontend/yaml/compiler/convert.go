@@ -182,6 +182,7 @@ func (c *Compiler) createProcess(container *yaml_types.Container, stepType backe
 		Ports:               ports,
 		BackendOptions:      container.BackendOptions,
 		ContainerNameScheme: c.ContainerNameScheme,
+		DependsOn:           container.DependsOn,
 	}, nil
 }
 

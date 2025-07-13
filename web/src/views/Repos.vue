@@ -56,7 +56,7 @@ import { useRepoStore } from '~/store/repos';
 const repoStore = useRepoStore();
 
 const { sortReposByLastAccess, sortReposByLastActivity, repoWithLastPipeline } = useRepos();
-const repos = computed(() => Object.values(repoStore.ownedRepos).map((r) => repoWithLastPipeline(r)));
+const repos = computed(() => Object.values(repoStore.ownedRepos as any).map((r: any) => repoWithLastPipeline(r)));
 
 const reposLastAccess = computed(() => sortReposByLastAccess(repos.value || []).slice(0, 4));
 

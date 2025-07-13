@@ -15,11 +15,15 @@
 package datastore
 
 import (
+	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/rs/zerolog/log"
 	"xorm.io/xorm"
 
+	"codeberg.org/crowci/crow/v3/pipeline/frontend/yaml"
+	"codeberg.org/crowci/crow/v3/pipeline/frontend/yaml/matrix"
 	"codeberg.org/crowci/crow/v3/server/model"
 )
 
@@ -30,14 +34,171 @@ func (s storage) WorkflowGetTree(pipeline *model.Pipeline) ([]*model.Workflow, e
 		return nil, err
 	}
 
+	// Get pipeline configurations to populate pipeline_name field for existing workflows
+	var pipelineNameMap map[string]string
+	if len(wfList) > 0 {
+		// Check if any workflows are missing pipeline_name
+		needsPopulation := false
+		for _, wf := range wfList {
+			if wf.PipelineName == "" {
+				needsPopulation = true
+				break
+			}
+		}
+
+		if needsPopulation {
+			pipelineNameMap, err = s.getPipelineNameMap(pipeline)
+			if err != nil {
+				log.Warn().Err(err).Int64("pipeline_id", pipeline.ID).Msg("Failed to get pipeline config for pipeline_name population")
+				// For existing workflows without pipeline_name, use a fallback approach
+				pipelineNameMap = s.createFallbackPipelineNameMap(wfList)
+			}
+		}
+	}
+
 	for _, wf := range wfList {
 		wf.Children, err = s.stepListWorkflow(sess, wf)
 		if err != nil {
 			return nil, err
 		}
+
+		// Populate pipeline_name field for existing workflows that don't have it set
+		if wf.PipelineName == "" && pipelineNameMap != nil {
+			// Try to find the pipeline name from the config map
+			if pipelineName, found := pipelineNameMap[wf.Name]; found {
+				wf.PipelineName = pipelineName
+			} else {
+				// If not found, use the workflow name as fallback
+				wf.PipelineName = wf.Name
+			}
+		}
 	}
 
 	return wfList, sess.Commit()
+}
+
+// getPipelineNameMap creates a map from workflow names to their pipeline names
+// by parsing the original YAML configurations.
+func (s storage) getPipelineNameMap(pipeline *model.Pipeline) (map[string]string, error) {
+	pipelineNameMap := make(map[string]string)
+
+	// Get all configs for this pipeline
+	configs, err := s.ConfigsForPipeline(pipeline.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, config := range configs {
+		// Parse the YAML config to extract the pipeline name
+		parsed, err := yaml.ParseBytes(config.Data)
+		if err != nil {
+			log.Warn().Err(err).Str("config_name", config.Name).Msg("Failed to parse config YAML")
+			continue
+		}
+
+		// Determine the pipeline name (from YAML name field or filename)
+		var pipelineName string
+		if parsed.Name != "" {
+			pipelineName = parsed.Name
+		} else {
+			// Fallback to sanitized filename
+			pipelineName = sanitizePath(config.Name)
+		}
+
+		// Parse matrix from YAML data
+		axes, err := matrix.ParseString(string(config.Data))
+		if err != nil {
+			log.Warn().Err(err).Str("config_name", config.Name).Msg("Failed to parse matrix from config YAML")
+			continue
+		}
+
+		// If no matrix axes, create a default empty axis
+		if len(axes) == 0 {
+			axes = append(axes, matrix.Axis{})
+		}
+
+		// Map each matrix axis to the pipeline name
+		for _, axis := range axes {
+			// Check for matrix NAME (case-insensitive) - same logic as stepBuilder.go
+			matrixName, nameKey, hasMatrixName := getCaseInsensitiveKey(axis, "NAME")
+			if hasMatrixName {
+				delete(axis, nameKey) // Remove NAME from axis
+			}
+
+			// Determine workflow name using the same logic as stepBuilder.go
+			var workflowName string
+			switch {
+			case hasMatrixName && matrixName != "":
+				workflowName = matrixName
+			case parsed.Name != "":
+				workflowName = parsed.Name
+			default:
+				workflowName = sanitizePath(config.Name)
+			}
+
+			pipelineNameMap[workflowName] = pipelineName
+		}
+	}
+
+	return pipelineNameMap, nil
+}
+
+// createFallbackPipelineNameMap creates a fallback pipeline name map when configs are not available
+// This helps handle cases where the pipeline_configs table doesn't exist or configurations are missing.
+func (s storage) createFallbackPipelineNameMap(workflows []*model.Workflow) map[string]string {
+	pipelineNameMap := make(map[string]string)
+
+	// Without access to the original YAML configs, we can't determine the true pipeline names
+	// The best we can do is use the workflow names themselves
+	// This preserves the existing behavior for legacy workflows
+	for _, wf := range workflows {
+		pipelineNameMap[wf.Name] = wf.Name
+	}
+
+	return pipelineNameMap
+}
+
+// getCaseInsensitiveKey returns the value, the actual key, and true if the key exists in the map (case-insensitive).
+func getCaseInsensitiveKey(m map[string]string, key string) (string, string, bool) {
+	for k, v := range m {
+		if equalFold(k, key) {
+			return v, k, true
+		}
+	}
+	return "", "", false
+}
+
+// equalFold is a simple ASCII case-insensitive comparison.
+func equalFold(a, b string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := 0; i < len(a); i++ {
+		switch {
+		case (a[i] >= 'A' && a[i] <= 'Z') && (b[i] >= 'a' && b[i] <= 'z'):
+			if a[i]+32 != b[i] {
+				return false
+			}
+		case (a[i] >= 'a' && a[i] <= 'z') && (b[i] >= 'A' && b[i] <= 'Z'):
+			if a[i] != b[i]+32 {
+				return false
+			}
+		default:
+			if a[i] != b[i] {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// sanitizePath removes the file extension and leading dots from a path.
+func sanitizePath(path string) string {
+	path = filepath.Base(path)
+	path = strings.TrimSuffix(path, ".yml")
+	path = strings.TrimSuffix(path, ".yaml")
+	path = strings.TrimPrefix(path, ".")
+	return path
 }
 
 func (s storage) WorkflowsCreate(workflows []*model.Workflow) error {

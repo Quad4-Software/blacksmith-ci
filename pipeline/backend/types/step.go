@@ -43,6 +43,7 @@ type Step struct {
 	Ports               []Port            `json:"ports,omitempty"`
 	BackendOptions      map[string]any    `json:"backend_options,omitempty"`
 	ContainerNameScheme string            `json:"container_name_scheme,omitempty"`
+	DependsOn           []string          `json:"depends_on,omitempty"`
 }
 
 // StepType identifies the type of step.

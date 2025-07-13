@@ -50,3 +50,61 @@ func TestSetPipelineStepsOnPipeline(t *testing.T) {
 		t.Fatal("Should set step PPID")
 	}
 }
+
+func TestSetPipelineStepsOnPipelineWithDependsOn(t *testing.T) {
+	t.Parallel()
+
+	pipeline := &model.Pipeline{
+		ID:    1,
+		Event: model.EventPush,
+	}
+
+	pipelineItems := []*sharedPipeline.Item{{
+		Workflow: &model.Workflow{
+			PID: 1,
+		},
+		Config: &types.Config{
+			Stages: []*types.Stage{
+				{
+					Steps: []*types.Step{
+						{
+							Name: "clone",
+						},
+					},
+				},
+				{
+					Steps: []*types.Step{
+						{
+							Name:      "test",
+							DependsOn: []string{"clone"},
+						},
+					},
+				},
+			},
+		},
+	}}
+	pipeline = setPipelineStepsOnPipeline(pipeline, pipelineItems)
+
+	if len(pipeline.Workflows) != 1 {
+		t.Fatal("Should generate one workflow")
+	}
+
+	workflow := pipeline.Workflows[0]
+	if len(workflow.Children) != 2 {
+		t.Fatalf("Should have 2 steps, got %d", len(workflow.Children))
+	}
+
+	// Check that the test step has the correct depends_on
+	testStep := workflow.Children[1] // Second step should be "test"
+	if testStep.Name != "test" {
+		t.Fatalf("Expected step name 'test', got '%s'", testStep.Name)
+	}
+
+	if len(testStep.DependsOn) != 1 {
+		t.Fatalf("Expected 1 dependency, got %d", len(testStep.DependsOn))
+	}
+
+	if testStep.DependsOn[0] != "clone" {
+		t.Fatalf("Expected dependency 'clone', got '%s'", testStep.DependsOn[0])
+	}
+}

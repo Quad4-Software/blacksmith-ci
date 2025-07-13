@@ -88,6 +88,11 @@ const routes: RouteRecordRaw[] = [
                 props: true,
               },
               {
+                path: 'graph',
+                name: 'repo-pipeline-graph',
+                component: (): Component => import('~/views/repo/pipeline/PipelineGraph.vue'),
+              },
+              {
                 path: 'changed-files',
                 name: 'repo-pipeline-changed-files',
                 component: (): Component => import('~/views/repo/pipeline/PipelineChangedFiles.vue'),

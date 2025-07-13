@@ -14,11 +14,14 @@ import router from '~/router';
 // eslint-disable-next-line ts/no-unsafe-argument
 const app = createApp(App);
 
-app.use(router);
-app.use(notifications);
+// eslint-disable-next-line ts/no-unsafe-argument
+app.use(router as any);
+// eslint-disable-next-line ts/no-unsafe-argument
+app.use(notifications as any);
 app.use(i18n);
 
-app.use(createPinia());
+// eslint-disable-next-line ts/no-unsafe-argument
+app.use(createPinia() as any);
 app.mount('#app');
 
 useEvents();

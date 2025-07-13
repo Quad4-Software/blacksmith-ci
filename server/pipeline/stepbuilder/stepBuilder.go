@@ -57,11 +57,12 @@ type StepBuilder struct {
 }
 
 type Item struct {
-	Workflow  *model.Workflow
-	Labels    map[string]string
-	DependsOn []string
-	RunsOn    []string
-	Config    *backend_types.Config
+	Workflow     *model.Workflow
+	Labels       map[string]string
+	DependsOn    []string
+	RunsOn       []string
+	Config       *backend_types.Config
+	OriginalName string // Store original filename for dependency resolution
 }
 
 func (b *StepBuilder) Build() (items []*Item, errorsAndWarnings error) {
@@ -118,16 +119,31 @@ func (b *StepBuilder) Build() (items []*Item, errorsAndWarnings error) {
 				workflowName = SanitizePath(y.Name)
 			}
 
+			// Determine pipeline name (YAML name field or file name)
+			var pipelineName string
+			if yamlName != "" {
+				// Use the YAML name field if present
+				if subst, _ := metadata.EnvVarSubst(yamlName, env); subst != "" {
+					pipelineName = subst
+				} else {
+					pipelineName = yamlName
+				}
+			} else {
+				// Fallback to file name
+				pipelineName = SanitizePath(y.Name)
+			}
+
 			workflow := &model.Workflow{
-				PID:     pidSequence,
-				State:   model.StatusPending,
-				Environ: axis,
-				Name:    workflowName,
+				PID:          pidSequence,
+				State:        model.StatusPending,
+				Environ:      axis,
+				Name:         workflowName,
+				PipelineName: pipelineName,
 			}
 			if len(axes) > 1 {
 				workflow.AxisID = i + 1
 			}
-			item, err := b.genItemForWorkflow(workflow, axis, string(y.Data))
+			item, err := b.genItemForWorkflow(workflow, axis, string(y.Data), y.Name)
 			if err != nil && pipeline_errors.HasBlockingErrors(err) {
 				return nil, err
 			} else if err != nil {
@@ -155,7 +171,7 @@ func (b *StepBuilder) Build() (items []*Item, errorsAndWarnings error) {
 	return items, errorsAndWarnings
 }
 
-func (b *StepBuilder) genItemForWorkflow(workflow *model.Workflow, axis matrix.Axis, data string) (item *Item, errorsAndWarnings error) {
+func (b *StepBuilder) genItemForWorkflow(workflow *model.Workflow, axis matrix.Axis, data string, originalFileName string) (item *Item, errorsAndWarnings error) {
 	workflowMetadata := MetadataFromStruct(b.Forge, b.Repo, b.Curr, b.Prev, workflow, b.Host)
 	environ := b.environmentVariables(workflowMetadata, axis)
 
@@ -220,12 +236,16 @@ func (b *StepBuilder) genItemForWorkflow(workflow *model.Workflow, axis matrix.A
 		return nil, nil
 	}
 
+	// Copy dependencies to the workflow model for API response and database storage
+	workflow.DependsOn = parsed.DependsOn
+
 	item = &Item{
-		Workflow:  workflow,
-		Config:    ir,
-		Labels:    parsed.Labels,
-		DependsOn: parsed.DependsOn,
-		RunsOn:    parsed.RunsOn,
+		Workflow:     workflow,
+		Config:       ir,
+		Labels:       parsed.Labels,
+		DependsOn:    parsed.DependsOn,
+		RunsOn:       parsed.RunsOn,
+		OriginalName: SanitizePath(originalFileName), // Store original filename for dependency resolution
 	}
 	if len(item.Labels) == 0 {
 		item.Labels = make(map[string]string, len(b.DefaultLabels))
@@ -272,7 +292,7 @@ func filterItemsWithMissingDependencies(items []*Item) []*Item {
 
 func containsItemWithName(name string, items []*Item) bool {
 	for _, item := range items {
-		if name == item.Workflow.Name {
+		if name == item.Workflow.Name || name == item.OriginalName {
 			return true
 		}
 	}

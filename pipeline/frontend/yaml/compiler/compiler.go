@@ -160,8 +160,14 @@ func (c *Compiler) Compile(conf *yaml_types.Workflow) (*backend_types.Config, er
 		c.workspacePath = path.Clean(conf.Workspace.Path)
 	}
 
-	// add default clone step
-	if !c.local && len(conf.Clone.ContainerList) == 0 && !conf.SkipClone && len(c.defaultClonePlugin) != 0 {
+	// Collect all steps for DAG compilation, including clone steps
+	allSteps := make([]*dagCompilerStep, 0)
+	cloneStepNames := make([]string, 0)
+
+	// add clone steps based on configuration
+	switch {
+	case !c.local && len(conf.Clone.ContainerList) == 0 && !conf.SkipClone && len(c.defaultClonePlugin) != 0:
+		// Default clone with specified plugin
 		cloneSettings := map[string]any{"depth": "0"}
 		if c.metadata.Curr.Event == metadata.EventTag {
 			cloneSettings["tags"] = "true"
@@ -180,19 +186,53 @@ func (c *Compiler) Compile(conf *yaml_types.Workflow) (*backend_types.Config, er
 			return nil, err
 		}
 
-		stage := new(backend_types.Stage)
-		stage.Steps = append(stage.Steps, step)
+		allSteps = append(allSteps, &dagCompilerStep{
+			step:      step,
+			position:  -1, // Clone steps come first
+			name:      step.Name,
+			dependsOn: nil,
+		})
+		cloneStepNames = append(cloneStepNames, step.Name)
+	case !c.local && len(conf.Clone.ContainerList) == 0 && !conf.SkipClone:
+		// Fallback: use constant.DefaultClonePlugin if c.defaultClonePlugin is empty
+		clonePlugin := c.defaultClonePlugin
+		if len(clonePlugin) == 0 {
+			clonePlugin = constant.DefaultClonePlugin
+		}
 
-		config.Stages = append(config.Stages, stage)
-	} else if !c.local && !conf.SkipClone {
-		for _, container := range conf.Clone.ContainerList {
+		cloneSettings := map[string]any{"depth": "0"}
+		if c.metadata.Curr.Event == metadata.EventTag {
+			cloneSettings["tags"] = "true"
+		}
+		container := &yaml_types.Container{
+			Name:        defaultCloneName,
+			Image:       clonePlugin,
+			Settings:    cloneSettings,
+			Environment: make(map[string]any),
+		}
+		for k, v := range c.cloneEnv {
+			container.Environment[k] = v
+		}
+		step, err := c.createProcess(container, backend_types.StepTypeClone)
+		if err != nil {
+			return nil, err
+		}
+
+		allSteps = append(allSteps, &dagCompilerStep{
+			step:      step,
+			position:  -1, // Clone steps come first
+			name:      step.Name,
+			dependsOn: nil,
+		})
+		cloneStepNames = append(cloneStepNames, step.Name)
+	case !c.local && !conf.SkipClone:
+		// Custom clone containers
+		for pos, container := range conf.Clone.ContainerList {
 			if match, err := container.When.Match(c.metadata, false, c.env); !match && err == nil {
 				continue
 			} else if err != nil {
 				return nil, err
 			}
-
-			stage := new(backend_types.Stage)
 
 			step, err := c.createProcess(container, backend_types.StepTypeClone)
 			if err != nil {
@@ -206,35 +246,17 @@ func (c *Compiler) Compile(conf *yaml_types.Workflow) (*backend_types.Config, er
 				}
 			}
 
-			stage.Steps = append(stage.Steps, step)
-
-			config.Stages = append(config.Stages, stage)
+			allSteps = append(allSteps, &dagCompilerStep{
+				step:      step,
+				position:  -(pos + 1), // Clone steps come first, negative positions
+				name:      step.Name,
+				dependsOn: container.DependsOn,
+			})
+			cloneStepNames = append(cloneStepNames, step.Name)
 		}
-	}
-
-	// add services steps
-	if len(conf.Services.ContainerList) != 0 {
-		stage := new(backend_types.Stage)
-
-		for _, container := range conf.Services.ContainerList {
-			if match, err := container.When.Match(c.metadata, false, c.env); !match && err == nil {
-				continue
-			} else if err != nil {
-				return nil, err
-			}
-
-			step, err := c.createProcess(container, backend_types.StepTypeService)
-			if err != nil {
-				return nil, err
-			}
-
-			stage.Steps = append(stage.Steps, step)
-		}
-		config.Stages = append(config.Stages, stage)
 	}
 
 	// add pipeline steps
-	steps := make([]*dagCompilerStep, 0, len(conf.Steps.ContainerList))
 	for pos, container := range conf.Steps.ContainerList {
 		// Skip if local and should not run local
 		if c.local && !container.When.IsLocal() {
@@ -263,21 +285,51 @@ func (c *Compiler) Compile(conf *yaml_types.Workflow) (*backend_types.Config, er
 			}
 		}
 
-		steps = append(steps, &dagCompilerStep{
+		dependsOn := container.DependsOn
+		// Add implicit clone dependency for all steps without explicit depends_on if clone steps exist
+		if len(dependsOn) == 0 && len(cloneStepNames) > 0 {
+			dependsOn = cloneStepNames
+		}
+
+		// Set the DependsOn field on the backend_types.Step as well
+		step.DependsOn = dependsOn
+
+		allSteps = append(allSteps, &dagCompilerStep{
 			step:      step,
 			position:  pos,
 			name:      container.Name,
-			dependsOn: container.DependsOn,
+			dependsOn: dependsOn,
 		})
 	}
 
-	// generate stages out of steps
-	stepStages, err := newDAGCompiler(steps).compile()
+	// add services steps
+	if len(conf.Services.ContainerList) != 0 {
+		stage := new(backend_types.Stage)
+
+		for _, container := range conf.Services.ContainerList {
+			if match, err := container.When.Match(c.metadata, false, c.env); !match && err == nil {
+				continue
+			} else if err != nil {
+				return nil, err
+			}
+
+			step, err := c.createProcess(container, backend_types.StepTypeService)
+			if err != nil {
+				return nil, err
+			}
+
+			stage.Steps = append(stage.Steps, step)
+		}
+		config.Stages = append(config.Stages, stage)
+	}
+
+	// generate stages out of all steps (including clone steps)
+	allStages, err := newDAGCompiler(allSteps).compile()
 	if err != nil {
 		return nil, err
 	}
 
-	config.Stages = append(config.Stages, stepStages...)
+	config.Stages = append(config.Stages, allStages...)
 
 	return config, nil
 }

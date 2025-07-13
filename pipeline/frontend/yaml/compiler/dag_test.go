@@ -155,4 +155,13 @@ func TestIsDag(t *testing.T) {
 	}
 	c = newDAGCompiler(steps)
 	assert.True(t, c.isDAG())
+
+	steps = []*dagCompilerStep{
+		{
+			step:      &backend_types.Step{},
+			dependsOn: []string{"other-step"},
+		},
+	}
+	c = newDAGCompiler(steps)
+	assert.True(t, c.isDAG())
 }

@@ -20,6 +20,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"codeberg.org/crowci/crow/v3/pipeline/frontend/yaml"
+	"codeberg.org/crowci/crow/v3/pipeline/frontend/yaml/matrix"
 	"codeberg.org/crowci/crow/v3/server/model"
 )
 
@@ -183,4 +185,304 @@ func TestCleanupOrphanedWorkflows(t *testing.T) {
 		err := store.CleanupOrphanedWorkflows(workflowIDs)
 		assert.NoError(t, err)
 	})
+}
+
+func TestMatrixWorkflowNameMapping(t *testing.T) {
+	// Test just the matrix parsing logic without database complexity
+	testCases := []struct {
+		name        string
+		configName  string
+		yamlContent string
+		expectedMap map[string]string
+		description string
+	}{
+		{
+			name:       "User's specific case - mat2.yaml with custom-mat name",
+			configName: "mat2.yaml",
+			yamlContent: `name: custom-mat
+matrix:
+  include:
+    - NAME: run1
+    - NAME: run2
+    - NAME: run3
+steps:
+  - name: test
+    commands:
+      - echo "testing"`,
+			expectedMap: map[string]string{
+				"run1": "custom-mat",
+				"run2": "custom-mat",
+				"run3": "custom-mat",
+			},
+			description: "User's specific case: mat2.yaml with name: custom-mat should group matrix workflows under custom-mat",
+		},
+		{
+			name:       "Pipeline with name field and matrix",
+			configName: "custom-mat.yml",
+			yamlContent: `name: custom-mat
+matrix:
+  include:
+    - NAME: run1
+    - NAME: run2
+    - NAME: run3
+steps:
+  - name: test
+    commands:
+      - echo "testing"`,
+			expectedMap: map[string]string{
+				"run1": "custom-mat",
+				"run2": "custom-mat",
+				"run3": "custom-mat",
+			},
+			description: "Pipeline with explicit name field should group matrix workflows under the pipeline name",
+		},
+		{
+			name:       "Pipeline without name field",
+			configName: "mat.yml",
+			yamlContent: `matrix:
+  include:
+    - NAME: run1
+    - NAME: run2
+    - NAME: run3
+steps:
+  - name: test
+    commands:
+      - echo "testing"`,
+			expectedMap: map[string]string{
+				"run1": "mat",
+				"run2": "mat",
+				"run3": "mat",
+			},
+			description: "Pipeline without name field should use filename for grouping",
+		},
+		{
+			name:       "Single workflow with name field",
+			configName: "single.yml",
+			yamlContent: `name: myname
+steps:
+  - name: test
+    commands:
+      - echo "testing"`,
+			expectedMap: map[string]string{
+				"myname": "myname",
+			},
+			description: "Single workflow with name field should map to itself",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Test the matrix parsing logic directly
+			result := testGetPipelineNameMapping(tc.configName, tc.yamlContent)
+			assert.Equal(t, tc.expectedMap, result, tc.description)
+		})
+	}
+}
+
+// Helper function to test the pipeline name mapping logic.
+func testGetPipelineNameMapping(configName, yamlContent string) map[string]string {
+	pipelineNameMap := make(map[string]string)
+
+	// Parse the YAML config to extract the pipeline name
+	parsed, err := yaml.ParseString(yamlContent)
+	if err != nil {
+		return pipelineNameMap
+	}
+
+	// Determine the pipeline name (from YAML name field or filename)
+	var pipelineName string
+	if parsed.Name != "" {
+		pipelineName = parsed.Name
+	} else {
+		// Fallback to sanitized filename
+		pipelineName = sanitizePath(configName)
+	}
+
+	// Parse matrix from YAML data
+	axes, err := matrix.ParseString(yamlContent)
+	if err != nil {
+		return pipelineNameMap
+	}
+
+	// If no matrix axes, create a default empty axis
+	if len(axes) == 0 {
+		axes = append(axes, matrix.Axis{})
+	}
+
+	// Map each matrix axis to the pipeline name
+	for _, axis := range axes {
+		// Check for matrix NAME (case-insensitive)
+		matrixName, nameKey, hasMatrixName := getCaseInsensitiveKey(axis, "NAME")
+		if hasMatrixName {
+			delete(axis, nameKey) // Remove NAME from axis
+		}
+
+		// Determine workflow name using the same logic as stepBuilder.go
+		var workflowName string
+		switch {
+		case hasMatrixName && matrixName != "":
+			workflowName = matrixName
+		case parsed.Name != "":
+			workflowName = parsed.Name
+		default:
+			workflowName = sanitizePath(configName)
+		}
+
+		pipelineNameMap[workflowName] = pipelineName
+	}
+
+	return pipelineNameMap
+}
+
+// Helper functions are now available from workflow.go.
+
+func TestWorkflowGetTreePipelineNamePopulation(t *testing.T) {
+	// Test the actual WorkflowGetTree function with fallback logic
+	store, closer := newTestStore(t, new(model.Step), new(model.Pipeline), new(model.Workflow))
+	defer closer()
+
+	// Create test pipeline
+	pipeline := &model.Pipeline{
+		ID:     1,
+		RepoID: 1,
+		Number: 1,
+	}
+
+	// Create workflows without pipeline_name field (simulating existing data)
+	workflows := []*model.Workflow{
+		{
+			ID:           1,
+			PipelineID:   1,
+			PID:          1,
+			Name:         "run1",
+			PipelineName: "", // Empty - should be populated by fallback
+			State:        model.StatusSuccess,
+		},
+		{
+			ID:           2,
+			PipelineID:   1,
+			PID:          2,
+			Name:         "run2",
+			PipelineName: "", // Empty - should be populated by fallback
+			State:        model.StatusSuccess,
+		},
+		{
+			ID:           3,
+			PipelineID:   1,
+			PID:          3,
+			Name:         "run3",
+			PipelineName: "", // Empty - should be populated by fallback
+			State:        model.StatusSuccess,
+		},
+	}
+
+	// Store workflows
+	err := store.WorkflowsCreate(workflows)
+	assert.NoError(t, err)
+
+	// Test WorkflowGetTree - this should trigger the fallback logic
+	result, err := store.WorkflowGetTree(pipeline)
+	assert.NoError(t, err)
+
+	// Verify that pipeline_name was populated by fallback logic
+	assert.Len(t, result, 3)
+	for _, wf := range result {
+		assert.NotEmpty(t, wf.PipelineName, "Workflow %s should have pipeline_name populated by fallback", wf.Name)
+		// With the simplified fallback logic, each workflow uses its own name
+		assert.Equal(t, wf.Name, wf.PipelineName, "Workflow %s should use its own name as pipeline_name", wf.Name)
+	}
+}
+
+func TestCreateFallbackPipelineNameMap(t *testing.T) {
+	store := storage{}
+
+	testCases := []struct {
+		name        string
+		workflows   []*model.Workflow
+		expectedMap map[string]string
+		description string
+	}{
+		{
+			name: "Matrix workflows without pipeline_name",
+			workflows: []*model.Workflow{
+				{Name: "run1"},
+				{Name: "run2"},
+				{Name: "run3"},
+			},
+			expectedMap: map[string]string{
+				"run1": "run1",
+				"run2": "run2",
+				"run3": "run3",
+			},
+			description: "Workflows without pipeline_name should use their own names",
+		},
+		{
+			name: "Workflows without config name fallback to own name",
+			workflows: []*model.Workflow{
+				{Name: "custom-mat-1"},
+				{Name: "custom-mat-2"},
+				{Name: "custom-mat-3"},
+			},
+			expectedMap: map[string]string{
+				"custom-mat-1": "custom-mat-1",
+				"custom-mat-2": "custom-mat-2",
+				"custom-mat-3": "custom-mat-3",
+			},
+			description: "Workflows without config name should use their own name as pipeline_name",
+		},
+		{
+			name: "Single workflow",
+			workflows: []*model.Workflow{
+				{Name: "single-workflow"},
+			},
+			expectedMap: map[string]string{
+				"single-workflow": "single-workflow",
+			},
+			description: "Single workflow should map to itself",
+		},
+		{
+			name: "Mixed workflows",
+			workflows: []*model.Workflow{
+				{Name: "run1"},
+				{Name: "run2"},
+				{Name: "single-workflow"},
+				{Name: "test-workflow"},
+			},
+			expectedMap: map[string]string{
+				"run1":            "run1",
+				"run2":            "run2",
+				"single-workflow": "single-workflow",
+				"test-workflow":   "test-workflow",
+			},
+			description: "Each workflow should use its own name as pipeline_name",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := store.createFallbackPipelineNameMap(tc.workflows)
+			assert.Equal(t, tc.expectedMap, result, tc.description)
+		})
+	}
+}
+
+func TestSanitizePath(t *testing.T) {
+	testCases := []struct {
+		input    string
+		expected string
+	}{
+		{"test.yml", "test"},
+		{"test.yaml", "test"},
+		{".hidden.yml", "hidden"},
+		{"path/to/file.yml", "file"},
+		{"custom-mat.yml", "custom-mat"},
+		{"simple", "simple"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.input, func(t *testing.T) {
+			result := sanitizePath(tc.input)
+			assert.Equal(t, tc.expected, result)
+		})
+	}
 }

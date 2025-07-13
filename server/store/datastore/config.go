@@ -28,6 +28,17 @@ import (
 
 func (s storage) ConfigsForPipeline(pipelineID int64) ([]*model.Config, error) {
 	configs := make([]*model.Config, 0, perPage)
+
+	// Check if the pipeline_configs table exists
+	hasTable, err := s.engine.IsTableExist("pipeline_configs")
+	if err != nil {
+		return nil, fmt.Errorf("error checking if pipeline_configs table exists: %w", err)
+	}
+
+	if !hasTable {
+		return nil, fmt.Errorf("pipeline_configs table does not exist - pipeline configurations cannot be retrieved")
+	}
+
 	return configs, s.engine.
 		Table("configs").
 		Join("LEFT", "pipeline_configs", "configs.id = pipeline_configs.config_id").

@@ -107,7 +107,16 @@ export const usePipelineStore = defineStore('pipelines', () => {
         return [...acc, ...repoPipelinesArray];
       }, [])
       .sort(comparePipelinesWithStatus)
-      .filter((pipeline) => repoStore.ownedRepoIds.includes(pipeline.repo_id)),
+      .filter((pipeline) => {
+        // eslint-disable-next-line ts/no-unsafe-assignment
+        const ownedRepoIdsRef = repoStore.ownedRepoIds as any;
+        // eslint-disable-next-line ts/no-unsafe-assignment, ts/no-unsafe-member-access
+        const ownedIds: number[] | null = ownedRepoIdsRef?.value ?? ownedRepoIdsRef ?? null;
+        if (ownedIds == null || ownedIds.length === 0) {
+          return true;
+        }
+        return ownedIds.includes(pipeline.repo_id);
+      }),
   );
 
   const activePipelines = computed(() =>

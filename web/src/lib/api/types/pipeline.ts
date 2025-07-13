@@ -107,12 +107,14 @@ export interface PipelineWorkflow {
   pipeline_id: number;
   pid: number;
   name: string;
+  pipeline_name: string;
   state: PipelineStatus;
   environ?: Record<string, string>;
   started?: number;
   finished?: number;
   agent_id?: number;
   error?: string;
+  depends_on?: string[];
   children: PipelineStep[];
 }
 
@@ -129,6 +131,7 @@ export interface PipelineStep {
   finished?: number;
   error?: string;
   type?: StepType;
+  depends_on?: string[];
 }
 
 export interface PipelineLog {

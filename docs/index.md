@@ -65,6 +65,7 @@ In fact, Crow welcomes any improvements that are ported to Woodpecker and aims f
 As of 2025-06, the following unique features exist in Crow:
 
 - Log retention: Each repository can define its own retention policy. A global default of 90 days is used
+- DAG support
 - Descriptive error message: Errors are transparently parsed back to the user in the UI. Almost no "An unknown error occurred" messages are shown
 - Multi-org agents: Admins can deploy agents which are allowed to process builds from multiple organizations/users
 - Agent list: All instance agents are listed in the UI, also for non-admin users.
