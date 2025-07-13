@@ -23,14 +23,12 @@ async function fetchVersion(): Promise<{ latest?: string; rc?: string; dev?: str
   try {
     const resp = await fetch('https://crowci.dev/versions.json');
     const json = (await resp.json()) as VersionEntry[];
-    console.error('Fetched versions.json:', json);
     let latest, rc, dev;
     for (const entry of json) {
       if (entry.aliases.includes('latest')) latest = entry.version;
       if (entry.title === 'rc' || entry.aliases.includes('rc')) rc = entry.version;
       if (entry.title === 'dev' || entry.aliases.includes('dev')) dev = entry.version;
     }
-    console.error('Extracted versions:', { latest, rc, dev });
     return { latest, rc, dev };
   } catch (error) {
     console.error('Failed to fetch version info', error);
