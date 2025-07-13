@@ -97,13 +97,28 @@ const updateVisibleItems = () => {
 
     const items = Array.from(tabsRef.value!.children);
 
+    // First, check if all tabs fit without the more button
+    let totalWidthAllTabs = 0;
+    for (let i = 0; i < items.length; i++) {
+      const itemWidth = items[i].getBoundingClientRect().width;
+      totalWidthAllTabs += itemWidth;
+      if (i > 0) totalWidthAllTabs += gapWidth;
+    }
+
+    // If all tabs fit without overflow, show them all
+    if (totalWidthAllTabs <= availableWidth) {
+      visibleCount.value = tabs.value.length;
+      return;
+    }
+
+    // Otherwise, find how many fit with the more button reserved
     for (let i = 0; i < items.length; i++) {
       const itemWidth = items[i].getBoundingClientRect().width;
       totalWidth += itemWidth;
       if (i > 0) totalWidth += gapWidth;
 
       if (totalWidth > availableWidth - (moreButtonWidth + gapWidth)) {
-        visibleCount.value = i;
+        visibleCount.value = Math.max(1, i); // Always show at least 1 tab
         return;
       }
     }
