@@ -14,7 +14,7 @@
 
       <div class="flex w-full min-w-0 items-center md:mx-4 md:w-auto">
         <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-        <span class="md:display-unset hidden text-wp-text-alt-100"><Text>#</Text>{{ pipeline.number }}</span>
+        <span class="md:display-unset hidden text-wp-text-alt-100">#{{ pipeline.number }}</span>
         <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
         <span class="md:display-unset mx-2 hidden text-wp-text-alt-100">-</span>
         <span

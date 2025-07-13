@@ -18,18 +18,30 @@
       </span>
     </template>
     <template #headerActions>
-      <div class="flex w-full items-center justify-between gap-2 px-1 md:px-2">
-        <div class="flex min-w-0 content-start gap-2">
-          <PipelineStatusIcon :status="pipeline.status" class="flex shrink-0" />
-          <span class="shrink-0 text-center">{{ $t('repo.pipeline.pipeline', { pipelineId }) }}</span>
-          <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-          <span class="hidden md:inline-block">-</span>
-          <span class="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap" :title="message">{{
-            shortMessage
-          }}</span>
+      <div class="flex w-full flex-col gap-2 pl-1 md:flex-row md:items-center md:justify-between md:gap-2 md:pl-0">
+        <div class="flex min-w-0 items-center justify-between gap-2 overflow-hidden">
+          <div class="flex min-w-0 items-center gap-2 overflow-hidden">
+            <PipelineStatusIcon :status="pipeline.status" class="flex shrink-0" />
+            <span class="shrink-0">{{ $t('repo.pipeline.pipeline', { pipelineId }) }}</span>
+            <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
+            <span class="hidden md:inline-block">-</span>
+            <span class="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap" :title="message">{{
+              shortMessage
+            }}</span>
+          </div>
+          <template v-if="repoPermissions!.push && pipeline.status !== 'blocked'">
+            <div class="flex shrink-0 gap-2 md:hidden">
+              <Button
+                class="shrink-0 py-0!"
+                :text="$t('repo.pipeline.actions.restart')"
+                :is-loading="isRestartingPipeline"
+                @click="restartPipeline"
+              />
+            </div>
+          </template>
         </div>
         <template v-if="repoPermissions!.push && pipeline.status !== 'blocked'">
-          <div class="flex content-start gap-x-2">
+          <div class="hidden shrink-0 gap-2 md:flex">
             <Button
               v-if="pipeline.status === 'pending' || pipeline.status === 'running'"
               class="shrink-0 py-0!"
@@ -49,13 +61,30 @@
               :text="$t('repo.pipeline.actions.deploy')"
               @click="showDeployPipelinePopup = true"
             />
-            <DeployPipelinePopup
-              :pipeline-number="pipelineId"
-              :open="showDeployPipelinePopup"
-              @close="showDeployPipelinePopup = false"
+          </div>
+        </template>
+        <template v-if="repoPermissions!.push && pipeline.status !== 'blocked'">
+          <div class="flex shrink-0 gap-2 md:hidden">
+            <Button
+              v-if="pipeline.status === 'pending' || pipeline.status === 'running'"
+              class="shrink-0 py-0!"
+              :text="$t('repo.pipeline.actions.cancel')"
+              :is-loading="isCancelingPipeline"
+              @click="cancelPipeline"
+            />
+            <Button
+              v-if="pipeline.status === 'success' && repo.allow_deploy"
+              class="shrink-0 py-0!"
+              :text="$t('repo.pipeline.actions.deploy')"
+              @click="showDeployPipelinePopup = true"
             />
           </div>
         </template>
+        <DeployPipelinePopup
+          :pipeline-number="pipelineId"
+          :open="showDeployPipelinePopup"
+          @close="showDeployPipelinePopup = false"
+        />
       </div>
     </template>
     <template #tabActions>
@@ -95,10 +124,10 @@
     />
     <Tab
       v-if="repoPermissions && repoPermissions.push"
-      icon="bug-outline"
+      icon="info-outline"
       icon-size="1rem"
       :to="{ name: 'repo-pipeline-debug' }"
-      :title="$t('repo.pipeline.debug.title')"
+      :title="$t('repo.pipeline.metadata.title')"
     />
     <router-view />
   </Scaffold>

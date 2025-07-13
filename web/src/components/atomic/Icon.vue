@@ -40,6 +40,7 @@
   <SvgIcon v-else-if="name === 'console'" :path="mdiConsole" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'agent'" :path="mdiPlayNetworkOutline" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'info'" :path="mdiInformationSlabCircleOutline" :size="size || '1.3rem'" />
+  <SvgIcon v-else-if="name === 'info-outline'" :path="mdiInformationOutline" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'user'" :path="mdiAccountOutline" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'org'" :path="mdiAccountGroupOutline" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'cron'" :path="mdiCalendarClockOutline" :size="size || '1rem'" />
@@ -130,6 +131,7 @@ import {
   mdiGit,
   mdiGithub,
   mdiGitlab,
+  mdiInformationOutline,
   mdiInformationSlabCircleOutline,
   mdiLockOpenOutline,
   mdiLockOutline,
@@ -229,6 +231,7 @@ export type IconNames =
   | 'console'
   | 'agent'
   | 'info'
+  | 'info-outline'
   | 'repo'
   | 'user'
   | 'org'
