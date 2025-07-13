@@ -19,7 +19,7 @@ steps:
       - curl -sL https://crowci.dev/versions.json -o versions.json
       - |
         yq -i '
-          (.[] | select(.title == "dev") ).version = "dev-${CI_COMMIT_SHA:0:10}"
+          [.[] | select(.title != "dev"), {"version": "dev-${CI_COMMIT_SHA:0:10}", "title": "dev", "aliases": []}]
         ' versions.json
 
   - name: 'Update release version hash'
@@ -29,7 +29,7 @@ steps:
       - if [[ "${CI_COMMIT_TAG}" != *"rc"* ]] ; then yq -iP '.latest = "${CI_COMMIT_TAG}"' versions.json ; fi
       - |
         yq -i '
-          (.[] | select(.title == "dev") ).version = "dev-${CI_COMMIT_SHA:0:10}"
+          [.[] | select(.title != "dev"), {"version": "dev-${CI_COMMIT_SHA:0:10}", "title": "dev", "aliases": []}]
         ' versions.json
       - git status
     when:
