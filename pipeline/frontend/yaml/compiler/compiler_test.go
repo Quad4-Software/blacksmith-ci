@@ -320,6 +320,120 @@ func TestCompilerCompile(t *testing.T) {
 						assert.Truef(t, s.Environment["VERBOSE"] == "true", "expected to get value of global set environment")
 						assert.Truef(t, len(s.Environment) > 10, "expected to have a lot of built-in variables")
 						s.Environment = nil
+						s.SecretMapping = nil
+					}
+				}
+				// check if we get an expected backend config based on a frontend config
+				assert.EqualValues(t, *test.backConf, *backConf)
+			}
+		})
+	}
+}
+
+func TestCompilerCompileWithFromSecret(t *testing.T) {
+	repoURL := "https://github.com/octocat/hello-world"
+	compiler := New(
+		WithMetadata(metadata.Metadata{
+			Repo: metadata.Repo{
+				Owner:    "octacat",
+				Name:     "hello-world",
+				Private:  true,
+				ForgeURL: repoURL,
+				CloneURL: "https://github.com/octocat/hello-world.git",
+			},
+		}),
+		WithEnviron(map[string]string{
+			"VERBOSE": "true",
+			"COLORED": "true",
+		}),
+		WithSecret(Secret{
+			Name:  "secret_name",
+			Value: "VERY_SECRET",
+		}),
+		WithPrefix("test"),
+		// we use "/test" as custom workspace base to ensure the enforcement of the pluginWorkspaceBase is applied
+		WithWorkspaceFromURL("/test", repoURL),
+	)
+	defaultNetwork := "test_default"
+	defaultVolume := "test_default"
+	defaultCloneStage := &types.Stage{
+		Steps: []*types.Step{{
+			Name:          "clone",
+			Type:          types.StepTypeClone,
+			Image:         constant.DefaultClonePlugin,
+			OnSuccess:     true,
+			Failure:       "fail",
+			WorkingDir:    "/woodpecker/src/github.com/octocat/hello-world",
+			WorkspaceBase: "/woodpecker",
+			Volumes:       []string{defaultVolume + ":/woodpecker"},
+			Networks:      []types.Conn{{Name: "test_default", Aliases: []string{"clone"}}},
+			ExtraHosts:    []types.HostAlias{},
+		}},
+	}
+	tests := []struct {
+		name        string
+		fronConf    *yaml_types.Workflow
+		backConf    *types.Config
+		expectedErr string
+	}{
+		{
+			name: "workflow with missing secret",
+			fronConf: &yaml_types.Workflow{Steps: yaml_types.ContainerList{ContainerList: []*yaml_types.Container{{
+				Name:     "step",
+				Image:    "bash",
+				Commands: []string{"env"},
+				Environment: yaml_base_types.EnvironmentMap{
+					"SECRET": map[string]any{"from_secret": "secret_name"},
+				},
+			}}}},
+			backConf: &types.Config{
+				Stages: []*types.Stage{defaultCloneStage, {
+					Steps: []*types.Step{{
+						Name:          "step",
+						Type:          types.StepTypeCommands,
+						Image:         "bash",
+						Commands:      []string{"env"},
+						OnSuccess:     true,
+						Failure:       "fail",
+						WorkingDir:    "/test/src/github.com/octocat/hello-world",
+						WorkspaceBase: "/test",
+						Volumes:       []string{defaultVolume + ":/test"},
+						Networks:      []types.Conn{{Name: "test_default", Aliases: []string{"step"}}},
+						ExtraHosts:    []types.HostAlias{},
+						SecretMapping: map[string]string{
+							"SECRET": "VERY_SECRET",
+						},
+					}},
+				}},
+				Volume:  defaultVolume,
+				Network: defaultNetwork,
+				Secrets: []*types.Secret{{
+					Name:  "secret_name",
+					Value: "VERY_SECRET",
+				}},
+			},
+			expectedErr: "",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			backConf, err := compiler.Compile(test.fronConf)
+			if test.expectedErr != "" {
+				assert.Error(t, err)
+				assert.Equal(t, test.expectedErr, err.Error())
+			} else {
+				// we ignore uuids in steps and only check if global env got set ...
+				for _, st := range backConf.Stages {
+					for _, s := range st.Steps {
+						s.UUID = ""
+						assert.Truef(t, s.Environment["VERBOSE"] == "true", "expected to get value of global set environment")
+						assert.Truef(t, len(s.Environment) > 10, "expected to have a lot of built-in variables")
+						s.Environment = nil
+
+						if len(s.SecretMapping) == 0 {
+							s.SecretMapping = nil
+						}
 					}
 				}
 				// check if we get an expected backend config based on a frontend config
