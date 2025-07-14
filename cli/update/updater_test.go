@@ -39,7 +39,7 @@ func TestCheckForUpdate(t *testing.T) {
 }
 
 func TestDownloadNewVersion(t *testing.T) {
-	downloadFilePath := "/woodpecker-cli_linux_amd64.tar.gz"
+	downloadFilePath := "/crow-cli_linux_amd64.tar.gz"
 
 	fixtureHandler := func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != downloadFilePath {

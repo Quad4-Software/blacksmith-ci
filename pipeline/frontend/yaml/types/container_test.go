@@ -186,7 +186,7 @@ func TestUnmarshalContainers(t *testing.T) {
 			from: `publish-cli:
     image: print/env
     settings:
-      repo: woodpeckerci/woodpecker-cli
+      repo: woodpeckerci/crow-cli
       dockerfile: images/Containerfile.cli
       tag: [next]
     when:
@@ -197,7 +197,7 @@ func TestUnmarshalContainers(t *testing.T) {
 					Name:  "publish-cli",
 					Image: "print/env",
 					Settings: map[string]any{
-						"repo":       "woodpeckerci/woodpecker-cli",
+						"repo":       "woodpeckerci/crow-cli",
 						"dockerfile": "images/Containerfile.cli",
 						"tag":        stringsToInterface("next"),
 					},

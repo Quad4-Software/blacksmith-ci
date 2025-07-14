@@ -42,7 +42,7 @@ func TestMetadataFromContext(t *testing.T) {
 				return nil
 			},
 		}
-		assert.NoError(t, c.Run(t.Context(), []string{"woodpecker-cli"}))
+		assert.NoError(t, c.Run(t.Context(), []string{"crow-cli"}))
 	}
 
 	t.Run("LoadFromFile", func(t *testing.T) {
@@ -139,7 +139,7 @@ func TestPrivilegedPluginsMatchTypeEnvVar(t *testing.T) {
 				return nil
 			},
 		}
-		assert.NoError(t, c.Run(t.Context(), []string{"woodpecker-cli"}))
+		assert.NoError(t, c.Run(t.Context(), []string{"crow-cli"}))
 	}
 
 	t.Run("ReadFromCrowEnvVar", func(t *testing.T) {

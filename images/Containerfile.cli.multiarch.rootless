@@ -1,6 +1,6 @@
 FROM --platform=$BUILDPLATFORM docker.io/golang:1.24-alpine3.22 AS build
 
-RUN adduser -u 1000 -g 1000 -D woodpecker
+RUN adduser -u 1000 -g 1000 -D crow
 
 WORKDIR /src
 COPY . .
@@ -13,7 +13,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     just build-cli
 
 FROM scratch
-WORKDIR /woodpecker
+WORKDIR /crow
 
 LABEL org.label-schema.license="Apache-2.0" \
       org.label-schema.vcs-url="https://codeberg.org/crowci/crow" \
@@ -33,7 +33,7 @@ COPY --from=build /src/dist/crow-cli /bin/
 COPY --from=build /etc/passwd /etc/passwd
 COPY --from=build /etc/group /etc/group
 
-USER woodpecker
+USER crow
 
 HEALTHCHECK CMD ["/bin/crow-cli", "ping"]
 ENTRYPOINT ["/bin/crow-cli"]

@@ -9,57 +9,40 @@ import (
 	"github.com/urfave/cli/v3"
 
 	"codeberg.org/crowci/crow/v3/cli/internal/config"
-	"codeberg.org/crowci/crow/v3/cli/setup/ui"
 )
 
 // Command exports the setup command.
 var Command = &cli.Command{
 	Name:      "setup",
-	Usage:     "setup the woodpecker-cli for the first time",
+	Usage:     "setup the crow-cli for the first time",
 	ArgsUsage: "[server]",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  "server",
-			Usage: "URL of the woodpecker server",
+			Sources: cli.EnvVars("WOODPECKER_SERVER", "CROW_SERVER"),
+			Name:    "server",
+			Usage:   "URL of the Crow server",
 		},
 		&cli.StringFlag{
-			Name:  "token",
-			Usage: "token to authenticate with the woodpecker server",
+			Sources: cli.EnvVars("WOODPECKER_TOKEN", "CROW_TOKEN"),
+			Name:    "token",
+			Usage:   "token to authenticate with the Crow server",
 		},
 	},
 	Action: setup,
 }
 
 func setup(ctx context.Context, c *cli.Command) error {
-	_config, err := config.Get(ctx, c, c.String("config"))
-	if err != nil {
-		return err
-	} else if _config != nil {
-		setupAgain, err := ui.Confirm("The woodpecker-cli was already configured. Do you want to configure it again?")
-		if err != nil {
-			return err
-		}
-
-		if !setupAgain {
-			log.Info().Msg("configuration skipped")
-			return nil
-		}
-	}
-
 	serverURL := c.String("server")
 	if serverURL == "" {
 		serverURL = c.Args().First()
 	}
 
 	if serverURL == "" {
-		serverURL, err = ui.Ask("Enter the URL of the woodpecker server", "https://ci.woodpecker-ci.org", true)
-		if err != nil {
-			return err
-		}
-
-		if serverURL == "" {
-			return errors.New("server URL cannot be empty")
-		}
+		log.Error().Msg("Server URL is required.")
+		log.Info().Msg("Please provide server URL via one of these methods:")
+		log.Info().Msg("  1. Environment variables: CROW_SERVER or WOODPECKER_SERVER")
+		log.Info().Msg("  2. Command line flag: --server <url>")
+		return errors.New("server URL is required")
 	}
 
 	if !strings.Contains(serverURL, "://") {
@@ -68,17 +51,16 @@ func setup(ctx context.Context, c *cli.Command) error {
 
 	token := c.String("token")
 	if token == "" {
-		token, err = receiveTokenFromUI(ctx, serverURL)
-		if err != nil {
-			return err
-		}
-
-		if token == "" {
-			return errors.New("no token received from the UI")
-		}
+		log.Error().Msg("Authentication token is required.")
+		log.Info().Msg("Please provide authentication token via one of these methods:")
+		log.Info().Msg("  1. Environment variables: CROW_TOKEN or WOODPECKER_TOKEN")
+		log.Info().Msg("  2. Command line flag: --token <token>")
+		log.Info().Msg("")
+		log.Info().Msg("To generate a token, go to the user settings panel of the respective Crow instance.")
+		return errors.New("authentication token is required")
 	}
 
-	err = config.Save(ctx, c, c.String("config"), &config.Config{
+	err := config.Save(ctx, c, c.String("config"), &config.Config{
 		ServerURL: serverURL,
 		Token:     token,
 		LogLevel:  "info",
@@ -87,7 +69,7 @@ func setup(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
-	log.Info().Msg("woodpecker-cli has been successfully setup")
+	log.Info().Msg("crow-cli has been successfully setup")
 
 	return nil
 }

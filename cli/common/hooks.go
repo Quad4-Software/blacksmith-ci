@@ -44,7 +44,7 @@ func Before(ctx context.Context, c *cli.Command) (context.Context, error) {
 		}
 
 		if newVersion != nil {
-			log.Warn().Msgf("new version of woodpecker-cli is available: %s, update with: %s update", newVersion.Version, c.Root().Name)
+			log.Warn().Msgf("new version of crow-cli is available: %s, update with: %s update", newVersion.Version, c.Root().Name)
 		} else {
 			log.Debug().Msgf("no update required")
 		}

@@ -13,7 +13,7 @@ import (
 // Command exports the update command.
 var Command = &cli.Command{
 	Name:  "update",
-	Usage: "update the woodpecker-cli to the latest version",
+	Usage: "update the crow-cli to the latest version",
 	Flags: []cli.Flag{
 		&cli.BoolFlag{
 			Name:  "force",
@@ -32,7 +32,7 @@ func update(ctx context.Context, c *cli.Command) error {
 	}
 
 	if newVersion == nil {
-		fmt.Println("you are using the latest version of woodpecker-cli")
+		fmt.Println("you are using the latest version of crow-cli")
 		return nil
 	}
 
@@ -67,7 +67,7 @@ func update(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
-	log.Info().Msgf("woodpecker-cli has been updated to version %s successfully!", newVersion.Version)
+	log.Info().Msgf("crow-cli has been updated to version %s successfully!", newVersion.Version)
 
 	return nil
 }

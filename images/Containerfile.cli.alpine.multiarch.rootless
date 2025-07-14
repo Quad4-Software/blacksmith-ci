@@ -20,17 +20,17 @@ LABEL org.label-schema.license="Apache-2.0" \
       io.artifacthub.package.readme-url="https://codeberg.org/crowci/crow/raw/branch/main/README.md" \
       maintainer="Crow Authors <admin@crowci.dev>"
 
-WORKDIR /woodpecker
+WORKDIR /crow
 
 RUN apk add -U --no-cache ca-certificates && \
-  adduser -u 1000 -g 1000 -D woodpecker
+  adduser -u 1000 -g 1000 -D crow
 
 ENV GODEBUG=netdns=go
 ENV WOODPECKER_DISABLE_UPDATE_CHECK=true
 
 COPY --from=build /src/dist/crow-cli /bin/
 
-USER woodpecker
+USER crow
 
 HEALTHCHECK CMD ["/bin/crow-cli", "ping"]
 ENTRYPOINT ["/bin/crow-cli"]
