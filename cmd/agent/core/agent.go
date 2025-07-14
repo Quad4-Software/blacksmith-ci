@@ -105,23 +105,32 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 	counter.Running = 0
 
 	if c.Bool("healthcheck") {
-		serviceWaitingGroup.Go(
-			func() error {
-				server := &http.Server{Addr: c.String("healthcheck-addr")}
-				go func() {
-					<-agentCtx.Done()
-					log.Info().Msg("shutdown healthcheck server ...")
-					if err := server.Shutdown(shutdownCtx); err != nil { //nolint:contextcheck
-						log.Error().Err(err).Msg("shutdown healthcheck server failed")
-					} else {
-						log.Info().Msg("healthcheck server stopped")
-					}
-				}()
-				if err := server.ListenAndServe(); err != nil {
-					log.Error().Err(err).Msgf("cannot listen on address %s", c.String("healthcheck-addr"))
-				}
-				return nil
-			})
+		// Start health server immediately and independently
+		healthServer := &http.Server{
+			Addr:    c.String("healthcheck-addr"),
+			Handler: http.DefaultServeMux,
+		}
+
+		go func() {
+			log.Info().Msgf("starting health check server on %s", c.String("healthcheck-addr"))
+			if err := healthServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				log.Error().Err(err).Msgf("health server failed to start on %s", c.String("healthcheck-addr"))
+			}
+		}()
+
+		// Give the health server a moment to start up
+		time.Sleep(100 * time.Millisecond)
+
+		serviceWaitingGroup.Go(func() error {
+			<-agentCtx.Done()
+			log.Info().Msg("shutdown healthcheck server ...")
+			if err := healthServer.Shutdown(shutdownCtx); err != nil { //nolint:contextcheck
+				log.Error().Err(err).Msg("shutdown healthcheck server failed")
+			} else {
+				log.Info().Msg("healthcheck server stopped")
+			}
+			return nil
+		})
 	}
 
 	var transport grpc.DialOption

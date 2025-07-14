@@ -42,5 +42,5 @@ COPY --from=build --chown=crow:crow /etc/crow /etc
 COPY --from=build /etc/passwd /etc/passwd
 COPY --from=build /etc/group /etc/group
 
-HEALTHCHECK CMD ["/bin/crow-agent", "ping"]
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 CMD ["/bin/crow-agent", "ping"]
 ENTRYPOINT ["/bin/crow-agent"]
