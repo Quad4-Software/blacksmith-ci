@@ -191,9 +191,15 @@ func (r *Runner) Run(runnerCtx, shutdownCtx context.Context) error { //nolint:co
 }
 
 func extractRepositoryName(config *backend.Config) string {
+	if len(config.Stages) == 0 || len(config.Stages[0].Steps) == 0 {
+		return ""
+	}
 	return config.Stages[0].Steps[0].Environment["CI_REPO"]
 }
 
 func extractPipelineNumber(config *backend.Config) string {
+	if len(config.Stages) == 0 || len(config.Stages[0].Steps) == 0 {
+		return ""
+	}
 	return config.Stages[0].Steps[0].Environment["CI_PIPELINE_NUMBER"]
 }
