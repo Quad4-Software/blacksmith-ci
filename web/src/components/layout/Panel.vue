@@ -27,7 +27,7 @@
       }"
       class="overflow-hidden transition-height duration-150"
     >
-      <div class="w-full py-1 px-4 text-wp-text-100"><slot /></div>
+      <div class="w-full p-4 text-wp-text-100"><slot /></div>
     </div>
   </div>
 </template>

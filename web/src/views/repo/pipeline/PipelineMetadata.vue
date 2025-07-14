@@ -5,7 +5,7 @@
     <div class="space-y-4">
       <!-- Pipeline Information -->
       <Panel>
-        <InputField :label="$t('repo.pipeline.metadata.pipeline_info')">
+        <MetadataInputField :label="$t('repo.pipeline.metadata.pipeline_info')">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
               <strong>{{ $t('repo.pipeline.metadata.fields.number') }}:</strong>
@@ -56,12 +56,12 @@
               {{ deploymentEnvironment }}
             </div>
           </div>
-        </InputField>
+        </MetadataInputField>
       </Panel>
 
       <!-- Repository Information -->
       <Panel>
-        <InputField :label="$t('repo.pipeline.metadata.repository_info')">
+        <MetadataInputField :label="$t('repo.pipeline.metadata.repository_info')">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
               <strong>{{ $t('repo.pipeline.metadata.fields.id') }}:</strong>
@@ -96,12 +96,12 @@
               {{ JSON.stringify(metadata?.repo?.trusted) || repo?.trusted || $t('repo.pipeline.metadata.fields.na') }}
             </div>
           </div>
-        </InputField>
+        </MetadataInputField>
       </Panel>
 
       <!-- Pipeline Statistics -->
       <Panel>
-        <InputField :label="$t('repo.pipeline.metadata.statistics')">
+        <MetadataInputField :label="$t('repo.pipeline.metadata.statistics')">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
               <strong>{{ $t('repo.pipeline.metadata.fields.workflow_count') }}:</strong> {{ workflowCount }}
@@ -113,12 +113,12 @@
               <strong>{{ $t('repo.pipeline.metadata.fields.unique_agents') }}:</strong> {{ uniqueAgentCount }}
             </div>
           </div>
-        </InputField>
+        </MetadataInputField>
       </Panel>
 
       <!-- Agent Information -->
       <Panel v-if="agentInfo.length > 0">
-        <InputField :label="$t('repo.pipeline.metadata.agent_info')">
+        <MetadataInputField :label="$t('repo.pipeline.metadata.agent_info')">
           <div class="space-y-4">
             <div
               v-for="agent in agentInfo"
@@ -161,12 +161,12 @@
               </div>
             </div>
           </div>
-        </InputField>
+        </MetadataInputField>
       </Panel>
 
       <!-- Download Section -->
       <Panel>
-        <InputField label="Download">
+        <MetadataInputField label="Download">
           <div class="flex items-center space-x-4">
             <Button
               :is-loading="isLoading"
@@ -175,7 +175,7 @@
               @click="downloadStructuredMetadata"
             />
           </div>
-        </InputField>
+        </MetadataInputField>
       </Panel>
     </div>
   </template>
@@ -191,7 +191,7 @@ import { computed, ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Button from '~/components/atomic/Button.vue';
-import InputField from '~/components/form/InputField.vue';
+import MetadataInputField from '~/components/form/MetadataInputField.vue';
 import Panel from '~/components/layout/Panel.vue';
 import useApiClient from '~/compositions/useApiClient';
 import { requiredInject } from '~/compositions/useInjectProvide';
