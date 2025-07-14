@@ -67,7 +67,7 @@ func (c dagCompiler) setDependenciesForDAG() {
 
 	// For DAG mode, set implicit clone dependencies for steps without explicit dependencies
 	for _, step := range c.steps {
-		if step.position >= 0 && !step.hasExplicitDependencies && len(cloneStepNames) > 0 {
+		if step.position >= 0 && (!step.hasExplicitDependencies || len(step.dependsOn) == 0) && len(cloneStepNames) > 0 {
 			step.dependsOn = cloneStepNames
 			step.step.DependsOn = cloneStepNames
 		}
