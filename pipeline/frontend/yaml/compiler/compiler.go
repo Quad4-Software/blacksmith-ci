@@ -286,19 +286,14 @@ func (c *Compiler) Compile(conf *yaml_types.Workflow) (*backend_types.Config, er
 		}
 
 		dependsOn := container.DependsOn
-		// Add implicit clone dependency for all steps without explicit depends_on if clone steps exist
-		if len(dependsOn) == 0 && len(cloneStepNames) > 0 {
-			dependsOn = cloneStepNames
-		}
-
-		// Set the DependsOn field on the backend_types.Step as well
-		step.DependsOn = dependsOn
+		hasExplicitDependencies := container.DependsOn != nil
 
 		allSteps = append(allSteps, &dagCompilerStep{
-			step:      step,
-			position:  pos,
-			name:      container.Name,
-			dependsOn: dependsOn,
+			step:                    step,
+			position:                pos,
+			name:                    container.Name,
+			dependsOn:               dependsOn,
+			hasExplicitDependencies: hasExplicitDependencies,
 		})
 	}
 

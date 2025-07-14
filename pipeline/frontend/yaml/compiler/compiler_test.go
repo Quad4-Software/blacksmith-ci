@@ -185,7 +185,9 @@ func TestCompilerCompile(t *testing.T) {
 							Networks:      []types.Conn{{Name: "test_default", Aliases: []string{"echo env"}}},
 							ExtraHosts:    []types.HostAlias{},
 							DependsOn:     []string{"clone"},
-						}, {
+						}},
+					}, {
+						Steps: []*types.Step{{
 							Name:          "parallel echo 1",
 							Type:          types.StepTypeCommands,
 							Image:         "bash",
@@ -197,8 +199,10 @@ func TestCompilerCompile(t *testing.T) {
 							WorkspaceBase: "/test",
 							Networks:      []types.Conn{{Name: "test_default", Aliases: []string{"parallel echo 1"}}},
 							ExtraHosts:    []types.HostAlias{},
-							DependsOn:     []string{"clone"},
-						}, {
+							DependsOn:     []string{"echo env"},
+						}},
+					}, {
+						Steps: []*types.Step{{
 							Name:          "parallel echo 2",
 							Type:          types.StepTypeCommands,
 							Image:         "bash",
@@ -210,7 +214,7 @@ func TestCompilerCompile(t *testing.T) {
 							WorkspaceBase: "/test",
 							Networks:      []types.Conn{{Name: "test_default", Aliases: []string{"parallel echo 2"}}},
 							ExtraHosts:    []types.HostAlias{},
-							DependsOn:     []string{"clone"},
+							DependsOn:     []string{"parallel echo 1"},
 						}},
 					},
 				},

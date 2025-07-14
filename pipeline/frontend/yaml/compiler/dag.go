@@ -21,10 +21,11 @@ import (
 )
 
 type dagCompilerStep struct {
-	step      *backend_types.Step
-	position  int
-	name      string
-	dependsOn []string
+	step                    *backend_types.Step
+	position                int
+	name                    string
+	dependsOn               []string
+	hasExplicitDependencies bool
 }
 
 type dagCompiler struct {
@@ -39,7 +40,7 @@ func newDAGCompiler(steps []*dagCompilerStep) dagCompiler {
 
 func (c dagCompiler) isDAG() bool {
 	for _, v := range c.steps {
-		if v.dependsOn != nil {
+		if v.hasExplicitDependencies {
 			return true
 		}
 	}
@@ -48,9 +49,56 @@ func (c dagCompiler) isDAG() bool {
 
 func (c dagCompiler) compile() ([]*backend_types.Stage, error) {
 	if c.isDAG() {
+		c.setDependenciesForDAG()
 		return c.compileByDependsOn()
 	}
+	c.setDependenciesForSequence()
 	return c.compileSequence()
+}
+
+func (c dagCompiler) setDependenciesForDAG() {
+	// Find clone step names
+	cloneStepNames := make([]string, 0)
+	for _, step := range c.steps {
+		if step.position < 0 { // Clone steps have negative positions
+			cloneStepNames = append(cloneStepNames, step.name)
+		}
+	}
+
+	// For DAG mode, set implicit clone dependencies for steps without explicit dependencies
+	for _, step := range c.steps {
+		if step.position >= 0 && !step.hasExplicitDependencies && len(cloneStepNames) > 0 {
+			step.dependsOn = cloneStepNames
+			step.step.DependsOn = cloneStepNames
+		}
+	}
+}
+
+func (c dagCompiler) setDependenciesForSequence() {
+	// Find clone step names
+	cloneStepNames := make([]string, 0)
+	for _, step := range c.steps {
+		if step.position < 0 { // Clone steps have negative positions
+			cloneStepNames = append(cloneStepNames, step.name)
+		}
+	}
+
+	// For sequential mode, create a dependency chain
+	var previousStepName string
+	if len(cloneStepNames) > 0 {
+		// If there are clone steps, the first step depends on clone
+		previousStepName = cloneStepNames[0] // Use first clone step as dependency
+	}
+
+	for _, step := range c.steps {
+		if step.position >= 0 && !step.hasExplicitDependencies {
+			if previousStepName != "" {
+				step.dependsOn = []string{previousStepName}
+				step.step.DependsOn = []string{previousStepName}
+			}
+			previousStepName = step.name
+		}
+	}
 }
 
 func (c dagCompiler) compileSequence() ([]*backend_types.Stage, error) {
