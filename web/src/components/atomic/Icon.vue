@@ -26,12 +26,7 @@
     :path="mdiClose"
     :size="size || '1.3rem'"
   />
-  <SvgIcon
-    v-else-if="name === 'status-running' || name === 'status-started'"
-    type="mdi"
-    :path="mdiRadioboxIndeterminateVariant"
-    :size="size || '1.3rem'"
-  />
+  <PipelineProgressSpinner v-else-if="name === 'status-running' || name === 'status-started'" />
   <SvgIcon v-else-if="name === 'status-skipped'" :path="mdiMinus" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'status-success'" :path="mdiCheck" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'status-pending'" :path="mdiRadioboxBlank" :size="size || '1.3rem'" />
@@ -145,7 +140,6 @@ import {
   mdiPlus,
   mdiPower,
   mdiRadioboxBlank,
-  mdiRadioboxIndeterminateVariant,
   mdiShieldKeyOutline,
   mdiSourceBranch,
   mdiSourceCommit,
@@ -165,6 +159,7 @@ import { siForgejo, siGitea } from 'simple-icons';
 
 import { Icon } from '@iconify/vue';
 import SvgIcon from './SvgIcon.vue';
+import PipelineProgressSpinner from '~/components/repo/pipeline/PipelineProgressSpinner.vue';
 
 export type IconNames =
   | 'duration'
