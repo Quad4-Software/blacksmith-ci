@@ -162,7 +162,6 @@ func (c *Compiler) Compile(conf *yaml_types.Workflow) (*backend_types.Config, er
 
 	// Collect all steps for DAG compilation, including clone steps
 	allSteps := make([]*dagCompilerStep, 0)
-	cloneStepNames := make([]string, 0)
 
 	// add clone steps based on configuration
 	switch {
@@ -192,7 +191,6 @@ func (c *Compiler) Compile(conf *yaml_types.Workflow) (*backend_types.Config, er
 			name:      step.Name,
 			dependsOn: nil,
 		})
-		cloneStepNames = append(cloneStepNames, step.Name)
 	case !c.local && len(conf.Clone.ContainerList) == 0 && !conf.SkipClone:
 		// Fallback: use constant.DefaultClonePlugin if c.defaultClonePlugin is empty
 		clonePlugin := c.defaultClonePlugin
@@ -224,7 +222,6 @@ func (c *Compiler) Compile(conf *yaml_types.Workflow) (*backend_types.Config, er
 			name:      step.Name,
 			dependsOn: nil,
 		})
-		cloneStepNames = append(cloneStepNames, step.Name)
 	case !c.local && !conf.SkipClone:
 		// Custom clone containers
 		for pos, container := range conf.Clone.ContainerList {
@@ -252,7 +249,6 @@ func (c *Compiler) Compile(conf *yaml_types.Workflow) (*backend_types.Config, er
 				name:      step.Name,
 				dependsOn: container.DependsOn,
 			})
-			cloneStepNames = append(cloneStepNames, step.Name)
 		}
 	}
 

@@ -149,8 +149,9 @@ func TestIsDag(t *testing.T) {
 
 	steps = []*dagCompilerStep{
 		{
-			step:      &backend_types.Step{},
-			dependsOn: []string{},
+			step:                    &backend_types.Step{},
+			dependsOn:               []string{},
+			hasExplicitDependencies: true,
 		},
 	}
 	c = newDAGCompiler(steps)
@@ -158,8 +159,9 @@ func TestIsDag(t *testing.T) {
 
 	steps = []*dagCompilerStep{
 		{
-			step:      &backend_types.Step{},
-			dependsOn: []string{"other-step"},
+			step:                    &backend_types.Step{},
+			dependsOn:               []string{"other-step"},
+			hasExplicitDependencies: true,
 		},
 	}
 	c = newDAGCompiler(steps)
