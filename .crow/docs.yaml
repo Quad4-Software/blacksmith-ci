@@ -80,7 +80,7 @@ steps:
       - mv site/domains site/.domains
 
   - name: PR docs preview
-    image: docker.io/cli/**ci/plugin-surge-preview:1.4.0
+    image: docker.io/woodpeckerci/plugin-surge-preview:1.4.0
     settings:
       path: 'site/'
       surge_token:
