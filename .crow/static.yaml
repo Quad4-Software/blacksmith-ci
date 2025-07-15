@@ -1,5 +1,5 @@
 when:
-  - event: pull_request
+  - event: [pull_request, pull_request_edited]
   - event: push
     branch: ${CI_REPO_DEFAULT_BRANCH}
 
