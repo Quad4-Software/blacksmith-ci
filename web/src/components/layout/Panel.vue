@@ -6,7 +6,7 @@
       :is="collapsable ? 'button' : 'div'"
       v-if="title"
       type="button"
-      class="flex w-full gap-2 bg-wp-background-300 px-4 font-bold text-wp-text-100"
+      class="flex w-full gap-2 bg-wp-background-300 px-4 py-1 font-bold text-wp-text-100"
       :class="{
         'cursor-pointer': collapsable,
       }"
