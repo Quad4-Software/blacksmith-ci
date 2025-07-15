@@ -1,4 +1,4 @@
-<template><PipelineList :pipelines="pipelines" :repo="repo" /></template>
+<template><PipelineList :repo="repo" :infinite-scroll="true" /></template>
 
 <script lang="ts" setup>
 import { computed } from 'vue';
@@ -9,7 +9,6 @@ import { requiredInject } from '~/compositions/useInjectProvide';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
 
 const repo = requiredInject('repo');
-const pipelines = requiredInject('pipelines');
 
 const { t } = useI18n();
 useCrowTitle(computed(() => [t('repo.activity'), repo.value.full_name]));
