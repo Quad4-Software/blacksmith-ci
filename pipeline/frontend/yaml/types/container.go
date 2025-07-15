@@ -81,7 +81,7 @@ func (c *ContainerList) UnmarshalYAML(value *yaml.Node) error {
 		c.ContainerList = make([]*Container, 0, len(value.Content)/2+1)
 		// We cannot use decode on specific values
 		// since if we try to load from a map, the order
-		// will not be kept. Therefor use value.Content
+		// will not be kept. Therefore use value.Content
 		// and take the map values i%2=1
 		for i, n := range value.Content {
 			if i%2 == 1 {

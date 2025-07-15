@@ -125,7 +125,7 @@ func TestRegistryDelete(t *testing.T) {
 func createTestRegistries(t *testing.T, store *storage) {
 	assert.NoError(t, store.RegistryCreate(&model.Registry{
 		OrgID:   12,
-		Address: "my.regsitry.local",
+		Address: "my.registry.local",
 	}))
 	assert.NoError(t, store.RegistryCreate(&model.Registry{
 		RepoID:  1,
@@ -146,16 +146,16 @@ func TestOrgRegistryFind(t *testing.T) {
 
 	err := store.RegistryCreate(&model.Registry{
 		OrgID:    12,
-		Address:  "my.regsitry.local",
+		Address:  "my.registry.local",
 		Username: "username",
 		Password: "password",
 	})
 	assert.NoError(t, err)
 
-	registry, err := store.OrgRegistryFind(12, "my.regsitry.local")
+	registry, err := store.OrgRegistryFind(12, "my.registry.local")
 	assert.NoError(t, err)
 	assert.EqualValues(t, 12, registry.OrgID)
-	assert.Equal(t, "my.regsitry.local", registry.Address)
+	assert.Equal(t, "my.registry.local", registry.Address)
 	assert.Equal(t, "username", registry.Username)
 	assert.Equal(t, "password", registry.Password)
 }
@@ -178,15 +178,15 @@ func TestGlobalRegistryFind(t *testing.T) {
 	defer closer()
 
 	err := store.RegistryCreate(&model.Registry{
-		Address:  "my.regsitry.local",
+		Address:  "my.registry.local",
 		Username: "username",
 		Password: "password",
 	})
 	assert.NoError(t, err)
 
-	registry, err := store.GlobalRegistryFind("my.regsitry.local")
+	registry, err := store.GlobalRegistryFind("my.registry.local")
 	assert.NoError(t, err)
-	assert.Equal(t, "my.regsitry.local", registry.Address)
+	assert.Equal(t, "my.registry.local", registry.Address)
 	assert.Equal(t, "username", registry.Username)
 	assert.Equal(t, "password", registry.Password)
 }

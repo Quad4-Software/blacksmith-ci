@@ -61,7 +61,7 @@ Write-Output ('+ "go test"');
 }
 
 func TestSetupScriptWinProtoParse(t *testing.T) {
-	// just ensure that we have a working `setupScriptWinTmpl` on runntime
+	// just ensure that we have a working `setupScriptWinTmpl` at runtime
 	_, err := template.New("").Parse(setupScriptWinProto)
 	assert.NoError(t, err)
 }

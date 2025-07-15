@@ -454,7 +454,7 @@ func TestPodPrivilege(t *testing.T) {
 		})
 	}
 
-	// securty context is requesting user and group 101 (non-root)
+	// security context is requesting user and group 101 (non-root)
 	secCtx := SecurityContext{
 		RunAsUser:  newInt64(101),
 		RunAsGroup: newInt64(101),
@@ -466,7 +466,7 @@ func TestPodPrivilege(t *testing.T) {
 	assert.Equal(t, int64(101), *pod.Spec.SecurityContext.RunAsGroup)
 	assert.Equal(t, int64(101), *pod.Spec.SecurityContext.FSGroup)
 
-	// securty context is requesting root, but step is not privileged
+	// security context is requesting root, but step is not privileged
 	secCtx = SecurityContext{
 		RunAsUser:  newInt64(0),
 		RunAsGroup: newInt64(0),

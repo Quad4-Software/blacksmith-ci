@@ -117,22 +117,22 @@ export CROW_LOG_LEVEL=debug
 
 Notes:
 
-- Workflows will be run on your local machine using the `docker` backend.
+- Workflows will run on your local machine using the `docker` backend.
 - The forge-specific settings (`CROW_FORGEJO_URL`, `CROW_FORGEJO_CLIENT`, `CROW_FORGEJO_SECRET`) must be set if you want to test against existing repositories of a forge. You can use an existing application and append `http://localhost:8000/authorize` to the redirect URI list. See [FIXME] for instructions on how to create an oauth2 app for the respective forge.
-- Crow will use a SQLite DB in this scenario, stored at `./crow.sqlite` in the workspace root (and gitignore'd by default). Any backend action you do (e.g. adding secret or enabling a repo) will be persisted in this DB.
-- `CROW_EXPERT_WEBHOOK_HOST` sets the URL which incoming webhooks should target, i.e. the local development server. By default this one is running on localhost and accessible from the public. To make this work, you need to expose the local Crow server to the outside world.
-  To make this work, you can either
+- Crow will use a SQLite database in this scenario, stored at `./crow.sqlite` in the workspace root (and gitignore'd by default). Any backend action you do (e.g. adding secret or enabling a repo) will be persisted in this database.
+- `CROW_EXPERT_WEBHOOK_HOST` sets the URL which incoming webhooks should target, i.e. the local development server. By default this one runs on localhost and is accessible from the public. To make this work, you need to expose the local Crow server to the outside world.
+  To do this, you can either
 
       - run the local development server on `0.0.0.0` and expose the port directly to the     outside world (not recommended without https if you're working with an oauth2 app)
 
       - run a reverse proxy locally which listens for incoming requests, does SSL termination and forwards the requests to the local development server. This is recommended if you're working with an oauth2 app.
 
 Usually, the easiest way is to not use `CROW_EXPERT_WEBHOOK_HOST` and work with `event: manual` instead.
-This event trigger is not dependend on remote webhooks but is triggered from within the Crow server itself.
+This event trigger is not dependent on remote webhooks but is triggered from within the Crow server itself.
 
 /// tip
 To test if everything works, you can make a simple change to Crow, e.g. adjust a text in the UI (easiest in `en.json`).
-When you hit the "refresh" button in the VSCode debug tools toolbar, you should see the UI being refreshed with the change on the fly.
+When you hit the "refresh" button in the VSCode debug tools toolbar, you should see the screen being refreshed with the change.
 ///
 
 ## Documentation
@@ -150,8 +150,8 @@ The Justfile rules automatically accounts for this and will download the free ve
 Most features for development do not rely on the "insiders" build.
 
 /// info
-When you open a PR in the repository, the `surge-preview` plugin will automatically build and deploy the documentation state of the PR to a temporary URL.
-This can be an alternative way to work on the documentation if you are facing troubles getting the local development server to work.
+When you open a pull request in the repository, the `surge-preview` plugin will automatically build and deploy the documentation state of the pull request to a temporary web address.
+This can be an alternative way to work on the documentation if you are facing issues getting the local development server to work.
 ///
 
 ### Versioning

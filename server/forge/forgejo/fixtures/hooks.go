@@ -75,7 +75,7 @@ const HookPush = `
 }
 `
 
-// HookPushMulti push multible commits to a branch.
+// HookPushMulti push multiple commits to a branch.
 const HookPushMulti = `
 {
 	"ref": "refs/heads/main",
