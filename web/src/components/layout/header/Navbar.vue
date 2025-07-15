@@ -66,7 +66,7 @@ const apiUrl = `${config.rootPath ?? ''}/swagger/index.html`;
 const { enableSwagger } = config;
 </script>
 
-<style scoped>
+<style lang="postcss" scoped>
 @reference '~/tailwind.css';
 
 .navbar-icon {

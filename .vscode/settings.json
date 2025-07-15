@@ -9,11 +9,22 @@
   "go.lintTool": "golangci-lint",
   "go.lintFlags": ["--fast"],
   "go.buildTags": "test",
+  "go.testTags": "test",
+  "gopls": {
+    "build.buildFlags": ["-tags=test"],
+    "build.env": {
+      "GOFLAGS": "-tags=test"
+    },
+    "build.tags": "test"
+  },
   "eslint.workingDirectories": ["./web"],
   "prettier.ignorePath": "./web/.prettierignore",
   // Auto fix
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit",
     "source.organizeImports": "never"
-  }
+  },
+  // CSS validation
+  "css.lint.unknownAtRules": "ignore",
+  "scss.lint.unknownAtRules": "ignore"
 }

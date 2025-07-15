@@ -38,8 +38,9 @@ const innerValue = computed({
 const id = (Math.random() + 1).toString(36).substring(7);
 </script>
 
-<style scoped>
+<style lang="postcss" scoped>
 @reference '~/tailwind.css';
+
 .checkbox {
   width: 1.3rem;
   height: 1.3rem;

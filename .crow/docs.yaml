@@ -29,6 +29,7 @@ steps:
       - git config --global user.name "crowci-bot"
       - git remote set-url origin https://crowci-bot:$${CODEBERG_BOT_TOKEN}@codeberg.org/crowci/crow.git
       # build & deploy
+      - sed -i 's/enabled:\ false/enabled:\ true/g' mkdocs.yaml
       - just docs-venv
       - just docs-mike "deploy dev --update-aliases --push"
       - mv site/domains site/.domains
@@ -53,6 +54,7 @@ steps:
       - git config --global user.name "crowci-bot"
       - git remote set-url origin https://crowci-bot:$${CODEBERG_BOT_TOKEN}@codeberg.org/crowci/crow.git
       # build & deploy
+      - sed -i 's/enabled:\ false/enabled:\ true/g' mkdocs.yaml
       - just docs-venv
       - just docs-build
       - mv site/domains site/.domains
@@ -78,6 +80,7 @@ steps:
       - git config --global user.name "crowci-bot"
       - git remote set-url origin https://crowci-bot:$${CODEBERG_BOT_TOKEN}@codeberg.org/crowci/crow.git
       # build & deploy
+      - sed -i 's/enabled:\ false/enabled:\ true/g' mkdocs.yaml
       - just docs-venv
       - just docs-mike "deploy --push --update-aliases --alias-type redirect $(echo ${CI_COMMIT_TAG#v} | cut -d. -f1,2) latest"
       - mv site/domains site/.domains

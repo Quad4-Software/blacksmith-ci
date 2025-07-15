@@ -11,7 +11,6 @@ import { i18n } from '~/compositions/useI18n';
 import { notifications } from '~/compositions/useNotifications';
 import router from '~/router';
 
-// eslint-disable-next-line ts/no-unsafe-argument
 const app = createApp(App);
 
 // eslint-disable-next-line ts/no-unsafe-argument

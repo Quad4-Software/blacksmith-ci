@@ -14,7 +14,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import PipelineDAG from '../PipelineDAG.vue';
-import type { Pipeline, PipelineWorkflow, PipelineStep } from '~/lib/api/types';
+import type { Pipeline } from '~/lib/api/types';
+import { WebhookEvents } from '~/lib/api/types';
 
 // Mock the vue-flow components
 vi.mock('@vue-flow/core', () => ({
@@ -54,7 +55,7 @@ vi.mock('@vue-flow/controls', () => ({
 
 vi.mock('~/compositions/useLayout', () => ({
   useLayout: () => ({
-    layout: vi.fn((nodes) => nodes),
+    layout: vi.fn((nodes: any[]) => nodes),
   }),
 }));
 
@@ -64,14 +65,14 @@ vi.mock('vue-i18n', () => ({
   }),
 }));
 
-describe('PipelineDAG', () => {
+describe('pipelineDAG', () => {
   it('should handle matrix workflow depends_on connections correctly', async () => {
     // Create mock pipeline data with matrix workflows
     const mockPipeline: Pipeline = {
       id: 1,
       number: 1,
       parent: 0,
-      event: 'push',
+      event: WebhookEvents.Push,
       status: 'success',
       created: Date.now(),
       updated: Date.now(),
@@ -101,6 +102,7 @@ describe('PipelineDAG', () => {
           pipeline_id: 1,
           pid: 1,
           name: 'test-go-1.19',
+          pipeline_name: 'Test Pipeline 1',
           state: 'success',
           environ: { GO_VERSION: '1.19' },
           children: [
@@ -127,13 +129,14 @@ describe('PipelineDAG', () => {
               depends_on: ['clone'],
             },
           ],
-        } as PipelineWorkflow,
+        },
         // Matrix workflow variant 2
         {
           id: 2,
           pipeline_id: 1,
           pid: 2,
           name: 'test-go-1.20',
+          pipeline_name: 'Test Pipeline 2',
           state: 'success',
           environ: { GO_VERSION: '1.20' },
           children: [
@@ -160,7 +163,7 @@ describe('PipelineDAG', () => {
               depends_on: ['clone'],
             },
           ],
-        } as PipelineWorkflow,
+        },
       ],
     };
 
@@ -176,20 +179,20 @@ describe('PipelineDAG', () => {
     });
 
     // Wait for component to initialize
-    await wrapper.vm.$nextTick();
+    await (wrapper.vm as any).$nextTick();
 
     // Access the internal nodes and edges
-    const nodes = wrapper.vm.nodes;
-    const edges = wrapper.vm.edges;
+    const nodes = (wrapper.vm as any).nodes as any[];
+    const edges = (wrapper.vm as any).edges as any[];
 
     // Verify that all nodes are created (includes workflow group nodes)
     expect(nodes).toHaveLength(6); // 2 workflows x 2 steps each + 2 workflow group nodes
 
     // Verify that each workflow has its own clone and test nodes
-    const workflow1CloneNode = nodes.find((node) => node.data.step?.pid === 1 && node.data.step?.name === 'clone');
-    const workflow1TestNode = nodes.find((node) => node.data.step?.pid === 2 && node.data.step?.name === 'test');
-    const workflow2CloneNode = nodes.find((node) => node.data.step?.pid === 3 && node.data.step?.name === 'clone');
-    const workflow2TestNode = nodes.find((node) => node.data.step?.pid === 4 && node.data.step?.name === 'test');
+    const workflow1CloneNode = nodes.find((node: any) => node.data.step?.pid === 1 && node.data.step?.name === 'clone');
+    const workflow1TestNode = nodes.find((node: any) => node.data.step?.pid === 2 && node.data.step?.name === 'test');
+    const workflow2CloneNode = nodes.find((node: any) => node.data.step?.pid === 3 && node.data.step?.name === 'clone');
+    const workflow2TestNode = nodes.find((node: any) => node.data.step?.pid === 4 && node.data.step?.name === 'test');
 
     expect(workflow1CloneNode).toBeDefined();
     expect(workflow1TestNode).toBeDefined();
@@ -201,23 +204,23 @@ describe('PipelineDAG', () => {
 
     // Verify workflow 1 edge: test depends on clone
     const workflow1Edge = edges.find(
-      (edge) => edge.source === workflow1CloneNode?.id && edge.target === workflow1TestNode?.id,
+      (edge: any) => edge.source === workflow1CloneNode?.id && edge.target === workflow1TestNode?.id,
     );
     expect(workflow1Edge).toBeDefined();
 
     // Verify workflow 2 edge: test depends on clone
     const workflow2Edge = edges.find(
-      (edge) => edge.source === workflow2CloneNode?.id && edge.target === workflow2TestNode?.id,
+      (edge: any) => edge.source === workflow2CloneNode?.id && edge.target === workflow2TestNode?.id,
     );
     expect(workflow2Edge).toBeDefined();
 
     // Verify that there are no cross-workflow edges
     // (workflow 1 test should not depend on workflow 2 clone)
     const crossWorkflowEdge1 = edges.find(
-      (edge) => edge.source === workflow2CloneNode?.id && edge.target === workflow1TestNode?.id,
+      (edge: any) => edge.source === workflow2CloneNode?.id && edge.target === workflow1TestNode?.id,
     );
     const crossWorkflowEdge2 = edges.find(
-      (edge) => edge.source === workflow1CloneNode?.id && edge.target === workflow2TestNode?.id,
+      (edge: any) => edge.source === workflow1CloneNode?.id && edge.target === workflow2TestNode?.id,
     );
 
     expect(crossWorkflowEdge1).toBeUndefined();
@@ -229,7 +232,7 @@ describe('PipelineDAG', () => {
       id: 1,
       number: 1,
       parent: 0,
-      event: 'push',
+      event: WebhookEvents.Push,
       status: 'success',
       created: Date.now(),
       updated: Date.now(),
@@ -266,10 +269,10 @@ describe('PipelineDAG', () => {
       },
     });
 
-    await wrapper.vm.$nextTick();
+    await (wrapper.vm as any).$nextTick();
 
-    const nodes = wrapper.vm.nodes;
-    const edges = wrapper.vm.edges;
+    const nodes = (wrapper.vm as any).nodes as any[];
+    const edges = (wrapper.vm as any).edges as any[];
 
     expect(nodes).toHaveLength(0);
     expect(edges).toHaveLength(0);
@@ -280,7 +283,7 @@ describe('PipelineDAG', () => {
       id: 1,
       number: 1,
       parent: 0,
-      event: 'push',
+      event: WebhookEvents.Push,
       status: 'success',
       created: Date.now(),
       updated: Date.now(),
@@ -309,6 +312,7 @@ describe('PipelineDAG', () => {
           pipeline_id: 1,
           pid: 1,
           name: 'test-workflow',
+          pipeline_name: 'Test Pipeline',
           state: 'success',
           children: [
             {
@@ -323,7 +327,7 @@ describe('PipelineDAG', () => {
               // No depends_on field
             },
           ],
-        } as PipelineWorkflow,
+        },
       ],
     };
 
@@ -338,10 +342,10 @@ describe('PipelineDAG', () => {
       },
     });
 
-    await wrapper.vm.$nextTick();
+    await (wrapper.vm as any).$nextTick();
 
-    const nodes = wrapper.vm.nodes;
-    const edges = wrapper.vm.edges;
+    const nodes = (wrapper.vm as any).nodes as any[];
+    const edges = (wrapper.vm as any).edges as any[];
 
     expect(nodes).toHaveLength(2); // 1 step + 1 workflow group node
     expect(edges).toHaveLength(0); // No dependencies, so no edges

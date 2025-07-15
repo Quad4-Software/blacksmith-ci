@@ -23,6 +23,7 @@ export default antfu(
 
   js.configs.recommended,
   eslintPromise.configs['flat/recommended'],
+  // @ts-ignore - vue-scoped-css plugin has type issues with flat config
   ...eslintPluginVueScopedCSS.configs['flat/recommended'],
   ...vueI18n.configs['flat/recommended'],
 
@@ -70,6 +71,18 @@ export default antfu(
     },
   },
 
+  // Test files
+  {
+    files: ['**/*.test.ts', '**/*.spec.ts', '**/__tests__/**/*'],
+    rules: {
+      'ts/no-unsafe-assignment': 'off',
+      'ts/no-unsafe-member-access': 'off',
+      'ts/no-unsafe-call': 'off',
+      'ts/no-unsafe-return': 'off',
+      'ts/no-explicit-any': 'off',
+    },
+  },
+
   // Vue
   {
     files: ['**/*.vue'],
@@ -108,9 +121,6 @@ export default antfu(
       'src/assets/locales/**/*',
       '!src/assets/locales/en.json',
       'components.d.ts',
-      '**/__tests__/**/*',
-      '**/*.test.ts',
-      '**/*.spec.ts',
     ],
   },
   eslintConfigPrettier,

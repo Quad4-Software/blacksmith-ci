@@ -89,13 +89,7 @@ plugins:
       width: 80%
 
   - group:
-      enabled: !ENV IS_CI
-      plugins:
-        - optimize
-        - privacy
-  # local execution
-  - group:
-      enabled: !ENV INSIDERS
+      enabled: false
       plugins:
         - optimize
         - privacy

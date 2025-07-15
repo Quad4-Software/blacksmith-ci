@@ -11,11 +11,9 @@ require (
 	codeberg.org/6543/xyaml v1.1.0
 	codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2 v2.2.0
 	github.com/6543/logfile-open v1.2.1
-	github.com/adrg/xdg v0.5.3
 	github.com/bmatcuk/doublestar/v4 v4.9.0
 	github.com/cenkalti/backoff/v5 v5.0.2
 	github.com/charmbracelet/huh v0.7.0
-	github.com/charmbracelet/huh/spinner v0.0.0-20240327025511-ec643317aa10
 	github.com/containerd/errdefs v1.0.0
 	github.com/distribution/reference v0.6.0
 	github.com/docker/cli v28.3.2+incompatible
@@ -59,7 +57,6 @@ require (
 	github.com/urfave/cli/v3 v3.3.8
 	github.com/xeipuuv/gojsonschema v1.2.0
 	github.com/yaronf/httpsign v0.3.2
-	github.com/zalando/go-keyring v0.2.6
 	gitlab.com/gitlab-org/api/client-go v0.134.0
 	go.uber.org/multierr v1.11.0
 	golang.org/x/crypto v0.40.0
@@ -105,7 +102,6 @@ require (
 	github.com/containerd/errdefs/pkg v0.3.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
-	github.com/danieljoos/wincred v1.2.2 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/davidmz/go-pageant v1.0.2 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0 // indirect
@@ -130,7 +126,6 @@ require (
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.20.0 // indirect
 	github.com/goccy/go-json v0.10.3 // indirect
-	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/golang/snappy v0.0.4 // indirect

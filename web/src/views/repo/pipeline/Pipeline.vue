@@ -31,8 +31,8 @@
         </div>
       </div>
       <!-- Right panel: log and other content -->
-      <div class="relative flex grow basis-0 items-start justify-center basis-auto">
-        <div v-if="pipeline!.errors?.some((e) => !e.is_warning)" class="mb-4 w-full mb-auto">
+      <div class="relative flex grow items-start justify-center basis-auto">
+        <div v-if="pipeline!.errors?.some((e) => !e.is_warning)" class="w-full mb-auto">
           <Panel>
             <div class="flex flex-col items-center gap-4 text-center">
               <Icon name="status-error" class="h-16 w-16 text-wp-error-100" size="1.5rem" />
@@ -41,7 +41,7 @@
             </div>
           </Panel>
         </div>
-        <div v-else-if="pipeline!.status === 'blocked'" class="mb-4 w-full mb-auto">
+        <div v-else-if="pipeline!.status === 'blocked'" class="w-full mb-auto">
           <Panel>
             <div class="flex flex-col items-center gap-4">
               <Icon name="status-blocked" size="1.5rem" class="h-16 w-16" />
@@ -63,7 +63,7 @@
             </div>
           </Panel>
         </div>
-        <div v-else-if="pipeline!.status === 'declined'" class="mb-4 w-full mb-auto">
+        <div v-else-if="pipeline!.status === 'declined'" class="w-full mb-auto">
           <Panel>
             <div class="flex flex-col items-center gap-4">
               <Icon name="status-declined" size="1.5rem" class="h-16 w-16 text-wp-error-100" />
