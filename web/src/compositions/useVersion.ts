@@ -21,7 +21,7 @@ const version = ref<{
 
 async function fetchVersion(): Promise<{ latest?: string; rc?: string; dev?: string }> {
   try {
-    const resp = await fetch('https://crowci.dev/versions.json');
+    const resp = await fetch('https://crowci.dev/crow-versions.json');
     const json = (await resp.json()) as VersionEntry[];
     let latest, rc, dev;
     for (const entry of json) {
