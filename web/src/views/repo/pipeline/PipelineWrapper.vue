@@ -126,7 +126,7 @@
       v-if="repoPermissions && repoPermissions.push"
       icon="info-outline"
       icon-size="1rem"
-      :to="{ name: 'repo-pipeline-debug' }"
+      :to="{ name: 'repo-pipeline-metadata' }"
       :title="$t('repo.pipeline.metadata.title')"
     />
     <router-view />

@@ -87,6 +87,6 @@ const searchBoxPresent = computed(() => props.search !== undefined);
 
 // Check if we're on a pipeline detail page
 const isPipelineDetail = computed(() => {
-  return route.name === 'repo-pipeline';
+  return route.name?.toString().startsWith('repo-pipeline');
 });
 </script>

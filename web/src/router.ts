@@ -110,8 +110,8 @@ const routes: RouteRecordRaw[] = [
                 props: true,
               },
               {
-                path: 'debug',
-                name: 'repo-pipeline-debug',
+                path: 'metadata',
+                name: 'repo-pipeline-metadata',
                 component: (): Component => import('~/views/repo/pipeline/PipelineMetadata.vue'),
                 props: true,
               },
