@@ -2,7 +2,7 @@
 
 ## Woodpecker
 
-Crow CI is currently a soft-fork of Woodpecker CI.
+Crow CI is (currently) a soft-fork of Woodpecker CI.
 This means it is compatible with Woodpecker in terms of
 
 - API usage

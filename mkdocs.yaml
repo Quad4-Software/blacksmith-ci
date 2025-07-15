@@ -142,7 +142,7 @@ nav:
       - Ansible: installation/ansible.md
       - Reverse proxy setup: installation/proxy.md
       - CLI: installation/cli.md
-      - Migration from other apps: installation/migration.md
+      - Migration from Woodpecker/Drone: installation/migration.md
   - Configuration:
       - configuration/index.md
       - Server: configuration/server.md

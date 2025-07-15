@@ -1,3 +1,6 @@
 <!-- markdownlint-disable MD041 -->
 
-WIP - Please see the [Woodpecker documentation](https://woodpecker-ci.org/docs/intro) in the meantime.
+Currently, Crow CI does not have any social media accounts.
+
+The same applies to chat services like Matrix, Discord or Slack.
+Please reach out via the Git repository.

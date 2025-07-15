@@ -7,7 +7,7 @@ A workflow consist of **one or more** steps.
 Pipeline > Workflow > Step
 ///
 
-A YAML file in `.crow/` defines _one workflow_.
+A YAML file in `.crow/` defines _one or more_ workflow(s) ("more" if a "matrix" workflow is defined).
 The following file tree would consist of _four_ workflows:
 
 ```tree
@@ -18,17 +18,15 @@ The following file tree would consist of _four_ workflows:
 └── test.yaml
 ```
 
-Each workflow can be
+Each workflow can consist of an arbitrary number of steps.
+By default, workflows do not have a dependency to each other and are executed in parallel.
+Steps within a workflow are executed sequentially by their order of definition.
 
-- run individually
-- run in parallel
-- run in sequence of others
-
-depending on the configuration of the respective _event triggers_ and `depends_on` configuration in each individual workflow.
+Both steps and workflows accept a `depends_on: []` key which can be used to specify an explicit execution order.
 
 /// important
 Each workflow is isolated from other workflows with respect to its working directory and file access.
-_Steps_ within a workflow have access to the same files.
+_Steps within a workflow_ have access to the same files as they share a common workflow-specific volume which is attached to all steps within the workflow.
 ///
 
 ## Execution control
@@ -43,6 +41,7 @@ steps:
     commands:
       - some command
 
+# these are names of other workflows
 depends_on:
   - lint
   - build
@@ -60,8 +59,6 @@ runs_on: [success, failure]
 ```
 
 ///
-
-Changes to files are persisted throughout the steps of a workflow as the same (temporary) volume is mounted to all steps.
 
 ## Event triggers
 

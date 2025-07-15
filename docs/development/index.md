@@ -39,7 +39,7 @@ You are responsible for installing the complete stack of tools and dependencies 
 If you are having issues installing all dependencies or have others reasons for not installing them, you can also make use of the `.devcontainers.json` and use this one with services that spin up virtual dev environments, e.g. [devpod.sh](https://devpod.sh/)
 ///
 
-The following just rules are helpful for local development:
+The following `just` rules are helpful for local development:
 
 ```sh
 just test-server
@@ -52,29 +52,35 @@ just lint-backend
 just lint-frontend
 ```
 
-## Building images
+## Building images locally
 
 /// note
 Building images is not required for local development.
 You only need to build them if you want to test branch builds on existing Crow instances.
-For local development testing, the easiest way is to use the provided `launch.json` config and test the changes in VSCode.
+For local development testing, the easiest way is to use the provided VSCode `launch.json` config, spin up an instance on localhost and investigate changes as you adapt the code.
+
+This works seeamlessly via hot-reloading for UI changes.
+If you are working on the backend, a refresh or start/stop of the running instance might be required, depending on which parts of the backends are changed.
 ///
 
-Images for dev purposes can be built using
+If you want to build images for dev purposes, the following `just` rules can be used:
 
 ```sh
 # server
-env PLATFORMS='linux|amd64;linux|arm64' just image-server-alpine <tag>
+env PLATFORMS='linux|amd64;linux|arm64' just image-server-alpine TAG=<tag> REGISTRY_USER='<user>' REGISTRY='<registry>' IMAGE='<image slug>'
 
 # agent
-env PLATFORMS='linux/amd64,linux/arm64' just image-agent-alpine <tag>
+env PLATFORMS='linux/amd64,linux/arm64' just image-agent-alpine <tag> REGISTRY_USER='<user>' REGISTRY='<registry>' IMAGE='<image slug>'
 
 # cli
-env PLATFORMS='linux/amd64,linux/arm64' just image-cli-alpine <tag>
+env PLATFORMS='linux/amd64,linux/arm64' just image-cli-alpine <tag> REGISTRY_USER='<user>' REGISTRY='<registry>' IMAGE='<image slug>'
 ```
 
-where `<tag>` is the docker tag to be used for the image.
-You do not need to built multiarch for testing, just choose the architecture you want to test the images on.
+The `PLATFORMS` env var must be prepended as it will be used dynamically by other sub-rules to build the proper arch-specific components.
+
+/// important
+You do not need to built multiarch for testing, just choose the architecture you want to test the images on (e.g. `linux/amd64`) and remove the other one.
+///
 
 ## VSCode debug/test configuration
 
@@ -118,8 +124,12 @@ export CROW_LOG_LEVEL=debug
 Notes:
 
 - Workflows will run on your local machine using the `docker` backend.
-- The forge-specific settings (`CROW_FORGEJO_URL`, `CROW_FORGEJO_CLIENT`, `CROW_FORGEJO_SECRET`) must be set if you want to test against existing repositories of a forge. You can use an existing application and append `http://localhost:8000/authorize` to the redirect URI list. See [FIXME] for instructions on how to create an oauth2 app for the respective forge.
-- Crow will use a SQLite database in this scenario, stored at `./crow.sqlite` in the workspace root (and gitignore'd by default). Any backend action you do (e.g. adding secret or enabling a repo) will be persisted in this database.
+- The forge-specific settings (`CROW_FORGEJO_URL`, `CROW_FORGEJO_CLIENT`, `CROW_FORGEJO_SECRET`) must be set if you want to test against existing repositories of a forge.
+  We recommend to create a new OAuth2 app on the forge and use it solely for local testing purposes.
+  If you use an existing one, the issued tokens will be split across multiple instances and lead to invalid tokens on the respective other one.
+- Crow will use SQLite in this scenario, stored at `./crow.sqlite` in the workspace root (and gitignore'd by default).
+  Any backend action you do (e.g. adding secret or enabling a repo) will be persisted in this database.
+  It is recommended to keep this SQLite DB at the repo root, gitignore'd.
 - `CROW_EXPERT_WEBHOOK_HOST` sets the URL which incoming webhooks should target, i.e. the local development server. By default this one runs on localhost and is accessible from the public. To make this work, you need to expose the local Crow server to the outside world.
   To do this, you can either
 

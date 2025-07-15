@@ -5,48 +5,64 @@ hide:
 
 ## <!-- markdownlint-disable MD041 -->
 
-<!-- # Plugins -->
-
-Plugins are special pipeline steps that perform **pre-defined tasks**.
+Plugins are special **steps** that perform **pre-defined tasks**.
 They can be used for any kind of operation: to deploy code, publish artifacts, send notification, and more.
 
-Why do plugins exist? What can they do better than just specifying commands in normal steps?
+What is the scope of plugins and for which use cases should they be used?
 
-Plugins fulfill the following needs:
+Plugins are particular useful for the following scenarios:
 
-- Secure security-sensitive operations
-- Simplify complicated tasks
+- Security-sensitive operations
+- Simplification of complex tasks
 
 ## Security-sensitive commands
 
-When handing over sensitive secrets to pipelines such as SSH keys, API tokens and others, users want to ensure that no other operations than the desired ones do make use of these credentials.
+When a step gets handed over sensitive secrets such as SSH keys, API tokens and others, one wants to ensure that no other operations than the desired ones do make use of these credentials.
+In a normal step, any user could open a pull request, issue an `"echo"` command on the secret and expose it that way (if the secret is allowed to be used in `pull_request` events).
+While repo owners can choose to not allow injecting a particular secret in a PR, often enough they are needed to allow for proper checking of a PR.
+Here is where plugins come into play:
 
-Plugins can ensure this as they cannot be altered in their execution: they always execute a specific set of commands within a predefined environment which can only be altered in a limited way through specific plugin settings.
-
-In addition, Crow allows [limiting secrets to specific plugin images](../usage/secrets.md#filtering), avoiding the potential misuse of such in arbitrary steps.
+Plugins cannot be altered in their execution: they always execute a specific set of commands, combined with a fixed image entrypoint, which can only be altered in a limited way through specific plugin settings.
+Crow allows [limiting secrets to specific plugins](../usage/secrets.md#filtering).
+Thanks to this, a potential misuse/exposure of secrets in a Pull Request scenario is not possible.
 
 ## Convenience
 
 Another use case it wrap steps which execute the same set of commands over and over again into a plugin.
-The advantage of this is two-fold: a cleaner/shorter YAML config and a small execution speedup (as all required dependencies are already installed within the plugin image).
+The advantage of this is two-fold: a cleaner/shorter YAML config and a (small) execution speedup (as all required dependencies are already installed within the plugin image and the step can start right away if the image is already cached).
 
 ## Available plugins
 
-A variety of plugins exist from different sources and projects.
+A variety of plugins exist across different sources and projects.
 
 /// note
-Historically, Drone plugins still exist and should work in theory.
-However, many of these are not well maintained and might not comply anymore with the requirement of not allowing arbitrary env vars in the `environment:` section, which is enforced since Crow/Woodpecker 3.0.
+Because Crow is a fork of Woodpecker/Drone, their respective plugins _should_ be compatible.
+Drone has meanwhile diverged a bit and a few of their plugins haven't been very well maintained recently.
+Woodpecker plugins should be fully compatible.
 ///
 
-A non-comprehensive list of available plugins:
+/// important
+Some Drone plugins still require inputs via the `environment:` section, which is not allowed (anymore) in Crow for security reasons.
+All inputs must be passed via explicit plugin settings.
+If this is the case, the Drone plugin in question cannot be used within Crow.
+///
+
+Here is a non-comprehensive list of organizations and repos containing Woodpecker/Drone plugins:
 
 - [Woodpecker CI (GitHub)](https://woodpecker-ci.org/plugins)
 - [Appleboy (GitHub)](https://github.com/appleboy?tab=repositories&q=drone-&type=source&language=&sort=)
 - [thegeeklab (GitHub)](https://woodpecker-plugins.geekdocs.de/)
+- [Woodpecker Community](https://codeberg.org/woodpecker-community)
 
-Additional plugins can be found in the wild.
-Please make sure to always take a close look at the plugin itself and the overall maintenance state, especially when handing over sensitive secrets.
+There are more plugins which exists, however, we cannot list all of them here.
+
+/// important
+For the time being, Crow is still using Woodpecker plugins and does not yet offer Crow-owned plugins.
+This will (likely) gradually change over time.
+///
+
+When considering the use of a plugin, please do your own due diligence with respect to the plugin's overall maintenance status and functionality, especially when handing over sensitive secrets.
+In the end, you are trusting the plugin and their maintainers to properly handle your sensitive secrets.
 
 ## Creating plugins
 

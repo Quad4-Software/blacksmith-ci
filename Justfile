@@ -234,35 +234,49 @@ release-cli: ## Create cli binaries for release
 # platforms must be handed over via this syntax for the underlying cross-compile-server step which applies some string splitting on a list of items
 
 # env PLATFORMS='linux|amd64;linux|arm64' just image-server
-image-server TAG:
-		just build-ui
-		just cross-compile-server
-		echo $codeberg_bot_token | docker login codeberg.org -u crowci-bot --password-stdin
-		FIXED_PLATFORMS=$(echo $PLATFORMS | sed "s/|/\//g; s/;/,/g") && docker buildx build --platform $FIXED_PLATFORMS -t codeberg.org/crowci/crow-server:{{TAG}} -f images/Containerfile.server.multiarch.rootless --push .
+image-server TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE='crowci/crow-server':
+	just build-ui
+	just cross-compile-server
+	echo $codeberg_bot_token | docker login {{REGISTRY}} -u {{REGISTRY_USER}} --password-stdin
+	FIXED_PLATFORMS=$(echo $PLATFORMS | sed "s/|/\//g; s/;/,/g") && \
+	docker buildx build --platform $FIXED_PLATFORMS \
+		-t {{REGISTRY}}/{{IMAGE}}:{{TAG}} \
+		-f images/Containerfile.server.multiarch.rootless --push .
 
 # env PLATFORMS='linux|amd64;linux|arm64' just image-server-alpine dev
-image-server-alpine TAG:
-		just build-ui
-		just cross-compile-server
-		echo $codeberg_bot_token | docker login codeberg.org -u crowci-bot --password-stdin
-		FIXED_PLATFORMS=$(echo $PLATFORMS | sed "s/|/\//g; s/;/,/g") && docker buildx build --platform $FIXED_PLATFORMS -t codeberg.org/crowci/crow-server:{{TAG}}-alpine -f images/Containerfile.server.alpine.multiarch.rootless --push .
+image-server-alpine TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE='crowci/crow-server':
+	just build-ui
+	just cross-compile-server
+	echo $codeberg_bot_token | docker login {{REGISTRY}} -u {{REGISTRY_USER}} --password-stdin
+	FIXED_PLATFORMS=$(echo $PLATFORMS | sed "s/|/\//g; s/;/,/g") && \
+	docker buildx build --platform $FIXED_PLATFORMS \
+		-t {{REGISTRY}}/{{IMAGE}}:{{TAG}}-alpine \
+		-f images/Containerfile.server.alpine.multiarch.rootless --push .
 
 # env PLATFORMS='linux/amd64,linux/arm64' just image-agent
-image-agent TAG:
-		echo $codeberg_bot_token | docker login codeberg.org -u crowci-bot --password-stdin
-		docker buildx build --platform $PLATFORMS -t codeberg.org/crowci/crow-agent:{{TAG}} -f images/Containerfile.agent.multiarch --push .
+image-agent TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE='crowci/crow-agent':
+	echo $codeberg_bot_token | docker login {{REGISTRY}} -u {{REGISTRY_USER}} --password-stdin
+	docker buildx build --platform $PLATFORMS \
+		-t {{REGISTRY}}/{{IMAGE}}:{{TAG}} \
+		-f images/Containerfile.agent.multiarch --push .
 
 # env PLATFORMS='linux/amd64,linux/arm64' just image-agent-alpine dev
-image-agent-alpine TAG:
-		echo $codeberg_bot_token | docker login codeberg.org -u crowci-bot --password-stdin
-		docker buildx build --platform $PLATFORMS -t codeberg.org/crowci/crow-agent:{{TAG}}-alpine -f images/Containerfile.agent.alpine.multiarch --push .
+image-agent-alpine TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE='crowci/crow-agent':
+	echo $codeberg_bot_token | docker login {{REGISTRY}} -u {{REGISTRY_USER}} --password-stdin
+	docker buildx build --platform $PLATFORMS \
+		-t {{REGISTRY}}/{{IMAGE}}:{{TAG}}-alpine \
+		-f images/Containerfile.agent.alpine.multiarch --push .
 
 # env PLATFORMS='linux/amd64,linux/arm64' just image-cli dev
-image-cli TAG:
-		echo $codeberg_bot_token | docker login codeberg.org -u crowci-bot --password-stdin
-		docker buildx build --platform $PLATFORMS -t codeberg.org/crowci/crow-cli:{{TAG}} -f images/Containerfile.cli.multiarch.rootless --push .
+image-cli TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE='crowci/crow-cli':
+	echo $codeberg_bot_token | docker login {{REGISTRY}} -u {{REGISTRY_USER}} --password-stdin
+	docker buildx build --platform $PLATFORMS \
+		-t {{REGISTRY}}/{{IMAGE}}:{{TAG}} \
+		-f images/Containerfile.cli.multiarch.rootless --push .
 
 # env PLATFORMS='linux/amd64,linux/arm64' just image-cli-alpine dev
-image-cli-alpine TAG:
-		echo $codeberg_bot_token | docker login codeberg.org -u crowci-bot --password-stdin
-		docker buildx build --platform $PLATFORMS -t codeberg.org/crowci/crow-cli:{{TAG}}-alpine -f images/Containerfile.cli.alpine.multiarch.rootless --push .
+image-cli-alpine TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE='crowci/crow-cli':
+	echo $codeberg_bot_token | docker login {{REGISTRY}} -u {{REGISTRY_USER}} --password-stdin
+	docker buildx build --platform $PLATFORMS \
+		-t {{REGISTRY}}/{{IMAGE}}:{{TAG}}-alpine \
+		-f images/Containerfile.cli.alpine.multiarch.rootless --push .
