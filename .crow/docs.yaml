@@ -16,7 +16,8 @@ steps:
     image: alpine:3.22
     environment:
       IS_CI: true
-      MKDOCS_MATERIAL_VERSION: 9.6.11-insiders-4.53.16
+      # https://github.com/squidfunk/mkdocs-material-insiders
+      MKDOCS_MATERIAL_VERSION: 9.6.15-insiders-4.53.16
       GH_TOKEN_MKDOCS_MATERIAL:
         from_secret: gh_token_mkdocs_material
       CODEBERG_BOT_TOKEN:
@@ -39,7 +40,8 @@ steps:
     image: alpine:3.22
     environment:
       IS_CI: true
-      MKDOCS_MATERIAL_VERSION: 9.6.11-insiders-4.53.16
+      # https://github.com/squidfunk/mkdocs-material-insiders
+      MKDOCS_MATERIAL_VERSION: 9.6.15-insiders-4.53.16
       GH_TOKEN_MKDOCS_MATERIAL:
         from_secret: gh_token_mkdocs_material
       CODEBERG_BOT_TOKEN:
@@ -63,7 +65,8 @@ steps:
     image: alpine:3.22
     environment:
       IS_CI: true
-      MKDOCS_MATERIAL_VERSION: 9.6.11-insiders-4.53.16
+      # https://github.com/squidfunk/mkdocs-material-insiders
+      MKDOCS_MATERIAL_VERSION: 9.6.15-insiders-4.53.16
       GH_TOKEN_MKDOCS_MATERIAL:
         from_secret: gh_token_mkdocs_material
       CODEBERG_BOT_TOKEN:
