@@ -15,9 +15,8 @@ steps:
     image: alpine:3.22
     commands:
       - apk add --no-cache -q yq curl
-      - ls -la
       - curl -sL https://crowci.dev/crow-versions.json -o crow-versions.json
-      - yq -iP '.dev = "dev-${CI_COMMIT_SHA:0:10}"' crow-versions.json
+      - yq -iP '.[0].dev = "dev-${CI_COMMIT_SHA:0:10}"' crow-versions.json
     when:
       - event: deployment
 
@@ -28,9 +27,9 @@ steps:
       - apk add --no-cache -q yq
       - |
         if echo "${CI_COMMIT_TAG}" | grep -q "\-rc"; then
-          yq -iP '.rc = "${CI_COMMIT_TAG}"' crow-versions.json
+          yq -iP '.[0].rc = "${CI_COMMIT_TAG}"' crow-versions.json
         else
-          yq -iP '.latest = "${CI_COMMIT_TAG}"' crow-versions.json
+          yq -iP '.[0].latest = "${CI_COMMIT_TAG}"' crow-versions.json
         fi
     when:
       - event: tag
