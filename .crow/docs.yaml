@@ -29,7 +29,7 @@ steps:
       - git remote set-url origin https://crowci-bot:$${CODEBERG_BOT_TOKEN}@codeberg.org/crowci/crow.git
       # build & deploy
       - just docs-venv
-      - just docs-mike "deploy dev --push"
+      - just docs-mike "deploy dev --update-aliases --push"
       - mv site/domains site/.domains
     when:
       - event: push
@@ -80,7 +80,7 @@ steps:
       - mv site/domains site/.domains
 
   - name: PR docs preview
-    image: docker.io/woodpeckerci/plugin-surge-preview:1.4.0
+    image: docker.io/cli/**ci/plugin-surge-preview:1.4.0
     settings:
       path: 'site/'
       surge_token:
