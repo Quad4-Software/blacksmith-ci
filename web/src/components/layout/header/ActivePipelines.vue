@@ -31,19 +31,20 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-@reference '~/tailwind.css';
-
 @keyframes rotate {
   100% {
     transform: rotate(1turn);
   }
 }
 .spinner {
-  @apply absolute inset-1.5 rounded-md;
+  position: absolute;
+  inset: 0.375rem;
+  border-radius: 0.375rem;
   overflow: hidden;
 }
 .spinner::before {
-  @apply bg-wp-custom-highlight-100 absolute;
+  background-color: var(--wp-custom-highlight-100);
+  position: absolute;
   content: '';
   left: -50%;
   top: -50%;
@@ -57,7 +58,9 @@ onMounted(async () => {
   animation: rotate 1.5s linear infinite;
 }
 .spinner::after {
-  @apply bg-wp-custom-highlight-100 absolute inset-0.5;
+  background-color: var(--wp-custom-highlight-100);
+  position: absolute;
+  inset: 0.125rem;
   /*
   The nested border radius needs to be calculated correctly to look right:
   https://www.30secondsofcode.org/css/s/nested-border-radius/

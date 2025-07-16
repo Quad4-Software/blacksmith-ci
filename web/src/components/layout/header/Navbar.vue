@@ -66,18 +66,53 @@ const apiUrl = `${config.rootPath ?? ''}/swagger/index.html`;
 const { enableSwagger } = config;
 </script>
 
-<style lang="postcss" scoped>
-@reference '~/tailwind.css';
-
+<style scoped>
 .navbar-icon {
-  @apply h-11 w-11 rounded-md p-2.5;
+  height: 2.75rem;
+  width: 2.75rem;
+  border-radius: 0.375rem;
+  padding: 0.625rem;
+  position: relative;
+  display: flex;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background-color: transparent;
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-duration: 100ms;
+}
+
+.navbar-icon:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.dark .navbar-icon:hover {
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
 .navbar-icon :deep(svg) {
-  @apply h-full w-full;
+  height: 100%;
+  width: 100%;
 }
 
 .navbar-link {
-  @apply hover-effect -my-1 rounded-md px-3 py-2;
+  margin-top: -0.25rem;
+  margin-bottom: -0.25rem;
+  border-radius: 0.375rem;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-duration: 100ms;
+}
+
+.navbar-link:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.dark .navbar-link:hover {
+  background-color: rgba(255, 255, 255, 0.05);
 }
 </style>

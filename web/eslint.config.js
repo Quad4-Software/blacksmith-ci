@@ -107,6 +107,7 @@ export default antfu(
         },
       ],
       'vue/singleline-html-element-content-newline': ['off'],
+      'vue-scoped-css/enforce-style-type': 'off',
     },
   },
 
