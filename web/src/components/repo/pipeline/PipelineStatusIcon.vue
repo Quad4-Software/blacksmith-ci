@@ -4,6 +4,7 @@
     :title="$t('repo.pipeline.status.status', { status: statusDescriptions[status] })"
   >
     <Icon
+      v-if="!(status === 'running' || status === 'started')"
       :name="service ? 'settings' : `status-${status}`"
       size="1.5rem"
       :class="{
@@ -12,9 +13,12 @@
         'text-wp-state-ok-100': pipelineStatusColors[status] === 'green', // success
         'text-wp-custom-highlight-100': pipelineStatusColors[status] === 'orange', // running, started
         'text-wp-state-pending-100': pipelineStatusColors[status] === 'yellow', // pending
-        'animate-spin': service && pipelineStatusColors[status] === 'blue', // services
+        'animate-spin': service && pipelineStatusColors[status] === 'blue', // services only
       }"
     />
+    <div v-else class="w-5 h-5">
+      <PipelineProgressSpinner />
+    </div>
   </div>
 </template>
 
@@ -22,6 +26,7 @@
 import { useI18n } from 'vue-i18n';
 
 import Icon from '~/components/atomic/Icon.vue';
+import PipelineProgressSpinner from './PipelineProgressSpinner.vue';
 import type { PipelineStatus } from '~/lib/api/types';
 
 import { pipelineStatusColors } from './pipeline-status';

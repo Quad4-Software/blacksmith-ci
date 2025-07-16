@@ -41,7 +41,7 @@ import { usePaginate } from '~/compositions/usePaginate';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
 
 defineProps<{
-  open: boolean;
+  open?: boolean;
 }>();
 
 const emit = defineEmits<{
