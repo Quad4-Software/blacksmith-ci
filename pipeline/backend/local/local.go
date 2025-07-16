@@ -148,6 +148,8 @@ func (e *local) StartStep(ctx context.Context, step *types.Step, taskUUID string
 		return e.execCommands(ctx, step, state, env)
 	case types.StepTypePlugin:
 		return e.execPlugin(ctx, step, state, env)
+	case types.StepTypeService:
+		return e.execService(ctx, step, state, env)
 	default:
 		return ErrUnsupportedStepType
 	}
@@ -157,6 +159,37 @@ func (e *local) StartStep(ctx context.Context, step *types.Step, taskUUID string
 func (e *local) execCommands(ctx context.Context, step *types.Step, state *workflowState, env []string) error {
 	// Prepare commands
 	// TODO: support `entrypoint` from pipeline config
+	args, err := e.genCmdByShell(step.Image, step.Commands)
+	if err != nil {
+		return fmt.Errorf("could not convert commands into args: %w", err)
+	}
+
+	// Use "image name" as run command (indicate shell)
+	cmd := exec.CommandContext(ctx, step.Image, args...)
+	cmd.Env = env
+	cmd.Dir = state.workspaceDir
+
+	// Get output and redirect Stderr to Stdout
+	e.output, _ = cmd.StdoutPipe()
+	cmd.Stderr = cmd.Stdout
+
+	if e.os == "windows" {
+		// we get non utf8 output from windows so just sanitize it
+		// TODO: remove hack
+		e.output = io.NopCloser(transform.NewReader(e.output, unicode.UTF8.NewDecoder().Transformer))
+	}
+
+	state.stepCMDs[step.UUID] = cmd
+
+	return cmd.Start()
+}
+
+// execService use step.Image as shell and run the commands in it as a background service.
+func (e *local) execService(ctx context.Context, step *types.Step, state *workflowState, env []string) error {
+	// Services are treated like commands but run in background
+	// They should start and keep running until the context is canceled
+
+	// Prepare commands
 	args, err := e.genCmdByShell(step.Image, step.Commands)
 	if err != nil {
 		return fmt.Errorf("could not convert commands into args: %w", err)

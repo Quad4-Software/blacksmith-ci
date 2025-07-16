@@ -158,6 +158,7 @@ import type { Pipeline, PipelineConfig } from '~/lib/api/types';
 const props = defineProps<{
   repoId: string;
   pipelineId: string;
+  stepId?: string;
 }>();
 
 const apiClient = useApiClient();
