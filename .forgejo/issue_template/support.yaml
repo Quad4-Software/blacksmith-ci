@@ -1,0 +1,11 @@
+name: "\U0001F4AC Ask a question"
+description: Ask for support or start a general discussion
+labels: ['type/question']
+title: 'question: '
+body:
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: Text area
+    validations:
+      required: true

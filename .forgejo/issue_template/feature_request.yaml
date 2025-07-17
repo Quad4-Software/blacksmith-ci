@@ -1,7 +1,8 @@
 # Credits to: https://github.com/vitejs/vite/blob/main/.github/ISSUE_TEMPLATE/feature_request.yml
-name: "\U0001F680 New feature proposal"
+name: "\U0001F680 Feature request"
 description: Propose a new feature to be added
-labels: ['feature']
+labels: ['type/feature']
+title: 'feat: '
 body:
   - type: markdown
     attributes:
@@ -10,19 +11,14 @@ body:
   - type: textarea
     id: feature-description
     attributes:
-      label: Clear and concise description of the problem
-      description: 'As a user of Crow I want [goal / wish] so that [benefit]. If you intend to submit a PR for this issue, tell us in the description.'
+      label: Feature description
+      description: 'As a user of Crow I want [goal / wish] so that [benefit].'
     validations:
       required: true
   - type: textarea
     id: suggested-solution
     attributes:
-      label: Suggested solution
+      label: Potential solution(s)
       description: 'In web-ui / config we could provide following functionality...'
     validations:
       required: true
-  - type: textarea
-    id: additional-context
-    attributes:
-      label: Additional context
-      description: Any other context or screenshots about the feature request here.

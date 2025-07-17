@@ -1,7 +1,8 @@
 # Credits to: https://github.com/vitejs/vite/blob/main/.github/ISSUE_TEMPLATE/bug_report.yml
 name: "\U0001F41E Bug report"
 description: Report an issue with Crow
-labels: ['bug']
+labels: ['type/bug']
+title: 'bug: '
 body:
   - type: markdown
     attributes:
@@ -18,7 +19,7 @@ body:
         - agent
         - cli
         - web-ui
-        - other
+        - docs
     validations:
       required: true
   - type: textarea
@@ -30,24 +31,11 @@ body:
     validations:
       required: true
   - type: textarea
-    id: steps-to-reproduce
+    id: version_info
     attributes:
-      label: Steps to reproduce
-      description: Steps to reproduce the behavior.
-      placeholder: |
-        1. Install Crow Server with the following configuration: ...
-        2. Install Crow Agent with the configuration below: ...
-        3. Go to ..., click here and there, see error: ...
-        4. Check the logs and find this: ...
+      label: Version Info
+      description: Version can be found in the "Info" tab of the settings
+      render: shell
+      placeholder: Crow version
     validations:
       required: true
-  - type: textarea
-    id: additional-context
-    attributes:
-      label: Additional context
-      description: |
-        Logs? Screenshots? Anything that will give us more context about the issue.
-        Sometimes a picture is worth a thousand words, but please try not to insert an image of logs / text
-        and copy paste the text instead.
-    validations:
-      required: false
