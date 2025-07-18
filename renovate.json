@@ -19,21 +19,6 @@
       "allowedVersions": "<2.0.0"
     },
     {
-      "matchCurrentVersion": "<1.0.0",
-      "matchPackageNames": ["github.com/distribution/reference"],
-      "matchUpdateTypes": ["major", "minor"],
-      "dependencyDashboardApproval": true
-    },
-    {
-      "matchPackageNames": ["github.com/charmbracelet/huh/spinner"],
-      "enabled": false
-    },
-    {
-      "matchManagers": ["docker-compose"],
-      "matchFileNames": ["docker-compose.gitpod.yaml"],
-      "addLabels": ["devx"]
-    },
-    {
       "groupName": "golang-lang",
       "matchUpdateTypes": ["minor", "patch"],
       "matchPackageNames": ["/^golang$/", "/xgo/"]
@@ -44,26 +29,10 @@
       "matchUpdateTypes": ["minor", "patch"]
     },
     {
-      "matchManagers": ["bun"],
-      "matchFileNames": ["web/bun.lock"],
-      "addLabels": ["ui"]
-    },
-    {
-      "matchManagers": ["npm"],
-      "matchFileNames": ["docs/**/package.json"],
-      "addLabels": ["documentation"]
-    },
-    {
-      "groupName": "web bun deps non-major",
-      "matchManagers": ["bun"],
+      "groupName": "frontend deps non-major",
+      "matchManagers": ["bun", "npm"],
       "matchUpdateTypes": ["minor", "patch"],
-      "matchFileNames": ["web/package.json"]
-    },
-    {
-      "groupName": "docs npm deps non-major",
-      "matchManagers": ["npm"],
-      "matchUpdateTypes": ["minor", "patch"],
-      "matchFileNames": ["docs/**/package.json"]
+      "matchFileNames": ["web/**"]
     },
     {
       "description": "Extract version from xgo container tags",
