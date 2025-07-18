@@ -16,14 +16,42 @@
 
 package version
 
-// Version of Woodpecker, set with ldflags, from Git tag.
+import (
+	"os/exec"
+	"strings"
+)
+
+// Version of Crow CI, set with ldflags, from Git tag.
 var Version string
 
-// String returns the Version set at build time or "dev".
+// commitHashLength defines the number of characters to use from git commit hash.
+const commitHashLength = 10
+
+// String returns the Version set at build time or "dev-<hash>" if in development.
 func String() string {
 	if Version == "" {
+		// In development mode, try to get git commit hash
+		if hash := getGitCommitHash(); hash != "" {
+			return "dev-" + hash
+		}
 		return "dev"
 	}
 
 	return Version
+}
+
+// getGitCommitHash attempts to get the current git commit hash for development builds.
+func getGitCommitHash() string {
+	cmd := exec.Command("git", "rev-parse", "HEAD")
+	output, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+
+	hash := strings.TrimSpace(string(output))
+	if len(hash) >= commitHashLength {
+		return hash[:commitHashLength] // Return first 10 characters like the Justfile does
+	}
+
+	return hash
 }

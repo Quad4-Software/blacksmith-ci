@@ -3,6 +3,10 @@ import type {
   Agent,
   Cron,
   Forge,
+  MaintenanceConfig,
+  MaintenanceLog,
+  MaintenanceOperationConfig,
+  MaintenanceStats,
   Org,
   OrgPermissions,
   Pipeline,
@@ -440,5 +444,40 @@ export default class CrowClient extends ApiClient {
     return this._subscribe(`/api/stream/logs/${repoId}/${pipeline}/${step}`, callback, {
       reconnect: true,
     });
+  }
+
+  // Maintenance API methods
+  async getMaintenanceConfig(): Promise<MaintenanceConfig> {
+    return this._get('/api/admin/maintenance/config') as Promise<MaintenanceConfig>;
+  }
+
+  async updateMaintenanceConfig(config: Partial<MaintenanceConfig>): Promise<MaintenanceConfig> {
+    return this._put('/api/admin/maintenance/config', config) as Promise<MaintenanceConfig>;
+  }
+
+  async getMaintenanceStats(): Promise<MaintenanceStats> {
+    return this._get('/api/admin/maintenance/stats') as Promise<MaintenanceStats>;
+  }
+
+  async getMaintenanceLogs(limit?: number): Promise<MaintenanceLog[]> {
+    const query = limit !== undefined && limit > 0 ? `?limit=${limit}` : '';
+    return this._get(`/api/admin/maintenance/logs${query}`) as Promise<MaintenanceLog[]>;
+  }
+
+  async runMaintenanceNow(job: string): Promise<{ message: string; job: string }> {
+    return this._post('/api/admin/maintenance/run', { job }) as Promise<{ message: string; job: string }>;
+  }
+
+  async getMaintenanceOperationConfigs(): Promise<MaintenanceOperationConfig[]> {
+    return this._get('/api/admin/maintenance/operations') as Promise<MaintenanceOperationConfig[]>;
+  }
+
+  async updateMaintenanceOperationConfig(
+    config: Partial<MaintenanceOperationConfig>,
+  ): Promise<MaintenanceOperationConfig> {
+    return this._put(
+      `/api/admin/maintenance/operations/${config.operation}`,
+      config,
+    ) as Promise<MaintenanceOperationConfig>;
   }
 }

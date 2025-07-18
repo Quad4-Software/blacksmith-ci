@@ -56,6 +56,7 @@
   <SvgIcon v-else-if="name === 'pause'" :path="mdiPause" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'play'" :path="mdiPlay" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'play-outline'" :path="mdiPlayOutline" :size="size || '1.3rem'" />
+  <SvgIcon v-else-if="name === 'progress-wrench-outline'" :path="mdiProgressWrench" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'dots'" :path="mdiDotsVertical" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'tasks'" :path="mdiFormatListBulletedType" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'file-cog-outline'" :path="mdiFileCogOutline" :size="size || '1.3rem'" />
@@ -139,6 +140,7 @@ import {
   mdiPlayOutline,
   mdiPlus,
   mdiPower,
+  mdiProgressWrench,
   mdiRadioboxBlank,
   mdiShieldKeyOutline,
   mdiSourceBranch,
@@ -210,6 +212,7 @@ export type IconNames =
   | 'auto-scroll-off'
   | 'play'
   | 'play-outline'
+  | 'progress-wrench-outline'
   | 'pause'
   | 'alert'
   | 'spinner'

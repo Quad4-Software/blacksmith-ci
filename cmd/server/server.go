@@ -132,6 +132,17 @@ func run(ctx context.Context, c *cli.Command) error {
 		return nil
 	})
 
+	// start maintenance scheduler shutdown watcher
+	serviceWaitingGroup.Go(func() error {
+		<-ctx.Done()
+		if server.Config.Services.MaintenanceScheduler != nil {
+			log.Info().Msg("stopping maintenance scheduler ...")
+			server.Config.Services.MaintenanceScheduler.Stop()
+			log.Info().Msg("maintenance scheduler stopped")
+		}
+		return nil
+	})
+
 	// start the grpc server
 	serviceWaitingGroup.Go(func() error {
 		log.Info().Msg("starting grpc server ...")

@@ -30,12 +30,15 @@ import (
 
 var Config = struct {
 	Services struct {
-		Pubsub     *pubsub.Publisher
-		Queue      queue.Queue
-		Logs       logging.Log
-		Membership cache.MembershipService
-		Manager    services.Manager
-		LogStore   log.Service
+		Pubsub               *pubsub.Publisher
+		Queue                queue.Queue
+		Logs                 logging.Log
+		Membership           cache.MembershipService
+		Manager              services.Manager
+		LogStore             log.Service
+		MaintenanceService   services.MaintenanceService
+		MaintenanceScheduler services.MaintenanceScheduler
+		Store                services.Store
 	}
 	Server struct {
 		JWTSecret           string
@@ -85,6 +88,12 @@ var Config = struct {
 			HTTPS string
 		}
 		ContainerNameScheme string // 'hash' or 'descriptive'
+	}
+	Maintenance struct {
+		LogVacuum struct {
+			Enabled  bool
+			Schedule string
+		}
 	}
 	Permissions struct {
 		Open            bool

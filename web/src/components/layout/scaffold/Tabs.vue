@@ -1,6 +1,6 @@
 <template>
   <!-- Main tabs container -->
-  <div ref="tabsRef" class="flex min-w-0 flex-auto gap-0 px-2 md:px-0 md:gap-4">
+  <div ref="tabsRef" class="flex min-w-0 flex-auto gap-0 px-2 md:px-0 md:gap-1">
     <router-link
       v-for="(tab, index) in visibleTabs"
       :key="tab.title"
@@ -91,8 +91,8 @@ const updateVisibleItems = () => {
 
   nextTick(() => {
     const availableWidth = tabsRef.value!.clientWidth || 0;
-    const moreButtonWidth = 64; // This need to match 2x the width of the IconButton (w-8)
-    const gapWidth = 16; // This need to match the gap between the tabs (gap-4)
+    const moreButtonWidth = 32; // This need to match the width of the IconButton (w-8 = 32px)
+    const gapWidth = 4; // This need to match the gap between the tabs (md:gap-1 = 4px)
     let totalWidth = 0;
 
     const items = Array.from(tabsRef.value!.children);

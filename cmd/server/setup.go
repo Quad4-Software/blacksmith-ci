@@ -39,6 +39,7 @@ import (
 	"codeberg.org/crowci/crow/v3/server/services"
 	logService "codeberg.org/crowci/crow/v3/server/services/log"
 	"codeberg.org/crowci/crow/v3/server/services/log/file"
+	"codeberg.org/crowci/crow/v3/server/services/maintenance"
 	"codeberg.org/crowci/crow/v3/server/services/permissions"
 	"codeberg.org/crowci/crow/v3/server/store"
 	"codeberg.org/crowci/crow/v3/server/store/datastore"
@@ -191,6 +192,14 @@ func setupEvilGlobals(ctx context.Context, c *cli.Command, s store.Store) (err e
 	server.Config.Services.LogStore, err = setupLogStore(c, s)
 	if err != nil {
 		return fmt.Errorf("could not setup log store: %w", err)
+	}
+
+	// maintenance service
+	server.Config.Services.Store = s
+	server.Config.Services.MaintenanceService = maintenance.NewService(s)
+	server.Config.Services.MaintenanceScheduler = maintenance.NewScheduler(server.Config.Services.MaintenanceService, s)
+	if err := server.Config.Services.MaintenanceScheduler.Start(); err != nil {
+		log.Error().Err(err).Msg("failed to start maintenance scheduler")
 	}
 
 	// agents

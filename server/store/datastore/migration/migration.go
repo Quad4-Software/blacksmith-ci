@@ -58,6 +58,7 @@ var migrationTasks = []*xormigrate.Migration{
 	&replaceZeroForgeIDsInOrgs,
 	&addDependsOnToSteps,
 	&addWorkflowFields,
+	&addMaintenanceTables,
 }
 
 var allBeans = []any{
@@ -79,6 +80,9 @@ var allBeans = []any{
 	new(model.Forge),
 	new(model.Workflow),
 	new(model.Org),
+	new(model.MaintenanceConfig),
+	new(model.MaintenanceStats),
+	new(model.MaintenanceLog),
 }
 
 // TODO: make xormigrate context aware

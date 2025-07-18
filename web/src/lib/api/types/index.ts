@@ -1,6 +1,7 @@
 export * from './agent';
 export * from './cron';
 export * from './forge';
+export * from './maintenance';
 export * from './org';
 export * from './pipeline';
 export * from './pipelineConfig';

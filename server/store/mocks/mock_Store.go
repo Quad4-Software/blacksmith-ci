@@ -445,6 +445,57 @@ func (_c *MockStore_AgentUpdate_Call) RunAndReturn(run func(agent *model.Agent) 
 	return _c
 }
 
+// CleanupOrphanedWorkflows provides a mock function for the type MockStore
+func (_mock *MockStore) CleanupOrphanedWorkflows(workflowIDs []string) error {
+	ret := _mock.Called(workflowIDs)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CleanupOrphanedWorkflows")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func([]string) error); ok {
+		r0 = returnFunc(workflowIDs)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_CleanupOrphanedWorkflows_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CleanupOrphanedWorkflows'
+type MockStore_CleanupOrphanedWorkflows_Call struct {
+	*mock.Call
+}
+
+// CleanupOrphanedWorkflows is a helper method to define mock.On call
+//   - workflowIDs []string
+func (_e *MockStore_Expecter) CleanupOrphanedWorkflows(workflowIDs interface{}) *MockStore_CleanupOrphanedWorkflows_Call {
+	return &MockStore_CleanupOrphanedWorkflows_Call{Call: _e.mock.On("CleanupOrphanedWorkflows", workflowIDs)}
+}
+
+func (_c *MockStore_CleanupOrphanedWorkflows_Call) Run(run func(workflowIDs []string)) *MockStore_CleanupOrphanedWorkflows_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 []string
+		if args[0] != nil {
+			arg0 = args[0].([]string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_CleanupOrphanedWorkflows_Call) Return(err error) *MockStore_CleanupOrphanedWorkflows_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_CleanupOrphanedWorkflows_Call) RunAndReturn(run func(workflowIDs []string) error) *MockStore_CleanupOrphanedWorkflows_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Close provides a mock function for the type MockStore
 func (_mock *MockStore) Close() error {
 	ret := _mock.Called()
@@ -3641,6 +3692,484 @@ func (_c *MockStore_LogFind_Call) RunAndReturn(run func(step *model.Step) ([]*mo
 	return _c
 }
 
+// MaintenanceConfigGet provides a mock function for the type MockStore
+func (_mock *MockStore) MaintenanceConfigGet() (*model.MaintenanceConfig, error) {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for MaintenanceConfigGet")
+	}
+
+	var r0 *model.MaintenanceConfig
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func() (*model.MaintenanceConfig, error)); ok {
+		return returnFunc()
+	}
+	if returnFunc, ok := ret.Get(0).(func() *model.MaintenanceConfig); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.MaintenanceConfig)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func() error); ok {
+		r1 = returnFunc()
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_MaintenanceConfigGet_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'MaintenanceConfigGet'
+type MockStore_MaintenanceConfigGet_Call struct {
+	*mock.Call
+}
+
+// MaintenanceConfigGet is a helper method to define mock.On call
+func (_e *MockStore_Expecter) MaintenanceConfigGet() *MockStore_MaintenanceConfigGet_Call {
+	return &MockStore_MaintenanceConfigGet_Call{Call: _e.mock.On("MaintenanceConfigGet")}
+}
+
+func (_c *MockStore_MaintenanceConfigGet_Call) Run(run func()) *MockStore_MaintenanceConfigGet_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockStore_MaintenanceConfigGet_Call) Return(maintenanceConfig *model.MaintenanceConfig, err error) *MockStore_MaintenanceConfigGet_Call {
+	_c.Call.Return(maintenanceConfig, err)
+	return _c
+}
+
+func (_c *MockStore_MaintenanceConfigGet_Call) RunAndReturn(run func() (*model.MaintenanceConfig, error)) *MockStore_MaintenanceConfigGet_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// MaintenanceConfigUpdate provides a mock function for the type MockStore
+func (_mock *MockStore) MaintenanceConfigUpdate(maintenanceConfig *model.MaintenanceConfig) error {
+	ret := _mock.Called(maintenanceConfig)
+
+	if len(ret) == 0 {
+		panic("no return value specified for MaintenanceConfigUpdate")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(*model.MaintenanceConfig) error); ok {
+		r0 = returnFunc(maintenanceConfig)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_MaintenanceConfigUpdate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'MaintenanceConfigUpdate'
+type MockStore_MaintenanceConfigUpdate_Call struct {
+	*mock.Call
+}
+
+// MaintenanceConfigUpdate is a helper method to define mock.On call
+//   - maintenanceConfig *model.MaintenanceConfig
+func (_e *MockStore_Expecter) MaintenanceConfigUpdate(maintenanceConfig interface{}) *MockStore_MaintenanceConfigUpdate_Call {
+	return &MockStore_MaintenanceConfigUpdate_Call{Call: _e.mock.On("MaintenanceConfigUpdate", maintenanceConfig)}
+}
+
+func (_c *MockStore_MaintenanceConfigUpdate_Call) Run(run func(maintenanceConfig *model.MaintenanceConfig)) *MockStore_MaintenanceConfigUpdate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.MaintenanceConfig
+		if args[0] != nil {
+			arg0 = args[0].(*model.MaintenanceConfig)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_MaintenanceConfigUpdate_Call) Return(err error) *MockStore_MaintenanceConfigUpdate_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_MaintenanceConfigUpdate_Call) RunAndReturn(run func(maintenanceConfig *model.MaintenanceConfig) error) *MockStore_MaintenanceConfigUpdate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// MaintenanceLogCreate provides a mock function for the type MockStore
+func (_mock *MockStore) MaintenanceLogCreate(maintenanceLog *model.MaintenanceLog) error {
+	ret := _mock.Called(maintenanceLog)
+
+	if len(ret) == 0 {
+		panic("no return value specified for MaintenanceLogCreate")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(*model.MaintenanceLog) error); ok {
+		r0 = returnFunc(maintenanceLog)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_MaintenanceLogCreate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'MaintenanceLogCreate'
+type MockStore_MaintenanceLogCreate_Call struct {
+	*mock.Call
+}
+
+// MaintenanceLogCreate is a helper method to define mock.On call
+//   - maintenanceLog *model.MaintenanceLog
+func (_e *MockStore_Expecter) MaintenanceLogCreate(maintenanceLog interface{}) *MockStore_MaintenanceLogCreate_Call {
+	return &MockStore_MaintenanceLogCreate_Call{Call: _e.mock.On("MaintenanceLogCreate", maintenanceLog)}
+}
+
+func (_c *MockStore_MaintenanceLogCreate_Call) Run(run func(maintenanceLog *model.MaintenanceLog)) *MockStore_MaintenanceLogCreate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.MaintenanceLog
+		if args[0] != nil {
+			arg0 = args[0].(*model.MaintenanceLog)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_MaintenanceLogCreate_Call) Return(err error) *MockStore_MaintenanceLogCreate_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_MaintenanceLogCreate_Call) RunAndReturn(run func(maintenanceLog *model.MaintenanceLog) error) *MockStore_MaintenanceLogCreate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// MaintenanceLogList provides a mock function for the type MockStore
+func (_mock *MockStore) MaintenanceLogList(limit int) ([]*model.MaintenanceLog, error) {
+	ret := _mock.Called(limit)
+
+	if len(ret) == 0 {
+		panic("no return value specified for MaintenanceLogList")
+	}
+
+	var r0 []*model.MaintenanceLog
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int) ([]*model.MaintenanceLog, error)); ok {
+		return returnFunc(limit)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int) []*model.MaintenanceLog); ok {
+		r0 = returnFunc(limit)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.MaintenanceLog)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int) error); ok {
+		r1 = returnFunc(limit)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_MaintenanceLogList_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'MaintenanceLogList'
+type MockStore_MaintenanceLogList_Call struct {
+	*mock.Call
+}
+
+// MaintenanceLogList is a helper method to define mock.On call
+//   - limit int
+func (_e *MockStore_Expecter) MaintenanceLogList(limit interface{}) *MockStore_MaintenanceLogList_Call {
+	return &MockStore_MaintenanceLogList_Call{Call: _e.mock.On("MaintenanceLogList", limit)}
+}
+
+func (_c *MockStore_MaintenanceLogList_Call) Run(run func(limit int)) *MockStore_MaintenanceLogList_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int
+		if args[0] != nil {
+			arg0 = args[0].(int)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_MaintenanceLogList_Call) Return(maintenanceLogs []*model.MaintenanceLog, err error) *MockStore_MaintenanceLogList_Call {
+	_c.Call.Return(maintenanceLogs, err)
+	return _c
+}
+
+func (_c *MockStore_MaintenanceLogList_Call) RunAndReturn(run func(limit int) ([]*model.MaintenanceLog, error)) *MockStore_MaintenanceLogList_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// MaintenanceRunMySQL provides a mock function for the type MockStore
+func (_mock *MockStore) MaintenanceRunMySQL(context1 context.Context) error {
+	ret := _mock.Called(context1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for MaintenanceRunMySQL")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context) error); ok {
+		r0 = returnFunc(context1)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_MaintenanceRunMySQL_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'MaintenanceRunMySQL'
+type MockStore_MaintenanceRunMySQL_Call struct {
+	*mock.Call
+}
+
+// MaintenanceRunMySQL is a helper method to define mock.On call
+//   - context1 context.Context
+func (_e *MockStore_Expecter) MaintenanceRunMySQL(context1 interface{}) *MockStore_MaintenanceRunMySQL_Call {
+	return &MockStore_MaintenanceRunMySQL_Call{Call: _e.mock.On("MaintenanceRunMySQL", context1)}
+}
+
+func (_c *MockStore_MaintenanceRunMySQL_Call) Run(run func(context1 context.Context)) *MockStore_MaintenanceRunMySQL_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_MaintenanceRunMySQL_Call) Return(err error) *MockStore_MaintenanceRunMySQL_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_MaintenanceRunMySQL_Call) RunAndReturn(run func(context1 context.Context) error) *MockStore_MaintenanceRunMySQL_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// MaintenanceRunPostgreSQL provides a mock function for the type MockStore
+func (_mock *MockStore) MaintenanceRunPostgreSQL(context1 context.Context) error {
+	ret := _mock.Called(context1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for MaintenanceRunPostgreSQL")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context) error); ok {
+		r0 = returnFunc(context1)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_MaintenanceRunPostgreSQL_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'MaintenanceRunPostgreSQL'
+type MockStore_MaintenanceRunPostgreSQL_Call struct {
+	*mock.Call
+}
+
+// MaintenanceRunPostgreSQL is a helper method to define mock.On call
+//   - context1 context.Context
+func (_e *MockStore_Expecter) MaintenanceRunPostgreSQL(context1 interface{}) *MockStore_MaintenanceRunPostgreSQL_Call {
+	return &MockStore_MaintenanceRunPostgreSQL_Call{Call: _e.mock.On("MaintenanceRunPostgreSQL", context1)}
+}
+
+func (_c *MockStore_MaintenanceRunPostgreSQL_Call) Run(run func(context1 context.Context)) *MockStore_MaintenanceRunPostgreSQL_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_MaintenanceRunPostgreSQL_Call) Return(err error) *MockStore_MaintenanceRunPostgreSQL_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_MaintenanceRunPostgreSQL_Call) RunAndReturn(run func(context1 context.Context) error) *MockStore_MaintenanceRunPostgreSQL_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// MaintenanceRunSQLite provides a mock function for the type MockStore
+func (_mock *MockStore) MaintenanceRunSQLite(context1 context.Context) error {
+	ret := _mock.Called(context1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for MaintenanceRunSQLite")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context) error); ok {
+		r0 = returnFunc(context1)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_MaintenanceRunSQLite_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'MaintenanceRunSQLite'
+type MockStore_MaintenanceRunSQLite_Call struct {
+	*mock.Call
+}
+
+// MaintenanceRunSQLite is a helper method to define mock.On call
+//   - context1 context.Context
+func (_e *MockStore_Expecter) MaintenanceRunSQLite(context1 interface{}) *MockStore_MaintenanceRunSQLite_Call {
+	return &MockStore_MaintenanceRunSQLite_Call{Call: _e.mock.On("MaintenanceRunSQLite", context1)}
+}
+
+func (_c *MockStore_MaintenanceRunSQLite_Call) Run(run func(context1 context.Context)) *MockStore_MaintenanceRunSQLite_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_MaintenanceRunSQLite_Call) Return(err error) *MockStore_MaintenanceRunSQLite_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_MaintenanceRunSQLite_Call) RunAndReturn(run func(context1 context.Context) error) *MockStore_MaintenanceRunSQLite_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// MaintenanceStatsGet provides a mock function for the type MockStore
+func (_mock *MockStore) MaintenanceStatsGet() (*model.MaintenanceStats, error) {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for MaintenanceStatsGet")
+	}
+
+	var r0 *model.MaintenanceStats
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func() (*model.MaintenanceStats, error)); ok {
+		return returnFunc()
+	}
+	if returnFunc, ok := ret.Get(0).(func() *model.MaintenanceStats); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.MaintenanceStats)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func() error); ok {
+		r1 = returnFunc()
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_MaintenanceStatsGet_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'MaintenanceStatsGet'
+type MockStore_MaintenanceStatsGet_Call struct {
+	*mock.Call
+}
+
+// MaintenanceStatsGet is a helper method to define mock.On call
+func (_e *MockStore_Expecter) MaintenanceStatsGet() *MockStore_MaintenanceStatsGet_Call {
+	return &MockStore_MaintenanceStatsGet_Call{Call: _e.mock.On("MaintenanceStatsGet")}
+}
+
+func (_c *MockStore_MaintenanceStatsGet_Call) Run(run func()) *MockStore_MaintenanceStatsGet_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockStore_MaintenanceStatsGet_Call) Return(maintenanceStats *model.MaintenanceStats, err error) *MockStore_MaintenanceStatsGet_Call {
+	_c.Call.Return(maintenanceStats, err)
+	return _c
+}
+
+func (_c *MockStore_MaintenanceStatsGet_Call) RunAndReturn(run func() (*model.MaintenanceStats, error)) *MockStore_MaintenanceStatsGet_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// MaintenanceStatsUpdate provides a mock function for the type MockStore
+func (_mock *MockStore) MaintenanceStatsUpdate(maintenanceStats *model.MaintenanceStats) error {
+	ret := _mock.Called(maintenanceStats)
+
+	if len(ret) == 0 {
+		panic("no return value specified for MaintenanceStatsUpdate")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(*model.MaintenanceStats) error); ok {
+		r0 = returnFunc(maintenanceStats)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_MaintenanceStatsUpdate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'MaintenanceStatsUpdate'
+type MockStore_MaintenanceStatsUpdate_Call struct {
+	*mock.Call
+}
+
+// MaintenanceStatsUpdate is a helper method to define mock.On call
+//   - maintenanceStats *model.MaintenanceStats
+func (_e *MockStore_Expecter) MaintenanceStatsUpdate(maintenanceStats interface{}) *MockStore_MaintenanceStatsUpdate_Call {
+	return &MockStore_MaintenanceStatsUpdate_Call{Call: _e.mock.On("MaintenanceStatsUpdate", maintenanceStats)}
+}
+
+func (_c *MockStore_MaintenanceStatsUpdate_Call) Run(run func(maintenanceStats *model.MaintenanceStats)) *MockStore_MaintenanceStatsUpdate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.MaintenanceStats
+		if args[0] != nil {
+			arg0 = args[0].(*model.MaintenanceStats)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_MaintenanceStatsUpdate_Call) Return(err error) *MockStore_MaintenanceStatsUpdate_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_MaintenanceStatsUpdate_Call) RunAndReturn(run func(maintenanceStats *model.MaintenanceStats) error) *MockStore_MaintenanceStatsUpdate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Migrate provides a mock function for the type MockStore
 func (_mock *MockStore) Migrate(context1 context.Context, b bool) error {
 	ret := _mock.Called(context1, b)
@@ -6812,57 +7341,6 @@ func (_c *MockStore_WorkflowsReplace_Call) Return(err error) *MockStore_Workflow
 }
 
 func (_c *MockStore_WorkflowsReplace_Call) RunAndReturn(run func(pipeline *model.Pipeline, workflows []*model.Workflow) error) *MockStore_WorkflowsReplace_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// CleanupOrphanedWorkflows provides a mock function for the type MockStore
-func (_mock *MockStore) CleanupOrphanedWorkflows(workflowIDs []string) error {
-	ret := _mock.Called(workflowIDs)
-
-	if len(ret) == 0 {
-		panic("no return value specified for CleanupOrphanedWorkflows")
-	}
-
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func([]string) error); ok {
-		r0 = returnFunc(workflowIDs)
-	} else {
-		r0 = ret.Error(0)
-	}
-	return r0
-}
-
-// MockStore_CleanupOrphanedWorkflows_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CleanupOrphanedWorkflows'
-type MockStore_CleanupOrphanedWorkflows_Call struct {
-	*mock.Call
-}
-
-// CleanupOrphanedWorkflows is a helper method to define mock.On call
-//   - workflowIDs []string
-func (_e *MockStore_Expecter) CleanupOrphanedWorkflows(workflowIDs interface{}) *MockStore_CleanupOrphanedWorkflows_Call {
-	return &MockStore_CleanupOrphanedWorkflows_Call{Call: _e.mock.On("CleanupOrphanedWorkflows", workflowIDs)}
-}
-
-func (_c *MockStore_CleanupOrphanedWorkflows_Call) Run(run func(workflowIDs []string)) *MockStore_CleanupOrphanedWorkflows_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 []string
-		if args[0] != nil {
-			arg0 = args[0].([]string)
-		}
-		run(
-			arg0,
-		)
-	})
-	return _c
-}
-
-func (_c *MockStore_CleanupOrphanedWorkflows_Call) Return(err error) *MockStore_CleanupOrphanedWorkflows_Call {
-	_c.Call.Return(err)
-	return _c
-}
-
-func (_c *MockStore_CleanupOrphanedWorkflows_Call) RunAndReturn(run func(workflowIDs []string) error) *MockStore_CleanupOrphanedWorkflows_Call {
 	_c.Call.Return(run)
 	return _c
 }

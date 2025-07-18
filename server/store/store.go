@@ -192,6 +192,17 @@ type Store interface {
 	AgentDelete(*model.Agent) error
 	AgentListForOrg(orgID int64, opt *model.ListOptions) ([]*model.Agent, error)
 
+	// Maintenance
+	MaintenanceConfigGet() (*model.MaintenanceConfig, error)
+	MaintenanceConfigUpdate(*model.MaintenanceConfig) error
+	MaintenanceStatsGet() (*model.MaintenanceStats, error)
+	MaintenanceStatsUpdate(*model.MaintenanceStats) error
+	MaintenanceLogCreate(*model.MaintenanceLog) error
+	MaintenanceLogList(limit int) ([]*model.MaintenanceLog, error)
+	MaintenanceRunPostgreSQL(context.Context) error
+	MaintenanceRunMySQL(context.Context) error
+	MaintenanceRunSQLite(context.Context) error
+
 	// Workflow
 	WorkflowGetTree(*model.Pipeline) ([]*model.Workflow, error)
 	WorkflowsCreate([]*model.Workflow) error

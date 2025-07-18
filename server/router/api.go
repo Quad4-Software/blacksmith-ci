@@ -260,6 +260,21 @@ func apiRoutes(e *gin.RouterGroup) {
 			stream.GET("/events", api.EventStreamSSE)
 		}
 
+		admin := apiBase.Group("/admin")
+		{
+			admin.Use(session.MustAdmin())
+
+			// Maintenance endpoints
+			maintenance := admin.Group("/maintenance")
+			{
+				maintenance.GET("/config", api.GetMaintenanceConfig)
+				maintenance.PUT("/config", api.UpdateMaintenanceConfig)
+				maintenance.GET("/stats", api.GetMaintenanceStats)
+				maintenance.GET("/logs", api.GetMaintenanceLogs)
+				maintenance.POST("/run", api.RunMaintenanceNow)
+			}
+		}
+
 		if zerolog.GlobalLevel() <= zerolog.DebugLevel {
 			debugger := apiBase.Group("/debug")
 			{

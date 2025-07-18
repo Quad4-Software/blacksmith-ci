@@ -20,7 +20,12 @@
               class="md:display-unset mr-2 hidden h-8 w-8 shrink-0 md:justify-between"
               @click="goBack"
             />
-            <h1 class="flex min-w-0 items-center gap-x-2 text-xl italic text-wp-text-100"><slot name="title" /></h1>
+            <h1 class="flex min-w-0 items-center gap-x-2 text-xl italic text-wp-text-100">
+              <slot name="title" />
+              <span v-if="$slots.titleSuffix" class="text-sm font-normal not-italic text-wp-text-alt-100">
+                <slot name="titleSuffix" />
+              </span>
+            </h1>
           </div>
           <!-- Mobile header actions in same row as title (only for non-pipeline detail pages) -->
           <div v-if="$slots.headerActions && !isPipelineDetail" class="flex min-w-0 items-center gap-x-2 md:hidden">
@@ -50,7 +55,7 @@
 
       <div
         v-if="enableTabs"
-        class="flex flex-col gap-0 md:gap-4 md:flex-row md:items-center md:justify-between md:py-0"
+        class="flex flex-col gap-0 md:gap-0 md:flex-row md:items-center md:justify-between md:py-0"
       >
         <Tabs class="order-2 md:order-none" />
         <div v-if="$slots.headerActions" class="flex flex-wrap content-start pb-2 md:justify-end">

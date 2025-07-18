@@ -230,8 +230,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: '',
         name: 'admin-settings',
-        component: (): Component => import('~/views/instance/InstanceInfo.vue'),
-        props: true,
+        redirect: { name: 'admin-settings-maintenance' },
       },
       {
         path: 'secrets',
@@ -273,6 +272,12 @@ const routes: RouteRecordRaw[] = [
         path: 'queue',
         name: 'admin-settings-queue',
         component: (): Component => import('~/views/admin/AdminQueue.vue'),
+        props: true,
+      },
+      {
+        path: 'maintenance',
+        name: 'admin-settings-maintenance',
+        component: (): Component => import('~/views/admin/AdminMaintenance.vue'),
         props: true,
       },
     ],
@@ -317,8 +322,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'info',
         name: 'user-info',
-        component: (): Component => import('~/views/instance/InstanceInfo.vue'),
-        props: true,
+        redirect: { name: 'user' },
       },
     ],
   },

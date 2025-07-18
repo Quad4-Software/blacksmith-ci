@@ -611,6 +611,20 @@ var flags = append([]cli.Flag{
 		Usage:   "Container naming scheme: 'hash' (crow_<hash>) or 'descriptive' (<repo>-<pipeline>-<workflow>). Default: 'descriptive'",
 		Value:   "descriptive",
 	},
+
+	// Maintenance configuration flags
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_MAINTENANCE_VACUUM_LOG_TABLE_SCHEDULE"),
+		Name:    "maintenance-log-vacuum-schedule",
+		Usage:   "Cron schedule for database log vacuum operations",
+		Value:   "0 5 * * *", // 5 AM daily
+	},
+	&cli.BoolFlag{
+		Sources: cli.EnvVars("CROW_MAINTENANCE_VACUUM_LOG_TABLE_ENABLED"),
+		Name:    "maintenance-log-vacuum-enabled",
+		Usage:   "Enable automatic database log vacuum operations",
+		Value:   true,
+	},
 }, logger.GlobalLoggerFlags...)
 
 // If crow is running inside a container the default value for

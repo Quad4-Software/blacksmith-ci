@@ -405,6 +405,52 @@ func (_c *MockQueue_Extend_Call) RunAndReturn(run func(c context.Context, agentI
 	return _c
 }
 
+// GetRunningWorkflowIDs provides a mock function for the type MockQueue
+func (_mock *MockQueue) GetRunningWorkflowIDs() []string {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetRunningWorkflowIDs")
+	}
+
+	var r0 []string
+	if returnFunc, ok := ret.Get(0).(func() []string); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+	return r0
+}
+
+// MockQueue_GetRunningWorkflowIDs_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetRunningWorkflowIDs'
+type MockQueue_GetRunningWorkflowIDs_Call struct {
+	*mock.Call
+}
+
+// GetRunningWorkflowIDs is a helper method to define mock.On call
+func (_e *MockQueue_Expecter) GetRunningWorkflowIDs() *MockQueue_GetRunningWorkflowIDs_Call {
+	return &MockQueue_GetRunningWorkflowIDs_Call{Call: _e.mock.On("GetRunningWorkflowIDs")}
+}
+
+func (_c *MockQueue_GetRunningWorkflowIDs_Call) Run(run func()) *MockQueue_GetRunningWorkflowIDs_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockQueue_GetRunningWorkflowIDs_Call) Return(strings []string) *MockQueue_GetRunningWorkflowIDs_Call {
+	_c.Call.Return(strings)
+	return _c
+}
+
+func (_c *MockQueue_GetRunningWorkflowIDs_Call) RunAndReturn(run func() []string) *MockQueue_GetRunningWorkflowIDs_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Info provides a mock function for the type MockQueue
 func (_mock *MockQueue) Info(c context.Context) queue.InfoT {
 	ret := _mock.Called(c)
@@ -803,52 +849,6 @@ func (_c *MockQueue_Wait_Call) Return(err error) *MockQueue_Wait_Call {
 }
 
 func (_c *MockQueue_Wait_Call) RunAndReturn(run func(c context.Context, id string) error) *MockQueue_Wait_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// GetRunningWorkflowIDs provides a mock function for the type MockQueue
-func (_mock *MockQueue) GetRunningWorkflowIDs() []string {
-	ret := _mock.Called()
-
-	if len(ret) == 0 {
-		panic("no return value specified for GetRunningWorkflowIDs")
-	}
-
-	var r0 []string
-	if returnFunc, ok := ret.Get(0).(func() []string); ok {
-		r0 = returnFunc()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]string)
-		}
-	}
-	return r0
-}
-
-// MockQueue_GetRunningWorkflowIDs_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetRunningWorkflowIDs'
-type MockQueue_GetRunningWorkflowIDs_Call struct {
-	*mock.Call
-}
-
-// GetRunningWorkflowIDs is a helper method to define mock.On call
-func (_e *MockQueue_Expecter) GetRunningWorkflowIDs() *MockQueue_GetRunningWorkflowIDs_Call {
-	return &MockQueue_GetRunningWorkflowIDs_Call{Call: _e.mock.On("GetRunningWorkflowIDs")}
-}
-
-func (_c *MockQueue_GetRunningWorkflowIDs_Call) Run(run func()) *MockQueue_GetRunningWorkflowIDs_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run()
-	})
-	return _c
-}
-
-func (_c *MockQueue_GetRunningWorkflowIDs_Call) Return(workflowIDs []string) *MockQueue_GetRunningWorkflowIDs_Call {
-	_c.Call.Return(workflowIDs)
-	return _c
-}
-
-func (_c *MockQueue_GetRunningWorkflowIDs_Call) RunAndReturn(run func() []string) *MockQueue_GetRunningWorkflowIDs_Call {
 	_c.Call.Return(run)
 	return _c
 }
