@@ -6,8 +6,28 @@ hide:
 
 <!-- markdownlint-disable MD041 -->
 
-Crow CI is a _Continuous Integration & Continuous Delivery_ (CI/CD)[^1] application.
-It is designed to be **lightweight**, simple to use and **fast**.
+Crow CI is a _Continuous Integration & Continuous Delivery_ (CI/CD)[^1] application.  
+It is designed to be **lightweight**, **fast** and **extensible**.
+
+## Features
+
+- [x] FLOSS License (Apache 2.0)
+- [x] 150 MB Memory requirement
+- [x] Container and Kubernetes backends
+- [x] Multi-forge support (GitHub, GitLab, Forgejo, Gitea, Bitbucket)
+- [x] SQLite, Postgres and MySQL support
+- [x] Flexible agent handling (Global, org, user)
+- [x] DAG pipeline visualization
+- [x] OAuth2 support
+- [x] Extension/Plugin system
+- [x] Integrated secret storage
+- [x] Maintenance panel
+
+Coming soon:
+
+- [ ] Multi-forge Login support
+- [ ] HA for Crow Server
+- [ ] External secret store integration
 
 ## Why self-host CI/CD?
 
@@ -23,31 +43,34 @@ Specifically, the following limitations of public CI offerings can be tackled wi
 - Storing (sensitive) secrets on remote platforms/services
 - Being platform/forge bound
 
-## Why use Crow CI in the first place?
+## Why use Crow CI over other options?
 
-Crow CI gives you full control over the selection of nodes which are processing the builds.
-You can store secrets on servers you own and run as many builds as you want.
-In addition, Crow CI works with many different forges (GitHub, GitLab, Gitea, Forgejo, Bitbucket), allowing you to transition between these or use a consistent CI syntax across all of them.
+Crow CI gives you **full control** over the selection of servers which are processing your builds, being it the architecture, the size or their location (on-prem, cloud).
+There is no limit to the number of builds you can run.
+You are in full control!  
+In addition, Crow CI is compatible with all common forges (GitHub, GitLab, Gitea, Forgejo, Bitbucket), allowing you to transition between these or use a consistent CI syntax across all of them.
 
-Combined with the [Crow CI Autoscaler](configuration/autoscaler.md), you can make use of powerful CI runners on many cloud providers, giving you the full power the cloud space has to offer while keeping costs to a minimum.
+Combined with the [Crow CI Autoscaler](configuration/autoscaler.md), which allows to dynamically add new servers with agents in case all existing ones are busy, you can make flexible use of powerful hardware from cloud providers _only_ when you really need it.
+This keeps costs at a minimum while you retain full flexibility within the cloud provider space.
 
 ## Containers at the core
 
 Crow CI is a _container-only_ application.
 This stands in contrast to other common CI/CD apps like [GitHub Actions](https://docs.github.com/en/actions), [GitLab Runner](https://docs.gitlab.com/runner/), [Jenkins](https://www.jenkins.io/), [Circle CI](https://circleci.com/) or [Drone CI](https://www.drone.io/).
-While these can also execute pipelines in containers if desired, they are "host-first", i.e., by default pipelines run directly on a VM and are subsequently restricted to the OS on that VM.
+While these can also execute pipelines in containers if desired, their default mode is "host-first", i.e., pipelines typically run directly on a virtual machine and are therefore limited by the operating system of that VM..
 
-Crow in contrast only uses containers and is hence operating-system agnostic, i.e. it does not matter which OS is running on the host which is executing the pipelines.
-
-With respect to well-known/public CI/CD providers, Crow is mostly comparable to [Circle CI](https://circleci.com/), which is also making use of a container-only approach.
+In contrast, Crow CI is built to use containers exclusively, making it inherently operating-system agnostic.
+This means the underlying OS of the host machine running the pipelines is irrelevant.
+The only requirement is that the host must be running Linux.
 
 ## Target audience
 
-Crow CI is Apache-2.0 licensed, lightweight and can be used in private environments without restriction.
-It has a very small footprint (< 200 MB memory consumption) in idle and can even be installed and practically used on a Raspberry Pi with 4GB (or even less, depending on what the builds will do).
+Due to Crow CI being Apache-2.0 licensed, lightweight and having a very small resource footprint (< 200 MB memory consumption), it is an ideal choice for homelab environments.  
+Yet also in corporate environments, Crow CI is an ideal tool to save a lot of money on paying hosted CI/CD services and easily make use of internal CI servers to process builds.
+Crow CI can be hosted via common container deployment approaches and also provides a dedicated helm chart for Kubernetes environments.
 
-Crow uses a SQLite by default and can do a lot with in during runtime.
-If you are planning a bigger instance with multiple (active) users and > 20 active repos, it is recommended to configure it with a Postgres or MariaDB database for performance reasons.[^2]
+Crow uses a SQLite by default (perfect for small instances) and has support for Postgres and MySQL to serve larger instances.  
+The latter are recommended for instances with multiple (active) users and > 20 active repos[^2].
 
 ## History
 
@@ -67,6 +90,7 @@ As of 2025-06, the following unique features exist in Crow:
 
 - Log retention: Each repository can define its own retention policy. A global default of 90 days is used
 - DAG support
+- Maintenance panel to perform period cleanup operations on the database
 - Descriptive error message: Errors are transparently parsed back to the user in the UI. Almost no "An unknown error occurred" messages are shown
 - Multi-org agents: Admins can deploy agents which are allowed to process builds from multiple organizations/users
 - Agent list: All instance agents are listed in the UI, also for non-admin users.
