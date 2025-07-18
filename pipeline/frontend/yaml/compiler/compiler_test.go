@@ -143,6 +143,7 @@ func TestCompilerCompile(t *testing.T) {
 						WorkspaceBase: "/crow",
 						Networks:      []types.Conn{{Name: "test_default", Aliases: []string{"dummy"}}},
 						ExtraHosts:    []types.HostAlias{},
+						DependsOn:     []string{"clone"},
 					}},
 				}},
 			},
