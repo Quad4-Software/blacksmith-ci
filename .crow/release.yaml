@@ -6,7 +6,7 @@ variables:
 
 clone:
   git:
-    image: docker.io/thegeeklab/wp-git-clone:1.0.19
+    image: docker.io/thegeeklab/wp-git-clone:1.0.20
     settings:
       tags: true
 
