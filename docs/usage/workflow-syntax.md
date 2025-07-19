@@ -40,7 +40,7 @@ A common use case is to disable partial cloning, to allow for a possible `git pu
 ```yaml hl_lines="5"
 clone:
   - name: clone
-    image: woodpeckerci/plugin-git
+    image: codeberg.org/crow-plugins/clone
     settings:
       partial: false
 ```

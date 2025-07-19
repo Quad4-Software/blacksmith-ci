@@ -1,4 +1,5 @@
 // Copyright 2023 Woodpecker Authors
+// Copyright 2025 Crow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -38,27 +39,27 @@ func checkGitCloneCap() error {
 
 // loadClone on backend start determine if there is a global plugin-git binary.
 func (e *local) loadClone() {
-	binary, err := exec.LookPath("plugin-git")
+	binary, err := exec.LookPath("clone")
 	if err != nil || binary == "" {
 		// could not found global git plugin, just ignore it
 		return
 	}
-	e.pluginGitBinary = binary
+	e.cloneBinary = binary
 }
 
 // setupClone prepare the clone environment before exec.
 func (e *local) setupClone(state *workflowState) error {
-	if e.pluginGitBinary != "" {
-		state.pluginGitBinary = e.pluginGitBinary
+	if e.cloneBinary != "" {
+		state.cloneBinary = e.cloneBinary
 		return nil
 	}
 
-	log.Info().Msg("no global 'plugin-git' installed, try to download for current workflow")
-	state.pluginGitBinary = filepath.Join(state.homeDir, "plugin-git")
+	log.Info().Msg("no global 'clone' plugin installed")
+	state.cloneBinary = filepath.Join(state.homeDir, "clone")
 	if e.os == "windows" {
-		state.pluginGitBinary += ".exe"
+		state.cloneBinary += ".exe"
 	}
-	return e.downloadLatestGitPluginBinary(state.pluginGitBinary)
+	return e.downloadLatestCloneBinary(state.cloneBinary)
 }
 
 // execClone executes a clone-step locally.
@@ -71,8 +72,8 @@ func (e *local) execClone(ctx context.Context, step *types.Step, state *workflow
 		return fmt.Errorf("setup clone step failed: %w", err)
 	}
 
-	if !strings.Contains(step.Image, "plugin-git") {
-		log.Warn().Msgf("clone step image '%s' does not match default git clone image. We ignore it and use our plugin-git anyway.", step.Image)
+	if !strings.Contains(step.Image, "clone") {
+		log.Warn().Msgf("the clone step image '%s' does not match the default clone image. Ignoring and using the default clone image anyway.", step.Image)
 	}
 
 	rmCmd, err := e.writeNetRC(step, state)
@@ -89,13 +90,13 @@ func (e *local) execClone(ctx context.Context, step *types.Step, state *workflow
 			if err != nil {
 				return err
 			}
-			cmd = exec.CommandContext(ctx, pwsh, "-Command", fmt.Sprintf("%s ; $code=$? ; %s ; if (!$code) {[Environment]::Exit(1)}", state.pluginGitBinary, rmCmd))
+			cmd = exec.CommandContext(ctx, pwsh, "-Command", fmt.Sprintf("%s ; $code=$? ; %s ; if (!$code) {[Environment]::Exit(1)}", state.cloneBinary, rmCmd))
 		} else {
-			cmd = exec.CommandContext(ctx, "/bin/sh", "-c", fmt.Sprintf("%s ; export code=$? ; %s ; exit $code", state.pluginGitBinary, rmCmd))
+			cmd = exec.CommandContext(ctx, "/bin/sh", "-c", fmt.Sprintf("%s ; export code=$? ; %s ; exit $code", state.cloneBinary, rmCmd))
 		}
 	} else {
 		// if we have NO netrc, we can just exec the clone directly
-		cmd = exec.CommandContext(ctx, state.pluginGitBinary)
+		cmd = exec.CommandContext(ctx, state.cloneBinary)
 	}
 	cmd.Env = env
 	cmd.Dir = state.workspaceDir
@@ -127,9 +128,9 @@ func (e *local) writeNetRC(step *types.Step, state *workflowState) (string, erro
 	return rmCmd, os.WriteFile(file, []byte(genNetRC(step.Environment)), 0o600)
 }
 
-// downloadLatestGitPluginBinary download the latest plugin-git binary based on runtime OS and Arch
+// downloadLatestCloneBinary download the latest clone binary based on runtime OS and Arch
 // and saves it to dest.
-func (e *local) downloadLatestGitPluginBinary(dest string) error {
+func (e *local) downloadLatestCloneBinary(dest string) error {
 	type asset struct {
 		Name               string
 		BrowserDownloadURL string `json:"browser_download_url"`
@@ -140,9 +141,8 @@ func (e *local) downloadLatestGitPluginBinary(dest string) error {
 	}
 
 	// get latest release
-	req, _ := http.NewRequest(http.MethodGet, "https://api.github.com/repos/woodpecker-ci/plugin-git/releases/latest", nil)
-	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+	req, _ := http.NewRequest(http.MethodGet, "https://codeberg.org/api/v1/repos/crow-plugins/clone/releases/latest", nil)
+	req.Header.Set("Accept", "application/json")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("could not get latest release: %w", err)
@@ -158,28 +158,28 @@ func (e *local) downloadLatestGitPluginBinary(dest string) error {
 		if strings.Contains(at.Name, e.os) && strings.Contains(at.Name, e.arch) {
 			resp2, err := http.Get(at.BrowserDownloadURL)
 			if err != nil {
-				return fmt.Errorf("could not download plugin-git: %w", err)
+				return fmt.Errorf("could not download clone plugin: %w", err)
 			}
 			defer resp2.Body.Close()
 
 			file, err := os.Create(dest)
 			if err != nil {
-				return fmt.Errorf("could not create plugin-git: %w", err)
+				return fmt.Errorf("could not create clone plugin: %w", err)
 			}
 			defer file.Close()
 
 			if _, err := io.Copy(file, resp2.Body); err != nil {
-				return fmt.Errorf("could not download plugin-git: %w", err)
+				return fmt.Errorf("could not download clone plugin: %w", err)
 			}
 			if err := os.Chmod(dest, 0o755); err != nil {
 				return err
 			}
 
 			// download successful
-			log.Trace().Msgf("download of 'plugin-git' to '%s' successful", dest)
+			log.Trace().Msgf("download of 'clone' plugin to '%s' successful", dest)
 			return nil
 		}
 	}
 
-	return fmt.Errorf("could not download plugin-git, binary for this os/arch not found")
+	return fmt.Errorf("could not download clone plugin, binary for this os/arch not found")
 }

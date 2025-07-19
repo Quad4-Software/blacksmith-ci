@@ -1,10 +1,10 @@
 clone:
   - name: git
-    image: woodpeckerci/plugin-git
+    image: crow-plugins/clone
     settings:
       partial: true
   - name: testdata
-    image: woodpeckerci/plugin-git
+    image: crow-plugins/clone
     settings:
       remote: https://gitserver/owner/testdata.git
       path: testdata

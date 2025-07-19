@@ -16,8 +16,7 @@ package constant
 
 import "time"
 
-// DefaultConfigOrder represent the priority in witch woodpecker search for a pipeline config by default
-// folders are indicated by supplying a trailing slash.
+// DefaultConfigOrder represent the priority in which Crow searches for a pipeline config by default. Directories are indicated by supplying a trailing slash.
 var DefaultConfigOrder = [...]string{
 	".crow/",
 	".crow.yaml",
@@ -28,16 +27,15 @@ var DefaultConfigOrder = [...]string{
 }
 
 const (
-	// DefaultClonePlugin can be changed by 'WOODPECKER_DEFAULT_CLONE_PLUGIN' at runtime.
-	// renovate: datasource=docker depName=woodpeckerci/plugin-git
-	DefaultClonePlugin = "docker.io/woodpeckerci/plugin-git:2.6.5"
+	// DefaultClonePlugin can be changed by 'CROW_DEFAULT_CLONE_PLUGIN' at runtime.
+	// renovate: datasource=docker depName=codeberg.org/crow-plugins
+	DefaultClonePlugin = "codeberg.org/crow-plugins/clone:1.0.0"
 )
 
-// TrustedClonePlugins can be changed by 'WOODPECKER_PLUGINS_TRUSTED_CLONE' at runtime.
+// TrustedClonePlugins can be changed by 'CROW_PLUGINS_TRUSTED_CLONE' at runtime.
 var TrustedClonePlugins = []string{
 	DefaultClonePlugin,
-	"docker.io/woodpeckerci/plugin-git",
-	"quay.io/woodpeckerci/plugin-git",
+	"codeberg.org/crow-plugins/clone",
 }
 
 // TaskTimeout is the time till a running task is counted as dead.

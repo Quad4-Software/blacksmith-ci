@@ -7,7 +7,7 @@
       "customType": "regex",
       "managerFilePatterns": ["/shared/constant/constant.go/"],
       "matchStrings": [
-        "//\\s*renovate:\\s*datasource=(?<datasource>.*?) depName=(?<depName>.*?)( versioning=(?<versioning>.*?))?\\s+DefaultClonePlugin = \"docker.io/woodpeckerci/plugin-git:(?<currentValue>.*)\""
+        "//\\s*renovate:\\s*datasource=(?<datasource>.*?) depName=(?<depName>.*?)( versioning=(?<versioning>.*?))?\\s+DefaultClonePlugin = \"codeberg.org/crow-plugins/clone:(?<currentValue>.*)\""
       ],
       "versioningTemplate": "{{#if versioning}}{{{versioning}}}{{else}}semver{{/if}}"
     }

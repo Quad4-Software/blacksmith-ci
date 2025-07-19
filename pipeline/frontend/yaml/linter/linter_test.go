@@ -174,7 +174,7 @@ func TestLintErrors(t *testing.T) {
 			want: "The formerly privileged plugin 'plugins/docker' is no longer privileged by default since v3. To use it, add it to (server) env var `CROW_PLUGINS_PRIVILEGED` (must be done by an instance administrator).",
 		},
 		{
-			from: "{steps: { build: { image: golang, settings: { test: 'true' } } }, when: { branch: main, event: push }, clone: { git: { image: some-other/plugin-git:v1.1.0 } } }",
+			from: "{steps: { build: { image: golang, settings: { test: 'true' } } }, when: { branch: main, event: push }, clone: { git: { image: some-other/clone:v1.1.0 } } }",
 			want: "The specified clone image does not match the images in the allow list (`CROW_PLUGINS_TRUSTED_CLONE`), not injecting `.netrc` credentials.",
 		},
 		{

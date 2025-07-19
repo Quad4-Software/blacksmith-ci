@@ -616,7 +616,7 @@ func TestWorkflowDependsOnWithCloneSteps(t *testing.T) {
 			},
 		}),
 		WithWorkspaceFromURL("/crow", repoURL),
-		WithDefaultClonePlugin("woodpecker/plugin-git"),
+		WithDefaultClonePlugin("crow-plugins/clone"),
 	)
 
 	result, err := compiler.Compile(conf)
@@ -735,7 +735,7 @@ func TestCompilerWorkflowDependsOnSkipsImplicitClone(t *testing.T) {
 			},
 		}),
 		WithWorkspaceFromURL("/crow", repoURL),
-		WithDefaultClonePlugin("woodpecker/plugin-git"),
+		WithDefaultClonePlugin("crow-plugins/clone"),
 	)
 
 	result, err := compiler.Compile(conf)

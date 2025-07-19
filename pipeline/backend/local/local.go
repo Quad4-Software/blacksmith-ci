@@ -35,19 +35,19 @@ import (
 )
 
 type workflowState struct {
-	stepCMDs        map[string]*exec.Cmd
-	baseDir         string
-	homeDir         string
-	workspaceDir    string
-	pluginGitBinary string
+	stepCMDs     map[string]*exec.Cmd
+	baseDir      string
+	homeDir      string
+	workspaceDir string
+	cloneBinary  string
 }
 
 type local struct {
-	tempDir         string
-	workflows       sync.Map
-	output          io.ReadCloser
-	pluginGitBinary string
-	os, arch        string
+	tempDir     string
+	workflows   sync.Map
+	output      io.ReadCloser
+	cloneBinary string
+	os, arch    string
 }
 
 // New returns a new local Backend.
