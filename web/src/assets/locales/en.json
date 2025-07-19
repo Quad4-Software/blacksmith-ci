@@ -458,7 +458,6 @@
         "duration": "Duration",
         "error": "Error",
         "never": "Never",
-        "ms": "ms",
         "operations": {
           "vacuum_log_table": "Vacuum Log Table",
           "vacuum_log_table_desc": "Reclaims space of deleted entries in the log_entries table"

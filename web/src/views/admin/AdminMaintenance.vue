@@ -122,7 +122,7 @@
                   class="px-6 whitespace-nowrap text-sm text-wp-text-100"
                   :class="index === logs.length - 1 ? 'pt-2 pb-1' : 'py-2'"
                 >
-                  {{ log.duration }}{{ $t('admin.settings.maintenance.ms') }}
+                  {{ formatDuration(log.duration) }}
                 </td>
                 <td
                   class="px-6 whitespace-nowrap text-sm text-wp-error-100"
@@ -183,6 +183,19 @@ const apiClient = useApiClient();
 const notifications = useNotifications();
 const { toLocaleString } = useDate();
 const { t } = useI18n();
+
+// Utility function to format duration
+const formatDuration = (durationMs: number) => {
+  if (durationMs < 1000) {
+    return `${durationMs}ms`;
+  } else if (durationMs < 60000) {
+    return `${(durationMs / 1000).toFixed(1)}s`;
+  } else if (durationMs < 3600000) {
+    return `${(durationMs / 60000).toFixed(1)}m`;
+  } else {
+    return `${(durationMs / 3600000).toFixed(1)}h`;
+  }
+};
 
 const config = ref<MaintenanceConfig>({
   id: 0,
@@ -329,7 +342,7 @@ const loadMoreLogs = async () => {
 
 const addActionLog = (message: string) => {
   const now = new Date();
-  const year = now.getFullYear().toString().slice(-2);
+  const year = now.getFullYear().toString();
   const month = (now.getMonth() + 1).toString();
   const day = now.getDate().toString();
   const time = now.toLocaleTimeString('en-US', {
@@ -402,7 +415,6 @@ const saveConfig = async (silent = false) => {
     }
   } catch (error) {
     console.error('Failed to save maintenance configuration:', error);
-    console.error('Error details:', (error as any).response?.data || (error as Error).message);
     const errorMessage = (error as Error).message || 'Unknown error';
     addActionLog(`Error saving configuration: ${errorMessage}`);
     if (!silent) {
@@ -427,7 +439,7 @@ const runNow = async () => {
   addActionLog('Starting log vacuum maintenance operation...');
 
   try {
-    const logCountBefore = logs.value.length;
+    // const _logCountBefore = logs.value.length;
     const startTime = Date.now();
 
     // Get initial stats for comparison
@@ -440,18 +452,27 @@ const runNow = async () => {
       type: 'success',
     });
 
-    // Wait a bit for the operation to complete, then refresh and show results
-    setTimeout(async () => {
+    // Poll for completion with exponential backoff
+    let pollCount = 0;
+    const maxPolls = 5; // Try up to 5 times
+    const pollDelays = [2000, 3000, 5000, 8000, 10000]; // Wait 2s, 3s, 5s, 8s, 10s
+
+    const checkForCompletion = async () => {
       await loadData(true);
 
-      // Check if new log entries were created
-      const logCountAfter = logs.value.length;
-      if (logCountAfter > logCountBefore) {
-        const latestLog = logs.value[0]; // Assuming logs are sorted by most recent first
-        if (latestLog) {
+      // Check if we have any logs and if the latest one is from after we started
+      if (logs.value.length > 0) {
+        const latestLog = logs.value[0];
+        const latestLogTime = new Date(latestLog.run_time).getTime();
+
+        // Check if this log is from our current operation (with 2 second tolerance for clock differences)
+        if (latestLogTime >= startTime - 2000) {
           const duration = latestLog.duration;
           const success = latestLog.success;
           const details = latestLog.details;
+
+          // Log the actual details we received for debugging
+          // console.log('Maintenance log details:', details);
 
           if (success) {
             if (details) {
@@ -467,7 +488,7 @@ const runNow = async () => {
                 operations.push('ANALYZE');
               }
 
-              addActionLog(`✅ Operation completed in ${duration}ms`);
+              addActionLog(`✅ Operation completed in ${formatDuration(duration)}`);
               addActionLog(`Operations performed: ${operations.join(', ')}`);
 
               // Check if size information is available in details
@@ -484,39 +505,45 @@ const runNow = async () => {
                   addActionLog(`Space reclaimed: 0.00 MB`);
                 }
               } else {
-                // Show raw details for debugging
-                addActionLog(`Raw details: ${details}`);
-
-                // Check database type and show appropriate message
-                const dbType = details.includes('postgres')
-                  ? 'PostgreSQL'
-                  : details.includes('mysql')
-                    ? 'MySQL'
-                    : 'SQLite';
-
-                if (dbType === 'SQLite') {
-                  addActionLog(`Table size tracking limited for SQLite (database-level only)`);
-                } else {
-                  addActionLog(`Table size tracking not available for this operation`);
-                }
+                // No size information available
+                addActionLog(`Note: Database size statistics were not captured for this operation`);
               }
             } else {
-              addActionLog(`✅ Operation completed in ${duration}ms`);
+              addActionLog(`✅ Operation completed in ${formatDuration(duration)}`);
             }
           } else {
-            addActionLog(`❌ Operation failed after ${duration}ms`);
+            addActionLog(`❌ Operation failed after ${formatDuration(duration)}`);
             if (latestLog.error) {
               addActionLog(`Error: ${latestLog.error}`);
             }
           }
+
+          isRunning.value = false;
+          return; // Exit after processing the log
         }
-      } else {
-        // No new log entry found, but operation may still have completed
-        const totalDuration = Date.now() - startTime;
-        addActionLog(`Operation completed (${totalDuration}ms total)`);
-        addActionLog('Maintenance operation finished');
       }
-    }, 3000);
+
+      // No new log entry found yet, try again if we haven't exceeded max polls
+      pollCount++;
+      if (pollCount < maxPolls) {
+        addActionLog(`Still running... checking again in ${pollDelays[pollCount] / 1000}s`);
+        setTimeout(checkForCompletion, pollDelays[pollCount]);
+        return; // Don't set isRunning to false yet
+      } else {
+        // Exceeded max polls, show generic completion message
+        const totalDuration = Date.now() - startTime;
+        addActionLog(`Operation completed (${formatDuration(totalDuration)} total)`);
+        addActionLog('Check the maintenance logs below for details');
+
+        // Do one final data reload to ensure we have the latest logs
+        setTimeout(() => loadData(true), 2000);
+      }
+
+      isRunning.value = false;
+    };
+
+    // Start polling after initial delay
+    setTimeout(checkForCompletion, pollDelays[0]);
   } catch (error) {
     const errorMessage = (error as Error).message || 'Unknown error';
     addActionLog(`❌ Error starting operation: ${errorMessage}`);
@@ -524,15 +551,14 @@ const runNow = async () => {
       title: t('admin.settings.maintenance.notify_text_run_error'),
       type: 'error',
     });
-  } finally {
     isRunning.value = false;
   }
 };
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
-  const year = date.getFullYear().toString().slice(-2); // Get last 2 digits of year
-  const month = (date.getMonth() + 1).toString(); // Month is 0-indexed
+  const year = date.getFullYear().toString();
+  const month = (date.getMonth() + 1).toString();
   const day = date.getDate().toString();
   const hours = date.getHours().toString().padStart(2, '0');
   const minutes = date.getMinutes().toString().padStart(2, '0');
