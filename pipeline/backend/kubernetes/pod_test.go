@@ -68,14 +68,31 @@ func TestStepToPodName(t *testing.T) {
 		UUID:                "irrelevant",
 		ContainerNameScheme: "descriptive",
 		Environment: map[string]string{
+			"CI_REPO_OWNER":      "myowner",
 			"CI_REPO_NAME":       "myrepo",
 			"CI_PIPELINE_NUMBER": "123",
-			"CI_WORKFLOW_NUMBER": "456",
+			"CI_WORKFLOW_NUMBER": "1",
 		},
 	}
 	name, err = stepToPodName(descriptiveStep)
 	assert.NoError(t, err)
-	assert.EqualValues(t, "myrepo-123-456", name)
+	assert.EqualValues(t, "myowner-myrepo-123-1-build", name)
+
+	// Test fallback to hash when environment variables are incomplete
+	stepIncomplete := &types.Step{
+		Name:                "build",
+		UUID:                "abcdefghijk",
+		ContainerNameScheme: "descriptive",
+		Environment: map[string]string{
+			"CI_REPO_OWNER": "myowner",
+			"CI_REPO_NAME":  "myrepo",
+			// Missing CI_PIPELINE_NUMBER
+			"CI_WORKFLOW_NUMBER": "1",
+		},
+	}
+	name, err = stepToPodName(stepIncomplete)
+	assert.NoError(t, err)
+	assert.EqualValues(t, "crow-abcdefghijk", name)
 
 	// Test truncation
 	longRepo := &types.Step{
@@ -83,7 +100,8 @@ func TestStepToPodName(t *testing.T) {
 		UUID:                "irrelevant",
 		ContainerNameScheme: "descriptive",
 		Environment: map[string]string{
-			"CI_REPO_NAME":       strings.Repeat("a", 70),
+			"CI_REPO_OWNER":      strings.Repeat("a", 35),
+			"CI_REPO_NAME":       strings.Repeat("a", 35),
 			"CI_PIPELINE_NUMBER": "123",
 			"CI_WORKFLOW_NUMBER": "456",
 		},

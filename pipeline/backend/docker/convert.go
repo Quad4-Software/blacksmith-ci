@@ -75,12 +75,24 @@ func (e *docker) toConfig(step *types.Step, options BackendOptions) *container.C
 
 func toContainerName(step *types.Step) string {
 	scheme := step.ContainerNameScheme
-	if scheme == "descriptive" {
+	// Use descriptive naming by default unless explicitly set to "hash"
+	if scheme != "hash" {
+		owner := step.Environment["CI_REPO_OWNER"]
 		repo := step.Environment["CI_REPO_NAME"]
 		pipeline := step.Environment["CI_PIPELINE_NUMBER"]
 		workflow := step.Environment["CI_WORKFLOW_NUMBER"]
-		name := repo + "-" + pipeline + "-" + workflow
-		return sanitizeAndTruncateName(name, maxContainerNameLength)
+		// Only use descriptive format if all required environment variables are present
+		if owner != "" && repo != "" && pipeline != "" && step.Name != "" {
+			var name string
+			if workflow != "" {
+				// Include workflow number (including "1" for first workflow)
+				name = owner + "-" + repo + "-" + pipeline + "-" + workflow + "-" + step.Name
+			} else {
+				// Fallback naming when workflow number is not available
+				name = owner + "-" + repo + "-" + pipeline + "-" + step.Name
+			}
+			return sanitizeAndTruncateName(name, maxContainerNameLength)
+		}
 	}
 	return "crow_" + step.UUID
 }

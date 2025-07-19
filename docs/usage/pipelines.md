@@ -216,8 +216,10 @@ There are two supported schemes:
 
 1. Descriptive (default)
 
-   - **Format:** `<repo name>-<pipeline id>-<workflow id>`
-   - **Example:** `myrepo-42-3`
+   - **Format:** `<owner>-<repo name>-<pipeline id>-<workflow id>-<step name>`
+   - **Example:** `myowner-myrepo-42-3-build`
+   - **Matrix workflows:** Each workflow instance gets a unique workflow number for proper identification
+   - **Single workflows:** Workflow number is still included for consistency
 
 2. Hash-based (legacy)
 

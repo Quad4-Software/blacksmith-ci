@@ -608,7 +608,7 @@ var flags = append([]cli.Flag{
 	&cli.StringFlag{
 		Sources: cli.EnvVars("WOODPECKER_CONTAINER_NAME_SCHEME", "CROW_CONTAINER_NAME_SCHEME"),
 		Name:    "container-name-scheme",
-		Usage:   "Container naming scheme: 'hash' (crow_<hash>) or 'descriptive' (<repo>-<pipeline>-<workflow>). Default: 'descriptive'",
+		Usage:   "Container naming scheme: 'hash' (crow_<hash>) or 'descriptive' (<owner>-<repo>-<pipeline>-<workflow>-<stepname>). Default: 'descriptive'",
 		Value:   "descriptive",
 	},
 

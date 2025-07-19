@@ -3,7 +3,8 @@
 ## CONTAINER_NAME_SCHEME
 
 - Name: `CROW_CONTAINER_NAME_SCHEME`
-- Description: Determines the naming scheme type for containers. Possible values are `descriptive` and `hash`
+- Description: Determines the naming scheme type for containers. Possible values are `descriptive` and `hash`.
+  The `descriptive` scheme uses format `<owner>-<repo>-<pipeline>-<workflow>-<stepname>-<stepnumber>` for readability and uniqueness.
 - Default: `descriptive`
 
 ### LOG_LEVEL

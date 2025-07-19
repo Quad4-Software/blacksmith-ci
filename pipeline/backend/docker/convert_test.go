@@ -133,12 +133,27 @@ func TestToContainerName(t *testing.T) {
 		UUID:                "irrelevant",
 		ContainerNameScheme: "descriptive",
 		Environment: map[string]string{
+			"CI_REPO_OWNER":      "myowner",
 			"CI_REPO_NAME":       "myrepo",
 			"CI_PIPELINE_NUMBER": "123",
-			"CI_WORKFLOW_NUMBER": "456",
+			"CI_WORKFLOW_NUMBER": "1",
 		},
 	}
-	assert.EqualValues(t, "myrepo-123-456", toContainerName(descriptiveStep))
+	assert.EqualValues(t, "myowner-myrepo-123-1-build", toContainerName(descriptiveStep))
+
+	// Test fallback to hash when environment variables are incomplete
+	stepIncomplete := &backend.Step{
+		Name:                "build",
+		UUID:                "abcdefghijk",
+		ContainerNameScheme: "descriptive",
+		Environment: map[string]string{
+			"CI_REPO_OWNER": "myowner",
+			"CI_REPO_NAME":  "myrepo",
+			// Missing CI_PIPELINE_NUMBER
+			"CI_WORKFLOW_NUMBER": "1",
+		},
+	}
+	assert.EqualValues(t, "crow_abcdefghijk", toContainerName(stepIncomplete))
 
 	// Test truncation
 	longRepo := &backend.Step{
@@ -146,7 +161,8 @@ func TestToContainerName(t *testing.T) {
 		UUID:                "irrelevant",
 		ContainerNameScheme: "descriptive",
 		Environment: map[string]string{
-			"CI_REPO_NAME":       strings.Repeat("a", 70),
+			"CI_REPO_OWNER":      strings.Repeat("a", 35),
+			"CI_REPO_NAME":       strings.Repeat("a", 35),
 			"CI_PIPELINE_NUMBER": "123",
 			"CI_WORKFLOW_NUMBER": "456",
 		},

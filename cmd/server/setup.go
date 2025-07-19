@@ -245,6 +245,7 @@ func setupEvilGlobals(ctx context.Context, c *cli.Command, s store.Store) (err e
 	server.Config.Pipeline.Proxy.No = c.String("backend-no-proxy")
 	server.Config.Pipeline.Proxy.HTTP = c.String("backend-http-proxy")
 	server.Config.Pipeline.Proxy.HTTPS = c.String("backend-https-proxy")
+	server.Config.Pipeline.ContainerNameScheme = c.String("container-name-scheme")
 
 	// server configuration
 	server.Config.Server.JWTSecret, err = setupJWTSecret(s)

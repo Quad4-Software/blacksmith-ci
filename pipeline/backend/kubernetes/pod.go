@@ -81,12 +81,24 @@ func stepToPodName(step *types.Step) (name string, err error) {
 
 func podName(step *types.Step) (string, error) {
 	scheme := step.ContainerNameScheme
-	if scheme == "descriptive" {
+	// Use descriptive naming by default unless explicitly set to "hash"
+	if scheme != "hash" {
+		owner := step.Environment["CI_REPO_OWNER"]
 		repo := step.Environment["CI_REPO_NAME"]
 		pipeline := step.Environment["CI_PIPELINE_NUMBER"]
 		workflow := step.Environment["CI_WORKFLOW_NUMBER"]
-		name := repo + "-" + pipeline + "-" + workflow
-		return dnsName(sanitizeAndTruncateName(name, maxK8sNameLength))
+		// Only use descriptive format if all required environment variables are present
+		if owner != "" && repo != "" && pipeline != "" && step.Name != "" {
+			var name string
+			if workflow != "" {
+				// Include workflow number (including "1" for first workflow)
+				name = owner + "-" + repo + "-" + pipeline + "-" + workflow + "-" + step.Name
+			} else {
+				// Fallback naming when workflow number is not available
+				name = owner + "-" + repo + "-" + pipeline + "-" + step.Name
+			}
+			return dnsName(sanitizeAndTruncateName(name, maxK8sNameLength))
+		}
 	}
 	if isService(step) {
 		return dnsName(servicePodPrefix + step.UUID + "-" + step.Name)
@@ -620,12 +632,24 @@ const (
 
 func serviceName(step *types.Step) (string, error) {
 	scheme := step.ContainerNameScheme
-	if scheme == "descriptive" {
+	// Use descriptive naming by default unless explicitly set to "hash"
+	if scheme != "hash" {
+		owner := step.Environment["CI_REPO_OWNER"]
 		repo := step.Environment["CI_REPO_NAME"]
 		pipeline := step.Environment["CI_PIPELINE_NUMBER"]
 		workflow := step.Environment["CI_WORKFLOW_NUMBER"]
-		name := repo + "-" + pipeline + "-" + workflow
-		return dnsName(sanitizeAndTruncateName(name, maxK8sNameLength))
+		// Only use descriptive format if all required environment variables are present
+		if owner != "" && repo != "" && pipeline != "" && step.Name != "" {
+			var name string
+			if workflow != "" {
+				// Include workflow number (including "1" for first workflow)
+				name = owner + "-" + repo + "-" + pipeline + "-" + workflow + "-" + step.Name
+			} else {
+				// Fallback naming when workflow number is not available
+				name = owner + "-" + repo + "-" + pipeline + "-" + step.Name
+			}
+			return dnsName(sanitizeAndTruncateName(name, maxK8sNameLength))
+		}
 	}
 	return dnsName(servicePrefix + step.UUID + "-" + step.Name)
 }
