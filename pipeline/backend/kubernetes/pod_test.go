@@ -693,7 +693,7 @@ func TestSecrets(t *testing.T) {
 func TestStepSecret(t *testing.T) {
 	const expected = `{
 		"metadata": {
-			"name": "wp-01he8bebctabr3kgk0qj36d2me-0-step-secret",
+			"name": "crow-01he8bebctabr3kgk0qj36d2me-0-step-secret",
 			"namespace": "woodpecker",
 			"creationTimestamp": null
 		},
