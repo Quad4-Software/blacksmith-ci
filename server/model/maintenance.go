@@ -23,7 +23,7 @@ type MaintenanceConfig struct {
 	Schedule string `json:"schedule" xorm:"'schedule'"` // Cron format: "0 5 * * *" for 5 AM daily
 	Created  int64  `json:"created"  xorm:"created"`
 	Updated  int64  `json:"updated"  xorm:"updated"`
-} // @name MaintenanceConfig
+} //	@name	MaintenanceConfig
 
 // MaintenanceOperationConfig represents the configuration for individual maintenance operations.
 type MaintenanceOperationConfig struct {
@@ -35,7 +35,7 @@ type MaintenanceOperationConfig struct {
 	LastRun   time.Time `json:"last_run"   xorm:"'last_run'"`
 	Created   int64     `json:"created"    xorm:"created"`
 	Updated   int64     `json:"updated"    xorm:"updated"`
-} // @name MaintenanceOperationConfig
+} //	@name	MaintenanceOperationConfig
 
 func (MaintenanceConfig) TableName() string {
 	return "maintenance_config"
@@ -56,7 +56,7 @@ type MaintenanceStats struct {
 	SuccessfulRuns  int64     `json:"successful_runs" xorm:"'successful_runs'"`
 	Created         int64     `json:"created"         xorm:"created"`
 	Updated         int64     `json:"updated"         xorm:"updated"`
-} // @name MaintenanceStats
+} //	@name	MaintenanceStats
 
 func (MaintenanceStats) TableName() string {
 	return "maintenance_stats"
@@ -71,7 +71,7 @@ type MaintenanceLog struct {
 	Duration int64     `json:"duration" xorm:"'duration'"` // Duration in milliseconds
 	Details  string    `json:"details"  xorm:"'details'"`  // JSON formatted details
 	Created  int64     `json:"created"  xorm:"created"`
-} // @name MaintenanceLog
+} //	@name	MaintenanceLog
 
 func (MaintenanceLog) TableName() string {
 	return "maintenance_logs"

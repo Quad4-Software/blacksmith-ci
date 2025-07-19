@@ -73,7 +73,7 @@ type Repo struct {
 	NetrcTrustedPlugins          []string             `json:"netrc_trusted"                   xorm:"json 'netrc_trusted'"`
 	LogsPipelinesKeepMin         int64                `json:"logs_keep_min,omitempty"         xorm:"logs_keep_min"`
 	LogsDurationKeep             string               `json:"logs_keep_duration"              xorm:"varchar(500) 'logs_keep_duration'"`
-} //	@name Repo
+} //	@name	Repo
 
 // TableName return database table name for xorm.
 func (Repo) TableName() string {
@@ -140,7 +140,7 @@ type RepoPatch struct {
 	LogsDurationKeep             string                     `json:"logs_keep_duration"`
 	NetrcTrusted                 *[]string                  `json:"netrc_trusted"`
 	Trusted                      *TrustedConfigurationPatch `json:"trusted"`
-} //	@name RepoPatch
+} //	@name	RepoPatch
 
 type ForgeRemoteID string
 
@@ -164,4 +164,4 @@ type TrustedConfigurationPatch struct {
 type RepoLastPipeline struct {
 	*Repo
 	LastPipeline *Pipeline `json:"last_pipeline,omitempty"`
-} //	@name RepoLastPipeline
+} //	@name	RepoLastPipeline
