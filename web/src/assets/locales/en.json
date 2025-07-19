@@ -472,7 +472,7 @@
         "no_action_logs": "No action logs yet. Run a maintenance operation to see logs here."
       },
       "version": {
-        "update": "update"
+        "update": "available"
       },
       "users": {
         "users": "Users",

@@ -2,14 +2,14 @@
   <Scaffold enable-tabs>
     <template #title>{{ $t('user.settings.settings') }}</template>
     <template #titleSuffix>
-      <div class="ml-2">
+      <div class="ml-2 flex items-center space-x-2">
         <!-- Dev version badge -->
         <a
           v-if="isDevVersion"
           :href="versionUrl"
           target="_blank"
           rel="noopener noreferrer"
-          class="relative flex shrink-0 cursor-pointer items-center overflow-hidden whitespace-nowrap rounded-md border border-wp-custom-highlight-100 px-2 py-1 shadow-xs transition-all duration-150 hover:border-wp-orange-300 hover:bg-wp-orange-300 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:border-wp-custom-hover-100 dark:hover:bg-wp-custom-hover-100 bg-wp-control-neutral-100 text-wp-text-100"
+          class="relative flex shrink-0 cursor-pointer items-center overflow-hidden whitespace-nowrap rounded-md border border-wp-custom-highlight-100 px-2 py-0.5 shadow-xs transition-all duration-150 hover:border-wp-orange-300 hover:bg-wp-orange-300 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:border-wp-custom-hover-100 dark:hover:bg-wp-custom-hover-100 bg-wp-control-neutral-100 text-wp-text-100"
         >
           {{ currentVersion }}
         </a>
@@ -19,26 +19,30 @@
           :href="versionUrl"
           target="_blank"
           rel="noopener noreferrer"
-          class="relative flex shrink-0 cursor-pointer items-center overflow-hidden whitespace-nowrap rounded-md border border-wp-custom-highlight-100 bg-wp-control-neutral-100 px-2 py-1 text-xs shadow-xs transition-all duration-150 text-wp-text-100 hover:border-wp-orange-300 hover:bg-wp-orange-300 dark:hover:border-wp-custom-hover-100 dark:hover:bg-wp-custom-hover-100"
+          class="relative flex shrink-0 cursor-pointer items-center overflow-hidden whitespace-nowrap rounded-md border border-wp-custom-highlight-100 bg-wp-control-neutral-100 px-2 py-0.5 text-xs shadow-xs transition-all duration-150 text-wp-text-100 hover:border-wp-orange-300 hover:bg-wp-orange-300 dark:hover:border-wp-custom-hover-100 dark:hover:bg-wp-custom-hover-100"
         >
           {{ currentVersion }}
         </a>
         <!-- Other version badge (non-clickable) -->
         <span
           v-else-if="currentVersion && currentVersion !== 'unknown'"
-          class="relative flex shrink-0 items-center overflow-hidden whitespace-nowrap rounded-md border border-wp-control-neutral-300 bg-wp-control-neutral-100 px-2 py-1 text-xs shadow-xs text-wp-text-100"
+          class="relative flex shrink-0 items-center overflow-hidden whitespace-nowrap rounded-md border border-wp-control-neutral-300 bg-wp-control-neutral-100 px-2 py-0.5 text-xs shadow-xs text-wp-text-100"
         >
           {{ currentVersion }}
         </span>
         <!-- Update available badge -->
         <a
           v-if="version?.needsUpdate && version?.latest"
-          :href="`https://codeberg.org/crowci/crow/releases/tag/v${version.latest}`"
+          :href="
+            version.usesDev
+              ? 'https://codeberg.org/crowci/crow/commits/branch/main'
+              : `https://codeberg.org/crowci/crow/releases/tag/v${version.latest}`
+          "
           target="_blank"
           rel="noopener noreferrer"
-          class="ml-1 relative flex shrink-0 cursor-pointer items-center overflow-hidden whitespace-nowrap rounded-md border border-wp-error-100 bg-wp-error-100 px-2 py-1 text-xs shadow-xs transition-all duration-150 text-white hover:bg-wp-error-200 dark:hover:border-wp-custom-hover-100 dark:hover:bg-wp-custom-hover-100"
+          class="relative flex shrink-0 cursor-pointer items-center overflow-hidden whitespace-nowrap rounded-md border border-wp-background-400 bg-wp-background-100 px-2 py-0.5 text-sm transition-all duration-150 text-wp-text-100 hover:bg-wp-control-neutral-200 hover:text-wp-text-100 dark:border-wp-control-neutral-500 dark:hover:text-wp-text-200"
         >
-          {{ $t('admin.settings.version.update') }} {{ version.latest }}
+          {{ version.latest }} {{ $t('admin.settings.version.update') }}
         </a>
       </div>
     </template>
