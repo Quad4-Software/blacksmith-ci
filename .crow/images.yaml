@@ -11,15 +11,12 @@ variables:
 
   # cspell:words netgo
 
-  # vars used on push / tag events only
-  - publish_logins:
-      # Default DockerHub login
-      &publish_logins
+  - publish_logins: &publish_logins
       - registry: https://codeberg.org
         username: crowci-bot
         password:
           from_secret: codeberg_bot_token
-      - registry: https://docker.io
+      - registry: https://index.docker.io/v1/
         username:
           from_secret: dockerhub_pull_username
         password:
@@ -41,7 +38,7 @@ variables:
       # Containerfile changes
       - 'images/**'
       # pipeline config changes
-      - '.crow/docker.yaml'
+      - '.crow/images.yaml'
 
 when:
   - event: [pull_request, deployment, tag]
