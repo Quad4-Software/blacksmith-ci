@@ -4,8 +4,8 @@
     :title="$t('repo.pipeline.status.status', { status: statusDescriptions[status] })"
   >
     <Icon
-      v-if="!(status === 'running' || status === 'started')"
-      :name="service ? 'settings' : `status-${status}`"
+      v-if="service || !(status === 'running' || status === 'started')"
+      :name="service ? 'mdi-wind-power-outline' : `status-${status}`"
       size="1.5rem"
       :class="{
         'text-wp-error-100': pipelineStatusColors[status] === 'red', // error, declined
@@ -13,7 +13,6 @@
         'text-wp-state-ok-100': pipelineStatusColors[status] === 'green', // success
         'text-wp-custom-highlight-100': pipelineStatusColors[status] === 'orange', // running, started
         'text-wp-state-pending-100': pipelineStatusColors[status] === 'yellow', // pending
-        'animate-spin': service && pipelineStatusColors[status] === 'blue', // services only
       }"
     />
     <div v-else class="w-5 h-5">

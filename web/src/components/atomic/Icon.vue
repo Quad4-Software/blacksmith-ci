@@ -70,6 +70,7 @@
   <SvgIcon v-else-if="name === 'gitea'" :path="siGitea.path" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'gitlab'" :path="mdiGitlab" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'bitbucket' || name === 'bitbucket-dc'" :path="mdiBitbucket" :size="size || '1.3rem'" />
+  <SvgIcon v-else-if="name === 'mdi-wind-power-outline'" :path="mdiWindPowerOutline" :size="size || '1.3rem'" />
   <Icon
     v-else-if="name === 'graph'"
     icon="hugeicons:workflow-square-01"
@@ -158,6 +159,7 @@ import {
   mdiWrenchCogOutline,
   mdiFormatListCheckbox,
   mdiPlayCircleOutline,
+  mdiWindPowerOutline,
 } from '@mdi/js';
 import { siForgejo, siGitea } from 'simple-icons';
 
@@ -238,7 +240,8 @@ export type IconNames =
   | 'org'
   | 'cron'
   | 'toolbox'
-  | 'graph';
+  | 'graph'
+  | 'mdi-wind-power-outline';
 
 defineProps<{
   name: IconNames;
