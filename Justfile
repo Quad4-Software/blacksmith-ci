@@ -198,7 +198,7 @@ release-server-xgo: check-xgo
 		@echo "- os: ${TARGETOS}"
 		@echo "- arch (xgo): ${TARGETARCH}"
 		@echo "------------------"
-		CGO_CFLAGS="{{ CGO_CFLAGS }}" xgo -go {{ XGO_VERSION }} -dest {{ DIST_DIR }}/server/${TARGETOS}_${TARGETARCH} -tags 'netgo osusergo grpcnotrace {{ TAGS }}' -ldflags '-linkmode external {{ LDFLAGS }} -X codeberg.org/crowci/crow/v3/version.Version={{ VERSION }}' -targets ${TARGETOS}/${TARGETARCH} -out crow-server -pkg cmd/server .
+		CGO_CFLAGS="{{ CGO_CFLAGS }}" xgo -go {{ XGO_VERSION }} -dest {{ DIST_DIR }}/server/${TARGETOS}_${TARGETARCH} -tags 'netgo osusergo grpcnotrace {{ TAGS }}' -ldflags '-linkmode external {{ LDFLAGS }} -X codeberg.org/crowci/crow/v3/version.Version={{ VERSION }}' -targets ${TARGETOS}/${TARGETARCH_XGO} -out crow-server -pkg cmd/server .
 		# move binary into subfolder depending on target os and arch
 		if [ "${XGO_IN_XGO:-0}" -eq "1" ]; then \
 			echo "inside xgo image"; \
