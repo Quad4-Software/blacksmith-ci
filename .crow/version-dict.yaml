@@ -4,7 +4,7 @@ when:
 
 clone:
   git:
-    image: codeberg.org/crow-plugins/clone:1.0.0
+    image: codeberg.org/crow-plugins/clone:1.0.1
     settings:
       branch: gh-pages
       ref: gh-pages

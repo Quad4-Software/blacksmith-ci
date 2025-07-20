@@ -37,11 +37,11 @@ func checkGitCloneCap() error {
 	return err
 }
 
-// loadClone on backend start determine if there is a global plugin-git binary.
+// loadClone on backend start determine if there is a global plugin-clone binary.
 func (e *local) loadClone() {
-	binary, err := exec.LookPath("clone")
+	binary, err := exec.LookPath("plugin-clone")
 	if err != nil || binary == "" {
-		// could not found global git plugin, just ignore it
+		// could not found global clone plugin, just ignore it
 		return
 	}
 	e.cloneBinary = binary
@@ -55,7 +55,7 @@ func (e *local) setupClone(state *workflowState) error {
 	}
 
 	log.Info().Msg("no global 'clone' plugin installed")
-	state.cloneBinary = filepath.Join(state.homeDir, "clone")
+	state.cloneBinary = filepath.Join(state.homeDir, "plugin-clone")
 	if e.os == "windows" {
 		state.cloneBinary += ".exe"
 	}
