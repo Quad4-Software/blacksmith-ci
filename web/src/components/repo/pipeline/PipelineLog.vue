@@ -356,49 +356,29 @@ function writeLog(line: Partial<LogLine>) {
 function scrollToBottom() {
   nextTick(() => {
     if (!consoleElement.value) {
-      console.warn('consoleElement not found for scrollToBottom');
       return;
     }
 
     const element = consoleElement.value as HTMLElement;
     if (element.scrollHeight <= element.clientHeight) {
-      console.warn('Element not scrollable - content fits in viewport');
       return;
     }
 
     element.scrollTop = element.scrollHeight;
-    console.warn(
-      'Scrolled to bottom - scrollTop:',
-      element.scrollTop,
-      'scrollHeight:',
-      element.scrollHeight,
-      'clientHeight:',
-      element.clientHeight,
-    );
   });
 }
 
 function scrollToTop() {
   if (!consoleElement.value) {
-    console.warn('consoleElement not found for scrollToTop');
     return;
   }
 
   const element = consoleElement.value as HTMLElement;
   if (element.scrollHeight <= element.clientHeight) {
-    console.warn('Element not scrollable - content fits in viewport');
     return;
   }
 
   element.scrollTop = 0;
-  console.warn(
-    'Scrolled to top - scrollTop:',
-    element.scrollTop,
-    'scrollHeight:',
-    element.scrollHeight,
-    'clientHeight:',
-    element.clientHeight,
-  );
 }
 
 const flushLogs = debounce((scroll: boolean) => {
