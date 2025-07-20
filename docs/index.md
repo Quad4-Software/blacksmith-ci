@@ -22,11 +22,11 @@ It is designed to be **lightweight**, **fast** and **extensible**.
 - [x] Extension/Plugin system
 - [x] Integrated secret storage
 - [x] Maintenance panel
+- [x] HA-capable
 
 Coming soon:
 
 - [ ] Multi-forge Login support
-- [ ] HA for Crow Server
 - [ ] External secret store integration
 
 ## Why self-host CI/CD?
@@ -86,10 +86,11 @@ This list is provided for informational purposes only and is not intended to dev
 In fact, Crow welcomes any improvements that are ported to Woodpecker and aims for a harmonious collaboration
 ///
 
-As of 2025-06, the following unique features exist in Crow:
+As of 2025-07, the following unique features exist in Crow:
 
 - Log retention: Each repository can define its own retention policy. A global default of 90 days is used
 - DAG support
+- Server  can run in HA with leader election
 - Maintenance panel to perform period cleanup operations on the database
 - Descriptive error message: Errors are transparently parsed back to the user in the UI. Almost no "An unknown error occurred" messages are shown
 - Multi-org agents: Admins can deploy agents which are allowed to process builds from multiple organizations/users
