@@ -82,9 +82,8 @@ steps:
       - apt install -y tree
       # install just FIXME: 'apt install -y just' from Debian >= 13
       - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/bin/
-      - just cross-compile-server
+      - PLATFORMS='linux|arm64;linux|amd64' just cross-compile-server
     environment:
-      PLATFORMS: linux|amd64;linux/arm64
       TAGS: sqlite sqlite_unlock_notify netgo
     when:
       - event: pull_request
@@ -103,9 +102,8 @@ steps:
       - apt install -y tree
       # install just FIXME: 'apt install -y just' from Debian >= 13
       - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/bin/
-      - just cross-compile-server
+      - PLATFORMS='linux|arm/v7;linux|arm64/v8;linux|amd64;linux|ppc64le;linux|riscv64' just cross-compile-server
     environment:
-      PLATFORMS: linux|arm/v7;linux|arm64/v8;linux|amd64;linux|ppc64le;linux|riscv64
       TAGS: sqlite sqlite_unlock_notify netgo
     when:
       event: [tag, deployment]
