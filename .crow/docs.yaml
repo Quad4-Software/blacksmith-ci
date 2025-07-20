@@ -11,6 +11,9 @@ clone:
   git:
     image: docker.io/thegeeklab/wp-git-clone:1.0.20
 
+depends_on:
+  - version-dict
+
 steps:
   - name: 'Build docs'
     image: alpine:3.22
