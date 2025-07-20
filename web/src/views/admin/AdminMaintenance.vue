@@ -27,6 +27,9 @@
                   v-model="vacuumLogTableConfig.schedule"
                   :placeholder="$t('admin.settings.maintenance.schedule_placeholder')"
                 />
+                <div class="text-xs text-wp-text-alt-100 mt-1">
+                  {{ $t('admin.settings.maintenance.timezone_note') }}
+                </div>
               </MetadataInputField>
             </div>
 
@@ -58,7 +61,14 @@
             <!-- Actions -->
             <div>
               <MetadataInputField :label="$t('admin.settings.maintenance.actions')">
-                <div class="flex items-center h-10">
+                <div class="flex items-center h-10 space-x-2">
+                  <IconButton
+                    icon="content-save-outline"
+                    :title="$t('admin.settings.maintenance.save_config')"
+                    class="h-8 w-8"
+                    :is-loading="isSaving"
+                    @click="saveConfig(false)"
+                  />
                   <IconButton
                     icon="play-outline"
                     :title="$t('admin.settings.maintenance.run_now')"
@@ -162,7 +172,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Button from '~/components/atomic/Button.vue';
@@ -265,6 +275,9 @@ const loadData = async (reset = false) => {
       hasMoreLogs.value = true;
     }
 
+    // Store previous logs to detect new scheduled executions
+    const previousLogs = [...logs.value];
+
     // Load basic config, logs, and stats
     const [configData, logsData, statsData] = await Promise.all([
       apiClient.getMaintenanceConfig().catch((error) => {
@@ -308,6 +321,100 @@ const loadData = async (reset = false) => {
     logs.value = logsData || [];
     hasMoreLogs.value = (logsData || []).length === logsLimit.value;
     stats.value = statsData;
+
+    // Check for new scheduled executions
+    if (!reset && previousLogs.length > 0 && logsData && logsData.length > 0) {
+      // Find new logs that weren't in the previous logs
+      const newLogs = logsData.filter((newLog) => !previousLogs.some((prevLog) => prevLog.id === newLog.id));
+
+      // Add action log entries for new scheduled executions
+      for (const newLog of newLogs) {
+        const logTime = new Date(newLog.run_time);
+        const year = logTime.getFullYear().toString();
+        const month = (logTime.getMonth() + 1).toString();
+        const day = logTime.getDate().toString();
+        const time = logTime.toLocaleTimeString('en-US', {
+          hour12: false,
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        });
+        const jobTitle = t('admin.settings.maintenance.operations.vacuum_log_table');
+
+        // Add divider for new scheduled run
+        if (actionLogs.value.length > 0) {
+          actionLogs.value.unshift(`[${year}/${month}/${day} ${time}] [${jobTitle}] ${'─'.repeat(30)}`);
+        }
+
+        actionLogs.value.unshift(
+          `[${year}/${month}/${day} ${time}] [${jobTitle}] Scheduled maintenance execution detected`,
+        );
+
+        if (newLog.success) {
+          actionLogs.value.unshift(
+            `[${year}/${month}/${day} ${time}] [${jobTitle}] ✅ Operation completed in ${formatDuration(newLog.duration)}`,
+          );
+
+          if (newLog.details) {
+            // Parse operation details
+            const operations = [];
+            if (newLog.details.includes('VACUUM')) {
+              operations.push('VACUUM');
+            }
+            if (newLog.details.includes('OPTIMIZE')) {
+              operations.push('OPTIMIZE');
+            }
+            if (newLog.details.includes('ANALYZE')) {
+              operations.push('ANALYZE');
+            }
+
+            if (operations.length > 0) {
+              actionLogs.value.unshift(
+                `[${year}/${month}/${day} ${time}] [${jobTitle}] Operations performed: ${operations.join(', ')}`,
+              );
+            }
+
+            // Check if size information is available in details
+            const beforeMatch = newLog.details.match(/Before: ([\d.]+) MB/);
+            const afterMatch = newLog.details.match(/After: ([\d.]+) MB/);
+            const savedMatch = newLog.details.match(/Saved: ([\d.]+) MB/);
+
+            if (beforeMatch && afterMatch) {
+              actionLogs.value.unshift(
+                `[${year}/${month}/${day} ${time}] [${jobTitle}] Table size before: ${beforeMatch[1]} MB`,
+              );
+              actionLogs.value.unshift(
+                `[${year}/${month}/${day} ${time}] [${jobTitle}] Table size after: ${afterMatch[1]} MB`,
+              );
+              if (savedMatch && Number.parseFloat(savedMatch[1]) > 0) {
+                actionLogs.value.unshift(
+                  `[${year}/${month}/${day} ${time}] [${jobTitle}] Space reclaimed: ${savedMatch[1]} MB`,
+                );
+              } else {
+                actionLogs.value.unshift(`[${year}/${month}/${day} ${time}] [${jobTitle}] Space reclaimed: 0.00 MB`);
+              }
+            }
+          }
+        } else {
+          actionLogs.value.unshift(
+            `[${year}/${month}/${day} ${time}] [${jobTitle}] ❌ Operation failed after ${formatDuration(newLog.duration)}`,
+          );
+          if (newLog.error) {
+            actionLogs.value.unshift(`[${year}/${month}/${day} ${time}] [${jobTitle}] Error: ${newLog.error}`);
+          }
+        }
+
+        // Keep only the last 50 logs to prevent localStorage from growing too large
+        if (actionLogs.value.length > 50) {
+          actionLogs.value = actionLogs.value.slice(0, 50);
+        }
+      }
+
+      // Save updated action logs if we added any
+      if (newLogs.length > 0) {
+        saveActionLogs();
+      }
+    }
   } catch (error) {
     console.error('Failed to load maintenance data:', error);
     // Use defaults if everything fails
@@ -579,6 +686,16 @@ watch(
 onMounted(() => {
   loadActionLogs();
   loadData();
+
+  // Poll for new scheduled executions every 30 seconds
+  const pollInterval = setInterval(() => {
+    loadData();
+  }, 30000);
+
+  // Clean up interval when component is unmounted
+  onUnmounted(() => {
+    clearInterval(pollInterval);
+  });
 });
 
 useCrowTitle(computed(() => [t('admin.settings.maintenance.maintenance'), t('admin.settings.settings')]));

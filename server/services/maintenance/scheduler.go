@@ -95,33 +95,36 @@ func (s *Scheduler) checkMaintenance() {
 
 	now := time.Now().UTC()
 
-	// Parse the cron schedule to get next execution time
-	nextExec, err := cron.CalcNewNext(config.Schedule, now)
+	// Get the last maintenance log to check when we last ran
+	logs, err := s.store.MaintenanceLogList(1)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get maintenance logs")
+		return
+	}
+
+	var lastRun time.Time
+	if len(logs) > 0 {
+		lastRun = time.Unix(logs[0].Created, 0)
+	} else {
+		// If no previous run, use a time far in the past to ensure first run
+		lastRun = time.Unix(0, 0)
+	}
+
+	// Calculate the next execution time based on the last run
+	nextExec, err := cron.CalcNewNext(config.Schedule, lastRun)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to parse maintenance schedule")
 		return
 	}
 
-	// Check if it's time to run maintenance (within the last minute)
-	if now.After(nextExec) && now.Sub(nextExec) < time.Minute {
-		// Get the last maintenance log to check if we've already run recently
-		logs, err := s.store.MaintenanceLogList(1)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to get maintenance logs")
-			return
-		}
-
-		// If we have a recent log entry (within the last 2 minutes), skip
-		if len(logs) > 0 {
-			lastRun := time.Unix(logs[0].Created, 0)
-			if now.Sub(lastRun) < 2*time.Minute {
-				return
+	// Check if it's time to run maintenance (if current time is past the scheduled time)
+	if now.After(nextExec) || now.Equal(nextExec) {
+		// Ensure we don't run too frequently (at least 30 seconds apart)
+		if now.Sub(lastRun) >= 30*time.Second {
+			log.Info().Str("schedule", config.Schedule).Time("next_exec", nextExec).Time("last_run", lastRun).Msg("Running scheduled maintenance")
+			if err := s.service.RunMaintenance(s.ctx); err != nil {
+				log.Error().Err(err).Msg("Scheduled maintenance failed")
 			}
-		}
-
-		log.Info().Msg("Running scheduled maintenance")
-		if err := s.service.RunMaintenance(s.ctx); err != nil {
-			log.Error().Err(err).Msg("Scheduled maintenance failed")
 		}
 	}
 }

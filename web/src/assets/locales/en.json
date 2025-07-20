@@ -182,6 +182,7 @@
           "title": "Schedule (UTC)",
           "placeholder": "Schedule"
         },
+        "timezone_note": "Timezone: UTC",
         "edit": "Edit cron",
         "delete": "Delete cron"
       },
@@ -448,9 +449,11 @@
         "enabled": "Enabled",
         "schedule": "Schedule",
         "schedule_placeholder": "0 5 * * * (daily at 5 AM)",
+        "timezone_note": "Timezone: UTC",
         "run_now": "Run Now",
         "status": "Status",
         "actions": "Actions",
+        "save_config": "Save Configuration",
         "last_run": "Last Run",
         "total_runs": "Total Executions",
         "recent_logs": "Recent Logs",

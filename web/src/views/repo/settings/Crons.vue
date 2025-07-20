@@ -76,6 +76,9 @@
             :placeholder="$t('repo.settings.crons.schedule.placeholder')"
             required
           />
+          <div class="text-xs text-wp-text-alt-100 mt-1">
+            {{ $t('repo.settings.crons.timezone_note') }}
+          </div>
         </InputField>
         <div v-if="isEditingCron" class="mb-4 ml-auto">
           <span v-if="selectedCron.next_exec && selectedCron.next_exec > 0" class="text-wp-text-100">

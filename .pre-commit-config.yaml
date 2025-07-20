@@ -43,16 +43,3 @@ repos:
     rev: v3.3.0
     hooks:
       - id: editorconfig-checker
-
-ci:
-  autofix_commit_msg: |
-    [pre-commit.ci] auto fixes from pre-commit.com hooks [CI SKIP]
-
-    for more information, see https://pre-commit.ci
-  autofix_prs: true
-  autoupdate_branch: ''
-  autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
-  autoupdate_schedule: quarterly
-  # NB: hadolint not included in pre-commit.ci
-  skip: [check-hooks-apply, check-useless-excludes, hadolint, prettier, golangci-lint]
-  submodules: false

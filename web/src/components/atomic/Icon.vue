@@ -49,6 +49,7 @@
   <SvgIcon v-else-if="name === 'chevron-right'" :path="mdiChevronRight" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'close'" :path="mdiClose" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'edit'" :path="mdiPencilOutline" :size="size || '1.3rem'" />
+  <SvgIcon v-else-if="name === 'content-save-outline'" :path="mdiContentSaveOutline" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'download'" :path="mdiDownloadOutline" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'stopwatch'" :path="mdiAlarm" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'auto-scroll'" :path="mdiEyeOutline" :size="size || '1.3rem'" />
@@ -116,6 +117,7 @@ import {
   mdiCog,
   mdiCogOutline,
   mdiConsole,
+  mdiContentSaveOutline,
   mdiDocker,
   mdiDotsVertical,
   mdiDownloadOutline,
@@ -206,6 +208,7 @@ export type IconNames =
   | 'turn-off'
   | 'close'
   | 'edit'
+  | 'content-save-outline'
   | 'stopwatch'
   | 'download'
   | 'auto-scroll'
