@@ -7,7 +7,7 @@
         <slot name="panel-chevron" />
         <div class="flex items-center">
           <Icon v-if="pipeline.event === 'cron'" name="stopwatch" />
-          <img v-else class="w-6 rounded-md" :src="pipeline.author_avatar" />
+          <img v-else class="w-6 h-6 rounded-md object-cover" :src="pipeline.author_avatar" />
         </div>
         <span>{{ pipeline.author }}</span>
       </div>
