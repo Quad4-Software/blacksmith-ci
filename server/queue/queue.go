@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"codeberg.org/crowci/crow/v3/server/model"
 	"codeberg.org/crowci/crow/v3/server/store"
@@ -124,15 +125,27 @@ type Queue interface {
 
 // Config holds the configuration for the queue.
 type Config struct {
-	Backend Type
-	Store   store.Store
+	Backend       Type
+	Store         store.Store
+	LockService   LockService
+	InstanceID    string
+	LeaderLockTTL time.Duration // TTL for leader election lock
+}
+
+// LockService defines the interface for distributed locking.
+type LockService interface {
+	AcquireLock(ctx context.Context, lockName string, ttl time.Duration) (context.Context, context.CancelFunc, error)
 }
 
 // Queue type.
 type Type string
 
 const (
-	TypeMemory Type = "memory"
+	TypeMemory   Type = "memory"
+	TypeDatabase Type = "database"
+
+	// DefaultLeaderLockTTL is the default TTL for leader election locks.
+	DefaultLeaderLockTTL = 30 * time.Second
 )
 
 // New creates a new queue based on the provided configuration.
@@ -145,6 +158,19 @@ func New(ctx context.Context, config Config) (Queue, error) {
 		if config.Store != nil {
 			q = WithTaskStore(ctx, q, config.Store)
 		}
+	case TypeDatabase:
+		if config.Store == nil {
+			return nil, fmt.Errorf("database queue requires a store")
+		}
+		if config.LockService == nil {
+			return nil, fmt.Errorf("database queue requires a lock service")
+		}
+		// Use configured TTL or default
+		ttl := config.LeaderLockTTL
+		if ttl == 0 {
+			ttl = DefaultLeaderLockTTL
+		}
+		q = NewDatabaseQueue(ctx, config.Store, config.LockService, config.InstanceID, ttl)
 	default:
 		return nil, fmt.Errorf("unsupported queue backend: %s", config.Backend)
 	}

@@ -37,6 +37,7 @@ import (
 	"codeberg.org/crowci/crow/v3/server/cron"
 	"codeberg.org/crowci/crow/v3/server/router"
 	"codeberg.org/crowci/crow/v3/server/router/middleware"
+	"codeberg.org/crowci/crow/v3/server/services/lock"
 	"codeberg.org/crowci/crow/v3/server/store"
 	"codeberg.org/crowci/crow/v3/server/web"
 	"codeberg.org/crowci/crow/v3/shared/logger"
@@ -124,7 +125,9 @@ func run(ctx context.Context, c *cli.Command) error {
 
 	serviceWaitingGroup.Go(func() error {
 		log.Info().Msg("starting cron service ...")
-		if err := cron.Run(ctx, _store); err != nil {
+		// Use the same lock service for cron leader election
+		lockService := lock.NewService(_store, server.Config.Server.InstanceID)
+		if err := cron.Run(ctx, _store, lockService, c.Duration("cron-lock-ttl")); err != nil {
 			go stopServerFunc(err)
 			return err
 		}

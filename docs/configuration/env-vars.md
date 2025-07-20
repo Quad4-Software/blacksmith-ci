@@ -29,6 +29,24 @@
 - Description: The default value for the 'Approval requirements' section of new repos.
 - Default: `default-allow-pull-requests`
 
+---
+
+### QUEUE_LOCK_TTL
+
+- Name: `CROW_QUEUE_LOCK_TTL`
+- Description: Time-to-live for the queue processing leader election lock in High Availability mode.
+  If the leader node fails, other nodes must wait this duration before acquiring the lock.
+- Default: `30s`
+
+---
+
+### CRON_LOCK_TTL
+
+- Name: `CROW_CRON_LOCK_TTL`
+- Description: Time-to-live for the cron scheduler leader election lock in High Availability mode.
+  If the leader node fails, other nodes must wait this duration before acquiring the lock.
+- Default: `90s`
+
 ## Agent
 
 ### AGENT_CONFIG_FILE

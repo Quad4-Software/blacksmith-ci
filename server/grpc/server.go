@@ -37,7 +37,7 @@ type CrowServer struct {
 	peer RPC
 }
 
-func NewCrowServer(queue queue.Queue, logger logging.Log, pubsub *pubsub.Publisher, store store.Store) proto.CrowServer {
+func NewCrowServer(queue queue.Queue, logger logging.Log, pubsub pubsub.Publisher, store store.Store) proto.CrowServer {
 	pipelineTime := prometheus_auto.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "crow",
 		Name:      "pipeline_time",

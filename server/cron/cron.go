@@ -26,40 +26,95 @@ import (
 	"codeberg.org/crowci/crow/v3/server/forge"
 	"codeberg.org/crowci/crow/v3/server/model"
 	"codeberg.org/crowci/crow/v3/server/pipeline"
+	"codeberg.org/crowci/crow/v3/server/services/lock"
 	"codeberg.org/crowci/crow/v3/server/store"
 )
 
 const (
-	// Specifies the interval woodpecker checks for new crons to exec.
+	// Specifies the interval Crow checks for new crons to exec.
 	checkTime = time.Minute
 
 	// Specifies the batch size of crons to retrieve per check from database.
 	checkItems = 10
+
+	// Cron scheduler leader election lock name.
+	cronLeaderLock = "cron:scheduler:leader"
 )
 
-// Run starts the cron scheduler loop.
-func Run(ctx context.Context, store store.Store) error {
+// Run starts the cron scheduler with persistent leadership.
+func Run(ctx context.Context, store store.Store, lockService *lock.Service, leaderLockTTL time.Duration) error {
+	// Get instance ID from lock service for logging
+	instanceID := lockService.GetInstanceID()
+
+	// Try to acquire leader lock - this will block a leader got elected
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
-		case <-time.After(checkTime):
-			go func() {
-				now := time.Now()
-				log.Trace().Msg("cron: fetch next crons")
+		default:
+			// Try to acquire leader lock with automatic renewal
+			lockCtx, releaseLock, err := lockService.AcquireLock(ctx, cronLeaderLock, leaderLockTTL)
+			if err != nil {
+				log.Debug().Err(err).Str("instanceID", instanceID).Msg("Failed to acquire cron leader lock, retrying...")
+				time.Sleep(checkTime)
+				continue
+			}
 
-				crons, err := store.CronListNextExecute(now.Unix(), checkItems)
-				if err != nil {
-					log.Error().Err(err).Int64("now", now.Unix()).Msg("obtain cron list")
-					return
-				}
+			log.Info().Str("lock", cronLeaderLock).Str("leaderInstance", instanceID).Msg("This instance is now the cron scheduler leader")
 
-				for _, cron := range crons {
+			// Leader determined - run scheduler until context is canceled or leadership is lost
+			leaderErr := runAsLeader(ctx, lockCtx, store, instanceID)
+
+			// Release lock and log stepping down
+			releaseLock()
+			log.Info().Str("lock", cronLeaderLock).Str("leaderInstance", instanceID).Msg("Stepping down as cron scheduler leader")
+
+			if leaderErr != nil {
+				return leaderErr
+			}
+
+			// Otherwise, leadership was lost - try to become leader again
+			log.Debug().Str("instanceID", instanceID).Msg("Lost cron leadership, attempting to re-acquire...")
+		}
+	}
+}
+
+// runAsLeader runs the cron scheduler as the leader until leadership is lost or context is canceled.
+func runAsLeader(ctx context.Context, lockCtx context.Context, store store.Store, instanceID string) error {
+	ticker := time.NewTicker(checkTime)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-lockCtx.Done():
+			// Lost leadership (lock renewal failed)
+			log.Debug().Str("instanceID", instanceID).Msg("Lost cron leader lock, stepping down")
+			return nil
+		case <-ticker.C:
+			// Time to check for cron jobs
+			now := time.Now()
+			log.Trace().Msg("cron: fetch next crons")
+
+			crons, err := store.CronListNextExecute(now.Unix(), checkItems)
+			if err != nil {
+				log.Error().Err(err).Int64("now", now.Unix()).Msg("obtain cron list")
+				continue
+			}
+
+			for _, cron := range crons {
+				// Check if we still hold leadership before processing each cron
+				select {
+				case <-lockCtx.Done():
+					log.Debug().Str("instanceID", instanceID).Msg("Lost cron leader lock during processing")
+					return nil
+				default:
 					if err := runCron(ctx, store, cron, now); err != nil {
 						log.Error().Err(err).Int64("cronID", cron.ID).Msg("run cron failed")
 					}
 				}
-			}()
+			}
 		}
 	}
 }

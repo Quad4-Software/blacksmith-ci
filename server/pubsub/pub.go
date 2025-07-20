@@ -34,20 +34,20 @@ type Message struct {
 // Receiver receives published messages.
 type Receiver func(Message)
 
-type Publisher struct {
+type MemoryPublisher struct {
 	sync.Mutex
 
 	subs map[*Receiver]struct{}
 }
 
 // New creates an in-memory publisher.
-func New() *Publisher {
-	return &Publisher{
+func New() *MemoryPublisher {
+	return &MemoryPublisher{
 		subs: make(map[*Receiver]struct{}),
 	}
 }
 
-func (p *Publisher) Publish(message Message) {
+func (p *MemoryPublisher) Publish(message Message) {
 	p.Lock()
 	for s := range p.subs {
 		go (*s)(message)
@@ -55,7 +55,7 @@ func (p *Publisher) Publish(message Message) {
 	p.Unlock()
 }
 
-func (p *Publisher) Subscribe(c context.Context, receiver Receiver) {
+func (p *MemoryPublisher) Subscribe(c context.Context, receiver Receiver) {
 	p.Lock()
 	p.subs[&receiver] = struct{}{}
 	p.Unlock()

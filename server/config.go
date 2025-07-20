@@ -30,7 +30,7 @@ import (
 
 var Config = struct {
 	Services struct {
-		Pubsub               *pubsub.Publisher
+		Pubsub               pubsub.Publisher
 		Queue                queue.Queue
 		Logs                 logging.Log
 		Membership           cache.MembershipService
@@ -56,6 +56,7 @@ var Config = struct {
 		RootPath            string
 		CustomCSSFile       string
 		CustomJsFile        string
+		InstanceID          string // Instance ID for HA deployments
 	}
 	Agent struct {
 		DisableUserRegisteredAgentRegistration bool

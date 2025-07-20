@@ -31,3 +31,6 @@ func (e ErrorRepoNotExist) Error() string {
 func (ErrorRepoNotExist) Unwrap() error {
 	return types.RecordNotExist
 }
+
+// ErrCacheNotFound is returned when a cache entry is not found.
+var ErrCacheNotFound = fmt.Errorf("cache entry not found")

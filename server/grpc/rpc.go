@@ -44,7 +44,7 @@ const updateAgentLastWorkDelay = time.Minute
 
 type RPC struct {
 	queue         queue.Queue
-	pubsub        *pubsub.Publisher
+	pubsub        pubsub.Publisher
 	logger        logging.Log
 	store         store.Store
 	pipelineTime  *prometheus.GaugeVec

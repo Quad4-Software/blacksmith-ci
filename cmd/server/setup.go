@@ -37,6 +37,7 @@ import (
 	"codeberg.org/crowci/crow/v3/server/pubsub"
 	"codeberg.org/crowci/crow/v3/server/queue"
 	"codeberg.org/crowci/crow/v3/server/services"
+	"codeberg.org/crowci/crow/v3/server/services/lock"
 	logService "codeberg.org/crowci/crow/v3/server/services/log"
 	"codeberg.org/crowci/crow/v3/server/services/log/file"
 	"codeberg.org/crowci/crow/v3/server/services/maintenance"
@@ -111,11 +112,26 @@ func checkSqliteFileExist(path string) error {
 	return err
 }
 
-func setupQueue(ctx context.Context, s store.Store) (queue.Queue, error) {
-	q, err := queue.New(ctx, queue.Config{
-		Backend: queue.TypeMemory,
-		Store:   s,
-	})
+func setupQueue(ctx context.Context, s store.Store, lockService *lock.Service, c *cli.Command) (queue.Queue, error) {
+	// Use database queue for HA deployments, memory queue for single instance
+	backend := queue.TypeDatabase
+	if server.Config.Server.InstanceID == "" {
+		// Default to memory queue if no instance ID is configured
+		backend = queue.TypeMemory
+	}
+
+	config := queue.Config{
+		Backend:       backend,
+		Store:         s,
+		InstanceID:    server.Config.Server.InstanceID,
+		LeaderLockTTL: c.Duration("queue-lock-ttl"),
+	}
+
+	if backend == queue.TypeDatabase {
+		config.LockService = lockService
+	}
+
+	q, err := queue.New(ctx, config)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +157,33 @@ func setupQueue(ctx context.Context, s store.Store) (queue.Queue, error) {
 }
 
 func setupMembershipService(_ context.Context, _store store.Store) cache.MembershipService {
-	return cache.NewMembershipService(_store)
+	// Use distributed cache for HA deployments, memory cache for single instance
+	backend := cache.TypeMemory
+	if server.Config.Server.InstanceID != "" {
+		backend = cache.TypeDistributed
+	}
+
+	config := cache.Config{
+		Backend: backend,
+		Store:   _store,
+	}
+
+	return cache.NewMembershipServiceWithConfig(config)
+}
+
+func setupPubSub(s store.Store, instanceID string) pubsub.Publisher {
+	// Use distributed pub/sub for HA deployments, memory for single instance
+	backend := pubsub.TypeDistributed
+	if instanceID == "" {
+		// Default to memory pub/sub if no instance ID is configured
+		backend = pubsub.TypeMemory
+	}
+
+	return pubsub.NewPublisher(pubsub.Config{
+		Backend:    backend,
+		Store:      s,
+		InstanceID: instanceID,
+	})
 }
 
 func setupLogStore(c *cli.Command, s store.Store) (logService.Service, error) {
@@ -179,9 +221,14 @@ func setupJWTSecret(_store store.Store) (string, error) {
 func setupEvilGlobals(ctx context.Context, c *cli.Command, s store.Store) (err error) {
 	// services
 	server.Config.Services.Logs = logging.New()
-	server.Config.Services.Pubsub = pubsub.New()
 	server.Config.Services.Membership = setupMembershipService(ctx, s)
-	server.Config.Services.Queue, err = setupQueue(ctx, s)
+	// Setup lock service for distributed coordination
+	lockService := lock.NewService(s, server.Config.Server.InstanceID)
+
+	// Setup pub/sub system - use distributed for HA deployments
+	server.Config.Services.Pubsub = setupPubSub(s, server.Config.Server.InstanceID)
+
+	server.Config.Services.Queue, err = setupQueue(ctx, s, lockService, c)
 	if err != nil {
 		return fmt.Errorf("could not setup queue: %w", err)
 	}
@@ -270,6 +317,20 @@ func setupEvilGlobals(ctx context.Context, c *cli.Command, s store.Store) (err e
 	server.Config.Server.SessionExpires = c.Duration("session-expires")
 	u, _ := url.Parse(server.Config.Server.Host)
 	rootPath := strings.TrimSuffix(u.Path, "/")
+
+	// Set instance ID for HA deployments - defaults to hostname if not provided
+	server.Config.Server.InstanceID = c.String("instance-id")
+	if server.Config.Server.InstanceID == "" {
+		if hostname, err := os.Hostname(); err == nil {
+			server.Config.Server.InstanceID = hostname
+			log.Info().Str("instanceID", server.Config.Server.InstanceID).Msg("Using hostname as instance ID for HA deployment")
+		} else {
+			server.Config.Server.InstanceID = "default"
+			log.Warn().Err(err).Str("instanceID", server.Config.Server.InstanceID).Msg("Failed to get hostname, using default instance ID")
+		}
+	} else {
+		log.Info().Str("instanceID", server.Config.Server.InstanceID).Msg("Using configured instance ID for HA deployment")
+	}
 	if rootPath != "" && !strings.HasPrefix(rootPath, "/") {
 		rootPath = "/" + rootPath
 	}

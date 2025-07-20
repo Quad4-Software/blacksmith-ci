@@ -445,6 +445,221 @@ func (_c *MockStore_AgentUpdate_Call) RunAndReturn(run func(agent *model.Agent) 
 	return _c
 }
 
+// CacheCleanupExpired provides a mock function for the type MockStore
+func (_mock *MockStore) CacheCleanupExpired(cutoff int64) error {
+	ret := _mock.Called(cutoff)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CacheCleanupExpired")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(int64) error); ok {
+		r0 = returnFunc(cutoff)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_CacheCleanupExpired_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CacheCleanupExpired'
+type MockStore_CacheCleanupExpired_Call struct {
+	*mock.Call
+}
+
+// CacheCleanupExpired is a helper method to define mock.On call
+//   - cutoff int64
+func (_e *MockStore_Expecter) CacheCleanupExpired(cutoff interface{}) *MockStore_CacheCleanupExpired_Call {
+	return &MockStore_CacheCleanupExpired_Call{Call: _e.mock.On("CacheCleanupExpired", cutoff)}
+}
+
+func (_c *MockStore_CacheCleanupExpired_Call) Run(run func(cutoff int64)) *MockStore_CacheCleanupExpired_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_CacheCleanupExpired_Call) Return(err error) *MockStore_CacheCleanupExpired_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_CacheCleanupExpired_Call) RunAndReturn(run func(cutoff int64) error) *MockStore_CacheCleanupExpired_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CacheDelete provides a mock function for the type MockStore
+func (_mock *MockStore) CacheDelete(key string) error {
+	ret := _mock.Called(key)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CacheDelete")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(string) error); ok {
+		r0 = returnFunc(key)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_CacheDelete_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CacheDelete'
+type MockStore_CacheDelete_Call struct {
+	*mock.Call
+}
+
+// CacheDelete is a helper method to define mock.On call
+//   - key string
+func (_e *MockStore_Expecter) CacheDelete(key interface{}) *MockStore_CacheDelete_Call {
+	return &MockStore_CacheDelete_Call{Call: _e.mock.On("CacheDelete", key)}
+}
+
+func (_c *MockStore_CacheDelete_Call) Run(run func(key string)) *MockStore_CacheDelete_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_CacheDelete_Call) Return(err error) *MockStore_CacheDelete_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_CacheDelete_Call) RunAndReturn(run func(key string) error) *MockStore_CacheDelete_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CacheGet provides a mock function for the type MockStore
+func (_mock *MockStore) CacheGet(key string) (*model.CacheEntry, error) {
+	ret := _mock.Called(key)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CacheGet")
+	}
+
+	var r0 *model.CacheEntry
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(string) (*model.CacheEntry, error)); ok {
+		return returnFunc(key)
+	}
+	if returnFunc, ok := ret.Get(0).(func(string) *model.CacheEntry); ok {
+		r0 = returnFunc(key)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.CacheEntry)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(string) error); ok {
+		r1 = returnFunc(key)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_CacheGet_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CacheGet'
+type MockStore_CacheGet_Call struct {
+	*mock.Call
+}
+
+// CacheGet is a helper method to define mock.On call
+//   - key string
+func (_e *MockStore_Expecter) CacheGet(key interface{}) *MockStore_CacheGet_Call {
+	return &MockStore_CacheGet_Call{Call: _e.mock.On("CacheGet", key)}
+}
+
+func (_c *MockStore_CacheGet_Call) Run(run func(key string)) *MockStore_CacheGet_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_CacheGet_Call) Return(cacheEntry *model.CacheEntry, err error) *MockStore_CacheGet_Call {
+	_c.Call.Return(cacheEntry, err)
+	return _c
+}
+
+func (_c *MockStore_CacheGet_Call) RunAndReturn(run func(key string) (*model.CacheEntry, error)) *MockStore_CacheGet_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CacheSet provides a mock function for the type MockStore
+func (_mock *MockStore) CacheSet(entry *model.CacheEntry) error {
+	ret := _mock.Called(entry)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CacheSet")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(*model.CacheEntry) error); ok {
+		r0 = returnFunc(entry)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_CacheSet_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CacheSet'
+type MockStore_CacheSet_Call struct {
+	*mock.Call
+}
+
+// CacheSet is a helper method to define mock.On call
+//   - entry *model.CacheEntry
+func (_e *MockStore_Expecter) CacheSet(entry interface{}) *MockStore_CacheSet_Call {
+	return &MockStore_CacheSet_Call{Call: _e.mock.On("CacheSet", entry)}
+}
+
+func (_c *MockStore_CacheSet_Call) Run(run func(entry *model.CacheEntry)) *MockStore_CacheSet_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.CacheEntry
+		if args[0] != nil {
+			arg0 = args[0].(*model.CacheEntry)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_CacheSet_Call) Return(err error) *MockStore_CacheSet_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_CacheSet_Call) RunAndReturn(run func(entry *model.CacheEntry) error) *MockStore_CacheSet_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CleanupOrphanedWorkflows provides a mock function for the type MockStore
 func (_mock *MockStore) CleanupOrphanedWorkflows(workflowIDs []string) error {
 	ret := _mock.Called(workflowIDs)
@@ -1467,6 +1682,306 @@ func (_c *MockStore_DeleteUser_Call) Return(err error) *MockStore_DeleteUser_Cal
 }
 
 func (_c *MockStore_DeleteUser_Call) RunAndReturn(run func(user *model.User) error) *MockStore_DeleteUser_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DistributedLockAcquire provides a mock function for the type MockStore
+func (_mock *MockStore) DistributedLockAcquire(lockName string, instanceID string, ttlSeconds int64) (bool, error) {
+	ret := _mock.Called(lockName, instanceID, ttlSeconds)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DistributedLockAcquire")
+	}
+
+	var r0 bool
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(string, string, int64) (bool, error)); ok {
+		return returnFunc(lockName, instanceID, ttlSeconds)
+	}
+	if returnFunc, ok := ret.Get(0).(func(string, string, int64) bool); ok {
+		r0 = returnFunc(lockName, instanceID, ttlSeconds)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	if returnFunc, ok := ret.Get(1).(func(string, string, int64) error); ok {
+		r1 = returnFunc(lockName, instanceID, ttlSeconds)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_DistributedLockAcquire_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DistributedLockAcquire'
+type MockStore_DistributedLockAcquire_Call struct {
+	*mock.Call
+}
+
+// DistributedLockAcquire is a helper method to define mock.On call
+//   - lockName string
+//   - instanceID string
+//   - ttlSeconds int64
+func (_e *MockStore_Expecter) DistributedLockAcquire(lockName interface{}, instanceID interface{}, ttlSeconds interface{}) *MockStore_DistributedLockAcquire_Call {
+	return &MockStore_DistributedLockAcquire_Call{Call: _e.mock.On("DistributedLockAcquire", lockName, instanceID, ttlSeconds)}
+}
+
+func (_c *MockStore_DistributedLockAcquire_Call) Run(run func(lockName string, instanceID string, ttlSeconds int64)) *MockStore_DistributedLockAcquire_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 int64
+		if args[2] != nil {
+			arg2 = args[2].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_DistributedLockAcquire_Call) Return(b bool, err error) *MockStore_DistributedLockAcquire_Call {
+	_c.Call.Return(b, err)
+	return _c
+}
+
+func (_c *MockStore_DistributedLockAcquire_Call) RunAndReturn(run func(lockName string, instanceID string, ttlSeconds int64) (bool, error)) *MockStore_DistributedLockAcquire_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DistributedLockCleanup provides a mock function for the type MockStore
+func (_mock *MockStore) DistributedLockCleanup() error {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for DistributedLockCleanup")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func() error); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_DistributedLockCleanup_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DistributedLockCleanup'
+type MockStore_DistributedLockCleanup_Call struct {
+	*mock.Call
+}
+
+// DistributedLockCleanup is a helper method to define mock.On call
+func (_e *MockStore_Expecter) DistributedLockCleanup() *MockStore_DistributedLockCleanup_Call {
+	return &MockStore_DistributedLockCleanup_Call{Call: _e.mock.On("DistributedLockCleanup")}
+}
+
+func (_c *MockStore_DistributedLockCleanup_Call) Run(run func()) *MockStore_DistributedLockCleanup_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockStore_DistributedLockCleanup_Call) Return(err error) *MockStore_DistributedLockCleanup_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_DistributedLockCleanup_Call) RunAndReturn(run func() error) *MockStore_DistributedLockCleanup_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DistributedLockExtend provides a mock function for the type MockStore
+func (_mock *MockStore) DistributedLockExtend(lockName string, instanceID string, ttlSeconds int64) (bool, error) {
+	ret := _mock.Called(lockName, instanceID, ttlSeconds)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DistributedLockExtend")
+	}
+
+	var r0 bool
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(string, string, int64) (bool, error)); ok {
+		return returnFunc(lockName, instanceID, ttlSeconds)
+	}
+	if returnFunc, ok := ret.Get(0).(func(string, string, int64) bool); ok {
+		r0 = returnFunc(lockName, instanceID, ttlSeconds)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	if returnFunc, ok := ret.Get(1).(func(string, string, int64) error); ok {
+		r1 = returnFunc(lockName, instanceID, ttlSeconds)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_DistributedLockExtend_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DistributedLockExtend'
+type MockStore_DistributedLockExtend_Call struct {
+	*mock.Call
+}
+
+// DistributedLockExtend is a helper method to define mock.On call
+//   - lockName string
+//   - instanceID string
+//   - ttlSeconds int64
+func (_e *MockStore_Expecter) DistributedLockExtend(lockName interface{}, instanceID interface{}, ttlSeconds interface{}) *MockStore_DistributedLockExtend_Call {
+	return &MockStore_DistributedLockExtend_Call{Call: _e.mock.On("DistributedLockExtend", lockName, instanceID, ttlSeconds)}
+}
+
+func (_c *MockStore_DistributedLockExtend_Call) Run(run func(lockName string, instanceID string, ttlSeconds int64)) *MockStore_DistributedLockExtend_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 int64
+		if args[2] != nil {
+			arg2 = args[2].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_DistributedLockExtend_Call) Return(b bool, err error) *MockStore_DistributedLockExtend_Call {
+	_c.Call.Return(b, err)
+	return _c
+}
+
+func (_c *MockStore_DistributedLockExtend_Call) RunAndReturn(run func(lockName string, instanceID string, ttlSeconds int64) (bool, error)) *MockStore_DistributedLockExtend_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DistributedLockList provides a mock function for the type MockStore
+func (_mock *MockStore) DistributedLockList() ([]*model.DistributedLock, error) {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for DistributedLockList")
+	}
+
+	var r0 []*model.DistributedLock
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func() ([]*model.DistributedLock, error)); ok {
+		return returnFunc()
+	}
+	if returnFunc, ok := ret.Get(0).(func() []*model.DistributedLock); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.DistributedLock)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func() error); ok {
+		r1 = returnFunc()
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_DistributedLockList_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DistributedLockList'
+type MockStore_DistributedLockList_Call struct {
+	*mock.Call
+}
+
+// DistributedLockList is a helper method to define mock.On call
+func (_e *MockStore_Expecter) DistributedLockList() *MockStore_DistributedLockList_Call {
+	return &MockStore_DistributedLockList_Call{Call: _e.mock.On("DistributedLockList")}
+}
+
+func (_c *MockStore_DistributedLockList_Call) Run(run func()) *MockStore_DistributedLockList_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockStore_DistributedLockList_Call) Return(distributedLocks []*model.DistributedLock, err error) *MockStore_DistributedLockList_Call {
+	_c.Call.Return(distributedLocks, err)
+	return _c
+}
+
+func (_c *MockStore_DistributedLockList_Call) RunAndReturn(run func() ([]*model.DistributedLock, error)) *MockStore_DistributedLockList_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DistributedLockRelease provides a mock function for the type MockStore
+func (_mock *MockStore) DistributedLockRelease(lockName string, instanceID string) error {
+	ret := _mock.Called(lockName, instanceID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DistributedLockRelease")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(string, string) error); ok {
+		r0 = returnFunc(lockName, instanceID)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_DistributedLockRelease_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DistributedLockRelease'
+type MockStore_DistributedLockRelease_Call struct {
+	*mock.Call
+}
+
+// DistributedLockRelease is a helper method to define mock.On call
+//   - lockName string
+//   - instanceID string
+func (_e *MockStore_Expecter) DistributedLockRelease(lockName interface{}, instanceID interface{}) *MockStore_DistributedLockRelease_Call {
+	return &MockStore_DistributedLockRelease_Call{Call: _e.mock.On("DistributedLockRelease", lockName, instanceID)}
+}
+
+func (_c *MockStore_DistributedLockRelease_Call) Run(run func(lockName string, instanceID string)) *MockStore_DistributedLockRelease_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_DistributedLockRelease_Call) Return(err error) *MockStore_DistributedLockRelease_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_DistributedLockRelease_Call) RunAndReturn(run func(lockName string, instanceID string) error) *MockStore_DistributedLockRelease_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -5122,6 +5637,170 @@ func (_c *MockStore_PipelineConfigCreate_Call) Return(err error) *MockStore_Pipe
 }
 
 func (_c *MockStore_PipelineConfigCreate_Call) RunAndReturn(run func(pipelineConfig *model.PipelineConfig) error) *MockStore_PipelineConfigCreate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// PubSubMessageCleanupOlderThan provides a mock function for the type MockStore
+func (_mock *MockStore) PubSubMessageCleanupOlderThan(timestamp int64) error {
+	ret := _mock.Called(timestamp)
+
+	if len(ret) == 0 {
+		panic("no return value specified for PubSubMessageCleanupOlderThan")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(int64) error); ok {
+		r0 = returnFunc(timestamp)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_PubSubMessageCleanupOlderThan_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PubSubMessageCleanupOlderThan'
+type MockStore_PubSubMessageCleanupOlderThan_Call struct {
+	*mock.Call
+}
+
+// PubSubMessageCleanupOlderThan is a helper method to define mock.On call
+//   - timestamp int64
+func (_e *MockStore_Expecter) PubSubMessageCleanupOlderThan(timestamp interface{}) *MockStore_PubSubMessageCleanupOlderThan_Call {
+	return &MockStore_PubSubMessageCleanupOlderThan_Call{Call: _e.mock.On("PubSubMessageCleanupOlderThan", timestamp)}
+}
+
+func (_c *MockStore_PubSubMessageCleanupOlderThan_Call) Run(run func(timestamp int64)) *MockStore_PubSubMessageCleanupOlderThan_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_PubSubMessageCleanupOlderThan_Call) Return(err error) *MockStore_PubSubMessageCleanupOlderThan_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_PubSubMessageCleanupOlderThan_Call) RunAndReturn(run func(timestamp int64) error) *MockStore_PubSubMessageCleanupOlderThan_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// PubSubMessageInsert provides a mock function for the type MockStore
+func (_mock *MockStore) PubSubMessageInsert(msg *model.DistributedMessage) error {
+	ret := _mock.Called(msg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for PubSubMessageInsert")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(*model.DistributedMessage) error); ok {
+		r0 = returnFunc(msg)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_PubSubMessageInsert_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PubSubMessageInsert'
+type MockStore_PubSubMessageInsert_Call struct {
+	*mock.Call
+}
+
+// PubSubMessageInsert is a helper method to define mock.On call
+//   - msg *model.DistributedMessage
+func (_e *MockStore_Expecter) PubSubMessageInsert(msg interface{}) *MockStore_PubSubMessageInsert_Call {
+	return &MockStore_PubSubMessageInsert_Call{Call: _e.mock.On("PubSubMessageInsert", msg)}
+}
+
+func (_c *MockStore_PubSubMessageInsert_Call) Run(run func(msg *model.DistributedMessage)) *MockStore_PubSubMessageInsert_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.DistributedMessage
+		if args[0] != nil {
+			arg0 = args[0].(*model.DistributedMessage)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_PubSubMessageInsert_Call) Return(err error) *MockStore_PubSubMessageInsert_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_PubSubMessageInsert_Call) RunAndReturn(run func(msg *model.DistributedMessage) error) *MockStore_PubSubMessageInsert_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// PubSubMessageListAfter provides a mock function for the type MockStore
+func (_mock *MockStore) PubSubMessageListAfter(timestamp int64) ([]*model.DistributedMessage, error) {
+	ret := _mock.Called(timestamp)
+
+	if len(ret) == 0 {
+		panic("no return value specified for PubSubMessageListAfter")
+	}
+
+	var r0 []*model.DistributedMessage
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64) ([]*model.DistributedMessage, error)); ok {
+		return returnFunc(timestamp)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64) []*model.DistributedMessage); ok {
+		r0 = returnFunc(timestamp)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.DistributedMessage)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64) error); ok {
+		r1 = returnFunc(timestamp)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_PubSubMessageListAfter_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PubSubMessageListAfter'
+type MockStore_PubSubMessageListAfter_Call struct {
+	*mock.Call
+}
+
+// PubSubMessageListAfter is a helper method to define mock.On call
+//   - timestamp int64
+func (_e *MockStore_Expecter) PubSubMessageListAfter(timestamp interface{}) *MockStore_PubSubMessageListAfter_Call {
+	return &MockStore_PubSubMessageListAfter_Call{Call: _e.mock.On("PubSubMessageListAfter", timestamp)}
+}
+
+func (_c *MockStore_PubSubMessageListAfter_Call) Run(run func(timestamp int64)) *MockStore_PubSubMessageListAfter_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_PubSubMessageListAfter_Call) Return(distributedMessages []*model.DistributedMessage, err error) *MockStore_PubSubMessageListAfter_Call {
+	_c.Call.Return(distributedMessages, err)
+	return _c
+}
+
+func (_c *MockStore_PubSubMessageListAfter_Call) RunAndReturn(run func(timestamp int64) ([]*model.DistributedMessage, error)) *MockStore_PubSubMessageListAfter_Call {
 	_c.Call.Return(run)
 	return _c
 }

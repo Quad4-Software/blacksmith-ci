@@ -69,6 +69,11 @@ var flags = append([]cli.Flag{
 		Usage:   "server fully qualified url. Format: <scheme>://<host>[/<prefix path>]",
 	},
 	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_INSTANCE_ID"),
+		Name:    "instance-id",
+		Usage:   "unique instance identifier for HA deployments (defaults to hostname)",
+	},
+	&cli.StringFlag{
 		Sources: cli.EnvVars("WOODPECKER_SERVER_ADDR", "CROW_SERVER_ADDR"),
 		Name:    "server-addr",
 		Usage:   "server address",
@@ -246,6 +251,18 @@ var flags = append([]cli.Flag{
 		Sources: cli.EnvVars("WOODPECKER_KEEPALIVE_MIN_TIME", "CROW_KEEPALIVE_MIN_TIME"),
 		Name:    "keepalive-min-time",
 		Usage:   "server-side enforcement policy on the minimum amount of time a client should wait before sending a keepalive ping.",
+	},
+	&cli.DurationFlag{
+		Sources: cli.EnvVars("CROW_QUEUE_LOCK_TTL"),
+		Name:    "queue-lock-ttl",
+		Usage:   "TTL for queue processing leader election lock in HA deployments",
+		Value:   30 * time.Second,
+	},
+	&cli.DurationFlag{
+		Sources: cli.EnvVars("CROW_CRON_LOCK_TTL"),
+		Name:    "cron-lock-ttl",
+		Usage:   "TTL for cron scheduler leader election lock in HA deployments",
+		Value:   90 * time.Second,
 	},
 	&cli.StringFlag{
 		Sources: cli.EnvVars("WOODPECKER_CONFIG_SERVICE_ENDPOINT", "CROW_CONFIG_SERVICE_ENDPOINT"),

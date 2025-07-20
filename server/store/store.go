@@ -229,4 +229,34 @@ type Store interface {
 	// CleanupOrphanedWorkflows checks for workflows that exist in the queue but not in the database
 	// This helps prevent "sql: no rows in result set" errors
 	CleanupOrphanedWorkflows(workflowIDs []string) error
+
+	// Distributed Locking (for HA coordination)
+	// DistributedLockAcquire attempts to acquire a distributed lock
+	DistributedLockAcquire(lockName string, instanceID string, ttlSeconds int64) (bool, error)
+	// DistributedLockRelease releases a distributed lock held by this instance
+	DistributedLockRelease(lockName string, instanceID string) error
+	// DistributedLockExtend extends the TTL of a lock held by this instance
+	DistributedLockExtend(lockName string, instanceID string, ttlSeconds int64) (bool, error)
+	// DistributedLockCleanup removes expired locks
+	DistributedLockCleanup() error
+	// DistributedLockList lists all currently held locks
+	DistributedLockList() ([]*model.DistributedLock, error)
+
+	// Distributed Pub/Sub (for HA log streaming and events)
+	// PubSubMessageInsert stores a message for distributed pub/sub
+	PubSubMessageInsert(msg *model.DistributedMessage) error
+	// PubSubMessageListAfter retrieves messages created after the given timestamp
+	PubSubMessageListAfter(timestamp int64) ([]*model.DistributedMessage, error)
+	// PubSubMessageCleanupOlderThan removes messages older than the given timestamp
+	PubSubMessageCleanupOlderThan(timestamp int64) error
+
+	// Distributed Cache (for HA membership and permissions caching)
+	// CacheGet retrieves a cache entry by key
+	CacheGet(key string) (*model.CacheEntry, error)
+	// CacheSet stores a cache entry
+	CacheSet(entry *model.CacheEntry) error
+	// CacheDelete removes a cache entry
+	CacheDelete(key string) error
+	// CacheCleanupExpired removes expired cache entries
+	CacheCleanupExpired(cutoff int64) error
 }

@@ -111,7 +111,7 @@ steps:
     image: *golang_image
     environment:
       CROW_DATABASE_DRIVER: postgres
-      CROW_DATABASE_DATASOURCE: 'host=postgres user=postgres dbname=postgres sslmode=disable' # cspell:disable-line
+      CROW_DATABASE_DATASOURCE: 'host=svc-postgres user=postgres dbname=postgres sslmode=disable' # cspell:disable-line
     commands:
       - apk add --no-cache -q just git gcc musl-dev
       - just test-server-datastore
@@ -123,7 +123,7 @@ steps:
     image: *golang_image
     environment:
       CROW_DATABASE_DRIVER: mysql
-      CROW_DATABASE_DATASOURCE: root@tcp(mysql:3306)/test?parseTime=true
+      CROW_DATABASE_DATASOURCE: root@tcp(svc-mysql:3306)/test?parseTime=true
     commands:
       - apk add --no-cache -q just git gcc musl-dev
       - just test-server-datastore

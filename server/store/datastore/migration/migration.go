@@ -59,6 +59,9 @@ var migrationTasks = []*xormigrate.Migration{
 	&addDependsOnToSteps,
 	&addWorkflowFields,
 	&addMaintenanceTables,
+	&addDistributedLocks,
+	&addPubSubMessages,
+	&addCacheEntries,
 }
 
 var allBeans = []any{
@@ -83,6 +86,9 @@ var allBeans = []any{
 	new(model.MaintenanceConfig),
 	new(model.MaintenanceStats),
 	new(model.MaintenanceLog),
+	new(model.DistributedLock),
+	new(model.DistributedMessage),
+	new(model.CacheEntry),
 }
 
 // TODO: make xormigrate context aware

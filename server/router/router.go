@@ -64,7 +64,11 @@ func Load(noRouteHandler http.HandlerFunc, middleware ...gin.HandlerFunc) http.H
 
 		base.GET("/metrics", metrics.PromHandler())
 		base.GET("/version", api.Version)
-		base.GET("/healthz", api.Health)
+
+		// Health check endpoints for HA load balancer integration
+		base.GET("/healthz", api.GetHealth)     // Comprehensive health check
+		base.GET("/livez", api.GetHealthLive)   // Liveness probe
+		base.GET("/readyz", api.GetHealthReady) // Readiness probe
 	}
 
 	apiRoutes(base)
