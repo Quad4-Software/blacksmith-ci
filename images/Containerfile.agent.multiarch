@@ -2,8 +2,9 @@ FROM --platform=$BUILDPLATFORM docker.io/golang:1.24-alpine3.22 AS build
 
 RUN addgroup -g 1000 -S crow && \
   adduser -u 1000 -G crow -S crow && \
-  mkdir -p /etc/crow && \
-  ln -s /etc/crow /etc/woodpecker
+  mkdir -p /etc/crow /var/log/crow && \
+  ln -s /etc/crow /etc/woodpecker && \
+  chown -R crow:crow /etc/crow /etc/woodpecker /var/log/crow
 
 RUN apk add --no-cache -q just git
 
@@ -32,6 +33,7 @@ LABEL org.label-schema.license="Apache-2.0" \
 ENV GODEBUG=netdns=go
 # Internal setting do NOT change! Signals that crow is running inside a container
 ENV WOODPECKER_IN_CONTAINER=true
+ENV CROW_IN_CONTAINER=true
 EXPOSE 3000
 
 # copy certs from build image
@@ -39,6 +41,7 @@ COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certifica
 # copy agent binary
 COPY --from=build /src/dist/crow-agent /bin/
 COPY --from=build --chown=crow:crow /etc/crow /etc
+COPY --from=build --chown=crow:crow /var/log/crow /var/log
 COPY --from=build /etc/passwd /etc/passwd
 COPY --from=build /etc/group /etc/group
 

@@ -24,13 +24,14 @@ LABEL org.label-schema.license="Apache-2.0" \
 RUN apk add -U --no-cache ca-certificates && \
   addgroup -g 1000 -S crow && \
   adduser -u 1000 -G crow -S crow && \
-  mkdir -p /etc/crow && \
+  mkdir -p /etc/crow /var/log/crow && \
   ln -s /etc/crow /etc/woodpecker && \
-  chown -R crow:crow /etc/crow /etc/woodpecker
+  chown -R crow:crow /etc/crow /etc/woodpecker /var/log/crow
 
 ENV GODEBUG=netdns=go
 # Internal setting do NOT change! Signals that crow is running inside a container
 ENV WOODPECKER_IN_CONTAINER=true
+ENV CROW_IN_CONTAINER=true
 EXPOSE 3000
 
 COPY --from=build /src/dist/crow-agent /bin/
