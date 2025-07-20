@@ -168,7 +168,17 @@
   --spacing-3xl: 48rem;
 
   --font-sans:
-    system-ui, -apple-system, Segoe UI, Roboto, Helvetica Neue, Noto Sans, Liberation Sans, Arial, sans-serif;
+    'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'Noto Sans', sans-serif,
+    'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+
+  /* Login page font */
+  --font-manrope: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+
+  /* Custom font families as utility classes */
+  --font-family-manrope: var(--font-manrope);
+
+  /* Monospace font for code and logs */
+  --font-mono: 'JetBrains Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
 
   --transition-property-height: max-height;
 
@@ -1203,4 +1213,8 @@
 
 @utility display-unset {
   display: unset;
+}
+
+@utility font-manrope {
+  font-family: var(--font-manrope);
 }

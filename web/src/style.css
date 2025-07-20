@@ -175,16 +175,16 @@ body,
 }
 
 .code-box {
-  @apply break-words rounded-md bg-wp-code-inline-100 p-4 text-sm text-wp-code-inline-text-100;
+  @apply break-words rounded-md bg-wp-code-inline-100 p-4 text-sm text-wp-code-inline-text-100 font-mono;
   white-space: pre-wrap;
 }
 
 .code-box-inline,
 code:not(pre > code) {
-  @apply rounded-md bg-wp-code-inline-100 px-1.5 py-0.5 text-wp-code-inline-text-100;
+  @apply rounded-md bg-wp-code-inline-100 px-1.5 py-0.5 text-wp-code-inline-text-100 font-mono;
 }
 
 .code-box-log {
-  @apply break-words bg-wp-code-300 p-4 text-wp-code-text-100;
+  @apply break-words bg-wp-code-300 p-4 text-wp-code-text-100 font-mono;
   white-space: pre-wrap;
 }

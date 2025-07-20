@@ -181,7 +181,7 @@
         <!-- Log grid -->
         <div
           ref="consoleElement"
-          class="grid w-full max-w-full h-full auto-rows-min grid-cols-[min-content_minmax(0,1fr)_min-content] overflow-y-auto overflow-x-hidden p-4 text-xs md:text-sm"
+          class="grid w-full max-w-full h-full auto-rows-min grid-cols-[min-content_minmax(0,1fr)_min-content] overflow-y-auto overflow-x-hidden p-4 text-xs"
         >
           <div v-for="line in log" :key="line.index" class="contents font-mono">
             <a

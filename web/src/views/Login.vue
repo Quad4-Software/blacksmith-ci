@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen w-full flex flex-col items-center justify-center bg-white dark:bg-black text-wp-text-100">
     <div
-      class="shadow-2xl rounded-3xl py-8 md:py-12 px-8 md:px-16 flex flex-col items-center gap-4 max-w-lg border border-black/10 dark:border-white/30 bg-white dark:bg-[#383c4a] text-wp-text-100 md:my-24 my-12 md:mx-24 mx-6"
+      class="font-manrope shadow-2xl rounded-3xl py-8 md:py-12 px-8 md:px-16 flex flex-col items-center gap-4 max-w-lg border border-black/10 dark:border-white/30 bg-white dark:bg-[#383c4a] text-wp-text-100 md:my-24 my-12 md:mx-24 mx-6"
     >
       <component :is="isDark ? CrowLogo : CrowLogoDark" class="h-20 w-20 mb-2" />
       <h1 class="text-3xl font-extrabold text-center">{{ $t('welcome_to_crow') }}</h1>
