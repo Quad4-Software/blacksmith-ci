@@ -28,7 +28,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"codeberg.org/crowci/crow/v3/pipeline/backend/types"
+	"codeberg.org/crowci/crow/v4/pipeline/backend/types"
 )
 
 // checkGitCloneCap check if we have the git binary on hand.

@@ -26,12 +26,12 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v3"
 
-	"codeberg.org/crowci/crow/v3/server/model"
-	"codeberg.org/crowci/crow/v3/server/services/config"
-	"codeberg.org/crowci/crow/v3/server/services/registry"
-	"codeberg.org/crowci/crow/v3/server/services/secret"
-	"codeberg.org/crowci/crow/v3/server/store"
-	"codeberg.org/crowci/crow/v3/server/store/types"
+	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v4/server/services/config"
+	"codeberg.org/crowci/crow/v4/server/services/registry"
+	"codeberg.org/crowci/crow/v4/server/services/secret"
+	"codeberg.org/crowci/crow/v4/server/store"
+	"codeberg.org/crowci/crow/v4/server/store/types"
 )
 
 func setupRegistryService(store store.Store, dockerConfig string) registry.Service {

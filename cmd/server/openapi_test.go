@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"codeberg.org/crowci/crow/v3/cmd/server/openapi"
+	"codeberg.org/crowci/crow/v4/cmd/server/openapi"
 )
 
 func TestSetupOpenApiStaticConfig(t *testing.T) {

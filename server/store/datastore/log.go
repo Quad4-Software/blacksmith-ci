@@ -18,7 +18,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"xorm.io/xorm"
 
-	"codeberg.org/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v4/server/model"
 )
 
 // Maximum number of records to store in one PostgreSQL statement.

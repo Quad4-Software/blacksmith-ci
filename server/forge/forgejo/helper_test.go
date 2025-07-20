@@ -21,8 +21,8 @@ import (
 	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2"
 	"github.com/stretchr/testify/assert"
 
-	"codeberg.org/crowci/crow/v3/server/forge/forgejo/fixtures"
-	"codeberg.org/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v4/server/forge/forgejo/fixtures"
+	"codeberg.org/crowci/crow/v4/server/model"
 )
 
 func Test_parsePush(t *testing.T) {

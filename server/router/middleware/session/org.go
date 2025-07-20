@@ -21,9 +21,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"codeberg.org/crowci/crow/v3/server/model"
-	"codeberg.org/crowci/crow/v3/server/store"
-	"codeberg.org/crowci/crow/v3/server/store/types"
+	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v4/server/store"
+	"codeberg.org/crowci/crow/v4/server/store/types"
 )
 
 func Org(c *gin.Context) *model.Org {

@@ -5,7 +5,7 @@
 package types
 
 import (
-	"codeberg.org/crowci/crow/v3/server/services/encryption/types"
+	"codeberg.org/crowci/crow/v4/server/services/encryption/types"
 	mock "github.com/stretchr/testify/mock"
 )
 

@@ -19,7 +19,7 @@ import (
 
 	"github.com/hashicorp/go-plugin"
 
-	"codeberg.org/crowci/crow/v3/server/forge"
+	"codeberg.org/crowci/crow/v4/server/forge"
 )
 
 const pluginKey = "forge"

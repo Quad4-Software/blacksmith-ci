@@ -21,8 +21,8 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/google/tink/go/tink"
 
-	"codeberg.org/crowci/crow/v3/server/services/encryption/types"
-	"codeberg.org/crowci/crow/v3/server/store"
+	"codeberg.org/crowci/crow/v4/server/services/encryption/types"
+	"codeberg.org/crowci/crow/v4/server/store"
 )
 
 type tinkEncryptionService struct {

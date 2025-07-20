@@ -23,7 +23,7 @@ import (
 	bb "github.com/neticdk/go-bitbucket/bitbucket"
 	"golang.org/x/oauth2"
 
-	"codeberg.org/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v4/server/model"
 )
 
 func convertStatus(status model.StatusValue) bb.BuildStatusState {

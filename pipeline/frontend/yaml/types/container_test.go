@@ -21,8 +21,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 
-	"codeberg.org/crowci/crow/v3/pipeline/frontend/yaml/constraint"
-	"codeberg.org/crowci/crow/v3/pipeline/frontend/yaml/types/base"
+	"codeberg.org/crowci/crow/v4/pipeline/frontend/yaml/constraint"
+	"codeberg.org/crowci/crow/v4/pipeline/frontend/yaml/types/base"
 )
 
 var containerYaml = []byte(`

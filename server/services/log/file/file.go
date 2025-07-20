@@ -10,9 +10,9 @@ import (
 
 	logger "github.com/rs/zerolog/log"
 
-	"codeberg.org/crowci/crow/v3/pipeline"
-	"codeberg.org/crowci/crow/v3/server/model"
-	"codeberg.org/crowci/crow/v3/server/services/log"
+	"codeberg.org/crowci/crow/v4/pipeline"
+	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v4/server/services/log"
 )
 
 const (

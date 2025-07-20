@@ -19,7 +19,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	backend_types "codeberg.org/crowci/crow/v3/pipeline/backend/types"
+	backend_types "codeberg.org/crowci/crow/v4/pipeline/backend/types"
 )
 
 func TestConvertDAGToStages(t *testing.T) {

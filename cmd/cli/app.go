@@ -17,17 +17,17 @@ package main
 import (
 	"github.com/urfave/cli/v3"
 
-	"codeberg.org/crowci/crow/v3/cli/admin"
-	"codeberg.org/crowci/crow/v3/cli/common"
-	"codeberg.org/crowci/crow/v3/cli/exec"
-	"codeberg.org/crowci/crow/v3/cli/info"
-	"codeberg.org/crowci/crow/v3/cli/lint"
-	"codeberg.org/crowci/crow/v3/cli/org"
-	"codeberg.org/crowci/crow/v3/cli/pipeline"
-	"codeberg.org/crowci/crow/v3/cli/repo"
-	"codeberg.org/crowci/crow/v3/cli/setup"
-	"codeberg.org/crowci/crow/v3/cli/update"
-	"codeberg.org/crowci/crow/v3/version"
+	"codeberg.org/crowci/crow/v4/cli/admin"
+	"codeberg.org/crowci/crow/v4/cli/common"
+	"codeberg.org/crowci/crow/v4/cli/exec"
+	"codeberg.org/crowci/crow/v4/cli/info"
+	"codeberg.org/crowci/crow/v4/cli/lint"
+	"codeberg.org/crowci/crow/v4/cli/org"
+	"codeberg.org/crowci/crow/v4/cli/pipeline"
+	"codeberg.org/crowci/crow/v4/cli/repo"
+	"codeberg.org/crowci/crow/v4/cli/setup"
+	"codeberg.org/crowci/crow/v4/cli/update"
+	"codeberg.org/crowci/crow/v4/version"
 )
 
 //go:generate go run docs.go app.go

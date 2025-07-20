@@ -23,11 +23,11 @@ import (
 	"github.com/gorilla/securecookie"
 	"github.com/rs/zerolog/log"
 
-	"codeberg.org/crowci/crow/v3/server"
-	"codeberg.org/crowci/crow/v3/server/model"
-	"codeberg.org/crowci/crow/v3/server/router/middleware/session"
-	"codeberg.org/crowci/crow/v3/server/store"
-	"codeberg.org/crowci/crow/v3/shared/token"
+	"codeberg.org/crowci/crow/v4/server"
+	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v4/server/router/middleware/session"
+	"codeberg.org/crowci/crow/v4/server/store"
+	"codeberg.org/crowci/crow/v4/shared/token"
 )
 
 // GetSelf

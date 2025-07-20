@@ -24,9 +24,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"codeberg.org/crowci/crow/v3/server/forge/github/fixtures"
-	"codeberg.org/crowci/crow/v3/server/forge/types"
-	"codeberg.org/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v4/server/forge/github/fixtures"
+	"codeberg.org/crowci/crow/v4/server/forge/types"
+	"codeberg.org/crowci/crow/v4/server/model"
 )
 
 const (

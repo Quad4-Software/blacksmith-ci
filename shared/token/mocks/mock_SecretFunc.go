@@ -3,7 +3,7 @@
 package token
 
 import (
-	token "codeberg.org/crowci/crow/v3/shared/token"
+	token "codeberg.org/crowci/crow/v4/shared/token"
 	mock "github.com/stretchr/testify/mock"
 )
 

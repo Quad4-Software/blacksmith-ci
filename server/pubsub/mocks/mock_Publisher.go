@@ -7,7 +7,7 @@ package pubsub
 import (
 	"context"
 
-	"codeberg.org/crowci/crow/v3/server/pubsub"
+	"codeberg.org/crowci/crow/v4/server/pubsub"
 	mock "github.com/stretchr/testify/mock"
 )
 

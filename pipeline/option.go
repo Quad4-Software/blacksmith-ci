@@ -17,7 +17,7 @@ package pipeline
 import (
 	"context"
 
-	backend "codeberg.org/crowci/crow/v3/pipeline/backend/types"
+	backend "codeberg.org/crowci/crow/v4/pipeline/backend/types"
 )
 
 // Option configures a runtime option.

@@ -17,7 +17,7 @@ package datastore
 import (
 	"xorm.io/builder"
 
-	"codeberg.org/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v4/server/model"
 )
 
 func (s storage) CronCreate(cron *model.Cron) error {

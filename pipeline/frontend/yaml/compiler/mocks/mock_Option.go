@@ -3,7 +3,7 @@
 package compiler
 
 import (
-	compiler "codeberg.org/crowci/crow/v3/pipeline/frontend/yaml/compiler"
+	compiler "codeberg.org/crowci/crow/v4/pipeline/frontend/yaml/compiler"
 	mock "github.com/stretchr/testify/mock"
 )
 

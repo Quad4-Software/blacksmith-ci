@@ -7,9 +7,9 @@ package config
 import (
 	"context"
 
-	"codeberg.org/crowci/crow/v3/server/forge"
-	"codeberg.org/crowci/crow/v3/server/forge/types"
-	"codeberg.org/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v4/server/forge"
+	"codeberg.org/crowci/crow/v4/server/forge/types"
+	"codeberg.org/crowci/crow/v4/server/model"
 	mock "github.com/stretchr/testify/mock"
 )
 

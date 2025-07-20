@@ -1,6 +1,6 @@
 ---
 packages:
-  codeberg.org/crowci/crow/v3:
+  codeberg.org/crowci/crow/v4:
     config:
       recursive: true
 

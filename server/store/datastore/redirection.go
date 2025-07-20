@@ -18,7 +18,7 @@ import (
 	"xorm.io/builder"
 	"xorm.io/xorm"
 
-	"codeberg.org/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v4/server/model"
 )
 
 func (s storage) getRedirection(e *xorm.Session, fullName string) (*model.Redirection, error) {

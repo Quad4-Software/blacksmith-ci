@@ -19,7 +19,7 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"codeberg.org/crowci/crow/v3/shared/logger"
+	"codeberg.org/crowci/crow/v4/shared/logger"
 )
 
 var GlobalFlags = append([]cli.Flag{

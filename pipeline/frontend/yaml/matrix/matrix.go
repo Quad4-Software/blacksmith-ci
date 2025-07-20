@@ -19,7 +19,7 @@ import (
 
 	"codeberg.org/6543/xyaml"
 
-	errorTypes "codeberg.org/crowci/crow/v3/pipeline/errors/types"
+	errorTypes "codeberg.org/crowci/crow/v4/pipeline/errors/types"
 )
 
 const (

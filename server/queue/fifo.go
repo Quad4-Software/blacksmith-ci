@@ -23,8 +23,8 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"codeberg.org/crowci/crow/v3/server/model"
-	"codeberg.org/crowci/crow/v3/shared/constant"
+	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v4/shared/constant"
 )
 
 type entry struct {

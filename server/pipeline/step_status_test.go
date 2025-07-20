@@ -22,11 +22,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"codeberg.org/crowci/crow/v3/pipeline"
-	"codeberg.org/crowci/crow/v3/pipeline/rpc"
-	"codeberg.org/crowci/crow/v3/server/model"
-	"codeberg.org/crowci/crow/v3/server/store"
-	store_mocks "codeberg.org/crowci/crow/v3/server/store/mocks"
+	"codeberg.org/crowci/crow/v4/pipeline"
+	"codeberg.org/crowci/crow/v4/pipeline/rpc"
+	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v4/server/store"
+	store_mocks "codeberg.org/crowci/crow/v4/server/store/mocks"
 )
 
 func mockStoreStep() store.Store {

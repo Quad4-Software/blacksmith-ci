@@ -24,9 +24,9 @@ import (
 
 	"github.com/google/go-github/v73/github"
 
-	"codeberg.org/crowci/crow/v3/server/forge/types"
-	"codeberg.org/crowci/crow/v3/server/model"
-	"codeberg.org/crowci/crow/v3/shared/utils"
+	"codeberg.org/crowci/crow/v4/server/forge/types"
+	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v4/shared/utils"
 )
 
 const (

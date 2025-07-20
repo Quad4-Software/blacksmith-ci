@@ -14,7 +14,7 @@
 
 package badges
 
-import "codeberg.org/crowci/crow/v3/server/model"
+import "codeberg.org/crowci/crow/v4/server/model"
 
 // cspell:words Verdana
 

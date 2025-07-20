@@ -17,7 +17,7 @@ package datastore
 import (
 	"errors"
 
-	"codeberg.org/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v4/server/model"
 )
 
 var ErrNoTokenProvided = errors.New("please provide a token")

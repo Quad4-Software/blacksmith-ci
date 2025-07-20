@@ -21,8 +21,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"codeberg.org/crowci/crow/v3/crow-go/crow"
-	crow_mocks "codeberg.org/crowci/crow/v3/crow-go/crow/mocks"
+	"codeberg.org/crowci/crow/v4/crow-go/crow"
+	crow_mocks "codeberg.org/crowci/crow/v4/crow-go/crow/mocks"
 )
 
 func TestCancelWorkflow_CLI(t *testing.T) {

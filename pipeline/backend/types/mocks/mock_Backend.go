@@ -8,7 +8,7 @@ import (
 	"context"
 	"io"
 
-	"codeberg.org/crowci/crow/v3/pipeline/backend/types"
+	"codeberg.org/crowci/crow/v4/pipeline/backend/types"
 	mock "github.com/stretchr/testify/mock"
 	"github.com/urfave/cli/v3"
 )

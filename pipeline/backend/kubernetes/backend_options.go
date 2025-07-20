@@ -3,7 +3,7 @@ package kubernetes
 import (
 	"github.com/go-viper/mapstructure/v2"
 
-	backend "codeberg.org/crowci/crow/v3/pipeline/backend/types"
+	backend "codeberg.org/crowci/crow/v4/pipeline/backend/types"
 )
 
 // BackendOptions defines all the advanced options for the kubernetes backend.

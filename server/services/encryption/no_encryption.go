@@ -14,7 +14,7 @@
 
 package encryption
 
-import "codeberg.org/crowci/crow/v3/server/services/encryption/types"
+import "codeberg.org/crowci/crow/v4/server/services/encryption/types"
 
 type noEncryptionBuilder struct {
 	clients []types.EncryptionClient

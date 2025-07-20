@@ -25,7 +25,7 @@ import (
 	"github.com/google/tink/go/keyset"
 	"github.com/rs/zerolog/log"
 
-	"codeberg.org/crowci/crow/v3/server/store/types"
+	"codeberg.org/crowci/crow/v4/server/store/types"
 )
 
 func (svc *tinkEncryptionService) loadKeyset() error {

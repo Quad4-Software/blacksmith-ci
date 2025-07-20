@@ -21,14 +21,14 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	pipeline_errors "codeberg.org/crowci/crow/v3/pipeline/errors"
-	"codeberg.org/crowci/crow/v3/pipeline/frontend/yaml/compiler"
-	"codeberg.org/crowci/crow/v3/server"
-	"codeberg.org/crowci/crow/v3/server/forge"
-	forge_types "codeberg.org/crowci/crow/v3/server/forge/types"
-	"codeberg.org/crowci/crow/v3/server/model"
-	"codeberg.org/crowci/crow/v3/server/pipeline/stepbuilder"
-	"codeberg.org/crowci/crow/v3/server/store"
+	pipeline_errors "codeberg.org/crowci/crow/v4/pipeline/errors"
+	"codeberg.org/crowci/crow/v4/pipeline/frontend/yaml/compiler"
+	"codeberg.org/crowci/crow/v4/server"
+	"codeberg.org/crowci/crow/v4/server/forge"
+	forge_types "codeberg.org/crowci/crow/v4/server/forge/types"
+	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v4/server/pipeline/stepbuilder"
+	"codeberg.org/crowci/crow/v4/server/store"
 )
 
 func parsePipeline(forge forge.Forge, store store.Store, currentPipeline *model.Pipeline, user *model.User, repo *model.Repo, yamls []*forge_types.FileMeta, envs map[string]string) ([]*stepbuilder.Item, error) {

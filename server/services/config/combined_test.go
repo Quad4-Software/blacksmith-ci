@@ -30,10 +30,10 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/yaronf/httpsign"
 
-	forge_mocks "codeberg.org/crowci/crow/v3/server/forge/mocks"
-	forge_types "codeberg.org/crowci/crow/v3/server/forge/types"
-	"codeberg.org/crowci/crow/v3/server/model"
-	"codeberg.org/crowci/crow/v3/server/services/config"
+	forge_mocks "codeberg.org/crowci/crow/v4/server/forge/mocks"
+	forge_types "codeberg.org/crowci/crow/v4/server/forge/types"
+	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v4/server/services/config"
 )
 
 func TestFetchFromConfigService(t *testing.T) {

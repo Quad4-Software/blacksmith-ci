@@ -28,15 +28,15 @@ import (
 	"github.com/rs/zerolog/log"
 	grpcMetadata "google.golang.org/grpc/metadata"
 
-	"codeberg.org/crowci/crow/v3/pipeline/rpc"
-	"codeberg.org/crowci/crow/v3/server"
-	"codeberg.org/crowci/crow/v3/server/forge"
-	"codeberg.org/crowci/crow/v3/server/logging"
-	"codeberg.org/crowci/crow/v3/server/model"
-	"codeberg.org/crowci/crow/v3/server/pipeline"
-	"codeberg.org/crowci/crow/v3/server/pubsub"
-	"codeberg.org/crowci/crow/v3/server/queue"
-	"codeberg.org/crowci/crow/v3/server/store"
+	"codeberg.org/crowci/crow/v4/pipeline/rpc"
+	"codeberg.org/crowci/crow/v4/server"
+	"codeberg.org/crowci/crow/v4/server/forge"
+	"codeberg.org/crowci/crow/v4/server/logging"
+	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v4/server/pipeline"
+	"codeberg.org/crowci/crow/v4/server/pubsub"
+	"codeberg.org/crowci/crow/v4/server/queue"
+	"codeberg.org/crowci/crow/v4/server/store"
 )
 
 // updateAgentLastWorkDelay the delay before the LastWork info should be updated.

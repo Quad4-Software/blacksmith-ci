@@ -19,7 +19,7 @@ import (
 
 	"xorm.io/builder"
 
-	"codeberg.org/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v4/server/model"
 )
 
 // DistributedLockAcquire attempts to acquire a distributed lock for HA coordination.

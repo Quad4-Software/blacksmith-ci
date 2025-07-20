@@ -3,7 +3,7 @@
 package queue
 
 import (
-	model "codeberg.org/crowci/crow/v3/server/model"
+	model "codeberg.org/crowci/crow/v4/server/model"
 	mock "github.com/stretchr/testify/mock"
 )
 

@@ -27,14 +27,14 @@ import (
 	"github.com/gorilla/securecookie"
 	"github.com/rs/zerolog/log"
 
-	"codeberg.org/crowci/crow/v3/server"
-	"codeberg.org/crowci/crow/v3/server/forge"
-	forge_types "codeberg.org/crowci/crow/v3/server/forge/types"
-	"codeberg.org/crowci/crow/v3/server/model"
-	"codeberg.org/crowci/crow/v3/server/store"
-	"codeberg.org/crowci/crow/v3/server/store/types"
-	"codeberg.org/crowci/crow/v3/shared/httputil"
-	"codeberg.org/crowci/crow/v3/shared/token"
+	"codeberg.org/crowci/crow/v4/server"
+	"codeberg.org/crowci/crow/v4/server/forge"
+	forge_types "codeberg.org/crowci/crow/v4/server/forge/types"
+	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v4/server/store"
+	"codeberg.org/crowci/crow/v4/server/store/types"
+	"codeberg.org/crowci/crow/v4/shared/httputil"
+	"codeberg.org/crowci/crow/v4/shared/token"
 )
 
 const stateTokenDuration = time.Minute * 5

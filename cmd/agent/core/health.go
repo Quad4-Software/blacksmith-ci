@@ -24,8 +24,8 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v3"
 
-	"codeberg.org/crowci/crow/v3/agent"
-	"codeberg.org/crowci/crow/v3/version"
+	"codeberg.org/crowci/crow/v4/agent"
+	"codeberg.org/crowci/crow/v4/version"
 )
 
 // The file implements some basic healthcheck logic based on the

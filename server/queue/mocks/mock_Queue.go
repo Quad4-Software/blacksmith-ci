@@ -7,8 +7,8 @@ package queue
 import (
 	"context"
 
-	"codeberg.org/crowci/crow/v3/server/model"
-	"codeberg.org/crowci/crow/v3/server/queue"
+	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v4/server/queue"
 	mock "github.com/stretchr/testify/mock"
 )
 

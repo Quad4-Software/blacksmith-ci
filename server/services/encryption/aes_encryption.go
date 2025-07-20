@@ -23,7 +23,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/sha3"
 
-	"codeberg.org/crowci/crow/v3/server/store/types"
+	"codeberg.org/crowci/crow/v4/server/store/types"
 )
 
 func (svc *aesEncryptionService) loadCipher(password string) error {

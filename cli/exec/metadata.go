@@ -24,9 +24,9 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"codeberg.org/crowci/crow/v3/pipeline/frontend/metadata"
-	"codeberg.org/crowci/crow/v3/pipeline/frontend/yaml/matrix"
-	"codeberg.org/crowci/crow/v3/version"
+	"codeberg.org/crowci/crow/v4/pipeline/frontend/metadata"
+	"codeberg.org/crowci/crow/v4/pipeline/frontend/yaml/matrix"
+	"codeberg.org/crowci/crow/v4/version"
 )
 
 // return the metadata from the cli context.

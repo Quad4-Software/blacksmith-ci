@@ -1239,7 +1239,7 @@ const file_crow_proto_rawDesc = "" +
 	"\x0fUnregisterAgent\x12\f.proto.Empty\x1a\f.proto.Empty\"\x00\x12:\n" +
 	"\fReportHealth\x12\x1a.proto.ReportHealthRequest\x1a\f.proto.Empty\"\x002=\n" +
 	"\bCrowAuth\x121\n" +
-	"\x04Auth\x12\x12.proto.AuthRequest\x1a\x13.proto.AuthResponse\"\x00B0Z.codeberg.org/crowci/crow/v3/pipeline/rpc/protob\x06proto3"
+	"\x04Auth\x12\x12.proto.AuthRequest\x1a\x13.proto.AuthResponse\"\x00B0Z.codeberg.org/crowci/crow/v4/pipeline/rpc/protob\x06proto3"
 
 var (
 	file_crow_proto_rawDescOnce sync.Once

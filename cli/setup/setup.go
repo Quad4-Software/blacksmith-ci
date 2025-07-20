@@ -8,7 +8,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v3"
 
-	"codeberg.org/crowci/crow/v3/cli/internal/config"
+	"codeberg.org/crowci/crow/v4/cli/internal/config"
 )
 
 // Command exports the setup command.

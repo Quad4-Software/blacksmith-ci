@@ -21,8 +21,8 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"codeberg.org/crowci/crow/v3/server/forge/types"
-	"codeberg.org/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v4/server/forge/types"
+	"codeberg.org/crowci/crow/v4/server/model"
 )
 
 const (

@@ -19,9 +19,9 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"codeberg.org/crowci/crow/v3/cli/common"
-	"codeberg.org/crowci/crow/v3/cli/internal"
-	crow "codeberg.org/crowci/crow/v3/crow-go/crow"
+	"codeberg.org/crowci/crow/v4/cli/common"
+	"codeberg.org/crowci/crow/v4/cli/internal"
+	crow "codeberg.org/crowci/crow/v4/crow-go/crow"
 )
 
 var pipelineLastCmd = &cli.Command{

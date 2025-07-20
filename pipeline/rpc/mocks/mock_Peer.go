@@ -7,7 +7,7 @@ package rpc
 import (
 	"context"
 
-	"codeberg.org/crowci/crow/v3/pipeline/rpc"
+	"codeberg.org/crowci/crow/v4/pipeline/rpc"
 	mock "github.com/stretchr/testify/mock"
 )
 

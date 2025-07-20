@@ -20,7 +20,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"codeberg.org/crowci/crow/v3/pipeline/frontend/metadata"
+	"codeberg.org/crowci/crow/v4/pipeline/frontend/metadata"
 )
 
 func TestSetDroneEnvironOnPull(t *testing.T) {

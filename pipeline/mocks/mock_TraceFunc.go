@@ -3,7 +3,7 @@
 package pipeline
 
 import (
-	pipeline "codeberg.org/crowci/crow/v3/pipeline"
+	pipeline "codeberg.org/crowci/crow/v4/pipeline"
 	mock "github.com/stretchr/testify/mock"
 )
 

@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	backend "codeberg.org/crowci/crow/v3/pipeline/backend/types"
+	backend "codeberg.org/crowci/crow/v4/pipeline/backend/types"
 )
 
 func Test_parseBackendOptions(t *testing.T) {

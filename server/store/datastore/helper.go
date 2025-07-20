@@ -21,8 +21,8 @@ import (
 
 	"xorm.io/xorm"
 
-	"codeberg.org/crowci/crow/v3/server/model"
-	"codeberg.org/crowci/crow/v3/server/store/types"
+	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v4/server/store/types"
 )
 
 // wrapGet return error if err not nil or if requested entry do not exist.

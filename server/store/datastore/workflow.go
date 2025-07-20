@@ -22,9 +22,9 @@ import (
 	"github.com/rs/zerolog/log"
 	"xorm.io/xorm"
 
-	"codeberg.org/crowci/crow/v3/pipeline/frontend/yaml"
-	"codeberg.org/crowci/crow/v3/pipeline/frontend/yaml/matrix"
-	"codeberg.org/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v4/pipeline/frontend/yaml"
+	"codeberg.org/crowci/crow/v4/pipeline/frontend/yaml/matrix"
+	"codeberg.org/crowci/crow/v4/server/model"
 )
 
 func (s storage) WorkflowGetTree(pipeline *model.Pipeline) ([]*model.Workflow, error) {

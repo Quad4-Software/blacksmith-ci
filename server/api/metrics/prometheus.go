@@ -22,7 +22,7 @@ import (
 	"github.com/gin-gonic/gin"
 	prometheus_http "github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"codeberg.org/crowci/crow/v3/server"
+	"codeberg.org/crowci/crow/v4/server"
 )
 
 // errInvalidToken is returned when the api request token is invalid.

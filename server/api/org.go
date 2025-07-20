@@ -21,10 +21,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 
-	"codeberg.org/crowci/crow/v3/server"
-	"codeberg.org/crowci/crow/v3/server/model"
-	"codeberg.org/crowci/crow/v3/server/router/middleware/session"
-	"codeberg.org/crowci/crow/v3/server/store"
+	"codeberg.org/crowci/crow/v4/server"
+	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v4/server/router/middleware/session"
+	"codeberg.org/crowci/crow/v4/server/store"
 )
 
 // GetOrgs

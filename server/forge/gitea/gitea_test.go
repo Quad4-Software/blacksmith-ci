@@ -25,10 +25,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"codeberg.org/crowci/crow/v3/server/forge/gitea/fixtures"
-	"codeberg.org/crowci/crow/v3/server/model"
-	"codeberg.org/crowci/crow/v3/server/store"
-	store_mocks "codeberg.org/crowci/crow/v3/server/store/mocks"
+	"codeberg.org/crowci/crow/v4/server/forge/gitea/fixtures"
+	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v4/server/store"
+	store_mocks "codeberg.org/crowci/crow/v4/server/store/mocks"
 )
 
 func TestNew(t *testing.T) {

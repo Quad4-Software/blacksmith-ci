@@ -20,7 +20,7 @@ import (
 	"strconv"
 	"time"
 
-	"codeberg.org/crowci/crow/v3/server/model"
+	"codeberg.org/crowci/crow/v4/server/model"
 )
 
 // CCMenu displays the pipeline status of projects on a ci server as an item in the Mac's menu bar.

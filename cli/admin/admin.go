@@ -17,10 +17,10 @@ package admin
 import (
 	"github.com/urfave/cli/v3"
 
-	"codeberg.org/crowci/crow/v3/cli/admin/loglevel"
-	"codeberg.org/crowci/crow/v3/cli/admin/registry"
-	"codeberg.org/crowci/crow/v3/cli/admin/secret"
-	"codeberg.org/crowci/crow/v3/cli/admin/user"
+	"codeberg.org/crowci/crow/v4/cli/admin/loglevel"
+	"codeberg.org/crowci/crow/v4/cli/admin/registry"
+	"codeberg.org/crowci/crow/v4/cli/admin/secret"
+	"codeberg.org/crowci/crow/v4/cli/admin/user"
 )
 
 // Command exports the admin command set.
