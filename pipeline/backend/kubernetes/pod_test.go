@@ -108,7 +108,7 @@ func TestStepToPodName(t *testing.T) {
 	}
 	name, err = stepToPodName(longRepo)
 	assert.NoError(t, err)
-	if len(name) > 64 {
+	if len(name) > 63 {
 		t.Errorf("pod name too long: %d chars", len(name))
 	}
 }

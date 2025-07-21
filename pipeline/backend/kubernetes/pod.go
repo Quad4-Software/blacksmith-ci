@@ -36,7 +36,7 @@ const (
 	podPrefix              = "crow-"
 	servicePodPrefix       = "crow-svc-"
 	defaultFSGroup   int64 = 1000
-	maxK8sNameLength       = 64
+	maxK8sNameLength       = 63
 )
 
 func mkPod(step *types.Step, config *config, podName, goos string, options BackendOptions) (*v1.Pod, error) {
