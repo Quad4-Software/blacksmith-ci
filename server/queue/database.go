@@ -29,6 +29,10 @@ const (
 	// Database polling interval for new tasks.
 	dbPollInterval = 1 * time.Second
 
+	// Maximum time to wait for a task before returning nil.
+	// This prevents indefinite blocking and allows clients to retry.
+	maxPollDuration = 30 * time.Second
+
 	// Leader election lock name for queue processing.
 	queueLeaderLock = "queue:processor:leader"
 )
@@ -88,10 +92,16 @@ func (q *DatabaseQueue) PushAtOnce(ctx context.Context, tasks []*model.Task) err
 
 // Poll retrieves and assigns a task to an agent.
 func (q *DatabaseQueue) Poll(ctx context.Context, agentID int64, filter FilterFn) (*model.Task, error) {
+	// Create a timeout to prevent indefinite blocking
+	pollCtx, cancel := context.WithTimeout(ctx, maxPollDuration)
+	defer cancel()
+
 	for {
 		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
+		case <-pollCtx.Done():
+			// Return nil task without error to allow client to retry
+			// This prevents HAProxy 504 timeouts on long polling
+			return nil, nil
 		case <-time.After(dbPollInterval):
 			q.mu.RLock()
 			isPaused := q.paused
@@ -110,9 +120,15 @@ func (q *DatabaseQueue) Poll(ctx context.Context, agentID int64, filter FilterFn
 
 			// Find suitable task for this agent
 			for _, task := range tasks {
-				// Skip if task is already assigned
+				// Skip if task is already assigned (check database for HA environments)
 				q.assignmentMu.Lock()
+				if task.AgentID != 0 {
+					// Task is already assigned in database to another agent
+					q.assignmentMu.Unlock()
+					continue
+				}
 				if assignedAgent, exists := q.assignedTasks[task.ID]; exists && assignedAgent != 0 {
+					// Task is assigned in local memory (additional safety check)
 					q.assignmentMu.Unlock()
 					continue
 				}
@@ -132,11 +148,25 @@ func (q *DatabaseQueue) Poll(ctx context.Context, agentID int64, filter FilterFn
 					}
 				}
 
-				// Assign task to this agent
+				// Atomically assign task to this agent in database first
+				atomicAssigned, err := q.atomicTaskAssignment(task.ID, agentID)
+				if err != nil {
+					log.Error().Err(err).Str("taskID", task.ID).Int64("agentID", agentID).Msg("Failed to atomically assign task")
+					q.assignmentMu.Unlock()
+					continue
+				}
+				if !atomicAssigned {
+					// Task was assigned to another agent in the meantime
+					log.Debug().Str("taskID", task.ID).Int64("agentID", agentID).Msg("Task was assigned to another agent during atomic assignment")
+					q.assignmentMu.Unlock()
+					continue
+				}
+
+				// Success! Update local tracking and task object
 				q.assignedTasks[task.ID] = agentID
 				q.assignmentMu.Unlock()
-
 				task.AgentID = agentID
+
 				log.Debug().Str("taskID", task.ID).Int64("agentID", agentID).Msg("Assigned task to agent")
 				return task, nil
 			}
@@ -226,16 +256,38 @@ func (q *DatabaseQueue) Wait(ctx context.Context, taskID string) error {
 
 // Extend extends the task execution deadline by updating assignment time.
 func (q *DatabaseQueue) Extend(ctx context.Context, agentID int64, taskID string) error {
-	q.assignmentMu.Lock()
-	defer q.assignmentMu.Unlock()
+	// Check task assignment from database instead of in-memory map
+	// to support HA scenarios where the server may have restarted
+	tasks, err := q.store.TaskList()
+	if err != nil {
+		return err
+	}
 
-	assignedAgent, exists := q.assignedTasks[taskID]
-	if !exists || assignedAgent != agentID {
+	// Find the specific task
+	var task *model.Task
+	for _, t := range tasks {
+		if t.ID == taskID {
+			task = t
+			break
+		}
+	}
+
+	if task == nil {
+		// Task not found in database - it was likely already completed and deleted.
+		// This is a common race condition where the agent tries to extend a task
+		// that was just completed. Return success to avoid unnecessary errors.
+		log.Debug().Str("taskID", taskID).Int64("agentID", agentID).Msg("Task not found for extend - likely already completed")
+		return nil
+	}
+
+	// Verify the task is assigned to the requesting agent
+	if task.AgentID != agentID {
 		return ErrAgentMissMatch
 	}
 
-	// In this simple implementation, we just confirm the assignment
-	// In a more sophisticated version, we could update timestamps
+	// For now, we just confirm the assignment exists
+	// In a more sophisticated version, we could update timestamps in the database
+	log.Debug().Str("taskID", taskID).Int64("agentID", agentID).Msg("Extended task deadline")
 	return nil
 }
 
@@ -403,6 +455,12 @@ func (q *DatabaseQueue) cleanupStaleAssignments() {
 	} else {
 		log.Debug().Msg("No stale task assignments to clean up")
 	}
+}
+
+// atomicTaskAssignment atomically assigns a task to an agent if it's still unassigned.
+// Returns true if the assignment was successful, false if the task was already assigned to another agent.
+func (q *DatabaseQueue) atomicTaskAssignment(taskID string, agentID int64) (bool, error) {
+	return q.store.TaskAtomicAssign(taskID, agentID)
 }
 
 // areDependenciesMet checks if all dependencies for a task are completed successfully.

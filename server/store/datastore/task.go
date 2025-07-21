@@ -29,6 +29,23 @@ func (s storage) TaskInsert(task *model.Task) error {
 	return err
 }
 
+func (s storage) TaskUpdate(task *model.Task) error {
+	_, err := s.engine.ID(task.ID).Update(task)
+	return err
+}
+
 func (s storage) TaskDelete(id string) error {
 	return wrapDelete(s.engine.Where("id = ?", id).Delete(new(model.Task)))
+}
+
+func (s storage) TaskAtomicAssign(taskID string, agentID int64) (bool, error) {
+	// Atomically assign task to agent only if it's currently unassigned (agent_id = 0)
+	affected, err := s.engine.Where("id = ? AND agent_id = 0", taskID).
+		Cols("agent_id").
+		Update(&model.Task{AgentID: agentID})
+	if err != nil {
+		return false, err
+	}
+	// Return true if exactly one row was affected (successful assignment)
+	return affected == 1, nil
 }

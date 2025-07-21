@@ -17,12 +17,14 @@ package queue
 
 import (
 	"context"
+	"errors"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 
 	"codeberg.org/crowci/crow/v4/server/model"
 	"codeberg.org/crowci/crow/v4/server/store"
+	"codeberg.org/crowci/crow/v4/server/store/types"
 )
 
 // WithTaskStore returns a queue that is backed by the TaskStore. This
@@ -48,7 +50,7 @@ func (q *persistentQueue) Push(c context.Context, task *model.Task) error {
 	err := q.Queue.Push(c, task)
 	if err != nil {
 		if err2 := q.store.TaskDelete(task.ID); err2 != nil {
-			err = errors.Wrapf(err, "delete task '%s' failed: %v", task.ID, err2)
+			err = pkgerrors.Wrapf(err, "delete task '%s' failed: %v", task.ID, err2)
 		}
 	}
 	return err
@@ -79,7 +81,12 @@ func (q *persistentQueue) Poll(c context.Context, agentID int64, f FilterFn) (*m
 	if task != nil {
 		log.Debug().Msgf("pull queue item: %s: remove from backup", task.ID)
 		if deleteErr := q.store.TaskDelete(task.ID); deleteErr != nil {
-			log.Error().Err(deleteErr).Msgf("pull queue item: %s: failed to remove from backup", task.ID)
+			// In HA environments, the task may have already been deleted by another server
+			if errors.Is(deleteErr, types.RecordNotExist) {
+				log.Debug().Str("taskID", task.ID).Msg("Task already removed from backup database")
+			} else {
+				log.Error().Err(deleteErr).Msgf("pull queue item: %s: failed to remove from backup", task.ID)
+			}
 		} else {
 			log.Debug().Msgf("pull queue item: %s: successfully removed from backup", task.ID)
 		}
@@ -141,4 +148,17 @@ func (q *persistentQueue) ErrorAtOnce(c context.Context, ids []string, err error
 		}
 	}
 	return nil
+}
+
+// Extend extends the deadline for a task with better error handling for race conditions.
+func (q *persistentQueue) Extend(c context.Context, agentID int64, taskID string) error {
+	err := q.Queue.Extend(c, agentID, taskID)
+	if errors.Is(err, ErrNotFound) {
+		// Task not found in underlying queue - it was likely already completed and removed.
+		// This is a common race condition where the agent tries to extend a task
+		// that was just completed. Return success to avoid unnecessary errors.
+		log.Debug().Str("taskID", taskID).Int64("agentID", agentID).Msg("Task not found for extend - likely already completed")
+		return nil
+	}
+	return err
 }

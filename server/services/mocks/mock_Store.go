@@ -7369,6 +7369,72 @@ func (_c *MockStore_StepUpdate_Call) RunAndReturn(run func(step *model.Step) err
 	return _c
 }
 
+// TaskAtomicAssign provides a mock function for the type MockStore
+func (_mock *MockStore) TaskAtomicAssign(taskID string, agentID int64) (bool, error) {
+	ret := _mock.Called(taskID, agentID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for TaskAtomicAssign")
+	}
+
+	var r0 bool
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(string, int64) (bool, error)); ok {
+		return returnFunc(taskID, agentID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(string, int64) bool); ok {
+		r0 = returnFunc(taskID, agentID)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	if returnFunc, ok := ret.Get(1).(func(string, int64) error); ok {
+		r1 = returnFunc(taskID, agentID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_TaskAtomicAssign_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'TaskAtomicAssign'
+type MockStore_TaskAtomicAssign_Call struct {
+	*mock.Call
+}
+
+// TaskAtomicAssign is a helper method to define mock.On call
+//   - taskID string
+//   - agentID int64
+func (_e *MockStore_Expecter) TaskAtomicAssign(taskID interface{}, agentID interface{}) *MockStore_TaskAtomicAssign_Call {
+	return &MockStore_TaskAtomicAssign_Call{Call: _e.mock.On("TaskAtomicAssign", taskID, agentID)}
+}
+
+func (_c *MockStore_TaskAtomicAssign_Call) Run(run func(taskID string, agentID int64)) *MockStore_TaskAtomicAssign_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_TaskAtomicAssign_Call) Return(b bool, err error) *MockStore_TaskAtomicAssign_Call {
+	_c.Call.Return(b, err)
+	return _c
+}
+
+func (_c *MockStore_TaskAtomicAssign_Call) RunAndReturn(run func(taskID string, agentID int64) (bool, error)) *MockStore_TaskAtomicAssign_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // TaskDelete provides a mock function for the type MockStore
 func (_mock *MockStore) TaskDelete(s string) error {
 	ret := _mock.Called(s)
@@ -7522,6 +7588,57 @@ func (_c *MockStore_TaskList_Call) Return(tasks []*model.Task, err error) *MockS
 }
 
 func (_c *MockStore_TaskList_Call) RunAndReturn(run func() ([]*model.Task, error)) *MockStore_TaskList_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// TaskUpdate provides a mock function for the type MockStore
+func (_mock *MockStore) TaskUpdate(task *model.Task) error {
+	ret := _mock.Called(task)
+
+	if len(ret) == 0 {
+		panic("no return value specified for TaskUpdate")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(*model.Task) error); ok {
+		r0 = returnFunc(task)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_TaskUpdate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'TaskUpdate'
+type MockStore_TaskUpdate_Call struct {
+	*mock.Call
+}
+
+// TaskUpdate is a helper method to define mock.On call
+//   - task *model.Task
+func (_e *MockStore_Expecter) TaskUpdate(task interface{}) *MockStore_TaskUpdate_Call {
+	return &MockStore_TaskUpdate_Call{Call: _e.mock.On("TaskUpdate", task)}
+}
+
+func (_c *MockStore_TaskUpdate_Call) Run(run func(task *model.Task)) *MockStore_TaskUpdate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.Task
+		if args[0] != nil {
+			arg0 = args[0].(*model.Task)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_TaskUpdate_Call) Return(err error) *MockStore_TaskUpdate_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_TaskUpdate_Call) RunAndReturn(run func(task *model.Task) error) *MockStore_TaskUpdate_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -161,6 +161,11 @@ func (e *docker) SetupWorkflow(ctx context.Context, conf *backend.Config, taskUU
 		Driver:     networkDriver,
 		EnableIPv6: &e.config.enableIPv6,
 	})
+	// Ignore "already exists" errors as this can happen in concurrent workflows
+	if err != nil && strings.Contains(err.Error(), "already exists") {
+		log.Debug().Str("network", conf.Network).Msg("Network already exists, continuing")
+		return nil
+	}
 	return err
 }
 
@@ -328,7 +333,12 @@ func (e *docker) DestroyWorkflow(ctx context.Context, conf *backend.Config, task
 		log.Error().Err(err).Msgf("could not remove volume '%s'", conf.Volume)
 	}
 	if err := e.client.NetworkRemove(ctx, conf.Network); err != nil {
-		log.Error().Err(err).Msgf("could not remove network '%s'", conf.Network)
+		// Ignore "not found" errors as the network may have already been removed
+		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "No such network") {
+			log.Debug().Str("network", conf.Network).Msg("Network already removed or not found")
+		} else {
+			log.Error().Err(err).Msgf("could not remove network '%s'", conf.Network)
+		}
 	}
 	return nil
 }
@@ -344,7 +354,11 @@ func isErrContainerNotFoundOrNotRunning(err error) bool {
 	// Error response from daemon: Cannot kill container: ...: Container ... is not running"
 	// Error response from podman daemon: can only kill running containers. ... is in state exited
 	// Error: No such container: ...
-	return err != nil && (strings.Contains(err.Error(), "No such container") || strings.Contains(err.Error(), "is not running") || strings.Contains(err.Error(), "can only kill running containers"))
+	// Error response from daemon: removal of container ... is already in progress
+	return err != nil && (strings.Contains(err.Error(), "No such container") ||
+		strings.Contains(err.Error(), "is not running") ||
+		strings.Contains(err.Error(), "can only kill running containers") ||
+		strings.Contains(err.Error(), "already in progress"))
 }
 
 // normalizeArchType converts the arch type reported by docker info into

@@ -160,7 +160,10 @@ type Store interface {
 	// TaskList TODO: paginate & opt filter
 	TaskList() ([]*model.Task, error)
 	TaskInsert(*model.Task) error
+	TaskUpdate(*model.Task) error
 	TaskDelete(string) error
+	// TaskAtomicAssign atomically assigns a task to an agent if it's currently unassigned
+	TaskAtomicAssign(taskID string, agentID int64) (bool, error)
 
 	// ServerConfig
 	ServerConfigGet(string) (string, error)
