@@ -13,15 +13,16 @@ ARG TARGETOS TARGETARCH
 RUN apk add -U --no-cache ca-certificates && \
   addgroup -g 1000 -S crow && \
   adduser -u 1000 -G crow -S crow && \
-  mkdir -p /var/lib/crow && \
-  ln -s /var/lib/crow /var/lib/woodpecker && \
-  chown -R crow:crow /var/lib/crow /var/lib/woodpecker
+  mkdir -p /var/lib/crow /var/log/crow && \
+  ln -s /var/log/crow /var/lib/woodpecker && \
+  chown -R crow:crow /var/log/crow /var/lib/woodpecker
 
 ENV GODEBUG=netdns=go
 # Internal setting do NOT change! Signals that crow is running inside a container
 ENV WOODPECKER_IN_CONTAINER=true
-ENV XDG_CACHE_HOME=/var/lib/woodpecker
-ENV XDG_DATA_HOME=/var/lib/woodpecker
+ENV CROW_IN_CONTAINER=true
+ENV XDG_CACHE_HOME=/var/lib/crow
+ENV XDG_DATA_HOME=/var/lib/crow
 EXPOSE 8000 9000 80 443
 
 COPY dist/server/${TARGETOS}_${TARGETARCH}/crow-server /bin/
