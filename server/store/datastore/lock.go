@@ -28,21 +28,37 @@ func (s storage) DistributedLockAcquire(lockName string, instanceID string, ttlS
 	now := time.Now().Unix()
 	expiresAt := now + ttlSeconds
 
-	lock := &model.DistributedLock{
-		Name:       lockName,
-		InstanceID: instanceID,
-		AcquiredAt: now,
-		ExpiresAt:  expiresAt,
-	}
-
-	// Try to insert a new lock (will fail if lock already exists and not expired)
-	affected, err := s.engine.Insert(lock)
+	// First check if lock exists and is not expired
+	var existingLock model.DistributedLock
+	exists, err := s.engine.Where("name = ?", lockName).Get(&existingLock)
 	if err != nil {
-		// If insert failed, try to acquire expired lock or extend our own lock
-		return s.distributedLockTryExpiredOrExtend(lockName, instanceID, expiresAt)
+		return false, err
 	}
 
-	return affected > 0, nil
+	// If lock exists and is not expired by someone else, we can't acquire it
+	if exists && existingLock.ExpiresAt > now && existingLock.InstanceID != instanceID {
+		return false, nil
+	}
+
+	// If lock doesn't exist, try to insert
+	if !exists {
+		lock := &model.DistributedLock{
+			Name:       lockName,
+			InstanceID: instanceID,
+			AcquiredAt: now,
+			ExpiresAt:  expiresAt,
+		}
+		affected, err := s.engine.Insert(lock)
+		if err != nil {
+			// Another instance might have acquired it concurrently
+			// Try to acquire expired lock or extend our own lock
+			return s.distributedLockTryExpiredOrExtend(lockName, instanceID, expiresAt)
+		}
+		return affected > 0, nil
+	}
+
+	// If lock exists but is expired or owned by us, update it
+	return s.distributedLockTryExpiredOrExtend(lockName, instanceID, expiresAt)
 }
 
 // DistributedLockRelease releases a distributed lock held by this instance.
