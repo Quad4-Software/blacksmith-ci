@@ -56,7 +56,11 @@ func Logger(timeFormat string, utc bool) gin.HandlerFunc {
 			// Append error field if this is an erroneous request.
 			log.Error().Str("error", c.Errors.String()).Fields(entry).Msg("")
 		} else {
-			log.Debug().Fields(entry).Msg("")
+			if path == "/healthz" || path == "/readyz" || path == "/livez" {
+				log.Trace().Fields(entry).Msg("")
+			} else {
+				log.Debug().Fields(entry).Msg("")
+			}
 		}
 	}
 }

@@ -153,6 +153,7 @@ type Store interface {
 
 	// Logs
 	LogFind(*model.Step) ([]*model.LogEntry, error)
+	LogFindAfter(stepID int64, afterLogID int64) ([]*model.LogEntry, error)
 	LogAppend(*model.Step, []*model.LogEntry) error
 	LogDelete(*model.Step) error
 
@@ -244,6 +245,8 @@ type Store interface {
 	DistributedLockCleanup() error
 	// DistributedLockList lists all currently held locks
 	DistributedLockList() ([]*model.DistributedLock, error)
+	// DistributedLockInit initializes known locks to prevent race conditions
+	DistributedLockInit() error
 
 	// Distributed Pub/Sub (for HA log streaming and events)
 	// PubSubMessageInsert stores a message for distributed pub/sub

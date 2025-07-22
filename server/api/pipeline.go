@@ -17,6 +17,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -674,6 +675,9 @@ func PostPipeline(c *gin.Context) {
 	if err != nil {
 		handlePipelineErr(c, err)
 	} else {
+		// Notify any active streaming sessions for the old pipeline that it has been restarted
+		go notifyPipelineRestart(pl, newPipeline)
+
 		c.JSON(http.StatusOK, newPipeline)
 	}
 }
@@ -767,5 +771,61 @@ func CancelWorkflow(c *gin.Context) {
 		handlePipelineErr(c, err)
 	} else {
 		c.AbortWithStatus(http.StatusNoContent)
+	}
+}
+
+// notifyPipelineRestart sends redirect signals to any active log streaming sessions
+// for the old pipeline, directing them to the new restarted pipeline.
+func notifyPipelineRestart(oldPipeline, newPipeline *model.Pipeline) {
+	log.Info().Int64("oldPipelineID", oldPipeline.ID).Int64("newPipelineID", newPipeline.ID).Msg("notifying active sessions of pipeline restart")
+
+	// Get workflows for the old pipeline to find step IDs
+	oldWorkflows, err := server.Config.Services.Store.WorkflowGetTree(oldPipeline)
+	if err != nil {
+		log.Error().Err(err).Int64("oldPipelineID", oldPipeline.ID).Msg("failed to get old pipeline workflows for restart notification")
+		return
+	}
+
+	// Get workflows for the new pipeline to find corresponding step IDs
+	newWorkflows, err := server.Config.Services.Store.WorkflowGetTree(newPipeline)
+	if err != nil {
+		log.Error().Err(err).Int64("newPipelineID", newPipeline.ID).Msg("failed to get new pipeline workflows for restart notification")
+		return
+	}
+
+	// Create a mapping from old step names to new step IDs
+	newStepsByName := make(map[string]int64)
+	for _, newWorkflow := range newWorkflows {
+		for _, newStep := range newWorkflow.Children {
+			newStepsByName[newStep.Name] = newStep.ID
+		}
+	}
+
+	// Send redirect signals to old step streaming sessions
+	for _, oldWorkflow := range oldWorkflows {
+		for _, oldStep := range oldWorkflow.Children {
+			if newStepID, exists := newStepsByName[oldStep.Name]; exists {
+				// Send redirect signal from old step to new step
+				redirectData := fmt.Sprintf(`{"redirect":true,"reason":"pipeline_restarted","oldPipelineNumber":%d,"newPipelineNumber":%d,"newStepID":%d}`,
+					oldPipeline.Number, newPipeline.Number, newStepID)
+
+				err := server.Config.Services.Logs.Write(context.Background(), oldStep.ID, []*model.LogEntry{
+					{
+						ID:     -1, // Special ID to indicate this is a redirect signal
+						StepID: oldStep.ID,
+						Time:   time.Now().Unix(),
+						Line:   -1,
+						Data:   []byte(redirectData),
+						Type:   model.LogEntryMetadata,
+					},
+				})
+
+				if err != nil {
+					log.Error().Err(err).Int64("oldStepID", oldStep.ID).Int64("newStepID", newStepID).Msg("failed to send restart redirect signal")
+				} else {
+					log.Debug().Int64("oldStepID", oldStep.ID).Int64("newStepID", newStepID).Str("stepName", oldStep.Name).Msg("sent restart redirect signal")
+				}
+			}
+		}
 	}
 }

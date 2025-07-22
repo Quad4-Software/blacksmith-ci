@@ -397,6 +397,8 @@ func (s *RPC) Log(c context.Context, stepUUID string, rpcLogEntries []*rpc.LogEn
 		return fmt.Errorf("could not find step with uuid %s in store: %w", stepUUID, err)
 	}
 
+	log.Debug().Str("stepUUID", stepUUID).Int64("stepID", step.ID).Int("logCount", len(rpcLogEntries)).Msg("external agent sending logs for step")
+
 	agent, err := s.getAgentFromContext(c)
 	if err != nil {
 		return err
@@ -437,12 +439,12 @@ func (s *RPC) Log(c context.Context, stepUUID string, rpcLogEntries []*rpc.LogEn
 	go func() {
 		// write line to listening web clients
 		if err := s.logger.Write(c, step.ID, logEntries); err != nil {
-			log.Error().Err(err).Msgf("rpc server could not write to logger")
+			log.Error().Err(err).Msgf("could not write to logger")
 		}
 	}()
 
 	if err = server.Config.Services.LogStore.LogAppend(step, logEntries); err != nil {
-		log.Error().Err(err).Msg("could not store log entries")
+		log.Error().Err(err).Msg("could not store log entries to database")
 	}
 
 	return nil

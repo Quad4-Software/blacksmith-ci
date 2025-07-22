@@ -35,6 +35,9 @@ const (
 
 	// Leader election lock name for queue processing.
 	queueLeaderLock = "queue:processor:leader"
+
+	// Assignment leader lock TTL - balanced for quick failover and database efficiency in HA mode.
+	assignmentLeaderLockTTL = 15 * time.Second
 )
 
 // DatabaseQueue implements a distributed queue using the database as the backend.
@@ -51,6 +54,10 @@ type DatabaseQueue struct {
 	// Track assigned tasks to prevent double assignment
 	assignedTasks map[string]int64 // task ID -> agent ID
 	assignmentMu  sync.Mutex
+
+	// Leader election state
+	isLeader bool
+	leaderMu sync.RWMutex
 }
 
 // NewDatabaseQueue creates a new database-backed queue for HA deployments.
@@ -69,6 +76,9 @@ func NewDatabaseQueue(ctx context.Context, store store.Store, lockService LockSe
 
 	// Start background processor with leader election for cleanup
 	go q.processLoop() //nolint:contextcheck // Background process uses queue context
+
+	// Start separate leader election process for task assignment
+	go q.leaderElectionLoop()
 
 	return q
 }
@@ -111,6 +121,17 @@ func (q *DatabaseQueue) Poll(ctx context.Context, agentID int64, filter FilterFn
 				continue
 			}
 
+			// Only the leader server should assign tasks to prevent race conditions in HA mode
+			q.leaderMu.RLock()
+			isLeader := q.isLeader
+			q.leaderMu.RUnlock()
+
+			if !isLeader {
+				// Not the leader - wait and retry
+				continue
+			}
+
+			// We are the leader - proceed with task assignment
 			// Get tasks from database
 			tasks, err := q.store.TaskList()
 			if err != nil {
@@ -167,7 +188,7 @@ func (q *DatabaseQueue) Poll(ctx context.Context, agentID int64, filter FilterFn
 				q.assignmentMu.Unlock()
 				task.AgentID = agentID
 
-				log.Debug().Str("taskID", task.ID).Int64("agentID", agentID).Msg("Assigned task to agent")
+				log.Debug().Str("taskID", task.ID).Int64("agentID", agentID).Str("leaderInstance", q.instanceID).Msg("Leader assigned task to agent")
 				return task, nil
 			}
 		}
@@ -321,13 +342,17 @@ func (q *DatabaseQueue) Info(ctx context.Context) InfoT {
 	}
 
 	for _, task := range tasks {
-		if assignedAgent, isAssigned := assignedTasks[task.ID]; isAssigned && assignedAgent > 0 {
+		// In HA mode, check the database state (task.AgentID) as the source of truth
+		// The local assignedTasks map only contains tasks assigned by this server instance
+		switch {
+		case task.AgentID > 0:
+			// Task is assigned to an agent (either by this server or another server in HA)
 			info.Running = append(info.Running, task)
 			info.Stats.Running++
-		} else if q.areDependenciesMet(task, tasks) {
+		case q.areDependenciesMet(task, tasks):
 			info.Pending = append(info.Pending, task)
 			info.Stats.Pending++
-		} else {
+		default:
 			info.WaitingOnDeps = append(info.WaitingOnDeps, task)
 			info.Stats.WaitingOnDeps++
 		}
@@ -381,6 +406,51 @@ func (q *DatabaseQueue) KickAgentWorkers(agentID int64) {
 	}
 
 	log.Info().Int64("agentID", agentID).Int("tasksKicked", kickedTasks).Msg("Kicked agent workers")
+}
+
+// leaderElectionLoop runs the leader election process for task assignment.
+func (q *DatabaseQueue) leaderElectionLoop() {
+	assignmentLockName := "queue:assignment:leader"
+	log.Info().Str("lockName", assignmentLockName).Str("instanceID", q.instanceID).Msg("Starting task assignment leader election")
+
+	for {
+		select {
+		case <-q.ctx.Done():
+			log.Debug().Msg("Stopping task assignment leader election")
+			return
+		default:
+			// Try to acquire assignment leader lock
+			assignmentCtx, releaseLock, err := q.lockService.AcquireLock(q.ctx, assignmentLockName, assignmentLeaderLockTTL)
+			if err != nil {
+				// Failed to acquire lock - not the leader
+				q.leaderMu.Lock()
+				q.isLeader = false
+				q.leaderMu.Unlock()
+
+				// Wait before trying again
+				time.Sleep(assignmentLeaderLockTTL)
+				continue
+			}
+
+			// Successfully acquired lock - we are the leader
+			q.leaderMu.Lock()
+			q.isLeader = true
+			q.leaderMu.Unlock()
+
+			log.Info().Str("lockName", assignmentLockName).Str("instanceID", q.instanceID).Msg("Became task assignment leader")
+
+			// Hold the lock until context is canceled or lock is lost
+			<-assignmentCtx.Done()
+
+			// No longer the leader
+			q.leaderMu.Lock()
+			q.isLeader = false
+			q.leaderMu.Unlock()
+
+			log.Info().Str("lockName", assignmentLockName).Str("instanceID", q.instanceID).Msg("Lost task assignment leadership")
+			releaseLock()
+		}
+	}
 }
 
 // processLoop runs background processing with leader election for cleanup.

@@ -1874,6 +1874,50 @@ func (_c *MockStore_DistributedLockExtend_Call) RunAndReturn(run func(lockName s
 	return _c
 }
 
+// DistributedLockInit provides a mock function for the type MockStore
+func (_mock *MockStore) DistributedLockInit() error {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for DistributedLockInit")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func() error); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_DistributedLockInit_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DistributedLockInit'
+type MockStore_DistributedLockInit_Call struct {
+	*mock.Call
+}
+
+// DistributedLockInit is a helper method to define mock.On call
+func (_e *MockStore_Expecter) DistributedLockInit() *MockStore_DistributedLockInit_Call {
+	return &MockStore_DistributedLockInit_Call{Call: _e.mock.On("DistributedLockInit")}
+}
+
+func (_c *MockStore_DistributedLockInit_Call) Run(run func()) *MockStore_DistributedLockInit_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockStore_DistributedLockInit_Call) Return(err error) *MockStore_DistributedLockInit_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_DistributedLockInit_Call) RunAndReturn(run func() error) *MockStore_DistributedLockInit_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // DistributedLockList provides a mock function for the type MockStore
 func (_mock *MockStore) DistributedLockList() ([]*model.DistributedLock, error) {
 	ret := _mock.Called()
@@ -4203,6 +4247,74 @@ func (_c *MockStore_LogFind_Call) Return(logEntrys []*model.LogEntry, err error)
 }
 
 func (_c *MockStore_LogFind_Call) RunAndReturn(run func(step *model.Step) ([]*model.LogEntry, error)) *MockStore_LogFind_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// LogFindAfter provides a mock function for the type MockStore
+func (_mock *MockStore) LogFindAfter(stepID int64, afterLogID int64) ([]*model.LogEntry, error) {
+	ret := _mock.Called(stepID, afterLogID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for LogFindAfter")
+	}
+
+	var r0 []*model.LogEntry
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, int64) ([]*model.LogEntry, error)); ok {
+		return returnFunc(stepID, afterLogID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, int64) []*model.LogEntry); ok {
+		r0 = returnFunc(stepID, afterLogID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.LogEntry)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, int64) error); ok {
+		r1 = returnFunc(stepID, afterLogID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_LogFindAfter_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'LogFindAfter'
+type MockStore_LogFindAfter_Call struct {
+	*mock.Call
+}
+
+// LogFindAfter is a helper method to define mock.On call
+//   - stepID int64
+//   - afterLogID int64
+func (_e *MockStore_Expecter) LogFindAfter(stepID interface{}, afterLogID interface{}) *MockStore_LogFindAfter_Call {
+	return &MockStore_LogFindAfter_Call{Call: _e.mock.On("LogFindAfter", stepID, afterLogID)}
+}
+
+func (_c *MockStore_LogFindAfter_Call) Run(run func(stepID int64, afterLogID int64)) *MockStore_LogFindAfter_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_LogFindAfter_Call) Return(logEntrys []*model.LogEntry, err error) *MockStore_LogFindAfter_Call {
+	_c.Call.Return(logEntrys, err)
+	return _c
+}
+
+func (_c *MockStore_LogFindAfter_Call) RunAndReturn(run func(stepID int64, afterLogID int64) ([]*model.LogEntry, error)) *MockStore_LogFindAfter_Call {
 	_c.Call.Return(run)
 	return _c
 }

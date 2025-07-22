@@ -100,6 +100,12 @@ func setupStore(ctx context.Context, c *cli.Command) (store.Store, error) {
 		return nil, fmt.Errorf("could not migrate datastore: %w", err)
 	}
 
+	// Initialize distributed locks to prevent race conditions in HA mode
+	if err := store.DistributedLockInit(); err != nil {
+		log.Warn().Err(err).Msg("Failed to initialize distributed locks - they will be created on demand")
+		// Non-fatal: locks will be created when first used
+	}
+
 	return store, nil
 }
 
@@ -112,12 +118,14 @@ func checkSqliteFileExist(path string) error {
 	return err
 }
 
-func setupQueue(ctx context.Context, s store.Store, lockService *lock.Service, c *cli.Command) (queue.Queue, error) {
+func setupQueue(ctx context.Context, s store.Store, lockService *lock.Service, c *cli.Command, haEnabled bool) (queue.Queue, error) {
 	// Use database queue for HA deployments, memory queue for single instance
-	backend := queue.TypeDatabase
-	if server.Config.Server.InstanceID == "" {
-		// Default to memory queue if no instance ID is configured
-		backend = queue.TypeMemory
+	backend := queue.TypeMemory
+	if haEnabled {
+		backend = queue.TypeDatabase
+		log.Info().Bool("haEnabled", true).Msg("Using database queue for HA deployment")
+	} else {
+		log.Info().Bool("haEnabled", false).Msg("Using memory queue for single-instance deployment")
 	}
 
 	config := queue.Config{
@@ -156,11 +164,14 @@ func setupQueue(ctx context.Context, s store.Store, lockService *lock.Service, c
 	return q, nil
 }
 
-func setupMembershipService(_ context.Context, _store store.Store) cache.MembershipService {
+func setupMembershipService(_ context.Context, _store store.Store, haEnabled bool) cache.MembershipService {
 	// Use distributed cache for HA deployments, memory cache for single instance
 	backend := cache.TypeMemory
-	if server.Config.Server.InstanceID != "" {
+	if haEnabled {
 		backend = cache.TypeDistributed
+		log.Info().Bool("haEnabled", true).Msg("Using distributed cache for HA deployment")
+	} else {
+		log.Info().Bool("haEnabled", false).Msg("Using memory cache for single-instance deployment")
 	}
 
 	config := cache.Config{
@@ -171,12 +182,14 @@ func setupMembershipService(_ context.Context, _store store.Store) cache.Members
 	return cache.NewMembershipServiceWithConfig(config)
 }
 
-func setupPubSub(s store.Store, instanceID string) pubsub.Publisher {
+func setupPubSub(s store.Store, instanceID string, haEnabled bool) pubsub.Publisher {
 	// Use distributed pub/sub for HA deployments, memory for single instance
-	backend := pubsub.TypeDistributed
-	if instanceID == "" {
-		// Default to memory pub/sub if no instance ID is configured
-		backend = pubsub.TypeMemory
+	backend := pubsub.TypeMemory
+	if haEnabled {
+		backend = pubsub.TypeDistributed
+		log.Info().Bool("haEnabled", true).Msg("Using distributed pub/sub for HA deployment")
+	} else {
+		log.Info().Bool("haEnabled", false).Msg("Using memory pub/sub for single-instance deployment")
 	}
 
 	return pubsub.NewPublisher(pubsub.Config{
@@ -219,16 +232,41 @@ func setupJWTSecret(_store store.Store) (string, error) {
 }
 
 func setupEvilGlobals(ctx context.Context, c *cli.Command, s store.Store) (err error) {
-	// services
-	server.Config.Services.Logs = logging.New()
-	server.Config.Services.Membership = setupMembershipService(ctx, s)
+	haEnabled := c.Bool("enable-ha")
+	log.Info().Bool("haEnabled", haEnabled).Str("envVar", os.Getenv("CROW_ENABLE_HA")).Msg("HA configuration debug")
+
+	// Set instance ID BEFORE initializing services that need it
+	if haEnabled {
+		if hostname, err := os.Hostname(); err == nil {
+			server.Config.Server.InstanceID = "crow-server-" + hostname
+			log.Info().Str("instanceID", server.Config.Server.InstanceID).Bool("haEnabled", true).Msg("HA mode enabled - using automatic instance ID")
+		} else {
+			server.Config.Server.InstanceID = "crow-server-default"
+			log.Warn().Err(err).Str("instanceID", server.Config.Server.InstanceID).Bool("haEnabled", true).Msg("HA mode enabled - failed to get hostname, using default instance ID")
+		}
+	} else {
+		server.Config.Server.InstanceID = ""
+		log.Info().Bool("haEnabled", false).Msg("HA mode disabled - using single-instance configuration")
+	}
+
+	// services (now with correct instance ID)
+	server.Config.Services.Membership = setupMembershipService(ctx, s, haEnabled)
 	// Setup lock service for distributed coordination
 	lockService := lock.NewService(s, server.Config.Server.InstanceID)
 
 	// Setup pub/sub system - use distributed for HA deployments
-	server.Config.Services.Pubsub = setupPubSub(s, server.Config.Server.InstanceID)
+	server.Config.Services.Pubsub = setupPubSub(s, server.Config.Server.InstanceID, haEnabled)
 
-	server.Config.Services.Queue, err = setupQueue(ctx, s, lockService, c)
+	// Setup logging service - use distributed for HA deployments
+	if haEnabled {
+		server.Config.Services.Logs = logging.NewDistributed(server.Config.Services.Pubsub, s, server.Config.Server.InstanceID)
+		log.Info().Bool("haEnabled", true).Msg("Using distributed logging for HA deployment")
+	} else {
+		server.Config.Services.Logs = logging.New()
+		log.Info().Bool("haEnabled", false).Msg("Using memory logging for single-instance deployment")
+	}
+
+	server.Config.Services.Queue, err = setupQueue(ctx, s, lockService, c, haEnabled)
 	if err != nil {
 		return fmt.Errorf("could not setup queue: %w", err)
 	}
@@ -318,19 +356,7 @@ func setupEvilGlobals(ctx context.Context, c *cli.Command, s store.Store) (err e
 	u, _ := url.Parse(server.Config.Server.Host)
 	rootPath := strings.TrimSuffix(u.Path, "/")
 
-	// Set instance ID for HA deployments - defaults to hostname if not provided
-	server.Config.Server.InstanceID = c.String("instance-id")
-	if server.Config.Server.InstanceID == "" {
-		if hostname, err := os.Hostname(); err == nil {
-			server.Config.Server.InstanceID = hostname
-			log.Info().Str("instanceID", server.Config.Server.InstanceID).Msg("Using hostname as instance ID for HA deployment")
-		} else {
-			server.Config.Server.InstanceID = "default"
-			log.Warn().Err(err).Str("instanceID", server.Config.Server.InstanceID).Msg("Failed to get hostname, using default instance ID")
-		}
-	} else {
-		log.Info().Str("instanceID", server.Config.Server.InstanceID).Msg("Using configured instance ID for HA deployment")
-	}
+	// Instance ID is now configured at the beginning of setupEvilGlobals
 	if rootPath != "" && !strings.HasPrefix(rootPath, "/") {
 		rootPath = "/" + rootPath
 	}

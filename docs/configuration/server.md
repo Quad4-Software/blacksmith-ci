@@ -568,10 +568,14 @@ Exemplary response:
 
 ## High Availability
 
-The server component is capable to run in High-Availability (HA) mode when running with a Postgres or MySQL database.
-In contrast to single-instance mode, where a memory-queue system is used, HA mode utilizes a distributed queue system in the database.
+/// important
+This mode is considered "experimental" as not yet extensively tested in production environments.
+///
 
-There are two operations for which a "leader" election system is used:
+The server component is capable to run in High-Availability (HA) mode when running with a Postgres or MySQL database since v4.
+In contrast to single-instance mode, where a memory-queue system is used, HA mode utilizes the database for centralized coordination of several tasks.
+
+The following operations require a "leader"-based execution logic:
 
 - Queue processing
 - Cron execution
@@ -586,7 +590,7 @@ The TTL values can be configured via the following env vars:
 - `CROW_CRON_LOCK_TTL` (default 90s)
 
 Agents can connect to any server instance.
-Their state and build requests will be forwarded to the database component which represents the effective queue across all instances
+Their state and build requests will be forwarded to the database which represents the effective queue across all instances.
 
 /// note
 When running the server in HA mode, it is recommended to also run the database in HA mode to avoid a single point of failure.
@@ -595,6 +599,7 @@ When running the server in HA mode, it is recommended to also run the database i
 ### Helm
 
 If you are running Crow on Kubernetes with the Crow CI Helm chart, all you need to do is to set the `server.replicaCount` value to a number greater than 1.
+Everything else will be handled by the Helm chart in the background.
 
 ### Container
 
@@ -602,3 +607,6 @@ When running Crow as standalone container instance(s) across different servers, 
 This is usually achieved by joining all components to a private network and referencing the database instance by its IP address or hostname.
 
 In addition, the reverse proxy must be configured to route requests to all available server instances.
+
+Last, `CROW_ENABLE_HA` must be set to `true` for all server instances.
+This env var tells the server to use the DB for various tasks, such as execution coordination for queue and cron tasks.

@@ -16,7 +16,9 @@ package pubsub
 
 import (
 	"context"
+	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -38,6 +40,9 @@ const (
 	// Number of background goroutines started.
 	backgroundRoutines = 2
 )
+
+// messageCounter is used to generate unique message IDs.
+var messageCounter atomic.Uint64
 
 // DistributedPublisher implements a distributed pub/sub system using database storage.
 type DistributedPublisher struct {
@@ -78,6 +83,11 @@ func NewDistributed(store store.Store, instanceID string) *DistributedPublisher 
 
 // Publish publishes a message to all subscribers across all instances.
 func (p *DistributedPublisher) Publish(message Message) {
+	// Generate ID if not provided
+	if message.ID == "" {
+		message.ID = generateMessageID()
+	}
+
 	log.Debug().Str("messageID", message.ID).Str("instanceID", p.instanceID).Msg("Publishing distributed message")
 
 	// Store message in database for distributed access
@@ -244,4 +254,9 @@ func (p *DistributedPublisher) getMessagesAfter(timestamp int64) ([]*model.Distr
 // cleanupMessagesOlderThan removes messages older than the given timestamp.
 func (p *DistributedPublisher) cleanupMessagesOlderThan(timestamp int64) error {
 	return p.store.PubSubMessageCleanupOlderThan(timestamp)
+}
+
+// generateMessageID generates a unique message ID.
+func generateMessageID() string {
+	return fmt.Sprintf("msg-%d-%d", time.Now().UnixNano(), messageCounter.Add(1))
 }

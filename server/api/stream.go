@@ -22,6 +22,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -193,9 +194,11 @@ func LogStreamSSE(c *gin.Context) {
 		return
 	}
 
-	if step.State != model.StatusPending && step.State != model.StatusRunning {
-		log.Debug().Msg("step not running (anymore).")
-		logWriteStringErr(io.WriteString(rw, "event: error\ndata: step not running (anymore)\n\n"))
+	// Allow streaming for any step that has started (pending, running, or completed)
+	// Only reject steps that haven't been created/initialized properly
+	if step.State == model.StatusCreated {
+		log.Debug().Msg("step not yet initialized for streaming.")
+		logWriteStringErr(io.WriteString(rw, "event: error\ndata: step not yet ready for streaming\n\n"))
 		return
 	}
 
@@ -235,10 +238,27 @@ func LogStreamSSE(c *gin.Context) {
 					case <-ctx.Done():
 						return
 					default:
-						if ee, err := json.Marshal(entry); err == nil {
-							logChan <- ee
+						// Check for special reload/redirect signal
+						if entry.ID == -1 && entry.Line == -1 && entry.Type == model.LogEntryMetadata {
+							// Check if it's a redirect signal (contains "redirect":true)
+							if strings.Contains(string(entry.Data), `"redirect":true`) {
+								// Send special redirect event to frontend
+								logWriteStringErr(io.WriteString(rw, "event: redirect\ndata: "+string(entry.Data)+"\n\n"))
+								flusher.Flush()
+								log.Info().Int64("stepID", step.ID).Msg("sent page redirect signal to UI client")
+							} else {
+								// Send special reload event to frontend
+								logWriteStringErr(io.WriteString(rw, "event: reload\ndata: "+string(entry.Data)+"\n\n"))
+								flusher.Flush()
+								log.Info().Int64("stepID", step.ID).Msg("sent page reload signal to UI client")
+							}
 						} else {
-							log.Error().Err(err).Msg("unable to serialize log entry")
+							// Normal log entry
+							if ee, err := json.Marshal(entry); err == nil {
+								logChan <- ee
+							} else {
+								log.Error().Err(err).Msg("unable to serialize log entry")
+							}
 						}
 					}
 				}

@@ -22,43 +22,69 @@ import (
 	"codeberg.org/crowci/crow/v4/server/model"
 )
 
+const (
+	// SecondsPerDay represents the number of seconds in 24 hours.
+	SecondsPerDay = 24 * 60 * 60 // 86400 seconds
+)
+
 // DistributedLockAcquire attempts to acquire a distributed lock for HA coordination.
 // Returns true if lock was acquired, false if already held by another instance.
 func (s storage) DistributedLockAcquire(lockName string, instanceID string, ttlSeconds int64) (bool, error) {
 	now := time.Now().Unix()
 	expiresAt := now + ttlSeconds
 
-	// First check if lock exists and is not expired
-	var existingLock model.DistributedLock
-	exists, err := s.engine.Where("name = ?", lockName).Get(&existingLock)
+	// Clean up this specific lock if it's expired
+	// This ensures we don't wait for the periodic cleanup
+	_, _ = s.engine.Where("name = ? AND expires_at < ?", lockName, now).
+		Delete(&model.DistributedLock{})
+
+	// Try to update the lock if it exists and is expired or owned by us
+	affected, err := s.engine.Where("name = ?", lockName).
+		And(builder.Or(
+			builder.Lt{"expires_at": now},         // Lock is expired (shouldn't happen after cleanup above)
+			builder.Eq{"instance_id": instanceID}, // Or it's our own lock
+		)).
+		Cols("instance_id", "acquired_at", "expires_at").
+		Update(&model.DistributedLock{
+			InstanceID: instanceID,
+			AcquiredAt: now,
+			ExpiresAt:  expiresAt,
+		})
 	if err != nil {
 		return false, err
 	}
 
-	// If lock exists and is not expired by someone else, we can't acquire it
-	if exists && existingLock.ExpiresAt > now && existingLock.InstanceID != instanceID {
+	if affected > 0 {
+		// Successfully acquired the lock
+		return true, nil
+	}
+
+	// Check if lock exists
+	exists, err := s.engine.Where("name = ?", lockName).Exist(&model.DistributedLock{})
+	if err != nil {
+		return false, err
+	}
+
+	if exists {
+		// Lock exists and is held by another instance
 		return false, nil
 	}
 
-	// If lock doesn't exist, try to insert
-	if !exists {
-		lock := &model.DistributedLock{
-			Name:       lockName,
-			InstanceID: instanceID,
-			AcquiredAt: now,
-			ExpiresAt:  expiresAt,
-		}
-		affected, err := s.engine.Insert(lock)
-		if err != nil {
-			// Another instance might have acquired it concurrently
-			// Try to acquire expired lock or extend our own lock
-			return s.distributedLockTryExpiredOrExtend(lockName, instanceID, expiresAt)
-		}
-		return affected > 0, nil
+	// Lock doesn't exist, create it
+	lock := &model.DistributedLock{
+		Name:       lockName,
+		InstanceID: instanceID,
+		AcquiredAt: now,
+		ExpiresAt:  expiresAt,
 	}
 
-	// If lock exists but is expired or owned by us, update it
-	return s.distributedLockTryExpiredOrExtend(lockName, instanceID, expiresAt)
+	_, err = s.engine.Insert(lock)
+	if err != nil {
+		// Another instance created it in the race, that's OK
+		return false, nil
+	}
+
+	return true, nil
 }
 
 // DistributedLockRelease releases a distributed lock held by this instance.
@@ -93,22 +119,41 @@ func (s storage) DistributedLockList() ([]*model.DistributedLock, error) {
 	return locks, err
 }
 
-// distributedLockTryExpiredOrExtend attempts to acquire expired locks or extend our own.
-func (s storage) distributedLockTryExpiredOrExtend(lockName string, instanceID string, expiresAt int64) (bool, error) {
+// DistributedLockInit initializes known locks in the database to prevent INSERT race conditions.
+// This should be called during migration or startup.
+func (s storage) DistributedLockInit() error {
+	knownLocks := []string{
+		"queue:assignment:leader",
+		"queue:processor:leader",
+		"cron:scheduler:leader",
+	}
+
 	now := time.Now().Unix()
 
-	// Try to update expired locks or extend our own lock
-	affected, err := s.engine.Where("name = ?", lockName).
-		And(builder.Or(
-			builder.Lt{"expires_at": now},         // Lock is expired
-			builder.Eq{"instance_id": instanceID}, // Or it's our own lock
-		)).
-		Cols("instance_id", "acquired_at", "expires_at").
-		Update(&model.DistributedLock{
-			InstanceID: instanceID,
-			AcquiredAt: now,
-			ExpiresAt:  expiresAt,
-		})
+	for _, lockName := range knownLocks {
+		// Check if lock already exists
+		exists, err := s.engine.Where("name = ?", lockName).Exist(&model.DistributedLock{})
+		if err != nil {
+			return err
+		}
 
-	return affected > 0, err
+		if !exists {
+			// Create expired lock that can be immediately acquired
+			// Use a timestamp in the past to ensure it's expired
+			lock := &model.DistributedLock{
+				Name:       lockName,
+				InstanceID: "init-placeholder",
+				AcquiredAt: now - SecondsPerDay, // 24 hours ago
+				ExpiresAt:  now - SecondsPerDay, // Already expired 24 hours ago
+			}
+
+			if _, err := s.engine.Insert(lock); err != nil {
+				// Ignore duplicate key errors - another instance may have created it
+				continue
+			}
+		}
+		// Don't touch existing locks - they may be legitimately held by other instances
+	}
+
+	return nil
 }

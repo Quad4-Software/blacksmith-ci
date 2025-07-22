@@ -30,13 +30,61 @@ func (s storage) LogFind(step *model.Step) ([]*model.LogEntry, error) {
 	return logEntries, s.engine.Asc("id").Where("step_id = ?", step.ID).Find(&logEntries)
 }
 
-func (s storage) LogAppend(_ *model.Step, logEntries []*model.LogEntry) error {
-	var err error
+func (s storage) LogFindAfter(stepID int64, afterLogID int64) ([]*model.LogEntry, error) {
+	var logEntries []*model.LogEntry
+	return logEntries, s.engine.Asc("id").Where("step_id = ? AND id > ?", stepID, afterLogID).Find(&logEntries)
+}
 
+func (s storage) LogAppend(_ *model.Step, logEntries []*model.LogEntry) error {
+	if len(logEntries) == 0 {
+		return nil
+	}
+
+	// Group entries by step_id for efficient duplicate checking
+	stepGroups := make(map[int64][]*model.LogEntry)
+	for _, entry := range logEntries {
+		stepGroups[entry.StepID] = append(stepGroups[entry.StepID], entry)
+	}
+
+	var filteredEntries []*model.LogEntry
+	for stepID, entries := range stepGroups {
+		// Get existing line numbers for this step
+		var existingLines []int
+		err := s.engine.Table(&model.LogEntry{}).
+			Where("step_id = ?", stepID).
+			Cols("line").
+			Find(&existingLines)
+		if err != nil {
+			log.Error().Err(err).Int64("stepID", stepID).Msg("failed to query existing log lines")
+			// Fall back to inserting all entries if query fails
+			filteredEntries = append(filteredEntries, entries...)
+			continue
+		}
+
+		// Create a set of existing lines for fast lookup
+		existingLineSet := make(map[int]bool)
+		for _, line := range existingLines {
+			existingLineSet[line] = true
+		}
+
+		// Filter out entries that already exist
+		for _, entry := range entries {
+			if !existingLineSet[entry.Line] {
+				filteredEntries = append(filteredEntries, entry)
+			}
+		}
+	}
+
+	if len(filteredEntries) == 0 {
+		// All entries already exist
+		return nil
+	}
+
+	var err error
 	// TODO: adapted from slices.Chunk(); switch to it in Go 1.23+
-	for i := 0; i < len(logEntries); i += pgBatchSize {
-		end := min(pgBatchSize, len(logEntries[i:]))
-		chunk := logEntries[i : i+end]
+	for i := 0; i < len(filteredEntries); i += pgBatchSize {
+		end := min(pgBatchSize, len(filteredEntries[i:]))
+		chunk := filteredEntries[i : i+end]
 
 		if _, err = s.engine.Insert(chunk); err != nil {
 			log.Error().Err(err).Msg("could not store log entries to db")

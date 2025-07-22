@@ -68,10 +68,11 @@ var flags = append([]cli.Flag{
 		Name:    "server-host",
 		Usage:   "server fully qualified url. Format: <scheme>://<host>[/<prefix path>]",
 	},
-	&cli.StringFlag{
-		Sources: cli.EnvVars("CROW_INSTANCE_ID"),
-		Name:    "instance-id",
-		Usage:   "unique instance identifier for HA deployments (defaults to hostname)",
+	&cli.BoolFlag{
+		Sources: cli.EnvVars("CROW_ENABLE_HA"),
+		Name:    "enable-ha",
+		Usage:   "enable high availability mode with database-backed queue (default: false)",
+		Value:   false,
 	},
 	&cli.StringFlag{
 		Sources: cli.EnvVars("WOODPECKER_SERVER_ADDR", "CROW_SERVER_ADDR"),
