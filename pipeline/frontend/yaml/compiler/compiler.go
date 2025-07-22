@@ -99,6 +99,7 @@ type Compiler struct {
 	trustedClonePlugins     []string
 	securityTrustedPipeline bool
 	ContainerNameScheme     string // 'hash' or 'descriptive'
+	orgID                   int64
 }
 
 // New creates a new Compiler with options.

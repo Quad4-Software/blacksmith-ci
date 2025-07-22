@@ -215,3 +215,11 @@ func WithContainerNameScheme(scheme string) Option {
 		compiler.ContainerNameScheme = scheme
 	}
 }
+
+// WithOrgID configures the compiler with the organization ID.
+// This is used to set the organization ID on each step for backend-specific features like Kubernetes namespace isolation.
+func WithOrgID(orgID int64) Option {
+	return func(compiler *Compiler) {
+		compiler.orgID = orgID
+	}
+}

@@ -162,3 +162,12 @@ func TestWithTrustedClonePlugins(t *testing.T) {
 	compiler = New()
 	assert.ElementsMatch(t, constant.TrustedClonePlugins, compiler.trustedClonePlugins)
 }
+
+func TestWithOrgID(t *testing.T) {
+	compiler := New(WithOrgID(42))
+	assert.Equal(t, int64(42), compiler.orgID)
+
+	// Test default value
+	compiler = New()
+	assert.Equal(t, int64(0), compiler.orgID)
+}

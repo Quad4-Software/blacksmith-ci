@@ -761,3 +761,77 @@ func TestCompilerWorkflowDependsOnSkipsImplicitClone(t *testing.T) {
 	t.Logf("Test stage: %+v", testStage)
 	t.Logf("Test step depends_on: %+v", testStage.Steps[0].DependsOn)
 }
+
+func TestCompilerOrgID(t *testing.T) {
+	// Test that OrgID is properly set on all steps
+	conf := &yaml_types.Workflow{
+		Steps: yaml_types.ContainerList{
+			ContainerList: []*yaml_types.Container{
+				{
+					Name:     "test",
+					Image:    "alpine",
+					Commands: []string{"echo test"},
+				},
+				{
+					Name:     "deploy",
+					Image:    "alpine",
+					Commands: []string{"echo deploy"},
+				},
+			},
+		},
+	}
+
+	repoURL := "https://github.com/test/repo"
+	orgID := int64(123)
+
+	compiler := New(
+		WithMetadata(metadata.Metadata{
+			Repo: metadata.Repo{
+				Owner:    "test",
+				Name:     "repo",
+				Private:  false,
+				ForgeURL: repoURL,
+				CloneURL: "https://github.com/test/repo.git",
+			},
+		}),
+		WithWorkspaceFromURL("/crow", repoURL),
+		WithOrgID(orgID),
+	)
+
+	result, err := compiler.Compile(conf)
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+
+	// Verify all steps have the correct OrgID
+	for _, stage := range result.Stages {
+		for _, step := range stage.Steps {
+			assert.Equal(t, orgID, step.OrgID, "Step %s should have OrgID %d", step.Name, orgID)
+		}
+	}
+
+	// Test with OrgID 0 (default)
+	compiler = New(
+		WithMetadata(metadata.Metadata{
+			Repo: metadata.Repo{
+				Owner:    "test",
+				Name:     "repo",
+				Private:  false,
+				ForgeURL: repoURL,
+				CloneURL: "https://github.com/test/repo.git",
+			},
+		}),
+		WithWorkspaceFromURL("/crow", repoURL),
+		// Not setting WithOrgID to test default value
+	)
+
+	result, err = compiler.Compile(conf)
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+
+	// Verify all steps have OrgID 0
+	for _, stage := range result.Stages {
+		for _, step := range stage.Steps {
+			assert.Equal(t, int64(0), step.OrgID, "Step %s should have default OrgID 0", step.Name)
+		}
+	}
+}

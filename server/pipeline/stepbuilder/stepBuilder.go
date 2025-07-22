@@ -1,3 +1,4 @@
+// Copyright 2025 Crow Authors
 // Copyright 2022 Woodpecker Authors
 // Copyright 2018 Drone.IO Inc.
 //
@@ -364,6 +365,7 @@ func (b *StepBuilder) toInternalRepresentation(parsed *yaml_types.Workflow, envi
 		compiler.WithMetadata(metadata),
 		compiler.WithTrustedSecurity(b.Repo.Trusted.Security),
 		compiler.WithContainerNameScheme(server.Config.Pipeline.ContainerNameScheme),
+		compiler.WithOrgID(b.Repo.OrgID),
 	).Compile(parsed)
 }
 

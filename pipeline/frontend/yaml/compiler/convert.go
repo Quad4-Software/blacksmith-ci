@@ -158,6 +158,7 @@ func (c *Compiler) createProcess(container *yaml_types.Container, stepType backe
 
 	return &backend_types.Step{
 		Name:                container.Name,
+		OrgID:               c.orgID,
 		UUID:                uuid.String(),
 		Type:                stepType,
 		Image:               container.Image,

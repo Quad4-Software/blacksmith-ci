@@ -963,3 +963,52 @@ func getMockForge() forge.Forge {
 	forge.On("URL").Return("https://codeberg.org")
 	return forge
 }
+
+func TestStepBuilderOrgID(t *testing.T) {
+	t.Parallel()
+
+	orgID := int64(42)
+	b := StepBuilder{
+		Forge: getMockForge(),
+		Envs:  map[string]string{},
+		Repo: &model.Repo{
+			OrgID: orgID,
+		},
+		Curr: &model.Pipeline{
+			Event: model.EventPush,
+		},
+		Prev:  &model.Pipeline{},
+		Netrc: &model.Netrc{},
+		Secs:  []*model.Secret{},
+		Regs:  []*model.Registry{},
+		Host:  "",
+		Yamls: []*forge_types.FileMeta{
+			{Data: []byte(`
+when:
+  event: push
+steps:
+  build:
+    image: alpine
+    commands:
+      - echo "test"
+  deploy:
+    image: alpine
+    commands:
+      - echo "deploy"
+`)},
+		},
+	}
+
+	pipelineItems, err := b.Build()
+	assert.NoError(t, err)
+	assert.NotNil(t, pipelineItems)
+
+	// Verify that all steps have the correct OrgID
+	for _, item := range pipelineItems {
+		for _, stage := range item.Config.Stages {
+			for _, step := range stage.Steps {
+				assert.Equal(t, orgID, step.OrgID, "Step %s should have OrgID %d", step.Name, orgID)
+			}
+		}
+	}
+}

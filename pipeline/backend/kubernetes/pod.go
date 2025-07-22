@@ -122,7 +122,7 @@ func podMeta(step *types.Step, config *config, options BackendOptions, podName s
 	var err error
 	meta := meta_v1.ObjectMeta{
 		Name:        podName,
-		Namespace:   config.Namespace,
+		Namespace:   config.GetNamespace(step.OrgID),
 		Annotations: podAnnotations(config, options),
 	}
 
@@ -606,7 +606,7 @@ func startPod(ctx context.Context, engine *kube, step *types.Step, options Backe
 	}
 
 	log.Trace().Msgf("creating pod: %s", pod.Name)
-	return engine.client.CoreV1().Pods(engineConfig.Namespace).Create(ctx, pod, meta_v1.CreateOptions{})
+	return engine.client.CoreV1().Pods(engineConfig.GetNamespace(step.OrgID)).Create(ctx, pod, meta_v1.CreateOptions{})
 }
 
 func stopPod(ctx context.Context, engine *kube, step *types.Step, deleteOpts meta_v1.DeleteOptions) error {
@@ -617,7 +617,7 @@ func stopPod(ctx context.Context, engine *kube, step *types.Step, deleteOpts met
 
 	log.Trace().Str("name", podName).Msg("deleting pod")
 
-	err = engine.client.CoreV1().Pods(engine.config.Namespace).Delete(ctx, podName, deleteOpts)
+	err = engine.client.CoreV1().Pods(engine.config.GetNamespace(step.OrgID)).Delete(ctx, podName, deleteOpts)
 	if errors.IsNotFound(err) {
 		// Don't abort on 404 errors from k8s, they most likely mean that the pod hasn't been created yet, usually because pipeline was canceled before running all steps.
 		return nil

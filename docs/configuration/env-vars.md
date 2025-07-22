@@ -169,6 +169,17 @@
 
 ---
 
+### BACKEND_K8S_NAMESPACE_PER_ORGANIZATION
+
+- Name: `CROW_BACKEND_K8S_NAMESPACE_PER_ORGANIZATION`
+- Description: Enables namespace isolation per organization.
+  When enabled, each organization gets its own dedicated Kubernetes namespace for improved security and resource isolation.
+  The name format follows `{CROW_BACKEND_K8S_NAMESPACE}-{organization-id}`.
+  Namespaces are created automatically, but not removed when organizations are removed from the Crow instance.
+- Default: `false`
+
+---
+
 ### BACKEND_K8S_POD_ANNOTATIONS
 
 - Name: `CROW_BACKEND_K8S_POD_ANNOTATIONS`
