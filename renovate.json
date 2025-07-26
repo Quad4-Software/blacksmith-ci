@@ -7,7 +7,7 @@
       "customType": "regex",
       "managerFilePatterns": ["/shared/constant/constant.go/"],
       "matchStrings": [
-        "//\\s*renovate:\\s*datasource=(?<datasource>.*?) depName=(?<depName>.*?)( versioning=(?<versioning>.*?))?\\s+DefaultClonePlugin = \"codeberg.org/crow-plugins/clone:(?<currentValue>.*)\""
+        "datasource=(?<datasource>.*?) depName=(?<depName>.*?)( registryUrl=(?<registryUrl>.*?))?( versioning=(?<versioning>.*?))?( extractVersion=(?<extractVersion>.*?))?\\s*\\n\\s*\\S+\\s*=\\s*\"[^:]+:(?<currentValue>[^\"]+)\""
       ],
       "versioningTemplate": "{{#if versioning}}{{{versioning}}}{{else}}semver{{/if}}"
     }

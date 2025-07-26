@@ -28,7 +28,7 @@ var DefaultConfigOrder = [...]string{
 
 const (
 	// DefaultClonePlugin can be changed by 'CROW_DEFAULT_CLONE_PLUGIN' at runtime.
-	// renovate: datasource=docker depName=codeberg.org/crow-plugins
+	// renovate: datasource=forgejo-releases depName=crow-plugins/clone registryUrl=https://codeberg.org extractVersion=^v(?<version>.*)$
 	DefaultClonePlugin = "codeberg.org/crow-plugins/clone:1.0.1"
 )
 
