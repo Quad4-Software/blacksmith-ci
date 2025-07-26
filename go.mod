@@ -11,7 +11,7 @@ require (
 	codeberg.org/6543/xyaml v1.1.0
 	codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2 v2.2.0
 	github.com/6543/logfile-open v1.2.1
-	github.com/bmatcuk/doublestar/v4 v4.9.0
+	github.com/bmatcuk/doublestar/v4 v4.9.1
 	github.com/cenkalti/backoff/v5 v5.0.3
 	github.com/charmbracelet/huh v0.7.0
 	github.com/containerd/errdefs v1.0.0
