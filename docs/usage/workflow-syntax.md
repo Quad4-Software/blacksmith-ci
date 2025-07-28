@@ -154,32 +154,32 @@ The way images are matched is controlled by `CROW_PLUGINS_PRIVILEGED_MATCH_TYPE`
 #### Example usage
 
 ```sh
-export CROW_PLUGINS_PRIVILEGED="plugins/docker:6,plugins/gcr:7.2"
+export CROW_PLUGINS_PRIVILEGED="codeberg.org/crow-plugins/docker-buildx:1,plugins/gcr:7.2"
 export CROW_PLUGINS_PRIVILEGED_MATCH_TYPE=semver
 ```
 
-- This will allow any `plugins/docker` image with a major version 6 tag, and any `plugins/gcr` image with a 7.2.x tag, to run in privileged mode.
+- This will allow any `crow-plugins/docker-buildx` image with a major version 1 tag, and any `plugins/gcr` image with a 7.2.x tag, to run in privileged mode.
 
 ```sh
-export CROW_PLUGINS_PRIVILEGED="plugins/docker:6\\..*"
+export CROW_PLUGINS_PRIVILEGED="codeberg.org/crow-plugins/docker-buildx:1\\..*"
 export CROW_PLUGINS_PRIVILEGED_MATCH_TYPE=regex
 ```
 
-- This will allow any `plugins/docker` image with a tag starting with 6.
+- This will allow any `crow-plugins/docker-buildx` image with a tag starting with 1.
 
 ```sh
-export CROW_PLUGINS_PRIVILEGED="plugins/docker:6.3.1"
+export CROW_PLUGINS_PRIVILEGED="codeberg.org/crow-plugins/docker-buildx:1.0.0"
 export CROW_PLUGINS_PRIVILEGED_MATCH_TYPE=exact
 ```
 
-- This will only allow the exact image `plugins/docker:6.3.1` to run in privileged mode.
+- This will only allow the exact image `codeberg.org/crow-plugins/docker-buildx:1.0.0` to run in privileged mode.
 
 ```sh
-export CROW_PLUGINS_PRIVILEGED="plugins/docker:>=6.0.0,<7.0.0"
+export CROW_PLUGINS_PRIVILEGED="codeberg.org/crow-plugins/docker-buildx:>=1.0.0,<2.0.0"
 export CROW_PLUGINS_PRIVILEGED_MATCH_TYPE=semver-range
 ```
 
-- This will allow any `plugins/docker` image with a version from 6.0.0 (inclusive) to 7.0.0 (exclusive) to run in privileged mode.
+- This will allow any `crow-plugins/docker-buildx` image with a version from 1.0.0 (inclusive) to 2.0.0 (exclusive) to run in privileged mode.
 
 ## runs_on
 
