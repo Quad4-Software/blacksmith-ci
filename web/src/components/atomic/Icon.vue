@@ -20,6 +20,9 @@
   <SvgIcon v-else-if="name === 'status-blocked'" :path="mdiPlay" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'status-declined'" :path="mdiStop" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'status-killed'" :path="mdiStop" :size="size || '1.3rem'" />
+  <SvgIcon v-else-if="name === 'folder'" :path="mdiFolderOutline" size="1.3rem" />
+  <SvgIcon v-else-if="name === 'folder-open'" :path="mdiFolderOpenOutline" size="1.3rem" />
+  <SvgIcon v-else-if="name === 'file'" :path="mdiFileOutline" size="1.3rem" />
   <SvgIcon
     v-else-if="name === 'status-failure' || name === 'status-error'"
     type="mdi"
@@ -126,6 +129,9 @@ import {
   mdiEyeOutline,
   mdiFileCogOutline,
   mdiFileEditOutline,
+  mdiFileOutline,
+  mdiFolderOpenOutline,
+  mdiFolderOutline,
   mdiFormatListBulleted,
   mdiGit,
   mdiGithub,
@@ -241,6 +247,9 @@ export type IconNames =
   | 'cron'
   | 'toolbox'
   | 'graph'
+  | 'folder'
+  | 'folder-open'
+  | 'file'
   | 'mdi-wind-power-outline';
 
 defineProps<{
