@@ -1,9 +1,113 @@
 <!-- markdownlint-disable MD041 -->
 # Advanced
 
-/// note
-Also have a look at the ["Advanced Usage"](https://woodpecker-ci.org/docs/usage/advanced-usage) section from the Woodpecker CI documentation.
+## Advanced YAML syntax features
+
+The YAML language has a number of advanced features that can be used to create complex pipelines.
+These features include anchors, aliases, and merge keys.
+
+### Anchors and Aliases
+
+Anchors and aliases are used to create references to a specific part of the YAML document.  
+An anchor is created by adding an `&` followed by a name to the value you want to reference.  
+An alias is created by adding a `*` followed by the name of the anchor to the value you want to reference.
+
+```yaml
+variables:
+  - &golang_image 'golang:1.18' # anchor
+
+ steps:
+   - name: test
+     image: *golang_image # alias
+
+   - name: build
+     image: *golang_image # alias
+     [...]
+```
+
+### Map merges and overrides
+
+Map merges are used to merge multiple maps into a single map.
+
+A map merge is created by adding a `<<` followed by a `:` to the key you want to merge.
+The value of the map merge should be a list of maps that will be merged into the map.
+
+```yaml
+variables:
+  - &base-plugin-settings
+    target: dist
+    try: true
+  - &special-setting
+    special: true
+
+steps:
+  - name: develop
+    image: golang:1.18
+    settings:
+      <<: [*base-plugin-settings, *special-setting] # merge two maps into an empty map
+    [...]
+
+  - name: main
+    image: golang:1.18
+    settings:
+      <<: *base-plugin-settings # merge one map and
+      try: false # overwrite original value
+      ongoing: false # add a new value
+      [...]
+```
+
+Additionally, there is a technique called "sequence merges" which allows for prepending and appending merges to a list.
+
+```yaml
+variables:
+  pre_cmds: &pre_cmds
+    - echo start
+    - whoami
+  post_cmds: &post_cmds
+    - echo stop
+  hello_cmd: &hello_cmd
+    - echo hello
+
+steps:
+  - name: step1
+    image: golang:1.18
+    commands:
+      - <<: *pre_cmds # prepend a sequence
+      - echo exec step now do dedicated things
+      - <<: *post_cmds # append a sequence
+  - name: step2
+    image: golang:1.18
+    commands:
+      - <<: [*pre_cmds, *hello_cmd] # prepend two sequences
+      - echo echo from second step
+      - <<: *post_cmds
+```
+
+[Official YAML specification](https://yaml.org/spec/1.2/spec.html)
+
+## Persist env vars across steps
+
+To avoid specifying env vars in each step, you can use a dedicated step to initialize them and then source them in subsequent steps.
+Here, the `envvars` name is an arbitrary choice and can be customized to fit your needs.
+
+/// warning
+While this might save some lines in your config, it might lead to potential confusion as users might look for env vars in the `environment:` section and don't see that this custom approach is used.
 ///
+
+```yaml
+steps:
+  - name: init
+    image: bash
+    commands:
+      - echo "FOO=hello" >> envvars
+      - echo "BAR=world" >> envvars
+
+  - name: debug
+    image: bash
+    commands:
+      - source envvars
+      - echo $FOO
+```
 
 ## Rerunning pipeline locally
 
