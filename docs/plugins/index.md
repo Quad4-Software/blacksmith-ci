@@ -5,54 +5,67 @@ hide:
 
 ## <!-- markdownlint-disable MD041 -->
 
-Plugins are special **steps** that perform **pre-defined tasks**.
+Plugins are special **steps** that perform **pre-defined tasks**.  
 They can be used for any kind of operation: to deploy code, publish artifacts, send notification, and more.
-
-What is the scope of plugins and for which use cases should they be used?
 
 Plugins are particular useful for the following scenarios:
 
 - Security-sensitive operations
 - Simplification of complex tasks
 
-## Security-sensitive commands
+They can be viewed as "command" snippets that focus on doing one specific task that would otherwise require many individual and semi-complex commands.
 
-When a step gets handed over sensitive secrets such as SSH keys, API tokens and others, one wants to ensure that no other operations than the desired ones do make use of these credentials.
+Plugins can be written in any language.
+Preferably, a language should be used which creates a single binary as this one can then be used together with a lightweight container image, speeding up download times due to a small image footprint.
+
+## Security-sensitive operations
+
+When a step gets handed over sensitive secrets such as SSH keys, API tokens and others, one wants to ensure that no other operations than the desired ones do make use of these credentials.  
 In a normal step, any user could open a pull request, issue an `"echo"` command on the secret and expose it that way (if the secret is allowed to be used in `pull_request` events).
 While repo owners can choose to not allow injecting a particular secret in a PR, often enough they are needed to allow for proper checking of a PR.
 Here is where plugins come into play:
 
-Plugins cannot be altered in their execution: they always execute a specific set of commands, combined with a fixed image entrypoint, which can only be altered in a limited way through specific plugin settings.
+Plugins cannot be altered in their execution: they always execute a specific set of commands, combined with a fixed image entrypoint, which can only be altered in a limited way through specific plugin settings.  
 Crow allows [limiting secrets to specific plugins](../usage/secrets.md#filtering).
 Thanks to this, a potential misuse/exposure of secrets in a Pull Request scenario is not possible.
 
-## Convenience
-
-Another use case it wrap steps which execute the same set of commands over and over again into a plugin.
-The advantage of this is two-fold: a cleaner/shorter YAML config and a (small) execution speedup (as all required dependencies are already installed within the plugin image and the step can start right away if the image is already cached).
-
 ## Available plugins
 
-A variety of plugins exist across different sources and projects.
+A variety of plugins exist which are spread across forges, users and projects.
+As Crow CI has inherited the codebase from Drone CI and Woodpecker, their plugins can generally be used as well.  
+While Woodpecker plugins are fully compatible, many Drone plugins still rely to hand over important config values via `environment:`, which is prohibited in Crow.
 
-/// note
-Because Crow is a fork of Woodpecker/Drone, their respective plugins _should_ be compatible.
-Drone has meanwhile diverged a bit and a few of their plugins haven't been very well maintained recently.
-Woodpecker plugins should be fully compatible.
-///
-
-/// important
-Some Drone plugins still require inputs via the `environment:` section, which is not allowed (anymore) in Crow for security reasons.
-All inputs must be passed via explicit plugin settings.
-If this is the case, the Drone plugin in question cannot be used within Crow.
-///
-
-Here is a non-comprehensive list of organizations and repos containing Woodpecker/Drone plugins:
+A curated set of plugins is availble in the [crow-plugins](https://codeberg.org/crow-plugin) organization.  
+Other popular organizations and repositories containing Woodpecker/Drone plugins include:
 
 - [Woodpecker CI (GitHub)](https://woodpecker-ci.org/plugins)
 - [Appleboy (GitHub)](https://github.com/appleboy?tab=repositories&q=drone-&type=source&language=&sort=)
 - [thegeeklab (GitHub)](https://woodpecker-plugins.geekdocs.de/)
 - [Woodpecker Community](https://codeberg.org/woodpecker-community)
+
+The following table (grouped by official/others, then sorted alphabetically) gives a general overview of available plugins and their location.
+It does not aim to be complete.
+If you want your own plugin (or any missing one) to be listed, please create a Pull Request.
+
+| Name                                               | Description                                               | Repository                                                                                                            |
+| -------------------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Ansible :octicons-verified-16:{ .icon-blue }       | Execute Ansible playbooks                                 | [crow-plugins/ansible](https://codeberg.org/crow-plugins/ansible)                                                     |
+| docker-buildx :octicons-verified-16:{ .icon-blue } | Build multi-arch container images via `buildx`            | [crow-plugins/docker-buildx](https://codeberg.org/crow-plugins/docker-buildx)                                         |
+| -------------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------                                                                |
+| BlueSky                                            | Post on BlueSky                                           | [woodpecker-plugins/bluesky-post](https://codeberg.org/woodpecker-plugins/bluesky-post)                               |
+| Git Release                                        | Create releases on Git forges                             | [woodpecker-plugins/release](https://codeberg.org/woodpecker-plugins/release)                                         |
+| Git SSH                                            | Push to Git repos via SSH                                 | [appleboy/drone-ssh](https://github.com/appleboy/drone-ssh)                                                           |
+| GPG Artifact Sign                                  | Sign artifacts via `gpg`                                  | [thegeeklab/wp-gpgsign](https://github.com/thegeeklab/wp-gpgsign)                                                     |
+| Mastodon                                           | Post on Mastodon                                          | [woodpecker-plugins/mastodon-post](https://codeberg.org/woodpecker-plugins/mastodon-post)                             |
+| Matrix                                             | Send messages to Matrix                                   | [thegeeklab/wp-matrix](https://github.com/thegeeklab/wp-matrix)                                                       |
+| Nix remote builder                                 | Build Nix flakes through the Nix store of a remote system | [woodpecker-community/nix-remote-builder-plugin](https://codeberg.org/woodpecker-community/nix-remote-builder-plugin) |
+| OpenTofu                                           | Execute OpenTofu actions                                  | [thegeeklab/wp-opentofu](https://github.com/thegeeklab/wp-opentofu)                                                   |
+| Peckify                                            | Formats code with Prettier and auto-update pull requests  | [woodpecker-community/peckify](https://codeberg.org/woodpecker-community/peckify)                                     |
+| Portainer Update                                   | Trigger Portainer service updates                         | [woodpecker-community/portainer-service-update](https://codeberg.org/woodpecker-community/portainer-service-update)   |
+| S3                                                 | Execute S3 actions                                        | [woodpecker-plugins/plugin-s3](https://codeberg.org/woodpecker-plugins/plugin-s3)                                     |
+| S3-action                                          | Execute S3 actions                                        | [thegeeklab/wp-s3-action](https://github.com/thegeeklab/wp-s3-action)                                                 |
+| Surge Preview                                      | Pull request website previews via `surge.sh`              | [woodpecker-plugins/plugin-surge-preview](https://codeberg.org/woodpecker-plugins/plugin-surge-preview)               |
+| Trigger                                            | Trigger pipelines                                         | [woodpecker-plugins/trigger](https://codeberg.org/woodpecker-plugins/trigger)                                         |
 
 There are more plugins which exists, however, we cannot list all of them here.
 
@@ -63,6 +76,10 @@ This will (likely) gradually change over time.
 
 When considering the use of a plugin, please do your own due diligence with respect to the plugin's overall maintenance status and functionality, especially when handing over sensitive secrets.
 In the end, you are trusting the plugin and their maintainers to properly handle your sensitive secrets.
+
+The documentation differs among plugins.
+Some have it directly in the README.md of a repository, others use a `docs.md` file or a dedicated documentation website.
+Consult the individual plugin repos for more information.
 
 ## Creating plugins
 
@@ -79,10 +96,10 @@ For example, a setting named `url` is converted into the env var `PLUGIN_URL`.
 The names are sanitized, i.e. names with a dash are converted to an underscore (`some-setting` becomes `PLUGIN_SOME_SETTINGS`).
 CamelCase is not supported and will be converted into all uppercase.
 
-!!! important
-
-    As `environment:` is not allowed, plugin authors need to take care to provide settings for all possible values the plugin should be allowed to consume.
-    An alternative is to allow/add an `environment:` setting, yet this would actually allow arbitrary inputs and make the plugin less secure as it would allow for arbitrary inputs.
+/// important
+As `environment:` is not allowed, plugin authors need to take care to provide settings for all possible values the plugin should be allowed to consume.
+An alternative is to allow/add an `environment:` setting, yet this would actually allow arbitrary inputs and make the plugin less secure as it would allow for arbitrary inputs.
+///
 
 #### Simple settings
 
