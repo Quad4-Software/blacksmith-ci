@@ -38,7 +38,7 @@
         "@antfu/eslint-config": "^5.0.0",
         "@eslint/js": "^9.22.0",
         "@ianvs/prettier-plugin-sort-imports": "^4.4.1",
-        "@intlify/eslint-plugin-vue-i18n": "4.0.1",
+        "@intlify/eslint-plugin-vue-i18n": "4.1.0",
         "@intlify/unplugin-vue-i18n": "^6.0.3",
         "@types/lodash": "^4.17.16",
         "@types/node": "^24.0.0",
@@ -55,7 +55,7 @@
         "prettier": "^3.5.3",
         "tinycolor2": "^1.6.0",
         "ts-node": "^10.9.2",
-        "typescript": "5.8.3",
+        "typescript": "5.9.2",
         "vite": "^7.0.0",
         "vite-plugin-prismjs": "^0.0.11",
         "vite-svg-loader": "^5.1.0",
@@ -221,7 +221,7 @@
 
     "@intlify/core-base": ["@intlify/core-base@11.1.7", "", { "dependencies": { "@intlify/message-compiler": "11.1.7", "@intlify/shared": "11.1.7" } }, "sha512-gYiGnQeJVp3kNBeXQ73m1uFOak0ry4av8pn+IkEWigyyPWEMGzB+xFeQdmGMFn49V+oox6294oGVff8bYOhtOw=="],
 
-    "@intlify/eslint-plugin-vue-i18n": ["@intlify/eslint-plugin-vue-i18n@4.0.1", "", { "dependencies": { "@eslint/eslintrc": "^3.0.0", "@intlify/core-base": "^11.0.0", "@intlify/message-compiler": "^11.0.0", "debug": "^4.3.4", "eslint-compat-utils": "^0.6.0", "glob": "^10.3.3", "globals": "^16.0.0", "ignore": "^7.0.0", "import-fresh": "^3.3.0", "is-language-code": "^3.1.0", "js-yaml": "^4.1.0", "json5": "^2.2.3", "lodash": "^4.17.21", "parse5": "^7.1.2", "semver": "^7.5.4", "synckit": "^0.10.0" }, "peerDependencies": { "eslint": "^8.0.0 || ^9.0.0-0", "jsonc-eslint-parser": "^2.3.0", "vue-eslint-parser": "^10.0.0", "yaml-eslint-parser": "^1.2.2" } }, "sha512-xZKG7EvMvvumK9sdpnt6Dxa/dxV6/05/hRXIgJc0XI4l0+QUnyfdz5qXEvDm21T+OQsFN0CK/C+p0Fpra2wscQ=="],
+    "@intlify/eslint-plugin-vue-i18n": ["@intlify/eslint-plugin-vue-i18n@4.1.0", "", { "dependencies": { "@eslint/eslintrc": "^3.0.0", "@intlify/core-base": "^11.0.0", "@intlify/message-compiler": "^11.0.0", "debug": "^4.3.4", "eslint-compat-utils": "^0.6.0", "glob": "^10.3.3", "globals": "^16.0.0", "ignore": "^7.0.0", "import-fresh": "^3.3.0", "is-language-code": "^3.1.0", "js-yaml": "^4.1.0", "json5": "^2.2.3", "lodash": "^4.17.21", "parse5": "^7.1.2", "semver": "^7.5.4", "synckit": "^0.10.0" }, "peerDependencies": { "eslint": "^8.0.0 || ^9.0.0-0", "jsonc-eslint-parser": "^2.3.0", "vue-eslint-parser": "^10.0.0", "yaml-eslint-parser": "^1.2.2" } }, "sha512-MPAr3LGTrkB5CZBHN5eUf4kASUEiSaDM371jADmxNbTL1Ew7IAyCIBGm3+/1sWcvsfVHe4wz8RFoo6FpeQZ4Nw=="],
 
     "@intlify/message-compiler": ["@intlify/message-compiler@11.1.7", "", { "dependencies": { "@intlify/shared": "11.1.7", "source-map-js": "^1.0.2" } }, "sha512-0ezkep1AT30NyuKj8QbRlmvMORCCRlOIIu9v8RNU8SwDjjTiFCZzczCORMns2mCH4HZ1nXgrfkKzYUbfjNRmng=="],
 
@@ -1251,7 +1251,7 @@
 
     "type-check": ["type-check@0.4.0", "", { "dependencies": { "prelude-ls": "^1.2.1" } }, "sha512-XleUoc9uwGXqjWwXaUTZAmzMcFZ5858QA2vvx1Ur5xIcixXIP+8LnFDgRplU30us6teqdlskFfu+ae4K79Ooew=="],
 
-    "typescript": ["typescript@5.8.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ=="],
+    "typescript": ["typescript@5.9.2", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-CWBzXQrc/qOkhidw1OzBTQuYRbfyxDXJMVJ1XNwUHGROVmuaeiEm3OslpZ1RV96d7SKKjZKrSJu3+t/xlw3R9A=="],
 
     "ufo": ["ufo@1.6.1", "", {}, "sha512-9a4/uxlTWJ4+a5i0ooc1rU7C7YOw3wT+UGqdeNNHWnOF9qcMBgLRS+4IYUqbczewFx4mLEig6gawh7X6mFlEkA=="],
 
@@ -1376,8 +1376,6 @@
     "@eslint/plugin-kit/@eslint/core": ["@eslint/core@0.15.0", "", { "dependencies": { "@types/json-schema": "^7.0.15" } }, "sha512-b7ePw78tEWWkpgZCDYkbqDOP8dmM6qe+AOC6iuJqlq1R/0ahMAeH3qynpnqKFGkMltrp44ohV4ubGyvLX28tzw=="],
 
     "@humanfs/node/@humanwhocodes/retry": ["@humanwhocodes/retry@0.3.1", "", {}, "sha512-JBxkERygn7Bv/GbN5Rv8Ul6LVknS+5Bp6RgDC/O8gEBU/yeH5Ui5C/OlWrTb6qct7LjjfT6Re2NxB0ln0yYybA=="],
-
-    "@intlify/eslint-plugin-vue-i18n/globals": ["globals@16.2.0", "", {}, "sha512-O+7l9tPdHCU320IigZZPj5zmRCFG9xHmx9cU8FqU2Rp+JN714seHV+2S9+JslCpY4gJwU2vOGox0wzgae/MCEg=="],
 
     "@intlify/vue-i18n-extensions/@intlify/shared": ["@intlify/shared@10.0.7", "", {}, "sha512-oeoq0L5+5P4ShXa6jBQcx+BT+USe3MjX0xJexZO1y7rfDJdwZ9+QP3jO4tcS1nxhBYYdjvFTqe4bmnLijV0GxQ=="],
 
