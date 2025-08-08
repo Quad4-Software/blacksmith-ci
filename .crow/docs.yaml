@@ -8,7 +8,7 @@ when:
 # we need a full clone to be able to push back to the repo
 clone:
   git:
-    image: docker.io/thegeeklab/wp-git-clone:1.0.20
+    image: docker.io/thegeeklab/wp-git-clone:1.0.21
 
 steps:
   - name: 'Build docs'
