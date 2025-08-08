@@ -20,7 +20,7 @@ import (
 	"codeberg.org/crowci/crow/v4/server/model"
 )
 
-// getStatus is a helper that converts a Woodpecker status to a Gitlab status.
+// getStatus is a helper that converts a Crow status to a Gitlab status.
 func getStatus(status model.StatusValue) gitlab.BuildStateValue {
 	switch status {
 	case model.StatusPending, model.StatusBlocked:

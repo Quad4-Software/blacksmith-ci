@@ -590,8 +590,7 @@ func (c *Gitea) newClientToken(ctx context.Context, token string) (*gitea.Client
 	return client, err
 }
 
-// getStatus is a helper function that converts a Woodpecker
-// status to a Gitea status.
+// getStatus is a helper function that converts a Crow status to a Gitea status.
 func getStatus(status model.StatusValue) gitea.StatusState {
 	switch status {
 	case model.StatusPending, model.StatusBlocked:

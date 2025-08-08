@@ -365,13 +365,13 @@ var flags = append([]cli.Flag{
 	&cli.DurationFlag{
 		Sources: cli.EnvVars("WOODPECKER_FORGE_TIMEOUT", "CROW_FORGE_TIMEOUT"),
 		Name:    "forge-timeout",
-		Usage:   "how many seconds before timeout when fetching the Woodpecker configuration from a Forge",
+		Usage:   "how many seconds before timeout when fetching the Crow configuration from a Forge",
 		Value:   time.Second * 5,
 	},
 	&cli.Uint64Flag{
 		Sources: cli.EnvVars("WOODPECKER_FORGE_RETRY", "CROW_FORGE_RETRY"),
 		Name:    "forge-retry",
-		Usage:   "How many retries of fetching the Woodpecker configuration from a forge are done before we fail",
+		Usage:   "How many retries of fetching the Crow configuration from a forge are done before we fail",
 		Value:   3,
 	},
 	//

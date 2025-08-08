@@ -5,7 +5,7 @@ import (
 	"net/url"
 )
 
-// ListOptions represents the options for the Woodpecker API pagination.
+// ListOptions represents the options for the Crow API pagination.
 type ListOptions struct {
 	Page    int
 	PerPage int

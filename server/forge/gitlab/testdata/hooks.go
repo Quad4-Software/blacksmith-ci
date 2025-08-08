@@ -54,9 +54,9 @@ var HookPush = []byte(`
 	"project_id": 2,
 	"project": {
 		"id": 2,
-		"name": "Woodpecker",
+		"name": "Crow",
 		"description": "",
-		"web_url": "http://10.40.8.5:3200/test/woodpecker",
+		"web_url": "http://10.40.8.5:3200/test/crow",
 		"avatar_url": "http://example.com/uploads/project/avatar/555/Outh-20-Logo.jpg",
 		"git_ssh_url": "git@10.40.8.5:test/woodpecker.git",
 		"git_http_url": "http://10.40.8.5:3200/test/woodpecker.git",
@@ -96,8 +96,8 @@ var HookPush = []byte(`
 	"push_options": {
 	},
 	"repository": {
-		"name": "Woodpecker",
-		"url": "git@10.40.8.5:test/woodpecker.git",
+		"name": "Crow",
+		"url": "git@10.40.8.5:test/crow.git",
 		"description": "",
 		"homepage": "http://10.40.8.5:3200/test/woodpecker",
 		"git_http_url": "http://10.40.8.5:3200/test/woodpecker.git",
@@ -124,9 +124,9 @@ var HookTag = []byte(`
 	"project_id": 2,
 	"project": {
 		"id": 2,
-		"name": "Woodpecker",
+		"name": "Crow",
 		"description": "",
-		"web_url": "http://10.40.8.5:3200/test/woodpecker",
+		"web_url": "http://10.40.8.5:3200/test/crow",
 		"avatar_url": "http://example.com/uploads/project/avatar/555/Outh-20-Logo.jpg",
 		"git_ssh_url": "git@10.40.8.5:test/woodpecker.git",
 		"git_http_url": "http://10.40.8.5:3200/test/woodpecker.git",
@@ -166,8 +166,8 @@ var HookTag = []byte(`
 	"push_options": {
 	},
 	"repository": {
-		"name": "Woodpecker",
-		"url": "git@10.40.8.5:test/woodpecker.git",
+		"name": "Crow",
+		"url": "git@10.40.8.5:test/crow.git",
 		"description": "",
 		"homepage": "http://10.40.8.5:3200/test/woodpecker",
 		"git_http_url": "http://10.40.8.5:3200/test/woodpecker.git",

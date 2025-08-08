@@ -29,7 +29,7 @@ import (
 	"codeberg.org/crowci/crow/v4/shared/utils"
 )
 
-// toRepo converts a Gitea repository to a Woodpecker repository.
+// toRepo converts a Gitea repository to a Crow repository.
 func toRepo(from *gitea.Repository) *model.Repo {
 	name := strings.Split(from.FullName, "/")[1]
 	avatar := expandAvatar(
@@ -52,7 +52,7 @@ func toRepo(from *gitea.Repository) *model.Repo {
 	}
 }
 
-// toPerm converts a Gitea permission to a Woodpecker permission.
+// toPerm converts a Gitea permission to a Crow permission.
 func toPerm(from *gitea.Permission) *model.Perm {
 	return &model.Perm{
 		Pull:  from.Pull,
@@ -61,7 +61,7 @@ func toPerm(from *gitea.Permission) *model.Perm {
 	}
 }
 
-// toTeam converts a Gitea team to a Woodpecker team.
+// toTeam converts a Gitea team to a Crow team.
 func toTeam(from *gitea.Organization, link string) *model.Team {
 	return &model.Team{
 		Login:  from.UserName,

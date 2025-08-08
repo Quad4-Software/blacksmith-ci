@@ -45,8 +45,7 @@ const (
 	refSpec   = "%s:%s"
 )
 
-// convertStatus is a helper function used to convert a Woodpecker status to a
-// GitHub commit status.
+// convertStatus is a helper function used to convert a Crow status to a GitHub commit status.
 func convertStatus(status model.StatusValue) string {
 	switch status {
 	case model.StatusPending, model.StatusRunning, model.StatusBlocked, model.StatusSkipped:
@@ -60,8 +59,7 @@ func convertStatus(status model.StatusValue) string {
 	}
 }
 
-// convertDesc is a helper function used to convert a Woodpecker status to a
-// GitHub status description.
+// convertDesc is a helper function used to convert a Crow status to a GitHub status description.
 func convertDesc(status model.StatusValue) string {
 	switch status {
 	case model.StatusPending, model.StatusRunning:
@@ -80,7 +78,7 @@ func convertDesc(status model.StatusValue) string {
 }
 
 // convertRepo is a helper function used to convert a GitHub repository
-// structure to the common Woodpecker repository structure.
+// structure to the common Crow repository structure.
 func convertRepo(from *github.Repository) *model.Repo {
 	repo := &model.Repo{
 		ForgeRemoteID: model.ForgeRemoteID(fmt.Sprint(from.GetID())),
@@ -100,7 +98,7 @@ func convertRepo(from *github.Repository) *model.Repo {
 }
 
 // convertPerm is a helper function used to convert a GitHub repository
-// permissions to the common Woodpecker permissions structure.
+// permissions to the common Crow permissions structure.
 func convertPerm(perm map[string]bool) *model.Perm {
 	return &model.Perm{
 		Admin: perm["admin"],
@@ -110,7 +108,7 @@ func convertPerm(perm map[string]bool) *model.Perm {
 }
 
 // convertRepoList is a helper function used to convert a GitHub repository
-// list to the common Woodpecker repository structure.
+// list to the common Crow repository structure.
 func convertRepoList(from []*github.Repository) []*model.Repo {
 	var repos []*model.Repo
 	for _, repo := range from {
@@ -121,7 +119,7 @@ func convertRepoList(from []*github.Repository) []*model.Repo {
 }
 
 // convertTeamList is a helper function used to convert a GitHub team list to
-// the common Woodpecker repository structure.
+// the common Crow repository structure.
 func convertTeamList(from []*github.Organization) []*model.Team {
 	var teams []*model.Team
 	for _, team := range from {
@@ -131,7 +129,7 @@ func convertTeamList(from []*github.Organization) []*model.Team {
 }
 
 // convertTeam is a helper function used to convert a GitHub team structure
-// to the common Woodpecker repository structure.
+// to the common Crow repository structure.
 func convertTeam(from *github.Organization) *model.Team {
 	return &model.Team{
 		Login:  from.GetLogin(),
@@ -140,7 +138,7 @@ func convertTeam(from *github.Organization) *model.Team {
 }
 
 // convertRepoHook is a helper function used to extract the Repository details
-// from a webhook and convert to the common Woodpecker repository structure.
+// from a webhook and convert to the common Crow repository structure.
 func convertRepoHook(eventRepo *github.PushEventRepository) *model.Repo {
 	repo := &model.Repo{
 		ForgeRemoteID: model.ForgeRemoteID(fmt.Sprint(eventRepo.GetID())),
@@ -161,7 +159,7 @@ func convertRepoHook(eventRepo *github.PushEventRepository) *model.Repo {
 }
 
 // convertLabels is a helper function used to convert a GitHub label list to
-// the common Woodpecker label structure.
+// the common Crow label structure.
 func convertLabels(from []*github.Label) []string {
 	labels := make([]string, len(from))
 	for i, label := range from {

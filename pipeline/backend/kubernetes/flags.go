@@ -26,9 +26,9 @@ var Flags = []cli.Flag{
 		Value:   "woodpecker",
 	},
 	&cli.BoolFlag{
-		Sources: cli.EnvVars("WOODPECKER_BACKEND_K8S_NAMESPACE_PER_ORGANIZATION"),
+		Sources: cli.EnvVars("WOODPECKER_BACKEND_K8S_NAMESPACE_PER_ORGANIZATION", "CROW_BACKEND_K8S_NAMESPACE_PER_ORGANIZATION"),
 		Name:    "backend-k8s-namespace-per-org",
-		Usage:   "Whether to enable namespace segregation per organization feature. When enabled, Woodpecker will create the Kubernetes resources to separated Kubernetes namespaces per Woodpecker organization.",
+		Usage:   "Whether to enable namespace segregation per organization feature. When enabled, Crow will create the Kubernetes resources to separated Kubernetes namespaces per Crow organization.",
 		Value:   false,
 	},
 	&cli.StringFlag{

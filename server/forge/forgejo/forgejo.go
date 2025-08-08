@@ -583,8 +583,7 @@ func (c *Forgejo) newClientToken(ctx context.Context, token string) (*forgejo.Cl
 	return client, err
 }
 
-// getStatus is a helper function that converts a Woodpecker
-// status to a Forgejo status.
+// getStatus is a helper function that converts a Crow status to a Forgejo status.
 func getStatus(status model.StatusValue) forgejo.StatusState {
 	switch status {
 	case model.StatusPending, model.StatusBlocked:

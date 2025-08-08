@@ -49,7 +49,7 @@ const HookPush = `{
 			"site_admin": false
 		},
 		"html_url": "https://codeberg.org/crowci/crow",
-		"description": "Woodpecker is a simple, yet powerful CI/CD engine with great extensibility.",
+		"description": "Crow is a simple, yet powerful CI/CD engine with great extensibility.",
 		"fork": false,
 		"url": "https://codeberg.org/crowci/crow",
 		"forks_url": "https://api.github.com/repos/crowci/crow/forks",
@@ -152,7 +152,7 @@ const HookPush = `{
 		"members_url": "https://api.github.com/orgs/woodpecker-ci/members{/member}",
 		"public_members_url": "https://api.github.com/orgs/woodpecker-ci/public_members{/member}",
 		"avatar_url": "https://avatars.githubusercontent.com/u/84780935?v=4",
-		"description": "Woodpecker is a simple, yet powerful CI/CD engine with great extensibility."
+		"description": "Crow is a simple, yet powerful CI/CD engine with great extensibility."
 	},
 	"sender": {
 		"login": "6543",

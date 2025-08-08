@@ -20,7 +20,7 @@ import (
 	"codeberg.org/crowci/crow/v4/version"
 )
 
-// Version is a middleware function that appends the Woodpecker version information
+// Version is a middleware function that appends the Crow version information
 // to the HTTP response. This is intended for debugging and troubleshooting.
 func Version(c *gin.Context) {
 	c.Header("X-WOODPECKER-VERSION", version.String())

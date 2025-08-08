@@ -86,7 +86,7 @@
 ### BACKEND
 
 - Name: `CROW_BACKEND`
-- Description: Woodpecker backend to use. Possible values are `auto-detect`, `docker`, `local` or `kubernetes`.
+- Description: Crow backend to use. Possible values are `auto-detect`, `docker`, `local` or `kubernetes`.
 - Default: `auto-detect`
 
 ---
