@@ -39,7 +39,7 @@ steps:
     settings:
       note: CHANGELOG.md
       api_key:
-      from_secret: codeberg_bot_token
+        from_secret: codeberg_bot_token
       files:
         - dist/*.tar.gz
       title: ${CI_COMMIT_TAG}
