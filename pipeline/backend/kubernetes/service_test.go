@@ -43,7 +43,11 @@ func TestService(t *testing.T) {
 		"metadata": {
 			"name": "crow-svc-01he8bebctabr3kgk0qj36d2me-0-bar",
 			"namespace": "foo",
-			"creationTimestamp": null
+			"creationTimestamp": null,
+			"labels": {
+				"app.kubernetes.io/managed-by": "crow",
+				"service": "crow-svc-01he8bebctabr3kgk0qj36d2me-0-bar"
+			}
 		},
 		"spec": {
 			"ports": [

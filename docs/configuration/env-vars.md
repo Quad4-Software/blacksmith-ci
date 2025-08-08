@@ -1,11 +1,68 @@
 ## Server
 
-## CONTAINER_NAME_SCHEME
+### CONTAINER_NAME_SCHEME
 
 - Name: `CROW_CONTAINER_NAME_SCHEME`
 - Description: Determines the naming scheme type for containers. Possible values are `descriptive` and `hash`.
   The `descriptive` scheme uses format `<owner>-<repo>-<pipeline>-<workflow>-<stepname>-<stepnumber>` for readability and uniqueness.
 - Default: `descriptive`
+
+---
+
+### CRON_LOCK_TTL
+
+- Name: `CROW_CRON_LOCK_TTL`
+- Description: Time-to-live for the cron scheduler leader election lock in High Availability mode.
+  If the leader node fails, other nodes must wait this duration before acquiring the lock.
+- Default: `90s`
+
+---
+
+### DEFAULT_ALLOW_PULL_REQUESTS
+
+- Name: `CROW_DEFAULT_ALLOW_PULL_REQUESTS`
+- Description: The default value for the 'Approval requirements' section of new repos.
+- Default: `default-allow-pull-requests`
+
+---
+
+### MAINTENANCE_KUBERNETES_CLEANUP_ENABLED
+
+- Name: `MAINTENANCE_KUBERNETES_CLEANUP_ENABLED`
+- Description: Whether to enable Kubernetes resource cleanup.
+- Default: `none` (`true` when `CROW_BACKEND=kubernetes`)
+
+### MAINTENANCE_KUBERNETES_CLEANUP_AGE
+
+- Name: `MAINTENANCE_KUBERNETES_CLEANUP_AGE`
+- Description: The age threshold for Kubernetes resources to be cleaned up.
+- Default: `168h`
+
+---
+
+### MAINTENANCE_KUBERNETES_CLEANUP_NAMESPACES
+
+- Name: `MAINTENANCE_KUBERNETES_CLEANUP_NAMESPACES`
+- Description: Comma-separated list of namespaces to clean up.
+- Default: `none` (applies to current server namespace)
+
+---
+
+### MAINTENANCE_VACUUM_LOG_TABLE_ENABLED
+
+- Name: `CROW_MAINTENANCE_VACUUM_LOG_TABLE_ENABLED`
+- Description: Whether to enable vacuuming of the log table.
+- Default: `true`
+
+---
+
+### MAINTENANCE_VACUUM_LOG_TABLE_SCHEDULE
+
+- Name: `CROW_MAINTENANCE_VACUUM_LOG_TABLE_SCHEDULE`
+- Description: Cron schedule for vacuuming the log table.
+- Default: `0 0 * * *`
+
+---
 
 ### LOG_LEVEL
 
@@ -23,29 +80,12 @@
 
 ---
 
-### DEFAULT_ALLOW_PULL_REQUESTS
-
-- Name: `CROW_DEFAULT_ALLOW_PULL_REQUESTS`
-- Description: The default value for the 'Approval requirements' section of new repos.
-- Default: `default-allow-pull-requests`
-
----
-
 ### QUEUE_LOCK_TTL
 
 - Name: `CROW_QUEUE_LOCK_TTL`
 - Description: Time-to-live for the queue processing leader election lock in High Availability mode.
   If the leader node fails, other nodes must wait this duration before acquiring the lock.
 - Default: `30s`
-
----
-
-### CRON_LOCK_TTL
-
-- Name: `CROW_CRON_LOCK_TTL`
-- Description: Time-to-live for the cron scheduler leader election lock in High Availability mode.
-  If the leader node fails, other nodes must wait this duration before acquiring the lock.
-- Default: `90s`
 
 ## Agent
 

@@ -199,6 +199,8 @@ type Store interface {
 	// Maintenance
 	MaintenanceConfigGet() (*model.MaintenanceConfig, error)
 	MaintenanceConfigUpdate(*model.MaintenanceConfig) error
+	MaintenanceConfigGetByActionType(actionType string) (*model.MaintenanceConfig, error)
+	MaintenanceConfigUpdateByActionType(actionType string, config *model.MaintenanceConfig) error
 	MaintenanceStatsGet() (*model.MaintenanceStats, error)
 	MaintenanceStatsUpdate(*model.MaintenanceStats) error
 	MaintenanceLogCreate(*model.MaintenanceLog) error

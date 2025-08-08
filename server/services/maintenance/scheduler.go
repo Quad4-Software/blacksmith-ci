@@ -88,23 +88,58 @@ func (s *Scheduler) run() {
 
 // checkMaintenance checks if maintenance should be run.
 func (s *Scheduler) checkMaintenance() {
-	config := s.service.GetMaintenanceConfig()
-	if config == nil || !config.Enabled {
-		return
-	}
-
 	now := time.Now().UTC()
 
-	// Get the last maintenance log to check when we last ran
-	logs, err := s.store.MaintenanceLogList(1)
+	s.checkAction("vacuum", now)
+
+	s.checkAction("kubernetes_cleanup", now)
+}
+
+// checkAction checks if a specific maintenance action should be run.
+func (s *Scheduler) checkAction(actionType string, now time.Time) {
+	log.Debug().Str("action", actionType).Time("now", now).Msg("Checking maintenance action")
+
+	config, err := s.service.GetMaintenanceConfigByAction(actionType)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get maintenance logs")
+		log.Error().Err(err).Str("action", actionType).Msg("SCHEDULER ERROR: Failed to get action config")
 		return
 	}
 
+	if config == nil {
+		log.Error().Str("action", actionType).Msg("SCHEDULER ERROR: Action config is nil")
+		return
+	}
+
+	log.Debug().
+		Str("action", actionType).
+		Bool("enabled", config.Enabled).
+		Str("schedule", config.Schedule).
+		Time("last_run", config.LastRun).
+		Int64("config_id", config.ID).
+		Msg("SCHEDULER: Loaded action config from database")
+
+	if !config.Enabled {
+		log.Debug().Str("action", actionType).Bool("enabled", config.Enabled).Msg("Action is disabled, skipping")
+		return
+	}
+
+	// Special check for kubernetes_cleanup - ensure it's available
+	if actionType == "kubernetes_cleanup" {
+		available := s.service.IsKubernetesCleanupAvailable()
+		log.Debug().
+			Str("action", actionType).
+			Bool("available", available).
+			Msg("Checking if Kubernetes cleanup is available")
+		if !available {
+			log.Debug().Str("action", actionType).Msg("Kubernetes cleanup not available, skipping")
+			return
+		}
+	}
+
+	// Use the last run time from the action's config
 	var lastRun time.Time
-	if len(logs) > 0 {
-		lastRun = time.Unix(logs[0].Created, 0)
+	if !config.LastRun.IsZero() {
+		lastRun = config.LastRun
 	} else {
 		// If no previous run, use a time far in the past to ensure first run
 		lastRun = time.Unix(0, 0)
@@ -113,19 +148,56 @@ func (s *Scheduler) checkMaintenance() {
 	// Calculate the next execution time based on the last run
 	nextExec, err := cron.CalcNewNext(config.Schedule, lastRun)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to parse maintenance schedule")
+		log.Error().Err(err).Str("action", actionType).Str("schedule", config.Schedule).Msg("Failed to parse action schedule")
 		return
 	}
 
-	// Check if it's time to run maintenance (if current time is past the scheduled time)
+	log.Debug().
+		Str("action", actionType).
+		Str("schedule", config.Schedule).
+		Time("last_run", lastRun).
+		Time("next_exec", nextExec).
+		Time("now", now).
+		Bool("should_run", now.After(nextExec) || now.Equal(nextExec)).
+		Msg("Calculated next execution time")
+
+	// Check if it's time to run the action (if current time is past the scheduled time)
 	if now.After(nextExec) || now.Equal(nextExec) {
 		// Ensure we don't run too frequently (at least 30 seconds apart)
-		if now.Sub(lastRun) >= 30*time.Second {
-			log.Info().Str("schedule", config.Schedule).Time("next_exec", nextExec).Time("last_run", lastRun).Msg("Running scheduled maintenance")
-			if err := s.service.RunMaintenance(s.ctx); err != nil {
-				log.Error().Err(err).Msg("Scheduled maintenance failed")
+		timeSinceLastRun := now.Sub(lastRun)
+		if timeSinceLastRun >= 30*time.Second {
+			log.Debug().
+				Str("action", actionType).
+				Str("schedule", config.Schedule).
+				Time("next_exec", nextExec).
+				Time("last_run", lastRun).
+				Dur("time_since_last_run", timeSinceLastRun).
+				Msg("Running scheduled maintenance action")
+
+			switch actionType {
+			case "vacuum":
+				if err := s.service.RunMaintenance(s.ctx); err != nil {
+					log.Error().Err(err).Msg("Scheduled vacuum maintenance failed")
+				}
+			case "kubernetes_cleanup":
+				if err := s.service.RunKubernetesCleanup(s.ctx, false); err != nil {
+					log.Error().Err(err).Msg("Scheduled kubernetes cleanup failed")
+				}
+			default:
+				log.Warn().Str("action", actionType).Msg("Unknown maintenance action type")
 			}
+		} else {
+			log.Debug().
+				Str("action", actionType).
+				Dur("time_since_last_run", timeSinceLastRun).
+				Msg("Skipping action - too soon since last run (< 30 seconds)")
 		}
+	} else {
+		log.Debug().
+			Str("action", actionType).
+			Time("next_exec", nextExec).
+			Time("now", now).
+			Msg("Not time to run action yet")
 	}
 }
 

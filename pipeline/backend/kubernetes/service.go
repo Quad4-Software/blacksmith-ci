@@ -48,6 +48,10 @@ func mkService(step *types.Step, config *config) (*v1.Service, error) {
 		ObjectMeta: meta_v1.ObjectMeta{
 			Name:      name,
 			Namespace: config.GetNamespace(step.OrgID),
+			Labels: map[string]string{
+				"app.kubernetes.io/managed-by": "crow",
+				ServiceLabel:                   name,
+			},
 		},
 		Spec: v1.ServiceSpec{
 			Type:     v1.ServiceTypeClusterIP,

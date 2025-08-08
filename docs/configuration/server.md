@@ -610,3 +610,30 @@ In addition, the reverse proxy must be configured to route requests to all avail
 
 Last, `CROW_ENABLE_HA` must be set to `true` for all server instances.
 This env var tells the server to use the DB for various tasks, such as execution coordination for queue and cron tasks.
+
+## Maintenance
+
+Crow provides built-in maintenance mechanisms to perform important cleanup tasks.
+These tasks can be configured both through the web UI and via environment variables (`CROW_MAINTENANCE_*`).
+
+If env vars are used, the maintenance panel view in the web UI will be read-only for the respective action set and changes must be made by altering the env vars.
+
+The individual jobs can be run on-demand as well as scheduled.
+They report their output in a dedicated log panel within the maintenance panel.
+
+### Vacuum
+
+This job aims at vacuuming the database to reclaim unused space.
+The log retention policy feature constantly deletes logs respecting the repo or instance-wide config.
+To reclaim the space within the database, a vacuum operation must be performed.
+
+### Kubernetes cleanup
+
+When running Crow in Kubernetes, many resources (pvc, services, secrets, etc.) are created to successfully run a build.
+If jobs are not terminated properly, the cleanup operation of related resources is not (always) triggered.
+This results in orphaned resources in the namespace, that one must manually delete.
+This job aims at cleaning up orphaned resources in one (or multiple) namespaces.
+
+By default, only resources with an age greater than 7 days are considered for cleanup.
+After this time, the assumption is made that the resource is likely in an orphaned state and can be safely deleted.
+The interval at which the cleanup operation is performed can be configured via the `CROW_MAINTENANCE_KUBERNETES_CLEANUP_AGE` env var.

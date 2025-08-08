@@ -91,7 +91,7 @@ As of 2025-07, the following unique features exist in Crow:
 - Log retention: Each repository can define its own retention policy. A global default of 90 days is used
 - DAG support
 - Server  can run in HA with leader election
-- Maintenance panel to perform period cleanup operations on the database
+- Maintenance panel to perform period cleanup operations on the database and leftover Kubernetes resources
 - Descriptive error message: Errors are transparently parsed back to the user in the UI. Almost no "An unknown error occurred" messages are shown
 - Multi-org agents: Admins can deploy agents which are allowed to process builds from multiple organizations/users
 - Agent list: All instance agents are listed in the UI, also for non-admin users.

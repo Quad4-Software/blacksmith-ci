@@ -4374,6 +4374,68 @@ func (_c *MockStore_MaintenanceConfigGet_Call) RunAndReturn(run func() (*model.M
 	return _c
 }
 
+// MaintenanceConfigGetByActionType provides a mock function for the type MockStore
+func (_mock *MockStore) MaintenanceConfigGetByActionType(actionType string) (*model.MaintenanceConfig, error) {
+	ret := _mock.Called(actionType)
+
+	if len(ret) == 0 {
+		panic("no return value specified for MaintenanceConfigGetByActionType")
+	}
+
+	var r0 *model.MaintenanceConfig
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(string) (*model.MaintenanceConfig, error)); ok {
+		return returnFunc(actionType)
+	}
+	if returnFunc, ok := ret.Get(0).(func(string) *model.MaintenanceConfig); ok {
+		r0 = returnFunc(actionType)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.MaintenanceConfig)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(string) error); ok {
+		r1 = returnFunc(actionType)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_MaintenanceConfigGetByActionType_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'MaintenanceConfigGetByActionType'
+type MockStore_MaintenanceConfigGetByActionType_Call struct {
+	*mock.Call
+}
+
+// MaintenanceConfigGetByActionType is a helper method to define mock.On call
+//   - actionType string
+func (_e *MockStore_Expecter) MaintenanceConfigGetByActionType(actionType interface{}) *MockStore_MaintenanceConfigGetByActionType_Call {
+	return &MockStore_MaintenanceConfigGetByActionType_Call{Call: _e.mock.On("MaintenanceConfigGetByActionType", actionType)}
+}
+
+func (_c *MockStore_MaintenanceConfigGetByActionType_Call) Run(run func(actionType string)) *MockStore_MaintenanceConfigGetByActionType_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_MaintenanceConfigGetByActionType_Call) Return(maintenanceConfig *model.MaintenanceConfig, err error) *MockStore_MaintenanceConfigGetByActionType_Call {
+	_c.Call.Return(maintenanceConfig, err)
+	return _c
+}
+
+func (_c *MockStore_MaintenanceConfigGetByActionType_Call) RunAndReturn(run func(actionType string) (*model.MaintenanceConfig, error)) *MockStore_MaintenanceConfigGetByActionType_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // MaintenanceConfigUpdate provides a mock function for the type MockStore
 func (_mock *MockStore) MaintenanceConfigUpdate(maintenanceConfig *model.MaintenanceConfig) error {
 	ret := _mock.Called(maintenanceConfig)
@@ -4421,6 +4483,63 @@ func (_c *MockStore_MaintenanceConfigUpdate_Call) Return(err error) *MockStore_M
 }
 
 func (_c *MockStore_MaintenanceConfigUpdate_Call) RunAndReturn(run func(maintenanceConfig *model.MaintenanceConfig) error) *MockStore_MaintenanceConfigUpdate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// MaintenanceConfigUpdateByActionType provides a mock function for the type MockStore
+func (_mock *MockStore) MaintenanceConfigUpdateByActionType(actionType string, config *model.MaintenanceConfig) error {
+	ret := _mock.Called(actionType, config)
+
+	if len(ret) == 0 {
+		panic("no return value specified for MaintenanceConfigUpdateByActionType")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(string, *model.MaintenanceConfig) error); ok {
+		r0 = returnFunc(actionType, config)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_MaintenanceConfigUpdateByActionType_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'MaintenanceConfigUpdateByActionType'
+type MockStore_MaintenanceConfigUpdateByActionType_Call struct {
+	*mock.Call
+}
+
+// MaintenanceConfigUpdateByActionType is a helper method to define mock.On call
+//   - actionType string
+//   - config *model.MaintenanceConfig
+func (_e *MockStore_Expecter) MaintenanceConfigUpdateByActionType(actionType interface{}, config interface{}) *MockStore_MaintenanceConfigUpdateByActionType_Call {
+	return &MockStore_MaintenanceConfigUpdateByActionType_Call{Call: _e.mock.On("MaintenanceConfigUpdateByActionType", actionType, config)}
+}
+
+func (_c *MockStore_MaintenanceConfigUpdateByActionType_Call) Run(run func(actionType string, config *model.MaintenanceConfig)) *MockStore_MaintenanceConfigUpdateByActionType_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		var arg1 *model.MaintenanceConfig
+		if args[1] != nil {
+			arg1 = args[1].(*model.MaintenanceConfig)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_MaintenanceConfigUpdateByActionType_Call) Return(err error) *MockStore_MaintenanceConfigUpdateByActionType_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_MaintenanceConfigUpdateByActionType_Call) RunAndReturn(run func(actionType string, config *model.MaintenanceConfig) error) *MockStore_MaintenanceConfigUpdateByActionType_Call {
 	_c.Call.Return(run)
 	return _c
 }

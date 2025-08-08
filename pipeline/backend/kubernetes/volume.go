@@ -48,6 +48,9 @@ func mkPersistentVolumeClaim(config *config, name, namespace string) (*v1.Persis
 		ObjectMeta: meta_v1.ObjectMeta{
 			Name:      volumeName,
 			Namespace: namespace,
+			Labels: map[string]string{
+				"app.kubernetes.io/managed-by": "crow",
+			},
 		},
 		Spec: v1.PersistentVolumeClaimSpec{
 			AccessModes:      []v1.PersistentVolumeAccessMode{accessMode},

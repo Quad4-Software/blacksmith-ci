@@ -18,11 +18,23 @@ import "time"
 
 // MaintenanceConfig represents the configuration for database maintenance operations.
 type MaintenanceConfig struct {
-	ID       int64  `json:"id"       xorm:"pk autoincr 'id'"`
-	Enabled  bool   `json:"enabled"  xorm:"'enabled'"`
-	Schedule string `json:"schedule" xorm:"'schedule'"` // Cron format: "0 5 * * *" for 5 AM daily
-	Created  int64  `json:"created"  xorm:"created"`
-	Updated  int64  `json:"updated"  xorm:"updated"`
+	ID         int64  `json:"id"       xorm:"pk autoincr 'id'"`
+	ActionType string `json:"action_type" xorm:"'action_type' unique"` // "vacuum" or "kubernetes_cleanup"
+	Enabled    bool   `json:"enabled"  xorm:"'enabled'"`
+	Schedule   string `json:"schedule" xorm:"'schedule'"` // Cron format: "0 5 * * *" for 5 AM daily
+	// Action-specific statistics
+	TotalRuns       int64     `json:"total_runs" xorm:"'total_runs' default(0)"`
+	SuccessfulRuns  int64     `json:"successful_runs" xorm:"'successful_runs' default(0)"`
+	LastRun         time.Time `json:"last_run" xorm:"'last_run'"`
+	LastRunSuccess  bool      `json:"last_run_success" xorm:"'last_run_success' default(false)"`
+	LastRunDuration int64     `json:"last_run_duration" xorm:"'last_run_duration' default(0)"` // Duration in milliseconds
+	LastRunError    string    `json:"last_run_error" xorm:"'last_run_error'"`
+	Created         int64     `json:"created"  xorm:"created"`
+	Updated         int64     `json:"updated"  xorm:"updated"`
+	// Runtime flags (not persisted)
+	KubernetesCleanupAvailable bool `json:"kubernetes_cleanup_available" xorm:"-"` // Function is configured, not stored in DB
+	// Environment variable override flags (not persisted)
+	EnvVarsSet bool `json:"env_vars_set" xorm:"-"` // True if action-specific env vars are set (vacuum or k8s depending on action)
 } //	@name	MaintenanceConfig
 
 // MaintenanceOperationConfig represents the configuration for individual maintenance operations.

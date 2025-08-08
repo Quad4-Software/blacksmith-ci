@@ -269,6 +269,8 @@ func apiRoutes(e *gin.RouterGroup) {
 			{
 				maintenance.GET("/config", api.GetMaintenanceConfig)
 				maintenance.PUT("/config", api.UpdateMaintenanceConfig)
+				maintenance.GET("/config/:action", api.GetMaintenanceConfigByAction)
+				maintenance.PUT("/config/:action", api.UpdateMaintenanceConfigByAction)
 				maintenance.GET("/stats", api.GetMaintenanceStats)
 				maintenance.GET("/logs", api.GetMaintenanceLogs)
 				maintenance.POST("/run", api.RunMaintenanceNow)

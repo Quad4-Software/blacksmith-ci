@@ -58,3 +58,4 @@ local.sh
 *.bkp
 .DS_Store
 CLAUDE.md
+crow-server

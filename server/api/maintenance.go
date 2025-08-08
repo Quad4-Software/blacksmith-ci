@@ -15,6 +15,7 @@
 package api
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
@@ -87,7 +88,116 @@ func UpdateMaintenanceConfig(c *gin.Context) {
 		}
 	}
 
+	// Get fresh config with runtime fields populated
+	returnConfig := server.Config.Services.MaintenanceService.GetMaintenanceConfig()
+
+	c.JSON(http.StatusOK, returnConfig)
+}
+
+// GetMaintenanceConfigByAction returns maintenance configuration for a specific action
+//
+//	@Summary		Get maintenance configuration by action type
+//	@Description	Get maintenance configuration for a specific action (vacuum, kubernetes_cleanup)
+//	@Router			/admin/maintenance/config/{action} [get]
+//	@Produce		json
+//	@Success		200	{object}	MaintenanceConfig
+//	@Tags			Admin
+//	@Param			Authorization	header	string	true	"Insert your personal access token"			default(Bearer <personal access token>)
+//	@Param			action			path	string	true	"Action type (vacuum, kubernetes_cleanup)"	Enums(vacuum, kubernetes_cleanup)
+//	@Security		ApiKeyAuth
+func GetMaintenanceConfigByAction(c *gin.Context) {
+	user := session.User(c)
+	if !user.Admin {
+		c.AbortWithStatus(http.StatusForbidden)
+		return
+	}
+
+	actionType := c.Param("action")
+	if actionType != "vacuum" && actionType != "kubernetes_cleanup" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid action type. Must be 'vacuum' or 'kubernetes_cleanup'"})
+		return
+	}
+
+	config, err := server.Config.Services.MaintenanceService.GetMaintenanceConfigByAction(actionType)
+	if err != nil {
+		log.Error().Err(err).Str("action", actionType).Msg("Failed to get maintenance config")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get maintenance config"})
+		return
+	}
+
+	// Set runtime flags based on action type
+	switch actionType {
+	case "kubernetes_cleanup":
+		config.KubernetesCleanupAvailable = server.Config.Services.MaintenanceService.IsKubernetesCleanupAvailable()
+		config.EnvVarsSet = server.Config.Services.MaintenanceService.IsKubernetesEnvVarsConfigured()
+	case "vacuum":
+		config.EnvVarsSet = server.Config.Services.MaintenanceService.IsVacuumEnvVarsConfigured()
+	}
+
 	c.JSON(http.StatusOK, config)
+}
+
+// UpdateMaintenanceConfigByAction updates maintenance configuration for a specific action
+//
+//	@Summary		Update maintenance configuration by action type
+//	@Description	Update maintenance configuration for a specific action (vacuum, kubernetes_cleanup)
+//	@Router			/admin/maintenance/config/{action} [put]
+//	@Produce		json
+//	@Accept			json
+//	@Success		200	{object}	MaintenanceConfig
+//	@Tags			Admin
+//	@Param			Authorization	header	string				true	"Insert your personal access token"			default(Bearer <personal access token>)
+//	@Param			action			path	string				true	"Action type (vacuum, kubernetes_cleanup)"	Enums(vacuum, kubernetes_cleanup)
+//	@Param			config			body	MaintenanceConfig	true	"Maintenance configuration"
+//	@Security		ApiKeyAuth
+func UpdateMaintenanceConfigByAction(c *gin.Context) {
+	user := session.User(c)
+	if !user.Admin {
+		c.AbortWithStatus(http.StatusForbidden)
+		return
+	}
+
+	actionType := c.Param("action")
+	if actionType != "vacuum" && actionType != "kubernetes_cleanup" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid action type. Must be 'vacuum' or 'kubernetes_cleanup'"})
+		return
+	}
+
+	var config model.MaintenanceConfig
+	if err := c.ShouldBindJSON(&config); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Ensure the action type matches the URL parameter
+	config.ActionType = actionType
+
+	log.Info().
+		Str("action", actionType).
+		Bool("enabled", config.Enabled).
+		Str("schedule", config.Schedule).
+		Msg("Updating maintenance config by action")
+
+	if err := server.Config.Services.MaintenanceService.UpdateMaintenanceConfigByAction(actionType, &config); err != nil {
+		log.Error().Err(err).Str("action", actionType).Msg("Failed to update maintenance config")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update maintenance config"})
+		return
+	}
+
+	// Note: No need to update scheduler - it reloads configs every minute automatically
+
+	updatedConfig, err := server.Config.Services.MaintenanceService.GetMaintenanceConfigByAction(actionType)
+	if err != nil {
+		log.Error().Err(err).Str("action", actionType).Msg("Failed to get updated maintenance config")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get updated maintenance config"})
+		return
+	}
+
+	if actionType == "kubernetes_cleanup" {
+		updatedConfig.KubernetesCleanupAvailable = server.Config.Services.MaintenanceService.IsKubernetesCleanupAvailable()
+	}
+
+	c.JSON(http.StatusOK, updatedConfig)
 }
 
 // GetMaintenanceStats returns maintenance statistics
@@ -153,7 +263,8 @@ func GetMaintenanceLogs(c *gin.Context) {
 
 // RunMaintenanceRequest represents the request payload for running maintenance.
 type RunMaintenanceRequest struct {
-	Job string `json:"job" binding:"required" example:"vacuumLogTable"` // The maintenance job to run
+	Job    string `json:"job" binding:"required" example:"vacuumLogTable"` // The maintenance job to run
+	DryRun bool   `json:"dry_run,omitempty"`                               // Run in dry-run mode (only for kubernetesCleanup)
 }
 
 // RunMaintenanceNow runs database maintenance immediately
@@ -181,22 +292,47 @@ func RunMaintenanceNow(c *gin.Context) {
 		return
 	}
 
-	// Validate job type
-	if req.Job != "vacuumLogTable" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid job type. Supported jobs: vacuumLogTable"})
-		return
-	}
-
-	if server.Config.Services.MaintenanceScheduler == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Maintenance scheduler not available"})
-		return
-	}
-
-	go func() {
-		if err := server.Config.Services.MaintenanceScheduler.RunManual(); err != nil {
-			log.Error().Err(err).Msg("Manual maintenance run failed")
+	// Validate job type and execute appropriate maintenance job
+	switch req.Job {
+	case "vacuumLogTable":
+		if server.Config.Services.MaintenanceScheduler == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Maintenance scheduler not available"})
+			return
 		}
-	}()
+
+		go func() {
+			if err := server.Config.Services.MaintenanceScheduler.RunManual(); err != nil {
+				log.Error().Err(err).Msg("Manual maintenance run failed")
+			}
+		}()
+
+	case "kubernetesCleanup":
+		if server.Config.Services.MaintenanceService == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Maintenance service not available"})
+			return
+		}
+
+		if !server.Config.Services.MaintenanceService.IsKubernetesCleanupAvailable() {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Kubernetes cleanup is not configured. Set CROW_MAINTENANCE_KUBERNETES_CLEANUP_AGE to configure."})
+			return
+		}
+
+		k8sConfig, err := server.Config.Services.MaintenanceService.GetMaintenanceConfigByAction("kubernetes_cleanup")
+		if err != nil || !k8sConfig.Enabled {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Kubernetes cleanup is not enabled. Enable it in the maintenance settings."})
+			return
+		}
+
+		go func() {
+			if err := server.Config.Services.MaintenanceService.RunKubernetesCleanup(context.Background(), req.DryRun); err != nil {
+				log.Error().Err(err).Bool("dry_run", req.DryRun).Msg("Kubernetes cleanup failed")
+			}
+		}()
+
+	default:
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid job type. Supported jobs: vacuumLogTable, kubernetesCleanup"})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Maintenance started", "job": req.Job})
 }

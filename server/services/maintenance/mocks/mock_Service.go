@@ -84,6 +84,68 @@ func (_c *MockService_GetMaintenanceConfig_Call) RunAndReturn(run func() *model.
 	return _c
 }
 
+// GetMaintenanceConfigByAction provides a mock function for the type MockService
+func (_mock *MockService) GetMaintenanceConfigByAction(actionType string) (*model.MaintenanceConfig, error) {
+	ret := _mock.Called(actionType)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetMaintenanceConfigByAction")
+	}
+
+	var r0 *model.MaintenanceConfig
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(string) (*model.MaintenanceConfig, error)); ok {
+		return returnFunc(actionType)
+	}
+	if returnFunc, ok := ret.Get(0).(func(string) *model.MaintenanceConfig); ok {
+		r0 = returnFunc(actionType)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.MaintenanceConfig)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(string) error); ok {
+		r1 = returnFunc(actionType)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockService_GetMaintenanceConfigByAction_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetMaintenanceConfigByAction'
+type MockService_GetMaintenanceConfigByAction_Call struct {
+	*mock.Call
+}
+
+// GetMaintenanceConfigByAction is a helper method to define mock.On call
+//   - actionType string
+func (_e *MockService_Expecter) GetMaintenanceConfigByAction(actionType interface{}) *MockService_GetMaintenanceConfigByAction_Call {
+	return &MockService_GetMaintenanceConfigByAction_Call{Call: _e.mock.On("GetMaintenanceConfigByAction", actionType)}
+}
+
+func (_c *MockService_GetMaintenanceConfigByAction_Call) Run(run func(actionType string)) *MockService_GetMaintenanceConfigByAction_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockService_GetMaintenanceConfigByAction_Call) Return(maintenanceConfig *model.MaintenanceConfig, err error) *MockService_GetMaintenanceConfigByAction_Call {
+	_c.Call.Return(maintenanceConfig, err)
+	return _c
+}
+
+func (_c *MockService_GetMaintenanceConfigByAction_Call) RunAndReturn(run func(actionType string) (*model.MaintenanceConfig, error)) *MockService_GetMaintenanceConfigByAction_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetMaintenanceStats provides a mock function for the type MockService
 func (_mock *MockService) GetMaintenanceStats() (*model.MaintenanceStats, error) {
 	ret := _mock.Called()
@@ -139,6 +201,195 @@ func (_c *MockService_GetMaintenanceStats_Call) RunAndReturn(run func() (*model.
 	return _c
 }
 
+// IsKubernetesCleanupAvailable provides a mock function for the type MockService
+func (_mock *MockService) IsKubernetesCleanupAvailable() bool {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for IsKubernetesCleanupAvailable")
+	}
+
+	var r0 bool
+	if returnFunc, ok := ret.Get(0).(func() bool); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	return r0
+}
+
+// MockService_IsKubernetesCleanupAvailable_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IsKubernetesCleanupAvailable'
+type MockService_IsKubernetesCleanupAvailable_Call struct {
+	*mock.Call
+}
+
+// IsKubernetesCleanupAvailable is a helper method to define mock.On call
+func (_e *MockService_Expecter) IsKubernetesCleanupAvailable() *MockService_IsKubernetesCleanupAvailable_Call {
+	return &MockService_IsKubernetesCleanupAvailable_Call{Call: _e.mock.On("IsKubernetesCleanupAvailable")}
+}
+
+func (_c *MockService_IsKubernetesCleanupAvailable_Call) Run(run func()) *MockService_IsKubernetesCleanupAvailable_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockService_IsKubernetesCleanupAvailable_Call) Return(b bool) *MockService_IsKubernetesCleanupAvailable_Call {
+	_c.Call.Return(b)
+	return _c
+}
+
+func (_c *MockService_IsKubernetesCleanupAvailable_Call) RunAndReturn(run func() bool) *MockService_IsKubernetesCleanupAvailable_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// IsKubernetesEnvVarsConfigured provides a mock function for the type MockService
+func (_mock *MockService) IsKubernetesEnvVarsConfigured() bool {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for IsKubernetesEnvVarsConfigured")
+	}
+
+	var r0 bool
+	if returnFunc, ok := ret.Get(0).(func() bool); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	return r0
+}
+
+// MockService_IsKubernetesEnvVarsConfigured_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IsKubernetesEnvVarsConfigured'
+type MockService_IsKubernetesEnvVarsConfigured_Call struct {
+	*mock.Call
+}
+
+// IsKubernetesEnvVarsConfigured is a helper method to define mock.On call
+func (_e *MockService_Expecter) IsKubernetesEnvVarsConfigured() *MockService_IsKubernetesEnvVarsConfigured_Call {
+	return &MockService_IsKubernetesEnvVarsConfigured_Call{Call: _e.mock.On("IsKubernetesEnvVarsConfigured")}
+}
+
+func (_c *MockService_IsKubernetesEnvVarsConfigured_Call) Run(run func()) *MockService_IsKubernetesEnvVarsConfigured_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockService_IsKubernetesEnvVarsConfigured_Call) Return(b bool) *MockService_IsKubernetesEnvVarsConfigured_Call {
+	_c.Call.Return(b)
+	return _c
+}
+
+func (_c *MockService_IsKubernetesEnvVarsConfigured_Call) RunAndReturn(run func() bool) *MockService_IsKubernetesEnvVarsConfigured_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// IsVacuumEnvVarsConfigured provides a mock function for the type MockService
+func (_mock *MockService) IsVacuumEnvVarsConfigured() bool {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for IsVacuumEnvVarsConfigured")
+	}
+
+	var r0 bool
+	if returnFunc, ok := ret.Get(0).(func() bool); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	return r0
+}
+
+// MockService_IsVacuumEnvVarsConfigured_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IsVacuumEnvVarsConfigured'
+type MockService_IsVacuumEnvVarsConfigured_Call struct {
+	*mock.Call
+}
+
+// IsVacuumEnvVarsConfigured is a helper method to define mock.On call
+func (_e *MockService_Expecter) IsVacuumEnvVarsConfigured() *MockService_IsVacuumEnvVarsConfigured_Call {
+	return &MockService_IsVacuumEnvVarsConfigured_Call{Call: _e.mock.On("IsVacuumEnvVarsConfigured")}
+}
+
+func (_c *MockService_IsVacuumEnvVarsConfigured_Call) Run(run func()) *MockService_IsVacuumEnvVarsConfigured_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockService_IsVacuumEnvVarsConfigured_Call) Return(b bool) *MockService_IsVacuumEnvVarsConfigured_Call {
+	_c.Call.Return(b)
+	return _c
+}
+
+func (_c *MockService_IsVacuumEnvVarsConfigured_Call) RunAndReturn(run func() bool) *MockService_IsVacuumEnvVarsConfigured_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// RunKubernetesCleanup provides a mock function for the type MockService
+func (_mock *MockService) RunKubernetesCleanup(ctx context.Context, dryRun bool) error {
+	ret := _mock.Called(ctx, dryRun)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RunKubernetesCleanup")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, bool) error); ok {
+		r0 = returnFunc(ctx, dryRun)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockService_RunKubernetesCleanup_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RunKubernetesCleanup'
+type MockService_RunKubernetesCleanup_Call struct {
+	*mock.Call
+}
+
+// RunKubernetesCleanup is a helper method to define mock.On call
+//   - ctx context.Context
+//   - dryRun bool
+func (_e *MockService_Expecter) RunKubernetesCleanup(ctx interface{}, dryRun interface{}) *MockService_RunKubernetesCleanup_Call {
+	return &MockService_RunKubernetesCleanup_Call{Call: _e.mock.On("RunKubernetesCleanup", ctx, dryRun)}
+}
+
+func (_c *MockService_RunKubernetesCleanup_Call) Run(run func(ctx context.Context, dryRun bool)) *MockService_RunKubernetesCleanup_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 bool
+		if args[1] != nil {
+			arg1 = args[1].(bool)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockService_RunKubernetesCleanup_Call) Return(err error) *MockService_RunKubernetesCleanup_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockService_RunKubernetesCleanup_Call) RunAndReturn(run func(ctx context.Context, dryRun bool) error) *MockService_RunKubernetesCleanup_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // RunMaintenance provides a mock function for the type MockService
 func (_mock *MockService) RunMaintenance(ctx context.Context) error {
 	ret := _mock.Called(ctx)
@@ -190,6 +441,166 @@ func (_c *MockService_RunMaintenance_Call) RunAndReturn(run func(ctx context.Con
 	return _c
 }
 
+// SetKubernetesCleanupEnabled provides a mock function for the type MockService
+func (_mock *MockService) SetKubernetesCleanupEnabled(enabled bool) {
+	_mock.Called(enabled)
+	return
+}
+
+// MockService_SetKubernetesCleanupEnabled_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetKubernetesCleanupEnabled'
+type MockService_SetKubernetesCleanupEnabled_Call struct {
+	*mock.Call
+}
+
+// SetKubernetesCleanupEnabled is a helper method to define mock.On call
+//   - enabled bool
+func (_e *MockService_Expecter) SetKubernetesCleanupEnabled(enabled interface{}) *MockService_SetKubernetesCleanupEnabled_Call {
+	return &MockService_SetKubernetesCleanupEnabled_Call{Call: _e.mock.On("SetKubernetesCleanupEnabled", enabled)}
+}
+
+func (_c *MockService_SetKubernetesCleanupEnabled_Call) Run(run func(enabled bool)) *MockService_SetKubernetesCleanupEnabled_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 bool
+		if args[0] != nil {
+			arg0 = args[0].(bool)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockService_SetKubernetesCleanupEnabled_Call) Return() *MockService_SetKubernetesCleanupEnabled_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockService_SetKubernetesCleanupEnabled_Call) RunAndReturn(run func(enabled bool)) *MockService_SetKubernetesCleanupEnabled_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetKubernetesCleanupFunc provides a mock function for the type MockService
+func (_mock *MockService) SetKubernetesCleanupFunc(f func(ctx context.Context, dryRun bool) error) {
+	_mock.Called(f)
+	return
+}
+
+// MockService_SetKubernetesCleanupFunc_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetKubernetesCleanupFunc'
+type MockService_SetKubernetesCleanupFunc_Call struct {
+	*mock.Call
+}
+
+// SetKubernetesCleanupFunc is a helper method to define mock.On call
+//   - f func(ctx context.Context, dryRun bool) error
+func (_e *MockService_Expecter) SetKubernetesCleanupFunc(f interface{}) *MockService_SetKubernetesCleanupFunc_Call {
+	return &MockService_SetKubernetesCleanupFunc_Call{Call: _e.mock.On("SetKubernetesCleanupFunc", f)}
+}
+
+func (_c *MockService_SetKubernetesCleanupFunc_Call) Run(run func(f func(ctx context.Context, dryRun bool) error)) *MockService_SetKubernetesCleanupFunc_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 func(ctx context.Context, dryRun bool) error
+		if args[0] != nil {
+			arg0 = args[0].(func(ctx context.Context, dryRun bool) error)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockService_SetKubernetesCleanupFunc_Call) Return() *MockService_SetKubernetesCleanupFunc_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockService_SetKubernetesCleanupFunc_Call) RunAndReturn(run func(f func(ctx context.Context, dryRun bool) error)) *MockService_SetKubernetesCleanupFunc_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetKubernetesEnvVarsConfigured provides a mock function for the type MockService
+func (_mock *MockService) SetKubernetesEnvVarsConfigured(k8sEnvVarsSet bool) {
+	_mock.Called(k8sEnvVarsSet)
+	return
+}
+
+// MockService_SetKubernetesEnvVarsConfigured_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetKubernetesEnvVarsConfigured'
+type MockService_SetKubernetesEnvVarsConfigured_Call struct {
+	*mock.Call
+}
+
+// SetKubernetesEnvVarsConfigured is a helper method to define mock.On call
+//   - k8sEnvVarsSet bool
+func (_e *MockService_Expecter) SetKubernetesEnvVarsConfigured(k8sEnvVarsSet interface{}) *MockService_SetKubernetesEnvVarsConfigured_Call {
+	return &MockService_SetKubernetesEnvVarsConfigured_Call{Call: _e.mock.On("SetKubernetesEnvVarsConfigured", k8sEnvVarsSet)}
+}
+
+func (_c *MockService_SetKubernetesEnvVarsConfigured_Call) Run(run func(k8sEnvVarsSet bool)) *MockService_SetKubernetesEnvVarsConfigured_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 bool
+		if args[0] != nil {
+			arg0 = args[0].(bool)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockService_SetKubernetesEnvVarsConfigured_Call) Return() *MockService_SetKubernetesEnvVarsConfigured_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockService_SetKubernetesEnvVarsConfigured_Call) RunAndReturn(run func(k8sEnvVarsSet bool)) *MockService_SetKubernetesEnvVarsConfigured_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetVacuumEnvVarsConfigured provides a mock function for the type MockService
+func (_mock *MockService) SetVacuumEnvVarsConfigured(vacuumEnvVarsSet bool) {
+	_mock.Called(vacuumEnvVarsSet)
+	return
+}
+
+// MockService_SetVacuumEnvVarsConfigured_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetVacuumEnvVarsConfigured'
+type MockService_SetVacuumEnvVarsConfigured_Call struct {
+	*mock.Call
+}
+
+// SetVacuumEnvVarsConfigured is a helper method to define mock.On call
+//   - vacuumEnvVarsSet bool
+func (_e *MockService_Expecter) SetVacuumEnvVarsConfigured(vacuumEnvVarsSet interface{}) *MockService_SetVacuumEnvVarsConfigured_Call {
+	return &MockService_SetVacuumEnvVarsConfigured_Call{Call: _e.mock.On("SetVacuumEnvVarsConfigured", vacuumEnvVarsSet)}
+}
+
+func (_c *MockService_SetVacuumEnvVarsConfigured_Call) Run(run func(vacuumEnvVarsSet bool)) *MockService_SetVacuumEnvVarsConfigured_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 bool
+		if args[0] != nil {
+			arg0 = args[0].(bool)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockService_SetVacuumEnvVarsConfigured_Call) Return() *MockService_SetVacuumEnvVarsConfigured_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockService_SetVacuumEnvVarsConfigured_Call) RunAndReturn(run func(vacuumEnvVarsSet bool)) *MockService_SetVacuumEnvVarsConfigured_Call {
+	_c.Run(run)
+	return _c
+}
+
 // UpdateMaintenanceConfig provides a mock function for the type MockService
 func (_mock *MockService) UpdateMaintenanceConfig(config *model.MaintenanceConfig) error {
 	ret := _mock.Called(config)
@@ -237,6 +648,63 @@ func (_c *MockService_UpdateMaintenanceConfig_Call) Return(err error) *MockServi
 }
 
 func (_c *MockService_UpdateMaintenanceConfig_Call) RunAndReturn(run func(config *model.MaintenanceConfig) error) *MockService_UpdateMaintenanceConfig_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateMaintenanceConfigByAction provides a mock function for the type MockService
+func (_mock *MockService) UpdateMaintenanceConfigByAction(actionType string, config *model.MaintenanceConfig) error {
+	ret := _mock.Called(actionType, config)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateMaintenanceConfigByAction")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(string, *model.MaintenanceConfig) error); ok {
+		r0 = returnFunc(actionType, config)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockService_UpdateMaintenanceConfigByAction_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateMaintenanceConfigByAction'
+type MockService_UpdateMaintenanceConfigByAction_Call struct {
+	*mock.Call
+}
+
+// UpdateMaintenanceConfigByAction is a helper method to define mock.On call
+//   - actionType string
+//   - config *model.MaintenanceConfig
+func (_e *MockService_Expecter) UpdateMaintenanceConfigByAction(actionType interface{}, config interface{}) *MockService_UpdateMaintenanceConfigByAction_Call {
+	return &MockService_UpdateMaintenanceConfigByAction_Call{Call: _e.mock.On("UpdateMaintenanceConfigByAction", actionType, config)}
+}
+
+func (_c *MockService_UpdateMaintenanceConfigByAction_Call) Run(run func(actionType string, config *model.MaintenanceConfig)) *MockService_UpdateMaintenanceConfigByAction_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		var arg1 *model.MaintenanceConfig
+		if args[1] != nil {
+			arg1 = args[1].(*model.MaintenanceConfig)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockService_UpdateMaintenanceConfigByAction_Call) Return(err error) *MockService_UpdateMaintenanceConfigByAction_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockService_UpdateMaintenanceConfigByAction_Call) RunAndReturn(run func(actionType string, config *model.MaintenanceConfig) error) *MockService_UpdateMaintenanceConfigByAction_Call {
 	_c.Call.Return(run)
 	return _c
 }

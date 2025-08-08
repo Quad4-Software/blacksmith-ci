@@ -173,6 +173,7 @@ func TestTinyPod(t *testing.T) {
 			"namespace": "woodpecker",
 			"creationTimestamp": null,
 			"labels": {
+				"app.kubernetes.io/managed-by": "crow",
 				"step": "build-via-gradle"
 			}
 		},
@@ -254,6 +255,7 @@ func TestFullPod(t *testing.T) {
 			"creationTimestamp": null,
 			"labels": {
 				"app": "test",
+				"app.kubernetes.io/managed-by": "crow",
 				"part-of": "woodpecker-ci",
 				"step": "go-test"
 			},
@@ -550,6 +552,7 @@ func TestScratchPod(t *testing.T) {
 			"namespace": "woodpecker",
 			"creationTimestamp": null,
 			"labels": {
+				"app.kubernetes.io/managed-by": "crow",
 				"step": "curl-google"
 			}
 		},
@@ -596,6 +599,7 @@ func TestSecrets(t *testing.T) {
 			"namespace": "woodpecker",
 			"creationTimestamp": null,
 			"labels": {
+				"app.kubernetes.io/managed-by": "crow",
 				"step": "test-secrets"
 			}
 		},
@@ -713,7 +717,10 @@ func TestStepSecret(t *testing.T) {
 		"metadata": {
 			"name": "crow-01he8bebctabr3kgk0qj36d2me-0-step-secret",
 			"namespace": "woodpecker",
-			"creationTimestamp": null
+			"creationTimestamp": null,
+			"labels": {
+				"app.kubernetes.io/managed-by": "crow"
+			}
 		},
 		"type": "Opaque",
 		"stringData": {

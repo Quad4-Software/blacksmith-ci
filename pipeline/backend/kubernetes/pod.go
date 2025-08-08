@@ -138,6 +138,9 @@ func podLabels(step *types.Step, config *config, options BackendOptions) (map[st
 	var err error
 	labels := make(map[string]string)
 
+	// Add consistent labels for all Crow-managed resources
+	labels["app.kubernetes.io/managed-by"] = "crow"
+
 	if len(options.Labels) > 0 {
 		if config.PodLabelsAllowFromStep {
 			log.Trace().Msgf("using labels from the backend options: %v", options.Labels)

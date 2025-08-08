@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/rs/zerolog/log"
 
@@ -41,21 +42,106 @@ func GetMaintenanceSizeInfo() (beforeSize, afterSize, spaceSaved int64) {
 	return maintenanceSizeInfo.beforeSize, maintenanceSizeInfo.afterSize, maintenanceSizeInfo.spaceSaved
 }
 
-// MaintenanceConfigGet returns the maintenance configuration.
+// MaintenanceConfigGet returns the vacuum maintenance configuration with runtime flags.
 func (s storage) MaintenanceConfigGet() (*model.MaintenanceConfig, error) {
-	config := &model.MaintenanceConfig{}
+	// Get both vacuum and kubernetes configs
+	vacuumConfig := &model.MaintenanceConfig{}
+	hasVacuum, err := s.engine.Where("action_type = ?", "vacuum").Get(vacuumConfig)
+	if err != nil {
+		return nil, err
+	}
 
-	has, err := s.engine.Get(config)
+	k8sConfig := &model.MaintenanceConfig{}
+	hasK8s, err := s.engine.Where("action_type = ?", "kubernetes_cleanup").Get(k8sConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	// If neither exists, create defaults
+	if !hasVacuum && !hasK8s {
+		// Create default vacuum config
+		vacuumConfig = &model.MaintenanceConfig{
+			ActionType: "vacuum",
+			Enabled:    true,
+			Schedule:   "0 5 * * *", // 5 AM daily
+			Created:    time.Now().Unix(),
+			Updated:    time.Now().Unix(),
+		}
+		if _, err := s.engine.Insert(vacuumConfig); err != nil {
+			log.Error().Err(err).Msg("Failed to create default vacuum config")
+		}
+
+		// Create default kubernetes config
+		k8sConfig = &model.MaintenanceConfig{
+			ActionType: "kubernetes_cleanup",
+			Enabled:    false,
+			Schedule:   "0 5 * * *", // Daily at 5 AM
+			Created:    time.Now().Unix(),
+			Updated:    time.Now().Unix(),
+		}
+		if _, err := s.engine.Insert(k8sConfig); err != nil {
+			log.Error().Err(err).Msg("Failed to create default kubernetes config")
+		}
+	}
+
+	// Return vacuum config with runtime flags populated
+	combinedConfig := &model.MaintenanceConfig{
+		ID: 0, // Use ID 0 to indicate this is a combined config, not a specific action
+		// Vacuum settings (default)
+		Enabled:  true,
+		Schedule: "0 5 * * *",
+	}
+
+	// Override with actual vacuum config if it exists
+	if hasVacuum {
+		combinedConfig.Enabled = vacuumConfig.Enabled
+		combinedConfig.Schedule = vacuumConfig.Schedule
+		combinedConfig.Created = vacuumConfig.Created
+		combinedConfig.Updated = vacuumConfig.Updated
+	}
+
+	// Use the most recent update time from k8s config if it exists
+	if hasK8s && k8sConfig.Updated > combinedConfig.Updated {
+		combinedConfig.Updated = k8sConfig.Updated
+	}
+
+	log.Info().
+		Bool("vacuum_enabled", combinedConfig.Enabled).
+		Str("vacuum_schedule", combinedConfig.Schedule).
+		Msg("Store: Returning combined config")
+
+	return combinedConfig, nil
+}
+
+// MaintenanceConfigGetByActionType returns config for a specific action type.
+func (s storage) MaintenanceConfigGetByActionType(actionType string) (*model.MaintenanceConfig, error) {
+	config := &model.MaintenanceConfig{}
+	has, err := s.engine.Where("action_type = ?", actionType).Get(config)
 	if err != nil {
 		return nil, err
 	}
 
 	if !has {
-		// Return default configuration if none exists
-		return &model.MaintenanceConfig{
-			Enabled:  true,
-			Schedule: "0 5 * * *", // 5 AM daily
-		}, nil
+		// Create default config for this action type
+		defaultConfig := &model.MaintenanceConfig{
+			ActionType: actionType,
+			Created:    time.Now().Unix(),
+			Updated:    time.Now().Unix(),
+		}
+
+		switch actionType {
+		case "vacuum":
+			defaultConfig.Enabled = true
+			defaultConfig.Schedule = "0 5 * * *" // Daily at 5 AM
+		case "kubernetes_cleanup":
+			defaultConfig.Enabled = false
+			defaultConfig.Schedule = "0 5 * * *" // Daily at 5 AM
+		}
+
+		if _, err := s.engine.Insert(defaultConfig); err != nil {
+			return nil, err
+		}
+		return defaultConfig, nil
 	}
 
 	return config, nil
@@ -63,7 +149,12 @@ func (s storage) MaintenanceConfigGet() (*model.MaintenanceConfig, error) {
 
 // MaintenanceConfigUpdate updates or creates the maintenance configuration.
 func (s storage) MaintenanceConfigUpdate(config *model.MaintenanceConfig) error {
-	// Check if config exists
+	log.Info().
+		Bool("incoming_enabled", config.Enabled).
+		Str("incoming_schedule", config.Schedule).
+		Msg("Store: Updating maintenance config")
+
+	// Get existing config - there should only be one after merging
 	existing := &model.MaintenanceConfig{}
 	has, err := s.engine.Get(existing)
 	if err != nil {
@@ -71,16 +162,108 @@ func (s storage) MaintenanceConfigUpdate(config *model.MaintenanceConfig) error 
 	}
 
 	if has {
+		log.Info().Msg("Store: Found existing config")
+
 		// Update existing config
 		config.ID = existing.ID
 		config.Created = existing.Created
-		_, err = s.engine.ID(existing.ID).Update(config)
+		config.Updated = time.Now().Unix() // Set the updated timestamp
+
+		// Log what we're about to update
+		log.Info().
+			Int64("updating_id", existing.ID).
+			Bool("updating_enabled", config.Enabled).
+			Str("updating_schedule", config.Schedule).
+			Msg("Store: About to update config")
+
+		// Update only the vacuum-related columns
+		affected, err := s.engine.ID(existing.ID).Cols("enabled", "schedule", "updated").Update(config)
+
+		log.Info().
+			Int64("affected_rows", affected).
+			Err(err).
+			Msg("Store: Update completed")
+
+		// Verify the update by reading back
+		if err == nil {
+			verified := &model.MaintenanceConfig{}
+			if _, verifyErr := s.engine.ID(existing.ID).Get(verified); verifyErr == nil {
+				log.Info().
+					Bool("verified_enabled", verified.Enabled).
+					Str("verified_schedule", verified.Schedule).
+					Msg("Store: Verified updated config")
+			}
+		}
+
 		return err
 	}
 
+	log.Info().Msg("Store: Creating new config")
 	// Create new config
 	_, err = s.engine.Insert(config)
 	return err
+}
+
+// MaintenanceConfigUpdateByActionType updates config for a specific action type.
+func (s storage) MaintenanceConfigUpdateByActionType(actionType string, updates *model.MaintenanceConfig) error {
+	log.Info().
+		Str("action_type", actionType).
+		Bool("enabled", updates.Enabled).
+		Str("schedule", updates.Schedule).
+		Msg("Store: Updating config by action type")
+
+	// Get existing config for this action type
+	existing := &model.MaintenanceConfig{}
+	has, err := s.engine.Where("action_type = ?", actionType).Get(existing)
+	if err != nil {
+		return err
+	}
+
+	if has {
+		// Update existing config
+		existing.Enabled = updates.Enabled
+		existing.Schedule = updates.Schedule
+		existing.Updated = time.Now().Unix()
+
+		// Only update statistics if they were provided (non-zero values indicate stats update)
+		updateCols := []string{"enabled", "schedule", "updated"}
+		if updates.TotalRuns > 0 || !updates.LastRun.IsZero() {
+			// This is a statistics update
+			existing.TotalRuns = updates.TotalRuns
+			existing.SuccessfulRuns = updates.SuccessfulRuns
+			existing.LastRun = updates.LastRun
+			existing.LastRunSuccess = updates.LastRunSuccess
+			existing.LastRunDuration = updates.LastRunDuration
+			existing.LastRunError = updates.LastRunError
+			updateCols = append(updateCols, "total_runs", "successful_runs", "last_run", "last_run_success", "last_run_duration", "last_run_error")
+		}
+
+		affected, err := s.engine.ID(existing.ID).Cols(updateCols...).Update(existing)
+		log.Info().
+			Str("action_type", actionType).
+			Int64("affected_rows", affected).
+			Err(err).
+			Msg("Store: Updated existing config")
+
+		return err
+	} else {
+		// Create new config
+		newConfig := &model.MaintenanceConfig{
+			ActionType: actionType,
+			Enabled:    updates.Enabled,
+			Schedule:   updates.Schedule,
+			Created:    time.Now().Unix(),
+			Updated:    time.Now().Unix(),
+		}
+
+		_, err := s.engine.Insert(newConfig)
+		log.Info().
+			Str("action_type", actionType).
+			Err(err).
+			Msg("Store: Created new config")
+
+		return err
+	}
 }
 
 // MaintenanceStatsGet returns the maintenance statistics.

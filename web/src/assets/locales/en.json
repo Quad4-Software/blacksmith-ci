@@ -170,6 +170,7 @@
         "next_exec": "Next execution",
         "not_executed_yet": "Not executed yet",
         "run": "Run now",
+        "timezone_note": "Timezone: UTC",
         "branch": {
           "title": "Branch",
           "placeholder": "Branch (uses the default branch, if empty)"
@@ -182,7 +183,6 @@
           "title": "Schedule (UTC)",
           "placeholder": "Schedule"
         },
-        "timezone_note": "Timezone: UTC",
         "edit": "Edit cron",
         "delete": "Delete cron"
       },
@@ -445,11 +445,10 @@
       },
       "maintenance": {
         "maintenance": "Maintenance",
-        "desc": "Maintenance operations for database and temporary assets.",
+        "desc": "Maintenance operations for database and temporary assets",
         "enabled": "Enabled",
         "schedule": "Schedule",
         "schedule_placeholder": "0 5 * * * (daily at 5 AM)",
-        "timezone_note": "Timezone: UTC",
         "run_now": "Run Now",
         "status": "Status",
         "actions": "Actions",
@@ -463,12 +462,22 @@
         "never": "Never",
         "operations": {
           "vacuum_log_table": "Vacuum Log Table",
-          "vacuum_log_table_desc": "Reclaims space of deleted entries in the log_entries table"
+          "vacuum_log_table_desc": "Reclaims space of deleted entries in the log_entries table",
+          "kubernetes_cleanup": "Kubernetes Resource Cleanup",
+          "kubernetes_cleanup_desc": "Remove services, persistent volume claims, step and registry secrets left behind by non-properly terminated pipelines"
         },
         "notify_text_config_saved": "Maintenance configuration saved",
         "notify_text_config_error": "Failed to save maintenance configuration",
         "notify_text_run_started": "Manual maintenance started",
         "notify_text_run_error": "Failed to start manual maintenance",
+        "notify_text_k8s_cleanup_started": "Kubernetes cleanup started",
+        "notify_text_k8s_cleanup_error": "Failed to start Kubernetes cleanup",
+        "run_kubernetes_cleanup": "Run Kubernetes cleanup",
+        "k8s_cleanup_disabled": "Kubernetes cleanup is disabled. Set CROW_MAINTENANCE_KUBERNETES_CLEANUP_ENABLED=true to enable.",
+        "options": "Options",
+        "no_options": "No options",
+        "env_vars_set_tooltip": "Configuration is managed by environment variables and cannot be changed here",
+        "dry_run": "Dry run",
         "name": "Name",
         "status_column": "Status",
         "recent_operations": "Recent maintenance operations",

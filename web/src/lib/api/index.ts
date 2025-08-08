@@ -455,6 +455,18 @@ export default class CrowClient extends ApiClient {
     return this._put('/api/admin/maintenance/config', config) as Promise<MaintenanceConfig>;
   }
 
+  // Action-specific maintenance config methods
+  async getMaintenanceConfigByAction(action: 'vacuum' | 'kubernetes_cleanup'): Promise<MaintenanceConfig> {
+    return this._get(`/api/admin/maintenance/config/${action}`) as Promise<MaintenanceConfig>;
+  }
+
+  async updateMaintenanceConfigByAction(
+    action: 'vacuum' | 'kubernetes_cleanup',
+    config: Partial<MaintenanceConfig>,
+  ): Promise<MaintenanceConfig> {
+    return this._put(`/api/admin/maintenance/config/${action}`, config) as Promise<MaintenanceConfig>;
+  }
+
   async getMaintenanceStats(): Promise<MaintenanceStats> {
     return this._get('/api/admin/maintenance/stats') as Promise<MaintenanceStats>;
   }
@@ -464,8 +476,12 @@ export default class CrowClient extends ApiClient {
     return this._get(`/api/admin/maintenance/logs${query}`) as Promise<MaintenanceLog[]>;
   }
 
-  async runMaintenanceNow(job: string): Promise<{ message: string; job: string }> {
-    return this._post('/api/admin/maintenance/run', { job }) as Promise<{ message: string; job: string }>;
+  async runMaintenanceNow(job: string, dryRun?: boolean): Promise<{ message: string; job: string }> {
+    const payload: { job: string; dry_run?: boolean } = { job };
+    if (dryRun !== undefined) {
+      payload.dry_run = dryRun;
+    }
+    return this._post('/api/admin/maintenance/run', payload) as Promise<{ message: string; job: string }>;
   }
 
   async getMaintenanceOperationConfigs(): Promise<MaintenanceOperationConfig[]> {

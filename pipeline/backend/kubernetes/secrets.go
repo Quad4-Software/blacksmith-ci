@@ -255,6 +255,9 @@ func registrySecretLabels(step *types.Step) (map[string]string, error) {
 	var err error
 	labels := make(map[string]string)
 
+	// Add consistent labels for all Crow-managed resources
+	labels["app.kubernetes.io/managed-by"] = "crow"
+
 	if step.Type == types.StepTypeService {
 		labels[ServiceLabel], _ = serviceName(step)
 	}
@@ -320,6 +323,9 @@ func mkStepSecret(step *types.Step, config *config) (*v1.Secret, error) {
 		ObjectMeta: meta_v1.ObjectMeta{
 			Namespace: config.Namespace,
 			Name:      name,
+			Labels: map[string]string{
+				"app.kubernetes.io/managed-by": "crow",
+			},
 		},
 		Type:       v1.SecretTypeOpaque,
 		StringData: step.SecretMapping,

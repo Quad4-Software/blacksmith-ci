@@ -15,10 +15,21 @@
 // MaintenanceConfig represents the configuration for database maintenance operations
 export interface MaintenanceConfig {
   id: number;
+  action_type: string; // "vacuum" or "kubernetes_cleanup"
   enabled: boolean;
   schedule: string; // Cron format
+  // Action-specific statistics
+  total_runs: number;
+  successful_runs: number;
+  last_run: string; // ISO date string
+  last_run_success: boolean;
+  last_run_duration: number; // Duration in milliseconds
+  last_run_error: string;
   created: number;
   updated: number;
+  // Runtime flags (not persisted)
+  kubernetes_cleanup_available: boolean;
+  env_vars_set: boolean; // True if maintenance env vars are set
 }
 
 // MaintenanceOperationConfig represents the configuration for individual maintenance operations

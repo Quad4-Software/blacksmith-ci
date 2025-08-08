@@ -25,12 +25,32 @@ import (
 type MaintenanceService interface {
 	// RunMaintenance executes database maintenance operations
 	RunMaintenance(ctx context.Context) error
+	// RunKubernetesCleanup executes Kubernetes resource cleanup
+	RunKubernetesCleanup(ctx context.Context, dryRun bool) error
 	// GetMaintenanceConfig returns the current maintenance configuration
 	GetMaintenanceConfig() *model.MaintenanceConfig
 	// UpdateMaintenanceConfig updates the maintenance configuration
 	UpdateMaintenanceConfig(config *model.MaintenanceConfig) error
+	// GetMaintenanceConfigByAction returns config for a specific action type
+	GetMaintenanceConfigByAction(actionType string) (*model.MaintenanceConfig, error)
+	// UpdateMaintenanceConfigByAction updates config for a specific action type
+	UpdateMaintenanceConfigByAction(actionType string, config *model.MaintenanceConfig) error
+	// IsKubernetesCleanupAvailable returns whether Kubernetes cleanup is available
+	IsKubernetesCleanupAvailable() bool
 	// GetMaintenanceStats returns maintenance statistics
 	GetMaintenanceStats() (*model.MaintenanceStats, error)
+	// SetKubernetesCleanupFunc sets the function to use for Kubernetes cleanup
+	SetKubernetesCleanupFunc(f func(ctx context.Context, dryRun bool) error)
+	// SetKubernetesCleanupEnabled sets whether Kubernetes cleanup is enabled for execution
+	SetKubernetesCleanupEnabled(enabled bool)
+	// SetVacuumEnvVarsConfigured sets whether vacuum-specific environment variables are overriding configuration
+	SetVacuumEnvVarsConfigured(vacuumEnvVarsSet bool)
+	// IsVacuumEnvVarsConfigured returns whether vacuum-specific environment variables are set
+	IsVacuumEnvVarsConfigured() bool
+	// SetKubernetesEnvVarsConfigured sets whether Kubernetes-specific environment variables are set
+	SetKubernetesEnvVarsConfigured(k8sEnvVarsSet bool)
+	// IsKubernetesEnvVarsConfigured returns whether Kubernetes-specific environment variables are set
+	IsKubernetesEnvVarsConfigured() bool
 }
 
 // MaintenanceScheduler defines the interface for maintenance scheduling.

@@ -643,6 +643,21 @@ var flags = append([]cli.Flag{
 		Usage:   "Enable automatic database log vacuum operations",
 		Value:   true,
 	},
+	&cli.BoolFlag{
+		Sources: cli.EnvVars("CROW_MAINTENANCE_KUBERNETES_CLEANUP_ENABLED"),
+		Name:    "maintenance-kubernetes-cleanup-enabled",
+		Usage:   "Enable Kubernetes resource cleanup (only set this if using Kubernetes backend)",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_MAINTENANCE_KUBERNETES_CLEANUP_AGE"),
+		Name:    "maintenance-kubernetes-cleanup-age",
+		Usage:   "Age threshold for stale Kubernetes resources (e.g., 168h for 1 week)",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_MAINTENANCE_KUBERNETES_CLEANUP_NAMESPACES"),
+		Name:    "maintenance-kubernetes-cleanup-namespaces",
+		Usage:   "Comma-separated list of namespaces to clean up (if empty, uses current namespace only)",
+	},
 }, logger.GlobalLoggerFlags...)
 
 // If crow is running inside a container the default value for
