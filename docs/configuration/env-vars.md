@@ -255,6 +255,14 @@
 
 ---
 
+### BACKEND_K8S_PRIORITY_CLASS
+
+- Name: `CROW_BACKEND_K8S_PRIORITY_CLASS`
+- Description: Which [Kubernetes PriorityClass](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/priority-class-v1/) to assign to created job pods.
+- Default: none, which will use the default priority class configured in Kubernetes
+
+---
+
 ### BACKEND_K8S_PULL_SECRET_NAMES
 
 - Name: `CROW_BACKEND_K8S_PULL_SECRET_NAMES`
