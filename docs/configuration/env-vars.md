@@ -264,6 +264,23 @@
 
 ---
 
+### BACKEND_K8S_POD_TOLERATIONS
+
+- Name: `CROW_BACKEND_K8S_POD_TOLERATIONS`
+- Description: Additional tolerations to apply to worker Pods.
+  Must be a YAML object, e.g. `[{"effect":"NoSchedule","key":"jobs","operator":"Exists"}]`.
+- Default: none
+
+---
+
+### BACKEND_K8S_POD_TOLERATIONS_ALLOW_FROM_STEP
+
+- Name: `CROW_BACKEND_K8S_POD_TOLERATIONS_ALLOW_FROM_STEP`
+- Description: Determines if Pod tolerations can be defined from a step's backend options.
+- Default: `true`
+
+---
+
 ### BACKEND_K8S_PRIORITY_CLASS
 
 - Name: `CROW_BACKEND_K8S_PRIORITY_CLASS`
