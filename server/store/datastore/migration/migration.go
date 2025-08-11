@@ -63,6 +63,7 @@ var migrationTasks = []*xormigrate.Migration{
 	&addPubSubMessages,
 	&addCacheEntries,
 	&addKubernetesMaintenanceActions,
+	&addDryRunToMaintenanceConfig,
 }
 
 var allBeans = []any{

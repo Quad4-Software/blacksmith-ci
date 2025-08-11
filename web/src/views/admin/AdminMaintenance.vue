@@ -513,6 +513,8 @@ const loadData = async (reset = false) => {
       kubernetesCleanupConfig.value.total_runs = k8sConfigData.total_runs || 0;
       kubernetesCleanupConfig.value.last_run = k8sConfigData.last_run || '';
 
+      k8sCleanupDryRun.value = k8sConfigData.dry_run || false;
+
       // Set kubernetes_cleanup_available in global config
       config.value.kubernetes_cleanup_available = k8sConfigData.kubernetes_cleanup_available || false;
 
@@ -750,10 +752,12 @@ const saveK8sConfig = async (silent = false) => {
     // Track what's changing
     const originalEnabled = kubernetesCleanupConfig.value.enabled;
     const originalSchedule = kubernetesCleanupConfig.value.schedule;
+    const originalDryRun = k8sCleanupDryRun.value;
 
     const updatedConfig = await apiClient.updateMaintenanceConfigByAction('kubernetes_cleanup', {
       enabled: kubernetesCleanupConfig.value.enabled,
       schedule: kubernetesCleanupConfig.value.schedule,
+      dry_run: k8sCleanupDryRun.value,
     });
 
     // Update local config with server response
@@ -762,6 +766,7 @@ const saveK8sConfig = async (silent = false) => {
     kubernetesCleanupConfig.value.id = updatedConfig.id;
     kubernetesCleanupConfig.value.created = updatedConfig.created;
     kubernetesCleanupConfig.value.updated = updatedConfig.updated;
+    k8sCleanupDryRun.value = updatedConfig.dry_run || false;
 
     config.value.kubernetes_cleanup_available = updatedConfig.kubernetes_cleanup_available || false;
 
@@ -771,6 +776,9 @@ const saveK8sConfig = async (silent = false) => {
     }
     if (originalSchedule !== updatedConfig.schedule) {
       changes.push(`schedule: ${originalSchedule} → ${updatedConfig.schedule}`);
+    }
+    if (originalDryRun !== updatedConfig.dry_run) {
+      changes.push(`dry_run: ${originalDryRun} → ${updatedConfig.dry_run}`);
     }
 
     if (changes.length > 0) {

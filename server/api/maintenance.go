@@ -176,6 +176,7 @@ func UpdateMaintenanceConfigByAction(c *gin.Context) {
 		Str("action", actionType).
 		Bool("enabled", config.Enabled).
 		Str("schedule", config.Schedule).
+		Bool("dry_run", config.DryRun).
 		Msg("Updating maintenance config by action")
 
 	if err := server.Config.Services.MaintenanceService.UpdateMaintenanceConfigByAction(actionType, &config); err != nil {

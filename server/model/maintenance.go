@@ -22,6 +22,7 @@ type MaintenanceConfig struct {
 	ActionType string `json:"action_type" xorm:"'action_type' unique"` // "vacuum" or "kubernetes_cleanup"
 	Enabled    bool   `json:"enabled"  xorm:"'enabled'"`
 	Schedule   string `json:"schedule" xorm:"'schedule'"` // Cron format: "0 5 * * *" for 5 AM daily
+	DryRun     bool   `json:"dry_run" xorm:"'dry_run' default(false)"`
 	// Action-specific statistics
 	TotalRuns       int64     `json:"total_runs" xorm:"'total_runs' default(0)"`
 	SuccessfulRuns  int64     `json:"successful_runs" xorm:"'successful_runs' default(0)"`

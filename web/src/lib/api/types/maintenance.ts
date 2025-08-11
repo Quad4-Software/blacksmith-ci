@@ -18,6 +18,7 @@ export interface MaintenanceConfig {
   action_type: string; // "vacuum" or "kubernetes_cleanup"
   enabled: boolean;
   schedule: string; // Cron format
+  dry_run?: boolean;
   // Action-specific statistics
   total_runs: number;
   successful_runs: number;

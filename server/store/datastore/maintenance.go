@@ -76,6 +76,7 @@ func (s storage) MaintenanceConfigGet() (*model.MaintenanceConfig, error) {
 			ActionType: "kubernetes_cleanup",
 			Enabled:    false,
 			Schedule:   "0 5 * * *", // Daily at 5 AM
+			DryRun:     false,
 			Created:    time.Now().Unix(),
 			Updated:    time.Now().Unix(),
 		}
@@ -136,6 +137,7 @@ func (s storage) MaintenanceConfigGetByActionType(actionType string) (*model.Mai
 		case "kubernetes_cleanup":
 			defaultConfig.Enabled = false
 			defaultConfig.Schedule = "0 5 * * *" // Daily at 5 AM
+			defaultConfig.DryRun = false
 		}
 
 		if _, err := s.engine.Insert(defaultConfig); err != nil {
@@ -223,10 +225,11 @@ func (s storage) MaintenanceConfigUpdateByActionType(actionType string, updates 
 		// Update existing config
 		existing.Enabled = updates.Enabled
 		existing.Schedule = updates.Schedule
+		existing.DryRun = updates.DryRun
 		existing.Updated = time.Now().Unix()
 
 		// Only update statistics if they were provided (non-zero values indicate stats update)
-		updateCols := []string{"enabled", "schedule", "updated"}
+		updateCols := []string{"enabled", "schedule", "dry_run", "updated"}
 		if updates.TotalRuns > 0 || !updates.LastRun.IsZero() {
 			// This is a statistics update
 			existing.TotalRuns = updates.TotalRuns
@@ -252,6 +255,7 @@ func (s storage) MaintenanceConfigUpdateByActionType(actionType string, updates 
 			ActionType: actionType,
 			Enabled:    updates.Enabled,
 			Schedule:   updates.Schedule,
+			DryRun:     updates.DryRun,
 			Created:    time.Now().Unix(),
 			Updated:    time.Now().Unix(),
 		}
