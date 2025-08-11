@@ -72,6 +72,7 @@ var Config = struct {
 		AuthenticatePublicRepos             bool
 		DefaultAllowPullRequests            bool
 		DefaultCancelPreviousPipelineEvents []model.WebhookEvent
+		DefaultApprovalMode                 model.ApprovalMode
 		DefaultWorkflowLabels               map[string]string
 		DefaultClonePlugin                  string
 		TrustedClonePlugins                 []string

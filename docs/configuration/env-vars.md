@@ -21,8 +21,17 @@
 ### DEFAULT_ALLOW_PULL_REQUESTS
 
 - Name: `CROW_DEFAULT_ALLOW_PULL_REQUESTS`
+- Description: The default setting for the approval mode on a repo.
+  Possible values: `none`, `forks`, `pull_requests` or `all_events`.
+- Default: `forks`
+
+---
+
+### DEFAULT_APPROVAL_MODE
+
+- Name: `CROW_DEFAULT_APPROVAL_MODE`
 - Description: The default value for the 'Approval requirements' section of new repos.
-- Default: `default-allow-pull-requests`
+- Default: `default-approval-mode`
 
 ---
 
