@@ -63,6 +63,12 @@
       :to="{ name: 'user-agents' }"
       :title="$t('admin.settings.agents.agents')"
     />
+    <Tab
+      icon="agent"
+      icon-size="1rem"
+      :to="{ name: 'user-global-agents' }"
+      :title="`${$t('admin.settings.agents.agents')} (Global)`"
+    />
     <router-view />
   </Scaffold>
 </template>

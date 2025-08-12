@@ -320,6 +320,12 @@ const routes: RouteRecordRaw[] = [
         props: true,
       },
       {
+        path: 'global-agents',
+        name: 'user-global-agents',
+        component: (): Component => import('~/views/user/GlobalAgents.vue'),
+        props: true,
+      },
+      {
         path: 'info',
         name: 'user-info',
         redirect: { name: 'user' },

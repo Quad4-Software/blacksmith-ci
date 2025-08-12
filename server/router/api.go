@@ -227,13 +227,15 @@ func apiRoutes(e *gin.RouterGroup) {
 
 		agentBase := apiBase.Group("/agents")
 		{
-			agentBase.Use(session.MustAdmin())
-			agentBase.GET("", api.GetAgents)
-			agentBase.POST("", api.PostAgent)
-			agentBase.GET("/:agent_id", api.GetAgent)
-			agentBase.GET("/:agent_id/tasks", api.GetAgentTasks)
-			agentBase.PATCH("/:agent_id", api.PatchAgent)
-			agentBase.DELETE("/:agent_id", api.DeleteAgent)
+			// Allow all authenticated users to view agents
+			agentBase.GET("", session.MustUser(), api.GetAgents)
+			agentBase.GET("/:agent_id", session.MustUser(), api.GetAgent)
+			agentBase.GET("/:agent_id/tasks", session.MustUser(), api.GetAgentTasks)
+
+			// Require admin privileges for agent modifications
+			agentBase.POST("", session.MustAdmin(), api.PostAgent)
+			agentBase.PATCH("/:agent_id", session.MustAdmin(), api.PatchAgent)
+			agentBase.DELETE("/:agent_id", session.MustAdmin(), api.DeleteAgent)
 		}
 
 		apiBase.GET("/forges", api.GetForges)
