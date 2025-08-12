@@ -10,12 +10,55 @@
       <Button v-else :text="$t('admin.settings.users.add')" start-icon="plus" @click="showAddUser" />
     </template>
     <div v-if="!selectedUser" class="space-y-4 text-wp-text-100">
+      <!-- Filter controls -->
+      <div v-if="users && users.length > 0" class="mb-4 space-y-2">
+        <div class="flex flex-wrap gap-2">
+          <!-- Search input -->
+          <div class="flex-1 min-w-[200px]">
+            <TextField
+              v-model="searchQuery"
+              :placeholder="$t('admin.settings.users.search')"
+              type="text"
+              class="h-10 shadow-xs"
+            />
+          </div>
+
+          <!-- Admin filter -->
+          <div class="min-w-[150px]">
+            <SelectField
+              v-model="adminFilter"
+              :placeholder="$t('admin.settings.users.filter_admin')"
+              :options="adminOptions"
+              class="h-10"
+            />
+          </div>
+
+          <!-- Clear filters button -->
+          <Button
+            v-if="hasActiveFilters"
+            :text="$t('admin.settings.users.clear_filters')"
+            color="gray"
+            @click="clearFilters"
+          />
+        </div>
+      </div>
+
       <ListItem
-        v-for="user in users"
+        v-for="user in filteredUsers"
         :key="user.id"
         class="items-center gap-2 bg-wp-background-200! dark:bg-wp-background-100!"
       >
         <img v-if="user.avatar_url" class="h-6 rounded-md" :src="user.avatar_url" /> <span>{{ user.login }}</span>
+        <!-- Forge profile link with local icon -->
+        <a
+          v-if="primaryForge && user.login"
+          :href="getUserForgeUrl(user)"
+          :title="`View ${user.login} on ${primaryForge.url}`"
+          target="_blank"
+          class="inline-flex items-center justify-center h-6 w-6 hover:opacity-80 transition-opacity"
+        >
+          <Icon :name="getForgeIconName(primaryForge)" class="h-4 w-4 text-wp-text-100" />
+        </a>
         <Badge
           v-if="user.admin"
           class="md:display-unset ml-auto hidden"
@@ -36,6 +79,9 @@
           @click="deleteUser(user)"
         />
       </ListItem>
+      <div v-if="filteredUsers.length === 0 && users && users.length > 0" class="ml-2">
+        {{ $t('admin.settings.users.no_match') }}
+      </div>
       <div v-if="users?.length === 0" class="ml-2">{{ $t('admin.settings.users.none') }}</div>
     </div>
 
@@ -76,15 +122,17 @@
 
 <script lang="ts" setup>
 import { cloneDeep } from 'lodash';
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Badge from '~/components/atomic/Badge.vue';
 import Button from '~/components/atomic/Button.vue';
+import Icon from '~/components/atomic/Icon.vue';
 import IconButton from '~/components/atomic/IconButton.vue';
 import ListItem from '~/components/atomic/ListItem.vue';
 import Checkbox from '~/components/form/Checkbox.vue';
 import InputField from '~/components/form/InputField.vue';
+import SelectField from '~/components/form/SelectField.vue';
 import TextField from '~/components/form/TextField.vue';
 import Settings from '~/components/layout/Settings.vue';
 import useApiClient from '~/compositions/useApiClient';
@@ -92,11 +140,17 @@ import { useAsyncAction } from '~/compositions/useAsyncAction';
 import useNotifications from '~/compositions/useNotifications';
 import { usePagination } from '~/compositions/usePaginate';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
-import type { User } from '~/lib/api/types';
+import type { User, Forge } from '~/lib/api/types';
+import type { SelectOption } from '~/components/form/form.types';
+import type { IconNames } from '~/components/atomic/Icon.vue';
 
 const apiClient = useApiClient();
 const notifications = useNotifications();
 const { t } = useI18n();
+
+// Load forges for forge URL construction
+const forges = ref<Forge[]>([]);
+const primaryForge = computed(() => forges.value[0] || null);
 
 const selectedUser = ref<Partial<User>>();
 const isEditingUser = computed(() => !!selectedUser.value?.id);
@@ -106,6 +160,98 @@ async function loadUsers(page: number): Promise<User[] | null> {
 }
 
 const { resetPage, data: users } = usePagination(loadUsers, () => !selectedUser.value);
+
+// Load forges on component mount
+onMounted(async () => {
+  try {
+    forges.value = (await apiClient.getForges()) ?? [];
+    // Note: Skip fetchFaviconFromHead due to CORS issues, rely on fallback extensions
+  } catch (error) {
+    console.warn('Failed to load forges:', error);
+  }
+});
+
+// Map forge types to local icon names
+function getForgeIconName(forge: Forge): IconNames {
+  // Handle special cases where forge URL might indicate specific forge instances
+  if (forge.url.toLowerCase().includes('codeberg')) {
+    return 'codeberg';
+  }
+  if (forge.url.toLowerCase().includes('codefloe')) {
+    return 'codefloe';
+  }
+
+  // Map standard forge types to icon names
+  const typeToIcon: Record<string, IconNames> = {
+    github: 'github',
+    gitlab: 'gitlab',
+    gitea: 'gitea',
+    forgejo: 'forgejo',
+    bitbucket: 'bitbucket',
+    'bitbucket-dc': 'bitbucket',
+    addon: 'repo', // fallback for unknown types
+  };
+
+  return typeToIcon[forge.type] || 'repo';
+}
+
+function getUserForgeUrl(user: User): string {
+  if (!primaryForge.value?.url || !user.login) return '';
+  try {
+    const baseUrl = primaryForge.value.url.endsWith('/') ? primaryForge.value.url.slice(0, -1) : primaryForge.value.url;
+    return `${baseUrl}/${user.login}`;
+  } catch {
+    return '';
+  }
+}
+
+// Filter state
+const searchQuery = ref('');
+const adminFilter = ref('');
+
+// Filter options
+const adminOptions = computed<SelectOption[]>(() => [
+  { value: '', text: t('admin.settings.users.filter_admin') },
+  { value: 'admin', text: 'Admin' },
+  { value: 'user', text: 'User' },
+]);
+
+// Check if any filters are active
+const hasActiveFilters = computed(() => {
+  return searchQuery.value !== '' || adminFilter.value !== '';
+});
+
+// Clear all filters
+function clearFilters() {
+  searchQuery.value = '';
+  adminFilter.value = '';
+}
+
+// Filtered users based on all filters
+const filteredUsers = computed(() => {
+  if (!users.value) return [];
+
+  return users.value.filter((user) => {
+    // Admin filter
+    if (adminFilter.value) {
+      if (adminFilter.value === 'admin' && !user.admin) return false;
+      if (adminFilter.value === 'user' && user.admin) return false;
+    }
+
+    // Search query - search in login and email
+    if (searchQuery.value) {
+      const query = searchQuery.value.toLowerCase();
+      const loginMatch = user.login?.toLowerCase().includes(query) || false;
+      const emailMatch = user.email?.toLowerCase().includes(query) || false;
+
+      if (!loginMatch && !emailMatch) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+});
 
 const { doSubmit: saveUser, isLoading: isSaving } = useAsyncAction(async () => {
   if (!selectedUser.value) {

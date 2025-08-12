@@ -5,7 +5,19 @@
     class="flex cursor-pointer flex-col overflow-hidden rounded-md border border-wp-background-400 bg-wp-background-100 p-3 shadow-xs hover:bg-wp-background-300 hover:shadow-xs dark:bg-wp-background-200 dark:hover:bg-wp-background-300"
   >
     <div class="grid grid-cols-[auto_1fr] items-center gap-y-4">
-      <div class="text-lg text-wp-text-100">{{ `${repo.owner} / ${repo.name}` }}</div>
+      <div class="flex items-center gap-2 text-lg text-wp-text-100">
+        <span>{{ `${repo.owner} / ${repo.name}` }}</span>
+        <!-- Forge profile link with local icon -->
+        <a
+          v-if="forge && repo.forge_url"
+          :href="repo.forge_url"
+          :title="`View ${repo.owner}/${repo.name} on ${getForgeUrl(forge)}`"
+          target="_blank"
+          class="inline-flex items-center justify-center h-6 w-6 hover:opacity-80 transition-opacity"
+        >
+          <Icon :name="getForgeIconName(forge)" class="h-4 w-4 text-wp-text-100" />
+        </a>
+      </div>
 
       <div class="ml-auto text-wp-text-100">
         <div
@@ -43,17 +55,67 @@
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 
 import Icon from '~/components/atomic/Icon.vue';
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
+import useApiClient from '~/compositions/useApiClient';
 import usePipeline from '~/compositions/usePipeline';
-import type { Repo } from '~/lib/api/types';
+import type { Repo, Forge } from '~/lib/api/types';
 import { RepoVisibility } from '~/lib/api/types';
+import type { IconNames } from '~/components/atomic/Icon.vue';
 
 const props = defineProps<{
   repo: Repo;
 }>();
+
+const apiClient = useApiClient();
+
+// Load forges for favicon URLs
+const forges = ref<Forge[]>([]);
+const forge = computed(() => forges.value.find((f) => f.id === props.repo.forge_id) || null);
+
+// Map forge types to local icon names
+function getForgeIconName(forge: Forge): IconNames {
+  // Handle special cases where forge URL might indicate specific forge instances
+  if (forge.url.toLowerCase().includes('codeberg')) {
+    return 'codeberg';
+  }
+  if (forge.url.toLowerCase().includes('codefloe')) {
+    return 'codefloe';
+  }
+
+  // Map standard forge types to icon names
+  const typeToIcon: Record<string, IconNames> = {
+    github: 'github',
+    gitlab: 'gitlab',
+    gitea: 'gitea',
+    forgejo: 'forgejo',
+    bitbucket: 'bitbucket',
+    'bitbucket-dc': 'bitbucket',
+    addon: 'repo', // fallback for unknown types
+  };
+
+  return typeToIcon[forge.type] || 'repo';
+}
+
+function getForgeUrl(forge: Forge): string {
+  try {
+    const url = new URL(forge.url);
+    return url.hostname;
+  } catch {
+    return forge.url;
+  }
+}
+
+// Load forges on component mount
+onMounted(async () => {
+  try {
+    forges.value = (await apiClient.getForges()) ?? [];
+  } catch (error) {
+    console.warn('Failed to load forges:', error);
+  }
+});
 
 const lastPipeline = computed(() => props.repo.last_pipeline);
 const { startDate, shortMessage } = usePipeline(lastPipeline);

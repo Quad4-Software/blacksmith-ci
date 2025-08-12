@@ -12,7 +12,7 @@
   <SvgIcon v-else-if="name === 'commit'" :path="mdiSourceCommit" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'back'" :path="mdiArrowLeft" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'next'" :path="mdiArrowRight" :size="size || '1.3rem'" />
-  <SvgIcon v-else-if="name === 'github'" :path="mdiGithub" :size="size || '1.3rem'" />
+  <GithubIcon v-else-if="name === 'github'" :style="{ width: size || '1.3rem', height: size || '1.3rem' }" />
   <SvgIcon v-else-if="name === 'repo'" :path="mdiGit" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'settings'" :path="mdiCog" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'settings-outline'" :path="mdiCogOutline" :size="size || '1.3rem'" />
@@ -69,10 +69,15 @@
   <SvgIcon v-else-if="name === 'docker'" :path="mdiDocker" :size="size || '1rem'" />
   <SvgIcon v-else-if="name === 'visibility-private'" :path="mdiLockOutline" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'visibility-internal'" :path="mdiLockOpenOutline" :size="size || '1.3rem'" />
-  <SvgIcon v-else-if="name === 'forgejo'" :path="siForgejo.path" :size="size || '1.3rem'" />
-  <SvgIcon v-else-if="name === 'gitea'" :path="siGitea.path" :size="size || '1.3rem'" />
-  <SvgIcon v-else-if="name === 'gitlab'" :path="mdiGitlab" :size="size || '1.3rem'" />
-  <SvgIcon v-else-if="name === 'bitbucket' || name === 'bitbucket-dc'" :path="mdiBitbucket" :size="size || '1.3rem'" />
+  <ForgejoIcon v-else-if="name === 'forgejo'" :style="{ width: size || '1.3rem', height: size || '1.3rem' }" />
+  <GiteaIcon v-else-if="name === 'gitea'" :style="{ width: size || '1.3rem', height: size || '1.3rem' }" />
+  <CodebergIcon v-else-if="name === 'codeberg'" :style="{ width: size || '1.3rem', height: size || '1.3rem' }" />
+  <CodefloeIcon v-else-if="name === 'codefloe'" :style="{ width: size || '1.3rem', height: size || '1.3rem' }" />
+  <GitlabIcon v-else-if="name === 'gitlab'" :style="{ width: size || '1.3rem', height: size || '1.3rem' }" />
+  <BitbucketIcon
+    v-else-if="name === 'bitbucket' || name === 'bitbucket-dc'"
+    :style="{ width: size || '1.3rem', height: size || '1.3rem' }"
+  />
   <SvgIcon v-else-if="name === 'mdi-wind-power-outline'" :path="mdiWindPowerOutline" :size="size || '1.3rem'" />
   <Icon
     v-else-if="name === 'graph'"
@@ -111,7 +116,6 @@ import {
   mdiAlertCircle,
   mdiArrowLeft,
   mdiArrowRight,
-  mdiBitbucket,
   mdiCheck,
   mdiBugOutline,
   mdiCalendarClockOutline,
@@ -134,8 +138,6 @@ import {
   mdiFolderOutline,
   mdiFormatListBulleted,
   mdiGit,
-  mdiGithub,
-  mdiGitlab,
   mdiInformationOutline,
   mdiInformationSlabCircleOutline,
   mdiLockOpenOutline,
@@ -167,11 +169,16 @@ import {
   mdiPlayCircleOutline,
   mdiWindPowerOutline,
 } from '@mdi/js';
-import { siForgejo, siGitea } from 'simple-icons';
-
 import { Icon } from '@iconify/vue';
 import SvgIcon from './SvgIcon.vue';
 import PipelineProgressSpinner from '~/components/repo/pipeline/PipelineProgressSpinner.vue';
+import CodefloeIcon from '~/assets/codefloe.svg?component';
+import GithubIcon from '~/assets/github.svg?component';
+import GitlabIcon from '~/assets/gitlab.svg?component';
+import BitbucketIcon from '~/assets/bitbucket.svg?component';
+import GiteaIcon from '~/assets/gitea.svg?component';
+import ForgejoIcon from '~/assets/forgejo.svg?component';
+import CodebergIcon from '~/assets/codeberg.svg?component';
 
 export type IconNames =
   | 'duration'
@@ -206,6 +213,8 @@ export type IconNames =
   | 'bitbucket'
   | 'bitbucket-dc'
   | 'forgejo'
+  | 'codeberg'
+  | 'codefloe'
   | 'question'
   | 'list'
   | 'loading'

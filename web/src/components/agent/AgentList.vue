@@ -4,7 +4,12 @@
     <div class="flex flex-wrap gap-2">
       <!-- Search input -->
       <div class="flex-1 min-w-[200px]">
-        <TextField v-model="searchQuery" :placeholder="$t('admin.settings.agents.search')" type="text" />
+        <TextField
+          v-model="searchQuery"
+          :placeholder="$t('admin.settings.agents.search')"
+          type="text"
+          class="shadow-xs"
+        />
       </div>
 
       <!-- Type filter -->

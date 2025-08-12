@@ -512,7 +512,11 @@
           "placeholder": "User is an admin"
         },
         "delete_user": "Delete user",
-        "edit_user": "Edit user"
+        "edit_user": "Edit user",
+        "search": "Search users...",
+        "filter_admin": "All users",
+        "clear_filters": "Clear filters",
+        "no_match": "No users match your filters"
       },
       "orgs": {
         "orgs": "Orgs",
@@ -522,7 +526,10 @@
         "delete_org": "Delete organization",
         "notify_text_deleted": "Organization deleted",
         "delete_confirm": "Do you really want to delete this organization? This will also delete all repositories owned by this organization.",
-        "view": "View organization"
+        "view": "View organization",
+        "search": "Search organizations...",
+        "clear_filters": "Clear filters",
+        "no_match": "No organizations match your filters"
       },
       "repos": {
         "repos": "Repos",
@@ -531,6 +538,9 @@
         "view": "View repository",
         "settings": "Repository settings",
         "disabled": "Disabled",
+        "search": "Search repositories...",
+        "clear_filters": "Clear filters",
+        "no_match": "No repositories match your filters",
         "repair": {
           "repair": "Repair all",
           "notify_text_success": "Repositories repaired"
