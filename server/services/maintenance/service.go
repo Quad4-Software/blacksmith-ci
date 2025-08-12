@@ -114,6 +114,9 @@ func (s *service) IsKubernetesEnvVarsConfigured() bool {
 
 // RunMaintenance executes database maintenance operations based on the database type.
 func (s *service) RunMaintenance(ctx context.Context) error {
+	// Update LastRun immediately to prevent duplicate runs
+	s.updateActionLastRun("vacuum")
+
 	start := time.Now()
 	log.Info().Msg("Starting database maintenance operations")
 
@@ -189,6 +192,23 @@ func (s *service) RunMaintenance(ctx context.Context) error {
 
 	log.Info().Str("driver", driverName).Dur("duration", duration).Msg("Database maintenance completed successfully")
 	return nil
+}
+
+// updateActionLastRun updates just the LastRun timestamp for a maintenance action.
+// This is called immediately when starting to prevent duplicate runs.
+func (s *service) updateActionLastRun(actionType string) {
+	config, err := s.store.MaintenanceConfigGetByActionType(actionType)
+	if err != nil {
+		log.Error().Err(err).Str("action", actionType).Msg("Failed to get maintenance config for last run update")
+		return
+	}
+
+	config.LastRun = time.Now()
+	config.Updated = time.Now().Unix()
+
+	if err := s.store.MaintenanceConfigUpdateByActionType(actionType, config); err != nil {
+		log.Error().Err(err).Str("action", actionType).Msg("Failed to update maintenance action last run")
+	}
 }
 
 // updateActionStats updates statistics for a specific maintenance action.
@@ -286,6 +306,11 @@ func (s *service) RunKubernetesCleanup(ctx context.Context, dryRun bool) error {
 	if s.kubernetesCleanupFunc == nil {
 		log.Info().Msg("Kubernetes cleanup function not configured, skipping")
 		return nil
+	}
+
+	// Update LastRun immediately to prevent duplicate runs (unless in dry-run mode)
+	if !dryRun {
+		s.updateActionLastRun("kubernetes_cleanup")
 	}
 
 	start := time.Now()

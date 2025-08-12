@@ -16,6 +16,7 @@ package maintenance
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -25,22 +26,33 @@ import (
 	"codeberg.org/crowci/crow/v4/server/store"
 )
 
+const (
+	maintenanceLockTTL = 10 * time.Minute
+)
+
+// LockService defines the interface for distributed locking.
+type LockService interface {
+	AcquireLock(ctx context.Context, lockName string, ttl time.Duration) (context.Context, context.CancelFunc, error)
+}
+
 // Scheduler manages database maintenance scheduling.
 type Scheduler struct {
-	service Service
-	store   store.Store
-	ctx     context.Context
-	cancel  context.CancelCauseFunc
-	ticker  *time.Ticker
-	done    chan struct{}
+	service     Service
+	store       store.Store
+	lockService LockService
+	ctx         context.Context
+	cancel      context.CancelCauseFunc
+	ticker      *time.Ticker
+	done        chan struct{}
 }
 
 // NewScheduler creates a new maintenance scheduler.
-func NewScheduler(service Service, store store.Store) *Scheduler {
+func NewScheduler(service Service, store store.Store, lockService LockService) *Scheduler {
 	return &Scheduler{
-		service: service,
-		store:   store,
-		done:    make(chan struct{}),
+		service:     service,
+		store:       store,
+		lockService: lockService,
+		done:        make(chan struct{}),
 	}
 }
 
@@ -89,6 +101,8 @@ func (s *Scheduler) run() {
 // checkMaintenance checks if maintenance should be run.
 func (s *Scheduler) checkMaintenance() {
 	now := time.Now().UTC()
+
+	log.Debug().Time("check_time", now).Msg("Scheduler: Checking maintenance actions")
 
 	s.checkAction("vacuum", now)
 
@@ -172,20 +186,9 @@ func (s *Scheduler) checkAction(actionType string, now time.Time) {
 				Time("next_exec", nextExec).
 				Time("last_run", lastRun).
 				Dur("time_since_last_run", timeSinceLastRun).
-				Msg("Running scheduled maintenance action")
+				Msg("Time to run scheduled maintenance action")
 
-			switch actionType {
-			case "vacuum":
-				if err := s.service.RunMaintenance(s.ctx); err != nil {
-					log.Error().Err(err).Msg("Scheduled vacuum maintenance failed")
-				}
-			case "kubernetes_cleanup":
-				if err := s.service.RunKubernetesCleanup(s.ctx, false); err != nil {
-					log.Error().Err(err).Msg("Scheduled kubernetes cleanup failed")
-				}
-			default:
-				log.Warn().Str("action", actionType).Msg("Unknown maintenance action type")
-			}
+			s.runActionWithLock(actionType)
 		} else {
 			log.Debug().
 				Str("action", actionType).
@@ -198,6 +201,85 @@ func (s *Scheduler) checkAction(actionType string, now time.Time) {
 			Time("next_exec", nextExec).
 			Time("now", now).
 			Msg("Not time to run action yet")
+	}
+}
+
+// runActionWithLock runs a maintenance action with distributed locking.
+func (s *Scheduler) runActionWithLock(actionType string) {
+	if s.lockService == nil {
+		log.Warn().Str("action", actionType).Msg("No lock service available - running without coordination (not recommended for HA)")
+		s.runActionUnsafe(actionType)
+		return
+	}
+
+	lockName := "maintenance-" + actionType
+	lockTTL := maintenanceLockTTL
+
+	log.Info().
+		Str("action", actionType).
+		Str("lock", lockName).
+		Dur("ttl", lockTTL).
+		Msg("Attempting to acquire distributed lock for maintenance action")
+
+	lockCtx, cancel, err := s.lockService.AcquireLock(s.ctx, lockName, lockTTL)
+	if err != nil {
+		var lockNotAcquiredErr interface{ Error() string }
+		if errors.As(err, &lockNotAcquiredErr) && lockNotAcquiredErr.Error() == "lock not acquired" {
+			log.Debug().
+				Str("action", actionType).
+				Str("lock", lockName).
+				Msg("Maintenance action already running on another instance, skipping")
+			return
+		}
+		log.Error().
+			Err(err).
+			Str("action", actionType).
+			Str("lock", lockName).
+			Msg("Failed to acquire lock for maintenance action")
+		return
+	}
+
+	log.Info().
+		Str("action", actionType).
+		Str("lock", lockName).
+		Msg("Acquired distributed lock for maintenance action")
+
+	// Ensure lock is released when done
+	defer func() {
+		cancel()
+		log.Info().
+			Str("action", actionType).
+			Str("lock", lockName).
+			Msg("Released distributed lock for maintenance action")
+	}()
+
+	s.runActionUnsafe(actionType, lockCtx)
+}
+
+// runActionUnsafe runs a maintenance action without locking (for backwards compatibility or single instance).
+func (s *Scheduler) runActionUnsafe(actionType string, ctx ...context.Context) {
+	var runCtx context.Context
+	if len(ctx) > 0 {
+		runCtx = ctx[0]
+	} else {
+		runCtx = s.ctx
+	}
+
+	log.Debug().
+		Str("action", actionType).
+		Msg("Running scheduled maintenance action")
+
+	switch actionType {
+	case "vacuum":
+		if err := s.service.RunMaintenance(runCtx); err != nil {
+			log.Error().Err(err).Msg("Scheduled vacuum maintenance failed")
+		}
+	case "kubernetes_cleanup":
+		if err := s.service.RunKubernetesCleanup(runCtx, false); err != nil {
+			log.Error().Err(err).Msg("Scheduled kubernetes cleanup failed")
+		}
+	default:
+		log.Warn().Str("action", actionType).Msg("Unknown maintenance action type")
 	}
 }
 

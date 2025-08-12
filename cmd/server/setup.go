@@ -424,7 +424,7 @@ func setupEvilGlobals(ctx context.Context, c *cli.Command, s store.Store) (err e
 		}
 	}
 
-	server.Config.Services.MaintenanceScheduler = maintenance.NewScheduler(server.Config.Services.MaintenanceService, s)
+	server.Config.Services.MaintenanceScheduler = maintenance.NewScheduler(server.Config.Services.MaintenanceService, s, lockService)
 	if err := server.Config.Services.MaintenanceScheduler.Start(); err != nil {
 		log.Error().Err(err).Msg("failed to start maintenance scheduler")
 	}

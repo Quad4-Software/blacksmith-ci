@@ -140,7 +140,18 @@ func (s storage) MaintenanceConfigGetByActionType(actionType string) (*model.Mai
 			defaultConfig.DryRun = false
 		}
 
+		// Use InsertOne with unique constraint handling to avoid race conditions
+		// If another instance already created it, just fetch and return
 		if _, err := s.engine.Insert(defaultConfig); err != nil {
+			// If insert failed due to unique constraint, try to fetch again
+			has, err = s.engine.Where("action_type = ?", actionType).Get(config)
+			if err != nil {
+				return nil, err
+			}
+			if has {
+				return config, nil
+			}
+			// If still not found, return the original error
 			return nil, err
 		}
 		return defaultConfig, nil

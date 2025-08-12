@@ -29,7 +29,7 @@ func TestScheduler_CheckAction_Vacuum(t *testing.T) {
 	mockService := mocks_service.NewMockService(t)
 	mockStore := mocks_store.NewMockStore(t)
 
-	scheduler := NewScheduler(mockService, mockStore)
+	scheduler := NewScheduler(mockService, mockStore, &mockLockService{})
 
 	now := time.Date(2025, 1, 7, 7, 0, 0, 0, time.UTC)
 
@@ -57,7 +57,7 @@ func TestScheduler_CheckAction_KubernetesCleanup(t *testing.T) {
 	mockService := mocks_service.NewMockService(t)
 	mockStore := mocks_store.NewMockStore(t)
 
-	scheduler := NewScheduler(mockService, mockStore)
+	scheduler := NewScheduler(mockService, mockStore, &mockLockService{})
 	scheduler.ctx = t.Context()
 
 	now := time.Date(2025, 1, 7, 7, 0, 0, 0, time.UTC)
@@ -90,7 +90,7 @@ func TestScheduler_CheckAction_KubernetesCleanup_NotAvailable(t *testing.T) {
 	mockService := mocks_service.NewMockService(t)
 	mockStore := mocks_store.NewMockStore(t)
 
-	scheduler := NewScheduler(mockService, mockStore)
+	scheduler := NewScheduler(mockService, mockStore, &mockLockService{})
 
 	now := time.Date(2025, 1, 7, 7, 0, 0, 0, time.UTC)
 
@@ -117,7 +117,7 @@ func TestScheduler_CheckAction_Disabled(t *testing.T) {
 	mockService := mocks_service.NewMockService(t)
 	mockStore := mocks_store.NewMockStore(t)
 
-	scheduler := NewScheduler(mockService, mockStore)
+	scheduler := NewScheduler(mockService, mockStore, &mockLockService{})
 
 	now := time.Date(2025, 1, 7, 7, 0, 0, 0, time.UTC)
 
@@ -139,7 +139,7 @@ func TestScheduler_CheckAction_NotTimeYet(t *testing.T) {
 	mockService := mocks_service.NewMockService(t)
 	mockStore := mocks_store.NewMockStore(t)
 
-	scheduler := NewScheduler(mockService, mockStore)
+	scheduler := NewScheduler(mockService, mockStore, &mockLockService{})
 
 	now := time.Date(2025, 1, 7, 6, 0, 0, 0, time.UTC)
 
@@ -162,7 +162,7 @@ func TestScheduler_CheckAction_TooFrequent(t *testing.T) {
 	mockService := mocks_service.NewMockService(t)
 	mockStore := mocks_store.NewMockStore(t)
 
-	scheduler := NewScheduler(mockService, mockStore)
+	scheduler := NewScheduler(mockService, mockStore, &mockLockService{})
 
 	now := time.Date(2025, 1, 7, 7, 0, 0, 0, time.UTC)
 
@@ -185,7 +185,7 @@ func TestScheduler_CheckAction_BothActionsRun(t *testing.T) {
 	mockService := mocks_service.NewMockService(t)
 	mockStore := mocks_store.NewMockStore(t)
 
-	scheduler := NewScheduler(mockService, mockStore)
+	scheduler := NewScheduler(mockService, mockStore, &mockLockService{})
 	scheduler.ctx = t.Context()
 
 	vacuumConfig := &model.MaintenanceConfig{
@@ -232,7 +232,7 @@ func TestScheduler_CheckAction_UnknownActionType(t *testing.T) {
 	mockService := mocks_service.NewMockService(t)
 	mockStore := mocks_store.NewMockStore(t)
 
-	scheduler := NewScheduler(mockService, mockStore)
+	scheduler := NewScheduler(mockService, mockStore, &mockLockService{})
 	scheduler.ctx = t.Context()
 
 	now := time.Date(2025, 1, 7, 7, 0, 0, 0, time.UTC)

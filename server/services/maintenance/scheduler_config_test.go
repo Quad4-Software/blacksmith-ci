@@ -29,7 +29,7 @@ func TestScheduler_ConfigChangeDetection(t *testing.T) {
 	mockService := mocks_service.NewMockService(t)
 	mockStore := mocks_store.NewMockStore(t)
 
-	scheduler := NewScheduler(mockService, mockStore)
+	scheduler := NewScheduler(mockService, mockStore, &mockLockService{})
 	scheduler.ctx = t.Context()
 
 	testTime := time.Date(2025, 1, 7, 7, 1, 0, 0, time.UTC)
@@ -73,7 +73,7 @@ func TestScheduler_ScheduleChangeDetection(t *testing.T) {
 	mockService := mocks_service.NewMockService(t)
 	mockStore := mocks_store.NewMockStore(t)
 
-	scheduler := NewScheduler(mockService, mockStore)
+	scheduler := NewScheduler(mockService, mockStore, &mockLockService{})
 	scheduler.ctx = t.Context()
 
 	testTime1 := time.Date(2025, 1, 7, 6, 30, 0, 0, time.UTC)
@@ -121,7 +121,7 @@ func TestScheduler_LastRunTimeUpdatedAfterExecution(t *testing.T) {
 	mockService := mocks_service.NewMockService(t)
 	mockStore := mocks_store.NewMockStore(t)
 
-	scheduler := NewScheduler(mockService, mockStore)
+	scheduler := NewScheduler(mockService, mockStore, &mockLockService{})
 	scheduler.ctx = t.Context()
 
 	testTime := time.Date(2025, 1, 7, 7, 1, 0, 0, time.UTC)
