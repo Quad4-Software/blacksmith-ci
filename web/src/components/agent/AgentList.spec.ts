@@ -1,23 +1,41 @@
 import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
+import { createI18n } from 'vue-i18n';
 import AgentList from './AgentList.vue';
 
-// Mock the $t function
-const mockT = (key: string) => {
-  const translations: Record<string, string> = {
-    'admin.settings.agents.never': 'Never',
-    'admin.settings.agents.edit_agent': 'Edit Agent',
-    'admin.settings.agents.delete_agent': 'Delete Agent',
-    'admin.settings.agents.org.badge': 'Org',
-    'admin.settings.agents.type.badge': 'Type',
-    'admin.settings.agents.custom_labels.badge': 'Label',
-    'admin.settings.agents.platform.badge': 'Platform',
-    'admin.settings.agents.backend.badge': 'Backend',
-    'admin.settings.agents.capacity.badge': 'Capacity',
-    'admin.settings.agents.none': 'No agents found',
-  };
-  return translations[key] || key;
-};
+// Create a simple i18n instance for testing
+const i18n = createI18n({
+  locale: 'en',
+  messages: {
+    en: {
+      admin: {
+        settings: {
+          agents: {
+            never: 'Never',
+            edit_agent: 'Edit Agent',
+            delete_agent: 'Delete Agent',
+            org: { badge: 'Org' },
+            type: { badge: 'Type' },
+            custom_labels: { badge: 'Label' },
+            platform: { badge: 'Platform' },
+            backend: { badge: 'Backend' },
+            capacity: { badge: 'Capacity' },
+            none: 'No agents found',
+            search: 'Search agents...',
+            filter_type: 'All types',
+            filter_platform: 'All platforms',
+            filter_backend: 'All backends',
+            clear_filters: 'Clear filters',
+            no_match: 'No agents match your filters',
+          },
+        },
+      },
+    },
+  },
+});
+
+// Mock the $t function for template usage
+const mockT = (key: string) => key;
 
 // Mock Badge component
 const MockBadge = {
@@ -54,14 +72,18 @@ describe('agentList', () => {
         userOrgId: 1,
       },
       global: {
+        plugins: [i18n],
         mocks: {
           $t: mockT,
         },
         stubs: {
           'router-link': true,
-          Icon: true,
-          IconButton: true,
+          Icon: { template: '<i></i>' },
+          IconButton: { template: '<button></button>' },
           Badge: MockBadge,
+          TextField: { template: '<input />' },
+          SelectField: { template: '<select></select>' },
+          Button: { template: '<button></button>' },
         },
       },
     });
