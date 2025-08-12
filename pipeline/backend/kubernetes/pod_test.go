@@ -721,8 +721,8 @@ func TestPodTolerations(t *testing.T) {
 			"namespace": "woodpecker",
 			"creationTimestamp": null,
 			"labels": {
-				"step": "toleration-test",
-				"woodpecker-ci.org/step": "toleration-test"
+				"app.kubernetes.io/managed-by": "crow",
+				"step": "toleration-test"
 			}
 		},
 		"spec": {
@@ -781,8 +781,8 @@ func TestPodTolerationsAllowFromStep(t *testing.T) {
 			"namespace": "woodpecker",
 			"creationTimestamp": null,
 			"labels": {
-				"step": "toleration-test",
-				"woodpecker-ci.org/step": "toleration-test"
+				"app.kubernetes.io/managed-by": "crow",
+				"step": "toleration-test"
 			}
 		},
 		"spec": {
@@ -804,8 +804,8 @@ func TestPodTolerationsAllowFromStep(t *testing.T) {
 			"namespace": "woodpecker",
 			"creationTimestamp": null,
 			"labels": {
-				"step": "toleration-test",
-				"woodpecker-ci.org/step": "toleration-test"
+				"app.kubernetes.io/managed-by": "crow",
+				"step": "toleration-test"
 			}
 		},
 		"spec": {
