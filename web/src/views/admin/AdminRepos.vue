@@ -79,7 +79,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Badge from '~/components/atomic/Badge.vue';
@@ -91,6 +91,7 @@ import TextField from '~/components/form/TextField.vue';
 import Settings from '~/components/layout/Settings.vue';
 import useApiClient from '~/compositions/useApiClient';
 import { useAsyncAction } from '~/compositions/useAsyncAction';
+import { useForges } from '~/compositions/useForges';
 import useNotifications from '~/compositions/useNotifications';
 import { usePagination } from '~/compositions/usePaginate';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
@@ -107,11 +108,10 @@ async function loadRepos(page: number): Promise<Repo[] | null> {
 
 const { data: repos } = usePagination(loadRepos);
 
-// Load forges for forge favicon URLs
-const forges = ref<Forge[]>([]);
+const { getForgeById } = useForges();
 
 function getForgeForRepo(repo: Repo): Forge | null {
-  return forges.value.find((f) => f.id === repo.forge_id) || null;
+  return getForgeById(repo.forge_id);
 }
 
 // Map forge types to local icon names
@@ -147,15 +147,6 @@ function getForgeHostname(forge: Forge | null): string {
     return forge.url;
   }
 }
-
-// Load forges on component mount
-onMounted(async () => {
-  try {
-    forges.value = (await apiClient.getForges()) ?? [];
-  } catch (error) {
-    console.warn('Failed to load forges:', error);
-  }
-});
 
 // Filter state
 const searchQuery = ref('');

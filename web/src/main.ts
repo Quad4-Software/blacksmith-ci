@@ -7,6 +7,7 @@ import { createApp } from 'vue';
 
 import App from '~/App.vue';
 import useEvents from '~/compositions/useEvents';
+import { useForges } from '~/compositions/useForges';
 import { i18n } from '~/compositions/useI18n';
 import { notifications } from '~/compositions/useNotifications';
 import router from '~/router';
@@ -24,3 +25,7 @@ app.use(createPinia() as any);
 app.mount('#app');
 
 useEvents();
+
+// Preload forge data globally
+const { loadForges } = useForges();
+void loadForges();

@@ -122,7 +122,7 @@
 
 <script lang="ts" setup>
 import { cloneDeep } from 'lodash';
-import { computed, onMounted, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Badge from '~/components/atomic/Badge.vue';
@@ -137,6 +137,7 @@ import TextField from '~/components/form/TextField.vue';
 import Settings from '~/components/layout/Settings.vue';
 import useApiClient from '~/compositions/useApiClient';
 import { useAsyncAction } from '~/compositions/useAsyncAction';
+import { useForges } from '~/compositions/useForges';
 import useNotifications from '~/compositions/useNotifications';
 import { usePagination } from '~/compositions/usePaginate';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
@@ -148,9 +149,7 @@ const apiClient = useApiClient();
 const notifications = useNotifications();
 const { t } = useI18n();
 
-// Load forges for forge URL construction
-const forges = ref<Forge[]>([]);
-const primaryForge = computed(() => forges.value[0] || null);
+const { primaryForge } = useForges();
 
 const selectedUser = ref<Partial<User>>();
 const isEditingUser = computed(() => !!selectedUser.value?.id);
@@ -160,16 +159,6 @@ async function loadUsers(page: number): Promise<User[] | null> {
 }
 
 const { resetPage, data: users } = usePagination(loadUsers, () => !selectedUser.value);
-
-// Load forges on component mount
-onMounted(async () => {
-  try {
-    forges.value = (await apiClient.getForges()) ?? [];
-    // Note: Skip fetchFaviconFromHead due to CORS issues, rely on fallback extensions
-  } catch (error) {
-    console.warn('Failed to load forges:', error);
-  }
-});
 
 // Map forge types to local icon names
 function getForgeIconName(forge: Forge): IconNames {

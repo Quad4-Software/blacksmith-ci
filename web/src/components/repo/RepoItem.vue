@@ -7,6 +7,9 @@
     <div class="grid grid-cols-[auto_1fr] items-center gap-y-4">
       <div class="flex items-center gap-2 text-lg text-wp-text-100">
         <span>{{ `${repo.owner} / ${repo.name}` }}</span>
+      </div>
+
+      <div class="ml-auto flex items-center gap-2 text-wp-text-100">
         <!-- Forge profile link with local icon -->
         <a
           v-if="forge && repo.forge_url"
@@ -17,9 +20,7 @@
         >
           <Icon :name="getForgeIconName(forge)" class="h-4 w-4 text-wp-text-100" />
         </a>
-      </div>
 
-      <div class="ml-auto text-wp-text-100">
         <div
           v-if="repo.visibility === RepoVisibility.Private"
           :title="`${$t('repo.visibility.visibility')}: ${$t(`repo.visibility.private.private`)}`"
@@ -55,11 +56,11 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed } from 'vue';
 
 import Icon from '~/components/atomic/Icon.vue';
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
-import useApiClient from '~/compositions/useApiClient';
+import { useForges } from '~/compositions/useForges';
 import usePipeline from '~/compositions/usePipeline';
 import type { Repo, Forge } from '~/lib/api/types';
 import { RepoVisibility } from '~/lib/api/types';
@@ -69,11 +70,9 @@ const props = defineProps<{
   repo: Repo;
 }>();
 
-const apiClient = useApiClient();
-
-// Load forges for favicon URLs
-const forges = ref<Forge[]>([]);
-const forge = computed(() => forges.value.find((f) => f.id === props.repo.forge_id) || null);
+// Use global forge data
+const { getForgeById } = useForges();
+const forge = computed(() => getForgeById(props.repo.forge_id));
 
 // Map forge types to local icon names
 function getForgeIconName(forge: Forge): IconNames {
@@ -108,14 +107,7 @@ function getForgeUrl(forge: Forge): string {
   }
 }
 
-// Load forges on component mount
-onMounted(async () => {
-  try {
-    forges.value = (await apiClient.getForges()) ?? [];
-  } catch (error) {
-    console.warn('Failed to load forges:', error);
-  }
-});
+// Forges are now preloaded globally, no need to load here
 
 const lastPipeline = computed(() => props.repo.last_pipeline);
 const { startDate, shortMessage } = usePipeline(lastPipeline);

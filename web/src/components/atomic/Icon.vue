@@ -12,7 +12,12 @@
   <SvgIcon v-else-if="name === 'commit'" :path="mdiSourceCommit" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'back'" :path="mdiArrowLeft" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'next'" :path="mdiArrowRight" :size="size || '1.3rem'" />
-  <GithubIcon v-else-if="name === 'github'" :style="{ width: size || '1.3rem', height: size || '1.3rem' }" />
+  <img
+    v-else-if="name === 'github'"
+    :src="getForgeIcon('github')"
+    :style="{ width: size || '1.3rem', height: size || '1.3rem' }"
+    alt="GitHub"
+  />
   <SvgIcon v-else-if="name === 'repo'" :path="mdiGit" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'settings'" :path="mdiCog" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'settings-outline'" :path="mdiCogOutline" :size="size || '1.3rem'" />
@@ -69,14 +74,41 @@
   <SvgIcon v-else-if="name === 'docker'" :path="mdiDocker" :size="size || '1rem'" />
   <SvgIcon v-else-if="name === 'visibility-private'" :path="mdiLockOutline" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'visibility-internal'" :path="mdiLockOpenOutline" :size="size || '1.3rem'" />
-  <ForgejoIcon v-else-if="name === 'forgejo'" :style="{ width: size || '1.3rem', height: size || '1.3rem' }" />
-  <GiteaIcon v-else-if="name === 'gitea'" :style="{ width: size || '1.3rem', height: size || '1.3rem' }" />
-  <CodebergIcon v-else-if="name === 'codeberg'" :style="{ width: size || '1.3rem', height: size || '1.3rem' }" />
-  <CodefloeIcon v-else-if="name === 'codefloe'" :style="{ width: size || '1.3rem', height: size || '1.3rem' }" />
-  <GitlabIcon v-else-if="name === 'gitlab'" :style="{ width: size || '1.3rem', height: size || '1.3rem' }" />
-  <BitbucketIcon
-    v-else-if="name === 'bitbucket' || name === 'bitbucket-dc'"
+  <img
+    v-else-if="name === 'forgejo'"
+    :src="getForgeIcon('forgejo')"
     :style="{ width: size || '1.3rem', height: size || '1.3rem' }"
+    alt="Forgejo"
+  />
+  <img
+    v-else-if="name === 'gitea'"
+    :src="getForgeIcon('gitea')"
+    :style="{ width: size || '1.3rem', height: size || '1.3rem' }"
+    alt="Gitea"
+  />
+  <img
+    v-else-if="name === 'codeberg'"
+    :src="getForgeIcon('codeberg')"
+    :style="{ width: size || '1.3rem', height: size || '1.3rem' }"
+    alt="Codeberg"
+  />
+  <img
+    v-else-if="name === 'codefloe'"
+    :src="getForgeIcon('codefloe')"
+    :style="{ width: size || '1.3rem', height: size || '1.3rem' }"
+    alt="Codefloe"
+  />
+  <img
+    v-else-if="name === 'gitlab'"
+    :src="getForgeIcon('gitlab')"
+    :style="{ width: size || '1.3rem', height: size || '1.3rem' }"
+    alt="GitLab"
+  />
+  <img
+    v-else-if="name === 'bitbucket' || name === 'bitbucket-dc'"
+    :src="getForgeIcon('bitbucket')"
+    :style="{ width: size || '1.3rem', height: size || '1.3rem' }"
+    alt="Bitbucket"
   />
   <SvgIcon v-else-if="name === 'mdi-wind-power-outline'" :path="mdiWindPowerOutline" :size="size || '1.3rem'" />
   <Icon
@@ -172,13 +204,23 @@ import {
 import { Icon } from '@iconify/vue';
 import SvgIcon from './SvgIcon.vue';
 import PipelineProgressSpinner from '~/components/repo/pipeline/PipelineProgressSpinner.vue';
-import CodefloeIcon from '~/assets/codefloe.svg?component';
-import GithubIcon from '~/assets/github.svg?component';
-import GitlabIcon from '~/assets/gitlab.svg?component';
-import BitbucketIcon from '~/assets/bitbucket.svg?component';
-import GiteaIcon from '~/assets/gitea.svg?component';
-import ForgejoIcon from '~/assets/forgejo.svg?component';
-import CodebergIcon from '~/assets/codeberg.svg?component';
+import { useTheme } from '~/compositions/useTheme';
+
+// Preload critical forge icons
+import githubLight from '~/assets/forge-icons/github-light.png';
+import githubDark from '~/assets/forge-icons/github-dark.png';
+import gitlabLight from '~/assets/forge-icons/gitlab-light.png';
+import gitlabDark from '~/assets/forge-icons/gitlab-dark.png';
+import bitbucketLight from '~/assets/forge-icons/bitbucket-light.png';
+import bitbucketDark from '~/assets/forge-icons/bitbucket-dark.png';
+import forgejoLight from '~/assets/forge-icons/forgejo-light.png';
+import forgejoDark from '~/assets/forge-icons/forgejo-dark.png';
+import giteaLight from '~/assets/forge-icons/gitea-light.png';
+import giteaDark from '~/assets/forge-icons/gitea-dark.png';
+import codebergLight from '~/assets/forge-icons/codeberg-light.png';
+import codebergDark from '~/assets/forge-icons/codeberg-dark.png';
+import codefloeLight from '~/assets/forge-icons/codefloe-light.png';
+import codefloeDark from '~/assets/forge-icons/codefloe-dark.png';
 
 export type IconNames =
   | 'duration'
@@ -265,4 +307,30 @@ defineProps<{
   name: IconNames;
   size?: string;
 }>();
+
+const { theme } = useTheme();
+
+const forgeIcons = {
+  github: { light: githubLight, dark: githubDark },
+  gitlab: { light: gitlabLight, dark: gitlabDark },
+  bitbucket: { light: bitbucketLight, dark: bitbucketDark },
+  forgejo: { light: forgejoLight, dark: forgejoDark },
+  gitea: { light: giteaLight, dark: giteaDark },
+  codeberg: { light: codebergLight, dark: codebergDark },
+  codefloe: { light: codefloeLight, dark: codefloeDark },
+};
+
+function getForgeIcon(forgeName: string): string {
+  // Fallback theme detection if useTheme is not ready
+  const themeMode = theme.value === 'dark' ? 'dark' : 'light';
+  const fallbackTheme =
+    typeof document !== 'undefined' && document?.documentElement?.classList.contains('dark') ? 'dark' : 'light';
+  const finalTheme = theme.value ? themeMode : fallbackTheme;
+
+  return (
+    forgeIcons[forgeName as keyof typeof forgeIcons]?.[finalTheme] ||
+    forgeIcons[forgeName as keyof typeof forgeIcons]?.light ||
+    ''
+  );
+}
 </script>
