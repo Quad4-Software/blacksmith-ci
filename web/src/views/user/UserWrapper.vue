@@ -36,13 +36,13 @@
           :href="
             version.usesDev
               ? 'https://codeberg.org/crowci/crow/commits/branch/main'
-              : `https://codeberg.org/crowci/crow/releases/tag/v${version.latest}`
+              : `https://codeberg.org/crowci/crow/releases/tag/${version.latest}`
           "
           target="_blank"
           rel="noopener noreferrer"
           class="relative flex shrink-0 cursor-pointer items-center overflow-hidden whitespace-nowrap rounded-md border border-wp-background-400 bg-wp-background-100 px-2 py-0.5 text-sm transition-all duration-150 text-wp-text-100 hover:bg-wp-control-neutral-200 hover:text-wp-text-100 dark:border-wp-control-neutral-500 dark:hover:text-wp-text-200"
         >
-          {{ version.latest }} {{ $t('admin.settings.version.update') }}
+          {{ version.latest?.replace(/^v/, '') }} {{ $t('admin.settings.version.update') }}
         </a>
       </div>
     </template>

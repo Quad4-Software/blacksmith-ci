@@ -16,10 +16,10 @@
             rel="noopener noreferrer"
             class="underline"
           >
-            {{ version.latest }}
+            {{ version.latest?.replace(/^v/, '') }}
           </a>
           <span v-else>
-            {{ version.latest }}
+            {{ version.latest?.replace(/^v/, '') }}
           </span>
         </i18n-t>
       </Error>
