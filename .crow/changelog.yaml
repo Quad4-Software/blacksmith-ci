@@ -1,6 +1,6 @@
 clone:
   git:
-    image: docker.io/thegeeklab/wp-git-clone:1.0.21
+    image: codeberg.org/crow-plugins/clone:1.0.1
     settings:
       tags: true
 

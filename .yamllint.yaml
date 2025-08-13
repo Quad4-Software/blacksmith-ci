@@ -9,4 +9,6 @@ ignore-from-file:
 rules:
   line-length: disable
   document-start: disable
-  comments: disable
+  comments-indentation: disable
+  comments:
+    min-spaces-from-content: 1
