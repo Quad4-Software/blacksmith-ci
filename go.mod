@@ -2,7 +2,7 @@ module codeberg.org/crowci/crow/v4
 
 go 1.24.0
 
-toolchain go1.24.6
+toolchain go1.25.0
 
 require (
 	al.essio.dev/pkg/shellescape v1.6.0
@@ -21,7 +21,7 @@ require (
 	github.com/docker/go-connections v0.6.0
 	github.com/docker/go-units v0.5.0
 	github.com/drone/envsubst v1.0.3
-	github.com/expr-lang/expr v1.17.5
+	github.com/expr-lang/expr v1.17.6
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/gdgvda/cron v0.4.0
 	github.com/getkin/kin-openapi v0.132.0
@@ -34,13 +34,13 @@ require (
 	github.com/google/tink/go v1.7.0
 	github.com/gorilla/securecookie v1.1.2
 	github.com/hashicorp/go-hclog v1.6.3
-	github.com/hashicorp/go-plugin v1.6.3
+	github.com/hashicorp/go-plugin v1.7.0
 	github.com/hashicorp/go-version v1.7.0
 	github.com/jellydator/ttlcache/v3 v3.4.0
 	github.com/joho/godotenv v1.5.1
 	github.com/kinbiko/jsonassert v1.2.0
 	github.com/lib/pq v1.10.9
-	github.com/mattn/go-sqlite3 v1.14.30
+	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/moby/moby v28.3.3+incompatible
 	github.com/moby/term v0.5.2
 	github.com/muesli/termenv v0.16.0
@@ -54,10 +54,10 @@ require (
 	github.com/swaggo/gin-swagger v1.6.0
 	github.com/swaggo/swag v1.16.6
 	github.com/urfave/cli-docs/v3 v3.0.0-alpha6
-	github.com/urfave/cli/v3 v3.3.8
+	github.com/urfave/cli/v3 v3.4.1
 	github.com/xeipuuv/gojsonschema v1.2.0
 	github.com/yaronf/httpsign v0.3.2
-	gitlab.com/gitlab-org/api/client-go v0.137.0
+	gitlab.com/gitlab-org/api/client-go v0.139.2
 	go.uber.org/multierr v1.11.0
 	golang.org/x/crypto v0.41.0
 	golang.org/x/net v0.43.0
@@ -68,9 +68,9 @@ require (
 	google.golang.org/grpc v1.74.2
 	google.golang.org/protobuf v1.36.7
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/api v0.33.3
-	k8s.io/apimachinery v0.33.3
-	k8s.io/client-go v0.33.3
+	k8s.io/api v0.33.4
+	k8s.io/apimachinery v0.33.4
+	k8s.io/client-go v0.33.4
 	src.techknowlogick.com/xormigrate v1.7.1
 	xorm.io/builder v0.3.13
 	xorm.io/xorm v1.3.10
@@ -135,7 +135,7 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.8 // indirect
-	github.com/hashicorp/yamux v0.1.1 // indirect
+	github.com/hashicorp/yamux v0.1.2 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/julienschmidt/httprouter v1.3.0 // indirect
@@ -165,7 +165,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/oasdiff/yaml v0.0.0-20250309154309-f31be36b4037 // indirect
 	github.com/oasdiff/yaml3 v0.0.0-20250309153720-d2182401db90 // indirect
-	github.com/oklog/run v1.0.0 // indirect
+	github.com/oklog/run v1.1.0 // indirect
 	github.com/onsi/ginkgo v1.16.4 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.0.2 // indirect
