@@ -1,6 +1,6 @@
-<!-- markdownlint-disable MD041 -->
-
-# Installation
+---
+title: Installation
+---
 
 ## General
 

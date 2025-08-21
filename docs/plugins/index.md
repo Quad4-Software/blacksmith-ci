@@ -1,9 +1,8 @@
 ---
+title: Plugins
 hide:
   - navigation
 ---
-
-## <!-- markdownlint-disable MD041 -->
 
 Plugins are special **steps** that perform **pre-defined tasks**.  
 They can be used for any kind of operation: to deploy code, publish artifacts, send notification, and more.

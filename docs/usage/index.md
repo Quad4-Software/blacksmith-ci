@@ -1,5 +1,8 @@
+---
+title: Usage
+---
+
 <!-- markdownlint-disable MD041 -->
-# Usage
 
 This page provides information on how to (best) use Crow CI.
 Besides basic examples, [advanced topics](advanced.md) are discussed and the full [syntax reference for workflow definitions](workflow-syntax.md) is given.

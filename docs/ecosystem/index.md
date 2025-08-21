@@ -1,5 +1,6 @@
-<!-- markdownlint-disable MD041 -->
-# Ecosystem
+---
+title: Ecosystem
+---
 
 The Crow CI ecosystem contains several parts which are spread across repositories.
 Most of these can be found under the [Crow CI organization](https://codeberg.org/crowci).

@@ -1,11 +1,10 @@
 ---
+title: Development
 hide:
   - navigation
 ---
 
 <!-- markdownlint-disable MD041 -->
-
-# Development
 
 ## Required tools
 
