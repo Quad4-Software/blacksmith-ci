@@ -19,7 +19,7 @@ This is also the entrypoint of the container image.
 
 ## Container
 
-Here is an examplary use of the CLI's container image:
+Here is an exemplary use of the CLI's container image:
 
 ```sh
 docker run --pull always -e CROW_TOKEN=$CROW_TOKEN -e CROW_SERVER=$CROW_SERVER --rm -it codeberg.org/crowci/crow-cli:dev info

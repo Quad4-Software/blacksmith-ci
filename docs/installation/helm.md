@@ -27,7 +27,7 @@ The server env var `CROW_BACKEND_K8S_VOLUME_SIZE` should be set to a low value, 
 This value determines the size of the temporary volume attached to each workflow pod.
 
 /// tip
-Perform a check if your underlying storage space is sufficient if X worfklows are started in parallel.
+Perform a check if your underlying storage space is sufficient if X workflows are started in parallel.
 Additionally it is recommended to create a new storage class and set the reclaim policy to "Delete", so that these temporary volumes are deleted after the workflow is finished.
 ///
 

@@ -30,7 +30,7 @@ import (
 
 var (
 	dnsPattern = regexp.MustCompile(`^[a-z0-9]` + // must start with
-		`([-a-z0-9]*[a-z0-9])?` + // inside can als contain -
+		`([-a-z0-9]*[a-z0-9])?` + // inside can also contain -
 		`(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`, // allow the same pattern as before with dots in between but only one dot
 	)
 	dnsDisallowedCharacters = regexp.MustCompile(`[^-^.a-z0-9]+`)

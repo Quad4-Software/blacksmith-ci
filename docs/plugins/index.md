@@ -34,7 +34,7 @@ A variety of plugins exist which are spread across forges, users and projects.
 As Crow CI has inherited the codebase from Drone CI and Woodpecker, their plugins can generally be used as well.  
 While Woodpecker plugins are fully compatible, many Drone plugins still rely to hand over important config values via `environment:`, which is prohibited in Crow.
 
-A curated set of plugins is availble in the [crow-plugins](https://codeberg.org/crow-plugin) organization.  
+A curated set of plugins is available in the [crow-plugins](https://codeberg.org/crow-plugin) organization.  
 Other popular organizations and repositories containing Woodpecker/Drone plugins include:
 
 - [Woodpecker CI (GitHub)](https://woodpecker-ci.org/plugins)
