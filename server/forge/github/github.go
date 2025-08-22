@@ -116,6 +116,12 @@ func (c *client) Login(ctx context.Context, req *forge_types.OAuthRequest) (*mod
 		return nil, redirectURL, err
 	}
 
+	log.Debug().
+		Bool("has_refresh_token", token.RefreshToken != "").
+		Time("expiry", token.Expiry).
+		Int64("expiry_unix", token.Expiry.Unix()).
+		Msg("GitHub OAuth token exchange completed")
+
 	client := c.newClientToken(ctx, token.AccessToken)
 	user, _, err := client.Users.Get(ctx, "")
 	if err != nil {
@@ -131,12 +137,20 @@ func (c *client) Login(ctx context.Context, req *forge_types.OAuthRequest) (*mod
 		return nil, redirectURL, fmt.Errorf("no verified Email address for GitHub account")
 	}
 
+	// For GitHub OAuth Apps without refresh tokens, set a far future expiry
+	// to prevent unnecessary refresh attempts. OAuth App tokens don't expire.
+	expiry := token.Expiry.UTC().Unix()
+	if token.RefreshToken == "" && token.Expiry.IsZero() {
+		// Set expiry to 10 years from now for OAuth Apps
+		expiry = time.Now().Add(10 * 365 * 24 * time.Hour).UTC().Unix()
+	}
+
 	return &model.User{
 		Login:         user.GetLogin(),
 		Email:         email.GetEmail(),
 		AccessToken:   token.AccessToken,
 		RefreshToken:  token.RefreshToken,
-		Expiry:        token.Expiry.UTC().Unix(),
+		Expiry:        expiry,
 		Avatar:        user.GetAvatarURL(),
 		ForgeRemoteID: model.ForgeRemoteID(fmt.Sprint(user.GetID())),
 	}, redirectURL, nil
@@ -155,12 +169,9 @@ func (c *client) Auth(ctx context.Context, token, _ string) (string, error) {
 // Refresh refreshes the GitHub oauth2 access token. If the token is
 // refreshed the user is updated and a true value is returned.
 func (c *client) Refresh(ctx context.Context, user *model.User) (bool, error) {
-	// when using Github oAuth app no refresh token is provided
+	// when using Github OAuth app no refresh token is provided
+	// and the access tokens don't expire, so skip refresh
 	if user.RefreshToken == "" {
-		// If the token is expired and there's no refresh token, return an error
-		if time.Now().UTC().Unix() >= user.Expiry {
-			return false, fmt.Errorf("token expired and refresh token is not set")
-		}
 		return false, nil
 	}
 
