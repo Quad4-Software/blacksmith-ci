@@ -20,7 +20,9 @@
         >
           <span v-if="loading === forge.id" class="loader" aria-hidden="true"></span>
           <span v-else class="flex items-center gap-2">
+            <Icon v-if="hasBuiltInIcon(forge)" :name="forge.type as IconNames" size="1.5rem" />
             <img
+              v-else
               :src="getFaviconUrl(forge)"
               alt=""
               class="h-6 w-6 rounded bg-white dark:bg-black object-contain"
@@ -50,9 +52,11 @@ import { useTheme } from '~/compositions/useTheme';
 import CrowLogo from '~/assets/logo.svg?component';
 import CrowLogoDark from '~/assets/logo-dark.svg?component';
 import Button from '~/components/atomic/Button.vue';
+import Icon from '~/components/atomic/Icon.vue';
 import useApiClient from '~/compositions/useApiClient';
 import useAuthentication from '~/compositions/useAuthentication';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
+import type { IconNames } from '~/components/atomic/Icon.vue';
 import type { Forge } from '~/lib/api/types';
 
 const route = useRoute();
@@ -147,6 +151,11 @@ function getHostFromUrl(forge: Forge) {
   }
   const url = new URL(forge.url);
   return url.hostname;
+}
+
+function hasBuiltInIcon(forge: Forge) {
+  const builtInForges = ['github', 'gitlab', 'bitbucket', 'bitbucket-dc', 'forgejo', 'gitea', 'codeberg', 'codefloe'];
+  return builtInForges.includes(forge.type);
 }
 
 function doLogin(forgeId?: number) {
