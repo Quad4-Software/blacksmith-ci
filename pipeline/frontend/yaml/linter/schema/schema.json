@@ -661,10 +661,20 @@
           }
         },
         "tolerations": {
-          "type": "object",
-          "additionalProperties": {
-            "type": ["boolean", "string", "number"]
-          }
+          "oneOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/kubernetes_toleration"
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": {
+                "type": ["boolean", "string", "number"]
+              }
+            }
+          ]
         },
         "securityContext": {
           "$ref": "#/definitions/step_backend_kubernetes_security_context"
@@ -802,6 +812,34 @@
           }
         }
       ]
+    },
+    "kubernetes_toleration": {
+      "description": "A Kubernetes toleration",
+      "type": "object",
+      "properties": {
+        "key": {
+          "description": "The taint key that the toleration applies to. Empty means match all taint keys.",
+          "type": "string"
+        },
+        "operator": {
+          "description": "Represents a key's relationship to the value. Valid operators are Exists and Equal.",
+          "type": "string",
+          "enum": ["Exists", "Equal"]
+        },
+        "value": {
+          "description": "The taint value the toleration matches to. If the operator is Exists, the value should be empty.",
+          "type": "string"
+        },
+        "effect": {
+          "description": "Effect indicates the taint effect to match.",
+          "type": "string",
+          "enum": ["NoSchedule", "PreferNoSchedule", "NoExecute"]
+        },
+        "tolerationSeconds": {
+          "description": "TolerationSeconds represents the period of time the toleration tolerates the taint.",
+          "type": "integer"
+        }
+      }
     },
     "services": {
       "description": "",
