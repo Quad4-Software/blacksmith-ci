@@ -23,7 +23,7 @@ require (
 	github.com/drone/envsubst v1.0.3
 	github.com/expr-lang/expr v1.17.6
 	github.com/fsnotify/fsnotify v1.9.0
-	github.com/gdgvda/cron v0.4.0
+	github.com/gdgvda/cron v0.5.0
 	github.com/getkin/kin-openapi v0.132.0
 	github.com/gin-gonic/gin v1.10.1
 	github.com/gitsight/go-vcsurl v1.0.1
