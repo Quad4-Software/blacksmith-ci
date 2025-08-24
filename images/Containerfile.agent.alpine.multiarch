@@ -14,6 +14,8 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 
 FROM docker.io/alpine:3.22
 
+ARG CI_COMMIT_SHA CI_COMMIT_TAG
+
 LABEL org.label-schema.license="Apache-2.0" \
       org.label-schema.vcs-url="https://codeberg.org/crowci/crow" \
       org.label-schema.vendor="Crow CI" \
@@ -33,6 +35,8 @@ ENV GODEBUG=netdns=go
 # Internal setting do NOT change! Signals that crow is running inside a container
 ENV WOODPECKER_IN_CONTAINER=true
 ENV CROW_IN_CONTAINER=true
+ENV CI_COMMIT_SHA=$CI_COMMIT_SHA
+ENV CI_COMMIT_TAG=$CI_COMMIT_TAG
 EXPOSE 3000
 
 COPY --from=build /src/dist/crow-agent /bin/
