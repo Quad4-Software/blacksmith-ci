@@ -98,6 +98,7 @@ steps:
         from_secret: crowci-bot-ssh-key
     commands:
       - apk add --no-cache -q git
+      - mkdir ~/.ssh
       - echo "$SSH_KEY" > ~/.ssh/id_rsa
       - git clone https://codeberg.org/crowci/helm.git
       - cd helm
