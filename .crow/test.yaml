@@ -1,5 +1,5 @@
 variables:
-  - &golang_image 'docker.io/golang:1.25-alpine'
+  - &golang_image 'reg.devxy.io/proxy_cache/library/golang:1.25-alpine'
   - &when
     - path: &when_path # related config files
         - '.crow/test.yaml'
@@ -36,8 +36,8 @@ steps:
     environment:
       CROW_DISABLE_UPDATE_CHECK: true
       CROW_LINT_STRICT: true
-      CROW_PLUGINS_TRUSTED_CLONE: docker.io/thegeeklab/wp-git-clone,docker.io/woodpeckerci/plugin-git,codeberg.org/crow-plugins/clone
-      CROW_PLUGINS_PRIVILEGED: 'docker.io/woodpeckerci/plugin-docker-buildx'
+      CROW_PLUGINS_TRUSTED_CLONE: reg.devxy.io/proxy_cache/thegeeklab/wp-git-clone,reg.devxy.io/proxy_cache/woodpeckerci/plugin-git,codeberg.org/crow-plugins/clone
+      CROW_PLUGINS_PRIVILEGED: 'reg.devxy.io/proxy_cache/woodpeckerci/plugin-docker-buildx'
     when:
       - event: pull_request
         path:
@@ -131,7 +131,7 @@ steps:
 
 services:
   svc-postgres:
-    image: docker.io/postgres:17
+    image: reg.devxy.io/proxy_cache/postgres:17
     ports: ['5432']
     environment:
       POSTGRES_USER: postgres
@@ -139,7 +139,7 @@ services:
     when: *when
 
   svc-mysql:
-    image: docker.io/mysql:9
+    image: reg.devxy.io/proxy_cache/mysql:9
     ports: ['3306']
     environment:
       MYSQL_DATABASE: test

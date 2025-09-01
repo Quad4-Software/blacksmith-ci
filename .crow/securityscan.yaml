@@ -4,14 +4,14 @@ when:
 
 steps:
   - name: scan
-    image: docker.io/aquasec/trivy:0.65.0
+    image: reg.devxy.io/proxy_cache/aquasec/trivy:0.65.0
     environment:
       TRIVY_DISABLE_VEX_NOTICE: true
     commands:
       - trivy fs --format template --template @assets/trivy-markdown.tpl --skip-dirs vendor,node_modules/,extras . > scan.md
 
   - name: Update issue
-    image: docker.io/alpine:3.22
+    image: reg.devxy.io/proxy_cache/library/alpine:3.22
     environment:
       ISSUE_TOKEN:
         from_secret: codeberg_bot_token
