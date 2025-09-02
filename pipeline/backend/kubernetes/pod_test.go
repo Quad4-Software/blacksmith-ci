@@ -171,7 +171,6 @@ func TestTinyPod(t *testing.T) {
 		"metadata": {
 			"name": "crow-01he8bebctabr3kgk0qj36d2me-0",
 			"namespace": "woodpecker",
-			"creationTimestamp": null,
 			"labels": {
 				"app.kubernetes.io/managed-by": "crow",
 				"step": "build-via-gradle"
@@ -252,7 +251,6 @@ func TestFullPod(t *testing.T) {
 		"metadata": {
 			"name": "crow-01he8bebctabr3kgk0qj36d2me-0",
 			"namespace": "woodpecker",
-			"creationTimestamp": null,
 			"labels": {
 				"app": "test",
 				"app.kubernetes.io/managed-by": "crow",
@@ -551,7 +549,6 @@ func TestScratchPod(t *testing.T) {
 		"metadata": {
 			"name": "crow-01he8bebctabr3kgk0qj36d2me-0",
 			"namespace": "woodpecker",
-			"creationTimestamp": null,
 			"labels": {
 				"app.kubernetes.io/managed-by": "crow",
 				"step": "curl-google"
@@ -598,7 +595,6 @@ func TestSecrets(t *testing.T) {
 		"metadata": {
 			"name": "crow-3kgk0qj36d2me01he8bebctabr-0",
 			"namespace": "woodpecker",
-			"creationTimestamp": null,
 			"labels": {
 				"app.kubernetes.io/managed-by": "crow",
 				"step": "test-secrets"
@@ -719,7 +715,6 @@ func TestPodTolerations(t *testing.T) {
 		"metadata": {
 			"name": "wp-01he8bebctabr3kgk0qj36d2me-0",
 			"namespace": "woodpecker",
-			"creationTimestamp": null,
 			"labels": {
 				"app.kubernetes.io/managed-by": "crow",
 				"step": "toleration-test"
@@ -779,7 +774,6 @@ func TestPodTolerationsAllowFromStep(t *testing.T) {
 		"metadata": {
 			"name": "wp-01he8bebctabr3kgk0qj36d2me-0",
 			"namespace": "woodpecker",
-			"creationTimestamp": null,
 			"labels": {
 				"app.kubernetes.io/managed-by": "crow",
 				"step": "toleration-test"
@@ -802,7 +796,6 @@ func TestPodTolerationsAllowFromStep(t *testing.T) {
 		"metadata": {
 			"name": "wp-01he8bebctabr3kgk0qj36d2me-0",
 			"namespace": "woodpecker",
-			"creationTimestamp": null,
 			"labels": {
 				"app.kubernetes.io/managed-by": "crow",
 				"step": "toleration-test"
@@ -872,7 +865,6 @@ func TestStepSecret(t *testing.T) {
 		"metadata": {
 			"name": "crow-01he8bebctabr3kgk0qj36d2me-0-step-secret",
 			"namespace": "woodpecker",
-			"creationTimestamp": null,
 			"labels": {
 				"app.kubernetes.io/managed-by": "crow"
 			}

@@ -48,7 +48,6 @@ func TestPersistentVolumeClaim(t *testing.T) {
 		"metadata": {
 			"name": "somename",
 			"namespace": "someNamespace",
-			"creationTimestamp": null,
 			"labels": {
 				"app.kubernetes.io/managed-by": "crow"
 			}
@@ -72,7 +71,6 @@ func TestPersistentVolumeClaim(t *testing.T) {
 		"metadata": {
 			"name": "somename",
 			"namespace": "someNamespace",
-			"creationTimestamp": null,
 			"labels": {
 				"app.kubernetes.io/managed-by": "crow"
 			}

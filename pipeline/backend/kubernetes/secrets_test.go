@@ -210,7 +210,6 @@ func TestRegistrySecret(t *testing.T) {
 		"metadata": {
 			"name": "crow-01he8bebctabr3kgk0qj36d2me-0",
 			"namespace": "woodpecker",
-			"creationTimestamp": null,
 			"labels": {
 				"app.kubernetes.io/managed-by": "crow",
 				"step": "go-test"
