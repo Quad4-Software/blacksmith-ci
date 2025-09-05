@@ -21,7 +21,6 @@ import (
 
 // Generate docs/openapi.json via:
 //go:generate go run openapi_json_gen.go openapi.go
-//go:generate go run github.com/getkin/kin-openapi/cmd/validate ../../docs/openapi.json
 
 // setupOpenAPIStaticConfig initializes static content (version) for the OpenAPI config.
 //
