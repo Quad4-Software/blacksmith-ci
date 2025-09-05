@@ -63,6 +63,7 @@ If you want your own plugin (or any missing one) to be listed, please create a P
 | Portainer Update                                   | Trigger Portainer service updates                         | [woodpecker-community/portainer-service-update](https://codeberg.org/woodpecker-community/portainer-service-update)   |
 | S3                                                 | Execute S3 actions                                        | [woodpecker-plugins/plugin-s3](https://codeberg.org/woodpecker-plugins/plugin-s3)                                     |
 | S3-action                                          | Execute S3 actions                                        | [thegeeklab/wp-s3-action](https://github.com/thegeeklab/wp-s3-action)                                                 |
+| Sccache                                            | Use `sccache` as compiler cache                           | [crow-plugins/sscache](https://codeberg.org/crow-plugins/sscache)                                                     |
 | Surge Preview                                      | Pull request website previews via `surge.sh`              | [woodpecker-plugins/plugin-surge-preview](https://codeberg.org/woodpecker-plugins/plugin-surge-preview)               |
 | Trigger                                            | Trigger pipelines                                         | [woodpecker-plugins/trigger](https://codeberg.org/woodpecker-plugins/trigger)                                         |
 
