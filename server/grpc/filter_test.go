@@ -25,11 +25,12 @@ import (
 
 func TestCreateFilterFunc(t *testing.T) {
 	tests := []struct {
-		name        string
-		agentFilter rpc.Filter
-		task        *model.Task
-		wantMatched bool
-		wantScore   int
+		name         string
+		agentFilter  rpc.Filter
+		customLabels map[string]string
+		task         *model.Task
+		wantMatched  bool
+		wantScore    int
 	}{
 		{
 			name: "Two exact matches",
@@ -219,11 +220,72 @@ func TestCreateFilterFunc(t *testing.T) {
 			wantMatched: true,
 			wantScore:   21,
 		},
+		// Custom label tests
+		{
+			name: "Agent with custom label - task has matching label",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{"repo": "*", "platform": "linux"},
+			},
+			customLabels: map[string]string{"scope": "lint"},
+			task: &model.Task{
+				Labels: map[string]string{"repo": "test", "platform": "linux", "scope": "lint"},
+			},
+			wantMatched: true,
+			wantScore:   11,
+		},
+		{
+			name: "Agent with custom label - task missing label",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{"repo": "*", "platform": "linux"},
+			},
+			customLabels: map[string]string{"scope": "lint"},
+			task: &model.Task{
+				Labels: map[string]string{"repo": "test", "platform": "linux"},
+			},
+			wantMatched: false,
+			wantScore:   0,
+		},
+		{
+			name: "Agent with custom label - task has different value",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{"repo": "*", "platform": "linux"},
+			},
+			customLabels: map[string]string{"scope": "lint"},
+			task: &model.Task{
+				Labels: map[string]string{"repo": "test", "platform": "linux", "scope": "build"},
+			},
+			wantMatched: false,
+			wantScore:   0,
+		},
+		{
+			name: "Agent with multiple custom labels - all match",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{"repo": "*"},
+			},
+			customLabels: map[string]string{"scope": "lint", "environment": "production"},
+			task: &model.Task{
+				Labels: map[string]string{"repo": "test", "scope": "lint", "environment": "production"},
+			},
+			wantMatched: true,
+			wantScore:   1,
+		},
+		{
+			name: "Agent with multiple custom labels - partial match",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{"repo": "*"},
+			},
+			customLabels: map[string]string{"scope": "lint", "environment": "production"},
+			task: &model.Task{
+				Labels: map[string]string{"repo": "test", "scope": "lint"},
+			},
+			wantMatched: false,
+			wantScore:   0,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			filterFunc := createFilterFunc(tt.agentFilter)
+			filterFunc := createFilterFunc(tt.agentFilter, tt.customLabels)
 			gotMatched, gotScore := filterFunc(tt.task)
 
 			assert.Equal(t, tt.wantMatched, gotMatched, "Matched result")

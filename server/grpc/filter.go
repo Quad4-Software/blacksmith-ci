@@ -23,12 +23,28 @@ import (
 	"codeberg.org/crowci/crow/v4/server/queue"
 )
 
-func createFilterFunc(agentFilter rpc.Filter) queue.FilterFn {
+func createFilterFunc(agentFilter rpc.Filter, customLabels map[string]string) queue.FilterFn {
 	return func(task *model.Task) (bool, int) {
 		score := 0
+
+		// First, check that the task has all required custom labels from the agent
+		for customLabel, customLabelValue := range customLabels {
+			taskValue, hasLabel := task.Labels[customLabel]
+			// Task must have the custom label with exact match
+			if !hasLabel || taskValue != customLabelValue {
+				return false, 0
+			}
+		}
+
+		// Then check task labels as before
 		for taskLabel, taskLabelValue := range task.Labels {
 			// if a task label is empty it will be ignored
 			if taskLabelValue == "" {
+				continue
+			}
+
+			// Skip custom labels as they were already checked above
+			if _, isCustom := customLabels[taskLabel]; isCustom {
 				continue
 			}
 
