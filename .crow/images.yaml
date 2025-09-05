@@ -16,11 +16,6 @@ variables:
         username: crowci-bot
         password:
           from_secret: codeberg_bot_token
-      - registry: https://index.reg.devxy.io/proxy_cache/v1/
-        username:
-          from_secret: dockerhub_pull_username
-        password:
-          from_secret: dockerhub_pull_token
   - &publish_repos_server 'codeberg.org/crowci/crow-server'
   - &publish_repos_agent 'codeberg.org/crowci/crow-agent'
   - &publish_repos_cli 'codeberg.org/crowci/crow-cli'
