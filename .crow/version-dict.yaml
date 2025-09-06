@@ -35,7 +35,7 @@ steps:
       - event: tag
 
   - name: 'Push changes to branch'
-    image: reg.devxy.io/proxy_cache/appleboy/drone-git-push:1.1.1
+    image: reg.devxy.io/docker.io/appleboy/drone-git-push:1.1.1
     settings:
       remote: ${CI_REPO_CLONE_SSH_URL}
       branch: gh-pages

@@ -8,11 +8,11 @@ when:
 # we need a full clone to be able to push back to the repo
 clone:
   git:
-    image: reg.devxy.io/proxy_cache/thegeeklab/wp-git-clone:1.0.21
+    image: reg.devxy.io/docker.io/thegeeklab/wp-git-clone:1.0.21
 
 steps:
   - name: 'Build docs'
-    image: reg.devxy.io/proxy_cache/library/alpine:3.22
+    image: reg.devxy.io/docker.io/library/alpine:3.22
     environment:
       IS_CI: true
       # https://github.com/squidfunk/mkdocs-material-insiders
@@ -37,7 +37,7 @@ steps:
         branch: ${CI_REPO_DEFAULT_BRANCH}
 
   - name: 'Build docs (PR)'
-    image: reg.devxy.io/proxy_cache/library/alpine:3.22
+    image: reg.devxy.io/docker.io/library/alpine:3.22
     environment:
       IS_CI: true
       # https://github.com/squidfunk/mkdocs-material-insiders
@@ -61,7 +61,7 @@ steps:
       - event: pull_request
 
   - name: PR docs preview
-    image: reg.devxy.io/proxy_cache/woodpeckerci/plugin-surge-preview:1.4.0
+    image: reg.devxy.io/docker.io/woodpeckerci/plugin-surge-preview:1.4.0
     settings:
       path: 'site/'
       surge_token:

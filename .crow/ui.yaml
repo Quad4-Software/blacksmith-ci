@@ -5,7 +5,7 @@ when:
       - release/*
 
 variables:
-  - &node_image 'reg.devxy.io/proxy_cache/oven/bun:1.2-alpine'
+  - &node_image 'reg.devxy.io/docker.io/oven/bun:1.2-alpine'
   - &when
     path:
       # related config files
@@ -26,7 +26,7 @@ steps:
   prettier:
     depends_on:
       - install-dependencies
-    image: reg.devxy.io/proxy_cache/woodpeckerci/plugin-prettier:1.3.1
+    image: reg.devxy.io/docker.io/woodpeckerci/plugin-prettier:1.3.1
     pull: true
     settings:
       plugins:
