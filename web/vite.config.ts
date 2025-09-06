@@ -81,6 +81,20 @@ export default defineConfig({
     },
   },
   logLevel: 'warn',
+  build: {
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vue: ['vue', 'vue-router', 'pinia'],
+          'vue-i18n': ['vue-i18n'],
+          vueuse: ['@vueuse/core'],
+          icons: ['@iconify/vue', '@mdi/js', 'simple-icons'],
+          flow: ['@vue-flow/core', '@vue-flow/background', '@vue-flow/controls'],
+        },
+      },
+    },
+  },
   server: {
     allowedHosts: true,
     host: process.env.VITE_DEV_SERVER_HOST ?? '127.0.0.1',

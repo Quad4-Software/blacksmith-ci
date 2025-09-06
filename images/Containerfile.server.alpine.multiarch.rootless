@@ -1,4 +1,6 @@
-FROM reg.devxy.io/proxy_cache/library/alpine:3.22
+FROM reg.devxy.io/docker.io/library/alpine:3.22
+
+ARG DOCKER_IMAGE_CREATED="unknown"
 
 LABEL org.label-schema.license="Apache-2.0" \
       org.label-schema.vcs-url="https://codeberg.org/crowci/crow" \
