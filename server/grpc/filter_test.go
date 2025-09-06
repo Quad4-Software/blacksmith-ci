@@ -281,6 +281,84 @@ func TestCreateFilterFunc(t *testing.T) {
 			wantMatched: false,
 			wantScore:   0,
 		},
+		// Backend label tests
+		{
+			name: "Backend label exact match - kubernetes",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{"backend": "kubernetes", "repo": "*"},
+			},
+			customLabels: map[string]string{},
+			task: &model.Task{
+				Labels: map[string]string{"backend": "kubernetes", "repo": "test"},
+			},
+			wantMatched: true,
+			wantScore:   11,
+		},
+		{
+			name: "Backend label mismatch - task wants kubernetes, agent has docker",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{"backend": "docker", "repo": "*"},
+			},
+			customLabels: map[string]string{},
+			task: &model.Task{
+				Labels: map[string]string{"backend": "kubernetes", "repo": "test"},
+			},
+			wantMatched: false,
+			wantScore:   0,
+		},
+		{
+			name: "Backend label - task has no backend requirement",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{"backend": "kubernetes", "repo": "*"},
+			},
+			customLabels: map[string]string{},
+			task: &model.Task{
+				Labels: map[string]string{"repo": "test"},
+			},
+			wantMatched: true,
+			wantScore:   1,
+		},
+		{
+			name: "Global agent with kubernetes backend - task specifies kubernetes",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{
+					"backend":  "kubernetes",
+					"repo":     "*",
+					"platform": "linux/amd64",
+					"hostname": "test-host",
+					"org-id":   "*", // Global agent
+				},
+			},
+			customLabels: nil, // No custom labels (exactly like DB)
+			task: &model.Task{
+				Labels: map[string]string{
+					"backend": "kubernetes",
+					"repo":    "myrepo",
+					"org-id":  "123",
+				},
+			},
+			wantMatched: true,
+			wantScore:   12,
+		},
+		{
+			name: "Agent with nil custom labels - standard workflow",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{
+					"backend": "kubernetes",
+					"repo":    "*",
+					"org-id":  "*",
+				},
+			},
+			customLabels: nil, // Exactly like your DB shows
+			task: &model.Task{
+				Labels: map[string]string{
+					"repo":   "test-repo",
+					"org-id": "456",
+				},
+			},
+			wantMatched: true,
+			wantScore:   2,
+		},
 	}
 
 	for _, tt := range tests {
