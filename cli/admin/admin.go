@@ -18,6 +18,7 @@ import (
 	"github.com/urfave/cli/v3"
 
 	"codeberg.org/crowci/crow/v4/cli/admin/loglevel"
+	"codeberg.org/crowci/crow/v4/cli/admin/org"
 	"codeberg.org/crowci/crow/v4/cli/admin/registry"
 	"codeberg.org/crowci/crow/v4/cli/admin/secret"
 	"codeberg.org/crowci/crow/v4/cli/admin/user"
@@ -29,6 +30,7 @@ var Command = &cli.Command{
 	Usage: "manage server settings",
 	Commands: []*cli.Command{
 		loglevel.Command,
+		org.Command,
 		registry.Command,
 		secret.Command,
 		user.Command,
