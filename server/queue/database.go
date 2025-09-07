@@ -162,7 +162,7 @@ func (q *DatabaseQueue) Poll(ctx context.Context, agentID int64, filter FilterFn
 
 				// Apply agent filter
 				if filter != nil {
-					matched, _ := filter(task)
+					matched, _, _ := filter(task)
 					if !matched {
 						q.assignmentMu.Unlock()
 						continue

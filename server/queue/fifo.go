@@ -18,6 +18,7 @@ import (
 	"container/list"
 	"context"
 	"fmt"
+	"math/rand"
 	"sync"
 	"time"
 
@@ -353,24 +354,69 @@ func (q *fifo) filterWaiting() {
 
 func (q *fifo) assignToWorker() (*list.Element, *worker) {
 	var next *list.Element
-	var bestWorker *worker
-	var bestScore int
 
 	for element := q.pending.Front(); element != nil; element = next {
 		next = element.Next()
 		task, _ := element.Value.(*model.Task)
 		log.Debug().Msgf("queue: trying to assign task: %v with deps %v", task.ID, task.Dependencies)
 
+		// Collect all matching workers with their scores and priorities
+		type workerMatch struct {
+			worker   *worker
+			score    int
+			priority int32
+		}
+		var matches []workerMatch
+
 		for worker := range q.workers {
-			matched, score := worker.filter(task)
-			if matched && score > bestScore {
-				bestWorker = worker
-				bestScore = score
+			matched, score, priority := worker.filter(task)
+			if matched {
+				matches = append(matches, workerMatch{
+					worker:   worker,
+					score:    score,
+					priority: priority,
+				})
 			}
 		}
-		if bestWorker != nil {
-			log.Debug().Msgf("queue: assigned task: %v with deps %v to worker with score %d", task.ID, task.Dependencies, bestScore)
-			return element, bestWorker
+
+		if len(matches) == 0 {
+			continue
+		}
+
+		// Find the highest priority among all matched agents
+		var maxPriority int32
+		for _, match := range matches {
+			if match.priority > maxPriority {
+				maxPriority = match.priority
+			}
+		}
+
+		// Collect all agents with the highest priority
+		var candidates []workerMatch
+		for _, match := range matches {
+			if match.priority == maxPriority {
+				candidates = append(candidates, match)
+			}
+		}
+
+		// Pick a candidate from those with the highest priority
+		var selectedWorker *worker
+		var selectedPriority int32
+
+		if len(candidates) == 1 {
+			selectedWorker = candidates[0].worker
+			selectedPriority = candidates[0].priority
+		} else {
+			// Multiple candidates with same priority - pick randomly
+			selectedIndex := rand.Intn(len(candidates))
+			selected := candidates[selectedIndex]
+			selectedWorker = selected.worker
+			selectedPriority = selected.priority
+		}
+
+		if selectedWorker != nil {
+			log.Debug().Msgf("queue: assigned task: %v with deps %v to worker with priority %d", task.ID, task.Dependencies, selectedPriority)
+			return element, selectedWorker
 		}
 	}
 

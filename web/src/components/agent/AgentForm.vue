@@ -10,6 +10,16 @@
         @update:model-value="updateAgent({ no_schedule: $event })"
       />
     </InputField>
+    <InputField v-slot="{ id }" :label="$t('admin.settings.agents.priority.priority')">
+      <span class="text-wp-text-alt-100">{{ $t('admin.settings.agents.priority.desc') }}</span>
+      <NumberField
+        :id="id"
+        :model-value="agent.priority || 0"
+        min="0"
+        max="2147483647"
+        @update:model-value="updateAgent({ priority: $event })"
+      />
+    </InputField>
     <template v-if="isEditingAgent">
       <InputField v-slot="{ id }" :label="$t('admin.settings.agents.token')">
         <TextField :id="id" v-model="agent.token" :placeholder="$t('admin.settings.agents.token')" disabled />
@@ -70,6 +80,7 @@ import { computed } from 'vue';
 import Button from '~/components/atomic/Button.vue';
 import Checkbox from '~/components/form/Checkbox.vue';
 import InputField from '~/components/form/InputField.vue';
+import NumberField from '~/components/form/NumberField.vue';
 import TextField from '~/components/form/TextField.vue';
 import { useDate } from '~/compositions/useDate';
 import type { Agent } from '~/lib/api/types';

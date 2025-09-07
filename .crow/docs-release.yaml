@@ -1,10 +1,11 @@
 when:
   - event: tag
 
-# we need a full clone to be able to push back to the repo
 clone:
   git:
-    image: reg.devxy.io/docker.io/thegeeklab/wp-git-clone:1.0.21
+    image: codeberg.org/crow-plugins/clone:1.0.1
+    settings:
+      depth: 0
 
 depends_on:
   - version-dict

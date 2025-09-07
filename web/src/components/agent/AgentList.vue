@@ -117,6 +117,11 @@
             :label="$t('admin.settings.agents.capacity.badge')"
             :value="`${agent.running_workflows ?? 0}/${agent.capacity}`"
           />
+          <Badge
+            v-if="agent.priority && agent.priority !== 0"
+            :label="$t('admin.settings.agents.priority.badge')"
+            :value="agent.priority.toString()"
+          />
         </div>
       </div>
 

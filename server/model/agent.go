@@ -35,6 +35,7 @@ type Agent struct {
 	Capacity     int32             `json:"capacity"      xorm:"capacity"`
 	Version      string            `json:"version"       xorm:"'version'"`
 	NoSchedule   bool              `json:"no_schedule"   xorm:"no_schedule"`
+	Priority     int32             `json:"priority"      xorm:"DEFAULT 0 'priority'"`
 	CustomLabels map[string]string `json:"custom_labels" xorm:"JSON 'custom_labels'"`
 	// OrgID is counted as unset if set to -1, this is done to ensure a new(Agent) still enforce the OrgID check by default
 	OrgID int64 `json:"org_id"        xorm:"INDEX 'org_id'"`

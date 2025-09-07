@@ -275,6 +275,7 @@ type (
 		Capacity     int32             `json:"capacity"`
 		Version      string            `json:"version"`
 		NoSchedule   bool              `json:"no_schedule"`
+		Priority     int32             `json:"priority"`
 		CustomLabels map[string]string `json:"custom_labels"`
 	}
 

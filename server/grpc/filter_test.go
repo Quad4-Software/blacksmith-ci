@@ -364,7 +364,7 @@ func TestCreateFilterFunc(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			filterFunc := createFilterFunc(tt.agentFilter, tt.customLabels)
-			gotMatched, gotScore := filterFunc(tt.task)
+			gotMatched, gotScore, _ := filterFunc(tt.task)
 
 			assert.Equal(t, tt.wantMatched, gotMatched, "Matched result")
 			assert.Equal(t, tt.wantScore, gotScore, "Score")

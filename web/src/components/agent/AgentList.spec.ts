@@ -57,6 +57,7 @@ const sampleAgent = {
   capacity: 3,
   version: '1.0.0',
   no_schedule: false,
+  priority: 0,
   custom_labels: { foo: 'bar' },
   running_workflows: 2,
 };

@@ -59,3 +59,4 @@ local.sh
 .DS_Store
 CLAUDE.md
 crow-server
+crow-cli

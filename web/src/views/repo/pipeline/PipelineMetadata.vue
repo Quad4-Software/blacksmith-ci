@@ -144,6 +144,10 @@
                   <strong>{{ $t('repo.pipeline.metadata.fields.agent_backend') }}:</strong>
                   {{ agent.backend || $t('repo.pipeline.metadata.fields.na') }}
                 </div>
+                <div v-if="agent.priority && agent.priority > 0">
+                  <strong>{{ $t('repo.pipeline.metadata.fields.agent_priority') }}:</strong>
+                  {{ agent.priority }}
+                </div>
                 <div>
                   <strong>{{ $t('repo.pipeline.metadata.fields.workflow_count') }}:</strong>
                   {{ agent.workflows.length }}
@@ -247,6 +251,7 @@ const agentInfo = computed(() => {
       name: details.name,
       platform: details.platform,
       backend: details.backend,
+      priority: details.priority,
       custom_labels: details.custom_labels,
     };
   });
@@ -385,6 +390,7 @@ function createStructuredMetadata() {
       name: agent.name,
       platform: agent.platform,
       backend: agent.backend,
+      priority: agent.priority,
       custom_labels: agent.custom_labels,
       workflows: agent.workflows,
     })),

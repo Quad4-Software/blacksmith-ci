@@ -109,6 +109,7 @@ As of 2025-07, the following unique features exist in Crow:
 - Improved mobile layout view (spacing, alignment)
 - Ability to fold the workflow panel and have a full-width log view
 - Support for setting custom workflow names for single and matrix pipelines via the `name:` field
+- Priority support for agents
 
 Additionally, for the Crow Autoscaler:
 

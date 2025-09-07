@@ -162,6 +162,9 @@ func PatchAgent(c *gin.Context) {
 	// Update allowed fields
 	agent.Name = in.Name
 	agent.NoSchedule = in.NoSchedule
+	if in.Priority >= 0 {
+		agent.Priority = in.Priority
+	}
 	if agent.NoSchedule {
 		server.Config.Services.Queue.KickAgentWorkers(agent.ID)
 	}
@@ -195,11 +198,14 @@ func PostAgent(c *gin.Context) {
 
 	user := session.User(c)
 
+	priority := in.Priority
+
 	agent := &model.Agent{
 		Name:       in.Name,
 		OwnerID:    user.ID,
 		OrgID:      model.IDNotSet,
 		NoSchedule: in.NoSchedule,
+		Priority:   priority,
 		Token:      model.GenerateNewAgentToken(),
 	}
 	if err = store.FromContext(c).AgentCreate(agent); err != nil {
@@ -284,11 +290,14 @@ func PostOrgAgent(c *gin.Context) {
 		return
 	}
 
+	priority := in.Priority
+
 	agent := &model.Agent{
 		Name:       in.Name,
 		OwnerID:    user.ID,
 		OrgID:      orgID,
 		NoSchedule: in.NoSchedule,
+		Priority:   priority,
 		Token:      model.GenerateNewAgentToken(),
 	}
 
@@ -385,6 +394,9 @@ func PatchOrgAgent(c *gin.Context) {
 	// Update allowed fields
 	agent.Name = in.Name
 	agent.NoSchedule = in.NoSchedule
+	if in.Priority >= 0 {
+		agent.Priority = in.Priority
+	}
 	if agent.NoSchedule {
 		server.Config.Services.Queue.KickAgentWorkers(agent.ID)
 	}

@@ -19,19 +19,54 @@ This can be controlled via `CROW_MAX_WORKFLOWS` to increase the amount of parall
 
 ## Workflow filters
 
-Agents can be configured to only process workflows which have matching labels.
+Crow CI provides two ways to influence which agent processes a specific workflow:
+
+1. Via agent/workflow labels
+1. Via agent priorities
+
+/// important
+Filtering via labels takes priority.
+If an agent is filtered out at the label stage, priority filtering will not have any effect.
+///
+
+### Label filtering
+
+Agents can be configured to only process workflows with matching labels.
+Each agent has the following default labels:
+
+- backend
+- typ
+- platform
+
+besides these, admins can add custom labels to agents during registration via `CROW_AGENT_LABELS`:
 
 ```sh
 CROW_AGENT_LABELS='my-label=my-value'
 ```
 
 This config would restrict an agent to builds of the label `my-label`.
-Only workflows which have the following label definition set in the YAML config will be processed by the agent:
+
+For these custom labels, **all** labels of the workflow and agent must match exactly.
+For example, only workflows which have the following label definition set in the YAML config will be processed by the agent with the label defined in this example:
 
 ```yaml
 labels:
   my-label: my-value
 ```
+
+A common use case for a custom label is to restrict an agent to to workflows with either low or high resource requirements.
+
+For the *default* labels (BACKEND, TYPE, PLATFORM) however, a **partial** match is sufficient.
+A common use case here is to steer workflows to agents running on specific architectures (e.g. `linux/arm64`) or (a very special scenario) running on a dedicated backend (e.g. `kubernetes`).
+
+### Priority filtering
+
+If multiple agents are eligible for a workflow, one can use the `priority` label to prioritize a specific agent.
+This can be used to steer workflows to agents with more capacity *if* they are available for a given task.
+
+/// note
+Besides label filtering, an agent might also be temporarily unavailable to process a workflow because it has reached its maximum workflow capacity.
+///
 
 ## Organization & user agents
 

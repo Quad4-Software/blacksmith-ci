@@ -24,7 +24,11 @@ import (
 )
 
 func createFilterFunc(agentFilter rpc.Filter, customLabels map[string]string) queue.FilterFn {
-	return func(task *model.Task) (bool, int) {
+	return createFilterFuncWithPriority(agentFilter, customLabels, 0)
+}
+
+func createFilterFuncWithPriority(agentFilter rpc.Filter, customLabels map[string]string, priority int32) queue.FilterFn {
+	return func(task *model.Task) (bool, int, int32) {
 		score := 0
 
 		// First, check that the task has all required custom labels from the agent
@@ -32,7 +36,7 @@ func createFilterFunc(agentFilter rpc.Filter, customLabels map[string]string) qu
 			taskValue, hasLabel := task.Labels[customLabel]
 			// Task must have the custom label with exact match
 			if !hasLabel || taskValue != customLabelValue {
-				return false, 0
+				return false, 0, priority
 			}
 		}
 
@@ -51,7 +55,7 @@ func createFilterFunc(agentFilter rpc.Filter, customLabels map[string]string) qu
 			// check if agent has this label
 			agentLabelValue, ok := agentFilter.Labels[taskLabel]
 			if !ok {
-				return false, 0
+				return false, 0, priority
 			}
 
 			// Special handling for 'org-id' and 'repo' labels - partial matching
@@ -74,7 +78,7 @@ func createFilterFunc(agentFilter rpc.Filter, customLabels map[string]string) qu
 				}
 
 				if !matched {
-					return false, 0
+					return false, 0, priority
 				}
 			} else {
 				// Standard matching for other labels
@@ -87,10 +91,12 @@ func createFilterFunc(agentFilter rpc.Filter, customLabels map[string]string) qu
 					score += 10
 				// agent doesn't match
 				default:
-					return false, 0
+					return false, 0, priority
 				}
 			}
 		}
-		return true, score
+		// Return match status, label match score, and priority
+		// Priority will be used separately for filtering
+		return true, score, priority
 	}
 }

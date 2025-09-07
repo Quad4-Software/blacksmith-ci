@@ -28,7 +28,7 @@ import (
 )
 
 var (
-	filterFnTrue = func(*model.Task) (bool, int) { return true, 1 }
+	filterFnTrue = func(*model.Task) (bool, int, int32) { return true, 1, 0 }
 	genDummyTask = func() *model.Task {
 		return &model.Task{
 			ID:   "1",
@@ -601,44 +601,44 @@ func TestFifoWithScoring(t *testing.T) {
 
 	// Create filter functions for different workers
 	filters := map[int]FilterFn{
-		1: func(task *model.Task) (bool, int) {
+		1: func(task *model.Task) (bool, int, int32) {
 			if task.Labels["org-id"] == "123" {
-				return true, 20
+				return true, 20, 0
 			}
 			if task.Labels["platform"] == "linux" {
-				return true, 10
+				return true, 10, 0
 			}
-			return true, 1
+			return true, 1, 0
 		},
-		2: func(task *model.Task) (bool, int) {
+		2: func(task *model.Task) (bool, int, int32) {
 			if task.Labels["org-id"] == "456" {
-				return true, 20
+				return true, 20, 0
 			}
 			if task.Labels["platform"] == "linux" {
-				return true, 10
+				return true, 10, 0
 			}
-			return true, 1
+			return true, 1, 0
 		},
-		3: func(task *model.Task) (bool, int) {
+		3: func(task *model.Task) (bool, int, int32) {
 			if task.Labels["platform"] == "windows" {
-				return true, 20
+				return true, 20, 0
 			}
-			return true, 1
+			return true, 1, 0
 		},
-		4: func(task *model.Task) (bool, int) {
+		4: func(task *model.Task) (bool, int, int32) {
 			if task.Labels["org-id"] == "123" {
-				return true, 20
+				return true, 20, 0
 			}
 			if task.Labels["platform"] == "linux" {
-				return true, 10
+				return true, 10, 0
 			}
-			return true, 1
+			return true, 1, 0
 		},
-		5: func(task *model.Task) (bool, int) {
+		5: func(task *model.Task) (bool, int, int32) {
 			if task.Labels["org-id"] == "*" {
-				return true, 15
+				return true, 15, 0
 			}
-			return true, 1
+			return true, 1, 0
 		},
 	}
 
@@ -665,25 +665,22 @@ func TestFifoWithScoring(t *testing.T) {
 
 	assert.Len(t, receivedTasks, 5, "All tasks should be assigned")
 
-	// Define expected agent assignments
-	// Map structure: {taskID: []possible agentIDs}
-	// - taskID "1" and "4" can be assigned to agents 1 or 4 (org-id "123")
-	// - taskID "2" should be assigned to agent 2 (org-id "456")
-	// - taskID "3" should be assigned to agent 3 (platform "windows")
-	// - taskID "5" should be assigned to agent 5 (org-id "*")
-	expectedAssignments := map[string][]int64{
-		"1": {1, 4},
-		"2": {2},
-		"3": {3},
-		"4": {1, 4},
-		"5": {5},
+	// Define possible agent assignments (any matching agent can be selected randomly)
+	// All agents can handle all tasks with different scores, but all return true from filter
+	possibleAssignments := map[string][]int64{
+		"1": {1, 2, 3, 4, 5}, // All agents can handle this task
+		"2": {1, 2, 3, 4, 5}, // All agents can handle this task
+		"3": {1, 2, 3, 4, 5}, // All agents can handle this task
+		"4": {1, 2, 3, 4, 5}, // All agents can handle this task
+		"5": {1, 2, 3, 4, 5}, // All agents can handle this task
 	}
 
-	// Check if tasks are assigned as expected
-	for taskID, expectedAgents := range expectedAssignments {
+	// Check that tasks are assigned to agents that can handle them
+	// With random selection, any matching agent can be selected
+	for taskID, possibleAgents := range possibleAssignments {
 		agentID, ok := receivedTasks[taskID]
 		assert.True(t, ok, "Task %s should be assigned", taskID)
-		assert.Contains(t, expectedAgents, agentID, "Task %s should be assigned to one of the expected agents", taskID)
+		assert.Contains(t, possibleAgents, agentID, "Task %s should be assigned to an agent that can handle it", taskID)
 	}
 }
 
@@ -708,8 +705,8 @@ func TestFifo_GetRunningWorkflowIDs(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Poll tasks to make them running
-		filter := func(_ *model.Task) (bool, int) {
-			return true, 1
+		filter := func(_ *model.Task) (bool, int, int32) {
+			return true, 1, 0
 		}
 
 		// Poll all tasks
@@ -753,8 +750,8 @@ func TestFifo_GetRunningWorkflowIDs(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Poll to make it running
-		filter := func(_ *model.Task) (bool, int) {
-			return true, 1
+		filter := func(_ *model.Task) (bool, int, int32) {
+			return true, 1, 0
 		}
 		_, err = q.Poll(ctx, 1, filter)
 		assert.NoError(t, err)

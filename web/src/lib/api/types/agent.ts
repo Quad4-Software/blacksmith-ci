@@ -12,6 +12,7 @@ export interface Agent {
   capacity: number;
   version: string;
   no_schedule: boolean;
+  priority: number;
   custom_labels: Record<string, string>;
   running_workflows: number;
 }

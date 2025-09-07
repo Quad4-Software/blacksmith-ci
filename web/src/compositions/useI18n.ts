@@ -2,7 +2,6 @@ import { useStorage } from '@vueuse/core';
 import { nextTick } from 'vue';
 import { createI18n } from 'vue-i18n';
 
-import enMessages from '~/assets/locales/en.json';
 import { useDate } from './useDate';
 
 export function getUserLanguage(): string {
@@ -20,9 +19,7 @@ export const i18n = createI18n({
   legacy: false,
   globalInjection: true,
   fallbackLocale,
-  messages: {
-    en: enMessages,
-  },
+  messages: {}, // Start with empty messages, load dynamically
   missingWarn: false,
   fallbackWarn: false,
 });
@@ -44,12 +41,12 @@ export const setI18nLanguage = async (lang: string): Promise<void> => {
   if (!(i18n.global.availableLocales as readonly string[]).includes(lang)) {
     await loadLocaleMessages(lang);
   }
-  // @ts-expect-error - vue-i18n types are too strict for dynamic locale values
   i18n.global.locale.value = lang;
   await setDateLocale(lang);
 };
 
-// Only load user language if it's different from English (which is already loaded)
+// Load English first (fallback), then user language if different
+loadLocaleMessages(fallbackLocale).catch(console.error);
 if (userLanguage !== fallbackLocale) {
   loadLocaleMessages(userLanguage).catch(console.error);
 }

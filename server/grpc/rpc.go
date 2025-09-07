@@ -77,9 +77,9 @@ func (s *RPC) Next(c context.Context, agentFilter rpc.Filter) (*rpc.Workflow, er
 		agentFilter.Labels[k] = v
 	}
 
-	log.Trace().Msgf("Agent %s[%d] tries to pull task with labels: %v", agent.Name, agent.ID, agentFilter.Labels)
+	log.Trace().Msgf("Agent %s[%d] tries to pull task with labels: %v (priority: %d)", agent.Name, agent.ID, agentFilter.Labels, agent.Priority)
 
-	filterFn := createFilterFunc(agentFilter, agent.CustomLabels)
+	filterFn := createFilterFuncWithPriority(agentFilter, agent.CustomLabels, agent.Priority)
 
 	for {
 		// poll blocks until a task is available or the context is canceled / worker is kicked

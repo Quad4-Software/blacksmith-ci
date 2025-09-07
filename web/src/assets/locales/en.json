@@ -323,6 +323,7 @@
           "agent_name": "Agent Name",
           "agent_platform": "Platform",
           "agent_backend": "Backend",
+          "agent_priority": "Priority",
           "agent_labels": "Labels",
           "workflow_count": "Workflows",
           "step_count": "Steps",
@@ -408,6 +409,11 @@
           "custom_labels": "Custom Labels",
           "desc": "The custom labels set by the agent admin on agent startup.",
           "badge": "custom"
+        },
+        "priority": {
+          "priority": "Priority",
+          "desc": "Agent priority for task assignment (higher values have priority). Labels take precedence over priority.",
+          "badge": "priority"
         },
         "org": {
           "badge": "org"
