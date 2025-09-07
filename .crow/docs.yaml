@@ -7,9 +7,7 @@ when:
 
 clone:
   git:
-    image: codeberg.org/crow-plugins/clone:1.0.1
-    settings:
-      depth: 0
+    image: reg.devxy.io/docker.io/thegeeklab/wp-git-clone:1.0.21
 
 steps:
   - name: 'Build docs'
