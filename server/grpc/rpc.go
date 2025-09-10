@@ -63,6 +63,7 @@ func (s *RPC) Next(c context.Context, agentFilter rpc.Filter) (*rpc.Workflow, er
 	}
 
 	if agent.NoSchedule {
+		log.Debug().Str("agentName", agent.Name).Int64("agentID", agent.ID).Msg("Agent marked as NoSchedule, returning nil task")
 		time.Sleep(1 * time.Second)
 		return nil, nil
 	}
@@ -467,6 +468,8 @@ func (s *RPC) RegisterAgent(ctx context.Context, info rpc.AgentInfo) (int64, err
 	agent.Capacity = int32(info.Capacity)
 	agent.Version = info.Version
 	agent.CustomLabels = info.CustomLabels
+	// Reset NoSchedule when agent registers - allows previously disabled agents to receive tasks again
+	agent.NoSchedule = false
 
 	err = s.store.AgentUpdate(agent)
 	if err != nil {
