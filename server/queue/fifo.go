@@ -458,6 +458,7 @@ func (q *fifo) depsInQueue(task *model.Task) bool {
 
 func (q *fifo) updateDepStatusInQueue(taskID string, status model.StatusValue) {
 	var next *list.Element
+
 	for element := q.pending.Front(); element != nil; element = next {
 		next = element.Next()
 		pending, ok := element.Value.(*model.Task)
@@ -484,6 +485,11 @@ func (q *fifo) updateDepStatusInQueue(taskID string, status model.StatusValue) {
 				waiting.DepStatus[dep] = status
 			}
 		}
+	}
+
+	// Only trigger immediate re-evaluation for successful completions
+	if status == model.StatusSuccess {
+		q.filterWaiting()
 	}
 }
 

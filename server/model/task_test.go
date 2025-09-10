@@ -85,3 +85,100 @@ func TestTask_GetLabels(t *testing.T) {
 		}, task.Labels)
 	})
 }
+
+func TestTaskShouldRun(t *testing.T) {
+	tests := []struct {
+		name         string
+		dependencies []string
+		depStatus    map[string]StatusValue
+		runOn        []string
+		expected     bool
+	}{
+		{
+			name:         "no dependencies",
+			dependencies: []string{},
+			depStatus:    map[string]StatusValue{},
+			runOn:        []string{},
+			expected:     true,
+		},
+		{
+			name:         "dependencies but empty status - should wait",
+			dependencies: []string{"1"},
+			depStatus:    map[string]StatusValue{},
+			runOn:        []string{},
+			expected:     false,
+		},
+		{
+			name:         "dependencies with successful status",
+			dependencies: []string{"1"},
+			depStatus:    map[string]StatusValue{"1": StatusSuccess},
+			runOn:        []string{},
+			expected:     true,
+		},
+		{
+			name:         "dependencies with failed status - default runs on success",
+			dependencies: []string{"1"},
+			depStatus:    map[string]StatusValue{"1": StatusFailure},
+			runOn:        []string{},
+			expected:     false,
+		},
+		{
+			name:         "multiple dependencies, partial completion - should wait",
+			dependencies: []string{"1", "2"},
+			depStatus:    map[string]StatusValue{"1": StatusSuccess},
+			runOn:        []string{},
+			expected:     false,
+		},
+		{
+			name:         "multiple dependencies, all successful",
+			dependencies: []string{"1", "2"},
+			depStatus:    map[string]StatusValue{"1": StatusSuccess, "2": StatusSuccess},
+			runOn:        []string{},
+			expected:     true,
+		},
+		{
+			name:         "runs on failure - should wait for deps to complete",
+			dependencies: []string{"1"},
+			depStatus:    map[string]StatusValue{},
+			runOn:        []string{"failure"},
+			expected:     false,
+		},
+		{
+			name:         "runs on failure - dependency failed",
+			dependencies: []string{"1"},
+			depStatus:    map[string]StatusValue{"1": StatusFailure},
+			runOn:        []string{"failure"},
+			expected:     true,
+		},
+		{
+			name:         "runs on failure - dependency succeeded",
+			dependencies: []string{"1"},
+			depStatus:    map[string]StatusValue{"1": StatusSuccess},
+			runOn:        []string{"failure"},
+			expected:     false,
+		},
+		{
+			name:         "runs on both success and failure",
+			dependencies: []string{"1"},
+			depStatus:    map[string]StatusValue{"1": StatusFailure},
+			runOn:        []string{"success", "failure"},
+			expected:     true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			task := &Task{
+				ID:           "test",
+				Dependencies: test.dependencies,
+				DepStatus:    test.depStatus,
+				RunOn:        test.runOn,
+			}
+
+			result := task.ShouldRun()
+			assert.Equal(t, test.expected, result,
+				"Dependencies: %v, DepStatus: %v, RunOn: %v",
+				test.dependencies, test.depStatus, test.runOn)
+		})
+	}
+}

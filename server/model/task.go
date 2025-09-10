@@ -55,6 +55,13 @@ func (t *Task) ApplyLabelsFromRepo(r *Repo) error {
 
 // ShouldRun tells if a task should be run or skipped, based on dependencies.
 func (t *Task) ShouldRun() bool {
+	// First, ensure all dependencies have completed (have a status recorded)
+	for _, dep := range t.Dependencies {
+		if _, hasStatus := t.DepStatus[dep]; !hasStatus {
+			return false // Dependency hasn't completed yet
+		}
+	}
+
 	if t.runsOnFailure() && t.runsOnSuccess() {
 		return true
 	}

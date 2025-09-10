@@ -62,7 +62,8 @@ func queuePipeline(ctx context.Context, repo *model.Repo, pipelineItems []*stepb
 func taskIDs(dependsOn []string, pipelineItems []*stepbuilder.Item) (taskIDs []string) {
 	for _, dep := range dependsOn {
 		for _, pipelineItem := range pipelineItems {
-			if pipelineItem.Workflow.Name == dep {
+			// Check both the workflow name and the original name (for matrix workflows)
+			if pipelineItem.Workflow.Name == dep || pipelineItem.OriginalName == dep {
 				taskIDs = append(taskIDs, fmt.Sprint(pipelineItem.Workflow.ID))
 			}
 		}

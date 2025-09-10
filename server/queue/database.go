@@ -588,13 +588,20 @@ func (q *DatabaseQueue) updateDependentTasks(completedTaskID string, status mode
 				}
 				task.DepStatus[depID] = status
 
-				// Note: We can't update the task in the database because there's no TaskUpdate method
-				// The dependency status is maintained in memory for this queue implementation
-				log.Debug().
-					Str("taskID", task.ID).
-					Str("depID", depID).
-					Str("status", string(status)).
-					Msg("Updated dependency status for task")
+				// Persist the updated dependency status to the database
+				if err := q.store.TaskUpdate(task); err != nil {
+					log.Error().
+						Err(err).
+						Str("taskID", task.ID).
+						Str("depID", depID).
+						Msg("Failed to persist dependency status update to database")
+				} else {
+					log.Debug().
+						Str("taskID", task.ID).
+						Str("depID", depID).
+						Str("status", string(status)).
+						Msg("Updated and persisted dependency status for task")
+				}
 				break
 			}
 		}
