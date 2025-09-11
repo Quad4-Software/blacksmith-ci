@@ -122,6 +122,7 @@ message AgentInfo {
   string backend  = 3;
   string version  = 4;
   map<string, string> customLabels = 5;
+  int32 priority = 6;
 }
 
 message RegisterAgentRequest {

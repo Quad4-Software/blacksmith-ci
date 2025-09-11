@@ -18,7 +18,6 @@ import (
 	"container/list"
 	"context"
 	"fmt"
-	"math/rand"
 	"sync"
 	"time"
 
@@ -57,6 +56,9 @@ type fifo struct {
 // processTimeInterval is the time till the queue rearranges things,
 // as the agent pull in 10 milliseconds we should also give them work asap.
 const processTimeInterval = 100 * time.Millisecond
+
+// minCapacityScore is used as the initial value for capacity scoring during task assignment.
+const minCapacityScore = -1000
 
 var ErrWorkerKicked = fmt.Errorf("worker was kicked")
 
@@ -105,6 +107,13 @@ func (q *fifo) Poll(c context.Context, agentID int64, filter FilterFn) (*model.T
 		stop:    stop,
 	}
 	q.workers[_worker] = struct{}{}
+	workerCount := 0
+	for w := range q.workers {
+		if w.agentID == agentID {
+			workerCount++
+		}
+	}
+	log.Debug().Msgf("queue: agent %d created worker, now has %d workers waiting", agentID, workerCount)
 	q.Unlock()
 
 	for {
@@ -407,11 +416,39 @@ func (q *fifo) assignToWorker() (*list.Element, *worker) {
 			selectedWorker = candidates[0].worker
 			selectedPriority = candidates[0].priority
 		} else {
-			// Multiple candidates with same priority - pick randomly
-			selectedIndex := rand.Intn(len(candidates))
-			selected := candidates[selectedIndex]
-			selectedWorker = selected.worker
-			selectedPriority = selected.priority
+			// Multiple candidates with same priority - prefer agent with more available capacity
+			// Count running tasks and waiting workers per agent
+			agentTaskCount := make(map[int64]int)
+			agentWorkerCount := make(map[int64]int)
+
+			// Count running tasks per agent
+			for _, entry := range q.running {
+				agentTaskCount[entry.item.AgentID]++
+			}
+
+			// Count waiting workers per agent
+			for worker := range q.workers {
+				agentWorkerCount[worker.agentID]++
+			}
+
+			// Find the candidate with the most available capacity
+			// Available capacity = waiting workers - running tasks
+			// This ensures we prefer agents that have more workers ready to take tasks
+			maxAvailableCapacity := minCapacityScore
+			for _, candidate := range candidates {
+				runningTasks := agentTaskCount[candidate.worker.agentID]
+				waitingWorkers := agentWorkerCount[candidate.worker.agentID]
+				availableCapacity := waitingWorkers - runningTasks
+
+				log.Debug().Msgf("queue: agent %d has %d waiting workers, %d running tasks, capacity score: %d",
+					candidate.worker.agentID, waitingWorkers, runningTasks, availableCapacity)
+
+				if availableCapacity > maxAvailableCapacity {
+					maxAvailableCapacity = availableCapacity
+					selectedWorker = candidate.worker
+					selectedPriority = candidate.priority
+				}
+			}
 		}
 
 		if selectedWorker != nil {

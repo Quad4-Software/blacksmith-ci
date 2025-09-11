@@ -76,6 +76,12 @@ var flags = []cli.Flag{
 		Usage:   "agent parallel workflows",
 		Value:   1,
 	},
+	&cli.Int64Flag{
+		Sources: cli.EnvVars("CROW_AGENT_PRIORITY"),
+		Name:    "agent-priority",
+		Usage:   "agent priority for task assignment (higher values get tasks first)",
+		Value:   0,
+	},
 	&cli.BoolFlag{
 		Sources: cli.EnvVars("WOODPECKER_HEALTHCHECK", "CROW_HEALTHCHECK"),
 		Name:    "healthcheck",

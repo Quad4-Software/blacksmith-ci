@@ -179,6 +179,7 @@ func (s *CrowServer) RegisterAgent(c context.Context, req *proto.RegisterAgentRe
 		Backend:      agentInfo.GetBackend(),
 		Capacity:     int(agentInfo.GetCapacity()),
 		CustomLabels: agentInfo.GetCustomLabels(),
+		Priority:     agentInfo.GetPriority(),
 	})
 	res.AgentId = agentID
 	return res, err

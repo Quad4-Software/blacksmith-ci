@@ -487,6 +487,7 @@ func (c *client) RegisterAgent(ctx context.Context, info rpc.AgentInfo) (int64, 
 		Version:      info.Version,
 		Capacity:     int32(info.Capacity),
 		CustomLabels: info.CustomLabels,
+		Priority:     info.Priority,
 	}
 
 	res, err := c.client.RegisterAgent(ctx, req)

@@ -237,6 +237,7 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 		Platform:     engInfo.Platform,
 		Capacity:     maxWorkflows,
 		CustomLabels: customLabels,
+		Priority:     int32(c.Int64("agent-priority")),
 	})
 	if err != nil {
 		return err

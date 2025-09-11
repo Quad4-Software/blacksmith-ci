@@ -468,6 +468,7 @@ func (s *RPC) RegisterAgent(ctx context.Context, info rpc.AgentInfo) (int64, err
 	agent.Capacity = int32(info.Capacity)
 	agent.Version = info.Version
 	agent.CustomLabels = info.CustomLabels
+	agent.Priority = info.Priority
 	// Reset NoSchedule when agent registers - allows previously disabled agents to receive tasks again
 	agent.NoSchedule = false
 
