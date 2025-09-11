@@ -60,3 +60,4 @@ local.sh
 CLAUDE.md
 crow-server
 crow-cli
+crow-agent

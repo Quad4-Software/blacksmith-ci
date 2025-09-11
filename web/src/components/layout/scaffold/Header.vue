@@ -58,7 +58,7 @@
         class="flex flex-col gap-0 md:gap-0 md:flex-row md:items-center md:justify-between md:py-0"
       >
         <Tabs class="order-2 md:order-none" />
-        <div v-if="$slots.headerActions" class="flex flex-wrap content-start pb-2 md:justify-end">
+        <div v-if="$slots.headerActions" class="flex flex-wrap content-start pb-2 md:justify-end gap-2">
           <slot name="tabActions" />
         </div>
       </div>

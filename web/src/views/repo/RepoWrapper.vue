@@ -22,6 +22,15 @@
     </template>
     <template #tabActions>
       <Button
+        v-if="repoPermissions.push && (route.name === 'repo' || route.name === 'repo-pipeline')"
+        size="small"
+        variant="outline"
+        :title="isMultiselectMode ? $t('repo.pipeline.exit_multiselect') : $t('repo.pipeline.multiselect')"
+        @click="toggleMultiselectMode"
+      >
+        <Icon :name="isMultiselectMode ? 'close' : 'list'" class="h-4 w-4" />
+      </Button>
+      <Button
         v-if="repoPermissions.push && route.name !== 'repo-manual'"
         :text="$t('repo.manual_pipeline.trigger')"
         start-icon="manual-pipeline"
@@ -55,6 +64,7 @@ import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
 import Button from '~/components/atomic/Button.vue';
+import Icon from '~/components/atomic/Icon.vue';
 import type { IconNames } from '~/components/atomic/Icon.vue';
 import IconButton from '~/components/atomic/IconButton.vue';
 import Scaffold from '~/components/layout/scaffold/Scaffold.vue';
@@ -89,9 +99,16 @@ const { updateLastAccess } = useRepos();
 const repo = repoStore.getRepo(repositoryId);
 const repoPermissions = ref<RepoPermissions>();
 const pipelines = pipelineStore.getRepoPipelines(repositoryId);
+const isMultiselectMode = ref(false);
 provide('repo', repo as Ref<Repo>); // can't be undefined because of v-if in template
 provide('repo-permissions', repoPermissions as Ref<RepoPermissions>); // can't be undefined because of v-if in template
 provide('pipelines', pipelines);
+provide('multiselect-mode' as any, isMultiselectMode);
+
+function toggleMultiselectMode() {
+  isMultiselectMode.value = !isMultiselectMode.value;
+}
+
 const forge = ref<Forge>();
 const forgeIcon = computed<IconNames>(() => {
   if (forge.value && forge.value.type !== 'addon') {
