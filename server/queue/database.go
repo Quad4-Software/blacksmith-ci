@@ -94,9 +94,6 @@ func NewDatabaseQueue(ctx context.Context, store store.Store, lockService LockSe
 	// Start separate leader election process for task assignment
 	go q.leaderElectionLoop()
 
-	// Start priority-based assignment processor
-	go q.StartPriorityAssignmentLoop()
-
 	return q
 }
 
@@ -119,12 +116,6 @@ func (q *DatabaseQueue) PushAtOnce(ctx context.Context, tasks []*model.Task) err
 
 // Poll retrieves and assigns a task to an agent.
 func (q *DatabaseQueue) Poll(ctx context.Context, agentID int64, filter FilterFn) (*model.Task, error) {
-	// Use priority-based polling for better task distribution
-	return q.PollWithPriority(ctx, agentID, filter)
-}
-
-// PollLegacy is the old polling implementation (kept for reference).
-func (q *DatabaseQueue) PollLegacy(ctx context.Context, agentID int64, filter FilterFn) (*model.Task, error) {
 	// Create a timeout to prevent indefinite blocking
 	pollCtx, cancel := context.WithTimeout(ctx, maxPollDuration)
 	defer cancel()
