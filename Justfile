@@ -57,7 +57,7 @@ test: test-agent test-server test-server-datastore test-cli test-lib
 
 ## Run all code generations
 # ensure `protoc-gen-go` and `protoc-gen-go-grpc` are installed
-generate: generate-openapi
+generate:
 	CGO_ENABLED=0 go generate ./...
 	cd pipeline/rpc/proto && go generate
 

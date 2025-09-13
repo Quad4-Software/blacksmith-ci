@@ -20,7 +20,7 @@ import (
 )
 
 // Generate docs/openapi.json via:
-//go:generate go run openapi_json_gen.go openapi.go
+// (disabled) go:generate go run openapi_json_gen.go openapi.go.
 
 // setupOpenAPIStaticConfig initializes static content (version) for the OpenAPI config.
 //

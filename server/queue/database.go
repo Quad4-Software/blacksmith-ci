@@ -16,6 +16,8 @@ package queue
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -38,6 +40,8 @@ const (
 
 	// Assignment leader lock TTL - balanced for quick failover and database efficiency in HA mode.
 	assignmentLeaderLockTTL = 15 * time.Second
+	// Maximum canceled tasks to keep in memory before cleanup.
+	maxCancelledTasksInMemory = 1000
 )
 
 // DatabaseQueue implements a distributed queue using the database as the backend.
@@ -55,35 +59,41 @@ type DatabaseQueue struct {
 	assignedTasks map[string]int64 // task ID -> agent ID
 	assignmentMu  sync.Mutex
 
+	// Track canceled tasks to signal waiting agents
+	cancelledTasks   map[string]error // task ID -> cancellation error
+	cancelledTasksMu sync.RWMutex
+
 	// Leader election state
 	isLeader bool
 	leaderMu sync.RWMutex
 
-	// Track polling agents for priority-based assignment
-	pollingAgents     map[int64]*pollingAgent
-	pollingAgentsMu   sync.RWMutex
-	lastAssignmentRun time.Time
+	// Track polling agents for batch assignment
+	// We use a unique ID for each polling instance since one agent can have multiple workers
+	pollingInstances   map[string]*pollingInstance // map[instanceID]*pollingInstance
+	pollingInstancesMu sync.RWMutex
+	nextInstanceID     int64
 }
 
-type pollingAgent struct {
-	agentID  int64
-	filter   FilterFn
-	priority int32
-	pollTime time.Time
-	taskChan chan *model.Task
+type pollingInstance struct {
+	instanceID string
+	agentID    int64
+	filter     FilterFn
+	response   chan *model.Task
+	pollTime   time.Time
 }
 
 // NewDatabaseQueue creates a new database-backed queue for HA deployments.
 func NewDatabaseQueue(ctx context.Context, store store.Store, lockService LockService, instanceID string, leaderLockTTL time.Duration) Queue {
 	q := &DatabaseQueue{
-		ctx:           ctx,
-		store:         store,
-		lockService:   lockService,
-		instanceID:    instanceID,
-		paused:        false,
-		assignedTasks: make(map[string]int64),
-		pollingAgents: make(map[int64]*pollingAgent),
-		leaderLockTTL: leaderLockTTL,
+		ctx:              ctx,
+		store:            store,
+		lockService:      lockService,
+		instanceID:       instanceID,
+		paused:           false,
+		assignedTasks:    make(map[string]int64),
+		cancelledTasks:   make(map[string]error),
+		pollingInstances: make(map[string]*pollingInstance),
+		leaderLockTTL:    leaderLockTTL,
 	}
 
 	log.Info().Str("instanceID", instanceID).Msg("Starting database queue for HA deployment")
@@ -93,6 +103,9 @@ func NewDatabaseQueue(ctx context.Context, store store.Store, lockService LockSe
 
 	// Start separate leader election process for task assignment
 	go q.leaderElectionLoop()
+
+	// Start background assignment processor for polling agents
+	go q.assignmentLoop()
 
 	return q
 }
@@ -120,92 +133,50 @@ func (q *DatabaseQueue) Poll(ctx context.Context, agentID int64, filter FilterFn
 	pollCtx, cancel := context.WithTimeout(ctx, maxPollDuration)
 	defer cancel()
 
-	for {
-		select {
-		case <-pollCtx.Done():
-			// Return nil task without error to allow client to retry
-			// This prevents HAProxy 504 timeouts on long polling
-			return nil, nil
-		case <-time.After(dbPollInterval):
-			q.mu.RLock()
-			isPaused := q.paused
-			q.mu.RUnlock()
+	// Create response channel for this polling instance
+	responseChan := make(chan *model.Task, 1)
 
-			if isPaused {
-				continue
-			}
+	// Generate unique instance ID for this polling request
+	q.pollingInstancesMu.Lock()
+	q.nextInstanceID++
+	instanceID := fmt.Sprintf("%d-%d", agentID, q.nextInstanceID)
+	q.pollingInstances[instanceID] = &pollingInstance{
+		instanceID: instanceID,
+		agentID:    agentID,
+		filter:     filter,
+		response:   responseChan,
+		pollTime:   time.Now(),
+	}
+	instanceCount := len(q.pollingInstances)
+	q.pollingInstancesMu.Unlock()
 
-			// Only the leader server should assign tasks to prevent race conditions in HA mode
-			q.leaderMu.RLock()
-			isLeader := q.isLeader
-			q.leaderMu.RUnlock()
-
-			if !isLeader {
-				// Not the leader - wait and retry
-				continue
-			}
-
-			// We are the leader - proceed with task assignment
-			// Get tasks from database
-			tasks, err := q.store.TaskList()
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to list tasks from database")
-				continue
-			}
-
-			// Find suitable task for this agent
-			for _, task := range tasks {
-				// Skip if task is already assigned (check database for HA environments)
-				q.assignmentMu.Lock()
-				if task.AgentID != 0 {
-					// Task is already assigned in database to another agent
-					q.assignmentMu.Unlock()
-					continue
-				}
-				if assignedAgent, exists := q.assignedTasks[task.ID]; exists && assignedAgent != 0 {
-					// Task is assigned in local memory (additional safety check)
-					q.assignmentMu.Unlock()
-					continue
-				}
-
-				// Check if task dependencies are met
-				if !q.areDependenciesMet(task, tasks) {
-					q.assignmentMu.Unlock()
-					continue
-				}
-
-				// Apply agent filter
-				if filter != nil {
-					matched, _, _ := filter(task)
-					if !matched {
-						q.assignmentMu.Unlock()
-						continue
-					}
-				}
-
-				// Atomically assign task to this agent in database first
-				atomicAssigned, err := q.atomicTaskAssignment(task.ID, agentID)
-				if err != nil {
-					log.Error().Err(err).Str("taskID", task.ID).Int64("agentID", agentID).Msg("Failed to atomically assign task")
-					q.assignmentMu.Unlock()
-					continue
-				}
-				if !atomicAssigned {
-					// Task was assigned to another agent in the meantime
-					log.Debug().Str("taskID", task.ID).Int64("agentID", agentID).Msg("Task was assigned to another agent during atomic assignment")
-					q.assignmentMu.Unlock()
-					continue
-				}
-
-				// Success! Update local tracking and task object
-				q.assignedTasks[task.ID] = agentID
-				q.assignmentMu.Unlock()
-				task.AgentID = agentID
-
-				log.Debug().Str("taskID", task.ID).Int64("agentID", agentID).Str("leaderInstance", q.instanceID).Msg("Leader assigned task to agent")
-				return task, nil
-			}
+	// Clean up on exit
+	defer func() {
+		q.pollingInstancesMu.Lock()
+		if _, exists := q.pollingInstances[instanceID]; exists {
+			delete(q.pollingInstances, instanceID)
+			close(responseChan)
 		}
+		q.pollingInstancesMu.Unlock()
+	}()
+
+	// If we're the leader and have instances polling, trigger batch assignment
+	q.leaderMu.RLock()
+	isLeader := q.isLeader
+	q.leaderMu.RUnlock()
+
+	if isLeader && instanceCount > 0 {
+		// Small delay to allow more instances to register if they're coming
+		time.Sleep(10 * time.Millisecond)
+		go q.tryBatchAssignment()
+	}
+
+	// Wait for task assignment or timeout
+	select {
+	case <-pollCtx.Done():
+		return nil, nil
+	case task := <-responseChan:
+		return task, nil
 	}
 }
 
@@ -223,11 +194,29 @@ func (q *DatabaseQueue) Done(ctx context.Context, id string, exitStatus model.St
 
 // Error marks a task as failed and removes it from the database.
 func (q *DatabaseQueue) Error(ctx context.Context, id string, err error) error {
+	// Track cancellation BEFORE deleting from database
+	if errors.Is(err, ErrCancel) {
+		q.cancelledTasksMu.Lock()
+		q.cancelledTasks[id] = err
+		q.cancelledTasksMu.Unlock()
+
+		log.Info().
+			Str("taskID", id).
+			Int("totalCancelled", len(q.cancelledTasks)).
+			Msg("Task canceled - stored in cancellation map for Wait() detection")
+	}
+
 	return q.Done(ctx, id, model.StatusFailure)
 }
 
 // ErrorAtOnce marks multiple tasks as failed.
 func (q *DatabaseQueue) ErrorAtOnce(ctx context.Context, ids []string, err error) error {
+	if errors.Is(err, ErrCancel) && len(ids) > 0 {
+		log.Info().
+			Strs("taskIDs", ids).
+			Msg("Canceling multiple tasks")
+	}
+
 	for _, id := range ids {
 		if errUpdate := q.Error(ctx, id, err); errUpdate != nil {
 			return errUpdate
@@ -238,6 +227,11 @@ func (q *DatabaseQueue) ErrorAtOnce(ctx context.Context, ids []string, err error
 
 // Evict removes a pending task from the queue.
 func (q *DatabaseQueue) Evict(ctx context.Context, taskID string) error {
+	// Track as canceled when evicting (eviction usually means cancellation)
+	q.cancelledTasksMu.Lock()
+	q.cancelledTasks[taskID] = ErrCancel
+	q.cancelledTasksMu.Unlock()
+
 	q.assignmentMu.Lock()
 	delete(q.assignedTasks, taskID)
 	q.assignmentMu.Unlock()
@@ -247,6 +241,20 @@ func (q *DatabaseQueue) Evict(ctx context.Context, taskID string) error {
 
 // EvictAtOnce removes multiple pending tasks from the queue.
 func (q *DatabaseQueue) EvictAtOnce(ctx context.Context, taskIDs []string) error {
+	// Track all as canceled when evicting (eviction usually means cancellation)
+	q.cancelledTasksMu.Lock()
+	for _, id := range taskIDs {
+		q.cancelledTasks[id] = ErrCancel
+	}
+	q.cancelledTasksMu.Unlock()
+
+	if len(taskIDs) > 0 {
+		log.Info().
+			Strs("taskIDs", taskIDs).
+			Int("count", len(taskIDs)).
+			Msg("Evicting tasks and marking as canceled")
+	}
+
 	q.assignmentMu.Lock()
 	for _, id := range taskIDs {
 		delete(q.assignedTasks, id)
@@ -263,11 +271,27 @@ func (q *DatabaseQueue) EvictAtOnce(ctx context.Context, taskIDs []string) error
 
 // Wait waits until a task is completed (removed from database).
 func (q *DatabaseQueue) Wait(ctx context.Context, taskID string) error {
+	log.Info().
+		Str("taskID", taskID).
+		Msg("Wait() called - agent monitoring for task completion or cancellation")
+
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-time.After(time.Second):
+		case <-time.After(500 * time.Millisecond):
+			// First check if task was canceled
+			q.cancelledTasksMu.RLock()
+			if cancelErr, wasCancelled := q.cancelledTasks[taskID]; wasCancelled {
+				q.cancelledTasksMu.RUnlock()
+				log.Info().
+					Str("taskID", taskID).
+					Msg("Wait() detected task was canceled - returning ErrCancel to agent")
+				return cancelErr
+			}
+			q.cancelledTasksMu.RUnlock()
+
+			// Then check if task still exists in database
 			tasks, err := q.store.TaskList()
 			if err != nil {
 				return err
@@ -283,7 +307,24 @@ func (q *DatabaseQueue) Wait(ctx context.Context, taskID string) error {
 			}
 
 			if !found {
-				return nil // Task completed
+				// Task no longer in database - check once more for cancellation
+				q.cancelledTasksMu.RLock()
+				cancelledCount := len(q.cancelledTasks)
+				if cancelErr, wasCancelled := q.cancelledTasks[taskID]; wasCancelled {
+					q.cancelledTasksMu.RUnlock()
+					log.Info().
+						Str("taskID", taskID).
+						Msg("Wait() detected task was canceled (after DB deletion) - returning ErrCancel")
+					return cancelErr
+				}
+				q.cancelledTasksMu.RUnlock()
+
+				// Task completed normally
+				log.Info().
+					Str("taskID", taskID).
+					Int("cancelledTasksInMemory", cancelledCount).
+					Msg("Wait() detected task completed normally (not in DB, not in canceled list)")
+				return nil
 			}
 		}
 	}
@@ -420,6 +461,84 @@ func (q *DatabaseQueue) KickAgentWorkers(agentID int64) {
 	}
 
 	log.Info().Int64("agentID", agentID).Int("tasksKicked", kickedTasks).Msg("Kicked agent workers")
+}
+
+// assignmentLoop periodically checks for waiting instances and assigns tasks.
+func (q *DatabaseQueue) assignmentLoop() {
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+
+	cleanupTicker := time.NewTicker(10 * time.Second)
+	defer cleanupTicker.Stop()
+
+	cancelledCleanupTicker := time.NewTicker(5 * time.Minute)
+	defer cancelledCleanupTicker.Stop()
+
+	for {
+		select {
+		case <-q.ctx.Done():
+			return
+		case <-ticker.C:
+			// Only process if we're the leader
+			q.leaderMu.RLock()
+			isLeader := q.isLeader
+			q.leaderMu.RUnlock()
+
+			if !isLeader {
+				continue
+			}
+
+			// Check if we have polling instances
+			q.pollingInstancesMu.RLock()
+			instanceCount := len(q.pollingInstances)
+			q.pollingInstancesMu.RUnlock()
+
+			if instanceCount > 0 {
+				q.tryBatchAssignment()
+			}
+		case <-cleanupTicker.C:
+			// Clean up stale polling instances
+			q.cleanupStalePollingInstances()
+		case <-cancelledCleanupTicker.C:
+			// Clean up old canceled tasks
+			q.cleanupCancelledTasks()
+		}
+	}
+}
+
+// cleanupStalePollingInstances removes instances that have been polling for too long.
+func (q *DatabaseQueue) cleanupStalePollingInstances() {
+	q.pollingInstancesMu.Lock()
+	defer q.pollingInstancesMu.Unlock()
+
+	now := time.Now()
+	for instanceID, instance := range q.pollingInstances {
+		if now.Sub(instance.pollTime) > maxPollDuration {
+			// Don't close the channel here - it's closed by Poll's defer
+			delete(q.pollingInstances, instanceID)
+			log.Debug().Str("instanceID", instanceID).Int64("agentID", instance.agentID).
+				Msg("Cleaned up stale polling instance")
+		}
+	}
+}
+
+// cleanupCancelledTasks removes old canceled task entries to prevent memory leak.
+func (q *DatabaseQueue) cleanupCancelledTasks() {
+	q.cancelledTasksMu.RLock()
+	count := len(q.cancelledTasks)
+	q.cancelledTasksMu.RUnlock()
+
+	// Only clear if we have excessive entries (memory concern)
+	// We need to keep canceled tasks for Wait() to detect them
+	if count > maxCancelledTasksInMemory {
+		q.cancelledTasksMu.Lock()
+		oldCount := len(q.cancelledTasks)
+		q.cancelledTasks = make(map[string]error)
+		q.cancelledTasksMu.Unlock()
+		log.Warn().Int("count", oldCount).Msg("Cleared canceled tasks due to excessive memory usage")
+	} else if count > 0 {
+		log.Debug().Int("count", count).Msg("Keeping canceled tasks for Wait() detection")
+	}
 }
 
 // leaderElectionLoop runs the leader election process for task assignment.
@@ -582,6 +701,149 @@ func (q *DatabaseQueue) areDependenciesMet(task *model.Task, allTasks []*model.T
 	}
 
 	return true
+}
+
+// tryBatchAssignment attempts to assign tasks to all polling instances.
+func (q *DatabaseQueue) tryBatchAssignment() {
+	q.mu.RLock()
+	isPaused := q.paused
+	q.mu.RUnlock()
+
+	if isPaused {
+		return
+	}
+
+	// Get tasks from database
+	tasks, err := q.store.TaskList()
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to list tasks for batch assignment")
+		return
+	}
+
+	// Get snapshot of polling instances
+	q.pollingInstancesMu.RLock()
+	instances := make([]*pollingInstance, 0, len(q.pollingInstances))
+	for _, instance := range q.pollingInstances {
+		instances = append(instances, instance)
+	}
+	q.pollingInstancesMu.RUnlock()
+
+	if len(instances) == 0 || len(tasks) == 0 {
+		return
+	}
+
+	// Count ready tasks for logging
+	readyTasks := 0
+	for _, task := range tasks {
+		if task.AgentID == 0 && q.areDependenciesMet(task, tasks) {
+			readyTasks++
+		}
+	}
+
+	if readyTasks > 0 {
+		log.Debug().
+			Int("readyTasks", readyTasks).
+			Int("pollingInstances", len(instances)).
+			Msg("Starting batch assignment")
+	}
+
+	// Track assignments made
+	assignmentsMade := 0
+
+	// Build a list of available instances (not nil)
+	availableInstances := make([]*pollingInstance, 0, len(instances))
+	for _, inst := range instances {
+		if inst != nil {
+			availableInstances = append(availableInstances, inst)
+		}
+	}
+
+	// Try to assign tasks to waiting instances
+	for _, task := range tasks {
+		if len(availableInstances) == 0 {
+			break // No more instances waiting
+		}
+
+		// Skip already assigned tasks
+		if task.AgentID != 0 {
+			continue
+		}
+
+		q.assignmentMu.Lock()
+		if assignedAgent, exists := q.assignedTasks[task.ID]; exists && assignedAgent != 0 {
+			q.assignmentMu.Unlock()
+			continue
+		}
+		q.assignmentMu.Unlock()
+
+		// Check dependencies
+		if !q.areDependenciesMet(task, tasks) {
+			continue
+		}
+
+		// Find an instance that can handle this task
+		for i := 0; i < len(availableInstances); i++ {
+			instance := availableInstances[i]
+			if instance == nil {
+				continue
+			}
+
+			if instance.filter != nil {
+				matched, _, _ := instance.filter(task)
+				if !matched {
+					continue
+				}
+			}
+
+			// Try to atomically assign the task
+			atomicAssigned, err := q.atomicTaskAssignment(task.ID, instance.agentID)
+			if err != nil {
+				log.Error().Err(err).Str("taskID", task.ID).Int64("agentID", instance.agentID).
+					Msg("Failed to atomically assign task in batch assignment")
+				continue
+			}
+
+			if atomicAssigned {
+				// Success! Update tracking and send task to instance
+				q.assignmentMu.Lock()
+				q.assignedTasks[task.ID] = instance.agentID
+				q.assignmentMu.Unlock()
+
+				task.AgentID = instance.agentID
+				assignmentsMade++
+
+				// Send task to the instance's channel
+				select {
+				case instance.response <- task:
+					log.Debug().Str("taskID", task.ID).Int64("agentID", instance.agentID).
+						Str("instanceID", instance.instanceID).
+						Msg("Task assigned to polling instance in batch assignment")
+				default:
+					log.Warn().Str("taskID", task.ID).Int64("agentID", instance.agentID).
+						Msg("Instance response channel full")
+				}
+
+				// Remove this instance from available instances
+				// Swap with last element and shrink slice
+				availableInstances[i] = availableInstances[len(availableInstances)-1]
+				availableInstances = availableInstances[:len(availableInstances)-1]
+				// Note: i-- removed as we're breaking out of the loop
+
+				// Also remove from the map so it doesn't get picked up again
+				q.pollingInstancesMu.Lock()
+				delete(q.pollingInstances, instance.instanceID)
+				q.pollingInstancesMu.Unlock()
+				break
+			}
+		}
+	}
+
+	if assignmentsMade > 0 {
+		log.Info().
+			Int("assignmentsMade", assignmentsMade).
+			Int("pollingInstances", len(instances)).
+			Msg("Completed batch task assignment")
+	}
 }
 
 // updateDependentTasks updates the dependency status for tasks that depend on the completed task.
