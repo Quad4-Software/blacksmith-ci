@@ -631,6 +631,14 @@ func PostPipeline(c *gin.Context) {
 		return
 	}
 
+	// Store the original event type before any modifications
+	originalEvent := pl.Event
+	log.Debug().
+		Str("stored_original_event", string(originalEvent)).
+		Str("current_event", string(pl.Event)).
+		Int64("pipeline_number", pl.Number).
+		Msg("Stored original event before modifications")
+
 	// refresh the token to make sure, pipeline.Restart can still obtain the pipeline config if necessary again
 	refreshUserToken(c, user)
 
@@ -642,6 +650,10 @@ func PostPipeline(c *gin.Context) {
 	// make Event overridable to deploy
 	// TODO: refactor to use own proper API for deploy
 	if event, ok := c.GetQuery("event"); ok {
+		log.Debug().
+			Str("query_event", event).
+			Str("original_event", string(originalEvent)).
+			Msg("Event query parameter found")
 		pl.Event = model.WebhookEvent(event)
 		if pl.Event != model.EventDeploy {
 			_ = c.AbortWithError(http.StatusBadRequest, model.ErrInvalidWebhookEvent)
@@ -661,7 +673,7 @@ func PostPipeline(c *gin.Context) {
 	for key, val := range c.Request.URL.Query() {
 		switch key {
 		// Skip some options of the endpoint
-		case "fork", "event", "deploy_to":
+		case "fork", "event", "deploy_to", "deploy_task":
 			continue
 		default:
 			// We only accept string literals, because pipeline parameters will be
@@ -671,6 +683,37 @@ func PostPipeline(c *gin.Context) {
 		}
 	}
 
+	// Pass original event in envs to help determine if this is a deployment from a non-deployment
+	log.Debug().
+		Str("pl.Event", string(pl.Event)).
+		Str("originalEvent", string(originalEvent)).
+		Str("model.EventDeploy", string(model.EventDeploy)).
+		Bool("pl.Event == model.EventDeploy", pl.Event == model.EventDeploy).
+		Bool("originalEvent != model.EventDeploy", originalEvent != model.EventDeploy).
+		Bool("condition", pl.Event == model.EventDeploy && originalEvent != model.EventDeploy).
+		Msg("Checking deployment condition")
+
+	if pl.Event == model.EventDeploy && originalEvent != model.EventDeploy {
+		envs["CROW_ORIGINAL_EVENT"] = string(originalEvent)
+		log.Debug().
+			Str("original_event", string(originalEvent)).
+			Str("new_event", string(pl.Event)).
+			Int64("pipeline_number", pl.Number).
+			Msg("Triggering deployment from non-deployment pipeline")
+	} else {
+		log.Debug().
+			Str("original_event", string(originalEvent)).
+			Str("new_event", string(pl.Event)).
+			Int64("pipeline_number", pl.Number).
+			Bool("is_deployment", pl.Event == model.EventDeploy).
+			Bool("original_is_deployment", originalEvent == model.EventDeploy).
+			Msg("Not marking as deployment from other event")
+	}
+	log.Debug().
+		Interface("envs_passed_to_restart", envs).
+		Str("pl.Event", string(pl.Event)).
+		Bool("has_crow_original_event", envs["CROW_ORIGINAL_EVENT"] != "").
+		Msg("About to call pipeline.Restart")
 	newPipeline, err := pipeline.Restart(c, _store, pl, user, repo, envs)
 	if err != nil {
 		handlePipelineErr(c, err)

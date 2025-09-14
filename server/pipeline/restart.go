@@ -29,6 +29,12 @@ import (
 
 // Restart a pipeline by creating a new one out of the old and start it.
 func Restart(ctx context.Context, store store.Store, lastPipeline *model.Pipeline, user *model.User, repo *model.Repo, envs map[string]string) (*model.Pipeline, error) {
+	// Debug logging
+	log.Debug().
+		Str("event", string(lastPipeline.Event)).
+		Int64("number", lastPipeline.Number).
+		Interface("envs", envs).
+		Msg("Restart function called")
 	forge, err := server.Config.Services.Manager.ForgeFromRepo(repo)
 	if err != nil {
 		msg := fmt.Sprintf("failure to load forge for repo '%s'", repo.FullName)
@@ -62,7 +68,46 @@ func Restart(ctx context.Context, store store.Store, lastPipeline *model.Pipelin
 	}
 
 	newPipeline := createNewOutOfOld(lastPipeline)
-	newPipeline.Parent = lastPipeline.Number
+
+	// Check if this is a deployment triggered from a non-deployment pipeline
+	// The API passes CROW_ORIGINAL_EVENT when converting a non-deployment to deployment
+	originalEventStr, isDeploymentFromOtherEvent := envs["CROW_ORIGINAL_EVENT"]
+
+	// Log for debugging
+	if isDeploymentFromOtherEvent {
+		log.Debug().
+			Str("original_event", originalEventStr).
+			Str("new_event", string(newPipeline.Event)).
+			Int64("pipeline_number", lastPipeline.Number).
+			Msg("Creating fresh deployment from non-deployment event - not setting parent")
+	} else {
+		log.Debug().
+			Str("event", string(newPipeline.Event)).
+			Int64("pipeline_number", lastPipeline.Number).
+			Bool("has_marker", isDeploymentFromOtherEvent).
+			Msg("Standard restart - setting parent")
+	}
+
+	// Only set parent for actual restarts
+	// Don't set parent for fresh deployments (when CROW_ORIGINAL_EVENT is present)
+	if !isDeploymentFromOtherEvent {
+		newPipeline.Parent = lastPipeline.Number
+		log.Debug().
+			Int64("parent_set_to", lastPipeline.Number).
+			Msg("Setting parent for restart")
+	} else {
+		log.Debug().
+			Int64("parent_value", newPipeline.Parent).
+			Msg("NOT setting parent for fresh deployment - parent should be 0")
+	}
+
+	// Clean up the temporary marker
+	delete(envs, "CROW_ORIGINAL_EVENT")
+
+	log.Debug().
+		Int64("final_parent_value", newPipeline.Parent).
+		Str("event", string(newPipeline.Event)).
+		Msg("About to create pipeline with parent value")
 
 	err = store.CreatePipeline(newPipeline)
 	if err != nil {
@@ -127,6 +172,7 @@ func createNewOutOfOld(old *model.Pipeline) *model.Pipeline {
 	newPipeline := *old
 	newPipeline.ID = 0
 	newPipeline.Number = 0
+	newPipeline.Parent = 0 // Reset parent - will be set later if this is a restart
 	newPipeline.Status = model.StatusPending
 	newPipeline.Started = 0
 	newPipeline.Finished = 0
