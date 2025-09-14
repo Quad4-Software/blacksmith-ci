@@ -53,6 +53,7 @@ import (
 const (
 	reportHealthInterval           = time.Second * 10
 	authInterceptorRefreshInterval = time.Minute * 30
+	minConnectTimeout              = time.Second * 5
 )
 
 const (
@@ -135,35 +136,88 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 
 	var transport grpc.DialOption
 	if c.Bool("grpc-secure") {
-		log.Trace().Msg("use ssl for grpc")
-		transport = grpc.WithTransportCredentials(grpc_credentials.NewTLS(&tls.Config{InsecureSkipVerify: c.Bool("grpc-skip-insecure")}))
+		log.Trace().
+			Bool("skip-insecure", c.Bool("grpc-skip-insecure")).
+			Msg("Using TLS/SSL for gRPC connection")
+		tlsConfig := &tls.Config{
+			InsecureSkipVerify: c.Bool("grpc-skip-insecure"),
+			NextProtos:         []string{"h2"}, // Explicitly request HTTP/2
+		}
+		transport = grpc.WithTransportCredentials(grpc_credentials.NewTLS(tlsConfig))
 	} else {
+		log.Trace().Msg("Using insecure (non-TLS) gRPC connection")
 		transport = grpc.WithTransportCredentials(insecure.NewCredentials())
 	}
 
+	serverAddr := c.String("server")
+
+	// If using secure connection and no port specified, append :443
+	// This handles the case where nginx is proxying gRPC over HTTPS on standard port
+	if c.Bool("grpc-secure") && !strings.Contains(serverAddr, ":") {
+		serverAddr += ":443"
+		log.Trace().
+			Str("original", c.String("server")).
+			Str("adjusted", serverAddr).
+			Msg("No port specified for secure connection, using default :443")
+	}
+
+	log.Trace().
+		Str("server", serverAddr).
+		Bool("skip-verify", c.Bool("grpc-skip-verify")).
+		Dur("keepalive-time", c.Duration("grpc-keepalive-time")).
+		Dur("keepalive-timeout", c.Duration("grpc-keepalive-timeout")).
+		Msg("Creating gRPC auth connection")
+
 	authConn, err := grpc.NewClient(
-		c.String("server"),
+		serverAddr,
 		transport,
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
 			Time:    c.Duration("grpc-keepalive-time"),
 			Timeout: c.Duration("grpc-keepalive-timeout"),
 		}),
+		grpc.WithDefaultCallOptions(grpc.WaitForReady(false)), // Don't wait indefinitely
+		grpc.WithConnectParams(grpc.ConnectParams{
+			MinConnectTimeout: minConnectTimeout,
+		}),
 	)
 	if err != nil {
+		log.Trace().Err(err).Str("server", serverAddr).Msg("Failed to create gRPC auth connection")
 		return fmt.Errorf("could not create new gRPC 'channel' for authentication: %w", err)
 	}
 	defer authConn.Close()
 
+	log.Trace().
+		Str("target", authConn.Target()).
+		Str("state", authConn.GetState().String()).
+		Msg("gRPC auth connection created successfully")
+
 	agentConfig := readAgentConfig(agentConfigPath)
 
 	agentToken := c.String("grpc-token")
+	log.Trace().
+		// Str("agent-id", agentConfig.AgentID).
+		Bool("has-token", agentToken != "").
+		Msg("Initializing authentication")
+
 	grpcClientCtx, grpcClientCtxCancel := context.WithCancelCause(context.Background())
 	defer grpcClientCtxCancel(nil)
 	authClient := agent_rpc.NewAuthGrpcClient(authConn, agentToken, agentConfig.AgentID)
+
+	log.Trace().
+		Dur("refresh-interval", authInterceptorRefreshInterval).
+		Msg("Creating auth interceptor")
+
 	authInterceptor, err := agent_rpc.NewAuthInterceptor(grpcClientCtx, authClient, authInterceptorRefreshInterval) //nolint:contextcheck
 	if err != nil {
+		log.Trace().Err(err).Msg("Failed to create auth interceptor")
 		return fmt.Errorf("could not create new auth interceptor: %w", err)
 	}
+
+	log.Trace().Msg("Auth interceptor created successfully")
+
+	log.Trace().
+		Str("server", c.String("server")).
+		Msg("Creating main gRPC connection with auth interceptor")
 
 	conn, err := grpc.NewClient(
 		c.String("server"),
@@ -348,6 +402,7 @@ func runWithRetry(backendEngines []types.Backend) func(ctx context.Context, c *c
 			default:
 			}
 
+			log.Trace().Msg("Starting agent connection attempt")
 			err := run(ctx, c, backendEngines)
 
 			// If context was canceled or we got a fatal error, exit
@@ -356,9 +411,15 @@ func runWithRetry(backendEngines []types.Backend) func(ctx context.Context, c *c
 			}
 
 			grpcCode := status.Code(err)
+			log.Trace().
+				Str("grpc-code", grpcCode.String()).
+				Err(err).
+				Msg("Connection attempt completed")
+
 			switch grpcCode {
 			case codes.OK:
 				// Success
+				log.Trace().Msg("Connection successful")
 				return nil
 			case codes.Unavailable, codes.DeadlineExceeded, codes.Internal, codes.Aborted:
 				// Recoverable errors - retry with exponential backoff
@@ -376,6 +437,14 @@ func runWithRetry(backendEngines []types.Backend) func(ctx context.Context, c *c
 				} else {
 					log.Debug().Err(err).Int("attempt", retryCount).Msgf("connection failed, will retry in %v", delay)
 				}
+
+				// Always log at trace level for debugging
+				log.Trace().
+					Int("attempt", retryCount).
+					Dur("delay", delay).
+					Str("grpc-code", grpcCode.String()).
+					Err(err).
+					Msg("Retrying connection after recoverable error")
 
 				select {
 				case <-time.After(delay):

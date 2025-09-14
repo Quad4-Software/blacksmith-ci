@@ -18,12 +18,17 @@ import (
 	"context"
 	"time"
 
+	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/connectivity"
 
 	"codeberg.org/crowci/crow/v4/pipeline/rpc/proto"
 )
 
-const authClientTimeout = time.Second * 5
+const (
+	authClientTimeout     = time.Second * 5
+	connectionWaitTimeout = 2 * time.Second
+)
 
 type AuthClient struct {
 	client     proto.CrowAuthClient
@@ -42,6 +47,33 @@ func NewAuthGrpcClient(conn *grpc.ClientConn, agentToken string, agentID int64) 
 }
 
 func (c *AuthClient) Auth(ctx context.Context) (string, int64, error) {
+	log.Trace().
+		Int64("agent-id", c.agentID).
+		Dur("timeout", authClientTimeout).
+		Msg("Starting authentication request to server")
+
+	// Add connection state logging for debugging
+	if c.conn != nil {
+		state := c.conn.GetState()
+		log.Trace().
+			Str("connection-state", state.String()).
+			Str("target", c.conn.Target()).
+			Msg("gRPC connection state before Auth RPC")
+
+		// If not connected, try to wait briefly for connection
+		if state != connectivity.Ready {
+			log.Trace().Msg("Connection not ready, waiting for state change...")
+			waitCtx, waitCancel := context.WithTimeout(ctx, connectionWaitTimeout)
+			c.conn.WaitForStateChange(waitCtx, state)
+			waitCancel()
+			newState := c.conn.GetState()
+			log.Trace().
+				Str("old-state", state.String()).
+				Str("new-state", newState.String()).
+				Msg("Connection state after wait")
+		}
+	}
+
 	ctx, cancel := context.WithTimeout(ctx, authClientTimeout)
 	defer cancel()
 
@@ -50,12 +82,22 @@ func (c *AuthClient) Auth(ctx context.Context) (string, int64, error) {
 		AgentId:    c.agentID,
 	}
 
+	log.Trace().Msg("Sending Auth RPC to server")
 	res, err := c.client.Auth(ctx, req)
 	if err != nil {
+		log.Trace().
+			Err(err).
+			Int64("agent-id", c.agentID).
+			Msg("Auth RPC failed")
 		return "", -1, err
 	}
 
 	c.agentID = res.GetAgentId()
+
+	log.Trace().
+		Int64("agent-id", c.agentID).
+		Bool("has-access-token", res.GetAccessToken() != "").
+		Msg("Auth RPC succeeded")
 
 	return res.GetAccessToken(), c.agentID, nil
 }

@@ -39,21 +39,45 @@ func NewCrowAuthServer(jwtManager *JWTManager, agentMasterToken string, store st
 }
 
 func (s *CrowAuthServer) Auth(_ context.Context, req *proto.AuthRequest) (*proto.AuthResponse, error) {
+	log.Trace().
+		Int64("agent-id", req.AgentId).
+		Bool("has-token", req.AgentToken != "").
+		Msg("Server received Auth request from agent")
+
 	agent, err := s.getAgent(req.AgentId, req.AgentToken)
 	if err != nil {
+		log.Trace().
+			Int64("agent-id", req.AgentId).
+			Err(err).
+			Msg("Agent authentication failed")
 		return nil, fmt.Errorf("agent could not auth: %w", err)
 	}
 
+	log.Trace().
+		Int64("agent-id", agent.ID).
+		Str("agent-name", agent.Name).
+		Msg("Agent authenticated successfully, generating JWT")
+
 	accessToken, err := s.jwtManager.Generate(agent.ID)
 	if err != nil {
+		log.Trace().
+			Int64("agent-id", agent.ID).
+			Err(err).
+			Msg("Failed to generate JWT for agent")
 		return nil, err
 	}
 
-	return &proto.AuthResponse{
+	response := &proto.AuthResponse{
 		Status:      "ok",
 		AgentId:     agent.ID,
 		AccessToken: accessToken,
-	}, nil
+	}
+
+	log.Trace().
+		Int64("agent-id", agent.ID).
+		Msg("Auth response sent successfully to agent")
+
+	return response, nil
 }
 
 func (s *CrowAuthServer) getAgent(agentID int64, agentToken string) (*model.Agent, error) {

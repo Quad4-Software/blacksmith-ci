@@ -103,13 +103,20 @@ func (interceptor *AuthInterceptor) scheduleRefreshToken(ctx context.Context, re
 }
 
 func (interceptor *AuthInterceptor) refreshToken(ctx context.Context) error {
+	log.Trace().Msg("Attempting to refresh authentication token")
+
 	accessToken, _, err := interceptor.authClient.Auth(ctx)
 	if err != nil {
+		log.Trace().
+			Err(err).
+			Msg("Failed to refresh authentication token")
 		return err
 	}
 
 	interceptor.accessToken = accessToken
-	log.Trace().Msg("token refreshed")
+	log.Trace().
+		Bool("has-token", accessToken != "").
+		Msg("Authentication token refreshed successfully")
 
 	return nil
 }
