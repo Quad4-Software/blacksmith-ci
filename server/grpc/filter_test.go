@@ -220,7 +220,7 @@ func TestCreateFilterFunc(t *testing.T) {
 			wantMatched: true,
 			wantScore:   21,
 		},
-		// Custom label tests
+		// Custom label tests - Updated for partial matching
 		{
 			name: "Agent with custom label - task has matching label",
 			agentFilter: rpc.Filter{
@@ -231,10 +231,10 @@ func TestCreateFilterFunc(t *testing.T) {
 				Labels: map[string]string{"repo": "test", "platform": "linux", "scope": "lint"},
 			},
 			wantMatched: true,
-			wantScore:   11,
+			wantScore:   21, // 10 for custom label match + 1 for repo wildcard + 10 for platform exact
 		},
 		{
-			name: "Agent with custom label - task missing label",
+			name: "Agent with custom label - task doesn't require it",
 			agentFilter: rpc.Filter{
 				Labels: map[string]string{"repo": "*", "platform": "linux"},
 			},
@@ -242,11 +242,11 @@ func TestCreateFilterFunc(t *testing.T) {
 			task: &model.Task{
 				Labels: map[string]string{"repo": "test", "platform": "linux"},
 			},
-			wantMatched: false,
-			wantScore:   0,
+			wantMatched: true, // Changed: task doesn't require the custom label, so it matches
+			wantScore:   11,   // 1 for repo wildcard + 10 for platform exact
 		},
 		{
-			name: "Agent with custom label - task has different value",
+			name: "Agent with custom label - task requires different value",
 			agentFilter: rpc.Filter{
 				Labels: map[string]string{"repo": "*", "platform": "linux"},
 			},
@@ -254,11 +254,11 @@ func TestCreateFilterFunc(t *testing.T) {
 			task: &model.Task{
 				Labels: map[string]string{"repo": "test", "platform": "linux", "scope": "build"},
 			},
-			wantMatched: false,
+			wantMatched: false, // Task requires scope=build but agent has scope=lint
 			wantScore:   0,
 		},
 		{
-			name: "Agent with multiple custom labels - all match",
+			name: "Agent with multiple custom labels - task requires both",
 			agentFilter: rpc.Filter{
 				Labels: map[string]string{"repo": "*"},
 			},
@@ -267,10 +267,10 @@ func TestCreateFilterFunc(t *testing.T) {
 				Labels: map[string]string{"repo": "test", "scope": "lint", "environment": "production"},
 			},
 			wantMatched: true,
-			wantScore:   1,
+			wantScore:   21, // 10 for scope match + 10 for environment match + 1 for repo wildcard
 		},
 		{
-			name: "Agent with multiple custom labels - partial match",
+			name: "Agent with multiple custom labels - task requires only one",
 			agentFilter: rpc.Filter{
 				Labels: map[string]string{"repo": "*"},
 			},
@@ -278,7 +278,19 @@ func TestCreateFilterFunc(t *testing.T) {
 			task: &model.Task{
 				Labels: map[string]string{"repo": "test", "scope": "lint"},
 			},
-			wantMatched: false,
+			wantMatched: true, // Changed: partial match is sufficient
+			wantScore:   11,   // 10 for scope match + 1 for repo wildcard
+		},
+		{
+			name: "Agent without custom label - task requires it",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{"repo": "*", "platform": "linux"},
+			},
+			customLabels: map[string]string{}, // Agent has no custom labels
+			task: &model.Task{
+				Labels: map[string]string{"repo": "test", "platform": "linux", "scope": "lint"},
+			},
+			wantMatched: false, // Task requires scope=lint but agent doesn't have it
 			wantScore:   0,
 		},
 		// Backend label tests

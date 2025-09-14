@@ -31,16 +31,22 @@ func createFilterFuncWithPriority(agentFilter rpc.Filter, customLabels map[strin
 	return func(task *model.Task) (bool, int, int32) {
 		score := 0
 
-		// First, check that the task has all required custom labels from the agent
-		for customLabel, customLabelValue := range customLabels {
-			taskValue, hasLabel := task.Labels[customLabel]
-			// Task must have the custom label with exact match
-			if !hasLabel || taskValue != customLabelValue {
-				return false, 0, priority
+		// Check if task has any custom labels that match agent's custom labels
+		// A partial match is sufficient - if a task specifies a custom label,
+		// the agent must have that label with the same value
+		for taskLabel, taskLabelValue := range task.Labels {
+			if agentCustomValue, isCustom := customLabels[taskLabel]; isCustom {
+				// Task has a custom label that the agent also has
+				if taskLabelValue != agentCustomValue {
+					// Values don't match - task cannot be assigned to this agent
+					return false, 0, priority
+				}
+				// Values match - this is good, increase score
+				score += 10
 			}
 		}
 
-		// Then check task labels as before
+		// Then check non-custom task labels
 		for taskLabel, taskLabelValue := range task.Labels {
 			// if a task label is empty it will be ignored
 			if taskLabelValue == "" {

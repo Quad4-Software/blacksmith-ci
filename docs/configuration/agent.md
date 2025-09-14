@@ -46,7 +46,7 @@ CROW_AGENT_LABELS='my-label=my-value'
 
 This config would restrict an agent to builds of the label `my-label`.
 
-For these custom labels, **all** labels of the workflow and agent must match exactly.
+For these custom labels, the agents must have the same label set in their configuration.
 For example, only workflows which have the following label definition set in the YAML config will be processed by the agent with the label defined in this example:
 
 ```yaml
@@ -55,9 +55,6 @@ labels:
 ```
 
 A common use case for a custom label is to restrict an agent to to workflows with either low or high resource requirements.
-
-For the *default* labels (BACKEND, TYPE, PLATFORM) however, a **partial** match is sufficient.
-A common use case here is to steer workflows to agents running on specific architectures (e.g. `linux/arm64`) or (a very special scenario) running on a dedicated backend (e.g. `kubernetes`).
 
 ### Priority filtering
 

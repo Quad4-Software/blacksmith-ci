@@ -124,7 +124,7 @@ func TestFilterWithPriority(t *testing.T) {
 				},
 			},
 			wantMatch:    true,
-			wantScore:    10, // 10 for exact match
+			wantScore:    20, // 10 for custom label match + 10 for platform exact match
 			wantPriority: 2,
 		},
 		{
