@@ -15,7 +15,7 @@
 // MaintenanceConfig represents the configuration for database maintenance operations
 export interface MaintenanceConfig {
   id: number;
-  action_type: string; // "vacuum" or "kubernetes_cleanup"
+  action_type: string; // "vacuum", "kubernetes_cleanup", or "stale_agent_cleanup"
   enabled: boolean;
   schedule: string; // Cron format
   dry_run?: boolean;

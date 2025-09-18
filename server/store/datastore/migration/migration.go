@@ -65,6 +65,7 @@ var migrationTasks = []*xormigrate.Migration{
 	&addKubernetesMaintenanceActions,
 	&addDryRunToMaintenanceConfig,
 	&addPriorityToAgents,
+	&addStaleAgentCleanup,
 }
 
 var allBeans = []any{

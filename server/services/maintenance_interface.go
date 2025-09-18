@@ -16,6 +16,7 @@ package services
 
 import (
 	"context"
+	"time"
 
 	"codeberg.org/crowci/crow/v4/server/model"
 	"codeberg.org/crowci/crow/v4/server/store"
@@ -27,6 +28,8 @@ type MaintenanceService interface {
 	RunMaintenance(ctx context.Context) error
 	// RunKubernetesCleanup executes Kubernetes resource cleanup
 	RunKubernetesCleanup(ctx context.Context, dryRun bool) error
+	// RunStaleAgentCleanup executes stale agent cleanup
+	RunStaleAgentCleanup(ctx context.Context, staleDuration time.Duration) error
 	// GetMaintenanceConfig returns the current maintenance configuration
 	GetMaintenanceConfig() *model.MaintenanceConfig
 	// UpdateMaintenanceConfig updates the maintenance configuration

@@ -32,6 +32,8 @@ type Service interface {
 	RunMaintenance(ctx context.Context) error
 	// RunKubernetesCleanup executes Kubernetes resource cleanup.
 	RunKubernetesCleanup(ctx context.Context, dryRun bool) error
+	// RunStaleAgentCleanup executes stale agent cleanup.
+	RunStaleAgentCleanup(ctx context.Context, staleDuration time.Duration) error
 	// GetMaintenanceConfig returns the current maintenance configuration
 	GetMaintenanceConfig() *model.MaintenanceConfig
 	// UpdateMaintenanceConfig updates the maintenance configuration
@@ -373,5 +375,90 @@ func (s *service) RunKubernetesCleanup(ctx context.Context, dryRun bool) error {
 	}
 
 	log.Info().Dur("duration", duration).Msg("Kubernetes resource cleanup completed successfully")
+	return nil
+}
+
+// RunStaleAgentCleanup executes stale agent cleanup.
+func (s *service) RunStaleAgentCleanup(ctx context.Context, staleDuration time.Duration) error {
+	// Update LastRun immediately to prevent duplicate runs
+	s.updateActionLastRun("stale_agent_cleanup")
+
+	start := time.Now()
+	log.Info().Dur("stale_duration", staleDuration).Msg("Starting stale agent cleanup")
+
+	// Calculate the cutoff time for stale agents
+	cutoffTime := time.Now().Add(-staleDuration).Unix()
+
+	// Get all agents
+	agents, err := s.store.AgentList(&model.ListOptions{All: true})
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to list agents")
+		s.updateActionStats("stale_agent_cleanup", false, time.Since(start), err.Error())
+		return fmt.Errorf("failed to list agents: %w", err)
+	}
+
+	staleCount := 0
+	deletedCount := 0
+	var errors []string
+
+	for _, agent := range agents {
+		// Check if agent is stale (hasn't connected for the specified duration)
+		if agent.LastContact > 0 && agent.LastContact < cutoffTime {
+			staleCount++
+			log.Info().
+				Int64("agent_id", agent.ID).
+				Str("agent_name", agent.Name).
+				Time("last_contact", time.Unix(agent.LastContact, 0)).
+				Msg("Deleting stale agent")
+
+			if err := s.store.AgentDelete(agent); err != nil {
+				errMsg := fmt.Sprintf("failed to delete agent %d (%s): %v", agent.ID, agent.Name, err)
+				errors = append(errors, errMsg)
+				log.Error().Err(err).Int64("agent_id", agent.ID).Msg("Failed to delete stale agent")
+			} else {
+				deletedCount++
+			}
+		}
+	}
+
+	duration := time.Since(start)
+	details := fmt.Sprintf("Operation: Stale agent cleanup, Duration: %v, Stale threshold: %v, Total agents: %d, Stale found: %d, Deleted: %d",
+		duration, staleDuration, len(agents), staleCount, deletedCount)
+
+	if len(errors) > 0 {
+		details += fmt.Sprintf(", Errors: %d", len(errors))
+	}
+
+	logEntry := &model.MaintenanceLog{
+		RunTime:  start,
+		Success:  len(errors) == 0,
+		Duration: duration.Milliseconds(),
+		Details:  details,
+		Created:  start.Unix(),
+	}
+
+	if len(errors) > 0 {
+		logEntry.Error = fmt.Sprintf("%d errors occurred: %v", len(errors), errors[0])
+		log.Error().Strs("errors", errors).Msg("Stale agent cleanup completed with errors")
+		s.updateActionStats("stale_agent_cleanup", false, duration, logEntry.Error)
+
+		if logErr := s.store.MaintenanceLogCreate(logEntry); logErr != nil {
+			log.Error().Err(logErr).Msg("Failed to create maintenance log entry for stale agent cleanup")
+		}
+
+		return fmt.Errorf("stale agent cleanup completed with %d errors", len(errors))
+	}
+
+	s.updateActionStats("stale_agent_cleanup", true, duration, "")
+
+	if err := s.store.MaintenanceLogCreate(logEntry); err != nil {
+		log.Error().Err(err).Msg("Failed to create maintenance log entry for stale agent cleanup")
+	}
+
+	log.Info().
+		Int("stale_count", staleCount).
+		Int("deleted_count", deletedCount).
+		Dur("duration", duration).
+		Msg("Stale agent cleanup completed successfully")
 	return nil
 }

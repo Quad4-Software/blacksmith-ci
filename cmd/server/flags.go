@@ -664,6 +664,18 @@ var flags = append([]cli.Flag{
 		Name:    "maintenance-kubernetes-cleanup-namespaces",
 		Usage:   "Comma-separated list of namespaces to clean up (if empty, uses current namespace only)",
 	},
+	&cli.BoolFlag{
+		Sources: cli.EnvVars("CROW_MAINTENANCE_STALE_AGENT_CLEANUP_ENABLED"),
+		Name:    "maintenance-stale-agent-cleanup-enabled",
+		Usage:   "Enable automatic stale agent cleanup",
+		Value:   true,
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_MAINTENANCE_STALE_AGENT_DURATION"),
+		Name:    "maintenance-stale-agent-duration",
+		Usage:   "Duration after which agents are considered stale (e.g., 24h for 1 day)",
+		Value:   "24h",
+	},
 }, logger.GlobalLoggerFlags...)
 
 // If crow is running inside a container the default value for

@@ -138,6 +138,9 @@ func (s storage) MaintenanceConfigGetByActionType(actionType string) (*model.Mai
 			defaultConfig.Enabled = false
 			defaultConfig.Schedule = "0 5 * * *" // Daily at 5 AM
 			defaultConfig.DryRun = false
+		case "stale_agent_cleanup":
+			defaultConfig.Enabled = true
+			defaultConfig.Schedule = "0 5 * * *" // Daily at 5 AM
 		}
 
 		// Use InsertOne with unique constraint handling to avoid race conditions

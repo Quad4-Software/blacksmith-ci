@@ -6,6 +6,7 @@ package maintenance
 
 import (
 	"context"
+	"time"
 
 	"codeberg.org/crowci/crow/v4/server/model"
 	mock "github.com/stretchr/testify/mock"
@@ -437,6 +438,63 @@ func (_c *MockService_RunMaintenance_Call) Return(err error) *MockService_RunMai
 }
 
 func (_c *MockService_RunMaintenance_Call) RunAndReturn(run func(ctx context.Context) error) *MockService_RunMaintenance_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// RunStaleAgentCleanup provides a mock function for the type MockService
+func (_mock *MockService) RunStaleAgentCleanup(ctx context.Context, staleDuration time.Duration) error {
+	ret := _mock.Called(ctx, staleDuration)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RunStaleAgentCleanup")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, time.Duration) error); ok {
+		r0 = returnFunc(ctx, staleDuration)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockService_RunStaleAgentCleanup_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RunStaleAgentCleanup'
+type MockService_RunStaleAgentCleanup_Call struct {
+	*mock.Call
+}
+
+// RunStaleAgentCleanup is a helper method to define mock.On call
+//   - ctx context.Context
+//   - staleDuration time.Duration
+func (_e *MockService_Expecter) RunStaleAgentCleanup(ctx interface{}, staleDuration interface{}) *MockService_RunStaleAgentCleanup_Call {
+	return &MockService_RunStaleAgentCleanup_Call{Call: _e.mock.On("RunStaleAgentCleanup", ctx, staleDuration)}
+}
+
+func (_c *MockService_RunStaleAgentCleanup_Call) Run(run func(ctx context.Context, staleDuration time.Duration)) *MockService_RunStaleAgentCleanup_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 time.Duration
+		if args[1] != nil {
+			arg1 = args[1].(time.Duration)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockService_RunStaleAgentCleanup_Call) Return(err error) *MockService_RunStaleAgentCleanup_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockService_RunStaleAgentCleanup_Call) RunAndReturn(run func(ctx context.Context, staleDuration time.Duration) error) *MockService_RunStaleAgentCleanup_Call {
 	_c.Call.Return(run)
 	return _c
 }

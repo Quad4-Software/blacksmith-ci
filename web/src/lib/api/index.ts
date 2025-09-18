@@ -456,12 +456,14 @@ export default class CrowClient extends ApiClient {
   }
 
   // Action-specific maintenance config methods
-  async getMaintenanceConfigByAction(action: 'vacuum' | 'kubernetes_cleanup'): Promise<MaintenanceConfig> {
+  async getMaintenanceConfigByAction(
+    action: 'vacuum' | 'kubernetes_cleanup' | 'stale_agent_cleanup',
+  ): Promise<MaintenanceConfig> {
     return this._get(`/api/admin/maintenance/config/${action}`) as Promise<MaintenanceConfig>;
   }
 
   async updateMaintenanceConfigByAction(
-    action: 'vacuum' | 'kubernetes_cleanup',
+    action: 'vacuum' | 'kubernetes_cleanup' | 'stale_agent_cleanup',
     config: Partial<MaintenanceConfig>,
   ): Promise<MaintenanceConfig> {
     return this._put(`/api/admin/maintenance/config/${action}`, config) as Promise<MaintenanceConfig>;

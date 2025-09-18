@@ -54,6 +54,12 @@ func TestRunMaintenanceRequest_JobValidation(t *testing.T) {
 			expectValid: true,
 		},
 		{
+			name:        "valid stale agent cleanup job",
+			job:         "staleAgentCleanup",
+			dryRun:      false,
+			expectValid: true,
+		},
+		{
 			name:        "invalid job",
 			job:         "invalidJob",
 			dryRun:      false,
@@ -72,9 +78,9 @@ func TestRunMaintenanceRequest_JobValidation(t *testing.T) {
 			request := RunMaintenanceRequest{Job: tt.job, DryRun: tt.dryRun}
 
 			if tt.expectValid {
-				assert.True(t, request.Job == "vacuumLogTable" || request.Job == "kubernetesCleanup")
+				assert.True(t, request.Job == "vacuumLogTable" || request.Job == "kubernetesCleanup" || request.Job == "staleAgentCleanup")
 			} else {
-				assert.False(t, request.Job == "vacuumLogTable" || request.Job == "kubernetesCleanup")
+				assert.False(t, request.Job == "vacuumLogTable" || request.Job == "kubernetesCleanup" || request.Job == "staleAgentCleanup")
 			}
 
 			// Verify dry run field is set correctly

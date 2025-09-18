@@ -485,7 +485,9 @@
           "vacuum_log_table": "Vacuum Log Table",
           "vacuum_log_table_desc": "Reclaims space of deleted entries in the log_entries table",
           "kubernetes_cleanup": "Kubernetes Resource Cleanup",
-          "kubernetes_cleanup_desc": "Remove services, persistent volume claims, step and registry secrets left behind by non-properly terminated pipelines"
+          "kubernetes_cleanup_desc": "Remove services, persistent volume claims, step and registry secrets left behind by non-properly terminated pipelines",
+          "stale_agent_cleanup": "Stale Agent Cleanup",
+          "stale_agent_cleanup_desc": "Remove agents that haven't connected for the configured duration (default: 24 hours)"
         },
         "notify_text_config_saved": "Maintenance configuration saved",
         "notify_text_config_error": "Failed to save maintenance configuration",
@@ -495,6 +497,10 @@
         "notify_text_k8s_cleanup_error": "Failed to start Kubernetes cleanup",
         "run_kubernetes_cleanup": "Run Kubernetes cleanup",
         "k8s_cleanup_disabled": "Kubernetes cleanup is disabled. Set CROW_MAINTENANCE_KUBERNETES_CLEANUP_ENABLED=true to enable.",
+        "notify_text_stale_agent_cleanup_started": "Stale agent cleanup started",
+        "notify_text_stale_agent_cleanup_error": "Failed to start stale agent cleanup",
+        "run_stale_agent_cleanup": "Run stale agent cleanup",
+        "stale_duration_24h": "24h",
         "options": "Options",
         "no_options": "No options",
         "env_vars_set_tooltip": "Configuration is managed by environment variables and cannot be changed here",

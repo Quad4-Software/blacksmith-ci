@@ -181,7 +181,7 @@ func TestScheduler_CheckAction_TooFrequent(t *testing.T) {
 	mockService.AssertExpectations(t)
 }
 
-func TestScheduler_CheckAction_BothActionsRun(t *testing.T) {
+func TestScheduler_CheckAction_AllActionsRun(t *testing.T) {
 	mockService := mocks_service.NewMockService(t)
 	mockStore := mocks_store.NewMockStore(t)
 
@@ -202,7 +202,14 @@ func TestScheduler_CheckAction_BothActionsRun(t *testing.T) {
 		LastRun:    time.Date(2025, 1, 6, 7, 0, 0, 0, time.UTC),
 	}
 
-	// Setup expectations - both should run
+	staleAgentConfig := &model.MaintenanceConfig{
+		ActionType: "stale_agent_cleanup",
+		Enabled:    true,
+		Schedule:   "0 7 * * *",
+		LastRun:    time.Date(2025, 1, 6, 7, 0, 0, 0, time.UTC),
+	}
+
+	// Setup expectations - all three should run
 	mockService.EXPECT().
 		GetMaintenanceConfigByAction("vacuum").
 		Return(vacuumConfig, nil)
@@ -221,6 +228,14 @@ func TestScheduler_CheckAction_BothActionsRun(t *testing.T) {
 
 	mockService.EXPECT().
 		RunKubernetesCleanup(mock.Anything, false).
+		Return(nil)
+
+	mockService.EXPECT().
+		GetMaintenanceConfigByAction("stale_agent_cleanup").
+		Return(staleAgentConfig, nil)
+
+	mockService.EXPECT().
+		RunStaleAgentCleanup(mock.Anything, mock.AnythingOfType("time.Duration")).
 		Return(nil)
 
 	scheduler.checkMaintenance()

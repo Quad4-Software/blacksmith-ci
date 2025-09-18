@@ -28,9 +28,6 @@ import (
 )
 
 const (
-	// Database polling interval for new tasks.
-	dbPollInterval = 1 * time.Second
-
 	// Maximum time to wait for a task before returning nil.
 	// This prevents indefinite blocking and allows clients to retry.
 	maxPollDuration = 30 * time.Second

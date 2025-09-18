@@ -106,6 +106,109 @@
         </div>
       </Panel>
 
+      <!-- Stale Agent Cleanup Operation -->
+      <Panel>
+        <div class="space-y-4">
+          <div class="flex items-center space-x-3">
+            <div>
+              <div class="font-medium text-wp-text-100">
+                {{ $t('admin.settings.maintenance.operations.stale_agent_cleanup') }}
+              </div>
+              <div class="text-sm text-wp-text-alt-100">
+                {{ $t('admin.settings.maintenance.operations.stale_agent_cleanup_desc') }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Configuration Row -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-center pb-2">
+            <!-- Schedule -->
+            <div class="flex flex-col">
+              <MetadataInputField v-slot="{ id }" :label="`${$t('admin.settings.maintenance.schedule')} (UTC)`">
+                <div class="flex items-center h-10">
+                  <TextField
+                    :id="id"
+                    v-model="staleAgentCleanupConfig.schedule"
+                    :placeholder="$t('admin.settings.maintenance.schedule_placeholder')"
+                    class="w-full"
+                    :disabled="staleAgentEnvVarsSet"
+                  />
+                </div>
+              </MetadataInputField>
+            </div>
+
+            <!-- Status with Enable/Disable -->
+            <div class="flex flex-col">
+              <MetadataInputField :label="$t('admin.settings.maintenance.status')">
+                <div class="flex items-center h-10">
+                  <Checkbox
+                    v-model="staleAgentCleanupConfig.enabled"
+                    :label="$t('admin.settings.maintenance.enabled')"
+                    :disabled="staleAgentEnvVarsSet"
+                  />
+                </div>
+              </MetadataInputField>
+            </div>
+
+            <!-- Total Runs -->
+            <div>
+              <MetadataInputField :label="$t('admin.settings.maintenance.total_runs')">
+                <div class="text-sm text-wp-text-100 flex items-center h-10">
+                  {{ staleAgentCleanupConfig.total_runs || 0 }}
+                </div>
+              </MetadataInputField>
+            </div>
+
+            <!-- Options (placeholder to match layout) -->
+            <div>
+              <MetadataInputField :label="$t('admin.settings.maintenance.options')">
+                <div class="flex items-center h-10">
+                  <span class="text-sm text-wp-text-alt-100">{{
+                    $t('admin.settings.maintenance.stale_duration_24h') || '24h'
+                  }}</span>
+                </div>
+              </MetadataInputField>
+            </div>
+
+            <!-- Last Run -->
+            <div>
+              <MetadataInputField :label="$t('admin.settings.maintenance.last_run')">
+                <div class="text-sm text-wp-text-100 flex items-center h-10">
+                  {{ formatLastRun(staleAgentCleanupConfig.last_run || '') }}
+                </div>
+              </MetadataInputField>
+            </div>
+
+            <!-- Actions -->
+            <div>
+              <MetadataInputField :label="$t('admin.settings.maintenance.actions')">
+                <div class="flex items-center h-10 space-x-2">
+                  <IconButton
+                    icon="content-save-outline"
+                    :title="
+                      staleAgentEnvVarsSet
+                        ? $t('admin.settings.maintenance.env_vars_set_tooltip')
+                        : $t('admin.settings.maintenance.save_config')
+                    "
+                    class="h-8 w-8"
+                    :is-loading="isSavingStaleAgent"
+                    :disabled="staleAgentEnvVarsSet"
+                    @click="saveStaleAgentConfig(false)"
+                  />
+                  <IconButton
+                    icon="play-outline"
+                    :title="$t('admin.settings.maintenance.run_stale_agent_cleanup')"
+                    class="h-8 w-8"
+                    :is-loading="isRunningStaleAgentCleanup"
+                    @click="runStaleAgentCleanup"
+                  />
+                </div>
+              </MetadataInputField>
+            </div>
+          </div>
+        </div>
+      </Panel>
+
       <!-- Kubernetes Resource Cleanup Operation -->
       <Panel v-if="config.kubernetes_cleanup_available">
         <div class="space-y-4">
@@ -377,12 +480,26 @@ const kubernetesCleanupConfig = ref<MaintenanceOperationConfig>({
   updated: 0,
 });
 
+// Stale agent cleanup operation configuration
+const staleAgentCleanupConfig = ref<MaintenanceOperationConfig>({
+  id: 0,
+  operation: 'staleAgentCleanup',
+  enabled: true,
+  schedule: '0 5 * * *',
+  total_runs: 0,
+  last_run: '',
+  created: 0,
+  updated: 0,
+});
+
 const logs = ref<MaintenanceLog[]>([]);
 const stats = ref<MaintenanceStats | null>(null);
 const isSaving = ref(false);
 const isRunning = ref(false);
 const isSavingK8s = ref(false);
 const isRunningK8sCleanup = ref(false);
+const isSavingStaleAgent = ref(false);
+const isRunningStaleAgentCleanup = ref(false);
 const k8sCleanupDryRun = ref(false);
 const actionLogs = ref<string[]>([]);
 const isLoadingMore = ref(false);
@@ -391,6 +508,7 @@ const hasMoreLogs = ref(true);
 
 const vacuumEnvVarsSet = ref(false);
 const kubernetesEnvVarsSet = ref(false);
+const staleAgentEnvVarsSet = ref(false);
 
 // Load action logs from localStorage on startup
 const loadActionLogs = () => {
@@ -443,6 +561,10 @@ const getOperationName = (log: MaintenanceLog) => {
     ) {
       return t('admin.settings.maintenance.operations.kubernetes_cleanup');
     }
+    // Check for stale agent cleanup
+    if (log.details.includes('Stale agent cleanup') || log.details.includes('stale_agent_cleanup')) {
+      return t('admin.settings.maintenance.operations.stale_agent_cleanup');
+    }
   }
   return t('admin.settings.maintenance.operations.vacuum_log_table');
 };
@@ -458,13 +580,17 @@ const loadData = async (reset = false) => {
     const previousLogs = [...logs.value];
 
     // Load configs for each action separately, plus logs and stats
-    const [vacuumConfigData, k8sConfigData, logsData, statsData] = await Promise.all([
+    const [vacuumConfigData, k8sConfigData, staleAgentConfigData, logsData, statsData] = await Promise.all([
       apiClient.getMaintenanceConfigByAction('vacuum').catch((error) => {
         console.error('Failed to load vacuum config:', error);
         return null;
       }),
       apiClient.getMaintenanceConfigByAction('kubernetes_cleanup').catch((error) => {
         console.error('Failed to load kubernetes cleanup config:', error);
+        return null;
+      }),
+      apiClient.getMaintenanceConfigByAction('stale_agent_cleanup').catch((error) => {
+        console.error('Failed to load stale agent cleanup config:', error);
         return null;
       }),
       apiClient.getMaintenanceLogs(logsLimit.value).catch((error) => {
@@ -525,6 +651,31 @@ const loadData = async (reset = false) => {
         id: 0,
         operation: 'kubernetesCleanup',
         enabled: false,
+        schedule: '0 5 * * *',
+        total_runs: 0,
+        last_run: '',
+        created: 0,
+        updated: 0,
+      };
+    }
+
+    if (staleAgentConfigData) {
+      staleAgentCleanupConfig.value.enabled = staleAgentConfigData.enabled;
+      staleAgentCleanupConfig.value.schedule = staleAgentConfigData.schedule;
+      staleAgentCleanupConfig.value.operation = 'staleAgentCleanup';
+      staleAgentCleanupConfig.value.id = staleAgentConfigData.id;
+      staleAgentCleanupConfig.value.created = staleAgentConfigData.created;
+      staleAgentCleanupConfig.value.updated = staleAgentConfigData.updated;
+      // Copy statistics fields
+      staleAgentCleanupConfig.value.total_runs = staleAgentConfigData.total_runs || 0;
+      staleAgentCleanupConfig.value.last_run = staleAgentConfigData.last_run || '';
+
+      staleAgentEnvVarsSet.value = staleAgentConfigData.env_vars_set || false;
+    } else {
+      staleAgentCleanupConfig.value = {
+        id: 0,
+        operation: 'staleAgentCleanup',
+        enabled: true,
         schedule: '0 5 * * *',
         total_runs: 0,
         last_run: '',
@@ -617,6 +768,46 @@ const loadData = async (reset = false) => {
                 );
               } else {
                 actionLogs.value.unshift(`[${year}/${month}/${day} ${time}] [${jobTitle}] Space reclaimed: 0.00 MB`);
+              }
+            }
+
+            // Parse Stale agent cleanup details
+            if (newLog.details.includes('Stale agent cleanup')) {
+              const totalAgentsMatch = newLog.details.match(/Total agents: (\d+)/);
+              const staleFoundMatch = newLog.details.match(/Stale found: (\d+)/);
+              const deletedMatch = newLog.details.match(/Deleted: (\d+)/);
+
+              if (totalAgentsMatch) {
+                const totalAgents = Number.parseInt(totalAgentsMatch[1]);
+                const staleFound = staleFoundMatch ? Number.parseInt(staleFoundMatch[1]) : 0;
+                const deleted = deletedMatch ? Number.parseInt(deletedMatch[1]) : 0;
+
+                actionLogs.value.unshift(
+                  `[${year}/${month}/${day} ${time}] [${jobTitle}] Total agents: ${totalAgents}`,
+                );
+
+                if (staleFound === 0) {
+                  actionLogs.value.unshift(
+                    `[${year}/${month}/${day} ${time}] [${jobTitle}] No stale agents found - all agents are active!`,
+                  );
+                } else {
+                  actionLogs.value.unshift(
+                    `[${year}/${month}/${day} ${time}] [${jobTitle}] Found ${staleFound} stale agents`,
+                  );
+
+                  if (deleted > 0) {
+                    actionLogs.value.unshift(
+                      `[${year}/${month}/${day} ${time}] [${jobTitle}] Successfully deleted ${deleted} stale agents`,
+                    );
+                  }
+
+                  if (staleFound > deleted) {
+                    const failed = staleFound - deleted;
+                    actionLogs.value.unshift(
+                      `[${year}/${month}/${day} ${time}] [${jobTitle}] Failed to delete ${failed} agents`,
+                    );
+                  }
+                }
               }
             }
 
@@ -730,16 +921,81 @@ const addActionLog = (message: string, jobType: string = 'vacuum') => {
     minute: '2-digit',
     second: '2-digit',
   });
-  const jobTitle =
-    jobType === 'kubernetes'
-      ? t('admin.settings.maintenance.operations.kubernetes_cleanup')
-      : t('admin.settings.maintenance.operations.vacuum_log_table');
+  let jobTitle = t('admin.settings.maintenance.operations.vacuum_log_table');
+  if (jobType === 'kubernetes') {
+    jobTitle = t('admin.settings.maintenance.operations.kubernetes_cleanup');
+  } else if (jobType === 'stale_agent') {
+    jobTitle = t('admin.settings.maintenance.operations.stale_agent_cleanup');
+  }
   actionLogs.value.unshift(`[${year}/${month}/${day} ${time}] [${jobTitle}] ${message}`);
   // Keep only the last 50 logs to prevent localStorage from growing too large
   if (actionLogs.value.length > 50) {
     actionLogs.value = actionLogs.value.slice(0, 50);
   }
   saveActionLogs();
+};
+
+const saveStaleAgentConfig = async (silent = false) => {
+  isSavingStaleAgent.value = true;
+  if (!silent) {
+    addActionLog('Saving stale agent cleanup configuration...', 'stale_agent');
+  }
+
+  try {
+    // Track what's changing
+    const originalEnabled = staleAgentCleanupConfig.value.enabled;
+    const originalSchedule = staleAgentCleanupConfig.value.schedule;
+
+    const updatedConfig = await apiClient.updateMaintenanceConfigByAction('stale_agent_cleanup', {
+      enabled: staleAgentCleanupConfig.value.enabled,
+      schedule: staleAgentCleanupConfig.value.schedule,
+    });
+
+    // Update local config with server response
+    staleAgentCleanupConfig.value.enabled = updatedConfig.enabled;
+    staleAgentCleanupConfig.value.schedule = updatedConfig.schedule;
+    staleAgentCleanupConfig.value.id = updatedConfig.id;
+    staleAgentCleanupConfig.value.created = updatedConfig.created;
+    staleAgentCleanupConfig.value.updated = updatedConfig.updated;
+
+    const changes = [];
+    if (originalEnabled !== updatedConfig.enabled) {
+      changes.push(`enabled: ${originalEnabled} → ${updatedConfig.enabled}`);
+    }
+    if (originalSchedule !== updatedConfig.schedule) {
+      changes.push(`schedule: ${originalSchedule} → ${updatedConfig.schedule}`);
+    }
+
+    if (changes.length > 0) {
+      if (silent) {
+        addActionLog(`${changes.join(', ')}`, 'stale_agent');
+      } else {
+        addActionLog(`Configuration saved with changes: ${changes.join(', ')}`, 'stale_agent');
+      }
+    } else if (!silent) {
+      addActionLog('Configuration saved (no changes)', 'stale_agent');
+    }
+
+    if (!silent) {
+      notifications.notify({
+        title: t('admin.settings.maintenance.notify_text_config_saved'),
+        type: 'success',
+      });
+    }
+  } catch (error) {
+    console.error('Failed to save stale agent cleanup configuration:', error);
+    const errorMessage = (error as Error).message || 'Unknown error';
+    addActionLog(`Error saving configuration: ${errorMessage}`, 'stale_agent');
+
+    if (!silent) {
+      notifications.notify({
+        title: t('admin.settings.maintenance.notify_text_config_error'),
+        type: 'error',
+      });
+    }
+  } finally {
+    isSavingStaleAgent.value = false;
+  }
 };
 
 const saveK8sConfig = async (silent = false) => {
@@ -1000,6 +1256,135 @@ const runNow = async () => {
       type: 'error',
     });
     isRunning.value = false;
+  }
+};
+
+const runStaleAgentCleanup = async () => {
+  isRunningStaleAgentCleanup.value = true;
+
+  // Add divider if there are existing logs
+  if (actionLogs.value.length > 0) {
+    addActionLog('─'.repeat(50), 'stale_agent');
+  }
+
+  addActionLog('Starting stale agent cleanup...', 'stale_agent');
+
+  try {
+    const startTime = Date.now();
+
+    await apiClient.runMaintenanceNow('staleAgentCleanup');
+
+    notifications.notify({
+      title: t('admin.settings.maintenance.notify_text_stale_agent_cleanup_started'),
+      type: 'success',
+    });
+
+    // Poll for completion with exponential backoff
+    let pollCount = 0;
+    const maxPolls = 5; // Try up to 5 times
+    const pollDelays = [2000, 3000, 5000, 8000, 10000]; // Wait 2s, 3s, 5s, 8s, 10s
+
+    const checkForCompletion = async () => {
+      await loadData(true);
+
+      // Check if we have any logs and if the latest one is from after we started
+      if (logs.value.length > 0) {
+        const latestLog = logs.value[0];
+        const latestLogTime = new Date(latestLog.run_time).getTime();
+
+        // Check if this log is from our current operation (with 2 second tolerance for clock differences)
+        if (
+          latestLogTime >= startTime - 2000 &&
+          latestLog.details &&
+          latestLog.details.includes('Stale agent cleanup')
+        ) {
+          const duration = latestLog.duration;
+          const success = latestLog.success;
+
+          if (success) {
+            addActionLog(`✅ Stale agent cleanup completed in ${formatDuration(duration)}`, 'stale_agent');
+
+            // Parse details for stale agents found/deleted
+            const details = latestLog.details;
+            const totalAgentsMatch = details.match(/Total agents: (\d+)/);
+            const staleFoundMatch = details.match(/Stale found: (\d+)/);
+            const deletedMatch = details.match(/Deleted: (\d+)/);
+
+            if (totalAgentsMatch) {
+              const totalAgents = Number.parseInt(totalAgentsMatch[1]);
+              const staleFound = staleFoundMatch ? Number.parseInt(staleFoundMatch[1]) : 0;
+              const deleted = deletedMatch ? Number.parseInt(deletedMatch[1]) : 0;
+
+              addActionLog(`Total agents: ${totalAgents}`, 'stale_agent');
+
+              if (staleFound === 0) {
+                addActionLog('No stale agents found - all agents are active!', 'stale_agent');
+              } else {
+                addActionLog(`Found ${staleFound} stale agents`, 'stale_agent');
+                if (deleted > 0) {
+                  addActionLog(`Successfully deleted ${deleted} stale agents`, 'stale_agent');
+                }
+                if (staleFound > deleted) {
+                  addActionLog(`Failed to delete ${staleFound - deleted} agents`, 'stale_agent');
+                }
+              }
+            } else if (staleFoundMatch) {
+              // Fallback if total agents not in details
+              const staleFound = Number.parseInt(staleFoundMatch[1]);
+              const deleted = deletedMatch ? Number.parseInt(deletedMatch[1]) : 0;
+
+              if (staleFound === 0) {
+                addActionLog('No stale agents found', 'stale_agent');
+              } else {
+                addActionLog(`Found ${staleFound} stale agents`, 'stale_agent');
+                if (deleted > 0) {
+                  addActionLog(`Successfully deleted ${deleted} agents`, 'stale_agent');
+                }
+                if (staleFound > deleted) {
+                  addActionLog(`Failed to delete ${staleFound - deleted} agents`, 'stale_agent');
+                }
+              }
+            }
+          } else {
+            addActionLog(`❌ Stale agent cleanup failed after ${formatDuration(duration)}`, 'stale_agent');
+            if (latestLog.error) {
+              addActionLog(`Error: ${latestLog.error}`, 'stale_agent');
+            }
+          }
+
+          isRunningStaleAgentCleanup.value = false;
+          return; // Exit after processing the log
+        }
+      }
+
+      // No new log entry found yet, try again if we haven't exceeded max polls
+      pollCount++;
+      if (pollCount < maxPolls) {
+        addActionLog(`Still running... checking again in ${pollDelays[pollCount] / 1000}s`, 'stale_agent');
+        setTimeout(checkForCompletion, pollDelays[pollCount]);
+        return; // Don't set isRunning to false yet
+      } else {
+        // Exceeded max polls, show generic completion message
+        const totalDuration = Date.now() - startTime;
+        addActionLog(`Operation completed (${formatDuration(totalDuration)} total)`, 'stale_agent');
+
+        // Do one final data reload to ensure we have the latest logs
+        setTimeout(() => loadData(true), 2000);
+      }
+
+      isRunningStaleAgentCleanup.value = false;
+    };
+
+    // Start polling after initial delay
+    setTimeout(checkForCompletion, pollDelays[0]);
+  } catch (error) {
+    const errorMessage = (error as Error).message || 'Unknown error';
+    addActionLog(`❌ Error starting stale agent cleanup: ${errorMessage}`, 'stale_agent');
+    notifications.notify({
+      title: t('admin.settings.maintenance.notify_text_stale_agent_cleanup_error'),
+      type: 'error',
+    });
+    isRunningStaleAgentCleanup.value = false;
   }
 };
 

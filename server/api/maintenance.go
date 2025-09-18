@@ -25,6 +25,7 @@ import (
 	"codeberg.org/crowci/crow/v4/server"
 	"codeberg.org/crowci/crow/v4/server/model"
 	"codeberg.org/crowci/crow/v4/server/router/middleware/session"
+	"codeberg.org/crowci/crow/v4/server/services/maintenance"
 )
 
 // GetMaintenanceConfig returns the current maintenance configuration
@@ -113,8 +114,8 @@ func GetMaintenanceConfigByAction(c *gin.Context) {
 	}
 
 	actionType := c.Param("action")
-	if actionType != "vacuum" && actionType != "kubernetes_cleanup" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid action type. Must be 'vacuum' or 'kubernetes_cleanup'"})
+	if actionType != "vacuum" && actionType != "kubernetes_cleanup" && actionType != "stale_agent_cleanup" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid action type. Must be 'vacuum', 'kubernetes_cleanup', or 'stale_agent_cleanup'"})
 		return
 	}
 
@@ -330,8 +331,27 @@ func RunMaintenanceNow(c *gin.Context) {
 			}
 		}()
 
+	case "staleAgentCleanup":
+		if server.Config.Services.MaintenanceService == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Maintenance service not available"})
+			return
+		}
+
+		staleAgentConfig, err := server.Config.Services.MaintenanceService.GetMaintenanceConfigByAction("stale_agent_cleanup")
+		if err != nil || !staleAgentConfig.Enabled {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Stale agent cleanup is not enabled. Enable it in the maintenance settings."})
+			return
+		}
+
+		go func() {
+			staleDuration := maintenance.GetStaleAgentDuration()
+			if err := server.Config.Services.MaintenanceService.RunStaleAgentCleanup(context.Background(), staleDuration); err != nil {
+				log.Error().Err(err).Dur("stale_duration", staleDuration).Msg("Stale agent cleanup failed")
+			}
+		}()
+
 	default:
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid job type. Supported jobs: vacuumLogTable, kubernetesCleanup"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid job type. Supported jobs: vacuumLogTable, kubernetesCleanup, staleAgentCleanup"})
 		return
 	}
 
