@@ -169,12 +169,12 @@ Images are currently solely provided through the Codeberg Container Registry (co
 If there funds available to cover a DockerHub team subscription, images will also be there.
 ///
 
-- [crow-server (codeberg.org)](https://codeberg.org/crowci/crow/pkgs/container/crow-server)
+- [crow-server (codeberg.org)](https://codeberg.org/crowci/-/packages/container/crow-server)
 
-- [crow-agent (codeberg.org)](https://codeberg.org/crowci/crow/pkgs/container/crow-agent)
+- [crow-agent (codeberg.org)](https://codeberg.org/crowci/-/packages/container/crow-agent)
 
-- [crow-cli (codeberg.org)](https://codeberg.org/crowci/crow/pkgs/container/crow-cli)
+- [crow-cli (codeberg.org)](https://codeberg.org/crowci/-/packages/container/crow-cli)
 
-- [crow-autoscaler (codeberg.org)](https://codeberg.org/crowci/crow/pkgs/container/crow-autoscaler)
+- [crow-autoscaler (codeberg.org)](https://codeberg.org/crowci/-/packages/container/crow-autoscaler)
 
 [^1]: An Ansible role is in the works.
