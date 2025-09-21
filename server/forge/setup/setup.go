@@ -168,6 +168,11 @@ func setupBitbucketDatacenter(forge *model.Forge) (forge.Forge, error) {
 		return nil, fmt.Errorf("missing git-password")
 	}
 
+	enableProjectAdminScope, ok := forge.AdditionalOptions["oauth-enable-project-admin-scope"].(bool)
+	if !ok {
+		return nil, fmt.Errorf("incorrect type for oauth-enable-project-admin-scope value")
+	}
+
 	opts := bitbucketdatacenter.Opts{
 		URL:          forge.URL,
 		ClientID:     forge.Client,
@@ -175,6 +180,7 @@ func setupBitbucketDatacenter(forge *model.Forge) (forge.Forge, error) {
 		Username:     gitUsername,
 		Password:     gitPassword,
 		OAuthHost:    forge.OAuthHost,
+		OAuthEnableProjectAdminScope: enableProjectAdminScope,
 	}
 	log.Debug().
 		Str("url", opts.URL).
@@ -182,6 +188,7 @@ func setupBitbucketDatacenter(forge *model.Forge) (forge.Forge, error) {
 		Bool("client-id-set", opts.ClientID != "").
 		Bool("client-secret-set", opts.ClientSecret != "").
 		Str("type", string(forge.Type)).
+		Bool("oauth-enable-project-admin-scope", opts.OAuthEnableProjectAdminScope).
 		Msg("setting up forge")
 	return bitbucketdatacenter.New(opts)
 }
