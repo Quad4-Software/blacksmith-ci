@@ -41,9 +41,10 @@ const (
 	servicePodPrefix       = "crow-svc-"
 	defaultFSGroup   int64 = 1000
 	maxK8sNameLength       = 63
+	TaskUUIDLabel          = "crowci/task-uuid"
 )
 
-func mkPod(step *types.Step, config *config, podName, goos string, options BackendOptions) (*v1.Pod, error) {
+func mkPod(step *types.Step, config *config, podName, goos string, options BackendOptions, taskUUID string) (*v1.Pod, error) {
 	var err error
 
 	nsp := newNativeSecretsProcessor(config, options.Secrets)
@@ -52,7 +53,7 @@ func mkPod(step *types.Step, config *config, podName, goos string, options Backe
 		return nil, err
 	}
 
-	meta, err := podMeta(step, config, options, podName)
+	meta, err := podMeta(step, config, options, podName, taskUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +123,7 @@ func sanitizeAndTruncateName(name string, maxLen int) string {
 	return strings.Trim(name, "-")
 }
 
-func podMeta(step *types.Step, config *config, options BackendOptions, podName string) (meta_v1.ObjectMeta, error) {
+func podMeta(step *types.Step, config *config, options BackendOptions, podName string, taskUUID string) (meta_v1.ObjectMeta, error) {
 	var err error
 	meta := meta_v1.ObjectMeta{
 		Name:        podName,
@@ -130,7 +131,7 @@ func podMeta(step *types.Step, config *config, options BackendOptions, podName s
 		Annotations: podAnnotations(config, options),
 	}
 
-	meta.Labels, err = podLabels(step, config, options)
+	meta.Labels, err = podLabels(step, config, options, taskUUID)
 	if err != nil {
 		return meta, err
 	}
@@ -138,7 +139,7 @@ func podMeta(step *types.Step, config *config, options BackendOptions, podName s
 	return meta, nil
 }
 
-func podLabels(step *types.Step, config *config, options BackendOptions) (map[string]string, error) {
+func podLabels(step *types.Step, config *config, options BackendOptions, taskUUID string) (map[string]string, error) {
 	var err error
 	labels := make(map[string]string)
 
@@ -174,6 +175,10 @@ func podLabels(step *types.Step, config *config, options BackendOptions) (map[st
 	labels[StepLabel], err = stepLabel(step)
 	if err != nil {
 		return labels, err
+	}
+
+	if len(taskUUID) > 0 {
+		labels[TaskUUIDLabel] = taskUUID
 	}
 
 	return labels, nil
@@ -621,13 +626,13 @@ func mapToEnvVars(m map[string]string) []v1.EnvVar {
 	return ev
 }
 
-func startPod(ctx context.Context, engine *kube, step *types.Step, options BackendOptions) (*v1.Pod, error) {
+func startPod(ctx context.Context, engine *kube, step *types.Step, options BackendOptions, taskUUID string) (*v1.Pod, error) {
 	podName, err := stepToPodName(step)
 	if err != nil {
 		return nil, err
 	}
 	engineConfig := engine.getConfig()
-	pod, err := mkPod(step, engineConfig, podName, engine.goos, options)
+	pod, err := mkPod(step, engineConfig, podName, engine.goos, options, taskUUID)
 	if err != nil {
 		return nil, err
 	}
