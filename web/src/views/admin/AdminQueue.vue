@@ -28,45 +28,63 @@
         <ListItem
           v-for="task in tasks"
           :key="task.id"
-          class="mb-2 items-center bg-wp-background-200! shadow-md dark:bg-wp-background-100!"
+          class="mb-2 flex-col gap-3 bg-wp-background-200! shadow-sm dark:bg-wp-background-100!"
         >
-          <div
-            class="flex items-center"
-            :title="
-              task.status === 'pending'
-                ? $t('admin.settings.queue.task_pending')
-                : task.status === 'running'
-                  ? $t('admin.settings.queue.task_running')
-                  : $t('admin.settings.queue.task_waiting_on_deps')
-            "
-          >
-            <Icon
-              :name="
+          <div class="flex w-full items-center gap-3">
+            <div
+              class="flex items-center gap-3 flex-1 min-w-0"
+              :title="
                 task.status === 'pending'
-                  ? 'status-pending'
+                  ? $t('admin.settings.queue.task_pending')
                   : task.status === 'running'
-                    ? 'status-running'
-                    : 'status-declined'
+                    ? $t('admin.settings.queue.task_running')
+                    : $t('admin.settings.queue.task_waiting_on_deps')
               "
-              :class="{
-                'text-wp-error-100': task.status === 'waiting_on_deps',
-                'text-wp-custom-highlight-100': task.status === 'running',
-                'text-wp-state-pending-100': task.status === 'pending',
-              }"
-            />
+            >
+              <Icon
+                :name="
+                  task.status === 'pending'
+                    ? 'status-pending'
+                    : task.status === 'running'
+                      ? 'status-running'
+                      : 'status-declined'
+                "
+                size="1rem"
+                :class="{
+                  'text-wp-error-100': task.status === 'waiting_on_deps',
+                  'text-wp-state-info-100': task.status === 'running',
+                  'text-wp-state-neutral-100': task.status === 'pending',
+                }"
+              />
+              <span class="truncate font-medium">{{ task.name }}</span>
+            </div>
+            <div class="flex items-center gap-2 flex-shrink-0">
+              <Badge v-if="task.agent_name" :label="$t('admin.settings.queue.agent')" :value="task.agent_name" />
+              <Badge
+                v-if="task.dependencies"
+                :label="$t('admin.settings.queue.waiting_for')"
+                :value="task.dependencies.join(', ')"
+              />
+              <IconButton
+                v-if="task.agent_name"
+                icon="chevron-right"
+                :title="$t('repo.pipeline.view')"
+                class="h-8 w-8"
+                :to="{
+                  name: 'repo-pipeline',
+                  params: { repoId: task.repo_id, pipelineId: task.pipeline_number, stepId: task.pid },
+                }"
+              />
+            </div>
           </div>
-          <span class="ml-2">{{ task.id }}</span>
-          <span class="ml-auto flex gap-2">
-            <Badge v-if="task.agent_id !== 0" :label="$t('admin.settings.queue.agent')" :value="task.agent_id" />
+          <div
+            v-if="Object.keys(task.labels).length > 0"
+            class="flex w-full flex-wrap gap-2 pt-2 border-t border-wp-background-300"
+          >
             <template v-for="(value, label) in task.labels">
               <Badge v-if="value" :key="label" :label="label.toString()" :value="value" />
             </template>
-            <Badge
-              v-if="task.dependencies"
-              :label="$t('admin.settings.queue.waiting_for')"
-              :value="task.dependencies.join(', ')"
-            />
-          </span>
+          </div>
         </ListItem>
       </div>
     </div>
@@ -81,6 +99,7 @@ import AdminQueueStats from '~/components/admin/settings/queue/AdminQueueStats.v
 import Badge from '~/components/atomic/Badge.vue';
 import Button from '~/components/atomic/Button.vue';
 import Icon from '~/components/atomic/Icon.vue';
+import IconButton from '~/components/atomic/IconButton.vue';
 import ListItem from '~/components/atomic/ListItem.vue';
 import Settings from '~/components/layout/Settings.vue';
 import useApiClient from '~/compositions/useApiClient';

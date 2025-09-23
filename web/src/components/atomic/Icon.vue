@@ -34,7 +34,12 @@
     :path="mdiClose"
     :size="size || '1.3rem'"
   />
-  <PipelineProgressSpinner v-else-if="name === 'status-running' || name === 'status-started'" />
+  <div
+    v-else-if="name === 'status-running' || name === 'status-started'"
+    :style="{ width: size || '1.3rem', height: size || '1.3rem' }"
+  >
+    <PipelineProgressSpinner />
+  </div>
   <SvgIcon v-else-if="name === 'status-skipped'" :path="mdiMinus" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'status-success'" :path="mdiCheck" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'status-pending'" :path="mdiRadioboxBlank" :size="size || '1.3rem'" />

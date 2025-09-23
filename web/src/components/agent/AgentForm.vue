@@ -3,6 +3,7 @@
     <InputField v-slot="{ id }" :label="$t('admin.settings.agents.name.name')">
       <TextField :id="id" v-model="agent.name" :placeholder="$t('admin.settings.agents.name.placeholder')" required />
     </InputField>
+
     <InputField :label="$t('admin.settings.agents.no_schedule.name')">
       <Checkbox
         :model-value="agent.no_schedule || false"
@@ -10,6 +11,7 @@
         @update:model-value="updateAgent({ no_schedule: $event })"
       />
     </InputField>
+
     <InputField v-slot="{ id }" :label="$t('admin.settings.agents.priority.priority')">
       <span class="text-wp-text-alt-100">{{ $t('admin.settings.agents.priority.desc') }}</span>
       <NumberField
@@ -20,19 +22,24 @@
         @update:model-value="updateAgent({ priority: $event })"
       />
     </InputField>
+
     <template v-if="isEditingAgent">
       <InputField v-slot="{ id }" :label="$t('admin.settings.agents.token')">
         <TextField :id="id" v-model="agent.token" :placeholder="$t('admin.settings.agents.token')" disabled />
       </InputField>
+
       <InputField v-slot="{ id }" :label="$t('admin.settings.agents.id')">
         <TextField :id="id" :model-value="agent.id?.toString()" disabled />
       </InputField>
+
       <InputField v-slot="{ id }" :label="$t('admin.settings.agents.backend.backend')" :docs-url="backendDocsUrl">
         <TextField :id="id" v-model="agent.backend" disabled />
       </InputField>
+
       <InputField v-slot="{ id }" :label="$t('admin.settings.agents.platform.platform')">
         <TextField :id="id" v-model="agent.platform" disabled />
       </InputField>
+
       <InputField
         v-if="agent.custom_labels && Object.keys(agent.custom_labels).length > 0"
         v-slot="{ id }"
@@ -41,6 +48,7 @@
         <span class="text-wp-text-alt-100">{{ $t('admin.settings.agents.custom_labels.desc') }}</span>
         <TextField :id="id" :model-value="formatCustomLabels(agent.custom_labels)" disabled />
       </InputField>
+
       <InputField
         v-slot="{ id }"
         :label="$t('admin.settings.agents.capacity.capacity')"
@@ -49,10 +57,12 @@
         <span class="text-wp-text-alt-100">{{ $t('admin.settings.agents.capacity.desc') }}</span>
         <TextField :id="id" :model-value="agent.capacity?.toString()" disabled />
       </InputField>
+
       <InputField v-slot="{ id }" :label="$t('admin.settings.agents.version')">
         <TextField :id="id" :model-value="agent.version" disabled />
       </InputField>
-      <InputField v-slot="{ id }" :label="$t('admin.settings.agents.last_contact')">
+
+      <InputField v-slot="{ id }" :label="$t('admin.settings.agents.last_contact.last_contact')">
         <TextField
           :id="id"
           :model-value="
@@ -62,6 +72,7 @@
         />
       </InputField>
     </template>
+
     <div class="flex gap-2">
       <Button type="button" color="gray" :text="$t('cancel')" @click="$emit('cancel')" />
       <Button

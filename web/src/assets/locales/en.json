@@ -352,7 +352,8 @@
         "skipped": "Skipped",
         "killed": "Killed",
         "all_workflows": "All Workflows"
-      }
+      },
+      "view": "View pipeline"
     }
   },
   "org": {
@@ -431,7 +432,9 @@
           "badge": "type"
         },
         "version": "Version",
-        "last_contact": "Last contact",
+        "last_contact": {
+          "last_contact": "Last contact"
+        },
         "never": "Never",
         "delete_confirm": "Do you really want to delete this agent? It will no longer be able to connect to the server.",
         "edit_agent": "Edit agent",
