@@ -1,6 +1,6 @@
 module codeberg.org/crowci/crow/v4
 
-go 1.24.0
+go 1.24.4
 
 toolchain go1.25.1
 
@@ -53,11 +53,11 @@ require (
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/gin-swagger v1.6.1
 	github.com/swaggo/swag v1.16.6
-	github.com/urfave/cli-docs/v3 v3.0.0-alpha6
+	github.com/urfave/cli-docs/v3 v3.1.0
 	github.com/urfave/cli/v3 v3.4.1
 	github.com/xeipuuv/gojsonschema v1.2.0
 	github.com/yaronf/httpsign v0.3.2
-	gitlab.com/gitlab-org/api/client-go v0.146.0
+	gitlab.com/gitlab-org/api/client-go v0.148.1
 	go.uber.org/multierr v1.11.0
 	golang.org/x/crypto v0.42.0
 	golang.org/x/net v0.44.0
