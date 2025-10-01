@@ -32,6 +32,13 @@ const (
 	LabelPlatform       string = "platform"
 	LabelHostname       string = "hostname"
 	LabelBackend        string = "backend"
+
+	// LabelFilter* constants are used for agent filtering.
+	LabelFilterOrg      string = "org-id"
+	LabelFilterRepo     string = "repo"
+	LabelFilterPlatform string = "platform"
+	LabelFilterHostname string = "hostname"
+	LabelFilterBackend  string = "backend"
 )
 
 // ManagedLabels is a list of all labels added automatically to tasks by Crow.

@@ -1,4 +1,3 @@
-// Copyright 2025 Crow Authors
 // Copyright 2023 Woodpecker Authors
 // Copyright 2018 Drone.IO Inc.
 //
@@ -24,7 +23,6 @@ import (
 	"maps"
 	"net/http"
 	"os"
-	"slices"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -54,7 +52,6 @@ import (
 const (
 	reportHealthInterval           = time.Second * 10
 	authInterceptorRefreshInterval = time.Minute * 30
-	minConnectTimeout              = time.Second * 5
 )
 
 const (
@@ -85,140 +82,66 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 
 	serviceWaitingGroup := errgroup.Group{}
 
-	const crowDefault = "/etc/crow/agent.conf"
-	const woodpeckerDefault = "/etc/woodpecker/agent.conf"
-	userConfigPath := c.String("agent-config")
-	agentConfigPath := userConfigPath
-	if userConfigPath == crowDefault || userConfigPath == "" {
-		// Only fallback if user did not specify a custom path
-		if _, err := os.Stat(crowDefault); os.IsNotExist(err) {
-			if _, err2 := os.Stat(woodpeckerDefault); err2 == nil {
-				agentConfigPath = woodpeckerDefault
-			}
-		}
-	}
-
+	agentConfigPath := c.String("agent-config")
 	hostname := c.String("hostname")
 	if len(hostname) == 0 {
 		hostname, _ = os.Hostname()
 	}
 
-	counter.Polling = int(c.Int64("max-workflows"))
+	counter.Polling = c.Int("max-workflows")
 	counter.Running = 0
 
 	if c.Bool("healthcheck") {
-		// Start health server immediately and independently
-		healthServer := &http.Server{
-			Addr:    c.String("healthcheck-addr"),
-			Handler: http.DefaultServeMux,
-		}
-
-		go func() {
-			log.Info().Msgf("starting health check server on %s", c.String("healthcheck-addr"))
-			if err := healthServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-				log.Error().Err(err).Msgf("health server failed to start on %s", c.String("healthcheck-addr"))
-			}
-		}()
-
-		// Give the health server a moment to start up
-		time.Sleep(100 * time.Millisecond)
-
-		serviceWaitingGroup.Go(func() error {
-			<-agentCtx.Done()
-			log.Info().Msg("shutdown healthcheck server ...")
-			if err := healthServer.Shutdown(shutdownCtx); err != nil { //nolint:contextcheck
-				log.Error().Err(err).Msg("shutdown healthcheck server failed")
-			} else {
-				log.Info().Msg("healthcheck server stopped")
-			}
-			return nil
-		})
+		serviceWaitingGroup.Go(
+			func() error {
+				server := &http.Server{Addr: c.String("healthcheck-addr")}
+				go func() {
+					<-agentCtx.Done()
+					log.Info().Msg("shutdown healthcheck server ...")
+					if err := server.Shutdown(shutdownCtx); err != nil { //nolint:contextcheck
+						log.Error().Err(err).Msg("shutdown healthcheck server failed")
+					} else {
+						log.Info().Msg("healthcheck server stopped")
+					}
+				}()
+				if err := server.ListenAndServe(); err != nil {
+					log.Error().Err(err).Msgf("cannot listen on address %s", c.String("healthcheck-addr"))
+				}
+				return nil
+			})
 	}
 
 	var transport grpc.DialOption
 	if c.Bool("grpc-secure") {
-		log.Trace().
-			Bool("skip-insecure", c.Bool("grpc-skip-insecure")).
-			Msg("Using TLS/SSL for gRPC connection")
-		tlsConfig := &tls.Config{
-			InsecureSkipVerify: c.Bool("grpc-skip-insecure"),
-			NextProtos:         []string{"h2"}, // Explicitly request HTTP/2
-		}
-		transport = grpc.WithTransportCredentials(grpc_credentials.NewTLS(tlsConfig))
+		log.Trace().Msg("use ssl for grpc")
+		transport = grpc.WithTransportCredentials(grpc_credentials.NewTLS(&tls.Config{InsecureSkipVerify: c.Bool("grpc-skip-insecure")}))
 	} else {
-		log.Trace().Msg("Using insecure (non-TLS) gRPC connection")
 		transport = grpc.WithTransportCredentials(insecure.NewCredentials())
 	}
 
-	serverAddr := c.String("server")
-
-	// If using secure connection and no port specified, append :443
-	// This handles the case where nginx is proxying gRPC over HTTPS on standard port
-	if c.Bool("grpc-secure") && !strings.Contains(serverAddr, ":") {
-		serverAddr += ":443"
-		log.Trace().
-			Str("original", c.String("server")).
-			Str("adjusted", serverAddr).
-			Msg("No port specified for secure connection, using default :443")
-	}
-
-	log.Trace().
-		Str("server", serverAddr).
-		Bool("skip-verify", c.Bool("grpc-skip-verify")).
-		Dur("keepalive-time", c.Duration("grpc-keepalive-time")).
-		Dur("keepalive-timeout", c.Duration("grpc-keepalive-timeout")).
-		Msg("Creating gRPC auth connection")
-
 	authConn, err := grpc.NewClient(
-		serverAddr,
+		c.String("server"),
 		transport,
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
 			Time:    c.Duration("grpc-keepalive-time"),
 			Timeout: c.Duration("grpc-keepalive-timeout"),
 		}),
-		grpc.WithDefaultCallOptions(grpc.WaitForReady(false)), // Don't wait indefinitely
-		grpc.WithConnectParams(grpc.ConnectParams{
-			MinConnectTimeout: minConnectTimeout,
-		}),
 	)
 	if err != nil {
-		log.Trace().Err(err).Str("server", serverAddr).Msg("Failed to create gRPC auth connection")
 		return fmt.Errorf("could not create new gRPC 'channel' for authentication: %w", err)
 	}
 	defer authConn.Close()
 
-	log.Trace().
-		Str("target", authConn.Target()).
-		Str("state", authConn.GetState().String()).
-		Msg("gRPC auth connection created successfully")
-
 	agentConfig := readAgentConfig(agentConfigPath)
 
 	agentToken := c.String("grpc-token")
-	log.Trace().
-		// Str("agent-id", agentConfig.AgentID).
-		Bool("has-token", agentToken != "").
-		Msg("Initializing authentication")
-
 	grpcClientCtx, grpcClientCtxCancel := context.WithCancelCause(context.Background())
 	defer grpcClientCtxCancel(nil)
 	authClient := agent_rpc.NewAuthGrpcClient(authConn, agentToken, agentConfig.AgentID)
-
-	log.Trace().
-		Dur("refresh-interval", authInterceptorRefreshInterval).
-		Msg("Creating auth interceptor")
-
 	authInterceptor, err := agent_rpc.NewAuthInterceptor(grpcClientCtx, authClient, authInterceptorRefreshInterval) //nolint:contextcheck
 	if err != nil {
-		log.Trace().Err(err).Msg("Failed to create auth interceptor")
-		return fmt.Errorf("could not create new auth interceptor: %w", err)
+		return fmt.Errorf("agent could not auth: %w", err)
 	}
-
-	log.Trace().Msg("Auth interceptor created successfully")
-
-	log.Trace().
-		Str("server", c.String("server")).
-		Msg("Creating main gRPC connection with auth interceptor")
 
 	conn, err := grpc.NewClient(
 		c.String("server"),
@@ -276,7 +199,7 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 	}
 	log.Debug().Msgf("loaded %s backend engine", backendEngine.Name())
 
-	maxWorkflows := int(c.Int64("max-workflows"))
+	maxWorkflows := c.Int("max-workflows")
 
 	customLabels := make(map[string]string)
 	if err := stringSliceAddToMap(c.StringSlice("labels"), customLabels); err != nil {
@@ -292,7 +215,6 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 		Platform:     engInfo.Platform,
 		Capacity:     maxWorkflows,
 		CustomLabels: customLabels,
-		Priority:     int32(c.Int64("agent-priority")),
 	})
 	if err != nil {
 		return err
@@ -324,11 +246,11 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 	}
 
 	// set default labels ...
-	labels := map[string]string{
-		pipeline.LabelHostname: hostname,
-		pipeline.LabelPlatform: engInfo.Platform,
-		pipeline.LabelBackend:  backendEngine.Name(),
-	}
+	labels := make(map[string]string)
+	labels[pipeline.LabelFilterHostname] = hostname
+	labels[pipeline.LabelFilterPlatform] = engInfo.Platform
+	labels[pipeline.LabelFilterBackend] = backendEngine.Name()
+	labels[pipeline.LabelFilterRepo] = "*" // allow all repos by default
 	// ... and let it overwrite by custom ones
 	maps.Copy(labels, customLabels)
 
@@ -345,6 +267,11 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 			err := client.ReportHealth(grpcCtx)
 			if err != nil {
 				log.Err(err).Msg("failed to report health")
+				// Check if the error is due to context cancellation
+				if grpcCtx.Err() != nil || agentCtx.Err() != nil {
+					log.Debug().Msg("terminating health reporting due to context cancellation")
+					return nil
+				}
 			}
 
 			select {
@@ -356,7 +283,7 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 		}
 	})
 
-	for i := range maxWorkflows {
+	for i := 0; i < maxWorkflows; i++ {
 		i := i
 		serviceWaitingGroup.Go(func() error {
 			runner := agent.NewRunner(client, filter, hostname, counter, &backendEngine)
@@ -369,15 +296,25 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 
 				log.Debug().Msg("polling new steps")
 				if err := runner.Run(agentCtx, shutdownCtx); err != nil {
-					log.Error().Err(err).Msg("runner done with error")
-					return err
+					log.Error().Err(err).Msg("runner error, retrying...")
+					// Check if context is canceled
+					if agentCtx.Err() != nil {
+						return nil
+					}
+					// Wait a bit before retrying to avoid hammering the server
+					select {
+					case <-agentCtx.Done():
+						return nil
+					case <-time.After(time.Second * 5):
+						// Continue to next iteration
+					}
 				}
 			}
 		})
 	}
 
 	log.Info().Msgf(
-		"starting Crow agent with version '%s' and backend '%s' using platform '%s' running up to %d pipelines in parallel",
+		"starting Woodpecker agent with version '%s' and backend '%s' using platform '%s' running up to %d pipelines in parallel",
 		version.String(), backendEngine.Name(), engInfo.Platform, maxWorkflows)
 
 	return serviceWaitingGroup.Wait()
@@ -391,85 +328,18 @@ func runWithRetry(backendEngines []types.Backend) func(ctx context.Context, c *c
 
 		initHealth()
 
-		baseRetryDelay := c.Duration("connect-retry-delay")
-		retryCount := 0
-
-		for {
-			select {
-			case <-ctx.Done():
-				log.Info().Msg("agent shutdown requested")
-				return ctx.Err()
-			default:
-			}
-
-			log.Trace().Msg("Starting agent connection attempt")
-			err := run(ctx, c, backendEngines)
-
-			// If context was canceled or we got a fatal error, exit
-			if ctx.Err() != nil {
-				return ctx.Err()
-			}
-
-			grpcCode := status.Code(err)
-			log.Trace().
-				Str("grpc-code", grpcCode.String()).
-				Err(err).
-				Msg("Connection attempt completed")
-
-			switch grpcCode {
-			case codes.OK:
-				// Success
-				log.Trace().Msg("Connection successful")
-				return nil
-			case codes.Unavailable, codes.DeadlineExceeded, codes.Internal, codes.Aborted:
-				// Recoverable errors - retry with exponential backoff
-				retryCount++
-
-				// Calculate delay with exponential backoff (max 5 minutes)
-				delay := time.Duration(retryCount) * baseRetryDelay
-				if delay > 5*time.Minute {
-					delay = 5 * time.Minute //nolint:mnd
-				}
-
-				// Log once every 10 attempts to prevent flooding
-				if retryCount%10 == 1 {
-					log.Warn().Err(err).Int("attempt", retryCount).Msgf("connection failed, will retry in %v", delay)
-				} else {
-					log.Debug().Err(err).Int("attempt", retryCount).Msgf("connection failed, will retry in %v", delay)
-				}
-
-				// Always log at trace level for debugging
-				log.Trace().
-					Int("attempt", retryCount).
-					Dur("delay", delay).
-					Str("grpc-code", grpcCode.String()).
-					Err(err).
-					Msg("Retrying connection after recoverable error")
-
-				select {
-				case <-time.After(delay):
-					continue
-				case <-ctx.Done():
-					return ctx.Err()
-				}
-			default:
-				// Other errors might be fatal - still retry but log as error
-				retryCount++
-				delay := time.Duration(retryCount) * baseRetryDelay
-				if delay > 5*time.Minute {
-					delay = 5 * time.Minute //nolint:mnd
-				}
-
-				log.Error().Err(err).Int("attempt", retryCount).Msgf("unexpected error, will retry in %v", delay)
-
-				select {
-				case <-time.After(delay):
-					continue
-				case <-ctx.Done():
-					return ctx.Err()
-				}
+		retryCount := c.Int("connect-retry-count")
+		retryDelay := c.Duration("connect-retry-delay")
+		var err error
+		for range retryCount {
+			if err = run(ctx, c, backendEngines); status.Code(err) == codes.Unavailable {
+				log.Warn().Err(err).Msg(fmt.Sprintf("cannot connect to %s, retrying in %v", c.String("server"), retryDelay))
+				time.Sleep(retryDelay)
+			} else {
+				break
 			}
 		}
+		return err
 	}
 }
 
@@ -477,57 +347,16 @@ func stringSliceAddToMap(sl []string, m map[string]string) error {
 	if m == nil {
 		m = make(map[string]string)
 	}
-
-	log.Debug().Msgf("stringSliceAddToMap input: %v", sl)
-
-	// Check for empty strings in the slice before using utils.StringSliceDeleteEmpty
-	// This preserves the expected error behavior in the tests
-	if slices.Contains(sl, "") {
-		log.Trace().Msg("Error: empty string in slice")
-		return fmt.Errorf("empty string in slice")
-	}
-
-	// Process each entry in the slice
 	for _, v := range utils.StringSliceDeleteEmpty(sl) {
-		log.Trace().Msgf("Processing slice element: %q", v)
-
-		// Split by commas to get separate key-value pairs
-		pairs := strings.Split(v, ",")
-		log.Trace().Msgf("Split into pairs by comma: %v", pairs)
-
-		for _, pair := range pairs {
-			pair = strings.TrimSpace(pair)
-			if pair == "" {
-				continue
-			}
-
-			log.Trace().Msgf("Processing pair: %q", pair)
-			key, value, found := strings.Cut(pair, "=")
-			key = strings.TrimSpace(key)
-			value = strings.TrimSpace(value)
-
-			log.Trace().Msgf("Split pair: key=%q, value=%q, found=%v", key, value, found)
-
-			switch {
-			case found && key != "" && value != "":
-				// If this key exists and has a value, append with pipe
-				if existingValue, exists := m[key]; exists && existingValue != "" {
-					log.Trace().Msgf("Appending to existing key: %q -> %q|%q", key, existingValue, value)
-					m[key] = existingValue + "|" + value
-				} else {
-					log.Trace().Msgf("Adding new key: %q -> %q", key, value)
-					m[key] = value
-				}
-			case key != "":
-				log.Trace().Msgf("Error: key %q does not have a value assigned", key)
-				return fmt.Errorf("key '%s' does not have a value assigned", key)
-			default:
-				log.Trace().Msg("Error: empty string in slice")
-				return fmt.Errorf("empty string in slice")
-			}
+		before, after, _ := strings.Cut(v, "=")
+		switch {
+		case before != "" && after != "":
+			m[before] = after
+		case before != "":
+			return fmt.Errorf("key '%s' does not have a value assigned", before)
+		default:
+			return fmt.Errorf("empty string in slice")
 		}
 	}
-
-	log.Debug().Msgf("Final map contents: %v", m)
 	return nil
 }
