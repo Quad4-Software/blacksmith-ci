@@ -99,6 +99,7 @@
         class="min-w-0 flex items-center border-b border-wp-background-400 bg-wp-background-100 pb-4 md:pb-1 p-1 dark:bg-wp-background-200 md:border-b md:overflow-hidden"
       >
         <div class="flex flex-wrap items-center gap-2">
+          <Badge v-if="agent.no_schedule" :value="$t('disabled')" />
           <router-link v-if="agent.org_id !== -1" :to="`/orgs/${agent.org_id}`" class="hover:opacity-80">
             <Badge :label="$t('admin.settings.agents.org.badge')" :value="agent.org_id" />
           </router-link>

@@ -682,5 +682,6 @@
   },
   "no_search_results": "No results found",
   "welcome_to_crow": "Welcome to Crow CI",
-  "login_oauth_message": "Sign in with OAuth"
+  "login_oauth_message": "Sign in with OAuth",
+  "disabled": "Disabled"
 }
