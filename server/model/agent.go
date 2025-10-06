@@ -18,7 +18,7 @@ import (
 	"encoding/base32"
 	"fmt"
 
-	"github.com/gorilla/securecookie"
+	"github.com/google/tink/go/subtle/random"
 
 	"codeberg.org/crowci/crow/v4/pipeline"
 )
@@ -63,7 +63,7 @@ func (a *Agent) IsSystemAgent() bool {
 }
 
 func GenerateNewAgentToken() string {
-	return base32.StdEncoding.EncodeToString(securecookie.GenerateRandomKey(32))
+	return base32.StdEncoding.EncodeToString(random.GetRandomBytes(32))
 }
 
 func (a *Agent) GetServerLabels() (map[string]string, error) {

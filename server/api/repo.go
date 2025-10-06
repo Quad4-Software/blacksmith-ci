@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gorilla/securecookie"
+	"github.com/google/tink/go/subtle/random"
 	"github.com/rs/zerolog/log"
 
 	"codeberg.org/crowci/crow/v4/server"
@@ -140,7 +140,7 @@ func PostRepo(c *gin.Context) {
 
 	if repo.Hash == "" {
 		repo.Hash = base32.StdEncoding.EncodeToString(
-			securecookie.GenerateRandomKey(32),
+			random.GetRandomBytes(32),
 		)
 	}
 

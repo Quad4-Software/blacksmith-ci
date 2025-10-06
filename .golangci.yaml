@@ -156,7 +156,14 @@ linters:
         - time.*
         - strings.Split
         - callerName
-        - securecookie.GenerateRandomKey
+        - random.GetRandomBytes
+    revive:
+      rules:
+        - name: var-naming
+          arguments:
+            - []
+            - []
+            - - skipPackageNameChecks: true
   exclusions:
     generated: lax
     presets:
