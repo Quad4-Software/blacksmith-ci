@@ -5,7 +5,7 @@ when:
       - release/*
 
 variables:
-  - &node_image 'reg.devxy.io/docker.io/oven/bun:1.2-alpine'
+  - &node_image 'reg.devxy.io/docker.io/oven/bun:1.3-alpine'
   - &when
     path:
       # related config files
