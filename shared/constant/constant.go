@@ -29,7 +29,7 @@ var DefaultConfigOrder = [...]string{
 const (
 	// DefaultClonePlugin can be changed by 'CROW_DEFAULT_CLONE_PLUGIN' at runtime.
 	// renovate: datasource=forgejo-releases depName=crow-plugins/clone registryUrl=https://codeberg.org extractVersion=^v(?<version>.*)$
-	DefaultClonePlugin = "codeberg.org/crow-plugins/clone:1.0.1"
+	DefaultClonePlugin = "codeberg.org/crow-plugins/clone:1.0.2"
 )
 
 // TrustedClonePlugins can be changed by 'CROW_PLUGINS_TRUSTED_CLONE' at runtime.
