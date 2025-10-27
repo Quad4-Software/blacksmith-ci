@@ -292,6 +292,7 @@ image-server-alpine TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE
 	echo $codeberg_bot_token | docker login {{REGISTRY}} -u {{REGISTRY_USER}} --password-stdin
 	FIXED_PLATFORMS=$(echo $PLATFORMS | sed "s/|/\//g; s/;/,/g") && \
 	docker buildx build --platform $FIXED_PLATFORMS \
+		--build-arg CACHE_BUST=$(date +%s) \
 		-t {{REGISTRY}}/{{IMAGE}}:{{TAG}}-alpine \
 		-f images/Containerfile.server.alpine.multiarch.rootless --push .
 

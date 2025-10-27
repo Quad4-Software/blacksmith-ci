@@ -27,6 +27,10 @@ ENV XDG_CACHE_HOME=/var/lib/crow
 ENV XDG_DATA_HOME=/var/lib/crow
 EXPOSE 8000 9000 80 443
 
+# Invalidate cache from this point forward when binary changes
+ARG CACHE_BUST=unknown
+RUN echo "Cache bust: ${CACHE_BUST}"
+
 COPY dist/server/${TARGETOS}_${TARGETARCH}/crow-server /bin/
 
 USER crow
