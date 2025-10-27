@@ -68,5 +68,5 @@ func taskIDs(dependsOn []string, pipelineItems []*stepbuilder.Item) (taskIDs []s
 			}
 		}
 	}
-	return
+	return taskIDs
 }

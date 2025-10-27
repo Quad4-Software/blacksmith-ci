@@ -25,6 +25,12 @@ steps:
       - apk add --no-cache -q just git sqlite-dev libc-dev gcc g++ build-base musl-dev binutils binutils-gold zip
       - just release-cli
 
+  build-macOS-agent:
+    image: *golang_image
+    commands:
+      - apk add --no-cache -q just git sqlite-dev libc-dev gcc g++ build-base musl-dev binutils binutils-gold zip
+      - PLATFORMS=darwin just release-agent
+
   changelog:
     image: reg.devxy.io/docker.io/thegeeklab/git-sv:2.0.6
     commands:
@@ -90,7 +96,7 @@ steps:
       commit_author: crowci-bot
       commit_author_email: admin@crowci.dev
 
-    #  FIXME: turn this into a plugin to secure SSH key
+  # FIXME: turn this into a plugin to secure SSH key
   'Create release for crowci/helm':
     image: reg.devxy.io/docker.io/thegeeklab/git-sv:2.0.6
     environment:

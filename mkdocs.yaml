@@ -139,6 +139,7 @@ nav:
       - Docker compose: installation/docker-compose.md
       - Helm: installation/helm.md
       - Ansible: installation/ansible.md
+      - Binary: installation/binary.md
       - Reverse proxy setup: installation/proxy.md
       - CLI: installation/cli.md
       - Migration from Woodpecker/Drone: installation/migration.md

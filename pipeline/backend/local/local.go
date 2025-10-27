@@ -43,11 +43,12 @@ type workflowState struct {
 }
 
 type local struct {
-	tempDir     string
-	workflows   sync.Map
-	output      io.ReadCloser
-	cloneBinary string
-	os, arch    string
+	tempDir      string
+	workflows    sync.Map
+	output       io.ReadCloser
+	cloneBinary  string
+	os, arch     string
+	sandboxLevel sandboxLevel
 }
 
 // New returns a new local Backend.
@@ -68,7 +69,7 @@ func (e *local) IsAvailable(ctx context.Context) bool {
 			return true
 		}
 	}
-	_, inContainer := os.LookupEnv("WOODPECKER_IN_CONTAINER")
+	_, inContainer := os.LookupEnv("CROW_IN_CONTAINER")
 	return !inContainer
 }
 
@@ -80,9 +81,27 @@ func (e *local) Load(ctx context.Context) (*types.BackendInfo, error) {
 	c, ok := ctx.Value(types.CliCommand).(*cli.Command)
 	if ok {
 		e.tempDir = c.String("backend-local-temp-dir")
+		e.sandboxLevel = sandboxLevel(c.String("backend-local-sandbox-level"))
+	}
+
+	// Validate sandbox level
+	switch e.sandboxLevel {
+	case sandboxLevelNone, sandboxLevelStandard, sandboxLevelStrict:
+		// Valid levels
+	default:
+		log.Warn().
+			Str("level", string(e.sandboxLevel)).
+			Msg("invalid sandbox level, defaulting to 'none'")
+		e.sandboxLevel = sandboxLevelNone
 	}
 
 	e.loadClone()
+
+	if e.sandboxLevel != sandboxLevelNone {
+		log.Info().
+			Str("level", string(e.sandboxLevel)).
+			Msg("macOS sandbox enabled for local backend")
+	}
 
 	return &types.BackendInfo{
 		Platform: e.os + "/" + e.arch,
@@ -93,7 +112,7 @@ func (e *local) Load(ctx context.Context) (*types.BackendInfo, error) {
 func (e *local) SetupWorkflow(_ context.Context, _ *types.Config, taskUUID string) error {
 	log.Trace().Str("taskUUID", taskUUID).Msg("create workflow environment")
 
-	baseDir, err := os.MkdirTemp(e.tempDir, "woodpecker-local-*")
+	baseDir, err := os.MkdirTemp(e.tempDir, "crow-local-*")
 	if err != nil {
 		return err
 	}
@@ -110,6 +129,12 @@ func (e *local) SetupWorkflow(_ context.Context, _ *types.Config, taskUUID strin
 	}
 
 	if err := os.Mkdir(state.workspaceDir, 0o700); err != nil {
+		return err
+	}
+
+	// Create common cache directories for build tools
+	cacheDir := filepath.Join(state.homeDir, "Library", "Caches")
+	if err := os.MkdirAll(cacheDir, 0o700); err != nil {
 		return err
 	}
 
@@ -169,6 +194,12 @@ func (e *local) execCommands(ctx context.Context, step *types.Step, state *workf
 	cmd.Env = env
 	cmd.Dir = state.workspaceDir
 
+	// Wrap with sandbox if enabled
+	cmd, err = e.wrapCommandWithSandbox(ctx, cmd, state)
+	if err != nil {
+		return fmt.Errorf("could not wrap command with sandbox: %w", err)
+	}
+
 	// Get output and redirect Stderr to Stdout
 	e.output, _ = cmd.StdoutPipe()
 	cmd.Stderr = cmd.Stdout
@@ -200,6 +231,12 @@ func (e *local) execService(ctx context.Context, step *types.Step, state *workfl
 	cmd.Env = env
 	cmd.Dir = state.workspaceDir
 
+	// Wrap with sandbox if enabled
+	cmd, err = e.wrapCommandWithSandbox(ctx, cmd, state)
+	if err != nil {
+		return fmt.Errorf("could not wrap command with sandbox: %w", err)
+	}
+
 	// Get output and redirect Stderr to Stdout
 	e.output, _ = cmd.StdoutPipe()
 	cmd.Stderr = cmd.Stdout
@@ -225,6 +262,12 @@ func (e *local) execPlugin(ctx context.Context, step *types.Step, state *workflo
 	cmd := exec.CommandContext(ctx, binary)
 	cmd.Env = env
 	cmd.Dir = state.workspaceDir
+
+	// Wrap with sandbox if enabled
+	cmd, err = e.wrapCommandWithSandbox(ctx, cmd, state)
+	if err != nil {
+		return fmt.Errorf("could not wrap command with sandbox: %w", err)
+	}
 
 	// Get output and redirect Stderr to Stdout
 	e.output, _ = cmd.StdoutPipe()

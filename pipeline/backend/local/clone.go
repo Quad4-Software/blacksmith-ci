@@ -101,6 +101,12 @@ func (e *local) execClone(ctx context.Context, step *types.Step, state *workflow
 	cmd.Env = env
 	cmd.Dir = state.workspaceDir
 
+	// Wrap with sandbox if enabled
+	cmd, err = e.wrapCommandWithSandbox(ctx, cmd, state)
+	if err != nil {
+		return fmt.Errorf("could not wrap command with sandbox: %w", err)
+	}
+
 	// Get output and redirect Stderr to Stdout
 	e.output, _ = cmd.StdoutPipe()
 	cmd.Stderr = cmd.Stdout

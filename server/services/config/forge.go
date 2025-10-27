@@ -69,7 +69,7 @@ func (f *forgeFetcher) Fetch(ctx context.Context, forge forge.Forge, user *model
 		}
 	}
 
-	return
+	return files, err
 }
 
 type forgeFetcherContext struct {

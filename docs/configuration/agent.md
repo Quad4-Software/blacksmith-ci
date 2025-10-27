@@ -127,8 +127,79 @@ The custom labels will be shown in the agent list and highlighted in a different
 ![Multi-org Agent](img/multi-org-agent.png)
 /// caption
 Multi-org Agent
+///
 
 ## Backend options
 
 Global backend options, like setting limits for cpu and memory per container, can be defined on the agent level.
 All available options are shown in the ["All environment variables"](env-vars.md) section with the backend-specific ones prefixed with `CROW_BACKEND_`.
+
+### Local backend sandboxing (macOS only)
+
+When using the `local` backend on macOS, you can enable process isolation using macOS's built-in `sandbox-exec` utility.
+This provides an additional security layer for running workflows locally.
+
+/// info
+Sandboxing is only available on macOS and automatically disabled on other platforms.
+///
+
+Configure the sandbox level using:
+
+```sh
+CROW_BACKEND_LOCAL_SANDBOX_LEVEL=standard
+```
+
+#### Available sandbox levels
+
+- `none`
+
+  No sandboxing is applied. Workflows run with full access to the system.
+
+  /// warning
+  This runs processes directly without any isolation.
+  Only use this in private repos where all actors are trusted and expect potentially     destructive operations to the host system.
+  ///
+
+- `standard`
+
+  Balanced security suitable for most CI/CD workloads.
+
+  Allows:
+
+  - ✅ Network access (npm install, go get, pip install, etc.)
+  - ✅ Reading system libraries and frameworks
+  - ✅ Reading shell configuration files (.bashrc, .zshrc, etc.)
+  - ✅ Full access to workflow temporary directories
+  - ✅ Executing system binaries and workflow tools
+
+  Denies:
+
+  - ❌ Writing outside workflow directories
+  - ❌ Reading sensitive user directories (Documents, Desktop, Downloads)
+  - ❌ Reading SSH private keys
+
+- `strict`
+
+  Maximum isolation with minimal permissions.
+
+  Allows:
+
+  - ✅ Reading only essential system files
+  - ✅ Full access only to workflow directories
+  - ✅ Minimal process execution
+
+  Denies:
+
+  - ❌ All network access
+  - ❌ All access to user directories
+  - ❌ Reading most system configuration
+
+/// note
+`strict` mode blocks network access, which will conflict with most CI/CD workflows that need to download dependencies.
+Only use this level if you specifically need maximum isolation and your workflows can run offline.
+///
+
+#### Platform detection
+
+The local backend automatically detects when it's running on macOS using Go's build tags.
+The sandbox implementation is compiled for the agent binaries only on Darwin (macOS) platforms.

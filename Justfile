@@ -50,7 +50,8 @@ version:
 
 fmt:
 		prettier -w .
-		gofmt -w .
+		gofumpt -w .
+		golangci-lint run --fix
 		gci write --skip-vendor --skip-generated -s standard -s default -s "prefix(codeberg.org/crowci/crow)" --custom-order .
 
 test: test-agent test-server test-server-datastore test-cli test-lib
@@ -224,8 +225,52 @@ release-cli: ## Create cli binaries for release
 	tar -cvzf {{DIST_DIR}}/crow-cli_darwin_amd64.tar.gz  -C {{DIST_DIR}}/cli/darwin_amd64  crow-cli
 	tar -cvzf {{DIST_DIR}}/crow-cli_darwin_arm64.tar.gz  -C {{DIST_DIR}}/cli/darwin_arm64  crow-cli
 	# zip binary files
-	rm -f  {{DIST_DIR}}/crow-cli_windows_amd64.zip
-	zip -j {{DIST_DIR}}/crow-cli_windows_amd64.zip          {{DIST_DIR}}/cli/windows_amd64/crow-cli.exe
+
+
+# Build agent for all platforms: just release-agent
+# Build for specific platforms: env PLATFORMS='darwin' just release-agent
+# Build for multiple platforms: env PLATFORMS='darwin linux' just release-agent
+release-agent: ## Create agent binaries for release
+	#!/usr/bin/env bash
+	set -euo pipefail
+
+	PLATFORMS="${PLATFORMS:-linux darwin windows}"
+
+	declare -A os_archs=(
+		["linux"]="amd64 arm64 arm"
+		["darwin"]="amd64 arm64"
+		["windows"]="amd64"
+	)
+
+	for os in $PLATFORMS; do
+		if [[ ! -v os_archs[$os] ]]; then
+			echo "Unknown OS: $os"
+			exit 1
+		fi
+
+		for arch in ${os_archs[$os]}; do
+			bin_suffix=""
+			[[ "$os" == "windows" ]] && bin_suffix=".exe"
+
+			echo "Building crow-agent for $os/$arch..."
+			mkdir -p {{DIST_DIR}}/agent/${os}_${arch}
+			GOOS=$os GOARCH=$arch CGO_ENABLED=0 go build -ldflags '{{LDFLAGS}}' \
+				-o {{DIST_DIR}}/agent/${os}_${arch}/crow-agent${bin_suffix} \
+				codeberg.org/crowci/crow/v4/cmd/agent
+
+			# Create archives
+			if [[ "$os" == "windows" ]]; then
+				rm -f {{DIST_DIR}}/crow-agent_${os}_${arch}.zip
+				(cd {{DIST_DIR}}/agent/${os}_${arch} && zip ../../crow-agent_${os}_${arch}.zip crow-agent${bin_suffix})
+			else
+				tar -czf {{DIST_DIR}}/crow-agent_${os}_${arch}.tar.gz \
+					-C {{DIST_DIR}}/agent/${os}_${arch} crow-agent
+			fi
+		done
+	done
+
+	echo "Build complete. Artifacts in {{DIST_DIR}}/"
+	ls -lh {{DIST_DIR}}/crow-agent_*
 
 ## images
 # platforms must be handed over via this syntax for the underlying cross-compile-server step which applies some string splitting on a list of items

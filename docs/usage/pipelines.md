@@ -201,7 +201,7 @@ services:
   ```
 
   /// tip
-  For the kubernetes backend, architecture-specific pipelines should be controlled via the [`nodeSelector` backend option](../configuration/server.md#backend-options-backend-options-kubernetes).
+  For the kubernetes backend, architecture-specific pipelines should be controlled via the [`nodeSelector` backend option](../configuration/server.md#backend_options_kubernetes).
   ///
 
 ## Skipping commits
