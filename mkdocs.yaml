@@ -136,7 +136,7 @@ nav:
   - Getting started: index.md
   - Installation:
       - installation/index.md
-      - Docker compose: installation/docker-compose.md
+      - Container: installation/container.md
       - Helm: installation/helm.md
       - Ansible: installation/ansible.md
       - Binary: installation/binary.md

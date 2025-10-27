@@ -1,7 +1,8 @@
 ---
-hide:
-  - toc
+title: Container
 ---
+
+## Docker Compose
 
 <!-- markdownlint-disable MD041 -->
 
@@ -64,4 +65,48 @@ services:
       - CROW_GRPC_SECURE=true
       - CROW_PROVIDER=hetznercloud
       - CROW_HETZNERCLOUD_API_TOKEN=${CROW_HETZNERCLOUD_API_TOKEN}
+```
+
+## Docker Swarm
+
+You can also deploy CrowCI on a Docker Swarm cluster.
+The following example can serve as a starting point:
+
+```yaml
+services:
+  crow-server:
+    image: codeberg.org/crowci/crow-server:<tag>
+    networks:
+      - traefik-public
+      - crowci
+    deploy:
+      replicas: 1
+    volumes:
+      # A persistent NFS directory is used so it can be mounted to any swarm node
+      - /docker-host/nfsvolumes/crow/server:/var/lib/crow/
+    environment:
+      CROW_OPEN: "true"
+      CROW_FORGEJO: "true"
+      CROW_FORGEJO_URL: "${FORGEJO_URL}"
+      CROW_FORGEJO_CLIENT: "${FORGEJO_CLIENT}"
+      CROW_FORGEJO_SECRET: "${FORGEJO_SECRET}"
+      CROW_ADMIN: "${CROW_ADMIN}"
+      CROW_HOST: "https://${CROW_URI_DOMAIN}"
+
+  crow-agent:
+    image: codeberg.org/crowci/crow-agent:<tag>
+    networks:
+      - crowci
+    depends_on:
+      - crow-server
+    volumes:
+      # A persistent NFS directory is used so it can be mounted to any swarm node
+      - /docker-host/nfsvolumes/crow/agent:/etc/crow
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      CROW_SERVER: "crow-server:9000"
+      CROW_AGENT_SECRET: "${CROW_GLOBAL_AGENT_SECRET}"
+
+networks:
+  crowci:
 ```
