@@ -6,7 +6,7 @@ toolchain go1.25.3
 
 require (
 	al.essio.dev/pkg/shellescape v1.6.0
-	code.gitea.io/sdk/gitea v0.22.0
+	code.gitea.io/sdk/gitea v0.22.1
 	codeberg.org/6543/go-yaml2json v1.0.0
 	codeberg.org/6543/xyaml v1.1.0
 	codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2 v2.2.0
@@ -54,7 +54,7 @@ require (
 	github.com/swaggo/gin-swagger v1.6.1
 	github.com/swaggo/swag v1.16.6
 	github.com/urfave/cli-docs/v3 v3.1.0
-	github.com/urfave/cli/v3 v3.4.1
+	github.com/urfave/cli/v3 v3.5.0
 	github.com/xeipuuv/gojsonschema v1.2.0
 	github.com/yaronf/httpsign v0.3.3
 	gitlab.com/gitlab-org/api/client-go v0.157.0
@@ -73,7 +73,7 @@ require (
 	k8s.io/client-go v0.34.1
 	src.techknowlogick.com/xormigrate v1.7.1
 	xorm.io/builder v0.3.13
-	xorm.io/xorm v1.3.10
+	xorm.io/xorm v1.3.11
 )
 
 require (
@@ -124,7 +124,7 @@ require (
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.27.0 // indirect
-	github.com/goccy/go-json v0.10.3 // indirect
+	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/goccy/go-yaml v1.18.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
