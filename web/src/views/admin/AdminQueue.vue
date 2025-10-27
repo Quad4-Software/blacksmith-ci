@@ -66,7 +66,7 @@
                 :value="task.dependencies.join(', ')"
               />
               <IconButton
-                v-if="task.agent_name"
+                v-if="task.pipeline_number"
                 icon="chevron-right"
                 :title="$t('repo.pipeline.view')"
                 class="h-8 w-8"
