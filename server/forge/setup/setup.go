@@ -174,12 +174,12 @@ func setupBitbucketDatacenter(forge *model.Forge) (forge.Forge, error) {
 	}
 
 	opts := bitbucketdatacenter.Opts{
-		URL:          forge.URL,
-		ClientID:     forge.Client,
-		ClientSecret: forge.ClientSecret,
-		Username:     gitUsername,
-		Password:     gitPassword,
-		OAuthHost:    forge.OAuthHost,
+		URL:                          forge.URL,
+		ClientID:                     forge.Client,
+		ClientSecret:                 forge.ClientSecret,
+		Username:                     gitUsername,
+		Password:                     gitPassword,
+		OAuthHost:                    forge.OAuthHost,
 		OAuthEnableProjectAdminScope: enableProjectAdminScope,
 	}
 	log.Debug().

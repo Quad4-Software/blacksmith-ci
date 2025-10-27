@@ -38,12 +38,12 @@ const listLimit = 250
 
 // Opts defines configuration options.
 type Opts struct {
-	URL          string // Bitbucket server url for API access.
-	Username     string // Git machine account username.
-	Password     string // Git machine account password.
-	ClientID     string // OAuth 2.0 client id
-	ClientSecret string // OAuth 2.0 client secret
-	OAuthHost    string // OAuth 2.0 host
+	URL                          string // Bitbucket server url for API access.
+	Username                     string // Git machine account username.
+	Password                     string // Git machine account password.
+	ClientID                     string // OAuth 2.0 client id
+	ClientSecret                 string // OAuth 2.0 client secret
+	OAuthHost                    string // OAuth 2.0 host
 	OAuthEnableProjectAdminScope bool   // Whether to enable project admin scope. Should be set as default in the next major version.
 }
 
@@ -62,13 +62,13 @@ type client struct {
 // the on-premise edition of Bitbucket Cloud, formerly known as Stash.
 func New(opts Opts) (forge.Forge, error) {
 	config := &client{
-		url:          opts.URL,
-		urlAPI:       fmt.Sprintf("%s/rest", opts.URL),
-		clientID:     opts.ClientID,
-		clientSecret: opts.ClientSecret,
-		oauthHost:    opts.OAuthHost,
-		username:     opts.Username,
-		password:     opts.Password,
+		url:                          opts.URL,
+		urlAPI:                       fmt.Sprintf("%s/rest", opts.URL),
+		clientID:                     opts.ClientID,
+		clientSecret:                 opts.ClientSecret,
+		oauthHost:                    opts.OAuthHost,
+		username:                     opts.Username,
+		password:                     opts.Password,
 		oauthEnableProjectAdminScope: opts.OAuthEnableProjectAdminScope,
 	}
 
