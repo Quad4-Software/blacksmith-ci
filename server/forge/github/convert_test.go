@@ -18,7 +18,7 @@ package github
 import (
 	"testing"
 
-	"github.com/google/go-github/v74/github"
+	"github.com/google/go-github/v76/github"
 	"github.com/stretchr/testify/assert"
 
 	"codeberg.org/crowci/crow/v4/server/model"
@@ -185,8 +185,7 @@ func Test_parsePullHook(t *testing.T) {
 			Login: github.Ptr("octocat"),
 		},
 	}
-	pull, _, pipeline, err := parsePullHook(from, true)
-	assert.NoError(t, err)
+	pull, _, pipeline := parsePullHook(from, true)
 	assert.NotNil(t, pull)
 	assert.Equal(t, model.EventPull, pipeline.Event)
 	assert.Equal(t, *from.PullRequest.Base.Ref, pipeline.Branch)
@@ -235,7 +234,7 @@ func Test_parsePushHook(t *testing.T) {
 		from.HeadCommit.ID = github.Ptr("f72fc19")
 		from.Ref = github.Ptr("refs/heads/main")
 
-		_, pipeline := parsePushHook(from)
+		_, pipeline, _, _ := parsePushHook(from)
 		assert.Equal(t, model.EventPush, pipeline.Event)
 		assert.Equal(t, "main", pipeline.Branch)
 		assert.Equal(t, "refs/heads/main", pipeline.Ref)
@@ -251,7 +250,7 @@ func Test_parsePushHook(t *testing.T) {
 		from := &github.PushEvent{}
 		from.Ref = github.Ptr("refs/tags/v1.0.0")
 
-		_, pipeline := parsePushHook(from)
+		_, pipeline, _, _ := parsePushHook(from)
 		assert.Equal(t, model.EventTag, pipeline.Event)
 		assert.Equal(t, "refs/tags/v1.0.0", pipeline.Ref)
 	})
@@ -261,7 +260,7 @@ func Test_parsePushHook(t *testing.T) {
 		from.Ref = github.Ptr("refs/tags/v1.0.0")
 		from.BaseRef = github.Ptr("refs/heads/main")
 
-		_, pipeline := parsePushHook(from)
+		_, pipeline, _, _ := parsePushHook(from)
 		assert.Equal(t, model.EventTag, pipeline.Event)
 		assert.Equal(t, "main", pipeline.Branch)
 	})
@@ -271,7 +270,7 @@ func Test_parsePushHook(t *testing.T) {
 		from.Ref = github.Ptr("refs/tags/v1.0.0")
 		from.BaseRef = github.Ptr("refs/refs/main")
 
-		_, pipeline := parsePushHook(from)
+		_, pipeline, _, _ := parsePushHook(from)
 		assert.Equal(t, model.EventTag, pipeline.Event)
 		assert.Equal(t, "refs/tags/v1.0.0", pipeline.Branch)
 	})

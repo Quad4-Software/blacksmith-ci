@@ -22,11 +22,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v74/github"
+	"github.com/google/go-github/v76/github"
 
 	"codeberg.org/crowci/crow/v4/server/forge/types"
 	"codeberg.org/crowci/crow/v4/server/model"
-	"codeberg.org/crowci/crow/v4/shared/utils"
 )
 
 const (
@@ -44,7 +43,7 @@ const (
 
 // parseHook parses a GitHub hook from an http.Request request and returns
 // Repo and Pipeline detail. If a hook type is unsupported nil values are returned.
-func parseHook(r *http.Request, merge bool) (*github.PullRequest, *model.Repo, *model.Pipeline, error) {
+func parseHook(r *http.Request, merge bool) (_ *github.PullRequest, _ *model.Repo, _ *model.Pipeline, currCommit, prevCommit string, _ error) {
 	var reader io.Reader = r.Body
 
 	if payload := r.FormValue(hookField); payload != "" {
@@ -53,51 +52,52 @@ func parseHook(r *http.Request, merge bool) (*github.PullRequest, *model.Repo, *
 
 	raw, err := io.ReadAll(reader)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, "", "", err
 	}
 
 	payload, err := github.ParseWebHook(github.WebHookType(r), raw)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, "", "", err
 	}
 
 	switch hook := payload.(type) {
 	case *github.PushEvent:
-		repo, pipeline := parsePushHook(hook)
-		return nil, repo, pipeline, nil
+		repo, pipeline, curr, prev := parsePushHook(hook)
+		return nil, repo, pipeline, curr, prev, nil
 	case *github.DeploymentEvent:
 		repo, pipeline := parseDeployHook(hook)
-		return nil, repo, pipeline, nil
+		return nil, repo, pipeline, "", "", nil
 	case *github.PullRequestEvent:
-		return parsePullHook(hook, merge)
+		pr, repo, pipeline := parsePullHook(hook, merge)
+		return pr, repo, pipeline, "", "", nil
 	case *github.ReleaseEvent:
 		repo, pipeline := parseReleaseHook(hook)
-		return nil, repo, pipeline, nil
+		return nil, repo, pipeline, "", "", nil
 	default:
-		return nil, nil, nil, &types.ErrIgnoreEvent{Event: github.Stringify(hook)}
+		return nil, nil, nil, "", "", &types.ErrIgnoreEvent{Event: github.Stringify(hook)}
 	}
 }
 
 // parsePushHook parses a push hook and returns the Repo and Pipeline details.
 // If the commit type is unsupported nil values are returned.
-func parsePushHook(hook *github.PushEvent) (*model.Repo, *model.Pipeline) {
+func parsePushHook(hook *github.PushEvent) (_ *model.Repo, _ *model.Pipeline, curr, prev string) {
 	if hook.Deleted != nil && *hook.Deleted {
-		return nil, nil
+		return nil, nil, "", ""
 	}
 
 	pipeline := &model.Pipeline{
-		Event:        model.EventPush,
-		Commit:       hook.GetHeadCommit().GetID(),
-		Ref:          hook.GetRef(),
-		ForgeURL:     hook.GetHeadCommit().GetURL(),
-		Branch:       strings.ReplaceAll(hook.GetRef(), "refs/heads/", ""),
-		Message:      hook.GetHeadCommit().GetMessage(),
-		Email:        hook.GetHeadCommit().GetAuthor().GetEmail(),
-		Avatar:       hook.GetSender().GetAvatarURL(),
-		Author:       hook.GetSender().GetLogin(),
-		Sender:       hook.GetSender().GetLogin(),
-		ChangedFiles: getChangedFilesFromCommits(hook.Commits),
+		Event:    model.EventPush,
+		Commit:   hook.GetHeadCommit().GetID(),
+		Ref:      hook.GetRef(),
+		ForgeURL: hook.GetHeadCommit().GetURL(),
+		Branch:   strings.ReplaceAll(hook.GetRef(), "refs/heads/", ""),
+		Message:  hook.GetHeadCommit().GetMessage(),
+		Email:    hook.GetHeadCommit().GetAuthor().GetEmail(),
+		Avatar:   hook.GetSender().GetAvatarURL(),
+		Author:   hook.GetSender().GetLogin(),
+		Sender:   hook.GetSender().GetLogin(),
 	}
+	repo := convertRepoHook(hook.GetRepo())
 
 	if len(pipeline.Author) == 0 {
 		pipeline.Author = hook.GetHeadCommit().GetAuthor().GetLogin()
@@ -106,15 +106,15 @@ func parsePushHook(hook *github.PushEvent) (*model.Repo, *model.Pipeline) {
 		// just kidding, this is actually a tag event. Why did this come as a push
 		// event we'll never know!
 		pipeline.Event = model.EventTag
-		pipeline.ChangedFiles = nil
 		// For tags, if the base_ref (tag's base branch) is set, we're using it
 		// as pipeline's branch so that we can filter events base on it
 		if strings.HasPrefix(hook.GetBaseRef(), "refs/heads/") {
 			pipeline.Branch = strings.ReplaceAll(hook.GetBaseRef(), "refs/heads/", "")
 		}
+		return repo, pipeline, "", ""
 	}
 
-	return convertRepoHook(hook.GetRepo()), pipeline
+	return repo, pipeline, hook.GetHeadCommit().GetID(), hook.GetBefore()
 }
 
 // parseDeployHook parses a deployment and returns the Repo and Pipeline details.
@@ -148,9 +148,9 @@ func parseDeployHook(hook *github.DeploymentEvent) (*model.Repo, *model.Pipeline
 
 // parsePullHook parses a pull request hook and returns the Repo and Pipeline
 // details.
-func parsePullHook(hook *github.PullRequestEvent, merge bool) (*github.PullRequest, *model.Repo, *model.Pipeline, error) {
+func parsePullHook(hook *github.PullRequestEvent, merge bool) (*github.PullRequest, *model.Repo, *model.Pipeline) {
 	if hook.GetAction() != actionOpen && hook.GetAction() != actionSync && hook.GetAction() != actionClose && hook.GetAction() != actionEdited {
-		return nil, nil, nil, nil
+		return nil, nil, nil
 	}
 
 	event := model.EventPull
@@ -186,7 +186,7 @@ func parsePullHook(hook *github.PullRequestEvent, merge bool) (*github.PullReque
 		pipeline.Ref = fmt.Sprintf(mergeRefs, hook.GetPullRequest().GetNumber())
 	}
 
-	return hook.GetPullRequest(), convertRepo(hook.GetRepo()), pipeline, nil
+	return hook.GetPullRequest(), convertRepo(hook.GetRepo()), pipeline
 }
 
 // parseReleaseHook parses a release hook and returns the Repo and Pipeline
@@ -214,15 +214,4 @@ func parseReleaseHook(hook *github.ReleaseEvent) (*model.Repo, *model.Pipeline) 
 	}
 
 	return convertRepo(hook.GetRepo()), pipeline
-}
-
-func getChangedFilesFromCommits(commits []*github.HeadCommit) []string {
-	// assume a capacity of 4 changed files per commit
-	files := make([]string, 0, len(commits)*4)
-	for _, cm := range commits {
-		files = append(files, cm.Added...)
-		files = append(files, cm.Removed...)
-		files = append(files, cm.Modified...)
-	}
-	return utils.DeduplicateStrings(files)
 }

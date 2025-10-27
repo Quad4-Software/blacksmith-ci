@@ -18,7 +18,6 @@ package github
 import (
 	"bytes"
 	"net/http"
-	"sort"
 	"strings"
 	"testing"
 
@@ -48,7 +47,7 @@ func testHookRequest(payload []byte, event string) *http.Request {
 func Test_parseHook(t *testing.T) {
 	t.Run("ignore unsupported hook events", func(t *testing.T) {
 		req := testHookRequest([]byte(fixtures.HookPullRequest), "issues")
-		p, r, b, err := parseHook(req, false)
+		p, r, b, _, _, err := parseHook(req, false)
 		assert.Nil(t, r)
 		assert.Nil(t, b)
 		assert.Nil(t, p)
@@ -57,7 +56,7 @@ func Test_parseHook(t *testing.T) {
 
 	t.Run("skip skip push hook when action is deleted", func(t *testing.T) {
 		req := testHookRequest([]byte(fixtures.HookPushDeleted), hookPush)
-		p, r, b, err := parseHook(req, false)
+		p, r, b, _, _, err := parseHook(req, false)
 		assert.Nil(t, r)
 		assert.Nil(t, b)
 		assert.NoError(t, err)
@@ -65,19 +64,17 @@ func Test_parseHook(t *testing.T) {
 	})
 	t.Run("push hook", func(t *testing.T) {
 		req := testHookRequest([]byte(fixtures.HookPush), hookPush)
-		p, r, b, err := parseHook(req, false)
+		p, r, b, _, _, err := parseHook(req, false)
 		assert.NoError(t, err)
 		assert.Nil(t, p)
 		assert.NotNil(t, r)
 		assert.NotNil(t, b)
 		assert.Equal(t, model.EventPush, b.Event)
-		sort.Strings(b.ChangedFiles)
-		assert.Equal(t, []string{"pipeline/shared/replace_secrets.go", "pipeline/shared/replace_secrets_test.go"}, b.ChangedFiles)
 	})
 
 	t.Run("PR hook", func(t *testing.T) {
 		req := testHookRequest([]byte(fixtures.HookPullRequest), hookPull)
-		p, r, b, err := parseHook(req, false)
+		p, r, b, _, _, err := parseHook(req, false)
 		assert.NoError(t, err)
 		assert.NotNil(t, r)
 		assert.NotNil(t, b)
@@ -86,7 +83,7 @@ func Test_parseHook(t *testing.T) {
 	})
 	t.Run("PR closed hook", func(t *testing.T) {
 		req := testHookRequest([]byte(fixtures.HookPullRequestClosed), hookPull)
-		p, r, b, err := parseHook(req, false)
+		p, r, b, _, _, err := parseHook(req, false)
 		assert.NoError(t, err)
 		assert.NotNil(t, r)
 		assert.NotNil(t, b)
@@ -95,7 +92,7 @@ func Test_parseHook(t *testing.T) {
 	})
 	t.Run("PR merged hook", func(t *testing.T) {
 		req := testHookRequest([]byte(fixtures.HookPullRequestMerged), hookPull)
-		p, r, b, err := parseHook(req, false)
+		p, r, b, _, _, err := parseHook(req, false)
 		assert.NoError(t, err)
 		assert.NotNil(t, r)
 		assert.NotNil(t, b)
@@ -104,7 +101,7 @@ func Test_parseHook(t *testing.T) {
 	})
 	t.Run("PR edited hook", func(t *testing.T) {
 		req := testHookRequest([]byte(fixtures.HookPullRequestEdited), hookPull)
-		p, r, b, err := parseHook(req, false)
+		p, r, b, _, _, err := parseHook(req, false)
 		assert.NoError(t, err)
 		assert.NotNil(t, r)
 		assert.NotNil(t, b)
@@ -114,7 +111,7 @@ func Test_parseHook(t *testing.T) {
 
 	t.Run("deploy hook", func(t *testing.T) {
 		req := testHookRequest([]byte(fixtures.HookDeploy), hookDeploy)
-		p, r, b, err := parseHook(req, false)
+		p, r, b, _, _, err := parseHook(req, false)
 		assert.NoError(t, err)
 		assert.NotNil(t, r)
 		assert.NotNil(t, b)
@@ -126,7 +123,7 @@ func Test_parseHook(t *testing.T) {
 
 	t.Run("release hook", func(t *testing.T) {
 		req := testHookRequest([]byte(fixtures.HookRelease), hookRelease)
-		p, r, b, err := parseHook(req, false)
+		p, r, b, _, _, err := parseHook(req, false)
 		assert.NoError(t, err)
 		assert.NotNil(t, r)
 		assert.NotNil(t, b)
