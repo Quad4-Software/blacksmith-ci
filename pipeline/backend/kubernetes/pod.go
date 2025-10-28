@@ -147,7 +147,8 @@ func podLabels(step *types.Step, config *config, options BackendOptions, taskUUI
 		// Only copy user labels if allowed by agent config.
 		// Internal labels are filtered on the server-side.
 		if config.PodLabelsAllowFromStep || strings.HasPrefix(k, pipeline.InternalLabelPrefix) {
-			labels[k] = v
+			// Sanitize label values to comply with Kubernetes label requirements
+			labels[k] = sanitizeLabelValue(v)
 		}
 	}
 
@@ -180,6 +181,8 @@ func podLabels(step *types.Step, config *config, options BackendOptions, taskUUI
 	if len(taskUUID) > 0 {
 		labels[TaskUUIDLabel] = taskUUID
 	}
+
+	labels["app.kubernetes.io/managed-by"] = "crow"
 
 	return labels, nil
 }

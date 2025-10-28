@@ -18,6 +18,8 @@ import (
 	"context"
 	"encoding/json"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/cenkalti/backoff/v5"
@@ -43,6 +45,27 @@ const (
 	// Maximum amount of time between sending consecutive batched log messages.
 	// Controls the delay between the CI job generating a log record, and web users receiving it.
 	maxLogFlushPeriod time.Duration = time.Second
+
+	// Retry attempt threshold for escalating log level from INFO to WARN.
+	// Attempts 1,2,4 log at INFO, attempts 8+ log at WARN to indicate persistent issues.
+	retryWarnThreshold = 8
+)
+
+// Global flags to track agent connectivity state (shared across all client instances and runners)
+//
+// Design: An agent is only truly operational when BOTH health reporting AND workflow polling work.
+// - workflowPollingHealthy: true when workflow polling can connect to server
+// - healthReportingHealthy: true when health heartbeat can connect to server
+// - agentOperationalLogged: true after we've logged "agent fully operational" message
+// - operationalLogMutex: ensures only one goroutine logs the message (across 100+ workers)
+//
+// The flag is reset to false only on ACTUAL connection errors, not on "sql: no rows" (empty queue).
+// This prevents log spam while ensuring admins see when the agent is truly operational.
+var (
+	workflowPollingHealthy atomic.Bool
+	healthReportingHealthy atomic.Bool
+	agentOperationalLogged atomic.Bool
+	operationalLogMutex    sync.Mutex
 )
 
 type client struct {
@@ -73,6 +96,34 @@ func (c *client) newBackOff() backoff.BackOff {
 	return b
 }
 
+// cleanGrpcError extracts a human-readable error message from verbose gRPC errors.
+func cleanGrpcError(err error) string {
+	errMsg := err.Error()
+
+	// Extract the core error message from nested gRPC error strings
+	// Example: "rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial tcp 10.43.78.5:9000: connect: connection refused\""
+	// Result: "connection refused"
+
+	if strings.Contains(errMsg, "connection refused") {
+		return "connection refused"
+	}
+	if strings.Contains(errMsg, "no such host") {
+		return "no such host"
+	}
+	if strings.Contains(errMsg, "i/o timeout") {
+		return "connection timeout"
+	}
+	if strings.Contains(errMsg, "context deadline exceeded") {
+		return "deadline exceeded"
+	}
+	if strings.Contains(errMsg, "context canceled") {
+		return "context canceled"
+	}
+
+	// For other errors, return the status code description
+	return status.Code(err).String()
+}
+
 // Version returns the server- & grpc-version.
 func (c *client) Version(ctx context.Context) (*rpc.Version, error) {
 	res, err := c.client.Version(ctx, &proto.Empty{})
@@ -93,11 +144,50 @@ func (c *client) Next(ctx context.Context, filter rpc.Filter) (*rpc.Workflow, er
 	req := new(proto.NextRequest)
 	req.Filter = new(proto.Filter)
 	req.Filter.Labels = filter.Labels
+
+	attemptCount := 0
+	var lastBackoff time.Duration
+
 	for {
 		res, err = c.client.Next(ctx, req)
 		if err == nil {
+			// Mark workflow polling as healthy
+			workflowPollingHealthy.Store(true)
+
+			// Check if BOTH services are now healthy and log if we're the first
+			// Use mutex to guarantee only one goroutine logs
+			operationalLogMutex.Lock()
+			if healthReportingHealthy.Load() && !agentOperationalLogged.Load() {
+				agentOperationalLogged.Store(true)
+				log.Info().Msg("agent fully operational (health reporting and workflow polling connected)")
+			}
+			operationalLogMutex.Unlock()
 			break
 		}
+
+		// "sql: no rows in result set" is not an error - it means the queue is empty
+		// Treat it as success - don't reset flags or increment attempt count
+		if status.Code(err) == codes.Unknown && strings.Contains(err.Error(), "sql: no rows in result set") {
+			// Mark workflow polling as healthy (same as success case)
+			workflowPollingHealthy.Store(true)
+
+			// Check if BOTH services are now healthy and log if we're the first
+			// Use mutex to guarantee only one goroutine logs
+			operationalLogMutex.Lock()
+			if healthReportingHealthy.Load() && !agentOperationalLogged.Load() {
+				agentOperationalLogged.Store(true)
+				log.Info().Msg("agent fully operational (health reporting and workflow polling connected)")
+			}
+			operationalLogMutex.Unlock()
+			return nil, nil
+		}
+
+		attemptCount++
+
+		// Mark workflow polling as unhealthy and reset operational flag
+		// Only do this for ACTUAL errors, not "sql: no rows"
+		workflowPollingHealthy.Store(false)
+		agentOperationalLogged.Store(false)
 
 		switch status.Code(err) {
 		case codes.Canceled:
@@ -113,14 +203,42 @@ func (c *client) Next(ctx context.Context, filter rpc.Filter) (*rpc.Workflow, er
 			codes.DataLoss,
 			codes.DeadlineExceeded,
 			codes.Internal,
-			codes.Unavailable:
-			// non-fatal errors
+			codes.Unavailable,
+			codes.Unknown:
+			// non-fatal errors that should be retried
+			lastBackoff = retry.NextBackOff()
 			// TODO: remove after adding continuous data exchange by something like #536
 			if strings.Contains(err.Error(), "\"too_many_pings\"") {
 				// https://github.com/woodpecker-ci/woodpecker/issues/717#issuecomment-1049365104
 				log.Trace().Err(err).Msg("grpc: to many keepalive pings without sending data")
 			} else {
-				log.Warn().Err(err).Msgf("grpc error: next(): code: %v", status.Code(err))
+				// Log retry attempts at different levels to reduce noise:
+				// - attempts 1, 2, 4: INFO (normal reconnection attempts)
+				// - attempts 8+: WARN (persistent connection issues)
+				// - all others: DEBUG (detailed troubleshooting only)
+				isPowerOfTwo := attemptCount > 0 && (attemptCount&(attemptCount-1)) == 0
+				cleanErr := cleanGrpcError(err)
+				if isPowerOfTwo {
+					if attemptCount >= retryWarnThreshold {
+						log.Warn().
+							Str("error", cleanErr).
+							Int("attempt", attemptCount).
+							Dur("retry_in", lastBackoff).
+							Msg("workflow polling error, retrying")
+					} else {
+						log.Info().
+							Str("error", cleanErr).
+							Int("attempt", attemptCount).
+							Dur("retry_in", lastBackoff).
+							Msg("workflow polling error, retrying")
+					}
+				} else {
+					log.Debug().
+						Str("error", cleanErr).
+						Int("attempt", attemptCount).
+						Dur("retry_in", lastBackoff).
+						Msg("workflow polling error, retrying")
+				}
 			}
 		default:
 			log.Error().Err(err).Msgf("grpc error: next(): code: %v", status.Code(err))
@@ -128,7 +246,7 @@ func (c *client) Next(ctx context.Context, filter rpc.Filter) (*rpc.Workflow, er
 		}
 
 		select {
-		case <-time.After(retry.NextBackOff()):
+		case <-time.After(lastBackoff):
 		case <-ctx.Done():
 			return nil, nil
 		}
@@ -504,11 +622,50 @@ func (c *client) ReportHealth(ctx context.Context) (err error) {
 	req := new(proto.ReportHealthRequest)
 	req.Status = "I am alive!"
 
+	attemptCount := 0
+	var lastBackoff time.Duration
+
 	for {
 		_, err = c.client.ReportHealth(ctx, req)
 		if err == nil {
+			// Mark health reporting as healthy
+			healthReportingHealthy.Store(true)
+
+			// Check if BOTH services are now healthy and log if we're the first
+			// Use mutex to guarantee only one goroutine logs
+			operationalLogMutex.Lock()
+			if workflowPollingHealthy.Load() && !agentOperationalLogged.Load() {
+				agentOperationalLogged.Store(true)
+				log.Info().Msg("agent fully operational (health reporting and workflow polling connected)")
+			}
+			operationalLogMutex.Unlock()
 			return nil
 		}
+
+		// "sql: no rows in result set" is not an error for health reports either
+		// Treat it as success - don't reset flags or increment attempt count
+		if status.Code(err) == codes.Unknown && strings.Contains(err.Error(), "sql: no rows in result set") {
+			// Mark health reporting as healthy (same as success case)
+			healthReportingHealthy.Store(true)
+
+			// Check if BOTH services are now healthy and log if we're the first
+			// Use mutex to guarantee only one goroutine logs
+			operationalLogMutex.Lock()
+			if workflowPollingHealthy.Load() && !agentOperationalLogged.Load() {
+				agentOperationalLogged.Store(true)
+				log.Info().Msg("agent fully operational (health reporting and workflow polling connected)")
+			}
+			operationalLogMutex.Unlock()
+			return nil
+		}
+
+		attemptCount++
+
+		// Mark health reporting as unhealthy and reset operational flag
+		// Only do this for ACTUAL errors, not "sql: no rows"
+		healthReportingHealthy.Store(false)
+		agentOperationalLogged.Store(false)
+
 		switch status.Code(err) {
 		case codes.Canceled:
 			if ctx.Err() != nil {
@@ -523,16 +680,46 @@ func (c *client) ReportHealth(ctx context.Context) (err error) {
 			codes.DataLoss,
 			codes.DeadlineExceeded,
 			codes.Internal,
-			codes.Unavailable:
-			// non-fatal errors
-			log.Warn().Err(err).Msgf("grpc error: report_health(): code: %v", status.Code(err))
+			codes.Unavailable,
+			codes.Unknown:
+			// non-fatal errors that should be retried
+			lastBackoff = retry.NextBackOff()
+			// Log retry attempts at different levels to reduce noise:
+			// - attempts 1, 2, 4: INFO (normal reconnection attempts)
+			// - attempts 8+: WARN (persistent connection issues)
+			// - all others: DEBUG (detailed troubleshooting only)
+			isPowerOfTwo := attemptCount > 0 && (attemptCount&(attemptCount-1)) == 0
+			cleanErr := cleanGrpcError(err)
+			if isPowerOfTwo {
+				if attemptCount >= retryWarnThreshold {
+					log.Warn().
+						Str("error", cleanErr).
+						Int("attempt", attemptCount).
+						Dur("retry_in", lastBackoff).
+						Msg("health reporting error, retrying")
+				} else {
+					log.Info().
+						Str("error", cleanErr).
+						Int("attempt", attemptCount).
+						Dur("retry_in", lastBackoff).
+						Msg("health reporting error, retrying")
+				}
+			} else {
+				log.Debug().
+					Str("error", cleanErr).
+					Int("attempt", attemptCount).
+					Dur("retry_in", lastBackoff).
+					Msg("health reporting error, retrying")
+			}
 		default:
-			log.Error().Err(err).Msgf("grpc error: report_health(): code: %v", status.Code(err))
+			log.Error().Err(err).
+				Int("attempts", attemptCount).
+				Msgf("grpc error: report_health(): code: %v (fatal, giving up)", status.Code(err))
 			return err
 		}
 
 		select {
-		case <-time.After(retry.NextBackOff()):
+		case <-time.After(lastBackoff):
 		case <-ctx.Done():
 			return ctx.Err()
 		}

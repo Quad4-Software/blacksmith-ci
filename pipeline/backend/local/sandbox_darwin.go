@@ -53,6 +53,10 @@ func generateSandboxProfile(level sandboxLevel, state *workflowState) string {
 // - Restricts writing outside the workflow directory
 // - Denies access to sensitive user directories.
 func generateStandardProfile(state *workflowState) string {
+	workspaceEscaped := regexp.QuoteMeta(state.workspaceDir)
+	baseDirEscaped := regexp.QuoteMeta(state.baseDir)
+	homeDirEscaped := regexp.QuoteMeta(state.homeDir)
+
 	profile := fmt.Sprintf(`(version 1)
 (deny default)
 
@@ -158,9 +162,9 @@ func generateStandardProfile(state *workflowState) string {
 (allow ipc*)
 (allow mach*)
 `,
-		state.baseDir, state.workspaceDir, state.homeDir, // base, workspace and home directories for file operations
-		state.baseDir, state.workspaceDir, state.homeDir, // base, workspace and home directories for extended attributes
-		state.baseDir, state.homeDir, // allow executing binaries from workflow base dir and home dir
+		baseDirEscaped, workspaceEscaped, homeDirEscaped, // base, workspace and home directories for file operations
+		baseDirEscaped, workspaceEscaped, homeDirEscaped, // base, workspace and home directories for extended attributes
+		baseDirEscaped, homeDirEscaped, // allow executing binaries from workflow base dir and home dir
 	)
 
 	return profile

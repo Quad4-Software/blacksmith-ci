@@ -28,13 +28,22 @@ import (
 	"codeberg.org/crowci/crow/v4/pipeline/backend/types"
 )
 
+const (
+	// MaxLabelValueLength is the maximum length for a Kubernetes label value.
+	// Per Kubernetes spec: label values must be 63 characters or less.
+	maxLabelValueLength = 63
+)
+
 var (
 	dnsPattern = regexp.MustCompile(`^[a-z0-9]` + // must start with
 		`([-a-z0-9]*[a-z0-9])?` + // inside can also contain -
 		`(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`, // allow the same pattern as before with dots in between but only one dot
 	)
 	dnsDisallowedCharacters = regexp.MustCompile(`[^-^.a-z0-9]+`)
-	ErrDNSPatternInvalid    = errors.New("name is not a valid kubernetes DNS name")
+	// LabelValueDisallowed matches characters not allowed in Kubernetes label values.
+	// Must be 63 characters or less, start and end with alphanumeric, contain only alphanumeric, '-', '_', '.'.
+	labelValueDisallowed = regexp.MustCompile(`[^a-zA-Z0-9\-_.]`)
+	ErrDNSPatternInvalid = errors.New("name is not a valid kubernetes DNS name")
 )
 
 func dnsName(i string) (string, error) {
@@ -53,6 +62,30 @@ func toDNSName(in string) (string, error) {
 	withoutSpaces := strings.ReplaceAll(withoutUnderscores, " ", "-")
 	almostDNS := dnsDisallowedCharacters.ReplaceAllString(withoutSpaces, "")
 	return dnsName(almostDNS)
+}
+
+// sanitizeLabelValue converts a string to a valid Kubernetes label value.
+// Kubernetes label values must be 63 characters or less and contain only
+// alphanumeric characters, '-', '_', or '.', and must start and end with an alphanumeric character.
+func sanitizeLabelValue(in string) string {
+	// Replace invalid characters with '-'
+	sanitized := labelValueDisallowed.ReplaceAllString(in, "-")
+
+	// Trim leading/trailing non-alphanumeric characters
+	sanitized = strings.TrimFunc(sanitized, func(r rune) bool {
+		return (r < 'a' || r > 'z') && (r < 'A' || r > 'Z') && (r < '0' || r > '9')
+	})
+
+	// Truncate to maxLabelValueLength characters
+	if len(sanitized) > maxLabelValueLength {
+		sanitized = sanitized[:maxLabelValueLength]
+		// Ensure it still ends with alphanumeric after truncation
+		sanitized = strings.TrimFunc(sanitized, func(r rune) bool {
+			return (r < 'a' || r > 'z') && (r < 'A' || r > 'Z') && (r < '0' || r > '9')
+		})
+	}
+
+	return sanitized
 }
 
 func isImagePullBackOffState(pod *v1.Pod) bool {

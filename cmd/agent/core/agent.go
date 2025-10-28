@@ -31,12 +31,10 @@ import (
 	"github.com/urfave/cli/v3"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	grpc_credentials "google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
 
 	"codeberg.org/crowci/crow/v4/agent"
 	agent_rpc "codeberg.org/crowci/crow/v4/agent/rpc"
@@ -88,7 +86,14 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 		hostname, _ = os.Hostname()
 	}
 
-	counter.Polling = c.Int("max-workflows")
+	maxWorkflowsConfig := c.Int64("max-workflows")
+	log.Trace().
+		Int64("max-workflows", maxWorkflowsConfig).
+		Str("CROW_MAX_WORKFLOWS", os.Getenv("CROW_MAX_WORKFLOWS")).
+		Str("WOODPECKER_MAX_WORKFLOWS", os.Getenv("WOODPECKER_MAX_WORKFLOWS")).
+		Msg("agent configuration")
+
+	counter.Polling = int(maxWorkflowsConfig)
 	counter.Running = 0
 
 	if c.Bool("healthcheck") {
@@ -197,9 +202,9 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 		log.Error().Err(err).Msg("cannot load backend engine")
 		return err
 	}
-	log.Debug().Msgf("loaded %s backend engine", backendEngine.Name())
+	log.Trace().Msgf("loaded %s backend engine", backendEngine.Name())
 
-	maxWorkflows := c.Int("max-workflows")
+	maxWorkflows := int(c.Int64("max-workflows"))
 
 	customLabels := make(map[string]string)
 	if err := stringSliceAddToMap(c.StringSlice("labels"), customLabels); err != nil {
@@ -254,13 +259,13 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 	// ... and let it overwrite by custom ones
 	maps.Copy(labels, customLabels)
 
-	log.Debug().Any("labels", labels).Msgf("agent configured with labels")
+	log.Trace().Any("labels", labels).Msgf("agent configured with labels")
 
 	filter := rpc.Filter{
 		Labels: labels,
 	}
 
-	log.Debug().Msgf("agent registered with ID %d", agentConfig.AgentID)
+	log.Trace().Msgf("agent registered with ID %d", agentConfig.AgentID)
 
 	serviceWaitingGroup.Go(func() error {
 		for {
@@ -283,38 +288,41 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 		}
 	})
 
+	if maxWorkflows == 0 {
+		log.Error().Msg("agent is configured with max-workflows=0, no pipelines will be processed!")
+		log.Error().Msg("set CROW_MAX_WORKFLOWS or WOODPECKER_MAX_WORKFLOWS environment variable to at least 1")
+		return fmt.Errorf("max-workflows is 0, agent cannot process any pipelines")
+	}
+
 	for i := 0; i < maxWorkflows; i++ {
 		i := i
 		serviceWaitingGroup.Go(func() error {
 			runner := agent.NewRunner(client, filter, hostname, counter, &backendEngine)
-			log.Debug().Msgf("created new runner %d", i)
+			log.Trace().Msgf("created new runner %d", i)
 
 			for {
 				if agentCtx.Err() != nil {
 					return nil
 				}
 
-				log.Debug().Msg("polling new steps")
+				log.Trace().Msg("polling new steps")
 				if err := runner.Run(agentCtx, shutdownCtx); err != nil {
-					log.Error().Err(err).Msg("runner error, retrying...")
-					// Check if context is canceled
+					// Check if context is canceled - this is expected during shutdown
 					if agentCtx.Err() != nil {
 						return nil
 					}
-					// Wait a bit before retrying to avoid hammering the server
-					select {
-					case <-agentCtx.Done():
-						return nil
-					case <-time.After(time.Second * 5):
-						// Continue to next iteration
-					}
+
+					// For any other error, log and exit to trigger pod restart
+					// This ensures a clean slate and follows the pattern that errors should cause restarts
+					log.Error().Err(err).Msg("runner encountered an error, agent will exit for restart")
+					return err
 				}
 			}
 		})
 	}
 
 	log.Info().Msgf(
-		"starting Woodpecker agent with version '%s' and backend '%s' using platform '%s' running up to %d pipelines in parallel",
+		"starting Crow agent with version '%s' and backend '%s' using platform '%s' running up to %d pipelines in parallel",
 		version.String(), backendEngine.Name(), engInfo.Platform, maxWorkflows)
 
 	return serviceWaitingGroup.Wait()
@@ -328,18 +336,9 @@ func runWithRetry(backendEngines []types.Backend) func(ctx context.Context, c *c
 
 		initHealth()
 
-		retryCount := c.Int("connect-retry-count")
-		retryDelay := c.Duration("connect-retry-delay")
-		var err error
-		for range retryCount {
-			if err = run(ctx, c, backendEngines); status.Code(err) == codes.Unavailable {
-				log.Warn().Err(err).Msg(fmt.Sprintf("cannot connect to %s, retrying in %v", c.String("server"), retryDelay))
-				time.Sleep(retryDelay)
-			} else {
-				break
-			}
-		}
-		return err
+		// Just run once - if there are connection errors, the agent will exit and
+		// Kubernetes will restart it with exponential backoff
+		return run(ctx, c, backendEngines)
 	}
 }
 

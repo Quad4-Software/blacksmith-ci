@@ -49,7 +49,7 @@ func TestGenerateSandboxProfile(t *testing.T) {
 				"(version 1)",
 				"(deny default)",
 				"(allow network*)",
-				"(allow file-read-data",
+				"(allow file-read*)",
 				state.workspaceDir,
 				state.baseDir,
 			},

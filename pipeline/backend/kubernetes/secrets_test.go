@@ -212,7 +212,8 @@ func TestRegistrySecret(t *testing.T) {
 			"namespace": "woodpecker",
 			"labels": {
 				"app.kubernetes.io/managed-by": "crow",
-				"crowci/step": "go-test"
+				"crowci/step": "go-test",
+				"step": "go-test"
 			}
 		},
 		"type": "kubernetes.io/dockerconfigjson",

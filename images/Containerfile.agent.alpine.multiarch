@@ -1,14 +1,23 @@
 FROM --platform=$BUILDPLATFORM reg.devxy.io/docker.io/library/golang:1.25-alpine3.22 AS build
 
 WORKDIR /src
-COPY . .
 ARG TARGETOS TARGETARCH CI_COMMIT_SHA CI_COMMIT_TAG
 ARG DOCKER_IMAGE_CREATED="unknown"
+
 ENV CI_COMMIT_SHA=$CI_COMMIT_SHA
 ENV CI_COMMIT_TAG=$CI_COMMIT_TAG
 ENV GOOS=$TARGETOS
 ENV GOARCH=$TARGETARCH
+
 RUN apk add --no-cache -q just git
+
+# Copy source code - this layer will be cached unless source changes
+COPY . .
+
+# Invalidate cache from this point forward when binary changes
+ARG CACHE_BUST=unknown
+RUN echo "Cache bust: ${CACHE_BUST}"
+
 RUN --mount=type=cache,target=/root/.cache/go-build \
   --mount=type=cache,target=/go/pkg \
   just build-agent

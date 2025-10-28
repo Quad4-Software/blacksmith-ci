@@ -276,6 +276,8 @@ func registrySecretLabels(step *types.Step, config *config) (map[string]string, 
 		return labels, err
 	}
 
+	labels["app.kubernetes.io/managed-by"] = "crow"
+
 	return labels, nil
 }
 

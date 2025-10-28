@@ -42,17 +42,22 @@ func createFilterFuncWithPriority(agentFilter rpc.Filter, customLabels map[strin
 			Int32("priority", priority).
 			Msg("filter: checking task against agent")
 
-		// Check custom labels: if agent defines a custom label, task must match it (partial matching)
-		// This allows workflows with specific labels to run on agents with those labels
-		for agentLabel, agentLabelValue := range customLabels {
-			// Check if task has this custom label
-			if taskLabelValue, taskHasLabel := task.Labels[agentLabel]; taskHasLabel {
-				// Task has the custom label - check if values match
+		// Check all task labels
+		for taskLabel, taskLabelValue := range task.Labels {
+			// if a task label is empty it will be ignored
+			if taskLabelValue == "" {
+				continue
+			}
+
+			// Check if this is a custom label (defined on agent)
+			// Custom labels: if task has a custom label, agent MUST have it with matching value
+			if agentLabelValue, isCustom := customLabels[taskLabel]; isCustom {
+				// Task has a custom label - agent must have matching value
 				if taskLabelValue != agentLabelValue {
 					// Values don't match - task cannot be assigned to this agent
 					log.Debug().
 						Str("task_id", task.ID).
-						Str("custom_label", agentLabel).
+						Str("custom_label", taskLabel).
 						Str("agent_value", agentLabelValue).
 						Str("task_value", taskLabelValue).
 						Msg("filter: REJECTED - custom label value mismatch")
@@ -61,23 +66,10 @@ func createFilterFuncWithPriority(agentFilter rpc.Filter, customLabels map[strin
 				// Values match - increase score
 				log.Debug().
 					Str("task_id", task.ID).
-					Str("custom_label", agentLabel).
+					Str("custom_label", taskLabel).
 					Str("value", agentLabelValue).
 					Msg("filter: custom label matched")
 				score += 10
-			}
-			// If task doesn't have this custom label, that's OK (partial matching)
-		}
-
-		// Then check task labels that are not custom labels
-		for taskLabel, taskLabelValue := range task.Labels {
-			// if a task label is empty it will be ignored
-			if taskLabelValue == "" {
-				continue
-			}
-
-			// Skip custom labels as they were already checked above
-			if _, isCustom := customLabels[taskLabel]; isCustom {
 				continue
 			}
 

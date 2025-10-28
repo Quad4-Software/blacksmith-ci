@@ -176,8 +176,9 @@ func TestTinyPod(t *testing.T) {
 			"namespace": "woodpecker",
 			"labels": {
 				"app.kubernetes.io/managed-by": "crow",
-				"crowci/task-uuid": "11301"
-
+				"crowci/step": "build-via-gradle",
+				"crowci/task-uuid": "11301",
+				"step": "build-via-gradle"
 			}
 		},
 		"spec": {
@@ -558,7 +559,8 @@ func TestScratchPod(t *testing.T) {
 			"labels": {
 				"app.kubernetes.io/managed-by": "crow",
 				"crowci/step": "curl-google",
-				"crowci/task-uuid": "11301"
+				"crowci/task-uuid": "11301",
+				"step": "curl-google"
 			}
 		},
 		"spec": {
@@ -605,7 +607,8 @@ func TestSecrets(t *testing.T) {
 			"labels": {
 				"app.kubernetes.io/managed-by": "crow",
 				"crowci/step": "test-secrets",
-				"crowci/task-uuid": "11301"
+				"crowci/task-uuid": "11301",
+				"step": "test-secrets"
 			}
 		},
 		"spec": {
@@ -725,9 +728,9 @@ func TestPodTolerations(t *testing.T) {
 			"namespace": "woodpecker",
 			"labels": {
 				"app.kubernetes.io/managed-by": "crow",
-				"step": "toleration-test",
-				"crowci/step": "test-secrets"
-
+				"crowci/step": "toleration-test",
+				"crowci/task-uuid": "11301",
+				"step": "toleration-test"
 			}
 		},
 		"spec": {
@@ -786,8 +789,9 @@ func TestPodTolerationsAllowFromStep(t *testing.T) {
 			"namespace": "woodpecker",
 			"labels": {
 				"app.kubernetes.io/managed-by": "crow",
-				"step": "toleration-test",
-				"crowci/task-uuid": "11301"
+				"crowci/step": "toleration-test",
+				"crowci/task-uuid": "11301",
+				"step": "toleration-test"
 			}
 		},
 		"spec": {
@@ -809,9 +813,9 @@ func TestPodTolerationsAllowFromStep(t *testing.T) {
 			"namespace": "woodpecker",
 			"labels": {
 				"app.kubernetes.io/managed-by": "crow",
-				"step": "toleration-test",
-				"crowci/task-uuid": "11301"
-
+				"crowci/step": "toleration-test",
+				"crowci/task-uuid": "11301",
+				"step": "toleration-test"
 			}
 		},
 		"spec": {

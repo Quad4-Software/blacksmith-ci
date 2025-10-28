@@ -39,6 +39,10 @@ const (
 	assignmentLeaderLockTTL = 15 * time.Second
 	// Maximum canceled tasks to keep in memory before cleanup.
 	maxCancelledTasksInMemory = 1000
+
+	// Agent health timeout - if agent hasn't reported health in this duration, it's considered dead
+	// This should be longer than reportHealthInterval (10s) to account for network delays.
+	agentHealthTimeout = 60 * time.Second
 )
 
 // DatabaseQueue implements a distributed queue using the database as the backend.
@@ -95,6 +99,12 @@ func NewDatabaseQueue(ctx context.Context, store store.Store, lockService LockSe
 
 	log.Info().Str("instanceID", instanceID).Msg("Starting database queue for HA deployment")
 
+	// Clean up orphaned task assignments on startup
+	// This handles server restarts where agents may have disappeared
+	if err := q.resetOrphanedAssignments(); err != nil {
+		log.Error().Err(err).Msg("Failed to reset orphaned task assignments on startup")
+	}
+
 	// Start background processor with leader election for cleanup
 	go q.processLoop() //nolint:contextcheck // Background process uses queue context
 
@@ -110,7 +120,28 @@ func NewDatabaseQueue(ctx context.Context, store store.Store, lockService LockSe
 // Push pushes a task to the queue by storing it in the database.
 func (q *DatabaseQueue) Push(ctx context.Context, task *model.Task) error {
 	task.AgentID = 0
-	return q.store.TaskInsert(task)
+	err := q.store.TaskInsert(task)
+	if err != nil {
+		return err
+	}
+
+	// Trigger immediate assignment attempt if we're the leader and have polling instances
+	q.leaderMu.RLock()
+	isLeader := q.isLeader
+	q.leaderMu.RUnlock()
+
+	if isLeader {
+		q.pollingInstancesMu.RLock()
+		hasPolling := len(q.pollingInstances) > 0
+		q.pollingInstancesMu.RUnlock()
+
+		if hasPolling {
+			// Trigger assignment in background to not block the Push operation
+			go q.tryBatchAssignment()
+		}
+	}
+
+	return nil
 }
 
 // PushAtOnce pushes multiple tasks to the queue.
@@ -121,6 +152,23 @@ func (q *DatabaseQueue) PushAtOnce(ctx context.Context, tasks []*model.Task) err
 			return err
 		}
 	}
+
+	// Trigger immediate assignment attempt if we're the leader and have polling instances
+	q.leaderMu.RLock()
+	isLeader := q.isLeader
+	q.leaderMu.RUnlock()
+
+	if isLeader {
+		q.pollingInstancesMu.RLock()
+		hasPolling := len(q.pollingInstances) > 0
+		q.pollingInstancesMu.RUnlock()
+
+		if hasPolling {
+			// Trigger assignment in background to not block the Push operation
+			go q.tryBatchAssignment()
+		}
+	}
+
 	return nil
 }
 
@@ -146,6 +194,12 @@ func (q *DatabaseQueue) Poll(ctx context.Context, agentID int64, filter FilterFn
 	}
 	instanceCount := len(q.pollingInstances)
 	q.pollingInstancesMu.Unlock()
+
+	log.Debug().
+		Int64("agentID", agentID).
+		Str("instanceID", instanceID).
+		Int("totalPolling", instanceCount).
+		Msg("Agent started polling for tasks")
 
 	// Clean up on exit
 	defer func() {
@@ -179,6 +233,7 @@ func (q *DatabaseQueue) Poll(ctx context.Context, agentID int64, filter FilterFn
 
 // Done marks a task as completed and removes it from the database.
 func (q *DatabaseQueue) Done(ctx context.Context, id string, exitStatus model.StatusValue) error {
+	// Remove from in-memory tracking (legacy, will be removed in future refactor)
 	q.assignmentMu.Lock()
 	delete(q.assignedTasks, id)
 	q.assignmentMu.Unlock()
@@ -229,6 +284,7 @@ func (q *DatabaseQueue) Evict(ctx context.Context, taskID string) error {
 	q.cancelledTasks[taskID] = ErrCancel
 	q.cancelledTasksMu.Unlock()
 
+	// Remove from in-memory tracking (legacy, will be removed in future refactor)
 	q.assignmentMu.Lock()
 	delete(q.assignedTasks, taskID)
 	q.assignmentMu.Unlock()
@@ -252,6 +308,7 @@ func (q *DatabaseQueue) EvictAtOnce(ctx context.Context, taskIDs []string) error
 			Msg("Evicting tasks and marking as canceled")
 	}
 
+	// Remove from in-memory tracking (legacy, will be removed in future refactor)
 	q.assignmentMu.Lock()
 	for _, id := range taskIDs {
 		delete(q.assignedTasks, id)
@@ -471,6 +528,9 @@ func (q *DatabaseQueue) assignmentLoop() {
 	cancelledCleanupTicker := time.NewTicker(5 * time.Minute)
 	defer cancelledCleanupTicker.Stop()
 
+	orphanedAssignmentTicker := time.NewTicker(30 * time.Second)
+	defer orphanedAssignmentTicker.Stop()
+
 	for {
 		select {
 		case <-q.ctx.Done():
@@ -499,6 +559,19 @@ func (q *DatabaseQueue) assignmentLoop() {
 		case <-cancelledCleanupTicker.C:
 			// Clean up old canceled tasks
 			q.cleanupCancelledTasks()
+		case <-orphanedAssignmentTicker.C:
+			// Only the leader should reset orphaned assignments
+			q.leaderMu.RLock()
+			isLeader := q.isLeader
+			q.leaderMu.RUnlock()
+
+			if isLeader {
+				// Check for and reset orphaned task assignments
+				// This handles agents that die during runtime
+				if err := q.resetOrphanedAssignments(); err != nil {
+					log.Error().Err(err).Msg("Failed to reset orphaned task assignments")
+				}
+			}
 		}
 	}
 }
@@ -572,13 +645,23 @@ func (q *DatabaseQueue) leaderElectionLoop() {
 			// Hold the lock until context is canceled or lock is lost
 			<-assignmentCtx.Done()
 
-			// No longer the leader
-			q.leaderMu.Lock()
-			q.isLeader = false
-			q.leaderMu.Unlock()
-
-			log.Info().Str("lockName", assignmentLockName).Str("instanceID", q.instanceID).Msg("Lost task assignment leadership")
+			// Release the lock
 			releaseLock()
+
+			// Check if we should immediately retry (lock was lost due to transient error)
+			// vs shutting down (context was canceled)
+			if q.ctx.Err() != nil {
+				// Context canceled, we're shutting down - don't retry
+				q.leaderMu.Lock()
+				q.isLeader = false
+				q.leaderMu.Unlock()
+				log.Info().Str("lockName", assignmentLockName).Str("instanceID", q.instanceID).Msg("Lost task assignment leadership - shutting down")
+				return
+			}
+
+			// Lock was lost but we're not shutting down - immediately retry to minimize downtime
+			// Keep isLeader=true during the retry to maintain task assignment
+			log.Warn().Str("lockName", assignmentLockName).Str("instanceID", q.instanceID).Msg("Lost task assignment leadership - attempting immediate reacquisition")
 		}
 	}
 }
@@ -725,7 +808,23 @@ func (q *DatabaseQueue) tryBatchAssignment() {
 	}
 	q.pollingInstancesMu.RUnlock()
 
-	if len(instances) == 0 || len(tasks) == 0 {
+	if len(tasks) == 0 {
+		return
+	}
+
+	if len(instances) == 0 {
+		// Log when we have tasks but no agents polling - helps diagnose assignment issues
+		unassignedCount := 0
+		for _, task := range tasks {
+			if task.AgentID == 0 {
+				unassignedCount++
+			}
+		}
+		if unassignedCount > 0 {
+			log.Debug().
+				Int("unassignedTasks", unassignedCount).
+				Msg("Tasks waiting but no agents polling yet")
+		}
 		return
 	}
 
@@ -761,17 +860,10 @@ func (q *DatabaseQueue) tryBatchAssignment() {
 			break // No more instances waiting
 		}
 
-		// Skip already assigned tasks
+		// Skip already assigned tasks (check DB state - single source of truth)
 		if task.AgentID != 0 {
 			continue
 		}
-
-		q.assignmentMu.Lock()
-		if assignedAgent, exists := q.assignedTasks[task.ID]; exists && assignedAgent != 0 {
-			q.assignmentMu.Unlock()
-			continue
-		}
-		q.assignmentMu.Unlock()
 
 		// Check dependencies
 		if !q.areDependenciesMet(task, tasks) {
@@ -792,7 +884,8 @@ func (q *DatabaseQueue) tryBatchAssignment() {
 				}
 			}
 
-			// Try to atomically assign the task
+			// Try to atomically assign the task in the database
+			// This is the ONLY place where assignment happens - DB is source of truth
 			atomicAssigned, err := q.atomicTaskAssignment(task.ID, instance.agentID)
 			if err != nil {
 				log.Error().Err(err).Str("taskID", task.ID).Int64("agentID", instance.agentID).
@@ -801,7 +894,8 @@ func (q *DatabaseQueue) tryBatchAssignment() {
 			}
 
 			if atomicAssigned {
-				// Success! Update tracking and send task to instance
+				// Success! DB now has the assignment
+				// Update in-memory tracking for legacy compatibility only
 				q.assignmentMu.Lock()
 				q.assignedTasks[task.ID] = instance.agentID
 				q.assignmentMu.Unlock()
@@ -817,14 +911,14 @@ func (q *DatabaseQueue) tryBatchAssignment() {
 						Msg("Task assigned to polling instance in batch assignment")
 				default:
 					log.Warn().Str("taskID", task.ID).Int64("agentID", instance.agentID).
-						Msg("Instance response channel full")
+						Msg("Instance response channel full - task assigned in DB but agent may not receive it")
+					// Note: Task is still assigned in DB, agent will eventually get it via polling
 				}
 
 				// Remove this instance from available instances
 				// Swap with last element and shrink slice
 				availableInstances[i] = availableInstances[len(availableInstances)-1]
 				availableInstances = availableInstances[:len(availableInstances)-1]
-				// Note: i-- removed as we're breaking out of the loop
 
 				// Also remove from the map so it doesn't get picked up again
 				q.pollingInstancesMu.Lock()
@@ -879,4 +973,72 @@ func (q *DatabaseQueue) updateDependentTasks(completedTaskID string, status mode
 			}
 		}
 	}
+}
+
+// resetOrphanedAssignments resets task assignments for agents that are dead or non-existent.
+// This is called on startup and periodically during runtime to handle:
+// - Server restarts where agents may have disappeared
+// - Agents that crashed without graceful shutdown
+// - Agents that lost network connectivity.
+func (q *DatabaseQueue) resetOrphanedAssignments() error {
+	tasks, err := q.store.TaskList()
+	if err != nil {
+		return fmt.Errorf("failed to list tasks: %w", err)
+	}
+
+	// Get list of all agents (including potentially dead ones)
+	agents, err := q.store.AgentList(&model.ListOptions{All: true})
+	if err != nil {
+		return fmt.Errorf("failed to list agents: %w", err)
+	}
+
+	// Build a map of agent IDs to their health status
+	// An agent is considered healthy if it reported within agentHealthTimeout
+	now := time.Now().Unix()
+	healthyAgents := make(map[int64]bool)
+	for _, agent := range agents {
+		timeSinceLastContact := time.Duration(now-agent.LastContact) * time.Second
+		if timeSinceLastContact < agentHealthTimeout {
+			healthyAgents[agent.ID] = true
+		} else {
+			log.Debug().
+				Int64("agentID", agent.ID).
+				Dur("timeSinceLastContact", timeSinceLastContact).
+				Msg("Agent considered unhealthy - hasn't reported recently")
+		}
+	}
+
+	resetCount := 0
+	for _, task := range tasks {
+		// Skip unassigned tasks
+		if task.AgentID == 0 {
+			continue
+		}
+
+		// Check if the assigned agent is healthy
+		if !healthyAgents[task.AgentID] {
+			// Agent is dead or unhealthy - reset the assignment
+			oldAgentID := task.AgentID
+			task.AgentID = 0
+			if err := q.store.TaskUpdate(task); err != nil {
+				log.Error().
+					Err(err).
+					Str("taskID", task.ID).
+					Int64("deadAgentID", oldAgentID).
+					Msg("Failed to reset orphaned task assignment")
+				continue
+			}
+			resetCount++
+			log.Warn().
+				Str("taskID", task.ID).
+				Int64("deadAgentID", oldAgentID).
+				Msg("Reset orphaned task assignment - agent is dead or unhealthy")
+		}
+	}
+
+	if resetCount > 0 {
+		log.Warn().Int("count", resetCount).Msg("Reset orphaned task assignments")
+	}
+
+	return nil
 }

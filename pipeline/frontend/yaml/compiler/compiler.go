@@ -303,27 +303,6 @@ func (c *Compiler) Compile(conf *yaml_types.Workflow) (*backend_types.Config, er
 		})
 	}
 
-	// add services steps
-	if len(conf.Services.ContainerList) != 0 {
-		stage := new(backend_types.Stage)
-
-		for _, container := range conf.Services.ContainerList {
-			if match, err := container.When.Match(c.metadata, false, c.env); !match && err == nil {
-				continue
-			} else if err != nil {
-				return nil, err
-			}
-
-			step, err := c.createProcess(container, conf, backend_types.StepTypeService)
-			if err != nil {
-				return nil, err
-			}
-
-			stage.Steps = append(stage.Steps, step)
-		}
-		config.Stages = append(config.Stages, stage)
-	}
-
 	// generate stages out of all steps (including clone steps)
 	allStages, err := newDAGCompiler(allSteps).compile()
 	if err != nil {
