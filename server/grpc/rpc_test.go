@@ -250,3 +250,162 @@ func TestRPC_Done_MissingWorkflow_QueueError(t *testing.T) {
 	mockStore.AssertExpectations(t)
 	mockQueue.AssertExpectations(t)
 }
+
+func TestMigrateFilterLabels(t *testing.T) {
+	t.Run("Should migrate all legacy labels to new format", func(t *testing.T) {
+		filter := rpc.Filter{
+			Labels: map[string]string{
+				"repo":     "my-repo",
+				"platform": "linux/amd64",
+				"hostname": "my-host",
+				"backend":  "docker",
+				"org-id":   "123",
+			},
+		}
+
+		result := migrateFilterLabels(filter)
+
+		// Check that new labels exist
+		assert.Equal(t, "my-repo", result.Labels["crowci/repo-full-name"])
+		assert.Equal(t, "linux/amd64", result.Labels["platform"])
+		assert.Equal(t, "my-host", result.Labels["hostname"])
+		assert.Equal(t, "docker", result.Labels["backend"])
+		assert.Equal(t, "123", result.Labels["crowci/org-id"])
+
+		// Check that old labels are removed
+		assert.NotContains(t, result.Labels, "repo")
+		assert.NotContains(t, result.Labels, "org-id")
+	})
+
+	t.Run("Should preserve custom labels during migration", func(t *testing.T) {
+		filter := rpc.Filter{
+			Labels: map[string]string{
+				"backend":    "docker",
+				"platform":   "linux/arm64",
+				"hostname":   "gaia",
+				"repo":       "*",
+				"agent-name": "gaia",
+				"custom-key": "custom-value",
+			},
+		}
+
+		result := migrateFilterLabels(filter)
+
+		// Check custom labels are preserved
+		assert.Equal(t, "gaia", result.Labels["agent-name"])
+		assert.Equal(t, "custom-value", result.Labels["custom-key"])
+
+		// Check standard labels are migrated
+		assert.Equal(t, "docker", result.Labels["backend"])
+		assert.Equal(t, "linux/arm64", result.Labels["platform"])
+		assert.Equal(t, "gaia", result.Labels["hostname"])
+		assert.Equal(t, "*", result.Labels["crowci/repo-full-name"])
+
+		// Check old names are removed
+		assert.NotContains(t, result.Labels, "repo")
+	})
+
+	t.Run("Should handle filter with no legacy labels", func(t *testing.T) {
+		filter := rpc.Filter{
+			Labels: map[string]string{
+				"backend":    "kubernetes",
+				"platform":   "linux/amd64",
+				"hostname":   "k8s-agent",
+				"custom-key": "value",
+			},
+		}
+
+		result := migrateFilterLabels(filter)
+
+		// All labels should remain unchanged
+		assert.Equal(t, "kubernetes", result.Labels["backend"])
+		assert.Equal(t, "linux/amd64", result.Labels["platform"])
+		assert.Equal(t, "k8s-agent", result.Labels["hostname"])
+		assert.Equal(t, "value", result.Labels["custom-key"])
+	})
+}
+
+func TestFilterLabelsIntegrity(t *testing.T) {
+	t.Run("Agent filter labels should preserve backend, platform, hostname, and custom labels after server enforcement", func(t *testing.T) {
+		// Simulate agent sending filter with old label names and custom labels
+		agentFilter := rpc.Filter{
+			Labels: map[string]string{
+				"backend":    "docker",
+				"platform":   "linux/arm64",
+				"hostname":   "gaia",
+				"repo":       "*",
+				"agent-name": "gaia", // custom label
+			},
+		}
+
+		// Step 1: Migrate labels (as done in Next())
+		agentFilter = migrateFilterLabels(agentFilter)
+
+		// Verify migration worked correctly
+		assert.Equal(t, "docker", agentFilter.Labels["backend"], "backend should be preserved after migration")
+		assert.Equal(t, "linux/arm64", agentFilter.Labels["platform"], "platform should be preserved after migration")
+		assert.Equal(t, "gaia", agentFilter.Labels["hostname"], "hostname should be preserved after migration")
+		assert.Equal(t, "*", agentFilter.Labels["crowci/repo-full-name"], "repo should be migrated to crowci/repo-full-name")
+		assert.Equal(t, "gaia", agentFilter.Labels["agent-name"], "custom label agent-name should be preserved after migration")
+		assert.NotContains(t, agentFilter.Labels, "repo", "old repo label should be removed")
+
+		// Step 2: Get server labels (as done in Next())
+		agent := &model.Agent{
+			OrgID: model.IDNotSet, // Global agent
+		}
+		serverLabels, err := agent.GetServerLabels()
+		assert.NoError(t, err)
+
+		// Step 3: Enforce server labels (as done in Next())
+		for k, v := range serverLabels {
+			agentFilter.Labels[k] = v
+		}
+
+		// Verify all labels are preserved after server enforcement
+		assert.Equal(t, "docker", agentFilter.Labels["backend"], "backend should still be present after server label enforcement")
+		assert.Equal(t, "linux/arm64", agentFilter.Labels["platform"], "platform should still be present after server label enforcement")
+		assert.Equal(t, "gaia", agentFilter.Labels["hostname"], "hostname should still be present after server label enforcement")
+		assert.Equal(t, "gaia", agentFilter.Labels["agent-name"], "custom label agent-name should still be present after server label enforcement")
+		assert.Equal(t, "*", agentFilter.Labels["crowci/org-id"], "org-id should be set by server")
+		assert.Equal(t, "*", agentFilter.Labels["crowci/repo-full-name"], "repo-full-name should still be present")
+
+		// Verify we have all expected labels and no extras were removed
+		assert.Len(t, agentFilter.Labels, 6, "should have exactly 6 labels: backend, platform, hostname, agent-name, crowci/org-id, crowci/repo-full-name")
+	})
+
+	t.Run("Organization agent should have org-id restriction while preserving other labels", func(t *testing.T) {
+		agentFilter := rpc.Filter{
+			Labels: map[string]string{
+				"backend":    "kubernetes",
+				"platform":   "linux/amd64",
+				"hostname":   "k8s-agent",
+				"repo":       "*",
+				"agent-name": "production",
+			},
+		}
+
+		// Migrate labels
+		agentFilter = migrateFilterLabels(agentFilter)
+
+		// Organization agent
+		agent := &model.Agent{
+			OrgID: 42,
+		}
+		serverLabels, err := agent.GetServerLabels()
+		assert.NoError(t, err)
+
+		// Enforce server labels
+		for k, v := range serverLabels {
+			agentFilter.Labels[k] = v
+		}
+
+		// Verify org-id is enforced
+		assert.Equal(t, "42", agentFilter.Labels["crowci/org-id"], "org-id should be enforced for organization agent")
+
+		// Verify other labels are preserved
+		assert.Equal(t, "kubernetes", agentFilter.Labels["backend"])
+		assert.Equal(t, "linux/amd64", agentFilter.Labels["platform"])
+		assert.Equal(t, "k8s-agent", agentFilter.Labels["hostname"])
+		assert.Equal(t, "production", agentFilter.Labels["agent-name"])
+	})
+}

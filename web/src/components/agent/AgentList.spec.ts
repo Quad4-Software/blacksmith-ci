@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { shallowMount } from '@vue/test-utils';
 import AgentList from './AgentList.vue';
 
 // Mock vue-i18n
@@ -43,7 +43,7 @@ const sampleAgent = {
 
 describe('agentList', () => {
   it('renders agent metadata and aligns columns', () => {
-    const wrapper = mount(AgentList, {
+    const wrapper = shallowMount(AgentList, {
       props: {
         agents: [sampleAgent],
         isDeleting: false,

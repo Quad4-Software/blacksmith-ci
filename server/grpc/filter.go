@@ -34,13 +34,25 @@ func createFilterFuncWithPriority(agentFilter rpc.Filter, customLabels map[strin
 	return func(task *model.Task) (bool, int, int32) {
 		score := 0
 
-		log.Debug().
+		logger := log.Debug().
 			Str("task_id", task.ID).
 			Interface("task_labels", task.Labels).
 			Interface("agent_filter_labels", agentFilter.Labels).
 			Interface("agent_custom_labels", customLabels).
-			Int32("priority", priority).
-			Msg("filter: checking task against agent")
+			Int32("priority", priority)
+
+		// Add agent identifiers if available
+		if hostname, ok := agentFilter.Labels["hostname"]; ok {
+			logger = logger.Str("agent_hostname", hostname)
+		}
+		if backend, ok := agentFilter.Labels["backend"]; ok {
+			logger = logger.Str("agent_backend", backend)
+		}
+		if platform, ok := agentFilter.Labels["platform"]; ok {
+			logger = logger.Str("agent_platform", platform)
+		}
+
+		logger.Msg("filter: checking task against agent")
 
 		// Check all task labels
 		for taskLabel, taskLabelValue := range task.Labels {
@@ -85,11 +97,20 @@ func createFilterFuncWithPriority(agentFilter rpc.Filter, customLabels map[strin
 			// check if agent has this label
 			agentLabelValue, ok := agentFilter.Labels[taskLabel]
 			if !ok {
-				log.Debug().
+				logger := log.Debug().
 					Str("task_id", task.ID).
 					Str("task_label", taskLabel).
-					Str("task_value", taskLabelValue).
-					Msg("filter: REJECTED - agent missing required label")
+					Str("task_value", taskLabelValue)
+
+				// Add agent identifiers to help debug which agent is rejecting
+				if hostname, ok := agentFilter.Labels["hostname"]; ok {
+					logger = logger.Str("agent_hostname", hostname)
+				}
+				if backend, ok := agentFilter.Labels["backend"]; ok {
+					logger = logger.Str("agent_backend", backend)
+				}
+
+				logger.Msg("filter: REJECTED - agent missing required label")
 				return false, 0, priority
 			}
 

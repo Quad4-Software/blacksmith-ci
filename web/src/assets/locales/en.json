@@ -438,8 +438,7 @@
           "active": "active"
         },
         "priority_label": "Priority",
-        "system_labels": "System:",
-        "user_labels": "Custom Labels:",
+        "labels": "Labels:",
         "agent_id": "ID:",
         "org_prefix": "Org",
         "never": "Never",

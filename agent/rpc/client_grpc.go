@@ -17,6 +17,8 @@ package rpc
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -34,6 +36,10 @@ import (
 	"codeberg.org/crowci/crow/v4/pipeline/rpc/proto"
 )
 
+// ErrMaxConsecutiveErrors is returned when the agent has experienced too many
+// consecutive errors and should restart.
+var ErrMaxConsecutiveErrors = errors.New("maximum consecutive errors reached, agent restart required")
+
 const (
 	// Set grpc version on compile time to compare against server version response.
 	ClientGrpcVersion int32 = proto.Version
@@ -49,6 +55,10 @@ const (
 	// Retry attempt threshold for escalating log level from INFO to WARN.
 	// Attempts 1,2,4 log at INFO, attempts 8+ log at WARN to indicate persistent issues.
 	retryWarnThreshold = 8
+
+	// Maximum consecutive errors before forcing agent restart.
+	// After this many errors, the agent will exit with error code, causing pod/container restart.
+	maxConsecutiveErrors = 50
 )
 
 // Global flags to track agent connectivity state (shared across all client instances and runners)
@@ -99,29 +109,76 @@ func (c *client) newBackOff() backoff.BackOff {
 // cleanGrpcError extracts a human-readable error message from verbose gRPC errors.
 func cleanGrpcError(err error) string {
 	errMsg := err.Error()
+	code := status.Code(err)
 
 	// Extract the core error message from nested gRPC error strings
 	// Example: "rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial tcp 10.43.78.5:9000: connect: connection refused\""
-	// Result: "connection refused"
+	// Result: "connection refused (is the server reachable from this network?)"
 
+	// Network connectivity errors
 	if strings.Contains(errMsg, "connection refused") {
-		return "connection refused"
+		return "connection refused (is the server running and accessible from this network?)"
 	}
 	if strings.Contains(errMsg, "no such host") {
-		return "no such host"
+		// Extract hostname if possible
+		if strings.Contains(errMsg, "dial tcp") {
+			parts := strings.Split(errMsg, "dial tcp ")
+			if len(parts) > 1 {
+				host := strings.Split(parts[1], ":")[0]
+				return fmt.Sprintf("DNS resolution failed for '%s' (check hostname/DNS configuration)", host)
+			}
+		}
+		return "DNS resolution failed (check server hostname/address)"
 	}
 	if strings.Contains(errMsg, "i/o timeout") {
-		return "connection timeout"
+		return "connection timeout (server unreachable - check firewall/network routing)"
 	}
+	if strings.Contains(errMsg, "no route to host") {
+		return "no route to host (network routing problem or server offline)"
+	}
+	if strings.Contains(errMsg, "network is unreachable") {
+		return "network unreachable (check network configuration)"
+	}
+
+	// Authentication/authorization errors
+	if code == codes.Unauthenticated {
+		return "authentication failed (invalid or expired agent token)"
+	}
+	if code == codes.PermissionDenied {
+		return "permission denied (agent token lacks required permissions)"
+	}
+
+	// Context errors
 	if strings.Contains(errMsg, "context deadline exceeded") {
-		return "deadline exceeded"
+		return "deadline exceeded (server too slow to respond)"
 	}
 	if strings.Contains(errMsg, "context canceled") {
 		return "context canceled"
 	}
 
-	// For other errors, return the status code description
-	return status.Code(err).String()
+	// TLS/certificate errors
+	if strings.Contains(errMsg, "certificate") || strings.Contains(errMsg, "tls") {
+		return "TLS/certificate error (check --grpc-secure and --grpc-skip-insecure settings)"
+	}
+
+	// Server-side errors
+	if code == codes.Unavailable {
+		return "server unavailable (check if server is running and network allows connection)"
+	}
+	if code == codes.Internal {
+		return "internal server error (check server logs for details)"
+	}
+	if code == codes.Unknown && strings.Contains(errMsg, "sql: no rows") {
+		// This is not an error - queue is empty
+		return "queue empty"
+	}
+
+	// For other errors, return the status code description with the raw error
+	if code != codes.Unknown {
+		return fmt.Sprintf("%s: %s", code.String(), errMsg)
+	}
+
+	return errMsg
 }
 
 // Version returns the server- & grpc-version.
@@ -188,6 +245,15 @@ func (c *client) Next(ctx context.Context, filter rpc.Filter) (*rpc.Workflow, er
 		// Only do this for ACTUAL errors, not "sql: no rows"
 		workflowPollingHealthy.Store(false)
 		agentOperationalLogged.Store(false)
+
+		// Check if we've exceeded the maximum consecutive error threshold
+		if attemptCount >= maxConsecutiveErrors {
+			log.Error().
+				Str("error", cleanGrpcError(err)).
+				Int("consecutive_errors", attemptCount).
+				Msg("maximum consecutive workflow polling errors reached, agent will exit for restart")
+			return nil, ErrMaxConsecutiveErrors
+		}
 
 		switch status.Code(err) {
 		case codes.Canceled:
@@ -665,6 +731,15 @@ func (c *client) ReportHealth(ctx context.Context) (err error) {
 		// Only do this for ACTUAL errors, not "sql: no rows"
 		healthReportingHealthy.Store(false)
 		agentOperationalLogged.Store(false)
+
+		// Check if we've exceeded the maximum consecutive error threshold
+		if attemptCount >= maxConsecutiveErrors {
+			log.Error().
+				Str("error", cleanGrpcError(err)).
+				Int("consecutive_errors", attemptCount).
+				Msg("maximum consecutive health reporting errors reached, agent will exit for restart")
+			return ErrMaxConsecutiveErrors
+		}
 
 		switch status.Code(err) {
 		case codes.Canceled:

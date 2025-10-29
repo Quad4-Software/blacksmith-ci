@@ -53,31 +53,23 @@ type RPC struct {
 }
 
 // Replaces legacy filter labels with new ones.
+// Only migrates labels that have actually changed names (repo -> crowci/repo-full-name, org-id -> crowci/org-id).
+// Labels like platform, hostname, backend remain unchanged and should NOT be deleted.
 func migrateFilterLabels(filter rpc.Filter) rpc.Filter {
+	// Only migrate labels that actually need renaming
 	if value, ok := filter.Labels["repo"]; ok {
 		filter.Labels[pipeline.LabelRepoFullName] = value
 		delete(filter.Labels, "repo")
-	}
-
-	if value, ok := filter.Labels["platform"]; ok {
-		filter.Labels[pipeline.LabelPlatform] = value
-		delete(filter.Labels, "platform")
-	}
-
-	if value, ok := filter.Labels["hostname"]; ok {
-		filter.Labels[pipeline.LabelHostname] = value
-		delete(filter.Labels, "hostname")
-	}
-
-	if value, ok := filter.Labels["backend"]; ok {
-		filter.Labels[pipeline.LabelBackend] = value
-		delete(filter.Labels, "backend")
 	}
 
 	if value, ok := filter.Labels["org-id"]; ok {
 		filter.Labels[pipeline.LabelOrgID] = value
 		delete(filter.Labels, "org-id")
 	}
+
+	// platform, hostname, and backend labels don't need migration as their
+	// constant names (LabelPlatform, LabelHostname, LabelBackend) are identical
+	// to the old names. Migrating them would just assign to the same key and delete it.
 
 	return filter
 }
@@ -88,7 +80,15 @@ func (s *RPC) Next(c context.Context, agentFilter rpc.Filter) (*rpc.Workflow, er
 		log.Debug().Msgf("agent connected: %s: polling", hostname)
 	}
 
+	log.Debug().
+		Interface("filter_labels_before_migration", agentFilter.Labels).
+		Msg("received filter labels from agent")
+
 	agentFilter = migrateFilterLabels(agentFilter)
+
+	log.Debug().
+		Interface("filter_labels_after_migration", agentFilter.Labels).
+		Msg("filter labels after migration")
 
 	agent, err := s.getAgentFromContext(c)
 	if err != nil {
@@ -106,12 +106,19 @@ func (s *RPC) Next(c context.Context, agentFilter rpc.Filter) (*rpc.Workflow, er
 		return nil, err
 	}
 
-	// enforce labels from server by overwriting agent labels
+	// enforce server labels (like org-id restrictions) while preserving agent labels
+	// (backend, platform, hostname, custom labels)
 	for k, v := range agentServerLabels {
 		agentFilter.Labels[k] = v
 	}
 
-	log.Trace().Msgf("Agent %s[%d] tries to pull task with labels: %v (priority: %d)", agent.Name, agent.ID, agentFilter.Labels, agent.Priority)
+	log.Debug().
+		Str("agent_name", agent.Name).
+		Int64("agent_id", agent.ID).
+		Interface("agent_filter_labels", agentFilter.Labels).
+		Interface("agent_custom_labels", agent.CustomLabels).
+		Int32("priority", agent.Priority).
+		Msg("agent polling for tasks")
 
 	filterFn := createFilterFuncWithPriority(agentFilter, agent.CustomLabels, agent.Priority)
 
@@ -487,8 +494,16 @@ func (s *RPC) Log(c context.Context, stepUUID string, rpcLogEntries []*rpc.LogEn
 func (s *RPC) RegisterAgent(ctx context.Context, info rpc.AgentInfo) (int64, error) {
 	agent, err := s.getAgentFromContext(ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to get agent from context during registration")
 		return -1, err
 	}
+
+	log.Debug().
+		Int64("agent_id", agent.ID).
+		Str("backend", info.Backend).
+		Str("platform", info.Platform).
+		Interface("custom_labels", info.CustomLabels).
+		Msg("registering agent")
 
 	if agent.Name == "" {
 		if hostname, err := s.getHostnameFromContext(ctx); err == nil {
@@ -507,8 +522,15 @@ func (s *RPC) RegisterAgent(ctx context.Context, info rpc.AgentInfo) (int64, err
 
 	err = s.store.AgentUpdate(agent)
 	if err != nil {
+		log.Error().Err(err).Int64("agent_id", agent.ID).Msg("failed to update agent in database")
 		return -1, err
 	}
+
+	log.Info().
+		Int64("agent_id", agent.ID).
+		Str("name", agent.Name).
+		Interface("custom_labels", agent.CustomLabels).
+		Msg("agent registered successfully")
 
 	return agent.ID, nil
 }

@@ -188,12 +188,11 @@
         </div>
 
         <!-- Technical Details Section -->
-        <div class="pt-3 border-t border-wp-background-400 space-y-2">
-          <!-- System Properties -->
+        <div class="pt-3 border-t border-wp-background-400">
           <div class="flex flex-wrap items-center gap-2">
-            <span class="text-xs font-medium text-wp-text-alt-100 mr-1">{{
-              $t('admin.settings.agents.system_labels')
-            }}</span>
+            <!-- Section Label -->
+            <span class="text-xs font-medium text-wp-text-alt-100 mr-1">{{ $t('admin.settings.agents.labels') }}</span>
+
             <!-- Type Badge -->
             <Badge :label="$t('admin.settings.agents.type.badge')" :value="agent.org_id === -1 ? 'global' : 'scoped'" />
 
@@ -202,28 +201,20 @@
 
             <!-- Backend Badge -->
             <Badge v-if="agent.backend" :label="$t('admin.settings.agents.backend.badge')" :value="agent.backend" />
-          </div>
 
-          <!-- Custom Labels Section -->
-          <div
-            v-if="agent.custom_labels && Object.keys(agent.custom_labels).length > 0"
-            class="flex flex-wrap items-start gap-2"
-          >
-            <span class="text-xs font-medium text-wp-text-alt-100 mr-1 mt-0.5">{{
-              $t('admin.settings.agents.user_labels')
-            }}</span>
-            <div class="flex flex-wrap gap-1.5">
+            <!-- Custom Labels (integrated inline) -->
+            <template v-if="agent.custom_labels && Object.keys(agent.custom_labels).length > 0">
               <span
                 v-for="(value, key) in agent.custom_labels"
                 :key="`${key}-${value}`"
-                class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-wp-background-300 text-wp-text-100 border border-wp-background-400"
-                :title="`${key}: ${value}`"
+                class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
+                :title="`Custom label: ${key} = ${value}`"
               >
                 <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-                <span class="font-semibold text-wp-text-alt-100">{{ key }}<span aria-hidden="true">:</span></span>
+                <span class="font-semibold">{{ key }}<span aria-hidden="true">:</span></span>
                 <span class="ml-1">{{ value }}</span>
               </span>
-            </div>
+            </template>
           </div>
         </div>
       </div>
@@ -311,18 +302,18 @@ function getStatusColor(agent: Agent): string {
     return 'bg-red-500';
   }
 
-  // Check last contact time (within 5 minutes = healthy)
+  // Check last contact time
   const now = Date.now() / 1000;
   const timeSinceContact = now - agent.last_contact;
 
-  if (timeSinceContact < 300) {
-    // Less than 5 minutes - healthy
+  if (timeSinceContact < 60) {
+    // Less than 1 minute - healthy
     return 'bg-green-500';
-  } else if (timeSinceContact < 600) {
-    // 5-10 minutes - warning
+  } else if (timeSinceContact < 300) {
+    // 1-5 minutes - warning
     return 'bg-yellow-500';
   } else {
-    // More than 10 minutes - offline
+    // More than 5 minutes - offline
     return 'bg-red-500';
   }
 }
@@ -341,9 +332,9 @@ function getStatusTitle(agent: Agent): string {
   const now = Date.now() / 1000;
   const timeSinceContact = now - agent.last_contact;
 
-  if (timeSinceContact < 300) {
+  if (timeSinceContact < 60) {
     return 'Agent is healthy and active';
-  } else if (timeSinceContact < 600) {
+  } else if (timeSinceContact < 300) {
     return 'Agent connection may be unstable';
   } else {
     return 'Agent is offline or unreachable';
@@ -360,8 +351,8 @@ function getStatusAnimation(agent: Agent): string {
   const now = Date.now() / 1000;
   const timeSinceContact = now - agent.last_contact;
 
-  // Only healthy agents (< 5 minutes) get the pulse animation
-  if (timeSinceContact < 300) {
+  // Only healthy agents (< 1 minute) get the pulse animation
+  if (timeSinceContact < 60) {
     return 'animate-pulse-slow';
   }
 

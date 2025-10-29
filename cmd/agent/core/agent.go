@@ -211,9 +211,10 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 		return err
 	}
 	if len(customLabels) != 0 {
-		log.Debug().Msgf("custom labels detected: %#v", customLabels)
+		log.Debug().Interface("labels", customLabels).Msg("custom labels detected")
 	}
 
+	log.Debug().Msg("registering agent with server...")
 	agentConfig.AgentID, err = client.RegisterAgent(grpcCtx, rpc.AgentInfo{ //nolint:contextcheck
 		Version:      version.String(),
 		Backend:      backendEngine.Name(),
@@ -222,8 +223,13 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 		CustomLabels: customLabels,
 	})
 	if err != nil {
+		log.Error().Err(err).Msg("failed to register agent with server")
 		return err
 	}
+	log.Info().
+		Int64("agent_id", agentConfig.AgentID).
+		Interface("custom_labels", customLabels).
+		Msg("agent successfully registered with server")
 
 	serviceWaitingGroup.Go(func() error {
 		// we close grpc client context once unregister was handled
@@ -271,12 +277,20 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 		for {
 			err := client.ReportHealth(grpcCtx)
 			if err != nil {
-				log.Err(err).Msg("failed to report health")
 				// Check if the error is due to context cancellation
 				if grpcCtx.Err() != nil || agentCtx.Err() != nil {
 					log.Debug().Msg("terminating health reporting due to context cancellation")
 					return nil
 				}
+
+				// If it's the fatal consecutive error threshold, return it to trigger agent restart
+				if errors.Is(err, agent_rpc.ErrMaxConsecutiveErrors) {
+					log.Error().Err(err).Msg("health reporting encountered fatal error, agent will exit for restart")
+					return err
+				}
+
+				// For other errors, just log and continue
+				log.Err(err).Msg("failed to report health")
 			}
 
 			select {
