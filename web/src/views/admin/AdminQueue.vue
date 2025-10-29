@@ -58,7 +58,7 @@
               />
               <span class="truncate font-medium">{{ task.name }}</span>
             </div>
-            <div class="flex items-center gap-2 flex-shrink-0">
+            <div class="flex items-center gap-2 shrink-0">
               <Badge v-if="task.agent_name" :label="$t('admin.settings.queue.agent')" :value="task.agent_name" />
               <Badge
                 v-if="task.dependencies"

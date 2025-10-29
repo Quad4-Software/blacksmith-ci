@@ -63,7 +63,7 @@
       v-if="isMultiselectMode && displayPipelines.length > 0 && repoPermissions?.push"
       class="flex items-center pb-0"
     >
-      <div class="w-7 flex-shrink-0">
+      <div class="w-7 shrink-0">
         <input
           id="select-all"
           type="checkbox"

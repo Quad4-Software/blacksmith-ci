@@ -412,29 +412,36 @@
         },
         "capacity": {
           "capacity": "Maximum Workflows",
-          "desc": "The maximum amount of parallel workflows executed by this agent.",
-          "badge": "max. workflows"
+          "desc": "The maximum amount of parallel workflows executed by this agent."
         },
         "custom_labels": {
           "custom_labels": "Custom Labels",
-          "desc": "The custom labels set by the agent admin on agent startup.",
-          "badge": "custom"
+          "desc": "The custom labels set by the agent admin on agent startup."
         },
         "priority": {
           "priority": "Priority",
-          "desc": "Agent priority for task assignment (higher values have priority). Labels take precedence over priority.",
-          "badge": "priority"
-        },
-        "org": {
-          "badge": "org"
+          "desc": "Agent priority for task assignment (higher values have priority). Labels take precedence over priority."
         },
         "type": {
           "badge": "type"
         },
-        "version": "Version",
-        "last_contact": {
-          "last_contact": "Last contact"
+        "version": {
+          "label": "Version",
+          "mismatch": "Version differs from server"
         },
+        "last_contact": {
+          "last_contact": "Last contact",
+          "label": "Last Seen"
+        },
+        "workflows": {
+          "label": "Workflows",
+          "active": "active"
+        },
+        "priority_label": "Priority",
+        "system_labels": "System:",
+        "user_labels": "Labels:",
+        "agent_id": "ID:",
+        "org_prefix": "Org",
         "never": "Never",
         "delete_confirm": "Do you really want to delete this agent? It will no longer be able to connect to the server.",
         "edit_agent": "Edit agent",
@@ -443,6 +450,15 @@
         "filter_type": "All types",
         "filter_platform": "All platforms",
         "filter_backend": "All backends",
+        "sort_by": "Sort by",
+        "sort": {
+          "status": "Status (health)",
+          "name": "Name",
+          "id": "ID",
+          "last_contact": "Last Contact",
+          "workflows": "Active Workflows",
+          "capacity": "Capacity"
+        },
         "clear_filters": "Clear filters",
         "no_match": "No agents match your filters"
       },

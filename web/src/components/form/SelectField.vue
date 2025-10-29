@@ -1,7 +1,7 @@
 <template>
   <select
     v-model="innerValue"
-    class="w-full rounded-md border border-wp-background-400 bg-wp-control-neutral-100 px-2 py-1 text-wp-text-100"
+    class="w-full rounded-md border border-wp-background-400 bg-wp-control-neutral-100 px-2 py-[0.375rem] text-wp-text-100 shadow-sm"
   >
     <option v-if="placeholder" value="" class="hidden">{{ placeholder }}</option>
 

@@ -1,7 +1,7 @@
 <template>
   <div v-if="pipeline" class="flex items-center">
     <!-- Checkbox positioned outside the main item with fixed width spacer -->
-    <div v-if="showCheckbox" class="w-7 flex-shrink-0">
+    <div v-if="showCheckbox" class="w-7 shrink-0">
       <input
         type="checkbox"
         class="h-4 w-4 rounded border-wp-custom-200 accent-wp-custom-highlight-100 focus:ring-2 focus:ring-wp-custom-highlight-100 focus:ring-offset-1 transition-all cursor-pointer"

@@ -88,7 +88,7 @@
         class="flex items-center justify-between p-2 bg-wp-background-100 dark:bg-wp-background-200 border-b border-wp-background-300 dark:border-wp-background-400"
       >
         <div class="flex items-center gap-3 min-w-0 flex-1">
-          <PipelineStatusIcon :status="currentStep?.state || 'pending'" class="h-5 w-5 flex-shrink-0" />
+          <PipelineStatusIcon :status="currentStep?.state || 'pending'" class="h-5 w-5 shrink-0" />
           <div class="min-w-0 flex-1">
             <div class="font-medium text-wp-text-100 truncate">{{ currentStep?.name || 'Loading...' }}</div>
             <div class="text-sm text-wp-text-alt-100 truncate">{{ currentWorkflow?.name }}</div>
