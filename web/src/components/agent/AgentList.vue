@@ -137,7 +137,7 @@
               {{ agent.version }}
               <Icon
                 v-if="isVersionMismatch(agent.version)"
-                name="status-error"
+                name="alert"
                 class="h-4 w-4 text-yellow-500"
                 :title="$t('admin.settings.agents.version.mismatch')"
               />
