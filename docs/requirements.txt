@@ -5,4 +5,4 @@ mkdocs-git-committers-plugin-2
 mkdocs-material[imaging]
 mkdocs-glightbox
 mkdocs-minify-plugin
-pillow==11.3.0
+pillow>=10.2,<12.0
