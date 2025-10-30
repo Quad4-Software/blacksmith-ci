@@ -108,9 +108,12 @@ steps:
     commands:
       - apk add --no-cache -q git
       - mkdir ~/.ssh
-      - echo "$SSH_KEY" > ~/.ssh/id_rsa
-      - chmod 600 ~/.ssh/id_rsa
+      - chmod 700 ~/.ssh
+      - echo "$SSH_KEY" > ~/.ssh/id_ed25519
+      - chmod 600 ~/.ssh/id_ed25519
+      - ssh-keyscan codeberg.org >> ~/.ssh/known_hosts
+      - chmod 644 ~/.ssh/known_hosts
       - rm -rf helm
-      - git clone https://codeberg.org/crowci/helm.git
+      - git clone ssh://git@codeberg.org/crowci/helm.git
       - cd helm
       - git sv tag
