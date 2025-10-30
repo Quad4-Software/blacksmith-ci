@@ -42,7 +42,7 @@ func TestFifo(t *testing.T) {
 	ctx, cancel := context.WithCancelCause(t.Context())
 	t.Cleanup(func() { cancel(nil) })
 
-	q := NewMemoryQueue(ctx)
+	q := NewMemoryQueue(ctx, nil)
 	dummyTask := genDummyTask()
 
 	assert.NoError(t, q.Push(ctx, dummyTask))
@@ -71,7 +71,7 @@ func TestFifoExpire(t *testing.T) {
 	ctx, cancel := context.WithCancelCause(t.Context())
 	t.Cleanup(func() { cancel(nil) })
 
-	q, _ := NewMemoryQueue(ctx).(*fifo)
+	q, _ := NewMemoryQueue(ctx, nil).(*fifo)
 	assert.NotNil(t, q)
 
 	dummyTask := genDummyTask()
@@ -95,7 +95,7 @@ func TestFifoWait(t *testing.T) {
 	ctx, cancel := context.WithCancelCause(t.Context())
 	t.Cleanup(func() { cancel(nil) })
 
-	q, _ := NewMemoryQueue(ctx).(*fifo)
+	q, _ := NewMemoryQueue(ctx, nil).(*fifo)
 	assert.NotNil(t, q)
 
 	dummyTask := genDummyTask()
@@ -123,7 +123,7 @@ func TestFifoEvict(t *testing.T) {
 	ctx, cancel := context.WithCancelCause(t.Context())
 	t.Cleanup(func() { cancel(nil) })
 
-	q := NewMemoryQueue(ctx)
+	q := NewMemoryQueue(ctx, nil)
 	dummyTask := genDummyTask()
 
 	assert.NoError(t, q.Push(ctx, dummyTask))
@@ -154,7 +154,7 @@ func TestFifoDependencies(t *testing.T) {
 		DepStatus:    make(map[string]model.StatusValue),
 	}
 
-	q, _ := NewMemoryQueue(ctx).(*fifo)
+	q, _ := NewMemoryQueue(ctx, nil).(*fifo)
 	assert.NotNil(t, q)
 
 	assert.NoError(t, q.PushAtOnce(ctx, []*model.Task{task2, task1}))
@@ -190,7 +190,7 @@ func TestFifoErrors(t *testing.T) {
 		RunOn:        []string{"success", "failure"},
 	}
 
-	q, _ := NewMemoryQueue(ctx).(*fifo)
+	q, _ := NewMemoryQueue(ctx, nil).(*fifo)
 	assert.NotNil(t, q)
 
 	assert.NoError(t, q.PushAtOnce(ctx, []*model.Task{task2, task3, task1}))
@@ -229,7 +229,7 @@ func TestFifoErrors2(t *testing.T) {
 		DepStatus:    make(map[string]model.StatusValue),
 	}
 
-	q, _ := NewMemoryQueue(ctx).(*fifo)
+	q, _ := NewMemoryQueue(ctx, nil).(*fifo)
 	assert.NotNil(t, q)
 
 	assert.NoError(t, q.PushAtOnce(ctx, []*model.Task{task2, task3, task1}))
@@ -271,7 +271,7 @@ func TestFifoErrorsMultiThread(t *testing.T) {
 		DepStatus:    make(map[string]model.StatusValue),
 	}
 
-	q, _ := NewMemoryQueue(ctx).(*fifo)
+	q, _ := NewMemoryQueue(ctx, nil).(*fifo)
 	assert.NotNil(t, q)
 
 	assert.NoError(t, q.PushAtOnce(ctx, []*model.Task{task2, task3, task1}))
@@ -363,7 +363,7 @@ func TestFifoTransitiveErrors(t *testing.T) {
 		DepStatus:    make(map[string]model.StatusValue),
 	}
 
-	q, _ := NewMemoryQueue(ctx).(*fifo)
+	q, _ := NewMemoryQueue(ctx, nil).(*fifo)
 	assert.NotNil(t, q)
 
 	assert.NoError(t, q.PushAtOnce(ctx, []*model.Task{task2, task3, task1}))
@@ -405,7 +405,7 @@ func TestFifoCancel(t *testing.T) {
 		RunOn:        []string{"success", "failure"},
 	}
 
-	q, _ := NewMemoryQueue(ctx).(*fifo)
+	q, _ := NewMemoryQueue(ctx, nil).(*fifo)
 	assert.NotNil(t, q)
 
 	assert.NoError(t, q.PushAtOnce(ctx, []*model.Task{task2, task3, task1}))
@@ -428,7 +428,7 @@ func TestFifoPause(t *testing.T) {
 	ctx, cancel := context.WithCancelCause(t.Context())
 	t.Cleanup(func() { cancel(nil) })
 
-	q, _ := NewMemoryQueue(ctx).(*fifo)
+	q, _ := NewMemoryQueue(ctx, nil).(*fifo)
 	assert.NotNil(t, q)
 
 	dummyTask := genDummyTask()
@@ -461,7 +461,7 @@ func TestFifoPauseResume(t *testing.T) {
 	ctx, cancel := context.WithCancelCause(t.Context())
 	t.Cleanup(func() { cancel(nil) })
 
-	q, _ := NewMemoryQueue(ctx).(*fifo)
+	q, _ := NewMemoryQueue(ctx, nil).(*fifo)
 	assert.NotNil(t, q)
 
 	dummyTask := genDummyTask()
@@ -490,7 +490,7 @@ func TestWaitingVsPending(t *testing.T) {
 		RunOn:        []string{"success", "failure"},
 	}
 
-	q, _ := NewMemoryQueue(ctx).(*fifo)
+	q, _ := NewMemoryQueue(ctx, nil).(*fifo)
 	assert.NotNil(t, q)
 
 	assert.NoError(t, q.PushAtOnce(ctx, []*model.Task{task2, task3, task1}))
@@ -586,7 +586,7 @@ func TestFifoWithScoring(t *testing.T) {
 	ctx, cancel := context.WithCancelCause(t.Context())
 	t.Cleanup(func() { cancel(nil) })
 
-	q := NewMemoryQueue(ctx)
+	q := NewMemoryQueue(ctx, nil)
 
 	// Create tasks with different labels
 	tasks := []*model.Task{
@@ -688,7 +688,7 @@ func TestFifo_GetRunningWorkflowIDs(t *testing.T) {
 	t.Parallel()
 
 	ctx := t.Context()
-	q := NewMemoryQueue(ctx)
+	q := NewMemoryQueue(ctx, nil)
 
 	t.Run("empty queue", func(t *testing.T) {
 		ids := q.GetRunningWorkflowIDs()

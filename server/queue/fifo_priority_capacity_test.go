@@ -15,7 +15,7 @@ func TestFifoPriorityWithCapacity(t *testing.T) {
 	ctx, cancel := context.WithCancelCause(context.Background())
 	defer cancel(nil)
 
-	queue := NewMemoryQueue(ctx)
+	queue := NewMemoryQueue(ctx, nil)
 	q, ok := queue.(*fifo)
 	assert.True(t, ok, "Queue should be of type *fifo")
 
@@ -116,7 +116,7 @@ func TestFifoPrioritySamePriorityCapacityDistribution(t *testing.T) {
 	ctx, cancel := context.WithCancelCause(context.Background())
 	defer cancel(nil)
 
-	queue := NewMemoryQueue(ctx)
+	queue := NewMemoryQueue(ctx, nil)
 	q, ok := queue.(*fifo)
 	assert.True(t, ok, "Queue should be of type *fifo")
 

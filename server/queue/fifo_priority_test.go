@@ -27,7 +27,7 @@ import (
 func TestFifoPrioritySelection(t *testing.T) {
 	ctx := context.Background()
 
-	q, ok := NewMemoryQueue(ctx).(*fifo)
+	q, ok := NewMemoryQueue(ctx, nil).(*fifo)
 	assert.True(t, ok, "Expected fifo queue")
 
 	// Push a task

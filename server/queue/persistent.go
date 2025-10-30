@@ -24,7 +24,6 @@ import (
 
 	"codeberg.org/crowci/crow/v4/server/model"
 	"codeberg.org/crowci/crow/v4/server/store"
-	"codeberg.org/crowci/crow/v4/server/store/types"
 )
 
 // WithTaskStore returns a queue that is backed by the TaskStore. This
@@ -79,16 +78,13 @@ func (q *persistentQueue) PushAtOnce(c context.Context, tasks []*model.Task) err
 func (q *persistentQueue) Poll(c context.Context, agentID int64, f FilterFn) (*model.Task, error) {
 	task, err := q.Queue.Poll(c, agentID, f)
 	if task != nil {
-		log.Debug().Msgf("pull queue item: %s: remove from backup", task.ID)
-		if deleteErr := q.store.TaskDelete(task.ID); deleteErr != nil {
-			// In HA environments, the task may have already been deleted by another server
-			if errors.Is(deleteErr, types.RecordNotExist) {
-				log.Debug().Str("taskID", task.ID).Msg("Task already removed from backup database")
-			} else {
-				log.Error().Err(deleteErr).Msgf("pull queue item: %s: failed to remove from backup", task.ID)
-			}
-		} else {
-			log.Debug().Msgf("pull queue item: %s: successfully removed from backup", task.ID)
+		// Update task in database with AgentID instead of deleting it
+		// This allows the task to be recovered if the server restarts while it's running
+		// The AgentID should already be set by the underlying queue
+		log.Debug().Str("taskID", task.ID).Int64("agentID", task.AgentID).Msg("Updating task in database with agent assignment")
+		if updateErr := q.store.TaskUpdate(task); updateErr != nil {
+			log.Error().Err(updateErr).Str("taskID", task.ID).Int64("agentID", task.AgentID).
+				Msg("Failed to update task in database with agent assignment")
 		}
 	}
 	return task, err

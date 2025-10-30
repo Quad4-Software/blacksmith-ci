@@ -24,6 +24,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v4/server/store"
 	"codeberg.org/crowci/crow/v4/shared/constant"
 )
 
@@ -45,6 +46,7 @@ type fifo struct {
 	sync.Mutex
 
 	ctx           context.Context
+	store         store.Store // Database store for task persistence
 	workers       map[*worker]struct{}
 	running       map[string]*entry
 	pending       *list.List
@@ -63,9 +65,10 @@ const minCapacityScore = -1000
 var ErrWorkerKicked = fmt.Errorf("worker was kicked")
 
 // NewMemoryQueue returns a new fifo queue.
-func NewMemoryQueue(ctx context.Context) Queue {
+func NewMemoryQueue(ctx context.Context, store store.Store) Queue {
 	q := &fifo{
 		ctx:           ctx,
+		store:         store,
 		workers:       map[*worker]struct{}{},
 		running:       map[string]*entry{},
 		pending:       list.New(),
@@ -73,6 +76,14 @@ func NewMemoryQueue(ctx context.Context) Queue {
 		extension:     constant.TaskTimeout,
 		paused:        false,
 	}
+
+	// Load running tasks from database on startup to recover from server restart
+	if store != nil {
+		if err := q.loadRunningTasks(); err != nil {
+			log.Error().Err(err).Msg("Failed to load running tasks on startup")
+		}
+	}
+
 	go q.process()
 	return q
 }
@@ -153,6 +164,7 @@ func (q *fifo) finished(ids []string, exitStatus model.StatusValue, err error) e
 			taskEntry.error = err
 			close(taskEntry.done)
 			delete(q.running, id)
+			// Task deletion from database is handled by persistentQueue wrapper
 		} else {
 			q.removeFromPending(id)
 		}
@@ -542,4 +554,42 @@ func (q *fifo) removeFromPending(taskID string) {
 			return
 		}
 	}
+}
+
+// loadRunningTasks loads tasks that were running before server restart.
+// This allows workflows to resume after server restart instead of being lost.
+func (q *fifo) loadRunningTasks() error {
+	tasks, err := q.store.TaskList()
+	if err != nil {
+		return fmt.Errorf("failed to list tasks: %w", err)
+	}
+
+	loadedCount := 0
+	for _, task := range tasks {
+		// Only load tasks that were assigned to an agent (running tasks)
+		if task.AgentID > 0 {
+			previousAgentID := task.AgentID
+
+			// Add to pending queue so they can be reassigned when agents reconnect
+			q.pending.PushBack(task)
+
+			// Reset AgentID so task can be reassigned
+			task.AgentID = 0
+			if err := q.store.TaskUpdate(task); err != nil {
+				log.Error().Err(err).Str("taskID", task.ID).Msg("Failed to reset task AgentID on load")
+			}
+
+			loadedCount++
+			log.Info().
+				Str("taskID", task.ID).
+				Int64("previousAgentID", previousAgentID).
+				Msg("Loaded running task from database for reassignment")
+		}
+	}
+
+	if loadedCount > 0 {
+		log.Info().Int("count", loadedCount).Msg("Loaded running tasks from database on startup")
+	}
+
+	return nil
 }

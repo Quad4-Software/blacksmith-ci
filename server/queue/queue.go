@@ -155,7 +155,7 @@ func New(ctx context.Context, config Config) (Queue, error) {
 
 	switch config.Backend {
 	case TypeMemory:
-		q = NewMemoryQueue(ctx)
+		q = NewMemoryQueue(ctx, config.Store)
 		if config.Store != nil {
 			q = WithTaskStore(ctx, q, config.Store)
 		}

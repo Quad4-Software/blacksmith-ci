@@ -43,6 +43,11 @@ const (
 	// Agent health timeout - if agent hasn't reported health in this duration, it's considered dead
 	// This should be longer than reportHealthInterval (10s) to account for network delays.
 	agentHealthTimeout = 60 * time.Second
+
+	// Startup grace period - time to wait after server startup before resetting orphaned assignments
+	// This gives agents time to reconnect after a server restart, preventing tasks from being
+	// unnecessarily reset when agents are still alive and will reconnect momentarily.
+	startupGracePeriod = 30 * time.Second
 )
 
 // DatabaseQueue implements a distributed queue using the database as the backend.
@@ -55,6 +60,7 @@ type DatabaseQueue struct {
 	paused        bool
 	mu            sync.RWMutex
 	leaderLockTTL time.Duration
+	startupTime   time.Time // Time when queue was initialized
 
 	// Track assigned tasks to prevent double assignment
 	assignedTasks map[string]int64 // task ID -> agent ID
@@ -91,6 +97,7 @@ func NewDatabaseQueue(ctx context.Context, store store.Store, lockService LockSe
 		lockService:      lockService,
 		instanceID:       instanceID,
 		paused:           false,
+		startupTime:      time.Now(),
 		assignedTasks:    make(map[string]int64),
 		cancelledTasks:   make(map[string]error),
 		pollingInstances: make(map[string]*pollingInstance),
@@ -99,11 +106,15 @@ func NewDatabaseQueue(ctx context.Context, store store.Store, lockService LockSe
 
 	log.Info().Str("instanceID", instanceID).Msg("Starting database queue for HA deployment")
 
-	// Clean up orphaned task assignments on startup
-	// This handles server restarts where agents may have disappeared
-	if err := q.resetOrphanedAssignments(); err != nil {
-		log.Error().Err(err).Msg("Failed to reset orphaned task assignments on startup")
-	}
+	// Schedule orphaned assignment cleanup after grace period
+	// This gives agents time to reconnect after server restart
+	go func() {
+		time.Sleep(startupGracePeriod)
+		log.Info().Dur("gracePeriod", startupGracePeriod).Msg("Startup grace period elapsed, checking for orphaned task assignments")
+		if err := q.resetOrphanedAssignments(); err != nil {
+			log.Error().Err(err).Msg("Failed to reset orphaned task assignments after startup grace period")
+		}
+	}()
 
 	// Start background processor with leader election for cleanup
 	go q.processLoop() //nolint:contextcheck // Background process uses queue context
