@@ -19,14 +19,18 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"sort"
+	"strings"
 
 	"github.com/rs/zerolog/log"
 
+	"codeberg.org/crowci/crow/v4/pipeline"
 	pipeline_errors "codeberg.org/crowci/crow/v4/pipeline/errors"
 	"codeberg.org/crowci/crow/v4/server"
 	"codeberg.org/crowci/crow/v4/server/forge"
 	forge_types "codeberg.org/crowci/crow/v4/server/forge/types"
 	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v4/server/pipeline/stepbuilder"
 	"codeberg.org/crowci/crow/v4/server/store"
 )
 
@@ -117,6 +121,12 @@ func Create(ctx context.Context, _store store.Store, repo *model.Repo, pipeline 
 		return nil, ErrFiltered
 	}
 
+	// Validate that agents exist for the required labels
+	if err := validateAgentAvailability(_store, pipelineItems); err != nil {
+		log.Debug().Str("repo", repo.FullName).Err(err).Msg("pipeline validation failed - no matching agents")
+		return pipeline, updatePipelineWithErr(ctx, _forge, _store, pipeline, repo, repoUser, err)
+	}
+
 	pipeline = setPipelineStepsOnPipeline(pipeline, pipelineItems)
 
 	// persist the pipeline config for historical correctness, restarts, etc
@@ -184,4 +194,154 @@ func updatePipelinePending(ctx context.Context, _forge forge.Forge, _store store
 	publishPipeline(ctx, _forge, pipeline, repo, repoUser)
 
 	return nil
+}
+
+// validateAgentAvailability checks if there are agents that can run the pipeline items.
+// Returns an error with details if no matching agents are found.
+func validateAgentAvailability(_store store.Store, pipelineItems []*stepbuilder.Item) error {
+	// Get all agents
+	agents, err := _store.AgentList(nil)
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to list agents during validation - skipping agent validation")
+		return nil // Don't fail pipeline creation if we can't check agents
+	}
+
+	// Check each pipeline item
+	for _, item := range pipelineItems {
+		// Skip items without labels (they can run on any agent)
+		if len(item.Labels) == 0 {
+			continue
+		}
+
+		// Extract user-defined labels (skip crowci/* internal labels)
+		requiredLabels := make(map[string]string)
+		for key, value := range item.Labels {
+			if strings.HasPrefix(key, pipeline.InternalLabelPrefix) {
+				continue // Skip internal labels
+			}
+			if value != "" {
+				requiredLabels[key] = value
+			}
+		}
+
+		// If no user-defined labels, skip
+		if len(requiredLabels) == 0 {
+			continue
+		}
+
+		// Check if any agent can match these labels
+		hasMatchingAgent := false
+		for _, agent := range agents {
+			if agent.NoSchedule {
+				continue // Skip agents marked as no-schedule
+			}
+
+			if agentCanMatch(agent, requiredLabels) {
+				hasMatchingAgent = true
+				break
+			}
+		}
+
+		if !hasMatchingAgent {
+			return formatNoMatchingAgentError(item.Workflow.Name, requiredLabels, agents)
+		}
+	}
+
+	return nil
+}
+
+// agentCanMatch checks if an agent could potentially match the required labels.
+func agentCanMatch(agent *model.Agent, requiredLabels map[string]string) bool {
+	// Check platform
+	if requiredPlatform, ok := requiredLabels["platform"]; ok {
+		if agent.Platform != "" && agent.Platform != requiredPlatform {
+			return false
+		}
+	}
+
+	// Check backend
+	if requiredBackend, ok := requiredLabels["backend"]; ok {
+		if agent.Backend != "" && agent.Backend != requiredBackend {
+			return false
+		}
+	}
+
+	// Check agent name
+	if requiredAgent, ok := requiredLabels["agent"]; ok {
+		if agent.Name != "" && agent.Name != requiredAgent {
+			return false
+		}
+	}
+
+	// Check custom labels
+	for labelKey, labelValue := range requiredLabels {
+		// Skip standard labels we already checked
+		if labelKey == "platform" || labelKey == "backend" || labelKey == "agent" {
+			continue
+		}
+
+		// Skip repo and org-id (these are handled specially with wildcards and pipes)
+		if labelKey == "repo" || labelKey == "org-id" {
+			continue
+		}
+
+		// Check if agent has this custom label with matching value
+		if agentLabelValue, ok := agent.CustomLabels[labelKey]; ok {
+			if agentLabelValue != labelValue {
+				return false // Label exists but with different value
+			}
+		} else {
+			return false // Agent doesn't have required label
+		}
+	}
+
+	return true
+}
+
+// formatNoMatchingAgentError creates a user-friendly error message with markdown formatting.
+func formatNoMatchingAgentError(workflowName string, requiredLabels map[string]string, agents []*model.Agent) error {
+	var msg strings.Builder
+
+	// Header
+	msg.WriteString(fmt.Sprintf("### Workflow `%s` cannot be started\n\n", workflowName))
+	msg.WriteString("❌ **No agent matching the required labels was found**\n\n")
+
+	// Required labels section
+	msg.WriteString("#### Required Labels\n\n")
+	var labelList []string
+	for key, value := range requiredLabels {
+		labelList = append(labelList, fmt.Sprintf("`%s` = `%s`", key, value))
+	}
+	sort.Strings(labelList)
+	for _, label := range labelList {
+		msg.WriteString(fmt.Sprintf("- %s\n", label))
+	}
+	msg.WriteString("\n")
+
+	// Available agents section - just show count and names
+	if len(agents) == 0 {
+		msg.WriteString("#### Available Agents\n\n")
+		msg.WriteString("⚠️ No agents are currently registered\n")
+	} else {
+		activeAgents := 0
+		var agentNames []string
+
+		for _, agent := range agents {
+			if agent.NoSchedule {
+				continue
+			}
+			activeAgents++
+			agentNames = append(agentNames, fmt.Sprintf("`%s`", agent.Name))
+		}
+
+		if activeAgents == 0 {
+			msg.WriteString("#### Available Agents\n\n")
+			msg.WriteString("⚠️ All agents are marked as NoSchedule\n")
+		} else {
+			msg.WriteString(fmt.Sprintf("#### Available Agents: %d\n\n", activeAgents))
+			msg.WriteString(strings.Join(agentNames, ", "))
+		}
+	}
+
+	return errors.New(msg.String())
 }

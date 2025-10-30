@@ -17,7 +17,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v6.33.0
-// source: crow.proto
+// source: pipeline/rpc/proto/crow.proto
 
 package proto
 
@@ -517,7 +517,7 @@ var Crow_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "crow.proto",
+	Metadata: "pipeline/rpc/proto/crow.proto",
 }
 
 const (
@@ -619,5 +619,5 @@ var CrowAuth_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "crow.proto",
+	Metadata: "pipeline/rpc/proto/crow.proto",
 }

@@ -62,7 +62,7 @@ func TestRegisterAgent(t *testing.T) {
 			t.Context(),
 			metadata.Pairs("hostname", "hostname", "agent_id", "1337"),
 		)
-		agentID, err := grpc.RegisterAgent(ctx, rpc.AgentInfo{
+		agentID, agentName, err := grpc.RegisterAgent(ctx, rpc.AgentInfo{
 			Version:  "version",
 			Platform: "platform",
 			Backend:  "backend",
@@ -71,6 +71,7 @@ func TestRegisterAgent(t *testing.T) {
 		if !assert.NoError(t, err) {
 			return
 		}
+		_ = agentName // Not testing the name in this test
 
 		assert.EqualValues(t, 1337, agentID)
 	})
@@ -104,7 +105,7 @@ func TestRegisterAgent(t *testing.T) {
 			t.Context(),
 			metadata.Pairs("hostname", "newHostname", "agent_id", "1337"),
 		)
-		agentID, err := grpc.RegisterAgent(ctx, rpc.AgentInfo{
+		agentID, agentName, err := grpc.RegisterAgent(ctx, rpc.AgentInfo{
 			Version:  "version",
 			Platform: "platform",
 			Backend:  "backend",
@@ -113,6 +114,7 @@ func TestRegisterAgent(t *testing.T) {
 		if !assert.NoError(t, err) {
 			return
 		}
+		_ = agentName // Not testing the name in this test
 
 		assert.EqualValues(t, 1337, agentID)
 	})

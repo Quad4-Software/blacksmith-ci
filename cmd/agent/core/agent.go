@@ -215,7 +215,8 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 	}
 
 	log.Debug().Msg("registering agent with server...")
-	agentConfig.AgentID, err = client.RegisterAgent(grpcCtx, rpc.AgentInfo{ //nolint:contextcheck
+	var agentName string
+	agentConfig.AgentID, agentName, err = client.RegisterAgent(grpcCtx, rpc.AgentInfo{ //nolint:contextcheck
 		Version:      version.String(),
 		Backend:      backendEngine.Name(),
 		Platform:     engInfo.Platform,
@@ -228,6 +229,7 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 	}
 	log.Info().
 		Int64("agent_id", agentConfig.AgentID).
+		Str("agent_name", agentName).
 		Interface("custom_labels", customLabels).
 		Msg("agent successfully registered with server")
 
@@ -261,7 +263,8 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 	labels[pipeline.LabelFilterHostname] = hostname
 	labels[pipeline.LabelFilterPlatform] = engInfo.Platform
 	labels[pipeline.LabelFilterBackend] = backendEngine.Name()
-	labels[pipeline.LabelFilterRepo] = "*" // allow all repos by default
+	labels[pipeline.LabelFilterAgent] = agentName // Use the agent name from server registration
+	labels[pipeline.LabelFilterRepo] = "*"        // allow all repos by default
 	// ... and let it overwrite by custom ones
 	maps.Copy(labels, customLabels)
 

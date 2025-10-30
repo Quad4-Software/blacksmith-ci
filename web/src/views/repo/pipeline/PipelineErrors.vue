@@ -1,22 +1,20 @@
 <template>
   <Panel>
-    <div class="flex flex-col gap-y-4">
+    <div class="flex flex-col gap-y-6">
       <template v-for="(error, _index) in pipeline!.errors" :key="_index">
-        <div>
-          <div class="grid grid-cols-[minmax(10rem,auto)_3fr]">
-            <span class="flex items-center gap-x-2">
-              <Icon
-                name="alert"
-                class="my-1 shrink-0"
-                :class="{
-                  'text-wp-state-warn-100': error.is_warning,
-                  'text-wp-error-100': !error.is_warning,
-                }"
-              />
-              <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-              <span>
-                <code>{{ error.type }}</code>
-              </span>
+        <div class="flex flex-col gap-y-3">
+          <div class="flex items-center gap-x-2">
+            <Icon
+              name="alert"
+              class="shrink-0"
+              :class="{
+                'text-wp-state-warn-100': error.is_warning,
+                'text-wp-error-100': !error.is_warning,
+              }"
+            />
+            <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
+            <span>
+              <code>{{ error.type }}</code>
             </span>
             <span
               v-if="isLinterError(error) || isDeprecationError(error) || isBadHabitError(error)"
@@ -33,11 +31,10 @@
                 :url="error.data?.docs || ''"
               />
             </span>
-            <span v-else />
           </div>
 
-          <div class="col-start-2 grid grid-cols-[minmax(10rem,auto)_4fr]">
-            <span /> <span> <RenderMarkdown :content="error.message" /> </span>
+          <div class="w-full">
+            <RenderMarkdown :content="error.message" class="error-markdown-content" />
           </div>
         </div>
       </template>
@@ -83,3 +80,91 @@ useCrowTitle(
   ]),
 );
 </script>
+
+<style scoped>
+:deep(.error-markdown-content) > * + * {
+  margin-top: 1rem;
+}
+
+:deep(.error-markdown-content h3) {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--wp-text-100);
+  margin-bottom: 0.75rem;
+}
+
+:deep(.error-markdown-content h4) {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--wp-text-100);
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+:deep(.error-markdown-content p) {
+  color: var(--wp-text-100);
+  line-height: 1.625;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+:deep(.error-markdown-content ul) {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+:deep(.error-markdown-content li) {
+  color: var(--wp-text-100);
+  margin-top: 0.25rem;
+}
+
+:deep(.error-markdown-content code) {
+  background-color: var(--wp-code-bg);
+  color: var(--wp-code-text);
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  font-family: ui-monospace, monospace;
+}
+
+:deep(.error-markdown-content strong) {
+  font-weight: 600;
+  color: var(--wp-text-100);
+}
+
+:deep(.error-markdown-content table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+}
+
+:deep(.error-markdown-content thead) {
+  background-color: var(--wp-background-200);
+}
+
+:deep(.error-markdown-content th) {
+  text-align: left;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  color: var(--wp-text-100);
+  border: 1px solid var(--wp-background-300);
+}
+
+:deep(.error-markdown-content td) {
+  padding: 0.5rem 1rem;
+  color: var(--wp-text-100);
+  border: 1px solid var(--wp-background-300);
+}
+
+:deep(.error-markdown-content tbody tr:nth-child(even)) {
+  background-color: var(--wp-background-100);
+}
+
+:deep(.error-markdown-content tbody tr:hover) {
+  background-color: var(--wp-background-200);
+}
+</style>

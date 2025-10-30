@@ -491,11 +491,11 @@ func (s *RPC) Log(c context.Context, stepUUID string, rpcLogEntries []*rpc.LogEn
 	return nil
 }
 
-func (s *RPC) RegisterAgent(ctx context.Context, info rpc.AgentInfo) (int64, error) {
+func (s *RPC) RegisterAgent(ctx context.Context, info rpc.AgentInfo) (int64, string, error) {
 	agent, err := s.getAgentFromContext(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to get agent from context during registration")
-		return -1, err
+		return -1, "", err
 	}
 
 	log.Debug().
@@ -523,7 +523,7 @@ func (s *RPC) RegisterAgent(ctx context.Context, info rpc.AgentInfo) (int64, err
 	err = s.store.AgentUpdate(agent)
 	if err != nil {
 		log.Error().Err(err).Int64("agent_id", agent.ID).Msg("failed to update agent in database")
-		return -1, err
+		return -1, "", err
 	}
 
 	log.Info().
@@ -532,7 +532,7 @@ func (s *RPC) RegisterAgent(ctx context.Context, info rpc.AgentInfo) (int64, err
 		Interface("custom_labels", agent.CustomLabels).
 		Msg("agent registered successfully")
 
-	return agent.ID, nil
+	return agent.ID, agent.Name, nil
 }
 
 // UnregisterAgent removes the agent from the database.

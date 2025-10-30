@@ -35,6 +35,11 @@ const (
 func (s storage) AgentList(opts *model.AgentListOptions) (agents []*model.Agent, _ error) {
 	sess := s.engine.NewSession()
 
+	// If opts is nil, initialize with defaults
+	if opts == nil {
+		opts = &model.AgentListOptions{}
+	}
+
 	// Apply org filter if specified
 	if opts.OrgID != nil {
 		sess = sess.Where("org_id = ?", *opts.OrgID)

@@ -173,7 +173,7 @@ func (s *CrowServer) Log(c context.Context, req *proto.LogRequest) (*proto.Empty
 func (s *CrowServer) RegisterAgent(c context.Context, req *proto.RegisterAgentRequest) (*proto.RegisterAgentResponse, error) {
 	res := new(proto.RegisterAgentResponse)
 	agentInfo := req.GetInfo()
-	agentID, err := s.peer.RegisterAgent(c, rpc.AgentInfo{
+	agentID, agentName, err := s.peer.RegisterAgent(c, rpc.AgentInfo{
 		Version:      agentInfo.GetVersion(),
 		Platform:     agentInfo.GetPlatform(),
 		Backend:      agentInfo.GetBackend(),
@@ -182,6 +182,7 @@ func (s *CrowServer) RegisterAgent(c context.Context, req *proto.RegisterAgentRe
 		Priority:     agentInfo.GetPriority(),
 	})
 	res.AgentId = agentID
+	res.AgentName = agentName
 	return res, err
 }
 

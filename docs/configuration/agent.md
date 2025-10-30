@@ -35,8 +35,9 @@ Agents can be configured to only process workflows with matching labels.
 Each agent has the following default labels:
 
 - backend
-- typ
+- type
 - platform
+- agent
 
 besides these, admins can add custom labels to agents during registration via `CROW_AGENT_LABELS`:
 

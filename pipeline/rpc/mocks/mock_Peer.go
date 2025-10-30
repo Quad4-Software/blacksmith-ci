@@ -330,7 +330,7 @@ func (_c *MockPeer_Next_Call) RunAndReturn(run func(c context.Context, f rpc.Fil
 }
 
 // RegisterAgent provides a mock function for the type MockPeer
-func (_mock *MockPeer) RegisterAgent(ctx context.Context, info rpc.AgentInfo) (int64, error) {
+func (_mock *MockPeer) RegisterAgent(ctx context.Context, info rpc.AgentInfo) (int64, string, error) {
 	ret := _mock.Called(ctx, info)
 
 	if len(ret) == 0 {
@@ -338,8 +338,9 @@ func (_mock *MockPeer) RegisterAgent(ctx context.Context, info rpc.AgentInfo) (i
 	}
 
 	var r0 int64
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, rpc.AgentInfo) (int64, error)); ok {
+	var r1 string
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, rpc.AgentInfo) (int64, string, error)); ok {
 		return returnFunc(ctx, info)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, rpc.AgentInfo) int64); ok {
@@ -347,12 +348,17 @@ func (_mock *MockPeer) RegisterAgent(ctx context.Context, info rpc.AgentInfo) (i
 	} else {
 		r0 = ret.Get(0).(int64)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, rpc.AgentInfo) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, rpc.AgentInfo) string); ok {
 		r1 = returnFunc(ctx, info)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(string)
 	}
-	return r0, r1
+	if returnFunc, ok := ret.Get(2).(func(context.Context, rpc.AgentInfo) error); ok {
+		r2 = returnFunc(ctx, info)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
 }
 
 // MockPeer_RegisterAgent_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RegisterAgent'
@@ -385,12 +391,12 @@ func (_c *MockPeer_RegisterAgent_Call) Run(run func(ctx context.Context, info rp
 	return _c
 }
 
-func (_c *MockPeer_RegisterAgent_Call) Return(n int64, err error) *MockPeer_RegisterAgent_Call {
-	_c.Call.Return(n, err)
+func (_c *MockPeer_RegisterAgent_Call) Return(n int64, s string, err error) *MockPeer_RegisterAgent_Call {
+	_c.Call.Return(n, s, err)
 	return _c
 }
 
-func (_c *MockPeer_RegisterAgent_Call) RunAndReturn(run func(ctx context.Context, info rpc.AgentInfo) (int64, error)) *MockPeer_RegisterAgent_Call {
+func (_c *MockPeer_RegisterAgent_Call) RunAndReturn(run func(ctx context.Context, info rpc.AgentInfo) (int64, string, error)) *MockPeer_RegisterAgent_Call {
 	_c.Call.Return(run)
 	return _c
 }

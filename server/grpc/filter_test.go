@@ -371,6 +371,125 @@ func TestCreateFilterFunc(t *testing.T) {
 			wantMatched: true,
 			wantScore:   2,
 		},
+		// Agent label filtering tests
+		{
+			name: "Agent label exact match",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{"agent": "build-agent-1", "repo": "*"},
+			},
+			customLabels: map[string]string{},
+			task: &model.Task{
+				Labels: map[string]string{"agent": "build-agent-1", "repo": "test"},
+			},
+			wantMatched: true,
+			wantScore:   11, // 10 for agent exact match + 1 for repo wildcard
+		},
+		{
+			name: "Agent label mismatch",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{"agent": "build-agent-1", "repo": "*"},
+			},
+			customLabels: map[string]string{},
+			task: &model.Task{
+				Labels: map[string]string{"agent": "build-agent-2", "repo": "test"},
+			},
+			wantMatched: false,
+			wantScore:   0,
+		},
+		{
+			name: "Agent label - task has no agent requirement",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{"agent": "build-agent-1", "repo": "*"},
+			},
+			customLabels: map[string]string{},
+			task: &model.Task{
+				Labels: map[string]string{"repo": "test"},
+			},
+			wantMatched: true,
+			wantScore:   1, // Only repo wildcard score
+		},
+		{
+			name: "Agent label with platform and backend - all match",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{
+					"agent":    "build-agent-1",
+					"platform": "linux",
+					"backend":  "docker",
+					"repo":     "*",
+				},
+			},
+			customLabels: map[string]string{},
+			task: &model.Task{
+				Labels: map[string]string{
+					"agent":    "build-agent-1",
+					"platform": "linux",
+					"backend":  "docker",
+					"repo":     "test",
+				},
+			},
+			wantMatched: true,
+			wantScore:   31, // 10 (agent) + 10 (platform) + 10 (backend) + 1 (repo wildcard)
+		},
+		{
+			name: "Agent label with platform and backend - agent mismatch",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{
+					"agent":    "build-agent-1",
+					"platform": "linux",
+					"backend":  "docker",
+					"repo":     "*",
+				},
+			},
+			customLabels: map[string]string{},
+			task: &model.Task{
+				Labels: map[string]string{
+					"agent":    "build-agent-2",
+					"platform": "linux",
+					"backend":  "docker",
+					"repo":     "test",
+				},
+			},
+			wantMatched: false,
+			wantScore:   0,
+		},
+		{
+			name: "Agent label and custom labels - both match",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{
+					"agent": "build-agent-1",
+					"repo":  "*",
+				},
+			},
+			customLabels: map[string]string{"scope": "lint"},
+			task: &model.Task{
+				Labels: map[string]string{
+					"agent": "build-agent-1",
+					"repo":  "test",
+					"scope": "lint",
+				},
+			},
+			wantMatched: true,
+			wantScore:   21, // 10 (agent) + 10 (scope custom) + 1 (repo wildcard)
+		},
+		{
+			name: "Agent label match but custom label mismatch",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{
+					"agent": "build-agent-1",
+					"repo":  "*",
+				},
+			},
+			customLabels: map[string]string{"scope": "lint"},
+			task: &model.Task{
+				Labels: map[string]string{
+					"agent": "build-agent-1",
+					"repo":  "test",
+					"scope": "build",
+				},
+			},
+			wantMatched: false, // Custom label mismatch
+			wantScore:   0,
+		},
 	}
 
 	for _, tt := range tests {

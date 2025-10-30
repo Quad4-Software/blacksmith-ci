@@ -94,7 +94,7 @@ type Peer interface {
 	EnqueueLog(logEntry *LogEntry)
 
 	// RegisterAgent register our agent to the server
-	RegisterAgent(ctx context.Context, info AgentInfo) (int64, error)
+	RegisterAgent(ctx context.Context, info AgentInfo) (int64, string, error)
 
 	// UnregisterAgent unregister our agent from the server
 	UnregisterAgent(ctx context.Context) error

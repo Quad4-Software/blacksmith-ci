@@ -144,6 +144,7 @@ message NextResponse {
 
 message RegisterAgentResponse {
   int64 agent_id = 1;
+  string agent_name = 2;
 }
 
 // Crow auth service is a simple service to authenticate agents and acquire a token
