@@ -401,14 +401,48 @@ func (s *service) RunStaleAgentCleanup(ctx context.Context, staleDuration time.D
 	deletedCount := 0
 	var errors []string
 
+	log.Debug().
+		Int64("cutoff_time", cutoffTime).
+		Time("cutoff_time_formatted", time.Unix(cutoffTime, 0)).
+		Dur("stale_duration", staleDuration).
+		Int("total_agents", len(agents)).
+		Msg("Stale agent cleanup - checking agents")
+
 	for _, agent := range agents {
-		// Check if agent is stale (hasn't connected for the specified duration)
+		isStale := false
+		var reason string
+
+		// Check if agent is stale
 		if agent.LastContact > 0 && agent.LastContact < cutoffTime {
+			// Agent has connected before but hasn't connected recently
+			isStale = true
+			reason = "no contact since " + time.Unix(agent.LastContact, 0).Format(time.RFC3339)
+		} else if agent.LastContact == 0 && agent.Created < cutoffTime {
+			// Agent was created but has never connected, and creation time is older than threshold
+			isStale = true
+			reason = "never connected, created " + time.Unix(agent.Created, 0).Format(time.RFC3339)
+		}
+
+		// Debug log for every agent to understand what's happening
+		if agent.LastContact == 0 {
+			log.Debug().
+				Int64("agent_id", agent.ID).
+				Str("agent_name", agent.Name).
+				Int64("created", agent.Created).
+				Int64("cutoff_time", cutoffTime).
+				Bool("is_stale", isStale).
+				Str("reason", reason).
+				Msg("Agent never connected - checking if stale")
+		}
+
+		if isStale {
 			staleCount++
 			log.Info().
 				Int64("agent_id", agent.ID).
 				Str("agent_name", agent.Name).
-				Time("last_contact", time.Unix(agent.LastContact, 0)).
+				Int64("last_contact", agent.LastContact).
+				Int64("created", agent.Created).
+				Str("reason", reason).
 				Msg("Deleting stale agent")
 
 			if err := s.store.AgentDelete(agent); err != nil {

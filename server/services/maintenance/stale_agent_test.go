@@ -133,27 +133,40 @@ func TestRunStaleAgentCleanup(t *testing.T) {
 		mockStore.AssertExpectations(t)
 	})
 
-	t.Run("skips agents with no last contact", func(t *testing.T) {
+	t.Run("deletes agents that never connected and are old", func(t *testing.T) {
 		// Setup
 		mockStore := mock_store.NewMockStore(t)
 		svc := &service{
 			store: mockStore,
 		}
 
+		now := time.Now()
 		staleDuration := 24 * time.Hour
+		cutoffTime := now.Add(-staleDuration)
 
-		// Create test agent with no last contact
-		newAgent := &model.Agent{
+		// Create test agent that never connected but was created 25 hours ago
+		oldNeverConnectedAgent := &model.Agent{
 			ID:          1,
-			Name:        "new-agent",
-			LastContact: 0, // Never connected
+			Name:        "old-never-connected-agent",
+			LastContact: 0,                                     // Never connected
+			Created:     cutoffTime.Add(-1 * time.Hour).Unix(), // Created 25 hours ago
 		}
 
-		agents := []*model.Agent{newAgent}
+		// Create test agent that never connected but was created recently
+		newNeverConnectedAgent := &model.Agent{
+			ID:          2,
+			Name:        "new-never-connected-agent",
+			LastContact: 0,                              // Never connected
+			Created:     now.Add(-1 * time.Hour).Unix(), // Created 1 hour ago
+		}
+
+		agents := []*model.Agent{oldNeverConnectedAgent, newNeverConnectedAgent}
 
 		// Mock expectations
 		mockStore.On("AgentList", &model.AgentListOptions{ListOptions: model.ListOptions{All: true}}).Return(agents, nil)
-		// Should not attempt to delete agent with LastContact = 0
+		// Should delete the old agent that never connected
+		mockStore.On("AgentDelete", oldNeverConnectedAgent).Return(nil)
+		// Should NOT delete the recently created agent
 
 		// Mock maintenance config operations
 		mockStore.On("MaintenanceConfigGetByActionType", "stale_agent_cleanup").Return(&model.MaintenanceConfig{
@@ -174,7 +187,93 @@ func TestRunStaleAgentCleanup(t *testing.T) {
 		// Assert
 		assert.NoError(t, err)
 		mockStore.AssertExpectations(t)
-		mockStore.AssertNotCalled(t, "AgentDelete", mock.Anything)
+	})
+
+	t.Run("deletes agents from real database scenario - 3 day old never connected agents", func(t *testing.T) {
+		// This reproduces the exact scenario from the user's database
+		// where agents were created 3+ days ago but never connected
+		mockStore := mock_store.NewMockStore(t)
+		svc := &service{
+			store: mockStore,
+		}
+
+		// Use 24 hour stale duration (default)
+		staleDuration := 24 * time.Hour
+
+		// Simulate current time (Oct 30, 2025)
+		now := time.Unix(1761856916, 0) // 2025-10-30 21:41:56
+
+		// Create agents matching the database dump - created Oct 27, 2025
+		// These are 3+ days old and should definitely be deleted
+		agent1 := &model.Agent{
+			ID:          45,
+			Name:        "",
+			LastContact: 0, // Never connected
+			Created:     1761574796,
+		}
+
+		agent2 := &model.Agent{
+			ID:          36,
+			Name:        "",
+			LastContact: 0,
+			Created:     1761574687,
+		}
+
+		agent3 := &model.Agent{
+			ID:          49,
+			Name:        "",
+			LastContact: 0,
+			Created:     1761574897,
+		}
+
+		// Mix in some agents that should NOT be deleted
+		recentAgent := &model.Agent{
+			ID:          100,
+			Name:        "recent-agent",
+			LastContact: 0,
+			Created:     now.Add(-1 * time.Hour).Unix(), // Created 1 hour ago
+		}
+
+		activeAgent := &model.Agent{
+			ID:          101,
+			Name:        "active-agent",
+			LastContact: now.Add(-30 * time.Minute).Unix(), // Contacted 30 min ago
+			Created:     now.Add(-48 * time.Hour).Unix(),
+		}
+
+		agents := []*model.Agent{agent1, agent2, agent3, recentAgent, activeAgent}
+
+		// Mock expectations
+		mockStore.On("AgentList", &model.AgentListOptions{ListOptions: model.ListOptions{All: true}}).Return(agents, nil)
+
+		// Should delete the 3 old agents that never connected
+		mockStore.On("AgentDelete", agent1).Return(nil)
+		mockStore.On("AgentDelete", agent2).Return(nil)
+		mockStore.On("AgentDelete", agent3).Return(nil)
+		// Should NOT delete recentAgent or activeAgent
+
+		// Mock maintenance config operations
+		mockStore.On("MaintenanceConfigGetByActionType", "stale_agent_cleanup").Return(&model.MaintenanceConfig{
+			ID:         1,
+			ActionType: "stale_agent_cleanup",
+			Enabled:    true,
+			Schedule:   "0 */6 * * *",
+		}, nil).Times(2)
+
+		mockStore.On("MaintenanceConfigUpdateByActionType", "stale_agent_cleanup", mock.AnythingOfType("*model.MaintenanceConfig")).Return(nil).Times(2)
+
+		// Mock maintenance log creation
+		mockStore.On("MaintenanceLogCreate", mock.AnythingOfType("*model.MaintenanceLog")).Return(nil)
+
+		// Execute with context that has the simulated "now" time
+		err := svc.RunStaleAgentCleanup(ctx, staleDuration)
+
+		// Assert
+		assert.NoError(t, err)
+		mockStore.AssertExpectations(t)
+
+		// Verify that exactly 3 agents were attempted to be deleted
+		mockStore.AssertNumberOfCalls(t, "AgentDelete", 3)
 	})
 }
 
