@@ -28,6 +28,11 @@
   "empty_list": "No {entity} found!",
   "notify_title_success": "✅️ Success",
   "notify_title_error": "❌️ Error",
+  "pagination": {
+    "previous": "Previous",
+    "next": "Next",
+    "last": "Jump to Last Page"
+  },
   "not_found": {
     "not_found": "404 - page not found",
     "back_home": "Back to home"
@@ -452,14 +457,17 @@
         "sort_by": "Sort by",
         "sort": {
           "status": "Status (health)",
-          "name": "Name",
           "id": "ID",
+          "name": "Name",
+          "platform": "Platform",
+          "backend": "Backend",
           "last_contact": "Last Contact",
-          "workflows": "Active Workflows",
           "capacity": "Capacity"
         },
         "clear_filters": "Clear filters",
-        "no_match": "No agents match your filters"
+        "no_match": "No agents match your filters",
+        "sort_ascending": "Sort ascending",
+        "sort_descending": "Sort descending"
       },
       "queue": {
         "queue": "Queue",

@@ -34,7 +34,7 @@
         />
       </div>
 
-      <!-- Sort dropdown with label -->
+      <!-- Sort dropdown with label and reverse toggle -->
       <div class="flex items-center gap-1.5 md:ml-auto">
         <!-- Compact badge-style label -->
         <span
@@ -45,6 +45,15 @@
         <div class="w-[130px]">
           <SelectField v-model="sortBy" :placeholder="$t('admin.settings.agents.sort_by')" :options="sortOptions" />
         </div>
+        <!-- Reverse sort toggle -->
+        <IconButton
+          :icon="sortReverse ? 'sort-ascending' : 'sort-descending'"
+          :title="
+            sortReverse ? $t('admin.settings.agents.sort_ascending') : $t('admin.settings.agents.sort_descending')
+          "
+          class="shrink-0"
+          @click="sortReverse = !sortReverse"
+        />
       </div>
 
       <!-- Clear filters button -->
@@ -60,7 +69,7 @@
   <!-- Agent Cards Grid -->
   <div v-if="!props.loading && props.agents" class="space-y-3">
     <div
-      v-for="agent in filteredAgents"
+      v-for="agent in displayedAgents"
       :key="agent.id"
       class="rounded-lg border border-wp-background-400 bg-wp-background-100 dark:bg-wp-background-200 shadow-sm hover:shadow-md transition-shadow duration-200"
     >
@@ -220,8 +229,19 @@
       </div>
     </div>
 
+    <!-- Pagination -->
+    <Pagination
+      v-if="displayedAgents.length > 0"
+      :current-page="props.currentPage"
+      :total-pages="totalPages"
+      :has-more="props.hasMore"
+      :is-jumping-to-last="props.isJumpingToLast"
+      @update:current-page="$emit('update:current-page', $event)"
+      @jump-to-last="$emit('jumpToLast')"
+    />
+
     <!-- Empty States -->
-    <div v-if="filteredAgents.length === 0 && props.agents?.length > 0" class="text-center py-12 text-wp-text-alt-100">
+    <div v-if="displayedAgents.length === 0 && props.agents?.length > 0" class="text-center py-12 text-wp-text-alt-100">
       <Icon name="question" class="h-12 w-12 mx-auto mb-3 opacity-50" />
       <p class="text-base">{{ $t('admin.settings.agents.no_match') }}</p>
       <Button
@@ -248,11 +268,13 @@
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { watchDebounced } from '@vueuse/core';
 
 import Badge from '~/components/atomic/Badge.vue';
 import Button from '~/components/atomic/Button.vue';
 import Icon from '~/components/atomic/Icon.vue';
 import IconButton from '~/components/atomic/IconButton.vue';
+import Pagination from '~/components/atomic/Pagination.vue';
 import SelectField from '~/components/form/SelectField.vue';
 import TextField from '~/components/form/TextField.vue';
 import { useDate } from '~/compositions/useDate';
@@ -266,11 +288,25 @@ const props = defineProps<{
   loading: boolean;
   isAdmin?: boolean;
   userOrgId?: number;
+  agentFilters: {
+    search: string;
+    platform: string;
+    backend: string;
+    sort: string;
+    order: string;
+  };
+  currentPage: number;
+  hasMore?: boolean;
+  isJumpingToLast?: boolean;
 }>();
 
-defineEmits<{
-  (e: 'edit', agent: Agent): void;
-  (e: 'delete', agent: Agent): void;
+const emit = defineEmits<{
+  edit: [agent: Agent];
+  delete: [agent: Agent];
+  filtersChanged: [];
+  'update:current-page': [page: number];
+  jumpToLast: [];
+  updateFilters: [filters: { search?: string; platform?: string; backend?: string; sort?: string; order?: string }];
 }>();
 
 function getAgentDisplayName(agent: Agent): string {
@@ -359,12 +395,60 @@ function getStatusAnimation(agent: Agent): string {
   return '';
 }
 
-// Filter state
-const searchQuery = ref('');
-const typeFilter = ref('');
-const platformFilter = ref('');
-const backendFilter = ref('');
-const sortBy = ref('status');
+// Local search state for immediate UI updates without losing focus
+const localSearchQuery = ref(props.agentFilters.search);
+
+// Debounced search to avoid losing focus while typing
+watchDebounced(
+  localSearchQuery,
+  (newValue) => {
+    emit('updateFilters', { search: newValue });
+    emit('filtersChanged');
+  },
+  { debounce: 300 },
+);
+
+// Computed for template binding
+const searchQuery = computed({
+  get: () => localSearchQuery.value,
+  set: (value: string) => {
+    localSearchQuery.value = value;
+  },
+});
+
+const typeFilter = ref(''); // Keep client-side only for type filter (global vs org)
+
+const platformFilter = computed({
+  get: () => props.agentFilters.platform,
+  set: (value: string) => {
+    emit('updateFilters', { platform: value });
+    emit('filtersChanged');
+  },
+});
+
+const backendFilter = computed({
+  get: () => props.agentFilters.backend,
+  set: (value: string) => {
+    emit('updateFilters', { backend: value });
+    emit('filtersChanged');
+  },
+});
+
+const sortBy = computed({
+  get: () => props.agentFilters.sort,
+  set: (value: string) => {
+    emit('updateFilters', { sort: value });
+    emit('filtersChanged');
+  },
+});
+
+const sortReverse = computed({
+  get: () => props.agentFilters.order === 'desc',
+  set: (value: boolean) => {
+    emit('updateFilters', { order: value ? 'desc' : 'asc' });
+    emit('filtersChanged');
+  },
+});
 
 // Compute available options from agents
 const typeOptions = computed<SelectOption[]>(() => {
@@ -421,13 +505,14 @@ const backendOptions = computed<SelectOption[]>(() => {
   return options;
 });
 
-// Sort options
+// Sort options - all are now server-side
 const sortOptions = computed<SelectOption[]>(() => [
   { value: 'status', text: t('admin.settings.agents.sort.status') },
-  { value: 'name', text: t('admin.settings.agents.sort.name') },
   { value: 'id', text: t('admin.settings.agents.sort.id') },
+  { value: 'name', text: t('admin.settings.agents.sort.name') },
+  { value: 'platform', text: t('admin.settings.agents.sort.platform') },
+  { value: 'backend', text: t('admin.settings.agents.sort.backend') },
   { value: 'last_contact', text: t('admin.settings.agents.sort.last_contact') },
-  { value: 'workflows', text: t('admin.settings.agents.sort.workflows') },
   { value: 'capacity', text: t('admin.settings.agents.sort.capacity') },
 ]);
 
@@ -446,90 +531,32 @@ function clearFilters() {
   backendFilter.value = '';
 }
 
-// Helper function to get status priority for sorting
-function getStatusPriority(agent: Agent): number {
-  if (agent.no_schedule) return 4; // Disabled - lowest priority
-
-  if (!agent.last_contact || agent.last_contact === 0) return 3; // Never connected
-
-  const now = Date.now() / 1000;
-  const timeSinceContact = now - agent.last_contact;
-
-  if (timeSinceContact < 300) return 0; // Healthy - highest priority
-  if (timeSinceContact < 600) return 1; // Warning
-  return 2; // Offline
-}
-
-// Filtered and sorted agents
-const filteredAgents = computed(() => {
+// Display agents - apply only client-side type filter
+// All other filtering and sorting is done server-side
+const displayedAgents = computed(() => {
   if (!props.agents) return [];
 
-  // First, filter agents
-  const filtered = props.agents.filter((agent) => {
-    // Type filter
-    if (typeFilter.value) {
+  // Apply only type filter client-side since it's UI-specific
+  if (typeFilter.value) {
+    return props.agents.filter((agent) => {
       const isGlobal = agent.org_id === -1;
       if (typeFilter.value === 'global' && !isGlobal) return false;
       if (typeFilter.value === 'org' && isGlobal) return false;
-    }
+      return true;
+    });
+  }
 
-    // Platform filter
-    if (platformFilter.value && agent.platform !== platformFilter.value) {
-      return false;
-    }
+  return props.agents;
+});
 
-    // Backend filter
-    if (backendFilter.value && agent.backend !== backendFilter.value) {
-      return false;
-    }
-
-    // Search query - search in name and custom labels
-    if (searchQuery.value) {
-      const query = searchQuery.value.toLowerCase();
-      const nameMatch = getAgentDisplayName(agent).toLowerCase().includes(query);
-
-      // Search in custom labels
-      let labelMatch = false;
-      if (agent.custom_labels) {
-        for (const [key, value] of Object.entries(agent.custom_labels)) {
-          if (key.toLowerCase().includes(query) || value.toLowerCase().includes(query)) {
-            labelMatch = true;
-            break;
-          }
-        }
-      }
-
-      // Search in platform and backend
-      const platformMatch = agent.platform?.toLowerCase().includes(query) || false;
-      const backendMatch = agent.backend?.toLowerCase().includes(query) || false;
-
-      if (!nameMatch && !labelMatch && !platformMatch && !backendMatch) {
-        return false;
-      }
-    }
-
-    return true;
-  });
-
-  // Then, sort agents
-  return filtered.sort((a, b) => {
-    switch (sortBy.value) {
-      case 'status':
-        return getStatusPriority(a) - getStatusPriority(b);
-      case 'name':
-        return getAgentDisplayName(a).localeCompare(getAgentDisplayName(b));
-      case 'id':
-        return a.id - b.id;
-      case 'last_contact':
-        return (b.last_contact || 0) - (a.last_contact || 0); // Most recent first
-      case 'workflows':
-        return (b.running_workflows || 0) - (a.running_workflows || 0); // Most workflows first
-      case 'capacity':
-        return (b.capacity || 0) - (a.capacity || 0); // Highest capacity first
-      default:
-        return 0;
-    }
-  });
+// Calculate total pages for pagination
+// Since we don't know the total count upfront, we estimate based on hasMore
+// If hasMore is true, show current page + 1, otherwise current page is the last
+const totalPages = computed(() => {
+  if (props.hasMore) {
+    return props.currentPage + 1;
+  }
+  return props.currentPage;
 });
 </script>
 

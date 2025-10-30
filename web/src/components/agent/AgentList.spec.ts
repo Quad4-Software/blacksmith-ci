@@ -50,6 +50,16 @@ describe('agentList', () => {
         loading: false,
         isAdmin: true,
         userOrgId: 1,
+        agentFilters: {
+          search: '',
+          platform: '',
+          backend: '',
+          sort: 'status',
+          order: 'asc',
+        },
+        currentPage: 1,
+        hasMore: false,
+        isJumpingToLast: false,
       },
     });
     // Check agent name

@@ -59,7 +59,12 @@
   <SvgIcon v-else-if="name === 'list'" :path="mdiFormatListBulleted" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'heal'" :path="mdiWrenchCogOutline" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'turn-off'" :path="mdiPower" :size="size || '1.3rem'" />
+  <SvgIcon v-else-if="name === 'chevron-left'" :path="mdiChevronLeft" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'chevron-right'" :path="mdiChevronRight" :size="size || '1.3rem'" />
+  <SvgIcon v-else-if="name === 'chevron-up'" :path="mdiChevronUp" :size="size || '1.3rem'" />
+  <SvgIcon v-else-if="name === 'chevron-down'" :path="mdiChevronDown" :size="size || '1.3rem'" />
+  <SvgIcon v-else-if="name === 'sort-ascending'" :path="mdiSortAscending" :size="size || '1.3rem'" />
+  <SvgIcon v-else-if="name === 'sort-descending'" :path="mdiSortDescending" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'close'" :path="mdiClose" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'edit'" :path="mdiPencilOutline" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'content-save-outline'" :path="mdiContentSaveOutline" :size="size || '1.3rem'" />
@@ -156,7 +161,12 @@ import {
   mdiCheck,
   mdiBugOutline,
   mdiCalendarClockOutline,
+  mdiChevronLeft,
   mdiChevronRight,
+  mdiChevronUp,
+  mdiChevronDown,
+  mdiSortAscending,
+  mdiSortDescending,
   mdiClockTimeEightOutline,
   mdiClose,
   mdiCog,
@@ -268,7 +278,12 @@ export type IconNames =
   | 'plus'
   | 'blank'
   | 'heal'
+  | 'chevron-left'
   | 'chevron-right'
+  | 'chevron-up'
+  | 'chevron-down'
+  | 'sort-ascending'
+  | 'sort-descending'
   | 'turn-off'
   | 'close'
   | 'edit'

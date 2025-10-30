@@ -69,7 +69,8 @@ const (
 // - agentOperationalLogged: true after we've logged "agent fully operational" message
 // - operationalLogMutex: ensures only one goroutine logs the message (across 100+ workers)
 //
-// The flag is reset to false only on ACTUAL connection errors, not on "sql: no rows" (empty queue).
+// For workflow polling, "sql: no rows" (empty queue) is treated as success to prevent log spam.
+// For health reporting, "sql: no rows" (agent not found) is treated as an error requiring reconnection.
 // This prevents log spam while ensuring admins see when the agent is truly operational.
 var (
 	workflowPollingHealthy atomic.Bool
@@ -708,27 +709,13 @@ func (c *client) ReportHealth(ctx context.Context) (err error) {
 			return nil
 		}
 
-		// "sql: no rows in result set" is not an error for health reports either
-		// Treat it as success - don't reset flags or increment attempt count
-		if status.Code(err) == codes.Unknown && strings.Contains(err.Error(), "sql: no rows in result set") {
-			// Mark health reporting as healthy (same as success case)
-			healthReportingHealthy.Store(true)
-
-			// Check if BOTH services are now healthy and log if we're the first
-			// Use mutex to guarantee only one goroutine logs
-			operationalLogMutex.Lock()
-			if workflowPollingHealthy.Load() && !agentOperationalLogged.Load() {
-				agentOperationalLogged.Store(true)
-				log.Info().Msg("agent fully operational (health reporting and workflow polling connected)")
-			}
-			operationalLogMutex.Unlock()
-			return nil
-		}
+		// NOTE: Unlike workflow polling, "sql: no rows" is a REAL error for health reporting.
+		// It means the agent doesn't exist in the database, which should trigger reconnection.
+		// Do NOT treat it as success - let it be handled as a retriable error below.
 
 		attemptCount++
 
 		// Mark health reporting as unhealthy and reset operational flag
-		// Only do this for ACTUAL errors, not "sql: no rows"
 		healthReportingHealthy.Store(false)
 		agentOperationalLogged.Store(false)
 

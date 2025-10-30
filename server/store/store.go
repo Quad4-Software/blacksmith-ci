@@ -191,7 +191,7 @@ type Store interface {
 	AgentCreate(*model.Agent) error
 	AgentFind(int64) (*model.Agent, error)
 	AgentFindByToken(string) (*model.Agent, error)
-	AgentList(p *model.ListOptions) ([]*model.Agent, error)
+	AgentList(opts *model.AgentListOptions) ([]*model.Agent, error)
 	AgentUpdate(*model.Agent) error
 	AgentDelete(*model.Agent) error
 	AgentListForOrg(orgID int64, opt *model.ListOptions) ([]*model.Agent, error)

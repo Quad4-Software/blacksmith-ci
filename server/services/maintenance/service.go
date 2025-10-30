@@ -390,7 +390,7 @@ func (s *service) RunStaleAgentCleanup(ctx context.Context, staleDuration time.D
 	cutoffTime := time.Now().Add(-staleDuration).Unix()
 
 	// Get all agents
-	agents, err := s.store.AgentList(&model.ListOptions{All: true})
+	agents, err := s.store.AgentList(&model.AgentListOptions{ListOptions: model.ListOptions{All: true}})
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to list agents")
 		s.updateActionStats("stale_agent_cleanup", false, time.Since(start), err.Error())

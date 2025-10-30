@@ -265,8 +265,8 @@ func (_c *MockStore_AgentFindByToken_Call) RunAndReturn(run func(s string) (*mod
 }
 
 // AgentList provides a mock function for the type MockStore
-func (_mock *MockStore) AgentList(p *model.ListOptions) ([]*model.Agent, error) {
-	ret := _mock.Called(p)
+func (_mock *MockStore) AgentList(opts *model.AgentListOptions) ([]*model.Agent, error) {
+	ret := _mock.Called(opts)
 
 	if len(ret) == 0 {
 		panic("no return value specified for AgentList")
@@ -274,18 +274,18 @@ func (_mock *MockStore) AgentList(p *model.ListOptions) ([]*model.Agent, error) 
 
 	var r0 []*model.Agent
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(*model.ListOptions) ([]*model.Agent, error)); ok {
-		return returnFunc(p)
+	if returnFunc, ok := ret.Get(0).(func(*model.AgentListOptions) ([]*model.Agent, error)); ok {
+		return returnFunc(opts)
 	}
-	if returnFunc, ok := ret.Get(0).(func(*model.ListOptions) []*model.Agent); ok {
-		r0 = returnFunc(p)
+	if returnFunc, ok := ret.Get(0).(func(*model.AgentListOptions) []*model.Agent); ok {
+		r0 = returnFunc(opts)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*model.Agent)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(*model.ListOptions) error); ok {
-		r1 = returnFunc(p)
+	if returnFunc, ok := ret.Get(1).(func(*model.AgentListOptions) error); ok {
+		r1 = returnFunc(opts)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -298,16 +298,16 @@ type MockStore_AgentList_Call struct {
 }
 
 // AgentList is a helper method to define mock.On call
-//   - p *model.ListOptions
-func (_e *MockStore_Expecter) AgentList(p interface{}) *MockStore_AgentList_Call {
-	return &MockStore_AgentList_Call{Call: _e.mock.On("AgentList", p)}
+//   - opts *model.AgentListOptions
+func (_e *MockStore_Expecter) AgentList(opts interface{}) *MockStore_AgentList_Call {
+	return &MockStore_AgentList_Call{Call: _e.mock.On("AgentList", opts)}
 }
 
-func (_c *MockStore_AgentList_Call) Run(run func(p *model.ListOptions)) *MockStore_AgentList_Call {
+func (_c *MockStore_AgentList_Call) Run(run func(opts *model.AgentListOptions)) *MockStore_AgentList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 *model.ListOptions
+		var arg0 *model.AgentListOptions
 		if args[0] != nil {
-			arg0 = args[0].(*model.ListOptions)
+			arg0 = args[0].(*model.AgentListOptions)
 		}
 		run(
 			arg0,
@@ -321,7 +321,7 @@ func (_c *MockStore_AgentList_Call) Return(agents []*model.Agent, err error) *Mo
 	return _c
 }
 
-func (_c *MockStore_AgentList_Call) RunAndReturn(run func(p *model.ListOptions) ([]*model.Agent, error)) *MockStore_AgentList_Call {
+func (_c *MockStore_AgentList_Call) RunAndReturn(run func(opts *model.AgentListOptions) ([]*model.Agent, error)) *MockStore_AgentList_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -24,8 +24,16 @@
       :is-deleting="isDeleting"
       :is-admin="isAdmin"
       :user-org-id="userOrgId"
+      :agent-filters="agentFilters"
+      :current-page="page"
+      :has-more="hasMore"
+      :is-jumping-to-last="isJumpingToLast"
+      @update:current-page="goToPage"
+      @jump-to-last="handleJumpToLast"
+      @update-filters="(filters) => emit('updateFilters', filters)"
       @edit="editAgent"
       @delete="deleteAgent"
+      @filters-changed="resetPage"
     />
     <AgentForm
       v-else
@@ -47,7 +55,7 @@ import Button from '~/components/atomic/Button.vue';
 import Settings from '~/components/layout/Settings.vue';
 import { useAsyncAction } from '~/compositions/useAsyncAction';
 import useNotifications from '~/compositions/useNotifications';
-import { usePagination } from '~/compositions/usePaginate';
+import { usePaginationWithPages } from '~/compositions/usePaginate';
 import type { Agent } from '~/lib/api/types';
 
 import AgentForm from './AgentForm.vue';
@@ -59,8 +67,19 @@ const props = defineProps<{
   createAgent: (agent: Partial<Agent>) => Promise<Agent>;
   updateAgent: (agent: Agent) => Promise<Agent | void>;
   deleteAgent: (agent: Agent) => Promise<unknown>;
+  agentFilters: {
+    search: string;
+    platform: string;
+    backend: string;
+    sort: string;
+    order: string;
+  };
   isAdmin?: boolean;
   userOrgId?: number;
+}>();
+
+const emit = defineEmits<{
+  updateFilters: [filters: { search?: string; platform?: string; backend?: string; sort?: string; order?: string }];
 }>();
 
 const notifications = useNotifications();
@@ -69,7 +88,28 @@ const { t } = useI18n();
 const selectedAgent = ref<Partial<Agent>>();
 const isEditingAgent = computed(() => !!selectedAgent.value?.id);
 
-const { resetPage, data: agents, loading } = usePagination(props.loadAgents);
+// Use page-based pagination with page numbers
+const {
+  page,
+  resetPage,
+  goToPage,
+  goToLastPage,
+  data: agents,
+  loading,
+  hasMore,
+} = usePaginationWithPages(props.loadAgents);
+
+// Track if we're jumping to last page
+const isJumpingToLast = ref(false);
+
+async function handleJumpToLast() {
+  isJumpingToLast.value = true;
+  try {
+    await goToLastPage();
+  } finally {
+    isJumpingToLast.value = false;
+  }
+}
 
 const { doSubmit: saveAgent, isLoading: isSaving } = useAsyncAction(async () => {
   if (!selectedAgent.value) {

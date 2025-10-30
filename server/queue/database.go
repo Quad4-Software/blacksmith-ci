@@ -998,7 +998,7 @@ func (q *DatabaseQueue) resetOrphanedAssignments() error {
 	}
 
 	// Get list of all agents (including potentially dead ones)
-	agents, err := q.store.AgentList(&model.ListOptions{All: true})
+	agents, err := q.store.AgentList(&model.AgentListOptions{ListOptions: model.ListOptions{All: true}})
 	if err != nil {
 		return fmt.Errorf("failed to list agents: %w", err)
 	}

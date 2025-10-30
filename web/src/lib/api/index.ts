@@ -45,6 +45,14 @@ interface PaginationOptions {
   perPage?: number;
 }
 
+interface AgentListOptions extends PaginationOptions {
+  search?: string;
+  platform?: string;
+  backend?: string;
+  sort?: string;
+  order?: string;
+}
+
 export default class CrowClient extends ApiClient {
   async getRepoList(opts?: RepoListOptions): Promise<Repo[]> {
     const query = encodeQueryString(opts);
@@ -313,7 +321,7 @@ export default class CrowClient extends ApiClient {
     return this._post('/api/user/token') as Promise<string>;
   }
 
-  async getAgents(opts?: PaginationOptions): Promise<Agent[] | null> {
+  async getAgents(opts?: AgentListOptions): Promise<Agent[] | null> {
     const query = encodeQueryString(opts);
     return this._get(`/api/agents?${query}`) as Promise<Agent[] | null>;
   }

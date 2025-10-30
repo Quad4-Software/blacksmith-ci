@@ -56,7 +56,7 @@ func TestRunStaleAgentCleanup(t *testing.T) {
 		agents := []*model.Agent{staleAgent, activeAgent}
 
 		// Mock expectations
-		mockStore.On("AgentList", &model.ListOptions{All: true}).Return(agents, nil)
+		mockStore.On("AgentList", &model.AgentListOptions{ListOptions: model.ListOptions{All: true}}).Return(agents, nil)
 		mockStore.On("AgentDelete", staleAgent).Return(nil)
 
 		// Mock maintenance config operations
@@ -107,7 +107,7 @@ func TestRunStaleAgentCleanup(t *testing.T) {
 		agents := []*model.Agent{staleAgent1, staleAgent2}
 
 		// Mock expectations
-		mockStore.On("AgentList", &model.ListOptions{All: true}).Return(agents, nil)
+		mockStore.On("AgentList", &model.AgentListOptions{ListOptions: model.ListOptions{All: true}}).Return(agents, nil)
 		mockStore.On("AgentDelete", staleAgent1).Return(assert.AnError) // First deletion fails
 		mockStore.On("AgentDelete", staleAgent2).Return(nil)            // Second deletion succeeds
 
@@ -152,7 +152,7 @@ func TestRunStaleAgentCleanup(t *testing.T) {
 		agents := []*model.Agent{newAgent}
 
 		// Mock expectations
-		mockStore.On("AgentList", &model.ListOptions{All: true}).Return(agents, nil)
+		mockStore.On("AgentList", &model.AgentListOptions{ListOptions: model.ListOptions{All: true}}).Return(agents, nil)
 		// Should not attempt to delete agent with LastContact = 0
 
 		// Mock maintenance config operations

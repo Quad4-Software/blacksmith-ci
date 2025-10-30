@@ -17,8 +17,14 @@
         :agents="agents"
         :is-deleting="isDeleting"
         :user-org-id="user.org_id"
+        :agent-filters="agentFilters"
+        :current-page="page"
+        :has-more="hasMore"
+        @update:current-page="goToPage"
+        @update-filters="(filters) => Object.assign(agentFilters, filters)"
         @edit="editAgent"
         @delete="deleteAgent"
+        @filters-changed="resetPage"
       />
       <AgentForm
         v-else
@@ -45,7 +51,7 @@ import useApiClient from '~/compositions/useApiClient';
 import { useAsyncAction } from '~/compositions/useAsyncAction';
 import useAuthentication from '~/compositions/useAuthentication';
 import useNotifications from '~/compositions/useNotifications';
-import { usePagination } from '~/compositions/usePaginate';
+import { usePaginationWithPages } from '~/compositions/usePaginate';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
 import type { Agent } from '~/lib/api/types';
 
@@ -61,8 +67,17 @@ if (!user) {
 const selectedAgent = ref<Partial<Agent>>();
 const isEditingAgent = computed(() => !!selectedAgent.value?.id);
 
-const loadAgents = (page: number) => apiClient.getAgents({ page });
-const { resetPage, data: agents, loading } = usePagination(loadAgents);
+// Agent list filters
+const agentFilters = ref({
+  search: '',
+  platform: '',
+  backend: '',
+  sort: 'status',
+  order: 'asc',
+});
+
+const loadAgents = (page: number) => apiClient.getAgents({ page, ...agentFilters.value });
+const { page, resetPage, goToPage, data: agents, loading, hasMore } = usePaginationWithPages(loadAgents);
 
 const { doSubmit: saveAgent, isLoading: isSaving } = useAsyncAction(async () => {
   if (!selectedAgent.value) {

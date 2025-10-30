@@ -40,8 +40,22 @@ import (
 //	@Param		Authorization	header	string	true	"Insert your personal access token"				default(Bearer <personal access token>)
 //	@Param		page			query	int		false	"for response pagination, page offset number"	default(1)
 //	@Param		perPage			query	int		false	"for response pagination, max items per page"	default(50)
+//	@Param		search			query	string	false	"search in name, platform, backend, custom labels, ID"
+//	@Param		platform		query	string	false	"filter by platform"
+//	@Param		backend			query	string	false	"filter by backend"
+//	@Param		sort			query	string	false	"sort field: id, name, platform, backend, last_contact, capacity"	default(id)
+//	@Param		order			query	string	false	"sort order: asc or desc"											default(asc)
 func GetAgents(c *gin.Context) {
-	agents, err := store.FromContext(c).AgentList(session.Pagination(c))
+	opts := &model.AgentListOptions{
+		ListOptions: *session.Pagination(c),
+		Search:      c.Query("search"),
+		Platform:    c.Query("platform"),
+		Backend:     c.Query("backend"),
+		Sort:        c.Query("sort"),
+		Order:       c.Query("order"),
+	}
+
+	agents, err := store.FromContext(c).AgentList(opts)
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Error getting agent list. %s", err)
 		return

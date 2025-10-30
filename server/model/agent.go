@@ -53,6 +53,17 @@ const (
 	IDNotSet = -1
 )
 
+// AgentListOptions defines filtering options for listing agents.
+type AgentListOptions struct {
+	ListOptions
+	Search   string // Search in name, platform, backend, custom labels
+	Platform string // Filter by platform
+	Backend  string // Filter by backend
+	OrgID    *int64 // Filter by org_id (nil = all, -1 = global agents only)
+	Sort     string // Sort field: id, name, platform, backend, last_contact
+	Order    string // Sort order: asc or desc
+}
+
 // TableName return database table name for xorm.
 func (Agent) TableName() string {
 	return "agents"

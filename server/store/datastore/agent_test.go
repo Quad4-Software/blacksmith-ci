@@ -77,11 +77,11 @@ func TestAgentList(t *testing.T) {
 	err = store.AgentCreate(agent2)
 	assert.NoError(t, err)
 
-	agents, err := store.AgentList(&model.ListOptions{All: true})
+	agents, err := store.AgentList(&model.AgentListOptions{ListOptions: model.ListOptions{All: true}})
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(agents))
 
-	agents, err = store.AgentList(&model.ListOptions{Page: 1, PerPage: 1})
+	agents, err = store.AgentList(&model.AgentListOptions{ListOptions: model.ListOptions{Page: 1, PerPage: 1}})
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(agents))
 }
