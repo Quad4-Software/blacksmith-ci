@@ -13,11 +13,23 @@
         </span>
         <div class="ml-auto flex flex-row items-center gap-x-2">
           <span class="ml-2 px-2">
-            <a v-if="repoPermissions?.admin" href="/admin/agents/" class="text-wp-link-100 hover:text-wp-link-200">
-              {{ $t('repo.pipeline.agent', { agentId: workflow?.agent_id || '' }) }}
+            <a
+              v-if="repoPermissions?.admin"
+              href="/admin/agents/"
+              class="flex items-center gap-1 text-wp-link-100 hover:text-wp-link-200"
+              :title="$t('repo.pipeline.metadata.agent_info')"
+            >
+              <Icon name="worker" class="w-4 h-4" />
+              {{ agentDisplay }}
             </a>
-            <a v-else href="/user/agents/" class="text-wp-link-100 hover:text-wp-link-200">
-              {{ $t('repo.pipeline.agent', { agentId: workflow?.agent_id || '' }) }}
+            <a
+              v-else
+              href="/user/agents/"
+              class="flex items-center gap-1 text-wp-link-100 hover:text-wp-link-200"
+              :title="$t('repo.pipeline.metadata.agent_info')"
+            >
+              <Icon name="worker" class="w-4 h-4" />
+              {{ agentDisplay }}
             </a>
           </span>
           <IconButton
@@ -324,6 +336,18 @@ const mobileButtonsVisible = ref(false);
 const atTop = ref(true);
 const atBottom = ref(false);
 const isScrollable = ref(false);
+const agentDetails = ref<{ name?: string } | null>(null);
+
+const agentDisplay = computed(() => {
+  const agentId = workflow?.value?.agent_id;
+  if (!agentId) return '';
+
+  const agentName = agentDetails.value?.name;
+  if (agentName) {
+    return agentName;
+  }
+  return agentId.toString();
+});
 
 function isSelected(line: LogLine): boolean {
   return route.hash === `#L${line.number}`;
@@ -584,6 +608,21 @@ function updateScrollState() {
   atBottom.value = el.scrollTop + el.clientHeight >= el.scrollHeight - 5; // more forgiving for rounding
 }
 
+async function loadAgentDetails() {
+  const agentId = workflow?.value?.agent_id;
+  if (!agentId) {
+    agentDetails.value = null;
+    return;
+  }
+
+  try {
+    agentDetails.value = await apiClient.getAgent(agentId);
+  } catch (error) {
+    console.warn(`Failed to load agent ${agentId}:`, error);
+    agentDetails.value = null;
+  }
+}
+
 onMounted(() => {
   if (consoleElement.value) {
     (consoleElement.value as HTMLElement).addEventListener('scroll', updateScrollState);
@@ -606,6 +645,7 @@ onBeforeUnmount(() => {
 
 onMounted(async () => {
   await loadLogs();
+  await loadAgentDetails();
 });
 
 onBeforeUnmount(() => {
@@ -614,6 +654,10 @@ onBeforeUnmount(() => {
 
 watch(stepSlug, async () => {
   await loadLogs();
+});
+
+watch(workflow, async () => {
+  await loadAgentDetails();
 });
 
 watch(step, async (newStep, oldStep) => {

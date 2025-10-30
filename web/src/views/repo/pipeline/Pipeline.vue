@@ -95,6 +95,15 @@
           </div>
         </div>
         <div class="flex items-center gap-2">
+          <!-- Agent icon link (mobile only) -->
+          <a
+            v-if="agentDisplay"
+            :href="repoPermissions?.admin ? '/admin/agents/' : '/user/agents/'"
+            class="flex items-center justify-center w-9 h-9 rounded-full bg-wp-background-200 dark:bg-wp-background-300 border border-wp-background-300 dark:border-wp-background-400"
+            :title="agentDisplay"
+          >
+            <Icon name="worker" class="w-5 h-5 text-wp-text-100" />
+          </a>
           <!-- Step navigation buttons -->
           <button
             v-if="previousStepId"
@@ -209,7 +218,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, toRef, ref } from 'vue';
+import { computed, toRef, ref, watch, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -310,6 +319,34 @@ const currentWorkflow = computed(() => {
   return null;
 });
 
+const agentDetails = ref<{ name?: string } | null>(null);
+
+const agentDisplay = computed(() => {
+  const agentId = currentWorkflow.value?.agent_id;
+  if (!agentId) return '';
+
+  const agentName = agentDetails.value?.name;
+  if (agentName) {
+    return agentName;
+  }
+  return agentId.toString();
+});
+
+async function loadAgentDetails() {
+  const agentId = currentWorkflow.value?.agent_id;
+  if (!agentId) {
+    agentDetails.value = null;
+    return;
+  }
+
+  try {
+    agentDetails.value = await apiClient.getAgent(agentId);
+  } catch (error) {
+    console.warn(`Failed to load agent ${agentId}:`, error);
+    agentDetails.value = null;
+  }
+}
+
 // Get all steps in order for navigation
 const allSteps = computed(() => {
   if (!pipeline.value?.workflows) return [];
@@ -408,4 +445,14 @@ const mobileWorkflowsCollapsed = ref<Record<number, boolean>>({});
 function toggleMobileWorkflow(workflowId: number) {
   mobileWorkflowsCollapsed.value[workflowId] = !mobileWorkflowsCollapsed.value[workflowId];
 }
+
+// Watch for currentWorkflow changes to load agent details
+watch(currentWorkflow, async () => {
+  await loadAgentDetails();
+});
+
+// Load agent details on mount
+onMounted(async () => {
+  await loadAgentDetails();
+});
 </script>
