@@ -106,7 +106,7 @@ steps:
       SSH_KEY:
         from_secret: crowci-bot-ssh-key
     commands:
-      - apk add --no-cache -q git
+      - apk add --no-cache -q git openssh
       - mkdir ~/.ssh
       - chmod 700 ~/.ssh
       - echo "$SSH_KEY" > ~/.ssh/id_ed25519
@@ -116,4 +116,6 @@ steps:
       - rm -rf helm
       - git clone ssh://git@codeberg.org/crowci/helm.git
       - cd helm
+      - eval $(ssh-agent -s)
+      - ssh-add ~/.ssh/id_ed25519
       - git sv tag
