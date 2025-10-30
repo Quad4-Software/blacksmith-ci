@@ -11,6 +11,9 @@ variables:
         - 'pipeline/schema/**'
       event: pull_request
 
+labels:
+  agent: artemis
+
 when:
   - event: pull_request
   - event: push

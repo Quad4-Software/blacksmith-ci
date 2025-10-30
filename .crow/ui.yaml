@@ -15,6 +15,9 @@ variables:
       # api source code
       - 'server/api/**'
 
+labels:
+  agent: artemis
+
 steps:
   install-dependencies:
     image: *node_image

@@ -13,6 +13,9 @@ clone:
 depends_on:
   - images
 
+labels:
+  agent: artemis
+
 steps:
   vendor:
     image: *golang_image

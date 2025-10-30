@@ -38,6 +38,9 @@ variables:
 when:
   - event: [pull_request, deployment, tag]
 
+labels:
+  agent: artemis
+
 steps:
   vendor:
     image: *golang_image
