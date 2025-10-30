@@ -16,6 +16,8 @@ package datastore
 
 import (
 	"errors"
+	"fmt"
+	"time"
 
 	"xorm.io/xorm"
 
@@ -23,6 +25,12 @@ import (
 )
 
 var ErrNoTokenProvided = errors.New("please provide a token")
+
+const (
+	// AgentHealthyThresholdSeconds defines how many seconds ago an agent must have contacted
+	// the server to be considered "healthy" (green status).
+	agentHealthyThresholdSeconds = 60
+)
 
 func (s storage) AgentList(opts *model.AgentListOptions) (agents []*model.Agent, _ error) {
 	sess := s.engine.NewSession()
@@ -66,15 +74,21 @@ func (s storage) AgentList(opts *model.AgentListOptions) (agents []*model.Agent,
 			// 1. Check if agent contacted within last 60 seconds (healthy/green)
 			// 2. Within each health group, sort by ID for stable ordering
 			// This prevents the list from constantly reordering as agents reconnect
-			//
-			// We compare (strftime('%s', 'now') - last_contact) < 60 to check if healthy
-			// Note: We use unixepoch('now') for SQLite 3.38+, but fall back to strftime for compatibility
-			sortField = "CASE WHEN last_contact IS NOT NULL AND last_contact > 0 AND (unixepoch('now') - last_contact) < 60 THEN 0 ELSE 1 END, id"
+
+			// Calculate the threshold timestamp in Go
+			// This is database-agnostic since last_contact is stored as Unix timestamp (int64)
+			healthyThreshold := time.Now().Unix() - agentHealthyThresholdSeconds
+
+			// Use xorm's builder to create CASE expression with the pre-calculated threshold
+			sortField = "CASE WHEN last_contact IS NOT NULL AND last_contact > 0 AND last_contact > " +
+				fmt.Sprint(healthyThreshold) + " THEN 0 ELSE 1 END, id"
+
 			// When sorting by status, healthy (0) come first by default
 			sortOrder = "ASC" // 0 (healthy) before 1 (not healthy), then by ID ascending
 			if opts.Order == "desc" {
 				// Reverse: unhealthy first, then ID descending within each group
-				sortField = "CASE WHEN last_contact IS NOT NULL AND last_contact > 0 AND (unixepoch('now') - last_contact) < 60 THEN 1 ELSE 0 END DESC, id"
+				sortField = "CASE WHEN last_contact IS NOT NULL AND last_contact > 0 AND last_contact > " +
+					fmt.Sprint(healthyThreshold) + " THEN 1 ELSE 0 END DESC, id"
 				sortOrder = "DESC"
 			}
 		}
