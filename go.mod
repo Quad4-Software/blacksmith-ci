@@ -55,7 +55,7 @@ require (
 	github.com/urfave/cli-docs/v3 v3.1.0
 	github.com/urfave/cli/v3 v3.5.0
 	github.com/xeipuuv/gojsonschema v1.2.0
-	github.com/yaronf/httpsign v0.3.3
+	github.com/yaronf/httpsign v0.4.1
 	gitlab.com/gitlab-org/api/client-go v0.157.1
 	go.uber.org/multierr v1.11.0
 	golang.org/x/crypto v0.43.0
@@ -155,11 +155,16 @@ require (
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/lestrrat-go/blackmagic v1.0.4 // indirect
+	github.com/lestrrat-go/dsig v1.0.0 // indirect
+	github.com/lestrrat-go/dsig-secp256k1 v1.0.0 // indirect
 	github.com/lestrrat-go/httpcc v1.0.1 // indirect
 	github.com/lestrrat-go/httprc v1.0.6 // indirect
+	github.com/lestrrat-go/httprc/v3 v3.0.1 // indirect
 	github.com/lestrrat-go/iter v1.0.2 // indirect
 	github.com/lestrrat-go/jwx/v2 v2.1.6 // indirect
+	github.com/lestrrat-go/jwx/v3 v3.0.12 // indirect
 	github.com/lestrrat-go/option v1.0.1 // indirect
+	github.com/lestrrat-go/option/v2 v2.0.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.3.0 // indirect
 	github.com/mailru/easyjson v0.9.1 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
@@ -200,6 +205,7 @@ require (
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.1 // indirect
 	github.com/urfave/cli/v2 v2.3.0 // indirect
+	github.com/valyala/fastjson v1.6.4 // indirect
 	github.com/woodsbury/decimal128 v1.4.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
