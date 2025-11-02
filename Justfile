@@ -7,6 +7,7 @@ BIN_SUFFIX := if TARGETOS == "windows" { ".exe" } else { "" }
 DIST_DIR := "dist"
 # VERSION := env_var_or_default("VERSION", "dev")
 CI_COMMIT_SHA := env_var_or_default("CI_COMMIT_SHA", `git rev-parse HEAD`)
+CI_COMMIT_TAG := env_var_or_default("CI_COMMIT_TAG", "")
 TAGS := ""
 STATIC_BUILD := "true"
 GH_TOKEN_MKDOCS_MATERIAL := env_var_or_default("GH_TOKEN_MKDOCS_MATERIAL", "")
@@ -282,6 +283,8 @@ image-server TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE='crowc
 	echo $codeberg_bot_token | docker login {{REGISTRY}} -u {{REGISTRY_USER}} --password-stdin
 	FIXED_PLATFORMS=$(echo $PLATFORMS | sed "s/|/\//g; s/;/,/g") && \
 	docker buildx build --platform $FIXED_PLATFORMS \
+		--build-arg CI_COMMIT_SHA={{CI_COMMIT_SHA}} \
+		--build-arg CI_COMMIT_TAG={{CI_COMMIT_TAG}} \
 		-t {{REGISTRY}}/{{IMAGE}}:{{TAG}} \
 		-f images/Containerfile.server.multiarch.rootless --push .
 
@@ -293,6 +296,8 @@ image-server-alpine TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE
 	FIXED_PLATFORMS=$(echo $PLATFORMS | sed "s/|/\//g; s/;/,/g") && \
 	docker buildx build --platform $FIXED_PLATFORMS \
 		--build-arg CACHE_BUST=$(date +%s) \
+		--build-arg CI_COMMIT_SHA={{CI_COMMIT_SHA}} \
+		--build-arg CI_COMMIT_TAG={{CI_COMMIT_TAG}} \
 		-t {{REGISTRY}}/{{IMAGE}}:{{TAG}}-alpine \
 		-f images/Containerfile.server.alpine.multiarch.rootless --push .
 
@@ -300,6 +305,8 @@ image-server-alpine TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE
 image-agent TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE='crowci/crow-agent':
 	echo $codeberg_bot_token | docker login {{REGISTRY}} -u {{REGISTRY_USER}} --password-stdin
 	docker buildx build --platform $PLATFORMS \
+		--build-arg CI_COMMIT_SHA={{CI_COMMIT_SHA}} \
+		--build-arg CI_COMMIT_TAG={{CI_COMMIT_TAG}} \
 		-t {{REGISTRY}}/{{IMAGE}}:{{TAG}} \
 		-f images/Containerfile.agent.multiarch --push .
 
@@ -307,6 +314,8 @@ image-agent TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE='crowci
 image-agent-alpine TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE='crowci/crow-agent':
 	echo $codeberg_bot_token | docker login {{REGISTRY}} -u {{REGISTRY_USER}} --password-stdin
 	docker buildx build --platform $PLATFORMS \
+		--build-arg CI_COMMIT_SHA={{CI_COMMIT_SHA}} \
+		--build-arg CI_COMMIT_TAG={{CI_COMMIT_TAG}} \
 		-t {{REGISTRY}}/{{IMAGE}}:{{TAG}}-alpine \
 		-f images/Containerfile.agent.alpine.multiarch --push .
 
@@ -314,6 +323,8 @@ image-agent-alpine TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE=
 image-cli TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE='crowci/crow-cli':
 	echo $codeberg_bot_token | docker login {{REGISTRY}} -u {{REGISTRY_USER}} --password-stdin
 	docker buildx build --platform $PLATFORMS \
+		--build-arg CI_COMMIT_SHA={{CI_COMMIT_SHA}} \
+		--build-arg CI_COMMIT_TAG={{CI_COMMIT_TAG}} \
 		-t {{REGISTRY}}/{{IMAGE}}:{{TAG}} \
 		-f images/Containerfile.cli.multiarch.rootless --push .
 
@@ -321,5 +332,7 @@ image-cli TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE='crowci/c
 image-cli-alpine TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE='crowci/crow-cli':
 	echo $codeberg_bot_token | docker login {{REGISTRY}} -u {{REGISTRY_USER}} --password-stdin
 	docker buildx build --platform $PLATFORMS \
+		--build-arg CI_COMMIT_SHA={{CI_COMMIT_SHA}} \
+		--build-arg CI_COMMIT_TAG={{CI_COMMIT_TAG}} \
 		-t {{REGISTRY}}/{{IMAGE}}:{{TAG}}-alpine \
 		-f images/Containerfile.cli.alpine.multiarch.rootless --push .
