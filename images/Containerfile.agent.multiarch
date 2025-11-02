@@ -17,7 +17,11 @@ ENV GOOS=$TARGETOS
 ENV GOARCH=$TARGETARCH
 RUN --mount=type=cache,target=/root/.cache/go-build \
   --mount=type=cache,target=/go/pkg \
-  just build-agent
+  sh -c 'VERSION="${CI_COMMIT_TAG#v}"; \
+  if [ -z "$VERSION" ]; then \
+    VERSION="dev-$(echo "${CI_COMMIT_SHA:-$(git rev-parse HEAD)}" | cut -c -10)"; \
+  fi; \
+  CGO_ENABLED=0 go build -ldflags="-s -w -extldflags '\''-static'\'' -X codeberg.org/crowci/crow/v4/version.Version=$VERSION" -o dist/crow-agent codeberg.org/crowci/crow/v4/cmd/agent'
 
 FROM scratch
 
