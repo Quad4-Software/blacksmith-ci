@@ -188,6 +188,11 @@ func (s storage) deletePipeline(sess *xorm.Session, pipelineID int64) error {
 		return err
 	}
 
+	// Delete tasks associated with this pipeline to prevent orphaned tasks
+	if _, err := sess.Where("pipeline_id = ?", pipelineID).Delete(new(model.Task)); err != nil {
+		return err
+	}
+
 	var confIDs []int64
 	if err := sess.Table(new(model.PipelineConfig)).Select("config_id").Where("pipeline_id = ?", pipelineID).Find(&confIDs); err != nil {
 		return err

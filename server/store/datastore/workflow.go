@@ -240,6 +240,11 @@ func (s storage) WorkflowsReplace(pipeline *model.Pipeline, workflows []*model.W
 		return err
 	}
 
+	// Delete tasks associated with this pipeline to prevent orphaned tasks referencing deleted steps
+	if _, err := sess.Where("pipeline_id = ?", pipeline.ID).Delete(new(model.Task)); err != nil {
+		return err
+	}
+
 	if err := s.workflowsCreate(sess, workflows); err != nil {
 		return err
 	}

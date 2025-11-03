@@ -259,7 +259,8 @@ func TestRepoCrud(t *testing.T) {
 		new(model.Registry),
 		new(model.Config),
 		new(model.Redirection),
-		new(model.Workflow))
+		new(model.Workflow),
+		new(model.Task))
 	defer closer()
 
 	repo := model.Repo{

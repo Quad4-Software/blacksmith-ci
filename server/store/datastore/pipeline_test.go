@@ -226,7 +226,7 @@ func TestPipelineIncrement(t *testing.T) {
 
 func TestDeletePipeline(t *testing.T) {
 	store, closer := newTestStore(t, new(model.Pipeline), new(model.Repo), new(model.Workflow),
-		new(model.Step), new(model.LogEntry), new(model.PipelineConfig), new(model.Config))
+		new(model.Step), new(model.LogEntry), new(model.PipelineConfig), new(model.Config), new(model.Task))
 	defer closer()
 
 	_, err := store.engine.Insert(
@@ -269,6 +269,21 @@ func TestDeletePipeline(t *testing.T) {
 			PipelineID: 8,
 			ConfigID:   25,
 		},
+		&model.Task{
+			ID:         "task-1",
+			PipelineID: 2,
+			RepoID:     7,
+		},
+		&model.Task{
+			ID:         "task-2",
+			PipelineID: 8,
+			RepoID:     7,
+		},
+		&model.Task{
+			ID:         "task-3",
+			PipelineID: 5,
+			RepoID:     7,
+		},
 	)
 	assert.NoError(t, err)
 
@@ -281,9 +296,29 @@ func TestDeletePipeline(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, count)
 
+	// verify task for pipeline 2 was deleted
+	taskCount, err := store.engine.Where("pipeline_id = ?", 2).Count(new(model.Task))
+	assert.NoError(t, err)
+	assert.EqualValues(t, 0, taskCount, "tasks for deleted pipeline should be removed")
+
+	// verify tasks for other pipelines still exist
+	taskCount, err = store.engine.Count(new(model.Task))
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, taskCount, "tasks for other pipelines should remain")
+
 	// delete pipeline with unique config
 	assert.NoError(t, store.DeletePipeline(&model.Pipeline{ID: 8}))
 	count, err = store.engine.Count(new(model.Config))
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, count)
+
+	// verify task for pipeline 8 was also deleted
+	taskCount, err = store.engine.Where("pipeline_id = ?", 8).Count(new(model.Task))
+	assert.NoError(t, err)
+	assert.EqualValues(t, 0, taskCount, "tasks for deleted pipeline should be removed")
+
+	// verify only task for pipeline 5 remains
+	taskCount, err = store.engine.Count(new(model.Task))
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, taskCount, "only task for remaining pipeline should exist")
 }
