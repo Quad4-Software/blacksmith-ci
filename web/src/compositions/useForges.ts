@@ -37,7 +37,7 @@ export function useForges() {
 
   // Get forge by ID
   function getForgeById(id: number): Forge | null {
-    return forges.value.find((f) => f.id === id) || null;
+    return forges.value.find((f) => f.id === id) ?? null;
   }
 
   // Get primary forge (first one)

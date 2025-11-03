@@ -7,6 +7,9 @@
   "engines": {
     "node": ">=20"
   },
+  "resolutions": {
+    "parse5": "7.1.2"
+  },
   "scripts": {
     "start": "vite",
     "build": "vite build --base=/BASE_PATH",
@@ -66,7 +69,7 @@
     "eslint": "^9.38.0",
     "eslint-plugin-promise": "^7.2.1",
     "eslint-plugin-vue-scoped-css": "^2.12.0",
-    "jsdom": "^25.0.1",
+    "jsdom": "^27.0.0",
     "prettier": "^3.6.2",
     "tinycolor2": "^1.6.0",
     "ts-node": "^10.9.2",

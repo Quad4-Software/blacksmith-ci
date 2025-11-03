@@ -25,9 +25,9 @@ async function fetchVersion(): Promise<{ latest?: string; rc?: string; dev?: str
     const json = (await resp.json()) as VersionEntry[];
     const entry = json[0];
     return {
-      latest: entry.latest || undefined,
-      rc: entry.rc || undefined,
-      dev: entry.dev || undefined,
+      latest: entry.latest ?? undefined,
+      rc: entry.rc ?? undefined,
+      dev: entry.dev ?? undefined,
     };
   } catch (error) {
     console.error('Failed to fetch version info', error);
@@ -75,11 +75,8 @@ export function useVersion() {
     const versionInfo = await fetchVersion();
 
     let latest;
-    if (
-      typeof versionInfo.latest !== 'undefined' ||
-      typeof versionInfo.rc !== 'undefined' ||
-      typeof versionInfo.dev !== 'undefined'
-    ) {
+    const hasVersionInfo = Boolean(versionInfo.latest ?? versionInfo.rc ?? versionInfo.dev);
+    if (hasVersionInfo) {
       if (usesDev) {
         latest = versionInfo.dev;
       } else if (current.includes('rc')) {
