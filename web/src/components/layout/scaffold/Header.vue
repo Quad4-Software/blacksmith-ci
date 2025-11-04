@@ -20,7 +20,7 @@
               class="md:display-unset mr-2 hidden h-8 w-8 shrink-0 md:justify-between"
               @click="goBack"
             />
-            <h1 class="flex min-w-0 items-center gap-x-2 text-xl italic text-wp-text-100">
+            <h1 class="flex min-w-0 md:min-w-[120px] items-center gap-x-2 text-xl italic text-wp-text-100">
               <slot name="title" />
               <span v-if="$slots.titleSuffix" class="text-sm font-normal not-italic text-wp-text-alt-100">
                 <slot name="titleSuffix" />
@@ -34,7 +34,7 @@
         </div>
         <TextField
           v-if="searchBoxPresent"
-          class="order-3 w-full grow md:order-none md:w-auto"
+          class="order-3 w-full grow md:order-0 md:w-auto"
           :aria-label="$t('search')"
           :placeholder="$t('search')"
           :model-value="search"
@@ -57,7 +57,7 @@
         v-if="enableTabs"
         class="flex flex-col gap-0 md:gap-0 md:flex-row md:items-center md:justify-between md:py-0"
       >
-        <Tabs class="order-2 md:order-none" />
+        <Tabs class="order-2 md:order-0" />
         <div v-if="$slots.headerActions" class="flex flex-wrap content-start pb-2 md:justify-end gap-2">
           <slot name="tabActions" />
         </div>
