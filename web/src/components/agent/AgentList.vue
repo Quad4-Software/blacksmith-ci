@@ -77,7 +77,7 @@
         <!-- Header Row: Name, Status Indicator, and Actions -->
         <div class="flex items-start justify-between mb-3">
           <!-- Agent Name and Status -->
-          <div class="flex items-center gap-3 flex-1 min-w-0">
+          <div class="flex items-center gap-3 flex-1 min-w-0 md:flex-row">
             <!-- Status Indicator -->
             <div
               class="shrink-0 w-3 h-3 rounded-full"
@@ -90,7 +90,8 @@
               <h3 class="text-base font-semibold text-wp-text-100 truncate">
                 {{ getAgentDisplayName(agent) }}
               </h3>
-              <div class="flex items-center gap-2 mt-1">
+              <!-- Desktop: single line metadata -->
+              <div class="hidden md:flex items-center gap-2 mt-1">
                 <span class="text-xs text-wp-text-alt-100"
                   >{{ $t('admin.settings.agents.agent_id') }} {{ agent.id }}</span
                 >
@@ -103,6 +104,52 @@
                 >
                   {{ $t('admin.settings.agents.org_prefix') }} {{ agent.org_id }}
                 </router-link>
+                <!-- Docker Memory Limit -->
+                <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
+                <span v-if="agent.backend === 'docker'" class="text-xs text-wp-text-alt-100" aria-hidden="true">•</span>
+                <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
+                <span v-if="agent.backend === 'docker'" class="text-xs text-wp-text-alt">
+                  {{ $t('admin.settings.agents.limit_mem') }}<span aria-hidden="true">:</span>
+                  {{ formatBytes(agent.limit_mem) }}
+                </span>
+                <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
+                <!-- Docker CPU Quota -->
+                <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
+                <span v-if="agent.backend === 'docker'" class="text-xs text-wp-text-alt">
+                  {{ $t('admin.settings.agents.limit_cpu_quota') }}<span aria-hidden="true">:</span>
+                  {{ formatCPUQuota(agent.limit_cpu_quota) }}
+                </span>
+                <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
+              </div>
+              <!-- Mobile: stacked metadata -->
+              <div class="flex md:hidden flex-col gap-1 mt-1">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-wp-text-alt-100"
+                    >{{ $t('admin.settings.agents.agent_id') }} {{ agent.id }}</span
+                  >
+                  <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
+                  <span v-if="agent.org_id !== -1" class="text-xs text-wp-text-alt-100" aria-hidden="true">•</span>
+                  <router-link
+                    v-if="agent.org_id !== -1"
+                    :to="`/orgs/${agent.org_id}`"
+                    class="text-xs text-wp-control-info-default hover:underline"
+                  >
+                    {{ $t('admin.settings.agents.org_prefix') }} {{ agent.org_id }}
+                  </router-link>
+                </div>
+                <!-- Resource limits on separate line for mobile -->
+                <div v-if="agent.backend === 'docker'" class="flex items-center gap-2">
+                  <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
+                  <span class="text-xs text-wp-text-alt min-w-[50px]">
+                    Mem/Workflow<span aria-hidden="true">:</span>
+                    {{ formatBytes(agent.limit_mem) }}
+                  </span>
+                  <span class="text-xs text-wp-text-alt min-w-[50px]">
+                    CPU/Workflow<span aria-hidden="true">:</span>
+                    {{ formatCPUQuota(agent.limit_cpu_quota) }}
+                  </span>
+                  <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
+                </div>
               </div>
             </div>
 
@@ -110,8 +157,11 @@
             <Badge v-if="agent.no_schedule" :label="$t('disabled')" class="shrink-0" />
           </div>
 
-          <!-- Action Buttons -->
-          <div v-if="props.isAdmin || agent.org_id === props.userOrgId" class="flex items-center gap-1 shrink-0 ml-3">
+          <!-- Action Buttons (desktop only - moved to bottom on mobile) -->
+          <div
+            v-if="props.isAdmin || agent.org_id === props.userOrgId"
+            class="hidden md:flex items-center gap-1 shrink-0 ml-3"
+          >
             <IconButton
               icon="edit"
               :title="$t('admin.settings.agents.edit_agent')"
@@ -126,7 +176,7 @@
               @click="$emit('delete', agent)"
             />
           </div>
-          <div v-else class="flex items-center shrink-0 ml-3">
+          <div v-else class="hidden md:flex items-center shrink-0 ml-3">
             <Icon name="visibility-private" class="h-6 w-6 text-wp-text-alt-100" />
           </div>
         </div>
@@ -155,8 +205,8 @@
             <span v-else class="text-sm text-wp-text-alt-100" aria-label="not available">—</span>
           </div>
 
-          <!-- Last Seen -->
-          <div class="flex flex-col">
+          <!-- Last Seen (desktop: separate, mobile: combined with workflows) -->
+          <div class="hidden sm:flex flex-col">
             <span class="text-xs font-medium text-wp-text-alt-100 mb-1">{{
               $t('admin.settings.agents.last_contact.label')
             }}</span>
@@ -165,8 +215,8 @@
             </span>
           </div>
 
-          <!-- Workflows -->
-          <div class="flex flex-col">
+          <!-- Workflows (desktop: separate, mobile: combined with last seen) -->
+          <div class="hidden sm:flex flex-col">
             <span class="text-xs font-medium text-wp-text-alt-100 mb-1">{{
               $t('admin.settings.agents.workflows.label')
             }}</span>
@@ -184,6 +234,38 @@
               >
                 {{ agent.running_workflows }} {{ $t('admin.settings.agents.workflows.active') }}
               </span>
+            </div>
+          </div>
+
+          <!-- Mobile: Last Seen + Workflows combined in one row -->
+          <div class="flex sm:hidden flex-col">
+            <div class="grid grid-cols-2 gap-3 mb-1">
+              <span class="text-xs font-medium text-wp-text-alt-100">{{
+                $t('admin.settings.agents.last_contact.label')
+              }}</span>
+              <span class="text-xs font-medium text-wp-text-alt-100">{{
+                $t('admin.settings.agents.workflows.label')
+              }}</span>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <span class="text-sm text-wp-text-100">
+                {{ agent.last_contact ? date.timeAgo(agent.last_contact * 1000) : $t('admin.settings.agents.never') }}
+              </span>
+              <div class="flex items-center gap-2">
+                <span class="text-sm text-wp-text-100">
+                  <span class="font-semibold">{{ agent.running_workflows ?? 0 }}</span>
+                  <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
+                  <span class="text-wp-text-alt-100" aria-hidden="true"> / </span>
+                  <span class="text-wp-text-alt-100">{{ agent.capacity || 0 }}</span>
+                </span>
+                <span
+                  v-if="agent.running_workflows && agent.running_workflows > 0"
+                  class="inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                  :title="`${agent.running_workflows} active workflow${agent.running_workflows > 1 ? 's' : ''}`"
+                >
+                  {{ agent.running_workflows }} {{ $t('admin.settings.agents.workflows.active') }}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -224,6 +306,28 @@
                 <span class="ml-1">{{ value }}</span>
               </span>
             </template>
+          </div>
+        </div>
+
+        <!-- Action Buttons (mobile only - at bottom) -->
+        <div class="flex md:hidden justify-end gap-1 pt-3 border-t border-wp-background-400 mt-3">
+          <div v-if="props.isAdmin || agent.org_id === props.userOrgId" class="flex items-center gap-1">
+            <IconButton
+              icon="edit"
+              :title="$t('admin.settings.agents.edit_agent')"
+              class="h-8 w-8"
+              @click="$emit('edit', agent)"
+            />
+            <IconButton
+              icon="trash"
+              :title="$t('admin.settings.agents.delete_agent')"
+              class="h-8 w-8 hover:text-wp-error-100"
+              :is-loading="props.isDeleting"
+              @click="$emit('delete', agent)"
+            />
+          </div>
+          <div v-else class="flex items-center">
+            <Icon name="visibility-private" class="h-6 w-6 text-wp-text-alt-100" />
           </div>
         </div>
       </div>
@@ -316,6 +420,22 @@ function getAgentDisplayName(agent: Agent): string {
 const date = useDate();
 const { t } = useI18n();
 const config = useConfig();
+
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return t('admin.settings.agents.unlimited');
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${Math.round((bytes / k ** i) * 100) / 100} ${sizes[i]}`;
+}
+
+function formatCPUQuota(quota: number): string {
+  // CPU quota is in microseconds per 100ms period
+  // 100000 = 1 CPU core, 200000 = 2 CPU cores, etc.
+  if (quota === 0) return t('admin.settings.agents.unlimited');
+  const cores = quota / 100000;
+  return cores >= 1 ? `${cores}` : `${quota}µs`;
+}
 
 // Check if agent version differs from server version
 function isVersionMismatch(agentVersion: string): boolean {

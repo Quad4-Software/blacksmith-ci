@@ -123,6 +123,8 @@ message AgentInfo {
   string version  = 4;
   map<string, string> customLabels = 5;
   int32 priority = 6;
+  int64 limit_mem = 7;
+  int64 limit_cpu_quota = 8;
 }
 
 message RegisterAgentRequest {

@@ -200,30 +200,29 @@ func TestRunStaleAgentCleanup(t *testing.T) {
 		// Use 24 hour stale duration (default)
 		staleDuration := 24 * time.Hour
 
-		// Simulate current time (Oct 30, 2025)
-		now := time.Unix(1761856916, 0) // 2025-10-30 21:41:56
+		// Use real current time since the production code uses time.Now()
+		now := time.Now()
 
-		// Create agents matching the database dump - created Oct 27, 2025
-		// These are 3+ days old and should definitely be deleted
+		// Create agents that are 3+ days old and should be deleted
 		agent1 := &model.Agent{
 			ID:          45,
 			Name:        "",
-			LastContact: 0, // Never connected
-			Created:     1761574796,
+			LastContact: 0,                               // Never connected
+			Created:     now.Add(-72 * time.Hour).Unix(), // 3 days ago
 		}
 
 		agent2 := &model.Agent{
 			ID:          36,
 			Name:        "",
 			LastContact: 0,
-			Created:     1761574687,
+			Created:     now.Add(-73 * time.Hour).Unix(), // 3+ days ago
 		}
 
 		agent3 := &model.Agent{
 			ID:          49,
 			Name:        "",
 			LastContact: 0,
-			Created:     1761574897,
+			Created:     now.Add(-74 * time.Hour).Unix(), // 3+ days ago
 		}
 
 		// Mix in some agents that should NOT be deleted
@@ -247,10 +246,11 @@ func TestRunStaleAgentCleanup(t *testing.T) {
 		mockStore.On("AgentList", &model.AgentListOptions{ListOptions: model.ListOptions{All: true}}).Return(agents, nil)
 
 		// Should delete the 3 old agents that never connected
-		mockStore.On("AgentDelete", agent1).Return(nil)
-		mockStore.On("AgentDelete", agent2).Return(nil)
-		mockStore.On("AgentDelete", agent3).Return(nil)
-		// Should NOT delete recentAgent or activeAgent
+		// Use MatchedBy to match on agent ID instead of exact struct equality
+		mockStore.On("AgentDelete", mock.MatchedBy(func(a *model.Agent) bool {
+			return a.ID == 45 || a.ID == 36 || a.ID == 49
+		})).Return(nil).Times(3)
+		// Should NOT delete recentAgent (100) or activeAgent (101)
 
 		// Mock maintenance config operations
 		mockStore.On("MaintenanceConfigGetByActionType", "stale_agent_cleanup").Return(&model.MaintenanceConfig{

@@ -216,12 +216,52 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 
 	log.Debug().Msg("registering agent with server...")
 	var agentName string
+
+	// Read Docker resource limits if using Docker backend
+	var limitMem, limitCPUQuota int64
+	if backendEngine.Name() == "docker" {
+		// Import the docker package's parsing functions
+		memStr := c.String("backend-docker-limit-mem")
+		cpuStr := c.String("backend-docker-limit-cpu-quota")
+
+		log.Debug().
+			Str("mem_str", memStr).
+			Str("cpu_str", cpuStr).
+			Msg("reading Docker resource limits from flags")
+
+		if memStr != "" {
+			limitMem, err = backend.ParseDockerMemory(memStr)
+			if err != nil {
+				log.Error().Err(err).Str("value", memStr).Msg("failed to parse backend-docker-limit-mem")
+				return err
+			}
+			log.Info().
+				Str("input", memStr).
+				Int64("bytes", limitMem).
+				Msg("parsed Docker memory limit")
+		}
+
+		if cpuStr != "" {
+			limitCPUQuota, err = backend.ParseDockerCPUQuota(cpuStr)
+			if err != nil {
+				log.Error().Err(err).Str("value", cpuStr).Msg("failed to parse backend-docker-limit-cpu-quota")
+				return err
+			}
+			log.Info().
+				Str("input", cpuStr).
+				Int64("quota", limitCPUQuota).
+				Msg("parsed Docker CPU quota")
+		}
+	}
+
 	agentConfig.AgentID, agentName, err = client.RegisterAgent(grpcCtx, rpc.AgentInfo{ //nolint:contextcheck
-		Version:      version.String(),
-		Backend:      backendEngine.Name(),
-		Platform:     engInfo.Platform,
-		Capacity:     maxWorkflows,
-		CustomLabels: customLabels,
+		Version:       version.String(),
+		Backend:       backendEngine.Name(),
+		Platform:      engInfo.Platform,
+		Capacity:      maxWorkflows,
+		CustomLabels:  customLabels,
+		LimitMem:      limitMem,
+		LimitCPUQuota: limitCPUQuota,
 	})
 	if err != nil {
 		log.Error().Err(err).Msg("failed to register agent with server")

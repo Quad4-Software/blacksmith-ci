@@ -39,14 +39,35 @@ type resourceLimit struct {
 }
 
 func configFromCli(c *cli.Command) (config, error) {
+	// Parse memory and CPU limits with unit support
+	memSwap, err := ParseMemory(c.String("backend-docker-limit-mem-swap"))
+	if err != nil {
+		return config{}, fmt.Errorf("invalid memory swap limit: %w", err)
+	}
+
+	memLimit, err := ParseMemory(c.String("backend-docker-limit-mem"))
+	if err != nil {
+		return config{}, fmt.Errorf("invalid memory limit: %w", err)
+	}
+
+	shmSize, err := ParseMemory(c.String("backend-docker-limit-shm-size"))
+	if err != nil {
+		return config{}, fmt.Errorf("invalid shm size: %w", err)
+	}
+
+	cpuQuota, err := ParseCPUQuota(c.String("backend-docker-limit-cpu-quota"))
+	if err != nil {
+		return config{}, fmt.Errorf("invalid CPU quota: %w", err)
+	}
+
 	conf := config{
 		enableIPv6: c.Bool("backend-docker-ipv6"),
 		network:    c.String("backend-docker-network"),
 		resourceLimit: resourceLimit{
-			MemSwapLimit: c.Int64("backend-docker-limit-mem-swap"),
-			MemLimit:     c.Int64("backend-docker-limit-mem"),
-			ShmSize:      c.Int64("backend-docker-limit-shm-size"),
-			CPUQuota:     c.Int64("backend-docker-limit-cpu-quota"),
+			MemSwapLimit: memSwap,
+			MemLimit:     memLimit,
+			ShmSize:      shmSize,
+			CPUQuota:     cpuQuota,
 			CPUShares:    c.Int64("backend-docker-limit-cpu-shares"),
 			CPUSet:       c.String("backend-docker-limit-cpu-set"),
 		},

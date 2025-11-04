@@ -14,5 +14,7 @@ export interface Agent {
   no_schedule: boolean;
   priority: number;
   custom_labels: Record<string, string>;
+  limit_mem: number;
+  limit_cpu_quota: number;
   running_workflows: number;
 }

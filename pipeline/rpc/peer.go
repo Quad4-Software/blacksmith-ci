@@ -58,12 +58,14 @@ type (
 
 	// AgentInfo represents all the metadata that should be known about an agent.
 	AgentInfo struct {
-		Version      string            `json:"version"`
-		Platform     string            `json:"platform"`
-		Backend      string            `json:"backend"`
-		Capacity     int               `json:"capacity"`
-		CustomLabels map[string]string `json:"custom_labels"`
-		Priority     int32             `json:"priority"`
+		Version       string            `json:"version"`
+		Platform      string            `json:"platform"`
+		Backend       string            `json:"backend"`
+		Capacity      int               `json:"capacity"`
+		CustomLabels  map[string]string `json:"custom_labels"`
+		Priority      int32             `json:"priority"`
+		LimitMem      int64             `json:"limit_mem"`
+		LimitCPUQuota int64             `json:"limit_cpu_quota"`
 	}
 )
 

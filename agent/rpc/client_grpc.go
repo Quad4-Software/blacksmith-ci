@@ -667,12 +667,14 @@ func (c *client) sendLogs(ctx context.Context, entries []*proto.LogEntry) error 
 func (c *client) RegisterAgent(ctx context.Context, info rpc.AgentInfo) (int64, string, error) {
 	req := new(proto.RegisterAgentRequest)
 	req.Info = &proto.AgentInfo{
-		Platform:     info.Platform,
-		Backend:      info.Backend,
-		Version:      info.Version,
-		Capacity:     int32(info.Capacity),
-		CustomLabels: info.CustomLabels,
-		Priority:     info.Priority,
+		Platform:      info.Platform,
+		Backend:       info.Backend,
+		Version:       info.Version,
+		Capacity:      int32(info.Capacity),
+		CustomLabels:  info.CustomLabels,
+		Priority:      info.Priority,
+		LimitMem:      info.LimitMem,
+		LimitCpuQuota: info.LimitCPUQuota,
 	}
 
 	res, err := c.client.RegisterAgent(ctx, req)

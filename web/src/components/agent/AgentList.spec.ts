@@ -38,6 +38,8 @@ const sampleAgent = {
   no_schedule: false,
   priority: 0,
   custom_labels: { foo: 'bar' },
+  limit_mem: 0,
+  limit_cpu_quota: 0,
   running_workflows: 2,
 };
 
