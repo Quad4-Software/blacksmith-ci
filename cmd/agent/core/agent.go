@@ -320,16 +320,16 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 		for {
 			err := client.ReportHealth(grpcCtx)
 			if err != nil {
+				// Check for fatal consecutive error threshold FIRST - this must always trigger restart
+				if errors.Is(err, agent_rpc.ErrMaxConsecutiveErrors) {
+					log.Error().Err(err).Msg("health reporting encountered fatal error, agent will exit for restart")
+					return err
+				}
+
 				// Check if the error is due to context cancellation
 				if grpcCtx.Err() != nil || agentCtx.Err() != nil {
 					log.Debug().Msg("terminating health reporting due to context cancellation")
 					return nil
-				}
-
-				// If it's the fatal consecutive error threshold, return it to trigger agent restart
-				if errors.Is(err, agent_rpc.ErrMaxConsecutiveErrors) {
-					log.Error().Err(err).Msg("health reporting encountered fatal error, agent will exit for restart")
-					return err
 				}
 
 				// For other errors, just log and continue
@@ -364,6 +364,12 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 
 				log.Trace().Msg("polling new steps")
 				if err := runner.Run(agentCtx, shutdownCtx); err != nil {
+					// Check for fatal consecutive error threshold FIRST - this must always trigger restart
+					if errors.Is(err, agent_rpc.ErrMaxConsecutiveErrors) {
+						log.Error().Err(err).Msg("workflow polling encountered fatal error, agent will exit for restart")
+						return err
+					}
+
 					// Check if context is canceled - this is expected during shutdown
 					if agentCtx.Err() != nil {
 						return nil

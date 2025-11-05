@@ -31,6 +31,7 @@ const sampleAgent = {
   created: 0,
   updated: 0,
   last_contact: 0,
+  workflow_polling_healthy: true,
   platform: 'linux',
   backend: 'docker',
   capacity: 3,

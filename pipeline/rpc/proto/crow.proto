@@ -114,6 +114,7 @@ message Empty {
 
 message ReportHealthRequest {
   string status = 1;
+  bool workflow_polling_healthy = 2;
 }
 
 message AgentInfo {

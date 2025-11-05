@@ -195,6 +195,6 @@ func (s *CrowServer) UnregisterAgent(ctx context.Context, _ *proto.Empty) (*prot
 
 func (s *CrowServer) ReportHealth(c context.Context, req *proto.ReportHealthRequest) (*proto.Empty, error) {
 	res := new(proto.Empty)
-	err := s.peer.ReportHealth(c, req.GetStatus())
+	err := s.peer.ReportHealth(c, req.GetStatus(), req.GetWorkflowPollingHealthy())
 	return res, err
 }

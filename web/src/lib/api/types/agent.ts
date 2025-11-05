@@ -7,6 +7,7 @@ export interface Agent {
   created: number;
   updated: number;
   last_contact: number;
+  workflow_polling_healthy: boolean;
   platform: string;
   backend: string;
   capacity: number;

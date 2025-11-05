@@ -554,7 +554,7 @@ func (s *RPC) UnregisterAgent(ctx context.Context) error {
 	return err
 }
 
-func (s *RPC) ReportHealth(ctx context.Context, status string) error {
+func (s *RPC) ReportHealth(ctx context.Context, status string, workflowPollingHealthy bool) error {
 	agent, err := s.getAgentFromContext(ctx)
 	if err != nil {
 		return err
@@ -565,6 +565,7 @@ func (s *RPC) ReportHealth(ctx context.Context, status string) error {
 	}
 
 	agent.LastContact = time.Now().Unix()
+	agent.WorkflowPollingHealthy = workflowPollingHealthy
 
 	return s.store.AgentUpdate(agent)
 }

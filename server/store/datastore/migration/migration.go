@@ -67,6 +67,7 @@ var migrationTasks = []*xormigrate.Migration{
 	&addPriorityToAgents,
 	&addStaleAgentCleanup,
 	&addResourceLimitsToAgents,
+	&addWorkflowPollingHealthToAgents,
 }
 
 var allBeans = []any{

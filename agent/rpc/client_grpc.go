@@ -58,7 +58,7 @@ const (
 
 	// Maximum consecutive errors before forcing agent restart.
 	// After this many errors, the agent will exit with error code, causing pod/container restart.
-	maxConsecutiveErrors = 50
+	maxConsecutiveErrors = 10
 )
 
 // Global flags to track agent connectivity state (shared across all client instances and runners)
@@ -693,6 +693,7 @@ func (c *client) ReportHealth(ctx context.Context) (err error) {
 	retry := c.newBackOff()
 	req := new(proto.ReportHealthRequest)
 	req.Status = "I am alive!"
+	req.WorkflowPollingHealthy = workflowPollingHealthy.Load()
 
 	attemptCount := 0
 	var lastBackoff time.Duration

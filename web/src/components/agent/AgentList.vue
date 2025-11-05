@@ -458,6 +458,11 @@ function getStatusColor(agent: Agent): string {
     return 'bg-red-500';
   }
 
+  // Check workflow polling health - if false, agent cannot receive tasks
+  if (!agent.workflow_polling_healthy) {
+    return 'bg-red-500';
+  }
+
   // Check last contact time
   const now = Date.now() / 1000;
   const timeSinceContact = now - agent.last_contact;
@@ -483,6 +488,11 @@ function getStatusTitle(agent: Agent): string {
   // Never contacted or last_contact is 0
   if (!agent.last_contact || agent.last_contact === 0) {
     return 'Agent has never connected';
+  }
+
+  // Check workflow polling health
+  if (!agent.workflow_polling_healthy) {
+    return 'Agent cannot poll for workflows - check agent logs';
   }
 
   const now = Date.now() / 1000;

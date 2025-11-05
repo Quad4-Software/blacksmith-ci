@@ -730,10 +730,11 @@ func (*Empty) Descriptor() ([]byte, []int) {
 }
 
 type ReportHealthRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Status        string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"open.v1"`
+	Status                 string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	WorkflowPollingHealthy bool                   `protobuf:"varint,2,opt,name=workflow_polling_healthy,json=workflowPollingHealthy,proto3" json:"workflow_polling_healthy,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ReportHealthRequest) Reset() {
@@ -771,6 +772,13 @@ func (x *ReportHealthRequest) GetStatus() string {
 		return x.Status
 	}
 	return ""
+}
+
+func (x *ReportHealthRequest) GetWorkflowPollingHealthy() bool {
+	if x != nil {
+		return x.WorkflowPollingHealthy
+	}
+	return false
 }
 
 type AgentInfo struct {
@@ -1229,9 +1237,10 @@ const file_crow_proto_rawDesc = "" +
 	"\n" +
 	"logEntries\x18\x01 \x03(\v2\x0f.proto.LogEntryR\n" +
 	"logEntries\"\a\n" +
-	"\x05Empty\"-\n" +
+	"\x05Empty\"g\n" +
 	"\x13ReportHealthRequest\x12\x16\n" +
-	"\x06status\x18\x01 \x01(\tR\x06status\"\xe1\x02\n" +
+	"\x06status\x18\x01 \x01(\tR\x06status\x128\n" +
+	"\x18workflow_polling_healthy\x18\x02 \x01(\bR\x16workflowPollingHealthy\"\xe1\x02\n" +
 	"\tAgentInfo\x12\x1a\n" +
 	"\bplatform\x18\x01 \x01(\tR\bplatform\x12\x1a\n" +
 	"\bcapacity\x18\x02 \x01(\x05R\bcapacity\x12\x18\n" +
