@@ -35,7 +35,7 @@ steps:
       - PLATFORMS=darwin just release-agent
 
   changelog:
-    image: reg.devxy.io/docker.io/thegeeklab/git-sv:2.0.6
+    image: reg.devxy.io/docker.io/thegeeklab/git-sv:2.0.7
     commands:
       - apk add --no-cache -q sed
       - git sv current-version
@@ -101,7 +101,7 @@ steps:
 
   # FIXME: turn this into a plugin to secure SSH key
   'Create release for crowci/helm':
-    image: reg.devxy.io/docker.io/thegeeklab/git-sv:2.0.6
+    image: reg.devxy.io/docker.io/thegeeklab/git-sv:2.0.7
     environment:
       SSH_KEY:
         from_secret: crowci-bot-ssh-key
