@@ -2,7 +2,7 @@ module codeberg.org/crowci/crow/v4
 
 go 1.24.4
 
-toolchain go1.25.3
+toolchain go1.25.4
 
 require (
 	al.essio.dev/pkg/shellescape v1.6.0
@@ -16,8 +16,8 @@ require (
 	github.com/charmbracelet/huh v0.8.0
 	github.com/containerd/errdefs v1.0.0
 	github.com/distribution/reference v0.6.0
-	github.com/docker/cli v28.5.1+incompatible
-	github.com/docker/docker v28.5.1+incompatible
+	github.com/docker/cli v28.5.2+incompatible
+	github.com/docker/docker v28.5.2+incompatible
 	github.com/docker/go-connections v0.6.0
 	github.com/docker/go-units v0.5.0
 	github.com/drone/envsubst v1.0.3
@@ -40,7 +40,7 @@ require (
 	github.com/kinbiko/jsonassert v1.2.0
 	github.com/lib/pq v1.10.9
 	github.com/mattn/go-sqlite3 v1.14.32
-	github.com/moby/moby v28.5.1+incompatible
+	github.com/moby/moby v28.5.2+incompatible
 	github.com/moby/term v0.5.2
 	github.com/muesli/termenv v0.16.0
 	github.com/neticdk/go-bitbucket v1.0.4
