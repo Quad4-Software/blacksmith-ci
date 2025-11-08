@@ -197,13 +197,23 @@ func updatePipelinePending(ctx context.Context, _forge forge.Forge, _store store
 }
 
 // validateAgentAvailability checks if there are agents that can run the pipeline items.
-// Returns an error with details if no matching agents are found.
+// Returns an error with details if no matching agents are found and no autoscaler can provision them.
 func validateAgentAvailability(_store store.Store, pipelineItems []*stepbuilder.Item) error {
 	// Get all agents
 	agents, err := _store.AgentList(nil)
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed to list agents during validation - skipping agent validation")
 		return nil // Don't fail pipeline creation if we can't check agents
+	}
+
+	// Get all enabled autoscalers
+	enabledTrue := true
+	autoscalers, err := _store.AutoscalerList(&model.AutoscalerListOptions{
+		Enabled: &enabledTrue,
+	})
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to list autoscalers during validation - continuing without autoscaler check")
+		autoscalers = nil // Continue with empty autoscaler list
 	}
 
 	// Check each pipeline item
@@ -242,9 +252,31 @@ func validateAgentAvailability(_store store.Store, pipelineItems []*stepbuilder.
 			}
 		}
 
-		if !hasMatchingAgent {
-			return formatNoMatchingAgentError(item.Workflow.Name, requiredLabels, agents)
+		// If an agent exists, continue
+		if hasMatchingAgent {
+			continue
 		}
+
+		// No agent found, check if any autoscaler can provision one
+		canAutoscalerProvision := false
+		for _, autoscaler := range autoscalers {
+			if autoscaler.CanProvision(requiredLabels) {
+				canAutoscalerProvision = true
+				break
+			}
+		}
+
+		// If autoscaler can provision, allow pipeline to queue
+		if canAutoscalerProvision {
+			log.Debug().
+				Str("workflow", item.Workflow.Name).
+				Interface("required_labels", requiredLabels).
+				Msg("No agent available, but autoscaler can provision one - allowing pipeline to queue")
+			continue
+		}
+
+		// Neither agent nor autoscaler available
+		return formatNoMatchingAgentError(item.Workflow.Name, requiredLabels, agents, autoscalers)
 	}
 
 	return nil
@@ -299,7 +331,7 @@ func agentCanMatch(agent *model.Agent, requiredLabels map[string]string) bool {
 }
 
 // formatNoMatchingAgentError creates a user-friendly error message with markdown formatting.
-func formatNoMatchingAgentError(workflowName string, requiredLabels map[string]string, agents []*model.Agent) error {
+func formatNoMatchingAgentError(workflowName string, requiredLabels map[string]string, agents []*model.Agent, autoscalers []*model.Autoscaler) error {
 	var msg strings.Builder
 
 	// Header
@@ -340,6 +372,51 @@ func formatNoMatchingAgentError(workflowName string, requiredLabels map[string]s
 		} else {
 			msg.WriteString(fmt.Sprintf("#### Available Agents: %d\n\n", activeAgents))
 			msg.WriteString(strings.Join(agentNames, ", "))
+			msg.WriteString("\n\n")
+		}
+	}
+
+	// Autoscaler section
+	if len(autoscalers) == 0 {
+		msg.WriteString("#### Autoscalers\n\n")
+		msg.WriteString("⚠️ No autoscalers are configured. Consider setting up an autoscaler to automatically provision agents on demand.\n")
+	} else {
+		msg.WriteString("#### Autoscalers\n\n")
+
+		// Check if any autoscaler could match but is at capacity
+		var atCapacity []string
+		for _, autoscaler := range autoscalers {
+			if !autoscaler.Enabled {
+				continue
+			}
+
+			// Check if labels would match if not at capacity
+			if autoscaler.ActiveAgents >= autoscaler.MaxAgents {
+				// Check label compatibility
+				labelsMatch := true
+				for key, requiredValue := range requiredLabels {
+					autoscalerValue, exists := autoscaler.AgentLabels[key]
+					if !exists || (autoscalerValue != requiredValue && autoscalerValue != "*") {
+						labelsMatch = false
+						break
+					}
+				}
+				if labelsMatch {
+					atCapacity = append(atCapacity, fmt.Sprintf("`%s` (%d/%d agents)", autoscaler.Name, autoscaler.ActiveAgents, autoscaler.MaxAgents))
+				}
+			}
+		}
+
+		if len(atCapacity) > 0 {
+			msg.WriteString("⚠️ **Autoscalers at capacity:**\n")
+			for _, name := range atCapacity {
+				msg.WriteString(fmt.Sprintf("- %s\n", name))
+			}
+			msg.WriteString("\nThese autoscalers could provision agents with the required labels but are currently at maximum capacity. ")
+			msg.WriteString("Wait for existing pipelines to complete or increase the autoscaler's max capacity.\n")
+		} else {
+			msg.WriteString("ℹ️ Autoscalers are configured but none can provision agents with the required labels.\n")
+			msg.WriteString(fmt.Sprintf("%d autoscaler(s) registered\n", len(autoscalers)))
 		}
 	}
 

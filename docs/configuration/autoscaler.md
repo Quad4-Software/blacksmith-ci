@@ -1,12 +1,19 @@
 ## Preface: What is the 'Crow CI Autoscaler'?
 
-The [Crow CI Autoscaler](https://github.com/crowci/autoscaler) is a standalone application which will spin up servers in a configured cloud provider to execute Crow CI pipelines.
-After the VM is ready, it will create a Crow CI agent that will pick up pending pipeline jobs.
+The [Crow CI Autoscaler](https://github.com/crowci/autoscaler) is a standalone application that spins up servers in a configured cloud provider to execute Crow CI pipelines.
+Once the VM is ready, it creates a Crow CI agent that picks up pending pipeline jobs.
 
-If no new builds are in the queue, the Autoscaler will wait a bit (default 10 mins) and then remove the server again.
+If no new builds are in the queue, the Autoscaler waits for a configurable period (default: 10 minutes) before removing the server.
+
+/// tip
+Depending on your cloud provider's minimum billing cycle, you may want to increase this value.
+
+For example, some providers bill in one-hour increments, so removing a server after 10 minutes may not make sense if it might pick up a job after 40 minutes.
+Once spawned, you're billed for the entire hour anyway.
+///
 
 The app allows you to utilize powerful servers on-demand and terminate them immediately after use.
-This minimizes costs and prevents the expense of maintaining large idle instances when no builds are running.
+This minimizes costs and eliminates the expense of maintaining large idle instances when no builds are running.
 
 The Crow CI Autoscaler currently works with the following cloud providers:
 
@@ -17,18 +24,18 @@ The Crow CI Autoscaler currently works with the following cloud providers:
 - [Vultr](https://github.com/crowci/autoscaler/blob/main/providers/vultr/flags.go)
 
 /// tip
-The links above show all available flags/env vars for the specific providers.
+The links above show all available flags/env vars for each provider.
 ///
 
-More providers which provide a golang SDK can be added - contributions welcome!
+Additional providers with a Golang SDK can be added - contributions welcome!
 
 ## Installation
 
-The autoscaler should be installed alongside the _server_ instance as it listens for build triggers of it.
-To connect to it, it needs to know the server address (`CROW_SERVER`) and an API token (`CROW_TOKEN`).
-The token is used to add and remove agents from the server and must be from an admin user.
+The autoscaler should be installed alongside the _server_ instance as it listens for build triggers from it.
+To connect, it needs to know the server address (`CROW_SERVER`), a token to register against the server (`CROW_AUTOSCALER_TOKEN`), and an admin API token (`CROW_TOKEN`) to execute actions against the API.
+The token is used to add and remove agents from the server and must belong to an admin user.
 
-```yaml hl_lines="8 9"
+```yaml hl_lines="8 9 10"
 [...]
   crow-autoscaler:
     image: codeberg.org/crowci/crow-autoscaler:<tag>
@@ -38,20 +45,21 @@ The token is used to add and remove agents from the server and must be from an a
     environment:
       - CROW_SERVER=crow-server:9000 # can also be the public URL (https://)
       - CROW_TOKEN=${CROW_TOKEN}
+      - CROW_AUTOSCALER_TOKEN=${CROW_AUTOSCALER_TOKEN} # since autoscaler v1.*
 ```
 
 ## Configuration
 
-Next, the autoscaler configuration must be set.
-You need to define how the scaling should work, i.e. how many servers are allowed to be provisioned and how many (if any) should be running at all times.
+Next, you must configure the autoscaler settings.
+You need to define how scaling should work, i.e., how many servers are allowed to be provisioned and how many (if any) should be running at all times.
 
-Often, allowing only one powerful server is enough, as this one will be able to process many pipelines in parallel (if the chosen instance type has enough resources).
+Often, a single powerful server is sufficient, as it can process many pipelines in parallel (if the chosen instance type has enough resources).
 
-Similar, `CROW_WORKFLOWS_PER_AGENT` defines how many workflows can be processed in parallel for each agent (each server has its own unique agent).
-A good value for this setting depends on the resources of the server and the jobs which run on it, hence it is not possible to give a general recommendation that would fit all use cases.
+Similarly, `CROW_WORKFLOWS_PER_AGENT` defines how many workflows can be processed in parallel for each agent (each server has its own unique agent).
+A good value for this setting depends on the server's resources and the jobs running on it, so it's not possible to give a general recommendation that fits all use cases.
 
 /// tip
-Monitor the resource usage of the first builds and see how many resources are needed.
+Monitor the resource usage during initial builds to determine how many resources are needed.
 Then adjust the autoscaler settings accordingly.
 ///
 
@@ -65,6 +73,7 @@ Then adjust the autoscaler settings accordingly.
     environment:
       - CROW_SERVER=crow-server:9000 # can also be the public URL (https://)
       - CROW_TOKEN=${CROW_TOKEN}
+      - CROW_AUTOSCALER_TOKEN=${CROW_AUTOSCALER_TOKEN}
       - CROW_MIN_AGENTS=0
       - CROW_MAX_AGENTS=1
       - CROW_WORKFLOWS_PER_AGENT=5
@@ -72,21 +81,21 @@ Then adjust the autoscaler settings accordingly.
 
 ### GRPC connection between agent and server
 
-The next required step is to provide the GRPC connection information which the agent is going to use to connect to the server.
-Remember, the agent will be running on a standalone server and must be able to connect to the crow _server_ instance over a public connection.
-To do so securely, a SSL-backed connection is required.
-This requires the server which is running the crow server instance to listen for incoming grpc requests.
+The next required step is to provide the GRPC connection information that the agent will use to connect to the server.
+Remember, the agent will be running on a standalone server and must be able to connect to the Crow _server_ instance over a public connection.
+To do this securely, an SSL-backed connection is required.
+This requires the server running the Crow server instance to listen for incoming GRPC requests.
 
 To achieve this, two components are required:
 
-- A reverse proxy listening on a https connection
-- Forwarding of incoming requests to the grpc port of the crow server instance
+- A reverse proxy listening on an HTTPS connection
+- Forwarding of incoming requests to the GRPC port of the Crow server instance
 
 We'll discuss how this can be done further below.
 
-Coming back to the settings which need to be passed to the autoscaler.
-Setting `CROW_GRPC_SECURE` is telling the upcoming agent to use SSL for all GRPC-based connections (by default it does not as usually the agent is on the same server as the crow server instance).
-In addition, it needs to know where to connect to, which is why `CROW_GRPC_ADDR` is pointing to the public GRPC address of the server instance.
+Returning to the settings that need to be passed to the autoscaler:
+Setting `CROW_GRPC_SECURE` tells the agent to use SSL for all GRPC-based connections (by default it doesn't, as typically the agent is on the same server as the Crow server instance).
+Additionally, it needs to know where to connect, which is why `CROW_GRPC_ADDR` points to the public GRPC address of the server instance.
 
 ```yaml hl_lines="13 14"
 [...]
@@ -98,6 +107,7 @@ In addition, it needs to know where to connect to, which is why `CROW_GRPC_ADDR`
     environment:
       - CROW_SERVER=crow-server:9000 # can also be the public URL (https://)
       - CROW_TOKEN=${CROW_TOKEN}
+      - CROW_AUTOSCALER_TOKEN=${CROW_AUTOSCALER_TOKEN}
       - CROW_MIN_AGENTS=0
       - CROW_MAX_AGENTS=1
       - CROW_WORKFLOWS_PER_AGENT=5
@@ -107,9 +117,9 @@ In addition, it needs to know where to connect to, which is why `CROW_GRPC_ADDR`
 
 ### Cloud provider configuration
 
-The last step is to tell the autoscaler which cloud provider to use.
-This is done by setting `CROW_PROVIDER` and providing a token to authenticate.
-The naming of this env var and the related provider-specific ones vary, depending on the features the provider offers.
+The last step is to specify which cloud provider to use.
+This is done by setting `CROW_PROVIDER` and providing an authentication token.
+The naming of this environment variable and related provider-specific ones varies depending on the features the provider offers.
 
 ```yaml hl_lines="15 16 17 18 19 20 21 22"
 [...]
@@ -121,6 +131,7 @@ The naming of this env var and the related provider-specific ones vary, dependin
     environment:
       - CROW_SERVER=crow-server:9000 # can also be the public URL (https://)
       - CROW_TOKEN=${CROW_TOKEN}
+      - CROW_AUTOSCALER_TOKEN=${CROW_AUTOSCALER_TOKEN}
       - CROW_MIN_AGENTS=0
       - CROW_MAX_AGENTS=1
       - CROW_WORKFLOWS_PER_AGENT=5
@@ -138,15 +149,15 @@ The naming of this env var and the related provider-specific ones vary, dependin
 
 ### Agent timeout & removal
 
-There are two types of timeouts which can be set for the autoscaler
+There are two types of timeouts that can be configured for the autoscaler:
 
 - `CROW_AGENT_IDLE_TIMEOUT` defines how long an agent is allowed to be idle before it is removed.
-- `CROW_AGENT_SERVER_CONNECTION_TIMEOUT` defines how long an agent is kept alive after the last successful connection to the server has been established.
+- `CROW_AGENT_SERVER_CONNECTION_TIMEOUT` defines how long an agent is kept alive after the last successful connection to the server.
 
-The first option is responsible for how long a server is being kept alive after the last build has been processed.
+The first option controls how long a server is kept alive after the last build has been processed.
 
-The second one is primarily a safety fallback for agents which are not able to communicate with the server anymore, for whatever reason (most likely due to a configuration issue).
-In this case, the autoscaler will recognize this and shut down the instance to avoid infinite reconnection tries.
+The second one is primarily a safety fallback for agents that can no longer communicate with the server for any reason (most likely due to a configuration issue).
+In this case, the autoscaler will recognize this and shut down the instance to avoid infinite reconnection attempts.
 
 ```yaml hl_lines="23 24"
 [...]
@@ -158,6 +169,7 @@ In this case, the autoscaler will recognize this and shut down the instance to a
     environment:
       - CROW_SERVER=crow-server:9000 # can also be the public URL (https://)
       - CROW_TOKEN=${CROW_TOKEN}
+      - CROW_AUTOSCALER_TOKEN=${CROW_AUTOSCALER_TOKEN}
       - CROW_MIN_AGENTS=0
       - CROW_MAX_AGENTS=1
       - CROW_WORKFLOWS_PER_AGENT=5
@@ -177,8 +189,8 @@ In this case, the autoscaler will recognize this and shut down the instance to a
 
 ### Generic agent configuration
 
-Last, there is the option to set arbitrary agent env vars via `CROW_AGENT_ENV`.
-This can be helpful to control logging and other agent-specific settings.
+Finally, you can set arbitrary agent environment variables via `CROW_AGENT_ENV`.
+This can be helpful for controlling logging and other agent-specific settings.
 The values must be passed as a comma-separated list:
 
 ```yaml
@@ -188,22 +200,22 @@ CROW_AGENT_ENV: CROW_HEALTHCHECK=false,CROW_LOG_LEVEL=debug
 ### Combining static and autoscaled agents
 
 /// info
-A "static" agent is an agent which was **not** provisioned by Crow Autoscaler but through a different deployment.
-It is always 24/7 for new builds and is the exact opposite of an autoscaling agent which is only available if task are to be processed and decommissioned afterwards.
+A "static" agent is an agent that was **not** provisioned by Crow Autoscaler but deployed separately.
+It is available 24/7 for new builds and is the exact opposite of an autoscaled agent, which is only available when tasks need to be processed and is decommissioned afterwards.
 ///
 
-In specific cases a combination of static and autoscaled agents can make sense and improve the overall capabilities of your CI environment.
-One use case can be if there are many builds with low resource requirements.
-In this case, it is not efficient to wait for the autoscaler to spin up a powerful machine which then processes these builds in a few seconds.
+In specific cases, a combination of static and autoscaled agents can make sense and improve the overall capabilities of your CI environment.
+One use case is when there are many builds with low resource requirements.
+In this case, it's inefficient to wait for the autoscaler to spin up a powerful machine that processes these builds in just a few seconds.
 
-In such a situation, a static agent on a small host (e.g. next to the Crow CI server and autoscaler) can help to process such builds.
-The autoscaler will then only kick in once this agent cannot process these builds.
+In such situations, a static agent on a small host (e.g., alongside the Crow CI server and autoscaler) can help process these builds.
+The autoscaler will then only activate when this agent cannot handle the workload.
 
-To achieve this, there must a heuristic to decide if the static agent can process these builds in question.
-Ideally this would be a mix of a dynamic rule based on resource requests and a static ones based on manual filters.
+To achieve this, there must be a heuristic to determine whether the static agent can process the builds in question.
+Ideally, this would be a mix of dynamic rules based on resource requests and static ones based on manual filters.
 Currently, only the latter is available through "agent labels" (`CROW_AGENT_LABELS`).
-This options allows to set filters which only process specific builds that match these.
-For example, if the mentioned builds in question only occur within one repository, the agent can be passed the following label through the env var `CROW_AGENT_LABELS`:
+This option allows you to set filters that only process specific builds matching them.
+For example, if the builds in question only occur within one repository, the agent can be configured with the following label via the `CROW_AGENT_LABELS` environment variable:
 
 ```yaml
 CROW_AGENT_LABELS: 'repo=<owner>/<repo>'
@@ -217,11 +229,11 @@ If an agent is available, no action is taken, and the build is handled by the st
 
 ### GRPC proxy configuration
 
-As mentioned above, the GRPC connection between the agent and the server needs to be secured.
-This is done by setting up a reverse proxy which listens on a https connection and forwards incoming requests to the grpc port of the crow server instance.
+As mentioned above, the GRPC connection between the agent and server needs to be secured.
+This is done by setting up a reverse proxy that listens on an HTTPS connection and forwards incoming requests to the GRPC port of the Crow server instance.
 
-In the following examples for different reverse proxies are shown.
-These are only minimal examples and you usually want to set additional headers and other options to secure the connection further.
+Below are examples for different reverse proxies.
+These are minimal examples and you should typically set additional headers and other options to further secure the connection.
 
 /// note
 The SSL certificate can be created like any other certificate for public servers.

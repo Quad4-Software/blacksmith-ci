@@ -32,6 +32,7 @@ const (
 	HookToken       Type = "hook" // repo hook token
 	CsrfToken       Type = "csrf"
 	AgentToken      Type = "agent"
+	AutoscalerToken Type = "autoscaler"
 	OAuthStateToken Type = "oauth-state"
 )
 

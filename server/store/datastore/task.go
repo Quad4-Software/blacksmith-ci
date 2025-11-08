@@ -23,6 +23,19 @@ func (s storage) TaskList() ([]*model.Task, error) {
 	return tasks, s.engine.Find(&tasks)
 }
 
+// TaskListPending returns only tasks whose corresponding workflows are still pending or running.
+// This prevents completed tasks from being reloaded into the queue on server restart.
+func (s storage) TaskListPending() ([]*model.Task, error) {
+	tasks := make([]*model.Task, 0, perPage)
+	// Join tasks with workflows to filter by workflow state
+	// Task.ID is a string representation of Workflow.ID
+	err := s.engine.
+		Join("INNER", "workflows", "CAST(workflows.id AS TEXT) = tasks.id").
+		Where("workflows.state IN (?, ?)", model.StatusPending, model.StatusRunning).
+		Find(&tasks)
+	return tasks, err
+}
+
 func (s storage) TaskInsert(task *model.Task) error {
 	// only Insert set auto created ID back to object
 	_, err := s.engine.Insert(task)

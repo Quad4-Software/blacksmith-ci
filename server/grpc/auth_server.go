@@ -41,76 +41,146 @@ func NewCrowAuthServer(jwtManager *JWTManager, agentMasterToken string, store st
 func (s *CrowAuthServer) Auth(_ context.Context, req *proto.AuthRequest) (*proto.AuthResponse, error) {
 	log.Trace().
 		Int64("agent-id", req.AgentId).
-		Bool("has-token", req.AgentToken != "").
-		Msg("Server received Auth request from agent")
+		Bool("has-agent-token", req.AgentToken != "").
+		Msg("Server received Auth request")
 
-	agent, err := s.getAgent(req.AgentId, req.AgentToken)
+	// Determine if this is an agent or autoscaler by checking which table has the token
+	entity, entityType, err := s.authenticateByToken(req.AgentId, req.AgentToken)
 	if err != nil {
 		log.Trace().
-			Int64("agent-id", req.AgentId).
+			Int64("id", req.AgentId).
+			Str("type", entityType).
 			Err(err).
-			Msg("Agent authentication failed")
-		return nil, fmt.Errorf("agent could not auth: %w", err)
+			Msg("Authentication failed")
+		return nil, fmt.Errorf("authentication failed: %w", err)
 	}
 
 	log.Trace().
-		Int64("agent-id", agent.ID).
-		Str("agent-name", agent.Name).
-		Msg("Agent authenticated successfully, generating JWT")
+		Int64("id", entity.ID).
+		Str("name", entity.Name).
+		Str("type", entityType).
+		Msg("Authenticated successfully, generating JWT")
 
-	accessToken, err := s.jwtManager.Generate(agent.ID)
+	accessToken, err := s.jwtManager.Generate(entity.ID)
 	if err != nil {
 		log.Trace().
-			Int64("agent-id", agent.ID).
+			Int64("id", entity.ID).
+			Str("type", entityType).
 			Err(err).
-			Msg("Failed to generate JWT for agent")
+			Msg("Failed to generate JWT")
 		return nil, err
 	}
 
 	response := &proto.AuthResponse{
 		Status:      "ok",
-		AgentId:     agent.ID,
+		AgentId:     entity.ID,
 		AccessToken: accessToken,
 	}
 
 	log.Trace().
-		Int64("agent-id", agent.ID).
-		Msg("Auth response sent successfully to agent")
+		Int64("id", entity.ID).
+		Str("type", entityType).
+		Msg("Auth response sent successfully")
 
 	return response, nil
 }
 
-func (s *CrowAuthServer) getAgent(agentID int64, agentToken string) (*model.Agent, error) {
-	// global agent secret auth
-	if s.agentMasterToken != "" {
-		if agentToken == s.agentMasterToken && agentID == -1 {
-			agent := &model.Agent{
-				OwnerID:  model.IDNotSet,
-				OrgID:    model.IDNotSet,
-				Token:    s.agentMasterToken,
-				Capacity: -1,
-			}
-			err := s.store.AgentCreate(agent)
-			if err != nil {
-				log.Error().Err(err).Msg("error creating system agent")
-				return nil, err
-			}
-			return agent, nil
-		}
+// AuthEntity represents either an agent or autoscaler for authentication.
+type AuthEntity struct {
+	ID      int64
+	Name    string
+	Token   string
+	OwnerID int64
+	OrgID   int64
+}
 
-		if agentToken == s.agentMasterToken {
-			agent, err := s.store.AgentFind(agentID)
-			if err != nil && errors.Is(err, types.RecordNotExist) {
-				return nil, fmt.Errorf("AgentID not found in database")
-			}
-			return agent, err
-		}
+// authenticateByToken tries to authenticate as either an agent or autoscaler
+// Returns the entity, entity type ("agent" or "autoscaler"), and any error.
+func (s *CrowAuthServer) authenticateByToken(id int64, token string) (*AuthEntity, string, error) {
+	// Try global agent secret first
+	if s.agentMasterToken != "" && token == s.agentMasterToken {
+		return s.authenticateWithAgentMasterToken(id)
 	}
 
-	// individual agent token auth
-	agent, err := s.store.AgentFindByToken(agentToken)
-	if err != nil && errors.Is(err, types.RecordNotExist) {
-		return nil, fmt.Errorf("individual agent not found by token: %w", err)
+	// Try individual agent token
+	if agent, err := s.authenticateAsAgent(token); err == nil {
+		return agent, "agent", nil
 	}
-	return agent, err
+
+	// Try autoscaler token
+	if autoscaler, err := s.authenticateAsAutoscaler(token); err == nil {
+		return autoscaler, "autoscaler", nil
+	}
+
+	return nil, "", fmt.Errorf("token not found in agent or autoscaler tables")
+}
+
+func (s *CrowAuthServer) authenticateWithAgentMasterToken(id int64) (*AuthEntity, string, error) {
+	if id == -1 {
+		// Create new system agent
+		agent := &model.Agent{
+			OwnerID:  model.IDNotSet,
+			OrgID:    model.IDNotSet,
+			Token:    s.agentMasterToken,
+			Capacity: -1,
+		}
+		if err := s.store.AgentCreate(agent); err != nil {
+			log.Error().Err(err).Msg("error creating system agent")
+			return nil, "", err
+		}
+		return &AuthEntity{
+			ID:      agent.ID,
+			Name:    agent.Name,
+			Token:   agent.Token,
+			OwnerID: agent.OwnerID,
+			OrgID:   agent.OrgID,
+		}, "agent", nil
+	}
+
+	// Find existing agent by ID
+	agent, err := s.store.AgentFind(id)
+	if err != nil {
+		if errors.Is(err, types.RecordNotExist) {
+			return nil, "", fmt.Errorf("agent ID not found in database")
+		}
+		return nil, "", err
+	}
+
+	return &AuthEntity{
+		ID:      agent.ID,
+		Name:    agent.Name,
+		Token:   agent.Token,
+		OwnerID: agent.OwnerID,
+		OrgID:   agent.OrgID,
+	}, "agent", nil
+}
+
+func (s *CrowAuthServer) authenticateAsAgent(token string) (*AuthEntity, error) {
+	agent, err := s.store.AgentFindByToken(token)
+	if err != nil {
+		return nil, err
+	}
+
+	return &AuthEntity{
+		ID:      agent.ID,
+		Name:    agent.Name,
+		Token:   agent.Token,
+		OwnerID: agent.OwnerID,
+		OrgID:   agent.OrgID,
+	}, nil
+}
+
+func (s *CrowAuthServer) authenticateAsAutoscaler(token string) (*AuthEntity, error) {
+	autoscaler, err := s.store.AutoscalerFindByToken(token)
+	if err != nil {
+		return nil, err
+	}
+
+	return &AuthEntity{
+		ID:      autoscaler.ID,
+		Name:    autoscaler.Name,
+		Token:   autoscaler.Token,
+		OwnerID: autoscaler.OwnerID,
+		OrgID:   autoscaler.OrgID,
+	}, nil
 }

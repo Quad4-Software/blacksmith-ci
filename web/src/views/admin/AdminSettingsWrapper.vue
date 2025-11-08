@@ -77,6 +77,12 @@
       :title="$t('admin.settings.agents.agents')"
     />
     <Tab
+      icon="worker"
+      icon-size="1rem"
+      :to="{ name: 'admin-settings-autoscalers' }"
+      :title="$t('admin.settings.autoscalers.autoscalers')"
+    />
+    <Tab
       icon="tasks"
       icon-size="1rem"
       :to="{ name: 'admin-settings-queue' }"

@@ -44,7 +44,12 @@ func runGrpcServer(ctx context.Context, c *cli.Command, _store store.Store) erro
 		grpc.StreamInterceptor(authorizer.StreamInterceptor),
 		grpc.UnaryInterceptor(authorizer.UnaryInterceptor),
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
-			MinTime: c.Duration("keepalive-min-time"),
+			MinTime:             c.Duration("keepalive-min-time"),
+			PermitWithoutStream: true,
+		}),
+		grpc.KeepaliveParams(keepalive.ServerParameters{
+			Time:    c.Duration("keepalive-time"),
+			Timeout: c.Duration("keepalive-timeout"),
 		}),
 	)
 

@@ -445,6 +445,476 @@ func (_c *MockStore_AgentUpdate_Call) RunAndReturn(run func(agent *model.Agent) 
 	return _c
 }
 
+// AutoscalerCreate provides a mock function for the type MockStore
+func (_mock *MockStore) AutoscalerCreate(autoscaler *model.Autoscaler) error {
+	ret := _mock.Called(autoscaler)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AutoscalerCreate")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(*model.Autoscaler) error); ok {
+		r0 = returnFunc(autoscaler)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_AutoscalerCreate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AutoscalerCreate'
+type MockStore_AutoscalerCreate_Call struct {
+	*mock.Call
+}
+
+// AutoscalerCreate is a helper method to define mock.On call
+//   - autoscaler *model.Autoscaler
+func (_e *MockStore_Expecter) AutoscalerCreate(autoscaler interface{}) *MockStore_AutoscalerCreate_Call {
+	return &MockStore_AutoscalerCreate_Call{Call: _e.mock.On("AutoscalerCreate", autoscaler)}
+}
+
+func (_c *MockStore_AutoscalerCreate_Call) Run(run func(autoscaler *model.Autoscaler)) *MockStore_AutoscalerCreate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.Autoscaler
+		if args[0] != nil {
+			arg0 = args[0].(*model.Autoscaler)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_AutoscalerCreate_Call) Return(err error) *MockStore_AutoscalerCreate_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_AutoscalerCreate_Call) RunAndReturn(run func(autoscaler *model.Autoscaler) error) *MockStore_AutoscalerCreate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AutoscalerDelete provides a mock function for the type MockStore
+func (_mock *MockStore) AutoscalerDelete(autoscaler *model.Autoscaler) error {
+	ret := _mock.Called(autoscaler)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AutoscalerDelete")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(*model.Autoscaler) error); ok {
+		r0 = returnFunc(autoscaler)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_AutoscalerDelete_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AutoscalerDelete'
+type MockStore_AutoscalerDelete_Call struct {
+	*mock.Call
+}
+
+// AutoscalerDelete is a helper method to define mock.On call
+//   - autoscaler *model.Autoscaler
+func (_e *MockStore_Expecter) AutoscalerDelete(autoscaler interface{}) *MockStore_AutoscalerDelete_Call {
+	return &MockStore_AutoscalerDelete_Call{Call: _e.mock.On("AutoscalerDelete", autoscaler)}
+}
+
+func (_c *MockStore_AutoscalerDelete_Call) Run(run func(autoscaler *model.Autoscaler)) *MockStore_AutoscalerDelete_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.Autoscaler
+		if args[0] != nil {
+			arg0 = args[0].(*model.Autoscaler)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_AutoscalerDelete_Call) Return(err error) *MockStore_AutoscalerDelete_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_AutoscalerDelete_Call) RunAndReturn(run func(autoscaler *model.Autoscaler) error) *MockStore_AutoscalerDelete_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AutoscalerFind provides a mock function for the type MockStore
+func (_mock *MockStore) AutoscalerFind(n int64) (*model.Autoscaler, error) {
+	ret := _mock.Called(n)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AutoscalerFind")
+	}
+
+	var r0 *model.Autoscaler
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64) (*model.Autoscaler, error)); ok {
+		return returnFunc(n)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64) *model.Autoscaler); ok {
+		r0 = returnFunc(n)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.Autoscaler)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64) error); ok {
+		r1 = returnFunc(n)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_AutoscalerFind_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AutoscalerFind'
+type MockStore_AutoscalerFind_Call struct {
+	*mock.Call
+}
+
+// AutoscalerFind is a helper method to define mock.On call
+//   - n int64
+func (_e *MockStore_Expecter) AutoscalerFind(n interface{}) *MockStore_AutoscalerFind_Call {
+	return &MockStore_AutoscalerFind_Call{Call: _e.mock.On("AutoscalerFind", n)}
+}
+
+func (_c *MockStore_AutoscalerFind_Call) Run(run func(n int64)) *MockStore_AutoscalerFind_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_AutoscalerFind_Call) Return(autoscaler *model.Autoscaler, err error) *MockStore_AutoscalerFind_Call {
+	_c.Call.Return(autoscaler, err)
+	return _c
+}
+
+func (_c *MockStore_AutoscalerFind_Call) RunAndReturn(run func(n int64) (*model.Autoscaler, error)) *MockStore_AutoscalerFind_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AutoscalerFindByName provides a mock function for the type MockStore
+func (_mock *MockStore) AutoscalerFindByName(s string) (*model.Autoscaler, error) {
+	ret := _mock.Called(s)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AutoscalerFindByName")
+	}
+
+	var r0 *model.Autoscaler
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(string) (*model.Autoscaler, error)); ok {
+		return returnFunc(s)
+	}
+	if returnFunc, ok := ret.Get(0).(func(string) *model.Autoscaler); ok {
+		r0 = returnFunc(s)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.Autoscaler)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(string) error); ok {
+		r1 = returnFunc(s)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_AutoscalerFindByName_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AutoscalerFindByName'
+type MockStore_AutoscalerFindByName_Call struct {
+	*mock.Call
+}
+
+// AutoscalerFindByName is a helper method to define mock.On call
+//   - s string
+func (_e *MockStore_Expecter) AutoscalerFindByName(s interface{}) *MockStore_AutoscalerFindByName_Call {
+	return &MockStore_AutoscalerFindByName_Call{Call: _e.mock.On("AutoscalerFindByName", s)}
+}
+
+func (_c *MockStore_AutoscalerFindByName_Call) Run(run func(s string)) *MockStore_AutoscalerFindByName_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_AutoscalerFindByName_Call) Return(autoscaler *model.Autoscaler, err error) *MockStore_AutoscalerFindByName_Call {
+	_c.Call.Return(autoscaler, err)
+	return _c
+}
+
+func (_c *MockStore_AutoscalerFindByName_Call) RunAndReturn(run func(s string) (*model.Autoscaler, error)) *MockStore_AutoscalerFindByName_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AutoscalerFindByToken provides a mock function for the type MockStore
+func (_mock *MockStore) AutoscalerFindByToken(s string) (*model.Autoscaler, error) {
+	ret := _mock.Called(s)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AutoscalerFindByToken")
+	}
+
+	var r0 *model.Autoscaler
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(string) (*model.Autoscaler, error)); ok {
+		return returnFunc(s)
+	}
+	if returnFunc, ok := ret.Get(0).(func(string) *model.Autoscaler); ok {
+		r0 = returnFunc(s)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.Autoscaler)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(string) error); ok {
+		r1 = returnFunc(s)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_AutoscalerFindByToken_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AutoscalerFindByToken'
+type MockStore_AutoscalerFindByToken_Call struct {
+	*mock.Call
+}
+
+// AutoscalerFindByToken is a helper method to define mock.On call
+//   - s string
+func (_e *MockStore_Expecter) AutoscalerFindByToken(s interface{}) *MockStore_AutoscalerFindByToken_Call {
+	return &MockStore_AutoscalerFindByToken_Call{Call: _e.mock.On("AutoscalerFindByToken", s)}
+}
+
+func (_c *MockStore_AutoscalerFindByToken_Call) Run(run func(s string)) *MockStore_AutoscalerFindByToken_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_AutoscalerFindByToken_Call) Return(autoscaler *model.Autoscaler, err error) *MockStore_AutoscalerFindByToken_Call {
+	_c.Call.Return(autoscaler, err)
+	return _c
+}
+
+func (_c *MockStore_AutoscalerFindByToken_Call) RunAndReturn(run func(s string) (*model.Autoscaler, error)) *MockStore_AutoscalerFindByToken_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AutoscalerList provides a mock function for the type MockStore
+func (_mock *MockStore) AutoscalerList(opts *model.AutoscalerListOptions) ([]*model.Autoscaler, error) {
+	ret := _mock.Called(opts)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AutoscalerList")
+	}
+
+	var r0 []*model.Autoscaler
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(*model.AutoscalerListOptions) ([]*model.Autoscaler, error)); ok {
+		return returnFunc(opts)
+	}
+	if returnFunc, ok := ret.Get(0).(func(*model.AutoscalerListOptions) []*model.Autoscaler); ok {
+		r0 = returnFunc(opts)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.Autoscaler)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(*model.AutoscalerListOptions) error); ok {
+		r1 = returnFunc(opts)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_AutoscalerList_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AutoscalerList'
+type MockStore_AutoscalerList_Call struct {
+	*mock.Call
+}
+
+// AutoscalerList is a helper method to define mock.On call
+//   - opts *model.AutoscalerListOptions
+func (_e *MockStore_Expecter) AutoscalerList(opts interface{}) *MockStore_AutoscalerList_Call {
+	return &MockStore_AutoscalerList_Call{Call: _e.mock.On("AutoscalerList", opts)}
+}
+
+func (_c *MockStore_AutoscalerList_Call) Run(run func(opts *model.AutoscalerListOptions)) *MockStore_AutoscalerList_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.AutoscalerListOptions
+		if args[0] != nil {
+			arg0 = args[0].(*model.AutoscalerListOptions)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_AutoscalerList_Call) Return(autoscalers []*model.Autoscaler, err error) *MockStore_AutoscalerList_Call {
+	_c.Call.Return(autoscalers, err)
+	return _c
+}
+
+func (_c *MockStore_AutoscalerList_Call) RunAndReturn(run func(opts *model.AutoscalerListOptions) ([]*model.Autoscaler, error)) *MockStore_AutoscalerList_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AutoscalerUpdate provides a mock function for the type MockStore
+func (_mock *MockStore) AutoscalerUpdate(autoscaler *model.Autoscaler) error {
+	ret := _mock.Called(autoscaler)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AutoscalerUpdate")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(*model.Autoscaler) error); ok {
+		r0 = returnFunc(autoscaler)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_AutoscalerUpdate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AutoscalerUpdate'
+type MockStore_AutoscalerUpdate_Call struct {
+	*mock.Call
+}
+
+// AutoscalerUpdate is a helper method to define mock.On call
+//   - autoscaler *model.Autoscaler
+func (_e *MockStore_Expecter) AutoscalerUpdate(autoscaler interface{}) *MockStore_AutoscalerUpdate_Call {
+	return &MockStore_AutoscalerUpdate_Call{Call: _e.mock.On("AutoscalerUpdate", autoscaler)}
+}
+
+func (_c *MockStore_AutoscalerUpdate_Call) Run(run func(autoscaler *model.Autoscaler)) *MockStore_AutoscalerUpdate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.Autoscaler
+		if args[0] != nil {
+			arg0 = args[0].(*model.Autoscaler)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_AutoscalerUpdate_Call) Return(err error) *MockStore_AutoscalerUpdate_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_AutoscalerUpdate_Call) RunAndReturn(run func(autoscaler *model.Autoscaler) error) *MockStore_AutoscalerUpdate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AutoscalerUpdateHeartbeat provides a mock function for the type MockStore
+func (_mock *MockStore) AutoscalerUpdateHeartbeat(id int64, activeAgents int32, pendingAgents int32, version string) error {
+	ret := _mock.Called(id, activeAgents, pendingAgents, version)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AutoscalerUpdateHeartbeat")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(int64, int32, int32, string) error); ok {
+		r0 = returnFunc(id, activeAgents, pendingAgents, version)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_AutoscalerUpdateHeartbeat_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AutoscalerUpdateHeartbeat'
+type MockStore_AutoscalerUpdateHeartbeat_Call struct {
+	*mock.Call
+}
+
+// AutoscalerUpdateHeartbeat is a helper method to define mock.On call
+//   - id int64
+//   - activeAgents int32
+//   - pendingAgents int32
+//   - version string
+func (_e *MockStore_Expecter) AutoscalerUpdateHeartbeat(id interface{}, activeAgents interface{}, pendingAgents interface{}, version interface{}) *MockStore_AutoscalerUpdateHeartbeat_Call {
+	return &MockStore_AutoscalerUpdateHeartbeat_Call{Call: _e.mock.On("AutoscalerUpdateHeartbeat", id, activeAgents, pendingAgents, version)}
+}
+
+func (_c *MockStore_AutoscalerUpdateHeartbeat_Call) Run(run func(id int64, activeAgents int32, pendingAgents int32, version string)) *MockStore_AutoscalerUpdateHeartbeat_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int32
+		if args[1] != nil {
+			arg1 = args[1].(int32)
+		}
+		var arg2 int32
+		if args[2] != nil {
+			arg2 = args[2].(int32)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_AutoscalerUpdateHeartbeat_Call) Return(err error) *MockStore_AutoscalerUpdateHeartbeat_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_AutoscalerUpdateHeartbeat_Call) RunAndReturn(run func(id int64, activeAgents int32, pendingAgents int32, version string) error) *MockStore_AutoscalerUpdateHeartbeat_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CacheCleanupExpired provides a mock function for the type MockStore
 func (_mock *MockStore) CacheCleanupExpired(cutoff int64) error {
 	ret := _mock.Called(cutoff)
@@ -7819,6 +8289,61 @@ func (_c *MockStore_TaskList_Call) Return(tasks []*model.Task, err error) *MockS
 }
 
 func (_c *MockStore_TaskList_Call) RunAndReturn(run func() ([]*model.Task, error)) *MockStore_TaskList_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// TaskListPending provides a mock function for the type MockStore
+func (_mock *MockStore) TaskListPending() ([]*model.Task, error) {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for TaskListPending")
+	}
+
+	var r0 []*model.Task
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func() ([]*model.Task, error)); ok {
+		return returnFunc()
+	}
+	if returnFunc, ok := ret.Get(0).(func() []*model.Task); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.Task)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func() error); ok {
+		r1 = returnFunc()
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_TaskListPending_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'TaskListPending'
+type MockStore_TaskListPending_Call struct {
+	*mock.Call
+}
+
+// TaskListPending is a helper method to define mock.On call
+func (_e *MockStore_Expecter) TaskListPending() *MockStore_TaskListPending_Call {
+	return &MockStore_TaskListPending_Call{Call: _e.mock.On("TaskListPending")}
+}
+
+func (_c *MockStore_TaskListPending_Call) Run(run func()) *MockStore_TaskListPending_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockStore_TaskListPending_Call) Return(tasks []*model.Task, err error) *MockStore_TaskListPending_Call {
+	_c.Call.Return(tasks, err)
+	return _c
+}
+
+func (_c *MockStore_TaskListPending_Call) RunAndReturn(run func() ([]*model.Task, error)) *MockStore_TaskListPending_Call {
 	_c.Call.Return(run)
 	return _c
 }

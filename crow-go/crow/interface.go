@@ -261,4 +261,28 @@ type Client interface {
 
 	// AgentTasksList returns a list of all tasks executed by an agent.
 	AgentTasksList(int64) ([]*Task, error)
+
+	// AutoscalerList returns a list of all registered autoscalers.
+	AutoscalerList() ([]*Autoscaler, error)
+
+	// Autoscaler returns an autoscaler by id.
+	Autoscaler(int64) (*Autoscaler, error)
+
+	// AutoscalerLookup returns an autoscaler by name.
+	AutoscalerLookup(string) (*Autoscaler, error)
+
+	// AutoscalerCreate creates a new autoscaler.
+	AutoscalerCreate(*Autoscaler) (*Autoscaler, error)
+
+	// AutoscalerUpdate updates an existing autoscaler.
+	AutoscalerUpdate(*Autoscaler) (*Autoscaler, error)
+
+	// AutoscalerDelete deletes an autoscaler.
+	AutoscalerDelete(int64) error
+
+	// AutoscalerHeartbeat sends a heartbeat for an autoscaler.
+	AutoscalerHeartbeat(int64, *AutoscalerHeartbeat) error
+
+	// AutoscalerSelf returns the autoscaler associated with the current authentication token.
+	AutoscalerSelf() (*Autoscaler, error)
 }

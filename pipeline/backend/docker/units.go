@@ -37,9 +37,20 @@ var (
 
 // ParseMemory parses a memory string with optional units and returns bytes.
 // Supports: "2Gi", "512Mi", "1G", "100M", "1024" (plain numbers are bytes)
+// Also accepts quoted strings like "'6Gi'" or '"512Mi"' from config files
 // Returns 0 for empty string or "0".
 func ParseMemory(s string) (int64, error) {
 	s = strings.TrimSpace(s)
+
+	// Strip surrounding quotes (single or double) that might come from config files
+	const minQuotedLen = 2 // minimum length for a quoted string (e.g., "x")
+	if len(s) >= minQuotedLen {
+		if (s[0] == '\'' && s[len(s)-1] == '\'') || (s[0] == '"' && s[len(s)-1] == '"') {
+			s = s[1 : len(s)-1]
+			s = strings.TrimSpace(s)
+		}
+	}
+
 	if s == "" || s == "0" {
 		return 0, nil
 	}
@@ -87,9 +98,20 @@ func ParseMemory(s string) (int64, error) {
 // Docker CPU quota is specified in microseconds per 100ms period.
 // 100000 = 1 CPU core, 200000 = 2 cores, 50000 = 0.5 cores
 // Supports: "2" (2 cores), "1000m" (1 core in millicores), "0.5" (0.5 cores)
+// Also accepts quoted strings like "'3'" or '"3"' from config files
 // Returns 0 for empty string or "0".
 func ParseCPUQuota(s string) (int64, error) {
 	s = strings.TrimSpace(s)
+
+	// Strip surrounding quotes (single or double) that might come from config files
+	const minQuotedLen = 2 // minimum length for a quoted string (e.g., "x")
+	if len(s) >= minQuotedLen {
+		if (s[0] == '\'' && s[len(s)-1] == '\'') || (s[0] == '"' && s[len(s)-1] == '"') {
+			s = s[1 : len(s)-1]
+			s = strings.TrimSpace(s)
+		}
+	}
+
 	if s == "" || s == "0" {
 		return 0, nil
 	}

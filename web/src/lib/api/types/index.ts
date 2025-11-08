@@ -1,4 +1,5 @@
 export * from './agent';
+export * from './autoscaler';
 export * from './cron';
 export * from './forge';
 export * from './maintenance';

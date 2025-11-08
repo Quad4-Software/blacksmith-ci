@@ -23,10 +23,11 @@ import (
 )
 
 type State struct {
-	sync.Mutex `json:"-"`
-	Polling    int             `json:"polling_count"`
-	Running    int             `json:"running_count"`
-	Metadata   map[string]Info `json:"running"`
+	sync.Mutex   `json:"-"`
+	Polling      int             `json:"polling_count"`
+	Running      int             `json:"running_count"`
+	Metadata     map[string]Info `json:"running"`
+	agentHealthy bool            `json:"-"` // tracks if agent is operational
 }
 
 type Info struct {
@@ -62,6 +63,13 @@ func (s *State) Done(id string) {
 func (s *State) Healthy() bool {
 	s.Lock()
 	defer s.Unlock()
+
+	// If agent has crashed or is not operational, report unhealthy
+	if !s.agentHealthy {
+		return false
+	}
+
+	// Check if any running workflows have timed out
 	now := time.Now()
 	buf := time.Hour // 1 hour buffer
 	for _, item := range s.Metadata {
@@ -70,6 +78,13 @@ func (s *State) Healthy() bool {
 		}
 	}
 	return true
+}
+
+// SetHealthy marks the agent as healthy/operational.
+func (s *State) SetHealthy(healthy bool) {
+	s.Lock()
+	defer s.Unlock()
+	s.agentHealthy = healthy
 }
 
 func (s *State) WriteTo(w io.Writer) (int64, error) {

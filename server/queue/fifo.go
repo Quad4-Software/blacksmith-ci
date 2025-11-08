@@ -77,12 +77,8 @@ func NewMemoryQueue(ctx context.Context, store store.Store) Queue {
 		paused:        false,
 	}
 
-	// Load running tasks from database on startup to recover from server restart
-	if store != nil {
-		if err := q.loadRunningTasks(); err != nil {
-			log.Error().Err(err).Msg("Failed to load running tasks on startup")
-		}
-	}
+	// Task loading is handled by WithTaskStore wrapper which filters for pending/running workflows
+	// This prevents double-loading and ensures only active tasks are restored on restart
 
 	go q.process()
 	return q
@@ -127,6 +123,13 @@ func (q *fifo) Poll(c context.Context, agentID int64, filter FilterFn) (*model.T
 	log.Debug().Msgf("queue: agent %d created worker, now has %d workers waiting", agentID, workerCount)
 	q.Unlock()
 
+	// Add a timeout to prevent indefinite blocking, which causes issues with
+	// reverse proxies (nginx, traefik, etc.) that have connection timeouts.
+	// 30 seconds is well under typical proxy timeouts (60s) and still provides
+	// good responsiveness for task pickup.
+	pollTimeout := time.NewTimer(30 * time.Second)
+	defer pollTimeout.Stop()
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -134,6 +137,13 @@ func (q *fifo) Poll(c context.Context, agentID int64, filter FilterFn) (*model.T
 			delete(q.workers, _worker)
 			q.Unlock()
 			return nil, ctx.Err()
+		case <-pollTimeout.C:
+			// Timeout reached with no task available
+			q.Lock()
+			delete(q.workers, _worker)
+			q.Unlock()
+			// Return nil task (not an error) - agent will immediately poll again
+			return nil, nil
 		case t := <-_worker.channel:
 			return t, nil
 		}
@@ -554,42 +564,4 @@ func (q *fifo) removeFromPending(taskID string) {
 			return
 		}
 	}
-}
-
-// loadRunningTasks loads tasks that were running before server restart.
-// This allows workflows to resume after server restart instead of being lost.
-func (q *fifo) loadRunningTasks() error {
-	tasks, err := q.store.TaskList()
-	if err != nil {
-		return fmt.Errorf("failed to list tasks: %w", err)
-	}
-
-	loadedCount := 0
-	for _, task := range tasks {
-		// Only load tasks that were assigned to an agent (running tasks)
-		if task.AgentID > 0 {
-			previousAgentID := task.AgentID
-
-			// Add to pending queue so they can be reassigned when agents reconnect
-			q.pending.PushBack(task)
-
-			// Reset AgentID so task can be reassigned
-			task.AgentID = 0
-			if err := q.store.TaskUpdate(task); err != nil {
-				log.Error().Err(err).Str("taskID", task.ID).Msg("Failed to reset task AgentID on load")
-			}
-
-			loadedCount++
-			log.Info().
-				Str("taskID", task.ID).
-				Int64("previousAgentID", previousAgentID).
-				Msg("Loaded running task from database for reassignment")
-		}
-	}
-
-	if loadedCount > 0 {
-		log.Info().Int("count", loadedCount).Msg("Loaded running tasks from database on startup")
-	}
-
-	return nil
 }

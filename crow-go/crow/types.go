@@ -295,4 +295,45 @@ type (
 		Name   string `json:"name"`
 		IsUser bool   `json:"is_user"`
 	}
+
+	// Autoscaler is the JSON data for an autoscaler.
+	Autoscaler struct {
+		ID                int64             `json:"id"`
+		Created           int64             `json:"created"`
+		Updated           int64             `json:"updated"`
+		Name              string            `json:"name"`
+		OwnerID           int64             `json:"owner_id"`
+		OrgID             int64             `json:"org_id"`
+		Token             string            `json:"token"`
+		LastContact       int64             `json:"last_contact"`
+		MinAgents         int32             `json:"min_agents"`
+		MaxAgents         int32             `json:"max_agents"`
+		WorkflowsPerAgent int32             `json:"workflows_per_agent"`
+		Provider          string            `json:"provider"`
+		InstanceType      string            `json:"instance_type"`
+		Region            string            `json:"region"`
+		AgentLabels       map[string]string `json:"agent_labels"`
+		LimitCPUQuota     string            `json:"limit_cpu_quota"`
+		LimitMem          string            `json:"limit_mem"`
+		Enabled           bool              `json:"enabled"`
+		Version           string            `json:"version"`
+		ActiveAgents      int32             `json:"active_agents"`
+		PendingAgents     int32             `json:"pending_agents"`
+	}
+
+	// AutoscalerHeartbeat is the JSON data for an autoscaler heartbeat.
+	AutoscalerHeartbeat struct {
+		ActiveAgents      int32             `json:"active_agents"`
+		PendingAgents     int32             `json:"pending_agents"`
+		Version           string            `json:"version"`
+		MinAgents         int32             `json:"min_agents"`
+		MaxAgents         int32             `json:"max_agents"`
+		WorkflowsPerAgent int32             `json:"workflows_per_agent"`
+		Provider          string            `json:"provider"`
+		InstanceType      string            `json:"instance_type"`
+		Region            string            `json:"region"`
+		AgentLabels       map[string]string `json:"agent_labels"`
+		LimitCPUQuota     string            `json:"limit_cpu_quota"`
+		LimitMem          string            `json:"limit_mem"`
+	}
 )

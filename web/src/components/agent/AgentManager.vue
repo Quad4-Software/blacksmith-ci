@@ -8,8 +8,8 @@
         @click="selectedAgent = undefined"
       />
       <template v-if="!selectedAgent">
-        <div class="flex flex-col md:flex-row items-center justify-center">
-          <Button text="Refresh" class="md:mr-2 mb-2 md:mb-0" @click="resetPage" />
+        <div class="flex flex-col md:flex-row items-center justify-center gap-2">
+          <Button text="Refresh" class="w-auto" @click="resetPage" />
           <Button :text="$t('admin.settings.agents.add')" start-icon="plus" @click="showAddAgent" />
         </div>
       </template>

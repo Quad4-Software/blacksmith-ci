@@ -392,6 +392,472 @@ func (_c *MockClient_AgentUpdate_Call) RunAndReturn(run func(agent *crow.Agent) 
 	return _c
 }
 
+// Autoscaler provides a mock function for the type MockClient
+func (_mock *MockClient) Autoscaler(n int64) (*crow.Autoscaler, error) {
+	ret := _mock.Called(n)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Autoscaler")
+	}
+
+	var r0 *crow.Autoscaler
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64) (*crow.Autoscaler, error)); ok {
+		return returnFunc(n)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64) *crow.Autoscaler); ok {
+		r0 = returnFunc(n)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*crow.Autoscaler)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64) error); ok {
+		r1 = returnFunc(n)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClient_Autoscaler_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Autoscaler'
+type MockClient_Autoscaler_Call struct {
+	*mock.Call
+}
+
+// Autoscaler is a helper method to define mock.On call
+//   - n int64
+func (_e *MockClient_Expecter) Autoscaler(n interface{}) *MockClient_Autoscaler_Call {
+	return &MockClient_Autoscaler_Call{Call: _e.mock.On("Autoscaler", n)}
+}
+
+func (_c *MockClient_Autoscaler_Call) Run(run func(n int64)) *MockClient_Autoscaler_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_Autoscaler_Call) Return(autoscaler *crow.Autoscaler, err error) *MockClient_Autoscaler_Call {
+	_c.Call.Return(autoscaler, err)
+	return _c
+}
+
+func (_c *MockClient_Autoscaler_Call) RunAndReturn(run func(n int64) (*crow.Autoscaler, error)) *MockClient_Autoscaler_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AutoscalerCreate provides a mock function for the type MockClient
+func (_mock *MockClient) AutoscalerCreate(autoscaler *crow.Autoscaler) (*crow.Autoscaler, error) {
+	ret := _mock.Called(autoscaler)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AutoscalerCreate")
+	}
+
+	var r0 *crow.Autoscaler
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(*crow.Autoscaler) (*crow.Autoscaler, error)); ok {
+		return returnFunc(autoscaler)
+	}
+	if returnFunc, ok := ret.Get(0).(func(*crow.Autoscaler) *crow.Autoscaler); ok {
+		r0 = returnFunc(autoscaler)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*crow.Autoscaler)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(*crow.Autoscaler) error); ok {
+		r1 = returnFunc(autoscaler)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClient_AutoscalerCreate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AutoscalerCreate'
+type MockClient_AutoscalerCreate_Call struct {
+	*mock.Call
+}
+
+// AutoscalerCreate is a helper method to define mock.On call
+//   - autoscaler *crow.Autoscaler
+func (_e *MockClient_Expecter) AutoscalerCreate(autoscaler interface{}) *MockClient_AutoscalerCreate_Call {
+	return &MockClient_AutoscalerCreate_Call{Call: _e.mock.On("AutoscalerCreate", autoscaler)}
+}
+
+func (_c *MockClient_AutoscalerCreate_Call) Run(run func(autoscaler *crow.Autoscaler)) *MockClient_AutoscalerCreate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *crow.Autoscaler
+		if args[0] != nil {
+			arg0 = args[0].(*crow.Autoscaler)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_AutoscalerCreate_Call) Return(autoscaler1 *crow.Autoscaler, err error) *MockClient_AutoscalerCreate_Call {
+	_c.Call.Return(autoscaler1, err)
+	return _c
+}
+
+func (_c *MockClient_AutoscalerCreate_Call) RunAndReturn(run func(autoscaler *crow.Autoscaler) (*crow.Autoscaler, error)) *MockClient_AutoscalerCreate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AutoscalerDelete provides a mock function for the type MockClient
+func (_mock *MockClient) AutoscalerDelete(n int64) error {
+	ret := _mock.Called(n)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AutoscalerDelete")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(int64) error); ok {
+		r0 = returnFunc(n)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockClient_AutoscalerDelete_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AutoscalerDelete'
+type MockClient_AutoscalerDelete_Call struct {
+	*mock.Call
+}
+
+// AutoscalerDelete is a helper method to define mock.On call
+//   - n int64
+func (_e *MockClient_Expecter) AutoscalerDelete(n interface{}) *MockClient_AutoscalerDelete_Call {
+	return &MockClient_AutoscalerDelete_Call{Call: _e.mock.On("AutoscalerDelete", n)}
+}
+
+func (_c *MockClient_AutoscalerDelete_Call) Run(run func(n int64)) *MockClient_AutoscalerDelete_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_AutoscalerDelete_Call) Return(err error) *MockClient_AutoscalerDelete_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockClient_AutoscalerDelete_Call) RunAndReturn(run func(n int64) error) *MockClient_AutoscalerDelete_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AutoscalerHeartbeat provides a mock function for the type MockClient
+func (_mock *MockClient) AutoscalerHeartbeat(n int64, autoscalerHeartbeat *crow.AutoscalerHeartbeat) error {
+	ret := _mock.Called(n, autoscalerHeartbeat)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AutoscalerHeartbeat")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(int64, *crow.AutoscalerHeartbeat) error); ok {
+		r0 = returnFunc(n, autoscalerHeartbeat)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockClient_AutoscalerHeartbeat_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AutoscalerHeartbeat'
+type MockClient_AutoscalerHeartbeat_Call struct {
+	*mock.Call
+}
+
+// AutoscalerHeartbeat is a helper method to define mock.On call
+//   - n int64
+//   - autoscalerHeartbeat *crow.AutoscalerHeartbeat
+func (_e *MockClient_Expecter) AutoscalerHeartbeat(n interface{}, autoscalerHeartbeat interface{}) *MockClient_AutoscalerHeartbeat_Call {
+	return &MockClient_AutoscalerHeartbeat_Call{Call: _e.mock.On("AutoscalerHeartbeat", n, autoscalerHeartbeat)}
+}
+
+func (_c *MockClient_AutoscalerHeartbeat_Call) Run(run func(n int64, autoscalerHeartbeat *crow.AutoscalerHeartbeat)) *MockClient_AutoscalerHeartbeat_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 *crow.AutoscalerHeartbeat
+		if args[1] != nil {
+			arg1 = args[1].(*crow.AutoscalerHeartbeat)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_AutoscalerHeartbeat_Call) Return(err error) *MockClient_AutoscalerHeartbeat_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockClient_AutoscalerHeartbeat_Call) RunAndReturn(run func(n int64, autoscalerHeartbeat *crow.AutoscalerHeartbeat) error) *MockClient_AutoscalerHeartbeat_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AutoscalerList provides a mock function for the type MockClient
+func (_mock *MockClient) AutoscalerList() ([]*crow.Autoscaler, error) {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for AutoscalerList")
+	}
+
+	var r0 []*crow.Autoscaler
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func() ([]*crow.Autoscaler, error)); ok {
+		return returnFunc()
+	}
+	if returnFunc, ok := ret.Get(0).(func() []*crow.Autoscaler); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*crow.Autoscaler)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func() error); ok {
+		r1 = returnFunc()
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClient_AutoscalerList_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AutoscalerList'
+type MockClient_AutoscalerList_Call struct {
+	*mock.Call
+}
+
+// AutoscalerList is a helper method to define mock.On call
+func (_e *MockClient_Expecter) AutoscalerList() *MockClient_AutoscalerList_Call {
+	return &MockClient_AutoscalerList_Call{Call: _e.mock.On("AutoscalerList")}
+}
+
+func (_c *MockClient_AutoscalerList_Call) Run(run func()) *MockClient_AutoscalerList_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockClient_AutoscalerList_Call) Return(autoscalers []*crow.Autoscaler, err error) *MockClient_AutoscalerList_Call {
+	_c.Call.Return(autoscalers, err)
+	return _c
+}
+
+func (_c *MockClient_AutoscalerList_Call) RunAndReturn(run func() ([]*crow.Autoscaler, error)) *MockClient_AutoscalerList_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AutoscalerLookup provides a mock function for the type MockClient
+func (_mock *MockClient) AutoscalerLookup(s string) (*crow.Autoscaler, error) {
+	ret := _mock.Called(s)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AutoscalerLookup")
+	}
+
+	var r0 *crow.Autoscaler
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(string) (*crow.Autoscaler, error)); ok {
+		return returnFunc(s)
+	}
+	if returnFunc, ok := ret.Get(0).(func(string) *crow.Autoscaler); ok {
+		r0 = returnFunc(s)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*crow.Autoscaler)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(string) error); ok {
+		r1 = returnFunc(s)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClient_AutoscalerLookup_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AutoscalerLookup'
+type MockClient_AutoscalerLookup_Call struct {
+	*mock.Call
+}
+
+// AutoscalerLookup is a helper method to define mock.On call
+//   - s string
+func (_e *MockClient_Expecter) AutoscalerLookup(s interface{}) *MockClient_AutoscalerLookup_Call {
+	return &MockClient_AutoscalerLookup_Call{Call: _e.mock.On("AutoscalerLookup", s)}
+}
+
+func (_c *MockClient_AutoscalerLookup_Call) Run(run func(s string)) *MockClient_AutoscalerLookup_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_AutoscalerLookup_Call) Return(autoscaler *crow.Autoscaler, err error) *MockClient_AutoscalerLookup_Call {
+	_c.Call.Return(autoscaler, err)
+	return _c
+}
+
+func (_c *MockClient_AutoscalerLookup_Call) RunAndReturn(run func(s string) (*crow.Autoscaler, error)) *MockClient_AutoscalerLookup_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AutoscalerSelf provides a mock function for the type MockClient
+func (_mock *MockClient) AutoscalerSelf() (*crow.Autoscaler, error) {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for AutoscalerSelf")
+	}
+
+	var r0 *crow.Autoscaler
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func() (*crow.Autoscaler, error)); ok {
+		return returnFunc()
+	}
+	if returnFunc, ok := ret.Get(0).(func() *crow.Autoscaler); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*crow.Autoscaler)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func() error); ok {
+		r1 = returnFunc()
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClient_AutoscalerSelf_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AutoscalerSelf'
+type MockClient_AutoscalerSelf_Call struct {
+	*mock.Call
+}
+
+// AutoscalerSelf is a helper method to define mock.On call
+func (_e *MockClient_Expecter) AutoscalerSelf() *MockClient_AutoscalerSelf_Call {
+	return &MockClient_AutoscalerSelf_Call{Call: _e.mock.On("AutoscalerSelf")}
+}
+
+func (_c *MockClient_AutoscalerSelf_Call) Run(run func()) *MockClient_AutoscalerSelf_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockClient_AutoscalerSelf_Call) Return(autoscaler *crow.Autoscaler, err error) *MockClient_AutoscalerSelf_Call {
+	_c.Call.Return(autoscaler, err)
+	return _c
+}
+
+func (_c *MockClient_AutoscalerSelf_Call) RunAndReturn(run func() (*crow.Autoscaler, error)) *MockClient_AutoscalerSelf_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AutoscalerUpdate provides a mock function for the type MockClient
+func (_mock *MockClient) AutoscalerUpdate(autoscaler *crow.Autoscaler) (*crow.Autoscaler, error) {
+	ret := _mock.Called(autoscaler)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AutoscalerUpdate")
+	}
+
+	var r0 *crow.Autoscaler
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(*crow.Autoscaler) (*crow.Autoscaler, error)); ok {
+		return returnFunc(autoscaler)
+	}
+	if returnFunc, ok := ret.Get(0).(func(*crow.Autoscaler) *crow.Autoscaler); ok {
+		r0 = returnFunc(autoscaler)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*crow.Autoscaler)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(*crow.Autoscaler) error); ok {
+		r1 = returnFunc(autoscaler)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClient_AutoscalerUpdate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AutoscalerUpdate'
+type MockClient_AutoscalerUpdate_Call struct {
+	*mock.Call
+}
+
+// AutoscalerUpdate is a helper method to define mock.On call
+//   - autoscaler *crow.Autoscaler
+func (_e *MockClient_Expecter) AutoscalerUpdate(autoscaler interface{}) *MockClient_AutoscalerUpdate_Call {
+	return &MockClient_AutoscalerUpdate_Call{Call: _e.mock.On("AutoscalerUpdate", autoscaler)}
+}
+
+func (_c *MockClient_AutoscalerUpdate_Call) Run(run func(autoscaler *crow.Autoscaler)) *MockClient_AutoscalerUpdate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *crow.Autoscaler
+		if args[0] != nil {
+			arg0 = args[0].(*crow.Autoscaler)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_AutoscalerUpdate_Call) Return(autoscaler1 *crow.Autoscaler, err error) *MockClient_AutoscalerUpdate_Call {
+	_c.Call.Return(autoscaler1, err)
+	return _c
+}
+
+func (_c *MockClient_AutoscalerUpdate_Call) RunAndReturn(run func(autoscaler *crow.Autoscaler) (*crow.Autoscaler, error)) *MockClient_AutoscalerUpdate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CronCreate provides a mock function for the type MockClient
 func (_mock *MockClient) CronCreate(repoID int64, cron *crow.Cron) (*crow.Cron, error) {
 	ret := _mock.Called(repoID, cron)

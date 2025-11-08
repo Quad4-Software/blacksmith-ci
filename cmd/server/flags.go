@@ -258,6 +258,19 @@ var flags = append([]cli.Flag{
 		Sources: cli.EnvVars("WOODPECKER_KEEPALIVE_MIN_TIME", "CROW_KEEPALIVE_MIN_TIME"),
 		Name:    "keepalive-min-time",
 		Usage:   "server-side enforcement policy on the minimum amount of time a client should wait before sending a keepalive ping.",
+		Value:   10 * time.Second,
+	},
+	&cli.DurationFlag{
+		Sources: cli.EnvVars("WOODPECKER_KEEPALIVE_TIME", "CROW_KEEPALIVE_TIME"),
+		Name:    "keepalive-time",
+		Usage:   "server sends keepalive pings after this duration of inactivity to check if client connection is alive",
+		Value:   2 * time.Hour,
+	},
+	&cli.DurationFlag{
+		Sources: cli.EnvVars("WOODPECKER_KEEPALIVE_TIMEOUT", "CROW_KEEPALIVE_TIMEOUT"),
+		Name:    "keepalive-timeout",
+		Usage:   "server waits this duration for keepalive ping response before closing the connection",
+		Value:   20 * time.Second,
 	},
 	&cli.DurationFlag{
 		Sources: cli.EnvVars("CROW_QUEUE_LOCK_TTL"),

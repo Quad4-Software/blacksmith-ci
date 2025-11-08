@@ -215,12 +215,13 @@ func PostAgent(c *gin.Context) {
 	priority := in.Priority
 
 	agent := &model.Agent{
-		Name:       in.Name,
-		OwnerID:    user.ID,
-		OrgID:      model.IDNotSet,
-		NoSchedule: in.NoSchedule,
-		Priority:   priority,
-		Token:      model.GenerateNewAgentToken(),
+		Name:         in.Name,
+		OwnerID:      user.ID,
+		OrgID:        model.IDNotSet,
+		NoSchedule:   in.NoSchedule,
+		Priority:     priority,
+		CustomLabels: in.CustomLabels,
+		Token:        model.GenerateNewAgentToken(),
 	}
 	if err = store.FromContext(c).AgentCreate(agent); err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
@@ -307,12 +308,13 @@ func PostOrgAgent(c *gin.Context) {
 	priority := in.Priority
 
 	agent := &model.Agent{
-		Name:       in.Name,
-		OwnerID:    user.ID,
-		OrgID:      orgID,
-		NoSchedule: in.NoSchedule,
-		Priority:   priority,
-		Token:      model.GenerateNewAgentToken(),
+		Name:         in.Name,
+		OwnerID:      user.ID,
+		OrgID:        orgID,
+		NoSchedule:   in.NoSchedule,
+		Priority:     priority,
+		CustomLabels: in.CustomLabels,
+		Token:        model.GenerateNewAgentToken(),
 	}
 
 	if err = _store.AgentCreate(agent); err != nil {

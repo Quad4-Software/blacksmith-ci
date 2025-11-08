@@ -126,11 +126,12 @@ func processQueueTasks(store store.Store, tasks []*model.Task, agentNameMap map[
 
 		if task.AgentID != 0 {
 			name, ok := getAgentName(store, agentNameMap, task.AgentID)
-			if !ok {
-				return nil, fmt.Errorf("agent not found for task %s", task.ID)
+			if ok {
+				taskResponse.AgentName = name
+			} else {
+				// Agent not found (possibly deleted), use a placeholder
+				taskResponse.AgentName = fmt.Sprintf("agent-%d (deleted)", task.AgentID)
 			}
-
-			taskResponse.AgentName = name
 		}
 
 		if task.PipelineID != 0 {

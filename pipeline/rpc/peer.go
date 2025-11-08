@@ -103,4 +103,10 @@ type Peer interface {
 
 	// ReportHealth reports health status of the agent to the server
 	ReportHealth(c context.Context) error
+
+	// SetReregistrationHandler sets a callback to re-register the agent when not found on server
+	SetReregistrationHandler(handler func(context.Context) error)
+
+	// SetWorkflowPollingHealthy marks workflow polling as healthy or unhealthy
+	SetWorkflowPollingHealthy(healthy bool)
 }

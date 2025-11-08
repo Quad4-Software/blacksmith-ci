@@ -160,6 +160,8 @@ type Store interface {
 	// Tasks
 	// TaskList TODO: paginate & opt filter
 	TaskList() ([]*model.Task, error)
+	// TaskListPending returns only tasks whose corresponding workflows are still pending or running
+	TaskListPending() ([]*model.Task, error)
 	TaskInsert(*model.Task) error
 	TaskUpdate(*model.Task) error
 	TaskDelete(string) error
@@ -195,6 +197,16 @@ type Store interface {
 	AgentUpdate(*model.Agent) error
 	AgentDelete(*model.Agent) error
 	AgentListForOrg(orgID int64, opt *model.ListOptions) ([]*model.Agent, error)
+
+	// Autoscaler
+	AutoscalerCreate(*model.Autoscaler) error
+	AutoscalerFind(int64) (*model.Autoscaler, error)
+	AutoscalerFindByName(string) (*model.Autoscaler, error)
+	AutoscalerFindByToken(string) (*model.Autoscaler, error)
+	AutoscalerList(opts *model.AutoscalerListOptions) ([]*model.Autoscaler, error)
+	AutoscalerUpdate(*model.Autoscaler) error
+	AutoscalerDelete(*model.Autoscaler) error
+	AutoscalerUpdateHeartbeat(id int64, activeAgents, pendingAgents int32, version string) error
 
 	// Maintenance
 	MaintenanceConfigGet() (*model.MaintenanceConfig, error)

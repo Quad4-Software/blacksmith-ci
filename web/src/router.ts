@@ -269,6 +269,12 @@ const routes: RouteRecordRaw[] = [
         props: true,
       },
       {
+        path: 'autoscalers',
+        name: 'admin-settings-autoscalers',
+        component: (): Component => import('~/views/admin/AdminAutoscalers.vue'),
+        props: true,
+      },
+      {
         path: 'queue',
         name: 'admin-settings-queue',
         component: (): Component => import('~/views/admin/AdminQueue.vue'),

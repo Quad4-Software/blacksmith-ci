@@ -28,6 +28,7 @@ import (
 func apiRoutes(e *gin.RouterGroup) {
 	apiBase := e.Group("/api")
 	apiBase.Use(token.Refresh)
+	apiBase.Use(session.SetAutoscaler())
 	{
 		user := apiBase.Group("/user")
 		{
@@ -236,6 +237,25 @@ func apiRoutes(e *gin.RouterGroup) {
 			agentBase.POST("", session.MustAdmin(), api.PostAgent)
 			agentBase.PATCH("/:agent_id", session.MustAdmin(), api.PatchAgent)
 			agentBase.DELETE("/:agent_id", session.MustAdmin(), api.DeleteAgent)
+		}
+
+		// Autoscaler self endpoint - requires autoscaler token authentication
+		apiBase.GET("/autoscaler", session.MustAutoscaler(), api.GetAutoscalerSelf)
+
+		autoscalerBase := apiBase.Group("/autoscalers")
+		{
+			// Allow all authenticated users to view autoscalers
+			autoscalerBase.GET("", session.MustUser(), api.GetAutoscalers)
+			autoscalerBase.GET("/:autoscaler_id", session.MustUser(), api.GetAutoscaler)
+
+			// Require admin privileges for autoscaler modifications
+			autoscalerBase.POST("", session.MustAdmin(), api.PostAutoscaler)
+			autoscalerBase.PATCH("/:autoscaler_id", session.MustAdmin(), api.PatchAutoscaler)
+			autoscalerBase.DELETE("/:autoscaler_id", session.MustAdmin(), api.DeleteAutoscaler)
+			autoscalerBase.POST("/:autoscaler_id/token", session.MustAdmin(), api.PostAutoscalerToken)
+
+			// Heartbeat endpoint - TODO: add autoscaler token authentication middleware
+			autoscalerBase.POST("/:autoscaler_id/heartbeat", api.PostAutoscalerHeartbeat)
 		}
 
 		apiBase.GET("/forges", api.GetForges)

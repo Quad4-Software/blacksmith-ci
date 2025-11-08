@@ -452,6 +452,86 @@ func (_c *MockPeer_ReportHealth_Call) RunAndReturn(run func(c context.Context) e
 	return _c
 }
 
+// SetReregistrationHandler provides a mock function for the type MockPeer
+func (_mock *MockPeer) SetReregistrationHandler(handler func(context.Context) error) {
+	_mock.Called(handler)
+	return
+}
+
+// MockPeer_SetReregistrationHandler_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetReregistrationHandler'
+type MockPeer_SetReregistrationHandler_Call struct {
+	*mock.Call
+}
+
+// SetReregistrationHandler is a helper method to define mock.On call
+//   - handler func(context.Context) error
+func (_e *MockPeer_Expecter) SetReregistrationHandler(handler interface{}) *MockPeer_SetReregistrationHandler_Call {
+	return &MockPeer_SetReregistrationHandler_Call{Call: _e.mock.On("SetReregistrationHandler", handler)}
+}
+
+func (_c *MockPeer_SetReregistrationHandler_Call) Run(run func(handler func(context.Context) error)) *MockPeer_SetReregistrationHandler_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 func(context.Context) error
+		if args[0] != nil {
+			arg0 = args[0].(func(context.Context) error)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockPeer_SetReregistrationHandler_Call) Return() *MockPeer_SetReregistrationHandler_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockPeer_SetReregistrationHandler_Call) RunAndReturn(run func(handler func(context.Context) error)) *MockPeer_SetReregistrationHandler_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetWorkflowPollingHealthy provides a mock function for the type MockPeer
+func (_mock *MockPeer) SetWorkflowPollingHealthy(healthy bool) {
+	_mock.Called(healthy)
+	return
+}
+
+// MockPeer_SetWorkflowPollingHealthy_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetWorkflowPollingHealthy'
+type MockPeer_SetWorkflowPollingHealthy_Call struct {
+	*mock.Call
+}
+
+// SetWorkflowPollingHealthy is a helper method to define mock.On call
+//   - healthy bool
+func (_e *MockPeer_Expecter) SetWorkflowPollingHealthy(healthy interface{}) *MockPeer_SetWorkflowPollingHealthy_Call {
+	return &MockPeer_SetWorkflowPollingHealthy_Call{Call: _e.mock.On("SetWorkflowPollingHealthy", healthy)}
+}
+
+func (_c *MockPeer_SetWorkflowPollingHealthy_Call) Run(run func(healthy bool)) *MockPeer_SetWorkflowPollingHealthy_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 bool
+		if args[0] != nil {
+			arg0 = args[0].(bool)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockPeer_SetWorkflowPollingHealthy_Call) Return() *MockPeer_SetWorkflowPollingHealthy_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockPeer_SetWorkflowPollingHealthy_Call) RunAndReturn(run func(healthy bool)) *MockPeer_SetWorkflowPollingHealthy_Call {
+	_c.Run(run)
+	return _c
+}
+
 // UnregisterAgent provides a mock function for the type MockPeer
 func (_mock *MockPeer) UnregisterAgent(ctx context.Context) error {
 	ret := _mock.Called(ctx)

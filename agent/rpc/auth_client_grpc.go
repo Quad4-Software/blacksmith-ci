@@ -46,6 +46,13 @@ func NewAuthGrpcClient(conn *grpc.ClientConn, agentToken string, agentID int64) 
 	return client
 }
 
+// UpdateAgentID updates the agent ID used for authentication.
+// This is called after re-registration when the agent gets a new ID from the server.
+func (c *AuthClient) UpdateAgentID(agentID int64) {
+	c.agentID = agentID
+	log.Debug().Int64("new_agent_id", agentID).Msg("updated auth client with new agent ID")
+}
+
 func (c *AuthClient) Auth(ctx context.Context) (string, int64, error) {
 	log.Trace().
 		Int64("agent-id", c.agentID).

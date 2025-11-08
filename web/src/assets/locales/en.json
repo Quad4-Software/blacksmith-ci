@@ -471,6 +471,60 @@
         "sort_ascending": "Sort ascending",
         "sort_descending": "Sort descending"
       },
+      "autoscalers": {
+        "autoscalers": "Autoscalers",
+        "desc": "Autoscalers dynamically provision agents on demand.",
+        "none": "There are no autoscalers yet.",
+        "none_learn_more": "Learn more about autoscaling in the Crow documentation.",
+        "id": "ID",
+        "add": "Add autoscaler",
+        "show": "Show autoscalers",
+        "notify_text_created": "Autoscaler created",
+        "notify_text_deleted": "Autoscaler deleted",
+        "notify_text_enabled": "Autoscaler enabled",
+        "notify_text_disabled": "Autoscaler disabled",
+        "name": {
+          "name": "Name",
+          "placeholder": "Name of the autoscaler"
+        },
+        "min_agents": {
+          "name": "Minimum Agents"
+        },
+        "max_agents": {
+          "name": "Maximum Agents"
+        },
+        "workflows_per_agent_short": "Workflows/Agent",
+        "token_copy": "Copy token",
+        "token_warning": "Save this token securely - it won't be shown again!",
+        "last_contact": {
+          "label": "Last Seen"
+        },
+        "agents": {
+          "label": "Agents",
+          "pending": "pending"
+        },
+        "version": {
+          "label": "Version"
+        },
+        "delete_confirm": "Do you really want to delete this autoscaler? It will no longer be able to provision agents.",
+        "delete_autoscaler": "Delete autoscaler",
+        "enable": "Enable autoscaler",
+        "disable": "Disable autoscaler",
+        "search": "Search autoscalers...",
+        "filter_enabled": "All statuses",
+        "sort_by": "Sort by",
+        "sort": {
+          "status": "Status (health)",
+          "id": "ID",
+          "name": "Name",
+          "last_contact": "Last Contact"
+        },
+        "clear_filters": "Clear filters",
+        "no_match": "No autoscalers match your filters",
+        "sort_ascending": "Sort ascending",
+        "sort_descending": "Sort descending",
+        "never": "Never"
+      },
       "queue": {
         "queue": "Queue",
         "desc": "Tasks waiting to be executed by agents.",

@@ -1,6 +1,9 @@
 import ApiClient, { encodeQueryString } from './client';
 import type {
   Agent,
+  Autoscaler,
+  AutoscalerListOptions,
+  AutoscalerWithToken,
   Cron,
   Forge,
   MaintenanceConfig,
@@ -357,6 +360,31 @@ export default class CrowClient extends ApiClient {
 
   async deleteOrgAgent(orgId: number, agentId: number): Promise<unknown> {
     return this._delete(`/api/orgs/${orgId}/agents/${agentId}`);
+  }
+
+  async getAutoscalers(opts?: AutoscalerListOptions): Promise<Autoscaler[] | null> {
+    const query = encodeQueryString(opts);
+    return this._get(`/api/autoscalers?${query}`) as Promise<Autoscaler[] | null>;
+  }
+
+  async getAutoscaler(autoscalerId: number): Promise<Autoscaler> {
+    return this._get(`/api/autoscalers/${autoscalerId}`) as Promise<Autoscaler>;
+  }
+
+  async createAutoscaler(autoscaler: Partial<Autoscaler>): Promise<AutoscalerWithToken> {
+    return this._post('/api/autoscalers', autoscaler) as Promise<AutoscalerWithToken>;
+  }
+
+  async updateAutoscaler(autoscaler: Partial<Autoscaler>): Promise<Autoscaler> {
+    return this._patch(`/api/autoscalers/${autoscaler.id}`, autoscaler) as Promise<Autoscaler>;
+  }
+
+  async deleteAutoscaler(autoscaler: Autoscaler): Promise<unknown> {
+    return this._delete(`/api/autoscalers/${autoscaler.id}`);
+  }
+
+  async regenerateAutoscalerToken(autoscalerId: number): Promise<{ token: string }> {
+    return this._post(`/api/autoscalers/${autoscalerId}/token`) as Promise<{ token: string }>;
   }
 
   async getForges(opts?: PaginationOptions): Promise<Forge[] | null> {

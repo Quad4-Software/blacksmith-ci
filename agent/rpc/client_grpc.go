@@ -28,6 +28,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/status"
 	grpcproto "google.golang.org/protobuf/proto"
 
@@ -80,9 +81,10 @@ var (
 )
 
 type client struct {
-	client proto.CrowClient
-	conn   *grpc.ClientConn
-	logs   chan *proto.LogEntry
+	client                proto.CrowClient
+	conn                  *grpc.ClientConn
+	logs                  chan *proto.LogEntry
+	reregistrationHandler func(context.Context) error // callback to re-register agent when not found on server
 }
 
 // NewGrpcClient returns a new grpc Client.
@@ -93,6 +95,24 @@ func NewGrpcClient(ctx context.Context, conn *grpc.ClientConn) rpc.Peer {
 	client.logs = make(chan *proto.LogEntry, 10) // max memory use: 10 lines * 1 MiB
 	go client.processLogs(ctx)
 	return client
+}
+
+// SetReregistrationHandler sets a callback that will be invoked when the agent
+// needs to re-register with the server (e.g., after server restart).
+func (c *client) SetReregistrationHandler(handler func(context.Context) error) {
+	c.reregistrationHandler = handler
+}
+
+// SetWorkflowPollingHealthy marks workflow polling as healthy or unhealthy.
+// This should be called when the agent starts polling, since Next() is a blocking
+// call that won't return until a task is available.
+func (c *client) SetWorkflowPollingHealthy(healthy bool) {
+	workflowPollingHealthy.Store(healthy)
+	if healthy {
+		log.Trace().Msg("workflow polling marked as healthy")
+	} else {
+		log.Trace().Msg("workflow polling marked as unhealthy")
+	}
 }
 
 func (c *client) Close() error {
@@ -207,6 +227,18 @@ func (c *client) Next(ctx context.Context, filter rpc.Filter) (*rpc.Workflow, er
 	var lastBackoff time.Duration
 
 	for {
+		// Log connection state before attempting Next() call
+		connState := c.conn.GetState()
+		log.Trace().Str("connection_state", connState.String()).Msg("attempting Next() call")
+
+		// If connection is in a bad state, wait for it to become ready
+		if connState != connectivity.Ready && connState != connectivity.Idle {
+			log.Warn().
+				Str("connection_state", connState.String()).
+				Msg("connection not ready, waiting for state change")
+			c.conn.Connect()
+		}
+
 		res, err = c.client.Next(ctx, req)
 		if err == nil {
 			// Mark workflow polling as healthy
@@ -273,6 +305,16 @@ func (c *client) Next(ctx context.Context, filter rpc.Filter) (*rpc.Workflow, er
 			codes.Unavailable,
 			codes.Unknown:
 			// non-fatal errors that should be retried
+
+			// If we get Unavailable but connection shows READY, the connection is stale
+			// (likely closed by proxy/load balancer). Force reconnection.
+			if status.Code(err) == codes.Unavailable && c.conn.GetState() == connectivity.Ready {
+				log.Warn().
+					Str("error", cleanGrpcError(err)).
+					Msg("connection shows READY but RPC failed with Unavailable - forcing reconnection")
+				c.conn.Connect()
+			}
+
 			lastBackoff = retry.NextBackOff()
 			// TODO: remove after adding continuous data exchange by something like #536
 			if strings.Contains(err.Error(), "\"too_many_pings\"") {
@@ -695,6 +737,10 @@ func (c *client) ReportHealth(ctx context.Context) (err error) {
 	req.Status = "I am alive!"
 	req.WorkflowPollingHealthy = workflowPollingHealthy.Load()
 
+	log.Trace().
+		Bool("workflow_polling_healthy", req.WorkflowPollingHealthy).
+		Msg("reporting health to server")
+
 	attemptCount := 0
 	var lastBackoff time.Duration
 
@@ -717,7 +763,22 @@ func (c *client) ReportHealth(ctx context.Context) (err error) {
 
 		// NOTE: Unlike workflow polling, "sql: no rows" is a REAL error for health reporting.
 		// It means the agent doesn't exist in the database, which should trigger reconnection.
-		// Do NOT treat it as success - let it be handled as a retriable error below.
+		// Check if this is an "agent not found" error and trigger re-registration if handler is set.
+		if status.Code(err) == codes.Unknown && strings.Contains(err.Error(), "sql: no rows") {
+			if c.reregistrationHandler != nil {
+				log.Info().Msg("agent not found on server, attempting re-registration")
+				if reregErr := c.reregistrationHandler(ctx); reregErr != nil {
+					log.Error().Err(reregErr).Msg("re-registration failed, will retry")
+					// Don't return - continue with retry logic below
+				} else {
+					log.Info().Msg("re-registration successful, resuming health reporting")
+					// Reset attempt count and backoff after successful re-registration
+					attemptCount = 0
+					retry = c.newBackOff()
+					continue
+				}
+			}
+		}
 
 		attemptCount++
 

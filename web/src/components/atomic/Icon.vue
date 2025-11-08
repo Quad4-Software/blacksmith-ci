@@ -68,6 +68,7 @@
   <SvgIcon v-else-if="name === 'sort-descending'" :path="mdiSortDescending" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'close'" :path="mdiClose" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'edit'" :path="mdiPencilOutline" :size="size || '1.3rem'" />
+  <SvgIcon v-else-if="name === 'content-copy'" :path="mdiContentCopy" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'content-save-outline'" :path="mdiContentSaveOutline" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'download'" :path="mdiDownloadOutline" :size="size || '1.3rem'" />
   <SvgIcon v-else-if="name === 'stopwatch'" :path="mdiAlarm" :size="size || '1.3rem'" />
@@ -174,6 +175,7 @@ import {
   mdiCog,
   mdiCogOutline,
   mdiConsole,
+  mdiContentCopy,
   mdiContentSaveOutline,
   mdiDocker,
   mdiDotsVertical,
@@ -289,6 +291,7 @@ export type IconNames =
   | 'turn-off'
   | 'close'
   | 'edit'
+  | 'content-copy'
   | 'content-save-outline'
   | 'stopwatch'
   | 'download'

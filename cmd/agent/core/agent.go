@@ -128,8 +128,9 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 		c.String("server"),
 		transport,
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
-			Time:    c.Duration("grpc-keepalive-time"),
-			Timeout: c.Duration("grpc-keepalive-timeout"),
+			Time:                c.Duration("grpc-keepalive-time"),
+			Timeout:             c.Duration("grpc-keepalive-timeout"),
+			PermitWithoutStream: true,
 		}),
 	)
 	if err != nil {
@@ -152,8 +153,9 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 		c.String("server"),
 		transport,
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
-			Time:    c.Duration("grpc-keepalive-time"),
-			Timeout: c.Duration("grpc-keepalive-timeout"),
+			Time:                c.Duration("grpc-keepalive-time"),
+			Timeout:             c.Duration("grpc-keepalive-timeout"),
+			PermitWithoutStream: true,
 		}),
 		grpc.WithUnaryInterceptor(authInterceptor.Unary()),
 		grpc.WithStreamInterceptor(authInterceptor.Stream()),
@@ -273,6 +275,46 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 		Interface("custom_labels", customLabels).
 		Msg("agent successfully registered with server")
 
+	// Set up re-registration handler for when server restarts and loses agent data
+	client.SetReregistrationHandler(func(ctx context.Context) error {
+		log.Info().Msg("re-registering agent with server")
+		newAgentID, newAgentName, err := client.RegisterAgent(ctx, rpc.AgentInfo{
+			Version:       version.String(),
+			Backend:       backendEngine.Name(),
+			Platform:      engInfo.Platform,
+			Capacity:      maxWorkflows,
+			CustomLabels:  customLabels,
+			LimitMem:      limitMem,
+			LimitCPUQuota: limitCPUQuota,
+		})
+		if err != nil {
+			log.Error().Err(err).Msg("failed to re-register agent")
+			return err
+		}
+
+		// Update agent config with new ID
+		agentConfig.AgentID = newAgentID
+
+		// Update auth client with new agent ID so authentication works
+		authClient.UpdateAgentID(newAgentID)
+
+		// Persist new agent ID if we have a config path
+		if agentConfigPath != "" {
+			if err := writeAgentConfig(agentConfig, agentConfigPath); err != nil {
+				log.Error().Err(err).Msg("failed to persist new agent ID after re-registration")
+				// Don't fail re-registration if we can't persist - agent can continue with new ID
+			} else {
+				agentConfigPersisted.Store(true)
+			}
+		}
+
+		log.Info().
+			Int64("agent_id", newAgentID).
+			Str("agent_name", newAgentName).
+			Msg("agent successfully re-registered with server")
+		return nil
+	})
+
 	serviceWaitingGroup.Go(func() error {
 		// we close grpc client context once unregister was handled
 		defer grpcClientCtxCancel(nil)
@@ -317,12 +359,14 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 	log.Trace().Msgf("agent registered with ID %d", agentConfig.AgentID)
 
 	serviceWaitingGroup.Go(func() error {
+		log.Trace().Msg("health reporting goroutine started")
 		for {
 			err := client.ReportHealth(grpcCtx)
 			if err != nil {
 				// Check for fatal consecutive error threshold FIRST - this must always trigger restart
 				if errors.Is(err, agent_rpc.ErrMaxConsecutiveErrors) {
 					log.Error().Err(err).Msg("health reporting encountered fatal error, agent will exit for restart")
+					stopAgentFunc(err) // Trigger agent shutdown
 					return err
 				}
 
@@ -351,6 +395,10 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 		return fmt.Errorf("max-workflows is 0, agent cannot process any pipelines")
 	}
 
+	// Mark workflow polling as healthy once runners start - the Next() call blocks until a task
+	// is available, so we can't wait for it to return before setting the flag
+	client.SetWorkflowPollingHealthy(true)
+
 	for i := 0; i < maxWorkflows; i++ {
 		i := i
 		serviceWaitingGroup.Go(func() error {
@@ -367,6 +415,7 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 					// Check for fatal consecutive error threshold FIRST - this must always trigger restart
 					if errors.Is(err, agent_rpc.ErrMaxConsecutiveErrors) {
 						log.Error().Err(err).Msg("workflow polling encountered fatal error, agent will exit for restart")
+						stopAgentFunc(err) // Trigger agent shutdown
 						return err
 					}
 
@@ -378,6 +427,7 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 					// For any other error, log and exit to trigger pod restart
 					// This ensures a clean slate and follows the pattern that errors should cause restarts
 					log.Error().Err(err).Msg("runner encountered an error, agent will exit for restart")
+					stopAgentFunc(err) // Trigger agent shutdown
 					return err
 				}
 			}
@@ -388,7 +438,16 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 		"starting Crow agent with version '%s' and backend '%s' using platform '%s' running up to %d pipelines in parallel",
 		version.String(), backendEngine.Name(), engInfo.Platform, maxWorkflows)
 
-	return serviceWaitingGroup.Wait()
+	// Mark agent as healthy now that it has started successfully
+	counter.SetHealthy(true)
+
+	// Wait for all services to complete
+	err = serviceWaitingGroup.Wait()
+
+	// Mark agent as unhealthy when it exits/crashes
+	counter.SetHealthy(false)
+
+	return err
 }
 
 func runWithRetry(backendEngines []types.Backend) func(ctx context.Context, c *cli.Command) error {
@@ -399,8 +458,7 @@ func runWithRetry(backendEngines []types.Backend) func(ctx context.Context, c *c
 
 		initHealth()
 
-		// Just run once - if there are connection errors, the agent will exit and
-		// Kubernetes will restart it with exponential backoff
+		// Run once - when agent crashes, healthcheck will fail and container will restart
 		return run(ctx, c, backendEngines)
 	}
 }

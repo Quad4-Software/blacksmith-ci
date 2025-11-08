@@ -29,9 +29,16 @@ import (
 // WithTaskStore returns a queue that is backed by the TaskStore. This
 // ensures the task Queue can be restored when the system starts.
 func WithTaskStore(ctx context.Context, q Queue, s store.Store) Queue {
-	tasks, _ := s.TaskList()
-	if err := q.PushAtOnce(ctx, tasks); err != nil {
-		log.Error().Err(err).Msg("PushAtOnce failed")
+	// Only load tasks for workflows that are still pending or running
+	// This prevents completed tasks from being reprocessed on server restart
+	tasks, err := s.TaskListPending()
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to load pending tasks from database")
+	} else if len(tasks) > 0 {
+		log.Info().Int("count", len(tasks)).Msg("Loading pending tasks from database on startup")
+		if err := q.PushAtOnce(ctx, tasks); err != nil {
+			log.Error().Err(err).Msg("PushAtOnce failed")
+		}
 	}
 	return &persistentQueue{q, s}
 }

@@ -68,6 +68,7 @@ var migrationTasks = []*xormigrate.Migration{
 	&addStaleAgentCleanup,
 	&addResourceLimitsToAgents,
 	&addWorkflowPollingHealthToAgents,
+	&addAutoscalers,
 }
 
 var allBeans = []any{
@@ -95,6 +96,7 @@ var allBeans = []any{
 	new(model.DistributedLock),
 	new(model.DistributedMessage),
 	new(model.CacheEntry),
+	new(model.Autoscaler),
 }
 
 // TODO: make xormigrate context aware

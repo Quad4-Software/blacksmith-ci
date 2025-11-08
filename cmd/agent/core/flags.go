@@ -98,6 +98,7 @@ var flags = []cli.Flag{
 		Sources: cli.EnvVars("WOODPECKER_KEEPALIVE_TIME", "CROW_KEEPALIVE_TIME"),
 		Name:    "keepalive-time",
 		Usage:   "after a duration of this time of no activity, the agent pings the server to check if the transport is still alive",
+		Value:   time.Second * 30,
 	},
 	&cli.DurationFlag{
 		Sources: cli.EnvVars("WOODPECKER_KEEPALIVE_TIMEOUT", "CROW_KEEPALIVE_TIMEOUT"),

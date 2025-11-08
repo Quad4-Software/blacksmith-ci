@@ -61,6 +61,14 @@ func TestParseMemory(t *testing.T) {
 		{"decimal GB", "1.5G", 1500000000, false},
 		{"decimal Gi", "1.5Gi", 1610612736, false},
 
+		// With quotes (from config files)
+		{"single quoted GB", "'2G'", 2000000000, false},
+		{"double quoted GB", `"2G"`, 2000000000, false},
+		{"single quoted Gi", "'6Gi'", 6442450944, false},
+		{"double quoted Gi", `"6Gi"`, 6442450944, false},
+		{"single quoted Mi", "'512Mi'", 536870912, false},
+		{"double quoted Mi", `"512Mi"`, 536870912, false},
+
 		// Error cases
 		{"invalid format", "2X", 0, true},
 		{"invalid unit", "2Zi", 0, true},
@@ -107,6 +115,14 @@ func TestParseCPUQuota(t *testing.T) {
 		// With spaces
 		{"cores with spaces", "  2  ", 200000, false},
 		{"millicores with spaces", "  1000m  ", 100000, false},
+
+		// With quotes (from config files)
+		{"single quoted cores", "'3'", 300000, false},
+		{"double quoted cores", `"3"`, 300000, false},
+		{"single quoted millicores", "'1000m'", 100000, false},
+		{"double quoted millicores", `"1000m"`, 100000, false},
+		{"single quoted decimal", "'0.5'", 50000, false},
+		{"double quoted decimal", `"0.5"`, 50000, false},
 
 		// Error cases
 		{"invalid format", "2x", 0, true},
