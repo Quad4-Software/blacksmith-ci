@@ -56,9 +56,9 @@ require (
 	github.com/urfave/cli/v3 v3.6.1
 	github.com/xeipuuv/gojsonschema v1.2.0
 	github.com/yaronf/httpsign v0.4.1
-	gitlab.com/gitlab-org/api/client-go v0.160.0
+	gitlab.com/gitlab-org/api/client-go v0.160.1
 	go.uber.org/multierr v1.11.0
-	golang.org/x/crypto v0.44.0
+	golang.org/x/crypto v0.45.0
 	golang.org/x/net v0.47.0
 	golang.org/x/oauth2 v0.33.0
 	golang.org/x/sync v0.18.0
