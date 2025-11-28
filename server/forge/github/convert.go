@@ -18,7 +18,7 @@ package github
 import (
 	"fmt"
 
-	"github.com/google/go-github/v76/github"
+	"github.com/google/go-github/v79/github"
 
 	"codeberg.org/crowci/crow/v4/server/model"
 )
