@@ -1,0 +1,13 @@
+forge_type: forgejo
+forgejo_url: https://codeberg.org
+target_branches:
+  - 4.5.x
+commit_message: ''
+author_name: 'crowci-bot'
+author_email: 'admin@crowci.dev'
+default_branch: main
+remote: origin
+recent_pr_count: 10
+cache:
+  enabled: true
+  path: ''
