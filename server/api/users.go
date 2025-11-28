@@ -19,7 +19,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/tink/go/subtle/random"
+	"github.com/tink-crypto/tink-go/v2/subtle/random"
 
 	"codeberg.org/crowci/crow/v4/server/model"
 	"codeberg.org/crowci/crow/v4/server/router/middleware/session"

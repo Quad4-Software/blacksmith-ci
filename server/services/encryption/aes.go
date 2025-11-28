@@ -19,7 +19,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"github.com/google/tink/go/subtle/random"
+	"github.com/tink-crypto/tink-go/v2/subtle/random"
 
 	"codeberg.org/crowci/crow/v4/server/services/encryption/types"
 	"codeberg.org/crowci/crow/v4/server/store"

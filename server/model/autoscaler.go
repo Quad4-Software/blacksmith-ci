@@ -18,7 +18,7 @@ import (
 	"encoding/base32"
 	"time"
 
-	"github.com/google/tink/go/subtle/random"
+	"github.com/tink-crypto/tink-go/v2/subtle/random"
 )
 
 // Autoscaler represents an autoscaler instance that provisions agents on demand.
