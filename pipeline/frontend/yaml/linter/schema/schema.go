@@ -17,53 +17,136 @@ package schema
 import (
 	"bytes"
 	_ "embed"
+	"errors"
 	"fmt"
 	"io"
 
 	"codeberg.org/6543/go-yaml2json"
 	"codeberg.org/6543/xyaml"
-	json_schema "github.com/xeipuuv/gojsonschema"
+	"github.com/santhosh-tekuri/jsonschema/v6"
 	"gopkg.in/yaml.v3"
 )
 
 //go:embed schema.json
 var schemaDefinition []byte
 
-// Lint lints an io.Reader against the Crow `schema.json`.
-func Lint(r io.Reader) ([]json_schema.ResultError, error) {
-	schemaLoader := json_schema.NewBytesLoader(schemaDefinition)
+// SchemaError represents a JSON schema validation error with field and description.
+type SchemaError struct {
+	field       string
+	description string
+}
 
-	// read yaml config
+// Field returns the JSON path to the field that caused the error.
+func (e *SchemaError) Field() string {
+	return e.field
+}
+
+// Description returns the error description.
+func (e *SchemaError) Description() string {
+	return e.description
+}
+
+// compileSchema compiles the embedded schema definition.
+func compileSchema() (*jsonschema.Schema, error) {
+	schemaDoc, err := jsonschema.UnmarshalJSON(bytes.NewReader(schemaDefinition))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse schema: %w", err)
+	}
+
+	compiler := jsonschema.NewCompiler()
+	if err := compiler.AddResource("schema.json", schemaDoc); err != nil {
+		return nil, fmt.Errorf("failed to add schema resource: %w", err)
+	}
+
+	sch, err := compiler.Compile("schema.json")
+	if err != nil {
+		return nil, fmt.Errorf("failed to compile schema: %w", err)
+	}
+
+	return sch, nil
+}
+
+// extractErrors converts a ValidationError into a slice of SchemaErrors.
+func extractErrors(validationErr *jsonschema.ValidationError) []*SchemaError {
+	var errors []*SchemaError
+
+	// Get basic output which contains error details
+	basic := validationErr.BasicOutput()
+	if basic.Errors != nil {
+		for _, e := range basic.Errors {
+			errMsg := ""
+			if e.Error != nil {
+				errMsg = e.Error.String()
+			}
+			errors = append(errors, &SchemaError{
+				field:       e.InstanceLocation,
+				description: errMsg,
+			})
+		}
+	}
+
+	// If no nested errors, use the top-level error
+	if len(errors) == 0 {
+		errMsg := validationErr.Error()
+		if basic.Error != nil {
+			errMsg = basic.Error.String()
+		}
+		errors = append(errors, &SchemaError{
+			field:       basic.InstanceLocation,
+			description: errMsg,
+		})
+	}
+
+	return errors
+}
+
+// Lint lints an io.Reader against the Crow `schema.json`.
+func Lint(r io.Reader) ([]*SchemaError, error) {
+	// Compile schema
+	sch, err := compileSchema()
+	if err != nil {
+		return nil, err
+	}
+
+	// Read YAML config
 	rBytes, err := io.ReadAll(r)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load yml file %w", err)
+		return nil, fmt.Errorf("failed to load yml file: %w", err)
 	}
 
-	// resolve sequence merges
+	// Resolve sequence merges
 	yamlDoc := new(yaml.Node)
 	if err := xyaml.Unmarshal(rBytes, yamlDoc); err != nil {
-		return nil, fmt.Errorf("failed to parse yml file %w", err)
+		return nil, fmt.Errorf("failed to parse yml file: %w", err)
 	}
 
-	// convert to json
+	// Convert to JSON
 	jsonDoc, err := yaml2json.ConvertNode(yamlDoc)
 	if err != nil {
-		return nil, fmt.Errorf("failed to convert yaml %w", err)
+		return nil, fmt.Errorf("failed to convert yaml: %w", err)
 	}
 
-	documentLoader := json_schema.NewBytesLoader(jsonDoc)
-	result, err := json_schema.Validate(schemaLoader, documentLoader)
+	// Parse JSON document
+	doc, err := jsonschema.UnmarshalJSON(bytes.NewReader(jsonDoc))
 	if err != nil {
-		return nil, fmt.Errorf("validation failed %w", err)
+		return nil, fmt.Errorf("failed to parse json document: %w", err)
 	}
 
-	if !result.Valid() {
-		return result.Errors(), fmt.Errorf("config not valid")
+	// Validate
+	err = sch.Validate(doc)
+	if err != nil {
+		validationErr := &jsonschema.ValidationError{}
+		ok := errors.As(err, &validationErr)
+		if !ok {
+			return nil, fmt.Errorf("validation failed: %w", err)
+		}
+		return extractErrors(validationErr), fmt.Errorf("config not valid")
 	}
 
 	return nil, nil
 }
 
-func LintString(s string) ([]json_schema.ResultError, error) {
+// LintString lints a string against the Crow schema.
+func LintString(s string) ([]*SchemaError, error) {
 	return Lint(bytes.NewBufferString(s))
 }
