@@ -199,7 +199,7 @@ func (g *GitLab) Teams(ctx context.Context, user *model.User) ([]*model.Team, er
 
 	teams := make([]*model.Team, 0, perPage)
 
-	for i := 1; true; i++ {
+	for i := int64(1); true; i++ {
 		batch, _, err := client.Groups.ListGroups(&gitlab.ListGroupsOptions{
 			ListOptions:    gitlab.ListOptions{Page: i, PerPage: perPage},
 			AllAvailable:   gitlab.Ptr(false),
@@ -245,7 +245,7 @@ func (g *GitLab) getProject(ctx context.Context, client *gitlab.Client, forgeRem
 	return repo, err
 }
 
-func (g *GitLab) getInheritedProjectMember(ctx context.Context, client *gitlab.Client, forgeRemoteID model.ForgeRemoteID, owner, name string, userID int) (*gitlab.ProjectMember, error) {
+func (g *GitLab) getInheritedProjectMember(ctx context.Context, client *gitlab.Client, forgeRemoteID model.ForgeRemoteID, owner, name string, userID int64) (*gitlab.ProjectMember, error) {
 	if forgeRemoteID.IsValid() {
 		intID, err := strconv.Atoi(string(forgeRemoteID))
 		if err != nil {
@@ -271,7 +271,7 @@ func (g *GitLab) Repo(ctx context.Context, user *model.User, remoteID model.Forg
 		return nil, err
 	}
 
-	intUserID, err := strconv.Atoi(string(user.ForgeRemoteID))
+	intUserID, err := strconv.ParseInt(string(user.ForgeRemoteID), 10, 64)
 	if err != nil {
 		return nil, err
 	}
@@ -299,12 +299,12 @@ func (g *GitLab) Repos(ctx context.Context, user *model.User) ([]*model.Repo, er
 	if g.HideArchives {
 		opts.Archived = gitlab.Ptr(false)
 	}
-	intUserID, err := strconv.Atoi(string(user.ForgeRemoteID))
+	intUserID, err := strconv.ParseInt(string(user.ForgeRemoteID), 10, 64)
 	if err != nil {
 		return nil, err
 	}
 
-	for i := 1; true; i++ {
+	for i := int64(1); true; i++ {
 		opts.Page = i
 		batch, _, err := client.Projects.ListProjects(opts, gitlab.WithContext(ctx))
 		if err != nil {
@@ -347,7 +347,7 @@ func (g *GitLab) PullRequests(ctx context.Context, u *model.User, r *model.Repo,
 
 	state := "opened"
 	pullRequests, _, err := client.MergeRequests.ListProjectMergeRequests(_repo.ID, &gitlab.ListProjectMergeRequestsOptions{
-		ListOptions: gitlab.ListOptions{Page: p.Page, PerPage: p.PerPage},
+		ListOptions: gitlab.ListOptions{Page: int64(p.Page), PerPage: int64(p.PerPage)},
 		State:       &state,
 	})
 	if err != nil {
@@ -357,7 +357,7 @@ func (g *GitLab) PullRequests(ctx context.Context, u *model.User, r *model.Repo,
 	result := make([]*model.PullRequest, len(pullRequests))
 	for i := range pullRequests {
 		result[i] = &model.PullRequest{
-			Index: model.ForgeRemoteID(strconv.Itoa(pullRequests[i].ID)),
+			Index: model.ForgeRemoteID(strconv.FormatInt(pullRequests[i].ID, 10)),
 			Title: pullRequests[i].Title,
 		}
 	}
@@ -544,8 +544,7 @@ func (g *GitLab) Deactivate(ctx context.Context, user *model.User, repo *model.R
 	}
 
 	listProjectHooksOptions := &gitlab.ListProjectHooksOptions{
-		PerPage: perPage,
-		Page:    1,
+		ListOptions: gitlab.ListOptions{PerPage: perPage, Page: 1},
 	}
 	for {
 		hooks, resp, err := client.Projects.ListProjectHooks(_repo.ID, listProjectHooksOptions, gitlab.WithContext(ctx))
@@ -588,7 +587,7 @@ func (g *GitLab) Branches(ctx context.Context, user *model.User, repo *model.Rep
 	}
 
 	gitlabBranches, _, err := client.Branches.ListBranches(_repo.ID,
-		&gitlab.ListBranchesOptions{ListOptions: gitlab.ListOptions{Page: p.Page, PerPage: p.PerPage}},
+		&gitlab.ListBranchesOptions{ListOptions: gitlab.ListOptions{Page: int64(p.Page), PerPage: int64(p.PerPage)}},
 		gitlab.WithContext(ctx))
 	if err != nil {
 		return nil, err
@@ -688,7 +687,7 @@ func (g *GitLab) OrgMembership(ctx context.Context, u *model.User, owner string)
 	if err != nil {
 		return nil, err
 	}
-	var gid int
+	var gid int64
 	for _, group := range groups {
 		if group.Name == owner {
 			gid = group.ID
@@ -706,7 +705,7 @@ func (g *GitLab) OrgMembership(ctx context.Context, u *model.User, owner string)
 		},
 	}
 
-	for i := 1; true; i++ {
+	for i := int64(1); true; i++ {
 		opts.Page = i
 		members, _, err := client.Groups.ListAllGroupMembers(gid, opts, gitlab.WithContext(ctx))
 		if err != nil {
@@ -718,7 +717,7 @@ func (g *GitLab) OrgMembership(ctx context.Context, u *model.User, owner string)
 			}
 		}
 
-		if len(members) < opts.PerPage {
+		if len(members) < int(opts.PerPage) {
 			break
 		}
 	}
@@ -776,7 +775,7 @@ func (g *GitLab) Org(ctx context.Context, u *model.User, owner string) (*model.O
 	}, nil
 }
 
-func (g *GitLab) loadChangedFilesFromMergeRequest(ctx context.Context, tmpRepo *model.Repo, pipeline *model.Pipeline, mergeIID int) (*model.Pipeline, error) {
+func (g *GitLab) loadChangedFilesFromMergeRequest(ctx context.Context, tmpRepo *model.Repo, pipeline *model.Pipeline, mergeIID int64) (*model.Pipeline, error) {
 	_store, ok := store.TryFromContext(ctx)
 	if !ok {
 		log.Error().Msg("could not get store from context")

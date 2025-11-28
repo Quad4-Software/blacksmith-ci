@@ -63,7 +63,7 @@ func (g *GitLab) convertGitLabRepo(_repo *gitlab.Project, projectMember *gitlab.
 	return repo, nil
 }
 
-func convertMergeRequestHook(hook *gitlab.MergeEvent, req *http.Request) (int, *model.Repo, *model.Pipeline, error) {
+func convertMergeRequestHook(hook *gitlab.MergeEvent, req *http.Request) (int64, *model.Repo, *model.Pipeline, error) {
 	repo := &model.Repo{}
 	pipeline := &model.Pipeline{}
 
