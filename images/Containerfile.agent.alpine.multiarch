@@ -38,10 +38,10 @@ LABEL org.label-schema.license="Apache-2.0" \
       io.artifacthub.package.readme-url="https://codeberg.org/crowci/crow/raw/branch/main/README.md" \
       maintainer="Crow Authors <admin@crowci.dev>"
 
-RUN apk add -U --no-cache ca-certificates && \
+RUN apk add -U --no-cache ca-certificates tini logrotate su-exec && \
   addgroup -g 1000 -S crow && \
-  adduser -u 1000 -G crow -S crow && \
-  mkdir -p /etc/crow /var/log/crow && \
+  adduser -u 1000 -G crow -S -s /bin/sh crow && \
+  mkdir -p /etc/crow /var/log/crow /etc/cron.d && \
   ln -s /etc/crow /etc/woodpecker && \
   chown -R crow:crow /etc/crow /etc/woodpecker /var/log/crow
 
@@ -54,6 +54,9 @@ ENV CI_COMMIT_TAG=$CI_COMMIT_TAG
 EXPOSE 3000
 
 COPY --from=build /src/dist/crow-agent /bin/
+COPY images/scripts/crow-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/crow-entrypoint.sh
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 CMD ["/bin/crow-agent", "ping"]
-ENTRYPOINT ["/bin/crow-agent"]
+# Note: Agent runs as root (no user switch needed), pass empty string as user argument
+ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/crow-entrypoint.sh", "", "/bin/crow-agent"]

@@ -12,10 +12,10 @@ LABEL org.label-schema.license="Apache-2.0" \
 
 ARG TARGETOS TARGETARCH
 
-RUN apk add -U --no-cache ca-certificates && \
+RUN apk add -U --no-cache ca-certificates tini logrotate su-exec && \
   addgroup -g 1000 -S crow && \
-  adduser -u 1000 -G crow -S crow && \
-  mkdir -p /var/lib/crow /var/log/crow && \
+  adduser -u 1000 -G crow -S -s /bin/sh crow && \
+  mkdir -p /var/lib/crow /var/log/crow /etc/cron.d && \
   ln -s /var/log/crow /var/lib/woodpecker && \
   chown -R crow:crow /var/log/crow /var/lib/woodpecker
 
@@ -32,8 +32,9 @@ ARG CACHE_BUST=unknown
 RUN echo "Cache bust: ${CACHE_BUST}"
 
 COPY dist/server/${TARGETOS}_${TARGETARCH}/crow-server /bin/
+COPY images/scripts/crow-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/crow-entrypoint.sh
 
-USER crow
-
+# Note: Entrypoint runs as root to set up cron, then switches to crow before exec'ing server
 HEALTHCHECK CMD ["/bin/crow-server", "ping"]
-ENTRYPOINT ["/bin/crow-server"]
+ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/crow-entrypoint.sh", "crow", "/bin/crow-server"]

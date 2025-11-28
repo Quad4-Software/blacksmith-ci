@@ -712,6 +712,32 @@
 
 ---
 
+### LOGROTATE_ENABLED
+
+- Name: `CROW_LOGROTATE_ENABLED`
+- Description: Enable automatic log rotation (Alpine images only).
+  Set to `auto` to enable when `CROW_LOG_FILE` points to a file, `true` to always enable, or `false` to disable.
+- Default: `auto`
+
+---
+
+### LOGROTATE_SCHEDULE
+
+- Name: `CROW_LOGROTATE_SCHEDULE`
+- Description: Cron schedule for log rotation (Alpine images only).
+  Uses standard cron syntax (minute hour day month weekday).
+- Default: `0 0 * * *` (daily at midnight)
+
+---
+
+### LOGROTATE_RETAIN_DAYS
+
+- Name: `CROW_LOGROTATE_RETAIN_DAYS`
+- Description: Number of days to retain rotated logs before deletion (Alpine images only).
+- Default: `7`
+
+---
+
 ### QUEUE_LOCK_TTL
 
 - Name: `CROW_QUEUE_LOCK_TTL`

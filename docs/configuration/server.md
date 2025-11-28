@@ -420,6 +420,14 @@ CROW_DATABASE_LOG_SQL
 CROW_LOG_STORE
 # not set
 CROW_LOG_STORE_FILE_PATH
+
+# Log rotation (Alpine images only)
+# default 'auto' (enables rotation when CROW_LOG_FILE is set to a file path)
+CROW_LOGROTATE_ENABLED
+# default '0 0 * * *' (daily at midnight, cron format)
+CROW_LOGROTATE_SCHEDULE
+# default '7'
+CROW_LOGROTATE_RETAIN_DAYS
 ```
 
 ### Server & Agent
@@ -437,7 +445,20 @@ If `CROW_DATABASE_LOG=true` is set, logs are written into the configured databas
 
 /// warning
 Database logging might quickly increase the size of the DB, depending on the chosen log level.
-It is recommended to use file-based logging with automatic log-rotation (not configured automatically).
+It is recommended to use file-based logging with automatic log-rotation.
+///
+
+#### Automatic Log Rotation (Alpine Images)
+
+When using Alpine-based container images (`crow-server:*-alpine` or `crow-agent:*-alpine`), log rotation is automatically configured when `CROW_LOG_FILE` is set to a file path (not `stdout` or `stderr`).
+
+- Logs are rotated according to `CROW_LOGROTATE_SCHEDULE` (default: daily at midnight)
+- Rotated logs are compressed with gzip (e.g., `server.log.1.gz`, `server.log.2.gz`)
+- Old logs are deleted after `CROW_LOGROTATE_RETAIN_DAYS` days (default: 7)
+- All rotation activity is logged to container stdout/stderr with `[logrotate]` prefix
+
+/// note
+Log rotation is only available in Alpine-based images. Scratch-based images (`crow-server:latest`, `crow-agent:latest`) do not include the necessary tools for log rotation.
 ///
 
 ### Pipeline logs
