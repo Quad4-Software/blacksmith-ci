@@ -22,7 +22,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@dagrejs/dagre": "^1.1.5",
+    "@dagrejs/dagre": "^2.0.0",
     "@iconify/vue": "^5.0.0",
     "@kyvg/vue3-notification": "^3.4.2",
     "@mdi/js": "^7.4.47",
