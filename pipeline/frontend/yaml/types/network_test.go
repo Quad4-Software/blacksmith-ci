@@ -18,7 +18,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/yaml.v3"
+
+	"codeberg.org/crowci/crow/v4/shared/yaml"
 )
 
 func TestMarshalNetworks(t *testing.T) {
@@ -58,9 +59,9 @@ network2: {}
 				},
 			},
 			expected: `network1:
-    aliases:
-        - alias1
-        - alias2
+  aliases:
+  - alias1
+  - alias2
 network2: {}
 `,
 		},
@@ -79,12 +80,12 @@ network2: {}
 				},
 			},
 			expected: `network1:
-    aliases:
-        - alias1
-        - alias2
+  aliases:
+  - alias1
+  - alias2
 network2:
-    ipv4_address: 172.16.238.10
-    ipv6_address: 2001:3984:3989::10
+  ipv4_address: 172.16.238.10
+  ipv6_address: 2001:3984:3989::10
 `,
 		},
 	}

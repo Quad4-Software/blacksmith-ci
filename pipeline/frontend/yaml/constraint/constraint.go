@@ -24,7 +24,6 @@ import (
 	"github.com/bmatcuk/doublestar/v4"
 	"github.com/expr-lang/expr"
 	"go.uber.org/multierr"
-	"gopkg.in/yaml.v3"
 
 	"codeberg.org/crowci/crow/v4/pipeline/frontend/metadata"
 	yamlBaseTypes "codeberg.org/crowci/crow/v4/pipeline/frontend/yaml/types/base"
@@ -132,24 +131,20 @@ func (when *When) IsLocal() bool {
 	return true
 }
 
-func (when *When) UnmarshalYAML(value *yaml.Node) error {
-	switch value.Kind {
-	case yaml.SequenceNode:
-		if err := value.Decode(&when.Constraints); err != nil {
-			return err
-		}
-
-	case yaml.MappingNode:
-		c := Constraint{}
-		if err := value.Decode(&c); err != nil {
-			return err
-		}
-		when.Constraints = append(when.Constraints, c)
-
-	default:
-		return fmt.Errorf("not supported yaml kind: %v", value.Kind)
+func (when *When) UnmarshalYAML(unmarshal func(any) error) error {
+	// Try as sequence first
+	var constraints []Constraint
+	if err := unmarshal(&constraints); err == nil {
+		when.Constraints = constraints
+		return nil
 	}
 
+	// Try as single mapping
+	var c Constraint
+	if err := unmarshal(&c); err != nil {
+		return fmt.Errorf("could not unmarshal when constraint: %w", err)
+	}
+	when.Constraints = append(when.Constraints, c)
 	return nil
 }
 
@@ -246,7 +241,7 @@ func (c *List) Excludes(v string) bool {
 }
 
 // UnmarshalYAML unmarshal the constraint.
-func (c *List) UnmarshalYAML(value *yaml.Node) error {
+func (c *List) UnmarshalYAML(unmarshal func(any) error) error {
 	out1 := struct {
 		Include yamlBaseTypes.StringOrSlice
 		Exclude yamlBaseTypes.StringOrSlice
@@ -254,8 +249,8 @@ func (c *List) UnmarshalYAML(value *yaml.Node) error {
 
 	var out2 yamlBaseTypes.StringOrSlice
 
-	err1 := value.Decode(&out1)
-	err2 := value.Decode(&out2)
+	err1 := unmarshal(&out1)
+	err2 := unmarshal(&out2)
 
 	c.Exclude = out1.Exclude
 	c.Include = append( //nolint:gocritic
@@ -264,8 +259,7 @@ func (c *List) UnmarshalYAML(value *yaml.Node) error {
 	)
 
 	if err1 != nil && err2 != nil {
-		y, _ := yaml.Marshal(value)
-		return fmt.Errorf("could not parse condition: %s: %w", y, multierr.Append(err1, err2))
+		return fmt.Errorf("could not parse condition: %w", multierr.Append(err1, err2))
 	}
 
 	return nil
@@ -325,7 +319,7 @@ func (c *Map) UnmarshalYAML(unmarshal func(any) error) error {
 }
 
 // UnmarshalYAML unmarshal the constraint.
-func (c *Path) UnmarshalYAML(value *yaml.Node) error {
+func (c *Path) UnmarshalYAML(unmarshal func(any) error) error {
 	out1 := struct {
 		Include       yamlBaseTypes.StringOrSlice `yaml:"include,omitempty"`
 		Exclude       yamlBaseTypes.StringOrSlice `yaml:"exclude,omitempty"`
@@ -335,8 +329,8 @@ func (c *Path) UnmarshalYAML(value *yaml.Node) error {
 
 	var out2 yamlBaseTypes.StringOrSlice
 
-	err1 := value.Decode(&out1)
-	err2 := value.Decode(&out2)
+	err1 := unmarshal(&out1)
+	err2 := unmarshal(&out2)
 
 	c.Exclude = out1.Exclude
 	c.IgnoreMessage = out1.IgnoreMessage
@@ -347,8 +341,7 @@ func (c *Path) UnmarshalYAML(value *yaml.Node) error {
 	)
 
 	if err1 != nil && err2 != nil {
-		y, _ := yaml.Marshal(value)
-		return fmt.Errorf("could not parse condition: %s", y)
+		return fmt.Errorf("could not parse condition: %w", multierr.Append(err1, err2))
 	}
 
 	return nil

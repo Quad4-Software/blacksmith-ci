@@ -25,14 +25,28 @@ type StringOrSlice []string
 
 // UnmarshalYAML implements the Unmarshaler interface.
 func (s *StringOrSlice) UnmarshalYAML(unmarshal func(any) error) error {
-	var stringType string
-	if err := unmarshal(&stringType); err == nil {
+	// First try to detect if it's null/empty
+	var raw any
+	if err := unmarshal(&raw); err != nil {
+		return err
+	}
+	if raw == nil {
+		*s = nil
+		return nil
+	}
+
+	// Try as string
+	if stringType, ok := raw.(string); ok {
+		if stringType == "" {
+			*s = nil
+			return nil
+		}
 		*s = []string{stringType}
 		return nil
 	}
 
-	var sliceType []any
-	if err := unmarshal(&sliceType); err == nil {
+	// Try as slice
+	if sliceType, ok := raw.([]any); ok {
 		parts, err := toStrings(sliceType)
 		if err != nil {
 			return err

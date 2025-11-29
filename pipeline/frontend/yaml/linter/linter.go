@@ -17,7 +17,6 @@ package linter
 import (
 	"fmt"
 
-	"codeberg.org/6543/xyaml"
 	"go.uber.org/multierr"
 
 	"codeberg.org/crowci/crow/v4/pipeline/errors"
@@ -26,6 +25,7 @@ import (
 	"codeberg.org/crowci/crow/v4/pipeline/frontend/yaml/types"
 	"codeberg.org/crowci/crow/v4/pipeline/frontend/yaml/utils"
 	"codeberg.org/crowci/crow/v4/shared/constant"
+	"codeberg.org/crowci/crow/v4/shared/yaml"
 )
 
 // A Linter lints a pipeline configuration.
@@ -322,7 +322,7 @@ func (l *Linter) lintSchema(config *WorkflowConfig) error {
 
 func (l *Linter) lintDeprecations(config *WorkflowConfig) (err error) {
 	parsed := new(types.Workflow)
-	err = xyaml.Unmarshal([]byte(config.RawConfig), parsed)
+	err = yaml.Unmarshal([]byte(config.RawConfig), parsed)
 	if err != nil {
 		return err
 	}
@@ -332,7 +332,7 @@ func (l *Linter) lintDeprecations(config *WorkflowConfig) (err error) {
 
 func (l *Linter) lintBadHabits(config *WorkflowConfig) (err error) {
 	parsed := new(types.Workflow)
-	err = xyaml.Unmarshal([]byte(config.RawConfig), parsed)
+	err = yaml.Unmarshal([]byte(config.RawConfig), parsed)
 	if err != nil {
 		return err
 	}

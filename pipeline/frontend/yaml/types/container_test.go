@@ -19,10 +19,10 @@ import (
 
 	"github.com/docker/docker/api/types/strslice"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/yaml.v3"
 
 	"codeberg.org/crowci/crow/v4/pipeline/frontend/yaml/constraint"
 	"codeberg.org/crowci/crow/v4/pipeline/frontend/yaml/types/base"
+	"codeberg.org/crowci/crow/v4/shared/yaml"
 )
 
 var containerYaml = []byte(`

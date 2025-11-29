@@ -15,13 +15,13 @@
 package settings
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
 
-	"codeberg.org/6543/go-yaml2json"
-	"gopkg.in/yaml.v3"
+	"github.com/goccy/go-yaml"
 )
 
 // ParamsToEnv uses reflection to convert a map[string]interface to a list
@@ -70,6 +70,7 @@ func isComplex(t reflect.Kind) bool {
 	case reflect.Bool,
 		reflect.String,
 		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
 		reflect.Float32, reflect.Float64:
 		return false
 	default:
@@ -92,12 +93,15 @@ func sanitizeParamValue(v any, getSecretValue func(name string) (string, error))
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return fmt.Sprintf("%v", vv.Int()), nil
 
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return fmt.Sprintf("%v", vv.Uint()), nil
+
 	case reflect.Float32, reflect.Float64:
 		return fmt.Sprintf("%v", vv.Float()), nil
 
 	case reflect.Map:
 		switch v := v.(type) {
-		// gopkg.in/yaml.v3 only emits this map interface
+		// YAML unmarshalers emit this map interface
 		case map[string]any:
 			// check if it's a secret and return value if it's the case
 			value, isSecret, err := injectSecret(v, getSecretValue)
@@ -144,18 +148,29 @@ func sanitizeParamValue(v any, getSecretValue func(name string) (string, error))
 	return handleComplex(vv.Interface(), getSecretValue)
 }
 
-// handleComplex uses yaml2json to get json strings as values for environment variables.
+// handleComplex returns JSON strings as values for environment variables.
+// It uses yaml.Marshal first to normalize field names (lowercasing),
+// then converts to JSON for the final output.
 func handleComplex(v any, getSecretValue func(name string) (string, error)) (string, error) {
 	v, err := injectSecretRecursive(v, getSecretValue)
 	if err != nil {
 		return "", err
 	}
 
-	out, err := yaml.Marshal(v)
+	// First marshal to YAML to normalize field names (lowercase)
+	yamlData, err := yaml.Marshal(v)
 	if err != nil {
 		return "", err
 	}
-	out, err = yaml2json.Convert(out)
+
+	// Unmarshal back to a generic structure
+	var normalized any
+	if err := yaml.Unmarshal(yamlData, &normalized); err != nil {
+		return "", err
+	}
+
+	// Finally marshal to JSON
+	out, err := json.Marshal(normalized)
 	if err != nil {
 		return "", err
 	}
@@ -192,7 +207,7 @@ func injectSecretRecursive(v any, getSecretValue func(name string) (string, erro
 	switch t.Kind() {
 	case reflect.Map:
 		switch v := v.(type) {
-		// gopkg.in/yaml.v3 only emits this map interface
+		// YAML unmarshalers emit this map interface
 		case map[string]any:
 			// handle secrets
 			value, isSecret, err := injectSecret(v, getSecretValue)

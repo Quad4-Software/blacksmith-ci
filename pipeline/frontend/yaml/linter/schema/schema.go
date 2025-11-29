@@ -17,14 +17,14 @@ package schema
 import (
 	"bytes"
 	_ "embed"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 
-	"codeberg.org/6543/go-yaml2json"
-	"codeberg.org/6543/xyaml"
 	"github.com/santhosh-tekuri/jsonschema/v6"
-	"gopkg.in/yaml.v3"
+
+	"codeberg.org/crowci/crow/v4/shared/yaml"
 )
 
 //go:embed schema.json
@@ -114,16 +114,16 @@ func Lint(r io.Reader) ([]*SchemaError, error) {
 		return nil, fmt.Errorf("failed to load yml file: %w", err)
 	}
 
-	// Resolve sequence merges
-	yamlDoc := new(yaml.Node)
-	if err := xyaml.Unmarshal(rBytes, yamlDoc); err != nil {
+	// parse yaml (with sequence merge support)
+	var yamlDoc any
+	if err := yaml.Unmarshal(rBytes, &yamlDoc); err != nil {
 		return nil, fmt.Errorf("failed to parse yml file: %w", err)
 	}
 
-	// Convert to JSON
-	jsonDoc, err := yaml2json.ConvertNode(yamlDoc)
+	// convert to json
+	jsonDoc, err := json.Marshal(yamlDoc)
 	if err != nil {
-		return nil, fmt.Errorf("failed to convert yaml: %w", err)
+		return nil, fmt.Errorf("failed to convert yaml to json: %w", err)
 	}
 
 	// Parse JSON document

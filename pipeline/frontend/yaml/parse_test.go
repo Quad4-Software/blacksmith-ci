@@ -253,3 +253,229 @@ func TestSlice(t *testing.T) {
 		assert.Empty(t, (out.Steps.ContainerList[1].DependsOn))
 	})
 }
+
+// TestSequenceMerge tests the custom sequence merging feature (xyaml extension).
+// This is NOT standard YAML - the merge key (<<) normally only works with mappings.
+func TestSequenceMerge(t *testing.T) {
+	t.Run("should merge sequences with anchor", func(t *testing.T) {
+		yaml := `
+variables:
+  base_commands: &base-cmds
+    - go version
+    - go mod download
+
+steps:
+  build:
+    image: golang
+    commands:
+      - <<: *base-cmds
+      - go build
+`
+		out, err := ParseString(yaml)
+		assert.NoError(t, err)
+		assert.Len(t, out.Steps.ContainerList, 1)
+		assert.Equal(t, yaml_base_types.StringOrSlice{"go version", "go mod download", "go build"}, out.Steps.ContainerList[0].Commands)
+	})
+
+	t.Run("should merge multiple sequence anchors", func(t *testing.T) {
+		yaml := `
+variables:
+  setup: &setup
+    - echo setup
+  teardown: &teardown
+    - echo teardown
+
+steps:
+  test:
+    image: golang
+    commands:
+      - <<: *setup
+      - go test
+      - <<: *teardown
+`
+		out, err := ParseString(yaml)
+		assert.NoError(t, err)
+		assert.Equal(t, yaml_base_types.StringOrSlice{"echo setup", "go test", "echo teardown"}, out.Steps.ContainerList[0].Commands)
+	})
+
+	t.Run("should handle mapping merge with anchor", func(t *testing.T) {
+		yaml := `
+variables:
+  step_template: &base-step
+    image: golang:1.19
+
+steps:
+  test:
+    <<: *base-step
+    commands:
+      - go test
+  build:
+    <<: *base-step
+    image: golang:latest
+    commands:
+      - go build
+`
+		out, err := ParseString(yaml)
+		assert.NoError(t, err)
+		assert.Len(t, out.Steps.ContainerList, 2)
+		assert.Equal(t, "golang:1.19", out.Steps.ContainerList[0].Image)
+		assert.Equal(t, "golang:latest", out.Steps.ContainerList[1].Image)
+	})
+
+	t.Run("should handle combined mapping and sequence merge", func(t *testing.T) {
+		yaml := `
+variables:
+  step_template: &base-step
+    image: golang:1.19
+    commands: &base-cmds
+      - go version
+      - whoami
+
+steps:
+  test-base-step:
+    <<: *base-step
+  test-with-extra-commands:
+    <<: *base-step
+    commands:
+      - <<: *base-cmds
+      - hostname
+`
+		out, err := ParseString(yaml)
+		assert.NoError(t, err)
+		assert.Len(t, out.Steps.ContainerList, 2)
+		// First step should have base commands
+		assert.Equal(t, yaml_base_types.StringOrSlice{"go version", "whoami"}, out.Steps.ContainerList[0].Commands)
+		// Second step should have merged commands
+		assert.Equal(t, yaml_base_types.StringOrSlice{"go version", "whoami", "hostname"}, out.Steps.ContainerList[1].Commands)
+	})
+}
+
+// TestAnchorAlias tests standard YAML anchor and alias functionality.
+func TestAnchorAlias(t *testing.T) {
+	t.Run("should resolve simple scalar anchor", func(t *testing.T) {
+		yaml := `
+vars:
+  myimage: &img golang:1.21
+
+steps:
+  build:
+    image: *img
+    commands:
+      - go build
+`
+		out, err := ParseString(yaml)
+		assert.NoError(t, err)
+		assert.Equal(t, "golang:1.21", out.Steps.ContainerList[0].Image)
+	})
+
+	t.Run("should resolve mapping anchor", func(t *testing.T) {
+		yaml := `
+_template: &tmpl
+  image: golang
+  commands:
+    - go test
+
+steps:
+  test: *tmpl
+`
+		out, err := ParseString(yaml)
+		assert.NoError(t, err)
+		assert.Equal(t, "golang", out.Steps.ContainerList[0].Image)
+		assert.Equal(t, yaml_base_types.StringOrSlice{"go test"}, out.Steps.ContainerList[0].Commands)
+	})
+
+	t.Run("should override merged anchor values", func(t *testing.T) {
+		yaml := `
+_defaults: &defaults
+  image: ubuntu
+  pull: true
+
+steps:
+  custom:
+    <<: *defaults
+    image: alpine
+    commands:
+      - echo hello
+`
+		out, err := ParseString(yaml)
+		assert.NoError(t, err)
+		assert.Equal(t, "alpine", out.Steps.ContainerList[0].Image)
+		assert.True(t, out.Steps.ContainerList[0].Pull)
+	})
+}
+
+// TestEdgeCases tests edge cases in YAML parsing.
+func TestEdgeCases(t *testing.T) {
+	t.Run("should handle empty steps", func(t *testing.T) {
+		yaml := `
+steps: {}
+`
+		out, err := ParseString(yaml)
+		assert.NoError(t, err)
+		assert.Empty(t, out.Steps.ContainerList)
+	})
+
+	t.Run("should handle multiline strings", func(t *testing.T) {
+		yaml := `
+steps:
+  build:
+    image: golang
+    commands:
+      - |
+        echo "line 1"
+        echo "line 2"
+`
+		out, err := ParseString(yaml)
+		assert.NoError(t, err)
+		assert.Contains(t, out.Steps.ContainerList[0].Commands[0], "echo \"line 1\"")
+	})
+
+	t.Run("should handle special characters in strings", func(t *testing.T) {
+		yaml := `
+steps:
+  build:
+    image: golang
+    commands:
+      - "echo 'hello: world'"
+      - 'echo "test"'
+`
+		out, err := ParseString(yaml)
+		assert.NoError(t, err)
+		assert.Equal(t, "echo 'hello: world'", out.Steps.ContainerList[0].Commands[0])
+		assert.Equal(t, "echo \"test\"", out.Steps.ContainerList[0].Commands[1])
+	})
+
+	t.Run("should handle boolean values", func(t *testing.T) {
+		yaml := `
+steps:
+  build:
+    image: golang
+    pull: true
+    privileged: false
+    detach: yes
+`
+		out, err := ParseString(yaml)
+		assert.NoError(t, err)
+		assert.True(t, out.Steps.ContainerList[0].Pull)
+		assert.False(t, out.Steps.ContainerList[0].Privileged)
+		assert.True(t, out.Steps.ContainerList[0].Detached)
+	})
+
+	t.Run("should handle numeric values in settings", func(t *testing.T) {
+		yaml := `
+steps:
+  build:
+    image: plugin/test
+    settings:
+      port: 8080
+      timeout: 30.5
+      enabled: true
+`
+		out, err := ParseString(yaml)
+		assert.NoError(t, err)
+		// Use EqualValues because goccy/go-yaml stores integers as uint64
+		assert.EqualValues(t, 8080, out.Steps.ContainerList[0].Settings["port"])
+		assert.EqualValues(t, 30.5, out.Steps.ContainerList[0].Settings["timeout"])
+		assert.EqualValues(t, true, out.Steps.ContainerList[0].Settings["enabled"])
+	})
+}

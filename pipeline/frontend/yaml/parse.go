@@ -15,15 +15,14 @@
 package yaml
 
 import (
-	"codeberg.org/6543/xyaml"
-
 	"codeberg.org/crowci/crow/v4/pipeline/frontend/yaml/types"
+	"codeberg.org/crowci/crow/v4/shared/yaml"
 )
 
 // ParseBytes parses the configuration from bytes b.
 func ParseBytes(b []byte) (*types.Workflow, error) {
 	out := new(types.Workflow)
-	err := xyaml.Unmarshal(b, out)
+	err := yaml.Unmarshal(b, out)
 	if err != nil {
 		return nil, err
 	}

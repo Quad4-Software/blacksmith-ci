@@ -17,7 +17,7 @@ package types
 import (
 	"fmt"
 
-	"gopkg.in/yaml.v3"
+	"github.com/goccy/go-yaml"
 
 	"codeberg.org/crowci/crow/v4/pipeline/frontend/yaml/constraint"
 	"codeberg.org/crowci/crow/v4/pipeline/frontend/yaml/types/base"
@@ -74,36 +74,52 @@ type (
 )
 
 // UnmarshalYAML implements the Unmarshaler interface.
-func (c *ContainerList) UnmarshalYAML(value *yaml.Node) error {
-	switch value.Kind {
-	// We support maps ...
-	case yaml.MappingNode:
-		c.ContainerList = make([]*Container, 0, len(value.Content)/2+1)
-		// We cannot use decode on specific values
-		// since if we try to load from a map, the order
-		// will not be kept. Therefore use value.Content
-		// and take the map values i%2=1
-		for i, n := range value.Content {
-			if i%2 == 1 {
-				container := &Container{}
-				if err := n.Decode(container); err != nil {
-					return err
-				}
+func (c *ContainerList) UnmarshalYAML(unmarshal func(any) error) error {
+	// First decode into any to detect the type
+	var raw any
+	if err := unmarshal(&raw); err != nil {
+		return fmt.Errorf("could not unmarshal container list: %w", err)
+	}
 
-				if container.Name == "" {
-					container.Name = fmt.Sprintf("%v", value.Content[i-1].Value)
-				}
-
-				c.ContainerList = append(c.ContainerList, container)
-			}
+	switch v := raw.(type) {
+	case map[string]any:
+		// It's a map - use yaml.MapSlice to preserve order
+		var mapSlice yaml.MapSlice
+		if err := unmarshal(&mapSlice); err != nil {
+			return fmt.Errorf("could not unmarshal container map: %w", err)
 		}
 
-	// ... and lists
-	case yaml.SequenceNode:
-		c.ContainerList = make([]*Container, 0, len(value.Content))
-		for i, n := range value.Content {
+		c.ContainerList = make([]*Container, 0, len(mapSlice))
+		for _, item := range mapSlice {
+			// Re-marshal to YAML to trigger custom unmarshalers
+			valueBytes, err := yaml.Marshal(item.Value)
+			if err != nil {
+				return err
+			}
 			container := &Container{}
-			if err := n.Decode(container); err != nil {
+			if err := yaml.Unmarshal(valueBytes, container); err != nil {
+				return err
+			}
+
+			if container.Name == "" {
+				container.Name = fmt.Sprintf("%v", item.Key)
+			}
+
+			c.ContainerList = append(c.ContainerList, container)
+		}
+		return nil
+
+	case []any:
+		// It's a list
+		c.ContainerList = make([]*Container, 0, len(v))
+		for i, item := range v {
+			// Re-marshal to YAML to trigger custom unmarshalers
+			itemBytes, err := yaml.Marshal(item)
+			if err != nil {
+				return err
+			}
+			container := &Container{}
+			if err := yaml.Unmarshal(itemBytes, container); err != nil {
 				return err
 			}
 
@@ -113,12 +129,11 @@ func (c *ContainerList) UnmarshalYAML(value *yaml.Node) error {
 
 			c.ContainerList = append(c.ContainerList, container)
 		}
+		return nil
 
 	default:
-		return fmt.Errorf("yaml node type[%d]: '%s' not supported", value.Kind, value.Tag)
+		return fmt.Errorf("container list must be a map or sequence, got %T", raw)
 	}
-
-	return nil
 }
 
 func (c *Container) IsPlugin() bool {

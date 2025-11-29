@@ -170,7 +170,7 @@ func TestLintErrors(t *testing.T) {
 			want: "additional properties 'pipeline' not allowed",
 		},
 		{
-			from: "{steps: { build: { image: plugins/docker, settings: { test: 'true' } } }, when: { branch: main, event: push } } }",
+			from: "{steps: { build: { image: plugins/docker, settings: { test: 'true' } } }, when: { branch: main, event: push } }",
 			want: "The formerly privileged plugin 'plugins/docker' is no longer privileged by default since v3. To use it, add it to (server) env var `CROW_PLUGINS_PRIVILEGED` (must be done by an instance administrator).",
 		},
 		{

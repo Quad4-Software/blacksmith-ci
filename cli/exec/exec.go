@@ -25,7 +25,6 @@ import (
 	"runtime"
 	"strings"
 
-	"codeberg.org/6543/xyaml"
 	"github.com/drone/envsubst"
 	"github.com/oklog/ulid/v2"
 	"github.com/rs/zerolog/log"
@@ -40,13 +39,14 @@ import (
 	"codeberg.org/crowci/crow/v4/pipeline/backend/local"
 	backend_types "codeberg.org/crowci/crow/v4/pipeline/backend/types"
 	"codeberg.org/crowci/crow/v4/pipeline/frontend/metadata"
-	"codeberg.org/crowci/crow/v4/pipeline/frontend/yaml"
+	frontend_yaml "codeberg.org/crowci/crow/v4/pipeline/frontend/yaml"
 	"codeberg.org/crowci/crow/v4/pipeline/frontend/yaml/compiler"
 	"codeberg.org/crowci/crow/v4/pipeline/frontend/yaml/linter"
 	"codeberg.org/crowci/crow/v4/pipeline/frontend/yaml/matrix"
 	pipelineLog "codeberg.org/crowci/crow/v4/pipeline/log"
 	"codeberg.org/crowci/crow/v4/shared/constant"
 	"codeberg.org/crowci/crow/v4/shared/utils"
+	"codeberg.org/crowci/crow/v4/shared/yaml"
 )
 
 // Command exports the exec command.
@@ -163,7 +163,7 @@ func execWithAxis(ctx context.Context, c *cli.Command, file, repoPath string, ax
 		}
 
 		var m map[string]string
-		err = xyaml.Unmarshal(fileContent, &m)
+		err = yaml.Unmarshal(fileContent, &m)
 		if err != nil {
 			return err
 		}
@@ -198,7 +198,7 @@ func execWithAxis(ctx context.Context, c *cli.Command, file, repoPath string, ax
 		return err
 	}
 
-	conf, err := yaml.ParseString(confStr)
+	conf, err := frontend_yaml.ParseString(confStr)
 	if err != nil {
 		return err
 	}

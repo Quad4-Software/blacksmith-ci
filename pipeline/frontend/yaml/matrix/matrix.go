@@ -17,9 +17,8 @@ package matrix
 import (
 	"strings"
 
-	"codeberg.org/6543/xyaml"
-
 	errorTypes "codeberg.org/crowci/crow/v4/pipeline/errors/types"
+	"codeberg.org/crowci/crow/v4/shared/yaml"
 )
 
 const (
@@ -116,7 +115,7 @@ func parse(raw []byte) (Matrix, error) {
 	data := struct {
 		Matrix map[string][]string
 	}{}
-	if err := xyaml.Unmarshal(raw, &data); err != nil {
+	if err := yaml.Unmarshal(raw, &data); err != nil {
 		return nil, &errorTypes.PipelineError{Message: err.Error(), Type: errorTypes.PipelineErrorTypeCompiler}
 	}
 	return data.Matrix, nil
@@ -129,7 +128,7 @@ func parseList(raw []byte) ([]Axis, error) {
 		}
 	}{}
 
-	if err := xyaml.Unmarshal(raw, &data); err != nil {
+	if err := yaml.Unmarshal(raw, &data); err != nil {
 		return nil, &errorTypes.PipelineError{Message: err.Error(), Type: errorTypes.PipelineErrorTypeCompiler}
 	}
 	return data.Matrix.Include, nil

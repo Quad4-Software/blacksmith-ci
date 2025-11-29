@@ -29,7 +29,6 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v3"
-	"gopkg.in/yaml.v3"
 	v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
@@ -41,6 +40,7 @@ import (
 
 	"codeberg.org/crowci/crow/v4/pipeline/backend/types"
 	pipelineErrors "codeberg.org/crowci/crow/v4/pipeline/errors/types"
+	"codeberg.org/crowci/crow/v4/shared/yaml"
 )
 
 const (

@@ -18,7 +18,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/yaml.v3"
+
+	"codeberg.org/crowci/crow/v4/shared/yaml"
 )
 
 type StructStringOrInt struct {
