@@ -17,11 +17,22 @@
 package datastore
 
 import (
+	"database/sql"
+	"slices"
+
 	// Import MySQL driver for database/sql.
 	_ "github.com/go-sql-driver/mysql"
 	// Import PostgreSQL driver for database/sql.
-	_ "github.com/lib/pq"
+	"github.com/jackc/pgx/v5/stdlib"
 )
+
+//nolint:gochecknoinits
+func init() {
+	// Check if already registered to avoid panic if another driver claims this name.
+	if !slices.Contains(sql.Drivers(), "postgres") {
+		sql.Register("postgres", stdlib.GetDefaultDriver())
+	}
+}
 
 // Supported database drivers.
 const (

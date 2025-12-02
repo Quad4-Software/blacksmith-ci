@@ -15,18 +15,28 @@
 package migration
 
 import (
+	"database/sql"
 	"os"
+	"slices"
 	"testing"
 	"time"
 
 	// Blank imports to register the sql drivers.
 	_ "github.com/go-sql-driver/mysql"
-	_ "github.com/lib/pq"
+	"github.com/jackc/pgx/v5/stdlib"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
+
+//nolint:gochecknoinits
+func init() {
+	// Check if already registered to avoid panic if another driver claims this name.
+	if !slices.Contains(sql.Drivers(), "postgres") {
+		sql.Register("postgres", stdlib.GetDefaultDriver())
+	}
+}
 
 const (
 	sqliteDB = "./test-files/sqlite.db"

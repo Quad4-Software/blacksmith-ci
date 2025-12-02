@@ -22,7 +22,7 @@ import (
 )
 
 // Maximum number of records to store in one PostgreSQL statement.
-// Too large a value results in `pq: got XX parameters but PostgreSQL only supports 65535 parameters`.
+// Too large a value results in an error because PostgreSQL only supports 65535 parameters.
 const pgBatchSize = 1000
 
 func (s storage) LogFind(step *model.Step) ([]*model.LogEntry, error) {
