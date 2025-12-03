@@ -15,6 +15,16 @@
   ],
   "packageRules": [
     {
+      "description": "bi-weekly schedule for all branches",
+      "schedule": ["every 2 weeks on monday"]
+    },
+    {
+      "description": "v4.5.x branch: only patch/security updates",
+      "matchBaseBranches": ["v4.5.x"],
+      "matchUpdateTypes": ["minor", "major"],
+      "enabled": false
+    },
+    {
       "description": "gin-swagger 1.x is not compatible with swaggo/files 2.x, see https://github.com/swaggo/gin-swagger/issues/264",
       "matchPackageNames": ["github.com/swaggo/files"],
       "allowedVersions": "<2.0.0"
