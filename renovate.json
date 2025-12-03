@@ -3,6 +3,8 @@
   "extends": ["local>crowci/renovate-config"],
   "baseBranchPatterns": ["$default", "/^v4\\.5\\.x$/"],
   "automergeType": "pr",
+  "schedule": ["every 2 weeks on monday"],
+  "updateNotScheduled": true,
   "customManagers": [
     {
       "customType": "regex",
@@ -14,10 +16,6 @@
     }
   ],
   "packageRules": [
-    {
-      "description": "bi-weekly schedule for all branches",
-      "schedule": ["every 2 weeks on monday"]
-    },
     {
       "description": "v4.5.x branch: only patch/security updates",
       "matchBaseBranches": ["v4.5.x"],
