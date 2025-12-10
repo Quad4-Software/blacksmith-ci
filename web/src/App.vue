@@ -25,33 +25,20 @@ import Navbar from '~/components/layout/header/Navbar.vue';
 import PipelineFeedSidebar from '~/components/pipeline-feed/PipelineFeedSidebar.vue';
 import useApiClient from '~/compositions/useApiClient';
 import useNotifications from '~/compositions/useNotifications';
-import useAuthentication from '~/compositions/useAuthentication';
+import { useAuthStore } from '~/store/auth';
 
 const route = useRoute();
 const apiClient = useApiClient();
 const { notify } = useNotifications();
 const i18n = useI18n();
-const { isAuthenticated } = useAuthentication();
+const authStore = useAuthStore();
 const notificationsRef = ref();
-
-// Debouncing for stale token notifications to prevent multiple notifications
-let staleTokenNotificationShown = false;
-let staleTokenNotificationTimeout: number | null = null;
-let lastLoginTime = 0;
 
 // Function to clear all notifications
 const clearAllNotifications = () => {
   if (notificationsRef.value && typeof notificationsRef.value.clearAll === 'function') {
     notificationsRef.value.clearAll();
   }
-  // Reset stale token notification state immediately
-  staleTokenNotificationShown = false;
-  if (staleTokenNotificationTimeout) {
-    clearTimeout(staleTokenNotificationTimeout);
-    staleTokenNotificationTimeout = null;
-  }
-  // Mark the current time as login time to prevent immediate stale token notifications
-  lastLoginTime = Date.now();
 };
 
 // Expose the function globally so it can be called from router
@@ -59,6 +46,18 @@ const clearAllNotifications = () => {
 
 // Listen for clear notifications event
 window.addEventListener('clearNotifications', clearAllNotifications);
+
+// Helper to parse error messages that might be JSON
+const parseErrorMessage = (msg: string): string => {
+  const jsonStart = msg.indexOf('{');
+  if (jsonStart === -1) return msg;
+  try {
+    const parsed = JSON.parse(msg.slice(jsonStart));
+    return parsed?.error || msg;
+  } catch {
+    return msg;
+  }
+};
 
 apiClient.setErrorHandler(
   async ({
@@ -71,91 +70,32 @@ apiClient.setErrorHandler(
     config?: { method?: string; url?: string };
   }) => {
     const url = config?.url || '';
+
     if (status === 404) {
       await notify({ title: i18n.t('errors.not_found'), type: 'error' });
       return;
     }
 
-    // Handle stale token errors (401 Unauthorized) - handle all 401 errors, not just API endpoints
+    // Handle 401 errors - session invalidation is handled by the API client,
+    // this just provides user feedback before redirect
     if (status === 401) {
-      // Helper to parse error messages that might be JSON.
-      const parseErrorMessage = (msg: string): string => {
-        // Look for JSON content in the message, which might be after status text like "Unauthorized: "
-        const jsonStart = msg.indexOf('{');
-        if (jsonStart === -1) return msg;
-        try {
-          const parsed = JSON.parse(msg.slice(jsonStart));
-          return parsed?.error || msg;
-        } catch (e) {
-          console.error('Failed to parse JSON from string:', e);
-          return msg;
-        }
-      };
-
-      const errorText = parseErrorMessage(message.trim());
-
-      // Check if this is a stale token error by looking for specific error messages
-      const isStaleTokenError =
-        errorText.includes('authorization has expired') ||
-        errorText.includes('could not be refreshed') ||
-        errorText.includes('token was already used') ||
-        errorText.includes('unauthorized_client') ||
-        errorText.includes('token expired and refresh token is not set') ||
-        message.includes('TOKEN_REFRESH_FAILED');
-
-      if (isStaleTokenError) {
-        // Only show stale token error to the current authenticated user
-        // This ensures that in a multi-user shared instance, only the affected user sees the message
-        if (isAuthenticated) {
-          // Don't show the error if we're on the login page or if we just logged in
-          const currentPath = window.location.pathname;
-          if (currentPath.includes('/login') || currentPath.includes('/authorize')) {
-            return;
-          }
-
-          // Don't show stale token notifications immediately after login (within 5 seconds)
-          const timeSinceLogin = Date.now() - lastLoginTime;
-          if (timeSinceLogin < 5000) {
-            return;
-          }
-
-          // Prevent multiple stale token notifications by debouncing
-          if (staleTokenNotificationShown) {
-            return;
-          }
-
-          staleTokenNotificationShown = true;
-
-          // Clear any existing timeout
-          if (staleTokenNotificationTimeout) {
-            clearTimeout(staleTokenNotificationTimeout);
-          }
-
-          // Reset the flag after 10 seconds to allow future notifications
-          staleTokenNotificationTimeout = window.setTimeout(() => {
-            staleTokenNotificationShown = false;
-            staleTokenNotificationTimeout = null;
-          }, 10000);
-
-          // For web users, the error is specific to their session
-          // For API users, the error would be specific to their token
-          // Since we're in the web UI, this is the current user's session
-          await notify({
-            title: i18n.t('notify_title_error'),
-            text: `${i18n.t('stale_token_error')} <a href='/logout' class='text-wp-custom-highlight-100 underline'>Log in again</a>`,
-            type: 'error',
-            duration: 10000, // Show for 10 seconds
-          });
-        }
+      // Skip notification if already redirecting to login
+      if (authStore.isRedirecting) {
         return;
       }
 
-      // For other 401 errors (not stale token), show a generic authentication error
+      // Skip if on login/logout/authorize pages
+      const currentPath = window.location.pathname;
+      if (currentPath.includes('/login') || currentPath.includes('/authorize') || currentPath.includes('/logout')) {
+        return;
+      }
+
+      // Show brief notification before redirect
       await notify({
         title: i18n.t('notify_title_error'),
-        text: 'Authentication required. Please log in.',
+        text: i18n.t('stale_token_error'),
         type: 'error',
-        duration: 8000,
+        duration: 3000,
       });
       return;
     }
@@ -165,36 +105,18 @@ apiClient.setErrorHandler(
       return;
     }
 
-    // Helper to parse error messages that might be JSON.
-    const parseErrorMessage = (msg: string): string => {
-      // Look for JSON content in the message, which might be after status text like "Unauthorized: "
-      const jsonStart = msg.indexOf('{');
-      if (jsonStart === -1) return msg;
-      try {
-        const parsed = JSON.parse(msg.slice(jsonStart));
-        return parsed?.error || msg;
-      } catch (e) {
-        console.error('Failed to parse JSON from string:', e);
-        return msg;
-      }
-    };
-
     let errorText = parseErrorMessage(message.trim());
 
-    // Extract endpoint information.
+    // Extract endpoint information
     const endpointMarker = 'Endpoint:';
     let extractedEndpoint = '';
     const markerIndex = errorText.indexOf(endpointMarker);
     if (markerIndex !== -1) {
-      // Everything after the first occurrence of "Endpoint:" is considered the endpoint.
       extractedEndpoint = errorText.slice(markerIndex + endpointMarker.length).trim();
-      // In case the extracted endpoint accidentally contains another "Endpoint:" (unlikely),
-      // keep only the text up to that point.
       const extraMarkerIndex = extractedEndpoint.indexOf(endpointMarker);
       if (extraMarkerIndex !== -1) {
         extractedEndpoint = extractedEndpoint.slice(0, extraMarkerIndex).trim();
       }
-      // Remove the endpoint portion from the error text.
       errorText = errorText.slice(0, markerIndex).trim();
     } else if (config) {
       const method = config.method ? config.method.toUpperCase() : '';

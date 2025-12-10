@@ -2,9 +2,9 @@ import type { Component } from 'vue';
 import { createRouter, createWebHistory } from 'vue-router';
 import type { RouteRecordRaw } from 'vue-router';
 
-import useAuthentication from '~/compositions/useAuthentication';
 import useConfig from '~/compositions/useConfig';
 import useUserConfig from '~/compositions/useUserConfig';
+import { useAuthStore } from '~/store/auth';
 
 const { rootPath } = useConfig();
 const routes: RouteRecordRaw[] = [
@@ -380,14 +380,20 @@ router.beforeEach(async (to, _, next) => {
   const { redirectUrl } = config.userConfig.value;
   if (redirectUrl !== '' && to.name !== 'login') {
     config.setUserConfig('redirectUrl', '');
+
+    // Reset auth store session state after successful login
+    const authStore = useAuthStore();
+    authStore.resetSessionState();
+
     // Clear any existing notifications when redirecting after successful login
     window.dispatchEvent(new CustomEvent('clearNotifications'));
     next(redirectUrl);
+    return;
   }
 
-  const authentication = useAuthentication();
+  const authStore = useAuthStore();
   const authenticationRequired = to.matched.some((record) => record.meta.authentication === 'required');
-  if (authenticationRequired && !authentication.isAuthenticated) {
+  if (authenticationRequired && !authStore.isAuthenticated) {
     next({ name: 'login', query: { url: to.fullPath } });
     return;
   }
