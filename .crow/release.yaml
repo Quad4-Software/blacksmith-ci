@@ -54,7 +54,7 @@ steps:
       title: ${CI_COMMIT_TAG}
 
   'Bump version in homebrew-tap':
-    image: alpine:3.22
+    image: alpine:3.23
     commands:
       - apk add --no-cache -q curl jq git sed
       - git clone https://codeberg.org/crowci/homebrew-tap.git
@@ -79,7 +79,7 @@ steps:
       commit_author_email: admin@crowci.dev
 
   'Bump version in crowci/helm':
-    image: alpine:3.22
+    image: alpine:3.23
     commands: |
       apk add --no-cache -q git sed
       git clone https://codeberg.org/crowci/helm.git

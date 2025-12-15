@@ -12,7 +12,7 @@ steps:
   - name: 'Build docs (tag)'
     when:
       - event: tag
-    image: alpine:3.22
+    image: alpine:3.23
     environment:
       IS_CI: true
       # https://github.com/squidfunk/mkdocs-material-insiders
