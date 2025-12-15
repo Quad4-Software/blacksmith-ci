@@ -14,7 +14,7 @@ labels:
 
 steps:
   - name: 'Build docs'
-    image: reg.devxy.io/docker.io/library/alpine:3.22
+    image: reg.devxy.io/docker.io/library/alpine:3.23
     environment:
       IS_CI: true
       # https://github.com/squidfunk/mkdocs-material-insiders
@@ -39,7 +39,7 @@ steps:
         branch: ${CI_REPO_DEFAULT_BRANCH}
 
   - name: 'Build docs (PR)'
-    image: reg.devxy.io/docker.io/library/alpine:3.22
+    image: reg.devxy.io/docker.io/library/alpine:3.23
     environment:
       IS_CI: true
       # https://github.com/squidfunk/mkdocs-material-insiders
