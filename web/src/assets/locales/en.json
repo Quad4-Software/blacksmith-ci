@@ -485,6 +485,15 @@
         "event": "Event",
         "branch": "Branch / PR",
         "all_branches": "All branches"
+      },
+      "search": {
+        "title": "Search logs (Ctrl+F)",
+        "placeholder": "Search logs...",
+        "no_results": "No matches",
+        "previous": "Previous match (Shift+Enter)",
+        "next": "Next match (Enter)",
+        "match_count": "{current} / {total}",
+        "close_hint": "(Esc)"
       }
     }
   },

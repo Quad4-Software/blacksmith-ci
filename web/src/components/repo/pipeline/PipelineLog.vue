@@ -105,6 +105,16 @@
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger as-child>
+                <Button variant="ghost" size="icon-sm" @click="openSearch">
+                  <Icon name="lucide:search" class="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{{ $t('repo.pipeline.search.title') }}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger as-child>
                 <Button variant="ghost" size="icon-sm" @click="isFullscreen = !isFullscreen">
                   <Icon :name="isFullscreen ? 'lucide:minimize' : 'lucide:maximize'" class="w-4 h-4" />
                 </Button>
@@ -196,6 +206,9 @@
 
         <!-- Floating action buttons -->
         <div v-show="mobileButtonsVisible" class="flex flex-col gap-2">
+          <Button variant="outline" size="icon-sm" class="rounded-full shadow-lg" @click="openSearch">
+            <Icon name="lucide:search" />
+          </Button>
           <Button variant="outline" size="icon-sm" class="rounded-full shadow-lg" @click="scrollToBottom">
             <Icon name="chevron-down" />
           </Button>
@@ -236,6 +249,76 @@
 
       <!-- Log area with floating scroll buttons wrapper -->
       <CardContent v-show="hasLogs && loadedLogs && (log?.length || 0) > 0" class="relative flex-1 p-0">
+        <!-- Floating search bar -->
+        <Transition
+          enter-active-class="transition-all duration-200 ease-out"
+          enter-from-class="opacity-0 -translate-y-2"
+          enter-to-class="opacity-100 translate-y-0"
+          leave-active-class="transition-all duration-150 ease-in"
+          leave-from-class="opacity-100 translate-y-0"
+          leave-to-class="opacity-0 -translate-y-2"
+        >
+          <div
+            v-if="searchOpen"
+            class="absolute top-2 left-2 right-2 z-30 flex items-center gap-2 rounded-lg border bg-background/95 backdrop-blur-sm px-3 py-2 shadow-lg"
+          >
+            <Icon name="lucide:search" class="h-4 w-4 text-muted-foreground shrink-0" />
+            <Input
+              ref="searchInputRef"
+              v-model="searchTerm"
+              type="text"
+              :placeholder="$t('repo.pipeline.search.placeholder')"
+              class="h-8 flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+              @keydown.stop
+            />
+            <span v-if="searchTerm" class="text-xs text-muted-foreground whitespace-nowrap">
+              <template v-if="searchMatches.length > 0">
+                {{
+                  $t('repo.pipeline.search.match_count', {
+                    current: currentMatchIndex + 1,
+                    total: searchMatches.length,
+                  })
+                }}
+              </template>
+              <template v-else>
+                {{ $t('repo.pipeline.search.no_results') }}
+              </template>
+            </span>
+            <div v-if="searchTerm && searchMatches.length > 0" class="flex items-center gap-1">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <Button variant="ghost" size="icon-sm" @click="goToPreviousMatch">
+                      <Icon name="chevron-up" class="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{{ $t('repo.pipeline.search.previous') }}</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <Button variant="ghost" size="icon-sm" @click="goToNextMatch">
+                      <Icon name="chevron-down" class="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{{ $t('repo.pipeline.search.next') }}</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger as-child>
+                  <Button variant="ghost" size="icon-sm" @click="closeSearch">
+                    <Icon name="close" class="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{{ $t('close') }} {{ $t('repo.pipeline.search.close_hint') }}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        </Transition>
+
         <!-- Floating scroll buttons -->
         <div v-if="isScrollable" class="hidden md:flex flex-col gap-2 absolute bottom-4 right-4 z-20">
           <TooltipProvider v-if="!atTop">
@@ -290,8 +373,9 @@
                   'bg-red-600/40 dark:bg-red-800/50': line.type === 'error',
                   'bg-yellow-600/40 dark:bg-yellow-800/50': line.type === 'warning',
                   'bg-blue-600/30': isSelected(line),
+                  'ring-2 ring-yellow-500 ring-offset-1': isCurrentSearchMatch(line),
                 }"
-                v-html="line.text"
+                v-html="highlightSearchTerm(line.text || '')"
               />
               <!-- eslint-enable vue/no-v-html -->
               <span
@@ -319,7 +403,11 @@
       </CardContent>
 
       <!-- Stderr Error Output Section -->
-      <div v-if="stderrLines.length > 0" class="border-t border-destructive bg-red-50 dark:bg-red-950/20">
+      <div
+        v-if="stderrLines.length > 0"
+        data-stderr-section
+        class="border-t border-destructive bg-red-50 dark:bg-red-950/20"
+      >
         <button
           class="w-full flex items-center justify-between px-3 py-2 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
           @click="stderrExpanded = !stderrExpanded"
@@ -348,10 +436,12 @@
             <Icon v-else name="lucide:copy" class="w-4 h-4" />
           </Button>
           <div class="max-h-96 overflow-y-auto">
+            <!-- eslint-disable vue/no-v-html -->
             <pre
               class="text-xs font-mono bg-white dark:bg-black/20 rounded px-2 py-2 pr-10 border border-red-200 dark:border-red-800 text-destructive dark:text-red-500 whitespace-pre-wrap wrap-break-word"
-              >{{ stderrLines.map((e) => e.text).join('\n') }}</pre
-            >
+              v-html="highlightSearchTerm(stderrLines.map((e) => e.text).join('\n'))"
+            />
+            <!-- eslint-enable vue/no-v-html -->
           </div>
         </div>
       </div>
@@ -385,6 +475,7 @@ import {
   NumberFieldIncrement,
   NumberFieldInput,
 } from '~/components/ui/number-field';
+import { Input } from '~/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import { ScrollArea } from '~/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
@@ -472,6 +563,12 @@ const isFullscreen = ref(false);
 const stderrExpanded = ref(true);
 const stderrCopied = ref(false);
 
+// Search state
+const searchOpen = ref(false);
+const searchTerm = ref('');
+const currentMatchIndex = ref(0);
+const searchInputRef = ref<HTMLInputElement | null>(null);
+
 // Extract stderr lines (error output) from logs
 const stderrLines = computed(() => {
   if (!log.value || log.value.length === 0 || step.value?.exit_code === 0) {
@@ -489,6 +586,68 @@ const stderrLines = computed(() => {
 
   return errors;
 });
+
+// Search: find all matching line indices
+const searchMatches = computed(() => {
+  if (!searchTerm.value || searchTerm.value.length === 0) {
+    return [];
+  }
+
+  const term = searchTerm.value.toLowerCase();
+  const matches: { type: 'log' | 'stderr'; index: number; lineNumber: number }[] = [];
+
+  // Search main logs
+  if (log.value) {
+    log.value.forEach((line, idx) => {
+      // Strip HTML tags and check for match
+      const plainText = (line.text?.replace(/<[^>]*>/g, '') || '').toLowerCase();
+      if (plainText.includes(term)) {
+        matches.push({ type: 'log', index: idx, lineNumber: line.number });
+      }
+    });
+  }
+
+  // Search stderr lines (only if stderr section is expanded)
+  if (stderrExpanded.value && stderrLines.value.length > 0) {
+    stderrLines.value.forEach((line, idx) => {
+      if (line.text.toLowerCase().includes(term)) {
+        matches.push({ type: 'stderr', index: idx, lineNumber: line.line });
+      }
+    });
+  }
+
+  return matches;
+});
+
+// Current match for display
+const currentMatch = computed(() => {
+  if (searchMatches.value.length === 0) return null;
+  const idx = Math.max(0, Math.min(currentMatchIndex.value, searchMatches.value.length - 1));
+  return searchMatches.value[idx];
+});
+
+// Highlight search term in text (returns HTML with <mark> tags)
+function highlightSearchTerm(text: string): string {
+  if (!searchTerm.value || searchTerm.value.length === 0) {
+    return text;
+  }
+
+  // Simple approach: search in the text and wrap matches
+  // This works because the text already has HTML from ANSI conversion
+  const regex = new RegExp(`(${escapeRegExp(searchTerm.value)})`, 'gi');
+  return text.replace(regex, '<mark class="bg-yellow-300 dark:bg-yellow-700 text-inherit">$1</mark>');
+}
+
+// Helper to escape special regex characters
+function escapeRegExp(string: string): string {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Check if a log line is the current search match
+function isCurrentSearchMatch(line: LogLine): boolean {
+  if (!currentMatch.value || currentMatch.value.type !== 'log') return false;
+  return currentMatch.value.lineNumber === line.number;
+}
 
 const logTheme = useStorage('crow:log-theme', 'auto');
 const logThemeClass = computed(() => {
@@ -798,10 +957,84 @@ onBeforeUnmount(() => {
   }
 });
 
-// Handle ESC key to exit fullscreen
+// Handle keyboard shortcuts
 function handleKeydown(event: KeyboardEvent) {
-  if (event.key === 'Escape' && isFullscreen.value) {
-    isFullscreen.value = false;
+  // Ctrl/Cmd+F to open search
+  if ((event.metaKey || event.ctrlKey) && event.key === 'f') {
+    event.preventDefault();
+    openSearch();
+    return;
+  }
+
+  // ESC to close search or exit fullscreen
+  if (event.key === 'Escape') {
+    if (searchOpen.value) {
+      closeSearch();
+      return;
+    }
+    if (isFullscreen.value) {
+      isFullscreen.value = false;
+      return;
+    }
+  }
+
+  // Enter/Shift+Enter to navigate matches (only when search input is focused)
+  if (event.key === 'Enter' && searchOpen.value) {
+    event.preventDefault();
+    if (event.shiftKey) {
+      goToPreviousMatch();
+    } else {
+      goToNextMatch();
+    }
+  }
+}
+
+// Search functions
+function openSearch() {
+  searchOpen.value = true;
+  nextTick(() => {
+    searchInputRef.value?.focus();
+    searchInputRef.value?.select();
+  });
+}
+
+function closeSearch() {
+  searchOpen.value = false;
+  searchTerm.value = '';
+  currentMatchIndex.value = 0;
+}
+
+function goToNextMatch() {
+  if (searchMatches.value.length === 0) return;
+  currentMatchIndex.value = (currentMatchIndex.value + 1) % searchMatches.value.length;
+  scrollToCurrentMatch();
+}
+
+function goToPreviousMatch() {
+  if (searchMatches.value.length === 0) return;
+  currentMatchIndex.value = (currentMatchIndex.value - 1 + searchMatches.value.length) % searchMatches.value.length;
+  scrollToCurrentMatch();
+}
+
+function scrollToCurrentMatch() {
+  const match = currentMatch.value;
+  if (!match) return;
+
+  if (match.type === 'log') {
+    // Scroll to log line
+    const lineElement = document.getElementById(`L${match.lineNumber}`);
+    if (lineElement) {
+      lineElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  } else if (match.type === 'stderr') {
+    // Ensure stderr is expanded and scroll into view
+    stderrExpanded.value = true;
+    nextTick(() => {
+      const stderrSection = document.querySelector('[data-stderr-section]');
+      if (stderrSection) {
+        stderrSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
   }
 }
 
