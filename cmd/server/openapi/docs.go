@@ -18,6 +18,318 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/admin/maintenance/config": {
+            "get": {
+                "description": "Get the current database maintenance configuration",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get maintenance configuration",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003cpersonal access token\u003e",
+                        "description": "Insert your personal access token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/MaintenanceConfig"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "description": "Update the database maintenance configuration",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Update maintenance configuration",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003cpersonal access token\u003e",
+                        "description": "Insert your personal access token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Maintenance configuration",
+                        "name": "config",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/MaintenanceConfig"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/MaintenanceConfig"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/admin/maintenance/config/{action}": {
+            "get": {
+                "description": "Get maintenance configuration for a specific action (vacuum, kubernetes_cleanup)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get maintenance configuration by action type",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003cpersonal access token\u003e",
+                        "description": "Insert your personal access token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "enum": [
+                            "vacuum",
+                            "kubernetes_cleanup"
+                        ],
+                        "type": "string",
+                        "description": "Action type (vacuum, kubernetes_cleanup)",
+                        "name": "action",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/MaintenanceConfig"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "description": "Update maintenance configuration for a specific action (vacuum, kubernetes_cleanup)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Update maintenance configuration by action type",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003cpersonal access token\u003e",
+                        "description": "Insert your personal access token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "enum": [
+                            "vacuum",
+                            "kubernetes_cleanup"
+                        ],
+                        "type": "string",
+                        "description": "Action type (vacuum, kubernetes_cleanup)",
+                        "name": "action",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Maintenance configuration",
+                        "name": "config",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/MaintenanceConfig"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/MaintenanceConfig"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/admin/maintenance/logs": {
+            "get": {
+                "description": "Get recent database maintenance logs",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get maintenance logs",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003cpersonal access token\u003e",
+                        "description": "Insert your personal access token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 50,
+                        "description": "Number of logs to return",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/MaintenanceLog"
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/admin/maintenance/run": {
+            "post": {
+                "description": "Trigger database maintenance operation immediately",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Run maintenance now",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003cpersonal access token\u003e",
+                        "description": "Insert your personal access token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Maintenance job request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server_api.RunMaintenanceRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/admin/maintenance/stats": {
+            "get": {
+                "description": "Get database maintenance statistics",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get maintenance statistics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003cpersonal access token\u003e",
+                        "description": "Insert your personal access token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/MaintenanceStats"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
         "/agents": {
             "get": {
                 "produces": [
@@ -48,6 +360,38 @@ const docTemplate = `{
                         "default": 50,
                         "description": "for response pagination, max items per page",
                         "name": "perPage",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "search in name, platform, backend, custom labels, ID",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "filter by platform",
+                        "name": "platform",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "filter by backend",
+                        "name": "backend",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "id",
+                        "description": "sort field: id, name, platform, backend, last_contact, capacity",
+                        "name": "sort",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "asc",
+                        "description": "sort order: asc or desc",
+                        "name": "order",
                         "in": "query"
                     }
                 ],
@@ -245,6 +589,316 @@ const docTemplate = `{
                             "items": {
                                 "$ref": "#/definitions/Task"
                             }
+                        }
+                    }
+                }
+            }
+        },
+        "/autoscalers": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Autoscalers"
+                ],
+                "summary": "List autoscalers",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003cpersonal access token\u003e",
+                        "description": "Insert your personal access token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "for response pagination, page offset number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 50,
+                        "description": "for response pagination, max items per page",
+                        "name": "perPage",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "search in name, provider, region, ID",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "filter by provider",
+                        "name": "provider",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "filter by enabled status",
+                        "name": "enabled",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "id",
+                        "description": "sort field: id, name, provider, last_contact",
+                        "name": "sort",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "asc",
+                        "description": "sort order: asc or desc",
+                        "name": "order",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Autoscaler"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Creates a new autoscaler with a random token. Configuration is provided by the autoscaler upon registration.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Autoscalers"
+                ],
+                "summary": "Create a new autoscaler",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003cpersonal access token\u003e",
+                        "description": "Insert your personal access token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "the autoscaler's data (only name is required)",
+                        "name": "autoscaler",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Autoscaler"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/AutoscalerWithToken"
+                        }
+                    }
+                }
+            }
+        },
+        "/autoscalers/{autoscaler_id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Autoscalers"
+                ],
+                "summary": "Get an autoscaler",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003cpersonal access token\u003e",
+                        "description": "Insert your personal access token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "the autoscaler's id",
+                        "name": "autoscaler_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Autoscaler"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "Autoscalers"
+                ],
+                "summary": "Delete an autoscaler",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003cpersonal access token\u003e",
+                        "description": "Insert your personal access token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "the autoscaler's id",
+                        "name": "autoscaler_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            },
+            "patch": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Autoscalers"
+                ],
+                "summary": "Update an autoscaler",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003cpersonal access token\u003e",
+                        "description": "Insert your personal access token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "the autoscaler's id",
+                        "name": "autoscaler_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "the autoscaler's data (only enabled can be updated)",
+                        "name": "autoscalerData",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Autoscaler"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Autoscaler"
+                        }
+                    }
+                }
+            }
+        },
+        "/autoscalers/{autoscaler_id}/heartbeat": {
+            "post": {
+                "description": "Autoscalers send heartbeats to update their status and configuration",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Autoscalers"
+                ],
+                "summary": "Update autoscaler heartbeat",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003cautoscaler token\u003e",
+                        "description": "Insert autoscaler token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "the autoscaler's id",
+                        "name": "autoscaler_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "heartbeat data with active_agents, pending_agents, version, and configuration",
+                        "name": "heartbeat",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/autoscalers/{autoscaler_id}/token": {
+            "post": {
+                "description": "Generates a new token for the autoscaler and invalidates the old one",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Autoscalers"
+                ],
+                "summary": "Regenerate autoscaler token",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003cpersonal access token\u003e",
+                        "description": "Insert your personal access token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "the autoscaler's id",
+                        "name": "autoscaler_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -597,6 +1251,71 @@ const docTemplate = `{
                 }
             }
         },
+        "/entities": {
+            "get": {
+                "description": "Returns a combined list of users and organizations for admin management. Requires admin rights.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "List all entities (users and organizations)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003cpersonal access token\u003e",
+                        "description": "Insert your personal access token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "for response pagination, page offset number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 15,
+                        "description": "for response pagination, max items per page",
+                        "name": "perPage",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "filter by entity type (user, org, or comma-separated)",
+                        "name": "entity_type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "filter by admin status (true, false, or empty for all)",
+                        "name": "is_admin",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "search term for name/login/email",
+                        "name": "search",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Entity"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/forges": {
             "get": {
                 "produces": [
@@ -902,6 +1621,60 @@ const docTemplate = `{
                                     "type": "string"
                                 }
                             }
+                        }
+                    }
+                }
+            }
+        },
+        "/metrics": {
+            "get": {
+                "description": "Returns comprehensive metrics including builds per agent, repo, org, average build time, etc. Non-admins see only their accessible repos.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Metrics"
+                ],
+                "summary": "Get metrics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003cpersonal access token\u003e",
+                        "description": "Insert your personal access token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Unix timestamp - filter metrics after this time",
+                        "name": "after",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Unix timestamp - filter metrics before this time",
+                        "name": "before",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Show all instance metrics (admin only)",
+                        "name": "all",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Comma-separated list of repo IDs to filter by",
+                        "name": "repos",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/codeberg_org_crowci_crow_v4_server_model.Metrics"
                         }
                     }
                 }
@@ -3395,6 +4168,53 @@ const docTemplate = `{
                 }
             }
         },
+        "/repos/{repo_id}/pipelines/{number}/workflows/{workflow_id}/cancel": {
+            "post": {
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "Pipelines"
+                ],
+                "summary": "Cancel a specific workflow in a pipeline",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003cpersonal access token\u003e",
+                        "description": "Insert your personal access token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "the repository id",
+                        "name": "repo_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "the number of the pipeline",
+                        "name": "number",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "the id of the workflow to cancel",
+                        "name": "workflow_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/repos/{repo_id}/pull_requests": {
             "get": {
                 "produces": [
@@ -4209,6 +5029,29 @@ const docTemplate = `{
                 }
             }
         },
+        "/timezones": {
+            "get": {
+                "description": "Returns a list of all IANA timezone names available in the system",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "System"
+                ],
+                "summary": "Get all available timezones",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/user": {
             "get": {
                 "produces": [
@@ -4233,6 +5076,336 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/User"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/access-tokens": {
+            "get": {
+                "description": "Returns all access tokens for the authenticated user.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "List access tokens",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003cpersonal access token\u003e",
+                        "description": "Insert your personal access token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "for response pagination, page offset number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 50,
+                        "description": "for response pagination, max items per page",
+                        "name": "perPage",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/AccessToken"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Creates a new personal access token. The token value is only returned once.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Create an access token",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003cpersonal access token\u003e",
+                        "description": "Insert your personal access token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Token data",
+                        "name": "token",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/codeberg_org_crowci_crow_v4_server_api.CreateAccessTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/codeberg_org_crowci_crow_v4_server_api.AccessTokenResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/access-tokens/batch": {
+            "delete": {
+                "description": "Deletes multiple access tokens by their IDs.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Delete multiple access tokens",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003cpersonal access token\u003e",
+                        "description": "Insert your personal access token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Token IDs to delete",
+                        "name": "ids",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/codeberg_org_crowci_crow_v4_server_api.DeleteAccessTokenBatchRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            }
+        },
+        "/user/access-tokens/scopes": {
+            "get": {
+                "description": "Returns the available scopes for access tokens based on user role.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Get available scopes",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003cpersonal access token\u003e",
+                        "description": "Insert your personal access token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/user/access-tokens/{token_id}": {
+            "get": {
+                "description": "Returns a single access token by ID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Get an access token",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003cpersonal access token\u003e",
+                        "description": "Insert your personal access token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "the token's id",
+                        "name": "token_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/AccessToken"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Deletes an access token by ID.",
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Delete an access token",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003cpersonal access token\u003e",
+                        "description": "Insert your personal access token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "the token's id",
+                        "name": "token_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            },
+            "patch": {
+                "description": "Updates an access token's name and/or scopes.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Update an access token",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003cpersonal access token\u003e",
+                        "description": "Insert your personal access token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "the token's id",
+                        "name": "token_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Token update data",
+                        "name": "token",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/codeberg_org_crowci_crow_v4_server_api.UpdateAccessTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/AccessToken"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/crons": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "List all crons from repos accessible by the current user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003cpersonal access token\u003e",
+                        "description": "Insert your personal access token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search term for cron name",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "for response pagination, page offset number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 50,
+                        "description": "for response pagination, max items per page",
+                        "name": "perPage",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/codeberg_org_crowci_crow_v4_server_model.CronWithRepo"
+                            }
                         }
                     }
                 }
@@ -4265,6 +5438,65 @@ const docTemplate = `{
                             "type": "array",
                             "items": {
                                 "$ref": "#/definitions/Feed"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/user/registries": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "List all registries accessible by the current user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003cpersonal access token\u003e",
+                        "description": "Insert your personal access token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "\"user,org,global\"",
+                        "description": "Comma-separated scopes: user,org,global",
+                        "name": "scope",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search term for registry address",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "for response pagination, page offset number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 50,
+                        "description": "for response pagination, max items per page",
+                        "name": "perPage",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/RegistryWithOrg"
                             }
                         }
                     }
@@ -4310,8 +5542,68 @@ const docTemplate = `{
                 }
             }
         },
+        "/user/secrets": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "List all secrets accessible by the current user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003cpersonal access token\u003e",
+                        "description": "Insert your personal access token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "\"user,org,global\"",
+                        "description": "Comma-separated scopes: user,org,global",
+                        "name": "scope",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search term for secret name",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "for response pagination, page offset number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 50,
+                        "description": "for response pagination, max items per page",
+                        "name": "perPage",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/SecretWithOrg"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/user/token": {
             "post": {
+                "description": "Deprecated: Use POST /user/access-tokens instead for better security and scope control.",
                 "produces": [
                     "text/plain"
                 ],
@@ -4319,6 +5611,7 @@ const docTemplate = `{
                     "User"
                 ],
                 "summary": "Return the token of the current user as string",
+                "deprecated": true,
                 "parameters": [
                     {
                         "type": "string",
@@ -4336,7 +5629,7 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "Reset's the current personal access token of the user and returns a new one.",
+                "description": "Deprecated: Use DELETE /user/access-tokens/:token_id instead. This endpoint rotates the user hash which invalidates ALL tokens.",
                 "produces": [
                     "text/plain"
                 ],
@@ -4344,6 +5637,7 @@ const docTemplate = `{
                     "User"
                 ],
                 "summary": "Reset a token",
+                "deprecated": true,
                 "parameters": [
                     {
                         "type": "string",
@@ -4591,6 +5885,47 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "AccessToken": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "integer"
+                },
+                "expires_at": {
+                    "description": "unix timestamp, 0 = never",
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "last_used": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "org_id": {
+                    "description": "0 = user-level",
+                    "type": "integer"
+                },
+                "repo_id": {
+                    "description": "0 = not repo-scoped",
+                    "type": "integer"
+                },
+                "scopes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "updated_at": {
+                    "type": "integer"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
         "Agent": {
             "type": "object",
             "properties": {
@@ -4619,6 +5954,12 @@ const docTemplate = `{
                     "description": "last time the agent did something, this value is used to determine if the agent is still doing work used by the autoscaler",
                     "type": "integer"
                 },
+                "limit_cpu_quota": {
+                    "type": "integer"
+                },
+                "limit_mem": {
+                    "type": "integer"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -4635,6 +5976,9 @@ const docTemplate = `{
                 "platform": {
                     "type": "string"
                 },
+                "priority": {
+                    "type": "integer"
+                },
                 "token": {
                     "type": "string"
                 },
@@ -4643,6 +5987,148 @@ const docTemplate = `{
                 },
                 "version": {
                     "type": "string"
+                },
+                "workflow_polling_healthy": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "Autoscaler": {
+            "type": "object",
+            "properties": {
+                "active_agents": {
+                    "type": "integer"
+                },
+                "agent_labels": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "created": {
+                    "type": "integer"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "instance_type": {
+                    "type": "string"
+                },
+                "last_contact": {
+                    "type": "integer"
+                },
+                "limit_cpu_quota": {
+                    "type": "string"
+                },
+                "limit_mem": {
+                    "type": "string"
+                },
+                "max_agents": {
+                    "type": "integer"
+                },
+                "min_agents": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "org_id": {
+                    "type": "integer"
+                },
+                "owner_id": {
+                    "type": "integer"
+                },
+                "pending_agents": {
+                    "type": "integer"
+                },
+                "provider": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                },
+                "updated": {
+                    "type": "integer"
+                },
+                "version": {
+                    "type": "string"
+                },
+                "workflows_per_agent": {
+                    "type": "integer"
+                }
+            }
+        },
+        "AutoscalerWithToken": {
+            "type": "object",
+            "properties": {
+                "active_agents": {
+                    "type": "integer"
+                },
+                "agent_labels": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "created": {
+                    "type": "integer"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "instance_type": {
+                    "type": "string"
+                },
+                "last_contact": {
+                    "type": "integer"
+                },
+                "limit_cpu_quota": {
+                    "type": "string"
+                },
+                "limit_mem": {
+                    "type": "string"
+                },
+                "max_agents": {
+                    "type": "integer"
+                },
+                "min_agents": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "org_id": {
+                    "type": "integer"
+                },
+                "owner_id": {
+                    "type": "integer"
+                },
+                "pending_agents": {
+                    "type": "integer"
+                },
+                "provider": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                },
+                "updated": {
+                    "type": "integer"
+                },
+                "version": {
+                    "type": "string"
+                },
+                "workflows_per_agent": {
+                    "type": "integer"
                 }
             }
         },
@@ -4689,6 +6175,46 @@ const docTemplate = `{
                 },
                 "schedule": {
                     "description": "@weekly,\t3min, ...",
+                    "type": "string"
+                }
+            }
+        },
+        "Entity": {
+            "type": "object",
+            "properties": {
+                "admin": {
+                    "type": "boolean"
+                },
+                "avatar": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "email": {
+                    "description": "User-specific fields (nil for orgs)",
+                    "type": "string"
+                },
+                "entity_type": {
+                    "$ref": "#/definitions/server_model.EntityType"
+                },
+                "forge_id": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_user": {
+                    "description": "Org-specific fields (nil for users)",
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "private": {
+                    "type": "boolean"
+                },
+                "timezone": {
                     "type": "string"
                 }
             }
@@ -4770,7 +6296,7 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "type": {
-                    "$ref": "#/definitions/model.ForgeType"
+                    "$ref": "#/definitions/server_model.ForgeType"
                 },
                 "url": {
                     "type": "string"
@@ -4819,6 +6345,123 @@ const docTemplate = `{
                 "LogEntryMetadata",
                 "LogEntryProgress"
             ]
+        },
+        "MaintenanceConfig": {
+            "type": "object",
+            "properties": {
+                "action_type": {
+                    "description": "\"vacuum\" or \"kubernetes_cleanup\"",
+                    "type": "string"
+                },
+                "created": {
+                    "type": "integer"
+                },
+                "dry_run": {
+                    "type": "boolean"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "env_vars_set": {
+                    "description": "Environment variable override flags (not persisted)",
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "kubernetes_cleanup_available": {
+                    "description": "Runtime flags (not persisted)",
+                    "type": "boolean"
+                },
+                "last_run": {
+                    "type": "string"
+                },
+                "last_run_duration": {
+                    "description": "Duration in milliseconds",
+                    "type": "integer"
+                },
+                "last_run_error": {
+                    "type": "string"
+                },
+                "last_run_success": {
+                    "type": "boolean"
+                },
+                "schedule": {
+                    "description": "Cron format: \"0 5 * * *\" for 5 AM daily",
+                    "type": "string"
+                },
+                "successful_runs": {
+                    "type": "integer"
+                },
+                "total_runs": {
+                    "description": "Action-specific statistics",
+                    "type": "integer"
+                },
+                "updated": {
+                    "type": "integer"
+                }
+            }
+        },
+        "MaintenanceLog": {
+            "type": "object",
+            "properties": {
+                "created": {
+                    "type": "integer"
+                },
+                "details": {
+                    "description": "JSON formatted details",
+                    "type": "string"
+                },
+                "duration": {
+                    "description": "Duration in milliseconds",
+                    "type": "integer"
+                },
+                "error": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "run_time": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "MaintenanceStats": {
+            "type": "object",
+            "properties": {
+                "created": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "last_run": {
+                    "type": "string"
+                },
+                "last_run_duration": {
+                    "description": "Duration in milliseconds",
+                    "type": "integer"
+                },
+                "last_run_error": {
+                    "type": "string"
+                },
+                "last_run_success": {
+                    "type": "boolean"
+                },
+                "successful_runs": {
+                    "type": "integer"
+                },
+                "total_runs": {
+                    "type": "integer"
+                },
+                "updated": {
+                    "type": "integer"
+                }
+            }
         },
         "Org": {
             "type": "object",
@@ -4922,13 +6565,13 @@ const docTemplate = `{
                 "from_fork": {
                     "type": "boolean"
                 },
-                "logs_deleted": {
-                    "type": "boolean"
-                },
                 "id": {
                     "type": "integer"
                 },
                 "is_prerelease": {
+                    "type": "boolean"
+                },
+                "logs_deleted": {
                     "type": "boolean"
                 },
                 "message": {
@@ -4986,7 +6629,7 @@ const docTemplate = `{
                 "workflows": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/model.Workflow"
+                        "$ref": "#/definitions/codeberg_org_crowci_crow_v4_server_model.Workflow"
                     }
                 }
             }
@@ -5025,13 +6668,13 @@ const docTemplate = `{
                 "pending": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/model.QueueTask"
+                        "$ref": "#/definitions/server_model.QueueTask"
                     }
                 },
                 "running": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/model.QueueTask"
+                        "$ref": "#/definitions/server_model.QueueTask"
                     }
                 },
                 "stats": {
@@ -5054,7 +6697,7 @@ const docTemplate = `{
                 "waiting_on_deps": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/model.QueueTask"
+                        "$ref": "#/definitions/server_model.QueueTask"
                     }
                 }
             }
@@ -5064,6 +6707,9 @@ const docTemplate = `{
             "properties": {
                 "address": {
                     "type": "string"
+                },
+                "created_at": {
+                    "type": "integer"
                 },
                 "id": {
                     "type": "integer"
@@ -5078,6 +6724,48 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "repo_id": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "RegistryWithOrg": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "org_id": {
+                    "type": "integer"
+                },
+                "org_name": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "readonly": {
+                    "type": "boolean"
+                },
+                "repo_id": {
+                    "type": "integer"
+                },
+                "scope_type": {
+                    "description": "\"user\", \"org\", or \"global\"",
+                    "type": "string"
+                },
+                "updated_at": {
                     "type": "integer"
                 },
                 "username": {
@@ -5162,13 +6850,13 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "require_approval": {
-                    "$ref": "#/definitions/model.ApprovalMode"
+                    "$ref": "#/definitions/server_model.ApprovalMode"
                 },
                 "timeout": {
                     "type": "integer"
                 },
                 "trusted": {
-                    "$ref": "#/definitions/model.TrustedConfiguration"
+                    "$ref": "#/definitions/server_model.TrustedConfiguration"
                 },
                 "visibility": {
                     "$ref": "#/definitions/RepoVisibility"
@@ -5255,13 +6943,13 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "require_approval": {
-                    "$ref": "#/definitions/model.ApprovalMode"
+                    "$ref": "#/definitions/server_model.ApprovalMode"
                 },
                 "timeout": {
                     "type": "integer"
                 },
                 "trusted": {
-                    "$ref": "#/definitions/model.TrustedConfiguration"
+                    "$ref": "#/definitions/server_model.TrustedConfiguration"
                 },
                 "visibility": {
                     "$ref": "#/definitions/RepoVisibility"
@@ -5305,7 +6993,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "trusted": {
-                    "$ref": "#/definitions/model.TrustedConfigurationPatch"
+                    "$ref": "#/definitions/codeberg_org_crowci_crow_v4_server_model.TrustedConfigurationPatch"
                 },
                 "visibility": {
                     "type": "string"
@@ -5328,6 +7016,9 @@ const docTemplate = `{
         "Secret": {
             "type": "object",
             "properties": {
+                "created_at": {
+                    "type": "integer"
+                },
                 "events": {
                     "type": "array",
                     "items": {
@@ -5350,6 +7041,63 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "repo_id": {
+                    "type": "integer"
+                },
+                "source": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "integer"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "SecretWithOrg": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "integer"
+                },
+                "events": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/WebhookEvent"
+                    }
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "images": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "org_id": {
+                    "type": "integer"
+                },
+                "org_name": {
+                    "type": "string"
+                },
+                "repo_id": {
+                    "type": "integer"
+                },
+                "repo_name": {
+                    "type": "string"
+                },
+                "scope_type": {
+                    "description": "\"user\", \"org\", \"repo\", or \"global\"",
+                    "type": "string"
+                },
+                "source": {
+                    "type": "string"
+                },
+                "updated_at": {
                     "type": "integer"
                 },
                 "value": {
@@ -5383,6 +7131,18 @@ const docTemplate = `{
                 "StatusSkipped": "skipped as another step failed",
                 "StatusSuccess": "successfully finished"
             },
+            "x-enum-descriptions": [
+                "skipped as another step failed",
+                "pending to be executed",
+                "currently running",
+                "successfully finished",
+                "failed to finish (exit code != 0)",
+                "killed by user",
+                "error with the config / while parsing / some other system problem",
+                "waiting for approval",
+                "blocked and declined",
+                "created / internal use only"
+            ],
             "x-enum-varnames": [
                 "StatusSkipped",
                 "StatusPending",
@@ -5399,6 +7159,12 @@ const docTemplate = `{
         "Step": {
             "type": "object",
             "properties": {
+                "depends_on": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "error": {
                     "type": "string"
                 },
@@ -5512,6 +7278,10 @@ const docTemplate = `{
                     "description": "the avatar url for this user.",
                     "type": "string"
                 },
+                "description": {
+                    "description": "Description is a short bio or description for this user.",
+                    "type": "string"
+                },
                 "email": {
                     "description": "Email is the email address for this user.\n\nrequired: true",
                     "type": "string"
@@ -5530,6 +7300,10 @@ const docTemplate = `{
                 "org_id": {
                     "description": "OrgID is the of the user as model.Org.",
                     "type": "integer"
+                },
+                "timezone": {
+                    "description": "Timezone is the user's timezone (e.g., \"America/New_York\", \"Europe/Berlin\").",
+                    "type": "string"
                 }
             }
         },
@@ -5557,6 +7331,434 @@ const docTemplate = `{
                 "EventCron",
                 "EventManual"
             ]
+        },
+        "codeberg_org_crowci_crow_v4_server_api.AccessTokenResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "integer"
+                },
+                "expires_at": {
+                    "description": "unix timestamp, 0 = never",
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "last_used": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "org_id": {
+                    "description": "0 = user-level",
+                    "type": "integer"
+                },
+                "repo_id": {
+                    "description": "0 = not repo-scoped",
+                    "type": "integer"
+                },
+                "scopes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "token": {
+                    "description": "Only populated on creation",
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "integer"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "codeberg_org_crowci_crow_v4_server_api.CreateAccessTokenRequest": {
+            "type": "object",
+            "required": [
+                "name",
+                "scopes"
+            ],
+            "properties": {
+                "expires_at": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "org_id": {
+                    "type": "integer"
+                },
+                "repo_id": {
+                    "type": "integer"
+                },
+                "scopes": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "codeberg_org_crowci_crow_v4_server_api.DeleteAccessTokenBatchRequest": {
+            "type": "object",
+            "required": [
+                "ids"
+            ],
+            "properties": {
+                "ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "codeberg_org_crowci_crow_v4_server_api.RunMaintenanceRequest": {
+            "type": "object",
+            "required": [
+                "job"
+            ],
+            "properties": {
+                "dry_run": {
+                    "description": "Run in dry-run mode (only for kubernetesCleanup)",
+                    "type": "boolean"
+                },
+                "job": {
+                    "description": "The maintenance job to run",
+                    "type": "string",
+                    "example": "vacuumLogTable"
+                }
+            }
+        },
+        "codeberg_org_crowci_crow_v4_server_api.UpdateAccessTokenRequest": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "scopes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "codeberg_org_crowci_crow_v4_server_model.AgentMetric": {
+            "type": "object",
+            "properties": {
+                "agent_id": {
+                    "type": "integer"
+                },
+                "agent_name": {
+                    "type": "string"
+                },
+                "avg_build_time": {
+                    "description": "in seconds",
+                    "type": "number"
+                },
+                "backend": {
+                    "type": "string"
+                },
+                "platform": {
+                    "type": "string"
+                },
+                "workflow_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "codeberg_org_crowci_crow_v4_server_model.ApprovalMode": {
+            "type": "string",
+            "enum": [
+                "none",
+                "forks",
+                "pull_requests",
+                "all_events"
+            ],
+            "x-enum-comments": {
+                "RequireApprovalAllEvents": "require approval for all external events",
+                "RequireApprovalForks": "require approval for PRs from forks (default)",
+                "RequireApprovalNone": "require approval for no events",
+                "RequireApprovalPullRequests": "require approval for all PRs"
+            },
+            "x-enum-descriptions": [
+                "require approval for no events",
+                "require approval for PRs from forks (default)",
+                "require approval for all PRs",
+                "require approval for all external events"
+            ],
+            "x-enum-varnames": [
+                "RequireApprovalNone",
+                "RequireApprovalForks",
+                "RequireApprovalPullRequests",
+                "RequireApprovalAllEvents"
+            ]
+        },
+        "codeberg_org_crowci_crow_v4_server_model.CronWithRepo": {
+            "type": "object",
+            "properties": {
+                "branch": {
+                    "type": "string"
+                },
+                "created": {
+                    "type": "integer"
+                },
+                "creator_id": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "next_exec": {
+                    "type": "integer"
+                },
+                "repo_id": {
+                    "type": "integer"
+                },
+                "repo_name": {
+                    "type": "string"
+                },
+                "repo_owner": {
+                    "type": "string"
+                },
+                "schedule": {
+                    "description": "@weekly,\t3min, ...",
+                    "type": "string"
+                }
+            }
+        },
+        "codeberg_org_crowci_crow_v4_server_model.ForgeType": {
+            "type": "string",
+            "enum": [
+                "github",
+                "gitlab",
+                "gitea",
+                "forgejo",
+                "bitbucket",
+                "bitbucket-dc",
+                "addon"
+            ],
+            "x-enum-varnames": [
+                "ForgeTypeGithub",
+                "ForgeTypeGitlab",
+                "ForgeTypeGitea",
+                "ForgeTypeForgejo",
+                "ForgeTypeBitbucket",
+                "ForgeTypeBitbucketDatacenter",
+                "ForgeTypeAddon"
+            ]
+        },
+        "codeberg_org_crowci_crow_v4_server_model.Metrics": {
+            "type": "object",
+            "properties": {
+                "agent_details": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/codeberg_org_crowci_crow_v4_server_model.AgentMetric"
+                    }
+                },
+                "avg_build_time": {
+                    "description": "in seconds",
+                    "type": "number"
+                },
+                "avg_steps_per_flow": {
+                    "type": "number"
+                },
+                "is_admin_scope": {
+                    "description": "true if showing all instance metrics",
+                    "type": "boolean"
+                },
+                "org_details": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/codeberg_org_crowci_crow_v4_server_model.OrgMetric"
+                    }
+                },
+                "pipelines_by_org": {
+                    "description": "org name -\u003e count",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                },
+                "pipelines_by_repo": {
+                    "description": "repo name -\u003e count",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                },
+                "repo_details": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/codeberg_org_crowci_crow_v4_server_model.RepoMetric"
+                    }
+                },
+                "total_orgs": {
+                    "type": "integer"
+                },
+                "total_pipelines": {
+                    "type": "integer"
+                },
+                "total_repos": {
+                    "type": "integer"
+                },
+                "workflows_by_agent": {
+                    "description": "agent name -\u003e count",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                }
+            }
+        },
+        "codeberg_org_crowci_crow_v4_server_model.OrgMetric": {
+            "type": "object",
+            "properties": {
+                "avg_build_time": {
+                    "description": "in seconds",
+                    "type": "number"
+                },
+                "org_id": {
+                    "type": "integer"
+                },
+                "org_name": {
+                    "type": "string"
+                },
+                "pipeline_count": {
+                    "type": "integer"
+                },
+                "repo_count": {
+                    "type": "integer"
+                },
+                "total_build_time": {
+                    "description": "in seconds",
+                    "type": "number"
+                }
+            }
+        },
+        "codeberg_org_crowci_crow_v4_server_model.RepoMetric": {
+            "type": "object",
+            "properties": {
+                "avg_build_time": {
+                    "description": "in seconds",
+                    "type": "number"
+                },
+                "pipeline_count": {
+                    "type": "integer"
+                },
+                "repo_full_name": {
+                    "type": "string"
+                },
+                "repo_id": {
+                    "type": "integer"
+                },
+                "repo_name": {
+                    "type": "string"
+                },
+                "total_build_time": {
+                    "description": "in seconds",
+                    "type": "number"
+                }
+            }
+        },
+        "codeberg_org_crowci_crow_v4_server_model.TrustedConfiguration": {
+            "type": "object",
+            "properties": {
+                "network": {
+                    "type": "boolean"
+                },
+                "security": {
+                    "type": "boolean"
+                },
+                "volumes": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "codeberg_org_crowci_crow_v4_server_model.TrustedConfigurationPatch": {
+            "type": "object",
+            "properties": {
+                "network": {
+                    "type": "boolean"
+                },
+                "security": {
+                    "type": "boolean"
+                },
+                "volumes": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "codeberg_org_crowci_crow_v4_server_model.Workflow": {
+            "type": "object",
+            "properties": {
+                "agent_id": {
+                    "type": "integer"
+                },
+                "children": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Step"
+                    }
+                },
+                "depends_on": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "environ": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "error": {
+                    "type": "string"
+                },
+                "finished": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "pid": {
+                    "type": "integer"
+                },
+                "pipeline_id": {
+                    "type": "integer"
+                },
+                "pipeline_name": {
+                    "type": "string"
+                },
+                "platform": {
+                    "type": "string"
+                },
+                "started": {
+                    "type": "integer"
+                },
+                "state": {
+                    "$ref": "#/definitions/StatusValue"
+                }
+            }
         },
         "metadata.Author": {
             "type": "object",
@@ -5694,6 +7896,9 @@ const docTemplate = `{
                 },
                 "task": {
                     "type": "string"
+                },
+                "title": {
+                    "type": "string"
                 }
             }
         },
@@ -5794,7 +7999,126 @@ const docTemplate = `{
                 }
             }
         },
-        "model.ApprovalMode": {
+        "server_api.AccessTokenResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "integer"
+                },
+                "expires_at": {
+                    "description": "unix timestamp, 0 = never",
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "last_used": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "org_id": {
+                    "description": "0 = user-level",
+                    "type": "integer"
+                },
+                "repo_id": {
+                    "description": "0 = not repo-scoped",
+                    "type": "integer"
+                },
+                "scopes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "token": {
+                    "description": "Only populated on creation",
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "integer"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "server_api.CreateAccessTokenRequest": {
+            "type": "object",
+            "required": [
+                "name",
+                "scopes"
+            ],
+            "properties": {
+                "expires_at": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "org_id": {
+                    "type": "integer"
+                },
+                "repo_id": {
+                    "type": "integer"
+                },
+                "scopes": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "server_api.DeleteAccessTokenBatchRequest": {
+            "type": "object",
+            "required": [
+                "ids"
+            ],
+            "properties": {
+                "ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "server_api.RunMaintenanceRequest": {
+            "type": "object",
+            "required": [
+                "job"
+            ],
+            "properties": {
+                "dry_run": {
+                    "description": "Run in dry-run mode (only for kubernetesCleanup)",
+                    "type": "boolean"
+                },
+                "job": {
+                    "description": "The maintenance job to run",
+                    "type": "string",
+                    "example": "vacuumLogTable"
+                }
+            }
+        },
+        "server_api.UpdateAccessTokenRequest": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "scopes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "server_model.ApprovalMode": {
             "type": "string",
             "enum": [
                 "none",
@@ -5808,6 +8132,12 @@ const docTemplate = `{
                 "RequireApprovalNone": "require approval for no events",
                 "RequireApprovalPullRequests": "require approval for all PRs"
             },
+            "x-enum-descriptions": [
+                "require approval for no events",
+                "require approval for PRs from forks (default)",
+                "require approval for all PRs",
+                "require approval for all external events"
+            ],
             "x-enum-varnames": [
                 "RequireApprovalNone",
                 "RequireApprovalForks",
@@ -5815,7 +8145,18 @@ const docTemplate = `{
                 "RequireApprovalAllEvents"
             ]
         },
-        "model.ForgeType": {
+        "server_model.EntityType": {
+            "type": "string",
+            "enum": [
+                "user",
+                "org"
+            ],
+            "x-enum-varnames": [
+                "EntityTypeUser",
+                "EntityTypeOrg"
+            ]
+        },
+        "server_model.ForgeType": {
             "type": "string",
             "enum": [
                 "github",
@@ -5836,7 +8177,7 @@ const docTemplate = `{
                 "ForgeTypeAddon"
             ]
         },
-        "model.QueueTask": {
+        "server_model.QueueTask": {
             "type": "object",
             "properties": {
                 "agent_id": {
@@ -5872,10 +8213,18 @@ const docTemplate = `{
                 "pid": {
                     "type": "integer"
                 },
+                "pipeline_created": {
+                    "description": "Unix timestamp when the pipeline was created",
+                    "type": "integer"
+                },
                 "pipeline_id": {
                     "type": "integer"
                 },
                 "pipeline_number": {
+                    "type": "integer"
+                },
+                "pipeline_started": {
+                    "description": "Unix timestamp when the pipeline started running (0 if not started)",
                     "type": "integer"
                 },
                 "repo_id": {
@@ -5889,7 +8238,7 @@ const docTemplate = `{
                 }
             }
         },
-        "model.TrustedConfiguration": {
+        "server_model.TrustedConfiguration": {
             "type": "object",
             "properties": {
                 "network": {
@@ -5903,7 +8252,7 @@ const docTemplate = `{
                 }
             }
         },
-        "model.TrustedConfigurationPatch": {
+        "server_model.TrustedConfigurationPatch": {
             "type": "object",
             "properties": {
                 "network": {
@@ -5917,7 +8266,7 @@ const docTemplate = `{
                 }
             }
         },
-        "model.Workflow": {
+        "server_model.Workflow": {
             "type": "object",
             "properties": {
                 "agent_id": {
@@ -5927,6 +8276,12 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/Step"
+                    }
+                },
+                "depends_on": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
                     }
                 },
                 "environ": {
@@ -5952,6 +8307,9 @@ const docTemplate = `{
                 },
                 "pipeline_id": {
                     "type": "integer"
+                },
+                "pipeline_name": {
+                    "type": "string"
                 },
                 "platform": {
                     "type": "string"
@@ -5995,6 +8353,13 @@ const docTemplate = `{
                 "PipelineErrorTypeGeneric": "some generic error",
                 "PipelineErrorTypeLinter": "some error with the config syntax"
             },
+            "x-enum-descriptions": [
+                "some error with the config syntax",
+                "using some deprecated feature",
+                "some error with the config semantics",
+                "some generic error",
+                "some bad-habit error"
+            ],
             "x-enum-varnames": [
                 "PipelineErrorTypeLinter",
                 "PipelineErrorTypeDeprecation",
@@ -6010,7 +8375,7 @@ const docTemplate = `{
 var SwaggerInfo = &swag.Spec{
 	Version:          "",
 	Host:             "",
-	BasePath:         "/api",
+	BasePath:         "/api/v1",
 	Schemes:          []string{},
 	Title:            "Crow CI API",
 	Description:      "Crow CI is a lightweight, community-driven CI application for self-hosted environments.\nTo get a personal access token (PAT) for authentication, please log in\nand go to you personal profile page, by clicking the user icon at the top right.",

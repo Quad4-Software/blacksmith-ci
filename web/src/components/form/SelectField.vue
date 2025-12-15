@@ -1,11 +1,11 @@
 <template>
   <select
     v-model="innerValue"
-    class="w-full rounded-md border border-wp-background-400 bg-wp-control-neutral-100 px-2 py-[0.375rem] text-wp-text-100 shadow-sm"
+    class="w-full rounded-md border border-input bg-background px-2 py-[0.375rem] text-foreground shadow-sm"
   >
     <option v-if="placeholder" value="" class="hidden">{{ placeholder }}</option>
 
-    <option v-for="option in options" :key="option.value" :value="option.value" class="text-wp-text-100">
+    <option v-for="option in options" :key="option.value" :value="option.value" class="text-foreground">
       {{ option.text }}
     </option>
   </select>

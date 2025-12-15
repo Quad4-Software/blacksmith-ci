@@ -1,7 +1,7 @@
 <template>
   <div
-    class="mx-auto w-full p-4 flex flex-col"
-    :class="{ 'max-w-5xl': !fullWidth && !fillWidth, 'md:px-0': fullWidth }"
+    class="mx-auto w-full max-w-full px-3 py-4 sm:px-4 box-border overflow-x-hidden"
+    :class="{ 'md:px-0': fullWidth }"
   >
     <slot />
   </div>

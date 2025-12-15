@@ -1,74 +1,200 @@
 <template>
-  <router-link
-    v-if="repo"
-    :to="{ name: 'repo', params: { repoId: repo.id } }"
-    class="flex cursor-pointer flex-col overflow-hidden rounded-md border border-wp-background-400 bg-wp-background-100 p-3 shadow-xs hover:bg-wp-background-300 hover:shadow-xs dark:bg-wp-background-200 dark:hover:bg-wp-background-300"
-  >
-    <div class="grid grid-cols-[auto_1fr] items-center gap-y-4">
-      <div class="flex items-center gap-2 text-lg text-wp-text-100">
-        <span>{{ `${repo.owner} / ${repo.name}` }}</span>
-      </div>
+  <Transition name="fade" mode="out-in">
+    <router-link v-if="repo && repo.active" :to="{ name: 'repo', params: { repoId: repo.id } }" class="block">
+      <Card class="p-0 hover:bg-accent/50 transition-colors cursor-pointer">
+        <CardHeader class="mb-2 p-4 pb-1">
+          <div class="flex items-start justify-between gap-4">
+            <div class="flex items-center gap-2 flex-1 min-w-0">
+              <!-- Drag handle for reordering pinned repos -->
+              <div
+                v-if="showDragHandle"
+                class="drag-handle flex items-center cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                @click.stop.prevent
+              >
+                <Icon name="lucide:grip-vertical" class="h-5 w-5" />
+              </div>
+              <CardTitle class="text-lg flex-1 min-w-0">
+                {{ `${repo.owner} / ${repo.name}` }}
+              </CardTitle>
+            </div>
 
-      <div class="ml-auto flex items-center gap-2 text-wp-text-100">
-        <!-- Forge profile link with local icon -->
-        <a
-          v-if="forge && repo.forge_url"
-          :href="repo.forge_url"
-          :title="`View ${repo.owner}/${repo.name} on ${getForgeUrl(forge)}`"
-          target="_blank"
-          class="inline-flex items-center justify-center h-6 w-6 hover:opacity-80 transition-opacity"
-        >
-          <Icon :name="getForgeIconName(forge)" class="h-4 w-4 text-wp-text-100" />
-        </a>
+            <div class="flex items-center gap-2 shrink-0">
+              <!-- Visibility badge (moved first) -->
+              <Badge v-if="repo.visibility === RepoVisibility.Private" variant="secondary">
+                <Icon name="visibility-private" class="mr-1 h-3 w-3" />
+                {{ $t('repo.visibility.private.private') }}
+              </Badge>
+              <Badge v-else-if="repo.visibility === RepoVisibility.Internal" variant="secondary">
+                <Icon name="visibility-internal" class="mr-1 h-3 w-3" />
+                {{ $t('repo.visibility.internal.internal') }}
+              </Badge>
 
-        <div
-          v-if="repo.visibility === RepoVisibility.Private"
-          :title="`${$t('repo.visibility.visibility')}: ${$t(`repo.visibility.private.private`)}`"
-        >
-          <Icon name="visibility-private" size="1.3rem" />
-        </div>
+              <!-- Pin button -->
+              <TooltipProvider @click.stop>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <span class="inline-flex">
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        :disabled="!canPin && !isPinned"
+                        @click.prevent="emit('togglePin')"
+                      >
+                        <Icon
+                          :name="isPinned ? 'lucide:pin' : 'lucide:pin-off'"
+                          class="h-4 w-4"
+                          :class="{ 'text-muted-foreground': isPinned }"
+                        />
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      {{
+                        isPinned ? $t('repo.unpin') : !canPin ? $t('repositories.pin_limit_reached') : $t('repo.pin')
+                      }}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
 
-        <div
-          v-else-if="repo.visibility === RepoVisibility.Internal"
-          :title="`${$t('repo.visibility.visibility')}: ${$t(`repo.visibility.internal.internal`)}`"
-        >
-          <Icon name="visibility-internal" />
-        </div>
-      </div>
+              <!-- Power button (disable repo) -->
+              <TooltipProvider @click.stop>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      :disabled="isUpdating"
+                      @click.prevent="toggleRepoActive(false)"
+                    >
+                      <Icon name="lucide:power" class="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{{ $t('repo.disable') }}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
 
-      <div class="col-span-2 flex w-full gap-x-4 text-wp-text-100">
-        <template v-if="lastPipeline">
-          <div class="flex min-w-0 flex-1 items-center gap-x-1">
-            <PipelineStatusIcon v-if="lastPipeline" :status="lastPipeline.status" />
-            <span class="overflow-hidden text-ellipsis whitespace-nowrap pl-2">{{ shortMessage }}</span>
+              <!-- Forge link -->
+              <a
+                v-if="forge && repo.forge_url"
+                :href="repo.forge_url"
+                :title="`${$t('repo.open_in_forge')}`"
+                target="_blank"
+                class="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent transition-colors"
+                @click.stop
+              >
+                <Icon :name="getForgeIconName(forge)" class="h-4 w-4" />
+              </a>
+            </div>
           </div>
+        </CardHeader>
 
-          <div class="ml-auto flex shrink-0 items-center gap-x-1">
-            <Icon name="startDate" size="1rem" /> <span>{{ startDate }}</span>
+        <CardContent class="p-4 pt-0">
+          <div v-if="lastPipeline" class="flex items-center justify-between gap-4">
+            <!-- Rerun button, last pipeline, and history -->
+            <div class="flex min-w-0 flex-1 items-center gap-2">
+              <TooltipProvider @click.stop>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <Button variant="ghost" size="icon-sm" :disabled="isRerunning" @click="rerunPipeline">
+                      <Icon name="lucide:refresh-ccw" class="size-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{{ $t('repo.pipeline.rerun_latest') }}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <router-link
+                :to="{ name: 'repo-pipeline', params: { repoId: repo.id, pipelineId: lastPipeline.number } }"
+                class="flex items-center gap-2 hover:underline"
+                @click.stop
+              >
+                <PipelineStatusIcon :status="lastPipeline.status" class="size-4" />
+                <span class="overflow-hidden text-ellipsis whitespace-nowrap text-sm text-muted-foreground">
+                  {{ shortMessage }}
+                </span>
+              </router-link>
+
+              <!-- Separator (hidden on mobile) -->
+              <Separator
+                v-if="recentPipelines.length > 0"
+                orientation="vertical"
+                class="hidden md:block h-5 bg-muted-foreground/30"
+              />
+
+              <!-- Last 5 pipeline status indicators (hidden on mobile) -->
+              <div v-if="recentPipelines.length > 0" class="hidden md:flex items-center gap-2" @click.stop>
+                <span class="text-sm text-muted-foreground">{{ $t('repo.pipeline.history') }}</span>
+                <div class="flex items-center gap-1">
+                  <router-link
+                    v-for="pipeline in recentPipelines"
+                    :key="pipeline.id"
+                    :to="{ name: 'repo-pipeline', params: { repoId: repo.id, pipelineId: pipeline.number } }"
+                    :title="`Pipeline #${pipeline.number} - ${pipeline.status}`"
+                    class="hover:scale-125 transition-all hover:drop-shadow-md rounded-full p-0.5 hover:bg-accent"
+                  >
+                    <PipelineStatusIcon :status="pipeline.status" class="size-4" />
+                  </router-link>
+                </div>
+              </div>
+            </div>
+
+            <!-- Duration -->
+            <div class="flex shrink-0 items-center gap-1 text-sm text-muted-foreground">
+              <Icon name="duration" class="size-4" />
+              <span>{{ duration }}</span>
+            </div>
           </div>
-        </template>
-        <div v-else class="flex gap-x-2">
-          <span>{{ $t('repo.pipeline.no_pipelines') }}</span>
-        </div>
-      </div>
-    </div>
-  </router-link>
+          <div v-else class="text-sm text-muted-foreground" :class="{ 'ml-1.5': showDragHandle }">
+            {{ $t('repo.pipeline.no_pipelines') }}
+          </div>
+        </CardContent>
+      </Card>
+    </router-link>
+  </Transition>
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 
 import Icon from '~/components/atomic/Icon.vue';
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
+import { Badge } from '~/components/ui/badge';
+import { Button } from '~/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
+import { Separator } from '~/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
+import useApiClient from '~/compositions/useApiClient';
 import { useForges } from '~/compositions/useForges';
+import useNotifications from '~/compositions/useNotifications';
 import usePipeline from '~/compositions/usePipeline';
-import type { Repo, Forge } from '~/lib/api/types';
+import type { Repo, Forge, Pipeline } from '~/lib/api/types';
 import { RepoVisibility } from '~/lib/api/types';
-import type { IconNames } from '~/components/atomic/Icon.vue';
+import type { IconNames } from '~/components/atomic/Icon.types';
+import { useRepoStore } from '~/store/repos';
 
 const props = defineProps<{
   repo: Repo;
+  isPinned?: boolean;
+  canPin?: boolean;
+  showDragHandle?: boolean;
 }>();
+
+const emit = defineEmits<{
+  togglePin: [];
+}>();
+
+const apiClient = useApiClient();
+const notifications = useNotifications();
+const repoStore = useRepoStore();
+const isUpdating = ref(false);
+const recentPipelines = ref<Pipeline[]>([]);
+const isRerunning = ref(false);
 
 // Use global forge data
 const { getForgeById } = useForges();
@@ -98,17 +224,106 @@ function getForgeIconName(forge: Forge): IconNames {
   return typeToIcon[forge.type] || 'repo';
 }
 
-function getForgeUrl(forge: Forge): string {
-  try {
-    const url = new URL(forge.url);
-    return url.hostname;
-  } catch {
-    return forge.url;
+async function toggleRepoActive(checked: boolean) {
+  if (!checked) {
+    // First update the local state to trigger the fade-out transition
+    repoStore.setRepo({
+      ...props.repo,
+      active: false,
+    });
+
+    // Wait for transition to complete (300ms as defined in CSS)
+    await new Promise((resolve) => setTimeout(resolve, 350));
+
+    // Then make the API call to disable
+    isUpdating.value = true;
+    try {
+      await apiClient.deleteRepo(props.repo.id, false); // false = disable, not delete
+      notifications.notify({
+        title: 'Repository disabled',
+        type: 'success',
+      });
+    } catch {
+      // If the API call fails, revert the local state
+      repoStore.setRepo({
+        ...props.repo,
+        active: true,
+      });
+      notifications.notify({
+        title: 'Failed to update repository',
+        type: 'error',
+      });
+    } finally {
+      isUpdating.value = false;
+    }
+  } else {
+    // This shouldn't happen since we only show active repos
+    // But if somehow toggled on, reactivate
+    isUpdating.value = true;
+    try {
+      const updatedRepo = await apiClient.activateRepo(props.repo.forge_remote_id);
+      repoStore.setRepo(updatedRepo);
+      notifications.notify({
+        title: 'Repository enabled',
+        type: 'success',
+      });
+    } catch {
+      notifications.notify({
+        title: 'Failed to update repository',
+        type: 'error',
+      });
+    } finally {
+      isUpdating.value = false;
+    }
   }
 }
 
-// Forges are now preloaded globally, no need to load here
-
 const lastPipeline = computed(() => props.repo.last_pipeline);
-const { startDate, shortMessage } = usePipeline(lastPipeline);
+const { shortMessage, duration } = usePipeline(lastPipeline);
+
+// Fetch last 5 pipelines
+onMounted(async () => {
+  try {
+    const pipelines = await apiClient.getPipelineList(props.repo.id, { perPage: 5 });
+    recentPipelines.value = pipelines || [];
+  } catch (error) {
+    console.error('Failed to fetch recent pipelines:', error);
+  }
+});
+
+async function rerunPipeline() {
+  if (!lastPipeline.value) return;
+
+  isRerunning.value = true;
+  try {
+    await apiClient.restartPipeline(props.repo.id, lastPipeline.value.number.toString());
+    notifications.notify({
+      title: 'Pipeline restarted',
+      type: 'success',
+    });
+    // Refresh the pipeline list
+    const pipelines = await apiClient.getPipelineList(props.repo.id, { perPage: 5 });
+    recentPipelines.value = pipelines || [];
+  } catch {
+    notifications.notify({
+      title: 'Failed to restart pipeline',
+      type: 'error',
+    });
+  } finally {
+    isRerunning.value = false;
+  }
+}
 </script>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: all 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+</style>

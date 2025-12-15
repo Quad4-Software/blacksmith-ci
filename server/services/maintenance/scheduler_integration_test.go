@@ -24,9 +24,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"codeberg.org/crowci/crow/v4/server/model"
-	"codeberg.org/crowci/crow/v4/server/store"
-	"codeberg.org/crowci/crow/v4/server/store/datastore"
+	"codeberg.org/crowci/crow/v5/server/model"
+	"codeberg.org/crowci/crow/v5/server/store"
+	"codeberg.org/crowci/crow/v5/server/store/datastore"
 )
 
 func setupTestStore(t *testing.T) store.Store {
@@ -77,7 +77,7 @@ func TestSchedulerIntegration_BothActionsScheduled(t *testing.T) {
 	err = service.UpdateMaintenanceConfigByAction("kubernetes_cleanup", k8sConfig)
 	require.NoError(t, err)
 
-	scheduler := NewScheduler(service, testStore)
+	scheduler := NewScheduler(service, testStore, nil)
 	scheduler.ctx = ctx
 
 	// Run check at a time when both should execute
@@ -143,7 +143,7 @@ func TestSchedulerIntegration_OnlyEnabledActionsRun(t *testing.T) {
 	err = service.UpdateMaintenanceConfigByAction("kubernetes_cleanup", k8sConfig)
 	require.NoError(t, err)
 
-	scheduler := NewScheduler(service, testStore)
+	scheduler := NewScheduler(service, testStore, nil)
 	scheduler.ctx = ctx
 
 	testTime := currentTime.Add(1 * time.Second)
@@ -181,7 +181,7 @@ func TestSchedulerIntegration_RespectsCronSchedule(t *testing.T) {
 	err := service.UpdateMaintenanceConfigByAction("kubernetes_cleanup", k8sConfig)
 	require.NoError(t, err)
 
-	scheduler := NewScheduler(service, testStore)
+	scheduler := NewScheduler(service, testStore, nil)
 	scheduler.ctx = ctx
 
 	k8sCleanupCalled = false

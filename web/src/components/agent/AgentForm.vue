@@ -1,7 +1,7 @@
 <template>
   <form @submit.prevent="$emit('save')">
     <InputField v-slot="{ id }" :label="$t('admin.settings.agents.name.name')">
-      <TextField :id="id" v-model="agent.name" :placeholder="$t('admin.settings.agents.name.placeholder')" required />
+      <Input :id="id" v-model="agent.name" :placeholder="$t('admin.settings.agents.name.placeholder')" required />
     </InputField>
 
     <InputField :label="$t('admin.settings.agents.no_schedule.name')">
@@ -13,31 +13,32 @@
     </InputField>
 
     <InputField v-slot="{ id }" :label="$t('admin.settings.agents.priority.priority')">
-      <span class="text-wp-text-alt-100">{{ $t('admin.settings.agents.priority.desc') }}</span>
-      <NumberField
+      <span class="text-muted-foreground">{{ $t('admin.settings.agents.priority.desc') }}</span>
+      <Input
         :id="id"
+        type="number"
         :model-value="agent.priority || 0"
         min="0"
         max="2147483647"
-        @update:model-value="updateAgent({ priority: $event })"
+        @update:model-value="updateAgent({ priority: Number($event) })"
       />
     </InputField>
 
     <template v-if="isEditingAgent">
       <InputField v-slot="{ id }" :label="$t('admin.settings.agents.token')">
-        <TextField :id="id" v-model="agent.token" :placeholder="$t('admin.settings.agents.token')" disabled />
+        <Input :id="id" v-model="agent.token" :placeholder="$t('admin.settings.agents.token')" disabled />
       </InputField>
 
       <InputField v-slot="{ id }" :label="$t('admin.settings.agents.id')">
-        <TextField :id="id" :model-value="agent.id?.toString()" disabled />
+        <Input :id="id" :model-value="agent.id?.toString()" disabled />
       </InputField>
 
       <InputField v-slot="{ id }" :label="$t('admin.settings.agents.backend.backend')" :docs-url="backendDocsUrl">
-        <TextField :id="id" v-model="agent.backend" disabled />
+        <Input :id="id" v-model="agent.backend" disabled />
       </InputField>
 
       <InputField v-slot="{ id }" :label="$t('admin.settings.agents.platform.platform')">
-        <TextField :id="id" v-model="agent.platform" disabled />
+        <Input :id="id" v-model="agent.platform" disabled />
       </InputField>
 
       <InputField
@@ -45,8 +46,8 @@
         v-slot="{ id }"
         :label="$t('admin.settings.agents.custom_labels.custom_labels')"
       >
-        <span class="text-wp-text-alt-100">{{ $t('admin.settings.agents.custom_labels.desc') }}</span>
-        <TextField :id="id" :model-value="formatCustomLabels(agent.custom_labels)" disabled />
+        <span class="text-muted-foreground">{{ $t('admin.settings.agents.custom_labels.desc') }}</span>
+        <Input :id="id" :model-value="formatCustomLabels(agent.custom_labels)" disabled />
       </InputField>
 
       <InputField
@@ -54,16 +55,16 @@
         :label="$t('admin.settings.agents.capacity.capacity')"
         docs-url="docs/next/administration/agent-config#woodpecker_max_workflows"
       >
-        <span class="text-wp-text-alt-100">{{ $t('admin.settings.agents.capacity.desc') }}</span>
-        <TextField :id="id" :model-value="agent.capacity?.toString()" disabled />
+        <span class="text-muted-foreground">{{ $t('admin.settings.agents.capacity.desc') }}</span>
+        <Input :id="id" :model-value="agent.capacity?.toString()" disabled />
       </InputField>
 
       <InputField v-slot="{ id }" :label="$t('admin.settings.agents.version')">
-        <TextField :id="id" :model-value="agent.version" disabled />
+        <Input :id="id" :model-value="agent.version" disabled />
       </InputField>
 
       <InputField v-slot="{ id }" :label="$t('admin.settings.agents.last_contact.last_contact')">
-        <TextField
+        <Input
           :id="id"
           :model-value="
             agent.last_contact ? date.timeAgo(agent.last_contact * 1000) : $t('admin.settings.agents.never')
@@ -74,11 +75,12 @@
     </template>
 
     <div class="flex gap-2">
-      <Button type="button" color="gray" :text="$t('cancel')" @click="$emit('cancel')" />
+      <Button type="button" variant="outline" size="sm" :text="$t('cancel')" @click="$emit('cancel')" />
       <Button
         :is-loading="isSaving"
         type="submit"
-        color="default"
+        variant="default"
+        size="sm"
         :text="isEditingAgent ? $t('admin.settings.agents.save') : $t('admin.settings.agents.add')"
       />
     </div>
@@ -91,8 +93,7 @@ import { computed } from 'vue';
 import Button from '~/components/atomic/Button.vue';
 import Checkbox from '~/components/form/Checkbox.vue';
 import InputField from '~/components/form/InputField.vue';
-import NumberField from '~/components/form/NumberField.vue';
-import TextField from '~/components/form/TextField.vue';
+import { Input } from '~/components/ui/input';
 import { useDate } from '~/compositions/useDate';
 import type { Agent } from '~/lib/api/types';
 

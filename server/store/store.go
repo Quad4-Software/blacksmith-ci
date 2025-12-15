@@ -17,7 +17,7 @@ package store
 import (
 	"context"
 
-	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v5/server/model"
 )
 
 // TODO: CreateX func should return new object to not indirect let storage change an existing object (alter ID etc...)
@@ -129,6 +129,7 @@ type Store interface {
 	OrgSecretList(int64, *model.ListOptions) ([]*model.Secret, error)
 	GlobalSecretFind(string) (*model.Secret, error)
 	GlobalSecretList(*model.ListOptions) ([]*model.Secret, error)
+	UserSecretList(orgIDs []int64, repoIDs []int64, includeGlobal bool, searchTerm string, p *model.ListOptions) ([]*model.Secret, error)
 
 	// Registries
 	RegistryFind(*model.Repo, string) (*model.Registry, error)
@@ -141,6 +142,7 @@ type Store interface {
 	OrgRegistryList(int64, *model.ListOptions) ([]*model.Registry, error)
 	GlobalRegistryFind(string) (*model.Registry, error)
 	GlobalRegistryList(*model.ListOptions) ([]*model.Registry, error)
+	UserRegistryList(orgIDs []int64, includeGlobal bool, searchTerm string, p *model.ListOptions) ([]*model.Registry, error)
 
 	// Steps
 	StepLoad(int64) (*model.Step, error)
@@ -181,6 +183,7 @@ type Store interface {
 	CronDelete(*model.Repo, int64) error
 	CronListNextExecute(int64, int64) ([]*model.Cron, error)
 	CronGetLock(*model.Cron, int64) (bool, error)
+	UserCronList(repoIDs []int64, searchTerm string, p *model.ListOptions) ([]*model.Cron, error)
 
 	// Forge
 	ForgeCreate(*model.Forge) error
@@ -197,6 +200,15 @@ type Store interface {
 	AgentUpdate(*model.Agent) error
 	AgentDelete(*model.Agent) error
 	AgentListForOrg(orgID int64, opt *model.ListOptions) ([]*model.Agent, error)
+
+	// Access Tokens
+	AccessTokenCreate(*model.AccessToken) error
+	AccessTokenFind(int64) (*model.AccessToken, error)
+	AccessTokenFindByHash(string) (*model.AccessToken, error)
+	AccessTokenList(userID int64, p *model.ListOptions) ([]*model.AccessToken, error)
+	AccessTokenUpdate(*model.AccessToken) error
+	AccessTokenDelete(*model.AccessToken) error
+	AccessTokenUpdateLastUsed(int64, int64) error
 
 	// Autoscaler
 	AutoscalerCreate(*model.Autoscaler) error
@@ -238,6 +250,35 @@ type Store interface {
 
 	// Org repos
 	OrgRepoList(*model.Org, *model.ListOptions) ([]*model.Repo, error)
+
+	// Metrics
+	// GetOrgCount gets a count of all organizations in the system.
+	GetOrgCount() (int64, error)
+	// GetWorkflowCountByAgent gets a count of workflows executed by a specific agent with optional time filter.
+	GetWorkflowCountByAgent(agentID int64, after, before int64) (int64, error)
+	// GetPipelineCountByOrg gets a count of pipelines for a specific org with optional time filter.
+	GetPipelineCountByOrg(orgID int64, after, before int64) (int64, error)
+	// GetAveragePipelineDuration gets the average duration of pipelines with optional time and repo filter.
+	// If repoIDs is nil or empty, returns metrics for all repos.
+	GetAveragePipelineDuration(after, before int64, repoIDs []int64) (float64, error)
+	// GetAverageStepsPerWorkflow gets the average number of steps per workflow with optional time and repo filter.
+	// If repoIDs is nil or empty, returns metrics for all repos.
+	GetAverageStepsPerWorkflow(after, before int64, repoIDs []int64) (float64, error)
+	// GetWorkflowCountsByAgent returns workflow counts grouped by agent ID with optional time and repo filter.
+	// If repoIDs is nil or empty, returns metrics for all repos.
+	GetWorkflowCountsByAgent(after, before int64, repoIDs []int64) (map[int64]int64, error)
+	// GetPipelineCountsByRepo returns pipeline counts grouped by repo ID with optional time and repo filter.
+	// If repoIDs is nil or empty, returns metrics for all repos.
+	GetPipelineCountsByRepo(after, before int64, repoIDs []int64) (map[int64]int64, error)
+	// GetPipelineCountsByOrg returns pipeline counts grouped by org ID with optional time and repo filter.
+	// If repoIDs is nil or empty, returns metrics for all repos.
+	GetPipelineCountsByOrg(after, before int64, repoIDs []int64) (map[int64]int64, error)
+	// GetBuildTimeStatsByRepo returns average and total build times grouped by repo ID with optional time and repo filter.
+	// If repoIDs is nil or empty, returns metrics for all repos.
+	GetBuildTimeStatsByRepo(after, before int64, repoIDs []int64) (map[int64]map[string]float64, error)
+	// GetBuildTimeStatsByOrg returns average and total build times grouped by org ID with optional time and repo filter.
+	// If repoIDs is nil or empty, returns metrics for all repos.
+	GetBuildTimeStatsByOrg(after, before int64, repoIDs []int64) (map[int64]map[string]float64, error)
 
 	// Store operations
 	Ping() error

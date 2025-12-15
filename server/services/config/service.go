@@ -17,9 +17,9 @@ package config
 import (
 	"context"
 
-	"codeberg.org/crowci/crow/v4/server/forge"
-	"codeberg.org/crowci/crow/v4/server/forge/types"
-	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v5/server/forge"
+	"codeberg.org/crowci/crow/v5/server/forge/types"
+	"codeberg.org/crowci/crow/v5/server/model"
 )
 
 type Service interface {

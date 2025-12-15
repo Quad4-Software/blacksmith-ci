@@ -15,6 +15,7 @@
 package docker
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"net/http"
@@ -36,8 +37,8 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v3"
 
-	backend "codeberg.org/crowci/crow/v4/pipeline/backend/types"
-	"codeberg.org/crowci/crow/v4/shared/utils"
+	backend "codeberg.org/crowci/crow/v5/pipeline/backend/types"
+	"codeberg.org/crowci/crow/v5/shared/utils"
 )
 
 type docker struct {
@@ -290,13 +291,55 @@ func (e *docker) TailStep(ctx context.Context, step *backend.Step, taskUUID stri
 	}
 	rc, wc := io.Pipe()
 
-	// de multiplex 'logs' who contains two streams, previously multiplexed together using StdWriter
+	// demultiplex 'logs' which contains two streams (stdout and stderr),
+	// writing them to separate tagged writers that preserve stream identity
 	go func() {
-		_, _ = std_copy.StdCopy(wc, wc, logs)
+		stdoutWriter := &taggedWriter{w: wc, tag: '\x01'} // Tag stdout with 0x01
+		stderrWriter := &taggedWriter{w: wc, tag: '\x02'} // Tag stderr with 0x02
+		_, _ = std_copy.StdCopy(stdoutWriter, stderrWriter, logs)
 		_ = logs.Close()
 		_ = wc.Close()
 	}()
 	return rc, nil
+}
+
+// taggedWriter wraps an io.Writer and prepends each line with a tag byte
+// to indicate the stream type (stdout or stderr).
+type taggedWriter struct {
+	w      io.Writer
+	tag    byte
+	buffer []byte
+}
+
+func (tw *taggedWriter) Write(p []byte) (n int, err error) {
+	// Accumulate data in buffer
+	tw.buffer = append(tw.buffer, p...)
+
+	// Process complete lines
+	written := 0
+	for {
+		idx := bytes.IndexByte(tw.buffer, '\n')
+		if idx == -1 {
+			break // No complete line yet
+		}
+
+		// Extract line including newline
+		line := tw.buffer[:idx+1]
+		tw.buffer = tw.buffer[idx+1:]
+
+		// Prepend tag byte and write
+		tagged := make([]byte, len(line)+1)
+		tagged[0] = tw.tag
+		copy(tagged[1:], line)
+
+		_, err := tw.w.Write(tagged)
+		if err != nil {
+			return written, err
+		}
+		written += len(line)
+	}
+
+	return len(p), nil
 }
 
 func (e *docker) DestroyStep(ctx context.Context, step *backend.Step, taskUUID string) error {

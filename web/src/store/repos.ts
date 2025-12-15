@@ -39,8 +39,8 @@ export const useRepoStore = defineStore('repos', () => {
     return repo;
   }
 
-  async function loadRepos() {
-    const _ownedRepos = await apiClient.getRepoList();
+  async function loadRepos(all = false) {
+    const _ownedRepos = await apiClient.getRepoList({ all });
 
     _ownedRepos.forEach((repo) => {
       if (repo.last_pipeline) {

@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	"codeberg.org/crowci/crow/v4/version"
+	"codeberg.org/crowci/crow/v5/version"
 )
 
 func TestCheckForUpdate(t *testing.T) {

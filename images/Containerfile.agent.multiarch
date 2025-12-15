@@ -21,7 +21,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
   if [ -z "$VERSION" ]; then \
     VERSION="dev-$(echo "${CI_COMMIT_SHA:-$(git rev-parse HEAD)}" | cut -c -10)"; \
   fi; \
-  CGO_ENABLED=0 go build -ldflags="-s -w -extldflags '\''-static'\'' -X codeberg.org/crowci/crow/v4/version.Version=$VERSION" -o dist/crow-agent codeberg.org/crowci/crow/v4/cmd/agent'
+  CGO_ENABLED=0 go build -ldflags="-s -w -extldflags '\''-static'\'' -X codeberg.org/crowci/crow/v5/version.Version=$VERSION" -o dist/crow-agent codeberg.org/crowci/crow/v5/cmd/agent'
 
 FROM scratch
 

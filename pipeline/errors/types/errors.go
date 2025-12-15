@@ -3,7 +3,7 @@ package types
 import (
 	"fmt"
 
-	backend "codeberg.org/crowci/crow/v4/pipeline/backend/types"
+	backend "codeberg.org/crowci/crow/v5/pipeline/backend/types"
 )
 
 type PipelineErrorType string

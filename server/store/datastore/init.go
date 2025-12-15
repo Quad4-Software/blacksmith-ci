@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !cgo
-
 package datastore
 
 import (
@@ -24,6 +22,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	// Import PostgreSQL driver for database/sql.
 	"github.com/jackc/pgx/v5/stdlib"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 //nolint:gochecknoinits
@@ -36,13 +35,14 @@ func init() {
 
 // Supported database drivers.
 const (
+	DriverSqlite   = "sqlite3"
 	DriverMysql    = "mysql"
 	DriverPostgres = "postgres"
 )
 
 func SupportedDriver(driver string) bool {
 	switch driver {
-	case DriverMysql, DriverPostgres:
+	case DriverMysql, DriverPostgres, DriverSqlite:
 		return true
 	default:
 		return false

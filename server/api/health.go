@@ -20,9 +20,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"codeberg.org/crowci/crow/v4/server"
-	"codeberg.org/crowci/crow/v4/server/store"
-	"codeberg.org/crowci/crow/v4/version"
+	"codeberg.org/crowci/crow/v5/server"
+	"codeberg.org/crowci/crow/v5/server/store"
+	"codeberg.org/crowci/crow/v5/version"
 )
 
 // HealthStatus represents the health status of the server.

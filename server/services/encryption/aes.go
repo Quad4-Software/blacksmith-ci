@@ -21,8 +21,8 @@ import (
 
 	"github.com/tink-crypto/tink-go/v2/subtle/random"
 
-	"codeberg.org/crowci/crow/v4/server/services/encryption/types"
-	"codeberg.org/crowci/crow/v4/server/store"
+	"codeberg.org/crowci/crow/v5/server/services/encryption/types"
+	"codeberg.org/crowci/crow/v5/server/store"
 )
 
 type aesEncryptionService struct {

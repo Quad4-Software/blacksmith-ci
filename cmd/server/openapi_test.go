@@ -5,10 +5,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"codeberg.org/crowci/crow/v4/cmd/server/openapi"
+	"codeberg.org/crowci/crow/v5/cmd/server/openapi"
 )
 
 func TestSetupOpenApiStaticConfig(t *testing.T) {
 	setupOpenAPIStaticConfig()
-	assert.Equal(t, "/api", openapi.SwaggerInfo.BasePath)
+	assert.Equal(t, "/api/v1", openapi.SwaggerInfo.BasePath)
 }

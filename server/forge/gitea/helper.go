@@ -25,8 +25,8 @@ import (
 
 	"code.gitea.io/sdk/gitea"
 
-	"codeberg.org/crowci/crow/v4/server/model"
-	"codeberg.org/crowci/crow/v4/shared/utils"
+	"codeberg.org/crowci/crow/v5/server/model"
+	"codeberg.org/crowci/crow/v5/shared/utils"
 )
 
 // toRepo converts a Gitea repository to a Crow repository.

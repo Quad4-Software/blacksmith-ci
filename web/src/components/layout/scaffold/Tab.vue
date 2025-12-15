@@ -4,7 +4,7 @@
 import { onMounted } from 'vue';
 import type { RouteLocationRaw } from 'vue-router';
 
-import type { IconNames } from '~/components/atomic/Icon.vue';
+import type { IconNames } from '~/components/atomic/Icon.types';
 import { useTabsClient } from '~/compositions/useTabs';
 
 const props = withDefaults(

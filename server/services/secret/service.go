@@ -14,7 +14,7 @@
 
 package secret
 
-import "codeberg.org/crowci/crow/v4/server/model"
+import "codeberg.org/crowci/crow/v5/server/model"
 
 // Service defines a service for managing secrets.
 type Service interface {

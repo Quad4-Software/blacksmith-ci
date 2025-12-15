@@ -8,8 +8,8 @@
               name="alert"
               class="shrink-0"
               :class="{
-                'text-wp-state-warn-100': error.is_warning,
-                'text-wp-error-100': !error.is_warning,
+                'text-yellow-500': error.is_warning,
+                'text-destructive': !error.is_warning,
               }"
             />
             <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
@@ -89,20 +89,20 @@ useCrowTitle(
 :deep(.error-markdown-content h3) {
   font-size: 1.25rem;
   font-weight: 600;
-  color: var(--wp-text-100);
+  color: hsl(var(--foreground));
   margin-bottom: 0.75rem;
 }
 
 :deep(.error-markdown-content h4) {
   font-size: 1.125rem;
   font-weight: 600;
-  color: var(--wp-text-100);
+  color: hsl(var(--foreground));
   margin-top: 1rem;
   margin-bottom: 0.5rem;
 }
 
 :deep(.error-markdown-content p) {
-  color: var(--wp-text-100);
+  color: hsl(var(--foreground));
   line-height: 1.625;
   margin-top: 0.5rem;
   margin-bottom: 0.5rem;
@@ -116,13 +116,13 @@ useCrowTitle(
 }
 
 :deep(.error-markdown-content li) {
-  color: var(--wp-text-100);
+  color: hsl(var(--foreground));
   margin-top: 0.25rem;
 }
 
 :deep(.error-markdown-content code) {
-  background-color: var(--wp-code-bg);
-  color: var(--wp-code-text);
+  background-color: hsl(var(--muted));
+  color: hsl(var(--foreground));
   padding: 0.125rem 0.375rem;
   border-radius: 0.25rem;
   font-size: 0.875rem;
@@ -131,7 +131,7 @@ useCrowTitle(
 
 :deep(.error-markdown-content strong) {
   font-weight: 600;
-  color: var(--wp-text-100);
+  color: hsl(var(--foreground));
 }
 
 :deep(.error-markdown-content table) {
@@ -143,28 +143,28 @@ useCrowTitle(
 }
 
 :deep(.error-markdown-content thead) {
-  background-color: var(--wp-background-200);
+  background-color: hsl(var(--card));
 }
 
 :deep(.error-markdown-content th) {
   text-align: left;
   padding: 0.5rem 1rem;
   font-weight: 600;
-  color: var(--wp-text-100);
-  border: 1px solid var(--wp-background-300);
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
 }
 
 :deep(.error-markdown-content td) {
   padding: 0.5rem 1rem;
-  color: var(--wp-text-100);
-  border: 1px solid var(--wp-background-300);
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
 }
 
 :deep(.error-markdown-content tbody tr:nth-child(even)) {
-  background-color: var(--wp-background-100);
+  background-color: hsl(var(--background));
 }
 
 :deep(.error-markdown-content tbody tr:hover) {
-  background-color: var(--wp-background-200);
+  background-color: hsl(var(--card));
 }
 </style>

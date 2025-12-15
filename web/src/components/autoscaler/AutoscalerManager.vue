@@ -7,12 +7,7 @@
         start-icon="back"
         @click="selectedAutoscaler = undefined"
       />
-      <template v-if="!selectedAutoscaler">
-        <div class="flex flex-col md:flex-row items-center justify-center gap-2">
-          <Button text="Refresh" class="w-auto" @click="resetPage" />
-          <Button :text="$t('admin.settings.autoscalers.add')" start-icon="plus" @click="showAddAutoscaler" />
-        </div>
-      </template>
+      <Button v-else :text="$t('admin.settings.autoscalers.add')" start-icon="plus" @click="showAddAutoscaler" />
     </template>
     <template #headerEnd>
       <slot name="headerEnd" />

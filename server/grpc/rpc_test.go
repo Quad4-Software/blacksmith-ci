@@ -24,13 +24,13 @@ import (
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc/metadata"
 
-	"codeberg.org/crowci/crow/v4/pipeline/rpc"
-	"codeberg.org/crowci/crow/v4/server/logging"
-	"codeberg.org/crowci/crow/v4/server/model"
-	"codeberg.org/crowci/crow/v4/server/pubsub"
-	queue_mocks "codeberg.org/crowci/crow/v4/server/queue/mocks"
-	store_mocks "codeberg.org/crowci/crow/v4/server/store/mocks"
-	"codeberg.org/crowci/crow/v4/server/store/types"
+	"codeberg.org/crowci/crow/v5/pipeline/rpc"
+	"codeberg.org/crowci/crow/v5/server/logging"
+	"codeberg.org/crowci/crow/v5/server/model"
+	"codeberg.org/crowci/crow/v5/server/pubsub"
+	queue_mocks "codeberg.org/crowci/crow/v5/server/queue/mocks"
+	store_mocks "codeberg.org/crowci/crow/v5/server/store/mocks"
+	"codeberg.org/crowci/crow/v5/server/store/types"
 )
 
 func TestRegisterAgent(t *testing.T) {

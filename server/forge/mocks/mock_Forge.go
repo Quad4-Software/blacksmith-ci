@@ -8,8 +8,8 @@ import (
 	"context"
 	"net/http"
 
-	"codeberg.org/crowci/crow/v4/server/forge/types"
-	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v5/server/forge/types"
+	"codeberg.org/crowci/crow/v5/server/model"
 	mock "github.com/stretchr/testify/mock"
 )
 

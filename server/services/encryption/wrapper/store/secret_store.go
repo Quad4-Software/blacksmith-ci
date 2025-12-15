@@ -17,7 +17,7 @@ package store
 import (
 	"fmt"
 
-	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v5/server/model"
 )
 
 func (wrapper *EncryptedSecretStore) SecretFind(repo *model.Repo, s string) (*model.Secret, error) {

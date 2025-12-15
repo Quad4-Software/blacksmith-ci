@@ -17,7 +17,7 @@ package datastore
 import (
 	"xorm.io/builder"
 
-	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v5/server/model"
 )
 
 const orderRegistriesBy = "id"
@@ -83,4 +83,50 @@ func (s storage) GlobalRegistryList(p *model.ListOptions) ([]*model.Registry, er
 	return registries, s.paginate(p).Where(
 		builder.Eq{"org_id": 0, "repo_id": 0},
 	).OrderBy(orderRegistriesBy).Find(&registries)
+}
+
+func (s storage) UserRegistryList(orgIDs []int64, includeGlobal bool, searchTerm string, p *model.ListOptions) ([]*model.Registry, error) {
+	registries := make([]*model.Registry, 0)
+
+	if len(orgIDs) == 0 && !includeGlobal {
+		return registries, nil
+	}
+
+	// Build the main condition for org and global registries
+	var scopeConds []builder.Cond
+
+	if len(orgIDs) > 0 {
+		// Org-level registries: org_id IN (orgIDs) AND repo_id = 0
+		scopeConds = append(scopeConds, builder.And(
+			builder.In("org_id", orgIDs),
+			builder.Eq{"repo_id": 0},
+		))
+	}
+
+	if includeGlobal {
+		// Global registries: org_id = 0 AND repo_id = 0
+		scopeConds = append(scopeConds, builder.And(
+			builder.Eq{"org_id": 0},
+			builder.Eq{"repo_id": 0},
+		))
+	}
+
+	// Combine scope conditions with OR
+	var cond builder.Cond
+	if len(scopeConds) == 1 {
+		cond = scopeConds[0]
+	} else if len(scopeConds) > 1 {
+		cond = builder.Or(scopeConds...)
+	}
+
+	// Add search filter if provided
+	if searchTerm != "" && cond != nil {
+		cond = builder.And(cond, builder.Like{"address", "%" + searchTerm + "%"})
+	}
+
+	if cond == nil {
+		return registries, nil
+	}
+
+	return registries, s.paginate(p).Where(cond).OrderBy(orderRegistriesBy).Find(&registries)
 }

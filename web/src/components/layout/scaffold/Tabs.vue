@@ -1,90 +1,60 @@
 <template>
   <!-- Main tabs container -->
-  <div ref="tabsRef" class="flex min-w-0 flex-auto gap-0 px-2 md:px-0 md:gap-1">
+  <div ref="tabsRef" class="flex min-w-0 flex-auto gap-0 md:gap-1">
     <router-link
-      v-for="(tab, index) in visibleTabs"
+      v-for="tab in visibleTabs"
       :key="tab.title"
       :to="tab.to"
-      class="flex cursor-pointer items-center whitespace-nowrap border-b-2 border-transparent py-1 text-wp-text-100"
-      :class="{ '-ml-2 md:ml-0': index === 0 }"
-      :active-class="tab.matchChildren ? 'border-wp-custom-highlight-100!' : ''"
-      :exact-active-class="tab.matchChildren ? '' : 'border-wp-custom-highlight-100!'"
+      class="flex cursor-pointer items-center whitespace-nowrap border-b-2 border-transparent py-1 text-foreground transition-colors"
+      :active-class="tab.matchChildren ? 'border-primary!' : ''"
+      :exact-active-class="tab.matchChildren ? '' : 'border-primary!'"
     >
       <span
-        class="flex w-full min-w-20 flex-row items-center justify-center gap-2 rounded-md px-2 py-1 hover:bg-wp-background-200 dark:hover:bg-wp-background-100"
+        class="flex w-full min-w-0 sm:min-w-20 flex-row items-center justify-center gap-1 sm:gap-2 rounded-md px-1.5 py-1 sm:px-2 hover:bg-accent hover:text-accent-foreground transition-colors text-sm"
       >
         <Icon v-if="tab.icon" :name="tab.icon" :size="tab.iconSize" :class="tab.iconClass" class="shrink-0" />
         <span>{{ tab.title }}</span> <CountBadge v-if="tab.count" :value="tab.count" />
       </span>
     </router-link>
     <!-- Overflow dropdown -->
-    <div v-if="hiddenTabs.length" class="relative border-b-2 border-transparent py-1">
-      <IconButton icon="dots" class="tabs-more-button h-8 w-8" @click="toggleDropdown" />
-      <div
-        v-if="isDropdownOpen"
-        class="tabs-dropdown absolute z-20 mt-1 rounded-md border border-wp-background-400 bg-wp-background-100 shadow-lg dark:bg-wp-background-200"
-        :class="[visibleTabs.length === 0 ? 'left-0' : 'right-0']"
-      >
-        <router-link
-          v-for="tab in hiddenTabs"
-          :key="tab.title"
-          :to="tab.to"
-          class="block w-full whitespace-nowrap p-1 text-left"
-          @click="isDropdownOpen = false"
-        >
-          <span
-            class="flex w-full min-w-20 flex-row items-center justify-center gap-2 rounded-md px-2 py-1 hover:bg-wp-background-200 dark:hover:bg-wp-background-100"
-          >
+    <DropdownMenu v-if="hiddenTabs.length">
+      <DropdownMenuTrigger as-child>
+        <Button variant="ghost" size="icon-sm" class="tabs-more-button border-b-2 border-transparent py-1">
+          <Icon name="dots" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent :align="visibleTabs.length === 0 ? 'start' : 'end'">
+        <DropdownMenuItem v-for="tab in hiddenTabs" :key="tab.title" as-child>
+          <router-link :to="tab.to" class="flex w-full cursor-pointer items-center gap-2">
             <Icon v-if="tab.icon" :name="tab.icon" :size="tab.iconSize" :class="tab.iconClass" class="shrink-0" />
             <span>{{ tab.title }}</span>
-          </span>
-        </router-link>
-      </div>
-    </div>
+          </router-link>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
 
 import CountBadge from '~/components/atomic/CountBadge.vue';
 import Icon from '~/components/atomic/Icon.vue';
-import IconButton from '~/components/atomic/IconButton.vue';
+import { Button } from '~/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu';
 import { useTabsClient } from '~/compositions/useTabs';
 
 const { tabs } = useTabsClient();
 const tabsRef = ref<HTMLElement | null>(null);
-const isDropdownOpen = ref(false);
 const visibleCount = ref(tabs.value.length);
 
 const visibleTabs = computed(() => tabs.value.slice(0, visibleCount.value));
 const hiddenTabs = computed(() => tabs.value.slice(visibleCount.value));
-
-const toggleDropdown = () => {
-  isDropdownOpen.value = !isDropdownOpen.value;
-};
-
-const closeDropdown = (event: MouseEvent) => {
-  const dropdown = tabsRef.value?.querySelector('.tabs-dropdown');
-  const moreButton = tabsRef.value?.querySelector('.tabs-more-button');
-  const target = event.target as HTMLElement;
-
-  if (moreButton?.contains(target)) {
-    return;
-  }
-
-  if (dropdown && !dropdown.contains(target)) {
-    isDropdownOpen.value = false;
-  }
-};
-
-watch(isDropdownOpen, (isOpen) => {
-  if (isOpen) {
-    window.addEventListener('click', closeDropdown);
-  } else {
-    window.removeEventListener('click', closeDropdown);
-  }
-});
 
 const updateVisibleItems = () => {
   visibleCount.value = tabs.value.length;
@@ -143,7 +113,6 @@ onMounted(() => {
   onUnmounted(() => {
     resizeObserver.disconnect();
     window.removeEventListener('resize', updateVisibleItems);
-    window.removeEventListener('click', closeDropdown);
   });
 });
 </script>

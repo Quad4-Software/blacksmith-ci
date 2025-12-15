@@ -8,4 +8,13 @@ export interface Secret {
   value: string;
   events: WebhookEvents[];
   images: string[];
+  source?: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface SecretWithOrg extends Secret {
+  org_name: string;
+  repo_name?: string;
+  scope_type: 'user' | 'org' | 'repo' | 'global';
 }

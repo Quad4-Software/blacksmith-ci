@@ -23,10 +23,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 
-	"codeberg.org/crowci/crow/v4/server"
-	"codeberg.org/crowci/crow/v4/server/router/middleware/session"
-	"codeberg.org/crowci/crow/v4/shared/token"
-	"codeberg.org/crowci/crow/v4/version"
+	"codeberg.org/crowci/crow/v5/server"
+	"codeberg.org/crowci/crow/v5/server/router/middleware/session"
+	"codeberg.org/crowci/crow/v5/shared/token"
+	"codeberg.org/crowci/crow/v5/version"
 )
 
 func Config(c *gin.Context) {
@@ -43,6 +43,7 @@ func Config(c *gin.Context) {
 		"user":                   user,
 		"csrf":                   csrf,
 		"version":                version.String(),
+		"build_date":             version.Date(),
 		"skip_version_check":     server.Config.WebUI.SkipVersionCheck,
 		"root_path":              server.Config.Server.RootPath,
 		"enable_swagger":         server.Config.WebUI.EnableSwagger,
@@ -77,6 +78,7 @@ const configTemplate = `
 window.CROW_USER = {{ json .user }};
 window.CROW_CSRF = "{{ .csrf }}";
 window.CROW_VERSION = "{{ .version }}";
+window.CROW_BUILD_DATE = "{{ .build_date }}";
 window.CROW_ROOT_PATH = "{{ .root_path }}";
 window.CROW_ENABLE_SWAGGER = {{ .enable_swagger }};
 window.CROW_SKIP_VERSION_CHECK = {{ .skip_version_check }}

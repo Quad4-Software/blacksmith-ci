@@ -1,263 +1,366 @@
 <template>
-  <div v-if="pipeline" class="flex flex-col md:pt-0">
-    <div
-      class="code-box-log flex grow flex-col overflow-hidden p-0! shadow-md md:mt-0 md:rounded-lg!"
-      @mouseover="showActions = true"
-      @mouseleave="showActions = false"
+  <component
+    :is="isFullscreen ? 'div' : 'div'"
+    v-if="pipeline"
+    :class="isFullscreen ? 'fixed inset-0 z-50 bg-background' : 'flex flex-col h-full'"
+  >
+    <Card
+      class="flex flex-col h-full overflow-hidden p-0"
+      :class="[logThemeClass, isFullscreen ? 'rounded-none border-0' : '']"
     >
       <!-- Desktop header - hidden on mobile since we have a mobile header in the parent -->
-      <div class="hidden md:flex flex-row items-center bg-wp-code-100 px-4 py-1">
-        <span class="text-base font-bold text-wp-code-text-alt-100">
-          <span class="md:display-unset hidden">{{ $t('repo.pipeline.log_title') }}</span>
-          <span class="md:hidden">{{ step?.name }}</span>
-        </span>
-        <div class="ml-auto flex flex-row items-center gap-x-2">
-          <span class="ml-2 px-2">
-            <a
-              v-if="repoPermissions?.admin"
-              href="/admin/agents/"
-              class="flex items-center gap-1 text-wp-link-100 hover:text-wp-link-200"
-              :title="$t('repo.pipeline.metadata.agent_info')"
-            >
-              <Icon name="worker" class="w-4 h-4" />
-              {{ agentDisplay }}
-            </a>
-            <a
-              v-else
-              href="/user/agents/"
-              class="flex items-center gap-1 text-wp-link-100 hover:text-wp-link-200"
-              :title="$t('repo.pipeline.metadata.agent_info')"
-            >
-              <Icon name="worker" class="w-4 h-4" />
-              {{ agentDisplay }}
-            </a>
-          </span>
-          <IconButton
-            v-if="step?.finished !== undefined && hasLogs"
-            :is-loading="downloadInProgress"
-            :title="$t('repo.pipeline.actions.log_download')"
-            class="text-wp-code-text-alt-100 hover:bg-white/10!"
-            icon="download"
-            @click="download"
-          />
-          <IconButton
-            v-if="step?.finished !== undefined && hasLogs && hasPushPermission"
-            :title="$t('repo.pipeline.actions.log_delete')"
-            class="text-wp-code-text-alt-100 hover:bg-white/10"
-            icon="trash"
-            @click="deleteLogs"
-          />
-          <IconButton
-            v-if="step?.finished === undefined"
-            :title="
-              autoScroll ? $t('repo.pipeline.actions.log_auto_scroll_off') : $t('repo.pipeline.actions.log_auto_scroll')
-            "
-            class="text-wp-code-text-alt-100 hover:bg-white/10!"
-            :icon="autoScroll ? 'auto-scroll' : 'auto-scroll-off'"
-            @click="autoScroll = !autoScroll"
-          />
+      <CardHeader class="hidden md:flex flex-row items-center justify-between px-3 py-2 border-b space-y-0 gap-3">
+        <!-- Left: Navigation buttons -->
+        <div class="flex items-center gap-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  :disabled="!previousStepId"
+                  @click="emit('update:step-id', previousStepId!)"
+                >
+                  <Icon name="chevron-up" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{{ $t('repo.pipeline.previous_step') }}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  :disabled="!nextStepId"
+                  @click="emit('update:step-id', nextStepId!)"
+                >
+                  <Icon name="chevron-down" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{{ $t('repo.pipeline.next_step') }}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
-      </div>
+
+        <!-- Center: Step name, status, and exit code -->
+        <div class="flex items-center gap-2 flex-1 min-w-0">
+          <PipelineStatusIcon v-if="step" :status="step.state" class="h-4 w-4 shrink-0" />
+          <span class="text-sm font-semibold text-foreground truncate">
+            {{ step?.name }}
+          </span>
+          <span
+            v-if="step?.exit_code !== undefined"
+            class="text-xs border rounded-full px-2 py-0.5 shrink-0"
+            :class="step.exit_code === 0 ? 'border-green-500' : 'border-destructive'"
+          >
+            {{ $t('repo.pipeline.exit_code', { exitCode: step.exit_code }) }}
+          </span>
+        </div>
+
+        <!-- Right: Action buttons -->
+        <div class="flex flex-row items-center gap-x-2 shrink-0">
+          <TooltipProvider v-if="step?.finished !== undefined && hasLogs">
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <Button variant="ghost" size="icon-sm" :disabled="downloadInProgress" @click="download">
+                  <Icon v-if="downloadInProgress" name="spinner" class="animate-spin" />
+                  <Icon v-else name="download" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {{ $t('repo.pipeline.actions.log_download') }}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider v-if="step?.finished !== undefined && hasLogs && hasPushPermission">
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <Button variant="ghost" size="icon-sm" @click="deleteLogs">
+                  <Icon name="trash" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {{ $t('repo.pipeline.actions.log_delete') }}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider v-if="step?.finished === undefined">
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <Button variant="ghost" size="icon-sm" @click="autoScroll = !autoScroll">
+                  <Icon :name="autoScroll ? 'auto-scroll' : 'auto-scroll-off'" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {{
+                  autoScroll
+                    ? $t('repo.pipeline.actions.log_auto_scroll_off')
+                    : $t('repo.pipeline.actions.log_auto_scroll')
+                }}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <Button variant="ghost" size="icon-sm" @click="isFullscreen = !isFullscreen">
+                  <Icon :name="isFullscreen ? 'lucide:minimize' : 'lucide:maximize'" class="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {{
+                  isFullscreen
+                    ? $t('repo.pipeline.actions.log_exit_fullscreen')
+                    : $t('repo.pipeline.actions.log_fullscreen')
+                }}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <Popover v-model:open="settingsPopoverOpen">
+            <PopoverTrigger as-child>
+              <Button variant="ghost" size="icon-sm">
+                <Icon name="settings" class="w-4 h-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" class="w-80">
+              <div class="space-y-5 p-1">
+                <div>
+                  <h4 class="text-sm font-semibold">{{ $t('repo.pipeline.actions.log_settings') }}</h4>
+                </div>
+
+                <div class="space-y-2.5">
+                  <label class="text-sm font-medium block">{{ $t('user.settings.general.log_theme') }}</label>
+                  <Select v-model="logTheme">
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem v-for="option in logThemeOptions" :key="option.value" :value="option.value">
+                        {{ option.text }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div class="space-y-2.5">
+                  <label class="text-sm font-medium block">{{
+                    $t('user.settings.general.pipeline_steps_width')
+                  }}</label>
+                  <div class="flex items-center gap-3">
+                    <NumberField v-model="pipelineSplitRatioTemp" :min="20" :max="50" class="max-w-[8rem]">
+                      <NumberFieldContent>
+                        <NumberFieldDecrement />
+                        <NumberFieldInput />
+                        <NumberFieldIncrement />
+                      </NumberFieldContent>
+                    </NumberField>
+                    <span class="text-sm text-muted-foreground">
+                      {{ $t('user.settings.general.split_ratio_range') }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="flex items-center justify-between">
+                  <div class="space-y-0.5">
+                    <label class="text-sm font-medium text-foreground">{{
+                      $t('repo.pipeline.actions.auto_follow')
+                    }}</label>
+                    <p class="text-xs text-muted-foreground">
+                      {{ $t('repo.pipeline.actions.auto_follow_desc') }}
+                    </p>
+                  </div>
+                  <Switch
+                    :model-value="autoFollowEnabled"
+                    @update:model-value="(value) => emit('update:auto-follow-enabled', value)"
+                  />
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+      </CardHeader>
 
       <!-- Mobile action buttons - foldable floating buttons in top-right corner -->
       <div class="md:hidden absolute top-2 right-2 z-10">
         <!-- Toggle button to show/hide action buttons -->
-        <button
-          class="rounded-full border border-wp-custom-highlight-100 bg-white dark:bg-wp-code-100 p-2 shadow-lg transition-all duration-200 flex items-center justify-center mb-2"
-          :class="{ 'bg-gray-100 dark:bg-wp-code-200': mobileButtonsVisible }"
-          title="Toggle actions"
+        <Button
+          variant="outline"
+          size="icon-sm"
+          class="rounded-full shadow-lg mb-2"
           @click="mobileButtonsVisible = !mobileButtonsVisible"
         >
-          <Icon name="settings" class="w-4 h-4 text-gray-700 dark:text-wp-code-text-alt-100" />
-        </button>
+          <Icon name="settings" class="w-4 h-4" />
+        </Button>
 
         <!-- Floating action buttons -->
         <div v-show="mobileButtonsVisible" class="flex flex-col gap-2">
-          <div
-            class="cursor-pointer rounded-full border border-wp-custom-highlight-100 bg-white dark:bg-wp-code-100 p-2 shadow-lg transition-opacity duration-300 flex items-center justify-center"
-            :title="$t('repo.pipeline.actions.log_scroll_to_bottom')"
-            @click="scrollToBottom"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="text-gray-700 dark:text-wp-code-text-alt-100"
-            >
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </div>
-          <div
-            class="cursor-pointer rounded-full border border-wp-custom-highlight-100 bg-white dark:bg-wp-code-100 p-2 shadow-lg transition-opacity duration-300 flex items-center justify-center"
-            :title="$t('repo.pipeline.actions.log_scroll_to_top')"
-            @click="scrollToTop"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="text-gray-700 dark:text-wp-code-text-alt-100"
-            >
-              <polyline points="18 15 12 9 6 15"></polyline>
-            </svg>
-          </div>
-          <IconButton
+          <Button variant="outline" size="icon-sm" class="rounded-full shadow-lg" @click="scrollToBottom">
+            <Icon name="chevron-down" />
+          </Button>
+          <Button variant="outline" size="icon-sm" class="rounded-full shadow-lg" @click="scrollToTop">
+            <Icon name="chevron-up" />
+          </Button>
+          <Button
             v-if="step?.finished !== undefined && hasLogs"
-            :is-loading="downloadInProgress"
-            :title="$t('repo.pipeline.actions.log_download')"
-            class="text-gray-700 dark:text-wp-code-text-alt-100 hover:bg-gray-100 dark:hover:bg-white/10! bg-white dark:bg-wp-code-100 border border-wp-custom-highlight-100 shadow-lg"
-            icon="download"
+            variant="outline"
+            size="icon-sm"
+            class="rounded-full shadow-lg"
+            :disabled="downloadInProgress"
             @click="download"
-          />
-          <IconButton
+          >
+            <Icon v-if="downloadInProgress" name="spinner" class="animate-spin" />
+            <Icon v-else name="download" />
+          </Button>
+          <Button
             v-if="step?.finished !== undefined && hasLogs && hasPushPermission"
-            :title="$t('repo.pipeline.actions.log_delete')"
-            class="text-gray-700 dark:text-wp-code-text-alt-100 hover:bg-gray-100 dark:hover:bg-white/10 bg-white dark:bg-wp-code-100 border border-wp-custom-highlight-100 shadow-lg"
-            icon="trash"
+            variant="outline"
+            size="icon-sm"
+            class="rounded-full shadow-lg"
             @click="deleteLogs"
-          />
-          <IconButton
+          >
+            <Icon name="trash" />
+          </Button>
+          <Button
             v-if="step?.finished === undefined"
-            :title="
-              autoScroll ? $t('repo.pipeline.actions.log_auto_scroll_off') : $t('repo.pipeline.actions.log_auto_scroll')
-            "
-            class="text-gray-700 dark:text-wp-code-text-alt-100 hover:bg-gray-100 dark:hover:bg-white/10! bg-white dark:bg-wp-code-100 border border-wp-custom-highlight-100 shadow-lg"
-            :icon="autoScroll ? 'auto-scroll' : 'auto-scroll-off'"
+            variant="outline"
+            size="icon-sm"
+            class="rounded-full shadow-lg"
             @click="autoScroll = !autoScroll"
-          />
+          >
+            <Icon :name="autoScroll ? 'auto-scroll' : 'auto-scroll-off'" />
+          </Button>
         </div>
       </div>
 
       <!-- Log area with floating scroll buttons wrapper -->
-      <div
-        v-show="hasLogs && loadedLogs && (log?.length || 0) > 0"
-        class="relative w-full max-w-full grow h-[calc(100vh-200px)]"
-      >
+      <CardContent v-show="hasLogs && loadedLogs && (log?.length || 0) > 0" class="relative flex-1 p-0">
         <!-- Floating scroll buttons -->
         <div v-if="isScrollable" class="hidden md:flex flex-col gap-2 absolute bottom-4 right-4 z-20">
-          <button
-            v-if="!atTop"
-            class="rounded-full border border-wp-custom-highlight-100 bg-wp-code-100 p-1 shadow-lg flex items-center justify-center mb-1 hover:bg-wp-code-200 transition"
-            :title="$t('repo.pipeline.actions.log_scroll_to_top')"
-            @click="scrollToTop"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="text-wp-code-text-alt-100"
-            >
-              <polyline points="18 15 12 9 6 15"></polyline>
-            </svg>
-          </button>
-          <button
-            v-if="!atBottom"
-            class="rounded-full border border-wp-custom-highlight-100 bg-wp-code-100 p-1 shadow-lg flex items-center justify-center hover:bg-wp-code-200 transition"
-            :title="$t('repo.pipeline.actions.log_scroll_to_bottom')"
-            @click="scrollToBottom"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="text-wp-code-text-alt-100"
-            >
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </button>
+          <TooltipProvider v-if="!atTop">
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <Button variant="outline" size="icon-sm" class="rounded-full shadow-lg" @click="scrollToTop">
+                  <Icon name="chevron-up" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {{ $t('repo.pipeline.actions.log_scroll_to_top') }}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider v-if="!atBottom">
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <Button variant="outline" size="icon-sm" class="rounded-full shadow-lg" @click="scrollToBottom">
+                  <Icon name="chevron-down" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {{ $t('repo.pipeline.actions.log_scroll_to_bottom') }}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
-        <!-- Log grid -->
-        <div
-          ref="consoleElement"
-          class="grid w-full max-w-full h-full auto-rows-min grid-cols-[min-content_minmax(0,1fr)_min-content] overflow-y-auto overflow-x-hidden p-4 text-xs"
-        >
-          <div v-for="line in log" :key="line.index" class="contents font-mono">
-            <a
-              :id="`L${line.number}`"
-              :href="`#L${line.number}`"
-              class="select-none whitespace-nowrap pl-2 pr-6 text-right text-wp-code-text-line-numbers-100"
-              :class="{
-                'bg-red-600/40 dark:bg-red-800/50': line.type === 'error',
-                'bg-yellow-600/40 dark:bg-yellow-800/50': line.type === 'warning',
-                'bg-blue-600/30': isSelected(line),
-                underline: isSelected(line),
-              }"
-            >
-              {{ line.number }}
-            </a>
-            <!-- eslint-disable vue/no-v-html -->
-            <span
-              class="whitespace-pre-wrap break-words align-top"
-              :class="{
-                'bg-red-600/40 dark:bg-red-800/50': line.type === 'error',
-                'bg-yellow-600/40 dark:bg-yellow-800/50': line.type === 'warning',
-                'bg-blue-600/30': isSelected(line),
-              }"
-              v-html="line.text"
-            />
-            <!-- eslint-enable vue/no-v-html -->
-            <span
-              class="select-none whitespace-nowrap pr-1 text-right text-wp-code-text-line-numbers-100"
-              :class="{
-                'bg-red-600 bg-opacity-40 dark:bg-red-800/50': line.type === 'error',
-                'bg-yellow-600/40 dark:bg-yellow-800/50': line.type === 'warning',
-                'bg-blue-600/30': isSelected(line),
-              }"
-            >
-              {{ formatTime(line.time) }}
-            </span>
-          </div>
-        </div>
-      </div>
 
-      <div class="m-auto text-xl text-wp-text-alt-100">
+        <!-- ScrollArea wrapping the log grid -->
+        <ScrollArea ref="scrollAreaRef" class="h-full w-full">
+          <div
+            class="grid max-h-[calc(100vh-210px)] w-full auto-rows-min grid-cols-[min-content_minmax(0,1fr)_min-content] px-3 py-2 text-xs"
+          >
+            <div v-for="line in log" :key="line.index" class="contents font-mono">
+              <a
+                :id="`L${line.number}`"
+                :href="`#L${line.number}`"
+                class="select-none whitespace-nowrap pl-2 pr-6 text-right text-muted-foreground"
+                :class="{
+                  'bg-red-600/40 dark:bg-red-800/50': line.type === 'error',
+                  'bg-yellow-600/40 dark:bg-yellow-800/50': line.type === 'warning',
+                  'bg-blue-600/30': isSelected(line),
+                  underline: isSelected(line),
+                }"
+              >
+                {{ line.number }}
+              </a>
+              <!-- eslint-disable vue/no-v-html -->
+              <span
+                class="whitespace-pre-wrap wrap-break-word align-top"
+                :class="{
+                  'bg-red-600/40 dark:bg-red-800/50': line.type === 'error',
+                  'bg-yellow-600/40 dark:bg-yellow-800/50': line.type === 'warning',
+                  'bg-blue-600/30': isSelected(line),
+                }"
+                v-html="line.text"
+              />
+              <!-- eslint-enable vue/no-v-html -->
+              <span
+                class="select-none whitespace-nowrap pr-1 text-right text-muted-foreground"
+                :class="{
+                  'bg-red-600 bg-opacity-40 dark:bg-red-800/50': line.type === 'error',
+                  'bg-yellow-600/40 dark:bg-yellow-800/50': line.type === 'warning',
+                  'bg-blue-600/30': isSelected(line),
+                }"
+              >
+                {{ formatTime(line.time) }}
+              </span>
+            </div>
+          </div>
+        </ScrollArea>
+      </CardContent>
+
+      <CardContent class="m-auto text-xl text-muted-foreground">
         <span v-if="step?.state === 'skipped'">{{ $t('repo.pipeline.actions.canceled') }}</span>
         <span v-else-if="!step?.started">{{ $t('repo.pipeline.step_not_started') }}</span>
         <div v-else-if="!loadedLogs">{{ $t('repo.pipeline.loading') }}</div>
 
         <div v-else-if="logsDeleted">{{ $t('repo.pipeline.logs_deleted') }}</div>
         <div v-else-if="log?.length === 0">{{ $t('repo.pipeline.no_logs') }}</div>
+      </CardContent>
+
+      <!-- Stderr Error Output Section -->
+      <div v-if="stderrLines.length > 0" class="border-t border-destructive bg-red-50 dark:bg-red-950/20">
+        <button
+          class="w-full flex items-center justify-between px-3 py-2 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+          @click="stderrExpanded = !stderrExpanded"
+        >
+          <div class="flex items-center gap-2">
+            <Icon name="alert" class="w-4 h-4 text-destructive dark:text-red-500" />
+            <span class="text-sm font-semibold text-destructive dark:text-red-500">
+              {{ $t('repo.pipeline.actions.stderr_output') }}
+            </span>
+            <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
+            <span class="text-sm font-semibold text-destructive dark:text-red-500">({{ stderrLines.length }})</span>
+          </div>
+          <Icon
+            :name="stderrExpanded ? 'chevron-up' : 'chevron-down'"
+            class="w-4 h-4 text-destructive dark:text-red-500"
+          />
+        </button>
+        <div v-show="stderrExpanded" class="relative px-3 pb-2">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            class="absolute top-2 right-5 text-destructive dark:text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 bg-white dark:bg-black/40"
+            @click="copyStderr"
+          >
+            <Icon v-if="stderrCopied" name="lucide:check" class="w-4 h-4" />
+            <Icon v-else name="lucide:copy" class="w-4 h-4" />
+          </Button>
+          <div class="max-h-96 overflow-y-auto">
+            <pre
+              class="text-xs font-mono bg-white dark:bg-black/20 rounded px-2 py-2 pr-10 border border-red-200 dark:border-red-800 text-destructive dark:text-red-500 whitespace-pre-wrap wrap-break-word"
+              >{{ stderrLines.map((e) => e.text).join('\n') }}</pre
+            >
+          </div>
+        </div>
       </div>
 
-      <div
-        v-if="step?.finished !== undefined"
-        class="text-md flex w-full items-center bg-wp-code-100 px-4 py-1 font-bold text-wp-code-text-alt-100 md:min-h-[27px]"
-      >
-        <PipelineStatusIcon :status="step.state" class="h-4! w-4!" />
-        <span v-if="step?.error" class="ml-2 border border-wp-error-100 rounded-full px-2">{{ step.error }}</span>
-        <span v-if="step.exit_code === 1" class="ml-2 border border-wp-error-100 rounded-full px-2">{{
-          $t('repo.pipeline.exit_code', { exitCode: step.exit_code })
-        }}</span>
-        <span v-else class="ml-2 border border-wp-control-ok-300 rounded-full px-2">{{
-          $t('repo.pipeline.exit_code', { exitCode: step.exit_code })
-        }}</span>
+      <div v-if="step?.error" class="text-xs flex w-full items-center gap-2 border-t px-3 py-1.5 text-foreground">
+        <span class="border border-destructive rounded-full px-2 py-0.5">{{ step.error }}</span>
       </div>
-    </div>
-  </div>
+    </Card>
+  </component>
 </template>
 
 <script lang="ts" setup>
@@ -271,9 +374,22 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, toRef, watch } fro
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 
-import IconButton from '~/components/atomic/IconButton.vue';
 import Icon from '~/components/atomic/Icon.vue';
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
+import { Button } from '~/components/ui/button';
+import { Card, CardContent, CardHeader } from '~/components/ui/card';
+import {
+  NumberField,
+  NumberFieldContent,
+  NumberFieldDecrement,
+  NumberFieldIncrement,
+  NumberFieldInput,
+} from '~/components/ui/number-field';
+import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
+import { ScrollArea } from '~/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
+import { Switch } from '~/components/ui/switch';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import useApiClient from '~/compositions/useApiClient';
 import { requiredInject } from '~/compositions/useInjectProvide';
 import useNotifications from '~/compositions/useNotifications';
@@ -287,13 +403,24 @@ interface LogLine {
   type: 'error' | 'warning' | null;
 }
 
-const props = defineProps<{
-  pipeline: Pipeline;
-  stepId: number;
-}>();
+const props = withDefaults(
+  defineProps<{
+    pipeline: Pipeline;
+    stepId: number;
+    previousStepId?: number | null;
+    nextStepId?: number | null;
+    autoFollowEnabled?: boolean;
+    class?: string;
+  }>(),
+  {
+    autoFollowEnabled: false,
+    class: '',
+  },
+);
 
-defineEmits<{
+const emit = defineEmits<{
   (event: 'update:step-id', stepId: number | null): true;
+  (event: 'update:auto-follow-enabled', value: boolean): true;
 }>();
 
 const notifications = useNotifications();
@@ -308,12 +435,18 @@ const route = useRoute();
 const loadedStepSlug = ref<string>();
 const stepSlug = computed(() => `${repo?.value.owner} - ${repo?.value.name} - ${pipeline.value.id} - ${stepId.value}`);
 const step = computed(() => pipeline.value && findStep(pipeline.value.workflows || [], stepId.value));
-const workflow = computed(() => {
-  return findWorkflow(pipeline.value.workflows || [], stepId.value);
-});
 const stream = ref<EventSource>();
 const log = ref<LogLine[]>();
-const consoleElement = ref<Element>();
+const scrollAreaRef = ref<any>();
+const consoleElement = computed(() => {
+  // Get the viewport element from ScrollArea component
+  if (!scrollAreaRef.value) return undefined;
+
+  // The ScrollArea component uses data-slot="scroll-area-viewport"
+  const viewport = scrollAreaRef.value.$el?.querySelector('[data-slot="scroll-area-viewport"]');
+
+  return viewport as HTMLElement | undefined;
+});
 const logsDeleted = computed(() => pipeline.value.logs_deleted);
 
 const loadedLogs = computed(() => !!log.value);
@@ -323,7 +456,6 @@ const hasLogs = computed(
     repo?.value && pipeline.value && step.value && step.value.state !== 'skipped',
 );
 const autoScroll = useStorage('crow:log-auto-scroll', false);
-const showActions = ref(false);
 const downloadInProgress = ref(false);
 const ansiUp = ref(new AnsiUp());
 ansiUp.value.use_classes = true;
@@ -336,17 +468,60 @@ const mobileButtonsVisible = ref(false);
 const atTop = ref(true);
 const atBottom = ref(false);
 const isScrollable = ref(false);
-const agentDetails = ref<{ name?: string } | null>(null);
+const isFullscreen = ref(false);
+const stderrExpanded = ref(true);
+const stderrCopied = ref(false);
 
-const agentDisplay = computed(() => {
-  const agentId = workflow?.value?.agent_id;
-  if (!agentId) return '';
-
-  const agentName = agentDetails.value?.name;
-  if (agentName) {
-    return agentName;
+// Extract stderr lines (error output) from logs
+const stderrLines = computed(() => {
+  if (!log.value || log.value.length === 0 || step.value?.exit_code === 0) {
+    return [];
   }
-  return agentId.toString();
+
+  // Filter lines that are marked as stderr (type === 'error')
+  const errors = log.value
+    .filter((line) => line.type === 'error')
+    .map((line) => ({
+      line: line.number,
+      text: (line.text?.replace(/<[^>]*>/g, '') || '').trim(), // Strip HTML
+    }))
+    .filter((error) => error.text.length > 0); // Remove empty lines
+
+  return errors;
+});
+
+const logTheme = useStorage('crow:log-theme', 'auto');
+const logThemeClass = computed(() => {
+  const theme = logTheme.value;
+  if (theme === 'light') {
+    return 'log-theme-light';
+  }
+  if (theme === 'dark') {
+    return 'log-theme-dark';
+  }
+  // 'auto' - no additional class, follows system theme
+  return '';
+});
+
+const logThemeOptions = computed(() => [
+  { value: 'auto', text: i18n.t('user.settings.general.log_theme_system') },
+  { value: 'light', text: i18n.t('user.settings.general.log_theme_light') },
+  { value: 'dark', text: i18n.t('user.settings.general.log_theme_dark') },
+]);
+
+const pipelineSplitRatio = useStorage('crow:pipeline-sidebar-size', 30);
+const pipelineSplitRatioTemp = ref(pipelineSplitRatio.value);
+const settingsPopoverOpen = ref(false);
+
+// Watch for popover opening to sync temp value
+watch(settingsPopoverOpen, (isOpen) => {
+  if (isOpen) {
+    // When opening, sync temp value from storage
+    pipelineSplitRatioTemp.value = pipelineSplitRatio.value;
+  } else {
+    // When closing, save temp value to storage
+    pipelineSplitRatio.value = pipelineSplitRatioTemp.value;
+  }
 });
 
 function isSelected(line: LogLine): boolean {
@@ -367,23 +542,30 @@ function processText(text: string): string {
   return txt;
 }
 
-function writeLog(line: Partial<LogLine>) {
+function writeLog(line: Partial<LogLine> & { logType?: number }) {
+  // Map backend LogEntryType to frontend type
+  // 0 = stdout (null), 1 = stderr ('error'), 2 = exit code, 3 = metadata, 4 = progress
+  let type: 'error' | 'warning' | null = null;
+  if (line.logType === 1) {
+    type = 'error'; // stderr
+  }
+
   logBuffer.value.push({
     index: line.index ?? 0,
     number: (line.index ?? 0) + 1,
     text: processText(line.text ?? ''),
     time: line.time ?? 0,
-    type: null, // TODO: implement way to detect errors and warnings
+    type,
   });
 }
 
 function scrollToBottom() {
   nextTick(() => {
-    if (!consoleElement.value) {
+    const element = consoleElement.value;
+    if (!element) {
       return;
     }
 
-    const element = consoleElement.value as HTMLElement;
     if (element.scrollHeight <= element.clientHeight) {
       return;
     }
@@ -393,11 +575,11 @@ function scrollToBottom() {
 }
 
 function scrollToTop() {
-  if (!consoleElement.value) {
+  const element = consoleElement.value;
+  if (!element) {
     return;
   }
 
-  const element = consoleElement.value as HTMLElement;
   if (element.scrollHeight <= element.clientHeight) {
     return;
   }
@@ -502,12 +684,12 @@ async function loadLogs() {
   if (step.value.state !== 'running' && step.value.state !== 'pending') {
     loadedStepSlug.value = stepSlug.value;
     const logs = await apiClient.getLogs(repo.value.id, pipeline.value.number, step.value.id);
-    logs?.forEach((line) => writeLog({ index: line.line, text: line.data, time: line.time }));
+    logs?.forEach((line) => writeLog({ index: line.line, text: line.data, time: line.time, logType: line.type }));
     flushLogs(false);
   } else {
     loadedStepSlug.value = stepSlug.value;
     stream.value = apiClient.streamLogs(repo.value.id, pipeline.value.number, step.value.id, (line) => {
-      writeLog({ index: line.line, text: line.data, time: line.time });
+      writeLog({ index: line.line, text: line.data, time: line.time, logType: line.type });
       flushLogs(true);
     });
   }
@@ -537,6 +719,24 @@ async function deleteLogs() {
   }
 }
 
+async function copyStderr() {
+  const text = stderrLines.value.map((e) => e.text).join('\n');
+  try {
+    await navigator.clipboard.writeText(text);
+    stderrCopied.value = true;
+    setTimeout(() => {
+      stderrCopied.value = false;
+    }, 2000);
+  } catch {
+    notifications.notify({
+      title: i18n.t('notify_title_error'),
+      text: 'Failed to copy to clipboard',
+      type: 'error',
+      duration: 3000,
+    });
+  }
+}
+
 function findStep(workflows: PipelineWorkflow[], pid: number): PipelineStep | undefined {
   return workflows.reduce(
     (prev, workflow) => {
@@ -560,74 +760,28 @@ function findStep(workflows: PipelineWorkflow[], pid: number): PipelineStep | un
   );
 }
 
-function findWorkflow(workflows: PipelineWorkflow[], pid: number): PipelineWorkflow | undefined {
-  // Handle empty workflows case
-  if (!workflows || !workflows.length) {
-    return undefined;
-  }
-
-  // First try to find the workflow with a direct step match
-  for (const workflow of workflows) {
-    if (!workflow.children || !workflow.children.length) continue;
-
-    // Check if any child step matches the pid
-    if (workflow.children.some((step) => step.pid === pid)) {
-      return workflow;
-    }
-  }
-
-  // If direct lookup fails, use the original reduce logic as fallback
-  return workflows.reduce(
-    (prev, workflow) => {
-      if (!workflow.children) return prev;
-
-      const foundWorkflow = workflow.children.reduce(
-        (prevChild, step) => {
-          if (step.pid === pid) {
-            return workflow;
-          }
-          return prevChild;
-        },
-        undefined as PipelineWorkflow | undefined,
-      );
-
-      if (foundWorkflow) {
-        return foundWorkflow;
-      }
-      return prev;
-    },
-    undefined as PipelineWorkflow | undefined,
-  );
-}
-
 function updateScrollState() {
-  const el = consoleElement.value as HTMLElement | undefined;
-  if (!el) return;
+  const el = consoleElement.value;
+  if (!el) {
+    return;
+  }
   isScrollable.value = el.scrollHeight > el.clientHeight;
   atTop.value = el.scrollTop === 0;
   atBottom.value = el.scrollTop + el.clientHeight >= el.scrollHeight - 5; // more forgiving for rounding
 }
 
-async function loadAgentDetails() {
-  const agentId = workflow?.value?.agent_id;
-  if (!agentId) {
-    agentDetails.value = null;
-    return;
-  }
-
-  try {
-    agentDetails.value = await apiClient.getAgent(agentId);
-  } catch (error) {
-    console.warn(`Failed to load agent ${agentId}:`, error);
-    agentDetails.value = null;
-  }
-}
+// Debounced scroll handler for better performance
+const debouncedUpdateScrollState = debounce(updateScrollState, 50);
 
 onMounted(() => {
-  if (consoleElement.value) {
-    (consoleElement.value as HTMLElement).addEventListener('scroll', updateScrollState);
-    nextTick(updateScrollState);
-  }
+  nextTick(() => {
+    const el = consoleElement.value;
+    if (el) {
+      // Use passive listener to improve scroll performance
+      el.addEventListener('scroll', debouncedUpdateScrollState, { passive: true });
+      updateScrollState();
+    }
+  });
 });
 
 watch(log, () => {
@@ -638,26 +792,31 @@ watch(log, () => {
 });
 
 onBeforeUnmount(() => {
-  if (consoleElement.value) {
-    (consoleElement.value as HTMLElement).removeEventListener('scroll', updateScrollState);
+  const el = consoleElement.value;
+  if (el) {
+    el.removeEventListener('scroll', debouncedUpdateScrollState);
   }
 });
 
+// Handle ESC key to exit fullscreen
+function handleKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape' && isFullscreen.value) {
+    isFullscreen.value = false;
+  }
+}
+
 onMounted(async () => {
   await loadLogs();
-  await loadAgentDetails();
+  window.addEventListener('keydown', handleKeydown);
 });
 
 onBeforeUnmount(() => {
   stream.value?.close();
+  window.removeEventListener('keydown', handleKeydown);
 });
 
 watch(stepSlug, async () => {
   await loadLogs();
-});
-
-watch(workflow, async () => {
-  await loadAgentDetails();
 });
 
 watch(step, async (newStep, oldStep) => {

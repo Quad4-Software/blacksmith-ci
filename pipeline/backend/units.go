@@ -15,7 +15,7 @@
 package backend
 
 import (
-	"codeberg.org/crowci/crow/v4/pipeline/backend/docker"
+	"codeberg.org/crowci/crow/v5/pipeline/backend/docker"
 )
 
 // ParseDockerMemory parses a memory string with optional units and returns bytes.

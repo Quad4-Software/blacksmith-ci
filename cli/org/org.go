@@ -17,8 +17,8 @@ package org
 import (
 	"github.com/urfave/cli/v3"
 
-	"codeberg.org/crowci/crow/v4/cli/org/registry"
-	"codeberg.org/crowci/crow/v4/cli/org/secret"
+	"codeberg.org/crowci/crow/v5/cli/org/registry"
+	"codeberg.org/crowci/crow/v5/cli/org/secret"
 )
 
 // Command exports the org command set.

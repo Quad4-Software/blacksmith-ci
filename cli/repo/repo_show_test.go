@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli/v3"
 
-	crow "codeberg.org/crowci/crow/v4/crow-go/crow"
-	crow_mocks "codeberg.org/crowci/crow/v4/crow-go/crow/mocks"
+	crow "codeberg.org/crowci/crow/v5/crow-go/crow"
+	crow_mocks "codeberg.org/crowci/crow/v5/crow-go/crow/mocks"
 )
 
 func TestRepoShow(t *testing.T) {

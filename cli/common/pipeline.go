@@ -22,7 +22,7 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"codeberg.org/crowci/crow/v4/shared/constant"
+	"codeberg.org/crowci/crow/v5/shared/constant"
 )
 
 func DetectPipelineConfig() (isDir bool, config string, _ error) {

@@ -11,6 +11,8 @@ export interface Task {
   pipeline_id: number;
   pipeline_number: number;
   repo_id: number;
+  pipeline_created: number; // Unix timestamp when the pipeline was created
+  pipeline_started: number; // Unix timestamp when the pipeline started running (0 if not started)
 }
 
 export interface QueueStats {

@@ -19,8 +19,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"codeberg.org/crowci/crow/v4/server"
-	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v5/server"
+	"codeberg.org/crowci/crow/v5/server/model"
 )
 
 func TestGetPipelineStatusContext(t *testing.T) {

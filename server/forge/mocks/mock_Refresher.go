@@ -7,7 +7,7 @@ package forge
 import (
 	"context"
 
-	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v5/server/model"
 	mock "github.com/stretchr/testify/mock"
 )
 

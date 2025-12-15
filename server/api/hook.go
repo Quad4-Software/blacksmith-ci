@@ -25,13 +25,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 
-	"codeberg.org/crowci/crow/v4/server"
-	"codeberg.org/crowci/crow/v4/server/forge"
-	"codeberg.org/crowci/crow/v4/server/forge/types"
-	"codeberg.org/crowci/crow/v4/server/model"
-	"codeberg.org/crowci/crow/v4/server/pipeline"
-	"codeberg.org/crowci/crow/v4/server/store"
-	"codeberg.org/crowci/crow/v4/shared/token"
+	"codeberg.org/crowci/crow/v5/server"
+	"codeberg.org/crowci/crow/v5/server/forge"
+	"codeberg.org/crowci/crow/v5/server/forge/types"
+	"codeberg.org/crowci/crow/v5/server/model"
+	"codeberg.org/crowci/crow/v5/server/pipeline"
+	"codeberg.org/crowci/crow/v5/server/store"
+	"codeberg.org/crowci/crow/v5/shared/token"
 )
 
 // GetQueueInfo
@@ -141,6 +141,8 @@ func processQueueTasks(store store.Store, tasks []*model.Task, agentNameMap map[
 			}
 
 			taskResponse.PipelineNumber = p.Number
+			taskResponse.PipelineCreated = p.Created
+			taskResponse.PipelineStarted = p.Started
 		}
 
 		result = append(result, taskResponse)

@@ -1,0 +1,13 @@
+{
+  "lsp": {
+    "gopls": {
+      "initialization_options": {
+        "buildFlags": ["-tags=test,integration"],
+        "env": {
+          "GOFLAGS": "-tags=test,integration",
+          "CGO_ENABLED": "1"
+        }
+      }
+    }
+  }
+}

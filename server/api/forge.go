@@ -20,9 +20,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"codeberg.org/crowci/crow/v4/server/model"
-	"codeberg.org/crowci/crow/v4/server/router/middleware/session"
-	"codeberg.org/crowci/crow/v4/server/store"
+	"codeberg.org/crowci/crow/v5/server/model"
+	"codeberg.org/crowci/crow/v5/server/router/middleware/session"
+	"codeberg.org/crowci/crow/v5/server/store"
 )
 
 // GetForges

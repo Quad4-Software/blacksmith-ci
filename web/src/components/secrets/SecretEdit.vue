@@ -1,50 +1,80 @@
 <template>
-  <div v-if="innerValue" class="space-y-4">
+  <div v-if="innerValue">
     <form @submit.prevent="save">
-      <InputField v-slot="{ id }" :label="$t('secrets.name')">
-        <TextField
-          :id="id"
-          v-model="innerValue.name"
-          :placeholder="$t('secrets.name')"
-          required
-          :disabled="isEditingSecret"
-        />
-      </InputField>
-      <InputField v-slot="{ id }" :label="$t('secrets.value')">
-        <TextField
-          :id="id"
-          v-model="innerValue.value"
-          :placeholder="$t('secrets.value')"
-          :lines="5"
-          :required="!isEditingSecret"
-        />
-      </InputField>
-      <InputField v-slot="{ id }" :label="$t('secrets.plugins.images')">
-        <span class="mb-2 ml-1 text-wp-text-alt-100">{{ $t('secrets.plugins.desc') }}</span>
-        <div class="flex flex-col gap-2">
-          <div v-for="image in innerValue.images" :key="image" class="flex gap-2">
-            <TextField :id="id" :model-value="image" disabled />
-            <Button type="button" color="gray" start-icon="trash" @click="removeImage(image)" />
-          </div>
+      <FieldGroup>
+        <Field>
+          <FieldLabel for="secret-name">{{ $t('secrets.name') }}</FieldLabel>
+          <Input
+            id="secret-name"
+            v-model="innerValue.name"
+            :placeholder="$t('secrets.name')"
+            required
+            :disabled="isEditingSecret"
+          />
+        </Field>
 
-          <div class="flex gap-2">
-            <TextField :id="id" v-model="newImage" @keydown.enter.prevent="addNewImage" />
-            <Button type="button" color="gray" start-icon="plus" @click="addNewImage" />
+        <Field>
+          <FieldLabel for="secret-value">{{ $t('secrets.value') }}</FieldLabel>
+          <Textarea
+            id="secret-value"
+            v-model="innerValue.value"
+            :placeholder="$t('secrets.value')"
+            rows="5"
+            :required="!isEditingSecret"
+          />
+        </Field>
+
+        <Field>
+          <FieldLabel for="secret-images">{{ $t('secrets.plugins.images') }}</FieldLabel>
+          <FieldDescription>{{ $t('secrets.plugins.desc') }}</FieldDescription>
+          <div class="flex flex-col gap-2">
+            <div v-for="image in innerValue.images" :key="image" class="flex gap-2">
+              <Input :model-value="image" disabled />
+              <Button type="button" size="icon" @click="removeImage(image)">
+                <Icon name="trash" />
+              </Button>
+            </div>
+
+            <div class="flex gap-2">
+              <Input id="secret-images" v-model="newImage" @keydown.enter.prevent="addNewImage" />
+              <Button type="button" size="icon" @click="addNewImage">
+                <Icon name="plus" />
+              </Button>
+            </div>
           </div>
-        </div>
-      </InputField>
-      <InputField :label="$t('secrets.events.events')">
-        <Warning class="mb-4 text-sm" :text="$t('secrets.events.warning')" />
-        <CheckboxesField v-model="innerValue.events" :options="secretEventsOptions" />
-      </InputField>
-      <div class="flex gap-2">
-        <Button type="button" color="gray" :text="$t('cancel')" @click="$emit('cancel')" />
-        <Button
-          type="submit"
-          color="default"
-          :is-loading="isSaving"
-          :text="isEditingSecret ? $t('secrets.save') : $t('secrets.add')"
-        />
+        </Field>
+
+        <Field>
+          <FieldLabel>{{ $t('secrets.events.events') }}</FieldLabel>
+          <Alert variant="destructive" class="mb-4">
+            <Icon name="alert" class="h-4 w-4" />
+            <AlertDescription>
+              {{ $t('secrets.events.warning') }}
+            </AlertDescription>
+          </Alert>
+          <div class="flex flex-col gap-2">
+            <div v-for="option in secretEventsOptions" :key="option.value" class="flex items-start gap-3">
+              <Checkbox
+                :id="`event-${option.value}`"
+                :model-value="innerValue.events?.includes(option.value as WebhookEvents)"
+                @update:model-value="(checked) => toggleEvent(option.value as WebhookEvents, checked === true)"
+              />
+              <label :for="`event-${option.value}`" class="text-sm font-normal leading-none cursor-pointer">{{
+                option.text
+              }}</label>
+            </div>
+          </div>
+        </Field>
+      </FieldGroup>
+
+      <div class="mt-6 flex gap-2">
+        <Button type="button" variant="outline" @click="$emit('cancel')">
+          {{ $t('cancel') }}
+        </Button>
+        <Button type="submit" :disabled="isSaving">
+          <Icon v-if="isSaving" name="spinner" class="size-4 animate-spin mr-2" />
+          {{ isEditingSecret ? $t('secrets.save') : $t('secrets.add') }}
+        </Button>
       </div>
     </form>
   </div>
@@ -54,12 +84,14 @@
 import { computed, ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import Button from '~/components/atomic/Button.vue';
-import Warning from '~/components/atomic/Warning.vue';
-import CheckboxesField from '~/components/form/CheckboxesField.vue';
+import Icon from '~/components/atomic/Icon.vue';
 import type { CheckboxOption } from '~/components/form/form.types';
-import InputField from '~/components/form/InputField.vue';
-import TextField from '~/components/form/TextField.vue';
+import { Alert, AlertDescription } from '~/components/ui/alert';
+import { Button } from '~/components/ui/button';
+import { Checkbox } from '~/components/ui/checkbox';
+import { Field, FieldDescription, FieldGroup, FieldLabel } from '~/components/ui/field';
+import { Input } from '~/components/ui/input';
+import { Textarea } from '~/components/ui/textarea';
 import { WebhookEvents } from '~/lib/api/types';
 import type { Secret } from '~/lib/api/types';
 
@@ -106,6 +138,20 @@ const secretEventsOptions: CheckboxOption[] = [
   { value: WebhookEvents.Cron, text: i18n.t('repo.pipeline.event.cron') },
   { value: WebhookEvents.Manual, text: i18n.t('repo.pipeline.event.manual') },
 ];
+
+function toggleEvent(eventValue: WebhookEvents, checked: boolean) {
+  if (!innerValue.value.events) {
+    innerValue.value.events = [];
+  }
+
+  if (checked) {
+    if (!innerValue.value.events.includes(eventValue)) {
+      innerValue.value.events.push(eventValue);
+    }
+  } else {
+    innerValue.value.events = innerValue.value.events.filter((e) => e !== eventValue);
+  }
+}
 
 function save() {
   if (!innerValue.value) {

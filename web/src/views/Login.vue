@@ -1,7 +1,7 @@
 <template>
-  <div class="min-h-screen w-full flex flex-col items-center justify-center bg-white dark:bg-black text-wp-text-100">
+  <div class="min-h-screen w-full flex flex-col items-center justify-center bg-background text-foreground">
     <div
-      class="font-manrope shadow-2xl rounded-3xl py-8 md:py-12 px-8 md:px-16 flex flex-col items-center gap-4 max-w-lg border border-black/10 dark:border-white/30 bg-white dark:bg-[#383c4a] text-wp-text-100 md:my-24 my-12 md:mx-24 mx-6"
+      class="shadow-2xl rounded-3xl py-8 md:py-12 px-8 md:px-16 flex flex-col items-center gap-4 max-w-lg border border-border bg-card text-foreground md:my-24 my-12 md:mx-24 mx-6"
     >
       <component :is="isDark ? CrowLogo : CrowLogoDark" class="h-20 w-20 mb-2" />
       <h1 class="text-3xl font-extrabold text-center">{{ $t('welcome_to_crow') }}</h1>
@@ -11,7 +11,7 @@
           v-for="(forge, idx) in forges"
           :key="forge.id"
           :ref="(el) => (buttonRefs[idx] = el)"
-          class="justify-center dark:!bg-black text-wp-text-100"
+          class="justify-center dark:bg-black! text-foreground"
           :style="maxButtonWidth ? { width: `${maxButtonWidth}px` } : {}"
           :disabled="loading === forge.id"
           color="default"
@@ -35,7 +35,7 @@
       </div>
       <div
         v-if="errorMessage"
-        class="w-full text-center text-red-500 bg-red-50 dark:bg-red-900/30 rounded-lg py-2 px-3 mt-2 text-wp-text-100"
+        class="w-full text-center text-red-500 bg-red-50 dark:bg-red-900/30 rounded-lg py-2 px-3 mt-2"
       >
         <span class="whitespace-pre-line">{{ errorMessage }}</span>
       </div>
@@ -56,7 +56,7 @@ import Icon from '~/components/atomic/Icon.vue';
 import useApiClient from '~/compositions/useApiClient';
 import useAuthentication from '~/compositions/useAuthentication';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
-import type { IconNames } from '~/components/atomic/Icon.vue';
+import type { IconNames } from '~/components/atomic/Icon.types';
 import type { Forge } from '~/lib/api/types';
 
 const route = useRoute();

@@ -14,6 +14,18 @@ const routes: RouteRecordRaw[] = [
     redirect: `${rootPath}/repos`,
   },
   {
+    path: `${rootPath}/agents`,
+    name: 'agents',
+    component: (): Component => import('~/views/Agents.vue'),
+    meta: { authentication: 'required' },
+  },
+  {
+    path: `${rootPath}/autoscalers`,
+    name: 'autoscalers',
+    component: (): Component => import('~/views/Autoscalers.vue'),
+    meta: { authentication: 'required' },
+  },
+  {
     path: `${rootPath}/repos`,
     component: (): Component => import('~/views/RouterView.vue'),
     children: [
@@ -26,8 +38,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'add',
         name: 'repo-add',
-        component: (): Component => import('~/views/RepoAdd.vue'),
-        meta: { authentication: 'required' },
+        redirect: { name: 'repos' },
       },
       {
         path: ':repoId',
@@ -40,41 +51,6 @@ const routes: RouteRecordRaw[] = [
             name: 'repo',
             component: (): Component => import('~/views/repo/RepoPipelines.vue'),
             meta: { repoHeader: true },
-          },
-          {
-            path: 'branches',
-            meta: { repoHeader: true },
-            children: [
-              {
-                path: '',
-                name: 'repo-branches',
-                component: (): Component => import('~/views/repo/RepoBranches.vue'),
-              },
-              {
-                path: ':branch',
-                name: 'repo-branch',
-                component: (): Component => import('~/views/repo/RepoBranch.vue'),
-                props: (route) => ({ branch: route.params.branch }),
-              },
-            ],
-          },
-
-          {
-            path: 'pull-requests',
-            meta: { repoHeader: true },
-            children: [
-              {
-                path: '',
-                name: 'repo-pull-requests',
-                component: (): Component => import('~/views/repo/RepoPullRequests.vue'),
-              },
-              {
-                path: ':pullRequest',
-                name: 'repo-pull-request',
-                component: (): Component => import('~/views/repo/RepoPullRequest.vue'),
-                props: (route) => ({ pullRequest: route.params.pullRequest }),
-              },
-            ],
           },
           {
             path: 'pipeline/:pipelineId',
@@ -161,12 +137,6 @@ const routes: RouteRecordRaw[] = [
               },
             ],
           },
-          {
-            path: 'manual',
-            name: 'repo-manual',
-            component: (): Component => import('~/views/repo/RepoManualPipeline.vue'),
-            meta: { authentication: 'required', repoHeader: true },
-          },
         ],
       },
       {
@@ -222,8 +192,76 @@ const routes: RouteRecordRaw[] = [
     props: true,
   },
   {
+    path: `${rootPath}/user`,
+    component: (): Component => import('~/views/user/UserWrapperSidebar.vue'),
+    meta: { authentication: 'required' },
+    props: true,
+    children: [
+      {
+        path: '',
+        name: 'user',
+        component: (): Component => import('~/views/user/UserGeneral.vue'),
+        props: true,
+      },
+      {
+        path: 'secrets',
+        name: 'user-secrets',
+        component: (): Component => import('~/views/user/UserSecrets.vue'),
+        props: true,
+      },
+      {
+        path: 'registries',
+        name: 'user-registries',
+        component: (): Component => import('~/views/user/UserRegistries.vue'),
+        props: true,
+      },
+      {
+        path: 'crons',
+        name: 'user-crons',
+        component: (): Component => import('~/views/user/UserCrons.vue'),
+        props: true,
+      },
+      {
+        path: 'cli-and-api',
+        name: 'user-cli-and-api',
+        component: (): Component => import('~/views/user/UserCLIAndAPI.vue'),
+        props: true,
+      },
+      {
+        path: 'access-tokens',
+        name: 'user-access-tokens',
+        component: (): Component => import('~/views/user/UserAccessTokens.vue'),
+        props: true,
+      },
+      {
+        path: 'agents',
+        name: 'user-agents',
+        component: (): Component => import('~/views/user/UserAgents.vue'),
+        props: true,
+      },
+      {
+        path: 'global-agents',
+        name: 'user-global-agents',
+        component: (): Component => import('~/views/user/GlobalAgents.vue'),
+        props: true,
+      },
+      {
+        path: 'metrics',
+        name: 'user-metrics',
+        component: (): Component => import('~/views/user/UserMetrics.vue'),
+        props: true,
+      },
+      {
+        path: 'info',
+        name: 'user-info',
+        redirect: { name: 'user' },
+      },
+    ],
+  },
+
+  {
     path: `${rootPath}/admin`,
-    component: (): Component => import('~/views/admin/AdminSettingsWrapper.vue'),
+    component: (): Component => import('~/views/user/UserWrapperSidebar.vue'),
     props: true,
     meta: { authentication: 'required' },
     children: [
@@ -251,22 +289,15 @@ const routes: RouteRecordRaw[] = [
         props: true,
       },
       {
-        path: 'users',
-        name: 'admin-settings-users',
-        component: (): Component => import('~/views/admin/AdminUsers.vue'),
-        props: true,
-      },
-      {
-        path: 'orgs',
-        name: 'admin-settings-orgs',
-        component: (): Component => import('~/views/admin/AdminOrgs.vue'),
+        path: 'entities',
+        name: 'admin-settings-entities',
+        component: (): Component => import('~/views/admin/AdminEntities.vue'),
         props: true,
       },
       {
         path: 'agents',
         name: 'admin-settings-agents',
-        component: (): Component => import('~/views/admin/AdminAgents.vue'),
-        props: true,
+        redirect: { name: 'agents' },
       },
       {
         path: 'autoscalers',
@@ -281,60 +312,15 @@ const routes: RouteRecordRaw[] = [
         props: true,
       },
       {
+        path: 'metrics',
+        name: 'admin-settings-metrics',
+        redirect: { name: 'user-metrics' },
+      },
+      {
         path: 'maintenance',
         name: 'admin-settings-maintenance',
         component: (): Component => import('~/views/admin/AdminMaintenance.vue'),
         props: true,
-      },
-    ],
-  },
-
-  {
-    path: `${rootPath}/user`,
-    component: (): Component => import('~/views/user/UserWrapper.vue'),
-    meta: { authentication: 'required' },
-    props: true,
-    children: [
-      {
-        path: '',
-        name: 'user',
-        component: (): Component => import('~/views/user/UserGeneral.vue'),
-        props: true,
-      },
-      {
-        path: 'secrets',
-        name: 'user-secrets',
-        component: (): Component => import('~/views/user/UserSecrets.vue'),
-        props: true,
-      },
-      {
-        path: 'registries',
-        name: 'user-registries',
-        component: (): Component => import('~/views/user/UserRegistries.vue'),
-        props: true,
-      },
-      {
-        path: 'cli-and-api',
-        name: 'user-cli-and-api',
-        component: (): Component => import('~/views/user/UserCLIAndAPI.vue'),
-        props: true,
-      },
-      {
-        path: 'agents',
-        name: 'user-agents',
-        component: (): Component => import('~/views/user/UserAgents.vue'),
-        props: true,
-      },
-      {
-        path: 'global-agents',
-        name: 'user-global-agents',
-        component: (): Component => import('~/views/user/GlobalAgents.vue'),
-        props: true,
-      },
-      {
-        path: 'info',
-        name: 'user-info',
-        redirect: { name: 'user' },
       },
     ],
   },

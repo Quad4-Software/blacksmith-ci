@@ -5,13 +5,18 @@
         v-if="selectedAgent"
         :text="$t('admin.settings.agents.show')"
         start-icon="back"
+        variant="outline"
+        size="sm"
         @click="selectedAgent = undefined"
       />
       <template v-if="!selectedAgent">
-        <div class="flex flex-col md:flex-row items-center justify-center gap-2">
-          <Button text="Refresh" class="w-auto" @click="resetPage" />
-          <Button :text="$t('admin.settings.agents.add')" start-icon="plus" @click="showAddAgent" />
-        </div>
+        <Button
+          :text="$t('admin.settings.agents.add')"
+          start-icon="plus"
+          variant="default"
+          size="sm"
+          @click="showAddAgent"
+        />
       </template>
     </template>
     <template #headerEnd>

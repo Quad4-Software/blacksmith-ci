@@ -1,8 +1,8 @@
 <template>
   <div
-    class="flex items-center gap-4 rounded-md border border-l-4 border-solid border-wp-hint-warn-200 bg-wp-hint-warn-100 p-4 font-bold text-wp-text-100"
+    class="flex items-center gap-4 rounded-md border border-l-4 border-solid border-yellow-500 bg-yellow-500/10 p-4 font-bold text-foreground"
   >
-    <Icon v-if="!textOnly" name="alert" class="shrink-0 text-wp-hint-warn-200" />
+    <Icon v-if="!textOnly" name="alert" class="shrink-0 text-yellow-500" />
     <slot>
       <span class="whitespace-pre-wrap">{{ text }}</span>
     </slot>

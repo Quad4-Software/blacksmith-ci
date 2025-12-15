@@ -25,7 +25,7 @@
 import type { RouteLocationRaw } from 'vue-router';
 
 import Icon from '~/components/atomic/Icon.vue';
-import type { IconNames } from '~/components/atomic/Icon.vue';
+import type { IconNames } from '~/components/atomic/Icon.types';
 
 defineProps<{
   icon?: IconNames;

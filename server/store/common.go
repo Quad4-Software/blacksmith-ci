@@ -17,7 +17,7 @@ package store
 import (
 	"time"
 
-	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v5/server/model"
 )
 
 type XORM struct {

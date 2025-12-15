@@ -25,7 +25,7 @@ import (
 	"k8s.io/client-go/rest"
 	client_cmd "k8s.io/client-go/tools/clientcmd"
 
-	"codeberg.org/crowci/crow/v4/pipeline/backend/types"
+	"codeberg.org/crowci/crow/v5/pipeline/backend/types"
 )
 
 const (

@@ -1,34 +1,57 @@
 <template>
   <span class="inline-flex text-xs font-medium">
-    <span
-      class="flex items-center rounded-l-full border border-wp-custom-highlight-100 py-0.5 pl-2 pr-1 text-wp-text-100"
-      :class="{
-        'rounded-r-full pr-2': value === undefined,
-        'border-wp-error-100!': label === 'global secret',
-        // custom == 'custom label' from agents
-        'border-wp-hint-warn-200!': label === 'organization secret' || label === 'custom',
-        'border-wp-hint-warn-300!': label === 'type' && value === 'global',
-      }"
+    <Badge
+      :variant="labelVariant"
+      :class="
+        cn('rounded-l-full border py-0.5 pl-2 pr-1', {
+          'rounded-r-full pr-2': value === undefined,
+          'border-destructive!': label === 'global secret',
+          'border-yellow-500!': label === 'organization secret' || label === 'custom',
+          'border-yellow-600!': label === 'type' && value === 'global',
+        })
+      "
     >
       {{ label }}
-    </span>
-    <span
+    </Badge>
+    <Badge
       v-if="value !== undefined"
-      class="flex items-center rounded-r-full border border-l-0 border-wp-custom-highlight-100 py-0.5 pl-1 pr-2"
-      :class="{
-        'border-wp-hint-warn-200!':
-          label === 'custom' || (label && (label.startsWith('org:') || label.startsWith('repo:'))),
-        'border-wp-hint-warn-300!': label === 'type' && value === 'global',
-      }"
+      :variant="valueVariant"
+      :class="
+        cn('rounded-r-full border border-l-0 py-0.5 pl-1 pr-2', {
+          'border-yellow-500!':
+            label === 'custom' || (label && (label.startsWith('org:') || label.startsWith('repo:'))),
+          'border-yellow-600!': label === 'type' && value === 'global',
+        })
+      "
     >
       {{ value }}
-    </span>
+    </Badge>
   </span>
 </template>
 
 <script lang="ts" setup>
-defineProps<{
+import { computed } from 'vue';
+import { Badge } from '~/components/ui/badge';
+import type { BadgeVariants } from '~/components/ui/badge';
+import { cn } from '~/lib/utils';
+
+const props = defineProps<{
   label: string;
   value?: string | number;
 }>();
+
+// Determine variant based on label type
+const labelVariant = computed<BadgeVariants['variant']>(() => {
+  if (props.label === 'global secret') return 'destructive';
+  if (props.label === 'organization secret' || props.label === 'custom') return 'secondary';
+  return 'outline';
+});
+
+const valueVariant = computed<BadgeVariants['variant']>(() => {
+  if (props.label === 'type' && props.value === 'global') return 'secondary';
+  if (props.label === 'custom' || props.label?.startsWith('org:') || props.label?.startsWith('repo:')) {
+    return 'secondary';
+  }
+  return 'outline';
+});
 </script>

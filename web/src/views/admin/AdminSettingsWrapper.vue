@@ -11,7 +11,7 @@
           :href="versionUrl"
           target="_blank"
           rel="noopener noreferrer"
-          class="relative flex shrink-0 cursor-pointer items-center overflow-hidden whitespace-nowrap rounded-md border border-wp-custom-highlight-100 px-2 py-0.5 shadow-xs transition-all duration-150 hover:border-wp-orange-300 hover:bg-wp-orange-300 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:border-wp-custom-hover-100 dark:hover:bg-wp-custom-hover-100 bg-wp-control-neutral-100 text-wp-text-100"
+          class="relative flex shrink-0 cursor-pointer items-center overflow-hidden whitespace-nowrap rounded-md border border-primary px-2 py-0.5 shadow-xs transition-all duration-150 hover:border-primary/80 hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-50 bg-muted text-foreground"
         >
           {{ currentVersion }}
         </a>
@@ -21,14 +21,14 @@
           :href="versionUrl"
           target="_blank"
           rel="noopener noreferrer"
-          class="relative flex shrink-0 cursor-pointer items-center overflow-hidden whitespace-nowrap rounded-md border border-wp-custom-highlight-100 bg-wp-control-neutral-100 px-2 py-0.5 text-sm shadow-xs transition-all duration-150 text-wp-text-100 hover:border-wp-orange-300 hover:bg-wp-orange-300 dark:hover:border-wp-custom-hover-100 dark:hover:bg-wp-custom-hover-100"
+          class="relative flex shrink-0 cursor-pointer items-center overflow-hidden whitespace-nowrap rounded-md border border-primary bg-muted px-2 py-0.5 text-sm shadow-xs transition-all duration-150 text-foreground hover:border-primary/80 hover:bg-primary/20"
         >
           {{ currentVersion }}
         </a>
         <!-- Other version badge (non-clickable) -->
         <span
           v-else-if="currentVersion && currentVersion !== 'unknown'"
-          class="relative flex shrink-0 items-center overflow-hidden whitespace-nowrap rounded-md border border-wp-control-neutral-300 bg-wp-control-neutral-100 px-2 py-0.5 text-sm shadow-xs text-wp-text-100"
+          class="relative flex shrink-0 items-center overflow-hidden whitespace-nowrap rounded-md border border-border bg-muted px-2 py-0.5 text-sm shadow-xs text-foreground"
         >
           {{ currentVersion }}
         </span>
@@ -42,7 +42,7 @@
           "
           target="_blank"
           rel="noopener noreferrer"
-          class="relative flex shrink-0 cursor-pointer items-center overflow-hidden whitespace-nowrap rounded-md border border-wp-background-400 bg-wp-background-100 px-2 py-0.5 text-sm transition-all duration-150 text-wp-text-100 hover:bg-wp-control-neutral-200 hover:text-wp-text-100 dark:border-wp-control-neutral-500 dark:hover:text-wp-text-200"
+          class="relative flex shrink-0 cursor-pointer items-center overflow-hidden whitespace-nowrap rounded-md border border-border bg-card px-2 py-0.5 text-sm transition-all duration-150 text-foreground hover:bg-accent"
         >
           {{ version.latest?.replace(/^v/, '') }}
           {{ $t('admin.settings.version.update') }}
@@ -56,7 +56,12 @@
       :title="$t('admin.settings.maintenance.maintenance')"
     />
     <Tab icon="secret" icon-size="1rem" :to="{ name: 'admin-settings-secrets' }" :title="$t('secrets.secrets')" />
-    <Tab icon="docker" :to="{ name: 'admin-settings-registries' }" :title="$t('registries.registries')" />
+    <Tab
+      icon="docker"
+      icon-size="1rem"
+      :to="{ name: 'admin-settings-registries' }"
+      :title="$t('registries.registries')"
+    />
     <Tab
       icon="repo"
       icon-size="1rem"
@@ -87,6 +92,12 @@
       icon-size="1rem"
       :to="{ name: 'admin-settings-queue' }"
       :title="$t('admin.settings.queue.queue')"
+    />
+    <Tab
+      icon="graph"
+      icon-size="1rem"
+      :to="{ name: 'admin-settings-metrics' }"
+      :title="$t('admin.settings.metrics.metrics')"
     />
 
     <router-view />

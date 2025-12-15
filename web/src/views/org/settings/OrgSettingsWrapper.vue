@@ -2,7 +2,7 @@
   <Scaffold v-if="org" enable-tabs :go-back="goBack">
     <template #title>
       <span>
-        <router-link :to="{ name: 'org' }" class="hover:underline hover:decoration-wp-custom-highlight-100">{{
+        <router-link :to="{ name: 'org' }" class="hover:underline hover:decoration-primary">{{
           org.name
           /* eslint-disable @intlify/vue-i18n/no-raw-text */
         }}</router-link
@@ -11,7 +11,12 @@
     </template>
 
     <Tab icon="secret" icon-size="1rem" :to="{ name: 'org-settings-secrets' }" :title="$t('secrets.secrets')" />
-    <Tab icon="docker" :to="{ name: 'org-settings-registries' }" :title="$t('registries.registries')" />
+    <Tab
+      icon="docker"
+      icon-size="1rem"
+      :to="{ name: 'org-settings-registries' }"
+      :title="$t('registries.registries')"
+    />
     <Tab
       v-if="useConfig().userRegisteredAgents"
       icon="agent"

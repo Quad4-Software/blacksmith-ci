@@ -15,6 +15,7 @@
 package local
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -31,7 +32,7 @@ import (
 	"golang.org/x/text/encoding/unicode"
 	"golang.org/x/text/transform"
 
-	"codeberg.org/crowci/crow/v4/pipeline/backend/types"
+	"codeberg.org/crowci/crow/v5/pipeline/backend/types"
 )
 
 type workflowState struct {
@@ -194,21 +195,24 @@ func (e *local) execCommands(ctx context.Context, step *types.Step, state *workf
 	cmd.Env = env
 	cmd.Dir = state.workspaceDir
 
-	// Wrap with sandbox if enabled
+	// Wrap with sandbox if enabled (BEFORE setting up pipes)
 	cmd, err = e.wrapCommandWithSandbox(ctx, cmd, state)
 	if err != nil {
 		return fmt.Errorf("could not wrap command with sandbox: %w", err)
 	}
 
-	// Get output and redirect Stderr to Stdout
-	e.output, _ = cmd.StdoutPipe()
-	cmd.Stderr = cmd.Stdout
-
-	if e.os == "windows" {
-		// we get non utf8 output from windows so just sanitize it
-		// TODO: remove hack
-		e.output = io.NopCloser(transform.NewReader(e.output, unicode.UTF8.NewDecoder().Transformer))
+	// Capture stdout and stderr separately with stream tags (AFTER sandbox wrapping)
+	stdoutPipe, err := cmd.StdoutPipe()
+	if err != nil {
+		return fmt.Errorf("could not create stdout pipe: %w", err)
 	}
+	stderrPipe, err := cmd.StderrPipe()
+	if err != nil {
+		return fmt.Errorf("could not create stderr pipe: %w", err)
+	}
+
+	// Create merged output with stream tags
+	e.output = createTaggedMergedPipe(stdoutPipe, stderrPipe, e.os == "windows")
 
 	state.stepCMDs[step.UUID] = cmd
 
@@ -237,15 +241,12 @@ func (e *local) execService(ctx context.Context, step *types.Step, state *workfl
 		return fmt.Errorf("could not wrap command with sandbox: %w", err)
 	}
 
-	// Get output and redirect Stderr to Stdout
-	e.output, _ = cmd.StdoutPipe()
-	cmd.Stderr = cmd.Stdout
+	// Capture stdout and stderr separately with stream tags
+	stdoutPipe, _ := cmd.StdoutPipe()
+	stderrPipe, _ := cmd.StderrPipe()
 
-	if e.os == "windows" {
-		// we get non utf8 output from windows so just sanitize it
-		// TODO: remove hack
-		e.output = io.NopCloser(transform.NewReader(e.output, unicode.UTF8.NewDecoder().Transformer))
-	}
+	// Create merged output with stream tags
+	e.output = createTaggedMergedPipe(stdoutPipe, stderrPipe, e.os == "windows")
 
 	state.stepCMDs[step.UUID] = cmd
 
@@ -269,9 +270,12 @@ func (e *local) execPlugin(ctx context.Context, step *types.Step, state *workflo
 		return fmt.Errorf("could not wrap command with sandbox: %w", err)
 	}
 
-	// Get output and redirect Stderr to Stdout
-	e.output, _ = cmd.StdoutPipe()
-	cmd.Stderr = cmd.Stdout
+	// Capture stdout and stderr separately with stream tags
+	stdoutPipe, _ := cmd.StdoutPipe()
+	stderrPipe, _ := cmd.StderrPipe()
+
+	// Create merged output with stream tags
+	e.output = createTaggedMergedPipe(stdoutPipe, stderrPipe, e.os == "windows")
 
 	state.stepCMDs[step.UUID] = cmd
 
@@ -313,6 +317,64 @@ func (e *local) WaitStep(_ context.Context, step *types.Step, taskUUID string) (
 func (e *local) TailStep(_ context.Context, step *types.Step, taskUUID string) (io.ReadCloser, error) {
 	log.Trace().Str("taskUUID", taskUUID).Msgf("tail logs of step %s", step.Name)
 	return e.output, nil
+}
+
+// createTaggedMergedPipe creates a pipe that merges stdout and stderr with stream tags.
+// Tags: 0x01 = stdout, 0x02 = stderr.
+func createTaggedMergedPipe(stdout, stderr io.ReadCloser, isWindows bool) io.ReadCloser {
+	pr, pw := io.Pipe()
+
+	go func() {
+		var wg sync.WaitGroup
+		const numStreams = 2 // stdout and stderr
+		wg.Add(numStreams)
+
+		// Copy stdout with tag 0x01
+		go func() {
+			defer wg.Done()
+			reader := stdout
+			if isWindows {
+				// Sanitize non-UTF8 output on Windows
+				reader = io.NopCloser(transform.NewReader(stdout, unicode.UTF8.NewDecoder().Transformer))
+			}
+			copyWithTag(pw, reader, '\x01')
+			stdout.Close()
+		}()
+
+		// Copy stderr with tag 0x02
+		go func() {
+			defer wg.Done()
+			reader := stderr
+			if isWindows {
+				// Sanitize non-UTF8 output on Windows
+				reader = io.NopCloser(transform.NewReader(stderr, unicode.UTF8.NewDecoder().Transformer))
+			}
+			copyWithTag(pw, reader, '\x02')
+			stderr.Close()
+		}()
+
+		wg.Wait()
+		pw.Close()
+	}()
+
+	return pr
+}
+
+// copyWithTag reads from src line-by-line and writes to dst, prepending each line with a tag byte.
+func copyWithTag(dst io.Writer, src io.Reader, tag byte) {
+	scanner := bufio.NewScanner(src)
+	for scanner.Scan() {
+		line := scanner.Bytes()
+		// Prepend tag byte to each line
+		tagged := make([]byte, len(line)+2) // +1 for tag, +1 for newline
+		tagged[0] = tag
+		copy(tagged[1:], line)
+		tagged[len(tagged)-1] = '\n'
+		if _, err := dst.Write(tagged); err != nil {
+			log.Error().Err(err).Msg("failed to write tagged log line")
+			return
+		}
+	}
 }
 
 func (e *local) DestroyStep(_ context.Context, _ *types.Step, _ string) error {

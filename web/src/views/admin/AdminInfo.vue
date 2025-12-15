@@ -1,7 +1,7 @@
 <template>
   <Settings :title="$t('info')">
     <div class="flex flex-col items-center gap-4">
-      <CrowLogo class="fill-wp-text-200 h-32 w-32" />
+      <CrowLogo class="fill-muted-foreground h-32 w-32" />
 
       <i18n-t keypath="running_version" tag="p" class="text-center text-xl">
         <span class="font-bold">{{ version?.current }}</span>

@@ -6,4 +6,11 @@ export interface Registry {
   username: string;
   password: string;
   readonly: boolean;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface RegistryWithOrg extends Registry {
+  org_name: string;
+  scope_type: 'user' | 'org' | 'global';
 }

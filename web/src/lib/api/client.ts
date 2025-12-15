@@ -130,8 +130,8 @@ export default class ApiClient {
     return this._request('PUT', path, data);
   }
 
-  async _delete(path: string) {
-    return this._request('DELETE', path);
+  async _delete(path: string, data?: unknown) {
+    return this._request('DELETE', path, data);
   }
 
   _subscribe<T>(path: string, callback: (data: T) => void, opts = { reconnect: true }) {

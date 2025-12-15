@@ -15,7 +15,7 @@
 
 syntax = "proto3";
 
-option go_package = "codeberg.org/crowci/crow/v4/pipeline/rpc/proto";
+option go_package = "codeberg.org/crowci/crow/v5/pipeline/rpc/proto";
 package proto;
 
 // !IMPORTANT!

@@ -34,15 +34,15 @@ import (
 	"github.com/urfave/cli/v3"
 	"golang.org/x/sync/errgroup"
 
-	"codeberg.org/crowci/crow/v4/server"
-	"codeberg.org/crowci/crow/v4/server/cron"
-	"codeberg.org/crowci/crow/v4/server/router"
-	"codeberg.org/crowci/crow/v4/server/router/middleware"
-	"codeberg.org/crowci/crow/v4/server/services/lock"
-	"codeberg.org/crowci/crow/v4/server/store"
-	"codeberg.org/crowci/crow/v4/server/web"
-	"codeberg.org/crowci/crow/v4/shared/logger"
-	"codeberg.org/crowci/crow/v4/version"
+	"codeberg.org/crowci/crow/v5/server"
+	"codeberg.org/crowci/crow/v5/server/cron"
+	"codeberg.org/crowci/crow/v5/server/router"
+	"codeberg.org/crowci/crow/v5/server/router/middleware"
+	"codeberg.org/crowci/crow/v5/server/services/lock"
+	"codeberg.org/crowci/crow/v5/server/store"
+	"codeberg.org/crowci/crow/v5/server/web"
+	"codeberg.org/crowci/crow/v5/shared/logger"
+	"codeberg.org/crowci/crow/v5/version"
 )
 
 const (

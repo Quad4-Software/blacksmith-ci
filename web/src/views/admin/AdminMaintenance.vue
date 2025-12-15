@@ -1,420 +1,390 @@
 <template>
   <Settings :title="$t('admin.settings.maintenance.maintenance')" :description="$t('admin.settings.maintenance.desc')">
-    <!-- Single Log Vacuum Operation -->
     <div class="space-y-6">
       <!-- Main Operation Panel -->
-      <Panel>
-        <div class="space-y-4">
-          <!-- Operation Description -->
-          <div class="flex items-center space-x-3">
-            <div>
-              <div class="font-medium text-wp-text-100">
-                {{ $t('admin.settings.maintenance.operations.vacuum_log_table') }}
-              </div>
-              <div class="text-sm text-wp-text-alt-100">
-                {{ $t('admin.settings.maintenance.operations.vacuum_log_table_desc') }}
-              </div>
-            </div>
-          </div>
-
+      <Card>
+        <CardHeader>
+          <CardTitle>{{ $t('admin.settings.maintenance.operations.vacuum_log_table') }}</CardTitle>
+          <CardDescription>{{ $t('admin.settings.maintenance.operations.vacuum_log_table_desc') }}</CardDescription>
+        </CardHeader>
+        <CardContent class="space-y-4">
           <!-- Configuration Row -->
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-center pb-2">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-end pb-2">
             <!-- Schedule -->
-            <div class="flex flex-col">
-              <MetadataInputField v-slot="{ id }" :label="`${$t('admin.settings.maintenance.schedule')} (UTC)`">
-                <div class="flex items-center h-10">
-                  <TextField
-                    :id="id"
-                    v-model="vacuumLogTableConfig.schedule"
-                    :placeholder="$t('admin.settings.maintenance.schedule_placeholder')"
-                    class="w-full"
-                    :disabled="vacuumEnvVarsSet"
-                  />
-                </div>
-              </MetadataInputField>
+            <div class="flex flex-col gap-2">
+              <Label>{{ $t('admin.settings.maintenance.schedule') }}</Label>
+              <Input
+                v-model="vacuumLogTableConfig.schedule"
+                :placeholder="$t('admin.settings.maintenance.schedule_placeholder')"
+                :disabled="vacuumEnvVarsSet"
+              />
             </div>
 
             <!-- Status with Enable/Disable -->
-            <div class="flex flex-col">
-              <MetadataInputField :label="$t('admin.settings.maintenance.status')">
-                <div class="flex items-center h-10">
-                  <Checkbox
-                    v-model="vacuumLogTableConfig.enabled"
-                    :label="$t('admin.settings.maintenance.enabled')"
-                    :disabled="vacuumEnvVarsSet"
-                  />
-                </div>
-              </MetadataInputField>
+            <div class="flex flex-col gap-2">
+              <Label>{{ $t('admin.settings.maintenance.status') }}</Label>
+              <div class="flex items-center h-9 space-x-2">
+                <Checkbox
+                  :checked="vacuumLogTableConfig.enabled"
+                  :disabled="vacuumEnvVarsSet"
+                  @update:checked="vacuumLogTableConfig.enabled = $event"
+                />
+                <Label
+                  class="cursor-pointer"
+                  @click="!vacuumEnvVarsSet && (vacuumLogTableConfig.enabled = !vacuumLogTableConfig.enabled)"
+                >
+                  {{ $t('admin.settings.maintenance.enabled') }}
+                </Label>
+              </div>
             </div>
 
             <!-- Total Runs -->
-            <div>
-              <MetadataInputField :label="$t('admin.settings.maintenance.total_runs')">
-                <div class="text-sm text-wp-text-100 flex items-center h-10">
-                  {{ vacuumLogTableConfig.total_runs || 0 }}
-                </div>
-              </MetadataInputField>
+            <div class="flex flex-col gap-2">
+              <Label>{{ $t('admin.settings.maintenance.total_runs') }}</Label>
+              <div class="text-sm text-muted-foreground flex items-center h-9">
+                {{ vacuumLogTableConfig.total_runs || 0 }}
+              </div>
             </div>
 
             <!-- Options (placeholder to match K8s layout) -->
-            <div>
-              <MetadataInputField :label="$t('admin.settings.maintenance.options')">
-                <div class="flex items-center h-10">
-                  <span class="text-sm text-wp-text-alt-100">{{
-                    $t('admin.settings.maintenance.no_options') || '-'
-                  }}</span>
-                </div>
-              </MetadataInputField>
+            <div class="flex flex-col gap-2">
+              <Label>{{ $t('admin.settings.maintenance.options') }}</Label>
+              <div class="flex items-center h-9">
+                <span class="text-sm text-muted-foreground">{{ $t('admin.settings.maintenance.none') }}</span>
+              </div>
             </div>
 
             <!-- Last Run -->
-            <div>
-              <MetadataInputField :label="$t('admin.settings.maintenance.last_run')">
-                <div class="text-sm text-wp-text-100 flex items-center h-10">
-                  {{ formatLastRun(vacuumLogTableConfig.last_run || '') }}
-                </div>
-              </MetadataInputField>
+            <div class="flex flex-col gap-2">
+              <Label>{{ $t('admin.settings.maintenance.last_run') }}</Label>
+              <div class="text-sm text-muted-foreground flex items-center h-9">
+                {{ formatLastRun(vacuumLogTableConfig.last_run || '') }}
+              </div>
             </div>
 
             <!-- Actions -->
-            <div>
-              <MetadataInputField :label="$t('admin.settings.maintenance.actions')">
-                <div class="flex items-center h-10 space-x-2">
-                  <IconButton
-                    icon="content-save-outline"
-                    :title="
-                      vacuumEnvVarsSet
-                        ? $t('admin.settings.maintenance.env_vars_set_tooltip')
-                        : $t('admin.settings.maintenance.save_config')
-                    "
-                    class="h-8 w-8"
-                    :is-loading="isSaving"
-                    :disabled="vacuumEnvVarsSet"
-                    @click="saveConfig(false)"
-                  />
-                  <IconButton
-                    icon="play-outline"
-                    :title="$t('admin.settings.maintenance.run_now')"
-                    class="h-8 w-8"
-                    :is-loading="isRunning"
-                    @click="runNow"
-                  />
-                </div>
-              </MetadataInputField>
+            <div class="flex flex-col gap-2">
+              <Label>{{ $t('admin.settings.maintenance.actions') }}</Label>
+              <div class="flex items-center h-9 space-x-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  :title="
+                    vacuumEnvVarsSet
+                      ? $t('admin.settings.maintenance.env_vars_set_tooltip')
+                      : $t('admin.settings.maintenance.save_config')
+                  "
+                  :disabled="isSaving || vacuumEnvVarsSet"
+                  @click="saveConfig(false)"
+                >
+                  <Icon v-if="!isSaving" name="content-save-outline" class="h-4 w-4" />
+                  <Icon v-else name="loading" class="h-4 w-4 animate-spin" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  :title="$t('admin.settings.maintenance.run_now')"
+                  :disabled="isRunning"
+                  @click="runNow"
+                >
+                  <Icon v-if="!isRunning" name="play-outline" class="h-4 w-4" />
+                  <Icon v-else name="loading" class="h-4 w-4 animate-spin" />
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      </Panel>
+        </CardContent>
+      </Card>
 
       <!-- Stale Agent Cleanup Operation -->
-      <Panel>
-        <div class="space-y-4">
-          <div class="flex items-center space-x-3">
-            <div>
-              <div class="font-medium text-wp-text-100">
-                {{ $t('admin.settings.maintenance.operations.stale_agent_cleanup') }}
-              </div>
-              <div class="text-sm text-wp-text-alt-100">
-                {{ $t('admin.settings.maintenance.operations.stale_agent_cleanup_desc') }}
-              </div>
-            </div>
-          </div>
-
+      <Card>
+        <CardHeader>
+          <CardTitle>{{ $t('admin.settings.maintenance.operations.stale_agent_cleanup') }}</CardTitle>
+          <CardDescription>{{ $t('admin.settings.maintenance.operations.stale_agent_cleanup_desc') }}</CardDescription>
+        </CardHeader>
+        <CardContent class="space-y-4">
           <!-- Configuration Row -->
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-center pb-2">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-end pb-2">
             <!-- Schedule -->
-            <div class="flex flex-col">
-              <MetadataInputField v-slot="{ id }" :label="`${$t('admin.settings.maintenance.schedule')} (UTC)`">
-                <div class="flex items-center h-10">
-                  <TextField
-                    :id="id"
-                    v-model="staleAgentCleanupConfig.schedule"
-                    :placeholder="$t('admin.settings.maintenance.schedule_placeholder')"
-                    class="w-full"
-                    :disabled="staleAgentEnvVarsSet"
-                  />
-                </div>
-              </MetadataInputField>
+            <div class="flex flex-col gap-2">
+              <Label>{{ $t('admin.settings.maintenance.schedule') }}</Label>
+              <Input
+                v-model="staleAgentCleanupConfig.schedule"
+                :placeholder="$t('admin.settings.maintenance.schedule_placeholder')"
+                :disabled="staleAgentEnvVarsSet"
+              />
             </div>
 
             <!-- Status with Enable/Disable -->
-            <div class="flex flex-col">
-              <MetadataInputField :label="$t('admin.settings.maintenance.status')">
-                <div class="flex items-center h-10">
-                  <Checkbox
-                    v-model="staleAgentCleanupConfig.enabled"
-                    :label="$t('admin.settings.maintenance.enabled')"
-                    :disabled="staleAgentEnvVarsSet"
-                  />
-                </div>
-              </MetadataInputField>
+            <div class="flex flex-col gap-2">
+              <Label>{{ $t('admin.settings.maintenance.status') }}</Label>
+              <div class="flex items-center h-9 space-x-2">
+                <Checkbox
+                  :checked="staleAgentCleanupConfig.enabled"
+                  :disabled="staleAgentEnvVarsSet"
+                  @update:checked="staleAgentCleanupConfig.enabled = $event"
+                />
+                <Label
+                  class="cursor-pointer"
+                  @click="!staleAgentEnvVarsSet && (staleAgentCleanupConfig.enabled = !staleAgentCleanupConfig.enabled)"
+                >
+                  {{ $t('admin.settings.maintenance.enabled') }}
+                </Label>
+              </div>
             </div>
 
             <!-- Total Runs -->
-            <div>
-              <MetadataInputField :label="$t('admin.settings.maintenance.total_runs')">
-                <div class="text-sm text-wp-text-100 flex items-center h-10">
-                  {{ staleAgentCleanupConfig.total_runs || 0 }}
-                </div>
-              </MetadataInputField>
+            <div class="flex flex-col gap-2">
+              <Label>{{ $t('admin.settings.maintenance.total_runs') }}</Label>
+              <div class="text-sm text-muted-foreground flex items-center h-9">
+                {{ staleAgentCleanupConfig.total_runs || 0 }}
+              </div>
             </div>
 
             <!-- Options (placeholder to match layout) -->
-            <div>
-              <MetadataInputField :label="$t('admin.settings.maintenance.options')">
-                <div class="flex items-center h-10">
-                  <span class="text-sm text-wp-text-alt-100">{{
-                    $t('admin.settings.maintenance.stale_duration_24h') || '24h'
-                  }}</span>
-                </div>
-              </MetadataInputField>
+            <div class="flex flex-col gap-2">
+              <Label>{{ $t('admin.settings.maintenance.options') }}</Label>
+              <div class="flex items-center h-9">
+                <span class="text-sm text-muted-foreground">{{
+                  $t('admin.settings.maintenance.stale_duration_24h')
+                }}</span>
+              </div>
             </div>
 
             <!-- Last Run -->
-            <div>
-              <MetadataInputField :label="$t('admin.settings.maintenance.last_run')">
-                <div class="text-sm text-wp-text-100 flex items-center h-10">
-                  {{ formatLastRun(staleAgentCleanupConfig.last_run || '') }}
-                </div>
-              </MetadataInputField>
+            <div class="flex flex-col gap-2">
+              <Label>{{ $t('admin.settings.maintenance.last_run') }}</Label>
+              <div class="text-sm text-muted-foreground flex items-center h-9">
+                {{ formatLastRun(staleAgentCleanupConfig.last_run || '') }}
+              </div>
             </div>
 
             <!-- Actions -->
-            <div>
-              <MetadataInputField :label="$t('admin.settings.maintenance.actions')">
-                <div class="flex items-center h-10 space-x-2">
-                  <IconButton
-                    icon="content-save-outline"
-                    :title="
-                      staleAgentEnvVarsSet
-                        ? $t('admin.settings.maintenance.env_vars_set_tooltip')
-                        : $t('admin.settings.maintenance.save_config')
-                    "
-                    class="h-8 w-8"
-                    :is-loading="isSavingStaleAgent"
-                    :disabled="staleAgentEnvVarsSet"
-                    @click="saveStaleAgentConfig(false)"
-                  />
-                  <IconButton
-                    icon="play-outline"
-                    :title="$t('admin.settings.maintenance.run_stale_agent_cleanup')"
-                    class="h-8 w-8"
-                    :is-loading="isRunningStaleAgentCleanup"
-                    @click="runStaleAgentCleanup"
-                  />
-                </div>
-              </MetadataInputField>
+            <div class="flex flex-col gap-2">
+              <Label>{{ $t('admin.settings.maintenance.actions') }}</Label>
+              <div class="flex items-center h-9 space-x-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  :title="
+                    staleAgentEnvVarsSet
+                      ? $t('admin.settings.maintenance.env_vars_set_tooltip')
+                      : $t('admin.settings.maintenance.save_config')
+                  "
+                  :disabled="isSavingStaleAgent || staleAgentEnvVarsSet"
+                  @click="saveStaleAgentConfig(false)"
+                >
+                  <Icon v-if="!isSavingStaleAgent" name="content-save-outline" class="h-4 w-4" />
+                  <Icon v-else name="loading" class="h-4 w-4 animate-spin" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  :title="$t('admin.settings.maintenance.run_stale_agent_cleanup')"
+                  :disabled="isRunningStaleAgentCleanup"
+                  @click="runStaleAgentCleanup"
+                >
+                  <Icon v-if="!isRunningStaleAgentCleanup" name="play-outline" class="h-4 w-4" />
+                  <Icon v-else name="loading" class="h-4 w-4 animate-spin" />
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      </Panel>
+        </CardContent>
+      </Card>
 
       <!-- Kubernetes Resource Cleanup Operation -->
-      <Panel v-if="config.kubernetes_cleanup_available">
-        <div class="space-y-4">
-          <div class="flex items-center space-x-3">
-            <div>
-              <div class="font-medium text-wp-text-100">
-                {{ $t('admin.settings.maintenance.operations.kubernetes_cleanup') }}
-              </div>
-              <div class="text-sm text-wp-text-alt-100">
-                {{ $t('admin.settings.maintenance.operations.kubernetes_cleanup_desc') }}
-              </div>
-            </div>
-          </div>
-
+      <Card v-if="config.kubernetes_cleanup_available">
+        <CardHeader>
+          <CardTitle>{{ $t('admin.settings.maintenance.operations.kubernetes_cleanup') }}</CardTitle>
+          <CardDescription>{{ $t('admin.settings.maintenance.operations.kubernetes_cleanup_desc') }}</CardDescription>
+        </CardHeader>
+        <CardContent class="space-y-4">
           <!-- Configuration Row -->
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-center pb-2">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-end pb-2">
             <!-- Schedule -->
-            <div class="flex flex-col">
-              <MetadataInputField v-slot="{ id }" :label="`${$t('admin.settings.maintenance.schedule')} (UTC)`">
-                <div class="flex items-center h-10">
-                  <TextField
-                    :id="id"
-                    v-model="kubernetesCleanupConfig.schedule"
-                    :placeholder="$t('admin.settings.maintenance.schedule_placeholder')"
-                    class="w-full"
-                    :disabled="kubernetesEnvVarsSet"
-                  />
-                </div>
-              </MetadataInputField>
+            <div class="flex flex-col gap-2">
+              <Label>{{ $t('admin.settings.maintenance.schedule') }}</Label>
+              <Input
+                v-model="kubernetesCleanupConfig.schedule"
+                :placeholder="$t('admin.settings.maintenance.schedule_placeholder')"
+                :disabled="kubernetesEnvVarsSet"
+              />
             </div>
 
             <!-- Status with Enable/Disable -->
-            <div class="flex flex-col">
-              <MetadataInputField :label="$t('admin.settings.maintenance.status')">
-                <div class="flex items-center h-10">
-                  <Checkbox
-                    v-model="kubernetesCleanupConfig.enabled"
-                    :label="$t('admin.settings.maintenance.enabled')"
-                    :disabled="kubernetesEnvVarsSet"
-                  />
-                </div>
-              </MetadataInputField>
+            <div class="flex flex-col gap-2">
+              <Label>{{ $t('admin.settings.maintenance.status') }}</Label>
+              <div class="flex items-center h-9 space-x-2">
+                <Checkbox
+                  :checked="kubernetesCleanupConfig.enabled"
+                  :disabled="kubernetesEnvVarsSet"
+                  @update:checked="kubernetesCleanupConfig.enabled = $event"
+                />
+                <Label
+                  class="cursor-pointer"
+                  @click="!kubernetesEnvVarsSet && (kubernetesCleanupConfig.enabled = !kubernetesCleanupConfig.enabled)"
+                >
+                  {{ $t('admin.settings.maintenance.enabled') }}
+                </Label>
+              </div>
             </div>
 
             <!-- Total Runs -->
-            <div>
-              <MetadataInputField :label="$t('admin.settings.maintenance.total_runs')">
-                <div class="text-sm text-wp-text-100 flex items-center h-10">
-                  {{ kubernetesCleanupConfig.total_runs || 0 }}
-                </div>
-              </MetadataInputField>
+            <div class="flex flex-col gap-2">
+              <Label>{{ $t('admin.settings.maintenance.total_runs') }}</Label>
+              <div class="text-sm text-muted-foreground flex items-center h-9">
+                {{ kubernetesCleanupConfig.total_runs || 0 }}
+              </div>
             </div>
 
             <!-- Options -->
-            <div>
-              <MetadataInputField :label="$t('admin.settings.maintenance.options')">
-                <div class="flex items-center h-10">
-                  <Checkbox v-model="k8sCleanupDryRun" :label="$t('admin.settings.maintenance.dry_run')" />
-                </div>
-              </MetadataInputField>
+            <div class="flex flex-col gap-2">
+              <Label>{{ $t('admin.settings.maintenance.options') }}</Label>
+              <div class="flex items-center h-9 space-x-2">
+                <Checkbox :checked="k8sCleanupDryRun" @update:checked="k8sCleanupDryRun = $event" />
+                <Label class="cursor-pointer" @click="k8sCleanupDryRun = !k8sCleanupDryRun">
+                  {{ $t('admin.settings.maintenance.dry_run') }}
+                </Label>
+              </div>
             </div>
 
             <!-- Last Run -->
-            <div>
-              <MetadataInputField :label="$t('admin.settings.maintenance.last_run')">
-                <div class="text-sm text-wp-text-100 flex items-center h-10">
-                  {{ formatLastK8sCleanup() }}
-                </div>
-              </MetadataInputField>
+            <div class="flex flex-col gap-2">
+              <Label>{{ $t('admin.settings.maintenance.last_run') }}</Label>
+              <div class="text-sm text-muted-foreground flex items-center h-9">
+                {{ formatLastK8sCleanup() }}
+              </div>
             </div>
 
             <!-- Actions -->
-            <div>
-              <MetadataInputField :label="$t('admin.settings.maintenance.actions')">
-                <div class="flex items-center h-10 space-x-2">
-                  <IconButton
-                    icon="content-save-outline"
-                    :title="
-                      kubernetesEnvVarsSet
-                        ? $t('admin.settings.maintenance.env_vars_set_tooltip')
-                        : $t('admin.settings.maintenance.save_config')
-                    "
-                    class="h-8 w-8"
-                    :is-loading="isSavingK8s"
-                    :disabled="kubernetesEnvVarsSet"
-                    @click="saveK8sConfig(false)"
-                  />
-                  <IconButton
-                    icon="play-outline"
-                    :title="
-                      kubernetesCleanupConfig.enabled
-                        ? $t('admin.settings.maintenance.run_kubernetes_cleanup')
-                        : $t('admin.settings.maintenance.k8s_cleanup_disabled')
-                    "
-                    class="h-8 w-8"
-                    :disabled="!kubernetesCleanupConfig.enabled"
-                    :is-loading="isRunningK8sCleanup"
-                    @click="runK8sCleanup"
-                  />
-                </div>
-              </MetadataInputField>
+            <div class="flex flex-col gap-2">
+              <Label>{{ $t('admin.settings.maintenance.actions') }}</Label>
+              <div class="flex items-center h-9 space-x-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  :title="
+                    kubernetesEnvVarsSet
+                      ? $t('admin.settings.maintenance.env_vars_set_tooltip')
+                      : $t('admin.settings.maintenance.save_config')
+                  "
+                  :disabled="isSavingK8s || kubernetesEnvVarsSet"
+                  @click="saveK8sConfig(false)"
+                >
+                  <Icon v-if="!isSavingK8s" name="content-save-outline" class="h-4 w-4" />
+                  <Icon v-else name="loading" class="h-4 w-4 animate-spin" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  :title="
+                    kubernetesCleanupConfig.enabled
+                      ? $t('admin.settings.maintenance.run_kubernetes_cleanup')
+                      : $t('admin.settings.maintenance.k8s_cleanup_disabled')
+                  "
+                  :disabled="!kubernetesCleanupConfig.enabled || isRunningK8sCleanup"
+                  @click="runK8sCleanup"
+                >
+                  <Icon v-if="!isRunningK8sCleanup" name="play-outline" class="h-4 w-4" />
+                  <Icon v-else name="loading" class="h-4 w-4 animate-spin" />
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      </Panel>
+        </CardContent>
+      </Card>
 
       <!-- Recent Logs -->
-      <Panel v-if="logs.length > 0" :title="$t('admin.settings.maintenance.recent_logs')">
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-wp-background-400">
-            <thead class="bg-wp-background-300">
-              <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-wp-text-alt-100 uppercase tracking-wider">
-                  {{ $t('admin.settings.maintenance.run_time') }}
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-wp-text-alt-100 uppercase tracking-wider">
-                  {{ $t('admin.settings.maintenance.name') }}
-                </th>
-                <th class="px-6 py-3 text-center text-xs font-medium text-wp-text-alt-100 uppercase tracking-wider">
-                  {{ $t('admin.settings.maintenance.status_column') }}
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-wp-text-alt-100 uppercase tracking-wider">
-                  {{ $t('admin.settings.maintenance.duration') }}
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-wp-text-alt-100 uppercase tracking-wider">
-                  {{ $t('admin.settings.maintenance.error') }}
-                </th>
-              </tr>
-            </thead>
-            <tbody class="bg-wp-background-100 divide-y divide-wp-background-400">
-              <tr v-for="(log, index) in logs" :key="log.id">
-                <td
-                  class="px-6 whitespace-nowrap text-sm text-wp-text-100"
-                  :class="index === logs.length - 1 ? 'pt-2 pb-1' : 'py-2'"
-                >
-                  {{ formatDate(log.run_time) }}
-                </td>
-                <td
-                  class="px-6 whitespace-nowrap text-sm text-wp-text-100"
-                  :class="index === logs.length - 1 ? 'pt-2 pb-1' : 'py-2'"
-                >
-                  {{ getOperationName(log) }}
-                </td>
-                <td
-                  class="px-6 whitespace-nowrap text-center"
-                  :class="index === logs.length - 1 ? 'pt-2 pb-1' : 'py-2'"
-                >
-                  <div class="flex justify-center items-center">
-                    <PipelineStatusIcon :status="log.success ? 'success' : 'error'" />
-                  </div>
-                </td>
-                <td
-                  class="px-6 whitespace-nowrap text-sm text-wp-text-100"
-                  :class="index === logs.length - 1 ? 'pt-2 pb-1' : 'py-2'"
-                >
-                  {{ formatDuration(log.duration) }}
-                </td>
-                <td
-                  class="px-6 whitespace-nowrap text-sm text-wp-error-100"
-                  :class="index === logs.length - 1 ? 'pt-2 pb-1' : 'py-2'"
-                >
-                  {{ log.error || '-' }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <!-- Load More Button -->
-        <div v-if="hasMoreLogs" class="mt-4 flex justify-center">
-          <Button class="text-sm px-3 py-1" text="Load More" :is-loading="isLoadingMore" @click="loadMoreLogs" />
-        </div>
-      </Panel>
+      <Card v-if="logs.length > 0">
+        <CardHeader>
+          <CardTitle>{{ $t('admin.settings.maintenance.recent_logs') }}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div class="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{{ $t('admin.settings.maintenance.run_time') }}</TableHead>
+                  <TableHead>{{ $t('admin.settings.maintenance.name') }}</TableHead>
+                  <TableHead class="text-center">{{ $t('admin.settings.maintenance.status_column') }}</TableHead>
+                  <TableHead>{{ $t('admin.settings.maintenance.duration') }}</TableHead>
+                  <TableHead>{{ $t('admin.settings.maintenance.error') }}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow v-for="log in logs" :key="log.id">
+                  <TableCell class="whitespace-nowrap">{{ formatDate(log.run_time) }}</TableCell>
+                  <TableCell class="whitespace-nowrap">{{ getOperationName(log) }}</TableCell>
+                  <TableCell class="text-center">
+                    <div class="flex justify-center items-center">
+                      <PipelineStatusIcon :status="log.success ? 'success' : 'error'" />
+                    </div>
+                  </TableCell>
+                  <TableCell class="whitespace-nowrap">{{ formatDuration(log.duration) }}</TableCell>
+                  <TableCell class="whitespace-nowrap text-destructive">{{ log.error || '-' }}</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
+          <!-- Load More Button -->
+          <div v-if="hasMoreLogs" class="mt-4 flex justify-center">
+            <Button variant="outline" size="sm" :disabled="isLoadingMore" @click="loadMoreLogs">
+              <Icon v-if="isLoadingMore" name="loading" class="h-4 w-4 animate-spin mr-2" />
+              {{ $t('admin.settings.maintenance.load_more') }}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <!-- Action Log Panel -->
-      <Panel title="Action Log">
-        <div class="flex items-center justify-between mb-4">
-          <span class="text-sm text-wp-text-alt-100">{{ $t('admin.settings.maintenance.recent_operations') }}</span>
-          <Button v-if="actionLogs.length > 0" class="text-sm" text="Wipe Log" @click="clearActionLogs" />
-        </div>
-        <div class="bg-wp-background-200 border border-wp-background-400 rounded-lg p-4 max-h-96 overflow-y-auto">
-          <div v-if="actionLogs.length === 0" class="text-center text-wp-text-alt-100 py-8">
-            {{ $t('admin.settings.maintenance.no_action_logs') }}
+      <Card>
+        <CardHeader>
+          <div class="flex items-center justify-between">
+            <div>
+              <CardTitle>{{ $t('admin.settings.maintenance.action_log') }}</CardTitle>
+              <CardDescription>{{ $t('admin.settings.maintenance.recent_operations') }}</CardDescription>
+            </div>
+            <Button v-if="actionLogs.length > 0" variant="outline" size="sm" @click="clearActionLogs">
+              <Icon name="trash" class="h-4 w-4 mr-2" />
+              {{ $t('admin.settings.maintenance.wipe_log') }}
+            </Button>
           </div>
-          <div v-else class="font-mono text-xs">
-            <div v-for="(log, index) in actionLogs" :key="index" class="text-wp-text-100 mb-1">
-              {{ log }}
+        </CardHeader>
+        <CardContent>
+          <div class="bg-muted/50 border rounded-lg p-4 max-h-96 overflow-y-auto">
+            <div v-if="actionLogs.length === 0" class="text-center text-muted-foreground py-8">
+              {{ $t('admin.settings.maintenance.no_action_logs') }}
+            </div>
+            <div v-else class="font-mono text-xs space-y-0.5">
+              <div v-for="(log, index) in actionLogs" :key="index" class="text-foreground/90">
+                {{ log }}
+              </div>
             </div>
           </div>
-        </div>
-      </Panel>
+        </CardContent>
+      </Card>
     </div>
   </Settings>
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import Button from '~/components/atomic/Button.vue';
-import IconButton from '~/components/atomic/IconButton.vue';
-import Checkbox from '~/components/form/CheckboxMaintenance.vue';
-import MetadataInputField from '~/components/form/MetadataInputField.vue';
-import TextField from '~/components/form/TextField.vue';
-import Panel from '~/components/layout/Panel.vue';
+import Icon from '~/components/atomic/Icon.vue';
 import Settings from '~/components/layout/Settings.vue';
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
+import { Button } from '~/components/ui/button';
+import Card from '~/components/ui/card/Card.vue';
+import CardContent from '~/components/ui/card/CardContent.vue';
+import CardDescription from '~/components/ui/card/CardDescription.vue';
+import CardHeader from '~/components/ui/card/CardHeader.vue';
+import CardTitle from '~/components/ui/card/CardTitle.vue';
+import { Checkbox } from '~/components/ui/checkbox';
+import { Input } from '~/components/ui/input';
+import { Label } from '~/components/ui/label';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
 import useApiClient from '~/compositions/useApiClient';
 import { useDate } from '~/compositions/useDate';
 import useNotifications from '~/compositions/useNotifications';
@@ -903,6 +873,9 @@ const loadMoreLogs = async () => {
     const moreLogsData = await apiClient.getMaintenanceLogs(logsLimit.value);
     logs.value = moreLogsData || [];
     hasMoreLogs.value = (moreLogsData || []).length === logsLimit.value;
+
+    // Force scroll container to recognize new content height
+    await nextTick();
   } catch (error) {
     console.error('Failed to load more logs:', error);
   } finally {

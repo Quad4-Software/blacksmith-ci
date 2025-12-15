@@ -1,44 +1,237 @@
 <template>
-  <div class="app m-auto flex h-full w-full flex-col bg-wp-background-200 dark:bg-wp-background-100">
-    <router-view v-if="blank" />
-    <template v-else>
-      <Navbar />
-      <main class="relative flex h-full min-h-0">
-        <div id="scroll-component" class="flex grow flex-col overflow-y-auto h-full min-h-0">
-          <router-view />
-        </div>
-        <transition name="slide-right">
-          <PipelineFeedSidebar class="absolute bottom-0 right-0 top-0 w-full max-w-80 border-l shadow-md xl:max-w-96" />
-        </transition>
-      </main>
-    </template>
-    <notifications ref="notificationsRef" position="bottom right" width="340px" :dangerously-set-inner-html="true" />
+  <div class="app flex h-full w-full flex-col bg-background text-foreground">
+    <router-view v-if="blank" v-slot="{ Component }">
+      <Transition name="fade" mode="out-in">
+        <component :is="Component" />
+      </Transition>
+    </router-view>
+    <div v-else class="flex h-full w-full">
+      <SidebarProvider class="flex flex-1 overflow-hidden w-full">
+        <AppSidebar class="hidden md:flex" />
+        <SidebarInset class="flex flex-col overflow-y-auto overflow-x-hidden w-full">
+          <!-- Navbar integrated with sidebar -->
+          <header
+            class="sticky top-0 z-50 flex h-12 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 w-full"
+          >
+            <div class="flex items-center gap-2 w-full border-b">
+              <!-- Left: Sidebar trigger (only show on desktop where sidebar exists) -->
+              <div class="hidden md:flex h-12 w-12 shrink-0 items-center justify-center border-r">
+                <SidebarTrigger>
+                  <template #tooltip>
+                    <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
+                    <div class="flex items-center gap-1">
+                      <span>Toggle Sidebar</span>
+                      <div class="flex items-center gap-0.5 ml-2">
+                        <Kbd v-if="isMac">⌘</Kbd>
+                        <Kbd v-else>Ctrl</Kbd>
+                        <Kbd>B</Kbd>
+                      </div>
+                    </div>
+                    <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
+                  </template>
+                </SidebarTrigger>
+              </div>
+
+              <!-- Mobile: Sidebar trigger on left -->
+              <div class="flex md:hidden h-12 w-12 shrink-0 items-center justify-center">
+                <SidebarTrigger />
+              </div>
+
+              <!-- Center: Crow Logo (both mobile and desktop) -->
+              <div class="flex flex-1 items-center justify-center">
+                <router-link
+                  :to="{ name: 'home' }"
+                  class="flex h-8 w-8 items-center justify-center hover:opacity-80 transition-opacity"
+                >
+                  <img :src="logoSrc" alt="Crow CI" class="h-6 w-6" />
+                </router-link>
+              </div>
+
+              <!-- Right section: Actions and user menu -->
+              <div class="flex items-center gap-1 px-2 overflow-visible">
+                <!-- Active pipelines -->
+                <ActivePipelines v-if="user" />
+
+                <!-- User menu or login button -->
+                <DropdownMenu v-if="user">
+                  <DropdownMenuTrigger as-child>
+                    <Button variant="ghost" size="icon" class="relative rounded-full">
+                      <Avatar class="h-8 w-8">
+                        <AvatarImage v-if="user.avatar_url" :src="user.avatar_url" :alt="user.login" />
+                        <AvatarFallback>{{ user.login?.charAt(0).toUpperCase() }}</AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" class="w-56">
+                    <DropdownMenuLabel>
+                      <div class="flex flex-col space-y-1">
+                        <p class="text-sm font-medium leading-none">{{ user.login }}</p>
+                        <p class="text-xs leading-none text-muted-foreground">{{ user.email }}</p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <div class="flex items-center gap-1 px-2 py-1.5">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        class="h-8 w-8"
+                        :class="{ 'bg-accent': storeTheme === 'light' }"
+                        :title="$t('user.settings.general.theme.light')"
+                        @click.prevent.stop="storeTheme = 'light'"
+                      >
+                        <Icon name="lucide:sun" class="size-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        class="h-8 w-8"
+                        :class="{ 'bg-accent': storeTheme === 'dark' }"
+                        :title="$t('user.settings.general.theme.dark')"
+                        @click.prevent.stop="storeTheme = 'dark'"
+                      >
+                        <Icon name="lucide:moon" class="size-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        class="h-8 w-8"
+                        :class="{ 'bg-accent': storeTheme === 'auto' }"
+                        :title="$t('user.settings.general.theme.auto')"
+                        @click.prevent.stop="storeTheme = 'auto'"
+                      >
+                        <Icon name="lucide:sun-moon" class="size-4" />
+                      </Button>
+                    </div>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem as-child>
+                      <router-link :to="{ name: 'user' }" class="flex w-full cursor-pointer items-center">
+                        <Icon name="settings2" class="mr-2 size-4" />
+                        {{ $t('user.settings.sidebar_title') }}
+                      </router-link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem as-child>
+                      <a :href="`${address}/logout`" class="flex w-full cursor-pointer items-center">
+                        <Icon name="logout" class="mr-2 size-4" />
+                        {{ $t('logout') }}
+                      </a>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <Button v-else as-child variant="default" size="sm">
+                  <router-link :to="`/login?url=${route.fullPath}`">
+                    {{ $t('login') }}
+                  </router-link>
+                </Button>
+              </div>
+            </div>
+          </header>
+
+          <!-- Main content area with PipelineFeedSidebar -->
+          <div class="relative flex flex-1 min-h-0 overflow-hidden">
+            <router-view v-slot="{ Component }">
+              <Transition name="fade" mode="out-in">
+                <component :is="Component" />
+              </Transition>
+            </router-view>
+            <PipelineFeedSidebar />
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    </div>
+
+    <Toaster
+      position="bottom-right"
+      :expand="false"
+      theme="system"
+      :close-button="true"
+      close-button-position="top-right"
+    />
+
+    <!-- Global Command Palette and Dialogs -->
+    <GlobalCommandPalette />
+    <AddSecretDialog />
+    <AddRegistryDialog />
+    <AddAgentDialog />
+    <AddRepositoryDialog />
+    <AddCronDialog />
   </div>
 </template>
 
 <script lang="ts" setup>
-import { computed, watch, ref } from 'vue';
+import 'vue-sonner/style.css';
+
+import { computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
+import { toast } from 'vue-sonner';
 
-import Navbar from '~/components/layout/header/Navbar.vue';
+import CrowLogo from '~/assets/logo-dark.png';
+import CrowLogoDark from '~/assets/logo.png';
+import Icon from '~/components/atomic/Icon.vue';
+import GlobalCommandPalette from '~/components/command-palette/GlobalCommandPalette.vue';
+import AddSecretDialog from '~/components/command-palette/AddSecretDialog.vue';
+import AddRegistryDialog from '~/components/command-palette/AddRegistryDialog.vue';
+import AddAgentDialog from '~/components/command-palette/AddAgentDialog.vue';
+import AddRepositoryDialog from '~/components/command-palette/AddRepositoryDialog.vue';
+import AddCronDialog from '~/components/command-palette/AddCronDialog.vue';
+import AppSidebar from '~/components/layout/AppSidebar.vue';
+import ActivePipelines from '~/components/layout/header/ActivePipelines.vue';
 import PipelineFeedSidebar from '~/components/pipeline-feed/PipelineFeedSidebar.vue';
+import Avatar from '~/components/ui/avatar/Avatar.vue';
+import AvatarFallback from '~/components/ui/avatar/AvatarFallback.vue';
+import AvatarImage from '~/components/ui/avatar/AvatarImage.vue';
+import { Button } from '~/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu';
+import Kbd from '~/components/ui/kbd/Kbd.vue';
+import { SidebarInset, SidebarProvider, SidebarTrigger } from '~/components/ui/sidebar';
+import { Toaster } from '~/components/ui/sonner';
 import useApiClient from '~/compositions/useApiClient';
+import useAuthentication from '~/compositions/useAuthentication';
+import useConfig from '~/compositions/useConfig';
 import useNotifications from '~/compositions/useNotifications';
-import { useAuthStore } from '~/store/auth';
-
+import { useTheme } from '~/compositions/useTheme';
 const route = useRoute();
 const apiClient = useApiClient();
 const { notify } = useNotifications();
 const i18n = useI18n();
-const authStore = useAuthStore();
-const notificationsRef = ref();
+const { isAuthenticated, user } = useAuthentication();
+const { storeTheme, theme } = useTheme();
+const config = useConfig();
+const address = `${window.location.protocol}//${window.location.host}${config.rootPath}`;
+
+const isDark = computed(() => theme.value === 'dark');
+
+// Select the appropriate logo based on theme
+const logoSrc = computed(() => (isDark.value ? CrowLogo : CrowLogoDark));
+
+// Detect OS for keyboard shortcut display
+const isMac = computed(() => navigator.userAgent.includes('Mac'));
+
+// Stale token notification debouncing state
+let staleTokenNotificationShown = false;
+let staleTokenNotificationTimeout: number | null = null;
+let lastLoginTime = 0;
 
 // Function to clear all notifications
 const clearAllNotifications = () => {
-  if (notificationsRef.value && typeof notificationsRef.value.clearAll === 'function') {
-    notificationsRef.value.clearAll();
+  // Dismiss all toasts
+  toast.dismiss();
+  // Reset stale token notification state immediately
+  staleTokenNotificationShown = false;
+  if (staleTokenNotificationTimeout) {
+    clearTimeout(staleTokenNotificationTimeout);
+    staleTokenNotificationTimeout = null;
   }
+  // Mark the current time as login time to prevent immediate stale token notifications
+  lastLoginTime = Date.now();
 };
 
 // Expose the function globally so it can be called from router
@@ -72,26 +265,87 @@ apiClient.setErrorHandler(
     const url = config?.url || '';
 
     if (status === 404) {
-      await notify({ title: i18n.t('errors.not_found'), type: 'error' });
+      notify({ title: i18n.t('errors.not_found'), type: 'error' });
       return;
     }
 
     // Handle 401 errors - session invalidation is handled by the API client,
     // this just provides user feedback before redirect
     if (status === 401) {
-      // Skip notification if already redirecting to login
-      if (authStore.isRedirecting) {
+      // Helper to parse error messages that might be JSON.
+      const parseErrorMessage = (msg: string): string => {
+        // Look for JSON content in the message, which might be after status text like "Unauthorized: "
+        const jsonStart = msg.indexOf('{');
+        if (jsonStart === -1) return msg;
+        try {
+          const parsed = JSON.parse(msg.slice(jsonStart));
+          return parsed?.error || msg;
+        } catch (e) {
+          console.error('Failed to parse JSON from string:', e);
+          return msg;
+        }
+      };
+
+      const errorText = parseErrorMessage(message.trim());
+
+      // Check if this is a stale token error by looking for specific error messages
+      const isStaleTokenError =
+        errorText.includes('authorization has expired') ||
+        errorText.includes('could not be refreshed') ||
+        errorText.includes('token was already used') ||
+        errorText.includes('unauthorized_client') ||
+        errorText.includes('token expired and refresh token is not set') ||
+        message.includes('TOKEN_REFRESH_FAILED');
+
+      if (isStaleTokenError) {
+        // Only show stale token error to the current authenticated user
+        // This ensures that in a multi-user shared instance, only the affected user sees the message
+        if (isAuthenticated) {
+          // Don't show the error if we're on the login page or if we just logged in
+          const currentPath = window.location.pathname;
+          if (currentPath.includes('/login') || currentPath.includes('/authorize')) {
+            return;
+          }
+
+          // Don't show stale token notifications immediately after login (within 5 seconds)
+          const timeSinceLogin = Date.now() - lastLoginTime;
+          if (timeSinceLogin < 5000) {
+            return;
+          }
+
+          // Prevent multiple stale token notifications by debouncing
+          if (staleTokenNotificationShown) {
+            return;
+          }
+
+          staleTokenNotificationShown = true;
+
+          // Clear any existing timeout
+          if (staleTokenNotificationTimeout) {
+            clearTimeout(staleTokenNotificationTimeout);
+          }
+
+          // Reset the flag after 10 seconds to allow future notifications
+          staleTokenNotificationTimeout = window.setTimeout(() => {
+            staleTokenNotificationShown = false;
+            staleTokenNotificationTimeout = null;
+          }, 10000);
+
+          // For web users, the error is specific to their session
+          // For API users, the error would be specific to their token
+          // Since we're in the web UI, this is the current user's session
+          notify({
+            title: i18n.t('notify_title_error'),
+            text: `${i18n.t('stale_token_error')} <a href='/logout' class='text-primary underline'>Log in again</a>`,
+            type: 'error',
+            duration: 10000, // Show for 10 seconds
+          });
+        }
         return;
       }
 
-      // Skip if on login/logout/authorize pages
-      const currentPath = window.location.pathname;
-      if (currentPath.includes('/login') || currentPath.includes('/authorize') || currentPath.includes('/logout')) {
-        return;
-      }
-
-      // Show brief notification before redirect
-      await notify({
+      // For other 401 errors (not stale token), show a generic authentication error
+      notify({
         title: i18n.t('notify_title_error'),
         text: i18n.t('stale_token_error'),
         type: 'error',
@@ -126,7 +380,7 @@ apiClient.setErrorHandler(
       extractedEndpoint = 'unknown endpoint';
     }
 
-    await notify({
+    notify({
       title: `❌️ API error (${extractedEndpoint})`,
       text: errorText || i18n.t('unknown_error'),
       type: 'error',
@@ -153,16 +407,13 @@ watch(
   -moz-osx-font-smoothing: grayscale;
 }
 
-#scroll-component {
-  scrollbar-gutter: stable;
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.15s ease;
 }
 
-.slide-right-enter-active,
-.slide-right-leave-active {
-  transition: all 0.3s ease;
-}
-.slide-right-enter-from,
-.slide-right-leave-to {
-  transform: translate(100%, 0);
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

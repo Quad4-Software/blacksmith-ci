@@ -1,196 +1,147 @@
 <template>
   <Settings :title="$t('admin.settings.repos.repos')" :description="$t('admin.settings.repos.desc')">
     <template #headerActions>
-      <Button
-        start-icon="heal"
-        :is-loading="isRepairingRepos"
-        :text="$t('admin.settings.repos.repair.repair')"
-        @click="repairRepos"
-      />
+      <Button :disabled="isRepairingRepos" @click="repairRepos">
+        {{ $t('admin.settings.repos.repair.repair') }}
+      </Button>
     </template>
-    <div class="space-y-4 text-wp-text-100">
-      <!-- Filter controls -->
-      <div v-if="repos && repos.length > 0" class="mb-4 space-y-2">
-        <div class="flex flex-wrap gap-2">
-          <!-- Search input -->
-          <div class="flex-1 min-w-[200px]">
-            <TextField
-              v-model="searchQuery"
-              :placeholder="$t('admin.settings.repos.search')"
-              type="text"
-              class="h-10 shadow-xs"
-            />
-          </div>
 
-          <!-- Clear filters button -->
-          <Button
-            v-if="hasActiveFilters"
-            :text="$t('admin.settings.repos.clear_filters')"
-            color="gray"
-            @click="clearFilters"
-          />
-        </div>
-      </div>
+    <div class="space-y-4">
+      <RepoTable
+        :repos="data"
+        :search-term="searchTerm"
+        @update:search-term="searchTerm = $event"
+        @bulk-disable="handleBulkDisable"
+        @bulk-delete="handleBulkDelete"
+      />
 
-      <ListItem
-        v-for="repo in filteredRepos"
-        :key="repo.id"
-        class="items-center gap-2 bg-wp-background-200 dark:bg-wp-background-100!"
-      >
-        <div class="flex items-center gap-2">
-          <span>{{ repo.full_name }}</span>
-          <!-- Forge profile link with local icon -->
-          <a
-            v-if="getForgeForRepo(repo) && repo.forge_url"
-            :href="repo.forge_url"
-            :title="`View ${repo.full_name} on ${getForgeHostname(getForgeForRepo(repo))}`"
-            target="_blank"
-            class="inline-flex items-center justify-center h-6 w-6 hover:opacity-80 transition-opacity"
-          >
-            <Icon :name="getForgeIconName(getForgeForRepo(repo)!)" class="h-4 w-4 text-wp-text-100" />
-          </a>
-        </div>
-        <div class="ml-auto flex items-center">
-          <Badge
-            v-if="!repo.active"
-            class="md:display-unset mr-2 hidden"
-            :label="$t('admin.settings.repos.disabled')"
-          />
-          <IconButton
-            icon="chevron-right"
-            :title="$t('admin.settings.repos.view')"
-            class="h-8 w-8"
-            :to="{ name: 'repo', params: { repoId: repo.id } }"
-          />
-          <IconButton
-            icon="settings-outline"
-            :title="$t('admin.settings.repos.settings')"
-            class="h-8 w-8"
-            :to="{ name: 'repo-settings', params: { repoId: repo.id } }"
-          />
-        </div>
-      </ListItem>
-      <div v-if="filteredRepos.length === 0 && repos && repos.length > 0" class="ml-2">
-        {{ $t('admin.settings.repos.no_match') }}
+      <!-- Pagination Controls -->
+      <div v-if="data && data.length > 0" class="flex items-center justify-center gap-2">
+        <Button variant="outline" size="sm" :disabled="page === 1 || loading" @click="previousPage">
+          <Icon name="chevron-left" class="h-4 w-4" />
+          {{ $t('admin.settings.entities.previous') }}
+        </Button>
+        <span class="text-sm text-muted-foreground"> {{ $t('admin.settings.entities.page') }} {{ page }} </span>
+        <Button variant="outline" size="sm" :disabled="!hasMore || loading" @click="nextPage">
+          {{ $t('admin.settings.entities.next') }}
+          <Icon name="chevron-right" class="h-4 w-4" />
+        </Button>
       </div>
-      <div v-if="repos?.length === 0" class="ml-2">{{ $t('admin.settings.repos.none') }}</div>
     </div>
   </Settings>
 </template>
 
 <script lang="ts" setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import Badge from '~/components/atomic/Badge.vue';
-import Button from '~/components/atomic/Button.vue';
 import Icon from '~/components/atomic/Icon.vue';
-import IconButton from '~/components/atomic/IconButton.vue';
-import ListItem from '~/components/atomic/ListItem.vue';
-import TextField from '~/components/form/TextField.vue';
+import RepoTable from '~/components/admin/RepoTable.vue';
 import Settings from '~/components/layout/Settings.vue';
+import { Button } from '~/components/ui/button';
 import useApiClient from '~/compositions/useApiClient';
 import { useAsyncAction } from '~/compositions/useAsyncAction';
-import { useForges } from '~/compositions/useForges';
 import useNotifications from '~/compositions/useNotifications';
-import { usePagination } from '~/compositions/usePaginate';
+import { usePaginationWithPages } from '~/compositions/usePaginate';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
-import type { Repo, Forge } from '~/lib/api/types';
-import type { IconNames } from '~/components/atomic/Icon.vue';
+import type { Repo } from '~/lib/api/types';
 
 const apiClient = useApiClient();
 const notifications = useNotifications();
-const i18n = useI18n();
+const { t } = useI18n();
+
+const searchTerm = ref('');
 
 async function loadRepos(page: number): Promise<Repo[] | null> {
   return apiClient.getAllRepos({ page });
 }
 
-const { data: repos } = usePagination(loadRepos);
-
-const { getForgeById } = useForges();
-
-function getForgeForRepo(repo: Repo): Forge | null {
-  return getForgeById(repo.forge_id);
-}
-
-// Map forge types to local icon names
-function getForgeIconName(forge: Forge): IconNames {
-  // Handle special cases where forge URL might indicate specific forge instances
-  if (forge.url.toLowerCase().includes('codeberg')) {
-    return 'codeberg';
-  }
-  if (forge.url.toLowerCase().includes('codefloe')) {
-    return 'codefloe';
-  }
-
-  // Map standard forge types to icon names
-  const typeToIcon: Record<string, IconNames> = {
-    github: 'github',
-    gitlab: 'gitlab',
-    gitea: 'gitea',
-    forgejo: 'forgejo',
-    bitbucket: 'bitbucket',
-    'bitbucket-dc': 'bitbucket',
-    addon: 'repo', // fallback for unknown types
-  };
-
-  return typeToIcon[forge.type] || 'repo';
-}
-
-function getForgeHostname(forge: Forge | null): string {
-  if (!forge?.url) return '';
-  try {
-    const url = new URL(forge.url);
-    return url.hostname;
-  } catch {
-    return forge.url;
-  }
-}
-
-// Filter state
-const searchQuery = ref('');
-
-// Check if any filters are active
-const hasActiveFilters = computed(() => {
-  return searchQuery.value !== '';
+const { page, data, hasMore, loading, nextPage, previousPage, resetPage } = usePaginationWithPages(loadRepos, {
+  pageSize: 15,
 });
 
-// Clear all filters
-function clearFilters() {
-  searchQuery.value = '';
-}
-
-// Filtered repos based on search query
-const filteredRepos = computed(() => {
-  if (!repos.value) return [];
-
-  return repos.value.filter((repo) => {
-    // Search query - search in full_name, owner, and name
-    if (searchQuery.value) {
-      const query = searchQuery.value.toLowerCase();
-      const fullNameMatch = repo.full_name?.toLowerCase().includes(query) || false;
-      const ownerMatch = repo.owner?.toLowerCase().includes(query) || false;
-      const nameMatch = repo.name?.toLowerCase().includes(query) || false;
-
-      if (!fullNameMatch && !ownerMatch && !nameMatch) {
-        return false;
-      }
-    }
-
-    return true;
-  });
+// Reload when search changes
+watch(searchTerm, () => {
+  resetPage();
 });
 
 const { doSubmit: repairRepos, isLoading: isRepairingRepos } = useAsyncAction(async () => {
   await apiClient.repairAllRepos();
   notifications.notify({
-    title: i18n.t('notify_title_success'),
-    text: i18n.t('admin.settings.repos.repair.notify_text_success'),
+    title: t('notify_title_success'),
+    text: t('admin.settings.repos.repair.notify_text_success'),
     type: 'success',
     duration: 6000,
   });
 });
 
-useCrowTitle(computed(() => [i18n.t('admin.settings.repos.repos'), i18n.t('admin.settings.settings')]));
+async function handleBulkDisable(repos: Repo[]) {
+  let successCount = 0;
+  const failedRepos: string[] = [];
+
+  for (const repo of repos) {
+    try {
+      await apiClient.deleteRepo(repo.id, false); // false = disable, not delete
+      successCount++;
+    } catch (error) {
+      failedRepos.push(repo.full_name);
+      console.error('Failed to disable repo:', repo.full_name, error);
+    }
+  }
+
+  if (successCount > 0) {
+    notifications.notify({
+      title: t('notify_title_success'),
+      text: t('admin.settings.repos.bulk_disable_success', { count: successCount }),
+      type: 'success',
+    });
+  }
+
+  if (failedRepos.length > 0) {
+    notifications.notify({
+      title: t('notify_title_error'),
+      text: `${t('admin.settings.repos.bulk_disable_failed', { count: failedRepos.length })}: ${failedRepos.join(', ')}`,
+      type: 'error',
+      duration: 10000,
+    });
+  }
+
+  resetPage();
+}
+
+async function handleBulkDelete(repos: Repo[]) {
+  let successCount = 0;
+  const failedRepos: string[] = [];
+
+  for (const repo of repos) {
+    try {
+      await apiClient.deleteRepo(repo.id, true); // true = delete completely
+      successCount++;
+    } catch (error) {
+      failedRepos.push(repo.full_name);
+      console.error('Failed to delete repo:', repo.full_name, error);
+    }
+  }
+
+  if (successCount > 0) {
+    notifications.notify({
+      title: t('notify_title_success'),
+      text: t('admin.settings.repos.bulk_delete_success', { count: successCount }),
+      type: 'success',
+    });
+  }
+
+  if (failedRepos.length > 0) {
+    notifications.notify({
+      title: t('notify_title_error'),
+      text: `${t('admin.settings.repos.bulk_delete_failed', { count: failedRepos.length })}: ${failedRepos.join(', ')}`,
+      type: 'error',
+      duration: 10000,
+    });
+  }
+
+  resetPage();
+}
+
+useCrowTitle(computed(() => [t('admin.settings.repos.repos'), t('admin.settings.settings')]));
 </script>

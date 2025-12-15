@@ -50,7 +50,7 @@ type Autoscaler struct {
 type AutoscalerWithToken struct {
 	*Autoscaler
 	Token string `json:"token"`
-}
+} //	@name	AutoscalerWithToken
 
 // AutoscalerListOptions defines filtering options for listing autoscalers.
 type AutoscalerListOptions struct {

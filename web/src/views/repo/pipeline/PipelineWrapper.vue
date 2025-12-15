@@ -11,7 +11,7 @@
       <span>
         <router-link
           :to="{ name: 'org', params: { orgId: repo.org_id } }"
-          class="hover:underline hover:decoration-wp-custom-highlight-100"
+          class="hover:underline hover:decoration-primary"
           >{{ repo.owner }}</router-link
         >
         / <router-link :to="{ name: 'repo' }" class="hover:underline">{{ repo.name }}</router-link>
@@ -32,11 +32,16 @@
           <template v-if="repoPermissions!.push && pipeline.status !== 'blocked'">
             <div class="flex shrink-0 gap-2 md:hidden">
               <Button
-                class="shrink-0 py-0!"
-                :text="$t('repo.pipeline.actions.restart')"
-                :is-loading="isRestartingPipeline"
+                class="shrink-0 py-0! relative"
+                size="sm"
+                :disabled="isRestartingPipeline"
                 @click="restartPipeline"
-              />
+              >
+                <span :class="{ invisible: isRestartingPipeline }">{{ $t('repo.pipeline.actions.restart') }}</span>
+                <div v-if="isRestartingPipeline" class="absolute inset-0 flex items-center justify-center">
+                  <Icon name="spinner" class="size-5 animate-spin" />
+                </div>
+              </Button>
             </div>
           </template>
         </div>
@@ -44,40 +49,58 @@
           <div class="hidden shrink-0 gap-2 md:flex">
             <Button
               v-if="pipeline.status === 'pending' || pipeline.status === 'running'"
-              class="shrink-0 py-0!"
-              :text="$t('repo.pipeline.actions.cancel')"
-              :is-loading="isCancelingPipeline"
+              class="shrink-0 py-0! relative"
+              variant="outline"
+              size="sm"
+              :disabled="isCancelingPipeline"
               @click="cancelPipeline"
-            />
-            <Button
-              class="shrink-0 py-0!"
-              :text="$t('repo.pipeline.actions.restart')"
-              :is-loading="isRestartingPipeline"
-              @click="restartPipeline"
-            />
+            >
+              <span :class="{ invisible: isCancelingPipeline }">{{ $t('repo.pipeline.actions.cancel') }}</span>
+              <div v-if="isCancelingPipeline" class="absolute inset-0 flex items-center justify-center">
+                <Icon name="spinner" class="size-5 animate-spin" />
+              </div>
+            </Button>
+            <Button class="shrink-0 py-0! relative" size="sm" :disabled="isRestartingPipeline" @click="restartPipeline">
+              <span :class="{ invisible: isRestartingPipeline }">{{ $t('repo.pipeline.actions.restart') }}</span>
+              <div v-if="isRestartingPipeline" class="absolute inset-0 flex items-center justify-center">
+                <Icon name="spinner" class="size-5 animate-spin" />
+              </div>
+            </Button>
             <Button
               v-if="pipeline.status === 'success' && repo.allow_deploy"
               class="shrink-0 py-0!"
-              :text="$t('repo.pipeline.actions.deploy')"
+              variant="outline"
+              size="sm"
               @click="showDeployPipelinePopup = true"
-            />
+            >
+              {{ $t('repo.pipeline.actions.deploy') }}
+            </Button>
           </div>
         </template>
         <template v-if="repoPermissions!.push && pipeline.status !== 'blocked'">
           <div class="flex shrink-0 gap-2 md:hidden">
             <Button
               v-if="pipeline.status === 'pending' || pipeline.status === 'running'"
-              class="shrink-0 py-0!"
-              :text="$t('repo.pipeline.actions.cancel')"
-              :is-loading="isCancelingPipeline"
+              class="shrink-0 py-0! relative"
+              variant="outline"
+              size="sm"
+              :disabled="isCancelingPipeline"
               @click="cancelPipeline"
-            />
+            >
+              <span :class="{ invisible: isCancelingPipeline }">{{ $t('repo.pipeline.actions.cancel') }}</span>
+              <div v-if="isCancelingPipeline" class="absolute inset-0 flex items-center justify-center">
+                <Icon name="spinner" class="size-5 animate-spin" />
+              </div>
+            </Button>
             <Button
               v-if="pipeline.status === 'success' && repo.allow_deploy"
               class="shrink-0 py-0!"
-              :text="$t('repo.pipeline.actions.deploy')"
+              variant="outline"
+              size="sm"
               @click="showDeployPipelinePopup = true"
-            />
+            >
+              {{ $t('repo.pipeline.actions.deploy') }}
+            </Button>
           </div>
         </template>
         <DeployPipelinePopup
@@ -88,7 +111,7 @@
       </div>
     </template>
     <template #tabActions>
-      <div class="flex flex-wrap gap-4 pl-2 md:pl-0 md:flex-nowrap">
+      <div class="flex flex-wrap gap-4 pl-2 md:pl-0 md:flex-nowrap justify-end">
         <div class="flex shrink-0 items-center gap-2" :title="$t('repo.pipeline.created', { created })">
           <Icon name="startDate" size="1rem" /> <span>{{ startDate }}</span>
         </div>
@@ -103,9 +126,10 @@
       v-if="pipeline.errors && pipeline.errors.length > 0"
       :to="{ name: 'repo-pipeline-errors' }"
       icon="alert"
+      icon-size="1rem"
       :title="pipeline.errors.some((e) => !e.is_warning) ? $t('repo.pipeline.errors') : $t('repo.pipeline.warnings')"
       :count="pipeline.errors?.length"
-      :icon-class="pipeline.errors.some((e) => !e.is_warning) ? 'text-wp-error-100' : 'text-wp-state-warn-100'"
+      :icon-class="pipeline.errors.some((e) => !e.is_warning) ? 'text-destructive' : 'text-yellow-500'"
     />
     <Tab
       icon="file-cog-outline"
@@ -139,7 +163,7 @@ import type { Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
-import Button from '~/components/atomic/Button.vue';
+import { Button } from '~/components/ui/button';
 import Icon from '~/components/atomic/Icon.vue';
 import DeployPipelinePopup from '~/components/layout/popups/DeployPipelinePopup.vue';
 import Scaffold from '~/components/layout/scaffold/Scaffold.vue';

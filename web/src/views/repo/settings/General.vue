@@ -1,161 +1,268 @@
 <template>
   <Settings :title="$t('repo.settings.general.project')">
-    <form v-if="repoSettings" class="flex flex-col" @submit.prevent="saveRepoSettings">
-      <InputField docs-url="usage/repo-settings#general" :label="$t('repo.settings.general.general')">
-        <Checkbox
-          v-model="repoSettings.allow_pr"
-          :label="$t('repo.settings.general.allow_pr.allow')"
-          :description="$t('repo.settings.general.allow_pr.desc')"
-        />
-        <Checkbox
-          v-model="repoSettings.allow_deploy"
-          :label="$t('repo.settings.general.allow_deploy.allow')"
-          :description="$t('repo.settings.general.allow_deploy.desc')"
-        />
-      </InputField>
-      <InputField
-        :label="$t('repo.settings.general.netrc_only_trusted.netrc_only_trusted')"
-        docs-url="usage/repo-settings#custom-trusted-clone-plugins"
-      >
-        <template #default="{ id }">
-          <div class="flex flex-col gap-2">
-            <div v-for="image in repoSettings.netrc_trusted" :key="image" class="flex gap-2">
-              <TextField :id="id" :model-value="image" disabled />
-              <Button type="button" color="gray" start-icon="trash" @click="removeImage(image)" />
-            </div>
+    <form class="flex flex-col gap-6" @submit.prevent="saveRepoSettings">
+      <div class="grid gap-2">
+        <label class="text-sm font-medium text-foreground">{{ $t('repo.settings.general.general') }}</label>
 
-            <div class="flex gap-2">
-              <TextField :id="id" v-model="newImage" @keydown.enter.prevent="addNewImage" />
-              <Button type="button" color="gray" start-icon="plus" @click="addNewImage" />
+        <FormField v-slot="{ value, handleChange }" name="allow_pr">
+          <FormItem class="flex items-start gap-3 space-y-0">
+            <FormControl>
+              <Checkbox :checked="value" @update:checked="handleChange" />
+            </FormControl>
+            <div class="flex flex-col">
+              <FormLabel class="font-normal">
+                {{ $t('repo.settings.general.allow_pr.allow') }}
+              </FormLabel>
+              <FormDescription>{{ $t('repo.settings.general.allow_pr.desc') }}</FormDescription>
             </div>
+          </FormItem>
+        </FormField>
+
+        <FormField v-slot="{ value, handleChange }" name="allow_deploy">
+          <FormItem class="flex items-start gap-3 space-y-0">
+            <FormControl>
+              <Checkbox :checked="value" @update:checked="handleChange" />
+            </FormControl>
+            <div class="flex flex-col">
+              <FormLabel class="font-normal">
+                {{ $t('repo.settings.general.allow_deploy.allow') }}
+              </FormLabel>
+              <FormDescription>{{ $t('repo.settings.general.allow_deploy.desc') }}</FormDescription>
+            </div>
+          </FormItem>
+        </FormField>
+      </div>
+      <div class="grid gap-2">
+        <label class="text-sm font-medium text-foreground">{{
+          $t('repo.settings.general.netrc_only_trusted.netrc_only_trusted')
+        }}</label>
+        <div class="flex flex-col gap-2">
+          <div v-for="image in values.netrc_trusted" :key="image" class="flex items-center gap-2">
+            <Input :model-value="image" disabled />
+            <Button type="button" size="icon" @click="removeImage(image)">
+              <Icon name="trash" />
+            </Button>
           </div>
-        </template>
-        <template #description> {{ $t('repo.settings.general.netrc_only_trusted.desc') }} </template>
-      </InputField>
-      <InputField
-        v-if="user?.admin"
-        docs-url="usage/repo-settings/#privileges-security"
-        :label="$t('repo.settings.general.trusted.trusted')"
-      >
-        <Checkbox
-          v-model="repoSettings.trusted.network"
-          :label="$t('repo.settings.general.trusted.network.network')"
-          :description="$t('repo.settings.general.trusted.network.desc')"
-        />
-        <Checkbox
-          v-model="repoSettings.trusted.volumes"
-          :label="$t('repo.settings.general.trusted.volumes.volumes')"
-          :description="$t('repo.settings.general.trusted.volumes.desc')"
-        />
-        <Checkbox
-          v-model="repoSettings.trusted.security"
-          :label="$t('repo.settings.general.trusted.security.security')"
-          :description="$t('repo.settings.general.trusted.security.desc')"
-        />
-      </InputField>
-      <InputField :label="$t('require_approval.require_approval_for')">
-        <RadioField
-          v-model="repoSettings.require_approval"
-          docs-url="usage/repo-settings/#approval-requirements"
-          :options="[
-            {
-              value: RepoRequireApproval.None,
-              text: $t('require_approval.none'),
-              description: $t('require_approval.none_desc'),
-            },
-            {
-              value: RepoRequireApproval.Forks,
-              text: $t('require_approval.forks'),
-            },
-            {
-              value: RepoRequireApproval.PullRequests,
-              text: $t('require_approval.pull_requests'),
-            },
-            {
-              value: RepoRequireApproval.AllEvents,
-              text: $t('require_approval.all_events'),
-            },
-          ]"
-        />
-        <template #description> {{ $t('require_approval.desc') }} </template>
-      </InputField>
-      <InputField docs-url="usage/repo-settings#project-visibility" :label="$t('repo.visibility.visibility')">
-        <RadioField v-model="repoSettings.visibility" :options="projectVisibilityOptions" />
-      </InputField>
-      <InputField
-        v-slot="{ id }"
-        docs-url="usage/repo-settings#timeout"
-        :label="$t('repo.settings.general.timeout.timeout')"
-      >
-        <div class="flex items-center">
-          <NumberField :id="id" v-model="repoSettings.timeout" class="max-w-[6rem]" />
-          <span class="ml-4 text-wp-text-alt-100">{{ $t('repo.settings.general.timeout.minutes') }}</span>
-        </div>
-      </InputField>
-      <InputField docs-url="usage/repo-settings#pipeline-path" :label="$t('repo.settings.general.pipeline_path.path')">
-        <template #default="{ id }">
-          <TextField
-            :id="id"
-            v-model="repoSettings.config_file"
-            :placeholder="$t('repo.settings.general.pipeline_path.default')"
-          />
-        </template>
-        <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
-        <template #description>
-          <i18n-t keypath="repo.settings.general.pipeline_path.desc">
-            <span class="code-box-inline">{{ $t('repo.settings.general.pipeline_path.desc_path_example') }}</span>
-            <span class="code-box-inline">/</span>
-          </i18n-t>
-        </template>
-        <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
-      </InputField>
-      <InputField
-        docs-url="usage/repo-settings#cancel-previous-pipelines"
-        :label="$t('repo.settings.general.cancel_prev.cancel')"
-      >
-        <CheckboxesField
-          v-model="repoSettings.cancel_previous_pipeline_events"
-          :options="cancelPreviousPipelineEventsOptions"
-        />
-        <template #description> {{ $t('repo.settings.general.cancel_prev.desc') }} </template>
-      </InputField>
-      <InputField docs-url="usage/repo-settings#log-retention" :label="$t('repo.settings.general.purge_logs.title')">
-        <span class="mb-2 text-wp-text-alt-100">{{ $t('repo.settings.general.purge_logs.desc') }}</span>
-        <div class="flex items-center">
-          <TextField v-model="repoSettings.logs_keep_duration" class="max-w-[6rem]" />
-          <span class="ml-4 text-wp-text-alt-100">{{ $t('repo.settings.general.purge_logs.duration') }}</span>
-        </div>
 
-        <div class="flex items-center">
-          <NumberField v-model="repoSettings.logs_keep_min" class="max-w-[6rem]" />
-          <span class="ml-4 text-wp-text-alt-100">{{ $t('repo.settings.general.purge_logs.keep_min') }}</span>
+          <div class="flex items-center gap-2">
+            <Input v-model="newImage" @keydown.enter.prevent="addNewImage" />
+            <Button type="button" size="icon" @click="addNewImage">
+              <Icon name="plus" />
+            </Button>
+          </div>
         </div>
-      </InputField>
-      <Button
-        type="submit"
-        class="mr-auto"
-        color="default"
-        :is-loading="isSaving"
-        :text="$t('repo.settings.general.save')"
-        @click.prevent="saveRepoSettings"
-      />
+        <p class="text-sm text-muted-foreground">{{ $t('repo.settings.general.netrc_only_trusted.desc') }}</p>
+      </div>
+      <div v-if="user?.admin" class="grid gap-2">
+        <label class="text-sm font-medium text-foreground">{{ $t('repo.settings.general.trusted.trusted') }}</label>
+
+        <FormField v-slot="{ value, handleChange }" name="trusted.network">
+          <FormItem class="flex items-start gap-3 space-y-0">
+            <FormControl>
+              <Checkbox :checked="value" @update:checked="handleChange" />
+            </FormControl>
+            <div class="flex flex-col">
+              <FormLabel class="font-normal">
+                {{ $t('repo.settings.general.trusted.network.network') }}
+              </FormLabel>
+              <FormDescription>{{ $t('repo.settings.general.trusted.network.desc') }}</FormDescription>
+            </div>
+          </FormItem>
+        </FormField>
+
+        <FormField v-slot="{ value, handleChange }" name="trusted.volumes">
+          <FormItem class="flex items-start gap-3 space-y-0">
+            <FormControl>
+              <Checkbox :checked="value" @update:checked="handleChange" />
+            </FormControl>
+            <div class="flex flex-col">
+              <FormLabel class="font-normal">
+                {{ $t('repo.settings.general.trusted.volumes.volumes') }}
+              </FormLabel>
+              <FormDescription>{{ $t('repo.settings.general.trusted.volumes.desc') }}</FormDescription>
+            </div>
+          </FormItem>
+        </FormField>
+
+        <FormField v-slot="{ value, handleChange }" name="trusted.security">
+          <FormItem class="flex items-start gap-3 space-y-0">
+            <FormControl>
+              <Checkbox :checked="value" @update:checked="handleChange" />
+            </FormControl>
+            <div class="flex flex-col">
+              <FormLabel class="font-normal">
+                {{ $t('repo.settings.general.trusted.security.security') }}
+              </FormLabel>
+              <FormDescription>{{ $t('repo.settings.general.trusted.security.desc') }}</FormDescription>
+            </div>
+          </FormItem>
+        </FormField>
+      </div>
+      <FormField v-slot="{ value, handleChange }" name="require_approval">
+        <FormItem>
+          <FormLabel>{{ $t('require_approval.require_approval_for') }}</FormLabel>
+          <FormControl>
+            <RadioGroup :model-value="value" @update:model-value="handleChange">
+              <div class="flex items-start gap-3">
+                <RadioGroupItem :value="RepoRequireApproval.None" />
+                <div class="flex flex-col">
+                  <FormLabel class="font-normal">{{ $t('require_approval.none') }}</FormLabel>
+                  <FormDescription>{{ $t('require_approval.none_desc') }}</FormDescription>
+                </div>
+              </div>
+              <div class="flex items-start gap-3">
+                <RadioGroupItem :value="RepoRequireApproval.Forks" />
+                <FormLabel class="font-normal">{{ $t('require_approval.forks') }}</FormLabel>
+              </div>
+              <div class="flex items-start gap-3">
+                <RadioGroupItem :value="RepoRequireApproval.PullRequests" />
+                <FormLabel class="font-normal">{{ $t('require_approval.pull_requests') }}</FormLabel>
+              </div>
+              <div class="flex items-start gap-3">
+                <RadioGroupItem :value="RepoRequireApproval.AllEvents" />
+                <FormLabel class="font-normal">{{ $t('require_approval.all_events') }}</FormLabel>
+              </div>
+            </RadioGroup>
+          </FormControl>
+          <FormDescription>{{ $t('require_approval.desc') }}</FormDescription>
+        </FormItem>
+      </FormField>
+      <FormField v-slot="{ value, handleChange }" name="visibility">
+        <FormItem>
+          <FormLabel>{{ $t('repo.visibility.visibility') }}</FormLabel>
+          <FormControl>
+            <RadioGroup :model-value="value" @update:model-value="handleChange">
+              <div v-for="option in projectVisibilityOptions" :key="option.value" class="flex items-start gap-3">
+                <RadioGroupItem :value="option.value" />
+                <div class="flex flex-col">
+                  <FormLabel class="font-normal">{{ option.text }}</FormLabel>
+                  <FormDescription v-if="option.description">{{ option.description }}</FormDescription>
+                </div>
+              </div>
+            </RadioGroup>
+          </FormControl>
+        </FormItem>
+      </FormField>
+      <FormField v-slot="{ value, handleChange }" name="timeout">
+        <FormItem>
+          <FormLabel>{{ $t('repo.settings.general.timeout.timeout') }}</FormLabel>
+          <FormControl>
+            <div class="flex items-center">
+              <NumberField :model-value="value" :min="0" class="max-w-[12rem]" @update:model-value="handleChange">
+                <NumberFieldContent>
+                  <NumberFieldDecrement />
+                  <NumberFieldInput />
+                  <NumberFieldIncrement />
+                </NumberFieldContent>
+              </NumberField>
+              <span class="ml-4 text-muted-foreground">{{ $t('repo.settings.general.timeout.minutes') }}</span>
+            </div>
+          </FormControl>
+        </FormItem>
+      </FormField>
+      <FormField v-slot="{ value, handleChange }" name="config_file">
+        <FormItem>
+          <FormLabel>{{ $t('repo.settings.general.pipeline_path.path') }}</FormLabel>
+          <FormControl>
+            <Input
+              :model-value="value"
+              :placeholder="$t('repo.settings.general.pipeline_path.default')"
+              @update:model-value="handleChange"
+            />
+          </FormControl>
+          <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
+          <FormDescription>
+            <i18n-t keypath="repo.settings.general.pipeline_path.desc">
+              <span class="code-box-inline">{{ $t('repo.settings.general.pipeline_path.desc_path_example') }}</span>
+              <span class="code-box-inline">/</span>
+            </i18n-t>
+          </FormDescription>
+          <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
+        </FormItem>
+      </FormField>
+      <div class="grid gap-2">
+        <label class="text-sm font-medium text-foreground">{{ $t('repo.settings.general.cancel_prev.cancel') }}</label>
+        <div v-for="option in cancelPreviousPipelineEventsOptions" :key="option.value" class="flex items-start gap-3">
+          <Checkbox
+            :checked="values.cancel_previous_pipeline_events?.includes(option.value)"
+            @update:checked="toggleCancelEvent(option.value, $event)"
+          />
+          <div class="flex flex-col">
+            <label class="text-sm font-normal">{{ option.text }}</label>
+            <p v-if="option.description" class="text-sm text-muted-foreground">{{ option.description }}</p>
+          </div>
+        </div>
+        <p class="text-sm text-muted-foreground">{{ $t('repo.settings.general.cancel_prev.desc') }}</p>
+      </div>
+      <div class="grid gap-2">
+        <label class="text-sm font-medium text-foreground">{{ $t('repo.settings.general.purge_logs.title') }}</label>
+        <p class="text-sm text-muted-foreground">{{ $t('repo.settings.general.purge_logs.desc') }}</p>
+
+        <FormField v-slot="{ value, handleChange }" name="logs_keep_duration">
+          <FormItem>
+            <FormControl>
+              <div class="flex items-center">
+                <Input :model-value="value" class="max-w-[6rem]" @update:model-value="handleChange" />
+                <span class="ml-4 text-muted-foreground">{{ $t('repo.settings.general.purge_logs.duration') }}</span>
+              </div>
+            </FormControl>
+          </FormItem>
+        </FormField>
+
+        <FormField v-slot="{ value, handleChange }" name="logs_keep_min">
+          <FormItem>
+            <FormControl>
+              <div class="flex items-center">
+                <NumberField :model-value="value" :min="0" class="max-w-[12rem]" @update:model-value="handleChange">
+                  <NumberFieldContent>
+                    <NumberFieldDecrement />
+                    <NumberFieldInput />
+                    <NumberFieldIncrement />
+                  </NumberFieldContent>
+                </NumberField>
+                <span class="ml-4 text-muted-foreground">{{ $t('repo.settings.general.purge_logs.keep_min') }}</span>
+              </div>
+            </FormControl>
+          </FormItem>
+        </FormField>
+      </div>
+      <Button type="submit" class="mr-auto" :disabled="isSaving" @click.prevent="saveRepoSettings">
+        <Icon v-if="isSaving" name="spinner" class="size-4 animate-spin mr-2" />
+        {{ $t('repo.settings.general.save') }}
+      </Button>
     </form>
+
+    <!-- Actions Section -->
+    <div class="border-t pt-6 pb-34">
+      <h2 class="text-lg font-semibold mb-4">{{ $t('repo.settings.actions.actions') }}</h2>
+      <ActionsButtons />
+    </div>
   </Settings>
 </template>
 
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { toTypedSchema } from '@vee-validate/zod';
+import { useForm } from 'vee-validate';
+import * as z from 'zod';
 
-import Button from '~/components/atomic/Button.vue';
-import Checkbox from '~/components/form/Checkbox.vue';
-import CheckboxesField from '~/components/form/CheckboxesField.vue';
+import { Checkbox } from '~/components/ui/checkbox';
 import type { CheckboxOption, RadioOption } from '~/components/form/form.types';
-import InputField from '~/components/form/InputField.vue';
-import NumberField from '~/components/form/NumberField.vue';
-import RadioField from '~/components/form/RadioField.vue';
-import TextField from '~/components/form/TextField.vue';
+import { Input } from '~/components/ui/input';
+import { Button } from '~/components/ui/button';
+import Icon from '~/components/atomic/Icon.vue';
+import {
+  NumberField,
+  NumberFieldContent,
+  NumberFieldDecrement,
+  NumberFieldIncrement,
+  NumberFieldInput,
+} from '~/components/ui/number-field';
+import { RadioGroup, RadioGroupItem } from '~/components/ui/radio-group';
+import { FormControl, FormDescription, FormField, FormItem, FormLabel } from '~/components/ui/form';
 import Settings from '~/components/layout/Settings.vue';
+import ActionsButtons from './ActionsButtons.vue';
 import useApiClient from '~/compositions/useApiClient';
 import { useAsyncAction } from '~/compositions/useAsyncAction';
 import useAuthentication from '~/compositions/useAuthentication';
@@ -173,10 +280,52 @@ const repoStore = useRepoStore();
 const i18n = useI18n();
 
 const repo = requiredInject('repo');
-const repoSettings = ref<RepoSettings>();
+
+// Define Zod schema for repo settings
+const repoSettingsSchema = toTypedSchema(
+  z.object({
+    config_file: z.string(),
+    timeout: z.number().min(0),
+    visibility: z.nativeEnum(RepoVisibility),
+    require_approval: z.nativeEnum(RepoRequireApproval),
+    trusted: z.object({
+      network: z.boolean(),
+      volumes: z.boolean(),
+      security: z.boolean(),
+    }),
+    allow_pr: z.boolean(),
+    allow_deploy: z.boolean(),
+    cancel_previous_pipeline_events: z.array(z.string()),
+    logs_keep_duration: z.string(),
+    logs_keep_min: z.number().min(0),
+    netrc_trusted: z.array(z.string()),
+  }),
+);
+
+// Set up VeeValidate form
+const { handleSubmit, setValues, values, setFieldValue } = useForm({
+  validationSchema: repoSettingsSchema,
+  initialValues: {
+    config_file: '',
+    timeout: 0,
+    visibility: RepoVisibility.Public,
+    require_approval: RepoRequireApproval.None,
+    trusted: {
+      network: false,
+      volumes: false,
+      security: false,
+    },
+    allow_pr: false,
+    allow_deploy: false,
+    cancel_previous_pipeline_events: [],
+    logs_keep_duration: '',
+    logs_keep_min: 90,
+    netrc_trusted: [],
+  },
+});
 
 function loadRepoSettings() {
-  repoSettings.value = {
+  setValues({
     config_file: repo.value.config_file,
     timeout: repo.value.timeout,
     visibility: repo.value.visibility,
@@ -188,7 +337,7 @@ function loadRepoSettings() {
     logs_keep_duration: repo.value.logs_keep_duration ?? '',
     logs_keep_min: repo.value.logs_keep_min ?? 90,
     netrc_trusted: repo.value.netrc_trusted || [],
-  };
+  });
 }
 
 async function loadRepo() {
@@ -196,12 +345,8 @@ async function loadRepo() {
   loadRepoSettings();
 }
 
-const { doSubmit: saveRepoSettings, isLoading: isSaving } = useAsyncAction(async () => {
-  if (!repoSettings.value) {
-    throw new Error('Unexpected: Repo-Settings should be set');
-  }
-
-  await apiClient.updateRepo(repo.value.id, repoSettings.value);
+const { doSubmit: saveRepoSettingsAction, isLoading: isSaving } = useAsyncAction(async () => {
+  await apiClient.updateRepo(repo.value.id, values as RepoSettings);
   await loadRepo();
   notifications.notify({
     title: i18n.t('notify_title_success'),
@@ -209,6 +354,10 @@ const { doSubmit: saveRepoSettings, isLoading: isSaving } = useAsyncAction(async
     type: 'success',
     duration: 6000,
   });
+});
+
+const saveRepoSettings = handleSubmit(() => {
+  saveRepoSettingsAction();
 });
 
 onMounted(() => {
@@ -248,15 +397,27 @@ function addNewImage() {
   if (!newImage.value) {
     return;
   }
-  repoSettings.value?.netrc_trusted.push(newImage.value);
+  setFieldValue('netrc_trusted', [...(values.netrc_trusted || []), newImage.value]);
   newImage.value = '';
 }
 function removeImage(image: string) {
-  if (!repoSettings.value) {
-    throw new Error('Unexpected: repoSettings should be set');
-  }
+  setFieldValue(
+    'netrc_trusted',
+    (values.netrc_trusted || []).filter((i: string) => i !== image),
+  );
+}
 
-  repoSettings.value.netrc_trusted = repoSettings.value.netrc_trusted.filter((i) => i !== image);
+function toggleCancelEvent(eventValue: string, checked: boolean) {
+  if (checked) {
+    if (!values.cancel_previous_pipeline_events?.includes(eventValue)) {
+      setFieldValue('cancel_previous_pipeline_events', [...(values.cancel_previous_pipeline_events || []), eventValue]);
+    }
+  } else {
+    setFieldValue(
+      'cancel_previous_pipeline_events',
+      values.cancel_previous_pipeline_events?.filter((e: string) => e !== eventValue) || [],
+    );
+  }
 }
 
 useCrowTitle(computed(() => [i18n.t('repo.settings.general.project'), repo.value.full_name]));

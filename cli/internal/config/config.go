@@ -8,7 +8,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v3"
 
-	"codeberg.org/crowci/crow/v4/cli/internal"
+	"codeberg.org/crowci/crow/v5/cli/internal"
 )
 
 type Config struct {

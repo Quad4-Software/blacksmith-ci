@@ -21,10 +21,10 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"codeberg.org/crowci/crow/v4/server"
-	forge_types "codeberg.org/crowci/crow/v4/server/forge/types"
-	"codeberg.org/crowci/crow/v4/server/model"
-	"codeberg.org/crowci/crow/v4/server/store"
+	"codeberg.org/crowci/crow/v5/server"
+	forge_types "codeberg.org/crowci/crow/v5/server/forge/types"
+	"codeberg.org/crowci/crow/v5/server/model"
+	"codeberg.org/crowci/crow/v5/server/store"
 )
 
 // Restart a pipeline by creating a new one out of the old and start it.

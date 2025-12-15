@@ -17,7 +17,7 @@ package datastore
 import (
 	"xorm.io/builder"
 
-	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v5/server/model"
 )
 
 func (s storage) CronCreate(cron *model.Cron) error {
@@ -64,4 +64,22 @@ func (s storage) CronGetLock(cron *model.Cron, newNextExec int64) (bool, error) 
 	}
 
 	return gotLock, err
+}
+
+// UserCronList returns all crons from repos the user has access to.
+func (s storage) UserCronList(repoIDs []int64, searchTerm string, p *model.ListOptions) ([]*model.Cron, error) {
+	crons := make([]*model.Cron, 0)
+
+	if len(repoIDs) == 0 {
+		return crons, nil
+	}
+
+	cond := builder.In("repo_id", repoIDs)
+
+	// Add search filter if provided
+	if searchTerm != "" {
+		cond = builder.And(cond, builder.Like{"name", "%" + searchTerm + "%"})
+	}
+
+	return crons, s.paginate(p).Where(cond).OrderBy("name").Find(&crons)
 }

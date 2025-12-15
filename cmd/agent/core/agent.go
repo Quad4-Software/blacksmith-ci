@@ -36,15 +36,15 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
 
-	"codeberg.org/crowci/crow/v4/agent"
-	agent_rpc "codeberg.org/crowci/crow/v4/agent/rpc"
-	"codeberg.org/crowci/crow/v4/pipeline"
-	"codeberg.org/crowci/crow/v4/pipeline/backend"
-	"codeberg.org/crowci/crow/v4/pipeline/backend/types"
-	"codeberg.org/crowci/crow/v4/pipeline/rpc"
-	"codeberg.org/crowci/crow/v4/shared/logger"
-	"codeberg.org/crowci/crow/v4/shared/utils"
-	"codeberg.org/crowci/crow/v4/version"
+	"codeberg.org/crowci/crow/v5/agent"
+	agent_rpc "codeberg.org/crowci/crow/v5/agent/rpc"
+	"codeberg.org/crowci/crow/v5/pipeline"
+	"codeberg.org/crowci/crow/v5/pipeline/backend"
+	"codeberg.org/crowci/crow/v5/pipeline/backend/types"
+	"codeberg.org/crowci/crow/v5/pipeline/rpc"
+	"codeberg.org/crowci/crow/v5/shared/logger"
+	"codeberg.org/crowci/crow/v5/shared/utils"
+	"codeberg.org/crowci/crow/v5/version"
 )
 
 const (

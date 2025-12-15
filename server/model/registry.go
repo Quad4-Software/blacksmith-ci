@@ -28,13 +28,15 @@ var (
 
 // Registry represents a docker registry with credentials.
 type Registry struct {
-	ID       int64  `json:"id"       xorm:"pk autoincr 'id'"`
-	OrgID    int64  `json:"org_id"   xorm:"NOT NULL DEFAULT 0 UNIQUE(s) INDEX 'org_id'"`
-	RepoID   int64  `json:"repo_id"  xorm:"NOT NULL DEFAULT 0 UNIQUE(s) INDEX 'repo_id'"`
-	Address  string `json:"address"  xorm:"NOT NULL UNIQUE(s) INDEX 'address'"`
-	Username string `json:"username" xorm:"varchar(2000) 'username'"`
-	Password string `json:"password" xorm:"TEXT 'password'"`
-	ReadOnly bool   `json:"readonly" xorm:"-"`
+	ID        int64  `json:"id"         xorm:"pk autoincr 'id'"`
+	OrgID     int64  `json:"org_id"     xorm:"NOT NULL DEFAULT 0 UNIQUE(s) INDEX 'org_id'"`
+	RepoID    int64  `json:"repo_id"    xorm:"NOT NULL DEFAULT 0 UNIQUE(s) INDEX 'repo_id'"`
+	Address   string `json:"address"    xorm:"NOT NULL UNIQUE(s) INDEX 'address'"`
+	Username  string `json:"username"   xorm:"varchar(2000) 'username'"`
+	Password  string `json:"password"   xorm:"TEXT 'password'"`
+	ReadOnly  bool   `json:"readonly"   xorm:"-"`
+	CreatedAt int64  `json:"created_at" xorm:"created"`
+	UpdatedAt int64  `json:"updated_at" xorm:"updated"`
 } //	@name	Registry
 
 func (r Registry) TableName() string {
@@ -80,5 +82,27 @@ func (r *Registry) Copy() *Registry {
 		Address:  r.Address,
 		Username: r.Username,
 		ReadOnly: r.ReadOnly,
+	}
+}
+
+// RegistryWithOrg extends Registry with organization context for user views.
+type RegistryWithOrg struct {
+	*Registry
+	OrgName   string `json:"org_name"`
+	ScopeType string `json:"scope_type"` // "user", "org", or "global"
+} //	@name	RegistryWithOrg
+
+// WithOrg creates a RegistryWithOrg from a Registry with the given org name.
+func (r *Registry) WithOrg(orgName string, isPersonalOrg bool) *RegistryWithOrg {
+	scopeType := "org"
+	if r.IsGlobal() {
+		scopeType = "global"
+	} else if isPersonalOrg {
+		scopeType = "user"
+	}
+	return &RegistryWithOrg{
+		Registry:  r,
+		OrgName:   orgName,
+		ScopeType: scopeType,
 	}
 }

@@ -1,18 +1,18 @@
 <template>
-  <header
-    class="border-wp-background-400 bg-wp-background-100 text-wp-text-100 shadow-xs dark:border-wp-background-100 dark:bg-wp-background-300"
-    :class="{ 'md:px-4': fullWidth }"
-  >
-    <Container :full-width="fullWidth" class="py-0!">
-      <div class="flex w-full flex-col gap-2 py-2 md:flex-row md:items-center md:justify-between md:gap-10">
+  <header class="border-b border-border bg-background text-foreground shadow-sm">
+    <div
+      class="mx-auto w-full max-w-full px-3 py-2 sm:px-4 box-border overflow-x-hidden flex flex-col justify-center"
+      :class="{ 'sm:max-w-6xl': !fullWidth }"
+    >
+      <div class="flex w-full flex-col gap-2 md:flex-row md:items-center md:justify-center md:gap-20">
         <div
-          class="flex min-h-10 content-start items-center"
+          class="flex min-h-10 items-center"
           :class="{
             'md:flex-1': searchBoxPresent,
             'justify-between': !isPipelineDetail,
           }"
         >
-          <div class="flex min-h-10 content-start items-center">
+          <div class="flex min-h-10 items-center">
             <IconButton
               v-if="goBack"
               icon="back"
@@ -20,9 +20,9 @@
               class="md:display-unset mr-2 hidden h-8 w-8 shrink-0 md:justify-between"
               @click="goBack"
             />
-            <h1 class="flex min-w-0 md:min-w-[120px] items-center gap-x-2 text-xl italic text-wp-text-100">
+            <h1 class="flex min-w-0 md:min-w-[120px] items-center gap-x-2 text-xl text-foreground">
               <slot name="title" />
-              <span v-if="$slots.titleSuffix" class="text-sm font-normal not-italic text-wp-text-alt-100">
+              <span v-if="$slots.titleSuffix" class="text-sm font-normal text-muted-foreground">
                 <slot name="titleSuffix" />
               </span>
             </h1>
@@ -32,13 +32,13 @@
             <slot name="headerActions" />
           </div>
         </div>
-        <TextField
+        <SearchInput
           v-if="searchBoxPresent"
           class="order-3 w-full grow md:order-0 md:w-auto"
           :aria-label="$t('search')"
           :placeholder="$t('search')"
           :model-value="search"
-          @update:model-value="(value: string) => $emit('update:search', value)"
+          @update:model-value="(value) => $emit('update:search', String(value))"
         />
         <!-- Desktop header actions in separate row -->
         <div
@@ -53,16 +53,13 @@
         </div>
       </div>
 
-      <div
-        v-if="enableTabs"
-        class="flex flex-col gap-0 md:gap-0 md:flex-row md:items-center md:justify-between md:py-0"
-      >
-        <Tabs class="order-2 md:order-0" />
-        <div v-if="$slots.headerActions" class="flex flex-wrap content-start pb-2 md:justify-end gap-2">
+      <div v-if="enableTabs" class="flex flex-col md:flex-row md:items-center min-w-0 w-full mt-2 md:mt-0">
+        <Tabs class="order-2 md:order-0 min-w-0 shrink-0 flex-none" />
+        <div v-if="$slots.tabActions" class="order-1 md:order-1 flex-1 w-full overflow-x-hidden">
           <slot name="tabActions" />
         </div>
       </div>
-    </Container>
+    </div>
   </header>
 </template>
 
@@ -71,8 +68,7 @@ import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 
 import IconButton from '~/components/atomic/IconButton.vue';
-import TextField from '~/components/form/TextField.vue';
-import Container from '~/components/layout/Container.vue';
+import SearchInput from '~/components/ui/input/SearchInput.vue';
 
 import Tabs from './Tabs.vue';
 

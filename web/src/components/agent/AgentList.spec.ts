@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { shallowMount } from '@vue/test-utils';
+import { mount } from '@vue/test-utils';
+import { ref } from 'vue';
 import AgentList from './AgentList.vue';
 
 // Mock vue-i18n
@@ -19,6 +20,17 @@ vi.mock('~/compositions/useDate', () => ({
 vi.mock('~/compositions/useConfig', () => ({
   default: () => ({
     version: '1.0.0',
+  }),
+}));
+
+// Mock useTheme - must be mocked before importing components that use it
+vi.mock('~/compositions/useTheme', () => ({
+  useTheme: () => ({
+    theme: ref('light'),
+    storeTheme: ref('auto'),
+    themeName: ref('crow-ci'),
+    currentTheme: ref({ id: 'crow-ci', name: 'Crow CI', light: {}, dark: {} }),
+    availableThemes: ref([]),
   }),
 }));
 
@@ -46,7 +58,7 @@ const sampleAgent = {
 
 describe('agentList', () => {
   it('renders agent metadata and aligns columns', () => {
-    const wrapper = shallowMount(AgentList, {
+    const wrapper = mount(AgentList, {
       props: {
         agents: [sampleAgent],
         isDeleting: false,

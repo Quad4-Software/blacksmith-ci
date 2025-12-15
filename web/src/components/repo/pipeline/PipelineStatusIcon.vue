@@ -1,18 +1,18 @@
 <template>
   <div
     class="flex items-center justify-center"
-    :title="$t('repo.pipeline.status.status', { status: statusDescriptions[status] })"
+    :title="title || $t('repo.pipeline.status.status', { status: statusDescriptions[status] })"
   >
     <Icon
       v-if="service || !(status === 'running' || status === 'started')"
       :name="service ? 'mdi-wind-power-outline' : `status-${status}`"
       size="1.5rem"
       :class="{
-        'text-wp-error-100': pipelineStatusColors[status] === 'red', // error, declined
-        'text-wp-text-alt-100': pipelineStatusColors[status] === 'gray', // blocked, killed, skipped
-        'text-wp-state-ok-100': pipelineStatusColors[status] === 'green', // success
-        'text-wp-custom-highlight-100': pipelineStatusColors[status] === 'orange', // running, started
-        'text-wp-state-pending-100': pipelineStatusColors[status] === 'yellow', // pending
+        'text-destructive': pipelineStatusColors[status] === 'red', // error, declined
+        'text-muted-foreground': pipelineStatusColors[status] === 'gray', // blocked, killed, skipped
+        'text-green-500': pipelineStatusColors[status] === 'green', // success
+        'text-primary': pipelineStatusColors[status] === 'orange', // running, started
+        'text-yellow-500': pipelineStatusColors[status] === 'yellow', // pending
       }"
     />
     <div v-else class="w-5 h-5">
@@ -33,6 +33,7 @@ import { pipelineStatusColors } from './pipeline-status';
 defineProps<{
   status: PipelineStatus;
   service?: boolean;
+  title?: string;
 }>();
 
 const { t } = useI18n();

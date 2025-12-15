@@ -17,7 +17,7 @@ package gitlab
 import (
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 
-	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v5/server/model"
 )
 
 // getStatus is a helper that converts a Crow status to a Gitlab status.

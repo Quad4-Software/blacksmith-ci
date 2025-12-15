@@ -17,7 +17,7 @@ package compiler
 import (
 	"sort"
 
-	backend_types "codeberg.org/crowci/crow/v4/pipeline/backend/types"
+	backend_types "codeberg.org/crowci/crow/v5/pipeline/backend/types"
 )
 
 type dagCompilerStep struct {

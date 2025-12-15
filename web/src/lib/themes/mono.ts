@@ -1,0 +1,85 @@
+import type { ThemeDefinition } from './types';
+
+/**
+ * Mono theme
+ *
+ * Monochrome theme with zero border radius and monospace fonts.
+ * Pure grayscale aesthetic for a technical, terminal-like feel.
+ *
+ * @see https://tweakcn.com/r/themes/mono.json
+ */
+export const monoTheme: ThemeDefinition = {
+  id: 'mono',
+  name: 'Mono',
+  description: 'Monochrome grayscale with terminal aesthetic',
+
+  light: {
+    background: 'oklch(1.0000 0 0)',
+    foreground: 'oklch(0.1448 0 0)',
+    card: 'oklch(1.0000 0 0)',
+    cardForeground: 'oklch(0.1448 0 0)',
+    popover: 'oklch(1.0000 0 0)',
+    popoverForeground: 'oklch(0.1448 0 0)',
+    primary: 'oklch(0.5555 0 0)',
+    primaryForeground: 'oklch(0.9851 0 0)',
+    secondary: 'oklch(0.9702 0 0)',
+    secondaryForeground: 'oklch(0.2046 0 0)',
+    muted: 'oklch(0.9702 0 0)',
+    mutedForeground: 'oklch(0.5486 0 0)',
+    accent: 'oklch(0.9702 0 0)',
+    accentForeground: 'oklch(0.2046 0 0)',
+    destructive: 'oklch(0.5830 0.2387 28.4765)',
+    destructiveForeground: 'oklch(0.9702 0 0)',
+    border: 'oklch(0.9219 0 0)',
+    input: 'oklch(0.9219 0 0)',
+    ring: 'oklch(0.7090 0 0)',
+    chart1: 'oklch(0.5555 0 0)',
+    chart2: 'oklch(0.5555 0 0)',
+    chart3: 'oklch(0.5555 0 0)',
+    chart4: 'oklch(0.5555 0 0)',
+    chart5: 'oklch(0.5555 0 0)',
+    sidebar: 'oklch(0.9851 0 0)',
+    sidebarForeground: 'oklch(0.1448 0 0)',
+    sidebarPrimary: 'oklch(0.2046 0 0)',
+    sidebarPrimaryForeground: 'oklch(0.9851 0 0)',
+    sidebarAccent: 'oklch(0.9702 0 0)',
+    sidebarAccentForeground: 'oklch(0.2046 0 0)',
+    sidebarBorder: 'oklch(0.9219 0 0)',
+    sidebarRing: 'oklch(0.7090 0 0)',
+  },
+
+  dark: {
+    background: 'oklch(0.1448 0 0)',
+    foreground: 'oklch(0.9851 0 0)',
+    card: 'oklch(0.2134 0 0)',
+    cardForeground: 'oklch(0.9851 0 0)',
+    popover: 'oklch(0.2686 0 0)',
+    popoverForeground: 'oklch(0.9851 0 0)',
+    primary: 'oklch(0.5555 0 0)',
+    primaryForeground: 'oklch(0.9851 0 0)',
+    secondary: 'oklch(0.2686 0 0)',
+    secondaryForeground: 'oklch(0.9851 0 0)',
+    muted: 'oklch(0.2686 0 0)',
+    mutedForeground: 'oklch(0.7090 0 0)',
+    accent: 'oklch(0.3715 0 0)',
+    accentForeground: 'oklch(0.9851 0 0)',
+    destructive: 'oklch(0.7022 0.1892 22.2279)',
+    destructiveForeground: 'oklch(0.2686 0 0)',
+    border: 'oklch(0.3407 0 0)',
+    input: 'oklch(0.4386 0 0)',
+    ring: 'oklch(0.5555 0 0)',
+    chart1: 'oklch(0.5555 0 0)',
+    chart2: 'oklch(0.5555 0 0)',
+    chart3: 'oklch(0.5555 0 0)',
+    chart4: 'oklch(0.5555 0 0)',
+    chart5: 'oklch(0.5555 0 0)',
+    sidebar: 'oklch(0.2046 0 0)',
+    sidebarForeground: 'oklch(0.9851 0 0)',
+    sidebarPrimary: 'oklch(0.9851 0 0)',
+    sidebarPrimaryForeground: 'oklch(0.2046 0 0)',
+    sidebarAccent: 'oklch(0.2686 0 0)',
+    sidebarAccentForeground: 'oklch(0.9851 0 0)',
+    sidebarBorder: 'oklch(1.0000 0 0)',
+    sidebarRing: 'oklch(0.4386 0 0)',
+  },
+};

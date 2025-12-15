@@ -21,9 +21,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/tink-crypto/tink-go/v2/subtle/random"
 
-	"codeberg.org/crowci/crow/v4/server/model"
-	"codeberg.org/crowci/crow/v4/server/router/middleware/session"
-	"codeberg.org/crowci/crow/v4/server/store"
+	"codeberg.org/crowci/crow/v5/server/model"
+	"codeberg.org/crowci/crow/v5/server/router/middleware/session"
+	"codeberg.org/crowci/crow/v5/server/store"
 )
 
 // GetUsers
@@ -98,6 +98,8 @@ func PatchUser(c *gin.Context) {
 	user.Email = in.Email
 	user.Avatar = in.Avatar
 	user.Admin = in.Admin
+	user.Description = in.Description
+	user.Timezone = in.Timezone
 
 	err = _store.UpdateUser(user)
 	if err != nil {

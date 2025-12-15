@@ -7,7 +7,7 @@ package services
 import (
 	"context"
 
-	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v5/server/model"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -36,6 +36,408 @@ type MockStore_Expecter struct {
 
 func (_m *MockStore) EXPECT() *MockStore_Expecter {
 	return &MockStore_Expecter{mock: &_m.Mock}
+}
+
+// AccessTokenCreate provides a mock function for the type MockStore
+func (_mock *MockStore) AccessTokenCreate(accessToken *model.AccessToken) error {
+	ret := _mock.Called(accessToken)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AccessTokenCreate")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(*model.AccessToken) error); ok {
+		r0 = returnFunc(accessToken)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_AccessTokenCreate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AccessTokenCreate'
+type MockStore_AccessTokenCreate_Call struct {
+	*mock.Call
+}
+
+// AccessTokenCreate is a helper method to define mock.On call
+//   - accessToken *model.AccessToken
+func (_e *MockStore_Expecter) AccessTokenCreate(accessToken interface{}) *MockStore_AccessTokenCreate_Call {
+	return &MockStore_AccessTokenCreate_Call{Call: _e.mock.On("AccessTokenCreate", accessToken)}
+}
+
+func (_c *MockStore_AccessTokenCreate_Call) Run(run func(accessToken *model.AccessToken)) *MockStore_AccessTokenCreate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.AccessToken
+		if args[0] != nil {
+			arg0 = args[0].(*model.AccessToken)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_AccessTokenCreate_Call) Return(err error) *MockStore_AccessTokenCreate_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_AccessTokenCreate_Call) RunAndReturn(run func(accessToken *model.AccessToken) error) *MockStore_AccessTokenCreate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AccessTokenDelete provides a mock function for the type MockStore
+func (_mock *MockStore) AccessTokenDelete(accessToken *model.AccessToken) error {
+	ret := _mock.Called(accessToken)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AccessTokenDelete")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(*model.AccessToken) error); ok {
+		r0 = returnFunc(accessToken)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_AccessTokenDelete_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AccessTokenDelete'
+type MockStore_AccessTokenDelete_Call struct {
+	*mock.Call
+}
+
+// AccessTokenDelete is a helper method to define mock.On call
+//   - accessToken *model.AccessToken
+func (_e *MockStore_Expecter) AccessTokenDelete(accessToken interface{}) *MockStore_AccessTokenDelete_Call {
+	return &MockStore_AccessTokenDelete_Call{Call: _e.mock.On("AccessTokenDelete", accessToken)}
+}
+
+func (_c *MockStore_AccessTokenDelete_Call) Run(run func(accessToken *model.AccessToken)) *MockStore_AccessTokenDelete_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.AccessToken
+		if args[0] != nil {
+			arg0 = args[0].(*model.AccessToken)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_AccessTokenDelete_Call) Return(err error) *MockStore_AccessTokenDelete_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_AccessTokenDelete_Call) RunAndReturn(run func(accessToken *model.AccessToken) error) *MockStore_AccessTokenDelete_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AccessTokenFind provides a mock function for the type MockStore
+func (_mock *MockStore) AccessTokenFind(n int64) (*model.AccessToken, error) {
+	ret := _mock.Called(n)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AccessTokenFind")
+	}
+
+	var r0 *model.AccessToken
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64) (*model.AccessToken, error)); ok {
+		return returnFunc(n)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64) *model.AccessToken); ok {
+		r0 = returnFunc(n)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.AccessToken)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64) error); ok {
+		r1 = returnFunc(n)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_AccessTokenFind_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AccessTokenFind'
+type MockStore_AccessTokenFind_Call struct {
+	*mock.Call
+}
+
+// AccessTokenFind is a helper method to define mock.On call
+//   - n int64
+func (_e *MockStore_Expecter) AccessTokenFind(n interface{}) *MockStore_AccessTokenFind_Call {
+	return &MockStore_AccessTokenFind_Call{Call: _e.mock.On("AccessTokenFind", n)}
+}
+
+func (_c *MockStore_AccessTokenFind_Call) Run(run func(n int64)) *MockStore_AccessTokenFind_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_AccessTokenFind_Call) Return(accessToken *model.AccessToken, err error) *MockStore_AccessTokenFind_Call {
+	_c.Call.Return(accessToken, err)
+	return _c
+}
+
+func (_c *MockStore_AccessTokenFind_Call) RunAndReturn(run func(n int64) (*model.AccessToken, error)) *MockStore_AccessTokenFind_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AccessTokenFindByHash provides a mock function for the type MockStore
+func (_mock *MockStore) AccessTokenFindByHash(s string) (*model.AccessToken, error) {
+	ret := _mock.Called(s)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AccessTokenFindByHash")
+	}
+
+	var r0 *model.AccessToken
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(string) (*model.AccessToken, error)); ok {
+		return returnFunc(s)
+	}
+	if returnFunc, ok := ret.Get(0).(func(string) *model.AccessToken); ok {
+		r0 = returnFunc(s)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.AccessToken)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(string) error); ok {
+		r1 = returnFunc(s)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_AccessTokenFindByHash_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AccessTokenFindByHash'
+type MockStore_AccessTokenFindByHash_Call struct {
+	*mock.Call
+}
+
+// AccessTokenFindByHash is a helper method to define mock.On call
+//   - s string
+func (_e *MockStore_Expecter) AccessTokenFindByHash(s interface{}) *MockStore_AccessTokenFindByHash_Call {
+	return &MockStore_AccessTokenFindByHash_Call{Call: _e.mock.On("AccessTokenFindByHash", s)}
+}
+
+func (_c *MockStore_AccessTokenFindByHash_Call) Run(run func(s string)) *MockStore_AccessTokenFindByHash_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_AccessTokenFindByHash_Call) Return(accessToken *model.AccessToken, err error) *MockStore_AccessTokenFindByHash_Call {
+	_c.Call.Return(accessToken, err)
+	return _c
+}
+
+func (_c *MockStore_AccessTokenFindByHash_Call) RunAndReturn(run func(s string) (*model.AccessToken, error)) *MockStore_AccessTokenFindByHash_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AccessTokenList provides a mock function for the type MockStore
+func (_mock *MockStore) AccessTokenList(userID int64, p *model.ListOptions) ([]*model.AccessToken, error) {
+	ret := _mock.Called(userID, p)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AccessTokenList")
+	}
+
+	var r0 []*model.AccessToken
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, *model.ListOptions) ([]*model.AccessToken, error)); ok {
+		return returnFunc(userID, p)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, *model.ListOptions) []*model.AccessToken); ok {
+		r0 = returnFunc(userID, p)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.AccessToken)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, *model.ListOptions) error); ok {
+		r1 = returnFunc(userID, p)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_AccessTokenList_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AccessTokenList'
+type MockStore_AccessTokenList_Call struct {
+	*mock.Call
+}
+
+// AccessTokenList is a helper method to define mock.On call
+//   - userID int64
+//   - p *model.ListOptions
+func (_e *MockStore_Expecter) AccessTokenList(userID interface{}, p interface{}) *MockStore_AccessTokenList_Call {
+	return &MockStore_AccessTokenList_Call{Call: _e.mock.On("AccessTokenList", userID, p)}
+}
+
+func (_c *MockStore_AccessTokenList_Call) Run(run func(userID int64, p *model.ListOptions)) *MockStore_AccessTokenList_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 *model.ListOptions
+		if args[1] != nil {
+			arg1 = args[1].(*model.ListOptions)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_AccessTokenList_Call) Return(accessTokens []*model.AccessToken, err error) *MockStore_AccessTokenList_Call {
+	_c.Call.Return(accessTokens, err)
+	return _c
+}
+
+func (_c *MockStore_AccessTokenList_Call) RunAndReturn(run func(userID int64, p *model.ListOptions) ([]*model.AccessToken, error)) *MockStore_AccessTokenList_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AccessTokenUpdate provides a mock function for the type MockStore
+func (_mock *MockStore) AccessTokenUpdate(accessToken *model.AccessToken) error {
+	ret := _mock.Called(accessToken)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AccessTokenUpdate")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(*model.AccessToken) error); ok {
+		r0 = returnFunc(accessToken)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_AccessTokenUpdate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AccessTokenUpdate'
+type MockStore_AccessTokenUpdate_Call struct {
+	*mock.Call
+}
+
+// AccessTokenUpdate is a helper method to define mock.On call
+//   - accessToken *model.AccessToken
+func (_e *MockStore_Expecter) AccessTokenUpdate(accessToken interface{}) *MockStore_AccessTokenUpdate_Call {
+	return &MockStore_AccessTokenUpdate_Call{Call: _e.mock.On("AccessTokenUpdate", accessToken)}
+}
+
+func (_c *MockStore_AccessTokenUpdate_Call) Run(run func(accessToken *model.AccessToken)) *MockStore_AccessTokenUpdate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.AccessToken
+		if args[0] != nil {
+			arg0 = args[0].(*model.AccessToken)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_AccessTokenUpdate_Call) Return(err error) *MockStore_AccessTokenUpdate_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_AccessTokenUpdate_Call) RunAndReturn(run func(accessToken *model.AccessToken) error) *MockStore_AccessTokenUpdate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AccessTokenUpdateLastUsed provides a mock function for the type MockStore
+func (_mock *MockStore) AccessTokenUpdateLastUsed(n int64, n1 int64) error {
+	ret := _mock.Called(n, n1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AccessTokenUpdateLastUsed")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(int64, int64) error); ok {
+		r0 = returnFunc(n, n1)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_AccessTokenUpdateLastUsed_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AccessTokenUpdateLastUsed'
+type MockStore_AccessTokenUpdateLastUsed_Call struct {
+	*mock.Call
+}
+
+// AccessTokenUpdateLastUsed is a helper method to define mock.On call
+//   - n int64
+//   - n1 int64
+func (_e *MockStore_Expecter) AccessTokenUpdateLastUsed(n interface{}, n1 interface{}) *MockStore_AccessTokenUpdateLastUsed_Call {
+	return &MockStore_AccessTokenUpdateLastUsed_Call{Call: _e.mock.On("AccessTokenUpdateLastUsed", n, n1)}
+}
+
+func (_c *MockStore_AccessTokenUpdateLastUsed_Call) Run(run func(n int64, n1 int64)) *MockStore_AccessTokenUpdateLastUsed_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_AccessTokenUpdateLastUsed_Call) Return(err error) *MockStore_AccessTokenUpdateLastUsed_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_AccessTokenUpdateLastUsed_Call) RunAndReturn(run func(n int64, n1 int64) error) *MockStore_AccessTokenUpdateLastUsed_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // AgentCreate provides a mock function for the type MockStore
@@ -2839,6 +3241,351 @@ func (_c *MockStore_GetActivePipelineList_Call) RunAndReturn(run func(repo *mode
 	return _c
 }
 
+// GetAveragePipelineDuration provides a mock function for the type MockStore
+func (_mock *MockStore) GetAveragePipelineDuration(after int64, before int64, repoIDs []int64) (float64, error) {
+	ret := _mock.Called(after, before, repoIDs)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetAveragePipelineDuration")
+	}
+
+	var r0 float64
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, []int64) (float64, error)); ok {
+		return returnFunc(after, before, repoIDs)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, []int64) float64); ok {
+		r0 = returnFunc(after, before, repoIDs)
+	} else {
+		r0 = ret.Get(0).(float64)
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, int64, []int64) error); ok {
+		r1 = returnFunc(after, before, repoIDs)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_GetAveragePipelineDuration_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetAveragePipelineDuration'
+type MockStore_GetAveragePipelineDuration_Call struct {
+	*mock.Call
+}
+
+// GetAveragePipelineDuration is a helper method to define mock.On call
+//   - after int64
+//   - before int64
+//   - repoIDs []int64
+func (_e *MockStore_Expecter) GetAveragePipelineDuration(after interface{}, before interface{}, repoIDs interface{}) *MockStore_GetAveragePipelineDuration_Call {
+	return &MockStore_GetAveragePipelineDuration_Call{Call: _e.mock.On("GetAveragePipelineDuration", after, before, repoIDs)}
+}
+
+func (_c *MockStore_GetAveragePipelineDuration_Call) Run(run func(after int64, before int64, repoIDs []int64)) *MockStore_GetAveragePipelineDuration_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		var arg2 []int64
+		if args[2] != nil {
+			arg2 = args[2].([]int64)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_GetAveragePipelineDuration_Call) Return(f float64, err error) *MockStore_GetAveragePipelineDuration_Call {
+	_c.Call.Return(f, err)
+	return _c
+}
+
+func (_c *MockStore_GetAveragePipelineDuration_Call) RunAndReturn(run func(after int64, before int64, repoIDs []int64) (float64, error)) *MockStore_GetAveragePipelineDuration_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetAverageStepsPerWorkflow provides a mock function for the type MockStore
+func (_mock *MockStore) GetAverageStepsPerWorkflow(after int64, before int64, repoIDs []int64) (float64, error) {
+	ret := _mock.Called(after, before, repoIDs)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetAverageStepsPerWorkflow")
+	}
+
+	var r0 float64
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, []int64) (float64, error)); ok {
+		return returnFunc(after, before, repoIDs)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, []int64) float64); ok {
+		r0 = returnFunc(after, before, repoIDs)
+	} else {
+		r0 = ret.Get(0).(float64)
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, int64, []int64) error); ok {
+		r1 = returnFunc(after, before, repoIDs)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_GetAverageStepsPerWorkflow_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetAverageStepsPerWorkflow'
+type MockStore_GetAverageStepsPerWorkflow_Call struct {
+	*mock.Call
+}
+
+// GetAverageStepsPerWorkflow is a helper method to define mock.On call
+//   - after int64
+//   - before int64
+//   - repoIDs []int64
+func (_e *MockStore_Expecter) GetAverageStepsPerWorkflow(after interface{}, before interface{}, repoIDs interface{}) *MockStore_GetAverageStepsPerWorkflow_Call {
+	return &MockStore_GetAverageStepsPerWorkflow_Call{Call: _e.mock.On("GetAverageStepsPerWorkflow", after, before, repoIDs)}
+}
+
+func (_c *MockStore_GetAverageStepsPerWorkflow_Call) Run(run func(after int64, before int64, repoIDs []int64)) *MockStore_GetAverageStepsPerWorkflow_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		var arg2 []int64
+		if args[2] != nil {
+			arg2 = args[2].([]int64)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_GetAverageStepsPerWorkflow_Call) Return(f float64, err error) *MockStore_GetAverageStepsPerWorkflow_Call {
+	_c.Call.Return(f, err)
+	return _c
+}
+
+func (_c *MockStore_GetAverageStepsPerWorkflow_Call) RunAndReturn(run func(after int64, before int64, repoIDs []int64) (float64, error)) *MockStore_GetAverageStepsPerWorkflow_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetBuildTimeStatsByOrg provides a mock function for the type MockStore
+func (_mock *MockStore) GetBuildTimeStatsByOrg(after int64, before int64, repoIDs []int64) (map[int64]map[string]float64, error) {
+	ret := _mock.Called(after, before, repoIDs)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetBuildTimeStatsByOrg")
+	}
+
+	var r0 map[int64]map[string]float64
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, []int64) (map[int64]map[string]float64, error)); ok {
+		return returnFunc(after, before, repoIDs)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, []int64) map[int64]map[string]float64); ok {
+		r0 = returnFunc(after, before, repoIDs)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[int64]map[string]float64)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, int64, []int64) error); ok {
+		r1 = returnFunc(after, before, repoIDs)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_GetBuildTimeStatsByOrg_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetBuildTimeStatsByOrg'
+type MockStore_GetBuildTimeStatsByOrg_Call struct {
+	*mock.Call
+}
+
+// GetBuildTimeStatsByOrg is a helper method to define mock.On call
+//   - after int64
+//   - before int64
+//   - repoIDs []int64
+func (_e *MockStore_Expecter) GetBuildTimeStatsByOrg(after interface{}, before interface{}, repoIDs interface{}) *MockStore_GetBuildTimeStatsByOrg_Call {
+	return &MockStore_GetBuildTimeStatsByOrg_Call{Call: _e.mock.On("GetBuildTimeStatsByOrg", after, before, repoIDs)}
+}
+
+func (_c *MockStore_GetBuildTimeStatsByOrg_Call) Run(run func(after int64, before int64, repoIDs []int64)) *MockStore_GetBuildTimeStatsByOrg_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		var arg2 []int64
+		if args[2] != nil {
+			arg2 = args[2].([]int64)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_GetBuildTimeStatsByOrg_Call) Return(int64ToStringToFloat64 map[int64]map[string]float64, err error) *MockStore_GetBuildTimeStatsByOrg_Call {
+	_c.Call.Return(int64ToStringToFloat64, err)
+	return _c
+}
+
+func (_c *MockStore_GetBuildTimeStatsByOrg_Call) RunAndReturn(run func(after int64, before int64, repoIDs []int64) (map[int64]map[string]float64, error)) *MockStore_GetBuildTimeStatsByOrg_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetBuildTimeStatsByRepo provides a mock function for the type MockStore
+func (_mock *MockStore) GetBuildTimeStatsByRepo(after int64, before int64, repoIDs []int64) (map[int64]map[string]float64, error) {
+	ret := _mock.Called(after, before, repoIDs)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetBuildTimeStatsByRepo")
+	}
+
+	var r0 map[int64]map[string]float64
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, []int64) (map[int64]map[string]float64, error)); ok {
+		return returnFunc(after, before, repoIDs)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, []int64) map[int64]map[string]float64); ok {
+		r0 = returnFunc(after, before, repoIDs)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[int64]map[string]float64)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, int64, []int64) error); ok {
+		r1 = returnFunc(after, before, repoIDs)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_GetBuildTimeStatsByRepo_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetBuildTimeStatsByRepo'
+type MockStore_GetBuildTimeStatsByRepo_Call struct {
+	*mock.Call
+}
+
+// GetBuildTimeStatsByRepo is a helper method to define mock.On call
+//   - after int64
+//   - before int64
+//   - repoIDs []int64
+func (_e *MockStore_Expecter) GetBuildTimeStatsByRepo(after interface{}, before interface{}, repoIDs interface{}) *MockStore_GetBuildTimeStatsByRepo_Call {
+	return &MockStore_GetBuildTimeStatsByRepo_Call{Call: _e.mock.On("GetBuildTimeStatsByRepo", after, before, repoIDs)}
+}
+
+func (_c *MockStore_GetBuildTimeStatsByRepo_Call) Run(run func(after int64, before int64, repoIDs []int64)) *MockStore_GetBuildTimeStatsByRepo_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		var arg2 []int64
+		if args[2] != nil {
+			arg2 = args[2].([]int64)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_GetBuildTimeStatsByRepo_Call) Return(int64ToStringToFloat64 map[int64]map[string]float64, err error) *MockStore_GetBuildTimeStatsByRepo_Call {
+	_c.Call.Return(int64ToStringToFloat64, err)
+	return _c
+}
+
+func (_c *MockStore_GetBuildTimeStatsByRepo_Call) RunAndReturn(run func(after int64, before int64, repoIDs []int64) (map[int64]map[string]float64, error)) *MockStore_GetBuildTimeStatsByRepo_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetOrgCount provides a mock function for the type MockStore
+func (_mock *MockStore) GetOrgCount() (int64, error) {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetOrgCount")
+	}
+
+	var r0 int64
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func() (int64, error)); ok {
+		return returnFunc()
+	}
+	if returnFunc, ok := ret.Get(0).(func() int64); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+	if returnFunc, ok := ret.Get(1).(func() error); ok {
+		r1 = returnFunc()
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_GetOrgCount_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetOrgCount'
+type MockStore_GetOrgCount_Call struct {
+	*mock.Call
+}
+
+// GetOrgCount is a helper method to define mock.On call
+func (_e *MockStore_Expecter) GetOrgCount() *MockStore_GetOrgCount_Call {
+	return &MockStore_GetOrgCount_Call{Call: _e.mock.On("GetOrgCount")}
+}
+
+func (_c *MockStore_GetOrgCount_Call) Run(run func()) *MockStore_GetOrgCount_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockStore_GetOrgCount_Call) Return(n int64, err error) *MockStore_GetOrgCount_Call {
+	_c.Call.Return(n, err)
+	return _c
+}
+
+func (_c *MockStore_GetOrgCount_Call) RunAndReturn(run func() (int64, error)) *MockStore_GetOrgCount_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetPipeline provides a mock function for the type MockStore
 func (_mock *MockStore) GetPipeline(n int64) (*model.Pipeline, error) {
 	ret := _mock.Called(n)
@@ -3022,6 +3769,78 @@ func (_c *MockStore_GetPipelineCount_Call) RunAndReturn(run func() (int64, error
 	return _c
 }
 
+// GetPipelineCountByOrg provides a mock function for the type MockStore
+func (_mock *MockStore) GetPipelineCountByOrg(orgID int64, after int64, before int64) (int64, error) {
+	ret := _mock.Called(orgID, after, before)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetPipelineCountByOrg")
+	}
+
+	var r0 int64
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, int64) (int64, error)); ok {
+		return returnFunc(orgID, after, before)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, int64) int64); ok {
+		r0 = returnFunc(orgID, after, before)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, int64, int64) error); ok {
+		r1 = returnFunc(orgID, after, before)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_GetPipelineCountByOrg_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetPipelineCountByOrg'
+type MockStore_GetPipelineCountByOrg_Call struct {
+	*mock.Call
+}
+
+// GetPipelineCountByOrg is a helper method to define mock.On call
+//   - orgID int64
+//   - after int64
+//   - before int64
+func (_e *MockStore_Expecter) GetPipelineCountByOrg(orgID interface{}, after interface{}, before interface{}) *MockStore_GetPipelineCountByOrg_Call {
+	return &MockStore_GetPipelineCountByOrg_Call{Call: _e.mock.On("GetPipelineCountByOrg", orgID, after, before)}
+}
+
+func (_c *MockStore_GetPipelineCountByOrg_Call) Run(run func(orgID int64, after int64, before int64)) *MockStore_GetPipelineCountByOrg_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		var arg2 int64
+		if args[2] != nil {
+			arg2 = args[2].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_GetPipelineCountByOrg_Call) Return(n int64, err error) *MockStore_GetPipelineCountByOrg_Call {
+	_c.Call.Return(n, err)
+	return _c
+}
+
+func (_c *MockStore_GetPipelineCountByOrg_Call) RunAndReturn(run func(orgID int64, after int64, before int64) (int64, error)) *MockStore_GetPipelineCountByOrg_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetPipelineCountByRepo provides a mock function for the type MockStore
 func (_mock *MockStore) GetPipelineCountByRepo(n int64) (int64, error) {
 	ret := _mock.Called(n)
@@ -3078,6 +3897,154 @@ func (_c *MockStore_GetPipelineCountByRepo_Call) Return(n1 int64, err error) *Mo
 }
 
 func (_c *MockStore_GetPipelineCountByRepo_Call) RunAndReturn(run func(n int64) (int64, error)) *MockStore_GetPipelineCountByRepo_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetPipelineCountsByOrg provides a mock function for the type MockStore
+func (_mock *MockStore) GetPipelineCountsByOrg(after int64, before int64, repoIDs []int64) (map[int64]int64, error) {
+	ret := _mock.Called(after, before, repoIDs)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetPipelineCountsByOrg")
+	}
+
+	var r0 map[int64]int64
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, []int64) (map[int64]int64, error)); ok {
+		return returnFunc(after, before, repoIDs)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, []int64) map[int64]int64); ok {
+		r0 = returnFunc(after, before, repoIDs)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[int64]int64)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, int64, []int64) error); ok {
+		r1 = returnFunc(after, before, repoIDs)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_GetPipelineCountsByOrg_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetPipelineCountsByOrg'
+type MockStore_GetPipelineCountsByOrg_Call struct {
+	*mock.Call
+}
+
+// GetPipelineCountsByOrg is a helper method to define mock.On call
+//   - after int64
+//   - before int64
+//   - repoIDs []int64
+func (_e *MockStore_Expecter) GetPipelineCountsByOrg(after interface{}, before interface{}, repoIDs interface{}) *MockStore_GetPipelineCountsByOrg_Call {
+	return &MockStore_GetPipelineCountsByOrg_Call{Call: _e.mock.On("GetPipelineCountsByOrg", after, before, repoIDs)}
+}
+
+func (_c *MockStore_GetPipelineCountsByOrg_Call) Run(run func(after int64, before int64, repoIDs []int64)) *MockStore_GetPipelineCountsByOrg_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		var arg2 []int64
+		if args[2] != nil {
+			arg2 = args[2].([]int64)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_GetPipelineCountsByOrg_Call) Return(int64ToInt64 map[int64]int64, err error) *MockStore_GetPipelineCountsByOrg_Call {
+	_c.Call.Return(int64ToInt64, err)
+	return _c
+}
+
+func (_c *MockStore_GetPipelineCountsByOrg_Call) RunAndReturn(run func(after int64, before int64, repoIDs []int64) (map[int64]int64, error)) *MockStore_GetPipelineCountsByOrg_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetPipelineCountsByRepo provides a mock function for the type MockStore
+func (_mock *MockStore) GetPipelineCountsByRepo(after int64, before int64, repoIDs []int64) (map[int64]int64, error) {
+	ret := _mock.Called(after, before, repoIDs)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetPipelineCountsByRepo")
+	}
+
+	var r0 map[int64]int64
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, []int64) (map[int64]int64, error)); ok {
+		return returnFunc(after, before, repoIDs)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, []int64) map[int64]int64); ok {
+		r0 = returnFunc(after, before, repoIDs)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[int64]int64)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, int64, []int64) error); ok {
+		r1 = returnFunc(after, before, repoIDs)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_GetPipelineCountsByRepo_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetPipelineCountsByRepo'
+type MockStore_GetPipelineCountsByRepo_Call struct {
+	*mock.Call
+}
+
+// GetPipelineCountsByRepo is a helper method to define mock.On call
+//   - after int64
+//   - before int64
+//   - repoIDs []int64
+func (_e *MockStore_Expecter) GetPipelineCountsByRepo(after interface{}, before interface{}, repoIDs interface{}) *MockStore_GetPipelineCountsByRepo_Call {
+	return &MockStore_GetPipelineCountsByRepo_Call{Call: _e.mock.On("GetPipelineCountsByRepo", after, before, repoIDs)}
+}
+
+func (_c *MockStore_GetPipelineCountsByRepo_Call) Run(run func(after int64, before int64, repoIDs []int64)) *MockStore_GetPipelineCountsByRepo_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		var arg2 []int64
+		if args[2] != nil {
+			arg2 = args[2].([]int64)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_GetPipelineCountsByRepo_Call) Return(int64ToInt64 map[int64]int64, err error) *MockStore_GetPipelineCountsByRepo_Call {
+	_c.Call.Return(int64ToInt64, err)
+	return _c
+}
+
+func (_c *MockStore_GetPipelineCountsByRepo_Call) RunAndReturn(run func(after int64, before int64, repoIDs []int64) (map[int64]int64, error)) *MockStore_GetPipelineCountsByRepo_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -4233,6 +5200,152 @@ func (_c *MockStore_GetUserRemoteID_Call) Return(user *model.User, err error) *M
 }
 
 func (_c *MockStore_GetUserRemoteID_Call) RunAndReturn(run func(forgeRemoteID model.ForgeRemoteID, s string) (*model.User, error)) *MockStore_GetUserRemoteID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetWorkflowCountByAgent provides a mock function for the type MockStore
+func (_mock *MockStore) GetWorkflowCountByAgent(agentID int64, after int64, before int64) (int64, error) {
+	ret := _mock.Called(agentID, after, before)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetWorkflowCountByAgent")
+	}
+
+	var r0 int64
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, int64) (int64, error)); ok {
+		return returnFunc(agentID, after, before)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, int64) int64); ok {
+		r0 = returnFunc(agentID, after, before)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, int64, int64) error); ok {
+		r1 = returnFunc(agentID, after, before)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_GetWorkflowCountByAgent_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetWorkflowCountByAgent'
+type MockStore_GetWorkflowCountByAgent_Call struct {
+	*mock.Call
+}
+
+// GetWorkflowCountByAgent is a helper method to define mock.On call
+//   - agentID int64
+//   - after int64
+//   - before int64
+func (_e *MockStore_Expecter) GetWorkflowCountByAgent(agentID interface{}, after interface{}, before interface{}) *MockStore_GetWorkflowCountByAgent_Call {
+	return &MockStore_GetWorkflowCountByAgent_Call{Call: _e.mock.On("GetWorkflowCountByAgent", agentID, after, before)}
+}
+
+func (_c *MockStore_GetWorkflowCountByAgent_Call) Run(run func(agentID int64, after int64, before int64)) *MockStore_GetWorkflowCountByAgent_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		var arg2 int64
+		if args[2] != nil {
+			arg2 = args[2].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_GetWorkflowCountByAgent_Call) Return(n int64, err error) *MockStore_GetWorkflowCountByAgent_Call {
+	_c.Call.Return(n, err)
+	return _c
+}
+
+func (_c *MockStore_GetWorkflowCountByAgent_Call) RunAndReturn(run func(agentID int64, after int64, before int64) (int64, error)) *MockStore_GetWorkflowCountByAgent_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetWorkflowCountsByAgent provides a mock function for the type MockStore
+func (_mock *MockStore) GetWorkflowCountsByAgent(after int64, before int64, repoIDs []int64) (map[int64]int64, error) {
+	ret := _mock.Called(after, before, repoIDs)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetWorkflowCountsByAgent")
+	}
+
+	var r0 map[int64]int64
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, []int64) (map[int64]int64, error)); ok {
+		return returnFunc(after, before, repoIDs)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, []int64) map[int64]int64); ok {
+		r0 = returnFunc(after, before, repoIDs)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[int64]int64)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, int64, []int64) error); ok {
+		r1 = returnFunc(after, before, repoIDs)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_GetWorkflowCountsByAgent_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetWorkflowCountsByAgent'
+type MockStore_GetWorkflowCountsByAgent_Call struct {
+	*mock.Call
+}
+
+// GetWorkflowCountsByAgent is a helper method to define mock.On call
+//   - after int64
+//   - before int64
+//   - repoIDs []int64
+func (_e *MockStore_Expecter) GetWorkflowCountsByAgent(after interface{}, before interface{}, repoIDs interface{}) *MockStore_GetWorkflowCountsByAgent_Call {
+	return &MockStore_GetWorkflowCountsByAgent_Call{Call: _e.mock.On("GetWorkflowCountsByAgent", after, before, repoIDs)}
+}
+
+func (_c *MockStore_GetWorkflowCountsByAgent_Call) Run(run func(after int64, before int64, repoIDs []int64)) *MockStore_GetWorkflowCountsByAgent_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		var arg2 []int64
+		if args[2] != nil {
+			arg2 = args[2].([]int64)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_GetWorkflowCountsByAgent_Call) Return(int64ToInt64 map[int64]int64, err error) *MockStore_GetWorkflowCountsByAgent_Call {
+	_c.Call.Return(int64ToInt64, err)
+	return _c
+}
+
+func (_c *MockStore_GetWorkflowCountsByAgent_Call) RunAndReturn(run func(after int64, before int64, repoIDs []int64) (map[int64]int64, error)) *MockStore_GetWorkflowCountsByAgent_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -8552,6 +9665,80 @@ func (_c *MockStore_UpdateUser_Call) RunAndReturn(run func(user *model.User) err
 	return _c
 }
 
+// UserCronList provides a mock function for the type MockStore
+func (_mock *MockStore) UserCronList(repoIDs []int64, searchTerm string, p *model.ListOptions) ([]*model.Cron, error) {
+	ret := _mock.Called(repoIDs, searchTerm, p)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UserCronList")
+	}
+
+	var r0 []*model.Cron
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func([]int64, string, *model.ListOptions) ([]*model.Cron, error)); ok {
+		return returnFunc(repoIDs, searchTerm, p)
+	}
+	if returnFunc, ok := ret.Get(0).(func([]int64, string, *model.ListOptions) []*model.Cron); ok {
+		r0 = returnFunc(repoIDs, searchTerm, p)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.Cron)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func([]int64, string, *model.ListOptions) error); ok {
+		r1 = returnFunc(repoIDs, searchTerm, p)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_UserCronList_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UserCronList'
+type MockStore_UserCronList_Call struct {
+	*mock.Call
+}
+
+// UserCronList is a helper method to define mock.On call
+//   - repoIDs []int64
+//   - searchTerm string
+//   - p *model.ListOptions
+func (_e *MockStore_Expecter) UserCronList(repoIDs interface{}, searchTerm interface{}, p interface{}) *MockStore_UserCronList_Call {
+	return &MockStore_UserCronList_Call{Call: _e.mock.On("UserCronList", repoIDs, searchTerm, p)}
+}
+
+func (_c *MockStore_UserCronList_Call) Run(run func(repoIDs []int64, searchTerm string, p *model.ListOptions)) *MockStore_UserCronList_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 []int64
+		if args[0] != nil {
+			arg0 = args[0].([]int64)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 *model.ListOptions
+		if args[2] != nil {
+			arg2 = args[2].(*model.ListOptions)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_UserCronList_Call) Return(crons []*model.Cron, err error) *MockStore_UserCronList_Call {
+	_c.Call.Return(crons, err)
+	return _c
+}
+
+func (_c *MockStore_UserCronList_Call) RunAndReturn(run func(repoIDs []int64, searchTerm string, p *model.ListOptions) ([]*model.Cron, error)) *MockStore_UserCronList_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // UserFeed provides a mock function for the type MockStore
 func (_mock *MockStore) UserFeed(user *model.User) ([]*model.Feed, error) {
 	ret := _mock.Called(user)
@@ -8610,6 +9797,172 @@ func (_c *MockStore_UserFeed_Call) Return(feeds []*model.Feed, err error) *MockS
 }
 
 func (_c *MockStore_UserFeed_Call) RunAndReturn(run func(user *model.User) ([]*model.Feed, error)) *MockStore_UserFeed_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UserRegistryList provides a mock function for the type MockStore
+func (_mock *MockStore) UserRegistryList(orgIDs []int64, includeGlobal bool, searchTerm string, p *model.ListOptions) ([]*model.Registry, error) {
+	ret := _mock.Called(orgIDs, includeGlobal, searchTerm, p)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UserRegistryList")
+	}
+
+	var r0 []*model.Registry
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func([]int64, bool, string, *model.ListOptions) ([]*model.Registry, error)); ok {
+		return returnFunc(orgIDs, includeGlobal, searchTerm, p)
+	}
+	if returnFunc, ok := ret.Get(0).(func([]int64, bool, string, *model.ListOptions) []*model.Registry); ok {
+		r0 = returnFunc(orgIDs, includeGlobal, searchTerm, p)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.Registry)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func([]int64, bool, string, *model.ListOptions) error); ok {
+		r1 = returnFunc(orgIDs, includeGlobal, searchTerm, p)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_UserRegistryList_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UserRegistryList'
+type MockStore_UserRegistryList_Call struct {
+	*mock.Call
+}
+
+// UserRegistryList is a helper method to define mock.On call
+//   - orgIDs []int64
+//   - includeGlobal bool
+//   - searchTerm string
+//   - p *model.ListOptions
+func (_e *MockStore_Expecter) UserRegistryList(orgIDs interface{}, includeGlobal interface{}, searchTerm interface{}, p interface{}) *MockStore_UserRegistryList_Call {
+	return &MockStore_UserRegistryList_Call{Call: _e.mock.On("UserRegistryList", orgIDs, includeGlobal, searchTerm, p)}
+}
+
+func (_c *MockStore_UserRegistryList_Call) Run(run func(orgIDs []int64, includeGlobal bool, searchTerm string, p *model.ListOptions)) *MockStore_UserRegistryList_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 []int64
+		if args[0] != nil {
+			arg0 = args[0].([]int64)
+		}
+		var arg1 bool
+		if args[1] != nil {
+			arg1 = args[1].(bool)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 *model.ListOptions
+		if args[3] != nil {
+			arg3 = args[3].(*model.ListOptions)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_UserRegistryList_Call) Return(registrys []*model.Registry, err error) *MockStore_UserRegistryList_Call {
+	_c.Call.Return(registrys, err)
+	return _c
+}
+
+func (_c *MockStore_UserRegistryList_Call) RunAndReturn(run func(orgIDs []int64, includeGlobal bool, searchTerm string, p *model.ListOptions) ([]*model.Registry, error)) *MockStore_UserRegistryList_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UserSecretList provides a mock function for the type MockStore
+func (_mock *MockStore) UserSecretList(orgIDs []int64, repoIDs []int64, includeGlobal bool, searchTerm string, p *model.ListOptions) ([]*model.Secret, error) {
+	ret := _mock.Called(orgIDs, repoIDs, includeGlobal, searchTerm, p)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UserSecretList")
+	}
+
+	var r0 []*model.Secret
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func([]int64, []int64, bool, string, *model.ListOptions) ([]*model.Secret, error)); ok {
+		return returnFunc(orgIDs, repoIDs, includeGlobal, searchTerm, p)
+	}
+	if returnFunc, ok := ret.Get(0).(func([]int64, []int64, bool, string, *model.ListOptions) []*model.Secret); ok {
+		r0 = returnFunc(orgIDs, repoIDs, includeGlobal, searchTerm, p)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.Secret)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func([]int64, []int64, bool, string, *model.ListOptions) error); ok {
+		r1 = returnFunc(orgIDs, repoIDs, includeGlobal, searchTerm, p)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_UserSecretList_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UserSecretList'
+type MockStore_UserSecretList_Call struct {
+	*mock.Call
+}
+
+// UserSecretList is a helper method to define mock.On call
+//   - orgIDs []int64
+//   - repoIDs []int64
+//   - includeGlobal bool
+//   - searchTerm string
+//   - p *model.ListOptions
+func (_e *MockStore_Expecter) UserSecretList(orgIDs interface{}, repoIDs interface{}, includeGlobal interface{}, searchTerm interface{}, p interface{}) *MockStore_UserSecretList_Call {
+	return &MockStore_UserSecretList_Call{Call: _e.mock.On("UserSecretList", orgIDs, repoIDs, includeGlobal, searchTerm, p)}
+}
+
+func (_c *MockStore_UserSecretList_Call) Run(run func(orgIDs []int64, repoIDs []int64, includeGlobal bool, searchTerm string, p *model.ListOptions)) *MockStore_UserSecretList_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 []int64
+		if args[0] != nil {
+			arg0 = args[0].([]int64)
+		}
+		var arg1 []int64
+		if args[1] != nil {
+			arg1 = args[1].([]int64)
+		}
+		var arg2 bool
+		if args[2] != nil {
+			arg2 = args[2].(bool)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		var arg4 *model.ListOptions
+		if args[4] != nil {
+			arg4 = args[4].(*model.ListOptions)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_UserSecretList_Call) Return(secrets []*model.Secret, err error) *MockStore_UserSecretList_Call {
+	_c.Call.Return(secrets, err)
+	return _c
+}
+
+func (_c *MockStore_UserSecretList_Call) RunAndReturn(run func(orgIDs []int64, repoIDs []int64, includeGlobal bool, searchTerm string, p *model.ListOptions) ([]*model.Secret, error)) *MockStore_UserSecretList_Call {
 	_c.Call.Return(run)
 	return _c
 }

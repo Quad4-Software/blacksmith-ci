@@ -24,7 +24,7 @@ import (
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
 
-	"codeberg.org/crowci/crow/v4/shared/yaml"
+	"codeberg.org/crowci/crow/v5/shared/yaml"
 )
 
 //go:embed schema.json

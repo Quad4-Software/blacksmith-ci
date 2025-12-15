@@ -21,9 +21,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 
-	"codeberg.org/crowci/crow/v4/server"
-	"codeberg.org/crowci/crow/v4/server/forge/bitbucketdatacenter/fixtures"
-	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v5/server"
+	"codeberg.org/crowci/crow/v5/server/forge/bitbucketdatacenter/fixtures"
+	"codeberg.org/crowci/crow/v5/server/model"
 )
 
 func TestNew(t *testing.T) {

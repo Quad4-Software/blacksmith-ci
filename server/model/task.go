@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"strings"
 
-	"codeberg.org/crowci/crow/v4/pipeline"
+	"codeberg.org/crowci/crow/v5/pipeline"
 )
 
 // Task defines scheduled pipeline Task.

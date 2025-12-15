@@ -28,7 +28,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"codeberg.org/crowci/crow/v4/pipeline/backend/types"
+	"codeberg.org/crowci/crow/v5/pipeline/backend/types"
 )
 
 // checkGitCloneCap check if we have the git binary on hand.
@@ -107,9 +107,12 @@ func (e *local) execClone(ctx context.Context, step *types.Step, state *workflow
 		return fmt.Errorf("could not wrap command with sandbox: %w", err)
 	}
 
-	// Get output and redirect Stderr to Stdout
-	e.output, _ = cmd.StdoutPipe()
-	cmd.Stderr = cmd.Stdout
+	// Capture stdout and stderr separately with stream tags
+	stdoutPipe, _ := cmd.StdoutPipe()
+	stderrPipe, _ := cmd.StderrPipe()
+
+	// Create merged output with stream tags
+	e.output = createTaggedMergedPipe(stdoutPipe, stderrPipe, e.os == "windows")
 
 	state.stepCMDs[step.UUID] = cmd
 

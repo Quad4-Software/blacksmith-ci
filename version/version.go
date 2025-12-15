@@ -24,6 +24,9 @@ import (
 // Version of Crow CI, set with ldflags, from Git tag.
 var Version string
 
+// BuildDate is the date when the binary was built, set with ldflags.
+var BuildDate string
+
 // commitHashLength defines the number of characters to use from git commit hash.
 const commitHashLength = 10
 
@@ -38,6 +41,11 @@ func String() string {
 	}
 
 	return Version
+}
+
+// Date returns the BuildDate set at build time or empty string if not set.
+func Date() string {
+	return BuildDate
 }
 
 // getGitCommitHash attempts to get the current git commit hash for development builds.

@@ -3,8 +3,10 @@ package model
 // QueueTask represents a task in the queue with additional API-specific fields.
 type QueueTask struct {
 	Task
-	PipelineNumber int64  `json:"pipeline_number"`
-	AgentName      string `json:"agent_name"`
+	PipelineNumber  int64  `json:"pipeline_number"`
+	AgentName       string `json:"agent_name"`
+	PipelineCreated int64  `json:"pipeline_created"` // Unix timestamp when the pipeline was created
+	PipelineStarted int64  `json:"pipeline_started"` // Unix timestamp when the pipeline started running (0 if not started)
 }
 
 // QueueInfo represents the response structure for queue information API.

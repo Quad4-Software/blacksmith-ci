@@ -15,8 +15,8 @@
 package main
 
 import (
-	"codeberg.org/crowci/crow/v4/cmd/server/openapi"
-	"codeberg.org/crowci/crow/v4/version"
+	"codeberg.org/crowci/crow/v5/cmd/server/openapi"
+	"codeberg.org/crowci/crow/v5/version"
 )
 
 // Generate docs/openapi.json via:
@@ -28,7 +28,7 @@ import (
 //	@description	Crow CI is a lightweight, community-driven CI application for self-hosted environments.
 //	@description	To get a personal access token (PAT) for authentication, please log in
 //	@description	and go to you personal profile page, by clicking the user icon at the top right.
-//	@BasePath		/api
+//	@BasePath		/api/v1
 //	@contact.name	Crow CI
 //	@contact.url	https://crowci.dev/
 func setupOpenAPIStaticConfig() {

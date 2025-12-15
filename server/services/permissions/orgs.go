@@ -1,8 +1,8 @@
 package permissions
 
 import (
-	"codeberg.org/crowci/crow/v4/server/model"
-	"codeberg.org/crowci/crow/v4/shared/utils"
+	"codeberg.org/crowci/crow/v5/server/model"
+	"codeberg.org/crowci/crow/v5/shared/utils"
 )
 
 func NewOrgs(orgs []string) *Orgs {

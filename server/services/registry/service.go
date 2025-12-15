@@ -14,7 +14,7 @@
 
 package registry
 
-import "codeberg.org/crowci/crow/v4/server/model"
+import "codeberg.org/crowci/crow/v5/server/model"
 
 // Service defines a service for managing registries.
 type Service interface {

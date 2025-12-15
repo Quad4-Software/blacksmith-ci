@@ -7,8 +7,8 @@ package logging
 import (
 	"context"
 
-	"codeberg.org/crowci/crow/v4/server/logging"
-	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v5/server/logging"
+	"codeberg.org/crowci/crow/v5/server/model"
 	mock "github.com/stretchr/testify/mock"
 )
 

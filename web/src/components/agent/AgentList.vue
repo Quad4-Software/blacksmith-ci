@@ -1,262 +1,302 @@
 <template>
   <!-- Filter controls -->
-  <div v-if="!props.loading && props.agents" class="mb-6">
+  <div v-if="props.agents" class="mb-4">
     <div class="flex flex-wrap items-center gap-2">
-      <!-- Search input -->
-      <div class="flex-1 min-w-[100px] max-w-[150px]">
-        <TextField v-model="searchQuery" :placeholder="$t('admin.settings.agents.search')" type="text" />
-      </div>
-
-      <!-- Type filter -->
-      <div class="w-[110px]">
-        <SelectField
-          v-model="typeFilter"
-          :placeholder="$t('admin.settings.agents.filter_type')"
-          :options="typeOptions"
+      <!-- Search input (left) -->
+      <div class="w-[200px]">
+        <SearchInput
+          v-model="searchQuery"
+          :placeholder="$t('admin.settings.agents.search')"
+          type="text"
+          class="[&_input]:h-8"
         />
       </div>
 
-      <!-- Platform filter -->
-      <div class="w-[110px]">
-        <SelectField
-          v-model="platformFilter"
-          :placeholder="$t('admin.settings.agents.filter_platform')"
-          :options="platformOptions"
-        />
-      </div>
+      <!-- Center spacer -->
+      <div class="flex-1" />
 
-      <!-- Backend filter -->
-      <div class="w-[110px]">
-        <SelectField
-          v-model="backendFilter"
-          :placeholder="$t('admin.settings.agents.filter_backend')"
-          :options="backendOptions"
-        />
-      </div>
+      <!-- Platform filter (center) -->
+      <DropdownMenu :modal="false">
+        <DropdownMenuTrigger as-child>
+          <Button variant="outline" size="sm" class="h-8">
+            <Icon name="lucide:server" class="mr-2 h-4 w-4" />
+            <span v-if="selectedPlatforms.length === 0">{{ $t('admin.settings.agents.filter_platform') }}</span>
+            <span v-else class="max-w-[120px] truncate">{{ selectedPlatforms.join(', ') }}</span>
+            <template v-if="selectedPlatforms.length > 0">
+              <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
+              <span class="mx-2" aria-hidden="true">|</span>
+              <UiBadge variant="secondary" class="rounded-sm px-1 font-normal">
+                {{ selectedPlatforms.length }}
+              </UiBadge>
+            </template>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent class="w-[200px]" align="start">
+          <DropdownMenuCheckboxItem
+            v-for="option in platformOptions"
+            :key="option.value"
+            :model-value="selectedPlatforms.includes(option.value)"
+            @update:model-value="(checked) => togglePlatform(option.value, !!checked)"
+          >
+            {{ option.text }}
+          </DropdownMenuCheckboxItem>
+          <template v-if="selectedPlatforms.length > 0">
+            <DropdownMenuSeparator />
+            <DropdownMenuItem @click="clearPlatforms">
+              {{ $t('admin.settings.agents.clear_filter') }}
+            </DropdownMenuItem>
+          </template>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
-      <!-- Sort dropdown with label and reverse toggle -->
-      <div class="flex items-center gap-1.5 md:ml-auto">
-        <!-- Compact badge-style label -->
-        <span
-          class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-wp-background-300 text-wp-text-alt-100 border border-wp-background-400 shrink-0"
-        >
-          {{ $t('admin.settings.agents.sort_by') }}
-        </span>
-        <div class="w-[130px]">
-          <SelectField v-model="sortBy" :placeholder="$t('admin.settings.agents.sort_by')" :options="sortOptions" />
-        </div>
-        <!-- Reverse sort toggle -->
-        <IconButton
-          :icon="sortReverse ? 'sort-ascending' : 'sort-descending'"
-          :title="
-            sortReverse ? $t('admin.settings.agents.sort_ascending') : $t('admin.settings.agents.sort_descending')
-          "
-          class="shrink-0"
-          @click="sortReverse = !sortReverse"
-        />
-      </div>
+      <!-- Backend filter (center) -->
+      <DropdownMenu :modal="false">
+        <DropdownMenuTrigger as-child>
+          <Button variant="outline" size="sm" class="h-8">
+            <Icon name="lucide:box" class="mr-2 h-4 w-4" />
+            <span v-if="selectedBackends.length === 0">{{ $t('admin.settings.agents.filter_backend') }}</span>
+            <span v-else class="max-w-[120px] truncate">{{ selectedBackends.join(', ') }}</span>
+            <template v-if="selectedBackends.length > 0">
+              <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
+              <span class="mx-2" aria-hidden="true">|</span>
+              <UiBadge variant="secondary" class="rounded-sm px-1 font-normal">
+                {{ selectedBackends.length }}
+              </UiBadge>
+            </template>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent class="w-[200px]" align="start">
+          <DropdownMenuCheckboxItem
+            v-for="option in backendOptions"
+            :key="option.value"
+            :model-value="selectedBackends.includes(option.value)"
+            @update:model-value="(checked) => toggleBackend(option.value, !!checked)"
+          >
+            {{ option.text }}
+          </DropdownMenuCheckboxItem>
+          <template v-if="selectedBackends.length > 0">
+            <DropdownMenuSeparator />
+            <DropdownMenuItem @click="clearBackends">
+              {{ $t('admin.settings.agents.clear_filter') }}
+            </DropdownMenuItem>
+          </template>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
-      <!-- Clear filters button -->
-      <Button
-        v-if="hasActiveFilters"
-        :text="$t('admin.settings.agents.clear_filters')"
-        color="gray"
-        @click="clearFilters"
-      />
+      <!-- Right spacer -->
+      <div class="flex-1" />
+
+      <!-- Sort dropdown (right) -->
+      <DropdownMenu :modal="false">
+        <DropdownMenuTrigger as-child>
+          <Button variant="outline" size="sm" class="h-8">
+            <Icon name="lucide:arrow-up-down" class="mr-2 h-4 w-4" />
+            {{ $t('sort') }}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent class="w-[200px]" align="end">
+          <DropdownMenuRadioGroup :model-value="sortBy" @update:model-value="updateSort">
+            <DropdownMenuRadioItem v-for="option in sortOptions" :key="option.value" :value="option.value">
+              {{ option.text }}
+            </DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuCheckboxItem :checked="sortReverse" @update:checked="updateSortOrder">
+            {{ $t('admin.settings.agents.sort_descending') }}
+          </DropdownMenuCheckboxItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   </div>
 
   <!-- Agent Cards Grid -->
-  <div v-if="!props.loading && props.agents" class="space-y-3">
+  <div v-if="props.agents" class="relative">
+    <!-- Subtle loading overlay -->
     <div
-      v-for="agent in displayedAgents"
-      :key="agent.id"
-      class="rounded-lg border border-wp-background-400 bg-wp-background-100 dark:bg-wp-background-200 shadow-sm hover:shadow-md transition-shadow duration-200"
-    >
-      <div class="p-4">
-        <!-- Header Row: Name, Status Indicator, and Actions -->
-        <div class="flex items-start justify-between mb-3">
-          <!-- Agent Name and Status -->
-          <div class="flex items-center gap-3 flex-1 min-w-0 md:flex-row">
-            <!-- Status Indicator -->
-            <div
-              class="shrink-0 w-3 h-3 rounded-full"
-              :class="[getStatusColor(agent), getStatusAnimation(agent)]"
-              :title="getStatusTitle(agent)"
-            ></div>
+      v-if="props.loading"
+      class="absolute inset-0 bg-background/30 backdrop-blur-[1px] z-10 pointer-events-none transition-opacity duration-200"
+    />
 
-            <!-- Agent Name -->
-            <div class="min-w-0 flex-1">
-              <h3 class="text-base font-semibold text-wp-text-100 truncate">
-                {{ getAgentDisplayName(agent) }}
-              </h3>
-              <!-- Desktop: single line metadata -->
-              <div class="hidden md:flex items-center gap-2 mt-1">
-                <span class="text-xs text-wp-text-alt-100"
-                  >{{ $t('admin.settings.agents.agent_id') }} {{ agent.id }}</span
-                >
-                <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-                <span v-if="agent.org_id !== -1" class="text-xs text-wp-text-alt-100" aria-hidden="true">•</span>
-                <router-link
-                  v-if="agent.org_id !== -1"
-                  :to="`/orgs/${agent.org_id}`"
-                  class="text-xs text-wp-control-info-default hover:underline"
-                >
-                  {{ $t('admin.settings.agents.org_prefix') }} {{ agent.org_id }}
-                </router-link>
-                <!-- Docker Memory Limit -->
-                <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-                <span v-if="agent.backend === 'docker'" class="text-xs text-wp-text-alt-100" aria-hidden="true">•</span>
-                <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
-                <span v-if="agent.backend === 'docker'" class="text-xs text-wp-text-alt">
-                  {{ $t('admin.settings.agents.limit_mem') }}<span aria-hidden="true">:</span>
-                  {{ formatBytes(agent.limit_mem) }}
-                </span>
-                <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
-                <!-- Docker CPU Quota -->
-                <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
-                <span v-if="agent.backend === 'docker'" class="text-xs text-wp-text-alt">
-                  {{ $t('admin.settings.agents.limit_cpu_quota') }}<span aria-hidden="true">:</span>
-                  {{ formatCPUQuota(agent.limit_cpu_quota) }}
-                </span>
-                <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
-              </div>
-              <!-- Mobile: stacked metadata -->
-              <div class="flex md:hidden flex-col gap-1 mt-1">
-                <div class="flex items-center gap-2">
-                  <span class="text-xs text-wp-text-alt-100"
+    <div class="space-y-3 transition-opacity duration-200" :class="{ 'opacity-60': props.loading }">
+      <Card v-for="agent in displayedAgents" :key="agent.id" class="hover:shadow-md transition-shadow duration-200">
+        <div class="p-2">
+          <!-- Header Row: Name, Status Indicator, and Actions -->
+          <div class="flex items-start justify-between mb-3">
+            <!-- Agent Name and Status -->
+            <div class="flex items-center gap-3 flex-1 min-w-0 md:flex-row">
+              <!-- Status Indicator -->
+              <div
+                class="shrink-0 w-3 h-3 rounded-full"
+                :class="[getStatusColor(agent), getStatusAnimation(agent)]"
+                :title="getStatusTitle(agent)"
+              ></div>
+
+              <!-- Agent Name -->
+              <div class="min-w-0 flex-1">
+                <h3 class="text-base font-semibold text-foreground truncate">
+                  {{ getAgentDisplayName(agent) }}
+                </h3>
+                <!-- Desktop: single line metadata -->
+                <div class="hidden md:flex items-center gap-2 mt-1">
+                  <span class="text-xs text-muted-foreground"
                     >{{ $t('admin.settings.agents.agent_id') }} {{ agent.id }}</span
                   >
                   <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-                  <span v-if="agent.org_id !== -1" class="text-xs text-wp-text-alt-100" aria-hidden="true">•</span>
+                  <span v-if="agent.org_id !== -1" class="text-xs text-muted-foreground" aria-hidden="true">•</span>
                   <router-link
                     v-if="agent.org_id !== -1"
                     :to="`/orgs/${agent.org_id}`"
-                    class="text-xs text-wp-control-info-default hover:underline"
+                    class="text-xs text-primary hover:underline"
                   >
                     {{ $t('admin.settings.agents.org_prefix') }} {{ agent.org_id }}
                   </router-link>
-                </div>
-                <!-- Resource limits on separate line for mobile -->
-                <div v-if="agent.backend === 'docker'" class="flex items-center gap-2">
+                  <!-- Docker Memory Limit -->
                   <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
-                  <span class="text-xs text-wp-text-alt min-w-[50px]">
-                    Mem/Workflow<span aria-hidden="true">:</span>
+                  <span v-if="agent.backend === 'docker'" class="text-xs text-muted-foreground" aria-hidden="true"
+                    >•</span
+                  >
+                  <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
+                  <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
+                  <span v-if="agent.backend === 'docker'" class="text-xs text-muted-foreground">
+                    {{ $t('admin.settings.agents.limit_mem') }}<span aria-hidden="true">:</span>
                     {{ formatBytes(agent.limit_mem) }}
                   </span>
-                  <span class="text-xs text-wp-text-alt min-w-[50px]">
-                    CPU/Workflow<span aria-hidden="true">:</span>
+                  <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
+                  <!-- Docker CPU Quota -->
+                  <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
+                  <span v-if="agent.backend === 'docker'" class="text-xs text-muted-foreground">
+                    {{ $t('admin.settings.agents.limit_cpu_quota') }}<span aria-hidden="true">:</span>
                     {{ formatCPUQuota(agent.limit_cpu_quota) }}
                   </span>
                   <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
                 </div>
+                <!-- Mobile: stacked metadata -->
+                <div class="flex md:hidden flex-col gap-1 mt-1">
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs text-muted-foreground"
+                      >{{ $t('admin.settings.agents.agent_id') }} {{ agent.id }}</span
+                    >
+                    <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
+                    <span v-if="agent.org_id !== -1" class="text-xs text-muted-foreground" aria-hidden="true">•</span>
+                    <router-link
+                      v-if="agent.org_id !== -1"
+                      :to="`/orgs/${agent.org_id}`"
+                      class="text-xs text-primary hover:underline"
+                    >
+                      {{ $t('admin.settings.agents.org_prefix') }} {{ agent.org_id }}
+                    </router-link>
+                  </div>
+                  <!-- Resource limits on separate line for mobile -->
+                  <div v-if="agent.backend === 'docker'" class="flex items-center gap-2">
+                    <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
+                    <span class="text-xs text-muted-foreground min-w-[50px]">
+                      Mem/Workflow<span aria-hidden="true">:</span>
+                      {{ formatBytes(agent.limit_mem) }}
+                    </span>
+                    <span class="text-xs text-muted-foreground min-w-[50px]">
+                      CPU/Workflow<span aria-hidden="true">:</span>
+                      {{ formatCPUQuota(agent.limit_cpu_quota) }}
+                    </span>
+                    <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
+                  </div>
+                </div>
               </div>
+
+              <!-- Disabled Badge (if applicable) -->
+              <Badge v-if="agent.no_schedule" :label="$t('disabled')" class="shrink-0" />
             </div>
 
-            <!-- Disabled Badge (if applicable) -->
-            <Badge v-if="agent.no_schedule" :label="$t('disabled')" class="shrink-0" />
-          </div>
-
-          <!-- Action Buttons (desktop only - moved to bottom on mobile) -->
-          <div
-            v-if="props.isAdmin || agent.org_id === props.userOrgId"
-            class="hidden md:flex items-center gap-1 shrink-0 ml-3"
-          >
-            <IconButton
-              icon="edit"
-              :title="$t('admin.settings.agents.edit_agent')"
-              class="h-8 w-8"
-              @click="$emit('edit', agent)"
-            />
-            <IconButton
-              icon="trash"
-              :title="$t('admin.settings.agents.delete_agent')"
-              class="h-8 w-8 hover:text-wp-error-100"
-              :is-loading="props.isDeleting"
-              @click="$emit('delete', agent)"
-            />
-          </div>
-          <div v-else class="hidden md:flex items-center shrink-0 ml-3">
-            <Icon name="visibility-private" class="h-6 w-6 text-wp-text-alt-100" />
-          </div>
-        </div>
-
-        <!-- Info Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
-          <!-- Version -->
-          <div class="flex flex-col">
-            <span class="text-xs font-medium text-wp-text-alt-100 mb-1">{{
-              $t('admin.settings.agents.version.label')
-            }}</span>
-            <span
-              v-if="agent.version"
-              class="text-sm font-mono text-wp-text-100 flex items-center gap-1"
-              :title="isVersionMismatch(agent.version) ? 'Version mismatch with server' : 'Version matches server'"
+            <!-- Action Buttons (desktop only - moved to bottom on mobile) -->
+            <div
+              v-if="(agent.org_id === -1 && props.isAdmin) || agent.org_id === props.userOrgId"
+              class="hidden md:flex items-center gap-1 shrink-0 ml-3"
             >
-              {{ agent.version }}
-              <Icon
-                v-if="isVersionMismatch(agent.version)"
-                name="alert"
-                class="h-4 w-4 text-yellow-500"
-                :title="$t('admin.settings.agents.version.mismatch')"
-              />
-            </span>
-            <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-            <span v-else class="text-sm text-wp-text-alt-100" aria-label="not available">—</span>
-          </div>
-
-          <!-- Last Seen (desktop: separate, mobile: combined with workflows) -->
-          <div class="hidden sm:flex flex-col">
-            <span class="text-xs font-medium text-wp-text-alt-100 mb-1">{{
-              $t('admin.settings.agents.last_contact.label')
-            }}</span>
-            <span class="text-sm text-wp-text-100">
-              {{ agent.last_contact ? date.timeAgo(agent.last_contact * 1000) : $t('admin.settings.agents.never') }}
-            </span>
-          </div>
-
-          <!-- Workflows (desktop: separate, mobile: combined with last seen) -->
-          <div class="hidden sm:flex flex-col">
-            <span class="text-xs font-medium text-wp-text-alt-100 mb-1">{{
-              $t('admin.settings.agents.workflows.label')
-            }}</span>
-            <div class="flex items-center gap-2">
-              <span class="text-sm text-wp-text-100">
-                <span class="font-semibold">{{ agent.running_workflows ?? 0 }}</span>
-                <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-                <span class="text-wp-text-alt-100" aria-hidden="true"> / </span>
-                <span class="text-wp-text-alt-100">{{ agent.capacity || 0 }}</span>
-              </span>
-              <span
-                v-if="agent.running_workflows && agent.running_workflows > 0"
-                class="inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-                :title="`${agent.running_workflows} active workflow${agent.running_workflows > 1 ? 's' : ''}`"
+              <Button
+                variant="ghost"
+                size="icon"
+                :title="$t('admin.settings.agents.edit_agent')"
+                @click="$emit('edit', agent)"
               >
-                {{ agent.running_workflows }} {{ $t('admin.settings.agents.workflows.active') }}
-              </span>
+                <Icon name="edit" class="h-4 w-4" />
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger as-child>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    :title="$t('admin.settings.agents.delete_agent')"
+                    :disabled="props.isDeleting"
+                  >
+                    <Icon v-if="!props.isDeleting" name="trash" class="h-4 w-4 text-destructive" />
+                    <Icon v-else name="loading" class="h-4 w-4 animate-spin" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{{ $t('admin.settings.agents.delete_agent') }}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {{ $t('admin.settings.agents.delete_confirm') }}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{{ $t('cancel') }}</AlertDialogCancel>
+                    <AlertDialogAction @click="$emit('delete', agent)">
+                      {{ $t('delete') }}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+            <div v-else class="hidden md:flex items-center shrink-0 ml-3">
+              <Icon name="visibility-private" class="h-6 w-6 text-muted-foreground" />
             </div>
           </div>
 
-          <!-- Mobile: Last Seen + Workflows combined in one row -->
-          <div class="flex sm:hidden flex-col">
-            <div class="grid grid-cols-2 gap-3 mb-1">
-              <span class="text-xs font-medium text-wp-text-alt-100">{{
+          <!-- Info Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+            <!-- Version -->
+            <div class="flex flex-col">
+              <span class="text-xs font-medium text-muted-foreground mb-1">{{
+                $t('admin.settings.agents.version.label')
+              }}</span>
+              <span
+                v-if="agent.version"
+                class="text-sm font-mono text-foreground flex items-center gap-1"
+                :title="isVersionMismatch(agent.version) ? 'Version mismatch with server' : 'Version matches server'"
+              >
+                {{ agent.version }}
+                <Icon
+                  v-if="isVersionMismatch(agent.version)"
+                  name="alert"
+                  class="h-4 w-4 text-yellow-500"
+                  :title="$t('admin.settings.agents.version.mismatch')"
+                />
+              </span>
+              <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
+              <span v-else class="text-sm text-muted-foreground" aria-label="not available">—</span>
+            </div>
+
+            <!-- Last Seen (desktop: separate, mobile: combined with workflows) -->
+            <div class="hidden sm:flex flex-col">
+              <span class="text-xs font-medium text-muted-foreground mb-1">{{
                 $t('admin.settings.agents.last_contact.label')
               }}</span>
-              <span class="text-xs font-medium text-wp-text-alt-100">{{
-                $t('admin.settings.agents.workflows.label')
-              }}</span>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-              <span class="text-sm text-wp-text-100">
+              <span class="text-sm text-foreground">
                 {{ agent.last_contact ? date.timeAgo(agent.last_contact * 1000) : $t('admin.settings.agents.never') }}
               </span>
+            </div>
+
+            <!-- Workflows (desktop: separate, mobile: combined with last seen) -->
+            <div class="hidden sm:flex flex-col">
+              <span class="text-xs font-medium text-muted-foreground mb-1">{{
+                $t('admin.settings.agents.workflows.label')
+              }}</span>
               <div class="flex items-center gap-2">
-                <span class="text-sm text-wp-text-100">
+                <span class="text-sm text-foreground">
                   <span class="font-semibold">{{ agent.running_workflows ?? 0 }}</span>
                   <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-                  <span class="text-wp-text-alt-100" aria-hidden="true"> / </span>
-                  <span class="text-wp-text-alt-100">{{ agent.capacity || 0 }}</span>
+                  <span class="text-muted-foreground" aria-hidden="true"> / </span>
+                  <span class="text-muted-foreground">{{ agent.capacity || 0 }}</span>
                 </span>
                 <span
                   v-if="agent.running_workflows && agent.running_workflows > 0"
@@ -267,69 +307,150 @@
                 </span>
               </div>
             </div>
+
+            <!-- Mobile: Last Seen + Workflows combined in one row -->
+            <div class="flex sm:hidden flex-col">
+              <div class="grid grid-cols-2 gap-3 mb-1">
+                <span class="text-xs font-medium text-muted-foreground">{{
+                  $t('admin.settings.agents.last_contact.label')
+                }}</span>
+                <span class="text-xs font-medium text-muted-foreground">{{
+                  $t('admin.settings.agents.workflows.label')
+                }}</span>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <span class="text-sm text-foreground">
+                  {{ agent.last_contact ? date.timeAgo(agent.last_contact * 1000) : $t('admin.settings.agents.never') }}
+                </span>
+                <div class="flex items-center gap-2">
+                  <span class="text-sm text-foreground">
+                    <span class="font-semibold">{{ agent.running_workflows ?? 0 }}</span>
+                    <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
+                    <span class="text-muted-foreground" aria-hidden="true"> / </span>
+                    <span class="text-muted-foreground">{{ agent.capacity || 0 }}</span>
+                  </span>
+                  <span
+                    v-if="agent.running_workflows && agent.running_workflows > 0"
+                    class="inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                    :title="`${agent.running_workflows} active workflow${agent.running_workflows > 1 ? 's' : ''}`"
+                  >
+                    {{ agent.running_workflows }} {{ $t('admin.settings.agents.workflows.active') }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Priority -->
+            <div v-if="agent.priority && agent.priority !== 0" class="flex flex-col">
+              <span class="text-xs font-medium text-muted-foreground mb-1">{{
+                $t('admin.settings.agents.priority_label')
+              }}</span>
+              <span class="text-sm text-foreground font-semibold">{{ agent.priority }}</span>
+            </div>
           </div>
 
-          <!-- Priority -->
-          <div v-if="agent.priority && agent.priority !== 0" class="flex flex-col">
-            <span class="text-xs font-medium text-wp-text-alt-100 mb-1">{{
-              $t('admin.settings.agents.priority_label')
-            }}</span>
-            <span class="text-sm text-wp-text-100 font-semibold">{{ agent.priority }}</span>
+          <!-- Technical Details Section -->
+          <Separator class="my-3" />
+          <div>
+            <div class="flex flex-wrap items-center gap-2">
+              <!-- Section Label -->
+              <span class="text-xs font-medium text-muted-foreground mr-1">{{
+                $t('admin.settings.agents.labels')
+              }}</span>
+
+              <!-- Type Badge - neutral secondary styling -->
+              <UiBadge v-if="agent.org_id === -1" variant="secondary">
+                {{ $t('admin.settings.agents.type.global') }}
+              </UiBadge>
+
+              <!-- Platform Badge -->
+              <Badge
+                v-if="agent.platform"
+                :label="$t('admin.settings.agents.platform.badge')"
+                :value="agent.platform"
+              />
+
+              <!-- Backend Badge -->
+              <Badge v-if="agent.backend" :label="$t('admin.settings.agents.backend.badge')" :value="agent.backend" />
+
+              <!-- Custom Labels (integrated inline) -->
+              <template v-if="agent.custom_labels && Object.keys(agent.custom_labels).length > 0">
+                <span
+                  v-for="(value, key) in agent.custom_labels"
+                  :key="`${key}-${value}`"
+                  class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
+                  :title="`Custom label: ${key} = ${value}`"
+                >
+                  <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
+                  <span class="font-semibold">{{ key }}<span aria-hidden="true">:</span></span>
+                  <span class="ml-1">{{ value }}</span>
+                </span>
+              </template>
+            </div>
           </div>
-        </div>
 
-        <!-- Technical Details Section -->
-        <div class="pt-3 border-t border-wp-background-400">
-          <div class="flex flex-wrap items-center gap-2">
-            <!-- Section Label -->
-            <span class="text-xs font-medium text-wp-text-alt-100 mr-1">{{ $t('admin.settings.agents.labels') }}</span>
-
-            <!-- Type Badge -->
-            <Badge :label="$t('admin.settings.agents.type.badge')" :value="agent.org_id === -1 ? 'global' : 'scoped'" />
-
-            <!-- Platform Badge -->
-            <Badge v-if="agent.platform" :label="$t('admin.settings.agents.platform.badge')" :value="agent.platform" />
-
-            <!-- Backend Badge -->
-            <Badge v-if="agent.backend" :label="$t('admin.settings.agents.backend.badge')" :value="agent.backend" />
-
-            <!-- Custom Labels (integrated inline) -->
-            <template v-if="agent.custom_labels && Object.keys(agent.custom_labels).length > 0">
-              <span
-                v-for="(value, key) in agent.custom_labels"
-                :key="`${key}-${value}`"
-                class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
-                :title="`Custom label: ${key} = ${value}`"
+          <!-- Action Buttons (mobile only - at bottom) -->
+          <Separator class="my-3 md:hidden" />
+          <div class="flex md:hidden justify-end gap-1">
+            <div
+              v-if="(agent.org_id === -1 && props.isAdmin) || agent.org_id === props.userOrgId"
+              class="flex items-center gap-1"
+            >
+              <Button
+                variant="ghost"
+                size="icon"
+                :title="$t('admin.settings.agents.edit_agent')"
+                @click="$emit('edit', agent)"
               >
-                <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-                <span class="font-semibold">{{ key }}<span aria-hidden="true">:</span></span>
-                <span class="ml-1">{{ value }}</span>
-              </span>
-            </template>
+                <Icon name="edit" class="h-4 w-4" />
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger as-child>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    :title="$t('admin.settings.agents.delete_agent')"
+                    :disabled="props.isDeleting"
+                  >
+                    <Icon v-if="!props.isDeleting" name="trash" class="h-4 w-4 text-destructive" />
+                    <Icon v-else name="loading" class="h-4 w-4 animate-spin" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{{ $t('admin.settings.agents.delete_agent') }}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {{ $t('admin.settings.agents.delete_confirm') }}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{{ $t('cancel') }}</AlertDialogCancel>
+                    <AlertDialogAction @click="$emit('delete', agent)">
+                      {{ $t('delete') }}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+            <div v-else class="flex items-center">
+              <Icon name="visibility-private" class="h-6 w-6 text-muted-foreground" />
+            </div>
           </div>
         </div>
+      </Card>
 
-        <!-- Action Buttons (mobile only - at bottom) -->
-        <div class="flex md:hidden justify-end gap-1 pt-3 border-t border-wp-background-400 mt-3">
-          <div v-if="props.isAdmin || agent.org_id === props.userOrgId" class="flex items-center gap-1">
-            <IconButton
-              icon="edit"
-              :title="$t('admin.settings.agents.edit_agent')"
-              class="h-8 w-8"
-              @click="$emit('edit', agent)"
-            />
-            <IconButton
-              icon="trash"
-              :title="$t('admin.settings.agents.delete_agent')"
-              class="h-8 w-8 hover:text-wp-error-100"
-              :is-loading="props.isDeleting"
-              @click="$emit('delete', agent)"
-            />
-          </div>
-          <div v-else class="flex items-center">
-            <Icon name="visibility-private" class="h-6 w-6 text-wp-text-alt-100" />
-          </div>
-        </div>
+      <!-- Empty States -->
+      <div
+        v-if="displayedAgents.length === 0 && props.agents?.length > 0"
+        class="text-center py-12 text-muted-foreground"
+      >
+        <Icon name="question" class="h-12 w-12 mx-auto mb-3 opacity-50" />
+        <p class="text-base">{{ $t('admin.settings.agents.no_match') }}</p>
+      </div>
+
+      <div v-if="props.agents?.length === 0" class="text-center py-12 text-muted-foreground">
+        <Icon name="list" class="h-12 w-12 mx-auto mb-3 opacity-50" />
+        <p class="text-base">{{ $t('admin.settings.agents.none') }}</p>
       </div>
     </div>
 
@@ -343,24 +464,6 @@
       @update:current-page="$emit('update:current-page', $event)"
       @jump-to-last="$emit('jumpToLast')"
     />
-
-    <!-- Empty States -->
-    <div v-if="displayedAgents.length === 0 && props.agents?.length > 0" class="text-center py-12 text-wp-text-alt-100">
-      <Icon name="question" class="h-12 w-12 mx-auto mb-3 opacity-50" />
-      <p class="text-base">{{ $t('admin.settings.agents.no_match') }}</p>
-      <Button
-        v-if="hasActiveFilters"
-        :text="$t('admin.settings.agents.clear_filters')"
-        color="gray"
-        class="mt-4"
-        @click="clearFilters"
-      />
-    </div>
-
-    <div v-if="props.agents?.length === 0" class="text-center py-12 text-wp-text-alt-100">
-      <Icon name="list" class="h-12 w-12 mx-auto mb-3 opacity-50" />
-      <p class="text-base">{{ $t('admin.settings.agents.none') }}</p>
-    </div>
   </div>
 
   <!-- Loading State -->
@@ -370,17 +473,39 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { watchDebounced } from '@vueuse/core';
 
 import Badge from '~/components/atomic/Badge.vue';
-import Button from '~/components/atomic/Button.vue';
 import Icon from '~/components/atomic/Icon.vue';
-import IconButton from '~/components/atomic/IconButton.vue';
 import Pagination from '~/components/atomic/Pagination.vue';
-import SelectField from '~/components/form/SelectField.vue';
-import TextField from '~/components/form/TextField.vue';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '~/components/ui/alert-dialog';
+import { Badge as UiBadge } from '~/components/ui/badge';
+import { Button } from '~/components/ui/button';
+import Card from '~/components/ui/card/Card.vue';
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu';
+import SearchInput from '~/components/ui/input/SearchInput.vue';
+import { Separator } from '~/components/ui/separator';
 import { useDate } from '~/compositions/useDate';
 import useConfig from '~/compositions/useConfig';
 import type { Agent } from '~/lib/api/types';
@@ -450,7 +575,7 @@ function isVersionMismatch(agentVersion: string): boolean {
 function getStatusColor(agent: Agent): string {
   // Disabled agents
   if (agent.no_schedule) {
-    return 'bg-wp-text-alt-100';
+    return 'bg-muted-foreground';
   }
 
   // Never contacted or last_contact is 0
@@ -528,6 +653,16 @@ function getStatusAnimation(agent: Agent): string {
 // Local search state for immediate UI updates without losing focus
 const localSearchQuery = ref(props.agentFilters.search);
 
+// Sync local search with prop when it changes externally (e.g., clear filters)
+watch(
+  () => props.agentFilters.search,
+  (newValue) => {
+    if (newValue !== localSearchQuery.value) {
+      localSearchQuery.value = newValue;
+    }
+  },
+);
+
 // Debounced search to avoid losing focus while typing
 watchDebounced(
   localSearchQuery,
@@ -546,61 +681,50 @@ const searchQuery = computed({
   },
 });
 
-const typeFilter = ref(''); // Keep client-side only for type filter (global vs org)
+// Multi-select platform filter (client-side only, not synced to parent)
+const selectedPlatforms = ref<string[]>([]);
 
-const platformFilter = computed({
-  get: () => props.agentFilters.platform,
-  set: (value: string) => {
-    emit('updateFilters', { platform: value });
-    emit('filtersChanged');
-  },
-});
+// Multi-select backend filter (client-side only, not synced to parent)
+const selectedBackends = ref<string[]>([]);
 
-const backendFilter = computed({
-  get: () => props.agentFilters.backend,
-  set: (value: string) => {
-    emit('updateFilters', { backend: value });
-    emit('filtersChanged');
-  },
-});
+function togglePlatform(value: string, checked: boolean) {
+  if (checked) {
+    selectedPlatforms.value = [...selectedPlatforms.value, value];
+  } else {
+    selectedPlatforms.value = selectedPlatforms.value.filter((p) => p !== value);
+  }
+}
 
-const sortBy = computed({
-  get: () => props.agentFilters.sort,
-  set: (value: string) => {
-    emit('updateFilters', { sort: value });
-    emit('filtersChanged');
-  },
-});
+function toggleBackend(value: string, checked: boolean) {
+  if (checked) {
+    selectedBackends.value = [...selectedBackends.value, value];
+  } else {
+    selectedBackends.value = selectedBackends.value.filter((b) => b !== value);
+  }
+}
 
-const sortReverse = computed({
-  get: () => props.agentFilters.order === 'desc',
-  set: (value: boolean) => {
-    emit('updateFilters', { order: value ? 'desc' : 'asc' });
-    emit('filtersChanged');
-  },
-});
+function clearPlatforms() {
+  selectedPlatforms.value = [];
+}
+
+function clearBackends() {
+  selectedBackends.value = [];
+}
+
+const sortBy = computed(() => props.agentFilters.sort);
+const sortReverse = computed(() => props.agentFilters.order === 'desc');
+
+function updateSort(value: string) {
+  emit('updateFilters', { sort: value });
+  emit('filtersChanged');
+}
+
+function updateSortOrder(descending: boolean) {
+  emit('updateFilters', { order: descending ? 'desc' : 'asc' });
+  emit('filtersChanged');
+}
 
 // Compute available options from agents
-const typeOptions = computed<SelectOption[]>(() => {
-  const types = new Set<string>();
-  props.agents?.forEach((agent) => {
-    if (agent.org_id === -1) {
-      types.add('global');
-    } else {
-      types.add('org');
-    }
-  });
-
-  const options: SelectOption[] = [{ value: '', text: t('admin.settings.agents.filter_type') }];
-  if (types.has('global')) {
-    options.push({ value: 'global', text: 'Global' });
-  }
-  if (types.has('org')) {
-    options.push({ value: 'org', text: 'Scoped' });
-  }
-  return options;
-});
-
 const platformOptions = computed<SelectOption[]>(() => {
   const platforms = new Set<string>();
   props.agents?.forEach((agent) => {
@@ -609,7 +733,7 @@ const platformOptions = computed<SelectOption[]>(() => {
     }
   });
 
-  const options: SelectOption[] = [{ value: '', text: t('admin.settings.agents.filter_platform') }];
+  const options: SelectOption[] = [];
   Array.from(platforms)
     .sort()
     .forEach((platform) => {
@@ -626,7 +750,7 @@ const backendOptions = computed<SelectOption[]>(() => {
     }
   });
 
-  const options: SelectOption[] = [{ value: '', text: t('admin.settings.agents.filter_backend') }];
+  const options: SelectOption[] = [];
   Array.from(backends)
     .sort()
     .forEach((backend) => {
@@ -646,37 +770,23 @@ const sortOptions = computed<SelectOption[]>(() => [
   { value: 'capacity', text: t('admin.settings.agents.sort.capacity') },
 ]);
 
-// Check if any filters are active
-const hasActiveFilters = computed(() => {
-  return (
-    searchQuery.value !== '' || typeFilter.value !== '' || platformFilter.value !== '' || backendFilter.value !== ''
-  );
-});
-
-// Clear all filters
-function clearFilters() {
-  searchQuery.value = '';
-  typeFilter.value = '';
-  platformFilter.value = '';
-  backendFilter.value = '';
-}
-
-// Display agents - apply only client-side type filter
-// All other filtering and sorting is done server-side
+// Display agents - sorting is server-side, multi-select filters are client-side
 const displayedAgents = computed(() => {
   if (!props.agents) return [];
 
-  // Apply only type filter client-side since it's UI-specific
-  if (typeFilter.value) {
-    return props.agents.filter((agent) => {
-      const isGlobal = agent.org_id === -1;
-      if (typeFilter.value === 'global' && !isGlobal) return false;
-      if (typeFilter.value === 'org' && isGlobal) return false;
-      return true;
-    });
+  let filtered = props.agents;
+
+  // Apply platform filter (client-side multi-select)
+  if (selectedPlatforms.value.length > 0) {
+    filtered = filtered.filter((agent) => agent.platform && selectedPlatforms.value.includes(agent.platform));
   }
 
-  return props.agents;
+  // Apply backend filter (client-side multi-select)
+  if (selectedBackends.value.length > 0) {
+    filtered = filtered.filter((agent) => agent.backend && selectedBackends.value.includes(agent.backend));
+  }
+
+  return filtered;
 });
 
 // Calculate total pages for pagination

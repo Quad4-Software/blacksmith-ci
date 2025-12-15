@@ -1,0 +1,10 @@
+/* Custom CSS for Crow CI
+ *
+ * This file is intentionally empty but is loaded by the application.
+ * You can add custom styles here to override or extend the shadcn-vue stone theme.
+ *
+ * Example:
+ * .my-custom-class {
+ *   color: theme('colors.stone.600');
+ * }
+ */

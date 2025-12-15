@@ -22,7 +22,7 @@ import (
 	"src.techknowlogick.com/xormigrate"
 	"xorm.io/xorm"
 
-	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v5/server/model"
 )
 
 // APPEND NEW MIGRATIONS
@@ -69,6 +69,10 @@ var migrationTasks = []*xormigrate.Migration{
 	&addResourceLimitsToAgents,
 	&addWorkflowPollingHealthToAgents,
 	&addAutoscalers,
+	&addUserDescriptionTimezone,
+	&addSecretSource,
+	&addTimestamps,
+	&addAccessTokens,
 }
 
 var allBeans = []any{
@@ -97,6 +101,7 @@ var allBeans = []any{
 	new(model.DistributedMessage),
 	new(model.CacheEntry),
 	new(model.Autoscaler),
+	new(model.AccessToken),
 }
 
 // TODO: make xormigrate context aware

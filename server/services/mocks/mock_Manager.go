@@ -7,12 +7,12 @@ package services
 import (
 	"crypto"
 
-	"codeberg.org/crowci/crow/v4/server/forge"
-	"codeberg.org/crowci/crow/v4/server/model"
-	"codeberg.org/crowci/crow/v4/server/services/config"
-	"codeberg.org/crowci/crow/v4/server/services/environment"
-	"codeberg.org/crowci/crow/v4/server/services/registry"
-	"codeberg.org/crowci/crow/v4/server/services/secret"
+	"codeberg.org/crowci/crow/v5/server/forge"
+	"codeberg.org/crowci/crow/v5/server/model"
+	"codeberg.org/crowci/crow/v5/server/services/config"
+	"codeberg.org/crowci/crow/v5/server/services/environment"
+	"codeberg.org/crowci/crow/v5/server/services/registry"
+	"codeberg.org/crowci/crow/v5/server/services/secret"
 	mock "github.com/stretchr/testify/mock"
 )
 

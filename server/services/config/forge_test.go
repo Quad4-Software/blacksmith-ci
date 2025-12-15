@@ -24,10 +24,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	forge_mocks "codeberg.org/crowci/crow/v4/server/forge/mocks"
-	forge_types "codeberg.org/crowci/crow/v4/server/forge/types"
-	"codeberg.org/crowci/crow/v4/server/model"
-	"codeberg.org/crowci/crow/v4/server/services/config"
+	forge_mocks "codeberg.org/crowci/crow/v5/server/forge/mocks"
+	forge_types "codeberg.org/crowci/crow/v5/server/forge/types"
+	"codeberg.org/crowci/crow/v5/server/model"
+	"codeberg.org/crowci/crow/v5/server/services/config"
 )
 
 func TestFetch(t *testing.T) {

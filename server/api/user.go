@@ -23,11 +23,11 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/tink-crypto/tink-go/v2/subtle/random"
 
-	"codeberg.org/crowci/crow/v4/server"
-	"codeberg.org/crowci/crow/v4/server/model"
-	"codeberg.org/crowci/crow/v4/server/router/middleware/session"
-	"codeberg.org/crowci/crow/v4/server/store"
-	"codeberg.org/crowci/crow/v4/shared/token"
+	"codeberg.org/crowci/crow/v5/server"
+	"codeberg.org/crowci/crow/v5/server/model"
+	"codeberg.org/crowci/crow/v5/server/router/middleware/session"
+	"codeberg.org/crowci/crow/v5/server/store"
+	"codeberg.org/crowci/crow/v5/shared/token"
 )
 
 // GetSelf
@@ -169,12 +169,14 @@ func GetRepos(c *gin.Context) {
 
 // PostToken
 //
-//	@Summary	Return the token of the current user as string
-//	@Router		/user/token [post]
-//	@Produce	plain
-//	@Success	200
-//	@Tags		User
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
+//	@Summary		Return the token of the current user as string
+//	@Description	Deprecated: Use POST /user/access-tokens instead for better security and scope control.
+//	@Router			/user/token [post]
+//	@Produce		plain
+//	@Success		200
+//	@Tags			User
+//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
+//	@Deprecated
 func PostToken(c *gin.Context) {
 	user := session.User(c)
 	t := token.New(token.UserToken)
@@ -190,12 +192,13 @@ func PostToken(c *gin.Context) {
 // DeleteToken
 //
 //	@Summary		Reset a token
-//	@Description	Reset's the current personal access token of the user and returns a new one.
+//	@Description	Deprecated: Use DELETE /user/access-tokens/:token_id instead. This endpoint rotates the user hash which invalidates ALL tokens.
 //	@Router			/user/token [delete]
 //	@Produce		plain
 //	@Success		200
 //	@Tags			User
 //	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
+//	@Deprecated
 func DeleteToken(c *gin.Context) {
 	_store := store.FromContext(c)
 

@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col gap-2">
-    <div v-for="(item, index) in displayItems" :key="index" class="flex gap-4">
-      <TextField
+    <div v-for="(item, index) in displayItems" :key="index" class="flex gap-2">
+      <Input
         :id="`${id}-key-${index}`"
         :model-value="item.key"
         :placeholder="keyPlaceholder"
@@ -9,26 +9,25 @@
           'bg-red-100 dark:bg-red-900':
             isDuplicateKey(item.key, index) || (item.key === '' && index !== displayItems.length - 1),
         }"
-        @update:model-value="updateItem(index, 'key', $event)"
+        @update:model-value="updateItem(index, 'key', String($event))"
       />
-      <TextField
+      <Input
         :id="`${id}-value-${index}`"
         :model-value="item.value"
         :placeholder="valuePlaceholder"
-        @update:model-value="updateItem(index, 'value', $event)"
+        @update:model-value="updateItem(index, 'value', String($event))"
       />
-      <div class="w-10 shrink-0">
-        <Button
-          v-if="index !== displayItems.length - 1"
-          type="button"
-          color="red"
-          class="ml-auto"
-          :title="deleteTitle"
-          @click="deleteItem(index)"
-        >
-          <Icon name="close" />
-        </Button>
-      </div>
+      <Button
+        v-if="index !== displayItems.length - 1"
+        type="button"
+        variant="destructive"
+        size="icon"
+        :title="deleteTitle"
+        @click="deleteItem(index)"
+      >
+        <Icon name="close" />
+      </Button>
+      <div v-else class="w-10 shrink-0" />
     </div>
   </div>
 </template>
@@ -36,9 +35,9 @@
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
 
-import Button from '~/components/atomic/Button.vue';
 import Icon from '~/components/atomic/Icon.vue';
-import TextField from '~/components/form/TextField.vue';
+import { Button } from '~/components/ui/button';
+import { Input } from '~/components/ui/input';
 
 const props = defineProps<{
   modelValue: Record<string, string>;

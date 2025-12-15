@@ -26,7 +26,7 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/bitbucket"
 
-	shared_utils "codeberg.org/crowci/crow/v4/shared/utils"
+	shared_utils "codeberg.org/crowci/crow/v5/shared/utils"
 )
 
 const (

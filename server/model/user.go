@@ -71,6 +71,12 @@ type User struct {
 
 	// OrgID is the of the user as model.Org.
 	OrgID int64 `json:"org_id" xorm:"org_id"`
+
+	// Description is a short bio or description for this user.
+	Description string `json:"description,omitempty" xorm:"TEXT 'description'"`
+
+	// Timezone is the user's timezone (e.g., "America/New_York", "Europe/Berlin").
+	Timezone string `json:"timezone,omitempty" xorm:"varchar(100) 'timezone'"`
 } //	@name	User
 
 // TableName return database table name for xorm.

@@ -2,7 +2,7 @@
   <div class="flex flex-col h-full p-6">
     <div v-if="!pipeline" class="flex-1 flex items-center justify-center">
       <div class="text-center">
-        <p class="text-lg text-gray-600">{{ t('repo.pipeline.loading') }}</p>
+        <p class="text-lg text-muted-foreground">{{ t('repo.pipeline.loading') }}</p>
       </div>
     </div>
     <div
@@ -10,21 +10,18 @@
       class="flex-1 flex items-center justify-center"
     >
       <div class="text-center">
-        <p class="text-lg text-gray-600">{{ t('repo.pipeline.no_pipeline_steps') }}</p>
+        <p class="text-lg text-muted-foreground">{{ t('repo.pipeline.no_pipeline_steps') }}</p>
       </div>
     </div>
-    <div
-      v-else
-      class="flex-1 min-h-0 border border-wp-background-400 rounded-lg overflow-hidden bg-white dark:bg-gray-900 relative"
-    >
+    <div v-else class="flex-1 min-h-0 border border-border rounded-lg overflow-hidden bg-card relative">
       <!-- Loading overlay -->
       <div
         v-if="isDAGLoading"
-        class="absolute inset-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm flex items-center justify-center"
+        class="absolute inset-0 z-50 bg-card/80 backdrop-blur-sm flex items-center justify-center"
       >
         <div class="flex flex-col items-center gap-4">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-wp-custom-highlight-100"></div>
-          <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('repo.pipeline.graph.loading') }}</p>
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <p class="text-sm text-muted-foreground">{{ t('repo.pipeline.graph.loading') }}</p>
         </div>
       </div>
 

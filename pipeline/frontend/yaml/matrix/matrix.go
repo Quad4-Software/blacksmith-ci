@@ -17,8 +17,8 @@ package matrix
 import (
 	"strings"
 
-	errorTypes "codeberg.org/crowci/crow/v4/pipeline/errors/types"
-	"codeberg.org/crowci/crow/v4/shared/yaml"
+	errorTypes "codeberg.org/crowci/crow/v5/pipeline/errors/types"
+	"codeberg.org/crowci/crow/v5/shared/yaml"
 )
 
 const (

@@ -17,7 +17,7 @@ package pubsub
 import (
 	"context"
 
-	"codeberg.org/crowci/crow/v4/server/store"
+	"codeberg.org/crowci/crow/v5/server/store"
 )
 
 // Publisher defines the interface for pub/sub operations.

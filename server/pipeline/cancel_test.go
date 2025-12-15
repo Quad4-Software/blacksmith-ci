@@ -22,13 +22,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"codeberg.org/crowci/crow/v4/server"
-	forge_mocks "codeberg.org/crowci/crow/v4/server/forge/mocks"
-	"codeberg.org/crowci/crow/v4/server/model"
-	"codeberg.org/crowci/crow/v4/server/pubsub"
-	"codeberg.org/crowci/crow/v4/server/queue"
-	queue_mocks "codeberg.org/crowci/crow/v4/server/queue/mocks"
-	store_mocks "codeberg.org/crowci/crow/v4/server/store/mocks"
+	"codeberg.org/crowci/crow/v5/server"
+	forge_mocks "codeberg.org/crowci/crow/v5/server/forge/mocks"
+	"codeberg.org/crowci/crow/v5/server/model"
+	"codeberg.org/crowci/crow/v5/server/pubsub"
+	"codeberg.org/crowci/crow/v5/server/queue"
+	queue_mocks "codeberg.org/crowci/crow/v5/server/queue/mocks"
+	store_mocks "codeberg.org/crowci/crow/v5/server/store/mocks"
 )
 
 func TestCancelWorkflow(t *testing.T) {

@@ -24,14 +24,14 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"codeberg.org/crowci/crow/v4/pipeline"
-	pipeline_errors "codeberg.org/crowci/crow/v4/pipeline/errors"
-	"codeberg.org/crowci/crow/v4/server"
-	"codeberg.org/crowci/crow/v4/server/forge"
-	forge_types "codeberg.org/crowci/crow/v4/server/forge/types"
-	"codeberg.org/crowci/crow/v4/server/model"
-	"codeberg.org/crowci/crow/v4/server/pipeline/stepbuilder"
-	"codeberg.org/crowci/crow/v4/server/store"
+	"codeberg.org/crowci/crow/v5/pipeline"
+	pipeline_errors "codeberg.org/crowci/crow/v5/pipeline/errors"
+	"codeberg.org/crowci/crow/v5/server"
+	"codeberg.org/crowci/crow/v5/server/forge"
+	forge_types "codeberg.org/crowci/crow/v5/server/forge/types"
+	"codeberg.org/crowci/crow/v5/server/model"
+	"codeberg.org/crowci/crow/v5/server/pipeline/stepbuilder"
+	"codeberg.org/crowci/crow/v5/server/store"
 )
 
 var skipPipelineRegex = regexp.MustCompile(`\[(?i:ci *skip|skip *ci)\]`)

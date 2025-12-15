@@ -1,97 +1,131 @@
 <template>
-  <Container full-width class="md:min-h-xs flex grow-0 flex-col md:grow md:px-4">
+  <Container full-width class="md:min-h-xs flex grow-0 flex-col md:grow md:px-4 overflow-hidden">
     <!-- Desktop Layout -->
-    <div class="hidden md:flex min-h-0 w-full grow flex-row gap-2">
-      <div class="flex flex-row">
-        <!-- Chevron button in its own vertical panel -->
-        <div class="flex flex-col items-center justify-start w-10 min-w-[2.5rem] max-w-[2.5rem]">
-          <button
-            class="mb-2 mr-2 bg-wp-background-100 dark:bg-wp-background-200 border border-wp-background-300 dark:border-wp-background-400 rounded-full p-1 shadow flex items-center justify-center text-2xl"
-            :class="pipelinePanelCollapsed ? 'mt-0' : 'mt-2'"
-            :title="pipelinePanelCollapsed ? 'Show workflow panel' : 'Hide workflow panel'"
-            @click="togglePipelinePanel"
-          >
-            <Icon
-              name="chevron-right"
-              class="text-gray-700 dark:text-gray-200"
-              :class="
-                pipelinePanelCollapsed
-                  ? 'transition-transform duration-150 rotate-90 transform w-7 h-7'
-                  : 'transition-transform duration-150 w-7 h-7'
-              "
-            />
-          </button>
+    <ResizablePanelGroup
+      :key="panelGroupKey"
+      ref="panelGroupRef"
+      direction="horizontal"
+      class="hidden md:flex min-h-0 w-full grow"
+      @layout="handleLayoutChange"
+    >
+      <!-- Sidebar Panel -->
+      <ResizablePanel
+        v-if="!sidebarCollapsed"
+        id="sidebar-panel"
+        :default-size="sidebarSize"
+        :min-size="20"
+        :max-size="50"
+        :collapsible="false"
+      >
+        <div class="h-full w-full flex flex-col pr-2">
+          <PipelineStepList v-model:selected-step-id="selectedStepId" :pipeline="pipeline!">
+            <template #panel-chevron>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <ShadcnButton variant="ghost" size="icon" class="h-6 w-6 p-0" @click="toggleSidebar">
+                      <Icon name="chevron-left" class="h-4 w-4" />
+                    </ShadcnButton>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    {{ $t('repo.pipeline.hide_steps') }}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </template>
+          </PipelineStepList>
         </div>
-        <!-- Workflow panel -->
-        <div
-          class="flex flex-col transition-all duration-200 overflow-hidden"
-          :class="[pipelinePanelCollapsed ? 'w-0 min-w-0 max-w-0' : 'w-lg']"
-        >
-          <PipelineStepList v-model:selected-step-id="selectedStepId" :pipeline="pipeline!" />
-        </div>
-      </div>
-      <!-- Right panel: log and other content -->
-      <div class="relative flex grow items-start justify-center basis-auto">
-        <div v-if="pipeline!.errors?.some((e) => !e.is_warning)" class="w-full mb-auto">
-          <Panel>
-            <div class="flex flex-col items-center gap-4 text-center">
-              <Icon name="status-error" class="h-16 w-16 text-wp-error-100" size="1.5rem" />
-              <span class="text-xl">{{ $t('repo.pipeline.we_got_some_errors') }}</span>
-              <Button color="red" :text="$t('repo.pipeline.show_errors')" :to="{ name: 'repo-pipeline-errors' }" />
-            </div>
-          </Panel>
-        </div>
-        <div v-else-if="pipeline!.status === 'blocked'" class="w-full mb-auto">
-          <Panel>
-            <div class="flex flex-col items-center gap-4">
-              <Icon name="status-blocked" size="1.5rem" class="h-16 w-16" />
-              <span class="text-xl">{{ $t('repo.pipeline.protected.awaits') }}</span>
-              <div v-if="repoPermissions!.push" class="flex flex-wrap items-center justify-center gap-2">
-                <Button
-                  color="default"
-                  :text="$t('repo.pipeline.protected.approve')"
-                  :is-loading="isApprovingPipeline"
-                  @click="approvePipeline"
-                />
-                <Button
-                  color="red"
-                  :text="$t('repo.pipeline.protected.decline')"
-                  :is-loading="isDecliningPipeline"
-                  @click="declinePipeline"
-                />
+      </ResizablePanel>
+
+      <!-- Resizable Handle -->
+      <ResizableHandle v-if="!sidebarCollapsed" with-handle class="mx-2" />
+
+      <!-- Main Content Panel -->
+      <ResizablePanel id="main-panel" :default-size="sidebarCollapsed ? 100 : 100 - sidebarSize">
+        <div class="h-full flex flex-col pl-2">
+          <!-- Expand button when sidebar is collapsed -->
+          <div v-if="sidebarCollapsed" class="flex items-center mb-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger as-child>
+                  <ShadcnButton
+                    variant="outline"
+                    size="icon"
+                    class="h-6 w-6 p-0 rounded-md shadow-sm"
+                    @click="toggleSidebar"
+                  >
+                    <Icon name="chevron-right" class="h-4 w-4" />
+                  </ShadcnButton>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  {{ $t('repo.pipeline.show_steps') }}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+
+          <div v-if="pipeline!.errors?.some((e) => !e.is_warning)" class="w-full mb-auto p-4">
+            <Panel>
+              <div class="flex flex-col items-center gap-4 text-center">
+                <Icon name="status-error" class="h-16 w-16 text-destructive" size="1.5rem" />
+                <span class="text-xl">{{ $t('repo.pipeline.we_got_some_errors') }}</span>
+                <Button color="red" :text="$t('repo.pipeline.show_errors')" :to="{ name: 'repo-pipeline-errors' }" />
               </div>
-            </div>
-          </Panel>
+            </Panel>
+          </div>
+          <div v-else-if="pipeline!.status === 'blocked'" class="w-full mb-auto p-4">
+            <Panel>
+              <div class="flex flex-col items-center gap-4">
+                <Icon name="status-blocked" size="1.5rem" class="h-16 w-16" />
+                <span class="text-xl">{{ $t('repo.pipeline.protected.awaits') }}</span>
+                <div v-if="repoPermissions!.push" class="flex flex-wrap items-center justify-center gap-2">
+                  <Button
+                    color="default"
+                    :text="$t('repo.pipeline.protected.approve')"
+                    :is-loading="isApprovingPipeline"
+                    @click="approvePipeline"
+                  />
+                  <Button
+                    color="red"
+                    :text="$t('repo.pipeline.protected.decline')"
+                    :is-loading="isDecliningPipeline"
+                    @click="declinePipeline"
+                  />
+                </div>
+              </div>
+            </Panel>
+          </div>
+          <div v-else-if="pipeline!.status === 'declined'" class="w-full mb-auto p-4">
+            <Panel>
+              <div class="flex flex-col items-center gap-4">
+                <Icon name="status-declined" size="1.5rem" class="h-16 w-16 text-destructive" />
+                <p class="text-xl">{{ $t('repo.pipeline.protected.declined') }}</p>
+              </div>
+            </Panel>
+          </div>
+          <PipelineLog
+            v-else-if="selectedStepId !== null"
+            v-model:step-id="selectedStepId"
+            :pipeline="pipeline!"
+            :previous-step-id="previousStepId"
+            :next-step-id="nextStepId"
+            :auto-follow-enabled="autoFollowEnabled"
+            class="w-full h-full"
+            @update:auto-follow-enabled="handleAutoFollowUpdate"
+          />
         </div>
-        <div v-else-if="pipeline!.status === 'declined'" class="w-full mb-auto">
-          <Panel>
-            <div class="flex flex-col items-center gap-4">
-              <Icon name="status-declined" size="1.5rem" class="h-16 w-16 text-wp-error-100" />
-              <p class="text-xl">{{ $t('repo.pipeline.protected.declined') }}</p>
-            </div>
-          </Panel>
-        </div>
-        <PipelineLog
-          v-else-if="selectedStepId !== null"
-          v-model:step-id="selectedStepId"
-          :pipeline="pipeline!"
-          class="w-full h-full"
-        />
-      </div>
-    </div>
+      </ResizablePanel>
+    </ResizablePanelGroup>
 
     <!-- Mobile Layout -->
     <div class="flex md:hidden flex-col h-full">
       <!-- Mobile Header with current step info -->
-      <div
-        v-if="selectedStepId !== null"
-        class="flex items-center justify-between p-2 bg-wp-background-100 dark:bg-wp-background-200 border-b border-wp-background-300 dark:border-wp-background-400"
-      >
+      <div v-if="selectedStepId !== null" class="flex items-center justify-between p-2 bg-card border-b border-border">
         <div class="flex items-center gap-3 min-w-0 flex-1">
           <PipelineStatusIcon :status="currentStep?.state || 'pending'" class="h-5 w-5 shrink-0" />
           <div class="min-w-0 flex-1">
-            <div class="font-medium text-wp-text-100 truncate">{{ currentStep?.name || 'Loading...' }}</div>
-            <div class="text-sm text-wp-text-alt-100 truncate">{{ currentWorkflow?.name }}</div>
+            <div class="font-medium text-foreground truncate">{{ currentStep?.name || 'Loading...' }}</div>
+            <div class="text-sm text-muted-foreground truncate">{{ currentWorkflow?.name }}</div>
           </div>
         </div>
         <div class="flex items-center gap-2">
@@ -99,27 +133,27 @@
           <a
             v-if="agentDisplay"
             :href="repoPermissions?.admin ? '/admin/agents/' : '/user/agents/'"
-            class="flex items-center justify-center w-9 h-9 rounded-full bg-wp-background-200 dark:bg-wp-background-300 border border-wp-background-300 dark:border-wp-background-400"
+            class="flex items-center justify-center w-9 h-9 rounded-full bg-muted border border-border"
             :title="agentDisplay"
           >
-            <Icon name="worker" class="w-5 h-5 text-wp-text-100" />
+            <Icon name="worker" class="w-5 h-5 text-foreground" />
           </a>
           <!-- Step navigation buttons -->
           <button
             v-if="previousStepId"
-            class="flex items-center justify-center w-9 h-9 rounded-full bg-wp-background-200 dark:bg-wp-background-300 border border-wp-background-300 dark:border-wp-background-400"
+            class="flex items-center justify-center w-9 h-9 rounded-full bg-muted border border-border"
             :title="$t('repo.pipeline.previous_step')"
             @click="selectedStepId = previousStepId"
           >
-            <Icon name="back" class="w-4 h-4 text-wp-text-100" />
+            <Icon name="back" class="w-4 h-4 text-foreground" />
           </button>
           <button
             v-if="nextStepId"
-            class="flex items-center justify-center w-9 h-9 rounded-full bg-wp-background-200 dark:bg-wp-background-300 border border-wp-background-300 dark:border-wp-background-400"
+            class="flex items-center justify-center w-9 h-9 rounded-full bg-muted border border-border"
             :title="$t('repo.pipeline.next_step')"
             @click="selectedStepId = nextStepId"
           >
-            <Icon name="next" class="w-4 h-4 text-wp-text-100" />
+            <Icon name="next" class="w-4 h-4 text-foreground" />
           </button>
         </div>
       </div>
@@ -129,7 +163,7 @@
         <div v-if="pipeline!.errors?.some((e) => !e.is_warning)" class="p-4">
           <Panel>
             <div class="flex flex-col items-center gap-4 text-center">
-              <Icon name="status-error" class="h-16 w-16 text-wp-error-100" size="1.5rem" />
+              <Icon name="status-error" class="h-16 w-16 text-destructive" size="1.5rem" />
               <span class="text-xl">{{ $t('repo.pipeline.we_got_some_errors') }}</span>
               <Button color="red" :text="$t('repo.pipeline.show_errors')" :to="{ name: 'repo-pipeline-errors' }" />
             </div>
@@ -160,7 +194,7 @@
         <div v-else-if="pipeline!.status === 'declined'" class="p-4">
           <Panel>
             <div class="flex flex-col items-center gap-4">
-              <Icon name="status-declined" size="1.5rem" class="h-16 w-16 text-wp-error-100" />
+              <Icon name="status-declined" size="1.5rem" class="h-16 w-16 text-destructive" />
               <p class="text-xl">{{ $t('repo.pipeline.protected.declined') }}</p>
             </div>
           </Panel>
@@ -169,7 +203,11 @@
           v-else-if="selectedStepId !== null"
           v-model:step-id="selectedStepId"
           :pipeline="pipeline!"
+          :previous-step-id="previousStepId"
+          :next-step-id="nextStepId"
+          :auto-follow-enabled="autoFollowEnabled"
           class="w-full h-full"
+          @update:auto-follow-enabled="handleAutoFollowUpdate"
         />
         <div v-else class="h-full overflow-y-auto">
           <!-- Integrated Step Selection -->
@@ -178,34 +216,34 @@
               <div
                 v-for="workflow in pipeline!.workflows"
                 :key="workflow.id"
-                class="rounded-md border border-wp-background-400 bg-wp-background-100 p-2 shadow-xs dark:bg-wp-background-200"
+                class="rounded-md border border-border bg-card p-2 shadow-xs"
               >
                 <!-- Workflow Header with Chevron -->
-                <div
-                  class="flex items-center gap-2 mb-2 cursor-pointer select-none"
+                <button
+                  class="flex items-center gap-2 mb-2 w-full text-left hover:opacity-80 transition-opacity"
                   @click="toggleMobileWorkflow(workflow.id)"
                 >
                   <Icon
                     name="chevron-right"
-                    class="transition-transform duration-150 text-gray-500 dark:text-gray-200"
-                    :class="{ 'rotate-90 transform': !mobileWorkflowsCollapsed[workflow.id] }"
+                    class="size-4 transition-transform duration-200 text-muted-foreground"
+                    :class="{ 'rotate-90': !mobileWorkflowsCollapsed[workflow.id] }"
                   />
                   <div class="flex items-center gap-3">
                     <PipelineStatusIcon :status="workflow.state" class="h-4 w-4" />
-                    <span class="font-medium text-wp-text-100">{{ workflow.name }}</span>
+                    <span class="font-medium text-foreground">{{ workflow.name }}</span>
                   </div>
-                </div>
+                </button>
                 <!-- Steps -->
                 <div v-show="!mobileWorkflowsCollapsed[workflow.id]" class="space-y-1">
                   <div
                     v-for="step in workflow.children"
                     :key="step.pid"
-                    class="flex items-center gap-3 p-2 rounded transition-colors hover:bg-wp-background-300 dark:hover:bg-wp-background-400 cursor-pointer ml-5"
+                    class="flex items-center gap-3 p-2 rounded transition-colors hover:bg-accent cursor-pointer ml-5"
                     @click="selectedStepId = step.pid"
                   >
                     <PipelineStatusIcon :service="step.type === 'service'" :status="step.state" class="h-4 w-4" />
-                    <span class="flex-1 text-sm text-wp-text-100">{{ step.name }}</span>
-                    <PipelineStepDuration :step="step" class="text-xs text-wp-text-alt-100" />
+                    <span class="flex-1 text-sm text-foreground">{{ step.name }}</span>
+                    <PipelineStepDuration :step="step" class="text-xs text-muted-foreground" />
                   </div>
                 </div>
               </div>
@@ -218,12 +256,16 @@
 </template>
 
 <script lang="ts" setup>
+import { useStorage, useDebounceFn } from '@vueuse/core';
 import { computed, toRef, ref, watch, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
 import Button from '~/components/atomic/Button.vue';
+import { Button as ShadcnButton } from '~/components/ui/button';
 import Icon from '~/components/atomic/Icon.vue';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '~/components/ui/resizable';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import Container from '~/components/layout/Container.vue';
 import Panel from '~/components/layout/Panel.vue';
 import PipelineLog from '~/components/repo/pipeline/PipelineLog.vue';
@@ -434,11 +476,51 @@ useCrowTitle(
   ]),
 );
 
-const pipelinePanelCollapsed = ref(false);
+// Sidebar state with localStorage persistence
+const sidebarCollapsed = useStorage('crow:pipeline-sidebar-collapsed', false);
+const sidebarSize = useStorage('crow:pipeline-sidebar-size', 30);
+const panelGroupRef = ref();
+const panelGroupKey = ref(0);
 
-function togglePipelinePanel() {
-  pipelinePanelCollapsed.value = !pipelinePanelCollapsed.value;
+// Auto-follow state with localStorage persistence
+const autoFollowEnabled = useStorage('crow:pipeline-auto-follow', false);
+
+function handleAutoFollowUpdate(value: boolean) {
+  autoFollowEnabled.value = value;
 }
+
+function toggleSidebar() {
+  sidebarCollapsed.value = !sidebarCollapsed.value;
+}
+
+// Debounced function to update storage - only saves after user stops dragging
+const debouncedSizeUpdate = useDebounceFn((newSize: number) => {
+  sidebarSize.value = newSize;
+}, 500);
+
+let lastManualSize = sidebarSize.value;
+
+function handleLayoutChange(layout: number[]) {
+  // layout[0] is the sidebar panel size
+  if (layout && layout.length > 0) {
+    const newSize = layout[0];
+    // Only update if there's a meaningful difference (more than 2%)
+    // This ignores scrollbar appearance which typically causes ~15px change
+    if (Math.abs(sidebarSize.value - newSize) > 2) {
+      lastManualSize = newSize;
+      debouncedSizeUpdate(newSize);
+    }
+  }
+}
+
+// Watch for external changes to sidebarSize (from popover)
+watch(sidebarSize, (newSize) => {
+  // Only force re-render if the change didn't come from dragging
+  if (Math.abs(lastManualSize - newSize) > 2) {
+    panelGroupKey.value++;
+    lastManualSize = newSize;
+  }
+});
 
 const mobileWorkflowsCollapsed = ref<Record<number, boolean>>({});
 
@@ -455,4 +537,24 @@ watch(currentWorkflow, async () => {
 onMounted(async () => {
   await loadAgentDetails();
 });
+
+// Auto-follow logic: automatically switch to the running step
+watch(
+  [() => pipeline.value?.workflows, autoFollowEnabled],
+  ([workflows, enabled]) => {
+    if (!enabled || !workflows) {
+      return;
+    }
+
+    // Find the first running step
+    for (const workflow of workflows) {
+      const runningStep = workflow.children?.find((step) => step.state === 'running');
+      if (runningStep && runningStep.pid !== selectedStepId.value) {
+        selectedStepId.value = runningStep.pid;
+        return;
+      }
+    }
+  },
+  { deep: true, immediate: true },
+);
 </script>

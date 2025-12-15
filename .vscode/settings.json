@@ -8,14 +8,14 @@
   },
   "go.lintTool": "golangci-lint",
   "go.lintFlags": ["--fast"],
-  "go.buildTags": "test",
-  "go.testTags": "test",
+  "go.buildTags": "test,integration",
+  "go.testTags": "test,integration",
   "gopls": {
-    "build.buildFlags": ["-tags=test"],
+    "build.buildFlags": ["-tags=test,integration"],
     "build.env": {
-      "GOFLAGS": "-tags=test"
+      "GOFLAGS": "-tags=test,integration"
     },
-    "build.tags": "test"
+    "build.tags": "test,integration"
   },
   "eslint.workingDirectories": ["./web"],
   "prettier.ignorePath": "./web/.prettierignore",

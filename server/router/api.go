@@ -18,15 +18,15 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 
-	"codeberg.org/crowci/crow/v4/server"
-	"codeberg.org/crowci/crow/v4/server/api"
-	"codeberg.org/crowci/crow/v4/server/api/debug"
-	"codeberg.org/crowci/crow/v4/server/router/middleware/session"
-	"codeberg.org/crowci/crow/v4/server/router/middleware/token"
+	"codeberg.org/crowci/crow/v5/server"
+	"codeberg.org/crowci/crow/v5/server/api"
+	"codeberg.org/crowci/crow/v5/server/api/debug"
+	"codeberg.org/crowci/crow/v5/server/router/middleware/session"
+	"codeberg.org/crowci/crow/v5/server/router/middleware/token"
 )
 
 func apiRoutes(e *gin.RouterGroup) {
-	apiBase := e.Group("/api")
+	apiBase := e.Group("/api/v1")
 	apiBase.Use(token.Refresh)
 	apiBase.Use(session.SetAutoscaler())
 	{
@@ -36,6 +36,20 @@ func apiRoutes(e *gin.RouterGroup) {
 			user.GET("", api.GetSelf)
 			user.GET("/feed", api.GetFeed)
 			user.GET("/repos", api.GetRepos)
+			user.GET("/secrets", api.GetUserSecretList)
+			user.GET("/registries", api.GetUserRegistryList)
+			user.GET("/crons", api.GetUserCronList)
+
+			// Access tokens (new API)
+			user.GET("/access-tokens", api.GetAccessTokenList)
+			user.POST("/access-tokens", api.PostAccessToken)
+			user.DELETE("/access-tokens/batch", api.DeleteAccessTokenBatch)
+			user.GET("/access-tokens/scopes", api.GetAvailableScopes)
+			user.GET("/access-tokens/:token_id", api.GetAccessToken)
+			user.PATCH("/access-tokens/:token_id", api.PatchAccessToken)
+			user.DELETE("/access-tokens/:token_id", api.DeleteAccessToken)
+
+			// Legacy token endpoints (deprecated - use access-tokens instead)
 			user.POST("/token", api.PostToken)
 			user.DELETE("/token", api.DeleteToken)
 		}
@@ -49,6 +63,9 @@ func apiRoutes(e *gin.RouterGroup) {
 			users.PATCH("/:login", api.PatchUser)
 			users.DELETE("/:login", api.DeleteUser)
 		}
+
+		// Timezones endpoint (public)
+		apiBase.GET("/timezones", api.GetTimezones)
 
 		orgs := apiBase.Group("/orgs")
 		{
@@ -87,6 +104,12 @@ func apiRoutes(e *gin.RouterGroup) {
 				}
 			}
 		}
+
+		// Admin entities endpoint (unified users and orgs)
+		apiBase.GET("/entities", session.MustAdmin(), api.GetEntities)
+
+		// User-accessible metrics endpoint (admins can see all, users see their repos)
+		apiBase.GET("/metrics", session.MustUser(), api.GetMetrics)
 
 		repo := apiBase.Group("/repos")
 		{

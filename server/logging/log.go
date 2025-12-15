@@ -20,7 +20,7 @@ import (
 
 	logger "github.com/rs/zerolog/log"
 
-	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v5/server/model"
 )
 
 // TODO: (bradrydzewski) writing to subscribers is currently a blocking

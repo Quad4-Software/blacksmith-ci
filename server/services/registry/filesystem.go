@@ -24,8 +24,8 @@ import (
 	config_file "github.com/docker/cli/cli/config/configfile"
 	"github.com/docker/cli/cli/config/types"
 
-	"codeberg.org/crowci/crow/v4/server/model"
-	model_types "codeberg.org/crowci/crow/v4/server/store/types"
+	"codeberg.org/crowci/crow/v5/server/model"
+	model_types "codeberg.org/crowci/crow/v5/server/store/types"
 )
 
 type filesystem struct {

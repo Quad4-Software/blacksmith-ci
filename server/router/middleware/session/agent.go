@@ -20,7 +20,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"codeberg.org/crowci/crow/v4/shared/token"
+	"codeberg.org/crowci/crow/v5/shared/token"
 )
 
 // AuthorizeAgent authorizes requests from agent to access the queue.

@@ -28,14 +28,14 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/tink-crypto/tink-go/v2/subtle/random"
 
-	"codeberg.org/crowci/crow/v4/server"
-	"codeberg.org/crowci/crow/v4/server/forge"
-	"codeberg.org/crowci/crow/v4/server/model"
-	"codeberg.org/crowci/crow/v4/server/router/middleware/session"
-	"codeberg.org/crowci/crow/v4/server/store"
-	"codeberg.org/crowci/crow/v4/server/store/types"
-	"codeberg.org/crowci/crow/v4/shared/token"
-	shared_utils "codeberg.org/crowci/crow/v4/shared/utils"
+	"codeberg.org/crowci/crow/v5/server"
+	"codeberg.org/crowci/crow/v5/server/forge"
+	"codeberg.org/crowci/crow/v5/server/model"
+	"codeberg.org/crowci/crow/v5/server/router/middleware/session"
+	"codeberg.org/crowci/crow/v5/server/store"
+	"codeberg.org/crowci/crow/v5/server/store/types"
+	"codeberg.org/crowci/crow/v5/shared/token"
+	shared_utils "codeberg.org/crowci/crow/v5/shared/utils"
 )
 
 // PostRepo

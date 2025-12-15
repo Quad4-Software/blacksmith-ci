@@ -17,7 +17,7 @@ package datastore
 import (
 	"xorm.io/builder"
 
-	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v5/server/model"
 )
 
 const orderSecretsBy = "name"
@@ -83,4 +83,55 @@ func (s storage) GlobalSecretList(p *model.ListOptions) ([]*model.Secret, error)
 	return secrets, s.paginate(p).Where(
 		builder.Eq{"org_id": 0, "repo_id": 0},
 	).OrderBy(orderSecretsBy).Find(&secrets)
+}
+
+func (s storage) UserSecretList(orgIDs []int64, repoIDs []int64, includeGlobal bool, searchTerm string, p *model.ListOptions) ([]*model.Secret, error) {
+	secrets := make([]*model.Secret, 0)
+
+	if len(orgIDs) == 0 && len(repoIDs) == 0 && !includeGlobal {
+		return secrets, nil
+	}
+
+	// Build the main condition for org, repo, and global secrets
+	var scopeConds []builder.Cond
+
+	if len(orgIDs) > 0 {
+		// Org-level secrets: org_id IN (orgIDs) AND repo_id = 0
+		scopeConds = append(scopeConds, builder.And(
+			builder.In("org_id", orgIDs),
+			builder.Eq{"repo_id": 0},
+		))
+	}
+
+	if len(repoIDs) > 0 {
+		// Repo-level secrets: repo_id IN (repoIDs)
+		scopeConds = append(scopeConds, builder.In("repo_id", repoIDs))
+	}
+
+	if includeGlobal {
+		// Global secrets: org_id = 0 AND repo_id = 0
+		scopeConds = append(scopeConds, builder.And(
+			builder.Eq{"org_id": 0},
+			builder.Eq{"repo_id": 0},
+		))
+	}
+
+	// Combine scope conditions with OR
+	var cond builder.Cond
+	if len(scopeConds) == 1 {
+		cond = scopeConds[0]
+	} else if len(scopeConds) > 1 {
+		cond = builder.Or(scopeConds...)
+	}
+
+	// Add search filter if provided
+	if searchTerm != "" && cond != nil {
+		cond = builder.And(cond, builder.Like{"name", "%" + searchTerm + "%"})
+	}
+
+	if cond == nil {
+		return secrets, nil
+	}
+
+	return secrets, s.paginate(p).Where(cond).OrderBy(orderSecretsBy).Find(&secrets)
 }

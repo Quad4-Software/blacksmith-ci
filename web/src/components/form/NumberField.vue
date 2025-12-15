@@ -1,9 +1,9 @@
-<template><TextField v-model="innerValue" :placeholder="placeholder" type="number" /></template>
+<template><Input v-model="innerValue" :placeholder="placeholder" type="number" /></template>
 
 <script lang="ts" setup>
 import { computed, toRef } from 'vue';
 
-import TextField from '~/components/form/TextField.vue';
+import { Input } from '~/components/ui/input';
 
 const props = defineProps<{
   modelValue: number;

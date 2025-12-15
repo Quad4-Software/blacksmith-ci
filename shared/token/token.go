@@ -27,13 +27,14 @@ type SecretFunc func(*Token) (string, error)
 type Type string
 
 const (
-	UserToken       Type = "user" // user token (exp cli)
-	SessToken       Type = "sess" // session token (ui token requires csrf check)
-	HookToken       Type = "hook" // repo hook token
-	CsrfToken       Type = "csrf"
-	AgentToken      Type = "agent"
-	AutoscalerToken Type = "autoscaler"
+	UserToken       Type = "user"       // user token (exp cli) - deprecated, use AccessToken
+	SessToken       Type = "sess"       // session token (ui token requires csrf check)
+	HookToken       Type = "hook"       // repo hook token
+	CsrfToken       Type = "csrf"       // CSRF protection token
+	AgentToken      Type = "agent"      // agent authentication token
+	AutoscalerToken Type = "autoscaler" // autoscaler authentication token
 	OAuthStateToken Type = "oauth-state"
+	AccessToken     Type = "access" // personal access token with scopes
 )
 
 // SignerAlgo id default algorithm used to sign JWT tokens.

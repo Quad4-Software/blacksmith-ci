@@ -7,7 +7,7 @@ package proto
 import (
 	"context"
 
-	"codeberg.org/crowci/crow/v4/pipeline/rpc/proto"
+	"codeberg.org/crowci/crow/v5/pipeline/rpc/proto"
 	mock "github.com/stretchr/testify/mock"
 	"google.golang.org/grpc"
 )

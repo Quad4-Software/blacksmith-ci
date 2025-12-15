@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"codeberg.org/crowci/crow/v4/server/model"
-	store_mocks "codeberg.org/crowci/crow/v4/server/store/mocks"
+	"codeberg.org/crowci/crow/v5/server/model"
+	store_mocks "codeberg.org/crowci/crow/v5/server/store/mocks"
 )
 
 func TestPipelineLogPurge(t *testing.T) {

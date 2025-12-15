@@ -1,41 +1,38 @@
 <template>
-  <div
-    class="w-full overflow-hidden rounded-md border border-wp-background-400 bg-wp-background-100 shadow-xs dark:bg-wp-background-200"
+  <Collapsible
+    v-if="collapsable"
+    v-model:open="isOpen"
+    class="w-full rounded-lg border border-border bg-card shadow-sm"
   >
-    <component
-      :is="collapsable ? 'button' : 'div'"
+    <CollapsibleTrigger
       v-if="title"
-      type="button"
-      class="flex w-full gap-2 bg-wp-background-300 px-4 py-1 font-bold text-wp-text-100"
-      :class="{
-        'cursor-pointer': collapsable,
-      }"
-      @click="_collapsed = !_collapsed"
+      class="flex w-full items-center gap-2 bg-muted/50 px-4 py-3 font-semibold text-card-foreground transition-colors hover:bg-muted/70"
     >
       <Icon
-        v-if="collapsable"
         name="chevron-right"
-        class="h-6 min-w-6 transition-transform duration-150"
-        :class="{ 'rotate-90 transform': !collapsed }"
+        class="size-5 transition-transform duration-200"
+        :class="{ 'rotate-90 transform': isOpen }"
       />
       {{ title }}
-    </component>
-    <div
-      :class="{
-        'max-h-auto': !collapsed,
-        'max-h-0': collapsed,
-      }"
-      class="overflow-hidden transition-height duration-150"
-    >
-      <div class="w-full p-4 text-wp-text-100"><slot /></div>
+    </CollapsibleTrigger>
+    <CollapsibleContent class="w-full p-4 text-card-foreground">
+      <slot />
+    </CollapsibleContent>
+  </Collapsible>
+  <div v-else class="w-full rounded-lg border border-border bg-card shadow-sm">
+    <div v-if="title" class="flex w-full gap-2 bg-muted/50 px-4 py-3 font-semibold text-card-foreground">
+      {{ title }}
+    </div>
+    <div class="w-full p-4 text-card-foreground">
+      <slot />
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { computed, ref } from 'vue';
-
+import { ref } from 'vue';
 import Icon from '~/components/atomic/Icon.vue';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '~/components/ui/collapsible';
 
 const props = defineProps<{
   title?: string;
@@ -43,11 +40,5 @@ const props = defineProps<{
   collapsedByDefault?: boolean;
 }>();
 
-/**
- * _collapsed is used to store the internal state of the panel, but is
- * ignored if the panel is not collapsable.
- */
-const _collapsed = ref(props.collapsedByDefault || false);
-
-const collapsed = computed(() => props.collapsable && _collapsed.value);
+const isOpen = ref(!props.collapsedByDefault);
 </script>

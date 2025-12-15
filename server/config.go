@@ -18,14 +18,14 @@ package server
 import (
 	"time"
 
-	"codeberg.org/crowci/crow/v4/server/cache"
-	"codeberg.org/crowci/crow/v4/server/logging"
-	"codeberg.org/crowci/crow/v4/server/model"
-	"codeberg.org/crowci/crow/v4/server/pubsub"
-	"codeberg.org/crowci/crow/v4/server/queue"
-	"codeberg.org/crowci/crow/v4/server/services"
-	"codeberg.org/crowci/crow/v4/server/services/log"
-	"codeberg.org/crowci/crow/v4/server/services/permissions"
+	"codeberg.org/crowci/crow/v5/server/cache"
+	"codeberg.org/crowci/crow/v5/server/logging"
+	"codeberg.org/crowci/crow/v5/server/model"
+	"codeberg.org/crowci/crow/v5/server/pubsub"
+	"codeberg.org/crowci/crow/v5/server/queue"
+	"codeberg.org/crowci/crow/v5/server/services"
+	"codeberg.org/crowci/crow/v5/server/services/log"
+	"codeberg.org/crowci/crow/v5/server/services/permissions"
 )
 
 var Config = struct {

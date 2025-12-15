@@ -10,7 +10,7 @@
             v-model="searchQuery"
             type="text"
             placeholder="Filter steps and workflows..."
-            class="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-wp-custom-highlight-100 focus:border-wp-custom-highlight-100 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            class="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
           />
           <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
             <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -80,7 +80,7 @@
       </div>
       <div class="mt-1 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
         <div
-          class="bg-wp-highlight h-2 rounded-full transition-all duration-300"
+          class="bg-primary h-2 rounded-full transition-all duration-300"
           :style="{ width: `${pipelineProgress.percentage}%` }"
         ></div>
       </div>
@@ -137,7 +137,7 @@
                   nodeProps.data?.step?.state === 'pending' || nodeProps.data?.step?.state === 'skipped',
                 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20':
                   nodeProps.data?.step?.state === 'killed',
-                'ring-2 ring-wp-custom-highlight-100 ring-opacity-50 scale-105': selectedNodeId === nodeProps.id,
+                'ring-2 ring-primary ring-opacity-50 scale-105': selectedNodeId === nodeProps.id,
               }"
             >
               <Handle
@@ -147,7 +147,7 @@
                 class="step-handle !bg-gray-500 dark:!bg-gray-400"
               />
               <div class="flex items-start justify-between mb-2 gap-2">
-                <div class="font-semibold text-gray-900 dark:text-gray-100 leading-tight break-words flex-1">
+                <div class="font-semibold text-gray-900 dark:text-gray-100 leading-tight wrap-break-word flex-1">
                   {{ nodeProps.data?.step?.name || 'Unknown' }}
                 </div>
                 <div
@@ -162,7 +162,7 @@
                   }"
                 ></div>
               </div>
-              <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 break-words">
+              <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 wrap-break-word">
                 {{ formatExecutionTime(nodeProps.data?.step) }}
               </div>
               <Handle
@@ -178,7 +178,7 @@
             <div
               class="border-2 border-dashed rounded-lg p-4 transition-all duration-200 bg-transparent dark:bg-gray-800/20 shadow-sm dark:shadow-black/20 relative"
               :class="{
-                'border-wp-state-ok-100/40 dark:border-green-400/60': nodeProps.data?.workflow?.state === 'success',
+                'border-green-500/40 dark:border-green-400/60': nodeProps.data?.workflow?.state === 'success',
                 'border-red-600/40 dark:border-red-400/60':
                   nodeProps.data?.workflow?.state === 'failure' || nodeProps.data?.workflow?.state === 'error',
                 'border-yellow-600/40 dark:border-yellow-400/60': nodeProps.data?.workflow?.state === 'running',

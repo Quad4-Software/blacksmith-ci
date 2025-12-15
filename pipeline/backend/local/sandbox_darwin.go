@@ -253,8 +253,14 @@ func (e *local) wrapCommandWithSandbox(ctx context.Context, originalCmd *exec.Cm
 	cmd.Dir = originalCmd.Dir
 	cmd.Env = originalCmd.Env
 	cmd.Stdin = originalCmd.Stdin
-	cmd.Stdout = originalCmd.Stdout
-	cmd.Stderr = originalCmd.Stderr
+	// Only copy Stdout/Stderr if they were explicitly set
+	// (don't copy nil values, which would prevent StdoutPipe/StderrPipe from working)
+	if originalCmd.Stdout != nil {
+		cmd.Stdout = originalCmd.Stdout
+	}
+	if originalCmd.Stderr != nil {
+		cmd.Stderr = originalCmd.Stderr
+	}
 
 	return cmd, nil
 }

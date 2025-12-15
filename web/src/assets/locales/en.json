@@ -1,33 +1,58 @@
 {
   "cancel": "Cancel",
+  "close": "Close",
+  "delete": "Delete",
+  "done": "Done",
+  "save": "Save",
+  "copy": "Copy",
+  "copied": "Copied!",
   "login": "Login",
-  "repos": "Repos",
+  "command_palette": {
+    "title": "Command Palette",
+    "search_placeholder": "Type a command or search...",
+    "no_results": "No commands found.",
+    "go_to": "Go to",
+    "actions": "Actions",
+    "toggle_theme": "Toggle Theme"
+  },
+  "navigation": "Navigation",
+  "filter": "Filter",
   "repositories": {
     "title": "Repositories",
     "all": {
-      "title": "All repositories",
-      "desc": "Repositories sorted by last pipeline creation"
+      "title": "All active repositories"
     },
-    "last": {
-      "title": "Last visited",
-      "desc": "Most recently visited repositories sorted by access time"
-    }
+    "pinned": {
+      "title": "Pinned",
+      "desc": "Quick access to your pinned repositories"
+    },
+    "filter": {
+      "show_all": "Show only repositories with access"
+    },
+    "sort": {
+      "alphabetical": "Alphabetical",
+      "last_pipeline": "Last pipeline creation",
+      "status": "Status"
+    },
+    "pin_limit_reached": "Maximum 4 repositories can be pinned"
   },
   "docs": "Docs",
   "api": "API",
   "logout": "Logout",
   "search": "Search…",
+  "sort": "Sort",
+  "loading": "Loading…",
   "username": "Username",
   "password": "Password",
   "back": "Back",
   "clear": "Clear",
   "download": "Download",
+  "no_repos": "No repositories found",
   "unknown_error": "An unknown error occurred",
   "documentation_for": "Documentation for \"{topic}\"",
   "pipeline_feed": "Pipeline feed",
-  "empty_list": "No {entity} found!",
-  "notify_title_success": "✅️ Success",
-  "notify_title_error": "❌️ Error",
+  "notify_title_success": "Success",
+  "notify_title_error": "Error",
   "pagination": {
     "previous": "Previous",
     "next": "Next",
@@ -42,12 +67,61 @@
   },
   "time": {
     "not_started": "not started yet",
-    "just_now": "just now"
+    "just_now": "just now",
+    "minutes_ago": "{count} minute ago | {count} minutes ago",
+    "hours_ago": "{count} hour ago | {count} hours ago",
+    "days_ago": "{count} day ago | {count} days ago"
+  },
+  "access_tokens": {
+    "title": "API Tokens",
+    "info": "API tokens allow you to authenticate with the API without using your password. You can use them with the CLI or for custom integrations.",
+    "create": "Create Token",
+    "create_description": "Create a new API token with specific permissions.",
+    "created_title": "Token Created",
+    "created_description": "Your token has been created successfully. Copy it now - you won't be able to see it again.",
+    "copy_warning": "Make sure to copy your token now. You won't be able to see it again!",
+    "your_token": "Your Token",
+    "name": "Name",
+    "name_placeholder": "My API Token",
+    "scopes": "Scopes",
+    "scopes_description": "Select the permissions this token should have.",
+    "user_scopes": "User Scopes",
+    "admin_scopes": "Admin Scopes",
+    "select_all": "Select all",
+    "deselect_all": "Deselect all",
+    "expiration": "Expiration",
+    "expiration_placeholder": "Select expiration",
+    "expiration_never": "Never",
+    "expiration_30d": "30 days",
+    "expiration_60d": "60 days",
+    "expiration_90d": "90 days",
+    "expiration_1y": "1 year",
+    "created": "Created",
+    "last_used": "Last used",
+    "never_used": "Never used",
+    "expires": "Expires",
+    "no_expiration": "No expiration",
+    "expired": "Expired",
+    "expiring_soon": "Expiring soon",
+    "delete": "Delete token",
+    "edit": "Edit token",
+    "edit_description": "Update the token's name or scopes.",
+    "unnamed": "Unnamed token",
+    "empty": "No API tokens",
+    "empty_description": "Create a token to access the API programmatically.",
+    "delete_confirm_title": "Delete Token",
+    "delete_confirm": "Are you sure you want to delete the token \"{name}\"? This action cannot be undone.",
+    "delete_bulk_confirm": "Are you sure you want to delete {count} token? This action cannot be undone. | Are you sure you want to delete {count} tokens? This action cannot be undone.",
+    "notify_created": "API token created successfully.",
+    "notify_deleted": "API token deleted successfully.",
+    "notify_bulk_deleted": "{count} API token deleted successfully. | {count} API tokens deleted successfully.",
+    "notify_updated": "API token updated successfully."
   },
   "repo": {
     "manual_pipeline": {
       "title": "Trigger a manual pipeline run",
-      "trigger": "Manual pipeline run",
+      "desc": "Select a branch and optionally add variables to trigger a pipeline run.",
+      "trigger": "Run pipeline",
       "select_branch": "Select branch",
       "variables": {
         "delete": "Delete variable",
@@ -56,9 +130,9 @@
         "name": "Variable name",
         "value": "Variable value"
       },
-      "show_pipelines": "Show pipelines",
       "notify_text_failed": "Manual pipeline creation failed.",
-      "manual_event_help": "Did you forget to add the 'manual' event trigger?"
+      "manual_event_help": "Did you forget to add the 'manual' event trigger?",
+      "fetch_branches_failed": "Failed to fetch branches."
     },
     "deploy_pipeline": {
       "title": "Trigger a deployment for the current pipeline #{pipelineId}",
@@ -80,16 +154,31 @@
       }
     },
     "activity": "Activity",
-    "branches": "Branches",
-    "pull_requests": "Pull requests",
-    "add": "Add repository",
+    "add": "Enable repository",
+    "add_desc": "Activate a repository from your forge to start building pipelines.",
+    "pin": "Pin repository",
+    "unpin": "Unpin repository",
+    "disable": "Disable repository",
     "user_none": "This organization/user has no projects yet",
     "notify_text_not_allowed": "Missing permissions. You are either not logged in, your access token has expired or you do not have access to the repository.",
     "enable": {
       "enable": "Enable",
-      "enabled": "Repository is already enabled",
-      "disabled": "Disabled",
-      "notify_text_enabled": "Repository enabled"
+      "enabled": "Enabled",
+      "notify_text_enabled": "Repository enabled",
+      "notify_text_error": "Failed to enable repository",
+      "notify_text_enabled_multiple": "{count} repositories enabled",
+      "notify_text_error_multiple": "Failed to enable {count} repositories",
+      "filter": {
+        "all": "All",
+        "all_owners": "All owners",
+        "not_enabled": "Not enabled",
+        "enabled": "Enabled"
+      },
+      "select_all": "Select all ({count})",
+      "clear_selection": "Clear selection",
+      "selected_count": "{count} selected",
+      "enable_selected": "Enable {count} selected",
+      "total_repos": "{total} repositories ({not_enabled} not enabled)"
     },
     "open_in_forge": "Open repository in forge",
     "visibility": {
@@ -108,6 +197,7 @@
       }
     },
     "settings": {
+      "settings": "Repo Settings",
       "notify_text_not_allowed": "Missing permissions to access the settings of this repository",
       "general": {
         "general": "Project",
@@ -164,11 +254,15 @@
       },
       "crons": {
         "crons": "Crons",
+        "all_crons": "All Crons",
         "desc": "Cron jobs can be used to trigger pipelines on a regular basis, e.g. daily or weekly",
         "show": "Show crons",
         "add": "Add cron",
         "none": "There are no crons jobs defined.",
-        "save": "Save cron",
+        "repo": "Repository",
+        "select_repo": "Select a repository",
+        "search_repo": "Search repository...",
+        "save": "Create cron",
         "notify_text_created": "Cron created",
         "notify_text_saved": "Cron saved",
         "notify_text_deleted": "Cron deleted",
@@ -176,6 +270,8 @@
         "not_executed_yet": "Not executed yet",
         "run": "Run now",
         "timezone_note": "Timezone: UTC",
+        "owner": "Owner",
+        "schedule_custom": "Custom",
         "branch": {
           "title": "Branch",
           "placeholder": "Branch (uses the default branch, if empty)"
@@ -189,7 +285,17 @@
           "placeholder": "Schedule"
         },
         "edit": "Edit cron",
-        "delete": "Delete cron"
+        "delete": "Delete cron",
+        "delete_confirm": "Are you sure you want to delete the cron job \"{name}\"?",
+        "list_view": "List",
+        "calendar_view": "Calendar",
+        "scheduled_run": "Scheduled run",
+        "runs_today": "Runs {count} times today",
+        "more": "more",
+        "run_success": "Cron job triggered successfully",
+        "manually_triggered": "Manually triggered out of schedule",
+        "today": "Today",
+        "recent_runs": "Recent runs"
       },
       "badge": {
         "badge": "Badge",
@@ -202,7 +308,7 @@
       "actions": {
         "actions": "Actions",
         "repair": {
-          "repair": "Repair repository",
+          "repair": "Recreate Forge Webhook",
           "notify_text_success": "Repository successfully repaired "
         },
         "disable": {
@@ -230,15 +336,22 @@
       "files": "Changed files",
       "no_pipelines": "No pipelines have been started yet.",
       "no_pipeline_steps": "No pipeline steps available!",
+      "history": "History:",
+      "rerun_latest": "Rerun latest pipeline",
+      "rerun_success": "Pipeline restarted successfully",
+      "rerun_failed": "Failed to restart pipeline",
+      "hide": "Hide pipeline",
+      "unhide": "Unhide pipeline",
+      "hidden_count": "{count} hidden",
+      "show_hidden": "Show {count} hidden",
+      "hide_hidden": "Collapse hidden pipelines",
+      "unhide_all": "Unhide all",
       "step_not_started": "This step has not started yet.",
-      "pipelines_for": "Pipelines for branch \"{branch}\"",
-      "pipelines_for_pr": "Pipelines for pull request #{index}",
       "exit_code": "Exit Code {exitCode}",
       "loading": "Loading…",
       "no_logs": "No logs",
       "logs_deleted": "🧹️ Logs have been wiped",
       "pipeline": "Pipeline #{pipelineId}",
-      "log_title": "Step Logs",
       "log_download_error": "An error occurred while downloading the log file",
       "log_delete_confirm": "Do you really want to delete the step logs?",
       "log_delete_error": "An error occurred while deleting the step logs",
@@ -264,8 +377,16 @@
         "log_auto_scroll_off": "Disable automatic log scrolling",
         "log_scroll_to_bottom": "Scroll to bottom",
         "log_scroll_to_top": "Scroll to top",
-        "canceled_by_user": "Canceled by user"
+        "log_settings": "Log View Settings",
+        "auto_follow": "Auto-follow running steps",
+        "auto_follow_desc": "Automatically switch to the currently running step",
+        "log_fullscreen": "Enter fullscreen",
+        "log_exit_fullscreen": "Exit fullscreen",
+        "canceled_by_user": "Canceled by user",
+        "stderr_output": "Error Output (stderr)"
       },
+      "hide_steps": "Hide steps",
+      "show_steps": "Show steps",
       "protected": {
         "awaits": "This pipeline is awaiting approval from a maintainer.",
         "approve": "Approve",
@@ -355,9 +476,16 @@
         "pending": "Pending",
         "skipped": "Skipped",
         "killed": "Killed",
-        "all_workflows": "All Workflows"
-      },
-      "view": "View pipeline"
+        "all_workflows": "All Workflows",
+        "date_range": "Filter by date",
+        "date_from": "From",
+        "date_to": "To",
+        "from_date": "From {date}",
+        "until_date": "Until {date}",
+        "event": "Event",
+        "branch": "Branch / PR",
+        "all_branches": "All branches"
+      }
     }
   },
   "org": {
@@ -377,10 +505,11 @@
   "admin": {
     "settings": {
       "notify_text_not_allowed": "Missing permissions to access server settings",
-      "settings": "Admin Settings",
+      "settings": "Settings",
+      "sidebar_title": "Admin Settings",
       "secrets": {
-        "desc": "Global secrets can be used in any pipeline by any user.",
-        "warning": "These secrets are available to all users"
+        "desc": "You should only add global secrets in private instances where you trust all users.",
+        "warning": "These secrets are available to all users."
       },
       "registries": {
         "desc": "Global registry credentials allow pulling private images for any pipeline of any user.",
@@ -389,6 +518,7 @@
       "agents": {
         "agents": "Agents",
         "desc": "Agents registered on this server.",
+        "add_desc": "Register a new agent to execute pipelines.",
         "none": "There are no agents yet.",
         "id": "ID",
         "add": "Add agent",
@@ -427,7 +557,7 @@
           "desc": "Agent priority for task assignment (higher values have priority). Labels take precedence over priority."
         },
         "type": {
-          "badge": "type"
+          "global": "Global"
         },
         "version": {
           "label": "Version",
@@ -453,10 +583,9 @@
         "edit_agent": "Edit agent",
         "delete_agent": "Delete agent",
         "search": "Search agents...",
-        "filter_type": "All types",
-        "filter_platform": "All platforms",
-        "filter_backend": "All backends",
-        "sort_by": "Sort by",
+        "filter_platform": "Platform",
+        "filter_backend": "Backend",
+        "clear_filter": "Clear filter",
         "sort": {
           "status": "Status (health)",
           "id": "ID",
@@ -466,10 +595,8 @@
           "last_contact": "Last Contact",
           "capacity": "Capacity"
         },
-        "clear_filters": "Clear filters",
         "no_match": "No agents match your filters",
-        "sort_ascending": "Sort ascending",
-        "sort_descending": "Sort descending"
+        "sort_descending": "Descending"
       },
       "autoscalers": {
         "autoscalers": "Autoscalers",
@@ -511,8 +638,6 @@
         "enable": "Enable autoscaler",
         "disable": "Disable autoscaler",
         "search": "Search autoscalers...",
-        "filter_enabled": "All statuses",
-        "sort_by": "Sort by",
         "sort": {
           "status": "Status (health)",
           "id": "ID",
@@ -521,7 +646,6 @@
         },
         "clear_filters": "Clear filters",
         "no_match": "No autoscalers match your filters",
-        "sort_ascending": "Sort ascending",
         "sort_descending": "Sort descending",
         "never": "Never"
       },
@@ -530,20 +654,48 @@
         "desc": "Tasks waiting to be executed by agents.",
         "pause": "Pause",
         "resume": "Resume",
+        "paused": "Paused",
         "notify_text_paused": "Queue is paused",
         "notify_text_resumed": "Queue is resumed",
         "tasks": "Tasks",
-        "task_running": "Task is running",
-        "task_pending": "Task is pending",
-        "task_waiting_on_deps": "Task is waiting on dependencies",
-        "agent": "agent",
-        "waiting_for": "waiting for",
+        "waiting_for": "Waiting for",
+        "created": "Created",
+        "running_for": "Running for",
+        "waiting_since": "Waiting for",
+        "running": "Running",
+        "pending": "Pending",
+        "waiting": "Waiting",
+        "unassigned": "Unassigned",
+        "search": "Search tasks...",
+        "filter_status": "Status",
+        "all_statuses": "All statuses",
+        "no_match": "No tasks match your filters",
+        "no_tasks": "No tasks in the queue",
+        "sort_descending": "Sort descending",
+        "sort": {
+          "name": "Name",
+          "status": "Status",
+          "agent": "Agent"
+        },
         "stats": {
-          "completed_count": "Completed Tasks",
+          "overview": "Queue Overview",
+          "by_agent": "Tasks by Agent",
           "worker_count": "Free",
           "running_count": "Running",
           "pending_count": "Pending",
           "waiting_on_deps_count": "Waiting on dependencies"
+        }
+      },
+      "metrics": {
+        "metrics": "Metrics",
+        "charts": {
+          "workflows_by_agent": "Workflows by Agent",
+          "pipelines_by_repo": "Top Repositories by Pipelines",
+          "pipelines_by_org": "Pipelines by Organization",
+          "avg_build_time_by_repo": "Average Build Time by Repository",
+          "total_build_time_by_repo": "Total Build Time by Repository",
+          "avg_build_time_by_org": "Average Build Time by Organization",
+          "total_build_time_by_org": "Total Build Time by Organization"
         }
       },
       "maintenance": {
@@ -584,29 +736,27 @@
         "run_stale_agent_cleanup": "Run stale agent cleanup",
         "stale_duration_24h": "24h",
         "options": "Options",
-        "no_options": "No options",
+        "none": "None",
         "env_vars_set_tooltip": "Configuration is managed by environment variables and cannot be changed here",
         "dry_run": "Dry run",
         "name": "Name",
         "status_column": "Status",
         "recent_operations": "Recent maintenance operations",
-        "no_action_logs": "No action logs yet. Run a maintenance operation to see logs here."
+        "no_action_logs": "No action logs yet. Run a maintenance operation to see logs here.",
+        "action_log": "Action Log",
+        "wipe_log": "Wipe Log",
+        "load_more": "Load More"
       },
       "version": {
         "update": "available"
       },
       "users": {
         "users": "Users",
-        "desc": "Users registered for this server.",
         "login": "Login",
         "email": "Email",
         "avatar_url": "Avatar URL",
         "save": "Save user",
-        "cancel": "Cancel",
-        "show": "Show users",
         "add": "Add user",
-        "none": "There are no users yet.",
-        "delete_confirm": "Do you really want to delete this user? This will also delete all repositories owned by this user.",
         "notify_text_deleted": "User deleted",
         "notify_text_created": "User created",
         "notify_text_saved": "User saved",
@@ -614,25 +764,36 @@
           "admin": "Admin",
           "placeholder": "User is an admin"
         },
-        "delete_user": "Delete user",
-        "edit_user": "Edit user",
-        "search": "Search users...",
-        "filter_admin": "All users",
-        "clear_filters": "Clear filters",
-        "no_match": "No users match your filters"
+        "edit_user": "Edit user"
       },
       "orgs": {
         "orgs": "Orgs",
-        "desc": "Organizations owning repositories on this server.",
-        "none": "There are no organizations yet.",
-        "org_settings": "Organization settings",
-        "delete_org": "Delete organization",
-        "notify_text_deleted": "Organization deleted",
-        "delete_confirm": "Do you really want to delete this organization? This will also delete all repositories owned by this organization.",
-        "view": "View organization",
-        "search": "Search organizations...",
-        "clear_filters": "Clear filters",
-        "no_match": "No organizations match your filters"
+        "notify_text_deleted": "Organization deleted"
+      },
+      "entities": {
+        "title": "Entities",
+        "desc": "Unified view of all users and organizations on this server.",
+        "none": "There are no entities yet.",
+        "name": "Name",
+        "entity_type": "Type",
+        "type_user": "User",
+        "type_org": "Organization",
+        "admin_column": "Admin",
+        "show_admins_only": "Admins only",
+        "forge": "Forge",
+        "page": "Page",
+        "previous": "Previous",
+        "next": "Next",
+        "edit": "Edit",
+        "view": "View",
+        "delete_confirm_title": "Delete Entity",
+        "delete_confirm": "Do you really want to delete {name}?",
+        "delete_bulk_confirm": "Do you really want to delete {count} entities? This cannot be undone.",
+        "bulk_delete_success": "Successfully deleted {count} entities",
+        "bulk_delete_failed": "Failed to delete {count} entities",
+        "toggle_admin": "Toggle Admin",
+        "bulk_toggle_admin_success": "Successfully toggled admin status for {count} users",
+        "bulk_toggle_admin_failed": "Failed to toggle admin status for {count} users"
       },
       "repos": {
         "repos": "Repos",
@@ -640,12 +801,19 @@
         "none": "There are no repositories yet.",
         "view": "View repository",
         "settings": "Repository settings",
-        "disabled": "Disabled",
-        "search": "Search repositories...",
-        "clear_filters": "Clear filters",
-        "no_match": "No repositories match your filters",
+        "name": "Name",
+        "forge": "Forge",
+        "disable": "Disable",
+        "disable_confirm_title": "Disable Repositories",
+        "disable_bulk_confirm": "Are you sure you want to disable {count} repositories? They will no longer run pipelines but can be re-enabled later.",
+        "delete_confirm_title": "Delete Repositories",
+        "delete_bulk_confirm": "Are you sure you want to permanently delete {count} repositories? This action cannot be undone.",
+        "bulk_disable_success": "Successfully disabled {count} repositories",
+        "bulk_disable_failed": "Failed to disable {count} repositories",
+        "bulk_delete_success": "Successfully deleted {count} repositories",
+        "bulk_delete_failed": "Failed to delete {count} repositories",
         "repair": {
-          "repair": "Repair all",
+          "repair": "Reconfigure All Forge Webhooks",
           "notify_text_success": "Repositories repaired"
         }
       }
@@ -653,22 +821,39 @@
   },
   "user": {
     "settings": {
-      "settings": "User Settings",
+      "settings": "Settings",
+      "sidebar_title": "User Settings",
       "general": {
         "general": "Account",
         "language": "Language",
         "theme": {
-          "theme": "Theme",
-          "light": "Light",
-          "dark": "Dark",
-          "auto": "Auto"
-        }
-      },
-      "secrets": {
-        "desc": "User secrets can be used in the pipelines of all repositories belonging to the respective user."
-      },
-      "registries": {
-        "desc": "User registry credentials can be added to use private images for all pipelines belonging to the respective user."
+          "light": "Light Theme",
+          "dark": "Dark Theme",
+          "auto": "Follow System Theme"
+        },
+        "section_profile": "Profile",
+        "section_profile_desc": "Your profile information visible to other users",
+        "description": "Description",
+        "description_placeholder": "A short bio about yourself",
+        "timezone": "Timezone",
+        "timezone_placeholder": "Select your timezone",
+        "save": "Save Profile",
+        "profile_saved": "Profile updated successfully",
+        "profile_save_error": "Failed to update profile",
+        "section_appearance": "Appearance",
+        "section_appearance_desc": "Customize the look and feel of the interface",
+        "theme_label": "Theme",
+        "color_mode": "Color Mode",
+        "section_pipeline_view": "Pipeline View",
+        "section_pipeline_view_desc": "Customize how pipeline logs and steps are displayed",
+        "pipeline_steps_width": "Pipeline Steps Panel Width",
+        "split_ratio_range": "% (range: 20-50)",
+        "log_theme": "Log View Theme",
+        "log_theme_system": "Follow System Theme",
+        "log_theme_light": "Light",
+        "log_theme_dark": "Dark",
+        "auto_follow": "Auto-follow running steps",
+        "auto_follow_desc": "Automatically switch to the currently running step in pipeline logs"
       },
       "cli_and_api": {
         "cli_and_api": "CLI & API",
@@ -687,30 +872,51 @@
   },
   "secrets": {
     "secrets": "Secrets",
+    "all_secrets": "Secrets",
     "desc": "Secrets can be used in all pipelines of this repository.",
     "none": "There are no secrets yet.",
     "add": "Add secret",
+    "add_description": "Add a new secret to use in your pipelines.",
     "save": "Save secret",
-    "show": "Show secrets",
+    "show": "All secrets",
     "name": "Name",
     "value": "Value",
-    "delete_confirm": "Do you really want to delete this secret?",
+    "edit": "Edit secret",
+    "edit_description": "Update the secret configuration.",
+    "delete": "Delete secret",
+    "delete_confirm": "Are you sure you want to delete the secret \"{name}\"?",
+    "delete_confirm_title": "Delete Secret",
+    "delete_bulk_confirm": "Are you sure you want to delete {count} secret(s)?",
+    "added": "Added",
+    "last_edited": "Last Edited",
     "notify_text_deleted": "Secret deleted",
     "notify_text_created": "Secret created",
     "notify_text_saved": "Secret saved",
+    "validation": {
+      "name_required": "Secret name is required",
+      "events_required": "At least one event must be selected",
+      "target_required": "Please select an organization or repository"
+    },
+    "scope": {
+      "select_target": "Organization / Repository",
+      "search_target": "Type to search organizations and repositories...",
+      "global_selected": "Global scope (all organizations and repositories)",
+      "organizations": "Organizations",
+      "repositories": "Repositories"
+    },
     "plugins": {
       "images": "Restrict secret to specific plugins",
-      "desc": "Leave empty to allow any plugin and image (only restrictions for plugins are supported)."
+      "desc": "Leave empty to allow any plugin and image (only restrictions for plugins are supported).",
+      "add_image": "Enter image name"
     },
     "events": {
       "events": "Restrict secret for specific events",
       "warning": "Exposing secrets to pull requests could allow bad actors to expose/steal your secrets with a malicious pull request."
-    },
-    "edit": "Edit secret",
-    "delete": "Delete secret"
+    }
   },
   "registries": {
     "registries": "Registries",
+    "all_registries": "Registries",
     "credentials": "Registry credentials",
     "desc": "Registry credentials can be added to use private images for pipelines.",
     "none": "There are no registry credentials yet.",
@@ -721,15 +927,73 @@
     "show": "Show registries",
     "save": "Save registry",
     "add": "Add registry",
+    "add_desc": "Add registry credentials to use private images for pipelines.",
     "view": "View registry",
     "edit": "Edit registry",
     "delete": "Delete registry",
-    "delete_confirm": "Do you really want to delete this registry?",
+    "delete_confirm": "Are you sure you want to delete the registry \"{name}\"?",
+    "delete_confirm_title": "Delete Registry",
+    "delete_bulk_confirm": "Are you sure you want to delete {count} registr(y|ies)?",
+    "added": "Added",
+    "last_edited": "Last Edited",
     "notify_text_created": "Registry credentials created",
     "notify_text_saved": "Registry credentials saved",
     "notify_text_deleted": "Registry credentials deleted"
   },
-  "default": "default",
+  "metrics": {
+    "title": "Metrics",
+    "desc": "Pipeline metrics and statistics for your repositories.",
+    "total_repos": "Total Repositories",
+    "total_orgs": "Total Organizations",
+    "total_pipelines": "Total Pipelines",
+    "avg_build_time": "Average Build Time",
+    "avg_steps_per_workflow": "Average Steps per Workflow",
+    "top_agents": "Top Agents by Workflows",
+    "top_repos": "Top Repositories by Pipelines",
+    "top_orgs": "Top Organizations by Pipelines",
+    "platform": "platform",
+    "backend": "backend",
+    "repos": "repos",
+    "workflows": "workflows",
+    "pipelines": "pipelines",
+    "avg_time": "Avg",
+    "total_time": "Total",
+    "tabs": {
+      "overview": "Overview",
+      "charts": "Charts"
+    },
+    "filter": {
+      "all_time": "All Time",
+      "last_year": "Last Year",
+      "last_quarter": "Last 3 Months",
+      "last_month": "Last Month",
+      "last_week": "Last Week",
+      "custom_range": "Custom Range",
+      "from": "From",
+      "to": "To",
+      "start_date": "Start date",
+      "end_date": "End date",
+      "apply": "Apply",
+      "clear": "Clear",
+      "repos": "Repos",
+      "select_all": "Select All",
+      "no_repos": "No repositories available",
+      "show_all_instance": "Instance-wide metrics"
+    }
+  },
+  "scope": {
+    "global": "Global",
+    "user": "Organization",
+    "org": "Organization",
+    "repo": "Repository"
+  },
+  "readonly": "Read-only",
+  "selected": "selected",
+  "owner": "Owner",
+  "actions": "Actions",
+  "columns": "Columns",
+  "clear_filters": "Clear filters",
+  "scope_type": "Scope",
   "info": "Info",
   "running_version": "You are running Crow CI {0}",
   "update_crow": "(A newer version of Crow CI is available: {0})",
@@ -742,7 +1006,7 @@
   "cli_login_failed": "Login to CLI failed",
   "cli_login_denied": "Login to CLI denied",
   "return_to_cli": "You can now close this tab and return to the CLI.",
-  "settings": "Settings",
+  "settings": "Admin Settings",
   "oauth_error": "Error while authenticating against OAuth provider",
   "stale_token_error": "Your authentication token has expired and could not be refreshed automatically.",
   "internal_error": "Internal error occurred",

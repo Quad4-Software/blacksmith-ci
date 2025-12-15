@@ -45,13 +45,16 @@ type SecretStore interface {
 
 // Secret represents a secret variable, such as a password or token.
 type Secret struct {
-	ID     int64          `json:"id"              xorm:"pk autoincr 'id'"`
-	OrgID  int64          `json:"org_id"          xorm:"NOT NULL DEFAULT 0 UNIQUE(s) INDEX 'org_id'"`
-	RepoID int64          `json:"repo_id"         xorm:"NOT NULL DEFAULT 0 UNIQUE(s) INDEX 'repo_id'"`
-	Name   string         `json:"name"            xorm:"NOT NULL UNIQUE(s) INDEX 'name'"`
-	Value  string         `json:"value,omitempty" xorm:"TEXT 'value'"`
-	Images []string       `json:"images"          xorm:"json 'images'"`
-	Events []WebhookEvent `json:"events"          xorm:"json 'events'"`
+	ID        int64          `json:"id"              xorm:"pk autoincr 'id'"`
+	OrgID     int64          `json:"org_id"          xorm:"NOT NULL DEFAULT 0 UNIQUE(s) INDEX 'org_id'"`
+	RepoID    int64          `json:"repo_id"         xorm:"NOT NULL DEFAULT 0 UNIQUE(s) INDEX 'repo_id'"`
+	Name      string         `json:"name"            xorm:"NOT NULL UNIQUE(s) INDEX 'name'"`
+	Value     string         `json:"value,omitempty" xorm:"TEXT 'value'"`
+	Images    []string       `json:"images"          xorm:"json 'images'"`
+	Events    []WebhookEvent `json:"events"          xorm:"json 'events'"`
+	Source    string         `json:"source"          xorm:"varchar(50) DEFAULT 'internal' 'source'"`
+	CreatedAt int64          `json:"created_at"      xorm:"created"`
+	UpdatedAt int64          `json:"updated_at"      xorm:"updated"`
 } //	@name	Secret
 
 // TableName return database table name for xorm.
@@ -59,9 +62,12 @@ func (Secret) TableName() string {
 	return "secrets"
 }
 
-// BeforeInsert will sort events before inserted into database.
+// BeforeInsert will sort events and set defaults before inserted into database.
 func (s *Secret) BeforeInsert() {
 	s.Events = sortEvents(s.Events)
+	if s.Source == "" {
+		s.Source = "internal"
+	}
 }
 
 // Global secret.
@@ -129,10 +135,43 @@ func (s *Secret) Copy() *Secret {
 		Name:   s.Name,
 		Images: s.Images,
 		Events: sortEvents(s.Events),
+		Source: s.Source,
 	}
 }
 
 func sortEvents(wel WebhookEventList) WebhookEventList {
 	sort.Sort(wel)
 	return wel
+}
+
+// SecretWithOrg extends Secret with organization and repository context for user views.
+type SecretWithOrg struct {
+	*Secret
+	OrgName   string `json:"org_name"`
+	RepoName  string `json:"repo_name,omitempty"`
+	ScopeType string `json:"scope_type"` // "user", "org", "repo", or "global"
+} //	@name	SecretWithOrg
+
+// WithOrg creates a SecretWithOrg from a Secret with the given org name.
+func (s *Secret) WithOrg(orgName string, isPersonalOrg bool) *SecretWithOrg {
+	scopeType := "org"
+	if s.IsGlobal() {
+		scopeType = "global"
+	} else if isPersonalOrg {
+		scopeType = "user"
+	}
+	return &SecretWithOrg{
+		Secret:    s,
+		OrgName:   orgName,
+		ScopeType: scopeType,
+	}
+}
+
+// WithRepo creates a SecretWithOrg from a Secret with the given repo name.
+func (s *Secret) WithRepo(repoName string) *SecretWithOrg {
+	return &SecretWithOrg{
+		Secret:    s,
+		RepoName:  repoName,
+		ScopeType: "repo",
+	}
 }

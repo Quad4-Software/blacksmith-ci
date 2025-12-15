@@ -30,7 +30,7 @@ import (
 	"golang.org/x/net/proxy"
 	"golang.org/x/oauth2"
 
-	crow "codeberg.org/crowci/crow/v4/crow-go/crow"
+	crow "codeberg.org/crowci/crow/v5/crow-go/crow"
 )
 
 // NewClient returns a new client from the CLI context.

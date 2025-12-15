@@ -15,7 +15,7 @@
 package datastore
 
 import (
-	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v5/server/model"
 )
 
 // CacheGet retrieves a cache entry by key.

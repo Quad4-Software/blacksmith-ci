@@ -2,191 +2,185 @@
 <template>
   <template v-if="repoPermissions && repoPermissions.push">
     <!-- Metadata Information Sections -->
-    <div class="space-y-4">
+    <div class="space-y-6">
       <!-- Pipeline Information -->
-      <Panel>
-        <MetadataInputField :label="$t('repo.pipeline.metadata.pipeline_info')">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div>
-              <strong>{{ $t('repo.pipeline.metadata.fields.number') }}:</strong>
-              {{ metadata?.curr?.number || pipeline?.number || $t('repo.pipeline.metadata.fields.na') }}
-            </div>
-            <div>
-              <strong>{{ $t('repo.pipeline.metadata.fields.status') }}:</strong>
-              {{ metadata?.curr?.status || pipeline?.status || $t('repo.pipeline.metadata.fields.na') }}
-            </div>
-            <div>
-              <strong>{{ $t('repo.pipeline.metadata.fields.event') }}:</strong>
-              {{ metadata?.curr?.event || pipeline?.event || $t('repo.pipeline.metadata.fields.na') }}
-            </div>
-            <div>
-              <strong>{{ $t('repo.pipeline.metadata.fields.branch') }}:</strong>
-              {{ metadata?.curr?.commit?.branch || pipeline?.branch || $t('repo.pipeline.metadata.fields.na') }}
-            </div>
-            <div>
-              <strong>{{ $t('repo.pipeline.metadata.fields.commit') }}: </strong>
+      <Card>
+        <CardHeader>
+          <CardTitle>{{ $t('repo.pipeline.metadata.pipeline_info') }}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <MetadataField
+              :label="$t('repo.pipeline.metadata.fields.number')"
+              :value="metadata?.curr?.number || pipeline?.number"
+            />
+            <MetadataField
+              :label="$t('repo.pipeline.metadata.fields.status')"
+              :value="metadata?.curr?.status || pipeline?.status"
+            />
+            <MetadataField
+              :label="$t('repo.pipeline.metadata.fields.event')"
+              :value="metadata?.curr?.event || pipeline?.event"
+            />
+            <MetadataField
+              :label="$t('repo.pipeline.metadata.fields.branch')"
+              :value="metadata?.curr?.commit?.branch || pipeline?.branch"
+            />
+            <MetadataField :label="$t('repo.pipeline.metadata.fields.commit')">
               <a
                 v-if="commitUrl"
                 :href="commitUrl"
                 target="_blank"
-                class="text-wp-link-100 hover:text-wp-link-200 underline"
+                class="text-primary hover:underline font-mono text-sm"
               >
                 {{ commitHash }}
               </a>
-              <span v-else>{{ commitHash }}</span>
-            </div>
-            <div>
-              <strong>{{ $t('repo.pipeline.metadata.fields.created') }}:</strong>
-              {{ formatDate(metadata?.curr?.created || pipeline?.created) }}
-            </div>
-            <div>
-              <strong>{{ $t('repo.pipeline.metadata.fields.started') }}:</strong>
-              {{ formatDate(metadata?.curr?.started || pipeline?.started) }}
-            </div>
-            <div>
-              <strong>{{ $t('repo.pipeline.metadata.fields.finished') }}:</strong>
-              {{ formatDate(metadata?.curr?.finished || pipeline?.finished) }}
-            </div>
-            <div>
-              <strong>{{ $t('repo.pipeline.metadata.fields.deployment') }}:</strong>
-              {{ hasDeployment ? 'true' : 'false' }}
-            </div>
-            <div v-if="hasDeployment">
-              <strong>{{ $t('repo.pipeline.metadata.fields.environment') }}:</strong>
-              {{ deploymentEnvironment }}
-            </div>
+              <span v-else class="font-mono text-sm">{{ commitHash }}</span>
+            </MetadataField>
+            <MetadataField
+              :label="$t('repo.pipeline.metadata.fields.created')"
+              :value="formatDate(metadata?.curr?.created || pipeline?.created)"
+            />
+            <MetadataField
+              :label="$t('repo.pipeline.metadata.fields.started')"
+              :value="formatDate(metadata?.curr?.started || pipeline?.started)"
+            />
+            <MetadataField
+              :label="$t('repo.pipeline.metadata.fields.finished')"
+              :value="formatDate(metadata?.curr?.finished || pipeline?.finished)"
+            />
+            <MetadataField
+              :label="$t('repo.pipeline.metadata.fields.deployment')"
+              :value="hasDeployment ? 'true' : 'false'"
+            />
+            <MetadataField
+              v-if="hasDeployment"
+              :label="$t('repo.pipeline.metadata.fields.environment')"
+              :value="deploymentEnvironment"
+            />
           </div>
-        </MetadataInputField>
-      </Panel>
+        </CardContent>
+      </Card>
 
       <!-- Repository Information -->
-      <Panel>
-        <MetadataInputField :label="$t('repo.pipeline.metadata.repository_info')">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div>
-              <strong>{{ $t('repo.pipeline.metadata.fields.id') }}:</strong>
-              {{ metadata?.repo?.id || repo?.id || $t('repo.pipeline.metadata.fields.na') }}
-            </div>
-            <div>
-              <strong>{{ $t('repo.pipeline.metadata.fields.name') }}:</strong>
-              {{ metadata?.repo?.name || repo?.name || $t('repo.pipeline.metadata.fields.na') }}
-            </div>
-            <div>
-              <strong>{{ $t('repo.pipeline.metadata.fields.url') }}: </strong>
+      <Card>
+        <CardHeader>
+          <CardTitle>{{ $t('repo.pipeline.metadata.repository_info') }}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <MetadataField :label="$t('repo.pipeline.metadata.fields.id')" :value="metadata?.repo?.id || repo?.id" />
+            <MetadataField
+              :label="$t('repo.pipeline.metadata.fields.name')"
+              :value="metadata?.repo?.name || repo?.name"
+            />
+            <MetadataField :label="$t('repo.pipeline.metadata.fields.url')">
               <a
                 v-if="repositoryUrl"
                 :href="repositoryUrl"
                 target="_blank"
-                class="text-wp-link-100 hover:text-wp-link-200 underline"
+                class="text-primary hover:underline text-sm break-all"
               >
                 {{ repositoryUrl }}
               </a>
-              <span v-else>{{ $t('repo.pipeline.metadata.fields.na') }}</span>
-            </div>
-            <div>
-              <strong>{{ $t('repo.pipeline.metadata.fields.default_branch') }}:</strong>
-              {{ defaultBranch }}
-            </div>
-            <div>
-              <strong>{{ $t('repo.pipeline.metadata.fields.private') }}:</strong>
-              {{ metadata?.repo?.private || repo?.private || $t('repo.pipeline.metadata.fields.na') }}
-            </div>
-            <div>
-              <strong>{{ $t('repo.pipeline.metadata.fields.trusted') }}:</strong>
-              {{ JSON.stringify(metadata?.repo?.trusted) || repo?.trusted || $t('repo.pipeline.metadata.fields.na') }}
-            </div>
-          </div>
-        </MetadataInputField>
-      </Panel>
-
-      <!-- Pipeline Statistics -->
-      <Panel>
-        <MetadataInputField :label="$t('repo.pipeline.metadata.statistics')">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div>
-              <strong>{{ $t('repo.pipeline.metadata.fields.workflow_count') }}:</strong> {{ workflowCount }}
-            </div>
-            <div>
-              <strong>{{ $t('repo.pipeline.metadata.fields.step_count') }}:</strong> {{ stepCount }}
-            </div>
-            <div>
-              <strong>{{ $t('repo.pipeline.metadata.fields.unique_agents') }}:</strong> {{ uniqueAgentCount }}
-            </div>
-          </div>
-        </MetadataInputField>
-      </Panel>
-
-      <!-- Agent Information -->
-      <Panel v-if="agentInfo.length > 0">
-        <MetadataInputField :label="$t('repo.pipeline.metadata.agent_info')">
-          <div class="space-y-4">
-            <div
-              v-for="agent in agentInfo"
-              :key="agent.id"
-              class="border border-wp-background-300 dark:border-wp-background-400 rounded p-3"
-            >
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div>
-                  <strong>{{ $t('repo.pipeline.metadata.fields.agent_id') }}: </strong>
-                  <router-link :to="agentPageRoute" class="text-wp-link-100 hover:text-wp-link-200 underline">
-                    {{ agent.id }}
-                  </router-link>
-                </div>
-                <div>
-                  <strong>{{ $t('repo.pipeline.metadata.fields.agent_name') }}:</strong>
-                  {{ agent.name || $t('repo.pipeline.metadata.fields.na') }}
-                </div>
-                <div>
-                  <strong>{{ $t('repo.pipeline.metadata.fields.agent_platform') }}:</strong>
-                  {{ agent.platform || $t('repo.pipeline.metadata.fields.na') }}
-                </div>
-                <div>
-                  <strong>{{ $t('repo.pipeline.metadata.fields.agent_backend') }}:</strong>
-                  {{ agent.backend || $t('repo.pipeline.metadata.fields.na') }}
-                </div>
-                <div v-if="agent.priority && agent.priority > 0">
-                  <strong>{{ $t('repo.pipeline.metadata.fields.agent_priority') }}:</strong>
-                  {{ agent.priority }}
-                </div>
-                <div>
-                  <strong>{{ $t('repo.pipeline.metadata.fields.workflow_count') }}:</strong>
-                  {{ agent.workflows.length }}
-                </div>
-                <div v-if="agent.custom_labels && Object.keys(agent.custom_labels).length > 0" class="col-span-full">
-                  <strong>{{ $t('repo.pipeline.metadata.fields.agent_labels') }}:</strong>
-                  <span
-                    v-for="(value, key) in agent.custom_labels"
-                    :key="key"
-                    class="ml-2 inline-block bg-wp-background-200 dark:bg-wp-background-300 px-2 py-1 rounded text-xs"
-                  >
-                    {{ key }}={{ value }}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </MetadataInputField>
-      </Panel>
-
-      <!-- Download Section -->
-      <Panel>
-        <MetadataInputField label="Download">
-          <div class="flex items-center space-x-4">
-            <Button
-              :is-loading="isLoading"
-              :text="$t('repo.pipeline.metadata.download_metadata')"
-              :title="downloadUrlTooltip"
-              @click="downloadStructuredMetadata"
+              <span v-else class="text-sm">{{ $t('repo.pipeline.metadata.fields.na') }}</span>
+            </MetadataField>
+            <MetadataField :label="$t('repo.pipeline.metadata.fields.default_branch')" :value="defaultBranch" />
+            <MetadataField
+              :label="$t('repo.pipeline.metadata.fields.private')"
+              :value="String(metadata?.repo?.private || repo?.private)"
+            />
+            <MetadataField
+              :label="$t('repo.pipeline.metadata.fields.trusted')"
+              :value="String(metadata?.repo?.trusted || repo?.trusted)"
             />
           </div>
-        </MetadataInputField>
-      </Panel>
+        </CardContent>
+      </Card>
+
+      <!-- Pipeline Statistics -->
+      <Card>
+        <CardHeader>
+          <CardTitle>{{ $t('repo.pipeline.metadata.statistics') }}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <MetadataField :label="$t('repo.pipeline.metadata.fields.workflow_count')" :value="workflowCount" />
+            <MetadataField :label="$t('repo.pipeline.metadata.fields.step_count')" :value="stepCount" />
+            <MetadataField :label="$t('repo.pipeline.metadata.fields.unique_agents')" :value="uniqueAgentCount" />
+          </div>
+        </CardContent>
+      </Card>
+
+      <!-- Agent Information -->
+      <Card v-if="agentInfo.length > 0">
+        <CardHeader>
+          <CardTitle>{{ $t('repo.pipeline.metadata.agent_info') }}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div class="space-y-4">
+            <Card v-for="agent in agentInfo" :key="agent.id" class="border-muted">
+              <CardContent class="pt-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <MetadataField :label="$t('repo.pipeline.metadata.fields.agent_id')">
+                    <router-link :to="agentPageRoute" class="text-primary hover:underline font-mono text-sm">
+                      {{ agent.id }}
+                    </router-link>
+                  </MetadataField>
+                  <MetadataField :label="$t('repo.pipeline.metadata.fields.agent_name')" :value="agent.name" />
+                  <MetadataField :label="$t('repo.pipeline.metadata.fields.agent_platform')" :value="agent.platform" />
+                  <MetadataField :label="$t('repo.pipeline.metadata.fields.agent_backend')" :value="agent.backend" />
+                  <MetadataField
+                    v-if="agent.priority && agent.priority > 0"
+                    :label="$t('repo.pipeline.metadata.fields.agent_priority')"
+                    :value="agent.priority"
+                  />
+                  <MetadataField
+                    :label="$t('repo.pipeline.metadata.fields.workflow_count')"
+                    :value="agent.workflows.length"
+                  />
+                  <div v-if="agent.custom_labels && Object.keys(agent.custom_labels).length > 0" class="col-span-full">
+                    <div class="text-sm font-medium text-muted-foreground mb-2">
+                      {{ $t('repo.pipeline.metadata.fields.agent_labels') }}
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                      <Badge v-for="(value, key) in agent.custom_labels" :key="key" variant="secondary">
+                        {{ key }}={{ value }}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </CardContent>
+      </Card>
+
+      <!-- Download Section -->
+      <Card>
+        <CardHeader>
+          <CardTitle>{{ $t('repo.pipeline.metadata.download_metadata') }}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Button :disabled="isLoading" @click="downloadStructuredMetadata">
+            <Icon v-if="isLoading" name="spinner" class="mr-2 h-4 w-4 animate-spin" />
+            <Icon v-else name="download" class="mr-2 h-4 w-4" />
+            {{ $t('repo.pipeline.metadata.download_metadata') }}
+          </Button>
+          <p class="text-sm text-muted-foreground mt-2">
+            {{ downloadUrlTooltip }}
+          </p>
+        </CardContent>
+      </Card>
     </div>
   </template>
-  <div v-else class="flex h-full items-center justify-center">
-    <div class="rounded-lg bg-wp-error-100 p-8 text-center shadow-lg dark:bg-wp-error-200">
-      <p class="text-2xl font-bold text-white">{{ $t('repo.pipeline.metadata.no_permission') }}</p>
-    </div>
+  <div v-else class="flex h-full items-center justify-center p-8">
+    <Card class="max-w-md">
+      <CardContent class="pt-6 text-center">
+        <Icon name="alert" class="h-12 w-12 mx-auto mb-4 text-destructive" />
+        <p class="text-lg font-semibold">{{ $t('repo.pipeline.metadata.no_permission') }}</p>
+      </CardContent>
+    </Card>
   </div>
 </template>
 
@@ -194,9 +188,11 @@
 import { computed, ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import Button from '~/components/atomic/Button.vue';
-import MetadataInputField from '~/components/form/MetadataInputField.vue';
-import Panel from '~/components/layout/Panel.vue';
+import Icon from '~/components/atomic/Icon.vue';
+import MetadataField from '~/components/repo/pipeline/MetadataField.vue';
+import { Badge } from '~/components/ui/badge';
+import { Button } from '~/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import useApiClient from '~/compositions/useApiClient';
 import { requiredInject } from '~/compositions/useInjectProvide';
 import { useCrowTitle } from '~/compositions/useCrowTitle';

@@ -20,7 +20,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"codeberg.org/crowci/crow/v4/agent"
+	"codeberg.org/crowci/crow/v5/agent"
 )
 
 func TestHealthy(t *testing.T) {

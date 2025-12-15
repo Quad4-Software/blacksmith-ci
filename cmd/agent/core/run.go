@@ -23,10 +23,10 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v3"
 
-	backend "codeberg.org/crowci/crow/v4/pipeline/backend/types"
-	"codeberg.org/crowci/crow/v4/shared/logger"
-	"codeberg.org/crowci/crow/v4/shared/utils"
-	"codeberg.org/crowci/crow/v4/version"
+	backend "codeberg.org/crowci/crow/v5/pipeline/backend/types"
+	"codeberg.org/crowci/crow/v5/shared/logger"
+	"codeberg.org/crowci/crow/v5/shared/utils"
+	"codeberg.org/crowci/crow/v5/version"
 )
 
 func RunAgent(ctx context.Context, backends []backend.Backend) {

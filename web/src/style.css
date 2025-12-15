@@ -2,11 +2,13 @@
 
 :root,
 :root[data-theme='light'] {
+  /* Backgrounds using zinc theme */
   --wp-background-100: theme('colors.white');
-  --wp-background-200: theme('colors.gray.100');
-  --wp-background-300: theme('colors.gray.200');
-  --wp-background-400: theme('colors.gray.300');
+  --wp-background-200: theme('colors.zinc.50');
+  --wp-background-300: theme('colors.zinc.100');
+  --wp-background-400: theme('colors.zinc.200');
 
+  /* Orange highlights using stone-compatible orange */
   --wp-orange-100: theme('colors.orange.100');
   --wp-orange-200: theme('colors.orange.200');
   --wp-orange-300: theme('colors.orange.300');
@@ -16,22 +18,26 @@
   --wp-orange-700: theme('colors.orange.700');
   --wp-orange-800: theme('colors.orange.800');
 
-  /* navbar bg */
-  --wp-secondary-800: theme('colors.int-wp-secondary.800');
+  /* Navbar bg - using zinc dark */
+  --wp-secondary-800: theme('colors.zinc.900');
 
-  --wp-text-100: theme('colors.gray.600');
-  --wp-text-200: theme('colors.gray.700');
-  --wp-text-alt-100: theme('colors.gray.500');
+  /* Text colors using zinc */
+  --wp-text-100: theme('colors.zinc.700');
+  --wp-text-200: theme('colors.zinc.800');
+  --wp-text-alt-100: theme('colors.zinc.500');
 
+  /* Primary (green) - keeping Crow branding */
   --wp-primary-100: theme('colors.int-wp-primary.300');
   --wp-primary-200: theme('colors.int-wp-primary.400');
   --wp-primary-300: theme('colors.int-wp-primary.500');
   --wp-primary-text-100: theme('colors.white');
 
+  /* Control neutral colors using zinc */
   --wp-control-neutral-100: theme('colors.white');
-  --wp-control-neutral-200: theme('colors.gray.300');
-  --wp-control-neutral-300: theme('colors.gray.400');
+  --wp-control-neutral-200: theme('colors.zinc.200');
+  --wp-control-neutral-300: theme('colors.zinc.300');
 
+  /* Control info, ok, error - keeping functional colors */
   --wp-control-info-100: theme('colors.int-wp-control-info.100');
   --wp-control-info-200: theme('colors.int-wp-control-info.200');
   --wp-control-info-300: theme('colors.int-wp-control-info.300');
@@ -44,48 +50,55 @@
   --wp-error-200: theme('colors.int-wp-error.200');
   --wp-error-300: theme('colors.int-wp-error.300');
 
+  /* State colors - functional */
   --wp-state-neutral-100: theme('colors.int-wp-state-neutral.100');
   --wp-state-ok-100: theme('colors.int-wp-state-ok.100');
   --wp-state-error-100: theme('colors.int-wp-state-error.100');
   --wp-state-info-100: theme('colors.int-wp-state-info.100');
   --wp-state-warn-100: theme('colors.int-wp-state-warn.100');
-  --wp-state-pending-100: theme('colors.gray.800');
+  --wp-state-pending-100: theme('colors.zinc.800');
 
+  /* Hint colors */
   --wp-hint-warn-100: theme('colors.int-wp-hint-warn.100');
   --wp-hint-warn-200: theme('colors.int-wp-hint-warn.200');
   --wp-hint-warn-300: theme('colors.int-wp-hint-warn.300');
 
-  --wp-code-inline-100: theme('colors.gray.200');
-  --wp-code-inline-200: theme('colors.gray.200');
+  /* Code inline using zinc */
+  --wp-code-inline-100: theme('colors.zinc.100');
+  --wp-code-inline-200: theme('colors.zinc.100');
+  --wp-code-inline-text-100: theme('colors.zinc.700');
 
-  --wp-code-inline-text-100: theme('colors.gray.600');
-
-  --wp-code-100: theme('colors.gray.800');
-  --wp-code-200: theme('colors.int-wp-secondary.600');
+  /* Code blocks using zinc */
+  --wp-code-100: theme('colors.zinc.800');
+  --wp-code-200: theme('colors.zinc.900');
   --wp-code-300: theme('colors.white');
 
-  --wp-code-text-100: theme('colors.gray.800');
-  --wp-code-text-alt-100: theme('colors.gray.200');
+  --wp-code-text-100: theme('colors.zinc.800');
+  --wp-code-text-alt-100: theme('colors.zinc.200');
 
-  --wp-code-text-line-numbers-100: theme('colors.gray.400');
-  --wp-code-text-line-numbers-150: theme('colors.gray.500');
-  --wp-code-text-line-numbers-200: theme('colors.gray.600');
+  --wp-code-text-line-numbers-100: theme('colors.zinc.400');
+  --wp-code-text-line-numbers-150: theme('colors.zinc.500');
+  --wp-code-text-line-numbers-200: theme('colors.zinc.600');
 
-  --wp-link-100: theme('colors.int-wp-custom-highlight-dark.100');
-  --wp-link-200: theme('colors.int-wp-custom-highlight-dark.100');
+  /* Links using orange highlight */
+  --wp-link-100: theme('colors.orange.600');
+  --wp-link-200: theme('colors.orange.600');
   --wp-link-300: theme('colors.blue.800');
 
-  --wp-custom-highlight-100: theme('colors.int-wp-custom-highlight-dark.100');
-  --wp-custom-hover-100: theme('colors.int-wp-custom-hover.100');
+  /* Custom highlights */
+  --wp-custom-highlight-100: theme('colors.orange.500');
+  --wp-custom-hover-100: theme('colors.orange.600');
 }
 
 :root[data-theme='dark'] {
-  --wp-background-50: theme('colors.int-wp-secondary.200');
-  --wp-background-100: theme('colors.int-wp-secondary.300');
-  --wp-background-200: theme('colors.int-wp-secondary.400');
-  --wp-background-300: theme('colors.int-wp-secondary.500');
-  --wp-background-400: theme('colors.gray.600');
+  /* Dark backgrounds using zinc color presets */
+  --wp-background-50: theme('colors.zinc.950');
+  --wp-background-100: theme('colors.zinc.950');
+  --wp-background-200: theme('colors.zinc.900');
+  --wp-background-300: theme('colors.zinc.800');
+  --wp-background-400: theme('colors.zinc.700');
 
+  /* Orange highlights */
   --wp-orange-100: theme('colors.orange.100');
   --wp-orange-200: theme('colors.orange.200');
   --wp-orange-300: theme('colors.orange.300');
@@ -95,22 +108,26 @@
   --wp-orange-700: theme('colors.orange.700');
   --wp-orange-800: theme('colors.orange.800');
 
-  /* navbar bg */
-  --wp-secondary-800: theme('colors.int-wp-secondary.800');
+  /* Navbar bg */
+  --wp-secondary-800: theme('colors.zinc.950');
 
-  --wp-text-100: theme('colors.gray.300');
-  --wp-text-200: theme('colors.gray.200');
-  --wp-text-alt-100: theme('colors.gray.400');
+  /* Dark text using zinc */
+  --wp-text-100: theme('colors.zinc.200');
+  --wp-text-200: theme('colors.zinc.100');
+  --wp-text-alt-100: theme('colors.zinc.400');
 
-  --wp-primary-100: theme('colors.int-wp-secondary.300');
-  --wp-primary-200: theme('colors.int-wp-secondary.400');
-  --wp-primary-300: theme('colors.int-wp-secondary.600');
-  --wp-primary-text-100: theme('colors.gray.300');
+  /* Primary in dark mode using zinc */
+  --wp-primary-100: theme('colors.zinc.800');
+  --wp-primary-200: theme('colors.zinc.700');
+  --wp-primary-300: theme('colors.zinc.600');
+  --wp-primary-text-100: theme('colors.zinc.200');
 
-  --wp-control-neutral-100: theme('colors.int-wp-secondary.300');
-  --wp-control-neutral-200: theme('colors.int-wp-secondary.600');
-  --wp-control-neutral-300: theme('colors.int-wp-secondary.700');
+  /* Control neutral using zinc dark */
+  --wp-control-neutral-100: theme('colors.zinc.800');
+  --wp-control-neutral-200: theme('colors.zinc.700');
+  --wp-control-neutral-300: theme('colors.zinc.600');
 
+  /* Control colors dark variants */
   --wp-control-info-100: theme('colors.int-wp-control-info-dark.100');
   --wp-control-info-200: theme('colors.int-wp-control-info-dark.200');
   --wp-control-info-300: theme('colors.int-wp-control-info-dark.300');
@@ -122,44 +139,73 @@
   --wp-error-100: theme('colors.int-wp-error-dark.100');
   --wp-error-300: theme('colors.int-wp-error.300');
 
+  /* State colors dark */
   --wp-state-neutral-100: theme('colors.int-wp-state-neutral-dark.100');
   --wp-state-ok-100: theme('colors.int-wp-state-ok-dark.100');
   --wp-state-info-100: theme('colors.int-wp-state-info-dark.100');
   --wp-state-warn-100: theme('colors.int-wp-state-warn-dark.100');
   --wp-state-pending-100: theme('colors.int-wp-state-warn-dark.100');
 
+  /* Hint colors dark */
   --wp-hint-warn-100: theme('colors.int-wp-hint-warn-dark.100');
   --wp-hint-warn-200: theme('colors.int-wp-hint-warn-dark.200');
 
-  --wp-code-inline-100: theme('colors.int-wp-secondary.700');
-  --wp-code-inline-200: theme('colors.int-wp-secondary.300');
+  /* Code inline dark using zinc */
+  --wp-code-inline-100: theme('colors.zinc.800');
+  --wp-code-inline-200: theme('colors.zinc.800');
+  --wp-code-inline-text-100: theme('colors.zinc.200');
 
-  --wp-code-inline-text-100: theme('colors.gray.300');
+  /* Code blocks dark using zinc */
+  --wp-code-100: theme('colors.zinc.900');
+  --wp-code-200: theme('colors.zinc.800');
+  --wp-code-300: theme('colors.zinc.950');
 
-  --wp-code-100: theme('colors.int-wp-secondary.700'); /* #222631 */
-  --wp-code-200: theme('colors.int-wp-secondary.600'); /* #2a2e3a */
-  --wp-code-300: theme('colors.int-wp-secondary.800'); /* #1B1F28 */
+  --wp-code-text-100: theme('colors.zinc.200');
+  --wp-code-text-alt-100: theme('colors.zinc.400');
 
-  --wp-code-text-100: theme('colors.gray.200');
-  --wp-code-text-alt-100: theme('colors.gray.400');
+  --wp-code-text-line-numbers-100: theme('colors.zinc.500');
+  --wp-code-text-line-numbers-150: theme('colors.zinc.400');
+  --wp-code-text-line-numbers-200: theme('colors.zinc.300');
 
-  --wp-code-text-line-numbers-100: theme('colors.gray.400');
-  --wp-code-text-line-numbers-150: theme('colors.gray.500');
-  --wp-code-text-line-numbers-200: theme('colors.gray.600');
+  /* Links dark using orange */
+  --wp-link-100: theme('colors.orange.400');
+  --wp-link-200: theme('colors.orange.400');
+  --wp-link-300: theme('colors.blue.400');
 
-  --wp-link-100: theme('colors.int-wp-custom-highlight-dark.100');
-  --wp-link-200: theme('colors.int-wp-custom-highlight-dark.100');
-  --wp-link-300: theme('colors.blue.500');
-
-  --wp-custom-highlight-100: theme('colors.int-wp-custom-highlight-dark.100');
-  --wp-custom-hover-100: theme('colors.int-wp-custom-hover.100');
+  /* Custom highlights dark */
+  --wp-custom-highlight-100: theme('colors.orange.500');
+  --wp-custom-hover-100: theme('colors.orange.600');
 }
 
-html,
-body,
+html {
+  width: 100vw;
+  max-width: 100vw;
+  height: 100vh;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+body {
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
 #app {
   width: 100%;
+  max-width: 100%;
   height: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+* {
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 .vue-notification {
@@ -167,24 +213,47 @@ body,
 }
 
 .vue-notification.success {
-  @apply border border-l-8 border-wp-control-neutral-200 border-l-int-wp-state-ok-100 !bg-white dark:!bg-wp-background-200 text-wp-text-100 shadow-lg dark:border-l-8 dark:border-wp-code-text-line-numbers-150 dark:border-l-int-wp-state-ok-100;
+  @apply border border-l-8 border-zinc-200 border-l-int-wp-state-ok-100 bg-white! dark:bg-zinc-800! text-zinc-700 dark:text-zinc-200 shadow-lg dark:border-zinc-700 dark:border-l-int-wp-state-ok-100;
 }
 
 .vue-notification.error {
-  @apply border border-l-8 border-wp-control-neutral-200 border-l-int-wp-state-error-100 !bg-white dark:!bg-wp-background-200 text-wp-text-100 shadow-lg dark:border-l-8 dark:border-wp-background-400 dark:border-l-int-wp-state-error-100;
+  @apply border border-l-8 border-zinc-200 border-l-int-wp-state-error-100 bg-white! dark:bg-zinc-800! text-zinc-700 dark:text-zinc-200 shadow-lg dark:border-zinc-700 dark:border-l-int-wp-state-error-100;
 }
 
 .code-box {
-  @apply break-words rounded-md bg-wp-code-inline-100 p-4 text-sm text-wp-code-inline-text-100 font-mono;
+  @apply wrap-break-word rounded-md bg-zinc-100 dark:bg-zinc-800 p-4 text-sm text-zinc-700 dark:text-zinc-200 font-mono;
   white-space: pre-wrap;
 }
 
 .code-box-inline,
 code:not(pre > code) {
-  @apply rounded-md bg-wp-code-inline-100 px-1.5 py-0.5 text-wp-code-inline-text-100 font-mono;
+  @apply rounded-md bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 text-zinc-700 dark:text-zinc-200 font-mono;
 }
 
 .code-box-log {
-  @apply break-words bg-wp-code-300 p-4 text-wp-code-text-100 font-mono;
+  @apply wrap-break-word bg-zinc-950 dark:bg-zinc-950 p-4 text-zinc-100 font-mono;
   white-space: pre-wrap;
+}
+
+/* Sonner toast customization for custom ToastAlert component */
+[data-sonner-toaster] {
+  margin: 12px !important;
+}
+
+[data-sonner-toast] {
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow:
+    0 4px 6px -1px rgb(0 0 0 / 0.1),
+    0 2px 4px -2px rgb(0 0 0 / 0.1) !important;
+}
+
+[data-sonner-toast] [data-close-button] {
+  @apply border-border! bg-background! hover:bg-accent! top-2! right-2!;
+}
+
+/* Link styling within toast descriptions */
+[data-sonner-toast] a {
+  @apply text-primary underline underline-offset-2 hover:text-primary/80;
 }

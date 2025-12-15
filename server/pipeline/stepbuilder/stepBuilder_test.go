@@ -21,11 +21,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"codeberg.org/crowci/crow/v4/pipeline/errors"
-	"codeberg.org/crowci/crow/v4/server/forge"
-	forge_mocks "codeberg.org/crowci/crow/v4/server/forge/mocks"
-	forge_types "codeberg.org/crowci/crow/v4/server/forge/types"
-	"codeberg.org/crowci/crow/v4/server/model"
+	"codeberg.org/crowci/crow/v5/pipeline/errors"
+	"codeberg.org/crowci/crow/v5/server/forge"
+	forge_mocks "codeberg.org/crowci/crow/v5/server/forge/mocks"
+	forge_types "codeberg.org/crowci/crow/v5/server/forge/types"
+	"codeberg.org/crowci/crow/v5/server/model"
 )
 
 func TestGlobalEnvsubst(t *testing.T) {

@@ -3,7 +3,7 @@
 package linter
 
 import (
-	linter "codeberg.org/crowci/crow/v4/pipeline/frontend/yaml/linter"
+	linter "codeberg.org/crowci/crow/v5/pipeline/frontend/yaml/linter"
 	mock "github.com/stretchr/testify/mock"
 )
 

@@ -5,15 +5,15 @@
       <span>
         <router-link
           :to="{ name: 'org', params: { orgId: repo!.org_id } }"
-          class="hover:underline hover:decoration-wp-custom-highlight-100"
+          class="hover:underline hover:decoration-primary"
           >{{ repo.owner }}</router-link
         >
         /
-        <router-link :to="{ name: 'repo' }" class="hover:underline hover:decoration-wp-custom-highlight-100">{{
+        <router-link :to="{ name: 'repo' }" class="hover:underline hover:decoration-primary">{{
           repo!.name
           /* eslint-disable-next-line @intlify/vue-i18n/no-raw-text */
         }}</router-link>
-        / {{ $t('settings') }}
+        / {{ $t('repo.settings.settings') }}
       </span>
     </template>
     <Tab
@@ -23,15 +23,14 @@
       :title="$t('repo.settings.general.general')"
     />
     <Tab icon="secret" icon-size="1rem" :to="{ name: 'repo-settings-secrets' }" :title="$t('secrets.secrets')" />
-    <Tab icon="docker" :to="{ name: 'repo-settings-registries' }" :title="$t('registries.registries')" />
+    <Tab
+      icon="docker"
+      icon-size="1rem"
+      :to="{ name: 'repo-settings-registries' }"
+      :title="$t('registries.registries')"
+    />
     <Tab icon="cron" icon-size="1rem" :to="{ name: 'repo-settings-crons' }" :title="$t('repo.settings.crons.crons')" />
     <Tab icon="tag" icon-size="1rem" :to="{ name: 'repo-settings-badge' }" :title="$t('repo.settings.badge.badge')" />
-    <Tab
-      icon="toolbox"
-      icon-size="1rem"
-      :to="{ name: 'repo-settings-actions' }"
-      :title="$t('repo.settings.actions.actions')"
-    />
 
     <router-view />
   </Scaffold>
@@ -47,6 +46,10 @@ import Tab from '~/components/layout/scaffold/Tab.vue';
 import { requiredInject } from '~/compositions/useInjectProvide';
 import useNotifications from '~/compositions/useNotifications';
 import { useRouteBack } from '~/compositions/useRouteBack';
+
+defineProps<{
+  repoId: string;
+}>();
 
 const notifications = useNotifications();
 const router = useRouter();

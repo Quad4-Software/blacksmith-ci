@@ -1,36 +1,49 @@
 <template>
-  <div v-if="innerValue" class="space-y-4">
+  <div v-if="innerValue">
     <form @submit.prevent="save">
-      <InputField v-slot="{ id }" :label="$t('registries.address.address')">
-        <!-- TODO: check input field Address is a valid address -->
-        <TextField
-          :id="id"
-          v-model="innerValue.address"
-          :placeholder="$t('registries.address.desc')"
-          required
-          :disabled="isEditing || isReadOnly"
-        />
-      </InputField>
-      <InputField v-slot="{ id }" :label="$t('username')">
-        <TextField
-          :id="id"
-          v-model="innerValue.username"
-          :placeholder="$t('username')"
-          required
-          :disabled="isReadOnly"
-        />
-      </InputField>
-      <InputField v-if="!isReadOnly" v-slot="{ id }" :label="$t('password')">
-        <TextField :id="id" v-model="innerValue.password" :placeholder="$t('password')" :required="!isEditing" />
-      </InputField>
-      <div v-if="!isReadOnly" class="flex gap-2">
-        <Button type="button" color="gray" :text="$t('cancel')" @click="$emit('cancel')" />
-        <Button
-          type="submit"
-          color="default"
-          :is-loading="isSaving"
-          :text="isEditing ? $t('registries.save') : $t('registries.add')"
-        />
+      <FieldGroup>
+        <Field>
+          <FieldLabel for="registry-address">{{ $t('registries.address.address') }}</FieldLabel>
+          <!-- TODO: check input field Address is a valid address -->
+          <Input
+            id="registry-address"
+            v-model="innerValue.address"
+            :placeholder="$t('registries.address.desc')"
+            required
+            :disabled="isEditing || isReadOnly"
+          />
+        </Field>
+
+        <Field>
+          <FieldLabel for="registry-username">{{ $t('username') }}</FieldLabel>
+          <Input
+            id="registry-username"
+            v-model="innerValue.username"
+            :placeholder="$t('username')"
+            required
+            :disabled="isReadOnly"
+          />
+        </Field>
+
+        <Field v-if="!isReadOnly">
+          <FieldLabel for="registry-password">{{ $t('password') }}</FieldLabel>
+          <Input
+            id="registry-password"
+            v-model="innerValue.password"
+            :placeholder="$t('password')"
+            :required="!isEditing"
+          />
+        </Field>
+      </FieldGroup>
+
+      <div v-if="!isReadOnly" class="mt-6 flex gap-2">
+        <Button type="button" variant="outline" @click="$emit('cancel')">
+          {{ $t('cancel') }}
+        </Button>
+        <Button type="submit" :disabled="isSaving">
+          <Icon v-if="isSaving" name="spinner" class="size-4 animate-spin mr-2" />
+          {{ isEditing ? $t('registries.save') : $t('registries.add') }}
+        </Button>
       </div>
     </form>
   </div>
@@ -39,9 +52,10 @@
 <script lang="ts" setup>
 import { computed, toRef } from 'vue';
 
-import Button from '~/components/atomic/Button.vue';
-import InputField from '~/components/form/InputField.vue';
-import TextField from '~/components/form/TextField.vue';
+import Icon from '~/components/atomic/Icon.vue';
+import { Button } from '~/components/ui/button';
+import { Field, FieldGroup, FieldLabel } from '~/components/ui/field';
+import { Input } from '~/components/ui/input';
 import type { Registry } from '~/lib/api/types';
 
 const props = defineProps<{

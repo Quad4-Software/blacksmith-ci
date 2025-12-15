@@ -17,8 +17,8 @@ package registry
 import (
 	"errors"
 
-	"codeberg.org/crowci/crow/v4/server/model"
-	"codeberg.org/crowci/crow/v4/server/store/types"
+	"codeberg.org/crowci/crow/v5/server/model"
+	"codeberg.org/crowci/crow/v5/server/store/types"
 )
 
 type combined struct {

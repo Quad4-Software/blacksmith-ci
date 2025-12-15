@@ -23,11 +23,11 @@ import (
 
 	"github.com/oklog/ulid/v2"
 
-	backend_types "codeberg.org/crowci/crow/v4/pipeline/backend/types"
-	"codeberg.org/crowci/crow/v4/pipeline/frontend/metadata"
-	"codeberg.org/crowci/crow/v4/pipeline/frontend/yaml/compiler/settings"
-	yaml_types "codeberg.org/crowci/crow/v4/pipeline/frontend/yaml/types"
-	"codeberg.org/crowci/crow/v4/pipeline/frontend/yaml/utils"
+	backend_types "codeberg.org/crowci/crow/v5/pipeline/backend/types"
+	"codeberg.org/crowci/crow/v5/pipeline/frontend/metadata"
+	"codeberg.org/crowci/crow/v5/pipeline/frontend/yaml/compiler/settings"
+	yaml_types "codeberg.org/crowci/crow/v5/pipeline/frontend/yaml/types"
+	"codeberg.org/crowci/crow/v5/pipeline/frontend/yaml/utils"
 )
 
 const (

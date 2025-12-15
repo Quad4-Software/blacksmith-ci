@@ -19,9 +19,9 @@ import (
 	"net/url"
 	"strings"
 
-	"codeberg.org/crowci/crow/v4/pipeline/frontend/metadata"
-	"codeberg.org/crowci/crow/v4/server/model"
-	"codeberg.org/crowci/crow/v4/version"
+	"codeberg.org/crowci/crow/v5/pipeline/frontend/metadata"
+	"codeberg.org/crowci/crow/v5/server/model"
+	"codeberg.org/crowci/crow/v5/version"
 )
 
 // MetadataFromStruct return the metadata from a pipeline will run with.

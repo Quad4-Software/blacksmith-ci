@@ -24,13 +24,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"codeberg.org/crowci/crow/v4/pipeline/frontend/metadata"
-	"codeberg.org/crowci/crow/v4/server"
-	forge_mocks "codeberg.org/crowci/crow/v4/server/forge/mocks"
-	"codeberg.org/crowci/crow/v4/server/model"
-	mocks_manager "codeberg.org/crowci/crow/v4/server/services/mocks"
-	store_mocks "codeberg.org/crowci/crow/v4/server/store/mocks"
-	"codeberg.org/crowci/crow/v4/server/store/types"
+	"codeberg.org/crowci/crow/v5/pipeline/frontend/metadata"
+	"codeberg.org/crowci/crow/v5/server"
+	forge_mocks "codeberg.org/crowci/crow/v5/server/forge/mocks"
+	"codeberg.org/crowci/crow/v5/server/model"
+	mocks_manager "codeberg.org/crowci/crow/v5/server/services/mocks"
+	store_mocks "codeberg.org/crowci/crow/v5/server/store/mocks"
+	"codeberg.org/crowci/crow/v5/server/store/types"
 )
 
 var fakePipeline = &model.Pipeline{

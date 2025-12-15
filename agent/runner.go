@@ -25,11 +25,11 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/metadata"
 
-	"codeberg.org/crowci/crow/v4/pipeline"
-	backend "codeberg.org/crowci/crow/v4/pipeline/backend/types"
-	"codeberg.org/crowci/crow/v4/pipeline/rpc"
-	"codeberg.org/crowci/crow/v4/shared/constant"
-	"codeberg.org/crowci/crow/v4/shared/utils"
+	"codeberg.org/crowci/crow/v5/pipeline"
+	backend "codeberg.org/crowci/crow/v5/pipeline/backend/types"
+	"codeberg.org/crowci/crow/v5/pipeline/rpc"
+	"codeberg.org/crowci/crow/v5/shared/constant"
+	"codeberg.org/crowci/crow/v5/shared/utils"
 )
 
 type Runner struct {

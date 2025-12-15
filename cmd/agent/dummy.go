@@ -16,7 +16,7 @@
 
 package main
 
-import "codeberg.org/crowci/crow/v4/pipeline/backend/dummy"
+import "codeberg.org/crowci/crow/v5/pipeline/backend/dummy"
 
 func init() { //nolint:gochecknoinits
 	backends = append(backends, dummy.New())

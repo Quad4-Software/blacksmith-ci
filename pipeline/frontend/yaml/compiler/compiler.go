@@ -20,11 +20,11 @@ import (
 	"path"
 	"slices"
 
-	backend_types "codeberg.org/crowci/crow/v4/pipeline/backend/types"
-	"codeberg.org/crowci/crow/v4/pipeline/frontend/metadata"
-	yaml_types "codeberg.org/crowci/crow/v4/pipeline/frontend/yaml/types"
-	"codeberg.org/crowci/crow/v4/pipeline/frontend/yaml/utils"
-	"codeberg.org/crowci/crow/v4/shared/constant"
+	backend_types "codeberg.org/crowci/crow/v5/pipeline/backend/types"
+	"codeberg.org/crowci/crow/v5/pipeline/frontend/metadata"
+	yaml_types "codeberg.org/crowci/crow/v5/pipeline/frontend/yaml/types"
+	"codeberg.org/crowci/crow/v5/pipeline/frontend/yaml/utils"
+	"codeberg.org/crowci/crow/v5/shared/constant"
 )
 
 const (

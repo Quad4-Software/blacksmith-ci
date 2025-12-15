@@ -1,54 +1,40 @@
 <template>
   <!-- Filter controls -->
-  <div v-if="!props.loading && props.autoscalers" class="mb-6">
+  <div v-if="!props.loading && props.autoscalers" class="mb-4">
     <div class="flex flex-wrap items-center gap-2">
-      <!-- Search input -->
-      <div class="flex-1 min-w-[100px] max-w-[150px]">
-        <TextField v-model="searchQuery" :placeholder="$t('admin.settings.autoscalers.search')" type="text" />
-      </div>
-
-      <!-- Enabled filter -->
-      <div class="w-[110px]">
-        <SelectField
-          v-model="enabledFilter"
-          :placeholder="$t('admin.settings.autoscalers.filter_enabled')"
-          :options="enabledOptions"
+      <!-- Search input (left) -->
+      <div class="w-[200px]">
+        <SearchInput
+          v-model="searchQuery"
+          :placeholder="$t('admin.settings.autoscalers.search')"
+          type="text"
+          class="[&_input]:h-8"
         />
       </div>
 
-      <!-- Sort dropdown with label and reverse toggle -->
-      <div class="flex items-center gap-1.5 md:ml-auto">
-        <span
-          class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-wp-background-300 text-wp-text-alt-100 border border-wp-background-400 shrink-0"
-        >
-          {{ $t('admin.settings.autoscalers.sort_by') }}
-        </span>
-        <div class="w-[130px]">
-          <SelectField
-            v-model="sortBy"
-            :placeholder="$t('admin.settings.autoscalers.sort_by')"
-            :options="sortOptions"
-          />
-        </div>
-        <IconButton
-          :icon="sortReverse ? 'sort-ascending' : 'sort-descending'"
-          :title="
-            sortReverse
-              ? $t('admin.settings.autoscalers.sort_ascending')
-              : $t('admin.settings.autoscalers.sort_descending')
-          "
-          class="shrink-0"
-          @click="sortReverse = !sortReverse"
-        />
-      </div>
+      <!-- Spacer -->
+      <div class="flex-1" />
 
-      <!-- Clear filters button -->
-      <Button
-        v-if="hasActiveFilters"
-        :text="$t('admin.settings.autoscalers.clear_filters')"
-        color="gray"
-        @click="clearFilters"
-      />
+      <!-- Sort dropdown (right) -->
+      <DropdownMenu :modal="false">
+        <DropdownMenuTrigger as-child>
+          <Button variant="outline" size="sm" class="h-8">
+            <Icon name="lucide:arrow-up-down" class="mr-2 h-4 w-4" />
+            {{ $t('sort') }}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent class="w-[200px]" align="end">
+          <DropdownMenuRadioGroup :model-value="sortBy" @update:model-value="updateSort">
+            <DropdownMenuRadioItem v-for="option in sortOptions" :key="option.value" :value="option.value">
+              {{ option.text }}
+            </DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuCheckboxItem :checked="sortReverse" @update:checked="updateSortOrder">
+            {{ $t('admin.settings.autoscalers.sort_descending') }}
+          </DropdownMenuCheckboxItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   </div>
 
@@ -57,7 +43,7 @@
     <div
       v-for="autoscaler in displayedAutoscalers"
       :key="autoscaler.id"
-      class="rounded-lg border border-wp-background-400 bg-wp-background-100 dark:bg-wp-background-200 shadow-sm hover:shadow-md transition-shadow duration-200"
+      class="rounded-lg border border-border bg-card shadow-sm hover:shadow-md transition-shadow duration-200"
     >
       <div class="p-4">
         <!-- Header Row: Name, Status Indicator, and Actions -->
@@ -73,47 +59,47 @@
 
             <!-- Autoscaler Name -->
             <div class="min-w-0 flex-1">
-              <h3 class="text-base font-semibold text-wp-text-100 truncate">
+              <h3 class="text-base font-semibold text-foreground truncate">
                 {{ autoscaler.name }}
               </h3>
               <div class="flex items-center gap-2 mt-1 flex-wrap">
-                <span class="text-xs text-wp-text-alt-100"
+                <span class="text-xs text-muted-foreground"
                   >{{ $t('admin.settings.autoscalers.id') }} {{ autoscaler.id }}</span
                 >
                 <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-                <span class="text-xs text-wp-text-alt-100">•</span>
-                <span class="text-xs text-wp-text-alt-100">
+                <span class="text-xs text-muted-foreground">•</span>
+                <span class="text-xs text-muted-foreground">
                   <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
                   {{ $t('admin.settings.autoscalers.min_agents.name') }}: {{ autoscaler.min_agents }}</span
                 >
                 <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-                <span class="text-xs text-wp-text-alt-100">•</span>
-                <span class="text-xs text-wp-text-alt-100">
+                <span class="text-xs text-muted-foreground">•</span>
+                <span class="text-xs text-muted-foreground">
                   <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
                   {{ $t('admin.settings.autoscalers.max_agents.name') }}: {{ autoscaler.max_agents }}</span
                 >
                 <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-                <span class="text-xs text-wp-text-alt-100">•</span>
-                <span class="text-xs text-wp-text-alt-100"
+                <span class="text-xs text-muted-foreground">•</span>
+                <span class="text-xs text-muted-foreground"
                   >{{ autoscaler.workflows_per_agent }}
                   {{ $t('admin.settings.autoscalers.workflows_per_agent_short') }}</span
                 >
                 <template v-if="autoscaler.provider">
                   <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-                  <span class="text-xs text-wp-text-alt-100">•</span>
-                  <span class="text-xs text-wp-text-alt-100">{{ autoscaler.provider }}</span>
+                  <span class="text-xs text-muted-foreground">•</span>
+                  <span class="text-xs text-muted-foreground">{{ autoscaler.provider }}</span>
                 </template>
                 <template v-if="autoscaler.region">
                   <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-                  <span class="text-xs text-wp-text-alt-100">•</span>
+                  <span class="text-xs text-muted-foreground">•</span>
                   <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-                  <span class="text-xs text-wp-text-alt-100">Region: {{ autoscaler.region }}</span>
+                  <span class="text-xs text-muted-foreground">Region: {{ autoscaler.region }}</span>
                 </template>
                 <template v-if="autoscaler.instance_type">
                   <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-                  <span class="text-xs text-wp-text-alt-100">•</span>
+                  <span class="text-xs text-muted-foreground">•</span>
                   <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-                  <span class="text-xs text-wp-text-alt-100">Type: {{ autoscaler.instance_type }}</span>
+                  <span class="text-xs text-muted-foreground">Type: {{ autoscaler.instance_type }}</span>
                 </template>
               </div>
             </div>
@@ -135,7 +121,7 @@
             <IconButton
               icon="trash"
               :title="$t('admin.settings.autoscalers.delete_autoscaler')"
-              class="h-8 w-8 hover:text-wp-error-100"
+              class="h-8 w-8 hover:text-destructive"
               :is-loading="props.isDeleting"
               @click="$emit('delete', autoscaler)"
             />
@@ -146,22 +132,22 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-3">
           <!-- Version -->
           <div class="flex flex-col">
-            <span class="text-xs font-medium text-wp-text-alt-100 mb-1">{{
+            <span class="text-xs font-medium text-muted-foreground mb-1">{{
               $t('admin.settings.autoscalers.version.label')
             }}</span>
-            <span v-if="autoscaler.version" class="text-sm font-mono text-wp-text-100">
+            <span v-if="autoscaler.version" class="text-sm font-mono text-foreground">
               {{ autoscaler.version }}
             </span>
             <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-            <span v-else class="text-sm text-wp-text-alt-100" aria-label="not available">—</span>
+            <span v-else class="text-sm text-muted-foreground" aria-label="not available">—</span>
           </div>
 
           <!-- Last Seen (desktop: separate, mobile: combined with agents) -->
           <div class="hidden sm:flex flex-col">
-            <span class="text-xs font-medium text-wp-text-alt-100 mb-1">{{
+            <span class="text-xs font-medium text-muted-foreground mb-1">{{
               $t('admin.settings.autoscalers.last_contact.label')
             }}</span>
-            <span class="text-sm text-wp-text-100">
+            <span class="text-sm text-foreground">
               {{
                 autoscaler.last_contact
                   ? date.timeAgo(autoscaler.last_contact * 1000)
@@ -172,13 +158,13 @@
 
           <!-- Agents Status (desktop: separate, mobile: combined with last seen) -->
           <div class="hidden sm:flex flex-col">
-            <span class="text-xs font-medium text-wp-text-alt-100 mb-1">{{
+            <span class="text-xs font-medium text-muted-foreground mb-1">{{
               $t('admin.settings.autoscalers.agents.label')
             }}</span>
             <div class="flex items-center gap-2">
-              <span class="text-sm text-wp-text-100">
+              <span class="text-sm text-foreground">
                 <span class="font-semibold">{{ autoscaler.active_agents || 0 }}</span>
-                <span v-if="autoscaler.max_agents" class="text-wp-text-alt-100">
+                <span v-if="autoscaler.max_agents" class="text-muted-foreground">
                   <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
                   <span aria-hidden="true"> / </span>
                   {{ autoscaler.max_agents }}
@@ -197,15 +183,15 @@
           <!-- Mobile: Last Seen + Agents combined in one row -->
           <div class="flex sm:hidden flex-col">
             <div class="grid grid-cols-2 gap-3 mb-1">
-              <span class="text-xs font-medium text-wp-text-alt-100">{{
+              <span class="text-xs font-medium text-muted-foreground">{{
                 $t('admin.settings.autoscalers.last_contact.label')
               }}</span>
-              <span class="text-xs font-medium text-wp-text-alt-100">{{
+              <span class="text-xs font-medium text-muted-foreground">{{
                 $t('admin.settings.autoscalers.agents.label')
               }}</span>
             </div>
             <div class="grid grid-cols-2 gap-3">
-              <span class="text-sm text-wp-text-100">
+              <span class="text-sm text-foreground">
                 {{
                   autoscaler.last_contact
                     ? date.timeAgo(autoscaler.last_contact * 1000)
@@ -213,9 +199,9 @@
                 }}
               </span>
               <div class="flex items-center gap-2">
-                <span class="text-sm text-wp-text-100">
+                <span class="text-sm text-foreground">
                   <span class="font-semibold">{{ autoscaler.active_agents || 0 }}</span>
-                  <span v-if="autoscaler.max_agents" class="text-wp-text-alt-100">
+                  <span v-if="autoscaler.max_agents" class="text-muted-foreground">
                     <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
                     <span aria-hidden="true"> / </span>
                     {{ autoscaler.max_agents }}
@@ -234,10 +220,10 @@
         </div>
 
         <!-- Technical Details Section (if configured) -->
-        <div v-if="hasMetadata(autoscaler)" class="pt-3 border-t border-wp-background-400">
+        <div v-if="hasMetadata(autoscaler)" class="pt-3 border-t border-border">
           <div class="flex flex-wrap items-center gap-2">
             <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-            <span class="text-xs font-medium text-wp-text-alt-100 mr-1">Details:</span>
+            <span class="text-xs font-medium text-muted-foreground mr-1">Details:</span>
 
             <!-- Provider Badge -->
             <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
@@ -268,7 +254,7 @@
         </div>
 
         <!-- Action Buttons (mobile only) -->
-        <div class="flex md:hidden justify-end gap-1 pt-3 border-t border-wp-background-400 mt-3">
+        <div class="flex md:hidden justify-end gap-1 pt-3 border-t border-border mt-3">
           <IconButton
             :icon="autoscaler.enabled ? 'turn-off' : 'play'"
             :title="
@@ -280,7 +266,7 @@
           <IconButton
             icon="trash"
             :title="$t('admin.settings.autoscalers.delete_autoscaler')"
-            class="h-8 w-8 hover:text-wp-error-100"
+            class="h-8 w-8 hover:text-destructive"
             :is-loading="props.isDeleting"
             @click="$emit('delete', autoscaler)"
           />
@@ -302,20 +288,16 @@
     <!-- Empty States -->
     <div
       v-if="displayedAutoscalers.length === 0 && props.autoscalers?.length > 0"
-      class="text-center py-12 text-wp-text-alt-100"
+      class="text-center py-12 text-muted-foreground"
     >
       <Icon name="question" class="h-12 w-12 mx-auto mb-3 opacity-50" />
       <p class="text-base">{{ $t('admin.settings.autoscalers.no_match') }}</p>
-      <Button
-        v-if="hasActiveFilters"
-        :text="$t('admin.settings.autoscalers.clear_filters')"
-        color="gray"
-        class="mt-4"
-        @click="clearFilters"
-      />
+      <Button v-if="hasActiveFilters" variant="outline" class="mt-4" @click="clearFilters">
+        {{ $t('admin.settings.autoscalers.clear_filters') }}
+      </Button>
     </div>
 
-    <div v-if="props.autoscalers?.length === 0" class="text-center py-12 text-wp-text-alt-100">
+    <div v-if="props.autoscalers?.length === 0" class="text-center py-12 text-muted-foreground">
       <Icon name="list" class="h-12 w-12 mx-auto mb-3 opacity-50" />
       <p class="text-base">
         {{ $t('admin.settings.autoscalers.none') }}
@@ -323,7 +305,7 @@
           href="https://crowci.dev/latest/configuration/autoscaler/"
           target="_blank"
           rel="noopener noreferrer"
-          class="text-wp-link-100 hover:text-wp-link-200 underline"
+          class="text-primary hover:text-primary/80 underline"
         >
           {{ $t('admin.settings.autoscalers.none_learn_more') }}
         </a>
@@ -343,12 +325,19 @@ import { useI18n } from 'vue-i18n';
 import { watchDebounced } from '@vueuse/core';
 
 import Badge from '~/components/atomic/Badge.vue';
-import Button from '~/components/atomic/Button.vue';
 import Icon from '~/components/atomic/Icon.vue';
-import IconButton from '~/components/atomic/IconButton.vue';
 import Pagination from '~/components/atomic/Pagination.vue';
-import SelectField from '~/components/form/SelectField.vue';
-import TextField from '~/components/form/TextField.vue';
+import { Button } from '~/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu';
+import SearchInput from '~/components/ui/input/SearchInput.vue';
 import { useDate } from '~/compositions/useDate';
 
 import type { Autoscaler } from '~/lib/api/types';
@@ -398,7 +387,7 @@ function hasMetadata(autoscaler: Autoscaler): boolean {
 // Get status color based on autoscaler health
 function getStatusColor(autoscaler: Autoscaler): string {
   if (!autoscaler.enabled) {
-    return 'bg-wp-text-alt-100';
+    return 'bg-muted-foreground';
   }
 
   if (!autoscaler.last_contact || autoscaler.last_contact === 0) {
@@ -471,35 +460,18 @@ const searchQuery = computed({
   },
 });
 
-const enabledFilter = computed({
-  get: () => props.autoscalerFilters.enabled || '',
-  set: (value: string) => {
-    emit('updateFilters', { enabled: value });
-    emit('filtersChanged');
-  },
-});
+const sortBy = computed(() => props.autoscalerFilters.sort);
+const sortReverse = computed(() => props.autoscalerFilters.order === 'desc');
 
-const sortBy = computed({
-  get: () => props.autoscalerFilters.sort,
-  set: (value: string) => {
-    emit('updateFilters', { sort: value });
-    emit('filtersChanged');
-  },
-});
+function updateSort(value: string) {
+  emit('updateFilters', { sort: value });
+  emit('filtersChanged');
+}
 
-const sortReverse = computed({
-  get: () => props.autoscalerFilters.order === 'desc',
-  set: (value: boolean) => {
-    emit('updateFilters', { order: value ? 'desc' : 'asc' });
-    emit('filtersChanged');
-  },
-});
-
-const enabledOptions = computed<SelectOption[]>(() => [
-  { value: '', text: t('admin.settings.autoscalers.filter_enabled') },
-  { value: 'true', text: 'Enabled' },
-  { value: 'false', text: 'Disabled' },
-]);
+function updateSortOrder(descending: boolean) {
+  emit('updateFilters', { order: descending ? 'desc' : 'asc' });
+  emit('filtersChanged');
+}
 
 const sortOptions = computed<SelectOption[]>(() => [
   { value: 'status', text: t('admin.settings.autoscalers.sort.status') },
@@ -509,12 +481,11 @@ const sortOptions = computed<SelectOption[]>(() => [
 ]);
 
 const hasActiveFilters = computed(() => {
-  return searchQuery.value !== '' || enabledFilter.value !== '';
+  return searchQuery.value !== '';
 });
 
 function clearFilters() {
   searchQuery.value = '';
-  enabledFilter.value = '';
 }
 
 const displayedAutoscalers = computed(() => {

@@ -1,5 +1,5 @@
 <template>
-  <div v-if="totalPages > 1" class="flex justify-center items-center gap-2 mt-6 pt-4 border-t border-wp-background-400">
+  <div v-if="totalPages > 1" class="flex justify-center items-center gap-2 mt-6 pt-4 border-t border-border">
     <!-- Previous button -->
     <Button
       :disabled="currentPage === 1"
@@ -12,7 +12,7 @@
     <!-- First page -->
     <Button
       v-if="showFirstPage"
-      :class="{ 'bg-wp-primary-500 text-white': currentPage === 1 }"
+      :class="cn(currentPage === 1 && 'bg-primary text-primary-foreground')"
       @click="$emit('update:current-page', 1)"
     >
       {{ firstPageNumber }}
@@ -20,13 +20,13 @@
 
     <!-- Ellipsis after first page -->
     <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-    <span v-if="showFirstEllipsis" class="px-2 text-wp-text-200">...</span>
+    <span v-if="showFirstEllipsis" class="px-2 text-muted-foreground">...</span>
 
     <!-- Page numbers around current page -->
     <Button
       v-for="page in visiblePages"
       :key="page"
-      :class="{ 'bg-wp-primary-500 text-white': currentPage === page }"
+      :class="cn(currentPage === page && 'bg-primary text-primary-foreground')"
       @click="$emit('update:current-page', page)"
     >
       {{ page }}
@@ -34,12 +34,12 @@
 
     <!-- Ellipsis before last page -->
     <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-    <span v-if="showLastEllipsis" class="px-2 text-wp-text-200">...</span>
+    <span v-if="showLastEllipsis" class="px-2 text-muted-foreground">...</span>
 
     <!-- Last page -->
     <Button
       v-if="showLastPage"
-      :class="{ 'bg-wp-primary-500 text-white': currentPage === totalPages }"
+      :class="cn(currentPage === totalPages && 'bg-primary text-primary-foreground')"
       @click="$emit('update:current-page', totalPages)"
     >
       {{ totalPages }}
@@ -67,6 +67,7 @@ import { computed } from 'vue';
 
 import Button from '~/components/atomic/Button.vue';
 import Icon from '~/components/atomic/Icon.vue';
+import { cn } from '~/lib/utils';
 
 const props = defineProps<{
   currentPage: number;

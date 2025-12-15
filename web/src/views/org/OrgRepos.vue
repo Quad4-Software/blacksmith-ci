@@ -12,7 +12,7 @@
     <div class="flex flex-col gap-4"><RepoItem v-for="repo in reposLastActivity" :key="repo.id" :repo="repo" /></div>
 
     <div v-if="(reposLastActivity || []).length <= 0" class="text-center">
-      <span class="m-auto text-wp-text-100">{{ $t('repo.user_none') }}</span>
+      <span class="m-auto text-foreground">{{ $t('repo.user_none') }}</span>
     </div>
   </Scaffold>
 </template>

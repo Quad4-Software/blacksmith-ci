@@ -25,8 +25,8 @@ import (
 	"github.com/expr-lang/expr"
 	"go.uber.org/multierr"
 
-	"codeberg.org/crowci/crow/v4/pipeline/frontend/metadata"
-	yamlBaseTypes "codeberg.org/crowci/crow/v4/pipeline/frontend/yaml/types/base"
+	"codeberg.org/crowci/crow/v5/pipeline/frontend/metadata"
+	yamlBaseTypes "codeberg.org/crowci/crow/v5/pipeline/frontend/yaml/types/base"
 )
 
 type (

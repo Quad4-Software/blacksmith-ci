@@ -22,10 +22,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 
-	"codeberg.org/crowci/crow/v4/server"
-	"codeberg.org/crowci/crow/v4/server/model"
-	"codeberg.org/crowci/crow/v4/server/router/middleware/session"
-	"codeberg.org/crowci/crow/v4/server/services/maintenance"
+	"codeberg.org/crowci/crow/v5/server"
+	"codeberg.org/crowci/crow/v5/server/model"
+	"codeberg.org/crowci/crow/v5/server/router/middleware/session"
+	"codeberg.org/crowci/crow/v5/server/services/maintenance"
 )
 
 // GetMaintenanceConfig returns the current maintenance configuration
@@ -276,7 +276,7 @@ type RunMaintenanceRequest struct {
 //	@Router			/admin/maintenance/run [post]
 //	@Produce		json
 //	@Accept			json
-//	@Success		200	{object}	gin.H
+//	@Success		200	{object}	map[string]string
 //	@Tags			Admin
 //	@Param			Authorization	header	string					true	"Insert your personal access token"	default(Bearer <personal access token>)
 //	@Param			request			body	RunMaintenanceRequest	true	"Maintenance job request"

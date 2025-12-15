@@ -20,7 +20,7 @@ import (
 
 	"github.com/tink-crypto/tink-go/v2/subtle/random"
 
-	"codeberg.org/crowci/crow/v4/pipeline"
+	"codeberg.org/crowci/crow/v5/pipeline"
 )
 
 type Agent struct {

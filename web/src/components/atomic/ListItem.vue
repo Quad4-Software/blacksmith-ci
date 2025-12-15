@@ -2,9 +2,9 @@
   <component
     :is="to ? 'router-link' : clickable ? 'button' : 'div'"
     :to="to"
-    class="flex w-full overflow-hidden rounded-md border border-wp-background-400 bg-wp-background-100 p-4 shadow-xs dark:bg-wp-background-200"
+    class="flex w-full overflow-hidden rounded-md border border-border bg-card p-4 text-card-foreground shadow-xs"
     :class="{
-      'cursor-pointer hover:bg-wp-background-300 hover:shadow-xs dark:hover:bg-wp-background-300': clickable || to,
+      'cursor-pointer hover:bg-accent hover:shadow-xs': clickable || to,
     }"
   >
     <slot />

@@ -1,4 +1,4 @@
-module codeberg.org/crowci/crow/v4
+module codeberg.org/crowci/crow/v5
 
 go 1.24.4
 

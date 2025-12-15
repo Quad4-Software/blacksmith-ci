@@ -1,21 +1,29 @@
 <template>
-  <Header
-    :go-back="goBack"
-    :enable-tabs="enableTabs"
-    :search="search"
-    :full-width="fullWidthHeader"
-    @update:search="(value) => $emit('update:search', value)"
-  >
-    <template #title><slot name="title" /></template>
-    <template v-if="$slots.titleSuffix" #titleSuffix><slot name="titleSuffix" /></template>
-    <template v-if="$slots.headerActions" #headerActions><slot name="headerActions" /></template>
-    <template v-if="$slots.tabActions" #tabActions><slot name="tabActions" /></template>
-  </Header>
-  <slot v-if="fluidContent" /> <Container v-else> <slot /> </Container>
+  <div class="flex flex-1 flex-col">
+    <Header
+      :go-back="goBack"
+      :enable-tabs="enableTabs"
+      :search="search"
+      :full-width="fullWidthHeader"
+      @update:search="(value) => $emit('update:search', value)"
+    >
+      <template #title><slot name="title" /></template>
+      <template v-if="$slots.titleSuffix" #titleSuffix><slot name="titleSuffix" /></template>
+      <template v-if="$slots.headerActions" #headerActions><slot name="headerActions" /></template>
+      <template v-if="$slots.tabActions" #tabActions><slot name="tabActions" /></template>
+    </Header>
+    <ScrollArea class="flex-1 h-full w-full max-w-full overflow-x-hidden">
+      <slot v-if="fluidContent" />
+      <Container v-else>
+        <slot />
+      </Container>
+    </ScrollArea>
+  </div>
 </template>
 
 <script setup lang="ts">
 import Container from '~/components/layout/Container.vue';
+import { ScrollArea } from '~/components/ui/scroll-area';
 import { useTabsProvider } from '~/compositions/useTabs';
 
 import Header from './Header.vue';

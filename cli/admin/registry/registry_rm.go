@@ -19,7 +19,7 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"codeberg.org/crowci/crow/v4/cli/internal"
+	"codeberg.org/crowci/crow/v5/cli/internal"
 )
 
 var registryDeleteCmd = &cli.Command{
