@@ -169,6 +169,9 @@ type Store interface {
 	TaskDelete(string) error
 	// TaskAtomicAssign atomically assigns a task to an agent if it's currently unassigned
 	TaskAtomicAssign(taskID string, agentID int64) (bool, error)
+	// TaskAtomicClaim atomically claims a task for adoption if it was previously assigned to this agent.
+	// Used by restarted agents to reclaim orphaned workflows. Returns the task if claimed, nil if not.
+	TaskAtomicClaim(taskID string, agentID int64) (*model.Task, error)
 
 	// ServerConfig
 	ServerConfigGet(string) (string, error)

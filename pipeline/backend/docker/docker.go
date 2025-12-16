@@ -17,6 +17,7 @@ package docker
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -25,6 +26,7 @@ import (
 
 	"github.com/containerd/errdefs"
 	"github.com/docker/docker/api/types/container"
+	dockerFilters "github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/api/types/system"
@@ -178,7 +180,7 @@ func (e *docker) StartStep(ctx context.Context, step *backend.Step, taskUUID str
 
 	log.Trace().Str("taskUUID", taskUUID).Msgf("start step %s", step.Name)
 
-	config := e.toConfig(step, options)
+	config := e.toConfig(step, options, taskUUID)
 	hostConfig := toHostConfig(step, &e.config)
 	containerName := toContainerName(step)
 
@@ -383,6 +385,86 @@ func (e *docker) DestroyWorkflow(ctx context.Context, conf *backend.Config, task
 			log.Error().Err(err).Msgf("could not remove network '%s'", conf.Network)
 		}
 	}
+	return nil
+}
+
+// DiscoverWorkflows finds orphaned workflow containers that can be adopted after agent restart.
+// It searches for running containers with the crowci/task-uuid label.
+func (e *docker) DiscoverWorkflows(ctx context.Context) ([]*backend.DiscoveredWorkflow, error) {
+	log.Trace().Msg("discovering orphaned workflows")
+
+	// List all running containers with our task UUID label
+	containers, err := e.client.ContainerList(ctx, container.ListOptions{
+		Filters: dockerFilters.NewArgs(
+			dockerFilters.Arg("label", LabelTaskUUID),
+			dockerFilters.Arg("status", "running"),
+		),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Group containers by task UUID
+	workflowMap := make(map[string]*backend.DiscoveredWorkflow)
+	for _, c := range containers {
+		taskUUID := c.Labels[LabelTaskUUID]
+		if taskUUID == "" {
+			continue
+		}
+
+		workflow, exists := workflowMap[taskUUID]
+		if !exists {
+			workflow = &backend.DiscoveredWorkflow{
+				TaskUUID: taskUUID,
+				Steps:    []*backend.DiscoveredStep{},
+			}
+			workflowMap[taskUUID] = workflow
+		}
+
+		workflow.Steps = append(workflow.Steps, &backend.DiscoveredStep{
+			UUID:        c.Labels[LabelStepUUID],
+			Name:        c.Labels[LabelStepName],
+			ContainerID: c.ID,
+		})
+	}
+
+	// Convert map to slice
+	workflows := make([]*backend.DiscoveredWorkflow, 0, len(workflowMap))
+	for _, workflow := range workflowMap {
+		workflows = append(workflows, workflow)
+	}
+
+	log.Debug().Int("count", len(workflows)).Msg("discovered orphaned workflows")
+	return workflows, nil
+}
+
+// ResumeStep resumes monitoring of an already-running step (for adopted workflows).
+// Unlike StartStep, this does not create a new container - it verifies the container exists and is running.
+func (e *docker) ResumeStep(ctx context.Context, step *backend.Step, taskUUID string) error {
+	containerName := toContainerName(step)
+	log.Trace().Str("taskUUID", taskUUID).Str("container", containerName).Msgf("resuming step %s", step.Name)
+
+	// Verify the container exists and is running
+	info, err := e.client.ContainerInspect(ctx, containerName)
+	if err != nil {
+		return fmt.Errorf("failed to inspect container %s: %w", containerName, err)
+	}
+
+	if !info.State.Running {
+		// Container exists but is not running - it may have completed while we were restarting
+		log.Debug().
+			Str("container", containerName).
+			Str("status", info.State.Status).
+			Int("exit_code", info.State.ExitCode).
+			Msg("container is not running, may have completed during agent restart")
+	}
+
+	log.Info().
+		Str("taskUUID", taskUUID).
+		Str("container", containerName).
+		Str("step", step.Name).
+		Msg("resumed monitoring of adopted step")
+
 	return nil
 }
 

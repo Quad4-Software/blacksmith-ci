@@ -81,6 +81,12 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 		// Signal all gRPC retry loops to stop immediately
 		agent_rpc.SignalAgentShutdown()
 
+		// Always preserve workflows on agent shutdown so they can be adopted by a restarted agent.
+		// This handles all shutdown scenarios: SIGTERM, SIGKILL, server disconnect, pod eviction, etc.
+		// Workflows are only cleaned up when they complete naturally (success/failure), not when agent dies.
+		pipeline.SetPreserveWorkflows(true)
+		log.Info().Msg("agent shutting down, workflows will be preserved for adoption")
+
 		shutdownCtx, shutdownCancelFunc = context.WithTimeout(shutdownCtx, shutdownTimeout)
 		ctxCancel(err)
 
@@ -293,6 +299,13 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 		Interface("custom_labels", customLabels).
 		Msg("agent successfully registered with server")
 
+	// Attempt to discover and adopt any orphaned workflows from a previous agent instance.
+	// Store these for later - we'll spawn runners after filter is defined.
+	adoptedWorkflows := discoverAndAdoptWorkflows(grpcCtx, client, backendEngine) //nolint:contextcheck
+	if len(adoptedWorkflows) > 0 {
+		log.Info().Int("count", len(adoptedWorkflows)).Msg("adopted orphaned workflows from previous agent instance")
+	}
+
 	// Set up re-registration handler for when server restarts and loses agent data
 	client.SetReregistrationHandler(func(ctx context.Context) error {
 		log.Info().Msg("re-registering agent with server")
@@ -376,6 +389,33 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 	}
 
 	log.Trace().Msgf("agent registered with ID %d", agentConfig.AgentID)
+
+	// Spawn runners for adopted workflows (discovered earlier, now that filter is defined)
+	for _, adopted := range adoptedWorkflows {
+		adopted := adopted // capture loop variable
+		serviceWaitingGroup.Go(func() error {
+			runner := agent.NewRunner(client, filter, hostname, counter, &backendEngine)
+			log.Info().
+				Str("workflow_id", adopted.Workflow.ID).
+				Str("task_uuid", adopted.TaskUUID).
+				Msg("starting runner for adopted workflow")
+
+			if err := runner.RunAdopted(agentCtx, shutdownCtx, adopted.Workflow, adopted.TaskUUID); err != nil {
+				log.Error().
+					Err(err).
+					Str("workflow_id", adopted.Workflow.ID).
+					Str("task_uuid", adopted.TaskUUID).
+					Msg("adopted workflow runner failed")
+				return nil // Don't fail the whole agent for one adopted workflow
+			}
+
+			log.Info().
+				Str("workflow_id", adopted.Workflow.ID).
+				Str("task_uuid", adopted.TaskUUID).
+				Msg("adopted workflow completed")
+			return nil
+		})
+	}
 
 	serviceWaitingGroup.Go(func() error {
 		log.Trace().Msg("health reporting goroutine started")
@@ -498,4 +538,75 @@ func stringSliceAddToMap(sl []string, m map[string]string) error {
 		}
 	}
 	return nil
+}
+
+// AdoptedWorkflow represents a workflow that has been claimed and needs to be monitored.
+type AdoptedWorkflow struct {
+	Workflow *rpc.Workflow
+	TaskUUID string
+}
+
+// discoverAndAdoptWorkflows checks if the backend supports workflow discovery,
+// and if so, discovers orphaned workflows and attempts to claim them from the server.
+// Returns the list of successfully adopted workflows that need to be monitored.
+func discoverAndAdoptWorkflows(ctx context.Context, client rpc.Peer, backendEngine types.Backend) []*AdoptedWorkflow {
+	// Check if backend supports workflow discovery
+	discoverer, ok := backendEngine.(types.WorkflowDiscoverer)
+	if !ok {
+		log.Debug().
+			Str("backend", backendEngine.Name()).
+			Msg("backend does not support workflow discovery, skipping adoption")
+		return nil
+	}
+
+	// Discover orphaned workflows
+	workflows, err := discoverer.DiscoverWorkflows(ctx)
+	if err != nil {
+		log.Warn().Err(err).Msg("failed to discover orphaned workflows")
+		return nil
+	}
+
+	if len(workflows) == 0 {
+		log.Debug().Msg("no orphaned workflows found for adoption")
+		return nil
+	}
+
+	log.Info().
+		Int("count", len(workflows)).
+		Msg("discovered orphaned workflows, attempting to adopt")
+
+	var adopted []*AdoptedWorkflow
+	for _, workflow := range workflows {
+		// Attempt to claim the task from the server
+		// This is HA-safe: the server will only return the task if it was previously
+		// assigned to this agent (matched by agent_id in the database)
+		claimedWorkflow, err := client.ClaimTask(ctx, workflow.TaskUUID)
+		if err != nil {
+			log.Warn().
+				Err(err).
+				Str("task_uuid", workflow.TaskUUID).
+				Msg("failed to claim orphaned workflow task")
+			continue
+		}
+
+		if claimedWorkflow == nil {
+			log.Debug().
+				Str("task_uuid", workflow.TaskUUID).
+				Msg("task not claimable (may belong to different agent or already completed)")
+			continue
+		}
+
+		log.Info().
+			Str("task_uuid", workflow.TaskUUID).
+			Str("workflow_id", claimedWorkflow.ID).
+			Int("steps", len(workflow.Steps)).
+			Msg("successfully adopted orphaned workflow")
+
+		adopted = append(adopted, &AdoptedWorkflow{
+			Workflow: claimedWorkflow,
+			TaskUUID: workflow.TaskUUID,
+		})
+	}
+
+	return adopted
 }

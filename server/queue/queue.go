@@ -107,6 +107,10 @@ type Queue interface {
 	// Wait waits until the task is complete.
 	Wait(c context.Context, id string) error
 
+	// Reclaim re-adds a task to the running state after agent restart.
+	// This is used when an agent reclaims an orphaned task that it was previously running.
+	Reclaim(c context.Context, task *model.Task) error
+
 	// Info returns internal queue information.
 	Info(c context.Context) InfoT
 

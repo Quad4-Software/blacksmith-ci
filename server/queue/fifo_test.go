@@ -87,8 +87,11 @@ func TestFifoExpire(t *testing.T) {
 	assert.Equal(t, dummyTask, got)
 
 	waitForProcess()
+	// After deadline expires, task becomes orphaned but stays in running queue
+	// during adoption grace period (waiting for agent to reclaim)
 	info = q.Info(ctx)
-	assert.Len(t, info.Pending, 1, "expect task re-added to pending queue")
+	assert.Len(t, info.Running, 1, "expect task still in running queue (orphaned, waiting for adoption)")
+	assert.Len(t, info.Pending, 0, "expect pending queue empty during adoption grace period")
 }
 
 func TestFifoWait(t *testing.T) {
@@ -772,4 +775,151 @@ func TestFifo_GetRunningWorkflowIDs(t *testing.T) {
 		assert.Len(t, ids, 1)
 		assert.Contains(t, ids, "4")
 	})
+}
+
+func TestFifoReclaim(t *testing.T) {
+	ctx, cancel := context.WithCancelCause(t.Context())
+	t.Cleanup(func() { cancel(nil) })
+
+	q, _ := NewMemoryQueue(ctx, nil).(*fifo)
+	assert.NotNil(t, q)
+
+	task := &model.Task{
+		ID:      "reclaim-1",
+		AgentID: 42,
+		Data:    []byte("{}"),
+	}
+
+	// Reclaim a task (simulating agent restart)
+	err := q.Reclaim(ctx, task)
+	assert.NoError(t, err)
+
+	waitForProcess()
+	info := q.Info(ctx)
+	assert.Len(t, info.Running, 1, "expect task in running queue after reclaim")
+	assert.Equal(t, "reclaim-1", info.Running[0].ID)
+
+	// Verify we can extend the reclaimed task
+	err = q.Extend(ctx, 42, "reclaim-1")
+	assert.NoError(t, err)
+
+	// Verify we can complete the reclaimed task
+	err = q.Done(ctx, "reclaim-1", model.StatusSuccess)
+	assert.NoError(t, err)
+
+	waitForProcess()
+	info = q.Info(ctx)
+	assert.Len(t, info.Running, 0, "expect task removed after done")
+}
+
+func TestFifoReclaimRemovesFromPending(t *testing.T) {
+	ctx, cancel := context.WithCancelCause(t.Context())
+	t.Cleanup(func() { cancel(nil) })
+
+	q, _ := NewMemoryQueue(ctx, nil).(*fifo)
+	assert.NotNil(t, q)
+
+	task := &model.Task{
+		ID:      "reclaim-2",
+		AgentID: 42,
+		Data:    []byte("{}"),
+	}
+
+	// Push task to pending first
+	assert.NoError(t, q.Push(ctx, task))
+	waitForProcess()
+	info := q.Info(ctx)
+	assert.Len(t, info.Pending, 1, "expect task in pending queue")
+
+	// Reclaim should move it from pending to running
+	err := q.Reclaim(ctx, task)
+	assert.NoError(t, err)
+
+	waitForProcess()
+	info = q.Info(ctx)
+	assert.Len(t, info.Pending, 0, "expect task removed from pending")
+	assert.Len(t, info.Running, 1, "expect task in running queue")
+}
+
+func TestFifoOrphanedTaskGracePeriod(t *testing.T) {
+	ctx, cancel := context.WithCancelCause(t.Context())
+	t.Cleanup(func() { cancel(nil) })
+
+	q, _ := NewMemoryQueue(ctx, nil).(*fifo)
+	assert.NotNil(t, q)
+
+	task := &model.Task{
+		ID:      "orphan-1",
+		AgentID: 42,
+		Data:    []byte("{}"),
+	}
+
+	// Set very short extension for testing
+	q.extension = 10 * time.Millisecond
+
+	assert.NoError(t, q.Push(ctx, task))
+	waitForProcess()
+
+	// Poll to move to running
+	got, err := q.Poll(ctx, 42, filterFnTrue)
+	assert.NoError(t, err)
+	assert.Equal(t, task.ID, got.ID)
+
+	waitForProcess()
+	info := q.Info(ctx)
+	assert.Len(t, info.Running, 1, "expect task in running queue")
+
+	// Wait for deadline to expire
+	time.Sleep(50 * time.Millisecond)
+
+	// Task should be orphaned but still in running (grace period)
+	q.Lock()
+	entry := q.running["orphan-1"]
+	q.Unlock()
+	assert.NotNil(t, entry, "expect task still in running during grace period")
+}
+
+func TestFifoOrphanedTaskReclaimedDuringGracePeriod(t *testing.T) {
+	ctx, cancel := context.WithCancelCause(t.Context())
+	t.Cleanup(func() { cancel(nil) })
+
+	q, _ := NewMemoryQueue(ctx, nil).(*fifo)
+	assert.NotNil(t, q)
+
+	task := &model.Task{
+		ID:      "orphan-reclaim-1",
+		AgentID: 42,
+		Data:    []byte("{}"),
+	}
+
+	// Set very short extension for testing
+	q.extension = 10 * time.Millisecond
+
+	assert.NoError(t, q.Push(ctx, task))
+	waitForProcess()
+
+	// Poll to move to running
+	got, err := q.Poll(ctx, 42, filterFnTrue)
+	assert.NoError(t, err)
+	assert.Equal(t, task.ID, got.ID)
+
+	// Wait for deadline to expire (task becomes orphaned)
+	time.Sleep(50 * time.Millisecond)
+	waitForProcess()
+
+	// Reclaim the task (simulating agent restart)
+	err = q.Reclaim(ctx, task)
+	assert.NoError(t, err)
+
+	// Verify task is back in running with fresh deadline
+	q.Lock()
+	entry := q.running["orphan-reclaim-1"]
+	q.Unlock()
+	assert.NotNil(t, entry)
+	assert.True(t, entry.orphanedAt.IsZero(), "orphanedAt should be reset after reclaim")
+	assert.True(t, time.Now().Before(entry.deadline), "deadline should be in the future")
+
+	// Should be able to complete normally
+	err = q.Done(ctx, "orphan-reclaim-1", model.StatusSuccess)
+	assert.NoError(t, err)
 }

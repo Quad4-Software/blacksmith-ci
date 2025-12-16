@@ -106,6 +106,15 @@ func (r *Runtime) Run(runnerCtx context.Context) error {
 	}
 
 	defer func() {
+		// Check if workflows should be preserved for adoption by a restarted agent.
+		// This is set when the agent shuts down due to server disconnect.
+		if ShouldPreserveWorkflows() {
+			logger.Info().
+				Str("task_uuid", r.taskUUID).
+				Msg("preserving workflow containers for adoption (server disconnect)")
+			return
+		}
+
 		ctx := runnerCtx //nolint:contextcheck
 		if ctx.Err() != nil {
 			ctx = GetShutdownCtx()
@@ -226,7 +235,7 @@ func (r *Runtime) execAll(steps []*backend.Step) <-chan error {
 				Str("step", step.Name).
 				Msg("executing")
 
-			processState, err := r.exec(step)
+			processState, err := r.runStep(step)
 
 			logger.Debug().
 				Str("step", step.Name).
@@ -248,8 +257,180 @@ func (r *Runtime) execAll(steps []*backend.Step) <-chan error {
 	return done
 }
 
-// Executes the step and returns the state and error.
-func (r *Runtime) exec(step *backend.Step) (*backend.State, error) {
+// RunAdopted resumes monitoring of an adopted workflow (from a previous agent instance).
+// Unlike Run, this skips SetupWorkflow (environment already exists) and uses ResumeStep
+// instead of StartStep (containers already running).
+func (r *Runtime) RunAdopted(runnerCtx context.Context) error {
+	logger := r.MakeLogger()
+	logger.Info().Msgf("resuming adopted workflow with %d stages", len(r.spec.Stages))
+
+	// Check if engine supports resuming steps
+	resumer, ok := r.engine.(backend.WorkflowResumer)
+	if !ok {
+		return errors.New("backend does not support workflow resumption")
+	}
+
+	defer func() {
+		// For adopted workflows, we should still clean up when done
+		// (unless preservation is enabled for another restart)
+		if ShouldPreserveWorkflows() {
+			logger.Info().
+				Str("task_uuid", r.taskUUID).
+				Msg("preserving workflow containers for adoption (server disconnect)")
+			return
+		}
+
+		ctx := runnerCtx //nolint:contextcheck
+		if ctx.Err() != nil {
+			ctx = GetShutdownCtx()
+		}
+		if err := r.engine.DestroyWorkflow(ctx, r.spec, r.taskUUID); err != nil {
+			logger.Error().Err(err).Msg("could not destroy engine")
+		}
+	}()
+
+	r.started = time.Now().Unix()
+	// Skip SetupWorkflow - the workflow environment (network, volume) already exists
+
+	for _, stage := range r.spec.Stages {
+		select {
+		case <-r.ctx.Done():
+			return ErrCancel
+		case err := <-r.runAllAdoptedSteps(stage.Steps, resumer):
+			if err != nil {
+				r.err = err
+			}
+		}
+	}
+
+	return r.err
+}
+
+// runAllAdoptedSteps runs steps in parallel, using ResumeStep instead of StartStep.
+func (r *Runtime) runAllAdoptedSteps(steps []*backend.Step, resumer backend.WorkflowResumer) <-chan error {
+	var g errgroup.Group
+	done := make(chan error)
+	logger := r.MakeLogger()
+
+	for _, step := range steps {
+		step := step
+		g.Go(func() error {
+			logger.Debug().
+				Str("step", step.Name).
+				Msg("resuming adopted step")
+
+			switch {
+			case r.err != nil && !step.OnFailure:
+				logger.Debug().
+					Str("step", step.Name).
+					Err(r.err).
+					Msgf("skipped due to OnFailure=%t", step.OnFailure)
+				return nil
+			case r.err == nil && !step.OnSuccess:
+				logger.Debug().
+					Str("step", step.Name).
+					Msgf("skipped due to OnSuccess=%t", step.OnSuccess)
+				return nil
+			}
+
+			// Trace started
+			err := r.traceStep(nil, nil, step)
+			if err != nil {
+				return err
+			}
+
+			// add compatibility for drone-ci plugins
+			metadata.SetDroneEnviron(step.Environment)
+
+			logger.Debug().
+				Str("step", step.Name).
+				Msg("running adopted step")
+
+			processState, err := r.runAdoptedStep(step, resumer)
+
+			logger.Debug().
+				Str("step", step.Name).
+				Msg("adopted step complete")
+
+			// Return the error after tracing it
+			err = r.traceStep(processState, err, step)
+			if err != nil && step.Failure == metadata.FailureIgnore {
+				return nil
+			}
+			return err
+		})
+	}
+
+	go func() {
+		done <- g.Wait()
+		close(done)
+	}()
+	return done
+}
+
+// runAdoptedStep runs an adopted step (already running container).
+func (r *Runtime) runAdoptedStep(step *backend.Step, resumer backend.WorkflowResumer) (*backend.State, error) {
+	// Resume step - verifies container exists and is running
+	if err := resumer.ResumeStep(r.ctx, step, r.taskUUID); err != nil {
+		return nil, err
+	}
+
+	var wg sync.WaitGroup
+	if r.logger != nil {
+		rc, err := r.engine.TailStep(r.ctx, step, r.taskUUID)
+		if err != nil {
+			return nil, err
+		}
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			logger := r.MakeLogger()
+
+			if err := r.logger(step, rc); err != nil {
+				logger.Error().Err(err).Msg("process logging failed")
+			}
+			_ = rc.Close()
+		}()
+	}
+
+	// nothing else to do, this is a detached process
+	if step.Detached {
+		return nil, nil
+	}
+
+	// We wait until all data was logged
+	wg.Wait()
+
+	waitState, err := r.engine.WaitStep(r.ctx, step, r.taskUUID)
+	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			return waitState, ErrCancel
+		}
+		return nil, err
+	}
+
+	if err := r.engine.DestroyStep(r.ctx, step, r.taskUUID); err != nil {
+		return nil, err
+	}
+
+	if waitState.OOMKilled {
+		return waitState, &OomError{
+			UUID: step.UUID,
+			Code: waitState.ExitCode,
+		}
+	} else if waitState.ExitCode != 0 {
+		return waitState, &ExitError{
+			UUID: step.UUID,
+			Code: waitState.ExitCode,
+		}
+	}
+
+	return waitState, nil
+}
+
+// Runs the step and returns the state and error.
+func (r *Runtime) runStep(step *backend.Step) (*backend.State, error) {
 	if err := r.engine.StartStep(r.ctx, step, r.taskUUID); err != nil {
 		return nil, err
 	}

@@ -48,6 +48,12 @@ const (
 	// This gives agents time to reconnect after a server restart, preventing tasks from being
 	// unnecessarily reset when agents are still alive and will reconnect momentarily.
 	startupGracePeriod = 30 * time.Second
+
+	// AdoptionGracePeriodDB is the time to wait for an agent to reclaim an orphaned task
+	// before resetting the assignment. This should be long enough for an agent to restart
+	// and re-register, but short enough to not leave zombie tasks running indefinitely.
+	// This matches adoptionGracePeriod in fifo.go for consistency.
+	adoptionGracePeriodDB = 5 * time.Minute
 )
 
 // DatabaseQueue implements a distributed queue using the database as the backend.
@@ -429,6 +435,16 @@ func (q *DatabaseQueue) Extend(ctx context.Context, agentID int64, taskID string
 	// For now, we just confirm the assignment exists
 	// In a more sophisticated version, we could update timestamps in the database
 	log.Debug().Str("taskID", taskID).Int64("agentID", agentID).Msg("Extended task deadline")
+	return nil
+}
+
+// Reclaim re-adds a task to the running state after agent restart.
+// For the database queue, this is a no-op since the database already has the task.
+func (q *DatabaseQueue) Reclaim(_ context.Context, task *model.Task) error {
+	log.Debug().
+		Str("task_id", task.ID).
+		Int64("agent_id", task.AgentID).
+		Msg("task reclaimed (database queue - no-op)")
 	return nil
 }
 
@@ -991,6 +1007,9 @@ func (q *DatabaseQueue) updateDependentTasks(completedTaskID string, status mode
 // - Server restarts where agents may have disappeared
 // - Agents that crashed without graceful shutdown
 // - Agents that lost network connectivity.
+//
+// Tasks are only reset after the adoption grace period has elapsed, giving agents
+// time to restart and reclaim their tasks via the adoption flow.
 func (q *DatabaseQueue) resetOrphanedAssignments() error {
 	tasks, err := q.store.TaskList()
 	if err != nil {
@@ -1003,12 +1022,18 @@ func (q *DatabaseQueue) resetOrphanedAssignments() error {
 		return fmt.Errorf("failed to list agents: %w", err)
 	}
 
-	// Build a map of agent IDs to their health status
+	// Build maps of agent health status and last contact times
 	// An agent is considered healthy if it reported within agentHealthTimeout
-	now := time.Now().Unix()
+	now := time.Now()
+	nowUnix := now.Unix()
 	healthyAgents := make(map[int64]bool)
+	agentLastContact := make(map[int64]time.Time)
+
 	for _, agent := range agents {
-		timeSinceLastContact := time.Duration(now-agent.LastContact) * time.Second
+		lastContact := time.Unix(agent.LastContact, 0)
+		agentLastContact[agent.ID] = lastContact
+		timeSinceLastContact := now.Sub(lastContact)
+
 		if timeSinceLastContact < agentHealthTimeout {
 			healthyAgents[agent.ID] = true
 		} else {
@@ -1020,6 +1045,7 @@ func (q *DatabaseQueue) resetOrphanedAssignments() error {
 	}
 
 	resetCount := 0
+	skippedForAdoption := 0
 	for _, task := range tasks {
 		// Skip unassigned tasks
 		if task.AgentID == 0 {
@@ -1027,28 +1053,50 @@ func (q *DatabaseQueue) resetOrphanedAssignments() error {
 		}
 
 		// Check if the assigned agent is healthy
-		if !healthyAgents[task.AgentID] {
-			// Agent is dead or unhealthy - reset the assignment
-			oldAgentID := task.AgentID
-			task.AgentID = 0
-			if err := q.store.TaskUpdate(task); err != nil {
-				log.Error().
-					Err(err).
+		if healthyAgents[task.AgentID] {
+			continue // Agent is healthy, nothing to do
+		}
+
+		// Agent is dead or unhealthy - check if adoption grace period has elapsed
+		lastContact, hasLastContact := agentLastContact[task.AgentID]
+		if hasLastContact {
+			timeSinceLastContact := time.Duration(nowUnix-lastContact.Unix()) * time.Second
+			if timeSinceLastContact < adoptionGracePeriodDB {
+				// Within adoption grace period - give agent time to restart and reclaim
+				log.Debug().
 					Str("taskID", task.ID).
-					Int64("deadAgentID", oldAgentID).
-					Msg("Failed to reset orphaned task assignment")
+					Int64("agentID", task.AgentID).
+					Dur("timeSinceLastContact", timeSinceLastContact).
+					Dur("gracePeriod", adoptionGracePeriodDB).
+					Msg("Task orphaned but within adoption grace period, waiting for agent to reclaim")
+				skippedForAdoption++
 				continue
 			}
-			resetCount++
-			log.Warn().
+		}
+
+		// Grace period elapsed or agent doesn't exist - reset the assignment
+		oldAgentID := task.AgentID
+		task.AgentID = 0
+		if err := q.store.TaskUpdate(task); err != nil {
+			log.Error().
+				Err(err).
 				Str("taskID", task.ID).
 				Int64("deadAgentID", oldAgentID).
-				Msg("Reset orphaned task assignment - agent is dead or unhealthy")
+				Msg("Failed to reset orphaned task assignment")
+			continue
 		}
+		resetCount++
+		log.Warn().
+			Str("taskID", task.ID).
+			Int64("deadAgentID", oldAgentID).
+			Msg("Reset orphaned task assignment - agent dead and adoption grace period elapsed")
 	}
 
-	if resetCount > 0 {
-		log.Warn().Int("count", resetCount).Msg("Reset orphaned task assignments")
+	if resetCount > 0 || skippedForAdoption > 0 {
+		log.Info().
+			Int("reset", resetCount).
+			Int("waitingForAdoption", skippedForAdoption).
+			Msg("Orphaned task assignment check completed")
 	}
 
 	return nil

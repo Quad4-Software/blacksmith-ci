@@ -165,3 +165,8 @@ func (q *persistentQueue) Extend(c context.Context, agentID int64, taskID string
 	}
 	return err
 }
+
+// Reclaim re-adds a task to the running state after agent restart.
+func (q *persistentQueue) Reclaim(c context.Context, task *model.Task) error {
+	return q.Queue.Reclaim(c, task)
+}

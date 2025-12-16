@@ -763,6 +763,63 @@ func (_c *MockQueue_PushAtOnce_Call) RunAndReturn(run func(c context.Context, ta
 	return _c
 }
 
+// Reclaim provides a mock function for the type MockQueue
+func (_mock *MockQueue) Reclaim(c context.Context, task *model.Task) error {
+	ret := _mock.Called(c, task)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Reclaim")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *model.Task) error); ok {
+		r0 = returnFunc(c, task)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockQueue_Reclaim_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Reclaim'
+type MockQueue_Reclaim_Call struct {
+	*mock.Call
+}
+
+// Reclaim is a helper method to define mock.On call
+//   - c context.Context
+//   - task *model.Task
+func (_e *MockQueue_Expecter) Reclaim(c interface{}, task interface{}) *MockQueue_Reclaim_Call {
+	return &MockQueue_Reclaim_Call{Call: _e.mock.On("Reclaim", c, task)}
+}
+
+func (_c *MockQueue_Reclaim_Call) Run(run func(c context.Context, task *model.Task)) *MockQueue_Reclaim_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *model.Task
+		if args[1] != nil {
+			arg1 = args[1].(*model.Task)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockQueue_Reclaim_Call) Return(err error) *MockQueue_Reclaim_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockQueue_Reclaim_Call) RunAndReturn(run func(c context.Context, task *model.Task) error) *MockQueue_Reclaim_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Resume provides a mock function for the type MockQueue
 func (_mock *MockQueue) Resume() {
 	_mock.Called()

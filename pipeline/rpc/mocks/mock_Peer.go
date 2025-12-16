@@ -38,6 +38,74 @@ func (_m *MockPeer) EXPECT() *MockPeer_Expecter {
 	return &MockPeer_Expecter{mock: &_m.Mock}
 }
 
+// ClaimTask provides a mock function for the type MockPeer
+func (_mock *MockPeer) ClaimTask(c context.Context, taskID string) (*rpc.Workflow, error) {
+	ret := _mock.Called(c, taskID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ClaimTask")
+	}
+
+	var r0 *rpc.Workflow
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*rpc.Workflow, error)); ok {
+		return returnFunc(c, taskID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *rpc.Workflow); ok {
+		r0 = returnFunc(c, taskID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*rpc.Workflow)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(c, taskID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockPeer_ClaimTask_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ClaimTask'
+type MockPeer_ClaimTask_Call struct {
+	*mock.Call
+}
+
+// ClaimTask is a helper method to define mock.On call
+//   - c context.Context
+//   - taskID string
+func (_e *MockPeer_Expecter) ClaimTask(c interface{}, taskID interface{}) *MockPeer_ClaimTask_Call {
+	return &MockPeer_ClaimTask_Call{Call: _e.mock.On("ClaimTask", c, taskID)}
+}
+
+func (_c *MockPeer_ClaimTask_Call) Run(run func(c context.Context, taskID string)) *MockPeer_ClaimTask_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockPeer_ClaimTask_Call) Return(workflow *rpc.Workflow, err error) *MockPeer_ClaimTask_Call {
+	_c.Call.Return(workflow, err)
+	return _c
+}
+
+func (_c *MockPeer_ClaimTask_Call) RunAndReturn(run func(c context.Context, taskID string) (*rpc.Workflow, error)) *MockPeer_ClaimTask_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Done provides a mock function for the type MockPeer
 func (_mock *MockPeer) Done(c context.Context, workflowID string, state rpc.WorkflowState) error {
 	ret := _mock.Called(c, workflowID, state)

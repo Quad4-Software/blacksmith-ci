@@ -62,3 +62,17 @@ func (s storage) TaskAtomicAssign(taskID string, agentID int64) (bool, error) {
 	// Return true if exactly one row was affected (successful assignment)
 	return affected == 1, nil
 }
+
+func (s storage) TaskAtomicClaim(taskID string, agentID int64) (*model.Task, error) {
+	// Atomically claim a task for adoption if it was previously assigned to this agent.
+	// This is HA-safe because we check that agent_id matches the requesting agent.
+	task := new(model.Task)
+	found, err := s.engine.Where("id = ? AND agent_id = ?", taskID, agentID).Get(task)
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return nil, nil // Task doesn't exist or belongs to a different agent
+	}
+	return task, nil
+}

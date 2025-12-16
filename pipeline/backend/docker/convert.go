@@ -34,13 +34,31 @@ const (
 	maxContainerNameLength = 64
 )
 
+// Container label constants for workflow discovery and adoption.
+const (
+	// LabelTaskUUID identifies which workflow/task a container belongs to.
+	// Used by DiscoverWorkflows to find orphaned containers for adoption.
+	LabelTaskUUID = "crowci/task-uuid"
+
+	// LabelStepUUID identifies the specific step within a workflow.
+	LabelStepUUID = "crowci/step-uuid"
+
+	// LabelStepName is the human-readable step name.
+	LabelStepName = "crowci/step"
+)
+
 // returns a container configuration.
-func (e *docker) toConfig(step *types.Step, options BackendOptions) *container.Config {
+func (e *docker) toConfig(step *types.Step, options BackendOptions, taskUUID string) *container.Config {
 	e.windowsPathPatch(step)
 
 	config := &container.Config{
 		Image: step.Image,
 		Labels: map[string]string{
+			// New labels for workflow discovery and adoption
+			LabelTaskUUID: taskUUID,
+			LabelStepUUID: step.UUID,
+			LabelStepName: step.Name,
+			// Legacy labels for backwards compatibility
 			"wp_uuid": step.UUID,
 			"wp_step": step.Name,
 		},

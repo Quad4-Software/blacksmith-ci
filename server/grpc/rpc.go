@@ -571,6 +571,67 @@ func (s *RPC) ReportHealth(ctx context.Context, status string, workflowPollingHe
 	return s.store.AgentUpdate(agent)
 }
 
+// ClaimTask allows a restarted agent to claim an orphaned workflow task.
+// This is HA-safe: the task is only returned if it was previously assigned to this specific agent.
+func (s *RPC) ClaimTask(ctx context.Context, taskID string) (*rpc.Workflow, error) {
+	agent, err := s.getAgentFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debug().
+		Int64("agent_id", agent.ID).
+		Str("task_id", taskID).
+		Msg("agent attempting to claim orphaned task")
+
+	// Atomically claim the task - only succeeds if the task was previously assigned to this agent
+	task, err := s.store.TaskAtomicClaim(taskID, agent.ID)
+	if err != nil {
+		log.Error().Err(err).Str("task_id", taskID).Msg("failed to claim task")
+		return nil, err
+	}
+
+	if task == nil {
+		log.Debug().
+			Int64("agent_id", agent.ID).
+			Str("task_id", taskID).
+			Msg("task not found or belongs to different agent")
+		return nil, nil
+	}
+
+	// Deserialize the workflow data
+	workflow := new(rpc.Workflow)
+	if err := json.Unmarshal(task.Data, workflow); err != nil {
+		log.Error().Err(err).Str("task_id", taskID).Msg("failed to unmarshal workflow data")
+		return nil, err
+	}
+
+	// Validate agent still has permission to run this workflow (labels/repo access may have changed)
+	if err := s.checkAgentPermissionByWorkflow(ctx, agent, workflow.ID, nil, nil); err != nil {
+		log.Warn().
+			Err(err).
+			Int64("agent_id", agent.ID).
+			Str("task_id", taskID).
+			Str("workflow_id", workflow.ID).
+			Msg("agent no longer has permission to run this workflow, rejecting claim")
+		return nil, nil // Return nil to indicate task can't be claimed by this agent
+	}
+
+	// Re-add task to queue's running state so Wait() and Extend() work correctly
+	if err := s.queue.Reclaim(ctx, task); err != nil {
+		log.Error().Err(err).Str("task_id", taskID).Msg("failed to reclaim task in queue")
+		return nil, err
+	}
+
+	log.Info().
+		Int64("agent_id", agent.ID).
+		Str("task_id", taskID).
+		Str("workflow_id", workflow.ID).
+		Msg("agent successfully claimed orphaned task")
+
+	return workflow, nil
+}
+
 func (s *RPC) checkAgentPermissionByWorkflow(_ context.Context, agent *model.Agent, strWorkflowID string, pipeline *model.Pipeline, repo *model.Repo) error {
 	var err error
 	if repo == nil && pipeline == nil {

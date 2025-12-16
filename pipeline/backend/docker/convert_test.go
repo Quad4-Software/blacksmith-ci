@@ -174,19 +174,25 @@ func TestToContainerName(t *testing.T) {
 }
 
 func TestStepToConfig(t *testing.T) {
+	taskUUID := "test-task-uuid"
+
 	// StepTypeCommands
-	conf := testEngine.toConfig(testCmdStep, BackendOptions{})
+	conf := testEngine.toConfig(testCmdStep, BackendOptions{}, taskUUID)
 	if assert.NotNil(t, conf) {
 		assert.EqualValues(t, []string{"/bin/sh", "-c", "echo $CI_SCRIPT | base64 -d | /bin/sh -e"}, conf.Entrypoint)
 		assert.Nil(t, conf.Cmd)
 		assert.EqualValues(t, testCmdStep.UUID, conf.Labels["wp_uuid"])
+		assert.EqualValues(t, testCmdStep.UUID, conf.Labels[LabelStepUUID])
+		assert.EqualValues(t, taskUUID, conf.Labels[LabelTaskUUID])
 	}
 
 	// StepTypePlugin
-	conf = testEngine.toConfig(testPluginStep, BackendOptions{})
+	conf = testEngine.toConfig(testPluginStep, BackendOptions{}, taskUUID)
 	if assert.NotNil(t, conf) {
 		assert.Nil(t, conf.Cmd)
 		assert.EqualValues(t, testPluginStep.UUID, conf.Labels["wp_uuid"])
+		assert.EqualValues(t, testPluginStep.UUID, conf.Labels[LabelStepUUID])
+		assert.EqualValues(t, taskUUID, conf.Labels[LabelTaskUUID])
 	}
 }
 
@@ -218,7 +224,7 @@ func TestToConfigSmall(t *testing.T) {
 		Name:     "test",
 		UUID:     "09238932",
 		Commands: []string{"go test"},
-	}, BackendOptions{})
+	}, BackendOptions{}, "task-123")
 
 	assert.NotNil(t, conf)
 	sort.Strings(conf.Env)
@@ -227,8 +233,11 @@ func TestToConfigSmall(t *testing.T) {
 		AttachStderr: true,
 		Entrypoint:   []string{"/bin/sh", "-c", "echo $CI_SCRIPT | base64 -d | /bin/sh -e"},
 		Labels: map[string]string{
-			"wp_step": "test",
-			"wp_uuid": "09238932",
+			"wp_step":     "test",
+			"wp_uuid":     "09238932",
+			LabelTaskUUID: "task-123",
+			LabelStepUUID: "09238932",
+			LabelStepName: "test",
 		},
 		Env: []string{
 			"CI_SCRIPT=CmlmIFsgLW4gIiRDSV9ORVRSQ19NQUNISU5FIiBdOyB0aGVuCmNhdCA8PEVPRiA+ICRIT01FLy5uZXRyYwptYWNoaW5lICRDSV9ORVRSQ19NQUNISU5FCmxvZ2luICRDSV9ORVRSQ19VU0VSTkFNRQpwYXNzd29yZCAkQ0lfTkVUUkNfUEFTU1dPUkQKRU9GCmNobW9kIDA2MDAgJEhPTUUvLm5ldHJjCmZpCnVuc2V0IENJX05FVFJDX1VTRVJOQU1FCnVuc2V0IENJX05FVFJDX1BBU1NXT1JECnVuc2V0IENJX1NDUklQVApta2RpciAtcCAiIgpjZCAiIgoKZWNobyArICdnbyB0ZXN0JwpnbyB0ZXN0Cg==",
@@ -277,7 +286,7 @@ func TestToConfigFull(t *testing.T) {
 		AuthConfig:    backend.Auth{Username: "user", Password: "123456"},
 		NetworkMode:   "bridge",
 		Ports:         []backend.Port{{Number: 21}, {Number: 22}},
-	}, BackendOptions{})
+	}, BackendOptions{}, "task-456")
 
 	assert.NotNil(t, conf)
 	sort.Strings(conf.Env)
@@ -288,8 +297,11 @@ func TestToConfigFull(t *testing.T) {
 		AttachStderr: true,
 		Entrypoint:   []string{"/bin/sh", "-c", "echo $CI_SCRIPT | base64 -d | /bin/sh -e"},
 		Labels: map[string]string{
-			"wp_step": "test",
-			"wp_uuid": "09238932",
+			"wp_step":     "test",
+			"wp_uuid":     "09238932",
+			LabelTaskUUID: "task-456",
+			LabelStepUUID: "09238932",
+			LabelStepName: "test",
 		},
 		Env: []string{
 			"CI_SCRIPT=CmlmIFsgLW4gIiRDSV9ORVRSQ19NQUNISU5FIiBdOyB0aGVuCmNhdCA8PEVPRiA+ICRIT01FLy5uZXRyYwptYWNoaW5lICRDSV9ORVRSQ19NQUNISU5FCmxvZ2luICRDSV9ORVRSQ19VU0VSTkFNRQpwYXNzd29yZCAkQ0lfTkVUUkNfUEFTU1dPUkQKRU9GCmNobW9kIDA2MDAgJEhPTUUvLm5ldHJjCmZpCnVuc2V0IENJX05FVFJDX1VTRVJOQU1FCnVuc2V0IENJX05FVFJDX1BBU1NXT1JECnVuc2V0IENJX1NDUklQVApta2RpciAtcCAiL3NyYy9hYmMiCmNkICIvc3JjL2FiYyIKCmVjaG8gKyAnZ28gdGVzdCcKZ28gdGVzdAoKZWNobyArICdnbyB2ZXQgLi8uLi4nCmdvIHZldCAuLy4uLgo=",
@@ -330,7 +342,7 @@ func TestToWindowsConfig(t *testing.T) {
 		AuthConfig:  backend.Auth{Username: "user", Password: "123456"},
 		NetworkMode: "nat",
 		Ports:       []backend.Port{{Number: 21}, {Number: 22}},
-	}, BackendOptions{})
+	}, BackendOptions{}, "task-789")
 
 	assert.NotNil(t, conf)
 	sort.Strings(conf.Env)
@@ -341,8 +353,11 @@ func TestToWindowsConfig(t *testing.T) {
 		AttachStderr: true,
 		Entrypoint:   []string{"powershell", "-noprofile", "-noninteractive", "-command", "[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($Env:CI_SCRIPT)) | iex"},
 		Labels: map[string]string{
-			"wp_step": "test",
-			"wp_uuid": "23434553",
+			"wp_step":     "test",
+			"wp_uuid":     "23434553",
+			LabelTaskUUID: "task-789",
+			LabelStepUUID: "23434553",
+			LabelStepName: "test",
 		},
 		Env: []string{
 			"CI_SCRIPT=CiRFcnJvckFjdGlvblByZWZlcmVuY2UgPSAnU3RvcCc7CmlmICgtbm90IChUZXN0LVBhdGggIkM6L3NyYy9hYmMiKSkgeyBOZXctSXRlbSAtUGF0aCAiQzovc3JjL2FiYyIgLUl0ZW1UeXBlIERpcmVjdG9yeSAtRm9yY2UgfTsKaWYgKC1ub3QgW0Vudmlyb25tZW50XTo6R2V0RW52aXJvbm1lbnRWYXJpYWJsZSgnSE9NRScpKSB7IFtFbnZpcm9ubWVudF06OlNldEVudmlyb25tZW50VmFyaWFibGUoJ0hPTUUnLCAnYzpccm9vdCcpIH07CmlmICgtbm90IChUZXN0LVBhdGggIiRlbnY6SE9NRSIpKSB7IE5ldy1JdGVtIC1QYXRoICIkZW52OkhPTUUiIC1JdGVtVHlwZSBEaXJlY3RvcnkgLUZvcmNlIH07CmlmICgkRW52OkNJX05FVFJDX01BQ0hJTkUpIHsKJG5ldHJjPVtzdHJpbmddOjpGb3JtYXQoInswfVxfbmV0cmMiLCRFbnY6SE9NRSk7CiJtYWNoaW5lICRFbnY6Q0lfTkVUUkNfTUFDSElORSIgPj4gJG5ldHJjOwoibG9naW4gJEVudjpDSV9ORVRSQ19VU0VSTkFNRSIgPj4gJG5ldHJjOwoicGFzc3dvcmQgJEVudjpDSV9ORVRSQ19QQVNTV09SRCIgPj4gJG5ldHJjOwp9OwpbRW52aXJvbm1lbnRdOjpTZXRFbnZpcm9ubWVudFZhcmlhYmxlKCJDSV9ORVRSQ19QQVNTV09SRCIsJG51bGwpOwpbRW52aXJvbm1lbnRdOjpTZXRFbnZpcm9ubWVudFZhcmlhYmxlKCJDSV9TQ1JJUFQiLCRudWxsKTsKY2QgIkM6L3NyYy9hYmMiOwoKV3JpdGUtT3V0cHV0ICgnKyAiZ28gdGVzdCInKTsKJiBnbyB0ZXN0OyBpZiAoJExBU1RFWElUQ09ERSAtbmUgMCkge2V4aXQgJExBU1RFWElUQ09ERX0KCldyaXRlLU91dHB1dCAoJysgImdvIHZldCAuLy4uLiInKTsKJiBnbyB2ZXQgLi8uLi47IGlmICgkTEFTVEVYSVRDT0RFIC1uZSAwKSB7ZXhpdCAkTEFTVEVYSVRDT0RFfQo=",

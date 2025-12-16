@@ -199,3 +199,18 @@ func (s *CrowServer) ReportHealth(c context.Context, req *proto.ReportHealthRequ
 	err := s.peer.ReportHealth(c, req.GetStatus(), req.GetWorkflowPollingHealthy())
 	return res, err
 }
+
+func (s *CrowServer) ClaimTask(c context.Context, req *proto.ClaimTaskRequest) (*proto.ClaimTaskResponse, error) {
+	res := new(proto.ClaimTaskResponse)
+	workflow, err := s.peer.ClaimTask(c, req.GetTaskId())
+	if err != nil || workflow == nil {
+		return res, err
+	}
+
+	res.Workflow = new(proto.Workflow)
+	res.Workflow.Id = workflow.ID
+	res.Workflow.Timeout = workflow.Timeout
+	res.Workflow.Payload, err = json.Marshal(workflow.Config)
+
+	return res, err
+}

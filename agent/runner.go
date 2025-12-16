@@ -169,6 +169,13 @@ func (r *Runner) Run(runnerCtx, shutdownCtx context.Context) error { //nolint:co
 		Bool("canceled", canceled).
 		Msg("workflow finished")
 
+	// If workflows are being preserved for adoption, don't report Done to server.
+	// The workflow isn't actually done - it will be picked up by the restarted agent.
+	if pipeline.ShouldPreserveWorkflows() {
+		logger.Info().Msg("workflow preserved for adoption, skipping Done() call")
+		return nil
+	}
+
 	logger.Debug().Msg("uploading logs and traces / states ...")
 	uploads.Wait()
 	logger.Debug().Msg("uploaded logs and traces / states")
@@ -202,4 +209,133 @@ func extractPipelineNumber(config *backend.Config) string {
 		return ""
 	}
 	return config.Stages[0].Steps[0].Environment["CI_PIPELINE_NUMBER"]
+}
+
+// RunAdopted resumes monitoring of an adopted workflow (from a previous agent instance).
+// Unlike Run, this skips fetching a new workflow and uses RunAdopted which doesn't recreate containers.
+func (r *Runner) RunAdopted(runnerCtx, shutdownCtx context.Context, workflow *rpc.Workflow, taskUUID string) error { //nolint:contextcheck
+	timeout := time.Hour
+	if minutes := workflow.Timeout; minutes != 0 {
+		timeout = time.Duration(minutes) * time.Minute
+	}
+
+	repoName := extractRepositoryName(workflow.Config)
+	pipelineNumber := extractPipelineNumber(workflow.Config)
+
+	r.counter.Add(
+		workflow.ID,
+		timeout,
+		repoName,
+		pipelineNumber,
+	)
+	defer r.counter.Done(workflow.ID)
+
+	logger := log.With().
+		Str("repo", repoName).
+		Str("pipeline", pipelineNumber).
+		Str("workflow_id", workflow.ID).
+		Str("task_uuid", taskUUID).
+		Bool("adopted", true).
+		Logger()
+
+	logger.Info().Msg("resuming adopted workflow")
+
+	meta, _ := metadata.FromOutgoingContext(runnerCtx)
+	ctxMeta := metadata.NewOutgoingContext(context.Background(), meta)
+
+	workflowCtx, cancel := context.WithTimeout(ctxMeta, timeout)
+	defer cancel()
+
+	// Add sigterm support for internal context.
+	workflowCtx = utils.WithContextSigtermCallback(workflowCtx, func() {
+		logger.Error().Msg("Received sigterm termination signal")
+	})
+
+	canceled := false
+	go func() {
+		logger.Debug().Msg("listen for cancel signal")
+
+		if err := r.client.Wait(workflowCtx, workflow.ID); err != nil {
+			canceled = true
+			logger.Warn().Err(err).Msg("cancel signal received")
+			cancel()
+		} else {
+			logger.Debug().Msg("done listening for cancel signal")
+		}
+	}()
+
+	go func() {
+		for {
+			select {
+			case <-workflowCtx.Done():
+				logger.Debug().Msg("pipeline done")
+				return
+
+			case <-time.After(constant.TaskTimeout / 3):
+				logger.Debug().Msg("pipeline lease renewed")
+				if err := r.client.Extend(workflowCtx, workflow.ID); err != nil {
+					log.Error().Err(err).Msg("extending pipeline deadline failed")
+				}
+			}
+		}
+	}()
+
+	state := rpc.WorkflowState{}
+	state.Started = time.Now().Unix()
+
+	// Don't call Init for adopted workflows - they were already initialized
+	// The server already knows about this workflow
+
+	var uploads sync.WaitGroup
+	//nolint:contextcheck
+	err := pipeline.New(workflow.Config,
+		pipeline.WithContext(workflowCtx),
+		pipeline.WithTaskUUID(taskUUID),
+		pipeline.WithLogger(r.createLogger(logger, &uploads, workflow)),
+		pipeline.WithTracer(r.createTracer(ctxMeta, &uploads, logger, workflow)),
+		pipeline.WithBackend(*r.backend),
+		pipeline.WithDescription(map[string]string{
+			"workflow_id":     workflow.ID,
+			"repo":            repoName,
+			"pipeline_number": pipelineNumber,
+			"adopted":         "true",
+		}),
+	).RunAdopted(runnerCtx)
+
+	state.Finished = time.Now().Unix()
+
+	if errors.Is(err, pipeline.ErrCancel) {
+		canceled = true
+	} else if canceled {
+		err = errors.Join(err, pipeline.ErrCancel)
+	}
+
+	if err != nil {
+		state.Error = err.Error()
+	}
+
+	logger.Debug().
+		Str("error", state.Error).
+		Bool("canceled", canceled).
+		Msg("adopted workflow finished")
+
+	logger.Debug().Msg("uploading logs and traces / states ...")
+	uploads.Wait()
+	logger.Debug().Msg("uploaded logs and traces / states")
+
+	logger.Debug().
+		Str("error", state.Error).
+		Msg("updating workflow status")
+
+	doneCtx := runnerCtx
+	if doneCtx.Err() != nil {
+		doneCtx = shutdownCtx
+	}
+	if err := r.client.Done(doneCtx, workflow.ID, state); err != nil {
+		logger.Error().Err(err).Msg("updating workflow status failed")
+	} else {
+		logger.Debug().Msg("updating workflow status complete")
+	}
+
+	return nil
 }

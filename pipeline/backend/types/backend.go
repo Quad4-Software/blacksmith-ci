@@ -60,3 +60,41 @@ type Backend interface {
 type BackendInfo struct {
 	Platform string
 }
+
+// WorkflowDiscoverer is an optional interface that backends can implement
+// to support discovering orphaned workflows for adoption after agent restart.
+// Backends that cannot support this (like local) should not implement it.
+type WorkflowDiscoverer interface {
+	// DiscoverWorkflows finds orphaned workflows that can be adopted.
+	// Returns a list of discovered workflows with their task UUIDs and running steps.
+	DiscoverWorkflows(ctx context.Context) ([]*DiscoveredWorkflow, error)
+}
+
+// DiscoveredWorkflow represents a workflow found during discovery that may be
+// eligible for adoption by a restarted agent.
+type DiscoveredWorkflow struct {
+	// TaskUUID is the unique identifier for the workflow/task.
+	TaskUUID string
+	// Steps contains information about the running steps in this workflow.
+	Steps []*DiscoveredStep
+}
+
+// DiscoveredStep represents a step found during workflow discovery.
+type DiscoveredStep struct {
+	// UUID is the step's unique identifier.
+	UUID string
+	// Name is the human-readable step name.
+	Name string
+	// ContainerID is the backend-specific container/pod identifier.
+	ContainerID string
+}
+
+// WorkflowResumer is an optional interface that backends can implement
+// to support resuming monitoring of adopted workflows after agent restart.
+// This is used in conjunction with WorkflowDiscoverer.
+type WorkflowResumer interface {
+	// ResumeStep resumes monitoring of an already-running step (for adopted workflows).
+	// Unlike StartStep, this does not create a new container - it attaches to an existing one.
+	// The step parameter should have its UUID set to match the running container.
+	ResumeStep(ctx context.Context, step *Step, taskUUID string) error
+}

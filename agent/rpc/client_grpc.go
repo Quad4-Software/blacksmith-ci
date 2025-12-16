@@ -938,3 +938,27 @@ func (c *client) ReportHealth(ctx context.Context) (err error) {
 		}
 	}
 }
+
+// ClaimTask attempts to claim an orphaned workflow task for adoption after agent restart.
+// Returns the workflow if successfully claimed, nil if the task couldn't be claimed.
+func (c *client) ClaimTask(ctx context.Context, taskID string) (*rpc.Workflow, error) {
+	req := &proto.ClaimTaskRequest{TaskId: taskID}
+	res, err := c.client.ClaimTask(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	if res.GetWorkflow() == nil {
+		return nil, nil
+	}
+
+	w := new(rpc.Workflow)
+	w.ID = res.GetWorkflow().GetId()
+	w.Timeout = res.GetWorkflow().GetTimeout()
+	w.Config = new(backend.Config)
+	if err := json.Unmarshal(res.GetWorkflow().GetPayload(), w.Config); err != nil {
+		log.Error().Err(err).Msgf("could not unmarshal workflow config of '%s'", w.ID)
+		return nil, err
+	}
+	return w, nil
+}

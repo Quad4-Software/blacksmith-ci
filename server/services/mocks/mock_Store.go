@@ -9249,6 +9249,74 @@ func (_c *MockStore_TaskAtomicAssign_Call) RunAndReturn(run func(taskID string, 
 	return _c
 }
 
+// TaskAtomicClaim provides a mock function for the type MockStore
+func (_mock *MockStore) TaskAtomicClaim(taskID string, agentID int64) (*model.Task, error) {
+	ret := _mock.Called(taskID, agentID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for TaskAtomicClaim")
+	}
+
+	var r0 *model.Task
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(string, int64) (*model.Task, error)); ok {
+		return returnFunc(taskID, agentID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(string, int64) *model.Task); ok {
+		r0 = returnFunc(taskID, agentID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.Task)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(string, int64) error); ok {
+		r1 = returnFunc(taskID, agentID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_TaskAtomicClaim_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'TaskAtomicClaim'
+type MockStore_TaskAtomicClaim_Call struct {
+	*mock.Call
+}
+
+// TaskAtomicClaim is a helper method to define mock.On call
+//   - taskID string
+//   - agentID int64
+func (_e *MockStore_Expecter) TaskAtomicClaim(taskID interface{}, agentID interface{}) *MockStore_TaskAtomicClaim_Call {
+	return &MockStore_TaskAtomicClaim_Call{Call: _e.mock.On("TaskAtomicClaim", taskID, agentID)}
+}
+
+func (_c *MockStore_TaskAtomicClaim_Call) Run(run func(taskID string, agentID int64)) *MockStore_TaskAtomicClaim_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_TaskAtomicClaim_Call) Return(task *model.Task, err error) *MockStore_TaskAtomicClaim_Call {
+	_c.Call.Return(task, err)
+	return _c
+}
+
+func (_c *MockStore_TaskAtomicClaim_Call) RunAndReturn(run func(taskID string, agentID int64) (*model.Task, error)) *MockStore_TaskAtomicClaim_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // TaskDelete provides a mock function for the type MockStore
 func (_mock *MockStore) TaskDelete(s string) error {
 	ret := _mock.Called(s)

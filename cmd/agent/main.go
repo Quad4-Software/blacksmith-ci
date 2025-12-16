@@ -20,6 +20,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"codeberg.org/crowci/crow/v5/cmd/agent/core"
+	"codeberg.org/crowci/crow/v5/pipeline"
 	"codeberg.org/crowci/crow/v5/pipeline/backend/docker"
 	"codeberg.org/crowci/crow/v5/pipeline/backend/kubernetes"
 	"codeberg.org/crowci/crow/v5/pipeline/backend/local"
@@ -35,7 +36,10 @@ var backends = []backendTypes.Backend{
 
 func main() {
 	ctx := utils.WithContextSigtermCallback(context.Background(), func() {
-		log.Info().Msg("termination signal is received, shutting down agent")
+		// Set preserve flag BEFORE context cancellation propagates to pipeline goroutines.
+		// This ensures workflows are not destroyed when agent receives SIGTERM/SIGINT.
+		pipeline.SetPreserveWorkflows(true)
+		log.Info().Msg("termination signal received, workflows will be preserved for adoption")
 	})
 	core.RunAgent(ctx, backends)
 }

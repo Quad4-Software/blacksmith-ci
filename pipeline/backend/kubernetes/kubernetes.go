@@ -483,3 +483,84 @@ func (e *kube) DestroyWorkflow(ctx context.Context, conf *types.Config, taskUUID
 
 	return nil
 }
+
+// DiscoverWorkflows finds orphaned workflow pods that can be adopted after agent restart.
+// It searches for running pods with the crowci/task-uuid label.
+func (e *kube) DiscoverWorkflows(ctx context.Context) ([]*types.DiscoveredWorkflow, error) {
+	log.Trace().Msg("discovering orphaned workflows")
+
+	// List all running pods with our task UUID label
+	pods, err := e.client.CoreV1().Pods(e.config.Namespace).List(ctx, meta_v1.ListOptions{
+		LabelSelector: TaskUUIDLabel,
+		FieldSelector: "status.phase=Running",
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Group pods by task UUID
+	workflowMap := make(map[string]*types.DiscoveredWorkflow)
+	for _, pod := range pods.Items {
+		taskUUID := pod.Labels[TaskUUIDLabel]
+		if taskUUID == "" {
+			continue
+		}
+
+		workflow, exists := workflowMap[taskUUID]
+		if !exists {
+			workflow = &types.DiscoveredWorkflow{
+				TaskUUID: taskUUID,
+				Steps:    []*types.DiscoveredStep{},
+			}
+			workflowMap[taskUUID] = workflow
+		}
+
+		workflow.Steps = append(workflow.Steps, &types.DiscoveredStep{
+			UUID:        pod.Labels["wp_uuid"], // legacy label for step UUID
+			Name:        pod.Labels[StepLabel],
+			ContainerID: string(pod.UID),
+		})
+	}
+
+	// Convert map to slice
+	workflows := make([]*types.DiscoveredWorkflow, 0, len(workflowMap))
+	for _, workflow := range workflowMap {
+		workflows = append(workflows, workflow)
+	}
+
+	log.Debug().Int("count", len(workflows)).Msg("discovered orphaned workflows")
+	return workflows, nil
+}
+
+// ResumeStep resumes monitoring of an already-running step (for adopted workflows).
+// Unlike StartStep, this does not create a new pod - it verifies the pod exists and is running.
+func (e *kube) ResumeStep(ctx context.Context, step *types.Step, taskUUID string) error {
+	podName, err := stepToPodName(step)
+	if err != nil {
+		return err
+	}
+
+	log.Trace().Str("taskUUID", taskUUID).Str("pod", podName).Msgf("resuming step %s", step.Name)
+
+	// Verify the pod exists and is running
+	pod, err := e.client.CoreV1().Pods(e.config.GetNamespace(step.OrgID)).Get(ctx, podName, meta_v1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get pod %s: %w", podName, err)
+	}
+
+	if pod.Status.Phase != v1.PodRunning {
+		// Pod exists but is not running - it may have completed while we were restarting
+		log.Debug().
+			Str("pod", podName).
+			Str("phase", string(pod.Status.Phase)).
+			Msg("pod is not running, may have completed during agent restart")
+	}
+
+	log.Info().
+		Str("taskUUID", taskUUID).
+		Str("pod", podName).
+		Str("step", step.Name).
+		Msg("resumed monitoring of adopted step")
+
+	return nil
+}

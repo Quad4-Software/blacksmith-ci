@@ -17,6 +17,7 @@ package pipeline
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -26,6 +27,12 @@ var (
 	shutdownCtx       context.Context
 	shutdownCtxCancel context.CancelFunc
 	shutdownCtxLock   sync.Mutex
+
+	// PreserveWorkflows indicates whether workflows should be preserved (not destroyed)
+	// on shutdown. When true, containers/pods are left running for potential adoption
+	// by a restarted agent. This is set when the agent shuts down due to server
+	// disconnect rather than a normal termination.
+	preserveWorkflows atomic.Bool
 )
 
 func GetShutdownCtx() context.Context {
@@ -45,4 +52,16 @@ func CancelShutdown() {
 		shutdownCtx, shutdownCtxCancel = context.WithCancel(context.Background()) //nolint:forbidigo
 	}
 	shutdownCtxCancel()
+}
+
+// SetPreserveWorkflows signals that workflows should be preserved (not destroyed)
+// on shutdown. This is used when the agent shuts down due to server disconnect,
+// allowing the containers/pods to be adopted by a restarted agent.
+func SetPreserveWorkflows(preserve bool) {
+	preserveWorkflows.Store(preserve)
+}
+
+// ShouldPreserveWorkflows returns true if workflows should be preserved on shutdown.
+func ShouldPreserveWorkflows() bool {
+	return preserveWorkflows.Load()
 }

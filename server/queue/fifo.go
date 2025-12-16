@@ -29,10 +29,11 @@ import (
 )
 
 type entry struct {
-	item     *model.Task
-	done     chan bool
-	error    error
-	deadline time.Time
+	item       *model.Task
+	done       chan bool
+	error      error
+	deadline   time.Time
+	orphanedAt time.Time // When the task became orphaned (deadline expired without extension)
 }
 
 type worker struct {
@@ -61,6 +62,11 @@ const processTimeInterval = 100 * time.Millisecond
 
 // minCapacityScore is used as the initial value for capacity scoring during task assignment.
 const minCapacityScore = -1000
+
+// adoptionGracePeriod is the time to wait for an agent to reclaim an orphaned task
+// before canceling it as a zombie. This should be long enough for an agent to restart
+// and re-register, but short enough to not leave zombie tasks running indefinitely.
+const adoptionGracePeriod = 5 * time.Minute
 
 var ErrWorkerKicked = fmt.Errorf("worker was kicked")
 
@@ -239,6 +245,37 @@ func (q *fifo) Extend(_ context.Context, agentID int64, taskID string) error {
 		return nil
 	}
 	return ErrNotFound
+}
+
+// Reclaim re-adds a task to the running state after agent restart.
+// This is used when an agent reclaims an orphaned task that it was previously running.
+func (q *fifo) Reclaim(_ context.Context, task *model.Task) error {
+	q.Lock()
+	defer q.Unlock()
+
+	// Remove from pending if it was resubmitted there by resubmitExpiredPipelines
+	var next *list.Element
+	for e := q.pending.Front(); e != nil; e = next {
+		next = e.Next()
+		if t, ok := e.Value.(*model.Task); ok && t.ID == task.ID {
+			q.pending.Remove(e)
+			break
+		}
+	}
+
+	// Add to running state with fresh deadline and done channel
+	q.running[task.ID] = &entry{
+		item:     task,
+		done:     make(chan bool),
+		deadline: time.Now().Add(q.extension),
+	}
+
+	log.Debug().
+		Str("task_id", task.ID).
+		Int64("agent_id", task.AgentID).
+		Msg("task reclaimed and re-added to running state")
+
+	return nil
 }
 
 // Info returns internal queue information.
@@ -483,9 +520,32 @@ func (q *fifo) assignToWorker() (*list.Element, *worker) {
 }
 
 func (q *fifo) resubmitExpiredPipelines() {
+	now := time.Now()
 	for taskID, taskState := range q.running {
-		if time.Now().After(taskState.deadline) {
-			q.pending.PushFront(taskState.item)
+		if now.After(taskState.deadline) {
+			// Task deadline expired - mark as orphaned if not already
+			if taskState.orphanedAt.IsZero() {
+				taskState.orphanedAt = now
+				log.Info().
+					Str("task_id", taskID).
+					Int64("agent_id", taskState.item.AgentID).
+					Msg("task orphaned, waiting for agent to reclaim")
+				continue // Give agent time to reclaim
+			}
+
+			// Check if grace period has passed
+			if now.Sub(taskState.orphanedAt) < adoptionGracePeriod {
+				continue // Still within grace period
+			}
+
+			// Grace period expired - cancel as zombie task
+			log.Warn().
+				Str("task_id", taskID).
+				Int64("agent_id", taskState.item.AgentID).
+				Dur("orphaned_for", now.Sub(taskState.orphanedAt)).
+				Msg("orphaned task not reclaimed within grace period, canceling as zombie")
+
+			taskState.error = fmt.Errorf("task orphaned and not reclaimed within grace period")
 			delete(q.running, taskID)
 			close(taskState.done)
 		}

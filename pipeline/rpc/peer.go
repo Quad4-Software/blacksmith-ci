@@ -110,4 +110,8 @@ type Peer interface {
 
 	// SetWorkflowPollingHealthy marks workflow polling as healthy or unhealthy
 	SetWorkflowPollingHealthy(healthy bool)
+
+	// ClaimTask attempts to claim an orphaned workflow task for adoption after agent restart.
+	// Returns the workflow if successfully claimed, nil if the task couldn't be claimed.
+	ClaimTask(c context.Context, taskID string) (*Workflow, error)
 }
