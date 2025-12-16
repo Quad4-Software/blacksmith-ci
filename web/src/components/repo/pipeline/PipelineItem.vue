@@ -25,19 +25,30 @@
           <UserAvatar v-else :avatar-url="pipeline.author_avatar" :username="pipeline.author" size="md" />
         </div>
 
-        <div class="flex w-full min-w-0 items-center md:mx-4 md:w-auto">
+        <div class="flex min-w-0 flex-1 items-center md:mx-4">
           <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-          <span class="md:display-unset hidden text-muted-foreground">#{{ pipeline.number }}</span>
+          <span class="md:display-unset hidden text-muted-foreground shrink-0">#{{ pipeline.number }}</span>
           <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-          <span class="md:display-unset mx-2 hidden text-muted-foreground">-</span>
-          <span
-            class="overflow-hidden text-ellipsis whitespace-nowrap text-foreground underline md:no-underline"
-            :title="displayTitle"
-          >
-            {{ shortDisplayTitle }}
-          </span>
+          <span class="md:display-unset mx-2 hidden text-muted-foreground shrink-0">-</span>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <span
+                  class="overflow-hidden text-ellipsis whitespace-nowrap text-foreground underline md:no-underline min-w-0"
+                >
+                  {{ shortDisplayTitle }}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" class="max-w-md whitespace-pre-wrap break-words">
+                <p>{{ displayTitle }}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <!-- Restart indicator (hidden on mobile to prevent overflow) -->
-          <span v-if="pipeline.parent" class="hidden md:inline ml-2 text-xs text-muted-foreground whitespace-nowrap">
+          <span
+            v-if="pipeline.parent"
+            class="hidden md:inline ml-2 text-xs text-muted-foreground whitespace-nowrap shrink-0"
+          >
             {{ restartIndicator }}
           </span>
         </div>
