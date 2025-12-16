@@ -53,31 +53,39 @@
     <div v-if="agentStats.length > 0">
       <h3 class="text-lg font-semibold mb-3">{{ $t('admin.settings.queue.stats.by_agent') }}</h3>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        <Card v-for="agent in agentStats" :key="agent.name" class="hover:shadow-md transition-shadow">
-          <div class="p-4">
-            <div class="flex items-center gap-2 mb-3">
-              <div
-                class="w-2 h-2 rounded-full"
-                :class="agent.running > 0 ? 'bg-green-500 animate-pulse' : 'bg-gray-400'"
-              />
-              <span class="font-medium truncate">{{ agent.name }}</span>
+        <router-link
+          v-for="agent in agentStats"
+          :key="agent.name"
+          :to="{ name: 'agents', query: { search: agent.name } }"
+          class="block"
+        >
+          <Card class="hover:shadow-md hover:border-primary/50 transition-all cursor-pointer h-full">
+            <div class="p-4">
+              <div class="flex items-center gap-2 mb-3">
+                <div
+                  class="w-2 h-2 rounded-full"
+                  :class="agent.running > 0 ? 'bg-green-500 animate-pulse' : 'bg-gray-400'"
+                />
+                <span class="font-medium truncate">{{ agent.name }}</span>
+                <Icon name="chevron-right" class="h-4 w-4 text-muted-foreground ml-auto shrink-0" />
+              </div>
+              <div class="grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <div class="text-lg font-bold text-blue-600 dark:text-blue-400">{{ agent.running }}</div>
+                  <div class="text-xs text-muted-foreground">{{ $t('admin.settings.queue.running') }}</div>
+                </div>
+                <div>
+                  <div class="text-lg font-bold text-gray-600 dark:text-gray-400">{{ agent.pending }}</div>
+                  <div class="text-xs text-muted-foreground">{{ $t('admin.settings.queue.pending') }}</div>
+                </div>
+                <div>
+                  <div class="text-lg font-bold text-orange-600 dark:text-orange-400">{{ agent.waiting }}</div>
+                  <div class="text-xs text-muted-foreground">{{ $t('admin.settings.queue.waiting') }}</div>
+                </div>
+              </div>
             </div>
-            <div class="grid grid-cols-3 gap-2 text-center">
-              <div>
-                <div class="text-lg font-bold text-blue-600 dark:text-blue-400">{{ agent.running }}</div>
-                <div class="text-xs text-muted-foreground">{{ $t('admin.settings.queue.running') }}</div>
-              </div>
-              <div>
-                <div class="text-lg font-bold text-gray-600 dark:text-gray-400">{{ agent.pending }}</div>
-                <div class="text-xs text-muted-foreground">{{ $t('admin.settings.queue.pending') }}</div>
-              </div>
-              <div>
-                <div class="text-lg font-bold text-orange-600 dark:text-orange-400">{{ agent.waiting }}</div>
-                <div class="text-xs text-muted-foreground">{{ $t('admin.settings.queue.waiting') }}</div>
-              </div>
-            </div>
-          </div>
-        </Card>
+          </Card>
+        </router-link>
       </div>
     </div>
 
@@ -111,6 +119,7 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import Icon from '~/components/atomic/Icon.vue';
 import Card from '~/components/ui/card/Card.vue';
 import type { QueueStats, Task } from '~/lib/api/types/queue';
 

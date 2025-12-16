@@ -59,6 +59,7 @@
 import { cloneDeep } from 'lodash';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRoute } from 'vue-router';
 
 import Button from '~/components/atomic/Button.vue';
 import Settings from '~/components/layout/Settings.vue';
@@ -86,6 +87,7 @@ const apiClient = useApiClient();
 const notifications = useNotifications();
 const { user } = useAuthentication();
 const { t } = useI18n();
+const route = useRoute();
 
 if (!user) {
   throw new Error('Unexpected: User should be authenticated');
@@ -100,9 +102,10 @@ const selectedAgent = ref<Partial<Agent>>();
 const isEditingAgent = computed(() => !!selectedAgent.value?.id);
 const agentToDelete = ref<Agent>();
 
-// Agent list filters
+// Agent list filters - initialize search from query param if present
+const initialSearch = typeof route.query.search === 'string' ? route.query.search : '';
 const agentFilters = ref({
-  search: '',
+  search: initialSearch,
   platform: '',
   backend: '',
   sort: 'status',
