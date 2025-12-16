@@ -12,6 +12,7 @@ export interface Agent {
   backend: string;
   capacity: number;
   version: string;
+  build_date: string;
   no_schedule: boolean;
   priority: number;
   custom_labels: Record<string, string>;

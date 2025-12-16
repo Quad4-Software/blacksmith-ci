@@ -258,6 +258,7 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 
 	agentConfig.AgentID, agentName, err = client.RegisterAgent(grpcCtx, rpc.AgentInfo{ //nolint:contextcheck
 		Version:       version.String(),
+		BuildDate:     version.Date(),
 		Backend:       backendEngine.Name(),
 		Platform:      engInfo.Platform,
 		Capacity:      maxWorkflows,
@@ -280,6 +281,7 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 		log.Info().Msg("re-registering agent with server")
 		newAgentID, newAgentName, err := client.RegisterAgent(ctx, rpc.AgentInfo{
 			Version:       version.String(),
+			BuildDate:     version.Date(),
 			Backend:       backendEngine.Name(),
 			Platform:      engInfo.Platform,
 			Capacity:      maxWorkflows,

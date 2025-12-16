@@ -43,9 +43,22 @@ func String() string {
 	return Version
 }
 
-// Date returns the BuildDate set at build time or empty string if not set.
+// Date returns the BuildDate set at build time or the git commit date if in development.
 func Date() string {
+	if BuildDate == "" {
+		return getGitCommitDate()
+	}
 	return BuildDate
+}
+
+// getGitCommitDate attempts to get the current git commit date for development builds.
+func getGitCommitDate() string {
+	cmd := exec.Command("git", "log", "-1", "--format=%cs")
+	output, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(output))
 }
 
 // getGitCommitHash attempts to get the current git commit hash for development builds.

@@ -515,6 +515,7 @@ func (s *RPC) RegisterAgent(ctx context.Context, info rpc.AgentInfo) (int64, str
 	agent.Platform = info.Platform
 	agent.Capacity = int32(info.Capacity)
 	agent.Version = info.Version
+	agent.BuildDate = info.BuildDate
 	agent.CustomLabels = info.CustomLabels
 	agent.Priority = info.Priority
 	agent.LimitMem = info.LimitMem

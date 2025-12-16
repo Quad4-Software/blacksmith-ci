@@ -37,6 +37,7 @@ type Agent struct {
 	Backend                string            `json:"backend"       xorm:"VARCHAR(100) 'backend'"`
 	Capacity               int32             `json:"capacity"      xorm:"capacity"`
 	Version                string            `json:"version"       xorm:"'version'"`
+	BuildDate              string            `json:"build_date"    xorm:"'build_date'"`
 	NoSchedule             bool              `json:"no_schedule"   xorm:"no_schedule"`
 	Priority               int32             `json:"priority"      xorm:"DEFAULT 0 'priority'"`
 	CustomLabels           map[string]string `json:"custom_labels"    xorm:"JSON 'custom_labels'"`

@@ -265,6 +265,8 @@
                 :title="isVersionMismatch(agent.version) ? 'Version mismatch with server' : 'Version matches server'"
               >
                 {{ agent.version }}
+                <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
+                <span v-if="agent.build_date" class="text-muted-foreground">({{ agent.build_date }})</span>
                 <Icon
                   v-if="isVersionMismatch(agent.version)"
                   name="alert"

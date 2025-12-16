@@ -175,6 +175,7 @@ func (s *CrowServer) RegisterAgent(c context.Context, req *proto.RegisterAgentRe
 	agentInfo := req.GetInfo()
 	agentID, agentName, err := s.peer.RegisterAgent(c, rpc.AgentInfo{
 		Version:       agentInfo.GetVersion(),
+		BuildDate:     agentInfo.GetBuildDate(),
 		Platform:      agentInfo.GetPlatform(),
 		Backend:       agentInfo.GetBackend(),
 		Capacity:      int(agentInfo.GetCapacity()),

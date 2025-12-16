@@ -126,6 +126,7 @@ message AgentInfo {
   int32 priority = 6;
   int64 limit_mem = 7;
   int64 limit_cpu_quota = 8;
+  string build_date = 9;
 }
 
 message RegisterAgentRequest {

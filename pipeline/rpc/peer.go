@@ -59,6 +59,7 @@ type (
 	// AgentInfo represents all the metadata that should be known about an agent.
 	AgentInfo struct {
 		Version       string            `json:"version"`
+		BuildDate     string            `json:"build_date"`
 		Platform      string            `json:"platform"`
 		Backend       string            `json:"backend"`
 		Capacity      int               `json:"capacity"`

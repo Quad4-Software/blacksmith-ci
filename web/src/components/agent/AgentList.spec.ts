@@ -48,6 +48,7 @@ const sampleAgent = {
   backend: 'docker',
   capacity: 3,
   version: '1.0.0',
+  build_date: '2024-01-15',
   no_schedule: false,
   priority: 0,
   custom_labels: { foo: 'bar' },

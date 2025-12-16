@@ -13,6 +13,7 @@ STATIC_BUILD := "true"
 GH_TOKEN_MKDOCS_MATERIAL := env_var_or_default("GH_TOKEN_MKDOCS_MATERIAL", "")
 MKDOCS_MATERIAL_VERSION := env_var_or_default("MKDOCS_MATERIAL_VERSION", "latest")
 CI := env_var_or_default("CI", "false")
+BUILD_DATE := `date -u +%Y-%m-%d`
 
 # Set version based on CI environment
 VERSION := if env_var_or_default("CI_COMMIT_TAG", "") != "" {
@@ -31,9 +32,9 @@ VERSION_NUMBER := if env_var_or_default("CI_COMMIT_TAG", "") != "" {
 # FIXME: https://github.com/casey/just/issues/11
 
 LDFLAGS := if STATIC_BUILD == "true" {
-    "-s -w -extldflags '-static' -X codeberg.org/crowci/crow/v5/version.Version=" + VERSION
+    "-s -w -extldflags '-static' -X codeberg.org/crowci/crow/v5/version.Version=" + VERSION + " -X codeberg.org/crowci/crow/v5/version.BuildDate=" + BUILD_DATE
 } else {
-    "-X codeberg.org/crowci/crow/v5/version.Version=" + VERSION
+    "-X codeberg.org/crowci/crow/v5/version.Version=" + VERSION + " -X codeberg.org/crowci/crow/v5/version.BuildDate=" + BUILD_DATE
 }
 
 # only used to compile server
@@ -195,7 +196,7 @@ release-server-xgo: check-xgo
 		@echo "- os: ${TARGETOS}"
 		@echo "- arch (xgo): ${TARGETARCH}"
 		@echo "------------------"
-		CGO_CFLAGS="{{ CGO_CFLAGS }}" xgo -go {{ XGO_VERSION }} -dest {{ DIST_DIR }}/server/${TARGETOS}_${TARGETARCH} -tags 'netgo osusergo grpcnotrace {{ TAGS }}' -ldflags '-linkmode external {{ LDFLAGS }} -X codeberg.org/crowci/crow/v5/version.Version={{ VERSION }}' -targets ${TARGETOS}/${TARGETARCH_XGO} -out crow-server -pkg cmd/server .
+		CGO_CFLAGS="{{ CGO_CFLAGS }}" xgo -go {{ XGO_VERSION }} -dest {{ DIST_DIR }}/server/${TARGETOS}_${TARGETARCH} -tags 'netgo osusergo grpcnotrace {{ TAGS }}' -ldflags '-linkmode external {{ LDFLAGS }}' -targets ${TARGETOS}/${TARGETARCH_XGO} -out crow-server -pkg cmd/server .
 		# move binary into subfolder depending on target os and arch
 		if [ "${XGO_IN_XGO:-0}" -eq "1" ]; then \
 			echo "inside xgo image"; \
