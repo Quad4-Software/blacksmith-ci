@@ -67,6 +67,9 @@
       </div>
     </Transition>
 
+    <!-- Search input -->
+    <SearchInput v-if="searchQuery !== null" v-model="searchQuery" :placeholder="t('search')" class="w-full" />
+
     <!-- Hidden pipelines toggle and multi-select header -->
     <div class="flex flex-wrap items-center justify-between gap-2 pb-2">
       <div
@@ -178,6 +181,7 @@ import { useI18n } from 'vue-i18n';
 import Icon from '~/components/atomic/Icon.vue';
 import Checkbox from '~/components/ui/checkbox/Checkbox.vue';
 import Panel from '~/components/layout/Panel.vue';
+import SearchInput from '~/components/ui/input/SearchInput.vue';
 import PipelineItem from '~/components/repo/pipeline/PipelineItem.vue';
 import PipelineProgressSpinner from '~/components/repo/pipeline/PipelineProgressSpinner.vue';
 import { Button as ShadcnButton } from '~/components/ui/button';
@@ -295,6 +299,7 @@ const displayPipelines = computed(() => {
     const query = searchQuery.value.toLowerCase();
     filtered = filtered.filter((pipeline) => {
       return (
+        pipeline.number?.toString().includes(query) ||
         pipeline.message?.toLowerCase().includes(query) ||
         pipeline.branch?.toLowerCase().includes(query) ||
         pipeline.author?.toLowerCase().includes(query) ||

@@ -1,11 +1,6 @@
 <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
 <template>
-  <Scaffold
-    v-if="repo && repoPermissions && route.meta.repoHeader"
-    v-model:search="searchQuery"
-    enable-tabs
-    fluid-content
-  >
+  <Scaffold v-if="repo && repoPermissions && route.meta.repoHeader" enable-tabs fluid-content>
     <template #title>
       <span class="flex">
         <router-link
