@@ -4,7 +4,7 @@
       class="mx-auto w-full max-w-full px-3 py-2 sm:px-4 box-border overflow-x-hidden flex flex-col justify-center"
       :class="{ 'sm:max-w-6xl': !fullWidth }"
     >
-      <div class="flex w-full flex-col gap-2 md:flex-row md:items-center md:justify-center md:gap-20">
+      <div class="flex w-full flex-col gap-2 md:flex-row md:items-center md:justify-center md:gap-20 py-2">
         <div
           class="flex min-h-10 items-center"
           :class="{
