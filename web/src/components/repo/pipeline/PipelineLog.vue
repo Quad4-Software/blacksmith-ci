@@ -248,7 +248,7 @@
       </div>
 
       <!-- Log area with floating scroll buttons wrapper -->
-      <CardContent v-show="hasLogs && loadedLogs && (log?.length || 0) > 0" class="relative flex-1 p-0">
+      <CardContent v-show="hasLogs && loadedLogs && (log?.length || 0) > 0" class="relative flex-1 pb-4">
         <!-- Floating search bar -->
         <Transition
           enter-active-class="transition-all duration-200 ease-out"
@@ -350,7 +350,7 @@
         <!-- ScrollArea wrapping the log grid -->
         <ScrollArea ref="scrollAreaRef" class="h-full w-full">
           <div
-            class="grid max-h-[calc(100vh-210px)] w-full auto-rows-min grid-cols-[min-content_minmax(0,1fr)_min-content] px-3 py-2 text-xs"
+            class="grid max-h-[calc(100vh-210px)] w-full auto-rows-min grid-cols-[min-content_minmax(0,1fr)_min-content] px-3 pt-2 pb-4 text-xs"
           >
             <div v-for="line in log" :key="line.index" class="contents font-mono">
               <a
