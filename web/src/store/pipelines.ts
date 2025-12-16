@@ -1,10 +1,23 @@
 import { defineStore } from 'pinia';
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive, readonly, ref } from 'vue';
 import type { Ref } from 'vue';
 
 import useApiClient from '~/compositions/useApiClient';
 import type { Pipeline, PipelineFeed, PipelineWorkflow } from '~/lib/api/types';
 import { useRepoStore } from '~/store/repos';
+
+/**
+ * Pagination state for a repository's pipeline list.
+ * Tracks infinite scroll state and SSE-delivered pipelines for deduplication.
+ */
+export interface PaginationState {
+  page: number;
+  hasMore: boolean;
+  /** Pipeline IDs that have been fetched via API pagination */
+  fetchedPipelineNumbers: Set<number>;
+  /** Pipeline IDs that arrived via SSE (for deduplication with pagination) */
+  ssePipelineNumbers: Set<number>;
+}
 
 /**
  * Compare two pipelines by creation timestamp.
@@ -34,6 +47,70 @@ export const usePipelineStore = defineStore('pipelines', () => {
   const repoStore = useRepoStore();
 
   const pipelines: Map<number, Map<number, Pipeline>> = reactive(new Map());
+
+  /** Pagination state per repository (keyed by repoId) */
+  const paginationStates: Map<number, PaginationState> = reactive(new Map());
+
+  /**
+   * Initialize or get pagination state for a repository.
+   */
+  function initPagination(repoId: number): PaginationState {
+    if (!paginationStates.has(repoId)) {
+      paginationStates.set(repoId, {
+        page: 0,
+        hasMore: true,
+        fetchedPipelineNumbers: new Set(),
+        ssePipelineNumbers: new Set(),
+      });
+    }
+    return paginationStates.get(repoId)!;
+  }
+
+  /**
+   * Update pagination state for a repository.
+   */
+  function updatePagination(
+    repoId: number,
+    updates: Partial<Omit<PaginationState, 'fetchedPipelineNumbers' | 'ssePipelineNumbers'>>,
+  ): void {
+    const state = initPagination(repoId);
+    Object.assign(state, updates);
+  }
+
+  /**
+   * Reset pagination state for a repository (e.g., when filters change).
+   */
+  function resetPagination(repoId: number): void {
+    paginationStates.set(repoId, {
+      page: 0,
+      hasMore: true,
+      fetchedPipelineNumbers: new Set(),
+      ssePipelineNumbers: new Set(),
+    });
+  }
+
+  /**
+   * Mark a pipeline as delivered via SSE (for deduplication with pagination).
+   */
+  function markAsSSEDelivered(repoId: number, pipelineNumber: number): void {
+    const state = initPagination(repoId);
+    state.ssePipelineNumbers.add(pipelineNumber);
+  }
+
+  /**
+   * Mark pipelines as fetched via API pagination.
+   */
+  function markAsFetched(repoId: number, pipelineNumbers: number[]): void {
+    const state = initPagination(repoId);
+    pipelineNumbers.forEach((num) => state.fetchedPipelineNumbers.add(num));
+  }
+
+  /**
+   * Get pagination state for a repository (readonly).
+   */
+  function getPaginationState(repoId: number): PaginationState | undefined {
+    return paginationStates.get(repoId);
+  }
 
   function setPipeline(repoId: number, pipeline: Pipeline) {
     const repoPipelines = pipelines.get(repoId) ?? new Map<number, Pipeline>();
@@ -81,11 +158,44 @@ export const usePipelineStore = defineStore('pipelines', () => {
     setPipeline(repoId, pipeline);
   }
 
-  async function loadRepoPipelines(repoId: number, page?: number) {
-    const _pipelines = await apiClient.getPipelineList(repoId, { page });
+  /**
+   * Load pipelines for a repository with optional filtering.
+   * Updates both the pipeline store and pagination state.
+   */
+  async function loadRepoPipelines(
+    repoId: number,
+    opts?: {
+      page?: number;
+      perPage?: number;
+      before?: string;
+      after?: string;
+      ref?: string;
+      branch?: string;
+      events?: string;
+      search?: string;
+    },
+  ): Promise<Pipeline[]> {
+    const _pipelines = await apiClient.getPipelineList(repoId, opts);
+
+    // Store all fetched pipelines
     _pipelines.forEach((pipeline) => {
       setPipeline(repoId, pipeline);
     });
+
+    // Track pagination state if page was specified
+    if (opts?.page !== undefined) {
+      const pageSize = opts.perPage ?? 25;
+      markAsFetched(
+        repoId,
+        _pipelines.map((p) => p.number),
+      );
+      updatePagination(repoId, {
+        page: opts.page,
+        hasMore: _pipelines.length >= pageSize,
+      });
+    }
+
+    return _pipelines;
   }
 
   async function loadPipeline(repoId: number, pipelinesNumber: number) {
@@ -143,5 +253,13 @@ export const usePipelineStore = defineStore('pipelines', () => {
     activePipelines,
     pipelineFeed,
     loadPipelineFeed,
+    // Pagination state management
+    paginationStates: readonly(paginationStates),
+    initPagination,
+    updatePagination,
+    resetPagination,
+    getPaginationState,
+    markAsSSEDelivered,
+    markAsFetched,
   };
 });

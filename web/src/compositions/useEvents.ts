@@ -29,5 +29,9 @@ export default () => {
     }
     const { pipeline } = data;
     pipelineStore.setPipeline(repo.id, pipeline);
+
+    // Mark as SSE-delivered for deduplication with pagination
+    // This ensures the pipeline appears in the list even if pagination hasn't fetched it yet
+    pipelineStore.markAsSSEDelivered(repo.id, pipeline.number);
   });
 };

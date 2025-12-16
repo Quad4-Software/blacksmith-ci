@@ -190,9 +190,9 @@ import { Label } from '~/components/ui/label';
 import { useAsyncAction } from '~/compositions/useAsyncAction';
 import useApiClient from '~/compositions/useApiClient';
 import useNotifications from '~/compositions/useNotifications';
+import useReactivePipelines from '~/compositions/useReactivePipelines';
 import { requiredInject } from '~/compositions/useInjectProvide';
 import type { Pipeline, Repo } from '~/lib/api/types';
-import { usePipelineStore } from '~/store/pipelines';
 
 const props = defineProps<{
   pipelines?: Pipeline[] | undefined;
@@ -202,7 +202,6 @@ const props = defineProps<{
 
 const { t } = useI18n();
 const apiClient = useApiClient();
-const pipelineStore = usePipelineStore();
 const notifications = useNotifications();
 const scrollTrigger = ref<HTMLElement | null>(null);
 // Try to get repo permissions, may not be available in all contexts
@@ -223,6 +222,26 @@ const dateTo = inject<Ref<string> | null>('date-to', null);
 const selectedEvents = inject<Ref<string[]> | null>('selected-events', null);
 const branchFilter = inject<Ref<string> | null>('branch-filter', null);
 
+// Use reactive pipelines composable when in infinite scroll mode
+// This provides SSE-reactive data and handles pagination automatically
+const reactivePipelines =
+  props.infiniteScroll && props.repo
+    ? useReactivePipelines({
+        repoId: computed(() => props.repo!.id),
+        filters: {
+          search: searchQuery,
+          events: selectedEvents,
+          branch: branchFilter,
+          dateFrom,
+          dateTo,
+        },
+      })
+    : null;
+
+// Extract loading and hasMore from composable or use local defaults
+const loading = reactivePipelines?.loading ?? ref(false);
+const hasMore = reactivePipelines?.hasMore ?? computed(() => false);
+
 // Hidden pipelines state - stored per repo
 const storageKey = computed(() =>
   props.repo ? `crow:hidden-pipelines:${props.repo.id}` : 'crow:hidden-pipelines:global',
@@ -237,7 +256,11 @@ watch(
     if (props.repo) {
       const newKey = `crow:hidden-pipelines:${props.repo.id}`;
       const stored = localStorage.getItem(newKey);
-      hiddenPipelineIds.value = stored ? JSON.parse(stored) : [];
+      try {
+        hiddenPipelineIds.value = stored !== null ? JSON.parse(stored) : [];
+      } catch {
+        hiddenPipelineIds.value = [];
+      }
     }
   },
 );
@@ -256,138 +279,22 @@ function clearHiddenPipelines() {
   hiddenPipelineIds.value = [];
 }
 
-// Infinite scroll state
-const pageSize = 25;
-const page = ref(1);
-const data = ref<Pipeline[]>([]);
-const loading = ref(false);
-const hasMore = ref(true);
-
-// Load data function
-async function loadData(reset = false) {
-  if (!props.infiniteScroll || !props.repo || loading.value) {
-    return;
-  }
-
-  if (reset) {
-    page.value = 1;
-    data.value = [];
-    hasMore.value = true;
-  }
-
-  if (!hasMore.value) {
-    return;
-  }
-
-  loading.value = true;
-  try {
-    // Build API options with server-side filters
-    const opts: Parameters<typeof apiClient.getPipelineList>[1] = {
-      page: page.value,
-      perPage: pageSize,
-      search: searchQuery?.value || undefined,
-    };
-
-    // Add date filters (convert to RFC3339 format)
-    if (dateFrom?.value) {
-      opts.after = new Date(dateFrom.value).toISOString();
-    }
-    if (dateTo?.value) {
-      // End of day for "to" date
-      opts.before = new Date(`${dateTo.value}T23:59:59`).toISOString();
-    }
-
-    // Add event filter (comma-separated list)
-    if (selectedEvents?.value && selectedEvents.value.length > 0) {
-      opts.events = selectedEvents.value.join(',');
-    }
-
-    // Add branch/ref filter
-    if (branchFilter?.value) {
-      // Check if it's a PR ref or a branch
-      if (branchFilter.value.startsWith('refs/')) {
-        opts.ref = branchFilter.value;
-      } else {
-        opts.branch = branchFilter.value;
-      }
-    }
-
-    const pipelines = await apiClient.getPipelineList(props.repo.id, opts);
-    // Store pipelines in the store for consistency
-    pipelines.forEach((pipeline) => {
-      pipelineStore.setPipeline(props.repo!.id, pipeline);
-    });
-    if (pipelines.length > 0) {
-      data.value = [...data.value, ...pipelines];
-    }
-    hasMore.value = pipelines.length >= pageSize;
-  } catch (error) {
-    notifications.notify({ title: 'Failed to load pipelines', type: 'error' });
-    console.error('Error loading pipelines:', error);
-  } finally {
-    loading.value = false;
-  }
-}
-
-// Load next page
-function loadNextPage() {
-  if (!loading.value && hasMore.value) {
-    page.value += 1;
-    loadData();
-  }
-}
-
-// Initial load
-if (props.infiniteScroll && props.repo) {
-  loadData();
-}
-
-// Watch for filter changes and reload data
-if (searchQuery) {
-  watch(searchQuery, () => {
-    loadData(true);
-  });
-}
-if (dateFrom) {
-  watch(dateFrom, () => {
-    loadData(true);
-  });
-}
-if (dateTo) {
-  watch(dateTo, () => {
-    loadData(true);
-  });
-}
-if (selectedEvents) {
-  watch(
-    selectedEvents,
-    () => {
-      loadData(true);
-    },
-    { deep: true },
-  );
-}
-if (branchFilter) {
-  watch(branchFilter, () => {
-    loadData(true);
-  });
-}
-
 // Use intersection observer to trigger loading more when scrollTrigger is visible
 useIntersectionObserver(
   scrollTrigger,
   ([{ isIntersecting }]) => {
-    if (isIntersecting && props.infiniteScroll) {
-      loadNextPage();
+    if (isIntersecting && props.infiniteScroll && reactivePipelines) {
+      reactivePipelines.loadMore();
     }
   },
   { threshold: 0.1 },
 );
 
-// Display either provided pipelines or infinite scroll data
+// Display either provided pipelines or reactive pipelines from composable
+// The composable's pipelines are reactive to SSE updates automatically
 const allPipelines = computed(() => {
-  if (props.infiniteScroll) {
-    return data.value;
+  if (props.infiniteScroll && reactivePipelines) {
+    return reactivePipelines.pipelines.value;
   }
   return props.pipelines || [];
 });
@@ -499,6 +406,8 @@ function clearSelection() {
 }
 
 // Bulk actions
+// Note: After bulk operations, SSE events will automatically update the UI
+// via the reactive pipeline composable - no page reload needed!
 const { doSubmit: cancelSelectedPipelines, isLoading: isCancelingBulk } = useAsyncAction(async () => {
   if (!props.repo) {
     throw new Error('Repository is required for bulk operations');
@@ -516,9 +425,7 @@ const { doSubmit: cancelSelectedPipelines, isLoading: isCancelingBulk } = useAsy
   });
 
   clearSelection();
-
-  // Reload the page to show updated pipeline statuses
-  window.location.reload();
+  // SSE events will automatically update pipeline statuses
 });
 
 const { doSubmit: restartSelectedPipelines, isLoading: isRestartingBulk } = useAsyncAction(async () => {
@@ -560,10 +467,6 @@ const { doSubmit: restartSelectedPipelines, isLoading: isRestartingBulk } = useA
   }
 
   clearSelection();
-
-  // Reload the page to show the new pipeline runs
-  setTimeout(() => {
-    window.location.reload();
-  }, 1000);
+  // SSE events will automatically show new pipeline runs
 });
 </script>

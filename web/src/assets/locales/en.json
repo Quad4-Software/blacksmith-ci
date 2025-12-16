@@ -676,8 +676,6 @@
         "waiting": "Waiting",
         "unassigned": "Unassigned",
         "search": "Search tasks...",
-        "filter_status": "Status",
-        "all_statuses": "All statuses",
         "no_match": "No tasks match your search",
         "no_tasks": "No tasks in the queue",
         "no_running": "No running tasks",
@@ -686,7 +684,6 @@
         "sort_descending": "Sort descending",
         "sort": {
           "name": "Name",
-          "status": "Status",
           "agent": "Agent"
         },
         "stats": {
