@@ -173,7 +173,7 @@
 </template>
 
 <script lang="ts" setup>
-import { useStorage } from '@vueuse/core';
+import { useIntersectionObserver, useStorage } from '@vueuse/core';
 import type { Ref } from 'vue';
 import { computed, inject, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -187,7 +187,6 @@ import PipelineProgressSpinner from '~/components/repo/pipeline/PipelineProgress
 import { Button as ShadcnButton } from '~/components/ui/button';
 import { Card, CardContent } from '~/components/ui/card';
 import { Label } from '~/components/ui/label';
-import { usePagination } from '~/compositions/usePaginate';
 import { useAsyncAction } from '~/compositions/useAsyncAction';
 import useApiClient from '~/compositions/useApiClient';
 import useNotifications from '~/compositions/useNotifications';
@@ -257,89 +256,144 @@ function clearHiddenPipelines() {
   hiddenPipelineIds.value = [];
 }
 
-// Use infinite scroll if enabled and repo is provided
-const infiniteScrollData =
-  props.infiniteScroll && props.repo
-    ? usePagination<Pipeline>(
-        async (page) => {
-          try {
-            const pipelines = await apiClient.getPipelineList(props.repo!.id, { page, perPage: 25 });
-            // Store pipelines in the store for consistency
-            pipelines.forEach((pipeline) => {
-              pipelineStore.setPipeline(props.repo!.id, pipeline);
-            });
-            return pipelines;
-          } catch (error) {
-            notifications.notify({ title: 'Failed to load pipelines', type: 'error' });
-            console.error('Error loading pipelines:', error);
-            return [];
-          }
-        },
-        () => true,
-        { scrollElement: scrollTrigger, pageSize: 25 },
-      )
-    : null;
+// Infinite scroll state
+const pageSize = 25;
+const page = ref(1);
+const data = ref<Pipeline[]>([]);
+const loading = ref(false);
+const hasMore = ref(true);
 
-const { data, loading, hasMore } = infiniteScrollData || { data: ref([]), loading: ref(false), hasMore: ref(false) };
+// Load data function
+async function loadData(reset = false) {
+  if (!props.infiniteScroll || !props.repo || loading.value) {
+    return;
+  }
+
+  if (reset) {
+    page.value = 1;
+    data.value = [];
+    hasMore.value = true;
+  }
+
+  if (!hasMore.value) {
+    return;
+  }
+
+  loading.value = true;
+  try {
+    // Build API options with server-side filters
+    const opts: Parameters<typeof apiClient.getPipelineList>[1] = {
+      page: page.value,
+      perPage: pageSize,
+      search: searchQuery?.value || undefined,
+    };
+
+    // Add date filters (convert to RFC3339 format)
+    if (dateFrom?.value) {
+      opts.after = new Date(dateFrom.value).toISOString();
+    }
+    if (dateTo?.value) {
+      // End of day for "to" date
+      opts.before = new Date(`${dateTo.value}T23:59:59`).toISOString();
+    }
+
+    // Add event filter (comma-separated list)
+    if (selectedEvents?.value && selectedEvents.value.length > 0) {
+      opts.events = selectedEvents.value.join(',');
+    }
+
+    // Add branch/ref filter
+    if (branchFilter?.value) {
+      // Check if it's a PR ref or a branch
+      if (branchFilter.value.startsWith('refs/')) {
+        opts.ref = branchFilter.value;
+      } else {
+        opts.branch = branchFilter.value;
+      }
+    }
+
+    const pipelines = await apiClient.getPipelineList(props.repo.id, opts);
+    // Store pipelines in the store for consistency
+    pipelines.forEach((pipeline) => {
+      pipelineStore.setPipeline(props.repo!.id, pipeline);
+    });
+    if (pipelines.length > 0) {
+      data.value = [...data.value, ...pipelines];
+    }
+    hasMore.value = pipelines.length >= pageSize;
+  } catch (error) {
+    notifications.notify({ title: 'Failed to load pipelines', type: 'error' });
+    console.error('Error loading pipelines:', error);
+  } finally {
+    loading.value = false;
+  }
+}
+
+// Load next page
+function loadNextPage() {
+  if (!loading.value && hasMore.value) {
+    page.value += 1;
+    loadData();
+  }
+}
+
+// Initial load
+if (props.infiniteScroll && props.repo) {
+  loadData();
+}
+
+// Watch for filter changes and reload data
+if (searchQuery) {
+  watch(searchQuery, () => {
+    loadData(true);
+  });
+}
+if (dateFrom) {
+  watch(dateFrom, () => {
+    loadData(true);
+  });
+}
+if (dateTo) {
+  watch(dateTo, () => {
+    loadData(true);
+  });
+}
+if (selectedEvents) {
+  watch(
+    selectedEvents,
+    () => {
+      loadData(true);
+    },
+    { deep: true },
+  );
+}
+if (branchFilter) {
+  watch(branchFilter, () => {
+    loadData(true);
+  });
+}
+
+// Use intersection observer to trigger loading more when scrollTrigger is visible
+useIntersectionObserver(
+  scrollTrigger,
+  ([{ isIntersecting }]) => {
+    if (isIntersecting && props.infiniteScroll) {
+      loadNextPage();
+    }
+  },
+  { threshold: 0.1 },
+);
 
 // Display either provided pipelines or infinite scroll data
 const allPipelines = computed(() => {
-  if (props.infiniteScroll && infiniteScrollData) {
+  if (props.infiniteScroll) {
     return data.value;
   }
   return props.pipelines || [];
 });
 
-// Apply search and date filters
-const displayPipelines = computed(() => {
-  let filtered = allPipelines.value;
-
-  // Apply search filter
-  if (searchQuery?.value) {
-    const query = searchQuery.value.toLowerCase();
-    filtered = filtered.filter((pipeline) => {
-      return (
-        pipeline.number?.toString().includes(query) ||
-        pipeline.message?.toLowerCase().includes(query) ||
-        pipeline.branch?.toLowerCase().includes(query) ||
-        pipeline.author?.toLowerCase().includes(query) ||
-        pipeline.event?.toLowerCase().includes(query)
-      );
-    });
-  }
-
-  // Apply event filter (multi-select)
-  if (selectedEvents?.value && selectedEvents.value.length > 0) {
-    filtered = filtered.filter((pipeline) => pipeline.event && selectedEvents.value.includes(pipeline.event));
-  }
-
-  // Apply branch filter
-  if (branchFilter?.value) {
-    filtered = filtered.filter((pipeline) => {
-      // Match exact branch or ref
-      return pipeline.branch === branchFilter.value || pipeline.ref === branchFilter.value;
-    });
-  }
-
-  // Apply date range filter (only if values are set)
-  const today = new Date().toISOString().split('T')[0];
-  const hasDateFrom = dateFrom?.value && dateFrom.value.trim() !== '';
-  const hasDateTo = dateTo?.value && dateTo.value.trim() !== '' && dateTo.value !== today;
-
-  if (hasDateFrom || hasDateTo) {
-    filtered = filtered.filter((pipeline) => {
-      const pipelineDate = new Date(pipeline.created * 1000); // Convert Unix timestamp to Date
-      const fromDate = hasDateFrom ? new Date(dateFrom.value) : null;
-      const toDate = hasDateTo ? new Date(`${dateTo.value}T23:59:59`) : null; // End of day
-
-      if (fromDate && pipelineDate < fromDate) return false;
-      if (toDate && pipelineDate > toDate) return false;
-      return true;
-    });
-  }
-
-  return filtered;
-});
+// All filters are now handled server-side
+const displayPipelines = computed(() => allPipelines.value);
 
 // Count of hidden pipelines in current filtered view
 const hiddenCount = computed(() => {

@@ -15,6 +15,7 @@
 package datastore
 
 import (
+	"strconv"
 	"time"
 
 	"xorm.io/builder"
@@ -89,6 +90,21 @@ func (s storage) GetPipelineList(repo *model.Repo, p *model.ListOptions, f *mode
 
 		if f.RefContains != "" {
 			cond = cond.And(builder.Like{"ref", f.RefContains})
+		}
+
+		if f.Search != "" {
+			searchPattern := "%" + f.Search + "%"
+			searchCond := builder.Or(
+				builder.Like{"message", searchPattern},
+				builder.Like{"branch", searchPattern},
+				builder.Like{"author", searchPattern},
+				builder.Like{"event", searchPattern},
+			)
+			// Also search by pipeline number if the search term is numeric
+			if _, err := strconv.ParseInt(f.Search, 10, 64); err == nil {
+				searchCond = searchCond.Or(builder.Like{"CAST(number AS TEXT)", f.Search})
+			}
+			cond = cond.And(searchCond)
 		}
 	}
 

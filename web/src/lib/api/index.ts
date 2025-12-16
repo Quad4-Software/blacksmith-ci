@@ -139,7 +139,14 @@ export default class CrowClient extends ApiClient {
 
   async getPipelineList(
     repoId: number,
-    opts?: PaginationOptions & { before?: string; after?: string; ref?: string; branch?: string; events?: string },
+    opts?: PaginationOptions & {
+      before?: string;
+      after?: string;
+      ref?: string;
+      branch?: string;
+      events?: string;
+      search?: string;
+    },
   ): Promise<Pipeline[]> {
     const query = encodeQueryString(opts);
     return this._get(`/api/v1/repos/${repoId}/pipelines?${query}`) as Promise<Pipeline[]>;
