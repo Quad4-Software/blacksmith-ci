@@ -41,6 +41,9 @@ import (
 // consecutive errors and should restart.
 var ErrMaxConsecutiveErrors = errors.New("maximum consecutive errors reached, agent restart required")
 
+// ErrAgentShuttingDown is returned when operations are aborted because the agent is shutting down.
+var ErrAgentShuttingDown = errors.New("agent is shutting down")
+
 const (
 	// Set grpc version on compile time to compare against server version response.
 	ClientGrpcVersion int32 = proto.Version
@@ -69,6 +72,7 @@ const (
 // - healthReportingHealthy: true when health heartbeat can connect to server
 // - agentOperationalLogged: true after we've logged "agent fully operational" message
 // - operationalLogMutex: ensures only one goroutine logs the message (across 100+ workers)
+// - agentShuttingDown: true when agent has decided to shut down (stops all retry loops)
 //
 // For workflow polling, "sql: no rows" (empty queue) is treated as success to prevent log spam.
 // For health reporting, "sql: no rows" (agent not found) is treated as an error requiring reconnection.
@@ -78,6 +82,7 @@ var (
 	healthReportingHealthy atomic.Bool
 	agentOperationalLogged atomic.Bool
 	operationalLogMutex    sync.Mutex
+	agentShuttingDown      atomic.Bool
 )
 
 type client struct {
@@ -113,6 +118,24 @@ func (c *client) SetWorkflowPollingHealthy(healthy bool) {
 	} else {
 		log.Trace().Msg("workflow polling marked as unhealthy")
 	}
+}
+
+// SignalAgentShutdown signals that the agent is shutting down.
+// This causes all retry loops in Wait(), Extend(), etc. to stop immediately.
+// This is a package-level function since shutdown affects all client instances.
+func SignalAgentShutdown() {
+	agentShuttingDown.Store(true)
+	log.Debug().Msg("agent shutdown signal sent to all gRPC operations")
+}
+
+// IsAgentShuttingDown returns true if the agent has been signaled to shut down.
+func IsAgentShuttingDown() bool {
+	return agentShuttingDown.Load()
+}
+
+// ResetAgentShutdown resets the shutdown flag. This should only be used in tests.
+func ResetAgentShutdown() {
+	agentShuttingDown.Store(false)
 }
 
 func (c *client) Close() error {
@@ -381,6 +404,12 @@ func (c *client) Wait(ctx context.Context, workflowID string) (err error) {
 	req := new(proto.WaitRequest)
 	req.Id = workflowID
 	for {
+		// Check if agent is shutting down before attempting RPC
+		if agentShuttingDown.Load() {
+			log.Debug().Str("workflow_id", workflowID).Msg("wait(): aborting due to agent shutdown")
+			return ErrAgentShuttingDown
+		}
+
 		_, err = c.client.Wait(ctx, req)
 		if err == nil {
 			break
@@ -408,6 +437,12 @@ func (c *client) Wait(ctx context.Context, workflowID string) (err error) {
 			return err
 		}
 
+		// Check shutdown before sleeping
+		if agentShuttingDown.Load() {
+			log.Debug().Str("workflow_id", workflowID).Msg("wait(): aborting retry due to agent shutdown")
+			return ErrAgentShuttingDown
+		}
+
 		select {
 		case <-time.After(retry.NextBackOff()):
 		case <-ctx.Done():
@@ -427,6 +462,12 @@ func (c *client) Init(ctx context.Context, workflowID string, state rpc.Workflow
 	req.State.Finished = state.Finished
 	req.State.Error = state.Error
 	for {
+		// Check if agent is shutting down before attempting RPC
+		if agentShuttingDown.Load() {
+			log.Debug().Str("workflow_id", workflowID).Msg("init(): aborting due to agent shutdown")
+			return ErrAgentShuttingDown
+		}
+
 		_, err = c.client.Init(ctx, req)
 		if err == nil {
 			break
@@ -456,6 +497,12 @@ func (c *client) Init(ctx context.Context, workflowID string, state rpc.Workflow
 			return err
 		}
 
+		// Check shutdown before sleeping
+		if agentShuttingDown.Load() {
+			log.Debug().Str("workflow_id", workflowID).Msg("init(): aborting retry due to agent shutdown")
+			return ErrAgentShuttingDown
+		}
+
 		select {
 		case <-time.After(retry.NextBackOff()):
 		case <-ctx.Done():
@@ -475,6 +522,12 @@ func (c *client) Done(ctx context.Context, workflowID string, state rpc.Workflow
 	req.State.Finished = state.Finished
 	req.State.Error = state.Error
 	for {
+		// Check if agent is shutting down before attempting RPC
+		if agentShuttingDown.Load() {
+			log.Debug().Str("workflow_id", workflowID).Msg("done(): aborting due to agent shutdown")
+			return ErrAgentShuttingDown
+		}
+
 		_, err = c.client.Done(ctx, req)
 		if err == nil {
 			break
@@ -504,6 +557,12 @@ func (c *client) Done(ctx context.Context, workflowID string, state rpc.Workflow
 			return err
 		}
 
+		// Check shutdown before sleeping
+		if agentShuttingDown.Load() {
+			log.Debug().Str("workflow_id", workflowID).Msg("done(): aborting retry due to agent shutdown")
+			return ErrAgentShuttingDown
+		}
+
 		select {
 		case <-time.After(retry.NextBackOff()):
 		case <-ctx.Done():
@@ -519,6 +578,12 @@ func (c *client) Extend(ctx context.Context, workflowID string) (err error) {
 	req := new(proto.ExtendRequest)
 	req.Id = workflowID
 	for {
+		// Check if agent is shutting down before attempting RPC
+		if agentShuttingDown.Load() {
+			log.Debug().Str("workflow_id", workflowID).Msg("extend(): aborting due to agent shutdown")
+			return ErrAgentShuttingDown
+		}
+
 		_, err = c.client.Extend(ctx, req)
 		if err == nil {
 			break
@@ -548,6 +613,12 @@ func (c *client) Extend(ctx context.Context, workflowID string) (err error) {
 			return err
 		}
 
+		// Check shutdown before sleeping
+		if agentShuttingDown.Load() {
+			log.Debug().Str("workflow_id", workflowID).Msg("extend(): aborting retry due to agent shutdown")
+			return ErrAgentShuttingDown
+		}
+
 		select {
 		case <-time.After(retry.NextBackOff()):
 		case <-ctx.Done():
@@ -570,6 +641,12 @@ func (c *client) Update(ctx context.Context, workflowID string, state rpc.StepSt
 	req.State.ExitCode = int32(state.ExitCode)
 	req.State.Error = state.Error
 	for {
+		// Check if agent is shutting down before attempting RPC
+		if agentShuttingDown.Load() {
+			log.Debug().Str("workflow_id", workflowID).Msg("update(): aborting due to agent shutdown")
+			return ErrAgentShuttingDown
+		}
+
 		_, err = c.client.Update(ctx, req)
 		if err == nil {
 			break
@@ -597,6 +674,12 @@ func (c *client) Update(ctx context.Context, workflowID string, state rpc.StepSt
 		default:
 			log.Error().Err(err).Msgf("grpc error: update(): code: %v", status.Code(err))
 			return err
+		}
+
+		// Check shutdown before sleeping
+		if agentShuttingDown.Load() {
+			log.Debug().Str("workflow_id", workflowID).Msg("update(): aborting retry due to agent shutdown")
+			return ErrAgentShuttingDown
 		}
 
 		select {

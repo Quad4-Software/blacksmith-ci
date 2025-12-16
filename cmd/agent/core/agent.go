@@ -54,6 +54,11 @@ const (
 
 const (
 	shutdownTimeout = time.Second * 5
+
+	// ForceExitTimeout is the maximum time to wait for graceful shutdown before forcing exit.
+	// This ensures the agent process terminates even if some goroutines are stuck,
+	// which is critical for container orchestration (Docker, Kubernetes) to detect the exit and restart.
+	forceExitTimeout = time.Second * 15
 )
 
 var (
@@ -72,8 +77,20 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 			log.Info().Msg(msg)
 		}
 		stopAgentFunc = func(error) {}
+
+		// Signal all gRPC retry loops to stop immediately
+		agent_rpc.SignalAgentShutdown()
+
 		shutdownCtx, shutdownCancelFunc = context.WithTimeout(shutdownCtx, shutdownTimeout)
 		ctxCancel(err)
+
+		// Start force exit timer - if graceful shutdown takes too long, force exit.
+		// This is critical for container orchestration to detect the exit and restart the agent.
+		go func() {
+			time.Sleep(forceExitTimeout)
+			log.Error().Msg("graceful shutdown timed out, forcing exit")
+			os.Exit(1)
+		}()
 	}
 	defer stopAgentFunc(nil)
 	defer shutdownCancelFunc()
