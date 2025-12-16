@@ -8,7 +8,7 @@
     full-width-header
   >
     <template #title>
-      <span>
+      <span class="whitespace-nowrap">
         <router-link
           :to="{ name: 'org', params: { orgId: repo.org_id } }"
           class="hover:underline hover:decoration-primary"
