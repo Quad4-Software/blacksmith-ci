@@ -54,7 +54,7 @@
       </div>
 
       <div v-if="enableTabs" class="flex flex-col md:flex-row md:items-center min-w-0 w-full mt-2 md:mt-0">
-        <Tabs class="order-2 md:order-0 min-w-0 shrink-0 flex-none" />
+        <Tabs :class="['order-2 md:order-0 min-w-0', $slots.tabActions ? 'shrink-0 flex-none' : 'flex-1']" />
         <div v-if="$slots.tabActions" class="order-1 md:order-1 flex-1 w-full overflow-x-hidden">
           <slot name="tabActions" />
         </div>

@@ -25,7 +25,7 @@
       </DropdownMenuTrigger>
       <DropdownMenuContent :align="visibleTabs.length === 0 ? 'start' : 'end'">
         <DropdownMenuItem v-for="tab in hiddenTabs" :key="tab.title" as-child>
-          <router-link :to="tab.to" class="flex w-full cursor-pointer items-center gap-2">
+          <router-link :to="tab.to" class="flex w-full cursor-pointer items-center gap-2 px-2 py-1.5">
             <Icon v-if="tab.icon" :name="tab.icon" :size="tab.iconSize" :class="tab.iconClass" class="shrink-0" />
             <span>{{ tab.title }}</span>
           </router-link>
