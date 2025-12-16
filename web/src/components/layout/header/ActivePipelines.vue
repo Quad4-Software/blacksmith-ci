@@ -2,7 +2,7 @@
   <Button
     variant="ghost"
     size="icon"
-    class="relative"
+    class="relative mr-2"
     :title="pipelineCount > 0 ? `${$t('pipeline_feed')} (${pipelineCount})` : $t('pipeline_feed')"
     @click="toggle"
   >
