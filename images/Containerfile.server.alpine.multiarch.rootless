@@ -1,4 +1,4 @@
-FROM reg.devxy.io/docker.io/library/alpine:3.23
+FROM reg.devxy.io/docker.io/library/alpine:3.22
 
 ARG DOCKER_IMAGE_CREATED="unknown"
 
@@ -12,9 +12,7 @@ LABEL org.label-schema.license="Apache-2.0" \
 
 ARG TARGETOS TARGETARCH
 
-# FIXME: remove apk-tools upgrade. Added due to https://gitlab.alpinelinux.org/alpine/aports/-/issues/17775
 RUN apk add -U --no-cache ca-certificates tini logrotate su-exec && \
-  apk upgrade --scripts=no apk-tools && \
   addgroup -g 1000 -S crow && \
   adduser -u 1000 -G crow -S -s /bin/sh crow && \
   mkdir -p /var/lib/crow /var/log/crow /etc/cron.d && \

@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM reg.devxy.io/docker.io/library/golang:1.25-alpine3.23 AS build
+FROM --platform=$BUILDPLATFORM reg.devxy.io/docker.io/library/golang:1.25-alpine3.22 AS build
 
 WORKDIR /src
 COPY . .
@@ -11,7 +11,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
     just build-cli
 
-FROM reg.devxy.io/docker.io/library/alpine:3.23
+FROM reg.devxy.io/docker.io/library/alpine:3.22
 
 LABEL org.label-schema.license="Apache-2.0" \
       org.label-schema.vcs-url="https://codeberg.org/crowci/crow" \
@@ -23,9 +23,7 @@ LABEL org.label-schema.license="Apache-2.0" \
 
 WORKDIR /crow
 
-# FIXME: remove apk-tools upgrade. Added due to https://gitlab.alpinelinux.org/alpine/aports/-/issues/17775
 RUN apk add -U --no-cache ca-certificates && \
-  apk upgrade --scripts=no apk-tools && \
   adduser -u 1000 -g 1000 -D crow
 
 ENV GODEBUG=netdns=go

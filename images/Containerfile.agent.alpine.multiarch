@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM reg.devxy.io/docker.io/library/golang:1.25-alpine3.23 AS build
+FROM --platform=$BUILDPLATFORM reg.devxy.io/docker.io/library/golang:1.25-alpine3.22 AS build
 
 WORKDIR /src
 ARG TARGETOS TARGETARCH CI_COMMIT_SHA CI_COMMIT_TAG
@@ -26,7 +26,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
   fi; \
   CGO_ENABLED=0 go build -ldflags="-s -w -extldflags '\''-static'\'' -X codeberg.org/crowci/crow/v5/version.Version=$VERSION" -o dist/crow-agent codeberg.org/crowci/crow/v5/cmd/agent'
 
-FROM reg.devxy.io/docker.io/library/alpine:3.23
+FROM reg.devxy.io/docker.io/library/alpine:3.22
 
 ARG CI_COMMIT_SHA CI_COMMIT_TAG
 
@@ -38,9 +38,7 @@ LABEL org.label-schema.license="Apache-2.0" \
       io.artifacthub.package.readme-url="https://codeberg.org/crowci/crow/raw/branch/main/README.md" \
       maintainer="Crow Authors <admin@crowci.dev>"
 
-# FIXME: remove apk-tools upgrade. Added due to https://gitlab.alpinelinux.org/alpine/aports/-/issues/17775
 RUN apk add -U --no-cache ca-certificates tini logrotate su-exec && \
-  apk upgrade --scripts=no apk-tools && \
   addgroup -g 1000 -S crow && \
   adduser -u 1000 -G crow -S -s /bin/sh crow && \
   mkdir -p /etc/crow /var/log/crow /etc/cron.d && \
