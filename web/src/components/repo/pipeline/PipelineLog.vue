@@ -172,6 +172,27 @@
                   </div>
                 </div>
 
+                <div class="space-y-2.5">
+                  <label class="text-sm font-medium block">
+                    {{ $t('repo.pipeline.actions.log_line_limit') }}
+                  </label>
+                  <div class="flex items-center gap-3">
+                    <NumberField v-model="logLineLimitTemp" :min="1000" :max="50000" :step="1000" class="max-w-[8rem]">
+                      <NumberFieldContent>
+                        <NumberFieldDecrement />
+                        <NumberFieldInput />
+                        <NumberFieldIncrement />
+                      </NumberFieldContent>
+                    </NumberField>
+                    <span class="text-sm text-muted-foreground">
+                      {{ $t('repo.pipeline.actions.log_line_limit_range') }}
+                    </span>
+                  </div>
+                  <p class="text-xs text-muted-foreground">
+                    {{ $t('repo.pipeline.actions.log_line_limit_desc') }}
+                  </p>
+                </div>
+
                 <div class="flex items-center justify-between">
                   <div class="space-y-0.5">
                     <label class="text-sm font-medium text-foreground">{{
@@ -248,7 +269,10 @@
       </div>
 
       <!-- Log area with floating scroll buttons wrapper -->
-      <CardContent v-show="hasLogs && loadedLogs && (log?.length || 0) > 0" class="relative flex-1 pb-4">
+      <CardContent
+        v-show="hasLogs && loadedLogs && (log?.length || 0) > 0"
+        class="relative flex-1 pb-4 overflow-hidden"
+      >
         <!-- Floating search bar -->
         <Transition
           enter-active-class="transition-all duration-200 ease-out"
@@ -346,6 +370,30 @@
             </Tooltip>
           </TooltipProvider>
         </div>
+
+        <!-- Log Truncation Warning Banner -->
+        <Transition
+          enter-active-class="transition-all duration-200 ease-out"
+          enter-from-class="opacity-0 -translate-y-2"
+          enter-to-class="opacity-100 translate-y-0"
+          leave-active-class="transition-all duration-150 ease-in"
+          leave-from-class="opacity-100 translate-y-0"
+          leave-to-class="opacity-0 -translate-y-2"
+        >
+          <Alert
+            v-if="isTruncated"
+            variant="default"
+            class="mx-3 mt-2 max-w-[calc(100%-1.5rem)] border-yellow-500 bg-yellow-50 dark:bg-yellow-950/30"
+          >
+            <Icon name="alert" class="text-yellow-600 dark:text-yellow-500 shrink-0" />
+            <AlertTitle class="text-yellow-800 dark:text-yellow-400">
+              {{ $t('repo.pipeline.log_truncated_title') }}
+            </AlertTitle>
+            <AlertDescription class="text-yellow-700 dark:text-yellow-500 break-words">
+              {{ $t('repo.pipeline.log_truncated_desc', { limit: logLineLimit.toLocaleString() }) }}
+            </AlertDescription>
+          </Alert>
+        </Transition>
 
         <!-- ScrollArea wrapping the log grid -->
         <ScrollArea ref="scrollAreaRef" class="h-full w-full">
@@ -466,6 +514,7 @@ import { useRoute } from 'vue-router';
 
 import Icon from '~/components/atomic/Icon.vue';
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
+import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader } from '~/components/ui/card';
 import {
@@ -552,8 +601,13 @@ const ansiUp = ref(new AnsiUp());
 ansiUp.value.use_classes = true;
 const logBuffer = ref<LogLine[]>([]);
 
-const maxLineCount = 5000; // TODO(2653): set back to 500 and implement lazy-loading support
+// Configurable log line limit - user can adjust in settings
+const logLineLimit = useStorage('crow:log-line-limit', 10000);
+const logLineLimitTemp = ref(logLineLimit.value);
 const hasPushPermission = computed(() => repoPermissions?.value?.push);
+
+// Track if logs have been truncated (for warning banner)
+const isTruncated = ref(false);
 
 const mobileButtonsVisible = ref(false);
 const atTop = ref(true);
@@ -672,14 +726,16 @@ const pipelineSplitRatio = useStorage('crow:pipeline-sidebar-size', 30);
 const pipelineSplitRatioTemp = ref(pipelineSplitRatio.value);
 const settingsPopoverOpen = ref(false);
 
-// Watch for popover opening to sync temp value
+// Watch for popover opening to sync temp values
 watch(settingsPopoverOpen, (isOpen) => {
   if (isOpen) {
-    // When opening, sync temp value from storage
+    // When opening, sync temp values from storage
     pipelineSplitRatioTemp.value = pipelineSplitRatio.value;
+    logLineLimitTemp.value = logLineLimit.value;
   } else {
-    // When closing, save temp value to storage
+    // When closing, save temp values to storage
     pipelineSplitRatio.value = pipelineSplitRatioTemp.value;
+    logLineLimit.value = logLineLimitTemp.value;
   }
 });
 
@@ -747,7 +803,12 @@ function scrollToTop() {
 }
 
 const flushLogs = debounce((scroll: boolean) => {
-  let buffer = logBuffer.value.slice(-maxLineCount);
+  const limit = logLineLimit.value;
+
+  // Track pre-truncation total for accurate detection
+  const preTruncationTotal = logBuffer.value.length + (log.value?.length ?? 0);
+
+  let buffer = logBuffer.value.slice(-limit);
   logBuffer.value = [];
 
   if (buffer.length === 0) {
@@ -758,8 +819,8 @@ const flushLogs = debounce((scroll: boolean) => {
   }
 
   // append old logs lines
-  if (buffer.length < maxLineCount && log.value) {
-    buffer = [...log.value.slice(-(maxLineCount - buffer.length)), ...buffer];
+  if (buffer.length < limit && log.value) {
+    buffer = [...log.value.slice(-(limit - buffer.length)), ...buffer];
   }
 
   // deduplicate repeating times
@@ -776,6 +837,12 @@ const flushLogs = debounce((scroll: boolean) => {
     }),
     { lastTime: -1, lines: [] as LogLine[] },
   ).lines;
+
+  // Set truncation flag if we had more lines than the limit allows
+  // This means some lines were discarded during truncation
+  if (preTruncationTotal > limit) {
+    isTruncated.value = true;
+  }
 
   log.value = buffer;
 
@@ -831,6 +898,7 @@ async function loadLogs() {
 
   log.value = undefined;
   logBuffer.value = [];
+  isTruncated.value = false; // Reset truncation state for new logs
   ansiUp.value = new AnsiUp();
   ansiUp.value.use_classes = true;
 

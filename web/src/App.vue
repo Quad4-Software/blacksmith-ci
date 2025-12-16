@@ -48,7 +48,7 @@
               </div>
 
               <!-- Right section: Actions and user menu -->
-              <div class="flex items-center gap-1 px-2 overflow-visible">
+              <div class="flex items-center gap-1 px-2 overflow-visible pr">
                 <!-- Active pipelines -->
                 <ActivePipelines v-if="user" />
 
