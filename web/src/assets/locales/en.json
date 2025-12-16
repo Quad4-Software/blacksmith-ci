@@ -678,8 +678,11 @@
         "search": "Search tasks...",
         "filter_status": "Status",
         "all_statuses": "All statuses",
-        "no_match": "No tasks match your filters",
+        "no_match": "No tasks match your search",
         "no_tasks": "No tasks in the queue",
+        "no_running": "No running tasks",
+        "no_pending": "No pending tasks",
+        "no_waiting": "No tasks waiting on dependencies",
         "sort_descending": "Sort descending",
         "sort": {
           "name": "Name",
