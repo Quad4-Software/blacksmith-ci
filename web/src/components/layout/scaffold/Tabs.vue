@@ -1,6 +1,6 @@
 <template>
   <!-- Main tabs container -->
-  <div ref="tabsRef" class="flex min-w-0 flex-auto gap-0 md:gap-1">
+  <div ref="tabsRef" class="flex min-w-0 flex-auto gap-0 md:gap-1 pl-1">
     <router-link
       v-for="tab in visibleTabs"
       :key="tab.title"

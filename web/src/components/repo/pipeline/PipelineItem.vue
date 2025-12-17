@@ -85,7 +85,7 @@
       </div>
 
       <!-- Action buttons -->
-      <div class="flex flex-col md:flex-row items-center gap-0.5 md:gap-1 pr-2 md:pr-4 shrink-0">
+      <div class="flex flex-col md:flex-row items-start md:items-center gap-0.5 md:gap-1 pr-2 md:pr-4 py-2 shrink-0">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger as-child>

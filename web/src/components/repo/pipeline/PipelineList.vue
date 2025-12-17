@@ -71,7 +71,7 @@
     <SearchInput v-if="searchQuery !== null" v-model="searchQuery" :placeholder="t('search')" class="w-full" />
 
     <!-- Hidden pipelines toggle and multi-select header -->
-    <div class="flex flex-wrap items-center justify-between gap-2 pb-2">
+    <div class="flex flex-wrap items-center justify-between gap-2">
       <div
         v-if="isMultiselectMode && displayPipelines.length > 0 && repoPermissions?.push"
         class="flex items-center gap-2"
@@ -145,7 +145,7 @@
       <!-- Hidden indicator (simplified on mobile) -->
       <div
         v-else
-        class="flex items-center justify-center gap-2 py-2 text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+        class="flex items-center justify-center gap-2 py-1 -mt-1.5 sm:-mt-1 text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
         @click="showHiddenPipelines = true"
       >
         <div class="hidden sm:block flex-1 border-t border-dashed border-muted-foreground/30" />

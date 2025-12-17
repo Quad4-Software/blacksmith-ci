@@ -111,7 +111,7 @@
       </div>
     </template>
     <template #tabActions>
-      <div class="flex flex-wrap gap-4 pl-2 md:pl-0 md:flex-nowrap justify-end">
+      <div class="flex flex-wrap gap-4 pl-2 md:pl-0 md:flex-nowrap justify-start md:justify-end">
         <div class="flex shrink-0 items-center gap-2" :title="$t('repo.pipeline.created', { created })">
           <Icon name="startDate" size="1rem" /> <span>{{ startDate }}</span>
         </div>

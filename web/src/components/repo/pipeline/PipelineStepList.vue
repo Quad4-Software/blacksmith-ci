@@ -1,6 +1,8 @@
 <template>
   <div class="flex w-full flex-col gap-1 pb-2 text-foreground">
-    <div class="flex shrink-0 flex-wrap justify-between gap-1 rounded-md border border-border bg-card p-2 shadow-xs">
+    <div
+      class="flex shrink-0 flex-wrap justify-between gap-1 rounded-md border border-border bg-card p-2 shadow-xs mb-1"
+    >
       <div class="flex shrink-0 items-center space-x-1">
         <slot name="panel-chevron" />
         <div class="flex items-center">

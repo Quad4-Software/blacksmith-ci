@@ -5,7 +5,7 @@
     :class="isFullscreen ? 'fixed inset-0 z-50 bg-background' : 'flex flex-col h-full'"
   >
     <Card
-      class="flex flex-col h-full overflow-hidden p-0"
+      class="flex flex-col h-full overflow-hidden p-0 relative"
       :class="[logThemeClass, isFullscreen ? 'rounded-none border-0' : '']"
     >
       <!-- Desktop header - hidden on mobile since we have a mobile header in the parent -->
@@ -213,65 +213,116 @@
         </div>
       </CardHeader>
 
-      <!-- Mobile action buttons - foldable floating buttons in top-right corner -->
-      <div class="md:hidden absolute top-2 right-2 z-10">
-        <!-- Toggle button to show/hide action buttons -->
+      <!-- Mobile action buttons - fixed floating buttons at bottom-right -->
+      <div class="md:hidden fixed bottom-20 right-3 z-50 flex flex-col gap-2">
+        <!-- Settings button opens bottom sheet -->
         <Button
           variant="outline"
           size="icon-sm"
-          class="rounded-full shadow-lg mb-2"
-          @click="mobileButtonsVisible = !mobileButtonsVisible"
+          class="rounded-full shadow-lg bg-background"
+          @click="mobileSettingsOpen = true"
         >
           <Icon name="settings" class="w-4 h-4" />
         </Button>
 
-        <!-- Floating action buttons -->
-        <div v-show="mobileButtonsVisible" class="flex flex-col gap-2">
-          <Button variant="outline" size="icon-sm" class="rounded-full shadow-lg" @click="openSearch">
-            <Icon name="lucide:search" />
-          </Button>
-          <Button variant="outline" size="icon-sm" class="rounded-full shadow-lg" @click="scrollToBottom">
-            <Icon name="chevron-down" />
-          </Button>
-          <Button variant="outline" size="icon-sm" class="rounded-full shadow-lg" @click="scrollToTop">
-            <Icon name="chevron-up" />
-          </Button>
-          <Button
-            v-if="step?.finished !== undefined && hasLogs"
-            variant="outline"
-            size="icon-sm"
-            class="rounded-full shadow-lg"
-            :disabled="downloadInProgress"
-            @click="download"
-          >
-            <Icon v-if="downloadInProgress" name="spinner" class="animate-spin" />
-            <Icon v-else name="download" />
-          </Button>
-          <Button
-            v-if="step?.finished !== undefined && hasLogs && hasPushPermission"
-            variant="outline"
-            size="icon-sm"
-            class="rounded-full shadow-lg"
-            @click="deleteLogs"
-          >
-            <Icon name="trash" />
-          </Button>
-          <Button
-            v-if="step?.finished === undefined"
-            variant="outline"
-            size="icon-sm"
-            class="rounded-full shadow-lg"
-            @click="autoScroll = !autoScroll"
-          >
-            <Icon :name="autoScroll ? 'auto-scroll' : 'auto-scroll-off'" />
-          </Button>
-        </div>
+        <!-- Quick action buttons always visible -->
+        <Button variant="outline" size="icon-sm" class="rounded-full shadow-lg bg-background" @click="openSearch">
+          <Icon name="lucide:search" />
+        </Button>
+        <Button variant="outline" size="icon-sm" class="rounded-full shadow-lg bg-background" @click="scrollToTop">
+          <Icon name="chevron-up" />
+        </Button>
+        <Button variant="outline" size="icon-sm" class="rounded-full shadow-lg bg-background" @click="scrollToBottom">
+          <Icon name="chevron-down" />
+        </Button>
       </div>
+
+      <!-- Mobile Settings Sheet -->
+      <Sheet v-model:open="mobileSettingsOpen">
+        <SheetContent side="bottom" class="h-auto max-h-[80vh]">
+          <SheetHeader>
+            <SheetTitle>{{ $t('repo.pipeline.actions.log_settings') }}</SheetTitle>
+          </SheetHeader>
+          <div class="space-y-6 py-4">
+            <!-- Log Theme -->
+            <div class="space-y-2">
+              <label class="text-sm font-medium block">{{ $t('user.settings.general.log_theme') }}</label>
+              <Select v-model="logTheme">
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem v-for="option in logThemeOptions" :key="option.value" :value="option.value">
+                    {{ option.text }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <!-- Log Line Limit -->
+            <div class="space-y-2">
+              <label class="text-sm font-medium block">{{ $t('repo.pipeline.actions.log_line_limit') }}</label>
+              <NumberField v-model="logLineLimit" :min="1000" :max="50000" :step="1000" class="w-full">
+                <NumberFieldContent>
+                  <NumberFieldDecrement />
+                  <NumberFieldInput />
+                  <NumberFieldIncrement />
+                </NumberFieldContent>
+              </NumberField>
+              <p class="text-xs text-muted-foreground">{{ $t('repo.pipeline.actions.log_line_limit_desc') }}</p>
+            </div>
+
+            <!-- Auto Follow -->
+            <div class="flex items-center justify-between">
+              <div class="space-y-0.5">
+                <label class="text-sm font-medium text-foreground">{{ $t('repo.pipeline.actions.auto_follow') }}</label>
+                <p class="text-xs text-muted-foreground">{{ $t('repo.pipeline.actions.auto_follow_desc') }}</p>
+              </div>
+              <Switch
+                :model-value="autoFollowEnabled"
+                @update:model-value="(value) => emit('update:auto-follow-enabled', value)"
+              />
+            </div>
+
+            <!-- Action buttons -->
+            <div class="grid grid-cols-2 gap-2 pt-2 border-t">
+              <Button
+                v-if="step?.finished !== undefined && hasLogs"
+                variant="outline"
+                size="sm"
+                :disabled="downloadInProgress"
+                @click="download"
+              >
+                <Icon v-if="downloadInProgress" name="spinner" class="animate-spin mr-2" />
+                <Icon v-else name="download" class="mr-2" />
+                {{ $t('repo.pipeline.actions.log_download') }}
+              </Button>
+              <Button
+                v-if="step?.finished !== undefined && hasLogs && hasPushPermission"
+                variant="outline"
+                size="sm"
+                @click="deleteLogs"
+              >
+                <Icon name="trash" class="mr-2" />
+                {{ $t('repo.pipeline.actions.log_delete') }}
+              </Button>
+              <Button v-if="step?.finished === undefined" variant="outline" size="sm" @click="autoScroll = !autoScroll">
+                <Icon :name="autoScroll ? 'auto-scroll' : 'auto-scroll-off'" class="mr-2" />
+                {{
+                  autoScroll
+                    ? $t('repo.pipeline.actions.log_auto_scroll_off')
+                    : $t('repo.pipeline.actions.log_auto_scroll')
+                }}
+              </Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <!-- Log area with floating scroll buttons wrapper -->
       <CardContent
         v-show="hasLogs && loadedLogs && (log?.length || 0) > 0"
-        class="relative flex-1 pb-4 overflow-hidden"
+        class="relative flex-1 min-h-0 pb-4 flex flex-col"
       >
         <!-- Floating search bar -->
         <Transition
@@ -395,10 +446,15 @@
           </Alert>
         </Transition>
 
-        <!-- ScrollArea wrapping the log grid -->
-        <ScrollArea ref="scrollAreaRef" class="h-full w-full">
+        <!-- Scrollable log container -->
+        <div ref="logContainerRef" class="flex-1 min-h-0 w-full overflow-auto">
           <div
-            class="grid max-h-[calc(100vh-210px)] w-full auto-rows-min grid-cols-[min-content_minmax(0,1fr)_min-content] px-3 pt-2 pb-4 text-xs"
+            class="grid w-full auto-rows-min px-3 pt-2 pb-4 text-xs"
+            :class="[
+              hideTimestamps
+                ? 'grid-cols-[min-content_minmax(0,1fr)]'
+                : 'grid-cols-[min-content_minmax(0,1fr)_min-content]',
+            ]"
           >
             <div v-for="line in log" :key="line.index" class="contents font-mono">
               <a
@@ -427,6 +483,7 @@
               />
               <!-- eslint-enable vue/no-v-html -->
               <span
+                v-if="!hideTimestamps"
                 class="select-none whitespace-nowrap pr-1 text-right text-muted-foreground"
                 :class="{
                   'bg-red-600 bg-opacity-40 dark:bg-red-800/50': line.type === 'error',
@@ -438,7 +495,7 @@
               </span>
             </div>
           </div>
-        </ScrollArea>
+        </div>
       </CardContent>
 
       <CardContent class="m-auto text-xl text-muted-foreground">
@@ -526,8 +583,8 @@ import {
 } from '~/components/ui/number-field';
 import { Input } from '~/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
-import { ScrollArea } from '~/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '~/components/ui/sheet';
 import { Switch } from '~/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import useApiClient from '~/compositions/useApiClient';
@@ -550,10 +607,12 @@ const props = withDefaults(
     previousStepId?: number | null;
     nextStepId?: number | null;
     autoFollowEnabled?: boolean;
+    hideTimestamps?: boolean;
     class?: string;
   }>(),
   {
     autoFollowEnabled: false,
+    hideTimestamps: false,
     class: '',
   },
 );
@@ -577,16 +636,7 @@ const stepSlug = computed(() => `${repo?.value.owner} - ${repo?.value.name} - ${
 const step = computed(() => pipeline.value && findStep(pipeline.value.workflows || [], stepId.value));
 const stream = ref<EventSource>();
 const log = ref<LogLine[]>();
-const scrollAreaRef = ref<any>();
-const consoleElement = computed(() => {
-  // Get the viewport element from ScrollArea component
-  if (!scrollAreaRef.value) return undefined;
-
-  // The ScrollArea component uses data-slot="scroll-area-viewport"
-  const viewport = scrollAreaRef.value.$el?.querySelector('[data-slot="scroll-area-viewport"]');
-
-  return viewport as HTMLElement | undefined;
-});
+const logContainerRef = ref<HTMLElement | null>(null);
 const logsDeleted = computed(() => pipeline.value.logs_deleted);
 
 const loadedLogs = computed(() => !!log.value);
@@ -609,7 +659,7 @@ const hasPushPermission = computed(() => repoPermissions?.value?.push);
 // Track if logs have been truncated (for warning banner)
 const isTruncated = ref(false);
 
-const mobileButtonsVisible = ref(false);
+const mobileSettingsOpen = ref(false);
 const atTop = ref(true);
 const atBottom = ref(false);
 const isScrollable = ref(false);
@@ -774,32 +824,51 @@ function writeLog(line: Partial<LogLine> & { logType?: number }) {
   });
 }
 
+function getScrollableElement(): HTMLElement | null {
+  const element = logContainerRef.value;
+  if (!element) return null;
+
+  // Check if log container is scrollable (has overflow)
+  if (element.scrollHeight > element.clientHeight) {
+    return element;
+  }
+
+  // On mobile, the scroll might be on a parent ScrollArea viewport
+  // Find the closest scrollable parent
+  let parent = element.parentElement;
+  while (parent) {
+    const style = getComputedStyle(parent);
+    const overflowY = style.overflowY;
+    if ((overflowY === 'auto' || overflowY === 'scroll') && parent.scrollHeight > parent.clientHeight) {
+      return parent;
+    }
+    // Check for data-radix-scroll-area-viewport (ScrollArea's viewport)
+    if (parent.hasAttribute('data-radix-scroll-area-viewport')) {
+      return parent;
+    }
+    parent = parent.parentElement;
+  }
+
+  // Fallback to document scrolling element
+  return (document.scrollingElement as HTMLElement) || document.documentElement;
+}
+
 function scrollToBottom() {
   nextTick(() => {
-    const element = consoleElement.value;
-    if (!element) {
-      return;
+    const element = getScrollableElement();
+    if (element) {
+      element.scrollTo({ top: element.scrollHeight, behavior: 'smooth' });
     }
-
-    if (element.scrollHeight <= element.clientHeight) {
-      return;
-    }
-
-    element.scrollTop = element.scrollHeight;
   });
 }
 
 function scrollToTop() {
-  const element = consoleElement.value;
-  if (!element) {
-    return;
-  }
-
-  if (element.scrollHeight <= element.clientHeight) {
-    return;
-  }
-
-  element.scrollTop = 0;
+  nextTick(() => {
+    const element = getScrollableElement();
+    if (element) {
+      element.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  });
 }
 
 const flushLogs = debounce((scroll: boolean) => {
@@ -988,7 +1057,7 @@ function findStep(workflows: PipelineWorkflow[], pid: number): PipelineStep | un
 }
 
 function updateScrollState() {
-  const el = consoleElement.value;
+  const el = logContainerRef.value;
   if (!el) {
     return;
   }
@@ -1002,7 +1071,7 @@ const debouncedUpdateScrollState = debounce(updateScrollState, 50);
 
 onMounted(() => {
   nextTick(() => {
-    const el = consoleElement.value;
+    const el = logContainerRef.value;
     if (el) {
       // Use passive listener to improve scroll performance
       el.addEventListener('scroll', debouncedUpdateScrollState, { passive: true });
@@ -1019,7 +1088,7 @@ watch(log, () => {
 });
 
 onBeforeUnmount(() => {
-  const el = consoleElement.value;
+  const el = logContainerRef.value;
   if (el) {
     el.removeEventListener('scroll', debouncedUpdateScrollState);
   }
