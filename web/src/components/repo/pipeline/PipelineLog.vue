@@ -389,7 +389,7 @@
             <AlertTitle class="text-yellow-800 dark:text-yellow-400">
               {{ $t('repo.pipeline.log_truncated_title') }}
             </AlertTitle>
-            <AlertDescription class="text-yellow-700 dark:text-yellow-500 break-words">
+            <AlertDescription class="text-yellow-700 dark:text-yellow-500 wrap-break-word">
               {{ $t('repo.pipeline.log_truncated_desc', { limit: logLineLimit.toLocaleString() }) }}
             </AlertDescription>
           </Alert>

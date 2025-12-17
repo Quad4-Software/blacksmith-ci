@@ -1,6 +1,6 @@
 <template>
   <Sidebar side="left" collapsible="offcanvas">
-    <SidebarContent class="overflow-hidden">
+    <SidebarContent class="overflow-y-auto overflow-x-hidden">
       <!-- Command Palette -->
       <SidebarGroup v-if="user" class="h-[2.45rem] pt-[6.0px] flex items-center">
         <SidebarMenu>
@@ -9,7 +9,7 @@
               <Icon name="console" class="size-4" />
               <span>{{ $t('command_palette.title') }}</span>
               <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
-              <div class="ml-auto flex items-center gap-0.5">
+              <div v-if="!isMobile" class="ml-auto flex items-center gap-0.5">
                 <Kbd v-if="isMac">⌘</Kbd>
                 <Kbd v-else>Ctrl</Kbd>
                 <Kbd>K</Kbd>
@@ -42,7 +42,7 @@
                       <Icon name="repo" class="size-4" />
                       <span>{{ $t('repositories.title') }}</span>
                       <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
-                      <div class="ml-auto flex items-center gap-0.5">
+                      <div v-if="!isMobile" class="ml-auto flex items-center gap-0.5">
                         <Kbd>Alt</Kbd>
                         <Kbd>R</Kbd>
                       </div>
@@ -57,7 +57,7 @@
                       <Icon name="secret" class="size-4" />
                       <span>{{ $t('secrets.secrets') }}</span>
                       <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
-                      <div class="ml-auto flex items-center gap-0.5">
+                      <div v-if="!isMobile" class="ml-auto flex items-center gap-0.5">
                         <Kbd>Alt</Kbd>
                         <Kbd>S</Kbd>
                       </div>
@@ -72,7 +72,7 @@
                       <Icon name="docker" class="size-4" />
                       <span>{{ $t('registries.registries') }}</span>
                       <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
-                      <div class="ml-auto flex items-center gap-0.5">
+                      <div v-if="!isMobile" class="ml-auto flex items-center gap-0.5">
                         <Kbd>Alt</Kbd>
                         <Kbd>Shift</Kbd>
                         <Kbd>R</Kbd>
@@ -88,7 +88,7 @@
                       <Icon name="lucide:clock" class="size-4" />
                       <span>{{ $t('repo.settings.crons.crons') }}</span>
                       <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
-                      <div class="ml-auto flex items-center gap-0.5">
+                      <div v-if="!isMobile" class="ml-auto flex items-center gap-0.5">
                         <Kbd>Alt</Kbd>
                         <Kbd>C</Kbd>
                       </div>
@@ -103,7 +103,7 @@
                       <Icon name="secret" class="size-4" />
                       <span>{{ $t('access_tokens.title') }}</span>
                       <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
-                      <div class="ml-auto flex items-center gap-0.5">
+                      <div v-if="!isMobile" class="ml-auto flex items-center gap-0.5">
                         <Kbd>Alt</Kbd>
                         <Kbd>T</Kbd>
                       </div>
@@ -118,7 +118,7 @@
                       <Icon name="graph" class="size-4" />
                       <span>{{ $t('metrics.title') }}</span>
                       <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
-                      <div class="ml-auto flex items-center gap-0.5">
+                      <div v-if="!isMobile" class="ml-auto flex items-center gap-0.5">
                         <Kbd>Alt</Kbd>
                         <Kbd>M</Kbd>
                       </div>
@@ -133,7 +133,7 @@
                       <Icon name="agent" class="size-4" />
                       <span>{{ $t('admin.settings.agents.agents') }}</span>
                       <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
-                      <div class="ml-auto flex items-center gap-0.5">
+                      <div v-if="!isMobile" class="ml-auto flex items-center gap-0.5">
                         <Kbd>Alt</Kbd>
                         <Kbd>A</Kbd>
                       </div>
@@ -148,7 +148,7 @@
                       <Icon name="autoscaler" class="size-4" />
                       <span>{{ $t('admin.settings.autoscalers.autoscalers') }}</span>
                       <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
-                      <div class="ml-auto flex items-center gap-0.5">
+                      <div v-if="!isMobile" class="ml-auto flex items-center gap-0.5">
                         <Kbd>Alt</Kbd>
                         <Kbd>U</Kbd>
                       </div>
@@ -220,7 +220,7 @@
       </Collapsible>
     </SidebarContent>
 
-    <SidebarFooter>
+    <SidebarFooter class="border-t border-sidebar-border">
       <SidebarMenu>
         <SidebarMenuItem>
           <SidebarMenuButton as-child :tooltip="$t('docs')">
