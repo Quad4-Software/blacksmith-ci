@@ -1,6 +1,6 @@
 <template>
   <div data-slot="toast-alert" :class="cn(toastAlertVariants({ variant }), props.class)" role="alert">
-    <Icon :name="toastIcons[variant]" class="size-4 translate-y-0.5" />
+    <Icon :name="toastIcons[variant]" class="size-4" />
     <div class="grid gap-0.5">
       <div data-slot="toast-title" class="font-medium leading-none tracking-tight">{{ title }}</div>
       <div

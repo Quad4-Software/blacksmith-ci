@@ -1,5 +1,5 @@
 <template>
-  <div class="flex w-full flex-col gap-1 pb-2 text-foreground">
+  <div class="flex h-full w-full flex-col gap-1 pb-2 text-foreground">
     <div
       class="flex shrink-0 flex-wrap justify-between gap-1 rounded-md border border-border bg-card p-2 shadow-xs mb-1"
     >

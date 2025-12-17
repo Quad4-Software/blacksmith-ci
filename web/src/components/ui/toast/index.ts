@@ -4,7 +4,7 @@ import { cva } from 'class-variance-authority';
 export { default as ToastAlert } from './ToastAlert.vue';
 
 export const toastAlertVariants = cva(
-  'relative w-full rounded-lg border px-4 py-3 text-sm grid grid-cols-[16px_1fr] gap-x-3 gap-y-0.5 items-start',
+  'relative w-full rounded-lg border px-4 py-3 text-sm grid grid-cols-[16px_1fr] gap-x-3 gap-y-0.5 items-center',
   {
     variants: {
       variant: {

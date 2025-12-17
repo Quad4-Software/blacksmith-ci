@@ -250,7 +250,7 @@ code:not(pre > code) {
 }
 
 [data-sonner-toast] [data-close-button] {
-  @apply border-border! bg-background! hover:bg-accent! top-2! right-2!;
+  @apply border-border! bg-background! hover:bg-accent! top-1/2! right-2! -translate-y-1/2!;
 }
 
 /* Link styling within toast descriptions */

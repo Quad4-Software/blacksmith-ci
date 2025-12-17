@@ -394,9 +394,9 @@
           </div>
         </Transition>
 
-        <!-- Floating scroll buttons -->
-        <div v-if="isScrollable" class="hidden md:flex flex-col gap-2 absolute bottom-4 right-4 z-20">
-          <TooltipProvider v-if="!atTop">
+        <!-- Floating scroll buttons (desktop) -->
+        <div class="hidden md:flex flex-col gap-2 absolute bottom-4 right-4 z-20">
+          <TooltipProvider>
             <Tooltip>
               <TooltipTrigger as-child>
                 <Button variant="outline" size="icon-sm" class="rounded-full shadow-lg" @click="scrollToTop">
@@ -408,7 +408,7 @@
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <TooltipProvider v-if="!atBottom">
+          <TooltipProvider>
             <Tooltip>
               <TooltipTrigger as-child>
                 <Button variant="outline" size="icon-sm" class="rounded-full shadow-lg" @click="scrollToBottom">
@@ -807,18 +807,57 @@ function processText(text: string): string {
   return txt;
 }
 
+/**
+ * Classify a log line based on its content to determine highlighting.
+ * Many CLI tools output informational messages to stderr, so we analyze
+ * the actual content rather than relying solely on the stream type.
+ */
+function classifyLogLine(text: string, isStderr: boolean): 'error' | 'warning' | null {
+  // Warning patterns - check first since warnings shouldn't be treated as errors
+  const warningPatterns = /\bwarn(ing)?s?\b|\[warn(ing)?\]/i;
+  if (warningPatterns.test(text)) {
+    return 'warning';
+  }
+
+  // Success/info indicators - these should never be highlighted as errors
+  // Matches checkmarks (v, ✓, ✔), info symbols (i), progress indicators from common CLI tools
+  const successPatterns =
+    /^[\s]*[v✓✔☑⋅·•›>+⟶→]\s|done\b|success|complete[ds]?\b|installed\b|built\b|packaged\b|updated\b|finished\b|passed\b|ok\b|\bgot\b/i;
+  if (successPatterns.test(text)) {
+    return null;
+  }
+
+  // Skip highlighting for info prefixes (i for info) and common progress indicators
+  // These are common in package managers and build tools
+  const infoPatterns = /^[\s]*[i>+\-*•·]\s|^[\s]*\d+\s*(pkg|packages?|deps?|dependencies)/i;
+  if (infoPatterns.test(text)) {
+    return null;
+  }
+
+  // Error patterns - only highlight if it looks like an actual error
+  const errorPatterns = /\berror\b|\bfailed\b|\bfailure\b|\bfatal\b|\bcritical\b|\bexception\b|\bpanic\b|\baborted?\b/i;
+  if (isStderr && errorPatterns.test(text)) {
+    return 'error';
+  }
+
+  // For stderr lines without explicit error patterns, don't highlight
+  // This prevents false positives from tools that use stderr for progress info
+  return null;
+}
+
 function writeLog(line: Partial<LogLine> & { logType?: number }) {
   // Map backend LogEntryType to frontend type
-  // 0 = stdout (null), 1 = stderr ('error'), 2 = exit code, 3 = metadata, 4 = progress
-  let type: 'error' | 'warning' | null = null;
-  if (line.logType === 1) {
-    type = 'error'; // stderr
-  }
+  // 0 = stdout (null), 1 = stderr, 2 = exit code, 3 = metadata, 4 = progress
+  const isStderr = line.logType === 1;
+  const rawText = line.text ?? '';
+
+  // Use content-based classification instead of just stderr detection
+  const type = classifyLogLine(rawText, isStderr);
 
   logBuffer.value.push({
     index: line.index ?? 0,
     number: (line.index ?? 0) + 1,
-    text: processText(line.text ?? ''),
+    text: processText(rawText),
     time: line.time ?? 0,
     type,
   });
