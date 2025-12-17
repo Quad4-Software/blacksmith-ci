@@ -11,7 +11,7 @@
       </Button>
     </template>
 
-    <div class="max-w-4xl mx-auto px-3 py-4 sm:px-4 space-y-4">
+    <div class="max-w-6xl mx-auto px-3 py-4 sm:px-4 space-y-4 w-full">
       <!-- Toolbar with Search and Filters -->
       <div class="flex items-center justify-center gap-2 flex-wrap">
         <SearchInput v-model="search" :placeholder="$t('search')" class="w-[300px] min-w-[80px]" />
@@ -28,9 +28,9 @@
       </div>
 
       <Transition name="fade" mode="out-in">
-        <div v-if="search === '' && filteredRepos.length > 0" class="flex flex-col gap-6">
+        <div v-if="search === '' && filteredRepos.length > 0" class="flex flex-col gap-6 w-full">
           <!-- Pinned Repos Section -->
-          <div v-if="pinnedRepos.length > 0" class="flex flex-col gap-4">
+          <div v-if="pinnedRepos.length > 0" class="flex flex-col gap-4 w-full">
             <div>
               <h2 class="text-foreground text-lg">{{ $t('repositories.pinned.title') }}</h2>
               <span class="text-muted-foreground">{{ $t('repositories.pinned.desc') }}</span>
@@ -41,7 +41,7 @@
               handle=".drag-handle"
               ghost-class="opacity-50"
               animation="200"
-              class="flex flex-col gap-3"
+              class="flex flex-col gap-3 w-full"
               @update:model-value="handleReorder"
             >
               <template #item="{ element: repo }">
@@ -57,11 +57,11 @@
           </div>
 
           <!-- All Repos Section -->
-          <div class="flex flex-col gap-3">
+          <div class="flex flex-col gap-3 w-full">
             <div>
               <h2 class="text-lg text-foreground">{{ $t('repositories.all.title') }}</h2>
             </div>
-            <div class="flex flex-col gap-3">
+            <div class="flex flex-col gap-3 w-full">
               <RepoItem
                 v-for="repo in reposLastActivity"
                 :key="repo.id"
@@ -74,8 +74,8 @@
           </div>
         </div>
 
-        <div v-else class="flex flex-col">
-          <div v-if="reposLastActivity.length > 0" class="flex flex-col gap-3">
+        <div v-else class="flex flex-col w-full">
+          <div v-if="reposLastActivity.length > 0" class="flex flex-col gap-3 w-full">
             <RepoItem
               v-for="repo in reposLastActivity"
               :key="repo.id"

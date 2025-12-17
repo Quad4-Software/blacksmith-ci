@@ -1,10 +1,10 @@
 <template>
   <header class="border-b border-border bg-background text-foreground shadow-sm">
     <div
-      class="mx-auto w-full max-w-full px-3 py-2 sm:px-4 box-border overflow-x-hidden flex flex-col justify-center"
-      :class="{ 'sm:max-w-6xl': !fullWidth }"
+      class="mx-auto w-full px-3 py-2 sm:px-4 box-border overflow-x-hidden flex flex-col justify-center"
+      :class="{ 'max-w-6xl': !fullWidth }"
     >
-      <div class="flex w-full flex-col gap-2 md:flex-row md:items-center md:justify-center md:gap-20 py-2">
+      <div class="flex w-full flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-4 py-2">
         <div
           class="flex min-h-10 items-center"
           :class="{
@@ -56,9 +56,13 @@
       <div v-if="enableTabs" class="flex flex-col md:flex-row md:items-center min-w-0 w-full mt-2 md:mt-0">
         <Tabs
           class="order-2 md:order-0 min-w-0 mt-2 md:mt-0"
-          :class="[$slots.tabActions ? 'shrink-0 flex-none' : 'flex-1']"
+          :class="isPipelineDetail ? 'flex-1' : 'shrink-0 flex-none'"
         />
-        <div v-if="$slots.tabActions" class="order-1 md:order-1 flex-1 w-full min-w-0 overflow-x-hidden">
+        <div
+          v-if="$slots.tabActions"
+          class="order-1 md:order-1 min-w-0"
+          :class="isPipelineDetail ? 'shrink-0' : 'flex-1 w-full'"
+        >
           <slot name="tabActions" />
         </div>
       </div>

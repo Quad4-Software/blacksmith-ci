@@ -1,6 +1,6 @@
 <template>
   <Transition name="fade" mode="out-in">
-    <router-link v-if="repo && repo.active" :to="{ name: 'repo', params: { repoId: repo.id } }" class="block">
+    <router-link v-if="repo && repo.active" :to="{ name: 'repo', params: { repoId: repo.id } }" class="block w-full">
       <Card class="p-0 hover:bg-accent/50 transition-colors cursor-pointer">
         <CardHeader class="mb-2 p-4 pb-1">
           <div class="flex items-start justify-between gap-4">
@@ -13,18 +13,26 @@
               >
                 <Icon name="lucide:grip-vertical" class="h-5 w-5" />
               </div>
-              <CardTitle class="text-lg flex-1 min-w-0">
+              <CardTitle class="text-lg flex-1 min-w-0 truncate">
                 {{ `${repo.owner} / ${repo.name}` }}
               </CardTitle>
             </div>
 
-            <div class="flex items-center gap-2 shrink-0">
-              <!-- Visibility badge (moved first) -->
-              <Badge v-if="repo.visibility === RepoVisibility.Private" variant="secondary">
+            <div class="flex items-center gap-1 md:gap-2 shrink-0 flex-wrap justify-end">
+              <!-- Visibility badge (moved first, hidden on mobile) -->
+              <Badge
+                v-if="repo.visibility === RepoVisibility.Private"
+                variant="secondary"
+                class="hidden md:inline-flex"
+              >
                 <Icon name="visibility-private" class="mr-1 h-3 w-3" />
                 {{ $t('repo.visibility.private.private') }}
               </Badge>
-              <Badge v-else-if="repo.visibility === RepoVisibility.Internal" variant="secondary">
+              <Badge
+                v-else-if="repo.visibility === RepoVisibility.Internal"
+                variant="secondary"
+                class="hidden md:inline-flex"
+              >
                 <Icon name="visibility-internal" class="mr-1 h-3 w-3" />
                 {{ $t('repo.visibility.internal.internal') }}
               </Badge>

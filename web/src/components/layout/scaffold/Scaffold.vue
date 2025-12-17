@@ -13,7 +13,7 @@
       <template v-if="$slots.tabActions" #tabActions><slot name="tabActions" /></template>
     </Header>
     <!-- When fluidContent is true, don't wrap in ScrollArea - let children handle their own scrolling -->
-    <div v-if="fluidContent" class="flex-1 h-full w-full max-w-full overflow-hidden flex flex-col">
+    <div v-if="fluidContent" class="flex-1 min-h-0 w-full overflow-hidden flex flex-col">
       <slot />
     </div>
     <ScrollArea v-else class="flex-1 h-full w-full max-w-full overflow-x-hidden">

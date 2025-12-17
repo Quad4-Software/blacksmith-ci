@@ -54,7 +54,7 @@
         </div>
 
         <div
-          class="grid w-full shrink-0 grid-flow-col grid-cols-1 grid-rows-2 gap-y-2 py-2 text-foreground md:ml-auto md:w-85"
+          class="grid w-full min-w-0 grid-flow-col grid-cols-1 grid-rows-2 gap-y-2 py-2 text-foreground md:ml-auto md:w-85 md:shrink-0"
         >
           <div class="flex min-w-0 items-center space-x-2">
             <span :title="pipelineEventTitle">
