@@ -219,33 +219,16 @@
               >
                 <Icon name="edit" class="h-4 w-4" />
               </Button>
-              <AlertDialog>
-                <AlertDialogTrigger as-child>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    :title="$t('admin.settings.agents.delete_agent')"
-                    :disabled="props.isDeleting"
-                  >
-                    <Icon v-if="!props.isDeleting" name="trash" class="h-4 w-4 text-destructive" />
-                    <Icon v-else name="loading" class="h-4 w-4 animate-spin" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>{{ $t('admin.settings.agents.delete_agent') }}</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      {{ $t('admin.settings.agents.delete_confirm') }}
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>{{ $t('cancel') }}</AlertDialogCancel>
-                    <AlertDialogAction @click="$emit('delete', agent)">
-                      {{ $t('delete') }}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <Button
+                variant="ghost"
+                size="icon"
+                :title="$t('admin.settings.agents.delete_agent')"
+                :disabled="props.isDeleting"
+                @click="$emit('delete', agent)"
+              >
+                <Icon v-if="!props.isDeleting" name="trash" class="h-4 w-4 text-destructive" />
+                <Icon v-else name="loading" class="h-4 w-4 animate-spin" />
+              </Button>
             </div>
             <div v-else class="hidden md:flex items-center shrink-0 ml-3">
               <Icon name="visibility-private" class="h-6 w-6 text-muted-foreground" />
@@ -406,33 +389,16 @@
               >
                 <Icon name="edit" class="h-4 w-4" />
               </Button>
-              <AlertDialog>
-                <AlertDialogTrigger as-child>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    :title="$t('admin.settings.agents.delete_agent')"
-                    :disabled="props.isDeleting"
-                  >
-                    <Icon v-if="!props.isDeleting" name="trash" class="h-4 w-4 text-destructive" />
-                    <Icon v-else name="loading" class="h-4 w-4 animate-spin" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>{{ $t('admin.settings.agents.delete_agent') }}</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      {{ $t('admin.settings.agents.delete_confirm') }}
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>{{ $t('cancel') }}</AlertDialogCancel>
-                    <AlertDialogAction @click="$emit('delete', agent)">
-                      {{ $t('delete') }}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <Button
+                variant="ghost"
+                size="icon"
+                :title="$t('admin.settings.agents.delete_agent')"
+                :disabled="props.isDeleting"
+                @click="$emit('delete', agent)"
+              >
+                <Icon v-if="!props.isDeleting" name="trash" class="h-4 w-4 text-destructive" />
+                <Icon v-else name="loading" class="h-4 w-4 animate-spin" />
+              </Button>
             </div>
             <div v-else class="flex items-center">
               <Icon name="visibility-private" class="h-6 w-6 text-muted-foreground" />
@@ -482,17 +448,6 @@ import { watchDebounced } from '@vueuse/core';
 import Badge from '~/components/atomic/Badge.vue';
 import Icon from '~/components/atomic/Icon.vue';
 import Pagination from '~/components/atomic/Pagination.vue';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '~/components/ui/alert-dialog';
 import { Badge as UiBadge } from '~/components/ui/badge';
 import { Button } from '~/components/ui/button';
 import Card from '~/components/ui/card/Card.vue';

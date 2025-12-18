@@ -2,17 +2,10 @@
   <div class="mx-auto w-full max-w-none px-4 overflow-y-auto">
     <Settings :title="$t('admin.settings.agents.agents')" :description="description">
       <template #headerActions>
-        <Button
-          v-if="selectedAgent"
-          :text="$t('admin.settings.agents.show')"
-          start-icon="back"
-          @click="selectedAgent = undefined"
-        />
-        <Button v-else :text="$t('admin.settings.agents.add')" start-icon="plus" @click="showAddAgent" />
+        <Button :text="$t('admin.settings.agents.add')" start-icon="plus" @click="showAddAgent" />
       </template>
 
       <AgentList
-        v-if="!selectedAgent"
         :loading="loading"
         :agents="agents"
         :is-deleting="isDeleting"
@@ -27,18 +20,21 @@
         @delete="openDeleteDialog"
         @filters-changed="softResetPage"
       />
-      <AgentForm
-        v-else
-        v-model="selectedAgent"
-        :is-editing-agent="isEditingAgent"
-        :is-saving="isSaving"
-        @save="saveAgent"
-        @cancel="selectedAgent = undefined"
-      />
     </Settings>
 
+    <!-- Agent Create/Edit Dialog -->
+    <AgentDialog
+      ref="agentDialogRef"
+      v-model:open="dialogOpen"
+      :agent="selectedAgent"
+      :is-saving="isSaving"
+      :is-admin="isAdmin"
+      @save="handleSave"
+      @cancel="dialogOpen = false"
+    />
+
     <!-- Delete confirmation dialog -->
-    <AlertDialog :open="!!agentToDelete" @update:open="(open) => !open && (agentToDelete = undefined)">
+    <AlertDialog :open="!!agentToDelete">
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{{ $t('admin.settings.agents.delete_agent') }}</AlertDialogTitle>
@@ -47,7 +43,7 @@
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>{{ $t('cancel') }}</AlertDialogCancel>
+          <AlertDialogCancel @click="agentToDelete = undefined">{{ $t('cancel') }}</AlertDialogCancel>
           <AlertDialogAction @click="confirmDelete">{{ $t('delete') }}</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -63,7 +59,7 @@ import { useRoute } from 'vue-router';
 
 import Button from '~/components/atomic/Button.vue';
 import Settings from '~/components/layout/Settings.vue';
-import AgentForm from '~/components/agent/AgentForm.vue';
+import AgentDialog from '~/components/agent/AgentDialog.vue';
 import AgentList from '~/components/agent/AgentList.vue';
 import {
   AlertDialog,
@@ -98,9 +94,10 @@ const isAdmin = computed(() => !!user.admin);
 // Description changes based on user role
 const description = computed(() => (isAdmin.value ? t('admin.settings.agents.desc') : t('user.settings.agents.desc')));
 
-const selectedAgent = ref<Partial<Agent>>();
-const isEditingAgent = computed(() => !!selectedAgent.value?.id);
+const dialogOpen = ref(false);
+const selectedAgent = ref<Agent | null>(null);
 const agentToDelete = ref<Agent>();
+const agentDialogRef = ref<InstanceType<typeof AgentDialog> | null>(null);
 
 // Agent list filters - initialize search from query param if present
 const initialSearch = typeof route.query.search === 'string' ? route.query.search : '';
@@ -128,43 +125,53 @@ async function softResetPage() {
   }
 }
 
-const { doSubmit: saveAgent, isLoading: isSaving } = useAsyncAction(async () => {
-  if (!selectedAgent.value) {
-    throw new Error("Unexpected: Can't get agent");
-  }
+const { doSubmit: handleSave, isLoading: isSaving } = useAsyncAction(async (agentData: Partial<Agent>) => {
+  const isEditing = !!agentData.id;
 
-  const wasEditing = isEditingAgent.value;
-
-  if (wasEditing) {
+  if (isEditing) {
     // Editing: check permissions first
-    const canEdit = (selectedAgent.value.org_id === -1 && isAdmin.value) || selectedAgent.value.org_id === user.org_id;
+    const canEdit = (agentData.org_id === -1 && isAdmin.value) || agentData.org_id === user.org_id;
 
     if (!canEdit) {
       throw new Error('Unauthorized: Cannot edit this agent');
     }
 
-    if (selectedAgent.value.org_id === -1) {
+    if (agentData.org_id === -1) {
       // Global agent - admin only
-      await apiClient.updateAgent(selectedAgent.value as Agent);
+      await apiClient.updateAgent(agentData as Agent);
     } else {
       // Org-scoped agent - user's own org
-      await apiClient.updateOrgAgent(selectedAgent.value.org_id!, selectedAgent.value.id!, selectedAgent.value);
+      await apiClient.updateOrgAgent(agentData.org_id!, agentData.id!, agentData);
     }
-    selectedAgent.value = undefined;
+
+    notifications.notify({
+      title: t('notify_title_success'),
+      text: t('admin.settings.agents.notify_text_saved'),
+      type: 'success',
+      duration: 6000,
+    });
+
+    dialogOpen.value = false;
   } else {
     // Creating: admins create global agents, others create org-scoped
+    let createdAgent: Agent;
     if (isAdmin.value) {
-      selectedAgent.value = await apiClient.createAgent(selectedAgent.value);
+      createdAgent = await apiClient.createAgent(agentData);
     } else {
-      selectedAgent.value = await apiClient.createOrgAgent(user.org_id, selectedAgent.value);
+      createdAgent = await apiClient.createOrgAgent(user.org_id, agentData);
     }
+
+    notifications.notify({
+      title: t('notify_title_success'),
+      text: t('admin.settings.agents.notify_text_created'),
+      type: 'success',
+      duration: 6000,
+    });
+
+    // Show the created agent with token in dialog
+    agentDialogRef.value?.showCreatedAgent(createdAgent);
   }
-  notifications.notify({
-    title: t('notify_title_success'),
-    text: wasEditing ? t('admin.settings.agents.notify_text_saved') : t('admin.settings.agents.notify_text_created'),
-    type: 'success',
-    duration: 6000,
-  });
+
   softResetPage();
 });
 
@@ -214,10 +221,12 @@ const { doSubmit: confirmDelete, isLoading: isDeleting } = useAsyncAction(async 
 
 function editAgent(agent: Agent) {
   selectedAgent.value = cloneDeep(agent);
+  dialogOpen.value = true;
 }
 
 function showAddAgent() {
-  selectedAgent.value = { name: '' };
+  selectedAgent.value = null;
+  dialogOpen.value = true;
 }
 
 useCrowTitle(computed(() => [t('admin.settings.agents.agents')]));

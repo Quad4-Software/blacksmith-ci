@@ -26,7 +26,18 @@
 
     <template v-if="isEditingAgent">
       <InputField v-slot="{ id }" :label="$t('admin.settings.agents.token')">
-        <Input :id="id" v-model="agent.token" :placeholder="$t('admin.settings.agents.token')" disabled />
+        <div class="flex gap-2">
+          <Input
+            :id="id"
+            :model-value="agent.token"
+            :placeholder="$t('admin.settings.agents.token')"
+            readonly
+            class="font-mono text-xs"
+          />
+          <UiButton type="button" variant="outline" size="icon" :title="$t('copy')" @click="copyToken">
+            <Icon :name="copied ? 'lucide:check' : 'lucide:copy'" class="h-4 w-4" />
+          </UiButton>
+        </div>
       </InputField>
 
       <InputField v-slot="{ id }" :label="$t('admin.settings.agents.id')">
@@ -59,7 +70,7 @@
         <Input :id="id" :model-value="agent.capacity?.toString()" disabled />
       </InputField>
 
-      <InputField v-slot="{ id }" :label="$t('admin.settings.agents.version')">
+      <InputField v-slot="{ id }" :label="$t('admin.settings.agents.version.label')">
         <Input :id="id" :model-value="agent.version" disabled />
       </InputField>
 
@@ -88,11 +99,13 @@
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 import Button from '~/components/atomic/Button.vue';
+import Icon from '~/components/atomic/Icon.vue';
 import Checkbox from '~/components/form/Checkbox.vue';
 import InputField from '~/components/form/InputField.vue';
+import { Button as UiButton } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { useDate } from '~/compositions/useDate';
 import type { Agent } from '~/lib/api/types';
@@ -110,11 +123,26 @@ const emit = defineEmits<{
 }>();
 
 const date = useDate();
+const copied = ref(false);
 
 const agent = computed({
   get: () => props.modelValue,
   set: (value) => emit('update:modelValue', value),
 });
+
+async function copyToken() {
+  if (!agent.value.token) return;
+
+  try {
+    await navigator.clipboard.writeText(agent.value.token);
+    copied.value = true;
+    setTimeout(() => {
+      copied.value = false;
+    }, 2000);
+  } catch {
+    // Failed to copy
+  }
+}
 
 const baseDocsUrl = 'https://crowci.dev/configuration/server/#backend';
 
