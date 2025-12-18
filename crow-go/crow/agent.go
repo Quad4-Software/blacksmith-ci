@@ -3,9 +3,9 @@ package crow
 import "fmt"
 
 const (
-	pathAgents     = "%s/api/agents"
-	pathAgent      = "%s/api/agents/%d"
-	pathAgentTasks = "%s/api/agents/%d/tasks"
+	pathAgents     = "%s/api/v1/agents"
+	pathAgent      = "%s/api/v1/agents/%d"
+	pathAgentTasks = "%s/api/v1/agents/%d/tasks"
 )
 
 // AgentCreate creates a new agent.

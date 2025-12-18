@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	pathPipelineQueue    = "%s/api/pipelines"
-	pathPipelineMetadata = "%s/api/repos/%d/pipelines/%d/metadata"
+	pathPipelineQueue    = "%s/api/v1/pipelines"
+	pathPipelineMetadata = "%s/api/v1/repos/%d/pipelines/%d/metadata"
 )
 
 // PipelineQueue returns a list of enqueued pipelines.

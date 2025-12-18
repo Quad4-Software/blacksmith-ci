@@ -308,7 +308,7 @@ func TestClient_RepoList(t *testing.T) {
 		{
 			name: "with options",
 			handler: func(w http.ResponseWriter, r *http.Request) {
-				assert.Equal(t, "/api/user/repos?all=true", r.URL.RequestURI())
+				assert.Equal(t, "/api/v1/user/repos?all=true", r.URL.RequestURI())
 				w.WriteHeader(http.StatusOK)
 				_, err := fmt.Fprint(w, `[]`)
 				assert.NoError(t, err)

@@ -6,10 +6,10 @@ import (
 )
 
 const (
-	pathSelf      = "%s/api/user"
-	pathUserRepos = "%s/api/user/repos"
-	pathUsers     = "%s/api/users"
-	pathUser      = "%s/api/users/%s"
+	pathSelf      = "%s/api/v1/user"
+	pathUserRepos = "%s/api/v1/user/repos"
+	pathUsers     = "%s/api/v1/users"
+	pathUser      = "%s/api/v1/users/%s"
 )
 
 type RepoListOptions struct {

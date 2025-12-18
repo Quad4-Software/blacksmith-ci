@@ -151,6 +151,11 @@ build-agent:
 build-cli:
 		CGO_ENABLED=0 GOOS={{ TARGETOS }} GOARCH={{ TARGETARCH }} go build -tags '{{ TAGS }}' -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/crow-cli{{ BIN_SUFFIX }} codeberg.org/crowci/crow/v5/cmd/cli
 
+install-cli-dev: build-cli
+		mkdir -p ~/.local/bin
+		cp {{ DIST_DIR }}/crow-cli{{ BIN_SUFFIX }} ~/.local/bin/crow-dev{{ BIN_SUFFIX }}
+		@echo "Installed crow-dev to ~/.local/bin/crow-dev"
+
 # build-server
 
 # env PLATFORMS=linux/amd64 just build-server

@@ -6,13 +6,13 @@ import (
 )
 
 const (
-	pathOrg           = "%s/api/orgs/%d"
-	pathOrgLookup     = "%s/api/orgs/lookup/%s"
-	pathOrgList       = "%s/api/orgs"
-	pathOrgSecrets    = "%s/api/orgs/%d/secrets"
-	pathOrgSecret     = "%s/api/orgs/%d/secrets/%s"
-	pathOrgRegistries = "%s/api/orgs/%d/registries"
-	pathOrgRegistry   = "%s/api/orgs/%d/registries/%s"
+	pathOrg           = "%s/api/v1/orgs/%d"
+	pathOrgLookup     = "%s/api/v1/orgs/lookup/%s"
+	pathOrgList       = "%s/api/v1/orgs"
+	pathOrgSecrets    = "%s/api/v1/orgs/%d/secrets"
+	pathOrgSecret     = "%s/api/v1/orgs/%d/secrets/%s"
+	pathOrgRegistries = "%s/api/v1/orgs/%d/registries"
+	pathOrgRegistry   = "%s/api/v1/orgs/%d/registries/%s"
 )
 
 // Org returns an organization by id.

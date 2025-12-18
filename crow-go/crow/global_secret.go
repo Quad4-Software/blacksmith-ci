@@ -6,8 +6,8 @@ import (
 )
 
 const (
-	pathGlobalSecrets = "%s/api/secrets"
-	pathGlobalSecret  = "%s/api/secrets/%s"
+	pathGlobalSecrets = "%s/api/v1/secrets"
+	pathGlobalSecret  = "%s/api/v1/secrets/%s"
 )
 
 // GlobalSecret returns an global secret by name.

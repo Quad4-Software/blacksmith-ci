@@ -2,7 +2,7 @@ package crow
 
 import "fmt"
 
-const pathQueue = "%s/api/queue"
+const pathQueue = "%s/api/v1/queue"
 
 // QueueInfo returns queue info.
 func (c *client) QueueInfo() (*Info, error) {

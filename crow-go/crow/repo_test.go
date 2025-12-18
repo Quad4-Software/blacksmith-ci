@@ -23,7 +23,7 @@ func TestPipelineList(t *testing.T) {
 			name: "success",
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				assert.Equal(t, http.MethodGet, r.Method)
-				assert.Equal(t, "/api/repos/123/pipelines?after=2023-01-15T00%3A00%3A00Z&before=2023-01-16T00%3A00%3A00Z&page=2&perPage=10", r.URL.RequestURI())
+				assert.Equal(t, "/api/v1/repos/123/pipelines?after=2023-01-15T00%3A00%3A00Z&before=2023-01-16T00%3A00%3A00Z&page=2&perPage=10", r.URL.RequestURI())
 
 				w.WriteHeader(http.StatusOK)
 				_, err := fmt.Fprint(w, `[{"id":1},{"id":2}]`)
@@ -44,7 +44,7 @@ func TestPipelineList(t *testing.T) {
 			name: "empty ListOptions",
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				assert.Equal(t, http.MethodGet, r.Method)
-				assert.Equal(t, "/api/repos/123/pipelines", r.URL.RequestURI())
+				assert.Equal(t, "/api/v1/repos/123/pipelines", r.URL.RequestURI())
 
 				w.WriteHeader(http.StatusOK)
 				_, err := fmt.Fprint(w, `[{"id":1},{"id":2}]`)
@@ -101,7 +101,7 @@ func TestClientDeploy(t *testing.T) {
 			name: "success",
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				assert.Equal(t, http.MethodPost, r.Method)
-				assert.Equal(t, "/api/repos/123/pipelines/456?event=deployment", r.URL.RequestURI())
+				assert.Equal(t, "/api/v1/repos/123/pipelines/456?event=deployment", r.URL.RequestURI())
 
 				w.WriteHeader(http.StatusOK)
 				_, err := fmt.Fprint(w, `{"id":789}`)
@@ -128,7 +128,7 @@ func TestClientDeploy(t *testing.T) {
 			name: "with options",
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				assert.Equal(t, http.MethodPost, r.Method)
-				assert.Equal(t, "/api/repos/123/pipelines/456?deploy_to=production&event=deployment", r.URL.RequestURI())
+				assert.Equal(t, "/api/v1/repos/123/pipelines/456?deploy_to=production&event=deployment", r.URL.RequestURI())
 
 				w.WriteHeader(http.StatusOK)
 				_, err := fmt.Fprint(w, `{"id":789}`)
@@ -178,7 +178,7 @@ func TestClientPipelineStart(t *testing.T) {
 			name: "success",
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				assert.Equal(t, http.MethodPost, r.Method)
-				assert.Equal(t, "/api/repos/123/pipelines/456", r.URL.RequestURI())
+				assert.Equal(t, "/api/v1/repos/123/pipelines/456", r.URL.RequestURI())
 
 				w.WriteHeader(http.StatusOK)
 				_, err := fmt.Fprint(w, `{"id":789}`)
@@ -205,7 +205,7 @@ func TestClientPipelineStart(t *testing.T) {
 			name: "with options",
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				assert.Equal(t, http.MethodPost, r.Method)
-				assert.Equal(t, "/api/repos/123/pipelines/456?foo=bar", r.URL.RequestURI())
+				assert.Equal(t, "/api/v1/repos/123/pipelines/456?foo=bar", r.URL.RequestURI())
 
 				w.WriteHeader(http.StatusOK)
 				_, err := fmt.Fprint(w, `{"id":789}`)
@@ -253,7 +253,7 @@ func TestClient_PipelineLast(t *testing.T) {
 		{
 			name: "success",
 			handler: func(w http.ResponseWriter, r *http.Request) {
-				assert.Equal(t, "/api/repos/1/pipelines/latest?branch=main", r.URL.Path+"?"+r.URL.RawQuery)
+				assert.Equal(t, "/api/v1/repos/1/pipelines/latest?branch=main", r.URL.Path+"?"+r.URL.RawQuery)
 				w.WriteHeader(http.StatusOK)
 				_, err := fmt.Fprint(w, `{"id":1,"number":1,"status":"success","event":"push","branch":"main"}`)
 				assert.NoError(t, err)
@@ -324,7 +324,7 @@ func TestClientRepoPost(t *testing.T) {
 			name: "success",
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				assert.Equal(t, http.MethodPost, r.Method)
-				assert.Equal(t, "/api/repos?forge_remote_id=10", r.URL.RequestURI())
+				assert.Equal(t, "/api/v1/repos?forge_remote_id=10", r.URL.RequestURI())
 
 				w.WriteHeader(http.StatusOK)
 				_, err := fmt.Fprint(w, `{"id":1,"name":"test","owner":"owner","full_name":"owner/test","forge_remote_id":"10"}`)
@@ -395,7 +395,7 @@ func TestClientRepoMove(t *testing.T) {
 			name: "success",
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				assert.Equal(t, http.MethodPost, r.Method)
-				assert.Equal(t, "/api/repos/123/move?to=new_owner", r.URL.RequestURI())
+				assert.Equal(t, "/api/v1/repos/123/move?to=new_owner", r.URL.RequestURI())
 				w.WriteHeader(http.StatusOK)
 			},
 			repoID: 123,

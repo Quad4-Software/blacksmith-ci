@@ -26,11 +26,11 @@ import (
 )
 
 const (
-	pathLogLevel = "%s/api/log-level"
+	pathLogLevel = "%s/api/v1/log-level"
 
 	//nolint:godot
 	// TODO: implement endpoints
-	// pathFeed           = "%s/api/user/feed"
+	// pathFeed           = "%s/api/v1/user/feed"
 	// pathVersion        = "%s/version"
 )
 
@@ -154,7 +154,24 @@ func (c *client) open(rawURL, method string, in any) (io.ReadCloser, error) {
 			Message:    string(out),
 		}
 	}
+
+	// Check if the response is HTML instead of JSON (e.g., SPA fallback, login page)
+	// This provides a clearer error than "invalid character '<' looking for beginning of value"
+	contentType := resp.Header.Get("Content-Type")
+	if isHTMLContentType(contentType) {
+		defer resp.Body.Close()
+		return nil, &ClientError{
+			StatusCode: resp.StatusCode,
+			Message:    fmt.Sprintf("unexpected HTML response from server (got %s). This may indicate an API path mismatch, authentication issue, or server misconfiguration.", contentType),
+		}
+	}
+
 	return resp.Body, nil
+}
+
+// isHTMLContentType checks if the content-type indicates an HTML response.
+func isHTMLContentType(contentType string) bool {
+	return strings.HasPrefix(strings.ToLower(contentType), "text/html")
 }
 
 // mapValues converts a map to `url.Values`.

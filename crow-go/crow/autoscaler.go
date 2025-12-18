@@ -17,11 +17,11 @@ package crow
 import "fmt"
 
 const (
-	pathAutoscalers         = "%s/api/autoscalers"
-	pathAutoscaler          = "%s/api/autoscalers/%d"
-	pathAutoscalerLookup    = "%s/api/autoscalers/lookup/%s"
-	pathAutoscalerHeartbeat = "%s/api/autoscalers/%d/heartbeat"
-	pathAutoscalerSelf      = "%s/api/autoscaler"
+	pathAutoscalers         = "%s/api/v1/autoscalers"
+	pathAutoscaler          = "%s/api/v1/autoscalers/%d"
+	pathAutoscalerLookup    = "%s/api/v1/autoscalers/lookup/%s"
+	pathAutoscalerHeartbeat = "%s/api/v1/autoscalers/%d/heartbeat"
+	pathAutoscalerSelf      = "%s/api/v1/autoscaler"
 )
 
 // AutoscalerList returns a list of all registered autoscalers.

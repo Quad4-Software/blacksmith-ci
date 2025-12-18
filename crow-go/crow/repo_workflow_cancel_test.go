@@ -89,12 +89,12 @@ func TestWorkflowCancel(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				// Verify request method and path
 				assert.Equal(t, "POST", r.Method)
-				expectedPath := "/api/repos/1/pipelines/123/workflows/456/cancel"
+				expectedPath := "/api/v1/repos/1/pipelines/123/workflows/456/cancel"
 				if tc.pipelineNumber == 999 {
-					expectedPath = "/api/repos/1/pipelines/999/workflows/456/cancel"
+					expectedPath = "/api/v1/repos/1/pipelines/999/workflows/456/cancel"
 				}
 				if tc.workflowID == 999 {
-					expectedPath = "/api/repos/1/pipelines/123/workflows/999/cancel"
+					expectedPath = "/api/v1/repos/1/pipelines/123/workflows/999/cancel"
 				}
 				assert.Equal(t, expectedPath, r.URL.Path)
 
@@ -133,7 +133,7 @@ func TestWorkflowCancelWithDifferentIDs(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify request method and path
 		assert.Equal(t, "POST", r.Method)
-		assert.Equal(t, "/api/repos/42/pipelines/789/workflows/101/cancel", r.URL.Path)
+		assert.Equal(t, "/api/v1/repos/42/pipelines/789/workflows/101/cancel", r.URL.Path)
 
 		// Set response
 		w.WriteHeader(http.StatusNoContent)

@@ -6,8 +6,8 @@ import (
 )
 
 const (
-	pathGlobalRegistries = "%s/api/registries"
-	pathGlobalRegistry   = "%s/api/registries/%s"
+	pathGlobalRegistries = "%s/api/v1/registries"
+	pathGlobalRegistry   = "%s/api/v1/registries/%s"
 )
 
 // GlobalRegistry returns an global registry by name.
