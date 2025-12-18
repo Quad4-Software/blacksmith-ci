@@ -16,8 +16,6 @@ package registry
 
 import (
 	"context"
-	"html/template"
-	"os"
 
 	"github.com/urfave/cli/v3"
 
@@ -30,14 +28,10 @@ var registryListCmd = &cli.Command{
 	Name:   "ls",
 	Usage:  "list registries",
 	Action: registryList,
-	Flags: []cli.Flag{
-		common.FormatFlag(tmplRegistryList, true),
-	},
+	Flags:  common.OutputFlags("table"),
 }
 
 func registryList(ctx context.Context, c *cli.Command) error {
-	format := c.String("format") + "\n"
-
 	client, err := internal.NewClient(ctx, c)
 	if err != nil {
 		return err
@@ -50,20 +44,5 @@ func registryList(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
-	tmpl, err := template.New("_").Parse(format)
-	if err != nil {
-		return err
-	}
-	for _, registry := range list {
-		if err := tmpl.Execute(os.Stdout, registry); err != nil {
-			return err
-		}
-	}
-	return nil
+	return registryOutput(c, list)
 }
-
-// Template for registry list information.
-var tmplRegistryList = "\x1b[33m{{ .Address }} \x1b[0m" + `
-Username: {{ .Username }}
-Email: {{ .Email }}
-`

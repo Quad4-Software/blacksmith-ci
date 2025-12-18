@@ -15,10 +15,15 @@
 package registry
 
 import (
+	"fmt"
+	"io"
+	"os"
 	"strconv"
+	"text/template"
 
 	"github.com/urfave/cli/v3"
 
+	"codeberg.org/crowci/crow/v5/cli/output"
 	crow "codeberg.org/crowci/crow/v5/crow-go/crow"
 )
 
@@ -57,4 +62,49 @@ func parseTargetArgs(client crow.Client, c *cli.Command) (orgID int64, err error
 	}
 
 	return org.ID, nil
+}
+
+func registryOutput(c *cli.Command, registries []*crow.Registry, fd ...io.Writer) error {
+	outFmt, outOpt := output.ParseOutputOptions(c.String("output"))
+	noHeader := c.Bool("output-no-headers")
+
+	var out io.Writer = os.Stdout
+	if len(fd) > 0 {
+		out = fd[0]
+	}
+
+	switch outFmt {
+	case "json":
+		return output.WriteJSON(out, registries)
+	case "yaml":
+		return output.WriteYAML(out, registries)
+	case "go-template":
+		if len(outOpt) < 1 {
+			return fmt.Errorf("%w: missing template", output.ErrOutputOptionRequired)
+		}
+		tmpl, err := template.New("_").Parse(outOpt[0] + "\n")
+		if err != nil {
+			return err
+		}
+		return tmpl.Execute(out, registries)
+	case "table":
+		fallthrough
+	default:
+		table := output.NewTable(out)
+		cols := []string{"ID", "Address", "Username"}
+		if len(outOpt) > 0 {
+			cols = outOpt
+		}
+		if !noHeader {
+			table.WriteHeader(cols)
+		}
+		for _, registry := range registries {
+			if err := table.Write(cols, registry); err != nil {
+				return err
+			}
+		}
+		table.Flush()
+	}
+
+	return nil
 }

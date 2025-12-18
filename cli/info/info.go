@@ -16,6 +16,8 @@ package info
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"os"
 	"text/template"
 
@@ -23,6 +25,8 @@ import (
 
 	"codeberg.org/crowci/crow/v5/cli/common"
 	"codeberg.org/crowci/crow/v5/cli/internal"
+	"codeberg.org/crowci/crow/v5/cli/output"
+	crow "codeberg.org/crowci/crow/v5/crow-go/crow"
 )
 
 // Command exports the info command.
@@ -31,7 +35,7 @@ var Command = &cli.Command{
 	Usage:     "show information about the current user",
 	ArgsUsage: " ",
 	Action:    info,
-	Flags:     []cli.Flag{common.FormatFlag(tmplInfo, true)},
+	Flags:     common.OutputFlags("table"),
 }
 
 func info(ctx context.Context, c *cli.Command) error {
@@ -45,14 +49,50 @@ func info(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
-	tmpl, err := template.New("_").Parse(c.String("format") + "\n")
-	if err != nil {
-		return err
-	}
-
-	return tmpl.Execute(os.Stdout, user)
+	return userOutput(c, []*crow.User{user})
 }
 
-// Template for user information.
-var tmplInfo = `User: {{ .Login }}
-Email: {{ .Email }}`
+func userOutput(c *cli.Command, users []*crow.User, fd ...io.Writer) error {
+	outFmt, outOpt := output.ParseOutputOptions(c.String("output"))
+	noHeader := c.Bool("output-no-headers")
+
+	var out io.Writer = os.Stdout
+	if len(fd) > 0 {
+		out = fd[0]
+	}
+
+	switch outFmt {
+	case "json":
+		return output.WriteJSON(out, users)
+	case "yaml":
+		return output.WriteYAML(out, users)
+	case "go-template":
+		if len(outOpt) < 1 {
+			return fmt.Errorf("%w: missing template", output.ErrOutputOptionRequired)
+		}
+		tmpl, err := template.New("_").Parse(outOpt[0] + "\n")
+		if err != nil {
+			return err
+		}
+		return tmpl.Execute(out, users)
+	case "table":
+		fallthrough
+	default:
+		table := output.NewTable(out)
+		cols := []string{"ID", "Login", "Email", "Admin"}
+		if len(outOpt) > 0 {
+			cols = outOpt
+		}
+		if !noHeader {
+			table.WriteHeader(cols)
+		}
+		for _, user := range users {
+			if err := table.Write(cols, user); err != nil {
+				return err
+			}
+		}
+		table.Flush()
+	}
+
+	return nil
+}

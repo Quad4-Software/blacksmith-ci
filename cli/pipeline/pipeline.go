@@ -62,6 +62,10 @@ func pipelineOutput(c *cli.Command, pipelines []*crow.Pipeline, fd ...io.Writer)
 	}
 
 	switch outFmt {
+	case "json":
+		return output.WriteJSON(out, pipelines)
+	case "yaml":
+		return output.WriteYAML(out, pipelines)
 	case "go-template":
 		if len(outOpt) < 1 {
 			return fmt.Errorf("%w: missing template", output.ErrOutputOptionRequired)

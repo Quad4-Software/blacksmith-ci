@@ -17,13 +17,12 @@ package user
 import (
 	"context"
 	"fmt"
-	"os"
-	"text/template"
 
 	"github.com/urfave/cli/v3"
 
 	"codeberg.org/crowci/crow/v5/cli/common"
 	"codeberg.org/crowci/crow/v5/cli/internal"
+	crow "codeberg.org/crowci/crow/v5/crow-go/crow"
 )
 
 var userShowCmd = &cli.Command{
@@ -31,7 +30,7 @@ var userShowCmd = &cli.Command{
 	Usage:     "show user information",
 	ArgsUsage: "<username>",
 	Action:    userShow,
-	Flags:     []cli.Flag{common.FormatFlag(tmplUserInfo, false)},
+	Flags:     common.OutputFlags("table"),
 }
 
 func userShow(ctx context.Context, c *cli.Command) error {
@@ -50,13 +49,5 @@ func userShow(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
-	tmpl, err := template.New("_").Parse(c.String("format") + "\n")
-	if err != nil {
-		return err
-	}
-	return tmpl.Execute(os.Stdout, user)
+	return userOutput(c, []*crow.User{user})
 }
-
-// Template for user information.
-var tmplUserInfo = `User: {{ .Login }}
-Email: {{ .Email }}`

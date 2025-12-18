@@ -7,8 +7,6 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v3"
-
-	"codeberg.org/crowci/crow/v5/cli/internal"
 )
 
 type Config struct {
@@ -17,7 +15,7 @@ type Config struct {
 	LogLevel  string `json:"log_level"`
 }
 
-var skipSetupForCommands = []string{"setup", "help", "h", "version", "update", "lint", "exec", "completion"}
+var skipSetupForCommands = []string{"help", "h", "version", "update", "lint", "exec", "completion"}
 
 func Load(ctx context.Context, c *cli.Command) error {
 	if firstArg := c.Args().First(); slices.Contains(skipSetupForCommands, firstArg) {
@@ -49,12 +47,7 @@ func Load(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
-	log.Debug().Any("config", config).Msg("loaded config")
-
-	err = displayInstanceInfo(ctx, c, config)
-	if err != nil {
-		log.Debug().Err(err).Msg("failed to fetch instance/user info")
-	}
+	log.Debug().Str("server", config.ServerURL).Msg("using server")
 
 	return nil
 }
@@ -71,26 +64,7 @@ func Get(_ context.Context, c *cli.Command, _configPath string) (*Config, error)
 	return conf, nil
 }
 
-func Save(_ context.Context, c *cli.Command, _configPath string, conf *Config) error {
-	log.Info().Msg("Configuration not saved - please provide via environment variables or command line arguments in future runs.")
-	return nil
-}
-
-func displayInstanceInfo(ctx context.Context, c *cli.Command, config *Config) error {
-	client, err := internal.NewClient(ctx, c)
-	if err != nil {
-		return err
-	}
-
-	user, err := client.Self()
-	if err != nil {
-		return err
-	}
-
-	log.Info().
-		Str("server", config.ServerURL).
-		Str("user", user.Login).
-		Msg("Crow instance info:")
-
+func Save(_ context.Context, _ *cli.Command, _ string, _ *Config) error {
+	// Config file persistence is not implemented - users should use environment variables
 	return nil
 }

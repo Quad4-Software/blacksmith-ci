@@ -16,9 +16,6 @@ package secret
 
 import (
 	"context"
-	"html/template"
-	"os"
-	"strings"
 
 	"github.com/urfave/cli/v3"
 
@@ -31,14 +28,10 @@ var secretListCmd = &cli.Command{
 	Name:   "ls",
 	Usage:  "list secrets",
 	Action: secretList,
-	Flags: []cli.Flag{
-		common.FormatFlag(tmplSecretList, true),
-	},
+	Flags:  common.OutputFlags("table"),
 }
 
 func secretList(ctx context.Context, c *cli.Command) error {
-	format := c.String("format") + "\n"
-
 	client, err := internal.NewClient(ctx, c)
 	if err != nil {
 		return err
@@ -51,30 +44,5 @@ func secretList(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
-	tmpl, err := template.New("_").Funcs(secretFuncMap).Parse(format)
-	if err != nil {
-		return err
-	}
-	for _, registry := range list {
-		if err := tmpl.Execute(os.Stdout, registry); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// Template for secret list items.
-var tmplSecretList = "\x1b[33m{{ .Name }} \x1b[0m" + `
-Events: {{ list .Events }}
-{{- if .Images }}
-Images: {{ list .Images }}
-{{- else }}
-Images: <any>
-{{- end }}
-`
-
-var secretFuncMap = template.FuncMap{
-	"list": func(s []string) string {
-		return strings.Join(s, ", ")
-	},
+	return secretOutput(c, list)
 }

@@ -17,6 +17,7 @@ package pipeline
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"text/template"
@@ -25,6 +26,7 @@ import (
 
 	"codeberg.org/crowci/crow/v5/cli/common"
 	"codeberg.org/crowci/crow/v5/cli/internal"
+	"codeberg.org/crowci/crow/v5/cli/output"
 	crow "codeberg.org/crowci/crow/v5/crow-go/crow"
 )
 
@@ -33,7 +35,7 @@ var pipelinePsCmd = &cli.Command{
 	Usage:     "show pipeline steps",
 	ArgsUsage: "<repo-id|repo-full-name> <pipeline>",
 	Action:    pipelinePs,
-	Flags:     []cli.Flag{common.FormatFlag(tmplPipelinePs, false)},
+	Flags:     common.OutputFlags("table"),
 }
 
 func pipelinePs(ctx context.Context, c *cli.Command) error {
@@ -70,27 +72,63 @@ func pipelinePs(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
-	tmpl, err := template.New("_").Parse(c.String("format") + "\n")
-	if err != nil {
-		return err
-	}
-
+	// Collect all steps with their workflow names
+	var steps []*stepInfo
 	for _, workflow := range pipeline.Workflows {
 		for _, step := range workflow.Children {
-			if err := tmpl.Execute(os.Stdout, map[string]any{"workflow": workflow, "step": step}); err != nil {
+			steps = append(steps, &stepInfo{Workflow: workflow.Name, Step: step})
+		}
+	}
+
+	return stepsOutput(c, steps)
+}
+
+type stepInfo struct {
+	Workflow string `json:"workflow"`
+	*crow.Step
+}
+
+func stepsOutput(c *cli.Command, steps []*stepInfo, fd ...io.Writer) error {
+	outFmt, outOpt := output.ParseOutputOptions(c.String("output"))
+	noHeader := c.Bool("output-no-headers")
+
+	var out io.Writer = os.Stdout
+	if len(fd) > 0 {
+		out = fd[0]
+	}
+
+	switch outFmt {
+	case "json":
+		return output.WriteJSON(out, steps)
+	case "yaml":
+		return output.WriteYAML(out, steps)
+	case "go-template":
+		if len(outOpt) < 1 {
+			return fmt.Errorf("%w: missing template", output.ErrOutputOptionRequired)
+		}
+		tmpl, err := template.New("_").Parse(outOpt[0] + "\n")
+		if err != nil {
+			return err
+		}
+		return tmpl.Execute(out, steps)
+	case "table":
+		fallthrough
+	default:
+		table := output.NewTable(out)
+		cols := []string{"Workflow", "PID", "Name", "State", "Started", "Stopped"}
+		if len(outOpt) > 0 {
+			cols = outOpt
+		}
+		if !noHeader {
+			table.WriteHeader(cols)
+		}
+		for _, step := range steps {
+			if err := table.Write(cols, step); err != nil {
 				return err
 			}
 		}
+		table.Flush()
 	}
 
 	return nil
 }
-
-// template for pipeline ps information.
-var tmplPipelinePs = "\x1b[33m{{ .workflow.Name }} > {{ .step.Name }} (#{{ .step.PID }}):\x1b[0m" + `
-Step: {{ .step.Name }}
-Started: {{ .step.Started }}
-Stopped: {{ .step.Stopped }}
-Type: {{ .step.Type }}
-State: {{ .step.State }}
-`

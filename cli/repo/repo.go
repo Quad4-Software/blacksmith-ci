@@ -68,6 +68,10 @@ func repoOutput(c *cli.Command, repos []*crow.Repo, fd ...io.Writer) error {
 	}
 
 	switch outFmt {
+	case "json":
+		return output.WriteJSON(out, repos)
+	case "yaml":
+		return output.WriteYAML(out, repos)
 	case "go-template":
 		if len(outOpt) < 1 {
 			return fmt.Errorf("%w: missing template", output.ErrOutputOptionRequired)

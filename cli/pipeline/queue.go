@@ -17,6 +17,7 @@ package pipeline
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"text/template"
 
@@ -24,6 +25,8 @@ import (
 
 	"codeberg.org/crowci/crow/v5/cli/common"
 	"codeberg.org/crowci/crow/v5/cli/internal"
+	"codeberg.org/crowci/crow/v5/cli/output"
+	crow "codeberg.org/crowci/crow/v5/crow-go/crow"
 )
 
 var pipelineQueueCmd = &cli.Command{
@@ -31,7 +34,7 @@ var pipelineQueueCmd = &cli.Command{
 	Usage:     "show pipeline queue",
 	ArgsUsage: " ",
 	Action:    pipelineQueue,
-	Flags:     []cli.Flag{common.FormatFlag(tmplPipelineQueue, false)},
+	Flags:     common.OutputFlags("table"),
 }
 
 func pipelineQueue(ctx context.Context, c *cli.Command) error {
@@ -50,26 +53,50 @@ func pipelineQueue(ctx context.Context, c *cli.Command) error {
 		return nil
 	}
 
-	tmpl, err := template.New("_").Parse(c.String("format") + "\n")
-	if err != nil {
-		return err
-	}
-
-	for _, pipeline := range pipelines {
-		if err := tmpl.Execute(os.Stdout, pipeline); err != nil {
-			return err
-		}
-	}
-	return nil
+	return queueOutput(c, pipelines)
 }
 
-// Template for pipeline list information.
-var tmplPipelineQueue = "\x1b[33m{{ .FullName }} #{{ .Number }} \x1b[0m" + `
-Status: {{ .Status }}
-Event: {{ .Event }}
-Commit: {{ .Commit }}
-Branch: {{ .Branch }}
-Ref: {{ .Ref }}
-Author: {{ .Author }} {{ if .Email }}<{{.Email}}>{{ end }}
-Message: {{ .Message }}
-`
+func queueOutput(c *cli.Command, feeds []*crow.Feed, fd ...io.Writer) error {
+	outFmt, outOpt := output.ParseOutputOptions(c.String("output"))
+	noHeader := c.Bool("output-no-headers")
+
+	var out io.Writer = os.Stdout
+	if len(fd) > 0 {
+		out = fd[0]
+	}
+
+	switch outFmt {
+	case "json":
+		return output.WriteJSON(out, feeds)
+	case "yaml":
+		return output.WriteYAML(out, feeds)
+	case "go-template":
+		if len(outOpt) < 1 {
+			return fmt.Errorf("%w: missing template", output.ErrOutputOptionRequired)
+		}
+		tmpl, err := template.New("_").Parse(outOpt[0] + "\n")
+		if err != nil {
+			return err
+		}
+		return tmpl.Execute(out, feeds)
+	case "table":
+		fallthrough
+	default:
+		table := output.NewTable(out)
+		cols := []string{"Number", "Status", "Event", "Branch", "Author", "Message"}
+		if len(outOpt) > 0 {
+			cols = outOpt
+		}
+		if !noHeader {
+			table.WriteHeader(cols)
+		}
+		for _, feed := range feeds {
+			if err := table.Write(cols, feed); err != nil {
+				return err
+			}
+		}
+		table.Flush()
+	}
+
+	return nil
+}

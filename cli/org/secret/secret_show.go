@@ -17,36 +17,30 @@ package secret
 import (
 	"context"
 	"fmt"
-	"html/template"
-	"os"
 
 	"github.com/urfave/cli/v3"
 
 	"codeberg.org/crowci/crow/v5/cli/common"
 	"codeberg.org/crowci/crow/v5/cli/internal"
+	crow "codeberg.org/crowci/crow/v5/crow-go/crow"
 )
 
 var secretShowCmd = &cli.Command{
 	Name:      "show",
 	Usage:     "show secret information",
-	ArgsUsage: "[repo-id|repo-full-name]",
+	ArgsUsage: "[org-id|org-name]",
 	Action:    secretShow,
-	Flags: []cli.Flag{
+	Flags: append(common.OutputFlags("table"),
 		common.OrgFlag,
 		&cli.StringFlag{
 			Name:  "name",
 			Usage: "secret name",
 		},
-		common.FormatFlag(tmplSecretList, true),
-	},
+	),
 }
 
 func secretShow(ctx context.Context, c *cli.Command) error {
-	var (
-		secretName = c.String("name")
-		format     = c.String("format") + "\n"
-	)
-
+	secretName := c.String("name")
 	if secretName == "" {
 		return fmt.Errorf("secret name is missing")
 	}
@@ -66,9 +60,5 @@ func secretShow(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
-	tmpl, err := template.New("_").Funcs(secretFuncMap).Parse(format)
-	if err != nil {
-		return err
-	}
-	return tmpl.Execute(os.Stdout, secret)
+	return secretOutput(c, []*crow.Secret{secret})
 }

@@ -24,8 +24,9 @@ func CheckForUpdate(ctx context.Context, force bool) (*NewVersion, error) {
 func checkForUpdate(ctx context.Context, versionURL string, force bool) (*NewVersion, error) {
 	log.Debug().Msgf("current version: %s", version.String())
 
-	if (version.String() == "dev" || strings.HasPrefix(version.String(), "next-")) && !force {
-		log.Debug().Msgf("skipping update check for development/next versions")
+	// Skip update check for development builds (dev, dev-<hash>, next-<version>)
+	if !force && isDevVersion(version.String()) {
+		log.Debug().Msgf("skipping update check for development version")
 		return nil, nil
 	}
 
@@ -66,8 +67,8 @@ func checkForUpdate(ctx context.Context, versionURL string, force bool) (*NewVer
 		return nil, errors.New("could not find latest version in version list")
 	}
 
-	installedVersion := strings.TrimPrefix(version.Version, "v")
-	upstreamVersion = strings.TrimPrefix(upstreamVersion, "v")
+	installedVersion := normalizeVersion(strings.TrimPrefix(version.Version, "v"))
+	upstreamVersion = normalizeVersion(strings.TrimPrefix(upstreamVersion, "v"))
 
 	// using the latest release
 	if installedVersion == upstreamVersion && !force {
@@ -145,4 +146,21 @@ func extractNewVersion(tarFilePath string) (string, error) {
 	log.Debug().Msgf("new version extracted to %s", tmpDir)
 
 	return path.Join(tmpDir, "crow-cli"), nil
+}
+
+// isDevVersion returns true if the version string indicates a development build
+// rather than a proper semver release (e.g., "dev", "dev-abc123", "next-2.0").
+func isDevVersion(v string) bool {
+	return v == "dev" ||
+		strings.HasPrefix(v, "dev-") ||
+		strings.HasPrefix(v, "next-")
+}
+
+// normalizeVersion ensures version strings are comparable by padding to 3 parts (e.g., "4.5" becomes "4.5.0").
+func normalizeVersion(v string) string {
+	parts := strings.Split(v, ".")
+	for len(parts) < 3 {
+		parts = append(parts, "0")
+	}
+	return strings.Join(parts[:3], ".")
 }

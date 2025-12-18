@@ -25,7 +25,6 @@ import (
 	"codeberg.org/crowci/crow/v5/cli/org"
 	"codeberg.org/crowci/crow/v5/cli/pipeline"
 	"codeberg.org/crowci/crow/v5/cli/repo"
-	"codeberg.org/crowci/crow/v5/cli/setup"
 	"codeberg.org/crowci/crow/v5/cli/update"
 	"codeberg.org/crowci/crow/v5/version"
 )
@@ -53,7 +52,6 @@ func newApp() *cli.Command {
 		org.Command,
 		pipeline.Command,
 		repo.Command,
-		setup.Command,
 		update.Command,
 	}
 

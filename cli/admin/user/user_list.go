@@ -16,8 +16,6 @@ package user
 
 import (
 	"context"
-	"os"
-	"text/template"
 
 	"github.com/urfave/cli/v3"
 
@@ -31,7 +29,7 @@ var userListCmd = &cli.Command{
 	Usage:     "list all users",
 	ArgsUsage: " ",
 	Action:    userList,
-	Flags:     []cli.Flag{common.FormatFlag(tmplUserList, false)},
+	Flags:     common.OutputFlags("table"),
 }
 
 func userList(ctx context.Context, c *cli.Command) error {
@@ -43,21 +41,9 @@ func userList(ctx context.Context, c *cli.Command) error {
 	opt := crow.UserListOptions{}
 
 	users, err := client.UserList(opt)
-	if err != nil || len(users) == 0 {
-		return err
-	}
-
-	tmpl, err := template.New("_").Parse(c.String("format") + "\n")
 	if err != nil {
 		return err
 	}
-	for _, user := range users {
-		if err := tmpl.Execute(os.Stdout, user); err != nil {
-			return err
-		}
-	}
-	return nil
-}
 
-// Template for user list items.
-var tmplUserList = `{{ .Login }}`
+	return userOutput(c, users)
+}

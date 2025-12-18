@@ -16,36 +16,31 @@ package registry
 
 import (
 	"context"
-	"html/template"
-	"os"
 
 	"github.com/urfave/cli/v3"
 
 	"codeberg.org/crowci/crow/v5/cli/common"
 	"codeberg.org/crowci/crow/v5/cli/internal"
+	crow "codeberg.org/crowci/crow/v5/crow-go/crow"
 )
 
 var registryShowCmd = &cli.Command{
 	Name:      "show",
 	Usage:     "show registry information",
-	ArgsUsage: "[org-id|org-full-name]",
+	ArgsUsage: "[org-id|org-name]",
 	Action:    registryShow,
-	Flags: []cli.Flag{
+	Flags: append(common.OutputFlags("table"),
 		common.OrgFlag,
 		&cli.StringFlag{
 			Name:  "hostname",
 			Usage: "registry hostname",
 			Value: "docker.io",
 		},
-		common.FormatFlag(tmplRegistryList, true),
-	},
+	),
 }
 
 func registryShow(ctx context.Context, c *cli.Command) error {
-	var (
-		hostname = c.String("hostname")
-		format   = c.String("format") + "\n"
-	)
+	hostname := c.String("hostname")
 
 	client, err := internal.NewClient(ctx, c)
 	if err != nil {
@@ -62,9 +57,5 @@ func registryShow(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
-	tmpl, err := template.New("_").Parse(format)
-	if err != nil {
-		return err
-	}
-	return tmpl.Execute(os.Stdout, registry)
+	return registryOutput(c, []*crow.Registry{registry})
 }

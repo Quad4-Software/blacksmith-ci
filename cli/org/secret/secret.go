@@ -15,10 +15,16 @@
 package secret
 
 import (
+	"fmt"
+	"io"
+	"os"
 	"strconv"
+	"strings"
+	"text/template"
 
 	"github.com/urfave/cli/v3"
 
+	"codeberg.org/crowci/crow/v5/cli/output"
 	crow "codeberg.org/crowci/crow/v5/crow-go/crow"
 )
 
@@ -57,4 +63,78 @@ func parseTargetArgs(client crow.Client, c *cli.Command) (orgID int64, err error
 	}
 
 	return org.ID, nil
+}
+
+func secretOutput(c *cli.Command, secrets []*crow.Secret, fd ...io.Writer) error {
+	outFmt, outOpt := output.ParseOutputOptions(c.String("output"))
+	noHeader := c.Bool("output-no-headers")
+
+	var out io.Writer = os.Stdout
+	if len(fd) > 0 {
+		out = fd[0]
+	}
+
+	switch outFmt {
+	case "json":
+		return output.WriteJSON(out, secrets)
+	case "yaml":
+		return output.WriteYAML(out, secrets)
+	case "go-template":
+		if len(outOpt) < 1 {
+			return fmt.Errorf("%w: missing template", output.ErrOutputOptionRequired)
+		}
+		tmpl, err := template.New("_").Funcs(secretFuncMap).Parse(outOpt[0] + "\n")
+		if err != nil {
+			return err
+		}
+		return tmpl.Execute(out, secrets)
+	case "table":
+		fallthrough
+	default:
+		table := output.NewTable(out)
+
+		// Add custom field functions for slice fields
+		table.AddFieldFn("Events", func(obj any) string {
+			secret, ok := obj.(*crow.Secret)
+			if !ok {
+				return ""
+			}
+			if len(secret.Events) == 0 {
+				return "<any>"
+			}
+			return strings.Join(secret.Events, ", ")
+		})
+		table.AddFieldFn("Images", func(obj any) string {
+			secret, ok := obj.(*crow.Secret)
+			if !ok {
+				return ""
+			}
+			if len(secret.Images) == 0 {
+				return "<any>"
+			}
+			return strings.Join(secret.Images, ", ")
+		})
+
+		cols := []string{"ID", "Name", "Events", "Images"}
+		if len(outOpt) > 0 {
+			cols = outOpt
+		}
+		if !noHeader {
+			table.WriteHeader(cols)
+		}
+		for _, secret := range secrets {
+			if err := table.Write(cols, secret); err != nil {
+				return err
+			}
+		}
+		table.Flush()
+	}
+
+	return nil
+}
+
+var secretFuncMap = template.FuncMap{
+	"list": func(s []string) string {
+		return strings.Join(s, ", ")
+	},
 }

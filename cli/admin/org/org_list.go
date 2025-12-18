@@ -2,14 +2,16 @@ package org
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"os"
-	"strings"
 	"text/template"
 
 	"github.com/urfave/cli/v3"
 
 	"codeberg.org/crowci/crow/v5/cli/common"
 	"codeberg.org/crowci/crow/v5/cli/internal"
+	"codeberg.org/crowci/crow/v5/cli/output"
 	"codeberg.org/crowci/crow/v5/crow-go/crow"
 )
 
@@ -26,14 +28,10 @@ var orgListCmd = &cli.Command{
 	Usage:     "list organizations",
 	ArgsUsage: "",
 	Action:    orgList,
-	Flags: []cli.Flag{
-		common.FormatFlag(tmplOrgList, true),
-	},
+	Flags:     common.OutputFlags("table"),
 }
 
 func orgList(ctx context.Context, c *cli.Command) error {
-	format := c.String("format") + "\n"
-
 	client, err := internal.NewClient(ctx, c)
 	if err != nil {
 		return err
@@ -46,26 +44,50 @@ func orgList(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
-	tmpl, err := template.New("_").Funcs(orgFuncMap).Parse(format)
-	if err != nil {
-		return err
-	}
-
-	for _, org := range list {
-		if err := tmpl.Execute(os.Stdout, org); err != nil {
-			return err
-		}
-	}
-	return nil
+	return orgOutput(c, list)
 }
 
-// Template for org list items.
-var tmplOrgList = "\x1b[33m{{ .Name }} \x1b[0m" + `
-Organization ID: {{ .ID }}
-`
+func orgOutput(c *cli.Command, orgs []*crow.Org, fd ...io.Writer) error {
+	outFmt, outOpt := output.ParseOutputOptions(c.String("output"))
+	noHeader := c.Bool("output-no-headers")
 
-var orgFuncMap = template.FuncMap{
-	"list": func(s []string) string {
-		return strings.Join(s, ", ")
-	},
+	var out io.Writer = os.Stdout
+	if len(fd) > 0 {
+		out = fd[0]
+	}
+
+	switch outFmt {
+	case "json":
+		return output.WriteJSON(out, orgs)
+	case "yaml":
+		return output.WriteYAML(out, orgs)
+	case "go-template":
+		if len(outOpt) < 1 {
+			return fmt.Errorf("%w: missing template", output.ErrOutputOptionRequired)
+		}
+		tmpl, err := template.New("_").Parse(outOpt[0] + "\n")
+		if err != nil {
+			return err
+		}
+		return tmpl.Execute(out, orgs)
+	case "table":
+		fallthrough
+	default:
+		table := output.NewTable(out)
+		cols := []string{"ID", "Name", "Is_User"}
+		if len(outOpt) > 0 {
+			cols = outOpt
+		}
+		if !noHeader {
+			table.WriteHeader(cols)
+		}
+		for _, org := range orgs {
+			if err := table.Write(cols, org); err != nil {
+				return err
+			}
+		}
+		table.Flush()
+	}
+
+	return nil
 }

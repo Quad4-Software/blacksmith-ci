@@ -80,16 +80,18 @@ func FormatFlag(tmpl string, deprecated bool, hidden ...bool) *cli.StringFlag {
 }
 
 // OutputFlags returns a slice of cli.Flag containing output format options.
+// Supported formats: table, json, yaml, go-template=<template>.
 func OutputFlags(def string) []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{
-			Name:  "output",
-			Usage: "output format",
-			Value: def,
+			Name:    "output",
+			Aliases: []string{"o"},
+			Usage:   "output format: table, json, yaml, go-template=<template>",
+			Value:   def,
 		},
 		&cli.BoolFlag{
 			Name:  "output-no-headers",
-			Usage: "don't print headers",
+			Usage: "don't print headers (only for table output)",
 		},
 	}
 }
