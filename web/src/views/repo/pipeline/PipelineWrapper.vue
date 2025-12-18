@@ -18,7 +18,7 @@
       </span>
     </template>
     <template #headerActions>
-      <div class="flex w-full flex-col gap-2 pl-1 md:flex-row md:items-center md:justify-between md:gap-2 md:pl-0">
+      <div class="flex flex-col gap-2 pl-1 md:flex-row md:items-center md:justify-between md:gap-2 md:pl-0 min-w-0">
         <div class="flex min-w-0 items-center justify-between gap-2 overflow-hidden">
           <div class="flex min-w-0 items-center gap-2 overflow-hidden">
             <PipelineStatusIcon :status="pipeline.status" class="flex shrink-0" />

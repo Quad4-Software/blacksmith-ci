@@ -10,6 +10,7 @@
           :class="{
             'md:flex-1': searchBoxPresent,
             'justify-between': !isPipelineDetail,
+            'shrink-0': isPipelineDetail,
           }"
         >
           <div class="flex min-h-10 items-center">
@@ -43,10 +44,11 @@
         <!-- Desktop header actions in separate row -->
         <div
           v-if="$slots.headerActions"
-          class="flex min-w-0 items-center gap-x-2 md:justify-end"
+          class="flex min-w-0 items-center gap-x-2 md:justify-end overflow-hidden"
           :class="{
             'md:flex-1': searchBoxPresent,
             'hidden md:flex': !isPipelineDetail,
+            'flex-1': isPipelineDetail,
           }"
         >
           <slot name="headerActions" />

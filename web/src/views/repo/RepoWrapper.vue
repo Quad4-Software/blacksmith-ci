@@ -2,7 +2,7 @@
 <template>
   <Scaffold v-if="repo && repoPermissions && route.meta.repoHeader" enable-tabs fluid-content>
     <template #title>
-      <span class="flex">
+      <span class="flex whitespace-nowrap">
         <router-link
           :to="{ name: 'org', params: { orgId: repo.org_id } }"
           class="hover:underline hover:decoration-primary"
