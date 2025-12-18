@@ -24,30 +24,30 @@ import (
 
 var GlobalFlags = append([]cli.Flag{
 	&cli.StringFlag{
-		Sources: cli.EnvVars("WOODPECKER_CONFIG", "CROW_CONFIG"),
+		Sources: cli.EnvVars("CROW_CONFIG", "WOODPECKER_CONFIG"),
 		Name:    "config",
 		Aliases: []string{"c"},
 		Usage:   "path to config file",
 	},
 	&cli.StringFlag{
-		Sources: cli.EnvVars("WOODPECKER_SERVER", "CROW_SERVER"),
+		Sources: cli.EnvVars("CROW_SERVER", "WOODPECKER_SERVER"),
 		Name:    "server",
 		Aliases: []string{"s"},
 		Usage:   "server address",
 	},
 	&cli.StringFlag{
-		Sources: cli.EnvVars("WOODPECKER_TOKEN", "CROW_TOKEN"),
+		Sources: cli.EnvVars("CROW_TOKEN", "WOODPECKER_TOKEN"),
 		Name:    "token",
 		Aliases: []string{"t"},
 		Usage:   "server auth token",
 	},
 	&cli.BoolFlag{
-		Sources: cli.EnvVars("WOODPECKER_DISABLE_UPDATE_CHECK", "CROW_DISABLE_UPDATE_CHECK"),
+		Sources: cli.EnvVars("CROW_DISABLE_UPDATE_CHECK", "WOODPECKER_DISABLE_UPDATE_CHECK"),
 		Name:    "disable-update-check",
 		Usage:   "disable update check",
 	},
 	&cli.BoolFlag{
-		Sources: cli.EnvVars("WOODPECKER_SKIP_VERIFY", "CROW_SKIP_VERIFY"),
+		Sources: cli.EnvVars("CROW_SKIP_VERIFY", "WOODPECKER_SKIP_VERIFY"),
 		Name:    "skip-verify",
 		Usage:   "skip ssl verification",
 	},
