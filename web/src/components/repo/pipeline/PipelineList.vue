@@ -1,5 +1,8 @@
 <template>
-  <div v-if="pipelines || infiniteScroll" class="space-y-4 max-w-6xl mx-auto px-3 py-4 sm:px-4 overflow-hidden w-full">
+  <div
+    v-if="pipelines || infiniteScroll"
+    class="space-y-4 max-w-6xl mx-auto px-3 py-4 sm:px-4 overflow-x-hidden overflow-y-auto w-full h-full"
+  >
     <!-- Bulk actions overlay -->
     <Transition
       enter-active-class="transition-all duration-300 ease-out"
