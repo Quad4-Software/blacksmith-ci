@@ -29,6 +29,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 
+	"codeberg.org/crowci/crow/v5/pipeline/frontend/yaml"
 	"codeberg.org/crowci/crow/v5/server"
 	"codeberg.org/crowci/crow/v5/server/model"
 	"codeberg.org/crowci/crow/v5/server/pipeline"
@@ -437,7 +438,52 @@ func GetPipelineConfig(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, configs)
+	// Get workflows to filter configs to only those that were actually executed
+	workflows, err := _store.WorkflowGetTree(pl)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Collect unique pipeline names from executed workflows
+	executedPipelineNames := make(map[string]struct{})
+	for _, wf := range workflows {
+		if wf.PipelineName != "" {
+			executedPipelineNames[wf.PipelineName] = struct{}{}
+		}
+	}
+
+	// Filter configs to only include those with executed workflows
+	filteredConfigs := filterConfigsByExecutedWorkflows(configs, executedPipelineNames)
+
+	c.JSON(http.StatusOK, filteredConfigs)
+}
+
+// filterConfigsByExecutedWorkflows returns only configs that have corresponding executed workflows.
+func filterConfigsByExecutedWorkflows(configs []*model.Config, executedPipelineNames map[string]struct{}) []*model.Config {
+	if len(executedPipelineNames) == 0 {
+		return configs // Return all configs if no workflow info available
+	}
+
+	var filtered []*model.Config
+	for _, config := range configs {
+		pipelineName := getConfigPipelineName(config)
+		if _, exists := executedPipelineNames[pipelineName]; exists {
+			filtered = append(filtered, config)
+		}
+	}
+
+	return filtered
+}
+
+// getConfigPipelineName determines the pipeline name for a config.
+// This matches the logic in stepbuilder: YAML name field if present, otherwise sanitized file name.
+func getConfigPipelineName(config *model.Config) string {
+	parsed, err := yaml.ParseBytes(config.Data)
+	if err == nil && parsed.Name != "" {
+		return parsed.Name
+	}
+	return stepbuilder.SanitizePath(config.Name)
 }
 
 // GetPipelineMetadata

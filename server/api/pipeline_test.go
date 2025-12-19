@@ -234,3 +234,101 @@ func TestGetPipelineMetadata(t *testing.T) {
 		})
 	})
 }
+
+func TestFilterConfigsByExecutedWorkflows(t *testing.T) {
+	// Note: SanitizePath transforms file names:
+	// - ".crow.yml" -> "crow" (removes .yml suffix and leading .)
+	// - ".crow/deploy.yml" -> "deploy" (takes base, removes .yml)
+
+	t.Run("returns all configs when executedPipelineNames is empty", func(t *testing.T) {
+		configs := []*model.Config{
+			{ID: 1, Name: ".crow.yml", Data: []byte("steps:\n  - name: test")},
+			{ID: 2, Name: ".crow/deploy.yml", Data: []byte("steps:\n  - name: deploy")},
+		}
+		executedPipelineNames := make(map[string]struct{})
+
+		result := filterConfigsByExecutedWorkflows(configs, executedPipelineNames)
+
+		assert.Equal(t, configs, result)
+	})
+
+	t.Run("filters configs to only executed workflows", func(t *testing.T) {
+		configs := []*model.Config{
+			{ID: 1, Name: ".crow.yml", Data: []byte("steps:\n  - name: test")},
+			{ID: 2, Name: ".crow/deploy.yml", Data: []byte("steps:\n  - name: deploy")},
+		}
+		executedPipelineNames := map[string]struct{}{
+			"crow": {}, // SanitizePath(".crow.yml") = "crow"
+		}
+
+		result := filterConfigsByExecutedWorkflows(configs, executedPipelineNames)
+
+		assert.Len(t, result, 1)
+		assert.Equal(t, ".crow.yml", result[0].Name)
+	})
+
+	t.Run("handles config with YAML name field", func(t *testing.T) {
+		configs := []*model.Config{
+			{ID: 1, Name: ".crow.yml", Data: []byte("name: build\nsteps:\n  - name: test")},
+			{ID: 2, Name: ".crow/deploy.yml", Data: []byte("name: deploy\nsteps:\n  - name: deploy")},
+		}
+		executedPipelineNames := map[string]struct{}{
+			"build": {}, // The YAML name, not the file name
+		}
+
+		result := filterConfigsByExecutedWorkflows(configs, executedPipelineNames)
+
+		assert.Len(t, result, 1)
+		assert.Equal(t, ".crow.yml", result[0].Name)
+	})
+
+	t.Run("returns empty when no configs match", func(t *testing.T) {
+		configs := []*model.Config{
+			{ID: 1, Name: ".crow.yml", Data: []byte("steps:\n  - name: test")},
+		}
+		executedPipelineNames := map[string]struct{}{
+			"nonexistent": {},
+		}
+
+		result := filterConfigsByExecutedWorkflows(configs, executedPipelineNames)
+
+		assert.Empty(t, result)
+	})
+}
+
+func TestGetConfigPipelineName(t *testing.T) {
+	t.Run("returns YAML name field when present", func(t *testing.T) {
+		config := &model.Config{
+			Name: ".crow.yml",
+			Data: []byte("name: my-pipeline\nsteps:\n  - name: test"),
+		}
+
+		result := getConfigPipelineName(config)
+
+		assert.Equal(t, "my-pipeline", result)
+	})
+
+	t.Run("returns sanitized file name when no YAML name", func(t *testing.T) {
+		config := &model.Config{
+			Name: ".crow/build.yml",
+			Data: []byte("steps:\n  - name: test"),
+		}
+
+		result := getConfigPipelineName(config)
+
+		// SanitizePath(".crow/build.yml") = "build" (takes base, removes .yml)
+		assert.Equal(t, "build", result)
+	})
+
+	t.Run("returns sanitized file name on YAML parse error", func(t *testing.T) {
+		config := &model.Config{
+			Name: ".crow.yml",
+			Data: []byte("invalid: yaml: content: ["),
+		}
+
+		result := getConfigPipelineName(config)
+
+		// SanitizePath(".crow.yml") = "crow"
+		assert.Equal(t, "crow", result)
+	})
+}
