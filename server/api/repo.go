@@ -194,7 +194,7 @@ func PostRepo(c *gin.Context) {
 	}
 
 	hookURL := fmt.Sprintf(
-		"%s/api/hook?access_token=%s",
+		"%s/api/v1/hook?access_token=%s",
 		server.Config.Server.WebhookHost,
 		sig,
 	)
@@ -732,7 +732,7 @@ func MoveRepo(c *gin.Context) {
 	// reconstruct the hook url
 	host := server.Config.Server.WebhookHost
 	hookURL := fmt.Sprintf(
-		"%s/api/hook?access_token=%s",
+		"%s/api/v1/hook?access_token=%s",
 		host,
 		sig,
 	)
@@ -864,7 +864,7 @@ func repairRepo(c *gin.Context, repo *model.Repo, withPerms, skipOnErr bool) {
 	// reconstruct the hook url
 	host := server.Config.Server.WebhookHost
 	hookURL := fmt.Sprintf(
-		"%s/api/hook?access_token=%s",
+		"%s/api/v1/hook?access_token=%s",
 		host,
 		sig,
 	)

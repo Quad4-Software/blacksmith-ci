@@ -45,15 +45,24 @@ const (
 // Repo and Pipeline detail. If a hook type is unsupported nil values are returned.
 func parseHook(r *http.Request) (*model.Repo, *model.Pipeline, error) {
 	hookType := r.Header.Get(hookEvent)
+	log.Trace().Str("hook-type", hookType).Msg("parseHook: received hook")
 	switch hookType {
 	case hookPush:
-		return parsePushHook(r.Body)
+		repo, pipeline, err := parsePushHook(r.Body)
+		log.Trace().Bool("has-repo", repo != nil).Bool("has-pipeline", pipeline != nil).Err(err).Msg("parseHook: parsePushHook returned")
+		return repo, pipeline, err
 	case hookCreated:
-		return parseCreatedHook(r.Body)
+		repo, pipeline, err := parseCreatedHook(r.Body)
+		log.Trace().Bool("has-repo", repo != nil).Bool("has-pipeline", pipeline != nil).Err(err).Msg("parseHook: parseCreatedHook returned")
+		return repo, pipeline, err
 	case hookPullRequest:
-		return parsePullRequestHook(r.Body)
+		repo, pipeline, err := parsePullRequestHook(r.Body)
+		log.Trace().Bool("has-repo", repo != nil).Bool("has-pipeline", pipeline != nil).Err(err).Msg("parseHook: parsePullRequestHook returned")
+		return repo, pipeline, err
 	case hookRelease:
-		return parseReleaseHook(r.Body)
+		repo, pipeline, err := parseReleaseHook(r.Body)
+		log.Trace().Bool("has-repo", repo != nil).Bool("has-pipeline", pipeline != nil).Err(err).Msg("parseHook: parseReleaseHook returned")
+		return repo, pipeline, err
 	}
 	log.Debug().Msgf("unsupported hook type: '%s'", hookType)
 	return nil, nil, &types.ErrIgnoreEvent{Event: hookType}
@@ -64,21 +73,27 @@ func parseHook(r *http.Request) (*model.Repo, *model.Pipeline, error) {
 func parsePushHook(payload io.Reader) (repo *model.Repo, pipeline *model.Pipeline, err error) {
 	push, err := parsePush(payload)
 	if err != nil {
+		log.Trace().Err(err).Msg("parsePushHook: failed to parse push")
 		return nil, nil, err
 	}
 
+	log.Trace().Str("ref", push.Ref).Str("ref-type", push.RefType).Msg("parsePushHook: parsed push")
+
 	// ignore push events for tags
 	if strings.HasPrefix(push.Ref, "refs/tags/") {
+		log.Trace().Str("ref", push.Ref).Msg("parsePushHook: ignoring tag push")
 		return nil, nil, nil
 	}
 
 	// TODO is this even needed?
 	if push.RefType == refBranch {
+		log.Trace().Str("ref-type", push.RefType).Msg("parsePushHook: ignoring refType=branch")
 		return nil, nil, nil
 	}
 
 	repo = toRepo(push.Repo)
 	pipeline = pipelineFromPush(push)
+	log.Trace().Str("repo", repo.FullName).Str("event", string(pipeline.Event)).Msg("parsePushHook: created pipeline")
 	return repo, pipeline, err
 }
 
@@ -108,8 +123,11 @@ func parsePullRequestHook(payload io.Reader) (*model.Repo, *model.Pipeline, erro
 
 	pr, err := parsePullRequest(payload)
 	if err != nil {
+		log.Trace().Err(err).Msg("parsePullRequestHook: failed to parse pull request")
 		return nil, nil, err
 	}
+
+	log.Trace().Str("action", pr.Action).Int64("pr-number", pr.Number).Msg("parsePullRequestHook: parsed PR")
 
 	// Only trigger pipelines for selected event types
 	if pr.Action != actionOpen && pr.Action != actionSync && pr.Action != actionClose && pr.Action != actionEdited {
@@ -119,6 +137,7 @@ func parsePullRequestHook(payload io.Reader) (*model.Repo, *model.Pipeline, erro
 
 	repo = toRepo(pr.Repo)
 	pipeline = pipelineFromPullRequest(pr)
+	log.Trace().Str("repo", repo.FullName).Str("event", string(pipeline.Event)).Msg("parsePullRequestHook: created pipeline")
 	return repo, pipeline, err
 }
 

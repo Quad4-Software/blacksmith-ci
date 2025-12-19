@@ -814,7 +814,7 @@ function processText(text: string): string {
  */
 function classifyLogLine(text: string, isStderr: boolean): 'error' | 'warning' | null {
   // Warning patterns - check first since warnings shouldn't be treated as errors
-  const warningPatterns = /\bwarn(ing)?s?\b|\[warn(ing)?\]/i;
+  const warningPatterns = /\bwarn(?:ing)?s?\b|\[warn(?:ing)?\]/i;
   if (warningPatterns.test(text)) {
     return 'warning';
   }
@@ -822,14 +822,14 @@ function classifyLogLine(text: string, isStderr: boolean): 'error' | 'warning' |
   // Success/info indicators - these should never be highlighted as errors
   // Matches checkmarks (v, ✓, ✔), info symbols (i), progress indicators from common CLI tools
   const successPatterns =
-    /^[\s]*[v✓✔☑⋅·•›>+⟶→]\s|done\b|success|complete[ds]?\b|installed\b|built\b|packaged\b|updated\b|finished\b|passed\b|ok\b|\bgot\b/i;
+    /^\s*[v✓✔☑⋅·•›>+⟶→]\s|done\b|success|complete[ds]?\b|installed\b|built\b|packaged\b|updated\b|finished\b|passed\b|ok\b|\bgot\b/i;
   if (successPatterns.test(text)) {
     return null;
   }
 
   // Skip highlighting for info prefixes (i for info) and common progress indicators
   // These are common in package managers and build tools
-  const infoPatterns = /^[\s]*[i>+\-*•·]\s|^[\s]*\d+\s*(pkg|packages?|deps?|dependencies)/i;
+  const infoPatterns = /^\s*[i>+\-*•·]\s|^\s*\d+\s*(?:pkg|packages?|deps?)/i;
   if (infoPatterns.test(text)) {
     return null;
   }

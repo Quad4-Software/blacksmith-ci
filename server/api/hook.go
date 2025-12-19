@@ -203,6 +203,7 @@ func BlockTilQueueHasRunningItem(c *gin.Context) {
 //	@Tags		System
 //	@Param		hook	body	object	true	"the webhook payload; forge is automatically detected"
 func PostHook(c *gin.Context) {
+	log.Trace().Msg("PostHook: entered handler")
 	_store := store.FromContext(c)
 
 	//
@@ -234,6 +235,8 @@ func PostHook(c *gin.Context) {
 		return
 	}
 
+	log.Trace().Str("repo", repo.FullName).Int64("repo-id", repo.ID).Msg("PostHook: token parsed, got repo")
+
 	_forge, err := server.Config.Services.Manager.ForgeFromRepo(repo)
 	if err != nil {
 		log.Error().Err(err).Int64("repo-id", repo.ID).Msgf("Cannot get forge with id: %d", repo.ForgeID)
@@ -246,6 +249,11 @@ func PostHook(c *gin.Context) {
 	//
 
 	repoFromForge, pipelineFromForge, err := _forge.Hook(c, c.Request)
+	log.Trace().
+		Bool("has-repo", repoFromForge != nil).
+		Bool("has-pipeline", pipelineFromForge != nil).
+		Err(err).
+		Msg("PostHook: forge.Hook returned")
 	if err != nil {
 		if errors.Is(err, &types.ErrIgnoreEvent{}) {
 			msg := fmt.Sprintf("forge driver: %s", err)
@@ -347,10 +355,13 @@ func PostHook(c *gin.Context) {
 	// 6. Finally create a pipeline
 	//
 
+	log.Trace().Str("repo", repo.FullName).Str("event", string(pipelineFromForge.Event)).Msg("PostHook: about to create pipeline")
 	pl, err := pipeline.Create(c, _store, repo, pipelineFromForge)
 	if err != nil {
+		log.Trace().Err(err).Str("repo", repo.FullName).Msg("PostHook: pipeline creation failed")
 		handlePipelineErr(c, err)
 	} else {
+		log.Trace().Str("repo", repo.FullName).Int64("pipeline-id", pl.ID).Msg("PostHook: pipeline created successfully")
 		c.JSON(http.StatusOK, pl)
 	}
 }

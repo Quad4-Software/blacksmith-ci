@@ -26,6 +26,10 @@ import (
 )
 
 func apiRoutes(e *gin.RouterGroup) {
+	// Legacy hook endpoint for backwards compatibility with existing webhooks
+	// New repos will use /api/v1/hook (see repo.go)
+	e.POST("/api/hook", api.PostHook)
+
 	apiBase := e.Group("/api/v1")
 	apiBase.Use(token.Refresh)
 	apiBase.Use(session.SetAutoscaler())
@@ -293,6 +297,7 @@ func apiRoutes(e *gin.RouterGroup) {
 
 		apiBase.GET("/signature/public-key", session.MustUser(), api.GetSignaturePublicKey)
 
+		// Webhook endpoint - new repos use this path
 		apiBase.POST("/hook", api.PostHook)
 
 		stream := apiBase.Group("/stream")
