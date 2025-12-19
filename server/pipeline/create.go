@@ -104,6 +104,27 @@ func Create(ctx context.Context, _store store.Store, repo *model.Repo, pipeline 
 		return nil, updatePipelineWithErr(ctx, _forge, _store, pipeline, repo, repoUser, fmt.Errorf("There was an error retrieving the pipeline configuration from the forge. This is usually caused by connectivity/timeout issues on the forge side. Restarting the build will not help, a new (fresh) commit (or force-push) must be issued to trigger a clean reload.")) //nolint
 	}
 
+	// Persist the pipeline config BEFORE parsing. This ensures configs are available
+	// for restarts even if parsing fails (e.g., due to secret event restrictions).
+	// On restart, secrets are re-fetched from the database, allowing updated
+	// secret configurations to take effect.
+	var configs []*model.Config
+	for _, forgeYamlConfig := range forgeYamlConfigs {
+		config, err := findOrPersistPipelineConfig(_store, pipeline, forgeYamlConfig)
+		if err != nil {
+			msg := fmt.Sprintf("failed to find or persist pipeline config for %s", repo.FullName)
+			log.Error().Err(err).Msg(msg)
+			return nil, errors.New(msg)
+		}
+		configs = append(configs, config)
+	}
+	// Link pipeline to persisted configs
+	if err := linkPipelineConfigs(_store, configs, pipeline.ID); err != nil {
+		msg := fmt.Sprintf("failed to link pipeline config for %s", repo.FullName)
+		log.Error().Err(err).Msg(msg)
+		return nil, errors.New(msg)
+	}
+
 	pipelineItems, parseErr := parsePipeline(_forge, _store, pipeline, repoUser, repo, forgeYamlConfigs, nil)
 	if pipeline_errors.HasBlockingErrors(parseErr) {
 		log.Debug().Str("repo", repo.FullName).Err(parseErr).Msg("failed to parse yaml")
@@ -128,24 +149,6 @@ func Create(ctx context.Context, _store store.Store, repo *model.Repo, pipeline 
 	}
 
 	pipeline = setPipelineStepsOnPipeline(pipeline, pipelineItems)
-
-	// persist the pipeline config for historical correctness, restarts, etc
-	var configs []*model.Config
-	for _, forgeYamlConfig := range forgeYamlConfigs {
-		config, err := findOrPersistPipelineConfig(_store, pipeline, forgeYamlConfig)
-		if err != nil {
-			msg := fmt.Sprintf("failed to find or persist pipeline config for %s", repo.FullName)
-			log.Error().Err(err).Msg(msg)
-			return nil, errors.New(msg)
-		}
-		configs = append(configs, config)
-	}
-	// link pipeline to persisted configs
-	if err := linkPipelineConfigs(_store, configs, pipeline.ID); err != nil {
-		msg := fmt.Sprintf("failed to find or persist pipeline config for %s", repo.FullName)
-		log.Error().Err(err).Msg(msg)
-		return nil, errors.New(msg)
-	}
 
 	if err := prepareStart(ctx, _forge, _store, pipeline, repoUser, repo); err != nil {
 		log.Error().Err(err).Str("repo", repo.FullName).Msgf("error preparing pipeline for %s#%d", repo.FullName, pipeline.Number)
