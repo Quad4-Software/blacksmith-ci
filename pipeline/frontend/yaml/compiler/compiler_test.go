@@ -117,9 +117,9 @@ func TestCompilerCompile(t *testing.T) {
 			name:     "empty workflow, default clone",
 			fronConf: &yaml_types.Workflow{},
 			backConf: &types.Config{
+				// No stages expected - empty workflow with only clone step should be skipped
 				Network: defaultNetwork,
 				Volume:  defaultVolume,
-				Stages:  []*types.Stage{defaultCloneStage},
 			},
 		},
 		{

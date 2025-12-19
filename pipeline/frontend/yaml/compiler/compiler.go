@@ -20,6 +20,8 @@ import (
 	"path"
 	"slices"
 
+	"github.com/rs/zerolog/log"
+
 	backend_types "codeberg.org/crowci/crow/v5/pipeline/backend/types"
 	"codeberg.org/crowci/crow/v5/pipeline/frontend/metadata"
 	yaml_types "codeberg.org/crowci/crow/v5/pipeline/frontend/yaml/types"
@@ -243,27 +245,6 @@ func (c *Compiler) Compile(conf *yaml_types.Workflow) (*backend_types.Config, er
 		}
 	}
 
-	// add services steps
-	if len(conf.Services.ContainerList) != 0 {
-		stage := new(backend_types.Stage)
-
-		for _, container := range conf.Services.ContainerList {
-			if match, err := container.When.Match(c.metadata, false, c.env); !match && err == nil {
-				continue
-			} else if err != nil {
-				return nil, err
-			}
-
-			step, err := c.createProcess(container, conf, backend_types.StepTypeService)
-			if err != nil {
-				return nil, err
-			}
-
-			stage.Steps = append(stage.Steps, step)
-		}
-		config.Stages = append(config.Stages, stage)
-	}
-
 	// add pipeline steps
 	for pos, container := range conf.Steps.ContainerList {
 		// Skip if local and should not run local
@@ -303,6 +284,34 @@ func (c *Compiler) Compile(conf *yaml_types.Workflow) (*backend_types.Config, er
 		})
 	}
 
+	// Check if workflow has any work steps (commands or plugins).
+	// If only clone and service steps remain after filtering, skip the workflow entirely.
+	if !hasWorkSteps(allSteps) {
+		log.Debug().Str("workflow", conf.Name).Msg("workflow has no steps to run after filtering, skipping")
+		return config, nil
+	}
+
+	// add services steps (only if we have work steps to run)
+	if len(conf.Services.ContainerList) != 0 {
+		stage := new(backend_types.Stage)
+
+		for _, container := range conf.Services.ContainerList {
+			if match, err := container.When.Match(c.metadata, false, c.env); !match && err == nil {
+				continue
+			} else if err != nil {
+				return nil, err
+			}
+
+			step, err := c.createProcess(container, conf, backend_types.StepTypeService)
+			if err != nil {
+				return nil, err
+			}
+
+			stage.Steps = append(stage.Steps, step)
+		}
+		config.Stages = append(config.Stages, stage)
+	}
+
 	// generate stages out of all steps (including clone steps)
 	allStages, err := newDAGCompiler(allSteps).compile()
 	if err != nil {
@@ -312,4 +321,17 @@ func (c *Compiler) Compile(conf *yaml_types.Workflow) (*backend_types.Config, er
 	config.Stages = append(config.Stages, allStages...)
 
 	return config, nil
+}
+
+// hasWorkSteps checks if the step list contains at least one work step
+// (commands or plugin type). Clone and service steps are infrastructure
+// and don't constitute actual work to be done.
+func hasWorkSteps(steps []*dagCompilerStep) bool {
+	for _, step := range steps {
+		if step.step.Type == backend_types.StepTypeCommands ||
+			step.step.Type == backend_types.StepTypePlugin {
+			return true
+		}
+	}
+	return false
 }

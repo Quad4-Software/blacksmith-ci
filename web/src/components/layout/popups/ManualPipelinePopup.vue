@@ -72,6 +72,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~
 import useApiClient from '~/compositions/useApiClient';
 import { requiredInject } from '~/compositions/useInjectProvide';
 import useNotifications from '~/compositions/useNotifications';
+import { PipelineFilteredError } from '~/lib/api/client';
 import { usePaginate } from '~/compositions/usePaginate';
 
 const props = defineProps<{
@@ -154,17 +155,29 @@ async function triggerManualPipeline() {
         pipelineId: pipeline.number,
       },
     });
-  } catch (error: any) {
-    const helpUrl = 'https://www.crowci.dev/usage/workflow-syntax/?h=manual#event';
-    const baseMessage = i18n.t('repo.manual_pipeline.notify_text_failed');
-    const helpText = i18n.t('repo.manual_pipeline.manual_event_help');
+  } catch (error: unknown) {
+    if (error instanceof PipelineFilteredError) {
+      // All steps were filtered out by `when` conditions
+      const helpUrl = 'https://crowci.dev/usage/workflow-syntax/#when-step';
+      notifications.notify({
+        title: i18n.t('notify_title_error'),
+        type: 'error',
+        duration: 9000,
+        text: `${i18n.t('repo.manual_pipeline.steps_filtered_out')} <a href='${helpUrl}' target='_blank' class='text-primary underline'>${i18n.t('repo.manual_pipeline.when_condition_help')}</a>`,
+      });
+    } else {
+      // Generic error - likely manual event not enabled
+      const helpUrl = 'https://www.crowci.dev/usage/workflow-syntax/?h=manual#event';
+      const baseMessage = i18n.t('repo.manual_pipeline.notify_text_failed');
+      const helpText = i18n.t('repo.manual_pipeline.manual_event_help');
 
-    notifications.notify({
-      title: i18n.t('notify_title_error'),
-      type: 'error',
-      duration: 9000,
-      text: `${baseMessage} <a href='${helpUrl}' target='_blank' class='text-primary underline'>${helpText}</a>`,
-    });
+      notifications.notify({
+        title: i18n.t('notify_title_error'),
+        type: 'error',
+        duration: 9000,
+        text: `${baseMessage} <a href='${helpUrl}' target='_blank' class='text-primary underline'>${helpText}</a>`,
+      });
+    }
     console.error('Failed to trigger pipeline:', error);
   } finally {
     isSubmitting.value = false;

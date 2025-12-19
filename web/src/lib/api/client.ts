@@ -5,6 +5,14 @@ export interface ApiError {
   message: string;
 }
 
+// Thrown when a pipeline was not created because all steps were filtered out by `when` conditions
+export class PipelineFilteredError extends Error {
+  constructor() {
+    super('Pipeline was not created because all steps were filtered out by when conditions');
+    this.name = 'PipelineFilteredError';
+  }
+}
+
 type QueryParams = Record<string, string | number | boolean>;
 
 export function encodeQueryString(_params: unknown = {}): string {
@@ -96,6 +104,12 @@ export default class ApiClient {
           this.onerror(error);
         }
         throw new Error(message);
+      }
+
+      // Check for Pipeline-Filtered response (204 No Content with header)
+      // This indicates all steps were filtered out by `when` conditions
+      if (res.status === 204 && res.headers.get('Pipeline-Filtered') === 'true') {
+        throw new PipelineFilteredError();
       }
 
       const contentType = res.headers.get('Content-Type');
