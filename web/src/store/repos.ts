@@ -40,6 +40,26 @@ export const useRepoStore = defineStore('repos', () => {
   }
 
   async function loadRepos(all = false) {
+    const { user } = useConfig();
+    const isAuthenticated = !!user;
+
+    // For anonymous users, load public repos only
+    if (!isAuthenticated) {
+      const publicRepos = await apiClient.getPublicRepos();
+
+      publicRepos.forEach((repo) => {
+        if (repo.last_pipeline) {
+          pipelineStore.setPipeline(repo.id, repo.last_pipeline);
+          repo.last_pipeline_number = repo.last_pipeline.number;
+        }
+        setRepo(repo);
+      });
+
+      ownedRepoIds.value = publicRepos.map((repo) => repo.id);
+      return;
+    }
+
+    // Authenticated user - fetch their repos
     const _ownedRepos = await apiClient.getRepoList({ all });
 
     _ownedRepos.forEach((repo) => {
@@ -53,7 +73,6 @@ export const useRepoStore = defineStore('repos', () => {
     ownedRepoIds.value = _ownedRepos.map((repo) => repo.id);
 
     // If the current user is a system admin, also hydrate the store with all repos (paginated)
-    const { user } = useConfig();
     const isSystemAdmin = !!user?.admin;
     if (isSystemAdmin) {
       const allRepos = await usePaginate<Repo>(async (page: number) =>

@@ -108,6 +108,8 @@ type Store interface {
 	RepoList(user *model.User, owned, active bool) ([]*model.Repo, error)
 	RepoListLatest(*model.User) ([]*model.Feed, error)
 	RepoListAll(active bool, p *model.ListOptions) ([]*model.Repo, error)
+	// RepoListPublic returns all active public repos (for anonymous browsing)
+	RepoListPublic(p *model.ListOptions) ([]*model.Repo, error)
 
 	// Permissions
 	PermFind(user *model.User, repo *model.Repo) (*model.Perm, error)

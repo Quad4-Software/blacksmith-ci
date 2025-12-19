@@ -86,8 +86,9 @@ export default class ApiClient {
           message,
         };
 
-        // Trigger session invalidation on 401 (before calling error handler)
-        if (res.status === 401 && this.authStore) {
+        // Trigger session invalidation on 401 only for authenticated users
+        // Anonymous users getting 401 should not be redirected - they're already shown the Login button
+        if (res.status === 401 && this.authStore?.isAuthenticated) {
           this.authStore.invalidateSession();
         }
 

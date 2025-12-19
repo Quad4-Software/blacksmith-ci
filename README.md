@@ -49,5 +49,5 @@ A slim and self-hostable CI/CD engine with great extensibility.
 </p>
 
 <p align="center">
-👉️ <strong>See it in action at <a href="https://ci.crowci.dev/repos/1">ci.crowci.dev</a></strong>
+👉️ <strong>See it in action at <a href="https://ci.crowci.dev/">ci.crowci.dev</a></strong>
 </p>

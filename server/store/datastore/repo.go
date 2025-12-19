@@ -170,3 +170,14 @@ func (s storage) RepoListAll(active bool, p *model.ListOptions) ([]*model.Repo, 
 		Asc("full_name").
 		Find(&repos)
 }
+
+// RepoListPublic returns all active public repos for anonymous browsing.
+func (s storage) RepoListPublic(p *model.ListOptions) ([]*model.Repo, error) {
+	repos := make([]*model.Repo, 0)
+	sess := s.paginate(p).Table("repos").
+		Where(builder.Eq{"repos.active": true}).
+		And(builder.Eq{"repos.visibility": model.VisibilityPublic})
+	return repos, sess.
+		Asc("full_name").
+		Find(&repos)
+}

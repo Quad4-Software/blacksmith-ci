@@ -33,7 +33,7 @@ const routes: RouteRecordRaw[] = [
         path: '',
         name: 'repos',
         component: (): Component => import('~/views/Repos.vue'),
-        meta: { authentication: 'required' },
+        // No authentication required - anonymous users can browse public repos
       },
       {
         path: 'add',

@@ -782,6 +782,59 @@ func GetAllRepos(c *gin.Context) {
 	c.JSON(http.StatusOK, repos)
 }
 
+// GetPublicRepos
+//
+//	@Summary		List public repositories
+//	@Description	Returns a list of public repositories (no authentication required)
+//	@Router			/repos/public [get]
+//	@Produce		json
+//	@Success		200	{array}	RepoLastPipeline
+//	@Tags			Repositories
+//	@Param			page	query	int	false	"for response pagination, page offset number"	default(1)
+//	@Param			perPage	query	int	false	"for response pagination, max items per page"	default(50)
+func GetPublicRepos(c *gin.Context) {
+	_store := store.FromContext(c)
+
+	repos, err := _store.RepoListPublic(session.Pagination(c))
+	if err != nil {
+		log.Error().Err(err).Msg("Error fetching public repository list")
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("Error fetching public repository list. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
+		})
+		return
+	}
+
+	// Fetch latest pipelines for each repo
+	repoIDs := make([]int64, len(repos))
+	for i, repo := range repos {
+		repoIDs[i] = repo.ID
+	}
+
+	pipelines, err := _store.GetRepoLatestPipelines(repoIDs)
+	if err != nil {
+		log.Error().Err(err).Msg("Error fetching latest pipelines for public repos")
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("Error fetching latest pipelines. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
+		})
+		return
+	}
+
+	latestPipelines := make(map[int64]*model.Pipeline, len(repos))
+	for _, pipeline := range pipelines {
+		latestPipelines[pipeline.RepoID] = pipeline
+	}
+
+	result := make([]*model.RepoLastPipeline, len(repos))
+	for i, repo := range repos {
+		result[i] = &model.RepoLastPipeline{
+			Repo:         repo,
+			LastPipeline: latestPipelines[repo.ID],
+		}
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
 // RepairAllRepos
 //
 //	@Summary		Repair all repositories on the server

@@ -117,6 +117,8 @@ func apiRoutes(e *gin.RouterGroup) {
 
 		repo := apiBase.Group("/repos")
 		{
+			// Public endpoint - no authentication required
+			repo.GET("/public", api.GetPublicRepos)
 			repo.GET("/lookup/*repo_full_name", session.SetRepo(), session.SetPerm(), session.MustPull, api.LookupRepo)
 			repo.POST("", session.MustUser(), api.PostRepo)
 			repo.GET("", session.MustAdmin(), api.GetAllRepos)

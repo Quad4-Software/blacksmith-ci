@@ -8173,6 +8173,68 @@ func (_c *MockStore_RepoListLatest_Call) RunAndReturn(run func(user *model.User)
 	return _c
 }
 
+// RepoListPublic provides a mock function for the type MockStore
+func (_mock *MockStore) RepoListPublic(p *model.ListOptions) ([]*model.Repo, error) {
+	ret := _mock.Called(p)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RepoListPublic")
+	}
+
+	var r0 []*model.Repo
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(*model.ListOptions) ([]*model.Repo, error)); ok {
+		return returnFunc(p)
+	}
+	if returnFunc, ok := ret.Get(0).(func(*model.ListOptions) []*model.Repo); ok {
+		r0 = returnFunc(p)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.Repo)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(*model.ListOptions) error); ok {
+		r1 = returnFunc(p)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_RepoListPublic_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RepoListPublic'
+type MockStore_RepoListPublic_Call struct {
+	*mock.Call
+}
+
+// RepoListPublic is a helper method to define mock.On call
+//   - p *model.ListOptions
+func (_e *MockStore_Expecter) RepoListPublic(p interface{}) *MockStore_RepoListPublic_Call {
+	return &MockStore_RepoListPublic_Call{Call: _e.mock.On("RepoListPublic", p)}
+}
+
+func (_c *MockStore_RepoListPublic_Call) Run(run func(p *model.ListOptions)) *MockStore_RepoListPublic_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.ListOptions
+		if args[0] != nil {
+			arg0 = args[0].(*model.ListOptions)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_RepoListPublic_Call) Return(repos []*model.Repo, err error) *MockStore_RepoListPublic_Call {
+	_c.Call.Return(repos, err)
+	return _c
+}
+
+func (_c *MockStore_RepoListPublic_Call) RunAndReturn(run func(p *model.ListOptions) ([]*model.Repo, error)) *MockStore_RepoListPublic_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // SecretCreate provides a mock function for the type MockStore
 func (_mock *MockStore) SecretCreate(secret *model.Secret) error {
 	ret := _mock.Called(secret)

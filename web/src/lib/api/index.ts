@@ -81,6 +81,11 @@ export default class CrowClient extends ApiClient {
     return this._get(`/api/v1/user/repos?${query}`) as Promise<Repo[]>;
   }
 
+  async getPublicRepos(opts?: PaginationOptions): Promise<Repo[]> {
+    const query = encodeQueryString(opts);
+    return this._get(`/api/v1/repos/public?${query}`) as Promise<Repo[]>;
+  }
+
   async lookupRepo(owner: string, name: string): Promise<Repo | undefined> {
     return this._get(`/api/v1/repos/lookup/${owner}/${name}`) as Promise<Repo | undefined>;
   }

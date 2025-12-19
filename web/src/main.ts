@@ -28,7 +28,11 @@ const authStore = useAuthStore();
 const apiClient = useApiClient();
 apiClient.setAuthStore(authStore);
 
-useEvents();
+// Only subscribe to SSE events for authenticated users
+// Anonymous users don't need real-time updates and would get 401 errors
+if (authStore.isAuthenticated) {
+  useEvents();
+}
 
 // Preload forge data globally
 const { loadForges } = useForges();

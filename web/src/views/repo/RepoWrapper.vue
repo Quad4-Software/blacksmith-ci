@@ -4,10 +4,12 @@
     <template #title>
       <span class="flex whitespace-nowrap">
         <router-link
+          v-if="isAuthenticated"
           :to="{ name: 'org', params: { orgId: repo.org_id } }"
           class="hover:underline hover:decoration-primary"
           >{{ repo.owner }}</router-link
         >
+        <span v-else>{{ repo.owner }}</span>
         &nbsp;/ {{ repo.name }}
       </span>
     </template>

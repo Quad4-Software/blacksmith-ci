@@ -4,19 +4,21 @@
       {{ $t('repositories.title') }}
     </template>
 
-    <template #headerActions>
+    <template v-if="isAuthenticated" #headerActions>
       <Button size="sm" @click="repositoryDialog.open()">
         <Icon name="plus" class="mr-2 h-4 w-4" />
         {{ $t('repo.add') }}
       </Button>
     </template>
 
-    <div class="max-w-6xl mx-auto px-3 py-4 sm:px-4 space-y-4 w-full">
+    <div class="max-w-6xl mx-auto px-3 py-4 sm:px-4 space-y-4 w-full overflow-y-auto flex-1">
       <!-- Toolbar with Search and Filters -->
       <div class="flex items-center justify-center gap-2 flex-wrap">
         <SearchInput v-model="search" :placeholder="$t('search')" class="w-[300px] min-w-[80px]" />
         <RepoSortButton v-model:sort-by="sortBy" />
+        <!-- Only show filter button for authenticated users -->
         <RepoFilterButton
+          v-if="isAuthenticated"
           :owners="organizationOwners"
           :selected-owners="selectedOwners"
           :show-all-repos="showAllRepos"
@@ -28,7 +30,8 @@
       </div>
 
       <Transition name="fade" mode="out-in">
-        <div v-if="search === '' && filteredRepos.length > 0" class="flex flex-col gap-6 w-full">
+        <!-- Authenticated: show pinned + unpinned sections -->
+        <div v-if="isAuthenticated && search === '' && filteredRepos.length > 0" class="flex flex-col gap-6 w-full">
           <!-- Pinned Repos Section -->
           <div v-if="pinnedRepos.length > 0" class="flex flex-col gap-4 w-full">
             <div>
@@ -74,16 +77,26 @@
           </div>
         </div>
 
+        <!-- Anonymous or search active: simple list -->
         <div v-else class="flex flex-col w-full">
           <div v-if="reposLastActivity.length > 0" class="flex flex-col gap-3 w-full">
             <RepoItem
               v-for="repo in reposLastActivity"
               :key="repo.id"
               :repo="repo"
-              :is-pinned="isPinned(repo.id)"
-              :can-pin="canPin"
+              :is-pinned="isAuthenticated && isPinned(repo.id)"
+              :can-pin="isAuthenticated && canPin"
               @toggle-pin="handleTogglePin(repo.id)"
             />
+          </div>
+          <!-- Empty state: login prompt for anonymous, no search results for authenticated -->
+          <div v-else-if="!isAuthenticated" class="flex flex-col items-center justify-center py-12 text-center">
+            <span class="text-lg text-foreground mb-4">{{ $t('repositories.no_public') }}</span>
+            <Button as-child>
+              <router-link :to="`/login?url=${route.fullPath}`">
+                {{ $t('login') }}
+              </router-link>
+            </Button>
           </div>
           <span v-else class="text-center text-lg text-foreground">{{ $t('no_search_results') }}</span>
         </div>
@@ -96,6 +109,7 @@
 import { useStorage } from '@vueuse/core';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRoute } from 'vue-router';
 import draggable from 'vuedraggable';
 
 import Icon from '~/components/atomic/Icon.vue';
@@ -105,6 +119,7 @@ import RepoFilterButton from '~/components/repo/RepoFilterButton.vue';
 import RepoSortButton from '~/components/repo/RepoSortButton.vue';
 import { Button } from '~/components/ui/button';
 import SearchInput from '~/components/ui/input/SearchInput.vue';
+import useAuthentication from '~/compositions/useAuthentication';
 import useRepos from '~/compositions/useRepos';
 import { useRepoSearch } from '~/compositions/useRepoSearch';
 import { useRepoFilters } from '~/compositions/useRepoFilters';
@@ -114,6 +129,8 @@ import { useGlobalDialogs } from '~/compositions/useGlobalDialogs';
 import useNotifications from '~/compositions/useNotifications';
 import { useRepoStore } from '~/store/repos';
 
+const route = useRoute();
+const { isAuthenticated } = useAuthentication();
 const { repositoryDialog } = useGlobalDialogs();
 
 const repoStore = useRepoStore();

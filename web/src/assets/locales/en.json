@@ -34,7 +34,8 @@
       "last_pipeline": "Last pipeline creation",
       "status": "Status"
     },
-    "pin_limit_reached": "Maximum 4 repositories can be pinned"
+    "pin_limit_reached": "Maximum 4 repositories can be pinned",
+    "no_public": "No public repositories available"
   },
   "docs": "Docs",
   "api": "API",

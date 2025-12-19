@@ -344,7 +344,12 @@ apiClient.setErrorHandler(
         return;
       }
 
-      // For other 401 errors (not stale token), show a generic authentication error
+      // For other 401 errors (not stale token):
+      // Don't show toast for anonymous users - Login button is already visible
+      if (!isAuthenticated) {
+        return;
+      }
+      // Show a generic authentication error for authenticated users
       notify({
         title: i18n.t('notify_title_error'),
         text: i18n.t('stale_token_error'),
