@@ -52,7 +52,7 @@ func TestWorkflowCancel(t *testing.T) {
 			workflowID:     999,
 			statusCode:     http.StatusNotFound,
 			responseBody:   `{"error": "Workflow with ID 999 not found in pipeline"}`,
-			expectedError:  errors.New("Workflow with ID 999 not found in pipeline"),
+			expectedError:  errors.New("resource not found"),
 		},
 		{
 			name:           "pipeline not found",
@@ -61,7 +61,7 @@ func TestWorkflowCancel(t *testing.T) {
 			workflowID:     456,
 			statusCode:     http.StatusNotFound,
 			responseBody:   `{"error": "Pipeline not found"}`,
-			expectedError:  errors.New("Pipeline not found"),
+			expectedError:  errors.New("resource not found"),
 		},
 		{
 			name:           "permission denied",

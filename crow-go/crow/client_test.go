@@ -81,7 +81,7 @@ func TestHTMLResponseError(t *testing.T) {
 			contentType:   "text/html; charset=utf-8",
 			responseBody:  htmlResponse,
 			expectError:   true,
-			errorContains: "HTML",
+			errorContains: "web UI",
 		},
 		{
 			name:          "HTML with 404 Not Found",
@@ -180,7 +180,7 @@ func TestPipelineCreateHTMLResponse(t *testing.T) {
 			contentType:   "text/html; charset=utf-8",
 			responseBody:  htmlResponse,
 			expectError:   true,
-			errorContains: "HTML",
+			errorContains: "web UI",
 		},
 		{
 			name:          "server returns valid pipeline JSON",
