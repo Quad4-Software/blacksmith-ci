@@ -39,13 +39,8 @@ A slim and self-hostable CI/CD engine with great extensibility.
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/liberapay/receives/crowci.svg?logo=liberapay">
-</p>
-
-<p align="center">
-  <a href="https://liberapay.com/crowci/donate">
-    <img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg">
-  </a>
+  <a href="https://liberapay.com/crowci"><img alt="Liberapay receiving" src="https://img.shields.io/liberapay/receives/crowci.svg?logo=liberapay"></a>&nbsp;&nbsp;
+  <a href="https://liberapay.com/crowci/donate"><img alt="Donate using Liberapay" src="https://img.shields.io/badge/Donate-F6C915?logo=liberapay&logoColor=black"></a>
 </p>
 
 <p align="center">
