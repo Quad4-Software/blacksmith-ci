@@ -4,6 +4,7 @@ when:
 steps:
   backport:
     image: codefloe.com/pat-s/backporter:v0.2.0
+    pull: true
     environment:
       FORGEJO_TOKEN:
         from_secret: codeberg_bot_token

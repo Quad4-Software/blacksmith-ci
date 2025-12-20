@@ -65,17 +65,15 @@ func (s *Secret) Available(event string, container *yaml_types.Container) error 
 }
 
 // Match returns true if an image and event match the restricted list.
-// Note that EventPullClosed and EventPullEdited are treated as EventPull.
+// Note that EventPullClosed, EventPullMerged and EventPullEdited are treated as EventPull.
 func (s *Secret) Match(event string) bool {
 	// if there is no filter set secret matches all webhook events
 	if len(s.Events) == 0 {
 		return true
 	}
 	// treat all pull events the same way
-	if event == "pull_request_closed" {
-		event = "pull_request"
-	}
-	if event == "pull_request_edited" {
+	switch event {
+	case "pull_request_closed", "pull_request_merged", "pull_request_edited":
 		event = "pull_request"
 	}
 	// one match is enough
