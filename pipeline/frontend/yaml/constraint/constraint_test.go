@@ -522,6 +522,67 @@ func TestConstraints(t *testing.T) {
 			with: metadata.Metadata{Curr: metadata.Pipeline{Event: metadata.EventCron, Cron: "job1"}},
 			want: false,
 		},
+		// Deployment environment and task filtering tests
+		{
+			desc: "filter deployment by matching environment",
+			conf: "{ event: deployment, environment: production }",
+			with: metadata.Metadata{Curr: metadata.Pipeline{Event: metadata.EventDeploy, DeployTo: "production"}},
+			want: true,
+		},
+		{
+			desc: "filter deployment by non-matching environment",
+			conf: "{ event: deployment, environment: production }",
+			with: metadata.Metadata{Curr: metadata.Pipeline{Event: metadata.EventDeploy, DeployTo: "staging"}},
+			want: false,
+		},
+		{
+			desc: "filter deployment by environment glob pattern",
+			conf: "{ event: deployment, environment: prod-* }",
+			with: metadata.Metadata{Curr: metadata.Pipeline{Event: metadata.EventDeploy, DeployTo: "prod-eu"}},
+			want: true,
+		},
+		{
+			desc: "filter deployment by matching task",
+			conf: "{ event: deployment, task: deploy-app }",
+			with: metadata.Metadata{Curr: metadata.Pipeline{Event: metadata.EventDeploy, DeployTask: "deploy-app"}},
+			want: true,
+		},
+		{
+			desc: "filter deployment by non-matching task",
+			conf: "{ event: deployment, task: deploy-app }",
+			with: metadata.Metadata{Curr: metadata.Pipeline{Event: metadata.EventDeploy, DeployTask: "rollback"}},
+			want: false,
+		},
+		{
+			desc: "filter deployment by environment and task",
+			conf: "{ event: deployment, environment: production, task: deploy-* }",
+			with: metadata.Metadata{Curr: metadata.Pipeline{Event: metadata.EventDeploy, DeployTo: "production", DeployTask: "deploy-app"}},
+			want: true,
+		},
+		{
+			desc: "filter deployment with exclude environment",
+			conf: "{ event: deployment, environment: { include: [prod-*, staging], exclude: prod-test } }",
+			with: metadata.Metadata{Curr: metadata.Pipeline{Event: metadata.EventDeploy, DeployTo: "prod-eu"}},
+			want: true,
+		},
+		{
+			desc: "filter deployment with excluded environment",
+			conf: "{ event: deployment, environment: { include: [prod-*], exclude: prod-test } }",
+			with: metadata.Metadata{Curr: metadata.Pipeline{Event: metadata.EventDeploy, DeployTo: "prod-test"}},
+			want: false,
+		},
+		{
+			desc: "deployment constraints ignored for non-deployment events",
+			conf: "{ event: push, environment: production }",
+			with: metadata.Metadata{Curr: metadata.Pipeline{Event: metadata.EventPush}},
+			want: true,
+		},
+		{
+			desc: "deployment with empty environment matches all",
+			conf: "{ event: deployment }",
+			with: metadata.Metadata{Curr: metadata.Pipeline{Event: metadata.EventDeploy, DeployTo: "production"}},
+			want: true,
+		},
 		{
 			desc: "filter with built-in env passes",
 			conf: "{ branch: ${CI_REPO_DEFAULT_BRANCH} }",

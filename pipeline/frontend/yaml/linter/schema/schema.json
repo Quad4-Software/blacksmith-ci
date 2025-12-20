@@ -191,6 +191,14 @@
           "description": "filter cron by title",
           "$ref": "#/definitions/constraint_list"
         },
+        "environment": {
+          "description": "Execute a workflow only for specific deployment environment",
+          "$ref": "#/definitions/constraint_list"
+        },
+        "task": {
+          "description": "Execute a workflow only for specific deployment task",
+          "$ref": "#/definitions/constraint_list"
+        },
         "platform": {
           "description": "Execute a step only on a specific platform",
           "$ref": "#/definitions/constraint_list"
@@ -428,6 +436,14 @@
         },
         "cron": {
           "description": "filter cron by title",
+          "$ref": "#/definitions/constraint_list"
+        },
+        "environment": {
+          "description": "Execute a step only for specific deployment environment",
+          "$ref": "#/definitions/constraint_list"
+        },
+        "task": {
+          "description": "Execute a step only for specific deployment task",
           "$ref": "#/definitions/constraint_list"
         },
         "status": {

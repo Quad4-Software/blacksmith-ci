@@ -37,18 +37,20 @@ type (
 	}
 
 	Constraint struct {
-		Ref      List
-		Repo     List
-		Instance List
-		Platform List
-		Branch   List
-		Cron     List
-		Status   List
-		Matrix   Map
-		Local    yamlBaseTypes.BoolTrue
-		Path     Path
-		Evaluate string `yaml:"evaluate,omitempty"`
-		Event    yamlBaseTypes.StringOrSlice
+		Ref         List
+		Repo        List
+		Instance    List
+		Platform    List
+		Branch      List
+		Cron        List
+		Status      List
+		Environment List
+		Task        List
+		Matrix      Map
+		Local       yamlBaseTypes.BoolTrue
+		Path        Path
+		Evaluate    string `yaml:"evaluate,omitempty"`
+		Event       yamlBaseTypes.StringOrSlice
 	}
 
 	// List defines a runtime constraint for exclude & include string slices.
@@ -174,6 +176,11 @@ func (c *Constraint) Match(m metadata.Metadata, global bool, env map[string]stri
 
 	if m.Curr.Event == metadata.EventCron {
 		match = match && c.Cron.Match(m.Curr.Cron)
+	}
+
+	if m.Curr.Event == metadata.EventDeploy {
+		match = match && c.Environment.Match(m.Curr.DeployTo) &&
+			c.Task.Match(m.Curr.DeployTask)
 	}
 
 	if c.Evaluate != "" {

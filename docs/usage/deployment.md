@@ -43,6 +43,23 @@ when:
   task: job1
 ```
 
+Both `environment` and `task` support glob patterns and include/exclude syntax:
+
+```yaml
+when:
+  event: deployment
+  environment: prod-*
+  task: deploy-*
+```
+
+```yaml
+when:
+  event: deployment
+  environment:
+    include: [production, staging]
+    exclude: [production-test]
+```
+
 ![Deployment Popup](img/deployment2.png)
 /// caption
 Deployment Popup
