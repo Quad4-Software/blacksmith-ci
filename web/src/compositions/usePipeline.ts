@@ -99,6 +99,7 @@ export default (pipeline: Ref<Pipeline | undefined>) => {
     if (
       pipeline.value?.event === 'pull_request' ||
       pipeline.value?.event === 'pull_request_closed' ||
+      pipeline.value?.event === 'pull_request_merged' ||
       pipeline.value?.event === 'pull_request_edited'
     ) {
       return `#${pipeline.value.ref

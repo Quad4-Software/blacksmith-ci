@@ -71,7 +71,7 @@ func Test_parseHook(t *testing.T) {
 		r, b, err := parseHook(req)
 		assert.NoError(t, err)
 		assert.Equal(t, "anbraten/test-2", r.FullName)
-		assert.Equal(t, model.EventPullClosed, b.Event)
+		assert.Equal(t, model.EventPullMerged, b.Event)
 		assert.Equal(t, "006704dbeab2", b.Commit)
 	})
 

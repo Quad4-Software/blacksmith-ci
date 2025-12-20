@@ -4,6 +4,7 @@ export type IconNames =
   | 'branch'
   | 'pull-request'
   | 'pull-request-closed'
+  | 'pull-request-merged'
   | 'pull-request-edited'
   | 'manual-pipeline'
   | 'tag'

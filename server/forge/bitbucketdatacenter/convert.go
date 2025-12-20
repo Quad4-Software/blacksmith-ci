@@ -125,9 +125,12 @@ func convertPullRequestEvent(ev *bb.PullRequestEvent, baseURL string) *model.Pip
 		FromFork:  ev.PullRequest.Source.Repository.ID != ev.PullRequest.Target.Repository.ID,
 	}
 
-	if ev.EventKey == bb.EventKeyPullRequestMerged || ev.EventKey == bb.EventKeyPullRequestDeclined || ev.EventKey == bb.EventKeyPullRequestDeleted {
+	switch ev.EventKey {
+	case bb.EventKeyPullRequestMerged:
+		pipeline.Event = model.EventPullMerged
+	case bb.EventKeyPullRequestDeclined, bb.EventKeyPullRequestDeleted:
 		pipeline.Event = model.EventPullClosed
-	} else {
+	default:
 		pipeline.Event = model.EventPull
 	}
 

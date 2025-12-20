@@ -160,7 +160,11 @@ func convertWorkspace(from *internal.Workspace) *model.Team {
 // hook to the Woodpecker pipeline struct holding commit information.
 func convertPullHook(from *internal.PullRequestHook) *model.Pipeline {
 	event := model.EventPull
-	if from.PullRequest.State == stateClosed || from.PullRequest.State == stateDeclined {
+	switch from.PullRequest.State {
+	case stateClosed:
+		// In Bitbucket, stateClosed = "MERGED" indicates a merged PR
+		event = model.EventPullMerged
+	case stateDeclined:
 		event = model.EventPullClosed
 	}
 

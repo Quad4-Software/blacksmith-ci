@@ -96,7 +96,7 @@ As of 2025-07, the following unique features exist in Crow:
 - Descriptive error message: Errors are transparently parsed back to the user in the UI. Almost no "An unknown error occurred" messages are shown
 - Multi-org agents: Admins can deploy agents which are allowed to process builds from multiple organizations/users
 - Agent list: All instance agents are listed in the UI, also for non-admin users.
-- New `pull_request_edited` event trigger
+- Additional `pull_request_edited` and `pull_request_merged` event triggers
 - Early fail when "manual" event triggers are not allowed in the repo: Instead of silently returning nothing, Crow shows a descriptive error message to the user
 - The agent ID a specific workflow was processed by is shown in the top panel of the log view
 - Custom agent labels are shown in the agent list

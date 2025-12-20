@@ -90,6 +90,6 @@ func Test_parseHook(t *testing.T) {
 		assert.NotNil(t, result.Payload)
 		assert.Equal(t, "DEV/deployment-automation", result.Repo.FullName)
 		assert.Equal(t, "993203acecdb65ffe947424d0917768b0e5c3903", result.Pipeline.Commit)
-		assert.Equal(t, model.EventPullClosed, result.Pipeline.Event)
+		assert.Equal(t, model.EventPullMerged, result.Pipeline.Event)
 	})
 }

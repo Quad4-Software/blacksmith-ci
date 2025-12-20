@@ -227,7 +227,7 @@ func Test_convertPullRequestEvent(t *testing.T) {
 	}, to)
 }
 
-func Test_convertPullRequestCloseEvent(t *testing.T) {
+func Test_convertPullRequestMergedEvent(t *testing.T) {
 	now := time.Now()
 	from := &bb.PullRequestEvent{
 		Event: bb.Event{
@@ -276,7 +276,7 @@ func Test_convertPullRequestCloseEvent(t *testing.T) {
 		Timestamp: now.UTC().Unix(),
 		Ref:       "refs/head/branch",
 		ForgeURL:  "https://base.url/projects/PRJ/repos/REPO/commits/1234567890abcdef",
-		Event:     model.EventPullClosed,
+		Event:     model.EventPullMerged,
 		Refspec:   "branch:main",
 		Title:     "my title",
 		Message:   "my title",

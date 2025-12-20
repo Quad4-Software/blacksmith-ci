@@ -557,7 +557,8 @@ A list of all available events:
 
 - `push`: triggered when a commit is pushed to a branch.
 - `pull_request`: triggered when a pull request is opened or a new commit is pushed to it.
-- `pull_request_closed`: triggered when a pull request is closed or merged.
+- `pull_request_closed`: triggered when a pull request is closed without being merged.
+- `pull_request_merged`: triggered when a pull request is merged.
 - `pull_request_edited`: triggered when a pull request is edited (the PR title or body).
 - `tag`: triggered when a tag is pushed.
 - `release`: triggered when a release, pre-release or draft is created. (Further filters can be applied using [evaluate](#evaluate) in combination with environment variables.)

@@ -30,6 +30,11 @@
             class="w-4 h-4 shrink-0"
           />
           <Icon
+            v-else-if="pipeline.event === 'pull_request_merged'"
+            name="pull-request-merged"
+            class="w-4 h-4 shrink-0"
+          />
+          <Icon
             v-else-if="pipeline.event === 'pull_request_edited'"
             name="pull-request-edited"
             class="w-4 h-4 shrink-0"

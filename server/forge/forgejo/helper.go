@@ -150,7 +150,11 @@ func pipelineFromPullRequest(hook *pullRequestHook) *model.Pipeline {
 
 	event := model.EventPull
 	if hook.Action == actionClose {
-		event = model.EventPullClosed
+		if hook.PullRequest.HasMerged {
+			event = model.EventPullMerged
+		} else {
+			event = model.EventPullClosed
+		}
 	}
 	if hook.Action == actionEdited {
 		event = model.EventPullEdited

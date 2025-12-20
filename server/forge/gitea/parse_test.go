@@ -331,7 +331,7 @@ func TestGiteaParser(t *testing.T) {
 			},
 		},
 		{
-			name:  "pull-request events should handle a PR closed hook when PR was merged",
+			name:  "pull-request events should handle a PR merged hook",
 			data:  fixtures.HookPullRequestMerged,
 			event: "pull_request",
 			repo: &model.Repo{
@@ -353,7 +353,7 @@ func TestGiteaParser(t *testing.T) {
 			},
 			pipe: &model.Pipeline{
 				Author:            "anbraten",
-				Event:             "pull_request_closed",
+				Event:             "pull_request_merged",
 				Commit:            "d555a5dd07f4d0148a58d4686ec381502ae6a2d4",
 				Branch:            "main",
 				Ref:               "refs/pull/1/head",

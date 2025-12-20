@@ -98,11 +98,11 @@ Variables:
 | `CI_COMMIT_REF`                 | commit ref                                                                                     | `refs/heads/main`                                      |
 | `CI_COMMIT_REFSPEC`             | commit ref spec                                                                                | `issue-branch:main`                                    |
 | `CI_COMMIT_BRANCH`              | commit branch (equals target branch (`CI_COMMIT_TARGET_BRANCH`) for pull requests)             | `main`                                                 |
-| `CI_COMMIT_SOURCE_BRANCH`       | commit source branch (set only for `pull_request` and `pull_request_closed` events)            | `issue-branch`                                         |
-| `CI_COMMIT_TARGET_BRANCH`       | commit target branch (set only for `pull_request` and `pull_request_closed` events)            | `main`                                                 |
+| `CI_COMMIT_SOURCE_BRANCH`       | commit source branch (set only for pull request events)                                        | `issue-branch`                                         |
+| `CI_COMMIT_TARGET_BRANCH`       | commit target branch (set only for pull request events)                                        | `main`                                                 |
 | `CI_COMMIT_TAG`                 | commit tag name (empty if event != `tag`)                                                      | `v1.10.3`                                              |
-| `CI_COMMIT_PULL_REQUEST`        | commit pull request number (set only for `pull_request` and `pull_request_closed` events)      | `1`                                                    |
-| `CI_COMMIT_PULL_REQUEST_LABELS` | labels assigned to pull request (set only for `pull_request` and `pull_request_closed` events) | `server`                                               |
+| `CI_COMMIT_PULL_REQUEST`        | commit pull request number (set only for pull request events)                                  | `1`                                                    |
+| `CI_COMMIT_PULL_REQUEST_LABELS` | labels assigned to pull request (set only for pull request events)                             | `server`                                               |
 | `CI_COMMIT_MESSAGE`             | commit message                                                                                 | `Initial commit`                                       |
 | `CI_COMMIT_AUTHOR`              | commit author username                                                                         | `john-doe`                                             |
 | `CI_COMMIT_AUTHOR_EMAIL`        | commit author email address                                                                    | `john-doe@example.com`                                 |
@@ -120,7 +120,7 @@ Variables:
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
 | `CI_PIPELINE_NUMBER`        | pipeline number                                                                                                    | `8`                                                                                        |
 | `CI_PIPELINE_PARENT`        | number of parent pipeline                                                                                          | `0`                                                                                        |
-| `CI_PIPELINE_EVENT`         | pipeline event (see [`event`](workflow-syntax.md#event))                                                           | `push`, `pull_request`, `pull_request_closed`, `tag`, `release`, `manual`, `cron`          |
+| `CI_PIPELINE_EVENT`         | pipeline event (see [`event`](workflow-syntax.md#event))                                                           | `push`, `pull_request`, `pull_request_merged`, `tag`, ...                                  |
 | `CI_PIPELINE_URL`           | link to the web UI for the pipeline                                                                                | `https://ci.example.com/repos/7/pipeline/8`                                                |
 | `CI_PIPELINE_FORGE_URL`     | link to the forge's web UI for the commit(s) or tag that triggered the pipeline                                    | `https://git.example.com/john-doe/my-repo/commit/eba09b46064473a1d345da7abf28b477468e8dbd` |
 | `CI_PIPELINE_DEPLOY_TARGET` | pipeline deploy target for `deployment` events                                                                     | `production`                                                                               |
@@ -160,8 +160,8 @@ Variables:
 | `CI_PREV_COMMIT_REF`           | previous commit ref                                                                          | `refs/heads/main`                                                                          |
 | `CI_PREV_COMMIT_REFSPEC`       | previous commit ref spec                                                                     | `issue-branch:main`                                                                        |
 | `CI_PREV_COMMIT_BRANCH`        | previous commit branch                                                                       | `main`                                                                                     |
-| `CI_PREV_COMMIT_SOURCE_BRANCH` | previous commit source branch (set only for `pull_request` and `pull_request_closed` events) | `issue-branch`                                                                             |
-| `CI_PREV_COMMIT_TARGET_BRANCH` | previous commit target branch (set only for `pull_request` and `pull_request_closed` events) | `main`                                                                                     |
+| `CI_PREV_COMMIT_SOURCE_BRANCH` | previous commit source branch (set only for pull request events)                             | `issue-branch`                                                                             |
+| `CI_PREV_COMMIT_TARGET_BRANCH` | previous commit target branch (set only for pull request events)                             | `main`                                                                                     |
 | `CI_PREV_COMMIT_URL`           | previous commit link in forge                                                                | `https://git.example.com/john-doe/my-repo/commit/15784117e4e103f36cba75a9e29da48046eb82c4` |
 | `CI_PREV_COMMIT_MESSAGE`       | previous commit message                                                                      | `test`                                                                                     |
 | `CI_PREV_COMMIT_AUTHOR`        | previous commit author username                                                              | `john-doe`                                                                                 |
@@ -179,7 +179,7 @@ Variables:
 | -------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | `CI_PREV_PIPELINE_NUMBER`        | previous pipeline number                                          | `7`                                                                                        |
 | `CI_PREV_PIPELINE_PARENT`        | previous pipeline number of parent pipeline                       | `0`                                                                                        |
-| `CI_PREV_PIPELINE_EVENT`         | previous pipeline event (see [`event`](workflow-syntax.md#event)) | `push`, `pull_request`, `pull_request_closed`, `tag`, `release`, `manual`, `cron`          |
+| `CI_PREV_PIPELINE_EVENT`         | previous pipeline event (see [`event`](workflow-syntax.md#event)) | `push`, `pull_request`, `pull_request_merged`, `tag`, ...                                  |
 | `CI_PREV_PIPELINE_URL`           | previous pipeline link in CI                                      | `https://ci.example.com/repos/7/pipeline/7`                                                |
 | `CI_PREV_PIPELINE_FORGE_URL`     | previous pipeline link to event in forge                          | `https://git.example.com/john-doe/my-repo/commit/15784117e4e103f36cba75a9e29da48046eb82c4` |
 | `CI_PREV_PIPELINE_DEPLOY_TARGET` | previous pipeline deploy target for `deployment` events           | `production`                                                                               |
@@ -188,8 +188,8 @@ Variables:
 | `CI_PREV_PIPELINE_CREATED`       | previous pipeline created UNIX timestamp                          | `1722610173`                                                                               |
 | `CI_PREV_PIPELINE_STARTED`       | previous pipeline started UNIX timestamp                          | `1722610173`                                                                               |
 | `CI_PREV_PIPELINE_FINISHED`      | previous pipeline finished UNIX timestamp                         | `1722610383`                                                                               |
-| `CI_PREV_PIPELINE_AUTHOR`        | previous pipeline author username                                                                                           | `octocat`                                                                                  |
-| `CI_PREV_PIPELINE_AVATAR`        | previous pipeline author avatar URL                                                                                         | `https://git.example.com/avatars/5dcbcadbce6f87f8abef`                                     |
+| `CI_PREV_PIPELINE_AUTHOR`        | previous pipeline author username                                 | `octocat`                                                                                  |
+| `CI_PREV_PIPELINE_AVATAR`        | previous pipeline author avatar URL                               | `https://git.example.com/avatars/5dcbcadbce6f87f8abef`                                     |
 
 <!-- markdownlint-disable-next-line MD033 -->
 </div>

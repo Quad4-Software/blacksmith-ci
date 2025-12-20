@@ -155,7 +155,11 @@ func parsePullHook(hook *github.PullRequestEvent, merge bool) (*github.PullReque
 
 	event := model.EventPull
 	if hook.GetPullRequest().GetState() == stateClose {
-		event = model.EventPullClosed
+		if hook.GetPullRequest().GetMerged() {
+			event = model.EventPullMerged
+		} else {
+			event = model.EventPullClosed
+		}
 	}
 
 	if *hook.Action == actionEdited {
