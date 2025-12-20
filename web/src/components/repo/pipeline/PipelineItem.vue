@@ -36,11 +36,11 @@
                 <span
                   class="overflow-hidden text-ellipsis whitespace-nowrap text-foreground underline md:no-underline min-w-0"
                 >
-                  {{ shortDisplayTitle }}
+                  <InlineMarkdown :content="shortDisplayTitle" />
                 </span>
               </TooltipTrigger>
               <TooltipContent side="bottom" class="max-w-md whitespace-pre-wrap break-words">
-                <p>{{ displayTitle }}</p>
+                <InlineMarkdown :content="displayTitle" />
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -121,6 +121,7 @@ import { computed, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Icon from '~/components/atomic/Icon.vue';
+import InlineMarkdown from '~/components/atomic/InlineMarkdown.vue';
 import Checkbox from '~/components/ui/checkbox/Checkbox.vue';
 import UserAvatar from '~/components/user/UserAvatar.vue';
 import ListItem from '~/components/atomic/ListItem.vue';

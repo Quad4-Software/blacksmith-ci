@@ -15,11 +15,9 @@
         ><span class="text-muted-foreground">/</span><span>{{ repo?.name }}</span>
         <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
       </router-link>
-      <span
-        class="overflow-hidden text-ellipsis whitespace-nowrap text-sm text-muted-foreground mb-2"
-        :title="message"
-        >{{ shortMessage }}</span
-      >
+      <span class="overflow-hidden text-ellipsis whitespace-nowrap text-sm text-muted-foreground mb-2" :title="message"
+        ><InlineMarkdown :content="shortMessage"
+      /></span>
       <!-- Event type row with action icons -->
       <div class="flex items-center gap-2 text-xs text-muted-foreground mb-2">
         <div class="flex items-center gap-1.5 min-w-0">
@@ -93,6 +91,7 @@ import { computed, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Icon from '~/components/atomic/Icon.vue';
+import InlineMarkdown from '~/components/atomic/InlineMarkdown.vue';
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
 import useApiClient from '~/compositions/useApiClient';
 import { useAsyncAction } from '~/compositions/useAsyncAction';
