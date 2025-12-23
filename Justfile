@@ -60,16 +60,19 @@ test: test-agent test-server test-server-datastore test-cli test-lib
 
 ## Run all code generations
 # ensure `protoc-gen-go` and `protoc-gen-go-grpc` are installed
-generate:
-	CGO_ENABLED=0 go generate ./...
+generate: install-dev-deps
+	# Generate mocks
+	mockery
+	# Generate protobuf
 	cd pipeline/rpc/proto && go generate
-
-generate-openapi: install-dev-deps
-		go run github.com/swaggo/swag/cmd/swag fmt
-		CGO_ENABLED=0 go generate cmd/server/openapi.go
+	# Generate OpenAPI
+	go run github.com/swaggo/swag/cmd/swag fmt
+	CGO_ENABLED=0 go generate cmd/server/openapi.go
+	# Normalize imports (fixes conflicts between swag fmt and mockery)
+	gci write --skip-vendor --skip-generated -s standard -s default -s "prefix(codeberg.org/crowci/crow)" --custom-order .
 
 mockery: install-dev-deps
-		mockery
+	mockery
 
 install-dev-deps:
 		# @hash golangci-lint > /dev/null 2>&1 || go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest

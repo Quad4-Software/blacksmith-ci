@@ -65,15 +65,15 @@ steps:
       - golangci-lint run
     when: *when
 
-  check-openapi:
+  check-generate:
     depends_on:
       - vendor
     image: *golang_image
     commands:
-      - apk add --no-cache -q just git
-      - 'just generate-openapi'
+      - apk add --no-cache -q just git protoc protobuf-dev
+      - 'just generate'
       - 'DIFF=$(git diff)'
-      - '[ -n "$DIFF" ] && { echo "openapi not up to date, exec `just generate-openapi` and commit"; echo "$DIFF"; exit 1; } || true'
+      - '[ -n "$DIFF" ] && { echo "generated files not up to date, run just generate and commit"; echo "$DIFF"; exit 1; } || true'
     when: *when
 
   lint-license-header:
