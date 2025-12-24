@@ -71,6 +71,80 @@ CROW_DATABASE_DATASOURCE=<user>:<pw>@tcp(0.0.0.0:3306)/<dbname>?parseTime=true
 Crow automatically handles database migrations, i.e. when the schema changes in a new version, the changes are applied during version upgrade.
 This also means that reverting to an old version after such a migration is not supported.
 
+## Encryption
+
+Crow supports encryption at rest for sensitive data stored in the database.
+When enabled, the following data is automatically encrypted:
+
+- Secrets
+- Registry credentials
+- User OAuth tokens
+- Forge client secrets
+
+### Configuration
+
+Encryption is configured using a Google Tink keyset file:
+
+```yaml
+CROW_ENCRYPTION_TINK_KEYSET_FILE=/path/to/keyset.json
+```
+
+/// tip
+Google Tink is an enterprise-grade cryptographic library that supports key rotation and provides authenticated encryption (AEAD).
+///
+
+#### Creating a Tink Keyset
+
+You can create a Tink keyset using the [Tinkey](https://developers.google.com/tink/tinkey-overview#prebuilt-binaries) command-line tool:
+
+```sh
+# Generate a new keyset with AES256-GCM-SIV encryption
+tinkey create-keyset --key-template AES256_GCM_SIV --out keyset.json --out-format json
+```
+
+The keyset file should be kept secure and backed up.
+Loss of the keyset will result in inability to decrypt stored secrets!
+
+### Auto-Migration
+
+When encryption is first enabled on an existing Crow instance, all existing plaintext secrets, registry passwords, and OAuth tokens are automatically encrypted on server startup.
+This is a one-time migration that happens transparently.
+
+### Key Rotation
+
+Tink keysets support key rotation.
+To rotate encryption keys:
+
+1. Add a new key to your keyset using `tinkey rotate-keyset`
+2. Set the new key as primary
+3. Restart Crow server
+
+Crow will automatically re-encrypt all data with the new primary key while still being able to decrypt data encrypted with older keys.
+
+### Disabling Encryption
+
+To disable encryption and decrypt all data back to plaintext:
+
+```yaml
+CROW_ENCRYPTION_DISABLE=true
+```
+
+/// danger
+Disabling encryption will store all secrets in plaintext.
+This should only be used for migration purposes or in development environments.
+///
+
+### Security Considerations
+
+- Store the keyset file securely with restricted permissions (e.g., `chmod 600`)
+- Back up your keyset file - without it, encrypted data cannot be recovered
+- The keyset file is watched for changes - updates trigger automatic key rotation
+
+/// tip
+The [Crow Helm chart](https://codeberg.org/crowci/helm) supports encryption out-of-the-box and stores the tink keyset file as a Kubernetes secret.  
+The same applies to the Crow Ansible role which is part of the [`devxy.cicd` collection](https://galaxy.ansible.com/ui/repo/published/devxy/cicd/).
+///
+
 ## Backend
 
 The backend specifies how and where builds are executed.

@@ -90,6 +90,69 @@ Here are some examples of sensitive values which you might wanna inject through 
 - `CROW_FORGEJO_SECRET` (OAuth2)
 - `CROW_AGENT_SECRET` (only if you do not use the automatically provided one by the chart)
 
+## Encryption
+
+Crow supports encrypting secrets, registry passwords, OAuth tokens, and forge client secrets at rest using [Google Tink](https://developers.google.com/tink).
+
+### Generating a Tink keyset
+
+First, install the [`tinkey`](https://developers.google.com/tink/tinkey-overview) CLI tool and generate a keyset:
+
+```bash
+# Install tinkey (see https://developers.google.com/tink/install-tinkey)
+# Then generate a keyset:
+tinkey create-keyset --key-template AES256_GCM --out-format json --out tink-keyset.json
+```
+
+/// warning
+Keep your keyset file secure. If you lose it, you will not be able to decrypt existing secrets.
+///
+
+### Using an existing Kubernetes secret
+
+The recommended approach is to create a Kubernetes secret containing your keyset, then reference it:
+
+```bash
+kubectl create secret generic crow-encryption-keyset \
+  --from-file=tink-keyset.json=./tink-keyset.json
+```
+
+```yaml
+server:
+  encryption:
+    enabled: true
+    existingSecret: crow-encryption-keyset
+    keysetKey: tink-keyset.json
+```
+
+### Custom mount path
+
+You can customize where the keyset is mounted in the container:
+
+```yaml
+server:
+  encryption:
+    enabled: true
+    existingSecret: crow-encryption-keyset
+    keysetKey: tink-keyset.json
+    mountPath: '/etc/crow/encryption'
+```
+
+### Disabling encryption
+
+To disable encryption after it was enabled, you must provide both the `disable` flag and the keyset file.
+This allows the server to decrypt all existing data before disabling encryption:
+
+```yaml
+server:
+  encryption:
+    disable: true
+    existingSecret: crow-encryption-keyset
+    keysetKey: tink-keyset.json
+```
+
+After the server has decrypted all data (check logs for confirmation), you can remove the encryption configuration entirely.
+
 ## Metrics
 
 To enable metrics gathering, set the following in `values.yml`:

@@ -70,7 +70,7 @@ steps:
       - vendor
     image: *golang_image
     commands:
-      - apk add --no-cache -q just git protoc protobuf-dev
+      - apk add --no-cache -q just git curl unzip
       - 'just generate'
       - 'DIFF=$(git diff)'
       - '[ -n "$DIFF" ] && { echo "generated files not up to date, run just generate and commit"; echo "$DIFF"; exit 1; } || true'

@@ -18,23 +18,19 @@ import "errors"
 
 // Common.
 const (
-	rawKeyConfigFlag             = "encryption-raw-key"
 	tinkKeysetFilepathConfigFlag = "encryption-tink-keyset"
 	disableEncryptionConfigFlag  = "encryption-disable-flag"
 
 	ciphertextSampleConfigKey = "encryption-ciphertext-sample"
 
 	keyTypeTink = "tink"
-	keyTypeRaw  = "raw"
 	keyTypeNone = "none"
 
-	keyIDAssociatedData   = "Primary key id"
-	AES_GCM_SIV_NonceSize = 12 //nolint:revive
+	keyIDAssociatedData = "Primary key id"
 )
 
 var (
 	errEncryptionNotEnabled = errors.New("encryption is not enabled")
-	errEncryptionKeyInvalid = errors.New("encryption key is invalid")
 	errEncryptionKeyRotated = errors.New("encryption key is being rotated")
 )
 
@@ -55,8 +51,7 @@ const (
 
 	// Error messages.
 	errMessageTemplateUnsupportedKeyType = "unsupported encryption key type: %s"
-	errMessageCantUseBothServices        = "cannot use raw encryption key and tink keyset at the same time"
-	errMessageNoKeysProvided             = "encryption enabled but no keys provided"
+	errMessageNoKeysProvided             = "encryption enabled but no Tink keyset provided"
 	errMessageFailedRotatingEncryption   = "failed rotating encryption"
 
 	// Log messages.
@@ -87,13 +82,4 @@ const (
 	logTemplateTinkKeysetFileChanged       = "changes detected in encryption keyset file: '%s'. Encryption service will be reloaded"
 	logTemplateTinkLoadingKeyset           = "loading encryption keyset from file: %s"
 	logTemplateTinkFailedClosingKeysetFile = "could not close keyset file: %s"
-)
-
-// AES.
-const (
-	// Error wrapping templates.
-	errTemplateAesFailedLoadingCipher   = "failed loading encryption cipher: %w"
-	errTemplateAesFailedCalculatingHash = "failed calculating hash: %w"
-	errTemplateAesFailedGeneratingKey   = "failed generating key from passphrase: %w"
-	errTemplateAesFailedGeneratingKeyID = "failed generating key id: %w"
 )

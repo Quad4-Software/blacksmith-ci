@@ -59,10 +59,20 @@ func (c tinkConfiguration) Build() (types.EncryptionService, error) {
 	}
 
 	err := svc.validateKeyset()
-	if errors.Is(err, errEncryptionNotEnabled) {
+	switch {
+	case errors.Is(err, errEncryptionNotEnabled):
 		err = svc.enable()
-	} else if errors.Is(err, errEncryptionKeyRotated) {
+	case errors.Is(err, errEncryptionKeyRotated):
 		err = svc.rotate()
+	case err == nil:
+		// Keyset validated successfully, but check if actual data is encrypted.
+		// This handles the case where encryption was configured but data wasn't encrypted
+		// (e.g., due to a failed/interrupted previous encryption attempt).
+		if checkErr := svc.checkPlaintextData(); errors.Is(checkErr, errEncryptionNotEnabled) {
+			err = svc.enable()
+		} else if checkErr != nil {
+			err = checkErr
+		}
 	}
 
 	if err != nil {

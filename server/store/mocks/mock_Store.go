@@ -1753,13 +1753,15 @@ func (_c *MockStore_ConfigsForPipeline_Call) RunAndReturn(run func(pipelineID in
 
 // CreatePipeline provides a mock function for the type MockStore
 func (_mock *MockStore) CreatePipeline(pipeline *model.Pipeline, steps ...*model.Step) error {
-	var tmpRet mock.Arguments
-	if len(steps) > 0 {
-		tmpRet = _mock.Called(pipeline, steps)
-	} else {
-		tmpRet = _mock.Called(pipeline)
+	// *model.Step
+	_va := make([]interface{}, len(steps))
+	for _i := range steps {
+		_va[_i] = steps[_i]
 	}
-	ret := tmpRet
+	var _ca []interface{}
+	_ca = append(_ca, pipeline)
+	_ca = append(_ca, _va...)
+	ret := _mock.Called(_ca...)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CreatePipeline")
@@ -1794,9 +1796,11 @@ func (_c *MockStore_CreatePipeline_Call) Run(run func(pipeline *model.Pipeline, 
 			arg0 = args[0].(*model.Pipeline)
 		}
 		var arg1 []*model.Step
-		var variadicArgs []*model.Step
-		if len(args) > 1 {
-			variadicArgs = args[1].([]*model.Step)
+		variadicArgs := make([]*model.Step, len(args)-1)
+		for i, a := range args[1:] {
+			if a != nil {
+				variadicArgs[i] = a.(*model.Step)
+			}
 		}
 		arg1 = variadicArgs
 		run(
@@ -3124,6 +3128,61 @@ func (_c *MockStore_ForgeList_Call) Return(forges []*model.Forge, err error) *Mo
 }
 
 func (_c *MockStore_ForgeList_Call) RunAndReturn(run func(p *model.ListOptions) ([]*model.Forge, error)) *MockStore_ForgeList_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ForgeListAll provides a mock function for the type MockStore
+func (_mock *MockStore) ForgeListAll() ([]*model.Forge, error) {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for ForgeListAll")
+	}
+
+	var r0 []*model.Forge
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func() ([]*model.Forge, error)); ok {
+		return returnFunc()
+	}
+	if returnFunc, ok := ret.Get(0).(func() []*model.Forge); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.Forge)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func() error); ok {
+		r1 = returnFunc()
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_ForgeListAll_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ForgeListAll'
+type MockStore_ForgeListAll_Call struct {
+	*mock.Call
+}
+
+// ForgeListAll is a helper method to define mock.On call
+func (_e *MockStore_Expecter) ForgeListAll() *MockStore_ForgeListAll_Call {
+	return &MockStore_ForgeListAll_Call{Call: _e.mock.On("ForgeListAll")}
+}
+
+func (_c *MockStore_ForgeListAll_Call) Run(run func()) *MockStore_ForgeListAll_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockStore_ForgeListAll_Call) Return(forges []*model.Forge, err error) *MockStore_ForgeListAll_Call {
+	_c.Call.Return(forges, err)
+	return _c
+}
+
+func (_c *MockStore_ForgeListAll_Call) RunAndReturn(run func() ([]*model.Forge, error)) *MockStore_ForgeListAll_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -9927,6 +9986,61 @@ func (_c *MockStore_UserFeed_Call) Return(feeds []*model.Feed, err error) *MockS
 }
 
 func (_c *MockStore_UserFeed_Call) RunAndReturn(run func(user *model.User) ([]*model.Feed, error)) *MockStore_UserFeed_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UserListAll provides a mock function for the type MockStore
+func (_mock *MockStore) UserListAll() ([]*model.User, error) {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for UserListAll")
+	}
+
+	var r0 []*model.User
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func() ([]*model.User, error)); ok {
+		return returnFunc()
+	}
+	if returnFunc, ok := ret.Get(0).(func() []*model.User); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.User)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func() error); ok {
+		r1 = returnFunc()
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_UserListAll_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UserListAll'
+type MockStore_UserListAll_Call struct {
+	*mock.Call
+}
+
+// UserListAll is a helper method to define mock.On call
+func (_e *MockStore_Expecter) UserListAll() *MockStore_UserListAll_Call {
+	return &MockStore_UserListAll_Call{Call: _e.mock.On("UserListAll")}
+}
+
+func (_c *MockStore_UserListAll_Call) Run(run func()) *MockStore_UserListAll_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockStore_UserListAll_Call) Return(users []*model.User, err error) *MockStore_UserListAll_Call {
+	_c.Call.Return(users, err)
+	return _c
+}
+
+func (_c *MockStore_UserListAll_Call) RunAndReturn(run func() ([]*model.User, error)) *MockStore_UserListAll_Call {
 	_c.Call.Return(run)
 	return _c
 }

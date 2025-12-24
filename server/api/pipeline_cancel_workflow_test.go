@@ -36,6 +36,7 @@ import (
 	"codeberg.org/crowci/crow/v5/server/services/environment"
 	"codeberg.org/crowci/crow/v5/server/services/registry"
 	"codeberg.org/crowci/crow/v5/server/services/secret"
+	"codeberg.org/crowci/crow/v5/server/store"
 	store_mocks "codeberg.org/crowci/crow/v5/server/store/mocks"
 	store_types "codeberg.org/crowci/crow/v5/server/store/types"
 )
@@ -60,6 +61,7 @@ func (m *mockManager) ConfigServiceFromRepo(_ *model.Repo) config.Service     { 
 func (m *mockManager) EnvironmentService() environment.Service                { return nil }
 func (m *mockManager) ForgeFromUser(_ *model.User) (forge.Forge, error)       { return nil, nil }
 func (m *mockManager) ForgeByID(_ int64) (forge.Forge, error)                 { return nil, nil }
+func (m *mockManager) Store() store.Store                                     { return nil }
 
 func TestCancelWorkflow(t *testing.T) {
 	t.Parallel()

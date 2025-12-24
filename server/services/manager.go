@@ -45,6 +45,9 @@ type Manager interface {
 	ForgeFromRepo(repo *model.Repo) (forge.Forge, error)
 	ForgeFromUser(user *model.User) (forge.Forge, error)
 	ForgeByID(forgeID int64) (forge.Forge, error)
+	// Store returns the store used by the manager. This is the encrypted store
+	// when encryption is configured, otherwise the base store.
+	Store() store.Store
 }
 
 type manager struct {
@@ -59,13 +62,20 @@ type manager struct {
 	setupForge          SetupForge
 }
 
-func NewManager(c *cli.Command, store store.Store, setupForge SetupForge) (Manager, error) {
-	signaturePrivateKey, signaturePublicKey, err := setupSignatureKeys(store)
+func NewManager(c *cli.Command, baseStore store.Store, setupForge SetupForge) (Manager, error) {
+	// Setup encrypted store wrapper for secrets, registries, users, and forges.
+	// This is a no-op if encryption is not configured.
+	encryptedStore, err := setupEncryptedStore(c, baseStore)
 	if err != nil {
 		return nil, err
 	}
 
-	err = setupForgeService(c, store)
+	signaturePrivateKey, signaturePublicKey, err := setupSignatureKeys(encryptedStore)
+	if err != nil {
+		return nil, err
+	}
+
+	err = setupForgeService(c, encryptedStore)
 	if err != nil {
 		return nil, err
 	}
@@ -78,9 +88,9 @@ func NewManager(c *cli.Command, store store.Store, setupForge SetupForge) (Manag
 	return &manager{
 		signaturePrivateKey: signaturePrivateKey,
 		signaturePublicKey:  signaturePublicKey,
-		store:               store,
-		secret:              setupSecretService(store),
-		registry:            setupRegistryService(store, c.String("docker-config")),
+		store:               encryptedStore,
+		secret:              setupSecretService(encryptedStore),
+		registry:            setupRegistryService(encryptedStore, c.String("docker-config")),
 		config:              configService,
 		environment:         environment.Parse(c.StringSlice("environment")),
 		forgeCache:          ttlcache.New(ttlcache.WithDisableTouchOnHit[int64, forge.Forge]()),
@@ -90,6 +100,10 @@ func NewManager(c *cli.Command, store store.Store, setupForge SetupForge) (Manag
 
 func (m *manager) SignaturePublicKey() crypto.PublicKey {
 	return m.signaturePublicKey
+}
+
+func (m *manager) Store() store.Store {
+	return m.store
 }
 
 func (m *manager) SecretServiceFromRepo(_ *model.Repo) secret.Service {

@@ -13,6 +13,7 @@ import (
 	"codeberg.org/crowci/crow/v5/server/services/environment"
 	"codeberg.org/crowci/crow/v5/server/services/registry"
 	"codeberg.org/crowci/crow/v5/server/services/secret"
+	"codeberg.org/crowci/crow/v5/server/store"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -568,6 +569,52 @@ func (_c *MockManager_SignaturePublicKey_Call) Return(publicKey crypto.PublicKey
 }
 
 func (_c *MockManager_SignaturePublicKey_Call) RunAndReturn(run func() crypto.PublicKey) *MockManager_SignaturePublicKey_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Store provides a mock function for the type MockManager
+func (_mock *MockManager) Store() store.Store {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Store")
+	}
+
+	var r0 store.Store
+	if returnFunc, ok := ret.Get(0).(func() store.Store); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(store.Store)
+		}
+	}
+	return r0
+}
+
+// MockManager_Store_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Store'
+type MockManager_Store_Call struct {
+	*mock.Call
+}
+
+// Store is a helper method to define mock.On call
+func (_e *MockManager_Expecter) Store() *MockManager_Store_Call {
+	return &MockManager_Store_Call{Call: _e.mock.On("Store")}
+}
+
+func (_c *MockManager_Store_Call) Run(run func()) *MockManager_Store_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockManager_Store_Call) Return(store1 store.Store) *MockManager_Store_Call {
+	_c.Call.Return(store1)
+	return _c
+}
+
+func (_c *MockManager_Store_Call) RunAndReturn(run func() store.Store) *MockManager_Store_Call {
 	_c.Call.Return(run)
 	return _c
 }

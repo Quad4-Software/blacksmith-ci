@@ -47,26 +47,17 @@ func (b builder) isEnabled() (bool, error) {
 	return err == nil, nil
 }
 
-func (b builder) detectKeyType() (string, error) {
-	rawKeyPresent := b.c.IsSet(rawKeyConfigFlag)
-	tinkKeysetPresent := b.c.IsSet(tinkKeysetFilepathConfigFlag)
-	switch {
-	case rawKeyPresent && tinkKeysetPresent:
-		return "", errors.New(errMessageCantUseBothServices)
-	case rawKeyPresent:
-		return keyTypeRaw, nil
-	case tinkKeysetPresent:
-		return keyTypeTink, nil
+func (b builder) detectKeyType() string {
+	if b.c.IsSet(tinkKeysetFilepathConfigFlag) {
+		return keyTypeTink
 	}
-	return keyTypeNone, nil
+	return keyTypeNone
 }
 
 func (b builder) serviceBuilder(keyType string) (types.EncryptionServiceBuilder, error) {
 	switch keyType {
 	case keyTypeTink:
 		return newTink(b.c, b.store), nil
-	case keyTypeRaw:
-		return newAES(b.c, b.store), nil
 	case keyTypeNone:
 		return &noEncryptionBuilder{}, nil
 	}

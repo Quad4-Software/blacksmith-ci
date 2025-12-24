@@ -253,23 +253,17 @@
 ### ENCRYPTION_DISABLE_FLAG
 
 - Name: `CROW_ENCRYPTION_DISABLE`
-- Description: Flag to decrypt all encrypted data and disable encryption on server.
+- Description: When set to `true`, decrypts all encrypted data (secrets, registry passwords, OAuth tokens, forge client secrets) and disables encryption. Use only for migration or development purposes.
 - Default: `false`
-
----
-
-### ENCRYPTION_RAW_KEY
-
-- Name: `CROW_ENCRYPTION_KEY`
-- Description: Raw encryption key.
-- Default: none
 
 ---
 
 ### ENCRYPTION_TINK_KEYSET_FILE
 
 - Name: `CROW_ENCRYPTION_TINK_KEYSET_FILE`
-- Description: Google tink AEAD-compatible keyset file to encrypt secrets in DB.
+- Description: Path to a Google Tink AEAD keyset file for encrypting secrets, registry passwords, OAuth tokens, and forge client secrets at rest.
+  Supports key rotation.
+  See [Encryption](server.md#encryption) for setup instructions.
 - Default: none
 
 ---

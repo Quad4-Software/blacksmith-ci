@@ -47,7 +47,7 @@ func (wrapper *EncryptedSecretStore) SetEncryptionService(service types.Encrypti
 }
 
 func (wrapper *EncryptedSecretStore) EnableEncryption() error {
-	log.Warn().Msg(logMessageEnablingSecretsEncryption)
+	log.Info().Msg(logMessageEnablingSecretsEncryption)
 	secrets, err := wrapper.store.SecretListAll()
 	if err != nil {
 		return fmt.Errorf(errMessageTemplateFailedToEnable, err)
@@ -60,12 +60,12 @@ func (wrapper *EncryptedSecretStore) EnableEncryption() error {
 			return err
 		}
 	}
-	log.Warn().Msg(logMessageEnablingSecretsEncryptionSuccess)
+	log.Info().Msg(logMessageEnablingSecretsEncryptionSuccess)
 	return nil
 }
 
 func (wrapper *EncryptedSecretStore) MigrateEncryption(newEncryptionService types.EncryptionService) error {
-	log.Warn().Msg(logMessageMigratingSecretsEncryption)
+	log.Info().Msg(logMessageMigratingSecretsEncryption)
 	secrets, err := wrapper.store.SecretListAll()
 	if err != nil {
 		return fmt.Errorf(errMessageTemplateFailedToMigrate, err)
@@ -82,7 +82,7 @@ func (wrapper *EncryptedSecretStore) MigrateEncryption(newEncryptionService type
 			return err
 		}
 	}
-	log.Warn().Msg(logMessageMigratingSecretsEncryptionSuccess)
+	log.Info().Msg(logMessageMigratingSecretsEncryptionSuccess)
 	return nil
 }
 
@@ -112,6 +112,12 @@ func (wrapper *EncryptedSecretStore) decryptList(secrets []*model.Secret) error 
 		}
 	}
 	return nil
+}
+
+// DecryptList decrypts a list of secrets. Used by CompositeEncryptedStore
+// for methods that aren't part of model.SecretStore (e.g., UserSecretList).
+func (wrapper *EncryptedSecretStore) DecryptList(secrets []*model.Secret) error {
+	return wrapper.decryptList(secrets)
 }
 
 func (wrapper *EncryptedSecretStore) _save(secret *model.Secret) error {

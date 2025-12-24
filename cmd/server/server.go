@@ -183,11 +183,13 @@ func run(ctx context.Context, c *cli.Command) error {
 	}
 
 	// setup the server and start the listener
+	// Use the Manager's store which is the encrypted store when encryption is configured.
+	// This ensures all API endpoints that use store.FromContext() get the encrypted store.
 	handler := router.Load(
 		webUIServe,
 		middleware.Logger(time.RFC3339, true),
 		middleware.Version,
-		middleware.Store(_store),
+		middleware.Store(server.Config.Services.Manager.Store()),
 	)
 
 	if c.String("server-cert") != "" {

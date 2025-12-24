@@ -28,6 +28,8 @@ import (
 
 	"codeberg.org/crowci/crow/v5/server/model"
 	"codeberg.org/crowci/crow/v5/server/services/config"
+	"codeberg.org/crowci/crow/v5/server/services/encryption"
+	encryptedStore "codeberg.org/crowci/crow/v5/server/services/encryption/wrapper/store"
 	"codeberg.org/crowci/crow/v5/server/services/registry"
 	"codeberg.org/crowci/crow/v5/server/services/secret"
 	"codeberg.org/crowci/crow/v5/server/store"
@@ -45,16 +47,39 @@ func setupRegistryService(store store.Store, dockerConfig string) registry.Servi
 	return registry.NewDB(store)
 }
 
-func setupSecretService(store store.Store) secret.Service {
-	// TODO(1544): fix encrypted store
-	// // encryption
-	// encryptedSecretStore := encryptedStore.NewSecretStore(v)
-	// err := encryption.Encryption(c, v).WithClient(encryptedSecretStore).Build()
-	// if err != nil {
-	// 	log.Fatal().Err(err).Msg("could not create encryption service")
-	// }
+func setupSecretService(s store.Store) secret.Service {
+	return secret.NewDB(s)
+}
 
-	return secret.NewDB(store)
+// setupEncryptedStore wraps the base store with encryption wrappers for secrets, registries,
+// users, and forges. If encryption is configured (via CROW_ENCRYPTION_TINK_KEYSET_FILE or
+// CROW_ENCRYPTION_KEY), all sensitive data will be encrypted at rest.
+func setupEncryptedStore(c *cli.Command, baseStore store.Store) (store.Store, error) {
+	// Create individual wrappers.
+	secretWrapper := encryptedStore.NewSecretStore(baseStore)
+	registryWrapper := encryptedStore.NewRegistryStore(baseStore)
+	userWrapper := encryptedStore.NewUserStore(baseStore)
+	forgeWrapper := encryptedStore.NewForgeStore(baseStore)
+
+	// Create composite wrapper that combines all encrypted operations.
+	compositeStore := encryptedStore.NewCompositeStore(
+		baseStore,
+		secretWrapper,
+		registryWrapper,
+		userWrapper,
+		forgeWrapper,
+	)
+
+	// Build encryption service and configure wrappers.
+	// This will auto-encrypt existing data if encryption is enabled for the first time.
+	err := encryption.Encryption(c, baseStore).
+		WithClient(compositeStore).
+		Build()
+	if err != nil {
+		return nil, fmt.Errorf("could not create encryption service: %w", err)
+	}
+
+	return compositeStore, nil
 }
 
 func setupConfigService(c *cli.Command, privateSignatureKey ed25519.PrivateKey) (config.Service, error) {

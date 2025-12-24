@@ -615,21 +615,9 @@ var flags = append([]cli.Flag{
 	// secrets encryption in DB
 	//
 	&cli.StringFlag{
-		Sources: cli.NewValueSourceChain(
-			cli.File(os.Getenv("WOODPECKER_ENCRYPTION_KEY_FILE")),
-			cli.EnvVar("WOODPECKER_ENCRYPTION_KEY"),
-			cli.File(os.Getenv("CROW_ENCRYPTION_KEY_FILE")),
-			cli.EnvVar("CROW_ENCRYPTION_KEY")),
-		Name:  "encryption-raw-key",
-		Usage: "Raw encryption key",
-		Config: cli.StringConfig{
-			TrimSpace: true,
-		},
-	},
-	&cli.StringFlag{
 		Sources: cli.EnvVars("WOODPECKER_ENCRYPTION_TINK_KEYSET_FILE", "CROW_ENCRYPTION_TINK_KEYSET_FILE"),
 		Name:    "encryption-tink-keyset",
-		Usage:   "Google tink AEAD-compatible keyset file to encrypt secrets in DB",
+		Usage:   "Path to Google Tink AEAD keyset file for encrypting secrets, registry passwords, OAuth tokens, and forge client secrets at rest",
 	},
 	&cli.BoolFlag{
 		Sources: cli.EnvVars("WOODPECKER_ENCRYPTION_DISABLE", "CROW_ENCRYPTION_DISABLE"),

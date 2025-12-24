@@ -28,6 +28,11 @@ func (s storage) ForgeList(p *model.ListOptions) ([]*model.Forge, error) {
 	return forges, s.paginate(p).Find(&forges)
 }
 
+func (s storage) ForgeListAll() ([]*model.Forge, error) {
+	var forges []*model.Forge
+	return forges, s.engine.Find(&forges)
+}
+
 func (s storage) ForgeCreate(forge *model.Forge) error {
 	// only Insert set auto created ID back to object
 	_, err := s.engine.Insert(forge)

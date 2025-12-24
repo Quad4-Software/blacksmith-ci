@@ -30,7 +30,7 @@ func (svc *tinkEncryptionService) enable() error {
 		return fmt.Errorf(errTemplateFailedEnablingEncryption, err)
 	}
 
-	log.Warn().Msg(logMessageEncryptionEnabled)
+	log.Info().Msg(logMessageEncryptionEnabled)
 	return nil
 }
 
@@ -43,7 +43,7 @@ func (svc *tinkEncryptionService) disable() error {
 		return fmt.Errorf(errTemplateFailedDisablingEncryption, err)
 	}
 
-	log.Warn().Msg(logMessageEncryptionDisabled)
+	log.Info().Msg(logMessageEncryptionDisabled)
 	return nil
 }
 

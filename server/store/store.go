@@ -40,6 +40,8 @@ type Store interface {
 	UpdateUser(*model.User) error
 	// DeleteUser deletes a user account.
 	DeleteUser(*model.User) error
+	// UserListAll gets all users in the system (for encryption migration).
+	UserListAll() ([]*model.User, error)
 
 	// Repos
 	// GetRepo gets a repo by unique ID.
@@ -194,6 +196,8 @@ type Store interface {
 	ForgeCreate(*model.Forge) error
 	ForgeGet(int64) (*model.Forge, error)
 	ForgeList(p *model.ListOptions) ([]*model.Forge, error)
+	// ForgeListAll gets all forges in the system (for encryption migration).
+	ForgeListAll() ([]*model.Forge, error)
 	ForgeUpdate(*model.Forge) error
 	ForgeDelete(*model.Forge) error
 

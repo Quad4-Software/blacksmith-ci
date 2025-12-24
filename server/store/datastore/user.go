@@ -95,6 +95,11 @@ func (s storage) UpdateUser(user *model.User) error {
 	return err
 }
 
+func (s storage) UserListAll() ([]*model.User, error) {
+	var users []*model.User
+	return users, s.engine.Find(&users)
+}
+
 func (s storage) DeleteUser(user *model.User) error {
 	sess := s.engine.NewSession()
 	defer sess.Close()

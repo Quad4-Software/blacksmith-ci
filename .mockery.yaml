@@ -1,9 +1,10 @@
----
+all: true
+dir: '{{.InterfaceDir}}/mocks'
+filename: 'mock_{{.InterfaceName}}.go'
+template: testify
+template-data:
+  unroll-variadic: true
 packages:
   codeberg.org/crowci/crow/v5:
     config:
       recursive: true
-
-filename: 'mock_{{.InterfaceName}}.go'
-dir: '{{.InterfaceDir}}/mocks'
-all: true

@@ -46,17 +46,16 @@ func (b builder) Build() error {
 
 	disableFlag := b.c.Bool(disableEncryptionConfigFlag)
 
-	keyType, err := b.detectKeyType()
-	if err != nil {
-		return err
-	}
+	keyType := b.detectKeyType()
 
 	if !enabled && (disableFlag || keyType == keyTypeNone) {
 		_, err := noEncryptionBuilder{}.WithClients(b.clients).Build()
 		if err != nil {
 			return fmt.Errorf(errTemplateFailedInitializingUnencrypted, err)
 		}
+		return nil
 	}
+
 	svc, err := b.getService(keyType)
 	if err != nil {
 		return fmt.Errorf(errTemplateFailedInitializing, err)

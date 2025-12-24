@@ -14,6 +14,8 @@ GH_TOKEN_MKDOCS_MATERIAL := env_var_or_default("GH_TOKEN_MKDOCS_MATERIAL", "")
 MKDOCS_MATERIAL_VERSION := env_var_or_default("MKDOCS_MATERIAL_VERSION", "latest")
 CI := env_var_or_default("CI", "false")
 BUILD_DATE := `date -u +%Y-%m-%d`
+# renovate: datasource=github-releases depName=protocolbuffers/protobuf
+PROTOC_VERSION := "33.2"
 
 # Set version based on CI environment
 VERSION := if env_var_or_default("CI_COMMIT_TAG", "") != "" {
@@ -50,7 +52,7 @@ CGO_CFLAGS := if HAS_GO == "GO" { `go env CGO_CFLAGS` } else { "" }
 version:
 	@echo "{{VERSION}}"
 
-fmt:
+fmt: install-dev-deps
 		prettier -w .
 		gofumpt -w .
 		golangci-lint run --fix
@@ -61,10 +63,15 @@ test: test-agent test-server test-server-datastore test-cli test-lib
 ## Run all code generations
 # ensure `protoc-gen-go` and `protoc-gen-go-grpc` are installed
 generate: install-dev-deps
+	#!/usr/bin/env sh
+	set -e
+	# Ensure GOPATH/bin is first in PATH to use installed tools
+	export PATH="${GOPATH:-$HOME/go}/bin:$PATH"
 	# Generate mocks
 	mockery
 	# Generate protobuf
 	cd pipeline/rpc/proto && go generate
+	cd -
 	# Generate OpenAPI
 	go run github.com/swaggo/swag/cmd/swag fmt
 	CGO_ENABLED=0 go generate cmd/server/openapi.go
@@ -74,13 +81,46 @@ generate: install-dev-deps
 mockery: install-dev-deps
 	mockery
 
-install-dev-deps:
+install-dev-deps: install-protoc
 		# @hash golangci-lint > /dev/null 2>&1 || go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 		@hash gofumpt > /dev/null 2>&1 || go install mvdan.cc/gofumpt@latest
+		@hash gci > /dev/null 2>&1 || go install github.com/daixiang0/gci@v0.13.5
+		@hash mockery > /dev/null 2>&1 || go install github.com/vektra/mockery/v3@latest
 		@hash addlicense > /dev/null 2>&1 || go install github.com/google/addlicense@latest
-		@hash mockery > /dev/null 2>&1 || go install github.com/vektra/mockery/v2@latest
 		@hash protoc-gen-go > /dev/null 2>&1 || go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 		@hash protoc-gen-go-grpc > /dev/null 2>&1 || go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+
+# Install protoc with pinned version (downloads from GitHub releases)
+install-protoc:
+		#!/usr/bin/env sh
+		set -e
+		CURRENT_VERSION=$(protoc --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+' | head -1 || echo "")
+		if [ "$CURRENT_VERSION" = "{{PROTOC_VERSION}}" ]; then
+			exit 0
+		fi
+		echo "Installing protoc v{{PROTOC_VERSION}}..."
+		OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+		ARCH=$(uname -m)
+		case "$ARCH" in
+			x86_64) ARCH="x86_64" ;;
+			aarch64|arm64) ARCH="aarch_64" ;;
+			*) echo "Unsupported architecture: $ARCH"; exit 1 ;;
+		esac
+		case "$OS" in
+			linux) OS="linux" ;;
+			darwin) OS="osx" ;;
+			*) echo "Unsupported OS: $OS"; exit 1 ;;
+		esac
+		URL="https://github.com/protocolbuffers/protobuf/releases/download/v{{PROTOC_VERSION}}/protoc-{{PROTOC_VERSION}}-${OS}-${ARCH}.zip"
+		INSTALL_DIR="${GOPATH:-$HOME/go}/bin"
+		mkdir -p "$INSTALL_DIR"
+		TMP_DIR=$(mktemp -d)
+		curl -fsSL "$URL" -o "$TMP_DIR/protoc.zip"
+		unzip -q -o "$TMP_DIR/protoc.zip" -d "$TMP_DIR"
+		cp "$TMP_DIR/bin/protoc" "$INSTALL_DIR/protoc"
+		chmod +x "$INSTALL_DIR/protoc"
+		rm -rf "$TMP_DIR"
+		echo "protoc v{{PROTOC_VERSION}} installed to $INSTALL_DIR/protoc"
 
 ## test
 
