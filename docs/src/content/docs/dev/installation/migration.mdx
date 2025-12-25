@@ -2,6 +2,8 @@
 title: 'Migration'
 ---
 
+import { Steps } from '@astrojs/starlight/components';
+
 Crow CI tries to maintains compatibility with Woodpecker CI and Drone CI to simplify migration.
 
 ## Compatibility
@@ -31,9 +33,63 @@ Crow-specific features use the `CROW_` prefix.
 
 ### Migration Steps
 
-1. Replace container images with Crow equivalents
-2. Optionally rename `WOODPECKER_*` vars to `CROW_*`
-3. Update webhook URLs if using a different domain
+<Steps>
+
+1. **Back up your database** — While migration is safe, backups are always recommended
+
+2. **Replace container images** with Crow equivalents
+
+3. **Start Crow** — it will automatically detect and migrate the Woodpecker database
+
+4. **Optionally rename** `WOODPECKER_*` vars to `CROW_*`
+
+5. **Update webhook URLs** if using a different domain
+
+</Steps>
+
+### Database Migration
+
+When Crow starts with a Woodpecker database, it automatically:
+
+<Steps>
+
+1. **Detects the Woodpecker database** — Crow checks for Woodpecker-specific migration IDs
+
+2. **Displays a migration banner** — You'll see a prominent message in the logs:
+
+    ```
+    ╔════════════════════════════════════════════════════════════════╗
+    ║  WOODPECKER DATABASE DETECTED                                  ║
+    ║                                                                ║
+    ║  Migrating from Woodpecker CI to Crow CI                       ║
+    ║  This is a ONE-TIME migration process.                         ║
+    ║                                                                ║
+    ║  Your data will be preserved and upgraded automatically.       ║
+    ║  For best results, ensure you have a database backup.          ║
+    ╚════════════════════════════════════════════════════════════════╝
+    ```
+
+3. **Applies Crow-specific migrations** — New tables and columns for Crow features (HA mode, maintenance, autoscalers, etc.)
+
+4. **Confirms completion** — A success message confirms the migration
+
+</Steps>
+
+:::caution[One-Way Migration]
+After migrating to Crow, you should not downgrade back to Woodpecker.
+The Crow-specific migrations may not be compatible with Woodpecker.
+:::
+
+### Unknown Migrations Warning
+
+If your Woodpecker database has migrations that Crow doesn't recognize (e.g., from a newer Woodpecker version), you'll see a warning:
+
+```
+Unknown migration IDs detected in database. These may be from a different
+version or fork. Migration will continue but review is recommended.
+```
+
+This is informational — Crow will continue and apply its own migrations. Your data is preserved.
 
 ## From Drone
 

@@ -19,14 +19,31 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/rs/zerolog/log"
 	"src.techknowlogick.com/xormigrate"
 	"xorm.io/xorm"
 
 	"codeberg.org/crowci/crow/v5/server/model"
 )
 
-// APPEND NEW MIGRATIONS
-// They are executed in order and if one fails Xormigrate will try to rollback that specific one and quits.
+// migrationTasks contains all database migrations in execution order.
+// They are executed sequentially and if one fails, xormigrate will try to rollback
+// that specific migration and exit.
+//
+// ADDING NEW MIGRATIONS:
+// 1. Create a new file: NNN_crow_description.go (e.g., 043_crow_new_feature.go)
+// 2. Use the "crow-" prefix for the migration ID to avoid conflicts with Woodpecker:
+//
+//	var crowNewFeature = xormigrate.Migration{
+//	    ID: "crow-new-feature",
+//	    MigrateSession: func(sess *xorm.Session) error {
+//	        // migration logic
+//	        return nil
+//	    },
+//	}
+//
+// 3. Add the migration to this slice below.
+// 4. Update constants.go crowMigrations list with the new ID.
 var migrationTasks = []*xormigrate.Migration{
 	&legacyToXormigrate,
 	&addOrgID,
@@ -135,8 +152,20 @@ func Migrate(_ context.Context, e *xorm.Engine, allowLong bool) error {
 
 	m.SetLogger(&xormigrateLogger{})
 
+	// Detect database origin (Woodpecker vs Crow) and log migration info
+	migrationInfo, err := detectDatabaseOrigin(e)
+	if err != nil {
+		return fmt.Errorf("failed to detect database origin: %w", err)
+	}
+	logMigrationInfo(migrationInfo)
+
 	if err := m.Migrate(); err != nil {
 		return err
+	}
+
+	// Log completion message for Woodpecker migrations
+	if migrationInfo.IsFirstCrowMigration {
+		log.Info().Msg("Successfully migrated Woodpecker database to Crow. Your data has been preserved.")
 	}
 
 	e.SetDisableGlobalCache(false)

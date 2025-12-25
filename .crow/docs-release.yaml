@@ -75,7 +75,7 @@ steps:
         "
       # Commit changes
       - git add -A
-      - git commit -m "docs: add version ${VERSION_LABEL}"
+      - 'git commit -m "docs: add version ${VERSION_LABEL}"'
       - git push origin HEAD:${CI_REPO_DEFAULT_BRANCH}
 
   - name: 'Build and deploy docs'

@@ -53,8 +53,7 @@ steps:
   - name: 'Build docs (PR)'
     image: reg.devxy.io/docker.io/oven/bun:1.3-alpine
     commands:
-      - cd docs && bun install --frozen-lockfile
-      - cd docs && bun run build
+      - cd docs && bun install --frozen-lockfile && bun run build
     when:
       - event: pull_request
 
