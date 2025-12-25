@@ -87,6 +87,8 @@ steps:
       - apk add --no-cache -q git
       - cd docs && bun install --frozen-lockfile
       - cd docs && bun run build
+      # Save build output before switching branches
+      - cp -r docs/dist /tmp/docs-dist
       - git config --global user.email "admin@crowci.dev"
       - git config --global user.name "crowci-bot"
       - git remote set-url origin https://crowci-bot:$${CODEBERG_BOT_TOKEN}@codeberg.org/crowci/crow.git
@@ -98,7 +100,7 @@ steps:
           git checkout --orphan pages
           git reset --hard
         fi
-      - cp -r docs/dist/* .
+      - cp -r /tmp/docs-dist/* .
       - echo "crowci.dev" > .domains
       - git add -A
       - git commit -m "[skip ci] Deploy docs ${CI_COMMIT_TAG}" || true
