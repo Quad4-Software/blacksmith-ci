@@ -1,0 +1,71 @@
+---
+/**
+ * Custom SiteTitle component for Crow CI
+ *
+ * Displays the Crow logo and version selector in the header.
+ */
+
+import type { Props } from "@astrojs/starlight/props";
+import VersionSelect from './VersionSelect.astro';
+
+const { locale } = Astro.props;
+
+// Build the home link URL
+const homeUrl = locale ? `/${locale}/` : "/";
+---
+
+<div class="site-title-wrapper">
+  <a href={homeUrl} class="site-title">
+    <img
+      src="/logo.svg"
+      alt="Crow CI"
+      class="crow-logo"
+    />
+    <span class="sr-only">Crow CI</span>
+  </a>
+  <VersionSelect />
+</div>
+
+<style>
+  .site-title-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .site-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    color: var(--sl-color-text);
+  }
+
+  .site-title:hover {
+    opacity: 0.8;
+  }
+
+  .crow-logo {
+    height: 1.75rem;
+    width: auto;
+    transition: filter 0.2s ease;
+  }
+
+  /* Invert logo for light mode - the logo is white/gray designed for dark backgrounds */
+  :global([data-theme="light"]) .crow-logo {
+    filter: invert(1) brightness(0.3);
+  }
+
+  /* Screen reader only */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+</style>

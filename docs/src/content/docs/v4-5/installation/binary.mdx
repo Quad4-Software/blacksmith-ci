@@ -1,0 +1,202 @@
+---
+title: "Binary Installation (macOS)"
+---
+
+Crow provides pre-built agent binaries for macOS to be able to run **agents** via the "local" backend.
+
+:::note
+No binaries for the server are built at the moment.
+:::
+
+## Installation
+
+### macOS
+
+```bash
+export VERSION=4.3.0
+export ARCH=arm64
+curl -LO https://codeberg.org/crowci/crow/releases/download/v$VERSION/crow-agent_darwin_$ARCH.tar.gz
+
+# Extract the archive
+tar -xzf crow-agent_darwin_*.tar.gz
+
+# Move to system path
+sudo mv crow-agent /usr/local/bin/
+sudo chmod +x /usr/local/bin/crow-agent
+
+# Verify installation
+crow-agent --version
+```
+
+## Running as a System Service
+
+### macOS (launchd)
+
+Running the agent as a system service on macOS uses `launchd` with a Launch Daemon or Launch Agent.
+
+Create the plist file using your preferred text editor:
+
+```bash
+sudo nano /Library/LaunchDaemons/crowci.agent.plist
+```
+
+Paste the following content (update `CROW_SERVER` and `CROW_AGENT_SECRET` with your values):
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>crowci.agent</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/crow-agent</string>
+    </array>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>CROW_SERVER</key>
+        <string>your-server.com</string>
+        <key>CROW_GRPC_ADDR</key>
+        <string>grpc.your-server.com:443</string>
+        <key>CROW_GRPC_SECURE</key>
+        <string>true</string>
+        <key>CROW_AGENT_SECRET</key>
+        <string>your-secret-token</string>
+        <key>CROW_BACKEND</key>
+        <string>local</string>
+        <key>CROW_BACKEND_LOCAL_SANDBOX_LEVEL</key>
+        <string>standard</string>
+        <key>CROW_AGENT_CONFIG_FILE</key>
+        <string>/usr/local/var/crow-agent/config.yml</string>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/usr/local/var/log/crow-agent.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/usr/local/var/log/crow-agent-error.log</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>WorkingDirectory</key>
+    <string>/usr/local/var/crow-agent</string>
+</dict>
+</plist>
+```
+
+:::note
+**For remote/public servers**: The example above assumes a secure gRPC connection (typical for remote agents).
+
+- `CROW_SERVER`: Your main server address (without protocol or port)
+- `CROW_GRPC_ADDR`: The gRPC endpoint (subdomain + port, typically 443 for TLS)
+- `CROW_GRPC_SECURE`: Set to `true` for TLS connections
+
+**For local servers**: If connecting to a server on the same network without TLS, use:
+
+```xml
+<key>CROW_SERVER</key>
+<string>your-server-ip:9000</string>
+```
+
+And remove the `CROW_GRPC_ADDR` and `CROW_GRPC_SECURE` keys.
+:::
+
+After saving the file, validate it:
+
+```bash
+plutil -lint /Library/LaunchDaemons/crowci.agent.plist
+```
+
+Set up and start the service:
+
+```bash
+# Create working directories
+sudo mkdir -p /usr/local/var/crow-agent /usr/local/var/log
+
+# Set proper permissions on the plist file
+sudo chown root:wheel /Library/LaunchDaemons/crowci.agent.plist
+sudo chmod 644 /Library/LaunchDaemons/crowci.agent.plist
+
+# Load and start the service (bootstrap will start it automatically)
+sudo launchctl bootstrap system /Library/LaunchDaemons/crowci.agent.plist
+
+# Verify the service is running
+sudo launchctl list | grep crowci
+
+# View logs
+tail -f /usr/local/var/log/crow-agent.log
+tail -f /usr/local/var/log/crow-agent-error.log
+```
+
+#### Service Management (macOS)
+
+```bash
+# Stop the service
+sudo launchctl kickstart -k system/crowci.agent
+
+# Restart the service
+sudo launchctl kickstart -kp system/crowci.agent
+
+# Unload/remove the service
+sudo launchctl bootout system /Library/LaunchDaemons/crowci.agent.plist
+
+# Check service status
+sudo launchctl print system/crowci.agent
+```
+
+:::note
+When running the agent on macOS with the `local` backend, you should enable process isolation using the built-in `sandbox-exec` utility.
+:::
+
+### macOS Sandbox Security Levels
+
+The `CROW_BACKEND_LOCAL_SANDBOX_LEVEL` environment variable controls process isolation on macOS:
+
+#### `none` (default)
+
+No sandboxing.
+Workflows run with full system access.
+Use only in trusted environments.
+
+#### `standard` (recommended)
+
+Balanced security profile suitable for most CI/CD workloads.
+This profile:
+
+Allowed:
+
+- ✅ Network access (for package downloads, git operations, API calls)
+- ✅ Reading system libraries, tools, and executables
+- ✅ Full read/write access to workflow directories (`/tmp/crow-local-*`)
+- ✅ Executing binaries from standard paths (`/usr/bin`, `/usr/local/bin`, etc.)
+- ✅ Process management (fork, signal, IPC)
+- ✅ Device file access (`/dev/null`, `/dev/random`, etc.)
+
+Denied:
+
+- ❌ Reading sensitive system files (`/etc/passwd`, `/etc/sudoers`, etc.)
+- ❌ Reading macOS user database (`/var/db/dslocal/nodes/Default/users/`)
+- ❌ Accessing user directories (Documents, Desktop, Pictures, Downloads)
+- ❌ Reading SSH private keys (`~/.ssh/id_*`)
+- ❌ Privilege escalation (sudo is blocked)
+- ❌ Writing outside workflow directories
+
+This profile allows typical CI/CD operations (building, testing, deploying) while preventing:
+
+- Credential theft (SSH keys, passwords)
+- Privilege escalation
+- Access to personal files
+- System configuration changes
+
+#### `strict`
+
+Maximum security with minimal permissions.
+Denies network access and restricts file operations to workflow directories only.
+Use for highly sensitive workloads requiring maximum isolation.

@@ -1,0 +1,110 @@
+---
+title: 'Architecture'
+---
+
+Overview of Crow CI's system architecture and codebase structure.
+
+## Components
+
+Crow CI consists of three main components:
+
+```mermaid
+flowchart LR
+    Server["Server\n(API/Web)"] <--> Agent["Agent\n(Worker)"]
+    Agent --> Backend["Backend\n(Docker/K8s)"]
+    Server --> Forge["Forge\n(Git Hosting)"]
+```
+
+### Server
+
+Central orchestration hub and API gateway.
+
+- **Location**: `/cmd/server/`, `/server/`
+- **API**: RESTful endpoints (`/server/api/`)
+- **gRPC**: Agent communication (`/server/grpc/`)
+- **Database**: XORM ORM (`/server/store/`)
+- **Forges**: GitHub, GitLab, Forgejo, Gitea, Bitbucket (`/server/forge/`)
+
+### Agent
+
+Distributed pipeline execution workers.
+
+- **Location**: `/cmd/agent/`, `/agent/`
+- **Connection**: gRPC to server
+- **Backends**: Docker, Kubernetes, Local (`/pipeline/backend/`)
+
+### CLI
+
+Command-line interface for administration.
+
+- **Location**: `/cmd/cli/`, `/cli/`
+- **Features**: Repo, pipeline, secret, user management
+
+### Web UI
+
+Vue.js frontend.
+
+- **Location**: `/web/`
+- **Stack**: Vue 3, TypeScript, Pinia, Vue Router
+
+## Pipeline System
+
+### Frontend Processing
+
+Pipeline YAML parsing and validation (`/pipeline/frontend/yaml/`):
+
+- YAML parsing and validation
+- DAG construction for step dependencies
+- Matrix workflow expansion
+- Constraint evaluation
+
+### Backend Execution
+
+Pluggable execution backends (`/pipeline/backend/`):
+
+- Container/pod lifecycle management
+- Volume, network, secret handling
+- Log streaming
+
+## Data Layer
+
+### Models
+
+Core data structures (`/server/model/`):
+
+- User, Repo, Pipeline, Step, Task, Agent
+- Secret, Registry, Org
+
+### Store
+
+Database access layer (`/server/store/`):
+
+- XORM ORM abstraction
+- Migrations (`/server/store/datastore/migration/`)
+- SQLite, PostgreSQL, MySQL support
+
+## Key Directories
+
+```
+crow/
+├── cmd/
+│   ├── server/      # Server entrypoint
+│   ├── agent/       # Agent entrypoint
+│   └── cli/         # CLI entrypoint
+├── server/
+│   ├── api/         # REST API handlers
+│   ├── grpc/        # gRPC server
+│   ├── forge/       # VCS integrations
+│   ├── model/       # Data models
+│   ├── store/       # Database layer
+│   └── pipeline/    # Pipeline orchestration
+├── agent/           # Agent logic
+├── pipeline/
+│   ├── frontend/    # YAML parsing
+│   ├── backend/     # Execution backends
+│   └── rpc/         # gRPC protocols
+├── cli/             # CLI commands
+├── web/             # Vue.js frontend
+├── shared/          # Common utilities
+└── docs/            # Documentation
+```

@@ -1,0 +1,35 @@
+---
+title: "Environment Variables"
+---
+
+All Crow CI components are configured through environment variables. This section provides a complete reference for all available configuration options.
+
+## Server Variables
+
+Configuration for the Crow CI server:
+
+- [Core Settings](/v4-5/configuration/env-vars/server/) - Host, admin users, registration, organizations
+- [Database](/v4-5/configuration/env-vars/database/) - Database driver and connection settings
+- [Forge Integration](/v4-5/configuration/env-vars/forge/) - OAuth, forge drivers (GitHub, GitLab, Forgejo, etc.)
+- [Security](/v4-5/configuration/env-vars/security/) - Encryption, secrets, TLS configuration
+- [Defaults](/v4-5/configuration/env-vars/defaults/) - Default values for repositories and pipelines
+- [Plugins](/v4-5/configuration/env-vars/plugins/) - Plugin configuration and privileges
+- [Logging](/v4-5/configuration/env-vars/logging/) - Log levels, output, and rotation
+- [Maintenance](/v4-5/configuration/env-vars/maintenance/) - Cleanup tasks and scheduled jobs
+
+## Agent Variables
+
+Configuration for Crow CI agents:
+
+- [Agent Settings](/v4-5/configuration/env-vars/agent/) - Agent identity, labels, and connection settings
+- [Backend: Docker](/v4-5/configuration/env-vars/backend-docker/) - Docker-specific backend configuration
+- [Backend: Kubernetes](/v4-5/configuration/env-vars/backend-kubernetes/) - Kubernetes-specific backend configuration
+- [Backend: Local](/v4-5/configuration/env-vars/backend-local/) - Local backend configuration
+
+## Autoscaler Variables
+
+- [Autoscaler](/v4-5/configuration/env-vars/autoscaler/) - Autoscaler pool and timing configuration
+
+:::tip
+Most variables follow the naming pattern `CROW_<COMPONENT>_<SETTING>`. For example, `CROW_DATABASE_DRIVER` configures the database driver for the server.
+:::

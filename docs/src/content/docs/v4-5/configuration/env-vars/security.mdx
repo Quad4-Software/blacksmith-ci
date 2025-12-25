@@ -1,0 +1,49 @@
+---
+title: "Security"
+---
+
+Security and encryption configuration variables.
+
+## Agent Authentication
+
+### AGENT_SECRET
+
+- Name: `CROW_AGENT_SECRET`
+- Description: Server-agent shared password.
+- Default: none
+
+---
+
+### GRPC_SECRET
+
+- Name: `CROW_GRPC_SECRET`
+- Description: gRPC JWT secret.
+- Default: `secret`
+
+---
+
+## Encryption
+
+### ENCRYPTION_TINK_KEYSET_FILE
+
+- Name: `CROW_ENCRYPTION_TINK_KEYSET_FILE`
+- Description: Path to a Google Tink AEAD keyset file for encrypting secrets, registry passwords, OAuth tokens, and forge client secrets at rest. Supports key rotation. See [Encryption](/v4-5/configuration/server/#encryption) for setup instructions.
+- Default: none
+
+---
+
+### ENCRYPTION_DISABLE_FLAG
+
+- Name: `CROW_ENCRYPTION_DISABLE`
+- Description: When set to `true`, decrypts all encrypted data (secrets, registry passwords, OAuth tokens, forge client secrets) and disables encryption. Use only for migration or development purposes.
+- Default: `false`
+
+---
+
+## Docker Configuration
+
+### DOCKER_CONFIG
+
+- Name: `CROW_DOCKER_CONFIG`
+- Description: Docker configuration.
+- Default: none

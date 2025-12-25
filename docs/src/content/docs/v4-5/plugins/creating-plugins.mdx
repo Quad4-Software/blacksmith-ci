@@ -1,0 +1,335 @@
+---
+title: "Creating Plugins"
+---
+
+Build your own plugins to extend Crow CI with custom functionality.
+
+## Plugin Architecture
+
+A Crow CI plugin is a container image that:
+
+1. Receives configuration via `PLUGIN_*` environment variables
+2. Executes a fixed set of commands via `ENTRYPOINT`
+3. Cannot have its `CMD` overridden by users
+
+This architecture ensures plugins execute predictably, making them safe for handling secrets.
+
+## Quick Start
+
+Here's a minimal plugin structure:
+
+```dockerfile
+FROM alpine:latest
+
+# Install dependencies
+RUN apk add --no-cache bash curl
+
+# Copy plugin script
+COPY plugin.sh /usr/local/bin/plugin.sh
+RUN chmod +x /usr/local/bin/plugin.sh
+
+# Fixed entrypoint - cannot be overridden
+ENTRYPOINT ["/usr/local/bin/plugin.sh"]
+```
+
+```bash
+#!/bin/bash
+# plugin.sh
+
+# Read settings from environment
+echo "Server: ${PLUGIN_SERVER}"
+echo "Message: ${PLUGIN_MESSAGE}"
+
+# Plugin logic here
+curl -X POST "${PLUGIN_SERVER}/api/notify" \
+  -H "Authorization: Bearer ${PLUGIN_TOKEN}" \
+  -d "message=${PLUGIN_MESSAGE}"
+```
+
+## Settings Reference
+
+### How Settings Work
+
+When a user configures a plugin:
+
+```yaml
+steps:
+  - name: notify
+    image: my-plugin
+    settings:
+      server: https://api.example.com
+      message: Hello World
+      retry_count: 3
+```
+
+Crow transforms `settings` into environment variables:
+
+| Setting | Environment Variable |
+| --- | --- |
+| `server` | `PLUGIN_SERVER` |
+| `message` | `PLUGIN_MESSAGE` |
+| `retry_count` | `PLUGIN_RETRY_COUNT` |
+
+### Naming Rules
+
+- Settings are uppercased: `myValue` → `PLUGIN_MYVALUE`
+- Dashes become underscores: `my-setting` → `PLUGIN_MY_SETTING`
+- Nested objects become JSON strings
+
+### Complex Values
+
+Objects and arrays are JSON-serialized:
+
+```yaml
+settings:
+  targets:
+    - production
+    - staging
+  config:
+    retries: 3
+    timeout: 30
+```
+
+Results in:
+- `PLUGIN_TARGETS='["production","staging"]'`
+- `PLUGIN_CONFIG='{"retries":"3","timeout":"30"}'`
+
+Parse these in your plugin:
+
+```bash
+#!/bin/bash
+# Parse JSON array
+TARGETS=$(echo "$PLUGIN_TARGETS" | jq -r '.[]')
+
+# Parse JSON object
+RETRIES=$(echo "$PLUGIN_CONFIG" | jq -r '.retries')
+```
+
+## Security Best Practices
+
+### No Environment Key
+
+Crow prohibits using `environment:` with plugins for security. All inputs must come through `settings:`.
+
+```yaml
+# ❌ Not allowed
+steps:
+  - name: deploy
+    image: my-plugin
+    environment:
+      SECRET_KEY: value
+
+# ✅ Required approach
+steps:
+  - name: deploy
+    image: my-plugin
+    settings:
+      secret_key: value
+```
+
+### Secret Handling
+
+Your plugin receives secrets as regular environment variables. Best practices:
+
+1. **Never log secrets** - Avoid echoing sensitive values
+2. **Document required secrets** - Clearly list what credentials are needed
+3. **Minimize secret scope** - Only request what's necessary
+
+```bash
+#!/bin/bash
+
+# Bad - logs the token
+echo "Using token: ${PLUGIN_TOKEN}"
+
+# Good - confirms token exists without exposing it
+if [[ -z "${PLUGIN_TOKEN}" ]]; then
+  echo "Error: TOKEN setting is required"
+  exit 1
+fi
+echo "Token configured ✓"
+```
+
+### Validate Inputs
+
+Always validate and sanitize inputs:
+
+```bash
+#!/bin/bash
+set -euo pipefail
+
+# Required settings
+: "${PLUGIN_SERVER:?SERVER setting is required}"
+: "${PLUGIN_TOKEN:?TOKEN setting is required}"
+
+# Optional with defaults
+PLUGIN_TIMEOUT="${PLUGIN_TIMEOUT:-30}"
+PLUGIN_RETRIES="${PLUGIN_RETRIES:-3}"
+
+# Validate format
+if [[ ! "${PLUGIN_SERVER}" =~ ^https?:// ]]; then
+  echo "Error: SERVER must be a valid URL"
+  exit 1
+fi
+```
+
+## Language Examples
+
+### Go Plugin
+
+Go is ideal for plugins due to single-binary output:
+
+```go
+package main
+
+import (
+    "fmt"
+    "os"
+)
+
+func main() {
+    server := os.Getenv("PLUGIN_SERVER")
+    token := os.Getenv("PLUGIN_TOKEN")
+
+    if server == "" || token == "" {
+        fmt.Println("Error: SERVER and TOKEN are required")
+        os.Exit(1)
+    }
+
+    // Plugin logic here
+    fmt.Printf("Deploying to %s\n", server)
+}
+```
+
+```dockerfile
+FROM golang:1.22-alpine AS builder
+WORKDIR /app
+COPY . .
+RUN CGO_ENABLED=0 go build -o /plugin
+
+FROM alpine:latest
+COPY --from=builder /plugin /usr/local/bin/plugin
+ENTRYPOINT ["/usr/local/bin/plugin"]
+```
+
+### Python Plugin
+
+```python
+#!/usr/bin/env python3
+import os
+import sys
+import json
+
+def main():
+    server = os.environ.get('PLUGIN_SERVER')
+    token = os.environ.get('PLUGIN_TOKEN')
+
+    if not server or not token:
+        print("Error: SERVER and TOKEN are required")
+        sys.exit(1)
+
+    # Handle complex settings (JSON)
+    targets_json = os.environ.get('PLUGIN_TARGETS', '[]')
+    targets = json.loads(targets_json)
+
+    # Plugin logic here
+    print(f"Deploying to {server}")
+    for target in targets:
+        print(f"  - {target}")
+
+if __name__ == '__main__':
+    main()
+```
+
+### Node.js Plugin
+
+```javascript
+#!/usr/bin/env node
+const server = process.env.PLUGIN_SERVER;
+const token = process.env.PLUGIN_TOKEN;
+
+if (!server || !token) {
+  console.error('Error: SERVER and TOKEN are required');
+  process.exit(1);
+}
+
+// Handle complex settings
+const targets = JSON.parse(process.env.PLUGIN_TARGETS || '[]');
+
+// Plugin logic here
+console.log(`Deploying to ${server}`);
+targets.forEach(target => console.log(`  - ${target}`));
+```
+
+## Testing Plugins
+
+### Local Testing
+
+Test your plugin locally by setting environment variables:
+
+```bash
+docker build -t my-plugin .
+
+docker run --rm \
+  -e PLUGIN_SERVER=https://api.example.com \
+  -e PLUGIN_TOKEN=test-token \
+  -e PLUGIN_MESSAGE="Hello World" \
+  my-plugin
+```
+
+### Integration Testing
+
+Create a test pipeline:
+
+```yaml
+steps:
+  - name: test-plugin
+    image: my-plugin:dev
+    settings:
+      server: https://api.example.com
+      token:
+        from_secret: test_token
+      message: "Test message"
+```
+
+## Publishing Plugins
+
+### Container Registry
+
+Push your plugin to a container registry:
+
+```bash
+docker build -t codeberg.org/myuser/my-plugin:1.0.0 .
+docker push codeberg.org/myuser/my-plugin:1.0.0
+```
+
+### Documentation
+
+Create a `README.md` with:
+
+1. **Description** - What the plugin does
+2. **Settings** - All available settings with types and defaults
+3. **Secrets** - Required credentials
+4. **Examples** - Working pipeline configurations
+5. **Changelog** - Version history
+
+### Versioning
+
+Use semantic versioning for plugin releases:
+
+- `1.0.0` - Initial stable release
+- `1.1.0` - New features, backwards compatible
+- `2.0.0` - Breaking changes
+
+Tag your images with both specific versions and major version aliases:
+
+```bash
+docker tag my-plugin:1.2.3 my-plugin:1
+docker tag my-plugin:1.2.3 my-plugin:1.2
+docker push my-plugin:1.2.3
+docker push my-plugin:1.2
+docker push my-plugin:1
+```
+
+## Getting Listed
+
+To add your plugin to the [available plugins](/v4-5/plugins/available-plugins/) page, open a pull request to the Crow CI repository.

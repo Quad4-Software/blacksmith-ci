@@ -10,8 +10,6 @@ CI_COMMIT_SHA := env_var_or_default("CI_COMMIT_SHA", `git rev-parse HEAD`)
 CI_COMMIT_TAG := env_var_or_default("CI_COMMIT_TAG", "")
 TAGS := ""
 STATIC_BUILD := "true"
-GH_TOKEN_MKDOCS_MATERIAL := env_var_or_default("GH_TOKEN_MKDOCS_MATERIAL", "")
-MKDOCS_MATERIAL_VERSION := env_var_or_default("MKDOCS_MATERIAL_VERSION", "latest")
 CI := env_var_or_default("CI", "false")
 BUILD_DATE := `date -u +%Y-%m-%d`
 # renovate: datasource=github-releases depName=protocolbuffers/protobuf
@@ -153,21 +151,25 @@ test-lib:
 
 ## docs
 
-docs-venv:
-    test -d venv || python3 -m venv venv
-    fish -c 'if set -q GH_TOKEN_MKDOCS_MATERIAL; source venv/bin/activate.fish; and pip3 install -r docs/requirements-insiders.txt; else; source venv/bin/activate.fish; and pip3 install -r docs/requirements.txt; end'
+# Install docs dependencies
+docs-install:
+	cd docs && bun install
 
-docs-mike ARG:
-		fish -c 'source venv/bin/activate.fish && mike {{ ARG }}'
+# Run docs development server
+docs-dev:
+	cd docs && bun run dev
 
-docs-serve:
-		fish -c 'source venv/bin/activate.fish && mkdocs --version && mkdocs serve -a localhost:5555'
-
+# Build docs for production
 docs-build:
-		fish -c 'source venv/bin/activate.fish && mkdocs --version && CI={{CI}} mkdocs build'
+	cd docs && bun run build
 
-docs-deploy:
-		fish -c 'source venv/bin/activate.fish && mkdocs --version && mkdocs gh-deploy'
+# Preview production build
+docs-preview:
+	cd docs && bun run preview
+
+# Lint docs markdown files
+docs-lint:
+	cd docs && bun x markdownlint-cli2 "src/content/**/*.{md,mdx}"
 
 ## git
 

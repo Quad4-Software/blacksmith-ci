@@ -1,0 +1,147 @@
+---
+title: "Docker Compose"
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+Deploy Crow CI using Docker Compose or Docker Swarm.
+
+## Prerequisites
+
+- Docker and Docker Compose installed
+- OAuth application created on your forge
+- Domain configured (for production)
+
+## Volumes
+
+| Path | Purpose |
+| --- | --- |
+| `/var/lib/crow` | Server data (SQLite database, critical to persist) |
+| `/etc/crow` | Agent configuration (persist to avoid duplicate registrations) |
+
+## Docker Compose
+
+<Steps>
+
+1. Create a `.env` file with your configuration:
+
+    ```sh
+    CROW_HOST=https://ci.example.com
+    CROW_AGENT_SECRET=your-secret-here
+    CROW_GITHUB_CLIENT=your-oauth-client
+    CROW_GITHUB_SECRET=your-oauth-secret
+    ```
+
+2. Create `docker-compose.yml`:
+
+    ```yaml
+    services:
+      server:
+        image: codeberg.org/crowci/crow-server:<version>
+        ports:
+          - "8000:8000"
+        volumes:
+          - crow-server:/var/lib/crow
+        environment:
+          - CROW_OPEN=true
+          - CROW_HOST=${CROW_HOST}
+          - CROW_AGENT_SECRET=${CROW_AGENT_SECRET}
+          - CROW_GITHUB=true
+          - CROW_GITHUB_CLIENT=${CROW_GITHUB_CLIENT}
+          - CROW_GITHUB_SECRET=${CROW_GITHUB_SECRET}
+
+      agent:
+        image: codeberg.org/crowci/crow-agent:<version>
+        restart: always
+        depends_on:
+          - server
+        volumes:
+          - crow-agent:/etc/crow
+          - /var/run/docker.sock:/var/run/docker.sock
+        environment:
+          - CROW_SERVER=server:9000
+          - CROW_AGENT_SECRET=${CROW_AGENT_SECRET}
+
+    volumes:
+      crow-server:
+      crow-agent:
+    ```
+
+3. Start Crow:
+
+    ```sh
+    docker compose up -d
+    ```
+
+4. Access the UI at `http://localhost:8000` and log in with your forge account.
+
+</Steps>
+
+:::tip
+Replace `CROW_GITHUB=true` with your forge type. See [Forge Configuration](/v4-5/configuration/env-vars/forge/).
+:::
+
+### Adding the Autoscaler
+
+The autoscaler is optional. See [Autoscaler Configuration](/v4-5/configuration/autoscaler/) for details.
+
+```yaml
+  autoscaler:
+    image: codeberg.org/crowci/crow-autoscaler:v4
+    restart: always
+    depends_on:
+      - server
+    environment:
+      - CROW_SERVER=https://ci.example.com
+      - CROW_TOKEN=${CROW_TOKEN}
+      - CROW_GRPC_ADDR=https://grpc.ci.example.com
+      - CROW_GRPC_SECURE=true
+      - CROW_PROVIDER=hetznercloud
+      - CROW_HETZNERCLOUD_API_TOKEN=${HETZNER_TOKEN}
+```
+
+## Docker Swarm
+
+For Swarm deployments, use NFS volumes for persistence across nodes:
+
+```yaml
+services:
+  server:
+    image: codeberg.org/crowci/crow-server:v4
+    networks:
+      - traefik-public
+      - crowci
+    deploy:
+      replicas: 1
+    volumes:
+      - /nfs/crow/server:/var/lib/crow
+    environment:
+      CROW_OPEN: "true"
+      CROW_HOST: "https://${CROW_DOMAIN}"
+      CROW_FORGEJO: "true"
+      CROW_FORGEJO_URL: "${FORGEJO_URL}"
+      CROW_FORGEJO_CLIENT: "${FORGEJO_CLIENT}"
+      CROW_FORGEJO_SECRET: "${FORGEJO_SECRET}"
+
+  agent:
+    image: codeberg.org/crowci/crow-agent:v4
+    networks:
+      - crowci
+    depends_on:
+      - server
+    volumes:
+      - /nfs/crow/agent:/etc/crow
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      CROW_SERVER: "server:9000"
+      CROW_AGENT_SECRET: "${CROW_AGENT_SECRET}"
+
+networks:
+  crowci:
+```
+
+## Next Steps
+
+- [Reverse Proxy Setup](/v4-5/installation/proxy/) - Configure nginx, Caddy, or Traefik
+- [Server Configuration](/v4-5/configuration/server/) - All server options
+- [Agent Configuration](/v4-5/configuration/agent/) - Agent settings

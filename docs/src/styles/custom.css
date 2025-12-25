@@ -1,0 +1,153 @@
+/*
+ * Crow CI Custom Styles
+ *
+ * This file contains Crow-specific style overrides and customizations.
+ * Keep this file minimal - prefer using design tokens in base.css.
+ */
+
+@import "@astrojs/starlight-tailwind";
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@layer base, starlight, theme, components, utilities;
+
+/* ==========================================================================
+    Global Overrides
+    ========================================================================== */
+
+/* Remove border radius globally for sharper aesthetic */
+@layer theme {
+  * {
+    --radius-none: 0;
+    --radius-sm: 0;
+    --radius-md: 0;
+    --radius-lg: 0;
+    --radius-xl: 0;
+    --radius-2xl: 0;
+    --radius-3xl: 0;
+    --radius-full: 0;
+  }
+}
+
+@layer components {
+  * {
+    border-radius: 0 !important;
+  }
+}
+
+/* ==========================================================================
+    Sidebar Styles
+    ========================================================================== */
+
+/* Avoid flickering when switching between items */
+:where(.astro-3ii7xxms) {
+  border: 1px solid transparent;
+}
+
+/* Tab styling */
+.tab > [role="tab"] {
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
+}
+
+.tab > [role="tab"][aria-selected="true"] {
+  border-bottom: 2px solid var(--sl-color-text-accent) !important;
+}
+
+/* Sidebar hover states */
+.sidebar-content {
+  background-color: var(--crow-sidebar);
+}
+
+.sidebar-content a:hover,
+.sidebar-content a:focus {
+  background-color: var(--crow-sidebar-accent) !important;
+  color: var(--crow-sidebar-accent-foreground) !important;
+}
+
+/* ==========================================================================
+    Version Switcher
+    ========================================================================== */
+
+/* Hide the default starlight-versions switcher (we use custom one in SiteTitle) */
+starlight-version-select {
+  display: none !important;
+}
+
+/* Show only our custom version switcher in SiteTitle */
+.site-title-wrapper starlight-version-select {
+  display: flex !important;
+}
+
+/* ==========================================================================
+    Checkboxes (task lists)
+    ========================================================================== */
+
+/* Task list container */
+.contains-task-list {
+  list-style: none;
+  padding-left: 0.5rem;
+}
+
+.task-list-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+/* Base checkbox styling */
+.task-list-item input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 2px solid var(--sl-color-gray-4);
+  border-radius: 3px;
+  background: transparent;
+  cursor: default;
+  flex-shrink: 0;
+}
+
+/* Checked checkbox - green */
+.task-list-item input[type="checkbox"]:checked {
+  background-color: #22c55e;
+  border-color: #22c55e;
+  background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* ==========================================================================
+    Header Spacing
+    ========================================================================== */
+
+/* Normalize spacing between header elements (social links, theme toggle, search) */
+.nova-header {
+  gap: 1.5rem !important;
+}
+
+.nova-header-actions-lg {
+  gap: 1.5rem !important;
+}
+
+/* Social links consistent sizing */
+.social-icons a {
+  padding: 0.5rem;
+}
+
+/* ==========================================================================
+    Logo Styles
+    ========================================================================== */
+
+.crow-logo {
+  display: inline-block;
+  height: 1.5rem;
+  width: auto;
+}
+
+/* Invert logo for light mode if needed */
+[data-theme="light"] .crow-logo-invert {
+  filter: invert(1);
+}

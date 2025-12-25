@@ -1,0 +1,100 @@
+// @ts-check
+import { defineConfig } from 'astro/config';
+import starlight from '@astrojs/starlight';
+import starlightThemeNova from 'starlight-theme-nova';
+import tailwindcss from '@tailwindcss/vite';
+import markdoc from '@astrojs/markdoc';
+import starlightLinksValidator from 'starlight-links-validator';
+import starlightUtils from '@lorenzo_lewis/starlight-utils';
+import starlightScrollToTop from 'starlight-scroll-to-top';
+import starlightVersions from 'starlight-versions';
+import starlightImageZoom from 'starlight-image-zoom';
+import rehypeMermaid from 'rehype-mermaid';
+import rehypeFigure from '@microflash/rehype-figure';
+
+// https://astro.build/config
+export default defineConfig({
+  site: 'https://crowci.dev',
+  output: 'static',
+  trailingSlash: 'ignore',
+  integrations: [
+    markdoc(),
+    starlight({
+      title: 'Crow CI',
+      customCss: ['./src/styles/base.css', './src/styles/starlight-mappings.css', './src/styles/custom.css'],
+      head: [
+        {
+          tag: 'link',
+          attrs: {
+            rel: 'icon',
+            href: '/favicon.ico',
+            sizes: '32x32',
+          },
+        },
+        {
+          tag: 'link',
+          attrs: {
+            rel: 'icon',
+            href: '/favicon.svg',
+            type: 'image/svg+xml',
+          },
+        },
+      ],
+      components: {
+        SiteTitle: './src/components/SiteTitle.astro',
+        // Override Banner and PageTitle to remove version outdated warnings
+        Banner: './src/components/Banner.astro',
+        PageTitle: './src/components/PageTitle.astro',
+        // Custom theme switcher
+        ThemeProvider: './src/components/ThemeProvider.astro',
+        ThemeSelect: './src/components/ThemeSelect.astro',
+        // Add Liberapay donation link
+        SocialIcons: './src/components/SocialIcons.astro',
+      },
+      expressiveCode: {
+        themes: ['catppuccin-mocha', 'github-light'],
+        useStarlightDarkModeSwitch: true,
+        useStarlightUiThemeColors: false,
+        styleOverrides: { borderRadius: '0', codePaddingBlock: '0.8rem' },
+      },
+      plugins: [
+        starlightImageZoom(),
+        starlightVersions({
+          current: { label: 'v4.5 (latest)', redirect: 'root' },
+          versions: [
+            { slug: 'v4-5', label: 'v4.5' },
+            { slug: 'dev', label: 'dev' },
+          ],
+        }),
+        starlightThemeNova(),
+        starlightLinksValidator(),
+        starlightUtils({
+          multiSidebar: {
+            switcherStyle: 'horizontalList',
+          },
+        }),
+        starlightScrollToTop(),
+      ],
+      social: [
+        {
+          icon: 'codeberg',
+          label: 'Codeberg',
+          href: 'https://codeberg.org/crowci/crow',
+        },
+      ],
+      editLink: {
+        baseUrl: 'https://codeberg.org/crowci/crow/src/branch/main/docs/src/content/docs/',
+      },
+      // Sidebar is empty at root level - versioned docs use their own sidebar configs
+      sidebar: [],
+    }),
+  ],
+
+  markdown: {
+    rehypePlugins: [[rehypeMermaid, { strategy: 'inline-svg' }], rehypeFigure],
+  },
+
+  vite: {
+    plugins: [tailwindcss()],
+  },
+});

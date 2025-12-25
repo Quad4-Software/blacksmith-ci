@@ -3,32 +3,106 @@ when:
 
 clone:
   git:
-    image: reg.devxy.io/docker.io/thegeeklab/wp-git-clone:1.0.25
+    image: codeberg.org/crow-plugins/clone:1.0.2
+    settings:
+      tags: true
 
 depends_on:
   - version-dict
 
+labels:
+  agent: artemis
+
 steps:
-  - name: 'Build docs (tag)'
-    when:
-      - event: tag
+  - name: 'Check version type'
     image: alpine:3.23
+    commands:
+      - apk add --no-cache -q jq
+      # Extract version components (e.g., v4.5.0 -> major=4, minor=5, patch=0)
+      - |
+        VERSION="${CI_COMMIT_TAG#v}"
+        MAJOR=$(echo $VERSION | cut -d. -f1)
+        MINOR=$(echo $VERSION | cut -d. -f2)
+        PATCH=$(echo $VERSION | cut -d. -f3)
+        echo "VERSION=$VERSION MAJOR=$MAJOR MINOR=$MINOR PATCH=$PATCH"
+        # Check if this is a new minor/major version (patch == 0)
+        if [ "$PATCH" = "0" ]; then
+          echo "NEW_VERSION=true" >> .version-env
+          echo "VERSION_SLUG=v${MAJOR}-${MINOR}" >> .version-env
+          echo "VERSION_LABEL=v${MAJOR}.${MINOR}" >> .version-env
+        else
+          echo "NEW_VERSION=false" >> .version-env
+        fi
+        cat .version-env
+
+  - name: 'Create new version (minor/major only)'
+    image: oven/bun:1-alpine
     environment:
-      IS_CI: true
-      # https://github.com/squidfunk/mkdocs-material-insiders
-      MKDOCS_MATERIAL_VERSION: 9.6.15-insiders-4.53.16
-      GH_TOKEN_MKDOCS_MATERIAL:
-        from_secret: gh_token_mkdocs_material
       CODEBERG_BOT_TOKEN:
         from_secret: codeberg_bot_token
     commands:
-      - apk add --no-cache -q git py3-pip cairo just fish go pngquant
-      - python3 -m venv venv
+      - source .version-env
+      - |
+        if [ "$NEW_VERSION" != "true" ]; then
+          echo "Patch release - skipping version directory creation"
+          exit 0
+        fi
+      - apk add --no-cache -q git jq
       - git config --global user.email "admin@crowci.dev"
       - git config --global user.name "crowci-bot"
       - git remote set-url origin https://crowci-bot:$${CODEBERG_BOT_TOKEN}@codeberg.org/crowci/crow.git
-      # build & deploy
-      - sed -i 's/enabled:\ false/enabled:\ true/g' mkdocs.yaml
-      - just docs-venv
-      - just docs-mike "deploy --push --update-aliases --alias-type redirect $(echo ${CI_COMMIT_TAG#v} | cut -d. -f1,2) latest"
-      - mv site/domains site/.domains
+      # Create new version directory from dev
+      - cp -r docs/src/content/docs/dev "docs/src/content/docs/${VERSION_SLUG}"
+      # Create version sidebar config
+      - cp docs/src/content/versions/dev.json "docs/src/content/versions/${VERSION_SLUG}.json"
+      # Update astro.config.mjs - add new version to versions array
+      - |
+        cd docs
+        # Update the starlightVersions config using node
+        node -e "
+        const fs = require('fs');
+        let config = fs.readFileSync('astro.config.mjs', 'utf8');
+
+        // Find the versions array and add new version at the beginning
+        const newVersion = { slug: '${VERSION_SLUG}', label: '${VERSION_LABEL}' };
+        const versionsRegex = /(versions:\s*\[)/;
+        config = config.replace(versionsRegex, \`\$1\n            { slug: '${VERSION_SLUG}', label: '${VERSION_LABEL}' },\`);
+
+        // Update current version label
+        config = config.replace(/current:\s*\{[^}]+\}/, \"current: { label: '${VERSION_LABEL} (latest)', redirect: 'root' }\");
+
+        fs.writeFileSync('astro.config.mjs', config);
+        "
+      # Commit changes
+      - git add -A
+      - git commit -m "docs: add version ${VERSION_LABEL}"
+      - git push origin HEAD:${CI_REPO_DEFAULT_BRANCH}
+
+  - name: 'Install dependencies'
+    image: oven/bun:1-alpine
+    commands:
+      - cd docs && bun install --frozen-lockfile
+
+  - name: 'Build docs'
+    image: oven/bun:1-alpine
+    commands:
+      - cd docs && bun run build
+
+  - name: 'Deploy to Pages'
+    image: reg.devxy.io/docker.io/thegeeklab/wp-git-clone:1.0.25
+    environment:
+      CODEBERG_BOT_TOKEN:
+        from_secret: codeberg_bot_token
+    commands:
+      - git config --global user.email "admin@crowci.dev"
+      - git config --global user.name "crowci-bot"
+      - git remote set-url origin https://crowci-bot:$${CODEBERG_BOT_TOKEN}@codeberg.org/crowci/crow.git
+      # Deploy to pages branch
+      - git fetch origin pages:pages || git checkout --orphan pages
+      - git checkout pages
+      - rm -rf *
+      - cp -r docs/dist/* .
+      - echo "crowci.dev" > .domains
+      - git add -A
+      - git commit -m "[skip ci] Deploy docs ${CI_COMMIT_TAG}" || true
+      - git push origin pages

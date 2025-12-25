@@ -1,0 +1,159 @@
+---
+title: "Forge Integration"
+---
+
+Configuration for forge (Git hosting) integration.
+
+## OAuth Settings
+
+### FORGE_URL
+
+- Name: `CROW_FORGE_URL`
+- Description: URL of the forge.
+- Default: none
+
+---
+
+### FORGE_OAUTH_CLIENT
+
+- Name: `CROW_FORGE_CLIENT`
+- Description: OAuth2 client ID.
+- Default: none
+
+---
+
+### FORGE_OAUTH_SECRET
+
+- Name: `CROW_FORGE_SECRET`
+- Description: OAuth2 client secret.
+- Default: none
+
+---
+
+### FORGE_OAUTH_HOST
+
+- Name: `CROW_EXPERT_FORGE_OAUTH_HOST`
+- Description: Fully qualified public forge URL. Use it if your forge URL isn't a public URL. Format: `<scheme>://<host>[/<prefix path>]`
+- Default: none
+
+---
+
+### FORGE_SKIP_VERIFY
+
+- Name: `CROW_FORGE_SKIP_VERIFY`
+- Description: Skip SSL verification.
+- Default: `false`
+
+---
+
+### FORGE_TIMEOUT
+
+- Name: `CROW_FORGE_TIMEOUT`
+- Description: How many seconds before timeout when fetching the Crow configuration from a Forge.
+- Default: `5s`
+
+---
+
+### FORGE_RETRY
+
+- Name: `CROW_FORGE_RETRY`
+- Description: How many retries of fetching the Crow configuration from a forge are done before we fail.
+- Default: `3`
+
+---
+
+### AUTHENTICATE_PUBLIC_REPOS
+
+- Name: `CROW_AUTHENTICATE_PUBLIC_REPOS`
+- Description: Always use authentication to clone repositories even if they are public. Needed if the SCM requires to always authenticate as used by many companies.
+- Default: `false`
+
+---
+
+### ADDON_FORGE
+
+- Name: `CROW_ADDON_FORGE`
+- Description: Path to forge addon executable.
+- Default: none
+
+---
+
+## Forge Drivers
+
+### FORGEJO
+
+- Name: `CROW_FORGEJO`
+- Description: Forgejo driver is enabled.
+- Default: `false`
+
+---
+
+### GITEA
+
+- Name: `CROW_GITEA`
+- Description: Gitea driver is enabled.
+- Default: `false`
+
+---
+
+### GITHUB
+
+- Name: `CROW_GITHUB`
+- Description: GitHub driver is enabled.
+- Default: `false`
+
+---
+
+### GITHUB_MERGE_REF
+
+- Name: `CROW_GITHUB_MERGE_REF`
+- Description: GitHub pull requests use merge ref.
+- Default: `true`
+
+---
+
+### GITHUB_PUBLIC_ONLY
+
+- Name: `CROW_GITHUB_PUBLIC_ONLY`
+- Description: GitHub tokens should only get access to public repos.
+- Default: `false`
+
+---
+
+### GITLAB
+
+- Name: `CROW_GITLAB`
+- Description: GitLab driver is enabled.
+- Default: `false`
+
+---
+
+### BITBUCKET
+
+- Name: `CROW_BITBUCKET`
+- Description: Bitbucket driver is enabled.
+- Default: `false`
+
+---
+
+### BITBUCKET_DC
+
+- Name: `CROW_BITBUCKET_DC`
+- Description: Bitbucket DataCenter/Server driver is enabled.
+- Default: `false`
+
+---
+
+### BITBUCKET_DC_GIT_USERNAME
+
+- Name: `CROW_BITBUCKET_DC_GIT_USERNAME`
+- Description: Bitbucket DataCenter/Server service account username.
+- Default: none
+
+---
+
+### BITBUCKET_DC_GIT_PASSWORD
+
+- Name: `CROW_BITBUCKET_DC_GIT_PASSWORD`
+- Description: Bitbucket DataCenter/Server service account password.
+- Default: none

@@ -1,0 +1,34 @@
+{
+  "name": "crow-docs",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build:astro": "astro build",
+    "build:pagefind": "pagefind --site dist",
+    "build": "bun run build:astro && bun run build:pagefind",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/markdoc": "0.15.10",
+    "@astrojs/starlight": "0.37.1",
+    "@astrojs/starlight-markdoc": "^0.5.1",
+    "@astrojs/starlight-tailwind": "^4.0.2",
+    "@lorenzo_lewis/starlight-utils": "^0.3.2",
+    "@microflash/rehype-figure": "^2.1.4",
+    "@tailwindcss/vite": "^4.1.18",
+    "astro": "5.16.5",
+    "pagefind": "^1.4.0",
+    "playwright": "^1.57.0",
+    "rehype-mermaid": "^3.0.0",
+    "sharp": "^0.34.5",
+    "starlight-image-zoom": "^0.13.2",
+    "starlight-links-validator": "^0.19.2",
+    "starlight-scroll-to-top": "^0.4.0",
+    "starlight-theme-nova": "^0.10.0",
+    "starlight-versions": "^0.5.6",
+    "tailwindcss": "^4.1.18"
+  }
+}

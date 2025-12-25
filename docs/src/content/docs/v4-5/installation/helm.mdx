@@ -1,0 +1,180 @@
+---
+title: "Helm"
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+Deploy Crow CI on Kubernetes using the [official Helm chart](https://codeberg.org/crowci/helm).
+
+## Installation
+
+<Steps>
+
+1. Add the Helm repository:
+
+    ```bash
+    helm repo add crowci https://codeberg.org/api/packages/crowci/helm
+    ```
+
+2. Install the chart:
+
+    ```bash
+    helm install crow crowci/crow
+    ```
+
+</Steps>
+
+Or use OCI directly:
+
+```bash
+helm install crow oci://codeberg.org/crowci/crow
+```
+
+## Configuration
+
+### Agent Secret
+
+By default, `createAgentSecret: true` creates a shared secret for server-agent authentication. The default agents are automatically configured.
+
+### Workflow Volume Size
+
+Set `CROW_BACKEND_K8S_VOLUME_SIZE` for temporary workflow volumes:
+
+```yaml
+server:
+  env:
+    CROW_BACKEND_K8S_VOLUME_SIZE: "2Gi"
+```
+
+:::tip
+Create a storage class with `reclaimPolicy: Delete` so temporary volumes are cleaned up after workflows complete.
+:::
+
+### Sensitive Secrets
+
+Inject sensitive values from Kubernetes secrets:
+
+```yaml
+extraSecretNamesForEnvFrom:
+  - my-crow-secrets
+```
+
+Common sensitive values:
+- `CROW_DATABASE_DATASOURCE`
+- `CROW_FORGEJO_SECRET` (OAuth)
+- `CROW_AGENT_SECRET` (if not using auto-generated)
+
+## External Agents
+
+To allow external agents to register, enable TLS-secured GRPC ingress:
+
+```yaml
+server:
+  env:
+    CROW_GRPC_SECURE: "true"
+
+ingress:
+  grpc:
+    enabled: true
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-dns01-prod"
+      kubernetes.io/ingress.class: nginx
+    hosts:
+      - host: grpc.example.com
+        paths:
+          - path: /
+    tls:
+      - hosts:
+          - grpc.example.com
+        secretName: grpc-example-com-tls
+```
+
+## Agent Affinity
+
+Spread agent pods across nodes:
+
+```yaml
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+                - agent
+        topologyKey: kubernetes.io/hostname
+```
+
+## Encryption at Rest
+
+Crow encrypts secrets using [Google Tink](https://developers.google.com/tink).
+
+<Steps>
+
+1. Generate a keyset:
+
+    ```bash
+    tinkey create-keyset --key-template AES256_GCM --out-format json --out tink-keyset.json
+    ```
+
+2. Create a Kubernetes secret:
+
+    ```bash
+    kubectl create secret generic crow-encryption-keyset \
+      --from-file=tink-keyset.json=./tink-keyset.json
+    ```
+
+3. Enable in values:
+
+    ```yaml
+    server:
+      encryption:
+        enabled: true
+        existingSecret: crow-encryption-keyset
+        keysetKey: tink-keyset.json
+    ```
+
+</Steps>
+
+:::caution
+Keep your keyset secure. Lost keysets cannot decrypt existing data.
+:::
+
+### Disabling Encryption
+
+To decrypt existing data before disabling:
+
+```yaml
+server:
+  encryption:
+    disable: true
+    existingSecret: crow-encryption-keyset
+    keysetKey: tink-keyset.json
+```
+
+Wait for decryption to complete (check logs), then remove the configuration.
+
+## Metrics
+
+Enable Prometheus metrics:
+
+```yaml
+metrics:
+  enabled: true
+  port: 9001
+
+prometheus:
+  podmonitor:
+    enabled: true
+    interval: 60s
+```
+
+If metrics aren't collected, verify Prometheus namespace selectors:
+
+```yaml
+podMonitorNamespaceSelector:
+  matchLabels: {}
+podMonitorSelector:
+  matchLabels: {}
+```

@@ -1,9 +1,9 @@
 when:
   - event: push
     branch: ${CI_REPO_DEFAULT_BRANCH}
-    path: ['docs/**', '.crow/docs.yaml', 'mkdocs.yaml']
+    path: ['docs/**', '.crow/docs.yaml']
   - event: [pull_request, pull_request_closed]
-    path: ['docs/**', '.crow/docs.yaml', 'mkdocs.yaml']
+    path: ['docs/**', '.crow/docs.yaml']
 
 clone:
   git:
@@ -13,59 +13,53 @@ labels:
   agent: artemis
 
 steps:
+  - name: 'Install dependencies'
+    image: oven/bun:1-alpine
+    commands:
+      - cd docs && bun install --frozen-lockfile
+
   - name: 'Build docs'
-    image: reg.devxy.io/docker.io/library/alpine:3.23
+    image: oven/bun:1-alpine
+    commands:
+      - cd docs && bun run build
+    when:
+      - event: push
+        branch: ${CI_REPO_DEFAULT_BRANCH}
+
+  - name: 'Deploy to Pages'
+    image: reg.devxy.io/docker.io/thegeeklab/wp-git-clone:1.0.25
     environment:
-      IS_CI: true
-      # https://github.com/squidfunk/mkdocs-material-insiders
-      MKDOCS_MATERIAL_VERSION: 9.6.15-insiders-4.53.16
-      GH_TOKEN_MKDOCS_MATERIAL:
-        from_secret: gh_token_mkdocs_material
       CODEBERG_BOT_TOKEN:
         from_secret: codeberg_bot_token
     commands:
-      - apk add --no-cache -q git py3-pip cairo just fish go pngquant
-      - python3 -m venv venv
       - git config --global user.email "admin@crowci.dev"
       - git config --global user.name "crowci-bot"
       - git remote set-url origin https://crowci-bot:$${CODEBERG_BOT_TOKEN}@codeberg.org/crowci/crow.git
-      # build & deploy
-      - sed -i 's/enabled:\ false/enabled:\ true/g' mkdocs.yaml
-      - just docs-venv
-      - just docs-mike "deploy dev --update-aliases --push"
-      - mv site/domains site/.domains
+      # Deploy to pages branch
+      - git fetch origin pages:pages || git checkout --orphan pages
+      - git checkout pages
+      - rm -rf *
+      - cp -r docs/dist/* .
+      - echo "crowci.dev" > .domains
+      - git add -A
+      - git commit -m "[skip ci] Deploy docs ${CI_COMMIT_SHA:0:10}" || true
+      - git push origin pages
     when:
       - event: push
         branch: ${CI_REPO_DEFAULT_BRANCH}
 
   - name: 'Build docs (PR)'
-    image: reg.devxy.io/docker.io/library/alpine:3.23
-    environment:
-      IS_CI: true
-      # https://github.com/squidfunk/mkdocs-material-insiders
-      MKDOCS_MATERIAL_VERSION: 9.6.15-insiders-4.53.16
-      GH_TOKEN_MKDOCS_MATERIAL:
-        from_secret: gh_token_mkdocs_material
-      CODEBERG_BOT_TOKEN:
-        from_secret: codeberg_bot_token
+    image: oven/bun:1-alpine
     commands:
-      - apk add --no-cache -q git py3-pip cairo just fish go pngquant
-      - python3 -m venv venv
-      - git config --global user.email "admin@crowci.dev"
-      - git config --global user.name "crowci-bot"
-      - git remote set-url origin https://crowci-bot:$${CODEBERG_BOT_TOKEN}@codeberg.org/crowci/crow.git
-      # build & deploy
-      - sed -i 's/enabled:\ false/enabled:\ true/g' mkdocs.yaml
-      - just docs-venv
-      - just docs-build
-      - mv site/domains site/.domains
+      - cd docs && bun install --frozen-lockfile
+      - cd docs && bun run build
     when:
       - event: pull_request
 
-  - name: PR docs preview
+  - name: 'PR docs preview'
     image: reg.devxy.io/docker.io/woodpeckerci/plugin-surge-preview:1.4.1
     settings:
-      path: 'site/'
+      path: 'docs/dist/'
       surge_token:
         from_secret: surge_token
       forge_repo_token:

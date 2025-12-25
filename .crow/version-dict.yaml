@@ -6,8 +6,8 @@ clone:
   git:
     image: codeberg.org/crow-plugins/clone:1.0.2
     settings:
-      branch: gh-pages
-      ref: gh-pages
+      branch: pages
+      ref: pages
       depth: 0
 
 steps:
@@ -38,7 +38,7 @@ steps:
     image: reg.devxy.io/docker.io/appleboy/drone-git-push:1.1.1
     settings:
       remote: ${CI_REPO_CLONE_SSH_URL}
-      branch: gh-pages
+      branch: pages
       commit: true
       force: true
       ssh_key:

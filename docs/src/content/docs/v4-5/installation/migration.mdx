@@ -1,0 +1,41 @@
+---
+title: "Migration"
+---
+
+Crow CI maintains compatibility with Woodpecker CI and Drone CI, making migration straightforward.
+
+## Compatibility
+
+| Feature | Woodpecker | Drone |
+| --- | --- | --- |
+| Plugins | Full | Full |
+| Environment variables | `WOODPECKER_*` supported | `DRONE_*` supported |
+| Pipeline syntax | Full | Partial (2019 fork) |
+
+## From Woodpecker
+
+Crow v4 is a soft-fork of Woodpecker CI with some additional database migrations.
+
+### Environment Variables
+
+Crow accepts both prefixes:
+- `CROW_*` — native Crow configuration
+- `WOODPECKER_*` — supported for migration convenience
+
+:::note
+New Woodpecker features after v3.0 may not be available in Crow. Crow-specific features use the `CROW_` prefix.
+:::
+
+### Migration Steps
+
+1. Replace container images with Crow equivalents
+2. Optionally rename `WOODPECKER_*` vars to `CROW_*`
+3. Update webhook URLs if using a different domain
+
+## From Drone
+
+Woodpecker forked from Drone in 2019, and Crow inherits that compatibility. Drone plugins work with Crow.
+
+:::tip
+Drone and its plugins have received minimal updates since 2019. Migrating to Crow gives you active development and modern features while keeping plugin compatibility.
+:::

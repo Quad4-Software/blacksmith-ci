@@ -1,0 +1,105 @@
+/*
+ * Crow CI Design Tokens
+ *
+ * This file defines the core design tokens (colors, fonts, spacing) for Crow CI docs.
+ * These tokens are then mapped to Starlight variables in starlight-mappings.css.
+ *
+ * Color palette:
+ * - Primary: Orange (#f47003) - Crow CI brand color
+ * - Background: Neutral grays
+ * - Accent: Derived from primary
+ */
+
+:root {
+  /* ==========================================================================
+      Light Theme
+      ========================================================================== */
+
+  /* Core Colors */
+  --crow-background: oklch(1 0 0);
+  --crow-foreground: oklch(0.145 0 0);
+
+  /* Card/Surface Colors */
+  --crow-card: oklch(0.985 0 0);
+  --crow-card-foreground: oklch(0.145 0 0);
+
+  /* Primary - Crow Orange */
+  --crow-primary: oklch(0.65 0.18 45); /* #f47003 approximation */
+  --crow-primary-foreground: oklch(1 0 0);
+
+  /* Secondary */
+  --crow-secondary: oklch(0.97 0 0);
+  --crow-secondary-foreground: oklch(0.2 0 0);
+
+  /* Muted */
+  --crow-muted: oklch(0.97 0 0);
+  --crow-muted-foreground: oklch(0.5 0 0);
+
+  /* Accent */
+  --crow-accent: oklch(0.97 0.01 45);
+  --crow-accent-foreground: oklch(0.2 0 0);
+
+  /* Borders */
+  --crow-border: oklch(0.9 0 0);
+  --crow-input: oklch(0.9 0 0);
+  --crow-ring: oklch(0.65 0.18 45);
+
+  /* Sidebar */
+  --crow-sidebar: oklch(0.985 0 0);
+  --crow-sidebar-foreground: oklch(0.145 0 0);
+  --crow-sidebar-accent: oklch(0.95 0.02 45);
+  --crow-sidebar-accent-foreground: oklch(0.2 0 0);
+  --crow-sidebar-border: oklch(0.9 0 0);
+
+  /* Typography */
+  --crow-font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --crow-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+
+  /* Spacing & Borders */
+  --crow-radius: 0rem;
+}
+
+/* ==========================================================================
+    Dark Theme
+    ========================================================================== */
+
+:root[data-theme="dark"] {
+  /* Core Colors */
+  --crow-background: oklch(0.15 0 0);
+  --crow-foreground: oklch(0.985 0 0);
+
+  /* Card/Surface Colors */
+  --crow-card: oklch(0.2 0 0);
+  --crow-card-foreground: oklch(0.985 0 0);
+
+  /* Primary - Crow Orange (slightly lighter for dark mode) */
+  --crow-primary: oklch(0.7 0.18 45);
+  --crow-primary-foreground: oklch(0.15 0 0);
+
+  /* Secondary */
+  --crow-secondary: oklch(0.25 0 0);
+  --crow-secondary-foreground: oklch(0.985 0 0);
+
+  /* Muted */
+  --crow-muted: oklch(0.25 0 0);
+  --crow-muted-foreground: oklch(0.7 0 0);
+
+  /* Accent */
+  --crow-accent: oklch(0.35 0.02 45);
+  --crow-accent-foreground: oklch(0.985 0 0);
+
+  /* Borders */
+  --crow-border: oklch(0.28 0 0);
+  --crow-input: oklch(0.32 0 0);
+  --crow-ring: oklch(0.7 0.18 45);
+
+  /* Sidebar */
+  --crow-sidebar: oklch(0.2 0 0);
+  --crow-sidebar-foreground: oklch(0.985 0 0);
+  --crow-sidebar-accent: oklch(0.35 0.02 45);
+  --crow-sidebar-accent-foreground: oklch(0.985 0 0);
+  --crow-sidebar-border: oklch(0.28 0 0);
+}
