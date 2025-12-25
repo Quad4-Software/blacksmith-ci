@@ -49,3 +49,11 @@ func TestStringOrSliceYaml(t *testing.T) {
 	assert.NoError(t, yaml.Unmarshal([]byte(str), &s))
 	assert.Nil(t, s.Foo)
 }
+
+func TestStringOrSliceWithColon(t *testing.T) {
+	// Test string with colon - YAML may parse as map, should be reconstructed as string
+	str := `{foo: [git commit -m "docs: add version"]}`
+	s := StructStringOrSlice{}
+	assert.NoError(t, yaml.Unmarshal([]byte(str), &s))
+	assert.Equal(t, StringOrSlice{`git commit -m "docs: add version"`}, s.Foo)
+}

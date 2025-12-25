@@ -66,9 +66,33 @@ func toStrings(s []any) ([]string, error) {
 	for k, v := range s {
 		if sv, ok := v.(string); ok {
 			r[k] = sv
+		} else if mv, ok := v.(map[string]any); ok {
+			// Handle case where YAML parsed a string with colon as a map
+			// e.g., `git commit -m "docs: add version"` becomes map["git commit -m \"docs": "add version\""]
+			r[k] = mapToString(mv)
 		} else {
 			return nil, fmt.Errorf("cannot unmarshal '%v' of type %T into a string value", v, v)
 		}
 	}
 	return r, nil
+}
+
+// mapToString reconstructs a string from a map that was incorrectly parsed
+// due to YAML interpreting a colon as a key-value separator.
+func mapToString(m map[string]any) string {
+	var result string
+	for key, val := range m {
+		if result != "" {
+			result += " "
+		}
+		switch v := val.(type) {
+		case string:
+			result += key + ": " + v
+		case nil:
+			result += key
+		default:
+			result += fmt.Sprintf("%s: %v", key, v)
+		}
+	}
+	return result
 }
