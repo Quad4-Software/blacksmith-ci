@@ -39,6 +39,16 @@ export default defineConfig({
             type: 'image/svg+xml',
           },
         },
+        {
+          tag: 'script',
+          attrs: {
+            type: 'module',
+          },
+          content: `
+            import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+            mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+          `,
+        },
       ],
       components: {
         SiteTitle: './src/components/SiteTitle.astro',
@@ -91,7 +101,7 @@ export default defineConfig({
   ],
 
   markdown: {
-    rehypePlugins: [[rehypeMermaid, { strategy: 'inline-svg' }], rehypeFigure],
+    rehypePlugins: [[rehypeMermaid, { strategy: 'pre-mermaid' }], rehypeFigure],
   },
 
   vite: {

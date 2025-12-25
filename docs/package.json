@@ -21,7 +21,6 @@
     "@tailwindcss/vite": "^4.1.18",
     "astro": "5.16.5",
     "pagefind": "^1.4.0",
-    "playwright": "^1.57.0",
     "rehype-mermaid": "^3.0.0",
     "sharp": "^0.34.5",
     "starlight-image-zoom": "^0.13.2",
