@@ -19,7 +19,7 @@ steps:
       apk add -q --no-cache curl jq sed
       git sv rn -o changelog.md
       export RELEASE_NOTES=$(cat changelog.md)
-      export ISSUE_NUMBER=$(curl -s "https://codeberg.org/api/v1/repos/crowci/crow/issues?state=open" | jq -r '.[] | select(.title == "Changelog for upcoming version") | .number // empty')
+      export ISSUE_NUMBER=$(curl -s "https://codeberg.org/api/v1/repos/crowci/crow/issues?state=open" | jq -r '[.[] | select(.title == "Changelog for upcoming version")] | first | .number // empty')
 
       echo "RELEASE_NOTES: '$RELEASE_NOTES'"
       echo "ISSUE_NUMBER: '$ISSUE_NUMBER'"
