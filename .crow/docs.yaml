@@ -5,10 +5,6 @@ when:
   - event: [pull_request, pull_request_closed]
     path: ['docs/**', '.crow/docs.yaml']
 
-clone:
-  git:
-    image: reg.devxy.io/docker.io/thegeeklab/wp-git-clone:1.0.25
-
 labels:
   agent: artemis
 
