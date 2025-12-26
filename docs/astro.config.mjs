@@ -27,15 +27,15 @@ export default defineConfig({
           tag: 'link',
           attrs: {
             rel: 'icon',
-            href: '/favicon.ico',
-            sizes: '32x32',
+            href: '/favicon.png',
+            type: 'image/png',
           },
         },
         {
           tag: 'link',
           attrs: {
             rel: 'icon',
-            href: '/favicon.svg',
+            href: '/logo.svg',
             type: 'image/svg+xml',
           },
         },
