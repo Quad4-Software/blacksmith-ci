@@ -1,7 +1,7 @@
 when:
   - event: push
     branch: ${CI_REPO_DEFAULT_BRANCH}
-    path: ['docs/**', '.crow/docs.yaml']
+    path: ['docs/**', '.crow/docs.yaml', '.crow/docs-release.yaml']
   - event: [pull_request, pull_request_closed]
     path: ['docs/**', '.crow/docs.yaml']
 
