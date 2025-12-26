@@ -15,7 +15,11 @@ steps:
     image: alpine:3.23
     commands:
       - apk add --no-cache -q yq curl
-      - curl -sL https://crowci.dev/crow-versions.json -o crow-versions.json
+      - |
+        # Fetch existing versions file, or create default if not found
+        if ! curl -sfL https://crowci.dev/crow-versions.json -o crow-versions.json; then
+          echo '[{"latest": "", "dev": "", "rc": ""}]' > crow-versions.json
+        fi
       - yq -iP '.[0].dev = "dev-${CI_COMMIT_SHA:0:10}"' crow-versions.json
     when:
       - event: deployment
@@ -25,6 +29,11 @@ steps:
     image: alpine:3.23
     commands:
       - apk add --no-cache -q yq
+      - |
+        # Create default file if it doesn't exist (first run after migration)
+        if [ ! -f crow-versions.json ]; then
+          echo '[{"latest": "", "dev": "", "rc": ""}]' > crow-versions.json
+        fi
       - |
         if echo "${CI_COMMIT_TAG}" | grep -q "\-rc"; then
           yq -iP '.[0].rc = "${CI_COMMIT_TAG}"' crow-versions.json
