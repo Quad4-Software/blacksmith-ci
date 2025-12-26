@@ -16,6 +16,7 @@ package repo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -33,7 +34,19 @@ var repoUpdateCmd = &cli.Command{
 	Flags: []cli.Flag{
 		&cli.BoolFlag{
 			Name:  "trusted",
-			Usage: "repository is trusted",
+			Usage: "set all trusted settings (network, volumes, security) to true",
+		},
+		&cli.BoolFlag{
+			Name:  "trusted-network",
+			Usage: "allow trusted network access",
+		},
+		&cli.BoolFlag{
+			Name:  "trusted-volumes",
+			Usage: "allow trusted volume mounts",
+		},
+		&cli.BoolFlag{
+			Name:  "trusted-security",
+			Usage: "allow trusted security settings (privileged mode)",
 		},
 		&cli.StringFlag{
 			Name:  "require-approval",
@@ -87,15 +100,40 @@ func repoUpdate(ctx context.Context, c *cli.Command) error {
 		timeout              = c.Duration("timeout")
 		LogsPipelinesKeepMin = int(c.Int64("logs-pipelines-keep-min"))
 		LogsDurationKeep     = c.String("logs-duration-keep")
-		trusted              = c.Bool("trusted")
 		requireApproval      = c.String("require-approval")
 		pipelineCounter      = int(c.Int64("pipeline-counter"))
 		unsafe               = c.Bool("unsafe")
 	)
 
 	patch := new(crow.RepoPatch)
-	if c.IsSet("trusted") {
-		patch.IsTrusted = &trusted
+
+	// Handle trusted flags - either the convenience --trusted flag or individual flags
+	if c.IsSet("trusted") || c.IsSet("trusted-network") || c.IsSet("trusted-volumes") || c.IsSet("trusted-security") {
+		trustedPatch := &crow.TrustedConfigurationPatch{}
+
+		// If --trusted is set, it sets all three to true
+		if c.IsSet("trusted") {
+			allTrue := true
+			trustedPatch.Network = &allTrue
+			trustedPatch.Volumes = &allTrue
+			trustedPatch.Security = &allTrue
+		}
+
+		// Individual flags override the --trusted flag if specified
+		if c.IsSet("trusted-network") {
+			v := c.Bool("trusted-network")
+			trustedPatch.Network = &v
+		}
+		if c.IsSet("trusted-volumes") {
+			v := c.Bool("trusted-volumes")
+			trustedPatch.Volumes = &v
+		}
+		if c.IsSet("trusted-security") {
+			v := c.Bool("trusted-security")
+			trustedPatch.Security = &v
+		}
+
+		patch.Trusted = trustedPatch
 	}
 
 	if c.IsSet("require-approval") {
@@ -134,6 +172,13 @@ func repoUpdate(ctx context.Context, c *cli.Command) error {
 
 	repo, err := client.RepoPatch(repoID, patch)
 	if err != nil {
+		// Provide helpful context for permission errors when using trusted flags
+		if patch.Trusted != nil {
+			clientErr := &crow.ClientError{}
+			if errors.As(err, &clientErr) {
+				return fmt.Errorf("%w\nNote: Changing trusted settings requires instance admin privileges", err)
+			}
+		}
 		return err
 	}
 

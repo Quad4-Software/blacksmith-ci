@@ -196,7 +196,7 @@ func MustAdmin() gin.HandlerFunc {
 			c.String(http.StatusUnauthorized, "User not authorized")
 			c.Abort()
 		case !user.Admin:
-			c.String(http.StatusForbidden, "User not authorized")
+			c.String(http.StatusForbidden, "Instance admin privileges required")
 			c.Abort()
 		default:
 			c.Next()
@@ -213,7 +213,7 @@ func MustRepoAdmin() gin.HandlerFunc {
 			c.String(http.StatusUnauthorized, "User not authorized")
 			c.Abort()
 		case !perm.Admin:
-			c.String(http.StatusForbidden, "User not authorized")
+			c.String(http.StatusForbidden, "Repository admin privileges required")
 			c.Abort()
 		default:
 			c.Next()

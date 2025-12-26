@@ -256,7 +256,9 @@ func PatchRepo(c *gin.Context) {
 	in := new(model.RepoPatch)
 	if err := c.Bind(in); err != nil {
 		log.Error().Err(err).Msg("Failed to bind request body")
-		_ = c.AbortWithError(http.StatusBadRequest, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Sprintf("Invalid request body: %v. Endpoint: %s %s", err, c.Request.Method, c.Request.URL.Path),
+		})
 		return
 	}
 
@@ -289,10 +291,15 @@ func PatchRepo(c *gin.Context) {
 	}
 
 	if in.Trusted != nil {
-		if (*in.Trusted.Network != repo.Trusted.Network || *in.Trusted.Volumes != repo.Trusted.Volumes || *in.Trusted.Security != repo.Trusted.Security) && !user.Admin {
+		// Check if any trusted settings are actually being changed
+		changingNetwork := in.Trusted.Network != nil && *in.Trusted.Network != repo.Trusted.Network
+		changingVolumes := in.Trusted.Volumes != nil && *in.Trusted.Volumes != repo.Trusted.Volumes
+		changingSecurity := in.Trusted.Security != nil && *in.Trusted.Security != repo.Trusted.Security
+
+		if (changingNetwork || changingVolumes || changingSecurity) && !user.Admin {
 			log.Trace().Msgf("user '%s' wants to change trusted without being an instance admin", user.Login)
 			c.JSON(http.StatusForbidden, gin.H{
-				"error": fmt.Sprintf("Insufficient privileges to change security settings. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
+				"error": "Instance admin privileges required to change trusted repository settings",
 			})
 			return
 		}

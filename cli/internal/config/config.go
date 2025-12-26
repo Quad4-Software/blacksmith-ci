@@ -2,8 +2,10 @@ package config
 
 import (
 	"context"
-	"errors"
+	"fmt"
+	"os"
 	"slices"
+	"strings"
 
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v3"
@@ -28,8 +30,14 @@ func Load(ctx context.Context, c *cli.Command) error {
 	}
 
 	if config.ServerURL == "" || config.Token == "" {
-		log.Info().Msg("crow-cli requires configuration via environment variables (CROW_SERVER & CROW_TOKEN) or command line flags (--server <url> --token <token>)")
-		return errors.New("crow-cli is not configured")
+		fmt.Fprintln(os.Stderr, "crow-cli requires configuration via environment variables (CROW_SERVER & CROW_TOKEN) or command line flags (--server <url> --token <token>)")
+		return fmt.Errorf("missing required configuration")
+	}
+
+	if !strings.HasPrefix(config.ServerURL, "http://") && !strings.HasPrefix(config.ServerURL, "https://") {
+		fmt.Fprintf(os.Stderr, "Server address %q is missing protocol scheme.\n", config.ServerURL)
+		fmt.Fprintf(os.Stderr, "Please set CROW_SERVER with http:// or https:// prefix (e.g. CROW_SERVER=https://%s)\n", config.ServerURL)
+		return fmt.Errorf("invalid server configuration")
 	}
 
 	err = c.Set("server", config.ServerURL)

@@ -53,6 +53,14 @@ type (
 		Security bool `json:"security"`
 	}
 
+	// TrustedConfigurationPatch defines a patch for trusted repository settings.
+	// Nil fields mean "don't change".
+	TrustedConfigurationPatch struct {
+		Network  *bool `json:"network,omitempty"`
+		Volumes  *bool `json:"volumes,omitempty"`
+		Security *bool `json:"security,omitempty"`
+	}
+
 	// Repo represents a repository.
 	Repo struct {
 		ID                           int64                `json:"id,omitempty"`
@@ -81,15 +89,15 @@ type (
 
 	// RepoPatch defines a repository patch request.
 	RepoPatch struct {
-		Config               *string       `json:"config_file,omitempty"`
-		IsTrusted            *bool         `json:"trusted,omitempty"`
-		RequireApproval      *ApprovalMode `json:"require_approval,omitempty"`
-		Timeout              *int64        `json:"timeout,omitempty"`
-		Visibility           *string       `json:"visibility"`
-		AllowPull            *bool         `json:"allow_pr,omitempty"`
-		PipelineCounter      *int          `json:"pipeline_counter,omitempty"`
-		LogsPipelinesKeepMin *int64        `json:"logs_keep_min"`
-		LogsDurationKeep     *string       `json:"logs_keep_duration"`
+		Config               *string                    `json:"config_file,omitempty"`
+		Trusted              *TrustedConfigurationPatch `json:"trusted,omitempty"`
+		RequireApproval      *ApprovalMode              `json:"require_approval,omitempty"`
+		Timeout              *int64                     `json:"timeout,omitempty"`
+		Visibility           *string                    `json:"visibility"`
+		AllowPull            *bool                      `json:"allow_pr,omitempty"`
+		PipelineCounter      *int                       `json:"pipeline_counter,omitempty"`
+		LogsPipelinesKeepMin *int64                     `json:"logs_keep_min"`
+		LogsDurationKeep     *string                    `json:"logs_keep_duration"`
 	}
 
 	PipelineError struct {

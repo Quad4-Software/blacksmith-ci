@@ -51,7 +51,23 @@ type ClientError struct {
 }
 
 func (e *ClientError) Error() string {
-	return fmt.Sprintf("client error %d: %s", e.StatusCode, e.Message)
+	msg := strings.TrimSpace(e.Message)
+	if msg == "" {
+		// Provide helpful messages for common HTTP status codes
+		switch e.StatusCode {
+		case http.StatusUnauthorized:
+			msg = "authentication failed. Please check your access token (CROW_TOKEN)"
+		case http.StatusForbidden:
+			msg = "access denied. You don't have permission to perform this action"
+		case http.StatusNotFound:
+			msg = "not found"
+		case http.StatusInternalServerError:
+			msg = "internal server error"
+		default:
+			msg = http.StatusText(e.StatusCode)
+		}
+	}
+	return fmt.Sprintf("server returned %d: %s", e.StatusCode, msg)
 }
 
 // Is implements error matching for ClientError.

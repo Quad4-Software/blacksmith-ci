@@ -16,6 +16,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	_ "github.com/joho/godotenv/autoload"
@@ -31,6 +32,7 @@ func main() {
 
 	app := newApp()
 	if err := app.Run(ctx, os.Args); err != nil {
-		log.Fatal().Err(err).Msg("error running cli") //nolint:forbidigo
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
 	}
 }

@@ -47,10 +47,13 @@ func NewClient(ctx context.Context, c *cli.Command) (crow.Client, error) {
 	// if no server url is provided we can default
 	// to the hosted Crow service.
 	if len(server) == 0 {
-		return nil, fmt.Errorf("crow server address is missing")
+		return nil, fmt.Errorf("server address is not set. Please set CROW_SERVER or use --server flag (e.g. --server https://ci.example.com)")
+	}
+	if !strings.HasPrefix(server, "http://") && !strings.HasPrefix(server, "https://") {
+		return nil, fmt.Errorf("server address %q is missing protocol scheme. Please use http:// or https:// (e.g. https://%s)", server, server)
 	}
 	if len(token) == 0 {
-		return nil, fmt.Errorf("crow access token is missing")
+		return nil, fmt.Errorf("access token is not set. Please set CROW_TOKEN or use --token flag")
 	}
 
 	// attempt to find system CA certs
