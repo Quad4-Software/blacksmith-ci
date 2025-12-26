@@ -1,7 +1,7 @@
 forge_type: forgejo
 forgejo_url: https://codeberg.org
 target_branches:
-  - v4.5.x
+  - v4.6.x
 commit_message: ''
 author_name: 'crowci-bot'
 author_email: 'admin@crowci.dev'
