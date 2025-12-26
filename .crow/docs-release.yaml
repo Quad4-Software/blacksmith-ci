@@ -64,6 +64,9 @@ steps:
         sed -i "s/versions: \[/versions: [\n            { slug: '$${VERSION_SLUG}', label: '$${VERSION_LABEL}' },/" astro.config.mjs
         # Update current version label
         sed -i "s/current: { label: '[^']*', redirect: 'root' }/current: { label: '$${VERSION_LABEL} (latest)', redirect: 'root' }/" astro.config.mjs
+        # Update root index redirect to new version
+        sed -i "s|url=/v[0-9]*-[0-9]*/|url=/$${VERSION_SLUG}/|g" src/content/docs/index.mdx
+        sed -i "s|documentation](/v[0-9]*-[0-9]*/)|documentation](/$${VERSION_SLUG}/)|g" src/content/docs/index.mdx
         cd ..
         # Commit and push changes
         git add -A
