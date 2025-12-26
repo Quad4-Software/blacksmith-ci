@@ -1,0 +1,44 @@
+---
+title: "Overview"
+---
+
+Plugins are special pipeline steps that perform pre-defined tasks. They simplify complex operations and provide security for sensitive credentials.
+
+## Why Use Plugins?
+
+Plugins offer two key advantages over regular steps:
+
+1. **Security** - Plugins cannot be altered in their execution. Combined with [secret filtering](/dev/usage/secrets/#filtering), they prevent credential exposure in pull requests.
+
+2. **Simplicity** - Complex operations become single-step configurations. No need to write shell commands for common tasks.
+
+## Quick Example
+
+```yaml
+steps:
+  - name: deploy
+    image: codeberg.org/crow-plugins/docker-buildx
+    settings:
+      repo: myorg/myapp
+      dockerfile: Dockerfile
+      tags: latest
+```
+
+The `settings` key passes configuration to the plugin. Behind the scenes, each setting becomes a `PLUGIN_` environment variable.
+
+## Learn More
+
+- [Using Plugins](/dev/plugins/using-plugins/) - How to configure and use plugins in your workflows
+- [Available Plugins](/dev/plugins/available-plugins/) - Directory of official and community plugins
+- [Creating Plugins](/dev/plugins/creating-plugins/) - Build your own plugins
+
+## Plugin Compatibility
+
+Crow CI inherits plugin compatibility from Woodpecker CI and Drone CI:
+
+- **Woodpecker plugins** - Fully compatible
+- **Drone plugins** - Partially compatible; many use `environment:` instead of `settings:`, which is not allowed in Crow for security reasons
+
+:::caution
+For the time being, Crow uses primarily Woodpecker plugins and is gradually building Crow-specific plugins in the [crow-plugins](https://codeberg.org/crow-plugins) organization.
+:::
