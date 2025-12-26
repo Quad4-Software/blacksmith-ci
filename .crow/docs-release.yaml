@@ -20,7 +20,7 @@ steps:
       - apk add --no-cache -q jq
       # Extract version components (e.g., v4.5.0 -> major=4, minor=5, patch=0)
       - |
-        VERSION="${CI_COMMIT_TAG#v}"
+        VERSION=$(echo "${CI_COMMIT_TAG}" | sed 's/^v//')
         MAJOR=$(echo $VERSION | cut -d. -f1)
         MINOR=$(echo $VERSION | cut -d. -f2)
         PATCH=$(echo $VERSION | cut -d. -f3)
@@ -28,8 +28,8 @@ steps:
         # Check if this is a new minor/major version (patch == 0)
         if [ "$PATCH" = "0" ]; then
           echo "NEW_VERSION=true" >> .version-env
-          echo "VERSION_SLUG=v${MAJOR}-${MINOR}" >> .version-env
-          echo "VERSION_LABEL=v${MAJOR}.${MINOR}" >> .version-env
+          echo "VERSION_SLUG=v$${MAJOR}-$${MINOR}" >> .version-env
+          echo "VERSION_LABEL=v$${MAJOR}.$${MINOR}" >> .version-env
         else
           echo "NEW_VERSION=false" >> .version-env
         fi
@@ -41,42 +41,34 @@ steps:
       CODEBERG_BOT_TOKEN:
         from_secret: codeberg_bot_token
     commands:
-      - source .version-env
       - |
+        source .version-env
         if [ "$NEW_VERSION" != "true" ]; then
           echo "Patch release - skipping version directory creation"
           exit 0
         fi
-      - apk add --no-cache -q git jq
-      - git config --global user.email "admin@crowci.dev"
-      - git config --global user.name "crowci-bot"
-      - git remote set-url origin https://crowci-bot:$${CODEBERG_BOT_TOKEN}@codeberg.org/crowci/crow.git
-      # Create new version directory from dev
-      - cp -r docs/src/content/docs/dev "docs/src/content/docs/${VERSION_SLUG}"
-      # Create version sidebar config
-      - cp docs/src/content/versions/dev.json "docs/src/content/versions/${VERSION_SLUG}.json"
-      # Update astro.config.mjs - add new version to versions array
-      - |
+        apk add --no-cache -q git jq
+        git config --global user.email "admin@crowci.dev"
+        git config --global user.name "crowci-bot"
+        git remote set-url origin https://crowci-bot:$${CODEBERG_BOT_TOKEN}@codeberg.org/crowci/crow.git
+        # Fetch and checkout main branch (tag checkout may be outdated)
+        git fetch origin ${CI_REPO_DEFAULT_BRANCH}
+        git checkout -B ${CI_REPO_DEFAULT_BRANCH} origin/${CI_REPO_DEFAULT_BRANCH}
+        # Create new version directory from dev
+        cp -r docs/src/content/docs/dev "docs/src/content/docs/$${VERSION_SLUG}"
+        # Create version sidebar config
+        cp docs/src/content/versions/dev.json "docs/src/content/versions/$${VERSION_SLUG}.json"
+        # Update astro.config.mjs using sed (simpler than node for escaping)
         cd docs
-        # Update the starlightVersions config using node
-        node -e "
-        const fs = require('fs');
-        let config = fs.readFileSync('astro.config.mjs', 'utf8');
-
-        // Find the versions array and add new version at the beginning
-        const newVersion = { slug: '${VERSION_SLUG}', label: '${VERSION_LABEL}' };
-        const versionsRegex = /(versions:\s*\[)/;
-        config = config.replace(versionsRegex, \`\$1\n            { slug: '${VERSION_SLUG}', label: '${VERSION_LABEL}' },\`);
-
-        // Update current version label
-        config = config.replace(/current:\s*\{[^}]+\}/, \"current: { label: '${VERSION_LABEL} (latest)', redirect: 'root' }\");
-
-        fs.writeFileSync('astro.config.mjs', config);
-        "
-      # Commit changes
-      - git add -A
-      - 'git commit -m "docs: add version ${VERSION_LABEL}"'
-      - git push origin HEAD:${CI_REPO_DEFAULT_BRANCH}
+        # Add new version to versions array
+        sed -i "s/versions: \[/versions: [\n            { slug: '$${VERSION_SLUG}', label: '$${VERSION_LABEL}' },/" astro.config.mjs
+        # Update current version label
+        sed -i "s/current: { label: '[^']*', redirect: 'root' }/current: { label: '$${VERSION_LABEL} (latest)', redirect: 'root' }/" astro.config.mjs
+        cd ..
+        # Commit and push changes
+        git add -A
+        git commit -m "docs: add version $${VERSION_LABEL}"
+        git push origin ${CI_REPO_DEFAULT_BRANCH}
 
   - name: 'Build and deploy docs'
     image: reg.devxy.io/docker.io/oven/bun:1.3-alpine
