@@ -4,6 +4,8 @@ when:
     path: ['docs/**', '.crow/docs.yaml', '.crow/docs-release.yaml']
   - event: [pull_request, pull_request_closed]
     path: ['docs/**', '.crow/docs.yaml']
+  - event: manual
+    evaluate: 'task == "docs"'
 
 labels:
   agent: artemis
@@ -49,6 +51,8 @@ steps:
     when:
       - event: push
         branch: ${CI_REPO_DEFAULT_BRANCH}
+      - event: manual
+        evaluate: 'task == "docs"'
 
   - name: 'Build docs (PR)'
     image: reg.devxy.io/docker.io/oven/bun:1.3-alpine
