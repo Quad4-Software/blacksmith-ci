@@ -58,9 +58,13 @@
       <div v-if="enableTabs" class="flex flex-col md:flex-row md:items-center w-full mt-2 md:mt-0">
         <Tabs
           class="order-2 md:order-0 mt-2 md:mt-0"
-          :class="$slots.tabActions ? 'md:grow-0 md:shrink-0' : 'shrink-0'"
+          :class="isPipelineDetail ? 'md:flex-1 md:min-w-0' : $slots.tabActions ? 'md:grow-0 md:shrink-0' : 'shrink-0'"
         />
-        <div v-if="$slots.tabActions" class="order-1 md:order-1 w-full md:flex-1">
+        <div
+          v-if="$slots.tabActions"
+          class="order-1 md:order-1 w-full"
+          :class="isPipelineDetail ? 'md:w-auto md:ml-4' : 'md:flex-1'"
+        >
           <slot name="tabActions" />
         </div>
       </div>
