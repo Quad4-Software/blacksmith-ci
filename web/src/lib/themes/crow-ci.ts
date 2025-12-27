@@ -105,7 +105,7 @@ export const crowCiTheme: ThemeDefinition = {
 
     // Borders and inputs
     border: '#404040',
-    input: '#212121',
+    input: '#404040',
     ring: '#fb923c',
 
     // Charts - vibrant palette for dark mode
