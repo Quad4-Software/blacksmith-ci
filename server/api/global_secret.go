@@ -69,6 +69,41 @@ func GetGlobalSecret(c *gin.Context) {
 	c.JSON(http.StatusOK, secret.Copy())
 }
 
+// GetGlobalSecretAbbreviated
+//
+//	@Summary		Get a global secret with abbreviated value
+//	@Description	Returns the secret with an abbreviated value showing first and last characters.
+//	@Description	Only instance admins can view abbreviated global secret values.
+//	@Router			/secrets/{secret}/abbreviated [get]
+//	@Produce		json
+//	@Success		200	{object}	Secret
+//	@Failure		403	{string}	string	"Instance admin privileges required"
+//	@Tags			Secrets
+//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
+//	@Param			secret			path	string	true	"the secret's name"
+func GetGlobalSecretAbbreviated(c *gin.Context) {
+	user := session.User(c)
+	name := c.Param("secret")
+
+	secretService := server.Config.Services.Manager.SecretService()
+	secret, err := secretService.GlobalSecretFind(name)
+	if err != nil {
+		handleDBError(c, err)
+		return
+	}
+
+	// Create authorizer and check admin permission
+	authorizer := NewSecretViewAuthorizerFromContext(c, server.Config.Services.Membership)
+	if !authorizer.CanViewGlobalSecret(user) {
+		c.Header("Cache-Control", "no-store, no-cache, must-revalidate, private")
+		c.String(http.StatusForbidden, "Instance admin privileges required to view secret value")
+		return
+	}
+
+	c.Header("Cache-Control", "no-store, no-cache, must-revalidate, private")
+	c.JSON(http.StatusOK, secret.CopyWithAbbreviatedValue())
+}
+
 // PostGlobalSecret
 //
 //	@Summary	Create a global secret

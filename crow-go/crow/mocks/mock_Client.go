@@ -1622,6 +1622,68 @@ func (_c *MockClient_GlobalSecret_Call) RunAndReturn(run func(secret string) (*c
 	return _c
 }
 
+// GlobalSecretAbbreviated provides a mock function for the type MockClient
+func (_mock *MockClient) GlobalSecretAbbreviated(secret string) (*crow.Secret, error) {
+	ret := _mock.Called(secret)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GlobalSecretAbbreviated")
+	}
+
+	var r0 *crow.Secret
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(string) (*crow.Secret, error)); ok {
+		return returnFunc(secret)
+	}
+	if returnFunc, ok := ret.Get(0).(func(string) *crow.Secret); ok {
+		r0 = returnFunc(secret)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*crow.Secret)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(string) error); ok {
+		r1 = returnFunc(secret)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClient_GlobalSecretAbbreviated_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GlobalSecretAbbreviated'
+type MockClient_GlobalSecretAbbreviated_Call struct {
+	*mock.Call
+}
+
+// GlobalSecretAbbreviated is a helper method to define mock.On call
+//   - secret string
+func (_e *MockClient_Expecter) GlobalSecretAbbreviated(secret interface{}) *MockClient_GlobalSecretAbbreviated_Call {
+	return &MockClient_GlobalSecretAbbreviated_Call{Call: _e.mock.On("GlobalSecretAbbreviated", secret)}
+}
+
+func (_c *MockClient_GlobalSecretAbbreviated_Call) Run(run func(secret string)) *MockClient_GlobalSecretAbbreviated_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_GlobalSecretAbbreviated_Call) Return(secret1 *crow.Secret, err error) *MockClient_GlobalSecretAbbreviated_Call {
+	_c.Call.Return(secret1, err)
+	return _c
+}
+
+func (_c *MockClient_GlobalSecretAbbreviated_Call) RunAndReturn(run func(secret string) (*crow.Secret, error)) *MockClient_GlobalSecretAbbreviated_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GlobalSecretCreate provides a mock function for the type MockClient
 func (_mock *MockClient) GlobalSecretCreate(secret *crow.Secret) (*crow.Secret, error) {
 	ret := _mock.Called(secret)
@@ -2550,6 +2612,74 @@ func (_c *MockClient_OrgSecret_Call) Return(secret1 *crow.Secret, err error) *Mo
 }
 
 func (_c *MockClient_OrgSecret_Call) RunAndReturn(run func(orgID int64, secret string) (*crow.Secret, error)) *MockClient_OrgSecret_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// OrgSecretAbbreviated provides a mock function for the type MockClient
+func (_mock *MockClient) OrgSecretAbbreviated(orgID int64, secret string) (*crow.Secret, error) {
+	ret := _mock.Called(orgID, secret)
+
+	if len(ret) == 0 {
+		panic("no return value specified for OrgSecretAbbreviated")
+	}
+
+	var r0 *crow.Secret
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, string) (*crow.Secret, error)); ok {
+		return returnFunc(orgID, secret)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, string) *crow.Secret); ok {
+		r0 = returnFunc(orgID, secret)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*crow.Secret)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, string) error); ok {
+		r1 = returnFunc(orgID, secret)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClient_OrgSecretAbbreviated_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'OrgSecretAbbreviated'
+type MockClient_OrgSecretAbbreviated_Call struct {
+	*mock.Call
+}
+
+// OrgSecretAbbreviated is a helper method to define mock.On call
+//   - orgID int64
+//   - secret string
+func (_e *MockClient_Expecter) OrgSecretAbbreviated(orgID interface{}, secret interface{}) *MockClient_OrgSecretAbbreviated_Call {
+	return &MockClient_OrgSecretAbbreviated_Call{Call: _e.mock.On("OrgSecretAbbreviated", orgID, secret)}
+}
+
+func (_c *MockClient_OrgSecretAbbreviated_Call) Run(run func(orgID int64, secret string)) *MockClient_OrgSecretAbbreviated_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_OrgSecretAbbreviated_Call) Return(secret1 *crow.Secret, err error) *MockClient_OrgSecretAbbreviated_Call {
+	_c.Call.Return(secret1, err)
+	return _c
+}
+
+func (_c *MockClient_OrgSecretAbbreviated_Call) RunAndReturn(run func(orgID int64, secret string) (*crow.Secret, error)) *MockClient_OrgSecretAbbreviated_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -4519,6 +4649,74 @@ func (_c *MockClient_Secret_Call) Return(secret1 *crow.Secret, err error) *MockC
 }
 
 func (_c *MockClient_Secret_Call) RunAndReturn(run func(repoID int64, secret string) (*crow.Secret, error)) *MockClient_Secret_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SecretAbbreviated provides a mock function for the type MockClient
+func (_mock *MockClient) SecretAbbreviated(repoID int64, secret string) (*crow.Secret, error) {
+	ret := _mock.Called(repoID, secret)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SecretAbbreviated")
+	}
+
+	var r0 *crow.Secret
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, string) (*crow.Secret, error)); ok {
+		return returnFunc(repoID, secret)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, string) *crow.Secret); ok {
+		r0 = returnFunc(repoID, secret)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*crow.Secret)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, string) error); ok {
+		r1 = returnFunc(repoID, secret)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClient_SecretAbbreviated_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SecretAbbreviated'
+type MockClient_SecretAbbreviated_Call struct {
+	*mock.Call
+}
+
+// SecretAbbreviated is a helper method to define mock.On call
+//   - repoID int64
+//   - secret string
+func (_e *MockClient_Expecter) SecretAbbreviated(repoID interface{}, secret interface{}) *MockClient_SecretAbbreviated_Call {
+	return &MockClient_SecretAbbreviated_Call{Call: _e.mock.On("SecretAbbreviated", repoID, secret)}
+}
+
+func (_c *MockClient_SecretAbbreviated_Call) Run(run func(repoID int64, secret string)) *MockClient_SecretAbbreviated_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_SecretAbbreviated_Call) Return(secret1 *crow.Secret, err error) *MockClient_SecretAbbreviated_Call {
+	_c.Call.Return(secret1, err)
+	return _c
+}
+
+func (_c *MockClient_SecretAbbreviated_Call) RunAndReturn(run func(repoID int64, secret string) (*crow.Secret, error)) *MockClient_SecretAbbreviated_Call {
 	_c.Call.Return(run)
 	return _c
 }

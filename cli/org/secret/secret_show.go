@@ -36,11 +36,16 @@ var secretShowCmd = &cli.Command{
 			Name:  "name",
 			Usage: "secret name",
 		},
+		&cli.BoolFlag{
+			Name:  "show-value",
+			Usage: "show abbreviated secret value (requires org admin access)",
+		},
 	),
 }
 
 func secretShow(ctx context.Context, c *cli.Command) error {
 	secretName := c.String("name")
+	showValue := c.Bool("show-value")
 	if secretName == "" {
 		return fmt.Errorf("secret name is missing")
 	}
@@ -55,7 +60,12 @@ func secretShow(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
-	secret, err := client.OrgSecret(orgID, secretName)
+	var secret *crow.Secret
+	if showValue {
+		secret, err = client.OrgSecretAbbreviated(orgID, secretName)
+	} else {
+		secret, err = client.OrgSecret(orgID, secretName)
+	}
 	if err != nil {
 		return err
 	}

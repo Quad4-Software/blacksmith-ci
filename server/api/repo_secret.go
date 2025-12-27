@@ -47,6 +47,44 @@ func GetSecret(c *gin.Context) {
 	c.JSON(http.StatusOK, secret.Copy())
 }
 
+// GetSecretAbbreviated
+//
+//	@Summary		Get a repository secret with abbreviated value
+//	@Description	Returns the secret with an abbreviated value showing first and last characters.
+//	@Description	Only users with explicit write access from the forge can view abbreviated values.
+//	@Description	Instance admins without explicit repo access cannot view secret values.
+//	@Router			/repos/{repo_id}/secrets/{secretName}/abbreviated [get]
+//	@Produce		json
+//	@Success		200	{object}	Secret
+//	@Failure		403	{string}	string	"Insufficient permissions to view secret value"
+//	@Tags			Repository secrets
+//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
+//	@Param			repo_id			path	int		true	"the repository id"
+//	@Param			secretName		path	string	true	"the secret name"
+func GetSecretAbbreviated(c *gin.Context) {
+	repo := session.Repo(c)
+	user := session.User(c)
+	name := c.Param("secret")
+
+	secretService := server.Config.Services.Manager.SecretServiceFromRepo(repo)
+	secret, err := secretService.SecretFind(repo, name)
+	if err != nil {
+		handleDBError(c, err)
+		return
+	}
+
+	// Create authorizer and check explicit permission
+	authorizer := NewSecretViewAuthorizerFromContext(c, server.Config.Services.Membership)
+	if !authorizer.CanViewRepoSecret(user, repo) {
+		c.Header("Cache-Control", "no-store, no-cache, must-revalidate, private")
+		c.String(http.StatusForbidden, "Insufficient permissions to view secret value. Explicit write access required.")
+		return
+	}
+
+	c.Header("Cache-Control", "no-store, no-cache, must-revalidate, private")
+	c.JSON(http.StatusOK, secret.CopyWithAbbreviatedValue())
+}
+
 // PostSecret
 //
 //	@Summary	Create a repository secret

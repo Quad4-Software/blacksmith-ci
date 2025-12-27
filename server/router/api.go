@@ -90,6 +90,7 @@ func apiRoutes(e *gin.RouterGroup) {
 					org.GET("/secrets", api.GetOrgSecretList)
 					org.POST("/secrets", api.PostOrgSecret)
 					org.GET("/secrets/:secret", api.GetOrgSecret)
+					org.GET("/secrets/:secret/abbreviated", api.GetOrgSecretAbbreviated)
 					org.PATCH("/secrets/:secret", api.PatchOrgSecret)
 					org.DELETE("/secrets/:secret", api.DeleteOrgSecret)
 
@@ -163,6 +164,7 @@ func apiRoutes(e *gin.RouterGroup) {
 					repo.GET("/secrets", session.MustPush, api.GetSecretList)
 					repo.POST("/secrets", session.MustPush, api.PostSecret)
 					repo.GET("/secrets/:secret", session.MustPush, api.GetSecret)
+					repo.GET("/secrets/:secret/abbreviated", session.MustPush, api.GetSecretAbbreviated)
 					repo.PATCH("/secrets/:secret", session.MustPush, api.PatchSecret)
 					repo.DELETE("/secrets/:secret", session.MustPush, api.DeleteSecret)
 
@@ -228,6 +230,7 @@ func apiRoutes(e *gin.RouterGroup) {
 		secrets := apiBase.Group("/secrets")
 		{
 			secrets.Use(session.MustAdmin())
+			secrets.GET("/:secret/abbreviated", api.GetGlobalSecretAbbreviated)
 			secrets.POST("", api.PostGlobalSecret)
 			secrets.PATCH("/:secret", api.PatchGlobalSecret)
 			secrets.DELETE("/:secret", api.DeleteGlobalSecret)

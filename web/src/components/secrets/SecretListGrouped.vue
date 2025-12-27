@@ -278,7 +278,9 @@ import {
 import SearchInput from '~/components/ui/input/SearchInput.vue';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
+import useApiClient from '~/compositions/useApiClient';
 import useConfig from '~/compositions/useConfig';
+import useNotifications from '~/compositions/useNotifications';
 import type { SecretWithOrg } from '~/lib/api/types';
 import { WebhookEvents } from '~/lib/api/types';
 
@@ -297,6 +299,8 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const { user } = useConfig();
+const apiClient = useApiClient();
+const notifications = useNotifications();
 
 const sorting = ref<SortingState>([
   { id: 'owner', desc: false },
@@ -407,7 +411,8 @@ function confirmSingleDelete() {
   showSingleDeleteDialog.value = false;
 }
 
-// Inline events editor component
+// Inline events editor component (tightly coupled to this view)
+// eslint-disable-next-line vue/one-component-per-file
 const EventsEditor = defineComponent({
   name: 'EventsEditor',
   props: {
@@ -571,6 +576,89 @@ const EventsEditor = defineComponent({
   },
 });
 
+// Inline secret value viewer component (tightly coupled to this view)
+// eslint-disable-next-line vue/one-component-per-file
+const SecretValueViewer = defineComponent({
+  name: 'SecretValueViewer',
+  props: {
+    secret: {
+      type: Object as () => SecretWithOrg,
+      required: true,
+    },
+    canView: {
+      type: Boolean,
+      required: true,
+    },
+  },
+  setup(props) {
+    const showValue = ref(false);
+    const isLoading = ref(false);
+    const abbreviatedValue = ref<string | null>(null);
+    const hasError = ref(false);
+
+    async function toggleValue() {
+      if (!props.canView) return;
+
+      if (!showValue.value) {
+        // Fetch abbreviated value
+        isLoading.value = true;
+        hasError.value = false;
+        try {
+          let result;
+          if (props.secret.scope_type === 'repo' && props.secret.repo_id) {
+            result = await apiClient.getSecretAbbreviated(props.secret.repo_id, props.secret.name);
+          } else if ((props.secret.scope_type === 'org' || props.secret.scope_type === 'user') && props.secret.org_id) {
+            result = await apiClient.getOrgSecretAbbreviated(props.secret.org_id, props.secret.name);
+          } else if (props.secret.scope_type === 'global') {
+            result = await apiClient.getGlobalSecretAbbreviated(props.secret.name);
+          } else {
+            hasError.value = true;
+            return;
+          }
+
+          if (result?.value) {
+            abbreviatedValue.value = result.value;
+            showValue.value = true;
+          }
+        } catch {
+          hasError.value = true;
+          notifications.notify({
+            title: t('notify_title_error'),
+            text: t('secrets.error_viewing_value'),
+            type: 'error',
+          });
+        } finally {
+          isLoading.value = false;
+        }
+      } else {
+        showValue.value = false;
+      }
+    }
+
+    return () =>
+      h('div', { class: 'flex items-center gap-2' }, [
+        showValue.value && abbreviatedValue.value
+          ? h('code', { class: 'text-xs font-mono bg-muted px-1 py-0.5 rounded' }, abbreviatedValue.value)
+          : h('span', { class: 'text-muted-foreground text-xs' }, '••••••••'),
+        props.canView
+          ? h(
+              'button',
+              {
+                type: 'button',
+                class: `hover:text-primary transition-colors ${hasError.value ? 'text-destructive' : ''}`,
+                onClick: toggleValue,
+                disabled: isLoading.value,
+                title: showValue.value ? t('secrets.hide_value') : t('secrets.show_value'),
+              },
+              isLoading.value
+                ? h(Icon, { name: 'spinner', class: 'h-4 w-4 animate-spin' })
+                : h(Icon, { name: showValue.value ? 'lucide:eye-off' : 'lucide:eye', class: 'h-4 w-4' }),
+            )
+          : null,
+      ]);
+  },
+});
+
 const columns: ColumnDef<SecretWithOrg>[] = [
   {
     id: 'select',
@@ -624,6 +712,28 @@ const columns: ColumnDef<SecretWithOrg>[] = [
     },
     size: 200,
     minSize: 60,
+  },
+  {
+    id: 'value',
+    header: () => h('div', { class: 'ml-3' }, t('secrets.value')),
+    cell: ({ row }) => {
+      const secret = row.original;
+      // Determine if user can view the abbreviated value
+      // User secrets: always viewable by owner
+      // Org secrets: viewable by org admins
+      // Repo secrets: viewable by users with push access (handled by API)
+      // Global secrets: viewable by instance admins
+      const canViewValue = canEdit(secret);
+
+      return h(SecretValueViewer, {
+        secret,
+        canView: canViewValue,
+      });
+    },
+    enableSorting: false,
+    enableHiding: true,
+    size: 180,
+    minSize: 120,
   },
   {
     id: 'owner',

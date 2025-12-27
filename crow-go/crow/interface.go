@@ -169,6 +169,9 @@ type Client interface {
 	// Secret returns a secret by name.
 	Secret(repoID int64, secret string) (*Secret, error)
 
+	// SecretAbbreviated returns a secret with abbreviated value for verification.
+	SecretAbbreviated(repoID int64, secret string) (*Secret, error)
+
 	// SecretList returns a list of all repository secrets.
 	SecretList(repoID int64, opt SecretListOptions) ([]*Secret, error)
 
@@ -193,6 +196,9 @@ type Client interface {
 	// OrgSecret returns an organization secret by name.
 	OrgSecret(orgID int64, secret string) (*Secret, error)
 
+	// OrgSecretAbbreviated returns an org secret with abbreviated value for verification.
+	OrgSecretAbbreviated(orgID int64, secret string) (*Secret, error)
+
 	// OrgSecretList returns a list of all organization secrets.
 	OrgSecretList(orgID int64, opt SecretListOptions) ([]*Secret, error)
 
@@ -207,6 +213,9 @@ type Client interface {
 
 	// GlobalSecret returns an global secret by name.
 	GlobalSecret(secret string) (*Secret, error)
+
+	// GlobalSecretAbbreviated returns a global secret with abbreviated value for verification.
+	GlobalSecretAbbreviated(secret string) (*Secret, error)
 
 	// GlobalSecretList returns a list of all global secrets.
 	GlobalSecretList(opt SecretListOptions) ([]*Secret, error)

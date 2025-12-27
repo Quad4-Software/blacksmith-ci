@@ -14,14 +14,44 @@
         </Field>
 
         <Field>
-          <FieldLabel for="secret-value">{{ $t('secrets.value') }}</FieldLabel>
-          <Textarea
-            id="secret-value"
-            v-model="innerValue.value"
-            :placeholder="$t('secrets.value')"
-            rows="5"
-            :required="!isEditingSecret"
-          />
+          <div class="flex items-center justify-between">
+            <FieldLabel for="secret-value">{{ $t('secrets.value') }}</FieldLabel>
+            <Button
+              v-if="isEditingSecret"
+              type="button"
+              variant="ghost"
+              size="sm"
+              :disabled="isLoadingAbbreviatedValue"
+              @click="toggleAbbreviatedValue"
+            >
+              <Icon v-if="isLoadingAbbreviatedValue" name="spinner" class="h-4 w-4 animate-spin mr-2" />
+              <Icon v-else :name="showAbbreviatedValue ? 'lucide:eye-off' : 'lucide:eye'" class="h-4 w-4 mr-2" />
+              {{ showAbbreviatedValue ? $t('secrets.hide_value') : $t('secrets.show_value') }}
+            </Button>
+          </div>
+          <div class="relative">
+            <Textarea
+              id="secret-value"
+              v-model="innerValue.value"
+              :placeholder="
+                isEditingSecret
+                  ? showAbbreviatedValue && abbreviatedValue
+                    ? abbreviatedValue
+                    : `${$t('secrets.value')} (leave empty to keep current value)`
+                  : $t('secrets.value')
+              "
+              rows="5"
+              :required="!isEditingSecret"
+              :disabled="showAbbreviatedValue"
+              :class="{ 'bg-muted': showAbbreviatedValue }"
+            />
+            <div
+              v-if="showAbbreviatedValue && abbreviatedValue"
+              class="absolute inset-0 flex items-center justify-center pointer-events-none"
+            >
+              <code class="text-sm font-mono bg-muted/50 px-2 py-1 rounded">{{ abbreviatedValue }}</code>
+            </div>
+          </div>
         </Field>
 
         <Field>
@@ -92,6 +122,8 @@ import { Checkbox } from '~/components/ui/checkbox';
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '~/components/ui/field';
 import { Input } from '~/components/ui/input';
 import { Textarea } from '~/components/ui/textarea';
+import useApiClient from '~/compositions/useApiClient';
+import useNotifications from '~/compositions/useNotifications';
 import { WebhookEvents } from '~/lib/api/types';
 import type { Secret } from '~/lib/api/types';
 
@@ -107,6 +139,8 @@ const emit = defineEmits<{
 }>();
 
 const i18n = useI18n();
+const apiClient = useApiClient();
+const notifications = useNotifications();
 
 const modelValue = toRef(props, 'modelValue');
 const innerValue = computed({
@@ -116,6 +150,49 @@ const innerValue = computed({
   },
 });
 const isEditingSecret = computed(() => !!innerValue.value?.id);
+
+// Abbreviated value state
+const showAbbreviatedValue = ref(false);
+const abbreviatedValue = ref<string | null>(null);
+const isLoadingAbbreviatedValue = ref(false);
+
+async function toggleAbbreviatedValue() {
+  if (showAbbreviatedValue.value) {
+    showAbbreviatedValue.value = false;
+    return;
+  }
+
+  if (abbreviatedValue.value) {
+    showAbbreviatedValue.value = true;
+    return;
+  }
+
+  isLoadingAbbreviatedValue.value = true;
+  try {
+    const secret = innerValue.value;
+    let fetchedSecret;
+
+    // Determine which API to call based on secret scope
+    if (secret.repo_id && secret.repo_id !== 0) {
+      fetchedSecret = await apiClient.getSecretAbbreviated(secret.repo_id, secret.name!);
+    } else if (secret.org_id && secret.org_id !== 0) {
+      fetchedSecret = await apiClient.getOrgSecretAbbreviated(secret.org_id, secret.name!);
+    } else {
+      fetchedSecret = await apiClient.getGlobalSecretAbbreviated(secret.name!);
+    }
+
+    abbreviatedValue.value = fetchedSecret.value;
+    showAbbreviatedValue.value = true;
+  } catch {
+    notifications.notify({
+      title: i18n.t('notify_title_error'),
+      text: i18n.t('secrets.error_viewing_value'),
+      type: 'error',
+    });
+  } finally {
+    isLoadingAbbreviatedValue.value = false;
+  }
+}
 
 const newImage = ref('');
 function addNewImage() {

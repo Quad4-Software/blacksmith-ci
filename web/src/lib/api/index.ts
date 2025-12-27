@@ -225,6 +225,11 @@ export default class CrowClient extends ApiClient {
     return this._delete(`/api/v1/repos/${repoId}/secrets/${name}`);
   }
 
+  async getSecretAbbreviated(repoId: number, secretName: string): Promise<Secret> {
+    const name = encodeURIComponent(secretName);
+    return this._get(`/api/v1/repos/${repoId}/secrets/${name}/abbreviated`) as Promise<Secret>;
+  }
+
   async getRegistryList(repoId: number, opts?: PaginationOptions): Promise<Registry[] | null> {
     const query = encodeQueryString(opts);
     return this._get(`/api/v1/repos/${repoId}/registries?${query}`) as Promise<Registry[] | null>;
@@ -333,6 +338,11 @@ export default class CrowClient extends ApiClient {
     return this._delete(`/api/v1/orgs/${orgId}/secrets/${name}`);
   }
 
+  async getOrgSecretAbbreviated(orgId: number, secretName: string): Promise<Secret> {
+    const name = encodeURIComponent(secretName);
+    return this._get(`/api/v1/orgs/${orgId}/secrets/${name}/abbreviated`) as Promise<Secret>;
+  }
+
   async getGlobalSecretList(opts?: PaginationOptions): Promise<Secret[] | null> {
     const query = encodeQueryString(opts);
     return this._get(`/api/v1/secrets?${query}`) as Promise<Secret[] | null>;
@@ -350,6 +360,11 @@ export default class CrowClient extends ApiClient {
   async deleteGlobalSecret(secretName: string): Promise<unknown> {
     const name = encodeURIComponent(secretName);
     return this._delete(`/api/v1/secrets/${name}`);
+  }
+
+  async getGlobalSecretAbbreviated(secretName: string): Promise<Secret> {
+    const name = encodeURIComponent(secretName);
+    return this._get(`/api/v1/secrets/${name}/abbreviated`) as Promise<Secret>;
   }
 
   async getSelf(): Promise<unknown> {

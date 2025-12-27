@@ -47,6 +47,50 @@ func GetOrgSecret(c *gin.Context) {
 	c.JSON(http.StatusOK, secret.Copy())
 }
 
+// GetOrgSecretAbbreviated
+//
+//	@Summary		Get an organization secret with abbreviated value
+//	@Description	Returns the secret with an abbreviated value showing first and last characters.
+//	@Description	Only org admins (via forge membership) can view abbreviated values.
+//	@Router			/orgs/{org_id}/secrets/{secret}/abbreviated [get]
+//	@Produce		json
+//	@Success		200	{object}	Secret
+//	@Failure		403	{string}	string	"Org admin privileges required to view secret value"
+//	@Tags			Organization secrets
+//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
+//	@Param			org_id			path	string	true	"the org's id"
+//	@Param			secret			path	string	true	"the secret's name"
+func GetOrgSecretAbbreviated(c *gin.Context) {
+	org := session.Org(c)
+	user := session.User(c)
+	name := c.Param("secret")
+
+	secretService := server.Config.Services.Manager.SecretService()
+	secret, err := secretService.OrgSecretFind(org.ID, name)
+	if err != nil {
+		handleDBError(c, err)
+		return
+	}
+
+	// Get forge for org membership check
+	_forge, err := server.Config.Services.Manager.ForgeFromUser(user)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "Cannot get forge for user")
+		return
+	}
+
+	// Create authorizer and check org admin permission
+	authorizer := NewSecretViewAuthorizerFromContext(c, server.Config.Services.Membership)
+	if !authorizer.CanViewOrgSecret(c, user, org, _forge) {
+		c.Header("Cache-Control", "no-store, no-cache, must-revalidate, private")
+		c.String(http.StatusForbidden, "Org admin privileges required to view secret value")
+		return
+	}
+
+	c.Header("Cache-Control", "no-store, no-cache, must-revalidate, private")
+	c.JSON(http.StatusOK, secret.CopyWithAbbreviatedValue())
+}
+
 // GetOrgSecretList
 //
 //	@Summary	List organization secrets

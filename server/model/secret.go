@@ -139,6 +139,51 @@ func (s *Secret) Copy() *Secret {
 	}
 }
 
+// CopyWithAbbreviatedValue makes a copy of the secret with an abbreviated value.
+// The abbreviated value shows the first 6 and last 6 characters for verification.
+func (s *Secret) CopyWithAbbreviatedValue() *Secret {
+	return &Secret{
+		ID:        s.ID,
+		OrgID:     s.OrgID,
+		RepoID:    s.RepoID,
+		Name:      s.Name,
+		Value:     abbreviateValue(s.Value),
+		Images:    s.Images,
+		Events:    sortEvents(s.Events),
+		Source:    s.Source,
+		CreatedAt: s.CreatedAt,
+		UpdatedAt: s.UpdatedAt,
+	}
+}
+
+// Constants for abbreviated value display.
+const (
+	abbreviatedPrefixLen = 6  // Number of characters to show at start
+	abbreviatedSuffixLen = 6  // Number of characters to show at end
+	abbreviatedMinLen    = 12 // Minimum length before showing full abbreviation
+	abbreviatedShortLen  = 3  // Minimum length before showing any chars
+)
+
+// abbreviateValue returns an abbreviated version of the secret value.
+// Shows first 6 and last 6 characters with "..." in between.
+func abbreviateValue(value string) string {
+	runes := []rune(value)
+	length := len(runes)
+
+	if length <= abbreviatedMinLen {
+		if length <= abbreviatedShortLen {
+			return "***"
+		}
+		// Show first 2 chars for short values
+		return string(runes[:2]) + "..."
+	}
+
+	// Normal case: first 6 + ... + last 6
+	prefix := string(runes[:abbreviatedPrefixLen])
+	suffix := string(runes[length-abbreviatedSuffixLen:])
+	return prefix + "..." + suffix
+}
+
 func sortEvents(wel WebhookEventList) WebhookEventList {
 	sort.Sort(wel)
 	return wel

@@ -153,20 +153,48 @@
           <!-- Value Field -->
           <FormField v-slot="{ componentField }" name="value">
             <FormItem>
-              <FormLabel>{{ $t('secrets.value') }}</FormLabel>
+              <div class="flex items-center justify-between">
+                <FormLabel>{{ $t('secrets.value') }}</FormLabel>
+                <Button
+                  v-if="isEditing && canViewAbbreviated"
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  :disabled="isLoadingAbbreviatedValue"
+                  @click="toggleAbbreviatedValue"
+                >
+                  <Icon v-if="isLoadingAbbreviatedValue" name="spinner" class="h-4 w-4 animate-spin mr-2" />
+                  <Icon v-else :name="showAbbreviatedValue ? 'lucide:eye-off' : 'lucide:eye'" class="h-4 w-4 mr-2" />
+                  {{ showAbbreviatedValue ? $t('secrets.hide_value') : $t('secrets.show_value') }}
+                </Button>
+              </div>
               <FormControl>
-                <Textarea
-                  :placeholder="
-                    isEditing ? `${$t('secrets.value')} (leave empty to keep current value)` : $t('secrets.value')
-                  "
-                  rows="5"
-                  :name="componentField.name"
-                  :model-value="componentField.modelValue"
-                  @blur="componentField.onBlur"
-                  @input="componentField.onInput"
-                  @change="componentField.onChange"
-                  @update:model-value="componentField['onUpdate:modelValue']"
-                />
+                <div class="relative">
+                  <Textarea
+                    :placeholder="
+                      isEditing
+                        ? showAbbreviatedValue && abbreviatedValue
+                          ? abbreviatedValue
+                          : `${$t('secrets.value')} (leave empty to keep current value)`
+                        : $t('secrets.value')
+                    "
+                    rows="5"
+                    :name="componentField.name"
+                    :model-value="componentField.modelValue"
+                    :disabled="showAbbreviatedValue"
+                    :class="{ 'bg-muted': showAbbreviatedValue }"
+                    @blur="componentField.onBlur"
+                    @input="componentField.onInput"
+                    @change="componentField.onChange"
+                    @update:model-value="componentField['onUpdate:modelValue']"
+                  />
+                  <div
+                    v-if="showAbbreviatedValue && abbreviatedValue"
+                    class="absolute inset-0 flex items-center justify-center pointer-events-none"
+                  >
+                    <code class="text-sm font-mono bg-muted/50 px-2 py-1 rounded">{{ abbreviatedValue }}</code>
+                  </div>
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -316,6 +344,20 @@ const isOpen = computed({
 
 const showTrigger = computed(() => !props.hideTrigger);
 const isEditing = computed(() => !!props.secret?.id);
+
+// Abbreviated value state
+const showAbbreviatedValue = ref(false);
+const abbreviatedValue = ref<string | null>(null);
+const isLoadingAbbreviatedValue = ref(false);
+
+// Permission check for viewing abbreviated values
+// Users with write access can view abbreviated values
+const canViewAbbreviated = computed(() => {
+  if (!isEditing.value || !props.secret) return false;
+  // The secret must exist (have an ID) to view its abbreviated value
+  // Permission is checked server-side when fetching
+  return true;
+});
 const newImage = ref('');
 const isGlobal = ref(false);
 const selectedTarget = ref<string>(''); // Format: "org-123" or "repo-456"
@@ -375,8 +417,11 @@ watch(isOpen, (open) => {
       selectedTarget.value = '';
     }
   } else if (!open) {
-    // Reset search term when dialog closes
+    // Reset state when dialog closes
     searchTerm.value = '';
+    showAbbreviatedValue.value = false;
+    abbreviatedValue.value = null;
+    isLoadingAbbreviatedValue.value = false;
   }
 });
 
@@ -427,10 +472,53 @@ function addImage(componentField: any) {
   newImage.value = '';
 }
 
-function removeImage(index: number, componentField: any) {
+function removeImage(index: string | number, componentField: any) {
   const currentImages = componentField.modelValue || [];
-  const newImages = currentImages.filter((_: string, i: number) => i !== index);
+  const idx = typeof index === 'string' ? Number.parseInt(index, 10) : index;
+  const newImages = currentImages.filter((_: string, i: number) => i !== idx);
   componentField['onUpdate:modelValue'](newImages);
+}
+
+// Toggle abbreviated value visibility
+async function toggleAbbreviatedValue() {
+  if (showAbbreviatedValue.value) {
+    // Hide the value
+    showAbbreviatedValue.value = false;
+    return;
+  }
+
+  // Show the value - need to fetch it first if not already loaded
+  if (abbreviatedValue.value) {
+    showAbbreviatedValue.value = true;
+    return;
+  }
+
+  isLoadingAbbreviatedValue.value = true;
+  try {
+    const secret = props.secret as any;
+    let fetchedSecret;
+
+    // Determine which API to call based on secret scope
+    if (secret.repo_id) {
+      fetchedSecret = await apiClient.getSecretAbbreviated(secret.repo_id, secret.name);
+    } else if (secret.org_id) {
+      fetchedSecret = await apiClient.getOrgSecretAbbreviated(secret.org_id, secret.name);
+    } else {
+      // Global secret
+      fetchedSecret = await apiClient.getGlobalSecretAbbreviated(secret.name);
+    }
+
+    abbreviatedValue.value = fetchedSecret.value;
+    showAbbreviatedValue.value = true;
+  } catch {
+    notifications.notify({
+      title: t('notify_title_error'),
+      text: t('secrets.error_viewing_value'),
+      type: 'error',
+    });
+  } finally {
+    isLoadingAbbreviatedValue.value = false;
+  }
 }
 
 // Event checkbox management

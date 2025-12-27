@@ -6,14 +6,23 @@ import (
 )
 
 const (
-	pathGlobalSecrets = "%s/api/v1/secrets"
-	pathGlobalSecret  = "%s/api/v1/secrets/%s"
+	pathGlobalSecrets           = "%s/api/v1/secrets"
+	pathGlobalSecret            = "%s/api/v1/secrets/%s"
+	pathGlobalSecretAbbreviated = "%s/api/v1/secrets/%s/abbreviated"
 )
 
 // GlobalSecret returns an global secret by name.
 func (c *client) GlobalSecret(secret string) (*Secret, error) {
 	out := new(Secret)
 	uri := fmt.Sprintf(pathGlobalSecret, c.addr, secret)
+	err := c.get(uri, out)
+	return out, err
+}
+
+// GlobalSecretAbbreviated returns a global secret with abbreviated value for verification.
+func (c *client) GlobalSecretAbbreviated(secret string) (*Secret, error) {
+	out := new(Secret)
+	uri := fmt.Sprintf(pathGlobalSecretAbbreviated, c.addr, secret)
 	err := c.get(uri, out)
 	return out, err
 }

@@ -24,6 +24,7 @@ import (
 
 	"codeberg.org/crowci/crow/v5/cli/common"
 	"codeberg.org/crowci/crow/v5/cli/internal"
+	crow "codeberg.org/crowci/crow/v5/crow-go/crow"
 )
 
 var secretShowCmd = &cli.Command{
@@ -37,6 +38,10 @@ var secretShowCmd = &cli.Command{
 			Name:  "name",
 			Usage: "secret name",
 		},
+		&cli.BoolFlag{
+			Name:  "show-value",
+			Usage: "show abbreviated secret value (requires write access)",
+		},
 		common.FormatFlag(tmplSecretList, true),
 	},
 }
@@ -44,6 +49,7 @@ var secretShowCmd = &cli.Command{
 func secretShow(ctx context.Context, c *cli.Command) error {
 	var (
 		secretName = c.String("name")
+		showValue  = c.Bool("show-value")
 		format     = c.String("format") + "\n"
 	)
 
@@ -61,7 +67,12 @@ func secretShow(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
-	secret, err := client.Secret(repoID, secretName)
+	var secret *crow.Secret
+	if showValue {
+		secret, err = client.SecretAbbreviated(repoID, secretName)
+	} else {
+		secret, err = client.Secret(repoID, secretName)
+	}
 	if err != nil {
 		return err
 	}

@@ -922,6 +922,9 @@
     "notify_text_deleted": "Secret deleted",
     "notify_text_created": "Secret created",
     "notify_text_saved": "Secret saved",
+    "show_value": "Show abbreviated value",
+    "hide_value": "Hide value",
+    "error_viewing_value": "Unable to view secret value. You may not have permission.",
     "validation": {
       "name_required": "Secret name is required",
       "events_required": "At least one event must be selected",

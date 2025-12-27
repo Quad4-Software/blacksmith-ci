@@ -4,7 +4,6 @@
     <div class="hidden md:contents">
       <ResizablePanelGroup
         :key="panelGroupKey"
-        ref="panelGroupRef"
         direction="horizontal"
         class="min-h-0 w-full grow"
         @layout="handleLayoutChange"
@@ -362,7 +361,6 @@ useCrowTitle(
 // Sidebar state with localStorage persistence
 const sidebarCollapsed = useStorage('crow:pipeline-sidebar-collapsed', false);
 const sidebarSize = useStorage('crow:pipeline-sidebar-size', 30);
-const panelGroupRef = ref();
 const panelGroupKey = ref(0);
 
 // Auto-follow state with localStorage persistence

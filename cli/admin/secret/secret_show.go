@@ -29,14 +29,21 @@ var secretShowCmd = &cli.Command{
 	Name:   "show",
 	Usage:  "show secret information",
 	Action: secretShow,
-	Flags: append(common.OutputFlags("table"), &cli.StringFlag{
-		Name:  "name",
-		Usage: "secret name",
-	}),
+	Flags: append(common.OutputFlags("table"),
+		&cli.StringFlag{
+			Name:  "name",
+			Usage: "secret name",
+		},
+		&cli.BoolFlag{
+			Name:  "show-value",
+			Usage: "show abbreviated secret value (requires admin access)",
+		},
+	),
 }
 
 func secretShow(ctx context.Context, c *cli.Command) error {
 	secretName := c.String("name")
+	showValue := c.Bool("show-value")
 	if secretName == "" {
 		return fmt.Errorf("secret name is missing")
 	}
@@ -46,7 +53,12 @@ func secretShow(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
-	secret, err := client.GlobalSecret(secretName)
+	var secret *crow.Secret
+	if showValue {
+		secret, err = client.GlobalSecretAbbreviated(secretName)
+	} else {
+		secret, err = client.GlobalSecret(secretName)
+	}
 	if err != nil {
 		return err
 	}

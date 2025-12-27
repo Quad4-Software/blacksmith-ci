@@ -6,13 +6,14 @@ import (
 )
 
 const (
-	pathOrg           = "%s/api/v1/orgs/%d"
-	pathOrgLookup     = "%s/api/v1/orgs/lookup/%s"
-	pathOrgList       = "%s/api/v1/orgs"
-	pathOrgSecrets    = "%s/api/v1/orgs/%d/secrets"
-	pathOrgSecret     = "%s/api/v1/orgs/%d/secrets/%s"
-	pathOrgRegistries = "%s/api/v1/orgs/%d/registries"
-	pathOrgRegistry   = "%s/api/v1/orgs/%d/registries/%s"
+	pathOrg                  = "%s/api/v1/orgs/%d"
+	pathOrgLookup            = "%s/api/v1/orgs/lookup/%s"
+	pathOrgList              = "%s/api/v1/orgs"
+	pathOrgSecrets           = "%s/api/v1/orgs/%d/secrets"
+	pathOrgSecret            = "%s/api/v1/orgs/%d/secrets/%s"
+	pathOrgSecretAbbreviated = "%s/api/v1/orgs/%d/secrets/%s/abbreviated"
+	pathOrgRegistries        = "%s/api/v1/orgs/%d/registries"
+	pathOrgRegistry          = "%s/api/v1/orgs/%d/registries/%s"
 )
 
 // Org returns an organization by id.
@@ -43,6 +44,14 @@ func (c *client) OrgList(opt ListOptions) ([]*Org, error) {
 func (c *client) OrgSecret(orgID int64, secret string) (*Secret, error) {
 	out := new(Secret)
 	uri := fmt.Sprintf(pathOrgSecret, c.addr, orgID, secret)
+	err := c.get(uri, out)
+	return out, err
+}
+
+// OrgSecretAbbreviated returns an org secret with abbreviated value for verification.
+func (c *client) OrgSecretAbbreviated(orgID int64, secret string) (*Secret, error) {
+	out := new(Secret)
+	uri := fmt.Sprintf(pathOrgSecretAbbreviated, c.addr, orgID, secret)
 	err := c.get(uri, out)
 	return out, err
 }

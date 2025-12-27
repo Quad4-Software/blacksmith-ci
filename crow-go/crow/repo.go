@@ -9,27 +9,28 @@ import (
 )
 
 const (
-	pathRepos          = "%s/api/v1/repos"
-	pathRepo           = "%s/api/v1/repos/%d"
-	pathRepoLookup     = "%s/api/v1/repos/lookup/%s"
-	pathRepoChown      = "%s/api/v1/repos/%d/chown"
-	pathRepoRepair     = "%s/api/v1/repos/%d/repair"
-	pathRepoMove       = "%s/api/v1/repos/%d/move"
-	pathRepoSecrets    = "%s/api/v1/repos/%d/secrets"
-	pathRepoSecret     = "%s/api/v1/repos/%d/secrets/%s"
-	pathRepoRegistries = "%s/api/v1/repos/%d/registries"
-	pathRepoRegistry   = "%s/api/v1/repos/%d/registries/%s"
-	pathRepoCrons      = "%s/api/v1/repos/%d/cron"
-	pathRepoCron       = "%s/api/v1/repos/%d/cron/%d"
-	pathPipelines      = "%s/api/v1/repos/%d/pipelines"
-	pathPipeline       = "%s/api/v1/repos/%d/pipelines/%s"
-	pathPipelineID     = "%s/api/v1/repos/%d/pipelines/%d"
-	pathStop           = "%s/api/v1/repos/%d/pipelines/%d/cancel"
-	pathWorkflowCancel = "%s/api/v1/repos/%d/pipelines/%d/workflows/%d/cancel"
-	pathApprove        = "%s/api/v1/repos/%d/pipelines/%d/approve"
-	pathDecline        = "%s/api/v1/repos/%d/pipelines/%d/decline"
-	pathPipelineLogs   = "%s/api/v1/repos/%d/logs/%d"
-	pathStepLogs       = "%s/api/v1/repos/%d/logs/%d/%d"
+	pathRepos                 = "%s/api/v1/repos"
+	pathRepo                  = "%s/api/v1/repos/%d"
+	pathRepoLookup            = "%s/api/v1/repos/lookup/%s"
+	pathRepoChown             = "%s/api/v1/repos/%d/chown"
+	pathRepoRepair            = "%s/api/v1/repos/%d/repair"
+	pathRepoMove              = "%s/api/v1/repos/%d/move"
+	pathRepoSecrets           = "%s/api/v1/repos/%d/secrets"
+	pathRepoSecret            = "%s/api/v1/repos/%d/secrets/%s"
+	pathRepoSecretAbbreviated = "%s/api/v1/repos/%d/secrets/%s/abbreviated"
+	pathRepoRegistries        = "%s/api/v1/repos/%d/registries"
+	pathRepoRegistry          = "%s/api/v1/repos/%d/registries/%s"
+	pathRepoCrons             = "%s/api/v1/repos/%d/cron"
+	pathRepoCron              = "%s/api/v1/repos/%d/cron/%d"
+	pathPipelines             = "%s/api/v1/repos/%d/pipelines"
+	pathPipeline              = "%s/api/v1/repos/%d/pipelines/%s"
+	pathPipelineID            = "%s/api/v1/repos/%d/pipelines/%d"
+	pathStop                  = "%s/api/v1/repos/%d/pipelines/%d/cancel"
+	pathWorkflowCancel        = "%s/api/v1/repos/%d/pipelines/%d/workflows/%d/cancel"
+	pathApprove               = "%s/api/v1/repos/%d/pipelines/%d/approve"
+	pathDecline               = "%s/api/v1/repos/%d/pipelines/%d/decline"
+	pathPipelineLogs          = "%s/api/v1/repos/%d/logs/%d"
+	pathStepLogs              = "%s/api/v1/repos/%d/logs/%d/%d"
 )
 
 type PipelineListOptions struct {
@@ -242,6 +243,14 @@ func (c *client) RegistryDelete(repoID int64, hostname string) error {
 func (c *client) Secret(repoID int64, secret string) (*Secret, error) {
 	out := new(Secret)
 	uri := fmt.Sprintf(pathRepoSecret, c.addr, repoID, secret)
+	err := c.get(uri, out)
+	return out, err
+}
+
+// SecretAbbreviated returns a secret with abbreviated value for verification.
+func (c *client) SecretAbbreviated(repoID int64, secret string) (*Secret, error) {
+	out := new(Secret)
+	uri := fmt.Sprintf(pathRepoSecretAbbreviated, c.addr, repoID, secret)
 	err := c.get(uri, out)
 	return out, err
 }
