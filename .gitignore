@@ -33,7 +33,7 @@ docker-compose.yml
 
 ### Other ##
 # runetime or build relicts
-*.sqlite
+*.sqlite*
 *.out
 /.env
 extras/
