@@ -1,5 +1,5 @@
 import { useStorage } from '@vueuse/core';
-import { nextTick } from 'vue';
+import { nextTick, ref } from 'vue';
 import { createI18n } from 'vue-i18n';
 
 import { useDate } from './useDate';
@@ -14,6 +14,10 @@ export function getUserLanguage(): string {
 const { setDateLocale } = useDate();
 const userLanguage = getUserLanguage();
 const fallbackLocale = 'en';
+
+// Track when i18n is ready (initial locale loaded)
+export const i18nReady = ref(false);
+
 export const i18n = createI18n({
   locale: userLanguage,
   legacy: false,
@@ -45,9 +49,30 @@ export const setI18nLanguage = async (lang: string): Promise<void> => {
   await setDateLocale(lang);
 };
 
-// Load English first (fallback), then user language if different
-loadLocaleMessages(fallbackLocale).catch(console.error);
-if (userLanguage !== fallbackLocale) {
-  loadLocaleMessages(userLanguage).catch(console.error);
+// Load locales and mark as ready when done
+async function initializeI18n() {
+  const minDisplayTime = 300; // Minimum ms to show loading screen (avoid flash)
+  const startTime = Date.now();
+
+  try {
+    // Load English first (fallback)
+    await loadLocaleMessages(fallbackLocale);
+    // Then load user language if different
+    if (userLanguage !== fallbackLocale) {
+      await loadLocaleMessages(userLanguage);
+    }
+    await setDateLocale(userLanguage);
+  } catch (error) {
+    console.error('Failed to load i18n messages:', error);
+  } finally {
+    // Ensure minimum display time to avoid jarring flash
+    const elapsed = Date.now() - startTime;
+    if (elapsed < minDisplayTime) {
+      await new Promise((resolve) => setTimeout(resolve, minDisplayTime - elapsed));
+    }
+    // Mark as ready even if there was an error (fallback to keys)
+    i18nReady.value = true;
+  }
 }
-setDateLocale(userLanguage).catch(console.error);
+
+void initializeI18n();

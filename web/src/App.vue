@@ -1,5 +1,15 @@
 <template>
-  <div class="app flex h-full w-full flex-col bg-background text-foreground">
+  <!-- Loading screen while i18n initializes -->
+  <div v-if="!i18nReady" class="flex h-full w-full items-center justify-center bg-background">
+    <div class="flex flex-col items-center gap-4">
+      <component :is="logoComponent" class="h-12 w-12 animate-pulse" />
+      <div class="h-1 w-32 overflow-hidden rounded-full bg-muted">
+        <div class="h-full w-1/2 animate-loading-bar bg-primary" />
+      </div>
+    </div>
+  </div>
+
+  <div v-else class="app flex h-full w-full flex-col bg-background text-foreground">
     <router-view v-if="blank" v-slot="{ Component }">
       <Transition name="fade" mode="out-in">
         <component :is="Component" />
@@ -166,9 +176,12 @@ import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import { toast } from 'vue-sonner';
 
-import CrowLogo from '~/assets/logo-dark.png';
-import CrowLogoDark from '~/assets/logo.png';
+import CrowLogoPng from '~/assets/logo-dark.png';
+import CrowLogoDarkPng from '~/assets/logo.png';
+import CrowLogoSvg from '~/assets/logo-dark.svg?component';
+import CrowLogoDarkSvg from '~/assets/logo.svg?component';
 import Icon from '~/components/atomic/Icon.vue';
+import { i18nReady } from '~/compositions/useI18n';
 import GlobalCommandPalette from '~/components/command-palette/GlobalCommandPalette.vue';
 import AddSecretDialog from '~/components/command-palette/AddSecretDialog.vue';
 import AddRegistryDialog from '~/components/command-palette/AddRegistryDialog.vue';
@@ -210,7 +223,8 @@ const address = `${window.location.protocol}//${window.location.host}${config.ro
 const isDark = computed(() => theme.value === 'dark');
 
 // Select the appropriate logo based on theme
-const logoSrc = computed(() => (isDark.value ? CrowLogo : CrowLogoDark));
+const logoSrc = computed(() => (isDark.value ? CrowLogoPng : CrowLogoDarkPng));
+const logoComponent = computed(() => (isDark.value ? CrowLogoDarkSvg : CrowLogoSvg));
 
 // Detect OS for keyboard shortcut display
 const isMac = computed(() => navigator.userAgent.includes('Mac'));
@@ -420,5 +434,18 @@ watch(
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+@keyframes loading-bar {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+.animate-loading-bar {
+  animation: loading-bar 1s ease-in-out infinite;
 }
 </style>
