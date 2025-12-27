@@ -265,6 +265,42 @@ func TestSecretMappingSimpleSecret(t *testing.T) {
 	assert.NotContains(t, secretMapping, "PLUGIN_REGULAR_VAR")
 }
 
+func TestInjectSecretRecursiveWithNilValues(t *testing.T) {
+	getSecretValue := func(name string) (string, error) {
+		return "", fmt.Errorf("secret %q not found", name)
+	}
+
+	// Test nil value at top level
+	result, err := injectSecretRecursive(nil, getSecretValue)
+	assert.NoError(t, err)
+	assert.Nil(t, result)
+
+	// Test nil value in map
+	mapWithNil := map[string]any{
+		"key1": "value1",
+		"key2": nil,
+		"key3": map[string]any{
+			"nested": nil,
+		},
+	}
+	result, err = injectSecretRecursive(mapWithNil, getSecretValue)
+	assert.NoError(t, err)
+	resultMap, ok := result.(map[string]any)
+	assert.True(t, ok)
+	assert.Equal(t, "value1", resultMap["key1"])
+	assert.Nil(t, resultMap["key2"])
+
+	// Test nil value in slice
+	sliceWithNil := []any{"a", nil, "b"}
+	result, err = injectSecretRecursive(sliceWithNil, getSecretValue)
+	assert.NoError(t, err)
+	resultSlice, ok := result.([]any)
+	assert.True(t, ok)
+	assert.Equal(t, "a", resultSlice[0])
+	assert.Nil(t, resultSlice[1])
+	assert.Equal(t, "b", resultSlice[2])
+}
+
 func TestSecretMappingComplexMapWithSecrets(t *testing.T) {
 	from := map[string]any{
 		"config": map[string]any{

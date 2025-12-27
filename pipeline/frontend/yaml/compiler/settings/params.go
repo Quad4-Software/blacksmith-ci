@@ -198,8 +198,11 @@ func injectSecret(v map[string]any, getSecretValue func(name string) (string, er
 // injectSecretRecursive iterates over all types and if they contain elements
 // it iterates recursively over them too, using injectSecret internally.
 func injectSecretRecursive(v any, getSecretValue func(name string) (string, error)) (any, error) {
-	t := reflect.TypeOf(v)
+	if v == nil {
+		return v, nil
+	}
 
+	t := reflect.TypeOf(v)
 	if !isComplex(t.Kind()) {
 		return v, nil
 	}
