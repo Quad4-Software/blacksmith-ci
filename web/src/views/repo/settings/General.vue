@@ -4,10 +4,10 @@
       <div class="grid gap-2">
         <label class="text-sm font-medium text-foreground">{{ $t('repo.settings.general.general') }}</label>
 
-        <FormField v-slot="{ value, handleChange }" name="allow_pr">
+        <FormField v-slot="{ value, setValue }" name="allow_pr">
           <FormItem class="flex items-start gap-3 space-y-0">
             <FormControl>
-              <Checkbox :checked="value" @update:checked="handleChange" />
+              <Checkbox :checked="value" @update:checked="(v: boolean | 'indeterminate') => setValue(v === true)" />
             </FormControl>
             <div class="flex flex-col">
               <FormLabel class="font-normal">
@@ -18,10 +18,10 @@
           </FormItem>
         </FormField>
 
-        <FormField v-slot="{ value, handleChange }" name="allow_deploy">
+        <FormField v-slot="{ value, setValue }" name="allow_deploy">
           <FormItem class="flex items-start gap-3 space-y-0">
             <FormControl>
-              <Checkbox :checked="value" @update:checked="handleChange" />
+              <Checkbox :checked="value" @update:checked="(v) => setValue(v === true)" />
             </FormControl>
             <div class="flex flex-col">
               <FormLabel class="font-normal">
@@ -56,10 +56,10 @@
       <div v-if="user?.admin" class="grid gap-2">
         <label class="text-sm font-medium text-foreground">{{ $t('repo.settings.general.trusted.trusted') }}</label>
 
-        <FormField v-slot="{ value, handleChange }" name="trusted.network">
+        <FormField v-slot="{ value, setValue }" name="trusted.network">
           <FormItem class="flex items-start gap-3 space-y-0">
             <FormControl>
-              <Checkbox :checked="value" @update:checked="handleChange" />
+              <Checkbox :checked="value" @update:checked="(v: boolean | 'indeterminate') => setValue(v === true)" />
             </FormControl>
             <div class="flex flex-col">
               <FormLabel class="font-normal">
@@ -70,10 +70,10 @@
           </FormItem>
         </FormField>
 
-        <FormField v-slot="{ value, handleChange }" name="trusted.volumes">
+        <FormField v-slot="{ value, setValue }" name="trusted.volumes">
           <FormItem class="flex items-start gap-3 space-y-0">
             <FormControl>
-              <Checkbox :checked="value" @update:checked="handleChange" />
+              <Checkbox :checked="value" @update:checked="(v: boolean | 'indeterminate') => setValue(v === true)" />
             </FormControl>
             <div class="flex flex-col">
               <FormLabel class="font-normal">
@@ -84,10 +84,10 @@
           </FormItem>
         </FormField>
 
-        <FormField v-slot="{ value, handleChange }" name="trusted.security">
+        <FormField v-slot="{ value, setValue }" name="trusted.security">
           <FormItem class="flex items-start gap-3 space-y-0">
             <FormControl>
-              <Checkbox :checked="value" @update:checked="handleChange" />
+              <Checkbox :checked="value" @update:checked="(v: boolean | 'indeterminate') => setValue(v === true)" />
             </FormControl>
             <div class="flex flex-col">
               <FormLabel class="font-normal">
@@ -297,7 +297,7 @@ const repoSettingsSchema = toTypedSchema(
     allow_deploy: z.boolean(),
     cancel_previous_pipeline_events: z.array(z.string()),
     logs_keep_duration: z.string(),
-    logs_keep_min: z.number().min(0),
+    logs_keep_min: z.number().min(1),
     netrc_trusted: z.array(z.string()),
   }),
 );
@@ -335,7 +335,7 @@ function loadRepoSettings() {
     allow_deploy: repo.value.allow_deploy,
     cancel_previous_pipeline_events: repo.value.cancel_previous_pipeline_events || [],
     logs_keep_duration: repo.value.logs_keep_duration ?? '',
-    logs_keep_min: repo.value.logs_keep_min ?? 90,
+    logs_keep_min: repo.value.logs_keep_min || 90,
     netrc_trusted: repo.value.netrc_trusted || [],
   });
 }
