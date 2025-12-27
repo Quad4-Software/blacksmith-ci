@@ -73,7 +73,8 @@ func run(ctx context.Context, c *cli.Command) error {
 	defer shutdownCancelFunc()
 
 	// set gin mode based on log level
-	if zerolog.GlobalLevel() > zerolog.DebugLevel {
+	// GIN debug output ([GIN-debug]) only shows at trace level
+	if zerolog.GlobalLevel() > zerolog.TraceLevel {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
