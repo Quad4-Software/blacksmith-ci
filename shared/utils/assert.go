@@ -20,8 +20,9 @@ import (
 )
 
 // used to check if project settings value for keepMin is valid.
+// Valid values: -1 (keep all), 0 (use server default), or >0 (specific count).
 func IsValidKeepMinValue(value int64) (bool, error) {
-	if value > 0 || value == -1 {
+	if value >= 0 || value == -1 {
 		return true, nil
 	}
 	return false, fmt.Errorf("invalid keepMin value: %d", value)
