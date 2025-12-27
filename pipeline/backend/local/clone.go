@@ -114,7 +114,9 @@ func (e *local) execClone(ctx context.Context, step *types.Step, state *workflow
 	// Create merged output with stream tags
 	e.output = createTaggedMergedPipe(stdoutPipe, stderrPipe, e.os == "windows")
 
+	state.stepCMDsMu.Lock()
 	state.stepCMDs[step.UUID] = cmd
+	state.stepCMDsMu.Unlock()
 
 	return cmd.Start()
 }

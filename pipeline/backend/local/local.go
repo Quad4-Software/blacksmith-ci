@@ -37,6 +37,7 @@ import (
 
 type workflowState struct {
 	stepCMDs     map[string]*exec.Cmd
+	stepCMDsMu   sync.RWMutex
 	baseDir      string
 	homeDir      string
 	workspaceDir string
@@ -214,7 +215,9 @@ func (e *local) execCommands(ctx context.Context, step *types.Step, state *workf
 	// Create merged output with stream tags
 	e.output = createTaggedMergedPipe(stdoutPipe, stderrPipe, e.os == "windows")
 
+	state.stepCMDsMu.Lock()
 	state.stepCMDs[step.UUID] = cmd
+	state.stepCMDsMu.Unlock()
 
 	return cmd.Start()
 }
@@ -248,7 +251,9 @@ func (e *local) execService(ctx context.Context, step *types.Step, state *workfl
 	// Create merged output with stream tags
 	e.output = createTaggedMergedPipe(stdoutPipe, stderrPipe, e.os == "windows")
 
+	state.stepCMDsMu.Lock()
 	state.stepCMDs[step.UUID] = cmd
+	state.stepCMDsMu.Unlock()
 
 	return cmd.Start()
 }
@@ -277,7 +282,9 @@ func (e *local) execPlugin(ctx context.Context, step *types.Step, state *workflo
 	// Create merged output with stream tags
 	e.output = createTaggedMergedPipe(stdoutPipe, stderrPipe, e.os == "windows")
 
+	state.stepCMDsMu.Lock()
 	state.stepCMDs[step.UUID] = cmd
+	state.stepCMDsMu.Unlock()
 
 	return cmd.Start()
 }
@@ -292,7 +299,9 @@ func (e *local) WaitStep(_ context.Context, step *types.Step, taskUUID string) (
 		return nil, err
 	}
 
+	state.stepCMDsMu.RLock()
 	cmd, ok := state.stepCMDs[step.UUID]
+	state.stepCMDsMu.RUnlock()
 	if !ok {
 		return nil, fmt.Errorf("step cmd for %s not found", step.UUID)
 	}
