@@ -53,53 +53,72 @@ steps:
         - dist/*.tar.gz
       title: ${CI_COMMIT_TAG}
 
-  'Bump version in homebrew-tap':
+  'Bump and push homebrew-tap':
     image: alpine:3.23
+    environment:
+      SSH_KEY:
+        from_secret: crowci-bot-ssh-key
     commands:
-      - apk add --no-cache -q curl jq git sed
-      - git clone https://codeberg.org/crowci/homebrew-tap.git
-      - cd homebrew-tap
-      - curl -s -O "https://codeberg.org/crowci/crow/archive/refs/tags/${CI_COMMIT_TAG}.tar.gz"
-      - SHA256=$(sha256sum "${CI_COMMIT_TAG}.tar.gz" | cut -d' ' -f1)
-      - sed -i "s|url .*\.tar\.gz|url \"https://codeberg.org/crowci/crow/archive/refs/tags/${CI_COMMIT_TAG}.tar.gz|" Formula/crow.rb
-      - sed -i "s/sha256 \"[^\"]*\"/sha256 \"$SHA256\"/" Formula/crow.rb
-      - rm -rf ${CI_COMMIT_TAG}.tar.gz
+      - |
+        set -e
+        apk add --no-cache -q curl jq git sed openssh
 
-  'Push changes to homebrew-tap':
-    image: reg.devxy.io/docker.io/appleboy/drone-git-push:1.1.1
-    settings:
-      path: homebrew-tap
-      remote: ssh://git@codeberg.org/crowci/homebrew-tap.git
-      branch: main
-      commit: true
-      ssh_key:
-        from_secret: crowci-bot-ssh-key
-      commit_message: 'chore: bump version to ${CI_COMMIT_TAG}'
-      commit_author: crowci-bot
-      commit_author_email: admin@crowci.dev
+        # Determine if this is a major release (breaking change)
+        VERSION=${CI_COMMIT_TAG#v}
+        MINOR=$(echo $VERSION | cut -d. -f2)
+        PATCH=$(echo $VERSION | cut -d. -f3)
+        BREAKING=""; [ "$MINOR" = "0" ] && [ "$PATCH" = "0" ] && BREAKING="!"
 
-  'Bump version in crowci/helm':
+        # Setup SSH
+        mkdir -p ~/.ssh && chmod 700 ~/.ssh
+        echo "$SSH_KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+        ssh-keyscan codeberg.org >> ~/.ssh/known_hosts 2>/dev/null
+
+        # Clone, update, commit, and push
+        git clone ssh://git@codeberg.org/crowci/homebrew-tap.git
+        cd homebrew-tap
+        curl -s -O "https://codeberg.org/crowci/crow/archive/refs/tags/${CI_COMMIT_TAG}.tar.gz"
+        SHA256=$(sha256sum "${CI_COMMIT_TAG}.tar.gz" | cut -d' ' -f1)
+        sed -i "s|url .*\.tar\.gz|url \"https://codeberg.org/crowci/crow/archive/refs/tags/${CI_COMMIT_TAG}.tar.gz|" Formula/crow.rb
+        sed -i "s/sha256 \"[^\"]*\"/sha256 \"$SHA256\"/" Formula/crow.rb
+        rm -f "${CI_COMMIT_TAG}.tar.gz"
+        git config user.name "crowci-bot"
+        git config user.email "admin@crowci.dev"
+        git add -A
+        git commit -m "chore${BREAKING}: bump version to ${CI_COMMIT_TAG}"
+        git push origin main
+
+  'Bump and push crowci/helm':
     image: alpine:3.23
-    commands: |
-      apk add --no-cache -q git sed
-      git clone https://codeberg.org/crowci/helm.git
-      cd helm
-      sed -i "s/^appVersion: .*/appVersion: ${CI_COMMIT_TAG#v}/" charts/crow/Chart.yaml
-
-  'Push changes to crowci/helm':
-    image: reg.devxy.io/docker.io/appleboy/drone-git-push:1.1.1
-    settings:
-      path: helm
-      remote: ssh://git@codeberg.org/crowci/helm.git
-      branch: main
-      commit: true
-      ssh_key:
+    environment:
+      SSH_KEY:
         from_secret: crowci-bot-ssh-key
-      commit_message: 'chore: bump version to ${CI_COMMIT_TAG}'
-      commit_author: crowci-bot
-      commit_author_email: admin@crowci.dev
+    commands:
+      - |
+        set -e
+        apk add --no-cache -q git sed openssh
 
-  # FIXME: turn this into a plugin to secure SSH key
+        # Determine if this is a major release (breaking change)
+        VERSION=${CI_COMMIT_TAG#v}
+        MINOR=$(echo $VERSION | cut -d. -f2)
+        PATCH=$(echo $VERSION | cut -d. -f3)
+        BREAKING=""; [ "$MINOR" = "0" ] && [ "$PATCH" = "0" ] && BREAKING="!"
+
+        # Setup SSH
+        mkdir -p ~/.ssh && chmod 700 ~/.ssh
+        echo "$SSH_KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+        ssh-keyscan codeberg.org >> ~/.ssh/known_hosts 2>/dev/null
+
+        # Clone, update, commit, and push
+        git clone ssh://git@codeberg.org/crowci/helm.git
+        cd helm
+        sed -i "s/^appVersion: .*/appVersion: ${CI_COMMIT_TAG#v}/" charts/crow/Chart.yaml
+        git config user.name "crowci-bot"
+        git config user.email "admin@crowci.dev"
+        git add -A
+        git commit -m "chore${BREAKING}: bump version to ${CI_COMMIT_TAG}"
+        git push origin main
+
   'Create release for crowci/helm':
     image: reg.devxy.io/docker.io/thegeeklab/git-sv:2.0.9
     environment:
@@ -107,15 +126,42 @@ steps:
         from_secret: crowci-bot-ssh-key
     commands:
       - apk add --no-cache -q git openssh
-      - mkdir ~/.ssh
-      - chmod 700 ~/.ssh
-      - echo "$SSH_KEY" > ~/.ssh/id_ed25519
-      - chmod 600 ~/.ssh/id_ed25519
-      - ssh-keyscan codeberg.org >> ~/.ssh/known_hosts
-      - chmod 644 ~/.ssh/known_hosts
-      - rm -rf helm
+      - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+      - echo "$SSH_KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+      - ssh-keyscan codeberg.org >> ~/.ssh/known_hosts 2>/dev/null
       - git clone ssh://git@codeberg.org/crowci/helm.git
       - cd helm
       - eval $(ssh-agent -s)
       - ssh-add ~/.ssh/id_ed25519
       - git sv tag
+
+  'Bump and push ansible-cicd':
+    image: alpine:3.23
+    environment:
+      SSH_KEY:
+        from_secret: devxy/ansible-cicd-deploy-key
+    commands:
+      - |
+        set -e
+        apk add --no-cache -q git sed openssh
+
+        # Determine if this is a major release (breaking change)
+        VERSION=${CI_COMMIT_TAG#v}
+        MINOR=$(echo $VERSION | cut -d. -f2)
+        PATCH=$(echo $VERSION | cut -d. -f3)
+        BREAKING=""; [ "$MINOR" = "0" ] && [ "$PATCH" = "0" ] && BREAKING="!"
+
+        # Setup SSH
+        mkdir -p ~/.ssh && chmod 700 ~/.ssh
+        echo "$SSH_KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+        ssh-keyscan codefloe.com >> ~/.ssh/known_hosts 2>/dev/null
+
+        # Clone, update, commit, and push
+        git clone ssh://git@codefloe.com/devxy/ansible-cicd.git
+        cd ansible-cicd
+        sed -i "s/^crow_version: .*/crow_version: ${CI_COMMIT_TAG}/" roles/crowci/defaults/main.yml
+        git config user.name "crowci-bot"
+        git config user.email "admin@crowci.dev"
+        git add -A
+        git commit -m "chore${BREAKING}: bump version to ${CI_COMMIT_TAG}"
+        git push origin main
