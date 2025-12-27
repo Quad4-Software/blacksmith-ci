@@ -21,22 +21,46 @@ export default defineConfig({
     markdoc(),
     starlight({
       title: 'Crow CI',
+      favicon: '/favicon-light.svg',
       customCss: ['./src/styles/base.css', './src/styles/starlight-mappings.css', './src/styles/custom.css'],
       head: [
+        // Theme-aware favicons: dark icon for light mode, light icon for dark mode
+        // Note: favicon-light = dark icon (for light backgrounds), favicon-dark = light icon (for dark backgrounds)
         {
           tag: 'link',
           attrs: {
             rel: 'icon',
-            href: '/favicon.png',
-            type: 'image/png',
+            href: '/favicon-light.svg',
+            type: 'image/svg+xml',
+            media: '(prefers-color-scheme: light)',
           },
         },
         {
           tag: 'link',
           attrs: {
             rel: 'icon',
-            href: '/logo.svg',
+            href: '/favicon-dark.svg',
             type: 'image/svg+xml',
+            media: '(prefers-color-scheme: dark)',
+          },
+        },
+        // PNG fallback for browsers that don't support SVG favicons
+        {
+          tag: 'link',
+          attrs: {
+            rel: 'icon',
+            href: '/favicon-light.png',
+            type: 'image/png',
+            media: '(prefers-color-scheme: light)',
+          },
+        },
+        {
+          tag: 'link',
+          attrs: {
+            rel: 'icon',
+            href: '/favicon-dark.png',
+            type: 'image/png',
+            media: '(prefers-color-scheme: dark)',
           },
         },
         {
