@@ -74,7 +74,10 @@
     <SearchInput v-if="searchQuery !== null" v-model="searchQuery" :placeholder="t('search')" class="w-full" />
 
     <!-- Hidden pipelines toggle and multi-select header -->
-    <div class="flex flex-wrap items-center justify-between gap-2">
+    <div
+      v-if="(isMultiselectMode && displayPipelines.length > 0 && repoPermissions?.push) || hiddenCount > 0"
+      class="flex flex-wrap items-center justify-between gap-2"
+    >
       <div
         v-if="isMultiselectMode && displayPipelines.length > 0 && repoPermissions?.push"
         class="flex items-center gap-2"
