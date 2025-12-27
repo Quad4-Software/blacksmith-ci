@@ -95,8 +95,14 @@ func (s storage) CreateRepo(repo *model.Repo) error {
 }
 
 func (s storage) UpdateRepo(repo *model.Repo) error {
-	_, err := s.engine.ID(repo.ID).AllCols().Update(repo)
-	return err
+	affected, err := s.engine.ID(repo.ID).AllCols().Update(repo)
+	if err != nil {
+		return fmt.Errorf("update repo %d failed: %w", repo.ID, err)
+	}
+	if affected == 0 {
+		return fmt.Errorf("no rows affected when updating repo %d", repo.ID)
+	}
+	return nil
 }
 
 func (s storage) DeleteRepo(repo *model.Repo) error {
