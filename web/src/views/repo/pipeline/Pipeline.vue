@@ -409,20 +409,38 @@ function toggleMobileWorkflow(workflowId: number) {
   mobileWorkflowsCollapsed.value[workflowId] = !mobileWorkflowsCollapsed.value[workflowId];
 }
 
-// Auto-follow logic: automatically switch to the running step
+// Find the workflow containing a given step ID
+function getWorkflowForStep(stepId: number | null) {
+  if (!stepId || !pipeline.value?.workflows) return null;
+  return pipeline.value.workflows.find((w) => w.children?.some((s) => s.pid === stepId)) ?? null;
+}
+
+// Auto-follow logic: automatically switch to the running step within the current workflow
 watch(
-  [() => pipeline.value?.workflows, autoFollowEnabled],
-  ([workflows, enabled]) => {
+  [() => pipeline.value?.workflows, autoFollowEnabled, selectedStepId],
+  ([workflows, enabled, currentStepId]) => {
     if (!enabled || !workflows) {
       return;
     }
 
-    // Find the first running step
-    for (const workflow of workflows) {
-      const runningStep = workflow.children?.find((step) => step.state === 'running');
-      if (runningStep && runningStep.pid !== selectedStepId.value) {
+    // Find the workflow containing the currently selected step
+    const currentWorkflow = getWorkflowForStep(currentStepId);
+
+    if (currentWorkflow) {
+      // Only auto-follow within the current workflow
+      const runningStep = currentWorkflow.children?.find((step) => step.state === 'running');
+      if (runningStep && runningStep.pid !== currentStepId) {
         selectedStepId.value = runningStep.pid;
         return;
+      }
+    } else {
+      // No step selected yet - find the first running step in any workflow
+      for (const workflow of workflows) {
+        const runningStep = workflow.children?.find((step) => step.state === 'running');
+        if (runningStep) {
+          selectedStepId.value = runningStep.pid;
+          return;
+        }
       }
     }
   },
