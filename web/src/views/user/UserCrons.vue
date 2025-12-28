@@ -413,8 +413,8 @@ const sortConfig = ref<SortConfig>({ key: 'name', direction: 'asc' });
 const cronRecentRuns = ref<Record<number, Pipeline[]>>({});
 const tableRef = ref<InstanceType<typeof Table> | null>(null);
 
-// Column visibility (branch hidden by default)
-const visibleColumns = ref<string[]>(['next_exec', 'recent_runs']);
+// Column visibility (branch and recent_runs hidden by default to prevent mobile overflow)
+const visibleColumns = ref<string[]>(['next_exec']);
 const toggleableColumns = computed(() => [
   { key: 'branch', label: t('repo.settings.crons.branch.title') },
   { key: 'next_exec', label: t('repo.settings.crons.next_exec') },

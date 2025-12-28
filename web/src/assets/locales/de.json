@@ -379,7 +379,7 @@
         "saved": "Cron gespeichert",
         "schedule": {
           "placeholder": "Zeitplan",
-          "title": "Zeitplan (basierend auf UTC)"
+          "title": "Zeitplan"
         },
         "show": "Crons anzeigen"
       },

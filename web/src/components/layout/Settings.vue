@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full space-y-6 p-8 max-w-6xl mx-auto">
+  <div class="w-full space-y-6 p-2 md:p-8 max-w-6xl mx-auto">
     <div class="flex flex-col justify-center">
       <div class="flex items-center justify-between">
         <h1 class="flex items-center gap-1 text-xl text-card-foreground">

@@ -1,5 +1,5 @@
 <template>
-  <div class="mx-auto w-full max-w-none px-4 overflow-y-auto">
+  <div class="mx-auto w-full max-w-none overflow-y-auto">
     <Settings :title="$t('admin.settings.agents.agents')" :description="description">
       <template #headerActions>
         <Button :text="$t('admin.settings.agents.add')" start-icon="plus" @click="showAddAgent" />

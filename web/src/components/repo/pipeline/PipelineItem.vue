@@ -54,33 +54,53 @@
         </div>
 
         <div
-          class="grid w-full min-w-0 grid-flow-col grid-cols-1 grid-rows-2 gap-y-2 py-2 text-foreground md:ml-auto md:w-85 md:shrink-0"
+          class="grid w-full min-w-0 grid-flow-col grid-cols-1 grid-rows-2 gap-y-1 md:gap-y-2 py-2 text-xs md:text-sm text-foreground md:ml-auto md:w-85 md:shrink-0"
         >
-          <div class="flex min-w-0 items-center space-x-2">
+          <div class="flex min-w-0 items-center space-x-1 md:space-x-2">
             <span :title="pipelineEventTitle">
-              <Icon v-if="pipeline.event === 'pull_request'" name="pull-request" size="1rem" />
-              <Icon v-else-if="pipeline.event === 'pull_request_closed'" name="pull-request-closed" size="1rem" />
-              <Icon v-else-if="pipeline.event === 'pull_request_merged'" name="pull-request-merged" size="1rem" />
-              <Icon v-else-if="pipeline.event === 'pull_request_edited'" name="pull-request-edited" size="1rem" />
-              <Icon v-else-if="pipeline.event === 'deployment'" name="deployment" size="1rem" />
-              <Icon v-else-if="pipeline.event === 'tag' || pipeline.event === 'release'" name="tag" size="1rem" />
-              <Icon v-else-if="pipeline.event === 'cron'" name="branch" size="1rem" />
-              <Icon v-else-if="pipeline.event === 'manual'" name="manual-pipeline" size="1rem" />
-              <Icon v-else name="branch" size="1rem" />
+              <Icon v-if="pipeline.event === 'pull_request'" name="pull-request" class="size-3.5 md:size-4" />
+              <Icon
+                v-else-if="pipeline.event === 'pull_request_closed'"
+                name="pull-request-closed"
+                class="size-3.5 md:size-4"
+              />
+              <Icon
+                v-else-if="pipeline.event === 'pull_request_merged'"
+                name="pull-request-merged"
+                class="size-3.5 md:size-4"
+              />
+              <Icon
+                v-else-if="pipeline.event === 'pull_request_edited'"
+                name="pull-request-edited"
+                class="size-3.5 md:size-4"
+              />
+              <Icon v-else-if="pipeline.event === 'deployment'" name="deployment" class="size-3.5 md:size-4" />
+              <Icon
+                v-else-if="pipeline.event === 'tag' || pipeline.event === 'release'"
+                name="tag"
+                class="size-3.5 md:size-4"
+              />
+              <Icon v-else-if="pipeline.event === 'cron'" name="branch" class="size-3.5 md:size-4" />
+              <Icon v-else-if="pipeline.event === 'manual'" name="manual-pipeline" class="size-3.5 md:size-4" />
+              <Icon v-else name="branch" class="size-3.5 md:size-4" />
             </span>
             <span class="truncate">{{ prettyRef }}</span>
           </div>
 
-          <div class="flex min-w-0 items-center space-x-2">
-            <Icon name="commit" size="1rem" /> <span class="truncate">{{ pipeline.commit.slice(0, 10) }}</span>
+          <div class="flex min-w-0 items-center space-x-1 md:space-x-2">
+            <Icon name="commit" class="size-3.5 md:size-4" />
+            <span class="truncate">{{ pipeline.commit.slice(0, 10) }}</span>
           </div>
 
-          <div class="flex min-w-0 items-center space-x-2" :title="$t('repo.pipeline.duration')">
-            <Icon name="duration" size="1rem" /> <span class="truncate">{{ duration }}</span>
+          <div class="flex min-w-0 items-center space-x-1 md:space-x-2" :title="$t('repo.pipeline.duration')">
+            <Icon name="duration" class="size-3.5 md:size-4" /> <span class="truncate">{{ duration }}</span>
           </div>
 
-          <div class="flex min-w-0 items-center space-x-2" :title="$t('repo.pipeline.created', { created })">
-            <Icon name="startDate" size="1rem" /> <span class="truncate">{{ startDate }}</span>
+          <div
+            class="flex min-w-0 items-center space-x-1 md:space-x-2"
+            :title="$t('repo.pipeline.created', { created })"
+          >
+            <Icon name="startDate" class="size-3.5 md:size-4" /> <span class="truncate">{{ startDate }}</span>
           </div>
         </div>
       </div>
