@@ -174,7 +174,7 @@
       />
       <!-- Step Selection (when no step is selected) -->
       <div v-else class="h-full overflow-y-auto">
-        <div class="px-1 pb-4 pt-1">
+        <div class="px-1 pb-20 pt-1">
           <div class="flex flex-col gap-y-2">
             <div
               v-for="workflow in pipeline!.workflows"

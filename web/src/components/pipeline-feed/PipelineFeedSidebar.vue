@@ -46,7 +46,8 @@
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
+import { useRoute } from 'vue-router';
 
 import PipelineFeedItem from '~/components/pipeline-feed/PipelineFeedItem.vue';
 import { Sheet, SheetContent } from '~/components/ui/sheet';
@@ -55,8 +56,19 @@ import SheetHeader from '~/components/ui/sheet/SheetHeader.vue';
 import SheetTitle from '~/components/ui/sheet/SheetTitle.vue';
 import usePipelineFeed from '~/compositions/usePipelineFeed';
 
+const route = useRoute();
 const pipelineFeed = usePipelineFeed();
 const { close, isOpen, sortedPipelines } = pipelineFeed;
+
+// Close sidebar when route changes (handles mobile navigation)
+watch(
+  () => route.fullPath,
+  () => {
+    if (isOpen.value) {
+      close();
+    }
+  },
+);
 
 const activePipelines = computed(() =>
   sortedPipelines.value.filter((p) => ['pending', 'running', 'started'].includes(p.status)),
