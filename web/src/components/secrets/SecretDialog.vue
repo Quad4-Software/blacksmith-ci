@@ -60,8 +60,7 @@
                       <Checkbox
                         id="scope-global"
                         :checked="isGlobal"
-                        @update:checked="isGlobal = $event"
-                        @click="isGlobal = !isGlobal"
+                        @update:checked="(v) => (isGlobal = v === true)"
                       />
                       <label for="scope-global" class="text-sm cursor-pointer">
                         {{ $t('scope.global') }}

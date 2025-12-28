@@ -185,7 +185,7 @@
         <div v-for="option in cancelPreviousPipelineEventsOptions" :key="option.value" class="flex items-start gap-3">
           <Checkbox
             :checked="values.cancel_previous_pipeline_events?.includes(option.value)"
-            @update:checked="toggleCancelEvent(option.value, $event)"
+            @update:checked="(v) => toggleCancelEvent(option.value, v === true)"
           />
           <div class="flex flex-col">
             <label class="text-sm font-normal">{{ option.text }}</label>

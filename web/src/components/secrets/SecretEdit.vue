@@ -87,7 +87,9 @@
               <Checkbox
                 :id="`event-${option.value}`"
                 :model-value="innerValue.events?.includes(option.value as WebhookEvents)"
-                @update:model-value="(checked) => toggleEvent(option.value as WebhookEvents, checked === true)"
+                @update:model-value="
+                  (checked: boolean | 'indeterminate') => toggleEvent(option.value as WebhookEvents, checked === true)
+                "
               />
               <label :for="`event-${option.value}`" class="text-sm font-normal leading-none cursor-pointer">{{
                 option.text

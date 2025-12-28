@@ -27,7 +27,7 @@
                 <Checkbox
                   :checked="vacuumLogTableConfig.enabled"
                   :disabled="vacuumEnvVarsSet"
-                  @update:checked="vacuumLogTableConfig.enabled = $event"
+                  @update:checked="(v) => (vacuumLogTableConfig.enabled = v === true)"
                 />
                 <Label
                   class="cursor-pointer"
@@ -122,7 +122,7 @@
                 <Checkbox
                   :checked="staleAgentCleanupConfig.enabled"
                   :disabled="staleAgentEnvVarsSet"
-                  @update:checked="staleAgentCleanupConfig.enabled = $event"
+                  @update:checked="(v) => (staleAgentCleanupConfig.enabled = v === true)"
                 />
                 <Label
                   class="cursor-pointer"
@@ -219,7 +219,7 @@
                 <Checkbox
                   :checked="kubernetesCleanupConfig.enabled"
                   :disabled="kubernetesEnvVarsSet"
-                  @update:checked="kubernetesCleanupConfig.enabled = $event"
+                  @update:checked="(v) => (kubernetesCleanupConfig.enabled = v === true)"
                 />
                 <Label
                   class="cursor-pointer"
@@ -242,7 +242,7 @@
             <div class="flex flex-col gap-2">
               <Label>{{ $t('admin.settings.maintenance.options') }}</Label>
               <div class="flex items-center h-9 space-x-2">
-                <Checkbox :checked="k8sCleanupDryRun" @update:checked="k8sCleanupDryRun = $event" />
+                <Checkbox :checked="k8sCleanupDryRun" @update:checked="(v) => (k8sCleanupDryRun = v === true)" />
                 <Label class="cursor-pointer" @click="k8sCleanupDryRun = !k8sCleanupDryRun">
                   {{ $t('admin.settings.maintenance.dry_run') }}
                 </Label>
