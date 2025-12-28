@@ -153,7 +153,7 @@
               <TableHead v-if="visibleColumns.includes('recent_runs')" class="w-28 min-w-24">{{
                 $t('repo.settings.crons.recent_runs')
               }}</TableHead>
-              <TableHead class="w-24 min-w-20 text-right">{{ $t('actions') }}</TableHead>
+              <TableHead class="w-28 min-w-24 text-right">{{ $t('actions') }}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -210,18 +210,23 @@
                 <span v-else class="text-muted-foreground text-sm" aria-hidden="true">-</span>
               </TableCell>
               <TableCell class="text-right overflow-visible" @click.stop>
-                <div class="flex items-center justify-end gap-1">
-                  <Button variant="ghost" size="icon" :title="$t('repo.settings.crons.run')" @click="runCron(cron)">
+                <div class="flex items-center justify-end gap-0.5 md:gap-1">
+                  <Button variant="ghost" size="icon-sm" :title="$t('repo.settings.crons.run')" @click="runCron(cron)">
                     <Icon name="play-outline" class="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" :title="$t('repo.settings.crons.edit')" @click="editCron(cron)">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    :title="$t('repo.settings.crons.edit')"
+                    @click="editCron(cron)"
+                  >
                     <Icon name="edit" class="h-4 w-4" />
                   </Button>
                   <AlertDialog v-model:open="deleteDialogOpen[cron.id]">
                     <AlertDialogTrigger as-child>
                       <Button
                         variant="ghost"
-                        size="icon"
+                        size="icon-sm"
                         :title="$t('repo.settings.crons.delete')"
                         :disabled="isDeleting"
                       >

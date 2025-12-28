@@ -16,34 +16,54 @@ export function useResizableColumns(tableRef: Ref<HTMLElement | null>) {
       if (index === ths.length - 1) return;
 
       const resizer = document.createElement('div');
-      resizer.className =
-        'absolute right-0 top-0 h-full w-1 cursor-col-resize bg-transparent hover:bg-primary/50 transition-colors';
-      resizer.style.cssText = 'position: absolute; right: 0; top: 0; height: 100%; width: 4px; cursor: col-resize;';
+      resizer.className = 'column-resizer';
+      resizer.style.cssText =
+        'position: absolute; right: 0; top: 0; height: 100%; width: 4px; cursor: col-resize; background: hsl(var(--border)); opacity: 0.5; transition: opacity 0.15s;';
+      resizer.addEventListener('mouseenter', () => (resizer.style.opacity = '1'));
+      resizer.addEventListener('mouseleave', () => (resizer.style.opacity = '0.5'));
 
       th.style.position = 'relative';
       th.appendChild(resizer);
       resizers.push(resizer);
 
-      resizer.addEventListener('mousedown', (e) => startResize(e, th));
+      resizer.addEventListener('mousedown', (e) => startResize(e.pageX, th));
+      resizer.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+          e.preventDefault();
+          startResize(e.touches[0].pageX, th);
+        }
+      });
     });
   }
 
-  function startResize(e: MouseEvent, th: HTMLTableCellElement) {
-    e.preventDefault();
+  function startResize(x: number, th: HTMLTableCellElement) {
     currentTh = th;
-    startX = e.pageX;
+    startX = x;
     startWidth = th.offsetWidth;
 
-    document.addEventListener('mousemove', resize);
+    document.addEventListener('mousemove', resizeMouse);
     document.addEventListener('mouseup', stopResize);
+    document.addEventListener('touchmove', resizeTouch, { passive: false });
+    document.addEventListener('touchend', stopResize);
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
   }
 
-  function resize(e: MouseEvent) {
+  function resizeMouse(e: MouseEvent) {
+    resize(e.pageX);
+  }
+
+  function resizeTouch(e: TouchEvent) {
+    if (e.touches.length === 1) {
+      e.preventDefault();
+      resize(e.touches[0].pageX);
+    }
+  }
+
+  function resize(x: number) {
     if (!currentTh) return;
 
-    const diff = e.pageX - startX;
+    const diff = x - startX;
     const newWidth = Math.max(60, startWidth + diff);
     currentTh.style.width = `${newWidth}px`;
     currentTh.style.minWidth = `${newWidth}px`;
@@ -51,8 +71,10 @@ export function useResizableColumns(tableRef: Ref<HTMLElement | null>) {
 
   function stopResize() {
     currentTh = null;
-    document.removeEventListener('mousemove', resize);
+    document.removeEventListener('mousemove', resizeMouse);
     document.removeEventListener('mouseup', stopResize);
+    document.removeEventListener('touchmove', resizeTouch);
+    document.removeEventListener('touchend', stopResize);
     document.body.style.cursor = '';
     document.body.style.userSelect = '';
   }
@@ -60,8 +82,10 @@ export function useResizableColumns(tableRef: Ref<HTMLElement | null>) {
   function cleanup() {
     resizers.forEach((resizer) => resizer.remove());
     resizers.length = 0;
-    document.removeEventListener('mousemove', resize);
+    document.removeEventListener('mousemove', resizeMouse);
     document.removeEventListener('mouseup', stopResize);
+    document.removeEventListener('touchmove', resizeTouch);
+    document.removeEventListener('touchend', stopResize);
   }
 
   const isInitialized = ref(false);

@@ -13,7 +13,7 @@
               >
                 <Icon name="lucide:grip-vertical" class="h-5 w-5" />
               </div>
-              <CardTitle class="text-lg flex-1 min-w-0 truncate">
+              <CardTitle class="text-base md:text-lg flex-1 min-w-0 truncate">
                 {{ `${repo.owner} / ${repo.name}` }}
               </CardTitle>
             </div>
