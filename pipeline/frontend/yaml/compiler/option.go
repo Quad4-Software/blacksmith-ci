@@ -223,3 +223,10 @@ func WithOrgID(orgID int64) Option {
 		compiler.orgID = orgID
 	}
 }
+
+// WithFile configures the compiler with the config file name for error context.
+func WithFile(file string) Option {
+	return func(compiler *Compiler) {
+		compiler.file = file
+	}
+}

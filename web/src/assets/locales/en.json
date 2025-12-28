@@ -431,6 +431,18 @@
       },
       "errors": "Errors",
       "warnings": "Warnings",
+      "error_count": "{count} error | {count} errors",
+      "warning_count": "{count} warning | {count} warnings",
+      "error_types": {
+        "schema": "Schema Error",
+        "deprecation": "Deprecated",
+        "compiler": "Compiler Error",
+        "generic": "Error",
+        "best_practice": "Best Practice"
+      },
+      "error_location": {
+        "line": "line {line}"
+      },
       "show_errors": "Show errors",
       "we_got_some_errors": "Oh no, an error occurred!",
       "duration": "Pipeline duration",

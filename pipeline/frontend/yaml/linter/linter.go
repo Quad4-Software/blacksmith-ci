@@ -309,10 +309,12 @@ func (l *Linter) lintSchema(config *WorkflowConfig) error {
 	schemaErrors, err := schema.LintString(config.RawConfig)
 	if err != nil {
 		for _, schemaError := range schemaErrors {
-			linterErr = multierr.Append(linterErr, newLinterError(
+			linterErr = multierr.Append(linterErr, newLinterErrorWithLocation(
 				schemaError.Description(),
 				config.File,
 				schemaError.Field(),
+				schemaError.Line(),
+				schemaError.Column(),
 				true, // TODO: let pipelines fail if the schema is invalid
 			))
 		}

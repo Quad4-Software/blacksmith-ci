@@ -292,7 +292,7 @@ func TestCompilerCompile(t *testing.T) {
 				},
 			}}}},
 			backConf:    nil,
-			expectedErr: "secret \"missing\" not found",
+			expectedErr: "[compiler] secret \"missing\" not found",
 		},
 		{
 			name: "workflow with broken step dependency",

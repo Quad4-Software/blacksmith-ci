@@ -1,10 +1,36 @@
 import type { WebhookEvents } from './webhook';
 
 export interface PipelineError<D = unknown> {
-  type: string;
+  type: PipelineErrorType;
   message: string;
   data?: D;
   is_warning: boolean;
+}
+
+export type PipelineErrorType = 'linter' | 'deprecation' | 'compiler' | 'generic' | 'Best practice';
+
+export interface LinterErrorData {
+  file?: string;
+  field: string;
+  line?: number;
+  column?: number;
+}
+
+export interface DeprecationErrorData {
+  file: string;
+  field: string;
+  docs: string;
+}
+
+export interface BadHabitErrorData {
+  file?: string;
+  field: string;
+  docs: string;
+}
+
+export interface CompilerErrorData {
+  file?: string;
+  step?: string;
 }
 
 // A pipeline for a repository.

@@ -100,6 +100,7 @@ type Compiler struct {
 	securityTrustedPipeline bool
 	ContainerNameScheme     string // 'hash' or 'descriptive'
 	orgID                   int64
+	file                    string // config file name for error context
 }
 
 // New creates a new Compiler with options.

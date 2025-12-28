@@ -9,8 +9,10 @@ import (
 )
 
 type LinterErrorData struct {
-	File  string `json:"file"`
-	Field string `json:"field"`
+	File   string `json:"file"`
+	Field  string `json:"field"`
+	Line   int    `json:"line,omitempty"`
+	Column int    `json:"column,omitempty"`
 }
 
 type DeprecationErrorData struct {
@@ -25,6 +27,11 @@ type BadHabitErrorData struct {
 	Docs  string `json:"docs"`
 }
 
+type CompilerErrorData struct {
+	File string `json:"file"`
+	Step string `json:"step,omitempty"`
+}
+
 func GetLinterData(e *types.PipelineError) *LinterErrorData {
 	if e.Type != types.PipelineErrorTypeLinter {
 		return nil
@@ -35,6 +42,18 @@ func GetLinterData(e *types.PipelineError) *LinterErrorData {
 	}
 
 	return nil
+}
+
+// NewCompilerError creates a new compiler error with file and step context.
+func NewCompilerError(message, file, step string) *types.PipelineError {
+	return &types.PipelineError{
+		Type:    types.PipelineErrorTypeCompiler,
+		Message: message,
+		Data: &CompilerErrorData{
+			File: file,
+			Step: step,
+		},
+	}
 }
 
 func GetPipelineErrors(err error) []*types.PipelineError {

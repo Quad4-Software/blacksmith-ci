@@ -230,7 +230,7 @@ func (b *StepBuilder) genItemForWorkflow(workflow *model.Workflow, axis matrix.A
 		return nil, multierr.Append(errorsAndWarnings, err)
 	}
 
-	ir, err := b.toInternalRepresentation(parsed, environ, workflowMetadata, workflow.ID)
+	ir, err := b.toInternalRepresentation(parsed, environ, workflowMetadata, workflow.ID, workflow.Name)
 	if err != nil {
 		return nil, multierr.Append(errorsAndWarnings, err)
 	}
@@ -333,7 +333,7 @@ func (b *StepBuilder) environmentVariables(metadata metadata.Metadata, axis matr
 	return environ
 }
 
-func (b *StepBuilder) toInternalRepresentation(parsed *yaml_types.Workflow, environ map[string]string, metadata metadata.Metadata, workflowID int64) (*backend_types.Config, error) {
+func (b *StepBuilder) toInternalRepresentation(parsed *yaml_types.Workflow, environ map[string]string, metadata metadata.Metadata, workflowID int64, fileName string) (*backend_types.Config, error) {
 	var secrets []compiler.Secret
 	for _, sec := range b.Secs {
 		var events []string
@@ -361,6 +361,7 @@ func (b *StepBuilder) toInternalRepresentation(parsed *yaml_types.Workflow, envi
 	return compiler.New(
 		compiler.WithEnviron(environ),
 		compiler.WithEnviron(b.Envs),
+		compiler.WithFile(fileName),
 		// TODO: server deps should be moved into StepBuilder fields and set on StepBuilder creation
 		compiler.WithEscalatedWithMatchType(server.Config.Pipeline.PrivilegedPlugins, server.Config.Pipeline.PrivilegedPluginsMatchType),
 		compiler.WithVolumes(server.Config.Pipeline.Volumes...),

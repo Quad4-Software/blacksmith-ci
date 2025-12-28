@@ -24,6 +24,7 @@ import (
 	"github.com/oklog/ulid/v2"
 
 	backend_types "codeberg.org/crowci/crow/v5/pipeline/backend/types"
+	pipeline_errors "codeberg.org/crowci/crow/v5/pipeline/errors"
 	"codeberg.org/crowci/crow/v5/pipeline/frontend/metadata"
 	"codeberg.org/crowci/crow/v5/pipeline/frontend/yaml/compiler/settings"
 	yaml_types "codeberg.org/crowci/crow/v5/pipeline/frontend/yaml/types"
@@ -117,11 +118,11 @@ func (c *Compiler) createProcess(container *yaml_types.Container, workflow *yaml
 	secretMapping := map[string]string{}
 
 	if err := settings.ParamsToEnv(container.Settings, environment, "PLUGIN_", true, getSecretValue, secretMapping); err != nil {
-		return nil, err
+		return nil, pipeline_errors.NewCompilerError(err.Error(), c.file, container.Name)
 	}
 
 	if err := settings.ParamsToEnv(container.Environment, environment, "", false, getSecretValue, secretMapping); err != nil {
-		return nil, err
+		return nil, pipeline_errors.NewCompilerError(err.Error(), c.file, container.Name)
 	}
 
 	if utils.MatchImageWithType(container.Image, c.escalatedMatchType, c.escalated...) && container.IsPlugin() {

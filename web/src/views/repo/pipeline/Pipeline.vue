@@ -431,7 +431,6 @@ watch(
       const runningStep = currentWorkflow.children?.find((step) => step.state === 'running');
       if (runningStep && runningStep.pid !== currentStepId) {
         selectedStepId.value = runningStep.pid;
-        return;
       }
     } else {
       // No step selected yet - find the first running step in any workflow

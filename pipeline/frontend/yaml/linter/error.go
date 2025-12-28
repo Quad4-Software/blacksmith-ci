@@ -27,3 +27,17 @@ func newLinterError(message, file, field string, isWarning bool) *errorTypes.Pip
 		IsWarning: isWarning,
 	}
 }
+
+func newLinterErrorWithLocation(message, file, field string, line, column int, isWarning bool) *errorTypes.PipelineError {
+	return &errorTypes.PipelineError{
+		Type:    errorTypes.PipelineErrorTypeLinter,
+		Message: message,
+		Data: &errors.LinterErrorData{
+			File:   file,
+			Field:  field,
+			Line:   line,
+			Column: column,
+		},
+		IsWarning: isWarning,
+	}
+}

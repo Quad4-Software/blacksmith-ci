@@ -51,6 +51,34 @@
           >
             {{ restartIndicator }}
           </span>
+          <!-- Warnings/errors indicator -->
+          <TooltipProvider v-if="warningCount > 0 || errorCount > 0">
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <RouterLink
+                  :to="{ name: 'repo-pipeline-errors', params: { repoId: repo.id, pipelineId: pipeline.number } }"
+                  class="ml-2 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium whitespace-nowrap shrink-0 hover:opacity-80 transition-opacity"
+                  :class="
+                    errorCount > 0
+                      ? 'bg-destructive/10 text-destructive'
+                      : 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-500'
+                  "
+                  @click.stop
+                >
+                  <Icon name="alert" class="size-3" />
+                  {{ errorCount > 0 ? errorCount : warningCount }}
+                </RouterLink>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p v-if="errorCount > 0">
+                  {{ $t('repo.pipeline.error_count', { count: errorCount }) }}
+                </p>
+                <p v-else>
+                  {{ $t('repo.pipeline.warning_count', { count: warningCount }) }}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
 
         <div
@@ -138,6 +166,7 @@
 
 <script lang="ts" setup>
 import { computed, toRef } from 'vue';
+import { RouterLink } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 
 import Icon from '~/components/atomic/Icon.vue';
@@ -195,6 +224,14 @@ const restartIndicator = computed(() => {
     return `(restart of #${pipeline.value.parent})`;
   }
   return '';
+});
+
+const warningCount = computed(() => {
+  return pipeline.value.errors?.filter((e) => e.is_warning).length ?? 0;
+});
+
+const errorCount = computed(() => {
+  return pipeline.value.errors?.filter((e) => !e.is_warning).length ?? 0;
 });
 
 const pipelineEventTitle = computed(() => {
