@@ -3,7 +3,7 @@
     data-slot="table-cell"
     :class="
       cn(
-        'p-2 pl-5 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 *:[[role=checkbox]]:translate-y-[2px]',
+        'p-2 pl-5 align-middle whitespace-nowrap overflow-hidden text-ellipsis [&:has([role=checkbox])]:pr-0 *:[[role=checkbox]]:translate-y-[2px]',
         props.class,
       )
     "
