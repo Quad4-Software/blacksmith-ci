@@ -49,16 +49,22 @@
                 class="cursor-pointer hover:bg-muted/50"
                 @click="selectedCron = cron"
               >
-                <TableCell class="font-medium">{{ cron.name }}</TableCell>
-                <TableCell>
+                <TableCell class="font-medium" :title="cron.name">{{ cron.name }}</TableCell>
+                <TableCell :title="cron.schedule">
                   <code class="text-xs bg-muted px-1.5 py-0.5 rounded">{{ cron.schedule }}</code>
                 </TableCell>
-                <TableCell>
-                  <span v-if="cron.branch" class="text-sm">{{ cron.branch }}</span>
-                  <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-                  <span v-else class="text-muted-foreground text-sm" aria-hidden="true">-</span>
+                <TableCell :title="cron.branch || repo.default_branch || $t('repo.settings.crons.branch.default')">
+                  <span class="text-sm">{{
+                    cron.branch || repo.default_branch || $t('repo.settings.crons.branch.default')
+                  }}</span>
                 </TableCell>
-                <TableCell>
+                <TableCell
+                  :title="
+                    cron.next_exec && cron.next_exec > 0
+                      ? date.toISODateTimeString(new Date(cron.next_exec * 1000))
+                      : undefined
+                  "
+                >
                   <span v-if="cron.next_exec && cron.next_exec > 0" class="text-sm font-mono">
                     {{ date.toISODateTimeString(new Date(cron.next_exec * 1000)) }}
                   </span>
@@ -66,8 +72,11 @@
                     {{ $t('repo.settings.crons.not_executed_yet') }}
                   </span>
                 </TableCell>
-                <TableCell @click.stop>
-                  <div v-if="cronRecentRuns[cron.id]?.length" class="flex items-center gap-1">
+                <TableCell class="overflow-hidden" @click.stop>
+                  <div
+                    v-if="cronRecentRuns[cron.id]?.length"
+                    class="flex items-center gap-1 max-w-full overflow-hidden"
+                  >
                     <RouterLink
                       v-for="pipeline in cronRecentRuns[cron.id].slice(0, 5)"
                       :key="pipeline.id"
@@ -84,7 +93,7 @@
                   <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
                   <span v-else class="text-muted-foreground text-sm" aria-hidden="true">-</span>
                 </TableCell>
-                <TableCell class="text-right" @click.stop>
+                <TableCell class="text-right overflow-visible" @click.stop>
                   <div class="flex items-center justify-end gap-1">
                     <Button variant="ghost" size="icon" :title="$t('repo.settings.crons.run')" @click="runCron(cron)">
                       <Icon name="play-outline" class="h-4 w-4" />

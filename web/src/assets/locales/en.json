@@ -277,7 +277,8 @@
         "schedule_custom": "Custom",
         "branch": {
           "title": "Branch",
-          "placeholder": "Branch (uses the default branch, if empty)"
+          "placeholder": "Branch (uses the default branch, if empty)",
+          "default": "(default)"
         },
         "name": {
           "name": "Name",

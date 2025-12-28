@@ -10,4 +10,5 @@ export interface Cron {
 export interface CronWithRepo extends Cron {
   repo_name: string;
   repo_owner: string;
+  repo_default_branch: string;
 }

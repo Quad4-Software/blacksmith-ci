@@ -90,6 +90,28 @@
           {{ $t('clear_filters') }}
           <Icon name="close" class="ml-2 h-4 w-4" />
         </Button>
+
+        <div class="flex-1" />
+
+        <!-- Column Visibility -->
+        <DropdownMenu :modal="false">
+          <DropdownMenuTrigger as-child>
+            <Button variant="outline" size="sm" class="h-9">
+              <Icon name="columns" class="mr-2 h-4 w-4" />
+              {{ $t('columns') }}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuCheckboxItem
+              v-for="col in toggleableColumns"
+              :key="col.key"
+              :model-value="visibleColumns.includes(col.key)"
+              @update:model-value="(v) => toggleColumn(col.key, !!v)"
+            >
+              {{ col.label }}
+            </DropdownMenuCheckboxItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <!-- Data Table -->
@@ -115,14 +137,22 @@
                   <SortIndicator sort-key="schedule" :current-sort="sortConfig" />
                 </div>
               </TableHead>
-              <TableHead class="w-28 min-w-20">{{ $t('repo.settings.crons.branch.title') }}</TableHead>
-              <TableHead class="w-40 min-w-32 cursor-pointer select-none" @click="toggleSort('next_exec')">
+              <TableHead v-if="visibleColumns.includes('branch')" class="w-28 min-w-20">{{
+                $t('repo.settings.crons.branch.title')
+              }}</TableHead>
+              <TableHead
+                v-if="visibleColumns.includes('next_exec')"
+                class="w-40 min-w-32 cursor-pointer select-none"
+                @click="toggleSort('next_exec')"
+              >
                 <div class="flex items-center gap-1">
                   {{ $t('repo.settings.crons.next_exec') }}
                   <SortIndicator sort-key="next_exec" :current-sort="sortConfig" />
                 </div>
               </TableHead>
-              <TableHead class="w-28 min-w-24">{{ $t('repo.settings.crons.recent_runs') }}</TableHead>
+              <TableHead v-if="visibleColumns.includes('recent_runs')" class="w-28 min-w-24">{{
+                $t('repo.settings.crons.recent_runs')
+              }}</TableHead>
               <TableHead class="w-24 min-w-20 text-right">{{ $t('actions') }}</TableHead>
             </TableRow>
           </TableHeader>
@@ -133,17 +163,27 @@
               class="cursor-pointer hover:bg-muted/50"
               @click="navigateToCron(cron)"
             >
-              <TableCell class="font-medium">{{ cron.name }}</TableCell>
-              <TableCell>{{ cron.repo_name }}</TableCell>
-              <TableCell>
+              <TableCell class="font-medium" :title="cron.name">{{ cron.name }}</TableCell>
+              <TableCell :title="cron.repo_name">{{ cron.repo_name }}</TableCell>
+              <TableCell :title="cron.schedule">
                 <code class="text-xs bg-muted px-1.5 py-0.5 rounded">{{ cron.schedule }}</code>
               </TableCell>
-              <TableCell>
-                <span v-if="cron.branch" class="text-sm">{{ cron.branch }}</span>
-                <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-                <span v-else class="text-muted-foreground text-sm" aria-hidden="true">-</span>
+              <TableCell
+                v-if="visibleColumns.includes('branch')"
+                :title="cron.branch || cron.repo_default_branch || $t('repo.settings.crons.branch.default')"
+              >
+                <span class="text-sm">{{
+                  cron.branch || cron.repo_default_branch || $t('repo.settings.crons.branch.default')
+                }}</span>
               </TableCell>
-              <TableCell>
+              <TableCell
+                v-if="visibleColumns.includes('next_exec')"
+                :title="
+                  cron.next_exec && cron.next_exec > 0
+                    ? date.toISODateTimeString(new Date(cron.next_exec * 1000))
+                    : undefined
+                "
+              >
                 <span v-if="cron.next_exec && cron.next_exec > 0" class="text-sm font-mono">
                   {{ date.toISODateTimeString(new Date(cron.next_exec * 1000)) }}
                 </span>
@@ -151,8 +191,8 @@
                   {{ $t('repo.settings.crons.not_executed_yet') }}
                 </span>
               </TableCell>
-              <TableCell @click.stop>
-                <div v-if="cronRecentRuns[cron.id]?.length" class="flex items-center gap-1">
+              <TableCell v-if="visibleColumns.includes('recent_runs')" class="overflow-hidden" @click.stop>
+                <div v-if="cronRecentRuns[cron.id]?.length" class="flex items-center gap-1 max-w-full overflow-hidden">
                   <router-link
                     v-for="pipeline in cronRecentRuns[cron.id].slice(0, 5)"
                     :key="pipeline.id"
@@ -169,7 +209,7 @@
                 <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
                 <span v-else class="text-muted-foreground text-sm" aria-hidden="true">-</span>
               </TableCell>
-              <TableCell class="text-right" @click.stop>
+              <TableCell class="text-right overflow-visible" @click.stop>
                 <div class="flex items-center justify-end gap-1">
                   <Button variant="ghost" size="icon" :title="$t('repo.settings.crons.run')" @click="runCron(cron)">
                     <Icon name="play-outline" class="h-4 w-4" />
@@ -372,6 +412,22 @@ const editingCron = ref<Partial<CronWithRepo>>({});
 const sortConfig = ref<SortConfig>({ key: 'name', direction: 'asc' });
 const cronRecentRuns = ref<Record<number, Pipeline[]>>({});
 const tableRef = ref<InstanceType<typeof Table> | null>(null);
+
+// Column visibility (branch hidden by default)
+const visibleColumns = ref<string[]>(['next_exec', 'recent_runs']);
+const toggleableColumns = computed(() => [
+  { key: 'branch', label: t('repo.settings.crons.branch.title') },
+  { key: 'next_exec', label: t('repo.settings.crons.next_exec') },
+  { key: 'recent_runs', label: t('repo.settings.crons.recent_runs') },
+]);
+
+function toggleColumn(key: string, visible: boolean) {
+  if (visible) {
+    visibleColumns.value = [...visibleColumns.value, key];
+  } else {
+    visibleColumns.value = visibleColumns.value.filter((k) => k !== key);
+  }
+}
 
 // Resizable columns
 const { init: initResizableColumns } = useResizableColumns(

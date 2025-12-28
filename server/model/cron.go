@@ -57,15 +57,17 @@ func (c *Cron) Validate() error {
 // CronWithRepo extends Cron with repository context for user views.
 type CronWithRepo struct {
 	*Cron
-	RepoName  string `json:"repo_name"`
-	RepoOwner string `json:"repo_owner"`
+	RepoName          string `json:"repo_name"`
+	RepoOwner         string `json:"repo_owner"`
+	RepoDefaultBranch string `json:"repo_default_branch"`
 }
 
 // WithRepo creates a CronWithRepo from a Cron with repo details.
-func (c *Cron) WithRepo(repoName, repoOwner string) *CronWithRepo {
+func (c *Cron) WithRepo(repoName, repoOwner, repoDefaultBranch string) *CronWithRepo {
 	return &CronWithRepo{
-		Cron:      c,
-		RepoName:  repoName,
-		RepoOwner: repoOwner,
+		Cron:              c,
+		RepoName:          repoName,
+		RepoOwner:         repoOwner,
+		RepoDefaultBranch: repoDefaultBranch,
 	}
 }

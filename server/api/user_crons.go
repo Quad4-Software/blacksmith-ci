@@ -54,13 +54,14 @@ func GetUserCronList(c *gin.Context) {
 
 	repoIDs := make([]int64, 0, len(repos))
 	type repoInfo struct {
-		fullName string
-		owner    string
+		fullName      string
+		owner         string
+		defaultBranch string
 	}
 	repoCache := make(map[int64]repoInfo, len(repos))
 	for _, repo := range repos {
 		repoIDs = append(repoIDs, repo.ID)
-		repoCache[repo.ID] = repoInfo{fullName: repo.FullName, owner: repo.Owner}
+		repoCache[repo.ID] = repoInfo{fullName: repo.FullName, owner: repo.Owner, defaultBranch: repo.Branch}
 	}
 
 	// Fetch crons from datastore
@@ -87,12 +88,12 @@ func GetUserCronList(c *gin.Context) {
 			// Fallback: fetch from DB if not in cache (shouldn't happen)
 			repo, err := _store.GetRepo(cron.RepoID)
 			if err == nil {
-				info = repoInfo{fullName: repo.FullName, owner: repo.Owner}
+				info = repoInfo{fullName: repo.FullName, owner: repo.Owner, defaultBranch: repo.Branch}
 				repoCache[cron.RepoID] = info
 			}
 		}
 
-		enriched := cron.WithRepo(info.fullName, info.owner)
+		enriched := cron.WithRepo(info.fullName, info.owner, info.defaultBranch)
 		enrichedCrons = append(enrichedCrons, enriched)
 	}
 
