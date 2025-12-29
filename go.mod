@@ -1,6 +1,6 @@
 module codeberg.org/crowci/crow/v5
 
-go 1.24.4
+go 1.25.0
 
 toolchain go1.25.5
 
@@ -26,13 +26,13 @@ require (
 	github.com/gitsight/go-vcsurl v1.0.1
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/go-viper/mapstructure/v2 v2.4.0
-	github.com/goccy/go-yaml v1.19.0
+	github.com/goccy/go-yaml v1.19.1
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/go-github/v80 v80.0.0
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-plugin v1.7.0
 	github.com/hashicorp/go-version v1.8.0
-	github.com/jackc/pgx/v5 v5.7.6
+	github.com/jackc/pgx/v5 v5.8.0
 	github.com/jellydator/ttlcache/v3 v3.4.0
 	github.com/joho/godotenv v1.5.1
 	github.com/kinbiko/jsonassert v1.2.0
@@ -54,18 +54,18 @@ require (
 	github.com/urfave/cli-docs/v3 v3.1.0
 	github.com/urfave/cli/v3 v3.6.1
 	github.com/yaronf/httpsign v0.4.1
-	gitlab.com/gitlab-org/api/client-go v1.8.2
+	gitlab.com/gitlab-org/api/client-go v1.10.0
 	go.uber.org/multierr v1.11.0
 	golang.org/x/net v0.48.0
 	golang.org/x/oauth2 v0.34.0
 	golang.org/x/sync v0.19.0
 	golang.org/x/term v0.38.0
 	golang.org/x/text v0.32.0
-	google.golang.org/grpc v1.77.0
+	google.golang.org/grpc v1.78.0
 	google.golang.org/protobuf v1.36.11
-	k8s.io/api v0.34.3
-	k8s.io/apimachinery v0.34.3
-	k8s.io/client-go v0.34.3
+	k8s.io/api v0.35.0
+	k8s.io/apimachinery v0.35.0
+	k8s.io/client-go v0.35.0
 	src.techknowlogick.com/xormigrate v1.7.1
 	xorm.io/builder v0.3.13
 	xorm.io/xorm v1.3.11
@@ -121,7 +121,6 @@ require (
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.28.0 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
-	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/golang/snappy v1.0.0 // indirect
 	github.com/google/gnostic-models v0.7.0 // indirect
