@@ -249,7 +249,7 @@ func (l *Linter) lintContainerDeprecations(config *WorkflowConfig, c *types.Cont
 			Data: errors.DeprecationErrorData{
 				File:  config.File,
 				Field: fmt.Sprintf("%s.%s.secrets", field, c.Name),
-				Docs:  "https://woodpecker-ci.org/docs/usage/secrets#use-secrets-in-settings-and-environment",
+				Docs:  "https://crowci.dev/dev/usage/secrets/#defining-secrets",
 			},
 		})
 	}
@@ -371,7 +371,7 @@ func (l *Linter) lintBadHabits(config *WorkflowConfig) (err error) {
 					Data: errors.BadHabitErrorData{
 						File:  config.File,
 						Field: field,
-						Docs:  "https://woodpecker-ci.org/docs/usage/linter#event-filter-for-all-steps",
+						Docs:  "https://crowci.dev/dev/usage/workflow-syntax/#when---conditional-execution",
 					},
 					IsWarning: true,
 				})
