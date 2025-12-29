@@ -51,7 +51,7 @@ var addAgentPersistentID = xormigrate.Migration{
 
 		// Struct for querying existing agents (includes existing columns for reading)
 		type agentQuery struct {
-			ID           int64  `xorm:"'id'"`
+			ID           int64  `xorm:"pk 'id'"`
 			Token        string `xorm:"'token'"`
 			Name         string `xorm:"'name'"`
 			Platform     string `xorm:"'platform'"`
