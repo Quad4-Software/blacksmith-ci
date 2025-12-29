@@ -151,3 +151,34 @@ starlight-version-select {
 [data-theme="light"] .crow-logo-invert {
   filter: invert(1);
 }
+
+/* ==========================================================================
+    Full-width pages (when TOC is hidden)
+    ========================================================================== */
+
+/* When page has no TOC, expand content to use full width */
+@media (min-width: 72rem) {
+  .main-frame:has(aside[data-has-toc="false"]),
+  .main-frame:not(:has(.right-sidebar-panel starlight-toc)) {
+    --sl-content-width: 100%;
+  }
+
+  .main-frame:not(:has(.right-sidebar-panel starlight-toc)) .main-pane,
+  .main-frame:not(:has(.right-sidebar-panel starlight-toc)) .content-panel,
+  .main-frame:not(:has(.right-sidebar-panel starlight-toc)) .sl-container,
+  .main-frame:not(:has(.right-sidebar-panel starlight-toc)) .sl-markdown-content {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  /* Remove right sidebar space when TOC is hidden */
+  .right-sidebar:has([data-has-toc="false"]),
+  .right-sidebar:not(:has(starlight-toc)) {
+    display: none;
+  }
+}
+
+/* Full-width content class for specific pages */
+.full-width-content .sl-markdown-content {
+  max-width: none !important;
+}

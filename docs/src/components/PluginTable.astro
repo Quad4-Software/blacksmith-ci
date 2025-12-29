@@ -1,0 +1,627 @@
+---
+interface Plugin {
+  name: string;
+  description: string;
+  repo: string;
+  repoUrl: string;
+  category?: string;
+  official?: boolean;
+}
+
+interface Props {
+  plugins: Plugin[];
+  searchable?: boolean;
+  showReleaseDate?: boolean;
+}
+
+interface ReleaseInfo {
+  date: string;
+  tag: string;
+}
+
+const { plugins, searchable = true, showReleaseDate = true } = Astro.props;
+const tableId = `plugin-table-${Math.random().toString(36).slice(2, 9)}`;
+
+// Extract unique categories for filters
+const categories = [...new Set(plugins.map((p) => p.category || 'Other'))].sort();
+
+// Compute sources from repository organizations
+function getSourceFromRepo(repo: string): string {
+  const org = repo.split('/')[0];
+  return org;
+}
+
+const sourceOrgs = [...new Set(plugins.map((p) => getSourceFromRepo(p.repo)))].sort();
+const sources: { value: string; label: string }[] = [{ value: 'all', label: 'All Sources' }];
+sourceOrgs.forEach((org) => {
+  sources.push({ value: org.toLowerCase(), label: org });
+});
+
+// GitHub token for authenticated API requests (5000 req/hour vs 60 unauthenticated)
+const GITHUB_TOKEN = import.meta.env.GITHUB_TOKEN || process.env.GITHUB_TOKEN;
+
+// Fetch release dates at build time
+async function fetchReleaseInfo(repoUrl: string): Promise<ReleaseInfo | null> {
+  if (repoUrl.includes('codeberg.org')) {
+    const match = repoUrl.match(/codeberg\.org\/([^/]+)\/([^/]+)/);
+    if (!match) return null;
+    const apiUrl = `https://codeberg.org/api/v1/repos/${match[1]}/${match[2]}/releases?limit=1`;
+
+    try {
+      const response = await fetch(apiUrl);
+      if (!response.ok) return null;
+
+      const releases = await response.json();
+      if (!releases || releases.length === 0) return null;
+
+      const release = releases[0];
+      return {
+        date: release.published_at || release.created_at,
+        tag: release.tag_name || release.name,
+      };
+    } catch {
+      return null;
+    }
+  } else if (repoUrl.includes('github.com')) {
+    const match = repoUrl.match(/github\.com\/([^/]+)\/([^/]+)/);
+    if (!match) return null;
+    const [, owner, repo] = match;
+
+    const headers: Record<string, string> = { Accept: 'application/vnd.github.v3+json' };
+    if (GITHUB_TOKEN) {
+      headers['Authorization'] = `Bearer ${GITHUB_TOKEN}`;
+    }
+
+    // Try releases first
+    try {
+      const releasesUrl = `https://api.github.com/repos/${owner}/${repo}/releases?per_page=1`;
+      const releasesResponse = await fetch(releasesUrl, { headers });
+
+      if (releasesResponse.ok) {
+        const releases = await releasesResponse.json();
+        if (releases && releases.length > 0) {
+          const release = releases[0];
+          return {
+            date: release.published_at || release.created_at,
+            tag: release.tag_name || release.name,
+          };
+        }
+      }
+    } catch {
+      // Fall through to tags
+    }
+
+    // Fallback to tags API (for repos that only use tags, not releases)
+    try {
+      const tagsUrl = `https://api.github.com/repos/${owner}/${repo}/tags?per_page=1`;
+      const tagsResponse = await fetch(tagsUrl, { headers });
+
+      if (tagsResponse.ok) {
+        const tags = await tagsResponse.json();
+        if (tags && tags.length > 0) {
+          const tag = tags[0];
+          // Tags don't have dates directly, fetch commit date
+          const commitUrl = tag.commit?.url;
+          if (commitUrl) {
+            const commitResponse = await fetch(commitUrl, { headers });
+            if (commitResponse.ok) {
+              const commit = await commitResponse.json();
+              return {
+                date: commit.commit?.committer?.date || commit.commit?.author?.date,
+                tag: tag.name,
+              };
+            }
+          }
+          // If we can't get commit date, just return the tag name
+          return { date: new Date().toISOString(), tag: tag.name };
+        }
+      }
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+}
+
+// Fetch all release info in parallel at build time
+const releaseMap = new Map<string, ReleaseInfo | null>();
+
+if (showReleaseDate) {
+  const releasePromises = plugins.map(async (plugin) => {
+    const info = await fetchReleaseInfo(plugin.repoUrl);
+    return { url: plugin.repoUrl, info };
+  });
+
+  const results = await Promise.all(releasePromises);
+  results.forEach(({ url, info }) => releaseMap.set(url, info));
+}
+
+function formatReleaseDate(info: ReleaseInfo | null | undefined): {
+  text: string;
+  dateAttr: string;
+  staleClass: string;
+  title: string;
+} {
+  if (!info) {
+    return { text: '—', dateAttr: '0', staleClass: '', title: 'No releases found' };
+  }
+
+  const date = new Date(info.date);
+  const now = new Date();
+  const daysSince = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+
+  const formatted = date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+
+  let staleClass = '';
+  let title = '';
+
+  if (daysSince > 365 * 2) {
+    staleClass = 'very-stale';
+    title = `Last release was ${daysSince} days ago`;
+  } else if (daysSince > 365) {
+    staleClass = 'stale';
+    title = `Last release was ${daysSince} days ago`;
+  }
+
+  return {
+    text: `${info.tag} (${formatted})`,
+    dateAttr: info.date,
+    staleClass,
+    title,
+  };
+}
+---
+
+<div class="plugin-table-wrapper">
+  {searchable && (
+    <div class="controls-wrapper">
+      <div class="controls-row">
+        <input
+          type="text"
+          placeholder="Search plugins..."
+          class="plugin-search-input"
+          data-table={tableId}
+        />
+        <select class="filter-select source-filter" data-table={tableId}>
+          {sources.map((s) => (
+            <option value={s.value}>{s.label}</option>
+          ))}
+        </select>
+        <select class="filter-select category-filter" data-table={tableId}>
+          <option value="all">All Categories</option>
+          {categories.map((cat) => (
+            <option value={cat.toLowerCase()}>{cat}</option>
+          ))}
+        </select>
+      </div>
+    </div>
+  )}
+  <div class="table-container">
+    <table id={tableId} class="plugin-table" data-show-release={showReleaseDate}>
+      <thead>
+        <tr>
+          <th class="sortable" data-sort="name">Name <span class="sort-icon"></span></th>
+          <th>Description</th>
+          <th class="sortable" data-sort="category">Category <span class="sort-icon"></span></th>
+          <th class="sortable" data-sort="repo">Repository <span class="sort-icon"></span></th>
+          {showReleaseDate && <th class="sortable" data-sort="release">Last Release <span class="sort-icon"></span></th>}
+        </tr>
+      </thead>
+      <tbody>
+        {plugins.map((p) => (
+          <tr
+            data-category={p.category?.toLowerCase() || 'other'}
+            data-repo-url={p.repoUrl}
+            data-source={getSourceFromRepo(p.repo).toLowerCase()}
+            data-official={p.official || false}
+            data-name={p.name.toLowerCase()}
+            data-repo={p.repo.toLowerCase()}
+          >
+            <td class="name-cell">
+              {p.name}
+              {p.official && <span class="official-badge">Official</span>}
+            </td>
+            <td class="desc-cell">{p.description}</td>
+            <td class="category-cell">
+              <span class="category-badge">{p.category || 'Other'}</span>
+            </td>
+            <td class="repo-cell">
+              <a href={p.repoUrl} target="_blank" rel="noopener noreferrer">
+                {p.repo}
+              </a>
+            </td>
+            {showReleaseDate && (() => {
+              const releaseInfo = releaseMap.get(p.repoUrl);
+              const { text, dateAttr, staleClass, title } = formatReleaseDate(releaseInfo);
+              return (
+                <td class="release-cell">
+                  <span
+                    class={`release-date ${staleClass}`}
+                    data-date={dateAttr}
+                    title={title || undefined}
+                  >
+                    {text}
+                  </span>
+                </td>
+              );
+            })()}
+          </tr>
+        ))}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan={showReleaseDate ? 5 : 4} class="table-footer">
+            <span class="plugin-count" data-table={tableId}>
+              {plugins.length} plugins
+            </span>
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  <p class="no-results" data-table={tableId} style="display: none;">
+    No plugins found matching your search.
+  </p>
+</div>
+
+<style>
+  .plugin-table-wrapper {
+    margin: 1.5rem 0;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .controls-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .controls-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .plugin-search-input,
+  .filter-select {
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+    padding: 0 0.75rem;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.375rem;
+    background: var(--sl-color-bg);
+    color: var(--sl-color-text);
+    font-size: 0.875rem;
+    line-height: 1;
+    box-sizing: border-box;
+    vertical-align: middle;
+    margin: 0;
+  }
+
+  .plugin-search-input {
+    width: 280px;
+  }
+
+  .plugin-search-input:focus,
+  .filter-select:focus {
+    outline: none;
+    border-color: var(--sl-color-accent);
+    box-shadow: 0 0 0 2px var(--sl-color-accent-low);
+  }
+
+  .plugin-search-input::placeholder {
+    color: var(--sl-color-gray-3);
+  }
+
+  .filter-select {
+    width: 160px;
+    padding: 0 2rem 0 0.75rem;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+  }
+
+  .table-container {
+    overflow-x: auto;
+    width: 100%;
+  }
+
+  .table-footer {
+    text-align: right;
+    background: var(--sl-color-gray-7);
+  }
+
+  .plugin-count {
+    font-size: 0.875rem;
+    color: var(--sl-color-gray-2);
+  }
+
+  .plugin-table {
+    width: 100%;
+    min-width: 100%;
+    table-layout: auto;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+
+  .plugin-table th,
+  .plugin-table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--sl-color-gray-5);
+  }
+
+  .plugin-table th {
+    background: var(--sl-color-gray-6);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .plugin-table th.sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease;
+  }
+
+  .plugin-table th.sortable:hover {
+    background: var(--sl-color-gray-5);
+  }
+
+  .sort-icon {
+    display: inline-block;
+    width: 1rem;
+    margin-left: 0.25rem;
+    opacity: 0.3;
+    font-size: 0.75rem;
+  }
+
+  .sort-icon::after {
+    content: '↕';
+  }
+
+  th.sort-asc .sort-icon::after {
+    content: '↑';
+  }
+
+  th.sort-desc .sort-icon::after {
+    content: '↓';
+  }
+
+  th.sort-asc .sort-icon,
+  th.sort-desc .sort-icon {
+    opacity: 1;
+  }
+
+  .plugin-table tbody tr:hover {
+    background: var(--sl-color-gray-7);
+  }
+
+  .plugin-table tbody tr.hidden {
+    display: none;
+  }
+
+  .name-cell {
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .official-badge {
+    display: inline-block;
+    margin-left: 0.5rem;
+    padding: 0.125rem 0.375rem;
+    font-size: 0.625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    background: #7c3aed;
+    color: #fff;
+    border-radius: 0.25rem;
+    vertical-align: middle;
+  }
+
+  .desc-cell {
+    min-width: 200px;
+  }
+
+  .category-cell {
+    white-space: nowrap;
+  }
+
+  .category-badge {
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.75rem;
+    background: var(--sl-color-gray-6);
+    border-radius: 9999px;
+    color: var(--sl-color-text);
+  }
+
+  .repo-cell {
+    white-space: nowrap;
+  }
+
+  .repo-cell a {
+    color: var(--sl-color-accent);
+    text-decoration: none;
+  }
+
+  .repo-cell a:hover {
+    text-decoration: underline;
+  }
+
+  .release-cell {
+    white-space: nowrap;
+    font-size: 0.8rem;
+  }
+
+  .release-date {
+    color: var(--sl-color-gray-2);
+  }
+
+  .release-date.stale {
+    color: #d97706;
+  }
+
+  .release-date.very-stale {
+    color: #dc2626;
+  }
+
+  .no-results {
+    text-align: center;
+    padding: 2rem;
+    color: var(--sl-color-gray-3);
+  }
+
+  @media (max-width: 768px) {
+    .controls-row {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .plugin-search-input,
+    .filter-select {
+      width: 100%;
+    }
+  }
+</style>
+
+<script>
+  // Initialize all plugin tables
+  document.querySelectorAll('.plugin-table-wrapper').forEach((wrapper) => {
+    const searchInput = wrapper.querySelector('.plugin-search-input') as HTMLInputElement;
+    const sourceFilter = wrapper.querySelector('.source-filter') as HTMLSelectElement;
+    const categoryFilter = wrapper.querySelector('.category-filter') as HTMLSelectElement;
+    const tableId = searchInput?.getAttribute('data-table');
+    const table = tableId ? document.getElementById(tableId) : null;
+    const countEl = wrapper.querySelector('.plugin-count');
+    const noResultsEl = wrapper.querySelector('.no-results');
+
+    if (!table) return;
+
+    const thead = table.querySelector('thead');
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody?.querySelectorAll('tr') || []) as HTMLTableRowElement[];
+    const totalCount = rows.length;
+
+    let currentSort: { column: string; direction: 'asc' | 'desc' } | null = null;
+
+    function applyFilters() {
+      const searchQuery = searchInput?.value.toLowerCase().trim() || '';
+      const sourceValue = sourceFilter?.value || 'all';
+      const categoryValue = categoryFilter?.value || 'all';
+
+      let visibleCount = 0;
+
+      rows.forEach((row) => {
+        let matchesSource = true;
+        let matchesCategory = true;
+        let matchesSearch = true;
+
+        // Check source filter
+        if (sourceValue !== 'all') {
+          const rowSource = row.getAttribute('data-source');
+          matchesSource = rowSource === sourceValue;
+        }
+
+        // Check category filter
+        if (categoryValue !== 'all') {
+          matchesCategory = row.getAttribute('data-category') === categoryValue;
+        }
+
+        // Check search
+        if (searchQuery) {
+          const text = row.textContent?.toLowerCase() || '';
+          matchesSearch = text.includes(searchQuery);
+        }
+
+        if (matchesSource && matchesCategory && matchesSearch) {
+          row.classList.remove('hidden');
+          visibleCount++;
+        } else {
+          row.classList.add('hidden');
+        }
+      });
+
+      // Update count
+      if (countEl) {
+        if (sourceValue !== 'all' || categoryValue !== 'all' || searchQuery) {
+          countEl.textContent = `${visibleCount} of ${totalCount} plugins`;
+        } else {
+          countEl.textContent = `${totalCount} plugins`;
+        }
+      }
+
+      // Show/hide no results message
+      if (noResultsEl) {
+        (noResultsEl as HTMLElement).style.display = visibleCount === 0 ? 'block' : 'none';
+      }
+    }
+
+    function sortTable(column: string) {
+      // Determine sort direction
+      let direction: 'asc' | 'desc' = 'asc';
+      if (currentSort?.column === column && currentSort.direction === 'asc') {
+        direction = 'desc';
+      }
+      currentSort = { column, direction };
+
+      // Update header styles
+      thead?.querySelectorAll('th').forEach((th) => {
+        th.classList.remove('sort-asc', 'sort-desc');
+      });
+      const activeHeader = thead?.querySelector(`th[data-sort="${column}"]`);
+      activeHeader?.classList.add(direction === 'asc' ? 'sort-asc' : 'sort-desc');
+
+      // Sort rows
+      const sortedRows = [...rows].sort((a, b) => {
+        let aVal = '';
+        let bVal = '';
+
+        if (column === 'name') {
+          aVal = a.getAttribute('data-name') || '';
+          bVal = b.getAttribute('data-name') || '';
+        } else if (column === 'category') {
+          aVal = a.getAttribute('data-category') || '';
+          bVal = b.getAttribute('data-category') || '';
+        } else if (column === 'repo') {
+          aVal = a.getAttribute('data-repo') || '';
+          bVal = b.getAttribute('data-repo') || '';
+        } else if (column === 'release') {
+          aVal = a.querySelector('.release-date')?.getAttribute('data-date') || '0';
+          bVal = b.querySelector('.release-date')?.getAttribute('data-date') || '0';
+        }
+
+        const comparison = aVal.localeCompare(bVal);
+        return direction === 'asc' ? comparison : -comparison;
+      });
+
+      // Reorder DOM
+      sortedRows.forEach((row) => tbody?.appendChild(row));
+    }
+
+    // Event listeners
+    searchInput?.addEventListener('input', applyFilters);
+    sourceFilter?.addEventListener('change', applyFilters);
+    categoryFilter?.addEventListener('change', applyFilters);
+
+    // Sort handlers
+    thead?.querySelectorAll('th.sortable').forEach((th) => {
+      th.addEventListener('click', () => {
+        const column = th.getAttribute('data-sort');
+        if (column) sortTable(column);
+      });
+    });
+  });
+</script>
