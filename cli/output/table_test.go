@@ -32,17 +32,17 @@ func TestTableOutput(t *testing.T) {
 		}
 	})
 	t.Run("AddFieldAlias", func(t *testing.T) {
-		to.AddFieldAlias("WoodpeckerCI", "wp")
-		if alias, ok := to.fieldAlias["wp"]; !ok || alias != "WoodpeckerCI" {
-			t.Errorf("'wp' alias should resolve to 'WoodpeckerCI', is: %v", alias)
+		to.AddFieldAlias("CrowCI", "crow")
+		if alias, ok := to.fieldAlias["crow"]; !ok || alias != "CrowCI" {
+			t.Errorf("'crow' alias should resolve to 'CrowCI', is: %v", alias)
 		}
 	})
 	t.Run("AddFieldOutputFn", func(t *testing.T) {
-		to.AddFieldFn("WoodpeckerCI", FieldFn(func(_ any) string {
-			return "WOODPECKER CI!!!"
+		to.AddFieldFn("CrowCI", FieldFn(func(_ any) string {
+			return "CROW CI!!!"
 		}))
-		if _, ok := to.fieldMapping["woodpeckerci"]; !ok {
-			t.Errorf("'WoodpeckerCI' field output fn should be set")
+		if _, ok := to.fieldMapping["crowci"]; !ok {
+			t.Errorf("'CrowCI' field output fn should be set")
 		}
 	})
 	t.Run("ValidateColumns", func(t *testing.T) {
@@ -54,16 +54,16 @@ func TestTableOutput(t *testing.T) {
 		}
 	})
 	t.Run("WriteHeader", func(t *testing.T) {
-		to.WriteHeader([]string{"wp", "name"})
-		if wfs.String() != "WP\tNAME\n" {
-			t.Errorf("written header should be 'WOODPECKER CI\\tNAME\\n', is: %q", wfs.String())
+		to.WriteHeader([]string{"crow", "name"})
+		if wfs.String() != "CROW\tNAME\n" {
+			t.Errorf("written header should be 'CROW\\tNAME\\n', is: %q", wfs.String())
 		}
 		wfs.Reset()
 	})
 	t.Run("WriteLine", func(t *testing.T) {
-		_ = to.Write([]string{"wp", "name", "number"}, &testFieldsStruct{"test123", 1000000000})
-		if wfs.String() != "WOODPECKER CI!!!\ttest123\t1000000000\n" {
-			t.Errorf("written line should be 'WOODPECKER CI!!!\\ttest123\\t1000000000\\n', is: %q", wfs.String())
+		_ = to.Write([]string{"crow", "name", "number"}, &testFieldsStruct{"test123", 1000000000})
+		if wfs.String() != "CROW CI!!!\ttest123\t1000000000\n" {
+			t.Errorf("written line should be 'CROW CI!!!\\ttest123\\t1000000000\\n', is: %q", wfs.String())
 		}
 		wfs.Reset()
 	})

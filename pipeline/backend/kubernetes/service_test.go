@@ -28,9 +28,9 @@ func TestServiceName(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "crow-svc-01he8bebctabr3kgk0qj36d2me-database", name)
 
-	name, err = serviceName(&types.Step{Name: "wp-01he8bebctabr3kgk0qj36d2me-0-services-0.woodpecker-runtime.svc.cluster.local", UUID: "01he8bebctabr3kgk0qj36d2me"})
+	name, err = serviceName(&types.Step{Name: "crow-01he8bebctabr3kgk0qj36d2me-0-services-0.crow-runtime.svc.cluster.local", UUID: "01he8bebctabr3kgk0qj36d2me"})
 	assert.NoError(t, err)
-	assert.Equal(t, "crow-svc-01he8bebctabr3kgk0qj36d2me-wp-01he8bebctabr3kgk0qj36d2me-0-services-0.woodpecker-runtime.svc.cluster.local", name)
+	assert.Equal(t, "crow-svc-01he8bebctabr3kgk0qj36d2me-crow-01he8bebctabr3kgk0qj36d2me-0-services-0.crow-runtime.svc.cluster.local", name)
 
 	name, err = serviceName(&types.Step{Name: "awesome_service", UUID: "01he8bebctabr3kgk0qj36d2me"})
 	assert.NoError(t, err)

@@ -31,7 +31,7 @@ func Test_parseBackendOptions(t *testing.T) {
 				BackendOptions: map[string]any{
 					"kubernetes": map[string]any{
 						"nodeSelector":       map[string]string{"storage": "ssd"},
-						"serviceAccountName": "wp-svc-acc",
+						"serviceAccountName": "crow-svc-acc",
 						"labels":             map[string]string{"app": "test"},
 						"annotations":        map[string]string{"apps.kubernetes.io/pod-index": "0"},
 						"tolerations": []map[string]any{
@@ -77,7 +77,7 @@ func Test_parseBackendOptions(t *testing.T) {
 			},
 			want: BackendOptions{
 				NodeSelector:       map[string]string{"storage": "ssd"},
-				ServiceAccountName: "wp-svc-acc",
+				ServiceAccountName: "crow-svc-acc",
 				Labels:             map[string]string{"app": "test"},
 				Annotations:        map[string]string{"apps.kubernetes.io/pod-index": "0"},
 				Tolerations:        []Toleration{{Key: "net-port", Value: "100Mbit", Effect: TaintEffectNoSchedule}},

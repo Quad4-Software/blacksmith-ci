@@ -124,7 +124,7 @@ func TestPodMeta(t *testing.T) {
 		WorkingDir:  "/woodpecker/src",
 		Environment: map[string]string{"CI": "woodpecker"},
 	}, &config{
-		Namespace: "woodpecker",
+		Namespace: "crow",
 	}, BackendOptions{}, "crow-01he8bebctabr3kg-0", taskUUID)
 	assert.NoError(t, err)
 	assert.EqualValues(t, "crow-svc-01he8bebctabr3kg-postgres", meta.Labels[ServiceLabel])
@@ -139,7 +139,7 @@ func TestPodMeta(t *testing.T) {
 		WorkingDir:  "/woodpecker/src",
 		Environment: map[string]string{"CI": "woodpecker"},
 	}, &config{
-		Namespace: "woodpecker",
+		Namespace: "crow",
 	}, BackendOptions{}, "crow-01he8bebctabr3kg-0", taskUUID)
 	assert.NoError(t, err)
 	assert.EqualValues(t, "crow-svc-01he8bebctabr3kg-postgres", meta.Labels[ServiceLabel])
@@ -153,7 +153,7 @@ func TestPodMeta(t *testing.T) {
 		WorkingDir:  "/woodpecker/src",
 		Environment: map[string]string{"CI": "woodpecker"},
 	}, &config{
-		Namespace: "woodpecker",
+		Namespace: "crow",
 	}, BackendOptions{}, "crow-01he8bebctabr3kg-0", taskUUID)
 	assert.NoError(t, err)
 	assert.EqualValues(t, "", meta.Labels[ServiceLabel])
@@ -173,7 +173,7 @@ func TestTinyPod(t *testing.T) {
 	{
 		"metadata": {
 			"name": "crow-01he8bebctabr3kgk0qj36d2me-0",
-			"namespace": "woodpecker",
+			"namespace": "crow",
 			"labels": {
 				"app.kubernetes.io/managed-by": "crow",
 				"crowci/step": "build-via-gradle",
@@ -239,7 +239,7 @@ func TestTinyPod(t *testing.T) {
 		Volumes:     []string{"workspace:/woodpecker/src"},
 		Environment: map[string]string{"CI": "woodpecker"},
 	}, &config{
-		Namespace: "woodpecker",
+		Namespace: "crow",
 	}, "crow-01he8bebctabr3kgk0qj36d2me-0", "linux/amd64", BackendOptions{}, taskUUID)
 	assert.NoError(t, err)
 
@@ -255,7 +255,7 @@ func TestFullPod(t *testing.T) {
 	{
 		"metadata": {
 			"name": "crow-01he8bebctabr3kgk0qj36d2me-0",
-			"namespace": "woodpecker",
+			"namespace": "crow",
 			"labels": {
 				"app": "test",
 				"app.kubernetes.io/managed-by": "crow",
@@ -342,7 +342,7 @@ func TestFullPod(t *testing.T) {
 				"topology.kubernetes.io/region": "eu-central-1"
 			},
 			"runtimeClassName": "runc",
-			"serviceAccountName": "wp-svc-acc",
+			"serviceAccountName": "crow-svc-acc",
 			"securityContext": {
 				"runAsUser": 101,
 				"runAsGroup": 101,
@@ -436,7 +436,7 @@ func TestFullPod(t *testing.T) {
 			Password: "bar",
 		},
 	}, &config{
-		Namespace:                   "woodpecker",
+		Namespace:                   "crow",
 		ImagePullSecretNames:        []string{"regcred", "another-pull-secret"},
 		PodLabels:                   map[string]string{"app": "test"},
 		PodLabelsAllowFromStep:      true,
@@ -450,7 +450,7 @@ func TestFullPod(t *testing.T) {
 		Annotations:        map[string]string{"kubernetes.io/limit-ranger": "LimitRanger plugin set: cpu, memory request and limit for container"},
 		NodeSelector:       map[string]string{"storage": "ssd"},
 		RuntimeClassName:   &runtimeClass,
-		ServiceAccountName: "wp-svc-acc",
+		ServiceAccountName: "crow-svc-acc",
 		Tolerations:        []Toleration{{Key: "net-port", Value: "100Mbit", Effect: TaintEffectNoSchedule}},
 		Resources: Resources{
 			Requests: map[string]string{"memory": "128Mi", "cpu": "1000m"},
@@ -475,7 +475,7 @@ func TestPodPrivilege(t *testing.T) {
 			UUID:       "01he8bebctabr3kgk0qj36d2me-0",
 			Privileged: stepPrivileged,
 		}, &config{
-			Namespace:       "woodpecker",
+			Namespace:       "crow",
 			SecurityContext: SecurityContextConfig{RunAsNonRoot: globalRunAsRoot},
 		}, "crow-01he8bebctabr3kgk0qj36d2me-0", "linux/amd64", BackendOptions{
 			SecurityContext: &secCtx,
@@ -555,7 +555,7 @@ func TestScratchPod(t *testing.T) {
 	{
 		"metadata": {
 			"name": "crow-01he8bebctabr3kgk0qj36d2me-0",
-			"namespace": "woodpecker",
+			"namespace": "crow",
 			"labels": {
 				"app.kubernetes.io/managed-by": "crow",
 				"crowci/step": "curl-google",
@@ -587,7 +587,7 @@ func TestScratchPod(t *testing.T) {
 		UUID:       "01he8bebctabr3kgk0qj36d2me-0",
 		Entrypoint: []string{"/usr/bin/curl", "-v", "google.com"},
 	}, &config{
-		Namespace: "woodpecker",
+		Namespace: "crow",
 	}, "crow-01he8bebctabr3kgk0qj36d2me-0", "linux/amd64", BackendOptions{}, taskUUID)
 	assert.NoError(t, err)
 
@@ -603,7 +603,7 @@ func TestSecrets(t *testing.T) {
 	{
 		"metadata": {
 			"name": "crow-3kgk0qj36d2me01he8bebctabr-0",
-			"namespace": "woodpecker",
+			"namespace": "crow",
 			"labels": {
 				"app.kubernetes.io/managed-by": "crow",
 				"crowci/step": "test-secrets",
@@ -688,7 +688,7 @@ func TestSecrets(t *testing.T) {
 		Environment: map[string]string{"CGO": "0"},
 		Volumes:     []string{"workspace:/woodpecker/src"},
 	}, &config{
-		Namespace:                  "woodpecker",
+		Namespace:                  "crow",
 		NativeSecretsAllowFromStep: true,
 	}, "crow-3kgk0qj36d2me01he8bebctabr-0", "linux/amd64", BackendOptions{
 		Secrets: []SecretRef{
@@ -724,8 +724,8 @@ func TestPodTolerations(t *testing.T) {
 	const expected = `
 	{
 		"metadata": {
-			"name": "wp-01he8bebctabr3kgk0qj36d2me-0",
-			"namespace": "woodpecker",
+			"name": "crow-01he8bebctabr3kgk0qj36d2me-0",
+			"namespace": "crow",
 			"labels": {
 				"app.kubernetes.io/managed-by": "crow",
 				"crowci/step": "toleration-test",
@@ -736,7 +736,7 @@ func TestPodTolerations(t *testing.T) {
 		"spec": {
 			"containers": [
 				{
-					"name": "wp-01he8bebctabr3kgk0qj36d2me-0",
+					"name": "crow-01he8bebctabr3kgk0qj36d2me-0",
 					"image": "alpine",
 					"resources": {}
 				}
@@ -768,10 +768,10 @@ func TestPodTolerations(t *testing.T) {
 		Image: "alpine",
 		UUID:  "01he8bebctabr3kgk0qj36d2me-0",
 	}, &config{
-		Namespace:                   "woodpecker",
+		Namespace:                   "crow",
 		PodTolerations:              globalTolerations,
 		PodTolerationsAllowFromStep: false,
-	}, "wp-01he8bebctabr3kgk0qj36d2me-0", "linux/amd64", BackendOptions{}, taskUUID)
+	}, "crow-01he8bebctabr3kgk0qj36d2me-0", "linux/amd64", BackendOptions{}, taskUUID)
 	assert.NoError(t, err)
 
 	podJSON, err := json.Marshal(pod)
@@ -785,8 +785,8 @@ func TestPodTolerationsAllowFromStep(t *testing.T) {
 	const expectedDisallow = `
 	{
 		"metadata": {
-			"name": "wp-01he8bebctabr3kgk0qj36d2me-0",
-			"namespace": "woodpecker",
+			"name": "crow-01he8bebctabr3kgk0qj36d2me-0",
+			"namespace": "crow",
 			"labels": {
 				"app.kubernetes.io/managed-by": "crow",
 				"crowci/step": "toleration-test",
@@ -797,7 +797,7 @@ func TestPodTolerationsAllowFromStep(t *testing.T) {
 		"spec": {
 			"containers": [
 				{
-					"name": "wp-01he8bebctabr3kgk0qj36d2me-0",
+					"name": "crow-01he8bebctabr3kgk0qj36d2me-0",
 					"image": "alpine",
 					"resources": {}
 				}
@@ -809,8 +809,8 @@ func TestPodTolerationsAllowFromStep(t *testing.T) {
 	const expectedAllow = `
 	{
 		"metadata": {
-			"name": "wp-01he8bebctabr3kgk0qj36d2me-0",
-			"namespace": "woodpecker",
+			"name": "crow-01he8bebctabr3kgk0qj36d2me-0",
+			"namespace": "crow",
 			"labels": {
 				"app.kubernetes.io/managed-by": "crow",
 				"crowci/step": "toleration-test",
@@ -821,7 +821,7 @@ func TestPodTolerationsAllowFromStep(t *testing.T) {
 		"spec": {
 			"containers": [
 				{
-					"name": "wp-01he8bebctabr3kgk0qj36d2me-0",
+					"name": "crow-01he8bebctabr3kgk0qj36d2me-0",
 					"image": "alpine",
 					"resources": {}
 				}
@@ -849,9 +849,9 @@ func TestPodTolerationsAllowFromStep(t *testing.T) {
 	}
 
 	pod, err := mkPod(step, &config{
-		Namespace:                   "woodpecker",
+		Namespace:                   "crow",
 		PodTolerationsAllowFromStep: false,
-	}, "wp-01he8bebctabr3kgk0qj36d2me-0", "linux/amd64", BackendOptions{
+	}, "crow-01he8bebctabr3kgk0qj36d2me-0", "linux/amd64", BackendOptions{
 		Tolerations: stepTolerations,
 	}, taskUUID)
 	assert.NoError(t, err)
@@ -863,9 +863,9 @@ func TestPodTolerationsAllowFromStep(t *testing.T) {
 	ja.Assertf(string(podJSON), expectedDisallow)
 
 	pod, err = mkPod(step, &config{
-		Namespace:                   "woodpecker",
+		Namespace:                   "crow",
 		PodTolerationsAllowFromStep: true,
-	}, "wp-01he8bebctabr3kgk0qj36d2me-0", "linux/amd64", BackendOptions{
+	}, "crow-01he8bebctabr3kgk0qj36d2me-0", "linux/amd64", BackendOptions{
 		Tolerations: stepTolerations,
 	}, taskUUID)
 	assert.NoError(t, err)
@@ -881,7 +881,7 @@ func TestStepSecret(t *testing.T) {
 	const expected = `{
 		"metadata": {
 			"name": "crow-01he8bebctabr3kgk0qj36d2me-0-step-secret",
-			"namespace": "woodpecker",
+			"namespace": "crow",
 			"labels": {
 				"app.kubernetes.io/managed-by": "crow"
 			}
@@ -900,7 +900,7 @@ func TestStepSecret(t *testing.T) {
 			"VERY_SECRET": "secret_value",
 		},
 	}, &config{
-		Namespace: "woodpecker",
+		Namespace: "crow",
 	})
 	assert.NoError(t, err)
 
