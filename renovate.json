@@ -1,7 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["local>crowci/renovate-config"],
-  "baseBranchPatterns": ["$default", "/^v4\\.5\\.x$/"],
+  "baseBranchPatterns": ["$default", "/^v4\\.6\\.x$/"],
   "automergeType": "pr",
   "schedule": ["every 2 weeks on monday"],
   "updateNotScheduled": true,
