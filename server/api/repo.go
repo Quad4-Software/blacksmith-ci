@@ -321,6 +321,9 @@ func PatchRepo(c *gin.Context) {
 	if in.AllowDeploy != nil {
 		repo.AllowDeploy = *in.AllowDeploy
 	}
+	if in.DeployTeam != nil {
+		repo.DeployTeam = *in.DeployTeam
+	}
 
 	if in.RequireApproval != nil {
 		if mode := model.ApprovalMode(*in.RequireApproval); mode.Valid() {

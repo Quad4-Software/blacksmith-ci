@@ -31,6 +31,20 @@
             </div>
           </FormItem>
         </FormField>
+
+        <FormField v-if="values.allow_deploy" v-slot="{ value, handleChange }" name="deploy_team">
+          <FormItem class="ml-7">
+            <FormLabel>{{ $t('repo.settings.general.deploy_team.team') }}</FormLabel>
+            <FormControl>
+              <Input
+                :model-value="value"
+                :placeholder="$t('repo.settings.general.deploy_team.placeholder')"
+                @update:model-value="handleChange"
+              />
+            </FormControl>
+            <FormDescription>{{ $t('repo.settings.general.deploy_team.desc') }}</FormDescription>
+          </FormItem>
+        </FormField>
       </div>
       <div class="grid gap-2">
         <label class="text-sm font-medium text-foreground">{{
@@ -295,6 +309,7 @@ const repoSettingsSchema = toTypedSchema(
     }),
     allow_pr: z.boolean(),
     allow_deploy: z.boolean(),
+    deploy_team: z.string(),
     cancel_previous_pipeline_events: z.array(z.string()),
     logs_keep_duration: z.string(),
     logs_keep_min: z.number().min(1),
@@ -317,6 +332,7 @@ const { handleSubmit, setValues, values, setFieldValue } = useForm({
     },
     allow_pr: false,
     allow_deploy: false,
+    deploy_team: '',
     cancel_previous_pipeline_events: [],
     logs_keep_duration: '',
     logs_keep_min: 90,
@@ -333,6 +349,7 @@ function loadRepoSettings() {
     trusted: repo.value.trusted,
     allow_pr: repo.value.allow_pr,
     allow_deploy: repo.value.allow_deploy,
+    deploy_team: repo.value.deploy_team || '',
     cancel_previous_pipeline_events: repo.value.cancel_previous_pipeline_events || [],
     logs_keep_duration: repo.value.logs_keep_duration ?? '',
     logs_keep_min: repo.value.logs_keep_min || 90,

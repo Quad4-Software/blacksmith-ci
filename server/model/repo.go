@@ -66,6 +66,7 @@ type Repo struct {
 	IsActive                     bool                 `json:"active"                          xorm:"active"`
 	AllowPull                    bool                 `json:"allow_pr"                        xorm:"allow_pr"`
 	AllowDeploy                  bool                 `json:"allow_deploy"                    xorm:"allow_deploy"`
+	DeployTeam                   string               `json:"deploy_team"                     xorm:"varchar(250) 'deploy_team'"`
 	Config                       string               `json:"config_file"                     xorm:"varchar(500) 'config_path'"`
 	Hash                         string               `json:"-"                               xorm:"varchar(500) 'hash'"`
 	Perm                         *Perm                `json:"-"                               xorm:"-"`
@@ -135,6 +136,7 @@ type RepoPatch struct {
 	Visibility                   *string                    `json:"visibility,omitempty"`
 	AllowPull                    *bool                      `json:"allow_pr,omitempty"`
 	AllowDeploy                  *bool                      `json:"allow_deploy,omitempty"`
+	DeployTeam                   *string                    `json:"deploy_team,omitempty"`
 	CancelPreviousPipelineEvents *[]WebhookEvent            `json:"cancel_previous_pipeline_events"`
 	LogsPipelinesKeepMin         int64                      `json:"logs_keep_min"`
 	LogsDurationKeep             string                     `json:"logs_keep_duration"`

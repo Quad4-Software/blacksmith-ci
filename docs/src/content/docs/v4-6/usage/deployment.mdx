@@ -2,14 +2,25 @@
 title: "Deployment"
 ---
 
+import { Steps } from '@astrojs/starlight/components';
+
 Deployments are manually triggered pipeline runs for deploying successful builds to specific environments like staging or production.
 
 ## Prerequisites
 
 Deployments must be enabled in the repository settings:
 
-1. Go to **Repository Settings** → **General**
-2. Enable the **Deployments** option
+<Steps>
+
+1. **Open repository settings**
+
+    Go to **Repository Settings** → **General**
+
+2. **Enable deployments**
+
+    Check the **Deployments** option
+
+</Steps>
 
 Once enabled, a **Deploy** button appears on finished pipelines.
 

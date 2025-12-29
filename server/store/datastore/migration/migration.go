@@ -91,6 +91,7 @@ var migrationTasks = []*xormigrate.Migration{
 	&addTimestamps,
 	&addAccessTokens,
 	&addAgentPersistentID,
+	&crowAddDeployTeamToRepos,
 }
 
 var allBeans = []any{

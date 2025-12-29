@@ -2,6 +2,8 @@
 title: "Repository Settings"
 ---
 
+import { Steps } from '@astrojs/starlight/components';
+
 The owner of a repository in the linked forge can change the related Crow CI settings via the web interface.
 
 ![Repository Settings Panel](img/repo-settings.png)
@@ -18,10 +20,31 @@ If disabled, no pipelines will be triggered for PR events.
 When enabled, pipelines can be started via "deployment" events.
 This includes both webhook triggers from forges for this event and the use of the "deployment" button in the Crow CI UI, which is shown when **all steps** of a pipelines succeeded.
 
-:::caution
-"Deployment" events can be triggered from all users with "write" access to the repository.
-Do not enable this option if this is not desired.
-:::
+By default, any user with "push" (write) access to the repository can trigger deployments.
+
+#### Restrict to team
+
+For stricter access control, you can restrict deployments to members of a specific forge team:
+
+<Steps>
+
+1. **Enable deployments**
+
+    Check the **Deployments** option (see above)
+
+2. **Set the team restriction**
+
+    In the **Restrict to Team** field, enter the team name (e.g., `crowci-deploy-team`)
+
+</Steps>
+
+When configured:
+
+- Only members of the specified team can trigger deployments
+- Team membership is verified against the forge at deployment time
+- Instance admins do **not** bypass this check—team membership is always required
+
+See the [Deployment](/dev/usage/deployment/) documentation for more details on permissions.
 
 ## Custom trusted clone plugins
 

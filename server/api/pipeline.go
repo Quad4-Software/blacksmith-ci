@@ -713,6 +713,32 @@ func PostPipeline(c *gin.Context) {
 			return
 		}
 
+		// Check team restriction for deployments
+		if repo.DeployTeam != "" {
+			triggeringUser := session.User(c)
+			_forge, err := server.Config.Services.Manager.ForgeFromRepo(repo)
+			if err != nil {
+				_ = c.AbortWithError(http.StatusInternalServerError, err)
+				return
+			}
+			teams, err := _forge.Teams(c, triggeringUser)
+			if err != nil {
+				_ = c.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch user teams: %w", err))
+				return
+			}
+			isMember := false
+			for _, t := range teams {
+				if t.Login == repo.DeployTeam {
+					isMember = true
+					break
+				}
+			}
+			if !isMember {
+				_ = c.AbortWithError(http.StatusForbidden, fmt.Errorf("user not in deploy team %q", repo.DeployTeam))
+				return
+			}
+		}
+
 		pl.DeployTo = c.DefaultQuery("deploy_to", pl.DeployTo)
 	}
 

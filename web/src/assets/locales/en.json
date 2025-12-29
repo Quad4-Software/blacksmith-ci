@@ -221,6 +221,11 @@
           "allow": "Allow Deployments",
           "desc": "Allow 'deployments' for successful pipelines. All users with push permissions are allowed to trigger these."
         },
+        "deploy_team": {
+          "team": "Restrict to Team",
+          "placeholder": "team-name (optional)",
+          "desc": "Only members of this forge team can trigger deployments. Leave empty to allow all users with push permissions."
+        },
         "netrc_only_trusted": {
           "netrc_only_trusted": "Custom trusted clone plugins",
           "desc": "Plugins that have access to .netrc credentials, which can be utilized for cloning repositories or pushing changes back to them."

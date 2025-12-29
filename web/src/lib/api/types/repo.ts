@@ -63,6 +63,9 @@ export interface Repo {
 
   allow_deploy: boolean;
 
+  // Team required for deployment (empty means no restriction)
+  deploy_team: string;
+
   config_file: string;
 
   visibility: RepoVisibility;
@@ -109,6 +112,7 @@ export type RepoSettings = Pick<
   | 'require_approval'
   | 'allow_pr'
   | 'allow_deploy'
+  | 'deploy_team'
   | 'cancel_previous_pipeline_events'
   | 'logs_keep_duration'
   | 'logs_keep_min'
