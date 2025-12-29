@@ -17,7 +17,9 @@ labels:
 when:
   - event: pull_request
   - event: push
-    branch: ${CI_REPO_DEFAULT_BRANCH}
+    branch:
+      - ${CI_REPO_DEFAULT_BRANCH}
+      - v4.*
     path: *when_path
 
 steps:

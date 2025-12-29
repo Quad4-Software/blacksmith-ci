@@ -1,7 +1,9 @@
 when:
   - event: [pull_request, pull_request_edited]
   - event: push
-    branch: ${CI_REPO_DEFAULT_BRANCH}
+    branch:
+      - ${CI_REPO_DEFAULT_BRANCH}
+      - v4.*
 
 steps:
   - name: editorconfig
