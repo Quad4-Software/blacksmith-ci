@@ -17,7 +17,7 @@ steps:
   - name: 'Check version type'
     image: reg.devxy.io/docker.io/library/alpine:3.23
     commands:
-      - apk add --no-cache -q jq
+      - apk add --no-cache -q jq git
       # Extract version components (e.g., v4.5.0 -> major=4, minor=5, patch=0)
       - |
         VERSION=$(echo "${CI_COMMIT_TAG}" | sed 's/^v//')
@@ -25,6 +25,16 @@ steps:
         MINOR=$(echo $VERSION | cut -d. -f2)
         PATCH=$(echo $VERSION | cut -d. -f3)
         echo "VERSION=$VERSION MAJOR=$MAJOR MINOR=$MINOR PATCH=$PATCH"
+
+        # Check if this commit is on the default branch (main)
+        git fetch origin ${CI_REPO_DEFAULT_BRANCH} --quiet
+        if git merge-base --is-ancestor HEAD origin/${CI_REPO_DEFAULT_BRANCH} 2>/dev/null; then
+          FROM_MAIN=true
+        else
+          FROM_MAIN=false
+        fi
+        echo "FROM_MAIN=$FROM_MAIN"
+
         # Check if this is a new minor/major version (patch == 0)
         if [ "$PATCH" = "0" ]; then
           echo "NEW_VERSION=true" >> .version-env
@@ -32,6 +42,14 @@ steps:
           echo "VERSION_LABEL=v$${MAJOR}.$${MINOR}" >> .version-env
         else
           echo "NEW_VERSION=false" >> .version-env
+        fi
+
+        # For patch releases from backported branches, skip docs deployment
+        if [ "$FROM_MAIN" = "false" ] && [ "$PATCH" != "0" ]; then
+          echo "SKIP_DOCS=true" >> .version-env
+          echo "Patch release from backported branch - skipping docs deployment"
+        else
+          echo "SKIP_DOCS=false" >> .version-env
         fi
         cat .version-env
 
@@ -81,6 +99,13 @@ steps:
     commands:
       - |
         set -e
+
+        source .version-env
+        if [ "$SKIP_DOCS" = "true" ]; then
+          echo "Skipping docs deployment for backported branch patch release"
+          exit 0
+        fi
+
         apk add --no-cache -q git
 
         # Build docs
