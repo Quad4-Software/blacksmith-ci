@@ -56,12 +56,22 @@ type OrgMetric struct {
 
 // AgentMetric represents metrics for a specific agent.
 type AgentMetric struct {
-	AgentID       int64   `json:"agent_id"`
-	AgentName     string  `json:"agent_name"`
-	WorkflowCount int64   `json:"workflow_count"`
-	AvgBuildTime  float64 `json:"avg_build_time"` // in seconds
-	Platform      string  `json:"platform"`
-	Backend       string  `json:"backend"`
+	AgentID           int64   `json:"agent_id"`
+	AgentPersistentID string  `json:"agent_persistent_id,omitempty"`
+	AgentName         string  `json:"agent_name"`
+	WorkflowCount     int64   `json:"workflow_count"`
+	AvgBuildTime      float64 `json:"avg_build_time"` // in seconds
+	Platform          string  `json:"platform"`
+	Backend           string  `json:"backend"`
+}
+
+// AgentMetricData holds aggregated workflow data for an agent persistent ID.
+// Used by store methods to return agent metrics grouped by persistent ID.
+type AgentMetricData struct {
+	AgentPersistentID string
+	AgentName         string
+	Platform          string
+	Count             int64
 }
 
 // MetricsTimeFilter represents time-based filtering for metrics queries.

@@ -90,6 +90,7 @@ var migrationTasks = []*xormigrate.Migration{
 	&addSecretSource,
 	&addTimestamps,
 	&addAccessTokens,
+	&addAgentPersistentID,
 }
 
 var allBeans = []any{

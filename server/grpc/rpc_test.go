@@ -38,23 +38,20 @@ func TestRegisterAgent(t *testing.T) {
 		store := new(store_mocks.MockStore)
 		storeAgent := new(model.Agent)
 		storeAgent.ID = 1337
-		updatedAgent := model.Agent{
-			ID:          1337,
-			Created:     0,
-			Updated:     0,
-			Name:        "hostname",
-			OwnerID:     0,
-			Token:       "",
-			LastContact: 0,
-			Platform:    "platform",
-			Backend:     "backend",
-			Capacity:    2,
-			Version:     "version",
-			NoSchedule:  false,
-		}
+		// Use mock.MatchedBy to verify key fields, as PersistentID is computed during registration
+		agentMatcher := mock.MatchedBy(func(a *model.Agent) bool {
+			return a.ID == 1337 &&
+				a.Name == "hostname" &&
+				a.Platform == "platform" &&
+				a.Backend == "backend" &&
+				a.Capacity == 2 &&
+				a.Version == "version" &&
+				a.NoSchedule == false &&
+				a.PersistentID != "" // PersistentID should be generated
+		})
 
 		store.On("AgentFind", int64(1337)).Once().Return(storeAgent, nil)
-		store.On("AgentUpdate", &updatedAgent).Once().Return(nil)
+		store.On("AgentUpdate", agentMatcher).Once().Return(nil)
 		grpc := RPC{
 			store: store,
 		}
@@ -81,23 +78,20 @@ func TestRegisterAgent(t *testing.T) {
 		storeAgent := new(model.Agent)
 		storeAgent.ID = 1337
 		storeAgent.Name = "originalHostname"
-		updatedAgent := model.Agent{
-			ID:          1337,
-			Created:     0,
-			Updated:     0,
-			Name:        "originalHostname",
-			OwnerID:     0,
-			Token:       "",
-			LastContact: 0,
-			Platform:    "platform",
-			Backend:     "backend",
-			Capacity:    2,
-			Version:     "version",
-			NoSchedule:  false,
-		}
+		// Use mock.MatchedBy to verify key fields, as PersistentID is computed during registration
+		agentMatcher := mock.MatchedBy(func(a *model.Agent) bool {
+			return a.ID == 1337 &&
+				a.Name == "originalHostname" && // should NOT be updated
+				a.Platform == "platform" &&
+				a.Backend == "backend" &&
+				a.Capacity == 2 &&
+				a.Version == "version" &&
+				a.NoSchedule == false &&
+				a.PersistentID != "" // PersistentID should be generated
+		})
 
 		store.On("AgentFind", int64(1337)).Once().Return(storeAgent, nil)
-		store.On("AgentUpdate", &updatedAgent).Once().Return(nil)
+		store.On("AgentUpdate", agentMatcher).Once().Return(nil)
 		grpc := RPC{
 			store: store,
 		}

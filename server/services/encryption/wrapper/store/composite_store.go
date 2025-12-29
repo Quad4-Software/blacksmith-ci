@@ -786,6 +786,10 @@ func (c *CompositeEncryptedStore) GetWorkflowCountsByAgent(after, before int64, 
 	return c.baseStore.GetWorkflowCountsByAgent(after, before, repoIDs)
 }
 
+func (c *CompositeEncryptedStore) GetWorkflowCountsByAgentPersistentID(after, before int64, repoIDs []int64) ([]model.AgentMetricData, error) {
+	return c.baseStore.GetWorkflowCountsByAgentPersistentID(after, before, repoIDs)
+}
+
 func (c *CompositeEncryptedStore) GetPipelineCountsByRepo(after, before int64, repoIDs []int64) (map[int64]int64, error) {
 	return c.baseStore.GetPipelineCountsByRepo(after, before, repoIDs)
 }

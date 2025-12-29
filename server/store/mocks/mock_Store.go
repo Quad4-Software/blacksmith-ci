@@ -5409,6 +5409,80 @@ func (_c *MockStore_GetWorkflowCountsByAgent_Call) RunAndReturn(run func(after i
 	return _c
 }
 
+// GetWorkflowCountsByAgentPersistentID provides a mock function for the type MockStore
+func (_mock *MockStore) GetWorkflowCountsByAgentPersistentID(after int64, before int64, repoIDs []int64) ([]model.AgentMetricData, error) {
+	ret := _mock.Called(after, before, repoIDs)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetWorkflowCountsByAgentPersistentID")
+	}
+
+	var r0 []model.AgentMetricData
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, []int64) ([]model.AgentMetricData, error)); ok {
+		return returnFunc(after, before, repoIDs)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, []int64) []model.AgentMetricData); ok {
+		r0 = returnFunc(after, before, repoIDs)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]model.AgentMetricData)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, int64, []int64) error); ok {
+		r1 = returnFunc(after, before, repoIDs)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_GetWorkflowCountsByAgentPersistentID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetWorkflowCountsByAgentPersistentID'
+type MockStore_GetWorkflowCountsByAgentPersistentID_Call struct {
+	*mock.Call
+}
+
+// GetWorkflowCountsByAgentPersistentID is a helper method to define mock.On call
+//   - after int64
+//   - before int64
+//   - repoIDs []int64
+func (_e *MockStore_Expecter) GetWorkflowCountsByAgentPersistentID(after interface{}, before interface{}, repoIDs interface{}) *MockStore_GetWorkflowCountsByAgentPersistentID_Call {
+	return &MockStore_GetWorkflowCountsByAgentPersistentID_Call{Call: _e.mock.On("GetWorkflowCountsByAgentPersistentID", after, before, repoIDs)}
+}
+
+func (_c *MockStore_GetWorkflowCountsByAgentPersistentID_Call) Run(run func(after int64, before int64, repoIDs []int64)) *MockStore_GetWorkflowCountsByAgentPersistentID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		var arg2 []int64
+		if args[2] != nil {
+			arg2 = args[2].([]int64)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_GetWorkflowCountsByAgentPersistentID_Call) Return(agentMetricDatas []model.AgentMetricData, err error) *MockStore_GetWorkflowCountsByAgentPersistentID_Call {
+	_c.Call.Return(agentMetricDatas, err)
+	return _c
+}
+
+func (_c *MockStore_GetWorkflowCountsByAgentPersistentID_Call) RunAndReturn(run func(after int64, before int64, repoIDs []int64) ([]model.AgentMetricData, error)) *MockStore_GetWorkflowCountsByAgentPersistentID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GlobalRegistryFind provides a mock function for the type MockStore
 func (_mock *MockStore) GlobalRegistryFind(s string) (*model.Registry, error) {
 	ret := _mock.Called(s)

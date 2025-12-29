@@ -15,7 +15,9 @@
 package model
 
 import (
+	"crypto/sha256"
 	"encoding/base32"
+	"encoding/hex"
 	"fmt"
 
 	"github.com/tink-crypto/tink-go/v2/subtle/random"
@@ -30,6 +32,7 @@ type Agent struct {
 	Name                   string            `json:"name"          xorm:"name"`
 	OwnerID                int64             `json:"owner_id"      xorm:"'owner_id'"`
 	Token                  string            `json:"token"                     xorm:"token"`
+	PersistentID           string            `json:"persistent_id"             xorm:"VARCHAR(64) INDEX 'persistent_id'"`
 	LastContact            int64             `json:"last_contact"              xorm:"last_contact"`
 	WorkflowPollingHealthy bool              `json:"workflow_polling_healthy"  xorm:"workflow_polling_healthy"`
 	LastWork               int64             `json:"last_work"                 xorm:"last_work"` // last time the agent did something, this value is used to determine if the agent is still doing work used by the autoscaler
@@ -79,6 +82,20 @@ func (a *Agent) IsSystemAgent() bool {
 
 func GenerateNewAgentToken() string {
 	return base32.StdEncoding.EncodeToString(random.GetRandomBytes(32))
+}
+
+// GeneratePersistentID creates a stable identity hash for an agent.
+// For individual token agents, the token alone provides uniqueness.
+// For master token agents, the name (hostname) differentiates agents sharing the same token.
+// This hash persists across agent restarts and ID changes, allowing metrics aggregation.
+func GeneratePersistentID(token, name, platform, backend string) string {
+	// Combine token + name + platform + backend for a stable identity
+	// - Token ensures different tokens = different agents
+	// - Name (hostname) differentiates master token agents on different hosts
+	// - Platform + backend provide additional stability
+	data := fmt.Sprintf("%s|%s|%s|%s", token, name, platform, backend)
+	hash := sha256.Sum256([]byte(data))
+	return hex.EncodeToString(hash[:])
 }
 
 func (a *Agent) GetServerLabels() (map[string]string, error) {

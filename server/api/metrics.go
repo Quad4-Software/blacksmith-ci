@@ -164,6 +164,12 @@ func GetMetrics(c *gin.Context) {
 	}
 
 	// Get grouped metrics (with repo filtering)
+	// Use persistent ID for new data, fallback to agent ID for legacy data
+	workflowsByPersistentID, err := _store.GetWorkflowCountsByAgentPersistentID(after, before, repoIDs)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "Error getting workflows by agent persistent ID: %s", err)
+		return
+	}
 	workflowsByAgentID, err := _store.GetWorkflowCountsByAgent(after, before, repoIDs)
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Error getting workflows by agent: %s", err)
@@ -196,7 +202,7 @@ func GetMetrics(c *gin.Context) {
 	}
 
 	// Convert IDs to names and build detailed metrics
-	agentDetails, workflowsByAgent, err := buildAgentMetrics(_store, workflowsByAgentID)
+	agentDetails, workflowsByAgent, err := buildAgentMetrics(_store, workflowsByPersistentID, workflowsByAgentID)
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Error building agent metrics: %s", err)
 		return
@@ -260,7 +266,37 @@ func intersectRepoIDs(a, b []int64) []int64 {
 	return result
 }
 
-func buildAgentMetrics(_store store.Store, workflowsByAgentID map[int64]int64) ([]model.AgentMetric, map[string]int64, error) {
+func buildAgentMetrics(_store store.Store, workflowsByPersistentID []model.AgentMetricData, workflowsByAgentID map[int64]int64) ([]model.AgentMetric, map[string]int64, error) {
+	agentDetails := make([]model.AgentMetric, 0)
+	workflowsByAgent := make(map[string]int64)
+
+	// Track which persistent IDs we've seen to avoid double-counting
+	seenPersistentIDs := make(map[string]bool)
+
+	// First, process workflows with persistent IDs (new data)
+	// These have agent name stored directly, no need to look up
+	for _, data := range workflowsByPersistentID {
+		seenPersistentIDs[data.AgentPersistentID] = true
+
+		agentName := data.AgentName
+		if agentName == "" {
+			agentName = "Unknown"
+		}
+
+		agentDetails = append(agentDetails, model.AgentMetric{
+			AgentPersistentID: data.AgentPersistentID,
+			AgentName:         agentName,
+			WorkflowCount:     data.Count,
+			AvgBuildTime:      0.0, // Would require additional store method
+			Platform:          data.Platform,
+			Backend:           "", // Not stored on workflow, would need agent lookup
+		})
+
+		workflowsByAgent[agentName] += data.Count
+	}
+
+	// Then, process legacy workflows by agent ID (data without persistent ID)
+	// These need agent lookup to get names
 	agents, err := _store.AgentList(&model.AgentListOptions{})
 	if err != nil {
 		return nil, nil, err
@@ -271,36 +307,38 @@ func buildAgentMetrics(_store store.Store, workflowsByAgentID map[int64]int64) (
 		agentMap[agent.ID] = agent
 	}
 
-	agentDetails := make([]model.AgentMetric, 0)
-	workflowsByAgent := make(map[string]int64)
-
 	for agentID, count := range workflowsByAgentID {
 		agent, exists := agentMap[agentID]
+
+		// If this agent has a persistent ID that we've already counted via
+		// the persistent ID query, skip to avoid double-counting
+		if exists && agent.PersistentID != "" && seenPersistentIDs[agent.PersistentID] {
+			continue
+		}
+
 		agentName := "Unknown"
 		platform := ""
 		backend := ""
+		persistentID := ""
 
 		if exists {
 			agentName = agent.Name
 			platform = agent.Platform
 			backend = agent.Backend
+			persistentID = agent.PersistentID
 		}
 
-		// Calculate average build time for this agent
-		avgTime := 0.0
-		// Note: This would require additional store methods to calculate per-agent avg build time
-		// For now, we'll leave it as 0.0
-
 		agentDetails = append(agentDetails, model.AgentMetric{
-			AgentID:       agentID,
-			AgentName:     agentName,
-			WorkflowCount: count,
-			AvgBuildTime:  avgTime,
-			Platform:      platform,
-			Backend:       backend,
+			AgentID:           agentID,
+			AgentPersistentID: persistentID,
+			AgentName:         agentName,
+			WorkflowCount:     count,
+			AvgBuildTime:      0.0,
+			Platform:          platform,
+			Backend:           backend,
 		})
 
-		workflowsByAgent[agentName] = count
+		workflowsByAgent[agentName] += count
 	}
 
 	return agentDetails, workflowsByAgent, nil

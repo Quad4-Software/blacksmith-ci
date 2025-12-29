@@ -275,7 +275,14 @@ type Store interface {
 	GetAverageStepsPerWorkflow(after, before int64, repoIDs []int64) (float64, error)
 	// GetWorkflowCountsByAgent returns workflow counts grouped by agent ID with optional time and repo filter.
 	// If repoIDs is nil or empty, returns metrics for all repos.
+	// Note: For better tracking across agent ID changes, prefer GetWorkflowCountsByAgentPersistentID.
+	// This method is still useful for legacy data without persistent IDs.
 	GetWorkflowCountsByAgent(after, before int64, repoIDs []int64) (map[int64]int64, error)
+	// GetWorkflowCountsByAgentPersistentID returns workflow counts grouped by agent persistent ID.
+	// This method uses the persistent ID stored on workflows, allowing metrics aggregation even
+	// after agent cleanup/ID changes. For workflows without a persistent ID (legacy data),
+	// use GetWorkflowCountsByAgent as fallback.
+	GetWorkflowCountsByAgentPersistentID(after, before int64, repoIDs []int64) ([]model.AgentMetricData, error)
 	// GetPipelineCountsByRepo returns pipeline counts grouped by repo ID with optional time and repo filter.
 	// If repoIDs is nil or empty, returns metrics for all repos.
 	GetPipelineCountsByRepo(after, before int64, repoIDs []int64) (map[int64]int64, error)

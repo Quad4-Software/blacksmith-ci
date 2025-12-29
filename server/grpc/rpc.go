@@ -270,6 +270,8 @@ func (s *RPC) Init(c context.Context, strWorkflowID string, state rpc.WorkflowSt
 	}
 
 	workflow.AgentID = agent.ID
+	workflow.AgentPersistentID = agent.PersistentID
+	workflow.AgentName = agent.Name
 
 	currentPipeline, err := s.store.GetPipeline(workflow.PipelineID)
 	if err != nil {
@@ -522,6 +524,10 @@ func (s *RPC) RegisterAgent(ctx context.Context, info rpc.AgentInfo) (int64, str
 	agent.LimitCPUQuota = info.LimitCPUQuota
 	// Reset NoSchedule when agent registers - allows previously disabled agents to receive tasks again
 	agent.NoSchedule = false
+
+	// Generate or update persistent ID for stable identity across ID changes
+	// This allows metrics to track agents even after cleanup/reconnection
+	agent.PersistentID = model.GeneratePersistentID(agent.Token, agent.Name, agent.Platform, agent.Backend)
 
 	err = s.store.AgentUpdate(agent)
 	if err != nil {

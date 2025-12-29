@@ -177,6 +177,68 @@ func (s storage) GetWorkflowCountsByAgent(after, before int64, repoIDs []int64) 
 	return counts, nil
 }
 
+// GetWorkflowCountsByAgentPersistentID returns workflow counts grouped by agent persistent ID with optional time and repo filter.
+// This method uses the persistent ID stored on workflows, allowing metrics aggregation even after agent cleanup/ID changes.
+// For workflows without a persistent ID (legacy data), it falls back to agent_id grouping.
+func (s storage) GetWorkflowCountsByAgentPersistentID(after, before int64, repoIDs []int64) ([]model.AgentMetricData, error) {
+	type result struct {
+		AgentPersistentID string `xorm:"agent_persistent_id"`
+		AgentName         string `xorm:"agent_name"`
+		Platform          string `xorm:"platform"`
+		Count             int64  `xorm:"count"`
+	}
+
+	cond := builder.NewCond()
+
+	if after > 0 {
+		cond = cond.And(builder.Gte{"workflows.started": after})
+	}
+	if before > 0 {
+		cond = cond.And(builder.Lte{"workflows.started": before})
+	}
+
+	// Only include workflows with a persistent ID (skip legacy data without it)
+	cond = cond.And(builder.Neq{"workflows.agent_persistent_id": ""})
+	cond = cond.And(builder.NotNull{"workflows.agent_persistent_id"})
+
+	var results []result
+	var err error
+
+	if len(repoIDs) > 0 {
+		// Need to join with pipelines to filter by repo
+		cond = cond.And(builder.In("pipelines.repo_id", repoIDs))
+		err = s.engine.
+			Table("workflows").
+			Join("INNER", "pipelines", "workflows.pipeline_id = pipelines.id").
+			Where(cond).
+			Select("workflows.agent_persistent_id, MAX(workflows.agent_name) as agent_name, MAX(workflows.platform) as platform, COUNT(*) as count").
+			GroupBy("workflows.agent_persistent_id").
+			Find(&results)
+	} else {
+		err = s.engine.
+			Table("workflows").
+			Where(cond).
+			Select("agent_persistent_id, MAX(agent_name) as agent_name, MAX(platform) as platform, COUNT(*) as count").
+			GroupBy("agent_persistent_id").
+			Find(&results)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	data := make([]model.AgentMetricData, 0, len(results))
+	for _, r := range results {
+		data = append(data, model.AgentMetricData{
+			AgentPersistentID: r.AgentPersistentID,
+			AgentName:         r.AgentName,
+			Platform:          r.Platform,
+			Count:             r.Count,
+		})
+	}
+
+	return data, nil
+}
+
 // GetBuildTimeStatsByRepo returns average and total build times grouped by repo ID with optional time and repo filter.
 func (s storage) GetBuildTimeStatsByRepo(after, before int64, repoIDs []int64) (map[int64]map[string]float64, error) {
 	type result struct {

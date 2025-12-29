@@ -50,6 +50,7 @@ export interface OrgMetric {
 
 export interface AgentMetric {
   agent_id: number;
+  agent_persistent_id?: string; // Stable ID for tracking agents across ID changes
   agent_name: string;
   workflow_count: number;
   avg_build_time: number; // in seconds
