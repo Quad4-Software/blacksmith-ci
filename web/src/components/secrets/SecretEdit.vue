@@ -86,8 +86,8 @@
             <div v-for="option in secretEventsOptions" :key="option.value" class="flex items-start gap-3">
               <Checkbox
                 :id="`event-${option.value}`"
-                :model-value="innerValue.events?.includes(option.value as WebhookEvents)"
-                @update:model-value="
+                :checked="innerValue.events?.includes(option.value as WebhookEvents)"
+                @update:checked="
                   (checked: boolean | 'indeterminate') => toggleEvent(option.value as WebhookEvents, checked === true)
                 "
               />
@@ -201,11 +201,13 @@ function addNewImage() {
   if (!newImage.value) {
     return;
   }
-  innerValue.value.images?.push(newImage.value);
+  const currentImages = innerValue.value.images ?? [];
+  innerValue.value = { ...innerValue.value, images: [...currentImages, newImage.value] };
   newImage.value = '';
 }
 function removeImage(image: string) {
-  innerValue.value.images = innerValue.value.images?.filter((i) => i !== image);
+  const currentImages = innerValue.value.images ?? [];
+  innerValue.value = { ...innerValue.value, images: currentImages.filter((i) => i !== image) };
 }
 
 const secretEventsOptions: CheckboxOption[] = [
@@ -219,17 +221,21 @@ const secretEventsOptions: CheckboxOption[] = [
 ];
 
 function toggleEvent(eventValue: WebhookEvents, checked: boolean) {
-  if (!innerValue.value.events) {
-    innerValue.value.events = [];
-  }
+  const currentEvents = innerValue.value.events ?? [];
 
+  let newEvents: WebhookEvents[];
   if (checked) {
-    if (!innerValue.value.events.includes(eventValue)) {
-      innerValue.value.events.push(eventValue);
+    if (!currentEvents.includes(eventValue)) {
+      newEvents = [...currentEvents, eventValue];
+    } else {
+      newEvents = currentEvents;
     }
   } else {
-    innerValue.value.events = innerValue.value.events.filter((e) => e !== eventValue);
+    newEvents = currentEvents.filter((e) => e !== eventValue);
   }
+
+  // Emit updated object to trigger proper v-model reactivity
+  innerValue.value = { ...innerValue.value, events: newEvents };
 }
 
 function save() {

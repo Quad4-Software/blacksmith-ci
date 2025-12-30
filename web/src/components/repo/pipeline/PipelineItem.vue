@@ -2,7 +2,7 @@
   <div v-if="pipeline" class="flex items-center gap-2 min-w-0 w-full">
     <!-- Checkbox positioned outside the main item with fixed width spacer -->
     <div v-if="showCheckbox" class="w-7 shrink-0 flex items-center justify-center" @click.stop>
-      <Checkbox :model-value="isSelected" @update:model-value="$emit('toggleSelect')" />
+      <Checkbox :checked="isSelected" @update:checked="$emit('toggleSelect')" />
     </div>
 
     <!-- Main pipeline item -->
