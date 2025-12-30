@@ -387,4 +387,19 @@ router.beforeEach(async (to, _, next) => {
   next();
 });
 
+// Handle stale chunk errors after deployments - when JS chunks have been replaced
+// but user still has old tab open, dynamic imports fail. Auto-reload to get new assets.
+router.onError((error, to) => {
+  const isChunkError =
+    error.message.includes('dynamically imported module') ||
+    error.message.includes('Failed to fetch dynamically imported module') ||
+    error.message.includes('Loading chunk') ||
+    error.message.includes('Loading CSS chunk');
+
+  if (isChunkError) {
+    // Reload to the target route to get fresh assets
+    window.location.href = to.fullPath;
+  }
+});
+
 export default router;
