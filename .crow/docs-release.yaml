@@ -71,8 +71,8 @@ steps:
         git config --global user.name "crowci-bot"
         git remote set-url origin https://crowci-bot:$${CODEBERG_BOT_TOKEN}@codeberg.org/crowci/crow.git
 
-        # Save .version-env before checkout (it's untracked and would block checkout)
-        cp .version-env /tmp/.version-env
+        # Move .version-env before checkout (it's untracked and would block checkout)
+        mv .version-env /tmp/.version-env
 
         # Fetch and checkout main branch (tag checkout may be outdated)
         git fetch origin ${CI_REPO_DEFAULT_BRANCH}
