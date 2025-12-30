@@ -9,6 +9,7 @@ clone:
 
 depends_on:
   - version-dict
+  - images
 
 labels:
   agent: artemis
@@ -69,26 +70,44 @@ steps:
         git config --global user.email "admin@crowci.dev"
         git config --global user.name "crowci-bot"
         git remote set-url origin https://crowci-bot:$${CODEBERG_BOT_TOKEN}@codeberg.org/crowci/crow.git
+
+        # Save .version-env before checkout (it's untracked and would block checkout)
+        cp .version-env /tmp/.version-env
+
         # Fetch and checkout main branch (tag checkout may be outdated)
         git fetch origin ${CI_REPO_DEFAULT_BRANCH}
         git checkout -B ${CI_REPO_DEFAULT_BRANCH} origin/${CI_REPO_DEFAULT_BRANCH}
+
+        # Restore .version-env
+        cp /tmp/.version-env .version-env
+
+        # Check if version already exists (idempotent)
+        if [ -d "docs/src/content/docs/$${VERSION_SLUG}" ]; then
+          echo "Version $${VERSION_SLUG} already exists - skipping"
+          exit 0
+        fi
+
         # Create new version directory from dev
         cp -r docs/src/content/docs/dev "docs/src/content/docs/$${VERSION_SLUG}"
         # Create version sidebar config
         cp docs/src/content/versions/dev.json "docs/src/content/versions/$${VERSION_SLUG}.json"
+
         # Update astro.config.mjs using sed (simpler than node for escaping)
         cd docs
-        # Add new version to versions array
-        sed -i "s/versions: \[/versions: [\n            { slug: '$${VERSION_SLUG}', label: '$${VERSION_LABEL}' },/" astro.config.mjs
+        # Add new version to versions array (only if not already present)
+        if ! grep -q "slug: '$${VERSION_SLUG}'" astro.config.mjs; then
+          sed -i "s/versions: \[/versions: [\n            { slug: '$${VERSION_SLUG}', label: '$${VERSION_LABEL}' },/" astro.config.mjs
+        fi
         # Update current version label
         sed -i "s/current: { label: '[^']*', redirect: 'root' }/current: { label: '$${VERSION_LABEL} (latest)', redirect: 'root' }/" astro.config.mjs
         # Update root index redirect to new version
         sed -i "s|url=/v[0-9]*-[0-9]*/|url=/$${VERSION_SLUG}/|g" src/content/docs/index.mdx
         sed -i "s|documentation](/v[0-9]*-[0-9]*/)|documentation](/$${VERSION_SLUG}/)|g" src/content/docs/index.mdx
         cd ..
-        # Commit and push changes
+
+        # Commit and push changes (skip if no changes)
         git add -A
-        git commit -m "docs: add version $${VERSION_LABEL}"
+        git diff --cached --quiet || git commit -m "docs: add version $${VERSION_LABEL}"
         git push origin ${CI_REPO_DEFAULT_BRANCH}
 
   - name: 'Build and deploy docs'
