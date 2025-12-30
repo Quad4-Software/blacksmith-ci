@@ -54,7 +54,7 @@ steps:
       title: ${CI_COMMIT_TAG}
 
   'Bump and push homebrew-tap':
-    image: alpine:3.23
+    image: reg.devxy.io/docker.io/library/alpine:3.23
     environment:
       SSH_KEY:
         from_secret: crowci-bot-ssh-key
@@ -86,11 +86,11 @@ steps:
         git config user.name "crowci-bot"
         git config user.email "admin@crowci.dev"
         git add -A
-        git commit -m "chore${BREAKING}: bump version to ${CI_COMMIT_TAG}"
-        git push origin main
+        git commit -m "chore${BREAKING}: bump version to ${CI_COMMIT_TAG}" || echo "Nothing to commit (already up to date)"
+        git push origin main || echo "Nothing to push"
 
   'Bump and push crowci/helm':
-    image: alpine:3.23
+    image: reg.devxy.io/docker.io/library/alpine:3.23
     environment:
       SSH_KEY:
         from_secret: crowci-bot-ssh-key
@@ -118,8 +118,8 @@ steps:
         git config user.name "crowci-bot"
         git config user.email "admin@crowci.dev"
         git add -A
-        git commit -m "chore${BREAKING}: bump version to ${CI_COMMIT_TAG}"
-        git push origin main
+        git commit -m "chore${BREAKING}: bump version to ${CI_COMMIT_TAG}" || echo "Nothing to commit (already up to date)"
+        git push origin main || echo "Nothing to push"
 
   'Create release for crowci/helm':
     image: reg.devxy.io/docker.io/thegeeklab/git-sv:2.0.9
@@ -139,7 +139,7 @@ steps:
       - git sv tag
 
   'Bump and push ansible-cicd':
-    image: alpine:3.23
+    image: reg.devxy.io/docker.io/library/alpine:3.23
     environment:
       SSH_KEY:
         from_secret: devxy/ansible-cicd-deploy-key
@@ -167,5 +167,5 @@ steps:
         git config user.name "crowci-bot"
         git config user.email "admin@crowci.dev"
         git add -A
-        git commit -m "chore${BREAKING}: bump version to ${CI_COMMIT_TAG}"
-        git push origin main
+        git commit -m "chore${BREAKING}: bump version to ${CI_COMMIT_TAG}" || echo "Nothing to commit (already up to date)"
+        git push origin main || echo "Nothing to push"
