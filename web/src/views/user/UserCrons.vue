@@ -114,11 +114,79 @@
         </DropdownMenu>
       </div>
 
+      <!-- Bulk Actions Toolbar -->
+      <Transition
+        enter-active-class="transition-all duration-300 ease-out"
+        enter-from-class="opacity-0 -translate-y-2"
+        enter-to-class="opacity-100 translate-y-0"
+        leave-active-class="transition-all duration-200 ease-in"
+        leave-from-class="opacity-100 translate-y-0"
+        leave-to-class="opacity-0 -translate-y-2"
+      >
+        <div v-if="selectedCrons.length > 0" class="sticky top-4 z-20 mb-2 backdrop-blur-md px-2">
+          <Card class="max-w-2xl mx-auto p-0">
+            <CardContent class="p-3 relative">
+              <Button variant="ghost" size="icon-sm" class="absolute top-2 right-2" @click="clearSelection">
+                <Icon name="close" class="h-4 w-4" />
+              </Button>
+              <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pr-8">
+                <span class="text-xs sm:text-sm font-medium">
+                  {{ $t('repo.settings.crons.selected_count', { count: selectedCrons.length }) }}
+                </span>
+                <div class="flex gap-2">
+                  <!-- Bulk Run Button -->
+                  <Button size="sm" :disabled="isBulkRunning" @click="handleBulkRun">
+                    <Icon v-if="isBulkRunning" name="spinner" class="h-4 w-4 mr-2 animate-spin" />
+                    <Icon v-else name="play-outline" class="h-4 w-4 mr-2" />
+                    {{ $t('repo.settings.crons.run_selected') }}
+                  </Button>
+
+                  <!-- Bulk Delete Button with Confirmation -->
+                  <AlertDialog v-model:open="showBulkDeleteDialog">
+                    <AlertDialogTrigger as-child>
+                      <Button variant="destructive" size="sm" :disabled="isBulkDeleting">
+                        <Icon v-if="isBulkDeleting" name="spinner" class="h-4 w-4 mr-2 animate-spin" />
+                        <Icon v-else name="trash" class="h-4 w-4 mr-2" />
+                        {{ $t('repo.settings.crons.delete_selected') }}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent class="bg-background text-foreground">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle class="text-foreground">
+                          {{ $t('repo.settings.crons.bulk_delete_title') }}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription class="text-muted-foreground">
+                          {{ $t('repo.settings.crons.bulk_delete_confirm', { count: selectedCrons.length }) }}
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>{{ $t('cancel') }}</AlertDialogCancel>
+                        <AlertDialogAction as-child>
+                          <Button variant="destructive" class="text-destructive-foreground" @click="handleBulkDelete">
+                            {{ $t('repo.settings.crons.delete') }}
+                          </Button>
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </Transition>
+
       <!-- Data Table -->
       <div v-if="sortedCrons && sortedCrons.length > 0" class="rounded-md border overflow-x-auto">
         <Table ref="tableRef" class="table-fixed">
           <TableHeader>
             <TableRow>
+              <TableHead class="w-10 pl-5">
+                <Checkbox
+                  :checked="isAllSelected ? true : isPartiallySelected ? 'indeterminate' : false"
+                  @update:checked="toggleSelectAll"
+                />
+              </TableHead>
               <TableHead class="w-48 min-w-32 cursor-pointer select-none" @click="toggleSort('name')">
                 <div class="flex items-center gap-1">
                   {{ $t('repo.settings.crons.name.name') }}
@@ -161,8 +229,12 @@
               v-for="cron in sortedCrons"
               :key="cron.id"
               class="cursor-pointer hover:bg-muted/50"
+              :class="{ 'bg-primary/5': selectedCronIds.has(cron.id) }"
               @click="navigateToCron(cron)"
             >
+              <TableCell class="w-10" @click.stop>
+                <Checkbox :checked="selectedCronIds.has(cron.id)" @update:checked="() => toggleCronSelection(cron)" />
+              </TableCell>
               <TableCell class="font-medium" :title="cron.name">{{ cron.name }}</TableCell>
               <TableCell :title="cron.repo_name">{{ cron.repo_name }}</TableCell>
               <TableCell :title="cron.schedule">
@@ -332,7 +404,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, defineComponent, h, nextTick, reactive, ref, watch } from 'vue';
+import { computed, defineComponent, h, nextTick, reactive, ref, Transition, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
@@ -352,6 +424,8 @@ import {
 } from '~/components/ui/alert-dialog';
 import { Badge } from '~/components/ui/badge';
 import { Button } from '~/components/ui/button';
+import { Card, CardContent } from '~/components/ui/card';
+import { Checkbox } from '~/components/ui/checkbox';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import {
   DropdownMenu,
@@ -417,6 +491,10 @@ const editingCron = ref<Partial<CronWithRepo>>({});
 const sortConfig = ref<SortConfig>({ key: 'name', direction: 'asc' });
 const cronRecentRuns = ref<Record<number, Pipeline[]>>({});
 const tableRef = ref<InstanceType<typeof Table> | null>(null);
+
+// Selection state
+const selectedCronIds = ref<Set<number>>(new Set());
+const showBulkDeleteDialog = ref(false);
 
 // Column visibility (branch and recent_runs hidden by default to prevent mobile overflow)
 const visibleColumns = ref<string[]>(['next_exec']);
@@ -557,6 +635,50 @@ const hasActiveFilters = computed(() => {
   return searchTerm.value.trim() !== '' || selectedOwners.value.length > 0 || selectedScheduleTypes.value.length > 0;
 });
 
+// Selection computed properties
+const selectedCrons = computed(() => sortedCrons.value.filter((c) => selectedCronIds.value.has(c.id)));
+
+const isAllSelected = computed(
+  () => sortedCrons.value.length > 0 && selectedCronIds.value.size === sortedCrons.value.length,
+);
+
+const isPartiallySelected = computed(
+  () => selectedCronIds.value.size > 0 && selectedCronIds.value.size < sortedCrons.value.length,
+);
+
+// Selection functions
+function toggleSelectAll() {
+  if (isAllSelected.value) {
+    selectedCronIds.value = new Set();
+  } else {
+    selectedCronIds.value = new Set(sortedCrons.value.map((c) => c.id));
+  }
+}
+
+function toggleCronSelection(cron: CronWithRepo) {
+  const newSet = new Set(selectedCronIds.value);
+  if (newSet.has(cron.id)) {
+    newSet.delete(cron.id);
+  } else {
+    newSet.add(cron.id);
+  }
+  selectedCronIds.value = newSet;
+}
+
+function clearSelection() {
+  selectedCronIds.value = new Set();
+}
+
+// Clear selection when filters change
+watch([searchTerm, selectedOwners, selectedScheduleTypes], () => {
+  clearSelection();
+});
+
+// Clear selection when data reloads
+watch(crons, () => {
+  clearSelection();
+});
+
 // Sort toggle
 function toggleSort(key: string) {
   if (sortConfig.value.key === key) {
@@ -637,6 +759,74 @@ async function confirmDelete(cron: CronWithRepo) {
   deleteDialogOpen[cron.id] = false;
   await deleteCronAction(cron);
 }
+
+// Bulk actions
+const { doSubmit: handleBulkDelete, isLoading: isBulkDeleting } = useAsyncAction(async () => {
+  let successCount = 0;
+  const failedCrons: string[] = [];
+
+  for (const cron of selectedCrons.value) {
+    try {
+      await apiClient.deleteCron(cron.repo_id, cron.id);
+      successCount++;
+    } catch {
+      failedCrons.push(cron.name);
+    }
+  }
+
+  if (successCount > 0) {
+    notifications.notify({
+      title: t('notify_title_success'),
+      text: t('repo.settings.crons.bulk_delete_success', { count: successCount }),
+      type: 'success',
+    });
+  }
+
+  if (failedCrons.length > 0) {
+    notifications.notify({
+      title: t('notify_title_error'),
+      text: t('repo.settings.crons.bulk_delete_failed', { count: failedCrons.length }),
+      type: 'error',
+    });
+  }
+
+  clearSelection();
+  showBulkDeleteDialog.value = false;
+  await resetPage();
+});
+
+const { doSubmit: handleBulkRun, isLoading: isBulkRunning } = useAsyncAction(async () => {
+  let successCount = 0;
+  const failedCrons: string[] = [];
+
+  for (const cron of selectedCrons.value) {
+    try {
+      await apiClient.runCron(cron.repo_id, cron.id);
+      successCount++;
+    } catch {
+      failedCrons.push(cron.name);
+    }
+  }
+
+  if (successCount > 0) {
+    notifications.notify({
+      title: t('notify_title_success'),
+      text: t('repo.settings.crons.bulk_run_success', { count: successCount }),
+      type: 'success',
+    });
+  }
+
+  if (failedCrons.length > 0) {
+    notifications.notify({
+      title: t('notify_title_error'),
+      text: t('repo.settings.crons.bulk_run_failed', { count: failedCrons.length }),
+      type: 'error',
+    });
+  }
+
+  clearSelection();
+  await resetPage();
+});
 
 function editCron(cron: CronWithRepo) {
   editingCron.value = { ...cron };
