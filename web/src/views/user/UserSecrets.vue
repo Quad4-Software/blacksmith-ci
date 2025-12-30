@@ -85,8 +85,8 @@ async function loadSecrets(page: number) {
 const { resetPage, data: secrets } = usePagination(loadSecrets, () => true);
 
 // Reload when search changes
-watch(searchTerm, () => {
-  resetPage();
+watch(searchTerm, async () => {
+  await resetPage();
 });
 
 const { doSubmit: createSecret, isLoading: isSaving } = useAsyncAction(async (secretData: Partial<SecretWithOrg>) => {
@@ -141,7 +141,7 @@ const { doSubmit: createSecret, isLoading: isSaving } = useAsyncAction(async (se
 
   isDialogOpen.value = false;
   selectedSecret.value = undefined;
-  resetPage();
+  await resetPage();
 });
 
 const { doSubmit: deleteSecret, isLoading: isDeleting } = useAsyncAction(async (secret: SecretWithOrg) => {
@@ -168,7 +168,7 @@ const { doSubmit: deleteSecret, isLoading: isDeleting } = useAsyncAction(async (
     type: 'success',
   });
 
-  resetPage();
+  await resetPage();
 });
 
 function editSecret(secret: SecretWithOrg) {
@@ -221,7 +221,7 @@ async function updateSecretEvents(secret: SecretWithOrg, events: WebhookEvents[]
       type: 'success',
     });
 
-    resetPage();
+    await resetPage();
   } catch {
     notifications.notify({
       title: t('notify_title_error'),

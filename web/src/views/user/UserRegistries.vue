@@ -85,8 +85,8 @@ async function loadRegistries(page: number) {
 const { resetPage, data: registries } = usePagination(loadRegistries, () => !selectedRegistry.value);
 
 // Reload when search changes
-watch(searchTerm, () => {
-  resetPage();
+watch(searchTerm, async () => {
+  await resetPage();
 });
 
 const { doSubmit: createRegistry, isLoading: isSaving } = useAsyncAction(async () => {
@@ -126,7 +126,7 @@ const { doSubmit: createRegistry, isLoading: isSaving } = useAsyncAction(async (
   });
 
   selectedRegistry.value = undefined;
-  resetPage();
+  await resetPage();
 });
 
 const { doSubmit: deleteRegistry, isLoading: isDeleting } = useAsyncAction(async (registry: RegistryWithOrg) => {
@@ -147,7 +147,7 @@ const { doSubmit: deleteRegistry, isLoading: isDeleting } = useAsyncAction(async
     type: 'success',
   });
 
-  resetPage();
+  await resetPage();
 });
 
 function editRegistry(registry: RegistryWithOrg) {

@@ -139,7 +139,7 @@ const { doSubmit: saveAutoscaler, isLoading: isSaving } = useAsyncAction(async (
     type: 'success',
     duration: 6000,
   });
-  resetPage();
+  await resetPage();
 });
 
 const { doSubmit: toggleEnabled } = useAsyncAction(async (_autoscaler: Autoscaler) => {
@@ -153,7 +153,7 @@ const { doSubmit: toggleEnabled } = useAsyncAction(async (_autoscaler: Autoscale
     type: 'success',
     duration: 3000,
   });
-  resetPage();
+  await resetPage();
 });
 
 const { doSubmit: deleteAutoscaler, isLoading: isDeleting } = useAsyncAction(async (_autoscaler: Autoscaler) => {
@@ -169,7 +169,7 @@ const { doSubmit: deleteAutoscaler, isLoading: isDeleting } = useAsyncAction(asy
     type: 'success',
     duration: 6000,
   });
-  resetPage();
+  await resetPage();
 });
 
 function showAddAutoscaler() {

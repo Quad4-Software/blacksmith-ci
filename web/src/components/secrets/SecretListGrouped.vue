@@ -250,7 +250,7 @@ import {
 } from '@tanstack/vue-table';
 import { useStorage } from '@vueuse/core';
 import { ArrowUpDown, MoreVertical } from 'lucide-vue-next';
-import { computed, defineComponent, h, ref, watch } from 'vue';
+import { computed, defineComponent, h, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Icon from '~/components/atomic/Icon.vue';
@@ -523,8 +523,8 @@ const EventsEditor = defineComponent({
                               h('div', { key: event.value, class: 'flex items-center gap-2' }, [
                                 h(Checkbox, {
                                   id: `event-${event.value}-${props.secret.id}`,
-                                  modelValue: selectedEvents.value.includes(event.value as string),
-                                  'onUpdate:modelValue': (checked: boolean | 'indeterminate') => {
+                                  checked: selectedEvents.value.includes(event.value as string),
+                                  'onUpdate:checked': (checked: boolean | 'indeterminate') => {
                                     const isChecked = checked === true;
                                     if (isChecked) {
                                       selectedEvents.value.push(event.value as string);
@@ -667,15 +667,15 @@ const columns: ColumnDef<SecretWithOrg>[] = [
         'div',
         { class: 'ml-3' },
         h(Checkbox, {
-          modelValue: table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate'),
-          'onUpdate:modelValue': (value: boolean | 'indeterminate') => table.toggleAllPageRowsSelected(!!value),
+          checked: table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate'),
+          'onUpdate:checked': (value: boolean | 'indeterminate') => table.toggleAllPageRowsSelected(!!value),
           ariaLabel: 'Select all',
         }),
       ),
     cell: ({ row }) =>
       h(Checkbox, {
-        modelValue: row.getIsSelected(),
-        'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
+        checked: row.getIsSelected(),
+        'onUpdate:checked': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
         ariaLabel: 'Select row',
         disabled: !canEdit(row.original),
       }),
@@ -1107,4 +1107,25 @@ function clearOwnerFilters() {
   selectedOwners.value = [];
   table.getColumn('owner')?.setFilterValue(undefined);
 }
+
+// Apply persisted filters on mount
+onMounted(() => {
+  // Apply scope filters
+  if (selectedScopeLabels.value.length > 0) {
+    const scopeTypes: string[] = [];
+    selectedScopeLabels.value.forEach((label) => {
+      const types = scopeLabelMap[label] || [];
+      scopeTypes.push(...types);
+    });
+    if (scopeTypes.length > 0) {
+      selectedScopes.value = scopeTypes;
+      table.getColumn('scope')?.setFilterValue(scopeTypes);
+    }
+  }
+
+  // Apply owner filters
+  if (selectedOwners.value.length > 0) {
+    table.getColumn('owner')?.setFilterValue(selectedOwners.value);
+  }
+});
 </script>

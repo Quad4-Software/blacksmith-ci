@@ -73,7 +73,7 @@ describe('checkbox', () => {
       const wrapper = mount(Checkbox, {
         props: {
           checked: checked.value,
-          'onUpdate:checked': (val: boolean) => {
+          'onUpdate:checked': (val: boolean | 'indeterminate') => {
             checked.value = val === true;
           },
         },

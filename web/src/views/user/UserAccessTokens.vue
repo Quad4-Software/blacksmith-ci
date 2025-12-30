@@ -85,7 +85,7 @@ const { doSubmit: createToken, isLoading: isSaving } = useAsyncAction(async (dat
     type: 'success',
   });
 
-  resetPage();
+  await resetPage();
 });
 
 const { doSubmit: deleteToken, isLoading: isDeleting } = useAsyncAction(async (tokenId: number) => {
@@ -97,7 +97,7 @@ const { doSubmit: deleteToken, isLoading: isDeleting } = useAsyncAction(async (t
     type: 'success',
   });
 
-  resetPage();
+  await resetPage();
 });
 
 const { doSubmit: bulkDeleteTokens } = useAsyncAction(async (tokenIds: number[]) => {
@@ -109,7 +109,7 @@ const { doSubmit: bulkDeleteTokens } = useAsyncAction(async (tokenIds: number[])
     type: 'success',
   });
 
-  resetPage();
+  await resetPage();
 });
 
 const { doSubmit: updateToken, isLoading: isUpdating } = useAsyncAction(
@@ -122,7 +122,7 @@ const { doSubmit: updateToken, isLoading: isUpdating } = useAsyncAction(
       type: 'success',
     });
 
-    resetPage();
+    await resetPage();
   },
 );
 

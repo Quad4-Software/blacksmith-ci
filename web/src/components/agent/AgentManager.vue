@@ -161,7 +161,7 @@ const { doSubmit: handleSave, isLoading: isSaving } = useAsyncAction(async (agen
     agentDialogRef.value?.showCreatedAgent(createdAgent);
   }
 
-  resetPage();
+  await resetPage();
 });
 
 function openDeleteDialog(agent: Agent) {
@@ -182,7 +182,7 @@ const { doSubmit: confirmDelete, isLoading: isDeleting } = useAsyncAction(async 
   });
 
   agentToDelete.value = undefined;
-  resetPage();
+  await resetPage();
 });
 
 function editAgent(agent: Agent) {

@@ -98,7 +98,7 @@ const { doSubmit: saveAgent, isLoading: isSaving } = useAsyncAction(async () => 
     type: 'success',
     duration: 6000,
   });
-  resetPage();
+  await resetPage();
 });
 
 const { doSubmit: deleteAgent, isLoading: isDeleting } = useAsyncAction(async (_agent: Agent) => {
@@ -114,7 +114,7 @@ const { doSubmit: deleteAgent, isLoading: isDeleting } = useAsyncAction(async (_
     type: 'success',
     duration: 6000,
   });
-  resetPage();
+  await resetPage();
 });
 
 function editAgent(agent: Agent) {

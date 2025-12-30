@@ -120,8 +120,8 @@ const { page, data, hasMore, loading, nextPage, previousPage, resetPage } = useP
 });
 
 // Reload when search changes
-watch(searchTerm, () => {
-  resetPage();
+watch(searchTerm, async () => {
+  await resetPage();
 });
 
 function handleEditUser(entity: Entity) {
@@ -166,7 +166,7 @@ const { doSubmit: saveUser, isLoading: isSaving } = useAsyncAction(async () => {
 
   isEditDialogOpen.value = false;
   selectedUser.value = {};
-  resetPage();
+  await resetPage();
 });
 
 const { doSubmit: handleDelete, isLoading: isDeleting } = useAsyncAction(async (entity: Entity) => {
@@ -185,7 +185,7 @@ const { doSubmit: handleDelete, isLoading: isDeleting } = useAsyncAction(async (
       type: 'success',
     });
   }
-  resetPage();
+  await resetPage();
 });
 
 async function handleBulkDelete(entities: Entity[]) {
@@ -223,7 +223,7 @@ async function handleBulkDelete(entities: Entity[]) {
     });
   }
 
-  resetPage();
+  await resetPage();
 }
 
 async function handleBulkToggleAdmin(entities: Entity[]) {
@@ -264,7 +264,7 @@ async function handleBulkToggleAdmin(entities: Entity[]) {
     });
   }
 
-  resetPage();
+  await resetPage();
 }
 
 useCrowTitle(computed(() => [t('admin.settings.entities.title'), t('admin.settings.settings')]));

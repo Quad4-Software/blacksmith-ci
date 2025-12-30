@@ -58,8 +58,8 @@
               <!-- Checkbox for disabled repos -->
               <Checkbox
                 v-if="!repo.active"
-                :model-value="selectedRepos.has(repo.forge_remote_id)"
-                @update:model-value="toggleRepoSelection(repo)"
+                :checked="selectedRepos.has(repo.forge_remote_id)"
+                @update:checked="toggleRepoSelection(repo)"
               />
               <div v-else class="w-4" />
 

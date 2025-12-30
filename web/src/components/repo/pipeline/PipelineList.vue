@@ -85,8 +85,8 @@
         <div class="w-7 shrink-0 flex items-center justify-center">
           <Checkbox
             id="select-all"
-            :model-value="isAllSelected ? true : isPartiallySelected ? 'indeterminate' : false"
-            @update:model-value="toggleSelectAll"
+            :checked="isAllSelected ? true : isPartiallySelected ? 'indeterminate' : false"
+            @update:checked="toggleSelectAll"
           />
         </div>
         <Label

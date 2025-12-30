@@ -64,8 +64,8 @@
           <div class="flex items-center gap-3">
             <Checkbox
               id="no-schedule"
-              :model-value="form.no_schedule || false"
-              @update:model-value="form.no_schedule = $event === true"
+              :checked="form.no_schedule || false"
+              @update:checked="form.no_schedule = $event === true"
             />
             <div class="grid gap-0.5 leading-none">
               <label for="no-schedule" class="text-sm font-medium cursor-pointer">

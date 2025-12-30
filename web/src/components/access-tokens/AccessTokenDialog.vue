@@ -75,8 +75,8 @@
                 <div v-for="scope in USER_SCOPES" :key="scope" class="flex items-start gap-3">
                   <Checkbox
                     :id="`scope-${scope}`"
-                    :model-value="form.scopes.includes(scope)"
-                    @update:model-value="(checked: boolean | 'indeterminate') => toggleScope(scope, checked)"
+                    :checked="form.scopes.includes(scope)"
+                    @update:checked="(checked: boolean | 'indeterminate') => toggleScope(scope, checked)"
                   />
                   <div class="grid gap-0.5 leading-none">
                     <label :for="`scope-${scope}`" class="text-sm font-medium cursor-pointer">
@@ -97,8 +97,8 @@
                 <div v-for="scope in ADMIN_SCOPES" :key="scope" class="flex items-start gap-3">
                   <Checkbox
                     :id="`scope-${scope}`"
-                    :model-value="form.scopes.includes(scope)"
-                    @update:model-value="(checked: boolean | 'indeterminate') => toggleScope(scope, checked)"
+                    :checked="form.scopes.includes(scope)"
+                    @update:checked="(checked: boolean | 'indeterminate') => toggleScope(scope, checked)"
                   />
                   <div class="grid gap-0.5 leading-none">
                     <label :for="`scope-${scope}`" class="text-sm font-medium cursor-pointer">

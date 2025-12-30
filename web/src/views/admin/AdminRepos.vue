@@ -61,8 +61,8 @@ const { page, data, hasMore, loading, nextPage, previousPage, resetPage } = useP
 });
 
 // Reload when search changes
-watch(searchTerm, () => {
-  resetPage();
+watch(searchTerm, async () => {
+  await resetPage();
 });
 
 const { doSubmit: repairRepos, isLoading: isRepairingRepos } = useAsyncAction(async () => {
@@ -106,7 +106,7 @@ async function handleBulkDisable(repos: Repo[]) {
     });
   }
 
-  resetPage();
+  await resetPage();
 }
 
 async function handleBulkDelete(repos: Repo[]) {
@@ -140,7 +140,7 @@ async function handleBulkDelete(repos: Repo[]) {
     });
   }
 
-  resetPage();
+  await resetPage();
 }
 
 useCrowTitle(computed(() => [t('admin.settings.repos.repos'), t('admin.settings.settings')]));

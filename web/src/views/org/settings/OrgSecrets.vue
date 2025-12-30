@@ -77,7 +77,7 @@ const { doSubmit: createSecret, isLoading: isSaving } = useAsyncAction(async () 
     duration: 6000,
   });
   selectedSecret.value = undefined;
-  resetPage();
+  await resetPage();
 });
 
 const { doSubmit: deleteSecret, isLoading: isDeleting } = useAsyncAction(async (_secret: Secret) => {
@@ -88,7 +88,7 @@ const { doSubmit: deleteSecret, isLoading: isDeleting } = useAsyncAction(async (
     type: 'success',
     duration: 6000,
   });
-  resetPage();
+  await resetPage();
 });
 
 function editSecret(secret: Secret) {

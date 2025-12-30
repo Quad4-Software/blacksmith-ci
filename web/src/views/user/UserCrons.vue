@@ -469,9 +469,9 @@ const { resetPage, data: crons } = usePagination(loadCrons, () => !isEditDialogO
 // Refresh cron list when the global add dialog closes
 watch(
   () => cronDialog.isOpen.value,
-  (isOpen, wasOpen) => {
+  async (isOpen, wasOpen) => {
     if (wasOpen && !isOpen) {
-      resetPage();
+      await resetPage();
     }
   },
 );
@@ -614,7 +614,7 @@ const { doSubmit: saveCronAction, isLoading: isSaving } = useAsyncAction(async (
 
   isEditDialogOpen.value = false;
   editingCron.value = {};
-  resetPage();
+  await resetPage();
 });
 
 async function saveCron() {
@@ -630,7 +630,7 @@ const { doSubmit: deleteCronAction, isLoading: isDeleting } = useAsyncAction(asy
     type: 'success',
   });
 
-  resetPage();
+  await resetPage();
 });
 
 async function confirmDelete(cron: CronWithRepo) {

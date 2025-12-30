@@ -80,7 +80,7 @@ const { doSubmit: createRegistry, isLoading: isSaving } = useAsyncAction(async (
     duration: 6000,
   });
   selectedRegistry.value = undefined;
-  resetPage();
+  await resetPage();
 });
 
 const { doSubmit: deleteRegistry, isLoading: isDeleting } = useAsyncAction(async (_registry: Registry) => {
@@ -92,7 +92,7 @@ const { doSubmit: deleteRegistry, isLoading: isDeleting } = useAsyncAction(async
     type: 'success',
     duration: 6000,
   });
-  resetPage();
+  await resetPage();
 });
 
 function editRegistry(registry: Registry) {

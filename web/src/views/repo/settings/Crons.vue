@@ -412,7 +412,7 @@ const { doSubmit: createCron, isLoading: isSaving } = useAsyncAction(async () =>
     duration: 6000,
   });
   selectedCron.value = undefined;
-  resetPage();
+  await resetPage();
 });
 
 const { doSubmit: deleteCronAction, isLoading: isDeleting } = useAsyncAction(async (_cron: Cron) => {
@@ -423,7 +423,7 @@ const { doSubmit: deleteCronAction, isLoading: isDeleting } = useAsyncAction(asy
     type: 'success',
     duration: 6000,
   });
-  resetPage();
+  await resetPage();
 });
 
 async function confirmDelete(cron: Cron) {
