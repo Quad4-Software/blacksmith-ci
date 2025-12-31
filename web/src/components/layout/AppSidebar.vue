@@ -251,16 +251,19 @@
       </SidebarMenu>
 
       <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
-      <div class="px-2 py-1.5 text-xs text-muted-foreground space-y-0.5">
-        <div v-if="isVersionTag">
-          <a
-            :href="`https://codeberg.org/crowci/crow/releases/tag/${versionInfo?.current || config.version}`"
-            target="_blank"
-            class="hover:underline"
-            >Crow {{ versionInfo?.current || config.version }}</a
-          >
+      <a
+        v-if="isVersionTag"
+        :href="`https://codeberg.org/crowci/crow/releases/tag/${versionInfo?.current || config.version}`"
+        target="_blank"
+        class="block px-2 py-1.5 text-xs text-muted-foreground space-y-0.5 hover:underline"
+      >
+        <div>Crow {{ versionInfo?.current || config.version }}</div>
+        <div v-if="config.buildDate" class="text-[0.65rem] opacity-75">
+          {{ formattedBuildDate }}
         </div>
-        <div v-else>Crow {{ versionInfo?.current || config.version }}</div>
+      </a>
+      <div v-else class="px-2 py-1.5 text-xs text-muted-foreground space-y-0.5">
+        <div>Crow {{ versionInfo?.current || config.version }}</div>
         <div v-if="config.buildDate" class="text-[0.65rem] opacity-75">
           {{ formattedBuildDate }}
         </div>
