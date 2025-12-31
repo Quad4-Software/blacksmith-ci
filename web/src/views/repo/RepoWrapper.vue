@@ -2,15 +2,16 @@
 <template>
   <Scaffold v-if="repo && repoPermissions && route.meta.repoHeader" enable-tabs fluid-content>
     <template #title>
-      <span class="flex whitespace-nowrap">
+      <span class="flex min-w-0 whitespace-nowrap overflow-hidden text-ellipsis">
         <router-link
           v-if="isAuthenticated"
           :to="{ name: 'org', params: { orgId: repo.org_id } }"
-          class="hover:underline hover:decoration-primary"
+          class="hover:underline hover:decoration-primary shrink-0"
           >{{ repo.owner }}</router-link
         >
-        <span v-else>{{ repo.owner }}</span>
-        &nbsp;/ {{ repo.name }}
+        <span v-else class="shrink-0">{{ repo.owner }}</span>
+        <span class="shrink-0">&nbsp;/&nbsp;</span>
+        <span class="truncate">{{ repo.name }}</span>
       </span>
     </template>
     <template #headerActions>

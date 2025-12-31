@@ -15,8 +15,23 @@
       }"
       @click="showCheckbox ? $emit('toggleSelect') : undefined"
     >
-      <div class="flex w-11 shrink-0 items-center justify-center">
+      <div class="flex w-11 shrink-0 flex-col items-center justify-center gap-1 py-1">
         <PipelineStatusIcon class="mx-2 md:mx-3" :status="pipeline.status" />
+        <!-- Mobile-only warning/error indicator below status icon -->
+        <RouterLink
+          v-if="(warningCount > 0 || errorCount > 0) && !showCheckbox"
+          :to="{ name: 'repo-pipeline-errors', params: { repoId: repo.id, pipelineId: pipeline.number } }"
+          class="md:hidden inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[10px] font-medium"
+          :class="
+            errorCount > 0
+              ? 'bg-destructive/10 text-destructive'
+              : 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-500'
+          "
+          @click.stop
+        >
+          <Icon name="alert" class="size-2.5" />
+          {{ errorCount > 0 ? errorCount : warningCount }}
+        </RouterLink>
       </div>
 
       <div class="flex min-w-0 grow flex-wrap px-0 lg:px-4 py-0.5 pl-0.5! md:flex-nowrap">
@@ -51,34 +66,36 @@
           >
             {{ restartIndicator }}
           </span>
-          <!-- Warnings/errors indicator -->
-          <TooltipProvider v-if="warningCount > 0 || errorCount > 0">
-            <Tooltip>
-              <TooltipTrigger as-child>
-                <RouterLink
-                  :to="{ name: 'repo-pipeline-errors', params: { repoId: repo.id, pipelineId: pipeline.number } }"
-                  class="ml-2 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium whitespace-nowrap shrink-0 hover:opacity-80 transition-opacity"
-                  :class="
-                    errorCount > 0
-                      ? 'bg-destructive/10 text-destructive'
-                      : 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-500'
-                  "
-                  @click.stop
-                >
-                  <Icon name="alert" class="size-3" />
-                  {{ errorCount > 0 ? errorCount : warningCount }}
-                </RouterLink>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p v-if="errorCount > 0">
-                  {{ $t('repo.pipeline.error_count', { count: errorCount }) }}
-                </p>
-                <p v-else>
-                  {{ $t('repo.pipeline.warning_count', { count: warningCount }) }}
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <!-- Warnings/errors indicator (desktop only - mobile version is in status column) -->
+          <span v-if="warningCount > 0 || errorCount > 0" class="hidden md:inline-flex">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger as-child>
+                  <RouterLink
+                    :to="{ name: 'repo-pipeline-errors', params: { repoId: repo.id, pipelineId: pipeline.number } }"
+                    class="ml-2 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium whitespace-nowrap shrink-0 hover:opacity-80 transition-opacity"
+                    :class="
+                      errorCount > 0
+                        ? 'bg-destructive/10 text-destructive'
+                        : 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-500'
+                    "
+                    @click.stop
+                  >
+                    <Icon name="alert" class="size-3" />
+                    {{ errorCount > 0 ? errorCount : warningCount }}
+                  </RouterLink>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p v-if="errorCount > 0">
+                    {{ $t('repo.pipeline.error_count', { count: errorCount }) }}
+                  </p>
+                  <p v-else>
+                    {{ $t('repo.pipeline.warning_count', { count: warningCount }) }}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </span>
         </div>
 
         <div

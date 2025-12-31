@@ -13,7 +13,7 @@
             'shrink-0': isPipelineDetail,
           }"
         >
-          <div class="flex min-h-10 items-center">
+          <div class="flex min-h-10 min-w-0 items-center">
             <IconButton
               v-if="goBack"
               icon="back"
@@ -29,7 +29,7 @@
             </h1>
           </div>
           <!-- Mobile header actions in same row as title (only for non-pipeline detail pages) -->
-          <div v-if="$slots.headerActions && !isPipelineDetail" class="flex min-w-0 items-center gap-x-2 md:hidden">
+          <div v-if="$slots.headerActions && !isPipelineDetail" class="flex shrink-0 items-center gap-x-2 md:hidden">
             <slot name="headerActions" />
           </div>
         </div>
