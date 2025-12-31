@@ -38,16 +38,24 @@
             >
               <template v-if="getErrorData(error)?.file">
                 <span class="text-muted-foreground">{{ getErrorData(error)?.file }}</span>
-                <span v-if="getFieldOrStep(error)" class="text-muted-foreground/50">:</span>
+                <span v-if="getDisplayField(error)" class="text-muted-foreground/50">:</span>
               </template>
-              <span v-if="getFieldOrStep(error)" class="font-semibold text-foreground">{{
-                getFieldOrStep(error)
+              <span v-if="getDisplayField(error)" class="font-semibold text-foreground">{{
+                getDisplayField(error)
               }}</span>
               <template v-if="getLinterData(error)?.line">
                 <span class="text-muted-foreground/50">@</span>
-                <span class="text-primary">{{
-                  t('repo.pipeline.error_location.line', { line: getLinterData(error)?.line })
-                }}</span>
+                <RouterLink
+                  :to="{
+                    name: 'repo-pipeline-config',
+                    query: {
+                      file: getErrorData(error)?.file || undefined,
+                      line: getLinterData(error)?.line,
+                    },
+                  }"
+                  class="text-primary hover:underline"
+                  >{{ t('repo.pipeline.error_location.line', { line: getLinterData(error)?.line }) }}</RouterLink
+                >
               </template>
             </span>
             <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
@@ -73,6 +81,7 @@
 
 <script lang="ts" setup>
 import { computed } from 'vue';
+import { RouterLink } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 
 import DocsLink from '~/components/atomic/DocsLink.vue';
@@ -144,6 +153,15 @@ function getFieldOrStep(error: PipelineError): string | undefined {
     return error.data?.step;
   }
   return undefined;
+}
+
+// Returns field/step for display, filtering out unhelpful values like "(root)"
+function getDisplayField(error: PipelineError): string | undefined {
+  const field = getFieldOrStep(error);
+  if (!field || field === '(root)') {
+    return undefined;
+  }
+  return field;
 }
 
 function getDocsUrl(error: PipelineError): string | undefined {

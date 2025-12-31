@@ -30,7 +30,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import Icon from '~/components/atomic/Icon.vue';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '~/components/ui/collapsible';
 
@@ -38,7 +38,28 @@ const props = defineProps<{
   title?: string;
   collapsable?: boolean;
   collapsedByDefault?: boolean;
+  open?: boolean;
 }>();
 
-const isOpen = ref(!props.collapsedByDefault);
+const emit = defineEmits<{
+  'update:open': [value: boolean];
+}>();
+
+// Initialize from prop or default
+const isOpen = ref(props.open !== undefined ? props.open : !props.collapsedByDefault);
+
+// Sync from parent when open prop changes
+watch(
+  () => props.open,
+  (newVal) => {
+    if (newVal !== undefined) {
+      isOpen.value = newVal;
+    }
+  },
+);
+
+// Notify parent when internal state changes
+watch(isOpen, (newVal) => {
+  emit('update:open', newVal);
+});
 </script>

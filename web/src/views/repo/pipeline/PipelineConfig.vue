@@ -4,17 +4,41 @@
       v-for="pipelineConfig in pipelineConfigsDecoded"
       :key="pipelineConfig.hash"
       :collapsable="pipelineConfigsDecoded && pipelineConfigsDecoded.length > 1"
-      collapsed-by-default
+      :open="isPanelOpen(pipelineConfig.name)"
       :title="pipelineConfigsDecoded && pipelineConfigsDecoded.length > 1 ? pipelineConfig.name : ''"
+      @update:open="(value) => setPanelOpen(pipelineConfig.name, value)"
     >
-      <SyntaxHighlight class="overflow-auto whitespace-pre font-mono" language="yaml" :code="pipelineConfig.data" />
+      <div class="overflow-auto">
+        <table class="w-full border-collapse font-mono text-sm">
+          <tbody>
+            <tr
+              v-for="(line, index) in getLines(pipelineConfig.data)"
+              :id="`${pipelineConfig.name}-L${index + 1}`"
+              :key="index"
+              :ref="(el) => registerLineRef(pipelineConfig.name, index + 1, el as HTMLElement | null)"
+              class="hover:bg-muted/50"
+              :class="{ 'bg-primary/10': isHighlightedLine(pipelineConfig.name, index + 1) }"
+            >
+              <td
+                class="select-none pr-4 pl-2 text-right text-muted-foreground w-[1%] whitespace-nowrap align-top border-r border-border"
+              >
+                {{ index + 1 }}
+              </td>
+              <td class="pl-4 whitespace-pre">
+                <SyntaxHighlight language="yaml" :code="line || ' '" class="inline" />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </Panel>
   </div>
 </template>
 
 <script lang="ts" setup>
 import { decode } from 'js-base64';
-import { computed } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 
 import SyntaxHighlight from '~/components/atomic/SyntaxHighlight';
@@ -22,6 +46,7 @@ import Panel from '~/components/layout/Panel.vue';
 import { requiredInject } from '~/compositions/useInjectProvide';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
 
+const route = useRoute();
 const repo = requiredInject('repo');
 const pipeline = requiredInject('pipeline');
 const pipelineConfigs = requiredInject('pipeline-configs');
@@ -32,6 +57,139 @@ const pipelineConfigsDecoded = computed(
       ...i,
       data: decode(i.data),
     })) ?? [],
+);
+
+// Track open state for each panel - use reactive object for proper Vue reactivity
+const panelOpenState = ref<Record<string, boolean>>({});
+
+// Query params for line highlighting
+const targetFile = computed(() => (route.query.file as string) || null);
+const targetLine = computed(() => {
+  const line = route.query.line;
+  return line ? Number(line) : null;
+});
+
+// Check if this config should be the target (for expanding and highlighting)
+function isTargetConfig(configName: string): boolean {
+  // If there's a target line specified
+  if (!targetLine.value) return false;
+
+  // If only one config, it's always the target
+  if (pipelineConfigsDecoded.value.length === 1) return true;
+
+  // If no file specified in query, target the first config as fallback
+  if (!targetFile.value) {
+    return configName === pipelineConfigsDecoded.value[0]?.name;
+  }
+
+  // Try exact match on config name first
+  if (configName === targetFile.value) return true;
+
+  // Try matching just the filename part (in case of path differences)
+  const configBaseName = configName.split('/').pop();
+  const targetBaseName = targetFile.value.split('/').pop();
+  if (configBaseName === targetBaseName) return true;
+
+  // Try matching by workflow name inside the YAML content
+  // The targetFile might be a workflow name (e.g., "myname") rather than a filename
+  const config = pipelineConfigsDecoded.value.find((c) => c.name === configName);
+  if (config) {
+    // Check if the YAML contains a "name:" field matching the target
+    const nameMatch = config.data.match(/^name:\s*["']?([^"'\n]+)["']?/m);
+    if (nameMatch && nameMatch[1].trim() === targetFile.value) {
+      return true;
+    }
+  }
+
+  // Fallback: if no config matches by name or content, use the first config
+  const target = targetFile.value;
+  const anyMatch = pipelineConfigsDecoded.value.some((c) => {
+    if (c.name === target || c.name.split('/').pop() === target.split('/').pop()) return true;
+    // Also check workflow name in content
+    const nameMatch = c.data.match(/^name:\s*["']?([^"'\n]+)["']?/m);
+    return nameMatch && nameMatch[1].trim() === target;
+  });
+  if (!anyMatch) {
+    return configName === pipelineConfigsDecoded.value[0]?.name;
+  }
+
+  return false;
+}
+
+function isHighlightedLine(configName: string, lineNumber: number): boolean {
+  return isTargetConfig(configName) && targetLine.value === lineNumber;
+}
+
+function getLines(code: string): string[] {
+  return code.split('\n');
+}
+
+// Line refs for scrolling
+const lineRefs = new Map<string, HTMLElement>();
+
+function registerLineRef(fileName: string, lineNumber: number, el: HTMLElement | null) {
+  const key = `${fileName}-L${lineNumber}`;
+  if (el) {
+    lineRefs.set(key, el);
+  } else {
+    lineRefs.delete(key);
+  }
+}
+
+// Get panel open state
+function isPanelOpen(configName: string): boolean {
+  if (!(configName in panelOpenState.value)) {
+    return pipelineConfigsDecoded.value.length <= 1;
+  }
+  return panelOpenState.value[configName];
+}
+
+function setPanelOpen(configName: string, value: boolean) {
+  panelOpenState.value = { ...panelOpenState.value, [configName]: value };
+}
+
+function expandAndScrollToTarget() {
+  if (!targetLine.value) return;
+  if (pipelineConfigsDecoded.value.length === 0) return;
+
+  // Find the target config
+  const targetConfig = pipelineConfigsDecoded.value.find((config) => isTargetConfig(config.name));
+  if (!targetConfig) return;
+
+  // Expand the target panel
+  setPanelOpen(targetConfig.name, true);
+
+  // Wait for panel to expand and DOM to update, then scroll
+  // Use retry mechanism since collapsed panel content takes time to render
+  const scrollToLine = (retries = 5) => {
+    const key = `${targetConfig.name}-L${targetLine.value}`;
+    const el = lineRefs.get(key);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else if (retries > 0) {
+      setTimeout(() => scrollToLine(retries - 1), 100);
+    }
+  };
+
+  nextTick(() => {
+    setTimeout(() => scrollToLine(), 50);
+  });
+}
+
+// Watch for route query changes
+watch([targetFile, targetLine], () => {
+  expandAndScrollToTarget();
+});
+
+// Watch for configs to load (important when navigating directly to this tab)
+watch(
+  pipelineConfigsDecoded,
+  (configs) => {
+    if (configs.length > 0 && targetLine.value) {
+      expandAndScrollToTarget();
+    }
+  },
+  { immediate: true },
 );
 
 const { t } = useI18n();
