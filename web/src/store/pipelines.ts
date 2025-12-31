@@ -37,8 +37,8 @@ function comparePipelines(a: Pipeline, b: Pipeline): number {
  * @returns {number} 0 if status same priority, < 0 if b has higher priority, > 0 otherwise
  */
 function comparePipelinesWithStatus(a: Pipeline, b: Pipeline): number {
-  const bPriority = ['pending', 'running', 'started'].includes(b.status) ? 1 : 0;
-  const aPriority = ['pending', 'running', 'started'].includes(a.status) ? 1 : 0;
+  const bPriority = ['pending', 'running', 'started', 'blocked'].includes(b.status) ? 1 : 0;
+  const aPriority = ['pending', 'running', 'started', 'blocked'].includes(a.status) ? 1 : 0;
   return bPriority - aPriority || comparePipelines(a, b);
 }
 
@@ -230,7 +230,7 @@ export const usePipelineStore = defineStore('pipelines', () => {
   );
 
   const activePipelines = computed(() =>
-    pipelineFeed.value.filter((pipeline) => ['pending', 'running', 'started'].includes(pipeline.status)),
+    pipelineFeed.value.filter((pipeline) => ['pending', 'running', 'started', 'blocked'].includes(pipeline.status)),
   );
 
   async function loadPipelineFeed() {

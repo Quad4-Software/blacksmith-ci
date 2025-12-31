@@ -23,6 +23,14 @@
         </span>
       </div>
 
+      <!-- Awaiting approval indicator -->
+      <div v-if="blockedCount > 0" class="flex items-center gap-1.5">
+        <Icon name="status-blocked" class="size-4 text-muted-foreground" />
+        <span class="text-xs font-semibold leading-none text-muted-foreground tabular-nums">
+          {{ blockedCount }}
+        </span>
+      </div>
+
       <!-- Default icon when no pipelines -->
       <Icon v-if="totalCount === 0" name="pipelines" class="size-4" />
     </div>
@@ -48,7 +56,9 @@ const runningCount = computed(
 
 const pendingCount = computed(() => activePipelines.value.filter((p) => p.status === 'pending').length);
 
-const totalCount = computed(() => runningCount.value + pendingCount.value);
+const blockedCount = computed(() => activePipelines.value.filter((p) => p.status === 'blocked').length);
+
+const totalCount = computed(() => runningCount.value + pendingCount.value + blockedCount.value);
 
 const tooltipText = computed(() => {
   if (totalCount.value === 0) {
@@ -61,6 +71,9 @@ const tooltipText = computed(() => {
   }
   if (pendingCount.value > 0) {
     parts.push(`${pendingCount.value} ${t('repo.pipeline.status.pending').toLowerCase()}`);
+  }
+  if (blockedCount.value > 0) {
+    parts.push(`${blockedCount.value} ${t('repo.pipeline.status.blocked').toLowerCase()}`);
   }
   return `${t('pipeline_feed')}: ${parts.join(', ')}`;
 });
