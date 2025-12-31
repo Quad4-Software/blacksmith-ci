@@ -404,7 +404,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, defineComponent, h, nextTick, reactive, ref, Transition, watch } from 'vue';
+import { computed, defineComponent, h, nextTick, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 

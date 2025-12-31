@@ -389,7 +389,8 @@ router.beforeEach(async (to, _, next) => {
 
 // Handle stale chunk errors after deployments - when JS chunks have been replaced
 // but user still has old tab open, dynamic imports fail. Auto-reload to get new assets.
-router.onError((error, to) => {
+// eslint-disable-next-line promise/prefer-await-to-callbacks -- Vue Router API requires callback
+router.onError((error: Error, to) => {
   const isChunkError =
     error.message.includes('dynamically imported module') ||
     error.message.includes('Failed to fetch dynamically imported module') ||
