@@ -152,7 +152,20 @@
 
       <!-- Action buttons -->
       <div class="flex flex-col md:flex-row items-start md:items-center gap-0.5 md:gap-1 pr-2 md:pr-4 py-2 shrink-0">
-        <TooltipProvider>
+        <TooltipProvider v-if="isActive">
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <Button variant="ghost" size="icon-sm" :disabled="isCanceling" @click="cancelPipeline">
+                <Icon v-if="isCanceling" name="spinner" class="size-4 animate-spin" />
+                <Icon v-else name="lucide:square" class="size-4 text-destructive" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{{ $t('repo.pipeline.actions.cancel') }}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <TooltipProvider v-else>
           <Tooltip>
             <TooltipTrigger as-child>
               <Button variant="ghost" size="icon-sm" :disabled="isRerunning" @click="rerunPipeline">
@@ -182,7 +195,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, toRef } from 'vue';
+import { computed, ref, toRef } from 'vue';
 import { RouterLink } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 
@@ -218,9 +231,12 @@ const { t } = useI18n();
 const apiClient = useApiClient();
 const notifications = useNotifications();
 const repo = requiredInject('repo');
-const isRerunning = computed(() => false); // Can be expanded to track per-pipeline state
+const isRerunning = ref(false);
+const isCanceling = ref(false);
 
 const pipeline = toRef(props, 'pipeline');
+
+const isActive = computed(() => ['pending', 'running', 'started'].includes(pipeline.value.status));
 const { startDate, duration, message, prettyRef, created } = usePipeline(pipeline);
 
 // Use pipeline title if available, otherwise use message
@@ -280,6 +296,7 @@ async function rerunPipeline(event: Event) {
   event.preventDefault();
   event.stopPropagation();
 
+  isRerunning.value = true;
   try {
     await apiClient.restartPipeline(repo.value.id, pipeline.value.number.toString());
     notifications.notify({
@@ -295,6 +312,29 @@ async function rerunPipeline(event: Event) {
       title: t('repo.pipeline.rerun_failed'),
       type: 'error',
     });
+  } finally {
+    isRerunning.value = false;
+  }
+}
+
+async function cancelPipeline(event: Event) {
+  event.preventDefault();
+  event.stopPropagation();
+
+  isCanceling.value = true;
+  try {
+    await apiClient.cancelPipeline(repo.value.id, pipeline.value.number);
+    notifications.notify({
+      title: t('repo.pipeline.actions.notify_text_cancel_success'),
+      type: 'success',
+    });
+  } catch {
+    notifications.notify({
+      title: t('notify_title_error'),
+      type: 'error',
+    });
+  } finally {
+    isCanceling.value = false;
   }
 }
 
