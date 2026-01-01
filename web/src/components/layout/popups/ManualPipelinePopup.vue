@@ -158,7 +158,7 @@ async function triggerManualPipeline() {
   } catch (error: unknown) {
     if (error instanceof PipelineFilteredError) {
       // All steps were filtered out by `when` conditions
-      const helpUrl = 'https://crowci.dev/usage/workflow-syntax/#when-step';
+      const helpUrl = 'https://crowci.dev/dev/usage/workflow-syntax/#when-step';
       notifications.notify({
         title: i18n.t('notify_title_error'),
         type: 'error',
@@ -167,7 +167,7 @@ async function triggerManualPipeline() {
       });
     } else {
       // Generic error - likely manual event not enabled
-      const helpUrl = 'https://www.crowci.dev/usage/workflow-syntax/?h=manual#event';
+      const helpUrl = 'https://crowci.dev/dev/usage/workflow-syntax/#event';
       const baseMessage = i18n.t('repo.manual_pipeline.notify_text_failed');
       const helpText = i18n.t('repo.manual_pipeline.manual_event_help');
 

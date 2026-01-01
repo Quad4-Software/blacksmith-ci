@@ -144,7 +144,7 @@ async function copyToken() {
   }
 }
 
-const baseDocsUrl = 'https://crowci.dev/configuration/server/#backend';
+const baseDocsUrl = 'https://crowci.dev/dev/configuration/server/#backend';
 
 const backendDocsUrl = computed(() => {
   let backendUrlSuffix = agent.value.backend?.toLowerCase();
