@@ -40,6 +40,7 @@ func apiRoutes(e *gin.RouterGroup) {
 			user.GET("", api.GetSelf)
 			user.GET("/feed", api.GetFeed)
 			user.GET("/repos", api.GetRepos)
+			user.GET("/orgs", api.GetUserOrgList)
 			user.GET("/secrets", api.GetUserSecretList)
 			user.GET("/registries", api.GetUserRegistryList)
 			user.GET("/crons", api.GetUserCronList)

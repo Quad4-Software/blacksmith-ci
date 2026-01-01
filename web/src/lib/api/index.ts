@@ -545,6 +545,10 @@ export default class CrowClient extends ApiClient {
     return this._get(`/api/v1/orgs?${query}`) as Promise<Org[] | null>;
   }
 
+  async getUserOrgs(): Promise<Org[]> {
+    return this._get(`/api/v1/user/orgs`) as Promise<Org[]>;
+  }
+
   async deleteOrg(org: Org): Promise<unknown> {
     return this._delete(`/api/v1/orgs/${org.id}`);
   }

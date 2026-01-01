@@ -135,7 +135,7 @@ watch(isOpen, async (open) => {
 
     if (repos.value.length === 0) {
       try {
-        const [reposData, orgsData] = await Promise.all([apiClient.getRepoList(), apiClient.getOrgs()]);
+        const [reposData, orgsData] = await Promise.all([apiClient.getRepoList(), apiClient.getUserOrgs()]);
         repos.value = reposData || [];
         orgs.value = orgsData || [];
       } catch {
