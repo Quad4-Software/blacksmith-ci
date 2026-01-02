@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col h-full p-6">
+  <div class="flex flex-col h-full p-2 md:p-6">
     <div v-if="!pipeline" class="flex-1 flex items-center justify-center">
       <div class="text-center">
         <p class="text-lg text-muted-foreground">{{ t('repo.pipeline.loading') }}</p>

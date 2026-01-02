@@ -201,7 +201,7 @@
                 <div
                   v-for="step in workflow.children"
                   :key="step.pid"
-                  class="flex items-center gap-3 p-2 rounded transition-colors hover:bg-accent cursor-pointer ml-5"
+                  class="flex items-center gap-3 p-2 rounded transition-colors hover:bg-accent cursor-pointer ml-4"
                   @click="selectedStepId = step.pid"
                 >
                   <PipelineStatusIcon :service="step.type === 'service'" :status="step.state" class="h-4 w-4" />

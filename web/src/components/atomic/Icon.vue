@@ -1,6 +1,6 @@
 <!-- cSpell:ignore radiobox timelapse -->
 <template>
-  <Icon v-if="lucideIcon" :icon="`lucide:${lucideIcon}`" :width="size || '1.3rem'" :height="size || '1.3rem'" />
+  <Icon v-if="lucideIcon" :icon="`lucide:${lucideIcon}`" :width="size || '1em'" :height="size || '1em'" />
   <img
     v-else-if="forgeIcon"
     :src="getForgeIcon(forgeIcon)"

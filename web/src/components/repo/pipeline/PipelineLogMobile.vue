@@ -1,10 +1,12 @@
 <template>
   <div class="flex flex-col h-full">
     <!-- Collapsible Step Info Panel -->
-    <Collapsible v-model:open="stepInfoExpanded" class="border-b border-border shrink-0">
-      <div class="bg-card">
+    <Collapsible v-model:open="stepInfoExpanded" class="border border-border rounded-md shrink-0">
+      <div class="bg-card rounded-md">
         <!-- Collapsible Header (always visible) -->
-        <CollapsibleTrigger class="w-full flex items-center justify-between p-3 hover:bg-accent transition-colors">
+        <CollapsibleTrigger
+          class="w-full flex items-center justify-between p-3 hover:bg-accent transition-colors rounded-md"
+        >
           <div class="flex items-center gap-3 min-w-0 flex-1">
             <PipelineStatusIcon :status="currentStep?.state || 'pending'" class="h-5 w-5 shrink-0" />
             <div class="min-w-0 flex-1">
@@ -57,7 +59,7 @@
     </Collapsible>
 
     <!-- Log Viewer (fills remaining space) -->
-    <div class="flex-1 min-h-0 relative" @touchstart.passive="handleTouchStart" @touchend.passive="handleTouchEnd">
+    <div class="flex-1 min-h-0 relative mt-2" @touchstart.passive="handleTouchStart" @touchend.passive="handleTouchEnd">
       <PipelineLog
         v-model:step-id="selectedStepIdLocal"
         :pipeline="pipeline"
@@ -71,7 +73,7 @@
     </div>
 
     <!-- Navigation Bar (bottom) -->
-    <div class="flex items-center justify-between gap-2 p-2 border-t border-border bg-card shrink-0">
+    <div class="flex items-center justify-between gap-2 p-2 border border-border rounded-md bg-card shrink-0 mt-2">
       <!-- Previous Step Button -->
       <Button variant="outline" size="sm" :disabled="!previousStepId" @click="navigateStep(previousStepId ?? null)">
         <Icon name="back" class="h-4 w-4 mr-1" />
@@ -126,7 +128,7 @@
                   <div
                     v-for="step in workflow.children"
                     :key="step.pid"
-                    class="flex items-center gap-3 p-2 rounded transition-colors hover:bg-accent cursor-pointer ml-5"
+                    class="flex items-center gap-3 p-2 rounded transition-colors hover:bg-accent cursor-pointer ml-4"
                     :class="{ 'bg-accent': step.pid === stepId }"
                     @click="handleStepSelect(step.pid)"
                   >

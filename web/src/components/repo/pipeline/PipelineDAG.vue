@@ -2,7 +2,7 @@
   <div class="w-full h-full min-h-0 flex flex-col">
     <!-- Search and Filter Controls -->
     <div
-      class="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700"
+      class="flex flex-col md:flex-row md:items-center gap-2 md:gap-3 px-2 md:px-4 py-2 md:py-3 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700"
     >
       <div class="flex-1">
         <div class="relative">
@@ -24,10 +24,10 @@
           </div>
         </div>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 flex-wrap">
         <select
           v-model="selectedStateFilter"
-          class="px-2.5 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+          class="flex-1 md:flex-none min-w-0 px-2 md:px-2.5 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
         >
           <option value="all">{{ t('repo.pipeline.filter.all_states') }}</option>
           <option value="success">{{ t('repo.pipeline.filter.success') }}</option>
@@ -39,7 +39,7 @@
         </select>
         <select
           v-model="selectedWorkflowFilter"
-          class="px-2.5 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+          class="flex-1 md:flex-none min-w-0 px-2 md:px-2.5 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
         >
           <option value="all">{{ t('repo.pipeline.filter.all_workflows') }}</option>
           <option v-for="workflow in workflows" :key="workflow.pid" :value="workflow.pid">
@@ -47,13 +47,13 @@
           </option>
         </select>
         <button
-          class="px-2.5 py-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+          class="px-2 md:px-2.5 py-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
           @click="clearFilters"
         >
           {{ t('clear') }}
         </button>
         <button
-          class="px-2.5 py-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors flex items-center gap-1"
+          class="px-2 md:px-2.5 py-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors flex items-center gap-1"
           title="Download DAG as PNG"
           @click="downloadGraph"
         >
@@ -65,13 +65,13 @@
               d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
             />
           </svg>
-          <span>{{ t('download') }}</span>
+          <span class="hidden md:inline">{{ t('download') }}</span>
         </button>
       </div>
     </div>
 
     <!-- Pipeline Progress -->
-    <div class="px-4 py-2 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+    <div class="px-2 md:px-4 py-2 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
       <div class="flex items-center justify-between text-sm">
         <span class="text-gray-600 dark:text-gray-400">{{ t('repo.pipeline.progress') }}</span>
         <span class="text-gray-900 dark:text-gray-100"

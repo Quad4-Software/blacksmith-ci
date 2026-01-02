@@ -103,12 +103,12 @@
         <CardContent class="p-4 pt-0">
           <div v-if="lastPipeline" class="flex items-center justify-between gap-4">
             <!-- Rerun button, last pipeline, and history -->
-            <div class="flex min-w-0 flex-1 items-center gap-2">
+            <div class="flex min-w-0 flex-1 items-center gap-2 -ml-2">
               <TooltipProvider @click.stop>
                 <Tooltip>
                   <TooltipTrigger as-child>
                     <Button variant="ghost" size="icon-sm" :disabled="isRerunning" @click="rerunPipeline">
-                      <Icon name="lucide:refresh-ccw" class="size-4" />
+                      <Icon name="lucide:refresh-ccw" size="1rem" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -119,11 +119,11 @@
 
               <router-link
                 :to="{ name: 'repo-pipeline', params: { repoId: repo.id, pipelineId: lastPipeline.number } }"
-                class="flex items-center gap-2 hover:underline"
+                class="flex items-center gap-2 hover:underline min-w-0"
                 @click.stop
               >
-                <PipelineStatusIcon :status="lastPipeline.status" class="size-4" />
-                <span class="overflow-hidden text-ellipsis whitespace-nowrap text-sm text-muted-foreground">
+                <PipelineStatusIcon :status="lastPipeline.status" size="1rem" class="shrink-0" />
+                <span class="truncate text-sm text-muted-foreground">
                   {{ shortMessage }}
                 </span>
               </router-link>
@@ -146,7 +146,7 @@
                     :title="`Pipeline #${pipeline.number} - ${pipeline.status}`"
                     class="hover:scale-125 transition-all hover:drop-shadow-md rounded-full p-0.5 hover:bg-accent"
                   >
-                    <PipelineStatusIcon :status="pipeline.status" class="size-4" />
+                    <PipelineStatusIcon :status="pipeline.status" size="1rem" />
                   </router-link>
                 </div>
               </div>
@@ -154,7 +154,7 @@
 
             <!-- Duration -->
             <div class="flex shrink-0 items-center gap-1 text-sm text-muted-foreground">
-              <Icon name="duration" class="size-4" />
+              <Icon name="duration" size="1rem" />
               <span>{{ duration }}</span>
             </div>
           </div>

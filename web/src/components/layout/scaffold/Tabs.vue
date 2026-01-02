@@ -1,16 +1,16 @@
 <template>
   <!-- Main tabs container -->
-  <div ref="tabsRef" class="flex min-w-0 flex-auto gap-0 md:gap-1 pl-1">
+  <div ref="tabsRef" class="flex min-w-0 flex-auto gap-0 md:gap-1 pl-1 overflow-hidden">
     <router-link
       v-for="tab in visibleTabs"
       :key="tab.title"
       :to="tab.to"
-      class="flex cursor-pointer items-center whitespace-nowrap border-b-2 border-transparent py-1 text-foreground transition-colors"
+      class="flex shrink-0 cursor-pointer items-center whitespace-nowrap border-b-2 border-transparent py-1 text-foreground transition-colors"
       :active-class="tab.matchChildren ? 'border-primary!' : ''"
       :exact-active-class="tab.matchChildren ? '' : 'border-primary!'"
     >
       <span
-        class="flex w-full min-w-0 sm:min-w-20 flex-row items-center justify-center gap-1 sm:gap-2 rounded-md px-1.5 py-1 sm:px-2 hover:bg-accent hover:text-accent-foreground transition-colors text-sm"
+        class="flex w-full flex-row items-center justify-center gap-1 sm:gap-2 rounded-md px-1.5 py-1 sm:px-2 hover:bg-accent hover:text-accent-foreground transition-colors text-sm"
       >
         <Icon v-if="tab.icon" :name="tab.icon" :size="tab.iconSize" :class="tab.iconClass" class="shrink-0" />
         <span>{{ tab.title }}</span> <CountBadge v-if="tab.count" :value="tab.count" />
@@ -18,10 +18,14 @@
     </router-link>
     <!-- Overflow dropdown -->
     <DropdownMenu v-if="hiddenTabs.length">
-      <DropdownMenuTrigger as-child>
-        <Button variant="ghost" size="icon-sm" class="tabs-more-button border-b-2 border-transparent py-1">
+      <DropdownMenuTrigger
+        class="flex shrink-0 cursor-pointer items-center whitespace-nowrap border-b-2 border-transparent py-1"
+      >
+        <span
+          class="flex h-7 w-7 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
+        >
           <Icon name="dots" />
-        </Button>
+        </span>
       </DropdownMenuTrigger>
       <DropdownMenuContent :align="visibleTabs.length === 0 ? 'start' : 'end'">
         <DropdownMenuItem v-for="tab in hiddenTabs" :key="tab.title" as-child>
@@ -36,11 +40,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 
 import CountBadge from '~/components/atomic/CountBadge.vue';
 import Icon from '~/components/atomic/Icon.vue';
-import { Button } from '~/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -62,7 +65,8 @@ const updateVisibleItems = () => {
   nextTick(() => {
     const availableWidth = tabsRef.value!.clientWidth || 0;
     const moreButtonWidth = 32; // This need to match the width of the IconButton (w-8 = 32px)
-    const gapWidth = 4; // This need to match the gap between the tabs (md:gap-1 = 4px)
+    // gap-0 on mobile, md:gap-1 (4px) on desktop (768px+)
+    const gapWidth = window.innerWidth >= 768 ? 4 : 0;
     let totalWidth = 0;
 
     const items = Array.from(tabsRef.value!.children);
@@ -96,6 +100,11 @@ const updateVisibleItems = () => {
     visibleCount.value = tabs.value.length;
   });
 };
+
+// Re-calculate when tabs change
+watch(tabs, () => {
+  nextTick(updateVisibleItems);
+});
 
 onMounted(() => {
   const resizeObserver = new ResizeObserver(() => {

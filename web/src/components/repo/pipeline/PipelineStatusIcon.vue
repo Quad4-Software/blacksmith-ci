@@ -6,7 +6,7 @@
     <Icon
       v-if="service || !(status === 'running' || status === 'started')"
       :name="service ? 'mdi-wind-power-outline' : `status-${status}`"
-      size="1.5rem"
+      :size="size"
       :class="{
         'text-destructive': pipelineStatusColors[status] === 'red', // error, declined
         'text-muted-foreground': pipelineStatusColors[status] === 'gray', // blocked, killed, skipped
@@ -15,7 +15,7 @@
         'text-yellow-500': pipelineStatusColors[status] === 'yellow', // pending
       }"
     />
-    <div v-else class="w-5 h-5">
+    <div v-else :style="{ width: size, height: size }">
       <PipelineProgressSpinner />
     </div>
   </div>
@@ -30,11 +30,17 @@ import type { PipelineStatus } from '~/lib/api/types';
 
 import { pipelineStatusColors } from './pipeline-status';
 
-defineProps<{
-  status: PipelineStatus;
-  service?: boolean;
-  title?: string;
-}>();
+withDefaults(
+  defineProps<{
+    status: PipelineStatus;
+    service?: boolean;
+    title?: string;
+    size?: string;
+  }>(),
+  {
+    size: '1.5rem',
+  },
+);
 
 const { t } = useI18n();
 

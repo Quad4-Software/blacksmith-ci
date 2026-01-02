@@ -90,10 +90,7 @@
               :label="$t('repo.pipeline.metadata.fields.private')"
               :value="String(metadata?.repo?.private || repo?.private)"
             />
-            <MetadataField
-              :label="$t('repo.pipeline.metadata.fields.trusted')"
-              :value="String(metadata?.repo?.trusted || repo?.trusted)"
-            />
+            <MetadataField :label="$t('repo.pipeline.metadata.fields.trusted')" :value="trustedDisplay" />
           </div>
         </CardContent>
       </Card>
@@ -286,6 +283,19 @@ const defaultBranch = computed(() => {
 
 const repositoryUrl = computed(() => {
   return metadata?.value?.repo?.forge_url || repo?.value?.forge_url;
+});
+
+const trustedDisplay = computed(() => {
+  const trusted = metadata?.value?.repo?.trusted || repo?.value?.trusted;
+  if (!trusted) return 'false';
+
+  const enabledFeatures: string[] = [];
+  if (trusted.network) enabledFeatures.push('network');
+  if (trusted.volumes) enabledFeatures.push('volumes');
+  if (trusted.security) enabledFeatures.push('security');
+
+  if (enabledFeatures.length === 0) return 'false';
+  return enabledFeatures.join(', ');
 });
 
 const metadataFileName = computed(
