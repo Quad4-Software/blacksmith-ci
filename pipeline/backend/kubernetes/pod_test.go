@@ -436,15 +436,16 @@ func TestFullPod(t *testing.T) {
 			Password: "bar",
 		},
 	}, &config{
-		Namespace:                   "crow",
-		ImagePullSecretNames:        []string{"regcred", "another-pull-secret"},
-		PodLabels:                   map[string]string{"app": "test"},
-		PodLabelsAllowFromStep:      true,
-		PodAnnotations:              map[string]string{"apps.kubernetes.io/pod-index": "0"},
-		PodAnnotationsAllowFromStep: true,
-		PodTolerationsAllowFromStep: true,
-		PodNodeSelector:             map[string]string{"topology.kubernetes.io/region": "eu-central-1"},
-		SecurityContext:             SecurityContextConfig{RunAsNonRoot: false},
+		Namespace:                       "crow",
+		ImagePullSecretNames:            []string{"regcred", "another-pull-secret"},
+		PodLabels:                       map[string]string{"app": "test"},
+		PodLabelsAllowFromStep:          true,
+		PodAnnotations:                  map[string]string{"apps.kubernetes.io/pod-index": "0"},
+		PodAnnotationsAllowFromStep:     true,
+		PodTolerationsAllowFromStep:     true,
+		PodNodeSelector:                 map[string]string{"topology.kubernetes.io/region": "eu-central-1"},
+		SecurityContext:                 SecurityContextConfig{RunAsNonRoot: false},
+		ServiceAccountNameAllowFromStep: true,
 	}, "crow-01he8bebctabr3kgk0qj36d2me-0", "linux/amd64", BackendOptions{
 		Labels:             map[string]string{"part-of": "woodpecker-ci"},
 		Annotations:        map[string]string{"kubernetes.io/limit-ranger": "LimitRanger plugin set: cpu, memory request and limit for container"},
@@ -875,6 +876,62 @@ func TestPodTolerationsAllowFromStep(t *testing.T) {
 
 	ja = jsonassert.New(t)
 	ja.Assertf(string(podJSON), expectedAllow)
+}
+
+func TestServiceAccountName(t *testing.T) {
+	step := &types.Step{
+		Name:  "service-account-test",
+		Image: "alpine",
+		UUID:  "01he8bebctabr3kgk0qj36d2me-0",
+	}
+
+	// Test: config service account used when no step override
+	pod, err := mkPod(step, &config{
+		Namespace:          "crow",
+		ServiceAccountName: "config-svc-acc",
+	}, "crow-01he8bebctabr3kgk0qj36d2me-0", "linux/amd64", BackendOptions{}, taskUUID)
+	assert.NoError(t, err)
+	assert.Equal(t, "config-svc-acc", pod.Spec.ServiceAccountName)
+
+	// Test: step service account ignored when AllowFromStep is false
+	pod, err = mkPod(step, &config{
+		Namespace:                       "crow",
+		ServiceAccountName:              "config-svc-acc",
+		ServiceAccountNameAllowFromStep: false,
+	}, "crow-01he8bebctabr3kgk0qj36d2me-0", "linux/amd64", BackendOptions{
+		ServiceAccountName: "step-svc-acc",
+	}, taskUUID)
+	assert.NoError(t, err)
+	assert.Equal(t, "config-svc-acc", pod.Spec.ServiceAccountName)
+
+	// Test: step service account used when AllowFromStep is true
+	pod, err = mkPod(step, &config{
+		Namespace:                       "crow",
+		ServiceAccountName:              "config-svc-acc",
+		ServiceAccountNameAllowFromStep: true,
+	}, "crow-01he8bebctabr3kgk0qj36d2me-0", "linux/amd64", BackendOptions{
+		ServiceAccountName: "step-svc-acc",
+	}, taskUUID)
+	assert.NoError(t, err)
+	assert.Equal(t, "step-svc-acc", pod.Spec.ServiceAccountName)
+
+	// Test: falls back to config when step is empty and AllowFromStep is true
+	pod, err = mkPod(step, &config{
+		Namespace:                       "crow",
+		ServiceAccountName:              "config-svc-acc",
+		ServiceAccountNameAllowFromStep: true,
+	}, "crow-01he8bebctabr3kgk0qj36d2me-0", "linux/amd64", BackendOptions{
+		ServiceAccountName: "",
+	}, taskUUID)
+	assert.NoError(t, err)
+	assert.Equal(t, "config-svc-acc", pod.Spec.ServiceAccountName)
+
+	// Test: empty when neither config nor step provides value
+	pod, err = mkPod(step, &config{
+		Namespace: "crow",
+	}, "crow-01he8bebctabr3kgk0qj36d2me-0", "linux/amd64", BackendOptions{}, taskUUID)
+	assert.NoError(t, err)
+	assert.Equal(t, "", pod.Spec.ServiceAccountName)
 }
 
 func TestStepSecret(t *testing.T) {

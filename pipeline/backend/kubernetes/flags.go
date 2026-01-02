@@ -113,4 +113,16 @@ var Flags = []cli.Flag{
 		Usage:   "which kubernetes priority class to assign to created job pods",
 		Value:   "",
 	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_BACKEND_K8S_SERVICE_ACCOUNT_NAME"),
+		Name:    "backend-k8s-service-account-name",
+		Usage:   "backend k8s service account name for worker pods",
+		Value:   "",
+	},
+	&cli.BoolFlag{
+		Sources: cli.EnvVars("CROW_BACKEND_K8S_SERVICE_ACCOUNT_NAME_ALLOW_FROM_STEP"),
+		Name:    "backend-k8s-service-account-name-allow-from-step",
+		Usage:   "whether to allow using serviceAccountName from step's backend options",
+		Value:   false,
+	},
 }

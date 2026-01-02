@@ -58,22 +58,24 @@ type kube struct {
 }
 
 type config struct {
-	Namespace                   string
-	EnableNamespacePerOrg       bool
-	StorageClass                string
-	VolumeSize                  string
-	StorageRwx                  bool
-	PodLabels                   map[string]string
-	PodLabelsAllowFromStep      bool
-	PodAnnotations              map[string]string
-	PodAnnotationsAllowFromStep bool
-	PodNodeSelector             map[string]string
-	PodTolerationsAllowFromStep bool
-	PodTolerations              []Toleration
-	ImagePullSecretNames        []string
-	SecurityContext             SecurityContextConfig
-	NativeSecretsAllowFromStep  bool
-	PriorityClassName           string
+	Namespace                       string
+	EnableNamespacePerOrg           bool
+	StorageClass                    string
+	VolumeSize                      string
+	StorageRwx                      bool
+	PodLabels                       map[string]string
+	PodLabelsAllowFromStep          bool
+	PodAnnotations                  map[string]string
+	PodAnnotationsAllowFromStep     bool
+	PodNodeSelector                 map[string]string
+	PodTolerationsAllowFromStep     bool
+	PodTolerations                  []Toleration
+	ImagePullSecretNames            []string
+	SecurityContext                 SecurityContextConfig
+	NativeSecretsAllowFromStep      bool
+	PriorityClassName               string
+	ServiceAccountName              string
+	ServiceAccountNameAllowFromStep bool
 }
 
 func (c *config) GetNamespace(orgID int64) string {
@@ -119,7 +121,9 @@ func configFromCliContext(ctx context.Context) (*config, error) {
 					RunAsNonRoot: c.Bool("backend-k8s-secctx-nonroot"), // cspell:words secctx nonroot
 					FSGroup:      newInt64(defaultFSGroup),
 				},
-				NativeSecretsAllowFromStep: c.Bool("backend-k8s-allow-native-secrets"),
+				NativeSecretsAllowFromStep:      c.Bool("backend-k8s-allow-native-secrets"),
+				ServiceAccountName:              c.String("backend-k8s-service-account-name"),
+				ServiceAccountNameAllowFromStep: c.Bool("backend-k8s-service-account-name-allow-from-step"),
 			}
 			// Unmarshal label and annotation settings here to ensure they're valid on startup
 			if labels := c.String("backend-k8s-pod-labels"); labels != "" {

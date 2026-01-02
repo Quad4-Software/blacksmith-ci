@@ -44,7 +44,15 @@ Kubernetes backend configuration variables for agents.
 
 - Name: `CROW_BACKEND_K8S_POD_ANNOTATIONS`
 - Description: Additional annotations to apply to worker Pods. Must be a YAML object, e.g. `{"example.com/test-annotation":"test-value"}`
-- Default: `crow`
+- Default: none
+
+---
+
+### BACKEND_K8S_POD_ANNOTATIONS_ALLOW_FROM_STEP
+
+- Name: `CROW_BACKEND_K8S_POD_ANNOTATIONS_ALLOW_FROM_STEP`
+- Description: Determines if Pod annotations can be defined from a step's backend options.
+- Default: `false`
 
 ---
 
@@ -121,3 +129,21 @@ Kubernetes backend configuration variables for agents.
 - Name: `CROW_BACKEND_K8S_PULL_SECRET_NAMES`
 - Description: Secret names to pull images from private repositories.
 - Default: none
+
+---
+
+## Service Account
+
+### BACKEND_K8S_SERVICE_ACCOUNT_NAME
+
+- Name: `CROW_BACKEND_K8S_SERVICE_ACCOUNT_NAME`
+- Description: The Kubernetes service account name to use for worker pods. This can be used to grant pods access to Kubernetes resources via RBAC.
+- Default: none (uses the default service account of the namespace)
+
+---
+
+### BACKEND_K8S_SERVICE_ACCOUNT_NAME_ALLOW_FROM_STEP
+
+- Name: `CROW_BACKEND_K8S_SERVICE_ACCOUNT_NAME_ALLOW_FROM_STEP`
+- Description: Determines if the service account name can be defined from a step's backend options using `serviceAccountName`.
+- Default: `false`

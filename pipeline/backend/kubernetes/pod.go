@@ -215,7 +215,7 @@ func podSpec(step *types.Step, config *config, options BackendOptions, nsp nativ
 	spec := v1.PodSpec{
 		RestartPolicy:      v1.RestartPolicyNever,
 		RuntimeClassName:   options.RuntimeClassName,
-		ServiceAccountName: options.ServiceAccountName,
+		ServiceAccountName: serviceAccountName(options.ServiceAccountName, config),
 		PriorityClassName:  config.PriorityClassName,
 		HostAliases:        hostAliases(step.ExtraHosts),
 		NodeSelector:       nodeSelector(options.NodeSelector, config.PodNodeSelector, step.Environment["CI_SYSTEM_PLATFORM"]),
@@ -477,6 +477,17 @@ func nodeSelector(backendNodeSelector, configNodeSelector map[string]string, pla
 	}
 
 	return nodeSelector
+}
+
+func serviceAccountName(backendServiceAccount string, config *config) string {
+	if config.ServiceAccountNameAllowFromStep && backendServiceAccount != "" {
+		log.Trace().Msgf("using the service account name from the backend options: %s", backendServiceAccount)
+		return backendServiceAccount
+	}
+	if config.ServiceAccountName != "" {
+		log.Trace().Msgf("using the service account name from the configuration: %s", config.ServiceAccountName)
+	}
+	return config.ServiceAccountName
 }
 
 func tolerations(backendTolerations []Toleration) []v1.Toleration {
