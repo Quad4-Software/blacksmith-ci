@@ -46,6 +46,11 @@ func NewEngine(opts *store.Opts) (store.Store, error) {
 	engine.SetLogger(logger)
 	engine.ShowSQL(opts.XORM.ShowSQL)
 
+	// Set database schema (PostgreSQL only)
+	if opts.Schema != "" {
+		engine.SetSchema(opts.Schema)
+	}
+
 	// Apply driver-specific configuration (SQLite optimizations in CGO builds)
 	if err := configureEngine(engine, opts); err != nil {
 		return nil, err

@@ -55,6 +55,7 @@ const (
 func setupStore(ctx context.Context, c *cli.Command) (store.Store, error) {
 	datasource := c.String("db-datasource")
 	driver := c.String("db-driver")
+	schema := c.String("db-schema")
 	xorm := store.XORM{
 		Log:             c.Bool("db-log"),
 		ShowSQL:         c.Bool("db-log-sql"),
@@ -81,12 +82,17 @@ func setupStore(ctx context.Context, c *cli.Command) (store.Store, error) {
 		}
 	}
 
+	if schema != "" && driver != "postgres" {
+		return nil, fmt.Errorf("database schema is only supported for PostgreSQL")
+	}
+
 	opts := &store.Opts{
 		Driver: driver,
 		Config: datasource,
+		Schema: schema,
 		XORM:   xorm,
 	}
-	log.Debug().Str("driver", driver).Any("xorm", xorm).Msg("setting up datastore")
+	log.Debug().Str("driver", driver).Str("schema", schema).Any("xorm", xorm).Msg("setting up datastore")
 	store, err := datastore.NewEngine(opts)
 	if err != nil {
 		return nil, fmt.Errorf("could not open datastore: %w", err)

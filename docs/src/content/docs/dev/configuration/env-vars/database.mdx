@@ -20,6 +20,16 @@ Database configuration variables for the Crow CI server.
 
 ---
 
+## DATABASE_SCHEMA
+
+- Name: `CROW_DATABASE_SCHEMA`
+- Description: Database schema name.
+  This allows running Crow in a specific PostgreSQL schema instead of the default `public` schema.
+- Default: none (uses database default, typically `public` for PostgreSQL)
+- Note: Only supported for PostgreSQL. Setting this for other database drivers will result in an error.
+
+---
+
 ## DATABASE_MAX_CONNECTIONS
 
 - Name: `CROW_DATABASE_MAX_CONNECTIONS`

@@ -58,6 +58,21 @@ CROW_DATABASE_DRIVER=postgres
 CROW_DATABASE_DATASOURCE=postgres://user:pass@localhost:5432/crow?sslmode=disable
 ```
 
+#### Custom Schema
+
+To use a specific PostgreSQL schema instead of `public`:
+
+```yaml
+CROW_DATABASE_SCHEMA=crow_ci
+```
+
+The schema must exist before starting Crow. Create it with:
+
+```sql
+CREATE SCHEMA crow_ci;
+GRANT ALL ON SCHEMA crow_ci TO your_user;
+```
+
 ### MySQL/MariaDB
 
 ```yaml

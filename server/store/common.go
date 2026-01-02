@@ -32,6 +32,7 @@ type XORM struct {
 type Opts struct {
 	Driver string
 	Config string
+	Schema string // Database schema name (PostgreSQL only)
 	XORM   XORM
 }
 

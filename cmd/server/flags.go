@@ -311,6 +311,11 @@ var flags = append([]cli.Flag{
 		},
 	},
 	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_DATABASE_SCHEMA"),
+		Name:    "db-schema",
+		Usage:   "database schema name (PostgreSQL only)",
+	},
+	&cli.StringFlag{
 		Sources: cli.NewValueSourceChain(
 			cli.File(os.Getenv("WOODPECKER_PROMETHEUS_AUTH_TOKEN_FILE")),
 			cli.EnvVar("WOODPECKER_PROMETHEUS_AUTH_TOKEN"),
