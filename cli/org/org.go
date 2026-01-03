@@ -17,6 +17,7 @@ package org
 import (
 	"github.com/urfave/cli/v3"
 
+	"codeberg.org/crowci/crow/v5/cli/org/agent"
 	"codeberg.org/crowci/crow/v5/cli/org/registry"
 	"codeberg.org/crowci/crow/v5/cli/org/secret"
 )
@@ -26,6 +27,7 @@ var Command = &cli.Command{
 	Name:  "org",
 	Usage: "manage organizations",
 	Commands: []*cli.Command{
+		agent.Command,
 		registry.Command,
 		secret.Command,
 	},

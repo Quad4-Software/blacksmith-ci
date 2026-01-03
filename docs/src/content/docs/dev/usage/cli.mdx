@@ -103,6 +103,55 @@ crow exec --workflow .crow/build.yaml
 crow lint .crow/
 ```
 
+### Agent Management
+
+```sh
+# List organization agents
+crow org agent ls <org-name>
+
+# Add an organization agent
+crow org agent add <org-name> --name "my-agent"
+
+# Show agent details
+crow org agent show <org-name> --agent-id <agent-id>
+
+# Remove an organization agent
+crow org agent rm <org-name> --agent-id <agent-id>
+```
+
+### Global Agent Management
+
+Requires admin privileges.
+
+```sh
+# List all agents (admin only)
+crow admin agent ls
+
+# Show agent details (admin only)
+crow admin agent show <agent-id>
+
+# Remove an agent (admin only)
+crow admin agent rm <agent-id>
+```
+
+### User Management
+
+Requires admin privileges.
+
+```sh
+# List all users
+crow admin user ls
+
+# Show user details
+crow admin user show <username>
+
+# Add a new user
+crow admin user add <username>
+
+# Remove a user
+crow admin user rm <username>
+```
+
 ## Getting Help
 
 ```sh

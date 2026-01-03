@@ -271,6 +271,18 @@ type Client interface {
 	// AgentTasksList returns a list of all tasks executed by an agent.
 	AgentTasksList(int64) ([]*Task, error)
 
+	// OrgAgentList returns a list of all agents for an organization.
+	OrgAgentList(orgID int64, opt ListOptions) ([]*Agent, error)
+
+	// OrgAgentCreate creates a new organization-scoped agent.
+	OrgAgentCreate(orgID int64, agent *Agent) (*Agent, error)
+
+	// OrgAgentUpdate updates an organization agent.
+	OrgAgentUpdate(orgID int64, agent *Agent) (*Agent, error)
+
+	// OrgAgentDelete deletes an organization agent.
+	OrgAgentDelete(orgID, agentID int64) error
+
 	// AutoscalerList returns a list of all registered autoscalers.
 	AutoscalerList() ([]*Autoscaler, error)
 

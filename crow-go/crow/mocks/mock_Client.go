@@ -2095,6 +2095,267 @@ func (_c *MockClient_Org_Call) RunAndReturn(run func(orgID int64) (*crow.Org, er
 	return _c
 }
 
+// OrgAgentCreate provides a mock function for the type MockClient
+func (_mock *MockClient) OrgAgentCreate(orgID int64, agent *crow.Agent) (*crow.Agent, error) {
+	ret := _mock.Called(orgID, agent)
+
+	if len(ret) == 0 {
+		panic("no return value specified for OrgAgentCreate")
+	}
+
+	var r0 *crow.Agent
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, *crow.Agent) (*crow.Agent, error)); ok {
+		return returnFunc(orgID, agent)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, *crow.Agent) *crow.Agent); ok {
+		r0 = returnFunc(orgID, agent)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*crow.Agent)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, *crow.Agent) error); ok {
+		r1 = returnFunc(orgID, agent)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClient_OrgAgentCreate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'OrgAgentCreate'
+type MockClient_OrgAgentCreate_Call struct {
+	*mock.Call
+}
+
+// OrgAgentCreate is a helper method to define mock.On call
+//   - orgID int64
+//   - agent *crow.Agent
+func (_e *MockClient_Expecter) OrgAgentCreate(orgID interface{}, agent interface{}) *MockClient_OrgAgentCreate_Call {
+	return &MockClient_OrgAgentCreate_Call{Call: _e.mock.On("OrgAgentCreate", orgID, agent)}
+}
+
+func (_c *MockClient_OrgAgentCreate_Call) Run(run func(orgID int64, agent *crow.Agent)) *MockClient_OrgAgentCreate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 *crow.Agent
+		if args[1] != nil {
+			arg1 = args[1].(*crow.Agent)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_OrgAgentCreate_Call) Return(agent1 *crow.Agent, err error) *MockClient_OrgAgentCreate_Call {
+	_c.Call.Return(agent1, err)
+	return _c
+}
+
+func (_c *MockClient_OrgAgentCreate_Call) RunAndReturn(run func(orgID int64, agent *crow.Agent) (*crow.Agent, error)) *MockClient_OrgAgentCreate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// OrgAgentDelete provides a mock function for the type MockClient
+func (_mock *MockClient) OrgAgentDelete(orgID int64, agentID int64) error {
+	ret := _mock.Called(orgID, agentID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for OrgAgentDelete")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(int64, int64) error); ok {
+		r0 = returnFunc(orgID, agentID)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockClient_OrgAgentDelete_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'OrgAgentDelete'
+type MockClient_OrgAgentDelete_Call struct {
+	*mock.Call
+}
+
+// OrgAgentDelete is a helper method to define mock.On call
+//   - orgID int64
+//   - agentID int64
+func (_e *MockClient_Expecter) OrgAgentDelete(orgID interface{}, agentID interface{}) *MockClient_OrgAgentDelete_Call {
+	return &MockClient_OrgAgentDelete_Call{Call: _e.mock.On("OrgAgentDelete", orgID, agentID)}
+}
+
+func (_c *MockClient_OrgAgentDelete_Call) Run(run func(orgID int64, agentID int64)) *MockClient_OrgAgentDelete_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_OrgAgentDelete_Call) Return(err error) *MockClient_OrgAgentDelete_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockClient_OrgAgentDelete_Call) RunAndReturn(run func(orgID int64, agentID int64) error) *MockClient_OrgAgentDelete_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// OrgAgentList provides a mock function for the type MockClient
+func (_mock *MockClient) OrgAgentList(orgID int64, opt crow.ListOptions) ([]*crow.Agent, error) {
+	ret := _mock.Called(orgID, opt)
+
+	if len(ret) == 0 {
+		panic("no return value specified for OrgAgentList")
+	}
+
+	var r0 []*crow.Agent
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, crow.ListOptions) ([]*crow.Agent, error)); ok {
+		return returnFunc(orgID, opt)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, crow.ListOptions) []*crow.Agent); ok {
+		r0 = returnFunc(orgID, opt)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*crow.Agent)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, crow.ListOptions) error); ok {
+		r1 = returnFunc(orgID, opt)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClient_OrgAgentList_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'OrgAgentList'
+type MockClient_OrgAgentList_Call struct {
+	*mock.Call
+}
+
+// OrgAgentList is a helper method to define mock.On call
+//   - orgID int64
+//   - opt crow.ListOptions
+func (_e *MockClient_Expecter) OrgAgentList(orgID interface{}, opt interface{}) *MockClient_OrgAgentList_Call {
+	return &MockClient_OrgAgentList_Call{Call: _e.mock.On("OrgAgentList", orgID, opt)}
+}
+
+func (_c *MockClient_OrgAgentList_Call) Run(run func(orgID int64, opt crow.ListOptions)) *MockClient_OrgAgentList_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 crow.ListOptions
+		if args[1] != nil {
+			arg1 = args[1].(crow.ListOptions)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_OrgAgentList_Call) Return(agents []*crow.Agent, err error) *MockClient_OrgAgentList_Call {
+	_c.Call.Return(agents, err)
+	return _c
+}
+
+func (_c *MockClient_OrgAgentList_Call) RunAndReturn(run func(orgID int64, opt crow.ListOptions) ([]*crow.Agent, error)) *MockClient_OrgAgentList_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// OrgAgentUpdate provides a mock function for the type MockClient
+func (_mock *MockClient) OrgAgentUpdate(orgID int64, agent *crow.Agent) (*crow.Agent, error) {
+	ret := _mock.Called(orgID, agent)
+
+	if len(ret) == 0 {
+		panic("no return value specified for OrgAgentUpdate")
+	}
+
+	var r0 *crow.Agent
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, *crow.Agent) (*crow.Agent, error)); ok {
+		return returnFunc(orgID, agent)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, *crow.Agent) *crow.Agent); ok {
+		r0 = returnFunc(orgID, agent)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*crow.Agent)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, *crow.Agent) error); ok {
+		r1 = returnFunc(orgID, agent)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClient_OrgAgentUpdate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'OrgAgentUpdate'
+type MockClient_OrgAgentUpdate_Call struct {
+	*mock.Call
+}
+
+// OrgAgentUpdate is a helper method to define mock.On call
+//   - orgID int64
+//   - agent *crow.Agent
+func (_e *MockClient_Expecter) OrgAgentUpdate(orgID interface{}, agent interface{}) *MockClient_OrgAgentUpdate_Call {
+	return &MockClient_OrgAgentUpdate_Call{Call: _e.mock.On("OrgAgentUpdate", orgID, agent)}
+}
+
+func (_c *MockClient_OrgAgentUpdate_Call) Run(run func(orgID int64, agent *crow.Agent)) *MockClient_OrgAgentUpdate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 *crow.Agent
+		if args[1] != nil {
+			arg1 = args[1].(*crow.Agent)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_OrgAgentUpdate_Call) Return(agent1 *crow.Agent, err error) *MockClient_OrgAgentUpdate_Call {
+	_c.Call.Return(agent1, err)
+	return _c
+}
+
+func (_c *MockClient_OrgAgentUpdate_Call) RunAndReturn(run func(orgID int64, agent *crow.Agent) (*crow.Agent, error)) *MockClient_OrgAgentUpdate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // OrgList provides a mock function for the type MockClient
 func (_mock *MockClient) OrgList(opt crow.ListOptions) ([]*crow.Org, error) {
 	ret := _mock.Called(opt)

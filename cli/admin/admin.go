@@ -17,6 +17,7 @@ package admin
 import (
 	"github.com/urfave/cli/v3"
 
+	"codeberg.org/crowci/crow/v5/cli/admin/agent"
 	"codeberg.org/crowci/crow/v5/cli/admin/loglevel"
 	"codeberg.org/crowci/crow/v5/cli/admin/org"
 	"codeberg.org/crowci/crow/v5/cli/admin/registry"
@@ -29,6 +30,7 @@ var Command = &cli.Command{
 	Name:  "admin",
 	Usage: "manage server settings",
 	Commands: []*cli.Command{
+		agent.Command,
 		loglevel.Command,
 		org.Command,
 		registry.Command,

@@ -51,6 +51,10 @@ linters:
             - '**/agent/*.go'
             - '**/cmd/agent/**/*.go'
             - '**/cmd/agent/*.go'
+            - '!**/cli/admin/agent/*.go'
+            - '!**/cli/admin/agent/**/*.go'
+            - '!**/cli/org/agent/*.go'
+            - '!**/cli/org/agent/**/*.go'
           deny:
             - pkg: codeberg.org/crowci/crow/v5/cli
             - pkg: codeberg.org/crowci/crow/v5/cmd/cli
