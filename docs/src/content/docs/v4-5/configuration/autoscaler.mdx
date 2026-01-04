@@ -57,7 +57,7 @@ Additional providers with a Go SDK can be added — contributions welcome!
 # docker-compose.yaml
 services:
   crow-autoscaler:
-    image: codeberg.org/crowci/crow-autoscaler:latest
+    image: codeberg.org/crowci/crow-autoscaler:<version>
     restart: always
     depends_on:
       - crow-server

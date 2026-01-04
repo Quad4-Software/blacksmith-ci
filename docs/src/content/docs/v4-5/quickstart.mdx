@@ -28,7 +28,7 @@ Get Crow CI running in 5 minutes.
     ```yaml
     services:
       server:
-        image: codeberg.org/crowci/crow-server:latest
+        image: codeberg.org/crowci/crow-server:<version>
         ports:
           - "8000:8000"
           - "9000:9000"
@@ -44,7 +44,7 @@ Get Crow CI running in 5 minutes.
           - CROW_FORGEJO_SECRET=your-oauth-client-secret
 
       agent:
-        image: codeberg.org/crowci/crow-agent:latest
+        image: codeberg.org/crowci/crow-agent:<version>
         depends_on:
           - server
         volumes:
