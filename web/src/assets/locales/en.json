@@ -903,6 +903,7 @@
         "section_appearance_desc": "Customize the look and feel of the interface",
         "theme_label": "Theme",
         "color_mode": "Color Mode",
+        "font_size": "Font Size",
         "section_pipeline_view": "Pipeline View",
         "section_pipeline_view_desc": "Customize how pipeline logs and steps are displayed",
         "pipeline_steps_width": "Pipeline Steps Panel Width",

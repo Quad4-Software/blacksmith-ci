@@ -94,6 +94,20 @@
             </Select>
           </InputField>
         </div>
+        <div>
+          <InputField v-slot="{ id }" :label="$t('user.settings.general.font_size')">
+            <Select :id="id" v-model="fontSize">
+              <SelectTrigger class="w-full md:w-[200px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="option in FONT_SIZE_OPTIONS" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </InputField>
+        </div>
       </div>
     </div>
 
@@ -177,7 +191,7 @@ import { Button } from '~/components/ui/button';
 import Settings from '~/components/layout/Settings.vue';
 import { setI18nLanguage } from '~/compositions/useI18n';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
-import { useTheme } from '~/compositions/useTheme';
+import { FONT_SIZE_OPTIONS, useTheme } from '~/compositions/useTheme';
 import useApiClient from '~/compositions/useApiClient';
 import useAuthentication from '~/compositions/useAuthentication';
 import useNotifications from '~/compositions/useNotifications';
@@ -188,7 +202,7 @@ const { user } = useAuthentication();
 const notifications = useNotifications();
 
 // Theme settings
-const { themeName, availableThemes, storeTheme } = useTheme();
+const { themeName, availableThemes, storeTheme, fontSize } = useTheme();
 
 const colorModeOptions = computed(() => [
   { value: 'light', text: t('user.settings.general.theme.light') },

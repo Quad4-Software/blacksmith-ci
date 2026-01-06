@@ -16,6 +16,18 @@ const {
 // Theme name selection
 const themeName = useStorage<string>('crow:theme-name', DEFAULT_THEME_ID);
 
+// Font size options
+export const FONT_SIZE_OPTIONS = [
+  { value: 12, label: '12px' },
+  { value: 13, label: '13px' },
+  { value: 14, label: '14px (Default)' },
+  { value: 15, label: '15px' },
+  { value: 16, label: '16px' },
+] as const;
+
+// Base font size (default: 14px)
+const fontSize = useStorage<number>('crow:font-size', 14);
+
 // Current theme definition (computed from themeName)
 const currentTheme = computed(() => getTheme(themeName.value));
 
@@ -74,6 +86,13 @@ function applyThemeVariables(colors: ThemeColorVariables) {
 }
 
 /**
+ * Apply font size to document root
+ */
+function applyFontSize(size: number) {
+  document.documentElement.style.setProperty('font-size', `${size}px`);
+}
+
+/**
  * Update theme classes, attributes, and CSS variables
  */
 function updateTheme() {
@@ -96,10 +115,16 @@ function updateTheme() {
   // Apply theme-specific CSS variables
   const colors = mode === 'dark' ? theme.dark : theme.light;
   applyThemeVariables(colors);
+
+  // Apply font size
+  applyFontSize(fontSize.value);
 }
 
 // Watch for theme or mode changes
 watch([storeTheme, systemTheme, themeName], updateTheme, { immediate: true });
+
+// Watch for font size changes
+watch(fontSize, applyFontSize, { immediate: true });
 
 /**
  * Theme composable for managing color scheme and theme selection
@@ -120,5 +145,8 @@ export function useTheme() {
 
     /** Available themes for UI selection */
     availableThemes,
+
+    /** Base font size in pixels */
+    fontSize,
   };
 }
