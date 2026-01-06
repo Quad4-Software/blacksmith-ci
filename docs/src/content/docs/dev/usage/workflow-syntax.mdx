@@ -94,7 +94,6 @@ Labels can be set in a map:
 labels:
   location: europe # only agents with `location=europe` or `location=*` will be used
   weather: sun
-  hostname: '' # this label will be ignored as it is empty
 
 steps:
   - name: build
@@ -108,6 +107,42 @@ steps:
 Setting a custom label also requires assigning this label to at least one agent.
 Otherwise, the workflow will never be run.
 :::
+
+### Special labels
+
+Some labels have special meaning and are automatically matched against agent properties:
+
+#### `agent`
+
+Target a specific agent by its registered name (as shown in the server's admin panel). The agent name defaults to its hostname if not explicitly configured:
+
+```yaml
+labels:
+  agent: my-special-agent
+
+steps:
+  - name: build
+    image: <image>
+    commands:
+      - make build
+```
+
+#### `hostname`
+
+Target a specific agent by its hostname (set via `CROW_HOSTNAME` on the agent):
+
+```yaml
+labels:
+  hostname: devvy
+
+steps:
+  - name: build
+    image: <image>
+    commands:
+      - make build
+```
+
+Both `agent` and `hostname` labels are useful when you have agents running on specific machines and want to pin certain workflows to them.
 
 ## matrix
 

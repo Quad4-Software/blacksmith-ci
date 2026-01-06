@@ -82,6 +82,7 @@ var crowMigrations = []string{
 	"crow-add-agent-persistent-id",
 	"crow-add-deploy-team-to-repos",
 	"crow-add-integrations",
+	"crow-add-agent-hostname",
 }
 
 // allKnownMigrations returns a combined list of all known migration IDs.

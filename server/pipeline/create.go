@@ -308,10 +308,17 @@ func agentCanMatch(agent *model.Agent, requiredLabels map[string]string) bool {
 		}
 	}
 
+	// Check hostname
+	if requiredHostname, ok := requiredLabels["hostname"]; ok {
+		if agent.Hostname != "" && agent.Hostname != requiredHostname {
+			return false
+		}
+	}
+
 	// Check custom labels
 	for labelKey, labelValue := range requiredLabels {
 		// Skip standard labels we already checked
-		if labelKey == "platform" || labelKey == "backend" || labelKey == "agent" {
+		if labelKey == "platform" || labelKey == "backend" || labelKey == "agent" || labelKey == "hostname" {
 			continue
 		}
 

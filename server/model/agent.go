@@ -38,6 +38,7 @@ type Agent struct {
 	LastWork               int64             `json:"last_work"                 xorm:"last_work"` // last time the agent did something, this value is used to determine if the agent is still doing work used by the autoscaler
 	Platform               string            `json:"platform"                  xorm:"VARCHAR(100) 'platform'"`
 	Backend                string            `json:"backend"       xorm:"VARCHAR(100) 'backend'"`
+	Hostname               string            `json:"hostname"      xorm:"VARCHAR(255) 'hostname'"`
 	Capacity               int32             `json:"capacity"      xorm:"capacity"`
 	Version                string            `json:"version"       xorm:"'version'"`
 	BuildDate              string            `json:"build_date"    xorm:"'build_date'"`

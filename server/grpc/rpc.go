@@ -507,8 +507,11 @@ func (s *RPC) RegisterAgent(ctx context.Context, info rpc.AgentInfo) (int64, str
 		Interface("custom_labels", info.CustomLabels).
 		Msg("registering agent")
 
-	if agent.Name == "" {
-		if hostname, err := s.getHostnameFromContext(ctx); err == nil {
+	// Always store the hostname from the agent for label filtering
+	if hostname, err := s.getHostnameFromContext(ctx); err == nil {
+		agent.Hostname = hostname
+		// Use hostname as default name if not set
+		if agent.Name == "" {
 			agent.Name = hostname
 		}
 	}

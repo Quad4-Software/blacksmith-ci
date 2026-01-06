@@ -490,6 +490,83 @@ func TestCreateFilterFunc(t *testing.T) {
 			wantMatched: false, // Custom label mismatch
 			wantScore:   0,
 		},
+		// Hostname label filtering tests (backward compatibility with old Woodpecker syntax)
+		{
+			name: "Hostname label exact match - task targets specific agent by hostname",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{
+					"hostname": "foo",
+					"repo":     "*",
+					"platform": "linux",
+				},
+			},
+			customLabels: map[string]string{},
+			task: &model.Task{
+				Labels: map[string]string{
+					"hostname": "foo",
+					"repo":     "test",
+				},
+			},
+			wantMatched: true,
+			wantScore:   11, // 10 for hostname exact match + 1 for repo wildcard
+		},
+		{
+			name: "Hostname label mismatch - task targets different hostname",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{
+					"hostname": "foo",
+					"repo":     "*",
+					"platform": "linux",
+				},
+			},
+			customLabels: map[string]string{},
+			task: &model.Task{
+				Labels: map[string]string{
+					"hostname": "other-host",
+					"repo":     "test",
+				},
+			},
+			wantMatched: false,
+			wantScore:   0,
+		},
+		{
+			name: "Hostname label - task has no hostname requirement (runs on any agent)",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{
+					"hostname": "foo",
+					"repo":     "*",
+					"platform": "linux",
+				},
+			},
+			customLabels: map[string]string{},
+			task: &model.Task{
+				Labels: map[string]string{
+					"repo": "test",
+				},
+			},
+			wantMatched: true,
+			wantScore:   1, // Only repo wildcard score
+		},
+		{
+			name: "Both hostname and agent labels - all match",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{
+					"hostname": "foo",
+					"agent":    "build-agent",
+					"repo":     "*",
+				},
+			},
+			customLabels: map[string]string{},
+			task: &model.Task{
+				Labels: map[string]string{
+					"hostname": "foo",
+					"agent":    "build-agent",
+					"repo":     "test",
+				},
+			},
+			wantMatched: true,
+			wantScore:   21, // 10 (hostname) + 10 (agent) + 1 (repo wildcard)
+		},
 	}
 
 	for _, tt := range tests {
