@@ -15,6 +15,27 @@
     Global Overrides
     ========================================================================== */
 
+/* Base font size for content and sidebars */
+.sl-markdown-content,
+.sidebar-content,
+.right-sidebar {
+  font-size: 0.875rem;
+}
+
+/* Override right sidebar width */
+:root {
+  --sl-sidebar-width: 15rem;
+}
+
+.sl-markdown-content pre,
+.sl-markdown-content pre code {
+  font-size: 0.9em;
+}
+
+.sl-markdown-content :not(pre) > code {
+  font-size: 0.9em;
+}
+
 /* Remove border radius globally for sharper aesthetic */
 @layer theme {
   * {
