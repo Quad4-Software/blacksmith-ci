@@ -24,6 +24,7 @@ import (
 	"codeberg.org/crowci/crow/v5/server/pubsub"
 	"codeberg.org/crowci/crow/v5/server/queue"
 	"codeberg.org/crowci/crow/v5/server/services"
+	"codeberg.org/crowci/crow/v5/server/services/integration"
 	"codeberg.org/crowci/crow/v5/server/services/log"
 	"codeberg.org/crowci/crow/v5/server/services/permissions"
 )
@@ -39,6 +40,7 @@ var Config = struct {
 		MaintenanceService   services.MaintenanceService
 		MaintenanceScheduler services.MaintenanceScheduler
 		Store                services.Store
+		IntegrationService   integration.Service
 	}
 	Server struct {
 		JWTSecret           string

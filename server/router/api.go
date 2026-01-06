@@ -45,6 +45,15 @@ func apiRoutes(e *gin.RouterGroup) {
 			user.GET("/registries", api.GetUserRegistryList)
 			user.GET("/crons", api.GetUserCronList)
 
+			// Integrations (external secret stores)
+			user.GET("/integrations", api.GetIntegrationList)
+			user.GET("/integrations/accessible", api.GetAccessibleIntegrations)
+			user.POST("/integrations", api.PostIntegration)
+			user.GET("/integrations/:integration_id", api.GetIntegration)
+			user.PATCH("/integrations/:integration_id", api.PatchIntegration)
+			user.DELETE("/integrations/:integration_id", api.DeleteIntegration)
+			user.POST("/integrations/:integration_id/test", api.TestIntegration)
+
 			// Access tokens (new API)
 			user.GET("/access-tokens", api.GetAccessTokenList)
 			user.POST("/access-tokens", api.PostAccessToken)
@@ -71,6 +80,9 @@ func apiRoutes(e *gin.RouterGroup) {
 
 		// Timezones endpoint (public)
 		apiBase.GET("/timezones", api.GetTimezones)
+
+		// Integration types (public, for UI forms)
+		apiBase.GET("/integrations/types", api.GetIntegrationTypes)
 
 		orgs := apiBase.Group("/orgs")
 		{

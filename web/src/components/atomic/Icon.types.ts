@@ -123,4 +123,6 @@ export type IconNames =
   | 'lucide:timer'
   | 'lucide:hourglass'
   | 'lucide:search'
+  | 'lucide:plug-2'
+  | 'lucide:zap'
   | 'mdi-wind-power-outline';

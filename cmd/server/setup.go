@@ -32,11 +32,14 @@ import (
 	"codeberg.org/crowci/crow/v5/server"
 	"codeberg.org/crowci/crow/v5/server/cache"
 	"codeberg.org/crowci/crow/v5/server/forge/setup"
+	"codeberg.org/crowci/crow/v5/server/integrations"
+	"codeberg.org/crowci/crow/v5/server/integrations/vault"
 	"codeberg.org/crowci/crow/v5/server/logging"
 	"codeberg.org/crowci/crow/v5/server/model"
 	"codeberg.org/crowci/crow/v5/server/pubsub"
 	"codeberg.org/crowci/crow/v5/server/queue"
 	"codeberg.org/crowci/crow/v5/server/services"
+	integrationService "codeberg.org/crowci/crow/v5/server/services/integration"
 	"codeberg.org/crowci/crow/v5/server/services/lock"
 	logService "codeberg.org/crowci/crow/v5/server/services/log"
 	"codeberg.org/crowci/crow/v5/server/services/log/file"
@@ -288,6 +291,11 @@ func setupEvilGlobals(ctx context.Context, c *cli.Command, s store.Store) (err e
 	// maintenance service
 	server.Config.Services.Store = s
 	server.Config.Services.MaintenanceService = maintenance.NewService(s)
+
+	// integration service (external secret stores)
+	providerFactory := integrations.NewDefaultFactory(vault.NewProviderFunc())
+	integrations.SetGlobalFactory(providerFactory)
+	server.Config.Services.IntegrationService = integrationService.NewService(s, providerFactory)
 
 	// Check if vacuum-specific maintenance environment variables are set
 	vacuumEnvVarsSet := os.Getenv("CROW_MAINTENANCE_VACUUM_LOG_TABLE_ENABLED") != "" ||

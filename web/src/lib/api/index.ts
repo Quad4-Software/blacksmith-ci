@@ -15,6 +15,8 @@ import type {
   Entity,
   EntityListOptions,
   Forge,
+  Integration,
+  IntegrationTypeInfo,
   MaintenanceConfig,
   MaintenanceLog,
   MaintenanceOperationConfig,
@@ -648,5 +650,40 @@ export default class CrowClient extends ApiClient {
   // Deprecated: use getMetrics instead
   async getAdminMetrics(filter?: MetricsTimeFilter): Promise<AdminMetrics> {
     return this.getMetrics(filter);
+  }
+
+  // Integration API methods
+  async getIntegrationList(opts?: PaginationOptions): Promise<Integration[]> {
+    const query = encodeQueryString(opts);
+    return this._get(`/api/v1/user/integrations?${query}`) as Promise<Integration[]>;
+  }
+
+  async getAccessibleIntegrations(opts?: PaginationOptions): Promise<Integration[]> {
+    const query = encodeQueryString(opts);
+    return this._get(`/api/v1/user/integrations/accessible?${query}`) as Promise<Integration[]>;
+  }
+
+  async getIntegration(integrationId: number): Promise<Integration> {
+    return this._get(`/api/v1/user/integrations/${integrationId}`) as Promise<Integration>;
+  }
+
+  async createIntegration(integration: Partial<Integration>): Promise<Integration> {
+    return this._post('/api/v1/user/integrations', integration) as Promise<Integration>;
+  }
+
+  async updateIntegration(integrationId: number, integration: Partial<Integration>): Promise<Integration> {
+    return this._patch(`/api/v1/user/integrations/${integrationId}`, integration) as Promise<Integration>;
+  }
+
+  async deleteIntegration(integrationId: number): Promise<void> {
+    return this._delete(`/api/v1/user/integrations/${integrationId}`) as Promise<void>;
+  }
+
+  async testIntegration(integrationId: number): Promise<{ status: string }> {
+    return this._post(`/api/v1/user/integrations/${integrationId}/test`) as Promise<{ status: string }>;
+  }
+
+  async getIntegrationTypes(): Promise<IntegrationTypeInfo[]> {
+    return this._get('/api/v1/integrations/types') as Promise<IntegrationTypeInfo[]>;
   }
 }

@@ -156,6 +156,21 @@
                     </router-link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+
+                <SidebarMenuItem v-if="user">
+                  <SidebarMenuButton as-child :tooltip="$t('integrations.title')">
+                    <router-link :to="{ name: 'user-integrations' }">
+                      <Icon name="lucide:plug-2" class="size-4" />
+                      <span>{{ $t('integrations.title') }}</span>
+                      <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
+                      <div v-if="!isMobile" class="ml-auto flex items-center gap-0.5">
+                        <Kbd>Alt</Kbd>
+                        <Kbd>I</Kbd>
+                      </div>
+                      <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
+                    </router-link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </CollapsibleContent>

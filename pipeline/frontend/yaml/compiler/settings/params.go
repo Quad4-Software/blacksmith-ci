@@ -15,6 +15,7 @@
 package settings
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -23,6 +24,18 @@ import (
 
 	"github.com/goccy/go-yaml"
 )
+
+// ExternalSecretRef represents a reference to an external secret store.
+type ExternalSecretRef struct {
+	IntegrationID   int64  // Numeric ID (used if IntegrationName is empty)
+	IntegrationName string // Name lookup (takes precedence if set)
+	Path            string
+	Key             string
+	Version         int
+}
+
+// ExternalSecretFetcher is a function that fetches secrets from external stores.
+type ExternalSecretFetcher func(ctx context.Context, ref ExternalSecretRef) (string, error)
 
 // ParamsToEnv uses reflection to convert a map[string]interface to a list
 // of environment variables.
@@ -177,11 +190,24 @@ func handleComplex(v any, getSecretValue func(name string) (string, error)) (str
 	return string(out), nil
 }
 
-// injectSecret probes if a map is a from_secret request.
-// If it's a from_secret request it either  returns the secret value or an error if the secret was not found
-// else it just indicates to progress normally using the provided map as is.
+// SecretFetchers holds callbacks for fetching secrets from various sources.
+type SecretFetchers struct {
+	// GetInternalSecret fetches secrets from Crow's internal secret store
+	GetInternalSecret func(name string) (string, error)
+	// GetExternalSecret fetches secrets from external stores (Vault, etc.)
+	GetExternalSecret ExternalSecretFetcher
+	// Context for external secret operations
+	Ctx context.Context
+}
+
+// injectSecret probes if a map is a from_secret request for an internal secret.
+// If it's an internal secret request (from_secret: "string"), it returns the secret value.
+// If from_secret is an object, it's an external secret reference which should be
+// processed by InjectExternalSecrets first - this function skips those.
 func injectSecret(v map[string]any, getSecretValue func(name string) (string, error)) (string, bool, error) {
+	// Check for internal secret reference (from_secret: "string")
 	if secretNameI, ok := v["from_secret"]; ok {
+		// String value = internal secret
 		if secretName, ok := secretNameI.(string); ok {
 			secret, err := getSecretValue(secretName)
 			if err != nil {
@@ -190,9 +216,86 @@ func injectSecret(v map[string]any, getSecretValue func(name string) (string, er
 
 			return secret, true, nil
 		}
-		return "", false, fmt.Errorf("from_secret has to be a string")
+		// Object value = external secret (handled by InjectExternalSecrets)
+		// Skip here - if external injection hasn't run, this will be caught later
+		return "", false, nil
 	}
 	return "", false, nil
+}
+
+// parseExternalSecretRef parses an external secret reference from YAML.
+// Expected format: {integration: 1 or "name", path: "secret/path", key: "keyname", version: 0}.
+func parseExternalSecretRef(v any) (ExternalSecretRef, error) {
+	ref := ExternalSecretRef{}
+
+	m, ok := v.(map[string]any)
+	if !ok {
+		return ref, fmt.Errorf("external secret must be an object with integration, path, and key")
+	}
+
+	// integration (required) - can be ID (number) or name (string)
+	if integrationI, ok := m["integration"]; ok {
+		switch integration := integrationI.(type) {
+		case string:
+			ref.IntegrationName = integration
+		case int:
+			ref.IntegrationID = int64(integration)
+		case int64:
+			ref.IntegrationID = integration
+		case uint64:
+			ref.IntegrationID = int64(integration)
+		case uint:
+			ref.IntegrationID = int64(integration)
+		case float64:
+			ref.IntegrationID = int64(integration)
+		default:
+			return ref, fmt.Errorf("integration must be a string (name) or number (ID)")
+		}
+	} else {
+		return ref, fmt.Errorf("integration is required")
+	}
+
+	// path (required)
+	if pathI, ok := m["path"]; ok {
+		if path, ok := pathI.(string); ok {
+			ref.Path = path
+		} else {
+			return ref, fmt.Errorf("path must be a string")
+		}
+	} else {
+		return ref, fmt.Errorf("path is required")
+	}
+
+	// key (required)
+	if keyI, ok := m["key"]; ok {
+		if key, ok := keyI.(string); ok {
+			ref.Key = key
+		} else {
+			return ref, fmt.Errorf("key must be a string")
+		}
+	} else {
+		return ref, fmt.Errorf("key is required")
+	}
+
+	// version (optional, defaults to 0 = latest)
+	if versionI, ok := m["version"]; ok {
+		switch version := versionI.(type) {
+		case int:
+			ref.Version = version
+		case int64:
+			ref.Version = int(version)
+		case uint64:
+			ref.Version = int(version)
+		case uint:
+			ref.Version = int(version)
+		case float64:
+			ref.Version = int(version)
+		default:
+			return ref, fmt.Errorf("version must be a number")
+		}
+	}
+
+	return ref, nil
 }
 
 // injectSecretRecursive iterates over all types and if they contain elements

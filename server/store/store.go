@@ -229,6 +229,16 @@ type Store interface {
 	AutoscalerDelete(*model.Autoscaler) error
 	AutoscalerUpdateHeartbeat(id int64, activeAgents, pendingAgents int32, version string) error
 
+	// Integrations
+	IntegrationFind(int64) (*model.Integration, error)
+	IntegrationFindByName(userID int64, name string) (*model.Integration, error)
+	IntegrationList(userID int64, opts *model.ListOptions) ([]*model.Integration, error)
+	IntegrationListAll() ([]*model.Integration, error)
+	IntegrationListAccessible(userID int64, orgIDs []int64, repoIDs []int64, opts *model.ListOptions) ([]*model.Integration, error)
+	IntegrationCreate(*model.Integration) error
+	IntegrationUpdate(*model.Integration) error
+	IntegrationDelete(*model.Integration) error
+
 	// Maintenance
 	MaintenanceConfigGet() (*model.MaintenanceConfig, error)
 	MaintenanceConfigUpdate(*model.MaintenanceConfig) error

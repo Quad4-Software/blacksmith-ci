@@ -1,0 +1,307 @@
+// Copyright 2026 Crow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package vault
+
+import (
+	"encoding/json"
+	"errors"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"codeberg.org/crowci/crow/v5/server/integrations"
+	"codeberg.org/crowci/crow/v5/server/model"
+)
+
+func TestNewProvider_InvalidJSON(t *testing.T) {
+	integration := &model.Integration{
+		Type:   model.IntegrationTypeVault,
+		Config: "not json",
+	}
+
+	_, err := NewProvider(integration)
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, integrations.ErrProviderNotConfigured))
+}
+
+func TestNewProvider_WrongType(t *testing.T) {
+	integration := &model.Integration{
+		Type:   "other",
+		Config: `{"address":"https://vault.example.com","role_id":"role","secret_id":"secret"}`,
+	}
+
+	_, err := NewProvider(integration)
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, integrations.ErrProviderNotConfigured))
+}
+
+func TestNewProvider_InvalidTLS(t *testing.T) {
+	tests := []struct {
+		name        string
+		tlsConfig   *model.VaultTLSConfig
+		errContains string
+	}{
+		{
+			name: "invalid ca cert",
+			tlsConfig: &model.VaultTLSConfig{
+				CACert: "not a valid certificate",
+			},
+			errContains: "failed to parse CA certificate",
+		},
+		{
+			name: "invalid client cert pair",
+			tlsConfig: &model.VaultTLSConfig{
+				ClientCert: "not a valid certificate",
+				ClientKey:  "not a valid key",
+			},
+			errContains: "failed to parse client certificate",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config := model.VaultConfig{
+				Address:   "https://vault.example.com",
+				RoleID:    "test-role",
+				SecretID:  "test-secret",
+				MountPath: "secret",
+				AuthPath:  "auth/approle",
+				TLSConfig: tt.tlsConfig,
+			}
+			configJSON, _ := json.Marshal(config)
+
+			integration := &model.Integration{
+				Type:   model.IntegrationTypeVault,
+				Config: string(configJSON),
+			}
+
+			_, err := NewProvider(integration)
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), tt.errContains)
+		})
+	}
+}
+
+func TestBuildTLSConfig(t *testing.T) {
+	t.Run("empty config", func(t *testing.T) {
+		config, err := buildTLSConfig(&model.VaultTLSConfig{})
+		assert.NoError(t, err)
+		assert.NotNil(t, config)
+	})
+
+	t.Run("insecure mode", func(t *testing.T) {
+		tlsConfig := &model.VaultTLSConfig{
+			Insecure: true,
+		}
+		config, err := buildTLSConfig(tlsConfig)
+		assert.NoError(t, err)
+		assert.True(t, config.InsecureSkipVerify)
+	})
+
+	t.Run("server name", func(t *testing.T) {
+		tlsConfig := &model.VaultTLSConfig{
+			TLSServerName: "vault.example.com",
+		}
+		config, err := buildTLSConfig(tlsConfig)
+		assert.NoError(t, err)
+		assert.Equal(t, "vault.example.com", config.ServerName)
+	})
+
+	t.Run("invalid ca cert", func(t *testing.T) {
+		tlsConfig := &model.VaultTLSConfig{
+			CACert: "not a valid certificate",
+		}
+		_, err := buildTLSConfig(tlsConfig)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to parse CA certificate")
+	})
+
+	t.Run("invalid client cert pair", func(t *testing.T) {
+		tlsConfig := &model.VaultTLSConfig{
+			ClientCert: "not a certificate",
+			ClientKey:  "not a key",
+		}
+		_, err := buildTLSConfig(tlsConfig)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to parse client certificate")
+	})
+
+	t.Run("min tls version", func(t *testing.T) {
+		config, err := buildTLSConfig(&model.VaultTLSConfig{})
+		assert.NoError(t, err)
+		// Should require TLS 1.2 minimum (0x0303)
+		assert.Equal(t, uint16(0x0303), config.MinVersion)
+	})
+}
+
+func TestProvider_Type(t *testing.T) {
+	provider := &Provider{}
+	assert.Equal(t, model.IntegrationTypeVault, provider.Type())
+}
+
+func TestNewProviderFunc(t *testing.T) {
+	fn := NewProviderFunc()
+	assert.NotNil(t, fn)
+
+	// Test that the function returns error for invalid config
+	integration := &model.Integration{
+		Type:   model.IntegrationTypeVault,
+		Config: "invalid json",
+	}
+	_, err := fn(integration)
+	assert.Error(t, err)
+}
+
+func TestProvider_Close_NoToken(t *testing.T) {
+	provider := &Provider{
+		integration: &model.Integration{
+			ID:   1,
+			Name: "test",
+		},
+		token: "", // no token
+	}
+
+	// Close should not error when there's no token
+	err := provider.Close()
+	assert.NoError(t, err)
+}
+
+func TestNewSecretRequest(t *testing.T) {
+	ref := &model.ExternalSecretRef{
+		IntegrationID: 1,
+		Path:          "secret/data/test",
+		Key:           "api_key",
+		Version:       5,
+	}
+
+	req := integrations.NewSecretRequest(ref)
+
+	assert.Equal(t, ref.CacheKey(), req.ID)
+	assert.Equal(t, ref.Path, req.Path)
+	assert.Equal(t, ref.Key, req.Key)
+	assert.Equal(t, ref.Version, req.Version)
+}
+
+func TestNewSecretRequest_NoVersion(t *testing.T) {
+	ref := &model.ExternalSecretRef{
+		IntegrationID: 1,
+		Path:          "secret/data/test",
+		Key:           "api_key",
+		Version:       0,
+	}
+
+	req := integrations.NewSecretRequest(ref)
+
+	assert.Equal(t, ref.CacheKey(), req.ID)
+	assert.Equal(t, 0, req.Version)
+}
+
+func TestVaultConfig_WithDefaults(t *testing.T) {
+	config := &model.VaultConfig{
+		Address:  "https://vault.example.com",
+		RoleID:   "role",
+		SecretID: "secret",
+	}
+
+	result := config.WithDefaults()
+
+	assert.Equal(t, "secret", result.MountPath)
+	assert.Equal(t, "auth/approle", result.AuthPath)
+}
+
+func TestExternalSecretRef_Validate(t *testing.T) {
+	tests := []struct {
+		name        string
+		ref         model.ExternalSecretRef
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name: "valid ref",
+			ref: model.ExternalSecretRef{
+				IntegrationID: 1,
+				Path:          "secret/test",
+				Key:           "api_key",
+			},
+			wantErr: false,
+		},
+		{
+			name: "missing integration_id",
+			ref: model.ExternalSecretRef{
+				IntegrationID: 0,
+				Path:          "secret/test",
+				Key:           "api_key",
+			},
+			wantErr:     true,
+			errContains: "integration_id is required",
+		},
+		{
+			name: "missing path",
+			ref: model.ExternalSecretRef{
+				IntegrationID: 1,
+				Path:          "",
+				Key:           "api_key",
+			},
+			wantErr:     true,
+			errContains: "path is required",
+		},
+		{
+			name: "missing key",
+			ref: model.ExternalSecretRef{
+				IntegrationID: 1,
+				Path:          "secret/test",
+				Key:           "",
+			},
+			wantErr:     true,
+			errContains: "key is required",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.ref.Validate()
+			if tt.wantErr {
+				assert.Error(t, err)
+				if tt.errContains != "" {
+					assert.Contains(t, err.Error(), tt.errContains)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestExternalSecretRef_CacheKey(t *testing.T) {
+	t.Run("without version", func(t *testing.T) {
+		ref := &model.ExternalSecretRef{
+			IntegrationID: 1,
+			Path:          "secret/test",
+			Key:           "api_key",
+			Version:       0,
+		}
+		assert.Equal(t, "1:secret/test:api_key", ref.CacheKey())
+	})
+
+	t.Run("with version", func(t *testing.T) {
+		ref := &model.ExternalSecretRef{
+			IntegrationID: 2,
+			Path:          "secret/prod",
+			Key:           "db_password",
+			Version:       5,
+		}
+		assert.Equal(t, "2:secret/prod:db_password:v5", ref.CacheKey())
+	})
+}

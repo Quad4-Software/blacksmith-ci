@@ -5797,6 +5797,492 @@ func (_c *MockStore_HasRedirectionForRepo_Call) RunAndReturn(run func(n int64, s
 	return _c
 }
 
+// IntegrationCreate provides a mock function for the type MockStore
+func (_mock *MockStore) IntegrationCreate(integration *model.Integration) error {
+	ret := _mock.Called(integration)
+
+	if len(ret) == 0 {
+		panic("no return value specified for IntegrationCreate")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(*model.Integration) error); ok {
+		r0 = returnFunc(integration)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_IntegrationCreate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IntegrationCreate'
+type MockStore_IntegrationCreate_Call struct {
+	*mock.Call
+}
+
+// IntegrationCreate is a helper method to define mock.On call
+//   - integration *model.Integration
+func (_e *MockStore_Expecter) IntegrationCreate(integration interface{}) *MockStore_IntegrationCreate_Call {
+	return &MockStore_IntegrationCreate_Call{Call: _e.mock.On("IntegrationCreate", integration)}
+}
+
+func (_c *MockStore_IntegrationCreate_Call) Run(run func(integration *model.Integration)) *MockStore_IntegrationCreate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.Integration
+		if args[0] != nil {
+			arg0 = args[0].(*model.Integration)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_IntegrationCreate_Call) Return(err error) *MockStore_IntegrationCreate_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_IntegrationCreate_Call) RunAndReturn(run func(integration *model.Integration) error) *MockStore_IntegrationCreate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// IntegrationDelete provides a mock function for the type MockStore
+func (_mock *MockStore) IntegrationDelete(integration *model.Integration) error {
+	ret := _mock.Called(integration)
+
+	if len(ret) == 0 {
+		panic("no return value specified for IntegrationDelete")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(*model.Integration) error); ok {
+		r0 = returnFunc(integration)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_IntegrationDelete_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IntegrationDelete'
+type MockStore_IntegrationDelete_Call struct {
+	*mock.Call
+}
+
+// IntegrationDelete is a helper method to define mock.On call
+//   - integration *model.Integration
+func (_e *MockStore_Expecter) IntegrationDelete(integration interface{}) *MockStore_IntegrationDelete_Call {
+	return &MockStore_IntegrationDelete_Call{Call: _e.mock.On("IntegrationDelete", integration)}
+}
+
+func (_c *MockStore_IntegrationDelete_Call) Run(run func(integration *model.Integration)) *MockStore_IntegrationDelete_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.Integration
+		if args[0] != nil {
+			arg0 = args[0].(*model.Integration)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_IntegrationDelete_Call) Return(err error) *MockStore_IntegrationDelete_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_IntegrationDelete_Call) RunAndReturn(run func(integration *model.Integration) error) *MockStore_IntegrationDelete_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// IntegrationFind provides a mock function for the type MockStore
+func (_mock *MockStore) IntegrationFind(n int64) (*model.Integration, error) {
+	ret := _mock.Called(n)
+
+	if len(ret) == 0 {
+		panic("no return value specified for IntegrationFind")
+	}
+
+	var r0 *model.Integration
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64) (*model.Integration, error)); ok {
+		return returnFunc(n)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64) *model.Integration); ok {
+		r0 = returnFunc(n)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.Integration)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64) error); ok {
+		r1 = returnFunc(n)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_IntegrationFind_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IntegrationFind'
+type MockStore_IntegrationFind_Call struct {
+	*mock.Call
+}
+
+// IntegrationFind is a helper method to define mock.On call
+//   - n int64
+func (_e *MockStore_Expecter) IntegrationFind(n interface{}) *MockStore_IntegrationFind_Call {
+	return &MockStore_IntegrationFind_Call{Call: _e.mock.On("IntegrationFind", n)}
+}
+
+func (_c *MockStore_IntegrationFind_Call) Run(run func(n int64)) *MockStore_IntegrationFind_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_IntegrationFind_Call) Return(integration *model.Integration, err error) *MockStore_IntegrationFind_Call {
+	_c.Call.Return(integration, err)
+	return _c
+}
+
+func (_c *MockStore_IntegrationFind_Call) RunAndReturn(run func(n int64) (*model.Integration, error)) *MockStore_IntegrationFind_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// IntegrationFindByName provides a mock function for the type MockStore
+func (_mock *MockStore) IntegrationFindByName(userID int64, name string) (*model.Integration, error) {
+	ret := _mock.Called(userID, name)
+
+	if len(ret) == 0 {
+		panic("no return value specified for IntegrationFindByName")
+	}
+
+	var r0 *model.Integration
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, string) (*model.Integration, error)); ok {
+		return returnFunc(userID, name)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, string) *model.Integration); ok {
+		r0 = returnFunc(userID, name)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.Integration)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, string) error); ok {
+		r1 = returnFunc(userID, name)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_IntegrationFindByName_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IntegrationFindByName'
+type MockStore_IntegrationFindByName_Call struct {
+	*mock.Call
+}
+
+// IntegrationFindByName is a helper method to define mock.On call
+//   - userID int64
+//   - name string
+func (_e *MockStore_Expecter) IntegrationFindByName(userID interface{}, name interface{}) *MockStore_IntegrationFindByName_Call {
+	return &MockStore_IntegrationFindByName_Call{Call: _e.mock.On("IntegrationFindByName", userID, name)}
+}
+
+func (_c *MockStore_IntegrationFindByName_Call) Run(run func(userID int64, name string)) *MockStore_IntegrationFindByName_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_IntegrationFindByName_Call) Return(integration *model.Integration, err error) *MockStore_IntegrationFindByName_Call {
+	_c.Call.Return(integration, err)
+	return _c
+}
+
+func (_c *MockStore_IntegrationFindByName_Call) RunAndReturn(run func(userID int64, name string) (*model.Integration, error)) *MockStore_IntegrationFindByName_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// IntegrationList provides a mock function for the type MockStore
+func (_mock *MockStore) IntegrationList(userID int64, opts *model.ListOptions) ([]*model.Integration, error) {
+	ret := _mock.Called(userID, opts)
+
+	if len(ret) == 0 {
+		panic("no return value specified for IntegrationList")
+	}
+
+	var r0 []*model.Integration
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, *model.ListOptions) ([]*model.Integration, error)); ok {
+		return returnFunc(userID, opts)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, *model.ListOptions) []*model.Integration); ok {
+		r0 = returnFunc(userID, opts)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.Integration)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, *model.ListOptions) error); ok {
+		r1 = returnFunc(userID, opts)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_IntegrationList_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IntegrationList'
+type MockStore_IntegrationList_Call struct {
+	*mock.Call
+}
+
+// IntegrationList is a helper method to define mock.On call
+//   - userID int64
+//   - opts *model.ListOptions
+func (_e *MockStore_Expecter) IntegrationList(userID interface{}, opts interface{}) *MockStore_IntegrationList_Call {
+	return &MockStore_IntegrationList_Call{Call: _e.mock.On("IntegrationList", userID, opts)}
+}
+
+func (_c *MockStore_IntegrationList_Call) Run(run func(userID int64, opts *model.ListOptions)) *MockStore_IntegrationList_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 *model.ListOptions
+		if args[1] != nil {
+			arg1 = args[1].(*model.ListOptions)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_IntegrationList_Call) Return(integrations []*model.Integration, err error) *MockStore_IntegrationList_Call {
+	_c.Call.Return(integrations, err)
+	return _c
+}
+
+func (_c *MockStore_IntegrationList_Call) RunAndReturn(run func(userID int64, opts *model.ListOptions) ([]*model.Integration, error)) *MockStore_IntegrationList_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// IntegrationListAccessible provides a mock function for the type MockStore
+func (_mock *MockStore) IntegrationListAccessible(userID int64, orgIDs []int64, repoIDs []int64, opts *model.ListOptions) ([]*model.Integration, error) {
+	ret := _mock.Called(userID, orgIDs, repoIDs, opts)
+
+	if len(ret) == 0 {
+		panic("no return value specified for IntegrationListAccessible")
+	}
+
+	var r0 []*model.Integration
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, []int64, []int64, *model.ListOptions) ([]*model.Integration, error)); ok {
+		return returnFunc(userID, orgIDs, repoIDs, opts)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, []int64, []int64, *model.ListOptions) []*model.Integration); ok {
+		r0 = returnFunc(userID, orgIDs, repoIDs, opts)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.Integration)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, []int64, []int64, *model.ListOptions) error); ok {
+		r1 = returnFunc(userID, orgIDs, repoIDs, opts)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_IntegrationListAccessible_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IntegrationListAccessible'
+type MockStore_IntegrationListAccessible_Call struct {
+	*mock.Call
+}
+
+// IntegrationListAccessible is a helper method to define mock.On call
+//   - userID int64
+//   - orgIDs []int64
+//   - repoIDs []int64
+//   - opts *model.ListOptions
+func (_e *MockStore_Expecter) IntegrationListAccessible(userID interface{}, orgIDs interface{}, repoIDs interface{}, opts interface{}) *MockStore_IntegrationListAccessible_Call {
+	return &MockStore_IntegrationListAccessible_Call{Call: _e.mock.On("IntegrationListAccessible", userID, orgIDs, repoIDs, opts)}
+}
+
+func (_c *MockStore_IntegrationListAccessible_Call) Run(run func(userID int64, orgIDs []int64, repoIDs []int64, opts *model.ListOptions)) *MockStore_IntegrationListAccessible_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 []int64
+		if args[1] != nil {
+			arg1 = args[1].([]int64)
+		}
+		var arg2 []int64
+		if args[2] != nil {
+			arg2 = args[2].([]int64)
+		}
+		var arg3 *model.ListOptions
+		if args[3] != nil {
+			arg3 = args[3].(*model.ListOptions)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_IntegrationListAccessible_Call) Return(integrations []*model.Integration, err error) *MockStore_IntegrationListAccessible_Call {
+	_c.Call.Return(integrations, err)
+	return _c
+}
+
+func (_c *MockStore_IntegrationListAccessible_Call) RunAndReturn(run func(userID int64, orgIDs []int64, repoIDs []int64, opts *model.ListOptions) ([]*model.Integration, error)) *MockStore_IntegrationListAccessible_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// IntegrationListAll provides a mock function for the type MockStore
+func (_mock *MockStore) IntegrationListAll() ([]*model.Integration, error) {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for IntegrationListAll")
+	}
+
+	var r0 []*model.Integration
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func() ([]*model.Integration, error)); ok {
+		return returnFunc()
+	}
+	if returnFunc, ok := ret.Get(0).(func() []*model.Integration); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.Integration)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func() error); ok {
+		r1 = returnFunc()
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_IntegrationListAll_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IntegrationListAll'
+type MockStore_IntegrationListAll_Call struct {
+	*mock.Call
+}
+
+// IntegrationListAll is a helper method to define mock.On call
+func (_e *MockStore_Expecter) IntegrationListAll() *MockStore_IntegrationListAll_Call {
+	return &MockStore_IntegrationListAll_Call{Call: _e.mock.On("IntegrationListAll")}
+}
+
+func (_c *MockStore_IntegrationListAll_Call) Run(run func()) *MockStore_IntegrationListAll_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockStore_IntegrationListAll_Call) Return(integrations []*model.Integration, err error) *MockStore_IntegrationListAll_Call {
+	_c.Call.Return(integrations, err)
+	return _c
+}
+
+func (_c *MockStore_IntegrationListAll_Call) RunAndReturn(run func() ([]*model.Integration, error)) *MockStore_IntegrationListAll_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// IntegrationUpdate provides a mock function for the type MockStore
+func (_mock *MockStore) IntegrationUpdate(integration *model.Integration) error {
+	ret := _mock.Called(integration)
+
+	if len(ret) == 0 {
+		panic("no return value specified for IntegrationUpdate")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(*model.Integration) error); ok {
+		r0 = returnFunc(integration)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_IntegrationUpdate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IntegrationUpdate'
+type MockStore_IntegrationUpdate_Call struct {
+	*mock.Call
+}
+
+// IntegrationUpdate is a helper method to define mock.On call
+//   - integration *model.Integration
+func (_e *MockStore_Expecter) IntegrationUpdate(integration interface{}) *MockStore_IntegrationUpdate_Call {
+	return &MockStore_IntegrationUpdate_Call{Call: _e.mock.On("IntegrationUpdate", integration)}
+}
+
+func (_c *MockStore_IntegrationUpdate_Call) Run(run func(integration *model.Integration)) *MockStore_IntegrationUpdate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.Integration
+		if args[0] != nil {
+			arg0 = args[0].(*model.Integration)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_IntegrationUpdate_Call) Return(err error) *MockStore_IntegrationUpdate_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_IntegrationUpdate_Call) RunAndReturn(run func(integration *model.Integration) error) *MockStore_IntegrationUpdate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // LogAppend provides a mock function for the type MockStore
 func (_mock *MockStore) LogAppend(step *model.Step, logEntrys []*model.LogEntry) error {
 	ret := _mock.Called(step, logEntrys)

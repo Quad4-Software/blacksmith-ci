@@ -17,6 +17,7 @@
 package stepbuilder
 
 import (
+	"context"
 	"fmt"
 	"maps"
 	"path/filepath"
@@ -35,6 +36,7 @@ import (
 	"codeberg.org/crowci/crow/v5/pipeline/frontend/metadata"
 	"codeberg.org/crowci/crow/v5/pipeline/frontend/yaml"
 	"codeberg.org/crowci/crow/v5/pipeline/frontend/yaml/compiler"
+	"codeberg.org/crowci/crow/v5/pipeline/frontend/yaml/compiler/settings"
 	"codeberg.org/crowci/crow/v5/pipeline/frontend/yaml/linter"
 	"codeberg.org/crowci/crow/v5/pipeline/frontend/yaml/matrix"
 	yaml_types "codeberg.org/crowci/crow/v5/pipeline/frontend/yaml/types"
@@ -45,18 +47,19 @@ import (
 
 // StepBuilder Takes the hook data and the yaml and returns in internal data model.
 type StepBuilder struct {
-	Repo          *model.Repo
-	Curr          *model.Pipeline
-	Prev          *model.Pipeline
-	Netrc         *model.Netrc
-	Secs          []*model.Secret
-	Regs          []*model.Registry
-	Host          string
-	Yamls         []*forge_types.FileMeta
-	Envs          map[string]string
-	Forge         metadata.ServerForge
-	DefaultLabels map[string]string
-	ProxyOpts     compiler.ProxyOptions
+	Repo                  *model.Repo
+	Curr                  *model.Pipeline
+	Prev                  *model.Pipeline
+	Netrc                 *model.Netrc
+	Secs                  []*model.Secret
+	Regs                  []*model.Registry
+	Host                  string
+	Yamls                 []*forge_types.FileMeta
+	Envs                  map[string]string
+	Forge                 metadata.ServerForge
+	DefaultLabels         map[string]string
+	ProxyOpts             compiler.ProxyOptions
+	ExternalSecretFetcher settings.ExternalSecretFetcher
 }
 
 type Item struct {
@@ -334,7 +337,24 @@ func (b *StepBuilder) environmentVariables(metadata metadata.Metadata, axis matr
 }
 
 func (b *StepBuilder) toInternalRepresentation(parsed *yaml_types.Workflow, environ map[string]string, metadata metadata.Metadata, workflowID int64, fileName string) (*backend_types.Config, error) {
+	// Handle external secrets if fetcher is configured
+	externalSecrets, err := b.injectExternalSecrets(parsed)
+	if err != nil {
+		return nil, pipeline_errors.NewCompilerError(
+			fmt.Sprintf("### External Secrets Error\n\n%v", err),
+			fileName, "",
+		)
+	}
+
 	var secrets []compiler.Secret
+
+	// Add external secrets first so they get masked in logs
+	for _, value := range externalSecrets {
+		secrets = append(secrets, compiler.Secret{
+			Name:  "external", // Name doesn't matter for masking, only value
+			Value: value,
+		})
+	}
 	for _, sec := range b.Secs {
 		var events []string
 		for _, event := range sec.Events {
@@ -393,6 +413,127 @@ func (b *StepBuilder) toInternalRepresentation(parsed *yaml_types.Workflow, envi
 		compiler.WithContainerNameScheme(server.Config.Pipeline.ContainerNameScheme),
 		compiler.WithOrgID(b.Repo.OrgID),
 	).Compile(parsed)
+}
+
+// injectExternalSecrets collects and injects external secrets into the workflow.
+// This is called before compilation to replace from_secret object references with actual values.
+// Returns a map of fetched secret values for log masking purposes.
+func (b *StepBuilder) injectExternalSecrets(workflow *yaml_types.Workflow) (map[string]string, error) {
+	if b.ExternalSecretFetcher == nil {
+		// No fetcher configured, external secrets not supported
+		return nil, nil
+	}
+
+	// Collect all external secret references from all steps
+	collected := settings.CollectedExternalSecrets{
+		Refs:      make([]settings.ExternalSecretRef, 0),
+		RefsByKey: make(map[string]settings.ExternalSecretRef),
+	}
+
+	// Scan all step containers
+	for _, container := range workflow.Steps.ContainerList {
+		b.collectFromMap(container.Settings, &collected)
+		b.collectFromMap(container.Environment, &collected)
+	}
+
+	// Scan clone containers
+	for _, container := range workflow.Clone.ContainerList {
+		b.collectFromMap(container.Settings, &collected)
+		b.collectFromMap(container.Environment, &collected)
+	}
+
+	// Scan service containers
+	for _, container := range workflow.Services.ContainerList {
+		b.collectFromMap(container.Settings, &collected)
+		b.collectFromMap(container.Environment, &collected)
+	}
+
+	// If no external secrets found, nothing to do
+	if len(collected.Refs) == 0 {
+		return nil, nil
+	}
+
+	log.Debug().
+		Int("count", len(collected.Refs)).
+		Int64("pipeline_id", b.Curr.ID).
+		Msg("Found external secret references")
+
+	// Fetch all external secrets
+	ctx := context.Background()
+	fetched, err := settings.FetchExternalSecrets(ctx, &collected, b.ExternalSecretFetcher)
+	if err != nil {
+		return nil, err
+	}
+
+	// Inject fetched secrets back into the workflow
+	for _, container := range workflow.Steps.ContainerList {
+		if err := b.injectIntoMap(container.Settings, fetched); err != nil {
+			return nil, err
+		}
+		if err := b.injectIntoMap(container.Environment, fetched); err != nil {
+			return nil, err
+		}
+	}
+
+	for _, container := range workflow.Clone.ContainerList {
+		if err := b.injectIntoMap(container.Settings, fetched); err != nil {
+			return nil, err
+		}
+		if err := b.injectIntoMap(container.Environment, fetched); err != nil {
+			return nil, err
+		}
+	}
+
+	for _, container := range workflow.Services.ContainerList {
+		if err := b.injectIntoMap(container.Settings, fetched); err != nil {
+			return nil, err
+		}
+		if err := b.injectIntoMap(container.Environment, fetched); err != nil {
+			return nil, err
+		}
+	}
+
+	log.Debug().
+		Int("injected", len(fetched.Secrets)).
+		Int64("pipeline_id", b.Curr.ID).
+		Msg("Injected external secrets")
+
+	// Return the fetched secrets for log masking
+	return fetched.Secrets, nil
+}
+
+// collectFromMap collects external secret references from a map.
+func (b *StepBuilder) collectFromMap(m map[string]any, collected *settings.CollectedExternalSecrets) {
+	if m == nil {
+		return
+	}
+
+	for _, v := range m {
+		c := settings.CollectExternalSecrets(v)
+		for key, ref := range c.RefsByKey {
+			if _, exists := collected.RefsByKey[key]; !exists {
+				collected.RefsByKey[key] = ref
+				collected.Refs = append(collected.Refs, ref)
+			}
+		}
+	}
+}
+
+// injectIntoMap injects fetched external secrets into a map.
+func (b *StepBuilder) injectIntoMap(m map[string]any, fetched *settings.FetchedExternalSecrets) error {
+	if m == nil {
+		return nil
+	}
+
+	for k, v := range m {
+		injected, err := settings.InjectExternalSecrets(v, fetched)
+		if err != nil {
+			return err
+		}
+		m[k] = injected
+	}
+
+	return nil
 }
 
 func SanitizePath(path string) string {

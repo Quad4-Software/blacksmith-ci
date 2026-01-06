@@ -341,3 +341,182 @@ func TestSecretMappingComplexMapWithSecrets(t *testing.T) {
 	assert.Equal(t, expectedJSON, secretMapping["PLUGIN_CONFIG"])
 	assert.NotContains(t, secretMapping, "PLUGIN_SIMPLE_VAR")
 }
+
+func TestParseExternalSecretRef(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       any
+		wantErr     bool
+		errContains string
+		checkRef    func(t *testing.T, ref ExternalSecretRef)
+	}{
+		{
+			name: "valid ref with all fields (ID)",
+			input: map[string]any{
+				"integration": int64(1),
+				"path":        "secret/data/test",
+				"key":         "api_key",
+				"version":     5,
+			},
+			wantErr: false,
+			checkRef: func(t *testing.T, ref ExternalSecretRef) {
+				assert.Equal(t, int64(1), ref.IntegrationID)
+				assert.Empty(t, ref.IntegrationName)
+				assert.Equal(t, "secret/data/test", ref.Path)
+				assert.Equal(t, "api_key", ref.Key)
+				assert.Equal(t, 5, ref.Version)
+			},
+		},
+		{
+			name: "valid ref with name",
+			input: map[string]any{
+				"integration": "vault-prod",
+				"path":        "secret/data/test",
+				"key":         "api_key",
+			},
+			wantErr: false,
+			checkRef: func(t *testing.T, ref ExternalSecretRef) {
+				assert.Equal(t, int64(0), ref.IntegrationID)
+				assert.Equal(t, "vault-prod", ref.IntegrationName)
+				assert.Equal(t, "secret/data/test", ref.Path)
+				assert.Equal(t, "api_key", ref.Key)
+			},
+		},
+		{
+			name: "valid ref without version",
+			input: map[string]any{
+				"integration": int64(2),
+				"path":        "secret/prod",
+				"key":         "db_password",
+			},
+			wantErr: false,
+			checkRef: func(t *testing.T, ref ExternalSecretRef) {
+				assert.Equal(t, int64(2), ref.IntegrationID)
+				assert.Equal(t, 0, ref.Version) // default
+			},
+		},
+		{
+			name: "integration as int",
+			input: map[string]any{
+				"integration": 3,
+				"path":        "secret/test",
+				"key":         "key",
+			},
+			wantErr: false,
+			checkRef: func(t *testing.T, ref ExternalSecretRef) {
+				assert.Equal(t, int64(3), ref.IntegrationID)
+			},
+		},
+		{
+			name: "integration as uint64",
+			input: map[string]any{
+				"integration": uint64(4),
+				"path":        "secret/test",
+				"key":         "key",
+			},
+			wantErr: false,
+			checkRef: func(t *testing.T, ref ExternalSecretRef) {
+				assert.Equal(t, int64(4), ref.IntegrationID)
+			},
+		},
+		{
+			name: "integration as float64",
+			input: map[string]any{
+				"integration": float64(5),
+				"path":        "secret/test",
+				"key":         "key",
+			},
+			wantErr: false,
+			checkRef: func(t *testing.T, ref ExternalSecretRef) {
+				assert.Equal(t, int64(5), ref.IntegrationID)
+			},
+		},
+		{
+			name:        "not a map",
+			input:       "string_value",
+			wantErr:     true,
+			errContains: "must be an object",
+		},
+		{
+			name: "missing integration",
+			input: map[string]any{
+				"path": "secret/test",
+				"key":  "key",
+			},
+			wantErr:     true,
+			errContains: "integration is required",
+		},
+		{
+			name: "invalid integration type",
+			input: map[string]any{
+				"integration": []string{"invalid"},
+				"path":        "secret/test",
+				"key":         "key",
+			},
+			wantErr:     true,
+			errContains: "integration must be a string (name) or number (ID)",
+		},
+		{
+			name: "missing path",
+			input: map[string]any{
+				"integration": 1,
+				"key":         "key",
+			},
+			wantErr:     true,
+			errContains: "path is required",
+		},
+		{
+			name: "missing key",
+			input: map[string]any{
+				"integration": 1,
+				"path":        "secret/test",
+			},
+			wantErr:     true,
+			errContains: "key is required",
+		},
+		{
+			name: "version as float64",
+			input: map[string]any{
+				"integration": 1,
+				"path":        "secret/test",
+				"key":         "key",
+				"version":     float64(10),
+			},
+			wantErr: false,
+			checkRef: func(t *testing.T, ref ExternalSecretRef) {
+				assert.Equal(t, 10, ref.Version)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ref, err := parseExternalSecretRef(tt.input)
+			if tt.wantErr {
+				assert.Error(t, err)
+				if tt.errContains != "" {
+					assert.Contains(t, err.Error(), tt.errContains)
+				}
+			} else {
+				assert.NoError(t, err)
+				if tt.checkRef != nil {
+					tt.checkRef(t, ref)
+				}
+			}
+		})
+	}
+}
+
+func TestExternalSecretRef_Struct(t *testing.T) {
+	ref := ExternalSecretRef{
+		IntegrationID: 1,
+		Path:          "secret/test",
+		Key:           "api_key",
+		Version:       5,
+	}
+
+	assert.Equal(t, int64(1), ref.IntegrationID)
+	assert.Equal(t, "secret/test", ref.Path)
+	assert.Equal(t, "api_key", ref.Key)
+	assert.Equal(t, 5, ref.Version)
+}

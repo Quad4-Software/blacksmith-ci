@@ -92,6 +92,7 @@ var migrationTasks = []*xormigrate.Migration{
 	&addAccessTokens,
 	&addAgentPersistentID,
 	&crowAddDeployTeamToRepos,
+	&crowAddIntegrations,
 }
 
 var allBeans = []any{
@@ -121,6 +122,7 @@ var allBeans = []any{
 	new(model.CacheEntry),
 	new(model.Autoscaler),
 	new(model.AccessToken),
+	new(model.Integration),
 }
 
 // TODO: make xormigrate context aware

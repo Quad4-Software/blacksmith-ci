@@ -22,7 +22,8 @@
       "request": "launch",
       "mode": "debug",
       "program": "${workspaceFolder}/cmd/agent/",
-      "cwd": "${workspaceFolder}"
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "wait-for-server"
     },
     {
       "name": "Go: current file",

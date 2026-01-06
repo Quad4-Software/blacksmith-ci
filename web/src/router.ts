@@ -252,6 +252,12 @@ const routes: RouteRecordRaw[] = [
         props: true,
       },
       {
+        path: 'integrations',
+        name: 'user-integrations',
+        component: (): Component => import('~/views/user/UserIntegrations.vue'),
+        props: true,
+      },
+      {
         path: 'info',
         name: 'user-info',
         redirect: { name: 'user' },

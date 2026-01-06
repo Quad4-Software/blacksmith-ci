@@ -15,8 +15,10 @@
 package api
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
@@ -81,4 +83,58 @@ func pipelineDeleteAllowed(pl *model.Pipeline) bool {
 	}
 
 	return true
+}
+
+// mergeIntegrationConfig merges new config with old config, preserving sensitive
+// fields that were redacted in the API response.
+func mergeIntegrationConfig(integrationType model.IntegrationType, oldConfig, newConfig string) (string, error) {
+	switch integrationType {
+	case model.IntegrationTypeVault:
+		return mergeVaultConfig(oldConfig, newConfig)
+	default:
+		return newConfig, nil
+	}
+}
+
+// mergeVaultConfig preserves sensitive fields from old config when they appear redacted in new config.
+func mergeVaultConfig(oldConfig, newConfig string) (string, error) {
+	var oldCfg, newCfg model.VaultConfig
+
+	if err := json.Unmarshal([]byte(oldConfig), &oldCfg); err != nil {
+		return newConfig, nil // If old config is invalid, just use new config
+	}
+
+	if err := json.Unmarshal([]byte(newConfig), &newCfg); err != nil {
+		return "", err
+	}
+
+	// Preserve secret_id if the new value is the redacted placeholder
+	if newCfg.SecretID == "***" || newCfg.SecretID == "" {
+		newCfg.SecretID = oldCfg.SecretID
+	}
+
+	// Preserve role_id if it appears to be abbreviated (contains "...")
+	if strings.Contains(newCfg.RoleID, "...") || newCfg.RoleID == "" {
+		newCfg.RoleID = oldCfg.RoleID
+	}
+
+	// Preserve TLS sensitive fields if redacted
+	if newCfg.TLSConfig != nil && oldCfg.TLSConfig != nil {
+		if newCfg.TLSConfig.ClientKey == "***" || newCfg.TLSConfig.ClientKey == "" {
+			newCfg.TLSConfig.ClientKey = oldCfg.TLSConfig.ClientKey
+		}
+		if newCfg.TLSConfig.CACert == "[certificate present]" {
+			newCfg.TLSConfig.CACert = oldCfg.TLSConfig.CACert
+		}
+		if newCfg.TLSConfig.ClientCert == "[certificate present]" {
+			newCfg.TLSConfig.ClientCert = oldCfg.TLSConfig.ClientCert
+		}
+	}
+
+	merged, err := json.Marshal(newCfg)
+	if err != nil {
+		return "", err
+	}
+
+	return string(merged), nil
 }

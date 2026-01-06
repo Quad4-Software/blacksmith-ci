@@ -23,6 +23,7 @@ import (
 
 	pipeline_errors "codeberg.org/crowci/crow/v5/pipeline/errors"
 	"codeberg.org/crowci/crow/v5/pipeline/frontend/yaml/compiler"
+	"codeberg.org/crowci/crow/v5/pipeline/frontend/yaml/compiler/settings"
 	"codeberg.org/crowci/crow/v5/server"
 	"codeberg.org/crowci/crow/v5/server/forge"
 	forge_types "codeberg.org/crowci/crow/v5/server/forge/types"
@@ -71,18 +72,34 @@ func parsePipeline(forge forge.Forge, store store.Store, currentPipeline *model.
 		envs[k] = v
 	}
 
+	// Create external secret fetcher for vault/external secrets
+	var externalSecretFetcher settings.ExternalSecretFetcher
+	if integrationSvc := server.Config.Services.IntegrationService; integrationSvc != nil {
+		externalSecretFetcher = func(ctx context.Context, ref settings.ExternalSecretRef) (string, error) {
+			// Convert settings ref to model ref
+			modelRef := &model.ExternalSecretRef{
+				IntegrationID: ref.IntegrationID,
+				Path:          ref.Path,
+				Key:           ref.Key,
+				Version:       ref.Version,
+			}
+			return integrationSvc.FetchSecret(ctx, modelRef, user.ID, repo.OrgID, repo.ID, currentPipeline.ID)
+		}
+	}
+
 	b := stepbuilder.StepBuilder{
-		Repo:          repo,
-		Curr:          currentPipeline,
-		Prev:          prev,
-		Netrc:         netrc,
-		Secs:          secs,
-		Regs:          regs,
-		Envs:          envs,
-		Host:          server.Config.Server.Host,
-		Yamls:         yamls,
-		Forge:         forge,
-		DefaultLabels: server.Config.Pipeline.DefaultWorkflowLabels,
+		Repo:                  repo,
+		Curr:                  currentPipeline,
+		Prev:                  prev,
+		Netrc:                 netrc,
+		Secs:                  secs,
+		Regs:                  regs,
+		Envs:                  envs,
+		Host:                  server.Config.Server.Host,
+		Yamls:                 yamls,
+		Forge:                 forge,
+		DefaultLabels:         server.Config.Pipeline.DefaultWorkflowLabels,
+		ExternalSecretFetcher: externalSecretFetcher,
 		ProxyOpts: compiler.ProxyOptions{
 			NoProxy:    server.Config.Pipeline.Proxy.No,
 			HTTPProxy:  server.Config.Pipeline.Proxy.HTTP,
@@ -96,7 +113,7 @@ func createPipelineItems(c context.Context, forge forge.Forge, store store.Store
 	currentPipeline *model.Pipeline, user *model.User, repo *model.Repo,
 	yamls []*forge_types.FileMeta, envs map[string]string,
 ) (*model.Pipeline, []*stepbuilder.Item, error) {
-	pipelineItems, err := parsePipeline(forge, store, currentPipeline, user, repo, yamls, envs)
+	pipelineItems, err := parsePipeline(forge, store, currentPipeline, user, repo, yamls, envs) //nolint:contextcheck
 	if pipeline_errors.HasBlockingErrors(err) {
 		currentPipeline, uErr := UpdateToStatusError(store, *currentPipeline, err)
 		if uErr != nil {

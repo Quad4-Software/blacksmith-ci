@@ -877,3 +877,37 @@ func (c *CompositeEncryptedStore) CacheDelete(key string) error {
 func (c *CompositeEncryptedStore) CacheCleanupExpired(cutoff int64) error {
 	return c.baseStore.CacheCleanupExpired(cutoff)
 }
+
+// Integration operations - pass through to base store.
+// Note: Integration configs should be encrypted at the application layer if needed.
+func (c *CompositeEncryptedStore) IntegrationFind(id int64) (*model.Integration, error) {
+	return c.baseStore.IntegrationFind(id)
+}
+
+func (c *CompositeEncryptedStore) IntegrationFindByName(userID int64, name string) (*model.Integration, error) {
+	return c.baseStore.IntegrationFindByName(userID, name)
+}
+
+func (c *CompositeEncryptedStore) IntegrationList(userID int64, opts *model.ListOptions) ([]*model.Integration, error) {
+	return c.baseStore.IntegrationList(userID, opts)
+}
+
+func (c *CompositeEncryptedStore) IntegrationListAll() ([]*model.Integration, error) {
+	return c.baseStore.IntegrationListAll()
+}
+
+func (c *CompositeEncryptedStore) IntegrationListAccessible(userID int64, orgIDs []int64, repoIDs []int64, opts *model.ListOptions) ([]*model.Integration, error) {
+	return c.baseStore.IntegrationListAccessible(userID, orgIDs, repoIDs, opts)
+}
+
+func (c *CompositeEncryptedStore) IntegrationCreate(integration *model.Integration) error {
+	return c.baseStore.IntegrationCreate(integration)
+}
+
+func (c *CompositeEncryptedStore) IntegrationUpdate(integration *model.Integration) error {
+	return c.baseStore.IntegrationUpdate(integration)
+}
+
+func (c *CompositeEncryptedStore) IntegrationDelete(integration *model.Integration) error {
+	return c.baseStore.IntegrationDelete(integration)
+}

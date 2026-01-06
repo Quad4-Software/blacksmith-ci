@@ -21,11 +21,11 @@ Crow CI is a _Continuous Integration & Continuous Delivery_ (CI/CD) application.
 - [x] OAuth2 support
 - [x] Extension/Plugin system
 - [x] Integrated secret storage
+- [x] External secret store integration
 
 Planned:
 
 - [ ] Multi-forge Login support
-- [ ] External secret store integration
 - [ ] Shared pipeline configs
 
 ## Why self-host CI/CD?
@@ -90,6 +90,7 @@ In fact, Crow welcomes any improvements that are ported to Woodpecker and aims f
 As of 2025-12, the following unique features exist in Crow:
 
 - Log retention: Each repository can define its own retention policy. A global default of 90 days is used
+- External secret store integration
 - DAG support
 - Server can run in HA with leader election
 - Maintenance panel to perform period cleanup operations on the database and leftover Kubernetes resources

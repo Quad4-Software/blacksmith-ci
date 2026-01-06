@@ -4,6 +4,7 @@ export * from './autoscaler';
 export * from './cron';
 export * from './entity';
 export * from './forge';
+export * from './integration';
 export * from './maintenance';
 export * from './metrics';
 export * from './org';
