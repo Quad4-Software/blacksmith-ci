@@ -324,9 +324,8 @@ function toggleMultiselectMode() {
 const forge = ref<Forge>();
 
 // Map forge types to local icon names (same logic as RepoItem)
-function getForgeIconName(_f: Forge): IconNames {
-  // TEMP: Hardcoded for inspection
-  return 'gitea';
+function getForgeIconName(f: Forge): IconNames {
+  return f.type as IconNames;
 }
 
 const forgeIcon = computed<IconNames>(() => {

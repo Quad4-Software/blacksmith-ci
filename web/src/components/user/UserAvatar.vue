@@ -112,9 +112,8 @@ async function handleOpenChange(open: boolean) {
 }
 
 // Map forge types to local icon names (same logic as RepoItem)
-function getForgeIconName(_forge: Forge): IconNames {
-  // TEMP: Hardcoded for inspection
-  return 'gitea';
+function getForgeIconName(forge: Forge): IconNames {
+  return forge.type as IconNames;
 }
 
 const sizeClass = computed(() => {

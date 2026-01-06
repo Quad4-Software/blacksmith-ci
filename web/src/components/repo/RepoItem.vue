@@ -209,9 +209,8 @@ const { getForgeById } = useForges();
 const forge = computed(() => getForgeById(props.repo.forge_id));
 
 // Map forge types to local icon names
-function getForgeIconName(_forge: Forge): IconNames {
-  // TEMP: Hardcoded for inspection
-  return 'gitea';
+function getForgeIconName(forge: Forge): IconNames {
+  return forge.type as IconNames;
 }
 
 async function toggleRepoActive(checked: boolean) {
