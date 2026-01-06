@@ -6,18 +6,24 @@
 
     <template #headerActions>
       <div class="flex items-center gap-3 flex-wrap">
-        <Button v-if="selectedRegistry" size="sm" @click="selectedRegistry = undefined">
-          <Icon name="back" class="mr-2 h-4 w-4" />
-          {{ $t('back') }}
-        </Button>
-        <Button v-else size="sm" @click="showAddRegistry">
-          <Icon name="plus" class="mr-2 h-4 w-4" />
-          {{ $t('registries.add') }}
-        </Button>
+        <RegistryDialog
+          v-model:open="isDialogOpen"
+          :registry="selectedRegistry"
+          :is-saving="isSaving"
+          @save="createRegistry"
+          @cancel="handleDialogClose"
+        >
+          <template #trigger>
+            <Button size="sm" @click="showAddRegistry">
+              <Icon name="plus" class="mr-2 h-4 w-4" />
+              {{ $t('registries.add') }}
+            </Button>
+          </template>
+        </RegistryDialog>
       </div>
     </template>
 
-    <div v-if="!selectedRegistry" class="max-w-5xl mx-auto space-y-4">
+    <div class="max-w-5xl mx-auto space-y-4">
       <RegistryListGrouped
         :registries="registries"
         :is-deleting="isDeleting"
@@ -25,15 +31,6 @@
         @edit="editRegistry"
         @delete="deleteRegistry"
         @update:search-term="searchTerm = $event"
-      />
-    </div>
-
-    <div v-else class="max-w-3xl">
-      <RegistryEdit
-        v-model="selectedRegistry"
-        :is-saving="isSaving"
-        @save="createRegistry"
-        @cancel="selectedRegistry = undefined"
       />
     </div>
   </Scaffold>
@@ -46,7 +43,7 @@ import { useI18n } from 'vue-i18n';
 
 import Icon from '~/components/atomic/Icon.vue';
 import Scaffold from '~/components/layout/scaffold/Scaffold.vue';
-import RegistryEdit from '~/components/registry/RegistryEdit.vue';
+import RegistryDialog from '~/components/registry/RegistryDialog.vue';
 import RegistryListGrouped from '~/components/registry/RegistryListGrouped.vue';
 import { Button } from '~/components/ui/button';
 import useApiClient from '~/compositions/useApiClient';
@@ -70,64 +67,69 @@ const { t } = useI18n();
 const { user } = useAuthentication();
 
 const searchTerm = ref('');
-
+const isDialogOpen = ref(false);
 const selectedRegistry = ref<Partial<RegistryWithOrg>>();
-const isEditingRegistry = computed(() => !!selectedRegistry.value?.id);
 
 async function loadRegistries(page: number) {
   return apiClient.getUserRegistryList({
-    scope: 'user,org',
+    scope: 'user,org,global',
     search: searchTerm.value,
     page,
   });
 }
 
-const { resetPage, data: registries } = usePagination(loadRegistries, () => !selectedRegistry.value);
+const { resetPage, data: registries } = usePagination(loadRegistries, () => true);
 
 // Reload when search changes
 watch(searchTerm, async () => {
   await resetPage();
 });
 
-const { doSubmit: createRegistry, isLoading: isSaving } = useAsyncAction(async () => {
-  if (!selectedRegistry.value || !user) {
-    throw new Error("Unexpected: Can't get registry or user");
-  }
-
-  // Determine target org based on scope
-  let targetOrgId = user.org_id;
-  if (selectedRegistry.value.scope_type === 'global') {
-    // Use global endpoint
-    if (isEditingRegistry.value) {
-      await apiClient.updateGlobalRegistry(selectedRegistry.value);
-    } else {
-      await apiClient.createGlobalRegistry(selectedRegistry.value);
+const { doSubmit: createRegistry, isLoading: isSaving } = useAsyncAction(
+  async (registryData: Partial<RegistryWithOrg>) => {
+    if (!registryData || !user) {
+      throw new Error("Unexpected: Can't get registry or user");
     }
-  } else if (selectedRegistry.value.scope_type === 'org' && selectedRegistry.value.org_id) {
-    targetOrgId = selectedRegistry.value.org_id;
-    if (isEditingRegistry.value) {
-      await apiClient.updateOrgRegistry(targetOrgId, selectedRegistry.value);
-    } else {
-      await apiClient.createOrgRegistry(targetOrgId, selectedRegistry.value);
-    }
-  } else {
-    // User/personal org
-    if (isEditingRegistry.value) {
-      await apiClient.updateOrgRegistry(targetOrgId, selectedRegistry.value);
-    } else {
-      await apiClient.createOrgRegistry(targetOrgId, selectedRegistry.value);
-    }
-  }
 
-  notifications.notify({
-    title: t('notify_title_success'),
-    text: isEditingRegistry.value ? t('registries.notify_text_saved') : t('registries.notify_text_created'),
-    type: 'success',
-  });
+    const registry = registryData;
+    const isEditing = !!registry.id;
 
-  selectedRegistry.value = undefined;
-  await resetPage();
-});
+    // Determine target org based on scope
+    let targetOrgId = user.org_id;
+    if (registry.scope_type === 'global') {
+      // Use global endpoint
+      if (isEditing) {
+        await apiClient.updateGlobalRegistry(registry);
+      } else {
+        await apiClient.createGlobalRegistry(registry);
+      }
+    } else if (registry.scope_type === 'org' && registry.org_id) {
+      targetOrgId = registry.org_id;
+      if (isEditing) {
+        await apiClient.updateOrgRegistry(targetOrgId, registry);
+      } else {
+        await apiClient.createOrgRegistry(targetOrgId, registry);
+      }
+    } else {
+      // User/personal org
+      if (isEditing) {
+        await apiClient.updateOrgRegistry(targetOrgId, registry);
+      } else {
+        await apiClient.createOrgRegistry(targetOrgId, registry);
+      }
+    }
+
+    notifications.notify({
+      title: t('notify_title_success'),
+      text: isEditing ? t('registries.notify_text_saved') : t('registries.notify_text_created'),
+      type: 'success',
+    });
+
+    isDialogOpen.value = false;
+    selectedRegistry.value = undefined;
+    await resetPage();
+  },
+);
 
 const { doSubmit: deleteRegistry, isLoading: isDeleting } = useAsyncAction(async (registry: RegistryWithOrg) => {
   if (!user) {
@@ -152,10 +154,17 @@ const { doSubmit: deleteRegistry, isLoading: isDeleting } = useAsyncAction(async
 
 function editRegistry(registry: RegistryWithOrg) {
   selectedRegistry.value = cloneDeep(registry);
+  isDialogOpen.value = true;
 }
 
 function showAddRegistry() {
   selectedRegistry.value = cloneDeep(emptyRegistry);
+  isDialogOpen.value = true;
+}
+
+function handleDialogClose() {
+  selectedRegistry.value = undefined;
+  isDialogOpen.value = false;
 }
 
 useCrowTitle(computed(() => [t('registries.all_registries')]));

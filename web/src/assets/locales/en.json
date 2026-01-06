@@ -991,6 +991,9 @@
     "save": "Save registry",
     "add": "Add registry",
     "add_desc": "Add registry credentials to use private images for pipelines.",
+    "add_description": "Add registry credentials to use private images for pipelines.",
+    "edit_description": "Update registry credentials.",
+    "password_placeholder_edit": "Leave empty to keep current password",
     "view": "View registry",
     "edit": "Edit registry",
     "delete": "Delete registry",
@@ -1001,7 +1004,16 @@
     "last_edited": "Last Edited",
     "notify_text_created": "Registry credentials created",
     "notify_text_saved": "Registry credentials saved",
-    "notify_text_deleted": "Registry credentials deleted"
+    "notify_text_deleted": "Registry credentials deleted",
+    "scope": {
+      "select_target": "Target organization",
+      "global_selected": "Global (all users)",
+      "search_target": "Search organizations...",
+      "organizations": "Organizations"
+    },
+    "validation": {
+      "target_required": "Please select a target organization or enable global scope"
+    }
   },
   "integrations": {
     "title": "Integrations",
