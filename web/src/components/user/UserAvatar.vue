@@ -112,27 +112,9 @@ async function handleOpenChange(open: boolean) {
 }
 
 // Map forge types to local icon names (same logic as RepoItem)
-function getForgeIconName(forge: Forge): IconNames {
-  // Handle special cases where forge URL might indicate specific forge instances
-  if (forge.url.toLowerCase().includes('codeberg')) {
-    return 'codeberg';
-  }
-  if (forge.url.toLowerCase().includes('codefloe')) {
-    return 'codefloe';
-  }
-
-  // Map standard forge types to icon names
-  const typeToIcon: Record<string, IconNames> = {
-    github: 'github',
-    gitlab: 'gitlab',
-    gitea: 'gitea',
-    forgejo: 'forgejo',
-    bitbucket: 'bitbucket',
-    'bitbucket-dc': 'bitbucket',
-    addon: 'repo',
-  };
-
-  return typeToIcon[forge.type] || 'repo';
+function getForgeIconName(_forge: Forge): IconNames {
+  // TEMP: Hardcoded for inspection
+  return 'gitea';
 }
 
 const sizeClass = computed(() => {

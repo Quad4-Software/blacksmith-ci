@@ -1,6 +1,13 @@
 <!-- cSpell:ignore radiobox timelapse -->
 <template>
   <Icon v-if="lucideIcon" :icon="`lucide:${lucideIcon}`" :width="size || '1em'" :height="size || '1em'" />
+  <Icon
+    v-else-if="iconifyIcon"
+    :icon="iconifyIcon"
+    :width="size || '1.3rem'"
+    :height="size || '1.3rem'"
+    :style="iconifyIconStyle"
+  />
   <img
     v-else-if="forgeIcon"
     :src="getForgeIcon(forgeIcon)"
@@ -54,8 +61,6 @@ import bitbucketLight from '~/assets/forge-icons/bitbucket-light.png';
 import bitbucketDark from '~/assets/forge-icons/bitbucket-dark.png';
 import forgejoLight from '~/assets/forge-icons/forgejo-light.png';
 import forgejoDark from '~/assets/forge-icons/forgejo-dark.png';
-import giteaLight from '~/assets/forge-icons/gitea-light.png';
-import giteaDark from '~/assets/forge-icons/gitea-dark.png';
 import codebergLight from '~/assets/forge-icons/codeberg-light.png';
 import codebergDark from '~/assets/forge-icons/codeberg-dark.png';
 import codefloeLight from '~/assets/forge-icons/codefloe-light.png';
@@ -156,18 +161,23 @@ const forgeIcons = {
   gitlab: { light: gitlabLight, dark: gitlabDark },
   bitbucket: { light: bitbucketLight, dark: bitbucketDark },
   forgejo: { light: forgejoLight, dark: forgejoDark },
-  gitea: { light: giteaLight, dark: giteaDark },
   codeberg: { light: codebergLight, dark: codebergDark },
   codefloe: { light: codefloeLight, dark: codefloeDark },
 };
 
-const forgeIconNames = ['github', 'gitlab', 'bitbucket', 'bitbucket-dc', 'forgejo', 'gitea', 'codeberg', 'codefloe'];
+// Forge icons that use PNG images
+const forgeIconNames = ['github', 'gitlab', 'bitbucket', 'bitbucket-dc', 'forgejo', 'codeberg', 'codefloe'];
+
+// Forge icons that use Iconify (for icons that need proper SVG scaling)
+const iconifyForgeIcons: Record<string, string> = {
+  gitea: 'devicon:gitea',
+};
 
 const lucideIcon = computed(() => {
   if (props.name === 'status-running' || props.name === 'status-started' || props.name === 'blank') {
     return null;
   }
-  if (forgeIconNames.includes(props.name)) {
+  if (forgeIconNames.includes(props.name) || props.name in iconifyForgeIcons) {
     return null;
   }
   // Handle direct lucide icon names
@@ -175,6 +185,18 @@ const lucideIcon = computed(() => {
     return props.name.replace('lucide:', '');
   }
   return iconMap[props.name] || null;
+});
+
+const iconifyIcon = computed(() => {
+  return iconifyForgeIcons[props.name] || null;
+});
+
+// Brand colors for Iconify forge icons (devicon icons are already colored)
+const iconifyIconColors: Record<string, string> = {};
+
+const iconifyIconStyle = computed(() => {
+  const color = iconifyIconColors[props.name];
+  return color ? { color } : {};
 });
 
 const forgeIcon = computed(() => {
