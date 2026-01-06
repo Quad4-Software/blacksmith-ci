@@ -15,7 +15,7 @@
         'text-yellow-500': pipelineStatusColors[status] === 'yellow', // pending
       }"
     />
-    <div v-else :style="{ width: size, height: size }">
+    <div v-else class="flex items-center justify-center" :style="{ width: size, height: size }">
       <PipelineProgressSpinner />
     </div>
   </div>
