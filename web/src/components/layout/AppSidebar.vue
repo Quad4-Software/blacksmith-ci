@@ -37,7 +37,7 @@
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem v-if="user">
-                  <SidebarMenuButton as-child :tooltip="$t('repositories.title')">
+                  <SidebarMenuButton as-child :tooltip="$t('repositories.title')" :is-active="isActive('repos')">
                     <router-link :to="{ name: 'repos' }">
                       <Icon name="repo" class="size-4" />
                       <span>{{ $t('repositories.title') }}</span>
@@ -52,7 +52,7 @@
                 </SidebarMenuItem>
 
                 <SidebarMenuItem v-if="user">
-                  <SidebarMenuButton as-child :tooltip="$t('secrets.secrets')">
+                  <SidebarMenuButton as-child :tooltip="$t('secrets.secrets')" :is-active="isActive('user-secrets')">
                     <router-link :to="{ name: 'user-secrets' }">
                       <Icon name="secret" class="size-4" />
                       <span>{{ $t('secrets.secrets') }}</span>
@@ -67,7 +67,11 @@
                 </SidebarMenuItem>
 
                 <SidebarMenuItem v-if="user">
-                  <SidebarMenuButton as-child :tooltip="$t('registries.registries')">
+                  <SidebarMenuButton
+                    as-child
+                    :tooltip="$t('registries.registries')"
+                    :is-active="isActive('user-registries')"
+                  >
                     <router-link :to="{ name: 'user-registries' }">
                       <Icon name="docker" class="size-4" />
                       <span>{{ $t('registries.registries') }}</span>
@@ -83,7 +87,11 @@
                 </SidebarMenuItem>
 
                 <SidebarMenuItem v-if="user">
-                  <SidebarMenuButton as-child :tooltip="$t('repo.settings.crons.crons')">
+                  <SidebarMenuButton
+                    as-child
+                    :tooltip="$t('repo.settings.crons.crons')"
+                    :is-active="isActive('user-crons')"
+                  >
                     <router-link :to="{ name: 'user-crons' }">
                       <Icon name="lucide:clock" class="size-4" />
                       <span>{{ $t('repo.settings.crons.crons') }}</span>
@@ -98,7 +106,11 @@
                 </SidebarMenuItem>
 
                 <SidebarMenuItem v-if="user">
-                  <SidebarMenuButton as-child :tooltip="$t('access_tokens.title')">
+                  <SidebarMenuButton
+                    as-child
+                    :tooltip="$t('access_tokens.title')"
+                    :is-active="isActive('user-access-tokens')"
+                  >
                     <router-link :to="{ name: 'user-access-tokens' }">
                       <Icon name="secret" class="size-4" />
                       <span>{{ $t('access_tokens.title') }}</span>
@@ -113,7 +125,7 @@
                 </SidebarMenuItem>
 
                 <SidebarMenuItem v-if="user">
-                  <SidebarMenuButton as-child :tooltip="$t('metrics.title')">
+                  <SidebarMenuButton as-child :tooltip="$t('metrics.title')" :is-active="isActive('user-metrics')">
                     <router-link :to="{ name: 'user-metrics' }">
                       <Icon name="graph" class="size-4" />
                       <span>{{ $t('metrics.title') }}</span>
@@ -128,7 +140,11 @@
                 </SidebarMenuItem>
 
                 <SidebarMenuItem v-if="user">
-                  <SidebarMenuButton as-child :tooltip="$t('admin.settings.agents.agents')">
+                  <SidebarMenuButton
+                    as-child
+                    :tooltip="$t('admin.settings.agents.agents')"
+                    :is-active="isActive('agents')"
+                  >
                     <router-link :to="{ name: 'agents' }">
                       <Icon name="agent" class="size-4" />
                       <span>{{ $t('admin.settings.agents.agents') }}</span>
@@ -143,7 +159,11 @@
                 </SidebarMenuItem>
 
                 <SidebarMenuItem v-if="user">
-                  <SidebarMenuButton as-child :tooltip="$t('admin.settings.autoscalers.autoscalers')">
+                  <SidebarMenuButton
+                    as-child
+                    :tooltip="$t('admin.settings.autoscalers.autoscalers')"
+                    :is-active="isActive('autoscalers')"
+                  >
                     <router-link :to="{ name: 'autoscalers' }">
                       <Icon name="autoscaler" class="size-4" />
                       <span>{{ $t('admin.settings.autoscalers.autoscalers') }}</span>
@@ -158,7 +178,11 @@
                 </SidebarMenuItem>
 
                 <SidebarMenuItem v-if="user">
-                  <SidebarMenuButton as-child :tooltip="$t('integrations.title')">
+                  <SidebarMenuButton
+                    as-child
+                    :tooltip="$t('integrations.title')"
+                    :is-active="isActive('user-integrations')"
+                  >
                     <router-link :to="{ name: 'user-integrations' }">
                       <Icon name="lucide:plug-2" class="size-4" />
                       <span>{{ $t('integrations.title') }}</span>
@@ -194,7 +218,11 @@
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton as-child :tooltip="$t('admin.settings.maintenance.maintenance')">
+                  <SidebarMenuButton
+                    as-child
+                    :tooltip="$t('admin.settings.maintenance.maintenance')"
+                    :is-active="isActive('admin-settings-maintenance')"
+                  >
                     <router-link :to="{ name: 'admin-settings-maintenance' }">
                       <Icon name="progress-wrench-outline" class="size-4" />
                       <span>{{ $t('admin.settings.maintenance.maintenance') }}</span>
@@ -203,7 +231,11 @@
                 </SidebarMenuItem>
 
                 <SidebarMenuItem>
-                  <SidebarMenuButton as-child :tooltip="$t('admin.settings.repos.repos')">
+                  <SidebarMenuButton
+                    as-child
+                    :tooltip="$t('admin.settings.repos.repos')"
+                    :is-active="isActive('admin-settings-repos')"
+                  >
                     <router-link :to="{ name: 'admin-settings-repos' }">
                       <Icon name="repo" class="size-4" />
                       <span>{{ $t('admin.settings.repos.repos') }}</span>
@@ -212,7 +244,11 @@
                 </SidebarMenuItem>
 
                 <SidebarMenuItem>
-                  <SidebarMenuButton as-child :tooltip="$t('admin.settings.entities.title')">
+                  <SidebarMenuButton
+                    as-child
+                    :tooltip="$t('admin.settings.entities.title')"
+                    :is-active="isActive('admin-settings-entities')"
+                  >
                     <router-link :to="{ name: 'admin-settings-entities' }">
                       <Icon name="user" class="size-4" />
                       <span>{{ $t('admin.settings.entities.title') }}</span>
@@ -221,7 +257,11 @@
                 </SidebarMenuItem>
 
                 <SidebarMenuItem>
-                  <SidebarMenuButton as-child :tooltip="$t('admin.settings.queue.queue')">
+                  <SidebarMenuButton
+                    as-child
+                    :tooltip="$t('admin.settings.queue.queue')"
+                    :is-active="isActive('admin-settings-queue')"
+                  >
                     <router-link :to="{ name: 'admin-settings-queue' }">
                       <Icon name="tasks" class="size-4" />
                       <span>{{ $t('admin.settings.queue.queue') }}</span>
@@ -319,6 +359,13 @@ const versionInfo = useVersion();
 const { toggle: toggleCommandPalette } = useCommandPalette();
 const { isMobile, setOpenMobile } = useSidebar();
 const route = useRoute();
+
+// Check if the current route matches or starts with the given route name
+function isActive(routeName: string): boolean {
+  const currentName = route.name?.toString() || '';
+  // Exact match or the current route starts with the given name (for nested routes)
+  return currentName === routeName || currentName.startsWith(`${routeName}-`);
+}
 
 // Auto-close mobile sidebar on navigation
 watch(
