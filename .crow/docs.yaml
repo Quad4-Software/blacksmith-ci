@@ -36,8 +36,8 @@ steps:
         git remote set-url origin "https://crowci-bot:$${CODEBERG_BOT_TOKEN}@codeberg.org/crowci/crow.git"
 
         # Deploy to pages branch (create if missing)
-        if git fetch origin pages:pages 2>/dev/null; then
-          git checkout pages
+        if git fetch origin pages 2>/dev/null; then
+          git checkout -B pages origin/pages
         else
           git checkout --orphan pages
           git reset --hard
