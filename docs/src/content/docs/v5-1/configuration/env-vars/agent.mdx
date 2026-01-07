@@ -1,0 +1,189 @@
+---
+title: "Agent Settings"
+---
+
+Core agent configuration variables.
+
+## Identity & Connection
+
+### AGENT_CONFIG_FILE
+
+- Name: `CROW_AGENT_CONFIG_FILE`
+- Description: Agent config file path. If set empty the agent will be stateless and unregister on termination.
+- Default: `/etc/crow/agent.conf`
+
+---
+
+### AGENT_SECRET
+
+- Name: `CROW_AGENT_SECRET`
+- Description: A shared secret used by server and agents to authenticate communication. A secret can be generated via `openssl rand -hex 32`.
+- Default: none
+
+---
+
+### AGENT_SECRET_FILE
+
+- Name: `CROW_AGENT_SECRET_FILE`
+- Description: Filepath containing the agent secret, e.g. `/etc/woodpecker/agent-secret.conf`
+- Default: none
+
+---
+
+### SERVER
+
+- Name: `CROW_SERVER`
+- Description: gRPC address of the server.
+- Default: `localhost:9000`
+
+---
+
+### USERNAME
+
+- Name: `CROW_USERNAME`
+- Description: gRPC username.
+- Default: `x-oauth-basic`
+
+---
+
+### HOSTNAME
+
+- Name: `CROW_HOSTNAME`
+- Description: Agent hostname. Used for workflow filtering via `labels: hostname:` and as the default agent name if not explicitly configured.
+- Default: none
+
+---
+
+## Labels & Priority
+
+### AGENT_LABELS
+
+- Name: `CROW_AGENT_LABELS`
+- Description: Configures custom labels for the agent, to enable workflow filtering. Accepts a list of key-value pairs like `key=value,second-key=*`. Agents provide three additional labels `platform=os/arch`, `hostname=my-agent` and `repo=*` which can be overwritten if needed.
+- Default: none
+
+---
+
+### AGENT_PRIORITY
+
+- Name: `CROW_AGENT_PRIORITY`
+- Description: Agent priority for task assignment (higher values get tasks first).
+- Default: `0`
+
+---
+
+## Execution
+
+### BACKEND
+
+- Name: `CROW_BACKEND`
+- Description: Crow backend to use. Possible values are `auto-detect`, `docker`, `local` or `kubernetes`.
+- Default: `auto-detect`
+
+---
+
+### MAX_WORKFLOWS
+
+- Name: `CROW_MAX_WORKFLOWS`
+- Description: Number of parallel workflows.
+- Default: `1`
+
+---
+
+## Connection Settings
+
+### GRPC_SECURE
+
+- Name: `CROW_GRPC_SECURE`
+- Description: Whether the connection to `CROW_SERVER` should be made via SSL.
+- Default: `false`
+
+---
+
+### GRPC_VERIFY
+
+- Name: `CROW_GRPC_VERIFY`
+- Description: Whether the `grpc` server certificate should be verified. Only valid when `CROW_GRPC_SECURE=true`.
+- Default: `true`
+
+---
+
+### CONNECT_RETRY_COUNT
+
+- Name: `CROW_CONNECT_RETRY_COUNT`
+- Description: Number of times agent retries to connect to the server.
+- Default: `5`
+
+---
+
+### CONNECT_RETRY_DELAY
+
+- Name: `CROW_CONNECT_RETRY_DELAY`
+- Description: Delay between agent connection retries to the server.
+- Default: `2s`
+
+---
+
+### KEEPALIVE_TIME
+
+- Name: `CROW_KEEPALIVE_TIME`
+- Description: With no activity after this duration, the agent pings the server to check if the transport is still alive.
+- Default: none
+
+---
+
+### KEEPALIVE_TIMEOUT
+
+- Name: `CROW_KEEPALIVE_TIMEOUT`
+- Description: After pinging for a keepalive check, the agent waits for this duration before closing unresponsive connections.
+- Default: `20s`
+
+---
+
+## Health & Logging
+
+### HEALTHCHECK
+
+- Name: `CROW_HEALTHCHECK`
+- Description: Enable healthcheck endpoint.
+- Default: `true`
+
+---
+
+### HEALTHCHECK_ADDR
+
+- Name: `CROW_HEALTHCHECK_ADDR`
+- Description: Healthcheck endpoint address.
+- Default: `:3000`
+
+---
+
+### LOG_LEVEL
+
+- Name: `CROW_LOG_LEVEL`
+- Description: Logging level. Possible values are `trace`, `debug`, `info`, `warn`, `error`, `fatal`, `panic`, and `disabled`.
+- Default: none
+
+---
+
+### LOG_FILE
+
+- Name: `CROW_LOG_FILE`
+- Description: Output destination for logs. `stdout` and `stderr` can be used as special keywords.
+- Default: `stderr`
+
+---
+
+### DEBUG_NOCOLOR
+
+- Name: `CROW_DEBUG_NOCOLOR`
+- Description: Disable colored debug output.
+- Default: `true`
+
+---
+
+### DEBUG_PRETTY
+
+- Name: `CROW_DEBUG_PRETTY`
+- Description: Enable pretty-printed debug output.
+- Default: `false`

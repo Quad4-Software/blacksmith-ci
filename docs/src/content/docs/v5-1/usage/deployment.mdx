@@ -1,0 +1,121 @@
+---
+title: "Deployment"
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+Deployments are manually triggered pipeline runs for deploying successful builds to specific environments like staging or production.
+
+## Prerequisites
+
+Deployments must be enabled in the repository settings:
+
+<Steps>
+
+1. **Open repository settings**
+
+    Go to **Repository Settings** → **General**
+
+2. **Enable deployments**
+
+    Check the **Deployments** option
+
+</Steps>
+
+Once enabled, a **Deploy** button appears on finished pipelines.
+
+## Permissions
+
+### Who can enable deployments
+
+Only repository **admins** can enable or disable deployments in the repository settings.
+Admin permission is synced from the forge (GitHub, GitLab, Gitea, etc.).
+
+### Who can trigger deployments
+
+By default, any user with **push** permission to the repository can trigger deployments.
+
+### Team-based restrictions
+
+For stricter control, you can restrict deployments to members of a specific forge team:
+
+<Steps>
+
+1. **Open repository settings**
+
+    Go to **Repository Settings** → **General**
+
+2. **Enable deployments**
+
+    Check the **Deployments** option
+
+3. **Set the team restriction**
+
+    In the **Restrict to Team** field, enter the team name (e.g., `crowci-deploy-team`)
+
+</Steps>
+
+When configured, only members of the specified team can trigger deployments.
+The team membership is verified against the forge at the time of deployment.
+
+:::note
+Instance administrators do **not** automatically have deployment permissions.
+Team membership is always checked against the forge, regardless of Crow admin status.
+:::
+
+![Deploy Button](img/deployment1.png)
+
+## Triggering a Deployment
+
+Click the **Deploy** button to open the deployment dialog:
+
+![Deployment Popup](img/deployment2.png)
+
+| Field | Required | Description |
+| --- | --- | --- |
+| Environment | Yes | Target environment (e.g., `production`, `staging`) |
+| Task | No | Secondary filter to narrow down deployment jobs |
+
+## Filtering Deployments in Workflows
+
+Use the `deployment` event in your workflow's `when` block to control which steps run during deployments.
+
+### Basic Environment Filter
+
+```yaml
+when:
+  event: deployment
+  environment: production
+```
+
+### Environment with Task Filter
+
+```yaml
+when:
+  event: deployment
+  environment: production
+  task: migrate-db
+```
+
+### Glob Patterns
+
+Both `environment` and `task` support glob patterns:
+
+```yaml
+when:
+  event: deployment
+  environment: prod-*
+  task: deploy-*
+```
+
+### Include/Exclude Syntax
+
+For complex filtering, use include/exclude lists:
+
+```yaml
+when:
+  event: deployment
+  environment:
+    include: [production, staging]
+    exclude: [production-test]
+```
