@@ -62,7 +62,7 @@ steps:
       - event: pull_request
 
   - name: 'PR docs preview'
-    image: reg.devxy.io/docker.io/woodpeckerci/plugin-surge-preview:1.4.1
+    image: reg.devxy.io/docker.io/woodpeckerci/plugin-surge-preview:1.4.2
     settings:
       path: 'docs/dist/'
       surge_token:
