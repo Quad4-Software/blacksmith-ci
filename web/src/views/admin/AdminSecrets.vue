@@ -64,25 +64,35 @@ async function loadSecrets(page: number): Promise<Secret[] | null> {
 
 const { resetPage, data: secrets } = usePagination(loadSecrets, () => !selectedSecret.value);
 
-const { doSubmit: createSecret, isLoading: isSaving } = useAsyncAction(async () => {
-  if (!selectedSecret.value) {
-    throw new Error("Unexpected: Can't get secret");
-  }
+const { doSubmit: createSecret, isLoading: isSaving } = useAsyncAction(
+  async () => {
+    if (!selectedSecret.value) {
+      throw new Error("Unexpected: Can't get secret");
+    }
 
-  if (isEditingSecret.value) {
-    await apiClient.updateGlobalSecret(selectedSecret.value);
-  } else {
-    await apiClient.createGlobalSecret(selectedSecret.value);
-  }
-  notifications.notify({
-    title: i18n.t('notify_title_success'),
-    text: isEditingSecret.value ? i18n.t('secrets.notify_text_saved') : i18n.t('secrets.notify_text_created'),
-    type: 'success',
-    duration: 6000,
-  });
-  selectedSecret.value = undefined;
-  await resetPage();
-});
+    if (isEditingSecret.value) {
+      await apiClient.updateGlobalSecret(selectedSecret.value);
+    } else {
+      await apiClient.createGlobalSecret(selectedSecret.value);
+    }
+    notifications.notify({
+      title: i18n.t('notify_title_success'),
+      text: isEditingSecret.value ? i18n.t('secrets.notify_text_saved') : i18n.t('secrets.notify_text_created'),
+      type: 'success',
+      duration: 6000,
+    });
+    selectedSecret.value = undefined;
+    await resetPage();
+  },
+  // eslint-disable-next-line promise/prefer-await-to-callbacks -- useAsyncAction API requires callback
+  (error) => {
+    notifications.notify({
+      title: i18n.t('notify_title_error'),
+      text: error instanceof Error ? error.message : i18n.t('unknown_error'),
+      type: 'error',
+    });
+  },
+);
 
 const { doSubmit: deleteSecret, isLoading: isDeleting } = useAsyncAction(async (_secret: Secret) => {
   await apiClient.deleteGlobalSecret(_secret.name);

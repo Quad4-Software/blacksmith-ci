@@ -89,60 +89,70 @@ watch(searchTerm, async () => {
   await resetPage();
 });
 
-const { doSubmit: createSecret, isLoading: isSaving } = useAsyncAction(async (secretData: Partial<SecretWithOrg>) => {
-  if (!secretData || !user) {
-    throw new Error("Unexpected: Can't get secret or user");
-  }
+const { doSubmit: createSecret, isLoading: isSaving } = useAsyncAction(
+  async (secretData: Partial<SecretWithOrg>) => {
+    if (!secretData || !user) {
+      throw new Error("Unexpected: Can't get secret or user");
+    }
 
-  // Use the passed secretData instead of selectedSecret.value
-  const secret = secretData;
-  const isEditing = !!secret.id;
+    // Use the passed secretData instead of selectedSecret.value
+    const secret = secretData;
+    const isEditing = !!secret.id;
 
-  // Determine target org based on scope
-  let targetOrgId = user.org_id;
-  if (secret.scope_type === 'global') {
-    // Use global endpoint
-    if (isEditing) {
-      await apiClient.updateGlobalSecret(secret);
+    // Determine target org based on scope
+    let targetOrgId = user.org_id;
+    if (secret.scope_type === 'global') {
+      // Use global endpoint
+      if (isEditing) {
+        await apiClient.updateGlobalSecret(secret);
+      } else {
+        await apiClient.createGlobalSecret(secret);
+      }
+    } else if (secret.scope_type === 'repo') {
+      // Repo secrets
+      if (!secret.repo_id) {
+        throw new Error('Repo ID not found for repo secret');
+      }
+      if (isEditing) {
+        await apiClient.updateSecret(secret.repo_id, secret);
+      } else {
+        await apiClient.createSecret(secret.repo_id, secret);
+      }
+    } else if (secret.scope_type === 'org' && secret.org_id) {
+      targetOrgId = secret.org_id;
+      if (isEditing) {
+        await apiClient.updateOrgSecret(targetOrgId, secret);
+      } else {
+        await apiClient.createOrgSecret(targetOrgId, secret);
+      }
     } else {
-      await apiClient.createGlobalSecret(secret);
+      // User/personal org
+      if (isEditing) {
+        await apiClient.updateOrgSecret(targetOrgId, secret);
+      } else {
+        await apiClient.createOrgSecret(targetOrgId, secret);
+      }
     }
-  } else if (secret.scope_type === 'repo') {
-    // Repo secrets
-    if (!secret.repo_id) {
-      throw new Error('Repo ID not found for repo secret');
-    }
-    if (isEditing) {
-      await apiClient.updateSecret(secret.repo_id, secret);
-    } else {
-      await apiClient.createSecret(secret.repo_id, secret);
-    }
-  } else if (secret.scope_type === 'org' && secret.org_id) {
-    targetOrgId = secret.org_id;
-    if (isEditing) {
-      await apiClient.updateOrgSecret(targetOrgId, secret);
-    } else {
-      await apiClient.createOrgSecret(targetOrgId, secret);
-    }
-  } else {
-    // User/personal org
-    if (isEditing) {
-      await apiClient.updateOrgSecret(targetOrgId, secret);
-    } else {
-      await apiClient.createOrgSecret(targetOrgId, secret);
-    }
-  }
 
-  notifications.notify({
-    title: t('notify_title_success'),
-    text: isEditing ? t('secrets.notify_text_saved') : t('secrets.notify_text_created'),
-    type: 'success',
-  });
+    notifications.notify({
+      title: t('notify_title_success'),
+      text: isEditing ? t('secrets.notify_text_saved') : t('secrets.notify_text_created'),
+      type: 'success',
+    });
 
-  isDialogOpen.value = false;
-  selectedSecret.value = undefined;
-  await resetPage();
-});
+    isDialogOpen.value = false;
+    selectedSecret.value = undefined;
+    await resetPage();
+  },
+  // eslint-disable-next-line promise/prefer-await-to-callbacks -- useAsyncAction API requires callback
+  (error) => {
+    notifications.notify({
+      title: t('notify_title_error'),
+      text: error instanceof Error ? error.message : t('unknown_error'),
+      type: 'error',
+    });
+  },
+);
 
 const { doSubmit: deleteSecret, isLoading: isDeleting } = useAsyncAction(async (secret: SecretWithOrg) => {
   if (!user) {

@@ -150,6 +150,17 @@ func PostOrgSecret(c *gin.Context) {
 	}
 
 	secretService := server.Config.Services.Manager.SecretService()
+
+	// Check if secret already exists
+	if _, err := secretService.OrgSecretFind(org.ID, in.Name); err == nil {
+		if org.IsUser {
+			c.String(http.StatusConflict, "Secret %q already exists in your personal secrets", in.Name)
+		} else {
+			c.String(http.StatusConflict, "Secret %q already exists for this organization", in.Name)
+		}
+		return
+	}
+
 	if err := secretService.OrgSecretCreate(org.ID, secret); err != nil {
 		c.String(http.StatusInternalServerError, "Error inserting org %q secret %q. %s", org.ID, in.Name, err)
 		return

@@ -101,7 +101,7 @@
                         <Icon name="close" class="h-4 w-4" />
                       </button>
                     </span>
-                    <span v-else class="text-muted-foreground">{{ $t('secrets.scope.search_target') }}</span>
+                    <span v-else class="text-muted-foreground">{{ $t('secrets.scope.personal') }}</span>
                     <Icon name="chevron-down" class="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
@@ -611,15 +611,7 @@ function onSubmit(values: any) {
     return;
   }
 
-  // Validate scope selection - must select a target unless global
-  if (!isEditing.value && !isGlobal.value && !selectedTarget.value) {
-    notifications.notify({
-      title: t('notify_title_error'),
-      text: t('secrets.validation.target_required'),
-      type: 'error',
-    });
-    return;
-  }
+  // Note: If no target is selected and not global, the secret will be user-scoped (personal)
 
   emit('save', secretData);
 }

@@ -116,6 +116,13 @@ func PostSecret(c *gin.Context) {
 	}
 
 	secretService := server.Config.Services.Manager.SecretServiceFromRepo(repo)
+
+	// Check if secret already exists
+	if _, err := secretService.SecretFind(repo, in.Name); err == nil {
+		c.String(http.StatusConflict, "Secret %q already exists for this repository", in.Name)
+		return
+	}
+
 	if err := secretService.SecretCreate(repo, secret); err != nil {
 		c.String(http.StatusInternalServerError, "Error inserting secret %q. %s", in.Name, err)
 		return

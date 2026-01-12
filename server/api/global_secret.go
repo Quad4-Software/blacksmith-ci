@@ -131,6 +131,13 @@ func PostGlobalSecret(c *gin.Context) {
 	}
 
 	secretService := server.Config.Services.Manager.SecretService()
+
+	// Check if secret already exists
+	if _, err := secretService.GlobalSecretFind(in.Name); err == nil {
+		c.String(http.StatusConflict, "Secret %q already exists as a global secret", in.Name)
+		return
+	}
+
 	if err := secretService.GlobalSecretCreate(secret); err != nil {
 		c.String(http.StatusInternalServerError, "Error inserting global secret %q. %s", in.Name, err)
 		return

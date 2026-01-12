@@ -1016,13 +1016,13 @@
     "error_viewing_value": "Unable to view secret value. You may not have permission.",
     "validation": {
       "name_required": "Secret name is required",
-      "events_required": "At least one event must be selected",
-      "target_required": "Please select an organization or repository"
+      "events_required": "At least one event must be selected"
     },
     "scope": {
       "select_target": "Organization / Repository",
       "search_target": "Type to search organizations and repositories...",
       "global_selected": "Global scope (all organizations and repositories)",
+      "personal": "Personal (click to change scope)",
       "organizations": "Organizations",
       "repositories": "Repositories"
     },
