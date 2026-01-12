@@ -80,7 +80,7 @@
             <div class="flex gap-2">
               <Input id="secret-images" v-model="newImage" @keydown.enter.prevent="addNewImage" />
               <Button type="button" size="icon" @click="addNewImage">
-                <Icon name="plus" />
+                <Icon name="lucide:corner-down-left" />
               </Button>
             </div>
           </div>

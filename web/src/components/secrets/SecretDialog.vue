@@ -234,7 +234,7 @@
                       @keydown.enter.prevent="addImage(componentField)"
                     />
                     <Button type="button" size="icon" @click="addImage(componentField)">
-                      <Icon name="plus" />
+                      <Icon name="lucide:corner-down-left" />
                     </Button>
                   </div>
                 </div>
