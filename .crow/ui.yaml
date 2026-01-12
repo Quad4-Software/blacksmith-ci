@@ -29,7 +29,7 @@ steps:
   prettier:
     depends_on:
       - install-dependencies
-    image: reg.devxy.io/docker.io/woodpeckerci/plugin-prettier:1.4.0
+    image: reg.devxy.io/docker.io/woodpeckerci/plugin-prettier:1.4.1
     pull: true
     settings:
       plugins:
