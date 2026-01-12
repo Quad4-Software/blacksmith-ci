@@ -21,26 +21,8 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"codeberg.org/crowci/crow/v5/server/store"
 	"codeberg.org/crowci/crow/v5/version"
 )
-
-// Health
-//
-//	@Summary		Health information
-//	@Description	If everything is fine, just a 204 will be returned, a 500 signals server state is unhealthy.
-//	@Router			/healthz [get]
-//	@Produce		plain
-//	@Success		204
-//	@Failure		500
-//	@Tags			System
-func Health(c *gin.Context) {
-	if err := store.FromContext(c).Ping(); err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
-		return
-	}
-	c.Status(http.StatusNoContent)
-}
 
 // Version
 //

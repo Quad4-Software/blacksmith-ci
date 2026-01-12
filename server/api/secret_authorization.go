@@ -94,16 +94,6 @@ func (a *SecretViewAuthorizer) CanViewGlobalSecret(user *model.User) bool {
 	return user.Admin
 }
 
-// CanViewUserSecret checks if user owns the secret (personal org match).
-// Users can view abbreviated values of their own secrets.
-func (a *SecretViewAuthorizer) CanViewUserSecret(user *model.User, secretOrgID int64) bool {
-	if user == nil {
-		return false
-	}
-	// User's personal org ID matches the secret's org ID
-	return secretOrgID != 0 && user.OrgID == secretOrgID
-}
-
 // NewSecretViewAuthorizerFromContext creates a SecretViewAuthorizer from gin context.
 func NewSecretViewAuthorizerFromContext(c *gin.Context, membership cache.MembershipService) *SecretViewAuthorizer {
 	return NewSecretViewAuthorizer(store.FromContext(c), membership)

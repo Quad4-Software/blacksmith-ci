@@ -25,7 +25,6 @@ import (
 	"codeberg.org/crowci/crow/v5/server"
 	"codeberg.org/crowci/crow/v5/server/model"
 	"codeberg.org/crowci/crow/v5/server/store"
-	"codeberg.org/crowci/crow/v5/server/store/datastore"
 	"codeberg.org/crowci/crow/v5/shared/token"
 )
 
@@ -118,75 +117,6 @@ func SetUser() gin.HandlerFunc {
 		c.Next()
 	}
 }
-
-// AccessToken returns the access token from the context, if present.
-func AccessToken(c *gin.Context) *model.AccessToken {
-	v, ok := c.Get("access_token")
-	if !ok {
-		return nil
-	}
-	t, ok := v.(*model.AccessToken)
-	if !ok {
-		return nil
-	}
-	return t
-}
-
-// HasAccessTokenScope checks if the current request has an access token with the required scope.
-// If no access token is present (regular user/session token), it returns true (full access).
-func HasAccessTokenScope(c *gin.Context, required model.AccessTokenScope) bool {
-	accessToken := AccessToken(c)
-	if accessToken == nil {
-		// No access token means regular authentication with full permissions
-		return true
-	}
-	return accessToken.HasScope(required)
-}
-
-// MustAccessTokenScope creates middleware that requires a specific scope.
-// If using a regular user/session token, the request is allowed.
-// If using an access token, it must have the required scope.
-func MustAccessTokenScope(required model.AccessTokenScope) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		if !HasAccessTokenScope(c, required) {
-			c.String(http.StatusForbidden, "Access token missing required scope: %s", required)
-			c.Abort()
-			return
-		}
-		c.Next()
-	}
-}
-
-// ValidateAccessTokenEntityScope checks if the access token is allowed to access the given entity.
-// Returns true if allowed, false otherwise.
-func ValidateAccessTokenEntityScope(c *gin.Context, repoID int64, orgID int64) bool {
-	accessToken := AccessToken(c)
-	if accessToken == nil {
-		// No access token means regular authentication with full permissions
-		return true
-	}
-
-	// User-level token has access to everything the user has access to
-	if accessToken.IsUserLevel() {
-		return true
-	}
-
-	// Repo-scoped token must match the repo
-	if accessToken.IsRepoScoped() {
-		return accessToken.RepoID == repoID
-	}
-
-	// Org-scoped token must match the org
-	if accessToken.IsOrgScoped() {
-		return accessToken.OrgID == orgID
-	}
-
-	return false
-}
-
-// accessTokenVerifier is used for verifying access tokens by hash.
-// This avoids needing to look up the token twice.
-var _ = datastore.HashAccessToken // Ensure import is used
 
 func MustAdmin() gin.HandlerFunc {
 	return func(c *gin.Context) {

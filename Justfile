@@ -181,6 +181,9 @@ cherry-pick COMMIT:
 lint-backend: install-dev-deps
 		golangci-lint run
 
+deadcode:
+		go run golang.org/x/tools/cmd/deadcode@latest -generated=false -f='{{{{println .Path}}{{{{range .Funcs}}{{{{printf "\t%s\n" .Name}}{{{{end}}{{{{println}}' -test codeberg.org/crowci/crow/v5/...
+
 # FIXME: feature of 1.38.0 [working-directory('web')]
 lint-frontend:
 		cd web/ && bun run lint --quiet
