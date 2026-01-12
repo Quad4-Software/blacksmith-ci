@@ -6,6 +6,24 @@
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 flex-wrap">
             <span class="font-medium">{{ secret.name }}</span>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger as-child>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    class="h-6 w-6"
+                    :title="$t('copy')"
+                    @click.stop="copySecretName(secret.name)"
+                  >
+                    <Icon :name="copiedSecrets[secret.name] ? 'lucide:check' : 'lucide:copy'" class="h-3 w-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{{ copiedSecrets[secret.name] ? $t('copied') : $t('copy') }}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <Badge v-if="secret.edit === false" variant="secondary">
               {{ secret.org_id === 0 ? $t('global_level_secret') : $t('org_level_secret') }}
             </Badge>
@@ -82,10 +100,11 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, toRef } from 'vue';
+import { reactive, ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Icon from '~/components/atomic/Icon.vue';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -119,6 +138,21 @@ const apiClient = useApiClient();
 const notifications = useNotifications();
 
 const secrets = toRef(props, 'modelValue');
+
+// Track copied state for secret names
+const copiedSecrets = reactive<Record<string, boolean>>({});
+
+async function copySecretName(name: string) {
+  try {
+    await navigator.clipboard.writeText(name);
+    copiedSecrets[name] = true;
+    setTimeout(() => {
+      copiedSecrets[name] = false;
+    }, 2000);
+  } catch {
+    // Failed to copy
+  }
+}
 
 // Track which secret is showing its abbreviated value
 const visibleSecretId = ref<string | number | null>(null);

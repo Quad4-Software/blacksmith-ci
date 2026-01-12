@@ -2,7 +2,7 @@
 <template>
   <Scaffold v-if="repo && repoPermissions && route.meta.repoHeader" enable-tabs fluid-content>
     <template #title>
-      <span class="flex min-w-0 whitespace-nowrap overflow-hidden text-ellipsis">
+      <span class="flex min-w-0 whitespace-nowrap overflow-hidden text-ellipsis items-center gap-1">
         <router-link
           v-if="isAuthenticated"
           :to="{ name: 'org', params: { orgId: repo.org_id } }"
@@ -12,6 +12,18 @@
         <span v-else class="shrink-0">{{ repo.owner }}</span>
         <span class="shrink-0">&nbsp;/&nbsp;</span>
         <span class="truncate">{{ repo.name }}</span>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <Button variant="ghost" size="icon-sm" class="h-6 w-6 shrink-0" @click.stop="copyRepoSlug">
+                <Icon :name="copiedRepoSlug ? 'lucide:check' : 'lucide:copy'" class="h-3 w-3" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{{ copiedRepoSlug ? $t('copied') : $t('copy') }}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </span>
     </template>
     <template #headerActions>
@@ -199,6 +211,7 @@ import {
 } from '~/components/ui/dropdown-menu';
 import { Label } from '~/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import Icon from '~/components/atomic/Icon.vue';
 import type { IconNames } from '~/components/atomic/Icon.types';
 import IconButton from '~/components/atomic/IconButton.vue';
@@ -233,6 +246,20 @@ const { updateLastAccess } = useRepos();
 
 const repo = repoStore.getRepo(repositoryId);
 const repoPermissions = ref<RepoPermissions>();
+const copiedRepoSlug = ref(false);
+
+async function copyRepoSlug() {
+  if (!repo.value) return;
+  try {
+    await navigator.clipboard.writeText(repo.value.full_name);
+    copiedRepoSlug.value = true;
+    setTimeout(() => {
+      copiedRepoSlug.value = false;
+    }, 2000);
+  } catch {
+    // Failed to copy
+  }
+}
 const pipelines = pipelineStore.getRepoPipelines(repositoryId);
 const isMultiselectMode = ref(false);
 const showManualPipelinePopup = ref(false);

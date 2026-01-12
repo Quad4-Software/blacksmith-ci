@@ -60,6 +60,18 @@
           <div class="flex flex-col gap-2">
             <div v-for="image in innerValue.images" :key="image" class="flex gap-2">
               <Input :model-value="image" disabled />
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <Button type="button" size="icon" variant="outline" @click="copyImage(image)">
+                      <Icon :name="copiedImages[image] ? 'lucide:check' : 'lucide:copy'" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{{ copiedImages[image] ? $t('copied') : $t('copy') }}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <Button type="button" size="icon" @click="removeImage(image)">
                 <Icon name="trash" />
               </Button>
@@ -113,7 +125,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, toRef } from 'vue';
+import { computed, reactive, ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Icon from '~/components/atomic/Icon.vue';
@@ -123,6 +135,7 @@ import { Button } from '~/components/ui/button';
 import { Checkbox } from '~/components/ui/checkbox';
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '~/components/ui/field';
 import { Input } from '~/components/ui/input';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import { Textarea } from '~/components/ui/textarea';
 import useApiClient from '~/compositions/useApiClient';
 import useNotifications from '~/compositions/useNotifications';
@@ -197,6 +210,22 @@ async function toggleAbbreviatedValue() {
 }
 
 const newImage = ref('');
+
+// Track copied state for images
+const copiedImages = reactive<Record<string, boolean>>({});
+
+async function copyImage(image: string) {
+  try {
+    await navigator.clipboard.writeText(image);
+    copiedImages[image] = true;
+    setTimeout(() => {
+      copiedImages[image] = false;
+    }, 2000);
+  } catch {
+    // Failed to copy
+  }
+}
+
 function addNewImage() {
   if (!newImage.value) {
     return;

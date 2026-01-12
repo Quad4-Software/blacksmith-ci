@@ -225,8 +225,8 @@ import type {
 } from '@tanstack/vue-table';
 import { FlexRender, getCoreRowModel, getFilteredRowModel, getSortedRowModel, useVueTable } from '@tanstack/vue-table';
 import { useStorage } from '@vueuse/core';
-import { ArrowUpDown, MoreVertical } from 'lucide-vue-next';
-import { computed, h, onMounted, ref, watch } from 'vue';
+import { ArrowUpDown, Check, Copy, MoreVertical } from 'lucide-vue-next';
+import { computed, h, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
@@ -277,6 +277,21 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const router = useRouter();
 const { primaryForge } = useForges();
+
+// Track copied state for entity names
+const copiedNames = reactive<Record<string, boolean>>({});
+
+async function copyName(name: string) {
+  try {
+    await navigator.clipboard.writeText(name);
+    copiedNames[name] = true;
+    setTimeout(() => {
+      copiedNames[name] = false;
+    }, 2000);
+  } catch {
+    // Failed to copy
+  }
+}
 
 const sorting = ref<SortingState>([
   { id: 'id', desc: false },
@@ -409,30 +424,61 @@ const columns: ColumnDef<Entity>[] = [
     },
     cell: ({ row }) => {
       const entity = row.original;
+      const name = entity.name;
       if (entity.entity_type === 'org') {
-        // Org name as clickable link
-        return h(
-          'a',
-          {
-            href: `/orgs/${entity.id}`,
-            class: 'font-medium text-link hover:underline cursor-pointer',
-            onClick: (e: Event) => {
-              e.preventDefault();
-              router.push({ name: 'org', params: { orgId: entity.id } });
+        // Org name as clickable link with copy button
+        return h('div', { class: 'flex items-center gap-1' }, [
+          h(
+            'a',
+            {
+              href: `/orgs/${entity.id}`,
+              class: 'font-medium text-link hover:underline cursor-pointer',
+              onClick: (e: Event) => {
+                e.preventDefault();
+                router.push({ name: 'org', params: { orgId: entity.id } });
+              },
             },
-          },
-          entity.name,
-        );
+            name,
+          ),
+          h(
+            'button',
+            {
+              type: 'button',
+              class: 'p-1 hover:bg-muted rounded transition-colors',
+              title: copiedNames[name] ? t('copied') : t('copy'),
+              onClick: (e: Event) => {
+                e.stopPropagation();
+                copyName(name);
+              },
+            },
+            h(copiedNames[name] ? Check : Copy, { class: 'h-3 w-3 text-muted-foreground' }),
+          ),
+        ]);
       } else {
-        // User name as editable button
-        return h(
-          'button',
-          {
-            class: 'font-medium text-link hover:underline cursor-pointer',
-            onClick: () => emit('editUser', entity),
-          },
-          entity.name,
-        );
+        // User name as editable button with copy button
+        return h('div', { class: 'flex items-center gap-1' }, [
+          h(
+            'button',
+            {
+              class: 'font-medium text-link hover:underline cursor-pointer',
+              onClick: () => emit('editUser', entity),
+            },
+            name,
+          ),
+          h(
+            'button',
+            {
+              type: 'button',
+              class: 'p-1 hover:bg-muted rounded transition-colors',
+              title: copiedNames[name] ? t('copied') : t('copy'),
+              onClick: (e: Event) => {
+                e.stopPropagation();
+                copyName(name);
+              },
+            },
+            h(copiedNames[name] ? Check : Copy, { class: 'h-3 w-3 text-muted-foreground' }),
+          ),
+        ]);
       }
     },
     size: 200,

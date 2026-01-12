@@ -187,13 +187,13 @@
                   @update:checked="toggleSelectAll"
                 />
               </TableHead>
-              <TableHead class="w-48 min-w-32 cursor-pointer select-none" @click="toggleSort('name')">
+              <TableHead class="w-56 min-w-40 cursor-pointer select-none" @click="toggleSort('name')">
                 <div class="flex items-center gap-1">
                   {{ $t('repo.settings.crons.name.name') }}
                   <SortIndicator sort-key="name" :current-sort="sortConfig" />
                 </div>
               </TableHead>
-              <TableHead class="w-48 min-w-32 cursor-pointer select-none" @click="toggleSort('repo_name')">
+              <TableHead class="w-56 min-w-40 cursor-pointer select-none" @click="toggleSort('repo_name')">
                 <div class="flex items-center gap-1">
                   {{ $t('repo.settings.crons.repo') }}
                   <SortIndicator sort-key="repo_name" :current-sort="sortConfig" />
@@ -235,8 +235,56 @@
               <TableCell class="w-10" @click.stop>
                 <Checkbox :checked="selectedCronIds.has(cron.id)" @update:checked="() => toggleCronSelection(cron)" />
               </TableCell>
-              <TableCell class="font-medium" :title="cron.name">{{ cron.name }}</TableCell>
-              <TableCell :title="cron.repo_name">{{ cron.repo_name }}</TableCell>
+              <TableCell class="font-medium overflow-visible" :title="cron.name">
+                <div class="flex items-center gap-1">
+                  <span class="truncate min-w-0 flex-1">{{ cron.name }}</span>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger as-child>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          class="h-5 w-5 shrink-0"
+                          @click.stop="copyField(cron.name, `name-${cron.id}`)"
+                        >
+                          <Icon
+                            :name="copiedFields[`name-${cron.id}`] ? 'lucide:check' : 'lucide:copy'"
+                            class="h-3 w-3"
+                          />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{{ copiedFields[`name-${cron.id}`] ? $t('copied') : $t('copy') }}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              </TableCell>
+              <TableCell class="overflow-visible" :title="cron.repo_name">
+                <div class="flex items-center gap-1">
+                  <span class="truncate min-w-0 flex-1">{{ cron.repo_name }}</span>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger as-child>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          class="h-5 w-5 shrink-0"
+                          @click.stop="copyField(cron.repo_name, `repo-${cron.id}`)"
+                        >
+                          <Icon
+                            :name="copiedFields[`repo-${cron.id}`] ? 'lucide:check' : 'lucide:copy'"
+                            class="h-3 w-3"
+                          />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{{ copiedFields[`repo-${cron.id}`] ? $t('copied') : $t('copy') }}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              </TableCell>
               <TableCell :title="cron.schedule">
                 <code class="text-xs bg-muted px-1.5 py-0.5 rounded">{{ cron.schedule }}</code>
               </TableCell>
@@ -409,6 +457,7 @@ import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import Icon from '~/components/atomic/Icon.vue';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import Scaffold from '~/components/layout/scaffold/Scaffold.vue';
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
 import {
@@ -481,6 +530,21 @@ const { t } = useI18n();
 const router = useRouter();
 const date = useDate();
 const { cronDialog } = useGlobalDialogs();
+
+// Track copied state for cron fields
+const copiedFields = reactive<Record<string, boolean>>({});
+
+async function copyField(value: string, fieldKey: string) {
+  try {
+    await navigator.clipboard.writeText(value);
+    copiedFields[fieldKey] = true;
+    setTimeout(() => {
+      copiedFields[fieldKey] = false;
+    }, 2000);
+  } catch {
+    // Failed to copy
+  }
+}
 
 const searchTerm = ref('');
 const selectedOwners = ref<string[]>([]);

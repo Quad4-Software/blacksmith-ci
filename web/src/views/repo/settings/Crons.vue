@@ -34,7 +34,7 @@
           <Table ref="tableRef" class="table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead class="w-48 min-w-32">{{ $t('repo.settings.crons.name.name') }}</TableHead>
+                <TableHead class="w-56 min-w-40">{{ $t('repo.settings.crons.name.name') }}</TableHead>
                 <TableHead class="w-32 min-w-24">{{ $t('repo.settings.crons.schedule.title') }}</TableHead>
                 <TableHead class="w-28 min-w-20">{{ $t('repo.settings.crons.branch.title') }}</TableHead>
                 <TableHead class="w-40 min-w-32">{{ $t('repo.settings.crons.next_exec') }}</TableHead>
@@ -49,7 +49,31 @@
                 class="cursor-pointer hover:bg-muted/50"
                 @click="selectedCron = cron"
               >
-                <TableCell class="font-medium" :title="cron.name">{{ cron.name }}</TableCell>
+                <TableCell class="font-medium overflow-visible" :title="cron.name">
+                  <div class="flex items-center gap-1">
+                    <span class="truncate min-w-0 flex-1">{{ cron.name }}</span>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger as-child>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            class="h-5 w-5 shrink-0"
+                            @click.stop="copyField(cron.name, `name-${cron.id}`)"
+                          >
+                            <Icon
+                              :name="copiedFields[`name-${cron.id}`] ? 'lucide:check' : 'lucide:copy'"
+                              class="h-3 w-3"
+                            />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{{ copiedFields[`name-${cron.id}`] ? $t('copied') : $t('copy') }}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                </TableCell>
                 <TableCell :title="cron.schedule">
                   <code class="text-xs bg-muted px-1.5 py-0.5 rounded">{{ cron.schedule }}</code>
                 </TableCell>
@@ -311,6 +335,7 @@
 <script lang="ts" setup>
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 
 import Icon from '~/components/atomic/Icon.vue';
@@ -360,6 +385,21 @@ const routerInstance = useRouter();
 
 const repo = requiredInject('repo');
 const selectedCron = ref<Partial<Cron>>();
+
+// Track copied state for cron fields
+const copiedFields = reactive<Record<string, boolean>>({});
+
+async function copyField(value: string, fieldKey: string) {
+  try {
+    await navigator.clipboard.writeText(value);
+    copiedFields[fieldKey] = true;
+    setTimeout(() => {
+      copiedFields[fieldKey] = false;
+    }, 2000);
+  } catch {
+    // Failed to copy
+  }
+}
 const isEditingCron = computed(() => !!selectedCron.value?.id);
 const date = useDate();
 const deleteDialogOpen = reactive<Record<number, boolean>>({});

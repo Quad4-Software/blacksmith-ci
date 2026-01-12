@@ -49,8 +49,25 @@
         <div class="flex min-w-0 flex-1 items-center md:mx-4">
           <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
           <span class="md:display-unset hidden text-muted-foreground shrink-0">#{{ pipeline.number }}</span>
+          <TooltipProvider v-if="!showCheckbox" class="hidden md:inline-flex">
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  class="h-5 w-5 mx-1 shrink-0"
+                  @click.stop.prevent="copyPipelineNumber"
+                >
+                  <Icon :name="copiedPipelineNumber ? 'lucide:check' : 'lucide:copy'" class="h-3 w-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{{ copiedPipelineNumber ? $t('copied') : $t('copy') }}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-          <span class="md:display-unset mx-2 hidden text-muted-foreground shrink-0">-</span>
+          <span class="md:display-unset mx-1 hidden text-muted-foreground shrink-0">-</span>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger as-child>
@@ -222,8 +239,21 @@ const notifications = useNotifications();
 const repo = requiredInject('repo');
 const isRerunning = ref(false);
 const isCanceling = ref(false);
+const copiedPipelineNumber = ref(false);
 
 const pipeline = toRef(props, 'pipeline');
+
+async function copyPipelineNumber() {
+  try {
+    await navigator.clipboard.writeText(`#${pipeline.value.number}`);
+    copiedPipelineNumber.value = true;
+    setTimeout(() => {
+      copiedPipelineNumber.value = false;
+    }, 2000);
+  } catch {
+    // Failed to copy
+  }
+}
 
 const isActive = computed(() => ['pending', 'running', 'started'].includes(pipeline.value.status));
 const { startDate, duration, message, prettyRef, created } = usePipeline(pipeline);

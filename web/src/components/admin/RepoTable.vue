@@ -218,8 +218,8 @@ import type {
 } from '@tanstack/vue-table';
 import { FlexRender, getCoreRowModel, getFilteredRowModel, getSortedRowModel, useVueTable } from '@tanstack/vue-table';
 import { useStorage } from '@vueuse/core';
-import { ArrowUpDown, MoreVertical } from 'lucide-vue-next';
-import { computed, h, onMounted, ref, watch } from 'vue';
+import { ArrowUpDown, Check, Copy, MoreVertical } from 'lucide-vue-next';
+import { computed, h, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
@@ -265,6 +265,21 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const router = useRouter();
 const { getForgeById } = useForges();
+
+// Track copied state for repo names
+const copiedRepos = reactive<Record<string, boolean>>({});
+
+async function copyRepoName(name: string) {
+  try {
+    await navigator.clipboard.writeText(name);
+    copiedRepos[name] = true;
+    setTimeout(() => {
+      copiedRepos[name] = false;
+    }, 2000);
+  } catch {
+    // Failed to copy
+  }
+}
 
 const sorting = ref<SortingState>([{ id: 'full_name', desc: false }]);
 const columnFilters = ref<ColumnFiltersState>([]);
@@ -394,18 +409,34 @@ const columns: ColumnDef<Repo>[] = [
     },
     cell: ({ row }) => {
       const repo = row.original;
-      return h(
-        'a',
-        {
-          href: `/repos/${repo.id}`,
-          class: 'font-medium text-link hover:underline cursor-pointer',
-          onClick: (e: Event) => {
-            e.preventDefault();
-            router.push({ name: 'repo', params: { repoId: repo.id } });
+      const fullName = repo.full_name;
+      return h('div', { class: 'flex items-center gap-1' }, [
+        h(
+          'a',
+          {
+            href: `/repos/${repo.id}`,
+            class: 'font-medium text-link hover:underline cursor-pointer',
+            onClick: (e: Event) => {
+              e.preventDefault();
+              router.push({ name: 'repo', params: { repoId: repo.id } });
+            },
           },
-        },
-        repo.full_name,
-      );
+          fullName,
+        ),
+        h(
+          'button',
+          {
+            type: 'button',
+            class: 'p-1 hover:bg-muted rounded transition-colors',
+            title: copiedRepos[fullName] ? t('copied') : t('copy'),
+            onClick: (e: Event) => {
+              e.stopPropagation();
+              copyRepoName(fullName);
+            },
+          },
+          h(copiedRepos[fullName] ? Check : Copy, { class: 'h-3 w-3 text-muted-foreground' }),
+        ),
+      ]);
     },
     size: 300,
     minSize: 150,

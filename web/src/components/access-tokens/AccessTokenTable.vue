@@ -128,8 +128,8 @@
 <script lang="ts" setup>
 import type { ColumnDef, SortingState, VisibilityState } from '@tanstack/vue-table';
 import { FlexRender, getCoreRowModel, getSortedRowModel, useVueTable } from '@tanstack/vue-table';
-import { MoreVertical } from 'lucide-vue-next';
-import { h, ref } from 'vue';
+import { Check, Copy, MoreVertical } from 'lucide-vue-next';
+import { h, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Icon from '~/components/atomic/Icon.vue';
@@ -169,6 +169,21 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+
+// Track copied state for token names
+const copiedTokens = reactive<Record<string, boolean>>({});
+
+async function copyTokenName(name: string) {
+  try {
+    await navigator.clipboard.writeText(name);
+    copiedTokens[name] = true;
+    setTimeout(() => {
+      copiedTokens[name] = false;
+    }, 2000);
+  } catch {
+    // Failed to copy
+  }
+}
 
 const sorting = ref<SortingState>([{ id: 'created_at', desc: true }]);
 const rowSelection = ref({});
@@ -291,6 +306,19 @@ const columns: ColumnDef<AccessToken>[] = [
 
       return h('div', { class: 'flex items-center gap-2 flex-wrap' }, [
         h('span', { class: expired ? 'text-muted-foreground line-through' : 'font-medium' }, name),
+        h(
+          'button',
+          {
+            type: 'button',
+            class: 'p-1 hover:bg-muted rounded transition-colors',
+            title: copiedTokens[name] ? t('copied') : t('copy'),
+            onClick: (e: Event) => {
+              e.stopPropagation();
+              copyTokenName(name);
+            },
+          },
+          h(copiedTokens[name] ? Check : Copy, { class: 'h-3 w-3 text-muted-foreground' }),
+        ),
         expired
           ? h(Badge, { variant: 'destructive' }, () => t('access_tokens.expired'))
           : expiringSoon

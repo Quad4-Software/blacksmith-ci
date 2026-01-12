@@ -209,6 +209,18 @@
                   <!-- Existing images -->
                   <div v-for="(image, index) in imagesValue" :key="index" class="flex gap-2">
                     <Input :model-value="image" disabled />
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger as-child>
+                          <Button type="button" size="icon" variant="outline" @click="copyImage(image)">
+                            <Icon :name="copiedImages[image] ? 'lucide:check' : 'lucide:copy'" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{{ copiedImages[image] ? $t('copied') : $t('copy') }}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                     <Button type="button" size="icon" @click="removeImage(index, componentField)">
                       <Icon name="trash" />
                     </Button>
@@ -279,7 +291,7 @@
 
 <script lang="ts" setup>
 import { toTypedSchema } from '@vee-validate/zod';
-import { computed, ref, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import * as z from 'zod';
 
@@ -359,6 +371,21 @@ const canViewAbbreviated = computed(() => {
 });
 const newImage = ref('');
 const isGlobal = ref(false);
+
+// Track copied state for images
+const copiedImages = reactive<Record<string, boolean>>({});
+
+async function copyImage(image: string) {
+  try {
+    await navigator.clipboard.writeText(image);
+    copiedImages[image] = true;
+    setTimeout(() => {
+      copiedImages[image] = false;
+    }, 2000);
+  } catch {
+    // Failed to copy
+  }
+}
 const selectedTarget = ref<string>(''); // Format: "org-123" or "repo-456"
 const comboboxOpen = ref(false);
 const searchTerm = ref('');
