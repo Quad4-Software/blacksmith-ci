@@ -126,6 +126,7 @@ func Test_forgejo(t *testing.T) {
 		req.Header.Set(hookEvent, hookPullRequest)
 		mockStore.On("GetRepoNameFallback", mock.Anything, mock.Anything).Return(fakeRepo, nil)
 		mockStore.On("GetUser", mock.Anything).Return(fakeUser, nil)
+		mockStore.On("UserForgeGet", mock.Anything, mock.Anything).Return(nil, nil)
 		r, b, err := c.Hook(ctx, req)
 		assert.NotNil(t, r)
 		assert.NotNil(t, b)

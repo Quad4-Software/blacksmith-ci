@@ -234,6 +234,9 @@ let staleTokenNotificationShown = false;
 let staleTokenNotificationTimeout: number | null = null;
 let lastLoginTime = 0;
 
+// 404 error suppression - used when intentionally deleting/navigating away from resources
+let suppress404Until = 0;
+
 // Function to clear all notifications
 const clearAllNotifications = () => {
   // Dismiss all toasts
@@ -250,6 +253,14 @@ const clearAllNotifications = () => {
 
 // Expose the function globally so it can be called from router
 (window as any).clearAllNotifications = clearAllNotifications;
+
+// Function to temporarily suppress 404 errors (e.g., after deleting a resource)
+const suppress404Errors = (durationMs = 2000) => {
+  suppress404Until = Date.now() + durationMs;
+};
+
+// Expose globally for use in components
+(window as any).suppress404Errors = suppress404Errors;
 
 // Listen for clear notifications event
 window.addEventListener('clearNotifications', clearAllNotifications);
@@ -279,6 +290,10 @@ apiClient.setErrorHandler(
     const url = config?.url || '';
 
     if (status === 404) {
+      // Skip 404 notification if temporarily suppressed (e.g., after deleting a resource)
+      if (Date.now() < suppress404Until) {
+        return;
+      }
       notify({ title: i18n.t('errors.not_found'), type: 'error' });
       return;
     }

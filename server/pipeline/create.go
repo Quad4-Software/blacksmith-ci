@@ -45,6 +45,16 @@ func Create(ctx context.Context, _store store.Store, repo *model.Repo, pipeline 
 		return nil, errors.New(msg)
 	}
 
+	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
+	// This ensures we use the correct OAuth tokens for the forge the repo belongs to.
+	if userForge, ufErr := _store.UserForgeGet(repoUser.ID, repo.ForgeID); ufErr == nil && userForge != nil {
+		repoUser.AccessToken = userForge.AccessToken
+		repoUser.RefreshToken = userForge.RefreshToken
+		repoUser.Expiry = userForge.Expiry
+		repoUser.ForgeID = userForge.ForgeID
+		repoUser.ForgeRemoteID = userForge.ForgeRemoteID
+	}
+
 	if pipeline.Event == model.EventPush || pipeline.Event == model.EventPull || pipeline.Event == model.EventPullClosed || pipeline.Event == model.EventPullEdited {
 		skipMatch := skipPipelineRegex.FindString(pipeline.Message)
 		if len(skipMatch) > 0 {

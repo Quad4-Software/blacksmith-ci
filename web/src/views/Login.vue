@@ -4,18 +4,25 @@
       class="shadow-2xl rounded-3xl py-8 md:py-12 px-8 md:px-16 flex flex-col items-center gap-4 max-w-lg border border-border bg-card text-foreground md:my-24 my-12 md:mx-24 mx-6"
     >
       <component :is="isDark ? CrowLogo : CrowLogoDark" class="h-20 w-20 mb-2" />
-      <h1 class="text-3xl font-extrabold text-center">{{ $t('welcome_to_crow') }}</h1>
-      <p class="text-center text-lg mb-2">{{ $t('login_oauth_message') }}</p>
+      <!-- Different heading and message for linking mode -->
+      <template v-if="isLinkingMode">
+        <h1 class="text-3xl font-extrabold text-center">{{ $t('link_forge_title') }}</h1>
+        <p class="text-center text-lg mb-2">{{ $t('link_forge_message') }}</p>
+      </template>
+      <template v-else>
+        <h1 class="text-3xl font-extrabold text-center">{{ $t('welcome_to_crow') }}</h1>
+        <p class="text-center text-lg mb-2">{{ $t('login_oauth_message') }}</p>
+      </template>
       <div class="flex flex-col gap-2 w-full items-center">
         <Button
-          v-for="(forge, idx) in forges"
+          v-for="(forge, idx) in displayedForges"
           :key="forge.id"
           :ref="(el) => (buttonRefs[idx] = el)"
           class="justify-center dark:bg-black! text-foreground"
           :style="maxButtonWidth ? { width: `${maxButtonWidth}px` } : {}"
           :disabled="loading === forge.id"
           color="default"
-          :aria-label="`${$t('login_oauth_message')} ${getHostFromUrl(forge)}`"
+          :aria-label="`${isLinkingMode ? $t('link_forge_message') : $t('login_oauth_message')} ${getHostFromUrl(forge)}`"
           @click="doLogin(forge.id)"
         >
           <span v-if="loading === forge.id" class="loader" aria-hidden="true"></span>
@@ -32,6 +39,12 @@
             {{ getHostFromUrl(forge) }}
           </span>
         </Button>
+      </div>
+      <!-- Cancel link for linking mode -->
+      <div v-if="isLinkingMode" class="mt-2">
+        <router-link :to="{ name: 'user' }" class="text-sm text-muted-foreground hover:underline">
+          {{ $t('cancel') }}
+        </router-link>
       </div>
       <div
         v-if="errorMessage"
@@ -71,57 +84,53 @@ const isDark = computed(() => theme.value === 'dark');
 const forges = ref<Forge[]>([]);
 const loading = ref<number | null>(null);
 
+// Linking mode: when user wants to link an additional forge
+const isLinkingMode = computed(() => route.query.link === 'true');
+const linkForgeId = computed(() => {
+  const id = route.query.forge_id;
+  return id ? Number(id) : null;
+});
+
+// Filter forges to show only the specific one when linking
+const displayedForges = computed(() => {
+  if (isLinkingMode.value && linkForgeId.value !== null) {
+    return forges.value.filter((f) => f.id === linkForgeId.value);
+  }
+  return forges.value;
+});
+
 // Track favicon extension state per forge
 const faviconExts = ['svg', 'ico', 'png'] as const;
 const faviconState = ref<Record<number, number>>({}); // forge.id -> ext index
 const faviconUrlOverride = ref<Record<number, string>>({}); // forge.id -> custom favicon url
 
-async function fetchFaviconFromHead(forge: Forge) {
+async function fetchFavicon(forge: Forge) {
   try {
     const url = new URL(forge.url);
-    const res = await fetch(url.origin, { mode: 'cors' });
-    if (!res.ok) return null; // fallback if fetch fails
-    const html = await res.text();
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    // Collect all <link rel="icon" ...> or similar
-    const iconLinks = Array.from(
-      doc.querySelectorAll('link[rel~="icon" i], link[rel~="shortcut icon" i], link[rel~="apple-touch-icon" i]'),
-    );
-    // Prefer by type attribute (svg, png, ico), then by href extension
-    let href = '';
-    const typePrefs = [
-      { type: 'svg', mime: 'svg' },
-      { type: 'png', mime: 'png' },
-      { type: 'ico', mime: 'ico' },
-    ];
-    for (const pref of typePrefs) {
-      const found = iconLinks.find((link) => {
-        const typeAttr = (link.getAttribute('type') || '').toLowerCase();
-        const hrefAttr = (link.getAttribute('href') || '').toLowerCase();
-        return typeAttr.includes(pref.mime) || hrefAttr.endsWith(`.${pref.type}`);
-      });
-      if (found) {
-        href = found.getAttribute('href')!;
-        break;
+    const paths = ['/favicon.svg', '/favicon.png', '/assets/img/favicon.svg', '/assets/img/favicon.png'];
+
+    for (const path of paths) {
+      const faviconUrl = `${url.origin}${path}`;
+      const valid = await checkImageExists(faviconUrl);
+      if (valid) {
+        faviconUrlOverride.value[forge.id] = faviconUrl;
+        return faviconUrl;
       }
-    }
-    // If none matched, fallback to first icon link
-    if (!href && iconLinks.length > 0 && iconLinks[0].getAttribute('href')) {
-      href = iconLinks[0].getAttribute('href')!;
-    }
-    if (href) {
-      // Resolve relative URLs
-      if (!href.startsWith('http')) {
-        href = url.origin + (href.startsWith('/') ? href : `/${href}`);
-      }
-      faviconUrlOverride.value[forge.id] = href;
-      return href;
     }
   } catch {
-    // If fetch fails (e.g., CORS), do not set override, let fallback logic run
-    return null;
+    // Ignore errors
   }
   return null;
+}
+
+// Check if an image URL exists by trying to load it
+function checkImageExists(url: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(true);
+    img.onerror = () => resolve(false);
+    img.src = url;
+  });
 }
 
 function getFaviconUrl(forge: Forge) {
@@ -141,7 +150,7 @@ function getFaviconUrl(forge: Forge) {
 
 async function ensureFavicon(forge: Forge) {
   if (!faviconUrlOverride.value[forge.id]) {
-    await fetchFaviconFromHead(forge);
+    await fetchFavicon(forge);
   }
 }
 
@@ -154,14 +163,20 @@ function getHostFromUrl(forge: Forge) {
 }
 
 function hasBuiltInIcon(forge: Forge) {
-  const builtInForges = ['github', 'gitlab', 'bitbucket', 'bitbucket-dc', 'forgejo', 'gitea', 'codeberg', 'codefloe'];
+  // If we successfully fetched a favicon, use it instead of built-in icon
+  if (faviconUrlOverride.value[forge.id]) {
+    return false;
+  }
+  // Fall back to built-in icon if available
+  const builtInForges = ['github', 'gitlab', 'gitea', 'forgejo', 'bitbucket', 'bitbucket-dc'];
   return builtInForges.includes(forge.type);
 }
 
 function doLogin(forgeId?: number) {
   loading.value = forgeId ?? null;
   const url = typeof route.query.url === 'string' ? route.query.url : '';
-  authentication.authenticate(url, forgeId);
+  // Pass link=true when in linking mode
+  authentication.authenticate(url, forgeId, isLinkingMode.value);
 }
 
 const authErrorMessages = {
@@ -192,12 +207,14 @@ function updateButtonWidths() {
   });
 }
 
-watch(forges, updateButtonWidths, { immediate: true });
+watch(displayedForges, updateButtonWidths, { immediate: true });
 watch(() => i18n.locale, updateButtonWidths); // update on language change
 
 // Ensure favicon is checked on mount for all forges
 onMounted(async () => {
-  if (authentication.isAuthenticated) {
+  // In linking mode, stay on the page even if authenticated
+  // (user needs to authenticate with the additional forge)
+  if (authentication.isAuthenticated && !isLinkingMode.value) {
     await router.replace({ name: 'home' });
     return;
   }

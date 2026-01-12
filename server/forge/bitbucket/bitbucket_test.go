@@ -210,6 +210,7 @@ func TestBitbucket(t *testing.T) {
 	ctx = store.InjectToContext(ctx, mockStore)
 	mockStore.On("GetUser", mock.Anything).Return(fakeUser, nil)
 	mockStore.On("GetRepoForgeID", mock.Anything).Return(fakeRepoFromHook, nil)
+	mockStore.On("UserForgeGet", mock.Anything, mock.Anything).Return(nil, nil)
 
 	r, b, err := c.Hook(ctx, req)
 	assert.NoError(t, err)

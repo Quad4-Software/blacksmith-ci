@@ -22,6 +22,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/oauth2"
 
+	"codeberg.org/crowci/crow/v5/server/forge"
 	"codeberg.org/crowci/crow/v5/server/forge/bitbucket/internal"
 	"codeberg.org/crowci/crow/v5/server/model"
 )
@@ -91,7 +92,7 @@ func Test_convertUser(t *testing.T) {
 	assert.Equal(t, user.Login, result.Login)
 	assert.Equal(t, token.AccessToken, result.AccessToken)
 	assert.Equal(t, token.RefreshToken, result.RefreshToken)
-	assert.Equal(t, token.Expiry.UTC().Unix(), result.Expiry)
+	assert.Equal(t, forge.TokenExpiryToUnix(token.Expiry), result.Expiry)
 }
 
 func Test_cloneLink(t *testing.T) {

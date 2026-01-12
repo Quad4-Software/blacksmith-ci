@@ -144,7 +144,7 @@ func (g *GitLab) Login(ctx context.Context, req *forge_types.OAuthRequest) (*mod
 		ForgeRemoteID: model.ForgeRemoteID(fmt.Sprint(login.ID)),
 		AccessToken:   token.AccessToken,
 		RefreshToken:  token.RefreshToken,
-		Expiry:        token.Expiry.UTC().Unix(),
+		Expiry:        forge.TokenExpiryToUnix(token.Expiry),
 	}
 	if !strings.HasPrefix(user.Avatar, "http") {
 		user.Avatar = g.url + "/" + login.AvatarURL
@@ -172,7 +172,7 @@ func (g *GitLab) Refresh(ctx context.Context, user *model.User) (bool, error) {
 
 	user.AccessToken = token.AccessToken
 	user.RefreshToken = token.RefreshToken
-	user.Expiry = token.Expiry.UTC().Unix()
+	user.Expiry = forge.TokenExpiryToUnix(token.Expiry)
 	return true, nil
 }
 
@@ -787,7 +787,7 @@ func (g *GitLab) loadChangedFilesFromMergeRequest(ctx context.Context, tmpRepo *
 		return nil, err
 	}
 
-	user, err := _store.GetUser(repo.UserID)
+	user, err := common.RepoUser(ctx, repo)
 	if err != nil {
 		return nil, err
 	}

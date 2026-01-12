@@ -160,7 +160,13 @@ func TestHandleAuth(t *testing.T) {
 		_manager.On("ForgeByID", int64(1)).Return(_forge, nil)
 		_forge.On("Login", mock.Anything, mock.Anything).Return(user, "", nil)
 		_store.On("GetUserRemoteID", user.ForgeRemoteID, user.Login).Return(nil, types.RecordNotExist)
+		// Multi-forge: check if UserForge exists for this remote ID
+		_store.On("UserForgeGetByRemoteID", int64(1), user.ForgeRemoteID).Return(nil, types.RecordNotExist)
 		_store.On("CreateUser", mock.Anything).Return(nil)
+		// Multi-forge: create UserForge record for new user
+		_store.On("UserForgeCreate", mock.Anything).Return(nil)
+		// Multi-forge: update UserForge with refreshed tokens after user update
+		_store.On("UserForgeUpdate", mock.Anything).Return(nil)
 		_store.On("OrgFindByName", user.Login, user.ForgeID).Return(nil, nil)
 		_store.On("OrgCreate", mock.Anything).Return(nil)
 		_store.On("UpdateUser", mock.Anything).Return(nil)
@@ -191,9 +197,22 @@ func TestHandleAuth(t *testing.T) {
 			},
 		}
 
+		// Multi-forge: UserForge lookup finds existing user
+		existingUserForge := &model.UserForge{
+			ID:            1,
+			UserID:        user.ID,
+			ForgeID:       user.ForgeID,
+			ForgeRemoteID: user.ForgeRemoteID,
+			IsPrimary:     true,
+		}
+
 		_manager.On("ForgeByID", int64(1)).Return(_forge, nil)
 		_forge.On("Login", mock.Anything, mock.Anything).Return(user, "", nil)
-		_store.On("GetUserRemoteID", user.ForgeRemoteID, user.Login).Return(user, nil)
+		// Multi-forge: first try UserForge lookup (new path)
+		_store.On("UserForgeGetByRemoteID", int64(1), user.ForgeRemoteID).Return(existingUserForge, nil)
+		_store.On("GetUser", user.ID).Return(user, nil)
+		// Multi-forge: update UserForge with refreshed tokens
+		_store.On("UserForgeUpdate", mock.Anything).Return(nil)
 		_store.On("OrgGet", org.ID).Return(org, nil)
 		_store.On("UpdateUser", mock.Anything).Return(nil)
 		_forge.On("Repos", mock.Anything, mock.Anything).Return(nil, nil)
@@ -225,6 +244,8 @@ func TestHandleAuth(t *testing.T) {
 
 		_manager.On("ForgeByID", int64(1)).Return(_forge, nil)
 		_forge.On("Login", mock.Anything, mock.Anything).Return(user, "", nil)
+		// Multi-forge: check if UserForge exists for this remote ID (new user doesn't exist)
+		_store.On("UserForgeGetByRemoteID", int64(1), user.ForgeRemoteID).Return(nil, types.RecordNotExist)
 		_store.On("GetUserRemoteID", user.ForgeRemoteID, user.Login).Return(nil, types.RecordNotExist)
 
 		api.HandleAuth(c)
@@ -286,7 +307,11 @@ func TestHandleAuth(t *testing.T) {
 
 		_manager.On("ForgeByID", int64(1)).Return(_forge, nil)
 		_forge.On("Login", mock.Anything, mock.Anything).Return(user, "", nil)
+		// Multi-forge: legacy user doesn't have UserForge record yet
+		_store.On("UserForgeGetByRemoteID", int64(1), user.ForgeRemoteID).Return(nil, types.RecordNotExist)
 		_store.On("GetUserRemoteID", user.ForgeRemoteID, user.Login).Return(user, nil)
+		_store.On("UserForgeCreate", mock.Anything).Return(nil)
+		_store.On("UserForgeUpdate", mock.Anything).Return(nil)
 		_store.On("OrgFindByName", user.Login, user.ForgeID).Return(nil, types.RecordNotExist)
 		_store.On("OrgCreate", mock.Anything).Return(nil)
 		_store.On("UpdateUser", mock.Anything).Return(nil)
@@ -320,7 +345,11 @@ func TestHandleAuth(t *testing.T) {
 
 		_manager.On("ForgeByID", int64(1)).Return(_forge, nil)
 		_forge.On("Login", mock.Anything, mock.Anything).Return(user, "", nil)
+		// Multi-forge: legacy user doesn't have UserForge record yet
+		_store.On("UserForgeGetByRemoteID", int64(1), user.ForgeRemoteID).Return(nil, types.RecordNotExist)
 		_store.On("GetUserRemoteID", user.ForgeRemoteID, user.Login).Return(user, nil)
+		_store.On("UserForgeCreate", mock.Anything).Return(nil)
+		_store.On("UserForgeUpdate", mock.Anything).Return(nil)
 		_store.On("OrgFindByName", user.Login, user.ForgeID).Return(org, nil)
 		_store.On("OrgUpdate", mock.Anything).Return(nil)
 		_store.On("UpdateUser", mock.Anything).Return(nil)
@@ -354,7 +383,11 @@ func TestHandleAuth(t *testing.T) {
 
 		_manager.On("ForgeByID", int64(1)).Return(_forge, nil)
 		_forge.On("Login", mock.Anything, mock.Anything).Return(user, "", nil)
+		// Multi-forge: legacy user doesn't have UserForge record yet
+		_store.On("UserForgeGetByRemoteID", int64(1), user.ForgeRemoteID).Return(nil, types.RecordNotExist)
 		_store.On("GetUserRemoteID", user.ForgeRemoteID, user.Login).Return(user, nil)
+		_store.On("UserForgeCreate", mock.Anything).Return(nil)
+		_store.On("UserForgeUpdate", mock.Anything).Return(nil)
 		_store.On("OrgGet", user.OrgID).Return(org, nil)
 		_store.On("OrgUpdate", mock.Anything).Return(nil)
 		_store.On("UpdateUser", mock.Anything).Return(nil)

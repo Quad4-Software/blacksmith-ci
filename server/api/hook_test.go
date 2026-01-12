@@ -80,6 +80,7 @@ func TestHook(t *testing.T) {
 	_forge.On("Hook", mock.Anything, mock.Anything).Return(repo, pipeline, nil)
 	_store.On("GetRepo", repo.ID).Return(repo, nil)
 	_store.On("GetUser", user.ID).Return(user, nil)
+	_store.On("UserForgeGet", user.ID, repo.ForgeID).Return(nil, nil)
 	_store.On("UpdateRepo", repo).Return(nil)
 	_store.On("CreatePipeline", mock.Anything).Return(nil)
 	_manager.On("ConfigServiceFromRepo", repo).Return(_configService)

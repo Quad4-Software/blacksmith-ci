@@ -135,7 +135,7 @@ func (c *Gitea) Login(ctx context.Context, req *forge_types.OAuthRequest) (*mode
 	return &model.User{
 		AccessToken:   token.AccessToken,
 		RefreshToken:  token.RefreshToken,
-		Expiry:        token.Expiry.UTC().Unix(),
+		Expiry:        forge.TokenExpiryToUnix(token.Expiry),
 		Login:         account.UserName,
 		Email:         account.Email,
 		ForgeRemoteID: model.ForgeRemoteID(fmt.Sprint(account.ID)),
@@ -176,7 +176,7 @@ func (c *Gitea) Refresh(ctx context.Context, user *model.User) (bool, error) {
 
 	user.AccessToken = token.AccessToken
 	user.RefreshToken = token.RefreshToken
-	user.Expiry = token.Expiry.UTC().Unix()
+	user.Expiry = forge.TokenExpiryToUnix(token.Expiry)
 	return true, nil
 }
 
@@ -624,7 +624,7 @@ func (c *Gitea) getChangedFilesForPR(ctx context.Context, repo *model.Repo, inde
 		return nil, err
 	}
 
-	user, err := _store.GetUser(repo.UserID)
+	user, err := common.RepoUser(ctx, repo)
 	if err != nil {
 		return nil, err
 	}
@@ -661,7 +661,7 @@ func (c *Gitea) getTagCommitSHA(ctx context.Context, repo *model.Repo, tagName s
 		return "", err
 	}
 
-	user, err := _store.GetUser(repo.UserID)
+	user, err := common.RepoUser(ctx, repo)
 	if err != nil {
 		return "", err
 	}

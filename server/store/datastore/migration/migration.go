@@ -94,6 +94,8 @@ var migrationTasks = []*xormigrate.Migration{
 	&crowAddDeployTeamToRepos,
 	&crowAddIntegrations,
 	&crowAddAgentHostname,
+	&crowAddUserForges,
+	&crowAddForgeIcon,
 }
 
 var allBeans = []any{
@@ -124,6 +126,7 @@ var allBeans = []any{
 	new(model.Autoscaler),
 	new(model.AccessToken),
 	new(model.Integration),
+	new(model.UserForge),
 }
 
 // TODO: make xormigrate context aware

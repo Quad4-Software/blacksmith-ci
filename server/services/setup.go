@@ -52,7 +52,7 @@ func setupSecretService(s store.Store) secret.Service {
 }
 
 // setupEncryptedStore wraps the base store with encryption wrappers for secrets, registries,
-// users, and forges. If encryption is configured (via CROW_ENCRYPTION_TINK_KEYSET_FILE or
+// users, forges, and user forges. If encryption is configured (via CROW_ENCRYPTION_TINK_KEYSET_FILE or
 // CROW_ENCRYPTION_KEY), all sensitive data will be encrypted at rest.
 func setupEncryptedStore(c *cli.Command, baseStore store.Store) (store.Store, error) {
 	// Create individual wrappers.
@@ -60,6 +60,7 @@ func setupEncryptedStore(c *cli.Command, baseStore store.Store) (store.Store, er
 	registryWrapper := encryptedStore.NewRegistryStore(baseStore)
 	userWrapper := encryptedStore.NewUserStore(baseStore)
 	forgeWrapper := encryptedStore.NewForgeStore(baseStore)
+	userForgeWrapper := encryptedStore.NewUserForgeStore(baseStore)
 
 	// Create composite wrapper that combines all encrypted operations.
 	compositeStore := encryptedStore.NewCompositeStore(
@@ -68,6 +69,7 @@ func setupEncryptedStore(c *cli.Command, baseStore store.Store) (store.Store, er
 		registryWrapper,
 		userWrapper,
 		forgeWrapper,
+		userForgeWrapper,
 	)
 
 	// Build encryption service and configure wrappers.
@@ -126,6 +128,74 @@ func setupSignatureKeys(_store store.Store) (ed25519.PrivateKey, crypto.PublicKe
 }
 
 func setupForgeService(c *cli.Command, _store store.Store) error {
+	// Check for multi-forge configuration first
+	multiForgeConfigs, err := ParseMultiForgeConfig()
+	if err != nil {
+		return fmt.Errorf("failed to parse multi-forge configuration: %w", err)
+	}
+
+	if len(multiForgeConfigs) > 0 {
+		return setupMultipleForges(_store, multiForgeConfigs)
+	}
+
+	// Fall back to legacy single-forge configuration
+	return setupLegacySingleForge(c, _store)
+}
+
+// setupMultipleForges creates or updates multiple forges from the parsed configuration.
+func setupMultipleForges(_store store.Store, configs []ForgeConfig) error {
+	// Get existing forges to check for updates vs creates
+	existingForges, err := _store.ForgeList(&model.ListOptions{All: true})
+	if err != nil && !errors.Is(err, types.RecordNotExist) {
+		return fmt.Errorf("failed to list existing forges: %w", err)
+	}
+
+	// Build a map of existing forges by URL for matching
+	existingByURL := make(map[string]*model.Forge)
+	for _, f := range existingForges {
+		existingByURL[f.URL] = f
+	}
+
+	for _, config := range configs {
+		forge := &model.Forge{
+			Type:              config.Type,
+			URL:               config.URL,
+			Client:            config.Client,
+			ClientSecret:      config.ClientSecret,
+			SkipVerify:        config.SkipVerify,
+			OAuthHost:         config.OAuthHost,
+			Icon:              config.Icon,
+			AdditionalOptions: config.AdditionalOptions,
+		}
+
+		// Check if this forge already exists (by URL)
+		if existing, ok := existingByURL[config.URL]; ok {
+			forge.ID = existing.ID
+			if err := _store.ForgeUpdate(forge); err != nil {
+				return fmt.Errorf("failed to update forge %q: %w", config.Name, err)
+			}
+			log.Info().
+				Str("name", config.Name).
+				Str("url", config.URL).
+				Str("type", string(config.Type)).
+				Msg("updated forge")
+		} else {
+			if err := _store.ForgeCreate(forge); err != nil {
+				return fmt.Errorf("failed to create forge %q: %w", config.Name, err)
+			}
+			log.Info().
+				Str("name", config.Name).
+				Str("url", config.URL).
+				Str("type", string(config.Type)).
+				Msg("created forge")
+		}
+	}
+
+	return nil
+}
+
+// setupLegacySingleForge handles the legacy single-forge configuration using CLI flags.
+func setupLegacySingleForge(c *cli.Command, _store store.Store) error {
 	_forge, err := _store.ForgeGet(1)
 	if err != nil && !errors.Is(err, types.RecordNotExist) {
 		return err

@@ -54,9 +54,9 @@ func handleDBError(c *gin.Context, err error) {
 	_ = c.AbortWithError(http.StatusInternalServerError, err)
 }
 
-// If the forge has a refresh token, the current access token may be stale.
-// Therefore, we should refresh prior to dispatching the job.
-func refreshUserToken(c *gin.Context, user *model.User) {
+// refreshUserTokenForForge refreshes the user's token for a specific forge.
+// If isSecondaryForge is true, it uses RefreshUserForge for proper secondary forge handling.
+func refreshUserTokenForForge(c *gin.Context, user *model.User, forgeID int64, isSecondaryForge bool) {
 	_store := store.FromContext(c)
 	_forge, err := server.Config.Services.Manager.ForgeFromUser(user)
 	if err != nil {
@@ -64,7 +64,14 @@ func refreshUserToken(c *gin.Context, user *model.User) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	refreshErr := forge.Refresh(c, _forge, _store, user)
+
+	var refreshErr error
+	if isSecondaryForge && forgeID > 0 {
+		refreshErr = forge.RefreshUserForge(c, _forge, _store, user, forgeID)
+	} else {
+		refreshErr = forge.Refresh(c, _forge, _store, user)
+	}
+
 	if refreshErr != nil {
 		log.Error().Err(refreshErr).Msg("Failed to refresh user auth token")
 		c.Header("Content-Type", "text/plain; charset=utf-8")

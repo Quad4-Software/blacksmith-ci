@@ -34,6 +34,7 @@ type Forge struct {
 	ClientSecret      string         `json:"-"                            xorm:"VARCHAR(250)"` // do not expose client secret
 	SkipVerify        bool           `json:"skip_verify,omitempty"        xorm:"bool"`
 	OAuthHost         string         `json:"oauth_host,omitempty"         xorm:"VARCHAR(250) 'oauth_host'"` // public url for oauth if different from url
+	Icon              string         `json:"icon,omitempty"               xorm:"VARCHAR(250)"`              // custom icon name (e.g., "codeberg", "github", or URL to custom icon)
 	AdditionalOptions map[string]any `json:"additional_options,omitempty" xorm:"json"`
 } //	@name	Forge
 
@@ -48,6 +49,7 @@ func (f *Forge) PublicCopy() *Forge {
 		ID:   f.ID,
 		Type: f.Type,
 		URL:  f.URL,
+		Icon: f.Icon,
 	}
 
 	return forge

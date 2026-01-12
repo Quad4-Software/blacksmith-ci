@@ -696,6 +696,16 @@ func (s *RPC) updateForgeStatus(ctx context.Context, repo *model.Repo, pipeline 
 		return
 	}
 
+	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
+	// This ensures we use the correct OAuth tokens for the forge the repo belongs to.
+	if userForge, ufErr := s.store.UserForgeGet(user.ID, repo.ForgeID); ufErr == nil && userForge != nil {
+		user.AccessToken = userForge.AccessToken
+		user.RefreshToken = userForge.RefreshToken
+		user.Expiry = userForge.Expiry
+		user.ForgeID = userForge.ForgeID
+		user.ForgeRemoteID = userForge.ForgeRemoteID
+	}
+
 	_forge, err := server.Config.Services.Manager.ForgeFromRepo(repo)
 	if err != nil {
 		log.Error().Err(err).Msgf("can not get forge for repo '%s'", repo.FullName)

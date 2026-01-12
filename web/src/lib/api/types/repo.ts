@@ -131,3 +131,34 @@ export interface RepoTrusted {
   volumes: boolean;
   security: boolean;
 }
+
+// Import settings request
+export interface ImportSettingsRequest {
+  source_repo_id: number;
+  settings: boolean;
+  secrets: boolean;
+  registries: boolean;
+  crons: boolean;
+  pipelines: boolean;
+  delete_source: boolean;
+}
+
+// Import settings response
+export interface ImportSettingsResponse {
+  message: string;
+  settings_imported: boolean;
+  secrets_imported: number;
+  registries_imported: number;
+  crons_imported: number;
+  pipelines_imported: number;
+  source_deleted: boolean;
+}
+
+// Import preview response
+export interface ImportPreviewResponse {
+  repo: Repo;
+  secret_count: number;
+  registry_count: number;
+  cron_count: number;
+  pipeline_count: number;
+}

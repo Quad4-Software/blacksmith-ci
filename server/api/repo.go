@@ -38,6 +38,36 @@ import (
 	shared_utils "codeberg.org/crowci/crow/v5/shared/utils"
 )
 
+// getUserWithForgeCredentials returns a copy of the user with credentials from the specified forge.
+// If forgeID is 0, it returns the user with their primary/current forge credentials.
+// This allows using forge APIs with the correct access tokens for multi-forge users.
+func getUserWithForgeCredentials(_store store.Store, user *model.User, forgeID int64) (*model.User, int64, error) {
+	// If no forge specified, use the user's current forge
+	if forgeID == 0 {
+		forgeID = user.ForgeID
+	}
+
+	// Try to get UserForge credentials for the specified forge
+	userForge, err := _store.UserForgeGet(user.ID, forgeID)
+	if err != nil {
+		if errors.Is(err, types.RecordNotExist) {
+			// User doesn't have this forge linked
+			return nil, forgeID, fmt.Errorf("user does not have forge %d linked", forgeID)
+		}
+		return nil, forgeID, fmt.Errorf("failed to get user forge credentials: %w", err)
+	}
+
+	// Create a copy of the user with the forge-specific credentials
+	userCopy := *user
+	userCopy.ForgeID = forgeID
+	userCopy.ForgeRemoteID = userForge.ForgeRemoteID
+	userCopy.AccessToken = userForge.AccessToken
+	userCopy.RefreshToken = userForge.RefreshToken
+	userCopy.Expiry = userForge.Expiry
+
+	return &userCopy, forgeID, nil
+}
+
 // PostRepo
 //
 //	@Summary	Activate a repository
@@ -47,15 +77,47 @@ import (
 //	@Tags		Repositories
 //	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
 //	@Param		forge_remote_id	query	string	true	"the id of a repository at the forge"
+//	@Param		forge_id		query	int		false	"the forge id (for multi-forge users)"
 func PostRepo(c *gin.Context) {
 	_store := store.FromContext(c)
 	user := session.User(c)
-	_forge, err := server.Config.Services.Manager.ForgeFromUser(user)
+
+	// Parse optional forge_id parameter for multi-forge support
+	var forgeID int64
+	if forgeIDStr := c.Query("forge_id"); forgeIDStr != "" {
+		var err error
+		forgeID, err = strconv.ParseInt(forgeIDStr, 10, 64)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": fmt.Sprintf("Invalid forge_id parameter. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
+			})
+			return
+		}
+	}
+
+	// Get user with appropriate forge credentials
+	userWithCreds, forgeID, err := getUserWithForgeCredentials(_store, user, forgeID)
 	if err != nil {
-		log.Error().Err(err).Msg("Unable to get forge info from user information")
-		c.JSON(http.StatusConflict, gin.H{
-			"error": fmt.Sprintf("Unable to get forge info from user information. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
+		log.Error().Err(err).Msg("Unable to get user credentials for forge")
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": fmt.Sprintf("Unable to access forge: %s. Endpoint: %s %s", err.Error(), c.Request.Method, c.Request.URL.Path),
 		})
+		return
+	}
+
+	_forge, err := server.Config.Services.Manager.ForgeByID(forgeID)
+	if err != nil {
+		log.Error().Err(err).Msg("Unable to get forge info")
+		c.JSON(http.StatusConflict, gin.H{
+			"error": fmt.Sprintf("Unable to get forge info. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
+		})
+		return
+	}
+
+	// Refresh tokens before forge API calls
+	isSecondaryForge := forgeID != user.ForgeID
+	refreshUserTokenForForge(c, userWithCreds, forgeID, isSecondaryForge)
+	if c.IsAborted() {
 		return
 	}
 
@@ -84,7 +146,7 @@ func PostRepo(c *gin.Context) {
 		return
 	}
 
-	from, err := _forge.Repo(c, user, forgeRemoteID, "", "")
+	from, err := _forge.Repo(c, userWithCreds, forgeRemoteID, "", "")
 	if err != nil {
 		log.Error().Err(err).Msg("Unable to get repo information from forge")
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -117,7 +179,7 @@ func PostRepo(c *gin.Context) {
 		repo.CancelPreviousPipelineEvents = server.Config.Pipeline.DefaultCancelPreviousPipelineEvents
 		repo.LogsDurationKeep = server.Config.Pipeline.LogsDurationKeep
 		repo.LogsPipelinesKeepMin = server.Config.Pipeline.LogsPipelinesKeepMin
-		repo.ForgeID = user.ForgeID // TODO: allow to use other connected forges of the user
+		repo.ForgeID = forgeID
 	}
 	repo.IsActive = true
 	repo.UserID = user.ID
@@ -146,7 +208,7 @@ func PostRepo(c *gin.Context) {
 
 	// find org of repo
 	var org *model.Org
-	org, err = _store.OrgFindByName(repo.Owner, user.ForgeID)
+	org, err = _store.OrgFindByName(repo.Owner, forgeID)
 	if err != nil && !errors.Is(err, types.RecordNotExist) {
 		log.Error().Err(err).Msg("Unable to find organization")
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -157,7 +219,7 @@ func PostRepo(c *gin.Context) {
 
 	// create an org if it doesn't exist yet
 	if errors.Is(err, types.RecordNotExist) {
-		org, err = _forge.Org(c, user, repo.Owner)
+		org, err = _forge.Org(c, userWithCreds, repo.Owner)
 		if err != nil {
 			msg := fmt.Sprintf("Organization %s not found in DB. Attempting to create a new one.", repo.Owner)
 			log.Error().Err(err).Msg(msg)
@@ -167,7 +229,7 @@ func PostRepo(c *gin.Context) {
 			return
 		}
 
-		org.ForgeID = user.ForgeID
+		org.ForgeID = forgeID
 		err = _store.OrgCreate(org)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to create organization")
@@ -199,7 +261,7 @@ func PostRepo(c *gin.Context) {
 		sig,
 	)
 
-	err = _forge.Activate(c, user, repo, hookURL)
+	err = _forge.Activate(c, userWithCreds, repo, hookURL)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to activate repo")
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -476,7 +538,23 @@ func GetRepoBranches(c *gin.Context) {
 		return
 	}
 
-	refreshErr := forge.Refresh(c, _forge, _store, repoUser)
+	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
+	var isSecondaryForge bool
+	if userForge, ufErr := _store.UserForgeGet(repoUser.ID, repo.ForgeID); ufErr == nil && userForge != nil {
+		repoUser.AccessToken = userForge.AccessToken
+		repoUser.RefreshToken = userForge.RefreshToken
+		repoUser.Expiry = userForge.Expiry
+		repoUser.ForgeID = userForge.ForgeID
+		repoUser.ForgeRemoteID = userForge.ForgeRemoteID
+		isSecondaryForge = !userForge.IsPrimary
+	}
+
+	var refreshErr error
+	if isSecondaryForge {
+		refreshErr = forge.RefreshUserForge(c, _forge, _store, repoUser, repo.ForgeID)
+	} else {
+		refreshErr = forge.Refresh(c, _forge, _store, repoUser)
+	}
 	if refreshErr != nil {
 		log.Error().Err(refreshErr).Msg("Failed to refresh user auth token")
 		c.Header("Content-Type", "text/plain; charset=utf-8")
@@ -531,9 +609,25 @@ func GetRepoPullRequests(c *gin.Context) {
 		return
 	}
 
-	refreshErr := forge.Refresh(c, _forge, _store, repoUser)
-	if refreshErr != nil {
-		log.Error().Err(refreshErr).Msg("Failed to refresh user auth token")
+	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
+	var isSecondaryForge2 bool
+	if userForge, ufErr := _store.UserForgeGet(repoUser.ID, repo.ForgeID); ufErr == nil && userForge != nil {
+		repoUser.AccessToken = userForge.AccessToken
+		repoUser.RefreshToken = userForge.RefreshToken
+		repoUser.Expiry = userForge.Expiry
+		repoUser.ForgeID = userForge.ForgeID
+		repoUser.ForgeRemoteID = userForge.ForgeRemoteID
+		isSecondaryForge2 = !userForge.IsPrimary
+	}
+
+	var refreshErr2 error
+	if isSecondaryForge2 {
+		refreshErr2 = forge.RefreshUserForge(c, _forge, _store, repoUser, repo.ForgeID)
+	} else {
+		refreshErr2 = forge.Refresh(c, _forge, _store, repoUser)
+	}
+	if refreshErr2 != nil {
+		log.Error().Err(refreshErr2).Msg("Failed to refresh user auth token")
 		c.Header("Content-Type", "text/plain; charset=utf-8")
 		c.String(http.StatusUnauthorized, "Your authorization has expired and couldn't be refreshed automatically. Please log in again")
 		c.Abort()
@@ -577,7 +671,34 @@ func DeleteRepo(c *gin.Context) {
 		return
 	}
 
-	if err := _forge.Deactivate(c, user, repo, server.Config.Server.WebhookHost); err != nil {
+	// For multi-forge support: get the user's tokens for this repo's forge
+	forgeUser := user
+	isSecondaryForge := false
+	if repo.ForgeID != user.ForgeID {
+		userForge, err := _store.UserForgeGet(user.ID, repo.ForgeID)
+		if err != nil {
+			log.Warn().Err(err).Int64("forge_id", repo.ForgeID).Msg("User does not have tokens for repo's forge, will try to delete anyway")
+		} else {
+			// Create a user object with the correct forge tokens
+			forgeUser = &model.User{
+				ID:           user.ID,
+				Login:        userForge.ForgeLogin,
+				ForgeID:      repo.ForgeID,
+				AccessToken:  userForge.AccessToken,
+				RefreshToken: userForge.RefreshToken,
+				Expiry:       userForge.Expiry,
+			}
+			isSecondaryForge = true
+		}
+	}
+
+	// Refresh tokens before forge API call
+	refreshUserTokenForForge(c, forgeUser, repo.ForgeID, isSecondaryForge)
+	if c.IsAborted() {
+		return
+	}
+
+	if err := _forge.Deactivate(c, forgeUser, repo, server.Config.Server.WebhookHost); err != nil {
 		log.Error().Err(err).Msg("Failed to deactivate repo")
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": fmt.Sprintf("Failed to deactivate repo. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
@@ -654,6 +775,36 @@ func MoveRepo(c *gin.Context) {
 		return
 	}
 
+	// For multi-forge support: get the user's tokens for this repo's forge
+	forgeUser := user
+	isSecondaryForge := false
+	if repo.ForgeID != user.ForgeID {
+		userForge, err := _store.UserForgeGet(user.ID, repo.ForgeID)
+		if err != nil {
+			log.Error().Err(err).Int64("forge_id", repo.ForgeID).Msg("User does not have tokens for repo's forge")
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": "You don't have access to this repository's forge",
+			})
+			c.AbortWithStatus(http.StatusForbidden)
+			return
+		}
+		forgeUser = &model.User{
+			ID:           user.ID,
+			Login:        userForge.ForgeLogin,
+			ForgeID:      repo.ForgeID,
+			AccessToken:  userForge.AccessToken,
+			RefreshToken: userForge.RefreshToken,
+			Expiry:       userForge.Expiry,
+		}
+		isSecondaryForge = true
+	}
+
+	// Refresh tokens before forge API call
+	refreshUserTokenForForge(c, forgeUser, repo.ForgeID, isSecondaryForge)
+	if c.IsAborted() {
+		return
+	}
+
 	to, exists := c.GetQuery("to")
 	if !exists {
 		err := fmt.Errorf("missing required 'to' value in query")
@@ -675,7 +826,7 @@ func MoveRepo(c *gin.Context) {
 		return
 	}
 
-	from, err := _forge.Repo(c, user, "", owner, name)
+	from, err := _forge.Repo(c, forgeUser, "", owner, name)
 	if err != nil {
 		log.Error().Err(err).Msg("Error retrieving repo")
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -747,13 +898,13 @@ func MoveRepo(c *gin.Context) {
 		sig,
 	)
 
-	if err := _forge.Deactivate(c, user, repo, host); err != nil {
+	if err := _forge.Deactivate(c, forgeUser, repo, host); err != nil {
 		log.Error().Err(err).Msg("Failed to deactivate repo (during move operation)")
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": fmt.Sprintf("Failed to deactivate repo (during move operation). Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
 		})
 	}
-	if err := _forge.Activate(c, user, repo, hookURL); err != nil {
+	if err := _forge.Activate(c, forgeUser, repo, hookURL); err != nil {
 		log.Error().Err(err).Msg("Failed to activate repo (during move operation)")
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": fmt.Sprintf("Failed to activate repo (during move operation). Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
@@ -909,6 +1060,23 @@ func repairRepo(c *gin.Context, repo *model.Repo, withPerms, skipOnErr bool) {
 			_ = c.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
+	}
+
+	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
+	isSecondaryForge := false
+	if userForge, ufErr := _store.UserForgeGet(user.ID, repo.ForgeID); ufErr == nil && userForge != nil {
+		user.AccessToken = userForge.AccessToken
+		user.RefreshToken = userForge.RefreshToken
+		user.Expiry = userForge.Expiry
+		user.ForgeID = userForge.ForgeID
+		user.ForgeRemoteID = userForge.ForgeRemoteID
+		isSecondaryForge = !userForge.IsPrimary
+	}
+
+	// Refresh tokens before forge API call
+	refreshUserTokenForForge(c, user, repo.ForgeID, isSecondaryForge)
+	if c.IsAborted() {
+		return
 	}
 
 	// creates the jwt token used to verify the repository

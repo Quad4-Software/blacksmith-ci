@@ -87,6 +87,8 @@ const { doSubmit: repairRepo, isLoading: isRepairingRepo } = useAsyncAction(asyn
 });
 
 const { doSubmit: deleteRepoAction, isLoading: isDeletingRepo } = useAsyncAction(async () => {
+  // Suppress 404 errors that may occur from background fetches after deletion
+  (window as any).suppress404Errors?.(3000);
   await apiClient.deleteRepo(repo.value.id);
   notifications.notify({
     title: i18n.t('notify_title_success'),
@@ -113,6 +115,8 @@ const { doSubmit: activateRepo, isLoading: isActivatingRepo } = useAsyncAction(a
 });
 
 const { doSubmit: deactivateRepo, isLoading: isDeactivatingRepo } = useAsyncAction(async () => {
+  // Suppress 404 errors that may occur from background fetches after deactivation
+  (window as any).suppress404Errors?.(3000);
   await apiClient.deleteRepo(repo.value.id, false);
   notifications.notify({
     title: i18n.t('notify_title_success'),

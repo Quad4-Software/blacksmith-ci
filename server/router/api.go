@@ -45,6 +45,13 @@ func apiRoutes(e *gin.RouterGroup) {
 			user.GET("/registries", api.GetUserRegistryList)
 			user.GET("/crons", api.GetUserCronList)
 
+			// User forge connections (multi-forge support)
+			user.GET("/forges", api.GetUserForges)
+			user.GET("/forges/available", api.GetAvailableForges)
+			user.GET("/forges/:forge_id", api.GetUserForge)
+			user.GET("/forges/:forge_id/affected-repos", api.GetUserForgeAffectedRepos)
+			user.DELETE("/forges/:forge_id", api.DeleteUserForge)
+
 			// Integrations (external secret stores)
 			user.GET("/integrations", api.GetIntegrationList)
 			user.GET("/integrations/accessible", api.GetAccessibleIntegrations)
@@ -202,6 +209,11 @@ func apiRoutes(e *gin.RouterGroup) {
 					repo.POST("/chown", session.MustRepoAdmin(), api.ChownRepo)
 					repo.POST("/repair", session.MustRepoAdmin(), api.RepairRepo)
 					repo.POST("/move", session.MustRepoAdmin(), api.MoveRepo)
+
+					// import settings from another repo
+					repo.GET("/importable", session.MustRepoAdmin(), api.GetImportableRepos)
+					repo.GET("/import-preview/:source_repo_id", session.MustRepoAdmin(), api.GetRepoForImport)
+					repo.POST("/import-settings", session.MustRepoAdmin(), api.ImportSettings)
 				}
 			}
 		}

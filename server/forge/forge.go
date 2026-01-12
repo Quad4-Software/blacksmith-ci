@@ -18,10 +18,22 @@ package forge
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"codeberg.org/crowci/crow/v5/server/forge/types"
 	"codeberg.org/crowci/crow/v5/server/model"
 )
+
+// TokenExpiryToUnix converts an OAuth2 token expiry time to a Unix timestamp.
+// Returns 0 if the expiry is a zero time (indicating no expiry).
+// This is important because time.Time{}.Unix() returns a large negative number,
+// which would incorrectly be treated as "expired".
+func TokenExpiryToUnix(expiry time.Time) int64 {
+	if expiry.IsZero() {
+		return 0
+	}
+	return expiry.UTC().Unix()
+}
 
 // TODO: use pagination
 

@@ -179,6 +179,12 @@ linters:
       - linters:
           - mnd
         path: fixtures|cmd/agent/flags.go|cmd/server/flags.go|pipeline/backend/kubernetes/flags.go|_test.go
+      # Multi-forge migration: deprecated User fields (ForgeID, ForgeRemoteID, AccessToken, RefreshToken, Expiry)
+      # are still used for backward compatibility during the transition to the UserForge table.
+      # TODO: Remove this exclusion after migration is complete and deprecated fields are removed.
+      - linters:
+          - staticcheck
+        text: 'SA1019:.*is deprecated.*Use.*UserForge'
     paths:
       - third_party$
       - builtin$

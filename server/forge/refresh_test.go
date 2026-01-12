@@ -29,6 +29,7 @@ import (
 	"codeberg.org/crowci/crow/v5/server/forge/types"
 	"codeberg.org/crowci/crow/v5/server/model"
 	mocks_store "codeberg.org/crowci/crow/v5/server/store/mocks"
+	store_types "codeberg.org/crowci/crow/v5/server/store/types"
 )
 
 // mockForgeWithRefresher implements both Forge and Refresher interfaces for testing.
@@ -168,6 +169,9 @@ func TestRefresh_TokenExpiringSoon(t *testing.T) {
 
 	// UpdateUser should be called to persist the new tokens
 	mockStore.On("UpdateUser", mock.AnythingOfType("*model.User")).Return(nil).Once()
+
+	// Multi-forge: syncUserForgeTokens is called but legacy user has no UserForge record
+	mockStore.On("UserForgeGet", int64(1), int64(0)).Return(nil, store_types.RecordNotExist).Once()
 
 	err := Refresh(context.Background(), mockForge, mockStore, user)
 
@@ -395,6 +399,9 @@ func TestRefresh_ConcurrentRequests(t *testing.T) {
 		Return(true, nil).Maybe()
 
 	mockStore.On("UpdateUser", mock.AnythingOfType("*model.User")).Return(nil).Maybe()
+
+	// Multi-forge: syncUserForgeTokens is called but legacy user has no UserForge record
+	mockStore.On("UserForgeGet", int64(1), int64(0)).Return(nil, store_types.RecordNotExist).Maybe()
 
 	// Launch multiple concurrent refresh requests
 	var wg sync.WaitGroup

@@ -126,7 +126,7 @@ func (c *config) Refresh(ctx context.Context, user *model.User) (bool, error) {
 
 	user.AccessToken = token.AccessToken
 	user.RefreshToken = token.RefreshToken
-	user.Expiry = token.Expiry.UTC().Unix()
+	user.Expiry = forge.TokenExpiryToUnix(token.Expiry)
 	return true, nil
 }
 

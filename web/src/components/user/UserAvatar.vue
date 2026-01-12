@@ -67,6 +67,7 @@ const props = withDefaults(
     timezone?: string;
     orgs?: Org[];
     size?: 'sm' | 'md' | 'lg';
+    forgeId?: number; // Optional: use this forge instead of user's primary forge
   }>(),
   {
     size: 'md',
@@ -93,10 +94,13 @@ async function handleOpenChange(open: boolean) {
     try {
       userData.value = await apiClient.getUser(props.username);
 
-      // Fetch forge data if user has a forge_id
-      if (userData.value?.forge_id) {
+      // Determine which forge to use: prefer explicit forgeId prop, fall back to user's primary forge
+      const forgeIdToUse = props.forgeId ?? userData.value?.forge_id;
+
+      // Fetch forge data
+      if (forgeIdToUse) {
         try {
-          forgeData.value = await apiClient.getForge(userData.value.forge_id);
+          forgeData.value = await apiClient.getForge(forgeIdToUse);
         } catch (error) {
           console.error('Failed to fetch forge data:', error);
         }
@@ -111,9 +115,26 @@ async function handleOpenChange(open: boolean) {
   }
 }
 
-// Map forge types to local icon names (same logic as RepoItem)
+// Map forge types to local icon names, with special handling for known instances
 function getForgeIconName(forge: Forge): IconNames {
-  return forge.type as IconNames;
+  // Check for specific forge instances by URL
+  if (forge.url.toLowerCase().includes('codeberg')) {
+    return 'codeberg';
+  }
+  if (forge.url.toLowerCase().includes('codefloe')) {
+    return 'codefloe';
+  }
+  // Fall back to forge type
+  const typeToIcon: Record<string, IconNames> = {
+    github: 'github',
+    gitlab: 'gitlab',
+    gitea: 'gitea',
+    forgejo: 'forgejo',
+    bitbucket: 'bitbucket',
+    'bitbucket-dc': 'bitbucket',
+    addon: 'repo',
+  };
+  return typeToIcon[forge.type] || 'repo';
 }
 
 const sizeClass = computed(() => {

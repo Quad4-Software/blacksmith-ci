@@ -37,7 +37,13 @@
       <div class="flex min-w-0 grow flex-wrap px-0 lg:px-4 py-0.5 pl-0.5! md:flex-nowrap">
         <div class="hidden shrink-0 items-center md:flex">
           <Icon v-if="pipeline.event === 'cron'" name="stopwatch" class="text-foreground" />
-          <UserAvatar v-else :avatar-url="pipeline.author_avatar" :username="pipeline.author" size="md" />
+          <UserAvatar
+            v-else
+            :avatar-url="pipeline.author_avatar"
+            :username="pipeline.author"
+            :forge-id="repo.forge_id"
+            size="md"
+          />
         </div>
 
         <div class="flex min-w-0 flex-1 items-center md:mx-4">

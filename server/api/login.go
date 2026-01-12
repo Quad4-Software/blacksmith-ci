@@ -31,6 +31,7 @@ import (
 	"codeberg.org/crowci/crow/v5/server/forge"
 	forge_types "codeberg.org/crowci/crow/v5/server/forge/types"
 	"codeberg.org/crowci/crow/v5/server/model"
+	"codeberg.org/crowci/crow/v5/server/router/middleware/session"
 	"codeberg.org/crowci/crow/v5/server/store"
 	"codeberg.org/crowci/crow/v5/server/store/types"
 	"codeberg.org/crowci/crow/v5/shared/httputil"
@@ -38,6 +39,14 @@ import (
 )
 
 const stateTokenDuration = time.Minute * 5
+
+// getLinkingUser returns the authenticated user if they are already logged in.
+// This is used to detect "linking mode" where a logged-in user wants to connect an additional forge.
+// The session.SetUser() middleware has already parsed and validated the session cookie,
+// so we just retrieve the user from the context.
+func getLinkingUser(c *gin.Context) *model.User {
+	return session.User(c)
+}
 
 func HandleAuth(c *gin.Context) {
 	// TODO: check if this is really needed
@@ -63,6 +72,9 @@ func HandleAuth(c *gin.Context) {
 	state := c.Request.FormValue("state")
 	isCallback := code != "" && state != ""
 	var forgeID int64
+	var linkingUserID int64 // non-zero if we're linking a new forge to an existing user
+
+	var isReconnect bool // true if user is reconnecting (refreshing tokens for) an already-linked forge
 
 	if isCallback { // validate the state token
 		stateToken, err := token.Parse([]token.Type{token.OAuthStateToken}, state, func(_ *token.Token) (string, error) {
@@ -81,6 +93,14 @@ func HandleAuth(c *gin.Context) {
 			c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/login?error=invalid_state")
 			return
 		}
+
+		// Check if this is a linking request
+		if linkingStr := stateToken.Get("linking-user-id"); linkingStr != "" {
+			linkingUserID, _ = strconv.ParseInt(linkingStr, 10, 64)
+		}
+
+		// Check if this is a reconnect request
+		isReconnect = stateToken.Get("reconnect") == "true"
 	} else { // only generate a state token if not a callback
 		var err error
 
@@ -96,10 +116,32 @@ func HandleAuth(c *gin.Context) {
 			}
 		}
 
+		// Check if user is already logged in (linking mode)
+		linkingUser := getLinkingUser(c)
+
+		// Check if this is a reconnect request (refreshing tokens for existing link)
+		isReconnect = c.Request.FormValue("reconnect") == "true"
+
 		jwtSecret := server.Config.Server.JWTSecret
 		exp := time.Now().Add(stateTokenDuration).Unix()
 		stateToken := token.New(token.OAuthStateToken)
 		stateToken.Set("forge-id", strconv.FormatInt(forgeID, 10))
+		if linkingUser != nil {
+			stateToken.Set("linking-user-id", strconv.FormatInt(linkingUser.ID, 10))
+
+			// Verify user doesn't already have this forge linked (unless reconnecting)
+			existingUserForge, err := _store.UserForgeGet(linkingUser.ID, forgeID)
+			if err == nil && existingUserForge != nil {
+				if isReconnect {
+					// Mark as reconnect in the state token
+					stateToken.Set("reconnect", "true")
+				} else {
+					log.Warn().Msgf("user %s already has forge %d linked", linkingUser.Login, forgeID)
+					c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/user?error=forge_already_linked")
+					return
+				}
+			}
+		}
 		state, err = stateToken.SignExpires(jwtSecret, exp)
 		if err != nil {
 			log.Error().Err(err).Msg("cannot create state token")
@@ -141,12 +183,132 @@ func HandleAuth(c *gin.Context) {
 		}
 	}
 
-	// get the user from the database
-	user, err := _store.GetUserRemoteID(userFromForge.ForgeRemoteID, userFromForge.Login)
+	var user *model.User
+	var userForge *model.UserForge
+
+	// Handle linking mode: user is already authenticated and linking a new forge
+	if linkingUserID != 0 {
+		user, err = _store.GetUser(linkingUserID)
+		if err != nil {
+			log.Error().Err(err).Msgf("cannot get linking user %d", linkingUserID)
+			c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/login?error=internal_error")
+			return
+		}
+
+		// Check if this forge remote ID is already linked to another user
+		existingUserForge, err := _store.UserForgeGetByRemoteID(forgeID, userFromForge.ForgeRemoteID)
+		if err == nil && existingUserForge != nil && existingUserForge.UserID != user.ID {
+			log.Error().Msgf("forge account %s is already linked to another user", userFromForge.Login)
+			c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/user?error=forge_account_taken")
+			return
+		}
+
+		// Handle reconnect: update existing UserForge tokens
+		if isReconnect {
+			existingUserForge, err := _store.UserForgeGet(user.ID, forgeID)
+			if err != nil {
+				log.Error().Err(err).Msgf("cannot get user forge for reconnect: user %d, forge %d", user.ID, forgeID)
+				c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/user?error=internal_error")
+				return
+			}
+
+			// Update tokens
+			existingUserForge.AccessToken = userFromForge.AccessToken
+			existingUserForge.RefreshToken = userFromForge.RefreshToken
+			existingUserForge.Expiry = userFromForge.Expiry
+			existingUserForge.ForgeLogin = userFromForge.Login
+			existingUserForge.ForgeEmail = userFromForge.Email
+			existingUserForge.ForgeAvatar = userFromForge.Avatar
+
+			if err := _store.UserForgeUpdate(existingUserForge); err != nil {
+				log.Error().Err(err).Msgf("cannot update user forge tokens for user %s", user.Login)
+				c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/user?error=internal_error")
+				return
+			}
+			log.Info().Msgf("user %s reconnected forge %d (%s)", user.Login, forgeID, userFromForge.Login)
+
+			// Redirect back to user settings
+			c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/user?forge_reconnected=true")
+			return
+		}
+
+		// Create new UserForge entry for the linked forge
+		userForge = &model.UserForge{
+			UserID:        user.ID,
+			ForgeID:       forgeID,
+			ForgeRemoteID: userFromForge.ForgeRemoteID,
+			IsPrimary:     false, // Linked forges are never primary
+			AccessToken:   userFromForge.AccessToken,
+			RefreshToken:  userFromForge.RefreshToken,
+			Expiry:        userFromForge.Expiry,
+			ForgeLogin:    userFromForge.Login,
+			ForgeEmail:    userFromForge.Email,
+			ForgeAvatar:   userFromForge.Avatar,
+			LinkedAt:      time.Now().Unix(),
+		}
+		if err := _store.UserForgeCreate(userForge); err != nil {
+			log.Error().Err(err).Msgf("cannot create user forge link for user %s", user.Login)
+			c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/user?error=internal_error")
+			return
+		}
+		log.Info().Msgf("user %s linked forge %d (%s)", user.Login, forgeID, userFromForge.Login)
+
+		// Redirect back to user settings
+		c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/user?forge_linked=true")
+		return
+	}
+
+	// Try to find existing user via UserForge (new multi-forge lookup)
+	userForge, err = _store.UserForgeGetByRemoteID(forgeID, userFromForge.ForgeRemoteID)
 	if err != nil && !errors.Is(err, types.RecordNotExist) {
-		log.Error().Err(err).Msgf("cannot get user %s", userFromForge.Login)
+		log.Error().Err(err).Msgf("cannot get user forge for %s", userFromForge.Login)
 		c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/login?error=internal_error")
 		return
+	}
+
+	if userForge != nil {
+		// User exists via UserForge - get the user
+		user, err = _store.GetUser(userForge.UserID)
+		if err != nil {
+			log.Error().Err(err).Msgf("cannot get user %d", userForge.UserID)
+			c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/login?error=internal_error")
+			return
+		}
+	} else {
+		// Fall back to legacy lookup via User.ForgeRemoteID for backward compatibility
+		user, err = _store.GetUserRemoteID(userFromForge.ForgeRemoteID, userFromForge.Login)
+		if err != nil && !errors.Is(err, types.RecordNotExist) {
+			log.Error().Err(err).Msgf("cannot get user %s", userFromForge.Login)
+			c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/login?error=internal_error")
+			return
+		}
+
+		// If user exists but has no UserForge entry, create one (migration from legacy)
+		if user != nil {
+			userForge = &model.UserForge{
+				UserID:        user.ID,
+				ForgeID:       forgeID,
+				ForgeRemoteID: userFromForge.ForgeRemoteID,
+				IsPrimary:     true,
+				AccessToken:   userFromForge.AccessToken,
+				RefreshToken:  userFromForge.RefreshToken,
+				Expiry:        userFromForge.Expiry,
+				ForgeLogin:    userFromForge.Login,
+				ForgeEmail:    userFromForge.Email,
+				ForgeAvatar:   userFromForge.Avatar,
+				LinkedAt:      time.Now().Unix(),
+			}
+			if err := _store.UserForgeCreate(userForge); err != nil {
+				log.Error().Err(err).Msgf("cannot create user forge for legacy user %s", user.Login)
+				// Non-fatal - continue with login
+			} else {
+				log.Info().Msgf("created UserForge entry for legacy user %s", user.Login)
+				// Update user's PrimaryForgeID if not set
+				if user.PrimaryForgeID == 0 {
+					user.PrimaryForgeID = userForge.ID
+				}
+			}
+		}
 	}
 
 	if user == nil || errors.Is(err, types.RecordNotExist) {
@@ -177,6 +339,33 @@ func HandleAuth(c *gin.Context) {
 			log.Error().Err(err).Msgf("cannot insert %s", user.Login)
 			c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/login?error=internal_error")
 			return
+		}
+
+		// Create the primary UserForge entry for the new user
+		userForge = &model.UserForge{
+			UserID:        user.ID,
+			ForgeID:       forgeID,
+			ForgeRemoteID: userFromForge.ForgeRemoteID,
+			IsPrimary:     true,
+			AccessToken:   userFromForge.AccessToken,
+			RefreshToken:  userFromForge.RefreshToken,
+			Expiry:        userFromForge.Expiry,
+			ForgeLogin:    userFromForge.Login,
+			ForgeEmail:    userFromForge.Email,
+			ForgeAvatar:   userFromForge.Avatar,
+			LinkedAt:      time.Now().Unix(),
+		}
+		if err := _store.UserForgeCreate(userForge); err != nil {
+			log.Error().Err(err).Msgf("cannot create primary user forge for %s", user.Login)
+			c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/login?error=internal_error")
+			return
+		}
+
+		// Set the user's PrimaryForgeID
+		user.PrimaryForgeID = userForge.ID
+		if err := _store.UpdateUser(user); err != nil {
+			log.Error().Err(err).Msgf("cannot update user %s with primary forge ID", user.Login)
+			// Non-fatal, continue
 		}
 	}
 
@@ -229,7 +418,21 @@ func HandleAuth(c *gin.Context) {
 		}
 	}
 
-	// update the user meta data and authorization data.
+	// Update UserForge tokens if we have an existing UserForge
+	if userForge != nil {
+		userForge.AccessToken = userFromForge.AccessToken
+		userForge.RefreshToken = userFromForge.RefreshToken
+		userForge.Expiry = userFromForge.Expiry
+		userForge.ForgeLogin = userFromForge.Login
+		userForge.ForgeEmail = userFromForge.Email
+		userForge.ForgeAvatar = userFromForge.Avatar
+		if err := _store.UserForgeUpdate(userForge); err != nil {
+			log.Error().Err(err).Msgf("cannot update user forge for %s", user.Login)
+			// Non-fatal, continue
+		}
+	}
+
+	// update the user meta data and authorization data (keep deprecated fields in sync)
 	user.AccessToken = userFromForge.AccessToken
 	user.RefreshToken = userFromForge.RefreshToken
 	user.Email = userFromForge.Email

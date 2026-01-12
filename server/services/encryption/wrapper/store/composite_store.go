@@ -28,12 +28,13 @@ import (
 // CompositeEncryptedStore combines all encryption wrappers into a single store.Store implementation.
 // It delegates encrypted operations to the appropriate wrapper and passes through all other operations.
 type CompositeEncryptedStore struct {
-	baseStore     store.Store
-	secretStore   *EncryptedSecretStore
-	registryStore *EncryptedRegistryStore
-	userStore     *EncryptedUserStore
-	forgeStore    *EncryptedForgeStore
-	encryption    types.EncryptionService
+	baseStore      store.Store
+	secretStore    *EncryptedSecretStore
+	registryStore  *EncryptedRegistryStore
+	userStore      *EncryptedUserStore
+	forgeStore     *EncryptedForgeStore
+	userForgeStore *EncryptedUserForgeStore
+	encryption     types.EncryptionService
 }
 
 // Ensure CompositeEncryptedStore implements store.Store.
@@ -46,13 +47,15 @@ func NewCompositeStore(
 	registryStore *EncryptedRegistryStore,
 	userStore *EncryptedUserStore,
 	forgeStore *EncryptedForgeStore,
+	userForgeStore *EncryptedUserForgeStore,
 ) *CompositeEncryptedStore {
 	return &CompositeEncryptedStore{
-		baseStore:     baseStore,
-		secretStore:   secretStore,
-		registryStore: registryStore,
-		userStore:     userStore,
-		forgeStore:    forgeStore,
+		baseStore:      baseStore,
+		secretStore:    secretStore,
+		registryStore:  registryStore,
+		userStore:      userStore,
+		forgeStore:     forgeStore,
+		userForgeStore: userForgeStore,
 	}
 }
 
@@ -75,6 +78,9 @@ func (c *CompositeEncryptedStore) SetEncryptionService(service types.EncryptionS
 	if err := c.forgeStore.SetEncryptionService(service); err != nil {
 		return err
 	}
+	if err := c.userForgeStore.SetEncryptionService(service); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -92,6 +98,9 @@ func (c *CompositeEncryptedStore) EnableEncryption() error {
 		return err
 	}
 	if err := c.forgeStore.EnableEncryption(); err != nil {
+		return err
+	}
+	if err := c.userForgeStore.EnableEncryption(); err != nil {
 		return err
 	}
 
@@ -113,6 +122,9 @@ func (c *CompositeEncryptedStore) MigrateEncryption(newEncryption types.Encrypti
 		return err
 	}
 	if err := c.forgeStore.MigrateEncryption(newEncryption); err != nil {
+		return err
+	}
+	if err := c.userForgeStore.MigrateEncryption(newEncryption); err != nil {
 		return err
 	}
 
@@ -429,6 +441,10 @@ func (c *CompositeEncryptedStore) RepoListAll(active bool, p *model.ListOptions)
 
 func (c *CompositeEncryptedStore) RepoListPublic(p *model.ListOptions) ([]*model.Repo, error) {
 	return c.baseStore.RepoListPublic(p)
+}
+
+func (c *CompositeEncryptedStore) RepoListByUserAndForge(userID, forgeID int64) ([]*model.Repo, error) {
+	return c.baseStore.RepoListByUserAndForge(userID, forgeID)
 }
 
 // Permissions.
@@ -910,4 +926,40 @@ func (c *CompositeEncryptedStore) IntegrationUpdate(integration *model.Integrati
 
 func (c *CompositeEncryptedStore) IntegrationDelete(integration *model.Integration) error {
 	return c.baseStore.IntegrationDelete(integration)
+}
+
+// ============================================================================
+// UserForge operations - delegated to userForgeStore
+// ============================================================================.
+
+func (c *CompositeEncryptedStore) UserForgeList(userID int64) ([]*model.UserForge, error) {
+	return c.userForgeStore.UserForgeList(userID)
+}
+
+func (c *CompositeEncryptedStore) UserForgeGet(userID, forgeID int64) (*model.UserForge, error) {
+	return c.userForgeStore.UserForgeGet(userID, forgeID)
+}
+
+func (c *CompositeEncryptedStore) UserForgeGetByRemoteID(forgeID int64, remoteID model.ForgeRemoteID) (*model.UserForge, error) {
+	return c.userForgeStore.UserForgeGetByRemoteID(forgeID, remoteID)
+}
+
+func (c *CompositeEncryptedStore) UserForgeGetPrimary(userID int64) (*model.UserForge, error) {
+	return c.userForgeStore.UserForgeGetPrimary(userID)
+}
+
+func (c *CompositeEncryptedStore) UserForgeCreate(userForge *model.UserForge) error {
+	return c.userForgeStore.UserForgeCreate(userForge)
+}
+
+func (c *CompositeEncryptedStore) UserForgeUpdate(userForge *model.UserForge) error {
+	return c.userForgeStore.UserForgeUpdate(userForge)
+}
+
+func (c *CompositeEncryptedStore) UserForgeDelete(userForge *model.UserForge) error {
+	return c.userForgeStore.UserForgeDelete(userForge)
+}
+
+func (c *CompositeEncryptedStore) UserForgeListAll() ([]*model.UserForge, error) {
+	return c.userForgeStore.UserForgeListAll()
 }

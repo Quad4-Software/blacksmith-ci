@@ -532,7 +532,7 @@ func (c *client) getUserAndRepo(ctx context.Context, r *model.Repo) (*model.User
 	}
 	log.Trace().Any("repo", repo).Msg("got repo")
 
-	user, err := _store.GetUser(repo.UserID)
+	user, err := common.RepoUser(ctx, repo)
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to get user: %w", err)
 	}

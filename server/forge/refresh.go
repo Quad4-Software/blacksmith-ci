@@ -16,6 +16,7 @@ package forge
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -114,6 +115,9 @@ func Refresh(c context.Context, forge Forge, _store store.Store, user *model.Use
 			return err
 		}
 
+		// Also update UserForge record if it exists (multi-forge support)
+		syncUserForgeTokens(c, _store, freshUser)
+
 		// Update the caller's user object with the new tokens
 		user.AccessToken = freshUser.AccessToken
 		user.RefreshToken = freshUser.RefreshToken
@@ -125,6 +129,27 @@ func Refresh(c context.Context, forge Forge, _store store.Store, user *model.Use
 	return nil
 }
 
+// syncUserForgeTokens updates the UserForge record with refreshed tokens.
+// This keeps the UserForge table in sync with refreshed tokens for multi-forge support.
+func syncUserForgeTokens(_ context.Context, _store store.Store, user *model.User) {
+	userForge, err := _store.UserForgeGet(user.ID, user.ForgeID)
+	if err != nil {
+		// UserForge may not exist for legacy users - that's okay
+		return
+	}
+
+	userForge.AccessToken = user.AccessToken
+	userForge.RefreshToken = user.RefreshToken
+	userForge.Expiry = user.Expiry
+
+	if err := _store.UserForgeUpdate(userForge); err != nil {
+		log.Error().Err(err).
+			Int64("user_id", user.ID).
+			Int64("forge_id", user.ForgeID).
+			Msg("failed to sync refreshed tokens to UserForge")
+	}
+}
+
 // isTokenAlreadyUsedError checks if the error indicates the refresh token was already consumed.
 func isTokenAlreadyUsedError(err error) bool {
 	if err == nil {
@@ -134,4 +159,114 @@ func isTokenAlreadyUsedError(err error) bool {
 	return strings.Contains(errStr, "token was already used") ||
 		strings.Contains(errStr, "token has been revoked") ||
 		strings.Contains(errStr, "invalid_grant")
+}
+
+// userForgeLockKey generates a unique lock key for a user+forge combination.
+func userForgeLockKey(userID, forgeID int64) string {
+	return fmt.Sprintf("%d-%d", userID, forgeID)
+}
+
+// userForgeRefreshLocks prevents concurrent token refresh attempts for the same user+forge.
+var userForgeRefreshLocks sync.Map
+
+// getUserForgeLock returns a mutex for the given user+forge combination, creating one if necessary.
+func getUserForgeLock(userID, forgeID int64) *sync.Mutex {
+	key := userForgeLockKey(userID, forgeID)
+	lock, _ := userForgeRefreshLocks.LoadOrStore(key, &sync.Mutex{})
+	//nolint:forcetypeassert
+	return lock.(*sync.Mutex)
+}
+
+// RefreshUserForge refreshes OAuth tokens for a secondary (non-primary) forge connection.
+// This is similar to Refresh but operates on UserForge records instead of User records.
+// The user parameter is modified in-place with the refreshed tokens.
+func RefreshUserForge(c context.Context, forge Forge, _store store.Store, user *model.User, forgeID int64) error {
+	refresher, ok := forge.(Refresher)
+	if !ok {
+		return nil
+	}
+
+	// Check if token needs refresh before acquiring lock (fast path)
+	currentTime := time.Now().UTC().Unix()
+	if currentTime < (user.Expiry - tokenMinTTL) {
+		return nil
+	}
+
+	// Acquire per-user-forge lock to prevent concurrent refresh attempts
+	lock := getUserForgeLock(user.ID, forgeID)
+	lock.Lock()
+	defer lock.Unlock()
+
+	// Re-check after acquiring lock: another goroutine may have refreshed the token
+	// Reload UserForge from DB to get the latest token state
+	freshUserForge, err := _store.UserForgeGet(user.ID, forgeID)
+	if err != nil {
+		log.Error().Err(err).Int64("user_id", user.ID).Int64("forge_id", forgeID).Msg("failed to reload UserForge for token refresh check")
+		return err
+	}
+
+	// Check again with fresh data - token may have been refreshed by another request
+	currentTime = time.Now().UTC().Unix()
+	if currentTime < (freshUserForge.Expiry - tokenMinTTL) {
+		// Token was refreshed by another request, update the caller's user object
+		user.AccessToken = freshUserForge.AccessToken
+		user.RefreshToken = freshUserForge.RefreshToken
+		user.Expiry = freshUserForge.Expiry
+		log.Debug().Str("user", user.Login).Int64("forge_id", forgeID).Msg("UserForge token was already refreshed by another request")
+		return nil
+	}
+
+	// Create a temporary user object with UserForge tokens for the refresher
+	tempUser := &model.User{
+		ID:           user.ID,
+		Login:        freshUserForge.ForgeLogin,
+		AccessToken:  freshUserForge.AccessToken,
+		RefreshToken: freshUserForge.RefreshToken,
+		Expiry:       freshUserForge.Expiry,
+		ForgeID:      forgeID,
+	}
+
+	// Perform the actual token refresh
+	refreshed, err := refresher.Refresh(c, tempUser)
+	if err != nil {
+		// Check if this is a "token already used" error - could mean another instance refreshed it
+		if isTokenAlreadyUsedError(err) {
+			log.Warn().Err(err).Str("user", user.Login).Int64("forge_id", forgeID).Msg("UserForge refresh token was already used, checking if token was refreshed elsewhere")
+
+			// Reload UserForge one more time to check if the token was refreshed by another server instance
+			reloadedUserForge, reloadErr := _store.UserForgeGet(user.ID, forgeID)
+			if reloadErr == nil && reloadedUserForge.Expiry > freshUserForge.Expiry {
+				// Token was refreshed elsewhere, use the new values
+				user.AccessToken = reloadedUserForge.AccessToken
+				user.RefreshToken = reloadedUserForge.RefreshToken
+				user.Expiry = reloadedUserForge.Expiry
+				log.Info().Str("user", user.Login).Int64("forge_id", forgeID).Msg("UserForge token was refreshed by another server instance")
+				return nil
+			}
+		}
+
+		log.Error().Err(err).Str("user", user.Login).Int64("forge_id", forgeID).Msg("failed to refresh UserForge OAuth token")
+		return err
+	}
+
+	if refreshed {
+		// Update the UserForge record with the new tokens
+		freshUserForge.AccessToken = tempUser.AccessToken
+		freshUserForge.RefreshToken = tempUser.RefreshToken
+		freshUserForge.Expiry = tempUser.Expiry
+
+		if err := _store.UserForgeUpdate(freshUserForge); err != nil {
+			log.Error().Err(err).Str("user", user.Login).Int64("forge_id", forgeID).Msg("failed saving UserForge to DB after refreshing OAuth token - tokens will be lost!")
+			return err
+		}
+
+		// Update the caller's user object with the new tokens
+		user.AccessToken = tempUser.AccessToken
+		user.RefreshToken = tempUser.RefreshToken
+		user.Expiry = tempUser.Expiry
+
+		log.Debug().Str("user", user.Login).Int64("forge_id", forgeID).Msg("successfully refreshed UserForge OAuth token")
+	}
+
+	return nil
 }

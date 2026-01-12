@@ -7,7 +7,13 @@
         <slot name="panel-chevron" />
         <div class="flex items-center">
           <Icon v-if="pipeline.event === 'cron'" name="stopwatch" />
-          <UserAvatar v-else :avatar-url="pipeline.author_avatar" :username="pipeline.author" size="md" />
+          <UserAvatar
+            v-else
+            :avatar-url="pipeline.author_avatar"
+            :username="pipeline.author"
+            :forge-id="repo.forge_id"
+            size="md"
+          />
         </div>
         <span>{{ pipeline.author }}</span>
       </div>

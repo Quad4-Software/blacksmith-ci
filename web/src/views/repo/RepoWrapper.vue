@@ -323,9 +323,26 @@ function toggleMultiselectMode() {
 
 const forge = ref<Forge>();
 
-// Map forge types to local icon names (same logic as RepoItem)
+// Map forge types to local icon names, with special handling for known instances
 function getForgeIconName(f: Forge): IconNames {
-  return f.type as IconNames;
+  // Check for specific forge instances by URL
+  if (f.url.toLowerCase().includes('codeberg')) {
+    return 'codeberg';
+  }
+  if (f.url.toLowerCase().includes('codefloe')) {
+    return 'codefloe';
+  }
+  // Fall back to forge type
+  const typeToIcon: Record<string, IconNames> = {
+    github: 'github',
+    gitlab: 'gitlab',
+    gitea: 'gitea',
+    forgejo: 'forgejo',
+    bitbucket: 'bitbucket',
+    'bitbucket-dc': 'bitbucket',
+    addon: 'repo',
+  };
+  return typeToIcon[f.type] || 'repo';
 }
 
 const forgeIcon = computed<IconNames>(() => {

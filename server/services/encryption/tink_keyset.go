@@ -168,25 +168,27 @@ func (svc *tinkEncryptionService) checkUsersForPlaintext() (bool, error) {
 	for _, user := range users {
 		associatedData := strconv.FormatInt(user.ID, 10)
 
-		// Check access token
-		if user.AccessToken != "" {
-			if _, err := base64.StdEncoding.DecodeString(user.AccessToken); err != nil {
+		// Check access token (using deprecated fields for backward compatibility)
+		accessToken := user.AccessToken
+		if accessToken != "" {
+			if _, err := base64.StdEncoding.DecodeString(accessToken); err != nil {
 				log.Warn().Msgf("detected plaintext user access token (id=%d), encryption will be triggered", user.ID)
 				return true, nil
 			}
-			if _, err := svc.Decrypt(user.AccessToken, associatedData+":access"); err != nil {
+			if _, err := svc.Decrypt(accessToken, associatedData+":access"); err != nil {
 				log.Warn().Msgf("detected unencrypted user access token (id=%d), encryption will be triggered", user.ID)
 				return true, nil
 			}
 		}
 
-		// Check refresh token
-		if user.RefreshToken != "" {
-			if _, err := base64.StdEncoding.DecodeString(user.RefreshToken); err != nil {
+		// Check refresh token (using deprecated fields for backward compatibility)
+		refreshToken := user.RefreshToken
+		if refreshToken != "" {
+			if _, err := base64.StdEncoding.DecodeString(refreshToken); err != nil {
 				log.Warn().Msgf("detected plaintext user refresh token (id=%d), encryption will be triggered", user.ID)
 				return true, nil
 			}
-			if _, err := svc.Decrypt(user.RefreshToken, associatedData+":refresh"); err != nil {
+			if _, err := svc.Decrypt(refreshToken, associatedData+":refresh"); err != nil {
 				log.Warn().Msgf("detected unencrypted user refresh token (id=%d), encryption will be triggered", user.ID)
 				return true, nil
 			}

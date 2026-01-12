@@ -43,6 +43,87 @@ CROW_ADMIN=johnDoe,janeSmith
 
 Admins can also be promoted via UI: Settings → Users → Edit User.
 
+## Multi-Forge Support
+
+Crow can connect to multiple Git forges simultaneously, allowing users to manage repositories from different sources (e.g., GitHub and Codeberg) under a single account.
+
+### Configuration
+
+Use `CROW_FORGES` with named forge configurations:
+
+```yaml
+CROW_FORGES=codeberg,github
+
+# Codeberg
+CROW_FORGE_CODEBERG_TYPE=forgejo
+CROW_FORGE_CODEBERG_URL=https://codeberg.org
+CROW_FORGE_CODEBERG_CLIENT=your-client-id
+CROW_FORGE_CODEBERG_SECRET=your-client-secret
+
+# GitHub
+CROW_FORGE_GITHUB_TYPE=github
+CROW_FORGE_GITHUB_CLIENT=your-github-client-id
+CROW_FORGE_GITHUB_SECRET=your-github-client-secret
+```
+
+See [Forge Integration](/dev/configuration/env-vars/forge/) for all available options.
+
+### How It Works
+
+1. **Initial Login**: Users authenticate with any configured forge. This creates their Crow account.
+
+2. **Linking Forges**: From Settings → General, users can link additional forge accounts. OAuth tokens are stored separately for each forge.
+
+3. **Repository Access**: The "Enable Repository" dialog shows repos from all linked forges with a forge indicator column.
+
+4. **Token Management**: Each forge connection maintains its own OAuth tokens, refreshed independently.
+
+### User Experience
+
+When multiple forges are configured:
+
+- The login page shows buttons for each forge
+- Users can link additional forges from their settings
+- The repository list shows which forge each repo belongs to
+- Pipelines use the correct forge credentials automatically
+
+### Security Considerations
+
+- OAuth tokens are encrypted at rest (when encryption is enabled)
+- Each forge connection is independent - revoking one doesn't affect others
+- Users can unlink forges from their settings at any time
+- Forge linking requires re-authentication with the target forge
+
+### Setting Up OAuth Applications
+
+Each forge requires an OAuth application. The callback URL for all forges is:
+
+```
+https://your-crow-instance.com/authorize
+```
+
+**GitHub:**
+1. Go to Settings → Developer settings → OAuth Apps → New OAuth App
+2. Set Authorization callback URL to `https://your-crow-instance.com/authorize`
+3. Copy the Client ID and Client Secret
+
+**GitLab:**
+1. Go to Preferences → Applications → New application
+2. Set Redirect URI to `https://your-crow-instance.com/authorize`
+3. Select scopes: `api`, `read_user`
+4. Copy the Application ID and Secret
+
+**Forgejo / Gitea / Codeberg:**
+1. Go to Settings → Applications → Create a new OAuth2 Application
+2. Set Redirect URI to `https://your-crow-instance.com/authorize`
+3. Copy the Client ID and Client Secret
+
+**Bitbucket:**
+1. Go to Workspace settings → OAuth consumers → Add consumer
+2. Set Callback URL to `https://your-crow-instance.com/authorize`
+3. Select permissions: Account (Read), Repositories (Read, Write), Pull requests (Read, Write), Webhooks (Read and write)
+4. Copy the Key (Client ID) and Secret
+
 ## Database
 
 | Driver           | Configuration                   |

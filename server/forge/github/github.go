@@ -142,8 +142,8 @@ func (c *client) Login(ctx context.Context, req *forge_types.OAuthRequest) (*mod
 
 	// For GitHub OAuth Apps without refresh tokens, set a far future expiry
 	// to prevent unnecessary refresh attempts. OAuth App tokens don't expire.
-	expiry := token.Expiry.UTC().Unix()
-	if token.RefreshToken == "" && token.Expiry.IsZero() {
+	expiry := forge.TokenExpiryToUnix(token.Expiry)
+	if token.RefreshToken == "" && expiry == 0 {
 		// Set expiry to 10 years from now for OAuth Apps
 		expiry = time.Now().Add(10 * 365 * 24 * time.Hour).UTC().Unix()
 	}
@@ -193,7 +193,7 @@ func (c *client) Refresh(ctx context.Context, user *model.User) (bool, error) {
 
 	user.AccessToken = token.AccessToken
 	user.RefreshToken = token.RefreshToken
-	user.Expiry = token.Expiry.UTC().Unix()
+	user.Expiry = forge.TokenExpiryToUnix(token.Expiry)
 	return true, nil
 }
 
@@ -671,7 +671,7 @@ func (c *client) loadChangedFilesFromPullRequest(ctx context.Context, pull *gith
 		return nil, err
 	}
 
-	user, err := _store.GetUser(repo.UserID)
+	user, err := common.RepoUser(ctx, repo)
 	if err != nil {
 		return nil, err
 	}
@@ -709,7 +709,7 @@ func (c *client) getTagCommitSHA(ctx context.Context, repo *model.Repo, tagName 
 		return "", err
 	}
 
-	user, err := _store.GetUser(repo.UserID)
+	user, err := common.RepoUser(ctx, repo)
 	if err != nil {
 		return "", err
 	}
@@ -764,7 +764,7 @@ func (c *client) loadChangedFilesFromCommits(ctx context.Context, tmpRepo *model
 		return nil, err
 	}
 
-	user, err := _store.GetUser(repo.UserID)
+	user, err := common.RepoUser(ctx, repo)
 	if err != nil {
 		return nil, err
 	}

@@ -165,6 +165,17 @@ func (s storage) RepoList(user *model.User, owned, active bool) ([]*model.Repo, 
 		Find(&repos)
 }
 
+// RepoListByUserAndForge returns all active repos owned by a user from a specific forge.
+func (s storage) RepoListByUserAndForge(userID, forgeID int64) ([]*model.Repo, error) {
+	repos := make([]*model.Repo, 0)
+	return repos, s.engine.Table("repos").
+		Where("user_id = ?", userID).
+		And("forge_id = ?", forgeID).
+		And("active = ?", true).
+		Asc("full_name").
+		Find(&repos)
+}
+
 // RepoListAll list all repos.
 func (s storage) RepoListAll(active bool, p *model.ListOptions) ([]*model.Repo, error) {
 	repos := make([]*model.Repo, 0)

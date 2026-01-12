@@ -34,9 +34,19 @@ type User struct {
 	// required: true
 	ID int64 `json:"id" xorm:"pk autoincr 'id'"`
 
+	// ForgeID is the forge this user originally registered with.
+	//
+	// Deprecated: Use PrimaryForgeID and UserForge table for multi-forge support.
 	ForgeID int64 `json:"forge_id,omitempty" xorm:"forge_id"`
 
+	// ForgeRemoteID is the user's ID on their original forge.
+	//
+	// Deprecated: Use UserForge table for multi-forge support.
 	ForgeRemoteID ForgeRemoteID `json:"-" xorm:"forge_remote_id"`
+
+	// PrimaryForgeID references the user_forges.id of the user's primary forge connection.
+	// The primary forge is the first forge the user registered with and cannot be unlinked.
+	PrimaryForgeID int64 `json:"primary_forge_id,omitempty" xorm:"'primary_forge_id'"`
 
 	// Login is the username for this user.
 	//
@@ -44,12 +54,18 @@ type User struct {
 	Login string `json:"login"  xorm:"UNIQUE 'login'"`
 
 	// AccessToken is the oauth2 access token.
+	//
+	// Deprecated: Use UserForge table for multi-forge support.
 	AccessToken string `json:"-"  xorm:"TEXT 'access_token'"`
 
 	// RefreshToken is the oauth2 refresh token.
+	//
+	// Deprecated: Use UserForge table for multi-forge support.
 	RefreshToken string `json:"-" xorm:"TEXT 'refresh_token'"`
 
 	// Expiry is the AccessToken expiration timestamp (unix seconds).
+	//
+	// Deprecated: Use UserForge table for multi-forge support.
 	Expiry int64 `json:"-" xorm:"expiry"`
 
 	// Email is the email address for this user.

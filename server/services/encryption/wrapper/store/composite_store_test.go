@@ -37,8 +37,9 @@ func setupCompositeStore(t *testing.T) (*CompositeEncryptedStore, *store_mocks.M
 	registryWrapper := NewRegistryStore(mockStore)
 	userWrapper := NewUserStore(mockStore)
 	forgeWrapper := NewForgeStore(mockStore)
+	userForgeWrapper := NewUserForgeStore(mockStore)
 
-	composite := NewCompositeStore(mockStore, secretWrapper, registryWrapper, userWrapper, forgeWrapper)
+	composite := NewCompositeStore(mockStore, secretWrapper, registryWrapper, userWrapper, forgeWrapper, userForgeWrapper)
 
 	err := composite.SetEncryptionService(mockEncryption)
 	require.NoError(t, err)
@@ -53,8 +54,9 @@ func TestCompositeStore_ImplementsStoreInterface(t *testing.T) {
 	registryWrapper := NewRegistryStore(mockStore)
 	userWrapper := NewUserStore(mockStore)
 	forgeWrapper := NewForgeStore(mockStore)
+	userForgeWrapper := NewUserForgeStore(mockStore)
 
-	composite := NewCompositeStore(mockStore, secretWrapper, registryWrapper, userWrapper, forgeWrapper)
+	composite := NewCompositeStore(mockStore, secretWrapper, registryWrapper, userWrapper, forgeWrapper, userForgeWrapper)
 
 	// Verify it implements store.Store
 	var _ store.Store = composite
@@ -68,8 +70,9 @@ func TestCompositeStore_SetEncryptionServiceTwice(t *testing.T) {
 	registryWrapper := NewRegistryStore(mockStore)
 	userWrapper := NewUserStore(mockStore)
 	forgeWrapper := NewForgeStore(mockStore)
+	userForgeWrapper := NewUserForgeStore(mockStore)
 
-	composite := NewCompositeStore(mockStore, secretWrapper, registryWrapper, userWrapper, forgeWrapper)
+	composite := NewCompositeStore(mockStore, secretWrapper, registryWrapper, userWrapper, forgeWrapper, userForgeWrapper)
 
 	err := composite.SetEncryptionService(mockEncryption)
 	require.NoError(t, err)

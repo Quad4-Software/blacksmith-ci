@@ -83,6 +83,8 @@ var crowMigrations = []string{
 	"crow-add-deploy-team-to-repos",
 	"crow-add-integrations",
 	"crow-add-agent-hostname",
+	"crow-add-user-forges",
+	"crow-add-forge-icon",
 }
 
 // allKnownMigrations returns a combined list of all known migration IDs.

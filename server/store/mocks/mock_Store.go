@@ -8730,6 +8730,74 @@ func (_c *MockStore_RepoListAll_Call) RunAndReturn(run func(active bool, p *mode
 	return _c
 }
 
+// RepoListByUserAndForge provides a mock function for the type MockStore
+func (_mock *MockStore) RepoListByUserAndForge(userID int64, forgeID int64) ([]*model.Repo, error) {
+	ret := _mock.Called(userID, forgeID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RepoListByUserAndForge")
+	}
+
+	var r0 []*model.Repo
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, int64) ([]*model.Repo, error)); ok {
+		return returnFunc(userID, forgeID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, int64) []*model.Repo); ok {
+		r0 = returnFunc(userID, forgeID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.Repo)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, int64) error); ok {
+		r1 = returnFunc(userID, forgeID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_RepoListByUserAndForge_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RepoListByUserAndForge'
+type MockStore_RepoListByUserAndForge_Call struct {
+	*mock.Call
+}
+
+// RepoListByUserAndForge is a helper method to define mock.On call
+//   - userID int64
+//   - forgeID int64
+func (_e *MockStore_Expecter) RepoListByUserAndForge(userID interface{}, forgeID interface{}) *MockStore_RepoListByUserAndForge_Call {
+	return &MockStore_RepoListByUserAndForge_Call{Call: _e.mock.On("RepoListByUserAndForge", userID, forgeID)}
+}
+
+func (_c *MockStore_RepoListByUserAndForge_Call) Run(run func(userID int64, forgeID int64)) *MockStore_RepoListByUserAndForge_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_RepoListByUserAndForge_Call) Return(repos []*model.Repo, err error) *MockStore_RepoListByUserAndForge_Call {
+	_c.Call.Return(repos, err)
+	return _c
+}
+
+func (_c *MockStore_RepoListByUserAndForge_Call) RunAndReturn(run func(userID int64, forgeID int64) ([]*model.Repo, error)) *MockStore_RepoListByUserAndForge_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // RepoListLatest provides a mock function for the type MockStore
 func (_mock *MockStore) RepoListLatest(user *model.User) ([]*model.Feed, error) {
 	ret := _mock.Called(user)
@@ -10546,6 +10614,474 @@ func (_c *MockStore_UserFeed_Call) Return(feeds []*model.Feed, err error) *MockS
 }
 
 func (_c *MockStore_UserFeed_Call) RunAndReturn(run func(user *model.User) ([]*model.Feed, error)) *MockStore_UserFeed_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UserForgeCreate provides a mock function for the type MockStore
+func (_mock *MockStore) UserForgeCreate(userForge *model.UserForge) error {
+	ret := _mock.Called(userForge)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UserForgeCreate")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(*model.UserForge) error); ok {
+		r0 = returnFunc(userForge)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_UserForgeCreate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UserForgeCreate'
+type MockStore_UserForgeCreate_Call struct {
+	*mock.Call
+}
+
+// UserForgeCreate is a helper method to define mock.On call
+//   - userForge *model.UserForge
+func (_e *MockStore_Expecter) UserForgeCreate(userForge interface{}) *MockStore_UserForgeCreate_Call {
+	return &MockStore_UserForgeCreate_Call{Call: _e.mock.On("UserForgeCreate", userForge)}
+}
+
+func (_c *MockStore_UserForgeCreate_Call) Run(run func(userForge *model.UserForge)) *MockStore_UserForgeCreate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.UserForge
+		if args[0] != nil {
+			arg0 = args[0].(*model.UserForge)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_UserForgeCreate_Call) Return(err error) *MockStore_UserForgeCreate_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_UserForgeCreate_Call) RunAndReturn(run func(userForge *model.UserForge) error) *MockStore_UserForgeCreate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UserForgeDelete provides a mock function for the type MockStore
+func (_mock *MockStore) UserForgeDelete(userForge *model.UserForge) error {
+	ret := _mock.Called(userForge)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UserForgeDelete")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(*model.UserForge) error); ok {
+		r0 = returnFunc(userForge)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_UserForgeDelete_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UserForgeDelete'
+type MockStore_UserForgeDelete_Call struct {
+	*mock.Call
+}
+
+// UserForgeDelete is a helper method to define mock.On call
+//   - userForge *model.UserForge
+func (_e *MockStore_Expecter) UserForgeDelete(userForge interface{}) *MockStore_UserForgeDelete_Call {
+	return &MockStore_UserForgeDelete_Call{Call: _e.mock.On("UserForgeDelete", userForge)}
+}
+
+func (_c *MockStore_UserForgeDelete_Call) Run(run func(userForge *model.UserForge)) *MockStore_UserForgeDelete_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.UserForge
+		if args[0] != nil {
+			arg0 = args[0].(*model.UserForge)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_UserForgeDelete_Call) Return(err error) *MockStore_UserForgeDelete_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_UserForgeDelete_Call) RunAndReturn(run func(userForge *model.UserForge) error) *MockStore_UserForgeDelete_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UserForgeGet provides a mock function for the type MockStore
+func (_mock *MockStore) UserForgeGet(userID int64, forgeID int64) (*model.UserForge, error) {
+	ret := _mock.Called(userID, forgeID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UserForgeGet")
+	}
+
+	var r0 *model.UserForge
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, int64) (*model.UserForge, error)); ok {
+		return returnFunc(userID, forgeID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, int64) *model.UserForge); ok {
+		r0 = returnFunc(userID, forgeID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.UserForge)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, int64) error); ok {
+		r1 = returnFunc(userID, forgeID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_UserForgeGet_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UserForgeGet'
+type MockStore_UserForgeGet_Call struct {
+	*mock.Call
+}
+
+// UserForgeGet is a helper method to define mock.On call
+//   - userID int64
+//   - forgeID int64
+func (_e *MockStore_Expecter) UserForgeGet(userID interface{}, forgeID interface{}) *MockStore_UserForgeGet_Call {
+	return &MockStore_UserForgeGet_Call{Call: _e.mock.On("UserForgeGet", userID, forgeID)}
+}
+
+func (_c *MockStore_UserForgeGet_Call) Run(run func(userID int64, forgeID int64)) *MockStore_UserForgeGet_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_UserForgeGet_Call) Return(userForge *model.UserForge, err error) *MockStore_UserForgeGet_Call {
+	_c.Call.Return(userForge, err)
+	return _c
+}
+
+func (_c *MockStore_UserForgeGet_Call) RunAndReturn(run func(userID int64, forgeID int64) (*model.UserForge, error)) *MockStore_UserForgeGet_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UserForgeGetByRemoteID provides a mock function for the type MockStore
+func (_mock *MockStore) UserForgeGetByRemoteID(forgeID int64, remoteID model.ForgeRemoteID) (*model.UserForge, error) {
+	ret := _mock.Called(forgeID, remoteID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UserForgeGetByRemoteID")
+	}
+
+	var r0 *model.UserForge
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, model.ForgeRemoteID) (*model.UserForge, error)); ok {
+		return returnFunc(forgeID, remoteID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, model.ForgeRemoteID) *model.UserForge); ok {
+		r0 = returnFunc(forgeID, remoteID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.UserForge)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, model.ForgeRemoteID) error); ok {
+		r1 = returnFunc(forgeID, remoteID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_UserForgeGetByRemoteID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UserForgeGetByRemoteID'
+type MockStore_UserForgeGetByRemoteID_Call struct {
+	*mock.Call
+}
+
+// UserForgeGetByRemoteID is a helper method to define mock.On call
+//   - forgeID int64
+//   - remoteID model.ForgeRemoteID
+func (_e *MockStore_Expecter) UserForgeGetByRemoteID(forgeID interface{}, remoteID interface{}) *MockStore_UserForgeGetByRemoteID_Call {
+	return &MockStore_UserForgeGetByRemoteID_Call{Call: _e.mock.On("UserForgeGetByRemoteID", forgeID, remoteID)}
+}
+
+func (_c *MockStore_UserForgeGetByRemoteID_Call) Run(run func(forgeID int64, remoteID model.ForgeRemoteID)) *MockStore_UserForgeGetByRemoteID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 model.ForgeRemoteID
+		if args[1] != nil {
+			arg1 = args[1].(model.ForgeRemoteID)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_UserForgeGetByRemoteID_Call) Return(userForge *model.UserForge, err error) *MockStore_UserForgeGetByRemoteID_Call {
+	_c.Call.Return(userForge, err)
+	return _c
+}
+
+func (_c *MockStore_UserForgeGetByRemoteID_Call) RunAndReturn(run func(forgeID int64, remoteID model.ForgeRemoteID) (*model.UserForge, error)) *MockStore_UserForgeGetByRemoteID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UserForgeGetPrimary provides a mock function for the type MockStore
+func (_mock *MockStore) UserForgeGetPrimary(userID int64) (*model.UserForge, error) {
+	ret := _mock.Called(userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UserForgeGetPrimary")
+	}
+
+	var r0 *model.UserForge
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64) (*model.UserForge, error)); ok {
+		return returnFunc(userID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64) *model.UserForge); ok {
+		r0 = returnFunc(userID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.UserForge)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64) error); ok {
+		r1 = returnFunc(userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_UserForgeGetPrimary_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UserForgeGetPrimary'
+type MockStore_UserForgeGetPrimary_Call struct {
+	*mock.Call
+}
+
+// UserForgeGetPrimary is a helper method to define mock.On call
+//   - userID int64
+func (_e *MockStore_Expecter) UserForgeGetPrimary(userID interface{}) *MockStore_UserForgeGetPrimary_Call {
+	return &MockStore_UserForgeGetPrimary_Call{Call: _e.mock.On("UserForgeGetPrimary", userID)}
+}
+
+func (_c *MockStore_UserForgeGetPrimary_Call) Run(run func(userID int64)) *MockStore_UserForgeGetPrimary_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_UserForgeGetPrimary_Call) Return(userForge *model.UserForge, err error) *MockStore_UserForgeGetPrimary_Call {
+	_c.Call.Return(userForge, err)
+	return _c
+}
+
+func (_c *MockStore_UserForgeGetPrimary_Call) RunAndReturn(run func(userID int64) (*model.UserForge, error)) *MockStore_UserForgeGetPrimary_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UserForgeList provides a mock function for the type MockStore
+func (_mock *MockStore) UserForgeList(userID int64) ([]*model.UserForge, error) {
+	ret := _mock.Called(userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UserForgeList")
+	}
+
+	var r0 []*model.UserForge
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64) ([]*model.UserForge, error)); ok {
+		return returnFunc(userID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64) []*model.UserForge); ok {
+		r0 = returnFunc(userID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.UserForge)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64) error); ok {
+		r1 = returnFunc(userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_UserForgeList_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UserForgeList'
+type MockStore_UserForgeList_Call struct {
+	*mock.Call
+}
+
+// UserForgeList is a helper method to define mock.On call
+//   - userID int64
+func (_e *MockStore_Expecter) UserForgeList(userID interface{}) *MockStore_UserForgeList_Call {
+	return &MockStore_UserForgeList_Call{Call: _e.mock.On("UserForgeList", userID)}
+}
+
+func (_c *MockStore_UserForgeList_Call) Run(run func(userID int64)) *MockStore_UserForgeList_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_UserForgeList_Call) Return(userForges []*model.UserForge, err error) *MockStore_UserForgeList_Call {
+	_c.Call.Return(userForges, err)
+	return _c
+}
+
+func (_c *MockStore_UserForgeList_Call) RunAndReturn(run func(userID int64) ([]*model.UserForge, error)) *MockStore_UserForgeList_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UserForgeListAll provides a mock function for the type MockStore
+func (_mock *MockStore) UserForgeListAll() ([]*model.UserForge, error) {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for UserForgeListAll")
+	}
+
+	var r0 []*model.UserForge
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func() ([]*model.UserForge, error)); ok {
+		return returnFunc()
+	}
+	if returnFunc, ok := ret.Get(0).(func() []*model.UserForge); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.UserForge)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func() error); ok {
+		r1 = returnFunc()
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_UserForgeListAll_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UserForgeListAll'
+type MockStore_UserForgeListAll_Call struct {
+	*mock.Call
+}
+
+// UserForgeListAll is a helper method to define mock.On call
+func (_e *MockStore_Expecter) UserForgeListAll() *MockStore_UserForgeListAll_Call {
+	return &MockStore_UserForgeListAll_Call{Call: _e.mock.On("UserForgeListAll")}
+}
+
+func (_c *MockStore_UserForgeListAll_Call) Run(run func()) *MockStore_UserForgeListAll_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockStore_UserForgeListAll_Call) Return(userForges []*model.UserForge, err error) *MockStore_UserForgeListAll_Call {
+	_c.Call.Return(userForges, err)
+	return _c
+}
+
+func (_c *MockStore_UserForgeListAll_Call) RunAndReturn(run func() ([]*model.UserForge, error)) *MockStore_UserForgeListAll_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UserForgeUpdate provides a mock function for the type MockStore
+func (_mock *MockStore) UserForgeUpdate(userForge *model.UserForge) error {
+	ret := _mock.Called(userForge)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UserForgeUpdate")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(*model.UserForge) error); ok {
+		r0 = returnFunc(userForge)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_UserForgeUpdate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UserForgeUpdate'
+type MockStore_UserForgeUpdate_Call struct {
+	*mock.Call
+}
+
+// UserForgeUpdate is a helper method to define mock.On call
+//   - userForge *model.UserForge
+func (_e *MockStore_Expecter) UserForgeUpdate(userForge interface{}) *MockStore_UserForgeUpdate_Call {
+	return &MockStore_UserForgeUpdate_Call{Call: _e.mock.On("UserForgeUpdate", userForge)}
+}
+
+func (_c *MockStore_UserForgeUpdate_Call) Run(run func(userForge *model.UserForge)) *MockStore_UserForgeUpdate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.UserForge
+		if args[0] != nil {
+			arg0 = args[0].(*model.UserForge)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_UserForgeUpdate_Call) Return(err error) *MockStore_UserForgeUpdate_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_UserForgeUpdate_Call) RunAndReturn(run func(userForge *model.UserForge) error) *MockStore_UserForgeUpdate_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -133,7 +133,7 @@ func (c *Forgejo) Login(ctx context.Context, req *forge_types.OAuthRequest) (*mo
 	return &model.User{
 		AccessToken:   token.AccessToken,
 		RefreshToken:  token.RefreshToken,
-		Expiry:        token.Expiry.UTC().Unix(),
+		Expiry:        forge.TokenExpiryToUnix(token.Expiry),
 		Login:         account.UserName,
 		Email:         account.Email,
 		ForgeRemoteID: model.ForgeRemoteID(fmt.Sprint(account.ID)),
@@ -174,7 +174,7 @@ func (c *Forgejo) Refresh(ctx context.Context, user *model.User) (bool, error) {
 
 	user.AccessToken = token.AccessToken
 	user.RefreshToken = token.RefreshToken
-	user.Expiry = token.Expiry.UTC().Unix()
+	user.Expiry = forge.TokenExpiryToUnix(token.Expiry)
 	return true, nil
 }
 
@@ -617,7 +617,7 @@ func (c *Forgejo) getChangedFilesForPR(ctx context.Context, repo *model.Repo, in
 		return nil, err
 	}
 
-	user, err := _store.GetUser(repo.UserID)
+	user, err := common.RepoUser(ctx, repo)
 	if err != nil {
 		return nil, err
 	}
@@ -654,7 +654,7 @@ func (c *Forgejo) getTagCommitSHA(ctx context.Context, repo *model.Repo, tagName
 		return "", err
 	}
 
-	user, err := _store.GetUser(repo.UserID)
+	user, err := common.RepoUser(ctx, repo)
 	if err != nil {
 		return "", err
 	}

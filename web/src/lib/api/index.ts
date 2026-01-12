@@ -10,6 +10,7 @@ import type {
   Autoscaler,
   AutoscalerListOptions,
   AutoscalerWithToken,
+  AvailableForge,
   Cron,
   CronWithRepo,
   Entity,
@@ -37,9 +38,14 @@ import type {
   Repo,
   RepoPermissions,
   RepoSettings,
+  ImportSettingsRequest,
+  ImportSettingsResponse,
+  ImportPreviewResponse,
   Secret,
   SecretWithOrg,
+  UnlinkForgeResponse,
   User,
+  UserForge,
 } from './types';
 
 interface RepoListOptions {
@@ -110,8 +116,13 @@ export default class CrowClient extends ApiClient {
     return this._get(`/api/v1/repos/${repoId}/pull_requests?${query}`) as Promise<PullRequest[]>;
   }
 
-  async activateRepo(forgeRemoteId: string): Promise<Repo> {
-    return this._post(`/api/v1/repos?forge_remote_id=${forgeRemoteId}`) as Promise<Repo>;
+  async activateRepo(forgeRemoteId: string, forgeId?: number): Promise<Repo> {
+    const params: Record<string, string> = { forge_remote_id: forgeRemoteId };
+    if (forgeId !== undefined) {
+      params.forge_id = String(forgeId);
+    }
+    const query = encodeQueryString(params);
+    return this._post(`/api/v1/repos?${query}`) as Promise<Repo>;
   }
 
   async updateRepo(repoId: number, repoSettings: RepoSettings): Promise<unknown> {
@@ -125,6 +136,21 @@ export default class CrowClient extends ApiClient {
 
   async repairRepo(repoId: number): Promise<unknown> {
     return this._post(`/api/v1/repos/${repoId}/repair`);
+  }
+
+  // Get repos that can be used as import source for a target repo
+  async getImportableRepos(targetRepoId: number): Promise<Repo[]> {
+    return this._get(`/api/v1/repos/${targetRepoId}/importable`) as Promise<Repo[]>;
+  }
+
+  // Get import preview for a source repo
+  async getImportPreview(targetRepoId: number, sourceRepoId: number): Promise<ImportPreviewResponse> {
+    return this._get(`/api/v1/repos/${targetRepoId}/import-preview/${sourceRepoId}`) as Promise<ImportPreviewResponse>;
+  }
+
+  // Import settings from another repo
+  async importRepoSettings(targetRepoId: number, request: ImportSettingsRequest): Promise<ImportSettingsResponse> {
+    return this._post(`/api/v1/repos/${targetRepoId}/import-settings`, request) as Promise<ImportSettingsResponse>;
   }
 
   async createPipeline(repoId: number, options: PipelineOptions): Promise<Pipeline> {
@@ -405,6 +431,27 @@ export default class CrowClient extends ApiClient {
 
   async getAvailableScopes(): Promise<AvailableScopesResponse> {
     return this._get('/api/v1/user/access-tokens/scopes') as Promise<AvailableScopesResponse>;
+  }
+
+  // User Forges (multi-forge support)
+  async getUserForges(): Promise<UserForge[]> {
+    return this._get('/api/v1/user/forges') as Promise<UserForge[]>;
+  }
+
+  async getUserForge(forgeId: number): Promise<UserForge> {
+    return this._get(`/api/v1/user/forges/${forgeId}`) as Promise<UserForge>;
+  }
+
+  async getAvailableForges(): Promise<AvailableForge[]> {
+    return this._get('/api/v1/user/forges/available') as Promise<AvailableForge[]>;
+  }
+
+  async getForgeAffectedRepos(forgeId: number): Promise<Repo[]> {
+    return this._get(`/api/v1/user/forges/${forgeId}/affected-repos`) as Promise<Repo[]>;
+  }
+
+  async unlinkForge(forgeId: number): Promise<UnlinkForgeResponse> {
+    return this._delete(`/api/v1/user/forges/${forgeId}`) as Promise<UnlinkForgeResponse>;
   }
 
   async getUserSecretList(opts?: UserListOptions): Promise<SecretWithOrg[] | null> {

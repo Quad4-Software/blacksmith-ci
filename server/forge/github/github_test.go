@@ -100,6 +100,7 @@ func TestHook(t *testing.T) {
 		Login:       "octocat",
 		AccessToken: "fake-token",
 	}, nil)
+	mockStore.On("UserForgeGet", mock.Anything, mock.Anything).Return(nil, nil)
 	mockStore.On("GetRepoNameFallback", mock.Anything, mock.Anything).Return(&model.Repo{
 		ID:            1,
 		ForgeRemoteID: "5",

@@ -673,6 +673,18 @@ func PostPipeline(c *gin.Context) {
 		return
 	}
 
+	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
+	// This ensures we use the correct OAuth tokens for the forge the repo belongs to.
+	var isSecondaryForge bool
+	if userForge, ufErr := _store.UserForgeGet(user.ID, repo.ForgeID); ufErr == nil && userForge != nil {
+		user.AccessToken = userForge.AccessToken
+		user.RefreshToken = userForge.RefreshToken
+		user.Expiry = userForge.Expiry
+		user.ForgeID = userForge.ForgeID
+		user.ForgeRemoteID = userForge.ForgeRemoteID
+		isSecondaryForge = !userForge.IsPrimary
+	}
+
 	pl, err := _store.GetPipelineNumber(repo, num)
 	if err != nil {
 		handleDBError(c, err)
@@ -688,7 +700,7 @@ func PostPipeline(c *gin.Context) {
 		Msg("Stored original event before modifications")
 
 	// refresh the token to make sure, pipeline.Restart can still obtain the pipeline config if necessary again
-	refreshUserToken(c, user)
+	refreshUserTokenForForge(c, user, repo.ForgeID, isSecondaryForge)
 
 	// make Deploy overridable
 

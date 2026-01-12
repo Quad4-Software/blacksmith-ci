@@ -176,14 +176,50 @@
       "filter": {
         "all": "All",
         "all_owners": "All owners",
+        "all_forges": "All forges",
         "not_enabled": "Not enabled",
         "enabled": "Enabled"
       },
+      "forge_connection_issue": "Some forge connections need attention",
+      "forge_connection_issue_desc": "Some of your linked forges have expired or expiring tokens. Repositories from these forges may not appear until you reconnect.",
       "select_all": "Select all ({count})",
       "clear_selection": "Clear selection",
       "selected_count": "{count} selected",
       "enable_selected": "Enable {count} selected",
-      "total_repos": "{total} repositories ({not_enabled} not enabled)"
+      "total_repos": "{total} repositories ({not_enabled} not enabled)",
+      "import": {
+        "title": "Import from another repository",
+        "desc": "Copy settings, secrets, and more from an existing repository.",
+        "migrate": "Migrate",
+        "select_source": "Select source repository",
+        "source_placeholder": "Choose a repository to import from",
+        "no_importable_repos": "No other repositories available for import",
+        "preview": {
+          "title": "Import preview",
+          "secrets": "{count} secrets",
+          "registries": "{count} registries",
+          "crons": "{count} cron jobs",
+          "pipelines": "{count} pipelines"
+        },
+        "options": {
+          "settings": "Repository settings",
+          "settings_desc": "Timeout, visibility, approval rules, pipeline path, etc.",
+          "secrets": "Secrets",
+          "secrets_desc": "Copy all repository secrets",
+          "registries": "Container registries",
+          "registries_desc": "Copy all registry credentials",
+          "crons": "Cron jobs",
+          "crons_desc": "Copy all scheduled pipelines",
+          "pipelines": "Pipeline runs",
+          "pipelines_desc": "Copy all pipeline history with logs (URLs will be adapted to the new forge)",
+          "delete_source": "Delete source repository after import",
+          "delete_source_desc": "Remove the source repository from Crow after importing"
+        },
+        "import_button": "Import selected",
+        "skip": "Skip import",
+        "success_details": "Imported {secrets} secrets, {registries} registries, {crons} crons, {pipelines} pipelines",
+        "error": "Failed to import settings"
+      }
     },
     "open_in_forge": "Open repository in forge",
     "visibility": {
@@ -927,6 +963,29 @@
       },
       "agents": {
         "desc": "All registered instance agents. You can only edit and delete agents that you own."
+      },
+      "forges": {
+        "linked_forges": "Linked Forges",
+        "linked_forges_desc": "Manage your connected forge accounts. Linked forges allow you to access repositories from multiple sources.",
+        "link_forge": "Link Another Forge",
+        "primary": "Primary",
+        "unlink": "Unlink",
+        "reconnect": "Reconnect",
+        "reconnect_success": "Forge connection restored successfully",
+        "status_expired": "Expired",
+        "no_forges": "No forges linked to your account.",
+        "load_error": "Failed to load linked forges",
+        "link_success": "Forge account linked successfully",
+        "unlink_success": "Forge account unlinked successfully",
+        "unlink_success_with_repos": "Forge account unlinked. {count} repos were disabled.",
+        "unlink_error": "Failed to unlink forge account",
+        "cannot_unlink_primary": "Cannot unlink your primary forge account",
+        "unlink_confirm_title": "Unlink Forge Account",
+        "unlink_confirm_desc": "Are you sure you want to unlink the \"{forge}\" account?",
+        "loading_affected_repos": "Checking for affected repositories...",
+        "affected_repos_warning": "The following {count} repositories will be disabled:",
+        "affected_repos_note": "These repositories were enabled with this forge account. After unlinking, a different user with admin access must re-enable them.",
+        "no_affected_repos": "No repositories will be affected by this action."
       }
     }
   },
@@ -1160,5 +1219,7 @@
   "no_search_results": "No results found",
   "welcome_to_crow": "Welcome to Crow CI",
   "login_oauth_message": "Sign in with OAuth",
+  "link_forge_title": "Link Forge Account",
+  "link_forge_message": "Sign in to link this forge to your account",
   "disabled": "Disabled"
 }

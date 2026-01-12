@@ -18,12 +18,20 @@ export default () => {
       return authStore.user;
     },
 
-    authenticate(url?: string, forgeId?: number) {
+    authenticate(url?: string, forgeId?: number, link?: boolean) {
       if (url !== undefined) {
         const config = useUserConfig();
         config.setUserConfig('redirectUrl', url);
       }
-      window.location.href = `${useConfig().rootPath}/authorize?${forgeId !== undefined ? `forge_id=${forgeId}` : ''}`;
+      const params = new URLSearchParams();
+      if (forgeId !== undefined) {
+        params.set('forge_id', String(forgeId));
+      }
+      if (link) {
+        params.set('link', 'true');
+      }
+      const queryString = params.toString();
+      window.location.href = `${useConfig().rootPath}/authorize${queryString ? `?${queryString}` : ''}`;
     },
   } as const;
 };

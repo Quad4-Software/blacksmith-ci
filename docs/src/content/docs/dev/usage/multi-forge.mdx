@@ -1,0 +1,112 @@
+---
+title: "Multi-Forge"
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+Crow supports connecting to multiple Git forges, allowing you to manage repositories from different sources under a single account.
+
+With multi-forge support, you can:
+
+- Authenticate via multiple forges (e.g., GitHub and Codeberg)
+- Enable repositories from any linked forge
+- Manage all your CI/CD pipelines in one place
+- Keep OAuth tokens separate and secure for each forge
+- [Migrate repository settings](/dev/usage/repo-import/) between forges
+
+## Linking Additional Forges
+
+If your Crow instance has multiple forges configured, you can link additional forge accounts to your existing Crow account.
+
+<Steps>
+
+1. Log in to Crow with your primary forge account
+
+2. Navigate to **Settings** (user icon in the top right)
+
+3. In the **General** tab, find the **Linked Forges** section
+
+4. Click **Link another forge** and select the forge you want to connect
+
+5. Authenticate with the selected forge via OAuth
+
+6. Once linked, the new forge appears in your linked forges list
+
+</Steps>
+
+## Managing Linked Forges
+
+### Unlinking a Forge
+
+To remove a linked forge:
+
+1. Go to **Settings** → **General**
+2. Find the forge in the **Linked Forges** section
+3. Click the **Unlink** button
+4. Review the list of affected repositories that will be disabled
+5. Confirm the action
+
+When you unlink a forge, Crow automatically:
+- Disables all repositories from that forge
+- Removes webhooks from the forge
+- Deletes the stored OAuth tokens
+
+:::note
+You cannot unlink your primary forge (the one you originally signed up with).
+:::
+
+## Working with Multiple Forges
+
+### Enabling Repositories
+
+When you open the **Enable Repository** dialog:
+
+- Repositories from all linked forges are shown
+- A forge indicator column shows which forge each repository belongs to
+- You can filter repositories by forge using the dropdown
+
+### Repository List
+
+The main repository list shows all your enabled repositories regardless of which forge they belong to. Each repository card displays its source forge.
+
+### Pipeline Execution
+
+When a pipeline runs:
+
+- Crow automatically uses the correct forge credentials
+- Webhooks are configured per-forge
+- Build status is reported back to the correct forge
+
+## Security
+
+### Token Isolation
+
+Each forge connection has its own OAuth tokens:
+
+- Tokens are encrypted at rest (when encryption is enabled)
+- Revoking access on one forge doesn't affect others
+- Token refresh happens independently per forge
+
+### Access Control
+
+- You must authenticate with each forge to link it
+- Crow only requests the permissions it needs
+- You can revoke Crow's access from the forge's OAuth settings at any time
+
+## Troubleshooting
+
+### "Forge already linked" Error
+
+This means your Crow account already has a connection to this forge. Check Settings → General to see your linked forges.
+
+### "Forge account taken" Error
+
+The forge account you're trying to link is already connected to a different Crow user. Each forge account can only be linked to one Crow account.
+
+### Missing Repositories
+
+If repositories don't appear after linking a forge:
+
+1. Check that the forge is listed in Settings → General
+2. Try refreshing the repository list
+3. Verify you have the correct permissions on the forge

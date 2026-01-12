@@ -208,9 +208,26 @@ const isRerunning = ref(false);
 const { getForgeById } = useForges();
 const forge = computed(() => getForgeById(props.repo.forge_id));
 
-// Map forge types to local icon names
+// Map forge types to local icon names, with special handling for known instances
 function getForgeIconName(forge: Forge): IconNames {
-  return forge.type as IconNames;
+  // Check for specific forge instances by URL
+  if (forge.url.toLowerCase().includes('codeberg')) {
+    return 'codeberg';
+  }
+  if (forge.url.toLowerCase().includes('codefloe')) {
+    return 'codefloe';
+  }
+  // Fall back to forge type
+  const typeToIcon: Record<string, IconNames> = {
+    github: 'github',
+    gitlab: 'gitlab',
+    gitea: 'gitea',
+    forgejo: 'forgejo',
+    bitbucket: 'bitbucket',
+    'bitbucket-dc': 'bitbucket',
+    addon: 'repo',
+  };
+  return typeToIcon[forge.type] || 'repo';
 }
 
 async function toggleRepoActive(checked: boolean) {

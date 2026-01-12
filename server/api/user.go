@@ -78,7 +78,7 @@ func GetFeed(c *gin.Context) {
 // GetRepos
 //
 //	@Summary		Get user's repositories
-//	@Description	Retrieve the currently authenticated User's Repository list
+//	@Description	Retrieve the currently authenticated User's Repository list from all linked forges
 //	@Router			/user/repos [get]
 //	@Produce		json
 //	@Success		200	{array}	RepoLastPipeline
@@ -88,48 +88,16 @@ func GetFeed(c *gin.Context) {
 func GetRepos(c *gin.Context) {
 	_store := store.FromContext(c)
 	user := session.User(c)
-	_forge, err := server.Config.Services.Manager.ForgeFromUser(user)
-	if err != nil {
-		log.Error().Err(err).Msg("Cannot get forge from user")
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
 
 	all, _ := strconv.ParseBool(c.Query("all"))
 
 	if all {
-		dbRepos, err := _store.RepoList(user, true, false)
+		// Get all repos from all linked forges
+		repos, err := getAllReposFromAllForges(c, _store, user)
 		if err != nil {
 			c.String(http.StatusInternalServerError, "Error fetching repository list. %s", err)
 			return
 		}
-
-		active := map[model.ForgeRemoteID]*model.Repo{}
-		for _, r := range dbRepos {
-			active[r.ForgeRemoteID] = r
-		}
-
-		_repos, err := _forge.Repos(c, user)
-		if err != nil {
-			c.String(http.StatusInternalServerError, "Error fetching repository list. %s", err)
-			return
-		}
-
-		var repos []*model.Repo
-		for _, r := range _repos {
-			if r.Perm.Push && server.Config.Permissions.OwnersAllowlist.IsAllowed(r) {
-				if active[r.ForgeRemoteID] != nil {
-					existingRepo := active[r.ForgeRemoteID]
-					existingRepo.Update(r)
-					existingRepo.IsActive = active[r.ForgeRemoteID].IsActive
-					repos = append(repos, existingRepo)
-				} else if r.Perm.Admin {
-					// you must be admin to enable the repo
-					repos = append(repos, r)
-				}
-			}
-		}
-
 		c.JSON(http.StatusOK, repos)
 		return
 	}
@@ -165,6 +133,90 @@ func GetRepos(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, repos)
+}
+
+// getAllReposFromAllForges fetches repos from all forges the user has linked.
+func getAllReposFromAllForges(c *gin.Context, _store store.Store, user *model.User) ([]*model.Repo, error) {
+	// Get all forge connections for this user
+	userForges, err := _store.UserForgeList(user.ID)
+	if err != nil {
+		log.Error().Err(err).Msg("Cannot get user forges")
+		return nil, err
+	}
+
+	log.Debug().Int("count", len(userForges)).Int64("user_id", user.ID).Msg("Found user forges")
+
+	// Get all repos from database that user has access to
+	dbRepos, err := _store.RepoList(user, true, false)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create a map of active repos by forge_id + forge_remote_id for quick lookup
+	type repoKey struct {
+		forgeID       int64
+		forgeRemoteID model.ForgeRemoteID
+	}
+	active := make(map[repoKey]*model.Repo)
+	for _, r := range dbRepos {
+		key := repoKey{forgeID: r.ForgeID, forgeRemoteID: r.ForgeRemoteID}
+		active[key] = r
+	}
+
+	var allRepos []*model.Repo
+
+	// Query repos from each linked forge
+	for _, uf := range userForges {
+		log.Debug().
+			Int64("forge_id", uf.ForgeID).
+			Str("forge_login", uf.ForgeLogin).
+			Bool("has_token", uf.AccessToken != "").
+			Msg("Processing user forge")
+
+		_forge, err := server.Config.Services.Manager.ForgeByID(uf.ForgeID)
+		if err != nil {
+			log.Error().Err(err).Int64("forge_id", uf.ForgeID).Msg("Cannot get forge")
+			continue // Skip this forge but continue with others
+		}
+
+		// Create a temporary user with this forge's tokens
+		forgeUser := &model.User{
+			ID:            user.ID,
+			Login:         uf.ForgeLogin,
+			Email:         uf.ForgeEmail,
+			ForgeID:       uf.ForgeID,
+			ForgeRemoteID: uf.ForgeRemoteID,
+			AccessToken:   uf.AccessToken,
+			RefreshToken:  uf.RefreshToken,
+			Expiry:        uf.Expiry,
+		}
+
+		forgeRepos, err := _forge.Repos(c, forgeUser)
+		if err != nil {
+			log.Error().Err(err).Int64("forge_id", uf.ForgeID).Msg("Cannot get repos from forge")
+			continue // Skip this forge but continue with others
+		}
+
+		log.Debug().Int64("forge_id", uf.ForgeID).Int("repo_count", len(forgeRepos)).Msg("Got repos from forge")
+
+		for _, r := range forgeRepos {
+			if r.Perm.Push && server.Config.Permissions.OwnersAllowlist.IsAllowed(r) {
+				key := repoKey{forgeID: uf.ForgeID, forgeRemoteID: r.ForgeRemoteID}
+				if existingRepo := active[key]; existingRepo != nil {
+					existingRepo.Update(r)
+					// IsActive is already set from the database
+					allRepos = append(allRepos, existingRepo)
+				} else if r.Perm.Admin {
+					// you must be admin to enable the repo
+					// Set ForgeID for repos from the forge API (not yet in database)
+					r.ForgeID = uf.ForgeID
+					allRepos = append(allRepos, r)
+				}
+			}
+		}
+	}
+
+	return allRepos, nil
 }
 
 // PostToken

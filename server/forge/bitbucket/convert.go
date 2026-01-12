@@ -23,6 +23,7 @@ import (
 
 	"golang.org/x/oauth2"
 
+	"codeberg.org/crowci/crow/v5/server/forge"
 	"codeberg.org/crowci/crow/v5/server/forge/bitbucket/internal"
 	"codeberg.org/crowci/crow/v5/server/model"
 )
@@ -131,7 +132,7 @@ func convertUser(from *internal.Account, token *oauth2.Token) *model.User {
 		Login:         from.Login,
 		AccessToken:   token.AccessToken,
 		RefreshToken:  token.RefreshToken,
-		Expiry:        token.Expiry.UTC().Unix(),
+		Expiry:        forge.TokenExpiryToUnix(token.Expiry),
 		Avatar:        from.Links.Avatar.Href,
 		ForgeRemoteID: model.ForgeRemoteID(fmt.Sprint(from.UUID)),
 	}

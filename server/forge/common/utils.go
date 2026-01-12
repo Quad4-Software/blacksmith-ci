@@ -71,6 +71,17 @@ func RepoUser(ctx context.Context, r *model.Repo) (*model.User, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
+	// This ensures we use the correct OAuth tokens for the forge the repo belongs to.
+	if userForge, ufErr := _store.UserForgeGet(user.ID, r.ForgeID); ufErr == nil && userForge != nil {
+		user.AccessToken = userForge.AccessToken
+		user.RefreshToken = userForge.RefreshToken
+		user.Expiry = userForge.Expiry
+		user.ForgeID = userForge.ForgeID
+		user.ForgeRemoteID = userForge.ForgeRemoteID
+	}
+
 	return user, nil
 }
 

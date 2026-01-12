@@ -43,6 +43,24 @@ type Store interface {
 	// UserListAll gets all users in the system (for encryption migration).
 	UserListAll() ([]*model.User, error)
 
+	// User Forges (multi-forge support)
+	// UserForgeList returns all forge connections for a user.
+	UserForgeList(userID int64) ([]*model.UserForge, error)
+	// UserForgeGet returns a user's forge connection for a specific forge.
+	UserForgeGet(userID, forgeID int64) (*model.UserForge, error)
+	// UserForgeGetByRemoteID finds a user forge connection by forge ID and forge remote ID.
+	UserForgeGetByRemoteID(forgeID int64, remoteID model.ForgeRemoteID) (*model.UserForge, error)
+	// UserForgeGetPrimary returns the user's primary forge connection.
+	UserForgeGetPrimary(userID int64) (*model.UserForge, error)
+	// UserForgeCreate creates a new user forge connection.
+	UserForgeCreate(*model.UserForge) error
+	// UserForgeUpdate updates a user forge connection.
+	UserForgeUpdate(*model.UserForge) error
+	// UserForgeDelete deletes a user forge connection.
+	UserForgeDelete(*model.UserForge) error
+	// UserForgeListAll returns all user forge connections (for encryption migration).
+	UserForgeListAll() ([]*model.UserForge, error)
+
 	// Repos
 	// GetRepo gets a repo by unique ID.
 	GetRepo(int64) (*model.Repo, error)
@@ -112,6 +130,8 @@ type Store interface {
 	RepoListAll(active bool, p *model.ListOptions) ([]*model.Repo, error)
 	// RepoListPublic returns all active public repos (for anonymous browsing)
 	RepoListPublic(p *model.ListOptions) ([]*model.Repo, error)
+	// RepoListByUserAndForge returns all active repos owned by a user from a specific forge
+	RepoListByUserAndForge(userID, forgeID int64) ([]*model.Repo, error)
 
 	// Permissions
 	PermFind(user *model.User, repo *model.Repo) (*model.Perm, error)
