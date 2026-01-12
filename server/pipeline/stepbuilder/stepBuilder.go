@@ -78,7 +78,7 @@ func (b *StepBuilder) Build() (items []*Item, errorsAndWarnings error) {
 
 	for _, y := range b.Yamls {
 		// matrix axes
-		axes, err := matrix.ParseString(string(y.Data))
+		axes, err := matrix.ParseStringWithLimit(string(y.Data), server.Config.Pipeline.MaxMatrixSize)
 		if err != nil {
 			return nil, err
 		}

@@ -72,3 +72,34 @@ matrix:
     - go_version: 1.6
       python_version: 3.4
 `
+
+func TestMatrixLimitExceeded(t *testing.T) {
+	// This matrix produces 24 permutations (2*2*3*2=24)
+	// With a limit of 10, it should fail
+	_, err := ParseStringWithLimit(fakeMatrix, 10)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "matrix permutation limit exceeded")
+	assert.Contains(t, err.Error(), "24 permutations requested")
+	assert.Contains(t, err.Error(), "maximum is 10")
+}
+
+func TestMatrixLimitNotExceeded(t *testing.T) {
+	// With a limit of 30, 24 permutations should pass
+	axis, err := ParseStringWithLimit(fakeMatrix, 30)
+	assert.NoError(t, err)
+	assert.Len(t, axis, 24)
+}
+
+func TestMatrixUnlimited(t *testing.T) {
+	// With a limit of 0, no limit is enforced
+	axis, err := ParseStringWithLimit(fakeMatrix, 0)
+	assert.NoError(t, err)
+	assert.Len(t, axis, 24)
+}
+
+func TestMatrixIncludeLimitExceeded(t *testing.T) {
+	// The include matrix has 2 items, limit to 1
+	_, err := ParseStringWithLimit(fakeMatrixInclude, 1)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "matrix permutation limit exceeded")
+}

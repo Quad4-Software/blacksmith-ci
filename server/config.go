@@ -86,6 +86,7 @@ var Config = struct {
 		LogsDurationKeep                    string
 		LogsPipelinesKeepMin                int64
 		MaxTimeout                          int64
+		MaxMatrixSize                       int // Maximum number of matrix permutations allowed
 		Proxy                               struct {
 			No    string
 			HTTP  string

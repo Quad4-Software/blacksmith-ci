@@ -193,6 +193,12 @@ var flags = append([]cli.Flag{
 		Usage:   "The maximum time in minutes you can set in the repo settings before a pipeline gets killed",
 		Value:   120,
 	},
+	&cli.IntFlag{
+		Sources: cli.EnvVars("CROW_MAX_MATRIX_SIZE"),
+		Name:    "max-matrix-size",
+		Usage:   "The maximum number of matrix permutations allowed per pipeline (0 = unlimited)",
+		Value:   25,
+	},
 	&cli.StringSliceFlag{
 		Sources: cli.EnvVars("WOODPECKER_DEFAULT_WORKFLOW_LABELS", "CROW_DEFAULT_WORKFLOW_LABELS"),
 		Name:    "default-workflow-labels",
