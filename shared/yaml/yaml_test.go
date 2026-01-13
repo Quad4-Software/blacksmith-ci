@@ -214,6 +214,34 @@ step: *tmpl
 		assert.Equal(t, "golang", result.Step.Image)
 		assert.Equal(t, []string{"go test"}, result.Step.Commands)
 	})
+
+	// Test for nested anchor bug fix - aliases to anchors defined within parent
+	// sequences should be resolved correctly (goccy/go-yaml bug workaround)
+	t.Run("nested anchor in sequence", func(t *testing.T) {
+		data := `
+variables:
+  - &when
+    - path: &paths
+        - 'a.yaml'
+        - 'b.yaml'
+      event: push
+    - path: *paths
+      event: pull_request
+`
+		var result struct {
+			Variables [][]struct {
+				Path  []string `yaml:"path"`
+				Event string   `yaml:"event"`
+			} `yaml:"variables"`
+		}
+		err := Unmarshal([]byte(data), &result)
+		assert.NoError(t, err)
+		assert.Len(t, result.Variables, 1)
+		assert.Len(t, result.Variables[0], 2)
+		// Both should have the same paths
+		assert.Equal(t, []string{"a.yaml", "b.yaml"}, result.Variables[0][0].Path)
+		assert.Equal(t, []string{"a.yaml", "b.yaml"}, result.Variables[0][1].Path)
+	})
 }
 
 func TestMarshal(t *testing.T) {

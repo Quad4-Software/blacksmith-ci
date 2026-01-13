@@ -79,38 +79,40 @@ func Unmarshal(data []byte, v any) error {
 		return yaml.UnmarshalWithOptions(data, v, yaml.AllowDuplicateMapKey())
 	}
 
+	// Parse into AST to handle anchors/aliases correctly
+	// goccy/go-yaml has a bug where aliases to anchors defined within parent
+	// sequences are not resolved correctly. We work around this by resolving
+	// aliases in the AST before unmarshaling.
+	file, err := parser.ParseBytes(data, parser.ParseComments)
+	if err != nil {
+		return err
+	}
+
+	// Collect anchors first
+	anchors := make(map[string]ast.Node)
+	for _, doc := range file.Docs {
+		collectAnchors(doc.Body, anchors)
+	}
+
 	// Check if we need sequence merge processing (non-standard YAML extension)
 	hasMergeKey := bytes.Contains(data, []byte("<<"))
 
-	var processedData []byte
-	if hasMergeKey {
-		// Parse into AST to resolve sequence merges
-		file, err := parser.ParseBytes(data, parser.ParseComments)
-		if err != nil {
-			return err
-		}
-
-		// Collect anchors first
-		anchors := make(map[string]ast.Node)
-		for _, doc := range file.Docs {
-			collectAnchors(doc.Body, anchors)
-		}
-
-		// Resolve sequence merges in the AST
-		for _, doc := range file.Docs {
+	// Resolve sequence merges and aliases in the AST
+	for _, doc := range file.Docs {
+		if hasMergeKey {
 			resolveSequenceMergesInNode(doc.Body, anchors)
 		}
-
-		// Convert back to bytes
-		var buf bytes.Buffer
-		for _, doc := range file.Docs {
-			buf.WriteString(doc.String())
-			buf.WriteString("\n")
-		}
-		processedData = buf.Bytes()
-	} else {
-		processedData = data
+		// Resolve aliases to work around goccy/go-yaml bug with nested anchors
+		resolveAliasesInNode(doc.Body, anchors)
 	}
+
+	// Convert back to bytes
+	var buf bytes.Buffer
+	for _, doc := range file.Docs {
+		buf.WriteString(doc.String())
+		buf.WriteString("\n")
+	}
+	processedData := buf.Bytes()
 
 	// When anchors/aliases are present, we need double unmarshal to resolve
 	// aliases for custom unmarshalers that re-parse without anchor context
@@ -186,6 +188,75 @@ func resolveSequenceMergesInNode(node ast.Node, anchors map[string]ast.Node) {
 	case *ast.DocumentNode:
 		resolveSequenceMergesInNode(n.Body, anchors)
 	}
+}
+
+// resolveAliasesInNode resolves alias nodes by replacing them with the anchored value.
+// This works around a bug in goccy/go-yaml where aliases to anchors defined within
+// parent sequences are not resolved correctly.
+func resolveAliasesInNode(node ast.Node, anchors map[string]ast.Node) {
+	if node == nil {
+		return
+	}
+
+	switch n := node.(type) {
+	case *ast.MappingNode:
+		for _, value := range n.Values {
+			resolveAliasesInNode(value, anchors)
+		}
+
+	case *ast.MappingValueNode:
+		// Don't resolve aliases that are values of merge keys (<<: *alias)
+		// as they need special handling by the YAML parser
+		if isMergeKey(n.Key) {
+			return
+		}
+
+		// Check if the value is an alias that needs resolution
+		if alias, ok := n.Value.(*ast.AliasNode); ok {
+			anchorName := alias.Value.GetToken().Value
+			if anchorValue, exists := anchors[anchorName]; exists {
+				// Replace the alias with the anchored value
+				n.Value = anchorValue
+			}
+		} else {
+			resolveAliasesInNode(n.Value, anchors)
+		}
+
+	case *ast.SequenceNode:
+		for i, value := range n.Values {
+			// Check if this item is an alias
+			if alias, ok := value.(*ast.AliasNode); ok {
+				anchorName := alias.Value.GetToken().Value
+				if anchorValue, exists := anchors[anchorName]; exists {
+					n.Values[i] = anchorValue
+				}
+			} else {
+				resolveAliasesInNode(value, anchors)
+			}
+		}
+
+	case *ast.AnchorNode:
+		resolveAliasesInNode(n.Value, anchors)
+
+	case *ast.DocumentNode:
+		resolveAliasesInNode(n.Body, anchors)
+	}
+}
+
+// isMergeKey checks if a node is a merge key (<<).
+func isMergeKey(node ast.Node) bool {
+	if node == nil {
+		return false
+	}
+	// Check for MergeKeyNode
+	if _, ok := node.(*ast.MergeKeyNode); ok {
+		return true
+	}
+	// Check for string "<<"
+	if str, ok := node.(*ast.StringNode); ok && str.Value == "<<" {
+		return true
+	}
+	return false
 }
 
 // collectAnchors recursively collects all anchor definitions.
