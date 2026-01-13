@@ -16,7 +16,11 @@ Database configuration variables for the Crow CI server.
 
 - Name: `CROW_DATABASE_DATASOURCE`
 - Description: Database driver configuration string.
-- Default: `/var/lib/crow/crow.sqlite` (or `crow.sqlite` if file exists)
+- Default: `/var/lib/crow/crow.sqlite`, or uses an existing file if found in this order:
+  1. `crow.sqlite` (current directory)
+  2. `woodpecker.sqlite` (current directory)
+  3. `/var/lib/crow/crow.sqlite`
+  4. `/var/lib/woodpecker/woodpecker.sqlite`
 
 ---
 

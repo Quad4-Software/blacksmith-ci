@@ -16,7 +16,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"time"
 
@@ -695,31 +694,24 @@ var flags = append([]cli.Flag{
 	},
 }, logger.GlobalLoggerFlags...)
 
-// If crow is running inside a container the default value for
-// the datasource is different from running outside a container.
+// datasourceDefaultValue returns the default datasource path, checking for
+// existing crow or woodpecker sqlite files in the current directory and
+// standard installation paths.
 func datasourceDefaultValue() string {
-	found := getFirstNonEmptyEnvVar("WOODPECKER_IN_CONTAINER", "CROW_IN_CONTAINER")
-	if _, err := os.Stat("woodpecker.sqlite"); err == nil {
-		if _, err := os.Stat("crow.sqlite"); err == nil {
-			fmt.Println("Both woodpecker.sqlite and crow.sqlite found in current directory. Using woodpecker.sqlite.")
-		}
-		return "woodpecker.sqlite"
-	}
 	if _, err := os.Stat("crow.sqlite"); err == nil {
 		return "crow.sqlite"
 	}
-
-	if found != "" {
-		if _, err := os.Stat("/var/lib/woodpecker/woodpecker.sqlite"); err == nil {
-			if _, err := os.Stat("/var/lib/crow/crow.sqlite"); err == nil {
-				fmt.Println("Both woodpecker.sqlite and crow.sqlite found. Using woodpecker.sqlite.")
-			}
-			return "/var/lib/woodpecker/woodpecker.sqlite"
-		}
-		if _, err := os.Stat("/var/lib/crow/crow.sqlite"); err == nil {
-			return "/var/lib/crow/crow.sqlite"
-		}
+	if _, err := os.Stat("woodpecker.sqlite"); err == nil {
+		return "woodpecker.sqlite"
 	}
+
+	if _, err := os.Stat("/var/lib/crow/crow.sqlite"); err == nil {
+		return "/var/lib/crow/crow.sqlite"
+	}
+	if _, err := os.Stat("/var/lib/woodpecker/woodpecker.sqlite"); err == nil {
+		return "/var/lib/woodpecker/woodpecker.sqlite"
+	}
+
 	return "/var/lib/crow/crow.sqlite"
 }
 
