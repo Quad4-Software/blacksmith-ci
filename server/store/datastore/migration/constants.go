@@ -20,6 +20,8 @@ package migration
 //
 // Note: The order doesn't matter for detection - we only check presence.
 var sharedMigrations = []string{
+	"SCHEMA_INIT",
+	"add-polling-instances",
 	"legacy-to-xormigrate",
 	"add-org-id",
 	"alter-table-tasks-update-type-of-task-data",

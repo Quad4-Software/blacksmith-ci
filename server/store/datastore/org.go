@@ -84,6 +84,12 @@ func (s storage) orgFindByName(sess *xorm.Session, name string, forgeID int64) (
 	return org, wrapGet(sess.Where("LOWER(name) = ?", strings.ToLower(name)).And("forge_id = ?", forgeID).Get(org))
 }
 
+// OrgFindByNameAllForges returns all orgs with the given name across all forges.
+func (s storage) OrgFindByNameAllForges(name string) ([]*model.Org, error) {
+	var orgs []*model.Org
+	return orgs, s.engine.Where("LOWER(name) = ?", strings.ToLower(name)).Find(&orgs)
+}
+
 func (s storage) OrgRepoList(org *model.Org, p *model.ListOptions) ([]*model.Repo, error) {
 	var repos []*model.Repo
 	return repos, s.paginate(p).OrderBy("id").Where("org_id = ?", org.ID).Find(&repos)

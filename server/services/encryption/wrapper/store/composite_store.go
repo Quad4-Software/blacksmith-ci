@@ -760,6 +760,10 @@ func (c *CompositeEncryptedStore) OrgFindByName(name string, forgeID int64) (*mo
 	return c.baseStore.OrgFindByName(name, forgeID)
 }
 
+func (c *CompositeEncryptedStore) OrgFindByNameAllForges(name string) ([]*model.Org, error) {
+	return c.baseStore.OrgFindByNameAllForges(name)
+}
+
 func (c *CompositeEncryptedStore) OrgUpdate(org *model.Org) error {
 	return c.baseStore.OrgUpdate(org)
 }

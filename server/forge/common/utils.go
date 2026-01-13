@@ -46,6 +46,21 @@ func ExtractHostFromCloneURL(cloneURL string) (string, error) {
 }
 
 func UserToken(ctx context.Context, r *model.Repo, u *model.User) string {
+	if u != nil && r != nil {
+		// For multi-forge support: look up the user's token for the repo's forge.
+		// This handles cases where:
+		// 1. User's primary forge differs from repo's forge
+		// 2. User's ForgeID is 0 (legacy data before multi-forge)
+		_store, ok := store.TryFromContext(ctx)
+		if ok {
+			if userForge, err := _store.UserForgeGet(u.ID, r.ForgeID); err == nil && userForge != nil {
+				return userForge.AccessToken
+			}
+		}
+		// Fall back to user's primary token if no UserForge entry found
+		return u.AccessToken
+	}
+
 	if u != nil {
 		return u.AccessToken
 	}

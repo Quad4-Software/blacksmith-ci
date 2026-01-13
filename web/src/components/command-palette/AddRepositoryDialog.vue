@@ -214,26 +214,44 @@
         </DialogHeader>
 
         <div class="flex-1 flex flex-col min-h-0 mt-4 space-y-4">
-          <!-- Source repository selection -->
+          <!-- Source repository selection with search -->
           <div class="space-y-2">
             <label class="text-sm font-medium">{{ $t('repo.enable.import.select_source') }}</label>
-            <Select v-model="selectedSourceRepoId">
-              <SelectTrigger>
-                <SelectValue :placeholder="$t('repo.enable.import.source_placeholder')" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="repo in importableRepos" :key="repo.id" :value="String(repo.id)">
-                  <div class="flex items-center gap-2">
-                    <Icon
-                      v-if="forges && forges.length > 1 && getForgeById(repo.forge_id)"
-                      :name="getForgeIconName(getForgeById(repo.forge_id)!)"
-                      class="h-4 w-4 text-muted-foreground"
-                    />
-                    <span>{{ repo.full_name }}</span>
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <Combobox
+              v-model="selectedSourceRepoId"
+              v-model:search-term="sourceRepoSearch"
+              :filter-function="filterSourceRepos"
+            >
+              <ComboboxAnchor class="w-full">
+                <ComboboxInput
+                  :placeholder="$t('repo.enable.import.source_placeholder')"
+                  :display-value="getSelectedSourceRepoDisplayName"
+                />
+              </ComboboxAnchor>
+              <ComboboxList class="w-[var(--reka-combobox-trigger-width)]">
+                <ComboboxViewport>
+                  <ComboboxEmpty>{{ $t('no_search_results') }}</ComboboxEmpty>
+                  <ComboboxItem
+                    v-for="repo in importableRepos"
+                    :key="repo.id"
+                    :value="String(repo.id)"
+                    class="cursor-pointer"
+                  >
+                    <div class="flex items-center gap-2">
+                      <Icon
+                        v-if="forges && forges.length > 1 && getForgeById(repo.forge_id)"
+                        :name="getForgeIconName(getForgeById(repo.forge_id)!)"
+                        class="h-4 w-4 text-muted-foreground"
+                      />
+                      <span>{{ repo.full_name }}</span>
+                    </div>
+                    <ComboboxItemIndicator class="ml-auto">
+                      <Icon name="lucide:check" class="h-4 w-4" />
+                    </ComboboxItemIndicator>
+                  </ComboboxItem>
+                </ComboboxViewport>
+              </ComboboxList>
+            </Combobox>
             <p v-if="importableRepos.length === 0" class="text-sm text-muted-foreground">
               {{ $t('repo.enable.import.no_importable_repos') }}
             </p>
@@ -242,6 +260,7 @@
           <!-- Import preview -->
           <div v-if="importPreview" class="rounded-md border border-border p-4 space-y-3">
             <h4 class="text-sm font-medium">{{ $t('repo.enable.import.preview.title') }}</h4>
+            <p class="text-xs text-muted-foreground">{{ $t('repo.enable.import.preview.from_repo') }}</p>
             <div class="flex flex-wrap gap-2 text-sm text-muted-foreground">
               <Badge variant="secondary">
                 {{ $t('repo.enable.import.preview.secrets', { count: importPreview.secret_count }) }}
@@ -256,11 +275,33 @@
                 {{ $t('repo.enable.import.preview.pipelines', { count: importPreview.pipeline_count }) }}
               </Badge>
             </div>
+            <!-- Org-level assets from other forges -->
+            <div
+              v-if="importPreview.org_secret_count > 0 || importPreview.org_registry_count > 0"
+              class="mt-3 pt-3 border-t border-border"
+            >
+              <p class="text-xs text-muted-foreground mb-2">
+                {{
+                  $t('repo.enable.import.preview.from_org', {
+                    name: importPreview.org_name,
+                    forge: importPreview.org_source_forge,
+                  })
+                }}
+              </p>
+              <div class="flex flex-wrap gap-2 text-sm text-muted-foreground">
+                <Badge v-if="importPreview.org_secret_count > 0" variant="outline">
+                  {{ $t('repo.enable.import.preview.org_secrets', { count: importPreview.org_secret_count }) }}
+                </Badge>
+                <Badge v-if="importPreview.org_registry_count > 0" variant="outline">
+                  {{ $t('repo.enable.import.preview.org_registries', { count: importPreview.org_registry_count }) }}
+                </Badge>
+              </div>
+            </div>
           </div>
 
           <!-- Import options -->
           <div v-if="selectedSourceRepoId" class="space-y-3">
-            <div class="flex items-start gap-3 p-3 rounded-md border border-border">
+            <div class="flex items-center gap-3 p-3 rounded-md border border-border">
               <Checkbox id="import-settings" v-model:checked="importOptions.settings" />
               <div class="flex-1">
                 <label for="import-settings" class="text-sm font-medium cursor-pointer">
@@ -272,7 +313,7 @@
               </div>
             </div>
 
-            <div class="flex items-start gap-3 p-3 rounded-md border border-border">
+            <div class="flex items-center gap-3 p-3 rounded-md border border-border">
               <Checkbox id="import-secrets" v-model:checked="importOptions.secrets" />
               <div class="flex-1">
                 <label for="import-secrets" class="text-sm font-medium cursor-pointer">
@@ -284,7 +325,7 @@
               </div>
             </div>
 
-            <div class="flex items-start gap-3 p-3 rounded-md border border-border">
+            <div class="flex items-center gap-3 p-3 rounded-md border border-border">
               <Checkbox id="import-registries" v-model:checked="importOptions.registries" />
               <div class="flex-1">
                 <label for="import-registries" class="text-sm font-medium cursor-pointer">
@@ -296,7 +337,7 @@
               </div>
             </div>
 
-            <div class="flex items-start gap-3 p-3 rounded-md border border-border">
+            <div class="flex items-center gap-3 p-3 rounded-md border border-border">
               <Checkbox id="import-crons" v-model:checked="importOptions.crons" />
               <div class="flex-1">
                 <label for="import-crons" class="text-sm font-medium cursor-pointer">
@@ -308,7 +349,7 @@
               </div>
             </div>
 
-            <div class="flex items-start gap-3 p-3 rounded-md border border-border">
+            <div class="flex items-center gap-3 p-3 rounded-md border border-border">
               <Checkbox id="import-pipelines" v-model:checked="importOptions.pipelines" />
               <div class="flex-1">
                 <label for="import-pipelines" class="text-sm font-medium cursor-pointer">
@@ -320,7 +361,7 @@
               </div>
             </div>
 
-            <div class="flex items-start gap-3 p-3 rounded-md border border-destructive/50 bg-destructive/5">
+            <div class="flex items-center gap-3 p-3 rounded-md border border-destructive/50 bg-destructive/5">
               <Checkbox id="import-delete" v-model:checked="importOptions.deleteSource" />
               <div class="flex-1">
                 <label for="import-delete" class="text-sm font-medium cursor-pointer text-destructive">
@@ -371,13 +412,23 @@ import {
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
+import {
+  Combobox,
+  ComboboxAnchor,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxItemIndicator,
+  ComboboxList,
+  ComboboxViewport,
+} from '~/components/ui/combobox';
 import SearchInput from '~/components/ui/input/SearchInput.vue';
 import useApiClient from '~/compositions/useApiClient';
 import useConfig from '~/compositions/useConfig';
 import { useForges } from '~/compositions/useForges';
 import { useGlobalDialogs } from '~/compositions/useGlobalDialogs';
 import useNotifications from '~/compositions/useNotifications';
-import type { Forge, ImportPreviewResponse, Repo, UserForge } from '~/lib/api/types';
+import type { Forge, ImportPreviewResponse, Repo, RepoResponse, UserForge } from '~/lib/api/types';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -472,6 +523,7 @@ const showImportDialog = ref(false);
 const activatedRepoId = ref<number | null>(null);
 const importableRepos = ref<Repo[]>([]);
 const selectedSourceRepoId = ref<string>('');
+const sourceRepoSearch = ref('');
 const importPreview = ref<ImportPreviewResponse | null>(null);
 const isImporting = ref(false);
 const importOptions = ref({
@@ -482,6 +534,23 @@ const importOptions = ref({
   pipelines: false,
   deleteSource: false,
 });
+
+// Filter function for source repo combobox
+function filterSourceRepos(repos: string[], searchTerm: string): string[] {
+  if (!searchTerm) return repos;
+  const term = searchTerm.toLowerCase();
+  return repos.filter((repoId) => {
+    const repo = importableRepos.value.find((r) => String(r.id) === repoId);
+    return repo?.full_name.toLowerCase().includes(term);
+  });
+}
+
+// Get display name for selected source repo
+function getSelectedSourceRepoDisplayName(repoId: string): string {
+  if (!repoId) return '';
+  const repo = importableRepos.value.find((r) => String(r.id) === repoId);
+  return repo?.full_name || '';
+}
 
 // Check if any import options are selected
 const hasSelectedImportOptions = computed(
@@ -777,7 +846,8 @@ async function activateSelectedRepos() {
 
   let successCount = 0;
   let failedCount = 0;
-  let lastActivatedRepo: Repo | null = null;
+  let lastActivatedRepo: RepoResponse | null = null;
+  const allMigrationMessages: string[] = [];
 
   for (const repo of reposToActivate) {
     activatingRepoIds.value.add(repo.forge_remote_id);
@@ -791,6 +861,11 @@ async function activateSelectedRepos() {
         if (index !== -1) {
           repos.value[index] = { ...repos.value[index], active: true, id: activatedRepo.id };
         }
+      }
+
+      // Collect any migration messages
+      if (activatedRepo.messages && activatedRepo.messages.length > 0) {
+        allMigrationMessages.push(...activatedRepo.messages);
       }
 
       successCount++;
@@ -812,6 +887,15 @@ async function activateSelectedRepos() {
       title: t('notify_title_success'),
       text: t('repo.enable.notify_text_enabled_multiple', { count: successCount }),
       type: 'success',
+    });
+  }
+
+  // Show migration messages as info notifications
+  for (const message of allMigrationMessages) {
+    notifications.notify({
+      title: t('repo.enable.migration_info'),
+      text: message,
+      type: 'info',
     });
   }
 
@@ -850,6 +934,7 @@ function resetImportState() {
   activatedRepoId.value = null;
   importableRepos.value = [];
   selectedSourceRepoId.value = '';
+  sourceRepoSearch.value = '';
   importPreview.value = null;
   isImporting.value = false;
   importOptions.value = {

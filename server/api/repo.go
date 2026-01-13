@@ -38,6 +38,12 @@ import (
 	shared_utils "codeberg.org/crowci/crow/v5/shared/utils"
 )
 
+// RepoResponse wraps a Repo with optional messages for the frontend.
+type RepoResponse struct {
+	*model.Repo
+	Messages []string `json:"messages,omitempty"`
+} //	@name	RepoResponse
+
 // getUserWithForgeCredentials returns a copy of the user with credentials from the specified forge.
 // If forgeID is 0, it returns the user with their primary/current forge credentials.
 // This allows using forge APIs with the correct access tokens for multi-forge users.
@@ -66,6 +72,264 @@ func getUserWithForgeCredentials(_store store.Store, user *model.User, forgeID i
 	userCopy.Expiry = userForge.Expiry
 
 	return &userCopy, forgeID, nil
+}
+
+// migrateOrgDataResult contains the result of org data migration (secrets and registries).
+type migrateOrgDataResult struct {
+	// SecretsCount is the number of secrets migrated
+	SecretsCount int
+	// RegistriesCount is the number of registry credentials migrated
+	RegistriesCount int
+	// MigratedToRepo indicates data was migrated to repo level (user lacks dest org admin)
+	MigratedToRepo bool
+	// SourceOrgName is the name of the source org the data was migrated from
+	SourceOrgName string
+	// SourceForgeID is the forge ID of the source org
+	SourceForgeID int64
+	// SkippedReason explains why migration was skipped (empty if migration occurred)
+	SkippedReason string
+	// SourceSecretsCount is the number of secrets in the source org (for reporting skipped migrations)
+	SourceSecretsCount int
+	// SourceRegistriesCount is the number of registries in the source org
+	SourceRegistriesCount int
+}
+
+// migrateOrgDataForRepoActivation handles migrating org secrets and registry credentials
+// when a repo is activated, checking for same-named orgs on other forges.
+//
+// Migration rules:
+// - User must be admin of SOURCE org to migrate its secrets/registries
+// - If user is admin of DEST org: copy to dest org level
+// - If user is NOT admin of DEST org: copy to repo level
+// - Individual items that already exist (by name) are skipped
+//
+// Returns a result with details about what was migrated or why it was skipped.
+func migrateOrgDataForRepoActivation(
+	c *gin.Context,
+	_store store.Store,
+	_forge forge.Forge,
+	user *model.User,
+	destOrg *model.Org,
+	repo *model.Repo,
+) *migrateOrgDataResult {
+	result := &migrateOrgDataResult{}
+
+	// Find all orgs with the same name across all forges
+	allOrgs, err := _store.OrgFindByNameAllForges(destOrg.Name)
+	if err != nil {
+		log.Warn().Err(err).Str("org_name", destOrg.Name).Msg("Failed to find orgs by name for migration")
+		return result
+	}
+
+	log.Info().
+		Int("total_orgs_found", len(allOrgs)).
+		Str("org_name", destOrg.Name).
+		Int64("dest_org_id", destOrg.ID).
+		Msg("Org data migration: found orgs with same name across forges")
+
+	// Look for source orgs from other forges that have secrets or registries
+	var sourceOrg *model.Org
+	var sourceSecrets []*model.Secret
+	var sourceRegistries []*model.Registry
+
+	for _, org := range allOrgs {
+		// Skip the destination org itself
+		if org.ID == destOrg.ID {
+			log.Info().Int64("org_id", org.ID).Msg("Skipping destination org in migration search")
+			continue
+		}
+
+		// Check if this org has secrets
+		secrets, err := _store.OrgSecretList(org.ID, &model.ListOptions{All: true})
+		if err != nil {
+			log.Warn().Err(err).Int64("org_id", org.ID).Msg("Failed to list org secrets during migration check")
+		}
+
+		// Check if this org has registry credentials
+		registries, err := _store.OrgRegistryList(org.ID, &model.ListOptions{All: true})
+		if err != nil {
+			log.Warn().Err(err).Int64("org_id", org.ID).Msg("Failed to list org registries during migration check")
+		}
+
+		log.Info().
+			Int64("org_id", org.ID).
+			Int64("forge_id", org.ForgeID).
+			Int("secrets_count", len(secrets)).
+			Int("registries_count", len(registries)).
+			Msg("Checked source org for migratable data")
+
+		if len(secrets) > 0 || len(registries) > 0 {
+			sourceOrg = org
+			sourceSecrets = secrets
+			sourceRegistries = registries
+			break // Use the first org with data
+		}
+	}
+
+	// No source org with data found
+	if sourceOrg == nil || (len(sourceSecrets) == 0 && len(sourceRegistries) == 0) {
+		log.Info().
+			Str("org_name", destOrg.Name).
+			Msg("No source org with secrets/registries found, nothing to migrate")
+		return result
+	}
+
+	result.SourceOrgName = sourceOrg.Name
+	result.SourceForgeID = sourceOrg.ForgeID
+	result.SourceSecretsCount = len(sourceSecrets)
+	result.SourceRegistriesCount = len(sourceRegistries)
+
+	// Get the forge for the source org
+	sourceForge, err := server.Config.Services.Manager.ForgeByID(sourceOrg.ForgeID)
+	if err != nil {
+		log.Warn().Err(err).Int64("forge_id", sourceOrg.ForgeID).Msg("Failed to get source forge for migration")
+		result.SkippedReason = "source_forge_unavailable"
+		return result
+	}
+
+	// Get user's credentials for the source forge
+	sourceUserForge, err := _store.UserForgeGet(user.ID, sourceOrg.ForgeID)
+	if err != nil {
+		log.Debug().Err(err).Int64("forge_id", sourceOrg.ForgeID).Msg("User has no credentials for source forge")
+		result.SkippedReason = "no_source_forge_credentials"
+		return result
+	}
+
+	// Create a user object with source forge credentials
+	sourceUser := &model.User{
+		ID:            user.ID,
+		Login:         sourceUserForge.ForgeLogin,
+		ForgeID:       sourceOrg.ForgeID,
+		ForgeRemoteID: sourceUserForge.ForgeRemoteID,
+		AccessToken:   sourceUserForge.AccessToken,
+		RefreshToken:  sourceUserForge.RefreshToken,
+		Expiry:        sourceUserForge.Expiry,
+	}
+
+	// Check if user is admin of the SOURCE org
+	sourceOrgPerm, err := server.Config.Services.Membership.Get(c, sourceForge, sourceUser, sourceOrg.Name)
+	isSourceOrgAdmin := err == nil && sourceOrgPerm != nil && sourceOrgPerm.Admin
+
+	// Personal org (user's own namespace) means they are admin
+	if sourceOrg.Name == sourceUser.Login {
+		isSourceOrgAdmin = true
+	}
+
+	if !isSourceOrgAdmin {
+		log.Info().
+			Str("org_name", sourceOrg.Name).
+			Int64("source_forge_id", sourceOrg.ForgeID).
+			Int("secrets_count", len(sourceSecrets)).
+			Int("registries_count", len(sourceRegistries)).
+			Msg("User is not admin of source org, skipping org data migration")
+		result.SkippedReason = "not_source_org_admin"
+		return result
+	}
+
+	// Check if user is admin of the DESTINATION org via forge membership
+	destOrgPerm, err := server.Config.Services.Membership.Get(c, _forge, user, destOrg.Name)
+	isDestOrgAdmin := err == nil && destOrgPerm != nil && destOrgPerm.Admin
+
+	// Personal org means they are admin
+	if destOrg.Name == user.Login {
+		isDestOrgAdmin = true
+	}
+
+	result.MigratedToRepo = !isDestOrgAdmin
+
+	// Migrate secrets
+	for _, secret := range sourceSecrets {
+		newSecret := &model.Secret{
+			Name:   secret.Name,
+			Value:  secret.Value,
+			Images: secret.Images,
+			Events: secret.Events,
+			Source: secret.Source,
+		}
+
+		if isDestOrgAdmin {
+			newSecret.OrgID = destOrg.ID
+			newSecret.RepoID = 0
+		} else {
+			newSecret.OrgID = 0
+			newSecret.RepoID = repo.ID
+		}
+
+		// Check if secret already exists at destination
+		var existingSecret *model.Secret
+		if isDestOrgAdmin {
+			existingSecret, _ = _store.OrgSecretFind(destOrg.ID, secret.Name)
+		} else {
+			existingSecret, _ = _store.SecretFind(repo, secret.Name)
+		}
+
+		if existingSecret != nil {
+			log.Debug().
+				Str("secret_name", secret.Name).
+				Bool("to_org", isDestOrgAdmin).
+				Msg("Secret already exists at destination, skipping")
+			continue
+		}
+
+		if err := _store.SecretCreate(newSecret); err != nil {
+			log.Warn().Err(err).Str("secret_name", secret.Name).Msg("Failed to migrate secret")
+			continue
+		}
+
+		result.SecretsCount++
+		log.Info().
+			Str("secret_name", secret.Name).
+			Int64("source_org_id", sourceOrg.ID).
+			Bool("migrated_to_org", isDestOrgAdmin).
+			Msg("Migrated org secret")
+	}
+
+	// Migrate registry credentials
+	for _, registry := range sourceRegistries {
+		newRegistry := &model.Registry{
+			Address:  registry.Address,
+			Username: registry.Username,
+			Password: registry.Password,
+		}
+
+		if isDestOrgAdmin {
+			newRegistry.OrgID = destOrg.ID
+			newRegistry.RepoID = 0
+		} else {
+			newRegistry.OrgID = 0
+			newRegistry.RepoID = repo.ID
+		}
+
+		// Check if registry already exists at destination (by address)
+		var existingRegistry *model.Registry
+		if isDestOrgAdmin {
+			existingRegistry, _ = _store.OrgRegistryFind(destOrg.ID, registry.Address)
+		} else {
+			existingRegistry, _ = _store.RegistryFind(repo, registry.Address)
+		}
+
+		if existingRegistry != nil {
+			log.Debug().
+				Str("registry_address", registry.Address).
+				Bool("to_org", isDestOrgAdmin).
+				Msg("Registry already exists at destination, skipping")
+			continue
+		}
+
+		if err := _store.RegistryCreate(newRegistry); err != nil {
+			log.Warn().Err(err).Str("registry_address", registry.Address).Msg("Failed to migrate registry")
+			continue
+		}
+
+		result.RegistriesCount++
+		log.Info().
+			Str("registry_address", registry.Address).
+			Int64("source_org_id", sourceOrg.ID).
+			Bool("migrated_to_org", isDestOrgAdmin).
+			Msg("Migrated org registry credential")
+	}
+
+	return result
 }
 
 // PostRepo
@@ -208,6 +472,7 @@ func PostRepo(c *gin.Context) {
 
 	// find org of repo
 	var org *model.Org
+	var newOrgCreated bool
 	org, err = _store.OrgFindByName(repo.Owner, forgeID)
 	if err != nil && !errors.Is(err, types.RecordNotExist) {
 		log.Error().Err(err).Msg("Unable to find organization")
@@ -238,6 +503,7 @@ func PostRepo(c *gin.Context) {
 			})
 			return
 		}
+		newOrgCreated = true
 	}
 
 	repo.OrgID = org.ID
@@ -297,7 +563,92 @@ func PostRepo(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, repo)
+	// Attempt to migrate org secrets and registry credentials from same-named orgs on other forges
+	var messages []string
+	log.Info().
+		Int64("org_id", org.ID).
+		Str("org_name", org.Name).
+		Int64("forge_id", forgeID).
+		Bool("new_org", newOrgCreated).
+		Msg("Checking for org data migration from other forges")
+
+	migrationResult := migrateOrgDataForRepoActivation(c, _store, _forge, userWithCreds, org, repo)
+
+	log.Info().
+		Int("secrets_migrated", migrationResult.SecretsCount).
+		Int("registries_migrated", migrationResult.RegistriesCount).
+		Str("skipped_reason", migrationResult.SkippedReason).
+		Int("source_secrets_count", migrationResult.SourceSecretsCount).
+		Int("source_registries_count", migrationResult.SourceRegistriesCount).
+		Bool("migrated_to_repo", migrationResult.MigratedToRepo).
+		Msg("Org data migration result")
+
+	// Generate user-facing messages based on migration result
+	if migrationResult.SkippedReason != "" {
+		// Migration was skipped - inform user if there was data to migrate
+		totalSourceData := migrationResult.SourceSecretsCount + migrationResult.SourceRegistriesCount
+		if totalSourceData > 0 {
+			switch migrationResult.SkippedReason {
+			case "not_source_org_admin":
+				messages = append(messages, fmt.Sprintf(
+					"Found %d secret(s) and %d registry credential(s) in organization '%s' on another forge, "+
+						"but they could not be migrated because you are not an admin of that organization.",
+					migrationResult.SourceSecretsCount, migrationResult.SourceRegistriesCount, migrationResult.SourceOrgName))
+			case "no_source_forge_credentials":
+				messages = append(messages, fmt.Sprintf(
+					"Found %d secret(s) and %d registry credential(s) in organization '%s' on another forge, "+
+						"but they could not be migrated because you are not logged into that forge.",
+					migrationResult.SourceSecretsCount, migrationResult.SourceRegistriesCount, migrationResult.SourceOrgName))
+			case "source_forge_unavailable":
+				messages = append(messages, fmt.Sprintf(
+					"Found %d secret(s) and %d registry credential(s) in organization '%s' on another forge, "+
+						"but they could not be migrated because the source forge is unavailable.",
+					migrationResult.SourceSecretsCount, migrationResult.SourceRegistriesCount, migrationResult.SourceOrgName))
+			}
+		}
+	} else {
+		// Migration was attempted - report what was migrated
+		totalMigrated := migrationResult.SecretsCount + migrationResult.RegistriesCount
+		if totalMigrated > 0 {
+			if migrationResult.MigratedToRepo {
+				// Migrated to repo level because user is not dest org admin
+				if migrationResult.SecretsCount > 0 {
+					messages = append(messages, fmt.Sprintf(
+						"Migrated %d organization secret(s) to repository level because you are not an admin of '%s' on this forge.",
+						migrationResult.SecretsCount, org.Name))
+				}
+				if migrationResult.RegistriesCount > 0 {
+					messages = append(messages, fmt.Sprintf(
+						"Migrated %d registry credential(s) to repository level because you are not an admin of '%s' on this forge.",
+						migrationResult.RegistriesCount, org.Name))
+				}
+			} else {
+				// Migrated to org level
+				if migrationResult.SecretsCount > 0 {
+					messages = append(messages, fmt.Sprintf(
+						"Migrated %d organization secret(s) from your organization on another forge.",
+						migrationResult.SecretsCount))
+				}
+				if migrationResult.RegistriesCount > 0 {
+					messages = append(messages, fmt.Sprintf(
+						"Migrated %d registry credential(s) from your organization on another forge.",
+						migrationResult.RegistriesCount))
+				}
+			}
+		}
+	}
+
+	// Return response with optional messages
+	log.Info().
+		Int("message_count", len(messages)).
+		Strs("messages", messages).
+		Msg("Returning repo activation response")
+
+	if len(messages) > 0 {
+		c.JSON(http.StatusOK, RepoResponse{Repo: repo, Messages: messages})
+	} else {
+		c.JSON(http.StatusOK, repo)
+	}
 }
 
 // PatchRepo

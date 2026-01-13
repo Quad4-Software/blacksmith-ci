@@ -7345,6 +7345,68 @@ func (_c *MockStore_OrgFindByName_Call) RunAndReturn(run func(s string, n int64)
 	return _c
 }
 
+// OrgFindByNameAllForges provides a mock function for the type MockStore
+func (_mock *MockStore) OrgFindByNameAllForges(s string) ([]*model.Org, error) {
+	ret := _mock.Called(s)
+
+	if len(ret) == 0 {
+		panic("no return value specified for OrgFindByNameAllForges")
+	}
+
+	var r0 []*model.Org
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(string) ([]*model.Org, error)); ok {
+		return returnFunc(s)
+	}
+	if returnFunc, ok := ret.Get(0).(func(string) []*model.Org); ok {
+		r0 = returnFunc(s)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.Org)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(string) error); ok {
+		r1 = returnFunc(s)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_OrgFindByNameAllForges_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'OrgFindByNameAllForges'
+type MockStore_OrgFindByNameAllForges_Call struct {
+	*mock.Call
+}
+
+// OrgFindByNameAllForges is a helper method to define mock.On call
+//   - s string
+func (_e *MockStore_Expecter) OrgFindByNameAllForges(s interface{}) *MockStore_OrgFindByNameAllForges_Call {
+	return &MockStore_OrgFindByNameAllForges_Call{Call: _e.mock.On("OrgFindByNameAllForges", s)}
+}
+
+func (_c *MockStore_OrgFindByNameAllForges_Call) Run(run func(s string)) *MockStore_OrgFindByNameAllForges_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_OrgFindByNameAllForges_Call) Return(orgs []*model.Org, err error) *MockStore_OrgFindByNameAllForges_Call {
+	_c.Call.Return(orgs, err)
+	return _c
+}
+
+func (_c *MockStore_OrgFindByNameAllForges_Call) RunAndReturn(run func(s string) ([]*model.Org, error)) *MockStore_OrgFindByNameAllForges_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // OrgGet provides a mock function for the type MockStore
 func (_mock *MockStore) OrgGet(n int64) (*model.Org, error) {
 	ret := _mock.Called(n)

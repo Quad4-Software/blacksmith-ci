@@ -23,6 +23,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 
+	"codeberg.org/crowci/crow/v5/server"
 	"codeberg.org/crowci/crow/v5/server/model"
 	"codeberg.org/crowci/crow/v5/server/router/middleware/session"
 	"codeberg.org/crowci/crow/v5/server/store"
@@ -322,6 +323,7 @@ func GetImportableRepos(c *gin.Context) {
 func GetRepoForImport(c *gin.Context) {
 	_store := store.FromContext(c)
 	user := session.User(c)
+	targetRepo := session.Repo(c)
 
 	sourceRepoID, err := strconv.ParseInt(c.Param("source_repo_id"), 10, 64)
 	if err != nil {
@@ -342,11 +344,11 @@ func GetRepoForImport(c *gin.Context) {
 		return
 	}
 
-	// Count secrets
+	// Count repo-level secrets
 	secrets, _ := _store.SecretList(sourceRepo, false, &model.ListOptions{All: true})
 	secretCount := len(secrets)
 
-	// Count registries
+	// Count repo-level registries
 	registries, _ := _store.RegistryList(sourceRepo, false, &model.ListOptions{All: true})
 	registryCount := len(registries)
 
@@ -357,12 +359,57 @@ func GetRepoForImport(c *gin.Context) {
 	// Count pipelines
 	pipelineCount, _ := _store.GetPipelineCountByRepo(sourceRepo.ID)
 
+	// Calculate org-level secrets that would be migrated from same-named orgs on other forges
+	var orgSecretCount, orgRegistryCount int
+	var orgName, orgSourceForge string
+
+	// Get target repo's org
+	targetOrg, err := _store.OrgGet(targetRepo.OrgID)
+	if err == nil && targetOrg != nil {
+		// Find orgs with same name on other forges
+		allOrgs, err := _store.OrgFindByNameAllForges(targetOrg.Name)
+		if err == nil {
+			for _, org := range allOrgs {
+				// Skip the target org itself
+				if org.ID == targetOrg.ID {
+					continue
+				}
+
+				// Count org secrets
+				orgSecrets, _ := _store.OrgSecretList(org.ID, &model.ListOptions{All: true})
+				// Count org registries
+				orgRegistries, _ := _store.OrgRegistryList(org.ID, &model.ListOptions{All: true})
+
+				if len(orgSecrets) > 0 || len(orgRegistries) > 0 {
+					orgSecretCount = len(orgSecrets)
+					orgRegistryCount = len(orgRegistries)
+					orgName = org.Name
+					// Get forge URL for display (extract hostname)
+					if forge, err := server.Config.Services.Manager.ForgeByID(org.ForgeID); err == nil {
+						forgeURL := forge.URL()
+						if parsed, err := url.Parse(forgeURL); err == nil {
+							orgSourceForge = parsed.Host
+						} else {
+							// Fallback: strip protocol manually
+							orgSourceForge = strings.TrimPrefix(strings.TrimPrefix(forgeURL, "https://"), "http://")
+						}
+					}
+					break // Use first org with data
+				}
+			}
+		}
+	}
+
 	c.JSON(http.StatusOK, ImportPreviewResponse{
-		Repo:          sourceRepo,
-		SecretCount:   secretCount,
-		RegistryCount: registryCount,
-		CronCount:     cronCount,
-		PipelineCount: int(pipelineCount),
+		Repo:             sourceRepo,
+		SecretCount:      secretCount,
+		RegistryCount:    registryCount,
+		CronCount:        cronCount,
+		PipelineCount:    int(pipelineCount),
+		OrgSecretCount:   orgSecretCount,
+		OrgRegistryCount: orgRegistryCount,
+		OrgName:          orgName,
+		OrgSourceForge:   orgSourceForge,
 	})
 }
 
@@ -373,6 +420,11 @@ type ImportPreviewResponse struct {
 	RegistryCount int         `json:"registry_count"`
 	CronCount     int         `json:"cron_count"`
 	PipelineCount int         `json:"pipeline_count"`
+	// Org-level assets that would be migrated from same-named orgs on other forges
+	OrgSecretCount   int    `json:"org_secret_count"`
+	OrgRegistryCount int    `json:"org_registry_count"`
+	OrgName          string `json:"org_name,omitempty"`
+	OrgSourceForge   string `json:"org_source_forge,omitempty"`
 }
 
 // userForgeMapping holds the target forge user info for mapping authors.

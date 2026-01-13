@@ -132,6 +132,11 @@ export interface RepoTrusted {
   security: boolean;
 }
 
+// Repo activation response (may include migration messages)
+export interface RepoResponse extends Repo {
+  messages?: string[];
+}
+
 // Import settings request
 export interface ImportSettingsRequest {
   source_repo_id: number;
@@ -161,4 +166,9 @@ export interface ImportPreviewResponse {
   registry_count: number;
   cron_count: number;
   pipeline_count: number;
+  // Org-level assets from same-named orgs on other forges
+  org_secret_count: number;
+  org_registry_count: number;
+  org_name?: string;
+  org_source_forge?: string;
 }

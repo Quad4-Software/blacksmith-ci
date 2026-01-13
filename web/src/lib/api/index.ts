@@ -37,6 +37,7 @@ import type {
   RegistryWithOrg,
   Repo,
   RepoPermissions,
+  RepoResponse,
   RepoSettings,
   ImportSettingsRequest,
   ImportSettingsResponse,
@@ -116,13 +117,13 @@ export default class CrowClient extends ApiClient {
     return this._get(`/api/v1/repos/${repoId}/pull_requests?${query}`) as Promise<PullRequest[]>;
   }
 
-  async activateRepo(forgeRemoteId: string, forgeId?: number): Promise<Repo> {
+  async activateRepo(forgeRemoteId: string, forgeId?: number): Promise<RepoResponse> {
     const params: Record<string, string> = { forge_remote_id: forgeRemoteId };
     if (forgeId !== undefined) {
       params.forge_id = String(forgeId);
     }
     const query = encodeQueryString(params);
-    return this._post(`/api/v1/repos?${query}`) as Promise<Repo>;
+    return this._post(`/api/v1/repos?${query}`) as Promise<RepoResponse>;
   }
 
   async updateRepo(repoId: number, repoSettings: RepoSettings): Promise<unknown> {

@@ -283,6 +283,8 @@ type Store interface {
 	OrgCreate(*model.Org) error
 	OrgGet(int64) (*model.Org, error)
 	OrgFindByName(string, int64) (*model.Org, error)
+	// OrgFindByNameAllForges returns all orgs with the given name across all forges.
+	OrgFindByNameAllForges(string) ([]*model.Org, error)
 	OrgUpdate(*model.Org) error
 	OrgDelete(int64) error
 	OrgList(*model.ListOptions) ([]*model.Org, error)

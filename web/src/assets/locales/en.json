@@ -173,6 +173,7 @@
       "notify_text_error": "Failed to enable repository",
       "notify_text_enabled_multiple": "{count} repositories enabled",
       "notify_text_error_multiple": "Failed to enable {count} repositories",
+      "migration_info": "Organization Data Migration",
       "filter": {
         "all": "All",
         "all_owners": "All owners",
@@ -196,7 +197,11 @@
         "no_importable_repos": "No other repositories available for import",
         "preview": {
           "title": "Import preview",
-          "secrets": "{count} secrets",
+          "from_repo": "From selected repository:",
+          "from_org": "From the containing organization {name} ({forge}):",
+          "secrets": "{count} repo secrets",
+          "org_secrets": "{count} org secrets",
+          "org_registries": "{count} org registries",
           "registries": "{count} registries",
           "crons": "{count} cron jobs",
           "pipelines": "{count} pipelines"
@@ -217,7 +222,7 @@
         },
         "import_button": "Import selected",
         "skip": "Skip import",
-        "success_details": "Imported {secrets} secrets, {registries} registries, {crons} crons, {pipelines} pipelines",
+        "success_details": "Imported {secrets} repository secrets, {registries} registry credentials, {crons} cron jobs, {pipelines} pipelines",
         "error": "Failed to import settings"
       }
     },
