@@ -845,7 +845,7 @@ func MoveRepo(c *gin.Context) {
 		return
 	}
 
-	err = _store.CreateRedirection(&model.Redirection{RepoID: repo.ID, FullName: repo.FullName})
+	err = _store.CreateRedirection(&model.Redirection{ForgeID: repo.ForgeID, RepoID: repo.ID, FullName: repo.FullName})
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create redirection")
 		c.JSON(http.StatusInternalServerError, gin.H{

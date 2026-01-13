@@ -352,7 +352,7 @@ func PostHook(c *gin.Context) {
 
 	if repo.FullName != repoFromForge.FullName {
 		// create a redirection
-		err = _store.CreateRedirection(&model.Redirection{RepoID: repo.ID, FullName: repo.FullName})
+		err = _store.CreateRedirection(&model.Redirection{ForgeID: repo.ForgeID, RepoID: repo.ID, FullName: repo.FullName})
 		if err != nil {
 			_ = c.AbortWithError(http.StatusInternalServerError, err)
 			return

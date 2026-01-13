@@ -85,6 +85,7 @@ var crowMigrations = []string{
 	"crow-add-agent-hostname",
 	"crow-add-user-forges",
 	"crow-add-forge-icon",
+	"crow-add-forge-to-repo-unique",
 }
 
 // allKnownMigrations returns a combined list of all known migration IDs.

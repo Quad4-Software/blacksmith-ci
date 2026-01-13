@@ -16,8 +16,9 @@ package model
 
 type Redirection struct {
 	ID       int64  `xorm:"pk autoincr 'id'"`
+	ForgeID  int64  `xorm:"UNIQUE(forge) 'forge_id'"`
 	RepoID   int64  `xorm:"'repo_id'"`
-	FullName string `xorm:"UNIQUE INDEX 'repo_full_name'"`
+	FullName string `xorm:"UNIQUE(forge) INDEX 'repo_full_name'"`
 }
 
 func (r Redirection) TableName() string {
