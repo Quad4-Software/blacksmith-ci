@@ -83,7 +83,9 @@ func Unmarshal(data []byte, v any) error {
 	// goccy/go-yaml has a bug where aliases to anchors defined within parent
 	// sequences are not resolved correctly. We work around this by resolving
 	// aliases in the AST before unmarshaling.
-	file, err := parser.ParseBytes(data, parser.ParseComments)
+	// Note: Don't use parser.ParseComments - comments cause issues when nodes
+	// are replaced and the AST is serialized back to string.
+	file, err := parser.ParseBytes(data, 0)
 	if err != nil {
 		return err
 	}
@@ -97,13 +99,16 @@ func Unmarshal(data []byte, v any) error {
 	// Check if we need sequence merge processing (non-standard YAML extension)
 	hasMergeKey := bytes.Contains(data, []byte("<<"))
 
-	// Resolve sequence merges and aliases in the AST
+	// Resolve sequence merges in the AST
 	for _, doc := range file.Docs {
 		if hasMergeKey {
 			resolveSequenceMergesInNode(doc.Body, anchors)
 		}
-		// Resolve aliases to work around goccy/go-yaml bug with nested anchors
-		resolveAliasesInNode(doc.Body, anchors)
+		// Resolve aliases within sequences that contain their anchor definition.
+		// This works around a goccy/go-yaml bug with nested anchors.
+		// Only resolves aliases within the same sequence subtree as their anchor,
+		// leaving cross-document aliases for standard YAML handling.
+		resolveNestedSequenceAliases(doc.Body)
 	}
 
 	// Convert back to bytes
@@ -190,10 +195,12 @@ func resolveSequenceMergesInNode(node ast.Node, anchors map[string]ast.Node) {
 	}
 }
 
-// resolveAliasesInNode resolves alias nodes by replacing them with the anchored value.
+// resolveNestedSequenceAliases resolves aliases within sequences that contain their anchor.
 // This works around a bug in goccy/go-yaml where aliases to anchors defined within
-// parent sequences are not resolved correctly.
-func resolveAliasesInNode(node ast.Node, anchors map[string]ast.Node) {
+// the same parent sequence are not resolved correctly.
+// It only resolves aliases that are within the same sequence subtree as their anchor,
+// leaving other aliases for standard YAML handling.
+func resolveNestedSequenceAliases(node ast.Node) {
 	if node == nil {
 		return
 	}
@@ -201,45 +208,78 @@ func resolveAliasesInNode(node ast.Node, anchors map[string]ast.Node) {
 	switch n := node.(type) {
 	case *ast.MappingNode:
 		for _, value := range n.Values {
-			resolveAliasesInNode(value, anchors)
+			resolveNestedSequenceAliases(value)
+		}
+
+	case *ast.MappingValueNode:
+		resolveNestedSequenceAliases(n.Value)
+
+	case *ast.SequenceNode:
+		// Collect anchors defined within this sequence
+		localAnchors := make(map[string]ast.Node)
+		for _, value := range n.Values {
+			collectAnchors(value, localAnchors)
+		}
+
+		// Resolve aliases within this sequence that reference local anchors
+		if len(localAnchors) > 0 {
+			resolveAliasesInSequence(n, localAnchors)
+		}
+
+		// Recurse into child sequences
+		for _, value := range n.Values {
+			resolveNestedSequenceAliases(value)
+		}
+
+	case *ast.AnchorNode:
+		resolveNestedSequenceAliases(n.Value)
+
+	case *ast.DocumentNode:
+		resolveNestedSequenceAliases(n.Body)
+	}
+}
+
+// resolveAliasesInSequence resolves aliases within a sequence that reference the given anchors.
+func resolveAliasesInSequence(node ast.Node, anchors map[string]ast.Node) {
+	if node == nil {
+		return
+	}
+
+	switch n := node.(type) {
+	case *ast.MappingNode:
+		for _, value := range n.Values {
+			resolveAliasesInSequence(value, anchors)
 		}
 
 	case *ast.MappingValueNode:
 		// Don't resolve aliases that are values of merge keys (<<: *alias)
-		// as they need special handling by the YAML parser
 		if isMergeKey(n.Key) {
 			return
 		}
 
-		// Check if the value is an alias that needs resolution
 		if alias, ok := n.Value.(*ast.AliasNode); ok {
 			anchorName := alias.Value.GetToken().Value
 			if anchorValue, exists := anchors[anchorName]; exists {
-				// Replace the alias with the anchored value
 				n.Value = anchorValue
 			}
 		} else {
-			resolveAliasesInNode(n.Value, anchors)
+			resolveAliasesInSequence(n.Value, anchors)
 		}
 
 	case *ast.SequenceNode:
 		for i, value := range n.Values {
-			// Check if this item is an alias
 			if alias, ok := value.(*ast.AliasNode); ok {
 				anchorName := alias.Value.GetToken().Value
 				if anchorValue, exists := anchors[anchorName]; exists {
 					n.Values[i] = anchorValue
 				}
 			} else {
-				resolveAliasesInNode(value, anchors)
+				resolveAliasesInSequence(value, anchors)
 			}
 		}
 
 	case *ast.AnchorNode:
-		resolveAliasesInNode(n.Value, anchors)
-
-	case *ast.DocumentNode:
-		resolveAliasesInNode(n.Body, anchors)
+		resolveAliasesInSequence(n.Value, anchors)
 	}
 }
 
