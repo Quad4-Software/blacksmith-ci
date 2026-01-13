@@ -15,10 +15,8 @@
     "@astrojs/markdoc": "0.15.10",
     "@astrojs/starlight": "0.37.2",
     "@astrojs/starlight-markdoc": "^0.5.1",
-    "@astrojs/starlight-tailwind": "^4.0.2",
     "@lorenzo_lewis/starlight-utils": "^0.3.2",
     "@microflash/rehype-figure": "^2.1.4",
-    "@tailwindcss/vite": "^4.1.18",
     "astro": "5.16.9",
     "pagefind": "^1.4.0",
     "playwright": "^1.57.0",
@@ -28,7 +26,6 @@
     "starlight-links-validator": "^0.19.2",
     "starlight-scroll-to-top": "^0.4.0",
     "starlight-theme-nova": "^0.11.0",
-    "starlight-versions": "^0.5.6",
-    "tailwindcss": "^4.1.18"
+    "starlight-versions": "^0.5.6"
   }
 }

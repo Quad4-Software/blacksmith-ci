@@ -2,7 +2,6 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import starlightThemeNova from 'starlight-theme-nova';
-import tailwindcss from '@tailwindcss/vite';
 import markdoc from '@astrojs/markdoc';
 import starlightLinksValidator from 'starlight-links-validator';
 import starlightUtils from '@lorenzo_lewis/starlight-utils';
@@ -103,7 +102,9 @@ export default defineConfig({
             { slug: 'dev', label: 'dev' },
           ],
         }),
-        starlightThemeNova(),
+        starlightThemeNova({
+          stylingSystem: 'css', // Disable Tailwind auto-detection to avoid conflicts with Tailwind v4
+        }),
         starlightLinksValidator(),
         starlightUtils({
           multiSidebar: {
@@ -131,7 +132,4 @@ export default defineConfig({
     rehypePlugins: [[rehypeMermaid, { strategy: 'pre-mermaid' }], rehypeFigure],
   },
 
-  vite: {
-    plugins: [tailwindcss()],
-  },
 });

@@ -5,15 +5,28 @@
  * Keep this file minimal - prefer using design tokens in base.css.
  */
 
-@import "@astrojs/starlight-tailwind";
-@import "tailwindcss/theme.css" layer(theme);
-@import "tailwindcss/utilities.css" layer(utilities);
-
-@layer base, starlight, theme, components, utilities;
-
 /* ==========================================================================
     Global Overrides
     ========================================================================== */
+
+/* Restore list styles (Nova theme's tailwind.gen.css resets them) */
+.sl-markdown-content ul:not(.contains-task-list):not(.sl-steps) {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+}
+
+.sl-markdown-content ol:not(.sl-steps) {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+}
+
+.sl-markdown-content ul:not(.sl-steps) ul {
+  list-style-type: circle;
+}
+
+.sl-markdown-content ul:not(.sl-steps) ul ul {
+  list-style-type: square;
+}
 
 /* Base font size for content and sidebars */
 .sl-markdown-content,
@@ -37,23 +50,8 @@
 }
 
 /* Remove border radius globally for sharper aesthetic */
-@layer theme {
-  * {
-    --radius-none: 0;
-    --radius-sm: 0;
-    --radius-md: 0;
-    --radius-lg: 0;
-    --radius-xl: 0;
-    --radius-2xl: 0;
-    --radius-3xl: 0;
-    --radius-full: 0;
-  }
-}
-
-@layer components {
-  * {
-    border-radius: 0 !important;
-  }
+* {
+  border-radius: 0 !important;
 }
 
 /* ==========================================================================
