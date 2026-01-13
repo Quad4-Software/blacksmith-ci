@@ -11,7 +11,9 @@ Crow supports connecting to multiple Git forges simultaneously, allowing users t
 ### CROW_FORGES
 
 - Name: `CROW_FORGES`
-- Description: Comma-separated list of forge names to configure. When set, Crow uses the multi-forge configuration format instead of single-forge variables.
+- Description: Comma-separated list of forge names to configure.
+  When set, Crow uses the multi-forge configuration format instead of single-forge variables.
+  The names can be arbitrary and are only used to identify the respective forge with the per-forge env vars (see below).
 - Default: none
 - Example: `codeberg,github`
 
@@ -99,7 +101,8 @@ CROW_FORGE_INTERNAL_ICON=https://internal.company.com/logo.svg
 
 ## Single-Forge Configuration (Legacy)
 
-The following variables configure a single forge. If `CROW_FORGES` is set, these are ignored.
+The following variables configure a single forge.
+If `CROW_FORGES` is set, these are ignored.
 
 ## OAuth Settings
 
