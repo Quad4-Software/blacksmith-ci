@@ -52,7 +52,6 @@ type Gitea struct {
 	ClientSecret string
 	OAuthHost    string
 	SkipVerify   bool
-	pageSize     int
 }
 
 // Opts defines configuration options.
@@ -192,7 +191,7 @@ func (c *Gitea) Teams(ctx context.Context, u *model.User) ([]*model.Team, error)
 			gitea.ListOrgsOptions{
 				ListOptions: gitea.ListOptions{
 					Page:     page,
-					PageSize: c.perPage(ctx),
+					PageSize: defaultPageSize,
 				},
 			},
 		)
@@ -248,7 +247,7 @@ func (c *Gitea) Repos(ctx context.Context, u *model.User) ([]*model.Repo, error)
 			gitea.ListReposOptions{
 				ListOptions: gitea.ListOptions{
 					Page:     page,
-					PageSize: c.perPage(ctx),
+					PageSize: defaultPageSize,
 				},
 			},
 		)
@@ -402,7 +401,7 @@ func (c *Gitea) Deactivate(ctx context.Context, u *model.User, r *model.Repo, li
 		hooks, _, err := client.ListRepoHooks(r.Owner, r.Name, gitea.ListHooksOptions{
 			ListOptions: gitea.ListOptions{
 				Page:     page,
-				PageSize: c.perPage(ctx),
+				PageSize: defaultPageSize,
 			},
 		})
 		return hooks, err
@@ -677,20 +676,4 @@ func (c *Gitea) getTagCommitSHA(ctx context.Context, repo *model.Repo, tagName s
 	}
 
 	return tag.Commit.SHA, nil
-}
-
-func (c *Gitea) perPage(ctx context.Context) int {
-	if c.pageSize == 0 {
-		client, err := c.newClientToken(ctx, "")
-		if err != nil {
-			return defaultPageSize
-		}
-
-		api, _, err := client.GetGlobalAPISettings()
-		if err != nil {
-			return defaultPageSize
-		}
-		c.pageSize = api.MaxResponseItems
-	}
-	return c.pageSize
 }

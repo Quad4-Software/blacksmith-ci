@@ -50,7 +50,6 @@ type Forgejo struct {
 	ClientID     string
 	ClientSecret string
 	SkipVerify   bool
-	pageSize     int
 }
 
 // Opts defines configuration options.
@@ -190,7 +189,7 @@ func (c *Forgejo) Teams(ctx context.Context, u *model.User) ([]*model.Team, erro
 			forgejo.ListOrgsOptions{
 				ListOptions: forgejo.ListOptions{
 					Page:     page,
-					PageSize: c.perPage(ctx),
+					PageSize: defaultPageSize,
 				},
 			},
 		)
@@ -246,7 +245,7 @@ func (c *Forgejo) Repos(ctx context.Context, u *model.User) ([]*model.Repo, erro
 			forgejo.ListReposOptions{
 				ListOptions: forgejo.ListOptions{
 					Page:     page,
-					PageSize: c.perPage(ctx),
+					PageSize: defaultPageSize,
 				},
 			},
 		)
@@ -400,7 +399,7 @@ func (c *Forgejo) Deactivate(ctx context.Context, u *model.User, r *model.Repo, 
 		hooks, _, err := client.ListRepoHooks(r.Owner, r.Name, forgejo.ListHooksOptions{
 			ListOptions: forgejo.ListOptions{
 				Page:     page,
-				PageSize: c.perPage(ctx),
+				PageSize: defaultPageSize,
 			},
 		})
 		return hooks, err
@@ -670,20 +669,4 @@ func (c *Forgejo) getTagCommitSHA(ctx context.Context, repo *model.Repo, tagName
 	}
 
 	return tag.Commit.SHA, nil
-}
-
-func (c *Forgejo) perPage(ctx context.Context) int {
-	if c.pageSize == 0 {
-		client, err := c.newClientToken(ctx, "")
-		if err != nil {
-			return defaultPageSize
-		}
-
-		api, _, err := client.GetGlobalAPISettings()
-		if err != nil {
-			return defaultPageSize
-		}
-		c.pageSize = api.MaxResponseItems
-	}
-	return c.pageSize
 }
