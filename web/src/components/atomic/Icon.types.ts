@@ -125,4 +125,5 @@ export type IconNames =
   | 'lucide:search'
   | 'lucide:plug-2'
   | 'lucide:zap'
+  | 'lucide:corner-down-left'
   | 'mdi-wind-power-outline';

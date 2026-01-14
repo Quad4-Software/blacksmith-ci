@@ -67,8 +67,22 @@
       </div>
       <div class="flex flex-col md:flex-row gap-6 flex-wrap">
         <div>
-          <InputField v-slot="{ id }" :label="$t('user.settings.general.theme_label')">
-            <Select :id="id" v-model="themeName">
+          <InputField v-slot="{ id }" :label="$t('user.settings.general.light_theme_label')">
+            <Select :id="id" v-model="lightThemeName">
+              <SelectTrigger class="w-full md:w-[200px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="theme in availableThemes" :key="theme.id" :value="theme.id">
+                  {{ theme.name }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </InputField>
+        </div>
+        <div>
+          <InputField v-slot="{ id }" :label="$t('user.settings.general.dark_theme_label')">
+            <Select :id="id" v-model="darkThemeName">
               <SelectTrigger class="w-full md:w-[200px]">
                 <SelectValue />
               </SelectTrigger>
@@ -537,7 +551,7 @@ function cancelUnlink() {
 }
 
 // Theme settings
-const { themeName, availableThemes, storeTheme, fontSize } = useTheme();
+const { lightThemeName, darkThemeName, availableThemes, storeTheme, fontSize } = useTheme();
 
 const colorModeOptions = computed(() => [
   { value: 'light', text: t('user.settings.general.theme.light') },

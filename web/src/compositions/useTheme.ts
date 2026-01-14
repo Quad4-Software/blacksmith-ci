@@ -13,8 +13,41 @@ const {
   storageKey: 'crow:theme',
 });
 
-// Theme name selection
-const themeName = useStorage<string>('crow:theme-name', DEFAULT_THEME_ID);
+// Migration: check for old single theme preference and migrate to new split keys
+const OLD_THEME_KEY = 'crow:theme-name';
+const LIGHT_THEME_KEY = 'crow:theme-name-light';
+const DARK_THEME_KEY = 'crow:theme-name-dark';
+
+function parseStoredValue(value: string | null): string | null {
+  if (value === null) {
+    return null;
+  }
+  // Try to parse as JSON (useStorage stores values JSON-encoded)
+  try {
+    return JSON.parse(value) as string;
+  } catch {
+    // If not valid JSON, return as-is (plain string)
+    return value;
+  }
+}
+
+function getInitialTheme(key: string): string {
+  // Check if new key already exists
+  const newValue = parseStoredValue(localStorage.getItem(key));
+  if (newValue !== null) {
+    return newValue;
+  }
+  // Migrate from old single theme key if it exists
+  const oldValue = parseStoredValue(localStorage.getItem(OLD_THEME_KEY));
+  if (oldValue !== null) {
+    return oldValue;
+  }
+  return DEFAULT_THEME_ID;
+}
+
+// Separate theme names for light and dark modes
+const lightThemeName = useStorage<string>(LIGHT_THEME_KEY, getInitialTheme(LIGHT_THEME_KEY));
+const darkThemeName = useStorage<string>(DARK_THEME_KEY, getInitialTheme(DARK_THEME_KEY));
 
 // Font size options
 export const FONT_SIZE_OPTIONS = [
@@ -28,8 +61,12 @@ export const FONT_SIZE_OPTIONS = [
 // Base font size (default: 14px)
 const fontSize = useStorage<number>('crow:font-size', 14);
 
-// Current theme definition (computed from themeName)
-const currentTheme = computed(() => getTheme(themeName.value));
+// Current theme definition (computed from mode-specific theme name)
+const currentTheme = computed(() => {
+  const mode = resolvedTheme.value as 'light' | 'dark';
+  const themeName = mode === 'light' ? lightThemeName.value : darkThemeName.value;
+  return getTheme(themeName);
+});
 
 // Available themes for UI
 const availableThemes = computed<ThemeOption[]>(() => THEME_OPTIONS);
@@ -121,7 +158,7 @@ function updateTheme() {
 }
 
 // Watch for theme or mode changes
-watch([storeTheme, systemTheme, themeName], updateTheme, { immediate: true });
+watch([storeTheme, systemTheme, lightThemeName, darkThemeName], updateTheme, { immediate: true });
 
 // Watch for font size changes
 watch(fontSize, applyFontSize, { immediate: true });
@@ -137,8 +174,11 @@ export function useTheme() {
     /** Stored theme mode preference ('light' | 'dark' | 'auto') */
     storeTheme,
 
-    /** Selected theme name (e.g., 'crow-ci', 'catppuccin') */
-    themeName,
+    /** Selected theme name for light mode */
+    lightThemeName,
+
+    /** Selected theme name for dark mode */
+    darkThemeName,
 
     /** Currently active theme definition */
     currentTheme,
