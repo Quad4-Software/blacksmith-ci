@@ -67,7 +67,7 @@ steps:
         VERSION=${CI_COMMIT_TAG#v}
         MINOR=$(echo $VERSION | cut -d. -f2)
         PATCH=$(echo $VERSION | cut -d. -f3)
-        BREAKING=""; [ "$MINOR" = "0" ] && [ "$PATCH" = "0" ] && BREAKING="!"
+        BREAKING=""; [ "$MINOR" = "0" ] && [ "$PATCH" = "0" ] && BREAKING="!" || true
 
         # Setup SSH
         mkdir -p ~/.ssh && chmod 700 ~/.ssh
@@ -103,7 +103,7 @@ steps:
         VERSION=${CI_COMMIT_TAG#v}
         MINOR=$(echo $VERSION | cut -d. -f2)
         PATCH=$(echo $VERSION | cut -d. -f3)
-        BREAKING=""; [ "$MINOR" = "0" ] && [ "$PATCH" = "0" ] && BREAKING="!"
+        BREAKING=""; [ "$MINOR" = "0" ] && [ "$PATCH" = "0" ] && BREAKING="!" || true
 
         # Setup SSH
         mkdir -p ~/.ssh && chmod 700 ~/.ssh
@@ -152,7 +152,7 @@ steps:
         VERSION=${CI_COMMIT_TAG#v}
         MINOR=$(echo $VERSION | cut -d. -f2)
         PATCH=$(echo $VERSION | cut -d. -f3)
-        BREAKING=""; [ "$MINOR" = "0" ] && [ "$PATCH" = "0" ] && BREAKING="!"
+        BREAKING=""; [ "$MINOR" = "0" ] && [ "$PATCH" = "0" ] && BREAKING="!" || true
 
         # Setup SSH
         mkdir -p ~/.ssh && chmod 700 ~/.ssh
