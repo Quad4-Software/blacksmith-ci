@@ -25,6 +25,7 @@ import (
 
 	"codeberg.org/crowci/crow/v5/server"
 	"codeberg.org/crowci/crow/v5/server/forge"
+	forge_types "codeberg.org/crowci/crow/v5/server/forge/types"
 	"codeberg.org/crowci/crow/v5/server/model"
 	"codeberg.org/crowci/crow/v5/server/pipeline"
 	"codeberg.org/crowci/crow/v5/server/store"
@@ -49,6 +50,20 @@ func handlePipelineErr(c *gin.Context, err error) {
 func handleDBError(c *gin.Context, err error) {
 	if errors.Is(err, types.RecordNotExist) {
 		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	_ = c.AbortWithError(http.StatusInternalServerError, err)
+}
+
+// handleForgeError handles errors returned from forge operations.
+// If the error is a token refresh failure, it returns 401 to trigger re-authentication.
+// Otherwise, it returns 500.
+func handleForgeError(c *gin.Context, err error) {
+	if errors.Is(err, &forge_types.ErrTokenRefreshFailed{}) {
+		log.Error().Err(err).Msg("Token refresh failed")
+		c.Header("Content-Type", "text/plain; charset=utf-8")
+		c.String(http.StatusUnauthorized, "Your authorization has expired and couldn't be refreshed automatically. Please log in again")
+		c.Abort()
 		return
 	}
 	_ = c.AbortWithError(http.StatusInternalServerError, err)

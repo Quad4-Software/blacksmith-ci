@@ -419,7 +419,10 @@ func (c *Forgejo) Deactivate(ctx context.Context, u *model.User, r *model.Repo, 
 
 // Branches returns the names of all branches for the named repository.
 func (c *Forgejo) Branches(ctx context.Context, u *model.User, r *model.Repo, p *model.ListOptions) ([]string, error) {
-	token := common.UserToken(ctx, r, u)
+	token, err := c.refreshedTokenForRepo(ctx, r, u)
+	if err != nil {
+		return nil, err
+	}
 	client, err := c.newClientToken(ctx, token)
 	if err != nil {
 		return nil, err
@@ -439,7 +442,10 @@ func (c *Forgejo) Branches(ctx context.Context, u *model.User, r *model.Repo, p 
 
 // BranchHead returns the sha of the head (latest commit) of the specified branch.
 func (c *Forgejo) BranchHead(ctx context.Context, u *model.User, r *model.Repo, branch string) (*model.Commit, error) {
-	token := common.UserToken(ctx, r, u)
+	token, err := c.refreshedTokenForRepo(ctx, r, u)
+	if err != nil {
+		return nil, err
+	}
 	client, err := c.newClientToken(ctx, token)
 	if err != nil {
 		return nil, err
@@ -456,7 +462,10 @@ func (c *Forgejo) BranchHead(ctx context.Context, u *model.User, r *model.Repo, 
 }
 
 func (c *Forgejo) PullRequests(ctx context.Context, u *model.User, r *model.Repo, p *model.ListOptions) ([]*model.PullRequest, error) {
-	token := common.UserToken(ctx, r, u)
+	token, err := c.refreshedTokenForRepo(ctx, r, u)
+	if err != nil {
+		return nil, err
+	}
 	client, err := c.newClientToken(ctx, token)
 	if err != nil {
 		return nil, err
@@ -572,14 +581,34 @@ func (c *Forgejo) newClientToken(ctx context.Context, token string) (*forgejo.Cl
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		}
 	}
-	client, err := forgejo.NewClient(c.url, forgejo.SetToken(token), forgejo.SetHTTPClient(httpClient), forgejo.SetContext(ctx))
-	if err != nil &&
-		(errors.Is(err, &forgejo.ErrUnknownVersion{}) || strings.Contains(err.Error(), "Malformed version")) {
-		// we guess it's a dev forgejo version
-		log.Error().Err(err).Msgf("could not detect forgejo version, assume dev version %s", forgejoDevVersion)
-		client, err = forgejo.NewClient(c.url, forgejo.SetForgejoVersion(forgejoDevVersion), forgejo.SetToken(token), forgejo.SetHTTPClient(httpClient), forgejo.SetContext(ctx))
-	}
+	// Always set the Forgejo version explicitly to avoid an unauthenticated
+	// call to /api/v1/version. Some Forgejo instances block unauthenticated
+	// API access, which would cause client creation to fail.
+	client, err := forgejo.NewClient(c.url, forgejo.SetForgejoVersion(forgejoDevVersion), forgejo.SetToken(token), forgejo.SetHTTPClient(httpClient), forgejo.SetContext(ctx))
 	return client, err
+}
+
+// refreshedTokenForRepo returns a valid access token for the given repo,
+// refreshing it if necessary. This ensures we don't make API calls with
+// expired tokens.
+func (c *Forgejo) refreshedTokenForRepo(ctx context.Context, r *model.Repo, u *model.User) (string, error) {
+	// If no user provided, fall back to looking up by repo
+	if u == nil {
+		var err error
+		u, err = common.RepoUser(ctx, r)
+		if err != nil {
+			return "", &forge_types.ErrTokenRefreshFailed{Err: err}
+		}
+	}
+
+	// The caller (API handler) should have already refreshed the token.
+	// We just need to get the right token for this repo's forge.
+	token := common.UserToken(ctx, r, u)
+	if token == "" {
+		return "", &forge_types.ErrTokenRefreshFailed{Err: fmt.Errorf("no valid access token available")}
+	}
+
+	return token, nil
 }
 
 // getStatus is a helper function that converts a Crow status to a Forgejo status.
@@ -614,6 +643,12 @@ func (c *Forgejo) getChangedFilesForPR(ctx context.Context, repo *model.Repo, in
 	repo, err := _store.GetRepoNameFallback(repo.ForgeRemoteID, repo.FullName)
 	if err != nil {
 		return nil, err
+	}
+
+	// Check if repo is disabled or has no owner
+	if repo.UserID == 0 || !repo.IsActive {
+		log.Debug().Str("repo", repo.FullName).Msg("skipping getChangedFilesForPR for disabled repo")
+		return []string{}, nil
 	}
 
 	user, err := common.RepoUser(ctx, repo)
@@ -651,6 +686,12 @@ func (c *Forgejo) getTagCommitSHA(ctx context.Context, repo *model.Repo, tagName
 	repo, err := _store.GetRepoNameFallback(repo.ForgeRemoteID, repo.FullName)
 	if err != nil {
 		return "", err
+	}
+
+	// Check if repo is disabled or has no owner
+	if repo.UserID == 0 || !repo.IsActive {
+		log.Debug().Str("repo", repo.FullName).Msg("skipping getTagCommitSHA for disabled repo")
+		return "", nil
 	}
 
 	user, err := common.RepoUser(ctx, repo)

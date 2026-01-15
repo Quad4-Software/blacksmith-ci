@@ -49,3 +49,22 @@ func (*ErrConfigNotFound) Is(target error) bool {
 	_, ok := target.(*ErrConfigNotFound)
 	return ok
 }
+
+// ErrTokenRefreshFailed indicates a token refresh operation failed.
+// This error should trigger re-authentication rather than a generic 500.
+type ErrTokenRefreshFailed struct {
+	Err error
+}
+
+func (e *ErrTokenRefreshFailed) Error() string {
+	return fmt.Sprintf("token refresh failed: %v", e.Err)
+}
+
+func (e *ErrTokenRefreshFailed) Unwrap() error {
+	return e.Err
+}
+
+func (*ErrTokenRefreshFailed) Is(target error) bool {
+	_, ok := target.(*ErrTokenRefreshFailed)
+	return ok
+}

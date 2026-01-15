@@ -421,7 +421,10 @@ func (c *Gitea) Deactivate(ctx context.Context, u *model.User, r *model.Repo, li
 
 // Branches returns the names of all branches for the named repository.
 func (c *Gitea) Branches(ctx context.Context, u *model.User, r *model.Repo, p *model.ListOptions) ([]string, error) {
-	token := common.UserToken(ctx, r, u)
+	token, err := c.refreshedTokenForRepo(ctx, r, u)
+	if err != nil {
+		return nil, err
+	}
 	client, err := c.newClientToken(ctx, token)
 	if err != nil {
 		return nil, err
@@ -441,7 +444,10 @@ func (c *Gitea) Branches(ctx context.Context, u *model.User, r *model.Repo, p *m
 
 // BranchHead returns the sha of the head (latest commit) of the specified branch.
 func (c *Gitea) BranchHead(ctx context.Context, u *model.User, r *model.Repo, branch string) (*model.Commit, error) {
-	token := common.UserToken(ctx, r, u)
+	token, err := c.refreshedTokenForRepo(ctx, r, u)
+	if err != nil {
+		return nil, err
+	}
 	client, err := c.newClientToken(ctx, token)
 	if err != nil {
 		return nil, err
@@ -458,7 +464,10 @@ func (c *Gitea) BranchHead(ctx context.Context, u *model.User, r *model.Repo, br
 }
 
 func (c *Gitea) PullRequests(ctx context.Context, u *model.User, r *model.Repo, p *model.ListOptions) ([]*model.PullRequest, error) {
-	token := common.UserToken(ctx, r, u)
+	token, err := c.refreshedTokenForRepo(ctx, r, u)
+	if err != nil {
+		return nil, err
+	}
 	client, err := c.newClientToken(ctx, token)
 	if err != nil {
 		return nil, err
@@ -579,14 +588,34 @@ func (c *Gitea) newClientToken(ctx context.Context, token string) (*gitea.Client
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		}
 	}
-	client, err := gitea.NewClient(c.url, gitea.SetToken(token), gitea.SetHTTPClient(httpClient), gitea.SetContext(ctx))
-	if err != nil &&
-		(errors.Is(err, &gitea.ErrUnknownVersion{}) || strings.Contains(err.Error(), "Malformed version")) {
-		// we guess it's a dev gitea version
-		log.Error().Err(err).Msgf("could not detect gitea version, assume dev version %s", giteaDevVersion)
-		client, err = gitea.NewClient(c.url, gitea.SetGiteaVersion(giteaDevVersion), gitea.SetToken(token), gitea.SetHTTPClient(httpClient), gitea.SetContext(ctx))
-	}
+	// Always set the Gitea version explicitly to avoid an unauthenticated
+	// call to /api/v1/version. Some Gitea/Forgejo instances block
+	// unauthenticated API access, which would cause client creation to fail.
+	client, err := gitea.NewClient(c.url, gitea.SetGiteaVersion(giteaDevVersion), gitea.SetToken(token), gitea.SetHTTPClient(httpClient), gitea.SetContext(ctx))
 	return client, err
+}
+
+// refreshedTokenForRepo returns a valid access token for the given repo,
+// refreshing it if necessary. This ensures we don't make API calls with
+// expired tokens.
+func (c *Gitea) refreshedTokenForRepo(ctx context.Context, r *model.Repo, u *model.User) (string, error) {
+	// If no user provided, fall back to looking up by repo
+	if u == nil {
+		var err error
+		u, err = common.RepoUser(ctx, r)
+		if err != nil {
+			return "", &forge_types.ErrTokenRefreshFailed{Err: err}
+		}
+	}
+
+	// The caller (API handler) should have already refreshed the token.
+	// We just need to get the right token for this repo's forge.
+	token := common.UserToken(ctx, r, u)
+	if token == "" {
+		return "", &forge_types.ErrTokenRefreshFailed{Err: fmt.Errorf("no valid access token available")}
+	}
+
+	return token, nil
 }
 
 // getStatus is a helper function that converts a Crow status to a Gitea status.
@@ -621,6 +650,12 @@ func (c *Gitea) getChangedFilesForPR(ctx context.Context, repo *model.Repo, inde
 	repo, err := _store.GetRepoNameFallback(repo.ForgeRemoteID, repo.FullName)
 	if err != nil {
 		return nil, err
+	}
+
+	// Check if repo is disabled or has no owner
+	if repo.UserID == 0 || !repo.IsActive {
+		log.Debug().Str("repo", repo.FullName).Msg("skipping getChangedFilesForPR for disabled repo")
+		return []string{}, nil
 	}
 
 	user, err := common.RepoUser(ctx, repo)
@@ -658,6 +693,12 @@ func (c *Gitea) getTagCommitSHA(ctx context.Context, repo *model.Repo, tagName s
 	repo, err := _store.GetRepoNameFallback(repo.ForgeRemoteID, repo.FullName)
 	if err != nil {
 		return "", err
+	}
+
+	// Check if repo is disabled or has no owner
+	if repo.UserID == 0 || !repo.IsActive {
+		log.Debug().Str("repo", repo.FullName).Msg("skipping getTagCommitSHA for disabled repo")
+		return "", nil
 	}
 
 	user, err := common.RepoUser(ctx, repo)

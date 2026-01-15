@@ -336,7 +336,10 @@ func (c *client) Dir(ctx context.Context, u *model.User, r *model.Repo, b *model
 }
 
 func (c *client) PullRequests(ctx context.Context, u *model.User, r *model.Repo, p *model.ListOptions) ([]*model.PullRequest, error) {
-	token := common.UserToken(ctx, r, u)
+	token, err := c.refreshedTokenForRepo(ctx, r, u)
+	if err != nil {
+		return nil, err
+	}
 	client := c.newClientToken(ctx, token)
 
 	pullRequests, _, err := client.PullRequests.List(ctx, r.Owner, r.Name, &github.PullRequestListOptions{
@@ -596,7 +599,10 @@ func (c *client) Activate(ctx context.Context, u *model.User, r *model.Repo, lin
 
 // Branches returns the names of all branches for the named repository.
 func (c *client) Branches(ctx context.Context, u *model.User, r *model.Repo, p *model.ListOptions) ([]string, error) {
-	token := common.UserToken(ctx, r, u)
+	token, err := c.refreshedTokenForRepo(ctx, r, u)
+	if err != nil {
+		return nil, err
+	}
 	client := c.newClientToken(ctx, token)
 
 	githubBranches, _, err := client.Repositories.ListBranches(ctx, r.Owner, r.Name, &github.BranchListOptions{
@@ -615,7 +621,10 @@ func (c *client) Branches(ctx context.Context, u *model.User, r *model.Repo, p *
 
 // BranchHead returns the sha of the head (latest commit) of the specified branch.
 func (c *client) BranchHead(ctx context.Context, u *model.User, r *model.Repo, branch string) (*model.Commit, error) {
-	token := common.UserToken(ctx, r, u)
+	token, err := c.refreshedTokenForRepo(ctx, r, u)
+	if err != nil {
+		return nil, err
+	}
 	b, _, err := c.newClientToken(ctx, token).Repositories.GetBranch(ctx, r.Owner, r.Name, branch, 1)
 	if err != nil {
 		return nil, err
@@ -624,6 +633,29 @@ func (c *client) BranchHead(ctx context.Context, u *model.User, r *model.Repo, b
 		SHA:      b.GetCommit().GetSHA(),
 		ForgeURL: b.GetCommit().GetHTMLURL(),
 	}, nil
+}
+
+// refreshedTokenForRepo returns a valid access token for the given repo,
+// refreshing it if necessary. This ensures we don't make API calls with
+// expired tokens.
+func (c *client) refreshedTokenForRepo(ctx context.Context, r *model.Repo, u *model.User) (string, error) {
+	// If no user provided, fall back to looking up by repo
+	if u == nil {
+		var err error
+		u, err = common.RepoUser(ctx, r)
+		if err != nil {
+			return "", &forge_types.ErrTokenRefreshFailed{Err: err}
+		}
+	}
+
+	// The caller (API handler) should have already refreshed the token.
+	// We just need to get the right token for this repo's forge.
+	token := common.UserToken(ctx, r, u)
+	if token == "" {
+		return "", &forge_types.ErrTokenRefreshFailed{Err: fmt.Errorf("no valid access token available")}
+	}
+
+	return token, nil
 }
 
 // Hook parses the post-commit hook from the Request body

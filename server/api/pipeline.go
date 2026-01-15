@@ -71,7 +71,7 @@ func CreatePipeline(c *gin.Context) {
 
 	lastCommit, err := _forge.BranchHead(c, user, repo, opts.Branch)
 	if err != nil {
-		_ = c.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not fetch branch head: %w", err))
+		handleForgeError(c, err)
 		return
 	}
 

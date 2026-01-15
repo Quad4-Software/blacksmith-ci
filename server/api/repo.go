@@ -917,9 +917,7 @@ func GetRepoBranches(c *gin.Context) {
 	branches, err := _forge.Branches(c, repoUser, repo, session.Pagination(c))
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get branches from repo")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to get branches from repo. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
+		handleForgeError(c, err)
 		return
 	}
 
@@ -988,10 +986,7 @@ func GetRepoPullRequests(c *gin.Context) {
 	prs, err := _forge.PullRequests(c, repoUser, repo, session.Pagination(c))
 	if err != nil {
 		log.Error().Err(err).Msg("Unable to get pull requests from forge")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Unable to get pull requests from forge. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		_ = c.AbortWithError(http.StatusInternalServerError, err)
+		handleForgeError(c, err)
 		return
 	}
 

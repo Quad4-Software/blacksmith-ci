@@ -153,6 +153,8 @@ var (
 		Owner:         "test_name",
 		Name:          "repo_name",
 		FullName:      "test_name/repo_name",
+		IsActive:      true,
+		UserID:        1,
 	}
 
 	fakeRepoNotFound = &model.Repo{
