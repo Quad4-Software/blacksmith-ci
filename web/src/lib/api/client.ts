@@ -62,8 +62,9 @@ export default class ApiClient {
   }
 
   private async _request(method: string, path: string, data?: unknown): Promise<unknown> {
-    // Check if session is expired before making request
-    if (this.authStore?.isSessionExpired) {
+    // Check if session is expired or we're redirecting to login
+    // This prevents additional requests during session invalidation
+    if (this.authStore?.isSessionExpired || this.authStore?.isRedirecting) {
       throw new Error('Session expired');
     }
 
@@ -150,6 +151,12 @@ export default class ApiClient {
   }
 
   _subscribe<T>(path: string, callback: (data: T) => void, opts = { reconnect: true }) {
+    // Check if session is expired before creating the EventSource
+    // This prevents creating connections that would immediately fail
+    if (this.authStore?.isSessionExpired) {
+      throw new Error('Session expired');
+    }
+
     const query = encodeQueryString({
       access_token: this.token ?? undefined,
     });
@@ -161,7 +168,7 @@ export default class ApiClient {
     // Register IMMEDIATELY after creation to avoid race conditions during invalidation
     this.authStore?.registerEventSource(events);
 
-    // NOW check if session is expired - if so, close and throw
+    // Double-check if session expired while we were creating the EventSource
     if (this.authStore?.isSessionExpired) {
       events.close();
       throw new Error('Session expired');
@@ -178,6 +185,14 @@ export default class ApiClient {
       // EventSource doesn't expose HTTP status codes directly
       if (events.readyState === EventSource.CLOSED) {
         this.authStore?.unregisterEventSource(events);
+      }
+
+      // If session is expired, close the connection to prevent auto-reconnect loops
+      // The native EventSource API will keep trying to reconnect with the same
+      // invalid token unless we explicitly close it
+      if (this.authStore?.isSessionExpired) {
+        events.close();
+        return;
       }
 
       if (!opts.reconnect) {
