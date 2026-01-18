@@ -181,12 +181,31 @@ func CreatePipeline(ctx context.Context, store store.Store, cron *model.Cron) (*
 		return nil, nil, err
 	}
 
+	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
+	// This ensures we use the correct OAuth tokens for the forge the repo belongs to.
+	var isSecondaryForge bool
+	if userForge, ufErr := store.UserForgeGet(creator.ID, repo.ForgeID); ufErr == nil && userForge != nil {
+		creator.AccessToken = userForge.AccessToken
+		creator.RefreshToken = userForge.RefreshToken
+		creator.Expiry = userForge.Expiry
+		creator.ForgeID = userForge.ForgeID
+		creator.ForgeRemoteID = userForge.ForgeRemoteID
+		isSecondaryForge = !userForge.IsPrimary
+	}
+
 	// If the forge has a refresh token, the current access token
 	// may be stale. Therefore, we should refresh prior to dispatching
 	// the pipeline.
-	if err := forge.Refresh(ctx, _forge, store, creator); err != nil {
-		log.Error().Err(err).Msg("Failed to refresh user auth token")
-		return nil, nil, fmt.Errorf("failed to refresh authentication token: %w", err)
+	// Use appropriate refresh function based on whether this is a secondary forge
+	var refreshErr error
+	if isSecondaryForge {
+		refreshErr = forge.RefreshUserForge(ctx, _forge, store, creator, repo.ForgeID)
+	} else {
+		refreshErr = forge.Refresh(ctx, _forge, store, creator)
+	}
+	if refreshErr != nil {
+		log.Error().Err(refreshErr).Msg("Failed to refresh user auth token")
+		return nil, nil, fmt.Errorf("failed to refresh authentication token: %w", refreshErr)
 	}
 
 	commit, err := _forge.BranchHead(ctx, creator, repo, cron.Branch)

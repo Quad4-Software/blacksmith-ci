@@ -47,12 +47,14 @@ func Create(ctx context.Context, _store store.Store, repo *model.Repo, pipeline 
 
 	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
 	// This ensures we use the correct OAuth tokens for the forge the repo belongs to.
+	var isSecondaryForge bool
 	if userForge, ufErr := _store.UserForgeGet(repoUser.ID, repo.ForgeID); ufErr == nil && userForge != nil {
 		repoUser.AccessToken = userForge.AccessToken
 		repoUser.RefreshToken = userForge.RefreshToken
 		repoUser.Expiry = userForge.Expiry
 		repoUser.ForgeID = userForge.ForgeID
 		repoUser.ForgeRemoteID = userForge.ForgeRemoteID
+		isSecondaryForge = !userForge.IsPrimary
 	}
 
 	if pipeline.Event == model.EventPush || pipeline.Event == model.EventPull || pipeline.Event == model.EventPullClosed || pipeline.Event == model.EventPullEdited {
@@ -77,9 +79,16 @@ func Create(ctx context.Context, _store store.Store, repo *model.Repo, pipeline 
 	// If the forge has a refresh token, the current access token
 	// may be stale. Therefore, we should refresh prior to dispatching
 	// the pipeline.
-	if err := forge.Refresh(ctx, _forge, _store, repoUser); err != nil {
-		log.Error().Err(err).Msgf("failed to refresh OAuth token for user '%s'", repoUser.Login)
-		return nil, fmt.Errorf("failed to authenticate with version control system: %w", err)
+	// Use appropriate refresh function based on whether this is a secondary forge
+	var refreshErr error
+	if isSecondaryForge {
+		refreshErr = forge.RefreshUserForge(ctx, _forge, _store, repoUser, repo.ForgeID)
+	} else {
+		refreshErr = forge.Refresh(ctx, _forge, _store, repoUser)
+	}
+	if refreshErr != nil {
+		log.Error().Err(refreshErr).Msgf("failed to refresh OAuth token for user '%s'", repoUser.Login)
+		return nil, fmt.Errorf("failed to authenticate with version control system: %w", refreshErr)
 	}
 
 	// update some pipeline fields

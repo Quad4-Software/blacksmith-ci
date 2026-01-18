@@ -49,6 +49,7 @@ func TestCreatePipeline(t *testing.T) {
 	// mock things
 	store.On("GetRepo", mock.Anything).Return(repo1, nil)
 	store.On("GetUser", mock.Anything).Return(creator, nil)
+	store.On("UserForgeGet", creator.ID, repo1.ForgeID).Return(nil, nil) // No UserForge = primary forge
 	_forge.On("BranchHead", mock.Anything, creator, repo1, "default").Return(&model.Commit{
 		ForgeURL: "https://example.com/sha1",
 		SHA:      "sha1",

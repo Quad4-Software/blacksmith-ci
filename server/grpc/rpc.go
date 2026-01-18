@@ -698,12 +698,14 @@ func (s *RPC) updateForgeStatus(ctx context.Context, repo *model.Repo, pipeline 
 
 	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
 	// This ensures we use the correct OAuth tokens for the forge the repo belongs to.
+	var isSecondaryForge bool
 	if userForge, ufErr := s.store.UserForgeGet(user.ID, repo.ForgeID); ufErr == nil && userForge != nil {
 		user.AccessToken = userForge.AccessToken
 		user.RefreshToken = userForge.RefreshToken
 		user.Expiry = userForge.Expiry
 		user.ForgeID = userForge.ForgeID
 		user.ForgeRemoteID = userForge.ForgeRemoteID
+		isSecondaryForge = !userForge.IsPrimary
 	}
 
 	_forge, err := server.Config.Services.Manager.ForgeFromRepo(repo)
@@ -712,8 +714,15 @@ func (s *RPC) updateForgeStatus(ctx context.Context, repo *model.Repo, pipeline 
 		return
 	}
 
-	if err := forge.Refresh(ctx, _forge, s.store, user); err != nil {
-		log.Error().Err(err).Msg("Failed to refresh user auth token")
+	// Use appropriate refresh function based on whether this is a secondary forge
+	var refreshErr error
+	if isSecondaryForge {
+		refreshErr = forge.RefreshUserForge(ctx, _forge, s.store, user, repo.ForgeID)
+	} else {
+		refreshErr = forge.Refresh(ctx, _forge, s.store, user)
+	}
+	if refreshErr != nil {
+		log.Error().Err(refreshErr).Msg("Failed to refresh user auth token")
 		return
 	}
 
