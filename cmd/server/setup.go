@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -53,6 +54,8 @@ import (
 const (
 	queueInfoRefreshInterval = 500 * time.Millisecond
 	storeInfoRefreshInterval = 10 * time.Second
+	// SqliteDirPerm is the permission mode for SQLite database directories.
+	sqliteDirPerm = 0o750
 )
 
 func setupStore(ctx context.Context, c *cli.Command) (store.Store, error) {
@@ -122,6 +125,11 @@ func checkSqliteFileExist(path string) error {
 	_, err := os.Stat(path)
 	if err != nil && os.IsNotExist(err) {
 		log.Warn().Msgf("no sqlite3 file found, will create one at '%s'", path)
+		// Create the parent directory if it doesn't exist
+		dir := filepath.Dir(path)
+		if err := os.MkdirAll(dir, sqliteDirPerm); err != nil {
+			return fmt.Errorf("failed to create database directory '%s': %w", dir, err)
+		}
 		return nil
 	}
 	return err
