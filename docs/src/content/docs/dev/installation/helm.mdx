@@ -171,7 +171,7 @@ The Helm chart configures security contexts for both server and agent components
 
 ### Server
 
-The server uses `fsGroup: 1000` to ensure the crow user can write to the persistent volume at `/var/lib/crow`.
+The server uses `fsGroup: 1000` to ensure the `crow` user can write to the persistent volume at `/var/lib/crow`.
 
 :::caution[Do not set runAsNonRoot for server]
 The server's alpine image entrypoint must start as root to configure log rotation (cron/logrotate), then switches to the `crow` user (UID 1000) via `su-exec`.
