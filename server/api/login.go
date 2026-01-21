@@ -75,6 +75,7 @@ func HandleAuth(c *gin.Context) {
 	var linkingUserID int64 // non-zero if we're linking a new forge to an existing user
 
 	var isReconnect bool // true if user is reconnecting (refreshing tokens for) an already-linked forge
+	var redirectTo string // custom redirect URL after successful auth
 
 	if isCallback { // validate the state token
 		stateToken, err := token.Parse([]token.Type{token.OAuthStateToken}, state, func(_ *token.Token) (string, error) {
@@ -101,6 +102,9 @@ func HandleAuth(c *gin.Context) {
 
 		// Check if this is a reconnect request
 		isReconnect = stateToken.Get("reconnect") == "true"
+
+		// Get custom redirect URL if set
+		redirectTo = stateToken.Get("redirect-to")
 	} else { // only generate a state token if not a callback
 		var err error
 
@@ -122,6 +126,9 @@ func HandleAuth(c *gin.Context) {
 		// Check if this is a reconnect request (refreshing tokens for existing link)
 		isReconnect = c.Request.FormValue("reconnect") == "true"
 
+		// Get custom redirect URL (for returning to current page after auth)
+		redirectTo = c.Request.FormValue("redirect_to")
+
 		jwtSecret := server.Config.Server.JWTSecret
 		exp := time.Now().Add(stateTokenDuration).Unix()
 		stateToken := token.New(token.OAuthStateToken)
@@ -142,6 +149,12 @@ func HandleAuth(c *gin.Context) {
 				}
 			}
 		}
+
+		// Store redirect URL in state token if provided
+		if redirectTo != "" {
+			stateToken.Set("redirect-to", redirectTo)
+		}
+
 		state, err = stateToken.SignExpires(jwtSecret, exp)
 		if err != nil {
 			log.Error().Err(err).Msg("cannot create state token")
@@ -227,8 +240,12 @@ func HandleAuth(c *gin.Context) {
 			}
 			log.Info().Msgf("user %s reconnected forge %d (%s)", user.Login, forgeID, userFromForge.Login)
 
-			// Redirect back to user settings
-			c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/user?forge_reconnected=true")
+			// Redirect back to custom URL or user settings
+			if redirectTo != "" {
+				c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+redirectTo)
+			} else {
+				c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/user?forge_reconnected=true")
+			}
 			return
 		}
 
@@ -253,8 +270,12 @@ func HandleAuth(c *gin.Context) {
 		}
 		log.Info().Msgf("user %s linked forge %d (%s)", user.Login, forgeID, userFromForge.Login)
 
-		// Redirect back to user settings
-		c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/user?forge_linked=true")
+		// Redirect back to custom URL or user settings
+		if redirectTo != "" {
+			c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+redirectTo)
+		} else {
+			c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/user?forge_linked=true")
+		}
 		return
 	}
 

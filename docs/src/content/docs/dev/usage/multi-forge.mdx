@@ -36,6 +36,18 @@ If your Crow instance has [multiple forges configured](/dev/configuration/server
 
 ## Managing Linked Forges
 
+### Expired Token Notifications
+
+When a secondary forge's OAuth token expires and cannot be automatically refreshed, Crow displays a warning indicator in the navigation bar.
+This indicator:
+
+- Shows a warning triangle with the count of expired connections
+- Clicking opens a dropdown listing the affected forges
+- Provides quick "Reconnect" buttons to re-authenticate with each forge
+- Links to the full Settings page for detailed management
+
+To resolve an expired connection, click the "Reconnect" button and complete the OAuth flow with the forge.
+
 ### Unlinking a Forge
 
 To remove a linked forge:

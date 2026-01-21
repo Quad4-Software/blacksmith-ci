@@ -62,6 +62,9 @@
                 <!-- Active pipelines -->
                 <ActivePipelines v-if="user" />
 
+                <!-- Forge auth status warning -->
+                <ForgeAuthStatus v-if="user" />
+
                 <!-- User menu or login button -->
                 <DropdownMenu v-if="user">
                   <DropdownMenuTrigger as-child>
@@ -190,6 +193,7 @@ import AddRepositoryDialog from '~/components/command-palette/AddRepositoryDialo
 import AddCronDialog from '~/components/command-palette/AddCronDialog.vue';
 import AppSidebar from '~/components/layout/AppSidebar.vue';
 import ActivePipelines from '~/components/layout/header/ActivePipelines.vue';
+import ForgeAuthStatus from '~/components/layout/header/ForgeAuthStatus.vue';
 import PipelineFeedSidebar from '~/components/pipeline-feed/PipelineFeedSidebar.vue';
 import Avatar from '~/components/ui/avatar/Avatar.vue';
 import AvatarFallback from '~/components/ui/avatar/AvatarFallback.vue';

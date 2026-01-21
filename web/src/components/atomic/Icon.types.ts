@@ -126,4 +126,5 @@ export type IconNames =
   | 'lucide:plug-2'
   | 'lucide:zap'
   | 'lucide:corner-down-left'
+  | 'lucide:heart-pulse'
   | 'mdi-wind-power-outline';
