@@ -87,17 +87,22 @@ onMounted(async () => {
 const pipelineNumber = toRef(props, 'pipelineNumber');
 async function triggerDeployPipeline() {
   loading.value = true;
-  const newPipeline = await apiClient.deployPipeline(repo.value.id, pipelineNumber.value, pipelineOptions.value);
+  try {
+    const newPipeline = await apiClient.deployPipeline(repo.value.id, pipelineNumber.value, pipelineOptions.value);
 
-  emit('close');
+    emit('close');
 
-  await router.push({
-    name: 'repo-pipeline',
-    params: {
-      pipelineId: newPipeline.number,
-    },
-  });
-
-  loading.value = false;
+    await router.push({
+      name: 'repo-pipeline',
+      params: {
+        pipelineId: newPipeline.number,
+      },
+    });
+  } catch {
+    // Close popup on error - the global error handler will show the notification
+    emit('close');
+  } finally {
+    loading.value = false;
+  }
 }
 </script>

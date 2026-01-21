@@ -133,9 +133,8 @@ func Restart(ctx context.Context, store store.Store, lastPipeline *model.Pipelin
 
 	newPipeline, pipelineItems, err := createPipelineItems(ctx, forge, store, newPipeline, user, repo, pipelineFiles, envs)
 	if err != nil {
-		msg := fmt.Sprintf("failure to createPipelineItems for %s", repo.FullName)
-		log.Error().Err(err).Msg(msg)
-		return nil, errors.New(msg)
+		log.Error().Err(err).Msgf("failure to createPipelineItems for %s", repo.FullName)
+		return nil, err
 	}
 
 	if err := prepareStart(ctx, forge, store, newPipeline, user, repo); err != nil {

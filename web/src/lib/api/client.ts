@@ -3,6 +3,10 @@ import type { useAuthStore } from '~/store/auth';
 export interface ApiError {
   status: number;
   message: string;
+  config?: {
+    method?: string;
+    url?: string;
+  };
 }
 
 // Thrown when a pipeline was not created because all steps were filtered out by `when` conditions
@@ -85,14 +89,22 @@ export default class ApiClient {
       });
 
       if (!res.ok) {
-        let message = res.statusText;
         const resText = await res.text();
-        if (resText) {
+        let message: string;
+        if (resText && res.statusText) {
           message = `${res.statusText}: ${resText}`;
+        } else if (resText) {
+          message = resText;
+        } else {
+          message = res.statusText || `HTTP ${res.status}`;
         }
         const error: ApiError = {
           status: res.status,
           message,
+          config: {
+            method,
+            url: path,
+          },
         };
 
         // Trigger session invalidation on 401 only for authenticated users

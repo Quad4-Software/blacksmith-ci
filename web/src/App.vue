@@ -399,27 +399,18 @@ apiClient.setErrorHandler(
 
     let errorText = parseErrorMessage(message.trim());
 
-    // Extract endpoint information
+    // Strip technical prefixes like [compiler], [linter], etc. for cleaner user-facing messages
+    errorText = errorText.replace(/^\[[\w\s]+\]\s*/, '');
+
+    // Strip any "Endpoint:" suffix from the error message
     const endpointMarker = 'Endpoint:';
-    let extractedEndpoint = '';
     const markerIndex = errorText.indexOf(endpointMarker);
     if (markerIndex !== -1) {
-      extractedEndpoint = errorText.slice(markerIndex + endpointMarker.length).trim();
-      const extraMarkerIndex = extractedEndpoint.indexOf(endpointMarker);
-      if (extraMarkerIndex !== -1) {
-        extractedEndpoint = extractedEndpoint.slice(0, extraMarkerIndex).trim();
-      }
       errorText = errorText.slice(0, markerIndex).trim();
-    } else if (config) {
-      const method = config.method ? config.method.toUpperCase() : '';
-      extractedEndpoint = method && config.url ? `${method} ${config.url}` : config.url || '';
-    }
-    if (!extractedEndpoint) {
-      extractedEndpoint = 'unknown endpoint';
     }
 
     notify({
-      title: `❌️ API error (${extractedEndpoint})`,
+      title: i18n.t('notify_title_error'),
       text: errorText || i18n.t('unknown_error'),
       type: 'error',
       duration: -1,

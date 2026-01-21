@@ -50,15 +50,15 @@ type Secret struct {
 func (s *Secret) Available(event string, container *yaml_types.Container) error {
 	onlyAllowSecretForPlugins := len(s.AllowedPlugins) > 0
 	if onlyAllowSecretForPlugins && !container.IsPlugin() {
-		return fmt.Errorf("secret %q is only allowed to be used by plugins (a filter has been set on the secret). Note: Image filters do not work for normal steps", s.Name)
+		return fmt.Errorf("Secret %q is only allowed to be used by plugins (a filter has been set on the secret). Note: Image filters do not work for normal steps", s.Name)
 	}
 
 	if onlyAllowSecretForPlugins && !utils.MatchImageDynamic(container.Image, s.AllowedPlugins...) {
-		return fmt.Errorf("secret %q is not allowed to be used with image %q by step %q", s.Name, container.Image, container.Name)
+		return fmt.Errorf("Secret %q is not allowed to be used with image %q by step %q", s.Name, container.Image, container.Name)
 	}
 
 	if !s.Match(event) {
-		return fmt.Errorf("secret %q is not allowed to be used with pipeline event %q", s.Name, event)
+		return fmt.Errorf("Secret %q is not allowed to be used with pipeline event %q", s.Name, event)
 	}
 
 	return nil

@@ -236,6 +236,8 @@ async function triggerManualPipeline() {
       },
     });
   } catch (error: unknown) {
+    emit('close');
+
     if (error instanceof PipelineFilteredError) {
       // All steps were filtered out by `when` conditions
       const helpUrl = 'https://crowci.dev/dev/usage/workflow-syntax/#when-step';
@@ -246,16 +248,13 @@ async function triggerManualPipeline() {
         text: `${i18n.t('repo.manual_pipeline.steps_filtered_out')} <a href='${helpUrl}' target='_blank' class='text-primary underline'>${i18n.t('repo.manual_pipeline.when_condition_help')}</a>`,
       });
     } else {
-      // Generic error - likely manual event not enabled
-      const helpUrl = 'https://crowci.dev/dev/usage/workflow-syntax/#event';
-      const baseMessage = i18n.t('repo.manual_pipeline.notify_text_failed');
-      const helpText = i18n.t('repo.manual_pipeline.manual_event_help');
-
+      // Show the actual error message from the server
+      const errorMessage = error instanceof Error ? error.message : String(error);
       notifications.notify({
         title: i18n.t('notify_title_error'),
         type: 'error',
         duration: 9000,
-        text: `${baseMessage} <a href='${helpUrl}' target='_blank' class='text-primary underline'>${helpText}</a>`,
+        text: errorMessage,
       });
     }
     console.error('Failed to trigger pipeline:', error);
@@ -287,6 +286,8 @@ async function handleQuickStart(workflowName: string) {
       },
     });
   } catch (error: unknown) {
+    emit('close');
+
     if (error instanceof PipelineFilteredError) {
       notifications.notify({
         title: i18n.t('notify_title_error'),
@@ -294,10 +295,13 @@ async function handleQuickStart(workflowName: string) {
         text: i18n.t('repo.manual_pipeline.steps_filtered_out'),
       });
     } else {
+      // Show the actual error message from the server
+      const errorMessage = error instanceof Error ? error.message : String(error);
       notifications.notify({
         title: i18n.t('notify_title_error'),
         type: 'error',
-        text: i18n.t('repo.manual_pipeline.notify_text_failed'),
+        duration: 9000,
+        text: errorMessage,
       });
     }
     console.error('Failed to trigger pipeline:', error);

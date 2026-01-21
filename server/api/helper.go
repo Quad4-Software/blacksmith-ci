@@ -43,7 +43,7 @@ func handlePipelineErr(c *gin.Context, err error) {
 		c.Writer.Header().Add("Pipeline-Filtered", "true")
 		c.Status(http.StatusNoContent)
 	default:
-		_ = c.AbortWithError(http.StatusInternalServerError, err)
+		c.String(http.StatusInternalServerError, "%s", err)
 	}
 }
 

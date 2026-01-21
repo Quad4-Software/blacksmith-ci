@@ -82,9 +82,8 @@ func Approve(ctx context.Context, store store.Store, currentPipeline *model.Pipe
 
 	currentPipeline, pipelineItems, err := createPipelineItems(ctx, forge, store, currentPipeline, user, repo, yamls, nil)
 	if err != nil {
-		msg := fmt.Sprintf("failure to createPipelineItems for %s", repo.FullName)
-		log.Error().Err(err).Msg(msg)
-		return nil, errors.New(msg)
+		log.Error().Err(err).Msgf("failure to createPipelineItems for %s", repo.FullName)
+		return nil, err
 	}
 
 	// we have no way to link old workflows and steps in database to new engine generated steps,
