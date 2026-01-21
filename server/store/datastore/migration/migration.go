@@ -97,6 +97,7 @@ var migrationTasks = []*xormigrate.Migration{
 	&crowAddUserForges,
 	&crowAddForgeIcon,
 	&crowAddForgeToRepoUnique,
+	&crowAddAllowManualToRepos,
 }
 
 var allBeans = []any{

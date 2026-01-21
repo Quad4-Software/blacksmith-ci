@@ -9,13 +9,7 @@
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger as-child>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    class="h-6 w-6"
-                    :title="$t('copy')"
-                    @click.stop="copySecretName(secret.name)"
-                  >
+                  <Button variant="ghost" size="icon-sm" class="h-6 w-6" @click.stop="copySecretName(secret.name)">
                     <Icon :name="copiedSecrets[secret.name] ? 'lucide:check' : 'lucide:copy'" class="h-3 w-3" />
                   </Button>
                 </TooltipTrigger>

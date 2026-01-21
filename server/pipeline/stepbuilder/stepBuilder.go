@@ -37,6 +37,7 @@ import (
 	"codeberg.org/crowci/crow/v5/pipeline/frontend/yaml"
 	"codeberg.org/crowci/crow/v5/pipeline/frontend/yaml/compiler"
 	"codeberg.org/crowci/crow/v5/pipeline/frontend/yaml/compiler/settings"
+	"codeberg.org/crowci/crow/v5/pipeline/frontend/yaml/constraint"
 	"codeberg.org/crowci/crow/v5/pipeline/frontend/yaml/linter"
 	"codeberg.org/crowci/crow/v5/pipeline/frontend/yaml/matrix"
 	yaml_types "codeberg.org/crowci/crow/v5/pipeline/frontend/yaml/types"
@@ -60,6 +61,7 @@ type StepBuilder struct {
 	DefaultLabels         map[string]string
 	ProxyOpts             compiler.ProxyOptions
 	ExternalSecretFetcher settings.ExternalSecretFetcher
+	WorkflowFilter        []string // If set, only build workflows with these names
 }
 
 type Item struct {
@@ -73,6 +75,11 @@ type Item struct {
 
 func (b *StepBuilder) Build() (items []*Item, errorsAndWarnings error) {
 	b.Yamls = forge_types.SortByName(b.Yamls)
+
+	// If a workflow filter is set, expand it to include dependencies
+	if len(b.WorkflowFilter) > 0 {
+		b.WorkflowFilter = b.expandFilterWithDependencies()
+	}
 
 	pidSequence := 1
 
@@ -137,6 +144,12 @@ func (b *StepBuilder) Build() (items []*Item, errorsAndWarnings error) {
 			} else {
 				// Fallback to file name
 				pipelineName = SanitizePath(y.Name)
+			}
+
+			// If workflow filter is set, skip workflows not in the filter list
+			if len(b.WorkflowFilter) > 0 && !b.isWorkflowInFilter(workflowName, pipelineName) {
+				log.Debug().Str("workflow", workflowName).Msg("skipping workflow not in filter list")
+				continue
 			}
 
 			workflow := &model.Workflow{
@@ -325,6 +338,121 @@ func containsItemWithName(name string, items []*Item) bool {
 			return true
 		}
 	}
+	return false
+}
+
+// isWorkflowInFilter checks if a workflow should be included based on the filter.
+// It matches against both the workflow name and the pipeline name (sanitized file name).
+func (b *StepBuilder) isWorkflowInFilter(workflowName, pipelineName string) bool {
+	for _, filter := range b.WorkflowFilter {
+		if filter == workflowName || filter == pipelineName {
+			return true
+		}
+	}
+	return false
+}
+
+// expandFilterWithDependencies expands the workflow filter to include dependencies.
+// This ensures that when a workflow is selected, its dependencies (that have manual trigger) are also included.
+func (b *StepBuilder) expandFilterWithDependencies() []string {
+	// Build a map of workflow info: name -> (dependsOn, hasManual)
+	type workflowInfo struct {
+		name      string
+		aliases   []string // other names that refer to this workflow (e.g., file name)
+		dependsOn []string
+		hasManual bool
+	}
+
+	workflowMap := make(map[string]*workflowInfo)
+
+	for _, y := range b.Yamls {
+		parsed, err := yaml.ParseBytes(y.Data)
+		if err != nil {
+			continue
+		}
+
+		// Determine workflow name
+		name := parsed.Name
+		if name == "" {
+			name = SanitizePath(y.Name)
+		}
+		sanitizedFileName := SanitizePath(y.Name)
+
+		// Check if workflow has manual trigger
+		hasManual := workflowHasManualTrigger(parsed.When)
+
+		info := &workflowInfo{
+			name:      name,
+			aliases:   []string{sanitizedFileName},
+			dependsOn: parsed.DependsOn,
+			hasManual: hasManual,
+		}
+
+		workflowMap[name] = info
+		// Also index by sanitized file name for lookups
+		if sanitizedFileName != name {
+			workflowMap[sanitizedFileName] = info
+		}
+	}
+
+	// Now expand the filter to include dependencies (only those with manual trigger)
+	expanded := make(map[string]bool)
+	for _, f := range b.WorkflowFilter {
+		expanded[f] = true
+	}
+
+	// Keep expanding until no new dependencies are added
+	changed := true
+	for changed {
+		changed = false
+		for name := range expanded {
+			info, exists := workflowMap[name]
+			if !exists {
+				continue
+			}
+			for _, dep := range info.dependsOn {
+				if expanded[dep] {
+					continue
+				}
+				// Only add dependency if it has manual trigger
+				if depInfo, depExists := workflowMap[dep]; depExists && depInfo.hasManual {
+					expanded[dep] = true
+					changed = true
+					log.Debug().Str("workflow", name).Str("dependency", dep).Msg("adding dependency to workflow filter")
+				}
+			}
+		}
+	}
+
+	// Convert back to slice
+	result := make([]string, 0, len(expanded))
+	for name := range expanded {
+		result = append(result, name)
+	}
+	return result
+}
+
+// workflowHasManualTrigger checks if a workflow's when constraint includes the manual event.
+func workflowHasManualTrigger(when constraint.When) bool {
+	// If no constraints, default doesn't include manual
+	if when.IsEmpty() {
+		return false
+	}
+
+	// Check each constraint for manual event
+	for _, c := range when.Constraints {
+		// If event is not specified in constraint, it matches all events including manual
+		if len(c.Event) == 0 {
+			return true
+		}
+		// Check if manual is in the event list
+		for _, event := range c.Event {
+			if event == metadata.EventManual {
+				return true
+			}
+		}
+	}
+
 	return false
 }
 

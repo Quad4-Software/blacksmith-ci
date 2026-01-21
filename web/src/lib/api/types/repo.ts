@@ -63,6 +63,9 @@ export interface Repo {
 
   allow_deploy: boolean;
 
+  // Whether manual pipeline triggers are allowed
+  allow_manual: boolean;
+
   // Team required for deployment (empty means no restriction)
   deploy_team: string;
 
@@ -112,6 +115,7 @@ export type RepoSettings = Pick<
   | 'require_approval'
   | 'allow_pr'
   | 'allow_deploy'
+  | 'allow_manual'
   | 'deploy_team'
   | 'cancel_previous_pipeline_events'
   | 'logs_keep_duration'

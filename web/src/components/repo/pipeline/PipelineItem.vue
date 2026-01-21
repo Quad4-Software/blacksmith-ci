@@ -49,13 +49,13 @@
         <div class="flex min-w-0 flex-1 items-center md:mx-4">
           <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
           <span class="md:display-unset hidden text-muted-foreground shrink-0">#{{ pipeline.number }}</span>
-          <TooltipProvider v-if="!showCheckbox" class="hidden md:inline-flex">
+          <TooltipProvider v-if="!showCheckbox">
             <Tooltip>
               <TooltipTrigger as-child>
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  class="h-5 w-5 mx-1 shrink-0"
+                  class="hidden md:inline-flex h-5 w-5 mx-1 shrink-0"
                   @click.stop.prevent="copyPipelineNumber"
                 >
                   <Icon :name="copiedPipelineNumber ? 'lucide:check' : 'lucide:copy'" class="h-3 w-3" />

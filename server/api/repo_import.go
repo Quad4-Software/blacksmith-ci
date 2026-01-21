@@ -110,6 +110,7 @@ func ImportSettings(c *gin.Context) {
 		targetRepo.RequireApproval = sourceRepo.RequireApproval
 		targetRepo.AllowPull = sourceRepo.AllowPull
 		targetRepo.AllowDeploy = sourceRepo.AllowDeploy
+		targetRepo.AllowManual = sourceRepo.AllowManual
 		targetRepo.DeployTeam = sourceRepo.DeployTeam
 		targetRepo.Config = sourceRepo.Config
 		targetRepo.CancelPreviousPipelineEvents = sourceRepo.CancelPreviousPipelineEvents

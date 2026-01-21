@@ -29,7 +29,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 
+	"codeberg.org/crowci/crow/v5/pipeline/frontend/metadata"
 	"codeberg.org/crowci/crow/v5/pipeline/frontend/yaml"
+	"codeberg.org/crowci/crow/v5/pipeline/frontend/yaml/constraint"
 	"codeberg.org/crowci/crow/v5/server"
 	"codeberg.org/crowci/crow/v5/server/model"
 	"codeberg.org/crowci/crow/v5/server/pipeline"
@@ -52,6 +54,12 @@ import (
 func CreatePipeline(c *gin.Context) {
 	_store := store.FromContext(c)
 	repo := session.Repo(c)
+
+	if !repo.AllowManual {
+		_ = c.AbortWithError(http.StatusForbidden, fmt.Errorf("repo does not allow manual pipelines"))
+		return
+	}
+
 	_forge, err := server.Config.Services.Manager.ForgeFromRepo(repo)
 	if err != nil {
 		log.Error().Err(err).Msg("Cannot get forge from repo")
@@ -77,7 +85,10 @@ func CreatePipeline(c *gin.Context) {
 
 	tmpPipeline := createTmpPipeline(model.EventManual, lastCommit, user, &opts)
 
-	pl, err := pipeline.Create(c, _store, repo, tmpPipeline)
+	createOpts := pipeline.CreateOptions{
+		WorkflowFilter: opts.Workflows,
+	}
+	pl, err := pipeline.Create(c, _store, repo, tmpPipeline, createOpts)
 	if err != nil {
 		handlePipelineErr(c, err)
 	} else {
@@ -484,6 +495,176 @@ func getConfigPipelineName(config *model.Config) string {
 		return parsed.Name
 	}
 	return stepbuilder.SanitizePath(config.Name)
+}
+
+// ManualWorkflow represents a workflow that can be manually triggered.
+type ManualWorkflow struct {
+	Name         string   `json:"name"`
+	PipelineName string   `json:"pipeline_name"`
+	DependsOn    []string `json:"depends_on,omitempty"`
+	HasManual    bool     `json:"has_manual"`
+} //	@name	ManualWorkflow
+
+// ManualWorkflowsResponse is the response for the GetManualWorkflows endpoint.
+type ManualWorkflowsResponse struct {
+	Workflows []ManualWorkflow `json:"workflows"`
+	Warnings  []string         `json:"warnings,omitempty"`
+} //	@name	ManualWorkflowsResponse
+
+// GetRepoConfigs
+//
+//	@Summary		Get workflow configurations for a branch
+//	@Description	Returns parsed workflow information for a specific branch, optionally filtered by trigger event type.
+//	@Router			/repos/{repo_id}/configs [get]
+//	@Produce		json
+//	@Success		200	{object}	ManualWorkflowsResponse
+//	@Tags			Pipelines
+//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
+//	@Param			repo_id			path	int		true	"the repository id"
+//	@Param			branch			query	string	true	"the branch to get configs from"
+//	@Param			filter			query	string	false	"filter workflows by event type (e.g., 'manual')"
+func GetRepoConfigs(c *gin.Context) {
+	repo := session.Repo(c)
+	user := session.User(c)
+
+	branch := c.Query("branch")
+	if branch == "" {
+		c.String(http.StatusBadRequest, "branch parameter is required")
+		return
+	}
+
+	filter := c.Query("filter")
+
+	_forge, err := server.Config.Services.Manager.ForgeFromRepo(repo)
+	if err != nil {
+		log.Error().Err(err).Msg("Cannot get forge from repo")
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	// Get the branch head commit
+	commit, err := _forge.BranchHead(c, user, repo, branch)
+	if err != nil {
+		handleForgeError(c, err)
+		return
+	}
+
+	// Create a temporary pipeline to fetch configs (we won't persist it)
+	tmpPipeline := &model.Pipeline{
+		Event:  model.EventManual,
+		Commit: commit.SHA,
+		Branch: branch,
+		Ref:    branch,
+	}
+
+	// Fetch the configs from the forge
+	configService := server.Config.Services.Manager.ConfigServiceFromRepo(repo)
+	forgeYamlConfigs, err := configService.Fetch(c, _forge, user, repo, tmpPipeline, nil, false)
+	if err != nil {
+		log.Debug().Err(err).Str("repo", repo.FullName).Msg("error fetching configs")
+		c.String(http.StatusInternalServerError, "Error fetching pipeline configs: %s", err.Error())
+		return
+	}
+
+	if len(forgeYamlConfigs) == 0 {
+		c.JSON(http.StatusOK, ManualWorkflowsResponse{
+			Workflows: []ManualWorkflow{},
+		})
+		return
+	}
+
+	// Parse each YAML file and extract workflow information
+	workflows := make([]ManualWorkflow, 0, len(forgeYamlConfigs))
+	workflowMap := make(map[string]ManualWorkflow) // for dependency resolution
+	var warnings []string
+
+	for _, forgeConfig := range forgeYamlConfigs {
+		parsed, err := yaml.ParseBytes(forgeConfig.Data)
+		if err != nil {
+			log.Debug().Err(err).Str("file", forgeConfig.Name).Msg("error parsing yaml")
+			continue
+		}
+
+		// Determine workflow name
+		workflowName := parsed.Name
+		if workflowName == "" {
+			workflowName = stepbuilder.SanitizePath(forgeConfig.Name)
+		}
+
+		// Check if workflow has manual trigger
+		hasManual := workflowHasManualTrigger(parsed.When)
+		log.Debug().
+			Str("workflow", workflowName).
+			Bool("hasManual", hasManual).
+			Int("constraintCount", len(parsed.When.Constraints)).
+			Msg("checking workflow for manual trigger")
+
+		wf := ManualWorkflow{
+			Name:         workflowName,
+			PipelineName: stepbuilder.SanitizePath(forgeConfig.Name),
+			DependsOn:    parsed.DependsOn,
+			HasManual:    hasManual,
+		}
+
+		workflowMap[workflowName] = wf
+
+		// If filtering by manual, only include workflows with manual trigger
+		if filter == "manual" && !hasManual {
+			continue
+		}
+
+		workflows = append(workflows, wf)
+	}
+
+	// Generate warnings for dependencies that don't have manual trigger
+	if filter == "manual" {
+		for _, wf := range workflows {
+			for _, dep := range wf.DependsOn {
+				if depWf, exists := workflowMap[dep]; exists && !depWf.HasManual {
+					warnings = append(warnings, fmt.Sprintf("Workflow '%s' depends on '%s' which does not have a manual trigger", wf.Name, dep))
+				}
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, ManualWorkflowsResponse{
+		Workflows: workflows,
+		Warnings:  warnings,
+	})
+}
+
+// workflowHasManualTrigger checks if a workflow's when constraint includes the manual event.
+func workflowHasManualTrigger(when constraint.When) bool {
+	// If no constraints, check default behavior
+	if when.IsEmpty() {
+		log.Debug().Msg("workflowHasManualTrigger: when is empty, returning false")
+		return false // Default doesn't include manual
+	}
+
+	// Check each constraint for manual event
+	for i, c := range when.Constraints {
+		log.Debug().
+			Int("constraintIndex", i).
+			Strs("events", c.Event).
+			Msg("workflowHasManualTrigger: checking constraint")
+
+		// If event is not specified in constraint, it doesn't filter by event
+		if len(c.Event) == 0 {
+			// No event filter means all events match, including manual
+			log.Debug().Msg("workflowHasManualTrigger: no event filter, returning true")
+			return true
+		}
+		// Check if manual is in the event list
+		for _, event := range c.Event {
+			if event == metadata.EventManual {
+				log.Debug().Msg("workflowHasManualTrigger: found manual event, returning true")
+				return true
+			}
+		}
+	}
+
+	log.Debug().Msg("workflowHasManualTrigger: no manual trigger found, returning false")
+	return false
 }
 
 // GetPipelineMetadata

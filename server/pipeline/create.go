@@ -36,8 +36,17 @@ import (
 
 var skipPipelineRegex = regexp.MustCompile(`\[(?i:ci *skip|skip *ci)\]`)
 
+// CreateOptions holds optional parameters for pipeline creation.
+type CreateOptions struct {
+	WorkflowFilter []string // If set, only run workflows with these names
+}
+
 // Create a new pipeline and start it.
-func Create(ctx context.Context, _store store.Store, repo *model.Repo, pipeline *model.Pipeline) (*model.Pipeline, error) {
+func Create(ctx context.Context, _store store.Store, repo *model.Repo, pipeline *model.Pipeline, opts ...CreateOptions) (*model.Pipeline, error) {
+	var createOpts CreateOptions
+	if len(opts) > 0 {
+		createOpts = opts[0]
+	}
 	repoUser, err := _store.GetUser(repo.UserID)
 	if err != nil {
 		msg := fmt.Sprintf("failure to find repo owner via id '%d'", repo.UserID)
@@ -144,7 +153,7 @@ func Create(ctx context.Context, _store store.Store, repo *model.Repo, pipeline 
 		return nil, errors.New(msg)
 	}
 
-	pipelineItems, parseErr := parsePipeline(_forge, _store, pipeline, repoUser, repo, forgeYamlConfigs, nil) //nolint:contextcheck
+	pipelineItems, parseErr := parsePipeline(_forge, _store, pipeline, repoUser, repo, forgeYamlConfigs, nil, createOpts.WorkflowFilter) //nolint:contextcheck
 	if pipeline_errors.HasBlockingErrors(parseErr) {
 		log.Debug().Str("repo", repo.FullName).Err(parseErr).Msg("failed to parse yaml")
 		return pipeline, updatePipelineWithErr(ctx, _forge, _store, pipeline, repo, repoUser, parseErr)

@@ -128,21 +128,28 @@
   "repo": {
     "manual_pipeline": {
       "title": "Trigger a manual pipeline run",
-      "desc": "Select a branch and optionally add variables to trigger a pipeline run.",
-      "trigger": "Run pipeline",
+      "desc": "Select workflows to run. Only workflows with the 'manual' event trigger are shown.",
+      "trigger": "Run pipeline | Run selected pipelines",
+      "default_branch_suffix": "(default)",
       "select_branch": "Select branch",
-      "variables": {
-        "delete": "Delete variable",
-        "title": "Additional pipeline variables",
-        "desc": "Specify additional variables to be used in your pipeline. Variables with the same name are overwritten.",
-        "name": "Variable name",
-        "value": "Variable value"
-      },
+      "select_all": "Select all",
+      "no_workflows": "No workflows with manual trigger found",
+      "depends_on": "depends on {count} | depends on {count}",
+      "quick_start": "Run this workflow",
+      "fetch_workflows_failed": "Failed to fetch workflows.",
+      "selected_count": "{selected} / {total}",
       "notify_text_failed": "Manual pipeline creation failed.",
       "manual_event_help": "Did you forget to add the 'manual' event trigger?",
       "steps_filtered_out": "Pipeline was not created because all steps were filtered out by 'when' conditions.",
       "when_condition_help": "Learn about conditional execution",
-      "fetch_branches_failed": "Failed to fetch branches."
+      "fetch_branches_failed": "Failed to fetch branches.",
+      "variables": {
+        "title": "Additional variables",
+        "desc": "Add key-value pairs to use with the 'evaluate' filter option in your workflow.",
+        "name": "Variable name",
+        "value": "Variable value",
+        "delete": "Delete variable"
+      }
     },
     "deploy_pipeline": {
       "title": "Trigger a deployment for the current pipeline #{pipelineId}",
@@ -268,6 +275,10 @@
         "allow_deploy": {
           "allow": "Allow Deployments",
           "desc": "Allow 'deployments' for successful pipelines. All users with push permissions are allowed to trigger these."
+        },
+        "allow_manual": {
+          "allow": "Allow Manual Pipelines",
+          "desc": "Allow manually triggered pipelines. All users with push permissions can trigger these from the UI or CLI."
         },
         "deploy_team": {
           "team": "Restrict to Team",

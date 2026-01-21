@@ -32,7 +32,7 @@ import (
 	"codeberg.org/crowci/crow/v5/server/store"
 )
 
-func parsePipeline(forge forge.Forge, store store.Store, currentPipeline *model.Pipeline, user *model.User, repo *model.Repo, yamls []*forge_types.FileMeta, envs map[string]string) ([]*stepbuilder.Item, error) {
+func parsePipeline(forge forge.Forge, store store.Store, currentPipeline *model.Pipeline, user *model.User, repo *model.Repo, yamls []*forge_types.FileMeta, envs map[string]string, workflowFilter []string) ([]*stepbuilder.Item, error) {
 	netrc, err := forge.Netrc(user, repo)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to generate netrc file")
@@ -100,6 +100,7 @@ func parsePipeline(forge forge.Forge, store store.Store, currentPipeline *model.
 		Forge:                 forge,
 		DefaultLabels:         server.Config.Pipeline.DefaultWorkflowLabels,
 		ExternalSecretFetcher: externalSecretFetcher,
+		WorkflowFilter:        workflowFilter,
 		ProxyOpts: compiler.ProxyOptions{
 			NoProxy:    server.Config.Pipeline.Proxy.No,
 			HTTPProxy:  server.Config.Pipeline.Proxy.HTTP,
@@ -113,7 +114,7 @@ func createPipelineItems(c context.Context, forge forge.Forge, store store.Store
 	currentPipeline *model.Pipeline, user *model.User, repo *model.Repo,
 	yamls []*forge_types.FileMeta, envs map[string]string,
 ) (*model.Pipeline, []*stepbuilder.Item, error) {
-	pipelineItems, err := parsePipeline(forge, store, currentPipeline, user, repo, yamls, envs) //nolint:contextcheck
+	pipelineItems, err := parsePipeline(forge, store, currentPipeline, user, repo, yamls, envs, nil) //nolint:contextcheck
 	if pipeline_errors.HasBlockingErrors(err) {
 		currentPipeline, uErr := UpdateToStatusError(store, *currentPipeline, err)
 		if uErr != nil {

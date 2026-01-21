@@ -74,7 +74,7 @@ func HandleAuth(c *gin.Context) {
 	var forgeID int64
 	var linkingUserID int64 // non-zero if we're linking a new forge to an existing user
 
-	var isReconnect bool // true if user is reconnecting (refreshing tokens for) an already-linked forge
+	var isReconnect bool  // true if user is reconnecting (refreshing tokens for) an already-linked forge
 	var redirectTo string // custom redirect URL after successful auth
 
 	if isCallback { // validate the state token

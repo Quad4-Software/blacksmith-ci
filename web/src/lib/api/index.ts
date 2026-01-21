@@ -47,6 +47,7 @@ import type {
   UnlinkForgeResponse,
   User,
   UserForge,
+  ManualWorkflowsResponse,
 } from './types';
 
 interface RepoListOptions {
@@ -57,6 +58,7 @@ interface RepoListOptions {
 interface PipelineOptions {
   branch: string;
   variables: Record<string, string>;
+  workflows?: string[]; // specific workflows to run (if empty, all matching workflows are run)
 }
 
 interface DeploymentOptions {
@@ -115,6 +117,11 @@ export default class CrowClient extends ApiClient {
   async getRepoPullRequests(repoId: number, opts?: PaginationOptions): Promise<PullRequest[]> {
     const query = encodeQueryString(opts);
     return this._get(`/api/v1/repos/${repoId}/pull_requests?${query}`) as Promise<PullRequest[]>;
+  }
+
+  async getRepoManualWorkflows(repoId: number, branch: string): Promise<ManualWorkflowsResponse> {
+    const query = encodeQueryString({ branch, filter: 'manual' });
+    return this._get(`/api/v1/repos/${repoId}/configs?${query}`) as Promise<ManualWorkflowsResponse>;
   }
 
   async activateRepo(forgeRemoteId: string, forgeId?: number): Promise<RepoResponse> {

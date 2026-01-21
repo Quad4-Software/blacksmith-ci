@@ -45,6 +45,20 @@
             <FormDescription>{{ $t('repo.settings.general.deploy_team.desc') }}</FormDescription>
           </FormItem>
         </FormField>
+
+        <FormField v-slot="{ value, setValue }" name="allow_manual">
+          <FormItem class="flex items-start gap-3 space-y-0">
+            <FormControl>
+              <Checkbox :checked="value" @update:checked="(v) => setValue(v === true)" />
+            </FormControl>
+            <div class="flex flex-col">
+              <FormLabel class="font-normal">
+                {{ $t('repo.settings.general.allow_manual.allow') }}
+              </FormLabel>
+              <FormDescription>{{ $t('repo.settings.general.allow_manual.desc') }}</FormDescription>
+            </div>
+          </FormItem>
+        </FormField>
       </div>
       <div class="grid gap-2">
         <label class="text-sm font-medium text-foreground">{{
@@ -309,6 +323,7 @@ const repoSettingsSchema = toTypedSchema(
     }),
     allow_pr: z.boolean(),
     allow_deploy: z.boolean(),
+    allow_manual: z.boolean(),
     deploy_team: z.string(),
     cancel_previous_pipeline_events: z.array(z.string()),
     logs_keep_duration: z.string(),
@@ -332,6 +347,7 @@ const { handleSubmit, setValues, values, setFieldValue } = useForm({
     },
     allow_pr: false,
     allow_deploy: false,
+    allow_manual: true,
     deploy_team: '',
     cancel_previous_pipeline_events: [],
     logs_keep_duration: '',
@@ -349,6 +365,7 @@ function loadRepoSettings() {
     trusted: repo.value.trusted,
     allow_pr: repo.value.allow_pr,
     allow_deploy: repo.value.allow_deploy,
+    allow_manual: repo.value.allow_manual,
     deploy_team: repo.value.deploy_team || '',
     cancel_previous_pipeline_events: repo.value.cancel_previous_pipeline_events || [],
     logs_keep_duration: repo.value.logs_keep_duration ?? '',

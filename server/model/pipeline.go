@@ -79,4 +79,5 @@ func (p Pipeline) IsMultiPipeline() bool {
 type PipelineOptions struct {
 	Branch    string            `json:"branch"`
 	Variables map[string]string `json:"variables"`
+	Workflows []string          `json:"workflows,omitempty"` // specific workflows to run (if empty, all matching workflows are run)
 } //	@name	PipelineOptions

@@ -440,6 +440,7 @@ func PostRepo(c *gin.Context) {
 		repo.RequireApproval = server.Config.Pipeline.DefaultApprovalMode
 		repo.AllowPull = server.Config.Pipeline.DefaultAllowPullRequests
 		repo.AllowDeploy = false
+		repo.AllowManual = true
 		repo.CancelPreviousPipelineEvents = server.Config.Pipeline.DefaultCancelPreviousPipelineEvents
 		repo.LogsDurationKeep = server.Config.Pipeline.LogsDurationKeep
 		repo.LogsPipelinesKeepMin = server.Config.Pipeline.LogsPipelinesKeepMin
@@ -733,6 +734,9 @@ func PatchRepo(c *gin.Context) {
 	}
 	if in.AllowDeploy != nil {
 		repo.AllowDeploy = *in.AllowDeploy
+	}
+	if in.AllowManual != nil {
+		repo.AllowManual = *in.AllowManual
 	}
 	if in.DeployTeam != nil {
 		repo.DeployTeam = *in.DeployTeam

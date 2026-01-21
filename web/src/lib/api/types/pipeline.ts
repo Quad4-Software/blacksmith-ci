@@ -182,3 +182,17 @@ export enum StepType {
   Cache = 'cache',
 }
 /* eslint-enable */
+
+// Workflow information returned from GET /repos/:id/configs
+export interface ManualWorkflow {
+  name: string;
+  pipeline_name: string;
+  depends_on?: string[];
+  has_manual: boolean;
+}
+
+// Response from GET /repos/:id/configs?filter=manual
+export interface ManualWorkflowsResponse {
+  workflows: ManualWorkflow[];
+  warnings?: string[];
+}
