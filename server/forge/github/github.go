@@ -700,12 +700,14 @@ func (c *client) loadChangedFilesFromPullRequest(ctx context.Context, pull *gith
 
 	repo, err := _store.GetRepoNameFallback(tmpRepo.ForgeRemoteID, tmpRepo.FullName)
 	if err != nil {
-		return nil, err
+		log.Warn().Err(err).Msg("failed to get repo for loading PR changed files, skipping")
+		return pipeline, nil
 	}
 
 	user, err := common.RepoUser(ctx, repo)
 	if err != nil {
-		return nil, err
+		log.Warn().Err(err).Msg("failed to get repo user for loading PR changed files, skipping")
+		return pipeline, nil
 	}
 
 	gh := c.newClientToken(ctx, user.AccessToken)
@@ -715,7 +717,8 @@ func (c *client) loadChangedFilesFromPullRequest(ctx context.Context, pull *gith
 	for opts.Page > 0 {
 		files, resp, err := gh.PullRequests.ListFiles(ctx, repo.Owner, repo.Name, pull.GetNumber(), opts)
 		if err != nil {
-			return nil, err
+			log.Warn().Err(err).Msg("failed to load changed files from PR, skipping")
+			return pipeline, nil
 		}
 
 		for _, file := range files {
@@ -748,28 +751,21 @@ func (c *client) getTagCommitSHA(ctx context.Context, repo *model.Repo, tagName 
 
 	gh := c.newClientToken(ctx, user.AccessToken)
 
-	page := 1
-	var tag *github.RepositoryTag
-	for {
-		tags, _, err := gh.Repositories.ListTags(ctx, repo.Owner, repo.Name, &github.ListOptions{Page: page})
+	opts := &github.ListOptions{Page: 1}
+	for opts.Page > 0 {
+		tags, resp, err := gh.Repositories.ListTags(ctx, repo.Owner, repo.Name, opts)
 		if err != nil {
 			return "", err
 		}
 
 		for _, t := range tags {
 			if t.GetName() == tagName {
-				tag = t
-				break
+				return t.GetCommit().GetSHA(), nil
 			}
 		}
-		if tag != nil {
-			break
-		}
+		opts.Page = resp.NextPage
 	}
-	if tag == nil {
-		return "", fmt.Errorf("could not find tag %s", tagName)
-	}
-	return tag.GetCommit().GetSHA(), nil
+	return "", fmt.Errorf("could not find tag %s", tagName)
 }
 
 func (c *client) loadChangedFilesFromCommits(ctx context.Context, tmpRepo *model.Repo, pipeline *model.Pipeline, prev, curr string) (*model.Pipeline, error) {
@@ -793,12 +789,14 @@ func (c *client) loadChangedFilesFromCommits(ctx context.Context, tmpRepo *model
 
 	repo, err := _store.GetRepoNameFallback(tmpRepo.ForgeRemoteID, tmpRepo.FullName)
 	if err != nil {
-		return nil, err
+		log.Warn().Err(err).Msg("failed to get repo for loading changed files, skipping")
+		return pipeline, nil
 	}
 
 	user, err := common.RepoUser(ctx, repo)
 	if err != nil {
-		return nil, err
+		log.Warn().Err(err).Msg("failed to get repo user for loading changed files, skipping")
+		return pipeline, nil
 	}
 
 	gh := c.newClientToken(ctx, user.AccessToken)
@@ -809,7 +807,8 @@ func (c *client) loadChangedFilesFromCommits(ctx context.Context, tmpRepo *model
 		for opts.Page > 0 {
 			commit, resp, err := gh.Repositories.GetCommit(ctx, repo.Owner, repo.Name, curr, &github.ListOptions{})
 			if err != nil {
-				return nil, err
+				log.Warn().Err(err).Msg("failed to get commit for loading changed files, skipping")
+				return pipeline, nil
 			}
 			for _, file := range commit.Files {
 				fileList = append(fileList, file.GetFilename(), file.GetPreviousFilename())
@@ -821,7 +820,8 @@ func (c *client) loadChangedFilesFromCommits(ctx context.Context, tmpRepo *model
 		for opts.Page > 0 {
 			comp, resp, err := gh.Repositories.CompareCommits(ctx, repo.Owner, repo.Name, prev, curr, opts)
 			if err != nil {
-				return nil, err
+				log.Warn().Err(err).Msg("failed to compare commits for loading changed files, skipping")
+				return pipeline, nil
 			}
 			for _, file := range comp.Files {
 				fileList = append(fileList, file.GetFilename(), file.GetPreviousFilename())

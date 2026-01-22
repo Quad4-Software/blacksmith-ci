@@ -772,10 +772,11 @@ async function activateSingleRepo(repo: Repo) {
     // Navigate to the repo
     repositoryDialog.close();
     await router.push({ name: 'repo', params: { repoId: activatedRepo.id } });
-  } catch {
+  } catch (error) {
+    const message = (error as { message?: string })?.message || t('repo.enable.notify_text_error');
     notifications.notify({
       title: t('notify_title_error'),
-      text: t('repo.enable.notify_text_error'),
+      text: message,
       type: 'error',
     });
   } finally {
@@ -826,10 +827,11 @@ async function activateSingleRepoWithImport(repo: Repo) {
     // Navigate to the repo if no importable repos
     repositoryDialog.close();
     await router.push({ name: 'repo', params: { repoId: activatedRepo.id } });
-  } catch {
+  } catch (error) {
+    const message = (error as { message?: string })?.message || t('repo.enable.notify_text_error');
     notifications.notify({
       title: t('notify_title_error'),
-      text: t('repo.enable.notify_text_error'),
+      text: message,
       type: 'error',
     });
   } finally {
@@ -848,6 +850,7 @@ async function activateSelectedRepos() {
   let failedCount = 0;
   let lastActivatedRepo: RepoResponse | null = null;
   const allMigrationMessages: string[] = [];
+  const errorMessages: Set<string> = new Set();
 
   for (const repo of reposToActivate) {
     activatingRepoIds.value.add(repo.forge_remote_id);
@@ -870,8 +873,12 @@ async function activateSelectedRepos() {
 
       successCount++;
       lastActivatedRepo = activatedRepo;
-    } catch {
+    } catch (error) {
       failedCount++;
+      const message = (error as { message?: string })?.message;
+      if (message) {
+        errorMessages.add(message);
+      }
     } finally {
       activatingRepoIds.value.delete(repo.forge_remote_id);
     }
@@ -900,9 +907,14 @@ async function activateSelectedRepos() {
   }
 
   if (failedCount > 0) {
+    // Show collected error messages, or fall back to generic message
+    const errorText =
+      errorMessages.size > 0
+        ? Array.from(errorMessages).join('; ')
+        : t('repo.enable.notify_text_error_multiple', { count: failedCount });
     notifications.notify({
       title: t('notify_title_error'),
-      text: t('repo.enable.notify_text_error_multiple', { count: failedCount }),
+      text: errorText,
       type: 'error',
     });
   }
