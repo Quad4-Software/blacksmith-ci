@@ -66,7 +66,7 @@ Use `from_secret` to inject sensitive values:
 ```yaml
 steps:
   - name: deploy
-    image: codeberg.org/crow-plugins/docker-buildx
+    image: codefloe.com/crow-plugins/docker-buildx
     settings:
       username:
         from_secret: docker_username
@@ -85,7 +85,7 @@ secrets:
   - name: docker_password
     plugins_only: true
     allowed_plugins:
-      - codeberg.org/crow-plugins/docker-buildx
+      - codefloe.com/crow-plugins/docker-buildx
 ```
 
 See [Secrets documentation](/dev/usage/secrets/) for more details.
@@ -97,7 +97,7 @@ Some plugins (like Docker builders) require privileged mode. This must be enable
 ```yaml
 steps:
   - name: build-image
-    image: codeberg.org/crow-plugins/docker-buildx
+    image: codefloe.com/crow-plugins/docker-buildx
     privileged: true  # Requires admin approval
     settings:
       repo: myorg/myapp
@@ -112,7 +112,7 @@ Only use `privileged: true` when absolutely necessary. Privileged containers hav
 Administrators configure allowed privileged plugins:
 
 ```sh
-export CROW_PLUGINS_PRIVILEGED="codeberg.org/crow-plugins/docker-buildx:1"
+export CROW_PLUGINS_PRIVILEGED="codefloe.com/crow-plugins/docker-buildx:1"
 export CROW_PLUGINS_PRIVILEGED_MATCH_TYPE=semver
 ```
 
@@ -129,7 +129,7 @@ Use `when` conditions to control when plugins run:
 ```yaml
 steps:
   - name: deploy-prod
-    image: codeberg.org/crow-plugins/docker-buildx
+    image: codefloe.com/crow-plugins/docker-buildx
     settings:
       repo: myorg/myapp
       tags: latest
@@ -150,7 +150,7 @@ steps:
       - go test ./...
 
   - name: deploy
-    image: codeberg.org/crow-plugins/docker-buildx
+    image: codefloe.com/crow-plugins/docker-buildx
     settings:
       repo: myorg/myapp
     depends_on: [test]

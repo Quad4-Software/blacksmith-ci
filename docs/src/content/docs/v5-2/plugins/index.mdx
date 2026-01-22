@@ -17,7 +17,7 @@ Plugins offer two key advantages over regular steps:
 ```yaml
 steps:
   - name: deploy
-    image: codeberg.org/crow-plugins/docker-buildx
+    image: codefloe.com/crow-plugins/docker-buildx
     settings:
       repo: myorg/myapp
       dockerfile: Dockerfile
@@ -40,5 +40,5 @@ Crow CI inherits plugin compatibility from Woodpecker CI and Drone CI:
 - **Drone plugins** - Partially compatible; many use `environment:` instead of `settings:`, which is not allowed in Crow for security reasons
 
 :::caution
-For the time being, Crow uses primarily Woodpecker plugins and is gradually building Crow-specific plugins in the [crow-plugins](https://codeberg.org/crow-plugins) organization.
+For the time being, Crow uses primarily Woodpecker plugins and is gradually building Crow-specific plugins in the [crow-plugins](https://codefloe.com/crow-plugins) organization.
 :::
