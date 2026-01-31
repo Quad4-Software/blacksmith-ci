@@ -138,8 +138,6 @@
       "quick_start": "Run this workflow",
       "fetch_workflows_failed": "Failed to fetch workflows.",
       "selected_count": "{selected} / {total}",
-      "notify_text_failed": "Manual pipeline creation failed.",
-      "manual_event_help": "Did you forget to add the 'manual' event trigger?",
       "steps_filtered_out": "Pipeline was not created because all steps were filtered out by 'when' conditions.",
       "when_condition_help": "Learn about conditional execution",
       "fetch_branches_failed": "Failed to fetch branches.",
