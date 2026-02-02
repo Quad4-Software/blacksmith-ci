@@ -262,8 +262,8 @@ func PostHook(c *gin.Context) {
 			return
 		}
 
-		msg := "failure to parse hook"
-		log.Debug().Err(err).Msg(msg)
+		msg := fmt.Sprintf("failure to parse hook: %v", err)
+		log.Error().Err(err).Msg("failure to parse hook")
 		c.String(http.StatusBadRequest, msg)
 		return
 	}

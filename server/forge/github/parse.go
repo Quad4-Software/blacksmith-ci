@@ -16,13 +16,14 @@
 package github
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/google/go-github/v81/github"
+	"github.com/rs/zerolog/log"
 
 	"codeberg.org/crowci/crow/v5/server/forge/types"
 	"codeberg.org/crowci/crow/v5/server/model"
@@ -39,24 +40,70 @@ const (
 
 	stateOpen  = "open"
 	stateClose = "closed"
+
+	// PayloadPreviewLen is the max length of payload to include in error logs.
+	payloadPreviewLen = 200
 )
 
 // parseHook parses a GitHub hook from an http.Request request and returns
 // Repo and Pipeline detail. If a hook type is unsupported nil values are returned.
 func parseHook(r *http.Request, merge bool) (_ *github.PullRequest, _ *model.Repo, _ *model.Pipeline, currCommit, prevCommit string, _ error) {
-	var reader io.Reader = r.Body
+	contentType := r.Header.Get("Content-Type")
+	eventType := github.WebHookType(r)
 
-	if payload := r.FormValue(hookField); payload != "" {
-		reader = bytes.NewBufferString(payload)
-	}
+	log.Trace().
+		Str("content-type", contentType).
+		Str("event-type", eventType).
+		Msg("parseHook: starting to parse webhook")
 
-	raw, err := io.ReadAll(reader)
+	// Read the body first to prevent FormValue from consuming it.
+	// This handles the case where Content-Type is form-urlencoded but the body
+	// is actually raw JSON (which can happen if GitHub ignores the ContentType setting).
+	rawBody, err := io.ReadAll(r.Body)
 	if err != nil {
+		log.Error().Err(err).Msg("parseHook: failed to read request body")
 		return nil, nil, nil, "", "", err
 	}
 
-	payload, err := github.ParseWebHook(github.WebHookType(r), raw)
+	var raw []byte
+	var fromFormValue bool
+
+	// Check if payload is in form field (for application/x-www-form-urlencoded)
+	if strings.HasPrefix(contentType, "application/x-www-form-urlencoded") {
+		// Parse the body as form data
+		values, err := url.ParseQuery(string(rawBody))
+		if err == nil && values.Get(hookField) != "" {
+			raw = []byte(values.Get(hookField))
+			fromFormValue = true
+		}
+	}
+
+	// If we didn't get payload from form, use raw body (for application/json or other)
+	if len(raw) == 0 {
+		raw = rawBody
+	}
+
+	log.Trace().
+		Bool("from-form", fromFormValue).
+		Int("payload-len", len(raw)).
+		Msg("parseHook: read payload")
+
+	if len(raw) == 0 {
+		log.Error().
+			Str("content-type", contentType).
+			Bool("from-form", fromFormValue).
+			Msg("parseHook: empty payload received")
+		return nil, nil, nil, "", "", fmt.Errorf("empty webhook payload (content-type: %s, from-form: %v)", contentType, fromFormValue)
+	}
+
+	payload, err := github.ParseWebHook(eventType, raw)
 	if err != nil {
+		log.Error().
+			Err(err).
+			Str("event-type", eventType).
+			Int("payload-len", len(raw)).
+			Str("payload-preview", truncatePayload(raw, payloadPreviewLen)).
+			Msg("parseHook: failed to parse webhook payload")
 		return nil, nil, nil, "", "", err
 	}
 
@@ -218,4 +265,12 @@ func parseReleaseHook(hook *github.ReleaseEvent) (*model.Repo, *model.Pipeline) 
 	}
 
 	return convertRepo(hook.GetRepo()), pipeline
+}
+
+// truncatePayload returns a truncated string representation of the payload for logging.
+func truncatePayload(payload []byte, maxLen int) string {
+	if len(payload) <= maxLen {
+		return string(payload)
+	}
+	return string(payload[:maxLen]) + "..."
 }
