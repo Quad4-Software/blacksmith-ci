@@ -1,0 +1,68 @@
+---
+title: "Setup"
+---
+
+Install the required tools and dependencies for Crow CI development.
+
+## Required Tools
+
+| Tool | Purpose | Notes |
+| --- | --- | --- |
+| [Go](https://go.dev/dl/) | Backend | Latest stable version |
+| [Bun](https://bun.sh/) | Frontend | Node.js alternative |
+| [Just](https://github.com/casey/just) | Task runner | Modern `make` alternative |
+| [Docker](https://docs.docker.com/get-docker/) | Containers | `podman` not yet supported |
+| [golangci-lint](https://golangci-lint.run/) | Go linting | |
+| [prettier](https://prettier.io/) | Code formatting | |
+| [pre-commit](https://pre-commit.com/) | Git hooks | Optional but recommended |
+
+## Installation
+
+### 1. Install Go Dependencies
+
+Once `just` is installed, run:
+
+```sh
+just install-dev-deps
+```
+
+:::note
+This installs Go-related dependencies only. You're responsible for installing other tools.
+:::
+
+### 2. Install Frontend Dependencies
+
+```sh
+cd web
+bun install
+```
+
+### 3. Setup Pre-commit Hooks (Optional)
+
+```sh
+pre-commit install
+```
+
+## Alternative: Dev Containers
+
+If you prefer not to install dependencies locally, use the provided `.devcontainers.json` with:
+
+- [VS Code Dev Containers](https://code.visualstudio.com/docs/devcontainers/containers)
+- [DevPod](https://devpod.sh/)
+- [GitHub Codespaces](https://github.com/features/codespaces)
+
+## Verify Installation
+
+```sh
+# Check Go
+go version
+
+# Check Bun
+bun --version
+
+# Check Just
+just --version
+
+# Run linters
+just lint
+```

@@ -1,0 +1,61 @@
+---
+title: "Logging"
+---
+
+Logging configuration variables.
+
+## LOG_LEVEL
+
+- Name: `CROW_LOG_LEVEL`
+- Description: Logging level. Possible values are `trace`, `debug`, `info`, `warn`, `error`, `fatal`, `panic`, and `disabled`.
+- Default: none
+
+---
+
+## LOG_FILE
+
+- Name: `CROW_LOG_FILE`
+- Description: Output destination for logs. `stdout` and `stderr` can be used as special keywords.
+- Default: `stderr`
+
+---
+
+## LOG_STORE
+
+- Name: `CROW_LOG_STORE`
+- Description: Log store to use (`database` or `file`).
+- Default: `database`
+
+---
+
+## LOG_STORE_FILE_PATH
+
+- Name: `CROW_LOG_STORE_FILE_PATH`
+- Description: Directory used for file based log storage.
+- Default: none
+
+---
+
+## Log Rotation (Alpine only)
+
+### LOGROTATE_ENABLED
+
+- Name: `CROW_LOGROTATE_ENABLED`
+- Description: Enable automatic log rotation (Alpine images only). Set to `auto` to enable when `CROW_LOG_FILE` points to a file, `true` to always enable, or `false` to disable.
+- Default: `auto`
+
+---
+
+### LOGROTATE_SCHEDULE
+
+- Name: `CROW_LOGROTATE_SCHEDULE`
+- Description: Cron schedule for log rotation (Alpine images only). Uses standard cron syntax (minute hour day month weekday).
+- Default: `0 0 * * *` (daily at midnight)
+
+---
+
+### LOGROTATE_RETAIN_DAYS
+
+- Name: `CROW_LOGROTATE_RETAIN_DAYS`
+- Description: Number of days to retain rotated logs before deletion (Alpine images only).
+- Default: `7`

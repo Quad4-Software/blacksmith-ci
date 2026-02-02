@@ -1,0 +1,259 @@
+---
+title: "Forge Integration"
+---
+
+Configuration for forge (Git hosting) integration.
+
+## Multi-Forge Configuration
+
+Crow supports connecting to multiple Git forges simultaneously, allowing users to manage repositories from different forges (e.g., GitHub and Codeberg) under a single account.
+
+### CROW_FORGES
+
+- Name: `CROW_FORGES`
+- Description: Comma-separated list of forge names to configure.
+  When set, Crow uses the multi-forge configuration format instead of single-forge variables.
+  The names can be arbitrary and are only used to identify the respective forge with the per-forge env vars (see below).
+- Default: none
+- Example: `codeberg,github`
+
+When `CROW_FORGES` is set, each forge is configured using environment variables with the pattern `CROW_FORGE_{NAME}_{SETTING}`.
+
+### Per-Forge Settings
+
+For each forge name in `CROW_FORGES`, the following variables are available (replace `{NAME}` with the uppercase forge name, hyphens become underscores):
+
+| Variable | Description | Required |
+| -------- | ----------- | -------- |
+| `CROW_FORGE_{NAME}_TYPE` | Forge type: `github`, `gitlab`, `gitea`, `forgejo`, `bitbucket`, `bitbucket-dc`, `addon` | Yes |
+| `CROW_FORGE_{NAME}_URL` | Forge URL (has defaults for github.com, gitlab.com, etc.) | No |
+| `CROW_FORGE_{NAME}_CLIENT` | OAuth2 client ID | Yes |
+| `CROW_FORGE_{NAME}_SECRET` | OAuth2 client secret | Yes |
+| `CROW_FORGE_{NAME}_SKIP_VERIFY` | Skip SSL verification | No |
+| `CROW_FORGE_{NAME}_OAUTH_HOST` | Public OAuth URL if different from forge URL | No |
+| `CROW_FORGE_{NAME}_ICON` | Custom icon for the forge (see below) | No |
+
+All settings support reading from files using the `_FILE` suffix (e.g., `CROW_FORGE_GITHUB_SECRET_FILE=/run/secrets/github`).
+
+### Custom Forge Icons
+
+The `CROW_FORGE_{NAME}_ICON` variable allows you to customize the icon displayed for a forge in the UI. This is useful when you have multiple forges of the same type (e.g., two Forgejo instances) and want to visually distinguish them.
+
+**Predefined icon names:**
+- `codeberg` - Codeberg logo
+- `codefloe` - Codefloe logo
+- `github` - GitHub logo
+- `gitlab` - GitLab logo
+- `gitea` - Gitea logo
+- `forgejo` - Forgejo logo
+- `bitbucket` - Bitbucket logo
+- `repo` - Generic repository icon
+
+**Custom icon URL:**
+You can also provide a URL to a custom icon image (PNG, SVG, etc.):
+
+```bash
+CROW_FORGE_MYFORGE_ICON=https://example.com/my-forge-icon.svg
+```
+
+If no icon is specified, Crow will automatically detect the icon based on the forge URL (e.g., URLs containing "codeberg" will use the Codeberg icon) or fall back to the forge type's default icon.
+
+### Example: Multi-Forge Setup
+
+```bash
+# Define forges
+CROW_FORGES=codeberg,github,internal
+
+# Codeberg (Forgejo) - icon auto-detected from URL
+CROW_FORGE_CODEBERG_TYPE=forgejo
+CROW_FORGE_CODEBERG_URL=https://codeberg.org
+CROW_FORGE_CODEBERG_CLIENT=your-client-id
+CROW_FORGE_CODEBERG_SECRET=your-client-secret
+
+# GitHub - uses default GitHub icon
+CROW_FORGE_GITHUB_TYPE=github
+CROW_FORGE_GITHUB_CLIENT=your-github-client-id
+CROW_FORGE_GITHUB_SECRET=your-github-client-secret
+
+# Internal Forgejo instance - custom icon
+CROW_FORGE_INTERNAL_TYPE=forgejo
+CROW_FORGE_INTERNAL_URL=https://git.internal.company.com
+CROW_FORGE_INTERNAL_CLIENT=your-internal-client-id
+CROW_FORGE_INTERNAL_SECRET=your-internal-client-secret
+CROW_FORGE_INTERNAL_ICON=https://internal.company.com/logo.svg
+```
+
+### Type-Specific Options
+
+**GitHub:**
+| Variable | Description | Default |
+| -------- | ----------- | ------- |
+| `CROW_FORGE_{NAME}_MERGE_REF` | Use merge ref for pull requests | `true` |
+| `CROW_FORGE_{NAME}_PUBLIC_ONLY` | Only request access to public repos | `false` |
+
+**Bitbucket DataCenter:**
+| Variable | Description |
+| -------- | ----------- |
+| `CROW_FORGE_{NAME}_GIT_USERNAME` | Service account username |
+| `CROW_FORGE_{NAME}_GIT_PASSWORD` | Service account password |
+
+---
+
+## Single-Forge Configuration (Legacy)
+
+The following variables configure a single forge.
+If `CROW_FORGES` is set, these are ignored.
+
+## OAuth Settings
+
+### FORGE_URL
+
+- Name: `CROW_FORGE_URL`
+- Description: URL of the forge.
+- Default: none
+
+---
+
+### FORGE_OAUTH_CLIENT
+
+- Name: `CROW_FORGE_CLIENT`
+- Description: OAuth2 client ID.
+- Default: none
+
+---
+
+### FORGE_OAUTH_SECRET
+
+- Name: `CROW_FORGE_SECRET`
+- Description: OAuth2 client secret.
+- Default: none
+
+---
+
+### FORGE_OAUTH_HOST
+
+- Name: `CROW_EXPERT_FORGE_OAUTH_HOST`
+- Description: Fully qualified public forge URL. Use it if your forge URL isn't a public URL. Format: `<scheme>://<host>[/<prefix path>]`
+- Default: none
+
+---
+
+### FORGE_SKIP_VERIFY
+
+- Name: `CROW_FORGE_SKIP_VERIFY`
+- Description: Skip SSL verification.
+- Default: `false`
+
+---
+
+### FORGE_TIMEOUT
+
+- Name: `CROW_FORGE_TIMEOUT`
+- Description: How many seconds before timeout when fetching the Crow configuration from a Forge.
+- Default: `5s`
+
+---
+
+### FORGE_RETRY
+
+- Name: `CROW_FORGE_RETRY`
+- Description: How many retries of fetching the Crow configuration from a forge are done before we fail.
+- Default: `3`
+
+---
+
+### AUTHENTICATE_PUBLIC_REPOS
+
+- Name: `CROW_AUTHENTICATE_PUBLIC_REPOS`
+- Description: Always use authentication to clone repositories even if they are public. Needed if the SCM requires to always authenticate as used by many companies.
+- Default: `false`
+
+---
+
+### ADDON_FORGE
+
+- Name: `CROW_ADDON_FORGE`
+- Description: Path to forge addon executable.
+- Default: none
+
+---
+
+## Forge Drivers
+
+### FORGEJO
+
+- Name: `CROW_FORGEJO`
+- Description: Forgejo driver is enabled.
+- Default: `false`
+
+---
+
+### GITEA
+
+- Name: `CROW_GITEA`
+- Description: Gitea driver is enabled.
+- Default: `false`
+
+---
+
+### GITHUB
+
+- Name: `CROW_GITHUB`
+- Description: GitHub driver is enabled.
+- Default: `false`
+
+---
+
+### GITHUB_MERGE_REF
+
+- Name: `CROW_GITHUB_MERGE_REF`
+- Description: GitHub pull requests use merge ref.
+- Default: `true`
+
+---
+
+### GITHUB_PUBLIC_ONLY
+
+- Name: `CROW_GITHUB_PUBLIC_ONLY`
+- Description: GitHub tokens should only get access to public repos.
+- Default: `false`
+
+---
+
+### GITLAB
+
+- Name: `CROW_GITLAB`
+- Description: GitLab driver is enabled.
+- Default: `false`
+
+---
+
+### BITBUCKET
+
+- Name: `CROW_BITBUCKET`
+- Description: Bitbucket driver is enabled.
+- Default: `false`
+
+---
+
+### BITBUCKET_DC
+
+- Name: `CROW_BITBUCKET_DC`
+- Description: Bitbucket DataCenter/Server driver is enabled.
+- Default: `false`
+
+---
+
+### BITBUCKET_DC_GIT_USERNAME
+
+- Name: `CROW_BITBUCKET_DC_GIT_USERNAME`
+- Description: Bitbucket DataCenter/Server service account username.
+- Default: none
+
+---
+
+### BITBUCKET_DC_GIT_PASSWORD
+
+- Name: `CROW_BITBUCKET_DC_GIT_PASSWORD`
+- Description: Bitbucket DataCenter/Server service account password.
+- Default: none

@@ -1,0 +1,29 @@
+---
+title: "Overview"
+---
+
+Welcome to the Crow CI development guide. This section covers everything you need to contribute to Crow CI.
+
+## Getting Started
+
+1. [Setup](/dev/development/setup/) - Install required tools and dependencies
+2. [Building](/dev/development/building/) - Build and test Crow components
+3. [Debugging](/dev/development/debugging/) - VSCode configuration and local development
+4. [Architecture](/dev/development/architecture/) - System architecture overview
+
+## Quick Start
+
+```sh
+# Clone the repository
+git clone https://codeberg.org/crowci/crow.git
+cd crow
+
+# Install Go dependencies
+just install-dev-deps
+
+# Run tests
+just test
+
+# Start local development (requires .env file)
+# Use VSCode "Crow CI" launch configuration
+```
