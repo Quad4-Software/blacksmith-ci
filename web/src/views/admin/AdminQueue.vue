@@ -45,7 +45,7 @@
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent class="w-[200px]" align="end">
-              <DropdownMenuRadioGroup :model-value="sortBy" @update:model-value="sortBy = $event">
+              <DropdownMenuRadioGroup :model-value="sortBy" @update:model-value="sortBy = String($event)">
                 <DropdownMenuRadioItem value="name">{{ $t('admin.settings.queue.sort.name') }}</DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value="agent">{{ $t('admin.settings.queue.sort.agent') }}</DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>

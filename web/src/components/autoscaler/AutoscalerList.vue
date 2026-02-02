@@ -463,9 +463,11 @@ const searchQuery = computed({
 const sortBy = computed(() => props.autoscalerFilters.sort);
 const sortReverse = computed(() => props.autoscalerFilters.order === 'desc');
 
-function updateSort(value: string) {
-  emit('updateFilters', { sort: value });
-  emit('filtersChanged');
+function updateSort(value: string | number | boolean | Record<string, any> | null) {
+  if (typeof value === 'string') {
+    emit('updateFilters', { sort: value });
+    emit('filtersChanged');
+  }
 }
 
 function updateSortOrder(descending: boolean) {

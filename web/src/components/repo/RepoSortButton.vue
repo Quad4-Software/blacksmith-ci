@@ -7,7 +7,7 @@
       </Button>
     </DropdownMenuTrigger>
     <DropdownMenuContent class="w-[200px]" align="end">
-      <DropdownMenuRadioGroup :model-value="sortBy" @update:model-value="$emit('update:sortBy', $event)">
+      <DropdownMenuRadioGroup :model-value="sortBy" @update:model-value="$emit('update:sortBy', String($event))">
         <DropdownMenuRadioItem value="alphabetical">
           {{ $t('repositories.sort.alphabetical') }}
         </DropdownMenuRadioItem>

@@ -671,9 +671,11 @@ function clearBackends() {
 const sortBy = computed(() => props.agentFilters.sort);
 const sortReverse = computed(() => props.agentFilters.order === 'desc');
 
-function updateSort(value: string) {
-  emit('updateFilters', { sort: value });
-  emit('filtersChanged');
+function updateSort(value: string | number | boolean | Record<string, any> | null) {
+  if (typeof value === 'string') {
+    emit('updateFilters', { sort: value });
+    emit('filtersChanged');
+  }
 }
 
 function updateSortOrder(descending: boolean) {
