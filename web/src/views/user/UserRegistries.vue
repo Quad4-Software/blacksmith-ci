@@ -23,7 +23,7 @@
       </div>
     </template>
 
-    <div class="max-w-5xl mx-auto space-y-4">
+    <div class="max-w-8xl mx-auto space-y-4">
       <RegistryListGrouped
         :registries="registries"
         :is-deleting="isDeleting"

@@ -2,7 +2,7 @@
   <header class="border-b border-border bg-background text-foreground shadow-sm">
     <div
       class="mx-auto w-full px-3 py-2 sm:px-4 box-border overflow-x-hidden flex flex-col justify-center"
-      :class="{ 'max-w-6xl': !fullWidth }"
+      :class="{ 'max-w-8xl': !fullWidth }"
     >
       <div class="flex w-full flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-4 py-2">
         <div

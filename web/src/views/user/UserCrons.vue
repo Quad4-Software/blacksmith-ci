@@ -11,7 +11,7 @@
       </Button>
     </template>
 
-    <div class="max-w-7xl mx-auto space-y-4">
+    <div class="max-w-8xl mx-auto space-y-4">
       <!-- Toolbar -->
       <div class="flex items-center gap-2 flex-wrap">
         <!-- Search -->

@@ -23,7 +23,7 @@
       </div>
     </template>
 
-    <div class="max-w-7xl mx-auto space-y-4">
+    <div class="max-w-8xl mx-auto space-y-4">
       <SecretListGrouped
         :secrets="secrets"
         :is-deleting="isDeleting"
