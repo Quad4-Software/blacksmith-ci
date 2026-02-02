@@ -168,6 +168,21 @@ func TestHook(t *testing.T) {
 		assert.Equal(t, model.EventDeploy, pipeline.Event)
 		// Deployment hooks don't load changed files, so this should succeed
 	})
+
+	t.Run("parse deleted branch push hook", func(t *testing.T) {
+		// Test that deleted branch push hooks don't cause a nil pointer panic
+		// When a branch is deleted, parsePushHook returns nil for both repo and pipeline
+		req := httptest.NewRequest("POST", "/hook", strings.NewReader(fixtures.HookPushDeleted))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-GitHub-Event", "push")
+
+		repo, pipeline, err := c.Hook(ctx, req)
+
+		// Should not panic and should return nil values gracefully
+		assert.NoError(t, err)
+		assert.Nil(t, repo)
+		assert.Nil(t, pipeline)
+	})
 }
 
 var (
