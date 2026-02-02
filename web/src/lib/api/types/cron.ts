@@ -11,4 +11,8 @@ export interface CronWithRepo extends Cron {
   repo_name: string;
   repo_owner: string;
   repo_default_branch: string;
+  forge_id?: number;
+  forge_name?: string;
+  forge_icon?: string;
+  forge_type?: string;
 }

@@ -85,6 +85,44 @@
             </DropdownMenuContent>
           </DropdownMenu>
 
+          <!-- Forge Filter (only shown when multiple forges configured) -->
+          <DropdownMenu v-if="showForgeColumn" :modal="false">
+            <DropdownMenuTrigger as-child>
+              <Button variant="outline" size="sm" class="h-8 border-dashed">
+                <Icon name="filter" class="mr-2 h-4 w-4" />
+                {{ $t('forge') }}
+                <template v-if="selectedForges.length > 0">
+                  <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
+                  <span class="mx-2" aria-hidden="true">|</span>
+                  <Badge variant="secondary" class="rounded-sm px-1 font-normal">
+                    {{ selectedForges.length }}
+                  </Badge>
+                </template>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent class="w-[220px]" align="start">
+              <div class="max-h-[300px] overflow-y-auto">
+                <DropdownMenuCheckboxItem
+                  v-for="forge in uniqueForgeNames"
+                  :key="forge"
+                  :model-value="selectedForges.includes(forge)"
+                  @update:model-value="(value) => toggleForgeFilter(forge, !!value)"
+                >
+                  <div class="flex items-center gap-2">
+                    <Icon :name="getForgeIconForName(forge)" class="h-4 w-4 text-muted-foreground" />
+                    <span>{{ forge }}</span>
+                  </div>
+                </DropdownMenuCheckboxItem>
+              </div>
+              <template v-if="selectedForges.length > 0">
+                <DropdownMenuSeparator />
+                <DropdownMenuItem @click="clearForgeFilters">
+                  {{ $t('clear_filters') }}
+                </DropdownMenuItem>
+              </template>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <!-- Column Visibility -->
           <DropdownMenu>
             <DropdownMenuTrigger as-child>
@@ -278,8 +316,10 @@ import {
 import SearchInput from '~/components/ui/input/SearchInput.vue';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
+import type { IconNames } from '~/components/atomic/Icon.types';
 import useApiClient from '~/compositions/useApiClient';
 import useConfig from '~/compositions/useConfig';
+import { useForges } from '~/compositions/useForges';
 import useNotifications from '~/compositions/useNotifications';
 import type { SecretWithOrg } from '~/lib/api/types';
 import { WebhookEvents } from '~/lib/api/types';
@@ -301,6 +341,67 @@ const { t } = useI18n();
 const { user } = useConfig();
 const apiClient = useApiClient();
 const notifications = useNotifications();
+const { forges } = useForges();
+
+// Show forge column only when multiple forges are configured
+const showForgeColumn = computed(() => forges.value.length > 1);
+
+// Helper to check if a string is a valid URL
+function isValidUrl(str: string): boolean {
+  try {
+    return Boolean(new URL(str));
+  } catch {
+    return false;
+  }
+}
+
+// Helper to get forge icon name from secret's forge info
+function getForgeIconName(forgeIcon?: string, forgeType?: string, forgeName?: string): IconNames {
+  // Check for custom icon first
+  if (forgeIcon && !isValidUrl(forgeIcon)) {
+    const customIcon = forgeIcon.toLowerCase();
+    const validIcons: Record<string, IconNames> = {
+      codeberg: 'codeberg',
+      codefloe: 'codefloe',
+      github: 'github',
+      gitlab: 'gitlab',
+      gitea: 'gitea',
+      forgejo: 'forgejo',
+      bitbucket: 'bitbucket',
+      repo: 'repo',
+    };
+    if (validIcons[customIcon]) {
+      return validIcons[customIcon];
+    }
+  }
+
+  // Check forgeName for special hosts
+  if (forgeName) {
+    const lowerName = forgeName.toLowerCase();
+    if (lowerName.includes('codeberg')) return 'codeberg';
+    if (lowerName.includes('codefloe')) return 'codefloe';
+  }
+
+  // Fall back to forge type
+  const typeToIcon: Record<string, IconNames> = {
+    github: 'github',
+    gitlab: 'gitlab',
+    gitea: 'gitea',
+    forgejo: 'forgejo',
+    bitbucket: 'bitbucket',
+    'bitbucket-dc': 'bitbucket',
+    addon: 'repo',
+  };
+  return typeToIcon[forgeType || ''] || 'repo';
+}
+
+// Helper to get custom icon URL if forge_icon is a URL
+function getForgeCustomIconUrl(forgeIcon?: string): string | null {
+  if (forgeIcon && isValidUrl(forgeIcon)) {
+    return forgeIcon;
+  }
+  return null;
+}
 
 // Track copied state for secret names
 const copiedSecrets = reactive<Record<string, boolean>>({});
@@ -352,11 +453,34 @@ watch(
 const rowSelection = ref({});
 const selectedScopes = useStorage<string[]>('crow:secrets-filter-scopes', []);
 const selectedOwners = useStorage<string[]>('crow:secrets-filter-owners', []);
+const selectedForges = useStorage<string[]>('crow:secrets-filter-forges', []);
 const columnVisibility = ref<VisibilityState>({
   source: false, // Hide source column by default
   created_at: false, // Hide added column by default
   updated_at: false, // Hide last edited column by default
+  forge: false, // Forge column visibility controlled by showForgeColumn
 });
+
+// Update forge column visibility when forges are loaded
+watch(
+  showForgeColumn,
+  (show) => {
+    columnVisibility.value = { ...columnVisibility.value, forge: show };
+  },
+  { immediate: true },
+);
+
+// Helper to get forge icon name from forge hostname
+function getForgeIconForName(forgeName: string): IconNames {
+  // Check if any forge in the list matches this name and has icon info
+  if (props.secrets) {
+    const secret = props.secrets.find((s) => s.forge_name === forgeName);
+    if (secret) {
+      return getForgeIconName(secret.forge_icon, secret.forge_type, secret.forge_name);
+    }
+  }
+  return 'repo';
+}
 
 // Alert dialog state
 const showBulkDeleteDialog = ref(false);
@@ -820,6 +944,33 @@ const columns: ColumnDef<SecretWithOrg>[] = [
     minSize: 80,
   },
   {
+    id: 'forge',
+    accessorKey: 'forge_name',
+    header: () => h('div', { class: 'ml-3' }, t('forge')),
+    cell: ({ row }) => {
+      const secret = row.original;
+      if (!secret.forge_name) {
+        return h('span', { class: 'text-muted-foreground' }, '-');
+      }
+
+      const customIconUrl = getForgeCustomIconUrl(secret.forge_icon);
+      const iconName = getForgeIconName(secret.forge_icon, secret.forge_type, secret.forge_name);
+
+      return h('div', { class: 'flex items-center gap-1.5', title: secret.forge_name }, [
+        customIconUrl
+          ? h('img', { src: customIconUrl, class: 'h-4 w-4', alt: '' })
+          : h(Icon, { name: iconName, class: 'h-4 w-4 shrink-0 text-muted-foreground' }),
+        h('span', { class: 'text-sm text-muted-foreground truncate' }, secret.forge_name),
+      ]);
+    },
+    filterFn: (row, id, value) => {
+      return value.includes(row.getValue(id));
+    },
+    enableSorting: false,
+    size: 150,
+    minSize: 100,
+  },
+  {
     accessorKey: 'scope_type',
     id: 'scope',
     header: ({ column }) => {
@@ -1077,6 +1228,16 @@ const uniqueOwners = computed(() => {
   return Array.from(facetedValues.keys()).sort();
 });
 
+const uniqueForgeNames = computed(() => {
+  const forgeColumn = table.getColumn('forge');
+  if (!forgeColumn) return [];
+  const facetedValues = forgeColumn.getFacetedUniqueValues();
+  // Filter out empty/undefined forge names
+  return Array.from(facetedValues.keys())
+    .filter((name) => name && name.trim() !== '')
+    .sort();
+});
+
 const selectedScopeLabelsCount = computed(() => {
   return selectedScopeLabels.value.length;
 });
@@ -1139,6 +1300,30 @@ function clearOwnerFilters() {
   table.getColumn('owner')?.setFilterValue(undefined);
 }
 
+function toggleForgeFilter(forge: string, checked: boolean) {
+  if (checked) {
+    if (!selectedForges.value.includes(forge)) {
+      selectedForges.value.push(forge);
+    }
+  } else {
+    const index = selectedForges.value.indexOf(forge);
+    if (index > -1) {
+      selectedForges.value.splice(index, 1);
+    }
+  }
+
+  if (selectedForges.value.length > 0) {
+    table.getColumn('forge')?.setFilterValue(selectedForges.value);
+  } else {
+    table.getColumn('forge')?.setFilterValue(undefined);
+  }
+}
+
+function clearForgeFilters() {
+  selectedForges.value = [];
+  table.getColumn('forge')?.setFilterValue(undefined);
+}
+
 // Apply persisted filters on mount
 onMounted(() => {
   // Apply scope filters
@@ -1157,6 +1342,11 @@ onMounted(() => {
   // Apply owner filters
   if (selectedOwners.value.length > 0) {
     table.getColumn('owner')?.setFilterValue(selectedOwners.value);
+  }
+
+  // Apply forge filters
+  if (selectedForges.value.length > 0) {
+    table.getColumn('forge')?.setFilterValue(selectedForges.value);
   }
 });
 </script>

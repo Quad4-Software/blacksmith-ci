@@ -4,6 +4,7 @@ export interface Org {
   id: number;
   name: string;
   is_user: boolean;
+  forge_id: number;
 }
 
 export interface OrgPermissions {

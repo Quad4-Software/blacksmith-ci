@@ -19,6 +19,8 @@
   },
   "navigation": "Navigation",
   "filter": "Filter",
+  "forge": "Forge",
+  "name": "Name",
   "repositories": {
     "title": "Repositories",
     "all": {

@@ -52,6 +52,44 @@
           </DropdownMenuContent>
         </DropdownMenu>
 
+        <!-- Forge Filter (only shown when multiple forges configured) -->
+        <DropdownMenu v-if="showForgeColumn" :modal="false">
+          <DropdownMenuTrigger as-child>
+            <Button variant="outline" size="sm" class="h-9 border-dashed">
+              <Icon name="filter" class="mr-2 h-4 w-4" />
+              {{ $t('forge') }}
+              <template v-if="selectedForges.length > 0">
+                <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
+                <span class="mx-2" aria-hidden="true">|</span>
+                <Badge variant="secondary" class="rounded-sm px-1 font-normal">
+                  {{ selectedForges.length }}
+                </Badge>
+              </template>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent class="w-[220px]" align="start">
+            <div class="max-h-[300px] overflow-y-auto">
+              <DropdownMenuCheckboxItem
+                v-for="forge in uniqueForgeNames"
+                :key="forge"
+                :model-value="selectedForges.includes(forge)"
+                @update:model-value="(value) => toggleForgeFilter(forge, !!value)"
+              >
+                <div class="flex items-center gap-2">
+                  <Icon :name="getForgeIconForName(forge)" class="h-4 w-4 text-muted-foreground" />
+                  <span>{{ forge }}</span>
+                </div>
+              </DropdownMenuCheckboxItem>
+            </div>
+            <template v-if="selectedForges.length > 0">
+              <DropdownMenuSeparator />
+              <DropdownMenuItem @click="clearForgeFilters">
+                {{ $t('clear_filters') }}
+              </DropdownMenuItem>
+            </template>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         <!-- Schedule Type Filter -->
         <DropdownMenu :modal="false">
           <DropdownMenuTrigger as-child>
@@ -199,6 +237,9 @@
                   <SortIndicator sort-key="repo_name" :current-sort="sortConfig" />
                 </div>
               </TableHead>
+              <TableHead v-if="showForgeColumn" class="w-36 min-w-28">
+                {{ $t('forge') }}
+              </TableHead>
               <TableHead class="w-32 min-w-24 cursor-pointer select-none" @click="toggleSort('schedule')">
                 <div class="flex items-center gap-1">
                   {{ $t('repo.settings.crons.schedule.title') }}
@@ -284,6 +325,24 @@
                     </Tooltip>
                   </TooltipProvider>
                 </div>
+              </TableCell>
+              <TableCell v-if="showForgeColumn" :title="cron.forge_name">
+                <div v-if="cron.forge_name" class="flex items-center gap-1.5">
+                  <img
+                    v-if="getForgeCustomIconUrl(cron.forge_icon)"
+                    :src="getForgeCustomIconUrl(cron.forge_icon)!"
+                    class="h-4 w-4"
+                    alt=""
+                  />
+                  <Icon
+                    v-else
+                    :name="getForgeIconName(cron.forge_icon, cron.forge_type, cron.forge_name)"
+                    class="h-4 w-4 shrink-0 text-muted-foreground"
+                  />
+                  <span class="text-sm text-muted-foreground truncate">{{ cron.forge_name }}</span>
+                </div>
+                <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
+                <span v-else class="text-muted-foreground">-</span>
               </TableCell>
               <TableCell :title="cron.schedule">
                 <code class="text-xs bg-muted px-1.5 py-0.5 rounded">{{ cron.schedule }}</code>
@@ -457,6 +516,7 @@ import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import Icon from '~/components/atomic/Icon.vue';
+import type { IconNames } from '~/components/atomic/Icon.types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import Scaffold from '~/components/layout/scaffold/Scaffold.vue';
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
@@ -491,6 +551,7 @@ import useApiClient from '~/compositions/useApiClient';
 import { useAsyncAction } from '~/compositions/useAsyncAction';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
 import { useDate } from '~/compositions/useDate';
+import { useForges } from '~/compositions/useForges';
 import { useGlobalDialogs } from '~/compositions/useGlobalDialogs';
 import useNotifications from '~/compositions/useNotifications';
 import { usePagination } from '~/compositions/usePaginate';
@@ -530,6 +591,81 @@ const { t } = useI18n();
 const router = useRouter();
 const date = useDate();
 const { cronDialog } = useGlobalDialogs();
+const { forges } = useForges();
+
+// Show forge column only when multiple forges are configured
+const showForgeColumn = computed(() => forges.value.length > 1);
+
+// Helper to check if a string is a valid URL
+function isValidUrl(str: string): boolean {
+  try {
+    return Boolean(new URL(str));
+  } catch {
+    return false;
+  }
+}
+
+// Helper to get forge icon name from cron's forge info
+function getForgeIconName(forgeIcon?: string, forgeType?: string, forgeName?: string): IconNames {
+  // Check for custom icon first
+  if (forgeIcon && !isValidUrl(forgeIcon)) {
+    const customIcon = forgeIcon.toLowerCase();
+    const validIcons: Record<string, IconNames> = {
+      codeberg: 'codeberg',
+      codefloe: 'codefloe',
+      github: 'github',
+      gitlab: 'gitlab',
+      gitea: 'gitea',
+      forgejo: 'forgejo',
+      bitbucket: 'bitbucket',
+      repo: 'repo',
+    };
+    if (validIcons[customIcon]) {
+      return validIcons[customIcon];
+    }
+  }
+
+  // Check forgeName for special hosts
+  if (forgeName) {
+    const lowerName = forgeName.toLowerCase();
+    if (lowerName.includes('codeberg')) return 'codeberg';
+    if (lowerName.includes('codefloe')) return 'codefloe';
+  }
+
+  // Fall back to forge type
+  const typeToIcon: Record<string, IconNames> = {
+    github: 'github',
+    gitlab: 'gitlab',
+    gitea: 'gitea',
+    forgejo: 'forgejo',
+    bitbucket: 'bitbucket',
+    'bitbucket-dc': 'bitbucket',
+    addon: 'repo',
+  };
+  return typeToIcon[forgeType || ''] || 'repo';
+}
+
+// Helper to get custom icon URL if forge_icon is a URL
+function getForgeCustomIconUrl(forgeIcon?: string): string | null {
+  if (forgeIcon && isValidUrl(forgeIcon)) {
+    return forgeIcon;
+  }
+  return null;
+}
+
+// Helper to get forge icon name from forge hostname for filter display
+/* eslint-disable ts/no-use-before-define -- crons is defined via usePagination, function is only called after that */
+function getForgeIconForName(forgeName: string): IconNames {
+  // Check if any cron in the list matches this name and has icon info
+  if (crons.value) {
+    const cron = crons.value.find((c) => c.forge_name === forgeName);
+    if (cron) {
+      return getForgeIconName(cron.forge_icon, cron.forge_type, cron.forge_name);
+    }
+  }
+  return 'repo';
+}
+/* eslint-enable ts/no-use-before-define */
 
 // Track copied state for cron fields
 const copiedFields = reactive<Record<string, boolean>>({});
@@ -549,6 +685,7 @@ async function copyField(value: string, fieldKey: string) {
 const searchTerm = ref('');
 const selectedOwners = ref<string[]>([]);
 const selectedScheduleTypes = ref<string[]>([]);
+const selectedForges = ref<string[]>([]);
 const deleteDialogOpen = reactive<Record<number, boolean>>({});
 const isEditDialogOpen = ref(false);
 const editingCron = ref<Partial<CronWithRepo>>({});
@@ -626,6 +763,14 @@ const uniqueOwners = computed(() => {
   return Array.from(owners).sort();
 });
 
+// Computed: unique forge names for filter dropdown
+const uniqueForgeNames = computed(() => {
+  if (!crons.value) return [];
+  // Filter out empty forge names and get unique values
+  const forgeNames = new Set(crons.value.map((c) => c.forge_name).filter((f): f is string => !!f && f.trim() !== ''));
+  return Array.from(forgeNames).sort();
+});
+
 // Computed: filtered crons based on all filters
 const filteredCrons = computed(() => {
   if (!crons.value) return [];
@@ -652,6 +797,10 @@ const filteredCrons = computed(() => {
       if (!selectedScheduleTypes.value.includes(cronScheduleType)) {
         return false;
       }
+    }
+    // Forge filter
+    if (selectedForges.value.length > 0 && (!c.forge_name || !selectedForges.value.includes(c.forge_name))) {
+      return false;
     }
     return true;
   });
@@ -763,6 +912,19 @@ function toggleOwnerFilter(owner: string, value: boolean) {
 
 function clearOwnerFilters() {
   selectedOwners.value = [];
+}
+
+// Forge filter functions
+function toggleForgeFilter(forge: string, value: boolean) {
+  if (value) {
+    selectedForges.value = [...selectedForges.value, forge];
+  } else {
+    selectedForges.value = selectedForges.value.filter((f) => f !== forge);
+  }
+}
+
+function clearForgeFilters() {
+  selectedForges.value = [];
 }
 
 // Schedule type filter functions

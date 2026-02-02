@@ -89,11 +89,15 @@ func (r *Registry) Copy() *Registry {
 type RegistryWithOrg struct {
 	*Registry
 	OrgName   string `json:"org_name"`
-	ScopeType string `json:"scope_type"` // "user", "org", or "global"
+	ScopeType string `json:"scope_type"`           // "user", "org", or "global"
+	ForgeID   int64  `json:"forge_id,omitempty"`   // forge ID for multi-forge display
+	ForgeName string `json:"forge_name,omitempty"` // forge hostname for multi-forge display
+	ForgeIcon string `json:"forge_icon,omitempty"` // forge icon name/URL for multi-forge display
+	ForgeType string `json:"forge_type,omitempty"` // forge type (github, gitlab, etc.) for icon fallback
 } //	@name	RegistryWithOrg
 
 // WithOrg creates a RegistryWithOrg from a Registry with the given org name.
-func (r *Registry) WithOrg(orgName string, isPersonalOrg bool) *RegistryWithOrg {
+func (r *Registry) WithOrg(orgName string, isPersonalOrg bool, forgeID int64, forgeName, forgeIcon, forgeType string) *RegistryWithOrg {
 	scopeType := "org"
 	if r.IsGlobal() {
 		scopeType = "global"
@@ -104,5 +108,9 @@ func (r *Registry) WithOrg(orgName string, isPersonalOrg bool) *RegistryWithOrg 
 		Registry:  r,
 		OrgName:   orgName,
 		ScopeType: scopeType,
+		ForgeID:   forgeID,
+		ForgeName: forgeName,
+		ForgeIcon: forgeIcon,
+		ForgeType: forgeType,
 	}
 }

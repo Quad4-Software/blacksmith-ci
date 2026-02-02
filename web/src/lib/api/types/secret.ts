@@ -17,4 +17,8 @@ export interface SecretWithOrg extends Secret {
   org_name: string;
   repo_name?: string;
   scope_type: 'user' | 'org' | 'repo' | 'global';
+  forge_id?: number;
+  forge_name?: string;
+  forge_icon?: string;
+  forge_type?: string;
 }

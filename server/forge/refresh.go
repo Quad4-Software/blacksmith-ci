@@ -16,6 +16,7 @@ package forge
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -26,6 +27,10 @@ import (
 	"codeberg.org/crowci/crow/v5/server/model"
 	"codeberg.org/crowci/crow/v5/server/store"
 )
+
+// ErrTokenInvalidated is returned when a token has been permanently invalidated
+// and the user needs to re-authenticate. The tokens have been cleared from the DB.
+var ErrTokenInvalidated = errors.New("oauth token permanently invalidated, re-authentication required")
 
 // Refresher refreshes an oauth token and expiration for the given user. It
 // returns true if the token was refreshed, false if the token was not refreshed,
@@ -46,6 +51,33 @@ func getUserLock(userID int64) *sync.Mutex {
 	return lock.(*sync.Mutex)
 }
 
+// refreshFailureCooldowns tracks users with recent refresh failures to prevent tight retry loops.
+// Maps user ID to the time when they can next attempt a refresh.
+var refreshFailureCooldowns sync.Map
+
+// refreshCooldownDuration is how long to wait before retrying after a permanent token failure.
+const refreshCooldownDuration = 30 * time.Second
+
+// isInCooldown checks if a user is in cooldown period after a refresh failure.
+func isInCooldown(userID int64) bool {
+	if cooldownUntil, ok := refreshFailureCooldowns.Load(userID); ok {
+		//nolint:forcetypeassert
+		return time.Now().Before(cooldownUntil.(time.Time))
+	}
+	return false
+}
+
+// setCooldown sets a cooldown period for a user after a permanent refresh failure.
+func setCooldown(userID int64) {
+	refreshFailureCooldowns.Store(userID, time.Now().Add(refreshCooldownDuration))
+}
+
+// ClearCooldowns clears all cooldown state. This is exported for testing purposes.
+func ClearCooldowns() {
+	refreshFailureCooldowns = sync.Map{}
+	userForgeCooldowns = sync.Map{}
+}
+
 // Remaining ttl of 30 minutes (1800 seconds) until a token is refreshed.
 const tokenMinTTL = 1800
 
@@ -59,6 +91,12 @@ func Refresh(c context.Context, forge Forge, _store store.Store, user *model.Use
 	currentTime := time.Now().UTC().Unix()
 	if currentTime < (user.Expiry - tokenMinTTL) {
 		return nil
+	}
+
+	// Check if user is in cooldown period after a recent permanent failure
+	// This prevents tight retry loops when tokens are permanently invalid
+	if isInCooldown(user.ID) {
+		return ErrTokenInvalidated
 	}
 
 	// Acquire per-user lock to prevent concurrent refresh attempts
@@ -102,6 +140,12 @@ func Refresh(c context.Context, forge Forge, _store store.Store, user *model.Use
 				log.Info().Str("user", user.Login).Msg("token was refreshed by another server instance")
 				return nil
 			}
+
+			// Token is permanently invalid - clear it from DB and set cooldown to prevent tight loops
+			log.Warn().Str("user", user.Login).Msg("OAuth token permanently invalid, clearing tokens from DB")
+			clearUserTokens(_store, freshUser)
+			setCooldown(user.ID)
+			return ErrTokenInvalidated
 		}
 
 		log.Error().Err(err).Str("user", user.Login).Msg("failed to refresh OAuth token")
@@ -150,6 +194,47 @@ func syncUserForgeTokens(_ context.Context, _store store.Store, user *model.User
 	}
 }
 
+// clearUserTokens clears invalid OAuth tokens from both the users and user_forges tables.
+// This is called when a token is permanently invalid to prevent endless refresh loops.
+func clearUserTokens(_store store.Store, user *model.User) {
+	// Clear tokens from user record
+	user.AccessToken = ""
+	user.RefreshToken = ""
+	user.Expiry = 0
+	if err := _store.UpdateUser(user); err != nil {
+		log.Error().Err(err).Str("user", user.Login).Msg("failed to clear invalid tokens from user record")
+	}
+
+	// Also clear from UserForge if it exists
+	userForge, err := _store.UserForgeGet(user.ID, user.ForgeID)
+	if err != nil {
+		return // UserForge may not exist
+	}
+
+	userForge.AccessToken = ""
+	userForge.RefreshToken = ""
+	userForge.Expiry = 0
+	if err := _store.UserForgeUpdate(userForge); err != nil {
+		log.Error().Err(err).
+			Int64("user_id", user.ID).
+			Int64("forge_id", user.ForgeID).
+			Msg("failed to clear invalid tokens from UserForge record")
+	}
+}
+
+// clearUserForgeTokens clears invalid OAuth tokens from a UserForge record.
+func clearUserForgeTokens(_store store.Store, userForge *model.UserForge) {
+	userForge.AccessToken = ""
+	userForge.RefreshToken = ""
+	userForge.Expiry = 0
+	if err := _store.UserForgeUpdate(userForge); err != nil {
+		log.Error().Err(err).
+			Int64("user_id", userForge.UserID).
+			Int64("forge_id", userForge.ForgeID).
+			Msg("failed to clear invalid tokens from UserForge record")
+	}
+}
+
 // isTokenAlreadyUsedError checks if the error indicates the refresh token was already consumed.
 func isTokenAlreadyUsedError(err error) bool {
 	if err == nil {
@@ -177,6 +262,25 @@ func getUserForgeLock(userID, forgeID int64) *sync.Mutex {
 	return lock.(*sync.Mutex)
 }
 
+// userForgeCooldowns tracks user+forge combinations with recent refresh failures.
+var userForgeCooldowns sync.Map
+
+// isUserForgeCooldown checks if a user+forge is in cooldown period after a refresh failure.
+func isUserForgeCooldown(userID, forgeID int64) bool {
+	key := userForgeLockKey(userID, forgeID)
+	if cooldownUntil, ok := userForgeCooldowns.Load(key); ok {
+		//nolint:forcetypeassert
+		return time.Now().Before(cooldownUntil.(time.Time))
+	}
+	return false
+}
+
+// setUserForgeCooldown sets a cooldown period for a user+forge after a permanent refresh failure.
+func setUserForgeCooldown(userID, forgeID int64) {
+	key := userForgeLockKey(userID, forgeID)
+	userForgeCooldowns.Store(key, time.Now().Add(refreshCooldownDuration))
+}
+
 // RefreshUserForge refreshes OAuth tokens for a secondary (non-primary) forge connection.
 // This is similar to Refresh but operates on UserForge records instead of User records.
 // The user parameter is modified in-place with the refreshed tokens.
@@ -190,6 +294,11 @@ func RefreshUserForge(c context.Context, forge Forge, _store store.Store, user *
 	currentTime := time.Now().UTC().Unix()
 	if currentTime < (user.Expiry - tokenMinTTL) {
 		return nil
+	}
+
+	// Check if user+forge is in cooldown period after a recent permanent failure
+	if isUserForgeCooldown(user.ID, forgeID) {
+		return ErrTokenInvalidated
 	}
 
 	// Acquire per-user-forge lock to prevent concurrent refresh attempts
@@ -243,6 +352,12 @@ func RefreshUserForge(c context.Context, forge Forge, _store store.Store, user *
 				log.Info().Str("user", user.Login).Int64("forge_id", forgeID).Msg("UserForge token was refreshed by another server instance")
 				return nil
 			}
+
+			// Token is permanently invalid - clear it from DB and set cooldown to prevent tight loops
+			log.Warn().Str("user", user.Login).Int64("forge_id", forgeID).Msg("UserForge OAuth token permanently invalid, clearing tokens from DB")
+			clearUserForgeTokens(_store, freshUserForge)
+			setUserForgeCooldown(user.ID, forgeID)
+			return ErrTokenInvalidated
 		}
 
 		log.Error().Err(err).Str("user", user.Login).Int64("forge_id", forgeID).Msg("failed to refresh UserForge OAuth token")

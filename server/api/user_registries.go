@@ -97,23 +97,67 @@ func GetUserRegistryList(c *gin.Context) {
 		return
 	}
 
-	// Enrich with org names and scope types
-	orgCache := make(map[int64]string)
+	// Enrich with org names, scope types, and forge info
+	type orgInfo struct {
+		name    string
+		forgeID int64
+	}
+	type forgeInfo struct {
+		name  string
+		icon  string
+		ftype string
+	}
+	orgCache := make(map[int64]orgInfo)
+	forgeCache := make(map[int64]forgeInfo)
 	enrichedRegistries := make([]*model.RegistryWithOrg, 0, len(registries))
+
+	// Helper function to get forge info
+	getForgeInfo := func(forgeID int64) (string, string, string) {
+		if forgeID == 0 {
+			return "", "", ""
+		}
+		if info, cached := forgeCache[forgeID]; cached {
+			return info.name, info.icon, info.ftype
+		}
+		forge, err := _store.ForgeGet(forgeID)
+		if err == nil && forge != nil {
+			// Extract hostname from forge URL
+			forgeName := forge.URL
+			if len(forgeName) > 0 {
+				// Try to extract just the hostname
+				if idx := len("https://"); len(forgeName) > idx && forgeName[:idx] == "https://" {
+					forgeName = forgeName[idx:]
+				} else if idx := len("http://"); len(forgeName) > idx && forgeName[:idx] == "http://" {
+					forgeName = forgeName[idx:]
+				}
+				// Remove trailing slash
+				if len(forgeName) > 0 && forgeName[len(forgeName)-1] == '/' {
+					forgeName = forgeName[:len(forgeName)-1]
+				}
+			}
+			forgeCache[forgeID] = forgeInfo{name: forgeName, icon: forge.Icon, ftype: string(forge.Type)}
+			return forgeName, forge.Icon, string(forge.Type)
+		}
+		forgeCache[forgeID] = forgeInfo{}
+		return "", "", ""
+	}
 
 	for _, registry := range registries {
 		orgName := "Global"
 		isPersonalOrg := false
+		var forgeID int64
 
 		if registry.OrgID > 0 {
 			// Check if cached
-			if name, cached := orgCache[registry.OrgID]; cached {
-				orgName = name
+			if info, cached := orgCache[registry.OrgID]; cached {
+				orgName = info.name
+				forgeID = info.forgeID
 			} else {
 				org, err := _store.OrgGet(registry.OrgID)
 				if err == nil {
 					orgName = org.Name
-					orgCache[registry.OrgID] = orgName
+					forgeID = org.ForgeID
+					orgCache[registry.OrgID] = orgInfo{name: orgName, forgeID: forgeID}
 				}
 			}
 
@@ -121,7 +165,8 @@ func GetUserRegistryList(c *gin.Context) {
 			isPersonalOrg = registry.OrgID == user.OrgID
 		}
 
-		enriched := registry.WithOrg(orgName, isPersonalOrg)
+		forgeName, forgeIcon, forgeType := getForgeInfo(forgeID)
+		enriched := registry.WithOrg(orgName, isPersonalOrg, forgeID, forgeName, forgeIcon, forgeType)
 		enrichedRegistries = append(enrichedRegistries, enriched)
 	}
 
@@ -133,6 +178,10 @@ func GetUserRegistryList(c *gin.Context) {
 			Registry:  copied,
 			OrgName:   r.OrgName,
 			ScopeType: r.ScopeType,
+			ForgeID:   r.ForgeID,
+			ForgeName: r.ForgeName,
+			ForgeIcon: r.ForgeIcon,
+			ForgeType: r.ForgeType,
 		}
 	}
 

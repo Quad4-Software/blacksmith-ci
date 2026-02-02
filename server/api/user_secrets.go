@@ -129,41 +129,90 @@ func GetUserSecretList(c *gin.Context) {
 
 	log.Debug().Int("secret_count", len(secrets)).Msg("UserSecretList returned secrets")
 
-	// Enrich with org names, repo names, and scope types
-	orgCache := make(map[int64]string)
-	repoCache := make(map[int64]string)
+	// Enrich with org names, repo names, scope types, and forge info
+	type orgInfo struct {
+		name    string
+		forgeID int64
+	}
+	type repoInfo struct {
+		fullName string
+		forgeID  int64
+	}
+	type forgeInfo struct {
+		name  string
+		icon  string
+		ftype string
+	}
+	orgCache := make(map[int64]orgInfo)
+	repoCache := make(map[int64]repoInfo)
+	forgeCache := make(map[int64]forgeInfo)
 	enrichedSecrets := make([]*model.SecretWithOrg, 0, len(secrets))
+
+	// Helper function to get forge info
+	getForgeInfo := func(forgeID int64) (string, string, string) {
+		if forgeID == 0 {
+			return "", "", ""
+		}
+		if info, cached := forgeCache[forgeID]; cached {
+			return info.name, info.icon, info.ftype
+		}
+		forge, err := _store.ForgeGet(forgeID)
+		if err == nil && forge != nil {
+			// Extract hostname from forge URL
+			forgeName := forge.URL
+			if len(forgeName) > 0 {
+				// Try to extract just the hostname
+				if idx := len("https://"); len(forgeName) > idx && forgeName[:idx] == "https://" {
+					forgeName = forgeName[idx:]
+				} else if idx := len("http://"); len(forgeName) > idx && forgeName[:idx] == "http://" {
+					forgeName = forgeName[idx:]
+				}
+				// Remove trailing slash
+				if len(forgeName) > 0 && forgeName[len(forgeName)-1] == '/' {
+					forgeName = forgeName[:len(forgeName)-1]
+				}
+			}
+			forgeCache[forgeID] = forgeInfo{name: forgeName, icon: forge.Icon, ftype: string(forge.Type)}
+			return forgeName, forge.Icon, string(forge.Type)
+		}
+		forgeCache[forgeID] = forgeInfo{}
+		return "", "", ""
+	}
 
 	for _, secret := range secrets {
 		var enriched *model.SecretWithOrg
 
 		if secret.RepoID > 0 {
 			// Repo-level secret
-			repoName := ""
-			if name, cached := repoCache[secret.RepoID]; cached {
-				repoName = name
+			var info repoInfo
+			if cached, ok := repoCache[secret.RepoID]; ok {
+				info = cached
 			} else {
 				repo, err := _store.GetRepo(secret.RepoID)
 				if err == nil {
-					repoName = repo.FullName
-					repoCache[secret.RepoID] = repoName
+					info = repoInfo{fullName: repo.FullName, forgeID: repo.ForgeID}
+					repoCache[secret.RepoID] = info
 				}
 			}
-			enriched = secret.WithRepo(repoName)
+			forgeName, forgeIcon, forgeType := getForgeInfo(info.forgeID)
+			enriched = secret.WithRepo(info.fullName, info.forgeID, forgeName, forgeIcon, forgeType)
 		} else {
 			// Org or global secret
 			orgName := "Global"
 			isPersonalOrg := false
+			var forgeID int64
 
 			if secret.OrgID > 0 {
 				// Check if cached
-				if name, cached := orgCache[secret.OrgID]; cached {
-					orgName = name
+				if info, cached := orgCache[secret.OrgID]; cached {
+					orgName = info.name
+					forgeID = info.forgeID
 				} else {
 					org, err := _store.OrgGet(secret.OrgID)
 					if err == nil {
 						orgName = org.Name
-						orgCache[secret.OrgID] = orgName
+						forgeID = org.ForgeID
+						orgCache[secret.OrgID] = orgInfo{name: orgName, forgeID: forgeID}
 					}
 				}
 
@@ -171,7 +220,8 @@ func GetUserSecretList(c *gin.Context) {
 				isPersonalOrg = secret.OrgID == user.OrgID
 			}
 
-			enriched = secret.WithOrg(orgName, isPersonalOrg)
+			forgeName, forgeIcon, forgeType := getForgeInfo(forgeID)
+			enriched = secret.WithOrg(orgName, isPersonalOrg, forgeID, forgeName, forgeIcon, forgeType)
 		}
 
 		enrichedSecrets = append(enrichedSecrets, enriched)
@@ -186,6 +236,10 @@ func GetUserSecretList(c *gin.Context) {
 			OrgName:   s.OrgName,
 			RepoName:  s.RepoName,
 			ScopeType: s.ScopeType,
+			ForgeID:   s.ForgeID,
+			ForgeName: s.ForgeName,
+			ForgeIcon: s.ForgeIcon,
+			ForgeType: s.ForgeType,
 		}
 	}
 

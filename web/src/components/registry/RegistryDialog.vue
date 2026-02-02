@@ -78,17 +78,29 @@
                   <Icon name="chevron-down" class="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent class="w-[200px] p-0" align="start">
+              <PopoverContent class="w-[400px] p-0" align="start">
                 <Command v-model:search-term="searchTerm">
                   <CommandInput :placeholder="$t('registries.scope.search_target')" />
                   <CommandList>
                     <CommandEmpty>{{ $t('no_search_results') }}</CommandEmpty>
                     <!-- Organizations -->
                     <CommandGroup v-if="orgs.length > 0" :heading="$t('registries.scope.organizations')">
+                      <!-- Column headers when multi-forge -->
+                      <div
+                        v-if="showForgeInfo"
+                        class="grid grid-cols-2 gap-2 px-2 py-1 text-xs text-muted-foreground border-b"
+                      >
+                        <span>{{ $t('name') }}</span>
+                        <span>{{ $t('forge') }}</span>
+                      </div>
                       <CommandItem
                         v-for="org in orgs"
                         :key="`org-${org.id}`"
-                        :value="org.name"
+                        :value="
+                          showForgeInfo && getOrgForgeInfo(org)
+                            ? `${org.name} ${getOrgForgeInfo(org)?.hostname}`
+                            : org.name
+                        "
                         @select="
                           () => {
                             selectedTarget = `org-${org.id}`;
@@ -96,7 +108,23 @@
                           }
                         "
                       >
-                        {{ org.name }}
+                        <div v-if="showForgeInfo" class="grid grid-cols-2 gap-2 w-full items-center">
+                          <span class="truncate">{{ org.name }}</span>
+                          <span
+                            v-if="getOrgForgeInfo(org)"
+                            class="flex items-center gap-1 text-xs text-muted-foreground"
+                          >
+                            <img
+                              v-if="getOrgForgeInfo(org)?.customUrl"
+                              :src="getOrgForgeInfo(org)?.customUrl!"
+                              class="h-3 w-3 shrink-0"
+                              alt=""
+                            />
+                            <Icon v-else :name="getOrgForgeInfo(org)?.icon || 'repo'" class="h-3 w-3 shrink-0" />
+                            <span class="truncate">{{ getOrgForgeInfo(org)?.hostname }}</span>
+                          </span>
+                        </div>
+                        <span v-else>{{ org.name }}</span>
                       </CommandItem>
                     </CommandGroup>
                   </CommandList>
@@ -160,7 +188,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import useApiClient from '~/compositions/useApiClient';
 import useConfig from '~/compositions/useConfig';
+import { useForges } from '~/compositions/useForges';
 import useNotifications from '~/compositions/useNotifications';
+import type { IconNames } from '~/components/atomic/Icon.types';
 import type { Org, Registry } from '~/lib/api/types';
 
 const props = withDefaults(
@@ -185,6 +215,79 @@ const { t } = useI18n();
 const apiClient = useApiClient();
 const { user } = useConfig();
 const notifications = useNotifications();
+const { forges, getForgeById } = useForges();
+
+// Show forge info when multiple forges are configured
+const showForgeInfo = computed(() => forges.value.length > 1);
+
+// Helper to check if a string is a valid URL
+function isValidUrl(str: string): boolean {
+  try {
+    return Boolean(new URL(str));
+  } catch {
+    return false;
+  }
+}
+
+// Helper to get forge icon name from forge info
+function getForgeIconName(forgeIcon?: string, forgeType?: string, forgeName?: string): IconNames {
+  if (forgeIcon && !isValidUrl(forgeIcon)) {
+    const customIcon = forgeIcon.toLowerCase();
+    const validIcons: Record<string, IconNames> = {
+      codeberg: 'codeberg',
+      codefloe: 'codefloe',
+      github: 'github',
+      gitlab: 'gitlab',
+      gitea: 'gitea',
+      forgejo: 'forgejo',
+      bitbucket: 'bitbucket',
+      repo: 'repo',
+    };
+    if (validIcons[customIcon]) {
+      return validIcons[customIcon];
+    }
+  }
+  if (forgeName) {
+    const lowerName = forgeName.toLowerCase();
+    if (lowerName.includes('codeberg')) return 'codeberg';
+    if (lowerName.includes('codefloe')) return 'codefloe';
+  }
+  const typeToIcon: Record<string, IconNames> = {
+    github: 'github',
+    gitlab: 'gitlab',
+    gitea: 'gitea',
+    forgejo: 'forgejo',
+    bitbucket: 'bitbucket',
+    'bitbucket-dc': 'bitbucket',
+    addon: 'repo',
+  };
+  return typeToIcon[forgeType || ''] || 'repo';
+}
+
+// Helper to get custom icon URL if forge_icon is a URL
+function getForgeCustomIconUrl(forgeIcon?: string): string | null {
+  if (forgeIcon && isValidUrl(forgeIcon)) {
+    return forgeIcon;
+  }
+  return null;
+}
+
+// Helper to get forge display info for an org
+function getOrgForgeInfo(org: Org): { icon: IconNames; customUrl: string | null; hostname: string } | null {
+  if (!showForgeInfo.value) return null;
+  const forge = getForgeById(org.forge_id);
+  if (!forge) return null;
+  try {
+    const url = new URL(forge.url);
+    return {
+      icon: getForgeIconName(forge.icon, forge.type, url.hostname),
+      customUrl: getForgeCustomIconUrl(forge.icon),
+      hostname: url.hostname,
+    };
+  } catch {
+    return null;
+  }
+}
 
 const isOpen = computed({
   get: () => props.open ?? false,

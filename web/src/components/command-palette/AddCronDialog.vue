@@ -29,19 +29,47 @@
                 <Icon name="chevron-down" class="ml-2 h-4 w-4 shrink-0 opacity-50" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent class="w-[300px] p-0" align="start">
+            <PopoverContent class="w-[400px] p-0" align="start">
               <Command v-model:search-term="repoSearchTerm">
                 <CommandInput :placeholder="$t('repo.settings.crons.search_repo')" />
                 <CommandList>
                   <CommandEmpty>{{ $t('no_search_results') }}</CommandEmpty>
                   <CommandGroup>
+                    <!-- Column headers when multi-forge -->
+                    <div
+                      v-if="showForgeInfo"
+                      class="grid grid-cols-2 gap-2 px-2 py-1 text-xs text-muted-foreground border-b"
+                    >
+                      <span>{{ $t('scope.repo') }}</span>
+                      <span>{{ $t('forge') }}</span>
+                    </div>
                     <CommandItem
                       v-for="repo in filteredRepos"
                       :key="repo.id"
-                      :value="`${repo.owner}/${repo.name}`"
+                      :value="
+                        showForgeInfo && getRepoForgeInfo(repo)
+                          ? `${repo.owner}/${repo.name} ${getRepoForgeInfo(repo)?.hostname}`
+                          : `${repo.owner}/${repo.name}`
+                      "
                       @select="() => selectRepo(repo)"
                     >
-                      {{ `${repo.owner}/${repo.name}` }}
+                      <div v-if="showForgeInfo" class="grid grid-cols-2 gap-2 w-full items-center">
+                        <span class="truncate">{{ `${repo.owner}/${repo.name}` }}</span>
+                        <span
+                          v-if="getRepoForgeInfo(repo)"
+                          class="flex items-center gap-1 text-xs text-muted-foreground"
+                        >
+                          <img
+                            v-if="getRepoForgeInfo(repo)?.customUrl"
+                            :src="getRepoForgeInfo(repo)?.customUrl!"
+                            class="h-3 w-3 shrink-0"
+                            alt=""
+                          />
+                          <Icon v-else :name="getRepoForgeInfo(repo)?.icon || 'repo'" class="h-3 w-3 shrink-0" />
+                          <span class="truncate">{{ getRepoForgeInfo(repo)?.hostname }}</span>
+                        </span>
+                      </div>
+                      <span v-else>{{ `${repo.owner}/${repo.name}` }}</span>
                     </CommandItem>
                   </CommandGroup>
                 </CommandList>
@@ -122,14 +150,89 @@ import { Label } from '~/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import useApiClient from '~/compositions/useApiClient';
 import { useAsyncAction } from '~/compositions/useAsyncAction';
+import { useForges } from '~/compositions/useForges';
 import { useGlobalDialogs } from '~/compositions/useGlobalDialogs';
 import useNotifications from '~/compositions/useNotifications';
+import type { IconNames } from '~/components/atomic/Icon.types';
 import type { Cron, Repo } from '~/lib/api/types';
 
 const { t } = useI18n();
 const apiClient = useApiClient();
 const notifications = useNotifications();
 const { cronDialog } = useGlobalDialogs();
+const { forges, getForgeById } = useForges();
+
+// Show forge info when multiple forges are configured
+const showForgeInfo = computed(() => forges.value.length > 1);
+
+// Helper to check if a string is a valid URL
+function isValidUrl(str: string): boolean {
+  try {
+    return Boolean(new URL(str));
+  } catch {
+    return false;
+  }
+}
+
+// Helper to get forge icon name from forge info
+function getForgeIconName(forgeIcon?: string, forgeType?: string, forgeName?: string): IconNames {
+  if (forgeIcon && !isValidUrl(forgeIcon)) {
+    const customIcon = forgeIcon.toLowerCase();
+    const validIcons: Record<string, IconNames> = {
+      codeberg: 'codeberg',
+      codefloe: 'codefloe',
+      github: 'github',
+      gitlab: 'gitlab',
+      gitea: 'gitea',
+      forgejo: 'forgejo',
+      bitbucket: 'bitbucket',
+      repo: 'repo',
+    };
+    if (validIcons[customIcon]) {
+      return validIcons[customIcon];
+    }
+  }
+  if (forgeName) {
+    const lowerName = forgeName.toLowerCase();
+    if (lowerName.includes('codeberg')) return 'codeberg';
+    if (lowerName.includes('codefloe')) return 'codefloe';
+  }
+  const typeToIcon: Record<string, IconNames> = {
+    github: 'github',
+    gitlab: 'gitlab',
+    gitea: 'gitea',
+    forgejo: 'forgejo',
+    bitbucket: 'bitbucket',
+    'bitbucket-dc': 'bitbucket',
+    addon: 'repo',
+  };
+  return typeToIcon[forgeType || ''] || 'repo';
+}
+
+// Helper to get custom icon URL if forge_icon is a URL
+function getForgeCustomIconUrl(forgeIcon?: string): string | null {
+  if (forgeIcon && isValidUrl(forgeIcon)) {
+    return forgeIcon;
+  }
+  return null;
+}
+
+// Helper to get forge display info for a repo
+function getRepoForgeInfo(repo: Repo): { icon: IconNames; customUrl: string | null; hostname: string } | null {
+  if (!showForgeInfo.value) return null;
+  const forge = getForgeById(repo.forge_id);
+  if (!forge) return null;
+  try {
+    const url = new URL(forge.url);
+    return {
+      icon: getForgeIconName(forge.icon, forge.type, url.hostname),
+      customUrl: getForgeCustomIconUrl(forge.icon),
+      hostname: url.hostname,
+    };
+  } catch {
+    return null;
+  }
+}
 
 const repos = ref<Repo[]>([]);
 const selectedRepoId = ref<number | null>(null);

@@ -13,4 +13,8 @@ export interface Registry {
 export interface RegistryWithOrg extends Registry {
   org_name: string;
   scope_type: 'user' | 'org' | 'global';
+  forge_id?: number;
+  forge_name?: string;
+  forge_icon?: string;
+  forge_type?: string;
 }

@@ -60,14 +60,22 @@ type CronWithRepo struct {
 	RepoName          string `json:"repo_name"`
 	RepoOwner         string `json:"repo_owner"`
 	RepoDefaultBranch string `json:"repo_default_branch"`
+	ForgeID           int64  `json:"forge_id,omitempty"`   // forge ID for multi-forge display
+	ForgeName         string `json:"forge_name,omitempty"` // forge hostname for multi-forge display
+	ForgeIcon         string `json:"forge_icon,omitempty"` // forge icon name/URL for multi-forge display
+	ForgeType         string `json:"forge_type,omitempty"` // forge type (github, gitlab, etc.) for icon fallback
 }
 
 // WithRepo creates a CronWithRepo from a Cron with repo details.
-func (c *Cron) WithRepo(repoName, repoOwner, repoDefaultBranch string) *CronWithRepo {
+func (c *Cron) WithRepo(repoName, repoOwner, repoDefaultBranch string, forgeID int64, forgeName, forgeIcon, forgeType string) *CronWithRepo {
 	return &CronWithRepo{
 		Cron:              c,
 		RepoName:          repoName,
 		RepoOwner:         repoOwner,
 		RepoDefaultBranch: repoDefaultBranch,
+		ForgeID:           forgeID,
+		ForgeName:         forgeName,
+		ForgeIcon:         forgeIcon,
+		ForgeType:         forgeType,
 	}
 }

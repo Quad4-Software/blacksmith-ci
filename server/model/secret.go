@@ -194,11 +194,15 @@ type SecretWithOrg struct {
 	*Secret
 	OrgName   string `json:"org_name"`
 	RepoName  string `json:"repo_name,omitempty"`
-	ScopeType string `json:"scope_type"` // "user", "org", "repo", or "global"
+	ScopeType string `json:"scope_type"`           // "user", "org", "repo", or "global"
+	ForgeID   int64  `json:"forge_id,omitempty"`   // forge ID for multi-forge display
+	ForgeName string `json:"forge_name,omitempty"` // forge hostname for multi-forge display
+	ForgeIcon string `json:"forge_icon,omitempty"` // forge icon name/URL for multi-forge display
+	ForgeType string `json:"forge_type,omitempty"` // forge type (github, gitlab, etc.) for icon fallback
 } //	@name	SecretWithOrg
 
 // WithOrg creates a SecretWithOrg from a Secret with the given org name.
-func (s *Secret) WithOrg(orgName string, isPersonalOrg bool) *SecretWithOrg {
+func (s *Secret) WithOrg(orgName string, isPersonalOrg bool, forgeID int64, forgeName, forgeIcon, forgeType string) *SecretWithOrg {
 	scopeType := "org"
 	if s.IsGlobal() {
 		scopeType = "global"
@@ -209,14 +213,22 @@ func (s *Secret) WithOrg(orgName string, isPersonalOrg bool) *SecretWithOrg {
 		Secret:    s,
 		OrgName:   orgName,
 		ScopeType: scopeType,
+		ForgeID:   forgeID,
+		ForgeName: forgeName,
+		ForgeIcon: forgeIcon,
+		ForgeType: forgeType,
 	}
 }
 
 // WithRepo creates a SecretWithOrg from a Secret with the given repo name.
-func (s *Secret) WithRepo(repoName string) *SecretWithOrg {
+func (s *Secret) WithRepo(repoName string, forgeID int64, forgeName, forgeIcon, forgeType string) *SecretWithOrg {
 	return &SecretWithOrg{
 		Secret:    s,
 		RepoName:  repoName,
 		ScopeType: "repo",
+		ForgeID:   forgeID,
+		ForgeName: forgeName,
+		ForgeIcon: forgeIcon,
+		ForgeType: forgeType,
 	}
 }
