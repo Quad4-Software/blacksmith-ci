@@ -4649,6 +4649,74 @@ func (_c *MockStore_GetRepo_Call) RunAndReturn(run func(n int64) (*model.Repo, e
 	return _c
 }
 
+// GetRepoByForgeAndRemoteID provides a mock function for the type MockStore
+func (_mock *MockStore) GetRepoByForgeAndRemoteID(forgeID int64, remoteID model.ForgeRemoteID) (*model.Repo, error) {
+	ret := _mock.Called(forgeID, remoteID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetRepoByForgeAndRemoteID")
+	}
+
+	var r0 *model.Repo
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, model.ForgeRemoteID) (*model.Repo, error)); ok {
+		return returnFunc(forgeID, remoteID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, model.ForgeRemoteID) *model.Repo); ok {
+		r0 = returnFunc(forgeID, remoteID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.Repo)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, model.ForgeRemoteID) error); ok {
+		r1 = returnFunc(forgeID, remoteID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_GetRepoByForgeAndRemoteID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetRepoByForgeAndRemoteID'
+type MockStore_GetRepoByForgeAndRemoteID_Call struct {
+	*mock.Call
+}
+
+// GetRepoByForgeAndRemoteID is a helper method to define mock.On call
+//   - forgeID int64
+//   - remoteID model.ForgeRemoteID
+func (_e *MockStore_Expecter) GetRepoByForgeAndRemoteID(forgeID interface{}, remoteID interface{}) *MockStore_GetRepoByForgeAndRemoteID_Call {
+	return &MockStore_GetRepoByForgeAndRemoteID_Call{Call: _e.mock.On("GetRepoByForgeAndRemoteID", forgeID, remoteID)}
+}
+
+func (_c *MockStore_GetRepoByForgeAndRemoteID_Call) Run(run func(forgeID int64, remoteID model.ForgeRemoteID)) *MockStore_GetRepoByForgeAndRemoteID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 model.ForgeRemoteID
+		if args[1] != nil {
+			arg1 = args[1].(model.ForgeRemoteID)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_GetRepoByForgeAndRemoteID_Call) Return(repo *model.Repo, err error) *MockStore_GetRepoByForgeAndRemoteID_Call {
+	_c.Call.Return(repo, err)
+	return _c
+}
+
+func (_c *MockStore_GetRepoByForgeAndRemoteID_Call) RunAndReturn(run func(forgeID int64, remoteID model.ForgeRemoteID) (*model.Repo, error)) *MockStore_GetRepoByForgeAndRemoteID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetRepoCount provides a mock function for the type MockStore
 func (_mock *MockStore) GetRepoCount() (int64, error) {
 	ret := _mock.Called()

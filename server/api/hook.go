@@ -393,13 +393,19 @@ func PostHook(c *gin.Context) {
 
 func getRepoFromToken(store store.Store, t *token.Token) (*model.Repo, error) {
 	if t.Get("repo-forge-remote-id") != "" {
-		// TODO: use both the forge ID and repo forge remote ID
-		/*forgeID, err := strconv.ParseInt(t.Get("forge-id"), 10, 64)
-		if err != nil {
-			return nil, err
-		}*/
+		remoteID := model.ForgeRemoteID(t.Get("repo-forge-remote-id"))
 
-		return store.GetRepoForgeID(model.ForgeRemoteID(t.Get("repo-forge-remote-id")))
+		// Use both forge ID and remote ID for proper multi-forge support
+		if forgeIDStr := t.Get("forge-id"); forgeIDStr != "" {
+			forgeID, err := strconv.ParseInt(forgeIDStr, 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			return store.GetRepoByForgeAndRemoteID(forgeID, remoteID)
+		}
+
+		// Fallback for legacy tokens without forge-id
+		return store.GetRepoForgeID(remoteID)
 	}
 
 	// get the repo by the repo-id
