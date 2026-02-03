@@ -23,5 +23,5 @@ import (
 // Version is a middleware function that appends the Crow version information
 // to the HTTP response. This is intended for debugging and troubleshooting.
 func Version(c *gin.Context) {
-	c.Header("X-WOODPECKER-VERSION", version.String())
+	c.Header("X-CROW-VERSION", version.String())
 }
