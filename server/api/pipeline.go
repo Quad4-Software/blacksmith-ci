@@ -77,6 +77,23 @@ func CreatePipeline(c *gin.Context) {
 
 	user := session.User(c)
 
+	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
+	isSecondaryForge := false
+	if userForge, ufErr := _store.UserForgeGet(user.ID, repo.ForgeID); ufErr == nil && userForge != nil {
+		user.AccessToken = userForge.AccessToken
+		user.RefreshToken = userForge.RefreshToken
+		user.Expiry = userForge.Expiry
+		user.ForgeID = userForge.ForgeID
+		user.ForgeRemoteID = userForge.ForgeRemoteID
+		isSecondaryForge = !userForge.IsPrimary
+	}
+
+	// Refresh tokens before forge API call
+	refreshUserTokenForForge(c, user, repo.ForgeID, isSecondaryForge)
+	if c.IsAborted() {
+		return
+	}
+
 	lastCommit, err := _forge.BranchHead(c, user, repo, opts.Branch)
 	if err != nil {
 		handleForgeError(c, err)
