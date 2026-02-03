@@ -108,11 +108,11 @@ steps:
         # Setup SSH
         mkdir -p ~/.ssh && chmod 700 ~/.ssh
         echo "$SSH_KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
-        ssh-keyscan codeberg.org >> ~/.ssh/known_hosts 2>/dev/null
+        ssh-keyscan codefloe.com >> ~/.ssh/known_hosts 2>/dev/null
 
         # Clone, update, commit, and push
         rm -rf helm
-        git clone --depth 1 ssh://git@codeberg.org/crowci/helm.git
+        git clone --depth 1 ssh://git@codefloe.com/crowci/helm.git
         cd helm
         sed -i "s/^appVersion: .*/appVersion: ${CI_COMMIT_TAG#v}/" charts/crow/Chart.yaml
         git config user.name "crowci-bot"
@@ -130,9 +130,9 @@ steps:
       - apk add --no-cache -q git openssh
       - mkdir -p ~/.ssh && chmod 700 ~/.ssh
       - echo "$SSH_KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
-      - ssh-keyscan codeberg.org >> ~/.ssh/known_hosts 2>/dev/null
+      - ssh-keyscan codefloe.com >> ~/.ssh/known_hosts 2>/dev/null
       - rm -rf helm
-      - git clone ssh://git@codeberg.org/crowci/helm.git
+      - git clone ssh://git@codefloe.com/crowci/helm.git
       - cd helm
       - eval $(ssh-agent -s)
       - ssh-add ~/.ssh/id_ed25519
