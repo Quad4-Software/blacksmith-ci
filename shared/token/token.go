@@ -92,7 +92,10 @@ func ParseRequest(allowedTypes []Type, r *http.Request, fn SecretFunc) (*Token, 
 
 	// then we attempt to get the token from the
 	// access_token url query parameter
-	token = r.FormValue("access_token")
+	// Note: Use r.URL.Query().Get() instead of r.FormValue() to avoid
+	// consuming the request body when Content-Type is form-urlencoded.
+	// This is important for webhook handlers that need to read the body later.
+	token = r.URL.Query().Get("access_token")
 	if len(token) != 0 {
 		return Parse(allowedTypes, token, fn)
 	}
