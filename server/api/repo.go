@@ -1464,7 +1464,7 @@ func repairRepo(c *gin.Context, repo *model.Repo, withPerms, skipOnErr bool) {
 
 	if repo.FullName != from.FullName {
 		// create a redirection
-		err = _store.CreateRedirection(&model.Redirection{RepoID: repo.ID, FullName: repo.FullName})
+		err = _store.CreateRedirection(&model.Redirection{ForgeID: repo.ForgeID, RepoID: repo.ID, FullName: repo.FullName})
 		if err != nil {
 			log.Error().Err(err).Msg("Unable to create redirection")
 			c.JSON(http.StatusInternalServerError, gin.H{
