@@ -60,38 +60,59 @@ func GetUserSecretList(c *gin.Context) {
 		orgIDs = append(orgIDs, user.OrgID)
 	}
 
-	// Include member orgs
+	// Include member orgs from all user forges
 	if includeOrg {
-		_forge, err := server.Config.Services.Manager.ForgeFromUser(user)
+		// Get all forge connections for this user
+		userForges, err := _store.UserForgeList(user.ID)
 		if err != nil {
-			log.Error().Err(err).Msg("Cannot get forge from user")
+			log.Error().Err(err).Msg("Cannot get user forges")
 			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
 
-		teams, err := _forge.Teams(c, user)
-		if err != nil {
-			log.Error().Err(err).Msg("Cannot get user teams")
-			c.String(http.StatusInternalServerError, "Error fetching teams. %s", err)
-			return
-		}
+		log.Debug().Int("user_forge_count", len(userForges)).Msg("Fetched user forges")
 
-		log.Debug().Int("team_count", len(teams)).Msg("Fetched teams from forge")
-
-		// Map teams to org IDs
-		for _, team := range teams {
-			log.Debug().Str("team_login", team.Login).Msg("Processing team")
-			org, err := _store.OrgFindByName(team.Login, user.ForgeID)
+		// Process each forge connection
+		for _, userForge := range userForges {
+			_forge, err := server.Config.Services.Manager.ForgeByID(userForge.ForgeID)
 			if err != nil {
-				log.Debug().Err(err).Str("org", team.Login).Msg("Org not found in Crow database, skipping")
+				log.Error().Err(err).Int64("forge_id", userForge.ForgeID).Msg("Cannot get forge by ID, skipping")
 				continue
 			}
-			// Skip if it's the user's personal org (already added)
-			if org.ID != user.OrgID {
-				log.Debug().Int64("org_id", org.ID).Str("org_name", org.Name).Msg("Added org to secret list")
-				orgIDs = append(orgIDs, org.ID)
-			} else {
-				log.Debug().Str("org_name", org.Name).Msg("Skipping personal org (already included)")
+
+			// Create a temporary user with this forge's tokens
+			forgeUser := &model.User{
+				ID:            user.ID,
+				AccessToken:   userForge.AccessToken,
+				RefreshToken:  userForge.RefreshToken,
+				Expiry:        userForge.Expiry,
+				ForgeID:       userForge.ForgeID,
+				ForgeRemoteID: userForge.ForgeRemoteID,
+			}
+
+			teams, err := _forge.Teams(c, forgeUser)
+			if err != nil {
+				log.Debug().Err(err).Int64("forge_id", userForge.ForgeID).Msg("Cannot get teams from forge, skipping")
+				continue
+			}
+
+			log.Debug().Int("team_count", len(teams)).Int64("forge_id", userForge.ForgeID).Msg("Fetched teams from forge")
+
+			// Map teams to org IDs
+			for _, team := range teams {
+				log.Debug().Str("team_login", team.Login).Int64("forge_id", userForge.ForgeID).Msg("Processing team")
+				org, err := _store.OrgFindByName(team.Login, userForge.ForgeID)
+				if err != nil {
+					log.Debug().Err(err).Str("org", team.Login).Int64("forge_id", userForge.ForgeID).Msg("Org not found in Crow database, skipping")
+					continue
+				}
+				// Skip if it's the user's personal org (already added)
+				if org.ID != user.OrgID {
+					log.Debug().Int64("org_id", org.ID).Str("org_name", org.Name).Int64("forge_id", userForge.ForgeID).Msg("Added org to secret list")
+					orgIDs = append(orgIDs, org.ID)
+				} else {
+					log.Debug().Str("org_name", org.Name).Msg("Skipping personal org (already included)")
+				}
 			}
 		}
 
