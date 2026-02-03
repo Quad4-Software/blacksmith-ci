@@ -93,7 +93,7 @@ steps:
     image: reg.devxy.io/docker.io/library/alpine:3.23
     environment:
       SSH_KEY:
-        from_secret: ricochet-bot-deploy-key-helm
+        from_secret: crowci-bot-ssh-key
     commands:
       - |
         set -e
@@ -125,7 +125,7 @@ steps:
     image: reg.devxy.io/docker.io/thegeeklab/git-sv:2.0.9
     environment:
       SSH_KEY:
-        from_secret: ricochet-bot-deploy-key-helm
+        from_secret: crowci-bot-ssh-key
     commands:
       - apk add --no-cache -q git openssh
       - mkdir -p ~/.ssh && chmod 700 ~/.ssh
@@ -142,7 +142,7 @@ steps:
     image: reg.devxy.io/docker.io/library/alpine:3.23
     environment:
       SSH_KEY:
-        from_secret: ricochet-bot-deploy-key-helm
+        from_secret: crowci-bot-ssh-key
     commands:
       - |
         set -e
