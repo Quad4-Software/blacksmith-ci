@@ -1,0 +1,101 @@
+#!/bin/sh
+# Release bump script - updates version references in external repositories
+# Called from CI with CI_COMMIT_TAG and SSH_KEY environment variables
+
+set -ex
+echo "Starting release-bump.sh"
+echo "CI_COMMIT_TAG: ${CI_COMMIT_TAG:-<not set>}"
+
+# Validate required environment variables
+if [ -z "$CI_COMMIT_TAG" ]; then
+    echo "Error: CI_COMMIT_TAG is required"
+    exit 1
+fi
+
+if [ -z "$SSH_KEY" ]; then
+    echo "Error: SSH_KEY is required"
+    exit 1
+fi
+
+# Determine if this is a major release (breaking change)
+VERSION=${CI_COMMIT_TAG#v}
+MINOR=$(echo "$VERSION" | cut -d. -f2)
+PATCH=$(echo "$VERSION" | cut -d. -f3)
+BREAKING=""
+[ "$MINOR" = "0" ] && [ "$PATCH" = "0" ] && BREAKING="!" || true
+
+# Setup SSH
+mkdir -p ~/.ssh && chmod 700 ~/.ssh
+echo "$SSH_KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+echo "Running ssh-keyscan for codefloe.com..."
+ssh-keyscan -T 10 codefloe.com >> ~/.ssh/known_hosts || echo "Warning: ssh-keyscan failed, continuing anyway"
+echo "SSH setup complete"
+
+#
+# Bump and push homebrew-tap
+#
+echo "=== Bumping homebrew-tap ==="
+rm -rf homebrew-tap
+git clone --depth 1 ssh://git@codefloe.com/crowci/homebrew-tap.git
+cd homebrew-tap
+curl -s -O "https://codefloe.com/crowci/crow/archive/refs/tags/${CI_COMMIT_TAG}.tar.gz"
+SHA256=$(sha256sum "${CI_COMMIT_TAG}.tar.gz" | cut -d' ' -f1)
+sed -i "s|url .*\.tar\.gz|url \"https://codefloe.com/crowci/crow/archive/refs/tags/${CI_COMMIT_TAG}.tar.gz|" Formula/crow.rb
+sed -i "s/sha256 \"[^\"]*\"/sha256 \"$SHA256\"/" Formula/crow.rb
+rm -f "${CI_COMMIT_TAG}.tar.gz"
+git config user.name "crowci-bot"
+git config user.email "admin@crowci.dev"
+git add -A
+git commit -m "chore${BREAKING}: bump version to ${CI_COMMIT_TAG}" || echo "Nothing to commit (already up to date)"
+git push origin main || echo "Nothing to push"
+cd ..
+
+#
+# Bump and push crowci/helm
+#
+echo "=== Bumping crowci/helm ==="
+rm -rf helm
+git clone --depth 1 ssh://git@codefloe.com/crowci/helm.git
+cd helm
+sed -i "s/^appVersion: .*/appVersion: ${CI_COMMIT_TAG#v}/" charts/crow/Chart.yaml
+git config user.name "crowci-bot"
+git config user.email "admin@crowci.dev"
+git add -A
+git commit -m "chore${BREAKING}: bump version to ${CI_COMMIT_TAG}" || echo "Nothing to commit (already up to date)"
+git push origin main || echo "Nothing to push"
+cd ..
+
+#
+# Create release for crowci/helm
+#
+echo "=== Creating release for crowci/helm ==="
+rm -rf helm
+git clone ssh://git@codefloe.com/crowci/helm.git
+cd helm
+eval $(ssh-agent -s)
+ssh-add ~/.ssh/id_ed25519
+git sv tag
+cd ..
+
+#
+# Bump and push ansible-cicd
+#
+echo "=== Bumping ansible-cicd ==="
+rm -rf ansible-cicd
+git clone --depth 1 ssh://git@codefloe.com/devxy/ansible-cicd.git
+cd ansible-cicd
+echo "Current version: $(grep 'crow_version:' roles/crowci/defaults/main.yml)"
+sed -i "s/^crow_version: .*/crow_version: ${CI_COMMIT_TAG}/" roles/crowci/defaults/main.yml
+echo "Updated version: $(grep 'crow_version:' roles/crowci/defaults/main.yml)"
+git config user.name "crowci-bot"
+git config user.email "admin@crowci.dev"
+git add -A
+if git diff --cached --quiet; then
+    echo "Nothing to commit (version already at ${CI_COMMIT_TAG})"
+else
+    git commit -m "chore${BREAKING}: bump version to ${CI_COMMIT_TAG}"
+    git push origin main
+fi
+cd ..
+
+echo "=== All bumps completed ==="

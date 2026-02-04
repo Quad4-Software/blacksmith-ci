@@ -132,7 +132,10 @@ func Refresh(c context.Context, forge Forge, _store store.Store, user *model.Use
 
 			// Reload user one more time to check if the token was refreshed by another server instance
 			reloadedUser, reloadErr := _store.GetUser(user.ID)
-			if reloadErr == nil && reloadedUser.Expiry > freshUser.Expiry {
+			// Check if the token was refreshed: either expiry increased OR refresh token changed
+			// (comparing refresh tokens handles the case where we loaded freshUser after another instance already saved)
+			if reloadErr == nil && (reloadedUser.Expiry > freshUser.Expiry ||
+				(reloadedUser.RefreshToken != "" && reloadedUser.RefreshToken != freshUser.RefreshToken)) {
 				// Token was refreshed elsewhere, use the new values
 				user.AccessToken = reloadedUser.AccessToken
 				user.RefreshToken = reloadedUser.RefreshToken
@@ -344,7 +347,10 @@ func RefreshUserForge(c context.Context, forge Forge, _store store.Store, user *
 
 			// Reload UserForge one more time to check if the token was refreshed by another server instance
 			reloadedUserForge, reloadErr := _store.UserForgeGet(user.ID, forgeID)
-			if reloadErr == nil && reloadedUserForge.Expiry > freshUserForge.Expiry {
+			// Check if the token was refreshed: either expiry increased OR refresh token changed
+			// (comparing refresh tokens handles the case where we loaded freshUserForge after another instance already saved)
+			if reloadErr == nil && (reloadedUserForge.Expiry > freshUserForge.Expiry ||
+				(reloadedUserForge.RefreshToken != "" && reloadedUserForge.RefreshToken != freshUserForge.RefreshToken)) {
 				// Token was refreshed elsewhere, use the new values
 				user.AccessToken = reloadedUserForge.AccessToken
 				user.RefreshToken = reloadedUserForge.RefreshToken
