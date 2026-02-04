@@ -104,8 +104,16 @@ func (s storage) UpdateRepo(repo *model.Repo) error {
 	if err != nil {
 		return fmt.Errorf("update repo %d failed: %w", repo.ID, err)
 	}
+	// MySQL without clientFoundRows=true returns 0 if no values actually changed,
+	// even if the row exists. Verify the row exists before erroring.
 	if affected == 0 {
-		return fmt.Errorf("no rows affected when updating repo %d", repo.ID)
+		exists, err := s.engine.ID(repo.ID).Exist(new(model.Repo))
+		if err != nil {
+			return fmt.Errorf("update repo %d failed to verify existence: %w", repo.ID, err)
+		}
+		if !exists {
+			return fmt.Errorf("repo %d not found", repo.ID)
+		}
 	}
 	return nil
 }
