@@ -63,7 +63,8 @@ steps:
     commands:
       - apk add --no-cache -q just git sqlite-dev libc-dev gcc g++ build-base musl-dev binutils binutils-gold
       # using this instead of apk as it is always using the most recent go version - otherwise golangci-lint complains about a mismatch when a new go version is released
-      - wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s && mv ./bin/golangci-lint /usr/local/bin/
+      # renovate: datasource=github-releases depName=golangci/golangci-lint
+      - wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b /usr/local/bin v2.8.0
       - golangci-lint run
     when: *when
 
@@ -81,7 +82,7 @@ steps:
   lint-license-header:
     image: *golang_image
     commands:
-      - go install github.com/google/addlicense@latest # cspell:words addlicense
+      - go install github.com/google/addlicense@v1.2.0 # cspell:words addlicense
       - 'addlicense -check -ignore "vendor/**" **/*.go'
     when: *when
 

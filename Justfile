@@ -12,8 +12,20 @@ TAGS := ""
 STATIC_BUILD := "true"
 CI := env_var_or_default("CI", "false")
 BUILD_DATE := `date -u +%Y-%m-%d`
-# renovate: datasource=github-releases depName=protocolbuffers/protobuf
+# renovate: datasource=github-releases depName=protocolbuffers/protobuf versioning=loose extractVersion=^v(?<version>.+)$
 PROTOC_VERSION := "33.2"
+# renovate: datasource=go depName=mvdan.cc/gofumpt
+GOFUMPT_VERSION := "v0.9.2"
+# renovate: datasource=go depName=github.com/daixiang0/gci
+GCI_VERSION := "v0.13.7"
+# renovate: datasource=go depName=github.com/vektra/mockery/v3
+MOCKERY_VERSION := "v3.6.1"
+# renovate: datasource=go depName=github.com/google/addlicense
+ADDLICENSE_VERSION := "v1.2.0"
+# renovate: datasource=go depName=google.golang.org/protobuf/cmd/protoc-gen-go
+PROTOC_GEN_GO_VERSION := "v1.36.11"
+# renovate: datasource=go depName=google.golang.org/grpc/cmd/protoc-gen-go-grpc
+PROTOC_GEN_GO_GRPC_VERSION := "v1.6.1"
 
 # Set version based on CI environment
 VERSION := if env_var_or_default("CI_COMMIT_TAG", "") != "" {
@@ -80,13 +92,28 @@ mockery: install-dev-deps
 	mockery
 
 install-dev-deps: install-protoc
-		# @hash golangci-lint > /dev/null 2>&1 || go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-		@hash gofumpt > /dev/null 2>&1 || go install mvdan.cc/gofumpt@latest
-		@hash gci > /dev/null 2>&1 || go install github.com/daixiang0/gci@v0.13.7
-		@hash mockery > /dev/null 2>&1 || go install github.com/vektra/mockery/v3@latest
-		@hash addlicense > /dev/null 2>&1 || go install github.com/google/addlicense@latest
-		@hash protoc-gen-go > /dev/null 2>&1 || go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-		@hash protoc-gen-go-grpc > /dev/null 2>&1 || go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+		#!/usr/bin/env sh
+		set -e
+		# Install or upgrade Go tools to pinned versions.
+		# Checks the binary's embedded module version via `go version -m`
+		# and only runs `go install` when the version doesn't match.
+		install_go_tool() {
+			mod="$1"   # e.g. mvdan.cc/gofumpt
+			ver="$2"   # e.g. v0.9.2
+			bin="$3"   # e.g. gofumpt
+			bin_path="$(command -v "$bin" 2>/dev/null || true)"
+			if [ -n "$bin_path" ] && go version -m "$bin_path" 2>/dev/null | grep -qE "^\s+mod\s+\S+\s+${ver}\s"; then
+				return
+			fi
+			echo "Installing ${bin}@${ver}"
+			go install "${mod}@${ver}"
+		}
+		install_go_tool mvdan.cc/gofumpt                                    {{GOFUMPT_VERSION}}              gofumpt
+		install_go_tool github.com/daixiang0/gci                            {{GCI_VERSION}}                  gci
+		install_go_tool github.com/vektra/mockery/v3                        {{MOCKERY_VERSION}}              mockery
+		install_go_tool github.com/google/addlicense                        {{ADDLICENSE_VERSION}}            addlicense
+		install_go_tool google.golang.org/protobuf/cmd/protoc-gen-go        {{PROTOC_GEN_GO_VERSION}}         protoc-gen-go
+		install_go_tool google.golang.org/grpc/cmd/protoc-gen-go-grpc       {{PROTOC_GEN_GO_GRPC_VERSION}}    protoc-gen-go-grpc
 
 # Install protoc with pinned version (downloads from GitHub releases)
 install-protoc:

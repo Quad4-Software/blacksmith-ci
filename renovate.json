@@ -15,10 +15,27 @@
       "versioningTemplate": "{{#if versioning}}{{{versioning}}}{{else}}semver{{/if}}"
     },
     {
+      "description": "Justfile tool version variables with # renovate: comments",
       "customType": "regex",
       "managerFilePatterns": ["/Justfile/"],
+      "matchStrings": [
+        "datasource=(?<datasource>.*?) depName=(?<depName>.*?)( versioning=(?<versioning>.*?))?( extractVersion=(?<extractVersion>.*?))?\\s*\\n\\S+\\s*:=\\s*\"(?<currentValue>[^\"]+)\""
+      ],
+      "versioningTemplate": "{{#if versioning}}{{{versioning}}}{{else}}semver{{/if}}"
+    },
+    {
+      "description": "go install version pins in CI yaml files",
+      "customType": "regex",
+      "managerFilePatterns": ["/\\.crow/.+\\.yaml$/"],
       "matchStrings": ["go install (?<depName>[^@]+)@(?<currentValue>v[^\\s]+)"],
       "datasourceTemplate": "go"
+    },
+    {
+      "description": "Tool versions with # renovate: datasource comments in CI yaml files",
+      "customType": "regex",
+      "managerFilePatterns": ["/\\.crow/.+\\.yaml$/"],
+      "matchStrings": ["datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s*\\n.*?(?<currentValue>v\\d[^\\s]+)"],
+      "versioningTemplate": "semver"
     }
   ],
   "packageRules": [
