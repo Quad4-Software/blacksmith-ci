@@ -5876,6 +5876,61 @@ func (_c *MockClient_UserPost_Call) RunAndReturn(run func(user *crow.User) (*cro
 	return _c
 }
 
+// Version provides a mock function for the type MockClient
+func (_mock *MockClient) Version() (*crow.Version, error) {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Version")
+	}
+
+	var r0 *crow.Version
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func() (*crow.Version, error)); ok {
+		return returnFunc()
+	}
+	if returnFunc, ok := ret.Get(0).(func() *crow.Version); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*crow.Version)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func() error); ok {
+		r1 = returnFunc()
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClient_Version_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Version'
+type MockClient_Version_Call struct {
+	*mock.Call
+}
+
+// Version is a helper method to define mock.On call
+func (_e *MockClient_Expecter) Version() *MockClient_Version_Call {
+	return &MockClient_Version_Call{Call: _e.mock.On("Version")}
+}
+
+func (_c *MockClient_Version_Call) Run(run func()) *MockClient_Version_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockClient_Version_Call) Return(version *crow.Version, err error) *MockClient_Version_Call {
+	_c.Call.Return(version, err)
+	return _c
+}
+
+func (_c *MockClient_Version_Call) RunAndReturn(run func() (*crow.Version, error)) *MockClient_Version_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // WorkflowCancel provides a mock function for the type MockClient
 func (_mock *MockClient) WorkflowCancel(repoID int64, pipeline int64, workflowID int64) error {
 	ret := _mock.Called(repoID, pipeline, workflowID)

@@ -306,4 +306,7 @@ type Client interface {
 
 	// AutoscalerSelf returns the autoscaler associated with the current authentication token.
 	AutoscalerSelf() (*Autoscaler, error)
+
+	// Version returns the server version.
+	Version() (*Version, error)
 }

@@ -28,11 +28,11 @@ import (
 
 const (
 	pathLogLevel = "%s/api/v1/log-level"
+	pathVersion  = "%s/version"
 
 	//nolint:godot
 	// TODO: implement endpoints
-	// pathFeed           = "%s/api/v1/user/feed"
-	// pathVersion        = "%s/version"
+	// pathFeed = "%s/api/v1/user/feed"
 )
 
 // Common client errors for easier error handling.
@@ -121,6 +121,14 @@ func (c *client) SetLogLevel(in *LogLevel) (*LogLevel, error) {
 	out := new(LogLevel)
 	uri := fmt.Sprintf(pathLogLevel, c.addr)
 	err := c.post(uri, in, out)
+	return out, err
+}
+
+// Version returns the server version.
+func (c *client) Version() (*Version, error) {
+	out := new(Version)
+	uri := fmt.Sprintf(pathVersion, c.addr)
+	err := c.get(uri, out)
 	return out, err
 }
 
