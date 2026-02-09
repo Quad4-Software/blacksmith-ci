@@ -19,7 +19,7 @@ GOFUMPT_VERSION := "v0.9.2"
 # renovate: datasource=go depName=github.com/daixiang0/gci
 GCI_VERSION := "v0.13.7"
 # renovate: datasource=go depName=github.com/vektra/mockery/v3
-MOCKERY_VERSION := "v3.6.1"
+MOCKERY_VERSION := "v3.6.3"
 # renovate: datasource=go depName=github.com/google/addlicense
 ADDLICENSE_VERSION := "v1.2.0"
 # renovate: datasource=go depName=google.golang.org/protobuf/cmd/protoc-gen-go
