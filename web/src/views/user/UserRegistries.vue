@@ -26,10 +26,11 @@
     <div class="max-w-8xl mx-auto space-y-4">
       <RegistryListGrouped
         :registries="registries"
-        :is-deleting="isDeleting"
+        :is-deleting="isDeleting || isBulkDeleting"
         :search-term="searchTerm"
         @edit="editRegistry"
         @delete="deleteRegistry"
+        @bulk-delete="bulkDeleteRegistries"
         @update:search-term="searchTerm = $event"
       />
     </div>
@@ -131,7 +132,7 @@ const { doSubmit: createRegistry, isLoading: isSaving } = useAsyncAction(
   },
 );
 
-const { doSubmit: deleteRegistry, isLoading: isDeleting } = useAsyncAction(async (registry: RegistryWithOrg) => {
+async function deleteOneRegistry(registry: RegistryWithOrg) {
   if (!user) {
     throw new Error('Unexpected: User not found');
   }
@@ -142,6 +143,10 @@ const { doSubmit: deleteRegistry, isLoading: isDeleting } = useAsyncAction(async
     const targetOrgId = registry.org_id || user.org_id;
     await apiClient.deleteOrgRegistry(targetOrgId, registry.address);
   }
+}
+
+const { doSubmit: deleteRegistry, isLoading: isDeleting } = useAsyncAction(async (registry: RegistryWithOrg) => {
+  await deleteOneRegistry(registry);
 
   notifications.notify({
     title: t('notify_title_success'),
@@ -151,6 +156,22 @@ const { doSubmit: deleteRegistry, isLoading: isDeleting } = useAsyncAction(async
 
   await resetPage();
 });
+
+const { doSubmit: bulkDeleteRegistries, isLoading: isBulkDeleting } = useAsyncAction(
+  async (registries: RegistryWithOrg[]) => {
+    for (const registry of registries) {
+      await deleteOneRegistry(registry);
+    }
+
+    notifications.notify({
+      title: t('notify_title_success'),
+      text: t('registries.notify_text_deleted'),
+      type: 'success',
+    });
+
+    await resetPage();
+  },
+);
 
 function editRegistry(registry: RegistryWithOrg) {
   selectedRegistry.value = cloneDeep(registry);

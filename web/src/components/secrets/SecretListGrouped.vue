@@ -333,6 +333,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (event: 'edit', secret: SecretWithOrg): void;
   (event: 'delete', secret: SecretWithOrg): void;
+  (event: 'bulkDelete', secrets: SecretWithOrg[]): void;
   (event: 'update:searchTerm', value: string): void;
   (event: 'updateEvents', secret: SecretWithOrg, events: WebhookEvents[]): void;
 }>();
@@ -527,11 +528,8 @@ function handleBulkDelete() {
 function confirmBulkDelete() {
   // eslint-disable-next-line ts/no-use-before-define
   const selected = table.getFilteredSelectedRowModel().rows.map((row) => row.original);
-  selected.forEach((secret) => {
-    if (canEdit(secret)) {
-      emit('delete', secret);
-    }
-  });
+  const deletable = selected.filter((secret) => canEdit(secret));
+  emit('bulkDelete', deletable);
   // eslint-disable-next-line ts/no-use-before-define
   table.resetRowSelection();
   showBulkDeleteDialog.value = false;

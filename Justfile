@@ -6,7 +6,7 @@ TARGETARCH := `go env GOARCH`
 BIN_SUFFIX := if TARGETOS == "windows" { ".exe" } else { "" }
 DIST_DIR := "dist"
 # VERSION := env_var_or_default("VERSION", "dev")
-CI_COMMIT_SHA := env_var_or_default("CI_COMMIT_SHA", `git rev-parse HEAD`)
+CI_COMMIT_SHA := env_var_or_default("CI_COMMIT_SHA", `git rev-parse HEAD 2>/dev/null || echo "unknown"`)
 CI_COMMIT_TAG := env_var_or_default("CI_COMMIT_TAG", "")
 TAGS := ""
 STATIC_BUILD := "true"

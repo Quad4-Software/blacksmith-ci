@@ -314,6 +314,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (event: 'edit', registry: RegistryWithOrg): void;
   (event: 'delete', registry: RegistryWithOrg): void;
+  (event: 'bulkDelete', registries: RegistryWithOrg[]): void;
   (event: 'update:searchTerm', value: string): void;
 }>();
 
@@ -492,11 +493,8 @@ function handleBulkDelete() {
 function confirmBulkDelete() {
   // eslint-disable-next-line ts/no-use-before-define
   const selected = table.getFilteredSelectedRowModel().rows.map((row) => row.original);
-  selected.forEach((registry) => {
-    if (canEdit(registry)) {
-      emit('delete', registry);
-    }
-  });
+  const deletable = selected.filter((registry) => canEdit(registry));
+  emit('bulkDelete', deletable);
   // eslint-disable-next-line ts/no-use-before-define
   table.resetRowSelection();
   showBulkDeleteDialog.value = false;

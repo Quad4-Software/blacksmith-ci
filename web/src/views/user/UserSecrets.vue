@@ -26,10 +26,11 @@
     <div class="max-w-8xl mx-auto space-y-4">
       <SecretListGrouped
         :secrets="secrets"
-        :is-deleting="isDeleting"
+        :is-deleting="isDeleting || isBulkDeleting"
         :search-term="searchTerm"
         @edit="editSecret"
         @delete="deleteSecret"
+        @bulk-delete="bulkDeleteSecrets"
         @update:search-term="searchTerm = $event"
         @update-events="updateSecretEvents"
       />
@@ -154,7 +155,7 @@ const { doSubmit: createSecret, isLoading: isSaving } = useAsyncAction(
   },
 );
 
-const { doSubmit: deleteSecret, isLoading: isDeleting } = useAsyncAction(async (secret: SecretWithOrg) => {
+async function deleteOneSecret(secret: SecretWithOrg) {
   if (!user) {
     throw new Error('Unexpected: User not found');
   }
@@ -170,6 +171,24 @@ const { doSubmit: deleteSecret, isLoading: isDeleting } = useAsyncAction(async (
     // org or user scope
     const targetOrgId = secret.org_id || user.org_id;
     await apiClient.deleteOrgSecret(targetOrgId, secret.name);
+  }
+}
+
+const { doSubmit: deleteSecret, isLoading: isDeleting } = useAsyncAction(async (secret: SecretWithOrg) => {
+  await deleteOneSecret(secret);
+
+  notifications.notify({
+    title: t('notify_title_success'),
+    text: t('secrets.notify_text_deleted'),
+    type: 'success',
+  });
+
+  await resetPage();
+});
+
+const { doSubmit: bulkDeleteSecrets, isLoading: isBulkDeleting } = useAsyncAction(async (secrets: SecretWithOrg[]) => {
+  for (const secret of secrets) {
+    await deleteOneSecret(secret);
   }
 
   notifications.notify({
