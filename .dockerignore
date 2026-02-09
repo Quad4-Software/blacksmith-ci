@@ -1,0 +1,11 @@
+# Large directories not needed for any container image build.
+# Agent/CLI images: COPY . . then go build (need Go source + vendor)
+# Server images: only copy pre-built binaries from dist/
+
+.git
+docs
+web
+
+# Build artifacts that shouldn't leak across image builds
+*.tar.gz
+*.zip
