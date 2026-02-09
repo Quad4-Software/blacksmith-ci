@@ -35,7 +35,7 @@ variables:
       # Containerfile changes
       - 'images/**'
       # pipeline config changes
-      - '.crow/images.yaml'
+      - '.crow/**'
 
 when:
   - event: [pull_request, deployment, tag]
