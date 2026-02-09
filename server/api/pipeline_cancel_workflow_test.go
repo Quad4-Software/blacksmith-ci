@@ -45,10 +45,18 @@ import (
 // implemented for this test.
 type mockManager struct {
 	ForgeFromRepoFunc func(repo *model.Repo) (forge.Forge, error)
+	ForgeFromUserFunc func(user *model.User) (forge.Forge, error)
 }
 
 func (m *mockManager) ForgeFromRepo(repo *model.Repo) (forge.Forge, error) {
 	return m.ForgeFromRepoFunc(repo)
+}
+
+func (m *mockManager) ForgeFromUser(user *model.User) (forge.Forge, error) {
+	if m.ForgeFromUserFunc != nil {
+		return m.ForgeFromUserFunc(user)
+	}
+	return nil, nil
 }
 
 // Stub implementations for the rest of the Manager interface.
@@ -59,7 +67,6 @@ func (m *mockManager) RegistryServiceFromRepo(_ *model.Repo) registry.Service { 
 func (m *mockManager) RegistryService() registry.Service                      { return nil }
 func (m *mockManager) ConfigServiceFromRepo(_ *model.Repo) config.Service     { return nil }
 func (m *mockManager) EnvironmentService() environment.Service                { return nil }
-func (m *mockManager) ForgeFromUser(_ *model.User) (forge.Forge, error)       { return nil, nil }
 func (m *mockManager) ForgeByID(_ int64) (forge.Forge, error)                 { return nil, nil }
 func (m *mockManager) Store() store.Store                                     { return nil }
 
@@ -80,6 +87,7 @@ func TestCancelWorkflow(t *testing.T) {
 
 		// Mock store
 		mockStore := new(store_mocks.MockStore)
+		mockStore.On("UserForgeGet", user.ID, repo.ForgeID).Return(nil, store_types.RecordNotExist)
 		mockStore.On("GetPipelineNumber", repo, int64(123)).Return(pipeline, nil)
 		mockStore.On("WorkflowGetTree", mock.AnythingOfType("*model.Pipeline")).Return([]*model.Workflow{
 			{
@@ -120,6 +128,9 @@ func TestCancelWorkflow(t *testing.T) {
 			ForgeFromRepoFunc: func(_ *model.Repo) (forge.Forge, error) {
 				return mockForge, nil
 			},
+			ForgeFromUserFunc: func(_ *model.User) (forge.Forge, error) {
+				return mockForge, nil
+			},
 		}
 		server.Config.Services.Manager = mgr
 		defer func() { server.Config.Services = originalServices }()
@@ -158,6 +169,7 @@ func TestCancelWorkflow(t *testing.T) {
 
 		// Mock store
 		mockStore := new(store_mocks.MockStore)
+		mockStore.On("UserForgeGet", user.ID, repo.ForgeID).Return(nil, store_types.RecordNotExist)
 		mockStore.On("GetPipelineNumber", repo, int64(123)).Return(nil, store_types.RecordNotExist)
 
 		// Mock forge
@@ -167,6 +179,9 @@ func TestCancelWorkflow(t *testing.T) {
 		originalServices := server.Config.Services
 		mgr := &mockManager{
 			ForgeFromRepoFunc: func(_ *model.Repo) (forge.Forge, error) {
+				return mockForge, nil
+			},
+			ForgeFromUserFunc: func(_ *model.User) (forge.Forge, error) {
 				return mockForge, nil
 			},
 		}
@@ -255,6 +270,7 @@ func TestCancelWorkflow(t *testing.T) {
 
 		// Mock store
 		mockStore := new(store_mocks.MockStore)
+		mockStore.On("UserForgeGet", user.ID, repo.ForgeID).Return(nil, store_types.RecordNotExist)
 
 		// Mock forge
 		mockForge := new(forge_mocks.MockForge)
@@ -263,6 +279,9 @@ func TestCancelWorkflow(t *testing.T) {
 		originalServices := server.Config.Services
 		mgr := &mockManager{
 			ForgeFromRepoFunc: func(_ *model.Repo) (forge.Forge, error) {
+				return mockForge, nil
+			},
+			ForgeFromUserFunc: func(_ *model.User) (forge.Forge, error) {
 				return mockForge, nil
 			},
 		}
@@ -303,6 +322,7 @@ func TestCancelWorkflow(t *testing.T) {
 
 		// Mock store
 		mockStore := new(store_mocks.MockStore)
+		mockStore.On("UserForgeGet", user.ID, repo.ForgeID).Return(nil, store_types.RecordNotExist)
 
 		// Mock forge
 		mockForge := new(forge_mocks.MockForge)
@@ -311,6 +331,9 @@ func TestCancelWorkflow(t *testing.T) {
 		originalServices := server.Config.Services
 		mgr := &mockManager{
 			ForgeFromRepoFunc: func(_ *model.Repo) (forge.Forge, error) {
+				return mockForge, nil
+			},
+			ForgeFromUserFunc: func(_ *model.User) (forge.Forge, error) {
 				return mockForge, nil
 			},
 		}

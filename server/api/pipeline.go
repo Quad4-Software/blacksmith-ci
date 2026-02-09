@@ -541,6 +541,7 @@ type ManualWorkflowsResponse struct {
 //	@Param			branch			query	string	true	"the branch to get configs from"
 //	@Param			filter			query	string	false	"filter workflows by event type (e.g., 'manual')"
 func GetRepoConfigs(c *gin.Context) {
+	_store := store.FromContext(c)
 	repo := session.Repo(c)
 	user := session.User(c)
 
@@ -556,6 +557,23 @@ func GetRepoConfigs(c *gin.Context) {
 	if err != nil {
 		log.Error().Err(err).Msg("Cannot get forge from repo")
 		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
+	isSecondaryForge := false
+	if userForge, ufErr := _store.UserForgeGet(user.ID, repo.ForgeID); ufErr == nil && userForge != nil {
+		user.AccessToken = userForge.AccessToken
+		user.RefreshToken = userForge.RefreshToken
+		user.Expiry = userForge.Expiry
+		user.ForgeID = userForge.ForgeID
+		user.ForgeRemoteID = userForge.ForgeRemoteID
+		isSecondaryForge = !userForge.IsPrimary
+	}
+
+	// Refresh tokens before forge API call
+	refreshUserTokenForForge(c, user, repo.ForgeID, isSecondaryForge)
+	if c.IsAborted() {
 		return
 	}
 
@@ -746,6 +764,23 @@ func CancelPipeline(c *gin.Context) {
 		return
 	}
 
+	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
+	isSecondaryForge := false
+	if userForge, ufErr := _store.UserForgeGet(user.ID, repo.ForgeID); ufErr == nil && userForge != nil {
+		user.AccessToken = userForge.AccessToken
+		user.RefreshToken = userForge.RefreshToken
+		user.Expiry = userForge.Expiry
+		user.ForgeID = userForge.ForgeID
+		user.ForgeRemoteID = userForge.ForgeRemoteID
+		isSecondaryForge = !userForge.IsPrimary
+	}
+
+	// Refresh tokens before forge API call
+	refreshUserTokenForForge(c, user, repo.ForgeID, isSecondaryForge)
+	if c.IsAborted() {
+		return
+	}
+
 	num, _ := strconv.ParseInt(c.Params.ByName("number"), 10, 64)
 
 	pl, err := _store.GetPipelineNumber(repo, num)
@@ -779,6 +814,23 @@ func PostApproval(c *gin.Context) {
 		num, _ = strconv.ParseInt(c.Params.ByName("number"), 10, 64)
 	)
 
+	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
+	isSecondaryForge := false
+	if userForge, ufErr := _store.UserForgeGet(user.ID, repo.ForgeID); ufErr == nil && userForge != nil {
+		user.AccessToken = userForge.AccessToken
+		user.RefreshToken = userForge.RefreshToken
+		user.Expiry = userForge.Expiry
+		user.ForgeID = userForge.ForgeID
+		user.ForgeRemoteID = userForge.ForgeRemoteID
+		isSecondaryForge = !userForge.IsPrimary
+	}
+
+	// Refresh tokens before forge API call
+	refreshUserTokenForForge(c, user, repo.ForgeID, isSecondaryForge)
+	if c.IsAborted() {
+		return
+	}
+
 	pl, err := _store.GetPipelineNumber(repo, num)
 	if err != nil {
 		handleDBError(c, err)
@@ -810,6 +862,23 @@ func PostDecline(c *gin.Context) {
 		user   = session.User(c)
 		num, _ = strconv.ParseInt(c.Params.ByName("number"), 10, 64)
 	)
+
+	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
+	isSecondaryForge := false
+	if userForge, ufErr := _store.UserForgeGet(user.ID, repo.ForgeID); ufErr == nil && userForge != nil {
+		user.AccessToken = userForge.AccessToken
+		user.RefreshToken = userForge.RefreshToken
+		user.Expiry = userForge.Expiry
+		user.ForgeID = userForge.ForgeID
+		user.ForgeRemoteID = userForge.ForgeRemoteID
+		isSecondaryForge = !userForge.IsPrimary
+	}
+
+	// Refresh tokens before forge API call
+	refreshUserTokenForForge(c, user, repo.ForgeID, isSecondaryForge)
+	if c.IsAborted() {
+		return
+	}
 
 	pl, err := _store.GetPipelineNumber(repo, num)
 	if err != nil {
@@ -1074,6 +1143,23 @@ func CancelWorkflow(c *gin.Context) {
 	if err != nil {
 		log.Error().Err(err).Msg("Cannot get forge from repo")
 		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
+	isSecondaryForge := false
+	if userForge, ufErr := _store.UserForgeGet(user.ID, repo.ForgeID); ufErr == nil && userForge != nil {
+		user.AccessToken = userForge.AccessToken
+		user.RefreshToken = userForge.RefreshToken
+		user.Expiry = userForge.Expiry
+		user.ForgeID = userForge.ForgeID
+		user.ForgeRemoteID = userForge.ForgeRemoteID
+		isSecondaryForge = !userForge.IsPrimary
+	}
+
+	// Refresh tokens before forge API call
+	refreshUserTokenForForge(c, user, repo.ForgeID, isSecondaryForge)
+	if c.IsAborted() {
 		return
 	}
 
