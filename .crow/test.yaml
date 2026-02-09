@@ -1,15 +1,7 @@
 variables:
   - &golang_image 'reg.devxy.io/docker.io/library/golang:1.25-alpine'
   - &when
-    - path: &when_path # related config files
-        - '.crow/test.yaml'
-        - '.golangci.yaml'
-        # go source code
-        - '**/*.go'
-        - 'go.*'
-        # schema changes
-        - 'pipeline/schema/**'
-      event: pull_request
+    - event: pull_request
 
 labels:
   agent: artemis
@@ -20,17 +12,12 @@ when:
     branch:
       - ${CI_REPO_DEFAULT_BRANCH}
       - v4.*
-    path: *when_path
 
 steps:
   vendor:
     image: *golang_image
     commands:
       - go mod vendor
-    when:
-      path:
-        - <<: *when_path
-        - '.crow/**'
 
   lint-pipeline:
     depends_on:
@@ -45,16 +32,12 @@ steps:
       CROW_PLUGINS_PRIVILEGED: 'reg.devxy.io/docker.io/woodpeckerci/plugin-docker-buildx'
     when:
       - event: pull_request
-        path:
-          - '.crow/**'
 
   dummy-web:
     image: *golang_image
     commands:
       - mkdir -p web/dist/
       - echo "test" > web/dist/index.html
-    when:
-      - path: *when_path
 
   lint:
     depends_on:
@@ -96,8 +79,6 @@ steps:
       - just test-server
       - just test-cli
       - just test-lib
-    when:
-      - path: *when_path
 
   sqlite:
     depends_on:
@@ -108,8 +89,6 @@ steps:
     commands:
       - apk add --no-cache -q just git gcc musl-dev
       - just test-server-datastore-coverage
-    when:
-      - path: *when_path
 
   postgres:
     depends_on:
