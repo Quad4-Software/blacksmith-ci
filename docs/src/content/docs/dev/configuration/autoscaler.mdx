@@ -90,6 +90,9 @@ services:
       - CROW_HETZNERCLOUD_SSH_KEYS=my-key
       - CROW_HETZNERCLOUD_FIREWALLS=my-firewall
 
+      # Agent image (optional — auto-detected from server version if omitted)
+      # - CROW_AGENT_IMAGE=codeberg.org/crowci/crow-agent:v5.3.2
+
       # Optional: agent environment
       - CROW_AGENT_ENV=CROW_LOG_LEVEL=debug,CROW_HEALTHCHECK=false
 ```
@@ -138,12 +141,27 @@ Remote agents require secure gRPC to connect back to the server.
 | `CROW_GRPC_ADDR`   | Public gRPC address (no protocol prefix) |
 | `CROW_GRPC_SECURE` | Set `true` for TLS connection            |
 
-### Agent Environment
+### Agent Image
 
-Pass arbitrary environment variables to spawned agents:
+| Variable           | Default | Description                          |
+| ------------------ | ------- | ------------------------------------ |
+| `CROW_AGENT_IMAGE` | _auto_  | Container image for spawned agents   |
+
+When `CROW_AGENT_IMAGE` is not set, the autoscaler queries the Crow server's `/version` endpoint and uses the matching agent image automatically — for example, if the server reports version `v5.3.2`, the autoscaler uses `codeberg.org/crowci/crow-agent:v5.3.2`.
+
+Set this variable explicitly only if you need to pin a specific agent version or use a custom image.
+
+### Agent Configuration
+
+| Variable             | Default | Description                                                    |
+| -------------------- | ------- | -------------------------------------------------------------- |
+| `CROW_AGENT_ENV`     | _none_  | Environment variables passed to spawned agents (comma-separated `KEY=value` pairs) |
+| `CROW_FILTER_LABELS` | _none_  | Only count queued tasks matching this label (`key=value`) toward scaling decisions. Required for [multiple autoscalers](#multiple-autoscalers). |
+
+Example agent environment:
 
 ```yaml
-CROW_AGENT_ENV=CROW_LOG_LEVEL=debug,CROW_HEALTHCHECK=false
+CROW_AGENT_ENV=CROW_AGENT_LABELS=tier=heavy,CROW_LOG_LEVEL=debug,CROW_HEALTHCHECK=false
 ```
 
 ## gRPC Proxy Setup
@@ -225,3 +243,107 @@ labels:
 
 The autoscaler checks for available agents before provisioning.
 If a static agent can handle the workload, no new VM is created.
+
+## Multiple Autoscalers
+
+A single Crow server can use multiple autoscalers simultaneously.
+Each autoscaler runs as an independent process with its own registration token, provider configuration, and scaling limits.
+
+### Why Use Multiple Autoscalers
+
+Multiple autoscalers let you target different cloud providers from a single server, for example, Hetzner for Linux builds and Azure for Windows builds.
+You can also provision different instance sizes, using small VMs for unit tests and large VMs for integration tests.
+Multi-region setups are possible too, placing agents in `eu-west` for European teams and `us-east` for US teams.
+For cost optimization, non-urgent work can run on spot or preemptible instances while time-sensitive builds use on-demand capacity.
+Finally, you can serve different architectures by provisioning `amd64` agents from one provider and `arm64` agents from another.
+
+:::note
+Currently, a single autoscaler can only provision a single instance type.
+This logic may change in the future.
+
+If you need multiple instance types to choose from, you need to register multiple autoscalers.
+:::
+
+### How It Works
+
+Each autoscaler reports its capabilities to the server via heartbeat.
+The server uses two mechanisms to route workflows to the right autoscaler:
+
+1. **Agent labels** (`CROW_AGENT_LABELS` inside `CROW_AGENT_ENV`) — the autoscaler reports these to the server, which uses them to determine whether the autoscaler can provision agents for a given workflow. A workflow's `labels:` must match an autoscaler's reported labels for that autoscaler to handle it.
+
+2. **Filter labels** (`CROW_FILTER_LABELS`) — the autoscaler uses these locally to decide which queued tasks count toward its scaling decisions. Without this, every autoscaler would see all pending tasks and try to scale up for work meant for a different autoscaler.
+
+:::caution
+When running multiple autoscalers, always set `CROW_FILTER_LABELS` on each one. Without it, each autoscaler counts **all** pending tasks — not just the ones it can handle — and will over-provision agents.
+:::
+
+### Example: Dual-Provider Setup
+
+Register two autoscalers on the server and note their tokens.
+
+```yaml
+# docker-compose.yaml
+services:
+  # Small instances for standard builds
+  autoscaler-standard:
+    image: codeberg.org/crowci/crow-autoscaler:<version>
+    restart: always
+    environment:
+      - CROW_SERVER=crow-server:9000
+      - CROW_TOKEN=${CROW_TOKEN}
+      - CROW_AUTOSCALER_TOKEN=${AUTOSCALER_TOKEN_STANDARD}
+      - CROW_GRPC_ADDR=grpc.crow.example.com
+      - CROW_GRPC_SECURE=true
+      - CROW_MAX_AGENTS=4
+      - CROW_WORKFLOWS_PER_AGENT=3
+      - CROW_FILTER_LABELS=tier=standard
+      - CROW_AGENT_ENV=CROW_AGENT_LABELS=tier=standard
+      - CROW_PROVIDER=hetznercloud
+      - CROW_HETZNERCLOUD_API_TOKEN=${HETZNER_TOKEN}
+      - CROW_HETZNERCLOUD_SERVER_TYPE=cax21
+      # ... other Hetzner settings
+
+  # Large instances for heavy builds
+  autoscaler-heavy:
+    image: codeberg.org/crowci/crow-autoscaler:<version>
+    restart: always
+    environment:
+      - CROW_SERVER=crow-server:9000
+      - CROW_TOKEN=${CROW_TOKEN}
+      - CROW_AUTOSCALER_TOKEN=${AUTOSCALER_TOKEN_HEAVY}
+      - CROW_GRPC_ADDR=grpc.crow.example.com
+      - CROW_GRPC_SECURE=true
+      - CROW_MAX_AGENTS=2
+      - CROW_WORKFLOWS_PER_AGENT=1
+      - CROW_FILTER_LABELS=tier=heavy
+      - CROW_AGENT_ENV=CROW_AGENT_LABELS=tier=heavy
+      - CROW_PROVIDER=aws
+      - CROW_AWS_INSTANCE_TYPE=c5.2xlarge
+      # ... other AWS settings
+```
+
+Workflows select their tier with labels:
+
+```yaml
+# .crow.yaml — lightweight job
+labels:
+  tier: standard
+
+steps:
+  - name: lint
+    image: golangci/golangci-lint
+    commands:
+      - golangci-lint run
+```
+
+```yaml
+# .crow.yaml — resource-intensive job
+labels:
+  tier: heavy
+
+steps:
+  - name: integration
+    image: golang
+    commands:
+      - go test -race -count=1 ./...
+```

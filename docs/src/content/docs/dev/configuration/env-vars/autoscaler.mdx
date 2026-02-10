@@ -51,6 +51,29 @@ The provider-specific settings are documented in their respective source files t
 
 ---
 
+## FILTER_LABELS
+
+- Name: `CROW_FILTER_LABELS`
+- Description: only count queued tasks matching this label toward scaling decisions.
+  Format: `key=value`.
+  Required when running [multiple autoscalers](/dev/configuration/autoscaler/#multiple-autoscalers) to prevent each autoscaler from scaling for tasks meant for another.
+- Default: none (all pending tasks are counted)
+- Synonyms:
+    - `WOODPECKER_FILTER_LABELS`
+
+---
+
+## AGENT_IMAGE
+
+- Name: `CROW_AGENT_IMAGE`
+- Description: container image used for spawned agents.
+  When not set, the autoscaler automatically uses the agent image matching the Crow server version (e.g. `codefloe.com/crowci/crow-agent:<version>`).
+- Default: auto-detected from server version
+- Synonyms:
+    - `WOODPECKER_AGENT_IMAGE`
+
+---
+
 ## PLUGINS_PRIVILEGED
 
 - Name: `CROW_PLUGINS_PRIVILEGED`
