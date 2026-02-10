@@ -17,7 +17,7 @@
     "@astrojs/starlight-markdoc": "^0.5.1",
     "@lorenzo_lewis/starlight-utils": "^0.3.2",
     "@microflash/rehype-figure": "^2.1.4",
-    "astro": "5.16.15",
+    "astro": "5.17.1",
     "pagefind": "^1.4.0",
     "playwright": "^1.57.0",
     "rehype-mermaid": "^3.0.0",
