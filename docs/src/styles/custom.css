@@ -142,18 +142,14 @@ starlight-version-select {
     Header Spacing
     ========================================================================== */
 
-/* Normalize spacing between header elements (social links, theme toggle, search) */
-.nova-header {
-  gap: 1.5rem !important;
+/* Top-level header bar spacing */
+header > div.flex {
+  gap: 1rem !important;
 }
 
-.nova-header-actions-lg {
-  gap: 1.5rem !important;
-}
-
-/* Social links consistent sizing */
-.social-icons a {
-  padding: 0.5rem;
+/* Right-side action items (social icons, donate, theme toggle) */
+header > div.flex > .hidden.items-center.md\:flex {
+  gap: 1rem !important;
 }
 
 /* ==========================================================================
