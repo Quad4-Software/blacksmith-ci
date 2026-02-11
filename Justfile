@@ -13,7 +13,7 @@ STATIC_BUILD := "true"
 CI := env_var_or_default("CI", "false")
 BUILD_DATE := `date -u +%Y-%m-%d`
 # renovate: datasource=github-releases depName=protocolbuffers/protobuf versioning=loose extractVersion=^v(?<version>.+)$
-PROTOC_VERSION := "33.2"
+PROTOC_VERSION := "33.5"
 # renovate: datasource=go depName=mvdan.cc/gofumpt
 GOFUMPT_VERSION := "v0.9.2"
 # renovate: datasource=go depName=github.com/daixiang0/gci
@@ -142,6 +142,7 @@ install-protoc:
 		TMP_DIR=$(mktemp -d)
 		curl -fsSL "$URL" -o "$TMP_DIR/protoc.zip"
 		unzip -q -o "$TMP_DIR/protoc.zip" -d "$TMP_DIR"
+		rm -f "$INSTALL_DIR/protoc"
 		cp "$TMP_DIR/bin/protoc" "$INSTALL_DIR/protoc"
 		chmod +x "$INSTALL_DIR/protoc"
 		rm -rf "$TMP_DIR"
