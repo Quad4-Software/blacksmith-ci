@@ -108,6 +108,8 @@ export default antfu(
       ],
       'vue/singleline-html-element-content-newline': ['off'],
       'vue-scoped-css/enforce-style-type': 'off',
+      // ESLint's data-flow analysis can't see that <script setup> variables are used in templates
+      'no-useless-assignment': 'off',
     },
   },
 
