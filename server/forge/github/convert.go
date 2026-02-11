@@ -18,7 +18,7 @@ package github
 import (
 	"fmt"
 
-	"github.com/google/go-github/v81/github"
+	"github.com/google/go-github/v82/github"
 
 	"codeberg.org/crowci/crow/v5/server/model"
 )
@@ -99,11 +99,14 @@ func convertRepo(from *github.Repository) *model.Repo {
 
 // convertPerm is a helper function used to convert a GitHub repository
 // permissions to the common Crow permissions structure.
-func convertPerm(perm map[string]bool) *model.Perm {
+func convertPerm(perm *github.RepositoryPermissions) *model.Perm {
+	if perm == nil {
+		return &model.Perm{}
+	}
 	return &model.Perm{
-		Admin: perm["admin"],
-		Push:  perm["push"],
-		Pull:  perm["pull"],
+		Admin: perm.GetAdmin(),
+		Push:  perm.GetPush(),
+		Pull:  perm.GetPull(),
 	}
 }
 
