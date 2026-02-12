@@ -1,6 +1,28 @@
 <template>
-  <div class="flex h-full w-full flex-col items-center justify-center">
-    <p class="mb-8 text-2xl">{{ $t('not_found.not_found') }}</p>
-    <router-link class="text-blue-400" replace :to="{ name: 'home' }"> {{ $t('not_found.back_home') }} </router-link>
+  <div class="flex h-full w-full flex-col items-center justify-center gap-6 p-4">
+    <img :src="logoSrc" alt="Crow CI" class="h-16 w-16 opacity-40" />
+    <div class="text-center">
+      <h1 class="text-4xl font-bold text-foreground">404</h1>
+      <p class="mt-2 text-muted-foreground">{{ $t('not_found.not_found') }}</p>
+    </div>
+    <router-link
+      replace
+      :to="{ name: 'home' }"
+      class="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+    >
+      {{ $t('not_found.back_home') }}
+    </router-link>
   </div>
 </template>
+
+<script lang="ts" setup>
+import { computed } from 'vue';
+
+import LogoLight from '~/assets/logo-dark.png';
+import LogoDark from '~/assets/logo.png';
+import { useTheme } from '~/compositions/useTheme';
+
+const { isDarkMode } = useTheme();
+
+const logoSrc = computed(() => (isDarkMode.value ? LogoLight : LogoDark));
+</script>
