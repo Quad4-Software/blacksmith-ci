@@ -22,184 +22,142 @@
 
       <SidebarSeparator v-if="user" />
 
-      <Collapsible :default-open="true" class="group/collapsible">
-        <SidebarGroup>
-          <SidebarGroupLabel as-child>
-            <CollapsibleTrigger>
-              {{ $t('navigation') }}
-              <Icon
-                name="chevron-down"
-                class="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180"
-              />
-            </CollapsibleTrigger>
-          </SidebarGroupLabel>
-          <CollapsibleContent>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarMenuItem v-if="user">
-                  <SidebarMenuButton as-child :tooltip="$t('repositories.title')" :is-active="isActive('repos')">
-                    <router-link :to="{ name: 'repos' }">
-                      <Icon name="repo" class="size-4" />
-                      <span>{{ $t('repositories.title') }}</span>
-                      <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
-                      <div v-if="!isMobile" class="ml-auto flex items-center gap-0.5">
-                        <Kbd>Alt</Kbd>
-                        <Kbd>R</Kbd>
-                      </div>
-                      <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
-                    </router-link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+      <!-- CI/CD group -->
+      <SidebarGroup v-if="user">
+        <SidebarGroupLabel>{{ $t('nav_ci_cd') }}</SidebarGroupLabel>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton as-child :tooltip="$t('repositories.title')" :is-active="isActive('repos')">
+                <router-link :to="{ name: 'repos' }">
+                  <Icon name="repo" class="size-4" />
+                  <span>{{ $t('repositories.title') }}</span>
+                  <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
+                  <span v-if="!isMobile" class="ml-auto text-xs text-muted-foreground">Alt+R</span>
+                </router-link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton as-child :tooltip="$t('admin.settings.agents.agents')" :is-active="isActive('agents')">
+                <router-link :to="{ name: 'agents' }">
+                  <Icon name="agent" class="size-4" />
+                  <span>{{ $t('admin.settings.agents.agents') }}</span>
+                  <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
+                  <span v-if="!isMobile" class="ml-auto text-xs text-muted-foreground">Alt+A</span>
+                </router-link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                as-child
+                :tooltip="$t('admin.settings.autoscalers.autoscalers')"
+                :is-active="isActive('autoscalers')"
+              >
+                <router-link :to="{ name: 'autoscalers' }">
+                  <Icon name="autoscaler" class="size-4" />
+                  <span>{{ $t('admin.settings.autoscalers.autoscalers') }}</span>
+                  <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
+                  <span v-if="!isMobile" class="ml-auto text-xs text-muted-foreground">Alt+U</span>
+                </router-link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
 
-                <SidebarMenuItem v-if="user">
-                  <SidebarMenuButton as-child :tooltip="$t('secrets.secrets')" :is-active="isActive('user-secrets')">
-                    <router-link :to="{ name: 'user-secrets' }">
-                      <Icon name="secret" class="size-4" />
-                      <span>{{ $t('secrets.secrets') }}</span>
-                      <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
-                      <div v-if="!isMobile" class="ml-auto flex items-center gap-0.5">
-                        <Kbd>Alt</Kbd>
-                        <Kbd>S</Kbd>
-                      </div>
-                      <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
-                    </router-link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+      <!-- Credentials group -->
+      <SidebarGroup v-if="user">
+        <SidebarGroupLabel>{{ $t('nav_credentials') }}</SidebarGroupLabel>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton as-child :tooltip="$t('secrets.secrets')" :is-active="isActive('user-secrets')">
+                <router-link :to="{ name: 'user-secrets' }">
+                  <Icon name="secret" class="size-4" />
+                  <span>{{ $t('secrets.secrets') }}</span>
+                  <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
+                  <span v-if="!isMobile" class="ml-auto text-xs text-muted-foreground">Alt+S</span>
+                </router-link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                as-child
+                :tooltip="$t('registries.registries')"
+                :is-active="isActive('user-registries')"
+              >
+                <router-link :to="{ name: 'user-registries' }">
+                  <Icon name="docker" class="size-4" />
+                  <span>{{ $t('registries.registries') }}</span>
+                  <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
+                  <span v-if="!isMobile" class="ml-auto text-xs text-muted-foreground">Alt+Shift+R</span>
+                </router-link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                as-child
+                :tooltip="$t('access_tokens.title')"
+                :is-active="isActive('user-access-tokens')"
+              >
+                <router-link :to="{ name: 'user-access-tokens' }">
+                  <Icon name="secret" class="size-4" />
+                  <span>{{ $t('access_tokens.title') }}</span>
+                  <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
+                  <span v-if="!isMobile" class="ml-auto text-xs text-muted-foreground">Alt+T</span>
+                </router-link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
 
-                <SidebarMenuItem v-if="user">
-                  <SidebarMenuButton
-                    as-child
-                    :tooltip="$t('registries.registries')"
-                    :is-active="isActive('user-registries')"
-                  >
-                    <router-link :to="{ name: 'user-registries' }">
-                      <Icon name="docker" class="size-4" />
-                      <span>{{ $t('registries.registries') }}</span>
-                      <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
-                      <div v-if="!isMobile" class="ml-auto flex items-center gap-0.5">
-                        <Kbd>Alt</Kbd>
-                        <Kbd>Shift</Kbd>
-                        <Kbd>R</Kbd>
-                      </div>
-                      <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
-                    </router-link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-
-                <SidebarMenuItem v-if="user">
-                  <SidebarMenuButton
-                    as-child
-                    :tooltip="$t('repo.settings.crons.crons')"
-                    :is-active="isActive('user-crons')"
-                  >
-                    <router-link :to="{ name: 'user-crons' }">
-                      <Icon name="lucide:clock" class="size-4" />
-                      <span>{{ $t('repo.settings.crons.crons') }}</span>
-                      <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
-                      <div v-if="!isMobile" class="ml-auto flex items-center gap-0.5">
-                        <Kbd>Alt</Kbd>
-                        <Kbd>C</Kbd>
-                      </div>
-                      <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
-                    </router-link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-
-                <SidebarMenuItem v-if="user">
-                  <SidebarMenuButton
-                    as-child
-                    :tooltip="$t('access_tokens.title')"
-                    :is-active="isActive('user-access-tokens')"
-                  >
-                    <router-link :to="{ name: 'user-access-tokens' }">
-                      <Icon name="secret" class="size-4" />
-                      <span>{{ $t('access_tokens.title') }}</span>
-                      <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
-                      <div v-if="!isMobile" class="ml-auto flex items-center gap-0.5">
-                        <Kbd>Alt</Kbd>
-                        <Kbd>T</Kbd>
-                      </div>
-                      <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
-                    </router-link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-
-                <SidebarMenuItem v-if="user">
-                  <SidebarMenuButton as-child :tooltip="$t('metrics.title')" :is-active="isActive('user-metrics')">
-                    <router-link :to="{ name: 'user-metrics' }">
-                      <Icon name="graph" class="size-4" />
-                      <span>{{ $t('metrics.title') }}</span>
-                      <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
-                      <div v-if="!isMobile" class="ml-auto flex items-center gap-0.5">
-                        <Kbd>Alt</Kbd>
-                        <Kbd>M</Kbd>
-                      </div>
-                      <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
-                    </router-link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-
-                <SidebarMenuItem v-if="user">
-                  <SidebarMenuButton
-                    as-child
-                    :tooltip="$t('admin.settings.agents.agents')"
-                    :is-active="isActive('agents')"
-                  >
-                    <router-link :to="{ name: 'agents' }">
-                      <Icon name="agent" class="size-4" />
-                      <span>{{ $t('admin.settings.agents.agents') }}</span>
-                      <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
-                      <div v-if="!isMobile" class="ml-auto flex items-center gap-0.5">
-                        <Kbd>Alt</Kbd>
-                        <Kbd>A</Kbd>
-                      </div>
-                      <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
-                    </router-link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-
-                <SidebarMenuItem v-if="user">
-                  <SidebarMenuButton
-                    as-child
-                    :tooltip="$t('admin.settings.autoscalers.autoscalers')"
-                    :is-active="isActive('autoscalers')"
-                  >
-                    <router-link :to="{ name: 'autoscalers' }">
-                      <Icon name="autoscaler" class="size-4" />
-                      <span>{{ $t('admin.settings.autoscalers.autoscalers') }}</span>
-                      <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
-                      <div v-if="!isMobile" class="ml-auto flex items-center gap-0.5">
-                        <Kbd>Alt</Kbd>
-                        <Kbd>U</Kbd>
-                      </div>
-                      <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
-                    </router-link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-
-                <SidebarMenuItem v-if="user">
-                  <SidebarMenuButton
-                    as-child
-                    :tooltip="$t('integrations.title')"
-                    :is-active="isActive('user-integrations')"
-                  >
-                    <router-link :to="{ name: 'user-integrations' }">
-                      <Icon name="lucide:plug-2" class="size-4" />
-                      <span>{{ $t('integrations.title') }}</span>
-                      <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
-                      <div v-if="!isMobile" class="ml-auto flex items-center gap-0.5">
-                        <Kbd>Alt</Kbd>
-                        <Kbd>I</Kbd>
-                      </div>
-                      <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
-                    </router-link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </CollapsibleContent>
-        </SidebarGroup>
-      </Collapsible>
+      <!-- General group -->
+      <SidebarGroup v-if="user">
+        <SidebarGroupLabel>{{ $t('nav_general') }}</SidebarGroupLabel>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                as-child
+                :tooltip="$t('repo.settings.crons.crons')"
+                :is-active="isActive('user-crons')"
+              >
+                <router-link :to="{ name: 'user-crons' }">
+                  <Icon name="lucide:clock" class="size-4" />
+                  <span>{{ $t('repo.settings.crons.crons') }}</span>
+                  <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
+                  <span v-if="!isMobile" class="ml-auto text-xs text-muted-foreground">Alt+C</span>
+                </router-link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton as-child :tooltip="$t('metrics.title')" :is-active="isActive('user-metrics')">
+                <router-link :to="{ name: 'user-metrics' }">
+                  <Icon name="graph" class="size-4" />
+                  <span>{{ $t('metrics.title') }}</span>
+                  <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
+                  <span v-if="!isMobile" class="ml-auto text-xs text-muted-foreground">Alt+M</span>
+                </router-link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                as-child
+                :tooltip="$t('integrations.title')"
+                :is-active="isActive('user-integrations')"
+              >
+                <router-link :to="{ name: 'user-integrations' }">
+                  <Icon name="lucide:plug-2" class="size-4" />
+                  <span>{{ $t('integrations.title') }}</span>
+                  <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
+                  <span v-if="!isMobile" class="ml-auto text-xs text-muted-foreground">Alt+I</span>
+                </router-link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
 
       <SidebarSeparator v-if="user?.admin" />
 

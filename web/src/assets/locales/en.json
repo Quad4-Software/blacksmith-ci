@@ -17,7 +17,9 @@
     "actions": "Actions",
     "toggle_theme": "Toggle Theme"
   },
-  "navigation": "Navigation",
+  "nav_ci_cd": "CI / CD",
+  "nav_credentials": "Credentials",
+  "nav_general": "General",
   "filter": "Filter",
   "forge": "Forge",
   "name": "Name",
