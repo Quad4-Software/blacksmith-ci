@@ -212,6 +212,7 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from '~/components/ui/s
 import { Toaster } from '~/components/ui/sonner';
 import useApiClient from '~/compositions/useApiClient';
 import useAuthentication from '~/compositions/useAuthentication';
+import { is404Suppressed } from '~/compositions/useNotificationControl';
 import useConfig from '~/compositions/useConfig';
 import useNotifications from '~/compositions/useNotifications';
 import { useTheme } from '~/compositions/useTheme';
@@ -238,9 +239,6 @@ let staleTokenNotificationShown = false;
 let staleTokenNotificationTimeout: number | null = null;
 let lastLoginTime = 0;
 
-// 404 error suppression - used when intentionally deleting/navigating away from resources
-let suppress404Until = 0;
-
 // Function to clear all notifications
 const clearAllNotifications = () => {
   // Dismiss all toasts
@@ -255,18 +253,7 @@ const clearAllNotifications = () => {
   lastLoginTime = Date.now();
 };
 
-// Expose the function globally so it can be called from router
-(window as any).clearAllNotifications = clearAllNotifications;
-
-// Function to temporarily suppress 404 errors (e.g., after deleting a resource)
-const suppress404Errors = (durationMs = 2000) => {
-  suppress404Until = Date.now() + durationMs;
-};
-
-// Expose globally for use in components
-(window as any).suppress404Errors = suppress404Errors;
-
-// Listen for clear notifications event
+// Listen for clear notifications event (dispatched from router)
 window.addEventListener('clearNotifications', clearAllNotifications);
 
 // Helper to parse error messages that might be JSON
@@ -295,7 +282,7 @@ apiClient.setErrorHandler(
 
     if (status === 404) {
       // Skip 404 notification if temporarily suppressed (e.g., after deleting a resource)
-      if (Date.now() < suppress404Until) {
+      if (is404Suppressed()) {
         return;
       }
       notify({ title: i18n.t('errors.not_found'), type: 'error' });
