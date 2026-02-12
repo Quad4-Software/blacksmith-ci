@@ -169,6 +169,7 @@
 
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import Icon from '~/components/atomic/Icon.vue';
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
@@ -197,6 +198,7 @@ const emit = defineEmits<{
   togglePin: [];
 }>();
 
+const { t } = useI18n();
 const apiClient = useApiClient();
 const notifications = useNotifications();
 const repoStore = useRepoStore();
@@ -246,7 +248,7 @@ async function toggleRepoActive(checked: boolean) {
     try {
       await apiClient.deleteRepo(props.repo.id, false); // false = disable, not delete
       notifications.notify({
-        title: 'Repository disabled',
+        title: t('repo.settings.actions.disable.notify_text_success'),
         type: 'success',
       });
     } catch {
@@ -256,7 +258,7 @@ async function toggleRepoActive(checked: boolean) {
         active: true,
       });
       notifications.notify({
-        title: 'Failed to update repository',
+        title: t('notify_title_error'),
         type: 'error',
       });
     } finally {
@@ -270,12 +272,12 @@ async function toggleRepoActive(checked: boolean) {
       const updatedRepo = await apiClient.activateRepo(props.repo.forge_remote_id);
       repoStore.setRepo(updatedRepo);
       notifications.notify({
-        title: 'Repository enabled',
+        title: t('repo.settings.actions.enable.notify_text_success'),
         type: 'success',
       });
     } catch {
       notifications.notify({
-        title: 'Failed to update repository',
+        title: t('notify_title_error'),
         type: 'error',
       });
     } finally {
@@ -304,7 +306,7 @@ async function rerunPipeline() {
   try {
     await apiClient.restartPipeline(props.repo.id, lastPipeline.value.number.toString());
     notifications.notify({
-      title: 'Pipeline restarted',
+      title: t('repo.pipeline.rerun_success'),
       type: 'success',
     });
     // Refresh the pipeline list
@@ -312,7 +314,7 @@ async function rerunPipeline() {
     recentPipelines.value = pipelines || [];
   } catch {
     notifications.notify({
-      title: 'Failed to restart pipeline',
+      title: t('repo.pipeline.rerun_failed'),
       type: 'error',
     });
   } finally {
