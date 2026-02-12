@@ -25,7 +25,7 @@
           :aria-label="`${isLinkingMode ? $t('link_forge_message') : $t('login_oauth_message')} ${getHostFromUrl(forge)}`"
           @click="doLogin(forge.id)"
         >
-          <span v-if="loading === forge.id" class="loader" aria-hidden="true"></span>
+          <Icon v-if="loading === forge.id" name="spinner" class="h-5 w-5 animate-spin" aria-hidden="true" />
           <span v-else class="flex items-center gap-2">
             <Icon v-if="hasBuiltInIcon(forge)" :name="forge.type as IconNames" size="1.5rem" />
             <img
@@ -260,23 +260,3 @@ function onFaviconError(event: Event) {
 
 useCrowTitle(computed(() => [i18n.t('login')]));
 </script>
-
-<style scoped>
-.loader {
-  border: 2px solid #f3f3f3;
-  border-top: 2px solid #f6a434;
-  border-radius: 50%;
-  width: 1.2em;
-  height: 1.2em;
-  animation: spin 1s linear infinite;
-  display: inline-block;
-}
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-</style>
