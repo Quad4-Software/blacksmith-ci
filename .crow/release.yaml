@@ -14,7 +14,7 @@ depends_on:
   - images
 
 labels:
-  agent: artemis
+  agent: thumper
 
 steps:
   vendor:

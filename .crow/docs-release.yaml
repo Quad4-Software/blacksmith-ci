@@ -12,7 +12,7 @@ depends_on:
   - images
 
 labels:
-  agent: artemis
+  agent: thumper
 
 steps:
   - name: 'Check version type'

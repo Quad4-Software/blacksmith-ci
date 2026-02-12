@@ -12,7 +12,7 @@ clone:
 
 steps:
   - name: 'Update dev version hash'
-    image: alpine:3.23
+    image: reg.devxy.io/docker.io/library/alpine:3.23
     commands:
       - apk add --no-cache -q yq curl
       - |
@@ -26,7 +26,7 @@ steps:
 
   # used by Crow to make checks for outdated versions
   - name: 'Update release version hash'
-    image: alpine:3.23
+    image: reg.devxy.io/docker.io/library/alpine:3.23
     commands:
       - apk add --no-cache -q yq
       - |

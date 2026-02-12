@@ -8,7 +8,7 @@ when:
     evaluate: 'task == "docs"'
 
 labels:
-  agent: artemis
+  agent: thumper
 
 steps:
   - name: 'Build and deploy docs'

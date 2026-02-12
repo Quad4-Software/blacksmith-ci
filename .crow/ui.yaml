@@ -16,7 +16,7 @@ variables:
       - 'server/api/**'
 
 labels:
-  agent: artemis
+  agent: thumper
 
 steps:
   install-dependencies:

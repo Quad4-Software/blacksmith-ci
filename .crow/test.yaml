@@ -4,7 +4,7 @@ variables:
     - event: pull_request
 
 labels:
-  agent: artemis
+  agent: thumper
 
 when:
   - event: pull_request
