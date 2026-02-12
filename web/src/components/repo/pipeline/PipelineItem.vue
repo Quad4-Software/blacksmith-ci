@@ -202,7 +202,7 @@
 
 <script lang="ts" setup>
 import { computed, ref, toRef } from 'vue';
-import { RouterLink } from 'vue-router';
+import { RouterLink, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 
 import Icon from '~/components/atomic/Icon.vue';
@@ -234,6 +234,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const router = useRouter();
 const apiClient = useApiClient();
 const notifications = useNotifications();
 const repo = requiredInject('repo');
@@ -317,15 +318,16 @@ async function rerunPipeline(event: Event) {
 
   isRerunning.value = true;
   try {
-    await apiClient.restartPipeline(repo.value.id, pipeline.value.number.toString());
+    const newPipeline = await apiClient.restartPipeline(repo.value.id, pipeline.value.number.toString());
     notifications.notify({
       title: t('repo.pipeline.rerun_success'),
       type: 'success',
     });
-    // Reload to show the new pipeline
-    setTimeout(() => {
-      window.location.reload();
-    }, 1000);
+    // Navigate to the newly created pipeline
+    router.push({
+      name: 'repo-pipeline',
+      params: { repoId: repo.value.id, pipelineId: newPipeline.number },
+    });
   } catch {
     notifications.notify({
       title: t('repo.pipeline.rerun_failed'),
