@@ -71,7 +71,8 @@
     "last": "Jump to Last Page"
   },
   "not_found": {
-    "not_found": "404 - page not found",
+    "heading": "404",
+    "not_found": "Page not found",
     "back_home": "Back to home"
   },
   "errors": {

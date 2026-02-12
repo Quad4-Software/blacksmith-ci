@@ -2,7 +2,7 @@
   <div class="flex h-full w-full flex-col items-center justify-center gap-6 p-4">
     <img :src="logoSrc" alt="Crow CI" class="h-16 w-16 opacity-40" />
     <div class="text-center">
-      <h1 class="text-4xl font-bold text-foreground">404</h1>
+      <h1 class="text-4xl font-bold text-foreground">{{ $t('not_found.heading') }}</h1>
       <p class="mt-2 text-muted-foreground">{{ $t('not_found.not_found') }}</p>
     </div>
     <router-link
@@ -22,7 +22,7 @@ import LogoLight from '~/assets/logo-dark.png';
 import LogoDark from '~/assets/logo.png';
 import { useTheme } from '~/compositions/useTheme';
 
-const { isDarkMode } = useTheme();
+const { theme } = useTheme();
 
-const logoSrc = computed(() => (isDarkMode.value ? LogoLight : LogoDark));
+const logoSrc = computed(() => (theme.value === 'dark' ? LogoLight : LogoDark));
 </script>
