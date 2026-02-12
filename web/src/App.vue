@@ -292,20 +292,6 @@ apiClient.setErrorHandler(
     // Handle 401 errors - session invalidation is handled by the API client,
     // this just provides user feedback before redirect
     if (status === 401) {
-      // Helper to parse error messages that might be JSON.
-      const parseErrorMessage = (msg: string): string => {
-        // Look for JSON content in the message, which might be after status text like "Unauthorized: "
-        const jsonStart = msg.indexOf('{');
-        if (jsonStart === -1) return msg;
-        try {
-          const parsed = JSON.parse(msg.slice(jsonStart));
-          return parsed?.error || msg;
-        } catch (e) {
-          console.error('Failed to parse JSON from string:', e);
-          return msg;
-        }
-      };
-
       const errorText = parseErrorMessage(message.trim());
 
       // Check if this is a stale token error by looking for specific error messages
