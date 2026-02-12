@@ -1,6 +1,11 @@
 <template>
   <Transition name="fade" mode="out-in">
-    <router-link v-if="repo && repo.active" :to="{ name: 'repo', params: { repoId: repo.id } }" class="block w-full">
+    <router-link
+      v-if="repo && repo.active"
+      ref="cardRef"
+      :to="{ name: 'repo', params: { repoId: repo.id } }"
+      class="block w-full"
+    >
       <Card class="p-0 hover:bg-accent/50 transition-colors cursor-pointer">
         <CardHeader class="mb-2 p-4 pb-1">
           <div class="flex items-start justify-between gap-4">
@@ -168,7 +173,8 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref } from 'vue';
+import { useIntersectionObserver } from '@vueuse/core';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Icon from '~/components/atomic/Icon.vue';
@@ -289,15 +295,26 @@ async function toggleRepoActive(checked: boolean) {
 const lastPipeline = computed(() => props.repo.last_pipeline);
 const { shortMessage, duration } = usePipeline(lastPipeline);
 
-// Fetch last 5 pipelines
-onMounted(async () => {
-  try {
-    const pipelines = await apiClient.getPipelineList(props.repo.id, { perPage: 5 });
-    recentPipelines.value = pipelines || [];
-  } catch (error) {
-    console.error('Failed to fetch recent pipelines:', error);
-  }
-});
+// Lazy-load last 5 pipelines only when the card scrolls into view
+const cardRef = ref<HTMLElement | null>(null);
+const pipelinesLoaded = ref(false);
+
+const { stop: stopObserver } = useIntersectionObserver(
+  cardRef,
+  async ([{ isIntersecting }]) => {
+    if (isIntersecting && !pipelinesLoaded.value) {
+      pipelinesLoaded.value = true;
+      stopObserver();
+      try {
+        const pipelines = await apiClient.getPipelineList(props.repo.id, { perPage: 5 });
+        recentPipelines.value = pipelines || [];
+      } catch {
+        // Silently fail - the card still shows the last pipeline from the repo object
+      }
+    }
+  },
+  { threshold: 0.1 },
+);
 
 async function rerunPipeline() {
   if (!lastPipeline.value) return;
