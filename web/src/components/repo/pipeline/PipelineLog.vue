@@ -77,7 +77,7 @@
           <TooltipProvider v-if="step?.finished !== undefined && hasLogs && hasPushPermission">
             <Tooltip>
               <TooltipTrigger as-child>
-                <Button variant="ghost" size="icon-sm" @click="deleteLogs">
+                <Button variant="ghost" size="icon-sm" @click="showDeleteLogsDialog = true">
                   <Icon name="trash" />
                 </Button>
               </TooltipTrigger>
@@ -301,7 +301,7 @@
                 v-if="step?.finished !== undefined && hasLogs && hasPushPermission"
                 variant="outline"
                 size="sm"
-                @click="deleteLogs"
+                @click="showDeleteLogsDialog = true"
               >
                 <Icon name="trash" class="mr-2" />
                 {{ $t('repo.pipeline.actions.log_delete') }}
@@ -555,6 +555,24 @@
         <span class="border border-destructive rounded-full px-2 py-0.5">{{ step.error }}</span>
       </div>
     </Card>
+
+    <AlertDialog v-model:open="showDeleteLogsDialog">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{{ $t('repo.pipeline.actions.log_delete') }}</AlertDialogTitle>
+          <AlertDialogDescription>{{ $t('repo.pipeline.log_delete_confirm') }}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{{ $t('cancel') }}</AlertDialogCancel>
+          <AlertDialogAction
+            class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            @click="confirmDeleteLogs"
+          >
+            {{ $t('repo.pipeline.actions.log_delete') }}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </component>
 </template>
 
@@ -572,6 +590,16 @@ import { useRoute } from 'vue-router';
 import Icon from '~/components/atomic/Icon.vue';
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '~/components/ui/alert-dialog';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader } from '~/components/ui/card';
 import {
@@ -1030,15 +1058,11 @@ async function loadLogs() {
   }
 }
 
-async function deleteLogs() {
+const showDeleteLogsDialog = ref(false);
+
+async function confirmDeleteLogs() {
   if (!repo?.value || !pipeline.value || !step.value) {
     throw new Error('The repository, pipeline or step was undefined');
-  }
-
-  // TODO: use proper dialog (copy-pasted from web/src/components/secrets/SecretList.vue:deleteSecret)
-  // eslint-disable-next-line no-alert
-  if (!confirm(i18n.t('repo.pipeline.log_delete_confirm'))) {
-    return;
   }
 
   try {
@@ -1051,6 +1075,8 @@ async function deleteLogs() {
       type: 'error',
       duration: 9000,
     });
+  } finally {
+    showDeleteLogsDialog.value = false;
   }
 }
 
