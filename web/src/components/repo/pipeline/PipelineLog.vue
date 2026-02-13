@@ -2,6 +2,7 @@
   <component
     :is="isFullscreen ? 'div' : 'div'"
     v-if="pipeline"
+    ref="componentRef"
     :class="isFullscreen ? 'fixed inset-0 z-50 bg-background' : 'flex flex-col h-full'"
   >
     <Card
@@ -665,6 +666,7 @@ const step = computed(() => pipeline.value && findStep(pipeline.value.workflows 
 const stream = ref<EventSource>();
 const log = ref<LogLine[]>();
 const logContainerRef = ref<HTMLElement | null>(null);
+const componentRef = ref<HTMLElement | null>(null);
 const logsDeleted = computed(() => pipeline.value.logs_deleted);
 
 const loadedLogs = computed(() => !!log.value);
@@ -1161,8 +1163,11 @@ onBeforeUnmount(() => {
 
 // Handle keyboard shortcuts
 function handleKeydown(event: KeyboardEvent) {
-  // Ctrl/Cmd+F to open search
+  // Ctrl/Cmd+F to open search — only intercept when the log pane has focus
+  // or the log search is already open, otherwise let the browser handle it
   if ((event.metaKey || event.ctrlKey) && event.key === 'f') {
+    const hasFocus = searchOpen.value || (componentRef.value && componentRef.value.contains(document.activeElement));
+    if (!hasFocus) return;
     event.preventDefault();
     openSearch();
     return;

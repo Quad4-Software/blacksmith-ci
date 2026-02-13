@@ -165,6 +165,20 @@
               <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 wrap-break-word">
                 {{ formatExecutionTime(nodeProps.data?.step) }}
               </div>
+              <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
+              <div
+                v-if="nodeProps.data?.workflow?.environ && Object.keys(nodeProps.data.workflow.environ).length > 0"
+                class="flex flex-wrap gap-1 mt-1.5"
+              >
+                <span
+                  v-for="(value, key) in nodeProps.data.workflow.environ"
+                  :key="key"
+                  class="text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded font-mono leading-tight"
+                >
+                  {{ key }}={{ value }}
+                </span>
+              </div>
+              <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
               <Handle
                 :id="`${nodeProps.id}-source`"
                 type="source"
@@ -306,6 +320,7 @@ import '@vue-flow/core/dist/theme-default.css';
 import '@vue-flow/controls/dist/style.css';
 import type { Node, Edge } from '@vue-flow/core';
 import type { Pipeline, PipelineStep, PipelineWorkflow, PipelineStatus } from '~/lib/api/types';
+import { identifyMatrixGroupsMap } from '~/lib/pipeline-utils';
 import { useLayout } from '~/compositions/useLayout';
 
 interface Props {
@@ -439,6 +454,27 @@ const filteredNodes = computed(() => {
           }
         }
 
+        // Check if any workflow's environ matches the search
+        if (!shouldShow && node.data?.isMatrixGroup && node.data?.matrixWorkflows) {
+          shouldShow = node.data.matrixWorkflows.some(
+            (workflow: PipelineWorkflow) =>
+              workflow.environ &&
+              Object.entries(workflow.environ).some(
+                ([k, v]) =>
+                  k.toLowerCase().includes(query) ||
+                  v.toLowerCase().includes(query) ||
+                  `${k}=${v}`.toLowerCase().includes(query),
+              ),
+          );
+        } else if (!shouldShow && node.data?.workflow?.environ) {
+          shouldShow = Object.entries(node.data.workflow.environ as Record<string, string>).some(
+            ([k, v]) =>
+              k.toLowerCase().includes(query) ||
+              v.toLowerCase().includes(query) ||
+              `${k}=${v}`.toLowerCase().includes(query),
+          );
+        }
+
         if (!shouldShow) return false;
       }
 
@@ -463,8 +499,16 @@ const filteredNodes = computed(() => {
         const stepMatches = stepName.includes(query);
         const workflowMatches = workflowName.includes(query);
         const workflowInMatchingSet = workflow?.name ? matchingWorkflowNames.has(workflow.name) : false;
+        const environMatches = workflow?.environ
+          ? Object.entries(workflow.environ as Record<string, string>).some(
+              ([k, v]) =>
+                k.toLowerCase().includes(query) ||
+                v.toLowerCase().includes(query) ||
+                `${k}=${v}`.toLowerCase().includes(query),
+            )
+          : false;
 
-        if (!stepMatches && !workflowMatches && !workflowInMatchingSet) {
+        if (!stepMatches && !workflowMatches && !workflowInMatchingSet && !environMatches) {
           return false;
         }
       }
@@ -703,7 +747,7 @@ function applyLayout(direction: string) {
     });
 
     // Create workflow groups and add them to nodes
-    const matrixGroups = identifyMatrixGroups(props.pipeline.workflows || []);
+    const matrixGroups = identifyMatrixGroupsMap(props.pipeline.workflows || []);
     const workflowGroups = createWorkflowGroupsSync(workflowSteps, matrixGroups);
 
     // Apply workflow dependency layout for proper positioning
@@ -799,7 +843,7 @@ function applyFallbackLayout(direction: string) {
     }
   });
 
-  const matrixGroups = identifyMatrixGroups(props.pipeline.workflows || []);
+  const matrixGroups = identifyMatrixGroupsMap(props.pipeline.workflows || []);
   const workflowGroups = createWorkflowGroupsSync(workflowSteps, matrixGroups);
 
   // Apply workflow dependency layout for proper positioning
@@ -894,7 +938,7 @@ function buildDAG() {
     });
 
     // Identify matrix workflow groups using improved detection
-    const matrixGroups = identifyMatrixGroups(props.pipeline.workflows || []);
+    const matrixGroups = identifyMatrixGroupsMap(props.pipeline.workflows || []);
 
     // Create nodes for each step
     props.pipeline.workflows.forEach((workflow) => {
@@ -1015,28 +1059,6 @@ function buildDAG() {
     nodes.value = [];
     edges.value = [];
   }
-}
-
-// Group workflows by pipeline_name field
-function identifyMatrixGroups(workflows: PipelineWorkflow[]): Map<string, PipelineWorkflow[]> {
-  const matrixGroups = new Map<string, PipelineWorkflow[]>();
-
-  // Group workflows by their pipeline_name field
-  workflows.forEach((workflow) => {
-    let pipelineName = workflow.pipeline_name;
-
-    // Fallback to workflow name if no pipeline_name
-    if (!pipelineName) {
-      pipelineName = workflow.name;
-    }
-
-    if (!matrixGroups.has(pipelineName)) {
-      matrixGroups.set(pipelineName, []);
-    }
-    matrixGroups.get(pipelineName)!.push(workflow);
-  });
-
-  return matrixGroups;
 }
 
 // Create virtual workflow group nodes that participate in the DAG layout
@@ -1906,7 +1928,7 @@ function updateNodeStates(pipeline: Pipeline) {
   });
 
   // Identify matrix groups for edge creation
-  const matrixGroups = identifyMatrixGroups(pipeline.workflows || []);
+  const matrixGroups = identifyMatrixGroupsMap(pipeline.workflows || []);
 
   // Step-level dependencies
   pipeline.workflows?.forEach((workflow) => {

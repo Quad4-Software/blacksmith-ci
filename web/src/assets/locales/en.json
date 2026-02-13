@@ -466,6 +466,10 @@
         "canceled_by_user": "Canceled by user",
         "stderr_output": "Error Output (stderr)"
       },
+      "matrix": {
+        "filter_placeholder": "Filter variants…",
+        "no_matches": "No matching variants"
+      },
       "hide_steps": "Hide steps",
       "show_steps": "Show steps",
       "protected": {

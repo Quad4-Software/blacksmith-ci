@@ -176,40 +176,46 @@
       <div v-else class="h-full overflow-y-auto">
         <div class="px-1 pb-20 pt-1">
           <div class="flex flex-col gap-y-2">
-            <div
-              v-for="workflow in pipeline!.workflows"
-              :key="workflow.id"
-              class="rounded-md border border-border bg-card p-2 shadow-xs"
-            >
-              <!-- Workflow Header with Chevron -->
-              <button
-                class="flex items-center gap-2 mb-2 w-full text-left hover:opacity-80 transition-opacity"
-                @click="toggleMobileWorkflow(workflow.id)"
-              >
-                <Icon
-                  name="chevron-right"
-                  class="size-4 transition-transform duration-200 text-muted-foreground"
-                  :class="{ 'rotate-90': !mobileWorkflowsCollapsed[workflow.id] }"
-                />
-                <div class="flex items-center gap-3">
-                  <PipelineStatusIcon :status="workflow.state" class="h-4 w-4" />
-                  <span class="font-medium text-foreground">{{ workflow.name }}</span>
-                </div>
-              </button>
-              <!-- Steps -->
-              <div v-show="!mobileWorkflowsCollapsed[workflow.id]" class="space-y-1">
-                <div
-                  v-for="step in workflow.children"
-                  :key="step.pid"
-                  class="flex items-center gap-3 p-2 rounded transition-colors hover:bg-accent cursor-pointer ml-4"
-                  @click="selectedStepId = step.pid"
+            <template v-for="group in mobileWorkflowGroups" :key="group.key">
+              <!-- Matrix group on mobile -->
+              <PipelineMatrixGroupMobile
+                v-if="group.workflows.length > 1"
+                :workflows="group.workflows"
+                :group-name="group.key"
+                @select-step="(pid: number) => (selectedStepId = pid)"
+              />
+              <!-- Single workflow (unchanged) -->
+              <div v-else class="rounded-md border border-border bg-card p-2 shadow-xs">
+                <!-- Workflow Header with Chevron -->
+                <button
+                  class="flex items-center gap-2 mb-2 w-full text-left hover:opacity-80 transition-opacity"
+                  @click="toggleMobileWorkflow(group.workflows[0].id)"
                 >
-                  <PipelineStatusIcon :service="step.type === 'service'" :status="step.state" class="h-4 w-4" />
-                  <span class="flex-1 text-sm text-foreground">{{ step.name }}</span>
-                  <PipelineStepDuration :step="step" class="text-xs text-muted-foreground" />
+                  <Icon
+                    name="chevron-right"
+                    class="size-4 transition-transform duration-200 text-muted-foreground"
+                    :class="{ 'rotate-90': !mobileWorkflowsCollapsed[group.workflows[0].id] }"
+                  />
+                  <div class="flex items-center gap-3">
+                    <PipelineStatusIcon :status="group.workflows[0].state" class="h-4 w-4" />
+                    <span class="font-medium text-foreground">{{ group.workflows[0].name }}</span>
+                  </div>
+                </button>
+                <!-- Steps -->
+                <div v-show="!mobileWorkflowsCollapsed[group.workflows[0].id]" class="space-y-1">
+                  <div
+                    v-for="step in group.workflows[0].children"
+                    :key="step.pid"
+                    class="flex items-center gap-3 p-2 rounded transition-colors hover:bg-accent cursor-pointer ml-4"
+                    @click="selectedStepId = step.pid"
+                  >
+                    <PipelineStatusIcon :service="step.type === 'service'" :status="step.state" class="h-4 w-4" />
+                    <span class="flex-1 text-sm text-foreground">{{ step.name }}</span>
+                    <PipelineStepDuration :step="step" class="text-xs text-muted-foreground" />
+                  </div>
                 </div>
               </div>
-            </div>
+            </template>
           </div>
         </div>
       </div>
@@ -233,6 +239,7 @@ import Panel from '~/components/layout/Panel.vue';
 import PipelineLog from '~/components/repo/pipeline/PipelineLog.vue';
 import PipelineLogMobile from '~/components/repo/pipeline/PipelineLogMobile.vue';
 import PipelineStepList from '~/components/repo/pipeline/PipelineStepList.vue';
+import PipelineMatrixGroupMobile from '~/components/repo/pipeline/PipelineMatrixGroupMobile.vue';
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
 import PipelineStepDuration from '~/components/repo/pipeline/PipelineStepDuration.vue';
 import useApiClient from '~/compositions/useApiClient';
@@ -241,6 +248,7 @@ import { requiredInject } from '~/compositions/useInjectProvide';
 import useNotifications from '~/compositions/useNotifications';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
 import type { PipelineStep } from '~/lib/api/types';
+import { identifyMatrixGroups } from '~/lib/pipeline-utils';
 
 const props = defineProps<{
   stepId?: string | null;
@@ -402,6 +410,8 @@ watch(sidebarSize, (newSize) => {
     lastManualSize = newSize;
   }
 });
+
+const mobileWorkflowGroups = computed(() => identifyMatrixGroups(pipeline.value.workflows || []));
 
 const mobileWorkflowsCollapsed = ref<Record<number, boolean>>({});
 
