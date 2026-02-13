@@ -56,11 +56,11 @@ linters:
             - '!**/cli/org/agent/*.go'
             - '!**/cli/org/agent/**/*.go'
           deny:
-            - pkg: codeberg.org/crowci/crow/v5/cli
-            - pkg: codeberg.org/crowci/crow/v5/cmd/cli
-            - pkg: codeberg.org/crowci/crow/v5/cmd/server
-            - pkg: codeberg.org/crowci/crow/v5/server
-            - pkg: codeberg.org/crowci/crow/v5/web
+            - pkg: codefloe.com/crowci/crow/v5/cli
+            - pkg: codefloe.com/crowci/crow/v5/cmd/cli
+            - pkg: codefloe.com/crowci/crow/v5/cmd/server
+            - pkg: codefloe.com/crowci/crow/v5/server
+            - pkg: codefloe.com/crowci/crow/v5/web
         cli:
           list-mode: lax
           files:
@@ -69,24 +69,24 @@ linters:
             - '**/cmd/cli/**/*.go'
             - '**/cmd/cli/*.go'
           deny:
-            - pkg: codeberg.org/crowci/crow/v5/agent
-            - pkg: codeberg.org/crowci/crow/v5/server
-            - pkg: codeberg.org/crowci/crow/v5/cmd/agent
-            - pkg: codeberg.org/crowci/crow/v5/cmd/server
-            - pkg: codeberg.org/crowci/crow/v5/web
+            - pkg: codefloe.com/crowci/crow/v5/agent
+            - pkg: codefloe.com/crowci/crow/v5/server
+            - pkg: codefloe.com/crowci/crow/v5/cmd/agent
+            - pkg: codefloe.com/crowci/crow/v5/cmd/server
+            - pkg: codefloe.com/crowci/crow/v5/web
         crow-go:
           list-mode: lax
           files:
             - '**/crow-go/crow/**/*.go'
             - '**/crow-go/crow/*.go'
           deny:
-            - pkg: codeberg.org/crowci/crow/v5/agent
-            - pkg: codeberg.org/crowci/crow/v5/cli
-            - pkg: codeberg.org/crowci/crow/v5/cmd
-            - pkg: codeberg.org/crowci/crow/v5/pipeline
-            - pkg: codeberg.org/crowci/crow/v5/server
-            - pkg: codeberg.org/crowci/crow/v5/shared
-            - pkg: codeberg.org/crowci/crow/v5/web
+            - pkg: codefloe.com/crowci/crow/v5/agent
+            - pkg: codefloe.com/crowci/crow/v5/cli
+            - pkg: codefloe.com/crowci/crow/v5/cmd
+            - pkg: codefloe.com/crowci/crow/v5/pipeline
+            - pkg: codefloe.com/crowci/crow/v5/server
+            - pkg: codefloe.com/crowci/crow/v5/shared
+            - pkg: codefloe.com/crowci/crow/v5/web
         pipeline:
           list-mode: lax
           files:
@@ -97,11 +97,11 @@ linters:
             - '!**/server/pipeline/*.go'
             - '!**/server/pipeline/**/*.go'
           deny:
-            - pkg: codeberg.org/crowci/crow/v5/agent
-            - pkg: codeberg.org/crowci/crow/v5/cli
-            - pkg: codeberg.org/crowci/crow/v5/cmd
-            - pkg: codeberg.org/crowci/crow/v5/server
-            - pkg: codeberg.org/crowci/crow/v5/web
+            - pkg: codefloe.com/crowci/crow/v5/agent
+            - pkg: codefloe.com/crowci/crow/v5/cli
+            - pkg: codefloe.com/crowci/crow/v5/cmd
+            - pkg: codefloe.com/crowci/crow/v5/server
+            - pkg: codefloe.com/crowci/crow/v5/web
         server:
           list-mode: lax
           files:
@@ -112,11 +112,11 @@ linters:
             - '**/web/**/*.go'
             - '**/web/*.go'
           deny:
-            - pkg: codeberg.org/crowci/crow/v5/agent
-            - pkg: codeberg.org/crowci/crow/v5/cli
-            - pkg: codeberg.org/crowci/crow/v5/cmd/agent
-            - pkg: codeberg.org/crowci/crow/v5/cmd/cli
-            - pkg: codeberg.org/crowci/crow/v5/crow-go/crow
+            - pkg: codefloe.com/crowci/crow/v5/agent
+            - pkg: codefloe.com/crowci/crow/v5/cli
+            - pkg: codefloe.com/crowci/crow/v5/cmd/agent
+            - pkg: codefloe.com/crowci/crow/v5/cmd/cli
+            - pkg: codefloe.com/crowci/crow/v5/crow-go/crow
         shared:
           list-mode: lax
           files:
@@ -125,12 +125,12 @@ linters:
             - '!**/pipeline/shared/*.go'
             - '!**/pipeline/shared/**/*.go'
           deny:
-            - pkg: codeberg.org/crowci/crow/v5/agent
-            - pkg: codeberg.org/crowci/crow/v5/cli
-            - pkg: codeberg.org/crowci/crow/v5/cmd
-            - pkg: codeberg.org/crowci/crow/v5/pipeline
-            - pkg: codeberg.org/crowci/crow/v5/server
-            - pkg: codeberg.org/crowci/crow/v5/web
+            - pkg: codefloe.com/crowci/crow/v5/agent
+            - pkg: codefloe.com/crowci/crow/v5/cli
+            - pkg: codefloe.com/crowci/crow/v5/cmd
+            - pkg: codefloe.com/crowci/crow/v5/pipeline
+            - pkg: codefloe.com/crowci/crow/v5/server
+            - pkg: codefloe.com/crowci/crow/v5/web
     errorlint:
       errorf-multi: true
     forbidigo:

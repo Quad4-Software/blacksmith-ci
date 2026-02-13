@@ -14,7 +14,7 @@ steps:
     image: reg.devxy.io/docker.io/library/alpine:3.23
     environment:
       ISSUE_TOKEN:
-        from_secret: codeberg_bot_token
+        from_secret: crowci_bot_token
     commands:
       - apk add -q --no-cache jq curl
       - JSON_DATA=$(echo "" | jq -Rs --arg title 'Vulnerability dashboard' --arg body "$(cat scan.md)" '{title:$title, body:$body}')

@@ -21,7 +21,7 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"codeberg.org/crowci/crow/v5/cli/internal"
+	"codefloe.com/crowci/crow/v5/cli/internal"
 )
 
 var pipelineApproveCmd = &cli.Command{

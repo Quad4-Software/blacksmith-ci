@@ -19,9 +19,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"codeberg.org/crowci/crow/v5/pipeline/errors"
-	"codeberg.org/crowci/crow/v5/pipeline/frontend/yaml"
-	"codeberg.org/crowci/crow/v5/pipeline/frontend/yaml/linter"
+	"codefloe.com/crowci/crow/v5/pipeline/errors"
+	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml"
+	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/linter"
 )
 
 func TestLint(t *testing.T) {

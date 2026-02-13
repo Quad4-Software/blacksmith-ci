@@ -14,7 +14,7 @@
 
 package pipeline
 
-import "codeberg.org/crowci/crow/v5/server/model"
+import "codefloe.com/crowci/crow/v5/server/model"
 
 func setApprovalState(repo *model.Repo, pipeline *model.Pipeline) {
 	if !needsApproval(repo, pipeline) {

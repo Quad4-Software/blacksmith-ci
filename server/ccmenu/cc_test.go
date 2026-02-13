@@ -21,7 +21,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"codeberg.org/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/model"
 )
 
 func TestCC(t *testing.T) {

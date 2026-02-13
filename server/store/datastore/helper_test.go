@@ -20,7 +20,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"codeberg.org/crowci/crow/v5/server/store/types"
+	"codefloe.com/crowci/crow/v5/server/store/types"
 )
 
 func TestWrapGet(t *testing.T) {

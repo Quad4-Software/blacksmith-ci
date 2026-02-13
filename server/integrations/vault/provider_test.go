@@ -21,8 +21,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"codeberg.org/crowci/crow/v5/server/integrations"
-	"codeberg.org/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/integrations"
+	"codefloe.com/crowci/crow/v5/server/model"
 )
 
 func TestNewProvider_InvalidJSON(t *testing.T) {

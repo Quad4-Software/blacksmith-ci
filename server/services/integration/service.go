@@ -18,9 +18,9 @@ import (
 	"context"
 	"fmt"
 
-	"codeberg.org/crowci/crow/v5/server/integrations"
-	"codeberg.org/crowci/crow/v5/server/integrations/cache"
-	"codeberg.org/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/integrations"
+	"codefloe.com/crowci/crow/v5/server/integrations/cache"
+	"codefloe.com/crowci/crow/v5/server/model"
 )
 
 // Service defines a service for managing integrations and fetching external secrets.

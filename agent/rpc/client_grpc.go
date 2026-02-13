@@ -32,9 +32,9 @@ import (
 	"google.golang.org/grpc/status"
 	grpcproto "google.golang.org/protobuf/proto"
 
-	backend "codeberg.org/crowci/crow/v5/pipeline/backend/types"
-	"codeberg.org/crowci/crow/v5/pipeline/rpc"
-	"codeberg.org/crowci/crow/v5/pipeline/rpc/proto"
+	backend "codefloe.com/crowci/crow/v5/pipeline/backend/types"
+	"codefloe.com/crowci/crow/v5/pipeline/rpc"
+	"codefloe.com/crowci/crow/v5/pipeline/rpc/proto"
 )
 
 // ErrMaxConsecutiveErrors is returned when the agent has experienced too many

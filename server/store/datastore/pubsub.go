@@ -15,7 +15,7 @@
 package datastore
 
 import (
-	"codeberg.org/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/model"
 )
 
 // PubSubMessageInsert stores a message for distributed pub/sub.

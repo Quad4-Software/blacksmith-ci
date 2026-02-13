@@ -22,8 +22,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"codeberg.org/crowci/crow/v5/server/model"
-	"codeberg.org/crowci/crow/v5/server/store"
+	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/store"
 )
 
 // GetEntities

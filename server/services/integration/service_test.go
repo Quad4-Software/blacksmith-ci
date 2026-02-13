@@ -22,10 +22,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"codeberg.org/crowci/crow/v5/server/integrations"
-	intMocks "codeberg.org/crowci/crow/v5/server/integrations/mocks"
-	"codeberg.org/crowci/crow/v5/server/model"
-	modelMocks "codeberg.org/crowci/crow/v5/server/model/mocks"
+	"codefloe.com/crowci/crow/v5/server/integrations"
+	intMocks "codefloe.com/crowci/crow/v5/server/integrations/mocks"
+	"codefloe.com/crowci/crow/v5/server/model"
+	modelMocks "codefloe.com/crowci/crow/v5/server/model/mocks"
 )
 
 func validVaultConfig() string {

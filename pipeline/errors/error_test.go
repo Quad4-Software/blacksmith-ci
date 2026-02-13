@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/multierr"
 
-	pipeline_errors "codeberg.org/crowci/crow/v5/pipeline/errors"
-	"codeberg.org/crowci/crow/v5/pipeline/errors/types"
+	pipeline_errors "codefloe.com/crowci/crow/v5/pipeline/errors"
+	"codefloe.com/crowci/crow/v5/pipeline/errors/types"
 )
 
 func TestGetPipelineErrors(t *testing.T) {

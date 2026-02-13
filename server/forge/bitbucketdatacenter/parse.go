@@ -6,7 +6,7 @@ import (
 
 	bb "github.com/neticdk/go-bitbucket/bitbucket"
 
-	"codeberg.org/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/model"
 )
 
 type HookResult struct {

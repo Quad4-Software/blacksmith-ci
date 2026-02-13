@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"strings"
 
-	errorTypes "codeberg.org/crowci/crow/v5/pipeline/errors/types"
-	"codeberg.org/crowci/crow/v5/shared/yaml"
+	errorTypes "codefloe.com/crowci/crow/v5/pipeline/errors/types"
+	"codefloe.com/crowci/crow/v5/shared/yaml"
 )
 
 const (

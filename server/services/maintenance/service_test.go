@@ -23,8 +23,8 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"codeberg.org/crowci/crow/v5/server/model"
-	store "codeberg.org/crowci/crow/v5/server/store/mocks"
+	"codefloe.com/crowci/crow/v5/server/model"
+	store "codefloe.com/crowci/crow/v5/server/store/mocks"
 )
 
 func TestService_SetKubernetesCleanupFunc(t *testing.T) {

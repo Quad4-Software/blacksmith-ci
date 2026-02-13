@@ -15,7 +15,7 @@
 package store
 
 import (
-	"codeberg.org/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/model"
 )
 
 func (wrapper *EncryptedUserStore) GetUser(id int64) (*model.User, error) {

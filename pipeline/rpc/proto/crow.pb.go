@@ -1388,7 +1388,7 @@ const file_crow_proto_rawDesc = "" +
 	"\fReportHealth\x12\x1a.proto.ReportHealthRequest\x1a\f.proto.Empty\"\x00\x12@\n" +
 	"\tClaimTask\x12\x17.proto.ClaimTaskRequest\x1a\x18.proto.ClaimTaskResponse\"\x002=\n" +
 	"\bCrowAuth\x121\n" +
-	"\x04Auth\x12\x12.proto.AuthRequest\x1a\x13.proto.AuthResponse\"\x00B0Z.codeberg.org/crowci/crow/v5/pipeline/rpc/protob\x06proto3"
+	"\x04Auth\x12\x12.proto.AuthRequest\x1a\x13.proto.AuthResponse\"\x00B0Z.codefloe.com/crowci/crow/v5/pipeline/rpc/protob\x06proto3"
 
 var (
 	file_crow_proto_rawDescOnce sync.Once

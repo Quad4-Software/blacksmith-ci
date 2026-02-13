@@ -20,8 +20,8 @@ import (
 	"net/http"
 	"time"
 
-	"codeberg.org/crowci/crow/v5/server/forge/types"
-	"codeberg.org/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/forge/types"
+	"codefloe.com/crowci/crow/v5/server/model"
 )
 
 // TokenExpiryToUnix converts an OAuth2 token expiry time to a Unix timestamp.

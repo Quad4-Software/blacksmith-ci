@@ -19,7 +19,7 @@ package datastore
 import (
 	"xorm.io/xorm"
 
-	"codeberg.org/crowci/crow/v5/server/store"
+	"codefloe.com/crowci/crow/v5/server/store"
 )
 
 // configureEngine applies driver-specific configuration.

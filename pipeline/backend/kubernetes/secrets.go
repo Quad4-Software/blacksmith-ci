@@ -28,9 +28,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"codeberg.org/crowci/crow/v5/pipeline"
-	"codeberg.org/crowci/crow/v5/pipeline/backend/types"
-	"codeberg.org/crowci/crow/v5/pipeline/frontend/yaml/utils"
+	"codefloe.com/crowci/crow/v5/pipeline"
+	"codefloe.com/crowci/crow/v5/pipeline/backend/types"
+	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/utils"
 )
 
 type nativeSecretsProcessor struct {

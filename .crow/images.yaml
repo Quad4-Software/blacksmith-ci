@@ -18,9 +18,13 @@ variables:
         username: crowci-bot
         password:
           from_secret: codeberg_bot_token
-  - &publish_repos_server 'codeberg.org/crowci/crow-server'
-  - &publish_repos_agent 'codeberg.org/crowci/crow-agent'
-  - &publish_repos_cli 'codeberg.org/crowci/crow-cli'
+      - registry: https://codefloe.com
+        username: crowci-bot
+        password:
+          from_secret: crowci_bot_token
+  - &publish_repos_server 'codeberg.org/crowci/crow-server,codefloe.com/crowci/crow-server'
+  - &publish_repos_agent 'codeberg.org/crowci/crow-agent,codefloe.com/crowci/crow-agent'
+  - &publish_repos_cli 'codeberg.org/crowci/crow-cli,codefloe.com/crowci/crow-cli'
   - path:
       # web source code
       &when_path

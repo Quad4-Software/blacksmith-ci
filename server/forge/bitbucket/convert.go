@@ -23,9 +23,9 @@ import (
 
 	"golang.org/x/oauth2"
 
-	"codeberg.org/crowci/crow/v5/server/forge"
-	"codeberg.org/crowci/crow/v5/server/forge/bitbucket/internal"
-	"codeberg.org/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/forge"
+	"codefloe.com/crowci/crow/v5/server/forge/bitbucket/internal"
+	"codefloe.com/crowci/crow/v5/server/model"
 )
 
 const (

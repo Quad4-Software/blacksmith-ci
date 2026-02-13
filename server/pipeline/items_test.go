@@ -3,9 +3,9 @@ package pipeline
 import (
 	"testing"
 
-	"codeberg.org/crowci/crow/v5/pipeline/backend/types"
-	"codeberg.org/crowci/crow/v5/server/model"
-	sharedPipeline "codeberg.org/crowci/crow/v5/server/pipeline/stepbuilder"
+	"codefloe.com/crowci/crow/v5/pipeline/backend/types"
+	"codefloe.com/crowci/crow/v5/server/model"
+	sharedPipeline "codefloe.com/crowci/crow/v5/server/pipeline/stepbuilder"
 )
 
 func TestSetPipelineStepsOnPipeline(t *testing.T) {

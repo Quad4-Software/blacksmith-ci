@@ -24,9 +24,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"codeberg.org/crowci/crow/v5/server/forge/gitlab/testdata"
-	"codeberg.org/crowci/crow/v5/server/forge/types"
-	"codeberg.org/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/forge/gitlab/testdata"
+	"codefloe.com/crowci/crow/v5/server/forge/types"
+	"codefloe.com/crowci/crow/v5/server/model"
 )
 
 func load(config string) *GitLab {

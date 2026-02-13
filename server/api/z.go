@@ -21,7 +21,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"codeberg.org/crowci/crow/v5/version"
+	"codefloe.com/crowci/crow/v5/version"
 )
 
 // Version

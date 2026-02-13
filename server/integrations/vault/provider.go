@@ -28,8 +28,8 @@ import (
 	vault "github.com/hashicorp/vault/api"
 	"github.com/rs/zerolog/log"
 
-	"codeberg.org/crowci/crow/v5/server/integrations"
-	"codeberg.org/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/integrations"
+	"codefloe.com/crowci/crow/v5/server/model"
 )
 
 const (

@@ -27,9 +27,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"codeberg.org/crowci/crow/v5/pipeline"
-	"codeberg.org/crowci/crow/v5/pipeline/backend/common"
-	"codeberg.org/crowci/crow/v5/pipeline/backend/types"
+	"codefloe.com/crowci/crow/v5/pipeline"
+	"codefloe.com/crowci/crow/v5/pipeline/backend/common"
+	"codefloe.com/crowci/crow/v5/pipeline/backend/types"
 )
 
 const (

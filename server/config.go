@@ -18,15 +18,15 @@ package server
 import (
 	"time"
 
-	"codeberg.org/crowci/crow/v5/server/cache"
-	"codeberg.org/crowci/crow/v5/server/logging"
-	"codeberg.org/crowci/crow/v5/server/model"
-	"codeberg.org/crowci/crow/v5/server/pubsub"
-	"codeberg.org/crowci/crow/v5/server/queue"
-	"codeberg.org/crowci/crow/v5/server/services"
-	"codeberg.org/crowci/crow/v5/server/services/integration"
-	"codeberg.org/crowci/crow/v5/server/services/log"
-	"codeberg.org/crowci/crow/v5/server/services/permissions"
+	"codefloe.com/crowci/crow/v5/server/cache"
+	"codefloe.com/crowci/crow/v5/server/logging"
+	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/pubsub"
+	"codefloe.com/crowci/crow/v5/server/queue"
+	"codefloe.com/crowci/crow/v5/server/services"
+	"codefloe.com/crowci/crow/v5/server/services/integration"
+	"codefloe.com/crowci/crow/v5/server/services/log"
+	"codefloe.com/crowci/crow/v5/server/services/permissions"
 )
 
 var Config = struct {

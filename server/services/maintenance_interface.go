@@ -18,8 +18,8 @@ import (
 	"context"
 	"time"
 
-	"codeberg.org/crowci/crow/v5/server/model"
-	"codeberg.org/crowci/crow/v5/server/store"
+	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/store"
 )
 
 // MaintenanceService defines the interface for database maintenance operations.

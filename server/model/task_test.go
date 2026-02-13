@@ -19,7 +19,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"codeberg.org/crowci/crow/v5/pipeline"
+	"codefloe.com/crowci/crow/v5/pipeline"
 )
 
 func TestTask_GetLabels(t *testing.T) {

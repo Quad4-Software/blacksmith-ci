@@ -4,7 +4,7 @@
 
 ```Go
 import (
-  "codeberg.org/crowci/crow/v5/crow-go/crow"
+  "codefloe.com/crowci/crow/v5/crow-go/crow"
   "golang.org/x/oauth2"
 )
 

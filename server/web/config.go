@@ -23,10 +23,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 
-	"codeberg.org/crowci/crow/v5/server"
-	"codeberg.org/crowci/crow/v5/server/router/middleware/session"
-	"codeberg.org/crowci/crow/v5/shared/token"
-	"codeberg.org/crowci/crow/v5/version"
+	"codefloe.com/crowci/crow/v5/server"
+	"codefloe.com/crowci/crow/v5/server/router/middleware/session"
+	"codefloe.com/crowci/crow/v5/shared/token"
+	"codefloe.com/crowci/crow/v5/version"
 )
 
 func Config(c *gin.Context) {

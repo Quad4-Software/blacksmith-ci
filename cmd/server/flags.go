@@ -21,8 +21,8 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"codeberg.org/crowci/crow/v5/shared/constant"
-	"codeberg.org/crowci/crow/v5/shared/logger"
+	"codefloe.com/crowci/crow/v5/shared/constant"
+	"codefloe.com/crowci/crow/v5/shared/logger"
 )
 
 var flags = append([]cli.Flag{

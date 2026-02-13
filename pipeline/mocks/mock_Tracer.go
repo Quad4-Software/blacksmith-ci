@@ -5,7 +5,7 @@
 package pipeline
 
 import (
-	"codeberg.org/crowci/crow/v5/pipeline"
+	"codefloe.com/crowci/crow/v5/pipeline"
 	mock "github.com/stretchr/testify/mock"
 )
 

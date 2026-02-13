@@ -11,17 +11,17 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"codeberg.org/crowci/crow/v5/server"
-	"codeberg.org/crowci/crow/v5/server/api"
-	forge_mocks "codeberg.org/crowci/crow/v5/server/forge/mocks"
-	"codeberg.org/crowci/crow/v5/server/model"
-	mocks_config_service "codeberg.org/crowci/crow/v5/server/services/config/mocks"
-	mocks_services "codeberg.org/crowci/crow/v5/server/services/mocks"
-	"codeberg.org/crowci/crow/v5/server/services/permissions"
-	mocks_registry_service "codeberg.org/crowci/crow/v5/server/services/registry/mocks"
-	mocks_secret_service "codeberg.org/crowci/crow/v5/server/services/secret/mocks"
-	store_mocks "codeberg.org/crowci/crow/v5/server/store/mocks"
-	"codeberg.org/crowci/crow/v5/shared/token"
+	"codefloe.com/crowci/crow/v5/server"
+	"codefloe.com/crowci/crow/v5/server/api"
+	forge_mocks "codefloe.com/crowci/crow/v5/server/forge/mocks"
+	"codefloe.com/crowci/crow/v5/server/model"
+	mocks_config_service "codefloe.com/crowci/crow/v5/server/services/config/mocks"
+	mocks_services "codefloe.com/crowci/crow/v5/server/services/mocks"
+	"codefloe.com/crowci/crow/v5/server/services/permissions"
+	mocks_registry_service "codefloe.com/crowci/crow/v5/server/services/registry/mocks"
+	mocks_secret_service "codefloe.com/crowci/crow/v5/server/services/secret/mocks"
+	store_mocks "codefloe.com/crowci/crow/v5/server/store/mocks"
+	"codefloe.com/crowci/crow/v5/shared/token"
 )
 
 func TestHook(t *testing.T) {

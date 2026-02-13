@@ -5,7 +5,7 @@
 package environment
 
 import (
-	"codeberg.org/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/model"
 	mock "github.com/stretchr/testify/mock"
 )
 

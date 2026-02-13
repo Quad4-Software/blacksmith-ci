@@ -18,7 +18,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 
-	"codeberg.org/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/model"
 )
 
 func (s storage) AccessTokenCreate(token *model.AccessToken) error {

@@ -7,15 +7,15 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"codeberg.org/crowci/crow/v5/server/forge"
-	"codeberg.org/crowci/crow/v5/server/forge/addon"
-	"codeberg.org/crowci/crow/v5/server/forge/bitbucket"
-	"codeberg.org/crowci/crow/v5/server/forge/bitbucketdatacenter"
-	"codeberg.org/crowci/crow/v5/server/forge/forgejo"
-	"codeberg.org/crowci/crow/v5/server/forge/gitea"
-	"codeberg.org/crowci/crow/v5/server/forge/github"
-	"codeberg.org/crowci/crow/v5/server/forge/gitlab"
-	"codeberg.org/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/forge"
+	"codefloe.com/crowci/crow/v5/server/forge/addon"
+	"codefloe.com/crowci/crow/v5/server/forge/bitbucket"
+	"codefloe.com/crowci/crow/v5/server/forge/bitbucketdatacenter"
+	"codefloe.com/crowci/crow/v5/server/forge/forgejo"
+	"codefloe.com/crowci/crow/v5/server/forge/gitea"
+	"codefloe.com/crowci/crow/v5/server/forge/github"
+	"codefloe.com/crowci/crow/v5/server/forge/gitlab"
+	"codefloe.com/crowci/crow/v5/server/model"
 )
 
 func Forge(forge *model.Forge) (forge.Forge, error) {

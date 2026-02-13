@@ -23,11 +23,11 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v3"
 
-	"codeberg.org/crowci/crow/v5/cli/output"
-	"codeberg.org/crowci/crow/v5/cli/repo/cron"
-	"codeberg.org/crowci/crow/v5/cli/repo/registry"
-	"codeberg.org/crowci/crow/v5/cli/repo/secret"
-	crow "codeberg.org/crowci/crow/v5/crow-go/crow"
+	"codefloe.com/crowci/crow/v5/cli/output"
+	"codefloe.com/crowci/crow/v5/cli/repo/cron"
+	"codefloe.com/crowci/crow/v5/cli/repo/registry"
+	"codefloe.com/crowci/crow/v5/cli/repo/secret"
+	crow "codefloe.com/crowci/crow/v5/crow-go/crow"
 )
 
 // Command exports the repository command.

@@ -23,11 +23,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/tink-crypto/tink-go/v2/subtle/random"
 
-	"codeberg.org/crowci/crow/v5/server/model"
-	"codeberg.org/crowci/crow/v5/server/router/middleware/session"
-	"codeberg.org/crowci/crow/v5/server/store"
-	"codeberg.org/crowci/crow/v5/server/store/datastore"
-	"codeberg.org/crowci/crow/v5/shared/token"
+	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/router/middleware/session"
+	"codefloe.com/crowci/crow/v5/server/store"
+	"codefloe.com/crowci/crow/v5/server/store/datastore"
+	"codefloe.com/crowci/crow/v5/shared/token"
 )
 
 // CreateAccessTokenRequest is the request body for creating an access token.

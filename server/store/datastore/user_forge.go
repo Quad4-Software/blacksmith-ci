@@ -17,7 +17,7 @@ package datastore
 import (
 	"time"
 
-	"codeberg.org/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/model"
 )
 
 func (s storage) UserForgeList(userID int64) ([]*model.UserForge, error) {

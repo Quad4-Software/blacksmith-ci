@@ -7,7 +7,7 @@ package proto
 import (
 	"context"
 
-	"codeberg.org/crowci/crow/v5/pipeline/rpc/proto"
+	"codefloe.com/crowci/crow/v5/pipeline/rpc/proto"
 	mock "github.com/stretchr/testify/mock"
 )
 

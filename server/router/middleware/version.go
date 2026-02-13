@@ -17,7 +17,7 @@ package middleware
 import (
 	"github.com/gin-gonic/gin"
 
-	"codeberg.org/crowci/crow/v5/version"
+	"codefloe.com/crowci/crow/v5/version"
 )
 
 // Version is a middleware function that appends the Crow version information

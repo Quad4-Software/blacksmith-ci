@@ -44,9 +44,9 @@ VERSION_NUMBER := if env_var_or_default("CI_COMMIT_TAG", "") != "" {
 # FIXME: https://github.com/casey/just/issues/11
 
 LDFLAGS := if STATIC_BUILD == "true" {
-    "-s -w -extldflags '-static' -X codeberg.org/crowci/crow/v5/version.Version=" + VERSION + " -X codeberg.org/crowci/crow/v5/version.BuildDate=" + BUILD_DATE
+    "-s -w -extldflags '-static' -X codefloe.com/crowci/crow/v5/version.Version=" + VERSION + " -X codefloe.com/crowci/crow/v5/version.BuildDate=" + BUILD_DATE
 } else {
-    "-X codeberg.org/crowci/crow/v5/version.Version=" + VERSION + " -X codeberg.org/crowci/crow/v5/version.BuildDate=" + BUILD_DATE
+    "-X codefloe.com/crowci/crow/v5/version.Version=" + VERSION + " -X codefloe.com/crowci/crow/v5/version.BuildDate=" + BUILD_DATE
 }
 
 # only used to compile server
@@ -151,20 +151,20 @@ install-protoc:
 ## test
 
 test-agent:
-		CGO_ENABLED=1 go test -race -cover -coverprofile agent-coverage.out -timeout 60s -tags 'test {{ TAGS }}' codeberg.org/crowci/crow/v5/cmd/agent codeberg.org/crowci/crow/v5/agent/...
+		CGO_ENABLED=1 go test -race -cover -coverprofile agent-coverage.out -timeout 60s -tags 'test {{ TAGS }}' codefloe.com/crowci/crow/v5/cmd/agent codefloe.com/crowci/crow/v5/agent/...
 
 test-server:
-		CGO_ENABLED=1 go test -race -cover -coverprofile server-coverage.out -timeout 60s -tags 'test {{ TAGS }}' codeberg.org/crowci/crow/v5/cmd/server `go list codeberg.org/crowci/crow/v5/server/... | grep -v '/store'`
+		CGO_ENABLED=1 go test -race -cover -coverprofile server-coverage.out -timeout 60s -tags 'test {{ TAGS }}' codefloe.com/crowci/crow/v5/cmd/server `go list codefloe.com/crowci/crow/v5/server/... | grep -v '/store'`
 
 test-cli:
-		CGO_ENABLED=1 go test -race -cover -coverprofile cli-coverage.out -timeout 60s -tags 'test {{ TAGS }}' codeberg.org/crowci/crow/v5/cmd/cli codeberg.org/crowci/crow/v5/cli/...
+		CGO_ENABLED=1 go test -race -cover -coverprofile cli-coverage.out -timeout 60s -tags 'test {{ TAGS }}' codefloe.com/crowci/crow/v5/cmd/cli codefloe.com/crowci/crow/v5/cli/...
 
 test-server-datastore:
-		CGO_ENABLED=1 go test -timeout 300s -tags 'test {{ TAGS }}' -run TestMigrate codeberg.org/crowci/crow/v5/server/store/...
-		go test -race -timeout 100s -tags 'test {{ TAGS }}' -skip TestMigrate codeberg.org/crowci/crow/v5/server/store/...
+		CGO_ENABLED=1 go test -timeout 300s -tags 'test {{ TAGS }}' -run TestMigrate codefloe.com/crowci/crow/v5/server/store/...
+		go test -race -timeout 100s -tags 'test {{ TAGS }}' -skip TestMigrate codefloe.com/crowci/crow/v5/server/store/...
 
 test-server-datastore-coverage:
-		CGO_ENABLED=1 go test -race -cover -coverprofile datastore-coverage.out -timeout 300s -tags 'test {{ TAGS }}' codeberg.org/crowci/crow/v5/server/store/...
+		CGO_ENABLED=1 go test -race -cover -coverprofile datastore-coverage.out -timeout 300s -tags 'test {{ TAGS }}' codefloe.com/crowci/crow/v5/server/store/...
 
 # FIXME: feature of 1.38.0 [working-directory('web')]
 test-ui:
@@ -210,7 +210,7 @@ lint-backend: install-dev-deps
 		golangci-lint run
 
 deadcode:
-		go run golang.org/x/tools/cmd/deadcode@latest -generated=false -f='{{{{println .Path}}{{{{range .Funcs}}{{{{printf "\t%s\n" .Name}}{{{{end}}{{{{println}}' -test codeberg.org/crowci/crow/v5/...
+		go run golang.org/x/tools/cmd/deadcode@latest -generated=false -f='{{{{println .Path}}{{{{range .Funcs}}{{{{printf "\t%s\n" .Name}}{{{{end}}{{{{println}}' -test codefloe.com/crowci/crow/v5/...
 
 # FIXME: feature of 1.38.0 [working-directory('web')]
 lint-frontend:
@@ -222,10 +222,10 @@ build-ui:
 		cd web/ && bun run build
 
 build-agent:
-		CGO_ENABLED=0 GOOS={{ TARGETOS }} GOARCH={{ TARGETARCH }} go build -tags '{{ TAGS }}' -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/crow-agent{{ BIN_SUFFIX }} codeberg.org/crowci/crow/v5/cmd/agent
+		CGO_ENABLED=0 GOOS={{ TARGETOS }} GOARCH={{ TARGETARCH }} go build -tags '{{ TAGS }}' -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/crow-agent{{ BIN_SUFFIX }} codefloe.com/crowci/crow/v5/cmd/agent
 
 build-cli:
-		CGO_ENABLED=0 GOOS={{ TARGETOS }} GOARCH={{ TARGETARCH }} go build -tags '{{ TAGS }}' -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/crow-cli{{ BIN_SUFFIX }} codeberg.org/crowci/crow/v5/cmd/cli
+		CGO_ENABLED=0 GOOS={{ TARGETOS }} GOARCH={{ TARGETARCH }} go build -tags '{{ TAGS }}' -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/crow-cli{{ BIN_SUFFIX }} codefloe.com/crowci/crow/v5/cmd/cli
 
 install-cli-dev: build-cli
 		mkdir -p ~/.local/bin
@@ -295,12 +295,12 @@ release-checksums:
 
 release-cli: ## Create cli binaries for release
 	# compile
-	GOOS=linux   GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{LDFLAGS}}' -o {{DIST_DIR}}/cli/linux_amd64/crow-cli       codeberg.org/crowci/crow/v5/cmd/cli
-	GOOS=linux   GOARCH=arm64 CGO_ENABLED=0 go build -ldflags '{{LDFLAGS}}' -o {{DIST_DIR}}/cli/linux_arm64/crow-cli       codeberg.org/crowci/crow/v5/cmd/cli
-	GOOS=linux   GOARCH=arm   CGO_ENABLED=0 go build -ldflags '{{LDFLAGS}}' -o {{DIST_DIR}}/cli/linux_arm/crow-cli         codeberg.org/crowci/crow/v5/cmd/cli
-	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{LDFLAGS}}' -o {{DIST_DIR}}/cli/windows_amd64/crow-cli.exe codeberg.org/crowci/crow/v5/cmd/cli
-	GOOS=darwin  GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{LDFLAGS}}' -o {{DIST_DIR}}/cli/darwin_amd64/crow-cli      codeberg.org/crowci/crow/v5/cmd/cli
-	GOOS=darwin  GOARCH=arm64 CGO_ENABLED=0 go build -ldflags '{{LDFLAGS}}' -o {{DIST_DIR}}/cli/darwin_arm64/crow-cli      codeberg.org/crowci/crow/v5/cmd/cli
+	GOOS=linux   GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{LDFLAGS}}' -o {{DIST_DIR}}/cli/linux_amd64/crow-cli       codefloe.com/crowci/crow/v5/cmd/cli
+	GOOS=linux   GOARCH=arm64 CGO_ENABLED=0 go build -ldflags '{{LDFLAGS}}' -o {{DIST_DIR}}/cli/linux_arm64/crow-cli       codefloe.com/crowci/crow/v5/cmd/cli
+	GOOS=linux   GOARCH=arm   CGO_ENABLED=0 go build -ldflags '{{LDFLAGS}}' -o {{DIST_DIR}}/cli/linux_arm/crow-cli         codefloe.com/crowci/crow/v5/cmd/cli
+	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{LDFLAGS}}' -o {{DIST_DIR}}/cli/windows_amd64/crow-cli.exe codefloe.com/crowci/crow/v5/cmd/cli
+	GOOS=darwin  GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{LDFLAGS}}' -o {{DIST_DIR}}/cli/darwin_amd64/crow-cli      codefloe.com/crowci/crow/v5/cmd/cli
+	GOOS=darwin  GOARCH=arm64 CGO_ENABLED=0 go build -ldflags '{{LDFLAGS}}' -o {{DIST_DIR}}/cli/darwin_arm64/crow-cli      codefloe.com/crowci/crow/v5/cmd/cli
 	# tar binary files
 	tar -cvzf {{DIST_DIR}}/crow-cli_linux_amd64.tar.gz   -C {{DIST_DIR}}/cli/linux_amd64   crow-cli
 	tar -cvzf {{DIST_DIR}}/crow-cli_linux_arm64.tar.gz   -C {{DIST_DIR}}/cli/linux_arm64   crow-cli
@@ -339,7 +339,7 @@ release-agent: ## Create agent binaries for release
 			mkdir -p {{DIST_DIR}}/agent/${os}_${arch}
 			GOOS=$os GOARCH=$arch CGO_ENABLED=0 go build -ldflags '{{LDFLAGS}}' \
 				-o {{DIST_DIR}}/agent/${os}_${arch}/crow-agent${bin_suffix} \
-				codeberg.org/crowci/crow/v5/cmd/agent
+				codefloe.com/crowci/crow/v5/cmd/agent
 
 			# Create archives
 			if [[ "$os" == "windows" ]]; then
@@ -362,7 +362,7 @@ release-agent: ## Create agent binaries for release
 image-server TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE='crowci/crow-server':
 	just build-ui
 	just cross-compile-server
-	echo $codeberg_bot_token | docker login {{REGISTRY}} -u {{REGISTRY_USER}} --password-stdin
+	echo $crowci_bot_token | docker login {{REGISTRY}} -u {{REGISTRY_USER}} --password-stdin
 	FIXED_PLATFORMS=$(echo $PLATFORMS | sed "s/|/\//g; s/;/,/g") && \
 	docker buildx build --platform $FIXED_PLATFORMS \
 		--build-arg CI_COMMIT_SHA={{CI_COMMIT_SHA}} \
@@ -374,7 +374,7 @@ image-server TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE='crowc
 image-server-alpine TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE='crowci/crow-server':
 	just build-ui
 	just cross-compile-server
-	echo $codeberg_bot_token | docker login {{REGISTRY}} -u {{REGISTRY_USER}} --password-stdin
+	echo $crowci_bot_token | docker login {{REGISTRY}} -u {{REGISTRY_USER}} --password-stdin
 	FIXED_PLATFORMS=$(echo $PLATFORMS | sed "s/|/\//g; s/;/,/g") && \
 	docker buildx build --platform $FIXED_PLATFORMS \
 		--build-arg CACHE_BUST=$(date +%s) \
@@ -385,7 +385,7 @@ image-server-alpine TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE
 
 # env PLATFORMS='linux/amd64,linux/arm64' just image-agent
 image-agent TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE='crowci/crow-agent':
-	echo $codeberg_bot_token | docker login {{REGISTRY}} -u {{REGISTRY_USER}} --password-stdin
+	echo $crowci_bot_token | docker login {{REGISTRY}} -u {{REGISTRY_USER}} --password-stdin
 	docker buildx build --platform $PLATFORMS \
 		--build-arg CI_COMMIT_SHA={{CI_COMMIT_SHA}} \
 		--build-arg CI_COMMIT_TAG={{CI_COMMIT_TAG}} \
@@ -394,7 +394,7 @@ image-agent TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE='crowci
 
 # env PLATFORMS='linux/amd64,linux/arm64' just image-agent-alpine dev
 image-agent-alpine TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE='crowci/crow-agent':
-	echo $codeberg_bot_token | docker login {{REGISTRY}} -u {{REGISTRY_USER}} --password-stdin
+	echo $crowci_bot_token | docker login {{REGISTRY}} -u {{REGISTRY_USER}} --password-stdin
 	docker buildx build --platform $PLATFORMS \
 		--build-arg CI_COMMIT_SHA={{CI_COMMIT_SHA}} \
 		--build-arg CI_COMMIT_TAG={{CI_COMMIT_TAG}} \
@@ -403,7 +403,7 @@ image-agent-alpine TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE=
 
 # env PLATFORMS='linux/amd64,linux/arm64' just image-cli dev
 image-cli TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE='crowci/crow-cli':
-	echo $codeberg_bot_token | docker login {{REGISTRY}} -u {{REGISTRY_USER}} --password-stdin
+	echo $crowci_bot_token | docker login {{REGISTRY}} -u {{REGISTRY_USER}} --password-stdin
 	docker buildx build --platform $PLATFORMS \
 		--build-arg CI_COMMIT_SHA={{CI_COMMIT_SHA}} \
 		--build-arg CI_COMMIT_TAG={{CI_COMMIT_TAG}} \
@@ -412,7 +412,7 @@ image-cli TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE='crowci/c
 
 # env PLATFORMS='linux/amd64,linux/arm64' just image-cli-alpine dev
 image-cli-alpine TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE='crowci/crow-cli':
-	echo $codeberg_bot_token | docker login {{REGISTRY}} -u {{REGISTRY_USER}} --password-stdin
+	echo $crowci_bot_token | docker login {{REGISTRY}} -u {{REGISTRY_USER}} --password-stdin
 	docker buildx build --platform $PLATFORMS \
 		--build-arg CI_COMMIT_SHA={{CI_COMMIT_SHA}} \
 		--build-arg CI_COMMIT_TAG={{CI_COMMIT_TAG}} \

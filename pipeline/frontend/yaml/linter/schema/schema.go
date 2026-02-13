@@ -29,7 +29,7 @@ import (
 	"github.com/goccy/go-yaml/parser"
 	"github.com/santhosh-tekuri/jsonschema/v6"
 
-	"codeberg.org/crowci/crow/v5/shared/yaml"
+	"codefloe.com/crowci/crow/v5/shared/yaml"
 )
 
 //go:embed schema.json

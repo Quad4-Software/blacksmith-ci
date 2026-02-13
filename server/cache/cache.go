@@ -15,7 +15,7 @@
 package cache
 
 import (
-	"codeberg.org/crowci/crow/v5/server/store"
+	"codefloe.com/crowci/crow/v5/server/store"
 )
 
 // CacheType represents the type of cache backend to use.

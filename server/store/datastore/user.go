@@ -20,8 +20,8 @@ import (
 
 	"xorm.io/xorm"
 
-	"codeberg.org/crowci/crow/v5/server/model"
-	"codeberg.org/crowci/crow/v5/server/store/types"
+	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/store/types"
 )
 
 func (s storage) GetUser(id int64) (*model.User, error) {

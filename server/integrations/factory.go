@@ -17,7 +17,7 @@ package integrations
 import (
 	"fmt"
 
-	"codeberg.org/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/model"
 )
 
 // DefaultFactory is the standard provider factory implementation.

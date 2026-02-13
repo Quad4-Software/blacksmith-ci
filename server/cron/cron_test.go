@@ -21,11 +21,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"codeberg.org/crowci/crow/v5/server"
-	forge_mocks "codeberg.org/crowci/crow/v5/server/forge/mocks"
-	"codeberg.org/crowci/crow/v5/server/model"
-	mocks_manager "codeberg.org/crowci/crow/v5/server/services/mocks"
-	store_mocks "codeberg.org/crowci/crow/v5/server/store/mocks"
+	"codefloe.com/crowci/crow/v5/server"
+	forge_mocks "codefloe.com/crowci/crow/v5/server/forge/mocks"
+	"codefloe.com/crowci/crow/v5/server/model"
+	mocks_manager "codefloe.com/crowci/crow/v5/server/services/mocks"
+	store_mocks "codefloe.com/crowci/crow/v5/server/store/mocks"
 )
 
 func TestCreatePipeline(t *testing.T) {

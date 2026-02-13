@@ -1,4 +1,4 @@
-FROM reg.devxy.io/docker.io/library/alpine:3.23
+FROM docker.io/library/alpine:3.23
 
 ARG DOCKER_IMAGE_CREATED="unknown"
 

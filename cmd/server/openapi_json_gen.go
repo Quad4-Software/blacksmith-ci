@@ -30,7 +30,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi2"
 	"github.com/getkin/kin-openapi/openapi2conv"
 
-	"codeberg.org/crowci/crow/v5/cmd/server/openapi"
+	"codefloe.com/crowci/crow/v5/cmd/server/openapi"
 )
 
 func main() {

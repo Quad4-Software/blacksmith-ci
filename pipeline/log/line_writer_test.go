@@ -20,9 +20,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"codeberg.org/crowci/crow/v5/pipeline/log"
-	"codeberg.org/crowci/crow/v5/pipeline/rpc"
-	rpc_mocks "codeberg.org/crowci/crow/v5/pipeline/rpc/mocks"
+	"codefloe.com/crowci/crow/v5/pipeline/log"
+	"codefloe.com/crowci/crow/v5/pipeline/rpc"
+	rpc_mocks "codefloe.com/crowci/crow/v5/pipeline/rpc/mocks"
 )
 
 func TestLineWriter(t *testing.T) {

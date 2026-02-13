@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/urfave/cli/v3"
 
-	"codeberg.org/crowci/crow/v5/crow-go/crow"
-	crow_mocks "codeberg.org/crowci/crow/v5/crow-go/crow/mocks"
+	"codefloe.com/crowci/crow/v5/crow-go/crow"
+	crow_mocks "codefloe.com/crowci/crow/v5/crow-go/crow/mocks"
 )
 
 func TestPipelineList(t *testing.T) {

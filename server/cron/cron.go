@@ -22,12 +22,12 @@ import (
 	"github.com/gdgvda/cron"
 	"github.com/rs/zerolog/log"
 
-	"codeberg.org/crowci/crow/v5/server"
-	"codeberg.org/crowci/crow/v5/server/forge"
-	"codeberg.org/crowci/crow/v5/server/model"
-	"codeberg.org/crowci/crow/v5/server/pipeline"
-	"codeberg.org/crowci/crow/v5/server/services/lock"
-	"codeberg.org/crowci/crow/v5/server/store"
+	"codefloe.com/crowci/crow/v5/server"
+	"codefloe.com/crowci/crow/v5/server/forge"
+	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/pipeline"
+	"codefloe.com/crowci/crow/v5/server/services/lock"
+	"codefloe.com/crowci/crow/v5/server/store"
 )
 
 const (

@@ -20,7 +20,7 @@ import (
 	"context"
 	"errors"
 
-	"codeberg.org/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/model"
 )
 
 // Common provider errors.

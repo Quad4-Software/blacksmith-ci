@@ -20,10 +20,10 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"codeberg.org/crowci/crow/v5/pipeline"
-	"codeberg.org/crowci/crow/v5/pipeline/rpc"
-	"codeberg.org/crowci/crow/v5/server/model"
-	"codeberg.org/crowci/crow/v5/server/queue"
+	"codefloe.com/crowci/crow/v5/pipeline"
+	"codefloe.com/crowci/crow/v5/pipeline/rpc"
+	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/queue"
 )
 
 func createFilterFunc(agentFilter rpc.Filter, customLabels map[string]string) queue.FilterFn {

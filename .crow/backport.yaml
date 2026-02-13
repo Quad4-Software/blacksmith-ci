@@ -7,7 +7,7 @@ steps:
     pull: true
     environment:
       FORGEJO_TOKEN:
-        from_secret: codeberg_bot_token
+        from_secret: crowci_bot_token
     commands:
       - git config --global --add safe.directory "$CI_WORKSPACE"
       - backporter backport --ci

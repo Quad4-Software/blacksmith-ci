@@ -21,13 +21,13 @@ import (
 	"github.com/jellydator/ttlcache/v3"
 	"github.com/urfave/cli/v3"
 
-	"codeberg.org/crowci/crow/v5/server/forge"
-	"codeberg.org/crowci/crow/v5/server/model"
-	"codeberg.org/crowci/crow/v5/server/services/config"
-	"codeberg.org/crowci/crow/v5/server/services/environment"
-	"codeberg.org/crowci/crow/v5/server/services/registry"
-	"codeberg.org/crowci/crow/v5/server/services/secret"
-	"codeberg.org/crowci/crow/v5/server/store"
+	"codefloe.com/crowci/crow/v5/server/forge"
+	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/services/config"
+	"codefloe.com/crowci/crow/v5/server/services/environment"
+	"codefloe.com/crowci/crow/v5/server/services/registry"
+	"codefloe.com/crowci/crow/v5/server/services/secret"
+	"codefloe.com/crowci/crow/v5/server/store"
 )
 
 const forgeCacheTTL = 10 * time.Minute

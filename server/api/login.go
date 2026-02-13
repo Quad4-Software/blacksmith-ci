@@ -27,15 +27,15 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/tink-crypto/tink-go/v2/subtle/random"
 
-	"codeberg.org/crowci/crow/v5/server"
-	"codeberg.org/crowci/crow/v5/server/forge"
-	forge_types "codeberg.org/crowci/crow/v5/server/forge/types"
-	"codeberg.org/crowci/crow/v5/server/model"
-	"codeberg.org/crowci/crow/v5/server/router/middleware/session"
-	"codeberg.org/crowci/crow/v5/server/store"
-	"codeberg.org/crowci/crow/v5/server/store/types"
-	"codeberg.org/crowci/crow/v5/shared/httputil"
-	"codeberg.org/crowci/crow/v5/shared/token"
+	"codefloe.com/crowci/crow/v5/server"
+	"codefloe.com/crowci/crow/v5/server/forge"
+	forge_types "codefloe.com/crowci/crow/v5/server/forge/types"
+	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/router/middleware/session"
+	"codefloe.com/crowci/crow/v5/server/store"
+	"codefloe.com/crowci/crow/v5/server/store/types"
+	"codefloe.com/crowci/crow/v5/shared/httputil"
+	"codefloe.com/crowci/crow/v5/shared/token"
 )
 
 const stateTokenDuration = time.Minute * 5

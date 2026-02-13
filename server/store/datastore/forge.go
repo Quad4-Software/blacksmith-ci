@@ -15,7 +15,7 @@
 package datastore
 
 import (
-	"codeberg.org/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/model"
 )
 
 func (s storage) ForgeGet(id int64) (*model.Forge, error) {

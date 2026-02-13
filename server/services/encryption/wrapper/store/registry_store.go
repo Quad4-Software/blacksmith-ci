@@ -17,7 +17,7 @@ package store
 import (
 	"fmt"
 
-	"codeberg.org/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/model"
 )
 
 func (wrapper *EncryptedRegistryStore) RegistryFind(repo *model.Repo, addr string) (*model.Registry, error) {

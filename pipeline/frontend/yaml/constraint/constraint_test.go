@@ -19,8 +19,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"codeberg.org/crowci/crow/v5/pipeline/frontend/metadata"
-	"codeberg.org/crowci/crow/v5/shared/yaml"
+	"codefloe.com/crowci/crow/v5/pipeline/frontend/metadata"
+	"codefloe.com/crowci/crow/v5/shared/yaml"
 )
 
 func TestConstraint(t *testing.T) {

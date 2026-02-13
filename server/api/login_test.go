@@ -13,16 +13,16 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"codeberg.org/crowci/crow/v5/server"
-	"codeberg.org/crowci/crow/v5/server/api"
-	forge_mocks "codeberg.org/crowci/crow/v5/server/forge/mocks"
-	forge_types "codeberg.org/crowci/crow/v5/server/forge/types"
-	"codeberg.org/crowci/crow/v5/server/model"
-	mocks_services "codeberg.org/crowci/crow/v5/server/services/mocks"
-	"codeberg.org/crowci/crow/v5/server/services/permissions"
-	store_mocks "codeberg.org/crowci/crow/v5/server/store/mocks"
-	"codeberg.org/crowci/crow/v5/server/store/types"
-	"codeberg.org/crowci/crow/v5/shared/token"
+	"codefloe.com/crowci/crow/v5/server"
+	"codefloe.com/crowci/crow/v5/server/api"
+	forge_mocks "codefloe.com/crowci/crow/v5/server/forge/mocks"
+	forge_types "codefloe.com/crowci/crow/v5/server/forge/types"
+	"codefloe.com/crowci/crow/v5/server/model"
+	mocks_services "codefloe.com/crowci/crow/v5/server/services/mocks"
+	"codefloe.com/crowci/crow/v5/server/services/permissions"
+	store_mocks "codefloe.com/crowci/crow/v5/server/store/mocks"
+	"codefloe.com/crowci/crow/v5/server/store/types"
+	"codefloe.com/crowci/crow/v5/shared/token"
 )
 
 func TestHandleAuth(t *testing.T) {

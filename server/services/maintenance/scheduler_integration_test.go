@@ -24,9 +24,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"codeberg.org/crowci/crow/v5/server/model"
-	"codeberg.org/crowci/crow/v5/server/store"
-	"codeberg.org/crowci/crow/v5/server/store/datastore"
+	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/store"
+	"codefloe.com/crowci/crow/v5/server/store/datastore"
 )
 
 func setupTestStore(t *testing.T) store.Store {

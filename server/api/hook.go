@@ -25,13 +25,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 
-	"codeberg.org/crowci/crow/v5/server"
-	"codeberg.org/crowci/crow/v5/server/forge"
-	"codeberg.org/crowci/crow/v5/server/forge/types"
-	"codeberg.org/crowci/crow/v5/server/model"
-	"codeberg.org/crowci/crow/v5/server/pipeline"
-	"codeberg.org/crowci/crow/v5/server/store"
-	"codeberg.org/crowci/crow/v5/shared/token"
+	"codefloe.com/crowci/crow/v5/server"
+	"codefloe.com/crowci/crow/v5/server/forge"
+	"codefloe.com/crowci/crow/v5/server/forge/types"
+	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/pipeline"
+	"codefloe.com/crowci/crow/v5/server/store"
+	"codefloe.com/crowci/crow/v5/shared/token"
 )
 
 // GetQueueInfo

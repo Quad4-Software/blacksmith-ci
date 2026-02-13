@@ -20,9 +20,9 @@ import (
 
 	"github.com/stretchr/testify/mock"
 
-	"codeberg.org/crowci/crow/v5/server/model"
-	mocks_service "codeberg.org/crowci/crow/v5/server/services/maintenance/mocks"
-	mocks_store "codeberg.org/crowci/crow/v5/server/store/mocks"
+	"codefloe.com/crowci/crow/v5/server/model"
+	mocks_service "codefloe.com/crowci/crow/v5/server/services/maintenance/mocks"
+	mocks_store "codefloe.com/crowci/crow/v5/server/store/mocks"
 )
 
 func TestScheduler_CheckAction_Vacuum(t *testing.T) {

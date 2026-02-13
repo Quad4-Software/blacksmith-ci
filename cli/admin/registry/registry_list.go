@@ -19,9 +19,9 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"codeberg.org/crowci/crow/v5/cli/common"
-	"codeberg.org/crowci/crow/v5/cli/internal"
-	crow "codeberg.org/crowci/crow/v5/crow-go/crow"
+	"codefloe.com/crowci/crow/v5/cli/common"
+	"codefloe.com/crowci/crow/v5/cli/internal"
+	crow "codefloe.com/crowci/crow/v5/crow-go/crow"
 )
 
 var registryListCmd = &cli.Command{

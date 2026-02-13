@@ -16,7 +16,7 @@
 package model
 
 import (
-	"codeberg.org/crowci/crow/v5/pipeline/errors/types"
+	"codefloe.com/crowci/crow/v5/pipeline/errors/types"
 )
 
 type Pipeline struct {

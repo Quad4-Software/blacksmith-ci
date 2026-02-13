@@ -21,8 +21,8 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"codeberg.org/crowci/crow/v5/server/integrations"
-	"codeberg.org/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/integrations"
+	"codefloe.com/crowci/crow/v5/server/model"
 )
 
 // CachedProvider wraps a Provider with per-pipeline caching.

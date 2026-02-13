@@ -21,9 +21,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"codeberg.org/crowci/crow/v5/server/integrations"
-	intMocks "codeberg.org/crowci/crow/v5/server/integrations/mocks"
-	"codeberg.org/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/integrations"
+	intMocks "codefloe.com/crowci/crow/v5/server/integrations/mocks"
+	"codefloe.com/crowci/crow/v5/server/model"
 )
 
 func TestMakeCacheKey(t *testing.T) {

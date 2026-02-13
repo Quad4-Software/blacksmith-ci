@@ -22,9 +22,9 @@ import (
 
 	logger "github.com/rs/zerolog/log"
 
-	"codeberg.org/crowci/crow/v5/server/model"
-	"codeberg.org/crowci/crow/v5/server/pubsub"
-	"codeberg.org/crowci/crow/v5/server/store"
+	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/pubsub"
+	"codefloe.com/crowci/crow/v5/server/store"
 )
 
 // distributedLog implements a database-streaming distributed logging system.
