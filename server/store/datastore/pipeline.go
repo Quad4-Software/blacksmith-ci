@@ -102,7 +102,7 @@ func (s storage) GetPipelineList(repo *model.Repo, p *model.ListOptions, f *mode
 			)
 			// Also search by pipeline number if the search term is numeric
 			if _, err := strconv.ParseInt(f.Search, 10, 64); err == nil {
-				searchCond = searchCond.Or(builder.Like{"CAST(number AS TEXT)", f.Search})
+				searchCond = searchCond.Or(builder.Like{s.castAsText("number"), f.Search})
 			}
 			cond = cond.And(searchCond)
 		}

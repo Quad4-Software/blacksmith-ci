@@ -66,7 +66,7 @@ fmt: install-dev-deps
 		prettier -w .
 		gofumpt -w .
 		golangci-lint run --fix
-		gci write --skip-vendor --skip-generated -s standard -s default -s "prefix(codeberg.org/crowci/crow)" --custom-order .
+		gci write --skip-vendor --skip-generated -s standard -s default -s "prefix(codefloe.com/crowci/crow)" --custom-order .
 
 test: test-agent test-server test-server-datastore test-cli test-lib
 
@@ -86,7 +86,7 @@ generate: install-dev-deps
 	go run github.com/swaggo/swag/cmd/swag fmt
 	CGO_ENABLED=0 go generate cmd/server/openapi.go
 	# Normalize imports (fixes conflicts between swag fmt and mockery)
-	gci write --skip-vendor --skip-generated -s standard -s default -s "prefix(codeberg.org/crowci/crow)" --custom-order .
+	gci write --skip-vendor --skip-generated -s standard -s default -s "prefix(codefloe.com/crowci/crow)" --custom-order .
 
 mockery: install-dev-deps
 	mockery

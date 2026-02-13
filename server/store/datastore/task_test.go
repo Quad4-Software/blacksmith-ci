@@ -116,3 +116,34 @@ func TestTaskAtomicAssign(t *testing.T) {
 	// Cleanup
 	assert.NoError(t, store.TaskDelete("test_atomic_assign"))
 }
+
+func TestTaskListPending(t *testing.T) {
+	store, closer := newTestStore(t, new(model.Task), new(model.Workflow))
+	defer closer()
+
+	// Create workflows with different states
+	pendingWorkflow := &model.Workflow{ID: 10, PipelineID: 1, PID: 1, Name: "pending-wf", State: model.StatusPending}
+	runningWorkflow := &model.Workflow{ID: 20, PipelineID: 1, PID: 2, Name: "running-wf", State: model.StatusRunning}
+	successWorkflow := &model.Workflow{ID: 30, PipelineID: 1, PID: 3, Name: "success-wf", State: model.StatusSuccess}
+
+	_, err := store.engine.Insert(pendingWorkflow, runningWorkflow, successWorkflow)
+	assert.NoError(t, err)
+
+	// Create tasks whose IDs match the workflow IDs (as strings)
+	assert.NoError(t, store.TaskInsert(&model.Task{ID: "10", Data: []byte("pending-task")}))
+	assert.NoError(t, store.TaskInsert(&model.Task{ID: "20", Data: []byte("running-task")}))
+	assert.NoError(t, store.TaskInsert(&model.Task{ID: "30", Data: []byte("completed-task")}))
+
+	// TaskListPending should only return tasks for pending/running workflows
+	list, err := store.TaskListPending()
+	assert.NoError(t, err)
+	assert.Len(t, list, 2)
+
+	ids := make(map[string]bool)
+	for _, task := range list {
+		ids[task.ID] = true
+	}
+	assert.True(t, ids["10"], "Should include task for pending workflow")
+	assert.True(t, ids["20"], "Should include task for running workflow")
+	assert.False(t, ids["30"], "Should exclude task for completed workflow")
+}

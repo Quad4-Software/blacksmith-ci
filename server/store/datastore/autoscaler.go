@@ -54,7 +54,7 @@ func (s storage) AutoscalerList(opts *model.AutoscalerListOptions) (autoscalers 
 	if opts.Search != "" {
 		searchPattern := "%" + opts.Search + "%"
 		sess = sess.Where(
-			"name LIKE ? OR provider LIKE ? OR region LIKE ? OR CAST(id AS TEXT) LIKE ?",
+			"name LIKE ? OR provider LIKE ? OR region LIKE ? OR "+s.castAsText("id")+" LIKE ?",
 			searchPattern, searchPattern, searchPattern, searchPattern,
 		)
 	}

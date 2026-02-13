@@ -20,10 +20,21 @@ import (
 	"strings"
 
 	"xorm.io/xorm"
+	"xorm.io/xorm/schemas"
 
 	"codefloe.com/crowci/crow/v5/server/model"
 	"codefloe.com/crowci/crow/v5/server/store/types"
 )
+
+// castAsText returns a SQL expression that casts expr to a text type,
+// using the correct syntax for the current database dialect.
+// MySQL requires CAST(... AS CHAR) while PostgreSQL and SQLite use CAST(... AS TEXT).
+func (s storage) castAsText(expr string) string {
+	if s.engine.Dialect().URI().DBType == schemas.MYSQL {
+		return "CAST(" + expr + " AS CHAR)"
+	}
+	return "CAST(" + expr + " AS TEXT)"
+}
 
 // wrapGet return error if err not nil or if requested entry do not exist.
 func wrapGet(exist bool, err error) error {

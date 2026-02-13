@@ -30,7 +30,7 @@ func (s storage) TaskListPending() ([]*model.Task, error) {
 	// Join tasks with workflows to filter by workflow state
 	// Task.ID is a string representation of Workflow.ID
 	err := s.engine.
-		Join("INNER", "workflows", "CAST(workflows.id AS TEXT) = tasks.id").
+		Join("INNER", "workflows", s.castAsText("workflows.id")+" = tasks.id").
 		Where("workflows.state IN (?, ?)", model.StatusPending, model.StatusRunning).
 		Find(&tasks)
 	return tasks, err

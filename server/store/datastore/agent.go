@@ -59,7 +59,7 @@ func (s storage) AgentList(opts *model.AgentListOptions) (agents []*model.Agent,
 	if opts.Search != "" {
 		searchPattern := "%" + opts.Search + "%"
 		sess = sess.Where(
-			"name LIKE ? OR platform LIKE ? OR backend LIKE ? OR custom_labels LIKE ? OR CAST(id AS TEXT) LIKE ?",
+			"name LIKE ? OR platform LIKE ? OR backend LIKE ? OR custom_labels LIKE ? OR "+s.castAsText("id")+" LIKE ?",
 			searchPattern, searchPattern, searchPattern, searchPattern, searchPattern,
 		)
 	}
