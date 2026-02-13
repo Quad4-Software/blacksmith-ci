@@ -11,7 +11,7 @@
       </Button>
     </template>
 
-    <div class="max-w-6xl mx-auto px-3 py-4 sm:px-4 space-y-4 w-full overflow-y-auto flex-1">
+    <div class="mx-auto px-3 py-4 sm:px-4 space-y-4 w-full overflow-y-auto flex-1">
       <!-- Toolbar with Search and Filters -->
       <div class="flex items-center justify-center gap-2 flex-wrap">
         <SearchInput v-model="search" :placeholder="$t('search')" class="w-[300px] min-w-[80px]" />
@@ -61,19 +61,14 @@
 
           <!-- All Repos Section -->
           <div class="flex flex-col gap-3 w-full">
-            <div>
-              <h2 class="text-lg text-foreground">{{ $t('repositories.all.title') }}</h2>
-            </div>
-            <div class="flex flex-col gap-3 w-full">
-              <RepoItem
-                v-for="repo in reposLastActivity"
-                :key="repo.id"
-                :repo="repo"
-                :is-pinned="isPinned(repo.id)"
-                :can-pin="canPin"
-                @toggle-pin="handleTogglePin(repo.id)"
-              />
-            </div>
+            <RepoItem
+              v-for="repo in reposLastActivity"
+              :key="repo.id"
+              :repo="repo"
+              :is-pinned="isPinned(repo.id)"
+              :can-pin="canPin"
+              @toggle-pin="handleTogglePin(repo.id)"
+            />
           </div>
         </div>
 

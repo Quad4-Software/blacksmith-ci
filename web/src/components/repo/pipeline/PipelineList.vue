@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="pipelines || infiniteScroll"
-    class="space-y-4 max-w-6xl mx-auto px-3 py-4 sm:px-4 overflow-x-hidden overflow-y-auto w-full h-full"
+    class="space-y-4 mx-auto px-3 py-4 sm:px-4 overflow-x-hidden overflow-y-auto w-full h-full"
   >
     <!-- Bulk actions overlay -->
     <Transition

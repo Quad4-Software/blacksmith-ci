@@ -25,9 +25,6 @@
   "name": "Name",
   "repositories": {
     "title": "Repositories",
-    "all": {
-      "title": "All active repositories"
-    },
     "pinned": {
       "title": "Pinned",
       "desc": "Quick access to your pinned repositories"
@@ -416,7 +413,6 @@
       "files": "Changed files",
       "no_pipelines": "No pipelines have been started yet.",
       "no_pipeline_steps": "No pipeline steps available!",
-      "history": "History:",
       "rerun_latest": "Rerun latest pipeline",
       "rerun_success": "Pipeline restarted successfully",
       "rerun_failed": "Failed to restart pipeline",

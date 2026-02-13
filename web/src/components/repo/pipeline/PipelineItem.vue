@@ -122,7 +122,7 @@
         </div>
 
         <div
-          class="grid w-full min-w-0 grid-cols-2 grid-rows-2 gap-x-3 gap-y-1 md:gap-y-2 py-2 text-xs md:text-sm text-foreground md:ml-auto md:w-85 md:shrink-0"
+          class="pipeline-meta grid w-full min-w-0 grid-cols-2 grid-rows-2 gap-x-3 gap-y-1 md:gap-y-2 py-2 text-xs md:text-sm text-foreground md:ml-auto md:w-85 md:shrink-0"
         >
           <div class="flex min-w-0 items-center gap-2">
             <span :title="pipelineEventTitle" class="shrink-0">
@@ -371,3 +371,13 @@ function unhidePipeline(event: Event) {
   emit('unhide', pipeline.value.id);
 }
 </script>
+
+<style scoped>
+@media (min-width: 1280px) {
+  .pipeline-meta {
+    grid-template-columns: 1.5fr 1fr 1fr 2fr;
+    grid-template-rows: 1fr;
+    width: 40rem;
+  }
+}
+</style>

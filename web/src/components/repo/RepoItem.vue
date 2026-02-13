@@ -1,174 +1,187 @@
 <template>
   <Transition name="fade" mode="out-in">
-    <router-link
-      v-if="repo && repo.active"
-      ref="cardRef"
-      :to="{ name: 'repo', params: { repoId: repo.id } }"
-      class="block w-full"
-    >
-      <Card class="p-0 hover:bg-accent/50 transition-colors cursor-pointer">
-        <CardHeader class="mb-2 p-4 pb-1">
-          <div class="flex items-start justify-between gap-4">
-            <div class="flex items-center gap-2 flex-1 min-w-0">
-              <!-- Drag handle for reordering pinned repos -->
-              <div
-                v-if="showDragHandle"
-                class="drag-handle flex items-center cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors shrink-0"
-                @click.stop.prevent
-              >
-                <Icon name="lucide:grip-vertical" class="h-5 w-5" />
-              </div>
-              <CardTitle class="text-base md:text-lg flex-1 min-w-0 truncate">
-                {{ `${repo.owner} / ${repo.name}` }}
-              </CardTitle>
-            </div>
+    <div v-if="repo && repo.active" ref="cardRef" class="flex items-center gap-2 min-w-0 w-full">
+      <!-- Drag handle positioned outside the main item (like PipelineItem checkbox) -->
+      <div v-if="showDragHandle" class="w-8 shrink-0 flex items-center justify-center" @click.stop.prevent>
+        <div
+          class="drag-handle cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Icon name="lucide:grip-vertical" class="h-5 w-5" />
+        </div>
+      </div>
 
-            <div class="flex items-center gap-1 md:gap-2 shrink-0 flex-wrap justify-end">
-              <!-- Visibility badge (moved first, hidden on mobile) -->
-              <Badge
-                v-if="repo.visibility === RepoVisibility.Private"
-                variant="secondary"
-                class="hidden md:inline-flex"
-              >
-                <Icon name="visibility-private" class="mr-1 h-3 w-3" />
-                {{ $t('repo.visibility.private.private') }}
-              </Badge>
-              <Badge
-                v-else-if="repo.visibility === RepoVisibility.Internal"
-                variant="secondary"
-                class="hidden md:inline-flex"
-              >
-                <Icon name="visibility-internal" class="mr-1 h-3 w-3" />
-                {{ $t('repo.visibility.internal.internal') }}
-              </Badge>
+      <ListItem :to="{ name: 'repo', params: { repoId: repo.id } }" class="flex-1 p-0! min-w-0">
+        <!-- Status icon column (matches PipelineItem w-11) -->
+        <div class="flex w-11 shrink-0 items-center justify-center self-stretch">
+          <PipelineStatusIcon v-if="lastPipeline" :status="lastPipeline.status" class="mx-2 md:mx-3" />
+        </div>
 
-              <!-- Pin button -->
-              <TooltipProvider @click.stop>
-                <Tooltip>
-                  <TooltipTrigger as-child>
-                    <span class="inline-flex">
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        :disabled="!canPin && !isPinned"
-                        @click.prevent="emit('togglePin')"
-                      >
-                        <Icon
-                          :name="isPinned ? 'lucide:pin' : 'lucide:pin-off'"
-                          class="h-4 w-4"
-                          :class="{ 'text-muted-foreground': isPinned }"
-                        />
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>
-                      {{
-                        isPinned ? $t('repo.unpin') : !canPin ? $t('repositories.pin_limit_reached') : $t('repo.pin')
-                      }}
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+        <!-- Rerun button (fixed-width slot so content always starts at the same position) -->
+        <div class="w-8 shrink-0 flex items-center justify-center" @click.stop>
+          <TooltipProvider v-if="lastPipeline">
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <Button variant="ghost" size="icon-sm" :disabled="isRerunning" @click.prevent="rerunPipeline">
+                  <Icon name="lucide:refresh-ccw" size="1rem" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{{ $t('repo.pipeline.rerun_latest') }}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
 
-              <!-- Power button (disable repo) -->
-              <TooltipProvider @click.stop>
-                <Tooltip>
-                  <TooltipTrigger as-child>
+        <!-- Content area -->
+        <div class="flex min-w-0 flex-1 items-center gap-2 pl-1 pr-2 py-2">
+          <!-- Repo identity: responsive width, fixed at lg for alignment -->
+          <div class="min-w-0 max-w-64 shrink sm:shrink-0 sm:w-44 md:w-48 lg:w-52 xl:w-64 flex items-center gap-1.5">
+            <span class="truncate font-medium text-foreground text-sm">
+              {{ `${repo.owner} / ${repo.name}` }}
+            </span>
+            <TooltipProvider v-if="repo.visibility === RepoVisibility.Private">
+              <Tooltip>
+                <TooltipTrigger as-child>
+                  <Icon name="lucide:lock" class="hidden lg:inline-flex h-3.5 w-3.5 shrink-0 text-destructive" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{{ $t('repo.visibility.private.private') }}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider v-else-if="repo.visibility === RepoVisibility.Internal">
+              <Tooltip>
+                <TooltipTrigger as-child>
+                  <Icon name="lucide:lock" class="hidden lg:inline-flex h-3.5 w-3.5 shrink-0 text-chart-2" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{{ $t('repo.visibility.internal.internal') }}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+
+          <!-- Pin + forge (hidden on mobile) -->
+          <div class="hidden sm:flex shrink-0 items-center">
+            <TooltipProvider @click.stop>
+              <Tooltip>
+                <TooltipTrigger as-child>
+                  <span class="inline-flex">
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      :disabled="isUpdating"
-                      @click.prevent="toggleRepoActive(false)"
+                      :disabled="!canPin && !isPinned"
+                      @click.prevent="emit('togglePin')"
                     >
-                      <Icon name="lucide:power" class="h-4 w-4" />
+                      <Icon
+                        :name="isPinned ? 'lucide:pin' : 'lucide:pin-off'"
+                        class="h-4 w-4"
+                        :class="{ 'text-muted-foreground': isPinned }"
+                      />
                     </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{{ $t('repo.disable') }}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              <!-- Forge link -->
-              <a
-                v-if="forge && repo.forge_url"
-                :href="repo.forge_url"
-                :title="`${$t('repo.open_in_forge')}`"
-                target="_blank"
-                class="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent transition-colors"
-                @click.stop
-              >
-                <Icon :name="getForgeIconName(forge)" class="h-4 w-4" />
-              </a>
-            </div>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>
+                    {{ isPinned ? $t('repo.unpin') : !canPin ? $t('repositories.pin_limit_reached') : $t('repo.pin') }}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <a
+              v-if="forge && repo.forge_url"
+              :href="repo.forge_url"
+              :title="$t('repo.open_in_forge')"
+              target="_blank"
+              class="hidden lg:inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-accent transition-colors"
+              @click.stop
+            >
+              <Icon :name="getForgeIconName(forge)" class="h-4 w-4" />
+            </a>
           </div>
-        </CardHeader>
 
-        <CardContent class="p-4 pt-0">
-          <div v-if="lastPipeline" class="flex items-center justify-between gap-4">
-            <!-- Rerun button, last pipeline, and history -->
-            <div class="flex min-w-0 flex-1 items-center gap-2 -ml-2">
-              <TooltipProvider @click.stop>
-                <Tooltip>
-                  <TooltipTrigger as-child>
-                    <Button variant="ghost" size="icon-sm" :disabled="isRerunning" @click="rerunPipeline">
-                      <Icon name="lucide:refresh-ccw" size="1rem" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{{ $t('repo.pipeline.rerun_latest') }}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              <router-link
-                :to="{ name: 'repo-pipeline', params: { repoId: repo.id, pipelineId: lastPipeline.number } }"
-                class="flex items-center gap-2 hover:underline min-w-0"
-                @click.stop
-              >
-                <PipelineStatusIcon :status="lastPipeline.status" size="1rem" class="shrink-0" />
-                <span class="truncate text-sm text-muted-foreground">
-                  {{ shortMessage }}
-                </span>
-              </router-link>
-
-              <!-- Separator (hidden on mobile) -->
-              <Separator
-                v-if="recentPipelines.length > 0"
-                orientation="vertical"
-                class="hidden md:block h-5 bg-muted-foreground/30"
+          <!-- Event icon + pipeline message (hidden on mobile) -->
+          <template v-if="lastPipeline">
+            <span class="hidden sm:flex shrink-0 text-muted-foreground items-center">
+              <Icon v-if="lastPipeline.event === 'pull_request'" name="pull-request" size="0.875rem" />
+              <Icon
+                v-else-if="lastPipeline.event === 'pull_request_closed'"
+                name="pull-request-closed"
+                size="0.875rem"
               />
-
-              <!-- Last 5 pipeline status indicators (hidden on mobile) -->
-              <div v-if="recentPipelines.length > 0" class="hidden md:flex items-center gap-2" @click.stop>
-                <span class="text-sm text-muted-foreground">{{ $t('repo.pipeline.history') }}</span>
-                <div class="flex items-center gap-1">
-                  <router-link
-                    v-for="pipeline in recentPipelines"
-                    :key="pipeline.id"
-                    :to="{ name: 'repo-pipeline', params: { repoId: repo.id, pipelineId: pipeline.number } }"
-                    :title="`Pipeline #${pipeline.number} - ${pipeline.status}`"
-                    class="hover:scale-125 transition-all hover:drop-shadow-md rounded-full p-0.5 hover:bg-accent"
-                  >
-                    <PipelineStatusIcon :status="pipeline.status" size="1rem" />
-                  </router-link>
-                </div>
-              </div>
-            </div>
-
-            <!-- Duration -->
-            <div class="flex shrink-0 items-center gap-1 text-sm text-muted-foreground">
-              <Icon name="duration" size="1rem" />
-              <span>{{ duration }}</span>
-            </div>
-          </div>
-          <div v-else class="text-sm text-muted-foreground" :class="{ 'ml-1.5': showDragHandle }">
+              <Icon
+                v-else-if="lastPipeline.event === 'pull_request_merged'"
+                name="pull-request-merged"
+                size="0.875rem"
+              />
+              <Icon
+                v-else-if="lastPipeline.event === 'pull_request_edited'"
+                name="pull-request-edited"
+                size="0.875rem"
+              />
+              <Icon v-else-if="lastPipeline.event === 'deployment'" name="deployment" size="0.875rem" />
+              <Icon
+                v-else-if="lastPipeline.event === 'tag' || lastPipeline.event === 'release'"
+                name="tag"
+                size="0.875rem"
+              />
+              <Icon v-else-if="lastPipeline.event === 'cron'" name="stopwatch" size="0.875rem" />
+              <Icon v-else-if="lastPipeline.event === 'manual'" name="manual-pipeline" size="0.875rem" />
+              <Icon v-else name="branch" size="0.875rem" />
+            </span>
+            <span class="hidden sm:inline truncate text-sm text-muted-foreground min-w-0 flex-1">
+              {{ shortMessage }}
+            </span>
+          </template>
+          <span v-else class="hidden sm:inline text-sm text-muted-foreground flex-1 min-w-0 truncate">
             {{ $t('repo.pipeline.no_pipelines') }}
+          </span>
+
+          <!-- History dots (lg+ only) -->
+          <div v-if="recentPipelines.length > 0" class="hidden lg:flex items-center gap-1 shrink-0" @click.stop>
+            <router-link
+              v-for="pipeline in recentPipelines"
+              :key="pipeline.id"
+              :to="{ name: 'repo-pipeline', params: { repoId: repo.id, pipelineId: pipeline.number } }"
+              :title="`Pipeline #${pipeline.number} - ${pipeline.status}`"
+              class="hover:scale-125 transition-all hover:drop-shadow-md rounded-full p-0.5 hover:bg-accent"
+            >
+              <PipelineStatusIcon :status="pipeline.status" size="1rem" />
+            </router-link>
           </div>
-        </CardContent>
-      </Card>
-    </router-link>
+        </div>
+
+        <!-- Metadata column (lg+ only) -->
+        <div class="hidden lg:flex shrink-0 w-72 items-center gap-4 text-sm text-muted-foreground py-2 mr-4">
+          <template v-if="lastPipeline">
+            <div class="flex items-center gap-1 whitespace-nowrap w-32 shrink-0">
+              <Icon name="duration" size="0.875rem" class="shrink-0" />
+              <span class="truncate">{{ duration }}</span>
+            </div>
+            <div class="flex items-center gap-1 whitespace-nowrap">
+              <Icon name="startDate" size="0.875rem" class="shrink-0" />
+              <span>{{ startDate }}</span>
+            </div>
+          </template>
+        </div>
+
+        <!-- Power/disable button -->
+        <div class="shrink-0 pr-2 flex items-center" @click.stop>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <Button variant="ghost" size="icon-sm" :disabled="isUpdating" @click.prevent="toggleRepoActive(false)">
+                  <Icon name="lucide:power" class="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{{ $t('repo.disable') }}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      </ListItem>
+    </div>
   </Transition>
 </template>
 
@@ -178,11 +191,9 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Icon from '~/components/atomic/Icon.vue';
+import ListItem from '~/components/atomic/ListItem.vue';
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
-import { Badge } from '~/components/ui/badge';
 import { Button } from '~/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
-import { Separator } from '~/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import useApiClient from '~/compositions/useApiClient';
 import { useForges } from '~/compositions/useForges';
@@ -293,7 +304,7 @@ async function toggleRepoActive(checked: boolean) {
 }
 
 const lastPipeline = computed(() => props.repo.last_pipeline);
-const { shortMessage, duration } = usePipeline(lastPipeline);
+const { shortMessage, duration, startDate } = usePipeline(lastPipeline);
 
 // Lazy-load last 5 pipelines only when the card scrolls into view
 const cardRef = ref<HTMLElement | null>(null);
