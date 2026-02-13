@@ -1,7 +1,7 @@
 <!-- markdownlint-disable -->
 
 <p align="center">
-  <img src="https://codeberg.org/crowci/crow/raw/branch/main/assets/crow-logo-gray-bg-round.png">
+  <img src="https://codefloe.com/crowci/crow/raw/branch/main/assets/crow-logo-gray-bg-round.png">
 </p>
 
 <p align="center">
@@ -11,23 +11,23 @@ A slim and self-hostable CI/CD engine with great extensibility.
 </p>
 
 <p align="center">
-    <img src="https://codeberg.org/crowci/crow/raw/branch/main/assets/screenshot1.png" width="950" alt="Material for MkDocs">
+    <img src="https://codefloe.com/crowci/crow/raw/branch/main/assets/screenshot1.png" width="950" alt="Material for MkDocs">
 </p>
 
 <p align="center">
-  <a href="https://codeberg.org/crowci/-/packages/container/crow-server">
+  <a href="https://codefloe.com/crowci/-/packages/container/crow-server">
    📦️ Server
   </a>
   &nbsp;
-  <a href="https://codeberg.org/crowci/-/packages/container/crow-agent">
+  <a href="https://codefloe.com/crowci/-/packages/container/crow-agent">
    📦️ Agent
   </a>
   &nbsp;
-  <a href="https://codeberg.org/crowci/-/packages/container/crow-cli">
+  <a href="https://codefloe.com/crowci/-/packages/container/crow-cli">
    📦️ CLI
   </a>
   &nbsp;
-  <a href="https://codeberg.org/crowci/-/packages/container/crow-autoscaler">
+  <a href="https://codefloe.com/crowci/-/packages/container/crow-autoscaler">
    📦️ Autoscaler
   </a>
 </p>

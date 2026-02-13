@@ -119,11 +119,11 @@ export default defineConfig({
         {
           icon: 'codeberg',
           label: 'Codeberg',
-          href: 'https://codeberg.org/crowci/crow',
+          href: 'https://codefloe.com/crowci/crow',
         },
       ],
       editLink: {
-        baseUrl: 'https://codeberg.org/crowci/crow/src/branch/main/docs/src/content/docs/',
+        baseUrl: 'https://codefloe.com/crowci/crow/src/branch/main/docs/src/content/docs/',
       },
       // Sidebar is empty at root level - versioned docs use their own sidebar configs
       sidebar: [],

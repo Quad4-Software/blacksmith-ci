@@ -50,7 +50,7 @@ func handleVersion(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Add("Content-Type", "text/json")
 	err := json.NewEncoder(w).Encode(versionResp{
-		Source:  "https://codeberg.org/crowci/crow",
+		Source:  "https://codefloe.com/crowci/crow",
 		Version: version.String(),
 	})
 	if err != nil {

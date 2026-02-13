@@ -4,7 +4,7 @@ title: 'Autoscaler'
 
 import { Steps } from '@astrojs/starlight/components';
 
-The [Crow CI Autoscaler](https://codeberg.org/crowci/autoscaler) dynamically provisions cloud servers to execute pipelines, then terminates them when idle.
+The [Crow CI Autoscaler](https://codefloe.com/crowci/autoscaler) dynamically provisions cloud servers to execute pipelines, then terminates them when idle.
 
 ```mermaid
 sequenceDiagram
@@ -27,11 +27,11 @@ sequenceDiagram
 
 | Provider      | Configuration Reference                                                                        |
 | ------------- | ---------------------------------------------------------------------------------------------- |
-| AWS           | [flags.go](https://codeberg.org/crowci/autoscaler/src/branch/main/providers/aws/flags.go)      |
-| Hetzner Cloud | [flags.go](https://codeberg.org/crowci/autoscaler/src/branch/main/providers/hetzner/flags.go)  |
-| Linode        | [flags.go](https://codeberg.org/crowci/autoscaler/src/branch/main/providers/linode/flags.go)   |
-| Scaleway      | [flags.go](https://codeberg.org/crowci/autoscaler/src/branch/main/providers/scaleway/flags.go) |
-| Vultr         | [flags.go](https://codeberg.org/crowci/autoscaler/src/branch/main/providers/vultr/flags.go)    |
+| AWS           | [flags.go](https://codefloe.com/crowci/autoscaler/src/branch/main/providers/aws/flags.go)      |
+| Hetzner Cloud | [flags.go](https://codefloe.com/crowci/autoscaler/src/branch/main/providers/hetzner/flags.go)  |
+| Linode        | [flags.go](https://codefloe.com/crowci/autoscaler/src/branch/main/providers/linode/flags.go)   |
+| Scaleway      | [flags.go](https://codefloe.com/crowci/autoscaler/src/branch/main/providers/scaleway/flags.go) |
+| Vultr         | [flags.go](https://codefloe.com/crowci/autoscaler/src/branch/main/providers/vultr/flags.go)    |
 
 Additional providers with a Go SDK can be added — contributions welcome!
 
@@ -57,7 +57,7 @@ Additional providers with a Go SDK can be added — contributions welcome!
 # docker-compose.yaml
 services:
   crow-autoscaler:
-    image: codeberg.org/crowci/crow-autoscaler:<version>
+    image: codefloe.com/crowci/crow-autoscaler:<version>
     restart: always
     depends_on:
       - crow-server
@@ -91,7 +91,7 @@ services:
       - CROW_HETZNERCLOUD_FIREWALLS=my-firewall
 
       # Agent image (optional — auto-detected from server version if omitted)
-      # - CROW_AGENT_IMAGE=codeberg.org/crowci/crow-agent:v5.3.2
+      # - CROW_AGENT_IMAGE=codefloe.com/crowci/crow-agent:v5.3.2
 
       # Optional: agent environment
       - CROW_AGENT_ENV=CROW_LOG_LEVEL=debug,CROW_HEALTHCHECK=false
@@ -147,7 +147,7 @@ Remote agents require secure gRPC to connect back to the server.
 | ------------------ | ------- | ------------------------------------ |
 | `CROW_AGENT_IMAGE` | _auto_  | Container image for spawned agents   |
 
-When `CROW_AGENT_IMAGE` is not set, the autoscaler queries the Crow server's `/version` endpoint and uses the matching agent image automatically — for example, if the server reports version `v5.3.2`, the autoscaler uses `codeberg.org/crowci/crow-agent:v5.3.2`.
+When `CROW_AGENT_IMAGE` is not set, the autoscaler queries the Crow server's `/version` endpoint and uses the matching agent image automatically — for example, if the server reports version `v5.3.2`, the autoscaler uses `codefloe.com/crowci/crow-agent:v5.3.2`.
 
 Set this variable explicitly only if you need to pin a specific agent version or use a custom image.
 
@@ -286,7 +286,7 @@ Register two autoscalers on the server and note their tokens.
 services:
   # Small instances for standard builds
   autoscaler-standard:
-    image: codeberg.org/crowci/crow-autoscaler:<version>
+    image: codefloe.com/crowci/crow-autoscaler:<version>
     restart: always
     environment:
       - CROW_SERVER=crow-server:9000
@@ -305,7 +305,7 @@ services:
 
   # Large instances for heavy builds
   autoscaler-heavy:
-    image: codeberg.org/crowci/crow-autoscaler:<version>
+    image: codefloe.com/crowci/crow-autoscaler:<version>
     restart: always
     environment:
       - CROW_SERVER=crow-server:9000

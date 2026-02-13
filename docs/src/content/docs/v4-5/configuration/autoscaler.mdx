@@ -4,7 +4,7 @@ title: 'Autoscaler'
 
 import { Steps } from '@astrojs/starlight/components';
 
-The [Crow CI Autoscaler](https://codeberg.org/crowci/autoscaler) dynamically provisions cloud servers to execute pipelines, then terminates them when idle.
+The [Crow CI Autoscaler](https://codefloe.com/crowci/autoscaler) dynamically provisions cloud servers to execute pipelines, then terminates them when idle.
 
 ```mermaid
 sequenceDiagram
@@ -27,11 +27,11 @@ sequenceDiagram
 
 | Provider | Configuration Reference |
 | -------- | ----------------------- |
-| AWS | [flags.go](https://codeberg.org/crowci/autoscaler/src/branch/main/providers/aws/flags.go) |
-| Hetzner Cloud | [flags.go](https://codeberg.org/crowci/autoscaler/src/branch/main/providers/hetzner/flags.go) |
-| Linode | [flags.go](https://codeberg.org/crowci/autoscaler/src/branch/main/providers/linode/flags.go) |
-| Scaleway | [flags.go](https://codeberg.org/crowci/autoscaler/src/branch/main/providers/scaleway/flags.go) |
-| Vultr | [flags.go](https://codeberg.org/crowci/autoscaler/src/branch/main/providers/vultr/flags.go) |
+| AWS | [flags.go](https://codefloe.com/crowci/autoscaler/src/branch/main/providers/aws/flags.go) |
+| Hetzner Cloud | [flags.go](https://codefloe.com/crowci/autoscaler/src/branch/main/providers/hetzner/flags.go) |
+| Linode | [flags.go](https://codefloe.com/crowci/autoscaler/src/branch/main/providers/linode/flags.go) |
+| Scaleway | [flags.go](https://codefloe.com/crowci/autoscaler/src/branch/main/providers/scaleway/flags.go) |
+| Vultr | [flags.go](https://codefloe.com/crowci/autoscaler/src/branch/main/providers/vultr/flags.go) |
 
 Additional providers with a Go SDK can be added — contributions welcome!
 
@@ -57,7 +57,7 @@ Additional providers with a Go SDK can be added — contributions welcome!
 # docker-compose.yaml
 services:
   crow-autoscaler:
-    image: codeberg.org/crowci/crow-autoscaler:<version>
+    image: codefloe.com/crowci/crow-autoscaler:<version>
     restart: always
     depends_on:
       - crow-server

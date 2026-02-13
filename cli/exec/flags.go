@@ -162,7 +162,7 @@ var flags = []cli.Flag{
 		Sources: cli.EnvVars("CI_SYSTEM_URL", "CROW_SYSTEM_URL"),
 		Name:    "system-url",
 		Usage:   "Set the metadata environment variable \"CI_SYSTEM_URL\".",
-		Value:   "https://codeberg.org/crowci/crow",
+		Value:   "https://codefloe.com/crowci/crow",
 	},
 	&cli.StringFlag{
 		Sources: cli.EnvVars("CI_REPO", "CROW_REPO"),
