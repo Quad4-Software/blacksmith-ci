@@ -27,10 +27,14 @@ func (s storage) TaskList() ([]*model.Task, error) {
 // This prevents completed tasks from being reloaded into the queue on server restart.
 func (s storage) TaskListPending() ([]*model.Task, error) {
 	tasks := make([]*model.Task, 0, perPage)
-	// Join tasks with workflows to filter by workflow state
-	// Task.ID is a string representation of Workflow.ID
+	// Join tasks with workflows to filter by workflow state.
+	// Task.ID is a string representation of Workflow.ID, so we cast
+	// tasks.id to integer rather than workflows.id to text. This avoids
+	// MySQL "Illegal mix of collations" errors that occur when CAST(...
+	// AS CHAR) produces a string with the connection default collation
+	// while the tasks.id column may use a different collation.
 	err := s.engine.
-		Join("INNER", "workflows", s.castAsText("workflows.id")+" = tasks.id").
+		Join("INNER", "workflows", "workflows.id = "+s.castAsInteger("tasks.id")).
 		Where("workflows.state IN (?, ?)", model.StatusPending, model.StatusRunning).
 		Find(&tasks)
 	return tasks, err

@@ -36,6 +36,18 @@ func (s storage) castAsText(expr string) string {
 	return "CAST(" + expr + " AS TEXT)"
 }
 
+// castAsInteger returns a SQL expression that casts expr to an integer type,
+// using the correct syntax for the current database dialect.
+// This is useful for comparing string columns with integer columns without
+// collation issues on MySQL (which can fail with "Illegal mix of collations"
+// when comparing CAST-to-text results with varchar columns).
+func (s storage) castAsInteger(expr string) string {
+	if s.engine.Dialect().URI().DBType == schemas.MYSQL {
+		return "CAST(" + expr + " AS UNSIGNED)"
+	}
+	return "CAST(" + expr + " AS INTEGER)"
+}
+
 // wrapGet return error if err not nil or if requested entry do not exist.
 func wrapGet(exist bool, err error) error {
 	if !exist {
