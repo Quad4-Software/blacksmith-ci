@@ -109,7 +109,14 @@ export default class ApiClient {
 
         // Trigger session invalidation on 401 only for authenticated users
         // Anonymous users getting 401 should not be redirected - they're already shown the Login button
-        if (res.status === 401 && this.authStore?.isAuthenticated) {
+        // Stale forge token errors should NOT invalidate the Crow session —
+        // the session cookie is still valid, only the forge's OAuth token is broken.
+        // These are handled by the error handler in App.vue which shows a notification instead.
+        const isStaleForgeToken =
+          message.includes('TOKEN_REFRESH_FAILED') ||
+          message.includes('authorization has expired') ||
+          message.includes('could not be refreshed');
+        if (res.status === 401 && this.authStore?.isAuthenticated && !isStaleForgeToken) {
           this.authStore.invalidateSession();
         }
 
