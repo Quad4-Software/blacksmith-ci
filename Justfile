@@ -359,7 +359,7 @@ release-agent: ## Create agent binaries for release
 # platforms must be handed over via this syntax for the underlying cross-compile-server step which applies some string splitting on a list of items
 
 # env PLATFORMS='linux|amd64;linux|arm64' just image-server
-image-server TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE='crowci/crow-server':
+image-server TAG REGISTRY_USER='crowci-bot' REGISTRY='codefloe.com' IMAGE='crowci/crow-server':
 	just build-ui
 	just cross-compile-server
 	echo $crowci_bot_token | docker login {{REGISTRY}} -u {{REGISTRY_USER}} --password-stdin
@@ -371,7 +371,7 @@ image-server TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE='crowc
 		-f images/Containerfile.server.multiarch.rootless --push .
 
 # env PLATFORMS='linux|amd64;linux|arm64' just image-server-alpine dev
-image-server-alpine TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE='crowci/crow-server':
+image-server-alpine TAG REGISTRY_USER='crowci-bot' REGISTRY='codefloe.com' IMAGE='crowci/crow-server':
 	just build-ui
 	just cross-compile-server
 	echo $crowci_bot_token | docker login {{REGISTRY}} -u {{REGISTRY_USER}} --password-stdin
@@ -384,7 +384,7 @@ image-server-alpine TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE
 		-f images/Containerfile.server.alpine.multiarch.rootless --push .
 
 # env PLATFORMS='linux/amd64,linux/arm64' just image-agent
-image-agent TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE='crowci/crow-agent':
+image-agent TAG REGISTRY_USER='crowci-bot' REGISTRY='codefloe.com' IMAGE='crowci/crow-agent':
 	echo $crowci_bot_token | docker login {{REGISTRY}} -u {{REGISTRY_USER}} --password-stdin
 	docker buildx build --platform $PLATFORMS \
 		--build-arg CI_COMMIT_SHA={{CI_COMMIT_SHA}} \
@@ -393,7 +393,7 @@ image-agent TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE='crowci
 		-f images/Containerfile.agent.multiarch --push .
 
 # env PLATFORMS='linux/amd64,linux/arm64' just image-agent-alpine dev
-image-agent-alpine TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE='crowci/crow-agent':
+image-agent-alpine TAG REGISTRY_USER='crowci-bot' REGISTRY='codefloe.com' IMAGE='crowci/crow-agent':
 	echo $crowci_bot_token | docker login {{REGISTRY}} -u {{REGISTRY_USER}} --password-stdin
 	docker buildx build --platform $PLATFORMS \
 		--build-arg CI_COMMIT_SHA={{CI_COMMIT_SHA}} \
@@ -402,7 +402,7 @@ image-agent-alpine TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE=
 		-f images/Containerfile.agent.alpine.multiarch --push .
 
 # env PLATFORMS='linux/amd64,linux/arm64' just image-cli dev
-image-cli TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE='crowci/crow-cli':
+image-cli TAG REGISTRY_USER='crowci-bot' REGISTRY='codefloe.com' IMAGE='crowci/crow-cli':
 	echo $crowci_bot_token | docker login {{REGISTRY}} -u {{REGISTRY_USER}} --password-stdin
 	docker buildx build --platform $PLATFORMS \
 		--build-arg CI_COMMIT_SHA={{CI_COMMIT_SHA}} \
@@ -411,7 +411,7 @@ image-cli TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE='crowci/c
 		-f images/Containerfile.cli.multiarch.rootless --push .
 
 # env PLATFORMS='linux/amd64,linux/arm64' just image-cli-alpine dev
-image-cli-alpine TAG REGISTRY_USER='crowci-bot' REGISTRY='codeberg.org' IMAGE='crowci/crow-cli':
+image-cli-alpine TAG REGISTRY_USER='crowci-bot' REGISTRY='codefloe.com' IMAGE='crowci/crow-cli':
 	echo $crowci_bot_token | docker login {{REGISTRY}} -u {{REGISTRY_USER}} --password-stdin
 	docker buildx build --platform $PLATFORMS \
 		--build-arg CI_COMMIT_SHA={{CI_COMMIT_SHA}} \
