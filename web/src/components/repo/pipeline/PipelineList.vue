@@ -128,6 +128,11 @@
       </div>
     </div>
 
+    <!-- Skeleton loading state for initial load -->
+    <template v-if="loading && pipelineDisplayItems.length === 0">
+      <PipelineItemSkeleton v-for="i in 5" :key="`skeleton-${i}`" />
+    </template>
+
     <!-- Pipeline list with hidden indicators -->
     <template
       v-for="item in pipelineDisplayItems"
@@ -189,6 +194,7 @@ import Checkbox from '~/components/ui/checkbox/Checkbox.vue';
 import Panel from '~/components/layout/Panel.vue';
 import SearchInput from '~/components/ui/input/SearchInput.vue';
 import PipelineItem from '~/components/repo/pipeline/PipelineItem.vue';
+import PipelineItemSkeleton from '~/components/repo/pipeline/PipelineItemSkeleton.vue';
 import PipelineProgressSpinner from '~/components/repo/pipeline/PipelineProgressSpinner.vue';
 import { Button as ShadcnButton } from '~/components/ui/button';
 import { Card, CardContent } from '~/components/ui/card';

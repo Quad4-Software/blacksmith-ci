@@ -409,14 +409,23 @@ watch(
   -moz-osx-font-smoothing: grayscale;
 }
 
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.15s ease;
+.fade-enter-active {
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
-
-.fade-enter-from,
+.fade-leave-active {
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
+.fade-enter-from {
+  opacity: 0;
+  transform: translateY(4px);
+}
 .fade-leave-to {
   opacity: 0;
+  transform: translateY(-4px);
 }
 
 @keyframes loading-bar {

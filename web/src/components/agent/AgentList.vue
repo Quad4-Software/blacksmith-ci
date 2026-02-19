@@ -435,8 +435,8 @@
   </div>
 
   <!-- Loading State -->
-  <div v-else class="flex justify-center py-12">
-    <Icon name="loading" class="animate-spin h-8 w-8" />
+  <div v-else class="space-y-3">
+    <AgentCardSkeleton v-for="i in 3" :key="`skeleton-${i}`" />
   </div>
 </template>
 
@@ -445,6 +445,7 @@ import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { watchDebounced } from '@vueuse/core';
 
+import AgentCardSkeleton from '~/components/agent/AgentCardSkeleton.vue';
 import Badge from '~/components/atomic/Badge.vue';
 import Icon from '~/components/atomic/Icon.vue';
 import Pagination from '~/components/atomic/Pagination.vue';

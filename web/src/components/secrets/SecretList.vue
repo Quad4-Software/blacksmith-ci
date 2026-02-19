@@ -1,5 +1,8 @@
 <template>
   <div class="space-y-3 text-foreground">
+    <!-- Skeleton loading state -->
+    <SecretListSkeleton v-if="loading && (!secrets || secrets.length === 0)" />
+
     <Card v-for="secret in secrets" :key="secret.id" class="hover:shadow-md transition-shadow duration-200">
       <div class="flex items-center gap-3 p-2">
         <!-- Secret Name, Value, and Badges -->
@@ -113,6 +116,7 @@ import {
 import { Badge } from '~/components/ui/badge';
 import { Button } from '~/components/ui/button';
 import Card from '~/components/ui/card/Card.vue';
+import SecretListSkeleton from '~/components/secrets/SecretListSkeleton.vue';
 import useApiClient from '~/compositions/useApiClient';
 import useNotifications from '~/compositions/useNotifications';
 import type { Secret } from '~/lib/api/types';
@@ -120,6 +124,7 @@ import type { Secret } from '~/lib/api/types';
 const props = defineProps<{
   modelValue: (Secret & { edit?: boolean })[];
   isDeleting: boolean;
+  loading?: boolean;
 }>();
 
 const emit = defineEmits<{

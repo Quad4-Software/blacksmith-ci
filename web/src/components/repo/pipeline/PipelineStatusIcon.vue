@@ -3,21 +3,25 @@
     class="flex items-center justify-center"
     :title="title || $t('repo.pipeline.status.status', { status: statusDescriptions[status] })"
   >
-    <Icon
-      v-if="service || !(status === 'running' || status === 'started')"
-      :name="service ? 'mdi-wind-power-outline' : `status-${status}`"
-      :size="size"
-      :class="{
-        'text-destructive': pipelineStatusColors[status] === 'red', // error, declined
-        'text-muted-foreground': pipelineStatusColors[status] === 'gray', // blocked, killed, skipped
-        'text-green-500': pipelineStatusColors[status] === 'green', // success
-        'text-primary': pipelineStatusColors[status] === 'orange', // running, started
-        'text-yellow-500': pipelineStatusColors[status] === 'yellow', // pending
-      }"
-    />
-    <div v-else class="flex items-center justify-center" :style="{ width: size, height: size }">
-      <PipelineProgressSpinner />
-    </div>
+    <Transition name="status-swap" mode="out-in">
+      <Icon
+        v-if="service || !(status === 'running' || status === 'started')"
+        :key="`icon-${status}`"
+        :name="service ? 'mdi-wind-power-outline' : `status-${status}`"
+        :size="size"
+        class="transition-colors duration-300"
+        :class="{
+          'text-destructive': pipelineStatusColors[status] === 'red', // error, declined
+          'text-muted-foreground': pipelineStatusColors[status] === 'gray', // blocked, killed, skipped
+          'text-green-500': pipelineStatusColors[status] === 'green', // success
+          'text-primary': pipelineStatusColors[status] === 'orange', // running, started
+          'text-yellow-500': pipelineStatusColors[status] === 'yellow', // pending
+        }"
+      />
+      <div v-else key="spinner" class="flex items-center justify-center" :style="{ width: size, height: size }">
+        <PipelineProgressSpinner />
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -60,3 +64,15 @@ const statusDescriptions = {
   [_ in PipelineStatus]: string;
 };
 </script>
+
+<style scoped>
+.status-swap-enter-active,
+.status-swap-leave-active {
+  transition: opacity 0.15s ease;
+}
+
+.status-swap-enter-from,
+.status-swap-leave-to {
+  opacity: 0;
+}
+</style>
