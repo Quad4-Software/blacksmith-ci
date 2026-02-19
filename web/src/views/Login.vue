@@ -18,10 +18,10 @@
           v-for="(forge, idx) in displayedForges"
           :key="forge.id"
           :ref="(el) => (buttonRefs[idx] = el)"
-          class="justify-center dark:bg-black! text-foreground"
+          variant="outline"
+          class="justify-center border-orange-400 hover:border-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/20 dark:bg-black! text-foreground"
           :style="maxButtonWidth ? { width: `${maxButtonWidth}px` } : {}"
           :disabled="loading === forge.id"
-          color="default"
           :aria-label="`${isLinkingMode ? $t('link_forge_message') : $t('login_oauth_message')} ${getHostFromUrl(forge)}`"
           @click="doLogin(forge.id)"
         >
@@ -64,7 +64,7 @@ import { useTheme } from '~/compositions/useTheme';
 
 import CrowLogo from '~/assets/logo.svg?component';
 import CrowLogoDark from '~/assets/logo-dark.svg?component';
-import Button from '~/components/atomic/Button.vue';
+import { Button } from '~/components/ui/button';
 import Icon from '~/components/atomic/Icon.vue';
 import useApiClient from '~/compositions/useApiClient';
 import useAuthentication from '~/compositions/useAuthentication';

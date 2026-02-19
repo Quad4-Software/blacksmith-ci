@@ -1,13 +1,12 @@
 <template>
   <Settings :title="$t('admin.settings.autoscalers.autoscalers')" :description>
     <template #headerActions>
-      <Button
-        v-if="selectedAutoscaler"
-        :text="$t('admin.settings.autoscalers.show')"
-        start-icon="back"
-        @click="selectedAutoscaler = undefined"
-      />
-      <Button v-else :text="$t('admin.settings.autoscalers.add')" start-icon="plus" @click="showAddAutoscaler" />
+      <Button v-if="selectedAutoscaler" @click="selectedAutoscaler = undefined">
+        <Icon name="back" class="size-4 mr-1" />{{ $t('admin.settings.autoscalers.show') }}
+      </Button>
+      <Button v-else @click="showAddAutoscaler">
+        <Icon name="plus" class="size-4 mr-1" />{{ $t('admin.settings.autoscalers.add') }}
+      </Button>
     </template>
     <template #headerEnd>
       <slot name="headerEnd" />
@@ -67,8 +66,8 @@
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import Button from '~/components/atomic/Button.vue';
 import Icon from '~/components/atomic/Icon.vue';
+import { Button } from '~/components/ui/button';
 import IconButton from '~/components/atomic/IconButton.vue';
 import Panel from '~/components/layout/Panel.vue';
 import Settings from '~/components/layout/Settings.vue';

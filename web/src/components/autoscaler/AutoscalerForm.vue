@@ -10,8 +10,16 @@
     </InputField>
 
     <div class="flex gap-2">
-      <Button type="button" color="gray" :text="$t('cancel')" @click="$emit('cancel')" />
-      <Button :is-loading="isSaving" type="submit" color="default" :text="$t('admin.settings.autoscalers.add')" />
+      <Button type="button" variant="outline" @click="$emit('cancel')">{{ $t('cancel') }}</Button>
+      <Button
+        type="submit"
+        variant="outline"
+        class="relative border-orange-400 hover:border-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/20"
+        :disabled="isSaving"
+      >
+        <Icon v-if="isSaving" name="spinner" class="size-5 animate-spin" />
+        <template v-else>{{ $t('admin.settings.autoscalers.add') }}</template>
+      </Button>
     </div>
   </form>
 </template>
@@ -19,7 +27,8 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
 
-import Button from '~/components/atomic/Button.vue';
+import Icon from '~/components/atomic/Icon.vue';
+import { Button } from '~/components/ui/button';
 import InputField from '~/components/form/InputField.vue';
 import TextField from '~/components/form/TextField.vue';
 import type { Autoscaler } from '~/lib/api/types';

@@ -24,7 +24,7 @@
             @update:is-valid="isVariablesValid = $event"
           />
         </InputField>
-        <Button type="submit" :text="$t('repo.deploy_pipeline.trigger')" :disabled="!isFormValid" />
+        <Button type="submit" :disabled="!isFormValid">{{ $t('repo.deploy_pipeline.trigger') }}</Button>
       </form>
     </Panel>
   </Popup>
@@ -34,7 +34,7 @@
 import { computed, onMounted, ref, toRef } from 'vue';
 import { useRouter } from 'vue-router';
 
-import Button from '~/components/atomic/Button.vue';
+import { Button } from '~/components/ui/button';
 import InputField from '~/components/form/InputField.vue';
 import KeyValueEditor from '~/components/form/KeyValueEditor.vue';
 import { Input } from '~/components/ui/input';

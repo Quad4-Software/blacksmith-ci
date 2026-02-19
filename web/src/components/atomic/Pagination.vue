@@ -55,9 +55,20 @@
     </Button>
 
     <!-- Jump to Last button (only show if there are more pages beyond current) -->
-    <Button v-if="hasMore" :is-loading="isJumpingToLast" :title="$t('pagination.last')" @click="$emit('jumpToLast')">
-      <Icon name="chevron-right" />
-      <Icon name="chevron-right" class="-ml-2" />
+    <Button
+      v-if="hasMore"
+      :disabled="isJumpingToLast"
+      :title="$t('pagination.last')"
+      class="relative"
+      @click="$emit('jumpToLast')"
+    >
+      <template v-if="isJumpingToLast">
+        <Icon name="spinner" class="size-4 animate-spin" />
+      </template>
+      <template v-else>
+        <Icon name="chevron-right" />
+        <Icon name="chevron-right" class="-ml-2" />
+      </template>
     </Button>
   </div>
 </template>
@@ -65,8 +76,8 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
 
-import Button from '~/components/atomic/Button.vue';
 import Icon from '~/components/atomic/Icon.vue';
+import { Button } from '~/components/ui/button';
 import { cn } from '~/lib/utils';
 
 const props = defineProps<{

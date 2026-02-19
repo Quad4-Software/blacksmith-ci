@@ -5,8 +5,10 @@
     docs-url="docs/usage/secrets"
   >
     <template #headerActions>
-      <Button v-if="selectedSecret" :text="$t('secrets.show')" start-icon="back" @click="selectedSecret = undefined" />
-      <Button v-else :text="$t('secrets.add')" start-icon="plus" @click="showAddSecret" />
+      <Button v-if="selectedSecret" @click="selectedSecret = undefined">
+        <Icon name="back" class="size-4 mr-1" />{{ $t('secrets.show') }}
+      </Button>
+      <Button v-else @click="showAddSecret"> <Icon name="plus" class="size-4 mr-1" />{{ $t('secrets.add') }} </Button>
     </template>
     <template #headerEnd> <Warning class="mt-4 text-sm" :text="$t('admin.settings.secrets.warning')" /> </template>
     <SecretList
@@ -31,8 +33,9 @@ import { cloneDeep } from 'lodash';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import Button from '~/components/atomic/Button.vue';
+import Icon from '~/components/atomic/Icon.vue';
 import Warning from '~/components/atomic/Warning.vue';
+import { Button } from '~/components/ui/button';
 import Settings from '~/components/layout/Settings.vue';
 import SecretEdit from '~/components/secrets/SecretEdit.vue';
 import SecretList from '~/components/secrets/SecretList.vue';

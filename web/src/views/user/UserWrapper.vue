@@ -46,7 +46,11 @@
         </a>
       </div>
     </template>
-    <template #headerActions><Button :text="$t('logout')" :to="`${address}/logout`" /></template>
+    <template #headerActions
+      ><Button as-child
+        ><a :href="`${address}/logout`">{{ $t('logout') }}</a></Button
+      ></template
+    >
     <Tab icon="settings-outline" icon-size="1rem" :to="{ name: 'user' }" :title="$t('user.settings.general.general')" />
     <Tab icon="secret" icon-size="1rem" :to="{ name: 'user-secrets' }" :title="$t('secrets.secrets')" />
     <Tab icon="docker" icon-size="1rem" :to="{ name: 'user-registries' }" :title="$t('registries.registries')" />
@@ -76,7 +80,7 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
 
-import Button from '~/components/atomic/Button.vue';
+import { Button } from '~/components/ui/button';
 import Scaffold from '~/components/layout/scaffold/Scaffold.vue';
 import Tab from '~/components/layout/scaffold/Tab.vue';
 import useConfig from '~/compositions/useConfig';

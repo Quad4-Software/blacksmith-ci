@@ -1,13 +1,9 @@
 <template>
   <Settings :title="$t('admin.settings.agents.agents')" :description>
     <template #headerActions>
-      <Button
-        :text="$t('admin.settings.agents.add')"
-        start-icon="plus"
-        variant="default"
-        size="sm"
-        @click="showAddAgent"
-      />
+      <Button variant="default" size="sm" @click="showAddAgent">
+        <Icon name="plus" class="size-4 mr-1" />{{ $t('admin.settings.agents.add') }}
+      </Button>
     </template>
     <template #headerEnd>
       <slot name="headerEnd" />
@@ -65,7 +61,8 @@ import { cloneDeep } from 'lodash';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import Button from '~/components/atomic/Button.vue';
+import Icon from '~/components/atomic/Icon.vue';
+import { Button } from '~/components/ui/button';
 import Settings from '~/components/layout/Settings.vue';
 import {
   AlertDialog,

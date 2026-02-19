@@ -2,7 +2,9 @@
   <div class="mx-auto w-full max-w-none overflow-y-auto">
     <Settings :title="$t('admin.settings.agents.agents')" :description="description">
       <template #headerActions>
-        <Button :text="$t('admin.settings.agents.add')" start-icon="plus" @click="showAddAgent" />
+        <Button @click="showAddAgent">
+          <Icon name="plus" class="size-4 mr-1" />{{ $t('admin.settings.agents.add') }}
+        </Button>
       </template>
 
       <AgentList
@@ -57,7 +59,8 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 
-import Button from '~/components/atomic/Button.vue';
+import Icon from '~/components/atomic/Icon.vue';
+import { Button } from '~/components/ui/button';
 import Settings from '~/components/layout/Settings.vue';
 import AgentDialog from '~/components/agent/AgentDialog.vue';
 import AgentList from '~/components/agent/AgentList.vue';

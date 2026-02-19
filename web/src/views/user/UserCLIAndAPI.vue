@@ -10,7 +10,7 @@
     </InputField>
     <InputField :label="$t('user.settings.cli_and_api.token')">
       <template #titleActions>
-        <Button class="ml-auto" :text="$t('user.settings.cli_and_api.reset_token')" @click="resetToken" />
+        <Button class="ml-auto" @click="resetToken">{{ $t('user.settings.cli_and_api.reset_token') }}</Button>
       </template>
       <pre class="code-box">{{ token }}</pre>
     </InputField>
@@ -34,7 +34,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import Button from '~/components/atomic/Button.vue';
+import { Button } from '~/components/ui/button';
 import InputField from '~/components/form/InputField.vue';
 import Settings from '~/components/layout/Settings.vue';
 import useApiClient from '~/compositions/useApiClient';

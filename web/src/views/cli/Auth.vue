@@ -25,8 +25,13 @@
     </div>
 
     <div v-if="state === 'confirm'" class="flex justify-center gap-4">
-      <Button :text="$t('login_to_cli')" color="default" @click="sendToken(false)" />
-      <Button :text="$t('abort')" color="red" @click="abortLogin" />
+      <Button
+        variant="outline"
+        class="border-orange-400 hover:border-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/20"
+        @click="sendToken(false)"
+        >{{ $t('login_to_cli') }}</Button
+      >
+      <Button variant="destructive" @click="abortLogin">{{ $t('abort') }}</Button>
     </div>
   </div>
 </template>
@@ -37,7 +42,7 @@ import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 
 import CrowLogo from '~/assets/logo.svg?component';
-import Button from '~/components/atomic/Button.vue';
+import { Button } from '~/components/ui/button';
 import useApiClient from '~/compositions/useApiClient';
 
 const apiClient = useApiClient();

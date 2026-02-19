@@ -2,13 +2,12 @@
   <div class="mx-auto w-full max-w-none px-4">
     <Settings :title="$t('admin.settings.agents.agents')" :description="$t('user.settings.agents.desc')">
       <template #headerActions>
-        <Button
-          v-if="selectedAgent"
-          :text="$t('admin.settings.agents.show')"
-          start-icon="back"
-          @click="selectedAgent = undefined"
-        />
-        <Button v-else :text="$t('admin.settings.agents.add')" start-icon="plus" @click="showAddAgent" />
+        <Button v-if="selectedAgent" @click="selectedAgent = undefined">
+          <Icon name="back" class="size-4 mr-1" />{{ $t('admin.settings.agents.show') }}
+        </Button>
+        <Button v-else @click="showAddAgent">
+          <Icon name="plus" class="size-4 mr-1" />{{ $t('admin.settings.agents.add') }}
+        </Button>
       </template>
 
       <AgentList
@@ -43,7 +42,8 @@ import { cloneDeep } from 'lodash';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import Button from '~/components/atomic/Button.vue';
+import Icon from '~/components/atomic/Icon.vue';
+import { Button } from '~/components/ui/button';
 import Settings from '~/components/layout/Settings.vue';
 import AgentForm from '~/components/agent/AgentForm.vue';
 import AgentList from '~/components/agent/AgentList.vue';

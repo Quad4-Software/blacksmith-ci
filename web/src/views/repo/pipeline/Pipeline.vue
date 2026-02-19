@@ -23,9 +23,9 @@
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger as-child>
-                      <ShadcnButton variant="ghost" size="icon" class="h-6 w-6 p-0" @click="toggleSidebar">
+                      <Button variant="ghost" size="icon" class="h-6 w-6 p-0" @click="toggleSidebar">
                         <Icon name="chevron-left" class="h-4 w-4" />
-                      </ShadcnButton>
+                      </Button>
                     </TooltipTrigger>
                     <TooltipContent side="right">
                       {{ $t('repo.pipeline.hide_steps') }}
@@ -48,14 +48,14 @@
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger as-child>
-                    <ShadcnButton
+                    <Button
                       variant="outline"
                       size="icon"
                       class="h-6 w-6 p-0 rounded-md shadow-sm"
                       @click="toggleSidebar"
                     >
                       <Icon name="chevron-right" class="h-4 w-4" />
-                    </ShadcnButton>
+                    </Button>
                   </TooltipTrigger>
                   <TooltipContent side="right">
                     {{ $t('repo.pipeline.show_steps') }}
@@ -69,7 +69,11 @@
                 <div class="flex flex-col items-center gap-4 text-center">
                   <Icon name="status-error" class="h-16 w-16 text-destructive" size="1.5rem" />
                   <span class="text-xl">{{ $t('repo.pipeline.we_got_some_errors') }}</span>
-                  <Button color="red" :text="$t('repo.pipeline.show_errors')" :to="{ name: 'repo-pipeline-errors' }" />
+                  <Button variant="destructive" as-child>
+                    <router-link :to="{ name: 'repo-pipeline-errors' }">{{
+                      $t('repo.pipeline.show_errors')
+                    }}</router-link>
+                  </Button>
                 </div>
               </Panel>
             </div>
@@ -80,17 +84,23 @@
                   <span class="text-xl">{{ $t('repo.pipeline.protected.awaits') }}</span>
                   <div v-if="repoPermissions!.push" class="flex flex-wrap items-center justify-center gap-2">
                     <Button
-                      color="default"
-                      :text="$t('repo.pipeline.protected.approve')"
-                      :is-loading="isApprovingPipeline"
+                      variant="outline"
+                      class="relative border-orange-400 hover:border-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/20"
+                      :disabled="isApprovingPipeline"
                       @click="approvePipeline"
-                    />
+                    >
+                      <Icon v-if="isApprovingPipeline" name="spinner" class="size-5 animate-spin" />
+                      <template v-else>{{ $t('repo.pipeline.protected.approve') }}</template>
+                    </Button>
                     <Button
-                      color="red"
-                      :text="$t('repo.pipeline.protected.decline')"
-                      :is-loading="isDecliningPipeline"
+                      variant="destructive"
+                      class="relative"
+                      :disabled="isDecliningPipeline"
                       @click="declinePipeline"
-                    />
+                    >
+                      <Icon v-if="isDecliningPipeline" name="spinner" class="size-5 animate-spin" />
+                      <template v-else>{{ $t('repo.pipeline.protected.decline') }}</template>
+                    </Button>
                   </div>
                 </div>
               </Panel>
@@ -137,17 +147,18 @@
             <span class="text-xl">{{ $t('repo.pipeline.protected.awaits') }}</span>
             <div v-if="repoPermissions!.push" class="flex flex-wrap items-center justify-center gap-2">
               <Button
-                color="default"
-                :text="$t('repo.pipeline.protected.approve')"
-                :is-loading="isApprovingPipeline"
+                variant="outline"
+                class="relative border-orange-400 hover:border-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/20"
+                :disabled="isApprovingPipeline"
                 @click="approvePipeline"
-              />
-              <Button
-                color="red"
-                :text="$t('repo.pipeline.protected.decline')"
-                :is-loading="isDecliningPipeline"
-                @click="declinePipeline"
-              />
+              >
+                <Icon v-if="isApprovingPipeline" name="spinner" class="size-5 animate-spin" />
+                <template v-else>{{ $t('repo.pipeline.protected.approve') }}</template>
+              </Button>
+              <Button variant="destructive" class="relative" :disabled="isDecliningPipeline" @click="declinePipeline">
+                <Icon v-if="isDecliningPipeline" name="spinner" class="size-5 animate-spin" />
+                <template v-else>{{ $t('repo.pipeline.protected.decline') }}</template>
+              </Button>
             </div>
           </div>
         </Panel>
@@ -227,10 +238,8 @@
 import { useStorage, useDebounceFn } from '@vueuse/core';
 import { computed, toRef, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useRoute, useRouter } from 'vue-router';
 
-import Button from '~/components/atomic/Button.vue';
-import { Button as ShadcnButton } from '~/components/ui/button';
+import { Button } from '~/components/ui/button';
 import Icon from '~/components/atomic/Icon.vue';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '~/components/ui/resizable';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
@@ -247,7 +256,7 @@ import { useAsyncAction } from '~/compositions/useAsyncAction';
 import { requiredInject } from '~/compositions/useInjectProvide';
 import useNotifications from '~/compositions/useNotifications';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
-import type { PipelineStep } from '~/lib/api/types';
+import { usePipelineNavigation } from '~/compositions/usePipelineNavigation';
 import { identifyMatrixGroups } from '~/lib/pipeline-utils';
 
 const props = defineProps<{
@@ -255,8 +264,6 @@ const props = defineProps<{
 }>();
 
 const apiClient = useApiClient();
-const router = useRouter();
-const route = useRoute();
 const notifications = useNotifications();
 const i18n = useI18n();
 
@@ -266,77 +273,9 @@ const repoPermissions = requiredInject('repo-permissions');
 
 const stepId = toRef(props, 'stepId');
 
-const defaultStepId = computed(() => pipeline.value?.workflows?.[0].children?.[0].pid ?? null);
-
-const selectedStepId = computed({
-  get() {
-    if (stepId.value !== '' && stepId.value !== null && stepId.value !== undefined) {
-      const id = Number.parseInt(stepId.value, 10);
-
-      let step = pipeline.value.workflows?.find((workflow) => workflow.pid === id)?.children[0];
-      if (step) {
-        return step.pid;
-      }
-
-      step = pipeline.value?.workflows?.reduce(
-        (prev, p) => prev || p.children?.find((c) => c.pid === id),
-        undefined as PipelineStep | undefined,
-      );
-      if (step) {
-        return step.pid;
-      }
-
-      // return fallback if step-id is provided, but step cannot be found
-      return defaultStepId.value;
-    }
-
-    // is opened on >= md-screen
-    if (window.innerWidth > 768) {
-      return defaultStepId.value;
-    }
-
-    return null;
-  },
-  set(_selectedStepId: number | null) {
-    if (_selectedStepId === null) {
-      router.replace({ params: { ...route.params, stepId: '' } });
-      return;
-    }
-
-    router.replace({ params: { ...route.params, stepId: `${_selectedStepId}` } });
-  },
-});
-
-// Get all steps in order for navigation
-const allSteps = computed(() => {
-  if (!pipeline.value?.workflows) return [];
-
-  const steps: Array<{ step: PipelineStep; workflow: any }> = [];
-  for (const workflow of pipeline.value.workflows) {
-    for (const step of workflow.children || []) {
-      steps.push({ step, workflow });
-    }
-  }
-  return steps.sort((a, b) => a.step.pid - b.step.pid);
-});
-
-const currentStepIndex = computed(() => {
-  return allSteps.value.findIndex(({ step }) => step.pid === selectedStepId.value);
-});
-
-const previousStepId = computed(() => {
-  if (currentStepIndex.value > 0) {
-    return allSteps.value[currentStepIndex.value - 1].step.pid;
-  }
-  return null;
-});
-
-const nextStepId = computed(() => {
-  if (currentStepIndex.value >= 0 && currentStepIndex.value < allSteps.value.length - 1) {
-    return allSteps.value[currentStepIndex.value + 1].step.pid;
-  }
-  return null;
-});
+const { selectedStepId, previousStepId, nextStepId, autoFollowEnabled, handleAutoFollowUpdate } = usePipelineNavigation(
+  { pipeline, stepIdProp: stepId },
+);
 
 const { doSubmit: approvePipeline, isLoading: isApprovingPipeline } = useAsyncAction(async () => {
   await apiClient.approvePipeline(repo.value.id, `${pipeline.value.number}`);
@@ -370,13 +309,6 @@ useCrowTitle(
 const sidebarCollapsed = useStorage('crow:pipeline-sidebar-collapsed', false);
 const sidebarSize = useStorage('crow:pipeline-sidebar-size', 30);
 const panelGroupKey = ref(0);
-
-// Auto-follow state with localStorage persistence
-const autoFollowEnabled = useStorage('crow:pipeline-auto-follow', false);
-
-function handleAutoFollowUpdate(value: boolean) {
-  autoFollowEnabled.value = value;
-}
 
 function toggleSidebar() {
   sidebarCollapsed.value = !sidebarCollapsed.value;
@@ -418,41 +350,4 @@ const mobileWorkflowsCollapsed = ref<Record<number, boolean>>({});
 function toggleMobileWorkflow(workflowId: number) {
   mobileWorkflowsCollapsed.value[workflowId] = !mobileWorkflowsCollapsed.value[workflowId];
 }
-
-// Find the workflow containing a given step ID
-function getWorkflowForStep(stepId: number | null) {
-  if (!stepId || !pipeline.value?.workflows) return null;
-  return pipeline.value.workflows.find((w) => w.children?.some((s) => s.pid === stepId)) ?? null;
-}
-
-// Auto-follow logic: automatically switch to the running step within the current workflow
-watch(
-  [() => pipeline.value?.workflows, autoFollowEnabled, selectedStepId],
-  ([workflows, enabled, currentStepId]) => {
-    if (!enabled || !workflows) {
-      return;
-    }
-
-    // Find the workflow containing the currently selected step
-    const currentWorkflow = getWorkflowForStep(currentStepId);
-
-    if (currentWorkflow) {
-      // Only auto-follow within the current workflow
-      const runningStep = currentWorkflow.children?.find((step) => step.state === 'running');
-      if (runningStep && runningStep.pid !== currentStepId) {
-        selectedStepId.value = runningStep.pid;
-      }
-    } else {
-      // No step selected yet - find the first running step in any workflow
-      for (const workflow of workflows) {
-        const runningStep = workflow.children?.find((step) => step.state === 'running');
-        if (runningStep) {
-          selectedStepId.value = runningStep.pid;
-          return;
-        }
-      }
-    }
-  },
-  { deep: true, immediate: true },
-);
 </script>

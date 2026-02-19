@@ -5,13 +5,12 @@
     docs-url="docs/usage/registries"
   >
     <template #headerActions>
-      <Button
-        v-if="selectedRegistry"
-        :text="$t('registries.show')"
-        start-icon="back"
-        @click="selectedRegistry = undefined"
-      />
-      <Button v-else :text="$t('registries.add')" start-icon="plus" @click="showAddRegistry" />
+      <Button v-if="selectedRegistry" @click="selectedRegistry = undefined">
+        <Icon name="back" class="size-4 mr-1" />{{ $t('registries.show') }}
+      </Button>
+      <Button v-else @click="showAddRegistry">
+        <Icon name="plus" class="size-4 mr-1" />{{ $t('registries.add') }}
+      </Button>
     </template>
     <RegistryList
       v-if="!selectedRegistry"
@@ -35,7 +34,8 @@ import { cloneDeep } from 'lodash';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import Button from '~/components/atomic/Button.vue';
+import Icon from '~/components/atomic/Icon.vue';
+import { Button } from '~/components/ui/button';
 import Settings from '~/components/layout/Settings.vue';
 import RegistryEdit from '~/components/registry/RegistryEdit.vue';
 import RegistryList from '~/components/registry/RegistryList.vue';

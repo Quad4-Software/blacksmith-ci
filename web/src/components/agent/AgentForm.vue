@@ -34,9 +34,9 @@
             readonly
             class="font-mono text-xs"
           />
-          <UiButton type="button" variant="outline" size="icon" :title="$t('copy')" @click="copyToken">
+          <Button type="button" variant="outline" size="icon" :title="$t('copy')" @click="copyToken">
             <Icon :name="copied ? 'lucide:check' : 'lucide:copy'" class="h-4 w-4" />
-          </UiButton>
+          </Button>
         </div>
       </InputField>
 
@@ -86,14 +86,13 @@
     </template>
 
     <div class="flex gap-2">
-      <Button type="button" variant="outline" size="sm" :text="$t('cancel')" @click="$emit('cancel')" />
-      <Button
-        :is-loading="isSaving"
-        type="submit"
-        variant="default"
-        size="sm"
-        :text="isEditingAgent ? $t('admin.settings.agents.save') : $t('admin.settings.agents.add')"
-      />
+      <Button type="button" variant="outline" size="sm" @click="$emit('cancel')">{{ $t('cancel') }}</Button>
+      <Button type="submit" variant="default" size="sm" class="relative" :disabled="isSaving">
+        <Icon v-if="isSaving" name="spinner" class="size-5 animate-spin" />
+        <template v-else>{{
+          isEditingAgent ? $t('admin.settings.agents.save') : $t('admin.settings.agents.add')
+        }}</template>
+      </Button>
     </div>
   </form>
 </template>
@@ -101,11 +100,10 @@
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
 
-import Button from '~/components/atomic/Button.vue';
 import Icon from '~/components/atomic/Icon.vue';
 import Checkbox from '~/components/form/Checkbox.vue';
 import InputField from '~/components/form/InputField.vue';
-import { Button as UiButton } from '~/components/ui/button';
+import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { useDate } from '~/compositions/useDate';
 import type { Agent } from '~/lib/api/types';
