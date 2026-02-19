@@ -1,6 +1,8 @@
 import { onMounted, ref } from 'vue';
 import type { Router } from 'vue-router';
 
+import { useKeyboardShortcutsDialog } from '~/compositions/useKeyboardShortcutsDialog';
+
 export interface Command {
   id: string;
   label: string;
@@ -20,6 +22,14 @@ function handleKeyDown(e: KeyboardEvent) {
   // Don't trigger if user is typing in an input/textarea
   const target = e.target as HTMLElement;
   if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+    return;
+  }
+
+  // ? key -> Keyboard shortcuts help
+  if (e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    e.preventDefault();
+    const { toggle: toggleShortcuts } = useKeyboardShortcutsDialog();
+    toggleShortcuts();
     return;
   }
 
@@ -78,6 +88,30 @@ function handleKeyDown(e: KeyboardEvent) {
       e.preventDefault();
       e.stopPropagation();
       void globalRouter.push({ name: 'user-crons' });
+      return;
+    }
+
+    // Alt+U -> Autoscalers
+    if (e.code === 'KeyU' && !e.shiftKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      void globalRouter.push({ name: 'autoscalers' });
+      return;
+    }
+
+    // Alt+T -> Access Tokens
+    if (e.code === 'KeyT' && !e.shiftKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      void globalRouter.push({ name: 'user-access-tokens' });
+      return;
+    }
+
+    // Alt+I -> Integrations
+    if (e.code === 'KeyI' && !e.shiftKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      void globalRouter.push({ name: 'user-integrations' });
     }
   }
 }

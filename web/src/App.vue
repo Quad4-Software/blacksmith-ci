@@ -163,6 +163,7 @@
 
     <!-- Global Command Palette and Dialogs -->
     <GlobalCommandPalette />
+    <KeyboardShortcutsDialog />
     <AddSecretDialog />
     <AddRegistryDialog />
     <AddAgentDialog />
@@ -186,6 +187,7 @@ import CrowLogoDarkSvg from '~/assets/logo.svg?component';
 import Icon from '~/components/atomic/Icon.vue';
 import { i18nReady } from '~/compositions/useI18n';
 import GlobalCommandPalette from '~/components/command-palette/GlobalCommandPalette.vue';
+import KeyboardShortcutsDialog from '~/components/keyboard-shortcuts/KeyboardShortcutsDialog.vue';
 import AddSecretDialog from '~/components/command-palette/AddSecretDialog.vue';
 import AddRegistryDialog from '~/components/command-palette/AddRegistryDialog.vue';
 import AddAgentDialog from '~/components/command-palette/AddAgentDialog.vue';

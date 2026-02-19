@@ -29,7 +29,7 @@ export const catppuccinTheme: ThemeDefinition = {
     secondary: 'oklch(0.8575 0.0145 268.4756)',
     secondaryForeground: 'oklch(0.4355 0.0430 279.3250)',
     muted: 'oklch(0.9060 0.0117 264.5071)',
-    mutedForeground: 'oklch(0.5471 0.0343 279.0837)',
+    mutedForeground: 'oklch(0.49 0.0343 279.0837)',
     accent: 'oklch(0.6820 0.1448 235.3822)',
     accentForeground: 'oklch(1.0000 0 0)',
     destructive: 'oklch(0.5505 0.2155 19.8095)',

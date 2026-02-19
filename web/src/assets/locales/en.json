@@ -17,6 +17,13 @@
     "actions": "Actions",
     "toggle_theme": "Toggle Theme"
   },
+  "keyboard_shortcuts": {
+    "title": "Keyboard Shortcuts",
+    "description": "Quick reference for all available keyboard shortcuts.",
+    "general": "General",
+    "navigation": "Navigation",
+    "show_shortcuts": "Show keyboard shortcuts"
+  },
   "nav_ci_cd": "CI / CD",
   "nav_credentials": "Credentials",
   "nav_general": "General",
