@@ -337,15 +337,18 @@ apiClient.setErrorHandler(
             staleTokenNotificationTimeout = null;
           }, 10000);
 
-          // For web users, the error is specific to their session
-          // For API users, the error would be specific to their token
-          // Since we're in the web UI, this is the current user's session
-          notify({
-            title: i18n.t('notify_title_error'),
-            text: `${i18n.t('stale_token_error')} <a href='/logout' class='text-primary underline'>Log in again</a>`,
-            type: 'error',
-            duration: 10000, // Show for 10 seconds
-          });
+          // Defer the notification to ensure Vue's render cycle has completed.
+          // When all API calls fail with 401 during initial mount, vue-sonner's
+          // Toaster component may not have finished mounting yet. Delaying ensures
+          // the toast state change triggers a proper re-render.
+          setTimeout(() => {
+            notify({
+              title: i18n.t('notify_title_error'),
+              text: `${i18n.t('stale_token_error')} <a href='/logout' class='text-primary underline'>Log in again</a>`,
+              type: 'error',
+              duration: 10000, // Show for 10 seconds
+            });
+          }, 500);
         }
         return;
       }
