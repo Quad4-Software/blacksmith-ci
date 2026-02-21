@@ -67,12 +67,15 @@
             <PipelineMatrixGroup
               v-if="group.workflows.length > 1"
               :workflows="group.workflows"
+              :all-workflows="allWorkflows"
               :group-name="group.key"
               :selected-step-id="selectedStepId"
               :agent-details="agentDetails"
               :is-canceling-workflow="isCancelingWorkflow"
+              :is-rerunning-workflow="isRerunningWorkflow"
               @update:selected-step-id="selectStep"
               @cancel-workflow="cancelWorkflow($event)"
+              @rerun-workflow="rerunWorkflow($event)"
             />
             <!-- Single workflow: render as before -->
             <div v-else class="rounded-md border border-border bg-card p-2 shadow-xs">
@@ -87,54 +90,85 @@
               </div>
               <!-- Workflow Row -->
               <div
-                class="grid grid-cols-[1.25rem_2rem_1fr_auto_4rem] gap-1 items-center transition-colors hover:bg-accent cursor-pointer"
+                class="flex items-center gap-1 h-8 px-1 transition-colors hover:bg-accent cursor-pointer"
                 @click="toggleWorkflow(group.workflows[0].id)"
               >
                 <!-- Chevron -->
-                <span class="flex items-center justify-center h-8 w-8">
-                  <Icon
-                    name="chevron-right"
-                    class="transition-transform duration-150"
-                    :class="{ 'rotate-90 transform': !workflowsCollapsed[group.workflows[0].id] }"
-                  />
-                </span>
+                <Icon
+                  name="chevron-right"
+                  class="shrink-0 transition-transform duration-150"
+                  :class="{ 'rotate-90 transform': !workflowsCollapsed[group.workflows[0].id] }"
+                />
                 <!-- Status Icon -->
-                <span class="flex items-center justify-center h-8 w-8">
-                  <PipelineStatusIcon :status="group.workflows[0].state" class="h-4 w-4" />
-                </span>
+                <PipelineStatusIcon :status="group.workflows[0].state" class="h-4 w-4 shrink-0" />
                 <!-- Name -->
                 <span class="min-w-0 font-medium truncate">
                   {{ group.workflows[0].name }}
                 </span>
-                <!-- Agent Icon/Name and Cancel Button (combined column, right-aligned) -->
-                <span class="flex items-center justify-end gap-1">
-                  <a
-                    v-if="group.workflows[0].agent_id"
-                    :href="repoPermissions?.admin ? '/admin/agents/' : '/user/agents/'"
-                    class="text-primary hover:text-primary/80 shrink-0 flex items-center gap-1.5"
-                    :title="getAgentDisplay(group.workflows[0].agent_id) || 'Agent'"
-                    @click.stop
-                  >
-                    <Icon name="agent" class="w-4 h-4 shrink-0" />
-                    <span class="text-sm hidden lg:inline whitespace-nowrap">
-                      {{ getAgentDisplay(group.workflows[0].agent_id) }}
-                    </span>
-                  </a>
-                  <IconButton
-                    v-if="
-                      hasPushPermission &&
-                      (group.workflows[0].state === 'pending' || group.workflows[0].state === 'running')
-                    "
-                    :is-loading="isCancelingWorkflow[group.workflows[0].id]"
-                    icon="close"
-                    class="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                    :title="$t('repo.pipeline.actions.cancel')"
-                    size="1.3rem"
-                    @click.stop="cancelWorkflow(group.workflows[0].id)"
-                  />
-                </span>
-                <!-- Timer -->
-                <span class="flex justify-end pr-2">
+                <!-- Attempt dropdown -->
+                <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
+                <DropdownMenu v-if="workflowHasReruns(group.workflows[0])">
+                  <DropdownMenuTrigger as-child>
+                    <button
+                      class="shrink-0 inline-flex items-center gap-0.5 rounded border border-primary/70 px-1 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-accent transition-colors"
+                      @click.stop
+                    >
+                      #{{ group.workflows[0].attempt }}
+                      <Icon name="chevron-down" class="h-2.5 w-2.5" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    <DropdownMenuItem
+                      v-for="attempt in workflowAttempts(group.workflows[0])"
+                      :key="attempt.id"
+                      class="flex items-center gap-2 text-xs"
+                      @click.stop="switchAttempt(group.workflows[0], attempt)"
+                    >
+                      <PipelineStatusIcon :status="attempt.state" class="h-3.5 w-3.5" />
+                      #{{ attempt.attempt }}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
+                <!-- Spacer -->
+                <span class="flex-1" />
+                <!-- Agent -->
+                <a
+                  v-if="group.workflows[0].agent_id"
+                  :href="repoPermissions?.admin ? '/admin/agents/' : '/user/agents/'"
+                  class="shrink-0 text-primary hover:text-primary/80 flex items-center gap-1.5"
+                  :title="getAgentDisplay(group.workflows[0].agent_id) || 'Agent'"
+                  @click.stop
+                >
+                  <Icon name="agent" class="w-4 h-4" />
+                  <span class="text-sm hidden lg:inline truncate max-w-[100px]">
+                    {{ getAgentDisplay(group.workflows[0].agent_id) }}
+                  </span>
+                </a>
+                <!-- Rerun -->
+                <IconButton
+                  v-if="hasPushPermission && isWorkflowCompleted(group.workflows[0])"
+                  :is-loading="isRerunningWorkflow[group.workflows[0].id]"
+                  icon="solar:restart-bold"
+                  class="shrink-0 text-primary hover:text-primary/80 hover:bg-accent"
+                  :title="$t('repo.pipeline.actions.rerun_workflow')"
+                  @click.stop="rerunWorkflow(group.workflows[0].id)"
+                />
+                <!-- Cancel -->
+                <IconButton
+                  v-if="
+                    hasPushPermission &&
+                    (group.workflows[0].state === 'pending' || group.workflows[0].state === 'running')
+                  "
+                  :is-loading="isCancelingWorkflow[group.workflows[0].id]"
+                  icon="close"
+                  class="shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                  :title="$t('repo.pipeline.actions.cancel')"
+                  size="1.3rem"
+                  @click.stop="cancelWorkflow(group.workflows[0].id)"
+                />
+                <!-- Duration -->
+                <span class="shrink-0 text-right w-10 pr-1">
                   <PipelineStepDuration
                     v-if="group.workflows[0].started !== group.workflows[0].finished"
                     :workflow="group.workflows[0]"
@@ -142,17 +176,12 @@
                 </span>
               </div>
               <!-- Canceled Message -->
-              <div v-if="group.workflows[0].state === 'killed'" class="grid grid-cols-[1.25rem_2rem_1fr_auto_4rem]">
-                <span></span>
-                <span class="flex items-center justify-center h-8 w-8"></span>
-                <span
-                  class="italic flex items-center text-xs text-destructive ml-[0.5rem]"
-                  style="font-size: 0.85em; line-height: 1.5"
-                >
+              <div v-if="group.workflows[0].state === 'killed'" class="flex items-center gap-1 h-8 px-1">
+                <span class="shrink-0 w-4" />
+                <span class="shrink-0 w-4" />
+                <span class="italic text-xs text-destructive">
                   {{ $t('repo.pipeline.actions.canceled_by_user') }}
                 </span>
-                <span></span>
-                <span></span>
               </div>
               <!-- Steps -->
               <div
@@ -162,24 +191,22 @@
                 <div
                   v-for="step in group.workflows[0].children"
                   :key="step.pid"
-                  class="grid grid-cols-[1.25rem_2rem_1fr_auto_4rem] gap-1 items-center transition-colors hover:bg-accent cursor-pointer border-b border-border last:border-b-0"
+                  class="flex items-center gap-1 h-8 px-1 transition-colors hover:bg-accent cursor-pointer border-b border-border last:border-b-0"
                   :class="{
                     'border-t border-border': step === group.workflows[0].children[0],
                     'bg-accent': step.pid === selectedStepId,
                   }"
                   @click="selectStep(step.pid)"
                 >
-                  <span></span>
-                  <span class="flex items-center justify-center h-8 w-8">
-                    <PipelineStatusIcon
-                      :service="step.type === StepType.Service"
-                      :status="step.state"
-                      class="h-4 w-4"
-                    />
-                  </span>
+                  <span class="shrink-0 w-4" />
+                  <PipelineStatusIcon
+                    :service="step.type === StepType.Service"
+                    :status="step.state"
+                    class="h-4 w-4 shrink-0"
+                  />
                   <span class="min-w-0 truncate">{{ step.name }}</span>
-                  <span></span>
-                  <span class="flex justify-end pr-2">
+                  <span class="flex-1" />
+                  <span class="shrink-0 text-right w-10 pr-1">
                     <PipelineStepDuration :step="step" />
                   </span>
                 </div>
@@ -203,14 +230,20 @@ import PipelineMatrixGroup from '~/components/repo/pipeline/PipelineMatrixGroup.
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
 import PipelineStepDuration from '~/components/repo/pipeline/PipelineStepDuration.vue';
 import UserAvatar from '~/components/user/UserAvatar.vue';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu';
 import { ScrollArea } from '~/components/ui/scroll-area';
 import { requiredInject } from '~/compositions/useInjectProvide';
 import usePipeline from '~/compositions/usePipeline';
 import useApiClient from '~/compositions/useApiClient';
 import useNotifications from '~/compositions/useNotifications';
 import { StepType } from '~/lib/api/types';
-import type { Pipeline, PipelineStep } from '~/lib/api/types';
-import { identifyMatrixGroups } from '~/lib/pipeline-utils';
+import type { Pipeline, PipelineStep, PipelineWorkflow } from '~/lib/api/types';
+import { identifyMatrixGroups, getLatestAttempts, getWorkflowAttempts, hasReruns } from '~/lib/pipeline-utils';
 import { usePipelineStore } from '~/store/pipelines';
 import { useI18n } from 'vue-i18n';
 
@@ -233,7 +266,8 @@ const notifications = useNotifications();
 const pipelineStore = usePipelineStore();
 const i18n = useI18n();
 
-const workflowGroups = computed(() => identifyMatrixGroups(pipeline.value.workflows || []));
+const allWorkflows = computed(() => pipeline.value.workflows || []);
+const workflowGroups = computed(() => identifyMatrixGroups(getLatestAttempts(allWorkflows.value)));
 
 const workflowsCollapsed = ref<Record<PipelineStep['id'], boolean>>(
   pipeline.value.workflows && pipeline.value.workflows.length > 1
@@ -250,6 +284,7 @@ const workflowsCollapsed = ref<Record<PipelineStep['id'], boolean>>(
 );
 
 const isCancelingWorkflow = ref<Record<number, boolean>>({});
+const isRerunningWorkflow = ref<Record<number, boolean>>({});
 const agentDetails = ref<Record<number, { name?: string }>>({});
 
 const hasPushPermission = computed(() => repoPermissions.value && repoPermissions.value.push);
@@ -333,6 +368,49 @@ async function cancelWorkflow(workflowId: number) {
     });
   } finally {
     isCancelingWorkflow.value = { ...isCancelingWorkflow.value, [workflowId]: false };
+  }
+}
+
+async function rerunWorkflow(workflowId: number) {
+  if (!repo.value || !pipeline.value?.number) return;
+  isRerunningWorkflow.value = { ...isRerunningWorkflow.value, [workflowId]: true };
+  try {
+    await apiClient.rerunWorkflow(repo.value.id, pipeline.value.number, workflowId);
+    notifications.notify({
+      title: i18n.t('notify_title_success'),
+      text: i18n.t('repo.pipeline.actions.notify_text_rerun_success'),
+      type: 'success',
+      duration: 6000,
+    });
+  } catch {
+    notifications.notify({
+      title: i18n.t('notify_title_error'),
+      text: i18n.t('unknown_error'),
+      type: 'error',
+      duration: 9000,
+    });
+  } finally {
+    isRerunningWorkflow.value = { ...isRerunningWorkflow.value, [workflowId]: false };
+  }
+}
+
+function workflowAttempts(workflow: PipelineWorkflow) {
+  return getWorkflowAttempts(allWorkflows.value, workflow);
+}
+
+function workflowHasReruns(workflow: PipelineWorkflow) {
+  return hasReruns(allWorkflows.value, workflow);
+}
+
+function isWorkflowCompleted(workflow: PipelineWorkflow) {
+  return workflow.state !== 'pending' && workflow.state !== 'running';
+}
+
+function switchAttempt(_workflow: PipelineWorkflow, targetAttempt: PipelineWorkflow) {
+  // When switching to a different attempt, expand it and select the first step
+  workflowsCollapsed.value[targetAttempt.id] = false;
+  if (targetAttempt.children.length > 0) {
+    selectStep(targetAttempt.children[0].pid);
   }
 }
 

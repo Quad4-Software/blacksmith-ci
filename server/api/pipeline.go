@@ -1187,6 +1187,69 @@ func CancelWorkflow(c *gin.Context) {
 	}
 }
 
+// RerunWorkflow
+//
+//	@Summary	Rerun a specific workflow
+//	@Router		/repos/{repo_id}/pipelines/{number}/workflows/{workflow_id}/rerun [post]
+//	@Produce	json
+//	@Success	200
+//	@Tags		Pipeline
+//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
+//	@Param		repo_id			path	int		true	"the repo's id"
+//	@Param		number			path	int		true	"the pipeline's number"
+//	@Param		workflow_id		path	int		true	"the workflow's id"
+func RerunWorkflow(c *gin.Context) {
+	_store := store.FromContext(c)
+	repo := session.Repo(c)
+	user := session.User(c)
+	_forge, err := server.Config.Services.Manager.ForgeFromRepo(repo)
+	if err != nil {
+		log.Error().Err(err).Msg("Cannot get forge from repo")
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
+	isSecondaryForge := false
+	if userForge, ufErr := _store.UserForgeGet(user.ID, repo.ForgeID); ufErr == nil && userForge != nil {
+		user.AccessToken = userForge.AccessToken
+		user.RefreshToken = userForge.RefreshToken
+		user.Expiry = userForge.Expiry
+		user.ForgeID = userForge.ForgeID
+		user.ForgeRemoteID = userForge.ForgeRemoteID
+		isSecondaryForge = !userForge.IsPrimary
+	}
+
+	// Refresh tokens before forge API call
+	refreshUserTokenForForge(c, user, repo.ForgeID, isSecondaryForge)
+	if c.IsAborted() {
+		return
+	}
+
+	num, err := strconv.ParseInt(c.Params.ByName("number"), 10, 64)
+	if err != nil {
+		_ = c.AbortWithError(http.StatusBadRequest, err)
+		return
+	}
+	workflowID, err := strconv.ParseInt(c.Params.ByName("workflow_id"), 10, 64)
+	if err != nil {
+		_ = c.AbortWithError(http.StatusBadRequest, err)
+		return
+	}
+
+	pl, err := _store.GetPipelineNumber(repo, num)
+	if err != nil {
+		handleDBError(c, err)
+		return
+	}
+
+	if err := pipeline.RerunWorkflow(c, _forge, _store, pl, workflowID, user, repo); err != nil {
+		handlePipelineErr(c, err)
+	} else {
+		c.JSON(http.StatusOK, pl)
+	}
+}
+
 // notifyPipelineRestart sends redirect signals to any active log streaming sessions
 // for the old pipeline, directing them to the new restarted pipeline.
 func notifyPipelineRestart(oldPipeline, newPipeline *model.Pipeline) {

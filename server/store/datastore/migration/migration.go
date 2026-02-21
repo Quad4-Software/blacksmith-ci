@@ -98,6 +98,7 @@ var migrationTasks = []*xormigrate.Migration{
 	&crowAddForgeIcon,
 	&crowAddForgeToRepoUnique,
 	&crowAddAllowManualToRepos,
+	&crowAddWorkflowRerunFields,
 }
 
 var allBeans = []any{

@@ -320,7 +320,7 @@ import '@vue-flow/core/dist/theme-default.css';
 import '@vue-flow/controls/dist/style.css';
 import type { Node, Edge } from '@vue-flow/core';
 import type { Pipeline, PipelineStep, PipelineWorkflow, PipelineStatus } from '~/lib/api/types';
-import { identifyMatrixGroupsMap } from '~/lib/pipeline-utils';
+import { identifyMatrixGroupsMap, getLatestAttempts } from '~/lib/pipeline-utils';
 import { useLayout } from '~/compositions/useLayout';
 
 interface Props {
@@ -360,7 +360,7 @@ const selectedWorkflowFilter = ref('all');
 const selectedNodeId = ref<string | null>(null);
 
 // Computed properties for filtering
-const workflows = computed(() => props.pipeline.workflows || []);
+const workflows = computed(() => getLatestAttempts(props.pipeline.workflows || []));
 
 // Memoized filtered nodes and edges
 const filteredNodes = computed(() => {
@@ -739,7 +739,7 @@ function applyLayout(direction: string) {
 
     // Create workflow groups immediately
     const workflowSteps = new Map<number, Node[]>();
-    props.pipeline.workflows?.forEach((workflow) => {
+    workflows.value?.forEach((workflow) => {
       const stepNodesForWorkflow = updatedStepNodes.filter((node) => node.data?.workflow?.pid === workflow.pid);
       if (stepNodesForWorkflow.length > 0) {
         workflowSteps.set(workflow.pid, stepNodesForWorkflow);
@@ -747,7 +747,7 @@ function applyLayout(direction: string) {
     });
 
     // Create workflow groups and add them to nodes
-    const matrixGroups = identifyMatrixGroupsMap(props.pipeline.workflows || []);
+    const matrixGroups = identifyMatrixGroupsMap(workflows.value || []);
     const workflowGroups = createWorkflowGroupsSync(workflowSteps, matrixGroups);
 
     // Apply workflow dependency layout for proper positioning
@@ -836,14 +836,14 @@ function applyFallbackLayout(direction: string) {
 
   // Create workflow groups
   const workflowSteps = new Map<number, Node[]>();
-  props.pipeline.workflows?.forEach((workflow) => {
+  workflows.value?.forEach((workflow) => {
     const stepNodesForWorkflow = updatedStepNodes.filter((node) => node.data?.workflow?.pid === workflow.pid);
     if (stepNodesForWorkflow.length > 0) {
       workflowSteps.set(workflow.pid, stepNodesForWorkflow);
     }
   });
 
-  const matrixGroups = identifyMatrixGroupsMap(props.pipeline.workflows || []);
+  const matrixGroups = identifyMatrixGroupsMap(workflows.value || []);
   const workflowGroups = createWorkflowGroupsSync(workflowSteps, matrixGroups);
 
   // Apply workflow dependency layout for proper positioning
@@ -916,7 +916,7 @@ function applyFallbackLayout(direction: string) {
 
 // Convert pipeline data to DAG nodes and edges
 function buildDAG() {
-  if (!props.pipeline.workflows) {
+  if (!workflows.value) {
     return;
   }
 
@@ -933,15 +933,15 @@ function buildDAG() {
     const workflowMap = new Map<string, PipelineWorkflow>();
 
     // Build workflow lookup map for cross-workflow dependencies
-    props.pipeline.workflows.forEach((workflow) => {
+    workflows.value.forEach((workflow) => {
       workflowMap.set(workflow.name, workflow);
     });
 
     // Identify matrix workflow groups using improved detection
-    const matrixGroups = identifyMatrixGroupsMap(props.pipeline.workflows || []);
+    const matrixGroups = identifyMatrixGroupsMap(workflows.value || []);
 
     // Create nodes for each step
-    props.pipeline.workflows.forEach((workflow) => {
+    workflows.value.forEach((workflow) => {
       const stepNodes: Node[] = [];
 
       workflow.children?.forEach((step) => {
@@ -978,7 +978,7 @@ function buildDAG() {
     const virtualGroupNodes = createVirtualMatrixGroupNodes(matrixGroups, workflowSteps);
 
     // Create edges for step-level dependencies
-    props.pipeline.workflows.forEach((workflow) => {
+    workflows.value.forEach((workflow) => {
       workflow.children?.forEach((step) => {
         const targetNode = globalStepMap.get(`${workflow.pid}-${step.name}`);
         if (!targetNode) {
@@ -1201,14 +1201,14 @@ function createWorkflowGroupsSync(
 ): Node[] {
   const workflowGroups: Node[] = [];
 
-  if (!props.pipeline.workflows) return workflowGroups;
+  if (!workflows.value) return workflowGroups;
 
   // Use provided matrix groups or fallback to basic grouping
   const baseWorkflowGroups = matrixGroups || new Map<string, PipelineWorkflow[]>();
 
   if (!matrixGroups) {
     // Fallback to basic grouping (for backward compatibility)
-    props.pipeline.workflows.forEach((workflow) => {
+    workflows.value.forEach((workflow) => {
       let baseWorkflowName = workflow.name;
 
       // Check for auto-generated matrix pattern: name-matrix-N
@@ -1286,6 +1286,8 @@ function createWorkflowGroupsSync(
         agent_id: representative.agent_id,
         error: representative.error,
         depends_on: representative.depends_on,
+        original_workflow_id: representative.original_workflow_id,
+        attempt: representative.attempt,
         children: representative.children,
       };
 
@@ -1841,10 +1843,11 @@ function hasStructuralChanges(newPipeline: Pipeline, oldPipeline: Pipeline): boo
 
 // Helper function to update only node states without rebuilding
 function updateNodeStates(pipeline: Pipeline) {
+  const latestWfs = getLatestAttempts(pipeline.workflows || []);
   nodes.value = nodes.value.map((node) => {
     if (node.type === 'pipeline-step') {
       // Find the corresponding step in the updated pipeline
-      const workflow = pipeline.workflows?.find((w) => w.pid === node.data?.workflow?.pid);
+      const workflow = latestWfs.find((w) => w.pid === node.data?.workflow?.pid);
       const step = workflow?.children?.find((s) => s.pid === node.data?.step?.pid);
 
       if (step && workflow) {
@@ -1863,7 +1866,7 @@ function updateNodeStates(pipeline: Pipeline) {
       if (node.data?.isMatrixGroup && node.data?.matrixWorkflows) {
         // Update matrix workflow group
         const updatedMatrixWorkflows = node.data.matrixWorkflows.map((matrixWorkflow: PipelineWorkflow) => {
-          return pipeline.workflows?.find((w) => w.pid === matrixWorkflow.pid) || matrixWorkflow;
+          return latestWfs.find((w) => w.pid === matrixWorkflow.pid) || matrixWorkflow;
         });
 
         const representativeWorkflow = updatedMatrixWorkflows[0];
@@ -1881,6 +1884,8 @@ function updateNodeStates(pipeline: Pipeline) {
             agent_id: representativeWorkflow.agent_id,
             error: representativeWorkflow.error,
             depends_on: representativeWorkflow.depends_on,
+            original_workflow_id: representativeWorkflow.original_workflow_id,
+            attempt: representativeWorkflow.attempt,
             children: representativeWorkflow.children,
           };
 
@@ -1895,7 +1900,7 @@ function updateNodeStates(pipeline: Pipeline) {
         }
       } else {
         // Update regular workflow group
-        const workflow = pipeline.workflows?.find((w) => w.pid === node.data?.workflow?.pid);
+        const workflow = latestWfs.find((w) => w.pid === node.data?.workflow?.pid);
         if (workflow) {
           return {
             ...node,
@@ -1923,15 +1928,15 @@ function updateNodeStates(pipeline: Pipeline) {
 
   // Recreate edges based on current pipeline data (same logic as buildDAG)
   const workflowMap = new Map<string, PipelineWorkflow>();
-  pipeline.workflows?.forEach((workflow) => {
+  latestWfs.forEach((workflow) => {
     workflowMap.set(workflow.name, workflow);
   });
 
   // Identify matrix groups for edge creation
-  const matrixGroups = identifyMatrixGroupsMap(pipeline.workflows || []);
+  const matrixGroups = identifyMatrixGroupsMap(latestWfs);
 
   // Step-level dependencies
-  pipeline.workflows?.forEach((workflow) => {
+  latestWfs.forEach((workflow) => {
     workflow.children?.forEach((step) => {
       const targetNode = globalStepMap.get(`${workflow.pid}-${step.name}`);
       if (!targetNode) return;
@@ -2011,7 +2016,7 @@ function updateNodeStates(pipeline: Pipeline) {
 // Watch for workflow state changes to trigger layout (only for structural changes)
 watch(
   () =>
-    props.pipeline.workflows?.map((w) => ({
+    workflows.value?.map((w) => ({
       pid: w.pid,
       name: w.name,
       childCount: w.children?.length || 0,

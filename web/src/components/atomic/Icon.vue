@@ -188,7 +188,10 @@ const lucideIcon = computed(() => {
 });
 
 const iconifyIcon = computed(() => {
-  return iconifyForgeIcons[props.name] || null;
+  if (iconifyForgeIcons[props.name]) return iconifyForgeIcons[props.name];
+  // Handle any iconify icon name with a colon prefix (e.g. "solar:restart-bold")
+  if (props.name.includes(':') && !props.name.startsWith('lucide:')) return props.name;
+  return null;
 });
 
 // Brand colors for Iconify forge icons (devicon icons are already colored)

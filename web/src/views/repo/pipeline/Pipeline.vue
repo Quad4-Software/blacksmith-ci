@@ -122,6 +122,7 @@
               :auto-follow-enabled="autoFollowEnabled"
               class="w-full h-full"
               @update:auto-follow-enabled="handleAutoFollowUpdate"
+              @rerun-workflow="rerunWorkflow"
             />
           </div>
         </ResizablePanel>
@@ -182,6 +183,7 @@
         class="flex-1"
         @update:step-id="selectedStepId = $event"
         @update:auto-follow-enabled="handleAutoFollowUpdate"
+        @rerun-workflow="rerunWorkflow"
       />
       <!-- Step Selection (when no step is selected) -->
       <div v-else class="h-full overflow-y-auto">
@@ -192,26 +194,59 @@
               <PipelineMatrixGroupMobile
                 v-if="group.workflows.length > 1"
                 :workflows="group.workflows"
+                :all-workflows="allWorkflows"
                 :group-name="group.key"
+                :has-push-permission="repoPermissions!.push"
                 @select-step="(pid: number) => (selectedStepId = pid)"
+                @rerun-workflow="rerunWorkflow"
               />
-              <!-- Single workflow (unchanged) -->
+              <!-- Single workflow -->
               <div v-else class="rounded-md border border-border bg-card p-2 shadow-xs">
                 <!-- Workflow Header with Chevron -->
-                <button
-                  class="flex items-center gap-2 mb-2 w-full text-left hover:opacity-80 transition-opacity"
-                  @click="toggleMobileWorkflow(group.workflows[0].id)"
-                >
-                  <Icon
-                    name="chevron-right"
-                    class="size-4 transition-transform duration-200 text-muted-foreground"
-                    :class="{ 'rotate-90': !mobileWorkflowsCollapsed[group.workflows[0].id] }"
+                <div class="flex items-center gap-2 mb-2 w-full">
+                  <button
+                    class="flex items-center gap-2 flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
+                    @click="toggleMobileWorkflow(group.workflows[0].id)"
+                  >
+                    <Icon
+                      name="chevron-right"
+                      class="size-4 transition-transform duration-200 text-muted-foreground shrink-0"
+                      :class="{ 'rotate-90': !mobileWorkflowsCollapsed[group.workflows[0].id] }"
+                    />
+                    <PipelineStatusIcon :status="group.workflows[0].state" class="h-4 w-4 shrink-0" />
+                    <span class="font-medium text-foreground truncate">{{ group.workflows[0].name }}</span>
+                  </button>
+                  <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
+                  <DropdownMenu v-if="mobileWorkflowHasReruns(group.workflows[0])">
+                    <DropdownMenuTrigger as-child>
+                      <button
+                        class="shrink-0 inline-flex items-center gap-0.5 rounded border border-primary/70 px-1 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-accent transition-colors"
+                      >
+                        #{{ group.workflows[0].attempt }}
+                        <Icon name="chevron-down" class="h-2.5 w-2.5" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuItem
+                        v-for="attempt in mobileWorkflowAttempts(group.workflows[0])"
+                        :key="attempt.id"
+                        class="flex items-center gap-2 text-xs"
+                        @click="mobileSwitchAttempt(attempt)"
+                      >
+                        <PipelineStatusIcon :status="attempt.state" class="h-3.5 w-3.5" />
+                        #{{ attempt.attempt }}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
+                  <IconButton
+                    v-if="repoPermissions!.push && isMobileWorkflowCompleted(group.workflows[0])"
+                    icon="solar:restart-bold"
+                    class="shrink-0 text-primary hover:text-primary/80 hover:bg-accent"
+                    :title="$t('repo.pipeline.actions.rerun_workflow')"
+                    @click="rerunWorkflow(group.workflows[0].id)"
                   />
-                  <div class="flex items-center gap-3">
-                    <PipelineStatusIcon :status="group.workflows[0].state" class="h-4 w-4" />
-                    <span class="font-medium text-foreground">{{ group.workflows[0].name }}</span>
-                  </div>
-                </button>
+                </div>
                 <!-- Steps -->
                 <div v-show="!mobileWorkflowsCollapsed[group.workflows[0].id]" class="space-y-1">
                   <div
@@ -240,7 +275,14 @@ import { computed, toRef, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { Button } from '~/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu';
 import Icon from '~/components/atomic/Icon.vue';
+import IconButton from '~/components/atomic/IconButton.vue';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '~/components/ui/resizable';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import Container from '~/components/layout/Container.vue';
@@ -257,7 +299,8 @@ import { requiredInject } from '~/compositions/useInjectProvide';
 import useNotifications from '~/compositions/useNotifications';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
 import { usePipelineNavigation } from '~/compositions/usePipelineNavigation';
-import { identifyMatrixGroups } from '~/lib/pipeline-utils';
+import { identifyMatrixGroups, getLatestAttempts, getWorkflowAttempts, hasReruns } from '~/lib/pipeline-utils';
+import type { PipelineWorkflow } from '~/lib/api/types';
 
 const props = defineProps<{
   stepId?: string | null;
@@ -296,6 +339,25 @@ const { doSubmit: declinePipeline, isLoading: isDecliningPipeline } = useAsyncAc
     duration: 6000,
   });
 });
+
+async function rerunWorkflow(workflowId: number) {
+  try {
+    await apiClient.rerunWorkflow(repo.value.id, pipeline.value.number, workflowId);
+    notifications.notify({
+      title: i18n.t('notify_title_success'),
+      text: i18n.t('repo.pipeline.actions.notify_text_rerun_success'),
+      type: 'success',
+      duration: 6000,
+    });
+  } catch {
+    notifications.notify({
+      title: i18n.t('notify_title_error'),
+      text: i18n.t('unknown_error'),
+      type: 'error',
+      duration: 9000,
+    });
+  }
+}
 
 useCrowTitle(
   computed(() => [
@@ -343,11 +405,32 @@ watch(sidebarSize, (newSize) => {
   }
 });
 
-const mobileWorkflowGroups = computed(() => identifyMatrixGroups(pipeline.value.workflows || []));
+const mobileWorkflowGroups = computed(() => identifyMatrixGroups(getLatestAttempts(pipeline.value.workflows || [])));
 
 const mobileWorkflowsCollapsed = ref<Record<number, boolean>>({});
 
 function toggleMobileWorkflow(workflowId: number) {
   mobileWorkflowsCollapsed.value[workflowId] = !mobileWorkflowsCollapsed.value[workflowId];
+}
+
+const allWorkflows = computed(() => pipeline.value.workflows || []);
+
+function mobileWorkflowHasReruns(workflow: PipelineWorkflow) {
+  return hasReruns(allWorkflows.value, workflow);
+}
+
+function mobileWorkflowAttempts(workflow: PipelineWorkflow) {
+  return getWorkflowAttempts(allWorkflows.value, workflow);
+}
+
+function isMobileWorkflowCompleted(workflow: PipelineWorkflow) {
+  return workflow.state !== 'pending' && workflow.state !== 'running';
+}
+
+function mobileSwitchAttempt(targetAttempt: PipelineWorkflow) {
+  mobileWorkflowsCollapsed.value[targetAttempt.id] = false;
+  if (targetAttempt.children.length > 0) {
+    selectedStepId.value = targetAttempt.children[0].pid;
+  }
 }
 </script>

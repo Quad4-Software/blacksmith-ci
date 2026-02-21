@@ -471,7 +471,9 @@
         "log_fullscreen": "Enter fullscreen",
         "log_exit_fullscreen": "Exit fullscreen",
         "canceled_by_user": "Canceled by user",
-        "stderr_output": "Error Output (stderr)"
+        "stderr_output": "Error Output (stderr)",
+        "rerun_workflow": "Rerun workflow",
+        "notify_text_rerun_success": "Workflow rerun started"
       },
       "matrix": {
         "filter_placeholder": "Filter variants…",
@@ -537,6 +539,7 @@
       "all_steps": "All Steps",
       "steps_sheet_title": "Pipeline Steps",
       "select_step": "Select a step to view its logs",
+      "details": "Details",
       "exit_code_label": "Exit Code:",
       "agent_label": "Agent:",
       "duration_label": "Duration:",

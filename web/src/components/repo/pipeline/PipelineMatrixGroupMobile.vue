@@ -1,20 +1,20 @@
 <template>
   <div class="rounded-md border border-border bg-card p-2 shadow-xs">
     <!-- Group Header -->
-    <button
-      class="flex items-center gap-2 mb-1 w-full text-left hover:opacity-80 transition-opacity"
-      @click="groupExpanded = !groupExpanded"
-    >
-      <Icon
-        name="chevron-right"
-        class="size-4 transition-transform duration-200 text-muted-foreground"
-        :class="{ 'rotate-90': groupExpanded }"
-      />
-      <div class="flex items-center gap-3">
-        <PipelineStatusIcon :status="aggregatedStatus" class="h-4 w-4" />
-        <span class="font-medium text-foreground">{{ groupName }}</span>
-      </div>
-    </button>
+    <div class="flex items-center gap-2 mb-1 w-full">
+      <button
+        class="flex items-center gap-2 flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
+        @click="groupExpanded = !groupExpanded"
+      >
+        <Icon
+          name="chevron-right"
+          class="size-4 transition-transform duration-200 text-muted-foreground shrink-0"
+          :class="{ 'rotate-90': groupExpanded }"
+        />
+        <PipelineStatusIcon :status="aggregatedStatus" class="h-4 w-4 shrink-0" />
+        <span class="font-medium text-foreground truncate">{{ groupName }}</span>
+      </button>
+    </div>
 
     <!-- Variant List -->
     <div v-show="groupExpanded" class="mt-1">
@@ -84,28 +84,60 @@
       <div :class="{ 'max-h-[50vh] overflow-y-auto': isLargeGroup }">
         <div v-for="workflow in filteredWorkflows" :key="workflow.id" class="border-t border-border">
           <!-- Variant row -->
-          <button
-            class="flex items-center gap-2 py-1.5 px-1 w-full text-left hover:opacity-80 transition-opacity"
-            @click="toggleVariant(workflow.id)"
-          >
-            <Icon
-              name="chevron-right"
-              class="size-3.5 transition-transform duration-200 text-muted-foreground shrink-0"
-              :class="{ 'rotate-90': expandedVariantId === workflow.id }"
-            />
-            <PipelineStatusIcon :status="workflow.state" class="h-3.5 w-3.5 shrink-0" />
-            <span
-              class="flex-1 text-xs text-muted-foreground font-mono truncate"
-              :title="formatEnviron(workflow.environ)"
+          <div class="flex items-center gap-2 py-1.5 px-1 w-full">
+            <button
+              class="flex items-center gap-2 flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
+              @click="toggleVariant(workflow.id)"
             >
-              {{ formatEnviron(workflow.environ) }}
-            </span>
-            <PipelineStepDuration
-              v-if="workflow.started !== workflow.finished"
-              :workflow="workflow"
-              class="text-xs text-muted-foreground shrink-0"
+              <Icon
+                name="chevron-right"
+                class="size-3.5 transition-transform duration-200 text-muted-foreground shrink-0"
+                :class="{ 'rotate-90': expandedVariantId === workflow.id }"
+              />
+              <PipelineStatusIcon :status="workflow.state" class="h-3.5 w-3.5 shrink-0" />
+              <span
+                class="flex-1 text-xs text-muted-foreground font-mono truncate"
+                :title="formatEnviron(workflow.environ)"
+              >
+                {{ formatEnviron(workflow.environ) }}
+              </span>
+              <PipelineStepDuration
+                v-if="workflow.started !== workflow.finished"
+                :workflow="workflow"
+                class="text-xs text-muted-foreground shrink-0"
+              />
+            </button>
+            <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
+            <DropdownMenu v-if="variantHasReruns(workflow)">
+              <DropdownMenuTrigger as-child>
+                <button
+                  class="shrink-0 inline-flex items-center gap-0.5 rounded border border-primary/70 px-1 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-accent transition-colors"
+                >
+                  #{{ workflow.attempt }}
+                  <Icon name="chevron-down" class="h-2.5 w-2.5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem
+                  v-for="attempt in variantAttempts(workflow)"
+                  :key="attempt.id"
+                  class="flex items-center gap-2 text-xs"
+                  @click="switchVariantAttempt(attempt)"
+                >
+                  <PipelineStatusIcon :status="attempt.state" class="h-3.5 w-3.5" />
+                  #{{ attempt.attempt }}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
+            <IconButton
+              v-if="hasPushPermission && isVariantCompleted(workflow)"
+              icon="solar:restart-bold"
+              class="shrink-0 text-primary hover:text-primary/80 hover:bg-accent"
+              :title="$t('repo.pipeline.actions.rerun_workflow')"
+              @click="$emit('rerunWorkflow', workflow.id)"
             />
-          </button>
+          </div>
 
           <!-- Steps for expanded variant -->
           <div v-show="expandedVariantId === workflow.id" class="space-y-1 pb-1">
@@ -137,8 +169,15 @@
 import { computed, ref, watch } from 'vue';
 
 import Icon from '~/components/atomic/Icon.vue';
+import IconButton from '~/components/atomic/IconButton.vue';
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
 import PipelineStepDuration from '~/components/repo/pipeline/PipelineStepDuration.vue';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu';
 import {
   Combobox,
   ComboboxAnchor,
@@ -151,15 +190,18 @@ import {
   ComboboxViewport,
 } from '~/components/ui/combobox';
 import type { PipelineWorkflow } from '~/lib/api/types';
-import { aggregateWorkflowStatus } from '~/lib/pipeline-utils';
+import { aggregateWorkflowStatus, getWorkflowAttempts, hasReruns } from '~/lib/pipeline-utils';
 
 const props = defineProps<{
   workflows: PipelineWorkflow[];
+  allWorkflows: PipelineWorkflow[];
   groupName: string;
+  hasPushPermission?: boolean;
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
   (event: 'selectStep', stepId: number): void;
+  (event: 'rerunWorkflow', workflowId: number): void;
 }>();
 
 const LARGE_GROUP_THRESHOLD = 8;
@@ -169,6 +211,26 @@ const aggregatedStatus = computed(() => aggregateWorkflowStatus(props.workflows)
 
 const groupExpanded = ref(true);
 const expandedVariantId = ref<number | null>(null);
+
+function variantHasReruns(workflow: PipelineWorkflow) {
+  return hasReruns(props.allWorkflows, workflow);
+}
+
+function variantAttempts(workflow: PipelineWorkflow) {
+  return getWorkflowAttempts(props.allWorkflows, workflow);
+}
+
+function isVariantCompleted(workflow: PipelineWorkflow) {
+  return workflow.state !== 'pending' && workflow.state !== 'running';
+}
+
+function switchVariantAttempt(targetAttempt: PipelineWorkflow) {
+  expandedVariantId.value = targetAttempt.id;
+  if (targetAttempt.children.length > 0) {
+    emit('selectStep', targetAttempt.children[0].pid);
+  }
+}
+
 const selectedAxisValues = ref<string[]>([]);
 const searchTerm = ref('');
 

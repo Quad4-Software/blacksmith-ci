@@ -58,10 +58,44 @@
           >
             {{ $t('repo.pipeline.exit_code', { exitCode: step.exit_code }) }}
           </span>
+          <!-- Attempt selector dropdown -->
+          <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
+          <DropdownMenu v-if="hasMultipleAttempts && currentWorkflow">
+            <DropdownMenuTrigger as-child>
+              <button
+                class="inline-flex items-center gap-1 rounded-md border border-primary/70 px-2 py-0.5 text-xs text-muted-foreground hover:bg-accent transition-colors shrink-0"
+              >
+                #{{ currentWorkflow.attempt }}
+                <Icon name="chevron-down" class="h-3 w-3" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem
+                v-for="attempt in workflowAttempts"
+                :key="attempt.id"
+                class="flex items-center gap-2 text-xs"
+                @click="switchToAttempt(attempt)"
+              >
+                <PipelineStatusIcon :status="attempt.state" class="h-3.5 w-3.5" />
+                #{{ attempt.attempt }}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
         </div>
 
         <!-- Right: Action buttons -->
         <div class="flex flex-row items-center gap-x-2 shrink-0">
+          <TooltipProvider v-if="hasPushPermission && currentWorkflow && isWorkflowCompleted">
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <Button variant="ghost" size="icon-sm" @click="emit('rerunWorkflow', currentWorkflow!.id)">
+                  <Icon name="solar:restart-bold" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{{ $t('repo.pipeline.actions.rerun_workflow') }}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <TooltipProvider v-if="step?.finished !== undefined && hasLogs">
             <Tooltip>
               <TooltipTrigger as-child>
@@ -214,26 +248,34 @@
         </div>
       </CardHeader>
 
-      <!-- Mobile action buttons - fixed floating buttons at bottom-right -->
-      <div class="md:hidden fixed bottom-20 right-3 z-50 flex flex-col gap-2">
-        <!-- Settings button opens bottom sheet -->
-        <Button
-          variant="outline"
-          size="icon-sm"
-          class="rounded-full shadow-lg bg-background"
-          @click="mobileSettingsOpen = true"
-        >
-          <Icon name="settings" class="w-4 h-4" />
-        </Button>
-
-        <!-- Quick action buttons always visible -->
-        <Button variant="outline" size="icon-sm" class="rounded-full shadow-lg bg-background" @click="openSearch">
+      <!-- Mobile action bar - inline between header and log content -->
+      <div class="md:hidden flex items-center justify-end gap-1 px-2 py-1">
+        <Button variant="ghost" size="icon-sm" @click="openSearch">
           <Icon name="lucide:search" />
         </Button>
-        <Button variant="outline" size="icon-sm" class="rounded-full shadow-lg bg-background" @click="scrollToTop">
+        <Button variant="ghost" size="icon-sm" @click="mobileSettingsOpen = true">
+          <Icon name="settings" class="w-4 h-4" />
+        </Button>
+      </div>
+
+      <!-- Mobile floating scroll buttons -->
+      <div class="md:hidden fixed bottom-20 right-3 z-50 flex flex-col gap-2">
+        <Button
+          v-if="!atTop"
+          variant="outline"
+          size="icon-sm"
+          class="rounded-full shadow-lg bg-background dark:bg-background"
+          @click="scrollToTop"
+        >
           <Icon name="chevron-up" />
         </Button>
-        <Button variant="outline" size="icon-sm" class="rounded-full shadow-lg bg-background" @click="scrollToBottom">
+        <Button
+          v-if="!atBottom"
+          variant="outline"
+          size="icon-sm"
+          class="rounded-full shadow-lg bg-background dark:bg-background"
+          @click="scrollToBottom"
+        >
           <Icon name="chevron-down" />
         </Button>
       </div>
@@ -244,7 +286,7 @@
           <SheetHeader>
             <SheetTitle>{{ $t('repo.pipeline.actions.log_settings') }}</SheetTitle>
           </SheetHeader>
-          <div class="space-y-6 py-4">
+          <div class="space-y-6 px-4 py-4">
             <!-- Log Theme -->
             <div class="space-y-2">
               <label class="text-sm font-medium block">{{ $t('user.settings.general.log_theme') }}</label>
@@ -397,10 +439,15 @@
 
         <!-- Floating scroll buttons (desktop) -->
         <div class="hidden md:flex flex-col gap-2 absolute bottom-4 right-4 z-20">
-          <TooltipProvider>
+          <TooltipProvider v-if="!atTop">
             <Tooltip>
               <TooltipTrigger as-child>
-                <Button variant="outline" size="icon-sm" class="rounded-full shadow-lg" @click="scrollToTop">
+                <Button
+                  variant="outline"
+                  size="icon-sm"
+                  class="rounded-full shadow-lg bg-background dark:bg-background"
+                  @click="scrollToTop"
+                >
                   <Icon name="chevron-up" />
                 </Button>
               </TooltipTrigger>
@@ -409,10 +456,15 @@
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <TooltipProvider>
+          <TooltipProvider v-if="!atBottom">
             <Tooltip>
               <TooltipTrigger as-child>
-                <Button variant="outline" size="icon-sm" class="rounded-full shadow-lg" @click="scrollToBottom">
+                <Button
+                  variant="outline"
+                  size="icon-sm"
+                  class="rounded-full shadow-lg bg-background dark:bg-background"
+                  @click="scrollToBottom"
+                >
                   <Icon name="chevron-down" />
                 </Button>
               </TooltipTrigger>
@@ -602,6 +654,12 @@ import {
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog';
 import { Button } from '~/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu';
 import { Card, CardContent, CardHeader } from '~/components/ui/card';
 import {
   NumberField,
@@ -620,6 +678,7 @@ import useApiClient from '~/compositions/useApiClient';
 import { requiredInject } from '~/compositions/useInjectProvide';
 import useNotifications from '~/compositions/useNotifications';
 import type { Pipeline, PipelineStep, PipelineWorkflow } from '~/lib/api/types';
+import { getWorkflowAttempts } from '~/lib/pipeline-utils';
 
 interface LogLine {
   index: number;
@@ -649,6 +708,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   (event: 'update:step-id', stepId: number | null): true;
   (event: 'update:auto-follow-enabled', value: boolean): true;
+  (event: 'rerunWorkflow', workflowId: number): true;
 }>();
 
 const notifications = useNotifications();
@@ -663,6 +723,28 @@ const route = useRoute();
 const loadedStepSlug = ref<string>();
 const stepSlug = computed(() => `${repo?.value.owner} - ${repo?.value.name} - ${pipeline.value.id} - ${stepId.value}`);
 const step = computed(() => pipeline.value && findStep(pipeline.value.workflows || [], stepId.value));
+const currentWorkflow = computed(() => {
+  if (!pipeline.value?.workflows) return null;
+  return pipeline.value.workflows.find((wf) => wf.children?.some((s) => s.pid === stepId.value)) ?? null;
+});
+const isWorkflowCompleted = computed(() => {
+  const wf = currentWorkflow.value;
+  return wf != null && wf.state !== 'pending' && wf.state !== 'running';
+});
+const workflowAttempts = computed(() => {
+  const wf = currentWorkflow.value;
+  if (wf == null || pipeline.value?.workflows == null) return [];
+  return getWorkflowAttempts(pipeline.value.workflows, wf);
+});
+const hasMultipleAttempts = computed(() => workflowAttempts.value.length > 1);
+
+function switchToAttempt(attempt: PipelineWorkflow) {
+  // Navigate to the first step of the selected attempt
+  if (attempt.children.length > 0) {
+    emit('update:step-id', attempt.children[0].pid);
+  }
+}
+
 const stream = ref<EventSource>();
 const log = ref<LogLine[]>();
 const logContainerRef = ref<HTMLElement | null>(null);

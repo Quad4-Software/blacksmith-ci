@@ -85,3 +85,51 @@ export function aggregateWorkflowDuration(workflows: PipelineWorkflow[]): { star
 
   return { started: earliest, finished: latest };
 }
+
+/**
+ * Compute a variant key for a workflow: name + sorted environ entries.
+ * This uniquely identifies a matrix variant regardless of original_workflow_id values.
+ */
+function variantKey(wf: PipelineWorkflow): string {
+  if (!wf.environ || Object.keys(wf.environ).length === 0) {
+    return wf.name;
+  }
+  const envStr = Object.entries(wf.environ)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => `${k}=${v}`)
+    .join(',');
+  return `${wf.name}|${envStr}`;
+}
+
+/**
+ * Get the latest attempt of each workflow, grouping by name+environ.
+ * This correctly handles matrix variants even if original_workflow_id is corrupted.
+ */
+export function getLatestAttempts(workflows: PipelineWorkflow[]): PipelineWorkflow[] {
+  const latest = new Map<string, PipelineWorkflow>();
+
+  for (const wf of workflows) {
+    const key = variantKey(wf);
+    const existing = latest.get(key);
+    if (existing == null || wf.attempt > existing.attempt) {
+      latest.set(key, wf);
+    }
+  }
+
+  return Array.from(latest.values());
+}
+
+/**
+ * Get all attempts for a given workflow (matched by name+environ), sorted by attempt number.
+ */
+export function getWorkflowAttempts(workflows: PipelineWorkflow[], workflow: PipelineWorkflow): PipelineWorkflow[] {
+  const targetKey = variantKey(workflow);
+  return workflows.filter((wf) => variantKey(wf) === targetKey).sort((a, b) => a.attempt - b.attempt);
+}
+
+/**
+ * Check if a workflow has reruns (more than one attempt exists).
+ */
+export function hasReruns(workflows: PipelineWorkflow[], workflow: PipelineWorkflow): boolean {
+  return getWorkflowAttempts(workflows, workflow).length > 1;
+}

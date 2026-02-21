@@ -17,23 +17,25 @@ package model
 
 // Workflow represents a workflow in the pipeline.
 type Workflow struct {
-	ID                int64             `json:"id"                   xorm:"pk autoincr 'id'"`
-	PipelineID        int64             `json:"pipeline_id"          xorm:"UNIQUE(s) INDEX 'pipeline_id'"`
-	PID               int               `json:"pid"                  xorm:"UNIQUE(s) 'pid'"`
-	Name              string            `json:"name"                 xorm:"name"`
-	PipelineName      string            `json:"pipeline_name"        xorm:"pipeline_name"`
-	State             StatusValue       `json:"state"                xorm:"state"`
-	Error             string            `json:"error,omitempty"      xorm:"TEXT 'error'"`
-	Started           int64             `json:"started,omitempty"    xorm:"started"`
-	Finished          int64             `json:"finished,omitempty"   xorm:"finished"`
-	AgentID           int64             `json:"agent_id,omitempty"            xorm:"agent_id"`
-	AgentPersistentID string            `json:"agent_persistent_id,omitempty" xorm:"VARCHAR(64) INDEX 'agent_persistent_id'"`
-	AgentName         string            `json:"agent_name,omitempty"          xorm:"VARCHAR(255) 'agent_name'"`
-	Platform          string            `json:"platform,omitempty"            xorm:"platform"`
-	Environ           map[string]string `json:"environ,omitempty"    xorm:"json 'environ'"`
-	DependsOn         []string          `json:"depends_on,omitempty" xorm:"json 'depends_on'"`
-	AxisID            int               `json:"-"                    xorm:"axis_id"`
-	Children          []*Step           `json:"children,omitempty"   xorm:"-"`
+	ID                 int64             `json:"id"                            xorm:"pk autoincr 'id'"`
+	PipelineID         int64             `json:"pipeline_id"                   xorm:"UNIQUE(s) INDEX 'pipeline_id'"`
+	PID                int               `json:"pid"                           xorm:"UNIQUE(s) 'pid'"`
+	Name               string            `json:"name"                          xorm:"name"`
+	PipelineName       string            `json:"pipeline_name"                 xorm:"pipeline_name"`
+	State              StatusValue       `json:"state"                         xorm:"state"`
+	Error              string            `json:"error,omitempty"               xorm:"TEXT 'error'"`
+	Started            int64             `json:"started,omitempty"             xorm:"started"`
+	Finished           int64             `json:"finished,omitempty"            xorm:"finished"`
+	AgentID            int64             `json:"agent_id,omitempty"            xorm:"agent_id"`
+	AgentPersistentID  string            `json:"agent_persistent_id,omitempty" xorm:"VARCHAR(64) INDEX 'agent_persistent_id'"`
+	AgentName          string            `json:"agent_name,omitempty"          xorm:"VARCHAR(255) 'agent_name'"`
+	Platform           string            `json:"platform,omitempty"            xorm:"platform"`
+	Environ            map[string]string `json:"environ,omitempty"             xorm:"json 'environ'"`
+	DependsOn          []string          `json:"depends_on,omitempty"          xorm:"json 'depends_on'"`
+	AxisID             int               `json:"-"                             xorm:"axis_id"`
+	OriginalWorkflowID int64             `json:"original_workflow_id"           xorm:"'original_workflow_id' DEFAULT 0"`
+	Attempt            int               `json:"attempt"                       xorm:"'attempt' DEFAULT 1"`
+	Children           []*Step           `json:"children,omitempty"            xorm:"-"`
 }
 
 // TableName return database table name for xorm.
@@ -51,10 +53,32 @@ func (p *Workflow) Failing() bool {
 	return p.State == StatusError || p.State == StatusKilled || p.State == StatusFailure
 }
 
+// LatestAttempts returns only the latest attempt of each workflow,
+// grouping by OriginalWorkflowID (or by the workflow's own ID if it is the original).
+func LatestAttempts(workflows []*Workflow) []*Workflow {
+	// Map from original workflow ID → latest workflow attempt
+	latest := make(map[int64]*Workflow)
+	for _, wf := range workflows {
+		key := wf.OriginalWorkflowID
+		if key == 0 {
+			key = wf.ID
+		}
+		if prev, exists := latest[key]; !exists || wf.Attempt > prev.Attempt {
+			latest[key] = wf
+		}
+	}
+
+	result := make([]*Workflow, 0, len(latest))
+	for _, wf := range latest {
+		result = append(result, wf)
+	}
+	return result
+}
+
 // IsThereRunningStage determine if it contains workflows running or pending to run.
-// TODO: return false based on depends_on (https://github.com/woodpecker-ci/woodpecker/pull/730#discussion_r795681697)
+// Only considers the latest attempt of each workflow.
 func IsThereRunningStage(workflows []*Workflow) bool {
-	for _, p := range workflows {
+	for _, p := range LatestAttempts(workflows) {
 		if p.Running() {
 			return true
 		}
@@ -63,10 +87,11 @@ func IsThereRunningStage(workflows []*Workflow) bool {
 }
 
 // PipelineStatus determine pipeline status based on corresponding workflow list.
+// Only considers the latest attempt of each workflow.
 func PipelineStatus(workflows []*Workflow) StatusValue {
 	status := StatusSuccess
 
-	for _, p := range workflows {
+	for _, p := range LatestAttempts(workflows) {
 		if p.State == StatusKilled {
 			return StatusKilled
 		}

@@ -104,6 +104,8 @@ describe('pipelineDAG', () => {
           name: 'test-go-1.19',
           pipeline_name: 'Test Pipeline 1',
           state: 'success',
+          original_workflow_id: 0,
+          attempt: 1,
           environ: { GO_VERSION: '1.19' },
           children: [
             {
@@ -138,6 +140,8 @@ describe('pipelineDAG', () => {
           name: 'test-go-1.20',
           pipeline_name: 'Test Pipeline 2',
           state: 'success',
+          original_workflow_id: 0,
+          attempt: 1,
           environ: { GO_VERSION: '1.20' },
           children: [
             {
@@ -313,6 +317,8 @@ describe('pipelineDAG', () => {
           pid: 1,
           name: 'test-workflow',
           pipeline_name: 'Test Pipeline',
+          original_workflow_id: 0,
+          attempt: 1,
           state: 'success',
           children: [
             {

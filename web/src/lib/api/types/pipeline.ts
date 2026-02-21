@@ -141,6 +141,8 @@ export interface PipelineWorkflow {
   agent_id?: number;
   error?: string;
   depends_on?: string[];
+  original_workflow_id: number;
+  attempt: number;
   children: PipelineStep[];
 }
 

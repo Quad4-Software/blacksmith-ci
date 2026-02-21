@@ -177,6 +177,9 @@ func setPipelineStepsOnPipeline(pipeline *model.Pipeline, pipelineItems []*stepb
 			item.Workflow.State = model.StatusBlocked
 		}
 		item.Workflow.PipelineID = pipeline.ID
+		if item.Workflow.Attempt == 0 {
+			item.Workflow.Attempt = 1
+		}
 		pipeline.Workflows = append(pipeline.Workflows, item.Workflow)
 	}
 
