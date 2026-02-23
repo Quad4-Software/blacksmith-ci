@@ -2,7 +2,7 @@ when:
   - event: tag
 
 variables:
-  - &golang_image 'reg.devxy.io/docker.io/library/golang:1.25-alpine'
+  - &golang_image 'reg.devxy.io/docker.io/library/golang:1.26-alpine'
 
 clone:
   git:
