@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.25-alpine3.22 AS build
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.26-alpine3.22 AS build
 
 RUN addgroup -g 1000 -S crow && \
   adduser -u 1000 -G crow -S crow && \
