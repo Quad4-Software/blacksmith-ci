@@ -373,7 +373,7 @@ func formatNoMatchingAgentError(workflowName string, requiredLabels map[string]s
 	var msg strings.Builder
 
 	// Header
-	msg.WriteString(fmt.Sprintf("### Workflow `%s` cannot be started\n\n", workflowName))
+	fmt.Fprintf(&msg, "### Workflow `%s` cannot be started\n\n", workflowName)
 	msg.WriteString("❌ **No agent matching the required labels was found**\n\n")
 
 	// Required labels section
@@ -384,7 +384,7 @@ func formatNoMatchingAgentError(workflowName string, requiredLabels map[string]s
 	}
 	sort.Strings(labelList)
 	for _, label := range labelList {
-		msg.WriteString(fmt.Sprintf("- %s\n", label))
+		fmt.Fprintf(&msg, "- %s\n", label)
 	}
 	msg.WriteString("\n")
 
@@ -408,7 +408,7 @@ func formatNoMatchingAgentError(workflowName string, requiredLabels map[string]s
 			msg.WriteString("#### Available Agents\n\n")
 			msg.WriteString("⚠️ All agents are marked as NoSchedule\n")
 		} else {
-			msg.WriteString(fmt.Sprintf("#### Available Agents: %d\n\n", activeAgents))
+			fmt.Fprintf(&msg, "#### Available Agents: %d\n\n", activeAgents)
 			msg.WriteString(strings.Join(agentNames, ", "))
 			msg.WriteString("\n\n")
 		}
@@ -448,13 +448,13 @@ func formatNoMatchingAgentError(workflowName string, requiredLabels map[string]s
 		if len(atCapacity) > 0 {
 			msg.WriteString("⚠️ **Autoscalers at capacity:**\n")
 			for _, name := range atCapacity {
-				msg.WriteString(fmt.Sprintf("- %s\n", name))
+				fmt.Fprintf(&msg, "- %s\n", name)
 			}
 			msg.WriteString("\nThese autoscalers could provision agents with the required labels but are currently at maximum capacity. ")
 			msg.WriteString("Wait for existing pipelines to complete or increase the autoscaler's max capacity.\n")
 		} else {
 			msg.WriteString("ℹ️ Autoscalers are configured but none can provision agents with the required labels.\n")
-			msg.WriteString(fmt.Sprintf("%d autoscaler(s) registered\n", len(autoscalers)))
+			fmt.Fprintf(&msg, "%d autoscaler(s) registered\n", len(autoscalers))
 		}
 	}
 

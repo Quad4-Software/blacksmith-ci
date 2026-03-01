@@ -16,7 +16,6 @@ package model
 
 import (
 	"fmt"
-	"strings"
 
 	"codefloe.com/crowci/crow/v5/pipeline"
 )
@@ -42,9 +41,7 @@ func (Task) TableName() string {
 }
 
 func (t *Task) String() string {
-	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s (%s) - %s", t.ID, t.Dependencies, t.DepStatus))
-	return sb.String()
+	return fmt.Sprintf("%s (%s) - %s", t.ID, t.Dependencies, t.DepStatus)
 }
 
 func (t *Task) ApplyLabelsFromRepo(r *Repo) error {
