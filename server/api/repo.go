@@ -379,8 +379,7 @@ func PostRepo(c *gin.Context) {
 	}
 
 	// Refresh tokens before forge API calls
-	isSecondaryForge := forgeID != user.ForgeID
-	refreshUserTokenForForge(c, userWithCreds, forgeID, isSecondaryForge)
+	refreshUserTokenForForge(c, userWithCreds, forgeID)
 	if c.IsAborted() {
 		return
 	}
@@ -894,23 +893,15 @@ func GetRepoBranches(c *gin.Context) {
 	}
 
 	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
-	var isSecondaryForge bool
 	if userForge, ufErr := _store.UserForgeGet(repoUser.ID, repo.ForgeID); ufErr == nil && userForge != nil {
 		repoUser.AccessToken = userForge.AccessToken
 		repoUser.RefreshToken = userForge.RefreshToken
 		repoUser.Expiry = userForge.Expiry
 		repoUser.ForgeID = userForge.ForgeID
 		repoUser.ForgeRemoteID = userForge.ForgeRemoteID
-		isSecondaryForge = !userForge.IsPrimary
 	}
 
-	var refreshErr error
-	if isSecondaryForge {
-		refreshErr = forge.RefreshUserForge(c, _forge, _store, repoUser, repo.ForgeID)
-	} else {
-		refreshErr = forge.Refresh(c, _forge, _store, repoUser)
-	}
-	if refreshErr != nil {
+	if refreshErr := forge.RefreshUserForge(c, _forge, _store, repoUser, repo.ForgeID); refreshErr != nil {
 		log.Error().Err(refreshErr).Msg("Failed to refresh user auth token")
 		c.Header("Content-Type", "text/plain; charset=utf-8")
 		c.String(http.StatusUnauthorized, "Your authorization has expired and couldn't be refreshed automatically. Please log in again")
@@ -963,24 +954,16 @@ func GetRepoPullRequests(c *gin.Context) {
 	}
 
 	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
-	var isSecondaryForge2 bool
 	if userForge, ufErr := _store.UserForgeGet(repoUser.ID, repo.ForgeID); ufErr == nil && userForge != nil {
 		repoUser.AccessToken = userForge.AccessToken
 		repoUser.RefreshToken = userForge.RefreshToken
 		repoUser.Expiry = userForge.Expiry
 		repoUser.ForgeID = userForge.ForgeID
 		repoUser.ForgeRemoteID = userForge.ForgeRemoteID
-		isSecondaryForge2 = !userForge.IsPrimary
 	}
 
-	var refreshErr2 error
-	if isSecondaryForge2 {
-		refreshErr2 = forge.RefreshUserForge(c, _forge, _store, repoUser, repo.ForgeID)
-	} else {
-		refreshErr2 = forge.Refresh(c, _forge, _store, repoUser)
-	}
-	if refreshErr2 != nil {
-		log.Error().Err(refreshErr2).Msg("Failed to refresh user auth token")
+	if refreshErr := forge.RefreshUserForge(c, _forge, _store, repoUser, repo.ForgeID); refreshErr != nil {
+		log.Error().Err(refreshErr).Msg("Failed to refresh user auth token")
 		c.Header("Content-Type", "text/plain; charset=utf-8")
 		c.String(http.StatusUnauthorized, "Your authorization has expired and couldn't be refreshed automatically. Please log in again")
 		c.Abort()
@@ -1022,28 +1005,14 @@ func DeleteRepo(c *gin.Context) {
 	}
 
 	// For multi-forge support: get the user's tokens for this repo's forge
-	forgeUser := user
-	isSecondaryForge := false
-	if repo.ForgeID != user.ForgeID {
-		userForge, err := _store.UserForgeGet(user.ID, repo.ForgeID)
-		if err != nil {
-			log.Warn().Err(err).Int64("forge_id", repo.ForgeID).Msg("User does not have tokens for repo's forge, will try to delete anyway")
-		} else {
-			// Create a user object with the correct forge tokens
-			forgeUser = &model.User{
-				ID:           user.ID,
-				Login:        userForge.ForgeLogin,
-				ForgeID:      repo.ForgeID,
-				AccessToken:  userForge.AccessToken,
-				RefreshToken: userForge.RefreshToken,
-				Expiry:       userForge.Expiry,
-			}
-			isSecondaryForge = true
-		}
+	forgeUser, _, err := getUserWithForgeCredentials(_store, user, repo.ForgeID)
+	if err != nil {
+		log.Warn().Err(err).Int64("forge_id", repo.ForgeID).Msg("User does not have tokens for repo's forge, will try to delete anyway")
+		forgeUser = user
 	}
 
 	// Refresh tokens before forge API call
-	refreshUserTokenForForge(c, forgeUser, repo.ForgeID, isSecondaryForge)
+	refreshUserTokenForForge(c, forgeUser, repo.ForgeID)
 	if c.IsAborted() {
 		return
 	}
@@ -1126,31 +1095,18 @@ func MoveRepo(c *gin.Context) {
 	}
 
 	// For multi-forge support: get the user's tokens for this repo's forge
-	forgeUser := user
-	isSecondaryForge := false
-	if repo.ForgeID != user.ForgeID {
-		userForge, err := _store.UserForgeGet(user.ID, repo.ForgeID)
-		if err != nil {
-			log.Error().Err(err).Int64("forge_id", repo.ForgeID).Msg("User does not have tokens for repo's forge")
-			c.JSON(http.StatusForbidden, gin.H{
-				"error": "You don't have access to this repository's forge",
-			})
-			c.AbortWithStatus(http.StatusForbidden)
-			return
-		}
-		forgeUser = &model.User{
-			ID:           user.ID,
-			Login:        userForge.ForgeLogin,
-			ForgeID:      repo.ForgeID,
-			AccessToken:  userForge.AccessToken,
-			RefreshToken: userForge.RefreshToken,
-			Expiry:       userForge.Expiry,
-		}
-		isSecondaryForge = true
+	forgeUser, _, err := getUserWithForgeCredentials(_store, user, repo.ForgeID)
+	if err != nil {
+		log.Error().Err(err).Int64("forge_id", repo.ForgeID).Msg("User does not have tokens for repo's forge")
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": "You don't have access to this repository's forge",
+		})
+		c.AbortWithStatus(http.StatusForbidden)
+		return
 	}
 
 	// Refresh tokens before forge API call
-	refreshUserTokenForForge(c, forgeUser, repo.ForgeID, isSecondaryForge)
+	refreshUserTokenForForge(c, forgeUser, repo.ForgeID)
 	if c.IsAborted() {
 		return
 	}
@@ -1413,18 +1369,16 @@ func repairRepo(c *gin.Context, repo *model.Repo, withPerms, skipOnErr bool) {
 	}
 
 	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
-	isSecondaryForge := false
 	if userForge, ufErr := _store.UserForgeGet(user.ID, repo.ForgeID); ufErr == nil && userForge != nil {
 		user.AccessToken = userForge.AccessToken
 		user.RefreshToken = userForge.RefreshToken
 		user.Expiry = userForge.Expiry
 		user.ForgeID = userForge.ForgeID
 		user.ForgeRemoteID = userForge.ForgeRemoteID
-		isSecondaryForge = !userForge.IsPrimary
 	}
 
 	// Refresh tokens before forge API call
-	refreshUserTokenForForge(c, user, repo.ForgeID, isSecondaryForge)
+	refreshUserTokenForForge(c, user, repo.ForgeID)
 	if c.IsAborted() {
 		return
 	}

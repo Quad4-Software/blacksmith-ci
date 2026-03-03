@@ -70,25 +70,17 @@ func handleForgeError(c *gin.Context, err error) {
 }
 
 // refreshUserTokenForForge refreshes the user's token for a specific forge.
-// If isSecondaryForge is true, it uses RefreshUserForge for proper secondary forge handling.
-func refreshUserTokenForForge(c *gin.Context, user *model.User, forgeID int64, isSecondaryForge bool) {
+func refreshUserTokenForForge(c *gin.Context, user *model.User, forgeID int64) {
 	_store := store.FromContext(c)
-	_forge, err := server.Config.Services.Manager.ForgeFromUser(user)
+	_forge, err := server.Config.Services.Manager.ForgeByID(forgeID)
 	if err != nil {
-		log.Error().Err(err).Msg("Cannot get forge from user")
+		log.Error().Err(err).Int64("forge_id", forgeID).Msg("Cannot get forge by ID")
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
-	var refreshErr error
-	if isSecondaryForge && forgeID > 0 {
-		refreshErr = forge.RefreshUserForge(c, _forge, _store, user, forgeID)
-	} else {
-		refreshErr = forge.Refresh(c, _forge, _store, user)
-	}
-
-	if refreshErr != nil {
-		log.Error().Err(refreshErr).Msg("Failed to refresh user auth token")
+	if err := forge.RefreshUserForge(c, _forge, _store, user, forgeID); err != nil {
+		log.Error().Err(err).Int64("forge_id", forgeID).Msg("Failed to refresh user auth token")
 		c.Header("Content-Type", "text/plain; charset=utf-8")
 		c.String(http.StatusUnauthorized, "Your authorization has expired and couldn't be refreshed automatically. Please log in again")
 		c.Abort()

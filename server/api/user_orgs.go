@@ -39,38 +39,54 @@ func GetUserOrgList(c *gin.Context) {
 	_store := store.FromContext(c)
 	user := session.User(c)
 
-	_forge, err := server.Config.Services.Manager.ForgeFromUser(user)
+	// Iterate all linked forges to collect teams from each
+	userForges, err := _store.UserForgeList(user.ID)
 	if err != nil {
-		log.Error().Err(err).Msg("Cannot get forge from user")
+		log.Error().Err(err).Msg("Cannot get user forges")
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
-	// Fetch teams from the forge
-	teams, err := _forge.Teams(c, user)
-	if err != nil {
-		log.Error().Err(err).Msg("Cannot get user teams")
-		c.String(http.StatusInternalServerError, "Error fetching teams. %s", err)
-		return
-	}
+	orgs := make([]*model.Org, 0)
+	seenOrgs := make(map[int64]bool)
 
-	log.Debug().Int("team_count", len(teams)).Msg("Fetched teams from forge for org list")
-
-	// Map teams to orgs that exist in Crow
-	orgs := make([]*model.Org, 0, len(teams))
-	for _, team := range teams {
-		org, err := _store.OrgFindByName(team.Login, user.ForgeID)
+	for _, uf := range userForges {
+		_forge, err := server.Config.Services.Manager.ForgeByID(uf.ForgeID)
 		if err != nil {
-			log.Debug().Err(err).Str("org", team.Login).Msg("Org not found in Crow database, skipping")
+			log.Error().Err(err).Int64("forge_id", uf.ForgeID).Msg("Cannot get forge by ID, skipping")
 			continue
 		}
-		// Skip user's personal org (IsUser=true)
-		if org.IsUser {
-			log.Debug().Str("org_name", org.Name).Msg("Skipping personal org")
+
+		// Build a user with this forge's credentials
+		forgeUser := *user
+		forgeUser.ForgeID = uf.ForgeID
+		forgeUser.AccessToken = uf.AccessToken
+		forgeUser.RefreshToken = uf.RefreshToken
+		forgeUser.Expiry = uf.Expiry
+
+		teams, err := _forge.Teams(c, &forgeUser)
+		if err != nil {
+			log.Error().Err(err).Int64("forge_id", uf.ForgeID).Msg("Cannot get user teams from forge, skipping")
 			continue
 		}
-		log.Debug().Int64("org_id", org.ID).Str("org_name", org.Name).Msg("Added org to list")
-		orgs = append(orgs, org)
+
+		log.Debug().Int("team_count", len(teams)).Int64("forge_id", uf.ForgeID).Msg("Fetched teams from forge for org list")
+
+		for _, team := range teams {
+			org, err := _store.OrgFindByName(team.Login, uf.ForgeID)
+			if err != nil {
+				log.Debug().Err(err).Str("org", team.Login).Int64("forge_id", uf.ForgeID).Msg("Org not found in Crow database, skipping")
+				continue
+			}
+			if org.IsUser {
+				continue
+			}
+			if seenOrgs[org.ID] {
+				continue
+			}
+			seenOrgs[org.ID] = true
+			orgs = append(orgs, org)
+		}
 	}
 
 	log.Debug().Int("org_count", len(orgs)).Msg("Returning user orgs")

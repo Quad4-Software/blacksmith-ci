@@ -78,18 +78,16 @@ func CreatePipeline(c *gin.Context) {
 	user := session.User(c)
 
 	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
-	isSecondaryForge := false
 	if userForge, ufErr := _store.UserForgeGet(user.ID, repo.ForgeID); ufErr == nil && userForge != nil {
 		user.AccessToken = userForge.AccessToken
 		user.RefreshToken = userForge.RefreshToken
 		user.Expiry = userForge.Expiry
 		user.ForgeID = userForge.ForgeID
 		user.ForgeRemoteID = userForge.ForgeRemoteID
-		isSecondaryForge = !userForge.IsPrimary
 	}
 
 	// Refresh tokens before forge API call
-	refreshUserTokenForForge(c, user, repo.ForgeID, isSecondaryForge)
+	refreshUserTokenForForge(c, user, repo.ForgeID)
 	if c.IsAborted() {
 		return
 	}
@@ -561,18 +559,16 @@ func GetRepoConfigs(c *gin.Context) {
 	}
 
 	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
-	isSecondaryForge := false
 	if userForge, ufErr := _store.UserForgeGet(user.ID, repo.ForgeID); ufErr == nil && userForge != nil {
 		user.AccessToken = userForge.AccessToken
 		user.RefreshToken = userForge.RefreshToken
 		user.Expiry = userForge.Expiry
 		user.ForgeID = userForge.ForgeID
 		user.ForgeRemoteID = userForge.ForgeRemoteID
-		isSecondaryForge = !userForge.IsPrimary
 	}
 
 	// Refresh tokens before forge API call
-	refreshUserTokenForForge(c, user, repo.ForgeID, isSecondaryForge)
+	refreshUserTokenForForge(c, user, repo.ForgeID)
 	if c.IsAborted() {
 		return
 	}
@@ -765,18 +761,16 @@ func CancelPipeline(c *gin.Context) {
 	}
 
 	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
-	isSecondaryForge := false
 	if userForge, ufErr := _store.UserForgeGet(user.ID, repo.ForgeID); ufErr == nil && userForge != nil {
 		user.AccessToken = userForge.AccessToken
 		user.RefreshToken = userForge.RefreshToken
 		user.Expiry = userForge.Expiry
 		user.ForgeID = userForge.ForgeID
 		user.ForgeRemoteID = userForge.ForgeRemoteID
-		isSecondaryForge = !userForge.IsPrimary
 	}
 
 	// Refresh tokens before forge API call
-	refreshUserTokenForForge(c, user, repo.ForgeID, isSecondaryForge)
+	refreshUserTokenForForge(c, user, repo.ForgeID)
 	if c.IsAborted() {
 		return
 	}
@@ -815,18 +809,16 @@ func PostApproval(c *gin.Context) {
 	)
 
 	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
-	isSecondaryForge := false
 	if userForge, ufErr := _store.UserForgeGet(user.ID, repo.ForgeID); ufErr == nil && userForge != nil {
 		user.AccessToken = userForge.AccessToken
 		user.RefreshToken = userForge.RefreshToken
 		user.Expiry = userForge.Expiry
 		user.ForgeID = userForge.ForgeID
 		user.ForgeRemoteID = userForge.ForgeRemoteID
-		isSecondaryForge = !userForge.IsPrimary
 	}
 
 	// Refresh tokens before forge API call
-	refreshUserTokenForForge(c, user, repo.ForgeID, isSecondaryForge)
+	refreshUserTokenForForge(c, user, repo.ForgeID)
 	if c.IsAborted() {
 		return
 	}
@@ -864,18 +856,16 @@ func PostDecline(c *gin.Context) {
 	)
 
 	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
-	isSecondaryForge := false
 	if userForge, ufErr := _store.UserForgeGet(user.ID, repo.ForgeID); ufErr == nil && userForge != nil {
 		user.AccessToken = userForge.AccessToken
 		user.RefreshToken = userForge.RefreshToken
 		user.Expiry = userForge.Expiry
 		user.ForgeID = userForge.ForgeID
 		user.ForgeRemoteID = userForge.ForgeRemoteID
-		isSecondaryForge = !userForge.IsPrimary
 	}
 
 	// Refresh tokens before forge API call
-	refreshUserTokenForForge(c, user, repo.ForgeID, isSecondaryForge)
+	refreshUserTokenForForge(c, user, repo.ForgeID)
 	if c.IsAborted() {
 		return
 	}
@@ -942,14 +932,12 @@ func PostPipeline(c *gin.Context) {
 
 	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
 	// This ensures we use the correct OAuth tokens for the forge the repo belongs to.
-	var isSecondaryForge bool
 	if userForge, ufErr := _store.UserForgeGet(user.ID, repo.ForgeID); ufErr == nil && userForge != nil {
 		user.AccessToken = userForge.AccessToken
 		user.RefreshToken = userForge.RefreshToken
 		user.Expiry = userForge.Expiry
 		user.ForgeID = userForge.ForgeID
 		user.ForgeRemoteID = userForge.ForgeRemoteID
-		isSecondaryForge = !userForge.IsPrimary
 	}
 
 	pl, err := _store.GetPipelineNumber(repo, num)
@@ -967,7 +955,7 @@ func PostPipeline(c *gin.Context) {
 		Msg("Stored original event before modifications")
 
 	// refresh the token to make sure, pipeline.Restart can still obtain the pipeline config if necessary again
-	refreshUserTokenForForge(c, user, repo.ForgeID, isSecondaryForge)
+	refreshUserTokenForForge(c, user, repo.ForgeID)
 
 	// make Deploy overridable
 
@@ -1147,18 +1135,16 @@ func CancelWorkflow(c *gin.Context) {
 	}
 
 	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
-	isSecondaryForge := false
 	if userForge, ufErr := _store.UserForgeGet(user.ID, repo.ForgeID); ufErr == nil && userForge != nil {
 		user.AccessToken = userForge.AccessToken
 		user.RefreshToken = userForge.RefreshToken
 		user.Expiry = userForge.Expiry
 		user.ForgeID = userForge.ForgeID
 		user.ForgeRemoteID = userForge.ForgeRemoteID
-		isSecondaryForge = !userForge.IsPrimary
 	}
 
 	// Refresh tokens before forge API call
-	refreshUserTokenForForge(c, user, repo.ForgeID, isSecondaryForge)
+	refreshUserTokenForForge(c, user, repo.ForgeID)
 	if c.IsAborted() {
 		return
 	}
@@ -1210,18 +1196,16 @@ func RerunWorkflow(c *gin.Context) {
 	}
 
 	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
-	isSecondaryForge := false
 	if userForge, ufErr := _store.UserForgeGet(user.ID, repo.ForgeID); ufErr == nil && userForge != nil {
 		user.AccessToken = userForge.AccessToken
 		user.RefreshToken = userForge.RefreshToken
 		user.Expiry = userForge.Expiry
 		user.ForgeID = userForge.ForgeID
 		user.ForgeRemoteID = userForge.ForgeRemoteID
-		isSecondaryForge = !userForge.IsPrimary
 	}
 
 	// Refresh tokens before forge API call
-	refreshUserTokenForForge(c, user, repo.ForgeID, isSecondaryForge)
+	refreshUserTokenForForge(c, user, repo.ForgeID)
 	if c.IsAborted() {
 		return
 	}

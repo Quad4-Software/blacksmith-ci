@@ -407,7 +407,7 @@ const filteredNodes = computed(() => {
     });
   }
 
-  return nodes.value.filter((node: Node) => {
+  return (nodes.value as Node[]).filter((node) => {
     // Filter workflow groups
     if (node.type === 'workflow-group') {
       // Workflow filter

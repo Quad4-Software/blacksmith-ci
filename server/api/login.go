@@ -28,7 +28,6 @@ import (
 	"github.com/tink-crypto/tink-go/v2/subtle/random"
 
 	"codefloe.com/crowci/crow/v5/server"
-	"codefloe.com/crowci/crow/v5/server/forge"
 	forge_types "codefloe.com/crowci/crow/v5/server/forge/types"
 	"codefloe.com/crowci/crow/v5/server/model"
 	"codefloe.com/crowci/crow/v5/server/router/middleware/session"
@@ -453,13 +452,11 @@ func HandleAuth(c *gin.Context) {
 		}
 	}
 
-	// update the user meta data and authorization data (keep deprecated fields in sync)
-	user.AccessToken = userFromForge.AccessToken
-	user.RefreshToken = userFromForge.RefreshToken
+	// update the user meta data (non-forge-specific fields only)
+	// Note: deprecated fields (AccessToken, RefreshToken, ForgeID, ForgeRemoteID)
+	// are only set on first registration. Tokens are managed via UserForge entries.
 	user.Email = userFromForge.Email
 	user.Avatar = userFromForge.Avatar
-	user.ForgeID = forgeID
-	user.ForgeRemoteID = userFromForge.ForgeRemoteID
 	user.Login = userFromForge.Login
 	user.Admin = user.Admin || server.Config.Permissions.Admins.IsAdmin(userFromForge)
 
@@ -479,7 +476,7 @@ func HandleAuth(c *gin.Context) {
 		return
 	}
 
-	err = updateRepoPermissions(c, user, _store, _forge)
+	err = updateRepoPermissions(c, user, _store)
 	if err != nil {
 		log.Error().Err(err).Msgf("cannot update repo permissions for user %s", user.Login)
 		c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/login?error=internal_error")
@@ -491,30 +488,52 @@ func HandleAuth(c *gin.Context) {
 	c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/")
 }
 
-func updateRepoPermissions(c *gin.Context, user *model.User, _store store.Store, _forge forge.Forge) error {
-	repos, _ := _forge.Repos(c, user)
+func updateRepoPermissions(c *gin.Context, user *model.User, _store store.Store) error {
+	userForges, err := _store.UserForgeList(user.ID)
+	if err != nil {
+		return fmt.Errorf("failed to get user forges: %w", err)
+	}
 
-	for _, forgeRepo := range repos {
-		dbRepo, err := _store.GetRepoForgeID(forgeRepo.ForgeRemoteID)
-		if err != nil && errors.Is(err, types.RecordNotExist) {
-			continue
-		}
+	for _, uf := range userForges {
+		_forge, err := server.Config.Services.Manager.ForgeByID(uf.ForgeID)
 		if err != nil {
-			return err
-		}
-
-		if !dbRepo.IsActive {
+			log.Error().Err(err).Int64("forge_id", uf.ForgeID).Msg("cannot get forge by ID for permission sync, skipping")
 			continue
 		}
 
-		log.Debug().Msgf("synced user permission for user %s and repo %s", user.Login, dbRepo.FullName)
-		perm := forgeRepo.Perm
-		perm.Repo = dbRepo
-		perm.RepoID = dbRepo.ID
-		perm.UserID = user.ID
-		perm.Synced = time.Now().Unix()
-		if err := _store.PermUpsert(perm); err != nil {
-			return err
+		// Build a user with this forge's credentials
+		forgeUser := *user
+		forgeUser.ForgeID = uf.ForgeID
+		forgeUser.AccessToken = uf.AccessToken
+		forgeUser.RefreshToken = uf.RefreshToken
+		forgeUser.Expiry = uf.Expiry
+
+		repos, _ := _forge.Repos(c, &forgeUser)
+
+		for _, forgeRepo := range repos {
+			dbRepo, err := _store.GetRepoForgeID(forgeRepo.ForgeRemoteID)
+			if err != nil && errors.Is(err, types.RecordNotExist) {
+				continue
+			}
+			if err != nil {
+				log.Error().Err(err).Msg("failed to get repo by forge ID during permission sync")
+				continue
+			}
+
+			if !dbRepo.IsActive {
+				continue
+			}
+
+			log.Debug().Msgf("synced user permission for user %s and repo %s", user.Login, dbRepo.FullName)
+			perm := forgeRepo.Perm
+			perm.Repo = dbRepo
+			perm.RepoID = dbRepo.ID
+			perm.UserID = user.ID
+			perm.Synced = time.Now().Unix()
+			if err := _store.PermUpsert(perm); err != nil {
+				log.Error().Err(err).Msg("failed to upsert permission during sync")
+				continue
+			}
 		}
 	}
 

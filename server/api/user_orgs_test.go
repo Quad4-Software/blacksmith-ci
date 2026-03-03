@@ -44,6 +44,16 @@ func TestGetUserOrgList(t *testing.T) {
 		ForgeID: 1,
 	}
 
+	// Test UserForge entries
+	userForge1 := &model.UserForge{
+		ID:           1,
+		UserID:       1,
+		ForgeID:      1,
+		IsPrimary:    true,
+		AccessToken:  "token1",
+		RefreshToken: "refresh1",
+	}
+
 	// Test organizations
 	personalOrg := &model.Org{
 		ID:     100,
@@ -68,17 +78,20 @@ func TestGetUserOrgList(t *testing.T) {
 		mockForge := new(forge_mocks.MockForge)
 		mockManager := new(mocks_services.MockManager)
 
+		// Setup UserForgeList to return one forge
+		mockStore.On("UserForgeList", user.ID).Return([]*model.UserForge{userForge1}, nil)
+		mockManager.On("ForgeByID", int64(1)).Return(mockForge, nil)
+
 		// Setup forge to return teams
 		teams := []*model.Team{
 			{Login: "org1"},
 			{Login: "org2"},
 		}
-		mockManager.On("ForgeFromUser", user).Return(mockForge, nil)
-		mockForge.On("Teams", mock.Anything, user).Return(teams, nil)
+		mockForge.On("Teams", mock.Anything, mock.AnythingOfType("*model.User")).Return(teams, nil)
 
 		// Setup store to find orgs
-		mockStore.On("OrgFindByName", "org1", user.ForgeID).Return(memberOrg1, nil)
-		mockStore.On("OrgFindByName", "org2", user.ForgeID).Return(memberOrg2, nil)
+		mockStore.On("OrgFindByName", "org1", int64(1)).Return(memberOrg1, nil)
+		mockStore.On("OrgFindByName", "org2", int64(1)).Return(memberOrg2, nil)
 
 		server.Config.Services.Manager = mockManager
 
@@ -111,17 +124,19 @@ func TestGetUserOrgList(t *testing.T) {
 		mockForge := new(forge_mocks.MockForge)
 		mockManager := new(mocks_services.MockManager)
 
+		mockStore.On("UserForgeList", user.ID).Return([]*model.UserForge{userForge1}, nil)
+		mockManager.On("ForgeByID", int64(1)).Return(mockForge, nil)
+
 		// Forge returns both personal org and member org
 		teams := []*model.Team{
 			{Login: "testuser"}, // Personal org
 			{Login: "org1"},     // Member org
 		}
-		mockManager.On("ForgeFromUser", user).Return(mockForge, nil)
-		mockForge.On("Teams", mock.Anything, user).Return(teams, nil)
+		mockForge.On("Teams", mock.Anything, mock.AnythingOfType("*model.User")).Return(teams, nil)
 
 		// Store finds both orgs
-		mockStore.On("OrgFindByName", "testuser", user.ForgeID).Return(personalOrg, nil)
-		mockStore.On("OrgFindByName", "org1", user.ForgeID).Return(memberOrg1, nil)
+		mockStore.On("OrgFindByName", "testuser", int64(1)).Return(personalOrg, nil)
+		mockStore.On("OrgFindByName", "org1", int64(1)).Return(memberOrg1, nil)
 
 		server.Config.Services.Manager = mockManager
 
@@ -150,17 +165,19 @@ func TestGetUserOrgList(t *testing.T) {
 		mockForge := new(forge_mocks.MockForge)
 		mockManager := new(mocks_services.MockManager)
 
+		mockStore.On("UserForgeList", user.ID).Return([]*model.UserForge{userForge1}, nil)
+		mockManager.On("ForgeByID", int64(1)).Return(mockForge, nil)
+
 		// Forge returns teams including one that doesn't exist in Crow
 		teams := []*model.Team{
 			{Login: "org1"},         // Exists in Crow
 			{Login: "external-org"}, // Does not exist in Crow
 		}
-		mockManager.On("ForgeFromUser", user).Return(mockForge, nil)
-		mockForge.On("Teams", mock.Anything, user).Return(teams, nil)
+		mockForge.On("Teams", mock.Anything, mock.AnythingOfType("*model.User")).Return(teams, nil)
 
 		// Store finds org1 but not external-org
-		mockStore.On("OrgFindByName", "org1", user.ForgeID).Return(memberOrg1, nil)
-		mockStore.On("OrgFindByName", "external-org", user.ForgeID).Return(nil, types.RecordNotExist)
+		mockStore.On("OrgFindByName", "org1", int64(1)).Return(memberOrg1, nil)
+		mockStore.On("OrgFindByName", "external-org", int64(1)).Return(nil, types.RecordNotExist)
 
 		server.Config.Services.Manager = mockManager
 
@@ -188,9 +205,11 @@ func TestGetUserOrgList(t *testing.T) {
 		mockForge := new(forge_mocks.MockForge)
 		mockManager := new(mocks_services.MockManager)
 
+		mockStore.On("UserForgeList", user.ID).Return([]*model.UserForge{userForge1}, nil)
+		mockManager.On("ForgeByID", int64(1)).Return(mockForge, nil)
+
 		// Forge returns no teams
-		mockManager.On("ForgeFromUser", user).Return(mockForge, nil)
-		mockForge.On("Teams", mock.Anything, user).Return([]*model.Team{}, nil)
+		mockForge.On("Teams", mock.Anything, mock.AnythingOfType("*model.User")).Return([]*model.Team{}, nil)
 
 		server.Config.Services.Manager = mockManager
 
@@ -210,14 +229,12 @@ func TestGetUserOrgList(t *testing.T) {
 		assert.Empty(t, response)
 	})
 
-	t.Run("should return 500 when forge Teams() fails", func(t *testing.T) {
+	t.Run("should return 500 when UserForgeList fails", func(t *testing.T) {
 		mockStore := new(store_mocks.MockStore)
-		mockForge := new(forge_mocks.MockForge)
 		mockManager := new(mocks_services.MockManager)
 
-		// Forge returns error
-		mockManager.On("ForgeFromUser", user).Return(mockForge, nil)
-		mockForge.On("Teams", mock.Anything, user).Return(nil, assert.AnError)
+		// UserForgeList returns error
+		mockStore.On("UserForgeList", user.ID).Return(nil, assert.AnError)
 
 		server.Config.Services.Manager = mockManager
 
@@ -232,12 +249,15 @@ func TestGetUserOrgList(t *testing.T) {
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
 	})
 
-	t.Run("should return 500 when ForgeFromUser fails", func(t *testing.T) {
+	t.Run("should skip forge when Teams() fails but continue with others", func(t *testing.T) {
 		mockStore := new(store_mocks.MockStore)
+		mockForge := new(forge_mocks.MockForge)
 		mockManager := new(mocks_services.MockManager)
 
-		// Manager returns error
-		mockManager.On("ForgeFromUser", user).Return(nil, assert.AnError)
+		// Single forge that fails on Teams
+		mockStore.On("UserForgeList", user.ID).Return([]*model.UserForge{userForge1}, nil)
+		mockManager.On("ForgeByID", int64(1)).Return(mockForge, nil)
+		mockForge.On("Teams", mock.Anything, mock.AnythingOfType("*model.User")).Return(nil, assert.AnError)
 
 		server.Config.Services.Manager = mockManager
 
@@ -249,7 +269,12 @@ func TestGetUserOrgList(t *testing.T) {
 		GetUserOrgList(c)
 		c.Writer.WriteHeaderNow()
 
-		assert.Equal(t, http.StatusInternalServerError, w.Code)
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response []*model.Org
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		require.NoError(t, err)
+		assert.Empty(t, response)
 	})
 }
 

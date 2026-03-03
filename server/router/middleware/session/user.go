@@ -185,14 +185,25 @@ func MustOrgMember(admin bool) gin.HandlerFunc {
 			return
 		}
 
-		_forge, err := server.Config.Services.Manager.ForgeFromUser(user)
+		_forge, err := server.Config.Services.Manager.ForgeByID(org.ForgeID)
 		if err != nil {
-			log.Error().Err(err).Msg("Cannot get forge from user")
+			log.Error().Err(err).Int64("forge_id", org.ForgeID).Msg("Cannot get forge by ID for org")
 			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
 
-		perm, err := server.Config.Services.Membership.Get(c, _forge, user, org.Name)
+		// Build a user with the correct forge credentials for this org's forge
+		forgeUser := user
+		if uf, ufErr := store.FromContext(c).UserForgeGet(user.ID, org.ForgeID); ufErr == nil && uf != nil {
+			forgeUserCopy := *user
+			forgeUserCopy.ForgeID = org.ForgeID
+			forgeUserCopy.AccessToken = uf.AccessToken
+			forgeUserCopy.RefreshToken = uf.RefreshToken
+			forgeUserCopy.Expiry = uf.Expiry
+			forgeUser = &forgeUserCopy
+		}
+
+		perm, err := server.Config.Services.Membership.Get(c, _forge, forgeUser, org.Name)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to check membership")
 			c.String(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))

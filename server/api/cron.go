@@ -118,18 +118,16 @@ func PostCron(c *gin.Context) {
 	}
 
 	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
-	isSecondaryForge := false
 	if userForge, ufErr := _store.UserForgeGet(user.ID, repo.ForgeID); ufErr == nil && userForge != nil {
 		user.AccessToken = userForge.AccessToken
 		user.RefreshToken = userForge.RefreshToken
 		user.Expiry = userForge.Expiry
 		user.ForgeID = userForge.ForgeID
 		user.ForgeRemoteID = userForge.ForgeRemoteID
-		isSecondaryForge = !userForge.IsPrimary
 	}
 
 	// Refresh tokens before forge API call
-	refreshUserTokenForForge(c, user, repo.ForgeID, isSecondaryForge)
+	refreshUserTokenForForge(c, user, repo.ForgeID)
 	if c.IsAborted() {
 		return
 	}
@@ -197,18 +195,16 @@ func PatchCron(c *gin.Context) {
 	}
 
 	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
-	isSecondaryForge := false
 	if userForge, ufErr := _store.UserForgeGet(user.ID, repo.ForgeID); ufErr == nil && userForge != nil {
 		user.AccessToken = userForge.AccessToken
 		user.RefreshToken = userForge.RefreshToken
 		user.Expiry = userForge.Expiry
 		user.ForgeID = userForge.ForgeID
 		user.ForgeRemoteID = userForge.ForgeRemoteID
-		isSecondaryForge = !userForge.IsPrimary
 	}
 
 	// Refresh tokens before forge API call
-	refreshUserTokenForForge(c, user, repo.ForgeID, isSecondaryForge)
+	refreshUserTokenForForge(c, user, repo.ForgeID)
 	if c.IsAborted() {
 		return
 	}
