@@ -53,7 +53,7 @@ LDFLAGS := if STATIC_BUILD == "true" {
 
 CGO_ENABLED := "1"
 HAS_GO := `hash go > /dev/null 2>&1 && echo "GO" || echo "NOGO"`
-XGO_VERSION := if HAS_GO == "GO" { "go-1.25.x" } else { "" }
+XGO_VERSION := if HAS_GO == "GO" { "go-1.26.x" } else { "" }
 CGO_CFLAGS := if HAS_GO == "GO" { `go env CGO_CFLAGS` } else { "" }
 
 ### Recipes
