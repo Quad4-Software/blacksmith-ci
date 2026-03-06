@@ -847,6 +847,182 @@ func (_c *MockStore_AgentUpdate_Call) RunAndReturn(run func(agent *model.Agent) 
 	return _c
 }
 
+// ApprovedPullRequestCreate provides a mock function for the type MockStore
+func (_mock *MockStore) ApprovedPullRequestCreate(approvedPullRequest *model.ApprovedPullRequest) error {
+	ret := _mock.Called(approvedPullRequest)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ApprovedPullRequestCreate")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(*model.ApprovedPullRequest) error); ok {
+		r0 = returnFunc(approvedPullRequest)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_ApprovedPullRequestCreate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ApprovedPullRequestCreate'
+type MockStore_ApprovedPullRequestCreate_Call struct {
+	*mock.Call
+}
+
+// ApprovedPullRequestCreate is a helper method to define mock.On call
+//   - approvedPullRequest *model.ApprovedPullRequest
+func (_e *MockStore_Expecter) ApprovedPullRequestCreate(approvedPullRequest interface{}) *MockStore_ApprovedPullRequestCreate_Call {
+	return &MockStore_ApprovedPullRequestCreate_Call{Call: _e.mock.On("ApprovedPullRequestCreate", approvedPullRequest)}
+}
+
+func (_c *MockStore_ApprovedPullRequestCreate_Call) Run(run func(approvedPullRequest *model.ApprovedPullRequest)) *MockStore_ApprovedPullRequestCreate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.ApprovedPullRequest
+		if args[0] != nil {
+			arg0 = args[0].(*model.ApprovedPullRequest)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_ApprovedPullRequestCreate_Call) Return(err error) *MockStore_ApprovedPullRequestCreate_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_ApprovedPullRequestCreate_Call) RunAndReturn(run func(approvedPullRequest *model.ApprovedPullRequest) error) *MockStore_ApprovedPullRequestCreate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ApprovedPullRequestDelete provides a mock function for the type MockStore
+func (_mock *MockStore) ApprovedPullRequestDelete(repoID int64, ref string) error {
+	ret := _mock.Called(repoID, ref)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ApprovedPullRequestDelete")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(int64, string) error); ok {
+		r0 = returnFunc(repoID, ref)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_ApprovedPullRequestDelete_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ApprovedPullRequestDelete'
+type MockStore_ApprovedPullRequestDelete_Call struct {
+	*mock.Call
+}
+
+// ApprovedPullRequestDelete is a helper method to define mock.On call
+//   - repoID int64
+//   - ref string
+func (_e *MockStore_Expecter) ApprovedPullRequestDelete(repoID interface{}, ref interface{}) *MockStore_ApprovedPullRequestDelete_Call {
+	return &MockStore_ApprovedPullRequestDelete_Call{Call: _e.mock.On("ApprovedPullRequestDelete", repoID, ref)}
+}
+
+func (_c *MockStore_ApprovedPullRequestDelete_Call) Run(run func(repoID int64, ref string)) *MockStore_ApprovedPullRequestDelete_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_ApprovedPullRequestDelete_Call) Return(err error) *MockStore_ApprovedPullRequestDelete_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_ApprovedPullRequestDelete_Call) RunAndReturn(run func(repoID int64, ref string) error) *MockStore_ApprovedPullRequestDelete_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ApprovedPullRequestFind provides a mock function for the type MockStore
+func (_mock *MockStore) ApprovedPullRequestFind(repoID int64, ref string) (*model.ApprovedPullRequest, error) {
+	ret := _mock.Called(repoID, ref)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ApprovedPullRequestFind")
+	}
+
+	var r0 *model.ApprovedPullRequest
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, string) (*model.ApprovedPullRequest, error)); ok {
+		return returnFunc(repoID, ref)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, string) *model.ApprovedPullRequest); ok {
+		r0 = returnFunc(repoID, ref)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.ApprovedPullRequest)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, string) error); ok {
+		r1 = returnFunc(repoID, ref)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_ApprovedPullRequestFind_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ApprovedPullRequestFind'
+type MockStore_ApprovedPullRequestFind_Call struct {
+	*mock.Call
+}
+
+// ApprovedPullRequestFind is a helper method to define mock.On call
+//   - repoID int64
+//   - ref string
+func (_e *MockStore_Expecter) ApprovedPullRequestFind(repoID interface{}, ref interface{}) *MockStore_ApprovedPullRequestFind_Call {
+	return &MockStore_ApprovedPullRequestFind_Call{Call: _e.mock.On("ApprovedPullRequestFind", repoID, ref)}
+}
+
+func (_c *MockStore_ApprovedPullRequestFind_Call) Run(run func(repoID int64, ref string)) *MockStore_ApprovedPullRequestFind_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_ApprovedPullRequestFind_Call) Return(approvedPullRequest *model.ApprovedPullRequest, err error) *MockStore_ApprovedPullRequestFind_Call {
+	_c.Call.Return(approvedPullRequest, err)
+	return _c
+}
+
+func (_c *MockStore_ApprovedPullRequestFind_Call) RunAndReturn(run func(repoID int64, ref string) (*model.ApprovedPullRequest, error)) *MockStore_ApprovedPullRequestFind_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // AutoscalerCreate provides a mock function for the type MockStore
 func (_mock *MockStore) AutoscalerCreate(autoscaler *model.Autoscaler) error {
 	ret := _mock.Called(autoscaler)

@@ -483,10 +483,15 @@
       "show_steps": "Show steps",
       "protected": {
         "awaits": "This pipeline is awaiting approval from a maintainer.",
-        "approve": "Approve",
+        "approve_once": "Approve once",
+        "approve_always": "Always approve",
+        "revoke_always": "Revoke always-approve",
+        "always_approved": "This PR is always approved",
         "decline": "Decline",
         "declined": "This pipeline has been declined.",
         "notify_text_approve_success": "Pipeline approved",
+        "notify_text_approve_always_success": "Pipeline approved. Future pipelines from this PR will be auto-approved.",
+        "notify_text_revoke_always_success": "Always-approve revoked for this PR",
         "notify_text_decline_success": "Pipeline declined"
       },
       "event": {

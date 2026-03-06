@@ -174,6 +174,8 @@ func apiRoutes(e *gin.RouterGroup) {
 					repo.POST("/pipelines/:number/workflows/:workflow_id/cancel", session.MustPush, api.CancelWorkflow)
 					repo.POST("/pipelines/:number/workflows/:workflow_id/rerun", session.MustPush, api.RerunWorkflow)
 					repo.POST("/pipelines/:number/approve", session.MustPush, api.PostApproval)
+					repo.POST("/pipelines/:number/approve-always", session.MustPush, api.PostApprovalAlways)
+					repo.DELETE("/pipelines/:number/approve-always", session.MustPush, api.DeleteApprovalAlways)
 					repo.POST("/pipelines/:number/decline", session.MustPush, api.PostDecline)
 
 					repo.GET("/logs/:number/:stepId", api.GetStepLogs)

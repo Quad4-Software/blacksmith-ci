@@ -275,6 +275,14 @@ type Store interface {
 	MaintenanceRunMySQL(context.Context) error
 	MaintenanceRunSQLite(context.Context) error
 
+	// Approved Pull Requests
+	// ApprovedPullRequestFind finds an always-approved PR by repo ID and ref.
+	ApprovedPullRequestFind(repoID int64, ref string) (*model.ApprovedPullRequest, error)
+	// ApprovedPullRequestCreate creates a new always-approved PR record.
+	ApprovedPullRequestCreate(*model.ApprovedPullRequest) error
+	// ApprovedPullRequestDelete deletes an always-approved PR record by repo ID and ref.
+	ApprovedPullRequestDelete(repoID int64, ref string) error
+
 	// Workflow
 	WorkflowGetTree(*model.Pipeline) ([]*model.Workflow, error)
 	WorkflowsCreate([]*model.Workflow) error

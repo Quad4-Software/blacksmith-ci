@@ -90,6 +90,7 @@ var crowMigrations = []string{
 	"crow-add-forge-to-repo-unique",
 	"crow-add-allow-manual-to-repos",
 	"crow-add-workflow-rerun-fields",
+	"crow-add-approved-pull-requests",
 }
 
 // allKnownMigrations returns a combined list of all known migration IDs.

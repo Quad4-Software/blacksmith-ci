@@ -227,6 +227,14 @@ export default class CrowClient extends ApiClient {
     return this._post(`/api/v1/repos/${repoId}/pipelines/${pipelineNumber}/approve`);
   }
 
+  async approveAlwaysPipeline(repoId: number, pipelineNumber: string): Promise<unknown> {
+    return this._post(`/api/v1/repos/${repoId}/pipelines/${pipelineNumber}/approve-always`);
+  }
+
+  async revokeAlwaysApproval(repoId: number, pipelineNumber: string): Promise<unknown> {
+    return this._delete(`/api/v1/repos/${repoId}/pipelines/${pipelineNumber}/approve-always`);
+  }
+
   async declinePipeline(repoId: number, pipelineNumber: string): Promise<unknown> {
     return this._post(`/api/v1/repos/${repoId}/pipelines/${pipelineNumber}/decline`);
   }

@@ -99,6 +99,7 @@ var migrationTasks = []*xormigrate.Migration{
 	&crowAddForgeToRepoUnique,
 	&crowAddAllowManualToRepos,
 	&crowAddWorkflowRerunFields,
+	&crowAddApprovedPullRequests,
 }
 
 var allBeans = []any{
@@ -130,6 +131,7 @@ var allBeans = []any{
 	new(model.AccessToken),
 	new(model.Integration),
 	new(model.UserForge),
+	new(model.ApprovedPullRequest),
 }
 
 // TODO: make xormigrate context aware

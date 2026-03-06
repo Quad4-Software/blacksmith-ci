@@ -309,7 +309,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue';
+import { ref, shallowRef, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { VueFlow, Handle, Position, useVueFlow } from '@vue-flow/core';
 import { Background } from '@vue-flow/background';
@@ -338,8 +338,8 @@ const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 const { t } = useI18n();
 
-const nodes = ref<Node[]>([]);
-const edges = ref<Edge[]>([]);
+const nodes = shallowRef<Node[]>([]);
+const edges = shallowRef<Edge[]>([]);
 const { layout } = useLayout();
 const debounceTimeout = ref<ReturnType<typeof setTimeout> | null>(null);
 const isLayouting = ref(false);

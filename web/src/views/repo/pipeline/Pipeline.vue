@@ -90,7 +90,16 @@
                       @click="approvePipeline"
                     >
                       <Icon v-if="isApprovingPipeline" name="spinner" class="size-5 animate-spin" />
-                      <template v-else>{{ $t('repo.pipeline.protected.approve') }}</template>
+                      <template v-else>{{ $t('repo.pipeline.protected.approve_once') }}</template>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      class="relative border-green-500 hover:border-green-600 hover:bg-green-50 dark:hover:bg-green-950/20"
+                      :disabled="isApprovingAlways"
+                      @click="approveAlwaysPipeline"
+                    >
+                      <Icon v-if="isApprovingAlways" name="spinner" class="size-5 animate-spin" />
+                      <template v-else>{{ $t('repo.pipeline.protected.approve_always') }}</template>
                     </Button>
                     <Button
                       variant="destructive"
@@ -104,6 +113,25 @@
                   </div>
                 </div>
               </Panel>
+            </div>
+            <div v-else-if="pipeline!.is_always_approved && repoPermissions!.push" class="w-full px-4 pt-2">
+              <div
+                class="flex items-center justify-between rounded-md border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/20 px-4 py-2 text-sm"
+              >
+                <span class="text-green-700 dark:text-green-400">{{
+                  $t('repo.pipeline.protected.always_approved')
+                }}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  class="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
+                  :disabled="isRevokingAlways"
+                  @click="revokeAlwaysApproval"
+                >
+                  <Icon v-if="isRevokingAlways" name="spinner" class="size-4 animate-spin" />
+                  <template v-else>{{ $t('repo.pipeline.protected.revoke_always') }}</template>
+                </Button>
+              </div>
             </div>
             <div v-else-if="pipeline!.status === 'declined'" class="w-full mb-auto p-4">
               <Panel>
@@ -154,7 +182,16 @@
                 @click="approvePipeline"
               >
                 <Icon v-if="isApprovingPipeline" name="spinner" class="size-5 animate-spin" />
-                <template v-else>{{ $t('repo.pipeline.protected.approve') }}</template>
+                <template v-else>{{ $t('repo.pipeline.protected.approve_once') }}</template>
+              </Button>
+              <Button
+                variant="outline"
+                class="relative border-green-500 hover:border-green-600 hover:bg-green-50 dark:hover:bg-green-950/20"
+                :disabled="isApprovingAlways"
+                @click="approveAlwaysPipeline"
+              >
+                <Icon v-if="isApprovingAlways" name="spinner" class="size-5 animate-spin" />
+                <template v-else>{{ $t('repo.pipeline.protected.approve_always') }}</template>
               </Button>
               <Button variant="destructive" class="relative" :disabled="isDecliningPipeline" @click="declinePipeline">
                 <Icon v-if="isDecliningPipeline" name="spinner" class="size-5 animate-spin" />
@@ -163,6 +200,23 @@
             </div>
           </div>
         </Panel>
+      </div>
+      <div v-else-if="pipeline!.is_always_approved && repoPermissions!.push" class="px-4 pt-2">
+        <div
+          class="flex items-center justify-between rounded-md border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/20 px-4 py-2 text-sm"
+        >
+          <span class="text-green-700 dark:text-green-400">{{ $t('repo.pipeline.protected.always_approved') }}</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            class="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
+            :disabled="isRevokingAlways"
+            @click="revokeAlwaysApproval"
+          >
+            <Icon v-if="isRevokingAlways" name="spinner" class="size-4 animate-spin" />
+            <template v-else>{{ $t('repo.pipeline.protected.revoke_always') }}</template>
+          </Button>
+        </div>
       </div>
       <div v-else-if="pipeline!.status === 'declined'" class="p-4 flex-1">
         <Panel>
@@ -325,6 +379,27 @@ const { doSubmit: approvePipeline, isLoading: isApprovingPipeline } = useAsyncAc
   notifications.notify({
     title: i18n.t('notify_title_success'),
     text: i18n.t('repo.pipeline.protected.notify_text_approve_success'),
+    type: 'success',
+    duration: 6000,
+  });
+});
+
+const { doSubmit: approveAlwaysPipeline, isLoading: isApprovingAlways } = useAsyncAction(async () => {
+  await apiClient.approveAlwaysPipeline(repo.value.id, `${pipeline.value.number}`);
+  notifications.notify({
+    title: i18n.t('notify_title_success'),
+    text: i18n.t('repo.pipeline.protected.notify_text_approve_always_success'),
+    type: 'success',
+    duration: 6000,
+  });
+});
+
+const { doSubmit: revokeAlwaysApproval, isLoading: isRevokingAlways } = useAsyncAction(async () => {
+  await apiClient.revokeAlwaysApproval(repo.value.id, `${pipeline.value.number}`);
+  pipeline.value.is_always_approved = false;
+  notifications.notify({
+    title: i18n.t('notify_title_success'),
+    text: i18n.t('repo.pipeline.protected.notify_text_revoke_always_success'),
     type: 'success',
     duration: 6000,
   });

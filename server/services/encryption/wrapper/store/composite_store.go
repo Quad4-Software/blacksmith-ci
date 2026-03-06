@@ -971,3 +971,16 @@ func (c *CompositeEncryptedStore) UserForgeDelete(userForge *model.UserForge) er
 func (c *CompositeEncryptedStore) UserForgeListAll() ([]*model.UserForge, error) {
 	return c.userForgeStore.UserForgeListAll()
 }
+
+// Approved Pull Requests.
+func (c *CompositeEncryptedStore) ApprovedPullRequestFind(repoID int64, ref string) (*model.ApprovedPullRequest, error) {
+	return c.baseStore.ApprovedPullRequestFind(repoID, ref)
+}
+
+func (c *CompositeEncryptedStore) ApprovedPullRequestCreate(apr *model.ApprovedPullRequest) error {
+	return c.baseStore.ApprovedPullRequestCreate(apr)
+}
+
+func (c *CompositeEncryptedStore) ApprovedPullRequestDelete(repoID int64, ref string) error {
+	return c.baseStore.ApprovedPullRequestDelete(repoID, ref)
+}

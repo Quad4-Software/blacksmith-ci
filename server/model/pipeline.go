@@ -54,6 +54,7 @@ type Pipeline struct {
 	IsPrerelease        bool                   `json:"is_prerelease,omitempty" xorm:"is_prerelease"`
 	FromFork            bool                   `json:"from_fork,omitempty"     xorm:"from_fork"`
 	LogsDeleted         bool                   `json:"logs_deleted,omitempty"  xorm:"logs_deleted"`
+	IsAlwaysApproved    bool                   `json:"is_always_approved,omitempty" xorm:"-"`
 } //	@name	Pipeline
 
 // TableName return database table name for xorm.

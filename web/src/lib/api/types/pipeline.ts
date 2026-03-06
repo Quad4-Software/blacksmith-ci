@@ -114,6 +114,9 @@ export interface Pipeline {
 
   // Whether the logs were deleted or not
   logs_deleted: number;
+
+  // Whether this PR is always-approved
+  is_always_approved?: boolean;
 }
 
 export type PipelineStatus =

@@ -296,6 +296,8 @@ func GetPipeline(c *gin.Context) {
 		return
 	}
 
+	populateAlwaysApproved(_store, repo, pl)
+
 	c.JSON(http.StatusOK, pl)
 }
 
@@ -314,7 +316,18 @@ func GetPipelineLast(c *gin.Context) {
 		_ = c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
+
+	populateAlwaysApproved(_store, repo, pl)
+
 	c.JSON(http.StatusOK, pl)
+}
+
+func populateAlwaysApproved(_store store.Store, repo *model.Repo, pl *model.Pipeline) {
+	if pl.Ref != "" {
+		if apr, _ := _store.ApprovedPullRequestFind(repo.ID, pl.Ref); apr != nil {
+			pl.IsAlwaysApproved = true
+		}
+	}
 }
 
 // GetStepLogs
@@ -835,6 +848,96 @@ func PostApproval(c *gin.Context) {
 	} else {
 		c.JSON(http.StatusOK, newPipeline)
 	}
+}
+
+// PostApprovalAlways
+//
+//	@Summary	Approve a pipeline and always approve future pipelines from the same PR
+//	@Router		/repos/{repo_id}/pipelines/{number}/approve-always [post]
+//	@Produce	json
+//	@Success	200	{object}	Pipeline
+//	@Tags		Pipelines
+//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
+//	@Param		repo_id			path	int		true	"the repository id"
+//	@Param		number			path	int		true	"the number of the pipeline"
+func PostApprovalAlways(c *gin.Context) {
+	var (
+		_store = store.FromContext(c)
+		repo   = session.Repo(c)
+		user   = session.User(c)
+		num, _ = strconv.ParseInt(c.Params.ByName("number"), 10, 64)
+	)
+
+	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
+	if userForge, ufErr := _store.UserForgeGet(user.ID, repo.ForgeID); ufErr == nil && userForge != nil {
+		user.AccessToken = userForge.AccessToken
+		user.RefreshToken = userForge.RefreshToken
+		user.Expiry = userForge.Expiry
+		user.ForgeID = userForge.ForgeID
+		user.ForgeRemoteID = userForge.ForgeRemoteID
+	}
+
+	// Refresh tokens before forge API call
+	refreshUserTokenForForge(c, user, repo.ForgeID)
+	if c.IsAborted() {
+		return
+	}
+
+	pl, err := _store.GetPipelineNumber(repo, num)
+	if err != nil {
+		handleDBError(c, err)
+		return
+	}
+
+	// Create the always-approved record for this PR ref
+	if pl.Ref != "" {
+		apr := &model.ApprovedPullRequest{
+			RepoID:     repo.ID,
+			Ref:        pl.Ref,
+			ApprovedBy: user.Login,
+		}
+		if err := _store.ApprovedPullRequestCreate(apr); err != nil {
+			log.Warn().Err(err).Msgf("failed to create always-approved record for ref %s (may already exist)", pl.Ref)
+		}
+	}
+
+	newPipeline, err := pipeline.Approve(c, _store, pl, user, repo)
+	if err != nil {
+		handlePipelineErr(c, err)
+	} else {
+		c.JSON(http.StatusOK, newPipeline)
+	}
+}
+
+// DeleteApprovalAlways
+//
+//	@Summary	Revoke always-approve for a pipeline's PR
+//	@Router		/repos/{repo_id}/pipelines/{number}/approve-always [delete]
+//	@Produce	plain
+//	@Success	204
+//	@Tags		Pipelines
+//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
+//	@Param		repo_id			path	int		true	"the repository id"
+//	@Param		number			path	int		true	"the number of the pipeline"
+func DeleteApprovalAlways(c *gin.Context) {
+	var (
+		_store = store.FromContext(c)
+		repo   = session.Repo(c)
+		num, _ = strconv.ParseInt(c.Params.ByName("number"), 10, 64)
+	)
+
+	pl, err := _store.GetPipelineNumber(repo, num)
+	if err != nil {
+		handleDBError(c, err)
+		return
+	}
+
+	if err := _store.ApprovedPullRequestDelete(repo.ID, pl.Ref); err != nil {
+		handleDBError(c, err)
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }
 
 // PostDecline
