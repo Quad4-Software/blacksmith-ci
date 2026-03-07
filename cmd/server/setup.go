@@ -44,6 +44,7 @@ import (
 	"codefloe.com/crowci/crow/v5/server/services/lock"
 	logService "codefloe.com/crowci/crow/v5/server/services/log"
 	"codefloe.com/crowci/crow/v5/server/services/log/file"
+	logS3 "codefloe.com/crowci/crow/v5/server/services/log/s3"
 	"codefloe.com/crowci/crow/v5/server/services/maintenance"
 	"codefloe.com/crowci/crow/v5/server/services/permissions"
 	"codefloe.com/crowci/crow/v5/server/store"
@@ -216,12 +217,24 @@ func setupPubSub(s store.Store, instanceID string, haEnabled bool) pubsub.Publis
 	})
 }
 
-func setupLogStore(c *cli.Command, s store.Store) (logService.Service, error) {
+func setupLogStore(ctx context.Context, c *cli.Command, s store.Store) (logService.Service, error) {
 	switch c.String("log-store") {
+	case "database":
+		return s, nil
 	case "file":
 		return file.NewLogStore(c.String("log-store-file-path"))
+	case "s3":
+		return logS3.NewLogStore(ctx, logS3.Options{
+			Endpoint:  c.String("log-store-s3-endpoint"),
+			Bucket:    c.String("log-store-s3-bucket"),
+			AccessKey: c.String("log-store-s3-access-key"),
+			SecretKey: c.String("log-store-s3-secret-key"),
+			SSL:       c.Bool("log-store-s3-ssl"),
+			PathStyle: c.Bool("log-store-s3-path-style"),
+			Prefix:    c.String("log-store-s3-prefix"),
+		})
 	default:
-		return s, nil
+		return nil, fmt.Errorf("unknown log store %q, must be 'database', 'file', or 's3'", c.String("log-store"))
 	}
 }
 
@@ -291,7 +304,7 @@ func setupEvilGlobals(ctx context.Context, c *cli.Command, s store.Store) (err e
 	if err != nil {
 		return fmt.Errorf("could not setup service manager: %w", err)
 	}
-	server.Config.Services.LogStore, err = setupLogStore(c, s)
+	server.Config.Services.LogStore, err = setupLogStore(ctx, c, s)
 	if err != nil {
 		return fmt.Errorf("could not setup log store: %w", err)
 	}

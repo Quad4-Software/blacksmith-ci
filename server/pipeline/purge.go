@@ -9,10 +9,11 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"codefloe.com/crowci/crow/v5/server/model"
+	logService "codefloe.com/crowci/crow/v5/server/services/log"
 	"codefloe.com/crowci/crow/v5/server/store"
 )
 
-func pipelineLogPurge(store store.Store, repo *model.Repo) error {
+func pipelineLogPurge(store store.Store, logStore logService.Service, repo *model.Repo) error {
 	olderThanDuration := getLogRetentionDuration(repo)
 
 	var pipelinesToPurge []*model.Pipeline
@@ -34,7 +35,7 @@ func pipelineLogPurge(store store.Store, repo *model.Repo) error {
 		if logsPurged {
 			continue
 		}
-		if err := purgePipelineLogs(store, pipeline); err != nil {
+		if err := purgePipelineLogs(store, logStore, pipeline); err != nil {
 			log.Error().Err(err).Msgf("Failed to purge logs for pipeline %d", pipeline.Number)
 		}
 		// prevents additional purge calls in the future
@@ -62,7 +63,7 @@ func getLogRetentionDuration(repo *model.Repo) time.Duration {
 }
 
 // purgePipelineLogs deletes logs for all steps in a given pipeline.
-func purgePipelineLogs(store store.Store, pipeline *model.Pipeline) error {
+func purgePipelineLogs(store store.Store, logStore logService.Service, pipeline *model.Pipeline) error {
 	steps, err := store.StepList(pipeline)
 	if err != nil {
 		return fmt.Errorf("failed to fetch steps for pipeline %d: %w", pipeline.Number, err)
@@ -70,7 +71,7 @@ func purgePipelineLogs(store store.Store, pipeline *model.Pipeline) error {
 
 	for _, step := range steps {
 		log.Debug().Msgf("Deleting logs for step %d in pipeline %d (repo %d)", step.ID, pipeline.Number, pipeline.RepoID)
-		if err := store.LogDelete(step); err != nil {
+		if err := logStore.LogDelete(step); err != nil {
 			log.Error().Err(err).Msgf("Failed to delete logs for step %d in pipeline %d", step.ID, pipeline.Number)
 			continue
 		}
@@ -150,6 +151,10 @@ func fetchFilteredPipelines(store store.Store, repo *model.Repo, olderThan time.
 		}
 	}
 
+	if len(allPipelines) == 0 {
+		return nil, nil
+	}
+
 	sort.Slice(allPipelines, func(i, j int) bool {
 		return allPipelines[i].Created < allPipelines[j].Created
 	})
@@ -162,16 +167,11 @@ func fetchFilteredPipelines(store store.Store, repo *model.Repo, olderThan time.
 		allPipelines = allPipelines[:purgeLimit]
 	}
 
-	log.Debug().Msgf("Oldest pipeline ID for purging (after filtering): %d", allPipelines[0].ID)
-	log.Debug().Msgf("Most recent pipeline ID for purging (after filtering): %d", allPipelines[len(allPipelines)-1].ID)
-
-	if len(allPipelines) > 0 {
-		log.Debug().
-			Int("count", len(allPipelines)).
-			Dur("olderThan", olderThan).
-			Int64("keepMin", keepMin).
-			Msgf("Possible pipelines eligible for log purging")
-	}
+	log.Debug().
+		Int("count", len(allPipelines)).
+		Dur("olderThan", olderThan).
+		Int64("keepMin", keepMin).
+		Msgf("Possible pipelines eligible for log purging")
 
 	return allPipelines, nil
 }

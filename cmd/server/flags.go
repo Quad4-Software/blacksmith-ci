@@ -362,13 +362,50 @@ var flags = append([]cli.Flag{
 	&cli.StringFlag{
 		Sources: cli.EnvVars("WOODPECKER_LOG_STORE", "CROW_LOG_STORE"),
 		Name:    "log-store",
-		Usage:   "log store to use ('database' or 'file')",
+		Usage:   "log store to use ('database', 'file', or 's3')",
 		Value:   "database",
 	},
 	&cli.StringFlag{
 		Sources: cli.EnvVars("WOODPECKER_LOG_STORE_FILE_PATH", "CROW_LOG_STORE_FILE_PATH"),
 		Name:    "log-store-file-path",
 		Usage:   "directory used for file based log storage",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_LOG_STORE_S3_ENDPOINT"),
+		Name:    "log-store-s3-endpoint",
+		Usage:   "S3-compatible endpoint for log storage (e.g. 's3.amazonaws.com' or 'minio.example.com:9000')",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_LOG_STORE_S3_BUCKET"),
+		Name:    "log-store-s3-bucket",
+		Usage:   "S3 bucket name for log storage",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_LOG_STORE_S3_ACCESS_KEY"),
+		Name:    "log-store-s3-access-key",
+		Usage:   "S3 access key for log storage",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_LOG_STORE_S3_SECRET_KEY"),
+		Name:    "log-store-s3-secret-key",
+		Usage:   "S3 secret key for log storage",
+	},
+	&cli.BoolFlag{
+		Sources: cli.EnvVars("CROW_LOG_STORE_S3_SSL"),
+		Name:    "log-store-s3-ssl",
+		Usage:   "use SSL for S3 log storage connection",
+		Value:   true,
+	},
+	&cli.BoolFlag{
+		Sources: cli.EnvVars("CROW_LOG_STORE_S3_PATH_STYLE"),
+		Name:    "log-store-s3-path-style",
+		Usage:   "use path-style addressing for S3 log storage (required for MinIO and some S3-compatible providers)",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_LOG_STORE_S3_PREFIX"),
+		Name:    "log-store-s3-prefix",
+		Usage:   "key prefix for log objects in the S3 bucket (e.g. 'logs')",
+		Value:   "logs",
 	},
 	//
 	// backend options for pipeline compiler

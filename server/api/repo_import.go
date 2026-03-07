@@ -674,7 +674,7 @@ func importPipelines(_store store.Store, sourceRepo, targetRepo *model.Repo) (in
 					continue
 				}
 
-				logs, err := _store.LogFind(srcStep)
+				logs, err := server.Config.Services.LogStore.LogFind(srcStep)
 				if err != nil {
 					continue
 				}
@@ -687,7 +687,7 @@ func importPipelines(_store store.Store, sourceRepo, targetRepo *model.Repo) (in
 					}
 
 					newStep := &model.Step{ID: newStepID}
-					if err := _store.LogAppend(newStep, logs); err != nil {
+					if err := server.Config.Services.LogStore.LogAppend(newStep, logs); err != nil {
 						log.Error().Err(err).Int64("step", srcStep.ID).Msg("Failed to copy logs")
 					}
 				}

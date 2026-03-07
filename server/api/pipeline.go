@@ -437,7 +437,7 @@ func DeleteStepLogs(c *gin.Context) {
 		return
 	}
 
-	err = _store.LogDelete(_step)
+	err = server.Config.Services.LogStore.LogDelete(_step)
 	if err != nil {
 		handleDBError(c, err)
 		return

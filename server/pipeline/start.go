@@ -19,6 +19,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
+	"codefloe.com/crowci/crow/v5/server"
 	"codefloe.com/crowci/crow/v5/server/forge"
 	"codefloe.com/crowci/crow/v5/server/model"
 	"codefloe.com/crowci/crow/v5/server/pipeline/stepbuilder"
@@ -41,7 +42,7 @@ func start(ctx context.Context, forge forge.Forge, store store.Store, activePipe
 			}
 		}()
 
-		if err := pipelineLogPurge(store, repo); err != nil {
+		if err := pipelineLogPurge(store, server.Config.Services.LogStore, repo); err != nil {
 			log.Error().Err(err).Msg("Error purging logs")
 		}
 	}()

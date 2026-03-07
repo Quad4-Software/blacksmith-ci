@@ -113,8 +113,8 @@ func TestPipelineLogPurge(t *testing.T) {
 				mockStore.On("LogDelete", mock.Anything, mock.Anything).Return(nil).Times(tt.wantDelete)
 			}
 
-			// Call the function
-			err := pipelineLogPurge(mockStore, tt.repo)
+			// Call the function (pass mockStore as both store and logStore since it implements both interfaces)
+			err := pipelineLogPurge(mockStore, mockStore, tt.repo)
 
 			// Check the results
 			if tt.expectError {
