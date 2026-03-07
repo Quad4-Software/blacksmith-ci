@@ -100,7 +100,7 @@
                   :class="{ 'rotate-90 transform': !workflowsCollapsed[group.workflows[0].id] }"
                 />
                 <!-- Status Icon -->
-                <PipelineStatusIcon :status="group.workflows[0].state" class="h-4 w-4 shrink-0" />
+                <PipelineStatusIcon :status="group.workflows[0].state" class="h-4 w-4 shrink-0 mr-0.5" />
                 <!-- Name -->
                 <span class="min-w-0 font-medium truncate">
                   {{ group.workflows[0].name }}
@@ -202,7 +202,7 @@
                   <PipelineStatusIcon
                     :service="step.type === StepType.Service"
                     :status="step.state"
-                    class="h-4 w-4 shrink-0"
+                    class="h-4 w-4 shrink-0 mr-0.5"
                   />
                   <span class="min-w-0 truncate">{{ step.name }}</span>
                   <span class="flex-1" />

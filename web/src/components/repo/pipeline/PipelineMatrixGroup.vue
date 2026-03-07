@@ -2,7 +2,7 @@
   <div class="rounded-md border border-border bg-card p-2 shadow-xs">
     <!-- Group Header Row -->
     <div
-      class="grid grid-cols-[1.25rem_2rem_1fr_auto_4rem] gap-1 items-center transition-colors hover:bg-accent cursor-pointer"
+      class="grid grid-cols-[1.25rem_1.25rem_1fr_auto_4rem] gap-1 items-center transition-colors hover:bg-accent cursor-pointer"
       @click="
         groupExpanded = !groupExpanded;
         userToggledGroup = true;
@@ -133,7 +133,7 @@
               :class="{ 'rotate-90 transform': expandedVariantId === workflow.id }"
             />
             <!-- Status Icon -->
-            <PipelineStatusIcon :status="workflow.state" class="h-3.5 w-3.5 shrink-0" />
+            <PipelineStatusIcon :status="workflow.state" class="h-3.5 w-3.5 shrink-0 mr-0.5" />
             <!-- Environ values -->
             <span
               class="min-w-0 truncate text-xs text-muted-foreground font-mono"
@@ -238,7 +238,7 @@
               <PipelineStatusIcon
                 :service="step.type === StepType.Service"
                 :status="step.state"
-                class="h-3.5 w-3.5 shrink-0"
+                class="h-3.5 w-3.5 shrink-0 mr-0.5"
               />
               <span class="min-w-0 truncate text-sm">{{ step.name }}</span>
               <span class="flex-1" />
