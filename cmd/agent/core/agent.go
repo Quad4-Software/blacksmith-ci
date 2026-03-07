@@ -417,10 +417,24 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 		})
 	}
 
+	// Docker cleanup config shared between health reporting and cleanup goroutines
+	var dockerCleanupConfig atomic.Pointer[rpc.DockerCleanupConfig]
+	dockerCleanupRunNow := make(chan struct{}, 1) // signal channel for immediate cleanup
+
 	serviceWaitingGroup.Go(func() error {
 		log.Trace().Msg("health reporting goroutine started")
 		for {
-			err := client.ReportHealth(grpcCtx)
+			cleanupCfg, err := client.ReportHealth(grpcCtx)
+			if cleanupCfg != nil {
+				dockerCleanupConfig.Store(cleanupCfg)
+				// Wake up cleanup goroutine immediately if RunNow is set
+				if cleanupCfg.RunNow {
+					select {
+					case dockerCleanupRunNow <- struct{}{}:
+					default: // already signaled
+					}
+				}
+			}
 			if err != nil {
 				// Check for fatal consecutive error threshold FIRST - this must always trigger restart
 				if errors.Is(err, agent_rpc.ErrMaxConsecutiveErrors) {
@@ -447,6 +461,13 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 			}
 		}
 	})
+
+	// Start Docker cleanup goroutine if using Docker backend
+	if backendEngine.Name() == "docker" {
+		serviceWaitingGroup.Go(func() error {
+			return runDockerCleanup(agentCtx, grpcCtx, client, &backendEngine, &dockerCleanupConfig, dockerCleanupRunNow)
+		})
+	}
 
 	if maxWorkflows == 0 {
 		log.Error().Msg("agent is configured with max-workflows=0, no pipelines will be processed!")
@@ -544,6 +565,142 @@ func stringSliceAddToMap(sl []string, m map[string]string) error {
 type AdoptedWorkflow struct {
 	Workflow *rpc.Workflow
 	TaskUUID string
+}
+
+// runDockerCleanup runs a goroutine that periodically cleans up stale Docker resources.
+// It reads config from the atomic pointer (set by the health reporting goroutine) and
+// reports results back to the server.
+func runDockerCleanup(
+	agentCtx context.Context,
+	grpcCtx context.Context,
+	client rpc.Peer,
+	backendEngine *types.Backend,
+	configPtr *atomic.Pointer[rpc.DockerCleanupConfig],
+	runNowCh <-chan struct{},
+) error {
+	log.Trace().Msg("Docker cleanup goroutine started, waiting for config from server")
+
+	// Wait for initial config
+	var cfg *rpc.DockerCleanupConfig
+	for {
+		cfg = configPtr.Load()
+		if cfg != nil {
+			break
+		}
+		select {
+		case <-agentCtx.Done():
+			return nil
+		case <-time.After(reportHealthInterval):
+		}
+	}
+
+	if !cfg.Enabled {
+		log.Debug().Msg("Docker cleanup is disabled by server config")
+	}
+
+	// Check if backend supports cleanup
+	cleaner, ok := (*backendEngine).(types.ResourceCleaner)
+	if !ok {
+		log.Debug().Msg("backend does not support resource cleanup")
+		return nil
+	}
+
+	interval := time.Duration(cfg.IntervalSeconds) * time.Second
+	if interval <= 0 {
+		interval = time.Hour
+	}
+
+	log.Info().
+		Bool("enabled", cfg.Enabled).
+		Dur("interval", interval).
+		Int64("stale_threshold_seconds", cfg.StaleThresholdSeconds).
+		Msg("Docker cleanup goroutine configured")
+
+	// If run_now was set in the initial config, run immediately
+	if cfg.RunNow && cfg.Enabled {
+		executeDockerCleanup(grpcCtx, client, cleaner, cfg)
+	}
+
+	for {
+		select {
+		case <-agentCtx.Done():
+			log.Debug().Msg("terminating Docker cleanup goroutine")
+			return nil
+		case <-time.After(interval):
+			// Scheduled tick
+		case <-runNowCh:
+			// Immediate trigger from server
+			log.Info().Msg("Docker cleanup triggered by server run-now request")
+		}
+
+		// Re-read config in case it changed
+		latestCfg := configPtr.Load()
+		if latestCfg != nil {
+			cfg = latestCfg
+			newInterval := time.Duration(cfg.IntervalSeconds) * time.Second
+			if newInterval > 0 {
+				interval = newInterval
+			}
+		}
+
+		if !cfg.Enabled && !cfg.RunNow {
+			continue
+		}
+
+		executeDockerCleanup(grpcCtx, client, cleaner, cfg)
+	}
+}
+
+func executeDockerCleanup(
+	grpcCtx context.Context,
+	client rpc.Peer,
+	cleaner types.ResourceCleaner,
+	cfg *rpc.DockerCleanupConfig,
+) {
+	staleThreshold := time.Duration(cfg.StaleThresholdSeconds) * time.Second
+	if staleThreshold <= 0 {
+		staleThreshold = time.Hour
+	}
+
+	start := time.Now()
+	log.Info().Dur("stale_threshold", staleThreshold).Msg("starting Docker resource cleanup")
+
+	cleanupCtx, cancel := context.WithTimeout(grpcCtx, staleThreshold)
+	defer cancel()
+	result, err := cleaner.CleanupStaleResources(cleanupCtx, staleThreshold)
+
+	duration := time.Since(start)
+
+	report := rpc.DockerCleanupResult{
+		DurationMs: duration.Milliseconds(),
+		Success:    err == nil,
+		Manual:     cfg.RunNow,
+	}
+
+	if result != nil {
+		report.ContainersFound = result.ContainersFound
+		report.ContainersRemoved = result.ContainersRemoved
+		report.NetworksFound = result.NetworksFound
+		report.NetworksRemoved = result.NetworksRemoved
+		report.VolumesFound = result.VolumesFound
+		report.VolumesRemoved = result.VolumesRemoved
+	}
+
+	if err != nil {
+		report.Error = err.Error()
+		log.Error().Err(err).Msg("Docker resource cleanup failed")
+	} else {
+		log.Info().
+			Int64("containers_removed", report.ContainersRemoved).
+			Int64("networks_removed", report.NetworksRemoved).
+			Int64("volumes_removed", report.VolumesRemoved).
+			Dur("duration", duration).
+			Msg("Docker resource cleanup completed")
+	}
+
+	if reportErr := client.ReportDockerCleanup(grpcCtx, report); reportErr != nil {
+		log.Warn().Err(reportErr).Msg("failed to report Docker cleanup results to server")
+	}
 }
 
 // discoverAndAdoptWorkflows checks if the backend supports workflow discovery,

@@ -17,6 +17,7 @@ package types
 import (
 	"context"
 	"io"
+	"time"
 
 	"github.com/urfave/cli/v3"
 )
@@ -97,4 +98,22 @@ type WorkflowResumer interface {
 	// Unlike StartStep, this does not create a new container - it attaches to an existing one.
 	// The step parameter should have its UUID set to match the running container.
 	ResumeStep(ctx context.Context, step *Step, taskUUID string) error
+}
+
+// ResourceCleaner is an optional interface that backends can implement
+// to support cleaning up stale resources left behind by improperly terminated pipelines.
+type ResourceCleaner interface {
+	// CleanupStaleResources finds and removes stale containers, networks, and volumes
+	// that are older than the given threshold.
+	CleanupStaleResources(ctx context.Context, staleThreshold time.Duration) (*CleanupResult, error)
+}
+
+// CleanupResult holds the results of a stale resource cleanup operation.
+type CleanupResult struct {
+	ContainersFound   int64
+	ContainersRemoved int64
+	NetworksFound     int64
+	NetworksRemoved   int64
+	VolumesFound      int64
+	VolumesRemoved    int64
 }

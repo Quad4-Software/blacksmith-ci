@@ -100,6 +100,7 @@ var migrationTasks = []*xormigrate.Migration{
 	&crowAddAllowManualToRepos,
 	&crowAddWorkflowRerunFields,
 	&crowAddApprovedPullRequests,
+	&crowAddStaleThreshold,
 }
 
 var allBeans = []any{

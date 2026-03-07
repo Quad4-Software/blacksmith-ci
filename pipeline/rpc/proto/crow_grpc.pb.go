@@ -35,18 +35,19 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Crow_Version_FullMethodName         = "/proto.Crow/Version"
-	Crow_Next_FullMethodName            = "/proto.Crow/Next"
-	Crow_Init_FullMethodName            = "/proto.Crow/Init"
-	Crow_Wait_FullMethodName            = "/proto.Crow/Wait"
-	Crow_Done_FullMethodName            = "/proto.Crow/Done"
-	Crow_Extend_FullMethodName          = "/proto.Crow/Extend"
-	Crow_Update_FullMethodName          = "/proto.Crow/Update"
-	Crow_Log_FullMethodName             = "/proto.Crow/Log"
-	Crow_RegisterAgent_FullMethodName   = "/proto.Crow/RegisterAgent"
-	Crow_UnregisterAgent_FullMethodName = "/proto.Crow/UnregisterAgent"
-	Crow_ReportHealth_FullMethodName    = "/proto.Crow/ReportHealth"
-	Crow_ClaimTask_FullMethodName       = "/proto.Crow/ClaimTask"
+	Crow_Version_FullMethodName             = "/proto.Crow/Version"
+	Crow_Next_FullMethodName                = "/proto.Crow/Next"
+	Crow_Init_FullMethodName                = "/proto.Crow/Init"
+	Crow_Wait_FullMethodName                = "/proto.Crow/Wait"
+	Crow_Done_FullMethodName                = "/proto.Crow/Done"
+	Crow_Extend_FullMethodName              = "/proto.Crow/Extend"
+	Crow_Update_FullMethodName              = "/proto.Crow/Update"
+	Crow_Log_FullMethodName                 = "/proto.Crow/Log"
+	Crow_RegisterAgent_FullMethodName       = "/proto.Crow/RegisterAgent"
+	Crow_UnregisterAgent_FullMethodName     = "/proto.Crow/UnregisterAgent"
+	Crow_ReportHealth_FullMethodName        = "/proto.Crow/ReportHealth"
+	Crow_ReportDockerCleanup_FullMethodName = "/proto.Crow/ReportDockerCleanup"
+	Crow_ClaimTask_FullMethodName           = "/proto.Crow/ClaimTask"
 )
 
 // CrowClient is the client API for Crow service.
@@ -65,7 +66,8 @@ type CrowClient interface {
 	Log(ctx context.Context, in *LogRequest, opts ...grpc.CallOption) (*Empty, error)
 	RegisterAgent(ctx context.Context, in *RegisterAgentRequest, opts ...grpc.CallOption) (*RegisterAgentResponse, error)
 	UnregisterAgent(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Empty, error)
-	ReportHealth(ctx context.Context, in *ReportHealthRequest, opts ...grpc.CallOption) (*Empty, error)
+	ReportHealth(ctx context.Context, in *ReportHealthRequest, opts ...grpc.CallOption) (*ReportHealthResponse, error)
+	ReportDockerCleanup(ctx context.Context, in *DockerCleanupResultRequest, opts ...grpc.CallOption) (*Empty, error)
 	ClaimTask(ctx context.Context, in *ClaimTaskRequest, opts ...grpc.CallOption) (*ClaimTaskResponse, error)
 }
 
@@ -177,10 +179,20 @@ func (c *crowClient) UnregisterAgent(ctx context.Context, in *Empty, opts ...grp
 	return out, nil
 }
 
-func (c *crowClient) ReportHealth(ctx context.Context, in *ReportHealthRequest, opts ...grpc.CallOption) (*Empty, error) {
+func (c *crowClient) ReportHealth(ctx context.Context, in *ReportHealthRequest, opts ...grpc.CallOption) (*ReportHealthResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReportHealthResponse)
+	err := c.cc.Invoke(ctx, Crow_ReportHealth_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *crowClient) ReportDockerCleanup(ctx context.Context, in *DockerCleanupResultRequest, opts ...grpc.CallOption) (*Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Empty)
-	err := c.cc.Invoke(ctx, Crow_ReportHealth_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Crow_ReportDockerCleanup_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -213,7 +225,8 @@ type CrowServer interface {
 	Log(context.Context, *LogRequest) (*Empty, error)
 	RegisterAgent(context.Context, *RegisterAgentRequest) (*RegisterAgentResponse, error)
 	UnregisterAgent(context.Context, *Empty) (*Empty, error)
-	ReportHealth(context.Context, *ReportHealthRequest) (*Empty, error)
+	ReportHealth(context.Context, *ReportHealthRequest) (*ReportHealthResponse, error)
+	ReportDockerCleanup(context.Context, *DockerCleanupResultRequest) (*Empty, error)
 	ClaimTask(context.Context, *ClaimTaskRequest) (*ClaimTaskResponse, error)
 	mustEmbedUnimplementedCrowServer()
 }
@@ -255,8 +268,11 @@ func (UnimplementedCrowServer) RegisterAgent(context.Context, *RegisterAgentRequ
 func (UnimplementedCrowServer) UnregisterAgent(context.Context, *Empty) (*Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method UnregisterAgent not implemented")
 }
-func (UnimplementedCrowServer) ReportHealth(context.Context, *ReportHealthRequest) (*Empty, error) {
+func (UnimplementedCrowServer) ReportHealth(context.Context, *ReportHealthRequest) (*ReportHealthResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ReportHealth not implemented")
+}
+func (UnimplementedCrowServer) ReportDockerCleanup(context.Context, *DockerCleanupResultRequest) (*Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method ReportDockerCleanup not implemented")
 }
 func (UnimplementedCrowServer) ClaimTask(context.Context, *ClaimTaskRequest) (*ClaimTaskResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ClaimTask not implemented")
@@ -480,6 +496,24 @@ func _Crow_ReportHealth_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Crow_ReportDockerCleanup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DockerCleanupResultRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CrowServer).ReportDockerCleanup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Crow_ReportDockerCleanup_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CrowServer).ReportDockerCleanup(ctx, req.(*DockerCleanupResultRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Crow_ClaimTask_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ClaimTaskRequest)
 	if err := dec(in); err != nil {
@@ -548,6 +582,10 @@ var Crow_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ReportHealth",
 			Handler:    _Crow_ReportHealth_Handler,
+		},
+		{
+			MethodName: "ReportDockerCleanup",
+			Handler:    _Crow_ReportDockerCleanup_Handler,
 		},
 		{
 			MethodName: "ClaimTask",

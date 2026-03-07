@@ -22,6 +22,28 @@ import (
 )
 
 type (
+	// DockerCleanupConfig holds cleanup configuration sent from server to agent.
+	DockerCleanupConfig struct {
+		Enabled               bool  `json:"enabled"`
+		StaleThresholdSeconds int64 `json:"stale_threshold_seconds"`
+		IntervalSeconds       int64 `json:"interval_seconds"`
+		RunNow                bool  `json:"run_now"`
+	}
+
+	// DockerCleanupResult holds cleanup results sent from agent to server.
+	DockerCleanupResult struct {
+		ContainersFound   int64  `json:"containers_found"`
+		ContainersRemoved int64  `json:"containers_removed"`
+		NetworksFound     int64  `json:"networks_found"`
+		NetworksRemoved   int64  `json:"networks_removed"`
+		VolumesFound      int64  `json:"volumes_found"`
+		VolumesRemoved    int64  `json:"volumes_removed"`
+		Success           bool   `json:"success"`
+		Error             string `json:"error"`
+		DurationMs        int64  `json:"duration_ms"`
+		Manual            bool   `json:"manual"`
+	}
+
 	// Filter defines filters for fetching items from the queue.
 	Filter struct {
 		Labels map[string]string `json:"labels"`
@@ -102,8 +124,11 @@ type Peer interface {
 	// UnregisterAgent unregister our agent from the server
 	UnregisterAgent(ctx context.Context) error
 
-	// ReportHealth reports health status of the agent to the server
-	ReportHealth(c context.Context) error
+	// ReportHealth reports health status of the agent to the server and receives config
+	ReportHealth(c context.Context) (*DockerCleanupConfig, error)
+
+	// ReportDockerCleanup sends Docker cleanup results to the server
+	ReportDockerCleanup(c context.Context, result DockerCleanupResult) error
 
 	// SetReregistrationHandler sets a callback to re-register the agent when not found on server
 	SetReregistrationHandler(handler func(context.Context) error)

@@ -32,8 +32,10 @@ type MaintenanceConfig struct {
 	LastRunError    string    `json:"last_run_error" xorm:"'last_run_error'"`
 	Created         int64     `json:"created"  xorm:"created"`
 	Updated         int64     `json:"updated"  xorm:"updated"`
+	StaleThreshold  int64     `json:"stale_threshold" xorm:"'stale_threshold' default(3600)"` // Stale resource threshold in seconds
 	// Runtime flags (not persisted)
 	KubernetesCleanupAvailable bool `json:"kubernetes_cleanup_available" xorm:"-"` // Function is configured, not stored in DB
+	DockerCleanupAvailable     bool `json:"docker_cleanup_available" xorm:"-"`     // True if a Docker agent is connected
 	// Environment variable override flags (not persisted)
 	EnvVarsSet bool `json:"env_vars_set" xorm:"-"` // True if action-specific env vars are set (vacuum or k8s depending on action)
 } //	@name	MaintenanceConfig

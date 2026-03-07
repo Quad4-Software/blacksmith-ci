@@ -17,10 +17,12 @@ package maintenance
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	"github.com/rs/zerolog/log"
 
+	"codefloe.com/crowci/crow/v5/pipeline/rpc"
 	"codefloe.com/crowci/crow/v5/server/model"
 	"codefloe.com/crowci/crow/v5/server/store"
 	"codefloe.com/crowci/crow/v5/server/store/datastore"
@@ -58,6 +60,16 @@ type Service interface {
 	SetKubernetesEnvVarsConfigured(k8sEnvVarsSet bool)
 	// IsKubernetesEnvVarsConfigured returns whether Kubernetes-specific environment variables are set
 	IsKubernetesEnvVarsConfigured() bool
+	// IsDockerCleanupAvailable returns whether Docker cleanup is available
+	IsDockerCleanupAvailable() bool
+	// SetDockerCleanupAvailable sets whether Docker cleanup is available
+	SetDockerCleanupAvailable(available bool)
+	// GetDockerCleanupConfigForAgent returns Docker cleanup config to send to agents
+	GetDockerCleanupConfigForAgent() *rpc.DockerCleanupConfig
+	// RecordDockerCleanupResult records a Docker cleanup result from an agent
+	RecordDockerCleanupResult(agentID int64, agentName string, result rpc.DockerCleanupResult) error
+	// SetDockerCleanupRunNow triggers an immediate Docker cleanup
+	SetDockerCleanupRunNow()
 }
 
 type service struct {
@@ -67,6 +79,8 @@ type service struct {
 	kubernetesCleanupEnabled   bool
 	vacuumEnvVarsConfigured    bool
 	k8sEnvVarsConfigured       bool
+	dockerCleanupAvailable     bool
+	dockerCleanupRunNow        atomic.Bool
 }
 
 // New creates a new maintenance service.
@@ -472,5 +486,93 @@ func (s *service) RunStaleAgentCleanup(ctx context.Context, staleDuration time.D
 		Int("deleted_count", deletedCount).
 		Dur("duration", duration).
 		Msg("Stale agent cleanup completed successfully")
+	return nil
+}
+
+// IsDockerCleanupAvailable returns whether Docker cleanup is available.
+func (s *service) IsDockerCleanupAvailable() bool {
+	return s.dockerCleanupAvailable
+}
+
+// SetDockerCleanupAvailable sets whether Docker cleanup is available.
+func (s *service) SetDockerCleanupAvailable(available bool) {
+	s.dockerCleanupAvailable = available
+}
+
+// SetDockerCleanupRunNow triggers an immediate Docker cleanup on the next agent health report.
+func (s *service) SetDockerCleanupRunNow() {
+	s.dockerCleanupRunNow.Store(true)
+}
+
+const defaultDockerCleanupIntervalSeconds int64 = 3600 // 1 hour
+
+// GetDockerCleanupConfigForAgent returns Docker cleanup config to send to agents via health response.
+func (s *service) GetDockerCleanupConfigForAgent() *rpc.DockerCleanupConfig {
+	config, err := s.store.MaintenanceConfigGetByActionType("docker_cleanup")
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get docker_cleanup config for agent")
+		return nil
+	}
+
+	if !config.Enabled {
+		return &rpc.DockerCleanupConfig{Enabled: false}
+	}
+
+	runNow := s.dockerCleanupRunNow.CompareAndSwap(true, false)
+
+	staleThreshold := config.StaleThreshold
+	if staleThreshold <= 0 {
+		staleThreshold = 3600
+	}
+
+	return &rpc.DockerCleanupConfig{
+		Enabled:               true,
+		StaleThresholdSeconds: staleThreshold,
+		IntervalSeconds:       defaultDockerCleanupIntervalSeconds,
+		RunNow:                runNow,
+	}
+}
+
+// RecordDockerCleanupResult records a Docker cleanup result from an agent.
+func (s *service) RecordDockerCleanupResult(agentID int64, agentName string, result rpc.DockerCleanupResult) error {
+	start := time.Now()
+	duration := time.Duration(result.DurationMs) * time.Millisecond
+
+	trigger := "Scheduled"
+	if result.Manual {
+		trigger = "Manual"
+	}
+
+	details := fmt.Sprintf("Operation: Docker resource cleanup, Trigger: %s, Agent: %s (ID: %d), Duration: %v, "+
+		"Containers: found=%d removed=%d, Networks: found=%d removed=%d, Volumes: found=%d removed=%d",
+		trigger, agentName, agentID, duration,
+		result.ContainersFound, result.ContainersRemoved,
+		result.NetworksFound, result.NetworksRemoved,
+		result.VolumesFound, result.VolumesRemoved)
+
+	logEntry := &model.MaintenanceLog{
+		RunTime:  start,
+		Success:  result.Success,
+		Duration: result.DurationMs,
+		Details:  details,
+		Error:    result.Error,
+		Created:  start.Unix(),
+	}
+
+	if err := s.store.MaintenanceLogCreate(logEntry); err != nil {
+		log.Error().Err(err).Msg("Failed to create maintenance log entry for Docker cleanup")
+	}
+
+	s.updateActionStats("docker_cleanup", result.Success, duration, result.Error)
+
+	log.Info().
+		Int64("agent_id", agentID).
+		Str("agent_name", agentName).
+		Bool("success", result.Success).
+		Int64("containers_removed", result.ContainersRemoved).
+		Int64("networks_removed", result.NetworksRemoved).
+		Int64("volumes_removed", result.VolumesRemoved).
+		Msg("Docker cleanup result recorded")
+
 	return nil
 }

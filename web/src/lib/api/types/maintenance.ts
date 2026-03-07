@@ -15,10 +15,11 @@
 // MaintenanceConfig represents the configuration for database maintenance operations
 export interface MaintenanceConfig {
   id: number;
-  action_type: string; // "vacuum", "kubernetes_cleanup", or "stale_agent_cleanup"
+  action_type: string; // "vacuum", "kubernetes_cleanup", "stale_agent_cleanup", or "docker_cleanup"
   enabled: boolean;
   schedule: string; // Cron format
   dry_run?: boolean;
+  stale_threshold?: number; // Stale resource threshold in seconds (for docker_cleanup)
   // Action-specific statistics
   total_runs: number;
   successful_runs: number;
@@ -30,6 +31,7 @@ export interface MaintenanceConfig {
   updated: number;
   // Runtime flags (not persisted)
   kubernetes_cleanup_available: boolean;
+  docker_cleanup_available: boolean;
   env_vars_set: boolean; // True if maintenance env vars are set
 }
 

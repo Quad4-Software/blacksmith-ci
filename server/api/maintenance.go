@@ -114,8 +114,8 @@ func GetMaintenanceConfigByAction(c *gin.Context) {
 	}
 
 	actionType := c.Param("action")
-	if actionType != "vacuum" && actionType != "kubernetes_cleanup" && actionType != "stale_agent_cleanup" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid action type. Must be 'vacuum', 'kubernetes_cleanup', or 'stale_agent_cleanup'"})
+	if actionType != "vacuum" && actionType != "kubernetes_cleanup" && actionType != "stale_agent_cleanup" && actionType != "docker_cleanup" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid action type. Must be 'vacuum', 'kubernetes_cleanup', 'stale_agent_cleanup', or 'docker_cleanup'"})
 		return
 	}
 
@@ -133,6 +133,8 @@ func GetMaintenanceConfigByAction(c *gin.Context) {
 		config.EnvVarsSet = server.Config.Services.MaintenanceService.IsKubernetesEnvVarsConfigured()
 	case "vacuum":
 		config.EnvVarsSet = server.Config.Services.MaintenanceService.IsVacuumEnvVarsConfigured()
+	case "docker_cleanup":
+		config.DockerCleanupAvailable = server.Config.Services.MaintenanceService.IsDockerCleanupAvailable()
 	}
 
 	c.JSON(http.StatusOK, config)
@@ -159,8 +161,8 @@ func UpdateMaintenanceConfigByAction(c *gin.Context) {
 	}
 
 	actionType := c.Param("action")
-	if actionType != "vacuum" && actionType != "kubernetes_cleanup" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid action type. Must be 'vacuum' or 'kubernetes_cleanup'"})
+	if actionType != "vacuum" && actionType != "kubernetes_cleanup" && actionType != "docker_cleanup" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid action type. Must be 'vacuum', 'kubernetes_cleanup', or 'docker_cleanup'"})
 		return
 	}
 
@@ -195,8 +197,11 @@ func UpdateMaintenanceConfigByAction(c *gin.Context) {
 		return
 	}
 
-	if actionType == "kubernetes_cleanup" {
+	switch actionType {
+	case "kubernetes_cleanup":
 		updatedConfig.KubernetesCleanupAvailable = server.Config.Services.MaintenanceService.IsKubernetesCleanupAvailable()
+	case "docker_cleanup":
+		updatedConfig.DockerCleanupAvailable = server.Config.Services.MaintenanceService.IsDockerCleanupAvailable()
 	}
 
 	c.JSON(http.StatusOK, updatedConfig)
@@ -350,8 +355,27 @@ func RunMaintenanceNow(c *gin.Context) {
 			}
 		}()
 
+	case "dockerCleanup":
+		if server.Config.Services.MaintenanceService == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Maintenance service not available"})
+			return
+		}
+
+		if !server.Config.Services.MaintenanceService.IsDockerCleanupAvailable() {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Docker cleanup is not available. No Docker agent is connected."})
+			return
+		}
+
+		dockerConfig, err := server.Config.Services.MaintenanceService.GetMaintenanceConfigByAction("docker_cleanup")
+		if err != nil || !dockerConfig.Enabled {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Docker cleanup is not enabled. Enable it in the maintenance settings."})
+			return
+		}
+
+		server.Config.Services.MaintenanceService.SetDockerCleanupRunNow()
+
 	default:
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid job type. Supported jobs: vacuumLogTable, kubernetesCleanup, staleAgentCleanup"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid job type. Supported jobs: vacuumLogTable, kubernetesCleanup, staleAgentCleanup, dockerCleanup"})
 		return
 	}
 

@@ -295,6 +295,94 @@
         </CardContent>
       </Card>
 
+      <!-- Docker Resource Cleanup Operation -->
+      <Card v-if="dockerCleanupAvailable">
+        <CardHeader>
+          <CardTitle>{{ $t('admin.settings.maintenance.operations.docker_cleanup') }}</CardTitle>
+          <CardDescription>{{ $t('admin.settings.maintenance.operations.docker_cleanup_desc') }}</CardDescription>
+        </CardHeader>
+        <CardContent class="space-y-4">
+          <!-- Configuration Row -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-end pb-2">
+            <!-- Schedule -->
+            <div class="flex flex-col gap-2">
+              <Label>{{ $t('admin.settings.maintenance.schedule') }}</Label>
+              <Input
+                v-model="dockerCleanupConfig.schedule"
+                :placeholder="$t('admin.settings.maintenance.schedule_placeholder')"
+              />
+            </div>
+
+            <!-- Status with Enable/Disable -->
+            <div class="flex flex-col gap-2">
+              <Label>{{ $t('admin.settings.maintenance.status') }}</Label>
+              <div class="flex items-center h-9 space-x-2">
+                <Checkbox
+                  :checked="dockerCleanupConfig.enabled"
+                  @update:checked="(v) => (dockerCleanupConfig.enabled = v === true)"
+                />
+                <Label class="cursor-pointer" @click="dockerCleanupConfig.enabled = !dockerCleanupConfig.enabled">
+                  {{ $t('admin.settings.maintenance.enabled') }}
+                </Label>
+              </div>
+            </div>
+
+            <!-- Total Runs -->
+            <div class="flex flex-col gap-2">
+              <Label>{{ $t('admin.settings.maintenance.total_runs') }}</Label>
+              <div class="text-sm text-muted-foreground flex items-center h-9">
+                {{ dockerCleanupConfig.total_runs || 0 }}
+              </div>
+            </div>
+
+            <!-- Stale Threshold -->
+            <div class="flex flex-col gap-2">
+              <Label>{{ $t('admin.settings.maintenance.stale_threshold') }}</Label>
+              <Input
+                v-model="dockerStaleThresholdDisplay"
+                placeholder="1h"
+                :title="$t('admin.settings.maintenance.stale_threshold_desc')"
+              />
+            </div>
+
+            <!-- Last Run -->
+            <div class="flex flex-col gap-2">
+              <Label>{{ $t('admin.settings.maintenance.last_run') }}</Label>
+              <div class="text-sm text-muted-foreground flex items-center h-9">
+                {{ formatLastRun(dockerCleanupConfig.last_run || '') }}
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex flex-col gap-2">
+              <Label>{{ $t('admin.settings.maintenance.actions') }}</Label>
+              <div class="flex items-center h-9 space-x-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  :title="$t('admin.settings.maintenance.save_config')"
+                  :disabled="isSavingDocker"
+                  @click="saveDockerConfig(false)"
+                >
+                  <Icon v-if="!isSavingDocker" name="content-save-outline" class="h-4 w-4" />
+                  <Icon v-else name="loading" class="h-4 w-4 animate-spin" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  :title="$t('admin.settings.maintenance.run_docker_cleanup')"
+                  :disabled="!dockerCleanupConfig.enabled || isRunningDockerCleanup"
+                  @click="runDockerCleanup"
+                >
+                  <Icon v-if="!isRunningDockerCleanup" name="play-outline" class="h-4 w-4" />
+                  <Icon v-else name="loading" class="h-4 w-4 animate-spin" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <!-- Recent Logs -->
       <Card v-if="logs.length > 0">
         <CardHeader>
@@ -423,6 +511,7 @@ const config = ref<MaintenanceConfig>({
   created: 0,
   updated: 0,
   kubernetes_cleanup_available: false,
+  docker_cleanup_available: false,
   env_vars_set: false,
 });
 
@@ -462,6 +551,52 @@ const staleAgentCleanupConfig = ref<MaintenanceOperationConfig>({
   updated: 0,
 });
 
+// Docker cleanup operation configuration
+const dockerCleanupConfig = ref<MaintenanceOperationConfig & { stale_threshold?: number }>({
+  id: 0,
+  operation: 'dockerCleanup',
+  enabled: false,
+  schedule: '0 */1 * * *',
+  total_runs: 0,
+  last_run: '',
+  created: 0,
+  updated: 0,
+  stale_threshold: 3600,
+});
+const dockerCleanupAvailable = ref(false);
+
+// Computed property to display stale threshold as human-readable duration
+const dockerStaleThresholdDisplay = computed({
+  get: () => {
+    const seconds = dockerCleanupConfig.value.stale_threshold || 3600;
+    if (seconds >= 86400) return `${seconds / 86400}d`;
+    if (seconds >= 3600) return `${seconds / 3600}h`;
+    if (seconds >= 60) return `${seconds / 60}m`;
+    return `${seconds}s`;
+  },
+  set: (val: string) => {
+    const match = val.match(/^(\d+(?:\.\d+)?)\s*([dhms])?$/i);
+    if (match) {
+      const num = Number.parseFloat(match[1]);
+      const unit = (match[2] || 'h').toLowerCase();
+      switch (unit) {
+        case 'd':
+          dockerCleanupConfig.value.stale_threshold = num * 86400;
+          break;
+        case 'h':
+          dockerCleanupConfig.value.stale_threshold = num * 3600;
+          break;
+        case 'm':
+          dockerCleanupConfig.value.stale_threshold = num * 60;
+          break;
+        case 's':
+          dockerCleanupConfig.value.stale_threshold = num;
+          break;
+      }
+    }
+  },
+});
+
 const logs = ref<MaintenanceLog[]>([]);
 const stats = ref<MaintenanceStats | null>(null);
 const isSaving = ref(false);
@@ -470,6 +605,8 @@ const isSavingK8s = ref(false);
 const isRunningK8sCleanup = ref(false);
 const isSavingStaleAgent = ref(false);
 const isRunningStaleAgentCleanup = ref(false);
+const isSavingDocker = ref(false);
+const isRunningDockerCleanup = ref(false);
 const k8sCleanupDryRun = ref(false);
 const actionLogs = ref<string[]>([]);
 const isLoadingMore = ref(false);
@@ -480,31 +617,9 @@ const vacuumEnvVarsSet = ref(false);
 const kubernetesEnvVarsSet = ref(false);
 const staleAgentEnvVarsSet = ref(false);
 
-// Load action logs from localStorage on startup
-const loadActionLogs = () => {
-  try {
-    const savedLogs = localStorage.getItem('maintenance-action-logs');
-    if (savedLogs) {
-      actionLogs.value = JSON.parse(savedLogs);
-    }
-  } catch (error) {
-    console.error('Failed to load action logs from localStorage:', error);
-  }
-};
-
-// Save action logs to localStorage
-const saveActionLogs = () => {
-  try {
-    localStorage.setItem('maintenance-action-logs', JSON.stringify(actionLogs.value));
-  } catch (error) {
-    console.error('Failed to save action logs to localStorage:', error);
-  }
-};
-
 // Clear action logs
 const clearActionLogs = () => {
   actionLogs.value = [];
-  saveActionLogs();
 };
 
 const formatLastRun = (lastRun: string) => {
@@ -535,6 +650,10 @@ const getOperationName = (log: MaintenanceLog) => {
     if (log.details.includes('Stale agent cleanup') || log.details.includes('stale_agent_cleanup')) {
       return t('admin.settings.maintenance.operations.stale_agent_cleanup');
     }
+    // Check for Docker cleanup
+    if (log.details.includes('Docker resource cleanup') || log.details.includes('docker_cleanup')) {
+      return t('admin.settings.maintenance.operations.docker_cleanup');
+    }
   }
   return t('admin.settings.maintenance.operations.vacuum_log_table');
 };
@@ -550,28 +669,33 @@ const loadData = async (reset = false) => {
     const previousLogs = [...logs.value];
 
     // Load configs for each action separately, plus logs and stats
-    const [vacuumConfigData, k8sConfigData, staleAgentConfigData, logsData, statsData] = await Promise.all([
-      apiClient.getMaintenanceConfigByAction('vacuum').catch((error) => {
-        console.error('Failed to load vacuum config:', error);
-        return null;
-      }),
-      apiClient.getMaintenanceConfigByAction('kubernetes_cleanup').catch((error) => {
-        console.error('Failed to load kubernetes cleanup config:', error);
-        return null;
-      }),
-      apiClient.getMaintenanceConfigByAction('stale_agent_cleanup').catch((error) => {
-        console.error('Failed to load stale agent cleanup config:', error);
-        return null;
-      }),
-      apiClient.getMaintenanceLogs(logsLimit.value).catch((error) => {
-        console.error('Failed to load maintenance logs:', error);
-        return [];
-      }),
-      apiClient.getMaintenanceStats().catch((error) => {
-        console.error('Failed to load maintenance stats:', error);
-        return null;
-      }),
-    ]);
+    const [vacuumConfigData, k8sConfigData, staleAgentConfigData, dockerConfigData, logsData, statsData] =
+      await Promise.all([
+        apiClient.getMaintenanceConfigByAction('vacuum').catch((error) => {
+          console.error('Failed to load vacuum config:', error);
+          return null;
+        }),
+        apiClient.getMaintenanceConfigByAction('kubernetes_cleanup').catch((error) => {
+          console.error('Failed to load kubernetes cleanup config:', error);
+          return null;
+        }),
+        apiClient.getMaintenanceConfigByAction('stale_agent_cleanup').catch((error) => {
+          console.error('Failed to load stale agent cleanup config:', error);
+          return null;
+        }),
+        apiClient.getMaintenanceConfigByAction('docker_cleanup').catch((error) => {
+          console.error('Failed to load docker cleanup config:', error);
+          return null;
+        }),
+        apiClient.getMaintenanceLogs(logsLimit.value).catch((error) => {
+          console.error('Failed to load maintenance logs:', error);
+          return [];
+        }),
+        apiClient.getMaintenanceStats().catch((error) => {
+          console.error('Failed to load maintenance stats:', error);
+          return null;
+        }),
+      ]);
 
     if (vacuumConfigData) {
       vacuumLogTableConfig.value.enabled = vacuumConfigData.enabled;
@@ -654,6 +778,19 @@ const loadData = async (reset = false) => {
       };
     }
 
+    if (dockerConfigData) {
+      dockerCleanupConfig.value.enabled = dockerConfigData.enabled;
+      dockerCleanupConfig.value.schedule = dockerConfigData.schedule;
+      dockerCleanupConfig.value.operation = 'dockerCleanup';
+      dockerCleanupConfig.value.id = dockerConfigData.id;
+      dockerCleanupConfig.value.created = dockerConfigData.created;
+      dockerCleanupConfig.value.updated = dockerConfigData.updated;
+      dockerCleanupConfig.value.total_runs = dockerConfigData.total_runs || 0;
+      dockerCleanupConfig.value.last_run = dockerConfigData.last_run || '';
+      dockerCleanupConfig.value.stale_threshold = dockerConfigData.stale_threshold || 3600;
+      dockerCleanupAvailable.value = dockerConfigData.docker_cleanup_available || false;
+    }
+
     logs.value = logsData || [];
     hasMoreLogs.value = (logsData || []).length === logsLimit.value;
     stats.value = statsData;
@@ -692,8 +829,11 @@ const loadData = async (reset = false) => {
           actionLogs.value.unshift(`[${year}/${month}/${day} ${time}] [${jobTitle}] ${'─'.repeat(30)}`);
         }
 
+        // Determine if this was a manual or scheduled run
+        const triggerType = newLog.details?.includes('Trigger: Manual') ? 'Manual' : 'Scheduled';
+
         actionLogs.value.unshift(
-          `[${year}/${month}/${day} ${time}] [${jobTitle}] Scheduled maintenance execution detected`,
+          `[${year}/${month}/${day} ${time}] [${jobTitle}] ${triggerType} maintenance execution detected`,
         );
 
         if (newLog.success) {
@@ -781,6 +921,30 @@ const loadData = async (reset = false) => {
               }
             }
 
+            // Parse Docker cleanup details
+            if (newLog.details.includes('Docker resource cleanup')) {
+              const agentMatch = newLog.details.match(/Agent: ([^ ]+)/);
+              const agentInfo = agentMatch ? ` (agent: ${agentMatch[1]})` : '';
+              const containersMatch = newLog.details.match(/Containers: found=(\d+) removed=(\d+)/);
+              const networksMatch = newLog.details.match(/Networks: found=(\d+) removed=(\d+)/);
+              const volumesMatch = newLog.details.match(/Volumes: found=(\d+) removed=(\d+)/);
+
+              const parts = [];
+              if (containersMatch) parts.push(`Containers: ${containersMatch[2]}/${containersMatch[1]} removed`);
+              if (networksMatch) parts.push(`Networks: ${networksMatch[2]}/${networksMatch[1]} removed`);
+              if (volumesMatch) parts.push(`Volumes: ${volumesMatch[2]}/${volumesMatch[1]} removed`);
+
+              if (parts.length > 0) {
+                actionLogs.value.unshift(
+                  `[${year}/${month}/${day} ${time}] [${jobTitle}] ${parts.join(', ')}${agentInfo}`,
+                );
+              } else {
+                actionLogs.value.unshift(
+                  `[${year}/${month}/${day} ${time}] [${jobTitle}] No stale resources found${agentInfo}`,
+                );
+              }
+            }
+
             // Parse Kubernetes cleanup details
             if (newLog.details.includes('Kubernetes resource cleanup')) {
               const resourcesFoundMatch = newLog.details.match(/Resources found: (\d+)/);
@@ -837,16 +1001,13 @@ const loadData = async (reset = false) => {
           }
         }
 
-        // Keep only the last 50 logs to prevent localStorage from growing too large
+        // Keep only the last 50 action log lines
         if (actionLogs.value.length > 50) {
           actionLogs.value = actionLogs.value.slice(0, 50);
         }
       }
 
-      // Save updated action logs if we added any
-      if (logsToProcess.length > 0) {
-        saveActionLogs();
-      }
+      // (action logs are rebuilt from server data on each load)
     }
   } catch (error) {
     console.error('Failed to load maintenance data:', error);
@@ -899,13 +1060,14 @@ const addActionLog = (message: string, jobType: string = 'vacuum') => {
     jobTitle = t('admin.settings.maintenance.operations.kubernetes_cleanup');
   } else if (jobType === 'stale_agent') {
     jobTitle = t('admin.settings.maintenance.operations.stale_agent_cleanup');
+  } else if (jobType === 'docker') {
+    jobTitle = t('admin.settings.maintenance.operations.docker_cleanup');
   }
   actionLogs.value.unshift(`[${year}/${month}/${day} ${time}] [${jobTitle}] ${message}`);
-  // Keep only the last 50 logs to prevent localStorage from growing too large
+  // Keep only the last 50 action log lines
   if (actionLogs.value.length > 50) {
     actionLogs.value = actionLogs.value.slice(0, 50);
   }
-  saveActionLogs();
 };
 
 const saveStaleAgentConfig = async (silent = false) => {
@@ -968,6 +1130,85 @@ const saveStaleAgentConfig = async (silent = false) => {
     }
   } finally {
     isSavingStaleAgent.value = false;
+  }
+};
+
+const saveDockerConfig = async (silent = false) => {
+  isSavingDocker.value = true;
+  if (!silent) {
+    addActionLog('Saving Docker cleanup configuration...', 'docker');
+  }
+
+  try {
+    const updatedConfig = await apiClient.updateMaintenanceConfigByAction('docker_cleanup', {
+      enabled: dockerCleanupConfig.value.enabled,
+      schedule: dockerCleanupConfig.value.schedule,
+      stale_threshold: dockerCleanupConfig.value.stale_threshold || 3600,
+    });
+
+    dockerCleanupConfig.value.enabled = updatedConfig.enabled;
+    dockerCleanupConfig.value.schedule = updatedConfig.schedule;
+    dockerCleanupConfig.value.id = updatedConfig.id;
+    dockerCleanupConfig.value.created = updatedConfig.created;
+    dockerCleanupConfig.value.updated = updatedConfig.updated;
+    dockerCleanupConfig.value.stale_threshold = updatedConfig.stale_threshold || 3600;
+
+    if (!silent) {
+      addActionLog('Configuration saved', 'docker');
+      notifications.notify({
+        title: t('admin.settings.maintenance.notify_text_config_saved'),
+        type: 'success',
+      });
+    }
+  } catch (error) {
+    console.error('Failed to save Docker cleanup configuration:', error);
+    addActionLog(`Error saving configuration: ${(error as Error).message}`, 'docker');
+    if (!silent) {
+      notifications.notify({
+        title: t('admin.settings.maintenance.notify_text_config_error'),
+        type: 'error',
+      });
+    }
+  } finally {
+    isSavingDocker.value = false;
+  }
+};
+
+const runDockerCleanup = async () => {
+  isRunningDockerCleanup.value = true;
+  addActionLog('Triggering Docker resource cleanup...', 'docker');
+
+  try {
+    await apiClient.runMaintenanceNow('dockerCleanup');
+    addActionLog('Docker cleanup triggered on agent, waiting for result...', 'docker');
+    notifications.notify({
+      title: t('admin.settings.maintenance.notify_text_docker_cleanup_started'),
+      type: 'success',
+    });
+
+    // Poll for results since cleanup can take 10+ seconds
+    const previousLogCount = logs.value.length;
+    const pollInterval = 5000;
+    const maxAttempts = 12; // up to 60s
+    let attempts = 0;
+    const poll = async () => {
+      attempts++;
+      await loadData();
+      if (logs.value.length > previousLogCount || attempts >= maxAttempts) {
+        isRunningDockerCleanup.value = false;
+      } else {
+        setTimeout(() => void poll(), pollInterval);
+      }
+    };
+    setTimeout(() => void poll(), pollInterval);
+  } catch (error) {
+    console.error('Failed to trigger Docker cleanup:', error);
+    addActionLog(`Error: ${(error as Error).message}`, 'docker');
+    notifications.notify({
+      title: t('admin.settings.maintenance.notify_text_docker_cleanup_error'),
+      type: 'error',
+    });
+    isRunningDockerCleanup.value = false;
   }
 };
 
@@ -1470,7 +1711,6 @@ watch(
 );
 
 onMounted(() => {
-  loadActionLogs();
   loadData(true);
 
   // Poll for new scheduled executions every 30 seconds

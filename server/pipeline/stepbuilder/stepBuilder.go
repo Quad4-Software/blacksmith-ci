@@ -594,7 +594,7 @@ func (b *StepBuilder) toInternalRepresentation(parsed *yaml_types.Workflow, envi
 		compiler.WithSecret(secrets...),
 		compiler.WithPrefix(
 			fmt.Sprintf(
-				"wp_%s_%d",
+				"crow_%s_%d",
 				strings.ToLower(ulid.Make().String()),
 				workflowID,
 			),

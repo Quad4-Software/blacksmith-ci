@@ -855,7 +855,9 @@
           "kubernetes_cleanup": "Kubernetes Resource Cleanup",
           "kubernetes_cleanup_desc": "Remove services, persistent volume claims, step and registry secrets left behind by non-properly terminated pipelines",
           "stale_agent_cleanup": "Stale Agent Cleanup",
-          "stale_agent_cleanup_desc": "Remove agents that haven't connected for the configured duration (default: 24 hours)"
+          "stale_agent_cleanup_desc": "Remove agents that haven't connected for the configured duration (default: 24 hours)",
+          "docker_cleanup": "Docker Resource Cleanup",
+          "docker_cleanup_desc": "Remove stale containers, networks, and volumes left behind by non-properly terminated pipelines on Docker agents"
         },
         "notify_text_config_saved": "Maintenance configuration saved",
         "notify_text_config_error": "Failed to save maintenance configuration",
@@ -868,6 +870,11 @@
         "notify_text_stale_agent_cleanup_started": "Stale agent cleanup started",
         "notify_text_stale_agent_cleanup_error": "Failed to start stale agent cleanup",
         "run_stale_agent_cleanup": "Run stale agent cleanup",
+        "notify_text_docker_cleanup_started": "Docker cleanup triggered",
+        "notify_text_docker_cleanup_error": "Failed to trigger Docker cleanup",
+        "run_docker_cleanup": "Run Docker cleanup",
+        "stale_threshold": "Stale threshold",
+        "stale_threshold_desc": "Resources older than this threshold will be removed",
         "stale_duration_24h": "24h",
         "options": "Options",
         "none": "None",

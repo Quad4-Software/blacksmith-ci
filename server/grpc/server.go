@@ -194,9 +194,37 @@ func (s *CrowServer) UnregisterAgent(ctx context.Context, _ *proto.Empty) (*prot
 	return new(proto.Empty), err
 }
 
-func (s *CrowServer) ReportHealth(c context.Context, req *proto.ReportHealthRequest) (*proto.Empty, error) {
+func (s *CrowServer) ReportHealth(c context.Context, req *proto.ReportHealthRequest) (*proto.ReportHealthResponse, error) {
+	res := new(proto.ReportHealthResponse)
+	cleanupConfig, err := s.peer.ReportHealth(c, req.GetStatus(), req.GetWorkflowPollingHealthy())
+	if err != nil {
+		return res, err
+	}
+	if cleanupConfig != nil {
+		res.DockerCleanupConfig = &proto.DockerCleanupConfig{
+			Enabled:               cleanupConfig.Enabled,
+			StaleThresholdSeconds: cleanupConfig.StaleThresholdSeconds,
+			IntervalSeconds:       cleanupConfig.IntervalSeconds,
+			RunNow:                cleanupConfig.RunNow,
+		}
+	}
+	return res, nil
+}
+
+func (s *CrowServer) ReportDockerCleanup(c context.Context, req *proto.DockerCleanupResultRequest) (*proto.Empty, error) {
 	res := new(proto.Empty)
-	err := s.peer.ReportHealth(c, req.GetStatus(), req.GetWorkflowPollingHealthy())
+	err := s.peer.ReportDockerCleanup(c, rpc.DockerCleanupResult{
+		ContainersFound:   req.GetContainersFound(),
+		ContainersRemoved: req.GetContainersRemoved(),
+		NetworksFound:     req.GetNetworksFound(),
+		NetworksRemoved:   req.GetNetworksRemoved(),
+		VolumesFound:      req.GetVolumesFound(),
+		VolumesRemoved:    req.GetVolumesRemoved(),
+		Success:           req.GetSuccess(),
+		Error:             req.GetError(),
+		DurationMs:        req.GetDurationMs(),
+		Manual:            req.GetManual(),
+	})
 	return res, err
 }
 

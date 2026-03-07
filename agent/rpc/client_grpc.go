@@ -815,7 +815,7 @@ func (c *client) UnregisterAgent(ctx context.Context) error {
 	return err
 }
 
-func (c *client) ReportHealth(ctx context.Context) (err error) {
+func (c *client) ReportHealth(ctx context.Context) (cleanupConfig *rpc.DockerCleanupConfig, err error) {
 	retry := c.newBackOff()
 	req := new(proto.ReportHealthRequest)
 	req.Status = "I am alive!"
@@ -829,7 +829,8 @@ func (c *client) ReportHealth(ctx context.Context) (err error) {
 	var lastBackoff time.Duration
 
 	for {
-		_, err = c.client.ReportHealth(ctx, req)
+		var res *proto.ReportHealthResponse
+		res, err = c.client.ReportHealth(ctx, req)
 		if err == nil {
 			// Mark health reporting as healthy
 			healthReportingHealthy.Store(true)
@@ -842,7 +843,18 @@ func (c *client) ReportHealth(ctx context.Context) (err error) {
 				log.Info().Msg("agent fully operational (health reporting and workflow polling connected)")
 			}
 			operationalLogMutex.Unlock()
-			return nil
+
+			// Extract Docker cleanup config from response
+			if res.GetDockerCleanupConfig() != nil {
+				cfg := res.GetDockerCleanupConfig()
+				cleanupConfig = &rpc.DockerCleanupConfig{
+					Enabled:               cfg.GetEnabled(),
+					StaleThresholdSeconds: cfg.GetStaleThresholdSeconds(),
+					IntervalSeconds:       cfg.GetIntervalSeconds(),
+					RunNow:                cfg.GetRunNow(),
+				}
+			}
+			return cleanupConfig, nil
 		}
 
 		// NOTE: Unlike workflow polling, "sql: no rows" is a REAL error for health reporting.
@@ -876,7 +888,7 @@ func (c *client) ReportHealth(ctx context.Context) (err error) {
 				Str("error", cleanGrpcError(err)).
 				Int("consecutive_errors", attemptCount).
 				Msg("maximum consecutive health reporting errors reached, agent will exit for restart")
-			return ErrMaxConsecutiveErrors
+			return nil, ErrMaxConsecutiveErrors
 		}
 
 		switch status.Code(err) {
@@ -884,10 +896,10 @@ func (c *client) ReportHealth(ctx context.Context) (err error) {
 			if ctx.Err() != nil {
 				// expected as context was canceled
 				log.Debug().Err(err).Msgf("grpc error: report_health(): context canceled")
-				return nil
+				return nil, nil
 			}
 			log.Error().Err(err).Msgf("grpc error: report_health(): code: %v", status.Code(err))
-			return err
+			return nil, err
 		case
 			codes.Aborted,
 			codes.DataLoss,
@@ -928,15 +940,33 @@ func (c *client) ReportHealth(ctx context.Context) (err error) {
 			log.Error().Err(err).
 				Int("attempts", attemptCount).
 				Msgf("grpc error: report_health(): code: %v (fatal, giving up)", status.Code(err))
-			return err
+			return nil, err
 		}
 
 		select {
 		case <-time.After(lastBackoff):
 		case <-ctx.Done():
-			return ctx.Err()
+			return nil, ctx.Err()
 		}
 	}
+}
+
+// ReportDockerCleanup sends Docker cleanup results to the server.
+func (c *client) ReportDockerCleanup(ctx context.Context, result rpc.DockerCleanupResult) error {
+	req := &proto.DockerCleanupResultRequest{
+		ContainersFound:   result.ContainersFound,
+		ContainersRemoved: result.ContainersRemoved,
+		NetworksFound:     result.NetworksFound,
+		NetworksRemoved:   result.NetworksRemoved,
+		VolumesFound:      result.VolumesFound,
+		VolumesRemoved:    result.VolumesRemoved,
+		Success:           result.Success,
+		Error:             result.Error,
+		DurationMs:        result.DurationMs,
+		Manual:            result.Manual,
+	}
+	_, err := c.client.ReportDockerCleanup(ctx, req)
+	return err
 }
 
 // ClaimTask attempts to claim an orphaned workflow task for adoption after agent restart.

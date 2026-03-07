@@ -18,6 +18,7 @@ import (
 	"context"
 	"time"
 
+	"codefloe.com/crowci/crow/v5/pipeline/rpc"
 	"codefloe.com/crowci/crow/v5/server/model"
 	"codefloe.com/crowci/crow/v5/server/store"
 )
@@ -54,6 +55,16 @@ type MaintenanceService interface {
 	SetKubernetesEnvVarsConfigured(k8sEnvVarsSet bool)
 	// IsKubernetesEnvVarsConfigured returns whether Kubernetes-specific environment variables are set
 	IsKubernetesEnvVarsConfigured() bool
+	// IsDockerCleanupAvailable returns whether Docker cleanup is available (a Docker agent is connected)
+	IsDockerCleanupAvailable() bool
+	// SetDockerCleanupAvailable sets whether Docker cleanup is available
+	SetDockerCleanupAvailable(available bool)
+	// GetDockerCleanupConfigForAgent returns Docker cleanup config to send to agents via health response
+	GetDockerCleanupConfigForAgent() *rpc.DockerCleanupConfig
+	// RecordDockerCleanupResult records a Docker cleanup result from an agent
+	RecordDockerCleanupResult(agentID int64, agentName string, result rpc.DockerCleanupResult) error
+	// SetDockerCleanupRunNow triggers an immediate Docker cleanup on the next agent health report
+	SetDockerCleanupRunNow()
 }
 
 // MaintenanceScheduler defines the interface for maintenance scheduling.

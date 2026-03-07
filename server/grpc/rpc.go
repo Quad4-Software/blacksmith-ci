@@ -544,6 +544,11 @@ func (s *RPC) RegisterAgent(ctx context.Context, info rpc.AgentInfo) (int64, str
 		Interface("custom_labels", agent.CustomLabels).
 		Msg("agent registered successfully")
 
+	// Mark Docker cleanup as available when a Docker agent registers
+	if info.Backend == "docker" && server.Config.Services.MaintenanceService != nil {
+		server.Config.Services.MaintenanceService.SetDockerCleanupAvailable(true)
+	}
+
 	return agent.ID, agent.Name, nil
 }
 
@@ -564,20 +569,47 @@ func (s *RPC) UnregisterAgent(ctx context.Context) error {
 	return err
 }
 
-func (s *RPC) ReportHealth(ctx context.Context, status string, workflowPollingHealthy bool) error {
+func (s *RPC) ReportHealth(ctx context.Context, status string, workflowPollingHealthy bool) (*rpc.DockerCleanupConfig, error) {
 	agent, err := s.getAgentFromContext(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if status != "I am alive!" {
-		return errors.New("are you alive?")
+		return nil, errors.New("are you alive?")
 	}
 
 	agent.LastContact = time.Now().Unix()
 	agent.WorkflowPollingHealthy = workflowPollingHealthy
 
-	return s.store.AgentUpdate(agent)
+	if err := s.store.AgentUpdate(agent); err != nil {
+		return nil, err
+	}
+
+	// Return Docker cleanup config for Docker agents
+	if agent.Backend == "docker" && server.Config.Services.MaintenanceService != nil {
+		// Ensure availability flag is set (handles agents that registered before this feature)
+		if !server.Config.Services.MaintenanceService.IsDockerCleanupAvailable() {
+			server.Config.Services.MaintenanceService.SetDockerCleanupAvailable(true)
+		}
+		cleanupConfig := server.Config.Services.MaintenanceService.GetDockerCleanupConfigForAgent()
+		return cleanupConfig, nil
+	}
+
+	return nil, nil
+}
+
+func (s *RPC) ReportDockerCleanup(ctx context.Context, result rpc.DockerCleanupResult) error {
+	agent, err := s.getAgentFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	if server.Config.Services.MaintenanceService != nil {
+		return server.Config.Services.MaintenanceService.RecordDockerCleanupResult(agent.ID, agent.Name, result)
+	}
+
+	return nil
 }
 
 // ClaimTask allows a restarted agent to claim an orphaned workflow task.

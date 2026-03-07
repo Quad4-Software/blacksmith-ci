@@ -8,6 +8,7 @@ import (
 	"context"
 	"time"
 
+	"codefloe.com/crowci/crow/v5/pipeline/rpc"
 	"codefloe.com/crowci/crow/v5/server/model"
 	mock "github.com/stretchr/testify/mock"
 )
@@ -37,6 +38,52 @@ type MockMaintenanceService_Expecter struct {
 
 func (_m *MockMaintenanceService) EXPECT() *MockMaintenanceService_Expecter {
 	return &MockMaintenanceService_Expecter{mock: &_m.Mock}
+}
+
+// GetDockerCleanupConfigForAgent provides a mock function for the type MockMaintenanceService
+func (_mock *MockMaintenanceService) GetDockerCleanupConfigForAgent() *rpc.DockerCleanupConfig {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetDockerCleanupConfigForAgent")
+	}
+
+	var r0 *rpc.DockerCleanupConfig
+	if returnFunc, ok := ret.Get(0).(func() *rpc.DockerCleanupConfig); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*rpc.DockerCleanupConfig)
+		}
+	}
+	return r0
+}
+
+// MockMaintenanceService_GetDockerCleanupConfigForAgent_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetDockerCleanupConfigForAgent'
+type MockMaintenanceService_GetDockerCleanupConfigForAgent_Call struct {
+	*mock.Call
+}
+
+// GetDockerCleanupConfigForAgent is a helper method to define mock.On call
+func (_e *MockMaintenanceService_Expecter) GetDockerCleanupConfigForAgent() *MockMaintenanceService_GetDockerCleanupConfigForAgent_Call {
+	return &MockMaintenanceService_GetDockerCleanupConfigForAgent_Call{Call: _e.mock.On("GetDockerCleanupConfigForAgent")}
+}
+
+func (_c *MockMaintenanceService_GetDockerCleanupConfigForAgent_Call) Run(run func()) *MockMaintenanceService_GetDockerCleanupConfigForAgent_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockMaintenanceService_GetDockerCleanupConfigForAgent_Call) Return(dockerCleanupConfig *rpc.DockerCleanupConfig) *MockMaintenanceService_GetDockerCleanupConfigForAgent_Call {
+	_c.Call.Return(dockerCleanupConfig)
+	return _c
+}
+
+func (_c *MockMaintenanceService_GetDockerCleanupConfigForAgent_Call) RunAndReturn(run func() *rpc.DockerCleanupConfig) *MockMaintenanceService_GetDockerCleanupConfigForAgent_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // GetMaintenanceConfig provides a mock function for the type MockMaintenanceService
@@ -202,6 +249,50 @@ func (_c *MockMaintenanceService_GetMaintenanceStats_Call) RunAndReturn(run func
 	return _c
 }
 
+// IsDockerCleanupAvailable provides a mock function for the type MockMaintenanceService
+func (_mock *MockMaintenanceService) IsDockerCleanupAvailable() bool {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for IsDockerCleanupAvailable")
+	}
+
+	var r0 bool
+	if returnFunc, ok := ret.Get(0).(func() bool); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	return r0
+}
+
+// MockMaintenanceService_IsDockerCleanupAvailable_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IsDockerCleanupAvailable'
+type MockMaintenanceService_IsDockerCleanupAvailable_Call struct {
+	*mock.Call
+}
+
+// IsDockerCleanupAvailable is a helper method to define mock.On call
+func (_e *MockMaintenanceService_Expecter) IsDockerCleanupAvailable() *MockMaintenanceService_IsDockerCleanupAvailable_Call {
+	return &MockMaintenanceService_IsDockerCleanupAvailable_Call{Call: _e.mock.On("IsDockerCleanupAvailable")}
+}
+
+func (_c *MockMaintenanceService_IsDockerCleanupAvailable_Call) Run(run func()) *MockMaintenanceService_IsDockerCleanupAvailable_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockMaintenanceService_IsDockerCleanupAvailable_Call) Return(b bool) *MockMaintenanceService_IsDockerCleanupAvailable_Call {
+	_c.Call.Return(b)
+	return _c
+}
+
+func (_c *MockMaintenanceService_IsDockerCleanupAvailable_Call) RunAndReturn(run func() bool) *MockMaintenanceService_IsDockerCleanupAvailable_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // IsKubernetesCleanupAvailable provides a mock function for the type MockMaintenanceService
 func (_mock *MockMaintenanceService) IsKubernetesCleanupAvailable() bool {
 	ret := _mock.Called()
@@ -330,6 +421,69 @@ func (_c *MockMaintenanceService_IsVacuumEnvVarsConfigured_Call) Return(b bool) 
 }
 
 func (_c *MockMaintenanceService_IsVacuumEnvVarsConfigured_Call) RunAndReturn(run func() bool) *MockMaintenanceService_IsVacuumEnvVarsConfigured_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// RecordDockerCleanupResult provides a mock function for the type MockMaintenanceService
+func (_mock *MockMaintenanceService) RecordDockerCleanupResult(agentID int64, agentName string, result rpc.DockerCleanupResult) error {
+	ret := _mock.Called(agentID, agentName, result)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RecordDockerCleanupResult")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(int64, string, rpc.DockerCleanupResult) error); ok {
+		r0 = returnFunc(agentID, agentName, result)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockMaintenanceService_RecordDockerCleanupResult_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RecordDockerCleanupResult'
+type MockMaintenanceService_RecordDockerCleanupResult_Call struct {
+	*mock.Call
+}
+
+// RecordDockerCleanupResult is a helper method to define mock.On call
+//   - agentID int64
+//   - agentName string
+//   - result rpc.DockerCleanupResult
+func (_e *MockMaintenanceService_Expecter) RecordDockerCleanupResult(agentID interface{}, agentName interface{}, result interface{}) *MockMaintenanceService_RecordDockerCleanupResult_Call {
+	return &MockMaintenanceService_RecordDockerCleanupResult_Call{Call: _e.mock.On("RecordDockerCleanupResult", agentID, agentName, result)}
+}
+
+func (_c *MockMaintenanceService_RecordDockerCleanupResult_Call) Run(run func(agentID int64, agentName string, result rpc.DockerCleanupResult)) *MockMaintenanceService_RecordDockerCleanupResult_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 rpc.DockerCleanupResult
+		if args[2] != nil {
+			arg2 = args[2].(rpc.DockerCleanupResult)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockMaintenanceService_RecordDockerCleanupResult_Call) Return(err error) *MockMaintenanceService_RecordDockerCleanupResult_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockMaintenanceService_RecordDockerCleanupResult_Call) RunAndReturn(run func(agentID int64, agentName string, result rpc.DockerCleanupResult) error) *MockMaintenanceService_RecordDockerCleanupResult_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -496,6 +650,79 @@ func (_c *MockMaintenanceService_RunStaleAgentCleanup_Call) Return(err error) *M
 
 func (_c *MockMaintenanceService_RunStaleAgentCleanup_Call) RunAndReturn(run func(ctx context.Context, staleDuration time.Duration) error) *MockMaintenanceService_RunStaleAgentCleanup_Call {
 	_c.Call.Return(run)
+	return _c
+}
+
+// SetDockerCleanupAvailable provides a mock function for the type MockMaintenanceService
+func (_mock *MockMaintenanceService) SetDockerCleanupAvailable(available bool) {
+	_mock.Called(available)
+	return
+}
+
+// MockMaintenanceService_SetDockerCleanupAvailable_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetDockerCleanupAvailable'
+type MockMaintenanceService_SetDockerCleanupAvailable_Call struct {
+	*mock.Call
+}
+
+// SetDockerCleanupAvailable is a helper method to define mock.On call
+//   - available bool
+func (_e *MockMaintenanceService_Expecter) SetDockerCleanupAvailable(available interface{}) *MockMaintenanceService_SetDockerCleanupAvailable_Call {
+	return &MockMaintenanceService_SetDockerCleanupAvailable_Call{Call: _e.mock.On("SetDockerCleanupAvailable", available)}
+}
+
+func (_c *MockMaintenanceService_SetDockerCleanupAvailable_Call) Run(run func(available bool)) *MockMaintenanceService_SetDockerCleanupAvailable_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 bool
+		if args[0] != nil {
+			arg0 = args[0].(bool)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockMaintenanceService_SetDockerCleanupAvailable_Call) Return() *MockMaintenanceService_SetDockerCleanupAvailable_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockMaintenanceService_SetDockerCleanupAvailable_Call) RunAndReturn(run func(available bool)) *MockMaintenanceService_SetDockerCleanupAvailable_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetDockerCleanupRunNow provides a mock function for the type MockMaintenanceService
+func (_mock *MockMaintenanceService) SetDockerCleanupRunNow() {
+	_mock.Called()
+	return
+}
+
+// MockMaintenanceService_SetDockerCleanupRunNow_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetDockerCleanupRunNow'
+type MockMaintenanceService_SetDockerCleanupRunNow_Call struct {
+	*mock.Call
+}
+
+// SetDockerCleanupRunNow is a helper method to define mock.On call
+func (_e *MockMaintenanceService_Expecter) SetDockerCleanupRunNow() *MockMaintenanceService_SetDockerCleanupRunNow_Call {
+	return &MockMaintenanceService_SetDockerCleanupRunNow_Call{Call: _e.mock.On("SetDockerCleanupRunNow")}
+}
+
+func (_c *MockMaintenanceService_SetDockerCleanupRunNow_Call) Run(run func()) *MockMaintenanceService_SetDockerCleanupRunNow_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockMaintenanceService_SetDockerCleanupRunNow_Call) Return() *MockMaintenanceService_SetDockerCleanupRunNow_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockMaintenanceService_SetDockerCleanupRunNow_Call) RunAndReturn(run func()) *MockMaintenanceService_SetDockerCleanupRunNow_Call {
+	_c.Run(run)
 	return _c
 }
 

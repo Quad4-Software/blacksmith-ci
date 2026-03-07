@@ -141,6 +141,10 @@ func (s storage) MaintenanceConfigGetByActionType(actionType string) (*model.Mai
 		case "stale_agent_cleanup":
 			defaultConfig.Enabled = true
 			defaultConfig.Schedule = "0 5 * * *" // Daily at 5 AM
+		case "docker_cleanup":
+			defaultConfig.Enabled = false
+			defaultConfig.Schedule = "0 */1 * * *" // Hourly
+			defaultConfig.StaleThreshold = 3600    // 1 hour
 		}
 
 		// Use InsertOne with unique constraint handling to avoid race conditions
@@ -240,10 +244,11 @@ func (s storage) MaintenanceConfigUpdateByActionType(actionType string, updates 
 		existing.Enabled = updates.Enabled
 		existing.Schedule = updates.Schedule
 		existing.DryRun = updates.DryRun
+		existing.StaleThreshold = updates.StaleThreshold
 		existing.Updated = time.Now().Unix()
 
 		// Only update statistics if they were provided (non-zero values indicate stats update)
-		updateCols := []string{"enabled", "schedule", "dry_run", "updated"}
+		updateCols := []string{"enabled", "schedule", "dry_run", "stale_threshold", "updated"}
 		if updates.TotalRuns > 0 || !updates.LastRun.IsZero() {
 			// This is a statistics update
 			existing.TotalRuns = updates.TotalRuns
