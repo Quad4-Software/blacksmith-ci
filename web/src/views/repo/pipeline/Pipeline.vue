@@ -114,25 +114,6 @@
                 </div>
               </Panel>
             </div>
-            <div v-else-if="pipeline!.is_always_approved && repoPermissions!.push" class="w-full px-4 pt-2">
-              <div
-                class="flex items-center justify-between rounded-md border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/20 px-4 py-2 text-sm"
-              >
-                <span class="text-green-700 dark:text-green-400">{{
-                  $t('repo.pipeline.protected.always_approved')
-                }}</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  class="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
-                  :disabled="isRevokingAlways"
-                  @click="revokeAlwaysApproval"
-                >
-                  <Icon v-if="isRevokingAlways" name="spinner" class="size-4 animate-spin" />
-                  <template v-else>{{ $t('repo.pipeline.protected.revoke_always') }}</template>
-                </Button>
-              </div>
-            </div>
             <div v-else-if="pipeline!.status === 'declined'" class="w-full mb-auto p-4">
               <Panel>
                 <div class="flex flex-col items-center gap-4">
@@ -141,17 +122,35 @@
                 </div>
               </Panel>
             </div>
-            <PipelineLog
-              v-else-if="selectedStepId !== null"
-              v-model:step-id="selectedStepId"
-              :pipeline="pipeline!"
-              :previous-step-id="previousStepId"
-              :next-step-id="nextStepId"
-              :auto-follow-enabled="autoFollowEnabled"
-              class="w-full h-full"
-              @update:auto-follow-enabled="handleAutoFollowUpdate"
-              @rerun-workflow="rerunWorkflow"
-            />
+            <template v-else>
+              <div
+                v-if="pipeline!.is_always_approved && repoPermissions!.push"
+                class="flex items-center justify-between bg-muted/50 px-4 py-1.5 text-xs text-muted-foreground"
+              >
+                <span>{{ $t('repo.pipeline.protected.always_approved') }}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  class="h-6 text-xs text-muted-foreground hover:text-destructive"
+                  :disabled="isRevokingAlways"
+                  @click="revokeAlwaysApproval"
+                >
+                  <Icon v-if="isRevokingAlways" name="spinner" class="size-3 animate-spin" />
+                  <template v-else>{{ $t('repo.pipeline.protected.revoke_always') }}</template>
+                </Button>
+              </div>
+              <PipelineLog
+                v-if="selectedStepId !== null"
+                v-model:step-id="selectedStepId"
+                :pipeline="pipeline!"
+                :previous-step-id="previousStepId"
+                :next-step-id="nextStepId"
+                :auto-follow-enabled="autoFollowEnabled"
+                class="w-full h-full"
+                @update:auto-follow-enabled="handleAutoFollowUpdate"
+                @rerun-workflow="rerunWorkflow"
+              />
+            </template>
           </div>
         </ResizablePanel>
       </ResizablePanelGroup>
@@ -201,23 +200,6 @@
           </div>
         </Panel>
       </div>
-      <div v-else-if="pipeline!.is_always_approved && repoPermissions!.push" class="px-4 pt-2">
-        <div
-          class="flex items-center justify-between rounded-md border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/20 px-4 py-2 text-sm"
-        >
-          <span class="text-green-700 dark:text-green-400">{{ $t('repo.pipeline.protected.always_approved') }}</span>
-          <Button
-            variant="ghost"
-            size="sm"
-            class="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
-            :disabled="isRevokingAlways"
-            @click="revokeAlwaysApproval"
-          >
-            <Icon v-if="isRevokingAlways" name="spinner" class="size-4 animate-spin" />
-            <template v-else>{{ $t('repo.pipeline.protected.revoke_always') }}</template>
-          </Button>
-        </div>
-      </div>
       <div v-else-if="pipeline!.status === 'declined'" class="p-4 flex-1">
         <Panel>
           <div class="flex flex-col items-center gap-4">
@@ -226,99 +208,117 @@
           </div>
         </Panel>
       </div>
-      <!-- Mobile Log Viewer with step info panel and bottom sheet navigation -->
-      <PipelineLogMobile
-        v-else-if="selectedStepId !== null"
-        :pipeline="pipeline!"
-        :step-id="selectedStepId"
-        :previous-step-id="previousStepId"
-        :next-step-id="nextStepId"
-        :auto-follow-enabled="autoFollowEnabled"
-        class="flex-1"
-        @update:step-id="selectedStepId = $event"
-        @update:auto-follow-enabled="handleAutoFollowUpdate"
-        @rerun-workflow="rerunWorkflow"
-      />
-      <!-- Step Selection (when no step is selected) -->
-      <div v-else class="h-full overflow-y-auto">
-        <div class="px-1 pb-20 pt-1">
-          <div class="flex flex-col gap-y-2">
-            <template v-for="group in mobileWorkflowGroups" :key="group.key">
-              <!-- Matrix group on mobile -->
-              <PipelineMatrixGroupMobile
-                v-if="group.workflows.length > 1"
-                :workflows="group.workflows"
-                :all-workflows="allWorkflows"
-                :group-name="group.key"
-                :has-push-permission="repoPermissions!.push"
-                @select-step="(pid: number) => (selectedStepId = pid)"
-                @rerun-workflow="rerunWorkflow"
-              />
-              <!-- Single workflow -->
-              <div v-else class="rounded-md border border-border bg-card p-2 shadow-xs">
-                <!-- Workflow Header with Chevron -->
-                <div class="flex items-center gap-2 mb-2 w-full">
-                  <button
-                    class="flex items-center gap-2 flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
-                    @click="toggleMobileWorkflow(group.workflows[0].id)"
-                  >
-                    <Icon
-                      name="chevron-right"
-                      class="size-4 transition-transform duration-200 text-muted-foreground shrink-0"
-                      :class="{ 'rotate-90': !mobileWorkflowsCollapsed[group.workflows[0].id] }"
+      <template v-else>
+        <div
+          v-if="pipeline!.is_always_approved && repoPermissions!.push"
+          class="flex items-center justify-between bg-muted/50 px-4 py-1.5 text-xs text-muted-foreground"
+        >
+          <span>{{ $t('repo.pipeline.protected.always_approved') }}</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            class="h-6 text-xs text-muted-foreground hover:text-destructive"
+            :disabled="isRevokingAlways"
+            @click="revokeAlwaysApproval"
+          >
+            <Icon v-if="isRevokingAlways" name="spinner" class="size-3 animate-spin" />
+            <template v-else>{{ $t('repo.pipeline.protected.revoke_always') }}</template>
+          </Button>
+        </div>
+        <!-- Mobile Log Viewer with step info panel and bottom sheet navigation -->
+        <PipelineLogMobile
+          v-if="selectedStepId !== null"
+          :pipeline="pipeline!"
+          :step-id="selectedStepId"
+          :previous-step-id="previousStepId"
+          :next-step-id="nextStepId"
+          :auto-follow-enabled="autoFollowEnabled"
+          class="flex-1"
+          @update:step-id="selectedStepId = $event"
+          @update:auto-follow-enabled="handleAutoFollowUpdate"
+          @rerun-workflow="rerunWorkflow"
+        />
+        <!-- Step Selection (when no step is selected) -->
+        <div v-else class="h-full overflow-y-auto">
+          <div class="px-1 pb-20 pt-1">
+            <div class="flex flex-col gap-y-2">
+              <template v-for="group in mobileWorkflowGroups" :key="group.key">
+                <!-- Matrix group on mobile -->
+                <PipelineMatrixGroupMobile
+                  v-if="group.workflows.length > 1"
+                  :workflows="group.workflows"
+                  :all-workflows="allWorkflows"
+                  :group-name="group.key"
+                  :has-push-permission="repoPermissions!.push"
+                  @select-step="(pid: number) => (selectedStepId = pid)"
+                  @rerun-workflow="rerunWorkflow"
+                />
+                <!-- Single workflow -->
+                <div v-else class="rounded-md border border-border bg-card p-2 shadow-xs">
+                  <!-- Workflow Header with Chevron -->
+                  <div class="flex items-center gap-2 mb-2 w-full">
+                    <button
+                      class="flex items-center gap-2 flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
+                      @click="toggleMobileWorkflow(group.workflows[0].id)"
+                    >
+                      <Icon
+                        name="chevron-right"
+                        class="size-4 transition-transform duration-200 text-muted-foreground shrink-0"
+                        :class="{ 'rotate-90': !mobileWorkflowsCollapsed[group.workflows[0].id] }"
+                      />
+                      <PipelineStatusIcon :status="group.workflows[0].state" class="h-4 w-4 shrink-0" />
+                      <span class="font-medium text-foreground truncate">{{ group.workflows[0].name }}</span>
+                    </button>
+                    <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
+                    <DropdownMenu v-if="mobileWorkflowHasReruns(group.workflows[0])">
+                      <DropdownMenuTrigger as-child>
+                        <button
+                          class="shrink-0 inline-flex items-center gap-0.5 rounded border border-primary/70 px-1 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-accent transition-colors"
+                        >
+                          #{{ group.workflows[0].attempt }}
+                          <Icon name="chevron-down" class="h-2.5 w-2.5" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start">
+                        <DropdownMenuItem
+                          v-for="attempt in mobileWorkflowAttempts(group.workflows[0])"
+                          :key="attempt.id"
+                          class="flex items-center gap-2 text-xs"
+                          @click="mobileSwitchAttempt(attempt)"
+                        >
+                          <PipelineStatusIcon :status="attempt.state" class="h-3.5 w-3.5" />
+                          #{{ attempt.attempt }}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
+                    <IconButton
+                      v-if="repoPermissions!.push && isMobileWorkflowCompleted(group.workflows[0])"
+                      icon="solar:restart-bold"
+                      class="shrink-0 text-primary hover:text-primary/80 hover:bg-accent"
+                      :title="$t('repo.pipeline.actions.rerun_workflow')"
+                      @click="rerunWorkflow(group.workflows[0].id)"
                     />
-                    <PipelineStatusIcon :status="group.workflows[0].state" class="h-4 w-4 shrink-0" />
-                    <span class="font-medium text-foreground truncate">{{ group.workflows[0].name }}</span>
-                  </button>
-                  <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
-                  <DropdownMenu v-if="mobileWorkflowHasReruns(group.workflows[0])">
-                    <DropdownMenuTrigger as-child>
-                      <button
-                        class="shrink-0 inline-flex items-center gap-0.5 rounded border border-primary/70 px-1 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-accent transition-colors"
-                      >
-                        #{{ group.workflows[0].attempt }}
-                        <Icon name="chevron-down" class="h-2.5 w-2.5" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start">
-                      <DropdownMenuItem
-                        v-for="attempt in mobileWorkflowAttempts(group.workflows[0])"
-                        :key="attempt.id"
-                        class="flex items-center gap-2 text-xs"
-                        @click="mobileSwitchAttempt(attempt)"
-                      >
-                        <PipelineStatusIcon :status="attempt.state" class="h-3.5 w-3.5" />
-                        #{{ attempt.attempt }}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
-                  <IconButton
-                    v-if="repoPermissions!.push && isMobileWorkflowCompleted(group.workflows[0])"
-                    icon="solar:restart-bold"
-                    class="shrink-0 text-primary hover:text-primary/80 hover:bg-accent"
-                    :title="$t('repo.pipeline.actions.rerun_workflow')"
-                    @click="rerunWorkflow(group.workflows[0].id)"
-                  />
-                </div>
-                <!-- Steps -->
-                <div v-show="!mobileWorkflowsCollapsed[group.workflows[0].id]" class="space-y-1">
-                  <div
-                    v-for="step in group.workflows[0].children"
-                    :key="step.pid"
-                    class="flex items-center gap-3 p-2 rounded transition-colors hover:bg-accent cursor-pointer ml-4"
-                    @click="selectedStepId = step.pid"
-                  >
-                    <PipelineStatusIcon :service="step.type === 'service'" :status="step.state" class="h-4 w-4" />
-                    <span class="flex-1 text-sm text-foreground">{{ step.name }}</span>
-                    <PipelineStepDuration :step="step" class="text-xs text-muted-foreground" />
+                  </div>
+                  <!-- Steps -->
+                  <div v-show="!mobileWorkflowsCollapsed[group.workflows[0].id]" class="space-y-1">
+                    <div
+                      v-for="step in group.workflows[0].children"
+                      :key="step.pid"
+                      class="flex items-center gap-3 p-2 rounded transition-colors hover:bg-accent cursor-pointer ml-4"
+                      @click="selectedStepId = step.pid"
+                    >
+                      <PipelineStatusIcon :service="step.type === 'service'" :status="step.state" class="h-4 w-4" />
+                      <span class="flex-1 text-sm text-foreground">{{ step.name }}</span>
+                      <PipelineStepDuration :step="step" class="text-xs text-muted-foreground" />
+                    </div>
                   </div>
                 </div>
-              </div>
-            </template>
+              </template>
+            </div>
           </div>
         </div>
-      </div>
+      </template>
     </div>
   </Container>
 </template>
