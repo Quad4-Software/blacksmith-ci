@@ -31,3 +31,19 @@ func TestParseKeyPair(t *testing.T) {
 	_, exists = p["INVALID"]
 	assert.False(t, exists, "keys without an equal sign suffix are invalid")
 }
+
+func TestParseKeyPairWithCommas(t *testing.T) {
+	s := []string{
+		"SIMPLE=value",
+		"COMMA=a,b,c",
+		"MIXED=key=val1,key=val2",
+		`JSON={"a":1,"b":2}`,
+		"ONLY_COMMAS=,,,",
+	}
+	p := ParseKeyPair(s)
+	assert.Equal(t, "value", p["SIMPLE"])
+	assert.Equal(t, "a,b,c", p["COMMA"], "commas in values must be preserved")
+	assert.Equal(t, "key=val1,key=val2", p["MIXED"], "commas and equals in values must be preserved")
+	assert.Equal(t, `{"a":1,"b":2}`, p["JSON"], "JSON-like values with commas must be preserved")
+	assert.Equal(t, ",,,", p["ONLY_COMMAS"], "comma-only values must be preserved")
+}

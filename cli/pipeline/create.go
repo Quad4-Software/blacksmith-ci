@@ -26,10 +26,11 @@ import (
 )
 
 var pipelineCreateCmd = &cli.Command{
-	Name:      "create",
-	Usage:     "create new pipeline",
-	ArgsUsage: "<repo-id|repo-full-name>",
-	Action:    pipelineCreate,
+	Name:                      "create",
+	Usage:                     "create new pipeline",
+	ArgsUsage:                 "<repo-id|repo-full-name>",
+	Action:                    pipelineCreate,
+	DisableSliceFlagSeparator: true,
 	Flags: append(common.OutputFlags("table"), []cli.Flag{
 		&cli.StringFlag{
 			Name:     "branch",

@@ -30,10 +30,11 @@ import (
 
 // Command exports the deploy command.
 var Command = &cli.Command{
-	Name:      "deploy",
-	Usage:     "trigger a pipeline with the 'deployment' event",
-	ArgsUsage: "<repo-id|repo-full-name> <pipeline> <environment>",
-	Action:    deploy,
+	Name:                      "deploy",
+	Usage:                     "trigger a pipeline with the 'deployment' event",
+	ArgsUsage:                 "<repo-id|repo-full-name> <pipeline> <environment>",
+	Action:                    deploy,
+	DisableSliceFlagSeparator: true,
 	Flags: []cli.Flag{
 		common.FormatFlag(tmplDeployInfo, false),
 		&cli.StringFlag{

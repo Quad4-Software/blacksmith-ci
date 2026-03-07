@@ -27,10 +27,11 @@ import (
 )
 
 var pipelineStartCmd = &cli.Command{
-	Name:      "start",
-	Usage:     "start a pipeline",
-	ArgsUsage: "<repo-id|repo-full-name> [pipeline]",
-	Action:    pipelineStart,
+	Name:                      "start",
+	Usage:                     "start a pipeline",
+	ArgsUsage:                 "<repo-id|repo-full-name> [pipeline]",
+	Action:                    pipelineStart,
+	DisableSliceFlagSeparator: true,
 	Flags: []cli.Flag{
 		&cli.StringSliceFlag{
 			Name:    "param",
