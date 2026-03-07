@@ -21,6 +21,7 @@ var DefaultConfigOrder = [...]string{
 	".crow/",
 	".crow.yaml",
 	".crow.yml",
+	".crow.jsonnet",
 	".woodpecker/",
 	".woodpecker.yaml",
 	".woodpecker.yml",

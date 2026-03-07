@@ -33,6 +33,7 @@ import (
 	backend_types "codefloe.com/crowci/crow/v5/pipeline/backend/types"
 	pipeline_errors "codefloe.com/crowci/crow/v5/pipeline/errors"
 	errorTypes "codefloe.com/crowci/crow/v5/pipeline/errors/types"
+	crow_jsonnet "codefloe.com/crowci/crow/v5/pipeline/frontend/jsonnet"
 	"codefloe.com/crowci/crow/v5/pipeline/frontend/metadata"
 	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml"
 	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/compiler"
@@ -75,6 +76,13 @@ type Item struct {
 
 func (b *StepBuilder) Build() (items []*Item, errorsAndWarnings error) {
 	b.Yamls = forge_types.SortByName(b.Yamls)
+
+	// Pre-process Jsonnet files: evaluate them and replace with YAML output.
+	// .libsonnet files are kept only as import sources and removed from the build list.
+	b.Yamls, errorsAndWarnings = b.preprocessJsonnet(b.Yamls)
+	if errorsAndWarnings != nil && pipeline_errors.HasBlockingErrors(errorsAndWarnings) {
+		return nil, errorsAndWarnings
+	}
 
 	// If a workflow filter is set, expand it to include dependencies
 	if len(b.WorkflowFilter) > 0 {
@@ -188,6 +196,63 @@ func (b *StepBuilder) Build() (items []*Item, errorsAndWarnings error) {
 	}
 
 	return items, errorsAndWarnings
+}
+
+// preprocessJsonnet evaluates .jsonnet files and expands them into YAML FileMeta entries.
+// .libsonnet files are removed from the result (they are import-only).
+func (b *StepBuilder) preprocessJsonnet(files []*forge_types.FileMeta) ([]*forge_types.FileMeta, error) {
+	// Collect sibling files for Jsonnet imports (all files including .libsonnet)
+	var result []*forge_types.FileMeta
+	for _, f := range files {
+		if crow_jsonnet.IsLibsonnetFile(f.Name) {
+			// .libsonnet files are only used as imports, skip them from the build list
+			continue
+		}
+
+		if !crow_jsonnet.IsJsonnetFile(f.Name) {
+			result = append(result, f)
+			continue
+		}
+
+		// Build environment variables for Jsonnet extVars
+		workflowMetadata := MetadataFromStruct(b.Forge, b.Repo, b.Curr, b.Prev, &model.Workflow{}, b.Host)
+		extVars := workflowMetadata.Environ()
+		for k, v := range b.Envs {
+			if _, exists := extVars[k]; !exists {
+				extVars[k] = v
+			}
+		}
+
+		// Convert FileMeta to jsonnet.File for the evaluation
+		siblingFiles := make([]*crow_jsonnet.File, len(files))
+		for i, sf := range files {
+			siblingFiles[i] = &crow_jsonnet.File{Name: sf.Name, Data: sf.Data}
+		}
+
+		evaluated, err := crow_jsonnet.Evaluate(f.Name, f.Data, siblingFiles, extVars)
+		if err != nil {
+			return nil, &errorTypes.PipelineError{Message: err.Error(), Type: errorTypes.PipelineErrorTypeCompiler}
+		}
+
+		if len(evaluated) == 1 {
+			// Single document: replace the file data in-place
+			result = append(result, &forge_types.FileMeta{
+				Name: f.Name,
+				Data: evaluated[0],
+			})
+		} else {
+			// Multi-document: expand into separate entries
+			baseName := strings.TrimSuffix(f.Name, ".jsonnet")
+			for i, doc := range evaluated {
+				result = append(result, &forge_types.FileMeta{
+					Name: fmt.Sprintf("%s-%d.yaml", baseName, i),
+					Data: doc,
+				})
+			}
+		}
+	}
+
+	return result, nil
 }
 
 func (b *StepBuilder) genItemForWorkflow(workflow *model.Workflow, axis matrix.Axis, data string, originalFileName string) (item *Item, errorsAndWarnings error) {
@@ -668,6 +733,7 @@ func SanitizePath(path string) string {
 	path = filepath.Base(path)
 	path = strings.TrimSuffix(path, ".yml")
 	path = strings.TrimSuffix(path, ".yaml")
+	path = strings.TrimSuffix(path, ".jsonnet")
 	path = strings.TrimPrefix(path, ".")
 	return path
 }

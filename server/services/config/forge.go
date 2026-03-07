@@ -127,7 +127,8 @@ func filterPipelineFiles(files []*types.FileMeta) []*types.FileMeta {
 	var res []*types.FileMeta
 
 	for _, file := range files {
-		if strings.HasSuffix(file.Name, ".yml") || strings.HasSuffix(file.Name, ".yaml") {
+		if strings.HasSuffix(file.Name, ".yml") || strings.HasSuffix(file.Name, ".yaml") ||
+			strings.HasSuffix(file.Name, ".jsonnet") || strings.HasSuffix(file.Name, ".libsonnet") {
 			res = append(res, file)
 		}
 	}

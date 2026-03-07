@@ -25,6 +25,7 @@ import (
 	"github.com/urfave/cli/v3"
 
 	"codefloe.com/crowci/crow/v5/cli/common"
+	crow_jsonnet "codefloe.com/crowci/crow/v5/pipeline/frontend/jsonnet"
 	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml"
 	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/linter"
 	"codefloe.com/crowci/crow/v5/shared/constant"
@@ -59,6 +60,10 @@ var Command = &cli.Command{
 			Name:    "strict",
 			Usage:   "treat warnings as errors",
 		},
+		&cli.StringMapFlag{
+			Name:  "jsonnet-ext-var",
+			Usage: "set Jsonnet external variables for use with std.extVar() (e.g. --jsonnet-ext-var CI_PIPELINE_EVENT=push)",
+		},
 	},
 }
 
@@ -74,7 +79,7 @@ func lintDir(ctx context.Context, c *cli.Command, dir string) error {
 		}
 
 		// check if it is a regular file (not dir)
-		if info.Mode().IsRegular() && (strings.HasSuffix(info.Name(), ".yaml") || strings.HasSuffix(info.Name(), ".yml")) {
+		if info.Mode().IsRegular() && (strings.HasSuffix(info.Name(), ".yaml") || strings.HasSuffix(info.Name(), ".yml") || strings.HasSuffix(info.Name(), ".jsonnet")) {
 			fmt.Println("#", info.Name())
 			if err := lintFile(ctx, c, path); err != nil {
 				errorStrings = append(errorStrings, err.Error())
@@ -95,12 +100,6 @@ func lintDir(ctx context.Context, c *cli.Command, dir string) error {
 }
 
 func lintFile(_ context.Context, c *cli.Command, file string) error {
-	fi, err := os.Open(file)
-	if err != nil {
-		return err
-	}
-	defer fi.Close()
-
 	buf, err := os.ReadFile(file)
 	if err != nil {
 		return err
@@ -108,13 +107,44 @@ func lintFile(_ context.Context, c *cli.Command, file string) error {
 
 	rawConfig := string(buf)
 
+	// If this is a Jsonnet file, evaluate it first to produce YAML
+	if crow_jsonnet.IsJsonnetFile(file) {
+		// For CLI linting, load sibling files from the same directory for imports
+		dir := filepath.Dir(file)
+		siblings, err := loadSiblingFiles(dir, file)
+		if err != nil {
+			return fmt.Errorf("failed to load sibling files for Jsonnet imports: %w", err)
+		}
+
+		evaluated, err := crow_jsonnet.Evaluate(file, buf, siblings, c.StringMap("jsonnet-ext-var"))
+		if err != nil {
+			return err
+		}
+
+		// Lint each evaluated document
+		for i, doc := range evaluated {
+			docName := path.Base(file)
+			if len(evaluated) > 1 {
+				docName = fmt.Sprintf("%s[%d]", docName, i)
+			}
+			if err := lintYAMLConfig(c, docName, string(doc)); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	return lintYAMLConfig(c, path.Base(file), rawConfig)
+}
+
+func lintYAMLConfig(c *cli.Command, name, rawConfig string) error {
 	parsedConfig, err := yaml.ParseString(rawConfig)
 	if err != nil {
 		return err
 	}
 
 	config := &linter.WorkflowConfig{
-		File:      path.Base(file),
+		File:      name,
 		RawConfig: rawConfig,
 		Workflow:  parsedConfig,
 	}
@@ -141,4 +171,34 @@ func lintFile(_ context.Context, c *cli.Command, file string) error {
 
 	fmt.Println("✅ Config is valid")
 	return nil
+}
+
+// loadSiblingFiles reads .libsonnet and .jsonnet files from the directory for use as Jsonnet imports.
+func loadSiblingFiles(dir, excludeFile string) ([]*crow_jsonnet.File, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	var siblings []*crow_jsonnet.File
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		fullPath := filepath.Join(dir, entry.Name())
+		if fullPath == excludeFile {
+			continue
+		}
+		if strings.HasSuffix(entry.Name(), ".libsonnet") || strings.HasSuffix(entry.Name(), ".jsonnet") {
+			data, err := os.ReadFile(fullPath)
+			if err != nil {
+				return nil, err
+			}
+			siblings = append(siblings, &crow_jsonnet.File{
+				Name: fullPath,
+				Data: data,
+			})
+		}
+	}
+	return siblings, nil
 }

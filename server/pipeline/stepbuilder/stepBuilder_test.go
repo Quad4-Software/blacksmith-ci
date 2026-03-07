@@ -948,6 +948,14 @@ func TestSanitizePath(t *testing.T) {
 			path:          "folder/sub-folder/test.yaml",
 			sanitizedPath: "test",
 		},
+		{
+			path:          ".crow/test.jsonnet",
+			sanitizedPath: "test",
+		},
+		{
+			path:          ".crow.jsonnet",
+			sanitizedPath: "crow",
+		},
 	}
 
 	for _, test := range testTable {

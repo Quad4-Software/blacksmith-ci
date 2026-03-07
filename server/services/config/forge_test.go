@@ -329,6 +329,7 @@ func TestFetch(t *testing.T) {
 				// Return ErrConfigNotFound for all config files
 				f.On("File", mock.Anything, mock.Anything, mock.Anything, mock.Anything, ".crow.yaml").Return(nil, &forge_types.ErrConfigNotFound{Configs: []string{".crow.yaml"}})
 				f.On("File", mock.Anything, mock.Anything, mock.Anything, mock.Anything, ".crow.yml").Return(nil, &forge_types.ErrConfigNotFound{Configs: []string{".crow.yml"}})
+				f.On("File", mock.Anything, mock.Anything, mock.Anything, mock.Anything, ".crow.jsonnet").Return(nil, &forge_types.ErrConfigNotFound{Configs: []string{".crow.jsonnet"}})
 				f.On("File", mock.Anything, mock.Anything, mock.Anything, mock.Anything, ".woodpecker.yaml").Return(nil, &forge_types.ErrConfigNotFound{Configs: []string{".woodpecker.yaml"}})
 				f.On("File", mock.Anything, mock.Anything, mock.Anything, mock.Anything, ".woodpecker.yml").Return(nil, &forge_types.ErrConfigNotFound{Configs: []string{".woodpecker.yml"}})
 				f.On("File", mock.Anything, mock.Anything, mock.Anything, mock.Anything, ".my-custom-config.yml").Return(nil, &forge_types.ErrConfigNotFound{Configs: []string{".my-custom-config.yml"}})
@@ -338,6 +339,7 @@ func TestFetch(t *testing.T) {
 				// Return GetContentsOrList errors for all config files
 				f.On("File", mock.Anything, mock.Anything, mock.Anything, mock.Anything, ".crow.yaml").Return(nil, fmt.Errorf("GetContentsOrList"))
 				f.On("File", mock.Anything, mock.Anything, mock.Anything, mock.Anything, ".crow.yml").Return(nil, fmt.Errorf("GetContentsOrList"))
+				f.On("File", mock.Anything, mock.Anything, mock.Anything, mock.Anything, ".crow.jsonnet").Return(nil, fmt.Errorf("GetContentsOrList"))
 				f.On("File", mock.Anything, mock.Anything, mock.Anything, mock.Anything, ".woodpecker.yaml").Return(nil, fmt.Errorf("GetContentsOrList"))
 				f.On("File", mock.Anything, mock.Anything, mock.Anything, mock.Anything, ".woodpecker.yml").Return(nil, fmt.Errorf("GetContentsOrList"))
 				f.On("Dir", mock.Anything, mock.Anything, mock.Anything, mock.Anything, ".crow").Return(nil, fmt.Errorf("GetContentsOrList"))
