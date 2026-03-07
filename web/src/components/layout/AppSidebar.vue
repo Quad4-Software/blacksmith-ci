@@ -265,8 +265,7 @@
 
       <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
       <a
-        v-if="isVersionTag"
-        :href="`https://codeberg.org/crowci/crow/releases/tag/${versionInfo?.current || config.version}`"
+        href="https://codefloe.com/crowci/crow"
         target="_blank"
         class="block px-2 py-1.5 text-xs text-muted-foreground space-y-0.5 hover:underline"
       >
@@ -275,12 +274,6 @@
           {{ formattedBuildDate }}
         </div>
       </a>
-      <div v-else class="px-2 py-1.5 text-xs text-muted-foreground space-y-0.5">
-        <div>Crow {{ versionInfo?.current || config.version }}</div>
-        <div v-if="config.buildDate" class="text-[0.65rem] opacity-75">
-          {{ formattedBuildDate }}
-        </div>
-      </div>
       <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
     </SidebarFooter>
   </Sidebar>
@@ -348,12 +341,6 @@ const { enableSwagger } = config;
 
 // Detect OS for keyboard shortcut display
 const isMac = computed(() => navigator.userAgent.includes('Mac'));
-
-// Check if version is a tag (starts with 'v' and contains numbers, not 'dev')
-const isVersionTag = computed(() => {
-  const version = versionInfo.value?.current || config.version || '';
-  return version.match(/^v\d+\.\d+/) && !version.includes('dev');
-});
 
 // Format build date if available
 const formattedBuildDate = computed(() => {
