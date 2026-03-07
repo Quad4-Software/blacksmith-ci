@@ -122,20 +122,23 @@ func (s *service) RunMaintenance(ctx context.Context) error {
 	start := time.Now()
 	log.Info().Msg("Starting database maintenance operations")
 
-	// Try each database type maintenance operation
-	// The store methods will handle the database-specific logic
-	var err error
-	var driverName string
+	if err := s.store.MaintenanceRun(ctx); err != nil {
+		duration := time.Since(start)
+		log.Error().Err(err).Dur("duration", duration).Msg("Database maintenance failed")
+		s.updateActionStats("vacuum", false, duration, err.Error())
 
-	// Try PostgreSQL first
-	if err = s.store.MaintenanceRunPostgreSQL(ctx); err == nil {
-		driverName = "postgres"
-	} else if err = s.store.MaintenanceRunMySQL(ctx); err == nil {
-		driverName = "mysql"
-	} else if err = s.store.MaintenanceRunSQLite(ctx); err == nil {
-		driverName = "sqlite3"
-	} else {
-		log.Warn().Msg("Unable to determine database type or maintenance failed")
+		logEntry := &model.MaintenanceLog{
+			RunTime:  start,
+			Success:  false,
+			Duration: duration.Milliseconds(),
+			Details:  fmt.Sprintf("Operations: VACUUM/OPTIMIZE log_entries table, Duration: %v", duration),
+			Error:    err.Error(),
+			Created:  start.Unix(),
+		}
+		if logErr := s.store.MaintenanceLogCreate(logEntry); logErr != nil {
+			log.Error().Err(logErr).Msg("Failed to create maintenance log entry")
+		}
+
 		return fmt.Errorf("database maintenance failed: %w", err)
 	}
 
@@ -143,56 +146,31 @@ func (s *service) RunMaintenance(ctx context.Context) error {
 
 	// Get size information from the store layer
 	beforeSize, afterSize, spaceSaved := datastore.GetMaintenanceSizeInfo()
-	// Log the maintenance operation with more details
-	details := fmt.Sprintf("Database: %s, Operations: VACUUM/OPTIMIZE log_entries table, Duration: %v", driverName, duration)
-
-	// Add size information if available
-	log.Info().
-		Int64("debug_before_size", beforeSize).
-		Int64("debug_after_size", afterSize).
-		Int64("debug_space_saved", spaceSaved).
-		Str("driver", driverName).
-		Msg("Size information retrieved")
+	details := fmt.Sprintf("Operations: VACUUM/OPTIMIZE log_entries table, Duration: %v", duration)
 
 	if beforeSize > 0 || afterSize > 0 {
 		const bytesPerMB = 1024 * 1024
 		beforeSizeMB := float64(beforeSize) / bytesPerMB
 		afterSizeMB := float64(afterSize) / bytesPerMB
 		spaceSavedMB := float64(spaceSaved) / bytesPerMB
-		details = fmt.Sprintf("Database: %s, Operations: VACUUM/OPTIMIZE log_entries table, Duration: %v, Before: %.2f MB, After: %.2f MB, Saved: %.2f MB",
-			driverName, duration, beforeSizeMB, afterSizeMB, spaceSavedMB)
-	}
-
-	logEntry := &model.MaintenanceLog{
-		RunTime:  start,
-		Success:  err == nil,
-		Duration: duration.Milliseconds(),
-		Details:  details,
-		Created:  start.Unix(),
-	}
-
-	if err != nil {
-		logEntry.Error = err.Error()
-		log.Error().Err(err).Str("driver", driverName).Dur("duration", duration).Msg("Database maintenance failed")
-
-		s.updateActionStats("vacuum", false, duration, err.Error())
-
-		// Log the failure
-		if err := s.store.MaintenanceLogCreate(logEntry); err != nil {
-			log.Error().Err(err).Msg("Failed to create maintenance log entry")
-		}
-
-		return fmt.Errorf("maintenance failed for %s: %w", driverName, err)
+		details = fmt.Sprintf("Operations: VACUUM/OPTIMIZE log_entries table, Duration: %v, Before: %.2f MB, After: %.2f MB, Saved: %.2f MB",
+			duration, beforeSizeMB, afterSizeMB, spaceSavedMB)
 	}
 
 	s.updateActionStats("vacuum", true, duration, "")
 
-	// Log the success
+	logEntry := &model.MaintenanceLog{
+		RunTime:  start,
+		Success:  true,
+		Duration: duration.Milliseconds(),
+		Details:  details,
+		Created:  start.Unix(),
+	}
 	if err := s.store.MaintenanceLogCreate(logEntry); err != nil {
 		log.Error().Err(err).Msg("Failed to create maintenance log entry")
 	}
 
-	log.Info().Str("driver", driverName).Dur("duration", duration).Msg("Database maintenance completed successfully")
+	log.Info().Dur("duration", duration).Msg("Database maintenance completed successfully")
 	return nil
 }
 

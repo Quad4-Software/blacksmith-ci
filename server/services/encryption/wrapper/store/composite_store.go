@@ -718,16 +718,8 @@ func (c *CompositeEncryptedStore) MaintenanceLogList(limit int) ([]*model.Mainte
 	return c.baseStore.MaintenanceLogList(limit)
 }
 
-func (c *CompositeEncryptedStore) MaintenanceRunPostgreSQL(ctx context.Context) error {
-	return c.baseStore.MaintenanceRunPostgreSQL(ctx)
-}
-
-func (c *CompositeEncryptedStore) MaintenanceRunMySQL(ctx context.Context) error {
-	return c.baseStore.MaintenanceRunMySQL(ctx)
-}
-
-func (c *CompositeEncryptedStore) MaintenanceRunSQLite(ctx context.Context) error {
-	return c.baseStore.MaintenanceRunSQLite(ctx)
+func (c *CompositeEncryptedStore) MaintenanceRun(ctx context.Context) error {
+	return c.baseStore.MaintenanceRun(ctx)
 }
 
 // Workflow.

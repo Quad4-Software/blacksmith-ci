@@ -271,9 +271,7 @@ type Store interface {
 	MaintenanceStatsUpdate(*model.MaintenanceStats) error
 	MaintenanceLogCreate(*model.MaintenanceLog) error
 	MaintenanceLogList(limit int) ([]*model.MaintenanceLog, error)
-	MaintenanceRunPostgreSQL(context.Context) error
-	MaintenanceRunMySQL(context.Context) error
-	MaintenanceRunSQLite(context.Context) error
+	MaintenanceRun(context.Context) error
 
 	// Approved Pull Requests
 	// ApprovedPullRequestFind finds an always-approved PR by repo ID and ref.

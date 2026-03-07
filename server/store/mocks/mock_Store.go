@@ -7103,12 +7103,12 @@ func (_c *MockStore_MaintenanceLogList_Call) RunAndReturn(run func(limit int) ([
 	return _c
 }
 
-// MaintenanceRunMySQL provides a mock function for the type MockStore
-func (_mock *MockStore) MaintenanceRunMySQL(context1 context.Context) error {
+// MaintenanceRun provides a mock function for the type MockStore
+func (_mock *MockStore) MaintenanceRun(context1 context.Context) error {
 	ret := _mock.Called(context1)
 
 	if len(ret) == 0 {
-		panic("no return value specified for MaintenanceRunMySQL")
+		panic("no return value specified for MaintenanceRun")
 	}
 
 	var r0 error
@@ -7120,18 +7120,18 @@ func (_mock *MockStore) MaintenanceRunMySQL(context1 context.Context) error {
 	return r0
 }
 
-// MockStore_MaintenanceRunMySQL_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'MaintenanceRunMySQL'
-type MockStore_MaintenanceRunMySQL_Call struct {
+// MockStore_MaintenanceRun_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'MaintenanceRun'
+type MockStore_MaintenanceRun_Call struct {
 	*mock.Call
 }
 
-// MaintenanceRunMySQL is a helper method to define mock.On call
+// MaintenanceRun is a helper method to define mock.On call
 //   - context1 context.Context
-func (_e *MockStore_Expecter) MaintenanceRunMySQL(context1 interface{}) *MockStore_MaintenanceRunMySQL_Call {
-	return &MockStore_MaintenanceRunMySQL_Call{Call: _e.mock.On("MaintenanceRunMySQL", context1)}
+func (_e *MockStore_Expecter) MaintenanceRun(context1 interface{}) *MockStore_MaintenanceRun_Call {
+	return &MockStore_MaintenanceRun_Call{Call: _e.mock.On("MaintenanceRun", context1)}
 }
 
-func (_c *MockStore_MaintenanceRunMySQL_Call) Run(run func(context1 context.Context)) *MockStore_MaintenanceRunMySQL_Call {
+func (_c *MockStore_MaintenanceRun_Call) Run(run func(context1 context.Context)) *MockStore_MaintenanceRun_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -7144,114 +7144,12 @@ func (_c *MockStore_MaintenanceRunMySQL_Call) Run(run func(context1 context.Cont
 	return _c
 }
 
-func (_c *MockStore_MaintenanceRunMySQL_Call) Return(err error) *MockStore_MaintenanceRunMySQL_Call {
+func (_c *MockStore_MaintenanceRun_Call) Return(err error) *MockStore_MaintenanceRun_Call {
 	_c.Call.Return(err)
 	return _c
 }
 
-func (_c *MockStore_MaintenanceRunMySQL_Call) RunAndReturn(run func(context1 context.Context) error) *MockStore_MaintenanceRunMySQL_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// MaintenanceRunPostgreSQL provides a mock function for the type MockStore
-func (_mock *MockStore) MaintenanceRunPostgreSQL(context1 context.Context) error {
-	ret := _mock.Called(context1)
-
-	if len(ret) == 0 {
-		panic("no return value specified for MaintenanceRunPostgreSQL")
-	}
-
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context) error); ok {
-		r0 = returnFunc(context1)
-	} else {
-		r0 = ret.Error(0)
-	}
-	return r0
-}
-
-// MockStore_MaintenanceRunPostgreSQL_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'MaintenanceRunPostgreSQL'
-type MockStore_MaintenanceRunPostgreSQL_Call struct {
-	*mock.Call
-}
-
-// MaintenanceRunPostgreSQL is a helper method to define mock.On call
-//   - context1 context.Context
-func (_e *MockStore_Expecter) MaintenanceRunPostgreSQL(context1 interface{}) *MockStore_MaintenanceRunPostgreSQL_Call {
-	return &MockStore_MaintenanceRunPostgreSQL_Call{Call: _e.mock.On("MaintenanceRunPostgreSQL", context1)}
-}
-
-func (_c *MockStore_MaintenanceRunPostgreSQL_Call) Run(run func(context1 context.Context)) *MockStore_MaintenanceRunPostgreSQL_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		run(
-			arg0,
-		)
-	})
-	return _c
-}
-
-func (_c *MockStore_MaintenanceRunPostgreSQL_Call) Return(err error) *MockStore_MaintenanceRunPostgreSQL_Call {
-	_c.Call.Return(err)
-	return _c
-}
-
-func (_c *MockStore_MaintenanceRunPostgreSQL_Call) RunAndReturn(run func(context1 context.Context) error) *MockStore_MaintenanceRunPostgreSQL_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// MaintenanceRunSQLite provides a mock function for the type MockStore
-func (_mock *MockStore) MaintenanceRunSQLite(context1 context.Context) error {
-	ret := _mock.Called(context1)
-
-	if len(ret) == 0 {
-		panic("no return value specified for MaintenanceRunSQLite")
-	}
-
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context) error); ok {
-		r0 = returnFunc(context1)
-	} else {
-		r0 = ret.Error(0)
-	}
-	return r0
-}
-
-// MockStore_MaintenanceRunSQLite_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'MaintenanceRunSQLite'
-type MockStore_MaintenanceRunSQLite_Call struct {
-	*mock.Call
-}
-
-// MaintenanceRunSQLite is a helper method to define mock.On call
-//   - context1 context.Context
-func (_e *MockStore_Expecter) MaintenanceRunSQLite(context1 interface{}) *MockStore_MaintenanceRunSQLite_Call {
-	return &MockStore_MaintenanceRunSQLite_Call{Call: _e.mock.On("MaintenanceRunSQLite", context1)}
-}
-
-func (_c *MockStore_MaintenanceRunSQLite_Call) Run(run func(context1 context.Context)) *MockStore_MaintenanceRunSQLite_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		run(
-			arg0,
-		)
-	})
-	return _c
-}
-
-func (_c *MockStore_MaintenanceRunSQLite_Call) Return(err error) *MockStore_MaintenanceRunSQLite_Call {
-	_c.Call.Return(err)
-	return _c
-}
-
-func (_c *MockStore_MaintenanceRunSQLite_Call) RunAndReturn(run func(context1 context.Context) error) *MockStore_MaintenanceRunSQLite_Call {
+func (_c *MockStore_MaintenanceRun_Call) RunAndReturn(run func(context1 context.Context) error) *MockStore_MaintenanceRun_Call {
 	_c.Call.Return(run)
 	return _c
 }

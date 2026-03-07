@@ -347,8 +347,20 @@ func (s storage) MaintenanceLogList(limit int) ([]*model.MaintenanceLog, error) 
 	return logs, err
 }
 
-// MaintenanceRunPostgreSQL executes PostgreSQL-specific maintenance operations.
-func (s storage) MaintenanceRunPostgreSQL(ctx context.Context) error {
+// MaintenanceRun executes database-specific maintenance operations based on the driver.
+func (s storage) MaintenanceRun(ctx context.Context) error {
+	switch s.engine.DriverName() {
+	case "postgres":
+		return s.maintenanceRunPostgreSQL(ctx)
+	case "mysql":
+		return s.maintenanceRunMySQL(ctx)
+	default:
+		return s.maintenanceRunSQLite(ctx)
+	}
+}
+
+// maintenanceRunPostgreSQL executes PostgreSQL-specific maintenance operations.
+func (s storage) maintenanceRunPostgreSQL(ctx context.Context) error {
 	// Get table size before vacuum
 	var beforeSize int64
 	if _, err := s.engine.Context(ctx).SQL("SELECT pg_total_relation_size('log_entries')").Get(&beforeSize); err != nil {
@@ -400,8 +412,8 @@ func (s storage) MaintenanceRunPostgreSQL(ctx context.Context) error {
 	return nil
 }
 
-// MaintenanceRunMySQL executes MySQL-specific maintenance operations.
-func (s storage) MaintenanceRunMySQL(ctx context.Context) error {
+// maintenanceRunMySQL executes MySQL-specific maintenance operations.
+func (s storage) maintenanceRunMySQL(ctx context.Context) error {
 	// Get table size before optimize
 	var beforeSize int64
 	if _, err := s.engine.Context(ctx).SQL("SELECT (data_length + index_length) as size FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'log_entries'").Get(&beforeSize); err != nil {
@@ -453,8 +465,8 @@ func (s storage) MaintenanceRunMySQL(ctx context.Context) error {
 	return nil
 }
 
-// MaintenanceRunSQLite executes SQLite-specific maintenance operations.
-func (s storage) MaintenanceRunSQLite(ctx context.Context) error {
+// maintenanceRunSQLite executes SQLite-specific maintenance operations.
+func (s storage) maintenanceRunSQLite(ctx context.Context) error {
 	// Get database size before vacuum
 	var beforeSize int64
 	var pageCount, pageSize int64
