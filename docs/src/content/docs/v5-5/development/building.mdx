@@ -1,0 +1,78 @@
+---
+title: "Building"
+---
+
+Build and test Crow CI components.
+
+## Running Tests
+
+```sh
+# Run all tests
+just test
+
+# Run component-specific tests
+just test-server
+just test-agent
+just test-cli
+
+# Test database migrations
+just test-server-datastore
+
+# Run frontend tests
+just test-ui
+```
+
+## Linting
+
+```sh
+# Run all linters
+just lint
+
+# Backend only
+just lint-backend
+
+# Frontend only
+just lint-frontend
+```
+
+## Building Binaries
+
+```sh
+# Build server
+just build-server
+
+# Build agent
+just build-agent
+
+# Build CLI
+just build-cli
+
+# Build UI
+just build-ui
+```
+
+## Building Container Images
+
+:::note
+Building images is not required for local development. Use the VSCode launch configuration for local testing instead.
+:::
+
+Build images for testing on existing Crow instances:
+
+```sh
+# Server
+env PLATFORMS='linux/amd64' just image-server-alpine TAG=<tag> REGISTRY_USER='<user>' \
+  REGISTRY='<registry>' IMAGE='<image>'
+
+# Agent
+env PLATFORMS='linux/amd64' just image-agent-alpine TAG=<tag> REGISTRY_USER='<user>' \
+  REGISTRY='<registry>' IMAGE='<image>'
+
+# CLI
+env PLATFORMS='linux/amd64' just image-cli-alpine TAG=<tag> REGISTRY_USER='<user>' \
+  REGISTRY='<registry>' IMAGE='<image>'
+```
+
+:::tip
+For local testing, use a single architecture (e.g., `linux/amd64`). Multi-arch builds are only needed for releases.
+:::
