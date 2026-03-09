@@ -23,6 +23,6 @@ steps:
     when:
       - event: pull_request
       - event: pull_request_edited
-    image: reg.devxy.io/docker.io/commitlint/commitlint:20.4.2
+    image: reg.devxy.io/docker.io/commitlint/commitlint:20.4.3
     commands:
       - echo $${CI_COMMIT_PULL_REQUEST_TITLE} | commitlint
