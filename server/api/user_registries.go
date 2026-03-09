@@ -15,10 +15,10 @@
 package api
 
 import (
-	"net/http"
+	"context"
 	"strings"
 
-	"github.com/gin-gonic/gin"
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/rs/zerolog/log"
 
 	"codefloe.com/crowci/crow/v5/server"
@@ -27,30 +27,28 @@ import (
 	"codefloe.com/crowci/crow/v5/server/store"
 )
 
-// GetUserRegistryList
-//
-//	@Summary	List all registries accessible by the current user
-//	@Router		/user/registries [get]
-//	@Produce	json
-//	@Success	200	{array}	RegistryWithOrg
-//	@Tags		User
-//	@Param		Authorization	header	string	true	"Insert your personal access token"			default(Bearer <personal access token>)
-//	@Param		scope			query	string	false	"Comma-separated scopes: user,org,global"	default("user,org,global")
-//	@Param		search			query	string	false	"Search term for registry address"
-//	@Param		page			query	int		false	"for response pagination, page offset number"	default(1)
-//	@Param		perPage			query	int		false	"for response pagination, max items per page"	default(50)
-func GetUserRegistryList(c *gin.Context) {
+type GetUserRegistryListInput struct {
+	PaginationParams
+	Scope  string `query:"scope" default:"user,org,global" doc:"Comma-separated scopes: user,org,global"`
+	Search string `query:"search" doc:"Search term for registry address"`
+}
+
+type GetUserRegistryListOutput struct {
+	Body []*model.RegistryWithOrg
+}
+
+func GetUserRegistryList(ctx context.Context, input *GetUserRegistryListInput) (*GetUserRegistryListOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	user := session.User(c)
 
 	// Parse scope filter (default: all scopes)
-	scopeParam := c.DefaultQuery("scope", "user,org,global")
-	scopes := strings.Split(scopeParam, ",")
+	scopes := strings.Split(input.Scope, ",")
 	includeUser := contains(scopes, "user")
 	includeOrg := contains(scopes, "org")
 	includeGlobal := contains(scopes, "global")
 
-	searchTerm := c.Query("search")
+	searchTerm := input.Search
 
 	// Build org ID list
 	orgIDs := make([]int64, 0)
@@ -65,15 +63,13 @@ func GetUserRegistryList(c *gin.Context) {
 		_forge, err := server.Config.Services.Manager.ForgeFromUser(user)
 		if err != nil {
 			log.Error().Err(err).Msg("Cannot get forge from user")
-			c.AbortWithStatus(http.StatusInternalServerError)
-			return
+			return nil, huma.Error500InternalServerError("Cannot get forge from user", err)
 		}
 
 		teams, err := _forge.Teams(c, user)
 		if err != nil {
 			log.Error().Err(err).Msg("Cannot get user teams")
-			c.String(http.StatusInternalServerError, "Error fetching teams. %s", err)
-			return
+			return nil, huma.Error500InternalServerError("Error fetching teams", err)
 		}
 
 		// Map teams to org IDs
@@ -91,10 +87,12 @@ func GetUserRegistryList(c *gin.Context) {
 	}
 
 	// Fetch registries from datastore
-	registries, err := _store.UserRegistryList(orgIDs, includeGlobal, searchTerm, session.Pagination(c))
+	registries, err := _store.UserRegistryList(orgIDs, includeGlobal, searchTerm, &model.ListOptions{
+		Page:    input.Page,
+		PerPage: input.PerPage,
+	})
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error getting registry list. %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error getting registry list", err)
 	}
 
 	// Enrich with org names, scope types, and forge info
@@ -185,5 +183,5 @@ func GetUserRegistryList(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, result)
+	return &GetUserRegistryListOutput{Body: result}, nil
 }

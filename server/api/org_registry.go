@@ -15,170 +15,147 @@
 package api
 
 import (
-	"net/http"
+	"context"
+	"fmt"
 
-	"github.com/gin-gonic/gin"
+	"github.com/danielgtaylor/huma/v2"
 
 	"codefloe.com/crowci/crow/v5/server"
 	"codefloe.com/crowci/crow/v5/server/model"
 	"codefloe.com/crowci/crow/v5/server/router/middleware/session"
 )
 
-// GetOrgRegistry
-//
-//	@Summary	Get a organization registry by address
-//	@Router		/orgs/{org_id}/registries/{registry} [get]
-//	@Produce	json
-//	@Success	200	{object}	Registry
-//	@Tags		Organization registries
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		org_id			path	string	true	"the org's id"
-//	@Param		registry		path	string	true	"the registry's address"
-func GetOrgRegistry(c *gin.Context) {
-	org := session.Org(c)
-	addr := c.Param("registry")
-
-	registryService := server.Config.Services.Manager.RegistryService()
-	registry, err := registryService.OrgRegistryFind(org.ID, addr)
-	if err != nil {
-		handleDBError(c, err)
-		return
-	}
-	c.JSON(http.StatusOK, registry.Copy())
+type GetOrgRegistryInput struct {
+	OrgID    int64  `path:"org_id" doc:"the org's id"`
+	Registry string `path:"registry" doc:"the registry's address"`
 }
 
-// GetOrgRegistryList
-//
-//	@Summary	List organization registries
-//	@Router		/orgs/{org_id}/registries [get]
-//	@Produce	json
-//	@Success	200	{array}	Registry
-//	@Tags		Organization registries
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		org_id			path	string	true	"the org's id"
-//	@Param		page			query	int		false	"for response pagination, page offset number"	default(1)
-//	@Param		perPage			query	int		false	"for response pagination, max items per page"	default(50)
-func GetOrgRegistryList(c *gin.Context) {
+type GetOrgRegistryOutput struct {
+	Body *model.Registry
+}
+
+func GetOrgRegistry(ctx context.Context, input *GetOrgRegistryInput) (*GetOrgRegistryOutput, error) {
+	c := ginCtx(ctx)
 	org := session.Org(c)
 
 	registryService := server.Config.Services.Manager.RegistryService()
-	list, err := registryService.OrgRegistryList(org.ID, session.Pagination(c))
+	registry, err := registryService.OrgRegistryFind(org.ID, input.Registry)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error getting registry list for %q. %s", org.ID, err)
-		return
+		return nil, dbErr(err)
+	}
+	return &GetOrgRegistryOutput{Body: registry.Copy()}, nil
+}
+
+type GetOrgRegistryListInput struct {
+	PaginationParams
+	OrgID int64 `path:"org_id" doc:"the org's id"`
+}
+
+type GetOrgRegistryListOutput struct {
+	Body []*model.Registry
+}
+
+func GetOrgRegistryList(ctx context.Context, input *GetOrgRegistryListInput) (*GetOrgRegistryListOutput, error) {
+	c := ginCtx(ctx)
+	org := session.Org(c)
+
+	registryService := server.Config.Services.Manager.RegistryService()
+	list, err := registryService.OrgRegistryList(org.ID, &model.ListOptions{
+		Page:    input.Page,
+		PerPage: input.PerPage,
+	})
+	if err != nil {
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error getting registry list for %d", org.ID), err)
 	}
 	// copy the registry detail to remove the sensitive
 	// password and token fields.
 	for i, registry := range list {
 		list[i] = registry.Copy()
 	}
-	c.JSON(http.StatusOK, list)
+	return &GetOrgRegistryListOutput{Body: list}, nil
 }
 
-// PostOrgRegistry
-//
-//	@Summary	Create an organization registry
-//	@Router		/orgs/{org_id}/registries [post]
-//	@Produce	json
-//	@Success	200	{object}	Registry
-//	@Tags		Organization registries
-//	@Param		Authorization	header	string		true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		org_id			path	string		true	"the org's id"
-//	@Param		registryData	body	Registry	true	"the new registry"
-func PostOrgRegistry(c *gin.Context) {
+type PostOrgRegistryInput struct {
+	OrgID int64 `path:"org_id" doc:"the org's id"`
+	Body  model.Registry
+}
+
+type PostOrgRegistryOutput struct {
+	Body *model.Registry
+}
+
+func PostOrgRegistry(ctx context.Context, input *PostOrgRegistryInput) (*PostOrgRegistryOutput, error) {
+	c := ginCtx(ctx)
 	org := session.Org(c)
 
-	in := new(model.Registry)
-	if err := c.Bind(in); err != nil {
-		c.String(http.StatusBadRequest, "Error parsing org %q registry. %s", org.ID, err)
-		return
-	}
 	registry := &model.Registry{
 		OrgID:    org.ID,
-		Address:  in.Address,
-		Username: in.Username,
-		Password: in.Password,
+		Address:  input.Body.Address,
+		Username: input.Body.Username,
+		Password: input.Body.Password,
 	}
 	if err := registry.Validate(); err != nil {
-		c.String(http.StatusUnprocessableEntity, "Error inserting org %q registry. %s", org.ID, err)
-		return
+		return nil, huma.Error400BadRequest(fmt.Sprintf("Error inserting org %d registry: %s", org.ID, err))
 	}
 
 	registryService := server.Config.Services.Manager.RegistryService()
 	if err := registryService.OrgRegistryCreate(org.ID, registry); err != nil {
-		c.String(http.StatusInternalServerError, "Error inserting org %q registry %q. %s", org.ID, in.Address, err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error inserting org %d registry %q", org.ID, input.Body.Address), err)
 	}
-	c.JSON(http.StatusOK, registry.Copy())
+	return &PostOrgRegistryOutput{Body: registry.Copy()}, nil
 }
 
-// PatchOrgRegistry
-//
-//	@Summary	Update an organization registry by name
-//	@Router		/orgs/{org_id}/registries/{registry} [patch]
-//	@Produce	json
-//	@Success	200	{object}	Registry
-//	@Tags		Organization registries
-//	@Param		Authorization	header	string		true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		org_id			path	string		true	"the org's id"
-//	@Param		registry		path	string		true	"the registry's name"
-//	@Param		registryData	body	Registry	true	"the update registry data"
-func PatchOrgRegistry(c *gin.Context) {
-	org := session.Org(c)
-	addr := c.Param("registry")
+type PatchOrgRegistryInput struct {
+	OrgID    int64  `path:"org_id" doc:"the org's id"`
+	Registry string `path:"registry" doc:"the registry's name"`
+	Body     model.Registry
+}
 
-	in := new(model.Registry)
-	if err := c.Bind(in); err != nil {
-		c.String(http.StatusBadRequest, "Error parsing registry. %s", err)
-		return
-	}
+type PatchOrgRegistryOutput struct {
+	Body *model.Registry
+}
+
+func PatchOrgRegistry(ctx context.Context, input *PatchOrgRegistryInput) (*PatchOrgRegistryOutput, error) {
+	c := ginCtx(ctx)
+	org := session.Org(c)
 
 	registryService := server.Config.Services.Manager.RegistryService()
-	registry, err := registryService.OrgRegistryFind(org.ID, addr)
+	registry, err := registryService.OrgRegistryFind(org.ID, input.Registry)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
-	if in.Address != "" {
-		registry.Address = in.Address
+	if input.Body.Address != "" {
+		registry.Address = input.Body.Address
 	}
-	if in.Username != "" {
-		registry.Username = in.Username
+	if input.Body.Username != "" {
+		registry.Username = input.Body.Username
 	}
-	if in.Password != "" {
-		registry.Password = in.Password
+	if input.Body.Password != "" {
+		registry.Password = input.Body.Password
 	}
 
 	if err := registry.Validate(); err != nil {
-		c.String(http.StatusUnprocessableEntity, "Error updating org %q registry. %s", org.ID, err)
-		return
+		return nil, huma.Error400BadRequest(fmt.Sprintf("Error updating org %d registry: %s", org.ID, err))
 	}
 
 	if err := registryService.OrgRegistryUpdate(org.ID, registry); err != nil {
-		c.String(http.StatusInternalServerError, "Error updating org %q registry %q. %s", org.ID, in.Address, err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error updating org %d registry %q", org.ID, input.Body.Address), err)
 	}
-	c.JSON(http.StatusOK, registry.Copy())
+	return &PatchOrgRegistryOutput{Body: registry.Copy()}, nil
 }
 
-// DeleteOrgRegistry
-//
-//	@Summary	Delete an organization registry by name
-//	@Router		/orgs/{org_id}/registries/{registry} [delete]
-//	@Produce	plain
-//	@Success	204
-//	@Tags		Organization registries
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		org_id			path	string	true	"the org's id"
-//	@Param		registry		path	string	true	"the registry's name"
-func DeleteOrgRegistry(c *gin.Context) {
+type DeleteOrgRegistryInput struct {
+	OrgID    int64  `path:"org_id" doc:"the org's id"`
+	Registry string `path:"registry" doc:"the registry's name"`
+}
+
+func DeleteOrgRegistry(ctx context.Context, input *DeleteOrgRegistryInput) (*struct{}, error) {
+	c := ginCtx(ctx)
 	org := session.Org(c)
-	addr := c.Param("registry")
 
 	registryService := server.Config.Services.Manager.RegistryService()
-	if err := registryService.OrgRegistryDelete(org.ID, addr); err != nil {
-		handleDBError(c, err)
-		return
+	if err := registryService.OrgRegistryDelete(org.ID, input.Registry); err != nil {
+		return nil, dbErr(err)
 	}
-	c.Status(http.StatusNoContent)
+	return nil, nil
 }

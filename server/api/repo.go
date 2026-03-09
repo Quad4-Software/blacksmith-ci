@@ -17,6 +17,7 @@
 package api
 
 import (
+	"context"
 	"encoding/base32"
 	"errors"
 	"fmt"
@@ -24,12 +25,14 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 	"github.com/tink-crypto/tink-go/v2/subtle/random"
 
 	"codefloe.com/crowci/crow/v5/server"
 	"codefloe.com/crowci/crow/v5/server/forge"
+	forge_types "codefloe.com/crowci/crow/v5/server/forge/types"
 	"codefloe.com/crowci/crow/v5/server/model"
 	"codefloe.com/crowci/crow/v5/server/router/middleware/session"
 	"codefloe.com/crowci/crow/v5/server/store"
@@ -38,11 +41,14 @@ import (
 	shared_utils "codefloe.com/crowci/crow/v5/shared/utils"
 )
 
+// RepoFields is a method-free copy of model.Repo for clean huma schema generation.
+type RepoFields model.Repo
+
 // RepoResponse wraps a Repo with optional messages for the frontend.
 type RepoResponse struct {
-	*model.Repo
+	RepoFields
 	Messages []string `json:"messages,omitempty"`
-} //	@name	RepoResponse
+}
 
 // getUserWithForgeCredentials returns a copy of the user with credentials from the specified forge.
 // If forgeID is 0, it returns the user with their primary/current forge credentials.
@@ -332,104 +338,69 @@ func migrateOrgDataForRepoActivation(
 	return result
 }
 
-// PostRepo
-//
-//	@Summary	Activate a repository
-//	@Router		/repos [post]
-//	@Produce	json
-//	@Success	200	{object}	Repo
-//	@Tags		Repositories
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		forge_remote_id	query	string	true	"the id of a repository at the forge"
-//	@Param		forge_id		query	int		false	"the forge id (for multi-forge users)"
-func PostRepo(c *gin.Context) {
+type PostRepoInput struct {
+	ForgeRemoteID string `query:"forge_remote_id" doc:"the id of a repository at the forge"`
+	ForgeID       int64  `query:"forge_id" doc:"the forge id (for multi-forge users)"`
+}
+
+type PostRepoOutput struct {
+	Body *RepoResponse
+}
+
+func PostRepo(ctx context.Context, input *PostRepoInput) (*PostRepoOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	user := session.User(c)
 
-	// Parse optional forge_id parameter for multi-forge support
-	var forgeID int64
-	if forgeIDStr := c.Query("forge_id"); forgeIDStr != "" {
-		var err error
-		forgeID, err = strconv.ParseInt(forgeIDStr, 10, 64)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": fmt.Sprintf("Invalid forge_id parameter. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-			})
-			return
-		}
-	}
+	forgeID := input.ForgeID
 
 	// Get user with appropriate forge credentials
 	userWithCreds, forgeID, err := getUserWithForgeCredentials(_store, user, forgeID)
 	if err != nil {
 		log.Error().Err(err).Msg("Unable to get user credentials for forge")
-		c.JSON(http.StatusForbidden, gin.H{
-			"error": fmt.Sprintf("Unable to access forge: %s. Endpoint: %s %s", err.Error(), c.Request.Method, c.Request.URL.Path),
-		})
-		return
+		return nil, huma.Error403Forbidden(fmt.Sprintf("Unable to access forge: %s", err.Error()))
 	}
 
 	_forge, err := server.Config.Services.Manager.ForgeByID(forgeID)
 	if err != nil {
 		log.Error().Err(err).Msg("Unable to get forge info")
-		c.JSON(http.StatusConflict, gin.H{
-			"error": fmt.Sprintf("Unable to get forge info. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		return
+		return nil, huma.Error409Conflict("Unable to get forge info")
 	}
 
 	// Refresh tokens before forge API calls
 	refreshUserTokenForForge(c, userWithCreds, forgeID)
 	if c.IsAborted() {
-		return
+		return nil, huma.Error401Unauthorized("Your authorization has expired and couldn't be refreshed automatically. Please log in again")
 	}
 
-	forgeRemoteID := model.ForgeRemoteID(c.Query("forge_remote_id"))
+	forgeRemoteID := model.ForgeRemoteID(input.ForgeRemoteID)
 	if !forgeRemoteID.IsValid() {
 		log.Error().Msg("The provided 'forge_remote_id' is either invalid or empty")
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": fmt.Sprintf("The provided 'forge_remote_id' is either invalid or empty. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		return
+		return nil, huma.Error400BadRequest("The provided 'forge_remote_id' is either invalid or empty")
 	}
 
 	repo, err := _store.GetRepoForgeID(forgeRemoteID)
 	enabledOnce := err == nil // if there's no error, the repo was found and enabled once already
 	if enabledOnce && repo.IsActive {
 		log.Error().Msg("Repository is already active")
-		c.JSON(http.StatusConflict, gin.H{
-			"error": fmt.Sprintf("Repository is already active. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		return
+		return nil, huma.Error409Conflict("Repository is already active")
 	} else if err != nil && !errors.Is(err, types.RecordNotExist) {
 		log.Error().Err(err).Msg("Unable to get repository by its ID")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Unable to get repository by its ID. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		return
+		return nil, huma.Error500InternalServerError("Unable to get repository by its ID")
 	}
 
 	from, err := _forge.Repo(c, userWithCreds, forgeRemoteID, "", "")
 	if err != nil {
 		log.Error().Err(err).Msg("Unable to get repo information from forge")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Unable to get repo information from forge. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		return
+		return nil, huma.Error500InternalServerError("Unable to get repo information from forge")
 	}
 	if !from.Perm.Admin {
 		log.Error().Msg("You need to be a repository admin to execute this action")
-		c.JSON(http.StatusForbidden, gin.H{
-			"error": fmt.Sprintf("You need to be a repository admin to execute this action. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		return
+		return nil, huma.Error403Forbidden("You need to be a repository admin to execute this action")
 	}
 	if !server.Config.Permissions.OwnersAllowlist.IsAllowed(from) {
 		log.Error().Msg("Repository owner is not in allowlist")
-		c.JSON(http.StatusForbidden, gin.H{
-			"error": fmt.Sprintf("Repository owner is not in allowlist. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		return
+		return nil, huma.Error403Forbidden("Repository owner is not in allowlist")
 	}
 
 	if enabledOnce {
@@ -476,32 +447,22 @@ func PostRepo(c *gin.Context) {
 	org, err = _store.OrgFindByName(repo.Owner, forgeID)
 	if err != nil && !errors.Is(err, types.RecordNotExist) {
 		log.Error().Err(err).Msg("Unable to find organization")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Unable to find organization. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		return
+		return nil, huma.Error500InternalServerError("Unable to find organization")
 	}
 
 	// create an org if it doesn't exist yet
 	if errors.Is(err, types.RecordNotExist) {
 		org, err = _forge.Org(c, userWithCreds, repo.Owner)
 		if err != nil {
-			msg := fmt.Sprintf("Organization %s not found in DB. Attempting to create a new one.", repo.Owner)
-			log.Error().Err(err).Msg(msg)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": fmt.Sprintf("Organization %s not found in DB. Attempting to create a new one. Endpoint: %s %s", repo.Owner, c.Request.Method, c.Request.URL.Path),
-			})
-			return
+			log.Error().Err(err).Msgf("Organization %s not found in DB. Attempting to create a new one.", repo.Owner)
+			return nil, huma.Error500InternalServerError(fmt.Sprintf("Organization %s not found in DB. Attempting to create a new one.", repo.Owner))
 		}
 
 		org.ForgeID = forgeID
 		err = _store.OrgCreate(org)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to create organization")
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": fmt.Sprintf("Failed to create organization. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-			})
-			return
+			return nil, huma.Error500InternalServerError("Failed to create organization")
 		}
 		newOrgCreated = true
 	}
@@ -515,10 +476,7 @@ func PostRepo(c *gin.Context) {
 	sig, err := t.Sign(repo.Hash)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create JWT token")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to create JWT token. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		return
+		return nil, huma.Error500InternalServerError("Failed to create JWT token")
 	}
 
 	hookURL := fmt.Sprintf(
@@ -530,10 +488,7 @@ func PostRepo(c *gin.Context) {
 	err = _forge.Activate(c, userWithCreds, repo, hookURL)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to activate repo")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to activate repo. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		return
+		return nil, huma.Error500InternalServerError("Failed to activate repo")
 	}
 
 	if enabledOnce {
@@ -543,10 +498,7 @@ func PostRepo(c *gin.Context) {
 	}
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create/update repo")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to create/update repo. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		return
+		return nil, huma.Error500InternalServerError("Failed to create/update repo")
 	}
 
 	repo.Perm = from.Perm
@@ -557,10 +509,7 @@ func PostRepo(c *gin.Context) {
 	err = _store.PermUpsert(repo.Perm)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to update permissions")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to update permissions. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		return
+		return nil, huma.Error500InternalServerError("Failed to update permissions")
 	}
 
 	// Attempt to migrate org secrets and registry credentials from same-named orgs on other forges
@@ -644,63 +593,45 @@ func PostRepo(c *gin.Context) {
 		Strs("messages", messages).
 		Msg("Returning repo activation response")
 
+	resp := &RepoResponse{RepoFields: RepoFields(*repo)}
 	if len(messages) > 0 {
-		c.JSON(http.StatusOK, RepoResponse{Repo: repo, Messages: messages})
-	} else {
-		c.JSON(http.StatusOK, repo)
+		resp.Messages = messages
 	}
+	return &PostRepoOutput{Body: resp}, nil
 }
 
-// PatchRepo
-//
-//	@Summary	Update a repository
-//	@Router		/repos/{repo_id} [patch]
-//	@Produce	json
-//	@Success	200	{object}	Repo
-//	@Tags		Repositories
-//	@Param		Authorization	header	string		true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int			true	"the repository id"
-//	@Param		repo			body	RepoPatch	true	"the repository's information"
-func PatchRepo(c *gin.Context) {
+type PatchRepoInput struct {
+	RepoID int64 `path:"repo_id" doc:"the repository id"`
+	Body   model.RepoPatch
+}
+
+type PatchRepoOutput struct {
+	Body *model.Repo
+}
+
+func PatchRepo(ctx context.Context, input *PatchRepoInput) (*PatchRepoOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	repo := session.Repo(c)
 	user := session.User(c)
 
-	in := new(model.RepoPatch)
-	if err := c.Bind(in); err != nil {
-		log.Error().Err(err).Msg("Failed to bind request body")
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": fmt.Sprintf("Invalid request body: %v. Endpoint: %s %s", err, c.Request.Method, c.Request.URL.Path),
-		})
-		return
-	}
+	in := &input.Body
 
 	valid, err := shared_utils.IsValidKeepMinValue(in.LogsPipelinesKeepMin)
 	if err != nil || !valid {
 		log.Error().Err(err).Msgf("The provided minimum pipeline log retention value is invalid")
-		// Return a JSON response with a specific error field for the frontend
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": fmt.Sprintf("The provided minimum pipeline log retention value is invalid. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		return
+		return nil, huma.Error400BadRequest("The provided minimum pipeline log retention value is invalid")
 	}
 
 	err = shared_utils.ValidateDuration(in.LogsDurationKeep)
 	if err != nil {
 		log.Error().Err(err).Msgf("The provided maximum pipeline log duration retention value is invalid. Did you forget the unit indicator or use an invalid one?")
-		// Return a JSON response with a specific error field for the frontend
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": fmt.Sprintf("The provided maximum pipeline log duration retention value is invalid. Did you forget the unit indicator or use an invalid one? Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		return
+		return nil, huma.Error400BadRequest("The provided maximum pipeline log duration retention value is invalid. Did you forget the unit indicator or use an invalid one?")
 	}
 
 	if in.Timeout != nil && *in.Timeout > server.Config.Pipeline.MaxTimeout {
 		log.Error().Msg("Timeout is not allowed to be higher than max. configured timeout")
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": fmt.Sprintf("Timeout is not allowed to be higher than max. configured timeout (%d min). Endpoint: %s %s", server.Config.Pipeline.MaxTimeout, c.Request.Method, c.Request.URL.Path),
-		})
-		return
+		return nil, huma.Error400BadRequest(fmt.Sprintf("Timeout is not allowed to be higher than max. configured timeout (%d min)", server.Config.Pipeline.MaxTimeout))
 	}
 
 	if in.Trusted != nil {
@@ -711,10 +642,7 @@ func PatchRepo(c *gin.Context) {
 
 		if (changingNetwork || changingVolumes || changingSecurity) && !user.Admin {
 			log.Trace().Msgf("user '%s' wants to change trusted without being an instance admin", user.Login)
-			c.JSON(http.StatusForbidden, gin.H{
-				"error": "Instance admin privileges required to change trusted repository settings",
-			})
-			return
+			return nil, huma.Error403Forbidden("Instance admin privileges required to change trusted repository settings")
 		}
 
 		if in.Trusted.Network != nil {
@@ -746,10 +674,7 @@ func PatchRepo(c *gin.Context) {
 			repo.RequireApproval = mode
 		} else {
 			log.Error().Msg("Invalid require-approval setting")
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": fmt.Sprintf("Invalid require-approval setting. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-			})
-			return
+			return nil, huma.Error400BadRequest("Invalid require-approval setting")
 		}
 	}
 	if in.Timeout != nil {
@@ -770,10 +695,7 @@ func PatchRepo(c *gin.Context) {
 			repo.Visibility = model.RepoVisibility(*in.Visibility)
 		default:
 			log.Error().Msg("Invalid visibility type")
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": fmt.Sprintf("Invalid visibility type. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-			})
-			return
+			return nil, huma.Error400BadRequest("Invalid visibility type")
 		}
 	}
 
@@ -783,23 +705,22 @@ func PatchRepo(c *gin.Context) {
 	err = _store.UpdateRepo(repo)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to update repo")
-		_ = c.AbortWithError(http.StatusInternalServerError, err)
-		return
+		return nil, huma.Error500InternalServerError("Failed to update repo", err)
 	}
 
-	c.JSON(http.StatusOK, repo)
+	return &PatchRepoOutput{Body: repo}, nil
 }
 
-// ChownRepo
-//
-//	@Summary	Change a repository's owner to the currently authenticated user
-//	@Router		/repos/{repo_id}/chown [post]
-//	@Produce	json
-//	@Success	200	{object}	Repo
-//	@Tags		Repositories
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-func ChownRepo(c *gin.Context) {
+type ChownRepoInput struct {
+	RepoID int64 `path:"repo_id" doc:"the repository id"`
+}
+
+type ChownRepoOutput struct {
+	Body *model.Repo
+}
+
+func ChownRepo(ctx context.Context, input *ChownRepoInput) (*ChownRepoOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	repo := session.Repo(c)
 	user := session.User(c)
@@ -808,88 +729,80 @@ func ChownRepo(c *gin.Context) {
 	err := _store.UpdateRepo(repo)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to update repo")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to update repo. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		_ = c.AbortWithError(http.StatusInternalServerError, err)
-		return
+		return nil, huma.Error500InternalServerError("Failed to update repo", err)
 	}
-	c.JSON(http.StatusOK, repo)
+	return &ChownRepoOutput{Body: repo}, nil
 }
 
-// LookupRepo
-//
-//	@Summary	Lookup a repository by full name
-//	@Router		/repos/lookup/{repo_full_name} [get]
-//	@Produce	json
-//	@Success	200	{object}	Repo
-//	@Tags		Repositories
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_full_name	path	string	true	"the repository full name / slug"
-func LookupRepo(c *gin.Context) {
+type LookupRepoInput struct {
+	RepoFullName string `path:"repo_full_name" doc:"the repository full name / slug"`
+}
+
+type LookupRepoOutput struct {
+	Body *model.Repo
+}
+
+func LookupRepo(ctx context.Context, input *LookupRepoInput) (*LookupRepoOutput, error) {
+	c := ginCtx(ctx)
+	return &LookupRepoOutput{Body: session.Repo(c)}, nil
+}
+
+// LookupRepoGin is a gin handler wrapper for LookupRepo (needed because the
+// route uses a wildcard path param that huma doesn't support).
+func LookupRepoGin(c *gin.Context) {
 	c.JSON(http.StatusOK, session.Repo(c))
 }
 
-// GetRepo
-//
-//	@Summary	Get a repository
-//	@Router		/repos/{repo_id} [get]
-//	@Produce	json
-//	@Success	200	{object}	Repo
-//	@Tags		Repositories
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-func GetRepo(c *gin.Context) {
-	c.JSON(http.StatusOK, session.Repo(c))
+type GetRepoInput struct {
+	RepoID int64 `path:"repo_id" doc:"the repository id"`
 }
 
-// GetRepoPermissions
-//
-//	@Summary		Check current authenticated users access to the repository
-//	@Description	The repository permission, according to the used access token.
-//	@Router			/repos/{repo_id}/permissions [get]
-//	@Produce		json
-//	@Success		200	{object}	Perm
-//	@Tags			Repositories
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			repo_id			path	int		true	"the repository id"
-func GetRepoPermissions(c *gin.Context) {
+type GetRepoOutput struct {
+	Body *model.Repo
+}
+
+func GetRepo(ctx context.Context, input *GetRepoInput) (*GetRepoOutput, error) {
+	c := ginCtx(ctx)
+	return &GetRepoOutput{Body: session.Repo(c)}, nil
+}
+
+type GetRepoPermissionsInput struct {
+	RepoID int64 `path:"repo_id" doc:"the repository id"`
+}
+
+type GetRepoPermissionsOutput struct {
+	Body *model.Perm
+}
+
+func GetRepoPermissions(ctx context.Context, input *GetRepoPermissionsInput) (*GetRepoPermissionsOutput, error) {
+	c := ginCtx(ctx)
 	perm := session.Perm(c)
-	c.JSON(http.StatusOK, perm)
+	return &GetRepoPermissionsOutput{Body: perm}, nil
 }
 
-// GetRepoBranches
-//
-//	@Summary	Get branches of a repository
-//	@Router		/repos/{repo_id}/branches [get]
-//	@Produce	json
-//	@Success	200	{array}	string
-//	@Tags		Repositories
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-//	@Param		page			query	int		false	"for response pagination, page offset number"	default(1)
-//	@Param		perPage			query	int		false	"for response pagination, max items per page"	default(50)
-func GetRepoBranches(c *gin.Context) {
+type GetRepoBranchesInput struct {
+	RepoID int64 `path:"repo_id" doc:"the repository id"`
+	PaginationParams
+}
+
+type GetRepoBranchesOutput struct {
+	Body []string
+}
+
+func GetRepoBranches(ctx context.Context, input *GetRepoBranchesInput) (*GetRepoBranchesOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	repo := session.Repo(c)
 	_forge, err := server.Config.Services.Manager.ForgeFromRepo(repo)
 	if err != nil {
 		log.Error().Err(err).Msg("Unable to get forge information")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Unable to get forge information. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
+		return nil, huma.Error500InternalServerError("Unable to get forge information")
 	}
 
 	repoUser, err := _store.GetUser(repo.UserID)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get user")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to get user. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
 	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
@@ -903,54 +816,44 @@ func GetRepoBranches(c *gin.Context) {
 
 	if refreshErr := forge.RefreshUserForge(c, _forge, _store, repoUser, repo.ForgeID); refreshErr != nil {
 		log.Error().Err(refreshErr).Msg("Failed to refresh user auth token")
-		c.Header("Content-Type", "text/plain; charset=utf-8")
-		c.String(http.StatusUnauthorized, "Your authorization has expired and couldn't be refreshed automatically. Please log in again")
-		c.Abort()
-		return
+		return nil, huma.Error401Unauthorized("Your authorization has expired and couldn't be refreshed automatically. Please log in again")
 	}
 
-	branches, err := _forge.Branches(c, repoUser, repo, session.Pagination(c))
+	branches, err := _forge.Branches(c, repoUser, repo, &model.ListOptions{Page: input.Page, PerPage: input.PerPage})
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get branches from repo")
-		handleForgeError(c, err)
-		return
+		if errors.Is(err, &forge_types.ErrTokenRefreshFailed{}) {
+			return nil, huma.Error401Unauthorized("Your authorization has expired and couldn't be refreshed automatically. Please log in again")
+		}
+		return nil, huma.Error500InternalServerError(err.Error())
 	}
 
-	c.JSON(http.StatusOK, branches)
+	return &GetRepoBranchesOutput{Body: branches}, nil
 }
 
-// GetRepoPullRequests
-//
-//	@Summary	List active pull requests of a repository
-//	@Router		/repos/{repo_id}/pull_requests [get]
-//	@Produce	json
-//	@Success	200	{array}	PullRequest
-//	@Tags		Repositories
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-//	@Param		page			query	int		false	"for response pagination, page offset number"	default(1)
-//	@Param		perPage			query	int		false	"for response pagination, max items per page"	default(50)
-func GetRepoPullRequests(c *gin.Context) {
+type GetRepoPullRequestsInput struct {
+	RepoID int64 `path:"repo_id" doc:"the repository id"`
+	PaginationParams
+}
+
+type GetRepoPullRequestsOutput struct {
+	Body []*model.PullRequest
+}
+
+func GetRepoPullRequests(ctx context.Context, input *GetRepoPullRequestsInput) (*GetRepoPullRequestsOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	repo := session.Repo(c)
 	_forge, err := server.Config.Services.Manager.ForgeFromRepo(repo)
 	if err != nil {
 		log.Error().Err(err).Msg("Unable to get repo information from forge")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Unable to get repo information from forge. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
+		return nil, huma.Error500InternalServerError("Unable to get repo information from forge")
 	}
 
 	repoUser, err := _store.GetUser(repo.UserID)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get user")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to get user. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
 	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
@@ -964,44 +867,39 @@ func GetRepoPullRequests(c *gin.Context) {
 
 	if refreshErr := forge.RefreshUserForge(c, _forge, _store, repoUser, repo.ForgeID); refreshErr != nil {
 		log.Error().Err(refreshErr).Msg("Failed to refresh user auth token")
-		c.Header("Content-Type", "text/plain; charset=utf-8")
-		c.String(http.StatusUnauthorized, "Your authorization has expired and couldn't be refreshed automatically. Please log in again")
-		c.Abort()
-		return
+		return nil, huma.Error401Unauthorized("Your authorization has expired and couldn't be refreshed automatically. Please log in again")
 	}
 
-	prs, err := _forge.PullRequests(c, repoUser, repo, session.Pagination(c))
+	prs, err := _forge.PullRequests(c, repoUser, repo, &model.ListOptions{Page: input.Page, PerPage: input.PerPage})
 	if err != nil {
 		log.Error().Err(err).Msg("Unable to get pull requests from forge")
-		handleForgeError(c, err)
-		return
+		if errors.Is(err, &forge_types.ErrTokenRefreshFailed{}) {
+			return nil, huma.Error401Unauthorized("Your authorization has expired and couldn't be refreshed automatically. Please log in again")
+		}
+		return nil, huma.Error500InternalServerError(err.Error())
 	}
 
-	c.JSON(http.StatusOK, prs)
+	return &GetRepoPullRequestsOutput{Body: prs}, nil
 }
 
-// DeleteRepo
-//
-//	@Summary	Delete a repository
-//	@Router		/repos/{repo_id} [delete]
-//	@Produce	json
-//	@Success	200	{object}	Repo
-//	@Tags		Repositories
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-func DeleteRepo(c *gin.Context) {
-	remove, _ := strconv.ParseBool(c.Query("remove"))
+type DeleteRepoInput struct {
+	RepoID int64 `path:"repo_id" doc:"the repository id"`
+	Remove bool  `query:"remove" doc:"permanently delete the repository"`
+}
+
+type DeleteRepoOutput struct {
+	Body *model.Repo
+}
+
+func DeleteRepo(ctx context.Context, input *DeleteRepoInput) (*DeleteRepoOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	repo := session.Repo(c)
 	user := session.User(c)
 	_forge, err := server.Config.Services.Manager.ForgeFromRepo(repo)
 	if err != nil {
 		log.Error().Err(err).Msg("Unable to get repo information from forge")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Unable to get repo information from forge. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
+		return nil, huma.Error500InternalServerError("Unable to get repo information from forge")
 	}
 
 	// For multi-forge support: get the user's tokens for this repo's forge
@@ -1014,26 +912,18 @@ func DeleteRepo(c *gin.Context) {
 	// Refresh tokens before forge API call
 	refreshUserTokenForForge(c, forgeUser, repo.ForgeID)
 	if c.IsAborted() {
-		return
+		return nil, huma.Error401Unauthorized("Your authorization has expired and couldn't be refreshed automatically. Please log in again")
 	}
 
 	if err := _forge.Deactivate(c, forgeUser, repo, server.Config.Server.WebhookHost); err != nil {
 		log.Error().Err(err).Msg("Failed to deactivate repo")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to deactivate repo. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		_ = c.AbortWithError(http.StatusInternalServerError, err)
-		return
+		return nil, huma.Error500InternalServerError("Failed to deactivate repo", err)
 	}
 
-	if remove {
+	if input.Remove {
 		if err := _store.DeleteRepo(repo); err != nil {
 			log.Error().Err(err).Msg("Failed to delete repo")
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": fmt.Sprintf("Failed to delete repo. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-			})
-			handleDBError(c, err)
-			return
+			return nil, dbErr(err)
 		}
 	} else {
 		repo.IsActive = false
@@ -1041,146 +931,90 @@ func DeleteRepo(c *gin.Context) {
 
 		if err := _store.UpdateRepo(repo); err != nil {
 			log.Error().Err(err).Msg("Unable to update repo")
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": fmt.Sprintf("Unable to update repo. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-			})
-			_ = c.AbortWithError(http.StatusInternalServerError, err)
-			return
+			return nil, huma.Error500InternalServerError("Unable to update repo", err)
 		}
 	}
 
-	c.JSON(http.StatusOK, repo)
+	return &DeleteRepoOutput{Body: repo}, nil
 }
 
-// RepairRepo
-//
-//	@Summary	Repair a repository
-//	@Router		/repos/{repo_id}/repair [post]
-//	@Produce	plain
-//	@Success	204
-//	@Tags		Repositories
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-func RepairRepo(c *gin.Context) {
+type RepairRepoInput struct {
+	RepoID int64 `path:"repo_id" doc:"the repository id"`
+}
+
+func RepairRepo(ctx context.Context, input *RepairRepoInput) (*struct{}, error) {
+	c := ginCtx(ctx)
 	repo := session.Repo(c)
-	repairRepo(c, repo, true, false)
-	if c.Writer.Written() {
-		return
+	if err := repairRepo(c, repo, true, false); err != nil {
+		return nil, err
 	}
-	c.Status(http.StatusNoContent)
+	return nil, nil
 }
 
-// MoveRepo
-//
-//	@Summary	Move a repository to a new owner
-//	@Router		/repos/{repo_id}/move [post]
-//	@Produce	plain
-//	@Success	204
-//	@Tags		Repositories
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-//	@Param		to				query	string	true	"the username to move the repository to"
-func MoveRepo(c *gin.Context) {
+type MoveRepoInput struct {
+	RepoID int64  `path:"repo_id" doc:"the repository id"`
+	To     string `query:"to" required:"true" doc:"the username to move the repository to"`
+}
+
+func MoveRepo(ctx context.Context, input *MoveRepoInput) (*struct{}, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	repo := session.Repo(c)
 	user := session.User(c)
 	_forge, err := server.Config.Services.Manager.ForgeFromRepo(repo)
 	if err != nil {
 		log.Error().Err(err).Msg("Unable to get repo information from forge")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Unable to get repo information from forge. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
+		return nil, huma.Error500InternalServerError("Unable to get repo information from forge")
 	}
 
 	// For multi-forge support: get the user's tokens for this repo's forge
 	forgeUser, _, err := getUserWithForgeCredentials(_store, user, repo.ForgeID)
 	if err != nil {
 		log.Error().Err(err).Int64("forge_id", repo.ForgeID).Msg("User does not have tokens for repo's forge")
-		c.JSON(http.StatusForbidden, gin.H{
-			"error": "You don't have access to this repository's forge",
-		})
-		c.AbortWithStatus(http.StatusForbidden)
-		return
+		return nil, huma.Error403Forbidden("You don't have access to this repository's forge")
 	}
 
 	// Refresh tokens before forge API call
 	refreshUserTokenForForge(c, forgeUser, repo.ForgeID)
 	if c.IsAborted() {
-		return
+		return nil, huma.Error401Unauthorized("Your authorization has expired and couldn't be refreshed automatically. Please log in again")
 	}
 
-	to, exists := c.GetQuery("to")
-	if !exists {
-		err := fmt.Errorf("missing required 'to' value in query")
-		log.Error().Err(err).Msg("Missing required 'to' value in query")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Missing required 'to' value in query. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		_ = c.AbortWithError(http.StatusInternalServerError, err)
-		return
-	}
-
-	owner, name, errParse := model.ParseRepo(to)
+	owner, name, errParse := model.ParseRepo(input.To)
 	if errParse != nil {
 		log.Error().Err(errParse).Msg("Error parsing repo")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Error parsing repo. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		_ = c.AbortWithError(http.StatusInternalServerError, errParse)
-		return
+		return nil, huma.Error500InternalServerError("Error parsing repo", errParse)
 	}
 
 	from, err := _forge.Repo(c, forgeUser, "", owner, name)
 	if err != nil {
 		log.Error().Err(err).Msg("Error retrieving repo")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Error retrieving repo. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		_ = c.AbortWithError(http.StatusInternalServerError, err)
-		return
+		return nil, huma.Error500InternalServerError("Error retrieving repo", err)
 	}
 
 	if !from.Perm.Admin {
 		log.Error().Msg("Insufficient permissions to move repo")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Insufficient permissions to move repo. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		c.AbortWithStatus(http.StatusUnauthorized)
-		return
+		return nil, huma.Error401Unauthorized("Insufficient permissions to move repo")
 	}
 
 	err = _store.CreateRedirection(&model.Redirection{ForgeID: repo.ForgeID, RepoID: repo.ID, FullName: repo.FullName})
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create redirection")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to create redirection. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		_ = c.AbortWithError(http.StatusInternalServerError, err)
-		return
+		return nil, huma.Error500InternalServerError("Failed to create redirection", err)
 	}
 
 	repo.Update(from)
 	errStore := _store.UpdateRepo(repo)
 	if errStore != nil {
 		log.Error().Err(errStore).Msg("Failed to update repo")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to update repo. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		_ = c.AbortWithError(http.StatusInternalServerError, errStore)
-		return
+		return nil, huma.Error500InternalServerError("Failed to update repo", errStore)
 	}
 
 	repo.Perm = from.Perm
 	errStore = _store.PermUpsert(repo.Perm)
 	if errStore != nil {
 		log.Error().Err(errStore).Msg("Failed to update permissions")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to update permissions. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		_ = c.AbortWithError(http.StatusInternalServerError, errStore)
-		return
+		return nil, huma.Error500InternalServerError("Failed to update permissions", errStore)
 	}
 
 	// creates the jwt token used to verify the repository
@@ -1190,10 +1024,7 @@ func MoveRepo(c *gin.Context) {
 	sig, err := t.Sign(repo.Hash)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create JWT token")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to create JWT token. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		return
+		return nil, huma.Error500InternalServerError("Failed to create JWT token")
 	}
 
 	// reconstruct the hook url
@@ -1206,69 +1037,52 @@ func MoveRepo(c *gin.Context) {
 
 	if err := _forge.Deactivate(c, forgeUser, repo, host); err != nil {
 		log.Error().Err(err).Msg("Failed to deactivate repo (during move operation)")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to deactivate repo (during move operation). Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
 	}
 	if err := _forge.Activate(c, forgeUser, repo, hookURL); err != nil {
 		log.Error().Err(err).Msg("Failed to activate repo (during move operation)")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to activate repo (during move operation). Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		return
+		return nil, huma.Error500InternalServerError("Failed to activate repo (during move operation)")
 	}
-	c.Status(http.StatusNoContent)
+	return nil, nil
 }
 
-// GetAllRepos
-//
-//	@Summary		List all repositories on the server
-//	@Description	Returns a list of all repositories. Requires admin rights.
-//	@Router			/repos [get]
-//	@Produce		json
-//	@Success		200	{array}	Repo
-//	@Tags			Repositories
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			active			query	bool	false	"only list active repos"
-//	@Param			page			query	int		false	"for response pagination, page offset number"	default(1)
-//	@Param			perPage			query	int		false	"for response pagination, max items per page"	default(50)
-func GetAllRepos(c *gin.Context) {
+type GetAllReposInput struct {
+	PaginationParams
+	Active bool `query:"active" doc:"only list active repos"`
+}
+
+type GetAllReposOutput struct {
+	Body []*model.Repo
+}
+
+func GetAllRepos(ctx context.Context, input *GetAllReposInput) (*GetAllReposOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 
-	active, _ := strconv.ParseBool(c.Query("active"))
-
-	repos, err := _store.RepoListAll(active, session.Pagination(c))
+	repos, err := _store.RepoListAll(input.Active, &model.ListOptions{Page: input.Page, PerPage: input.PerPage})
 	if err != nil {
 		log.Error().Err(err).Msg("Error fetching repository list")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Error fetching repository list. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		return
+		return nil, huma.Error500InternalServerError("Error fetching repository list")
 	}
 
-	c.JSON(http.StatusOK, repos)
+	return &GetAllReposOutput{Body: repos}, nil
 }
 
-// GetPublicRepos
-//
-//	@Summary		List public repositories
-//	@Description	Returns a list of public repositories (no authentication required)
-//	@Router			/repos/public [get]
-//	@Produce		json
-//	@Success		200	{array}	RepoLastPipeline
-//	@Tags			Repositories
-//	@Param			page	query	int	false	"for response pagination, page offset number"	default(1)
-//	@Param			perPage	query	int	false	"for response pagination, max items per page"	default(50)
-func GetPublicRepos(c *gin.Context) {
+type GetPublicReposInput struct {
+	PaginationParams
+}
+
+type GetPublicReposOutput struct {
+	Body []*model.RepoLastPipeline
+}
+
+func GetPublicRepos(ctx context.Context, input *GetPublicReposInput) (*GetPublicReposOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 
-	repos, err := _store.RepoListPublic(session.Pagination(c))
+	repos, err := _store.RepoListPublic(&model.ListOptions{Page: input.Page, PerPage: input.PerPage})
 	if err != nil {
 		log.Error().Err(err).Msg("Error fetching public repository list")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Error fetching public repository list. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		return
+		return nil, huma.Error500InternalServerError("Error fetching public repository list")
 	}
 
 	// Fetch latest pipelines for each repo
@@ -1280,10 +1094,7 @@ func GetPublicRepos(c *gin.Context) {
 	pipelines, err := _store.GetRepoLatestPipelines(repoIDs)
 	if err != nil {
 		log.Error().Err(err).Msg("Error fetching latest pipelines for public repos")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Error fetching latest pipelines. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		return
+		return nil, huma.Error500InternalServerError("Error fetching latest pipelines")
 	}
 
 	latestPipelines := make(map[int64]*model.Pipeline, len(repos))
@@ -1299,50 +1110,36 @@ func GetPublicRepos(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, result)
+	return &GetPublicReposOutput{Body: result}, nil
 }
 
-// RepairAllRepos
-//
-//	@Summary		Repair all repositories on the server
-//	@Description	Executes a repair process on all repositories. Requires admin rights.
-//	@Router			/repos/repair [post]
-//	@Produce		plain
-//	@Success		204
-//	@Tags			Repositories
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-func RepairAllRepos(c *gin.Context) {
+type RepairAllReposInput struct{}
+
+func RepairAllRepos(ctx context.Context, input *RepairAllReposInput) (*struct{}, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 
 	repos, err := _store.RepoListAll(true, &model.ListOptions{All: true})
 	if err != nil {
 		log.Error().Err(err).Msg("Error fetching repository list")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Error fetching repository list. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		return
+		return nil, huma.Error500InternalServerError("Error fetching repository list")
 	}
 
 	for _, r := range repos {
-		repairRepo(c, r, false, true)
-		if c.Writer.Written() {
-			return
+		if err := repairRepo(c, r, false, true); err != nil {
+			return nil, err
 		}
 	}
 
-	c.Status(http.StatusNoContent)
+	return nil, nil
 }
 
-func repairRepo(c *gin.Context, repo *model.Repo, withPerms, skipOnErr bool) {
+func repairRepo(c *gin.Context, repo *model.Repo, withPerms, skipOnErr bool) error {
 	_store := store.FromContext(c)
 	_forge, err := server.Config.Services.Manager.ForgeFromRepo(repo)
 	if err != nil {
 		log.Error().Err(err).Msg("Unable to get repo information from forge")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Unable to get repo information from forge. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
+		return huma.Error500InternalServerError("Unable to get repo information from forge")
 	}
 
 	user, err := _store.GetUser(repo.UserID)
@@ -1354,17 +1151,12 @@ func repairRepo(c *gin.Context, repo *model.Repo, withPerms, skipOnErr bool) {
 			err = _store.UpdateRepo(repo)
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to update repo user ID")
-				_ = c.AbortWithError(http.StatusInternalServerError, err)
-				return
+				return huma.Error500InternalServerError("Failed to update repo user ID", err)
 			}
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": fmt.Sprintf("Could not find repo user with ID %d during repo repair. Setting to repair request user with ID %d. Endpoint: %s %s", oldUserID, user.ID, c.Request.Method, c.Request.URL.Path),
-			})
 			log.Debug().Msgf("Could not find repo user with ID %d during repo repair. Setting to repair request user with ID %d", oldUserID, user.ID)
 		} else {
 			log.Error().Err(err).Msg("Failed to get user")
-			_ = c.AbortWithError(http.StatusInternalServerError, err)
-			return
+			return huma.Error500InternalServerError("Failed to get user", err)
 		}
 	}
 
@@ -1380,7 +1172,7 @@ func repairRepo(c *gin.Context, repo *model.Repo, withPerms, skipOnErr bool) {
 	// Refresh tokens before forge API call
 	refreshUserTokenForForge(c, user, repo.ForgeID)
 	if c.IsAborted() {
-		return
+		return huma.Error401Unauthorized("Your authorization has expired and couldn't be refreshed automatically. Please log in again")
 	}
 
 	// creates the jwt token used to verify the repository
@@ -1390,10 +1182,7 @@ func repairRepo(c *gin.Context, repo *model.Repo, withPerms, skipOnErr bool) {
 	sig, err := t.Sign(repo.Hash)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create JWT token")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to create JWT token. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		return
+		return huma.Error500InternalServerError("Failed to create JWT token")
 	}
 
 	// reconstruct the hook url
@@ -1408,12 +1197,9 @@ func repairRepo(c *gin.Context, repo *model.Repo, withPerms, skipOnErr bool) {
 	if err != nil {
 		log.Error().Err(err).Msgf("get repo '%s/%s' from forge", repo.Owner, repo.Name)
 		if !skipOnErr {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": fmt.Sprintf("Unable to get repo information from forge. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-			})
-			c.AbortWithStatus(http.StatusInternalServerError)
+			return huma.Error500InternalServerError("Unable to get repo information from forge")
 		}
-		return
+		return nil
 	}
 
 	if repo.FullName != from.FullName {
@@ -1421,22 +1207,14 @@ func repairRepo(c *gin.Context, repo *model.Repo, withPerms, skipOnErr bool) {
 		err = _store.CreateRedirection(&model.Redirection{ForgeID: repo.ForgeID, RepoID: repo.ID, FullName: repo.FullName})
 		if err != nil {
 			log.Error().Err(err).Msg("Unable to create redirection")
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": fmt.Sprintf("Unable to create redirection. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-			})
-			_ = c.AbortWithError(http.StatusInternalServerError, err)
-			return
+			return huma.Error500InternalServerError("Unable to create redirection", err)
 		}
 	}
 
 	repo.Update(from)
 	if err := _store.UpdateRepo(repo); err != nil {
 		log.Error().Err(err).Msg("Failed to update repo")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to update repo. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		_ = c.AbortWithError(http.StatusInternalServerError, err)
-		return
+		return huma.Error500InternalServerError("Failed to update repo", err)
 	}
 	if withPerms {
 		repo.Perm.Pull = from.Perm.Pull
@@ -1444,25 +1222,16 @@ func repairRepo(c *gin.Context, repo *model.Repo, withPerms, skipOnErr bool) {
 		repo.Perm.Admin = from.Perm.Admin
 		if err := _store.PermUpsert(repo.Perm); err != nil {
 			log.Error().Err(err).Msg("Unable to update permissions")
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": fmt.Sprintf("Unable to update permissions. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-			})
-			_ = c.AbortWithError(http.StatusInternalServerError, err)
-			return
+			return huma.Error500InternalServerError("Unable to update permissions", err)
 		}
 	}
 
 	if err := _forge.Deactivate(c, user, repo, host); err != nil {
 		log.Error().Err(err).Msgf("Failed to deactivate repo '%s' to repair", repo.FullName)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to deactivate repo. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
 	}
 	if err := _forge.Activate(c, user, repo, hookURL); err != nil {
 		log.Error().Err(err).Msg("Failed to activate repo")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to activate repo. Endpoint: %s %s", c.Request.Method, c.Request.URL.Path),
-		})
-		return
+		return huma.Error500InternalServerError("Failed to activate repo")
 	}
+	return nil
 }

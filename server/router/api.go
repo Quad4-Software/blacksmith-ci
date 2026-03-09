@@ -15,6 +15,9 @@
 package router
 
 import (
+	"net/http"
+
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 
@@ -25,357 +28,878 @@ import (
 	"codefloe.com/crowci/crow/v5/server/router/middleware/token"
 )
 
-func apiRoutes(e *gin.RouterGroup) {
+func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 	// Legacy hook endpoint for backwards compatibility with existing webhooks
-	// New repos will use /api/v1/hook (see repo.go)
+	// New repos will use /api/v1/hook (see below)
 	e.POST("/api/hook", api.PostHook)
 
-	apiBase := e.Group("/api/v1")
 	apiBase.Use(token.Refresh)
 	apiBase.Use(session.SetAutoscaler())
+
+	// ── User routes ──────────────────────────────────────────────────────
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-self", Method: http.MethodGet, Path: "/user",
+		Summary: "Get the currently authenticated user", Tags: []string{"User"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetSelf)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-feed", Method: http.MethodGet, Path: "/user/feed",
+		Summary: "Get the currently authenticated user's pipeline feed", Tags: []string{"User"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetFeed)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-user-repos", Method: http.MethodGet, Path: "/user/repos",
+		Summary: "Get the currently authenticated user's repositories", Tags: []string{"User"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetRepos)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-user-orgs", Method: http.MethodGet, Path: "/user/orgs",
+		Summary: "Get the currently authenticated user's organizations", Tags: []string{"User"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetUserOrgList)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-user-secrets", Method: http.MethodGet, Path: "/user/secrets",
+		Summary: "Get the currently authenticated user's secrets", Tags: []string{"User"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetUserSecretList)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-user-registries", Method: http.MethodGet, Path: "/user/registries",
+		Summary: "Get the currently authenticated user's registries", Tags: []string{"User"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetUserRegistryList)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-user-crons", Method: http.MethodGet, Path: "/user/crons",
+		Summary: "Get the currently authenticated user's cron jobs", Tags: []string{"User"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetUserCronList)
+
+	// User forge connections (multi-forge support)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-user-forges", Method: http.MethodGet, Path: "/user/forges",
+		Summary: "Get the currently authenticated user's forge connections", Tags: []string{"User"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetUserForges)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-available-forges", Method: http.MethodGet, Path: "/user/forges/available",
+		Summary: "Get available forges for the current user", Tags: []string{"User"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetAvailableForges)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-user-forge", Method: http.MethodGet, Path: "/user/forges/{forge_id}",
+		Summary: "Get a specific user forge connection", Tags: []string{"User"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetUserForge)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-user-forge-affected-repos", Method: http.MethodGet, Path: "/user/forges/{forge_id}/affected-repos",
+		Summary: "Get repos affected by a user forge connection", Tags: []string{"User"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetUserForgeAffectedRepos)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "delete-user-forge", Method: http.MethodDelete, Path: "/user/forges/{forge_id}",
+		Summary: "Delete a user forge connection", Tags: []string{"User"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.DeleteUserForge)
+
+	// Integrations (external secret stores)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-integrations", Method: http.MethodGet, Path: "/user/integrations",
+		Summary: "Get integration list", Tags: []string{"Integrations"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetIntegrationList)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-accessible-integrations", Method: http.MethodGet, Path: "/user/integrations/accessible",
+		Summary: "Get accessible integrations", Tags: []string{"Integrations"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetAccessibleIntegrations)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "post-integration", Method: http.MethodPost, Path: "/user/integrations",
+		Summary: "Create a new integration", Tags: []string{"Integrations"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.PostIntegration)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-integration", Method: http.MethodGet, Path: "/user/integrations/{integration_id}",
+		Summary: "Get an integration", Tags: []string{"Integrations"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetIntegration)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "patch-integration", Method: http.MethodPatch, Path: "/user/integrations/{integration_id}",
+		Summary: "Update an integration", Tags: []string{"Integrations"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.PatchIntegration)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "delete-integration", Method: http.MethodDelete, Path: "/user/integrations/{integration_id}",
+		Summary: "Delete an integration", Tags: []string{"Integrations"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.DeleteIntegration)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "test-integration", Method: http.MethodPost, Path: "/user/integrations/{integration_id}/test",
+		Summary: "Test an integration", Tags: []string{"Integrations"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.TestIntegration)
+
+	// Access tokens (new API)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-access-tokens", Method: http.MethodGet, Path: "/user/access-tokens",
+		Summary: "List access tokens", Tags: []string{"Access Tokens"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetAccessTokenList)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "post-access-token", Method: http.MethodPost, Path: "/user/access-tokens",
+		Summary: "Create an access token", Tags: []string{"Access Tokens"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.PostAccessToken)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "delete-access-tokens-batch", Method: http.MethodDelete, Path: "/user/access-tokens/batch",
+		Summary: "Delete multiple access tokens", Tags: []string{"Access Tokens"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.DeleteAccessTokenBatch)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-available-scopes", Method: http.MethodGet, Path: "/user/access-tokens/scopes",
+		Summary: "Get available token scopes", Tags: []string{"Access Tokens"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetAvailableScopes)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-access-token", Method: http.MethodGet, Path: "/user/access-tokens/{token_id}",
+		Summary: "Get an access token", Tags: []string{"Access Tokens"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetAccessToken)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "patch-access-token", Method: http.MethodPatch, Path: "/user/access-tokens/{token_id}",
+		Summary: "Update an access token", Tags: []string{"Access Tokens"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.PatchAccessToken)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "delete-access-token", Method: http.MethodDelete, Path: "/user/access-tokens/{token_id}",
+		Summary: "Delete an access token", Tags: []string{"Access Tokens"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.DeleteAccessToken)
+
+	// Legacy token endpoints (deprecated - use access-tokens instead)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "post-token", Method: http.MethodPost, Path: "/user/token",
+		Summary: "Create a legacy token", Tags: []string{"User"}, Deprecated: true,
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.PostToken)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "delete-token", Method: http.MethodDelete, Path: "/user/token",
+		Summary: "Delete a legacy token", Tags: []string{"User"}, Deprecated: true,
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.DeleteToken)
+
+	// ── Admin user management ────────────────────────────────────────────
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-users", Method: http.MethodGet, Path: "/users",
+		Summary: "List users", Tags: []string{"Users"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.GetUsers)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "post-user", Method: http.MethodPost, Path: "/users",
+		Summary: "Create a user", Tags: []string{"Users"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.PostUser)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-user", Method: http.MethodGet, Path: "/users/{login}",
+		Summary: "Get a user", Tags: []string{"Users"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.GetUser)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "patch-user", Method: http.MethodPatch, Path: "/users/{login}",
+		Summary: "Update a user", Tags: []string{"Users"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.PatchUser)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "delete-user", Method: http.MethodDelete, Path: "/users/{login}",
+		Summary: "Delete a user", Tags: []string{"Users"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.DeleteUser)
+
+	// ── Public endpoints ─────────────────────────────────────────────────
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-timezones", Method: http.MethodGet, Path: "/timezones",
+		Summary: "List available timezones", Tags: []string{"System"},
+	}, api.GetTimezones)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-integration-types", Method: http.MethodGet, Path: "/integrations/types",
+		Summary: "List available integration types", Tags: []string{"Integrations"},
+	}, api.GetIntegrationTypes)
+
+	// ── Organizations ────────────────────────────────────────────────────
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-orgs", Method: http.MethodGet, Path: "/orgs",
+		Summary: "List organizations", Tags: []string{"Organizations"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.GetOrgs)
+	// LookupOrg uses a wildcard path param (org name may contain slashes)
+	apiBase.GET("/orgs/lookup/*org_full_name", api.LookupOrgGin)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-org-permissions", Method: http.MethodGet, Path: "/orgs/{org_id}/permissions",
+		Summary: "Get organization permissions for the current user", Tags: []string{"Organizations"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmSetOrg, hmMustOrg},
+	}, api.GetOrgPermissions)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-org", Method: http.MethodGet, Path: "/orgs/{org_id}",
+		Summary: "Get an organization", Tags: []string{"Organizations"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmSetOrg, hmMustOrg, hmMustOrgMember(false)},
+	}, api.GetOrg)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "delete-org", Method: http.MethodDelete, Path: "/orgs/{org_id}",
+		Summary: "Delete an organization", Tags: []string{"Organizations"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin, hmSetOrg, hmMustOrg, hmMustOrgMember(true)},
+	}, api.DeleteOrg)
+
+	// Org secrets
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-org-secrets", Method: http.MethodGet, Path: "/orgs/{org_id}/secrets",
+		Summary: "List organization secrets", Tags: []string{"Organization Secrets"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmSetOrg, hmMustOrg, hmMustOrgMember(true)},
+	}, api.GetOrgSecretList)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "post-org-secret", Method: http.MethodPost, Path: "/orgs/{org_id}/secrets",
+		Summary: "Create an organization secret", Tags: []string{"Organization Secrets"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmSetOrg, hmMustOrg, hmMustOrgMember(true)},
+	}, api.PostOrgSecret)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-org-secret", Method: http.MethodGet, Path: "/orgs/{org_id}/secrets/{secret}",
+		Summary: "Get an organization secret", Tags: []string{"Organization Secrets"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmSetOrg, hmMustOrg, hmMustOrgMember(true)},
+	}, api.GetOrgSecret)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-org-secret-abbreviated", Method: http.MethodGet, Path: "/orgs/{org_id}/secrets/{secret}/abbreviated",
+		Summary: "Get an abbreviated organization secret", Tags: []string{"Organization Secrets"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmSetOrg, hmMustOrg, hmMustOrgMember(true)},
+	}, api.GetOrgSecretAbbreviated)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "patch-org-secret", Method: http.MethodPatch, Path: "/orgs/{org_id}/secrets/{secret}",
+		Summary: "Update an organization secret", Tags: []string{"Organization Secrets"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmSetOrg, hmMustOrg, hmMustOrgMember(true)},
+	}, api.PatchOrgSecret)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "delete-org-secret", Method: http.MethodDelete, Path: "/orgs/{org_id}/secrets/{secret}",
+		Summary: "Delete an organization secret", Tags: []string{"Organization Secrets"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmSetOrg, hmMustOrg, hmMustOrgMember(true)},
+	}, api.DeleteOrgSecret)
+
+	// Org registries
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-org-registries", Method: http.MethodGet, Path: "/orgs/{org_id}/registries",
+		Summary: "List organization registries", Tags: []string{"Organization Registries"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmSetOrg, hmMustOrg, hmMustOrgMember(true)},
+	}, api.GetOrgRegistryList)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "post-org-registry", Method: http.MethodPost, Path: "/orgs/{org_id}/registries",
+		Summary: "Create an organization registry", Tags: []string{"Organization Registries"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmSetOrg, hmMustOrg, hmMustOrgMember(true)},
+	}, api.PostOrgRegistry)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-org-registry", Method: http.MethodGet, Path: "/orgs/{org_id}/registries/{registry}",
+		Summary: "Get an organization registry", Tags: []string{"Organization Registries"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmSetOrg, hmMustOrg, hmMustOrgMember(true)},
+	}, api.GetOrgRegistry)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "patch-org-registry", Method: http.MethodPatch, Path: "/orgs/{org_id}/registries/{registry}",
+		Summary: "Update an organization registry", Tags: []string{"Organization Registries"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmSetOrg, hmMustOrg, hmMustOrgMember(true)},
+	}, api.PatchOrgRegistry)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "delete-org-registry", Method: http.MethodDelete, Path: "/orgs/{org_id}/registries/{registry}",
+		Summary: "Delete an organization registry", Tags: []string{"Organization Registries"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmSetOrg, hmMustOrg, hmMustOrgMember(true)},
+	}, api.DeleteOrgRegistry)
+
+	// Org agents
+	if !server.Config.Agent.DisableUserRegisteredAgentRegistration {
+		huma.Register(humaAPI, huma.Operation{
+			OperationID: "get-org-agents", Method: http.MethodGet, Path: "/orgs/{org_id}/agents",
+			Summary: "List agents for an organization", Tags: []string{"Agents"},
+			Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser, hmSetOrg, hmMustOrg, hmMustOrgMember(true)},
+		}, api.GetOrgAgents)
+		huma.Register(humaAPI, huma.Operation{
+			OperationID: "post-org-agent", Method: http.MethodPost, Path: "/orgs/{org_id}/agents",
+			Summary: "Create a new organization-scoped agent", Tags: []string{"Agents"},
+			Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser, hmSetOrg, hmMustOrg, hmMustOrgMember(true)},
+		}, api.PostOrgAgent)
+		huma.Register(humaAPI, huma.Operation{
+			OperationID: "patch-org-agent", Method: http.MethodPatch, Path: "/orgs/{org_id}/agents/{agent_id}",
+			Summary: "Update an organization-scoped agent", Tags: []string{"Agents"},
+			Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser, hmSetOrg, hmMustOrg, hmMustOrgMember(true)},
+		}, api.PatchOrgAgent)
+		huma.Register(humaAPI, huma.Operation{
+			OperationID: "delete-org-agent", Method: http.MethodDelete, Path: "/orgs/{org_id}/agents/{agent_id}",
+			Summary: "Delete an organization-scoped agent", Tags: []string{"Agents"},
+			Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser, hmSetOrg, hmMustOrg, hmMustOrgMember(true)},
+		}, api.DeleteOrgAgent)
+	}
+
+	// ── Admin entities (unified users and orgs) ──────────────────────────
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-entities", Method: http.MethodGet, Path: "/entities",
+		Summary: "List users and organizations", Tags: []string{"Admin"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.GetEntities)
+
+	// ── Metrics ──────────────────────────────────────────────────────────
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-metrics", Method: http.MethodGet, Path: "/metrics",
+		Summary: "Get pipeline metrics", Tags: []string{"System"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetMetrics)
+
+	// ── Repositories ─────────────────────────────────────────────────────
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-public-repos", Method: http.MethodGet, Path: "/repos/public",
+		Summary: "List public repositories", Tags: []string{"Repositories"},
+	}, api.GetPublicRepos)
+	// LookupRepo uses a wildcard path param (owner/repo contains a slash)
+	apiBase.GET("/repos/lookup/*repo_full_name", session.SetRepo(), session.SetPerm(), session.MustPull, api.LookupRepoGin)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "post-repo", Method: http.MethodPost, Path: "/repos",
+		Summary: "Activate a repository", Tags: []string{"Repositories"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.PostRepo)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-all-repos", Method: http.MethodGet, Path: "/repos",
+		Summary: "List all repositories (admin)", Tags: []string{"Repositories"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.GetAllRepos)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "repair-all-repos", Method: http.MethodPost, Path: "/repos/repair",
+		Summary: "Repair all repositories (admin)", Tags: []string{"Repositories"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.RepairAllRepos)
+
+	// Repo detail routes (require SetRepo + SetPerm)
+	repoMW := huma.Middlewares{hmSetRepo, hmSetPerm}
+	repoPullMW := huma.Middlewares{hmSetRepo, hmSetPerm, hmMustPull}
+	repoPushMW := huma.Middlewares{hmSetRepo, hmSetPerm, hmMustPull, hmMustPush}
+	repoAdminMW := huma.Middlewares{hmSetRepo, hmSetPerm, hmMustPull, hmMustRepoAdmin}
+
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-repo-permissions", Method: http.MethodGet, Path: "/repos/{repo_id}/permissions",
+		Summary: "Get repo permissions for the current user", Tags: []string{"Repositories"},
+		Security: BearerSecurity, Middlewares: repoMW,
+	}, api.GetRepoPermissions)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-repo", Method: http.MethodGet, Path: "/repos/{repo_id}",
+		Summary: "Get a repository", Tags: []string{"Repositories"},
+		Security: BearerSecurity, Middlewares: repoPullMW,
+	}, api.GetRepo)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-repo-branches", Method: http.MethodGet, Path: "/repos/{repo_id}/branches",
+		Summary: "List branches for a repository", Tags: []string{"Repositories"},
+		Security: BearerSecurity, Middlewares: repoPullMW,
+	}, api.GetRepoBranches)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-repo-pull-requests", Method: http.MethodGet, Path: "/repos/{repo_id}/pull_requests",
+		Summary: "List pull requests for a repository", Tags: []string{"Repositories"},
+		Security: BearerSecurity, Middlewares: repoPullMW,
+	}, api.GetRepoPullRequests)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-repo-configs", Method: http.MethodGet, Path: "/repos/{repo_id}/configs",
+		Summary: "List pipeline configs for a repository", Tags: []string{"Repositories"},
+		Security: BearerSecurity, Middlewares: repoPullMW,
+	}, api.GetRepoConfigs)
+
+	// Pipelines
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-pipelines", Method: http.MethodGet, Path: "/repos/{repo_id}/pipelines",
+		Summary: "List pipelines for a repository", Tags: []string{"Pipelines"},
+		Security: BearerSecurity, Middlewares: repoPullMW,
+	}, api.GetPipelines)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "create-pipeline", Method: http.MethodPost, Path: "/repos/{repo_id}/pipelines",
+		Summary: "Create a new pipeline", Tags: []string{"Pipelines"},
+		Security: BearerSecurity, Middlewares: repoPushMW,
+	}, api.CreatePipeline)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "delete-pipeline", Method: http.MethodDelete, Path: "/repos/{repo_id}/pipelines/{number}",
+		Summary: "Delete a pipeline", Tags: []string{"Pipelines"},
+		Security: BearerSecurity, Middlewares: repoAdminMW,
+	}, api.DeletePipeline)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-pipeline", Method: http.MethodGet, Path: "/repos/{repo_id}/pipelines/{number}",
+		Summary: "Get a pipeline", Tags: []string{"Pipelines"},
+		Security: BearerSecurity, Middlewares: repoPullMW,
+	}, api.GetPipeline)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-pipeline-config", Method: http.MethodGet, Path: "/repos/{repo_id}/pipelines/{number}/config",
+		Summary: "Get pipeline configuration", Tags: []string{"Pipelines"},
+		Security: BearerSecurity, Middlewares: repoPullMW,
+	}, api.GetPipelineConfig)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-pipeline-metadata", Method: http.MethodGet, Path: "/repos/{repo_id}/pipelines/{number}/metadata",
+		Summary: "Get pipeline metadata", Tags: []string{"Pipelines"},
+		Security: BearerSecurity, Middlewares: repoPushMW,
+	}, api.GetPipelineMetadata)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "post-pipeline", Method: http.MethodPost, Path: "/repos/{repo_id}/pipelines/{number}",
+		Summary: "Restart a pipeline", Tags: []string{"Pipelines"},
+		Security: BearerSecurity, Middlewares: repoPushMW,
+	}, api.PostPipeline)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "cancel-pipeline", Method: http.MethodPost, Path: "/repos/{repo_id}/pipelines/{number}/cancel",
+		Summary: "Cancel a pipeline", Tags: []string{"Pipelines"},
+		Security: BearerSecurity, Middlewares: repoPushMW,
+	}, api.CancelPipeline)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "cancel-workflow", Method: http.MethodPost, Path: "/repos/{repo_id}/pipelines/{number}/workflows/{workflow_id}/cancel",
+		Summary: "Cancel a workflow", Tags: []string{"Pipelines"},
+		Security: BearerSecurity, Middlewares: repoPushMW,
+	}, api.CancelWorkflow)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "rerun-workflow", Method: http.MethodPost, Path: "/repos/{repo_id}/pipelines/{number}/workflows/{workflow_id}/rerun",
+		Summary: "Rerun a workflow", Tags: []string{"Pipelines"},
+		Security: BearerSecurity, Middlewares: repoPushMW,
+	}, api.RerunWorkflow)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "post-approval", Method: http.MethodPost, Path: "/repos/{repo_id}/pipelines/{number}/approve",
+		Summary: "Approve a pipeline", Tags: []string{"Pipelines"},
+		Security: BearerSecurity, Middlewares: repoPushMW,
+	}, api.PostApproval)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "post-approval-always", Method: http.MethodPost, Path: "/repos/{repo_id}/pipelines/{number}/approve-always",
+		Summary: "Approve a pipeline and always approve future pipelines from this context", Tags: []string{"Pipelines"},
+		Security: BearerSecurity, Middlewares: repoPushMW,
+	}, api.PostApprovalAlways)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "delete-approval-always", Method: http.MethodDelete, Path: "/repos/{repo_id}/pipelines/{number}/approve-always",
+		Summary: "Delete an always-approve rule", Tags: []string{"Pipelines"},
+		Security: BearerSecurity, Middlewares: repoPushMW,
+	}, api.DeleteApprovalAlways)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "post-decline", Method: http.MethodPost, Path: "/repos/{repo_id}/pipelines/{number}/decline",
+		Summary: "Decline a pipeline", Tags: []string{"Pipelines"},
+		Security: BearerSecurity, Middlewares: repoPushMW,
+	}, api.PostDecline)
+
+	// Logs
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-step-logs", Method: http.MethodGet, Path: "/repos/{repo_id}/logs/{number}/{stepId}",
+		Summary: "Get step logs", Tags: []string{"Pipeline Logs"},
+		Security: BearerSecurity, Middlewares: repoPullMW,
+	}, api.GetStepLogs)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "delete-step-logs", Method: http.MethodDelete, Path: "/repos/{repo_id}/logs/{number}/{stepId}",
+		Summary: "Delete step logs", Tags: []string{"Pipeline Logs"},
+		Security: BearerSecurity, Middlewares: repoPushMW,
+	}, api.DeleteStepLogs)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "delete-pipeline-logs", Method: http.MethodDelete, Path: "/repos/{repo_id}/logs/{number}",
+		Summary: "Delete all logs for a pipeline", Tags: []string{"Pipeline Logs"},
+		Security: BearerSecurity, Middlewares: repoPushMW,
+	}, api.DeletePipelineLogs)
+
+	// Repo secrets
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-repo-secrets", Method: http.MethodGet, Path: "/repos/{repo_id}/secrets",
+		Summary: "List repository secrets", Tags: []string{"Repository Secrets"},
+		Security: BearerSecurity, Middlewares: repoPushMW,
+	}, api.GetSecretList)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "post-repo-secret", Method: http.MethodPost, Path: "/repos/{repo_id}/secrets",
+		Summary: "Create a repository secret", Tags: []string{"Repository Secrets"},
+		Security: BearerSecurity, Middlewares: repoPushMW,
+	}, api.PostSecret)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-repo-secret", Method: http.MethodGet, Path: "/repos/{repo_id}/secrets/{secret}",
+		Summary: "Get a repository secret", Tags: []string{"Repository Secrets"},
+		Security: BearerSecurity, Middlewares: repoPushMW,
+	}, api.GetSecret)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-repo-secret-abbreviated", Method: http.MethodGet, Path: "/repos/{repo_id}/secrets/{secret}/abbreviated",
+		Summary: "Get an abbreviated repository secret", Tags: []string{"Repository Secrets"},
+		Security: BearerSecurity, Middlewares: repoPushMW,
+	}, api.GetSecretAbbreviated)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "patch-repo-secret", Method: http.MethodPatch, Path: "/repos/{repo_id}/secrets/{secret}",
+		Summary: "Update a repository secret", Tags: []string{"Repository Secrets"},
+		Security: BearerSecurity, Middlewares: repoPushMW,
+	}, api.PatchSecret)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "delete-repo-secret", Method: http.MethodDelete, Path: "/repos/{repo_id}/secrets/{secret}",
+		Summary: "Delete a repository secret", Tags: []string{"Repository Secrets"},
+		Security: BearerSecurity, Middlewares: repoPushMW,
+	}, api.DeleteSecret)
+
+	// Repo registries
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-repo-registries", Method: http.MethodGet, Path: "/repos/{repo_id}/registries",
+		Summary: "List repository registries", Tags: []string{"Repository Registries"},
+		Security: BearerSecurity, Middlewares: repoPushMW,
+	}, api.GetRegistryList)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "post-repo-registry", Method: http.MethodPost, Path: "/repos/{repo_id}/registries",
+		Summary: "Create a repository registry", Tags: []string{"Repository Registries"},
+		Security: BearerSecurity, Middlewares: repoPushMW,
+	}, api.PostRegistry)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-repo-registry", Method: http.MethodGet, Path: "/repos/{repo_id}/registries/{registry}",
+		Summary: "Get a repository registry", Tags: []string{"Repository Registries"},
+		Security: BearerSecurity, Middlewares: repoPushMW,
+	}, api.GetRegistry)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "patch-repo-registry", Method: http.MethodPatch, Path: "/repos/{repo_id}/registries/{registry}",
+		Summary: "Update a repository registry", Tags: []string{"Repository Registries"},
+		Security: BearerSecurity, Middlewares: repoPushMW,
+	}, api.PatchRegistry)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "delete-repo-registry", Method: http.MethodDelete, Path: "/repos/{repo_id}/registries/{registry}",
+		Summary: "Delete a repository registry", Tags: []string{"Repository Registries"},
+		Security: BearerSecurity, Middlewares: repoPushMW,
+	}, api.DeleteRegistry)
+
+	// Repo cron jobs
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-repo-crons", Method: http.MethodGet, Path: "/repos/{repo_id}/cron",
+		Summary: "List repository cron jobs", Tags: []string{"Repository Cron Jobs"},
+		Security: BearerSecurity, Middlewares: repoPushMW,
+	}, api.GetCronList)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "post-repo-cron", Method: http.MethodPost, Path: "/repos/{repo_id}/cron",
+		Summary: "Create a repository cron job", Tags: []string{"Repository Cron Jobs"},
+		Security: BearerSecurity, Middlewares: repoPushMW,
+	}, api.PostCron)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-repo-cron", Method: http.MethodGet, Path: "/repos/{repo_id}/cron/{cron}",
+		Summary: "Get a repository cron job", Tags: []string{"Repository Cron Jobs"},
+		Security: BearerSecurity, Middlewares: repoPushMW,
+	}, api.GetCron)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "run-repo-cron", Method: http.MethodPost, Path: "/repos/{repo_id}/cron/{cron}",
+		Summary: "Run a repository cron job", Tags: []string{"Repository Cron Jobs"},
+		Security: BearerSecurity, Middlewares: repoPushMW,
+	}, api.RunCron)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "patch-repo-cron", Method: http.MethodPatch, Path: "/repos/{repo_id}/cron/{cron}",
+		Summary: "Update a repository cron job", Tags: []string{"Repository Cron Jobs"},
+		Security: BearerSecurity, Middlewares: repoPushMW,
+	}, api.PatchCron)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "delete-repo-cron", Method: http.MethodDelete, Path: "/repos/{repo_id}/cron/{cron}",
+		Summary: "Delete a repository cron job", Tags: []string{"Repository Cron Jobs"},
+		Security: BearerSecurity, Middlewares: repoPushMW,
+	}, api.DeleteCron)
+
+	// Repo admin operations
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "patch-repo", Method: http.MethodPatch, Path: "/repos/{repo_id}",
+		Summary: "Update a repository", Tags: []string{"Repositories"},
+		Security: BearerSecurity, Middlewares: repoAdminMW,
+	}, api.PatchRepo)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "delete-repo", Method: http.MethodDelete, Path: "/repos/{repo_id}",
+		Summary: "Delete / deactivate a repository", Tags: []string{"Repositories"},
+		Security: BearerSecurity, Middlewares: repoAdminMW,
+	}, api.DeleteRepo)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "chown-repo", Method: http.MethodPost, Path: "/repos/{repo_id}/chown",
+		Summary: "Change repository owner", Tags: []string{"Repositories"},
+		Security: BearerSecurity, Middlewares: repoAdminMW,
+	}, api.ChownRepo)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "repair-repo", Method: http.MethodPost, Path: "/repos/{repo_id}/repair",
+		Summary: "Repair a repository", Tags: []string{"Repositories"},
+		Security: BearerSecurity, Middlewares: repoAdminMW,
+	}, api.RepairRepo)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "move-repo", Method: http.MethodPost, Path: "/repos/{repo_id}/move",
+		Summary: "Move a repository", Tags: []string{"Repositories"},
+		Security: BearerSecurity, Middlewares: repoAdminMW,
+	}, api.MoveRepo)
+
+	// Import settings from another repo
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-importable-repos", Method: http.MethodGet, Path: "/repos/{repo_id}/importable",
+		Summary: "List importable repos", Tags: []string{"Repository Import"},
+		Security: BearerSecurity, Middlewares: repoAdminMW,
+	}, api.GetImportableRepos)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-repo-for-import", Method: http.MethodGet, Path: "/repos/{repo_id}/import-preview/{source_repo_id}",
+		Summary: "Preview settings to import from another repo", Tags: []string{"Repository Import"},
+		Security: BearerSecurity, Middlewares: repoAdminMW,
+	}, api.GetRepoForImport)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "import-settings", Method: http.MethodPost, Path: "/repos/{repo_id}/import-settings",
+		Summary: "Import settings from another repository", Tags: []string{"Repository Import"},
+		Security: BearerSecurity, Middlewares: repoAdminMW,
+	}, api.ImportSettings)
+
+	// ── Badges ───────────────────────────────────────────────────────────
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-badge", Method: http.MethodGet, Path: "/badges/{repo_id_or_owner}/status.svg",
+		Summary: "Get a pipeline status badge", Tags: []string{"Badges"},
+	}, api.GetBadge)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-cc", Method: http.MethodGet, Path: "/badges/{repo_id_or_owner}/cc.xml",
+		Summary: "Get CCMenu/CCTray XML", Tags: []string{"Badges"},
+	}, api.GetCC)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-badge-by-name", Method: http.MethodGet, Path: "/badges/{repo_id_or_owner}/{repo_name}/status.svg",
+		Summary: "Get a pipeline status badge by owner/name", Tags: []string{"Badges"},
+	}, api.GetBadge)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-cc-by-name", Method: http.MethodGet, Path: "/badges/{repo_id_or_owner}/{repo_name}/cc.xml",
+		Summary: "Get CCMenu/CCTray XML by owner/name", Tags: []string{"Badges"},
+	}, api.GetCC)
+
+	// ── Pipeline queue (admin) ───────────────────────────────────────────
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-pipeline-queue", Method: http.MethodGet, Path: "/pipelines",
+		Summary: "Get the pipeline queue", Tags: []string{"Pipeline Queue"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.GetPipelineQueue)
+
+	// Queue management (gin - uses blocking/streaming patterns)
+	queue := apiBase.Group("/queue")
 	{
-		user := apiBase.Group("/user")
+		queue.Use(session.MustAdmin())
+		queue.GET("/info", api.GetQueueInfo)
+		queue.POST("/pause", api.PauseQueue)
+		queue.POST("/resume", api.ResumeQueue)
+		queue.GET("/norunningpipelines", api.BlockTilQueueHasRunningItem)
+	}
+
+	// ── Global secrets ───────────────────────────────────────────────────
+	// Readable by any authenticated user (without actual values)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-global-secrets", Method: http.MethodGet, Path: "/secrets",
+		Summary: "List global secrets", Tags: []string{"Global Secrets"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetGlobalSecretList)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-global-secret", Method: http.MethodGet, Path: "/secrets/{secret}",
+		Summary: "Get a global secret", Tags: []string{"Global Secrets"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetGlobalSecret)
+	// Admin-only
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-global-secret-abbreviated", Method: http.MethodGet, Path: "/secrets/{secret}/abbreviated",
+		Summary: "Get an abbreviated global secret", Tags: []string{"Global Secrets"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.GetGlobalSecretAbbreviated)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "post-global-secret", Method: http.MethodPost, Path: "/secrets",
+		Summary: "Create a global secret", Tags: []string{"Global Secrets"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.PostGlobalSecret)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "patch-global-secret", Method: http.MethodPatch, Path: "/secrets/{secret}",
+		Summary: "Update a global secret", Tags: []string{"Global Secrets"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.PatchGlobalSecret)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "delete-global-secret", Method: http.MethodDelete, Path: "/secrets/{secret}",
+		Summary: "Delete a global secret", Tags: []string{"Global Secrets"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.DeleteGlobalSecret)
+
+	// ── Global registries ────────────────────────────────────────────────
+	// Readable by any authenticated user (without actual values)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-global-registries", Method: http.MethodGet, Path: "/registries",
+		Summary: "List global registries", Tags: []string{"Global Registries"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetGlobalRegistryList)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-global-registry", Method: http.MethodGet, Path: "/registries/{registry}",
+		Summary: "Get a global registry", Tags: []string{"Global Registries"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetGlobalRegistry)
+	// Admin-only
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "post-global-registry", Method: http.MethodPost, Path: "/registries",
+		Summary: "Create a global registry", Tags: []string{"Global Registries"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.PostGlobalRegistry)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "patch-global-registry", Method: http.MethodPatch, Path: "/registries/{registry}",
+		Summary: "Update a global registry", Tags: []string{"Global Registries"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.PatchGlobalRegistry)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "delete-global-registry", Method: http.MethodDelete, Path: "/registries/{registry}",
+		Summary: "Delete a global registry", Tags: []string{"Global Registries"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.DeleteGlobalRegistry)
+
+	// ── Log level (admin) ────────────────────────────────────────────────
+	logLevel := apiBase.Group("/log-level")
+	{
+		logLevel.Use(session.MustAdmin())
+		logLevel.GET("", api.LogLevel)
+		logLevel.POST("", api.SetLogLevel)
+	}
+
+	// ── Agents ───────────────────────────────────────────────────────────
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-agents", Method: http.MethodGet, Path: "/agents",
+		Summary: "List agents", Tags: []string{"Agents"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetAgents)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-agent", Method: http.MethodGet, Path: "/agents/{agent_id}",
+		Summary: "Get an agent", Tags: []string{"Agents"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetAgent)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-agent-tasks", Method: http.MethodGet, Path: "/agents/{agent_id}/tasks",
+		Summary: "List agent tasks", Tags: []string{"Agents"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetAgentTasks)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "post-agent", Method: http.MethodPost, Path: "/agents",
+		Summary: "Create a new agent", Tags: []string{"Agents"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.PostAgent)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "patch-agent", Method: http.MethodPatch, Path: "/agents/{agent_id}",
+		Summary: "Update an agent", Tags: []string{"Agents"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.PatchAgent)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "delete-agent", Method: http.MethodDelete, Path: "/agents/{agent_id}",
+		Summary: "Delete an agent", Tags: []string{"Agents"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.DeleteAgent)
+
+	// ── Autoscalers ──────────────────────────────────────────────────────
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-autoscaler-self", Method: http.MethodGet, Path: "/autoscaler",
+		Summary: "Get the currently authenticated autoscaler", Tags: []string{"Autoscalers"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAutoscaler},
+	}, api.GetAutoscalerSelf)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-autoscalers", Method: http.MethodGet, Path: "/autoscalers",
+		Summary: "List autoscalers", Tags: []string{"Autoscalers"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetAutoscalers)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-autoscaler", Method: http.MethodGet, Path: "/autoscalers/{autoscaler_id}",
+		Summary: "Get an autoscaler", Tags: []string{"Autoscalers"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetAutoscaler)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "post-autoscaler", Method: http.MethodPost, Path: "/autoscalers",
+		Summary: "Create an autoscaler", Tags: []string{"Autoscalers"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.PostAutoscaler)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "patch-autoscaler", Method: http.MethodPatch, Path: "/autoscalers/{autoscaler_id}",
+		Summary: "Update an autoscaler", Tags: []string{"Autoscalers"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.PatchAutoscaler)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "delete-autoscaler", Method: http.MethodDelete, Path: "/autoscalers/{autoscaler_id}",
+		Summary: "Delete an autoscaler", Tags: []string{"Autoscalers"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.DeleteAutoscaler)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "post-autoscaler-token", Method: http.MethodPost, Path: "/autoscalers/{autoscaler_id}/token",
+		Summary: "Generate a new autoscaler token", Tags: []string{"Autoscalers"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.PostAutoscalerToken)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "post-autoscaler-heartbeat", Method: http.MethodPost, Path: "/autoscalers/{autoscaler_id}/heartbeat",
+		Summary: "Send an autoscaler heartbeat", Tags: []string{"Autoscalers"},
+	}, api.PostAutoscalerHeartbeat)
+
+	// ── Forges ───────────────────────────────────────────────────────────
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-forges", Method: http.MethodGet, Path: "/forges",
+		Summary: "List forges", Tags: []string{"Forges"},
+	}, api.GetForges)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-forge", Method: http.MethodGet, Path: "/forges/{forgeId}",
+		Summary: "Get a forge", Tags: []string{"Forges"},
+	}, api.GetForge)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "post-forge", Method: http.MethodPost, Path: "/forges",
+		Summary: "Create a forge", Tags: []string{"Forges"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.PostForge)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "patch-forge", Method: http.MethodPatch, Path: "/forges/{forgeId}",
+		Summary: "Update a forge", Tags: []string{"Forges"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.PatchForge)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "delete-forge", Method: http.MethodDelete, Path: "/forges/{forgeId}",
+		Summary: "Delete a forge", Tags: []string{"Forges"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.DeleteForge)
+
+	// ── Signature public key ─────────────────────────────────────────────
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-signature-public-key", Method: http.MethodGet, Path: "/signature/public-key",
+		Summary: "Get the pipeline signature public key", Tags: []string{"System"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetSignaturePublicKey)
+
+	// ── Webhook ──────────────────────────────────────────────────────────
+	apiBase.POST("/hook", api.PostHook)
+
+	// ── SSE streams (gin - not convertible to huma) ──────────────────────
+	stream := apiBase.Group("/stream")
+	{
+		stream.GET("/logs/:repo_id/:pipeline/:stepId",
+			session.SetRepo(),
+			session.SetPerm(),
+			session.MustPull,
+			api.LogStreamSSE)
+		stream.GET("/events", api.EventStreamSSE)
+	}
+
+	// ── Admin maintenance ────────────────────────────────────────────────
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-maintenance-config", Method: http.MethodGet, Path: "/admin/maintenance/config",
+		Summary: "Get maintenance configuration", Tags: []string{"Admin Maintenance"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.GetMaintenanceConfig)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "update-maintenance-config", Method: http.MethodPut, Path: "/admin/maintenance/config",
+		Summary: "Update maintenance configuration", Tags: []string{"Admin Maintenance"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.UpdateMaintenanceConfig)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-maintenance-config-by-action", Method: http.MethodGet, Path: "/admin/maintenance/config/{action}",
+		Summary: "Get maintenance configuration for a specific action", Tags: []string{"Admin Maintenance"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.GetMaintenanceConfigByAction)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "update-maintenance-config-by-action", Method: http.MethodPut, Path: "/admin/maintenance/config/{action}",
+		Summary: "Update maintenance configuration for a specific action", Tags: []string{"Admin Maintenance"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.UpdateMaintenanceConfigByAction)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-maintenance-stats", Method: http.MethodGet, Path: "/admin/maintenance/stats",
+		Summary: "Get maintenance statistics", Tags: []string{"Admin Maintenance"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.GetMaintenanceStats)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-maintenance-logs", Method: http.MethodGet, Path: "/admin/maintenance/logs",
+		Summary: "Get maintenance logs", Tags: []string{"Admin Maintenance"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.GetMaintenanceLogs)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "run-maintenance-now", Method: http.MethodPost, Path: "/admin/maintenance/run",
+		Summary: "Run maintenance now", Tags: []string{"Admin Maintenance"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.RunMaintenanceNow)
+
+	// ── Debug (only at debug log level) ──────────────────────────────────
+	if zerolog.GlobalLevel() <= zerolog.DebugLevel {
+		debugger := apiBase.Group("/debug")
 		{
-			user.Use(session.MustUser())
-			user.GET("", api.GetSelf)
-			user.GET("/feed", api.GetFeed)
-			user.GET("/repos", api.GetRepos)
-			user.GET("/orgs", api.GetUserOrgList)
-			user.GET("/secrets", api.GetUserSecretList)
-			user.GET("/registries", api.GetUserRegistryList)
-			user.GET("/crons", api.GetUserCronList)
-
-			// User forge connections (multi-forge support)
-			user.GET("/forges", api.GetUserForges)
-			user.GET("/forges/available", api.GetAvailableForges)
-			user.GET("/forges/:forge_id", api.GetUserForge)
-			user.GET("/forges/:forge_id/affected-repos", api.GetUserForgeAffectedRepos)
-			user.DELETE("/forges/:forge_id", api.DeleteUserForge)
-
-			// Integrations (external secret stores)
-			user.GET("/integrations", api.GetIntegrationList)
-			user.GET("/integrations/accessible", api.GetAccessibleIntegrations)
-			user.POST("/integrations", api.PostIntegration)
-			user.GET("/integrations/:integration_id", api.GetIntegration)
-			user.PATCH("/integrations/:integration_id", api.PatchIntegration)
-			user.DELETE("/integrations/:integration_id", api.DeleteIntegration)
-			user.POST("/integrations/:integration_id/test", api.TestIntegration)
-
-			// Access tokens (new API)
-			user.GET("/access-tokens", api.GetAccessTokenList)
-			user.POST("/access-tokens", api.PostAccessToken)
-			user.DELETE("/access-tokens/batch", api.DeleteAccessTokenBatch)
-			user.GET("/access-tokens/scopes", api.GetAvailableScopes)
-			user.GET("/access-tokens/:token_id", api.GetAccessToken)
-			user.PATCH("/access-tokens/:token_id", api.PatchAccessToken)
-			user.DELETE("/access-tokens/:token_id", api.DeleteAccessToken)
-
-			// Legacy token endpoints (deprecated - use access-tokens instead)
-			user.POST("/token", api.PostToken)
-			user.DELETE("/token", api.DeleteToken)
-		}
-
-		users := apiBase.Group("/users")
-		{
-			users.Use(session.MustAdmin())
-			users.GET("", api.GetUsers)
-			users.POST("", api.PostUser)
-			users.GET("/:login", api.GetUser)
-			users.PATCH("/:login", api.PatchUser)
-			users.DELETE("/:login", api.DeleteUser)
-		}
-
-		// Timezones endpoint (public)
-		apiBase.GET("/timezones", api.GetTimezones)
-
-		// Integration types (public, for UI forms)
-		apiBase.GET("/integrations/types", api.GetIntegrationTypes)
-
-		orgs := apiBase.Group("/orgs")
-		{
-			orgs.GET("", session.MustAdmin(), api.GetOrgs)
-			orgs.GET("/lookup/*org_full_name", api.LookupOrg)
-			orgBase := orgs.Group("/:org_id")
-			{
-				orgBase.Use(session.SetOrg())
-				orgBase.Use(session.MustOrg())
-				orgBase.GET("/permissions", api.GetOrgPermissions)
-				orgBase.GET("", session.MustOrgMember(false), api.GetOrg)
-
-				org := orgBase.Group("")
-				{
-					org.Use(session.MustOrgMember(true))
-					org.DELETE("", session.MustAdmin(), api.DeleteOrg)
-
-					org.GET("/secrets", api.GetOrgSecretList)
-					org.POST("/secrets", api.PostOrgSecret)
-					org.GET("/secrets/:secret", api.GetOrgSecret)
-					org.GET("/secrets/:secret/abbreviated", api.GetOrgSecretAbbreviated)
-					org.PATCH("/secrets/:secret", api.PatchOrgSecret)
-					org.DELETE("/secrets/:secret", api.DeleteOrgSecret)
-
-					org.GET("/registries", api.GetOrgRegistryList)
-					org.POST("/registries", api.PostOrgRegistry)
-					org.GET("/registries/:registry", api.GetOrgRegistry)
-					org.PATCH("/registries/:registry", api.PatchOrgRegistry)
-					org.DELETE("/registries/:registry", api.DeleteOrgRegistry)
-
-					if !server.Config.Agent.DisableUserRegisteredAgentRegistration {
-						org.GET("/agents", api.GetOrgAgents)
-						org.POST("/agents", api.PostOrgAgent)
-						org.PATCH("/agents/:agent_id", api.PatchOrgAgent)
-						org.DELETE("/agents/:agent_id", api.DeleteOrgAgent)
-					}
-				}
-			}
-		}
-
-		// Admin entities endpoint (unified users and orgs)
-		apiBase.GET("/entities", session.MustAdmin(), api.GetEntities)
-
-		// User-accessible metrics endpoint (admins can see all, users see their repos)
-		apiBase.GET("/metrics", session.MustUser(), api.GetMetrics)
-
-		repo := apiBase.Group("/repos")
-		{
-			// Public endpoint - no authentication required
-			repo.GET("/public", api.GetPublicRepos)
-			repo.GET("/lookup/*repo_full_name", session.SetRepo(), session.SetPerm(), session.MustPull, api.LookupRepo)
-			repo.POST("", session.MustUser(), api.PostRepo)
-			repo.GET("", session.MustAdmin(), api.GetAllRepos)
-			repo.POST("/repair", session.MustAdmin(), api.RepairAllRepos)
-			repoBase := repo.Group("/:repo_id")
-			{
-				repoBase.Use(session.SetRepo())
-				repoBase.Use(session.SetPerm())
-
-				repoBase.GET("/permissions", api.GetRepoPermissions)
-
-				repo := repoBase.Group("")
-				{
-					repo.Use(session.MustPull)
-
-					repo.GET("", api.GetRepo)
-
-					repo.GET("/branches", api.GetRepoBranches)
-					repo.GET("/pull_requests", api.GetRepoPullRequests)
-					repo.GET("/configs", api.GetRepoConfigs)
-
-					repo.GET("/pipelines", api.GetPipelines)
-					repo.POST("/pipelines", session.MustPush, api.CreatePipeline)
-					repo.DELETE("/pipelines/:number", session.MustRepoAdmin(), api.DeletePipeline)
-					repo.GET("/pipelines/:number", api.GetPipeline)
-					repo.GET("/pipelines/:number/config", api.GetPipelineConfig)
-					repo.GET("/pipelines/:number/metadata", session.MustPush, api.GetPipelineMetadata)
-
-					// requires push permissions
-					repo.POST("/pipelines/:number", session.MustPush, api.PostPipeline)
-					repo.POST("/pipelines/:number/cancel", session.MustPush, api.CancelPipeline)
-					repo.POST("/pipelines/:number/workflows/:workflow_id/cancel", session.MustPush, api.CancelWorkflow)
-					repo.POST("/pipelines/:number/workflows/:workflow_id/rerun", session.MustPush, api.RerunWorkflow)
-					repo.POST("/pipelines/:number/approve", session.MustPush, api.PostApproval)
-					repo.POST("/pipelines/:number/approve-always", session.MustPush, api.PostApprovalAlways)
-					repo.DELETE("/pipelines/:number/approve-always", session.MustPush, api.DeleteApprovalAlways)
-					repo.POST("/pipelines/:number/decline", session.MustPush, api.PostDecline)
-
-					repo.GET("/logs/:number/:stepId", api.GetStepLogs)
-					repo.DELETE("/logs/:number/:stepId", session.MustPush, api.DeleteStepLogs)
-
-					// requires push permissions
-					repo.DELETE("/logs/:number", session.MustPush, api.DeletePipelineLogs)
-
-					// requires push permissions
-					repo.GET("/secrets", session.MustPush, api.GetSecretList)
-					repo.POST("/secrets", session.MustPush, api.PostSecret)
-					repo.GET("/secrets/:secret", session.MustPush, api.GetSecret)
-					repo.GET("/secrets/:secret/abbreviated", session.MustPush, api.GetSecretAbbreviated)
-					repo.PATCH("/secrets/:secret", session.MustPush, api.PatchSecret)
-					repo.DELETE("/secrets/:secret", session.MustPush, api.DeleteSecret)
-
-					// requires push permissions
-					repo.GET("/registries", session.MustPush, api.GetRegistryList)
-					repo.POST("/registries", session.MustPush, api.PostRegistry)
-					repo.GET("/registries/:registry", session.MustPush, api.GetRegistry)
-					repo.PATCH("/registries/:registry", session.MustPush, api.PatchRegistry)
-					repo.DELETE("/registries/:registry", session.MustPush, api.DeleteRegistry)
-
-					// requires push permissions
-					repo.GET("/cron", session.MustPush, api.GetCronList)
-					repo.POST("/cron", session.MustPush, api.PostCron)
-					repo.GET("/cron/:cron", session.MustPush, api.GetCron)
-					repo.POST("/cron/:cron", session.MustPush, api.RunCron)
-					repo.PATCH("/cron/:cron", session.MustPush, api.PatchCron)
-					repo.DELETE("/cron/:cron", session.MustPush, api.DeleteCron)
-
-					// requires admin permissions
-					repo.PATCH("", session.MustRepoAdmin(), api.PatchRepo)
-					repo.DELETE("", session.MustRepoAdmin(), api.DeleteRepo)
-					repo.POST("/chown", session.MustRepoAdmin(), api.ChownRepo)
-					repo.POST("/repair", session.MustRepoAdmin(), api.RepairRepo)
-					repo.POST("/move", session.MustRepoAdmin(), api.MoveRepo)
-
-					// import settings from another repo
-					repo.GET("/importable", session.MustRepoAdmin(), api.GetImportableRepos)
-					repo.GET("/import-preview/:source_repo_id", session.MustRepoAdmin(), api.GetRepoForImport)
-					repo.POST("/import-settings", session.MustRepoAdmin(), api.ImportSettings)
-				}
-			}
-		}
-
-		badges := apiBase.Group("/badges/:repo_id_or_owner")
-		{
-			badges.GET("/status.svg", api.GetBadge)
-			badges.GET("/cc.xml", api.GetCC)
-		}
-
-		_badges := apiBase.Group("/badges/:repo_id_or_owner/:repo_name")
-		{
-			_badges.GET("/status.svg", api.GetBadge)
-			_badges.GET("/cc.xml", api.GetCC)
-		}
-
-		pipelines := apiBase.Group("/pipelines")
-		{
-			pipelines.Use(session.MustAdmin())
-			pipelines.GET("", api.GetPipelineQueue)
-		}
-
-		queue := apiBase.Group("/queue")
-		{
-			queue.Use(session.MustAdmin())
-			queue.GET("/info", api.GetQueueInfo)
-			queue.POST("/pause", api.PauseQueue)
-			queue.POST("/resume", api.ResumeQueue)
-			queue.GET("/norunningpipelines", api.BlockTilQueueHasRunningItem)
-		}
-
-		// global secrets can be read without actual values by any user
-		readGlobalSecrets := apiBase.Group("/secrets")
-		{
-			readGlobalSecrets.Use(session.MustUser())
-			readGlobalSecrets.GET("", api.GetGlobalSecretList)
-			readGlobalSecrets.GET("/:secret", api.GetGlobalSecret)
-		}
-		secrets := apiBase.Group("/secrets")
-		{
-			secrets.Use(session.MustAdmin())
-			secrets.GET("/:secret/abbreviated", api.GetGlobalSecretAbbreviated)
-			secrets.POST("", api.PostGlobalSecret)
-			secrets.PATCH("/:secret", api.PatchGlobalSecret)
-			secrets.DELETE("/:secret", api.DeleteGlobalSecret)
-		}
-
-		// global registries can be read without actual values by any user
-		readGlobalRegistries := apiBase.Group("/registries")
-		{
-			readGlobalRegistries.Use(session.MustUser())
-			readGlobalRegistries.GET("", api.GetGlobalRegistryList)
-			readGlobalRegistries.GET("/:registry", api.GetGlobalRegistry)
-		}
-		registries := apiBase.Group("/registries")
-		{
-			registries.Use(session.MustAdmin())
-			registries.POST("", api.PostGlobalRegistry)
-			registries.PATCH("/:registry", api.PatchGlobalRegistry)
-			registries.DELETE("/:registry", api.DeleteGlobalRegistry)
-		}
-
-		logLevel := apiBase.Group("/log-level")
-		{
-			logLevel.Use(session.MustAdmin())
-			logLevel.GET("", api.LogLevel)
-			logLevel.POST("", api.SetLogLevel)
-		}
-
-		agentBase := apiBase.Group("/agents")
-		{
-			// Allow all authenticated users to view agents
-			agentBase.GET("", session.MustUser(), api.GetAgents)
-			agentBase.GET("/:agent_id", session.MustUser(), api.GetAgent)
-			agentBase.GET("/:agent_id/tasks", session.MustUser(), api.GetAgentTasks)
-
-			// Require admin privileges for agent modifications
-			agentBase.POST("", session.MustAdmin(), api.PostAgent)
-			agentBase.PATCH("/:agent_id", session.MustAdmin(), api.PatchAgent)
-			agentBase.DELETE("/:agent_id", session.MustAdmin(), api.DeleteAgent)
-		}
-
-		// Autoscaler self endpoint - requires autoscaler token authentication
-		apiBase.GET("/autoscaler", session.MustAutoscaler(), api.GetAutoscalerSelf)
-
-		autoscalerBase := apiBase.Group("/autoscalers")
-		{
-			// Allow all authenticated users to view autoscalers
-			autoscalerBase.GET("", session.MustUser(), api.GetAutoscalers)
-			autoscalerBase.GET("/:autoscaler_id", session.MustUser(), api.GetAutoscaler)
-
-			// Require admin privileges for autoscaler modifications
-			autoscalerBase.POST("", session.MustAdmin(), api.PostAutoscaler)
-			autoscalerBase.PATCH("/:autoscaler_id", session.MustAdmin(), api.PatchAutoscaler)
-			autoscalerBase.DELETE("/:autoscaler_id", session.MustAdmin(), api.DeleteAutoscaler)
-			autoscalerBase.POST("/:autoscaler_id/token", session.MustAdmin(), api.PostAutoscalerToken)
-
-			// Heartbeat endpoint - TODO: add autoscaler token authentication middleware
-			autoscalerBase.POST("/:autoscaler_id/heartbeat", api.PostAutoscalerHeartbeat)
-		}
-
-		apiBase.GET("/forges", api.GetForges)
-		apiBase.GET("/forges/:forgeId", api.GetForge)
-		forgeBase := apiBase.Group("/forges")
-		{
-			forgeBase.Use(session.MustAdmin())
-			forgeBase.POST("", api.PostForge)
-			forgeBase.PATCH("/:forgeId", api.PatchForge)
-			forgeBase.DELETE("/:forgeId", api.DeleteForge)
-		}
-
-		apiBase.GET("/signature/public-key", session.MustUser(), api.GetSignaturePublicKey)
-
-		// Webhook endpoint - new repos use this path
-		apiBase.POST("/hook", api.PostHook)
-
-		stream := apiBase.Group("/stream")
-		{
-			stream.GET("/logs/:repo_id/:pipeline/:stepId",
-				session.SetRepo(),
-				session.SetPerm(),
-				session.MustPull,
-				api.LogStreamSSE)
-			stream.GET("/events", api.EventStreamSSE)
-		}
-
-		admin := apiBase.Group("/admin")
-		{
-			admin.Use(session.MustAdmin())
-
-			// Maintenance endpoints
-			maintenance := admin.Group("/maintenance")
-			{
-				maintenance.GET("/config", api.GetMaintenanceConfig)
-				maintenance.PUT("/config", api.UpdateMaintenanceConfig)
-				maintenance.GET("/config/:action", api.GetMaintenanceConfigByAction)
-				maintenance.PUT("/config/:action", api.UpdateMaintenanceConfigByAction)
-				maintenance.GET("/stats", api.GetMaintenanceStats)
-				maintenance.GET("/logs", api.GetMaintenanceLogs)
-				maintenance.POST("/run", api.RunMaintenanceNow)
-			}
-		}
-
-		if zerolog.GlobalLevel() <= zerolog.DebugLevel {
-			debugger := apiBase.Group("/debug")
-			{
-				debugger.Use(session.MustAdmin())
-				debugger.GET("/pprof/", debug.IndexHandler())
-				debugger.GET("/pprof/heap", debug.HeapHandler())
-				debugger.GET("/pprof/goroutine", debug.GoroutineHandler())
-				debugger.GET("/pprof/block", debug.BlockHandler())
-				debugger.GET("/pprof/threadcreate", debug.ThreadCreateHandler())
-				debugger.GET("/pprof/cmdline", debug.CmdlineHandler())
-				debugger.GET("/pprof/profile", debug.ProfileHandler())
-				debugger.GET("/pprof/symbol", debug.SymbolHandler())
-				debugger.POST("/pprof/symbol", debug.SymbolHandler())
-				debugger.GET("/pprof/trace", debug.TraceHandler())
-			}
+			debugger.Use(session.MustAdmin())
+			debugger.GET("/pprof/", debug.IndexHandler())
+			debugger.GET("/pprof/heap", debug.HeapHandler())
+			debugger.GET("/pprof/goroutine", debug.GoroutineHandler())
+			debugger.GET("/pprof/block", debug.BlockHandler())
+			debugger.GET("/pprof/threadcreate", debug.ThreadCreateHandler())
+			debugger.GET("/pprof/cmdline", debug.CmdlineHandler())
+			debugger.GET("/pprof/profile", debug.ProfileHandler())
+			debugger.GET("/pprof/symbol", debug.SymbolHandler())
+			debugger.POST("/pprof/symbol", debug.SymbolHandler())
+			debugger.GET("/pprof/trace", debug.TraceHandler())
 		}
 	}
 }

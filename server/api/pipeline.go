@@ -18,15 +18,13 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
-	"github.com/gin-gonic/gin"
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/rs/zerolog/log"
 
 	"codefloe.com/crowci/crow/v5/pipeline/frontend/metadata"
@@ -41,38 +39,51 @@ import (
 	"codefloe.com/crowci/crow/v5/server/store/types"
 )
 
-// CreatePipeline
-//
-//	@Summary	Trigger a manual pipeline
-//	@Router		/repos/{repo_id}/pipelines [post]
-//	@Produce	json
-//	@Success	200	{object}	Pipeline
-//	@Tags		Pipelines
-//	@Param		Authorization	header	string			true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int				true	"the repository id"
-//	@Param		options			body	PipelineOptions	true	"the options for the pipeline to run"
-func CreatePipeline(c *gin.Context) {
+// pipelineErr converts a pipeline error to an appropriate huma error.
+func pipelineErr(err error) error {
+	switch {
+	case errors.Is(err, &pipeline.ErrNotFound{}):
+		return huma.Error404NotFound(err.Error())
+	case errors.Is(err, &pipeline.ErrBadRequest{}):
+		return huma.Error400BadRequest(err.Error())
+	case errors.Is(err, pipeline.ErrFiltered):
+		// for debugging purpose we add a header
+		return huma.ErrorWithHeaders(
+			huma.NewError(http.StatusNoContent, err.Error()),
+			http.Header{"Pipeline-Filtered": []string{"true"}},
+		)
+	default:
+		return huma.Error500InternalServerError(err.Error())
+	}
+}
+
+// forgeErr converts a forge error to an appropriate huma error.
+func forgeErr(err error) error {
+	return huma.Error500InternalServerError(err.Error())
+}
+
+type CreatePipelineInput struct {
+	RepoID int64 `path:"repo_id" doc:"the repository id"`
+	Body   model.PipelineOptions
+}
+
+type CreatePipelineOutput struct {
+	Body *model.Pipeline
+}
+
+func CreatePipeline(ctx context.Context, input *CreatePipelineInput) (*CreatePipelineOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	repo := session.Repo(c)
 
 	if !repo.AllowManual {
-		_ = c.AbortWithError(http.StatusForbidden, fmt.Errorf("repo does not allow manual pipelines"))
-		return
+		return nil, huma.Error403Forbidden("repo does not allow manual pipelines")
 	}
 
 	_forge, err := server.Config.Services.Manager.ForgeFromRepo(repo)
 	if err != nil {
 		log.Error().Err(err).Msg("Cannot get forge from repo")
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-
-	// parse create options
-	var opts model.PipelineOptions
-	err = json.NewDecoder(c.Request.Body).Decode(&opts)
-	if err != nil {
-		_ = c.AbortWithError(http.StatusBadRequest, err)
-		return
+		return nil, huma.Error500InternalServerError("cannot get forge from repo", err)
 	}
 
 	user := session.User(c)
@@ -89,26 +100,24 @@ func CreatePipeline(c *gin.Context) {
 	// Refresh tokens before forge API call
 	refreshUserTokenForForge(c, user, repo.ForgeID)
 	if c.IsAborted() {
-		return
+		return nil, huma.Error401Unauthorized("Your authorization has expired and couldn't be refreshed automatically. Please log in again")
 	}
 
-	lastCommit, err := _forge.BranchHead(c, user, repo, opts.Branch)
+	lastCommit, err := _forge.BranchHead(c, user, repo, input.Body.Branch)
 	if err != nil {
-		handleForgeError(c, err)
-		return
+		return nil, forgeErr(err)
 	}
 
-	tmpPipeline := createTmpPipeline(model.EventManual, lastCommit, user, &opts)
+	tmpPipeline := createTmpPipeline(model.EventManual, lastCommit, user, &input.Body)
 
 	createOpts := pipeline.CreateOptions{
-		WorkflowFilter: opts.Workflows,
+		WorkflowFilter: input.Body.Workflows,
 	}
 	pl, err := pipeline.Create(c, _store, repo, tmpPipeline, createOpts)
 	if err != nil {
-		handlePipelineErr(c, err)
-	} else {
-		c.JSON(http.StatusOK, pl)
+		return nil, pipelineErr(err)
 	}
+	return &CreatePipelineOutput{Body: pl}, nil
 }
 
 func createTmpPipeline(event model.WebhookEvent, commit *model.Commit, user *model.User, opts *model.PipelineOptions) *model.Pipeline {
@@ -145,181 +154,170 @@ func createTmpPipeline(event model.WebhookEvent, commit *model.Commit, user *mod
 	}
 }
 
-// GetPipelines
-//
-//	@Summary		List repository pipelines
-//	@Description	Get a list of pipelines for a repository.
-//	@Router			/repos/{repo_id}/pipelines [get]
-//	@Produce		json
-//	@Success		200	{array}	Pipeline
-//	@Tags			Pipelines
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			repo_id			path	int		true	"the repository id"
-//	@Param			page			query	int		false	"for response pagination, page offset number"	default(1)
-//	@Param			perPage			query	int		false	"for response pagination, max items per page"	default(50)
-//	@Param			before			query	string	false	"only return pipelines before this RFC3339 date"
-//	@Param			after			query	string	false	"only return pipelines after this RFC3339 date"
-//	@Param			branch			query	string	false	"filter pipelines by branch"
-//	@Param			event			query	string	false	"filter pipelines by webhook events (comma separated)"
-//	@Param			ref				query	string	false	"filter pipelines by strings contained in ref"
-//	@Param			status			query	string	false	"filter pipelines by status"
-//	@Param			search			query	string	false	"search pipelines by number, message, branch, or author"
-func GetPipelines(c *gin.Context) {
+type GetPipelinesInput struct {
+	PaginationParams
+	RepoID int64  `path:"repo_id" doc:"the repository id"`
+	Before string `query:"before" doc:"only return pipelines before this RFC3339 date"`
+	After  string `query:"after" doc:"only return pipelines after this RFC3339 date"`
+	Branch string `query:"branch" doc:"filter pipelines by branch"`
+	Event  string `query:"event" doc:"filter pipelines by webhook events (comma separated)"`
+	Ref    string `query:"ref" doc:"filter pipelines by strings contained in ref"`
+	Status string `query:"status" doc:"filter pipelines by status"`
+	Search string `query:"search" doc:"search pipelines by number, message, branch, or author"`
+}
+
+type GetPipelinesOutput struct {
+	Body []*model.Pipeline
+}
+
+func GetPipelines(ctx context.Context, input *GetPipelinesInput) (*GetPipelinesOutput, error) {
+	c := ginCtx(ctx)
 	repo := session.Repo(c)
 
 	filter := &model.PipelineFilter{
-		Branch:      c.Query("branch"),
-		RefContains: c.Query("ref"),
-		Search:      c.Query("search"),
+		Branch:      input.Branch,
+		RefContains: input.Ref,
+		Search:      input.Search,
 	}
 
-	if events := c.Query("event"); events != "" {
-		eventList := strings.Split(events, ",")
+	if input.Event != "" {
+		eventList := strings.Split(input.Event, ",")
 		wel := make(model.WebhookEventList, 0, len(eventList))
 		for _, event := range eventList {
 			we := model.WebhookEvent(event)
 			if err := we.Validate(); err != nil {
-				_ = c.AbortWithError(http.StatusBadRequest, err)
-				return
+				return nil, huma.Error400BadRequest(err.Error())
 			}
 			wel = append(wel, we)
 		}
 		filter.Events = wel
 	}
 
-	if status := c.Query("status"); status != "" {
-		ps := model.StatusValue(status)
+	if input.Status != "" {
+		ps := model.StatusValue(input.Status)
 		if err := ps.Validate(); err != nil {
-			_ = c.AbortWithError(http.StatusBadRequest, err)
-			return
+			return nil, huma.Error400BadRequest(err.Error())
 		}
 		filter.Status = ps
 	}
 
-	if before := c.Query("before"); before != "" {
-		beforeDt, err := time.Parse(time.RFC3339, before)
+	if input.Before != "" {
+		beforeDt, err := time.Parse(time.RFC3339, input.Before)
 		if err != nil {
-			_ = c.AbortWithError(http.StatusBadRequest, err)
-			return
+			return nil, huma.Error400BadRequest("invalid 'before' date format", err)
 		}
 		filter.Before = beforeDt.Unix()
 	}
 
-	if after := c.Query("after"); after != "" {
-		afterDt, err := time.Parse(time.RFC3339, after)
+	if input.After != "" {
+		afterDt, err := time.Parse(time.RFC3339, input.After)
 		if err != nil {
-			_ = c.AbortWithError(http.StatusBadRequest, err)
-			return
+			return nil, huma.Error400BadRequest("invalid 'after' date format", err)
 		}
 		filter.After = afterDt.Unix()
 	}
 
-	pipelines, err := store.FromContext(c).GetPipelineList(repo, session.Pagination(c), filter)
+	pagination := &model.ListOptions{Page: input.Page, PerPage: input.PerPage}
+	pipelines, err := store.FromContext(c).GetPipelineList(repo, pagination, filter)
 	if err != nil {
-		_ = c.AbortWithError(http.StatusInternalServerError, err)
-		return
+		return nil, huma.Error500InternalServerError("error getting pipeline list", err)
 	}
-	c.JSON(http.StatusOK, pipelines)
+	return &GetPipelinesOutput{Body: pipelines}, nil
 }
 
-// DeletePipeline
-//
-//	@Summary	Delete a pipeline
-//	@Router		/repos/{repo_id}/pipelines/{number} [delete]
-//	@Produce	plain
-//	@Success	204
-//	@Tags		Pipelines
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-//	@Param		number			path	int		true	"the number of the pipeline"
-func DeletePipeline(c *gin.Context) {
+type DeletePipelineInput struct {
+	RepoID int64 `path:"repo_id" doc:"the repository id"`
+	Number int64 `path:"number" doc:"the number of the pipeline"`
+}
+
+func DeletePipeline(ctx context.Context, input *DeletePipelineInput) (*struct{}, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
-
 	repo := session.Repo(c)
-	num, err := strconv.ParseInt(c.Param("number"), 10, 64)
-	if err != nil {
-		_ = c.AbortWithError(http.StatusBadRequest, err)
-		return
-	}
 
-	pl, err := _store.GetPipelineNumber(repo, num)
+	pl, err := _store.GetPipelineNumber(repo, input.Number)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
 	if ok := pipelineDeleteAllowed(pl); !ok {
-		c.String(http.StatusUnprocessableEntity, "Cannot delete pipeline with status %s", pl.Status)
-		return
+		return nil, huma.Error422UnprocessableEntity(fmt.Sprintf("Cannot delete pipeline with status %s", pl.Status))
 	}
 
 	err = store.FromContext(c).DeletePipeline(pl)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error deleting pipeline. %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error deleting pipeline", err)
 	}
 
-	c.Status(http.StatusNoContent)
+	return nil, nil
 }
 
-// GetPipeline
-//
-//	@Summary	Get a repositories pipeline
-//	@Router		/repos/{repo_id}/pipelines/{number} [get]
-//	@Produce	json
-//	@Success	200	{object}	Pipeline
-//	@Tags		Pipelines
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-//	@Param		number			path	int		true	"the number of the pipeline, OR 'latest'"
-func GetPipeline(c *gin.Context) {
+type GetPipelineInput struct {
+	RepoID int64  `path:"repo_id" doc:"the repository id"`
+	Number string `path:"number" doc:"the number of the pipeline, OR 'latest'"`
+}
+
+type GetPipelineOutput struct {
+	Body *model.Pipeline
+}
+
+func GetPipeline(ctx context.Context, input *GetPipelineInput) (*GetPipelineOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
-	if c.Param("number") == "latest" {
-		GetPipelineLast(c)
-		return
+
+	if input.Number == "latest" {
+		return getPipelineLast(ctx)
 	}
 
 	repo := session.Repo(c)
-	num, err := strconv.ParseInt(c.Param("number"), 10, 64)
+	num, err := parseNumber(input.Number)
 	if err != nil {
-		_ = c.AbortWithError(http.StatusBadRequest, err)
-		return
+		return nil, err
 	}
 
 	pl, err := _store.GetPipelineNumber(repo, num)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 	if pl.Workflows, err = _store.WorkflowGetTree(pl); err != nil {
-		_ = c.AbortWithError(http.StatusInternalServerError, err)
-		return
+		return nil, huma.Error500InternalServerError("error getting workflow tree", err)
 	}
 
 	populateAlwaysApproved(_store, repo, pl)
 
-	c.JSON(http.StatusOK, pl)
+	return &GetPipelineOutput{Body: pl}, nil
 }
 
-func GetPipelineLast(c *gin.Context) {
+// parseNumber parses a string into an int64, returning a huma 400 error on failure.
+func parseNumber(s string) (int64, error) {
+	var num int64
+	for _, ch := range s {
+		if ch < '0' || ch > '9' {
+			return 0, huma.Error400BadRequest("invalid number: " + s)
+		}
+		num = num*10 + int64(ch-'0') //nolint:mnd
+	}
+	return num, nil
+}
+
+func getPipelineLast(ctx context.Context) (*GetPipelineOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	repo := session.Repo(c)
 	branch := c.DefaultQuery("branch", repo.Branch)
 
 	pl, err := _store.GetPipelineLast(repo, branch)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
 	if pl.Workflows, err = _store.WorkflowGetTree(pl); err != nil {
-		_ = c.AbortWithError(http.StatusInternalServerError, err)
-		return
+		return nil, huma.Error500InternalServerError("error getting workflow tree", err)
 	}
 
 	populateAlwaysApproved(_store, repo, pl)
 
-	c.JSON(http.StatusOK, pl)
+	return &GetPipelineOutput{Body: pl}, nil
 }
 
 func populateAlwaysApproved(_store store.Store, repo *model.Repo, pl *model.Pipeline) {
@@ -330,158 +328,111 @@ func populateAlwaysApproved(_store store.Store, repo *model.Repo, pl *model.Pipe
 	}
 }
 
-// GetStepLogs
-//
-//	@Summary	Get logs for a pipeline step
-//	@Router		/repos/{repo_id}/logs/{number}/{stepID} [get]
-//	@Produce	json
-//	@Success	200	{array}	LogEntry
-//	@Tags		Pipeline logs
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-//	@Param		number			path	int		true	"the number of the pipeline"
-//	@Param		stepID			path	int		true	"the step id"
-func GetStepLogs(c *gin.Context) {
+type GetStepLogsInput struct {
+	RepoID int64 `path:"repo_id" doc:"the repository id"`
+	Number int64 `path:"number" doc:"the number of the pipeline"`
+	StepID int64 `path:"stepId" doc:"the step id"`
+}
+
+type GetStepLogsOutput struct {
+	Body []*model.LogEntry
+}
+
+func GetStepLogs(ctx context.Context, input *GetStepLogsInput) (*GetStepLogsOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	repo := session.Repo(c)
 
-	// parse the pipeline number and step sequence number from
-	// the request parameter.
-	num, err := strconv.ParseInt(c.Params.ByName("number"), 10, 64)
+	pl, err := _store.GetPipelineNumber(repo, input.Number)
 	if err != nil {
-		_ = c.AbortWithError(http.StatusBadRequest, err)
-		return
+		return nil, dbErr(err)
 	}
 
-	pl, err := _store.GetPipelineNumber(repo, num)
+	step, err := _store.StepLoad(input.StepID)
 	if err != nil {
-		handleDBError(c, err)
-		return
-	}
-
-	stepID, err := strconv.ParseInt(c.Params.ByName("stepId"), 10, 64)
-	if err != nil {
-		_ = c.AbortWithError(http.StatusBadRequest, err)
-		return
-	}
-
-	step, err := _store.StepLoad(stepID)
-	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
 	if step.PipelineID != pl.ID {
 		// make sure we cannot read arbitrary logs by id
-		_ = c.AbortWithError(http.StatusBadRequest, fmt.Errorf("step with id %d is not part of repo %s", stepID, repo.FullName))
-		return
+		return nil, huma.Error400BadRequest(fmt.Sprintf("step with id %d is not part of repo %s", input.StepID, repo.FullName))
 	}
 
 	logs, err := server.Config.Services.LogStore.LogFind(step)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
-	c.JSON(http.StatusOK, logs)
+	return &GetStepLogsOutput{Body: logs}, nil
 }
 
-// DeleteStepLogs
-//
-//	@Summary	Delete step logs of a pipeline
-//	@Router		/repos/{repo_id}/logs/{number}/{stepId} [delete]
-//	@Produce	plain
-//	@Success	204
-//	@Tags		Pipeline logs
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-//	@Param		number			path	int		true	"the number of the pipeline"
-//	@Param		stepId			path	int		true	"the step id"
-func DeleteStepLogs(c *gin.Context) {
+type DeleteStepLogsInput struct {
+	RepoID int64 `path:"repo_id" doc:"the repository id"`
+	Number int64 `path:"number" doc:"the number of the pipeline"`
+	StepID int64 `path:"stepId" doc:"the step id"`
+}
+
+func DeleteStepLogs(ctx context.Context, input *DeleteStepLogsInput) (*struct{}, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	repo := session.Repo(c)
 
-	pipelineNumber, err := strconv.ParseInt(c.Params.ByName("number"), 10, 64)
+	_pipeline, err := _store.GetPipelineNumber(repo, input.Number)
 	if err != nil {
-		_ = c.AbortWithError(http.StatusBadRequest, err)
-		return
+		return nil, dbErr(err)
 	}
 
-	_pipeline, err := _store.GetPipelineNumber(repo, pipelineNumber)
+	_step, err := _store.StepLoad(input.StepID)
 	if err != nil {
-		handleDBError(c, err)
-		return
-	}
-
-	stepID, err := strconv.ParseInt(c.Params.ByName("stepId"), 10, 64)
-	if err != nil {
-		_ = c.AbortWithError(http.StatusBadRequest, err)
-		return
-	}
-
-	_step, err := _store.StepLoad(stepID)
-	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
 	if _step.PipelineID != _pipeline.ID {
 		// make sure we cannot read arbitrary logs by id
-		_ = c.AbortWithError(http.StatusBadRequest, fmt.Errorf("step with id %d is not part of repo %s", stepID, repo.FullName))
-		return
+		return nil, huma.Error400BadRequest(fmt.Sprintf("step with id %d is not part of repo %s", input.StepID, repo.FullName))
 	}
 
 	switch _step.State {
 	case model.StatusRunning, model.StatusPending:
-		c.String(http.StatusUnprocessableEntity, "Cannot delete logs for a pending or running step")
-		return
+		return nil, huma.Error422UnprocessableEntity("Cannot delete logs for a pending or running step")
 	}
 
 	err = server.Config.Services.LogStore.LogDelete(_step)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
-	c.Status(http.StatusNoContent)
+	return nil, nil
 }
 
-// GetPipelineConfig
-//
-//	@Summary	Get configuration files for a pipeline
-//	@Router		/repos/{repo_id}/pipelines/{number}/config [get]
-//	@Produce	json
-//	@Success	200	{array}	Config
-//	@Tags		Pipelines
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-//	@Param		number			path	int		true	"the number of the pipeline"
-func GetPipelineConfig(c *gin.Context) {
+type GetPipelineConfigInput struct {
+	RepoID int64 `path:"repo_id" doc:"the repository id"`
+	Number int64 `path:"number" doc:"the number of the pipeline"`
+}
+
+type GetPipelineConfigOutput struct {
+	Body []*model.Config
+}
+
+func GetPipelineConfig(ctx context.Context, input *GetPipelineConfigInput) (*GetPipelineConfigOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	repo := session.Repo(c)
-	num, err := strconv.ParseInt(c.Param("number"), 10, 64)
-	if err != nil {
-		_ = c.AbortWithError(http.StatusBadRequest, err)
-		return
-	}
 
-	pl, err := _store.GetPipelineNumber(repo, num)
+	pl, err := _store.GetPipelineNumber(repo, input.Number)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
 	configs, err := _store.ConfigsForPipeline(pl.ID)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
-		return
+		return nil, huma.Error500InternalServerError(err.Error())
 	}
 
 	// Get workflows to filter configs to only those that were actually executed
 	workflows, err := _store.WorkflowGetTree(pl)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
-		return
+		return nil, huma.Error500InternalServerError(err.Error())
 	}
 
 	// Collect unique pipeline names from executed workflows
@@ -495,7 +446,7 @@ func GetPipelineConfig(c *gin.Context) {
 	// Filter configs to only include those with executed workflows
 	filteredConfigs := filterConfigsByExecutedWorkflows(configs, executedPipelineNames)
 
-	c.JSON(http.StatusOK, filteredConfigs)
+	return &GetPipelineConfigOutput{Body: filteredConfigs}, nil
 }
 
 // filterConfigsByExecutedWorkflows returns only configs that have corresponding executed workflows.
@@ -531,44 +482,38 @@ type ManualWorkflow struct {
 	PipelineName string   `json:"pipeline_name"`
 	DependsOn    []string `json:"depends_on,omitempty"`
 	HasManual    bool     `json:"has_manual"`
-} //	@name	ManualWorkflow
+}
 
 // ManualWorkflowsResponse is the response for the GetManualWorkflows endpoint.
 type ManualWorkflowsResponse struct {
 	Workflows []ManualWorkflow `json:"workflows"`
 	Warnings  []string         `json:"warnings,omitempty"`
-} //	@name	ManualWorkflowsResponse
+}
 
-// GetRepoConfigs
-//
-//	@Summary		Get workflow configurations for a branch
-//	@Description	Returns parsed workflow information for a specific branch, optionally filtered by trigger event type.
-//	@Router			/repos/{repo_id}/configs [get]
-//	@Produce		json
-//	@Success		200	{object}	ManualWorkflowsResponse
-//	@Tags			Pipelines
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			repo_id			path	int		true	"the repository id"
-//	@Param			branch			query	string	true	"the branch to get configs from"
-//	@Param			filter			query	string	false	"filter workflows by event type (e.g., 'manual')"
-func GetRepoConfigs(c *gin.Context) {
+type GetRepoConfigsInput struct {
+	RepoID int64  `path:"repo_id" doc:"the repository id"`
+	Branch string `query:"branch" doc:"the branch to get configs from"`
+	Filter string `query:"filter" doc:"filter workflows by event type (e.g., 'manual')"`
+}
+
+type GetRepoConfigsOutput struct {
+	Body ManualWorkflowsResponse
+}
+
+func GetRepoConfigs(ctx context.Context, input *GetRepoConfigsInput) (*GetRepoConfigsOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	repo := session.Repo(c)
 	user := session.User(c)
 
-	branch := c.Query("branch")
-	if branch == "" {
-		c.String(http.StatusBadRequest, "branch parameter is required")
-		return
+	if input.Branch == "" {
+		return nil, huma.Error400BadRequest("branch parameter is required")
 	}
-
-	filter := c.Query("filter")
 
 	_forge, err := server.Config.Services.Manager.ForgeFromRepo(repo)
 	if err != nil {
 		log.Error().Err(err).Msg("Cannot get forge from repo")
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
+		return nil, huma.Error500InternalServerError("cannot get forge from repo", err)
 	}
 
 	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
@@ -583,22 +528,21 @@ func GetRepoConfigs(c *gin.Context) {
 	// Refresh tokens before forge API call
 	refreshUserTokenForForge(c, user, repo.ForgeID)
 	if c.IsAborted() {
-		return
+		return nil, huma.Error401Unauthorized("Your authorization has expired and couldn't be refreshed automatically. Please log in again")
 	}
 
 	// Get the branch head commit
-	commit, err := _forge.BranchHead(c, user, repo, branch)
+	commit, err := _forge.BranchHead(c, user, repo, input.Branch)
 	if err != nil {
-		handleForgeError(c, err)
-		return
+		return nil, forgeErr(err)
 	}
 
 	// Create a temporary pipeline to fetch configs (we won't persist it)
 	tmpPipeline := &model.Pipeline{
 		Event:  model.EventManual,
 		Commit: commit.SHA,
-		Branch: branch,
-		Ref:    branch,
+		Branch: input.Branch,
+		Ref:    input.Branch,
 	}
 
 	// Fetch the configs from the forge
@@ -606,15 +550,13 @@ func GetRepoConfigs(c *gin.Context) {
 	forgeYamlConfigs, err := configService.Fetch(c, _forge, user, repo, tmpPipeline, nil, false)
 	if err != nil {
 		log.Debug().Err(err).Str("repo", repo.FullName).Msg("error fetching configs")
-		c.String(http.StatusInternalServerError, "Error fetching pipeline configs: %s", err.Error())
-		return
+		return nil, huma.Error500InternalServerError("Error fetching pipeline configs: " + err.Error())
 	}
 
 	if len(forgeYamlConfigs) == 0 {
-		c.JSON(http.StatusOK, ManualWorkflowsResponse{
+		return &GetRepoConfigsOutput{Body: ManualWorkflowsResponse{
 			Workflows: []ManualWorkflow{},
-		})
-		return
+		}}, nil
 	}
 
 	// Parse each YAML file and extract workflow information
@@ -653,7 +595,7 @@ func GetRepoConfigs(c *gin.Context) {
 		workflowMap[workflowName] = wf
 
 		// If filtering by manual, only include workflows with manual trigger
-		if filter == "manual" && !hasManual {
+		if input.Filter == "manual" && !hasManual {
 			continue
 		}
 
@@ -661,7 +603,7 @@ func GetRepoConfigs(c *gin.Context) {
 	}
 
 	// Generate warnings for dependencies that don't have manual trigger
-	if filter == "manual" {
+	if input.Filter == "manual" {
 		for _, wf := range workflows {
 			for _, dep := range wf.DependsOn {
 				if depWf, exists := workflowMap[dep]; exists && !depWf.HasManual {
@@ -671,10 +613,10 @@ func GetRepoConfigs(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, ManualWorkflowsResponse{
+	return &GetRepoConfigsOutput{Body: ManualWorkflowsResponse{
 		Workflows: workflows,
 		Warnings:  warnings,
-	})
+	}}, nil
 }
 
 // workflowHasManualTrigger checks if a workflow's when constraint includes the manual event.
@@ -711,66 +653,53 @@ func workflowHasManualTrigger(when constraint.When) bool {
 	return false
 }
 
-// GetPipelineMetadata
-//
-//	@Summary	Get metadata for a pipeline or a specific workflow, including previous pipeline info
-//	@Router		/repos/{repo_id}/pipelines/{number}/metadata [get]
-//	@Produce	json
-//	@Success	200	{object}	metadata.Metadata
-//	@Tags		Pipelines
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-//	@Param		number			path	int		true	"the number of the pipeline"
-func GetPipelineMetadata(c *gin.Context) {
+type GetPipelineMetadataInput struct {
+	RepoID int64 `path:"repo_id" doc:"the repository id"`
+	Number int64 `path:"number" doc:"the number of the pipeline"`
+}
+
+type GetPipelineMetadataOutput struct {
+	Body *metadata.Metadata
+}
+
+func GetPipelineMetadata(ctx context.Context, input *GetPipelineMetadataInput) (*GetPipelineMetadataOutput, error) {
+	c := ginCtx(ctx)
 	repo := session.Repo(c)
-	num, err := strconv.ParseInt(c.Param("number"), 10, 64)
-	if err != nil {
-		_ = c.AbortWithError(http.StatusBadRequest, err)
-		return
-	}
 
 	_store := store.FromContext(c)
-	currentPipeline, err := _store.GetPipelineNumber(repo, num)
+	currentPipeline, err := _store.GetPipelineNumber(repo, input.Number)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
 	forge, err := server.Config.Services.Manager.ForgeFromRepo(repo)
 	if err != nil {
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
+		return nil, huma.Error500InternalServerError("cannot get forge from repo", err)
 	}
 
 	prevPipeline, err := _store.GetPipelineLastBefore(repo, currentPipeline.Branch, currentPipeline.ID)
 	if err != nil && !errors.Is(err, types.RecordNotExist) {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
-	metadata := stepbuilder.MetadataFromStruct(forge, repo, currentPipeline, prevPipeline, nil, server.Config.Server.Host)
-	c.JSON(http.StatusOK, metadata)
+	md := stepbuilder.MetadataFromStruct(forge, repo, currentPipeline, prevPipeline, nil, server.Config.Server.Host)
+	return &GetPipelineMetadataOutput{Body: &md}, nil
 }
 
-// CancelPipeline
-//
-//	@Summary	Cancel a pipeline
-//	@Router		/repos/{repo_id}/pipelines/{number}/cancel [post]
-//	@Produce	plain
-//	@Success	200
-//	@Tags		Pipelines
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-//	@Param		number			path	int		true	"the number of the pipeline"
-func CancelPipeline(c *gin.Context) {
+type CancelPipelineInput struct {
+	RepoID int64 `path:"repo_id" doc:"the repository id"`
+	Number int64 `path:"number" doc:"the number of the pipeline"`
+}
+
+func CancelPipeline(ctx context.Context, input *CancelPipelineInput) (*struct{}, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	repo := session.Repo(c)
 	user := session.User(c)
 	_forge, err := server.Config.Services.Manager.ForgeFromRepo(repo)
 	if err != nil {
 		log.Error().Err(err).Msg("Cannot get forge from repo")
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
+		return nil, huma.Error500InternalServerError("cannot get forge from repo", err)
 	}
 
 	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
@@ -785,41 +714,34 @@ func CancelPipeline(c *gin.Context) {
 	// Refresh tokens before forge API call
 	refreshUserTokenForForge(c, user, repo.ForgeID)
 	if c.IsAborted() {
-		return
+		return nil, huma.Error401Unauthorized("Your authorization has expired and couldn't be refreshed automatically. Please log in again")
 	}
 
-	num, _ := strconv.ParseInt(c.Params.ByName("number"), 10, 64)
-
-	pl, err := _store.GetPipelineNumber(repo, num)
+	pl, err := _store.GetPipelineNumber(repo, input.Number)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
 	if err := pipeline.Cancel(c, _forge, _store, repo, user, pl); err != nil {
-		handlePipelineErr(c, err)
-	} else {
-		c.AbortWithStatus(http.StatusNoContent)
+		return nil, pipelineErr(err)
 	}
+	return nil, nil
 }
 
-// PostApproval
-//
-//	@Summary	Approve and start a pipeline
-//	@Router		/repos/{repo_id}/pipelines/{number}/approve [post]
-//	@Produce	json
-//	@Success	200	{object}	Pipeline
-//	@Tags		Pipelines
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-//	@Param		number			path	int		true	"the number of the pipeline"
-func PostApproval(c *gin.Context) {
-	var (
-		_store = store.FromContext(c)
-		repo   = session.Repo(c)
-		user   = session.User(c)
-		num, _ = strconv.ParseInt(c.Params.ByName("number"), 10, 64)
-	)
+type PostApprovalInput struct {
+	RepoID int64 `path:"repo_id" doc:"the repository id"`
+	Number int64 `path:"number" doc:"the number of the pipeline"`
+}
+
+type PostApprovalOutput struct {
+	Body *model.Pipeline
+}
+
+func PostApproval(ctx context.Context, input *PostApprovalInput) (*PostApprovalOutput, error) {
+	c := ginCtx(ctx)
+	_store := store.FromContext(c)
+	repo := session.Repo(c)
+	user := session.User(c)
 
 	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
 	if userForge, ufErr := _store.UserForgeGet(user.ID, repo.ForgeID); ufErr == nil && userForge != nil {
@@ -833,40 +755,35 @@ func PostApproval(c *gin.Context) {
 	// Refresh tokens before forge API call
 	refreshUserTokenForForge(c, user, repo.ForgeID)
 	if c.IsAborted() {
-		return
+		return nil, huma.Error401Unauthorized("Your authorization has expired and couldn't be refreshed automatically. Please log in again")
 	}
 
-	pl, err := _store.GetPipelineNumber(repo, num)
+	pl, err := _store.GetPipelineNumber(repo, input.Number)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
 	newPipeline, err := pipeline.Approve(c, _store, pl, user, repo)
 	if err != nil {
-		handlePipelineErr(c, err)
-	} else {
-		c.JSON(http.StatusOK, newPipeline)
+		return nil, pipelineErr(err)
 	}
+	return &PostApprovalOutput{Body: newPipeline}, nil
 }
 
-// PostApprovalAlways
-//
-//	@Summary	Approve a pipeline and always approve future pipelines from the same PR
-//	@Router		/repos/{repo_id}/pipelines/{number}/approve-always [post]
-//	@Produce	json
-//	@Success	200	{object}	Pipeline
-//	@Tags		Pipelines
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-//	@Param		number			path	int		true	"the number of the pipeline"
-func PostApprovalAlways(c *gin.Context) {
-	var (
-		_store = store.FromContext(c)
-		repo   = session.Repo(c)
-		user   = session.User(c)
-		num, _ = strconv.ParseInt(c.Params.ByName("number"), 10, 64)
-	)
+type PostApprovalAlwaysInput struct {
+	RepoID int64 `path:"repo_id" doc:"the repository id"`
+	Number int64 `path:"number" doc:"the number of the pipeline"`
+}
+
+type PostApprovalAlwaysOutput struct {
+	Body *model.Pipeline
+}
+
+func PostApprovalAlways(ctx context.Context, input *PostApprovalAlwaysInput) (*PostApprovalAlwaysOutput, error) {
+	c := ginCtx(ctx)
+	_store := store.FromContext(c)
+	repo := session.Repo(c)
+	user := session.User(c)
 
 	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
 	if userForge, ufErr := _store.UserForgeGet(user.ID, repo.ForgeID); ufErr == nil && userForge != nil {
@@ -880,13 +797,12 @@ func PostApprovalAlways(c *gin.Context) {
 	// Refresh tokens before forge API call
 	refreshUserTokenForForge(c, user, repo.ForgeID)
 	if c.IsAborted() {
-		return
+		return nil, huma.Error401Unauthorized("Your authorization has expired and couldn't be refreshed automatically. Please log in again")
 	}
 
-	pl, err := _store.GetPipelineNumber(repo, num)
+	pl, err := _store.GetPipelineNumber(repo, input.Number)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
 	// Create the always-approved record for this PR ref
@@ -903,60 +819,47 @@ func PostApprovalAlways(c *gin.Context) {
 
 	newPipeline, err := pipeline.Approve(c, _store, pl, user, repo)
 	if err != nil {
-		handlePipelineErr(c, err)
-	} else {
-		c.JSON(http.StatusOK, newPipeline)
+		return nil, pipelineErr(err)
 	}
+	return &PostApprovalAlwaysOutput{Body: newPipeline}, nil
 }
 
-// DeleteApprovalAlways
-//
-//	@Summary	Revoke always-approve for a pipeline's PR
-//	@Router		/repos/{repo_id}/pipelines/{number}/approve-always [delete]
-//	@Produce	plain
-//	@Success	204
-//	@Tags		Pipelines
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-//	@Param		number			path	int		true	"the number of the pipeline"
-func DeleteApprovalAlways(c *gin.Context) {
-	var (
-		_store = store.FromContext(c)
-		repo   = session.Repo(c)
-		num, _ = strconv.ParseInt(c.Params.ByName("number"), 10, 64)
-	)
+type DeleteApprovalAlwaysInput struct {
+	RepoID int64 `path:"repo_id" doc:"the repository id"`
+	Number int64 `path:"number" doc:"the number of the pipeline"`
+}
 
-	pl, err := _store.GetPipelineNumber(repo, num)
+func DeleteApprovalAlways(ctx context.Context, input *DeleteApprovalAlwaysInput) (*struct{}, error) {
+	c := ginCtx(ctx)
+	_store := store.FromContext(c)
+	repo := session.Repo(c)
+
+	pl, err := _store.GetPipelineNumber(repo, input.Number)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
 	if err := _store.ApprovedPullRequestDelete(repo.ID, pl.Ref); err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
-	c.Status(http.StatusNoContent)
+	return nil, nil
 }
 
-// PostDecline
-//
-//	@Summary	Decline a pipeline
-//	@Router		/repos/{repo_id}/pipelines/{number}/decline [post]
-//	@Produce	json
-//	@Success	200	{object}	Pipeline
-//	@Tags		Pipelines
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-//	@Param		number			path	int		true	"the number of the pipeline"
-func PostDecline(c *gin.Context) {
-	var (
-		_store = store.FromContext(c)
-		repo   = session.Repo(c)
-		user   = session.User(c)
-		num, _ = strconv.ParseInt(c.Params.ByName("number"), 10, 64)
-	)
+type PostDeclineInput struct {
+	RepoID int64 `path:"repo_id" doc:"the repository id"`
+	Number int64 `path:"number" doc:"the number of the pipeline"`
+}
+
+type PostDeclineOutput struct {
+	Body *model.Pipeline
+}
+
+func PostDecline(ctx context.Context, input *PostDeclineInput) (*PostDeclineOutput, error) {
+	c := ginCtx(ctx)
+	_store := store.FromContext(c)
+	repo := session.Repo(c)
+	user := session.User(c)
 
 	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
 	if userForge, ufErr := _store.UserForgeGet(user.ID, repo.ForgeID); ufErr == nil && userForge != nil {
@@ -970,67 +873,56 @@ func PostDecline(c *gin.Context) {
 	// Refresh tokens before forge API call
 	refreshUserTokenForForge(c, user, repo.ForgeID)
 	if c.IsAborted() {
-		return
+		return nil, huma.Error401Unauthorized("Your authorization has expired and couldn't be refreshed automatically. Please log in again")
 	}
 
-	pl, err := _store.GetPipelineNumber(repo, num)
+	pl, err := _store.GetPipelineNumber(repo, input.Number)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
 	pl, err = pipeline.Decline(c, _store, pl, user, repo)
 	if err != nil {
-		handlePipelineErr(c, err)
-	} else {
-		c.JSON(http.StatusOK, pl)
+		return nil, pipelineErr(err)
 	}
+	return &PostDeclineOutput{Body: pl}, nil
 }
 
-// GetPipelineQueue
-//
-//	@Summary	List pipelines in queue
-//	@Router		/pipelines [get]
-//	@Produce	json
-//	@Success	200	{array}	Feed
-//	@Tags		Pipeline queues
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-func GetPipelineQueue(c *gin.Context) {
+type GetPipelineQueueInput struct{}
+
+type GetPipelineQueueOutput struct {
+	Body []*model.Feed
+}
+
+func GetPipelineQueue(ctx context.Context, _ *GetPipelineQueueInput) (*GetPipelineQueueOutput, error) {
+	c := ginCtx(ctx)
 	out, err := store.FromContext(c).GetPipelineQueue()
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error getting pipeline queue. %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error getting pipeline queue", err)
 	}
-	c.JSON(http.StatusOK, out)
+	return &GetPipelineQueueOutput{Body: out}, nil
 }
 
-// PostPipeline
-//
-//	@Summary		Restart a pipeline
-//	@Description	Restarts a pipeline optional with altered event, deploy or environment
-//	@Router			/repos/{repo_id}/pipelines/{number} [post]
-//	@Produce		json
-//	@Success		200	{object}	Pipeline
-//	@Tags			Pipelines
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			repo_id			path	int		true	"the repository id"
-//	@Param			number			path	int		true	"the number of the pipeline"
-//	@Param			event			query	string	false	"override the event type"
-//	@Param			deploy_to		query	string	false	"override the target deploy value"
-func PostPipeline(c *gin.Context) {
+type PostPipelineInput struct {
+	RepoID     int64  `path:"repo_id" doc:"the repository id"`
+	Number     int64  `path:"number" doc:"the number of the pipeline"`
+	Event      string `query:"event" doc:"override the event type"`
+	DeployTo   string `query:"deploy_to" doc:"override the target deploy value"`
+	DeployTask string `query:"deploy_task" doc:"override the deploy task"`
+}
+
+type PostPipelineOutput struct {
+	Body *model.Pipeline
+}
+
+func PostPipeline(ctx context.Context, input *PostPipelineInput) (*PostPipelineOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	repo := session.Repo(c)
 
-	num, err := strconv.ParseInt(c.Param("number"), 10, 64)
-	if err != nil {
-		_ = c.AbortWithError(http.StatusBadRequest, err)
-		return
-	}
-
 	user, err := _store.GetUser(repo.UserID)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
 	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
@@ -1043,10 +935,9 @@ func PostPipeline(c *gin.Context) {
 		user.ForgeRemoteID = userForge.ForgeRemoteID
 	}
 
-	pl, err := _store.GetPipelineNumber(repo, num)
+	pl, err := _store.GetPipelineNumber(repo, input.Number)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
 	// Store the original event type before any modifications
@@ -1060,27 +951,25 @@ func PostPipeline(c *gin.Context) {
 	// refresh the token to make sure, pipeline.Restart can still obtain the pipeline config if necessary again
 	refreshUserTokenForForge(c, user, repo.ForgeID)
 
-	// make Deploy overridable
-
 	// make Deploy task overridable
-	pl.DeployTask = c.DefaultQuery("deploy_task", pl.DeployTask)
+	if input.DeployTask != "" {
+		pl.DeployTask = input.DeployTask
+	}
 
 	// make Event overridable to deploy
 	// TODO: refactor to use own proper API for deploy
-	if event, ok := c.GetQuery("event"); ok {
+	if input.Event != "" {
 		log.Debug().
-			Str("query_event", event).
+			Str("query_event", input.Event).
 			Str("original_event", string(originalEvent)).
 			Msg("Event query parameter found")
-		pl.Event = model.WebhookEvent(event)
+		pl.Event = model.WebhookEvent(input.Event)
 		if pl.Event != model.EventDeploy {
-			_ = c.AbortWithError(http.StatusBadRequest, model.ErrInvalidWebhookEvent)
-			return
+			return nil, huma.Error400BadRequest(model.ErrInvalidWebhookEvent.Error())
 		}
 
 		if !repo.AllowDeploy {
-			_ = c.AbortWithError(http.StatusForbidden, fmt.Errorf("repo does not allow deployments"))
-			return
+			return nil, huma.Error403Forbidden("repo does not allow deployments")
 		}
 
 		// Check team restriction for deployments
@@ -1088,13 +977,11 @@ func PostPipeline(c *gin.Context) {
 			triggeringUser := session.User(c)
 			_forge, err := server.Config.Services.Manager.ForgeFromRepo(repo)
 			if err != nil {
-				_ = c.AbortWithError(http.StatusInternalServerError, err)
-				return
+				return nil, huma.Error500InternalServerError(err.Error())
 			}
 			teams, err := _forge.Teams(c, triggeringUser)
 			if err != nil {
-				_ = c.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch user teams: %w", err))
-				return
+				return nil, huma.Error500InternalServerError(fmt.Sprintf("failed to fetch user teams: %s", err))
 			}
 			isMember := false
 			for _, t := range teams {
@@ -1104,12 +991,13 @@ func PostPipeline(c *gin.Context) {
 				}
 			}
 			if !isMember {
-				_ = c.AbortWithError(http.StatusForbidden, fmt.Errorf("user not in deploy team %q", repo.DeployTeam))
-				return
+				return nil, huma.Error403Forbidden(fmt.Sprintf("user not in deploy team %q", repo.DeployTeam))
 			}
 		}
 
-		pl.DeployTo = c.DefaultQuery("deploy_to", pl.DeployTo)
+		if input.DeployTo != "" {
+			pl.DeployTo = input.DeployTo
+		}
 	}
 
 	// Read query string parameters into pipelineParams, exclude reserved params
@@ -1160,46 +1048,36 @@ func PostPipeline(c *gin.Context) {
 		Msg("About to call pipeline.Restart")
 	newPipeline, err := pipeline.Restart(c, _store, pl, user, repo, envs)
 	if err != nil {
-		handlePipelineErr(c, err)
-	} else {
-		// Notify any active streaming sessions for the old pipeline that it has been restarted
-		go notifyPipelineRestart(pl, newPipeline)
-
-		c.JSON(http.StatusOK, newPipeline)
+		return nil, pipelineErr(err)
 	}
+
+	// Notify any active streaming sessions for the old pipeline that it has been restarted
+	go notifyPipelineRestart(pl, newPipeline)
+	return &PostPipelineOutput{Body: newPipeline}, nil
 }
 
-// DeletePipelineLogs
-//
-//	@Summary	Deletes all logs of a pipeline
-//	@Router		/repos/{repo_id}/logs/{number} [delete]
-//	@Produce	plain
-//	@Success	204
-//	@Tags		Pipeline logs
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-//	@Param		number			path	int		true	"the number of the pipeline"
-func DeletePipelineLogs(c *gin.Context) {
+type DeletePipelineLogsInput struct {
+	RepoID int64 `path:"repo_id" doc:"the repository id"`
+	Number int64 `path:"number" doc:"the number of the pipeline"`
+}
+
+func DeletePipelineLogs(ctx context.Context, input *DeletePipelineLogsInput) (*struct{}, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
-
 	repo := session.Repo(c)
-	num, _ := strconv.ParseInt(c.Params.ByName("number"), 10, 64)
 
-	pl, err := _store.GetPipelineNumber(repo, num)
+	pl, err := _store.GetPipelineNumber(repo, input.Number)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
 	steps, err := _store.StepList(pl)
 	if err != nil {
-		_ = c.AbortWithError(http.StatusInternalServerError, err)
-		return
+		return nil, huma.Error500InternalServerError("error listing steps", err)
 	}
 
 	if ok := pipelineDeleteAllowed(pl); !ok {
-		c.String(http.StatusUnprocessableEntity, "Cannot delete logs for pipeline with status %s", pl.Status)
-		return
+		return nil, huma.Error422UnprocessableEntity(fmt.Sprintf("Cannot delete logs for pipeline with status %s", pl.Status))
 	}
 
 	for _, step := range steps {
@@ -1208,33 +1086,27 @@ func DeletePipelineLogs(c *gin.Context) {
 		}
 	}
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error deleting pipeline logs. %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error deleting pipeline logs", err)
 	}
 
-	c.Status(http.StatusNoContent)
+	return nil, nil
 }
 
-// CancelWorkflow
-//
-//	@Summary	Cancel a specific workflow in a pipeline
-//	@Router		/repos/{repo_id}/pipelines/{number}/workflows/{workflow_id}/cancel [post]
-//	@Produce	plain
-//	@Success	200
-//	@Tags		Pipelines
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-//	@Param		number			path	int		true	"the number of the pipeline"
-//	@Param		workflow_id		path	int		true	"the id of the workflow to cancel"
-func CancelWorkflow(c *gin.Context) {
+type CancelWorkflowInput struct {
+	RepoID     int64 `path:"repo_id" doc:"the repository id"`
+	Number     int64 `path:"number" doc:"the number of the pipeline"`
+	WorkflowID int64 `path:"workflow_id" doc:"the id of the workflow to cancel"`
+}
+
+func CancelWorkflow(ctx context.Context, input *CancelWorkflowInput) (*struct{}, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	repo := session.Repo(c)
 	user := session.User(c)
 	_forge, err := server.Config.Services.Manager.ForgeFromRepo(repo)
 	if err != nil {
 		log.Error().Err(err).Msg("Cannot get forge from repo")
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
+		return nil, huma.Error500InternalServerError("cannot get forge from repo", err)
 	}
 
 	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
@@ -1249,53 +1121,39 @@ func CancelWorkflow(c *gin.Context) {
 	// Refresh tokens before forge API call
 	refreshUserTokenForForge(c, user, repo.ForgeID)
 	if c.IsAborted() {
-		return
+		return nil, huma.Error401Unauthorized("Your authorization has expired and couldn't be refreshed automatically. Please log in again")
 	}
 
-	num, err := strconv.ParseInt(c.Params.ByName("number"), 10, 64)
+	pl, err := _store.GetPipelineNumber(repo, input.Number)
 	if err != nil {
-		_ = c.AbortWithError(http.StatusBadRequest, err)
-		return
-	}
-	workflowID, err := strconv.ParseInt(c.Params.ByName("workflow_id"), 10, 64)
-	if err != nil {
-		_ = c.AbortWithError(http.StatusBadRequest, err)
-		return
+		return nil, dbErr(err)
 	}
 
-	pl, err := _store.GetPipelineNumber(repo, num)
-	if err != nil {
-		handleDBError(c, err)
-		return
+	if err := pipeline.CancelWorkflow(c, _forge, _store, repo, user, pl, input.WorkflowID); err != nil {
+		return nil, pipelineErr(err)
 	}
-
-	if err := pipeline.CancelWorkflow(c, _forge, _store, repo, user, pl, workflowID); err != nil {
-		handlePipelineErr(c, err)
-	} else {
-		c.AbortWithStatus(http.StatusNoContent)
-	}
+	return nil, nil
 }
 
-// RerunWorkflow
-//
-//	@Summary	Rerun a specific workflow
-//	@Router		/repos/{repo_id}/pipelines/{number}/workflows/{workflow_id}/rerun [post]
-//	@Produce	json
-//	@Success	200
-//	@Tags		Pipeline
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repo's id"
-//	@Param		number			path	int		true	"the pipeline's number"
-//	@Param		workflow_id		path	int		true	"the workflow's id"
-func RerunWorkflow(c *gin.Context) {
+type RerunWorkflowInput struct {
+	RepoID     int64 `path:"repo_id" doc:"the repository id"`
+	Number     int64 `path:"number" doc:"the pipeline's number"`
+	WorkflowID int64 `path:"workflow_id" doc:"the workflow's id"`
+}
+
+type RerunWorkflowOutput struct {
+	Body *model.Pipeline
+}
+
+func RerunWorkflow(ctx context.Context, input *RerunWorkflowInput) (*RerunWorkflowOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	repo := session.Repo(c)
 	user := session.User(c)
 	_forge, err := server.Config.Services.Manager.ForgeFromRepo(repo)
 	if err != nil {
 		log.Error().Err(err).Msg("Cannot get forge from repo")
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
+		return nil, huma.Error500InternalServerError("cannot get forge from repo", err)
 	}
 
 	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
@@ -1310,31 +1168,18 @@ func RerunWorkflow(c *gin.Context) {
 	// Refresh tokens before forge API call
 	refreshUserTokenForForge(c, user, repo.ForgeID)
 	if c.IsAborted() {
-		return
+		return nil, huma.Error401Unauthorized("Your authorization has expired and couldn't be refreshed automatically. Please log in again")
 	}
 
-	num, err := strconv.ParseInt(c.Params.ByName("number"), 10, 64)
+	pl, err := _store.GetPipelineNumber(repo, input.Number)
 	if err != nil {
-		_ = c.AbortWithError(http.StatusBadRequest, err)
-		return
-	}
-	workflowID, err := strconv.ParseInt(c.Params.ByName("workflow_id"), 10, 64)
-	if err != nil {
-		_ = c.AbortWithError(http.StatusBadRequest, err)
-		return
+		return nil, dbErr(err)
 	}
 
-	pl, err := _store.GetPipelineNumber(repo, num)
-	if err != nil {
-		handleDBError(c, err)
-		return
+	if err := pipeline.RerunWorkflow(c, _forge, _store, pl, input.WorkflowID, user, repo); err != nil {
+		return nil, pipelineErr(err)
 	}
-
-	if err := pipeline.RerunWorkflow(c, _forge, _store, pl, workflowID, user, repo); err != nil {
-		handlePipelineErr(c, err)
-	} else {
-		c.JSON(http.StatusOK, pl)
-	}
+	return &RerunWorkflowOutput{Body: pl}, nil
 }
 
 // notifyPipelineRestart sends redirect signals to any active log streaming sessions

@@ -16,10 +16,8 @@ package api
 
 import (
 	"context"
-	"net/http"
-	"strconv"
 
-	"github.com/gin-gonic/gin"
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/rs/zerolog/log"
 
 	"codefloe.com/crowci/crow/v5/server"
@@ -28,106 +26,84 @@ import (
 	"codefloe.com/crowci/crow/v5/server/services/maintenance"
 )
 
-// GetMaintenanceConfig returns the current maintenance configuration
-//
-//	@Summary		Get maintenance configuration
-//	@Description	Get the current database maintenance configuration
-//	@Router			/admin/maintenance/config [get]
-//	@Produce		json
-//	@Success		200	{object}	MaintenanceConfig
-//	@Tags			Admin
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Security		ApiKeyAuth
-func GetMaintenanceConfig(c *gin.Context) {
+type GetMaintenanceConfigInput struct{}
+
+type GetMaintenanceConfigOutput struct {
+	Body *model.MaintenanceConfig
+}
+
+func GetMaintenanceConfig(ctx context.Context, _ *GetMaintenanceConfigInput) (*GetMaintenanceConfigOutput, error) {
+	c := ginCtx(ctx)
 	user := session.User(c)
 	if !user.Admin {
-		c.AbortWithStatus(http.StatusForbidden)
-		return
+		return nil, huma.Error403Forbidden("Forbidden")
 	}
 
 	config := server.Config.Services.MaintenanceService.GetMaintenanceConfig()
-	c.JSON(http.StatusOK, config)
+	return &GetMaintenanceConfigOutput{Body: config}, nil
 }
 
-// UpdateMaintenanceConfig updates the maintenance configuration
-//
-//	@Summary		Update maintenance configuration
-//	@Description	Update the database maintenance configuration
-//	@Router			/admin/maintenance/config [put]
-//	@Produce		json
-//	@Accept			json
-//	@Success		200	{object}	MaintenanceConfig
-//	@Tags			Admin
-//	@Param			Authorization	header	string				true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			config			body	MaintenanceConfig	true	"Maintenance configuration"
-//	@Security		ApiKeyAuth
-func UpdateMaintenanceConfig(c *gin.Context) {
+type UpdateMaintenanceConfigInput struct {
+	Body model.MaintenanceConfig
+}
+
+type UpdateMaintenanceConfigOutput struct {
+	Body *model.MaintenanceConfig
+}
+
+func UpdateMaintenanceConfig(ctx context.Context, input *UpdateMaintenanceConfigInput) (*UpdateMaintenanceConfigOutput, error) {
+	c := ginCtx(ctx)
 	user := session.User(c)
 	if !user.Admin {
-		c.AbortWithStatus(http.StatusForbidden)
-		return
+		return nil, huma.Error403Forbidden("Forbidden")
 	}
 
-	var config model.MaintenanceConfig
-	if err := c.ShouldBindJSON(&config); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	if err := server.Config.Services.MaintenanceService.UpdateMaintenanceConfig(&config); err != nil {
+	if err := server.Config.Services.MaintenanceService.UpdateMaintenanceConfig(&input.Body); err != nil {
 		log.Error().Err(err).Msg("Failed to update maintenance config")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update maintenance config"})
-		return
+		return nil, huma.Error500InternalServerError("Failed to update maintenance config")
 	}
 
 	// Update scheduler with new configuration
 	if server.Config.Services.MaintenanceScheduler != nil {
-		if err := server.Config.Services.MaintenanceScheduler.UpdateSchedule(config.Schedule, config.Enabled); err != nil {
+		if err := server.Config.Services.MaintenanceScheduler.UpdateSchedule(input.Body.Schedule, input.Body.Enabled); err != nil {
 			log.Error().Err(err).Msg("Failed to update maintenance schedule")
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update maintenance schedule"})
-			return
+			return nil, huma.Error500InternalServerError("Failed to update maintenance schedule")
 		}
 	}
 
 	// Get fresh config with runtime fields populated
 	returnConfig := server.Config.Services.MaintenanceService.GetMaintenanceConfig()
 
-	c.JSON(http.StatusOK, returnConfig)
+	return &UpdateMaintenanceConfigOutput{Body: returnConfig}, nil
 }
 
-// GetMaintenanceConfigByAction returns maintenance configuration for a specific action
-//
-//	@Summary		Get maintenance configuration by action type
-//	@Description	Get maintenance configuration for a specific action (vacuum, kubernetes_cleanup)
-//	@Router			/admin/maintenance/config/{action} [get]
-//	@Produce		json
-//	@Success		200	{object}	MaintenanceConfig
-//	@Tags			Admin
-//	@Param			Authorization	header	string	true	"Insert your personal access token"			default(Bearer <personal access token>)
-//	@Param			action			path	string	true	"Action type (vacuum, kubernetes_cleanup)"	Enums(vacuum, kubernetes_cleanup)
-//	@Security		ApiKeyAuth
-func GetMaintenanceConfigByAction(c *gin.Context) {
+type GetMaintenanceConfigByActionInput struct {
+	Action string `path:"action" doc:"Action type (vacuum, kubernetes_cleanup, stale_agent_cleanup, docker_cleanup)"`
+}
+
+type GetMaintenanceConfigByActionOutput struct {
+	Body *model.MaintenanceConfig
+}
+
+func GetMaintenanceConfigByAction(ctx context.Context, input *GetMaintenanceConfigByActionInput) (*GetMaintenanceConfigByActionOutput, error) {
+	c := ginCtx(ctx)
 	user := session.User(c)
 	if !user.Admin {
-		c.AbortWithStatus(http.StatusForbidden)
-		return
+		return nil, huma.Error403Forbidden("Forbidden")
 	}
 
-	actionType := c.Param("action")
-	if actionType != "vacuum" && actionType != "kubernetes_cleanup" && actionType != "stale_agent_cleanup" && actionType != "docker_cleanup" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid action type. Must be 'vacuum', 'kubernetes_cleanup', 'stale_agent_cleanup', or 'docker_cleanup'"})
-		return
+	if input.Action != "vacuum" && input.Action != "kubernetes_cleanup" && input.Action != "stale_agent_cleanup" && input.Action != "docker_cleanup" {
+		return nil, huma.Error400BadRequest("Invalid action type. Must be 'vacuum', 'kubernetes_cleanup', 'stale_agent_cleanup', or 'docker_cleanup'")
 	}
 
-	config, err := server.Config.Services.MaintenanceService.GetMaintenanceConfigByAction(actionType)
+	config, err := server.Config.Services.MaintenanceService.GetMaintenanceConfigByAction(input.Action)
 	if err != nil {
-		log.Error().Err(err).Str("action", actionType).Msg("Failed to get maintenance config")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get maintenance config"})
-		return
+		log.Error().Err(err).Str("action", input.Action).Msg("Failed to get maintenance config")
+		return nil, huma.Error500InternalServerError("Failed to get maintenance config")
 	}
 
 	// Set runtime flags based on action type
-	switch actionType {
+	switch input.Action {
 	case "kubernetes_cleanup":
 		config.KubernetesCleanupAvailable = server.Config.Services.MaintenanceService.IsKubernetesCleanupAvailable()
 		config.EnvVarsSet = server.Config.Services.MaintenanceService.IsKubernetesEnvVarsConfigured()
@@ -137,174 +113,144 @@ func GetMaintenanceConfigByAction(c *gin.Context) {
 		config.DockerCleanupAvailable = server.Config.Services.MaintenanceService.IsDockerCleanupAvailable()
 	}
 
-	c.JSON(http.StatusOK, config)
+	return &GetMaintenanceConfigByActionOutput{Body: config}, nil
 }
 
-// UpdateMaintenanceConfigByAction updates maintenance configuration for a specific action
-//
-//	@Summary		Update maintenance configuration by action type
-//	@Description	Update maintenance configuration for a specific action (vacuum, kubernetes_cleanup)
-//	@Router			/admin/maintenance/config/{action} [put]
-//	@Produce		json
-//	@Accept			json
-//	@Success		200	{object}	MaintenanceConfig
-//	@Tags			Admin
-//	@Param			Authorization	header	string				true	"Insert your personal access token"			default(Bearer <personal access token>)
-//	@Param			action			path	string				true	"Action type (vacuum, kubernetes_cleanup)"	Enums(vacuum, kubernetes_cleanup)
-//	@Param			config			body	MaintenanceConfig	true	"Maintenance configuration"
-//	@Security		ApiKeyAuth
-func UpdateMaintenanceConfigByAction(c *gin.Context) {
+type UpdateMaintenanceConfigByActionInput struct {
+	Action string `path:"action" doc:"Action type (vacuum, kubernetes_cleanup, docker_cleanup)"`
+	Body   model.MaintenanceConfig
+}
+
+type UpdateMaintenanceConfigByActionOutput struct {
+	Body *model.MaintenanceConfig
+}
+
+func UpdateMaintenanceConfigByAction(ctx context.Context, input *UpdateMaintenanceConfigByActionInput) (*UpdateMaintenanceConfigByActionOutput, error) {
+	c := ginCtx(ctx)
 	user := session.User(c)
 	if !user.Admin {
-		c.AbortWithStatus(http.StatusForbidden)
-		return
+		return nil, huma.Error403Forbidden("Forbidden")
 	}
 
-	actionType := c.Param("action")
-	if actionType != "vacuum" && actionType != "kubernetes_cleanup" && actionType != "docker_cleanup" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid action type. Must be 'vacuum', 'kubernetes_cleanup', or 'docker_cleanup'"})
-		return
-	}
-
-	var config model.MaintenanceConfig
-	if err := c.ShouldBindJSON(&config); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+	if input.Action != "vacuum" && input.Action != "kubernetes_cleanup" && input.Action != "docker_cleanup" {
+		return nil, huma.Error400BadRequest("Invalid action type. Must be 'vacuum', 'kubernetes_cleanup', or 'docker_cleanup'")
 	}
 
 	// Ensure the action type matches the URL parameter
-	config.ActionType = actionType
+	input.Body.ActionType = input.Action
 
 	log.Info().
-		Str("action", actionType).
-		Bool("enabled", config.Enabled).
-		Str("schedule", config.Schedule).
-		Bool("dry_run", config.DryRun).
+		Str("action", input.Action).
+		Bool("enabled", input.Body.Enabled).
+		Str("schedule", input.Body.Schedule).
+		Bool("dry_run", input.Body.DryRun).
 		Msg("Updating maintenance config by action")
 
-	if err := server.Config.Services.MaintenanceService.UpdateMaintenanceConfigByAction(actionType, &config); err != nil {
-		log.Error().Err(err).Str("action", actionType).Msg("Failed to update maintenance config")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update maintenance config"})
-		return
+	if err := server.Config.Services.MaintenanceService.UpdateMaintenanceConfigByAction(input.Action, &input.Body); err != nil {
+		log.Error().Err(err).Str("action", input.Action).Msg("Failed to update maintenance config")
+		return nil, huma.Error500InternalServerError("Failed to update maintenance config")
 	}
 
 	// Note: No need to update scheduler - it reloads configs every minute automatically
 
-	updatedConfig, err := server.Config.Services.MaintenanceService.GetMaintenanceConfigByAction(actionType)
+	updatedConfig, err := server.Config.Services.MaintenanceService.GetMaintenanceConfigByAction(input.Action)
 	if err != nil {
-		log.Error().Err(err).Str("action", actionType).Msg("Failed to get updated maintenance config")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get updated maintenance config"})
-		return
+		log.Error().Err(err).Str("action", input.Action).Msg("Failed to get updated maintenance config")
+		return nil, huma.Error500InternalServerError("Failed to get updated maintenance config")
 	}
 
-	switch actionType {
+	switch input.Action {
 	case "kubernetes_cleanup":
 		updatedConfig.KubernetesCleanupAvailable = server.Config.Services.MaintenanceService.IsKubernetesCleanupAvailable()
 	case "docker_cleanup":
 		updatedConfig.DockerCleanupAvailable = server.Config.Services.MaintenanceService.IsDockerCleanupAvailable()
 	}
 
-	c.JSON(http.StatusOK, updatedConfig)
+	return &UpdateMaintenanceConfigByActionOutput{Body: updatedConfig}, nil
 }
 
-// GetMaintenanceStats returns maintenance statistics
-//
-//	@Summary		Get maintenance statistics
-//	@Description	Get database maintenance statistics
-//	@Router			/admin/maintenance/stats [get]
-//	@Produce		json
-//	@Success		200	{object}	MaintenanceStats
-//	@Tags			Admin
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Security		ApiKeyAuth
-func GetMaintenanceStats(c *gin.Context) {
+type GetMaintenanceStatsInput struct{}
+
+type GetMaintenanceStatsOutput struct {
+	Body *model.MaintenanceStats
+}
+
+func GetMaintenanceStats(ctx context.Context, _ *GetMaintenanceStatsInput) (*GetMaintenanceStatsOutput, error) {
+	c := ginCtx(ctx)
 	user := session.User(c)
 	if !user.Admin {
-		c.AbortWithStatus(http.StatusForbidden)
-		return
+		return nil, huma.Error403Forbidden("Forbidden")
 	}
 
 	stats, err := server.Config.Services.MaintenanceService.GetMaintenanceStats()
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get maintenance stats")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get maintenance stats"})
-		return
+		return nil, huma.Error500InternalServerError("Failed to get maintenance stats")
 	}
 
-	c.JSON(http.StatusOK, stats)
+	return &GetMaintenanceStatsOutput{Body: stats}, nil
 }
 
-// GetMaintenanceLogs returns recent maintenance logs
-//
-//	@Summary		Get maintenance logs
-//	@Description	Get recent database maintenance logs
-//	@Router			/admin/maintenance/logs [get]
-//	@Produce		json
-//	@Success		200	{array}	MaintenanceLog
-//	@Tags			Admin
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			limit			query	int		false	"Number of logs to return"			default(50)
-//	@Security		ApiKeyAuth
-func GetMaintenanceLogs(c *gin.Context) {
+type GetMaintenanceLogsInput struct {
+	Limit int `query:"limit" default:"50" doc:"Number of logs to return"`
+}
+
+type GetMaintenanceLogsOutput struct {
+	Body []*model.MaintenanceLog
+}
+
+func GetMaintenanceLogs(ctx context.Context, input *GetMaintenanceLogsInput) (*GetMaintenanceLogsOutput, error) {
+	c := ginCtx(ctx)
 	user := session.User(c)
 	if !user.Admin {
-		c.AbortWithStatus(http.StatusForbidden)
-		return
+		return nil, huma.Error403Forbidden("Forbidden")
 	}
 
-	limitStr := c.DefaultQuery("limit", "50")
-	limit, err := strconv.Atoi(limitStr)
-	if err != nil {
+	limit := input.Limit
+	if limit <= 0 {
 		limit = 50
 	}
 
 	logs, err := server.Config.Services.Store.MaintenanceLogList(limit)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get maintenance logs")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get maintenance logs"})
-		return
+		return nil, huma.Error500InternalServerError("Failed to get maintenance logs")
 	}
 
-	c.JSON(http.StatusOK, logs)
+	return &GetMaintenanceLogsOutput{Body: logs}, nil
 }
 
 // RunMaintenanceRequest represents the request payload for running maintenance.
 type RunMaintenanceRequest struct {
-	Job    string `json:"job" binding:"required" example:"vacuumLogTable"` // The maintenance job to run
-	DryRun bool   `json:"dry_run,omitempty"`                               // Run in dry-run mode (only for kubernetesCleanup)
+	Job    string `json:"job" doc:"The maintenance job to run"`
+	DryRun bool   `json:"dry_run,omitempty" doc:"Run in dry-run mode (only for kubernetesCleanup)"`
 }
 
-// RunMaintenanceNow runs database maintenance immediately
-//
-//	@Summary		Run maintenance now
-//	@Description	Trigger database maintenance operation immediately
-//	@Router			/admin/maintenance/run [post]
-//	@Produce		json
-//	@Accept			json
-//	@Success		200	{object}	map[string]string
-//	@Tags			Admin
-//	@Param			Authorization	header	string					true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			request			body	RunMaintenanceRequest	true	"Maintenance job request"
-//	@Security		ApiKeyAuth
-func RunMaintenanceNow(c *gin.Context) {
+type RunMaintenanceNowInput struct {
+	Body RunMaintenanceRequest
+}
+
+type RunMaintenanceResponse struct {
+	Message string `json:"message"`
+	Job     string `json:"job"`
+}
+
+type RunMaintenanceNowOutput struct {
+	Body RunMaintenanceResponse
+}
+
+func RunMaintenanceNow(ctx context.Context, input *RunMaintenanceNowInput) (*RunMaintenanceNowOutput, error) {
+	c := ginCtx(ctx)
 	user := session.User(c)
 	if !user.Admin {
-		c.AbortWithStatus(http.StatusForbidden)
-		return
-	}
-
-	var req RunMaintenanceRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+		return nil, huma.Error403Forbidden("Forbidden")
 	}
 
 	// Validate job type and execute appropriate maintenance job
-	switch req.Job {
+	switch input.Body.Job {
 	case "vacuumLogTable":
 		if server.Config.Services.MaintenanceScheduler == nil {
-			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Maintenance scheduler not available"})
-			return
+			return nil, huma.Error500InternalServerError("Maintenance scheduler not available")
 		}
 
 		go func() {
@@ -315,37 +261,32 @@ func RunMaintenanceNow(c *gin.Context) {
 
 	case "kubernetesCleanup":
 		if server.Config.Services.MaintenanceService == nil {
-			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Maintenance service not available"})
-			return
+			return nil, huma.Error500InternalServerError("Maintenance service not available")
 		}
 
 		if !server.Config.Services.MaintenanceService.IsKubernetesCleanupAvailable() {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Kubernetes cleanup is not configured. Set CROW_MAINTENANCE_KUBERNETES_CLEANUP_AGE to configure."})
-			return
+			return nil, huma.Error400BadRequest("Kubernetes cleanup is not configured. Set CROW_MAINTENANCE_KUBERNETES_CLEANUP_AGE to configure.")
 		}
 
 		k8sConfig, err := server.Config.Services.MaintenanceService.GetMaintenanceConfigByAction("kubernetes_cleanup")
 		if err != nil || !k8sConfig.Enabled {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Kubernetes cleanup is not enabled. Enable it in the maintenance settings."})
-			return
+			return nil, huma.Error400BadRequest("Kubernetes cleanup is not enabled. Enable it in the maintenance settings.")
 		}
 
 		go func() {
-			if err := server.Config.Services.MaintenanceService.RunKubernetesCleanup(context.Background(), req.DryRun); err != nil {
-				log.Error().Err(err).Bool("dry_run", req.DryRun).Msg("Kubernetes cleanup failed")
+			if err := server.Config.Services.MaintenanceService.RunKubernetesCleanup(context.Background(), input.Body.DryRun); err != nil {
+				log.Error().Err(err).Bool("dry_run", input.Body.DryRun).Msg("Kubernetes cleanup failed")
 			}
 		}()
 
 	case "staleAgentCleanup":
 		if server.Config.Services.MaintenanceService == nil {
-			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Maintenance service not available"})
-			return
+			return nil, huma.Error500InternalServerError("Maintenance service not available")
 		}
 
 		staleAgentConfig, err := server.Config.Services.MaintenanceService.GetMaintenanceConfigByAction("stale_agent_cleanup")
 		if err != nil || !staleAgentConfig.Enabled {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Stale agent cleanup is not enabled. Enable it in the maintenance settings."})
-			return
+			return nil, huma.Error400BadRequest("Stale agent cleanup is not enabled. Enable it in the maintenance settings.")
 		}
 
 		go func() {
@@ -357,27 +298,26 @@ func RunMaintenanceNow(c *gin.Context) {
 
 	case "dockerCleanup":
 		if server.Config.Services.MaintenanceService == nil {
-			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Maintenance service not available"})
-			return
+			return nil, huma.Error500InternalServerError("Maintenance service not available")
 		}
 
 		if !server.Config.Services.MaintenanceService.IsDockerCleanupAvailable() {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Docker cleanup is not available. No Docker agent is connected."})
-			return
+			return nil, huma.Error400BadRequest("Docker cleanup is not available. No Docker agent is connected.")
 		}
 
 		dockerConfig, err := server.Config.Services.MaintenanceService.GetMaintenanceConfigByAction("docker_cleanup")
 		if err != nil || !dockerConfig.Enabled {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Docker cleanup is not enabled. Enable it in the maintenance settings."})
-			return
+			return nil, huma.Error400BadRequest("Docker cleanup is not enabled. Enable it in the maintenance settings.")
 		}
 
 		server.Config.Services.MaintenanceService.SetDockerCleanupRunNow()
 
 	default:
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid job type. Supported jobs: vacuumLogTable, kubernetesCleanup, staleAgentCleanup, dockerCleanup"})
-		return
+		return nil, huma.Error400BadRequest("Invalid job type. Supported jobs: vacuumLogTable, kubernetesCleanup, staleAgentCleanup, dockerCleanup")
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Maintenance started", "job": req.Job})
+	return &RunMaintenanceNowOutput{Body: RunMaintenanceResponse{
+		Message: "Maintenance started",
+		Job:     input.Body.Job,
+	}}, nil
 }

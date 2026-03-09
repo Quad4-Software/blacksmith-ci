@@ -15,10 +15,9 @@
 package api
 
 import (
-	"net/http"
-	"strconv"
+	"context"
 
-	"github.com/gin-gonic/gin"
+	"github.com/danielgtaylor/huma/v2"
 
 	"codefloe.com/crowci/crow/v5/server"
 	"codefloe.com/crowci/crow/v5/server/model"
@@ -30,104 +29,85 @@ import (
 // Global Agents.
 //
 
-// GetAgents
-//
-//	@Summary	List agents
-//	@Router		/agents [get]
-//	@Produce	json
-//	@Success	200	{array}	Agent
-//	@Tags		Agents
-//	@Param		Authorization	header	string	true	"Insert your personal access token"				default(Bearer <personal access token>)
-//	@Param		page			query	int		false	"for response pagination, page offset number"	default(1)
-//	@Param		perPage			query	int		false	"for response pagination, max items per page"	default(50)
-//	@Param		search			query	string	false	"search in name, platform, backend, custom labels, ID"
-//	@Param		platform		query	string	false	"filter by platform"
-//	@Param		backend			query	string	false	"filter by backend"
-//	@Param		sort			query	string	false	"sort field: id, name, platform, backend, last_contact, capacity"	default(id)
-//	@Param		order			query	string	false	"sort order: asc or desc"											default(asc)
-func GetAgents(c *gin.Context) {
+type GetAgentsInput struct {
+	PaginationParams
+	Search   string `query:"search" doc:"search in name, platform, backend, custom labels, ID"`
+	Platform string `query:"platform" doc:"filter by platform"`
+	Backend  string `query:"backend" doc:"filter by backend"`
+	Sort     string `query:"sort" default:"id" doc:"sort field: id, name, platform, backend, last_contact, capacity"`
+	Order    string `query:"order" default:"asc" doc:"sort order: asc or desc"`
+}
+
+type GetAgentsOutput struct {
+	Body []model.AgentWithStats
+}
+
+func GetAgents(ctx context.Context, input *GetAgentsInput) (*GetAgentsOutput, error) {
+	c := ginCtx(ctx)
 	opts := &model.AgentListOptions{
-		ListOptions: *session.Pagination(c),
-		Search:      c.Query("search"),
-		Platform:    c.Query("platform"),
-		Backend:     c.Query("backend"),
-		Sort:        c.Query("sort"),
-		Order:       c.Query("order"),
+		ListOptions: model.ListOptions{Page: input.Page, PerPage: input.PerPage},
+		Search:      input.Search,
+		Platform:    input.Platform,
+		Backend:     input.Backend,
+		Sort:        input.Sort,
+		Order:       input.Order,
 	}
 
 	agents, err := store.FromContext(c).AgentList(opts)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error getting agent list. %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error getting agent list", err)
 	}
 
-	// Count running workflows per agent
 	info := server.Config.Services.Queue.Info(c)
 	runningCount := make(map[int64]int)
 	for _, task := range info.Running {
 		runningCount[task.AgentID]++
 	}
 
-	// Build response
 	resp := make([]model.AgentWithStats, 0, len(agents))
 	for _, agent := range agents {
 		if agent == nil {
-			continue // Skip nil agents
+			continue
 		}
-		rws := runningCount[agent.ID]
 		resp = append(resp, model.AgentWithStats{
 			Agent:            *agent,
-			RunningWorkflows: rws,
+			RunningWorkflows: runningCount[agent.ID],
 		})
 	}
 
-	c.JSON(http.StatusOK, resp)
+	return &GetAgentsOutput{Body: resp}, nil
 }
 
-// GetAgent
-//
-//	@Summary	Get an agent
-//	@Router		/agents/{agent_id} [get]
-//	@Produce	json
-//	@Success	200	{object}	Agent
-//	@Tags		Agents
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		agent_id		path	int		true	"the agent's id"
-func GetAgent(c *gin.Context) {
-	agentID, err := strconv.ParseInt(c.Param("agent_id"), 10, 64)
-	if err != nil {
-		_ = c.AbortWithError(http.StatusBadRequest, err)
-		return
-	}
-
-	agent, err := store.FromContext(c).AgentFind(agentID)
-	if err != nil {
-		handleDBError(c, err)
-		return
-	}
-	c.JSON(http.StatusOK, agent)
+type GetAgentInput struct {
+	AgentID int64 `path:"agent_id" doc:"the agent's id"`
 }
 
-// GetAgentTasks
-//
-//	@Summary	List agent tasks
-//	@Router		/agents/{agent_id}/tasks [get]
-//	@Produce	json
-//	@Success	200	{array}	Task
-//	@Tags		Agents
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		agent_id		path	int		true	"the agent's id"
-func GetAgentTasks(c *gin.Context) {
-	agentID, err := strconv.ParseInt(c.Param("agent_id"), 10, 64)
-	if err != nil {
-		_ = c.AbortWithError(http.StatusBadRequest, err)
-		return
-	}
+type GetAgentOutput struct {
+	Body *model.Agent
+}
 
-	agent, err := store.FromContext(c).AgentFind(agentID)
+func GetAgent(ctx context.Context, input *GetAgentInput) (*GetAgentOutput, error) {
+	c := ginCtx(ctx)
+	agent, err := store.FromContext(c).AgentFind(input.AgentID)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
+	}
+	return &GetAgentOutput{Body: agent}, nil
+}
+
+type GetAgentTasksInput struct {
+	AgentID int64 `path:"agent_id" doc:"the agent's id"`
+}
+
+type GetAgentTasksOutput struct {
+	Body []*model.Task
+}
+
+func GetAgentTasks(ctx context.Context, input *GetAgentTasksInput) (*GetAgentTasksOutput, error) {
+	c := ginCtx(ctx)
+	agent, err := store.FromContext(c).AgentFind(input.AgentID)
+	if err != nil {
+		return nil, dbErr(err)
 	}
 
 	var tasks []*model.Task
@@ -138,340 +118,231 @@ func GetAgentTasks(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, tasks)
+	return &GetAgentTasksOutput{Body: tasks}, nil
 }
 
-// PatchAgent
-//
-//	@Summary	Update an agent
-//	@Router		/agents/{agent_id} [patch]
-//	@Produce	json
-//	@Success	200	{object}	Agent
-//	@Tags		Agents
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		agent_id		path	int		true	"the agent's id"
-//	@Param		agentData		body	Agent	true	"the agent's data"
-func PatchAgent(c *gin.Context) {
+type PatchAgentInput struct {
+	AgentID int64 `path:"agent_id" doc:"the agent's id"`
+	Body    model.Agent
+}
+
+type PatchAgentOutput struct {
+	Body *model.Agent
+}
+
+func PatchAgent(ctx context.Context, input *PatchAgentInput) (*PatchAgentOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
-
-	in := &model.Agent{}
-	err := c.Bind(in)
+	agent, err := _store.AgentFind(input.AgentID)
 	if err != nil {
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
+		return nil, dbErr(err)
 	}
 
-	agentID, err := strconv.ParseInt(c.Param("agent_id"), 10, 64)
-	if err != nil {
-		_ = c.AbortWithError(http.StatusBadRequest, err)
-		return
-	}
-
-	agent, err := _store.AgentFind(agentID)
-	if err != nil {
-		handleDBError(c, err)
-		return
-	}
-
-	// Update allowed fields
-	agent.Name = in.Name
-	agent.NoSchedule = in.NoSchedule
-	if in.Priority >= 0 {
-		agent.Priority = in.Priority
+	agent.Name = input.Body.Name
+	agent.NoSchedule = input.Body.NoSchedule
+	if input.Body.Priority >= 0 {
+		agent.Priority = input.Body.Priority
 	}
 	if agent.NoSchedule {
 		server.Config.Services.Queue.KickAgentWorkers(agent.ID)
 	}
 
-	err = _store.AgentUpdate(agent)
-	if err != nil {
-		c.AbortWithStatus(http.StatusConflict)
-		return
+	if err = _store.AgentUpdate(agent); err != nil {
+		return nil, huma.Error409Conflict("conflict updating agent")
 	}
 
-	c.JSON(http.StatusOK, agent)
+	return &PatchAgentOutput{Body: agent}, nil
 }
 
-// PostAgent
-//
-//	@Summary		Create a new agent
-//	@Description	Creates a new agent with a random token
-//	@Router			/agents [post]
-//	@Produce		json
-//	@Success		200	{object}	Agent
-//	@Tags			Agents
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			agent			body	Agent	true	"the agent's data (only 'name' and 'no_schedule' are read)"
-func PostAgent(c *gin.Context) {
-	in := &model.Agent{}
-	err := c.Bind(in)
-	if err != nil {
-		c.String(http.StatusBadRequest, err.Error())
-		return
-	}
+type PostAgentInput struct {
+	Body model.Agent
+}
 
+type PostAgentOutput struct {
+	Body *model.Agent
+}
+
+func PostAgent(ctx context.Context, input *PostAgentInput) (*PostAgentOutput, error) {
+	c := ginCtx(ctx)
 	user := session.User(c)
 
-	priority := in.Priority
-
 	agent := &model.Agent{
-		Name:         in.Name,
+		Name:         input.Body.Name,
 		OwnerID:      user.ID,
 		OrgID:        model.IDNotSet,
-		NoSchedule:   in.NoSchedule,
-		Priority:     priority,
-		CustomLabels: in.CustomLabels,
+		NoSchedule:   input.Body.NoSchedule,
+		Priority:     input.Body.Priority,
+		CustomLabels: input.Body.CustomLabels,
 		Token:        model.GenerateNewAgentToken(),
 	}
-	if err = store.FromContext(c).AgentCreate(agent); err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
-		return
+	if err := store.FromContext(c).AgentCreate(agent); err != nil {
+		return nil, huma.Error500InternalServerError(err.Error())
 	}
-	c.JSON(http.StatusOK, agent)
+	return &PostAgentOutput{Body: agent}, nil
 }
 
-// DeleteAgent
-//
-//	@Summary	Delete an agent
-//	@Router		/agents/{agent_id} [delete]
-//	@Produce	plain
-//	@Success	200
-//	@Tags		Agents
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		agent_id		path	int		true	"the agent's id"
-func DeleteAgent(c *gin.Context) {
+type DeleteAgentInput struct {
+	AgentID int64 `path:"agent_id" doc:"the agent's id"`
+}
+
+func DeleteAgent(ctx context.Context, input *DeleteAgentInput) (*struct{}, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 
-	agentID, err := strconv.ParseInt(c.Param("agent_id"), 10, 64)
+	agent, err := _store.AgentFind(input.AgentID)
 	if err != nil {
-		_ = c.AbortWithError(http.StatusBadRequest, err)
-		return
+		return nil, dbErr(err)
 	}
 
-	agent, err := _store.AgentFind(agentID)
-	if err != nil {
-		handleDBError(c, err)
-		return
-	}
-
-	// prevent deletion of agents with running tasks
 	info := server.Config.Services.Queue.Info(c)
 	for _, task := range info.Running {
 		if task.AgentID == agent.ID {
-			c.String(http.StatusConflict, "Agent has running tasks")
-			return
+			return nil, huma.Error409Conflict("Agent has running tasks")
 		}
 	}
 
-	// kick workers to remove the agent from the queue
 	server.Config.Services.Queue.KickAgentWorkers(agent.ID)
 
 	if err = _store.AgentDelete(agent); err != nil {
-		c.String(http.StatusInternalServerError, "Error deleting user. %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error deleting agent", err)
 	}
-	c.Status(http.StatusNoContent)
+	return nil, nil
 }
 
 //
 // Org/User Agents.
 //
 
-// PostOrgAgent
-//
-//	@Summary		Create a new organization-scoped agent
-//	@Description	Creates a new agent with a random token, scoped to the specified organization
-//	@Router			/orgs/{org_id}/agents [post]
-//	@Produce		json
-//	@Success		200	{object}	Agent
-//	@Tags			Agents
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			org_id			path	int		true	"the organization's id"
-//	@Param			agent			body	Agent	true	"the agent's data (only 'name' and 'no_schedule' are read)"
-func PostOrgAgent(c *gin.Context) {
-	_store := store.FromContext(c)
+type PostOrgAgentInput struct {
+	OrgID int64 `path:"org_id" doc:"the organization's id"`
+	Body  model.Agent
+}
+
+func PostOrgAgent(ctx context.Context, input *PostOrgAgentInput) (*PostAgentOutput, error) {
+	c := ginCtx(ctx)
 	user := session.User(c)
 
-	orgID, err := strconv.ParseInt(c.Param("org_id"), 10, 64)
-	if err != nil {
-		c.String(http.StatusBadRequest, "Invalid organization ID")
-		return
-	}
-
-	in := new(model.Agent)
-	err = c.Bind(in)
-	if err != nil {
-		c.String(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	priority := in.Priority
-
 	agent := &model.Agent{
-		Name:         in.Name,
+		Name:         input.Body.Name,
 		OwnerID:      user.ID,
-		OrgID:        orgID,
-		NoSchedule:   in.NoSchedule,
-		Priority:     priority,
-		CustomLabels: in.CustomLabels,
+		OrgID:        input.OrgID,
+		NoSchedule:   input.Body.NoSchedule,
+		Priority:     input.Body.Priority,
+		CustomLabels: input.Body.CustomLabels,
 		Token:        model.GenerateNewAgentToken(),
 	}
 
-	if err = _store.AgentCreate(agent); err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
-		return
+	if err := store.FromContext(c).AgentCreate(agent); err != nil {
+		return nil, huma.Error500InternalServerError(err.Error())
 	}
 
-	c.JSON(http.StatusOK, agent)
+	return &PostAgentOutput{Body: agent}, nil
 }
 
-// GetOrgAgents
-//
-//	@Summary	List agents for an organization
-//	@Router		/orgs/{org_id}/agents [get]
-//	@Produce	json
-//	@Success	200	{array}	Agent
-//	@Tags		Agents
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		org_id			path	int		true	"the organization's id"
-//	@Param		page			query	int		false	"for response pagination, page offset number"	default(1)
-//	@Param		perPage			query	int		false	"for response pagination, max items per page"	default(50)
-func GetOrgAgents(c *gin.Context) {
-	_store := store.FromContext(c)
+type GetOrgAgentsInput struct {
+	PaginationParams
+	OrgID int64 `path:"org_id" doc:"the organization's id"`
+}
+
+func GetOrgAgents(ctx context.Context, input *GetOrgAgentsInput) (*GetAgentsOutput, error) {
+	c := ginCtx(ctx)
 	org := session.Org(c)
 
-	agents, err := _store.AgentListForOrg(org.ID, session.Pagination(c))
+	agents, err := store.FromContext(c).AgentListForOrg(org.ID, &model.ListOptions{
+		Page:    input.Page,
+		PerPage: input.PerPage,
+	})
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error getting agent list. %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error getting agent list", err)
 	}
 
-	// Count running workflows per agent
 	info := server.Config.Services.Queue.Info(c)
 	runningCount := make(map[int64]int)
 	for _, task := range info.Running {
 		runningCount[task.AgentID]++
 	}
 
-	// Build response
 	resp := make([]model.AgentWithStats, 0, len(agents))
 	for _, agent := range agents {
 		if agent == nil {
-			continue // Skip nil agents
+			continue
 		}
-		rws := runningCount[agent.ID]
 		resp = append(resp, model.AgentWithStats{
 			Agent:            *agent,
-			RunningWorkflows: rws,
+			RunningWorkflows: runningCount[agent.ID],
 		})
 	}
 
-	c.JSON(http.StatusOK, resp)
+	return &GetAgentsOutput{Body: resp}, nil
 }
 
-// PatchOrgAgent
-//
-//	@Summary	Update an organization-scoped agent
-//	@Router		/orgs/{org_id}/agents/{agent_id} [patch]
-//	@Produce	json
-//	@Success	200	{object}	Agent
-//	@Tags		Agents
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		org_id			path	int		true	"the organization's id"
-//	@Param		agent_id		path	int		true	"the agent's id"
-//	@Param		agent			body	Agent	true	"the agent's updated data"
-func PatchOrgAgent(c *gin.Context) {
+type PatchOrgAgentInput struct {
+	OrgID   int64 `path:"org_id" doc:"the organization's id"`
+	AgentID int64 `path:"agent_id" doc:"the agent's id"`
+	Body    model.Agent
+}
+
+func PatchOrgAgent(ctx context.Context, input *PatchOrgAgentInput) (*PatchAgentOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	org := session.Org(c)
 
-	agentID, err := strconv.ParseInt(c.Param("agent_id"), 10, 64)
+	agent, err := _store.AgentFind(input.AgentID)
 	if err != nil {
-		c.String(http.StatusBadRequest, "Invalid agent ID")
-		return
-	}
-
-	agent, err := _store.AgentFind(agentID)
-	if err != nil {
-		c.String(http.StatusNotFound, "Agent not found")
-		return
+		return nil, huma.Error404NotFound("Agent not found")
 	}
 
 	if agent.OrgID != org.ID {
-		c.String(http.StatusBadRequest, "Agent does not belong to this organization")
-		return
+		return nil, huma.Error400BadRequest("Agent does not belong to this organization")
 	}
 
-	in := new(model.Agent)
-	if err := c.Bind(in); err != nil {
-		c.String(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	// Update allowed fields
-	agent.Name = in.Name
-	agent.NoSchedule = in.NoSchedule
-	if in.Priority >= 0 {
-		agent.Priority = in.Priority
+	agent.Name = input.Body.Name
+	agent.NoSchedule = input.Body.NoSchedule
+	if input.Body.Priority >= 0 {
+		agent.Priority = input.Body.Priority
 	}
 	if agent.NoSchedule {
 		server.Config.Services.Queue.KickAgentWorkers(agent.ID)
 	}
 
 	if err := _store.AgentUpdate(agent); err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
-		return
+		return nil, huma.Error500InternalServerError(err.Error())
 	}
 
-	c.JSON(http.StatusOK, agent)
+	return &PatchAgentOutput{Body: agent}, nil
 }
 
-// DeleteOrgAgent
-//
-//	@Summary	Delete an organization-scoped agent
-//	@Router		/orgs/{org_id}/agents/{agent_id} [delete]
-//	@Produce	plain
-//	@Success	204
-//	@Tags		Agents
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		org_id			path	int		true	"the organization's id"
-//	@Param		agent_id		path	int		true	"the agent's id"
-func DeleteOrgAgent(c *gin.Context) {
+type DeleteOrgAgentInput struct {
+	OrgID   int64 `path:"org_id" doc:"the organization's id"`
+	AgentID int64 `path:"agent_id" doc:"the agent's id"`
+}
+
+func DeleteOrgAgent(ctx context.Context, input *DeleteOrgAgentInput) (*struct{}, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	org := session.Org(c)
 
-	agentID, err := strconv.ParseInt(c.Param("agent_id"), 10, 64)
+	agent, err := _store.AgentFind(input.AgentID)
 	if err != nil {
-		c.String(http.StatusBadRequest, "Invalid agent ID")
-		return
-	}
-
-	agent, err := _store.AgentFind(agentID)
-	if err != nil {
-		c.String(http.StatusNotFound, "Agent not found")
-		return
+		return nil, huma.Error404NotFound("Agent not found")
 	}
 
 	if agent.OrgID != org.ID {
-		c.String(http.StatusBadRequest, "Agent does not belong to this organization")
-		return
+		return nil, huma.Error400BadRequest("Agent does not belong to this organization")
 	}
 
-	// Check if the agent has any running tasks
 	info := server.Config.Services.Queue.Info(c)
 	for _, task := range info.Running {
 		if task.AgentID == agent.ID {
-			c.String(http.StatusConflict, "Agent has running tasks")
-			return
+			return nil, huma.Error409Conflict("Agent has running tasks")
 		}
 	}
 
-	// Kick workers to remove the agent from the queue
 	server.Config.Services.Queue.KickAgentWorkers(agent.ID)
 
 	if err := _store.AgentDelete(agent); err != nil {
-		c.String(http.StatusInternalServerError, "Error deleting agent. %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error deleting agent", err)
 	}
 
-	c.Status(http.StatusNoContent)
+	return nil, nil
 }

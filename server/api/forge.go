@@ -15,37 +15,36 @@
 package api
 
 import (
-	"net/http"
-	"strconv"
+	"context"
 
-	"github.com/gin-gonic/gin"
+	"github.com/danielgtaylor/huma/v2"
 
 	"codefloe.com/crowci/crow/v5/server/model"
 	"codefloe.com/crowci/crow/v5/server/router/middleware/session"
 	"codefloe.com/crowci/crow/v5/server/store"
 )
 
-// GetForges
-//
-//	@Summary	List forges
-//	@Router		/forges [get]
-//	@Produce	json
-//	@Success	200	{array}	Forge
-//	@Tags		Forges
-//	@Param		Authorization	header	string	false	"Insert your personal access token"				default(Bearer <personal access token>)
-//	@Param		page			query	int		false	"for response pagination, page offset number"	default(1)
-//	@Param		perPage			query	int		false	"for response pagination, max items per page"	default(50)
-func GetForges(c *gin.Context) {
-	forges, err := store.FromContext(c).ForgeList(session.Pagination(c))
+type GetForgesInput struct {
+	PaginationParams
+}
+
+type GetForgesOutput struct {
+	Body []*model.Forge
+}
+
+func GetForges(ctx context.Context, input *GetForgesInput) (*GetForgesOutput, error) {
+	c := ginCtx(ctx)
+	forges, err := store.FromContext(c).ForgeList(&model.ListOptions{
+		Page:    input.Page,
+		PerPage: input.PerPage,
+	})
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error getting forge list. %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error getting forge list", err)
 	}
 
 	user := session.User(c)
 	if user != nil && user.Admin {
-		c.JSON(http.StatusOK, forges)
-		return
+		return &GetForgesOutput{Body: forges}, nil
 	}
 
 	// copy forges data without sensitive information
@@ -53,156 +52,110 @@ func GetForges(c *gin.Context) {
 		forges[i] = forge.PublicCopy()
 	}
 
-	c.JSON(http.StatusOK, forges)
+	return &GetForgesOutput{Body: forges}, nil
 }
 
-// GetForge
-//
-//	@Summary	Get a forge
-//	@Router		/forges/{forgeId} [get]
-//	@Produce	json
-//	@Success	200	{object}	Forge
-//	@Tags		Forges
-//	@Param		Authorization	header	string	false	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		forgeId			path	int		true	"the forge's id"
-func GetForge(c *gin.Context) {
-	forgeID, err := strconv.ParseInt(c.Param("forgeId"), 10, 64)
-	if err != nil {
-		_ = c.AbortWithError(http.StatusBadRequest, err)
-		return
-	}
+type GetForgeInput struct {
+	ForgeID int64 `path:"forgeId" doc:"the forge's id"`
+}
 
-	forge, err := store.FromContext(c).ForgeGet(forgeID)
+type GetForgeOutput struct {
+	Body *model.Forge
+}
+
+func GetForge(ctx context.Context, input *GetForgeInput) (*GetForgeOutput, error) {
+	c := ginCtx(ctx)
+	forge, err := store.FromContext(c).ForgeGet(input.ForgeID)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
 	user := session.User(c)
 	if user != nil && user.Admin {
-		c.JSON(http.StatusOK, forge)
-	} else {
-		c.JSON(http.StatusOK, forge.PublicCopy())
+		return &GetForgeOutput{Body: forge}, nil
 	}
+	return &GetForgeOutput{Body: forge.PublicCopy()}, nil
 }
 
-// PatchForge
-//
-//	@Summary	Update a forge
-//	@Router		/forges/{forgeId} [patch]
-//	@Produce	json
-//	@Success	200	{object}	Forge
-//	@Tags		Forges
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		forgeId			path	int		true	"the forge's id"
-//	@Param		forgeData		body	Forge	true	"the forge's data"
-func PatchForge(c *gin.Context) {
-	_store := store.FromContext(c)
-
-	// use this struct to allow updating the client secret
-	type ForgeWithClientSecret struct {
+type PatchForgeInput struct {
+	ForgeID int64 `path:"forgeId" doc:"the forge's id"`
+	Body    struct {
 		model.Forge
 		ClientSecret string `json:"client_secret"`
 	}
+}
 
-	in := &ForgeWithClientSecret{}
-	err := c.Bind(in)
-	if err != nil {
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
+type PatchForgeOutput struct {
+	Body *model.Forge
+}
 
-	forgeID, err := strconv.ParseInt(c.Param("forgeId"), 10, 64)
-	if err != nil {
-		_ = c.AbortWithError(http.StatusBadRequest, err)
-		return
-	}
+func PatchForge(ctx context.Context, input *PatchForgeInput) (*PatchForgeOutput, error) {
+	c := ginCtx(ctx)
+	_store := store.FromContext(c)
 
-	forge, err := _store.ForgeGet(forgeID)
+	forge, err := _store.ForgeGet(input.ForgeID)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
-	forge.URL = in.URL
-	forge.Type = in.Type
-	forge.Client = in.Client
-	forge.OAuthHost = in.OAuthHost
-	forge.SkipVerify = in.SkipVerify
-	forge.AdditionalOptions = in.AdditionalOptions
-	if in.ClientSecret != "" {
-		forge.ClientSecret = in.ClientSecret
+	forge.URL = input.Body.URL
+	forge.Type = input.Body.Type
+	forge.Client = input.Body.Client
+	forge.OAuthHost = input.Body.OAuthHost
+	forge.SkipVerify = input.Body.SkipVerify
+	forge.AdditionalOptions = input.Body.AdditionalOptions
+	if input.Body.ClientSecret != "" {
+		forge.ClientSecret = input.Body.ClientSecret
 	}
 
 	err = _store.ForgeUpdate(forge)
 	if err != nil {
-		c.AbortWithStatus(http.StatusConflict)
-		return
+		return nil, huma.Error409Conflict("conflict updating forge")
 	}
 
-	c.JSON(http.StatusOK, forge)
+	return &PatchForgeOutput{Body: forge}, nil
 }
 
-// PostForge
-//
-//	@Summary		Create a new forge
-//	@Description	Creates a new forge with a random token
-//	@Router			/forges [post]
-//	@Produce		json
-//	@Success		200	{object}	Forge
-//	@Tags			Forges
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			forge			body	Forge	true	"the forge's data (only 'name' and 'no_schedule' are read)"
-func PostForge(c *gin.Context) {
-	in := &model.Forge{}
-	err := c.Bind(in)
-	if err != nil {
-		c.String(http.StatusBadRequest, err.Error())
-		return
-	}
+type PostForgeInput struct {
+	Body model.Forge
+}
+
+type PostForgeOutput struct {
+	Body *model.Forge
+}
+
+func PostForge(ctx context.Context, input *PostForgeInput) (*PostForgeOutput, error) {
+	c := ginCtx(ctx)
 
 	forge := &model.Forge{
-		URL:               in.URL,
-		Type:              in.Type,
-		Client:            in.Client,
-		ClientSecret:      in.ClientSecret,
-		OAuthHost:         in.OAuthHost,
-		SkipVerify:        in.SkipVerify,
-		AdditionalOptions: in.AdditionalOptions,
+		URL:               input.Body.URL,
+		Type:              input.Body.Type,
+		Client:            input.Body.Client,
+		ClientSecret:      input.Body.ClientSecret,
+		OAuthHost:         input.Body.OAuthHost,
+		SkipVerify:        input.Body.SkipVerify,
+		AdditionalOptions: input.Body.AdditionalOptions,
 	}
-	if err = store.FromContext(c).ForgeCreate(forge); err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
-		return
+	if err := store.FromContext(c).ForgeCreate(forge); err != nil {
+		return nil, huma.Error500InternalServerError(err.Error())
 	}
-	c.JSON(http.StatusOK, forge)
+	return &PostForgeOutput{Body: forge}, nil
 }
 
-// DeleteForge
-//
-//	@Summary	Delete a forge
-//	@Router		/forges/{forgeId} [delete]
-//	@Produce	plain
-//	@Success	200
-//	@Tags		Forges
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		forgeId			path	int		true	"the forge's id"
-func DeleteForge(c *gin.Context) {
+type DeleteForgeInput struct {
+	ForgeID int64 `path:"forgeId" doc:"the forge's id"`
+}
+
+func DeleteForge(ctx context.Context, input *DeleteForgeInput) (*struct{}, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 
-	forgeID, err := strconv.ParseInt(c.Param("forgeId"), 10, 64)
+	forge, err := _store.ForgeGet(input.ForgeID)
 	if err != nil {
-		_ = c.AbortWithError(http.StatusBadRequest, err)
-		return
-	}
-
-	forge, err := _store.ForgeGet(forgeID)
-	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
 	if err = _store.ForgeDelete(forge); err != nil {
-		c.String(http.StatusInternalServerError, "Error deleting user. %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error deleting forge", err)
 	}
-	c.Status(http.StatusNoContent)
+	return nil, nil
 }

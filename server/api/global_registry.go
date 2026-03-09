@@ -15,156 +15,125 @@
 package api
 
 import (
-	"net/http"
+	"context"
+	"fmt"
 
-	"github.com/gin-gonic/gin"
+	"github.com/danielgtaylor/huma/v2"
 
 	"codefloe.com/crowci/crow/v5/server"
 	"codefloe.com/crowci/crow/v5/server/model"
-	"codefloe.com/crowci/crow/v5/server/router/middleware/session"
 )
 
-// GetGlobalRegistryList
-//
-//	@Summary	List global registries
-//	@Router		/registries [get]
-//	@Produce	json
-//	@Success	200	{array}	Registry
-//	@Tags		Registries
-//	@Param		Authorization	header	string	true	"Insert your personal access token"				default(Bearer <personal access token>)
-//	@Param		page			query	int		false	"for response pagination, page offset number"	default(1)
-//	@Param		perPage			query	int		false	"for response pagination, max items per page"	default(50)
-func GetGlobalRegistryList(c *gin.Context) {
+type GetGlobalRegistryListInput struct {
+	PaginationParams
+}
+
+type GetGlobalRegistryListOutput struct {
+	Body []*model.Registry
+}
+
+func GetGlobalRegistryList(ctx context.Context, input *GetGlobalRegistryListInput) (*GetGlobalRegistryListOutput, error) {
 	registryService := server.Config.Services.Manager.RegistryService()
-	list, err := registryService.GlobalRegistryList(session.Pagination(c))
+	list, err := registryService.GlobalRegistryList(&model.ListOptions{
+		Page:    input.Page,
+		PerPage: input.PerPage,
+	})
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error getting global registry list. %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error getting global registry list", err)
 	}
 	// copy the registry detail to remove the sensitive
 	// password and token fields.
 	for i, registry := range list {
 		list[i] = registry.Copy()
 	}
-	c.JSON(http.StatusOK, list)
+	return &GetGlobalRegistryListOutput{Body: list}, nil
 }
 
-// GetGlobalRegistry
-//
-//	@Summary	Get a global registry by name
-//	@Router		/registries/{registry} [get]
-//	@Produce	json
-//	@Success	200	{object}	Registry
-//	@Tags		Registries
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		registry		path	string	true	"the registry's name"
-func GetGlobalRegistry(c *gin.Context) {
-	addr := c.Param("registry")
+type GetGlobalRegistryInput struct {
+	Registry string `path:"registry" doc:"the registry's name"`
+}
+
+type GetGlobalRegistryOutput struct {
+	Body *model.Registry
+}
+
+func GetGlobalRegistry(ctx context.Context, input *GetGlobalRegistryInput) (*GetGlobalRegistryOutput, error) {
 	registryService := server.Config.Services.Manager.RegistryService()
-	registry, err := registryService.GlobalRegistryFind(addr)
+	registry, err := registryService.GlobalRegistryFind(input.Registry)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
-	c.JSON(http.StatusOK, registry.Copy())
+	return &GetGlobalRegistryOutput{Body: registry.Copy()}, nil
 }
 
-// PostGlobalRegistry
-//
-//	@Summary	Create a global registry
-//	@Router		/registries [post]
-//	@Produce	json
-//	@Success	200	{object}	Registry
-//	@Tags		Registries
-//	@Param		Authorization	header	string		true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		registry		body	Registry	true	"the registry object data"
-func PostGlobalRegistry(c *gin.Context) {
-	in := new(model.Registry)
-	if err := c.Bind(in); err != nil {
-		c.String(http.StatusBadRequest, "Error parsing global registry. %s", err)
-		return
-	}
+type PostGlobalRegistryInput struct {
+	Body model.Registry
+}
+
+type PostGlobalRegistryOutput struct {
+	Body *model.Registry
+}
+
+func PostGlobalRegistry(ctx context.Context, input *PostGlobalRegistryInput) (*PostGlobalRegistryOutput, error) {
 	registry := &model.Registry{
-		Address:  in.Address,
-		Username: in.Username,
-		Password: in.Password,
+		Address:  input.Body.Address,
+		Username: input.Body.Username,
+		Password: input.Body.Password,
 	}
 	if err := registry.Validate(); err != nil {
-		c.String(http.StatusBadRequest, "Error inserting global registry. %s", err)
-		return
+		return nil, huma.Error400BadRequest(fmt.Sprintf("Error inserting global registry: %s", err))
 	}
 
 	registryService := server.Config.Services.Manager.RegistryService()
 	if err := registryService.GlobalRegistryCreate(registry); err != nil {
-		c.String(http.StatusInternalServerError, "Error inserting global registry %q. %s", in.Address, err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error inserting global registry %q", input.Body.Address), err)
 	}
-	c.JSON(http.StatusOK, registry.Copy())
+	return &PostGlobalRegistryOutput{Body: registry.Copy()}, nil
 }
 
-// PatchGlobalRegistry
-//
-//	@Summary	Update a global registry by name
-//	@Router		/registries/{registry} [patch]
-//	@Produce	json
-//	@Success	200	{object}	Registry
-//	@Tags		Registries
-//	@Param		Authorization	header	string		true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		registry		path	string		true	"the registry's name"
-//	@Param		registryData	body	Registry	true	"the registry's data"
-func PatchGlobalRegistry(c *gin.Context) {
-	addr := c.Param("registry")
+type PatchGlobalRegistryInput struct {
+	Registry string `path:"registry" doc:"the registry's name"`
+	Body     model.Registry
+}
 
-	in := new(model.Registry)
-	err := c.Bind(in)
-	if err != nil {
-		c.String(http.StatusBadRequest, "Error parsing registry. %s", err)
-		return
-	}
+type PatchGlobalRegistryOutput struct {
+	Body *model.Registry
+}
 
+func PatchGlobalRegistry(ctx context.Context, input *PatchGlobalRegistryInput) (*PatchGlobalRegistryOutput, error) {
 	registryService := server.Config.Services.Manager.RegistryService()
-	registry, err := registryService.GlobalRegistryFind(addr)
+	registry, err := registryService.GlobalRegistryFind(input.Registry)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
-	if in.Address != "" {
-		registry.Address = in.Address
+	if input.Body.Address != "" {
+		registry.Address = input.Body.Address
 	}
-	if in.Username != "" {
-		registry.Username = in.Username
+	if input.Body.Username != "" {
+		registry.Username = input.Body.Username
 	}
-	if in.Password != "" {
-		registry.Password = in.Password
+	if input.Body.Password != "" {
+		registry.Password = input.Body.Password
 	}
 
 	if err := registry.Validate(); err != nil {
-		c.String(http.StatusBadRequest, "Error updating global registry. %s", err)
-		return
+		return nil, huma.Error400BadRequest(fmt.Sprintf("Error updating global registry: %s", err))
 	}
 
 	if err := registryService.GlobalRegistryUpdate(registry); err != nil {
-		c.String(http.StatusInternalServerError, "Error updating global registry %q. %s", in.Address, err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error updating global registry %q", input.Body.Address), err)
 	}
-	c.JSON(http.StatusOK, registry.Copy())
+	return &PatchGlobalRegistryOutput{Body: registry.Copy()}, nil
 }
 
-// DeleteGlobalRegistry
-//
-//	@Summary	Delete a global registry by name
-//	@Router		/registries/{registry} [delete]
-//	@Produce	plain
-//	@Success	204
-//	@Tags		Registries
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		registry		path	string	true	"the registry's name"
-func DeleteGlobalRegistry(c *gin.Context) {
-	addr := c.Param("registry")
+type DeleteGlobalRegistryInput struct {
+	Registry string `path:"registry" doc:"the registry's name"`
+}
+
+func DeleteGlobalRegistry(ctx context.Context, input *DeleteGlobalRegistryInput) (*struct{}, error) {
 	registryService := server.Config.Services.Manager.RegistryService()
-	if err := registryService.GlobalRegistryDelete(addr); err != nil {
-		handleDBError(c, err)
-		return
+	if err := registryService.GlobalRegistryDelete(input.Registry); err != nil {
+		return nil, dbErr(err)
 	}
-	c.Status(http.StatusNoContent)
+	return nil, nil
 }

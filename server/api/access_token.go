@@ -15,11 +15,12 @@
 package api
 
 import (
+	"context"
 	"encoding/base32"
-	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/tink-crypto/tink-go/v2/subtle/random"
 
@@ -39,31 +40,34 @@ type CreateAccessTokenRequest struct {
 	ExpiresAt int64    `json:"expires_at"`
 }
 
+// AccessTokenFields is a method-free copy of model.AccessToken for clean huma schema generation.
+type AccessTokenFields model.AccessToken
+
 // AccessTokenResponse is returned when creating a token (includes the plain token once).
 type AccessTokenResponse struct {
-	*model.AccessToken
+	AccessTokenFields
 	Token string `json:"token"` // Only populated on creation
 }
 
-// GetAccessTokenList
-//
-//	@Summary		List access tokens
-//	@Description	Returns all access tokens for the authenticated user.
-//	@Router			/user/access-tokens [get]
-//	@Produce		json
-//	@Success		200	{array}	AccessToken
-//	@Tags			User
-//	@Param			Authorization	header	string	true	"Insert your personal access token"				default(Bearer <personal access token>)
-//	@Param			page			query	int		false	"for response pagination, page offset number"	default(1)
-//	@Param			perPage			query	int		false	"for response pagination, max items per page"	default(50)
-func GetAccessTokenList(c *gin.Context) {
+type GetAccessTokenListInput struct {
+	PaginationParams
+}
+
+type GetAccessTokenListOutput struct {
+	Body []*model.AccessToken
+}
+
+func GetAccessTokenList(ctx context.Context, input *GetAccessTokenListInput) (*GetAccessTokenListOutput, error) {
+	c := ginCtx(ctx)
 	user := session.User(c)
 	_store := store.FromContext(c)
 
-	tokens, err := _store.AccessTokenList(user.ID, session.Pagination(c))
+	tokens, err := _store.AccessTokenList(user.ID, &model.ListOptions{
+		Page:    input.Page,
+		PerPage: input.PerPage,
+	})
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error fetching access tokens. %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error fetching access tokens", err)
 	}
 
 	// Return copies without sensitive data
@@ -72,64 +76,49 @@ func GetAccessTokenList(c *gin.Context) {
 		result[i] = t.Copy()
 	}
 
-	c.JSON(http.StatusOK, result)
+	return &GetAccessTokenListOutput{Body: result}, nil
 }
 
-// GetAccessToken
-//
-//	@Summary		Get an access token
-//	@Description	Returns a single access token by ID.
-//	@Router			/user/access-tokens/{token_id} [get]
-//	@Produce		json
-//	@Success		200	{object}	AccessToken
-//	@Tags			User
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			token_id		path	int		true	"the token's id"
-func GetAccessToken(c *gin.Context) {
+type GetAccessTokenInput struct {
+	TokenID int64 `path:"token_id" doc:"the token's id"`
+}
+
+type GetAccessTokenOutput struct {
+	Body *model.AccessToken
+}
+
+func GetAccessToken(ctx context.Context, input *GetAccessTokenInput) (*GetAccessTokenOutput, error) {
+	c := ginCtx(ctx)
 	user := session.User(c)
 	_store := store.FromContext(c)
 
-	tokenID, err := strconv.ParseInt(c.Param("token_id"), 10, 64)
+	accessToken, err := _store.AccessTokenFind(input.TokenID)
 	if err != nil {
-		c.String(http.StatusBadRequest, "Invalid token ID")
-		return
-	}
-
-	accessToken, err := _store.AccessTokenFind(tokenID)
-	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
 	// Ensure user owns this token
 	if accessToken.UserID != user.ID {
-		c.AbortWithStatus(http.StatusNotFound)
-		return
+		return nil, huma.Error404NotFound("not found")
 	}
 
-	c.JSON(http.StatusOK, accessToken.Copy())
+	return &GetAccessTokenOutput{Body: accessToken.Copy()}, nil
 }
 
-// PostAccessToken
-//
-//	@Summary		Create an access token
-//	@Description	Creates a new personal access token. The token value is only returned once.
-//	@Router			/user/access-tokens [post]
-//	@Accept			json
-//	@Produce		json
-//	@Success		200	{object}	AccessTokenResponse
-//	@Tags			User
-//	@Param			Authorization	header	string						true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			token			body	CreateAccessTokenRequest	true	"Token data"
-func PostAccessToken(c *gin.Context) {
+type PostAccessTokenInput struct {
+	Body CreateAccessTokenRequest
+}
+
+type PostAccessTokenOutput struct {
+	Body AccessTokenResponse
+}
+
+func PostAccessToken(ctx context.Context, input *PostAccessTokenInput) (*PostAccessTokenOutput, error) {
+	c := ginCtx(ctx)
 	user := session.User(c)
 	_store := store.FromContext(c)
 
-	var req CreateAccessTokenRequest
-	if err := c.BindJSON(&req); err != nil {
-		c.String(http.StatusBadRequest, "Error parsing request. %s", err)
-		return
-	}
+	req := input.Body
 
 	// Generate a random token
 	plainToken := base32.StdEncoding.EncodeToString(random.GetRandomBytes(32))
@@ -149,20 +138,17 @@ func PostAccessToken(c *gin.Context) {
 
 	// Validate (checks name, scopes, and admin scope permissions)
 	if err := accessToken.Validate(user.Admin); err != nil {
-		c.String(http.StatusBadRequest, "Validation error. %s", err)
-		return
+		return nil, huma.Error400BadRequest("Validation error", err)
 	}
 
 	// Validate entity scoping permissions
 	if err := validateAccessTokenEntityScope(c, user, accessToken); err != nil {
-		c.String(http.StatusForbidden, "Permission denied. %s", err)
-		return
+		return nil, huma.Error403Forbidden("Permission denied", err)
 	}
 
 	// Create in database
 	if err := _store.AccessTokenCreate(accessToken); err != nil {
-		c.String(http.StatusInternalServerError, "Error creating access token. %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error creating access token", err)
 	}
 
 	// Create a JWT containing the token hash for authentication
@@ -180,55 +166,40 @@ func PostAccessToken(c *gin.Context) {
 	if err != nil {
 		// Clean up the created token on signing failure
 		_ = _store.AccessTokenDelete(accessToken)
-		c.String(http.StatusInternalServerError, "Error signing token. %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error signing token", err)
 	}
 
 	// Return response with the JWT (only time it's shown)
-	c.JSON(http.StatusOK, AccessTokenResponse{
-		AccessToken: accessToken.Copy(),
-		Token:       signedToken,
-	})
+	return &PostAccessTokenOutput{Body: AccessTokenResponse{
+		AccessTokenFields: AccessTokenFields(*accessToken.Copy()),
+		Token:             signedToken,
+	}}, nil
 }
 
-// DeleteAccessToken
-//
-//	@Summary		Delete an access token
-//	@Description	Deletes an access token by ID.
-//	@Router			/user/access-tokens/{token_id} [delete]
-//	@Produce		plain
-//	@Success		204
-//	@Tags			User
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			token_id		path	int		true	"the token's id"
-func DeleteAccessToken(c *gin.Context) {
+type DeleteAccessTokenInput struct {
+	TokenID int64 `path:"token_id" doc:"the token's id"`
+}
+
+func DeleteAccessToken(ctx context.Context, input *DeleteAccessTokenInput) (*struct{}, error) {
+	c := ginCtx(ctx)
 	user := session.User(c)
 	_store := store.FromContext(c)
 
-	tokenID, err := strconv.ParseInt(c.Param("token_id"), 10, 64)
+	accessToken, err := _store.AccessTokenFind(input.TokenID)
 	if err != nil {
-		c.String(http.StatusBadRequest, "Invalid token ID")
-		return
-	}
-
-	accessToken, err := _store.AccessTokenFind(tokenID)
-	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
 	// Ensure user owns this token
 	if accessToken.UserID != user.ID {
-		c.AbortWithStatus(http.StatusNotFound)
-		return
+		return nil, huma.Error404NotFound("not found")
 	}
 
 	if err := _store.AccessTokenDelete(accessToken); err != nil {
-		c.String(http.StatusInternalServerError, "Error deleting access token. %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error deleting access token", err)
 	}
 
-	c.Status(http.StatusNoContent)
+	return nil, nil
 }
 
 // UpdateAccessTokenRequest is the request body for updating an access token.
@@ -237,45 +208,31 @@ type UpdateAccessTokenRequest struct {
 	Scopes []string `json:"scopes"`
 }
 
-// PatchAccessToken
-//
-//	@Summary		Update an access token
-//	@Description	Updates an access token's name and/or scopes.
-//	@Router			/user/access-tokens/{token_id} [patch]
-//	@Accept			json
-//	@Produce		json
-//	@Success		200	{object}	AccessToken
-//	@Tags			User
-//	@Param			Authorization	header	string						true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			token_id		path	int							true	"the token's id"
-//	@Param			token			body	UpdateAccessTokenRequest	true	"Token update data"
-func PatchAccessToken(c *gin.Context) {
+type PatchAccessTokenInput struct {
+	TokenID int64 `path:"token_id" doc:"the token's id"`
+	Body    UpdateAccessTokenRequest
+}
+
+type PatchAccessTokenOutput struct {
+	Body *model.AccessToken
+}
+
+func PatchAccessToken(ctx context.Context, input *PatchAccessTokenInput) (*PatchAccessTokenOutput, error) {
+	c := ginCtx(ctx)
 	user := session.User(c)
 	_store := store.FromContext(c)
 
-	tokenID, err := strconv.ParseInt(c.Param("token_id"), 10, 64)
+	accessToken, err := _store.AccessTokenFind(input.TokenID)
 	if err != nil {
-		c.String(http.StatusBadRequest, "Invalid token ID")
-		return
-	}
-
-	accessToken, err := _store.AccessTokenFind(tokenID)
-	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
 	// Ensure user owns this token
 	if accessToken.UserID != user.ID {
-		c.AbortWithStatus(http.StatusNotFound)
-		return
+		return nil, huma.Error404NotFound("not found")
 	}
 
-	var req UpdateAccessTokenRequest
-	if err := c.BindJSON(&req); err != nil {
-		c.String(http.StatusBadRequest, "Error parsing request. %s", err)
-		return
-	}
+	req := input.Body
 
 	// Update fields if provided
 	if req.Name != "" {
@@ -287,17 +244,15 @@ func PatchAccessToken(c *gin.Context) {
 
 	// Validate the updated token
 	if err := accessToken.Validate(user.Admin); err != nil {
-		c.String(http.StatusBadRequest, "Validation error. %s", err)
-		return
+		return nil, huma.Error400BadRequest("Validation error", err)
 	}
 
 	// Update in database
 	if err := _store.AccessTokenUpdate(accessToken); err != nil {
-		c.String(http.StatusInternalServerError, "Error updating access token. %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error updating access token", err)
 	}
 
-	c.JSON(http.StatusOK, accessToken.Copy())
+	return &PatchAccessTokenOutput{Body: accessToken.Copy()}, nil
 }
 
 // DeleteAccessTokenBatchRequest is the request body for batch deleting access tokens.
@@ -305,29 +260,17 @@ type DeleteAccessTokenBatchRequest struct {
 	IDs []int64 `json:"ids" binding:"required,min=1"`
 }
 
-// DeleteAccessTokenBatch
-//
-//	@Summary		Delete multiple access tokens
-//	@Description	Deletes multiple access tokens by their IDs.
-//	@Router			/user/access-tokens/batch [delete]
-//	@Accept			json
-//	@Produce		plain
-//	@Success		204
-//	@Tags			User
-//	@Param			Authorization	header	string							true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			ids				body	DeleteAccessTokenBatchRequest	true	"Token IDs to delete"
-func DeleteAccessTokenBatch(c *gin.Context) {
+type DeleteAccessTokenBatchInput struct {
+	Body DeleteAccessTokenBatchRequest
+}
+
+func DeleteAccessTokenBatch(ctx context.Context, input *DeleteAccessTokenBatchInput) (*struct{}, error) {
+	c := ginCtx(ctx)
 	user := session.User(c)
 	_store := store.FromContext(c)
 
-	var req DeleteAccessTokenBatchRequest
-	if err := c.BindJSON(&req); err != nil {
-		c.String(http.StatusBadRequest, "Error parsing request. %s", err)
-		return
-	}
-
 	// Verify ownership and delete each token
-	for _, tokenID := range req.IDs {
+	for _, tokenID := range input.Body.IDs {
 		accessToken, err := _store.AccessTokenFind(tokenID)
 		if err != nil {
 			// Skip tokens that don't exist
@@ -340,24 +283,21 @@ func DeleteAccessTokenBatch(c *gin.Context) {
 		}
 
 		if err := _store.AccessTokenDelete(accessToken); err != nil {
-			c.String(http.StatusInternalServerError, "Error deleting access token %d. %s", tokenID, err)
-			return
+			return nil, huma.Error500InternalServerError("Error deleting access token", err)
 		}
 	}
 
-	c.Status(http.StatusNoContent)
+	return nil, nil
 }
 
-// GetAvailableScopes
-//
-//	@Summary		Get available scopes
-//	@Description	Returns the available scopes for access tokens based on user role.
-//	@Router			/user/access-tokens/scopes [get]
-//	@Produce		json
-//	@Success		200	{object}	map[string][]string
-//	@Tags			User
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-func GetAvailableScopes(c *gin.Context) {
+type GetAvailableScopesInput struct{}
+
+type GetAvailableScopesOutput struct {
+	Body map[string][]model.AccessTokenScope
+}
+
+func GetAvailableScopes(ctx context.Context, _ *GetAvailableScopesInput) (*GetAvailableScopesOutput, error) {
+	c := ginCtx(ctx)
 	user := session.User(c)
 
 	scopes := make(map[string][]model.AccessTokenScope)
@@ -367,7 +307,7 @@ func GetAvailableScopes(c *gin.Context) {
 		scopes["admin"] = model.AllAdminScopes()
 	}
 
-	c.JSON(http.StatusOK, scopes)
+	return &GetAvailableScopesOutput{Body: scopes}, nil
 }
 
 // validateAccessTokenEntityScope validates that the user has permission for the specified entity scope.

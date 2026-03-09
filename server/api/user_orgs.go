@@ -15,9 +15,9 @@
 package api
 
 import (
-	"net/http"
+	"context"
 
-	"github.com/gin-gonic/gin"
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/rs/zerolog/log"
 
 	"codefloe.com/crowci/crow/v5/server"
@@ -26,16 +26,14 @@ import (
 	"codefloe.com/crowci/crow/v5/server/store"
 )
 
-// GetUserOrgList
-//
-//	@Summary		List organizations the current user is a member of
-//	@Description	Returns all organizations where the authenticated user has membership.
-//	@Router			/user/orgs [get]
-//	@Produce		json
-//	@Success		200	{array}	Org
-//	@Tags			User
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-func GetUserOrgList(c *gin.Context) {
+type GetUserOrgListInput struct{}
+
+type GetUserOrgListOutput struct {
+	Body []*model.Org
+}
+
+func GetUserOrgList(ctx context.Context, _ *GetUserOrgListInput) (*GetUserOrgListOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	user := session.User(c)
 
@@ -43,8 +41,7 @@ func GetUserOrgList(c *gin.Context) {
 	userForges, err := _store.UserForgeList(user.ID)
 	if err != nil {
 		log.Error().Err(err).Msg("Cannot get user forges")
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
+		return nil, huma.Error500InternalServerError("Cannot get user forges", err)
 	}
 
 	orgs := make([]*model.Org, 0)
@@ -91,5 +88,5 @@ func GetUserOrgList(c *gin.Context) {
 
 	log.Debug().Int("org_count", len(orgs)).Msg("Returning user orgs")
 
-	c.JSON(http.StatusOK, orgs)
+	return &GetUserOrgListOutput{Body: orgs}, nil
 }

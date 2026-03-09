@@ -15,217 +15,182 @@
 package api
 
 import (
-	"net/http"
+	"context"
+	"fmt"
 
-	"github.com/gin-gonic/gin"
+	"github.com/danielgtaylor/huma/v2"
 
 	"codefloe.com/crowci/crow/v5/server"
 	"codefloe.com/crowci/crow/v5/server/model"
 	"codefloe.com/crowci/crow/v5/server/router/middleware/session"
 )
 
-// GetSecret
-//
-//	@Summary	Get a repository secret by name
-//	@Router		/repos/{repo_id}/secrets/{secretName} [get]
-//	@Produce	json
-//	@Success	200	{object}	Secret
-//	@Tags		Repository secrets
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-//	@Param		secretName		path	string	true	"the secret name"
-func GetSecret(c *gin.Context) {
-	repo := session.Repo(c)
-	name := c.Param("secret")
-
-	secretService := server.Config.Services.Manager.SecretServiceFromRepo(repo)
-	secret, err := secretService.SecretFind(repo, name)
-	if err != nil {
-		handleDBError(c, err)
-		return
-	}
-	c.JSON(http.StatusOK, secret.Copy())
+type GetSecretInput struct {
+	RepoID int64  `path:"repo_id" doc:"the repository id"`
+	Secret string `path:"secret" doc:"the secret name"`
 }
 
-// GetSecretAbbreviated
-//
-//	@Summary		Get a repository secret with abbreviated value
-//	@Description	Returns the secret with an abbreviated value showing first and last characters.
-//	@Description	Only users with explicit write access from the forge can view abbreviated values.
-//	@Description	Instance admins without explicit repo access cannot view secret values.
-//	@Router			/repos/{repo_id}/secrets/{secretName}/abbreviated [get]
-//	@Produce		json
-//	@Success		200	{object}	Secret
-//	@Failure		403	{string}	string	"Insufficient permissions to view secret value"
-//	@Tags			Repository secrets
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			repo_id			path	int		true	"the repository id"
-//	@Param			secretName		path	string	true	"the secret name"
-func GetSecretAbbreviated(c *gin.Context) {
+type GetSecretOutput struct {
+	Body *model.Secret
+}
+
+func GetSecret(ctx context.Context, input *GetSecretInput) (*GetSecretOutput, error) {
+	c := ginCtx(ctx)
 	repo := session.Repo(c)
-	user := session.User(c)
-	name := c.Param("secret")
 
 	secretService := server.Config.Services.Manager.SecretServiceFromRepo(repo)
-	secret, err := secretService.SecretFind(repo, name)
+	secret, err := secretService.SecretFind(repo, input.Secret)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
+	}
+	return &GetSecretOutput{Body: secret.Copy()}, nil
+}
+
+type GetSecretAbbreviatedInput struct {
+	RepoID int64  `path:"repo_id" doc:"the repository id"`
+	Secret string `path:"secret" doc:"the secret name"`
+}
+
+type GetSecretAbbreviatedOutput struct {
+	CacheControl string `header:"Cache-Control"`
+	Body         *model.Secret
+}
+
+func GetSecretAbbreviated(ctx context.Context, input *GetSecretAbbreviatedInput) (*GetSecretAbbreviatedOutput, error) {
+	c := ginCtx(ctx)
+	repo := session.Repo(c)
+	user := session.User(c)
+
+	secretService := server.Config.Services.Manager.SecretServiceFromRepo(repo)
+	secret, err := secretService.SecretFind(repo, input.Secret)
+	if err != nil {
+		return nil, dbErr(err)
 	}
 
 	// Create authorizer and check explicit permission
 	authorizer := NewSecretViewAuthorizerFromContext(c, server.Config.Services.Membership)
 	if !authorizer.CanViewRepoSecret(user, repo) {
-		c.Header("Cache-Control", "no-store, no-cache, must-revalidate, private")
-		c.String(http.StatusForbidden, "Insufficient permissions to view secret value. Explicit write access required.")
-		return
+		return nil, huma.Error403Forbidden("Insufficient permissions to view secret value. Explicit write access required.")
 	}
 
-	c.Header("Cache-Control", "no-store, no-cache, must-revalidate, private")
-	c.JSON(http.StatusOK, secret.CopyWithAbbreviatedValue())
+	return &GetSecretAbbreviatedOutput{
+		CacheControl: "no-store, no-cache, must-revalidate, private",
+		Body:         secret.CopyWithAbbreviatedValue(),
+	}, nil
 }
 
-// PostSecret
-//
-//	@Summary	Create a repository secret
-//	@Router		/repos/{repo_id}/secrets [post]
-//	@Produce	json
-//	@Success	200	{object}	Secret
-//	@Tags		Repository secrets
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-//	@Param		secret			body	Secret	true	"the new secret"
-func PostSecret(c *gin.Context) {
+type PostSecretInput struct {
+	RepoID int64 `path:"repo_id" doc:"the repository id"`
+	Body   model.Secret
+}
+
+type PostSecretOutput struct {
+	Body *model.Secret
+}
+
+func PostSecret(ctx context.Context, input *PostSecretInput) (*PostSecretOutput, error) {
+	c := ginCtx(ctx)
 	repo := session.Repo(c)
 
-	in := new(model.Secret)
-	if err := c.Bind(in); err != nil {
-		c.String(http.StatusBadRequest, "Error parsing secret. %s", err)
-		return
-	}
 	secret := &model.Secret{
 		RepoID: repo.ID,
-		Name:   in.Name,
-		Value:  in.Value,
-		Events: in.Events,
-		Images: in.Images,
+		Name:   input.Body.Name,
+		Value:  input.Body.Value,
+		Events: input.Body.Events,
+		Images: input.Body.Images,
 	}
 	if err := secret.Validate(); err != nil {
-		c.String(http.StatusUnprocessableEntity, "Error inserting secret. %s", err)
-		return
+		return nil, huma.Error422UnprocessableEntity(fmt.Sprintf("Error inserting secret. %s", err))
 	}
 
 	secretService := server.Config.Services.Manager.SecretServiceFromRepo(repo)
 
 	// Check if secret already exists
-	if _, err := secretService.SecretFind(repo, in.Name); err == nil {
-		c.String(http.StatusConflict, "Secret %q already exists for this repository", in.Name)
-		return
+	if _, err := secretService.SecretFind(repo, input.Body.Name); err == nil {
+		return nil, huma.Error409Conflict(fmt.Sprintf("Secret %q already exists for this repository", input.Body.Name))
 	}
 
 	if err := secretService.SecretCreate(repo, secret); err != nil {
-		c.String(http.StatusInternalServerError, "Error inserting secret %q. %s", in.Name, err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error inserting secret %q. %s", input.Body.Name, err))
 	}
-	c.JSON(http.StatusOK, secret.Copy())
+	return &PostSecretOutput{Body: secret.Copy()}, nil
 }
 
-// PatchSecret
-//
-//	@Summary	Update a repository secret by name
-//	@Router		/repos/{repo_id}/secrets/{secretName} [patch]
-//	@Produce	json
-//	@Success	200	{object}	Secret
-//	@Tags		Repository secrets
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-//	@Param		secretName		path	string	true	"the secret name"
-//	@Param		secret			body	Secret	true	"the secret itself"
-func PatchSecret(c *gin.Context) {
-	var (
-		repo = session.Repo(c)
-		name = c.Param("secret")
-	)
+type PatchSecretInput struct {
+	RepoID int64  `path:"repo_id" doc:"the repository id"`
+	Secret string `path:"secret" doc:"the secret name"`
+	Body   model.Secret
+}
 
-	in := new(model.Secret)
-	err := c.Bind(in)
-	if err != nil {
-		c.String(http.StatusBadRequest, "Error parsing secret. %s", err)
-		return
-	}
+type PatchSecretOutput struct {
+	Body *model.Secret
+}
+
+func PatchSecret(ctx context.Context, input *PatchSecretInput) (*PatchSecretOutput, error) {
+	c := ginCtx(ctx)
+	repo := session.Repo(c)
 
 	secretService := server.Config.Services.Manager.SecretServiceFromRepo(repo)
-	secret, err := secretService.SecretFind(repo, name)
+	secret, err := secretService.SecretFind(repo, input.Secret)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
-	if in.Value != "" {
-		secret.Value = in.Value
+	if input.Body.Value != "" {
+		secret.Value = input.Body.Value
 	}
-	if in.Events != nil {
-		secret.Events = in.Events
+	if input.Body.Events != nil {
+		secret.Events = input.Body.Events
 	}
-	if in.Images != nil {
-		secret.Images = in.Images
+	if input.Body.Images != nil {
+		secret.Images = input.Body.Images
 	}
 
 	if err := secret.Validate(); err != nil {
-		c.String(http.StatusUnprocessableEntity, "Error updating secret. %s", err)
-		return
+		return nil, huma.Error422UnprocessableEntity(fmt.Sprintf("Error updating secret. %s", err))
 	}
 	if err := secretService.SecretUpdate(repo, secret); err != nil {
-		c.String(http.StatusInternalServerError, "Error updating secret %q. %s", in.Name, err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error updating secret %q. %s", input.Body.Name, err))
 	}
-	c.JSON(http.StatusOK, secret.Copy())
+	return &PatchSecretOutput{Body: secret.Copy()}, nil
 }
 
-// GetSecretList
-//
-//	@Summary	List repository secrets
-//	@Router		/repos/{repo_id}/secrets [get]
-//	@Produce	json
-//	@Success	200	{array}	Secret
-//	@Tags		Repository secrets
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-//	@Param		page			query	int		false	"for response pagination, page offset number"	default(1)
-//	@Param		perPage			query	int		false	"for response pagination, max items per page"	default(50)
-func GetSecretList(c *gin.Context) {
+type GetSecretListInput struct {
+	PaginationParams
+	RepoID int64 `path:"repo_id" doc:"the repository id"`
+}
+
+type GetSecretListOutput struct {
+	Body []*model.Secret
+}
+
+func GetSecretList(ctx context.Context, input *GetSecretListInput) (*GetSecretListOutput, error) {
+	c := ginCtx(ctx)
 	repo := session.Repo(c)
 	secretService := server.Config.Services.Manager.SecretServiceFromRepo(repo)
-	list, err := secretService.SecretList(repo, session.Pagination(c))
+	list, err := secretService.SecretList(repo, &model.ListOptions{Page: input.Page, PerPage: input.PerPage})
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error getting secret list. %s", err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error getting secret list. %s", err))
 	}
 	// copy the secret detail to remove the sensitive
 	// password and token fields.
 	for i, secret := range list {
 		list[i] = secret.Copy()
 	}
-	c.JSON(http.StatusOK, list)
+	return &GetSecretListOutput{Body: list}, nil
 }
 
-// DeleteSecret
-//
-//	@Summary	Delete a repository secret by name
-//	@Router		/repos/{repo_id}/secrets/{secretName} [delete]
-//	@Produce	plain
-//	@Success	204
-//	@Tags		Repository secrets
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-//	@Param		secretName		path	string	true	"the secret name"
-func DeleteSecret(c *gin.Context) {
+type DeleteSecretInput struct {
+	RepoID int64  `path:"repo_id" doc:"the repository id"`
+	Secret string `path:"secret" doc:"the secret name"`
+}
+
+func DeleteSecret(ctx context.Context, input *DeleteSecretInput) (*struct{}, error) {
+	c := ginCtx(ctx)
 	repo := session.Repo(c)
-	name := c.Param("secret")
 
 	secretService := server.Config.Services.Manager.SecretServiceFromRepo(repo)
-	if err := secretService.SecretDelete(repo, name); err != nil {
-		handleDBError(c, err)
-		return
+	if err := secretService.SecretDelete(repo, input.Secret); err != nil {
+		return nil, dbErr(err)
 	}
-	c.Status(http.StatusNoContent)
+	return nil, nil
 }

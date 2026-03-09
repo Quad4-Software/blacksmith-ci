@@ -15,9 +15,9 @@
 package api
 
 import (
-	"net/http"
+	"context"
 
-	"github.com/gin-gonic/gin"
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/rs/zerolog/log"
 
 	"codefloe.com/crowci/crow/v5/server/model"
@@ -25,29 +25,27 @@ import (
 	"codefloe.com/crowci/crow/v5/server/store"
 )
 
-// GetUserCronList
-//
-//	@Summary	List all crons from repos accessible by the current user
-//	@Router		/user/crons [get]
-//	@Produce	json
-//	@Success	200	{array}	model.CronWithRepo
-//	@Tags		User
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		search			query	string	false	"Search term for cron name"
-//	@Param		page			query	int		false	"for response pagination, page offset number"	default(1)
-//	@Param		perPage			query	int		false	"for response pagination, max items per page"	default(50)
-func GetUserCronList(c *gin.Context) {
+type GetUserCronListInput struct {
+	PaginationParams
+	Search string `query:"search" doc:"Search term for cron name"`
+}
+
+type GetUserCronListOutput struct {
+	Body []*model.CronWithRepo
+}
+
+func GetUserCronList(ctx context.Context, input *GetUserCronListInput) (*GetUserCronListOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	user := session.User(c)
 
-	searchTerm := c.Query("search")
+	searchTerm := input.Search
 
 	// Build repo ID list (all repos user has access to)
 	repos, err := _store.RepoList(user, false, true)
 	if err != nil {
 		log.Error().Err(err).Msg("Cannot get user repos")
-		c.String(http.StatusInternalServerError, "Error fetching repos. %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error fetching repos", err)
 	}
 
 	log.Debug().Int("repo_count", len(repos)).Msg("Fetched repos from database")
@@ -71,10 +69,12 @@ func GetUserCronList(c *gin.Context) {
 		Str("search_term", searchTerm).
 		Msg("Calling UserCronList")
 
-	crons, err := _store.UserCronList(repoIDs, searchTerm, session.Pagination(c))
+	crons, err := _store.UserCronList(repoIDs, searchTerm, &model.ListOptions{
+		Page:    input.Page,
+		PerPage: input.PerPage,
+	})
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error getting cron list. %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error getting cron list", err)
 	}
 
 	log.Debug().Int("cron_count", len(crons)).Msg("UserCronList returned crons")
@@ -141,5 +141,5 @@ func GetUserCronList(c *gin.Context) {
 		Int("enriched_count", len(enrichedCrons)).
 		Msg("Returning crons response")
 
-	c.JSON(http.StatusOK, enrichedCrons)
+	return &GetUserCronListOutput{Body: enrichedCrons}, nil
 }

@@ -15,9 +15,11 @@
 package api
 
 import (
-	"net/http"
+	"context"
+	"fmt"
 	"strconv"
 
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 
@@ -26,24 +28,22 @@ import (
 	"codefloe.com/crowci/crow/v5/server/router/middleware/session"
 )
 
-// GetIntegrationList
-//
-//	@Summary	List user's integrations
-//	@Router		/user/integrations [get]
-//	@Produce	json
-//	@Success	200	{array}	Integration
-//	@Tags		Integrations
-//	@Param		Authorization	header	string	true	"Insert your personal access token"				default(Bearer <personal access token>)
-//	@Param		page			query	int		false	"for response pagination, page offset number"	default(1)
-//	@Param		perPage			query	int		false	"for response pagination, max items per page"	default(50)
-func GetIntegrationList(c *gin.Context) {
+type GetIntegrationListInput struct {
+	PaginationParams
+}
+
+type GetIntegrationListOutput struct {
+	Body []*model.Integration
+}
+
+func GetIntegrationList(ctx context.Context, input *GetIntegrationListInput) (*GetIntegrationListOutput, error) {
+	c := ginCtx(ctx)
 	user := session.User(c)
 	integrationService := server.Config.Services.IntegrationService
 
-	list, err := integrationService.IntegrationList(user.ID, session.Pagination(c))
+	list, err := integrationService.IntegrationList(user.ID, &model.ListOptions{Page: input.Page, PerPage: input.PerPage})
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error getting integration list. %s", err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error getting integration list. %s", err))
 	}
 
 	// Return integrations with redacted config
@@ -52,42 +52,37 @@ func GetIntegrationList(c *gin.Context) {
 		result[i] = integration.CopyWithRedactedConfig()
 	}
 
-	c.JSON(http.StatusOK, result)
+	return &GetIntegrationListOutput{Body: result}, nil
 }
 
-// GetAccessibleIntegrations
-//
-//	@Summary		List integrations accessible to the user
-//	@Description	Returns integrations owned by the user plus those shared via allowlists
-//	@Router			/user/integrations/accessible [get]
-//	@Produce		json
-//	@Success		200	{array}	Integration
-//	@Tags			Integrations
-//	@Param			Authorization	header	string	true	"Insert your personal access token"				default(Bearer <personal access token>)
-//	@Param			page			query	int		false	"for response pagination, page offset number"	default(1)
-//	@Param			perPage			query	int		false	"for response pagination, max items per page"	default(50)
-func GetAccessibleIntegrations(c *gin.Context) {
+type GetAccessibleIntegrationsInput struct {
+	PaginationParams
+}
+
+type GetAccessibleIntegrationsOutput struct {
+	Body []*model.Integration
+}
+
+func GetAccessibleIntegrations(ctx context.Context, input *GetAccessibleIntegrationsInput) (*GetAccessibleIntegrationsOutput, error) {
+	c := ginCtx(ctx)
 	user := session.User(c)
 	integrationService := server.Config.Services.IntegrationService
 
 	// Get user's org IDs
 	orgIDs, err := getUserOrgIDs(c, user)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error getting user organizations. %s", err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error getting user organizations. %s", err))
 	}
 
 	// Get user's repo IDs
 	repoIDs, err := getUserRepoIDs(c, user)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error getting user repositories. %s", err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error getting user repositories. %s", err))
 	}
 
-	list, err := integrationService.IntegrationListAccessible(user.ID, orgIDs, repoIDs, session.Pagination(c))
+	list, err := integrationService.IntegrationListAccessible(user.ID, orgIDs, repoIDs, &model.ListOptions{Page: input.Page, PerPage: input.PerPage})
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error getting accessible integrations. %s", err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error getting accessible integrations. %s", err))
 	}
 
 	// Return integrations with redacted config
@@ -96,125 +91,99 @@ func GetAccessibleIntegrations(c *gin.Context) {
 		result[i] = integration.CopyWithRedactedConfig()
 	}
 
-	c.JSON(http.StatusOK, result)
+	return &GetAccessibleIntegrationsOutput{Body: result}, nil
 }
 
-// GetIntegration
-//
-//	@Summary	Get an integration by ID
-//	@Router		/user/integrations/{integration_id} [get]
-//	@Produce	json
-//	@Success	200	{object}	Integration
-//	@Tags		Integrations
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		integration_id	path	int		true	"the integration's id"
-func GetIntegration(c *gin.Context) {
+type GetIntegrationInput struct {
+	IntegrationID int64 `path:"integration_id" doc:"the integration's id"`
+}
+
+type GetIntegrationOutput struct {
+	Body *model.Integration
+}
+
+func GetIntegration(ctx context.Context, input *GetIntegrationInput) (*GetIntegrationOutput, error) {
+	c := ginCtx(ctx)
 	user := session.User(c)
-	integrationID, err := strconv.ParseInt(c.Param("integration_id"), 10, 64)
-	if err != nil {
-		c.String(http.StatusBadRequest, "Invalid integration ID")
-		return
-	}
 
 	integrationService := server.Config.Services.IntegrationService
-	integration, err := integrationService.IntegrationFind(user.ID, integrationID)
+	integration, err := integrationService.IntegrationFind(user.ID, input.IntegrationID)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
-	c.JSON(http.StatusOK, integration.CopyWithRedactedConfig())
+	return &GetIntegrationOutput{Body: integration.CopyWithRedactedConfig()}, nil
 }
 
-// PostIntegration
-//
-//	@Summary	Create an integration
-//	@Router		/user/integrations [post]
-//	@Produce	json
-//	@Success	200	{object}	Integration
-//	@Tags		Integrations
-//	@Param		Authorization	header	string		true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		integration		body	Integration	true	"the integration object data"
-func PostIntegration(c *gin.Context) {
-	user := session.User(c)
+type PostIntegrationInput struct {
+	Body model.Integration
+}
 
-	in := new(model.Integration)
-	if err := c.Bind(in); err != nil {
-		c.String(http.StatusBadRequest, "Error parsing integration. %s", err)
-		return
-	}
+type PostIntegrationOutput struct {
+	Body *model.Integration
+}
+
+func PostIntegration(ctx context.Context, input *PostIntegrationInput) (*PostIntegrationOutput, error) {
+	c := ginCtx(ctx)
+	user := session.User(c)
 
 	integration := &model.Integration{
 		UserID:         user.ID,
-		Name:           in.Name,
-		Type:           in.Type,
-		Description:    in.Description,
-		Config:         in.Config,
-		AllowedUserIDs: in.AllowedUserIDs,
-		AllowedOrgIDs:  in.AllowedOrgIDs,
-		AllowedRepoIDs: in.AllowedRepoIDs,
+		Name:           input.Body.Name,
+		Type:           input.Body.Type,
+		Description:    input.Body.Description,
+		Config:         input.Body.Config,
+		AllowedUserIDs: input.Body.AllowedUserIDs,
+		AllowedOrgIDs:  input.Body.AllowedOrgIDs,
+		AllowedRepoIDs: input.Body.AllowedRepoIDs,
 		IsActive:       true,
 	}
 
 	integrationService := server.Config.Services.IntegrationService
 	if err := integrationService.IntegrationCreate(integration); err != nil {
-		c.String(http.StatusBadRequest, "Error creating integration. %s", err)
-		return
+		return nil, huma.Error400BadRequest(fmt.Sprintf("Error creating integration. %s", err))
 	}
 
-	c.JSON(http.StatusOK, integration.CopyWithRedactedConfig())
+	return &PostIntegrationOutput{Body: integration.CopyWithRedactedConfig()}, nil
 }
 
-// PatchIntegration
-//
-//	@Summary	Update an integration
-//	@Router		/user/integrations/{integration_id} [patch]
-//	@Produce	json
-//	@Success	200	{object}	Integration
-//	@Tags		Integrations
-//	@Param		Authorization	header	string		true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		integration_id	path	int			true	"the integration's id"
-//	@Param		integration		body	Integration	true	"the integration's data"
-func PatchIntegration(c *gin.Context) {
-	user := session.User(c)
-	integrationID, err := strconv.ParseInt(c.Param("integration_id"), 10, 64)
-	if err != nil {
-		c.String(http.StatusBadRequest, "Invalid integration ID")
-		return
-	}
+type PatchIntegrationInput struct {
+	IntegrationID int64 `path:"integration_id" doc:"the integration's id"`
+	Body          model.Integration
+}
 
-	in := new(model.Integration)
-	if err := c.Bind(in); err != nil {
-		c.String(http.StatusBadRequest, "Error parsing integration. %s", err)
-		return
-	}
+type PatchIntegrationOutput struct {
+	Body *model.Integration
+}
+
+func PatchIntegration(ctx context.Context, input *PatchIntegrationInput) (*PatchIntegrationOutput, error) {
+	c := ginCtx(ctx)
+	user := session.User(c)
 
 	integrationService := server.Config.Services.IntegrationService
-	integration, err := integrationService.IntegrationFind(user.ID, integrationID)
+	integration, err := integrationService.IntegrationFind(user.ID, input.IntegrationID)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
 	// Update fields
-	if in.Name != "" {
-		integration.Name = in.Name
+	if input.Body.Name != "" {
+		integration.Name = input.Body.Name
 	}
-	if in.Description != "" {
-		integration.Description = in.Description
+	if input.Body.Description != "" {
+		integration.Description = input.Body.Description
 	}
-	if in.Config != "" {
+	if input.Body.Config != "" {
 		// Merge config, preserving sensitive fields that weren't provided
 		log.Debug().
 			Int64("integration_id", integration.ID).
 			Str("old_config_length", strconv.Itoa(len(integration.Config))).
-			Str("new_config_length", strconv.Itoa(len(in.Config))).
+			Str("new_config_length", strconv.Itoa(len(input.Body.Config))).
 			Msg("Merging integration config")
 
-		mergedConfig, err := mergeIntegrationConfig(integration.Type, integration.Config, in.Config)
+		mergedConfig, err := mergeIntegrationConfig(integration.Type, integration.Config, input.Body.Config)
 		if err != nil {
-			c.String(http.StatusBadRequest, "Error merging config. %s", err)
-			return
+			return nil, huma.Error400BadRequest(fmt.Sprintf("Error merging config. %s", err))
 		}
 
 		log.Debug().
@@ -231,18 +200,18 @@ func PatchIntegration(c *gin.Context) {
 	log.Debug().
 		Int64("integration_id", integration.ID).
 		Interface("old_allowed_user_ids", integration.AllowedUserIDs).
-		Interface("new_allowed_user_ids", in.AllowedUserIDs).
-		Bool("new_is_nil", in.AllowedUserIDs == nil).
+		Interface("new_allowed_user_ids", input.Body.AllowedUserIDs).
+		Bool("new_is_nil", input.Body.AllowedUserIDs == nil).
 		Msg("Updating allowlists")
 
-	if in.AllowedUserIDs != nil {
-		integration.AllowedUserIDs = in.AllowedUserIDs
+	if input.Body.AllowedUserIDs != nil {
+		integration.AllowedUserIDs = input.Body.AllowedUserIDs
 	}
-	if in.AllowedOrgIDs != nil {
-		integration.AllowedOrgIDs = in.AllowedOrgIDs
+	if input.Body.AllowedOrgIDs != nil {
+		integration.AllowedOrgIDs = input.Body.AllowedOrgIDs
 	}
-	if in.AllowedRepoIDs != nil {
-		integration.AllowedRepoIDs = in.AllowedRepoIDs
+	if input.Body.AllowedRepoIDs != nil {
+		integration.AllowedRepoIDs = input.Body.AllowedRepoIDs
 	}
 
 	log.Debug().
@@ -252,89 +221,77 @@ func PatchIntegration(c *gin.Context) {
 		Interface("final_allowed_repo_ids", integration.AllowedRepoIDs).
 		Msg("Allowlists after update")
 	// IsActive can be explicitly set to false
-	integration.IsActive = in.IsActive
+	integration.IsActive = input.Body.IsActive
 
 	if err := integrationService.IntegrationUpdate(integration); err != nil {
-		c.String(http.StatusBadRequest, "Error updating integration. %s", err)
-		return
+		return nil, huma.Error400BadRequest(fmt.Sprintf("Error updating integration. %s", err))
 	}
 
-	c.JSON(http.StatusOK, integration.CopyWithRedactedConfig())
+	return &PatchIntegrationOutput{Body: integration.CopyWithRedactedConfig()}, nil
 }
 
-// DeleteIntegration
-//
-//	@Summary	Delete an integration
-//	@Router		/user/integrations/{integration_id} [delete]
-//	@Produce	plain
-//	@Success	204
-//	@Tags		Integrations
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		integration_id	path	int		true	"the integration's id"
-func DeleteIntegration(c *gin.Context) {
-	user := session.User(c)
-	integrationID, err := strconv.ParseInt(c.Param("integration_id"), 10, 64)
-	if err != nil {
-		c.String(http.StatusBadRequest, "Invalid integration ID")
-		return
-	}
-
-	integrationService := server.Config.Services.IntegrationService
-	if err := integrationService.IntegrationDelete(user.ID, integrationID); err != nil {
-		handleDBError(c, err)
-		return
-	}
-
-	c.Status(http.StatusNoContent)
+type DeleteIntegrationInput struct {
+	IntegrationID int64 `path:"integration_id" doc:"the integration's id"`
 }
 
-// TestIntegration
-//
-//	@Summary		Test integration connection
-//	@Description	Tests the connection to the configured secret store
-//	@Router			/user/integrations/{integration_id}/test [post]
-//	@Produce		json
-//	@Success		200	{object}	object{status=string}
-//	@Failure		400	{string}	string	"Connection test failed"
-//	@Tags			Integrations
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			integration_id	path	int		true	"the integration's id"
-func TestIntegration(c *gin.Context) {
+func DeleteIntegration(ctx context.Context, input *DeleteIntegrationInput) (*struct{}, error) {
+	c := ginCtx(ctx)
 	user := session.User(c)
-	integrationID, err := strconv.ParseInt(c.Param("integration_id"), 10, 64)
-	if err != nil {
-		c.String(http.StatusBadRequest, "Invalid integration ID")
-		return
-	}
 
 	integrationService := server.Config.Services.IntegrationService
-	integration, err := integrationService.IntegrationFind(user.ID, integrationID)
+	if err := integrationService.IntegrationDelete(user.ID, input.IntegrationID); err != nil {
+		return nil, dbErr(err)
+	}
+
+	return nil, nil
+}
+
+type TestIntegrationInput struct {
+	IntegrationID int64 `path:"integration_id" doc:"the integration's id"`
+}
+
+type TestIntegrationResponse struct {
+	Status string `json:"status"`
+}
+
+type TestIntegrationOutput struct {
+	Body TestIntegrationResponse
+}
+
+func TestIntegration(ctx context.Context, input *TestIntegrationInput) (*TestIntegrationOutput, error) {
+	c := ginCtx(ctx)
+	user := session.User(c)
+
+	integrationService := server.Config.Services.IntegrationService
+	integration, err := integrationService.IntegrationFind(user.ID, input.IntegrationID)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
 	if err := integrationService.TestConnection(integration); err != nil {
-		c.String(http.StatusBadRequest, "Connection test failed: %s", err)
-		return
+		return nil, huma.Error400BadRequest(fmt.Sprintf("Connection test failed: %s", err))
 	}
 
-	c.JSON(http.StatusOK, gin.H{"status": "connected"})
+	return &TestIntegrationOutput{Body: TestIntegrationResponse{Status: "connected"}}, nil
 }
 
-// GetIntegrationTypes
-//
-//	@Summary	Get supported integration types
-//	@Router		/integrations/types [get]
-//	@Produce	json
-//	@Success	200	{array}	object{type=string,name=string}
-//	@Tags		Integrations
-func GetIntegrationTypes(c *gin.Context) {
-	types := []gin.H{
-		{"type": model.IntegrationTypeVault, "name": "HashiCorp Vault / OpenBao"},
+type GetIntegrationTypesInput struct{}
+
+type IntegrationTypeInfo struct {
+	Type string `json:"type"`
+	Name string `json:"name"`
+}
+
+type GetIntegrationTypesOutput struct {
+	Body []IntegrationTypeInfo
+}
+
+func GetIntegrationTypes(ctx context.Context, _ *GetIntegrationTypesInput) (*GetIntegrationTypesOutput, error) {
+	types := []IntegrationTypeInfo{
+		{Type: string(model.IntegrationTypeVault), Name: "HashiCorp Vault / OpenBao"},
 		// Future types will be added here
 	}
-	c.JSON(http.StatusOK, types)
+	return &GetIntegrationTypesOutput{Body: types}, nil
 }
 
 // getUserOrgIDs returns the IDs of organizations the user belongs to.

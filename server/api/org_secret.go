@@ -15,226 +15,192 @@
 package api
 
 import (
-	"net/http"
+	"context"
+	"fmt"
 
-	"github.com/gin-gonic/gin"
+	"github.com/danielgtaylor/huma/v2"
 
 	"codefloe.com/crowci/crow/v5/server"
 	"codefloe.com/crowci/crow/v5/server/model"
 	"codefloe.com/crowci/crow/v5/server/router/middleware/session"
 )
 
-// GetOrgSecret
-//
-//	@Summary	Get a organization secret by name
-//	@Router		/orgs/{org_id}/secrets/{secret} [get]
-//	@Produce	json
-//	@Success	200	{object}	Secret
-//	@Tags		Organization secrets
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		org_id			path	string	true	"the org's id"
-//	@Param		secret			path	string	true	"the secret's name"
-func GetOrgSecret(c *gin.Context) {
-	org := session.Org(c)
-	name := c.Param("secret")
-
-	secretService := server.Config.Services.Manager.SecretService()
-	secret, err := secretService.OrgSecretFind(org.ID, name)
-	if err != nil {
-		handleDBError(c, err)
-		return
-	}
-	c.JSON(http.StatusOK, secret.Copy())
+type GetOrgSecretInput struct {
+	OrgID  int64  `path:"org_id" doc:"the org's id"`
+	Secret string `path:"secret" doc:"the secret's name"`
 }
 
-// GetOrgSecretAbbreviated
-//
-//	@Summary		Get an organization secret with abbreviated value
-//	@Description	Returns the secret with an abbreviated value showing first and last characters.
-//	@Description	Only org admins (via forge membership) can view abbreviated values.
-//	@Router			/orgs/{org_id}/secrets/{secret}/abbreviated [get]
-//	@Produce		json
-//	@Success		200	{object}	Secret
-//	@Failure		403	{string}	string	"Org admin privileges required to view secret value"
-//	@Tags			Organization secrets
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			org_id			path	string	true	"the org's id"
-//	@Param			secret			path	string	true	"the secret's name"
-func GetOrgSecretAbbreviated(c *gin.Context) {
+type GetOrgSecretOutput struct {
+	Body *model.Secret
+}
+
+func GetOrgSecret(ctx context.Context, input *GetOrgSecretInput) (*GetOrgSecretOutput, error) {
+	c := ginCtx(ctx)
 	org := session.Org(c)
-	user := session.User(c)
-	name := c.Param("secret")
 
 	secretService := server.Config.Services.Manager.SecretService()
-	secret, err := secretService.OrgSecretFind(org.ID, name)
+	secret, err := secretService.OrgSecretFind(org.ID, input.Secret)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
+	}
+	return &GetOrgSecretOutput{Body: secret.Copy()}, nil
+}
+
+type GetOrgSecretAbbreviatedInput struct {
+	OrgID  int64  `path:"org_id" doc:"the org's id"`
+	Secret string `path:"secret" doc:"the secret's name"`
+}
+
+type GetOrgSecretAbbreviatedOutput struct {
+	Body *model.Secret
+}
+
+func GetOrgSecretAbbreviated(ctx context.Context, input *GetOrgSecretAbbreviatedInput) (*GetOrgSecretAbbreviatedOutput, error) {
+	c := ginCtx(ctx)
+	org := session.Org(c)
+	user := session.User(c)
+
+	secretService := server.Config.Services.Manager.SecretService()
+	secret, err := secretService.OrgSecretFind(org.ID, input.Secret)
+	if err != nil {
+		return nil, dbErr(err)
 	}
 
 	// Get forge for org membership check
 	_forge, err := server.Config.Services.Manager.ForgeFromUser(user)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Cannot get forge for user")
-		return
+		return nil, huma.Error500InternalServerError("Cannot get forge for user")
 	}
 
 	// Create authorizer and check org admin permission
 	authorizer := NewSecretViewAuthorizerFromContext(c, server.Config.Services.Membership)
 	if !authorizer.CanViewOrgSecret(c, user, org, _forge) {
-		c.Header("Cache-Control", "no-store, no-cache, must-revalidate, private")
-		c.String(http.StatusForbidden, "Org admin privileges required to view secret value")
-		return
+		return nil, huma.Error403Forbidden("Org admin privileges required to view secret value")
 	}
 
-	c.Header("Cache-Control", "no-store, no-cache, must-revalidate, private")
-	c.JSON(http.StatusOK, secret.CopyWithAbbreviatedValue())
+	return &GetOrgSecretAbbreviatedOutput{Body: secret.CopyWithAbbreviatedValue()}, nil
 }
 
-// GetOrgSecretList
-//
-//	@Summary	List organization secrets
-//	@Router		/orgs/{org_id}/secrets [get]
-//	@Produce	json
-//	@Success	200	{array}	Secret
-//	@Tags		Organization secrets
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		org_id			path	string	true	"the org's id"
-//	@Param		page			query	int		false	"for response pagination, page offset number"	default(1)
-//	@Param		perPage			query	int		false	"for response pagination, max items per page"	default(50)
-func GetOrgSecretList(c *gin.Context) {
+type GetOrgSecretListInput struct {
+	PaginationParams
+	OrgID int64 `path:"org_id" doc:"the org's id"`
+}
+
+type GetOrgSecretListOutput struct {
+	Body []*model.Secret
+}
+
+func GetOrgSecretList(ctx context.Context, input *GetOrgSecretListInput) (*GetOrgSecretListOutput, error) {
+	c := ginCtx(ctx)
 	org := session.Org(c)
 
 	secretService := server.Config.Services.Manager.SecretService()
-	list, err := secretService.OrgSecretList(org.ID, session.Pagination(c))
+	list, err := secretService.OrgSecretList(org.ID, &model.ListOptions{
+		Page:    input.Page,
+		PerPage: input.PerPage,
+	})
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error getting secret list for %q. %s", org.ID, err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error getting secret list for %d", org.ID), err)
 	}
 	// copy the secret detail to remove the sensitive
 	// password and token fields.
 	for i, secret := range list {
 		list[i] = secret.Copy()
 	}
-	c.JSON(http.StatusOK, list)
+	return &GetOrgSecretListOutput{Body: list}, nil
 }
 
-// PostOrgSecret
-//
-//	@Summary	Create an organization secret
-//	@Router		/orgs/{org_id}/secrets [post]
-//	@Produce	json
-//	@Success	200	{object}	Secret
-//	@Tags		Organization secrets
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		org_id			path	string	true	"the org's id"
-//	@Param		secretData		body	Secret	true	"the new secret"
-func PostOrgSecret(c *gin.Context) {
+type PostOrgSecretInput struct {
+	OrgID int64 `path:"org_id" doc:"the org's id"`
+	Body  model.Secret
+}
+
+type PostOrgSecretOutput struct {
+	Body *model.Secret
+}
+
+func PostOrgSecret(ctx context.Context, input *PostOrgSecretInput) (*PostOrgSecretOutput, error) {
+	c := ginCtx(ctx)
 	org := session.Org(c)
 
-	in := new(model.Secret)
-	if err := c.Bind(in); err != nil {
-		c.String(http.StatusBadRequest, "Error parsing org %q secret. %s", org.ID, err)
-		return
-	}
 	secret := &model.Secret{
 		OrgID:  org.ID,
-		Name:   in.Name,
-		Value:  in.Value,
-		Events: in.Events,
-		Images: in.Images,
+		Name:   input.Body.Name,
+		Value:  input.Body.Value,
+		Events: input.Body.Events,
+		Images: input.Body.Images,
 	}
 	if err := secret.Validate(); err != nil {
-		c.String(http.StatusUnprocessableEntity, "Error inserting org %q secret. %s", org.ID, err)
-		return
+		return nil, huma.Error400BadRequest(fmt.Sprintf("Error inserting org %d secret: %s", org.ID, err))
 	}
 
 	secretService := server.Config.Services.Manager.SecretService()
 
 	// Check if secret already exists
-	if _, err := secretService.OrgSecretFind(org.ID, in.Name); err == nil {
+	if _, err := secretService.OrgSecretFind(org.ID, input.Body.Name); err == nil {
 		if org.IsUser {
-			c.String(http.StatusConflict, "Secret %q already exists in your personal secrets", in.Name)
-		} else {
-			c.String(http.StatusConflict, "Secret %q already exists for this organization", in.Name)
+			return nil, huma.Error409Conflict(fmt.Sprintf("Secret %q already exists in your personal secrets", input.Body.Name))
 		}
-		return
+		return nil, huma.Error409Conflict(fmt.Sprintf("Secret %q already exists for this organization", input.Body.Name))
 	}
 
 	if err := secretService.OrgSecretCreate(org.ID, secret); err != nil {
-		c.String(http.StatusInternalServerError, "Error inserting org %q secret %q. %s", org.ID, in.Name, err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error inserting org %d secret %q", org.ID, input.Body.Name), err)
 	}
-	c.JSON(http.StatusOK, secret.Copy())
+	return &PostOrgSecretOutput{Body: secret.Copy()}, nil
 }
 
-// PatchOrgSecret
-//
-//	@Summary	Update an organization secret by name
-//	@Router		/orgs/{org_id}/secrets/{secret} [patch]
-//	@Produce	json
-//	@Success	200	{object}	Secret
-//	@Tags		Organization secrets
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		org_id			path	string	true	"the org's id"
-//	@Param		secret			path	string	true	"the secret's name"
-//	@Param		secretData		body	Secret	true	"the update secret data"
-func PatchOrgSecret(c *gin.Context) {
-	org := session.Org(c)
-	name := c.Param("secret")
+type PatchOrgSecretInput struct {
+	OrgID  int64  `path:"org_id" doc:"the org's id"`
+	Secret string `path:"secret" doc:"the secret's name"`
+	Body   model.Secret
+}
 
-	in := new(model.Secret)
-	if err := c.Bind(in); err != nil {
-		c.String(http.StatusBadRequest, "Error parsing secret. %s", err)
-		return
-	}
+type PatchOrgSecretOutput struct {
+	Body *model.Secret
+}
+
+func PatchOrgSecret(ctx context.Context, input *PatchOrgSecretInput) (*PatchOrgSecretOutput, error) {
+	c := ginCtx(ctx)
+	org := session.Org(c)
 
 	secretService := server.Config.Services.Manager.SecretService()
-	secret, err := secretService.OrgSecretFind(org.ID, name)
+	secret, err := secretService.OrgSecretFind(org.ID, input.Secret)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
-	if in.Value != "" {
-		secret.Value = in.Value
+	if input.Body.Value != "" {
+		secret.Value = input.Body.Value
 	}
-	if in.Events != nil {
-		secret.Events = in.Events
+	if input.Body.Events != nil {
+		secret.Events = input.Body.Events
 	}
-	if in.Images != nil {
-		secret.Images = in.Images
+	if input.Body.Images != nil {
+		secret.Images = input.Body.Images
 	}
 
 	if err := secret.Validate(); err != nil {
-		c.String(http.StatusUnprocessableEntity, "Error updating org %q secret. %s", org.ID, err)
-		return
+		return nil, huma.Error400BadRequest(fmt.Sprintf("Error updating org %d secret: %s", org.ID, err))
 	}
 
 	if err := secretService.OrgSecretUpdate(org.ID, secret); err != nil {
-		c.String(http.StatusInternalServerError, "Error updating org %q secret %q. %s", org.ID, in.Name, err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error updating org %d secret %q", org.ID, input.Body.Name), err)
 	}
-	c.JSON(http.StatusOK, secret.Copy())
+	return &PatchOrgSecretOutput{Body: secret.Copy()}, nil
 }
 
-// DeleteOrgSecret
-//
-//	@Summary	Delete an organization secret by name
-//	@Router		/orgs/{org_id}/secrets/{secret} [delete]
-//	@Produce	plain
-//	@Success	204
-//	@Tags		Organization secrets
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		org_id			path	string	true	"the org's id"
-//	@Param		secret			path	string	true	"the secret's name"
-func DeleteOrgSecret(c *gin.Context) {
+type DeleteOrgSecretInput struct {
+	OrgID  int64  `path:"org_id" doc:"the org's id"`
+	Secret string `path:"secret" doc:"the secret's name"`
+}
+
+func DeleteOrgSecret(ctx context.Context, input *DeleteOrgSecretInput) (*struct{}, error) {
+	c := ginCtx(ctx)
 	org := session.Org(c)
-	name := c.Param("secret")
 
 	secretService := server.Config.Services.Manager.SecretService()
-	if err := secretService.OrgSecretDelete(org.ID, name); err != nil {
-		handleDBError(c, err)
-		return
+	if err := secretService.OrgSecretDelete(org.ID, input.Secret); err != nil {
+		return nil, dbErr(err)
 	}
-	c.Status(http.StatusNoContent)
+	return nil, nil
 }

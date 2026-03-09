@@ -199,7 +199,7 @@ func (c *client) open(rawURL, method string, in any) (io.ReadCloser, error) {
 	if resp.StatusCode > http.StatusPartialContent {
 		defer resp.Body.Close()
 		body, _ := io.ReadAll(resp.Body)
-		msg := strings.TrimSpace(string(body))
+		msg := extractErrorMessage(body)
 
 		return nil, &ClientError{
 			StatusCode: resp.StatusCode,
@@ -225,6 +225,27 @@ func (c *client) open(rawURL, method string, in any) (io.ReadCloser, error) {
 // isHTMLContentType checks if the content-type indicates an HTML response.
 func isHTMLContentType(contentType string) bool {
 	return strings.HasPrefix(strings.ToLower(contentType), "text/html")
+}
+
+// extractErrorMessage extracts a human-readable message from an error response body.
+// It handles RFC 9457 Problem Details JSON (from huma) and plain text responses.
+func extractErrorMessage(body []byte) string {
+	msg := strings.TrimSpace(string(body))
+	if msg == "" {
+		return ""
+	}
+	// Try to parse as RFC 9457 Problem Details JSON
+	var problem struct {
+		Detail string `json:"detail"`
+		Title  string `json:"title"`
+	}
+	if json.Unmarshal(body, &problem) == nil && (problem.Detail != "" || problem.Title != "") {
+		if problem.Detail != "" {
+			return problem.Detail
+		}
+		return problem.Title
+	}
+	return msg
 }
 
 // formatErrorMessage creates a user-friendly error message based on HTTP status code.

@@ -15,10 +15,11 @@
 package api
 
 import (
+	"context"
 	"encoding/base32"
-	"net/http"
 	"strconv"
 
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 	"github.com/tink-crypto/tink-go/v2/subtle/random"
@@ -30,82 +31,70 @@ import (
 	"codefloe.com/crowci/crow/v5/shared/token"
 )
 
-// GetSelf
-//
-//	@Summary	Get the currently authenticated user
-//	@Router		/user [get]
-//	@Produce	json
-//	@Success	200	{object}	User
-//	@Tags		User
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-func GetSelf(c *gin.Context) {
-	c.JSON(http.StatusOK, session.User(c))
+type GetSelfInput struct{}
+
+type GetSelfOutput struct {
+	Body *model.User
 }
 
-// GetFeed
-//
-//	@Summary		Get the currently authenticated users pipeline feed
-//	@Description	The feed lists the most recent pipeline for the currently authenticated user.
-//	@Router			/user/feed [get]
-//	@Produce		json
-//	@Success		200	{array}	Feed
-//	@Tags			User
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-func GetFeed(c *gin.Context) {
+func GetSelf(ctx context.Context, _ *GetSelfInput) (*GetSelfOutput, error) {
+	c := ginCtx(ctx)
+	return &GetSelfOutput{Body: session.User(c)}, nil
+}
+
+type GetFeedInput struct {
+	Latest bool `query:"latest" doc:"return only the latest pipeline per repo"`
+}
+
+type GetFeedOutput struct {
+	Body any
+}
+
+func GetFeed(ctx context.Context, input *GetFeedInput) (*GetFeedOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
-
 	user := session.User(c)
-	latest, _ := strconv.ParseBool(c.Query("latest"))
 
-	if latest {
+	if input.Latest {
 		feed, err := _store.RepoListLatest(user)
 		if err != nil {
-			c.String(http.StatusInternalServerError, "Error fetching feed. %s", err)
-		} else {
-			c.JSON(http.StatusOK, feed)
+			return nil, huma.Error500InternalServerError("Error fetching feed", err)
 		}
-		return
+		return &GetFeedOutput{Body: feed}, nil
 	}
 
 	feed, err := _store.UserFeed(user)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error fetching user feed. %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error fetching user feed", err)
 	}
-	c.JSON(http.StatusOK, feed)
+	return &GetFeedOutput{Body: feed}, nil
 }
 
-// GetRepos
-//
-//	@Summary		Get user's repositories
-//	@Description	Retrieve the currently authenticated User's Repository list from all linked forges
-//	@Router			/user/repos [get]
-//	@Produce		json
-//	@Success		200	{array}	RepoLastPipeline
-//	@Tags			User
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			all				query	bool	false	"query all repos, including inactive ones"
-func GetRepos(c *gin.Context) {
+type GetReposInput struct {
+	All bool `query:"all" doc:"query all repos, including inactive ones"`
+}
+
+type GetReposOutput struct {
+	Body any
+}
+
+func GetRepos(ctx context.Context, input *GetReposInput) (*GetReposOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	user := session.User(c)
 
-	all, _ := strconv.ParseBool(c.Query("all"))
-
-	if all {
+	if input.All {
 		// Get all repos from all linked forges
 		repos, err := getAllReposFromAllForges(c, _store, user)
 		if err != nil {
-			c.String(http.StatusInternalServerError, "Error fetching repository list. %s", err)
-			return
+			return nil, huma.Error500InternalServerError("Error fetching repository list", err)
 		}
-		c.JSON(http.StatusOK, repos)
-		return
+		return &GetReposOutput{Body: repos}, nil
 	}
 
 	activeRepos, err := _store.RepoList(user, true, true)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error fetching repository list. %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error fetching repository list", err)
 	}
 
 	repoIDs := make([]int64, len(activeRepos))
@@ -115,8 +104,7 @@ func GetRepos(c *gin.Context) {
 
 	pipelines, err := _store.GetRepoLatestPipelines(repoIDs)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error fetching repository list. %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error fetching repository list", err)
 	}
 
 	latestPipelines := make(map[int64]*model.Pipeline, len(activeRepos))
@@ -132,7 +120,7 @@ func GetRepos(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, repos)
+	return &GetReposOutput{Body: repos}, nil
 }
 
 // getAllReposFromAllForges fetches repos from all forges the user has linked.
@@ -219,39 +207,32 @@ func getAllReposFromAllForges(c *gin.Context, _store store.Store, user *model.Us
 	return allRepos, nil
 }
 
-// PostToken
-//
-//	@Summary		Return the token of the current user as string
-//	@Description	Deprecated: Use POST /user/access-tokens instead for better security and scope control.
-//	@Router			/user/token [post]
-//	@Produce		plain
-//	@Success		200
-//	@Tags			User
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Deprecated
-func PostToken(c *gin.Context) {
+type PostTokenInput struct{}
+
+type PostTokenOutput struct {
+	Body string
+}
+
+func PostToken(ctx context.Context, _ *PostTokenInput) (*PostTokenOutput, error) {
+	c := ginCtx(ctx)
 	user := session.User(c)
 	t := token.New(token.UserToken)
 	t.Set("user-id", strconv.FormatInt(user.ID, 10))
 	tokenString, err := t.Sign(user.Hash)
 	if err != nil {
-		_ = c.AbortWithError(http.StatusInternalServerError, err)
-		return
+		return nil, huma.Error500InternalServerError(err.Error())
 	}
-	c.String(http.StatusOK, tokenString)
+	return &PostTokenOutput{Body: tokenString}, nil
 }
 
-// DeleteToken
-//
-//	@Summary		Reset a token
-//	@Description	Deprecated: Use DELETE /user/access-tokens/:token_id instead. This endpoint rotates the user hash which invalidates ALL tokens.
-//	@Router			/user/token [delete]
-//	@Produce		plain
-//	@Success		200
-//	@Tags			User
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Deprecated
-func DeleteToken(c *gin.Context) {
+type DeleteTokenInput struct{}
+
+type DeleteTokenOutput struct {
+	Body string
+}
+
+func DeleteToken(ctx context.Context, _ *DeleteTokenInput) (*DeleteTokenOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 
 	user := session.User(c)
@@ -259,16 +240,14 @@ func DeleteToken(c *gin.Context) {
 		random.GetRandomBytes(32),
 	)
 	if err := _store.UpdateUser(user); err != nil {
-		c.String(http.StatusInternalServerError, "Error revoking tokens. %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error revoking tokens", err)
 	}
 
 	t := token.New(token.UserToken)
 	t.Set("user-id", strconv.FormatInt(user.ID, 10))
 	tokenString, err := t.Sign(user.Hash)
 	if err != nil {
-		_ = c.AbortWithError(http.StatusInternalServerError, err)
-		return
+		return nil, huma.Error500InternalServerError(err.Error())
 	}
-	c.String(http.StatusOK, tokenString)
+	return &DeleteTokenOutput{Body: tokenString}, nil
 }

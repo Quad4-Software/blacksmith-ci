@@ -15,50 +15,39 @@
 package api
 
 import (
+	"context"
 	"fmt"
-	"net/http"
 	"strconv"
 	"strings"
 
-	"github.com/gin-gonic/gin"
+	"github.com/danielgtaylor/huma/v2"
 
 	"codefloe.com/crowci/crow/v5/server/model"
 	"codefloe.com/crowci/crow/v5/server/router/middleware/session"
 	"codefloe.com/crowci/crow/v5/server/store"
 )
 
-// GetMetrics
-//
-//	@Summary		Get metrics
-//	@Description	Returns comprehensive metrics including builds per agent, repo, org, average build time, etc. Non-admins see only their accessible repos.
-//	@Router			/metrics [get]
-//	@Produce		json
-//	@Success		200	{object}	model.Metrics
-//	@Tags			Metrics
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			after			query	int		false	"Unix timestamp - filter metrics after this time"
-//	@Param			before			query	int		false	"Unix timestamp - filter metrics before this time"
-//	@Param			all				query	bool	false	"Show all instance metrics (admin only)"
-//	@Param			repos			query	string	false	"Comma-separated list of repo IDs to filter by"
-func GetMetrics(c *gin.Context) {
+type GetMetricsInput struct {
+	After  int64  `query:"after" doc:"Unix timestamp - filter metrics after this time"`
+	Before int64  `query:"before" doc:"Unix timestamp - filter metrics before this time"`
+	All    bool   `query:"all" doc:"Show all instance metrics (admin only)"`
+	Repos  string `query:"repos" doc:"Comma-separated list of repo IDs to filter by"`
+}
+
+type GetMetricsOutput struct {
+	Body *model.Metrics
+}
+
+func GetMetrics(ctx context.Context, input *GetMetricsInput) (*GetMetricsOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	user := session.User(c)
 
-	// Parse time filters from query parameters
-	var after, before int64
-	if afterStr := c.Query("after"); afterStr != "" {
-		if val, err := strconv.ParseInt(afterStr, 10, 64); err == nil {
-			after = val
-		}
-	}
-	if beforeStr := c.Query("before"); beforeStr != "" {
-		if val, err := strconv.ParseInt(beforeStr, 10, 64); err == nil {
-			before = val
-		}
-	}
+	after := input.After
+	before := input.Before
 
 	// Determine scope: admin can see all, non-admin sees only their repos
-	showAll := c.Query("all") == "true" && user.Admin
+	showAll := input.All && user.Admin
 	isAdminScope := showAll
 
 	// Get user's accessible repos
@@ -69,8 +58,7 @@ func GetMetrics(c *gin.Context) {
 		// Get repos user has access to (via perms table)
 		repos, err := _store.RepoList(user, false, true)
 		if err != nil {
-			c.String(http.StatusInternalServerError, "Error getting user repos: %s", err)
-			return
+			return nil, huma.Error500InternalServerError(fmt.Sprintf("Error getting user repos: %s", err))
 		}
 		accessibleRepos = repos
 		repoIDs = make([]int64, len(repos))
@@ -80,8 +68,8 @@ func GetMetrics(c *gin.Context) {
 	}
 
 	// Apply additional repo subset filter if specified
-	if repoSubsetStr := c.Query("repos"); repoSubsetStr != "" {
-		requestedIDs := parseRepoIDs(repoSubsetStr)
+	if input.Repos != "" {
+		requestedIDs := parseRepoIDs(input.Repos)
 		if len(requestedIDs) > 0 {
 			if showAll {
 				// Admin viewing all repos but wants subset
@@ -101,20 +89,17 @@ func GetMetrics(c *gin.Context) {
 		var err error
 		repoCount, err = _store.GetRepoCount()
 		if err != nil {
-			c.String(http.StatusInternalServerError, "Error getting repo count: %s", err)
-			return
+			return nil, huma.Error500InternalServerError(fmt.Sprintf("Error getting repo count: %s", err))
 		}
 
 		orgCount, err = _store.GetOrgCount()
 		if err != nil {
-			c.String(http.StatusInternalServerError, "Error getting org count: %s", err)
-			return
+			return nil, huma.Error500InternalServerError(fmt.Sprintf("Error getting org count: %s", err))
 		}
 
 		pipelineCount, err = _store.GetPipelineCount()
 		if err != nil {
-			c.String(http.StatusInternalServerError, "Error getting pipeline count: %s", err)
-			return
+			return nil, huma.Error500InternalServerError(fmt.Sprintf("Error getting pipeline count: %s", err))
 		}
 	} else {
 		// Scoped metrics
@@ -142,8 +127,7 @@ func GetMetrics(c *gin.Context) {
 		// Count pipelines for accessible repos
 		pipelinesByRepoID, err := _store.GetPipelineCountsByRepo(0, 0, repoIDs)
 		if err != nil {
-			c.String(http.StatusInternalServerError, "Error getting pipeline count: %s", err)
-			return
+			return nil, huma.Error500InternalServerError(fmt.Sprintf("Error getting pipeline count: %s", err))
 		}
 		for _, count := range pipelinesByRepoID {
 			pipelineCount += count
@@ -153,71 +137,60 @@ func GetMetrics(c *gin.Context) {
 	// Get average metrics (with repo filtering)
 	avgBuildTime, err := _store.GetAveragePipelineDuration(after, before, repoIDs)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error getting average build time: %s", err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error getting average build time: %s", err))
 	}
 
 	avgStepsPerFlow, err := _store.GetAverageStepsPerWorkflow(after, before, repoIDs)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error getting average steps per workflow: %s", err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error getting average steps per workflow: %s", err))
 	}
 
 	// Get grouped metrics (with repo filtering)
 	// Use persistent ID for new data, fallback to agent ID for legacy data
 	workflowsByPersistentID, err := _store.GetWorkflowCountsByAgentPersistentID(after, before, repoIDs)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error getting workflows by agent persistent ID: %s", err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error getting workflows by agent persistent ID: %s", err))
 	}
 	workflowsByAgentID, err := _store.GetWorkflowCountsByAgent(after, before, repoIDs)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error getting workflows by agent: %s", err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error getting workflows by agent: %s", err))
 	}
 
 	pipelinesByRepoID, err := _store.GetPipelineCountsByRepo(after, before, repoIDs)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error getting pipelines by repo: %s", err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error getting pipelines by repo: %s", err))
 	}
 
 	pipelinesByOrgID, err := _store.GetPipelineCountsByOrg(after, before, repoIDs)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error getting pipelines by org: %s", err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error getting pipelines by org: %s", err))
 	}
 
 	// Get build time statistics (with repo filtering)
 	repoTimeStats, err := _store.GetBuildTimeStatsByRepo(after, before, repoIDs)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error getting repo build time stats: %s", err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error getting repo build time stats: %s", err))
 	}
 
 	orgTimeStats, err := _store.GetBuildTimeStatsByOrg(after, before, repoIDs)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error getting org build time stats: %s", err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error getting org build time stats: %s", err))
 	}
 
 	// Convert IDs to names and build detailed metrics
 	agentDetails, workflowsByAgent, err := buildAgentMetrics(_store, workflowsByPersistentID, workflowsByAgentID)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error building agent metrics: %s", err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error building agent metrics: %s", err))
 	}
 
 	repoDetails, pipelinesByRepo, err := buildRepoMetrics(_store, pipelinesByRepoID, repoTimeStats)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error building repo metrics: %s", err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error building repo metrics: %s", err))
 	}
 
 	orgDetails, pipelinesByOrg, err := buildOrgMetrics(_store, pipelinesByOrgID, orgTimeStats)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error building org metrics: %s", err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error building org metrics: %s", err))
 	}
 
 	metrics := &model.Metrics{
@@ -235,7 +208,7 @@ func GetMetrics(c *gin.Context) {
 		IsAdminScope:     isAdminScope,
 	}
 
-	c.JSON(http.StatusOK, metrics)
+	return &GetMetricsOutput{Body: metrics}, nil
 }
 
 // parseRepoIDs parses a comma-separated string of repo IDs.

@@ -19,6 +19,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -47,11 +48,10 @@ func TestDeleteApprovalAlways(t *testing.T) {
 		c, _ := gin.CreateTestContext(w)
 		c.Set("store", mockStore)
 		c.Set("repo", fakeRepo)
-		c.Params = gin.Params{{Key: "number", Value: "5"}}
 
-		DeleteApprovalAlways(c)
+		_, err := DeleteApprovalAlways(testCtx(c), &DeleteApprovalAlwaysInput{Number: 5})
 
-		assert.Equal(t, http.StatusNoContent, c.Writer.Status())
+		assert.NoError(t, err)
 		mockStore.AssertCalled(t, "ApprovedPullRequestDelete", int64(1), "refs/pull/42/head")
 	})
 
@@ -63,11 +63,12 @@ func TestDeleteApprovalAlways(t *testing.T) {
 		c, _ := gin.CreateTestContext(w)
 		c.Set("store", mockStore)
 		c.Set("repo", fakeRepo)
-		c.Params = gin.Params{{Key: "number", Value: "99"}}
 
-		DeleteApprovalAlways(c)
+		_, err := DeleteApprovalAlways(testCtx(c), &DeleteApprovalAlwaysInput{Number: 99})
 
-		assert.Equal(t, http.StatusNotFound, w.Code)
+		var humaErr huma.StatusError
+		assert.ErrorAs(t, err, &humaErr)
+		assert.Equal(t, http.StatusNotFound, humaErr.GetStatus())
 	})
 
 	t.Run("should return 404 when approved record not found", func(t *testing.T) {
@@ -79,11 +80,12 @@ func TestDeleteApprovalAlways(t *testing.T) {
 		c, _ := gin.CreateTestContext(w)
 		c.Set("store", mockStore)
 		c.Set("repo", fakeRepo)
-		c.Params = gin.Params{{Key: "number", Value: "5"}}
 
-		DeleteApprovalAlways(c)
+		_, err := DeleteApprovalAlways(testCtx(c), &DeleteApprovalAlwaysInput{Number: 5})
 
-		assert.Equal(t, http.StatusNotFound, w.Code)
+		var humaErr huma.StatusError
+		assert.ErrorAs(t, err, &humaErr)
+		assert.Equal(t, http.StatusNotFound, humaErr.GetStatus())
 	})
 }
 

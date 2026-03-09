@@ -34,15 +34,7 @@ import (
 	"codefloe.com/crowci/crow/v5/shared/token"
 )
 
-// GetQueueInfo
-//
-//	@Summary		Get pipeline queue information
-//	@Description	Returns pipeline queue information with agent details
-//	@Router			/queue/info [get]
-//	@Produce		json
-//	@Success		200	{object}	QueueInfo
-//	@Tags			Pipeline queues
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
+// GetQueueInfo returns pipeline queue information with agent details.
 func GetQueueInfo(c *gin.Context) {
 	info := server.Config.Services.Queue.Info(c)
 	_store := store.FromContext(c)
@@ -150,40 +142,19 @@ func processQueueTasks(store store.Store, tasks []*model.Task, agentNameMap map[
 	return result, nil
 }
 
-// PauseQueue
-//
-//	@Summary	Pause the pipeline queue
-//	@Router		/queue/pause [post]
-//	@Produce	plain
-//	@Success	204
-//	@Tags		Pipeline queues
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
+// PauseQueue pauses the pipeline queue.
 func PauseQueue(c *gin.Context) {
 	server.Config.Services.Queue.Pause()
 	c.Status(http.StatusNoContent)
 }
 
-// ResumeQueue
-//
-//	@Summary	Resume the pipeline queue
-//	@Router		/queue/resume [post]
-//	@Produce	plain
-//	@Success	204
-//	@Tags		Pipeline queues
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
+// ResumeQueue resumes the pipeline queue.
 func ResumeQueue(c *gin.Context) {
 	server.Config.Services.Queue.Resume()
 	c.Status(http.StatusNoContent)
 }
 
-// BlockTilQueueHasRunningItem
-//
-//	@Summary	Block til pipeline queue has a running item
-//	@Router		/queue/norunningpipelines [get]
-//	@Produce	plain
-//	@Success	204
-//	@Tags		Pipeline queues
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
+// BlockTilQueueHasRunningItem blocks until the pipeline queue has no running items.
 func BlockTilQueueHasRunningItem(c *gin.Context) {
 	for {
 		info := server.Config.Services.Queue.Info(c)
@@ -194,14 +165,7 @@ func BlockTilQueueHasRunningItem(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// PostHook
-//
-//	@Summary	Incoming webhook from forge
-//	@Router		/hook [post]
-//	@Produce	plain
-//	@Success	200
-//	@Tags		System
-//	@Param		hook	body	object	true	"the webhook payload; forge is automatically detected"
+// PostHook handles incoming webhook from forge.
 func PostHook(c *gin.Context) {
 	log.Trace().Msg("PostHook: entered handler")
 	_store := store.FromContext(c)

@@ -15,12 +15,13 @@
 package api
 
 import (
-	"encoding/json"
+	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -41,6 +42,15 @@ var fakeAgent = &model.Agent{
 	NoSchedule: false,
 }
 
+// testCtx creates a context.Context that embeds the gin context,
+// as expected by the ginCtx() helper used in huma handlers.
+func testCtx(c *gin.Context) context.Context {
+	if c.Request == nil {
+		c.Request, _ = http.NewRequest(http.MethodGet, "/", nil)
+	}
+	return context.WithValue(c.Request.Context(), GinContextKey(), c)
+}
+
 func TestGetAgents(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -57,21 +67,18 @@ func TestGetAgents(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Set("store", mockStore)
+		c.Request, _ = http.NewRequest(http.MethodGet, "/", nil)
 
-		GetAgents(c)
-		c.Writer.WriteHeaderNow()
+		output, err := GetAgents(testCtx(c), &GetAgentsInput{PaginationParams: PaginationParams{Page: 1, PerPage: 50}})
 
 		mockStore.AssertCalled(t, "AgentList", mock.Anything)
 		mockQueue.AssertCalled(t, "Info", mock.Anything)
-		assert.Equal(t, http.StatusOK, w.Code)
-
-		var response []model.AgentWithStats
-		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Len(t, response, 1)
-		assert.Equal(t, fakeAgent.ID, response[0].ID)
-		assert.Equal(t, fakeAgent.Name, response[0].Name)
-		assert.Equal(t, 0, response[0].RunningWorkflows)
+		assert.NotNil(t, output)
+		assert.Len(t, output.Body, 1)
+		assert.Equal(t, fakeAgent.ID, output.Body[0].ID)
+		assert.Equal(t, fakeAgent.Name, output.Body[0].Name)
+		assert.Equal(t, 0, output.Body[0].RunningWorkflows)
 	})
 }
 
@@ -85,29 +92,14 @@ func TestGetAgent(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Set("store", mockStore)
-		c.Params = gin.Params{{Key: "agent_id", Value: "1"}}
+		c.Request, _ = http.NewRequest(http.MethodGet, "/", nil)
 
-		GetAgent(c)
-		c.Writer.WriteHeaderNow()
+		output, err := GetAgent(testCtx(c), &GetAgentInput{AgentID: 1})
 
 		mockStore.AssertCalled(t, "AgentFind", int64(1))
-		assert.Equal(t, http.StatusOK, w.Code)
-
-		var response model.Agent
-		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Equal(t, fakeAgent, &response)
-	})
-
-	t.Run("should return bad request for invalid agent id", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		c, _ := gin.CreateTestContext(w)
-		c.Params = gin.Params{{Key: "agent_id", Value: "invalid"}}
-
-		GetAgent(c)
-		c.Writer.WriteHeaderNow()
-
-		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.NotNil(t, output)
+		assert.Equal(t, fakeAgent, output.Body)
 	})
 
 	t.Run("should return not found for non-existent agent", func(t *testing.T) {
@@ -117,12 +109,16 @@ func TestGetAgent(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Set("store", mockStore)
-		c.Params = gin.Params{{Key: "agent_id", Value: "2"}}
+		c.Request, _ = http.NewRequest(http.MethodGet, "/", nil)
 
-		GetAgent(c)
-		c.Writer.WriteHeaderNow()
+		output, err := GetAgent(testCtx(c), &GetAgentInput{AgentID: 2})
 
-		assert.Equal(t, http.StatusNotFound, w.Code)
+		assert.Nil(t, output)
+		assert.Error(t, err)
+		var humaErr huma.StatusError
+		if errors.As(err, &humaErr) {
+			assert.Equal(t, http.StatusNotFound, humaErr.GetStatus())
+		}
 	})
 }
 
@@ -137,28 +133,25 @@ func TestPatchAgent(t *testing.T) {
 		mockStore.On("AgentFind", int64(1)).Return(fakeAgent, nil)
 		mockStore.On("AgentUpdate", mock.AnythingOfType("*model.Agent")).Return(nil)
 
-		// 		mockManager := new(mocks_manager.MockManager)
 		mockManager := new(mocks_manager.MockManager)
 		server.Config.Services.Manager = mockManager
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Set("store", mockStore)
-		c.Params = gin.Params{{Key: "agent_id", Value: "1"}}
-		c.Request, _ = http.NewRequest(http.MethodPatch, "/", strings.NewReader(`{"name":"updated-agent"}`))
+		c.Request, _ = http.NewRequest(http.MethodPatch, "/", nil)
 		c.Request.Header.Set("Content-Type", "application/json")
 
-		PatchAgent(c)
-		c.Writer.WriteHeaderNow()
+		output, err := PatchAgent(testCtx(c), &PatchAgentInput{
+			AgentID: 1,
+			Body:    model.Agent{Name: "updated-agent"},
+		})
 
 		mockStore.AssertCalled(t, "AgentFind", int64(1))
 		mockStore.AssertCalled(t, "AgentUpdate", mock.AnythingOfType("*model.Agent"))
-		assert.Equal(t, http.StatusOK, w.Code)
-
-		var response model.Agent
-		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Equal(t, "updated-agent", response.Name)
+		assert.NotNil(t, output)
+		assert.Equal(t, "updated-agent", output.Body.Name)
 	})
 }
 
@@ -166,11 +159,6 @@ func TestPostAgent(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	t.Run("should create agent", func(t *testing.T) {
-		newAgent := &model.Agent{
-			Name:       "new-agent",
-			NoSchedule: false,
-		}
-
 		mockStore := new(store_mocks.MockStore)
 		mockStore.On("AgentCreate", mock.AnythingOfType("*model.Agent")).Return(nil)
 
@@ -178,20 +166,18 @@ func TestPostAgent(t *testing.T) {
 		c, _ := gin.CreateTestContext(w)
 		c.Set("store", mockStore)
 		c.Set("user", &model.User{ID: 1})
-		c.Request, _ = http.NewRequest(http.MethodPost, "/", strings.NewReader(`{"name":"new-agent"}`))
+		c.Request, _ = http.NewRequest(http.MethodPost, "/", nil)
 		c.Request.Header.Set("Content-Type", "application/json")
 
-		PostAgent(c)
-		c.Writer.WriteHeaderNow()
+		output, err := PostAgent(testCtx(c), &PostAgentInput{
+			Body: model.Agent{Name: "new-agent"},
+		})
 
 		mockStore.AssertCalled(t, "AgentCreate", mock.AnythingOfType("*model.Agent"))
-		assert.Equal(t, http.StatusOK, w.Code)
-
-		var response model.Agent
-		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Equal(t, newAgent.Name, response.Name)
-		assert.NotEmpty(t, response.Token)
+		assert.NotNil(t, output)
+		assert.Equal(t, "new-agent", output.Body.Name)
+		assert.NotEmpty(t, output.Body.Token)
 	})
 }
 
@@ -206,7 +192,6 @@ func TestDeleteAgent(t *testing.T) {
 		mockManager := new(mocks_manager.MockManager)
 		server.Config.Services.Manager = mockManager
 
-		// mockQueue := queue_mocks.NewQueue(t)
 		mockQueue := new(queue_mocks.MockQueue)
 		mockQueue.On("Info", mock.Anything).Return(queue.InfoT{})
 		mockQueue.On("KickAgentWorkers", int64(1)).Return()
@@ -215,15 +200,14 @@ func TestDeleteAgent(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Set("store", mockStore)
-		c.Params = gin.Params{{Key: "agent_id", Value: "1"}}
+		c.Request, _ = http.NewRequest(http.MethodDelete, "/", nil)
 
-		DeleteAgent(c)
-		c.Writer.WriteHeaderNow()
+		_, err := DeleteAgent(testCtx(c), &DeleteAgentInput{AgentID: 1})
 
 		mockStore.AssertCalled(t, "AgentFind", int64(1))
 		mockStore.AssertCalled(t, "AgentDelete", mock.AnythingOfType("*model.Agent"))
 		mockQueue.AssertCalled(t, "KickAgentWorkers", int64(1))
-		assert.Equal(t, http.StatusNoContent, w.Code)
+		assert.NoError(t, err)
 	})
 
 	t.Run("should not delete agent with running tasks", func(t *testing.T) {
@@ -242,14 +226,17 @@ func TestDeleteAgent(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Set("store", mockStore)
-		c.Params = gin.Params{{Key: "agent_id", Value: "1"}}
+		c.Request, _ = http.NewRequest(http.MethodDelete, "/", nil)
 
-		DeleteAgent(c)
-		c.Writer.WriteHeaderNow()
+		_, err := DeleteAgent(testCtx(c), &DeleteAgentInput{AgentID: 1})
 
 		mockStore.AssertCalled(t, "AgentFind", int64(1))
 		mockStore.AssertNotCalled(t, "AgentDelete", mock.Anything)
-		assert.Equal(t, http.StatusConflict, w.Code)
+		assert.Error(t, err)
+		var humaErr huma.StatusError
+		if errors.As(err, &humaErr) {
+			assert.Equal(t, http.StatusConflict, humaErr.GetStatus())
+		}
 	})
 }
 
@@ -270,14 +257,16 @@ func TestPostOrgAgent(t *testing.T) {
 			Admin: false,
 		})
 
-		c.Params = gin.Params{{Key: "org_id", Value: "1"}}
-		c.Request, _ = http.NewRequest(http.MethodPost, "/", strings.NewReader(`{"name":"new-agent"}`))
+		c.Request, _ = http.NewRequest(http.MethodPost, "/", nil)
 		c.Request.Header.Set("Content-Type", "application/json")
 
-		PostOrgAgent(c)
-		c.Writer.WriteHeaderNow()
+		output, err := PostOrgAgent(testCtx(c), &PostOrgAgentInput{
+			OrgID: 1,
+			Body:  model.Agent{Name: "new-agent"},
+		})
 
-		assert.Equal(t, http.StatusOK, w.Code)
+		assert.NoError(t, err)
+		assert.NotNil(t, output)
 
 		// Ensure an agent was created
 		mockStore.AssertCalled(t, "AgentCreate", mock.AnythingOfType("*model.Agent"))

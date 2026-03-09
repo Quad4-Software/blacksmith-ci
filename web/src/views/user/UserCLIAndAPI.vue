@@ -18,7 +18,7 @@
       <template #headerActions>
         <a
           v-if="enableSwagger"
-          :href="`${address}/swagger/index.html`"
+          :href="`${address}/api/v1/docs`"
           target="_blank"
           class="ml-4 text-primary hover:text-primary/80"
         >

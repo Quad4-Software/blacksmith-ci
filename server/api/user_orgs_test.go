@@ -15,11 +15,12 @@
 package api
 
 import (
-	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -97,22 +98,18 @@ func TestGetUserOrgList(t *testing.T) {
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
+		c.Request, _ = http.NewRequest(http.MethodGet, "/", nil)
 		c.Set("store", mockStore)
 		c.Set("user", user)
 
-		GetUserOrgList(c)
-		c.Writer.WriteHeaderNow()
-
-		assert.Equal(t, http.StatusOK, w.Code)
-
-		var response []*model.Org
-		err := json.Unmarshal(w.Body.Bytes(), &response)
+		output, err := GetUserOrgList(testCtx(c), &GetUserOrgListInput{})
 		require.NoError(t, err)
-		assert.Len(t, response, 2)
+		require.NotNil(t, output)
+		assert.Len(t, output.Body, 2)
 
 		// Verify both orgs are returned
-		orgNames := make([]string, len(response))
-		for i, org := range response {
+		orgNames := make([]string, len(output.Body))
+		for i, org := range output.Body {
 			orgNames[i] = org.Name
 		}
 		assert.Contains(t, orgNames, "org1")
@@ -142,22 +139,18 @@ func TestGetUserOrgList(t *testing.T) {
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
+		c.Request, _ = http.NewRequest(http.MethodGet, "/", nil)
 		c.Set("store", mockStore)
 		c.Set("user", user)
 
-		GetUserOrgList(c)
-		c.Writer.WriteHeaderNow()
-
-		assert.Equal(t, http.StatusOK, w.Code)
-
-		var response []*model.Org
-		err := json.Unmarshal(w.Body.Bytes(), &response)
+		output, err := GetUserOrgList(testCtx(c), &GetUserOrgListInput{})
 		require.NoError(t, err)
+		require.NotNil(t, output)
 
 		// Only org1 should be returned, not the personal org
-		assert.Len(t, response, 1)
-		assert.Equal(t, "org1", response[0].Name)
-		assert.False(t, response[0].IsUser)
+		assert.Len(t, output.Body, 1)
+		assert.Equal(t, "org1", output.Body[0].Name)
+		assert.False(t, output.Body[0].IsUser)
 	})
 
 	t.Run("should skip orgs not found in Crow database", func(t *testing.T) {
@@ -183,21 +176,17 @@ func TestGetUserOrgList(t *testing.T) {
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
+		c.Request, _ = http.NewRequest(http.MethodGet, "/", nil)
 		c.Set("store", mockStore)
 		c.Set("user", user)
 
-		GetUserOrgList(c)
-		c.Writer.WriteHeaderNow()
-
-		assert.Equal(t, http.StatusOK, w.Code)
-
-		var response []*model.Org
-		err := json.Unmarshal(w.Body.Bytes(), &response)
+		output, err := GetUserOrgList(testCtx(c), &GetUserOrgListInput{})
 		require.NoError(t, err)
+		require.NotNil(t, output)
 
 		// Only org1 should be returned
-		assert.Len(t, response, 1)
-		assert.Equal(t, "org1", response[0].Name)
+		assert.Len(t, output.Body, 1)
+		assert.Equal(t, "org1", output.Body[0].Name)
 	})
 
 	t.Run("should return empty list when user has no team memberships", func(t *testing.T) {
@@ -215,18 +204,14 @@ func TestGetUserOrgList(t *testing.T) {
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
+		c.Request, _ = http.NewRequest(http.MethodGet, "/", nil)
 		c.Set("store", mockStore)
 		c.Set("user", user)
 
-		GetUserOrgList(c)
-		c.Writer.WriteHeaderNow()
-
-		assert.Equal(t, http.StatusOK, w.Code)
-
-		var response []*model.Org
-		err := json.Unmarshal(w.Body.Bytes(), &response)
+		output, err := GetUserOrgList(testCtx(c), &GetUserOrgListInput{})
 		require.NoError(t, err)
-		assert.Empty(t, response)
+		require.NotNil(t, output)
+		assert.Empty(t, output.Body)
 	})
 
 	t.Run("should return 500 when UserForgeList fails", func(t *testing.T) {
@@ -240,13 +225,17 @@ func TestGetUserOrgList(t *testing.T) {
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
+		c.Request, _ = http.NewRequest(http.MethodGet, "/", nil)
 		c.Set("store", mockStore)
 		c.Set("user", user)
 
-		GetUserOrgList(c)
-		c.Writer.WriteHeaderNow()
+		output, err := GetUserOrgList(testCtx(c), &GetUserOrgListInput{})
+		assert.Nil(t, output)
+		require.Error(t, err)
 
-		assert.Equal(t, http.StatusInternalServerError, w.Code)
+		var he huma.StatusError
+		require.True(t, errors.As(err, &he))
+		assert.Equal(t, http.StatusInternalServerError, he.GetStatus())
 	})
 
 	t.Run("should skip forge when Teams() fails but continue with others", func(t *testing.T) {
@@ -263,18 +252,14 @@ func TestGetUserOrgList(t *testing.T) {
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
+		c.Request, _ = http.NewRequest(http.MethodGet, "/", nil)
 		c.Set("store", mockStore)
 		c.Set("user", user)
 
-		GetUserOrgList(c)
-		c.Writer.WriteHeaderNow()
-
-		assert.Equal(t, http.StatusOK, w.Code)
-
-		var response []*model.Org
-		err := json.Unmarshal(w.Body.Bytes(), &response)
+		output, err := GetUserOrgList(testCtx(c), &GetUserOrgListInput{})
 		require.NoError(t, err)
-		assert.Empty(t, response)
+		require.NotNil(t, output)
+		assert.Empty(t, output.Body)
 	})
 }
 
@@ -295,18 +280,14 @@ func TestGetOrgs_AdminOnly(t *testing.T) {
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
+		c.Request, _ = http.NewRequest(http.MethodGet, "/", nil)
 		c.Set("store", mockStore)
 		// Note: No user set - the handler doesn't check admin status
 		// because MustAdmin() middleware handles that at router level
 
-		GetOrgs(c)
-		c.Writer.WriteHeaderNow()
-
-		assert.Equal(t, http.StatusOK, w.Code)
-
-		var response []*model.Org
-		err := json.Unmarshal(w.Body.Bytes(), &response)
+		output, err := GetOrgs(testCtx(c), &GetOrgsInput{})
 		require.NoError(t, err)
-		assert.Len(t, response, 2)
+		require.NotNil(t, output)
+		assert.Len(t, output.Body, 2)
 	})
 }

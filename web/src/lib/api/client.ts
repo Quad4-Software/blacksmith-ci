@@ -91,10 +91,21 @@ export default class ApiClient {
       if (!res.ok) {
         const resText = await res.text();
         let message: string;
-        if (resText && res.statusText) {
-          message = `${res.statusText}: ${resText}`;
-        } else if (resText) {
-          message = resText;
+        if (resText) {
+          // Try to parse RFC 9457 Problem Details JSON (from huma error responses)
+          try {
+            const problem = JSON.parse(resText) as { detail?: string; title?: string };
+            if (typeof problem.detail === 'string' && problem.detail !== '') {
+              message = problem.detail;
+            } else if (typeof problem.title === 'string' && problem.title !== '') {
+              message = problem.title;
+            } else {
+              message = resText;
+            }
+          } catch {
+            // Not JSON — use the plain text response
+            message = res.statusText ? `${res.statusText}: ${resText}` : resText;
+          }
         } else {
           message = res.statusText || `HTTP ${res.status}`;
         }

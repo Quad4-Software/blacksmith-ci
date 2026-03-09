@@ -15,10 +15,10 @@
 package api
 
 import (
-	"net/http"
+	"context"
 	"strings"
 
-	"github.com/gin-gonic/gin"
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/rs/zerolog/log"
 
 	"codefloe.com/crowci/crow/v5/server"
@@ -27,30 +27,28 @@ import (
 	"codefloe.com/crowci/crow/v5/server/store"
 )
 
-// GetUserSecretList
-//
-//	@Summary	List all secrets accessible by the current user
-//	@Router		/user/secrets [get]
-//	@Produce	json
-//	@Success	200	{array}	SecretWithOrg
-//	@Tags		User
-//	@Param		Authorization	header	string	true	"Insert your personal access token"			default(Bearer <personal access token>)
-//	@Param		scope			query	string	false	"Comma-separated scopes: user,org,global"	default("user,org,global")
-//	@Param		search			query	string	false	"Search term for secret name"
-//	@Param		page			query	int		false	"for response pagination, page offset number"	default(1)
-//	@Param		perPage			query	int		false	"for response pagination, max items per page"	default(50)
-func GetUserSecretList(c *gin.Context) {
+type GetUserSecretListInput struct {
+	PaginationParams
+	Scope  string `query:"scope" default:"user,org,global" doc:"Comma-separated scopes: user,org,global"`
+	Search string `query:"search" doc:"Search term for secret name"`
+}
+
+type GetUserSecretListOutput struct {
+	Body []*model.SecretWithOrg
+}
+
+func GetUserSecretList(ctx context.Context, input *GetUserSecretListInput) (*GetUserSecretListOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	user := session.User(c)
 
 	// Parse scope filter (default: all scopes)
-	scopeParam := c.DefaultQuery("scope", "user,org,global")
-	scopes := strings.Split(scopeParam, ",")
+	scopes := strings.Split(input.Scope, ",")
 	includeUser := contains(scopes, "user")
 	includeOrg := contains(scopes, "org")
 	includeGlobal := contains(scopes, "global")
 
-	searchTerm := c.Query("search")
+	searchTerm := input.Search
 
 	// Build org ID list
 	orgIDs := make([]int64, 0)
@@ -66,8 +64,7 @@ func GetUserSecretList(c *gin.Context) {
 		userForges, err := _store.UserForgeList(user.ID)
 		if err != nil {
 			log.Error().Err(err).Msg("Cannot get user forges")
-			c.AbortWithStatus(http.StatusInternalServerError)
-			return
+			return nil, huma.Error500InternalServerError("Cannot get user forges", err)
 		}
 
 		log.Debug().Int("user_forge_count", len(userForges)).Msg("Fetched user forges")
@@ -124,8 +121,7 @@ func GetUserSecretList(c *gin.Context) {
 	repos, err := _store.RepoList(user, false, true)
 	if err != nil {
 		log.Error().Err(err).Msg("Cannot get user repos")
-		c.String(http.StatusInternalServerError, "Error fetching repos. %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error fetching repos", err)
 	}
 
 	log.Debug().Int("repo_count", len(repos)).Msg("Fetched repos from database")
@@ -142,10 +138,12 @@ func GetUserSecretList(c *gin.Context) {
 		Str("search_term", searchTerm).
 		Msg("Calling UserSecretList")
 
-	secrets, err := _store.UserSecretList(orgIDs, repoIDs, includeGlobal, searchTerm, session.Pagination(c))
+	secrets, err := _store.UserSecretList(orgIDs, repoIDs, includeGlobal, searchTerm, &model.ListOptions{
+		Page:    input.Page,
+		PerPage: input.PerPage,
+	})
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error getting secret list. %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error getting secret list", err)
 	}
 
 	log.Debug().Int("secret_count", len(secrets)).Msg("UserSecretList returned secrets")
@@ -269,7 +267,7 @@ func GetUserSecretList(c *gin.Context) {
 		Int("result_count", len(result)).
 		Msg("Returning secrets response")
 
-	c.JSON(http.StatusOK, result)
+	return &GetUserSecretListOutput{Body: result}, nil
 }
 
 func contains(slice []string, item string) bool {

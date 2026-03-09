@@ -15,12 +15,11 @@
 package api
 
 import (
-	"net/http"
+	"context"
 	"net/url"
-	"strconv"
 	"strings"
 
-	"github.com/gin-gonic/gin"
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/rs/zerolog/log"
 
 	"codefloe.com/crowci/crow/v5/server"
@@ -31,7 +30,7 @@ import (
 
 // ImportSettingsRequest represents the request body for importing settings.
 type ImportSettingsRequest struct {
-	SourceRepoID int64 `json:"source_repo_id" binding:"required"`
+	SourceRepoID int64 `json:"source_repo_id"`
 	Settings     bool  `json:"settings"`
 	Secrets      bool  `json:"secrets"`
 	Registries   bool  `json:"registries"`
@@ -51,53 +50,48 @@ type ImportSettingsResponse struct {
 	SourceDeleted      bool   `json:"source_deleted"`
 }
 
-// ImportSettings imports settings from another repository.
-//
-//	@Summary		Import settings from another repository
-//	@Description	Imports settings, secrets, registries, and/or crons from a source repository. User must be admin of both repositories.
-//	@Router			/repos/{repo_id}/import-settings [post]
-//	@Produce		json
-//	@Success		200	{object}	ImportSettingsResponse
-//	@Tags			Repositories
-//	@Param			Authorization	header	string					true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			repo_id			path	int						true	"the target repository id"
-//	@Param			request			body	ImportSettingsRequest	true	"Import options"
-func ImportSettings(c *gin.Context) {
+type ImportSettingsInput struct {
+	RepoID int64 `path:"repo_id" doc:"the target repository id"`
+	Body   ImportSettingsRequest
+}
+
+type ImportSettingsOutput struct {
+	Body ImportSettingsResponse
+}
+
+func ImportSettings(ctx context.Context, input *ImportSettingsInput) (*ImportSettingsOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	user := session.User(c)
 	targetRepo := session.Repo(c)
 
-	var req ImportSettingsRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.String(http.StatusBadRequest, "Invalid request body: %s", err.Error())
-		return
+	req := input.Body
+
+	if req.SourceRepoID == 0 {
+		return nil, huma.Error400BadRequest("source_repo_id is required")
 	}
 
 	// Get source repository
 	sourceRepo, err := _store.GetRepo(req.SourceRepoID)
 	if err != nil {
-		c.String(http.StatusNotFound, "Source repository not found")
-		return
+		return nil, huma.Error404NotFound("Source repository not found")
 	}
 
 	// Check user has admin access to source repo
 	sourcePerm, err := _store.PermFind(user, sourceRepo)
 	if err != nil || !sourcePerm.Admin {
-		c.String(http.StatusForbidden, "You need admin access to the source repository")
-		return
+		return nil, huma.Error403Forbidden("You need admin access to the source repository")
 	}
 
 	// Check user has admin access to target repo (already done by middleware, but double-check)
 	targetPerm, err := _store.PermFind(user, targetRepo)
 	if err != nil || !targetPerm.Admin {
-		c.String(http.StatusForbidden, "You need admin access to the target repository")
-		return
+		return nil, huma.Error403Forbidden("You need admin access to the target repository")
 	}
 
 	// Prevent importing from same repo
 	if sourceRepo.ID == targetRepo.ID {
-		c.String(http.StatusBadRequest, "Cannot import settings from the same repository")
-		return
+		return nil, huma.Error400BadRequest("Cannot import settings from the same repository")
 	}
 
 	response := ImportSettingsResponse{}
@@ -118,8 +112,7 @@ func ImportSettings(c *gin.Context) {
 
 		if err := _store.UpdateRepo(targetRepo); err != nil {
 			log.Error().Err(err).Msg("Failed to update target repo settings")
-			c.String(http.StatusInternalServerError, "Failed to import settings")
-			return
+			return nil, huma.Error500InternalServerError("Failed to import settings")
 		}
 		response.SettingsImported = true
 	}
@@ -129,8 +122,7 @@ func ImportSettings(c *gin.Context) {
 		secrets, err := _store.SecretList(sourceRepo, false, &model.ListOptions{All: true})
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to list source secrets")
-			c.String(http.StatusInternalServerError, "Failed to list source secrets")
-			return
+			return nil, huma.Error500InternalServerError("Failed to list source secrets")
 		}
 
 		for _, secret := range secrets {
@@ -168,8 +160,7 @@ func ImportSettings(c *gin.Context) {
 		registries, err := _store.RegistryList(sourceRepo, false, &model.ListOptions{All: true})
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to list source registries")
-			c.String(http.StatusInternalServerError, "Failed to list source registries")
-			return
+			return nil, huma.Error500InternalServerError("Failed to list source registries")
 		}
 
 		for _, registry := range registries {
@@ -205,8 +196,7 @@ func ImportSettings(c *gin.Context) {
 		sourceCrons, err := _store.CronList(sourceRepo, &model.ListOptions{All: true})
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to list source crons")
-			c.String(http.StatusInternalServerError, "Failed to list source crons")
-			return
+			return nil, huma.Error500InternalServerError("Failed to list source crons")
 		}
 
 		// Get existing crons in target to check for duplicates by name
@@ -249,8 +239,7 @@ func ImportSettings(c *gin.Context) {
 		imported, err := importPipelines(_store, sourceRepo, targetRepo)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to import pipelines")
-			c.String(http.StatusInternalServerError, "Failed to import pipelines: %s", err.Error())
-			return
+			return nil, huma.Error500InternalServerError("Failed to import pipelines: " + err.Error())
 		}
 		response.PipelinesImported = imported
 	}
@@ -266,20 +255,19 @@ func ImportSettings(c *gin.Context) {
 	}
 
 	response.Message = "Import completed successfully"
-	c.JSON(http.StatusOK, response)
+	return &ImportSettingsOutput{Body: response}, nil
 }
 
-// GetImportableRepos returns a list of repos the user can import settings from.
-//
-//	@Summary		Get repos that can be imported from
-//	@Description	Returns all repos where the user is admin and which are different from the target repo.
-//	@Router			/repos/{repo_id}/importable [get]
-//	@Produce		json
-//	@Success		200	{array}	Repo
-//	@Tags			Repositories
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			repo_id			path	int		true	"the target repository id"
-func GetImportableRepos(c *gin.Context) {
+type GetImportableReposInput struct {
+	RepoID int64 `path:"repo_id" doc:"the target repository id"`
+}
+
+type GetImportableReposOutput struct {
+	Body []*model.Repo
+}
+
+func GetImportableRepos(ctx context.Context, input *GetImportableReposInput) (*GetImportableReposOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	user := session.User(c)
 	targetRepo := session.Repo(c)
@@ -287,8 +275,7 @@ func GetImportableRepos(c *gin.Context) {
 	// Get all repos where user has admin access
 	repos, err := _store.RepoList(user, true, true) // owned=true (push or admin), active=true
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Failed to list repositories")
-		return
+		return nil, huma.Error500InternalServerError("Failed to list repositories")
 	}
 
 	// Filter to only repos where user is admin and exclude target repo
@@ -307,42 +294,47 @@ func GetImportableRepos(c *gin.Context) {
 		importableRepos = append(importableRepos, repo)
 	}
 
-	c.JSON(http.StatusOK, importableRepos)
+	return &GetImportableReposOutput{Body: importableRepos}, nil
 }
 
-// GetRepoForImport returns details of a specific repo for import preview.
-//
-//	@Summary		Get repo details for import preview
-//	@Description	Returns details of a source repo including counts of secrets, registries, and crons.
-//	@Router			/repos/{repo_id}/import-preview/{source_repo_id} [get]
-//	@Produce		json
-//	@Success		200	{object}	ImportPreviewResponse
-//	@Tags			Repositories
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			repo_id			path	int		true	"the target repository id"
-//	@Param			source_repo_id	path	int		true	"the source repository id"
-func GetRepoForImport(c *gin.Context) {
+// ImportPreviewResponse contains repo info and counts for import preview.
+type ImportPreviewResponse struct {
+	Repo          *model.Repo `json:"repo"`
+	SecretCount   int         `json:"secret_count"`
+	RegistryCount int         `json:"registry_count"`
+	CronCount     int         `json:"cron_count"`
+	PipelineCount int         `json:"pipeline_count"`
+	// Org-level assets that would be migrated from same-named orgs on other forges
+	OrgSecretCount   int    `json:"org_secret_count"`
+	OrgRegistryCount int    `json:"org_registry_count"`
+	OrgName          string `json:"org_name,omitempty"`
+	OrgSourceForge   string `json:"org_source_forge,omitempty"`
+}
+
+type GetRepoForImportInput struct {
+	RepoID       int64 `path:"repo_id" doc:"the target repository id"`
+	SourceRepoID int64 `path:"source_repo_id" doc:"the source repository id"`
+}
+
+type GetRepoForImportOutput struct {
+	Body ImportPreviewResponse
+}
+
+func GetRepoForImport(ctx context.Context, input *GetRepoForImportInput) (*GetRepoForImportOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	user := session.User(c)
 	targetRepo := session.Repo(c)
 
-	sourceRepoID, err := strconv.ParseInt(c.Param("source_repo_id"), 10, 64)
+	sourceRepo, err := _store.GetRepo(input.SourceRepoID)
 	if err != nil {
-		c.String(http.StatusBadRequest, "Invalid source repo ID")
-		return
-	}
-
-	sourceRepo, err := _store.GetRepo(sourceRepoID)
-	if err != nil {
-		c.String(http.StatusNotFound, "Source repository not found")
-		return
+		return nil, huma.Error404NotFound("Source repository not found")
 	}
 
 	// Check user has admin access
 	perm, err := _store.PermFind(user, sourceRepo)
 	if err != nil || !perm.Admin {
-		c.String(http.StatusForbidden, "You need admin access to the source repository")
-		return
+		return nil, huma.Error403Forbidden("You need admin access to the source repository")
 	}
 
 	// Count repo-level secrets
@@ -401,7 +393,7 @@ func GetRepoForImport(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, ImportPreviewResponse{
+	return &GetRepoForImportOutput{Body: ImportPreviewResponse{
 		Repo:             sourceRepo,
 		SecretCount:      secretCount,
 		RegistryCount:    registryCount,
@@ -411,21 +403,7 @@ func GetRepoForImport(c *gin.Context) {
 		OrgRegistryCount: orgRegistryCount,
 		OrgName:          orgName,
 		OrgSourceForge:   orgSourceForge,
-	})
-}
-
-// ImportPreviewResponse contains repo info and counts for import preview.
-type ImportPreviewResponse struct {
-	Repo          *model.Repo `json:"repo"`
-	SecretCount   int         `json:"secret_count"`
-	RegistryCount int         `json:"registry_count"`
-	CronCount     int         `json:"cron_count"`
-	PipelineCount int         `json:"pipeline_count"`
-	// Org-level assets that would be migrated from same-named orgs on other forges
-	OrgSecretCount   int    `json:"org_secret_count"`
-	OrgRegistryCount int    `json:"org_registry_count"`
-	OrgName          string `json:"org_name,omitempty"`
-	OrgSourceForge   string `json:"org_source_forge,omitempty"`
+	}}, nil
 }
 
 // userForgeMapping holds the target forge user info for mapping authors.

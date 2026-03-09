@@ -24,7 +24,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v3"
 
-	_ "codefloe.com/crowci/crow/v5/cmd/server/openapi"
 	"codefloe.com/crowci/crow/v5/shared/utils"
 	"codefloe.com/crowci/crow/v5/version"
 )
@@ -47,8 +46,6 @@ func main() {
 		},
 	}
 	app.Flags = flags
-
-	setupOpenAPIStaticConfig()
 
 	if err := app.Run(ctx, os.Args); err != nil {
 		log.Error().Err(err).Msgf("error running server")

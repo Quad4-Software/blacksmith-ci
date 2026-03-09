@@ -22,6 +22,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -137,16 +138,10 @@ func TestCancelWorkflow(t *testing.T) {
 
 		// Create request
 		req, _ := http.NewRequest("POST", "/api/repos/1/pipelines/123/workflows/456/cancel", nil)
-		w := httptest.NewRecorder()
 
 		// Setup gin context
-		c, _ := gin.CreateTestContext(w)
+		c, _ := gin.CreateTestContext(httptest.NewRecorder())
 		c.Request = req
-		c.Params = gin.Params{
-			{Key: "repo_id", Value: "1"},
-			{Key: "number", Value: "123"},
-			{Key: "workflow_id", Value: "456"},
-		}
 
 		// Mock session
 		c.Set("repo", repo)
@@ -154,10 +149,14 @@ func TestCancelWorkflow(t *testing.T) {
 		c.Set("store", mockStore)
 
 		// Execute
-		CancelWorkflow(c)
+		_, err := CancelWorkflow(testCtx(c), &CancelWorkflowInput{
+			RepoID:     1,
+			Number:     123,
+			WorkflowID: 456,
+		})
 
 		// Assert
-		assert.Equal(t, http.StatusNoContent, w.Code)
+		assert.NoError(t, err)
 		mockStore.AssertExpectations(t)
 		mockForge.AssertExpectations(t)
 	})
@@ -190,16 +189,10 @@ func TestCancelWorkflow(t *testing.T) {
 
 		// Create request
 		req, _ := http.NewRequest("POST", "/api/repos/1/pipelines/123/workflows/456/cancel", nil)
-		w := httptest.NewRecorder()
 
 		// Setup gin context
-		c, _ := gin.CreateTestContext(w)
+		c, _ := gin.CreateTestContext(httptest.NewRecorder())
 		c.Request = req
-		c.Params = gin.Params{
-			{Key: "repo_id", Value: "1"},
-			{Key: "number", Value: "123"},
-			{Key: "workflow_id", Value: "456"},
-		}
 
 		// Mock session
 		c.Set("repo", repo)
@@ -207,10 +200,16 @@ func TestCancelWorkflow(t *testing.T) {
 		c.Set("store", mockStore)
 
 		// Execute
-		CancelWorkflow(c)
+		_, err := CancelWorkflow(testCtx(c), &CancelWorkflowInput{
+			RepoID:     1,
+			Number:     123,
+			WorkflowID: 456,
+		})
 
 		// Assert
-		assert.Equal(t, http.StatusNotFound, w.Code)
+		var humaErr huma.StatusError
+		assert.ErrorAs(t, err, &humaErr)
+		assert.Equal(t, http.StatusNotFound, humaErr.GetStatus())
 		mockStore.AssertExpectations(t)
 		mockForge.AssertExpectations(t)
 	})
@@ -238,16 +237,10 @@ func TestCancelWorkflow(t *testing.T) {
 
 		// Create request
 		req, _ := http.NewRequest("POST", "/api/repos/1/pipelines/123/workflows/456/cancel", nil)
-		w := httptest.NewRecorder()
 
 		// Setup gin context
-		c, _ := gin.CreateTestContext(w)
+		c, _ := gin.CreateTestContext(httptest.NewRecorder())
 		c.Request = req
-		c.Params = gin.Params{
-			{Key: "repo_id", Value: "1"},
-			{Key: "number", Value: "123"},
-			{Key: "workflow_id", Value: "456"},
-		}
 
 		// Mock session
 		c.Set("repo", repo)
@@ -255,115 +248,22 @@ func TestCancelWorkflow(t *testing.T) {
 		c.Set("store", mockStore)
 
 		// Execute
-		CancelWorkflow(c)
+		_, err := CancelWorkflow(testCtx(c), &CancelWorkflowInput{
+			RepoID:     1,
+			Number:     123,
+			WorkflowID: 456,
+		})
 
 		// Assert
-		assert.Equal(t, http.StatusInternalServerError, w.Code)
+		var humaErr huma.StatusError
+		assert.ErrorAs(t, err, &humaErr)
+		assert.Equal(t, http.StatusInternalServerError, humaErr.GetStatus())
 		mockStore.AssertExpectations(t)
 		mockForge.AssertExpectations(t)
 	})
 
-	t.Run("invalid pipeline number", func(t *testing.T) {
-		// Setup
-		repo := &model.Repo{ID: 1, FullName: "test/repo"}
-		user := &model.User{ID: 1, Login: "testuser"}
-
-		// Mock store
-		mockStore := new(store_mocks.MockStore)
-		mockStore.On("UserForgeGet", user.ID, repo.ForgeID).Return(nil, store_types.RecordNotExist)
-
-		// Mock forge
-		mockForge := new(forge_mocks.MockForge)
-
-		// Setup server config
-		originalServices := server.Config.Services
-		mgr := &mockManager{
-			ForgeFromRepoFunc: func(_ *model.Repo) (forge.Forge, error) {
-				return mockForge, nil
-			},
-			ForgeFromUserFunc: func(_ *model.User) (forge.Forge, error) {
-				return mockForge, nil
-			},
-		}
-		server.Config.Services.Manager = mgr
-		defer func() { server.Config.Services = originalServices }()
-
-		// Create request
-		req, _ := http.NewRequest("POST", "/api/repos/1/pipelines/invalid/workflows/456/cancel", nil)
-		w := httptest.NewRecorder()
-
-		// Setup gin context
-		c, _ := gin.CreateTestContext(w)
-		c.Request = req
-		c.Params = gin.Params{
-			{Key: "repo_id", Value: "1"},
-			{Key: "number", Value: "invalid"},
-			{Key: "workflow_id", Value: "456"},
-		}
-
-		// Mock session
-		c.Set("repo", repo)
-		c.Set("user", user)
-		c.Set("store", mockStore)
-
-		// Execute
-		CancelWorkflow(c)
-
-		// Assert
-		assert.Equal(t, http.StatusBadRequest, w.Code)
-		mockStore.AssertExpectations(t)
-		mockForge.AssertExpectations(t)
-	})
-
-	t.Run("invalid workflow ID", func(t *testing.T) {
-		// Setup
-		repo := &model.Repo{ID: 1, FullName: "test/repo"}
-		user := &model.User{ID: 1, Login: "testuser"}
-
-		// Mock store
-		mockStore := new(store_mocks.MockStore)
-		mockStore.On("UserForgeGet", user.ID, repo.ForgeID).Return(nil, store_types.RecordNotExist)
-
-		// Mock forge
-		mockForge := new(forge_mocks.MockForge)
-
-		// Setup server config
-		originalServices := server.Config.Services
-		mgr := &mockManager{
-			ForgeFromRepoFunc: func(_ *model.Repo) (forge.Forge, error) {
-				return mockForge, nil
-			},
-			ForgeFromUserFunc: func(_ *model.User) (forge.Forge, error) {
-				return mockForge, nil
-			},
-		}
-		server.Config.Services.Manager = mgr
-		defer func() { server.Config.Services = originalServices }()
-
-		// Create request
-		req, _ := http.NewRequest("POST", "/api/repos/1/pipelines/123/workflows/invalid/cancel", nil)
-		w := httptest.NewRecorder()
-
-		// Setup gin context
-		c, _ := gin.CreateTestContext(w)
-		c.Request = req
-		c.Params = gin.Params{
-			{Key: "repo_id", Value: "1"},
-			{Key: "number", Value: "123"},
-			{Key: "workflow_id", Value: "invalid"},
-		}
-
-		// Mock session
-		c.Set("repo", repo)
-		c.Set("user", user)
-		c.Set("store", mockStore)
-
-		// Execute
-		CancelWorkflow(c)
-
-		// Assert
-		assert.Equal(t, http.StatusBadRequest, w.Code)
-		mockStore.AssertExpectations(t)
-		mockForge.AssertExpectations(t)
-	})
+	// Note: The old "invalid pipeline number" and "invalid workflow ID" tests validated
+	// gin param parsing of string path params like "invalid". With huma, Number and
+	// WorkflowID are int64 fields validated by the framework before the handler is
+	// called, so those cases are no longer testable at the handler level.
 }

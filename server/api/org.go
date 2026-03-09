@@ -15,9 +15,11 @@
 package api
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 
@@ -27,101 +29,139 @@ import (
 	"codefloe.com/crowci/crow/v5/server/store"
 )
 
-// GetOrgs
-//
-//	@Summary		List organizations
-//	@Description	Returns all registered orgs in the system. Requires admin rights.
-//	@Router			/orgs [get]
-//	@Produce		json
-//	@Success		200	{array}	Org
-//	@Tags			Orgs
-//	@Param			Authorization	header	string	true	"Insert your personal access token"				default(Bearer <personal access token>)
-//	@Param			page			query	int		false	"for response pagination, page offset number"	default(1)
-//	@Param			perPage			query	int		false	"for response pagination, max items per page"	default(50)
-func GetOrgs(c *gin.Context) {
-	orgs, err := store.FromContext(c).OrgList(session.Pagination(c))
+type GetOrgsInput struct {
+	PaginationParams
+}
+
+type GetOrgsOutput struct {
+	Body []*model.Org
+}
+
+func GetOrgs(ctx context.Context, input *GetOrgsInput) (*GetOrgsOutput, error) {
+	c := ginCtx(ctx)
+	orgs, err := store.FromContext(c).OrgList(&model.ListOptions{
+		Page:    input.Page,
+		PerPage: input.PerPage,
+	})
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error getting user list. %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error getting user list", err)
 	}
-	c.JSON(http.StatusOK, orgs)
+	return &GetOrgsOutput{Body: orgs}, nil
 }
 
-// GetOrg
-//
-//	@Summary	Get an organization
-//	@Router		/orgs/{org_id} [get]
-//	@Produce	json
-//	@Success	200	{array}	Org
-//	@Tags		Organization
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		org_id			path	string	true	"the organization's id"
-func GetOrg(c *gin.Context) {
+type GetOrgInput struct {
+	OrgID int64 `path:"org_id" doc:"the organization's id"`
+}
+
+type GetOrgOutput struct {
+	Body *model.Org
+}
+
+func GetOrg(ctx context.Context, input *GetOrgInput) (*GetOrgOutput, error) {
+	c := ginCtx(ctx)
 	org := session.Org(c)
-	c.JSON(http.StatusOK, org)
+	return &GetOrgOutput{Body: org}, nil
 }
 
-// GetOrgPermissions
-//
-//	@Summary	Get the permissions of the currently authenticated user for the given organization
-//	@Router		/orgs/{org_id}/permissions [get]
-//	@Produce	json
-//	@Success	200	{array}	OrgPerm
-//	@Tags		Organization permissions
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		org_id			path	string	true	"the organization's id"
-func GetOrgPermissions(c *gin.Context) {
+type GetOrgPermissionsInput struct {
+	OrgID int64 `path:"org_id" doc:"the organization's id"`
+}
+
+type GetOrgPermissionsOutput struct {
+	Body *model.OrgPerm
+}
+
+func GetOrgPermissions(ctx context.Context, input *GetOrgPermissionsInput) (*GetOrgPermissionsOutput, error) {
+	c := ginCtx(ctx)
 	user := session.User(c)
 	org := session.Org(c)
 
 	_forge, err := server.Config.Services.Manager.ForgeFromUser(user)
 	if err != nil {
 		log.Error().Err(err).Msg("Cannot get forge from user")
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
+		return nil, huma.Error500InternalServerError("Cannot get forge from user")
 	}
 
 	if user == nil {
-		c.JSON(http.StatusOK, &model.OrgPerm{})
-		return
+		return &GetOrgPermissionsOutput{Body: &model.OrgPerm{}}, nil
 	}
 
 	if (org.IsUser && org.Name == user.Login) || (user.Admin && !org.IsUser) {
-		c.JSON(http.StatusOK, &model.OrgPerm{
+		return &GetOrgPermissionsOutput{Body: &model.OrgPerm{
 			Member: true,
 			Admin:  true,
-		})
-		return
+		}}, nil
 	} else if org.IsUser {
-		c.JSON(http.StatusOK, &model.OrgPerm{})
-		return
+		return &GetOrgPermissionsOutput{Body: &model.OrgPerm{}}, nil
 	}
 
 	perm, err := server.Config.Services.Membership.Get(c, _forge, user, org.Name)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error getting membership for %d. %s", org.ID, err)
-		return
+		return nil, huma.Error500InternalServerError("Error getting membership", err)
 	}
 
-	c.JSON(http.StatusOK, perm)
+	return &GetOrgPermissionsOutput{Body: perm}, nil
 }
 
-// LookupOrg
-//
-//	@Summary	Lookup an organization by full name
-//	@Router		/orgs/lookup/{org_full_name} [get]
-//	@Produce	json
-//	@Success	200	{object}	Org
-//	@Tags		Orgs
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		org_full_name	path	string	true	"the organizations full name / slug"
-func LookupOrg(c *gin.Context) {
+type LookupOrgInput struct {
+	OrgFullName string `path:"org_full_name" doc:"the organization's full name / slug"`
+}
+
+type LookupOrgOutput struct {
+	Body *model.Org
+}
+
+func LookupOrg(ctx context.Context, input *LookupOrgInput) (*LookupOrgOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	user := session.User(c)
 	_forge, err := server.Config.Services.Manager.ForgeFromUser(user)
 	if err != nil {
 		log.Error().Err(err).Msg("Cannot get forge from user")
-		c.AbortWithStatus(http.StatusInternalServerError)
+		return nil, huma.Error500InternalServerError("Cannot get forge from user")
+	}
+
+	orgFullName := strings.TrimLeft(input.OrgFullName, "/")
+
+	org, err := _store.OrgFindByName(orgFullName, user.ForgeID)
+	if err != nil {
+		return nil, dbErr(err)
+	}
+
+	// don't leak private org infos
+	if org.Private {
+		user := session.User(c)
+		if user == nil {
+			return nil, huma.Error404NotFound("not found")
+		}
+
+		if !user.Admin && org.Name != user.Login {
+			return nil, huma.Error404NotFound("not found")
+		} else if !user.Admin {
+			perm, err := server.Config.Services.Membership.Get(c, _forge, user, org.Name)
+			if err != nil {
+				log.Error().Err(err).Msg("failed to check membership")
+				return nil, huma.Error500InternalServerError("failed to check membership")
+			}
+
+			if perm == nil || !perm.Member {
+				return nil, huma.Error404NotFound("not found")
+			}
+		}
+	}
+
+	return &LookupOrgOutput{Body: org}, nil
+}
+
+// LookupOrgGin is a gin handler wrapper for LookupOrg (needed because the
+// route uses a wildcard path param that huma doesn't support).
+func LookupOrgGin(c *gin.Context) {
+	_store := store.FromContext(c)
+	user := session.User(c)
+	_forge, err := server.Config.Services.Manager.ForgeFromUser(user)
+	if err != nil {
+		log.Error().Err(err).Msg("Cannot get forge from user")
+		c.String(http.StatusInternalServerError, "Cannot get forge from user")
 		return
 	}
 
@@ -133,27 +173,25 @@ func LookupOrg(c *gin.Context) {
 		return
 	}
 
-	// don't leak private org infos
 	if org.Private {
-		user := session.User(c)
 		if user == nil {
-			c.AbortWithStatus(http.StatusNotFound)
+			c.String(http.StatusNotFound, "not found")
 			return
 		}
 
 		if !user.Admin && org.Name != user.Login {
-			c.AbortWithStatus(http.StatusNotFound)
+			c.String(http.StatusNotFound, "not found")
 			return
 		} else if !user.Admin {
 			perm, err := server.Config.Services.Membership.Get(c, _forge, user, org.Name)
 			if err != nil {
 				log.Error().Err(err).Msg("failed to check membership")
-				c.Status(http.StatusInternalServerError)
+				c.String(http.StatusInternalServerError, "failed to check membership")
 				return
 			}
 
 			if perm == nil || !perm.Member {
-				c.AbortWithStatus(http.StatusNotFound)
+				c.String(http.StatusNotFound, "not found")
 				return
 			}
 		}
@@ -162,24 +200,18 @@ func LookupOrg(c *gin.Context) {
 	c.JSON(http.StatusOK, org)
 }
 
-// DeleteOrg
-//
-//	@Summary		Delete an organization
-//	@Description	Deletes the given org. Requires admin rights.
-//	@Router			/orgs/{id} [delete]
-//	@Produce		plain
-//	@Success		204
-//	@Tags			Orgs
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			id				path	string	true	"the org's id"
-func DeleteOrg(c *gin.Context) {
+type DeleteOrgInput struct {
+	OrgID int64 `path:"org_id" doc:"the org's id"`
+}
+
+func DeleteOrg(ctx context.Context, input *DeleteOrgInput) (*struct{}, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	org := session.Org(c)
 
 	if err := _store.OrgDelete(org.ID); err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
-	c.Status(http.StatusNoContent)
+	return nil, nil
 }

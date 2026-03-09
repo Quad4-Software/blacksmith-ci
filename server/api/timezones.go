@@ -15,21 +15,17 @@
 package api
 
 import (
-	"net/http"
+	"context"
 	"sort"
-
-	"github.com/gin-gonic/gin"
 )
 
-// GetTimezones
-//
-//	@Summary		Get all available timezones
-//	@Description	Returns a list of all IANA timezone names available in the system
-//	@Router			/timezones [get]
-//	@Produce		json
-//	@Success		200	{array}	string
-//	@Tags			System
-func GetTimezones(c *gin.Context) {
+type GetTimezonesInput struct{}
+
+type GetTimezonesOutput struct {
+	Body []string
+}
+
+func GetTimezones(_ context.Context, _ *GetTimezonesInput) (*GetTimezonesOutput, error) {
 	// Get all available timezone names from the IANA Time Zone database
 	// This uses the tzdata embedded in Go since Go 1.15
 	timezones := []string{
@@ -464,5 +460,5 @@ func GetTimezones(c *gin.Context) {
 	// Sort alphabetically for easier selection
 	sort.Strings(timezones)
 
-	c.JSON(http.StatusOK, timezones)
+	return &GetTimezonesOutput{Body: timezones}, nil
 }

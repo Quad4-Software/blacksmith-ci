@@ -15,7 +15,6 @@
 package api
 
 import (
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -64,29 +63,22 @@ func TestGetMaintenanceConfigByAction_EnvVarsSet(t *testing.T) {
 	}()
 
 	// Create test context with admin user
-	router := gin.New()
-	router.Use(func(c *gin.Context) {
-		// Mock admin user in context
-		c.Set("user", &model.User{
-			ID:    1,
-			Login: "admin",
-			Admin: true,
-		})
-		c.Next()
-	})
-	router.GET("/admin/maintenance/config/:action", GetMaintenanceConfigByAction)
-
-	// Make request
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/admin/maintenance/config/kubernetes_cleanup", nil)
-	router.ServeHTTP(w, req)
+	c, _ := gin.CreateTestContext(w)
+	c.Request, _ = http.NewRequest(http.MethodGet, "/admin/maintenance/config/kubernetes_cleanup", nil)
+	c.Set("user", &model.User{
+		ID:    1,
+		Login: "admin",
+		Admin: true,
+	})
 
-	// Verify response
-	require.Equal(t, http.StatusOK, w.Code)
-
-	var response model.MaintenanceConfig
-	err := json.Unmarshal(w.Body.Bytes(), &response)
+	output, err := GetMaintenanceConfigByAction(testCtx(c), &GetMaintenanceConfigByActionInput{
+		Action: "kubernetes_cleanup",
+	})
 	require.NoError(t, err)
+	require.NotNil(t, output)
+
+	response := output.Body
 
 	// Verify that env_vars_set is true in the response
 	assert.True(t, response.EnvVarsSet, "env_vars_set should be true when environment variables are set")
@@ -130,29 +122,22 @@ func TestGetMaintenanceConfigByAction_EnvVarsNotSet(t *testing.T) {
 	}()
 
 	// Create test context with admin user
-	router := gin.New()
-	router.Use(func(c *gin.Context) {
-		// Mock admin user in context
-		c.Set("user", &model.User{
-			ID:    1,
-			Login: "admin",
-			Admin: true,
-		})
-		c.Next()
-	})
-	router.GET("/admin/maintenance/config/:action", GetMaintenanceConfigByAction)
-
-	// Make request
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/admin/maintenance/config/kubernetes_cleanup", nil)
-	router.ServeHTTP(w, req)
+	c, _ := gin.CreateTestContext(w)
+	c.Request, _ = http.NewRequest(http.MethodGet, "/admin/maintenance/config/kubernetes_cleanup", nil)
+	c.Set("user", &model.User{
+		ID:    1,
+		Login: "admin",
+		Admin: true,
+	})
 
-	// Verify response
-	require.Equal(t, http.StatusOK, w.Code)
-
-	var response model.MaintenanceConfig
-	err := json.Unmarshal(w.Body.Bytes(), &response)
+	output, err := GetMaintenanceConfigByAction(testCtx(c), &GetMaintenanceConfigByActionInput{
+		Action: "kubernetes_cleanup",
+	})
 	require.NoError(t, err)
+	require.NotNil(t, output)
+
+	response := output.Body
 
 	// Verify that env_vars_set is false in the response
 	assert.False(t, response.EnvVarsSet, "env_vars_set should be false when environment variables are not set")

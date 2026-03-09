@@ -15,160 +15,130 @@
 package api
 
 import (
+	"context"
 	"encoding/base32"
-	"net/http"
 
-	"github.com/gin-gonic/gin"
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/tink-crypto/tink-go/v2/subtle/random"
 
 	"codefloe.com/crowci/crow/v5/server/model"
-	"codefloe.com/crowci/crow/v5/server/router/middleware/session"
 	"codefloe.com/crowci/crow/v5/server/store"
 )
 
-// GetUsers
-//
-//	@Summary		List users
-//	@Description	Returns all registered, active users in the system. Requires admin rights.
-//	@Router			/users [get]
-//	@Produce		json
-//	@Success		200	{array}	User
-//	@Tags			Users
-//	@Param			Authorization	header	string	true	"Insert your personal access token"				default(Bearer <personal access token>)
-//	@Param			page			query	int		false	"for response pagination, page offset number"	default(1)
-//	@Param			perPage			query	int		false	"for response pagination, max items per page"	default(50)
-func GetUsers(c *gin.Context) {
-	users, err := store.FromContext(c).GetUserList(session.Pagination(c))
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Error getting user list. %s", err)
-		return
-	}
-	c.JSON(http.StatusOK, users)
+type GetUsersInput struct {
+	PaginationParams
 }
 
-// GetUser
-//
-//	@Summary		Get a user
-//	@Description	Returns a user with the specified login name. Requires admin rights.
-//	@Router			/users/{login} [get]
-//	@Produce		json
-//	@Success		200	{object}	User
-//	@Tags			Users
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			login			path	string	true	"the user's login name"
-func GetUser(c *gin.Context) {
-	user, err := store.FromContext(c).GetUserLogin(c.Param("login"))
-	if err != nil {
-		handleDBError(c, err)
-		return
-	}
-	c.JSON(http.StatusOK, user)
+type GetUsersOutput struct {
+	Body []*model.User
 }
 
-// PatchUser
-//
-//	@Summary		Update a user
-//	@Description	Changes the data of an existing user. Requires admin rights.
-//	@Router			/users/{login} [patch]
-//	@Produce		json
-//	@Accept			json
-//	@Success		200	{object}	User
-//	@Tags			Users
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			login			path	string	true	"the user's login name"
-//	@Param			user			body	User	true	"the user's data"
-func PatchUser(c *gin.Context) {
+func GetUsers(ctx context.Context, input *GetUsersInput) (*GetUsersOutput, error) {
+	c := ginCtx(ctx)
+	users, err := store.FromContext(c).GetUserList(&model.ListOptions{
+		Page:    input.Page,
+		PerPage: input.PerPage,
+	})
+	if err != nil {
+		return nil, huma.Error500InternalServerError("Error getting user list", err)
+	}
+	return &GetUsersOutput{Body: users}, nil
+}
+
+type GetUserInput struct {
+	Login string `path:"login" doc:"the user's login name"`
+}
+
+type GetUserOutput struct {
+	Body *model.User
+}
+
+func GetUser(ctx context.Context, input *GetUserInput) (*GetUserOutput, error) {
+	c := ginCtx(ctx)
+	user, err := store.FromContext(c).GetUserLogin(input.Login)
+	if err != nil {
+		return nil, dbErr(err)
+	}
+	return &GetUserOutput{Body: user}, nil
+}
+
+type PatchUserInput struct {
+	Login string `path:"login" doc:"the user's login name"`
+	Body  model.User
+}
+
+type PatchUserOutput struct {
+	Body *model.User
+}
+
+func PatchUser(ctx context.Context, input *PatchUserInput) (*PatchUserOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 
-	in := &model.User{}
-	err := c.Bind(in)
+	user, err := _store.GetUserLogin(input.Login)
 	if err != nil {
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
-
-	user, err := _store.GetUserLogin(c.Param("login"))
-	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
 	// TODO: allow to change login (currently used as primary key)
 	// TODO: disallow to change login, email, avatar if the user is using oauth
-	user.Email = in.Email
-	user.Avatar = in.Avatar
-	user.Admin = in.Admin
-	user.Description = in.Description
-	user.Timezone = in.Timezone
+	user.Email = input.Body.Email
+	user.Avatar = input.Body.Avatar
+	user.Admin = input.Body.Admin
+	user.Description = input.Body.Description
+	user.Timezone = input.Body.Timezone
 
 	err = _store.UpdateUser(user)
 	if err != nil {
-		c.AbortWithStatus(http.StatusConflict)
-		return
+		return nil, huma.Error409Conflict("conflict updating user")
 	}
 
-	c.JSON(http.StatusOK, user)
+	return &PatchUserOutput{Body: user}, nil
 }
 
-// PostUser
-//
-//	@Summary		Create a user
-//	@Description	Creates a new user account with the specified external login. Requires admin rights.
-//	@Router			/users [post]
-//	@Produce		json
-//	@Success		200	{object}	User
-//	@Tags			Users
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			user			body	User	true	"the user's data"
-func PostUser(c *gin.Context) {
-	in := &model.User{}
-	err := c.Bind(in)
-	if err != nil {
-		c.String(http.StatusBadRequest, err.Error())
-		return
-	}
+type PostUserInput struct {
+	Body model.User
+}
+
+type PostUserOutput struct {
+	Body *model.User
+}
+
+func PostUser(ctx context.Context, input *PostUserInput) (*PostUserOutput, error) {
+	c := ginCtx(ctx)
 	user := &model.User{
-		Login:  in.Login,
-		Email:  in.Email,
-		Avatar: in.Avatar,
+		Login:  input.Body.Login,
+		Email:  input.Body.Email,
+		Avatar: input.Body.Avatar,
 		Hash: base32.StdEncoding.EncodeToString(
 			random.GetRandomBytes(32),
 		),
 		ForgeID:       1,                        // TODO: replace with forge id when multiple forges are supported
 		ForgeRemoteID: model.ForgeRemoteID("0"), // TODO: search for the user in the forge and get the remote id
 	}
-	if err = user.Validate(); err != nil {
-		c.String(http.StatusBadRequest, err.Error())
-		return
+	if err := user.Validate(); err != nil {
+		return nil, huma.Error400BadRequest(err.Error())
 	}
-	if err = store.FromContext(c).CreateUser(user); err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
-		return
+	if err := store.FromContext(c).CreateUser(user); err != nil {
+		return nil, huma.Error500InternalServerError(err.Error())
 	}
-	c.JSON(http.StatusOK, user)
+	return &PostUserOutput{Body: user}, nil
 }
 
-// DeleteUser
-//
-//	@Summary		Delete a user
-//	@Description	Deletes the given user. Requires admin rights.
-//	@Router			/users/{login} [delete]
-//	@Produce		plain
-//	@Success		204
-//	@Tags			Users
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			login			path	string	true	"the user's login name"
-func DeleteUser(c *gin.Context) {
+type DeleteUserInput struct {
+	Login string `path:"login" doc:"the user's login name"`
+}
+
+func DeleteUser(ctx context.Context, input *DeleteUserInput) (*struct{}, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 
-	user, err := _store.GetUserLogin(c.Param("login"))
+	user, err := _store.GetUserLogin(input.Login)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 	if err = _store.DeleteUser(user); err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
-	c.Status(http.StatusNoContent)
+	return nil, nil
 }

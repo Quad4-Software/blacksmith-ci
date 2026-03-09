@@ -15,30 +15,26 @@
 package api
 
 import (
+	"context"
 	"crypto/x509"
 	"encoding/pem"
 	"net/http"
 
-	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 
 	"codefloe.com/crowci/crow/v5/server"
 )
 
-// GetSignaturePublicKey
-//
-//	@Summary	Get server's signature public key
-//	@Router		/signature/public-key [get]
-//	@Produce	plain
-//	@Success	200
-//	@Tags		System
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-func GetSignaturePublicKey(c *gin.Context) {
+type GetSignaturePublicKeyInput struct{}
+
+func GetSignaturePublicKey(ctx context.Context, _ *GetSignaturePublicKeyInput) (*struct{}, error) {
+	c := ginCtx(ctx)
+
 	b, err := x509.MarshalPKIXPublicKey(server.Config.Services.Manager.SignaturePublicKey())
 	if err != nil {
 		log.Error().Err(err).Msg("can't marshal public key")
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
+		c.Writer.WriteHeader(http.StatusInternalServerError)
+		return nil, nil
 	}
 
 	block := &pem.Block{
@@ -47,4 +43,5 @@ func GetSignaturePublicKey(c *gin.Context) {
 	}
 
 	c.String(http.StatusOK, "%s", pem.EncodeToMemory(block))
+	return nil, nil
 }

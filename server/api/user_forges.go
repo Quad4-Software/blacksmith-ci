@@ -15,20 +15,17 @@
 package api
 
 import (
-	"errors"
+	"context"
 	"fmt"
-	"net/http"
-	"strconv"
 	"time"
 
-	"github.com/gin-gonic/gin"
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/rs/zerolog/log"
 
 	"codefloe.com/crowci/crow/v5/server"
 	"codefloe.com/crowci/crow/v5/server/model"
 	"codefloe.com/crowci/crow/v5/server/router/middleware/session"
 	"codefloe.com/crowci/crow/v5/server/store"
-	"codefloe.com/crowci/crow/v5/server/store/types"
 )
 
 // getForgeTokenStatus determines the status of a forge connection based on token state.
@@ -78,23 +75,20 @@ type UserForgeResponse struct {
 	Expiry      int64           `json:"expiry,omitempty"`
 }
 
-// GetUserForges
-//
-//	@Summary		Get all linked forges for the current user
-//	@Description	Returns all forge connections linked to the authenticated user's account
-//	@Router			/user/forges [get]
-//	@Produce		json
-//	@Success		200	{array}	UserForgeResponse
-//	@Tags			User
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-func GetUserForges(c *gin.Context) {
+type GetUserForgesInput struct{}
+
+type GetUserForgesOutput struct {
+	Body []*UserForgeResponse
+}
+
+func GetUserForges(ctx context.Context, _ *GetUserForgesInput) (*GetUserForgesOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	user := session.User(c)
 
 	userForges, err := _store.UserForgeList(user.ID)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error fetching user forges. %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error fetching user forges", err)
 	}
 
 	// Get forge details for each user forge
@@ -124,37 +118,25 @@ func GetUserForges(c *gin.Context) {
 		responses = append(responses, resp)
 	}
 
-	c.JSON(http.StatusOK, responses)
+	return &GetUserForgesOutput{Body: responses}, nil
 }
 
-// GetUserForge
-//
-//	@Summary		Get a specific linked forge for the current user
-//	@Description	Returns details of a specific forge connection for the authenticated user
-//	@Router			/user/forges/{forge_id} [get]
-//	@Produce		json
-//	@Success		200	{object}	UserForgeResponse
-//	@Tags			User
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			forge_id		path	int		true	"the forge's id"
-func GetUserForge(c *gin.Context) {
+type GetUserForgeInput struct {
+	ForgeID int64 `path:"forge_id" doc:"the forge's id"`
+}
+
+type GetUserForgeOutput struct {
+	Body *UserForgeResponse
+}
+
+func GetUserForge(ctx context.Context, input *GetUserForgeInput) (*GetUserForgeOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	user := session.User(c)
 
-	forgeID, err := strconv.ParseInt(c.Param("forge_id"), 10, 64)
+	userForge, err := _store.UserForgeGet(user.ID, input.ForgeID)
 	if err != nil {
-		c.String(http.StatusBadRequest, "Invalid forge ID")
-		return
-	}
-
-	userForge, err := _store.UserForgeGet(user.ID, forgeID)
-	if err != nil {
-		if errors.Is(err, types.RecordNotExist) {
-			c.String(http.StatusNotFound, "Forge not linked to user")
-			return
-		}
-		c.String(http.StatusInternalServerError, "Error fetching user forge. %s", err)
-		return
+		return nil, dbErr(err)
 	}
 
 	resp := &UserForgeResponse{
@@ -178,97 +160,70 @@ func GetUserForge(c *gin.Context) {
 		resp.ForgeIcon = forge.Icon
 	}
 
-	c.JSON(http.StatusOK, resp)
+	return &GetUserForgeOutput{Body: resp}, nil
 }
 
-// GetUserForgeAffectedRepos
-//
-//	@Summary		Get repos that would be affected by unlinking a forge
-//	@Description	Returns all active repos owned by the user from the specified forge that would be disabled if the forge is unlinked.
-//	@Router			/user/forges/{forge_id}/affected-repos [get]
-//	@Produce		json
-//	@Success		200	{array}	Repo
-//	@Tags			User
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			forge_id		path	int		true	"the forge's id"
-func GetUserForgeAffectedRepos(c *gin.Context) {
+type GetUserForgeAffectedReposInput struct {
+	ForgeID int64 `path:"forge_id" doc:"the forge's id"`
+}
+
+type GetUserForgeAffectedReposOutput struct {
+	Body []*model.Repo
+}
+
+func GetUserForgeAffectedRepos(ctx context.Context, input *GetUserForgeAffectedReposInput) (*GetUserForgeAffectedReposOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	user := session.User(c)
 
-	forgeID, err := strconv.ParseInt(c.Param("forge_id"), 10, 64)
-	if err != nil {
-		c.String(http.StatusBadRequest, "Invalid forge ID")
-		return
-	}
-
 	// Verify the forge is linked to this user
-	_, err = _store.UserForgeGet(user.ID, forgeID)
+	_, err := _store.UserForgeGet(user.ID, input.ForgeID)
 	if err != nil {
-		if errors.Is(err, types.RecordNotExist) {
-			c.String(http.StatusNotFound, "Forge not linked to user")
-			return
-		}
-		c.String(http.StatusInternalServerError, "Error fetching user forge. %s", err)
-		return
+		return nil, dbErr(err)
 	}
 
 	// Get all active repos owned by this user from this forge
-	repos, err := _store.RepoListByUserAndForge(user.ID, forgeID)
+	repos, err := _store.RepoListByUserAndForge(user.ID, input.ForgeID)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error fetching affected repos. %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error fetching affected repos", err)
 	}
 
-	c.JSON(http.StatusOK, repos)
+	return &GetUserForgeAffectedReposOutput{Body: repos}, nil
 }
 
-// DeleteUserForge
-//
-//	@Summary		Unlink a forge from the current user
-//	@Description	Removes a forge connection from the authenticated user's account. The primary forge cannot be unlinked. All active repos from this forge owned by the user will be disabled and their webhooks removed.
-//	@Router			/user/forges/{forge_id} [delete]
-//	@Produce		json
-//	@Success		200	{object}	UnlinkForgeResponse
-//	@Tags			User
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			forge_id		path	int		true	"the forge's id"
-func DeleteUserForge(c *gin.Context) {
+type DeleteUserForgeInput struct {
+	ForgeID int64 `path:"forge_id" doc:"the forge's id"`
+}
+
+type DeleteUserForgeOutput struct {
+	Body UnlinkForgeResponse
+}
+
+func DeleteUserForge(ctx context.Context, input *DeleteUserForgeInput) (*DeleteUserForgeOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	user := session.User(c)
 
-	forgeID, err := strconv.ParseInt(c.Param("forge_id"), 10, 64)
+	userForge, err := _store.UserForgeGet(user.ID, input.ForgeID)
 	if err != nil {
-		c.String(http.StatusBadRequest, "Invalid forge ID")
-		return
-	}
-
-	userForge, err := _store.UserForgeGet(user.ID, forgeID)
-	if err != nil {
-		if errors.Is(err, types.RecordNotExist) {
-			c.String(http.StatusNotFound, "Forge not linked to user")
-			return
-		}
-		c.String(http.StatusInternalServerError, "Error fetching user forge. %s", err)
-		return
+		return nil, dbErr(err)
 	}
 
 	// Prevent unlinking the primary forge
 	if userForge.IsPrimary {
-		c.String(http.StatusForbidden, "Cannot unlink primary forge")
-		return
+		return nil, huma.Error403Forbidden("Cannot unlink primary forge")
 	}
 
 	// Get all active repos owned by this user from this forge
-	affectedRepos, err := _store.RepoListByUserAndForge(user.ID, forgeID)
+	affectedRepos, err := _store.RepoListByUserAndForge(user.ID, input.ForgeID)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error fetching affected repos. %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error fetching affected repos", err)
 	}
 
 	// Get the forge to remove webhooks
-	_forge, err := server.Config.Services.Manager.ForgeByID(forgeID)
+	_forge, err := server.Config.Services.Manager.ForgeByID(input.ForgeID)
 	if err != nil {
-		log.Error().Err(err).Int64("forge_id", forgeID).Msg("Cannot get forge for webhook removal")
+		log.Error().Err(err).Int64("forge_id", input.ForgeID).Msg("Cannot get forge for webhook removal")
 		// Continue anyway - we still want to disable repos even if we can't remove webhooks
 	}
 
@@ -304,14 +259,13 @@ func DeleteUserForge(c *gin.Context) {
 
 	// Delete the user forge connection
 	if err := _store.UserForgeDelete(userForge); err != nil {
-		c.String(http.StatusInternalServerError, "Error unlinking forge. %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error unlinking forge", err)
 	}
 
-	c.JSON(http.StatusOK, UnlinkForgeResponse{
+	return &DeleteUserForgeOutput{Body: UnlinkForgeResponse{
 		Message:       fmt.Sprintf("Forge unlinked successfully. %d repos were disabled.", disabledCount),
 		DisabledRepos: disabledCount,
-	})
+	}}, nil
 }
 
 // UnlinkForgeResponse represents the response when unlinking a forge.
@@ -320,31 +274,27 @@ type UnlinkForgeResponse struct {
 	DisabledRepos int    `json:"disabled_repos"`
 }
 
-// GetAvailableForges
-//
-//	@Summary		Get all available forges that can be linked
-//	@Description	Returns all configured forges, indicating which ones are already linked to the user
-//	@Router			/user/forges/available [get]
-//	@Produce		json
-//	@Success		200	{array}	AvailableForgeResponse
-//	@Tags			User
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-func GetAvailableForges(c *gin.Context) {
+type GetAvailableForgesInput struct{}
+
+type GetAvailableForgesOutput struct {
+	Body []*AvailableForgeResponse
+}
+
+func GetAvailableForges(ctx context.Context, _ *GetAvailableForgesInput) (*GetAvailableForgesOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	user := session.User(c)
 
 	// Get all forges
 	forges, err := _store.ForgeListAll()
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error fetching forges. %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error fetching forges", err)
 	}
 
 	// Get user's linked forges
 	userForges, err := _store.UserForgeList(user.ID)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error fetching user forges. %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error fetching user forges", err)
 	}
 
 	// Build a map of linked forge IDs
@@ -370,7 +320,7 @@ func GetAvailableForges(c *gin.Context) {
 		responses = append(responses, resp)
 	}
 
-	c.JSON(http.StatusOK, responses)
+	return &GetAvailableForgesOutput{Body: responses}, nil
 }
 
 // AvailableForgeResponse represents a forge that can potentially be linked.

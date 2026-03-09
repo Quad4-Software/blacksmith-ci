@@ -15,16 +15,15 @@
 package api
 
 import (
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"codefloe.com/crowci/crow/v5/pipeline/frontend/metadata"
 	"codefloe.com/crowci/crow/v5/server"
 	forge_mocks "codefloe.com/crowci/crow/v5/server/forge/mocks"
 	"codefloe.com/crowci/crow/v5/server/model"
@@ -52,19 +51,24 @@ func TestGetPipelines(t *testing.T) {
 		c, _ := gin.CreateTestContext(w)
 		c.Set("store", mockStore)
 
-		GetPipelines(c)
+		output, err := GetPipelines(testCtx(c), &GetPipelinesInput{})
 
+		assert.NoError(t, err)
+		assert.NotNil(t, output)
 		mockStore.AssertCalled(t, "GetPipelineList", mock.Anything, mock.Anything, mock.Anything)
-		assert.Equal(t, http.StatusOK, c.Writer.Status())
 	})
 
 	t.Run("should not parse pipeline filter", func(t *testing.T) {
 		c, _ := gin.CreateTestContext(httptest.NewRecorder())
-		c.Request, _ = http.NewRequest(http.MethodDelete, "/?before=2023-01-16&after=2023-01-15", nil)
 
-		GetPipelines(c)
+		_, err := GetPipelines(testCtx(c), &GetPipelinesInput{
+			Before: "2023-01-16",
+			After:  "2023-01-15",
+		})
 
-		assert.Equal(t, http.StatusBadRequest, c.Writer.Status())
+		var humaErr huma.StatusError
+		assert.ErrorAs(t, err, &humaErr)
+		assert.Equal(t, http.StatusBadRequest, humaErr.GetStatus())
 	})
 
 	t.Run("should parse pipeline filter", func(t *testing.T) {
@@ -75,11 +79,13 @@ func TestGetPipelines(t *testing.T) {
 
 		c, _ := gin.CreateTestContext(httptest.NewRecorder())
 		c.Set("store", mockStore)
-		c.Request, _ = http.NewRequest(http.MethodDelete, "/?2023-01-16T15:00:00Z&after=2023-01-15T15:00:00Z", nil)
 
-		GetPipelines(c)
+		output, err := GetPipelines(testCtx(c), &GetPipelinesInput{
+			After: "2023-01-15T15:00:00Z",
+		})
 
-		assert.Equal(t, http.StatusOK, c.Writer.Status())
+		assert.NoError(t, err)
+		assert.NotNil(t, output)
 	})
 
 	t.Run("should parse pipeline filter with tz offset", func(t *testing.T) {
@@ -90,11 +96,14 @@ func TestGetPipelines(t *testing.T) {
 
 		c, _ := gin.CreateTestContext(httptest.NewRecorder())
 		c.Set("store", mockStore)
-		c.Request, _ = http.NewRequest(http.MethodDelete, "/?before=2023-01-16T15:00:00%2B01:00&after=2023-01-15T15:00:00%2B01:00", nil)
 
-		GetPipelines(c)
+		output, err := GetPipelines(testCtx(c), &GetPipelinesInput{
+			Before: "2023-01-16T15:00:00+01:00",
+			After:  "2023-01-15T15:00:00+01:00",
+		})
 
-		assert.Equal(t, http.StatusOK, c.Writer.Status())
+		assert.NoError(t, err)
+		assert.NotNil(t, output)
 	})
 
 	t.Run("should filter pipelines by events", func(t *testing.T) {
@@ -105,14 +114,16 @@ func TestGetPipelines(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Set("store", mockStore)
-		c.Request, _ = http.NewRequest(http.MethodGet, "/?event=push,pull_request", nil)
 
-		GetPipelines(c)
+		output, err := GetPipelines(testCtx(c), &GetPipelinesInput{
+			Event: "push,pull_request",
+		})
 
+		assert.NoError(t, err)
+		assert.NotNil(t, output)
 		mockStore.AssertCalled(t, "GetPipelineList", mock.Anything, mock.Anything, &model.PipelineFilter{
 			Events: model.WebhookEventList{model.EventPush, model.EventPull},
 		})
-		assert.Equal(t, http.StatusOK, c.Writer.Status())
 	})
 }
 
@@ -126,22 +137,17 @@ func TestDeletePipeline(t *testing.T) {
 
 		c, _ := gin.CreateTestContext(httptest.NewRecorder())
 		c.Set("store", mockStore)
-		c.Params = gin.Params{{Key: "number", Value: "2"}}
 
-		DeletePipeline(c)
+		_, err := DeletePipeline(testCtx(c), &DeletePipelineInput{Number: 2})
 
+		assert.NoError(t, err)
 		mockStore.AssertCalled(t, "GetPipelineNumber", mock.Anything, mock.Anything)
 		mockStore.AssertCalled(t, "DeletePipeline", mock.Anything)
-		assert.Equal(t, http.StatusNoContent, c.Writer.Status())
 	})
 
-	t.Run("should not delete without pipeline number", func(t *testing.T) {
-		c, _ := gin.CreateTestContext(httptest.NewRecorder())
-
-		DeletePipeline(c)
-
-		assert.Equal(t, http.StatusBadRequest, c.Writer.Status())
-	})
+	// Note: The old "should not delete without pipeline number" test validated gin param
+	// parsing of string path params. With huma, Number is int64 and validated by the
+	// framework before the handler is called, so that case is no longer testable here.
 
 	t.Run("should not delete pending", func(t *testing.T) {
 		fakePipeline := *fakePipeline
@@ -152,13 +158,14 @@ func TestDeletePipeline(t *testing.T) {
 
 		c, _ := gin.CreateTestContext(httptest.NewRecorder())
 		c.Set("store", mockStore)
-		c.Params = gin.Params{{Key: "number", Value: "2"}}
 
-		DeletePipeline(c)
+		_, err := DeletePipeline(testCtx(c), &DeletePipelineInput{Number: 2})
 
+		var humaErr huma.StatusError
+		assert.ErrorAs(t, err, &humaErr)
+		assert.Equal(t, http.StatusUnprocessableEntity, humaErr.GetStatus())
 		mockStore.AssertCalled(t, "GetPipelineNumber", mock.Anything, mock.Anything)
 		mockStore.AssertNotCalled(t, "DeletePipeline", mock.Anything)
-		assert.Equal(t, http.StatusUnprocessableEntity, c.Writer.Status())
 	})
 }
 
@@ -190,33 +197,24 @@ func TestGetPipelineMetadata(t *testing.T) {
 		t.Run("should get pipeline metadata", func(t *testing.T) {
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
-			c.Params = gin.Params{{Key: "number", Value: "2"}}
 			c.Set("store", mockStore)
 			c.Set("forge", mockForge)
 			c.Set("repo", fakeRepo)
 
-			GetPipelineMetadata(c)
+			output, err := GetPipelineMetadata(testCtx(c), &GetPipelineMetadataInput{Number: 2})
 
-			assert.Equal(t, http.StatusOK, w.Code)
-
-			var response metadata.Metadata
-			err := json.Unmarshal(w.Body.Bytes(), &response)
 			assert.NoError(t, err)
+			assert.NotNil(t, output)
 
+			response := output.Body
 			assert.Equal(t, int64(1), response.Repo.ID)
 			assert.Equal(t, int64(2), response.Curr.Number)
 			assert.Equal(t, int64(1), response.Prev.Number)
 		})
 
-		t.Run("should return bad request for invalid pipeline number", func(t *testing.T) {
-			w := httptest.NewRecorder()
-			c, _ := gin.CreateTestContext(w)
-			c.Params = gin.Params{{Key: "number", Value: "invalid"}}
-
-			GetPipelineMetadata(c)
-
-			assert.Equal(t, http.StatusBadRequest, w.Code)
-		})
+		// Note: The old "should return bad request for invalid pipeline number" test validated
+		// gin param parsing of string "invalid". With huma, Number is int64 and validated by
+		// the framework before the handler is called, so that case is no longer testable here.
 
 		t.Run("should return not found for non-existent pipeline", func(t *testing.T) {
 			mockStore := new(store_mocks.MockStore)
@@ -224,13 +222,14 @@ func TestGetPipelineMetadata(t *testing.T) {
 
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
-			c.Params = gin.Params{{Key: "number", Value: "3"}}
 			c.Set("store", mockStore)
 			c.Set("repo", fakeRepo)
 
-			GetPipelineMetadata(c)
+			_, err := GetPipelineMetadata(testCtx(c), &GetPipelineMetadataInput{Number: 3})
 
-			assert.Equal(t, http.StatusNotFound, w.Code)
+			var humaErr huma.StatusError
+			assert.ErrorAs(t, err, &humaErr)
+			assert.Equal(t, http.StatusNotFound, humaErr.GetStatus())
 		})
 	})
 }

@@ -82,10 +82,7 @@ generate: install-dev-deps
 	# Generate protobuf
 	cd pipeline/rpc/proto && go generate
 	cd -
-	# Generate OpenAPI
-	go run github.com/swaggo/swag/cmd/swag fmt
-	CGO_ENABLED=0 go generate cmd/server/openapi.go
-	# Normalize imports (fixes conflicts between swag fmt and mockery)
+	# Normalize imports
 	gci write --skip-vendor --skip-generated -s standard -s default -s "prefix(codefloe.com/crowci/crow)" --custom-order .
 
 mockery: install-dev-deps

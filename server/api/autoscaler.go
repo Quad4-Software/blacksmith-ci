@@ -15,336 +15,279 @@
 package api
 
 import (
-	"net/http"
-	"strconv"
+	"context"
+	"fmt"
 	"time"
 
-	"github.com/gin-gonic/gin"
+	"github.com/danielgtaylor/huma/v2"
 
 	"codefloe.com/crowci/crow/v5/server/model"
 	"codefloe.com/crowci/crow/v5/server/router/middleware/session"
 	"codefloe.com/crowci/crow/v5/server/store"
 )
 
-// GetAutoscalers
-//
-//	@Summary	List autoscalers
-//	@Router		/autoscalers [get]
-//	@Produce	json
-//	@Success	200	{array}	Autoscaler
-//	@Tags		Autoscalers
-//	@Param		Authorization	header	string	true	"Insert your personal access token"				default(Bearer <personal access token>)
-//	@Param		page			query	int		false	"for response pagination, page offset number"	default(1)
-//	@Param		perPage			query	int		false	"for response pagination, max items per page"	default(50)
-//	@Param		search			query	string	false	"search in name, provider, region, ID"
-//	@Param		provider		query	string	false	"filter by provider"
-//	@Param		enabled			query	bool	false	"filter by enabled status"
-//	@Param		sort			query	string	false	"sort field: id, name, provider, last_contact"	default(id)
-//	@Param		order			query	string	false	"sort order: asc or desc"						default(asc)
-func GetAutoscalers(c *gin.Context) {
-	opts := &model.AutoscalerListOptions{
-		ListOptions: *session.Pagination(c),
-		Search:      c.Query("search"),
-		Provider:    c.Query("provider"),
-		Sort:        c.Query("sort"),
-		Order:       c.Query("order"),
+type GetAutoscalersInput struct {
+	PaginationParams
+	Search   string `query:"search" doc:"search in name, provider, region, ID"`
+	Provider string `query:"provider" doc:"filter by provider"`
+	Enabled  string `query:"enabled" doc:"filter by enabled status (true/false, empty=all)"`
+	Sort     string `query:"sort" default:"id" doc:"sort field: id, name, provider, last_contact"`
+	Order    string `query:"order" default:"asc" doc:"sort order: asc or desc"`
+}
+
+type GetAutoscalersOutput struct {
+	Body []*model.Autoscaler
+}
+
+func GetAutoscalers(ctx context.Context, input *GetAutoscalersInput) (*GetAutoscalersOutput, error) {
+	c := ginCtx(ctx)
+	var enabledFilter *bool
+	if input.Enabled != "" {
+		v := input.Enabled == "true"
+		enabledFilter = &v
 	}
 
-	// Parse enabled filter
-	if enabledStr := c.Query("enabled"); enabledStr != "" {
-		enabled := enabledStr == "true"
-		opts.Enabled = &enabled
+	opts := &model.AutoscalerListOptions{
+		ListOptions: model.ListOptions{Page: input.Page, PerPage: input.PerPage},
+		Search:      input.Search,
+		Provider:    input.Provider,
+		Enabled:     enabledFilter,
+		Sort:        input.Sort,
+		Order:       input.Order,
 	}
 
 	autoscalers, err := store.FromContext(c).AutoscalerList(opts)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error getting autoscaler list. %s", err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error getting autoscaler list. %s", err))
 	}
 
-	c.JSON(http.StatusOK, autoscalers)
+	return &GetAutoscalersOutput{Body: autoscalers}, nil
 }
 
-// GetAutoscaler
-//
-//	@Summary	Get an autoscaler
-//	@Router		/autoscalers/{autoscaler_id} [get]
-//	@Produce	json
-//	@Success	200	{object}	Autoscaler
-//	@Tags		Autoscalers
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		autoscaler_id	path	int		true	"the autoscaler's id"
-func GetAutoscaler(c *gin.Context) {
-	autoscalerID, err := strconv.ParseInt(c.Param("autoscaler_id"), 10, 64)
-	if err != nil {
-		_ = c.AbortWithError(http.StatusBadRequest, err)
-		return
-	}
-
-	autoscaler, err := store.FromContext(c).AutoscalerFind(autoscalerID)
-	if err != nil {
-		handleDBError(c, err)
-		return
-	}
-	c.JSON(http.StatusOK, autoscaler)
+type GetAutoscalerInput struct {
+	AutoscalerID int64 `path:"autoscaler_id" doc:"the autoscaler's id"`
 }
 
-func GetAutoscalerSelf(c *gin.Context) {
+type GetAutoscalerOutput struct {
+	Body *model.Autoscaler
+}
+
+func GetAutoscaler(ctx context.Context, input *GetAutoscalerInput) (*GetAutoscalerOutput, error) {
+	c := ginCtx(ctx)
+	autoscaler, err := store.FromContext(c).AutoscalerFind(input.AutoscalerID)
+	if err != nil {
+		return nil, dbErr(err)
+	}
+	return &GetAutoscalerOutput{Body: autoscaler}, nil
+}
+
+type GetAutoscalerSelfInput struct{}
+
+type GetAutoscalerSelfOutput struct {
+	Body *model.Autoscaler
+}
+
+func GetAutoscalerSelf(ctx context.Context, _ *GetAutoscalerSelfInput) (*GetAutoscalerSelfOutput, error) {
+	c := ginCtx(ctx)
 	autoscaler := session.Autoscaler(c)
-	c.JSON(http.StatusOK, autoscaler)
+	return &GetAutoscalerSelfOutput{Body: autoscaler}, nil
 }
 
-// PostAutoscaler
-//
-//	@Summary		Create a new autoscaler
-//	@Description	Creates a new autoscaler with a random token. Configuration is provided by the autoscaler upon registration.
-//	@Router			/autoscalers [post]
-//	@Produce		json
-//	@Success		200	{object}	AutoscalerWithToken
-//	@Tags			Autoscalers
-//	@Param			Authorization	header	string		true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			autoscaler		body	Autoscaler	true	"the autoscaler's data (only name is required)"
-func PostAutoscaler(c *gin.Context) {
-	in := &model.Autoscaler{}
-	err := c.Bind(in)
-	if err != nil {
-		c.String(http.StatusBadRequest, err.Error())
-		return
-	}
+type PostAutoscalerInput struct {
+	Body model.Autoscaler
+}
+
+type PostAutoscalerOutput struct {
+	Body *model.AutoscalerWithToken
+}
+
+func PostAutoscaler(ctx context.Context, input *PostAutoscalerInput) (*PostAutoscalerOutput, error) {
+	c := ginCtx(ctx)
 
 	// Validate required fields
-	if in.Name == "" {
-		c.String(http.StatusBadRequest, "Name is required")
-		return
+	if input.Body.Name == "" {
+		return nil, huma.Error400BadRequest("Name is required")
 	}
 
 	user := session.User(c)
 
 	autoscaler := &model.Autoscaler{
-		Name:    in.Name,
+		Name:    input.Body.Name,
 		OwnerID: user.ID,
 		OrgID:   model.IDNotSet,
 		Enabled: true,
 		Token:   model.GenerateNewAutoscalerToken(),
 	}
 
-	if err = store.FromContext(c).AutoscalerCreate(autoscaler); err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
-		return
+	if err := store.FromContext(c).AutoscalerCreate(autoscaler); err != nil {
+		return nil, huma.Error500InternalServerError(err.Error())
 	}
 
 	// Return token only on creation
-	c.JSON(http.StatusOK, &model.AutoscalerWithToken{
+	return &PostAutoscalerOutput{Body: &model.AutoscalerWithToken{
 		Autoscaler: autoscaler,
 		Token:      autoscaler.Token,
-	})
+	}}, nil
 }
 
-// PatchAutoscaler
-//
-//	@Summary	Update an autoscaler
-//	@Router		/autoscalers/{autoscaler_id} [patch]
-//	@Produce	json
-//	@Success	200	{object}	Autoscaler
-//	@Tags		Autoscalers
-//	@Param		Authorization	header	string		true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		autoscaler_id	path	int			true	"the autoscaler's id"
-//	@Param		autoscalerData	body	Autoscaler	true	"the autoscaler's data (only enabled can be updated)"
-func PatchAutoscaler(c *gin.Context) {
+type PatchAutoscalerInput struct {
+	AutoscalerID int64 `path:"autoscaler_id" doc:"the autoscaler's id"`
+	Body         model.Autoscaler
+}
+
+type PatchAutoscalerOutput struct {
+	Body *model.Autoscaler
+}
+
+func PatchAutoscaler(ctx context.Context, input *PatchAutoscalerInput) (*PatchAutoscalerOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 
-	in := &model.Autoscaler{}
-	err := c.Bind(in)
+	autoscaler, err := _store.AutoscalerFind(input.AutoscalerID)
 	if err != nil {
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
-
-	autoscalerID, err := strconv.ParseInt(c.Param("autoscaler_id"), 10, 64)
-	if err != nil {
-		_ = c.AbortWithError(http.StatusBadRequest, err)
-		return
-	}
-
-	autoscaler, err := _store.AutoscalerFind(autoscalerID)
-	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
 	// Only allow updating the enabled status (similar to agent's NoSchedule)
-	autoscaler.Enabled = in.Enabled
+	autoscaler.Enabled = input.Body.Enabled
 
-	err = _store.AutoscalerUpdate(autoscaler)
-	if err != nil {
-		c.AbortWithStatus(http.StatusConflict)
-		return
+	if err = _store.AutoscalerUpdate(autoscaler); err != nil {
+		return nil, huma.Error409Conflict("conflict updating autoscaler")
 	}
 
-	c.JSON(http.StatusOK, autoscaler)
+	return &PatchAutoscalerOutput{Body: autoscaler}, nil
 }
 
-// DeleteAutoscaler
-//
-//	@Summary	Delete an autoscaler
-//	@Router		/autoscalers/{autoscaler_id} [delete]
-//	@Produce	plain
-//	@Success	204
-//	@Tags		Autoscalers
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		autoscaler_id	path	int		true	"the autoscaler's id"
-func DeleteAutoscaler(c *gin.Context) {
+type DeleteAutoscalerInput struct {
+	AutoscalerID int64 `path:"autoscaler_id" doc:"the autoscaler's id"`
+}
+
+func DeleteAutoscaler(ctx context.Context, input *DeleteAutoscalerInput) (*struct{}, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 
-	autoscalerID, err := strconv.ParseInt(c.Param("autoscaler_id"), 10, 64)
+	autoscaler, err := _store.AutoscalerFind(input.AutoscalerID)
 	if err != nil {
-		_ = c.AbortWithError(http.StatusBadRequest, err)
-		return
-	}
-
-	autoscaler, err := _store.AutoscalerFind(autoscalerID)
-	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
 	if err = _store.AutoscalerDelete(autoscaler); err != nil {
-		c.String(http.StatusInternalServerError, "Error deleting autoscaler. %s", err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error deleting autoscaler. %s", err))
 	}
-	c.Status(http.StatusNoContent)
+	return nil, nil
 }
 
-// PostAutoscalerHeartbeat
-//
-//	@Summary		Update autoscaler heartbeat
-//	@Description	Autoscalers send heartbeats to update their status and configuration
-//	@Router			/autoscalers/{autoscaler_id}/heartbeat [post]
-//	@Produce		json
-//	@Success		200	{object}	map[string]interface{}
-//	@Tags			Autoscalers
-//	@Param			Authorization	header	string	true	"Insert autoscaler token"	default(Bearer <autoscaler token>)
-//	@Param			autoscaler_id	path	int		true	"the autoscaler's id"
-//	@Param			heartbeat		body	object	true	"heartbeat data with active_agents, pending_agents, version, and configuration"
-func PostAutoscalerHeartbeat(c *gin.Context) {
+type HeartbeatBody struct {
+	ActiveAgents      int32             `json:"active_agents"`
+	PendingAgents     int32             `json:"pending_agents"`
+	Version           string            `json:"version"`
+	MinAgents         int32             `json:"min_agents"`
+	MaxAgents         int32             `json:"max_agents"`
+	WorkflowsPerAgent int32             `json:"workflows_per_agent"`
+	Provider          string            `json:"provider"`
+	InstanceType      string            `json:"instance_type"`
+	Region            string            `json:"region"`
+	AgentLabels       map[string]string `json:"agent_labels"`
+	LimitCPUQuota     string            `json:"limit_cpu_quota"`
+	LimitMem          string            `json:"limit_mem"`
+}
+
+type PostAutoscalerHeartbeatInput struct {
+	AutoscalerID int64 `path:"autoscaler_id" doc:"the autoscaler's id"`
+	Body         HeartbeatBody
+}
+
+type HeartbeatResponse struct {
+	Success     bool  `json:"success"`
+	LastContact int64 `json:"last_contact"`
+}
+
+type PostAutoscalerHeartbeatOutput struct {
+	Body HeartbeatResponse
+}
+
+func PostAutoscalerHeartbeat(ctx context.Context, input *PostAutoscalerHeartbeatInput) (*PostAutoscalerHeartbeatOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 
-	autoscalerID, err := strconv.ParseInt(c.Param("autoscaler_id"), 10, 64)
-	if err != nil {
-		_ = c.AbortWithError(http.StatusBadRequest, err)
-		return
-	}
-
-	// Parse heartbeat data
-	var heartbeat struct {
-		ActiveAgents      int32             `json:"active_agents"`
-		PendingAgents     int32             `json:"pending_agents"`
-		Version           string            `json:"version"`
-		MinAgents         int32             `json:"min_agents"`
-		MaxAgents         int32             `json:"max_agents"`
-		WorkflowsPerAgent int32             `json:"workflows_per_agent"`
-		Provider          string            `json:"provider"`
-		InstanceType      string            `json:"instance_type"`
-		Region            string            `json:"region"`
-		AgentLabels       map[string]string `json:"agent_labels"`
-		LimitCPUQuota     string            `json:"limit_cpu_quota"`
-		LimitMem          string            `json:"limit_mem"`
-	}
-	if err := c.Bind(&heartbeat); err != nil {
-		c.String(http.StatusBadRequest, err.Error())
-		return
-	}
-
 	// Verify autoscaler exists and token matches
-	autoscaler, err := _store.AutoscalerFind(autoscalerID)
+	autoscaler, err := _store.AutoscalerFind(input.AutoscalerID)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
-
-	// TODO: Add middleware to authenticate autoscaler by token
-	// For now, we trust that the caller has access to this endpoint
 
 	// Update autoscaler with heartbeat data and configuration
-	autoscaler.ActiveAgents = heartbeat.ActiveAgents
-	autoscaler.PendingAgents = heartbeat.PendingAgents
-	autoscaler.Version = heartbeat.Version
+	autoscaler.ActiveAgents = input.Body.ActiveAgents
+	autoscaler.PendingAgents = input.Body.PendingAgents
+	autoscaler.Version = input.Body.Version
 	autoscaler.LastContact = time.Now().Unix()
 
 	// Update configuration fields if provided
-	if heartbeat.MinAgents > 0 || heartbeat.MaxAgents > 0 {
-		autoscaler.MinAgents = heartbeat.MinAgents
-		autoscaler.MaxAgents = heartbeat.MaxAgents
+	if input.Body.MinAgents > 0 || input.Body.MaxAgents > 0 {
+		autoscaler.MinAgents = input.Body.MinAgents
+		autoscaler.MaxAgents = input.Body.MaxAgents
 	}
-	if heartbeat.WorkflowsPerAgent > 0 {
-		autoscaler.WorkflowsPerAgent = heartbeat.WorkflowsPerAgent
+	if input.Body.WorkflowsPerAgent > 0 {
+		autoscaler.WorkflowsPerAgent = input.Body.WorkflowsPerAgent
 	}
-	if heartbeat.Provider != "" {
-		autoscaler.Provider = heartbeat.Provider
+	if input.Body.Provider != "" {
+		autoscaler.Provider = input.Body.Provider
 	}
-	if heartbeat.InstanceType != "" {
-		autoscaler.InstanceType = heartbeat.InstanceType
+	if input.Body.InstanceType != "" {
+		autoscaler.InstanceType = input.Body.InstanceType
 	}
-	if heartbeat.Region != "" {
-		autoscaler.Region = heartbeat.Region
+	if input.Body.Region != "" {
+		autoscaler.Region = input.Body.Region
 	}
-	if heartbeat.AgentLabels != nil {
-		autoscaler.AgentLabels = heartbeat.AgentLabels
+	if input.Body.AgentLabels != nil {
+		autoscaler.AgentLabels = input.Body.AgentLabels
 	}
-	if heartbeat.LimitCPUQuota != "" {
-		autoscaler.LimitCPUQuota = heartbeat.LimitCPUQuota
+	if input.Body.LimitCPUQuota != "" {
+		autoscaler.LimitCPUQuota = input.Body.LimitCPUQuota
 	}
-	if heartbeat.LimitMem != "" {
-		autoscaler.LimitMem = heartbeat.LimitMem
-	}
-
-	err = _store.AutoscalerUpdate(autoscaler)
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Error updating heartbeat. %s", err)
-		return
+	if input.Body.LimitMem != "" {
+		autoscaler.LimitMem = input.Body.LimitMem
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success":      true,
-		"last_contact": time.Now().Unix(),
-	})
+	if err = _store.AutoscalerUpdate(autoscaler); err != nil {
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error updating heartbeat. %s", err))
+	}
+
+	return &PostAutoscalerHeartbeatOutput{Body: HeartbeatResponse{
+		Success:     true,
+		LastContact: time.Now().Unix(),
+	}}, nil
 }
 
-// PostAutoscalerToken
-//
-//	@Summary		Regenerate autoscaler token
-//	@Description	Generates a new token for the autoscaler and invalidates the old one
-//	@Router			/autoscalers/{autoscaler_id}/token [post]
-//	@Produce		json
-//	@Success		200	{object}	map[string]interface{}
-//	@Tags			Autoscalers
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			autoscaler_id	path	int		true	"the autoscaler's id"
-func PostAutoscalerToken(c *gin.Context) {
+type PostAutoscalerTokenInput struct {
+	AutoscalerID int64 `path:"autoscaler_id" doc:"the autoscaler's id"`
+}
+
+type TokenResponse struct {
+	Token string `json:"token"`
+}
+
+type PostAutoscalerTokenOutput struct {
+	Body TokenResponse
+}
+
+func PostAutoscalerToken(ctx context.Context, input *PostAutoscalerTokenInput) (*PostAutoscalerTokenOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 
-	autoscalerID, err := strconv.ParseInt(c.Param("autoscaler_id"), 10, 64)
+	autoscaler, err := _store.AutoscalerFind(input.AutoscalerID)
 	if err != nil {
-		_ = c.AbortWithError(http.StatusBadRequest, err)
-		return
-	}
-
-	autoscaler, err := _store.AutoscalerFind(autoscalerID)
-	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
 	// Generate new token
 	autoscaler.Token = model.GenerateNewAutoscalerToken()
 
-	err = _store.AutoscalerUpdate(autoscaler)
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Error updating token. %s", err)
-		return
+	if err = _store.AutoscalerUpdate(autoscaler); err != nil {
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error updating token. %s", err))
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"token": autoscaler.Token,
-	})
+	return &PostAutoscalerTokenOutput{Body: TokenResponse{
+		Token: autoscaler.Token,
+	}}, nil
 }

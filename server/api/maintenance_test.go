@@ -15,12 +15,12 @@
 package api
 
 import (
-	"bytes"
-	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -92,35 +92,37 @@ func TestRunMaintenanceRequest_JobValidation(t *testing.T) {
 func TestRunMaintenanceNow_NonAdminUser(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	requestBody := RunMaintenanceRequest{Job: "vacuumLogTable"}
-	requestBodyBytes, err := json.Marshal(requestBody)
-	require.NoError(t, err)
-
-	req := httptest.NewRequest("POST", "/api/admin/maintenance/run", bytes.NewReader(requestBodyBytes))
-	req.Header.Set("Content-Type", "application/json")
-
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	c.Request = req
+	c.Request, _ = http.NewRequest(http.MethodPost, "/api/admin/maintenance/run", nil)
 	c.Set("user", &model.User{Admin: false}) // Non-admin user
 
-	RunMaintenanceNow(c)
+	output, err := RunMaintenanceNow(testCtx(c), &RunMaintenanceNowInput{
+		Body: RunMaintenanceRequest{Job: "vacuumLogTable"},
+	})
+	assert.Nil(t, output)
+	require.Error(t, err)
 
-	assert.Equal(t, http.StatusForbidden, w.Code)
+	var he huma.StatusError
+	require.True(t, errors.As(err, &he))
+	assert.Equal(t, http.StatusForbidden, he.GetStatus())
 }
 
-func TestRunMaintenanceNow_InvalidJSON(t *testing.T) {
+func TestRunMaintenanceNow_InvalidJob(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-
-	req := httptest.NewRequest("POST", "/api/admin/maintenance/run", bytes.NewReader([]byte("invalid json")))
-	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	c.Request = req
+	c.Request, _ = http.NewRequest(http.MethodPost, "/api/admin/maintenance/run", nil)
 	c.Set("user", &model.User{Admin: true})
 
-	RunMaintenanceNow(c)
+	output, err := RunMaintenanceNow(testCtx(c), &RunMaintenanceNowInput{
+		Body: RunMaintenanceRequest{Job: "invalidJob"},
+	})
+	assert.Nil(t, output)
+	require.Error(t, err)
 
-	assert.Equal(t, http.StatusBadRequest, w.Code)
+	var he huma.StatusError
+	require.True(t, errors.As(err, &he))
+	assert.Equal(t, http.StatusBadRequest, he.GetStatus())
 }

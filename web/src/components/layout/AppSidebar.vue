@@ -335,7 +335,7 @@ function openCommandPalette() {
   }
   toggleCommandPalette();
 }
-const apiUrl = `${config.rootPath ?? ''}/swagger/index.html`;
+const apiUrl = `${config.rootPath ?? ''}/api/v1/docs`;
 const address = `${window.location.protocol}//${window.location.host}${config.rootPath}`;
 const { enableSwagger } = config;
 

@@ -15,199 +15,160 @@
 package api
 
 import (
-	"net/http"
+	"context"
+	"fmt"
 
-	"github.com/gin-gonic/gin"
+	"github.com/danielgtaylor/huma/v2"
 
 	"codefloe.com/crowci/crow/v5/server"
 	"codefloe.com/crowci/crow/v5/server/model"
 	"codefloe.com/crowci/crow/v5/server/router/middleware/session"
 )
 
-// GetGlobalSecretList
-//
-//	@Summary	List global secrets
-//	@Router		/secrets [get]
-//	@Produce	json
-//	@Success	200	{array}	Secret
-//	@Tags		Secrets
-//	@Param		Authorization	header	string	true	"Insert your personal access token"				default(Bearer <personal access token>)
-//	@Param		page			query	int		false	"for response pagination, page offset number"	default(1)
-//	@Param		perPage			query	int		false	"for response pagination, max items per page"	default(50)
-func GetGlobalSecretList(c *gin.Context) {
+type GetGlobalSecretListInput struct {
+	PaginationParams
+}
+
+type GetGlobalSecretListOutput struct {
+	Body []*model.Secret
+}
+
+func GetGlobalSecretList(ctx context.Context, input *GetGlobalSecretListInput) (*GetGlobalSecretListOutput, error) {
 	secretService := server.Config.Services.Manager.SecretService()
-	list, err := secretService.GlobalSecretList(session.Pagination(c))
+	list, err := secretService.GlobalSecretList(&model.ListOptions{
+		Page:    input.Page,
+		PerPage: input.PerPage,
+	})
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error getting global secret list. %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error getting global secret list", err)
 	}
 	// copy the secret detail to remove the sensitive
 	// password and token fields.
 	for i, secret := range list {
 		list[i] = secret.Copy()
 	}
-	c.JSON(http.StatusOK, list)
+	return &GetGlobalSecretListOutput{Body: list}, nil
 }
 
-// GetGlobalSecret
-//
-//	@Summary	Get a global secret by name
-//	@Router		/secrets/{secret} [get]
-//	@Produce	json
-//	@Success	200	{object}	Secret
-//	@Tags		Secrets
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		secret			path	string	true	"the secret's name"
-func GetGlobalSecret(c *gin.Context) {
-	name := c.Param("secret")
+type GetGlobalSecretInput struct {
+	Secret string `path:"secret" doc:"the secret's name"`
+}
+
+type GetGlobalSecretOutput struct {
+	Body *model.Secret
+}
+
+func GetGlobalSecret(ctx context.Context, input *GetGlobalSecretInput) (*GetGlobalSecretOutput, error) {
 	secretService := server.Config.Services.Manager.SecretService()
-	secret, err := secretService.GlobalSecretFind(name)
+	secret, err := secretService.GlobalSecretFind(input.Secret)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
-	c.JSON(http.StatusOK, secret.Copy())
+	return &GetGlobalSecretOutput{Body: secret.Copy()}, nil
 }
 
-// GetGlobalSecretAbbreviated
-//
-//	@Summary		Get a global secret with abbreviated value
-//	@Description	Returns the secret with an abbreviated value showing first and last characters.
-//	@Description	Only instance admins can view abbreviated global secret values.
-//	@Router			/secrets/{secret}/abbreviated [get]
-//	@Produce		json
-//	@Success		200	{object}	Secret
-//	@Failure		403	{string}	string	"Instance admin privileges required"
-//	@Tags			Secrets
-//	@Param			Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			secret			path	string	true	"the secret's name"
-func GetGlobalSecretAbbreviated(c *gin.Context) {
+type GetGlobalSecretAbbreviatedInput struct {
+	Secret string `path:"secret" doc:"the secret's name"`
+}
+
+type GetGlobalSecretAbbreviatedOutput struct {
+	Body *model.Secret
+}
+
+func GetGlobalSecretAbbreviated(ctx context.Context, input *GetGlobalSecretAbbreviatedInput) (*GetGlobalSecretAbbreviatedOutput, error) {
+	c := ginCtx(ctx)
 	user := session.User(c)
-	name := c.Param("secret")
 
 	secretService := server.Config.Services.Manager.SecretService()
-	secret, err := secretService.GlobalSecretFind(name)
+	secret, err := secretService.GlobalSecretFind(input.Secret)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
 	// Create authorizer and check admin permission
 	authorizer := NewSecretViewAuthorizerFromContext(c, server.Config.Services.Membership)
 	if !authorizer.CanViewGlobalSecret(user) {
-		c.Header("Cache-Control", "no-store, no-cache, must-revalidate, private")
-		c.String(http.StatusForbidden, "Instance admin privileges required to view secret value")
-		return
+		return nil, huma.Error403Forbidden("Instance admin privileges required to view secret value")
 	}
 
-	c.Header("Cache-Control", "no-store, no-cache, must-revalidate, private")
-	c.JSON(http.StatusOK, secret.CopyWithAbbreviatedValue())
+	return &GetGlobalSecretAbbreviatedOutput{Body: secret.CopyWithAbbreviatedValue()}, nil
 }
 
-// PostGlobalSecret
-//
-//	@Summary	Create a global secret
-//	@Router		/secrets [post]
-//	@Produce	json
-//	@Success	200	{object}	Secret
-//	@Tags		Secrets
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		secret			body	Secret	true	"the secret object data"
-func PostGlobalSecret(c *gin.Context) {
-	in := new(model.Secret)
-	if err := c.Bind(in); err != nil {
-		c.String(http.StatusBadRequest, "Error parsing global secret. %s", err)
-		return
-	}
+type PostGlobalSecretInput struct {
+	Body model.Secret
+}
+
+type PostGlobalSecretOutput struct {
+	Body *model.Secret
+}
+
+func PostGlobalSecret(ctx context.Context, input *PostGlobalSecretInput) (*PostGlobalSecretOutput, error) {
 	secret := &model.Secret{
-		Name:   in.Name,
-		Value:  in.Value,
-		Events: in.Events,
-		Images: in.Images,
+		Name:   input.Body.Name,
+		Value:  input.Body.Value,
+		Events: input.Body.Events,
+		Images: input.Body.Images,
 	}
 	if err := secret.Validate(); err != nil {
-		c.String(http.StatusBadRequest, "Error inserting global secret. %s", err)
-		return
+		return nil, huma.Error400BadRequest(fmt.Sprintf("Error inserting global secret: %s", err))
 	}
 
 	secretService := server.Config.Services.Manager.SecretService()
 
 	// Check if secret already exists
-	if _, err := secretService.GlobalSecretFind(in.Name); err == nil {
-		c.String(http.StatusConflict, "Secret %q already exists as a global secret", in.Name)
-		return
+	if _, err := secretService.GlobalSecretFind(input.Body.Name); err == nil {
+		return nil, huma.Error409Conflict(fmt.Sprintf("Secret %q already exists as a global secret", input.Body.Name))
 	}
 
 	if err := secretService.GlobalSecretCreate(secret); err != nil {
-		c.String(http.StatusInternalServerError, "Error inserting global secret %q. %s", in.Name, err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error inserting global secret %q", input.Body.Name), err)
 	}
-	c.JSON(http.StatusOK, secret.Copy())
+	return &PostGlobalSecretOutput{Body: secret.Copy()}, nil
 }
 
-// PatchGlobalSecret
-//
-//	@Summary	Update a global secret by name
-//	@Router		/secrets/{secret} [patch]
-//	@Produce	json
-//	@Success	200	{object}	Secret
-//	@Tags		Secrets
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		secret			path	string	true	"the secret's name"
-//	@Param		secretData		body	Secret	true	"the secret's data"
-func PatchGlobalSecret(c *gin.Context) {
-	name := c.Param("secret")
+type PatchGlobalSecretInput struct {
+	Secret string `path:"secret" doc:"the secret's name"`
+	Body   model.Secret
+}
 
-	in := new(model.Secret)
-	err := c.Bind(in)
-	if err != nil {
-		c.String(http.StatusBadRequest, "Error parsing secret. %s", err)
-		return
-	}
+type PatchGlobalSecretOutput struct {
+	Body *model.Secret
+}
 
+func PatchGlobalSecret(ctx context.Context, input *PatchGlobalSecretInput) (*PatchGlobalSecretOutput, error) {
 	secretService := server.Config.Services.Manager.SecretService()
-	secret, err := secretService.GlobalSecretFind(name)
+	secret, err := secretService.GlobalSecretFind(input.Secret)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
-	if in.Value != "" {
-		secret.Value = in.Value
+	if input.Body.Value != "" {
+		secret.Value = input.Body.Value
 	}
-	if in.Events != nil {
-		secret.Events = in.Events
+	if input.Body.Events != nil {
+		secret.Events = input.Body.Events
 	}
-	if in.Images != nil {
-		secret.Images = in.Images
+	if input.Body.Images != nil {
+		secret.Images = input.Body.Images
 	}
 
 	if err := secret.Validate(); err != nil {
-		c.String(http.StatusBadRequest, "Error updating global secret. %s", err)
-		return
+		return nil, huma.Error400BadRequest(fmt.Sprintf("Error updating global secret: %s", err))
 	}
 
 	if err := secretService.GlobalSecretUpdate(secret); err != nil {
-		c.String(http.StatusInternalServerError, "Error updating global secret %q. %s", in.Name, err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error updating global secret %q", input.Body.Name), err)
 	}
-	c.JSON(http.StatusOK, secret.Copy())
+	return &PatchGlobalSecretOutput{Body: secret.Copy()}, nil
 }
 
-// DeleteGlobalSecret
-//
-//	@Summary	Delete a global secret by name
-//	@Router		/secrets/{secret} [delete]
-//	@Produce	plain
-//	@Success	204
-//	@Tags		Secrets
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		secret			path	string	true	"the secret's name"
-func DeleteGlobalSecret(c *gin.Context) {
-	name := c.Param("secret")
+type DeleteGlobalSecretInput struct {
+	Secret string `path:"secret" doc:"the secret's name"`
+}
+
+func DeleteGlobalSecret(ctx context.Context, input *DeleteGlobalSecretInput) (*struct{}, error) {
 	secretService := server.Config.Services.Manager.SecretService()
-	if err := secretService.GlobalSecretDelete(name); err != nil {
-		handleDBError(c, err)
-		return
+	if err := secretService.GlobalSecretDelete(input.Secret); err != nil {
+		return nil, dbErr(err)
 	}
-	c.Status(http.StatusNoContent)
+	return nil, nil
 }

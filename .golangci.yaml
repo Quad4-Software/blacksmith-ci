@@ -179,6 +179,11 @@ linters:
       - linters:
           - mnd
         path: fixtures|cmd/agent/flags.go|cmd/server/flags.go|pipeline/backend/kubernetes/flags.go|_test.go
+      # Huma handlers extract *gin.Context via ginCtx(ctx) which contextcheck treats as a
+      # non-inherited context. This is a false positive — the gin context wraps the same request.
+      - linters:
+          - contextcheck
+        path: server/api/
       # Multi-forge migration: deprecated User fields (ForgeID, ForgeRemoteID, AccessToken, RefreshToken, Expiry)
       # are still used for backward compatibility during the transition to the UserForge table.
       # TODO: Remove this exclusion after migration is complete and deprecated fields are removed.

@@ -13,24 +13,3 @@
 // limitations under the License.
 
 package main
-
-import (
-	"codefloe.com/crowci/crow/v5/cmd/server/openapi"
-	"codefloe.com/crowci/crow/v5/version"
-)
-
-// Generate docs/openapi.json via:
-// (disabled) go:generate go run openapi_json_gen.go openapi.go.
-
-// setupOpenAPIStaticConfig initializes static content (version) for the OpenAPI config.
-//
-//	@title			Crow CI API
-//	@description	Crow CI is a lightweight, community-driven CI application for self-hosted environments.
-//	@description	To get a personal access token (PAT) for authentication, please log in
-//	@description	and go to you personal profile page, by clicking the user icon at the top right.
-//	@BasePath		/api/v1
-//	@contact.name	Crow CI
-//	@contact.url	https://crowci.dev/
-func setupOpenAPIStaticConfig() {
-	openapi.SwaggerInfo.Version = version.String()
-}

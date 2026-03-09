@@ -16,20 +16,17 @@ package router
 
 import (
 	"net/http"
-	"net/url"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
-	openapi_files "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
 
-	"codefloe.com/crowci/crow/v5/cmd/server/openapi"
 	"codefloe.com/crowci/crow/v5/server"
 	"codefloe.com/crowci/crow/v5/server/api"
 	"codefloe.com/crowci/crow/v5/server/api/metrics"
 	"codefloe.com/crowci/crow/v5/server/router/middleware/header"
 	"codefloe.com/crowci/crow/v5/server/router/middleware/session"
 	"codefloe.com/crowci/crow/v5/server/web"
+	"codefloe.com/crowci/crow/v5/version"
 )
 
 // Load loads the router.
@@ -71,21 +68,9 @@ func Load(noRouteHandler http.HandlerFunc, middleware ...gin.HandlerFunc) http.H
 		base.GET("/readyz", api.GetHealthReady) // Readiness probe
 	}
 
-	apiRoutes(base)
-	if server.Config.WebUI.EnableSwagger {
-		setupSwaggerConfigAndRoutes(e)
-	}
+	apiBase := base.Group("/api/v1")
+	humaAPI := newHumaAPI(e, apiBase, "Crow CI API", version.String())
+	apiRoutes(base, apiBase, humaAPI)
 
 	return e
-}
-
-func setupSwaggerConfigAndRoutes(e *gin.Engine) {
-	openapi.SwaggerInfo.Host = getHost(server.Config.Server.Host)
-	openapi.SwaggerInfo.BasePath = server.Config.Server.RootPath + "/api"
-	e.GET(server.Config.Server.RootPath+"/swagger/*any", ginSwagger.WrapHandler(openapi_files.Handler))
-}
-
-func getHost(s string) string {
-	parse, _ := url.Parse(s)
-	return parse.Host
 }

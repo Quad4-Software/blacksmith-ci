@@ -15,11 +15,11 @@
 package api
 
 import (
-	"net/http"
-	"strconv"
+	"context"
+	"fmt"
 	"time"
 
-	"github.com/gin-gonic/gin"
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/rs/zerolog/log"
 
 	"codefloe.com/crowci/crow/v5/server"
@@ -30,55 +30,43 @@ import (
 	"codefloe.com/crowci/crow/v5/server/store"
 )
 
-// GetCron
-//
-//	@Summary	Get a cron job
-//	@Router		/repos/{repo_id}/cron/{cron} [get]
-//	@Produce	json
-//	@Success	200	{object}	Cron
-//	@Tags		Repository cron jobs
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-//	@Param		cron			path	string	true	"the cron job id"
-func GetCron(c *gin.Context) {
-	repo := session.Repo(c)
-	id, err := strconv.ParseInt(c.Param("cron"), 10, 64)
-	if err != nil {
-		c.String(http.StatusBadRequest, "Error parsing cron id. %s", err)
-		return
-	}
-
-	cron, err := store.FromContext(c).CronFind(repo, id)
-	if err != nil {
-		handleDBError(c, err)
-		return
-	}
-	c.JSON(http.StatusOK, cron)
+type GetCronInput struct {
+	RepoID int64 `path:"repo_id" doc:"the repository id"`
+	Cron   int64 `path:"cron" doc:"the cron job id"`
 }
 
-// RunCron
-//
-//	@Summary	Start a cron job now
-//	@Router		/repos/{repo_id}/cron/{cron} [post]
-//	@Produce	json
-//	@Success	200	{object}	Pipeline
-//	@Tags		Repository cron jobs
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-//	@Param		cron			path	string	true	"the cron job id"
-func RunCron(c *gin.Context) {
+type GetCronOutput struct {
+	Body *model.Cron
+}
+
+func GetCron(ctx context.Context, input *GetCronInput) (*GetCronOutput, error) {
+	c := ginCtx(ctx)
+	repo := session.Repo(c)
+
+	cron, err := store.FromContext(c).CronFind(repo, input.Cron)
+	if err != nil {
+		return nil, dbErr(err)
+	}
+	return &GetCronOutput{Body: cron}, nil
+}
+
+type RunCronInput struct {
+	RepoID int64 `path:"repo_id" doc:"the repository id"`
+	Cron   int64 `path:"cron" doc:"the cron job id"`
+}
+
+type RunCronOutput struct {
+	Body *model.Pipeline
+}
+
+func RunCron(ctx context.Context, input *RunCronInput) (*RunCronOutput, error) {
+	c := ginCtx(ctx)
 	repo := session.Repo(c)
 	_store := store.FromContext(c)
-	id, err := strconv.ParseInt(c.Param("cron"), 10, 64)
-	if err != nil {
-		c.String(http.StatusBadRequest, "Error parsing cron id. %s", err)
-		return
-	}
 
-	cron, err := _store.CronFind(repo, id)
+	cron, err := _store.CronFind(repo, input.Cron)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
 
 	// Reset failure state on manual trigger so the user can re-enable a disabled cron
@@ -93,38 +81,35 @@ func RunCron(c *gin.Context) {
 
 	repo, newPipeline, err := cronScheduler.CreatePipeline(c, _store, cron)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error creating pipeline for cron %q. %s", id, err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error creating pipeline for cron %q. %s", input.Cron, err))
 	}
 
 	pl, err := pipeline.Create(c, _store, repo, newPipeline)
 	if err != nil {
-		handlePipelineErr(c, err)
-		return
+		return nil, pipelineErr(err)
 	}
 
-	c.JSON(http.StatusOK, pl)
+	return &RunCronOutput{Body: pl}, nil
 }
 
-// PostCron
-//
-//	@Summary	Create a cron job
-//	@Router		/repos/{repo_id}/cron [post]
-//	@Produce	json
-//	@Success	200	{object}	Cron
-//	@Tags		Repository cron jobs
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-//	@Param		cronJob			body	Cron	true	"the new cron job"
-func PostCron(c *gin.Context) {
+type PostCronInput struct {
+	RepoID int64 `path:"repo_id" doc:"the repository id"`
+	Body   model.Cron
+}
+
+type PostCronOutput struct {
+	Body *model.Cron
+}
+
+func PostCron(ctx context.Context, input *PostCronInput) (*PostCronOutput, error) {
+	c := ginCtx(ctx)
 	repo := session.Repo(c)
 	user := session.User(c)
 	_store := store.FromContext(c)
 	_forge, err := server.Config.Services.Manager.ForgeFromRepo(repo)
 	if err != nil {
 		log.Error().Err(err).Msg("Cannot get forge from repo")
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
+		return nil, huma.Error500InternalServerError("Cannot get forge from repo")
 	}
 
 	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
@@ -139,69 +124,59 @@ func PostCron(c *gin.Context) {
 	// Refresh tokens before forge API call
 	refreshUserTokenForForge(c, user, repo.ForgeID)
 	if c.IsAborted() {
-		return
+		return nil, huma.Error500InternalServerError("Failed to refresh user token")
 	}
 
-	in := new(model.Cron)
-	if err := c.Bind(in); err != nil {
-		c.String(http.StatusBadRequest, "Error parsing request. %s", err)
-		return
-	}
 	cron := &model.Cron{
 		RepoID:    repo.ID,
-		Name:      in.Name,
+		Name:      input.Body.Name,
 		CreatorID: user.ID,
-		Schedule:  in.Schedule,
-		Branch:    in.Branch,
+		Schedule:  input.Body.Schedule,
+		Branch:    input.Body.Branch,
 	}
 	if err := cron.Validate(); err != nil {
-		c.String(http.StatusUnprocessableEntity, "Error inserting cron. validate failed: %s", err)
-		return
+		return nil, huma.Error422UnprocessableEntity(fmt.Sprintf("Error inserting cron. validate failed: %s", err))
 	}
 
-	nextExec, err := cronScheduler.CalcNewNext(in.Schedule, time.Now())
+	nextExec, err := cronScheduler.CalcNewNext(input.Body.Schedule, time.Now())
 	if err != nil {
-		c.String(http.StatusBadRequest, "Error inserting cron. schedule could not parsed: %s", err)
-		return
+		return nil, huma.Error400BadRequest(fmt.Sprintf("Error inserting cron. schedule could not parsed: %s", err))
 	}
 	cron.NextExec = nextExec.Unix()
 
-	if in.Branch != "" {
+	if input.Body.Branch != "" {
 		// check if branch exists on forge
-		_, err := _forge.BranchHead(c, user, repo, in.Branch)
+		_, err := _forge.BranchHead(c, user, repo, input.Body.Branch)
 		if err != nil {
-			c.String(http.StatusBadRequest, "Error inserting cron. branch not resolved: %s", err)
-			return
+			return nil, huma.Error400BadRequest(fmt.Sprintf("Error inserting cron. branch not resolved: %s", err))
 		}
 	}
 
 	if err := _store.CronCreate(cron); err != nil {
-		c.String(http.StatusInternalServerError, "Error inserting cron %q. %s", in.Name, err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error inserting cron %q. %s", input.Body.Name, err))
 	}
-	c.JSON(http.StatusOK, cron)
+	return &PostCronOutput{Body: cron}, nil
 }
 
-// PatchCron
-//
-//	@Summary	Update a cron job
-//	@Router		/repos/{repo_id}/cron/{cron} [patch]
-//	@Produce	json
-//	@Success	200	{object}	Cron
-//	@Tags		Repository cron jobs
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-//	@Param		cron			path	string	true	"the cron job id"
-//	@Param		cronJob			body	Cron	true	"the cron job data"
-func PatchCron(c *gin.Context) {
+type PatchCronInput struct {
+	RepoID int64 `path:"repo_id" doc:"the repository id"`
+	Cron   int64 `path:"cron" doc:"the cron job id"`
+	Body   model.Cron
+}
+
+type PatchCronOutput struct {
+	Body *model.Cron
+}
+
+func PatchCron(ctx context.Context, input *PatchCronInput) (*PatchCronOutput, error) {
+	c := ginCtx(ctx)
 	repo := session.Repo(c)
 	user := session.User(c)
 	_store := store.FromContext(c)
 	_forge, err := server.Config.Services.Manager.ForgeFromRepo(repo)
 	if err != nil {
 		log.Error().Err(err).Msg("Cannot get forge from repo")
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
+		return nil, huma.Error500InternalServerError("Cannot get forge from repo")
 	}
 
 	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
@@ -216,102 +191,72 @@ func PatchCron(c *gin.Context) {
 	// Refresh tokens before forge API call
 	refreshUserTokenForForge(c, user, repo.ForgeID)
 	if c.IsAborted() {
-		return
+		return nil, huma.Error500InternalServerError("Failed to refresh user token")
 	}
 
-	id, err := strconv.ParseInt(c.Param("cron"), 10, 64)
+	cron, err := _store.CronFind(repo, input.Cron)
 	if err != nil {
-		c.String(http.StatusBadRequest, "Error parsing cron id. %s", err)
-		return
+		return nil, dbErr(err)
 	}
-
-	in := new(model.Cron)
-	err = c.Bind(in)
-	if err != nil {
-		c.String(http.StatusBadRequest, "Error parsing request. %s", err)
-		return
-	}
-
-	cron, err := _store.CronFind(repo, id)
-	if err != nil {
-		handleDBError(c, err)
-		return
-	}
-	if in.Branch != "" {
+	if input.Body.Branch != "" {
 		// check if branch exists on forge
-		_, err := _forge.BranchHead(c, user, repo, in.Branch)
+		_, err := _forge.BranchHead(c, user, repo, input.Body.Branch)
 		if err != nil {
-			c.String(http.StatusBadRequest, "Error inserting cron. branch not resolved: %s", err)
-			return
+			return nil, huma.Error400BadRequest(fmt.Sprintf("Error inserting cron. branch not resolved: %s", err))
 		}
-		cron.Branch = in.Branch
+		cron.Branch = input.Body.Branch
 	}
-	if in.Schedule != "" {
-		cron.Schedule = in.Schedule
-		nextExec, err := cronScheduler.CalcNewNext(in.Schedule, time.Now())
+	if input.Body.Schedule != "" {
+		cron.Schedule = input.Body.Schedule
+		nextExec, err := cronScheduler.CalcNewNext(input.Body.Schedule, time.Now())
 		if err != nil {
-			c.String(http.StatusBadRequest, "Error inserting cron. schedule could not parsed: %s", err)
-			return
+			return nil, huma.Error400BadRequest(fmt.Sprintf("Error inserting cron. schedule could not parsed: %s", err))
 		}
 		cron.NextExec = nextExec.Unix()
 	}
-	if in.Name != "" {
-		cron.Name = in.Name
+	if input.Body.Name != "" {
+		cron.Name = input.Body.Name
 	}
 	cron.CreatorID = user.ID
 
 	if err := cron.Validate(); err != nil {
-		c.String(http.StatusUnprocessableEntity, "Error inserting cron. validate failed: %s", err)
-		return
+		return nil, huma.Error422UnprocessableEntity(fmt.Sprintf("Error inserting cron. validate failed: %s", err))
 	}
 	if err := _store.CronUpdate(repo, cron); err != nil {
-		c.String(http.StatusInternalServerError, "Error updating cron %q. %s", in.Name, err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error updating cron %q. %s", input.Body.Name, err))
 	}
-	c.JSON(http.StatusOK, cron)
+	return &PatchCronOutput{Body: cron}, nil
 }
 
-// GetCronList
-//
-//	@Summary	List cron jobs
-//	@Router		/repos/{repo_id}/cron [get]
-//	@Produce	json
-//	@Success	200	{array}	Cron
-//	@Tags		Repository cron jobs
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-//	@Param		page			query	int		false	"for response pagination, page offset number"	default(1)
-//	@Param		perPage			query	int		false	"for response pagination, max items per page"	default(50)
-func GetCronList(c *gin.Context) {
-	repo := session.Repo(c)
-	list, err := store.FromContext(c).CronList(repo, session.Pagination(c))
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Error getting cron list. %s", err)
-		return
-	}
-	c.JSON(http.StatusOK, list)
+type GetCronListInput struct {
+	PaginationParams
+	RepoID int64 `path:"repo_id" doc:"the repository id"`
 }
 
-// DeleteCron
-//
-//	@Summary	Delete a cron job
-//	@Router		/repos/{repo_id}/cron/{cron} [delete]
-//	@Produce	plain
-//	@Success	204
-//	@Tags		Repository cron jobs
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-//	@Param		cron			path	string	true	"the cron job id"
-func DeleteCron(c *gin.Context) {
+type GetCronListOutput struct {
+	Body []*model.Cron
+}
+
+func GetCronList(ctx context.Context, input *GetCronListInput) (*GetCronListOutput, error) {
+	c := ginCtx(ctx)
 	repo := session.Repo(c)
-	id, err := strconv.ParseInt(c.Param("cron"), 10, 64)
+	list, err := store.FromContext(c).CronList(repo, &model.ListOptions{Page: input.Page, PerPage: input.PerPage})
 	if err != nil {
-		c.String(http.StatusBadRequest, "Error parsing cron id. %s", err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error getting cron list. %s", err))
 	}
-	if err := store.FromContext(c).CronDelete(repo, id); err != nil {
-		handleDBError(c, err)
-		return
+	return &GetCronListOutput{Body: list}, nil
+}
+
+type DeleteCronInput struct {
+	RepoID int64 `path:"repo_id" doc:"the repository id"`
+	Cron   int64 `path:"cron" doc:"the cron job id"`
+}
+
+func DeleteCron(ctx context.Context, input *DeleteCronInput) (*struct{}, error) {
+	c := ginCtx(ctx)
+	repo := session.Repo(c)
+	if err := store.FromContext(c).CronDelete(repo, input.Cron); err != nil {
+		return nil, dbErr(err)
 	}
-	c.Status(http.StatusNoContent)
+	return nil, nil
 }

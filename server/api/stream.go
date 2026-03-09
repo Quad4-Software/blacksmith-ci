@@ -42,14 +42,7 @@ const (
 	maxQueuedBatchesPerClient int = 30
 )
 
-// EventStreamSSE
-//
-//	@Summary		Stream events like pipeline updates
-//	@Description	With quic and http2 support
-//	@Router			/stream/events [get]
-//	@Produce		plain
-//	@Success		200
-//	@Tags			Events
+// EventStreamSSE streams events like pipeline updates via Server-Sent Events.
 func EventStreamSSE(c *gin.Context) {
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-store")
@@ -130,16 +123,7 @@ func EventStreamSSE(c *gin.Context) {
 	}
 }
 
-// LogStreamSSE
-//
-//	@Summary	Stream logs of a pipeline step
-//	@Router		/stream/logs/{repo_id}/{pipeline}/{stepID} [get]
-//	@Produce	plain
-//	@Success	200
-//	@Tags		Pipeline logs
-//	@Param		repo_id		path	int	true	"the repository id"
-//	@Param		pipeline	path	int	true	"the number of the pipeline"
-//	@Param		stepID		path	int	true	"the step id"
+// LogStreamSSE streams logs of a pipeline step via Server-Sent Events.
 func LogStreamSSE(c *gin.Context) {
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")

@@ -15,167 +15,139 @@
 package api
 
 import (
-	"net/http"
+	"context"
+	"fmt"
 
-	"github.com/gin-gonic/gin"
+	"github.com/danielgtaylor/huma/v2"
 
 	"codefloe.com/crowci/crow/v5/server"
 	"codefloe.com/crowci/crow/v5/server/model"
 	"codefloe.com/crowci/crow/v5/server/router/middleware/session"
 )
 
-// GetRegistry
-//
-//	@Summary	Get a registry by name
-//	@Router		/repos/{repo_id}/registries/{registry} [get]
-//	@Produce	json
-//	@Success	200	{object}	Registry
-//	@Tags		Repository registries
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-//	@Param		registry		path	string	true	"the registry name"
-func GetRegistry(c *gin.Context) {
-	repo := session.Repo(c)
-	addr := c.Param("registry")
-
-	registryService := server.Config.Services.Manager.RegistryServiceFromRepo(repo)
-	registry, err := registryService.RegistryFind(repo, addr)
-	if err != nil {
-		handleDBError(c, err)
-		return
-	}
-	c.JSON(http.StatusOK, registry.Copy())
+type GetRegistryInput struct {
+	RepoID   int64  `path:"repo_id" doc:"the repository id"`
+	Registry string `path:"registry" doc:"the registry name"`
 }
 
-// PostRegistry
-//
-//	@Summary	Create a registry
-//	@Router		/repos/{repo_id}/registries [post]
-//	@Produce	json
-//	@Success	200	{object}	Registry
-//	@Tags		Repository registries
-//	@Param		Authorization	header	string		true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int			true	"the repository id"
-//	@Param		registry		body	Registry	true	"the new registry data"
-func PostRegistry(c *gin.Context) {
+type GetRegistryOutput struct {
+	Body *model.Registry
+}
+
+func GetRegistry(ctx context.Context, input *GetRegistryInput) (*GetRegistryOutput, error) {
+	c := ginCtx(ctx)
 	repo := session.Repo(c)
 
-	in := new(model.Registry)
-	if err := c.Bind(in); err != nil {
-		c.String(http.StatusBadRequest, "Error parsing request. %s", err)
-		return
+	registryService := server.Config.Services.Manager.RegistryServiceFromRepo(repo)
+	registry, err := registryService.RegistryFind(repo, input.Registry)
+	if err != nil {
+		return nil, dbErr(err)
 	}
+	return &GetRegistryOutput{Body: registry.Copy()}, nil
+}
+
+type PostRegistryInput struct {
+	RepoID int64 `path:"repo_id" doc:"the repository id"`
+	Body   model.Registry
+}
+
+type PostRegistryOutput struct {
+	Body *model.Registry
+}
+
+func PostRegistry(ctx context.Context, input *PostRegistryInput) (*PostRegistryOutput, error) {
+	c := ginCtx(ctx)
+	repo := session.Repo(c)
+
 	registry := &model.Registry{
 		RepoID:   repo.ID,
-		Address:  in.Address,
-		Username: in.Username,
-		Password: in.Password,
+		Address:  input.Body.Address,
+		Username: input.Body.Username,
+		Password: input.Body.Password,
 	}
 	if err := registry.Validate(); err != nil {
-		c.String(http.StatusBadRequest, "Error inserting registry. %s", err)
-		return
+		return nil, huma.Error400BadRequest(fmt.Sprintf("Error inserting registry. %s", err))
 	}
 
 	registryService := server.Config.Services.Manager.RegistryServiceFromRepo(repo)
 	if err := registryService.RegistryCreate(repo, registry); err != nil {
-		c.String(http.StatusInternalServerError, "Error inserting registry %q. %s", in.Address, err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error inserting registry %q. %s", input.Body.Address, err))
 	}
-	c.JSON(http.StatusOK, in.Copy())
+	return &PostRegistryOutput{Body: input.Body.Copy()}, nil
 }
 
-// PatchRegistry
-//
-//	@Summary	Update a registry by name
-//	@Router		/repos/{repo_id}/registries/{registry} [patch]
-//	@Produce	json
-//	@Success	200	{object}	Registry
-//	@Tags		Repository registries
-//	@Param		Authorization	header	string		true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int			true	"the repository id"
-//	@Param		registry		path	string		true	"the registry name"
-//	@Param		registryData	body	Registry	true	"the attributes for the registry"
-func PatchRegistry(c *gin.Context) {
-	repo := session.Repo(c)
-	addr := c.Param("registry")
+type PatchRegistryInput struct {
+	RepoID   int64  `path:"repo_id" doc:"the repository id"`
+	Registry string `path:"registry" doc:"the registry name"`
+	Body     model.Registry
+}
 
-	in := new(model.Registry)
-	err := c.Bind(in)
-	if err != nil {
-		c.String(http.StatusBadRequest, "Error parsing request. %s", err)
-		return
-	}
+type PatchRegistryOutput struct {
+	Body *model.Registry
+}
+
+func PatchRegistry(ctx context.Context, input *PatchRegistryInput) (*PatchRegistryOutput, error) {
+	c := ginCtx(ctx)
+	repo := session.Repo(c)
 
 	registryService := server.Config.Services.Manager.RegistryServiceFromRepo(repo)
-	registry, err := registryService.RegistryFind(repo, addr)
+	registry, err := registryService.RegistryFind(repo, input.Registry)
 	if err != nil {
-		handleDBError(c, err)
-		return
+		return nil, dbErr(err)
 	}
-	if in.Username != "" {
-		registry.Username = in.Username
+	if input.Body.Username != "" {
+		registry.Username = input.Body.Username
 	}
-	if in.Password != "" {
-		registry.Password = in.Password
+	if input.Body.Password != "" {
+		registry.Password = input.Body.Password
 	}
 
 	if err := registry.Validate(); err != nil {
-		c.String(http.StatusUnprocessableEntity, "Error updating registry. %s", err)
-		return
+		return nil, huma.Error422UnprocessableEntity(fmt.Sprintf("Error updating registry. %s", err))
 	}
 	if err := registryService.RegistryUpdate(repo, registry); err != nil {
-		c.String(http.StatusInternalServerError, "Error updating registry %q. %s", in.Address, err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error updating registry %q. %s", input.Body.Address, err))
 	}
-	c.JSON(http.StatusOK, in.Copy())
+	return &PatchRegistryOutput{Body: input.Body.Copy()}, nil
 }
 
-// GetRegistryList
-//
-//	@Summary	List registries
-//	@Router		/repos/{repo_id}/registries [get]
-//	@Produce	json
-//	@Success	200	{array}	Registry
-//	@Tags		Repository registries
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-//	@Param		page			query	int		false	"for response pagination, page offset number"	default(1)
-//	@Param		perPage			query	int		false	"for response pagination, max items per page"	default(50)
-func GetRegistryList(c *gin.Context) {
+type GetRegistryListInput struct {
+	PaginationParams
+	RepoID int64 `path:"repo_id" doc:"the repository id"`
+}
+
+type GetRegistryListOutput struct {
+	Body []*model.Registry
+}
+
+func GetRegistryList(ctx context.Context, input *GetRegistryListInput) (*GetRegistryListOutput, error) {
+	c := ginCtx(ctx)
 	repo := session.Repo(c)
 	registryService := server.Config.Services.Manager.RegistryServiceFromRepo(repo)
-	list, err := registryService.RegistryList(repo, session.Pagination(c))
+	list, err := registryService.RegistryList(repo, &model.ListOptions{Page: input.Page, PerPage: input.PerPage})
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error getting registry list. %s", err)
-		return
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error getting registry list. %s", err))
 	}
 	// copy the registry detail to remove the sensitive
 	// password and token fields.
 	for i, registry := range list {
 		list[i] = registry.Copy()
 	}
-	c.JSON(http.StatusOK, list)
+	return &GetRegistryListOutput{Body: list}, nil
 }
 
-// DeleteRegistry
-//
-//	@Summary	Delete a registry by name
-//	@Router		/repos/{repo_id}/registries/{registry} [delete]
-//	@Produce	plain
-//	@Success	204
-//	@Tags		Repository registries
-//	@Param		Authorization	header	string	true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param		repo_id			path	int		true	"the repository id"
-//	@Param		registry		path	string	true	"the registry name"
-func DeleteRegistry(c *gin.Context) {
+type DeleteRegistryInput struct {
+	RepoID   int64  `path:"repo_id" doc:"the repository id"`
+	Registry string `path:"registry" doc:"the registry name"`
+}
+
+func DeleteRegistry(ctx context.Context, input *DeleteRegistryInput) (*struct{}, error) {
+	c := ginCtx(ctx)
 	repo := session.Repo(c)
-	addr := c.Param("registry")
 
 	registryService := server.Config.Services.Manager.RegistryServiceFromRepo(repo)
-	err := registryService.RegistryDelete(repo, addr)
-	if err != nil {
-		handleDBError(c, err)
-		return
+	if err := registryService.RegistryDelete(repo, input.Registry); err != nil {
+		return nil, dbErr(err)
 	}
-	c.Status(http.StatusNoContent)
+	return nil, nil
 }

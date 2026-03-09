@@ -15,50 +15,45 @@
 package api
 
 import (
-	"net/http"
+	"context"
 	"sort"
 	"strconv"
 	"strings"
 
-	"github.com/gin-gonic/gin"
+	"github.com/danielgtaylor/huma/v2"
 
 	"codefloe.com/crowci/crow/v5/server/model"
 	"codefloe.com/crowci/crow/v5/server/store"
 )
 
-// GetEntities
-//
-//	@Summary		List all entities (users and organizations)
-//	@Description	Returns a combined list of users and organizations for admin management. Requires admin rights.
-//	@Router			/entities [get]
-//	@Produce		json
-//	@Success		200	{array}	Entity
-//	@Tags			Admin
-//	@Param			Authorization	header	string	true	"Insert your personal access token"				default(Bearer <personal access token>)
-//	@Param			page			query	int		false	"for response pagination, page offset number"	default(1)
-//	@Param			perPage			query	int		false	"for response pagination, max items per page"	default(15)
-//	@Param			entity_type		query	string	false	"filter by entity type (user, org, or comma-separated)"
-//	@Param			is_admin		query	string	false	"filter by admin status (true, false, or empty for all)"
-//	@Param			search			query	string	false	"search term for name/login/email"
-func GetEntities(c *gin.Context) {
+type GetEntitiesInput struct {
+	Page       int    `query:"page" default:"1" minimum:"1" doc:"for response pagination, page offset number"`
+	PerPage    int    `query:"perPage" default:"15" minimum:"1" maximum:"50" doc:"for response pagination, max items per page"`
+	EntityType string `query:"entity_type" doc:"filter by entity type (user, org, or comma-separated)"`
+	IsAdmin    string `query:"is_admin" doc:"filter by admin status (true, false, or empty for all)"`
+	Search     string `query:"search" doc:"search term for name/login/email"`
+}
+
+type GetEntitiesOutput struct {
+	Body []*model.Entity
+}
+
+func GetEntities(ctx context.Context, input *GetEntitiesInput) (*GetEntitiesOutput, error) {
+	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 
 	// Parse query parameters
-	entityTypesParam := c.Query("entity_type")
-	isAdminParam := c.Query("is_admin")
-	searchParam := strings.ToLower(strings.TrimSpace(c.Query("search")))
+	searchParam := strings.ToLower(strings.TrimSpace(input.Search))
 
 	// Fetch all users and orgs (we'll filter and paginate after merging)
 	users, err := _store.GetUserList(&model.ListOptions{All: true})
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error getting user list: %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error getting user list", err)
 	}
 
 	orgs, err := _store.OrgList(&model.ListOptions{All: true})
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error getting org list: %s", err)
-		return
+		return nil, huma.Error500InternalServerError("Error getting org list", err)
 	}
 
 	// Convert to entities
@@ -66,8 +61,8 @@ func GetEntities(c *gin.Context) {
 
 	// Parse entity type filter
 	entityTypes := make(map[model.EntityType]bool)
-	if entityTypesParam != "" {
-		for _, et := range strings.Split(entityTypesParam, ",") {
+	if input.EntityType != "" {
+		for _, et := range strings.Split(input.EntityType, ",") {
 			et = strings.TrimSpace(et)
 			switch et {
 			case "user":
@@ -80,8 +75,8 @@ func GetEntities(c *gin.Context) {
 
 	// Parse admin filter
 	var isAdminFilter *bool
-	if isAdminParam != "" {
-		if val, err := strconv.ParseBool(isAdminParam); err == nil {
+	if input.IsAdmin != "" {
+		if val, err := strconv.ParseBool(input.IsAdmin); err == nil {
 			isAdminFilter = &val
 		}
 	}
@@ -132,18 +127,8 @@ func GetEntities(c *gin.Context) {
 	})
 
 	// Apply pagination
-	page := 1
-	perPage := 15
-	if pageStr := c.Query("page"); pageStr != "" {
-		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
-			page = p
-		}
-	}
-	if perPageStr := c.Query("perPage"); perPageStr != "" {
-		if pp, err := strconv.Atoi(perPageStr); err == nil && pp > 0 && pp <= 50 {
-			perPage = pp
-		}
-	}
+	page := input.Page
+	perPage := input.PerPage
 
 	// Calculate pagination bounds
 	totalEntities := len(entities)
@@ -152,8 +137,7 @@ func GetEntities(c *gin.Context) {
 
 	// Ensure bounds are valid
 	if startIdx >= totalEntities {
-		c.JSON(http.StatusOK, []*model.Entity{})
-		return
+		return &GetEntitiesOutput{Body: []*model.Entity{}}, nil
 	}
 	if endIdx > totalEntities {
 		endIdx = totalEntities
@@ -161,5 +145,5 @@ func GetEntities(c *gin.Context) {
 
 	// Return paginated results
 	paginatedEntities := entities[startIdx:endIdx]
-	c.JSON(http.StatusOK, paginatedEntities)
+	return &GetEntitiesOutput{Body: paginatedEntities}, nil
 }

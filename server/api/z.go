@@ -24,14 +24,7 @@ import (
 	"codefloe.com/crowci/crow/v5/version"
 )
 
-// Version
-//
-//	@Summary		Get version
-//	@Description	Endpoint returns the server version and build information.
-//	@Router			/version [get]
-//	@Produce		json
-//	@Success		200	{object}	object{source=string,version=string}
-//	@Tags			System
+// Version serves the server version (registered on the base route, not the API).
 func Version(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"source":  "https://codeberg.org/crowci/crow",
@@ -39,30 +32,14 @@ func Version(c *gin.Context) {
 	})
 }
 
-// LogLevel
-//
-//	@Summary		Current log level
-//	@Description	Endpoint returns the current logging level. Requires admin rights.
-//	@Router			/log-level [get]
-//	@Produce		json
-//	@Success		200	{object}	object{log-level=string}
-//	@Tags			System
+// LogLevel serves the current log level (registered on the base route, not the API).
 func LogLevel(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"log-level": zerolog.GlobalLevel().String(),
 	})
 }
 
-// SetLogLevel
-//
-//	@Summary		Set log level
-//	@Description	Endpoint sets the current logging level. Requires admin rights.
-//	@Router			/log-level [post]
-//	@Produce		json
-//	@Success		200	{object}	object{log-level=string}
-//	@Tags			System
-//	@Param			Authorization	header	string						true	"Insert your personal access token"	default(Bearer <personal access token>)
-//	@Param			log-level		body	object{log-level=string}	true	"the new log level, one of <debug,trace,info,warn,error,fatal,panic,disabled>"
+// SetLogLevel sets the current log level (registered on the base route, not the API).
 func SetLogLevel(c *gin.Context) {
 	logLevel := struct {
 		LogLevel string `json:"log-level"`
