@@ -31,8 +31,14 @@ import (
 	"codefloe.com/crowci/crow/v5/server/store/types"
 )
 
-// getForgeTokenStatus determines the status of a forge connection based on token expiry.
-func getForgeTokenStatus(expiry int64) UserForgeStatus {
+// getForgeTokenStatus determines the status of a forge connection based on token state.
+// A forge is considered expired if the access token is empty (tokens were cleared)
+// or if the token expiry time has passed.
+func getForgeTokenStatus(accessToken string, expiry int64) UserForgeStatus {
+	if accessToken == "" {
+		return UserForgeStatusExpired
+	}
+
 	if expiry == 0 {
 		// No expiry set - assume active (some forges don't use expiring tokens)
 		return UserForgeStatusActive
@@ -103,7 +109,7 @@ func GetUserForges(c *gin.Context) {
 			ForgeAvatar: uf.ForgeAvatar,
 			LinkedAt:    uf.LinkedAt,
 			LastUsed:    uf.LastUsed,
-			Status:      getForgeTokenStatus(uf.Expiry),
+			Status:      getForgeTokenStatus(uf.AccessToken, uf.Expiry),
 			Expiry:      uf.Expiry,
 		}
 
@@ -160,7 +166,7 @@ func GetUserForge(c *gin.Context) {
 		ForgeAvatar: userForge.ForgeAvatar,
 		LinkedAt:    userForge.LinkedAt,
 		LastUsed:    userForge.LastUsed,
-		Status:      getForgeTokenStatus(userForge.Expiry),
+		Status:      getForgeTokenStatus(userForge.AccessToken, userForge.Expiry),
 		Expiry:      userForge.Expiry,
 	}
 

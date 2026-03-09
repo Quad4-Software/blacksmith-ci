@@ -76,7 +76,7 @@ const config = useConfig();
 
 const userForges = ref<UserForge[]>([]);
 
-const expiredForges = computed(() => userForges.value.filter((uf) => uf.status === 'expired' && !uf.is_primary));
+const expiredForges = computed(() => userForges.value.filter((uf) => uf.status === 'expired'));
 
 const tooltipText = computed(() => {
   return t('navbar.forge_auth_expired_tooltip', { count: expiredForges.value.length });
