@@ -17,7 +17,7 @@ PROTOC_VERSION := "34.0"
 # renovate: datasource=go depName=mvdan.cc/gofumpt
 GOFUMPT_VERSION := "v0.9.2"
 # renovate: datasource=go depName=github.com/daixiang0/gci
-GCI_VERSION := "v0.13.7"
+GCI_VERSION := "v0.14.0"
 # renovate: datasource=go depName=github.com/vektra/mockery/v3
 MOCKERY_VERSION := "v3.7.0"
 # renovate: datasource=go depName=github.com/google/addlicense
