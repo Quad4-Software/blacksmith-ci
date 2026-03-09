@@ -44,6 +44,9 @@ import type {
   ImportPreviewResponse,
   Secret,
   SecretWithOrg,
+  NotificationConfig,
+  SMTPStatus,
+  SMTPTestResult,
   UnlinkForgeResponse,
   User,
   UserForge,
@@ -754,5 +757,26 @@ export default class CrowClient extends ApiClient {
 
   async getIntegrationTypes(): Promise<IntegrationTypeInfo[]> {
     return this._get('/api/v1/integrations/types') as Promise<IntegrationTypeInfo[]>;
+  }
+
+  // Notification API methods
+  async getRepoNotificationConfig(repoId: number): Promise<NotificationConfig> {
+    return this._get(`/api/v1/repos/${repoId}/notification`) as Promise<NotificationConfig>;
+  }
+
+  async saveRepoNotificationConfig(repoId: number, config: Partial<NotificationConfig>): Promise<NotificationConfig> {
+    return this._put(`/api/v1/repos/${repoId}/notification`, config) as Promise<NotificationConfig>;
+  }
+
+  async deleteRepoNotificationConfig(repoId: number): Promise<void> {
+    return this._delete(`/api/v1/repos/${repoId}/notification`) as Promise<void>;
+  }
+
+  async getAdminSMTPStatus(): Promise<SMTPStatus> {
+    return this._get('/api/v1/admin/notifications/smtp') as Promise<SMTPStatus>;
+  }
+
+  async testAdminSMTP(): Promise<SMTPTestResult> {
+    return this._post('/api/v1/admin/notifications/test') as Promise<SMTPTestResult>;
   }
 }

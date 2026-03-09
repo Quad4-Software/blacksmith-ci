@@ -729,6 +729,33 @@ var flags = append([]cli.Flag{
 		Usage:   "Duration after which agents are considered stale (e.g., 24h for 1 day)",
 		Value:   "24h",
 	},
+	// SMTP notification flags
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_SMTP_HOST"),
+		Name:    "smtp-host",
+		Usage:   "SMTP server hostname for email notifications",
+	},
+	&cli.IntFlag{
+		Sources: cli.EnvVars("CROW_SMTP_PORT"),
+		Name:    "smtp-port",
+		Usage:   "SMTP server port (25, 465, or 587)",
+		Value:   587,
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_SMTP_USERNAME"),
+		Name:    "smtp-username",
+		Usage:   "SMTP authentication username",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_SMTP_PASSWORD"),
+		Name:    "smtp-password",
+		Usage:   "SMTP authentication password",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_SMTP_FROM"),
+		Name:    "smtp-from",
+		Usage:   "email address used in the From header of notification emails",
+	},
 }, logger.GlobalLoggerFlags...)
 
 // datasourceDefaultValue returns the default datasource path, checking for

@@ -130,6 +130,12 @@ const routes: RouteRecordRaw[] = [
                 props: true,
               },
               {
+                path: 'notifications',
+                name: 'repo-settings-notifications',
+                component: (): Component => import('~/views/repo/settings/Notifications.vue'),
+                props: true,
+              },
+              {
                 path: 'actions',
                 name: 'repo-settings-actions',
                 component: (): Component => import('~/views/repo/settings/Actions.vue'),
@@ -326,6 +332,12 @@ const routes: RouteRecordRaw[] = [
         path: 'maintenance',
         name: 'admin-settings-maintenance',
         component: (): Component => import('~/views/admin/AdminMaintenance.vue'),
+        props: true,
+      },
+      {
+        path: 'notifications',
+        name: 'admin-settings-notifications',
+        component: (): Component => import('~/views/admin/AdminNotifications.vue'),
         props: true,
       },
     ],

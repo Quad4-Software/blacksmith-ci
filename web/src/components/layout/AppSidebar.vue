@@ -226,6 +226,19 @@
                     </router-link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    as-child
+                    :tooltip="$t('admin.settings.notifications.notifications')"
+                    :is-active="isActive('admin-settings-notifications')"
+                  >
+                    <router-link :to="{ name: 'admin-settings-notifications' }">
+                      <Icon name="email-outline" class="size-4" />
+                      <span>{{ $t('admin.settings.notifications.notifications') }}</span>
+                    </router-link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </CollapsibleContent>

@@ -91,6 +91,8 @@ var crowMigrations = []string{
 	"crow-add-allow-manual-to-repos",
 	"crow-add-workflow-rerun-fields",
 	"crow-add-approved-pull-requests",
+	"crow-add-cron-failure-tracking",
+	"crow-add-notification-configs",
 }
 
 // allKnownMigrations returns a combined list of all known migration IDs.

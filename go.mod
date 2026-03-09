@@ -54,6 +54,7 @@ require (
 	github.com/tink-crypto/tink-go/v2 v2.6.0
 	github.com/urfave/cli-docs/v3 v3.1.0
 	github.com/urfave/cli/v3 v3.7.0
+	github.com/wneessen/go-mail v0.7.2
 	github.com/yaronf/httpsign v0.4.2
 	gitlab.com/gitlab-org/api/client-go v1.46.0
 	go.uber.org/multierr v1.11.0

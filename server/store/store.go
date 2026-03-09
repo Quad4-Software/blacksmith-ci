@@ -262,6 +262,11 @@ type Store interface {
 	IntegrationUpdate(*model.Integration) error
 	IntegrationDelete(*model.Integration) error
 
+	// Notification Configs
+	NotificationConfigFind(repoID int64) (*model.NotificationConfig, error)
+	NotificationConfigUpsert(*model.NotificationConfig) error
+	NotificationConfigDelete(repoID int64) error
+
 	// Maintenance
 	MaintenanceConfigGet() (*model.MaintenanceConfig, error)
 	MaintenanceConfigUpdate(*model.MaintenanceConfig) error

@@ -7,6 +7,7 @@ export * from './forge';
 export * from './integration';
 export * from './maintenance';
 export * from './metrics';
+export * from './notification';
 export * from './org';
 export * from './pipeline';
 export * from './pipelineConfig';

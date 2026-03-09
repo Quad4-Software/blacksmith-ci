@@ -410,6 +410,19 @@
           "notify_text_confirm": "All stored data (runs, logs, etc.) will be lost when proceeding!\n\nDo you want to proceed?",
           "notify_text_success": "Repository successfully deleted"
         }
+      },
+      "notifications": {
+        "notifications": "Notifications",
+        "enable_email": "Enable email notifications",
+        "enable_email_desc": "Send an email to the commit author when a pipeline event occurs.",
+        "events": "Notify on",
+        "event_success": "Success",
+        "event_failure": "Failure",
+        "event_status_change": "Status change",
+        "event_status_change_desc": "Notify when the pipeline status changes (e.g. from success to failure or vice versa).",
+        "save": "Save",
+        "saved": "Notification settings saved",
+        "smtp_not_configured": "SMTP is not configured by the server administrator. Email notifications are unavailable."
       }
     },
     "pipeline": {
@@ -889,6 +902,19 @@
         "action_log": "Action Log",
         "wipe_log": "Wipe Log",
         "load_more": "Load More"
+      },
+      "notifications": {
+        "notifications": "Notifications",
+        "smtp_status": "SMTP Configuration",
+        "not_configured": "SMTP is not configured. Set CROW_SMTP_HOST, CROW_SMTP_PORT, CROW_SMTP_FROM, and optionally CROW_SMTP_USERNAME / CROW_SMTP_PASSWORD environment variables.",
+        "configured": "SMTP is configured and ready to send email notifications.",
+        "host": "Host:",
+        "port": "Port:",
+        "from": "From address:",
+        "test": "Send test email",
+        "testing": "Sending...",
+        "test_success": "Test email sent successfully",
+        "test_failed": "Test email failed"
       },
       "version": {
         "update": "available"

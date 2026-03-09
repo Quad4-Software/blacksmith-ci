@@ -328,7 +328,7 @@ func (s *RPC) Init(c context.Context, strWorkflowID string, state rpc.WorkflowSt
 }
 
 // Done marks the workflow with the given ID as done.
-func (s *RPC) Done(c context.Context, strWorkflowID string, state rpc.WorkflowState) error {
+func (s *RPC) Done(c context.Context, strWorkflowID string, state rpc.WorkflowState) error { //nolint:contextcheck // email notification intentionally uses context.Background() to outlive the gRPC call
 	workflowID, err := strconv.ParseInt(strWorkflowID, 10, 64)
 	if err != nil {
 		return err
@@ -418,6 +418,19 @@ func (s *RPC) Done(c context.Context, strWorkflowID string, state rpc.WorkflowSt
 
 	if err := s.notify(repo, currentPipeline); err != nil {
 		return err
+	}
+
+	// Email notification: only dispatch when the pipeline has reached a terminal state
+	// (all workflows finished). Uses context.Background() intentionally because the
+	// parent gRPC context is canceled when Done() returns.
+	if notifySvc := server.Config.Services.NotificationService; notifySvc != nil && !model.IsThereRunningStage(currentPipeline.Workflows) {
+		prevStatus := s.loadPreviousPipelineStatus(repo, currentPipeline)
+		notifyCtx := context.Background()
+		go func() {
+			if err := notifySvc.Dispatch(notifyCtx, repo, currentPipeline, prevStatus); err != nil {
+				logger.Error().Err(err).Msg("email notification dispatch failed")
+			}
+		}()
 	}
 
 	if currentPipeline.Status == model.StatusSuccess || currentPipeline.Status == model.StatusFailure {
@@ -765,6 +778,14 @@ func (s *RPC) updateForgeStatus(ctx context.Context, repo *model.Repo, pipeline 
 			log.Error().Err(err).Msgf("error setting commit status for %s/%d", repo.FullName, pipeline.Number)
 		}
 	}
+}
+
+func (s *RPC) loadPreviousPipelineStatus(repo *model.Repo, pipeline *model.Pipeline) model.StatusValue {
+	prev, err := s.store.GetPipelineLastBefore(repo, pipeline.Branch, pipeline.Number)
+	if err != nil || prev == nil {
+		return ""
+	}
+	return prev.Status
 }
 
 func (s *RPC) notify(repo *model.Repo, pipeline *model.Pipeline) (err error) {

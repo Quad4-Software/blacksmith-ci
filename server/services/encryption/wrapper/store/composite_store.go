@@ -964,6 +964,19 @@ func (c *CompositeEncryptedStore) UserForgeListAll() ([]*model.UserForge, error)
 	return c.userForgeStore.UserForgeListAll()
 }
 
+// Notification Configs.
+func (c *CompositeEncryptedStore) NotificationConfigFind(repoID int64) (*model.NotificationConfig, error) {
+	return c.baseStore.NotificationConfigFind(repoID)
+}
+
+func (c *CompositeEncryptedStore) NotificationConfigUpsert(config *model.NotificationConfig) error {
+	return c.baseStore.NotificationConfigUpsert(config)
+}
+
+func (c *CompositeEncryptedStore) NotificationConfigDelete(repoID int64) error {
+	return c.baseStore.NotificationConfigDelete(repoID)
+}
+
 // Approved Pull Requests.
 func (c *CompositeEncryptedStore) ApprovedPullRequestFind(repoID int64, ref string) (*model.ApprovedPullRequest, error) {
 	return c.baseStore.ApprovedPullRequestFind(repoID, ref)

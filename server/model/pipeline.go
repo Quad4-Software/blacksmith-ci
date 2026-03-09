@@ -55,6 +55,7 @@ type Pipeline struct {
 	FromFork            bool                   `json:"from_fork,omitempty"     xorm:"from_fork"`
 	LogsDeleted         bool                   `json:"logs_deleted,omitempty"  xorm:"logs_deleted"`
 	IsAlwaysApproved    bool                   `json:"is_always_approved,omitempty" xorm:"-"`
+	NotifyOverride      *NotifyYAMLConfig      `json:"notify_override,omitempty"   xorm:"json 'notify_override'"`
 } //	@name	Pipeline
 
 // TableName return database table name for xorm.

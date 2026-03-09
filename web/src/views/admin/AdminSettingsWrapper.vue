@@ -99,6 +99,12 @@
       :to="{ name: 'admin-settings-metrics' }"
       :title="$t('admin.settings.metrics.metrics')"
     />
+    <Tab
+      icon="email-outline"
+      icon-size="1rem"
+      :to="{ name: 'admin-settings-notifications' }"
+      :title="$t('admin.settings.notifications.notifications')"
+    />
 
     <router-view />
   </Scaffold>

@@ -46,6 +46,7 @@ import (
 	"codefloe.com/crowci/crow/v5/server/services/log/file"
 	logS3 "codefloe.com/crowci/crow/v5/server/services/log/s3"
 	"codefloe.com/crowci/crow/v5/server/services/maintenance"
+	"codefloe.com/crowci/crow/v5/server/services/notification"
 	"codefloe.com/crowci/crow/v5/server/services/permissions"
 	"codefloe.com/crowci/crow/v5/server/store"
 	"codefloe.com/crowci/crow/v5/server/store/datastore"
@@ -561,6 +562,19 @@ func setupEvilGlobals(ctx context.Context, c *cli.Command, s store.Store) (err e
 
 	// prometheus
 	server.Config.Prometheus.AuthToken = c.String("prometheus-auth-token")
+
+	// SMTP notifications
+	smtpCfg := notification.SMTPConfig{
+		Host:     c.String("smtp-host"),
+		Port:     c.Int("smtp-port"),
+		Username: c.String("smtp-username"),
+		Password: c.String("smtp-password"),
+		From:     c.String("smtp-from"),
+	}
+	if smtpCfg.IsConfigured() {
+		server.Config.Services.NotificationService = notification.NewService(s, smtpCfg, c.String("server-host"))
+		log.Info().Str("host", smtpCfg.Host).Int("port", smtpCfg.Port).Msg("SMTP notification service configured")
+	}
 
 	// permissions
 	server.Config.Permissions.Open = c.Bool("open")

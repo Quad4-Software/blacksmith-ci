@@ -150,6 +150,7 @@ const iconMap: Record<string, string> = {
   'visibility-private': 'lock',
   'visibility-internal': 'lock-open',
   'mdi-wind-power-outline': 'wind',
+  'email-outline': 'mail',
   graph: 'chart-bar',
   spinner: 'loader-2',
   logout: 'log-out',

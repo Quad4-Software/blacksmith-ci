@@ -7317,6 +7317,170 @@ func (_c *MockStore_Migrate_Call) RunAndReturn(run func(context1 context.Context
 	return _c
 }
 
+// NotificationConfigDelete provides a mock function for the type MockStore
+func (_mock *MockStore) NotificationConfigDelete(repoID int64) error {
+	ret := _mock.Called(repoID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for NotificationConfigDelete")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(int64) error); ok {
+		r0 = returnFunc(repoID)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_NotificationConfigDelete_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'NotificationConfigDelete'
+type MockStore_NotificationConfigDelete_Call struct {
+	*mock.Call
+}
+
+// NotificationConfigDelete is a helper method to define mock.On call
+//   - repoID int64
+func (_e *MockStore_Expecter) NotificationConfigDelete(repoID interface{}) *MockStore_NotificationConfigDelete_Call {
+	return &MockStore_NotificationConfigDelete_Call{Call: _e.mock.On("NotificationConfigDelete", repoID)}
+}
+
+func (_c *MockStore_NotificationConfigDelete_Call) Run(run func(repoID int64)) *MockStore_NotificationConfigDelete_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_NotificationConfigDelete_Call) Return(err error) *MockStore_NotificationConfigDelete_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_NotificationConfigDelete_Call) RunAndReturn(run func(repoID int64) error) *MockStore_NotificationConfigDelete_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// NotificationConfigFind provides a mock function for the type MockStore
+func (_mock *MockStore) NotificationConfigFind(repoID int64) (*model.NotificationConfig, error) {
+	ret := _mock.Called(repoID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for NotificationConfigFind")
+	}
+
+	var r0 *model.NotificationConfig
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64) (*model.NotificationConfig, error)); ok {
+		return returnFunc(repoID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64) *model.NotificationConfig); ok {
+		r0 = returnFunc(repoID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.NotificationConfig)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64) error); ok {
+		r1 = returnFunc(repoID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_NotificationConfigFind_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'NotificationConfigFind'
+type MockStore_NotificationConfigFind_Call struct {
+	*mock.Call
+}
+
+// NotificationConfigFind is a helper method to define mock.On call
+//   - repoID int64
+func (_e *MockStore_Expecter) NotificationConfigFind(repoID interface{}) *MockStore_NotificationConfigFind_Call {
+	return &MockStore_NotificationConfigFind_Call{Call: _e.mock.On("NotificationConfigFind", repoID)}
+}
+
+func (_c *MockStore_NotificationConfigFind_Call) Run(run func(repoID int64)) *MockStore_NotificationConfigFind_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_NotificationConfigFind_Call) Return(notificationConfig *model.NotificationConfig, err error) *MockStore_NotificationConfigFind_Call {
+	_c.Call.Return(notificationConfig, err)
+	return _c
+}
+
+func (_c *MockStore_NotificationConfigFind_Call) RunAndReturn(run func(repoID int64) (*model.NotificationConfig, error)) *MockStore_NotificationConfigFind_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// NotificationConfigUpsert provides a mock function for the type MockStore
+func (_mock *MockStore) NotificationConfigUpsert(notificationConfig *model.NotificationConfig) error {
+	ret := _mock.Called(notificationConfig)
+
+	if len(ret) == 0 {
+		panic("no return value specified for NotificationConfigUpsert")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(*model.NotificationConfig) error); ok {
+		r0 = returnFunc(notificationConfig)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_NotificationConfigUpsert_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'NotificationConfigUpsert'
+type MockStore_NotificationConfigUpsert_Call struct {
+	*mock.Call
+}
+
+// NotificationConfigUpsert is a helper method to define mock.On call
+//   - notificationConfig *model.NotificationConfig
+func (_e *MockStore_Expecter) NotificationConfigUpsert(notificationConfig interface{}) *MockStore_NotificationConfigUpsert_Call {
+	return &MockStore_NotificationConfigUpsert_Call{Call: _e.mock.On("NotificationConfigUpsert", notificationConfig)}
+}
+
+func (_c *MockStore_NotificationConfigUpsert_Call) Run(run func(notificationConfig *model.NotificationConfig)) *MockStore_NotificationConfigUpsert_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.NotificationConfig
+		if args[0] != nil {
+			arg0 = args[0].(*model.NotificationConfig)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_NotificationConfigUpsert_Call) Return(err error) *MockStore_NotificationConfigUpsert_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_NotificationConfigUpsert_Call) RunAndReturn(run func(notificationConfig *model.NotificationConfig) error) *MockStore_NotificationConfigUpsert_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // OrgCreate provides a mock function for the type MockStore
 func (_mock *MockStore) OrgCreate(org *model.Org) error {
 	ret := _mock.Called(org)

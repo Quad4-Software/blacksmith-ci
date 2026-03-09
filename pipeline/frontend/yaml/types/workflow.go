@@ -31,6 +31,13 @@ type (
 		DependsOn []string          `yaml:"depends_on,omitempty"`
 		RunsOn    []string          `yaml:"runs_on,omitempty"`
 		SkipClone bool              `yaml:"skip_clone"`
+		Notify    *NotifyConfig     `yaml:"notify,omitempty"`
+	}
+
+	// NotifyConfig allows per-pipeline notification overrides in .crow.yml.
+	NotifyConfig struct {
+		Disabled bool     `yaml:"disabled,omitempty"`
+		Events   []string `yaml:"events,omitempty"`
 	}
 
 	// Workspace defines a pipeline workspace.

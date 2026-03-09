@@ -31,6 +31,12 @@
     />
     <Tab icon="cron" icon-size="1rem" :to="{ name: 'repo-settings-crons' }" :title="$t('repo.settings.crons.crons')" />
     <Tab icon="tag" icon-size="1rem" :to="{ name: 'repo-settings-badge' }" :title="$t('repo.settings.badge.badge')" />
+    <Tab
+      icon="email-outline"
+      icon-size="1rem"
+      :to="{ name: 'repo-settings-notifications' }"
+      :title="$t('repo.settings.notifications.notifications')"
+    />
 
     <router-view />
   </Scaffold>

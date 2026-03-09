@@ -579,6 +579,23 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 		Security: BearerSecurity, Middlewares: repoPushMW,
 	}, api.DeleteCron)
 
+	// Repo notification config
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-repo-notification-config", Method: http.MethodGet, Path: "/repos/{repo_id}/notification",
+		Summary: "Get repository notification config", Tags: []string{"Repository Notifications"},
+		Security: BearerSecurity, Middlewares: repoAdminMW,
+	}, api.GetRepoNotificationConfig)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "put-repo-notification-config", Method: http.MethodPut, Path: "/repos/{repo_id}/notification",
+		Summary: "Create or update repository notification config", Tags: []string{"Repository Notifications"},
+		Security: BearerSecurity, Middlewares: repoAdminMW,
+	}, api.PutRepoNotificationConfig)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "delete-repo-notification-config", Method: http.MethodDelete, Path: "/repos/{repo_id}/notification",
+		Summary: "Delete repository notification config", Tags: []string{"Repository Notifications"},
+		Security: BearerSecurity, Middlewares: repoAdminMW,
+	}, api.DeleteRepoNotificationConfig)
+
 	// Repo admin operations
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "patch-repo", Method: http.MethodPatch, Path: "/repos/{repo_id}",
@@ -884,6 +901,18 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 		Summary: "Run maintenance now", Tags: []string{"Admin Maintenance"},
 		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
 	}, api.RunMaintenanceNow)
+
+	// ── Admin Notifications ──────────────────────────────────────────────
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-admin-smtp-status", Method: http.MethodGet, Path: "/admin/notifications/smtp",
+		Summary: "Get SMTP notification configuration status", Tags: []string{"Admin Notifications"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.GetAdminSMTPStatus)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "post-admin-smtp-test", Method: http.MethodPost, Path: "/admin/notifications/test",
+		Summary: "Send a test notification email", Tags: []string{"Admin Notifications"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+	}, api.PostAdminTestSMTP)
 
 	// ── Debug (only at debug log level) ──────────────────────────────────
 	if zerolog.GlobalLevel() <= zerolog.DebugLevel {

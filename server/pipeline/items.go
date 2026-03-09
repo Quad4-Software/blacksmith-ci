@@ -107,7 +107,23 @@ func parsePipeline(forge forge.Forge, store store.Store, currentPipeline *model.
 			HTTPSProxy: server.Config.Pipeline.Proxy.HTTPS,
 		},
 	}
-	return b.Build()
+	items, err := b.Build()
+
+	// Propagate YAML notify override to the pipeline model.
+	// Use the first non-nil notify config found across workflows.
+	for _, item := range items {
+		if item.Notify != nil {
+			currentPipeline.NotifyOverride = &model.NotifyYAMLConfig{
+				Disabled: item.Notify.Disabled,
+			}
+			for _, ev := range item.Notify.Events {
+				currentPipeline.NotifyOverride.Events = append(currentPipeline.NotifyOverride.Events, model.NotificationEvent(ev))
+			}
+			break
+		}
+	}
+
+	return items, err
 }
 
 func createPipelineItems(c context.Context, forge forge.Forge, store store.Store,

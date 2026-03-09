@@ -102,6 +102,7 @@ var migrationTasks = []*xormigrate.Migration{
 	&crowAddApprovedPullRequests,
 	&crowAddStaleThreshold,
 	&crowAddCronFailureTracking,
+	&crowAddNotificationConfigs,
 }
 
 var allBeans = []any{
@@ -134,6 +135,7 @@ var allBeans = []any{
 	new(model.Integration),
 	new(model.UserForge),
 	new(model.ApprovedPullRequest),
+	new(model.NotificationConfig),
 }
 
 // TODO: make xormigrate context aware

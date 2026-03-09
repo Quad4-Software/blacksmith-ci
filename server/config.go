@@ -26,6 +26,7 @@ import (
 	"codefloe.com/crowci/crow/v5/server/services"
 	"codefloe.com/crowci/crow/v5/server/services/integration"
 	"codefloe.com/crowci/crow/v5/server/services/log"
+	"codefloe.com/crowci/crow/v5/server/services/notification"
 	"codefloe.com/crowci/crow/v5/server/services/permissions"
 )
 
@@ -41,6 +42,7 @@ var Config = struct {
 		MaintenanceScheduler services.MaintenanceScheduler
 		Store                services.Store
 		IntegrationService   integration.Service
+		NotificationService  notification.Service
 	}
 	Server struct {
 		JWTSecret           string
