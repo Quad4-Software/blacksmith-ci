@@ -51,6 +51,32 @@
               >
                 <TableCell class="font-medium overflow-visible" :title="cron.name">
                   <div class="flex items-center gap-1">
+                    <TooltipProvider v-if="cron.disabled || cron.fail_count > 0">
+                      <Tooltip>
+                        <TooltipTrigger as-child>
+                          <Icon
+                            :name="cron.disabled ? 'lucide:circle-x' : 'lucide:triangle-alert'"
+                            class="size-4 shrink-0"
+                            :class="cron.disabled ? 'text-destructive' : 'text-amber-500'"
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent side="right" class="max-w-xs">
+                          <p v-if="cron.disabled">
+                            {{ $t('repo.settings.crons.disabled_tooltip', { count: cron.fail_count }) }}
+                          </p>
+                          <p v-else>
+                            {{
+                              $t('repo.settings.crons.failing_tooltip', {
+                                count: cron.fail_count,
+                              })
+                            }}
+                          </p>
+                          <p v-if="cron.fail_msg" class="mt-1 text-xs text-muted-foreground font-mono break-all">
+                            {{ cron.fail_msg }}
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                     <span class="truncate min-w-0 flex-1">{{ cron.name }}</span>
                     <TooltipProvider>
                       <Tooltip>

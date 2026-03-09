@@ -101,6 +101,7 @@ var migrationTasks = []*xormigrate.Migration{
 	&crowAddWorkflowRerunFields,
 	&crowAddApprovedPullRequests,
 	&crowAddStaleThreshold,
+	&crowAddCronFailureTracking,
 }
 
 var allBeans = []any{

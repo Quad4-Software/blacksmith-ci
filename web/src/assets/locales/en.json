@@ -379,7 +379,9 @@
         "bulk_delete_success": "Successfully deleted {count} cron(s)",
         "bulk_delete_failed": "Failed to delete {count} cron(s)",
         "bulk_run_success": "Successfully triggered {count} cron(s)",
-        "bulk_run_failed": "Failed to trigger {count} cron(s)"
+        "bulk_run_failed": "Failed to trigger {count} cron(s)",
+        "disabled_tooltip": "Disabled after {count} consecutive auth failures. Use \"Run\" to re-enable.",
+        "failing_tooltip": "{count} consecutive auth failure(s). Will be disabled after 3."
       },
       "badge": {
         "badge": "Badge",

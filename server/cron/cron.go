@@ -16,7 +16,9 @@ package cron
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gdgvda/cron"
@@ -39,6 +41,8 @@ const (
 
 	// Cron scheduler leader election lock name.
 	cronLeaderLock = "cron:scheduler:leader"
+
+	maxAuthFailures = 3 // consecutive auth failures before a cron is disabled
 )
 
 // Run starts the cron scheduler with persistent leadership.
@@ -153,10 +157,64 @@ func runCron(ctx context.Context, store store.Store, cron *model.Cron, now time.
 
 	repo, newPipeline, err := CreatePipeline(ctx, store, cron)
 	if err != nil {
-		return err
+		return trackCronFailure(store, cron, err)
 	}
 
 	_, err = pipeline.Create(ctx, store, repo, newPipeline)
+	if err != nil {
+		return trackCronFailure(store, cron, err)
+	}
+
+	// Success: reset failure state if previously failing
+	if cron.FailCount > 0 {
+		cron.FailCount = 0
+		cron.FailMsg = ""
+		if updateErr := store.CronUpdate(&model.Repo{ID: cron.RepoID}, cron); updateErr != nil {
+			log.Error().Err(updateErr).Int64("cronID", cron.ID).Msg("failed to reset cron failure state")
+		}
+	}
+
+	return nil
+}
+
+// isAuthError returns true if the error is related to authentication/token issues.
+// This covers both the explicit ErrTokenInvalidated (token was cleared from DB)
+// and raw OAuth errors (e.g., "token expired and refresh token is not set").
+func isAuthError(err error) bool {
+	if errors.Is(err, forge.ErrTokenInvalidated) {
+		return true
+	}
+	errStr := err.Error()
+	return strings.Contains(errStr, "token expired") ||
+		strings.Contains(errStr, "refresh token is not set") ||
+		strings.Contains(errStr, "invalid_grant") ||
+		strings.Contains(errStr, "token has been revoked")
+}
+
+// trackCronFailure records a cron execution failure. For auth errors, it increments
+// the fail counter and disables the cron after maxAuthFailures consecutive failures.
+func trackCronFailure(store store.Store, cron *model.Cron, err error) error {
+	if !isAuthError(err) {
+		return err
+	}
+
+	cron.FailCount++
+	cron.FailMsg = err.Error()
+
+	if cron.FailCount >= maxAuthFailures {
+		cron.Disabled = true
+		log.Warn().
+			Int64("cronID", cron.ID).
+			Int64("repoID", cron.RepoID).
+			Str("name", cron.Name).
+			Int("failCount", cron.FailCount).
+			Msg("cron disabled after repeated auth failures")
+	}
+
+	if updateErr := store.CronUpdate(&model.Repo{ID: cron.RepoID}, cron); updateErr != nil {
+		log.Error().Err(updateErr).Int64("cronID", cron.ID).Msg("failed to update cron failure state")
+	}
+
 	return err
 }
 

@@ -29,6 +29,9 @@ type Cron struct {
 	Schedule  string `json:"schedule"   xorm:"schedule NOT NULL"` //	@weekly,	3min, ...
 	Created   int64  `json:"created"    xorm:"created NOT NULL DEFAULT 0"`
 	Branch    string `json:"branch"     xorm:"branch"`
+	FailCount int    `json:"fail_count" xorm:"fail_count NOT NULL DEFAULT 0"`
+	FailMsg   string `json:"fail_msg"   xorm:"fail_msg TEXT"`
+	Disabled  bool   `json:"disabled"   xorm:"disabled NOT NULL DEFAULT false"`
 } //	@name	Cron
 
 // TableName returns the database table name for xorm.

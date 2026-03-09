@@ -842,6 +842,9 @@ function getCronOccurrencesForDate(date: Date): CronOccurrence[] {
         branch: pipeline.branch,
         schedule: '', // No schedule for deleted crons
         next_exec: 0,
+        fail_count: 0,
+        fail_msg: '',
+        disabled: false,
       };
 
       occurrences.push({

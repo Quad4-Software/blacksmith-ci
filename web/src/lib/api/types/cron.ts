@@ -5,6 +5,9 @@ export interface Cron {
   branch: string;
   schedule: string;
   next_exec: number;
+  fail_count: number;
+  fail_msg: string;
+  disabled: boolean;
 }
 
 export interface CronWithRepo extends Cron {

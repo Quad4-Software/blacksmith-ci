@@ -81,6 +81,16 @@ func RunCron(c *gin.Context) {
 		return
 	}
 
+	// Reset failure state on manual trigger so the user can re-enable a disabled cron
+	if cron.Disabled || cron.FailCount > 0 {
+		cron.Disabled = false
+		cron.FailCount = 0
+		cron.FailMsg = ""
+		if err := _store.CronUpdate(repo, cron); err != nil {
+			log.Error().Err(err).Int64("cronID", cron.ID).Msg("failed to reset cron failure state on manual run")
+		}
+	}
+
 	repo, newPipeline, err := cronScheduler.CreatePipeline(c, _store, cron)
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Error creating pipeline for cron %q. %s", id, err)
