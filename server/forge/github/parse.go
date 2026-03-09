@@ -22,7 +22,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v84/github"
 	"github.com/rs/zerolog/log"
 
 	"codefloe.com/crowci/crow/v5/server/forge/types"
