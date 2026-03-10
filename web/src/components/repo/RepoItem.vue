@@ -166,7 +166,7 @@
         </div>
 
         <!-- Power/disable button -->
-        <div class="shrink-0 pr-2 flex items-center" @click.stop>
+        <div class="shrink-0 pr-2 pl-2 flex items-center" @click.stop>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger as-child>
