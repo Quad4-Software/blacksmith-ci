@@ -768,7 +768,10 @@ export default class CrowClient extends ApiClient {
     return this._get(`/api/v1/repos/${repoId}/notification`) as Promise<NotificationConfig>;
   }
 
-  async saveRepoNotificationConfig(repoId: number, config: Partial<NotificationConfig>): Promise<NotificationConfig> {
+  async saveRepoNotificationConfig(
+    repoId: number,
+    config: Pick<NotificationConfig, 'is_enabled' | 'events'>,
+  ): Promise<NotificationConfig> {
     return this._put(`/api/v1/repos/${repoId}/notification`, config) as Promise<NotificationConfig>;
   }
 

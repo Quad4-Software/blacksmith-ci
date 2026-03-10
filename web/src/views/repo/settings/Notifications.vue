@@ -97,7 +97,6 @@ async function saveSettings() {
   isSaving.value = true;
   try {
     await apiClient.saveRepoNotificationConfig(repo.value.id, {
-      repo_id: repo.value.id,
       is_enabled: isEnabled.value,
       events: events.value,
     });
