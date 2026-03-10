@@ -77,12 +77,19 @@ func GetForge(ctx context.Context, input *GetForgeInput) (*GetForgeOutput, error
 	return &GetForgeOutput{Body: forge.PublicCopy()}, nil
 }
 
+type ForgeBody struct {
+	URL               string          `json:"url" doc:"forge URL"`
+	Type              model.ForgeType `json:"type" doc:"forge type"`
+	Client            string          `json:"client,omitempty" doc:"OAuth client ID"`
+	ClientSecret      string          `json:"client_secret,omitempty" doc:"OAuth client secret"`
+	OAuthHost         string          `json:"oauth_host,omitempty" doc:"OAuth host"`
+	SkipVerify        bool            `json:"skip_verify,omitempty" doc:"skip TLS verification"`
+	AdditionalOptions map[string]any  `json:"additional_options,omitempty" doc:"additional forge options"`
+}
+
 type PatchForgeInput struct {
 	ForgeID int64 `path:"forgeId" doc:"the forge's id"`
-	Body    struct {
-		model.Forge
-		ClientSecret string `json:"client_secret"`
-	}
+	Body    ForgeBody
 }
 
 type PatchForgeOutput struct {
@@ -104,7 +111,7 @@ func PatchForge(ctx context.Context, input *PatchForgeInput) (*PatchForgeOutput,
 	forge.SkipVerify = input.Body.SkipVerify
 	forge.AdditionalOptions = input.Body.AdditionalOptions
 	if input.Body.ClientSecret != "" {
-		forge.ClientSecret = input.Body.ClientSecret
+		forge.ClientSecret = input.Body.ClientSecret // only update if provided
 	}
 
 	err = _store.ForgeUpdate(forge)
@@ -116,7 +123,7 @@ func PatchForge(ctx context.Context, input *PatchForgeInput) (*PatchForgeOutput,
 }
 
 type PostForgeInput struct {
-	Body model.Forge
+	Body ForgeBody
 }
 
 type PostForgeOutput struct {

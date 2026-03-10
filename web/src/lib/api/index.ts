@@ -503,7 +503,11 @@ export default class CrowClient extends ApiClient {
   }
 
   async updateAgent(agent: Partial<Agent>): Promise<Agent> {
-    return this._patch(`/api/v1/agents/${agent.id}`, agent) as Promise<Agent>;
+    return this._patch(`/api/v1/agents/${agent.id}`, {
+      name: agent.name,
+      no_schedule: agent.no_schedule,
+      priority: agent.priority,
+    }) as Promise<Agent>;
   }
 
   async deleteAgent(agent: Agent): Promise<unknown> {

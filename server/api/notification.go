@@ -56,9 +56,14 @@ func GetRepoNotificationConfig(ctx context.Context, input *GetRepoNotificationCo
 	return &GetRepoNotificationConfigOutput{Body: config}, nil
 }
 
+type PutNotificationConfigBody struct {
+	IsEnabled bool                      `json:"is_enabled" doc:"whether notifications are enabled"`
+	Events    []model.NotificationEvent `json:"events,omitempty" doc:"events to notify on"`
+}
+
 type PutRepoNotificationConfigInput struct {
 	RepoID int64 `path:"repo_id" doc:"the repository id"`
-	Body   model.NotificationConfig
+	Body   PutNotificationConfigBody
 }
 
 type PutRepoNotificationConfigOutput struct {
@@ -70,8 +75,11 @@ func PutRepoNotificationConfig(ctx context.Context, input *PutRepoNotificationCo
 	_store := store.FromContext(c)
 	repo := session.Repo(c)
 
-	config := &input.Body
-	config.RepoID = repo.ID
+	config := &model.NotificationConfig{
+		RepoID:    repo.ID,
+		IsEnabled: input.Body.IsEnabled,
+		Events:    input.Body.Events,
+	}
 
 	if err := _store.NotificationConfigUpsert(config); err != nil {
 		return nil, huma.Error500InternalServerError(fmt.Sprintf("failed to save notification config: %s", err))

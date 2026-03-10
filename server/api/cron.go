@@ -92,9 +92,21 @@ func RunCron(ctx context.Context, input *RunCronInput) (*RunCronOutput, error) {
 	return &RunCronOutput{Body: pl}, nil
 }
 
+type PostCronBody struct {
+	Name     string `json:"name" minLength:"1" doc:"cron job name"`
+	Schedule string `json:"schedule" minLength:"1" doc:"cron schedule expression"`
+	Branch   string `json:"branch,omitempty" doc:"branch to run cron on"`
+}
+
+type PatchCronBody struct {
+	Name     string `json:"name,omitempty" doc:"cron job name"`
+	Schedule string `json:"schedule,omitempty" doc:"cron schedule expression"`
+	Branch   string `json:"branch,omitempty" doc:"branch to run cron on"`
+}
+
 type PostCronInput struct {
 	RepoID int64 `path:"repo_id" doc:"the repository id"`
-	Body   model.Cron
+	Body   PostCronBody
 }
 
 type PostCronOutput struct {
@@ -161,7 +173,7 @@ func PostCron(ctx context.Context, input *PostCronInput) (*PostCronOutput, error
 type PatchCronInput struct {
 	RepoID int64 `path:"repo_id" doc:"the repository id"`
 	Cron   int64 `path:"cron" doc:"the cron job id"`
-	Body   model.Cron
+	Body   PatchCronBody
 }
 
 type PatchCronOutput struct {

@@ -144,7 +144,7 @@ func TestPatchAgent(t *testing.T) {
 
 		output, err := PatchAgent(testCtx(c), &PatchAgentInput{
 			AgentID: 1,
-			Body:    model.Agent{Name: "updated-agent"},
+			Body:    PatchAgentBody{Name: "updated-agent"},
 		})
 
 		mockStore.AssertCalled(t, "AgentFind", int64(1))
@@ -170,7 +170,7 @@ func TestPostAgent(t *testing.T) {
 		c.Request.Header.Set("Content-Type", "application/json")
 
 		output, err := PostAgent(testCtx(c), &PostAgentInput{
-			Body: model.Agent{Name: "new-agent"},
+			Body: PostAgentBody{Name: "new-agent"},
 		})
 
 		mockStore.AssertCalled(t, "AgentCreate", mock.AnythingOfType("*model.Agent"))
@@ -262,7 +262,7 @@ func TestPostOrgAgent(t *testing.T) {
 
 		output, err := PostOrgAgent(testCtx(c), &PostOrgAgentInput{
 			OrgID: 1,
-			Body:  model.Agent{Name: "new-agent"},
+			Body:  PostAgentBody{Name: "new-agent"},
 		})
 
 		assert.NoError(t, err)

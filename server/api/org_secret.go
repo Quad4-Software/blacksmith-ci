@@ -112,7 +112,7 @@ func GetOrgSecretList(ctx context.Context, input *GetOrgSecretListInput) (*GetOr
 
 type PostOrgSecretInput struct {
 	OrgID int64 `path:"org_id" doc:"the org's id"`
-	Body  model.Secret
+	Body  PostSecretBody
 }
 
 type PostOrgSecretOutput struct {
@@ -153,7 +153,7 @@ func PostOrgSecret(ctx context.Context, input *PostOrgSecretInput) (*PostOrgSecr
 type PatchOrgSecretInput struct {
 	OrgID  int64  `path:"org_id" doc:"the org's id"`
 	Secret string `path:"secret" doc:"the secret's name"`
-	Body   model.Secret
+	Body   PatchSecretBody
 }
 
 type PatchOrgSecretOutput struct {
@@ -184,7 +184,7 @@ func PatchOrgSecret(ctx context.Context, input *PatchOrgSecretInput) (*PatchOrgS
 	}
 
 	if err := secretService.OrgSecretUpdate(org.ID, secret); err != nil {
-		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error updating org %d secret %q", org.ID, input.Body.Name), err)
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error updating org %d secret %q", org.ID, secret.Name), err)
 	}
 	return &PatchOrgSecretOutput{Body: secret.Copy()}, nil
 }

@@ -79,9 +79,22 @@ func GetSecretAbbreviated(ctx context.Context, input *GetSecretAbbreviatedInput)
 	}, nil
 }
 
+type PostSecretBody struct {
+	Name   string               `json:"name" minLength:"1" doc:"secret name"`
+	Value  string               `json:"value" minLength:"1" doc:"secret value"`
+	Events []model.WebhookEvent `json:"events" doc:"events that trigger the secret"`
+	Images []string             `json:"images,omitempty" doc:"container images allowed to use the secret"`
+}
+
+type PatchSecretBody struct {
+	Value  string               `json:"value,omitempty" doc:"secret value"`
+	Events []model.WebhookEvent `json:"events,omitempty" doc:"events that trigger the secret"`
+	Images []string             `json:"images,omitempty" doc:"container images allowed to use the secret"`
+}
+
 type PostSecretInput struct {
 	RepoID int64 `path:"repo_id" doc:"the repository id"`
-	Body   model.Secret
+	Body   PostSecretBody
 }
 
 type PostSecretOutput struct {
@@ -119,7 +132,7 @@ func PostSecret(ctx context.Context, input *PostSecretInput) (*PostSecretOutput,
 type PatchSecretInput struct {
 	RepoID int64  `path:"repo_id" doc:"the repository id"`
 	Secret string `path:"secret" doc:"the secret name"`
-	Body   model.Secret
+	Body   PatchSecretBody
 }
 
 type PatchSecretOutput struct {
@@ -149,7 +162,7 @@ func PatchSecret(ctx context.Context, input *PatchSecretInput) (*PatchSecretOutp
 		return nil, huma.Error422UnprocessableEntity(fmt.Sprintf("Error updating secret. %s", err))
 	}
 	if err := secretService.SecretUpdate(repo, secret); err != nil {
-		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error updating secret %q. %s", input.Body.Name, err))
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error updating secret %q. %s", secret.Name, err))
 	}
 	return &PatchSecretOutput{Body: secret.Copy()}, nil
 }

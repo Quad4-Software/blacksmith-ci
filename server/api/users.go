@@ -62,9 +62,17 @@ func GetUser(ctx context.Context, input *GetUserInput) (*GetUserOutput, error) {
 	return &GetUserOutput{Body: user}, nil
 }
 
+type PatchUserBody struct {
+	Email       string `json:"email,omitempty" doc:"user email"`
+	Avatar      string `json:"avatar_url,omitempty" doc:"user avatar URL"`
+	Admin       bool   `json:"admin,omitempty" doc:"whether user is admin"`
+	Description string `json:"description,omitempty" doc:"user description"`
+	Timezone    string `json:"timezone,omitempty" doc:"user timezone"`
+}
+
 type PatchUserInput struct {
 	Login string `path:"login" doc:"the user's login name"`
-	Body  model.User
+	Body  PatchUserBody
 }
 
 type PatchUserOutput struct {
@@ -96,8 +104,14 @@ func PatchUser(ctx context.Context, input *PatchUserInput) (*PatchUserOutput, er
 	return &PatchUserOutput{Body: user}, nil
 }
 
+type PostUserBody struct {
+	Login  string `json:"login" minLength:"1" doc:"user login name"`
+	Email  string `json:"email" doc:"user email"`
+	Avatar string `json:"avatar_url,omitempty" doc:"user avatar URL"`
+}
+
 type PostUserInput struct {
-	Body model.User
+	Body PostUserBody
 }
 
 type PostUserOutput struct {

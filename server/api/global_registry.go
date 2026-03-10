@@ -67,7 +67,7 @@ func GetGlobalRegistry(ctx context.Context, input *GetGlobalRegistryInput) (*Get
 }
 
 type PostGlobalRegistryInput struct {
-	Body model.Registry
+	Body PostRegistryBody
 }
 
 type PostGlobalRegistryOutput struct {
@@ -93,7 +93,7 @@ func PostGlobalRegistry(ctx context.Context, input *PostGlobalRegistryInput) (*P
 
 type PatchGlobalRegistryInput struct {
 	Registry string `path:"registry" doc:"the registry's name"`
-	Body     model.Registry
+	Body     PatchRegistryBody
 }
 
 type PatchGlobalRegistryOutput struct {

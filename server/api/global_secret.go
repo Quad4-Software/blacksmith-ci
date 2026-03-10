@@ -95,7 +95,7 @@ func GetGlobalSecretAbbreviated(ctx context.Context, input *GetGlobalSecretAbbre
 }
 
 type PostGlobalSecretInput struct {
-	Body model.Secret
+	Body PostSecretBody
 }
 
 type PostGlobalSecretOutput struct {
@@ -128,7 +128,7 @@ func PostGlobalSecret(ctx context.Context, input *PostGlobalSecretInput) (*PostG
 
 type PatchGlobalSecretInput struct {
 	Secret string `path:"secret" doc:"the secret's name"`
-	Body   model.Secret
+	Body   PatchSecretBody
 }
 
 type PatchGlobalSecretOutput struct {
@@ -156,7 +156,7 @@ func PatchGlobalSecret(ctx context.Context, input *PatchGlobalSecretInput) (*Pat
 	}
 
 	if err := secretService.GlobalSecretUpdate(secret); err != nil {
-		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error updating global secret %q", input.Body.Name), err)
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error updating global secret %q", secret.Name), err)
 	}
 	return &PatchGlobalSecretOutput{Body: secret.Copy()}, nil
 }

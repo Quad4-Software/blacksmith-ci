@@ -77,7 +77,7 @@ func GetOrgRegistryList(ctx context.Context, input *GetOrgRegistryListInput) (*G
 
 type PostOrgRegistryInput struct {
 	OrgID int64 `path:"org_id" doc:"the org's id"`
-	Body  model.Registry
+	Body  PostRegistryBody
 }
 
 type PostOrgRegistryOutput struct {
@@ -108,7 +108,7 @@ func PostOrgRegistry(ctx context.Context, input *PostOrgRegistryInput) (*PostOrg
 type PatchOrgRegistryInput struct {
 	OrgID    int64  `path:"org_id" doc:"the org's id"`
 	Registry string `path:"registry" doc:"the registry's name"`
-	Body     model.Registry
+	Body     PatchRegistryBody
 }
 
 type PatchOrgRegistryOutput struct {

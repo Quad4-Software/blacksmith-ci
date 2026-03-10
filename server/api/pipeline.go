@@ -62,9 +62,15 @@ func forgeErr(err error) error {
 	return huma.Error500InternalServerError(err.Error())
 }
 
+type CreatePipelineBody struct {
+	Branch    string            `json:"branch" doc:"branch to run pipeline on"`
+	Variables map[string]string `json:"variables,omitempty" doc:"pipeline variables"`
+	Workflows []string          `json:"workflows,omitempty" doc:"workflows to filter"`
+}
+
 type CreatePipelineInput struct {
 	RepoID int64 `path:"repo_id" doc:"the repository id"`
-	Body   model.PipelineOptions
+	Body   CreatePipelineBody
 }
 
 type CreatePipelineOutput struct {
@@ -108,10 +114,15 @@ func CreatePipeline(ctx context.Context, input *CreatePipelineInput) (*CreatePip
 		return nil, forgeErr(err)
 	}
 
-	tmpPipeline := createTmpPipeline(model.EventManual, lastCommit, user, &input.Body)
+	pipelineOpts := &model.PipelineOptions{
+		Branch:    input.Body.Branch,
+		Variables: input.Body.Variables,
+		Workflows: input.Body.Workflows,
+	}
+	tmpPipeline := createTmpPipeline(model.EventManual, lastCommit, user, pipelineOpts)
 
 	createOpts := pipeline.CreateOptions{
-		WorkflowFilter: input.Body.Workflows,
+		WorkflowFilter: pipelineOpts.Workflows,
 	}
 	pl, err := pipeline.Create(c, _store, repo, tmpPipeline, createOpts)
 	if err != nil {

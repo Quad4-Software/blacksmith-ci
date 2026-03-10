@@ -46,9 +46,21 @@ func GetRegistry(ctx context.Context, input *GetRegistryInput) (*GetRegistryOutp
 	return &GetRegistryOutput{Body: registry.Copy()}, nil
 }
 
+type PostRegistryBody struct {
+	Address  string `json:"address" minLength:"1" doc:"registry address"`
+	Username string `json:"username" minLength:"1" doc:"registry username"`
+	Password string `json:"password" minLength:"1" doc:"registry password"`
+}
+
+type PatchRegistryBody struct {
+	Address  string `json:"address,omitempty" doc:"registry address"`
+	Username string `json:"username,omitempty" doc:"registry username"`
+	Password string `json:"password,omitempty" doc:"registry password"`
+}
+
 type PostRegistryInput struct {
 	RepoID int64 `path:"repo_id" doc:"the repository id"`
-	Body   model.Registry
+	Body   PostRegistryBody
 }
 
 type PostRegistryOutput struct {
@@ -73,13 +85,13 @@ func PostRegistry(ctx context.Context, input *PostRegistryInput) (*PostRegistryO
 	if err := registryService.RegistryCreate(repo, registry); err != nil {
 		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error inserting registry %q. %s", input.Body.Address, err))
 	}
-	return &PostRegistryOutput{Body: input.Body.Copy()}, nil
+	return &PostRegistryOutput{Body: registry.Copy()}, nil
 }
 
 type PatchRegistryInput struct {
 	RepoID   int64  `path:"repo_id" doc:"the repository id"`
 	Registry string `path:"registry" doc:"the registry name"`
-	Body     model.Registry
+	Body     PatchRegistryBody
 }
 
 type PatchRegistryOutput struct {
@@ -108,7 +120,7 @@ func PatchRegistry(ctx context.Context, input *PatchRegistryInput) (*PatchRegist
 	if err := registryService.RegistryUpdate(repo, registry); err != nil {
 		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error updating registry %q. %s", input.Body.Address, err))
 	}
-	return &PatchRegistryOutput{Body: input.Body.Copy()}, nil
+	return &PatchRegistryOutput{Body: registry.Copy()}, nil
 }
 
 type GetRegistryListInput struct {

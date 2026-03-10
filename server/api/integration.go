@@ -115,8 +115,28 @@ func GetIntegration(ctx context.Context, input *GetIntegrationInput) (*GetIntegr
 	return &GetIntegrationOutput{Body: integration.CopyWithRedactedConfig()}, nil
 }
 
+type PostIntegrationBody struct {
+	Name           string                `json:"name" minLength:"1" doc:"integration name"`
+	Type           model.IntegrationType `json:"type" doc:"integration type"`
+	Description    string                `json:"description,omitempty" doc:"integration description"`
+	Config         string                `json:"config,omitempty" doc:"integration configuration"`
+	AllowedUserIDs []int64               `json:"allowed_user_ids,omitempty" doc:"allowed user IDs"`
+	AllowedOrgIDs  []int64               `json:"allowed_org_ids,omitempty" doc:"allowed org IDs"`
+	AllowedRepoIDs []int64               `json:"allowed_repo_ids,omitempty" doc:"allowed repo IDs"`
+}
+
+type PatchIntegrationBody struct {
+	Name           string  `json:"name,omitempty" doc:"integration name"`
+	Description    string  `json:"description,omitempty" doc:"integration description"`
+	Config         string  `json:"config,omitempty" doc:"integration configuration"`
+	IsActive       bool    `json:"is_active" doc:"whether integration is active"`
+	AllowedUserIDs []int64 `json:"allowed_user_ids,omitempty" doc:"allowed user IDs"`
+	AllowedOrgIDs  []int64 `json:"allowed_org_ids,omitempty" doc:"allowed org IDs"`
+	AllowedRepoIDs []int64 `json:"allowed_repo_ids,omitempty" doc:"allowed repo IDs"`
+}
+
 type PostIntegrationInput struct {
-	Body model.Integration
+	Body PostIntegrationBody
 }
 
 type PostIntegrationOutput struct {
@@ -149,7 +169,7 @@ func PostIntegration(ctx context.Context, input *PostIntegrationInput) (*PostInt
 
 type PatchIntegrationInput struct {
 	IntegrationID int64 `path:"integration_id" doc:"the integration's id"`
-	Body          model.Integration
+	Body          PatchIntegrationBody
 }
 
 type PatchIntegrationOutput struct {

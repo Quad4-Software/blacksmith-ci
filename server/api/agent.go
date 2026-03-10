@@ -121,9 +121,15 @@ func GetAgentTasks(ctx context.Context, input *GetAgentTasksInput) (*GetAgentTas
 	return &GetAgentTasksOutput{Body: tasks}, nil
 }
 
+type PatchAgentBody struct {
+	Name       string `json:"name" doc:"name of the agent"`
+	NoSchedule bool   `json:"no_schedule" doc:"disable scheduling for this agent"`
+	Priority   int32  `json:"priority" doc:"agent priority"`
+}
+
 type PatchAgentInput struct {
 	AgentID int64 `path:"agent_id" doc:"the agent's id"`
-	Body    model.Agent
+	Body    PatchAgentBody
 }
 
 type PatchAgentOutput struct {
@@ -154,8 +160,15 @@ func PatchAgent(ctx context.Context, input *PatchAgentInput) (*PatchAgentOutput,
 	return &PatchAgentOutput{Body: agent}, nil
 }
 
+type PostAgentBody struct {
+	Name         string            `json:"name" minLength:"1" doc:"name of the agent"`
+	NoSchedule   bool              `json:"no_schedule,omitempty" doc:"disable scheduling for this agent"`
+	Priority     int32             `json:"priority,omitempty" doc:"agent priority"`
+	CustomLabels map[string]string `json:"custom_labels,omitempty" doc:"custom labels for the agent"`
+}
+
 type PostAgentInput struct {
-	Body model.Agent
+	Body PostAgentBody
 }
 
 type PostAgentOutput struct {
@@ -215,7 +228,7 @@ func DeleteAgent(ctx context.Context, input *DeleteAgentInput) (*struct{}, error
 
 type PostOrgAgentInput struct {
 	OrgID int64 `path:"org_id" doc:"the organization's id"`
-	Body  model.Agent
+	Body  PostAgentBody
 }
 
 func PostOrgAgent(ctx context.Context, input *PostOrgAgentInput) (*PostAgentOutput, error) {
@@ -279,7 +292,7 @@ func GetOrgAgents(ctx context.Context, input *GetOrgAgentsInput) (*GetAgentsOutp
 type PatchOrgAgentInput struct {
 	OrgID   int64 `path:"org_id" doc:"the organization's id"`
 	AgentID int64 `path:"agent_id" doc:"the agent's id"`
-	Body    model.Agent
+	Body    PatchAgentBody
 }
 
 func PatchOrgAgent(ctx context.Context, input *PatchOrgAgentInput) (*PatchAgentOutput, error) {

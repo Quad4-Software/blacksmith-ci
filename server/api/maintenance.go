@@ -43,8 +43,15 @@ func GetMaintenanceConfig(ctx context.Context, _ *GetMaintenanceConfigInput) (*G
 	return &GetMaintenanceConfigOutput{Body: config}, nil
 }
 
+type UpdateMaintenanceConfigBody struct {
+	Enabled        bool   `json:"enabled" doc:"whether maintenance is enabled"`
+	Schedule       string `json:"schedule,omitempty" doc:"cron schedule"`
+	DryRun         bool   `json:"dry_run,omitempty" doc:"dry run mode"`
+	StaleThreshold int64  `json:"stale_threshold,omitempty" doc:"stale threshold in seconds"`
+}
+
 type UpdateMaintenanceConfigInput struct {
-	Body model.MaintenanceConfig
+	Body UpdateMaintenanceConfigBody
 }
 
 type UpdateMaintenanceConfigOutput struct {
@@ -58,14 +65,20 @@ func UpdateMaintenanceConfig(ctx context.Context, input *UpdateMaintenanceConfig
 		return nil, huma.Error403Forbidden("Forbidden")
 	}
 
-	if err := server.Config.Services.MaintenanceService.UpdateMaintenanceConfig(&input.Body); err != nil {
+	config := &model.MaintenanceConfig{
+		Enabled:        input.Body.Enabled,
+		Schedule:       input.Body.Schedule,
+		DryRun:         input.Body.DryRun,
+		StaleThreshold: input.Body.StaleThreshold,
+	}
+	if err := server.Config.Services.MaintenanceService.UpdateMaintenanceConfig(config); err != nil {
 		log.Error().Err(err).Msg("Failed to update maintenance config")
 		return nil, huma.Error500InternalServerError("Failed to update maintenance config")
 	}
 
 	// Update scheduler with new configuration
 	if server.Config.Services.MaintenanceScheduler != nil {
-		if err := server.Config.Services.MaintenanceScheduler.UpdateSchedule(input.Body.Schedule, input.Body.Enabled); err != nil {
+		if err := server.Config.Services.MaintenanceScheduler.UpdateSchedule(config.Schedule, config.Enabled); err != nil {
 			log.Error().Err(err).Msg("Failed to update maintenance schedule")
 			return nil, huma.Error500InternalServerError("Failed to update maintenance schedule")
 		}
@@ -118,7 +131,7 @@ func GetMaintenanceConfigByAction(ctx context.Context, input *GetMaintenanceConf
 
 type UpdateMaintenanceConfigByActionInput struct {
 	Action string `path:"action" doc:"Action type (vacuum, kubernetes_cleanup, docker_cleanup)"`
-	Body   model.MaintenanceConfig
+	Body   UpdateMaintenanceConfigBody
 }
 
 type UpdateMaintenanceConfigByActionOutput struct {
@@ -136,17 +149,22 @@ func UpdateMaintenanceConfigByAction(ctx context.Context, input *UpdateMaintenan
 		return nil, huma.Error400BadRequest("Invalid action type. Must be 'vacuum', 'kubernetes_cleanup', or 'docker_cleanup'")
 	}
 
-	// Ensure the action type matches the URL parameter
-	input.Body.ActionType = input.Action
+	actionConfig := &model.MaintenanceConfig{
+		ActionType:     input.Action,
+		Enabled:        input.Body.Enabled,
+		Schedule:       input.Body.Schedule,
+		DryRun:         input.Body.DryRun,
+		StaleThreshold: input.Body.StaleThreshold,
+	}
 
 	log.Info().
 		Str("action", input.Action).
-		Bool("enabled", input.Body.Enabled).
-		Str("schedule", input.Body.Schedule).
-		Bool("dry_run", input.Body.DryRun).
+		Bool("enabled", actionConfig.Enabled).
+		Str("schedule", actionConfig.Schedule).
+		Bool("dry_run", actionConfig.DryRun).
 		Msg("Updating maintenance config by action")
 
-	if err := server.Config.Services.MaintenanceService.UpdateMaintenanceConfigByAction(input.Action, &input.Body); err != nil {
+	if err := server.Config.Services.MaintenanceService.UpdateMaintenanceConfigByAction(input.Action, actionConfig); err != nil {
 		log.Error().Err(err).Str("action", input.Action).Msg("Failed to update maintenance config")
 		return nil, huma.Error500InternalServerError("Failed to update maintenance config")
 	}
