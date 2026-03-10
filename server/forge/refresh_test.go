@@ -29,7 +29,6 @@ import (
 	"codefloe.com/crowci/crow/v5/server/forge/types"
 	"codefloe.com/crowci/crow/v5/server/model"
 	mocks_store "codefloe.com/crowci/crow/v5/server/store/mocks"
-	store_types "codefloe.com/crowci/crow/v5/server/store/types"
 )
 
 // mockForgeWithRefresher implements both Forge and Refresher interfaces for testing.
@@ -113,7 +112,9 @@ func (m *mockForgeWithRefresher) Org(context.Context, *model.User, string) (*mod
 	return nil, nil
 }
 
-func TestRefresh_TokenNotExpiring(t *testing.T) {
+const testForgeID = int64(1)
+
+func TestRefreshUserForge_TokenNotExpiring(t *testing.T) {
 	// Token expires in 2 hours - should not refresh
 	user := &model.User{
 		ID:     1,
@@ -125,13 +126,15 @@ func TestRefresh_TokenNotExpiring(t *testing.T) {
 	mockStore := mocks_store.NewMockStore(t)
 
 	// Should not call Refresh or any store methods
-	err := Refresh(context.Background(), mockForge, mockStore, user)
+	err := RefreshUserForge(context.Background(), mockForge, mockStore, user, testForgeID)
 
 	assert.NoError(t, err)
 	mockForge.AssertNotCalled(t, "Refresh", mock.Anything, mock.Anything)
 }
 
-func TestRefresh_TokenExpiringSoon(t *testing.T) {
+func TestRefreshUserForge_TokenExpiringSoon(t *testing.T) {
+	ClearCooldowns()
+
 	// Token expires in 10 minutes - should refresh
 	originalExpiry := time.Now().Add(10 * time.Minute).Unix()
 	newExpiry := time.Now().Add(2 * time.Hour).Unix()
@@ -147,16 +150,17 @@ func TestRefresh_TokenExpiringSoon(t *testing.T) {
 	mockForge := &mockForgeWithRefresher{}
 	mockStore := mocks_store.NewMockStore(t)
 
-	// First GetUser call after acquiring lock
-	mockStore.On("GetUser", int64(1)).Return(&model.User{
-		ID:           1,
-		Login:        "testuser",
+	// UserForgeGet after acquiring lock
+	mockStore.On("UserForgeGet", int64(1), testForgeID).Return(&model.UserForge{
+		UserID:       1,
+		ForgeID:      testForgeID,
+		ForgeLogin:   "testuser",
 		AccessToken:  "old-access-token",
 		RefreshToken: "old-refresh-token",
 		Expiry:       originalExpiry,
 	}, nil).Once()
 
-	// Refresh should be called and update the user
+	// Refresh should be called and update the temp user
 	mockForge.On("Refresh", mock.Anything, mock.AnythingOfType("*model.User")).
 		Run(func(args mock.Arguments) {
 			//nolint:forcetypeassert
@@ -167,13 +171,10 @@ func TestRefresh_TokenExpiringSoon(t *testing.T) {
 		}).
 		Return(true, nil).Once()
 
-	// UpdateUser should be called to persist the new tokens
-	mockStore.On("UpdateUser", mock.AnythingOfType("*model.User")).Return(nil).Once()
+	// UserForgeUpdate should be called to persist the new tokens
+	mockStore.On("UserForgeUpdate", mock.AnythingOfType("*model.UserForge")).Return(nil).Once()
 
-	// Multi-forge: syncUserForgeTokens is called but legacy user has no UserForge record
-	mockStore.On("UserForgeGet", int64(1), int64(0)).Return(nil, store_types.RecordNotExist).Once()
-
-	err := Refresh(context.Background(), mockForge, mockStore, user)
+	err := RefreshUserForge(context.Background(), mockForge, mockStore, user, testForgeID)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "new-access-token", user.AccessToken)
@@ -181,7 +182,9 @@ func TestRefresh_TokenExpiringSoon(t *testing.T) {
 	assert.Equal(t, newExpiry, user.Expiry)
 }
 
-func TestRefresh_TokenAlreadyRefreshedByAnotherRequest(t *testing.T) {
+func TestRefreshUserForge_TokenAlreadyRefreshedByAnotherRequest(t *testing.T) {
+	ClearCooldowns()
+
 	// Token expires in 10 minutes - should check for refresh
 	originalExpiry := time.Now().Add(10 * time.Minute).Unix()
 	newExpiry := time.Now().Add(2 * time.Hour).Unix()
@@ -197,17 +200,18 @@ func TestRefresh_TokenAlreadyRefreshedByAnotherRequest(t *testing.T) {
 	mockForge := &mockForgeWithRefresher{}
 	mockStore := mocks_store.NewMockStore(t)
 
-	// When we reload the user, it has already been refreshed by another goroutine
-	mockStore.On("GetUser", int64(1)).Return(&model.User{
-		ID:           1,
-		Login:        "testuser",
+	// When we reload the UserForge, it has already been refreshed by another goroutine
+	mockStore.On("UserForgeGet", int64(1), testForgeID).Return(&model.UserForge{
+		UserID:       1,
+		ForgeID:      testForgeID,
+		ForgeLogin:   "testuser",
 		AccessToken:  "new-access-token",
 		RefreshToken: "new-refresh-token",
 		Expiry:       newExpiry,
 	}, nil).Once()
 
 	// Refresh should NOT be called since token was already refreshed
-	err := Refresh(context.Background(), mockForge, mockStore, user)
+	err := RefreshUserForge(context.Background(), mockForge, mockStore, user, testForgeID)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "new-access-token", user.AccessToken)
@@ -216,7 +220,9 @@ func TestRefresh_TokenAlreadyRefreshedByAnotherRequest(t *testing.T) {
 	mockForge.AssertNotCalled(t, "Refresh", mock.Anything, mock.Anything)
 }
 
-func TestRefresh_TokenAlreadyUsedError_RefreshedElsewhere(t *testing.T) {
+func TestRefreshUserForge_TokenAlreadyUsedError_RefreshedElsewhere(t *testing.T) {
+	ClearCooldowns()
+
 	// Simulates the case where another server instance refreshed the token
 	originalExpiry := time.Now().Add(10 * time.Minute).Unix()
 	newExpiry := time.Now().Add(2 * time.Hour).Unix()
@@ -232,10 +238,11 @@ func TestRefresh_TokenAlreadyUsedError_RefreshedElsewhere(t *testing.T) {
 	mockForge := &mockForgeWithRefresher{}
 	mockStore := mocks_store.NewMockStore(t)
 
-	// First GetUser returns the original user (not yet refreshed)
-	mockStore.On("GetUser", int64(1)).Return(&model.User{
-		ID:           1,
-		Login:        "testuser",
+	// First UserForgeGet returns the original tokens (not yet refreshed)
+	mockStore.On("UserForgeGet", int64(1), testForgeID).Return(&model.UserForge{
+		UserID:       1,
+		ForgeID:      testForgeID,
+		ForgeLogin:   "testuser",
 		AccessToken:  "old-access-token",
 		RefreshToken: "old-refresh-token",
 		Expiry:       originalExpiry,
@@ -245,16 +252,17 @@ func TestRefresh_TokenAlreadyUsedError_RefreshedElsewhere(t *testing.T) {
 	mockForge.On("Refresh", mock.Anything, mock.AnythingOfType("*model.User")).
 		Return(false, errors.New("oauth2: \"unauthorized_client\" \"token was already used\"")).Once()
 
-	// Second GetUser (after error) returns the refreshed user
-	mockStore.On("GetUser", int64(1)).Return(&model.User{
-		ID:           1,
-		Login:        "testuser",
+	// Second UserForgeGet (after error) returns the refreshed tokens
+	mockStore.On("UserForgeGet", int64(1), testForgeID).Return(&model.UserForge{
+		UserID:       1,
+		ForgeID:      testForgeID,
+		ForgeLogin:   "testuser",
 		AccessToken:  "new-access-token",
 		RefreshToken: "new-refresh-token",
 		Expiry:       newExpiry,
 	}, nil).Once()
 
-	err := Refresh(context.Background(), mockForge, mockStore, user)
+	err := RefreshUserForge(context.Background(), mockForge, mockStore, user, testForgeID)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "new-access-token", user.AccessToken)
@@ -262,7 +270,9 @@ func TestRefresh_TokenAlreadyUsedError_RefreshedElsewhere(t *testing.T) {
 	assert.Equal(t, newExpiry, user.Expiry)
 }
 
-func TestRefresh_TokenAlreadyUsedError_NotRefreshedElsewhere(t *testing.T) {
+func TestRefreshUserForge_TokenAlreadyUsedError_NotRefreshedElsewhere(t *testing.T) {
+	ClearCooldowns()
+
 	// Token was not refreshed elsewhere - should clear tokens and return ErrTokenInvalidated
 	originalExpiry := time.Now().Add(10 * time.Minute).Unix()
 
@@ -277,10 +287,11 @@ func TestRefresh_TokenAlreadyUsedError_NotRefreshedElsewhere(t *testing.T) {
 	mockForge := &mockForgeWithRefresher{}
 	mockStore := mocks_store.NewMockStore(t)
 
-	// First GetUser returns the original user
-	mockStore.On("GetUser", int64(1)).Return(&model.User{
-		ID:           1,
-		Login:        "testuser",
+	// First UserForgeGet returns the original tokens
+	mockStore.On("UserForgeGet", int64(1), testForgeID).Return(&model.UserForge{
+		UserID:       1,
+		ForgeID:      testForgeID,
+		ForgeLogin:   "testuser",
 		AccessToken:  "old-access-token",
 		RefreshToken: "old-refresh-token",
 		Expiry:       originalExpiry,
@@ -291,32 +302,29 @@ func TestRefresh_TokenAlreadyUsedError_NotRefreshedElsewhere(t *testing.T) {
 	mockForge.On("Refresh", mock.Anything, mock.AnythingOfType("*model.User")).
 		Return(false, tokenErr).Once()
 
-	// Second GetUser returns the same expiry (not refreshed elsewhere)
-	mockStore.On("GetUser", int64(1)).Return(&model.User{
-		ID:           1,
-		Login:        "testuser",
+	// Second UserForgeGet returns the same expiry (not refreshed elsewhere)
+	mockStore.On("UserForgeGet", int64(1), testForgeID).Return(&model.UserForge{
+		UserID:       1,
+		ForgeID:      testForgeID,
+		ForgeLogin:   "testuser",
 		AccessToken:  "old-access-token",
 		RefreshToken: "old-refresh-token",
 		Expiry:       originalExpiry,
 	}, nil).Once()
 
-	// Token is permanently invalid - UpdateUser should be called to clear the tokens
-	mockStore.On("UpdateUser", mock.AnythingOfType("*model.User")).Return(nil).Once()
+	// UserForgeUpdate should be called to clear the tokens
+	mockStore.On("UserForgeUpdate", mock.AnythingOfType("*model.UserForge")).Return(nil).Once()
 
-	// UserForgeGet may be called to clear UserForge tokens (may not exist)
-	mockStore.On("UserForgeGet", int64(1), int64(0)).Return(nil, errors.New("not found")).Maybe()
-
-	err := Refresh(context.Background(), mockForge, mockStore, user)
+	err := RefreshUserForge(context.Background(), mockForge, mockStore, user, testForgeID)
 
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, ErrTokenInvalidated)
 }
 
-func TestRefresh_DBSaveFailure(t *testing.T) {
-	// Clear cooldown state from previous tests
+func TestRefreshUserForge_DBSaveFailure(t *testing.T) {
 	ClearCooldowns()
 
-	// If UpdateUser fails, the error should be returned (critical fix)
+	// If UserForgeUpdate fails, the error should be returned
 	originalExpiry := time.Now().Add(10 * time.Minute).Unix()
 	newExpiry := time.Now().Add(2 * time.Hour).Unix()
 
@@ -331,9 +339,10 @@ func TestRefresh_DBSaveFailure(t *testing.T) {
 	mockForge := &mockForgeWithRefresher{}
 	mockStore := mocks_store.NewMockStore(t)
 
-	mockStore.On("GetUser", int64(1)).Return(&model.User{
-		ID:           1,
-		Login:        "testuser",
+	mockStore.On("UserForgeGet", int64(1), testForgeID).Return(&model.UserForge{
+		UserID:       1,
+		ForgeID:      testForgeID,
+		ForgeLogin:   "testuser",
 		AccessToken:  "old-access-token",
 		RefreshToken: "old-refresh-token",
 		Expiry:       originalExpiry,
@@ -349,22 +358,21 @@ func TestRefresh_DBSaveFailure(t *testing.T) {
 		}).
 		Return(true, nil).Once()
 
-	// UpdateUser fails with database error
+	// UserForgeUpdate fails with database error
 	dbErr := errors.New("database is locked")
-	mockStore.On("UpdateUser", mock.AnythingOfType("*model.User")).Return(dbErr).Once()
+	mockStore.On("UserForgeUpdate", mock.AnythingOfType("*model.UserForge")).Return(dbErr).Once()
 
-	err := Refresh(context.Background(), mockForge, mockStore, user)
+	err := RefreshUserForge(context.Background(), mockForge, mockStore, user, testForgeID)
 
 	// Error should be returned, not swallowed
 	assert.Error(t, err)
 	assert.Equal(t, dbErr, err)
 }
 
-func TestRefresh_ConcurrentRequests(t *testing.T) {
-	// Clear cooldown state from previous tests
+func TestRefreshUserForge_ConcurrentRequests(t *testing.T) {
 	ClearCooldowns()
 
-	// Test that concurrent refresh attempts for the same user are serialized
+	// Test that concurrent refresh attempts for the same user+forge are serialized
 	originalExpiry := time.Now().Add(10 * time.Minute).Unix()
 	newExpiry := time.Now().Add(2 * time.Hour).Unix()
 
@@ -372,24 +380,26 @@ func TestRefresh_ConcurrentRequests(t *testing.T) {
 	mockStore := mocks_store.NewMockStore(t)
 
 	var refreshCount atomic.Int32
-	var getUserCount atomic.Int32
+	var userForgeGetCount atomic.Int32
 
-	// GetUser will be called multiple times
-	mockStore.On("GetUser", int64(1)).Return(func(id int64) *model.User {
-		count := getUserCount.Add(1)
+	// UserForgeGet will be called multiple times
+	mockStore.On("UserForgeGet", int64(1), testForgeID).Return(func(_ int64, _ int64) *model.UserForge {
+		count := userForgeGetCount.Add(1)
 		// First call returns old token, subsequent calls return new token
 		if count == 1 {
-			return &model.User{
-				ID:           1,
-				Login:        "testuser",
+			return &model.UserForge{
+				UserID:       1,
+				ForgeID:      testForgeID,
+				ForgeLogin:   "testuser",
 				AccessToken:  "old-access-token",
 				RefreshToken: "old-refresh-token",
 				Expiry:       originalExpiry,
 			}
 		}
-		return &model.User{
-			ID:           1,
-			Login:        "testuser",
+		return &model.UserForge{
+			UserID:       1,
+			ForgeID:      testForgeID,
+			ForgeLogin:   "testuser",
 			AccessToken:  "new-access-token",
 			RefreshToken: "new-refresh-token",
 			Expiry:       newExpiry,
@@ -410,10 +420,7 @@ func TestRefresh_ConcurrentRequests(t *testing.T) {
 		}).
 		Return(true, nil).Maybe()
 
-	mockStore.On("UpdateUser", mock.AnythingOfType("*model.User")).Return(nil).Maybe()
-
-	// Multi-forge: syncUserForgeTokens is called but legacy user has no UserForge record
-	mockStore.On("UserForgeGet", int64(1), int64(0)).Return(nil, store_types.RecordNotExist).Maybe()
+	mockStore.On("UserForgeUpdate", mock.AnythingOfType("*model.UserForge")).Return(nil).Maybe()
 
 	// Launch multiple concurrent refresh requests
 	var wg sync.WaitGroup
@@ -428,7 +435,7 @@ func TestRefresh_ConcurrentRequests(t *testing.T) {
 				RefreshToken: "old-refresh-token",
 				Expiry:       originalExpiry,
 			}
-			err := Refresh(context.Background(), mockForge, mockStore, user)
+			err := RefreshUserForge(context.Background(), mockForge, mockStore, user, testForgeID)
 			assert.NoError(t, err)
 			// All users should end up with the new token
 			assert.Equal(t, "new-access-token", user.AccessToken)
@@ -437,7 +444,6 @@ func TestRefresh_ConcurrentRequests(t *testing.T) {
 	wg.Wait()
 
 	// Refresh should only have been called once (or at most a few times if timing is unlucky)
-	// The key is that we don't get 5 refresh calls
 	assert.LessOrEqual(t, int(refreshCount.Load()), 2, "Refresh should be called at most twice due to locking")
 }
 
@@ -482,28 +488,19 @@ func TestIsTokenAlreadyUsedError(t *testing.T) {
 	}
 }
 
-func TestRefresh_CooldownPreventsRetryLoop(t *testing.T) {
-	// Test that after a permanent token failure, subsequent requests
-	// are blocked by cooldown to prevent tight retry loops
+func TestRefreshUserForge_CooldownPreventsRetryLoop(t *testing.T) {
 	ClearCooldowns()
 
 	originalExpiry := time.Now().Add(10 * time.Minute).Unix()
 
-	user := &model.User{
-		ID:           1,
-		Login:        "testuser",
-		AccessToken:  "old-access-token",
-		RefreshToken: "old-refresh-token",
-		Expiry:       originalExpiry,
-	}
-
 	mockForge := &mockForgeWithRefresher{}
 	mockStore := mocks_store.NewMockStore(t)
 
-	// First GetUser returns the original user
-	mockStore.On("GetUser", int64(1)).Return(&model.User{
-		ID:           1,
-		Login:        "testuser",
+	// First UserForgeGet returns the original tokens
+	mockStore.On("UserForgeGet", int64(1), testForgeID).Return(&model.UserForge{
+		UserID:       1,
+		ForgeID:      testForgeID,
+		ForgeLogin:   "testuser",
 		AccessToken:  "old-access-token",
 		RefreshToken: "old-refresh-token",
 		Expiry:       originalExpiry,
@@ -514,35 +511,41 @@ func TestRefresh_CooldownPreventsRetryLoop(t *testing.T) {
 	mockForge.On("Refresh", mock.Anything, mock.AnythingOfType("*model.User")).
 		Return(false, tokenErr).Once()
 
-	// Second GetUser returns the same expiry (not refreshed elsewhere)
-	mockStore.On("GetUser", int64(1)).Return(&model.User{
-		ID:           1,
-		Login:        "testuser",
+	// Second UserForgeGet returns the same expiry (not refreshed elsewhere)
+	mockStore.On("UserForgeGet", int64(1), testForgeID).Return(&model.UserForge{
+		UserID:       1,
+		ForgeID:      testForgeID,
+		ForgeLogin:   "testuser",
 		AccessToken:  "old-access-token",
 		RefreshToken: "old-refresh-token",
 		Expiry:       originalExpiry,
 	}, nil).Once()
 
-	// Token is permanently invalid - UpdateUser should be called to clear the tokens
-	mockStore.On("UpdateUser", mock.AnythingOfType("*model.User")).Return(nil).Once()
+	// UserForgeUpdate should be called to clear the tokens
+	mockStore.On("UserForgeUpdate", mock.AnythingOfType("*model.UserForge")).Return(nil).Once()
 
-	// UserForgeGet may be called to clear UserForge tokens (may not exist)
-	mockStore.On("UserForgeGet", int64(1), int64(0)).Return(nil, errors.New("not found")).Maybe()
+	user := &model.User{
+		ID:           1,
+		Login:        "testuser",
+		AccessToken:  "old-access-token",
+		RefreshToken: "old-refresh-token",
+		Expiry:       originalExpiry,
+	}
 
 	// First call should fail with ErrTokenInvalidated
-	err := Refresh(context.Background(), mockForge, mockStore, user)
+	err := RefreshUserForge(context.Background(), mockForge, mockStore, user, testForgeID)
 	assert.ErrorIs(t, err, ErrTokenInvalidated)
 
 	// Second call should immediately return ErrTokenInvalidated due to cooldown
 	// WITHOUT making any additional store or forge calls
-	err = Refresh(context.Background(), mockForge, mockStore, user)
+	err = RefreshUserForge(context.Background(), mockForge, mockStore, user, testForgeID)
 	assert.ErrorIs(t, err, ErrTokenInvalidated)
 
 	// Third call should also be blocked
-	err = Refresh(context.Background(), mockForge, mockStore, user)
+	err = RefreshUserForge(context.Background(), mockForge, mockStore, user, testForgeID)
 	assert.ErrorIs(t, err, ErrTokenInvalidated)
 
-	// Verify that GetUser and Refresh were only called once (for the first attempt)
-	mockStore.AssertNumberOfCalls(t, "GetUser", 2) // First attempt calls GetUser twice
+	// Verify that UserForgeGet and Refresh were only called for the first attempt
+	mockStore.AssertNumberOfCalls(t, "UserForgeGet", 2) // First attempt calls UserForgeGet twice
 	mockForge.AssertNumberOfCalls(t, "Refresh", 1)
 }

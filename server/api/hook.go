@@ -279,30 +279,22 @@ func PostHook(c *gin.Context) {
 
 	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
 	// This ensures we use the correct OAuth tokens for the forge the repo belongs to.
-	var isSecondaryForge bool
 	if userForge, ufErr := _store.UserForgeGet(user.ID, repo.ForgeID); ufErr == nil && userForge != nil {
 		user.AccessToken = userForge.AccessToken
 		user.RefreshToken = userForge.RefreshToken
 		user.Expiry = userForge.Expiry
 		user.ForgeID = userForge.ForgeID
 		user.ForgeRemoteID = userForge.ForgeRemoteID
-		isSecondaryForge = !userForge.IsPrimary
 		log.Debug().
 			Int64("user_id", user.ID).
 			Int64("forge_id", repo.ForgeID).
 			Str("forge_login", userForge.ForgeLogin).
-			Bool("is_secondary", isSecondaryForge).
 			Msg("using UserForge tokens for webhook")
 	}
 
-	// Use appropriate refresh function based on whether this is a secondary forge
-	var refreshErr error
-	if isSecondaryForge {
-		refreshErr = forge.RefreshUserForge(c, _forge, _store, user, repo.ForgeID)
-	} else {
-		refreshErr = forge.Refresh(c, _forge, _store, user)
-	}
-	if refreshErr != nil {
+	// Always use RefreshUserForge since the user_forges table is the canonical
+	// source of truth for tokens (the users table is no longer updated on login).
+	if refreshErr := forge.RefreshUserForge(c, _forge, _store, user, repo.ForgeID); refreshErr != nil {
 		log.Error().Err(refreshErr).Msg("Failed to refresh user auth token")
 		c.Header("Content-Type", "text/plain; charset=utf-8")
 		c.String(http.StatusUnauthorized, "Your authorization has expired and couldn't be refreshed automatically. Please log in again")
