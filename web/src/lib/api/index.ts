@@ -541,7 +541,7 @@ export default class CrowClient extends ApiClient {
   }
 
   async updateAutoscaler(autoscaler: Partial<Autoscaler>): Promise<Autoscaler> {
-    return this._patch(`/api/v1/autoscalers/${autoscaler.id}`, autoscaler) as Promise<Autoscaler>;
+    return this._patch(`/api/v1/autoscalers/${autoscaler.id}`, { enabled: autoscaler.enabled }) as Promise<Autoscaler>;
   }
 
   async deleteAutoscaler(autoscaler: Autoscaler): Promise<unknown> {

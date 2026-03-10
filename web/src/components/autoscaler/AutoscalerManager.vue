@@ -49,7 +49,7 @@
       @jump-to-last="handleJumpToLast"
       @update-filters="(filters) => emit('updateFilters', filters)"
       @toggle-enabled="toggleEnabled"
-      @delete="deleteAutoscaler"
+      @delete="openDeleteDialog"
       @filters-changed="resetPage"
     />
     <AutoscalerForm
@@ -60,6 +60,22 @@
       @cancel="selectedAutoscaler = undefined"
     />
   </Settings>
+
+  <!-- Delete confirmation dialog -->
+  <AlertDialog :open="!!autoscalerToDelete">
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>{{ $t('admin.settings.autoscalers.delete_autoscaler') }}</AlertDialogTitle>
+        <AlertDialogDescription>
+          {{ $t('admin.settings.autoscalers.delete_confirm') }}
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel @click="autoscalerToDelete = undefined">{{ $t('cancel') }}</AlertDialogCancel>
+        <AlertDialogAction @click="confirmDelete">{{ $t('delete') }}</AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
 </template>
 
 <script lang="ts" setup>
@@ -71,6 +87,16 @@ import { Button } from '~/components/ui/button';
 import IconButton from '~/components/atomic/IconButton.vue';
 import Panel from '~/components/layout/Panel.vue';
 import Settings from '~/components/layout/Settings.vue';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '~/components/ui/alert-dialog';
 import { useAsyncAction } from '~/compositions/useAsyncAction';
 import useNotifications from '~/compositions/useNotifications';
 import { usePaginationWithPages } from '~/compositions/usePaginate';
@@ -102,6 +128,7 @@ const { t } = useI18n();
 
 const selectedAutoscaler = ref<Partial<Autoscaler>>();
 const createdAutoscalerToken = ref<string>();
+const autoscalerToDelete = ref<Autoscaler>();
 
 const {
   page,
@@ -155,19 +182,23 @@ const { doSubmit: toggleEnabled } = useAsyncAction(async (_autoscaler: Autoscale
   await resetPage();
 });
 
-const { doSubmit: deleteAutoscaler, isLoading: isDeleting } = useAsyncAction(async (_autoscaler: Autoscaler) => {
-  // eslint-disable-next-line no-alert
-  if (!confirm(t('admin.settings.autoscalers.delete_confirm'))) {
+function openDeleteDialog(autoscaler: Autoscaler) {
+  autoscalerToDelete.value = autoscaler;
+}
+
+const { doSubmit: confirmDelete, isLoading: isDeleting } = useAsyncAction(async () => {
+  if (!autoscalerToDelete.value) {
     return;
   }
 
-  await props.deleteAutoscaler(_autoscaler);
+  await props.deleteAutoscaler(autoscalerToDelete.value);
   notifications.notify({
     title: t('notify_title_success'),
     text: t('admin.settings.autoscalers.notify_text_deleted'),
     type: 'success',
     duration: 6000,
   });
+  autoscalerToDelete.value = undefined;
   await resetPage();
 });
 

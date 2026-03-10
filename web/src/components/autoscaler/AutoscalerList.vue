@@ -47,7 +47,7 @@
     >
       <div class="p-4">
         <!-- Header Row: Name, Status Indicator, and Actions -->
-        <div class="flex items-start justify-between mb-3">
+        <div class="flex items-center justify-between mb-3">
           <!-- Autoscaler Name and Status -->
           <div class="flex items-center gap-3 flex-1 min-w-0">
             <!-- Status Indicator -->
@@ -326,6 +326,7 @@ import { watchDebounced } from '@vueuse/core';
 
 import Badge from '~/components/atomic/Badge.vue';
 import Icon from '~/components/atomic/Icon.vue';
+import IconButton from '~/components/atomic/IconButton.vue';
 import Pagination from '~/components/atomic/Pagination.vue';
 import { Button } from '~/components/ui/button';
 import {

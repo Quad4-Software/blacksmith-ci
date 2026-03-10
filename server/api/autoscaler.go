@@ -93,8 +93,12 @@ func GetAutoscalerSelf(ctx context.Context, _ *GetAutoscalerSelfInput) (*GetAuto
 	return &GetAutoscalerSelfOutput{Body: autoscaler}, nil
 }
 
+type PostAutoscalerBody struct {
+	Name string `json:"name" minLength:"1" doc:"name of the autoscaler"`
+}
+
 type PostAutoscalerInput struct {
-	Body model.Autoscaler
+	Body PostAutoscalerBody
 }
 
 type PostAutoscalerOutput struct {
@@ -103,11 +107,6 @@ type PostAutoscalerOutput struct {
 
 func PostAutoscaler(ctx context.Context, input *PostAutoscalerInput) (*PostAutoscalerOutput, error) {
 	c := ginCtx(ctx)
-
-	// Validate required fields
-	if input.Body.Name == "" {
-		return nil, huma.Error400BadRequest("Name is required")
-	}
 
 	user := session.User(c)
 
@@ -130,9 +129,13 @@ func PostAutoscaler(ctx context.Context, input *PostAutoscalerInput) (*PostAutos
 	}}, nil
 }
 
+type PatchAutoscalerBody struct {
+	Enabled bool `json:"enabled" doc:"whether the autoscaler is enabled"`
+}
+
 type PatchAutoscalerInput struct {
 	AutoscalerID int64 `path:"autoscaler_id" doc:"the autoscaler's id"`
-	Body         model.Autoscaler
+	Body         PatchAutoscalerBody
 }
 
 type PatchAutoscalerOutput struct {
@@ -148,7 +151,6 @@ func PatchAutoscaler(ctx context.Context, input *PatchAutoscalerInput) (*PatchAu
 		return nil, dbErr(err)
 	}
 
-	// Only allow updating the enabled status (similar to agent's NoSchedule)
 	autoscaler.Enabled = input.Body.Enabled
 
 	if err = _store.AutoscalerUpdate(autoscaler); err != nil {
