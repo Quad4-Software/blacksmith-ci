@@ -17,25 +17,26 @@ package model
 
 // Workflow represents a workflow in the pipeline.
 type Workflow struct {
-	ID                 int64             `json:"id"                            xorm:"pk autoincr 'id'"`
-	PipelineID         int64             `json:"pipeline_id"                   xorm:"UNIQUE(s) INDEX 'pipeline_id'"`
-	PID                int               `json:"pid"                           xorm:"UNIQUE(s) 'pid'"`
-	Name               string            `json:"name"                          xorm:"name"`
-	PipelineName       string            `json:"pipeline_name"                 xorm:"pipeline_name"`
-	State              StatusValue       `json:"state"                         xorm:"state"`
-	Error              string            `json:"error,omitempty"               xorm:"TEXT 'error'"`
-	Started            int64             `json:"started,omitempty"             xorm:"started"`
-	Finished           int64             `json:"finished,omitempty"            xorm:"finished"`
-	AgentID            int64             `json:"agent_id,omitempty"            xorm:"agent_id"`
-	AgentPersistentID  string            `json:"agent_persistent_id,omitempty" xorm:"VARCHAR(64) INDEX 'agent_persistent_id'"`
-	AgentName          string            `json:"agent_name,omitempty"          xorm:"VARCHAR(255) 'agent_name'"`
-	Platform           string            `json:"platform,omitempty"            xorm:"platform"`
-	Environ            map[string]string `json:"environ,omitempty"             xorm:"json 'environ'"`
-	DependsOn          []string          `json:"depends_on,omitempty"          xorm:"json 'depends_on'"`
-	AxisID             int               `json:"-"                             xorm:"axis_id"`
-	OriginalWorkflowID int64             `json:"original_workflow_id"           xorm:"'original_workflow_id' DEFAULT 0"`
-	Attempt            int               `json:"attempt"                       xorm:"'attempt' DEFAULT 1"`
-	Children           []*Step           `json:"children,omitempty"            xorm:"-"`
+	ID                     int64             `json:"id"                            xorm:"pk autoincr 'id'"`
+	PipelineID             int64             `json:"pipeline_id"                   xorm:"UNIQUE(s) INDEX 'pipeline_id'"`
+	PID                    int               `json:"pid"                           xorm:"UNIQUE(s) 'pid'"`
+	Name                   string            `json:"name"                          xorm:"name"`
+	PipelineName           string            `json:"pipeline_name"                 xorm:"pipeline_name"`
+	State                  StatusValue       `json:"state"                         xorm:"state"`
+	Error                  string            `json:"error,omitempty"               xorm:"TEXT 'error'"`
+	Started                int64             `json:"started,omitempty"             xorm:"started"`
+	Finished               int64             `json:"finished,omitempty"            xorm:"finished"`
+	AgentID                int64             `json:"agent_id,omitempty"            xorm:"agent_id"`
+	AgentPersistentID      string            `json:"agent_persistent_id,omitempty" xorm:"VARCHAR(64) INDEX 'agent_persistent_id'"`
+	AgentName              string            `json:"agent_name,omitempty"          xorm:"VARCHAR(255) 'agent_name'"`
+	Platform               string            `json:"platform,omitempty"            xorm:"platform"`
+	Environ                map[string]string `json:"environ,omitempty"             xorm:"json 'environ'"`
+	DependsOn              []string          `json:"depends_on,omitempty"          xorm:"json 'depends_on'"`
+	AxisID                 int               `json:"-"                             xorm:"axis_id"`
+	OriginalWorkflowID     int64             `json:"original_workflow_id"           xorm:"'original_workflow_id' DEFAULT 0"`
+	Attempt                int               `json:"attempt"                       xorm:"'attempt' DEFAULT 1"`
+	Children               []*Step           `json:"children,omitempty"                xorm:"-"`
+	AutoscalerProvisioning bool              `json:"autoscaler_provisioning,omitempty" xorm:"-"`
 }
 
 // TableName return database table name for xorm.

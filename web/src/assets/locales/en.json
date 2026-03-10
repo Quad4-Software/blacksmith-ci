@@ -445,6 +445,8 @@
       "hide_hidden": "Collapse hidden pipelines",
       "unhide_all": "Unhide all",
       "step_not_started": "This step has not started yet.",
+      "agent_provisioning": "Agent being provisioned",
+      "agent_provisioning_desc": "An autoscaler is spinning up an agent for this workflow. This may take a moment.",
       "exit_code": "Exit Code {exitCode}",
       "loading": "Loading…",
       "no_logs": "No logs",

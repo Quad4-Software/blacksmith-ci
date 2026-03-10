@@ -146,6 +146,7 @@ export interface PipelineWorkflow {
   depends_on?: string[];
   original_workflow_id: number;
   attempt: number;
+  autoscaler_provisioning?: boolean;
   children: PipelineStep[];
 }
 

@@ -553,6 +553,14 @@
 
       <CardContent class="m-auto text-xl text-muted-foreground">
         <span v-if="step?.state === 'skipped'">{{ $t('repo.pipeline.actions.canceled') }}</span>
+        <div
+          v-else-if="!step?.started && currentWorkflow?.autoscaler_provisioning"
+          class="flex flex-col items-center gap-3 text-center"
+        >
+          <Icon name="lucide:server" class="w-10 h-10 text-primary animate-pulse" />
+          <span class="text-lg font-medium text-foreground">{{ $t('repo.pipeline.agent_provisioning') }}</span>
+          <span class="text-sm text-muted-foreground">{{ $t('repo.pipeline.agent_provisioning_desc') }}</span>
+        </div>
         <span v-else-if="!step?.started">{{ $t('repo.pipeline.step_not_started') }}</span>
         <div v-else-if="!loadedLogs">{{ $t('repo.pipeline.loading') }}</div>
 

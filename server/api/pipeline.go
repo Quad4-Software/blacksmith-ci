@@ -295,6 +295,7 @@ func GetPipeline(ctx context.Context, input *GetPipelineInput) (*GetPipelineOutp
 	}
 
 	populateAlwaysApproved(_store, repo, pl)
+	pipeline.AnnotateAutoscalerProvisioning(_store, pl)
 
 	return &GetPipelineOutput{Body: pl}, nil
 }
@@ -327,6 +328,7 @@ func getPipelineLast(ctx context.Context) (*GetPipelineOutput, error) {
 	}
 
 	populateAlwaysApproved(_store, repo, pl)
+	pipeline.AnnotateAutoscalerProvisioning(_store, pl)
 
 	return &GetPipelineOutput{Body: pl}, nil
 }
