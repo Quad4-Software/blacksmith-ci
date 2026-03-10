@@ -59,5 +59,8 @@ steps:
       SSH_KEY:
         from_secret: crowci-bot-ssh-key
     commands:
-      - apk add --no-cache -q curl git sed openssh
+      - apk add --no-cache -q curl git sed openssh py3-pip nodejs npm go
+      - pip install --break-system-packages ansible-doctor
+      - npm install -g pnpm
+      - go install github.com/norwoodj/helm-docs/cmd/helm-docs@v1.14.2
       - sh .crow/scripts/release-bump.sh

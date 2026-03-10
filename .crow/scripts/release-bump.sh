@@ -51,42 +51,55 @@ git push origin main || echo "Nothing to push"
 cd ..
 
 #
-# Bump and push crowci/helm
+# Bump, update docs, and release crowci/helm
 #
 echo "=== Bumping crowci/helm ==="
 rm -rf helm
-git clone --depth 1 ssh://git@codefloe.com/crowci/helm.git
+git clone ssh://git@codefloe.com/crowci/helm.git
 cd helm
 sed -i "s/^appVersion: .*/appVersion: ${CI_COMMIT_TAG#v}/" charts/crow/Chart.yaml
+
+# Regenerate chart docs
+echo "Running helm-docs..."
+export PATH="$PATH:$HOME/go/bin"
+helm-docs --skip-version-footer
+
+# Format with prettier
+echo "Running prettier..."
+pnpm dlx prettier --write .
+
 git config user.name "crowci-bot"
 git config user.email "admin@crowci.dev"
 git add -A
 git commit -m "chore${BREAKING}: bump version to ${CI_COMMIT_TAG}" || echo "Nothing to commit (already up to date)"
 git push origin main || echo "Nothing to push"
-cd ..
 
-#
-# Create release for crowci/helm
-#
+# Create release tag
 echo "=== Creating release for crowci/helm ==="
-rm -rf helm
-git clone ssh://git@codefloe.com/crowci/helm.git
-cd helm
 eval $(ssh-agent -s)
 ssh-add ~/.ssh/id_ed25519
 git sv tag
 cd ..
 
 #
-# Bump and push ansible-cicd
+# Bump, update docs, and release ansible-cicd
 #
 echo "=== Bumping ansible-cicd ==="
 rm -rf ansible-cicd
-git clone --depth 1 ssh://git@codefloe.com/devxy/ansible-cicd.git
+git clone ssh://git@codefloe.com/devxy/ansible-cicd.git
 cd ansible-cicd
 echo "Current version: $(grep 'crow_version:' roles/crowci/defaults/main.yml)"
 sed -i "s/^crow_version: .*/crow_version: ${CI_COMMIT_TAG}/" roles/crowci/defaults/main.yml
 echo "Updated version: $(grep 'crow_version:' roles/crowci/defaults/main.yml)"
+
+# Regenerate role docs with ansibledoctor
+echo "Running ansibledoctor..."
+ansible-doctor roles -r
+
+# Format with prettier
+echo "Running prettier..."
+pnpm dlx prettier --write .
+
 git config user.name "crowci-bot"
 git config user.email "admin@crowci.dev"
 git add -A
@@ -96,6 +109,12 @@ else
     git commit -m "chore${BREAKING}: bump version to ${CI_COMMIT_TAG}"
     git push origin main
 fi
+
+# Create release tag
+echo "=== Creating release for devxy/ansible-cicd ==="
+eval $(ssh-agent -s)
+ssh-add ~/.ssh/id_ed25519
+git sv tag
 cd ..
 
 echo "=== All bumps completed ==="
