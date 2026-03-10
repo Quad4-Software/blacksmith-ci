@@ -911,6 +911,7 @@
         "host": "Host:",
         "port": "Port:",
         "from": "From address:",
+        "auth_type": "Auth type:",
         "test": "Send test email",
         "testing": "Sending...",
         "test_success": "Test email sent successfully",

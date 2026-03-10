@@ -570,6 +570,7 @@ func setupEvilGlobals(ctx context.Context, c *cli.Command, s store.Store) (err e
 		Username: c.String("smtp-username"),
 		Password: c.String("smtp-password"),
 		From:     c.String("smtp-from"),
+		AuthType: c.String("smtp-auth-type"),
 	}
 	if smtpCfg.IsConfigured() {
 		server.Config.Services.NotificationService = notification.NewService(s, smtpCfg, c.String("server-host"))

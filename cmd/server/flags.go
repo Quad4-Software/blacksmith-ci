@@ -756,6 +756,12 @@ var flags = append([]cli.Flag{
 		Name:    "smtp-from",
 		Usage:   "email address used in the From header of notification emails",
 	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_SMTP_AUTH_TYPE"),
+		Name:    "smtp-auth-type",
+		Usage:   "SMTP authentication mechanism: LOGIN, PLAIN, CRAM-MD5, AUTO (auto-discover), or NONE",
+		Value:   "LOGIN",
+	},
 }, logger.GlobalLoggerFlags...)
 
 // datasourceDefaultValue returns the default datasource path, checking for

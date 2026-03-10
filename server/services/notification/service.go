@@ -42,6 +42,7 @@ type SMTPStatus struct {
 	Host       string `json:"host,omitempty"`
 	Port       int    `json:"port,omitempty"`
 	From       string `json:"from,omitempty"`
+	AuthType   string `json:"auth_type,omitempty"`
 }
 
 type service struct {
@@ -60,11 +61,16 @@ func NewService(store model.NotificationConfigStore, smtpCfg SMTPConfig, serverH
 }
 
 func (s *service) SMTPStatus() SMTPStatus {
+	authType := s.smtpCfg.AuthType
+	if authType == "" {
+		authType = "LOGIN"
+	}
 	return SMTPStatus{
 		Configured: s.smtpCfg.IsConfigured(),
 		Host:       s.smtpCfg.Host,
 		Port:       s.smtpCfg.Port,
 		From:       s.smtpCfg.From,
+		AuthType:   authType,
 	}
 }
 

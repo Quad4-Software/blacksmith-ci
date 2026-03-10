@@ -24,7 +24,7 @@ All variables are optional — notifications are disabled when `CROW_SMTP_HOST` 
 ## SMTP_USERNAME
 
 - Name: `CROW_SMTP_USERNAME`
-- Description: SMTP authentication username. When set, SMTP PLAIN authentication is used. Leave empty for unauthenticated SMTP.
+- Description: SMTP authentication username. When set, authentication is used with the mechanism specified by `CROW_SMTP_AUTH_TYPE`. Leave empty for unauthenticated SMTP.
 - Default: none
 
 ---
@@ -34,6 +34,14 @@ All variables are optional — notifications are disabled when `CROW_SMTP_HOST` 
 - Name: `CROW_SMTP_PASSWORD`
 - Description: SMTP authentication password.
 - Default: none
+
+---
+
+## SMTP_AUTH_TYPE
+
+- Name: `CROW_SMTP_AUTH_TYPE`
+- Description: SMTP authentication mechanism. Supported values: `LOGIN`, `PLAIN`, `CRAM-MD5`, `AUTO` (auto-discover from server), `NONE`.
+- Default: `LOGIN`
 
 ---
 

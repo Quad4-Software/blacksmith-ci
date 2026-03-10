@@ -20,6 +20,10 @@
           <span class="font-medium w-28">{{ $t('admin.settings.notifications.from') }}</span>
           <span class="text-muted-foreground">{{ smtpStatus.from }}</span>
         </div>
+        <div class="flex gap-2">
+          <span class="font-medium w-28">{{ $t('admin.settings.notifications.auth_type') }}</span>
+          <span class="text-muted-foreground">{{ smtpStatus.auth_type }}</span>
+        </div>
       </div>
 
       <div>

@@ -601,6 +601,7 @@ CROW_SMTP_PORT=587
 CROW_SMTP_FROM=crow@example.com
 CROW_SMTP_USERNAME=crow@example.com
 CROW_SMTP_PASSWORD=secret
+CROW_SMTP_AUTH_TYPE=LOGIN
 ```
 
 | Variable | Required | Default | Description |
@@ -608,8 +609,9 @@ CROW_SMTP_PASSWORD=secret
 | `CROW_SMTP_HOST` | Yes | — | SMTP server hostname |
 | `CROW_SMTP_PORT` | No | `587` | SMTP port (465=implicit TLS, 25=opportunistic TLS, other=mandatory TLS) |
 | `CROW_SMTP_FROM` | Yes | — | Sender email address |
-| `CROW_SMTP_USERNAME` | No | — | SMTP username (enables PLAIN auth) |
+| `CROW_SMTP_USERNAME` | No | — | SMTP username (enables authentication) |
 | `CROW_SMTP_PASSWORD` | No | — | SMTP password |
+| `CROW_SMTP_AUTH_TYPE` | No | `LOGIN` | Auth mechanism: `LOGIN`, `PLAIN`, `CRAM-MD5`, `AUTO` (auto-discover), or `NONE` |
 
 Once configured, notifications must be enabled per-repository in **Repository Settings > Notifications**.
 The SMTP configuration can be verified in **Admin Settings > Notifications**, which includes a test email button.

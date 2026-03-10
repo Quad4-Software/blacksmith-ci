@@ -16,7 +16,10 @@ package notification
 
 import (
 	"fmt"
+	"strings"
 
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	mail "github.com/wneessen/go-mail"
 )
 
@@ -27,6 +30,30 @@ type SMTPConfig struct {
 	Username string
 	Password string
 	From     string
+	AuthType string
+}
+
+// smtpAuthType resolves the configured auth type string to a go-mail SMTPAuthType.
+// Supported values: LOGIN, PLAIN, CRAM-MD5, AUTO, NONE.
+// Defaults to LOGIN if unrecognized or empty — LOGIN is the most universally
+// compatible mechanism for username/password auth. AUTO can pick a stronger
+// mechanism (e.g. SCRAM-SHA-256) that the server advertises but may not
+// properly support with plain credentials.
+func smtpAuthType(authType string) mail.SMTPAuthType {
+	switch strings.ToUpper(strings.TrimSpace(authType)) {
+	case "LOGIN":
+		return mail.SMTPAuthLogin
+	case "PLAIN":
+		return mail.SMTPAuthPlain
+	case "CRAM-MD5":
+		return mail.SMTPAuthCramMD5
+	case "AUTO":
+		return mail.SMTPAuthAutoDiscover
+	case "NONE":
+		return mail.SMTPAuthNoAuth
+	default:
+		return mail.SMTPAuthLogin
+	}
 }
 
 // IsConfigured returns true if the minimum SMTP settings are provided.
@@ -63,22 +90,39 @@ func sendEmail(cfg SMTPConfig, to []string, subject, body string) error {
 		opts = append(opts, mail.WithPort(cfg.Port), mail.WithTLSPolicy(mail.TLSMandatory))
 	}
 
+	resolvedAuth := smtpAuthType(cfg.AuthType)
 	if cfg.Username != "" {
 		opts = append(opts,
-			mail.WithSMTPAuth(mail.SMTPAuthPlain),
+			mail.WithSMTPAuth(resolvedAuth),
 			mail.WithUsername(cfg.Username),
 			mail.WithPassword(cfg.Password),
 		)
 	}
 
+	log.Debug().
+		Str("host", cfg.Host).
+		Int("port", cfg.Port).
+		Str("from", cfg.From).
+		Strs("to", to).
+		Str("auth_type", string(resolvedAuth)).
+		Str("subject", subject).
+		Msg("sending SMTP email")
+
+	if zerolog.GlobalLevel() <= zerolog.DebugLevel {
+		opts = append(opts, mail.WithDebugLog())
+	}
+
 	client, err := mail.NewClient(cfg.Host, opts...)
 	if err != nil {
+		log.Error().Err(err).Str("host", cfg.Host).Int("port", cfg.Port).Str("auth_type", string(resolvedAuth)).Msg("failed to create SMTP client")
 		return fmt.Errorf("failed to create SMTP client: %w", err)
 	}
 
 	if err := client.DialAndSend(msg); err != nil {
+		log.Error().Err(err).Str("host", cfg.Host).Int("port", cfg.Port).Str("auth_type", string(resolvedAuth)).Msg("failed to send email")
 		return fmt.Errorf("failed to send email: %w", err)
 	}
 
+	log.Info().Str("host", cfg.Host).Strs("to", to).Str("subject", subject).Msg("email sent successfully")
 	return nil
 }

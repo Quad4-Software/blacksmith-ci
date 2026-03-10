@@ -14,6 +14,7 @@ export interface SMTPStatus {
   host?: string;
   port?: number;
   from?: string;
+  auth_type?: string;
 }
 
 export interface SMTPTestResult {
