@@ -42,7 +42,7 @@ const (
 	// Cron scheduler leader election lock name.
 	cronLeaderLock = "cron:scheduler:leader"
 
-	maxAuthFailures = 3 // consecutive auth failures before a cron is disabled
+	maxAuthFailures = 50 // consecutive auth failures before a cron is disabled
 )
 
 // Run starts the cron scheduler with persistent leadership.
