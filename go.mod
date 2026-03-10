@@ -56,7 +56,7 @@ require (
 	github.com/urfave/cli/v3 v3.7.0
 	github.com/wneessen/go-mail v0.7.2
 	github.com/yaronf/httpsign v0.4.2
-	gitlab.com/gitlab-org/api/client-go v1.46.0
+	gitlab.com/gitlab-org/api/client-go/v2 v2.5.0
 	go.uber.org/multierr v1.11.0
 	golang.org/x/net v0.51.0
 	golang.org/x/oauth2 v0.36.0
