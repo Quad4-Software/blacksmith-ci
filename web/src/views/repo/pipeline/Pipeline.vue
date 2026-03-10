@@ -1,5 +1,5 @@
 <template>
-  <Container full-width class="md:min-h-xs flex min-h-[calc(100vh-10rem)] md:h-full flex-col md:px-4 overflow-hidden">
+  <Container full-width class="flex flex-1 min-h-0 flex-col md:px-4 overflow-hidden">
     <!-- Desktop Layout (hidden on mobile, ResizablePanelGroup has hardcoded flex that conflicts with hidden) -->
     <div class="hidden md:contents">
       <ResizablePanelGroup
@@ -146,7 +146,7 @@
                 :previous-step-id="previousStepId"
                 :next-step-id="nextStepId"
                 :auto-follow-enabled="autoFollowEnabled"
-                class="w-full h-full"
+                class="w-full"
                 @update:auto-follow-enabled="handleAutoFollowUpdate"
                 @rerun-workflow="rerunWorkflow"
               />

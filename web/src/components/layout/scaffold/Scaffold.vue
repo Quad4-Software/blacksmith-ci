@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-1 flex-col">
+  <div class="flex flex-1 flex-col" :class="{ 'min-h-0 overflow-hidden': fluidContent }">
     <Header
       :go-back="goBack"
       :enable-tabs="enableTabs"

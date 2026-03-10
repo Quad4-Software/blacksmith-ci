@@ -3,10 +3,10 @@
     :is="isFullscreen ? 'div' : 'div'"
     v-if="pipeline"
     ref="componentRef"
-    :class="isFullscreen ? 'fixed inset-0 z-50 bg-background' : 'flex flex-col h-full'"
+    :class="isFullscreen ? 'fixed inset-0 z-50 bg-background' : 'flex flex-col flex-1 min-h-0'"
   >
     <Card
-      class="flex flex-col h-full overflow-hidden p-0 relative"
+      class="flex flex-col flex-1 min-h-0 overflow-hidden p-0 relative"
       :class="[logThemeClass, isFullscreen ? 'rounded-none border-0' : '']"
     >
       <!-- Desktop header - hidden on mobile since we have a mobile header in the parent -->
