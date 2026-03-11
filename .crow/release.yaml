@@ -52,6 +52,7 @@ steps:
       files:
         - dist/*.tar.gz
       title: ${CI_COMMIT_TAG}
+      overwrite: true
 
   'Bump external repositories':
     image: reg.devxy.io/docker.io/thegeeklab/git-sv:2.0.9
@@ -60,7 +61,7 @@ steps:
         from_secret: crowci-bot-ssh-key
     commands:
       - apk add --no-cache -q curl git sed openssh py3-pip nodejs npm go
-      - pip install --break-system-packages ansible-doctor
+      - pip install --break-system-packages ansible-core ansible-doctor
       - npm install -g pnpm
       - go install github.com/norwoodj/helm-docs/cmd/helm-docs@v1.14.2
       - sh .crow/scripts/release-bump.sh

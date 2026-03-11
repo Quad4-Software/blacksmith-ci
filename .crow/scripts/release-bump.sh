@@ -71,14 +71,18 @@ pnpm dlx prettier --write .
 git config user.name "crowci-bot"
 git config user.email "admin@crowci.dev"
 git add -A
-git commit -m "chore${BREAKING}: bump version to ${CI_COMMIT_TAG}" || echo "Nothing to commit (already up to date)"
-git push origin main || echo "Nothing to push"
+if git diff --cached --quiet; then
+    echo "Nothing to commit (helm already at ${CI_COMMIT_TAG})"
+else
+    git commit -m "chore${BREAKING}: bump version to ${CI_COMMIT_TAG}"
+    git push origin main
+fi
 
-# Create release tag
+# Create release tag (skip if already tagged)
 echo "=== Creating release for crowci/helm ==="
 eval $(ssh-agent -s)
 ssh-add ~/.ssh/id_ed25519
-git sv tag
+git sv tag || echo "Tag already exists for crowci/helm, skipping"
 cd ..
 
 #
@@ -110,11 +114,11 @@ else
     git push origin main
 fi
 
-# Create release tag
+# Create release tag (skip if already tagged)
 echo "=== Creating release for devxy/ansible-cicd ==="
 eval $(ssh-agent -s)
 ssh-add ~/.ssh/id_ed25519
-git sv tag
+git sv tag || echo "Tag already exists for devxy/ansible-cicd, skipping"
 cd ..
 
 echo "=== All bumps completed ==="
