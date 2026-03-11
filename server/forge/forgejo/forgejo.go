@@ -651,12 +651,12 @@ func (c *Forgejo) getChangedFilesForPR(ctx context.Context, repo *model.Repo, in
 		return []string{}, nil
 	}
 
-	user, err := common.RepoUser(ctx, repo)
+	token, err := c.refreshedTokenForRepo(ctx, repo, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	client, err := c.newClientToken(ctx, user.AccessToken)
+	client, err := c.newClientToken(ctx, token)
 	if err != nil {
 		return nil, err
 	}
@@ -694,12 +694,12 @@ func (c *Forgejo) getTagCommitSHA(ctx context.Context, repo *model.Repo, tagName
 		return "", nil
 	}
 
-	user, err := common.RepoUser(ctx, repo)
+	token, err := c.refreshedTokenForRepo(ctx, repo, nil)
 	if err != nil {
 		return "", err
 	}
 
-	client, err := c.newClientToken(ctx, user.AccessToken)
+	client, err := c.newClientToken(ctx, token)
 	if err != nil {
 		return "", err
 	}

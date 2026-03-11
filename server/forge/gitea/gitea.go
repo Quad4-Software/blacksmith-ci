@@ -658,12 +658,12 @@ func (c *Gitea) getChangedFilesForPR(ctx context.Context, repo *model.Repo, inde
 		return []string{}, nil
 	}
 
-	user, err := common.RepoUser(ctx, repo)
+	token, err := c.refreshedTokenForRepo(ctx, repo, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	client, err := c.newClientToken(ctx, user.AccessToken)
+	client, err := c.newClientToken(ctx, token)
 	if err != nil {
 		return nil, err
 	}
@@ -701,12 +701,12 @@ func (c *Gitea) getTagCommitSHA(ctx context.Context, repo *model.Repo, tagName s
 		return "", nil
 	}
 
-	user, err := common.RepoUser(ctx, repo)
+	token, err := c.refreshedTokenForRepo(ctx, repo, nil)
 	if err != nil {
 		return "", err
 	}
 
-	client, err := c.newClientToken(ctx, user.AccessToken)
+	client, err := c.newClientToken(ctx, token)
 	if err != nil {
 		return "", err
 	}

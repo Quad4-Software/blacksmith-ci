@@ -273,7 +273,8 @@ func TestRefreshUserForge_TokenAlreadyUsedError_RefreshedElsewhere(t *testing.T)
 func TestRefreshUserForge_TokenAlreadyUsedError_NotRefreshedElsewhere(t *testing.T) {
 	ClearCooldowns()
 
-	// Token was not refreshed elsewhere - should clear tokens and return ErrTokenInvalidated
+	// Token was not refreshed elsewhere - should set cooldown and return ErrTokenInvalidated
+	// but should NOT clear tokens from DB (to avoid permanent lockout)
 	originalExpiry := time.Now().Add(10 * time.Minute).Unix()
 
 	user := &model.User{
@@ -312,13 +313,12 @@ func TestRefreshUserForge_TokenAlreadyUsedError_NotRefreshedElsewhere(t *testing
 		Expiry:       originalExpiry,
 	}, nil).Once()
 
-	// UserForgeUpdate should be called to clear the tokens
-	mockStore.On("UserForgeUpdate", mock.AnythingOfType("*model.UserForge")).Return(nil).Once()
-
+	// UserForgeUpdate should NOT be called — tokens are preserved in DB
 	err := RefreshUserForge(context.Background(), mockForge, mockStore, user, testForgeID)
 
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, ErrTokenInvalidated)
+	mockStore.AssertNotCalled(t, "UserForgeUpdate", mock.Anything)
 }
 
 func TestRefreshUserForge_DBSaveFailure(t *testing.T) {
@@ -521,9 +521,6 @@ func TestRefreshUserForge_CooldownPreventsRetryLoop(t *testing.T) {
 		Expiry:       originalExpiry,
 	}, nil).Once()
 
-	// UserForgeUpdate should be called to clear the tokens
-	mockStore.On("UserForgeUpdate", mock.AnythingOfType("*model.UserForge")).Return(nil).Once()
-
 	user := &model.User{
 		ID:           1,
 		Login:        "testuser",
@@ -548,4 +545,5 @@ func TestRefreshUserForge_CooldownPreventsRetryLoop(t *testing.T) {
 	// Verify that UserForgeGet and Refresh were only called for the first attempt
 	mockStore.AssertNumberOfCalls(t, "UserForgeGet", 2) // First attempt calls UserForgeGet twice
 	mockForge.AssertNumberOfCalls(t, "Refresh", 1)
+	mockStore.AssertNotCalled(t, "UserForgeUpdate", mock.Anything)
 }
