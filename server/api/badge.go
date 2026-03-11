@@ -35,38 +35,20 @@ import (
 )
 
 type GetBadgeInput struct {
-	RepoIDOrOwner string `path:"repo_id_or_owner" doc:"the repository id or owner name"`
-	RepoName      string `path:"repo_name" doc:"the repository name"`
-	Branch        string `query:"branch" doc:"the branch name"`
+	RepoID string `path:"repo_id_or_owner" doc:"the repository id"`
+	Branch string `query:"branch" doc:"the branch name"`
 }
 
-func GetBadge(ctx context.Context, input *GetBadgeInput) (*struct{}, error) {
+type GetBadgeByNameInput struct {
+	Owner    string `path:"repo_id_or_owner" doc:"the repository owner"`
+	RepoName string `path:"repo_name" doc:"the repository name"`
+	Branch   string `query:"branch" doc:"the branch name"`
+}
+
+func getBadgeForRepo(ctx context.Context, repo *model.Repo, branch string) (*struct{}, error) {
 	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 
-	var repo *model.Repo
-	var err error
-
-	if input.RepoName != "" {
-		repo, err = _store.GetRepoName(input.RepoIDOrOwner + "/" + input.RepoName)
-	} else {
-		var repoID int64
-		repoID, err = strconv.ParseInt(input.RepoIDOrOwner, 10, 64)
-		if err != nil {
-			c.Writer.WriteHeader(http.StatusBadRequest)
-			return nil, nil
-		}
-		repo, err = _store.GetRepo(repoID)
-	}
-
-	if err != nil {
-		return nil, dbErr(err)
-	}
-
-	// if no commit was found then display
-	// the 'none' badge, instead of throwing
-	// an error response
-	branch := input.Branch
 	if len(branch) == 0 {
 		branch = repo.Branch
 	}
@@ -79,38 +61,53 @@ func GetBadge(ctx context.Context, input *GetBadgeInput) (*struct{}, error) {
 		pipeline = nil
 	}
 
-	// we serve an SVG, so set content type appropriately.
 	c.Writer.Header().Set("Content-Type", "image/svg+xml")
 	c.String(http.StatusOK, badges.Generate(pipeline))
 	return nil, nil
 }
 
-type GetCCInput struct {
-	RepoIDOrOwner string `path:"repo_id_or_owner" doc:"the repository id or owner name"`
-	RepoName      string `path:"repo_name" doc:"the repository name"`
-}
-
-func GetCC(ctx context.Context, input *GetCCInput) (*struct{}, error) {
+func GetBadge(ctx context.Context, input *GetBadgeInput) (*struct{}, error) {
 	c := ginCtx(ctx)
 	_store := store.FromContext(c)
-	var repo *model.Repo
-	var err error
 
-	if input.RepoName != "" {
-		repo, err = _store.GetRepoName(input.RepoIDOrOwner + "/" + input.RepoName)
-	} else {
-		var repoID int64
-		repoID, err = strconv.ParseInt(input.RepoIDOrOwner, 10, 64)
-		if err != nil {
-			c.Writer.WriteHeader(http.StatusBadRequest)
-			return nil, nil
-		}
-		repo, err = _store.GetRepo(repoID)
+	repoID, err := strconv.ParseInt(input.RepoID, 10, 64)
+	if err != nil {
+		c.Writer.WriteHeader(http.StatusBadRequest)
+		return nil, nil
 	}
 
+	repo, err := _store.GetRepo(repoID)
 	if err != nil {
 		return nil, dbErr(err)
 	}
+
+	return getBadgeForRepo(ctx, repo, input.Branch)
+}
+
+func GetBadgeByName(ctx context.Context, input *GetBadgeByNameInput) (*struct{}, error) {
+	c := ginCtx(ctx)
+	_store := store.FromContext(c)
+
+	repo, err := _store.GetRepoName(input.Owner + "/" + input.RepoName)
+	if err != nil {
+		return nil, dbErr(err)
+	}
+
+	return getBadgeForRepo(ctx, repo, input.Branch)
+}
+
+type GetCCInput struct {
+	RepoID string `path:"repo_id_or_owner" doc:"the repository id"`
+}
+
+type GetCCByNameInput struct {
+	Owner    string `path:"repo_id_or_owner" doc:"the repository owner"`
+	RepoName string `path:"repo_name" doc:"the repository name"`
+}
+
+func getCCForRepo(ctx context.Context, repo *model.Repo) (*struct{}, error) {
+	c := ginCtx(ctx)
+	_store := store.FromContext(c)
 
 	pipelines, err := _store.GetPipelineList(repo, &model.ListOptions{Page: 1, PerPage: 1}, nil)
 	if err != nil && !errors.Is(err, types.RecordNotExist) {
@@ -125,4 +122,34 @@ func GetCC(ctx context.Context, input *GetCCInput) (*struct{}, error) {
 	cc := ccmenu.New(repo, pipelines[0], url)
 	c.XML(http.StatusOK, cc)
 	return nil, nil
+}
+
+func GetCC(ctx context.Context, input *GetCCInput) (*struct{}, error) {
+	c := ginCtx(ctx)
+	_store := store.FromContext(c)
+
+	repoID, err := strconv.ParseInt(input.RepoID, 10, 64)
+	if err != nil {
+		c.Writer.WriteHeader(http.StatusBadRequest)
+		return nil, nil
+	}
+
+	repo, err := _store.GetRepo(repoID)
+	if err != nil {
+		return nil, dbErr(err)
+	}
+
+	return getCCForRepo(ctx, repo)
+}
+
+func GetCCByName(ctx context.Context, input *GetCCByNameInput) (*struct{}, error) {
+	c := ginCtx(ctx)
+	_store := store.FromContext(c)
+
+	repo, err := _store.GetRepoName(input.Owner + "/" + input.RepoName)
+	if err != nil {
+		return nil, dbErr(err)
+	}
+
+	return getCCForRepo(ctx, repo)
 }

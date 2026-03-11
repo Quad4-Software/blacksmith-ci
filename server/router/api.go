@@ -652,11 +652,11 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "get-badge-by-name", Method: http.MethodGet, Path: "/badges/{repo_id_or_owner}/{repo_name}/status.svg",
 		Summary: "Get a pipeline status badge by owner/name", Tags: []string{"Badges"},
-	}, api.GetBadge)
+	}, api.GetBadgeByName)
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "get-cc-by-name", Method: http.MethodGet, Path: "/badges/{repo_id_or_owner}/{repo_name}/cc.xml",
 		Summary: "Get CCMenu/CCTray XML by owner/name", Tags: []string{"Badges"},
-	}, api.GetCC)
+	}, api.GetCCByName)
 
 	// ── Pipeline queue (admin) ───────────────────────────────────────────
 	huma.Register(humaAPI, huma.Operation{
