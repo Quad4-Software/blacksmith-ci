@@ -33,11 +33,11 @@ import (
 
 // CreateAccessTokenRequest is the request body for creating an access token.
 type CreateAccessTokenRequest struct {
-	Name      string   `json:"name"       binding:"required"`
-	Scopes    []string `json:"scopes"     binding:"required,min=1"`
-	OrgID     int64    `json:"org_id"`
-	RepoID    int64    `json:"repo_id"`
-	ExpiresAt int64    `json:"expires_at"`
+	Name      string   `json:"name" minLength:"1" doc:"token name"`
+	Scopes    []string `json:"scopes" minItems:"1" doc:"token scopes"`
+	OrgID     int64    `json:"org_id,omitempty" doc:"optional org scope"`
+	RepoID    int64    `json:"repo_id,omitempty" doc:"optional repo scope"`
+	ExpiresAt int64    `json:"expires_at,omitempty" doc:"optional expiry timestamp"`
 }
 
 // AccessTokenFields is a method-free copy of model.AccessToken for clean huma schema generation.
@@ -204,8 +204,8 @@ func DeleteAccessToken(ctx context.Context, input *DeleteAccessTokenInput) (*str
 
 // UpdateAccessTokenRequest is the request body for updating an access token.
 type UpdateAccessTokenRequest struct {
-	Name   string   `json:"name"`
-	Scopes []string `json:"scopes"`
+	Name   string   `json:"name,omitempty" doc:"token name"`
+	Scopes []string `json:"scopes,omitempty" doc:"token scopes"`
 }
 
 type PatchAccessTokenInput struct {
@@ -257,7 +257,7 @@ func PatchAccessToken(ctx context.Context, input *PatchAccessTokenInput) (*Patch
 
 // DeleteAccessTokenBatchRequest is the request body for batch deleting access tokens.
 type DeleteAccessTokenBatchRequest struct {
-	IDs []int64 `json:"ids" binding:"required,min=1"`
+	IDs []int64 `json:"ids" minItems:"1" doc:"token IDs to delete"`
 }
 
 type DeleteAccessTokenBatchInput struct {

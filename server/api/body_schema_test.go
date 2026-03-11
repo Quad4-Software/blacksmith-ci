@@ -396,6 +396,72 @@ func TestRegressionNullSliceRejectedByOldSchema(t *testing.T) {
 	validateBody(t, reflect.TypeOf(PatchSecretBody{}), `{}`)
 }
 
+// --- Access Token ---.
+
+func TestCreateAccessTokenRequestSchema(t *testing.T) {
+	typ := reflect.TypeOf(CreateAccessTokenRequest{})
+
+	t.Run("minimal payload", func(t *testing.T) {
+		validateBody(t, typ, `{"name": "my-token", "scopes": ["repo"]}`)
+	})
+
+	t.Run("with optional fields", func(t *testing.T) {
+		validateBody(t, typ, `{"name": "my-token", "scopes": ["repo"], "org_id": 1, "repo_id": 2, "expires_at": 1700000000}`)
+	})
+
+	t.Run("without optional org_id/repo_id/expires_at", func(t *testing.T) {
+		validateBody(t, typ, `{"name": "my-token", "scopes": ["repo", "admin"]}`)
+	})
+
+	t.Run("rejects missing name", func(t *testing.T) {
+		rejectBody(t, typ, `{"scopes": ["repo"]}`)
+	})
+
+	t.Run("rejects missing scopes", func(t *testing.T) {
+		rejectBody(t, typ, `{"name": "my-token"}`)
+	})
+
+	t.Run("rejects empty scopes", func(t *testing.T) {
+		rejectBody(t, typ, `{"name": "my-token", "scopes": []}`)
+	})
+}
+
+func TestUpdateAccessTokenRequestSchema(t *testing.T) {
+	typ := reflect.TypeOf(UpdateAccessTokenRequest{})
+
+	t.Run("name only", func(t *testing.T) {
+		validateBody(t, typ, `{"name": "updated"}`)
+	})
+
+	t.Run("scopes only", func(t *testing.T) {
+		validateBody(t, typ, `{"scopes": ["repo"]}`)
+	})
+
+	t.Run("empty object", func(t *testing.T) {
+		validateBody(t, typ, `{}`)
+	})
+}
+
+func TestDeleteAccessTokenBatchRequestSchema(t *testing.T) {
+	typ := reflect.TypeOf(DeleteAccessTokenBatchRequest{})
+
+	t.Run("single id", func(t *testing.T) {
+		validateBody(t, typ, `{"ids": [1]}`)
+	})
+
+	t.Run("multiple ids", func(t *testing.T) {
+		validateBody(t, typ, `{"ids": [1, 2, 3]}`)
+	})
+
+	t.Run("rejects empty ids", func(t *testing.T) {
+		rejectBody(t, typ, `{"ids": []}`)
+	})
+
+	t.Run("rejects missing ids", func(t *testing.T) {
+		rejectBody(t, typ, `{}`)
+	})
+}
+
 func TestRegressionPartialPayloadRejectedByOldSchema(t *testing.T) {
 	// With old Body model.Registry, sending only address/username/password
 	// would fail because id, org_id, repo_id etc. were required.
