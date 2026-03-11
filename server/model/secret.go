@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"regexp"
 	"sort"
+	"strings"
 )
 
 var (
@@ -68,6 +69,23 @@ func (s *Secret) BeforeInsert() {
 	if s.Source == "" {
 		s.Source = "internal"
 	}
+	s.Value = normalizePEMValue(s.Value)
+}
+
+// BeforeUpdate normalizes PEM values before updating in the database.
+func (s *Secret) BeforeUpdate() {
+	s.Value = normalizePEMValue(s.Value)
+}
+
+// normalizePEMValue ensures PEM-formatted values end with a trailing newline.
+// PEM consumers (e.g. OpenSSH) require the final newline after the end marker.
+// This is commonly lost when copy-pasting keys into a web form.
+func normalizePEMValue(value string) string {
+	trimmed := strings.TrimRight(value, " \t\r\n")
+	if strings.Contains(trimmed, "-----BEGIN ") && strings.HasSuffix(trimmed, "-----") {
+		return trimmed + "\n"
+	}
+	return value
 }
 
 // Global secret.

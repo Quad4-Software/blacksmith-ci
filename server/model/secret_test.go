@@ -20,6 +20,55 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestNormalizePEMValue(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "PEM key without trailing newline gets one added",
+			input:    "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXk=\n-----END OPENSSH PRIVATE KEY-----",
+			expected: "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXk=\n-----END OPENSSH PRIVATE KEY-----\n",
+		},
+		{
+			name:     "PEM key with trailing newline is unchanged",
+			input:    "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXk=\n-----END OPENSSH PRIVATE KEY-----\n",
+			expected: "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXk=\n-----END OPENSSH PRIVATE KEY-----\n",
+		},
+		{
+			name:     "PEM key with CRLF and no trailing newline",
+			input:    "-----BEGIN RSA PRIVATE KEY-----\r\ndata\r\n-----END RSA PRIVATE KEY-----",
+			expected: "-----BEGIN RSA PRIVATE KEY-----\r\ndata\r\n-----END RSA PRIVATE KEY-----\n",
+		},
+		{
+			name:     "PEM key with trailing whitespace",
+			input:    "-----BEGIN EC PRIVATE KEY-----\ndata\n-----END EC PRIVATE KEY-----  \n",
+			expected: "-----BEGIN EC PRIVATE KEY-----\ndata\n-----END EC PRIVATE KEY-----\n",
+		},
+		{
+			name:     "non-PEM value is unchanged",
+			input:    "just-a-password",
+			expected: "just-a-password",
+		},
+		{
+			name:     "non-PEM value with newlines is unchanged",
+			input:    "some\nmultiline\nvalue",
+			expected: "some\nmultiline\nvalue",
+		},
+		{
+			name:     "PEM certificate",
+			input:    "-----BEGIN CERTIFICATE-----\ndata\n-----END CERTIFICATE-----",
+			expected: "-----BEGIN CERTIFICATE-----\ndata\n-----END CERTIFICATE-----\n",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, normalizePEMValue(tt.input))
+		})
+	}
+}
+
 func TestSecretValidate(t *testing.T) {
 	tests := []struct {
 		s   Secret
