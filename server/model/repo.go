@@ -139,11 +139,11 @@ type RepoPatch struct {
 	AllowDeploy                  *bool                      `json:"allow_deploy,omitempty"`
 	AllowManual                  *bool                      `json:"allow_manual,omitempty"`
 	DeployTeam                   *string                    `json:"deploy_team,omitempty"`
-	CancelPreviousPipelineEvents *[]WebhookEvent            `json:"cancel_previous_pipeline_events"`
-	LogsPipelinesKeepMin         int64                      `json:"logs_keep_min"`
-	LogsDurationKeep             string                     `json:"logs_keep_duration"`
-	NetrcTrusted                 *[]string                  `json:"netrc_trusted"`
-	Trusted                      *TrustedConfigurationPatch `json:"trusted"`
+	CancelPreviousPipelineEvents *[]WebhookEvent            `json:"cancel_previous_pipeline_events,omitempty"`
+	LogsPipelinesKeepMin         int64                      `json:"logs_keep_min,omitempty"`
+	LogsDurationKeep             string                     `json:"logs_keep_duration,omitempty"`
+	NetrcTrusted                 *[]string                  `json:"netrc_trusted,omitempty"`
+	Trusted                      *TrustedConfigurationPatch `json:"trusted,omitempty"`
 } //	@name	RepoPatch
 
 type ForgeRemoteID string
@@ -159,9 +159,9 @@ type TrustedConfiguration struct {
 }
 
 type TrustedConfigurationPatch struct {
-	Network  *bool `json:"network"`
-	Volumes  *bool `json:"volumes"`
-	Security *bool `json:"security"`
+	Network  *bool `json:"network,omitempty"`
+	Volumes  *bool `json:"volumes,omitempty"`
+	Security *bool `json:"security,omitempty"`
 }
 
 // RepoLastPipeline represents a repository with last pipeline execution information.
