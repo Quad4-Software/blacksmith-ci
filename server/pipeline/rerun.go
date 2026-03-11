@@ -280,15 +280,22 @@ func buildAttemptInfo(workflows []*model.Workflow) map[string]attemptData {
 	return info
 }
 
-// collectRerunWorkflows returns the list of workflow names to rerun:
-// the target workflow plus any workflows that transitively depend on it
-// and were failed/skipped (cascading reruns).
+// collectRerunWorkflows returns the list of workflow names to include in the
+// pipeline parse filter: the target workflow, any downstream dependents
+// (cascading reruns), and all upstream dependencies.
+//
+// Upstream dependencies must be included in the filter so that
+// filterItemsWithMissingDependencies (in the step builder) does not strip
+// the target workflow for having "missing" deps. The post-filter in
+// RerunWorkflow ensures only the target and its failing/skipped dependents
+// are actually rerun — successful upstream deps are excluded there.
+//
 // Note: this returns names for the WorkflowFilter. For matrix builds,
 // individual variant filtering is done after parsePipeline.
 func collectRerunWorkflows(target *model.Workflow, allWorkflows []*model.Workflow) []string {
 	rerunNames := map[string]bool{target.Name: true}
 
-	// Iteratively find dependents that should be rerun
+	// Iteratively find downstream dependents that should be rerun
 	changed := true
 	for changed {
 		changed = false
@@ -296,12 +303,30 @@ func collectRerunWorkflows(target *model.Workflow, allWorkflows []*model.Workflo
 			if rerunNames[wf.Name] {
 				continue
 			}
-			// Check if this workflow depends on any workflow we're rerunning
 			for _, dep := range wf.DependsOn {
 				if rerunNames[dep] {
 					rerunNames[wf.Name] = true
 					changed = true
 					break
+				}
+			}
+		}
+	}
+
+	// Also include upstream dependencies (transitively) so that the step
+	// builder's filterItemsWithMissingDependencies doesn't remove the target.
+	depNames := make(map[string][]string)
+	for _, wf := range allWorkflows {
+		depNames[wf.Name] = wf.DependsOn
+	}
+	changed = true
+	for changed {
+		changed = false
+		for name := range rerunNames {
+			for _, dep := range depNames[name] {
+				if !rerunNames[dep] {
+					rerunNames[dep] = true
+					changed = true
 				}
 			}
 		}
