@@ -98,6 +98,9 @@ func elementTypeName(t reflect.Type) (string, string) {
 // newHumaAPI creates a huma API instance mounted on the given gin group.
 func newHumaAPI(engine *gin.Engine, group *gin.RouterGroup, title, version string) huma.API {
 	config := huma.DefaultConfig(title, version)
+	// Allow extra JSON properties in request bodies so frontends can send
+	// Partial<Model> objects that include fields beyond the body struct.
+	config.AllowAdditionalPropertiesByDefault = true
 	config.Servers = []*huma.Server{{URL: server.Config.Server.RootPath + "/api/v1"}}
 	config.Components.Schemas = huma.NewMapRegistry("#/components/schemas/", schemaNamer)
 	config.Components.SecuritySchemes = map[string]*huma.SecurityScheme{
