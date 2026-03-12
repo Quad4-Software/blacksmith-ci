@@ -81,7 +81,7 @@ export default defineConfig({
         // Custom theme switcher
         ThemeProvider: './src/components/ThemeProvider.astro',
         ThemeSelect: './src/components/ThemeSelect.astro',
-        // Add Liberapay donation link
+        // Custom Codefloe icon + Liberapay donation link
         SocialIcons: './src/components/SocialIcons.astro',
       },
       expressiveCode: {
@@ -119,11 +119,7 @@ export default defineConfig({
         starlightScrollToTop(),
       ],
       social: [
-        {
-          icon: 'codeberg',
-          label: 'Codeberg',
-          href: 'https://codefloe.com/crowci/crow',
-        },
+        // Codefloe icon is rendered via custom SocialIcons component
       ],
       editLink: {
         baseUrl: 'https://codefloe.com/crowci/crow/src/branch/main/docs/src/content/docs/',
