@@ -64,10 +64,14 @@ echo "Running helm-docs..."
 export PATH="$PATH:$HOME/go/bin"
 helm-docs --skip-version-footer
 
-# Format with prettier (install repo deps so plugins are available)
-echo "Running prettier..."
-pnpm install --frozen-lockfile
-pnpm exec prettier --write .
+# Format with prettier if the repo has a package.json
+if [ -f package.json ]; then
+    echo "Running prettier..."
+    pnpm install --frozen-lockfile
+    pnpm exec prettier --write .
+else
+    echo "Skipping prettier (no package.json)"
+fi
 
 git config user.name "crowci-bot"
 git config user.email "admin@crowci.dev"
@@ -101,10 +105,14 @@ echo "Updated version: $(grep 'crow_version:' roles/crowci/defaults/main.yml)"
 echo "Running ansibledoctor..."
 ansible-doctor roles -r
 
-# Format with prettier (install repo deps so plugins are available)
-echo "Running prettier..."
-pnpm install --frozen-lockfile
-pnpm exec prettier --write .
+# Format with prettier if the repo has a package.json
+if [ -f package.json ]; then
+    echo "Running prettier..."
+    pnpm install --frozen-lockfile
+    pnpm exec prettier --write .
+else
+    echo "Skipping prettier (no package.json)"
+fi
 
 git config user.name "crowci-bot"
 git config user.email "admin@crowci.dev"
