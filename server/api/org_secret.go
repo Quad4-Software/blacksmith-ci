@@ -23,6 +23,7 @@ import (
 	"codefloe.com/crowci/crow/v5/server"
 	"codefloe.com/crowci/crow/v5/server/model"
 	"codefloe.com/crowci/crow/v5/server/router/middleware/session"
+	"codefloe.com/crowci/crow/v5/server/store"
 )
 
 type GetOrgSecretInput struct {
@@ -66,15 +67,26 @@ func GetOrgSecretAbbreviated(ctx context.Context, input *GetOrgSecretAbbreviated
 		return nil, dbErr(err)
 	}
 
-	// Get forge for org membership check
-	_forge, err := server.Config.Services.Manager.ForgeFromUser(user)
+	// Get forge by org's forge ID (not user's default forge)
+	_forge, err := server.Config.Services.Manager.ForgeByID(org.ForgeID)
 	if err != nil {
-		return nil, huma.Error500InternalServerError("Cannot get forge for user")
+		return nil, huma.Error500InternalServerError("Cannot get forge for organization")
+	}
+
+	// Build a user with the correct forge credentials for this org's forge
+	forgeUser := user
+	if uf, ufErr := store.FromContext(c).UserForgeGet(user.ID, org.ForgeID); ufErr == nil && uf != nil {
+		forgeUserCopy := *user
+		forgeUserCopy.ForgeID = org.ForgeID
+		forgeUserCopy.AccessToken = uf.AccessToken
+		forgeUserCopy.RefreshToken = uf.RefreshToken
+		forgeUserCopy.Expiry = uf.Expiry
+		forgeUser = &forgeUserCopy
 	}
 
 	// Create authorizer and check org admin permission
 	authorizer := NewSecretViewAuthorizerFromContext(c, server.Config.Services.Membership)
-	if !authorizer.CanViewOrgSecret(c, user, org, _forge) {
+	if !authorizer.CanViewOrgSecret(c, forgeUser, org, _forge) {
 		return nil, huma.Error403Forbidden("Org admin privileges required to view secret value")
 	}
 

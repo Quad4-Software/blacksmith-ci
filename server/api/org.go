@@ -76,12 +76,6 @@ func GetOrgPermissions(ctx context.Context, input *GetOrgPermissionsInput) (*Get
 	user := session.User(c)
 	org := session.Org(c)
 
-	_forge, err := server.Config.Services.Manager.ForgeFromUser(user)
-	if err != nil {
-		log.Error().Err(err).Msg("Cannot get forge from user")
-		return nil, huma.Error500InternalServerError("Cannot get forge from user")
-	}
-
 	if user == nil {
 		return &GetOrgPermissionsOutput{Body: &model.OrgPerm{}}, nil
 	}
@@ -95,7 +89,25 @@ func GetOrgPermissions(ctx context.Context, input *GetOrgPermissionsInput) (*Get
 		return &GetOrgPermissionsOutput{Body: &model.OrgPerm{}}, nil
 	}
 
-	perm, err := server.Config.Services.Membership.Get(c, _forge, user, org.Name)
+	// Get forge by org's forge ID (not user's default forge)
+	_forge, err := server.Config.Services.Manager.ForgeByID(org.ForgeID)
+	if err != nil {
+		log.Error().Err(err).Int64("forge_id", org.ForgeID).Msg("Cannot get forge for org")
+		return nil, huma.Error500InternalServerError("Cannot get forge for organization")
+	}
+
+	// Build a user with the correct forge credentials for this org's forge
+	forgeUser := user
+	if uf, ufErr := store.FromContext(c).UserForgeGet(user.ID, org.ForgeID); ufErr == nil && uf != nil {
+		forgeUserCopy := *user
+		forgeUserCopy.ForgeID = org.ForgeID
+		forgeUserCopy.AccessToken = uf.AccessToken
+		forgeUserCopy.RefreshToken = uf.RefreshToken
+		forgeUserCopy.Expiry = uf.Expiry
+		forgeUser = &forgeUserCopy
+	}
+
+	perm, err := server.Config.Services.Membership.Get(c, _forge, forgeUser, org.Name)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("Error getting membership", err)
 	}
