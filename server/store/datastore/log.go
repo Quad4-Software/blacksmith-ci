@@ -27,7 +27,7 @@ const pgBatchSize = 1000
 
 func (s storage) LogFind(step *model.Step) ([]*model.LogEntry, error) {
 	var logEntries []*model.LogEntry
-	return logEntries, s.engine.Asc("id").Where("step_id = ?", step.ID).Find(&logEntries)
+	return logEntries, s.engine.Asc("line").Asc("id").Where("step_id = ?", step.ID).Find(&logEntries)
 }
 
 func (s storage) LogFindAfter(stepID int64, afterLogID int64) ([]*model.LogEntry, error) {
