@@ -14,7 +14,10 @@
       "request": "launch",
       "mode": "debug",
       "program": "${workspaceFolder}/cmd/server/",
-      "cwd": "${workspaceFolder}"
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "CROW_DEV_WWW_PROXY": "http://localhost:8010"
+      }
     },
     {
       "name": "Crow agent",
