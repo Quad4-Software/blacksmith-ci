@@ -93,7 +93,7 @@ func (c *Forgejo) oauth2Config(ctx context.Context) (*oauth2.Config, context.Con
 			ClientSecret: c.ClientSecret,
 			Endpoint: oauth2.Endpoint{
 				AuthURL:  fmt.Sprintf(authorizeTokenURL, c.oauth2URL),
-				TokenURL: fmt.Sprintf(accessTokenURL, c.oauth2URL),
+				TokenURL: fmt.Sprintf(accessTokenURL, c.url),
 			},
 			RedirectURL: fmt.Sprintf("%s/authorize", server.Config.Server.OAuthHost),
 		},
