@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col h-full">
+  <div class="flex flex-col min-h-0 overflow-hidden">
     <!-- Collapsible Step Info Panel -->
     <Collapsible v-model:open="stepInfoExpanded" class="border border-border rounded-md shrink-0">
       <div class="bg-card rounded-md">
@@ -93,7 +93,11 @@
     </Collapsible>
 
     <!-- Log Viewer (fills remaining space) -->
-    <div class="flex-1 min-h-0 relative mt-2" @touchstart.passive="handleTouchStart" @touchend.passive="handleTouchEnd">
+    <div
+      class="flex flex-col flex-1 min-h-0 relative mt-2"
+      @touchstart.passive="handleTouchStart"
+      @touchend.passive="handleTouchEnd"
+    >
       <PipelineLog
         v-model:step-id="selectedStepIdLocal"
         :pipeline="pipeline"
@@ -101,7 +105,7 @@
         :next-step-id="nextStepId"
         :auto-follow-enabled="autoFollowEnabled"
         :hide-timestamps="true"
-        class="h-full"
+        class="flex-1 min-h-0"
         @update:auto-follow-enabled="$emit('update:auto-follow-enabled', $event)"
       />
     </div>

@@ -502,7 +502,7 @@
         <!-- Scrollable log container -->
         <div ref="logContainerRef" class="flex-1 min-h-0 w-full overflow-auto">
           <div
-            class="grid w-full auto-rows-min px-3 pt-2 pb-4 text-xs"
+            class="grid w-full auto-rows-min px-1 md:px-3 pt-2 pb-4 text-xs"
             :class="[
               hideTimestamps
                 ? 'grid-cols-[min-content_minmax(0,1fr)]'
@@ -513,7 +513,7 @@
               <a
                 :id="`L${line.number}`"
                 :href="`#L${line.number}`"
-                class="select-none whitespace-nowrap pl-2 pr-6 text-right text-muted-foreground"
+                class="select-none whitespace-nowrap pl-2 pr-2 md:pr-6 text-right text-muted-foreground"
                 :class="{
                   'bg-red-600/40 dark:bg-red-800/50': line.type === 'error',
                   'bg-yellow-600/40 dark:bg-yellow-800/50': line.type === 'warning',

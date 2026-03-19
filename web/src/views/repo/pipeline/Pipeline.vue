@@ -157,7 +157,7 @@
     </div>
 
     <!-- Mobile Layout -->
-    <div class="flex md:hidden flex-col flex-1 min-h-0">
+    <div class="flex md:hidden flex-col flex-1 min-h-0 overflow-hidden">
       <!-- Error/Blocked/Declined states -->
       <div v-if="pipeline!.errors?.some((e) => !e.is_warning)" class="p-4 flex-1">
         <Panel>
