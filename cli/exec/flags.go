@@ -427,4 +427,8 @@ var flags = []cli.Flag{
 		Name:    "forge-url",
 		Usage:   "Set the metadata environment variable \"CI_FORGE_URL\".",
 	},
+	&cli.StringMapFlag{
+		Name:  "jsonnet-ext-var",
+		Usage: "set Jsonnet external variables for use with std.extVar() (e.g. --jsonnet-ext-var CI_PIPELINE_EVENT=push)",
+	},
 }

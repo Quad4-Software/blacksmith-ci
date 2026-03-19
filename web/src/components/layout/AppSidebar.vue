@@ -115,10 +115,11 @@
                     <router-link :to="{ name: 'user-registries' }">
                       <Icon name="docker" class="size-4" />
                       <span v-if="!isCollapsed">{{ $t('registries.registries') }}</span>
-                      <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
+                      <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
                       <span v-if="!isMobile && !isCollapsed" class="ml-auto text-xs text-muted-foreground"
                         >Alt+Shift+R</span
                       >
+                      <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
                     </router-link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

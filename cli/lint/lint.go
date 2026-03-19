@@ -111,7 +111,7 @@ func lintFile(_ context.Context, c *cli.Command, file string) error {
 	if crow_jsonnet.IsJsonnetFile(file) {
 		// For CLI linting, load sibling files from the same directory for imports
 		dir := filepath.Dir(file)
-		siblings, err := loadSiblingFiles(dir, file)
+		siblings, err := common.LoadSiblingFiles(dir, file)
 		if err != nil {
 			return fmt.Errorf("failed to load sibling files for Jsonnet imports: %w", err)
 		}
@@ -171,34 +171,4 @@ func lintYAMLConfig(c *cli.Command, name, rawConfig string) error {
 
 	fmt.Println("✅ Config is valid")
 	return nil
-}
-
-// loadSiblingFiles reads .libsonnet and .jsonnet files from the directory for use as Jsonnet imports.
-func loadSiblingFiles(dir, excludeFile string) ([]*crow_jsonnet.File, error) {
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return nil, err
-	}
-
-	var siblings []*crow_jsonnet.File
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-		fullPath := filepath.Join(dir, entry.Name())
-		if fullPath == excludeFile {
-			continue
-		}
-		if strings.HasSuffix(entry.Name(), ".libsonnet") || strings.HasSuffix(entry.Name(), ".jsonnet") {
-			data, err := os.ReadFile(fullPath)
-			if err != nil {
-				return nil, err
-			}
-			siblings = append(siblings, &crow_jsonnet.File{
-				Name: fullPath,
-				Data: data,
-			})
-		}
-	}
-	return siblings, nil
 }

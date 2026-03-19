@@ -38,6 +38,7 @@ import (
 	"codefloe.com/crowci/crow/v5/pipeline/backend/kubernetes"
 	"codefloe.com/crowci/crow/v5/pipeline/backend/local"
 	backend_types "codefloe.com/crowci/crow/v5/pipeline/backend/types"
+	crow_jsonnet "codefloe.com/crowci/crow/v5/pipeline/frontend/jsonnet"
 	"codefloe.com/crowci/crow/v5/pipeline/frontend/metadata"
 	frontend_yaml "codefloe.com/crowci/crow/v5/pipeline/frontend/yaml"
 	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/compiler"
@@ -53,7 +54,7 @@ import (
 var Command = &cli.Command{
 	Name:      "exec",
 	Usage:     "execute a local pipeline",
-	ArgsUsage: "[path/to/.woodpecker.yaml]",
+	ArgsUsage: "[path/to/.crow.yaml|.crow.jsonnet]",
 	Action:    run,
 	Flags:     utils.MergeSlices(flags, docker.Flags, kubernetes.Flags, local.Flags),
 }
@@ -86,7 +87,7 @@ func execDir(ctx context.Context, c *cli.Command, dir string) error {
 		}
 
 		// check if it is a regular file (not dir)
-		if info.Mode().IsRegular() && (strings.HasSuffix(info.Name(), ".yaml") || strings.HasSuffix(info.Name(), ".yml")) {
+		if info.Mode().IsRegular() && (strings.HasSuffix(info.Name(), ".yaml") || strings.HasSuffix(info.Name(), ".yml") || strings.HasSuffix(info.Name(), ".jsonnet")) {
 			fmt.Println("#", info.Name())
 			_ = runExec(ctx, c, path, repoPath, false) // TODO: should we drop errors or store them and report back?
 			fmt.Println("")
@@ -116,16 +117,45 @@ func runExec(ctx context.Context, c *cli.Command, file, repoPath string, singleE
 		return err
 	}
 
-	axes, err := matrix.ParseString(string(dat))
+	// If the file is Jsonnet, evaluate it to YAML first
+	if crow_jsonnet.IsJsonnetFile(file) {
+		dir := filepath.Dir(file)
+		siblings, err := common.LoadSiblingFiles(dir, file)
+		if err != nil {
+			return fmt.Errorf("failed to load sibling files for Jsonnet imports: %w", err)
+		}
+
+		docs, err := crow_jsonnet.Evaluate(file, dat, siblings, c.StringMap("jsonnet-ext-var"))
+		if err != nil {
+			return err
+		}
+
+		for i, doc := range docs {
+			docName := file
+			if len(docs) > 1 {
+				docName = fmt.Sprintf("%s[%d]", file, i)
+			}
+			if err := runExecYAML(ctx, c, docName, repoPath, string(doc), singleExec); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	return runExecYAML(ctx, c, file, repoPath, string(dat), singleExec)
+}
+
+func runExecYAML(ctx context.Context, c *cli.Command, name, repoPath, yamlContent string, singleExec bool) error {
+	axes, err := matrix.ParseString(yamlContent)
 	if err != nil {
-		return fmt.Errorf("parse matrix fail")
+		return fmt.Errorf("parse matrix fail for %s: %w", name, err)
 	}
 
 	if len(axes) == 0 {
 		axes = append(axes, matrix.Axis{})
 	}
 	for _, axis := range axes {
-		err := execWithAxis(ctx, c, file, repoPath, axis, singleExec)
+		err := execWithAxis(ctx, c, name, repoPath, yamlContent, axis, singleExec)
 		if err != nil {
 			return err
 		}
@@ -133,12 +163,12 @@ func runExec(ctx context.Context, c *cli.Command, file, repoPath string, singleE
 	return nil
 }
 
-func execWithAxis(ctx context.Context, c *cli.Command, file, repoPath string, axis matrix.Axis, singleExec bool) error {
+func execWithAxis(ctx context.Context, c *cli.Command, name, repoPath, yamlContent string, axis matrix.Axis, singleExec bool) error {
 	metadataWorkflow := &metadata.Workflow{}
 	if !singleExec {
 		// TODO: proper try to use the engine to generate the same metadata for workflows
 		// https://github.com/woodpecker-ci/woodpecker/pull/3967
-		metadataWorkflow.Name = strings.TrimSuffix(strings.TrimSuffix(file, ".yaml"), ".yml")
+		metadataWorkflow.Name = strings.TrimSuffix(strings.TrimSuffix(strings.TrimSuffix(name, ".yaml"), ".yml"), ".jsonnet")
 	}
 	metadata, err := metadataFromContext(ctx, c, axis, metadataWorkflow)
 	if err != nil {
@@ -187,7 +217,7 @@ func execWithAxis(ctx context.Context, c *cli.Command, file, repoPath string, ax
 		environ[before] = after
 	}
 
-	tmpl, err := envsubst.ParseFile(file)
+	tmpl, err := envsubst.Parse(yamlContent)
 	if err != nil {
 		return err
 	}
@@ -237,12 +267,12 @@ func execWithAxis(ctx context.Context, c *cli.Command, file, repoPath string, ax
 		linter.PrivilegedPluginsWithMatchType(privilegedPlugins, privilegedPluginsMatchType),
 		linter.WithTrustedClonePlugins(constant.TrustedClonePlugins),
 	).Lint([]*linter.WorkflowConfig{{
-		File:      path.Base(file),
+		File:      path.Base(name),
 		RawConfig: confStr,
 		Workflow:  conf,
 	}})
 	if err != nil {
-		str, err := lint.FormatLintError(file, err, false)
+		str, err := lint.FormatLintError(name, err, false)
 		fmt.Print(str)
 		if err != nil {
 			return err

@@ -18,10 +18,12 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/urfave/cli/v3"
 
+	crow_jsonnet "codefloe.com/crowci/crow/v5/pipeline/frontend/jsonnet"
 	"codefloe.com/crowci/crow/v5/shared/constant"
 )
 
@@ -74,4 +76,34 @@ func RunPipelineFunc(ctx context.Context, c *cli.Command, fileFunc, dirFunc func
 	}
 
 	return nil
+}
+
+// LoadSiblingFiles reads .libsonnet and .jsonnet files from the directory for use as Jsonnet imports.
+func LoadSiblingFiles(dir, excludeFile string) ([]*crow_jsonnet.File, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	var siblings []*crow_jsonnet.File
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		fullPath := filepath.Join(dir, entry.Name())
+		if fullPath == excludeFile {
+			continue
+		}
+		if strings.HasSuffix(entry.Name(), ".libsonnet") || strings.HasSuffix(entry.Name(), ".jsonnet") {
+			data, err := os.ReadFile(fullPath)
+			if err != nil {
+				return nil, err
+			}
+			siblings = append(siblings, &crow_jsonnet.File{
+				Name: fullPath,
+				Data: data,
+			})
+		}
+	}
+	return siblings, nil
 }
