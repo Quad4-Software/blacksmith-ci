@@ -46,6 +46,8 @@ import Panel from '~/components/layout/Panel.vue';
 import { requiredInject } from '~/compositions/useInjectProvide';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
 
+const YAML_NAME_REGEX = /^name:\s*["']?([^"'\n]+)["']?/m;
+
 const route = useRoute();
 const repo = requiredInject('repo');
 const pipeline = requiredInject('pipeline');
@@ -95,7 +97,7 @@ function isTargetConfig(configName: string): boolean {
   const config = pipelineConfigsDecoded.value.find((c) => c.name === configName);
   if (config) {
     // Check if the YAML contains a "name:" field matching the target
-    const nameMatch = config.data.match(/^name:\s*["']?([^"'\n]+)["']?/m);
+    const nameMatch = config.data.match(YAML_NAME_REGEX);
     if (nameMatch && nameMatch[1].trim() === targetFile.value) {
       return true;
     }
@@ -106,7 +108,7 @@ function isTargetConfig(configName: string): boolean {
   const anyMatch = pipelineConfigsDecoded.value.some((c) => {
     if (c.name === target || c.name.split('/').pop() === target.split('/').pop()) return true;
     // Also check workflow name in content
-    const nameMatch = c.data.match(/^name:\s*["']?([^"'\n]+)["']?/m);
+    const nameMatch = c.data.match(YAML_NAME_REGEX);
     return nameMatch && nameMatch[1].trim() === target;
   });
   if (!anyMatch) {
@@ -167,12 +169,12 @@ function expandAndScrollToTarget() {
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     } else if (retries > 0) {
-      setTimeout(() => scrollToLine(retries - 1), 100);
+      setTimeout(scrollToLine, 100, retries - 1);
     }
   };
 
   nextTick(() => {
-    setTimeout(() => scrollToLine(), 50);
+    setTimeout(scrollToLine, 50);
   });
 }
 

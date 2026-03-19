@@ -236,7 +236,7 @@ const agentInfo = computed(() => {
     }
   });
 
-  return Array.from(agentMap.entries()).map(([id, workflows]) => {
+  return Array.from(agentMap.entries(), ([id, workflows]) => {
     const details = agentDetails.value.get(id) || {};
     return {
       id,

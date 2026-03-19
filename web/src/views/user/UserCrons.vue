@@ -782,7 +782,7 @@ const uniqueOwners = computed(() => {
   if (!crons.value) return [];
   // Filter out empty owners and get unique values
   const owners = new Set(crons.value.map((c) => c.repo_owner).filter((o) => o && o.trim()));
-  return Array.from(owners).sort();
+  return [...owners].toSorted();
 });
 
 // Computed: unique forge names for filter dropdown
@@ -790,7 +790,7 @@ const uniqueForgeNames = computed(() => {
   if (!crons.value) return [];
   // Filter out empty forge names and get unique values
   const forgeNames = new Set(crons.value.map((c) => c.forge_name).filter((f): f is string => !!f && f.trim() !== ''));
-  return Array.from(forgeNames).sort();
+  return [...forgeNames].toSorted();
 });
 
 // Computed: filtered crons based on all filters
@@ -1127,7 +1127,7 @@ async function fetchAllRecentRuns() {
 
   // Fetch pipelines for each repo in parallel
   const results = await Promise.all(
-    Array.from(cronsByRepo.entries()).map(async ([repoId, repoCrons]) => {
+    Array.from(cronsByRepo.entries(), async ([repoId, repoCrons]) => {
       try {
         const pipelines = await apiClient.getPipelineList(repoId, { page: 1, perPage: 50 });
         if (!pipelines) return { repoId, repoCrons, pipelines: [] };

@@ -103,7 +103,7 @@ function handleSearchChange(search: string) {
 
 // Sort repos by most recent pipeline activity
 const sortedRepos = computed(() => {
-  return [...repos.value].sort((a, b) => {
+  return repos.value.toSorted((a, b) => {
     const aTime = a.last_pipeline?.created ?? 0;
     const bTime = b.last_pipeline?.created ?? 0;
     return bTime - aTime; // Most recent first

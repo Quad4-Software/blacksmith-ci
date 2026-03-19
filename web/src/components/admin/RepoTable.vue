@@ -290,7 +290,7 @@ const rowSelection = ref<RowSelectionState>({});
 const owners = computed(() => {
   if (!props.repos) return [];
   const ownerSet = new Set(props.repos.map((repo) => repo.owner));
-  return Array.from(ownerSet).sort();
+  return [...ownerSet].toSorted();
 });
 
 // Load column sizing from localStorage

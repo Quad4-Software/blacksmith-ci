@@ -54,7 +54,7 @@ export function useUserSecretsRegistries<T extends WithOrgScope>() {
     }
 
     // Sort: user first, then orgs alphabetically, then global
-    return Array.from(groups.values()).sort((a, b) => {
+    return [...groups.values()].sort((a, b) => {
       if (a.scopeType === 'user') return -1;
       if (b.scopeType === 'user') return 1;
       if (a.scopeType === 'global') return 1;

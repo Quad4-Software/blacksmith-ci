@@ -323,6 +323,12 @@ import type { Pipeline, PipelineStep, PipelineWorkflow, PipelineStatus } from '~
 import { identifyMatrixGroupsMap, getLatestAttempts } from '~/lib/pipeline-utils';
 import { useLayout } from '~/compositions/useLayout';
 
+const props = defineProps<Props>();
+const emit = defineEmits<Emits>();
+const TRAILING_SEGMENT_REGEX = /-[^-]*$/;
+const MATRIX_SUFFIX_REGEX = /^(.+)-matrix-\d+$/;
+const WORKFLOW_PID_PREFIX_REGEX = /^(\d+)-/;
+
 interface Props {
   pipeline: Pipeline;
   selectedStepId?: number | null;
@@ -334,8 +340,6 @@ interface Emits {
   (event: 'dagReady'): void;
 }
 
-const props = defineProps<Props>();
-const emit = defineEmits<Emits>();
 const { t } = useI18n();
 
 const nodes = shallowRef<Node[]>([]);
@@ -724,7 +728,7 @@ function applyLayout(direction: string) {
 
       if (!nodesWithDimensions) {
         // Retry after a short delay if nodes don't have dimensions yet
-        setTimeout(() => applyLayout(direction), 25);
+        setTimeout(applyLayout, 25, direction);
         return;
       }
     }
@@ -997,7 +1001,7 @@ function buildDAG() {
             if (!sourceNode) {
               // For matrix workflows, try to find clone step in other matrix variants
               // Look for dependency in workflow with similar base name
-              const baseWorkflowName = workflow.name.replace(/-[^-]*$/, ''); // Remove matrix suffix
+              const baseWorkflowName = workflow.name.replace(TRAILING_SEGMENT_REGEX, ''); // Remove matrix suffix
               for (const [key, node] of globalStepMap.entries()) {
                 if (key.endsWith(`-${dependency}`) && key.includes(baseWorkflowName)) {
                   sourceNode = node;
@@ -1212,7 +1216,7 @@ function createWorkflowGroupsSync(
       let baseWorkflowName = workflow.name;
 
       // Check for auto-generated matrix pattern: name-matrix-N
-      const matrixSuffixMatch = workflow.name.match(/^(.+)-matrix-\d+$/);
+      const matrixSuffixMatch = workflow.name.match(MATRIX_SUFFIX_REGEX);
       if (matrixSuffixMatch) {
         baseWorkflowName = matrixSuffixMatch[1];
       }
@@ -1386,8 +1390,8 @@ function applyWorkflowDependencyLayout(
     });
 
     // Calculate maximum dimensions across all groups
-    const maxWidth = Math.max(...Array.from(groupDimensions.values()).map((d) => d.width));
-    const maxHeight = Math.max(...Array.from(groupDimensions.values()).map((d) => d.height));
+    const maxWidth = Math.max(...Array.from(groupDimensions.values(), (d) => d.width));
+    const maxHeight = Math.max(...Array.from(groupDimensions.values(), (d) => d.height));
 
     // Use minimal grid spacing - this is the distance between grid positions, not content + padding
     const horizontalSpacing = Math.max(60, maxWidth * 0.2); // 20% of max width or minimum 60px
@@ -1950,7 +1954,7 @@ function updateNodeStates(pipeline: Pipeline) {
 
           // If not found, try enhanced search like in buildDAG
           if (!sourceNode) {
-            const baseWorkflowName = workflow.name.replace(/-[^-]*$/, '');
+            const baseWorkflowName = workflow.name.replace(TRAILING_SEGMENT_REGEX, '');
             for (const [key, node] of globalStepMap.entries()) {
               if (key.endsWith(`-${dependency}`) && key.includes(baseWorkflowName)) {
                 sourceNode = node;
@@ -1993,8 +1997,8 @@ function updateNodeStates(pipeline: Pipeline) {
   const workflowDependencyEdges = createWorkflowDependencyEdges(
     matrixGroups,
     new Map(
-      Array.from(globalStepMap.entries()).reduce((acc, [key, node]) => {
-        const match = key.match(/^(\d+)-/);
+      [...globalStepMap.entries()].reduce((acc, [key, node]) => {
+        const match = key.match(WORKFLOW_PID_PREFIX_REGEX);
         if (match) {
           const workflowPid = Number.parseInt(match[1], 10);
           if (!acc.has(workflowPid)) {

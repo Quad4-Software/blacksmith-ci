@@ -116,7 +116,7 @@ export function getLatestAttempts(workflows: PipelineWorkflow[]): PipelineWorkfl
     }
   }
 
-  return Array.from(latest.values());
+  return [...latest.values()];
 }
 
 /**

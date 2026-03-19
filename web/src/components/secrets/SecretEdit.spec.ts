@@ -107,7 +107,7 @@ describe('secretEdit', () => {
       expect(emitted).toBeDefined();
       expect(emitted!.length).toBeGreaterThan(0);
 
-      const lastEmission = emitted![emitted!.length - 1][0] as { events: WebhookEvents[] };
+      const lastEmission = emitted!.at(-1)![0] as { events: WebhookEvents[] };
       expect(lastEmission.events).toContain(WebhookEvents.Push);
       expect(lastEmission.events).toContain(WebhookEvents.Tag);
     });
@@ -134,7 +134,7 @@ describe('secretEdit', () => {
       expect(emitted).toBeDefined();
       expect(emitted!.length).toBeGreaterThan(0);
 
-      const lastEmission = emitted![emitted!.length - 1][0] as { events: WebhookEvents[] };
+      const lastEmission = emitted!.at(-1)![0] as { events: WebhookEvents[] };
       expect(lastEmission.events).not.toContain(WebhookEvents.Push);
       expect(lastEmission.events).toContain(WebhookEvents.Tag);
     });
@@ -157,7 +157,7 @@ describe('secretEdit', () => {
       await flushPromises();
 
       const emitted = wrapper.emitted('update:modelValue');
-      const lastEmission = emitted![emitted!.length - 1][0] as { events: WebhookEvents[] };
+      const lastEmission = emitted!.at(-1)![0] as { events: WebhookEvents[] };
 
       // Should have all three events
       expect(lastEmission.events).toContain(WebhookEvents.Push);
@@ -188,7 +188,7 @@ describe('secretEdit', () => {
       await flushPromises();
 
       const emitted = wrapper.emitted('update:modelValue');
-      const lastEmission = emitted![emitted!.length - 1][0] as { events: WebhookEvents[] };
+      const lastEmission = emitted!.at(-1)![0] as { events: WebhookEvents[] };
       expect(lastEmission.events).toContain(WebhookEvents.Push);
     });
 
@@ -216,7 +216,7 @@ describe('secretEdit', () => {
 
       const emitted = wrapper.emitted('update:modelValue');
       expect(emitted).toBeDefined();
-      const lastEmission = emitted![emitted!.length - 1][0] as { events: WebhookEvents[] };
+      const lastEmission = emitted!.at(-1)![0] as { events: WebhookEvents[] };
       expect(lastEmission.events).toContain(WebhookEvents.Push);
     });
   });
@@ -252,7 +252,7 @@ describe('secretEdit', () => {
 
         const emitted = wrapper.emitted('update:modelValue');
         expect(emitted).toBeDefined();
-        const lastEmission = emitted![emitted!.length - 1][0] as { images: string[] };
+        const lastEmission = emitted!.at(-1)![0] as { images: string[] };
         expect(lastEmission.images).toContain('docker.io/myimage');
       }
     });

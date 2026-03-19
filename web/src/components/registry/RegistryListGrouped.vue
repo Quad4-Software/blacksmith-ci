@@ -852,7 +852,7 @@ const uniqueScopes = computed(() => {
   const scopeColumn = table.getColumn('scope');
   if (!scopeColumn) return [];
   const facetedValues = scopeColumn.getFacetedUniqueValues();
-  const scopeTypes = Array.from(facetedValues.keys());
+  const scopeTypes = [...facetedValues.keys()];
 
   // Get unique labels
   const labels = new Set<string>();
@@ -861,14 +861,14 @@ const uniqueScopes = computed(() => {
     if (label) labels.add(label);
   });
 
-  return Array.from(labels).sort();
+  return [...labels].toSorted();
 });
 
 const uniqueOwners = computed(() => {
   const ownerColumn = table.getColumn('owner');
   if (!ownerColumn) return [];
   const facetedValues = ownerColumn.getFacetedUniqueValues();
-  return Array.from(facetedValues.keys()).sort();
+  return [...facetedValues.keys()].toSorted();
 });
 
 const uniqueForgeNames = computed(() => {
@@ -876,9 +876,7 @@ const uniqueForgeNames = computed(() => {
   if (!forgeColumn) return [];
   const facetedValues = forgeColumn.getFacetedUniqueValues();
   // Filter out empty/undefined forge names
-  return Array.from(facetedValues.keys())
-    .filter((name) => name && name.trim() !== '')
-    .sort();
+  return [...facetedValues.keys()].filter((name) => name && name.trim() !== '').sort();
 });
 
 const selectedScopeLabelsCount = computed(() => {

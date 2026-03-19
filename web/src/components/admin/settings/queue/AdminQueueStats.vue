@@ -169,7 +169,7 @@ const agentStats = computed<AgentStat[]>(() => {
     }
   });
 
-  return Array.from(agentMap.values()).sort((a, b) => {
+  return [...agentMap.values()].toSorted((a, b) => {
     // Sort by running count desc, then by name
     if (b.running !== a.running) return b.running - a.running;
     return a.name.localeCompare(b.name);

@@ -479,6 +479,24 @@ import useNotifications from '~/compositions/useNotifications';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
 import type { MaintenanceConfig, MaintenanceLog, MaintenanceOperationConfig, MaintenanceStats } from '~/lib/api/types';
 
+const DURATION_REGEX = /^(\d+(?:\.\d+)?)\s*([dhms])?$/i;
+const SIZE_BEFORE_REGEX = /Before: ([\d.]+) MB/;
+const SIZE_AFTER_REGEX = /After: ([\d.]+) MB/;
+const SIZE_SAVED_REGEX = /Saved: ([\d.]+) MB/;
+const TOTAL_AGENTS_REGEX = /Total agents: (\d+)/;
+const STALE_FOUND_REGEX = /Stale found: (\d+)/;
+const DELETED_REGEX = /Deleted: (\d+)/;
+const DOCKER_AGENT_REGEX = /Agent: ([^ ]+)/;
+const DOCKER_CONTAINERS_REGEX = /Containers: found=(\d+) removed=(\d+)/;
+const DOCKER_NETWORKS_REGEX = /Networks: found=(\d+) removed=(\d+)/;
+const DOCKER_VOLUMES_REGEX = /Volumes: found=(\d+) removed=(\d+)/;
+const K8S_RESOURCES_FOUND_REGEX = /Resources found: (\d+)/;
+const K8S_SERVICES_REGEX = /Services: (\d+)/;
+const K8S_PVCS_REGEX = /PVCs: (\d+)/;
+const K8S_SECRETS_REGEX = /Secrets: (\d+)/;
+const K8S_FAILED_REGEX = /Failed: (\d+)/;
+const K8S_WOULD_DELETE_REGEX = /Would delete: (\d+)/;
+
 const apiClient = useApiClient();
 const notifications = useNotifications();
 const { toLocaleString } = useDate();
@@ -575,7 +593,7 @@ const dockerStaleThresholdDisplay = computed({
     return `${seconds}s`;
   },
   set: (val: string) => {
-    const match = val.match(/^(\d+(?:\.\d+)?)\s*([dhms])?$/i);
+    const match = val.match(DURATION_REGEX);
     if (match) {
       const num = Number.parseFloat(match[1]);
       const unit = (match[2] || 'h').toLowerCase();
@@ -861,9 +879,9 @@ const loadData = async (reset = false) => {
             }
 
             // Check if size information is available in details
-            const beforeMatch = newLog.details.match(/Before: ([\d.]+) MB/);
-            const afterMatch = newLog.details.match(/After: ([\d.]+) MB/);
-            const savedMatch = newLog.details.match(/Saved: ([\d.]+) MB/);
+            const beforeMatch = newLog.details.match(SIZE_BEFORE_REGEX);
+            const afterMatch = newLog.details.match(SIZE_AFTER_REGEX);
+            const savedMatch = newLog.details.match(SIZE_SAVED_REGEX);
 
             if (beforeMatch && afterMatch) {
               actionLogs.value.unshift(
@@ -883,9 +901,9 @@ const loadData = async (reset = false) => {
 
             // Parse Stale agent cleanup details
             if (newLog.details.includes('Stale agent cleanup')) {
-              const totalAgentsMatch = newLog.details.match(/Total agents: (\d+)/);
-              const staleFoundMatch = newLog.details.match(/Stale found: (\d+)/);
-              const deletedMatch = newLog.details.match(/Deleted: (\d+)/);
+              const totalAgentsMatch = newLog.details.match(TOTAL_AGENTS_REGEX);
+              const staleFoundMatch = newLog.details.match(STALE_FOUND_REGEX);
+              const deletedMatch = newLog.details.match(DELETED_REGEX);
 
               if (totalAgentsMatch) {
                 const totalAgents = Number.parseInt(totalAgentsMatch[1]);
@@ -923,11 +941,11 @@ const loadData = async (reset = false) => {
 
             // Parse Docker cleanup details
             if (newLog.details.includes('Docker resource cleanup')) {
-              const agentMatch = newLog.details.match(/Agent: ([^ ]+)/);
+              const agentMatch = newLog.details.match(DOCKER_AGENT_REGEX);
               const agentInfo = agentMatch ? ` (agent: ${agentMatch[1]})` : '';
-              const containersMatch = newLog.details.match(/Containers: found=(\d+) removed=(\d+)/);
-              const networksMatch = newLog.details.match(/Networks: found=(\d+) removed=(\d+)/);
-              const volumesMatch = newLog.details.match(/Volumes: found=(\d+) removed=(\d+)/);
+              const containersMatch = newLog.details.match(DOCKER_CONTAINERS_REGEX);
+              const networksMatch = newLog.details.match(DOCKER_NETWORKS_REGEX);
+              const volumesMatch = newLog.details.match(DOCKER_VOLUMES_REGEX);
 
               const parts = [];
               if (containersMatch) parts.push(`Containers: ${containersMatch[2]}/${containersMatch[1]} removed`);
@@ -947,13 +965,13 @@ const loadData = async (reset = false) => {
 
             // Parse Kubernetes cleanup details
             if (newLog.details.includes('Kubernetes resource cleanup')) {
-              const resourcesFoundMatch = newLog.details.match(/Resources found: (\d+)/);
-              const servicesMatch = newLog.details.match(/Services: (\d+)/);
-              const pvcsMatch = newLog.details.match(/PVCs: (\d+)/);
-              const secretsMatch = newLog.details.match(/Secrets: (\d+)/);
-              const deletedMatch = newLog.details.match(/Deleted: (\d+)/);
-              const failedMatch = newLog.details.match(/Failed: (\d+)/);
-              const wouldDeleteMatch = newLog.details.match(/Would delete: (\d+)/);
+              const resourcesFoundMatch = newLog.details.match(K8S_RESOURCES_FOUND_REGEX);
+              const servicesMatch = newLog.details.match(K8S_SERVICES_REGEX);
+              const pvcsMatch = newLog.details.match(K8S_PVCS_REGEX);
+              const secretsMatch = newLog.details.match(K8S_SECRETS_REGEX);
+              const deletedMatch = newLog.details.match(DELETED_REGEX);
+              const failedMatch = newLog.details.match(K8S_FAILED_REGEX);
+              const wouldDeleteMatch = newLog.details.match(K8S_WOULD_DELETE_REGEX);
 
               if (newLog.details.includes('No stale resources found')) {
                 actionLogs.value.unshift(
@@ -1411,9 +1429,9 @@ const runNow = async () => {
               addActionLog(`Operations performed: ${operations.join(', ')}`);
 
               // Check if size information is available in details
-              const beforeMatch = details.match(/Before: ([\d.]+) MB/);
-              const afterMatch = details.match(/After: ([\d.]+) MB/);
-              const savedMatch = details.match(/Saved: ([\d.]+) MB/);
+              const beforeMatch = details.match(SIZE_BEFORE_REGEX);
+              const afterMatch = details.match(SIZE_AFTER_REGEX);
+              const savedMatch = details.match(SIZE_SAVED_REGEX);
 
               if (beforeMatch && afterMatch) {
                 addActionLog(`Table size before: ${beforeMatch[1]} MB`);
@@ -1454,7 +1472,7 @@ const runNow = async () => {
         addActionLog(`Operation completed (${formatDuration(totalDuration)} total)`);
 
         // Do one final data reload to ensure we have the latest logs
-        setTimeout(() => loadData(true), 2000);
+        setTimeout(loadData, 2000, true);
       }
 
       isRunning.value = false;
@@ -1520,9 +1538,9 @@ const runStaleAgentCleanup = async () => {
 
             // Parse details for stale agents found/deleted
             const details = latestLog.details;
-            const totalAgentsMatch = details.match(/Total agents: (\d+)/);
-            const staleFoundMatch = details.match(/Stale found: (\d+)/);
-            const deletedMatch = details.match(/Deleted: (\d+)/);
+            const totalAgentsMatch = details.match(TOTAL_AGENTS_REGEX);
+            const staleFoundMatch = details.match(STALE_FOUND_REGEX);
+            const deletedMatch = details.match(DELETED_REGEX);
 
             if (totalAgentsMatch) {
               const totalAgents = Number.parseInt(totalAgentsMatch[1]);
@@ -1583,7 +1601,7 @@ const runStaleAgentCleanup = async () => {
         addActionLog(`Operation completed (${formatDuration(totalDuration)} total)`, 'stale_agent');
 
         // Do one final data reload to ensure we have the latest logs
-        setTimeout(() => loadData(true), 2000);
+        setTimeout(loadData, 2000, true);
       }
 
       isRunningStaleAgentCleanup.value = false;
@@ -1670,7 +1688,7 @@ const runK8sCleanup = async () => {
         addActionLog(`Operation completed (${formatDuration(totalDuration)} total)`, 'kubernetes');
 
         // Do one final data reload to ensure we have the latest logs
-        setTimeout(() => loadData(true), 2000);
+        setTimeout(loadData, 2000, true);
       }
 
       isRunningK8sCleanup.value = false;

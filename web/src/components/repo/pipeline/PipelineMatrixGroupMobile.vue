@@ -246,9 +246,9 @@ const matrixAxes = computed(() => {
       axisMap.get(key)!.add(value);
     }
   }
-  return Array.from(axisMap.entries()).map(([key, values]) => ({
+  return Array.from(axisMap.entries(), ([key, values]) => ({
     key,
-    values: Array.from(values),
+    values: [...values],
   }));
 });
 

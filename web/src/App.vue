@@ -218,6 +218,9 @@ import { is404Suppressed } from '~/compositions/useNotificationControl';
 import useConfig from '~/compositions/useConfig';
 import useNotifications from '~/compositions/useNotifications';
 import { useTheme } from '~/compositions/useTheme';
+
+const BRACKETED_PREFIX_REGEX = /^\[[\w\s]+\]\s*/;
+
 const route = useRoute();
 const apiClient = useApiClient();
 const { notify } = useNotifications();
@@ -378,7 +381,7 @@ apiClient.setErrorHandler(
     let errorText = parseErrorMessage(message.trim());
 
     // Strip technical prefixes like [compiler], [linter], etc. for cleaner user-facing messages
-    errorText = errorText.replace(/^\[[\w\s]+\]\s*/, '');
+    errorText = errorText.replace(BRACKETED_PREFIX_REGEX, '');
 
     // Strip any "Endpoint:" suffix from the error message
     const endpointMarker = 'Endpoint:';

@@ -86,6 +86,8 @@ import Tab from '~/components/layout/scaffold/Tab.vue';
 import useConfig from '~/compositions/useConfig';
 import { useVersion } from '~/compositions/useVersion';
 
+const SEMVER_REGEX = /^v?\d+\.\d+\.\d+/;
+
 const address = `${window.location.protocol}//${window.location.host}${useConfig().rootPath}`; // port is included in location.host
 const version = useVersion();
 
@@ -101,7 +103,7 @@ const isDevVersion = computed(() => {
 // Check if this is a semver version (starts with v and has dots)
 const isSemverVersion = computed(() => {
   const versionStr = currentVersion.value;
-  return versionStr && versionStr.match(/^v?\d+\.\d+\.\d+/);
+  return versionStr && versionStr.match(SEMVER_REGEX);
 });
 
 // Generate appropriate URL based on version type

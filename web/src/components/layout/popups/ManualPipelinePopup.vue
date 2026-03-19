@@ -219,7 +219,7 @@ async function triggerManualPipeline() {
     const pipeline = await apiClient.createPipeline(repo.value.id, {
       branch: payload.value.branch,
       variables: variables.value,
-      workflows: Array.from(selectedWorkflows.value),
+      workflows: [...selectedWorkflows.value],
     });
 
     emit('close');

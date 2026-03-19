@@ -121,6 +121,8 @@ import useAuthentication from '~/compositions/useAuthentication';
 import useNotifications from '~/compositions/useNotifications';
 import { useVersion } from '~/compositions/useVersion';
 
+const SEMVER_REGEX = /^v?\d+\.\d+\.\d+/;
+
 const notifications = useNotifications();
 const router = useRouter();
 const i18n = useI18n();
@@ -139,7 +141,7 @@ const isDevVersion = computed(() => {
 // Check if this is a semver version (starts with v and has dots)
 const isSemverVersion = computed(() => {
   const version = currentVersion.value;
-  return version && version.match(/^v?\d+\.\d+\.\d+/);
+  return version && version.match(SEMVER_REGEX);
 });
 
 // Generate appropriate URL based on version type

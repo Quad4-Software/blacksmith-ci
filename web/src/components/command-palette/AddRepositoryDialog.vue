@@ -63,7 +63,7 @@
                 <SelectItem v-for="forge in repoForges" :key="forge.id" :value="String(forge.id)">
                   <div class="flex items-center gap-2">
                     <Icon :name="getForgeIconName(forge)" class="h-4 w-4" />
-                    <span>{{ forge.url.replace(/^https?:\/\//, '').replace(/\/$/, '') }}</span>
+                    <span>{{ forge.url.replace(PROTOCOL_PREFIX_REGEX, '').replace(TRAILING_SLASH_REGEX, '') }}</span>
                   </div>
                 </SelectItem>
               </SelectContent>
@@ -430,6 +430,9 @@ import { useGlobalDialogs } from '~/compositions/useGlobalDialogs';
 import useNotifications from '~/compositions/useNotifications';
 import type { Forge, ImportPreviewResponse, Repo, RepoResponse, UserForge } from '~/lib/api/types';
 
+const PROTOCOL_PREFIX_REGEX = /^https?:\/\//;
+const TRAILING_SLASH_REGEX = /\/$/;
+
 const { t } = useI18n();
 const router = useRouter();
 const apiClient = useApiClient();
@@ -514,7 +517,7 @@ function getForgeDisplayName(userForge: UserForge): string {
     const url = new URL(userForge.forge_name);
     return url.hostname;
   } catch {
-    return userForge.forge_name.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    return userForge.forge_name.replace(PROTOCOL_PREFIX_REGEX, '').replace(TRAILING_SLASH_REGEX, '');
   }
 }
 
@@ -620,7 +623,7 @@ function getForgeHostname(forge: Forge): string {
     const url = new URL(forge.url);
     return url.hostname;
   } catch {
-    return forge.url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    return forge.url.replace(PROTOCOL_PREFIX_REGEX, '').replace(TRAILING_SLASH_REGEX, '');
   }
 }
 
@@ -638,7 +641,7 @@ const owners = computed(() => {
   for (const repo of repos.value) {
     ownerSet.add(repo.owner);
   }
-  return Array.from(ownerSet).sort();
+  return [...ownerSet].toSorted();
 });
 
 // Computed: filtered repos based on search, owner, forge and status
@@ -910,7 +913,7 @@ async function activateSelectedRepos() {
     // Show collected error messages, or fall back to generic message
     const errorText =
       errorMessages.size > 0
-        ? Array.from(errorMessages).join('; ')
+        ? [...errorMessages].join('; ')
         : t('repo.enable.notify_text_error_multiple', { count: failedCount });
     notifications.notify({
       title: t('notify_title_error'),

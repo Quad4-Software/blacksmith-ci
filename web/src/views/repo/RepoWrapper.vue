@@ -231,6 +231,8 @@ const props = defineProps<{
   repoId: string;
 }>();
 
+const PR_REF_REGEX = /^refs\/pull\/(\d+)\/head$/;
+
 const _repoId = toRef(props, 'repoId');
 const repositoryId = computed(() => Number.parseInt(_repoId.value, 10));
 const repoStore = useRepoStore();
@@ -296,7 +298,7 @@ const dateRangeLabel = computed(() => {
 const branchFilterLabel = computed(() => {
   if (!branchFilter.value) return '';
   // Check if it's a PR ref
-  const prMatch = branchFilter.value.match(/^refs\/pull\/(\d+)\/head$/);
+  const prMatch = branchFilter.value.match(PR_REF_REGEX);
   if (prMatch) {
     return `PR #${prMatch[1]}`;
   }

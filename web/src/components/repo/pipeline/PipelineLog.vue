@@ -688,14 +688,6 @@ import useNotifications from '~/compositions/useNotifications';
 import type { Pipeline, PipelineStep, PipelineWorkflow } from '~/lib/api/types';
 import { getWorkflowAttempts } from '~/lib/pipeline-utils';
 
-interface LogLine {
-  index: number;
-  number: number;
-  text?: string;
-  time?: number;
-  type: 'error' | 'warning' | null;
-}
-
 const props = withDefaults(
   defineProps<{
     pipeline: Pipeline;
@@ -712,12 +704,28 @@ const props = withDefaults(
     class: '',
   },
 );
-
 const emit = defineEmits<{
   (event: 'update:step-id', stepId: number | null): true;
   (event: 'update:auto-follow-enabled', value: boolean): true;
   (event: 'rerunWorkflow', workflowId: number): true;
 }>();
+const HTML_TAG_REGEX = /<[^>]*>/g;
+const URL_REGEX = /https?:\/\/\S+/g;
+const SPECIAL_REGEX_CHARS = /[.*+?^${}()|[\]\\]/g;
+const WARNING_PATTERNS_REGEX = /\bwarn(?:ing)?s?\b|\[warn(?:ing)?\]/i;
+const SUCCESS_PATTERNS_REGEX =
+  /^\s*[v✓✔☑⋅·•›>+⟶→]\s|done\b|success|complete[ds]?\b|installed\b|built\b|packaged\b|updated\b|finished\b|passed\b|ok\b|\bgot\b/i;
+const INFO_PATTERNS_REGEX = /^\s*[i>+\-*•·]\s|^\s*\d+\s*(?:pkg|packages?|deps?)/i;
+const ERROR_PATTERNS_REGEX =
+  /\berror\b|\bfailed\b|\bfailure\b|\bfatal\b|\bcritical\b|\bexception\b|\bpanic\b|\baborted?\b/i;
+
+interface LogLine {
+  index: number;
+  number: number;
+  text?: string;
+  time?: number;
+  type: 'error' | 'warning' | null;
+}
 
 const notifications = useNotifications();
 const i18n = useI18n();
@@ -804,7 +812,7 @@ const stderrLines = computed(() => {
     .filter((line) => line.type === 'error')
     .map((line) => ({
       line: line.number,
-      text: (line.text?.replace(/<[^>]*>/g, '') || '').trim(), // Strip HTML
+      text: (line.text?.replace(HTML_TAG_REGEX, '') || '').trim(), // Strip HTML
     }))
     .filter((error) => error.text.length > 0); // Remove empty lines
 
@@ -824,7 +832,7 @@ const searchMatches = computed(() => {
   if (log.value) {
     log.value.forEach((line, idx) => {
       // Strip HTML tags and check for match
-      const plainText = (line.text?.replace(/<[^>]*>/g, '') || '').toLowerCase();
+      const plainText = (line.text?.replace(HTML_TAG_REGEX, '') || '').toLowerCase();
       if (plainText.includes(term)) {
         matches.push({ type: 'log', index: idx, lineNumber: line.number });
       }
@@ -864,7 +872,7 @@ function highlightSearchTerm(text: string): string {
 
 // Helper to escape special regex characters
 function escapeRegExp(string: string): string {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return string.replace(SPECIAL_REGEX_CHARS, '\\$&');
 }
 
 // Check if a log line is the current search match
@@ -918,10 +926,9 @@ function formatTime(time?: number): string {
 }
 
 function processText(text: string): string {
-  const urlRegex = /https?:\/\/\S+/g;
   let txt = ansiUp.value.ansi_to_html(`${decode(text)}\n`);
   txt = txt.replace(
-    urlRegex,
+    URL_REGEX,
     (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" class="underline">${url}</a>`,
   );
   return txt;
@@ -934,29 +941,24 @@ function processText(text: string): string {
  */
 function classifyLogLine(text: string, isStderr: boolean): 'error' | 'warning' | null {
   // Warning patterns - check first since warnings shouldn't be treated as errors
-  const warningPatterns = /\bwarn(?:ing)?s?\b|\[warn(?:ing)?\]/i;
-  if (warningPatterns.test(text)) {
+  if (WARNING_PATTERNS_REGEX.test(text)) {
     return 'warning';
   }
 
   // Success/info indicators - these should never be highlighted as errors
   // Matches checkmarks (v, ✓, ✔), info symbols (i), progress indicators from common CLI tools
-  const successPatterns =
-    /^\s*[v✓✔☑⋅·•›>+⟶→]\s|done\b|success|complete[ds]?\b|installed\b|built\b|packaged\b|updated\b|finished\b|passed\b|ok\b|\bgot\b/i;
-  if (successPatterns.test(text)) {
+  if (SUCCESS_PATTERNS_REGEX.test(text)) {
     return null;
   }
 
   // Skip highlighting for info prefixes (i for info) and common progress indicators
   // These are common in package managers and build tools
-  const infoPatterns = /^\s*[i>+\-*•·]\s|^\s*\d+\s*(?:pkg|packages?|deps?)/i;
-  if (infoPatterns.test(text)) {
+  if (INFO_PATTERNS_REGEX.test(text)) {
     return null;
   }
 
   // Error patterns - only highlight if it looks like an actual error
-  const errorPatterns = /\berror\b|\bfailed\b|\bfailure\b|\bfatal\b|\bcritical\b|\bexception\b|\bpanic\b|\baborted?\b/i;
-  if (isStderr && errorPatterns.test(text)) {
+  if (isStderr && ERROR_PATTERNS_REGEX.test(text)) {
     return 'error';
   }
 

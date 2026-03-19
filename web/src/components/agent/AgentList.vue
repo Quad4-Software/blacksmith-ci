@@ -694,11 +694,9 @@ const platformOptions = computed<SelectOption[]>(() => {
   });
 
   const options: SelectOption[] = [];
-  Array.from(platforms)
-    .sort()
-    .forEach((platform) => {
-      options.push({ value: platform, text: platform });
-    });
+  [...platforms].toSorted().forEach((platform: string) => {
+    options.push({ value: platform, text: platform });
+  });
   return options;
 });
 
@@ -711,11 +709,9 @@ const backendOptions = computed<SelectOption[]>(() => {
   });
 
   const options: SelectOption[] = [];
-  Array.from(backends)
-    .sort()
-    .forEach((backend) => {
-      options.push({ value: backend, text: backend });
-    });
+  [...backends].toSorted().forEach((backend: string) => {
+    options.push({ value: backend, text: backend });
+  });
   return options;
 });
 

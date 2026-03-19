@@ -183,7 +183,7 @@ describe('keyValueEditor', () => {
 
       const validityEmits = wrapper.emitted('update:isValid');
       if (validityEmits && validityEmits.length > 0) {
-        const lastValidity = validityEmits[validityEmits.length - 1][0];
+        const lastValidity = validityEmits.at(-1)![0];
         expect(lastValidity).toBe(false);
       }
     });

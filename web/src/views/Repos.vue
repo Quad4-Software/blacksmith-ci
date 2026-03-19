@@ -147,7 +147,7 @@ const organizationOwners = computed(() => {
   allRepos.value.forEach((repo) => {
     owners.add(repo.owner);
   });
-  return Array.from(owners).sort();
+  return [...owners].toSorted();
 });
 
 // Apply owner filter
@@ -169,10 +169,10 @@ const reposLastActivity = computed(() => {
 
   switch (sortBy.value) {
     case 'alphabetical':
-      return [...repos].sort((a, b) => a.name.localeCompare(b.name));
+      return repos.toSorted((a, b) => a.name.localeCompare(b.name));
     case 'status':
       // Sort by pipeline status (failed first, then running, then success, then no pipeline)
-      return [...repos].sort((a, b) => {
+      return repos.toSorted((a, b) => {
         const statusOrder: Record<string, number> = {
           failure: 0,
           error: 1,

@@ -136,6 +136,6 @@ const showFirstEllipsis = computed(() => {
 
 // Show ellipsis before last page
 const showLastEllipsis = computed(() => {
-  return visiblePages.value.length > 0 && visiblePages.value[visiblePages.value.length - 1] < props.totalPages - 1;
+  return visiblePages.value.length > 0 && visiblePages.value.at(-1)! < props.totalPages - 1;
 });
 </script>

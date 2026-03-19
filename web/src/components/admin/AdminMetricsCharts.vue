@@ -88,17 +88,17 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
 const topAgents = computed(() => {
   if (!props.metrics?.agent_details) return [];
-  return [...props.metrics.agent_details].sort((a, b) => b.workflow_count - a.workflow_count).slice(0, 10);
+  return props.metrics.agent_details.toSorted((a, b) => b.workflow_count - a.workflow_count).slice(0, 10);
 });
 
 const topRepos = computed(() => {
   if (!props.metrics?.repo_details) return [];
-  return [...props.metrics.repo_details].sort((a, b) => b.pipeline_count - a.pipeline_count).slice(0, 10);
+  return props.metrics.repo_details.toSorted((a, b) => b.pipeline_count - a.pipeline_count).slice(0, 10);
 });
 
 const topOrgs = computed(() => {
   if (!props.metrics?.org_details) return [];
-  return [...props.metrics.org_details].sort((a, b) => b.pipeline_count - a.pipeline_count).slice(0, 10);
+  return props.metrics.org_details.toSorted((a, b) => b.pipeline_count - a.pipeline_count).slice(0, 10);
 });
 
 // Crow CI color palette - using theme colors

@@ -54,11 +54,6 @@ import useApiClient from '~/compositions/useApiClient';
 import type { User, Forge } from '~/lib/api/types';
 import type { IconNames } from '~/components/atomic/Icon.types';
 
-interface Org {
-  id: number;
-  name: string;
-}
-
 const props = withDefaults(
   defineProps<{
     avatarUrl: string;
@@ -74,6 +69,13 @@ const props = withDefaults(
   },
 );
 
+const TRAILING_SLASH_REGEX = /\/$/;
+
+interface Org {
+  id: number;
+  name: string;
+}
+
 const apiClient = useApiClient();
 const userData = ref<User | null>(null);
 const forgeData = ref<Forge | null>(null);
@@ -84,7 +86,7 @@ const hasFetched = ref(false);
 const forgeProfileUrl = computed(() => {
   if (!forgeData.value || !props.username) return null;
 
-  const forgeUrl = forgeData.value.url.replace(/\/$/, ''); // Remove trailing slash
+  const forgeUrl = forgeData.value.url.replace(TRAILING_SLASH_REGEX, ''); // Remove trailing slash
   return `${forgeUrl}/${props.username}`;
 });
 

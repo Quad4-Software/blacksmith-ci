@@ -239,7 +239,7 @@ const dateRange = ref<{ after?: number; before?: number }>({});
 // Get unique owners from user repos
 const uniqueOwners = computed(() => {
   const owners = new Set(userRepos.value.map((r) => r.owner));
-  return Array.from(owners).sort();
+  return [...owners].toSorted();
 });
 
 // Filter repos by selected owners
@@ -278,19 +278,17 @@ const activeTab = computed({
 
 const topAgents = computed(() => {
   if (!metrics.value?.agent_details || !Array.isArray(metrics.value.agent_details)) return [];
-  return [...metrics.value.agent_details]
-    .sort((a, b) => (b.workflow_count || 0) - (a.workflow_count || 0))
-    .slice(0, 10);
+  return metrics.value.agent_details.toSorted((a, b) => (b.workflow_count || 0) - (a.workflow_count || 0)).slice(0, 10);
 });
 
 const topRepos = computed(() => {
   if (!metrics.value?.repo_details || !Array.isArray(metrics.value.repo_details)) return [];
-  return [...metrics.value.repo_details].sort((a, b) => (b.pipeline_count || 0) - (a.pipeline_count || 0)).slice(0, 10);
+  return metrics.value.repo_details.toSorted((a, b) => (b.pipeline_count || 0) - (a.pipeline_count || 0)).slice(0, 10);
 });
 
 const topOrgs = computed(() => {
   if (!metrics.value?.org_details || !Array.isArray(metrics.value.org_details)) return [];
-  return [...metrics.value.org_details].sort((a, b) => (b.pipeline_count || 0) - (a.pipeline_count || 0)).slice(0, 10);
+  return metrics.value.org_details.toSorted((a, b) => (b.pipeline_count || 0) - (a.pipeline_count || 0)).slice(0, 10);
 });
 
 function formatDuration(seconds: number): string {
