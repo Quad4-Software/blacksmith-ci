@@ -557,9 +557,16 @@
           v-else-if="!step?.started && currentWorkflow?.autoscaler_provisioning"
           class="flex flex-col items-center gap-3 text-center"
         >
-          <Icon name="lucide:server" class="w-10 h-10 text-primary animate-pulse" />
-          <span class="text-lg font-medium text-foreground">{{ $t('repo.pipeline.agent_provisioning') }}</span>
-          <span class="text-sm text-muted-foreground">{{ $t('repo.pipeline.agent_provisioning_desc') }}</span>
+          <template v-if="currentWorkflow?.autoscaler_provisioning_stale">
+            <Icon name="lucide:triangle-alert" class="w-10 h-10 text-destructive" />
+            <span class="text-lg font-medium text-destructive">{{ $t('repo.pipeline.agent_provisioning_stale') }}</span>
+            <span class="text-sm text-muted-foreground">{{ $t('repo.pipeline.agent_provisioning_stale_desc') }}</span>
+          </template>
+          <template v-else>
+            <Icon name="lucide:server" class="w-10 h-10 text-primary animate-pulse" />
+            <span class="text-lg font-medium text-foreground">{{ $t('repo.pipeline.agent_provisioning') }}</span>
+            <span class="text-sm text-muted-foreground">{{ $t('repo.pipeline.agent_provisioning_desc') }}</span>
+          </template>
         </div>
         <span v-else-if="!step?.started">{{ $t('repo.pipeline.step_not_started') }}</span>
         <div v-else-if="!loadedLogs">{{ $t('repo.pipeline.loading') }}</div>

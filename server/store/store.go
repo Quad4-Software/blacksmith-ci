@@ -250,7 +250,7 @@ type Store interface {
 	AutoscalerList(opts *model.AutoscalerListOptions) ([]*model.Autoscaler, error)
 	AutoscalerUpdate(*model.Autoscaler) error
 	AutoscalerDelete(*model.Autoscaler) error
-	AutoscalerUpdateHeartbeat(id int64, activeAgents, pendingAgents int32, version string) error
+	AutoscalerUpdateHeartbeat(id int64, activeAgents, pendingAgents int32, pendingSince int64, version string) error
 
 	// Integrations
 	IntegrationFind(int64) (*model.Integration, error)

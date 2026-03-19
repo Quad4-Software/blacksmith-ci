@@ -43,8 +43,15 @@ type Autoscaler struct {
 	Version           string            `json:"version"               xorm:"'version'"`
 	ActiveAgents      int32             `json:"active_agents"         xorm:"'active_agents'"`
 	PendingAgents     int32             `json:"pending_agents"        xorm:"'pending_agents'"`
+	PendingSince      int64             `json:"pending_since"         xorm:"'pending_since'"`
 	OrgID             int64             `json:"org_id"                xorm:"INDEX 'org_id'"`
 } //	@name	Autoscaler
+
+const (
+	// DefaultProvisionTimeoutSeconds is the default time after which pending agents
+	// are considered stale (5 minutes).
+	DefaultProvisionTimeoutSeconds = 300
+)
 
 // AutoscalerWithToken is used for API responses that include the token (only on creation).
 type AutoscalerWithToken struct {
@@ -111,4 +118,12 @@ func (a *Autoscaler) IsHealthy() bool {
 	// TODO: Use a configurable threshold
 	const autoscalerHealthyThresholdSeconds = 120
 	return a.LastContact > 0 && (time.Now().Unix()-a.LastContact) < autoscalerHealthyThresholdSeconds
+}
+
+// IsProvisioningStale returns true if agents have been pending longer than the timeout.
+func (a *Autoscaler) IsProvisioningStale() bool {
+	if a.PendingAgents <= 0 || a.PendingSince <= 0 {
+		return false
+	}
+	return (time.Now().Unix() - a.PendingSince) >= DefaultProvisionTimeoutSeconds
 }

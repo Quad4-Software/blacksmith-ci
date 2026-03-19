@@ -141,11 +141,12 @@ func (s storage) AutoscalerDelete(autoscaler *model.Autoscaler) error {
 	return wrapDelete(s.engine.ID(autoscaler.ID).Delete(new(model.Autoscaler)))
 }
 
-func (s storage) AutoscalerUpdateHeartbeat(id int64, activeAgents, pendingAgents int32, version string) error {
-	_, err := s.engine.ID(id).Cols("last_contact", "active_agents", "pending_agents", "version").Update(&model.Autoscaler{
+func (s storage) AutoscalerUpdateHeartbeat(id int64, activeAgents, pendingAgents int32, pendingSince int64, version string) error {
+	_, err := s.engine.ID(id).Cols("last_contact", "active_agents", "pending_agents", "pending_since", "version").Update(&model.Autoscaler{
 		LastContact:   time.Now().Unix(),
 		ActiveAgents:  activeAgents,
 		PendingAgents: pendingAgents,
+		PendingSince:  pendingSince,
 		Version:       version,
 	})
 	return err

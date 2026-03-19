@@ -1425,16 +1425,16 @@ func (_c *MockStore_AutoscalerUpdate_Call) RunAndReturn(run func(autoscaler *mod
 }
 
 // AutoscalerUpdateHeartbeat provides a mock function for the type MockStore
-func (_mock *MockStore) AutoscalerUpdateHeartbeat(id int64, activeAgents int32, pendingAgents int32, version string) error {
-	ret := _mock.Called(id, activeAgents, pendingAgents, version)
+func (_mock *MockStore) AutoscalerUpdateHeartbeat(id int64, activeAgents int32, pendingAgents int32, pendingSince int64, version string) error {
+	ret := _mock.Called(id, activeAgents, pendingAgents, pendingSince, version)
 
 	if len(ret) == 0 {
 		panic("no return value specified for AutoscalerUpdateHeartbeat")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(int64, int32, int32, string) error); ok {
-		r0 = returnFunc(id, activeAgents, pendingAgents, version)
+	if returnFunc, ok := ret.Get(0).(func(int64, int32, int32, int64, string) error); ok {
+		r0 = returnFunc(id, activeAgents, pendingAgents, pendingSince, version)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -1450,12 +1450,13 @@ type MockStore_AutoscalerUpdateHeartbeat_Call struct {
 //   - id int64
 //   - activeAgents int32
 //   - pendingAgents int32
+//   - pendingSince int64
 //   - version string
-func (_e *MockStore_Expecter) AutoscalerUpdateHeartbeat(id interface{}, activeAgents interface{}, pendingAgents interface{}, version interface{}) *MockStore_AutoscalerUpdateHeartbeat_Call {
-	return &MockStore_AutoscalerUpdateHeartbeat_Call{Call: _e.mock.On("AutoscalerUpdateHeartbeat", id, activeAgents, pendingAgents, version)}
+func (_e *MockStore_Expecter) AutoscalerUpdateHeartbeat(id interface{}, activeAgents interface{}, pendingAgents interface{}, pendingSince interface{}, version interface{}) *MockStore_AutoscalerUpdateHeartbeat_Call {
+	return &MockStore_AutoscalerUpdateHeartbeat_Call{Call: _e.mock.On("AutoscalerUpdateHeartbeat", id, activeAgents, pendingAgents, pendingSince, version)}
 }
 
-func (_c *MockStore_AutoscalerUpdateHeartbeat_Call) Run(run func(id int64, activeAgents int32, pendingAgents int32, version string)) *MockStore_AutoscalerUpdateHeartbeat_Call {
+func (_c *MockStore_AutoscalerUpdateHeartbeat_Call) Run(run func(id int64, activeAgents int32, pendingAgents int32, pendingSince int64, version string)) *MockStore_AutoscalerUpdateHeartbeat_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 int64
 		if args[0] != nil {
@@ -1469,15 +1470,20 @@ func (_c *MockStore_AutoscalerUpdateHeartbeat_Call) Run(run func(id int64, activ
 		if args[2] != nil {
 			arg2 = args[2].(int32)
 		}
-		var arg3 string
+		var arg3 int64
 		if args[3] != nil {
-			arg3 = args[3].(string)
+			arg3 = args[3].(int64)
+		}
+		var arg4 string
+		if args[4] != nil {
+			arg4 = args[4].(string)
 		}
 		run(
 			arg0,
 			arg1,
 			arg2,
 			arg3,
+			arg4,
 		)
 	})
 	return _c
@@ -1488,7 +1494,7 @@ func (_c *MockStore_AutoscalerUpdateHeartbeat_Call) Return(err error) *MockStore
 	return _c
 }
 
-func (_c *MockStore_AutoscalerUpdateHeartbeat_Call) RunAndReturn(run func(id int64, activeAgents int32, pendingAgents int32, version string) error) *MockStore_AutoscalerUpdateHeartbeat_Call {
+func (_c *MockStore_AutoscalerUpdateHeartbeat_Call) RunAndReturn(run func(id int64, activeAgents int32, pendingAgents int32, pendingSince int64, version string) error) *MockStore_AutoscalerUpdateHeartbeat_Call {
 	_c.Call.Return(run)
 	return _c
 }

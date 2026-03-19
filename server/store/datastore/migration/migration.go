@@ -103,6 +103,7 @@ var migrationTasks = []*xormigrate.Migration{
 	&crowAddStaleThreshold,
 	&crowAddCronFailureTracking,
 	&crowAddNotificationConfigs,
+	&crowAddAutoscalerPendingSince,
 }
 
 var allBeans = []any{

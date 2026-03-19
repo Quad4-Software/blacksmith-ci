@@ -327,6 +327,7 @@ type (
 		Version           string            `json:"version"`
 		ActiveAgents      int32             `json:"active_agents"`
 		PendingAgents     int32             `json:"pending_agents"`
+		PendingSince      int64             `json:"pending_since"`
 	}
 
 	// AutoscalerHeartbeat is the JSON data for an autoscaler heartbeat.

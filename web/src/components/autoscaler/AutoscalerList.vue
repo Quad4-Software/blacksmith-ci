@@ -172,10 +172,24 @@
               </span>
               <span
                 v-if="autoscaler.pending_agents && autoscaler.pending_agents > 0"
-                class="inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                :title="`${autoscaler.pending_agents} pending agent${autoscaler.pending_agents > 1 ? 's' : ''}`"
+                class="inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium rounded-full"
+                :class="
+                  isPendingStale(autoscaler)
+                    ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                    : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                "
+                :title="
+                  isPendingStale(autoscaler)
+                    ? `${autoscaler.pending_agents} agent${autoscaler.pending_agents > 1 ? 's' : ''} stuck — provisioning has not completed`
+                    : `${autoscaler.pending_agents} pending agent${autoscaler.pending_agents > 1 ? 's' : ''}`
+                "
               >
-                {{ autoscaler.pending_agents }} {{ $t('admin.settings.autoscalers.agents.pending') }}
+                {{ autoscaler.pending_agents }}
+                {{
+                  isPendingStale(autoscaler)
+                    ? $t('admin.settings.autoscalers.agents.pending_stale')
+                    : $t('admin.settings.autoscalers.agents.pending')
+                }}
               </span>
             </div>
           </div>
@@ -209,10 +223,24 @@
                 </span>
                 <span
                   v-if="autoscaler.pending_agents && autoscaler.pending_agents > 0"
-                  class="inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                  :title="`${autoscaler.pending_agents} pending agent${autoscaler.pending_agents > 1 ? 's' : ''}`"
+                  class="inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium rounded-full"
+                  :class="
+                    isPendingStale(autoscaler)
+                      ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                      : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                  "
+                  :title="
+                    isPendingStale(autoscaler)
+                      ? `${autoscaler.pending_agents} agent${autoscaler.pending_agents > 1 ? 's' : ''} stuck — provisioning has not completed`
+                      : `${autoscaler.pending_agents} pending agent${autoscaler.pending_agents > 1 ? 's' : ''}`
+                  "
                 >
-                  {{ autoscaler.pending_agents }} {{ $t('admin.settings.autoscalers.agents.pending') }}
+                  {{ autoscaler.pending_agents }}
+                  {{
+                    isPendingStale(autoscaler)
+                      ? $t('admin.settings.autoscalers.agents.pending_stale')
+                      : $t('admin.settings.autoscalers.agents.pending')
+                  }}
                 </span>
               </div>
             </div>
@@ -383,6 +411,17 @@ function hasMetadata(autoscaler: Autoscaler): boolean {
     autoscaler.limit_mem ||
     (autoscaler.agent_labels && Object.keys(autoscaler.agent_labels).length > 0)
   );
+}
+
+const PROVISION_TIMEOUT_SECONDS = 300; // 5 minutes
+
+// Check if pending agents have been pending for longer than the timeout
+function isPendingStale(autoscaler: Autoscaler): boolean {
+  if (!autoscaler.pending_agents || autoscaler.pending_agents <= 0 || !autoscaler.pending_since) {
+    return false;
+  }
+  const now = Date.now() / 1000;
+  return now - autoscaler.pending_since >= PROVISION_TIMEOUT_SECONDS;
 }
 
 // Get status color based on autoscaler health

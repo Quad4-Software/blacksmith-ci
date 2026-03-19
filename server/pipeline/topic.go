@@ -112,6 +112,9 @@ func AnnotateAutoscalerProvisioning(s store.Store, pipeline *model.Pipeline) {
 		for _, a := range provisioning {
 			if a.CanProvision(labels) {
 				wf.AutoscalerProvisioning = true
+				if a.IsProvisioningStale() {
+					wf.AutoscalerProvisioningStale = true
+				}
 				break
 			}
 		}

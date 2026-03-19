@@ -681,8 +681,8 @@ func (c *CompositeEncryptedStore) AutoscalerDelete(autoscaler *model.Autoscaler)
 	return c.baseStore.AutoscalerDelete(autoscaler)
 }
 
-func (c *CompositeEncryptedStore) AutoscalerUpdateHeartbeat(id int64, activeAgents, pendingAgents int32, version string) error {
-	return c.baseStore.AutoscalerUpdateHeartbeat(id, activeAgents, pendingAgents, version)
+func (c *CompositeEncryptedStore) AutoscalerUpdateHeartbeat(id int64, activeAgents, pendingAgents int32, pendingSince int64, version string) error {
+	return c.baseStore.AutoscalerUpdateHeartbeat(id, activeAgents, pendingAgents, pendingSince, version)
 }
 
 // Maintenance.

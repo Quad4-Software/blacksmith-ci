@@ -447,6 +447,8 @@
       "step_not_started": "This step has not started yet.",
       "agent_provisioning": "Agent being provisioned",
       "agent_provisioning_desc": "An autoscaler is spinning up an agent for this workflow. This may take a moment.",
+      "agent_provisioning_stale": "Agent provisioning appears stuck",
+      "agent_provisioning_stale_desc": "The autoscaled agent has not connected after 5 minutes. Check the agent's logs on the provisioned node.",
       "exit_code": "Exit Code {exitCode}",
       "loading": "Loading…",
       "no_logs": "No logs",
@@ -779,7 +781,8 @@
         },
         "agents": {
           "label": "Agents",
-          "pending": "pending"
+          "pending": "pending",
+          "pending_stale": "stuck"
         },
         "version": {
           "label": "Version"

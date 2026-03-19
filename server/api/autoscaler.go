@@ -219,10 +219,22 @@ func PostAutoscalerHeartbeat(ctx context.Context, input *PostAutoscalerHeartbeat
 	}
 
 	// Update autoscaler with heartbeat data and configuration
+	now := time.Now().Unix()
+
+	// Track when agents first became pending
+	if input.Body.PendingAgents > 0 && autoscaler.PendingAgents == 0 {
+		// Transition from no pending to pending: record the start time
+		autoscaler.PendingSince = now
+	} else if input.Body.PendingAgents == 0 {
+		// No longer pending: clear the timestamp
+		autoscaler.PendingSince = 0
+	}
+	// If already pending, keep the existing PendingSince value
+
 	autoscaler.ActiveAgents = input.Body.ActiveAgents
 	autoscaler.PendingAgents = input.Body.PendingAgents
 	autoscaler.Version = input.Body.Version
-	autoscaler.LastContact = time.Now().Unix()
+	autoscaler.LastContact = now
 
 	// Update configuration fields if provided
 	if input.Body.MinAgents > 0 || input.Body.MaxAgents > 0 {

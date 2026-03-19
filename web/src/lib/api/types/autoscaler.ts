@@ -19,6 +19,7 @@ export interface Autoscaler {
   version: string;
   active_agents: number;
   pending_agents: number;
+  pending_since: number;
 }
 
 export interface AutoscalerWithToken {
@@ -42,6 +43,7 @@ export interface AutoscalerWithToken {
   version: string;
   active_agents: number;
   pending_agents: number;
+  pending_since: number;
   token: string;
 }
 
