@@ -25,6 +25,7 @@ import (
 	"codefloe.com/crowci/crow/v5/server"
 	"codefloe.com/crowci/crow/v5/server/model"
 	"codefloe.com/crowci/crow/v5/server/store"
+	"codefloe.com/crowci/crow/v5/shared/httputil"
 	"codefloe.com/crowci/crow/v5/shared/token"
 )
 
@@ -81,8 +82,19 @@ func SetUser() gin.HandlerFunc {
 				return "", err
 			}
 			user, err = _store.GetUser(userID)
-			return user.Hash, err
+			if err != nil {
+				return "", err
+			}
+			return user.Hash, nil
 		})
+		if err != nil {
+			// If we had a session cookie but it was invalid (stale token, deleted user, etc.),
+			// clear it so the browser stops sending it on every request.
+			if _, cookieErr := c.Request.Cookie("user_sess"); cookieErr == nil {
+				log.Warn().Err(err).Msg("clearing invalid session cookie")
+				httputil.DelCookie(c.Writer, c.Request, "user_sess")
+			}
+		}
 		if err == nil {
 			c.Set("user", user)
 
