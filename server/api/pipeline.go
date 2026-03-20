@@ -27,10 +27,12 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/rs/zerolog/log"
 
+	crow_jsonnet "codefloe.com/crowci/crow/v5/pipeline/frontend/jsonnet"
 	"codefloe.com/crowci/crow/v5/pipeline/frontend/metadata"
 	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml"
 	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/constraint"
 	"codefloe.com/crowci/crow/v5/server"
+	forge_types "codefloe.com/crowci/crow/v5/server/forge/types"
 	"codefloe.com/crowci/crow/v5/server/model"
 	"codefloe.com/crowci/crow/v5/server/pipeline"
 	"codefloe.com/crowci/crow/v5/server/pipeline/stepbuilder"
@@ -572,6 +574,13 @@ func GetRepoConfigs(ctx context.Context, input *GetRepoConfigsInput) (*GetRepoCo
 		}}, nil
 	}
 
+	// Pre-process Jsonnet files: evaluate them to YAML before parsing
+	forgeYamlConfigs, err = preprocessJsonnetConfigs(forgeYamlConfigs, repo, tmpPipeline, _forge)
+	if err != nil {
+		log.Debug().Err(err).Msg("error preprocessing Jsonnet configs")
+		return nil, huma.Error500InternalServerError("Error preprocessing Jsonnet configs: " + err.Error())
+	}
+
 	// Parse each YAML file and extract workflow information
 	workflows := make([]ManualWorkflow, 0, len(forgeYamlConfigs))
 	workflowMap := make(map[string]ManualWorkflow) // for dependency resolution
@@ -664,6 +673,54 @@ func workflowHasManualTrigger(when constraint.When) bool {
 
 	log.Debug().Msg("workflowHasManualTrigger: no manual trigger found, returning false")
 	return false
+}
+
+// preprocessJsonnetConfigs evaluates any .jsonnet files in the config list,
+// replacing them with the resulting YAML. This mirrors the preprocessing in
+// stepBuilder.preprocessJsonnet but without full pipeline metadata (which is
+// not needed for detecting manual triggers in when constraints).
+func preprocessJsonnetConfigs(files []*forge_types.FileMeta, repo *model.Repo, pl *model.Pipeline, forge metadata.ServerForge) ([]*forge_types.FileMeta, error) {
+	var result []*forge_types.FileMeta
+	for _, f := range files {
+		if crow_jsonnet.IsLibsonnetFile(f.Name) {
+			continue
+		}
+		if !crow_jsonnet.IsJsonnetFile(f.Name) {
+			result = append(result, f)
+			continue
+		}
+
+		// Build sibling files for imports
+		siblingFiles := make([]*crow_jsonnet.File, len(files))
+		for i, sf := range files {
+			siblingFiles[i] = &crow_jsonnet.File{Name: sf.Name, Data: sf.Data}
+		}
+
+		// Build extVars from metadata, matching the step builder's behavior
+		workflowMetadata := stepbuilder.MetadataFromStruct(forge, repo, pl, nil, &model.Workflow{}, server.Config.Server.Host)
+		extVars := workflowMetadata.Environ()
+
+		evaluated, err := crow_jsonnet.Evaluate(f.Name, f.Data, siblingFiles, extVars)
+		if err != nil {
+			return nil, fmt.Errorf("jsonnet evaluation failed for %s: %w", f.Name, err)
+		}
+
+		if len(evaluated) == 1 {
+			result = append(result, &forge_types.FileMeta{
+				Name: f.Name,
+				Data: evaluated[0],
+			})
+		} else {
+			baseName := strings.TrimSuffix(f.Name, ".jsonnet")
+			for i, doc := range evaluated {
+				result = append(result, &forge_types.FileMeta{
+					Name: fmt.Sprintf("%s-%d.yaml", baseName, i),
+					Data: doc,
+				})
+			}
+		}
+	}
+	return result, nil
 }
 
 type GetPipelineMetadataInput struct {
