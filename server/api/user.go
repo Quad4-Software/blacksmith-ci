@@ -151,7 +151,7 @@ func getAllReposFromAllForges(c *gin.Context, _store store.Store, user *model.Us
 		active[key] = r
 	}
 
-	var allRepos []*model.Repo
+	allRepos := make([]*model.Repo, 0)
 
 	// Query repos from each linked forge
 	for _, uf := range userForges {

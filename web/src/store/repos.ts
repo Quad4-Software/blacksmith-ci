@@ -58,7 +58,7 @@ export const useRepoStore = defineStore('repos', () => {
     }
 
     // Authenticated user - fetch their repos
-    const _ownedRepos = await apiClient.getRepoList({ all });
+    const _ownedRepos = (await apiClient.getRepoList({ all })) ?? [];
 
     _ownedRepos.forEach((repo) => {
       if (repo.last_pipeline) {

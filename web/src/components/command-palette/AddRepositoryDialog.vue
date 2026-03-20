@@ -104,7 +104,7 @@
 
           <!-- Repository list -->
           <div class="flex-1 overflow-y-auto space-y-1 min-h-0">
-            <template v-if="repos !== undefined && filteredRepos.length > 0">
+            <template v-if="repos != null && filteredRepos.length > 0">
               <div
                 v-for="repo in filteredRepos"
                 :key="repo.forge_remote_id"
@@ -171,7 +171,7 @@
             <div v-else-if="loading" class="flex justify-center p-8">
               <Icon name="spinner" class="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
-            <div v-else-if="repos !== undefined && repos.length === 0" class="text-center p-8 text-muted-foreground">
+            <div v-else-if="repos != null && repos.length === 0" class="text-center p-8 text-muted-foreground">
               {{ $t('no_repos') }}
             </div>
             <div v-else-if="filteredRepos.length === 0" class="text-center p-8 text-muted-foreground">
@@ -709,7 +709,7 @@ watch(
       if (!repos.value) {
         loading.value = true;
         try {
-          repos.value = await apiClient.getRepoList({ all: true });
+          repos.value = (await apiClient.getRepoList({ all: true })) ?? [];
         } catch {
           notifications.notify({
             title: t('notify_title_error'),
