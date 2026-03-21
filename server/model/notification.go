@@ -64,3 +64,21 @@ type NotifyYAMLConfig struct {
 
 func (n NotifyYAMLConfig) Value() (driver.Value, error) { return jsonValue(n) }
 func (n *NotifyYAMLConfig) Scan(src any) error          { return jsonScan(src, n) }
+
+// EmailUnsubscribe records that a user has opted out of email notifications for a repo.
+type EmailUnsubscribe struct {
+	bun.BaseModel `bun:"table:email_unsubscribes"`
+
+	ID        int64  `json:"id"         bun:"id,pk,autoincrement"`
+	UserID    int64  `json:"user_id"    bun:"user_id,notnull"`
+	RepoID    int64  `json:"repo_id"    bun:"repo_id,notnull"`
+	Email     string `json:"email"      bun:"email,notnull"`
+	CreatedAt int64  `json:"created_at" bun:",nullzero"`
+}
+
+// EmailUnsubscribeStore persists email unsubscribe records.
+type EmailUnsubscribeStore interface {
+	EmailUnsubscribeFind(userID, repoID int64) (*EmailUnsubscribe, error)
+	EmailUnsubscribeCreate(*EmailUnsubscribe) error
+	EmailUnsubscribeDelete(userID, repoID int64) error
+}

@@ -90,6 +90,17 @@ func Migrate(_ context.Context, db *sql.DB, _ string, _ bool) error {
 		{ID: "crow-add-autoscaler-pending-since", Migrate: addColumnIfNotExists(
 			"autoscalers", "pending_since", "INTEGER",
 		)},
+		{ID: "crow-add-email-unsubscribes", Migrate: func(tx *sql.Tx) error {
+			_, err := tx.Exec(`CREATE TABLE IF NOT EXISTS email_unsubscribes (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				user_id INTEGER NOT NULL,
+				repo_id INTEGER NOT NULL,
+				email TEXT NOT NULL,
+				created_at INTEGER,
+				UNIQUE(user_id, repo_id)
+			)`)
+			return err
+		}},
 	}
 
 	if len(newMigrations) > 0 {

@@ -267,6 +267,11 @@ type Store interface {
 	NotificationConfigUpsert(*model.NotificationConfig) error
 	NotificationConfigDelete(repoID int64) error
 
+	// Email Unsubscribes
+	EmailUnsubscribeFind(userID, repoID int64) (*model.EmailUnsubscribe, error)
+	EmailUnsubscribeCreate(*model.EmailUnsubscribe) error
+	EmailUnsubscribeDelete(userID, repoID int64) error
+
 	// Maintenance
 	MaintenanceConfigGet() (*model.MaintenanceConfig, error)
 	MaintenanceConfigUpdate(*model.MaintenanceConfig) error

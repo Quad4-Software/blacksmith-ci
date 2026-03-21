@@ -18,12 +18,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/rs/zerolog/log"
 
 	"codefloe.com/crowci/crow/v5/server/model"
 	"codefloe.com/crowci/crow/v5/server/store/types"
+	"codefloe.com/crowci/crow/v5/shared/token"
 )
 
 // Service handles sending pipeline notifications.
@@ -49,20 +52,30 @@ type SMTPStatus struct {
 // Returns empty string if the user is not found.
 type UserEmailLookup func(login string) string
 
+// UserIDLookup resolves a forge login name to the user's internal ID.
+// Returns 0 if the user is not found.
+type UserIDLookup func(login string) int64
+
 type service struct {
 	store           model.NotificationConfigStore
+	unsubStore      model.EmailUnsubscribeStore
 	smtpCfg         SMTPConfig
 	serverHost      string
+	jwtSecret       string
 	userEmailLookup UserEmailLookup
+	userIDLookup    UserIDLookup
 }
 
 // NewService creates a notification service.
-func NewService(store model.NotificationConfigStore, smtpCfg SMTPConfig, serverHost string, userEmailLookup UserEmailLookup) Service {
+func NewService(store model.NotificationConfigStore, unsubStore model.EmailUnsubscribeStore, smtpCfg SMTPConfig, serverHost, jwtSecret string, userEmailLookup UserEmailLookup, userIDLookup UserIDLookup) Service {
 	return &service{
 		store:           store,
+		unsubStore:      unsubStore,
 		smtpCfg:         smtpCfg,
 		serverHost:      serverHost,
+		jwtSecret:       jwtSecret,
 		userEmailLookup: userEmailLookup,
+		userIDLookup:    userIDLookup,
 	}
 }
 
@@ -133,6 +146,18 @@ func (s *service) Dispatch(_ context.Context, repo *model.Repo, pipeline *model.
 		return nil
 	}
 
+	// Check if user has unsubscribed from this repo's notifications
+	var userID int64
+	if s.userIDLookup != nil && pipeline.Author != "" {
+		userID = s.userIDLookup(pipeline.Author)
+	}
+	if userID > 0 && s.unsubStore != nil {
+		if _, err := s.unsubStore.EmailUnsubscribeFind(userID, repo.ID); err == nil {
+			log.Debug().Int64("user_id", userID).Int64("repo_id", repo.ID).Msg("user has unsubscribed from notifications, skipping")
+			return nil
+		}
+	}
+
 	subject := fmt.Sprintf("[Crow CI] %s: build #%d on %s (%s)",
 		repo.FullName,
 		pipeline.Number,
@@ -140,7 +165,8 @@ func (s *service) Dispatch(_ context.Context, repo *model.Repo, pipeline *model.
 		statusChangeLabel(pipeline.Status, previousStatus),
 	)
 
-	body := buildEmailBody(s.serverHost, repo, pipeline)
+	unsubscribeURL := s.buildUnsubscribeURL(userID, repo, recipient)
+	body := buildEmailBody(s.serverHost, repo, pipeline, unsubscribeURL)
 
 	if err := sendEmail(s.smtpCfg, []string{recipient}, subject, body); err != nil {
 		return fmt.Errorf("failed to send notification for %s#%d: %w", repo.FullName, pipeline.Number, err)
@@ -156,7 +182,30 @@ func (s *service) Dispatch(_ context.Context, repo *model.Repo, pipeline *model.
 	return nil
 }
 
-func buildEmailBody(serverHost string, repo *model.Repo, pipeline *model.Pipeline) string {
+func (s *service) buildUnsubscribeURL(userID int64, repo *model.Repo, email string) string {
+	if userID == 0 || s.jwtSecret == "" {
+		return ""
+	}
+
+	t := token.New(token.UnsubscribeToken)
+	t.Set("user_id", strconv.FormatInt(userID, 10))
+	t.Set("repo_id", strconv.FormatInt(repo.ID, 10))
+	t.Set("email", email)
+	t.Set("repo", repo.FullName)
+
+	signed, err := t.Sign(s.jwtSecret)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to sign unsubscribe token")
+		return ""
+	}
+
+	return fmt.Sprintf("%s/api/v1/notifications/unsubscribe?token=%s",
+		strings.TrimRight(s.serverHost, "/"),
+		url.QueryEscape(signed),
+	)
+}
+
+func buildEmailBody(serverHost string, repo *model.Repo, pipeline *model.Pipeline, unsubscribeURL string) string {
 	link := fmt.Sprintf("%s/repos/%d/pipeline/%d", strings.TrimRight(serverHost, "/"), repo.ID, pipeline.Number)
 
 	commit := pipeline.Commit
@@ -189,6 +238,11 @@ func buildEmailBody(serverHost string, repo *model.Repo, pipeline *model.Pipelin
 	}
 	b.WriteString(`</table>`)
 	fmt.Fprintf(&b, `<p><a href="%s">View pipeline</a></p>`, link)
+
+	if unsubscribeURL != "" {
+		fmt.Fprintf(&b, `<p style="margin-top:2em;font-size:12px;color:#888"><a href="%s" style="color:#888">Unsubscribe</a> from notifications for this repository.</p>`, unsubscribeURL)
+	}
+
 	return b.String()
 }
 

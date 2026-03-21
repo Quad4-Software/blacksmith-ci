@@ -573,13 +573,23 @@ func setupEvilGlobals(ctx context.Context, c *cli.Command, s store.Store) (err e
 		AuthType: c.String("smtp-auth-type"),
 	}
 	if smtpCfg.IsConfigured() {
-		server.Config.Services.NotificationService = notification.NewService(s, smtpCfg, c.String("server-host"), func(login string) string {
-			user, err := s.GetUserLogin(login)
-			if err != nil || user == nil {
-				return ""
-			}
-			return user.Email
-		})
+		server.Config.Services.NotificationService = notification.NewService(
+			s, s, smtpCfg, c.String("server-host"), server.Config.Server.JWTSecret,
+			func(login string) string {
+				user, err := s.GetUserLogin(login)
+				if err != nil || user == nil {
+					return ""
+				}
+				return user.Email
+			},
+			func(login string) int64 {
+				user, err := s.GetUserLogin(login)
+				if err != nil || user == nil {
+					return 0
+				}
+				return user.ID
+			},
+		)
 		log.Info().Str("host", smtpCfg.Host).Int("port", smtpCfg.Port).Msg("SMTP notification service configured")
 	}
 

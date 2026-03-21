@@ -89,6 +89,7 @@ var crowMigrations = []string{
 	"crow-add-stale-threshold",
 	"crow-add-cron-failure-tracking",
 	"crow-add-notification-configs",
+	"crow-add-email-unsubscribes",
 }
 
 // allKnownMigrations returns a combined list of all known migration IDs.

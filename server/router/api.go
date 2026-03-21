@@ -658,6 +658,12 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 		Summary: "Get CCMenu/CCTray XML by owner/name", Tags: []string{"Badges"},
 	}, api.GetCCByName)
 
+	// ── Email unsubscribe (public, token-verified) ─────────────────────
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-unsubscribe", Method: http.MethodGet, Path: "/notifications/unsubscribe",
+		Summary: "Unsubscribe from email notifications", Tags: []string{"Notifications"},
+	}, api.GetUnsubscribe)
+
 	// ── Pipeline queue (admin) ───────────────────────────────────────────
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "get-pipeline-queue", Method: http.MethodGet, Path: "/pipelines",

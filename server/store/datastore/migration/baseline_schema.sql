@@ -364,6 +364,15 @@ CREATE TABLE IF NOT EXISTS notification_configs (
     updated_at INTEGER
 );
 
+CREATE TABLE IF NOT EXISTS email_unsubscribes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    repo_id INTEGER NOT NULL,
+    email TEXT NOT NULL,
+    created_at INTEGER,
+    UNIQUE(user_id, repo_id)
+);
+
 CREATE TABLE IF NOT EXISTS approved_pull_requests (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     repo_id INTEGER,

@@ -977,6 +977,19 @@ func (c *CompositeEncryptedStore) NotificationConfigDelete(repoID int64) error {
 	return c.baseStore.NotificationConfigDelete(repoID)
 }
 
+// Email Unsubscribes.
+func (c *CompositeEncryptedStore) EmailUnsubscribeFind(userID, repoID int64) (*model.EmailUnsubscribe, error) {
+	return c.baseStore.EmailUnsubscribeFind(userID, repoID)
+}
+
+func (c *CompositeEncryptedStore) EmailUnsubscribeCreate(unsub *model.EmailUnsubscribe) error {
+	return c.baseStore.EmailUnsubscribeCreate(unsub)
+}
+
+func (c *CompositeEncryptedStore) EmailUnsubscribeDelete(userID, repoID int64) error {
+	return c.baseStore.EmailUnsubscribeDelete(userID, repoID)
+}
+
 // Approved Pull Requests.
 func (c *CompositeEncryptedStore) ApprovedPullRequestFind(repoID int64, ref string) (*model.ApprovedPullRequest, error) {
 	return c.baseStore.ApprovedPullRequestFind(repoID, ref)
