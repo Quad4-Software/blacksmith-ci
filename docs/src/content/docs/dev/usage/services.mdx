@@ -60,6 +60,32 @@ services:
     image: redis
 ```
 
+## Tmpfs
+
+Service containers like databases benefit greatly from tmpfs mounts, which store data in RAM instead of on disk.
+This can significantly speed up test pipelines.
+
+```yaml
+services:
+  - name: database
+    image: postgres:18
+    tmpfs:
+      - /var/lib/postgresql
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+  - name: cache
+    image: mysql:9
+    tmpfs:
+      - /var/lib/mysql
+    environment:
+      MYSQL_DATABASE: test
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+```
+
+See the [tmpfs section in the workflow syntax](/dev/usage/workflow-syntax/#tmpfs) for more details on size limits and mount options.
+
 ## Detachment
 
 Services always start at the beginning of a workflow, asynchronously to any other step.

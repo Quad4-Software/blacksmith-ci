@@ -37,7 +37,7 @@ Docker backend configuration variables for agents.
 ### BACKEND_DOCKER_LIMIT_MEM
 
 - Name: `CROW_BACKEND_DOCKER_LIMIT_MEM`
-- Description: Whether to limit memory usage in Docker containers. No limit is applied if set to `0`.
+- Description: Maximum memory allowed for Docker containers. No limit is applied if set to `0`. This limit also caps the size of [`tmpfs`](/dev/usage/workflow-syntax/#tmpfs) mounts — if a step or service uses `tmpfs` without an explicit `size=` option, the size is automatically set to this value.
 - Default: `0`
 
 ---

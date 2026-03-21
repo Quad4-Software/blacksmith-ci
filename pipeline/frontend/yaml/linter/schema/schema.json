@@ -318,6 +318,9 @@
         "volumes": {
           "$ref": "#/definitions/step_volumes"
         },
+        "tmpfs": {
+          "$ref": "#/definitions/step_tmpfs"
+        },
         "depends_on": {
           "description": "Execute a step after another step has finished.",
           "$ref": "#/definitions/string_or_string_slice"
@@ -379,6 +382,9 @@
         },
         "volumes": {
           "$ref": "#/definitions/step_volumes"
+        },
+        "tmpfs": {
+          "$ref": "#/definitions/step_tmpfs"
         },
         "depends_on": {
           "description": "Execute a step after another step has finished.",
@@ -642,6 +648,14 @@
     },
     "step_volumes": {
       "description": "Mount files or folders from the host machine into your step container",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minLength": 1
+    },
+    "step_tmpfs": {
+      "description": "Mount tmpfs (in-memory) filesystems into the container. Size is automatically capped to the agent's memory limit if configured. Format: '/path' or '/path:size=1G'",
       "type": "array",
       "items": {
         "type": "string"
@@ -914,6 +928,9 @@
         },
         "volumes": {
           "$ref": "#/definitions/step_volumes"
+        },
+        "tmpfs": {
+          "$ref": "#/definitions/step_tmpfs"
         },
         "backend_options": {
           "$ref": "#/definitions/step_backend_options"

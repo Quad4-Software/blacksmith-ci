@@ -96,7 +96,7 @@ steps:
     image: *golang_image
     environment:
       CROW_DATABASE_DRIVER: postgres
-      CROW_DATABASE_DATASOURCE: 'host=svc-postgres user=postgres dbname=postgres sslmode=disable' # cspell:disable-line
+      CROW_DATABASE_DATASOURCE: 'host=svc-postgres user=postgres password=postgres dbname=postgres sslmode=disable' # cspell:disable-line
     commands:
       - apk add --no-cache -q just git gcc musl-dev
       - just test-server-datastore
@@ -118,14 +118,18 @@ services:
   svc-postgres:
     image: reg.devxy.io/docker.io/library/postgres:18
     ports: ['5432']
+    tmpfs:
+      - /var/lib/postgresql
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_PASSWORD: postgres
     when: *when
 
   svc-mysql:
     image: reg.devxy.io/docker.io/library/mysql:9
     ports: ['3306']
+    tmpfs:
+      - /var/lib/mysql
     environment:
       MYSQL_DATABASE: test
       MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'

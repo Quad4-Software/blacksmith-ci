@@ -214,6 +214,38 @@ func TestLintErrors(t *testing.T) {
 	}
 }
 
+func TestTmpfsAllowedWithoutVolumesPrivilege(t *testing.T) {
+	yamlData := `
+when:
+  event: push
+
+steps:
+  test:
+    image: postgres:16
+    tmpfs:
+      - /var/lib/postgresql/data
+    commands:
+      - pg_isready
+`
+	conf, err := yaml.ParseString(yamlData)
+	assert.NoError(t, err)
+
+	// tmpfs should be allowed without any trusted privileges
+	err = linter.New().Lint([]*linter.WorkflowConfig{{
+		File:      "tmpfs-test",
+		RawConfig: yamlData,
+		Workflow:  conf,
+	}})
+	if err != nil {
+		// Should not contain any tmpfs-related or volumes-related error
+		lerrors := errors.GetPipelineErrors(err)
+		for _, lerr := range lerrors {
+			assert.NotContains(t, lerr.Message, "tmpfs", "tmpfs should not require any privilege")
+			assert.NotContains(t, lerr.Message, "volumes", "tmpfs should not trigger volumes privilege check")
+		}
+	}
+}
+
 func TestBadHabits(t *testing.T) {
 	testdata := []struct {
 		from string

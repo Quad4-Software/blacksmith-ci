@@ -314,6 +314,79 @@ func TestToConfigFull(t *testing.T) {
 	}, conf)
 }
 
+func TestParseTmpfs(t *testing.T) {
+	tests := []struct {
+		name     string
+		entries  []string
+		memLimit int64
+		expected map[string]string
+	}{
+		{
+			name:     "simple path no limit",
+			entries:  []string{"/tmp"},
+			memLimit: 0,
+			expected: map[string]string{"/tmp": ""},
+		},
+		{
+			name:     "path with size no limit",
+			entries:  []string{"/tmp:size=2G"},
+			memLimit: 0,
+			expected: map[string]string{"/tmp": "size=2G"},
+		},
+		{
+			name:     "simple path with limit injects size",
+			entries:  []string{"/tmp"},
+			memLimit: 512 * 1024 * 1024, // 512M
+			expected: map[string]string{"/tmp": "size=512M"},
+		},
+		{
+			name:     "size within limit passes through",
+			entries:  []string{"/tmp:size=256M"},
+			memLimit: 512 * 1024 * 1024,
+			expected: map[string]string{"/tmp": "size=256M"},
+		},
+		{
+			name:     "size exceeding limit gets capped",
+			entries:  []string{"/tmp:size=2G"},
+			memLimit: 512 * 1024 * 1024,
+			expected: map[string]string{"/tmp": "size=512M"},
+		},
+		{
+			name:     "size with other options preserved",
+			entries:  []string{"/var/lib/data:size=4G,mode=1770"},
+			memLimit: 1024 * 1024 * 1024, // 1G
+			expected: map[string]string{"/var/lib/data": "size=1G,mode=1770"},
+		},
+		{
+			name:     "no size with other options adds size",
+			entries:  []string{"/tmp:mode=1770"},
+			memLimit: 256 * 1024 * 1024,
+			expected: map[string]string{"/tmp": "mode=1770,size=256M"},
+		},
+		{
+			name:     "multiple entries",
+			entries:  []string{"/tmp", "/var/lib/data:size=100M"},
+			memLimit: 512 * 1024 * 1024,
+			expected: map[string]string{"/tmp": "size=512M", "/var/lib/data": "size=100M"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := parseTmpfs(tt.entries, tt.memLimit)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestFormatBytes(t *testing.T) {
+	assert.Equal(t, "1G", formatBytes(1024*1024*1024))
+	assert.Equal(t, "512M", formatBytes(512*1024*1024))
+	assert.Equal(t, "2G", formatBytes(2*1024*1024*1024))
+	assert.Equal(t, "1536M", formatBytes(1536*1024*1024))
+	assert.Equal(t, "1000000", formatBytes(1000000)) // not aligned to MiB
+}
+
 func TestToWindowsConfig(t *testing.T) {
 	engine := docker{
 		info: system.Info{OSType: "windows", Architecture: "x86_64"},

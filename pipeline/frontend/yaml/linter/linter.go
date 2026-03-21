@@ -285,9 +285,6 @@ func (l *Linter) lintTrusted(config *WorkflowConfig, c *types.Container, area st
 		if len(c.Volumes.Volumes) != 0 {
 			msgs = append(msgs, "Insufficient `volumes` privileges. To allow using 'volumes' options, check the 'Volumes' option in the 'Privileges & Security' repository settings.")
 		}
-		if len(c.Tmpfs) != 0 {
-			msgs = append(msgs, "Insufficient `volumes` privileges. To allow using 'tmpfs' options, check the 'Volumes' option in the 'Privileges & Security' repository settings.")
-		}
 	}
 
 	if len(msgs) > 0 {

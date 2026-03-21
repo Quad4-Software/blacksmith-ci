@@ -17,8 +17,10 @@ package docker
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"maps"
 	"regexp"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -167,18 +169,7 @@ func toHostConfig(step *types.Step, conf *config) *container.HostConfig {
 	if len(step.Volumes) != 0 {
 		config.Binds = step.Volumes
 	}
-	config.Tmpfs = map[string]string{}
-	for _, path := range step.Tmpfs {
-		if !strings.Contains(path, ":") {
-			config.Tmpfs[path] = ""
-			continue
-		}
-		parts, err := splitVolumeParts(path)
-		if err != nil {
-			continue
-		}
-		config.Tmpfs[parts[0]] = parts[1]
-	}
+	config.Tmpfs = parseTmpfs(step.Tmpfs, conf.resourceLimit.MemLimit)
 
 	return config
 }
@@ -249,6 +240,77 @@ func encodeAuthToBase64(authConfig types.Auth) (string, error) {
 		return "", err
 	}
 	return base64.URLEncoding.EncodeToString(buf), nil
+}
+
+// parseTmpfs converts a list of tmpfs entries into Docker's tmpfs map,
+// enforcing that tmpfs size does not exceed the agent's memory limit.
+// If no size is specified and a memory limit is set, the size is capped to the limit.
+// If a size exceeds the memory limit, it is capped to the limit.
+func parseTmpfs(entries []string, memLimit int64) map[string]string {
+	result := map[string]string{}
+	for _, entry := range entries {
+		if !strings.Contains(entry, ":") {
+			result[entry] = enforceTmpfsSize("", memLimit)
+			continue
+		}
+		parts, err := splitVolumeParts(entry)
+		if err != nil {
+			continue
+		}
+		result[parts[0]] = enforceTmpfsSize(parts[1], memLimit)
+	}
+	return result
+}
+
+// enforceTmpfsSize ensures the tmpfs options respect the agent's memory limit.
+// Docker tmpfs options are comma-separated (e.g. "size=1G,mode=1770").
+// If memLimit is 0 (no limit configured), options are passed through unchanged.
+func enforceTmpfsSize(opts string, memLimit int64) string {
+	if memLimit <= 0 {
+		return opts
+	}
+
+	sizeLimit := formatBytes(memLimit)
+
+	if opts == "" {
+		return "size=" + sizeLimit
+	}
+
+	// Parse comma-separated options looking for size=
+	parts := strings.Split(opts, ",")
+	found := false
+	for i, part := range parts {
+		if strings.HasPrefix(part, "size=") {
+			found = true
+			sizeVal := strings.TrimPrefix(part, "size=")
+			parsed, err := ParseMemory(sizeVal)
+			if err == nil && parsed > memLimit {
+				parts[i] = "size=" + sizeLimit
+			}
+			break
+		}
+	}
+	if !found {
+		parts = append(parts, "size="+sizeLimit)
+	}
+	return strings.Join(parts, ",")
+}
+
+// formatBytes formats a byte count as a human-readable string with the largest
+// whole unit (e.g. 1073741824 -> "1024M", 536870912 -> "512M").
+func formatBytes(b int64) string {
+	const (
+		mb = 1024 * 1024
+		gb = 1024 * mb
+	)
+	switch {
+	case b >= gb && b%gb == 0:
+		return fmt.Sprintf("%dG", b/gb)
+	case b >= mb && b%mb == 0:
+		return fmt.Sprintf("%dM", b/mb)
+	default:
+		return strconv.FormatInt(b, 10)
+	}
 }
 
 // splitVolumeParts splits a volume string into its constituent parts.
