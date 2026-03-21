@@ -96,33 +96,8 @@ When multiple forges are configured:
 
 ### Setting Up OAuth Applications
 
-Each forge requires an OAuth application. The callback URL for all forges is:
-
-```
-https://your-crow-instance.com/authorize
-```
-
-**GitHub:**
-1. Go to Settings → Developer settings → OAuth Apps → New OAuth App
-2. Set Authorization callback URL to `https://your-crow-instance.com/authorize`
-3. Copy the Client ID and Client Secret
-
-**GitLab:**
-1. Go to Preferences → Applications → New application
-2. Set Redirect URI to `https://your-crow-instance.com/authorize`
-3. Select scopes: `api`, `read_user`
-4. Copy the Application ID and Secret
-
-**Forgejo / Gitea / Codeberg:**
-1. Go to Settings → Applications → Create a new OAuth2 Application
-2. Set Redirect URI to `https://your-crow-instance.com/authorize`
-3. Copy the Client ID and Client Secret
-
-**Bitbucket:**
-1. Go to Workspace settings → OAuth consumers → Add consumer
-2. Set Callback URL to `https://your-crow-instance.com/authorize`
-3. Select permissions: Account (Read), Repositories (Read, Write), Pull requests (Read, Write), Webhooks (Read and write)
-4. Copy the Key (Client ID) and Secret
+Each forge requires an OAuth application.
+See the [Forge OAuth2 Setup](/dev/configuration/forge-oauth/) guide for detailed step-by-step instructions for each forge.
 
 ## Database
 
@@ -210,11 +185,12 @@ This decrypts all data back to plaintext.
 
 The backend determines where pipelines execute.
 
-| Backend      | Use Case                                 |
-| ------------ | ---------------------------------------- |
-| `docker`     | Default, containers on agent host        |
-| `kubernetes` | Pods in K8s cluster                      |
-| `local`      | Direct host execution (macOS only) |
+| Backend      | Use Case                                       |
+| ------------ | ---------------------------------------------- |
+| `docker`     | Default, containers on agent host              |
+| `podman`     | Containers via Podman (experimental)           |
+| `kubernetes` | Pods in K8s cluster                            |
+| `local`      | Direct host execution (macOS only)             |
 
 ### Docker
 
@@ -246,6 +222,56 @@ docker image prune -f
 
 # Remove orphaned Crow volumes
 docker volume rm $(docker volume ls --filter name=^crow_* --filter dangling=true -q)
+```
+
+### Podman (Experimental)
+
+:::caution
+The Podman backend is experimental and may change in future releases.
+See [Backend: Podman](/dev/configuration/env-vars/backend-podman/) for differences from the Docker backend.
+:::
+
+Each step runs in a separate container using Podman.
+The Podman backend uses the native Podman Go SDK for direct communication, supporting both rootful and rootless configurations.
+
+```yaml
+CROW_BACKEND=podman
+```
+
+#### Socket Configuration
+
+By default, the backend auto-detects the Podman socket:
+- Rootful: `/run/podman/podman.sock`
+- Rootless: `$XDG_RUNTIME_DIR/podman/podman.sock`
+
+To specify a custom socket:
+
+```yaml
+CROW_BACKEND_PODMAN_HOST=unix:///path/to/podman.sock
+```
+
+#### Backend Options
+
+```yaml
+steps:
+  - name: test
+    image: alpine
+    backend_options:
+      podman:
+        user: 10000:10000
+```
+
+#### Housekeeping
+
+Crow doesn't auto-clean Podman images.
+The following commands should be executed regularly:
+
+```bash
+# Remove dangling images
+podman image prune -f
+
+# Remove orphaned Crow volumes
+podman volume rm $(podman volume ls --filter name=^crow_* --filter dangling=true -q)
 ```
 
 ### Kubernetes
@@ -351,8 +377,20 @@ CROW_SERVER_KEY=/path/to/server.key
 | -------------------------- | ---------- | --------------------------- |
 | `CROW_LOG_LEVEL`           | `info`     | Log level                   |
 | `CROW_LOG_FILE`            | `stderr`   | Log output destination      |
-| `CROW_LOG_STORE`           | `database` | Pipeline log storage        |
-| `CROW_LOG_STORE_FILE_PATH` | -          | File path for pipeline logs |
+| `CROW_LOG_STORE`              | `database` | Pipeline log storage (`database`, `file`, or `s3`) |
+| `CROW_LOG_STORE_FILE_PATH`    | -          | File path for pipeline logs |
+| `CROW_LOG_STORE_S3_ENDPOINT`  | -          | S3 endpoint for pipeline logs |
+| `CROW_LOG_STORE_S3_BUCKET`    | -          | S3 bucket for pipeline logs |
+| `CROW_LOG_STORE_S3_ACCESS_KEY`| -          | S3 access key |
+| `CROW_LOG_STORE_S3_SECRET_KEY`| -          | S3 secret key |
+| `CROW_LOG_STORE_S3_SSL`       | `true`     | Use SSL for S3 connection |
+| `CROW_LOG_STORE_S3_PATH_STYLE`| `false`    | Path-style S3 addressing |
+| `CROW_LOG_STORE_S3_PREFIX`    | `logs`     | Key prefix for S3 log objects |
+
+**`database`** is simplest but grows the DB quickly.
+**`file`** keeps logs on local disk — good for single-server setups.
+**`s3`** offloads logs to object storage — best for large or multi-server deployments.
+See [Logging env vars](/dev/configuration/env-vars/logging/#choosing-a-pipeline-log-store) for a detailed comparison.
 
 ### Log Rotation (Alpine Images)
 
@@ -577,6 +615,34 @@ CROW_ENABLE_HA=true
 | `CROW_CRON_LOCK_TTL`  | `90s`   | Cron lock timeout  |
 
 With Helm, set `server.replicaCount > 1`.
+
+## Email Notifications
+
+Crow can send email notifications to commit authors when pipelines complete.
+This requires an SMTP server.
+
+```bash
+CROW_SMTP_HOST=smtp.example.com
+CROW_SMTP_PORT=587
+CROW_SMTP_FROM=crow@example.com
+CROW_SMTP_USERNAME=crow@example.com
+CROW_SMTP_PASSWORD=secret
+CROW_SMTP_AUTH_TYPE=LOGIN
+```
+
+| Variable | Required | Default | Description |
+| --- | --- | --- | --- |
+| `CROW_SMTP_HOST` | Yes | — | SMTP server hostname |
+| `CROW_SMTP_PORT` | No | `587` | SMTP port (465=implicit TLS, 25=opportunistic TLS, other=mandatory TLS) |
+| `CROW_SMTP_FROM` | Yes | — | Sender email address |
+| `CROW_SMTP_USERNAME` | No | — | SMTP username (enables authentication) |
+| `CROW_SMTP_PASSWORD` | No | — | SMTP password |
+| `CROW_SMTP_AUTH_TYPE` | No | `LOGIN` | Auth mechanism: `LOGIN`, `PLAIN`, `CRAM-MD5`, `AUTO` (auto-discover), or `NONE` |
+
+Once configured, notifications must be enabled per-repository in **Repository Settings > Notifications**.
+The SMTP configuration can be verified in **Admin Settings > Notifications**, which includes a test email button.
+
+See [email notifications](/dev/usage/notifications/) for full usage documentation.
 
 ## Maintenance
 

@@ -1,0 +1,98 @@
+---
+title: "Email Notifications"
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+Crow CI can send email notifications when pipelines complete.
+Notifications are sent to the commit author's email address.
+
+## Setup
+
+Email notifications require two levels of configuration: server-level SMTP settings and per-repository opt-in.
+
+<Steps>
+
+1. **Configure SMTP on the server**
+
+    Set the SMTP environment variables on the Crow server. At minimum, `CROW_SMTP_HOST` and `CROW_SMTP_FROM` are required:
+
+    ```bash
+    CROW_SMTP_HOST=smtp.example.com
+    CROW_SMTP_PORT=587
+    CROW_SMTP_FROM=crow@example.com
+    CROW_SMTP_USERNAME=crow@example.com
+    CROW_SMTP_PASSWORD=secret
+    ```
+
+    See the [notification environment variables](/dev/configuration/env-vars/notifications/) for details on each setting.
+
+2. **Enable notifications for a repository**
+
+    In the Crow web UI, navigate to **Repository Settings > Notifications** and enable email notifications.
+    Select which events should trigger an email.
+
+</Steps>
+
+## Events
+
+Notifications can be triggered on the following events:
+
+| Event | Description |
+| --- | --- |
+| **Failure** | Pipeline finished with a failure, error, or killed status. |
+| **Success** | Pipeline finished successfully. |
+| **Status change** | Pipeline status differs from the previous pipeline on the same branch (e.g. a previously passing pipeline now fails, or vice versa). Note: the first pipeline on a branch has no previous status, so this event will not fire for it. |
+
+The default when enabling notifications is **Failure** only.
+
+## Per-pipeline YAML override
+
+Repository-level notification settings can be overridden in individual workflow files using the `notify:` block.
+
+### Disable notifications for a workflow
+
+```yaml
+steps:
+  - name: build
+    image: golang
+    commands:
+      - go build ./...
+
+notify:
+  disabled: true
+```
+
+### Override events for a workflow
+
+```yaml
+steps:
+  - name: deploy
+    image: alpine
+    commands:
+      - ./deploy.sh
+
+notify:
+  events:
+    - success
+    - failure
+```
+
+When a `notify:` block is present in any workflow file, it takes precedence over the repository-level settings for that pipeline run.
+If multiple workflow files define `notify:`, the first one found is used.
+
+## Email content
+
+Notification emails contain:
+
+- Repository name
+- Pipeline number and status
+- Branch and commit hash
+- Commit message (first line)
+- Link to the pipeline in the Crow web UI
+
+## Admin SMTP status
+
+Server administrators can verify the SMTP configuration in **Admin Settings > Notifications**.
+This page shows the configured SMTP host, port, and sender address (the password is never displayed).
+A **Send test email** button sends a test message to the configured sender address to verify connectivity.

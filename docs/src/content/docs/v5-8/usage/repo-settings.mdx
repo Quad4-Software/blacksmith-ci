@@ -98,6 +98,22 @@ With the `security` privilege, containers are given the following capabilities:
 To prevent malicious pipelines from extracting secrets or running harmful commands, pipelines can be configured to require approval before starting.
 The default setting is to require approvals for forked repositories, assuming that all people with "write" access to the repository are trusted by default.
 
+The available modes are:
+
+- **Forks** (default): Only pipelines from forked repositories require approval.
+- **Pull requests**: All pull request pipelines require approval.
+- **All events**: Every pipeline event requires approval before execution.
+
+When a pipeline is blocked, users with push permission see two approval options:
+
+- **Approve once**: Approves only the current pipeline.
+  Future pushes to the same PR will require approval again.
+- **Always approve**: Approves the current pipeline and automatically approves all future pipelines from the same PR ref.
+  This is useful for trusted PRs where re-approving each push is tedious.
+
+The always-approve status is shown as a banner on the pipeline page.
+Users with push permission can revoke it at any time, which causes future pipelines from that PR to require approval again.
+
 ## Project visibility
 
 This setting defines who can access the project.
@@ -120,6 +136,19 @@ If the pipeline has not finished within the timeout, it will be treated as timed
 ## Cancel previous pipelines
 
 This option defines whether previous pipelines of the same event and context should be canceled before starting the newly triggered one.
+
+## Notifications
+
+Email notifications can be enabled per repository in the **Notifications** tab.
+This requires the server administrator to configure SMTP first (see [email notifications](/dev/usage/notifications/)).
+
+When SMTP is configured, you can:
+
+- **Enable/disable** email notifications for the repository.
+- **Select events** that trigger a notification: failure, success, or status change.
+
+Notifications are sent to the commit author's email address.
+Repository-level settings can be overridden per-pipeline using the [`notify:` block](/dev/usage/workflow-syntax/#notify) in your workflow YAML.
 
 ## Log retention
 
