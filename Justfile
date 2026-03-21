@@ -13,7 +13,7 @@ STATIC_BUILD := "true"
 CI := env_var_or_default("CI", "false")
 BUILD_DATE := `date -u +%Y-%m-%d`
 # renovate: datasource=github-releases depName=protocolbuffers/protobuf versioning=loose extractVersion=^v(?<version>.+)$
-PROTOC_VERSION := "34.0"
+PROTOC_VERSION := "34.1"
 # renovate: datasource=go depName=mvdan.cc/gofumpt
 GOFUMPT_VERSION := "v0.9.2"
 # renovate: datasource=go depName=github.com/daixiang0/gci
