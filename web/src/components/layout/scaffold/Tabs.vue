@@ -69,7 +69,6 @@ const updateVisibleItems = () => {
     const gapWidth = window.innerWidth >= 768 ? 4 : 0;
     let totalWidth = 0;
 
-    // eslint-disable-next-line e18e/prefer-spread-syntax
     const items = Array.from(tabsRef.value!.children);
 
     // First, check if all tabs fit without the more button

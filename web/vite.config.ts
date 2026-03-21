@@ -85,12 +85,26 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
-        manualChunks: {
-          vue: ['vue', 'vue-router', 'pinia'],
-          'vue-i18n': ['vue-i18n'],
-          vueuse: ['@vueuse/core'],
-          icons: ['@iconify/vue', 'simple-icons'],
-          flow: ['@vue-flow/core', '@vue-flow/background', '@vue-flow/controls'],
+        manualChunks(id) {
+          if (
+            id.includes('node_modules/vue/') ||
+            id.includes('node_modules/vue-router/') ||
+            id.includes('node_modules/pinia/')
+          ) {
+            return 'vue';
+          }
+          if (id.includes('node_modules/vue-i18n/')) {
+            return 'vue-i18n';
+          }
+          if (id.includes('node_modules/@vueuse/core/')) {
+            return 'vueuse';
+          }
+          if (id.includes('node_modules/@iconify/vue/') || id.includes('node_modules/simple-icons/')) {
+            return 'icons';
+          }
+          if (id.includes('node_modules/@vue-flow/')) {
+            return 'flow';
+          }
         },
       },
     },
