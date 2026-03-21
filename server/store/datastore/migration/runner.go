@@ -65,7 +65,7 @@ func (r *runner) run(migrations []*migration) error {
 			return fmt.Errorf("migration %s failed: %w", m.ID, err)
 		}
 
-		if _, err := tx.Exec("INSERT INTO migrations (id) VALUES (?)", m.ID); err != nil {
+		if _, err := tx.Exec(fmt.Sprintf("INSERT INTO migrations (id) VALUES ('%s')", m.ID)); err != nil {
 			_ = tx.Rollback()
 			return fmt.Errorf("record migration %s: %w", m.ID, err)
 		}
@@ -104,7 +104,10 @@ func (r *runner) markApplied(ids []string) error {
 		return err
 	}
 	for _, id := range ids {
-		if _, err := tx.Exec("INSERT INTO migrations (id) VALUES (?)", id); err != nil {
+		// Use string formatting instead of parameterized query because
+		// ? placeholders are not portable across database drivers (PostgreSQL
+		// requires $1). Migration IDs are trusted internal constants.
+		if _, err := tx.Exec(fmt.Sprintf("INSERT INTO migrations (id) VALUES ('%s')", id)); err != nil {
 			_ = tx.Rollback()
 			return fmt.Errorf("mark migration %s: %w", id, err)
 		}
@@ -162,6 +165,26 @@ func (r *runner) migrateLegacyTable() error {
 	}
 
 	return nil
+}
+
+// addColumnIfNotExists returns a migration function that adds a column to a table,
+// skipping if the column already exists. Works across SQLite, PostgreSQL, and MySQL
+// by using a savepoint to isolate the column-existence probe so a failed SELECT
+// doesn't poison the PostgreSQL transaction.
+func addColumnIfNotExists(table, column, colType string) func(tx *sql.Tx) error {
+	return func(tx *sql.Tx) error {
+		_, _ = tx.Exec("SAVEPOINT add_col_check")
+		rows, err := tx.Query(fmt.Sprintf("SELECT %s FROM %s LIMIT 1", column, table)) //nolint:gosec
+		if err == nil {
+			defer rows.Close()
+			_ = rows.Err()
+			_, _ = tx.Exec("RELEASE SAVEPOINT add_col_check")
+			return nil // column already exists
+		}
+		_, _ = tx.Exec("ROLLBACK TO SAVEPOINT add_col_check")
+		_, err = tx.Exec(fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s %s", table, column, colType)) //nolint:gosec
+		return err
+	}
 }
 
 func (r *runner) ensureMigrationsTable() error {

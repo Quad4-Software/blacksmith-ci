@@ -87,11 +87,9 @@ func Migrate(_ context.Context, db *sql.DB, _ string, _ bool) error {
 	// Run any new migrations (added after the baseline).
 	// To add a new migration, append it to this slice.
 	newMigrations := []*migration{
-		// Example:
-		// {ID: "crow-add-new-feature", Migrate: func(tx *sql.Tx) error {
-		//     _, err := tx.Exec("ALTER TABLE repos ADD COLUMN new_col TEXT")
-		//     return err
-		// }},
+		{ID: "crow-add-autoscaler-pending-since", Migrate: addColumnIfNotExists(
+			"autoscalers", "pending_since", "INTEGER",
+		)},
 	}
 
 	if len(newMigrations) > 0 {

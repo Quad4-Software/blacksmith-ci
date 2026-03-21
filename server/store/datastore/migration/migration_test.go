@@ -68,10 +68,12 @@ func TestMigrate_LegacyXormTable(t *testing.T) {
 		_, err = db.Exec("INSERT INTO migration (id) VALUES (?)", id)
 		require.NoError(t, err)
 	}
-	// Create a data table to simulate existing database
+	// Create data tables to simulate existing database
 	_, err = db.Exec(`CREATE TABLE users (id INTEGER PRIMARY KEY)`)
 	require.NoError(t, err)
 	_, err = db.Exec(`INSERT INTO users (id) VALUES (1)`)
+	require.NoError(t, err)
+	_, err = db.Exec(`CREATE TABLE autoscalers (id INTEGER PRIMARY KEY)`)
 	require.NoError(t, err)
 
 	// isFreshDatabase must return false
@@ -83,10 +85,11 @@ func TestMigrate_LegacyXormTable(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify entries were copied to the new "migrations" table
+	// (legacy IDs + any new migrations that ran)
 	var count int
 	err = db.QueryRow("SELECT COUNT(*) FROM migrations").Scan(&count)
 	require.NoError(t, err)
-	assert.Equal(t, len(allLegacyMigrationIDs), count)
+	assert.GreaterOrEqual(t, count, len(allLegacyMigrationIDs))
 }
 
 func TestMigrate_ExistingDatabase_AllLegacyApplied(t *testing.T) {
@@ -102,6 +105,9 @@ func TestMigrate_ExistingDatabase_AllLegacyApplied(t *testing.T) {
 		_, err = db.Exec("INSERT INTO migrations (id) VALUES (?)", id)
 		require.NoError(t, err)
 	}
+	// Create tables that new migrations will alter
+	_, err = db.Exec(`CREATE TABLE autoscalers (id INTEGER PRIMARY KEY)`)
+	require.NoError(t, err)
 
 	err = Migrate(t.Context(), db, "sqlite3", true)
 	require.NoError(t, err)
