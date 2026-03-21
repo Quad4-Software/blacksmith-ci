@@ -80,7 +80,7 @@ func Approve(ctx context.Context, store store.Store, currentPipeline *model.Pipe
 		}
 	}
 
-	currentPipeline, pipelineItems, err := createPipelineItems(ctx, forge, store, currentPipeline, user, repo, yamls, nil)
+	currentPipeline, pipelineItems, err := createPipelineItems(ctx, forge, store, currentPipeline, user, repo, yamls, nil, nil)
 	if err != nil {
 		log.Error().Err(err).Msgf("failure to createPipelineItems for %s", repo.FullName)
 		return nil, err

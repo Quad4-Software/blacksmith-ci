@@ -128,9 +128,9 @@ func parsePipeline(forge forge.Forge, store store.Store, currentPipeline *model.
 
 func createPipelineItems(c context.Context, forge forge.Forge, store store.Store,
 	currentPipeline *model.Pipeline, user *model.User, repo *model.Repo,
-	yamls []*forge_types.FileMeta, envs map[string]string,
+	yamls []*forge_types.FileMeta, envs map[string]string, workflowFilter []string,
 ) (*model.Pipeline, []*stepbuilder.Item, error) {
-	pipelineItems, err := parsePipeline(forge, store, currentPipeline, user, repo, yamls, envs, nil) //nolint:contextcheck
+	pipelineItems, err := parsePipeline(forge, store, currentPipeline, user, repo, yamls, envs, workflowFilter) //nolint:contextcheck
 	if pipeline_errors.HasBlockingErrors(err) {
 		currentPipeline, uErr := UpdateToStatusError(store, *currentPipeline, err)
 		if uErr != nil {

@@ -131,7 +131,20 @@ func Restart(ctx context.Context, store store.Store, lastPipeline *model.Pipelin
 		return nil, errors.New(msg)
 	}
 
-	newPipeline, pipelineItems, err := createPipelineItems(ctx, forge, store, newPipeline, user, repo, pipelineFiles, envs)
+	// For manual pipelines, preserve the original workflow filter so that
+	// restarting only re-runs the workflows that were selected, not all
+	// workflows with a manual trigger.
+	var workflowFilter []string
+	if lastPipeline.Event == model.EventManual {
+		workflows, wErr := store.WorkflowGetTree(lastPipeline)
+		if wErr == nil {
+			for _, w := range workflows {
+				workflowFilter = append(workflowFilter, w.Name)
+			}
+		}
+	}
+
+	newPipeline, pipelineItems, err := createPipelineItems(ctx, forge, store, newPipeline, user, repo, pipelineFiles, envs, workflowFilter)
 	if err != nil {
 		log.Error().Err(err).Msgf("failure to createPipelineItems for %s", repo.FullName)
 		return nil, err
