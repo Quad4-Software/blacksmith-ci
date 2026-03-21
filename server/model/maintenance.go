@@ -14,42 +14,50 @@
 
 package model
 
-import "time"
+import (
+	"time"
+
+	"github.com/uptrace/bun"
+)
 
 // MaintenanceConfig represents the configuration for database maintenance operations.
 type MaintenanceConfig struct {
-	ID         int64  `json:"id"       xorm:"pk autoincr 'id'"`
-	ActionType string `json:"action_type" xorm:"'action_type' unique"` // "vacuum" or "kubernetes_cleanup"
-	Enabled    bool   `json:"enabled"  xorm:"'enabled'"`
-	Schedule   string `json:"schedule" xorm:"'schedule'"` // Cron format: "0 5 * * *" for 5 AM daily
-	DryRun     bool   `json:"dry_run" xorm:"'dry_run' default(false)"`
+	bun.BaseModel `bun:"table:maintenance_config"`
+
+	ID         int64  `json:"id"       bun:"id,pk,autoincrement"`
+	ActionType string `json:"action_type" bun:"action_type,unique"`
+	Enabled    bool   `json:"enabled"  bun:"enabled"`
+	Schedule   string `json:"schedule" bun:"schedule"`
+	DryRun     bool   `json:"dry_run" bun:"dry_run,default:false"`
 	// Action-specific statistics
-	TotalRuns       int64     `json:"total_runs" xorm:"'total_runs' default(0)"`
-	SuccessfulRuns  int64     `json:"successful_runs" xorm:"'successful_runs' default(0)"`
-	LastRun         time.Time `json:"last_run" xorm:"'last_run'"`
-	LastRunSuccess  bool      `json:"last_run_success" xorm:"'last_run_success' default(false)"`
-	LastRunDuration int64     `json:"last_run_duration" xorm:"'last_run_duration' default(0)"` // Duration in milliseconds
-	LastRunError    string    `json:"last_run_error" xorm:"'last_run_error'"`
-	Created         int64     `json:"created"  xorm:"created"`
-	Updated         int64     `json:"updated"  xorm:"updated"`
-	StaleThreshold  int64     `json:"stale_threshold" xorm:"'stale_threshold' default(3600)"` // Stale resource threshold in seconds
+	TotalRuns       int64     `json:"total_runs" bun:"total_runs,default:0"`
+	SuccessfulRuns  int64     `json:"successful_runs" bun:"successful_runs,default:0"`
+	LastRun         time.Time `json:"last_run" bun:"last_run"`
+	LastRunSuccess  bool      `json:"last_run_success" bun:"last_run_success,default:false"`
+	LastRunDuration int64     `json:"last_run_duration" bun:"last_run_duration,default:0"`
+	LastRunError    string    `json:"last_run_error" bun:"last_run_error"`
+	Created         int64     `json:"created"  bun:",nullzero"`
+	Updated         int64     `json:"updated"  bun:",nullzero"`
+	StaleThreshold  int64     `json:"stale_threshold" bun:"stale_threshold,default:3600"`
 	// Runtime flags (not persisted)
-	KubernetesCleanupAvailable bool `json:"kubernetes_cleanup_available" xorm:"-"` // Function is configured, not stored in DB
-	DockerCleanupAvailable     bool `json:"docker_cleanup_available" xorm:"-"`     // True if a Docker agent is connected
+	KubernetesCleanupAvailable bool `json:"kubernetes_cleanup_available" bun:"-"`
+	DockerCleanupAvailable     bool `json:"docker_cleanup_available" bun:"-"`
 	// Environment variable override flags (not persisted)
-	EnvVarsSet bool `json:"env_vars_set" xorm:"-"` // True if action-specific env vars are set (vacuum or k8s depending on action)
+	EnvVarsSet bool `json:"env_vars_set" bun:"-"`
 } //	@name	MaintenanceConfig
 
 // MaintenanceOperationConfig represents the configuration for individual maintenance operations.
 type MaintenanceOperationConfig struct {
-	ID        int64     `json:"id"         xorm:"pk autoincr 'id'"`
-	Operation string    `json:"operation"  xorm:"'operation' unique"`
-	Enabled   bool      `json:"enabled"    xorm:"'enabled'"`
-	Schedule  string    `json:"schedule"   xorm:"'schedule'"` // Cron format: "0 5 * * *" for 5 AM daily
-	TotalRuns int64     `json:"total_runs" xorm:"'total_runs'"`
-	LastRun   time.Time `json:"last_run"   xorm:"'last_run'"`
-	Created   int64     `json:"created"    xorm:"created"`
-	Updated   int64     `json:"updated"    xorm:"updated"`
+	bun.BaseModel `bun:"table:maintenance_operation_config"`
+
+	ID        int64     `json:"id"         bun:"id,pk,autoincrement"`
+	Operation string    `json:"operation"  bun:"operation,unique"`
+	Enabled   bool      `json:"enabled"    bun:"enabled"`
+	Schedule  string    `json:"schedule"   bun:"schedule"`
+	TotalRuns int64     `json:"total_runs" bun:"total_runs"`
+	LastRun   time.Time `json:"last_run"   bun:"last_run"`
+	Created   int64     `json:"created"    bun:",nullzero"`
+	Updated   int64     `json:"updated"    bun:",nullzero"`
 } //	@name	MaintenanceOperationConfig
 
 func (MaintenanceConfig) TableName() string {
@@ -62,15 +70,17 @@ func (MaintenanceOperationConfig) TableName() string {
 
 // MaintenanceStats represents statistics about maintenance operations.
 type MaintenanceStats struct {
-	ID              int64     `json:"id"              xorm:"pk autoincr 'id'"`
-	LastRun         time.Time `json:"last_run"        xorm:"'last_run'"`
-	LastRunSuccess  bool      `json:"last_run_success" xorm:"'last_run_success'"`
-	LastRunError    string    `json:"last_run_error"  xorm:"'last_run_error'"`
-	LastRunDuration int64     `json:"last_run_duration" xorm:"'last_run_duration'"` // Duration in milliseconds
-	TotalRuns       int64     `json:"total_runs"      xorm:"'total_runs'"`
-	SuccessfulRuns  int64     `json:"successful_runs" xorm:"'successful_runs'"`
-	Created         int64     `json:"created"         xorm:"created"`
-	Updated         int64     `json:"updated"         xorm:"updated"`
+	bun.BaseModel `bun:"table:maintenance_stats"`
+
+	ID              int64     `json:"id"              bun:"id,pk,autoincrement"`
+	LastRun         time.Time `json:"last_run"        bun:"last_run"`
+	LastRunSuccess  bool      `json:"last_run_success" bun:"last_run_success"`
+	LastRunError    string    `json:"last_run_error"  bun:"last_run_error"`
+	LastRunDuration int64     `json:"last_run_duration" bun:"last_run_duration"`
+	TotalRuns       int64     `json:"total_runs"      bun:"total_runs"`
+	SuccessfulRuns  int64     `json:"successful_runs" bun:"successful_runs"`
+	Created         int64     `json:"created"         bun:",nullzero"`
+	Updated         int64     `json:"updated"         bun:",nullzero"`
 } //	@name	MaintenanceStats
 
 func (MaintenanceStats) TableName() string {
@@ -79,13 +89,15 @@ func (MaintenanceStats) TableName() string {
 
 // MaintenanceLog represents a log entry for maintenance operations.
 type MaintenanceLog struct {
-	ID       int64     `json:"id"       xorm:"pk autoincr 'id'"`
-	RunTime  time.Time `json:"run_time" xorm:"'run_time'"`
-	Success  bool      `json:"success"  xorm:"'success'"`
-	Error    string    `json:"error"    xorm:"'error'"`
-	Duration int64     `json:"duration" xorm:"'duration'"` // Duration in milliseconds
-	Details  string    `json:"details"  xorm:"'details'"`  // JSON formatted details
-	Created  int64     `json:"created"  xorm:"created"`
+	bun.BaseModel `bun:"table:maintenance_logs"`
+
+	ID       int64     `json:"id"       bun:"id,pk,autoincrement"`
+	RunTime  time.Time `json:"run_time" bun:"run_time"`
+	Success  bool      `json:"success"  bun:"success"`
+	Error    string    `json:"error"    bun:"error"`
+	Duration int64     `json:"duration" bun:"duration"`
+	Details  string    `json:"details"  bun:"details"`
+	Created  int64     `json:"created"  bun:",nullzero"`
 } //	@name	MaintenanceLog
 
 func (MaintenanceLog) TableName() string {

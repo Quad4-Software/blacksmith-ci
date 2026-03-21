@@ -18,6 +18,8 @@ package model
 import (
 	"errors"
 	"net/url"
+
+	"github.com/uptrace/bun"
 )
 
 var (
@@ -28,15 +30,17 @@ var (
 
 // Registry represents a docker registry with credentials.
 type Registry struct {
-	ID        int64  `json:"id"         xorm:"pk autoincr 'id'"`
-	OrgID     int64  `json:"org_id"     xorm:"NOT NULL DEFAULT 0 UNIQUE(s) INDEX 'org_id'"`
-	RepoID    int64  `json:"repo_id"    xorm:"NOT NULL DEFAULT 0 UNIQUE(s) INDEX 'repo_id'"`
-	Address   string `json:"address"    xorm:"NOT NULL UNIQUE(s) INDEX 'address'"`
-	Username  string `json:"username"   xorm:"varchar(2000) 'username'"`
-	Password  string `json:"password"   xorm:"TEXT 'password'"`
-	ReadOnly  bool   `json:"readonly"   xorm:"-"`
-	CreatedAt int64  `json:"created_at" xorm:"created"`
-	UpdatedAt int64  `json:"updated_at" xorm:"updated"`
+	bun.BaseModel `bun:"table:registries"`
+
+	ID        int64  `json:"id"         bun:"id,pk,autoincrement"`
+	OrgID     int64  `json:"org_id"     bun:"org_id,notnull,default:0,unique:s"`
+	RepoID    int64  `json:"repo_id"    bun:"repo_id,notnull,default:0,unique:s"`
+	Address   string `json:"address"    bun:"address,notnull,unique:s"`
+	Username  string `json:"username"   bun:"username,type:varchar(2000)"`
+	Password  string `json:"password"   bun:"password,type:text"`
+	ReadOnly  bool   `json:"readonly"   bun:"-"`
+	CreatedAt int64  `json:"created_at" bun:",nullzero"`
+	UpdatedAt int64  `json:"updated_at" bun:",nullzero"`
 } //	@name	Registry
 
 func (r Registry) TableName() string {

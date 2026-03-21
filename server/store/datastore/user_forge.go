@@ -15,6 +15,7 @@
 package datastore
 
 import (
+	"context"
 	"time"
 
 	"codefloe.com/crowci/crow/v5/server/model"
@@ -22,43 +23,52 @@ import (
 
 func (s storage) UserForgeList(userID int64) ([]*model.UserForge, error) {
 	var userForges []*model.UserForge
-	return userForges, s.engine.Where("user_id = ?", userID).OrderBy("is_primary DESC, linked_at ASC").Find(&userForges)
+	return userForges, s.db.NewSelect().Model(&userForges).
+		Where("user_id = ?", userID).
+		Order("is_primary DESC", "linked_at ASC").
+		Scan(context.Background())
 }
 
 func (s storage) UserForgeGet(userID, forgeID int64) (*model.UserForge, error) {
 	userForge := new(model.UserForge)
-	return userForge, wrapGet(s.engine.Where("user_id = ? AND forge_id = ?", userID, forgeID).Get(userForge))
+	return userForge, wrapGet(s.db.NewSelect().Model(userForge).
+		Where("user_id = ? AND forge_id = ?", userID, forgeID).
+		Scan(context.Background()))
 }
 
 func (s storage) UserForgeGetByRemoteID(forgeID int64, remoteID model.ForgeRemoteID) (*model.UserForge, error) {
 	userForge := new(model.UserForge)
-	return userForge, wrapGet(s.engine.Where("forge_id = ? AND forge_remote_id = ?", forgeID, remoteID).Get(userForge))
+	return userForge, wrapGet(s.db.NewSelect().Model(userForge).
+		Where("forge_id = ? AND forge_remote_id = ?", forgeID, remoteID).
+		Scan(context.Background()))
 }
 
 func (s storage) UserForgeGetPrimary(userID int64) (*model.UserForge, error) {
 	userForge := new(model.UserForge)
-	return userForge, wrapGet(s.engine.Where("user_id = ? AND is_primary = ?", userID, true).Get(userForge))
+	return userForge, wrapGet(s.db.NewSelect().Model(userForge).
+		Where("user_id = ? AND is_primary = ?", userID, true).
+		Scan(context.Background()))
 }
 
 func (s storage) UserForgeCreate(userForge *model.UserForge) error {
 	if userForge.LinkedAt == 0 {
 		userForge.LinkedAt = time.Now().Unix()
 	}
-	_, err := s.engine.Insert(userForge)
+	_, err := s.db.NewInsert().Model(userForge).Exec(context.Background())
 	return err
 }
 
 func (s storage) UserForgeUpdate(userForge *model.UserForge) error {
 	userForge.LastUsed = time.Now().Unix()
-	_, err := s.engine.ID(userForge.ID).AllCols().Update(userForge)
+	_, err := s.db.NewUpdate().Model(userForge).WherePK().Exec(context.Background())
 	return err
 }
 
 func (s storage) UserForgeDelete(userForge *model.UserForge) error {
-	return wrapDelete(s.engine.ID(userForge.ID).Delete(new(model.UserForge)))
+	return wrapDelete(s.db.NewDelete().Model((*model.UserForge)(nil)).Where("id = ?", userForge.ID).Exec(context.Background()))
 }
 
 func (s storage) UserForgeListAll() ([]*model.UserForge, error) {
 	var userForges []*model.UserForge
-	return userForges, s.engine.Find(&userForges)
+	return userForges, s.db.NewSelect().Model(&userForges).Scan(context.Background())
 }

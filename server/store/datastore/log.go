@@ -15,8 +15,10 @@
 package datastore
 
 import (
+	"context"
+
 	"github.com/rs/zerolog/log"
-	"xorm.io/xorm"
+	"github.com/uptrace/bun"
 
 	"codefloe.com/crowci/crow/v5/server/model"
 )
@@ -27,18 +29,26 @@ const pgBatchSize = 1000
 
 func (s storage) LogFind(step *model.Step) ([]*model.LogEntry, error) {
 	var logEntries []*model.LogEntry
-	return logEntries, s.engine.Asc("line").Asc("id").Where("step_id = ?", step.ID).Find(&logEntries)
+	return logEntries, s.db.NewSelect().Model(&logEntries).
+		Where("step_id = ?", step.ID).
+		Order("line ASC", "id ASC").
+		Scan(context.Background())
 }
 
 func (s storage) LogFindAfter(stepID int64, afterLogID int64) ([]*model.LogEntry, error) {
 	var logEntries []*model.LogEntry
-	return logEntries, s.engine.Asc("id").Where("step_id = ? AND id > ?", stepID, afterLogID).Find(&logEntries)
+	return logEntries, s.db.NewSelect().Model(&logEntries).
+		Where("step_id = ? AND id > ?", stepID, afterLogID).
+		Order("id ASC").
+		Scan(context.Background())
 }
 
 func (s storage) LogAppend(_ *model.Step, logEntries []*model.LogEntry) error {
 	if len(logEntries) == 0 {
 		return nil
 	}
+
+	ctx := context.Background()
 
 	// Group entries by step_id for efficient duplicate checking
 	stepGroups := make(map[int64][]*model.LogEntry)
@@ -50,10 +60,11 @@ func (s storage) LogAppend(_ *model.Step, logEntries []*model.LogEntry) error {
 	for stepID, entries := range stepGroups {
 		// Get existing line numbers for this step
 		var existingLines []int
-		err := s.engine.Table(&model.LogEntry{}).
+		err := s.db.NewSelect().
+			Model((*model.LogEntry)(nil)).
+			Column("line").
 			Where("step_id = ?", stepID).
-			Cols("line").
-			Find(&existingLines)
+			Scan(ctx, &existingLines)
 		if err != nil {
 			log.Error().Err(err).Int64("stepID", stepID).Msg("failed to query existing log lines")
 			// Fall back to inserting all entries if query fails
@@ -86,7 +97,7 @@ func (s storage) LogAppend(_ *model.Step, logEntries []*model.LogEntry) error {
 		end := min(pgBatchSize, len(filteredEntries[i:]))
 		chunk := filteredEntries[i : i+end]
 
-		if _, err = s.engine.Insert(chunk); err != nil {
+		if _, err = s.db.NewInsert().Model(&chunk).Exec(ctx); err != nil {
 			log.Error().Err(err).Msg("could not store log entries to db")
 		}
 	}
@@ -95,12 +106,10 @@ func (s storage) LogAppend(_ *model.Step, logEntries []*model.LogEntry) error {
 }
 
 func (s storage) LogDelete(step *model.Step) error {
-	sess := s.engine.NewSession()
-	defer sess.Close()
-	return logDelete(sess, step.ID)
+	return logDelete(context.Background(), s.db, step.ID)
 }
 
-func logDelete(sess *xorm.Session, stepID int64) error {
-	_, err := sess.Where("step_id = ?", stepID).Delete(new(model.LogEntry))
+func logDelete(ctx context.Context, db bun.IDB, stepID int64) error {
+	_, err := db.NewDelete().Model((*model.LogEntry)(nil)).Where("step_id = ?", stepID).Exec(ctx)
 	return err
 }

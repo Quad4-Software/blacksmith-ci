@@ -21,6 +21,8 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/uptrace/bun"
 )
 
 var (
@@ -46,19 +48,21 @@ type SecretStore interface {
 
 // Secret represents a secret variable, such as a password or token.
 type Secret struct {
-	ID        int64          `json:"id"              xorm:"pk autoincr 'id'"`
-	OrgID     int64          `json:"org_id"          xorm:"NOT NULL DEFAULT 0 UNIQUE(s) INDEX 'org_id'"`
-	RepoID    int64          `json:"repo_id"         xorm:"NOT NULL DEFAULT 0 UNIQUE(s) INDEX 'repo_id'"`
-	Name      string         `json:"name"            xorm:"NOT NULL UNIQUE(s) INDEX 'name'"`
-	Value     string         `json:"value,omitempty" xorm:"TEXT 'value'"`
-	Images    []string       `json:"images"          xorm:"json 'images'"`
-	Events    []WebhookEvent `json:"events"          xorm:"json 'events'"`
-	Source    string         `json:"source"          xorm:"varchar(50) DEFAULT 'internal' 'source'"`
-	CreatedAt int64          `json:"created_at"      xorm:"created"`
-	UpdatedAt int64          `json:"updated_at"      xorm:"updated"`
+	bun.BaseModel `bun:"table:secrets"`
+
+	ID        int64                 `json:"id"              bun:"id,pk,autoincrement"`
+	OrgID     int64                 `json:"org_id"          bun:"org_id,notnull,default:0,unique:s"`
+	RepoID    int64                 `json:"repo_id"         bun:"repo_id,notnull,default:0,unique:s"`
+	Name      string                `json:"name"            bun:"name,notnull,unique:s"`
+	Value     string                `json:"value,omitempty" bun:"value,type:text"`
+	Images    JSONSliceString       `json:"images"          bun:"images,type:text"`
+	Events    JSONSliceWebhookEvent `json:"events"          bun:"events,type:text"`
+	Source    string                `json:"source"          bun:"source,type:varchar(50),default:'internal'"`
+	CreatedAt int64                 `json:"created_at"      bun:",nullzero"`
+	UpdatedAt int64                 `json:"updated_at"      bun:",nullzero"`
 } //	@name	Secret
 
-// TableName return database table name for xorm.
+// TableName returns the database table name.
 func (Secret) TableName() string {
 	return "secrets"
 }
@@ -202,8 +206,8 @@ func abbreviateValue(value string) string {
 	return prefix + "..." + suffix
 }
 
-func sortEvents(wel WebhookEventList) WebhookEventList {
-	sort.Sort(wel)
+func sortEvents(wel JSONSliceWebhookEvent) JSONSliceWebhookEvent {
+	sort.Sort(WebhookEventList(wel))
 	return wel
 }
 

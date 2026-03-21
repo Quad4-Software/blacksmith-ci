@@ -15,6 +15,8 @@
 
 package model
 
+import "github.com/uptrace/bun"
+
 // Different ways to handle failure states.
 const (
 	FailureIgnore = "ignore"
@@ -26,23 +28,25 @@ const (
 
 // Step represents a process in the pipeline.
 type Step struct {
-	ID         int64       `json:"id"                   xorm:"pk autoincr 'id'"`
-	UUID       string      `json:"uuid"                 xorm:"INDEX 'uuid'"`
-	PipelineID int64       `json:"pipeline_id"          xorm:"UNIQUE(s) INDEX 'pipeline_id'"`
-	PID        int         `json:"pid"                  xorm:"UNIQUE(s) 'pid'"`
-	PPID       int         `json:"ppid"                 xorm:"ppid"`
-	Name       string      `json:"name"                 xorm:"name"`
-	State      StatusValue `json:"state"                xorm:"state"`
-	Error      string      `json:"error,omitempty"      xorm:"TEXT 'error'"`
-	Failure    string      `json:"-"                    xorm:"failure"`
-	ExitCode   int         `json:"exit_code"            xorm:"exit_code"`
-	Started    int64       `json:"started,omitempty"    xorm:"started"`
-	Finished   int64       `json:"finished,omitempty"   xorm:"finished"`
-	Type       StepType    `json:"type,omitempty"       xorm:"type"`
-	DependsOn  []string    `json:"depends_on,omitempty" xorm:"json 'depends_on'"`
+	bun.BaseModel `bun:"table:steps"`
+
+	ID         int64           `json:"id"                   bun:"id,pk,autoincrement"`
+	UUID       string          `json:"uuid"                 bun:"uuid"`
+	PipelineID int64           `json:"pipeline_id"          bun:"pipeline_id,unique:s"`
+	PID        int             `json:"pid"                  bun:"pid,unique:s"`
+	PPID       int             `json:"ppid"                 bun:"ppid"`
+	Name       string          `json:"name"                 bun:"name"`
+	State      StatusValue     `json:"state"                bun:"state"`
+	Error      string          `json:"error,omitempty"      bun:"error,type:text"`
+	Failure    string          `json:"-"                    bun:"failure"`
+	ExitCode   int             `json:"exit_code"            bun:"exit_code"`
+	Started    int64           `json:"started,omitempty"    bun:"started"`
+	Finished   int64           `json:"finished,omitempty"   bun:"finished"`
+	Type       StepType        `json:"type,omitempty"       bun:"type"`
+	DependsOn  JSONSliceString `json:"depends_on,omitempty" bun:"depends_on,type:text"`
 } //	@name	Step
 
-// TableName return database table name for xorm.
+// TableName returns the database table name.
 func (Step) TableName() string {
 	return "steps"
 }

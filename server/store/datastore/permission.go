@@ -15,71 +15,54 @@
 package datastore
 
 import (
+	"context"
 	"fmt"
 
-	"xorm.io/builder"
-	"xorm.io/xorm"
+	"github.com/uptrace/bun"
 
 	"codefloe.com/crowci/crow/v5/server/model"
 )
 
 func (s storage) PermFind(user *model.User, repo *model.Repo) (*model.Perm, error) {
 	perm := new(model.Perm)
-	return perm, wrapGet(s.engine.
-		Where(builder.Eq{"user_id": user.ID, "repo_id": repo.ID}).
-		Get(perm))
+	return perm, wrapGet(s.db.NewSelect().Model(perm).
+		Where("user_id = ? AND repo_id = ?", user.ID, repo.ID).
+		Scan(context.Background()))
 }
 
 func (s storage) PermUpsert(perm *model.Perm) error {
-	sess := s.engine.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-
-	if err := s.permUpsert(sess, perm); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return s.db.RunInTx(context.Background(), nil, func(ctx context.Context, tx bun.Tx) error {
+		return s.permUpsert(ctx, tx, perm)
+	})
 }
 
-func (s storage) permUpsert(sess *xorm.Session, perm *model.Perm) error {
+func (s storage) permUpsert(ctx context.Context, db bun.IDB, perm *model.Perm) error {
 	if perm.RepoID == 0 && perm.Repo == nil {
 		return fmt.Errorf("could not determine repo for permission: %v", perm)
 	}
 
 	// lookup repo based on name or forge ID if possible
 	if perm.RepoID == 0 && perm.Repo != nil {
-		r, err := s.getRepoNameFallback(sess, perm.Repo.ForgeRemoteID, perm.Repo.FullName)
+		r, err := s.getRepoNameFallback(ctx, db, perm.Repo.ForgeRemoteID, perm.Repo.FullName)
 		if err != nil {
 			return err
 		}
 		perm.RepoID = r.ID
 	}
 
-	exist, err := sess.Where(userIDAndRepoIDCond(perm)).Exist(new(model.Perm))
+	exists, err := db.NewSelect().Model((*model.Perm)(nil)).
+		Where("user_id = ? AND repo_id = ?", perm.UserID, perm.RepoID).
+		Exists(ctx)
 	if err != nil {
 		return err
 	}
 
-	if exist {
-		_, err = sess.Where(userIDAndRepoIDCond(perm)).AllCols().Update(perm)
+	if exists {
+		_, err = db.NewUpdate().Model(perm).
+			Where("user_id = ? AND repo_id = ?", perm.UserID, perm.RepoID).
+			Exec(ctx)
 	} else {
-		// only Insert set auto created ID back to object
-		_, err = sess.Insert(perm)
+		_, err = db.NewInsert().Model(perm).Exec(ctx)
 	}
 	return err
-}
-
-// userPushOrAdminCondition return condition where user must have push or admin rights
-// if used make sure to have permission table ("perms") joined.
-func userPushOrAdminCondition(userID int64) builder.Cond {
-	return builder.Eq{"perms.user_id": userID}.
-		And(builder.Eq{"perms.push": true}.
-			Or(builder.Eq{"perms.admin": true}))
-}
-
-func userIDAndRepoIDCond(perm *model.Perm) builder.Cond {
-	return builder.Eq{"user_id": perm.UserID, "repo_id": perm.RepoID}
 }

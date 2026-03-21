@@ -60,6 +60,7 @@ func New() (*gin.Engine, error) {
 	f := &prefixFS{httpFS, rootPath}
 	e.GET(rootPath+"/favicon.svg", redirect(server.Config.Server.RootPath+"/favicons/favicon-light-default.svg", http.StatusPermanentRedirect))
 	e.GET(rootPath+"/favicons/*filepath", serveFile(f))
+	e.GET(rootPath+"/fonts/*filepath", serveFile(f))
 	e.GET(rootPath+"/assets/*filepath", handleCustomFilesAndAssets(f))
 
 	e.NoRoute(handleIndex)
@@ -116,6 +117,10 @@ func serveFile(f *prefixFS) func(ctx *gin.Context) {
 			mime = "image/png"
 		case strings.HasSuffix(ctx.Request.URL.Path, ".svg"):
 			mime = "image/svg+xml"
+		case strings.HasSuffix(ctx.Request.URL.Path, ".woff2"):
+			mime = "font/woff2"
+		case strings.HasSuffix(ctx.Request.URL.Path, ".woff"):
+			mime = "font/woff"
 		}
 		ctx.Status(http.StatusOK)
 		ctx.Writer.Header().Set("Cache-Control", "public, max-age=31536000")

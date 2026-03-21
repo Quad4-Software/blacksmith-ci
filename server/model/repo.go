@@ -16,8 +16,11 @@
 package model
 
 import (
+	"database/sql/driver"
 	"fmt"
 	"strings"
+
+	"github.com/uptrace/bun"
 )
 
 type ApprovalMode string
@@ -43,41 +46,43 @@ func (mode ApprovalMode) Valid() bool {
 
 // Repo represents a repository.
 type Repo struct {
-	ID      int64 `json:"id,omitempty"                    xorm:"pk autoincr 'id'"`
-	UserID  int64 `json:"-"                               xorm:"INDEX 'user_id'"`
-	ForgeID int64 `json:"forge_id,omitempty"              xorm:"UNIQUE(forge) UNIQUE(forge_full_name) 'forge_id'"`
+	bun.BaseModel `bun:"table:repos"`
+
+	ID      int64 `json:"id,omitempty"                    bun:"id,pk,autoincrement"`
+	UserID  int64 `json:"-"                               bun:"user_id"`
+	ForgeID int64 `json:"forge_id,omitempty"              bun:"forge_id,unique:forge"`
 	// ForgeRemoteID is the unique identifier for the repository on the forge.
-	ForgeRemoteID                ForgeRemoteID        `json:"forge_remote_id"                 xorm:"forge_remote_id"`
-	OrgID                        int64                `json:"org_id"                          xorm:"INDEX 'org_id'"`
-	Owner                        string               `json:"owner"                           xorm:"UNIQUE(forge) 'owner'"`
-	Name                         string               `json:"name"                            xorm:"UNIQUE(forge) 'name'"`
-	FullName                     string               `json:"full_name"                       xorm:"UNIQUE(forge_full_name) 'full_name'"`
-	Avatar                       string               `json:"avatar_url,omitempty"            xorm:"varchar(500) 'avatar'"`
-	ForgeURL                     string               `json:"forge_url,omitempty"             xorm:"varchar(1000) 'forge_url'"`
-	Clone                        string               `json:"clone_url,omitempty"             xorm:"varchar(1000) 'clone'"`
-	CloneSSH                     string               `json:"clone_url_ssh"                   xorm:"varchar(1000) 'clone_ssh'"`
-	Branch                       string               `json:"default_branch,omitempty"        xorm:"varchar(500) 'branch'"`
-	PREnabled                    bool                 `json:"pr_enabled"                      xorm:"DEFAULT TRUE 'pr_enabled'"`
-	Timeout                      int64                `json:"timeout,omitempty"               xorm:"timeout"`
-	Visibility                   RepoVisibility       `json:"visibility"                      xorm:"varchar(10) 'visibility'"`
-	IsSCMPrivate                 bool                 `json:"private"                         xorm:"private"`
-	Trusted                      TrustedConfiguration `json:"trusted"                         xorm:"json 'trusted'"`
-	RequireApproval              ApprovalMode         `json:"require_approval"                xorm:"varchar(50) require_approval"`
-	IsActive                     bool                 `json:"active"                          xorm:"active"`
-	AllowPull                    bool                 `json:"allow_pr"                        xorm:"allow_pr"`
-	AllowDeploy                  bool                 `json:"allow_deploy"                    xorm:"allow_deploy"`
-	AllowManual                  bool                 `json:"allow_manual"                    xorm:"allow_manual"`
-	DeployTeam                   string               `json:"deploy_team"                     xorm:"varchar(250) 'deploy_team'"`
-	Config                       string               `json:"config_file"                     xorm:"varchar(500) 'config_path'"`
-	Hash                         string               `json:"-"                               xorm:"varchar(500) 'hash'"`
-	Perm                         *Perm                `json:"-"                               xorm:"-"`
-	CancelPreviousPipelineEvents []WebhookEvent       `json:"cancel_previous_pipeline_events" xorm:"json 'cancel_previous_pipeline_events'"`
-	NetrcTrustedPlugins          []string             `json:"netrc_trusted"                   xorm:"json 'netrc_trusted'"`
-	LogsPipelinesKeepMin         int64                `json:"logs_keep_min,omitempty"         xorm:"logs_keep_min"`
-	LogsDurationKeep             string               `json:"logs_keep_duration"              xorm:"varchar(500) 'logs_keep_duration'"`
+	ForgeRemoteID                ForgeRemoteID         `json:"forge_remote_id"                 bun:"forge_remote_id"`
+	OrgID                        int64                 `json:"org_id"                          bun:"org_id"`
+	Owner                        string                `json:"owner"                           bun:"owner,unique:forge"`
+	Name                         string                `json:"name"                            bun:"name,unique:forge"`
+	FullName                     string                `json:"full_name"                       bun:"full_name,unique:forge_full_name"`
+	Avatar                       string                `json:"avatar_url,omitempty"            bun:"avatar,type:varchar(500)"`
+	ForgeURL                     string                `json:"forge_url,omitempty"             bun:"forge_url,type:varchar(1000)"`
+	Clone                        string                `json:"clone_url,omitempty"             bun:"clone,type:varchar(1000)"`
+	CloneSSH                     string                `json:"clone_url_ssh"                   bun:"clone_ssh,type:varchar(1000)"`
+	Branch                       string                `json:"default_branch,omitempty"        bun:"branch,type:varchar(500)"`
+	PREnabled                    bool                  `json:"pr_enabled"                      bun:"pr_enabled,default:true"`
+	Timeout                      int64                 `json:"timeout,omitempty"               bun:"timeout"`
+	Visibility                   RepoVisibility        `json:"visibility"                      bun:"visibility,type:varchar(10)"`
+	IsSCMPrivate                 bool                  `json:"private"                         bun:"private"`
+	Trusted                      TrustedConfiguration  `json:"trusted"                         bun:"trusted,type:text"`
+	RequireApproval              ApprovalMode          `json:"require_approval"                bun:"require_approval,type:varchar(50)"`
+	IsActive                     bool                  `json:"active"                          bun:"active"`
+	AllowPull                    bool                  `json:"allow_pr"                        bun:"allow_pr"`
+	AllowDeploy                  bool                  `json:"allow_deploy"                    bun:"allow_deploy"`
+	AllowManual                  bool                  `json:"allow_manual"                    bun:"allow_manual"`
+	DeployTeam                   string                `json:"deploy_team"                     bun:"deploy_team,type:varchar(250)"`
+	Config                       string                `json:"config_file"                     bun:"config_path,type:varchar(500)"`
+	Hash                         string                `json:"-"                               bun:"hash,type:varchar(500)"`
+	Perm                         *Perm                 `json:"-"                               bun:"-"`
+	CancelPreviousPipelineEvents JSONSliceWebhookEvent `json:"cancel_previous_pipeline_events" bun:"cancel_previous_pipeline_events,type:text"`
+	NetrcTrustedPlugins          JSONSliceString       `json:"netrc_trusted"                   bun:"netrc_trusted,type:text"`
+	LogsPipelinesKeepMin         int64                 `json:"logs_keep_min,omitempty"         bun:"logs_keep_min"`
+	LogsDurationKeep             string                `json:"logs_keep_duration"              bun:"logs_keep_duration,type:varchar(500)"`
 } //	@name	Repo
 
-// TableName return database table name for xorm.
+// TableName returns the database table name.
 func (Repo) TableName() string {
 	return "repos"
 }
@@ -157,6 +162,9 @@ type TrustedConfiguration struct {
 	Volumes  bool `json:"volumes"`
 	Security bool `json:"security"`
 }
+
+func (t TrustedConfiguration) Value() (driver.Value, error) { return jsonValue(t) }
+func (t *TrustedConfiguration) Scan(src any) error          { return jsonScan(src, t) }
 
 type TrustedConfigurationPatch struct {
 	Network  *bool `json:"network,omitempty"`

@@ -15,6 +15,7 @@
 package datastore
 
 import (
+	"database/sql"
 	"errors"
 	"testing"
 
@@ -24,17 +25,29 @@ import (
 )
 
 func TestWrapGet(t *testing.T) {
-	err := wrapGet(false, nil)
+	err := wrapGet(sql.ErrNoRows)
 	assert.ErrorIs(t, err, types.RecordNotExist)
 
-	err = wrapGet(true, errors.New("test err"))
+	err = wrapGet(errors.New("test err"))
 	assert.Equal(t, "TestWrapGet: test err", err.Error())
+
+	err = wrapGet(nil)
+	assert.NoError(t, err)
 }
 
+// mockResult implements sql.Result for testing.
+type mockResult struct{ n int64 }
+
+func (m mockResult) LastInsertId() (int64, error) { return 0, nil }
+func (m mockResult) RowsAffected() (int64, error) { return m.n, nil }
+
 func TestWrapDelete(t *testing.T) {
-	err := wrapDelete(0, nil)
+	err := wrapDelete(mockResult{0}, nil)
 	assert.ErrorIs(t, err, types.RecordNotExist)
 
-	err = wrapDelete(1, errors.New("test err"))
+	err = wrapDelete(mockResult{1}, errors.New("test err"))
 	assert.Equal(t, "TestWrapDelete: test err", err.Error())
+
+	err = wrapDelete(mockResult{1}, nil)
+	assert.NoError(t, err)
 }

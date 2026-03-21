@@ -14,17 +14,21 @@
 
 package model
 
+import "github.com/uptrace/bun"
+
 // Org represents an organization.
 type Org struct {
-	ID      int64  `json:"id,omitempty"       xorm:"pk autoincr 'id'"`
-	ForgeID int64  `json:"forge_id,omitempty" xorm:"forge_id UNIQUE(s)"`
-	Name    string `json:"name"               xorm:"'name' UNIQUE(s)"`
-	IsUser  bool   `json:"is_user"            xorm:"is_user"`
+	bun.BaseModel `bun:"table:orgs"`
+
+	ID      int64  `json:"id,omitempty"       bun:"id,pk,autoincrement"`
+	ForgeID int64  `json:"forge_id,omitempty" bun:"forge_id,unique:s"`
+	Name    string `json:"name"               bun:"name,unique:s"`
+	IsUser  bool   `json:"is_user"            bun:"is_user"`
 	// if name lookup has to check for membership or not
-	Private bool `json:"-"                    xorm:"private"`
+	Private bool `json:"-"                    bun:"private"`
 } //	@name	Org
 
-// TableName return database table name for xorm.
+// TableName returns the database table name.
 func (Org) TableName() string {
 	return "orgs"
 }

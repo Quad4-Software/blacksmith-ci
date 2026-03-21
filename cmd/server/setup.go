@@ -64,7 +64,7 @@ func setupStore(ctx context.Context, c *cli.Command) (store.Store, error) {
 	datasource := c.String("db-datasource")
 	driver := c.String("db-driver")
 	schema := c.String("db-schema")
-	xorm := store.XORM{
+	dbOpts := store.DBOpts{
 		Log:             c.Bool("db-log"),
 		ShowSQL:         c.Bool("db-log-sql"),
 		MaxOpenConns:    int(c.Int64("db-max-open-connections")),
@@ -98,9 +98,9 @@ func setupStore(ctx context.Context, c *cli.Command) (store.Store, error) {
 		Driver: driver,
 		Config: datasource,
 		Schema: schema,
-		XORM:   xorm,
+		DB:     dbOpts,
 	}
-	log.Debug().Str("driver", driver).Str("schema", schema).Any("xorm", xorm).Msg("setting up datastore")
+	log.Debug().Str("driver", driver).Str("schema", schema).Any("db", dbOpts).Msg("setting up datastore")
 	store, err := datastore.NewEngine(opts)
 	if err != nil {
 		return nil, fmt.Errorf("could not open datastore: %w", err)

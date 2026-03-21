@@ -15,10 +15,11 @@
 package datastore
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
-	"xorm.io/xorm"
+	"github.com/uptrace/bun"
 
 	"codefloe.com/crowci/crow/v5/server/model"
 	"codefloe.com/crowci/crow/v5/server/store/types"
@@ -26,46 +27,45 @@ import (
 
 func (s storage) GetUser(id int64) (*model.User, error) {
 	user := new(model.User)
-	return user, wrapGet(s.engine.ID(id).Get(user))
+	return user, wrapGet(s.db.NewSelect().Model(user).Where("id = ?", id).Scan(context.Background()))
 }
 
 func (s storage) GetUserRemoteID(remoteID model.ForgeRemoteID, login string) (*model.User, error) {
-	sess := s.engine.NewSession()
 	user := new(model.User)
-	err := wrapGet(sess.Where("forge_remote_id = ?", remoteID).Get(user))
+	err := wrapGet(s.db.NewSelect().Model(user).Where("forge_remote_id = ?", remoteID).Scan(context.Background()))
 	if err != nil {
-		return s.getUserLogin(sess, login)
+		return s.getUserLogin(s.db, login)
 	}
 	return user, err
 }
 
 func (s storage) GetUserLogin(login string) (*model.User, error) {
-	return s.getUserLogin(s.engine.NewSession(), login)
+	return s.getUserLogin(s.db, login)
 }
 
-func (s storage) getUserLogin(sess *xorm.Session, login string) (*model.User, error) {
+func (s storage) getUserLogin(db bun.IDB, login string) (*model.User, error) {
 	user := new(model.User)
-	return user, wrapGet(sess.Where("login=?", login).Get(user))
+	return user, wrapGet(db.NewSelect().Model(user).Where("login = ?", login).Scan(context.Background()))
 }
 
 func (s storage) GetUserList(p *model.ListOptions) ([]*model.User, error) {
 	var users []*model.User
-	return users, s.paginate(p).OrderBy("login").Find(&users)
+	return users, s.paginate(s.db.NewSelect().Model(&users).Order("login"), p).Scan(context.Background())
 }
 
 func (s storage) GetUserCount() (int64, error) {
-	return s.engine.Count(new(model.User))
+	n, err := s.db.NewSelect().Model((*model.User)(nil)).Count(context.Background())
+	return int64(n), err
 }
 
 func (s storage) CreateUser(user *model.User) error {
-	sess := s.engine.NewSession()
 	org := &model.Org{
 		Name:    user.Login,
 		ForgeID: user.ForgeID,
 		IsUser:  true,
 	}
 
-	existingOrg, err := s.orgFindByName(sess, org.Name, user.ForgeID)
+	existingOrg, err := s.orgFindByName(s.db, org.Name, user.ForgeID)
 	if err != nil && !errors.Is(err, types.RecordNotExist) {
 		return fmt.Errorf("failed to check if org exists: %w", err)
 	}
@@ -74,50 +74,47 @@ func (s storage) CreateUser(user *model.User) error {
 		org = existingOrg
 		org.IsUser = true
 		org.Name = user.Login
-		err = s.orgUpdate(sess, org)
+		err = s.orgUpdate(s.db, org)
 		if err != nil {
 			return fmt.Errorf("failed to update existing org: %w", err)
 		}
 	} else {
-		err = s.orgCreate(org, sess)
+		err = s.orgCreate(s.db, org)
 		if err != nil {
 			return fmt.Errorf("failed to create new org: %w", err)
 		}
 	}
 	user.OrgID = org.ID
 	// only Insert set auto created ID back to object
-	_, err = sess.Insert(user)
+	_, err = s.db.NewInsert().Model(user).Exec(context.Background())
 	return err
 }
 
 func (s storage) UpdateUser(user *model.User) error {
-	_, err := s.engine.ID(user.ID).AllCols().Update(user)
+	_, err := s.db.NewUpdate().Model(user).WherePK().Exec(context.Background())
 	return err
 }
 
 func (s storage) UserListAll() ([]*model.User, error) {
 	var users []*model.User
-	return users, s.engine.Find(&users)
+	return users, s.db.NewSelect().Model(&users).Scan(context.Background())
 }
 
 func (s storage) DeleteUser(user *model.User) error {
-	sess := s.engine.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
-	}
+	return s.db.RunInTx(context.Background(), nil, func(ctx context.Context, tx bun.Tx) error {
+		if err := s.orgDelete(ctx, &tx, user.OrgID); err != nil {
+			return fmt.Errorf("failed to delete org: %w", err)
+		}
 
-	if err := s.orgDelete(sess, user.OrgID); err != nil {
-		return fmt.Errorf("failed to delete org: %w", err)
-	}
+		res, err := tx.NewDelete().Model((*model.User)(nil)).Where("id = ?", user.ID).Exec(ctx)
+		if err := wrapDelete(res, err); err != nil {
+			return fmt.Errorf("failed to delete user: %w", err)
+		}
 
-	if err := wrapDelete(sess.ID(user.ID).Delete(new(model.User))); err != nil {
-		return fmt.Errorf("failed to delete user: %w", err)
-	}
+		if _, err := tx.NewDelete().Model((*model.Perm)(nil)).Where("user_id = ?", user.ID).Exec(ctx); err != nil {
+			return fmt.Errorf("failed to delete perms: %w", err)
+		}
 
-	if _, err := sess.Where("user_id = ?", user.ID).Delete(new(model.Perm)); err != nil {
-		return fmt.Errorf("failed to delete perms: %w", err)
-	}
-
-	return sess.Commit()
+		return nil
+	})
 }

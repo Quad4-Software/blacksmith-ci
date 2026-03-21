@@ -17,21 +17,21 @@ package model
 
 // Feed represents an item in the user's feed or timeline.
 type Feed struct {
-	RepoID   int64  `json:"repo_id"                 xorm:"repo_id"`
-	ID       int64  `json:"id,omitempty"            xorm:"pipeline_id"`
-	Number   int64  `json:"number,omitempty"        xorm:"pipeline_number"`
-	Event    string `json:"event,omitempty"         xorm:"pipeline_event"`
-	Status   string `json:"status,omitempty"        xorm:"pipeline_status"`
-	Created  int64  `json:"created,omitempty"       xorm:"pipeline_created"`
-	Started  int64  `json:"started,omitempty"       xorm:"pipeline_started"`
-	Finished int64  `json:"finished,omitempty"      xorm:"pipeline_finished"`
-	Commit   string `json:"commit,omitempty"        xorm:"pipeline_commit"`
-	Branch   string `json:"branch,omitempty"        xorm:"pipeline_branch"`
-	Ref      string `json:"ref,omitempty"           xorm:"pipeline_ref"`
-	Refspec  string `json:"refspec,omitempty"       xorm:"pipeline_refspec"`
-	Title    string `json:"title,omitempty"         xorm:"pipeline_title"`
-	Message  string `json:"message,omitempty"       xorm:"pipeline_message"`
-	Author   string `json:"author,omitempty"        xorm:"pipeline_author"`
-	Avatar   string `json:"author_avatar,omitempty" xorm:"pipeline_avatar"`
-	Email    string `json:"author_email,omitempty"  xorm:"pipeline_email"`
+	RepoID   int64  `json:"repo_id"                 bun:"repo_id"`
+	ID       int64  `json:"id,omitempty"            bun:"pipeline_id"`
+	Number   int64  `json:"number,omitempty"        bun:"pipeline_number"`
+	Event    string `json:"event,omitempty"         bun:"pipeline_event"`
+	Status   string `json:"status,omitempty"        bun:"pipeline_status"`
+	Created  int64  `json:"created,omitempty"       bun:"pipeline_created"`
+	Started  int64  `json:"started,omitempty"       bun:"pipeline_started"`
+	Finished int64  `json:"finished,omitempty"      bun:"pipeline_finished"`
+	Commit   string `json:"commit,omitempty"        bun:"pipeline_commit"`
+	Branch   string `json:"branch,omitempty"        bun:"pipeline_branch"`
+	Ref      string `json:"ref,omitempty"           bun:"pipeline_ref"`
+	Refspec  string `json:"refspec,omitempty"       bun:"pipeline_refspec"`
+	Title    string `json:"title,omitempty"         bun:"pipeline_title"`
+	Message  string `json:"message,omitempty"       bun:"pipeline_message"`
+	Author   string `json:"author,omitempty"        bun:"pipeline_author"`
+	Avatar   string `json:"author_avatar,omitempty" bun:"pipeline_avatar"`
+	Email    string `json:"author_email,omitempty"  bun:"pipeline_email"`
 } //	@name	Feed

@@ -15,87 +15,86 @@
 package datastore
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
-	"xorm.io/xorm"
+	"github.com/uptrace/bun"
 
 	"codefloe.com/crowci/crow/v5/server/model"
 )
 
 func (s storage) OrgCreate(org *model.Org) error {
-	return s.orgCreate(org, s.engine.NewSession())
+	return s.orgCreate(s.db, org)
 }
 
-func (s storage) orgCreate(org *model.Org, sess *xorm.Session) error {
+func (s storage) orgCreate(db bun.IDB, org *model.Org) error {
 	if org.Name == "" {
 		return fmt.Errorf("org name is empty")
 	}
 	// insert
-	_, err := sess.Insert(org)
+	_, err := db.NewInsert().Model(org).Exec(context.Background())
 	return err
 }
 
 func (s storage) OrgGet(id int64) (*model.Org, error) {
 	org := new(model.Org)
-	return org, wrapGet(s.engine.ID(id).Get(org))
+	return org, wrapGet(s.db.NewSelect().Model(org).Where("id = ?", id).Scan(context.Background()))
 }
 
 func (s storage) OrgUpdate(org *model.Org) error {
-	return s.orgUpdate(s.engine.NewSession(), org)
+	return s.orgUpdate(s.db, org)
 }
 
-func (s storage) orgUpdate(sess *xorm.Session, org *model.Org) error {
-	// update
-	_, err := sess.ID(org.ID).AllCols().Update(org)
+func (s storage) orgUpdate(db bun.IDB, org *model.Org) error {
+	_, err := db.NewUpdate().Model(org).WherePK().Exec(context.Background())
 	return err
 }
 
 func (s storage) OrgDelete(id int64) error {
-	return s.orgDelete(s.engine.NewSession(), id)
+	return s.orgDelete(context.Background(), s.db, id)
 }
 
-func (s storage) orgDelete(sess *xorm.Session, id int64) error {
-	if _, err := sess.Where("org_id = ?", id).Delete(new(model.Secret)); err != nil {
+func (s storage) orgDelete(ctx context.Context, db bun.IDB, id int64) error {
+	if _, err := db.NewDelete().Model((*model.Secret)(nil)).Where("org_id = ?", id).Exec(ctx); err != nil {
 		return err
 	}
 
 	var repos []*model.Repo
-	if err := sess.Where("org_id = ?", id).Find(&repos); err != nil {
+	if err := db.NewSelect().Model(&repos).Where("org_id = ?", id).Scan(ctx); err != nil {
 		return err
 	}
 
 	for _, repo := range repos {
-		if err := s.deleteRepo(sess, repo); err != nil {
+		if err := s.deleteRepo(ctx, db, repo); err != nil {
 			return err
 		}
 	}
 
-	return wrapDelete(sess.ID(id).Delete(new(model.Org)))
+	return wrapDelete(db.NewDelete().Model((*model.Org)(nil)).Where("id = ?", id).Exec(ctx))
 }
 
 func (s storage) OrgFindByName(name string, forgeID int64) (*model.Org, error) {
-	return s.orgFindByName(s.engine.NewSession(), name, forgeID)
+	return s.orgFindByName(s.db, name, forgeID)
 }
 
-func (s storage) orgFindByName(sess *xorm.Session, name string, forgeID int64) (*model.Org, error) {
-	// sanitize
+func (s storage) orgFindByName(db bun.IDB, name string, forgeID int64) (*model.Org, error) {
 	org := new(model.Org)
-	return org, wrapGet(sess.Where("LOWER(name) = ?", strings.ToLower(name)).And("forge_id = ?", forgeID).Get(org))
+	return org, wrapGet(db.NewSelect().Model(org).Where("LOWER(name) = ? AND forge_id = ?", strings.ToLower(name), forgeID).Scan(context.Background()))
 }
 
 // OrgFindByNameAllForges returns all orgs with the given name across all forges.
 func (s storage) OrgFindByNameAllForges(name string) ([]*model.Org, error) {
 	var orgs []*model.Org
-	return orgs, s.engine.Where("LOWER(name) = ?", strings.ToLower(name)).Find(&orgs)
+	return orgs, s.db.NewSelect().Model(&orgs).Where("LOWER(name) = ?", strings.ToLower(name)).Scan(context.Background())
 }
 
 func (s storage) OrgRepoList(org *model.Org, p *model.ListOptions) ([]*model.Repo, error) {
 	var repos []*model.Repo
-	return repos, s.paginate(p).OrderBy("id").Where("org_id = ?", org.ID).Find(&repos)
+	return repos, s.paginate(s.db.NewSelect().Model(&repos).Where("org_id = ?", org.ID).Order("id"), p).Scan(context.Background())
 }
 
 func (s storage) OrgList(p *model.ListOptions) ([]*model.Org, error) {
 	var orgs []*model.Org
-	return orgs, s.paginate(p).Where("is_user = ?", false).OrderBy("id").Find(&orgs)
+	return orgs, s.paginate(s.db.NewSelect().Model(&orgs).Where("is_user = ?", false).Order("id"), p).Scan(context.Background())
 }

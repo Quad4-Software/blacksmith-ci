@@ -20,7 +20,8 @@ import (
 	"codefloe.com/crowci/crow/v5/server/model"
 )
 
-type XORM struct {
+// DBOpts contains database connection pool and logging options.
+type DBOpts struct {
 	Log             bool
 	ShowSQL         bool
 	MaxIdleConns    int
@@ -33,7 +34,7 @@ type Opts struct {
 	Driver string
 	Config string
 	Schema string // Database schema name (PostgreSQL only)
-	XORM   XORM
+	DB     DBOpts
 }
 
 type PipelineListKeyset interface {

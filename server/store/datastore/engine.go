@@ -16,60 +16,82 @@ package datastore
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/rs/zerolog"
-	"xorm.io/xorm"
-	xlog "xorm.io/xorm/log"
+	"github.com/uptrace/bun"
+	"github.com/uptrace/bun/extra/bundebug"
 
 	"codefloe.com/crowci/crow/v5/server/store"
 	"codefloe.com/crowci/crow/v5/server/store/datastore/migration"
 )
 
 type storage struct {
-	engine *xorm.Engine
+	db     *bun.DB
+	driver string
 }
 
 const perPage = 50
 
 func NewEngine(opts *store.Opts) (store.Store, error) {
-	engine, err := xorm.NewEngine(opts.Driver, opts.Config)
+	sqldb, err := sql.Open(opts.Driver, opts.Config)
 	if err != nil {
 		return nil, err
 	}
 
-	level := xlog.LogLevel(zerolog.GlobalLevel())
-	if !opts.XORM.Log {
-		level = xlog.LOG_OFF
-	}
-
-	logger := newXORMLogger(level)
-	engine.SetLogger(logger)
-	engine.ShowSQL(opts.XORM.ShowSQL)
-
-	// Set database schema (PostgreSQL only)
-	if opts.Schema != "" {
-		engine.SetSchema(opts.Schema)
-	}
-
-	// Apply driver-specific configuration (SQLite optimizations in CGO builds)
-	if err := configureEngine(engine, opts); err != nil {
+	// Apply driver-specific configuration (connection pool, SQLite pragmas)
+	if err := configureSQL(sqldb, opts); err != nil {
 		return nil, err
 	}
 
+	// Select Bun dialect based on driver (build-tag aware)
+	db := newBunDB(sqldb, opts.Driver)
+
+	// Set PostgreSQL search_path if schema is specified
+	if opts.Schema != "" && opts.Driver == DriverPostgres {
+		if _, err := db.Exec("SET search_path TO " + opts.Schema); err != nil {
+			return nil, err
+		}
+	}
+
+	// Add query logging hook
+	if opts.DB.Log || opts.DB.ShowSQL {
+		db.AddQueryHook(bundebug.NewQueryHook(
+			bundebug.WithEnabled(true),
+			bundebug.WithVerbose(zerolog.GlobalLevel() <= zerolog.DebugLevel),
+		))
+	}
+
 	return &storage{
-		engine: engine,
+		db:     db,
+		driver: opts.Driver,
 	}, nil
 }
 
 func (s storage) Ping() error {
-	return s.engine.Ping()
+	return s.db.Ping()
 }
 
 // Migrate old storage or init new one.
 func (s storage) Migrate(ctx context.Context, allowLong bool) error {
-	return migration.Migrate(ctx, s.engine, allowLong)
+	return migration.Migrate(ctx, s.db.DB, s.driver, allowLong)
 }
 
 func (s storage) Close() error {
-	return s.engine.Close()
+	return s.db.Close()
+}
+
+// DB returns the underlying *bun.DB for use in tests.
+func (s storage) DB() *bun.DB {
+	return s.db
+}
+
+// quoteIdent quotes an identifier (column/table name) for the current dialect.
+func (s storage) quoteIdent(name string) string {
+	switch s.driver {
+	case DriverMysql:
+		return "`" + name + "`"
+	default:
+		return `"` + name + `"`
+	}
 }

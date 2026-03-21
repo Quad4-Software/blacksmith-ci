@@ -14,7 +14,12 @@
 
 package model
 
-import "errors"
+import (
+	"database/sql/driver"
+	"errors"
+
+	"github.com/uptrace/bun"
+)
 
 var ErrNotificationConfigNotFound = errors.New("notification config not found")
 
@@ -29,15 +34,17 @@ const (
 
 // NotificationConfig stores per-repo email notification settings.
 type NotificationConfig struct {
-	ID        int64               `json:"id"         xorm:"pk autoincr 'id'"`
-	RepoID    int64               `json:"repo_id"    xorm:"NOT NULL UNIQUE INDEX 'repo_id'"`
-	IsEnabled bool                `json:"is_enabled" xorm:"DEFAULT true 'is_enabled'"`
-	Events    []NotificationEvent `json:"events"     xorm:"json 'events'"`
-	CreatedAt int64               `json:"created_at" xorm:"created"`
-	UpdatedAt int64               `json:"updated_at" xorm:"updated"`
+	bun.BaseModel `bun:"table:notification_configs"`
+
+	ID        int64                      `json:"id"         bun:"id,pk,autoincrement"`
+	RepoID    int64                      `json:"repo_id"    bun:"repo_id,notnull,unique"`
+	IsEnabled bool                       `json:"is_enabled" bun:"is_enabled,default:true"`
+	Events    JSONSliceNotificationEvent `json:"events"     bun:"events,type:text"`
+	CreatedAt int64                      `json:"created_at" bun:",nullzero"`
+	UpdatedAt int64                      `json:"updated_at" bun:",nullzero"`
 } //	@name	NotificationConfig
 
-// TableName returns the database table name for xorm.
+// TableName returns the database table name.
 func (NotificationConfig) TableName() string {
 	return "notification_configs"
 }
@@ -54,3 +61,6 @@ type NotifyYAMLConfig struct {
 	Disabled bool                `json:"disabled,omitempty" yaml:"disabled,omitempty"`
 	Events   []NotificationEvent `json:"events,omitempty"   yaml:"events,omitempty"`
 }
+
+func (n NotifyYAMLConfig) Value() (driver.Value, error) { return jsonValue(n) }
+func (n *NotifyYAMLConfig) Scan(src any) error          { return jsonScan(src, n) }

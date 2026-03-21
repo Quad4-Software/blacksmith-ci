@@ -15,12 +15,13 @@
 package datastore
 
 import (
+	"context"
 	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/rs/zerolog/log"
-	"xorm.io/xorm"
+	"github.com/uptrace/bun"
 
 	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml"
 	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/matrix"
@@ -28,8 +29,8 @@ import (
 )
 
 func (s storage) WorkflowGetTree(pipeline *model.Pipeline) ([]*model.Workflow, error) {
-	sess := s.engine.NewSession()
-	wfList, err := s.workflowList(sess, pipeline)
+	ctx := context.Background()
+	wfList, err := s.workflowList(ctx, s.db, pipeline)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +58,7 @@ func (s storage) WorkflowGetTree(pipeline *model.Pipeline) ([]*model.Workflow, e
 	}
 
 	for _, wf := range wfList {
-		wf.Children, err = s.stepListWorkflow(sess, wf)
+		wf.Children, err = s.stepListWorkflow(ctx, s.db, wf)
 		if err != nil {
 			return nil, err
 		}
@@ -74,7 +75,7 @@ func (s storage) WorkflowGetTree(pipeline *model.Pipeline) ([]*model.Workflow, e
 		}
 	}
 
-	return wfList, sess.Commit()
+	return wfList, nil
 }
 
 // getPipelineNameMap creates a map from workflow names to their pipeline names
@@ -202,26 +203,18 @@ func sanitizePath(path string) string {
 }
 
 func (s storage) WorkflowsCreate(workflows []*model.Workflow) error {
-	sess := s.engine.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-
-	if err := s.workflowsCreate(sess, workflows); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return s.db.RunInTx(context.Background(), nil, func(ctx context.Context, tx bun.Tx) error {
+		return s.workflowsCreate(ctx, tx, workflows)
+	})
 }
 
-func (s storage) workflowsCreate(sess *xorm.Session, workflows []*model.Workflow) error {
+func (s storage) workflowsCreate(ctx context.Context, db bun.IDB, workflows []*model.Workflow) error {
 	for i := range workflows {
 		// only Insert on single object ref set auto created ID back to object
-		if err := s.stepCreate(sess, workflows[i].Children); err != nil {
+		if err := s.stepCreate(ctx, db, workflows[i].Children); err != nil {
 			return err
 		}
-		if _, err := sess.Insert(workflows[i]); err != nil {
+		if _, err := db.NewInsert().Model(workflows[i]).Exec(ctx); err != nil {
 			return err
 		}
 	}
@@ -230,33 +223,32 @@ func (s storage) workflowsCreate(sess *xorm.Session, workflows []*model.Workflow
 
 // WorkflowsReplace performs an atomic replacement of workflows and associated steps by deleting all existing workflows and steps and inserting the new ones.
 func (s storage) WorkflowsReplace(pipeline *model.Pipeline, workflows []*model.Workflow) error {
-	sess := s.engine.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
-	}
+	return s.db.RunInTx(context.Background(), nil, func(ctx context.Context, tx bun.Tx) error {
+		if err := s.workflowsDelete(ctx, tx, pipeline.ID); err != nil {
+			return err
+		}
 
-	if err := s.workflowsDelete(sess, pipeline.ID); err != nil {
-		return err
-	}
+		// Delete tasks associated with this pipeline to prevent orphaned tasks referencing deleted steps
+		if _, err := tx.NewDelete().Model((*model.Task)(nil)).Where("pipeline_id = ?", pipeline.ID).Exec(ctx); err != nil {
+			return err
+		}
 
-	// Delete tasks associated with this pipeline to prevent orphaned tasks referencing deleted steps
-	if _, err := sess.Where("pipeline_id = ?", pipeline.ID).Delete(new(model.Task)); err != nil {
-		return err
-	}
-
-	if err := s.workflowsCreate(sess, workflows); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+		return s.workflowsCreate(ctx, tx, workflows)
+	})
 }
 
-func (s storage) workflowsDelete(sess *xorm.Session, pipelineID int64) error {
+func (s storage) workflowsDelete(ctx context.Context, db bun.IDB, pipelineID int64) error {
 	// delete related steps
 	for startSteps := 0; ; startSteps += perPage {
 		stepIDs := make([]int64, 0, perPage)
-		if err := sess.Limit(perPage, startSteps).Table("steps").Cols("id").Where("pipeline_id = ?", pipelineID).Find(&stepIDs); err != nil {
+		err := db.NewSelect().
+			TableExpr("steps").
+			ColumnExpr("id").
+			Where("pipeline_id = ?", pipelineID).
+			Limit(perPage).
+			Offset(startSteps).
+			Scan(ctx, &stepIDs)
+		if err != nil {
 			return err
 		}
 		if len(stepIDs) == 0 {
@@ -264,26 +256,27 @@ func (s storage) workflowsDelete(sess *xorm.Session, pipelineID int64) error {
 		}
 
 		for i := range stepIDs {
-			if err := deleteStep(sess, stepIDs[i]); err != nil {
+			if err := deleteStep(ctx, db, stepIDs[i]); err != nil {
 				return err
 			}
 		}
 	}
 
-	_, err := sess.Where("pipeline_id = ?", pipelineID).Delete(new(model.Workflow))
+	_, err := db.NewDelete().Model((*model.Workflow)(nil)).Where("pipeline_id = ?", pipelineID).Exec(ctx)
 	return err
 }
 
 func (s storage) WorkflowList(pipeline *model.Pipeline) ([]*model.Workflow, error) {
-	return s.workflowList(s.engine.NewSession(), pipeline)
+	return s.workflowList(context.Background(), s.db, pipeline)
 }
 
 // workflowList lists workflows without child steps.
-func (s storage) workflowList(sess *xorm.Session, pipeline *model.Pipeline) ([]*model.Workflow, error) {
+func (s storage) workflowList(ctx context.Context, db bun.IDB, pipeline *model.Pipeline) ([]*model.Workflow, error) {
 	var wfList []*model.Workflow
-	err := sess.Where("pipeline_id = ?", pipeline.ID).
-		OrderBy("pid").
-		Find(&wfList)
+	err := db.NewSelect().Model(&wfList).
+		Where("pipeline_id = ?", pipeline.ID).
+		Order("pid ASC").
+		Scan(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -293,11 +286,11 @@ func (s storage) workflowList(sess *xorm.Session, pipeline *model.Pipeline) ([]*
 
 func (s storage) WorkflowLoad(id int64) (*model.Workflow, error) {
 	workflow := new(model.Workflow)
-	return workflow, wrapGet(s.engine.ID(id).Get(workflow))
+	return workflow, wrapGet(s.db.NewSelect().Model(workflow).Where("id = ?", id).Scan(context.Background()))
 }
 
 func (s storage) WorkflowUpdate(workflow *model.Workflow) error {
-	_, err := s.engine.ID(workflow.ID).AllCols().Update(workflow)
+	_, err := s.db.NewUpdate().Model(workflow).WherePK().Exec(context.Background())
 	return err
 }
 
@@ -322,7 +315,9 @@ func (s storage) CleanupOrphanedWorkflows(workflowIDs []string) error {
 
 	// Check which workflows actually exist in the database
 	var existingWorkflows []*model.Workflow
-	err := s.engine.In("id", ids).Find(&existingWorkflows)
+	err := s.db.NewSelect().Model(&existingWorkflows).
+		Where("id IN (?)", bun.List(ids)).
+		Scan(context.Background())
 	if err != nil {
 		return err
 	}

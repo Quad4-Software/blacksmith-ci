@@ -14,6 +14,8 @@
 
 package model
 
+import "github.com/uptrace/bun"
+
 // LogEntryType identifies the type of line in the logs.
 type LogEntryType int //	@name	LogEntryType
 
@@ -26,13 +28,15 @@ const (
 )
 
 type LogEntry struct {
-	ID      int64        `json:"id"       xorm:"pk autoincr 'id'"`
-	StepID  int64        `json:"step_id"  xorm:"INDEX 'step_id'"`
-	Time    int64        `json:"time"     xorm:"'time'"`
-	Line    int          `json:"line"     xorm:"'line'"`
-	Data    []byte       `json:"data"     xorm:"LONGBLOB"`
-	Created int64        `json:"-"        xorm:"created"`
-	Type    LogEntryType `json:"type"     xorm:"'type'"`
+	bun.BaseModel `bun:"table:log_entries"`
+
+	ID      int64        `json:"id"       bun:"id,pk,autoincrement"`
+	StepID  int64        `json:"step_id"  bun:"step_id"`
+	Time    int64        `json:"time"     bun:"time"`
+	Line    int          `json:"line"     bun:"line"`
+	Data    []byte       `json:"data"     bun:"data,type:bytea"`
+	Created int64        `json:"-"        bun:",nullzero"`
+	Type    LogEntryType `json:"type"     bun:"type"`
 } //	@name	LogEntry
 
 // TODO: store info what specific command the line belongs to (must be optional and impl. by backend)

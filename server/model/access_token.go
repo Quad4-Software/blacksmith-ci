@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/uptrace/bun"
 )
 
 // AccessTokenScope represents permission scopes for access tokens.
@@ -89,20 +91,22 @@ func (s AccessTokenScope) IsValid() bool {
 
 // AccessToken represents a user-created API access token.
 type AccessToken struct {
-	ID        int64    `json:"id"         xorm:"pk autoincr 'id'"`
-	UserID    int64    `json:"user_id"    xorm:"NOT NULL INDEX 'user_id'"`
-	OrgID     int64    `json:"org_id"     xorm:"NOT NULL DEFAULT 0 INDEX 'org_id'"`  // 0 = user-level
-	RepoID    int64    `json:"repo_id"    xorm:"NOT NULL DEFAULT 0 INDEX 'repo_id'"` // 0 = not repo-scoped
-	Name      string   `json:"name"       xorm:"NOT NULL 'name'"`
-	TokenHash string   `json:"-"          xorm:"UNIQUE VARCHAR(64) 'token_hash'"`
-	Scopes    []string `json:"scopes"     xorm:"json 'scopes'"`
-	ExpiresAt int64    `json:"expires_at" xorm:"'expires_at'"` // unix timestamp, 0 = never
-	LastUsed  int64    `json:"last_used"  xorm:"'last_used'"`
-	CreatedAt int64    `json:"created_at" xorm:"'created_at' created"`
-	UpdatedAt int64    `json:"updated_at" xorm:"'updated_at' updated"`
+	bun.BaseModel `bun:"table:access_tokens"`
+
+	ID        int64           `json:"id"         bun:"id,pk,autoincrement"`
+	UserID    int64           `json:"user_id"    bun:"user_id,notnull"`
+	OrgID     int64           `json:"org_id"     bun:"org_id,notnull,default:0"`
+	RepoID    int64           `json:"repo_id"    bun:"repo_id,notnull,default:0"`
+	Name      string          `json:"name"       bun:"name,notnull"`
+	TokenHash string          `json:"-"          bun:"token_hash,unique,type:varchar(64)"`
+	Scopes    JSONSliceString `json:"scopes"     bun:"scopes,type:text"`
+	ExpiresAt int64           `json:"expires_at" bun:"expires_at"`
+	LastUsed  int64           `json:"last_used"  bun:"last_used"`
+	CreatedAt int64           `json:"created_at" bun:"created_at,nullzero"`
+	UpdatedAt int64           `json:"updated_at" bun:"updated_at,nullzero"`
 } //	@name	AccessToken
 
-// TableName returns database table name for xorm.
+// TableName returns the database table name.
 func (AccessToken) TableName() string {
 	return "access_tokens"
 }
@@ -179,7 +183,7 @@ func (at *AccessToken) IsRepoScoped() bool {
 
 // Copy returns a copy of the access token without sensitive data.
 func (at *AccessToken) Copy() *AccessToken {
-	scopesCopy := make([]string, len(at.Scopes))
+	scopesCopy := make(JSONSliceString, len(at.Scopes))
 	copy(scopesCopy, at.Scopes)
 
 	return &AccessToken{

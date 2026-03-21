@@ -16,6 +16,7 @@
 package datastore
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -229,62 +230,33 @@ func TestDeletePipeline(t *testing.T) {
 		new(model.Step), new(model.LogEntry), new(model.PipelineConfig), new(model.Config), new(model.Task))
 	defer closer()
 
-	_, err := store.engine.Insert(
-		&model.Pipeline{
-			ID:     2,
-			Number: 2,
-			RepoID: 7,
-		},
-		&model.Pipeline{
-			ID:     5,
-			Number: 3,
-			RepoID: 7,
-		},
-		&model.Pipeline{
-			ID:     8,
-			Number: 4,
-			RepoID: 7,
-		},
-		&model.Config{
-			ID:     23,
-			Hash:   "1234",
-			Name:   "test",
-			RepoID: 7,
-		},
-		&model.Config{
-			ID:     25,
-			Hash:   "6789",
-			Name:   "test",
-			RepoID: 7,
-		},
-		&model.PipelineConfig{
-			PipelineID: 2,
-			ConfigID:   23,
-		},
-		&model.PipelineConfig{
-			PipelineID: 5,
-			ConfigID:   23,
-		},
-		&model.PipelineConfig{
-			PipelineID: 8,
-			ConfigID:   25,
-		},
-		&model.Task{
-			ID:         "task-1",
-			PipelineID: 2,
-			RepoID:     7,
-		},
-		&model.Task{
-			ID:         "task-2",
-			PipelineID: 8,
-			RepoID:     7,
-		},
-		&model.Task{
-			ID:         "task-3",
-			PipelineID: 5,
-			RepoID:     7,
-		},
-	)
+	ctx := context.Background()
+	pipelines := []*model.Pipeline{
+		{ID: 2, Number: 2, RepoID: 7},
+		{ID: 5, Number: 3, RepoID: 7},
+		{ID: 8, Number: 4, RepoID: 7},
+	}
+	_, err := store.db.NewInsert().Model(&pipelines).Exec(ctx)
+	assert.NoError(t, err)
+	configs := []*model.Config{
+		{ID: 23, Hash: "1234", Name: "test", RepoID: 7},
+		{ID: 25, Hash: "6789", Name: "test", RepoID: 7},
+	}
+	_, err = store.db.NewInsert().Model(&configs).Exec(ctx)
+	assert.NoError(t, err)
+	pipelineConfigs := []*model.PipelineConfig{
+		{PipelineID: 2, ConfigID: 23},
+		{PipelineID: 5, ConfigID: 23},
+		{PipelineID: 8, ConfigID: 25},
+	}
+	_, err = store.db.NewInsert().Model(&pipelineConfigs).Exec(ctx)
+	assert.NoError(t, err)
+	tasks := []*model.Task{
+		{ID: "task-1", PipelineID: 2, RepoID: 7},
+		{ID: "task-2", PipelineID: 8, RepoID: 7},
+		{ID: "task-3", PipelineID: 5, RepoID: 7},
+	}
+	_, err = store.db.NewInsert().Model(&tasks).Exec(ctx)
 	assert.NoError(t, err)
 
 	// delete non existing pipeline
@@ -292,33 +264,33 @@ func TestDeletePipeline(t *testing.T) {
 
 	// delete pipeline with shares config
 	assert.NoError(t, store.DeletePipeline(&model.Pipeline{ID: 2}))
-	count, err := store.engine.Count(new(model.Config))
+	count, err := store.db.NewSelect().Model((*model.Config)(nil)).Count(context.Background())
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, count)
 
 	// verify task for pipeline 2 was deleted
-	taskCount, err := store.engine.Where("pipeline_id = ?", 2).Count(new(model.Task))
+	taskCount, err := store.db.NewSelect().Model((*model.Task)(nil)).Where("pipeline_id = ?", 2).Count(context.Background())
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, taskCount, "tasks for deleted pipeline should be removed")
 
 	// verify tasks for other pipelines still exist
-	taskCount, err = store.engine.Count(new(model.Task))
+	taskCount, err = store.db.NewSelect().Model((*model.Task)(nil)).Count(context.Background())
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, taskCount, "tasks for other pipelines should remain")
 
 	// delete pipeline with unique config
 	assert.NoError(t, store.DeletePipeline(&model.Pipeline{ID: 8}))
-	count, err = store.engine.Count(new(model.Config))
+	count, err = store.db.NewSelect().Model((*model.Config)(nil)).Count(context.Background())
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, count)
 
 	// verify task for pipeline 8 was also deleted
-	taskCount, err = store.engine.Where("pipeline_id = ?", 8).Count(new(model.Task))
+	taskCount, err = store.db.NewSelect().Model((*model.Task)(nil)).Where("pipeline_id = ?", 8).Count(context.Background())
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, taskCount, "tasks for deleted pipeline should be removed")
 
 	// verify only task for pipeline 5 remains
-	taskCount, err = store.engine.Count(new(model.Task))
+	taskCount, err = store.db.NewSelect().Model((*model.Task)(nil)).Count(context.Background())
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, taskCount, "only task for remaining pipeline should exist")
 }

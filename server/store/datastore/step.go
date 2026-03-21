@@ -15,63 +15,64 @@
 package datastore
 
 import (
-	"xorm.io/builder"
-	"xorm.io/xorm"
+	"context"
+
+	"github.com/uptrace/bun"
 
 	"codefloe.com/crowci/crow/v5/server/model"
 )
 
 func (s storage) StepLoad(id int64) (*model.Step, error) {
 	step := new(model.Step)
-	return step, wrapGet(s.engine.ID(id).Get(step))
+	return step, wrapGet(s.db.NewSelect().Model(step).Where("id = ?", id).Scan(context.Background()))
 }
 
 func (s storage) StepFind(pipeline *model.Pipeline, pid int) (*model.Step, error) {
 	step := new(model.Step)
-	return step, wrapGet(s.engine.Where(
-		builder.Eq{"pipeline_id": pipeline.ID, "pid": pid},
-	).Get(step))
+	return step, wrapGet(s.db.NewSelect().Model(step).
+		Where("pipeline_id = ? AND pid = ?", pipeline.ID, pid).
+		Scan(context.Background()))
 }
 
 func (s storage) StepByUUID(uuid string) (*model.Step, error) {
 	step := new(model.Step)
-	return step, wrapGet(s.engine.Where(
-		builder.Eq{"uuid": uuid},
-	).Get(step))
+	return step, wrapGet(s.db.NewSelect().Model(step).
+		Where("uuid = ?", uuid).
+		Scan(context.Background()))
 }
 
 func (s storage) StepChild(pipeline *model.Pipeline, ppid int, child string) (*model.Step, error) {
 	step := new(model.Step)
-	return step, wrapGet(s.engine.Where(
-		builder.Eq{"pipeline_id": pipeline.ID, "ppid": ppid, "name": child},
-	).Get(step))
+	return step, wrapGet(s.db.NewSelect().Model(step).
+		Where("pipeline_id = ? AND ppid = ? AND name = ?", pipeline.ID, ppid, child).
+		Scan(context.Background()))
 }
 
 func (s storage) StepList(pipeline *model.Pipeline) ([]*model.Step, error) {
 	stepList := make([]*model.Step, 0)
-	return stepList, s.engine.
+	return stepList, s.db.NewSelect().Model(&stepList).
 		Where("pipeline_id = ?", pipeline.ID).
-		OrderBy("pid").
-		Find(&stepList)
+		Order("pid ASC").
+		Scan(context.Background())
 }
 
 func (s storage) StepListFromWorkflowFind(workflow *model.Workflow) ([]*model.Step, error) {
-	return s.stepListWorkflow(s.engine.NewSession(), workflow)
+	return s.stepListWorkflow(context.Background(), s.db, workflow)
 }
 
-func (s storage) stepListWorkflow(sess *xorm.Session, workflow *model.Workflow) ([]*model.Step, error) {
+func (s storage) stepListWorkflow(ctx context.Context, db bun.IDB, workflow *model.Workflow) ([]*model.Step, error) {
 	stepList := make([]*model.Step, 0)
-	return stepList, sess.
+	return stepList, db.NewSelect().Model(&stepList).
 		Where("pipeline_id = ?", workflow.PipelineID).
 		Where("ppid = ?", workflow.PID).
-		OrderBy("pid").
-		Find(&stepList)
+		Order("pid ASC").
+		Scan(ctx)
 }
 
-func (s storage) stepCreate(sess *xorm.Session, steps []*model.Step) error {
+func (s storage) stepCreate(ctx context.Context, db bun.IDB, steps []*model.Step) error {
 	for i := range steps {
 		// only Insert on single object ref set auto created ID back to object
-		if _, err := sess.Insert(steps[i]); err != nil {
+		if _, err := db.NewInsert().Model(steps[i]).Exec(ctx); err != nil {
 			return err
 		}
 	}
@@ -79,13 +80,13 @@ func (s storage) stepCreate(sess *xorm.Session, steps []*model.Step) error {
 }
 
 func (s storage) StepUpdate(step *model.Step) error {
-	_, err := s.engine.ID(step.ID).AllCols().Update(step)
+	_, err := s.db.NewUpdate().Model(step).WherePK().Exec(context.Background())
 	return err
 }
 
-func deleteStep(sess *xorm.Session, stepID int64) error {
-	if err := logDelete(sess, stepID); err != nil {
+func deleteStep(ctx context.Context, db bun.IDB, stepID int64) error {
+	if err := logDelete(ctx, db, stepID); err != nil {
 		return err
 	}
-	return wrapDelete(sess.ID(stepID).Delete(new(model.Step)))
+	return wrapDelete(db.NewDelete().Model((*model.Step)(nil)).Where("id = ?", stepID).Exec(ctx))
 }

@@ -15,13 +15,16 @@
 package datastore
 
 import (
+	"context"
+	"database/sql"
 	"os"
 	"testing"
 	"time"
 
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
-	"xorm.io/xorm"
-	"xorm.io/xorm/schemas"
+	"github.com/uptrace/bun"
+	"github.com/uptrace/bun/dialect/sqlitedialect"
 )
 
 func testDriverConfig() (driver, config string) {
@@ -39,39 +42,37 @@ func testDriverConfig() (driver, config string) {
 // The database driver and connection string are provided by
 // environment variables, with fallback to in-memory sqlite.
 func newTestStore(t *testing.T, tables ...any) (*storage, func()) {
-	engine, err := xorm.NewEngine(testDriverConfig())
+	driver, dsn := testDriverConfig()
+
+	sqldb, err := sql.Open(driver, dsn)
 	if !assert.NoError(t, err) {
 		t.FailNow()
 	}
 
+	db := bun.NewDB(sqldb, sqlitedialect.New())
+
+	ctx := context.Background()
 	for _, table := range tables {
-		if err := engine.Sync(table); err != nil {
-			t.Error(err)
+		_, err := db.NewCreateTable().Model(table).IfNotExists().Exec(ctx)
+		if !assert.NoError(t, err) {
 			t.FailNow()
 		}
 	}
 
 	return &storage{
-			engine: engine,
+			db:     db,
+			driver: driver,
 		}, func() {
-			for _, bean := range tables {
-				if err := engine.DropIndexes(bean); err != nil {
-					t.Error(err)
-					t.FailNow()
-				}
+			ctx := context.Background()
+			for _, table := range tables {
+				_, _ = db.NewDropTable().Model(table).IfExists().Cascade().Exec(ctx)
 			}
-			if err := engine.DropTables(tables...); err != nil {
-				t.Error(err)
-				t.FailNow()
-			}
-			if err := engine.Close(); err != nil {
+			if err := db.Close(); err != nil {
 				t.Error(err)
 				t.FailNow()
 			}
 
-			dbType := engine.Dialect().URI().DBType
-			if dbType == schemas.MYSQL || dbType == schemas.POSTGRES {
-				// wait for mysql/postgres to sync ...
+			if driver == "mysql" || driver == "postgres" {
 				time.Sleep(10 * time.Millisecond)
 			}
 		}

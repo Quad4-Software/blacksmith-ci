@@ -15,9 +15,8 @@
 package datastore
 
 import (
+	"context"
 	"time"
-
-	"xorm.io/builder"
 
 	"codefloe.com/crowci/crow/v5/server/model"
 )
@@ -30,37 +29,39 @@ const (
 // DistributedLockAcquire attempts to acquire a distributed lock for HA coordination.
 // Returns true if lock was acquired, false if already held by another instance.
 func (s storage) DistributedLockAcquire(lockName string, instanceID string, ttlSeconds int64) (bool, error) {
+	ctx := context.Background()
 	now := time.Now().Unix()
 	expiresAt := now + ttlSeconds
 
 	// Clean up this specific lock if it's expired
 	// This ensures we don't wait for the periodic cleanup
-	_, _ = s.engine.Where("name = ? AND expires_at < ?", lockName, now).
-		Delete(&model.DistributedLock{})
+	_, _ = s.db.NewDelete().Model((*model.DistributedLock)(nil)).
+		Where("name = ?", lockName).
+		Where("expires_at < ?", now).
+		Exec(ctx)
 
 	// Try to update the lock if it exists and is expired or owned by us
-	affected, err := s.engine.Where("name = ?", lockName).
-		And(builder.Or(
-			builder.Lt{"expires_at": now},         // Lock is expired (shouldn't happen after cleanup above)
-			builder.Eq{"instance_id": instanceID}, // Or it's our own lock
-		)).
-		Cols("instance_id", "acquired_at", "expires_at").
-		Update(&model.DistributedLock{
-			InstanceID: instanceID,
-			AcquiredAt: now,
-			ExpiresAt:  expiresAt,
-		})
+	res, err := s.db.NewUpdate().Model((*model.DistributedLock)(nil)).
+		Set("instance_id = ?", instanceID).
+		Set("acquired_at = ?", now).
+		Set("expires_at = ?", expiresAt).
+		Where("name = ?", lockName).
+		Where("(expires_at < ? OR instance_id = ?)", now, instanceID).
+		Exec(ctx)
 	if err != nil {
 		return false, err
 	}
 
+	affected, _ := res.RowsAffected()
 	if affected > 0 {
 		// Successfully acquired the lock
 		return true, nil
 	}
 
 	// Check if lock exists
-	exists, err := s.engine.Where("name = ?", lockName).Exist(&model.DistributedLock{})
+	exists, err := s.db.NewSelect().Model((*model.DistributedLock)(nil)).
+		Where("name = ?", lockName).
+		Exists(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -78,7 +79,7 @@ func (s storage) DistributedLockAcquire(lockName string, instanceID string, ttlS
 		ExpiresAt:  expiresAt,
 	}
 
-	_, err = s.engine.Insert(lock)
+	_, err = s.db.NewInsert().Model(lock).Exec(ctx)
 	if err != nil {
 		// Another instance created it in the race, that's OK
 		return false, nil
@@ -89,8 +90,10 @@ func (s storage) DistributedLockAcquire(lockName string, instanceID string, ttlS
 
 // DistributedLockRelease releases a distributed lock held by this instance.
 func (s storage) DistributedLockRelease(lockName string, instanceID string) error {
-	_, err := s.engine.Where("name = ? AND instance_id = ?", lockName, instanceID).
-		Delete(&model.DistributedLock{})
+	_, err := s.db.NewDelete().Model((*model.DistributedLock)(nil)).
+		Where("name = ?", lockName).
+		Where("instance_id = ?", instanceID).
+		Exec(context.Background())
 	return err
 }
 
@@ -99,29 +102,39 @@ func (s storage) DistributedLockExtend(lockName string, instanceID string, ttlSe
 	now := time.Now().Unix()
 	expiresAt := now + ttlSeconds
 
-	affected, err := s.engine.Where("name = ? AND instance_id = ?", lockName, instanceID).
-		Cols("expires_at").Update(&model.DistributedLock{ExpiresAt: expiresAt})
+	res, err := s.db.NewUpdate().Model((*model.DistributedLock)(nil)).
+		Set("expires_at = ?", expiresAt).
+		Where("name = ?", lockName).
+		Where("instance_id = ?", instanceID).
+		Exec(context.Background())
+	if err != nil {
+		return false, err
+	}
 
-	return affected > 0, err
+	affected, _ := res.RowsAffected()
+	return affected > 0, nil
 }
 
 // DistributedLockCleanup removes expired locks to prevent accumulation.
 func (s storage) DistributedLockCleanup() error {
 	now := time.Now().Unix()
-	_, err := s.engine.Where(builder.Lt{"expires_at": now}).Delete(&model.DistributedLock{})
+	_, err := s.db.NewDelete().Model((*model.DistributedLock)(nil)).
+		Where("expires_at < ?", now).
+		Exec(context.Background())
 	return err
 }
 
 // DistributedLockList lists all currently held locks (for debugging/monitoring).
 func (s storage) DistributedLockList() ([]*model.DistributedLock, error) {
 	locks := make([]*model.DistributedLock, 0)
-	err := s.engine.Find(&locks)
+	err := s.db.NewSelect().Model(&locks).Scan(context.Background())
 	return locks, err
 }
 
 // DistributedLockInit initializes known locks in the database to prevent INSERT race conditions.
 // This should be called during migration or startup.
 func (s storage) DistributedLockInit() error {
+	ctx := context.Background()
 	knownLocks := []string{
 		"queue:assignment:leader",
 		"queue:processor:leader",
@@ -132,7 +145,9 @@ func (s storage) DistributedLockInit() error {
 
 	for _, lockName := range knownLocks {
 		// Check if lock already exists
-		exists, err := s.engine.Where("name = ?", lockName).Exist(&model.DistributedLock{})
+		exists, err := s.db.NewSelect().Model((*model.DistributedLock)(nil)).
+			Where("name = ?", lockName).
+			Exists(ctx)
 		if err != nil {
 			return err
 		}
@@ -147,7 +162,7 @@ func (s storage) DistributedLockInit() error {
 				ExpiresAt:  now - SecondsPerDay, // Already expired 24 hours ago
 			}
 
-			if _, err := s.engine.Insert(lock); err != nil {
+			if _, err := s.db.NewInsert().Model(lock).Exec(ctx); err != nil {
 				// Ignore duplicate key errors - another instance may have created it
 				continue
 			}

@@ -15,26 +15,28 @@
 package datastore
 
 import (
+	"context"
+
 	"codefloe.com/crowci/crow/v5/server/model"
 )
 
 // PubSubMessageInsert stores a message for distributed pub/sub.
 func (s storage) PubSubMessageInsert(msg *model.DistributedMessage) error {
-	_, err := s.engine.Insert(msg)
+	_, err := s.db.NewInsert().Model(msg).Exec(context.Background())
 	return err
 }
 
 // PubSubMessageListAfter retrieves messages created after the given timestamp.
 func (s storage) PubSubMessageListAfter(timestamp int64) ([]*model.DistributedMessage, error) {
 	messages := make([]*model.DistributedMessage, 0)
-	err := s.engine.Where("created_at > ?", timestamp).
-		OrderBy("created_at ASC").
-		Find(&messages)
+	err := s.db.NewSelect().Model(&messages).Where("created_at > ?", timestamp).
+		Order("created_at ASC").
+		Scan(context.Background())
 	return messages, err
 }
 
 // PubSubMessageCleanupOlderThan removes messages older than the given timestamp.
 func (s storage) PubSubMessageCleanupOlderThan(timestamp int64) error {
-	_, err := s.engine.Where("created_at < ?", timestamp).Delete(&model.DistributedMessage{})
+	_, err := s.db.NewDelete().Model((*model.DistributedMessage)(nil)).Where("created_at < ?", timestamp).Exec(context.Background())
 	return err
 }

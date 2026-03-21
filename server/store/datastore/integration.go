@@ -15,33 +15,34 @@
 package datastore
 
 import (
-	"xorm.io/builder"
+	"context"
 
 	"codefloe.com/crowci/crow/v5/server/model"
 )
 
 func (s storage) IntegrationFind(id int64) (*model.Integration, error) {
 	integration := new(model.Integration)
-	return integration, wrapGet(s.engine.ID(id).Get(integration))
+	return integration, wrapGet(s.db.NewSelect().Model(integration).Where("id = ?", id).Scan(context.Background()))
 }
 
 func (s storage) IntegrationFindByName(userID int64, name string) (*model.Integration, error) {
 	integration := new(model.Integration)
-	return integration, wrapGet(s.engine.Where(
-		builder.Eq{"user_id": userID, "name": name},
-	).Get(integration))
+	return integration, wrapGet(s.db.NewSelect().Model(integration).
+		Where("user_id = ? AND name = ?", userID, name).
+		Scan(context.Background()))
 }
 
 func (s storage) IntegrationList(userID int64, opts *model.ListOptions) ([]*model.Integration, error) {
 	integrations := make([]*model.Integration, 0)
-	return integrations, s.paginate(opts).Where("user_id = ?", userID).
-		OrderBy("name ASC").
-		Find(&integrations)
+	return integrations, s.paginate(s.db.NewSelect().Model(&integrations).
+		Where("user_id = ?", userID).
+		Order("name ASC"), opts).
+		Scan(context.Background())
 }
 
 func (s storage) IntegrationListAll() ([]*model.Integration, error) {
 	integrations := make([]*model.Integration, 0)
-	return integrations, s.engine.OrderBy("name ASC").Find(&integrations)
+	return integrations, s.db.NewSelect().Model(&integrations).Order("name ASC").Scan(context.Background())
 }
 
 // IntegrationListAccessible returns integrations that the user can access.
@@ -56,9 +57,10 @@ func (s storage) IntegrationListAccessible(userID int64, orgIDs []int64, repoIDs
 	// Build query to find accessible integrations
 	// Note: JSON array containment is database-specific.
 	// We fetch all active integrations and filter in Go for portability.
-	err := s.paginate(opts).Where("is_active = ?", true).
-		OrderBy("name ASC").
-		Find(&integrations)
+	err := s.paginate(s.db.NewSelect().Model(&integrations).
+		Where("is_active = ?", true).
+		Order("name ASC"), opts).
+		Scan(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -97,15 +99,15 @@ func (s storage) IntegrationCreate(integration *model.Integration) error {
 	// Set defaults before insert
 	integration.BeforeInsert()
 
-	_, err := s.engine.Insert(integration)
+	_, err := s.db.NewInsert().Model(integration).Exec(context.Background())
 	return err
 }
 
 func (s storage) IntegrationUpdate(integration *model.Integration) error {
-	_, err := s.engine.ID(integration.ID).AllCols().Update(integration)
+	_, err := s.db.NewUpdate().Model(integration).WherePK().Exec(context.Background())
 	return err
 }
 
 func (s storage) IntegrationDelete(integration *model.Integration) error {
-	return wrapDelete(s.engine.ID(integration.ID).Delete(new(model.Integration)))
+	return wrapDelete(s.db.NewDelete().Model((*model.Integration)(nil)).Where("id = ?", integration.ID).Exec(context.Background()))
 }

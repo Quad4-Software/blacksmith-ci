@@ -15,6 +15,7 @@
 package datastore
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -60,7 +61,7 @@ func TestDistributedLockAcquireExpired(t *testing.T) {
 		AcquiredAt: now - 120,
 		ExpiresAt:  now - 60, // Expired 60 seconds ago
 	}
-	_, err := store.engine.Insert(expiredLock)
+	_, err := store.db.NewInsert().Model(expiredLock).Exec(context.Background())
 	assert.NoError(t, err)
 
 	// Another instance should be able to acquire the expired lock
@@ -171,7 +172,7 @@ func TestDistributedLockCleanup(t *testing.T) {
 	}
 
 	for _, lock := range locks {
-		_, err := store.engine.Insert(lock)
+		_, err := store.db.NewInsert().Model(lock).Exec(context.Background())
 		assert.NoError(t, err)
 	}
 

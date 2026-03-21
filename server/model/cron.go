@@ -18,23 +18,26 @@ import (
 	"fmt"
 
 	"github.com/gdgvda/cron"
+	"github.com/uptrace/bun"
 )
 
 type Cron struct {
-	ID        int64  `json:"id"         xorm:"pk autoincr 'id'"`
-	Name      string `json:"name"       xorm:"name UNIQUE(s) INDEX"`
-	RepoID    int64  `json:"repo_id"    xorm:"repo_id UNIQUE(s) INDEX"`
-	CreatorID int64  `json:"creator_id" xorm:"creator_id INDEX"`
-	NextExec  int64  `json:"next_exec"  xorm:"next_exec"`
-	Schedule  string `json:"schedule"   xorm:"schedule NOT NULL"` //	@weekly,	3min, ...
-	Created   int64  `json:"created"    xorm:"created NOT NULL DEFAULT 0"`
-	Branch    string `json:"branch"     xorm:"branch"`
-	FailCount int    `json:"fail_count" xorm:"fail_count NOT NULL DEFAULT 0"`
-	FailMsg   string `json:"fail_msg"   xorm:"fail_msg TEXT"`
-	Disabled  bool   `json:"disabled"   xorm:"disabled NOT NULL DEFAULT false"`
+	bun.BaseModel `bun:"table:crons"`
+
+	ID        int64  `json:"id"         bun:"id,pk,autoincrement"`
+	Name      string `json:"name"       bun:"name,unique:s"`
+	RepoID    int64  `json:"repo_id"    bun:"repo_id,unique:s"`
+	CreatorID int64  `json:"creator_id" bun:"creator_id"`
+	NextExec  int64  `json:"next_exec"  bun:"next_exec"`
+	Schedule  string `json:"schedule"   bun:"schedule,notnull"`
+	Created   int64  `json:"created"    bun:"created,notnull,default:0"`
+	Branch    string `json:"branch"     bun:"branch"`
+	FailCount int    `json:"fail_count" bun:"fail_count,notnull,default:0"`
+	FailMsg   string `json:"fail_msg"   bun:"fail_msg,type:text"`
+	Disabled  bool   `json:"disabled"   bun:"disabled,notnull,default:false"`
 } //	@name	Cron
 
-// TableName returns the database table name for xorm.
+// TableName returns the database table name.
 func (Cron) TableName() string {
 	return "crons"
 }

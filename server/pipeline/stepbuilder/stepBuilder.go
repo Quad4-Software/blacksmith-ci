@@ -164,7 +164,7 @@ func (b *StepBuilder) Build() (items []*Item, errorsAndWarnings error) {
 			workflow := &model.Workflow{
 				PID:          pidSequence,
 				State:        model.StatusPending,
-				Environ:      axis,
+				Environ:      model.JSONMapStringString(axis),
 				Name:         workflowName,
 				PipelineName: pipelineName,
 			}

@@ -133,7 +133,7 @@ func Test_gitea(t *testing.T) {
 		assert.NotNil(t, b)
 		assert.NoError(t, err)
 		assert.Equal(t, model.EventPull, b.Event)
-		assert.Equal(t, []string{"README.md"}, b.ChangedFiles)
+		assert.EqualValues(t, []string{"README.md"}, b.ChangedFiles)
 	})
 }
 

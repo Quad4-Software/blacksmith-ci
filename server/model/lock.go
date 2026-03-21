@@ -14,14 +14,18 @@
 
 package model
 
+import "github.com/uptrace/bun"
+
 // DistributedLock represents a distributed lock for coordinating operations
 // across multiple server instances in HA deployments.
 type DistributedLock struct {
-	ID         int64  `json:"id"          xorm:"pk autoincr 'id'"`
-	Name       string `json:"name"        xorm:"UNIQUE NOT NULL 'name'"`
-	InstanceID string `json:"instance_id" xorm:"NOT NULL 'instance_id'"`
-	AcquiredAt int64  `json:"acquired_at" xorm:"'acquired_at'"`
-	ExpiresAt  int64  `json:"expires_at"  xorm:"'expires_at'"`
+	bun.BaseModel `bun:"table:distributed_locks"`
+
+	ID         int64  `json:"id"          bun:"id,pk,autoincrement"`
+	Name       string `json:"name"        bun:"name,unique,notnull"`
+	InstanceID string `json:"instance_id" bun:"instance_id,notnull"`
+	AcquiredAt int64  `json:"acquired_at" bun:"acquired_at"`
+	ExpiresAt  int64  `json:"expires_at"  bun:"expires_at"`
 } //	@name	DistributedLock
 
 // TableName returns the table name for DistributedLock.

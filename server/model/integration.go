@@ -19,6 +19,8 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+
+	"github.com/uptrace/bun"
 )
 
 // Integration errors.
@@ -78,29 +80,31 @@ type IntegrationStore interface {
 
 // Integration represents an external secret store integration.
 type Integration struct {
-	ID          int64           `json:"id"           xorm:"pk autoincr 'id'"`
-	UserID      int64           `json:"user_id"      xorm:"NOT NULL INDEX 'user_id'"`
-	Name        string          `json:"name"         xorm:"NOT NULL VARCHAR(255) 'name'"`
-	Type        IntegrationType `json:"type"         xorm:"NOT NULL VARCHAR(50) 'type'"`
-	Description string          `json:"description"  xorm:"TEXT 'description'"`
+	bun.BaseModel `bun:"table:integrations"`
+
+	ID          int64           `json:"id"           bun:"id,pk,autoincrement"`
+	UserID      int64           `json:"user_id"      bun:"user_id,notnull"`
+	Name        string          `json:"name"         bun:"name,notnull,type:varchar(255)"`
+	Type        IntegrationType `json:"type"         bun:"type,notnull,type:varchar(50)"`
+	Description string          `json:"description"  bun:"description,type:text"`
 
 	// Configuration (provider-specific, encrypted in storage)
-	Config string `json:"config,omitempty" xorm:"TEXT 'config'"`
+	Config string `json:"config,omitempty" bun:"config,type:text"`
 
 	// Access Control - who can use this integration
-	AllowedUserIDs []int64 `json:"allowed_user_ids" xorm:"json 'allowed_user_ids'"`
-	AllowedOrgIDs  []int64 `json:"allowed_org_ids"  xorm:"json 'allowed_org_ids'"`
-	AllowedRepoIDs []int64 `json:"allowed_repo_ids" xorm:"json 'allowed_repo_ids'"`
+	AllowedUserIDs JSONSliceInt64 `json:"allowed_user_ids" bun:"allowed_user_ids,type:text"`
+	AllowedOrgIDs  JSONSliceInt64 `json:"allowed_org_ids"  bun:"allowed_org_ids,type:text"`
+	AllowedRepoIDs JSONSliceInt64 `json:"allowed_repo_ids" bun:"allowed_repo_ids,type:text"`
 
 	// Status
-	IsActive bool `json:"is_active" xorm:"DEFAULT true 'is_active'"`
+	IsActive bool `json:"is_active" bun:"is_active,default:true"`
 
 	// Metadata
-	CreatedAt int64 `json:"created_at" xorm:"created"`
-	UpdatedAt int64 `json:"updated_at" xorm:"updated"`
+	CreatedAt int64 `json:"created_at" bun:",nullzero"`
+	UpdatedAt int64 `json:"updated_at" bun:",nullzero"`
 } //	@name	Integration
 
-// TableName returns the database table name for xorm.
+// TableName returns the database table name.
 func (Integration) TableName() string {
 	return "integrations"
 }

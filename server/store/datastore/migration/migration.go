@@ -16,190 +16,148 @@ package migration
 
 import (
 	"context"
+	"database/sql"
+	_ "embed"
 	"fmt"
-	"reflect"
+	"strings"
 
 	"github.com/rs/zerolog/log"
-	"src.techknowlogick.com/xormigrate"
-	"xorm.io/xorm"
-
-	"codefloe.com/crowci/crow/v5/server/model"
 )
 
-// migrationTasks contains all database migrations in execution order.
-// They are executed sequentially and if one fails, xormigrate will try to rollback
-// that specific migration and exit.
-//
-// ADDING NEW MIGRATIONS:
-// 1. Create a new file: NNN_crow_description.go (e.g., 043_crow_new_feature.go)
-// 2. Use the "crow-" prefix for the migration ID to avoid conflicts with Woodpecker:
-//
-//	var crowNewFeature = xormigrate.Migration{
-//	    ID: "crow-new-feature",
-//	    MigrateSession: func(sess *xorm.Session) error {
-//	        // migration logic
-//	        return nil
-//	    },
-//	}
-//
-// 3. Add the migration to this slice below.
-// 4. Update constants.go crowMigrations list with the new ID.
-var migrationTasks = []*xormigrate.Migration{
-	&legacyToXormigrate,
-	&addOrgID,
-	&alterTableTasksUpdateColumnTaskDataType,
-	&alterTableConfigUpdateColumnConfigDataType,
-	&removePluginOnlyOptionFromSecretsTable,
-	&convertToNewPipelineErrorFormat,
-	&renameLinkToURL,
-	&cleanRegistryPipeline,
-	&setForgeID,
-	&unifyColumnsTables,
-	&alterTableRegistriesFixRequiredFields,
-	&cronWithoutSec,
-	&renameStartEndTime,
-	&fixV31Registries,
-	&removeOldMigrationsOfV1,
-	&addOrgAgents,
-	&addCustomLabelsToAgent,
-	&splitTrusted,
-	&correctPotentialCorruptOrgsUsersRelation,
-	&gatedToRequireApproval,
-	&removeRepoNetrcOnlyTrusted,
-	&renameTokenFields,
-	&setNewDefaultsForRequireApproval,
-	&removeRepoScm,
-	&unsanitizeOrgAndUserNames,
-	&addLogsDeletedToPipelines,
-	&addLogsKeepToRepos,
-	&replaceZeroForgeIDsInOrgs,
-	&addDependsOnToSteps,
-	&addWorkflowFields,
-	&addMaintenanceTables,
-	&addDistributedLocks,
-	&addPubSubMessages,
-	&addCacheEntries,
-	&addKubernetesMaintenanceActions,
-	&addDryRunToMaintenanceConfig,
-	&addPriorityToAgents,
-	&addStaleAgentCleanup,
-	&addResourceLimitsToAgents,
-	&addWorkflowPollingHealthToAgents,
-	&addAutoscalers,
-	&addUserDescriptionTimezone,
-	&addSecretSource,
-	&addTimestamps,
-	&addAccessTokens,
-	&addAgentPersistentID,
-	&crowAddDeployTeamToRepos,
-	&crowAddIntegrations,
-	&crowAddAgentHostname,
-	&crowAddUserForges,
-	&crowAddForgeIcon,
-	&crowAddForgeToRepoUnique,
-	&crowAddAllowManualToRepos,
-	&crowAddWorkflowRerunFields,
-	&crowAddApprovedPullRequests,
-	&crowAddStaleThreshold,
-	&crowAddCronFailureTracking,
-	&crowAddNotificationConfigs,
-	&crowAddAutoscalerPendingSince,
-}
+//go:embed baseline_schema.sql
+var baselineSchema string
 
-var allBeans = []any{
-	new(model.Agent),
-	new(model.Pipeline),
-	new(model.PipelineConfig),
-	new(model.Config),
-	new(model.LogEntry),
-	new(model.Perm),
-	new(model.Step),
-	new(model.Registry),
-	new(model.Repo),
-	new(model.Secret),
-	new(model.Task),
-	new(model.User),
-	new(model.ServerConfig),
-	new(model.Cron),
-	new(model.Redirection),
-	new(model.Forge),
-	new(model.Workflow),
-	new(model.Org),
-	new(model.MaintenanceConfig),
-	new(model.MaintenanceStats),
-	new(model.MaintenanceLog),
-	new(model.DistributedLock),
-	new(model.DistributedMessage),
-	new(model.CacheEntry),
-	new(model.Autoscaler),
-	new(model.AccessToken),
-	new(model.Integration),
-	new(model.UserForge),
-	new(model.ApprovedPullRequest),
-	new(model.NotificationConfig),
-}
+// allLegacyMigrationIDs contains the IDs of all migrations that existed before
+// the switch to the Bun-based migration runner. For fresh databases, the baseline
+// schema is used instead and these IDs are marked as applied.
+var allLegacyMigrationIDs = append(
+	append([]string{"SCHEMA_INIT"}, sharedMigrations[1:]...), // skip duplicate "SCHEMA_INIT" if present
+	crowMigrations...,
+)
 
-// TODO: make xormigrate context aware
-func Migrate(_ context.Context, e *xorm.Engine, allowLong bool) error {
-	e.SetDisableGlobalCache(true)
+// Migrate runs all pending database migrations.
+// For fresh databases, it creates the full schema from the baseline DDL.
+// For existing databases, it runs only new migrations that haven't been applied yet.
+func Migrate(_ context.Context, db *sql.DB, _ string, _ bool) error {
+	r := newRunner(db)
 
-	m := xormigrate.New(e, migrationTasks)
-	m.AllowLong(allowLong)
-
-	oldExist, err := e.IsTableExist("migrations")
-	if err != nil {
-		return err
+	if r.isFreshDatabase() {
+		log.Info().Msg("fresh database detected, creating baseline schema")
+		if err := r.ensureMigrationsTable(); err != nil {
+			return fmt.Errorf("ensure migrations table: %w", err)
+		}
+		if err := execStatements(db, baselineSchema); err != nil {
+			return fmt.Errorf("create baseline schema: %w", err)
+		}
+		if err := r.markApplied(allLegacyMigrationIDs); err != nil {
+			return fmt.Errorf("mark legacy migrations: %w", err)
+		}
+		log.Info().Msg("baseline schema created successfully")
+		return nil
 	}
 
-	oldEmpty := false
-	if oldExist {
-		oldEmpty, err = e.IsTableEmpty("migrations")
-		if err != nil {
+	// Ensure the new "migrations" table exists
+	if err := r.ensureMigrationsTable(); err != nil {
+		return fmt.Errorf("ensure migrations table: %w", err)
+	}
+
+	// Migrate entries from the legacy "migration" table (xormigrate) to
+	// the new "migrations" table, if the legacy table exists.
+	if err := r.migrateLegacyTable(); err != nil {
+		return fmt.Errorf("migrate legacy migration table: %w", err)
+	}
+
+	// For existing databases, detect origin and log info
+	migrationInfo, err := detectDatabaseOriginSQL(db)
+	if err != nil {
+		log.Warn().Err(err).Msg("could not detect database origin")
+	} else {
+		logMigrationInfo(migrationInfo)
+	}
+
+	// Check that all legacy migrations have been applied.
+	// If not, the user needs to first upgrade to the last XORM-based release (v5.6)
+	// which will run the legacy migrations, then upgrade to this version.
+	if migrationInfo != nil {
+		if err := checkLegacyMigrationsComplete(migrationInfo); err != nil {
 			return err
 		}
 	}
 
-	if !oldExist || oldEmpty {
-		// allow new schema initialization if old migrations table is empty or it does not exist (err != nil)
-		// schema initialization will always run if we call `InitSchema`
-		m.InitSchema(func(_ *xorm.Engine) error {
-			// do nothing on schema init, models are synced in any case below
-			return nil
-		})
+	// Run any new migrations (added after the baseline).
+	// To add a new migration, append it to this slice.
+	newMigrations := []*migration{
+		// Example:
+		// {ID: "crow-add-new-feature", Migrate: func(tx *sql.Tx) error {
+		//     _, err := tx.Exec("ALTER TABLE repos ADD COLUMN new_col TEXT")
+		//     return err
+		// }},
 	}
 
-	m.SetLogger(&xormigrateLogger{})
-
-	// Detect database origin (Woodpecker vs Crow) and log migration info
-	migrationInfo, err := detectDatabaseOrigin(e)
-	if err != nil {
-		return fmt.Errorf("failed to detect database origin: %w", err)
-	}
-	logMigrationInfo(migrationInfo)
-
-	if err := m.Migrate(); err != nil {
-		return err
-	}
-
-	// Log completion message for Woodpecker migrations
-	if migrationInfo.IsFirstCrowMigration {
-		log.Info().Msg("Successfully migrated Woodpecker database to Crow. Your data has been preserved.")
-	}
-
-	e.SetDisableGlobalCache(false)
-
-	if err := syncAll(e); err != nil {
-		return fmt.Errorf("msg: %w", err)
+	if len(newMigrations) > 0 {
+		if err := r.run(newMigrations); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-func syncAll(sess *xorm.Engine) error {
-	for _, bean := range allBeans {
-		if err := sess.Sync(bean); err != nil {
-			return fmt.Errorf("sync error '%s': %w", reflect.TypeOf(bean), err)
+// checkLegacyMigrationsComplete verifies that all legacy migrations have been applied.
+// If any are missing, the user must first upgrade to v5.6 (the last XORM-based release)
+// before upgrading to this version.
+func checkLegacyMigrationsComplete(info *MigrationInfo) error {
+	applied := make(map[string]bool, len(info.AppliedMigrations))
+	for _, id := range info.AppliedMigrations {
+		applied[id] = true
+	}
+
+	var missing []string
+	for _, id := range allLegacyMigrationIDs {
+		if !applied[id] {
+			missing = append(missing, id)
+		}
+	}
+
+	if len(missing) > 0 {
+		log.Error().
+			Strs("missing_migrations", missing).
+			Msg("Database has unapplied legacy migrations. " +
+				"Please first upgrade to Crow v5.6, run the server once to apply all migrations, " +
+				"then upgrade to this version.")
+		return fmt.Errorf("database has %d unapplied legacy migrations — upgrade to v5.6 first", len(missing))
+	}
+
+	return nil
+}
+
+// execStatements splits SQL by semicolons and executes each statement.
+// Comment-only lines (starting with --) within a statement are stripped.
+func execStatements(db *sql.DB, rawSQL string) error {
+	for _, segment := range strings.Split(rawSQL, ";") {
+		// Strip comment lines
+		var lines []string
+		for _, line := range strings.Split(segment, "\n") {
+			trimmed := strings.TrimSpace(line)
+			if trimmed != "" && !strings.HasPrefix(trimmed, "--") {
+				lines = append(lines, line)
+			}
+		}
+		stmt := strings.TrimSpace(strings.Join(lines, "\n"))
+		if stmt == "" {
+			continue
+		}
+		if _, err := db.Exec(stmt); err != nil {
+			const truncLen = 80
+			return fmt.Errorf("exec %q: %w", truncate(stmt, truncLen), err)
 		}
 	}
 	return nil
+}
+
+func truncate(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	return s[:n] + "..."
 }

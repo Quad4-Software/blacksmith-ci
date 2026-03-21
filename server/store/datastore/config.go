@@ -15,42 +15,42 @@
 package datastore
 
 import (
+	"context"
 	"crypto/sha256"
 	"errors"
 	"fmt"
 
-	"xorm.io/builder"
-	"xorm.io/xorm"
+	"github.com/uptrace/bun"
 
 	"codefloe.com/crowci/crow/v5/server/model"
 	"codefloe.com/crowci/crow/v5/server/store/types"
 )
 
 func (s storage) ConfigsForPipeline(pipelineID int64) ([]*model.Config, error) {
+	ctx := context.Background()
 	configs := make([]*model.Config, 0, perPage)
 
-	// Check if the pipeline_configs table exists
-	hasTable, err := s.engine.IsTableExist("pipeline_configs")
-	if err != nil {
-		return nil, fmt.Errorf("error checking if pipeline_configs table exists: %w", err)
-	}
-
-	if !hasTable {
-		return nil, fmt.Errorf("pipeline_configs table does not exist - pipeline configurations cannot be retrieved")
-	}
-
-	return configs, s.engine.
-		Table("configs").
-		Join("LEFT", "pipeline_configs", "configs.id = pipeline_configs.config_id").
+	// Check if the pipeline_configs table exists by attempting the query
+	// If the table doesn't exist, the query will fail
+	err := s.db.NewSelect().
+		Model(&configs).
+		Join("LEFT JOIN pipeline_configs ON config.id = pipeline_configs.config_id").
 		Where("pipeline_configs.pipeline_id = ?", pipelineID).
-		Find(&configs)
+		Scan(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error querying pipeline configs: %w", err)
+	}
+
+	return configs, nil
 }
 
-func (s storage) configFindIdentical(sess *xorm.Session, repoID int64, hash, name string) (*model.Config, error) {
+func (s storage) configFindIdentical(ctx context.Context, db bun.IDB, repoID int64, hash, name string) (*model.Config, error) {
 	conf := new(model.Config)
-	if err := wrapGet(sess.Where(
-		builder.Eq{"repo_id": repoID, "hash": hash, "name": name},
-	).Get(conf)); err != nil {
+	if err := wrapGet(db.NewSelect().Model(conf).
+		Where("repo_id = ?", repoID).
+		Where("hash = ?", hash).
+		Where("name = ?", name).
+		Scan(ctx)); err != nil {
 		return nil, err
 	}
 	return conf, nil
@@ -59,28 +59,29 @@ func (s storage) configFindIdentical(sess *xorm.Session, repoID int64, hash, nam
 func (s storage) ConfigPersist(conf *model.Config) (*model.Config, error) {
 	conf.Hash = fmt.Sprintf("%x", sha256.Sum256(conf.Data))
 
-	sess := s.engine.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return nil, err
-	}
+	var result *model.Config
+	err := s.db.RunInTx(context.Background(), nil, func(ctx context.Context, tx bun.Tx) error {
+		existingConfig, err := s.configFindIdentical(ctx, tx, conf.RepoID, conf.Hash, conf.Name)
+		if err != nil && !errors.Is(err, types.RecordNotExist) {
+			return err
+		}
+		if existingConfig != nil {
+			result = existingConfig
+			return nil
+		}
 
-	existingConfig, err := s.configFindIdentical(sess, conf.RepoID, conf.Hash, conf.Name)
-	if err != nil && !errors.Is(err, types.RecordNotExist) {
-		return nil, err
-	}
-	if existingConfig != nil {
-		return existingConfig, nil
-	}
+		if err := s.configCreate(ctx, tx, conf); err != nil {
+			return err
+		}
 
-	if err := s.configCreate(sess, conf); err != nil {
-		return nil, err
-	}
+		result = conf
+		return nil
+	})
 
-	return conf, sess.Commit()
+	return result, err
 }
 
-func (s storage) configCreate(sess *xorm.Session, config *model.Config) error {
+func (s storage) configCreate(ctx context.Context, db bun.IDB, config *model.Config) error {
 	// should never happen but just in case
 	if config.Name == "" {
 		return fmt.Errorf("insert config to store failed: 'Name' has to be set")
@@ -90,12 +91,12 @@ func (s storage) configCreate(sess *xorm.Session, config *model.Config) error {
 	}
 
 	// only Insert set auto created ID back to object
-	_, err := sess.Insert(config)
+	_, err := db.NewInsert().Model(config).Exec(ctx)
 	return err
 }
 
 func (s storage) PipelineConfigCreate(config *model.PipelineConfig) error {
 	// only Insert set auto created ID back to object
-	_, err := s.engine.Insert(config)
+	_, err := s.db.NewInsert().Model(config).Exec(context.Background())
 	return err
 }

@@ -16,106 +16,111 @@ package migration
 
 import (
 	"database/sql"
-	"os"
-	"slices"
 	"testing"
-	"time"
 
-	// Blank imports to register the sql drivers.
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/jackc/pgx/v5/stdlib"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
-	"xorm.io/xorm"
-	"xorm.io/xorm/schemas"
+	"github.com/stretchr/testify/require"
 )
 
-//nolint:gochecknoinits
-func init() {
-	// Check if already registered to avoid panic if another driver claims this name.
-	if !slices.Contains(sql.Drivers(), "postgres") {
-		sql.Register("postgres", stdlib.GetDefaultDriver())
+func TestMigrate_FreshDatabase(t *testing.T) {
+	db, err := sql.Open("sqlite3", ":memory:")
+	require.NoError(t, err)
+	defer db.Close()
+	db.SetMaxOpenConns(1) // SQLite in-memory requires single connection
+
+	err = Migrate(t.Context(), db, "sqlite3", true)
+	require.NoError(t, err)
+
+	// Verify that baseline tables were created
+	tables := []string{
+		"users", "repos", "pipelines", "workflows", "steps", "tasks",
+		"log_entries", "configs", "pipeline_configs", "secrets", "registries",
+		"perms", "agents", "autoscalers", "crons", "orgs", "forges",
+		"server_configs", "access_tokens", "integrations", "notification_configs",
+		"approved_pull_requests", "distributed_locks", "pubsub_messages",
+		"cache_entries", "maintenance_config", "user_forges", "redirections",
 	}
+	for _, table := range tables {
+		var count int
+		err := db.QueryRow("SELECT COUNT(*) FROM " + table).Scan(&count)
+		assert.NoError(t, err, "table %s should exist", table)
+	}
+
+	// Verify all legacy migration IDs were marked as applied
+	var migrationCount int
+	err = db.QueryRow("SELECT COUNT(*) FROM migrations").Scan(&migrationCount)
+	require.NoError(t, err)
+	assert.Greater(t, migrationCount, 0, "legacy migrations should be marked as applied")
 }
 
-const (
-	sqliteDB = "./test-files/sqlite.db"
-)
+func TestMigrate_LegacyXormTable(t *testing.T) {
+	db, err := sql.Open("sqlite3", ":memory:")
+	require.NoError(t, err)
+	defer db.Close()
+	db.SetMaxOpenConns(1)
 
-func testDriver() string {
-	driver := os.Getenv("CROW_DATABASE_DRIVER")
-	if len(driver) == 0 {
-		return "sqlite3"
+	// Simulate an XORM-based database: legacy "migration" table (singular),
+	// no "migrations" table, and existing data tables.
+	_, err = db.Exec(`CREATE TABLE migration (id TEXT NULL)`)
+	require.NoError(t, err)
+	for _, id := range allLegacyMigrationIDs {
+		_, err = db.Exec("INSERT INTO migration (id) VALUES (?)", id)
+		require.NoError(t, err)
 	}
-	return driver
+	// Create a data table to simulate existing database
+	_, err = db.Exec(`CREATE TABLE users (id INTEGER PRIMARY KEY)`)
+	require.NoError(t, err)
+	_, err = db.Exec(`INSERT INTO users (id) VALUES (1)`)
+	require.NoError(t, err)
+
+	// isFreshDatabase must return false
+	r := newRunner(db)
+	assert.False(t, r.isFreshDatabase(), "database with legacy migration table should not be detected as fresh")
+
+	// Migrate should succeed and copy legacy entries to the new table
+	err = Migrate(t.Context(), db, "sqlite3", true)
+	require.NoError(t, err)
+
+	// Verify entries were copied to the new "migrations" table
+	var count int
+	err = db.QueryRow("SELECT COUNT(*) FROM migrations").Scan(&count)
+	require.NoError(t, err)
+	assert.Equal(t, len(allLegacyMigrationIDs), count)
 }
 
-func createSQLiteDB(t *testing.T) string {
-	tmpF, err := os.CreateTemp("./test-files", "tmp_")
-	if !assert.NoError(t, err) {
-		t.FailNow()
-	}
-	dbF, err := os.ReadFile(sqliteDB)
-	if !assert.NoError(t, err) {
-		t.FailNow()
+func TestMigrate_ExistingDatabase_AllLegacyApplied(t *testing.T) {
+	db, err := sql.Open("sqlite3", ":memory:")
+	require.NoError(t, err)
+	defer db.Close()
+	db.SetMaxOpenConns(1)
+
+	// Simulate an existing database with ALL legacy migrations applied
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS migrations (id TEXT NULL)`)
+	require.NoError(t, err)
+	for _, id := range allLegacyMigrationIDs {
+		_, err = db.Exec("INSERT INTO migrations (id) VALUES (?)", id)
+		require.NoError(t, err)
 	}
 
-	if !assert.NoError(t, os.WriteFile(tmpF.Name(), dbF, 0o644)) {
-		t.FailNow()
-	}
-	return tmpF.Name()
+	err = Migrate(t.Context(), db, "sqlite3", true)
+	require.NoError(t, err)
 }
 
-func testDB(t *testing.T, initNewDB bool) (engine *xorm.Engine, closeDB func()) {
-	driver := testDriver()
-	var err error
-	closeDB = func() {}
-	switch driver {
-	case "sqlite3":
-		config := ":memory:"
-		if !initNewDB {
-			config = createSQLiteDB(t)
-			closeDB = func() {
-				_ = os.Remove(config)
-			}
-		}
-		engine, err = xorm.NewEngine(driver, config)
-		if !assert.NoError(t, err) {
-			t.FailNow()
-		}
-		return engine, closeDB
-	case "mysql", "postgres":
-		config := os.Getenv("CROW_DATABASE_DATASOURCE")
-		if !initNewDB {
-			t.Logf("do not have dump to test against")
-			t.SkipNow()
-		}
-		engine, err = xorm.NewEngine(driver, config)
-		if !assert.NoError(t, err) {
-			t.FailNow()
-		}
-		return engine, closeDB
-	default:
-		t.Errorf("unsupported driver: %s", driver)
-		t.FailNow()
-	}
-	return engine, closeDB
-}
+func TestMigrate_ExistingDatabase_IncompleteLegacy(t *testing.T) {
+	db, err := sql.Open("sqlite3", ":memory:")
+	require.NoError(t, err)
+	defer db.Close()
+	db.SetMaxOpenConns(1)
 
-func TestMigrate(t *testing.T) {
-	// init new db
-	engine, closeDB := testDB(t, true)
-	assert.NoError(t, Migrate(t.Context(), engine, true))
-	closeDB()
+	// Simulate a database with only some legacy migrations applied
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS migrations (id TEXT NULL)`)
+	require.NoError(t, err)
+	_, err = db.Exec("INSERT INTO migrations (id) VALUES (?)", "legacy-to-xormigrate")
+	require.NoError(t, err)
 
-	dbType := engine.Dialect().URI().DBType
-	if dbType == schemas.MYSQL || dbType == schemas.POSTGRES {
-		// wait for mysql/postgres to sync ...
-		time.Sleep(100 * time.Millisecond)
-	}
-
-	// migrate old db
-	engine, closeDB = testDB(t, false)
-	assert.NoError(t, Migrate(t.Context(), engine, true))
-	closeDB()
+	// Should fail with an error telling the user to upgrade to v5.6 first
+	err = Migrate(t.Context(), db, "sqlite3", true)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "upgrade to v5.6 first")
 }

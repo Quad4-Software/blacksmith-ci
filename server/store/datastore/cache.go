@@ -15,41 +15,44 @@
 package datastore
 
 import (
+	"context"
+	"database/sql"
+	"errors"
+
 	"codefloe.com/crowci/crow/v5/server/model"
 )
 
 // CacheGet retrieves a cache entry by key.
 func (s *storage) CacheGet(key string) (*model.CacheEntry, error) {
 	entry := &model.CacheEntry{}
-	has, err := s.engine.Where("key = ?", key).Get(entry)
+	err := s.db.NewSelect().Model(entry).Where("\"key\" = ?", key).Scan(context.Background())
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrCacheNotFound
+		}
 		return nil, err
-	}
-	if !has {
-		return nil, ErrCacheNotFound
 	}
 	return entry, nil
 }
 
 // CacheSet stores a cache entry.
 func (s *storage) CacheSet(entry *model.CacheEntry) error {
-	// Use INSERT OR REPLACE to handle both insert and update
-	_, err := s.engine.Insert(entry)
+	// Try insert first; if duplicate key, update instead
+	_, err := s.db.NewInsert().Model(entry).Exec(context.Background())
 	if err != nil {
-		// If insert fails due to duplicate key, update instead
-		_, err = s.engine.Where("key = ?", entry.Key).Update(entry)
+		_, err = s.db.NewUpdate().Model(entry).Where("\"key\" = ?", entry.Key).Exec(context.Background())
 	}
 	return err
 }
 
 // CacheDelete removes a cache entry.
 func (s *storage) CacheDelete(key string) error {
-	_, err := s.engine.Where("key = ?", key).Delete(&model.CacheEntry{})
+	_, err := s.db.NewDelete().Model((*model.CacheEntry)(nil)).Where("\"key\" = ?", key).Exec(context.Background())
 	return err
 }
 
 // CacheCleanupExpired removes expired cache entries.
 func (s *storage) CacheCleanupExpired(cutoff int64) error {
-	_, err := s.engine.Where("expires_at < ?", cutoff).Delete(&model.CacheEntry{})
+	_, err := s.db.NewDelete().Model((*model.CacheEntry)(nil)).Where("expires_at < ?", cutoff).Exec(context.Background())
 	return err
 }

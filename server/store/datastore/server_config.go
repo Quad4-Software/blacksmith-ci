@@ -14,11 +14,17 @@
 
 package datastore
 
-import "codefloe.com/crowci/crow/v5/server/model"
+import (
+	"context"
+
+	"github.com/uptrace/bun"
+
+	"codefloe.com/crowci/crow/v5/server/model"
+)
 
 func (s storage) ServerConfigGet(key string) (string, error) {
 	config := new(model.ServerConfig)
-	err := wrapGet(s.engine.ID(key).Get(config))
+	err := wrapGet(s.db.NewSelect().Model(config).Where("\"key\" = ?", key).Scan(context.Background()))
 	if err != nil {
 		return "", err
 	}
@@ -27,39 +33,26 @@ func (s storage) ServerConfigGet(key string) (string, error) {
 }
 
 func (s storage) ServerConfigSet(key, value string) error {
-	config := &model.ServerConfig{
-		Key: key,
-	}
+	return s.db.RunInTx(context.Background(), nil, func(ctx context.Context, tx bun.Tx) error {
+		count, err := tx.NewSelect().Model((*model.ServerConfig)(nil)).Where("\"key\" = ?", key).Count(ctx)
+		if err != nil {
+			return err
+		}
 
-	sess := s.engine.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+		config := &model.ServerConfig{
+			Key:   key,
+			Value: value,
+		}
+
+		if count == 0 {
+			_, err = tx.NewInsert().Model(config).Exec(ctx)
+		} else {
+			_, err = tx.NewUpdate().Model(config).Column("value").Where("\"key\" = ?", key).Exec(ctx)
+		}
 		return err
-	}
-
-	count, err := sess.Count(config)
-	if err != nil {
-		return err
-	}
-
-	config.Value = value
-
-	if count == 0 {
-		_, err = sess.Insert(config)
-	} else {
-		_, err = sess.Where("`key` = ?", config.Key).Cols("value").Update(config)
-	}
-	if err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	})
 }
 
 func (s storage) ServerConfigDelete(key string) error {
-	config := &model.ServerConfig{
-		Key: key,
-	}
-
-	return wrapDelete(s.engine.Delete(config))
+	return wrapDelete(s.db.NewDelete().Model((*model.ServerConfig)(nil)).Where("\"key\" = ?", key).Exec(context.Background()))
 }

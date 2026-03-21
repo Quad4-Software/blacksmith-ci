@@ -15,74 +15,77 @@
 package datastore
 
 import (
-	"xorm.io/builder"
+	"context"
+
+	"github.com/uptrace/bun"
 
 	"codefloe.com/crowci/crow/v5/server/model"
 )
 
-const orderSecretsBy = "name"
+const orderSecretsBy = "name ASC"
 
 func (s storage) SecretFind(repo *model.Repo, name string) (*model.Secret, error) {
 	secret := new(model.Secret)
-	return secret, wrapGet(s.engine.Where(
-		builder.Eq{"repo_id": repo.ID, "name": name},
-	).Get(secret))
+	return secret, wrapGet(s.db.NewSelect().Model(secret).
+		Where("repo_id = ? AND name = ?", repo.ID, name).
+		Scan(context.Background()))
 }
 
 func (s storage) SecretList(repo *model.Repo, includeGlobalAndOrgSecrets bool, p *model.ListOptions) ([]*model.Secret, error) {
 	var secrets []*model.Secret
-	var cond builder.Cond = builder.Eq{"repo_id": repo.ID}
+	q := s.db.NewSelect().Model(&secrets)
 	if includeGlobalAndOrgSecrets {
-		cond = cond.Or(builder.Eq{"org_id": repo.OrgID}).
-			Or(builder.And(builder.Eq{"org_id": 0}, builder.Eq{"repo_id": 0}))
+		q = q.Where("repo_id = ? OR org_id = ? OR (org_id = 0 AND repo_id = 0)", repo.ID, repo.OrgID)
+	} else {
+		q = q.Where("repo_id = ?", repo.ID)
 	}
-	return secrets, s.paginate(p).Where(cond).OrderBy(orderSecretsBy).Find(&secrets)
+	return secrets, s.paginate(q.Order(orderSecretsBy), p).Scan(context.Background())
 }
 
 func (s storage) SecretListAll() ([]*model.Secret, error) {
 	var secrets []*model.Secret
-	return secrets, s.engine.Find(&secrets)
+	return secrets, s.db.NewSelect().Model(&secrets).Scan(context.Background())
 }
 
 func (s storage) SecretCreate(secret *model.Secret) error {
 	// only Insert set auto created ID back to object
-	_, err := s.engine.Insert(secret)
+	_, err := s.db.NewInsert().Model(secret).Exec(context.Background())
 	return err
 }
 
 func (s storage) SecretUpdate(secret *model.Secret) error {
-	_, err := s.engine.ID(secret.ID).AllCols().Update(secret)
+	_, err := s.db.NewUpdate().Model(secret).WherePK().Exec(context.Background())
 	return err
 }
 
 func (s storage) SecretDelete(secret *model.Secret) error {
-	return wrapDelete(s.engine.ID(secret.ID).Delete(new(model.Secret)))
+	return wrapDelete(s.db.NewDelete().Model((*model.Secret)(nil)).Where("id = ?", secret.ID).Exec(context.Background()))
 }
 
 func (s storage) OrgSecretFind(orgID int64, name string) (*model.Secret, error) {
 	secret := new(model.Secret)
-	return secret, wrapGet(s.engine.Where(
-		builder.Eq{"org_id": orgID, "name": name},
-	).Get(secret))
+	return secret, wrapGet(s.db.NewSelect().Model(secret).
+		Where("org_id = ? AND name = ?", orgID, name).
+		Scan(context.Background()))
 }
 
 func (s storage) OrgSecretList(orgID int64, p *model.ListOptions) ([]*model.Secret, error) {
 	secrets := make([]*model.Secret, 0)
-	return secrets, s.paginate(p).Where("org_id = ?", orgID).OrderBy(orderSecretsBy).Find(&secrets)
+	return secrets, s.paginate(s.db.NewSelect().Model(&secrets).Where("org_id = ?", orgID).Order(orderSecretsBy), p).Scan(context.Background())
 }
 
 func (s storage) GlobalSecretFind(name string) (*model.Secret, error) {
 	secret := new(model.Secret)
-	return secret, wrapGet(s.engine.Where(
-		builder.Eq{"org_id": 0, "repo_id": 0, "name": name},
-	).Get(secret))
+	return secret, wrapGet(s.db.NewSelect().Model(secret).
+		Where("org_id = 0 AND repo_id = 0 AND name = ?", name).
+		Scan(context.Background()))
 }
 
 func (s storage) GlobalSecretList(p *model.ListOptions) ([]*model.Secret, error) {
 	secrets := make([]*model.Secret, 0)
-	return secrets, s.paginate(p).Where(
-		builder.Eq{"org_id": 0, "repo_id": 0},
-	).OrderBy(orderSecretsBy).Find(&secrets)
+	return secrets, s.paginate(s.db.NewSelect().Model(&secrets).
+		Where("org_id = 0 AND repo_id = 0").
+		Order(orderSecretsBy), p).Scan(context.Background())
 }
 
 func (s storage) UserSecretList(orgIDs []int64, repoIDs []int64, includeGlobal bool, searchTerm string, p *model.ListOptions) ([]*model.Secret, error) {
@@ -92,46 +95,26 @@ func (s storage) UserSecretList(orgIDs []int64, repoIDs []int64, includeGlobal b
 		return secrets, nil
 	}
 
-	// Build the main condition for org, repo, and global secrets
-	var scopeConds []builder.Cond
+	q := s.db.NewSelect().Model(&secrets)
 
-	if len(orgIDs) > 0 {
-		// Org-level secrets: org_id IN (orgIDs) AND repo_id = 0
-		scopeConds = append(scopeConds, builder.And(
-			builder.In("org_id", orgIDs),
-			builder.Eq{"repo_id": 0},
-		))
-	}
-
-	if len(repoIDs) > 0 {
-		// Repo-level secrets: repo_id IN (repoIDs)
-		scopeConds = append(scopeConds, builder.In("repo_id", repoIDs))
-	}
-
-	if includeGlobal {
-		// Global secrets: org_id = 0 AND repo_id = 0
-		scopeConds = append(scopeConds, builder.And(
-			builder.Eq{"org_id": 0},
-			builder.Eq{"repo_id": 0},
-		))
-	}
-
-	// Combine scope conditions with OR
-	var cond builder.Cond
-	if len(scopeConds) == 1 {
-		cond = scopeConds[0]
-	} else if len(scopeConds) > 1 {
-		cond = builder.Or(scopeConds...)
-	}
+	// Build the scope condition as a WhereGroup so all parts are OR'd together
+	q = q.WhereGroup(" AND ", func(sq *bun.SelectQuery) *bun.SelectQuery {
+		if len(orgIDs) > 0 {
+			sq = sq.WhereOr("(org_id IN (?) AND repo_id = 0)", bun.List(orgIDs))
+		}
+		if len(repoIDs) > 0 {
+			sq = sq.WhereOr("repo_id IN (?)", bun.List(repoIDs))
+		}
+		if includeGlobal {
+			sq = sq.WhereOr("(org_id = 0 AND repo_id = 0)")
+		}
+		return sq
+	})
 
 	// Add search filter if provided
-	if searchTerm != "" && cond != nil {
-		cond = builder.And(cond, builder.Like{"name", "%" + searchTerm + "%"})
+	if searchTerm != "" {
+		q = q.Where("name LIKE ?", "%"+searchTerm+"%")
 	}
 
-	if cond == nil {
-		return secrets, nil
-	}
-
-	return secrets, s.paginate(p).Where(cond).OrderBy(orderSecretsBy).Find(&secrets)
+	return secrets, s.paginate(q.Order(orderSecretsBy), p).Scan(context.Background())
 }

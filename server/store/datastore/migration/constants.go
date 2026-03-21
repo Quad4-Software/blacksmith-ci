@@ -57,12 +57,7 @@ var sharedMigrations = []string{
 // maintenance system, autoscalers, etc.
 //
 // When adding new migrations, use the "crow-" prefix to avoid future
-// conflicts with Woodpecker migrations:
-//
-//	var crowNewFeature = xormigrate.Migration{
-//		ID: "crow-new-feature",
-//		// ...
-//	}
+// conflicts with Woodpecker migrations.
 var crowMigrations = []string{
 	"add-depends-on-to-steps",
 	"add-workflow-fields",

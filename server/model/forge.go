@@ -14,6 +14,8 @@
 
 package model
 
+import "github.com/uptrace/bun"
+
 type ForgeType string
 
 const (
@@ -27,18 +29,20 @@ const (
 )
 
 type Forge struct {
-	ID                int64          `json:"id"                           xorm:"pk autoincr 'id'"`
-	Type              ForgeType      `json:"type"                         xorm:"VARCHAR(250)"`
-	URL               string         `json:"url"                          xorm:"VARCHAR(500) 'url'"`
-	Client            string         `json:"client,omitempty"             xorm:"VARCHAR(250)"`
-	ClientSecret      string         `json:"-"                            xorm:"VARCHAR(250)"` // do not expose client secret
-	SkipVerify        bool           `json:"skip_verify,omitempty"        xorm:"bool"`
-	OAuthHost         string         `json:"oauth_host,omitempty"         xorm:"VARCHAR(250) 'oauth_host'"` // public url for oauth if different from url
-	Icon              string         `json:"icon,omitempty"               xorm:"VARCHAR(250)"`              // custom icon name (e.g., "codeberg", "github", or URL to custom icon)
-	AdditionalOptions map[string]any `json:"additional_options,omitempty" xorm:"json"`
+	bun.BaseModel `bun:"table:forges"`
+
+	ID                int64            `json:"id"                           bun:"id,pk,autoincrement"`
+	Type              ForgeType        `json:"type"                         bun:"type,type:varchar(250)"`
+	URL               string           `json:"url"                          bun:"url,type:varchar(500)"`
+	Client            string           `json:"client,omitempty"             bun:"client,type:varchar(250)"`
+	ClientSecret      string           `json:"-"                            bun:"client_secret,type:varchar(250)"`
+	SkipVerify        bool             `json:"skip_verify,omitempty"        bun:"skip_verify"`
+	OAuthHost         string           `json:"oauth_host,omitempty"         bun:"oauth_host,type:varchar(250)"`
+	Icon              string           `json:"icon,omitempty"               bun:"icon,type:varchar(250)"`
+	AdditionalOptions JSONMapStringAny `json:"additional_options,omitempty" bun:"additional_options,type:text"`
 } //	@name	Forge
 
-// TableName returns the database table name for xorm.
+// TableName returns the database table name.
 func (Forge) TableName() string {
 	return "forges"
 }

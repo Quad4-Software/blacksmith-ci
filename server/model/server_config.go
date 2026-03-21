@@ -14,13 +14,17 @@
 
 package model
 
+import "github.com/uptrace/bun"
+
 // ServerConfig represents a key-value pair for storing server configurations.
 type ServerConfig struct {
-	Key   string `json:"key"   xorm:"pk 'key'"`
-	Value string `json:"value" xorm:"value"`
+	bun.BaseModel `bun:"table:server_configs"`
+
+	Key   string `json:"key"   bun:"key,pk"`
+	Value string `json:"value" bun:"value"`
 }
 
-// TableName return database table name for xorm.
+// TableName returns the database table name.
 func (ServerConfig) TableName() string {
 	return "server_configs"
 }

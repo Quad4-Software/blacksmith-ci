@@ -15,31 +15,31 @@
 package datastore
 
 import (
-	"xorm.io/builder"
-	"xorm.io/xorm"
+	"context"
+
+	"github.com/uptrace/bun"
 
 	"codefloe.com/crowci/crow/v5/server/model"
 )
 
-func (s storage) getRedirection(e *xorm.Session, fullName string) (*model.Redirection, error) {
+func (s storage) getRedirection(ctx context.Context, db bun.IDB, fullName string) (*model.Redirection, error) {
 	repo := new(model.Redirection)
-	return repo, wrapGet(e.Where("repo_full_name = ?", fullName).Get(repo))
+	return repo, wrapGet(db.NewSelect().Model(repo).Where("repo_full_name = ?", fullName).Scan(ctx))
 }
 
 func (s storage) CreateRedirection(redirect *model.Redirection) error {
-	sess := s.engine.NewSession()
-	defer sess.Close()
-	return s.createRedirection(sess, redirect)
+	return s.createRedirection(context.Background(), s.db, redirect)
 }
 
-func (s storage) createRedirection(e *xorm.Session, redirect *model.Redirection) error {
+func (s storage) createRedirection(ctx context.Context, db bun.IDB, redirect *model.Redirection) error {
 	// only Insert set auto created ID back to object
-	_, err := e.Insert(redirect)
+	_, err := db.NewInsert().Model(redirect).Exec(ctx)
 	return err
 }
 
 func (s storage) HasRedirectionForRepo(repoID int64, fullName string) (bool, error) {
-	return s.engine.Where(
-		builder.Eq{"repo_id": repoID, "repo_full_name": fullName},
-	).Exist(new(model.Redirection))
+	return s.db.NewSelect().Model((*model.Redirection)(nil)).
+		Where("repo_id = ?", repoID).
+		Where("repo_full_name = ?", fullName).
+		Exists(context.Background())
 }

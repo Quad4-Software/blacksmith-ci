@@ -17,17 +17,33 @@
 package datastore
 
 import (
-	"xorm.io/xorm"
+	"database/sql"
+
+	"github.com/uptrace/bun"
+	"github.com/uptrace/bun/dialect/mysqldialect"
+	"github.com/uptrace/bun/dialect/pgdialect"
 
 	"codefloe.com/crowci/crow/v5/server/store"
 )
 
-// configureEngine applies driver-specific configuration.
+// newBunDB creates a *bun.DB with the appropriate dialect for the driver.
+func newBunDB(sqldb *sql.DB, driver string) *bun.DB {
+	switch driver {
+	case DriverMysql:
+		return bun.NewDB(sqldb, mysqldialect.New())
+	case DriverPostgres:
+		return bun.NewDB(sqldb, pgdialect.New())
+	default:
+		return bun.NewDB(sqldb, pgdialect.New())
+	}
+}
+
+// configureSQL applies driver-specific configuration.
 // For non-CGO builds (no SQLite support), just apply standard connection settings.
-func configureEngine(engine *xorm.Engine, opts *store.Opts) error {
-	engine.SetMaxOpenConns(opts.XORM.MaxOpenConns)
-	engine.SetMaxIdleConns(opts.XORM.MaxIdleConns)
-	engine.SetConnMaxLifetime(opts.XORM.ConnMaxLifetime)
+func configureSQL(sqldb *sql.DB, opts *store.Opts) error {
+	sqldb.SetMaxOpenConns(opts.DB.MaxOpenConns)
+	sqldb.SetMaxIdleConns(opts.DB.MaxIdleConns)
+	sqldb.SetConnMaxLifetime(opts.DB.ConnMaxLifetime)
 
 	return nil
 }

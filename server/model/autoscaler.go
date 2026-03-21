@@ -19,32 +19,35 @@ import (
 	"time"
 
 	"github.com/tink-crypto/tink-go/v2/subtle/random"
+	"github.com/uptrace/bun"
 )
 
 // Autoscaler represents an autoscaler instance that provisions agents on demand.
 type Autoscaler struct {
-	ID                int64             `json:"id"                    xorm:"pk autoincr 'id'"`
-	Created           int64             `json:"created"               xorm:"created"`
-	Updated           int64             `json:"updated"               xorm:"updated"`
-	Name              string            `json:"name"                  xorm:"UNIQUE NOT NULL 'name'"`
-	Token             string            `json:"-"                     xorm:"token"` // Authentication token (excluded from JSON)
-	OwnerID           int64             `json:"owner_id"              xorm:"'owner_id'"`
-	LastContact       int64             `json:"last_contact"          xorm:"last_contact"`
-	MinAgents         int32             `json:"min_agents"            xorm:"'min_agents'"`
-	MaxAgents         int32             `json:"max_agents"            xorm:"'max_agents'"`
-	WorkflowsPerAgent int32             `json:"workflows_per_agent"   xorm:"'workflows_per_agent'"`
-	Provider          string            `json:"provider"              xorm:"VARCHAR(50) 'provider'"`
-	InstanceType      string            `json:"instance_type"         xorm:"VARCHAR(100) 'instance_type'"`
-	Region            string            `json:"region"                xorm:"VARCHAR(100) 'region'"`
-	AgentLabels       map[string]string `json:"agent_labels"          xorm:"JSON 'agent_labels'"`
-	LimitCPUQuota     string            `json:"limit_cpu_quota"       xorm:"VARCHAR(50) 'limit_cpu_quota'"`
-	LimitMem          string            `json:"limit_mem"             xorm:"VARCHAR(50) 'limit_mem'"`
-	Enabled           bool              `json:"enabled"               xorm:"DEFAULT true 'enabled'"`
-	Version           string            `json:"version"               xorm:"'version'"`
-	ActiveAgents      int32             `json:"active_agents"         xorm:"'active_agents'"`
-	PendingAgents     int32             `json:"pending_agents"        xorm:"'pending_agents'"`
-	PendingSince      int64             `json:"pending_since"         xorm:"'pending_since'"`
-	OrgID             int64             `json:"org_id"                xorm:"INDEX 'org_id'"`
+	bun.BaseModel `bun:"table:autoscalers"`
+
+	ID                int64               `json:"id"                    bun:"id,pk,autoincrement"`
+	Created           int64               `json:"created"               bun:",nullzero"`
+	Updated           int64               `json:"updated"               bun:",nullzero"`
+	Name              string              `json:"name"                  bun:"name,unique,notnull"`
+	Token             string              `json:"-"                     bun:"token"`
+	OwnerID           int64               `json:"owner_id"              bun:"owner_id"`
+	LastContact       int64               `json:"last_contact"          bun:"last_contact"`
+	MinAgents         int32               `json:"min_agents"            bun:"min_agents"`
+	MaxAgents         int32               `json:"max_agents"            bun:"max_agents"`
+	WorkflowsPerAgent int32               `json:"workflows_per_agent"   bun:"workflows_per_agent"`
+	Provider          string              `json:"provider"              bun:"provider,type:varchar(50)"`
+	InstanceType      string              `json:"instance_type"         bun:"instance_type,type:varchar(100)"`
+	Region            string              `json:"region"                bun:"region,type:varchar(100)"`
+	AgentLabels       JSONMapStringString `json:"agent_labels"          bun:"agent_labels,type:text"`
+	LimitCPUQuota     string              `json:"limit_cpu_quota"       bun:"limit_cpu_quota,type:varchar(50)"`
+	LimitMem          string              `json:"limit_mem"             bun:"limit_mem,type:varchar(50)"`
+	Enabled           bool                `json:"enabled"               bun:"enabled,default:true"`
+	Version           string              `json:"version"               bun:"version"`
+	ActiveAgents      int32               `json:"active_agents"         bun:"active_agents"`
+	PendingAgents     int32               `json:"pending_agents"        bun:"pending_agents"`
+	PendingSince      int64               `json:"pending_since"         bun:"pending_since"`
+	OrgID             int64               `json:"org_id"                bun:"org_id"`
 } //	@name	Autoscaler
 
 const (
@@ -70,7 +73,7 @@ type AutoscalerListOptions struct {
 	Order    string // Sort order: asc or desc
 }
 
-// TableName returns the database table name for xorm.
+// TableName returns the database table name.
 func (Autoscaler) TableName() string {
 	return "autoscalers"
 }

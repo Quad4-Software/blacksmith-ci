@@ -15,6 +15,7 @@
 package datastore
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -64,7 +65,7 @@ func TestConfig(t *testing.T) {
 		},
 	))
 
-	foundConfig, err := store.configFindIdentical(store.engine.NewSession(), repo.ID, hash, name)
+	foundConfig, err := store.configFindIdentical(context.Background(), store.db, repo.ID, hash, name)
 	assert.NoError(t, err)
 	assert.EqualValues(t, config, foundConfig)
 
@@ -95,14 +96,14 @@ func TestConfigPersist(t *testing.T) {
 	conf1secondInsert, err := store.ConfigPersist(conf1)
 	assert.NoError(t, err)
 	assert.EqualValues(t, conf1, conf1secondInsert)
-	count, err := store.engine.Count(new(model.Config))
+	count, err := store.db.NewSelect().Model((*model.Config)(nil)).Count(context.Background())
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, count)
 
 	newConf2, err := store.ConfigPersist(conf2)
 	assert.NoError(t, err)
 	assert.EqualValues(t, "66f28f8d487a48aacf29d9feea13b0ab5dbb5025296b77a6addde93efcc4d82b", newConf2.Hash)
-	count, err = store.engine.Count(new(model.Config))
+	count, err = store.db.NewSelect().Model((*model.Config)(nil)).Count(context.Background())
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, count)
 
@@ -114,7 +115,7 @@ func TestConfigPersist(t *testing.T) {
 		Name:   "some other",
 	})
 	assert.NoError(t, err)
-	count, err = store.engine.Count(new(model.Config))
+	count, err = store.db.NewSelect().Model((*model.Config)(nil)).Count(context.Background())
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, count)
 }

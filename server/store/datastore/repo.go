@@ -15,12 +15,12 @@
 package datastore
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
 
-	"xorm.io/builder"
-	"xorm.io/xorm"
+	"github.com/uptrace/bun"
 
 	"codefloe.com/crowci/crow/v5/server/model"
 	"codefloe.com/crowci/crow/v5/server/store/types"
@@ -28,46 +28,44 @@ import (
 
 func (s storage) GetRepo(id int64) (*model.Repo, error) {
 	repo := new(model.Repo)
-	return repo, wrapGet(s.engine.ID(id).Get(repo))
+	return repo, wrapGet(s.db.NewSelect().Model(repo).Where("id = ?", id).Scan(context.Background()))
 }
 
 func (s storage) GetRepoForgeID(remoteID model.ForgeRemoteID) (*model.Repo, error) {
-	sess := s.engine.NewSession()
-	defer sess.Close()
-	return s.getRepoForgeID(sess, remoteID)
+	return s.getRepoForgeID(context.Background(), s.db, remoteID)
 }
 
-func (s storage) getRepoForgeID(e *xorm.Session, remoteID model.ForgeRemoteID) (*model.Repo, error) {
+func (s storage) getRepoForgeID(ctx context.Context, db bun.IDB, remoteID model.ForgeRemoteID) (*model.Repo, error) {
 	repo := new(model.Repo)
-	return repo, wrapGet(e.Where("forge_remote_id = ?", remoteID).Get(repo))
+	return repo, wrapGet(db.NewSelect().Model(repo).Where("forge_remote_id = ?", remoteID).Scan(ctx))
 }
 
 func (s storage) GetRepoByForgeAndRemoteID(forgeID int64, remoteID model.ForgeRemoteID) (*model.Repo, error) {
 	repo := new(model.Repo)
-	return repo, wrapGet(s.engine.Where("forge_id = ? AND forge_remote_id = ?", forgeID, remoteID).Get(repo))
+	return repo, wrapGet(s.db.NewSelect().Model(repo).
+		Where("forge_id = ?", forgeID).
+		Where("forge_remote_id = ?", remoteID).
+		Scan(context.Background()))
 }
 
 func (s storage) GetRepoNameFallback(remoteID model.ForgeRemoteID, fullName string) (*model.Repo, error) {
-	sess := s.engine.NewSession()
-	defer sess.Close()
-	return s.getRepoNameFallback(sess, remoteID, fullName)
+	return s.getRepoNameFallback(context.Background(), s.db, remoteID, fullName)
 }
 
-func (s storage) getRepoNameFallback(e *xorm.Session, remoteID model.ForgeRemoteID, fullName string) (*model.Repo, error) {
-	repo, err := s.getRepoForgeID(e, remoteID)
+func (s storage) getRepoNameFallback(ctx context.Context, db bun.IDB, remoteID model.ForgeRemoteID, fullName string) (*model.Repo, error) {
+	repo, err := s.getRepoForgeID(ctx, db, remoteID)
 	if errors.Is(err, types.RecordNotExist) {
-		return s.getRepoName(e, fullName)
+		return s.getRepoName(ctx, db, fullName)
 	}
 	return repo, err
 }
 
 func (s storage) GetRepoName(fullName string) (*model.Repo, error) {
-	sess := s.engine.NewSession()
-	defer sess.Close()
-	repo, err := s.getRepoName(sess, fullName)
+	ctx := context.Background()
+	repo, err := s.getRepoName(ctx, s.db, fullName)
 	if errors.Is(err, types.RecordNotExist) {
 		// the repository does not exist, so look for a redirection
-		redirect, err := s.getRedirection(sess, fullName)
+		redirect, err := s.getRedirection(ctx, s.db, fullName)
 		if err != nil {
 			return nil, err
 		}
@@ -76,13 +74,14 @@ func (s storage) GetRepoName(fullName string) (*model.Repo, error) {
 	return repo, err
 }
 
-func (s storage) getRepoName(e *xorm.Session, fullName string) (*model.Repo, error) {
+func (s storage) getRepoName(ctx context.Context, db bun.IDB, fullName string) (*model.Repo, error) {
 	repo := new(model.Repo)
-	return repo, wrapGet(e.Where("LOWER(full_name) = ?", strings.ToLower(fullName)).Get(repo))
+	return repo, wrapGet(db.NewSelect().Model(repo).Where("LOWER(full_name) = ?", strings.ToLower(fullName)).Scan(ctx))
 }
 
 func (s storage) GetRepoCount() (int64, error) {
-	return s.engine.Where(builder.Eq{"active": true}).Count(new(model.Repo))
+	n, err := s.db.NewSelect().Model((*model.Repo)(nil)).Where("active = ?", true).Count(context.Background())
+	return int64(n), err
 }
 
 func (s storage) CreateRepo(repo *model.Repo) error {
@@ -95,19 +94,20 @@ func (s storage) CreateRepo(repo *model.Repo) error {
 		return fmt.Errorf("repo full name is empty")
 	}
 	// only Insert set auto created ID back to object
-	_, err := s.engine.Insert(repo)
+	_, err := s.db.NewInsert().Model(repo).Exec(context.Background())
 	return err
 }
 
 func (s storage) UpdateRepo(repo *model.Repo) error {
-	affected, err := s.engine.ID(repo.ID).AllCols().Update(repo)
+	res, err := s.db.NewUpdate().Model(repo).WherePK().Exec(context.Background())
 	if err != nil {
 		return fmt.Errorf("update repo %d failed: %w", repo.ID, err)
 	}
 	// MySQL without clientFoundRows=true returns 0 if no values actually changed,
 	// even if the row exists. Verify the row exists before erroring.
+	affected, _ := res.RowsAffected()
 	if affected == 0 {
-		exists, err := s.engine.ID(repo.ID).Exist(new(model.Repo))
+		exists, err := s.db.NewSelect().Model((*model.Repo)(nil)).Where("id = ?", repo.ID).Exists(context.Background())
 		if err != nil {
 			return fmt.Errorf("update repo %d failed to verify existence: %w", repo.ID, err)
 		}
@@ -119,31 +119,40 @@ func (s storage) UpdateRepo(repo *model.Repo) error {
 }
 
 func (s storage) DeleteRepo(repo *model.Repo) error {
-	return s.deleteRepo(s.engine.NewSession(), repo)
+	return s.db.RunInTx(context.Background(), nil, func(ctx context.Context, tx bun.Tx) error {
+		return s.deleteRepo(ctx, tx, repo)
+	})
 }
 
-func (s storage) deleteRepo(sess *xorm.Session, repo *model.Repo) error {
+func (s storage) deleteRepo(ctx context.Context, db bun.IDB, repo *model.Repo) error {
 	const batchSize = perPage
-	if _, err := sess.Where("repo_id = ?", repo.ID).Delete(new(model.Config)); err != nil {
+	if _, err := db.NewDelete().Model((*model.Config)(nil)).Where("repo_id = ?", repo.ID).Exec(ctx); err != nil {
 		return err
 	}
-	if _, err := sess.Where("repo_id = ?", repo.ID).Delete(new(model.Perm)); err != nil {
+	if _, err := db.NewDelete().Model((*model.Perm)(nil)).Where("repo_id = ?", repo.ID).Exec(ctx); err != nil {
 		return err
 	}
-	if _, err := sess.Where("repo_id = ?", repo.ID).Delete(new(model.Registry)); err != nil {
+	if _, err := db.NewDelete().Model((*model.Registry)(nil)).Where("repo_id = ?", repo.ID).Exec(ctx); err != nil {
 		return err
 	}
-	if _, err := sess.Where("repo_id = ?", repo.ID).Delete(new(model.Secret)); err != nil {
+	if _, err := db.NewDelete().Model((*model.Secret)(nil)).Where("repo_id = ?", repo.ID).Exec(ctx); err != nil {
 		return err
 	}
-	if _, err := sess.Where("repo_id = ?", repo.ID).Delete(new(model.Redirection)); err != nil {
+	if _, err := db.NewDelete().Model((*model.Redirection)(nil)).Where("repo_id = ?", repo.ID).Exec(ctx); err != nil {
 		return err
 	}
 
 	// delete related pipelines
 	for startPipelines := 0; ; startPipelines += batchSize {
 		pipelineIDs := make([]int64, 0, batchSize)
-		if err := sess.Limit(batchSize, startPipelines).Table("pipelines").Cols("id").Where("repo_id = ?", repo.ID).Find(&pipelineIDs); err != nil {
+		err := db.NewSelect().
+			TableExpr("pipelines").
+			ColumnExpr("id").
+			Where("repo_id = ?", repo.ID).
+			Limit(batchSize).
+			Offset(startPipelines).
+			Scan(ctx, &pipelineIDs)
+		if err != nil {
 			return err
 		}
 		if len(pipelineIDs) == 0 {
@@ -151,63 +160,59 @@ func (s storage) deleteRepo(sess *xorm.Session, repo *model.Repo) error {
 		}
 
 		for i := range pipelineIDs {
-			if err := s.deletePipeline(sess, pipelineIDs[i]); err != nil {
+			if err := s.deletePipeline(ctx, db, pipelineIDs[i]); err != nil {
 				return err
 			}
 		}
 	}
 
-	return wrapDelete(sess.ID(repo.ID).Delete(new(model.Repo)))
+	return wrapDelete(db.NewDelete().Model((*model.Repo)(nil)).Where("id = ?", repo.ID).Exec(ctx))
 }
 
 // RepoList list all repos where permissions for specific user are stored
 // TODO: paginate
 func (s storage) RepoList(user *model.User, owned, active bool) ([]*model.Repo, error) {
 	repos := make([]*model.Repo, 0)
-	sess := s.engine.Table("repos").
-		Join("INNER", "perms", "perms.repo_id = repos.id").
+	q := s.db.NewSelect().Model(&repos).
+		Join("INNER JOIN perms ON perms.repo_id = repo.id").
 		Where("perms.user_id = ?", user.ID)
 	if owned {
-		sess = sess.And(builder.Eq{"perms.push": true}.Or(builder.Eq{"perms.admin": true}))
+		q = q.Where("(perms.push = ? OR perms.admin = ?)", true, true)
 	}
 	if active {
-		sess = sess.And(builder.Eq{"repos.active": true})
+		q = q.Where("repo.active = ?", true)
 	}
-	return repos, sess.
-		Asc("full_name").
-		Find(&repos)
+	return repos, q.
+		Order("full_name ASC").
+		Scan(context.Background())
 }
 
 // RepoListByUserAndForge returns all active repos owned by a user from a specific forge.
 func (s storage) RepoListByUserAndForge(userID, forgeID int64) ([]*model.Repo, error) {
 	repos := make([]*model.Repo, 0)
-	return repos, s.engine.Table("repos").
+	return repos, s.db.NewSelect().Model(&repos).
 		Where("user_id = ?", userID).
-		And("forge_id = ?", forgeID).
-		And("active = ?", true).
-		Asc("full_name").
-		Find(&repos)
+		Where("forge_id = ?", forgeID).
+		Where("active = ?", true).
+		Order("full_name ASC").
+		Scan(context.Background())
 }
 
 // RepoListAll list all repos.
 func (s storage) RepoListAll(active bool, p *model.ListOptions) ([]*model.Repo, error) {
 	repos := make([]*model.Repo, 0)
-	sess := s.paginate(p).Table("repos")
+	q := s.db.NewSelect().Model(&repos)
 	if active {
-		sess = sess.And(builder.Eq{"repos.active": true})
+		q = q.Where("active = ?", true)
 	}
-	return repos, sess.
-		Asc("full_name").
-		Find(&repos)
+	return repos, s.paginate(q.Order("full_name ASC"), p).Scan(context.Background())
 }
 
 // RepoListPublic returns all active public repos for anonymous browsing.
 func (s storage) RepoListPublic(p *model.ListOptions) ([]*model.Repo, error) {
 	repos := make([]*model.Repo, 0)
-	sess := s.paginate(p).Table("repos").
-		Where(builder.Eq{"repos.active": true}).
-		And(builder.Eq{"repos.visibility": model.VisibilityPublic})
-	return repos, sess.
-		Asc("full_name").
-		Find(&repos)
+	q := s.db.NewSelect().Model(&repos).
+		Where("active = ?", true).
+		Where("visibility = ?", model.VisibilityPublic)
+	return repos, s.paginate(q.Order("full_name ASC"), p).Scan(context.Background())
 }

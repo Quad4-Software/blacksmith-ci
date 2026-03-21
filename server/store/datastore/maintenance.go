@@ -44,18 +44,16 @@ func GetMaintenanceSizeInfo() (beforeSize, afterSize, spaceSaved int64) {
 
 // MaintenanceConfigGet returns the vacuum maintenance configuration with runtime flags.
 func (s storage) MaintenanceConfigGet() (*model.MaintenanceConfig, error) {
+	ctx := context.Background()
+
 	// Get both vacuum and kubernetes configs
 	vacuumConfig := &model.MaintenanceConfig{}
-	hasVacuum, err := s.engine.Where("action_type = ?", "vacuum").Get(vacuumConfig)
-	if err != nil {
-		return nil, err
-	}
+	err := s.db.NewSelect().Model(vacuumConfig).Where("action_type = ?", "vacuum").Scan(ctx)
+	hasVacuum := err == nil
 
 	k8sConfig := &model.MaintenanceConfig{}
-	hasK8s, err := s.engine.Where("action_type = ?", "kubernetes_cleanup").Get(k8sConfig)
-	if err != nil {
-		return nil, err
-	}
+	err = s.db.NewSelect().Model(k8sConfig).Where("action_type = ?", "kubernetes_cleanup").Scan(ctx)
+	hasK8s := err == nil
 
 	// If neither exists, create defaults
 	if !hasVacuum && !hasK8s {
@@ -67,7 +65,7 @@ func (s storage) MaintenanceConfigGet() (*model.MaintenanceConfig, error) {
 			Created:    time.Now().Unix(),
 			Updated:    time.Now().Unix(),
 		}
-		if _, err := s.engine.Insert(vacuumConfig); err != nil {
+		if _, err := s.db.NewInsert().Model(vacuumConfig).Exec(ctx); err != nil {
 			log.Error().Err(err).Msg("Failed to create default vacuum config")
 		}
 
@@ -80,7 +78,7 @@ func (s storage) MaintenanceConfigGet() (*model.MaintenanceConfig, error) {
 			Created:    time.Now().Unix(),
 			Updated:    time.Now().Unix(),
 		}
-		if _, err := s.engine.Insert(k8sConfig); err != nil {
+		if _, err := s.db.NewInsert().Model(k8sConfig).Exec(ctx); err != nil {
 			log.Error().Err(err).Msg("Failed to create default kubernetes config")
 		}
 	}
@@ -116,59 +114,55 @@ func (s storage) MaintenanceConfigGet() (*model.MaintenanceConfig, error) {
 
 // MaintenanceConfigGetByActionType returns config for a specific action type.
 func (s storage) MaintenanceConfigGetByActionType(actionType string) (*model.MaintenanceConfig, error) {
+	ctx := context.Background()
 	config := &model.MaintenanceConfig{}
-	has, err := s.engine.Where("action_type = ?", actionType).Get(config)
-	if err != nil {
+	err := s.db.NewSelect().Model(config).Where("action_type = ?", actionType).Scan(ctx)
+	if err == nil {
+		return config, nil
+	}
+
+	// Record not found — create default config for this action type
+	defaultConfig := &model.MaintenanceConfig{
+		ActionType: actionType,
+		Created:    time.Now().Unix(),
+		Updated:    time.Now().Unix(),
+	}
+
+	switch actionType {
+	case "vacuum":
+		defaultConfig.Enabled = true
+		defaultConfig.Schedule = "0 5 * * *" // Daily at 5 AM
+	case "kubernetes_cleanup":
+		defaultConfig.Enabled = false
+		defaultConfig.Schedule = "0 5 * * *" // Daily at 5 AM
+		defaultConfig.DryRun = false
+	case "stale_agent_cleanup":
+		defaultConfig.Enabled = true
+		defaultConfig.Schedule = "0 5 * * *" // Daily at 5 AM
+	case "docker_cleanup":
+		defaultConfig.Enabled = false
+		defaultConfig.Schedule = "0 */1 * * *" // Hourly
+		defaultConfig.StaleThreshold = 3600    // 1 hour
+	}
+
+	// Use Insert with unique constraint handling to avoid race conditions
+	// If another instance already created it, just fetch and return
+	if _, err := s.db.NewInsert().Model(defaultConfig).Exec(ctx); err != nil {
+		// If insert failed due to unique constraint, try to fetch again
+		config = &model.MaintenanceConfig{}
+		if fetchErr := s.db.NewSelect().Model(config).Where("action_type = ?", actionType).Scan(ctx); fetchErr == nil {
+			return config, nil
+		}
+		// If still not found, return the original error
 		return nil, err
 	}
-
-	if !has {
-		// Create default config for this action type
-		defaultConfig := &model.MaintenanceConfig{
-			ActionType: actionType,
-			Created:    time.Now().Unix(),
-			Updated:    time.Now().Unix(),
-		}
-
-		switch actionType {
-		case "vacuum":
-			defaultConfig.Enabled = true
-			defaultConfig.Schedule = "0 5 * * *" // Daily at 5 AM
-		case "kubernetes_cleanup":
-			defaultConfig.Enabled = false
-			defaultConfig.Schedule = "0 5 * * *" // Daily at 5 AM
-			defaultConfig.DryRun = false
-		case "stale_agent_cleanup":
-			defaultConfig.Enabled = true
-			defaultConfig.Schedule = "0 5 * * *" // Daily at 5 AM
-		case "docker_cleanup":
-			defaultConfig.Enabled = false
-			defaultConfig.Schedule = "0 */1 * * *" // Hourly
-			defaultConfig.StaleThreshold = 3600    // 1 hour
-		}
-
-		// Use InsertOne with unique constraint handling to avoid race conditions
-		// If another instance already created it, just fetch and return
-		if _, err := s.engine.Insert(defaultConfig); err != nil {
-			// If insert failed due to unique constraint, try to fetch again
-			has, err = s.engine.Where("action_type = ?", actionType).Get(config)
-			if err != nil {
-				return nil, err
-			}
-			if has {
-				return config, nil
-			}
-			// If still not found, return the original error
-			return nil, err
-		}
-		return defaultConfig, nil
-	}
-
-	return config, nil
+	return defaultConfig, nil
 }
 
 // MaintenanceConfigUpdate updates or creates the maintenance configuration.
 func (s storage) MaintenanceConfigUpdate(config *model.MaintenanceConfig) error {
+	ctx := context.Background()
+
 	log.Info().
 		Bool("incoming_enabled", config.Enabled).
 		Str("incoming_schedule", config.Schedule).
@@ -176,10 +170,8 @@ func (s storage) MaintenanceConfigUpdate(config *model.MaintenanceConfig) error 
 
 	// Get existing config - there should only be one after merging
 	existing := &model.MaintenanceConfig{}
-	has, err := s.engine.Get(existing)
-	if err != nil {
-		return err
-	}
+	err := s.db.NewSelect().Model(existing).Limit(1).Scan(ctx)
+	has := err == nil
 
 	if has {
 		log.Info().Msg("Store: Found existing config")
@@ -197,8 +189,12 @@ func (s storage) MaintenanceConfigUpdate(config *model.MaintenanceConfig) error 
 			Msg("Store: About to update config")
 
 		// Update only the vacuum-related columns
-		affected, err := s.engine.ID(existing.ID).Cols("enabled", "schedule", "updated").Update(config)
+		res, err := s.db.NewUpdate().Model(config).
+			Column("enabled", "schedule", "updated").
+			Where("id = ?", existing.ID).
+			Exec(ctx)
 
+		affected, _ := res.RowsAffected()
 		log.Info().
 			Int64("affected_rows", affected).
 			Err(err).
@@ -207,7 +203,7 @@ func (s storage) MaintenanceConfigUpdate(config *model.MaintenanceConfig) error 
 		// Verify the update by reading back
 		if err == nil {
 			verified := &model.MaintenanceConfig{}
-			if _, verifyErr := s.engine.ID(existing.ID).Get(verified); verifyErr == nil {
+			if verifyErr := s.db.NewSelect().Model(verified).Where("id = ?", existing.ID).Scan(ctx); verifyErr == nil {
 				log.Info().
 					Bool("verified_enabled", verified.Enabled).
 					Str("verified_schedule", verified.Schedule).
@@ -220,12 +216,14 @@ func (s storage) MaintenanceConfigUpdate(config *model.MaintenanceConfig) error 
 
 	log.Info().Msg("Store: Creating new config")
 	// Create new config
-	_, err = s.engine.Insert(config)
+	_, err = s.db.NewInsert().Model(config).Exec(ctx)
 	return err
 }
 
 // MaintenanceConfigUpdateByActionType updates config for a specific action type.
 func (s storage) MaintenanceConfigUpdateByActionType(actionType string, updates *model.MaintenanceConfig) error {
+	ctx := context.Background()
+
 	log.Info().
 		Str("action_type", actionType).
 		Bool("enabled", updates.Enabled).
@@ -234,10 +232,8 @@ func (s storage) MaintenanceConfigUpdateByActionType(actionType string, updates 
 
 	// Get existing config for this action type
 	existing := &model.MaintenanceConfig{}
-	has, err := s.engine.Where("action_type = ?", actionType).Get(existing)
-	if err != nil {
-		return err
-	}
+	err := s.db.NewSelect().Model(existing).Where("action_type = ?", actionType).Scan(ctx)
+	has := err == nil
 
 	if has {
 		// Update existing config
@@ -260,7 +256,11 @@ func (s storage) MaintenanceConfigUpdateByActionType(actionType string, updates 
 			updateCols = append(updateCols, "total_runs", "successful_runs", "last_run", "last_run_success", "last_run_duration", "last_run_error")
 		}
 
-		affected, err := s.engine.ID(existing.ID).Cols(updateCols...).Update(existing)
+		res, err := s.db.NewUpdate().Model(existing).
+			Column(updateCols...).
+			Where("id = ?", existing.ID).
+			Exec(ctx)
+		affected, _ := res.RowsAffected()
 		log.Info().
 			Str("action_type", actionType).
 			Int64("affected_rows", affected).
@@ -268,37 +268,34 @@ func (s storage) MaintenanceConfigUpdateByActionType(actionType string, updates 
 			Msg("Store: Updated existing config")
 
 		return err
-	} else {
-		// Create new config
-		newConfig := &model.MaintenanceConfig{
-			ActionType: actionType,
-			Enabled:    updates.Enabled,
-			Schedule:   updates.Schedule,
-			DryRun:     updates.DryRun,
-			Created:    time.Now().Unix(),
-			Updated:    time.Now().Unix(),
-		}
-
-		_, err := s.engine.Insert(newConfig)
-		log.Info().
-			Str("action_type", actionType).
-			Err(err).
-			Msg("Store: Created new config")
-
-		return err
 	}
+
+	// Create new config
+	newConfig := &model.MaintenanceConfig{
+		ActionType: actionType,
+		Enabled:    updates.Enabled,
+		Schedule:   updates.Schedule,
+		DryRun:     updates.DryRun,
+		Created:    time.Now().Unix(),
+		Updated:    time.Now().Unix(),
+	}
+
+	_, err = s.db.NewInsert().Model(newConfig).Exec(ctx)
+	log.Info().
+		Str("action_type", actionType).
+		Err(err).
+		Msg("Store: Created new config")
+
+	return err
 }
 
 // MaintenanceStatsGet returns the maintenance statistics.
 func (s storage) MaintenanceStatsGet() (*model.MaintenanceStats, error) {
+	ctx := context.Background()
 	stats := &model.MaintenanceStats{}
 
-	has, err := s.engine.Get(stats)
+	err := s.db.NewSelect().Model(stats).Limit(1).Scan(ctx)
 	if err != nil {
-		return nil, err
-	}
-
-	if !has {
 		// Return default statistics if none exist
 		return &model.MaintenanceStats{
 			TotalRuns:      0,
@@ -311,29 +308,29 @@ func (s storage) MaintenanceStatsGet() (*model.MaintenanceStats, error) {
 
 // MaintenanceStatsUpdate updates or creates the maintenance statistics.
 func (s storage) MaintenanceStatsUpdate(stats *model.MaintenanceStats) error {
+	ctx := context.Background()
+
 	// Check if stats exist
 	existing := &model.MaintenanceStats{}
-	has, err := s.engine.Get(existing)
-	if err != nil {
-		return err
-	}
+	err := s.db.NewSelect().Model(existing).Limit(1).Scan(ctx)
+	has := err == nil
 
 	if has {
 		// Update existing stats
 		stats.ID = existing.ID
 		stats.Created = existing.Created
-		_, err = s.engine.ID(existing.ID).Update(stats)
+		_, err = s.db.NewUpdate().Model(stats).WherePK().Exec(ctx)
 		return err
 	}
 
 	// Create new stats
-	_, err = s.engine.Insert(stats)
+	_, err = s.db.NewInsert().Model(stats).Exec(ctx)
 	return err
 }
 
 // MaintenanceLogCreate creates a new maintenance log entry.
-func (s storage) MaintenanceLogCreate(log *model.MaintenanceLog) error {
-	_, err := s.engine.Insert(log)
+func (s storage) MaintenanceLogCreate(logEntry *model.MaintenanceLog) error {
+	_, err := s.db.NewInsert().Model(logEntry).Exec(context.Background())
 	return err
 }
 
@@ -344,20 +341,20 @@ func (s storage) MaintenanceLogList(limit int) ([]*model.MaintenanceLog, error) 
 	}
 
 	logs := make([]*model.MaintenanceLog, 0)
-	err := s.engine.
-		Desc("run_time").
+	err := s.db.NewSelect().Model(&logs).
+		Order("run_time DESC").
 		Limit(limit).
-		Find(&logs)
+		Scan(context.Background())
 
 	return logs, err
 }
 
 // MaintenanceRun executes database-specific maintenance operations based on the driver.
 func (s storage) MaintenanceRun(ctx context.Context) error {
-	switch s.engine.DriverName() {
-	case "postgres":
+	switch s.driver {
+	case DriverPostgres:
 		return s.maintenanceRunPostgreSQL(ctx)
-	case "mysql":
+	case DriverMysql:
 		return s.maintenanceRunMySQL(ctx)
 	default:
 		return s.maintenanceRunSQLite(ctx)
@@ -368,7 +365,7 @@ func (s storage) MaintenanceRun(ctx context.Context) error {
 func (s storage) maintenanceRunPostgreSQL(ctx context.Context) error {
 	// Get table size before vacuum
 	var beforeSize int64
-	if _, err := s.engine.Context(ctx).SQL("SELECT pg_total_relation_size('log_entries')").Get(&beforeSize); err != nil {
+	if err := s.db.NewRaw("SELECT pg_total_relation_size('log_entries')").Scan(ctx, &beforeSize); err != nil {
 		log.Error().Err(err).Msg("Failed to get PostgreSQL table size before vacuum")
 		beforeSize = 0 // Continue if we can't get size
 	} else {
@@ -376,18 +373,18 @@ func (s storage) maintenanceRunPostgreSQL(ctx context.Context) error {
 	}
 
 	// VACUUM FULL log_entries to reclaim space
-	if _, err := s.engine.Context(ctx).Exec("VACUUM FULL log_entries"); err != nil {
+	if _, err := s.db.ExecContext(ctx, "VACUUM FULL log_entries"); err != nil {
 		return fmt.Errorf("failed to vacuum log_entries table: %w", err)
 	}
 
 	// ANALYZE to update statistics
-	if _, err := s.engine.Context(ctx).Exec("ANALYZE"); err != nil {
+	if _, err := s.db.ExecContext(ctx, "ANALYZE"); err != nil {
 		return fmt.Errorf("failed to analyze tables: %w", err)
 	}
 
 	// Get table size after vacuum
 	var afterSize int64
-	if _, err := s.engine.Context(ctx).SQL("SELECT pg_total_relation_size('log_entries')").Get(&afterSize); err != nil {
+	if err := s.db.NewRaw("SELECT pg_total_relation_size('log_entries')").Scan(ctx, &afterSize); err != nil {
 		log.Error().Err(err).Msg("Failed to get PostgreSQL table size after vacuum")
 		afterSize = 0 // Continue if we can't get size
 	} else {
@@ -421,7 +418,7 @@ func (s storage) maintenanceRunPostgreSQL(ctx context.Context) error {
 func (s storage) maintenanceRunMySQL(ctx context.Context) error {
 	// Get table size before optimize
 	var beforeSize int64
-	if _, err := s.engine.Context(ctx).SQL("SELECT (data_length + index_length) as size FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'log_entries'").Get(&beforeSize); err != nil {
+	if err := s.db.NewRaw("SELECT (data_length + index_length) as size FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'log_entries'").Scan(ctx, &beforeSize); err != nil {
 		log.Error().Err(err).Msg("Failed to get MySQL table size before optimize")
 		beforeSize = 0 // Continue if we can't get size
 	} else {
@@ -429,18 +426,18 @@ func (s storage) maintenanceRunMySQL(ctx context.Context) error {
 	}
 
 	// OPTIMIZE TABLE log_entries
-	if _, err := s.engine.Context(ctx).Exec("OPTIMIZE TABLE log_entries"); err != nil {
+	if _, err := s.db.ExecContext(ctx, "OPTIMIZE TABLE log_entries"); err != nil {
 		return fmt.Errorf("failed to optimize log_entries table: %w", err)
 	}
 
 	// ANALYZE TABLE to update statistics
-	if _, err := s.engine.Context(ctx).Exec("ANALYZE TABLE log_entries"); err != nil {
+	if _, err := s.db.ExecContext(ctx, "ANALYZE TABLE log_entries"); err != nil {
 		return fmt.Errorf("failed to analyze log_entries table: %w", err)
 	}
 
 	// Get table size after optimize
 	var afterSize int64
-	if _, err := s.engine.Context(ctx).SQL("SELECT (data_length + index_length) as size FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'log_entries'").Get(&afterSize); err != nil {
+	if err := s.db.NewRaw("SELECT (data_length + index_length) as size FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'log_entries'").Scan(ctx, &afterSize); err != nil {
 		log.Error().Err(err).Msg("Failed to get MySQL table size after optimize")
 		afterSize = 0 // Continue if we can't get size
 	} else {
@@ -477,8 +474,8 @@ func (s storage) maintenanceRunSQLite(ctx context.Context) error {
 	var pageCount, pageSize int64
 
 	// Try to get page count and page size
-	if _, err := s.engine.Context(ctx).SQL("PRAGMA page_count").Get(&pageCount); err == nil {
-		if _, err := s.engine.Context(ctx).SQL("PRAGMA page_size").Get(&pageSize); err == nil {
+	if err := s.db.NewRaw("PRAGMA page_count").Scan(ctx, &pageCount); err == nil {
+		if err := s.db.NewRaw("PRAGMA page_size").Scan(ctx, &pageSize); err == nil {
 			beforeSize = pageCount * pageSize
 			log.Info().Int64("page_count", pageCount).Int64("page_size", pageSize).Int64("total_size", beforeSize).Msg("SQLite size before vacuum")
 		} else {
@@ -491,12 +488,12 @@ func (s storage) maintenanceRunSQLite(ctx context.Context) error {
 	}
 
 	// VACUUM to reclaim space
-	if _, err := s.engine.Context(ctx).Exec("VACUUM"); err != nil {
+	if _, err := s.db.ExecContext(ctx, "VACUUM"); err != nil {
 		return fmt.Errorf("failed to vacuum database: %w", err)
 	}
 
 	// PRAGMA optimize to update statistics
-	if _, err := s.engine.Context(ctx).Exec("PRAGMA optimize"); err != nil {
+	if _, err := s.db.ExecContext(ctx, "PRAGMA optimize"); err != nil {
 		return fmt.Errorf("failed to optimize database: %w", err)
 	}
 
@@ -505,8 +502,8 @@ func (s storage) maintenanceRunSQLite(ctx context.Context) error {
 	var pageCountAfter, pageSizeAfter int64
 
 	// Try to get page count and page size after vacuum
-	if _, err := s.engine.Context(ctx).SQL("PRAGMA page_count").Get(&pageCountAfter); err == nil {
-		if _, err := s.engine.Context(ctx).SQL("PRAGMA page_size").Get(&pageSizeAfter); err == nil {
+	if err := s.db.NewRaw("PRAGMA page_count").Scan(ctx, &pageCountAfter); err == nil {
+		if err := s.db.NewRaw("PRAGMA page_size").Scan(ctx, &pageSizeAfter); err == nil {
 			afterSize = pageCountAfter * pageSizeAfter
 			log.Info().Int64("page_count", pageCountAfter).Int64("page_size", pageSizeAfter).Int64("total_size", afterSize).Msg("SQLite size after vacuum")
 		} else {

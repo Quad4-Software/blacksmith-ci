@@ -16,6 +16,7 @@
 package datastore
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -26,7 +27,7 @@ import (
 
 func TestStepFind(t *testing.T) {
 	store, closer := newTestStore(t, new(model.Step), new(model.Pipeline))
-	sess := store.engine.NewSession()
+	ctx := context.Background()
 
 	defer closer()
 
@@ -42,10 +43,9 @@ func TestStepFind(t *testing.T) {
 			ExitCode:   255,
 		},
 	}
-	assert.NoError(t, store.stepCreate(sess, steps))
+	assert.NoError(t, store.stepCreate(ctx, store.db, steps))
 	assert.EqualValues(t, 1, steps[0].ID)
-	assert.Error(t, store.stepCreate(sess, steps))
-	assert.NoError(t, sess.Close())
+	assert.Error(t, store.stepCreate(ctx, store.db, steps))
 
 	step, err := store.StepFind(&model.Pipeline{ID: 1000}, 1)
 	if !assert.NoError(t, err) {
@@ -58,8 +58,8 @@ func TestStepChild(t *testing.T) {
 	store, closer := newTestStore(t, new(model.Step), new(model.Pipeline))
 	defer closer()
 
-	sess := store.engine.NewSession()
-	err := store.stepCreate(sess, []*model.Step{
+	ctx := context.Background()
+	err := store.stepCreate(ctx, store.db, []*model.Step{
 		{
 			UUID:       "ea6d4008-8ace-4f8a-ad03-53f1756465d9",
 			PipelineID: 1,
@@ -77,7 +77,7 @@ func TestStepChild(t *testing.T) {
 		},
 	})
 	assert.NoError(t, err)
-	_ = sess.Commit()
+
 	step, err := store.StepChild(&model.Pipeline{ID: 1}, 1, "build")
 	assert.NoError(t, err)
 	assert.Equal(t, 2, step.PID)
@@ -88,8 +88,8 @@ func TestStepList(t *testing.T) {
 	store, closer := newTestStore(t, new(model.Step), new(model.Pipeline))
 	defer closer()
 
-	sess := store.engine.NewSession()
-	err := store.stepCreate(sess, []*model.Step{
+	ctx := context.Background()
+	err := store.stepCreate(ctx, store.db, []*model.Step{
 		{
 			UUID:       "2bf387f7-2913-4907-814c-c9ada88707c0",
 			PipelineID: 2,
@@ -115,7 +115,6 @@ func TestStepList(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	_ = sess.Commit()
 	steps, err := store.StepList(&model.Pipeline{ID: 1})
 	assert.NoError(t, err)
 	assert.Len(t, steps, 2)
@@ -135,9 +134,9 @@ func TestStepUpdate(t *testing.T) {
 		Error:      "pc load letter",
 		ExitCode:   255,
 	}
-	sess := store.engine.NewSession()
-	assert.NoError(t, store.stepCreate(sess, []*model.Step{step}))
-	_ = sess.Commit()
+	ctx := context.Background()
+	assert.NoError(t, store.stepCreate(ctx, store.db, []*model.Step{step}))
+
 	step.State = "running"
 	assert.NoError(t, store.StepUpdate(step))
 	updated, err := store.StepFind(&model.Pipeline{ID: 1}, 1)
@@ -149,10 +148,9 @@ func TestStepIndexes(t *testing.T) {
 	store, closer := newTestStore(t, new(model.Step), new(model.Pipeline))
 	defer closer()
 
-	sess := store.engine.NewSession()
-	defer sess.Close()
+	ctx := context.Background()
 
-	assert.NoError(t, store.stepCreate(sess, []*model.Step{
+	assert.NoError(t, store.stepCreate(ctx, store.db, []*model.Step{
 		{
 			UUID:       "4db7e5fc-5312-4d02-9e14-b51b9e3242cc",
 			PipelineID: 1,
@@ -164,7 +162,7 @@ func TestStepIndexes(t *testing.T) {
 	}))
 
 	// fail due to duplicate pid
-	assert.Error(t, store.stepCreate(sess, []*model.Step{
+	assert.Error(t, store.stepCreate(ctx, store.db, []*model.Step{
 		{
 			UUID:       "c1f33a9e-2a02-4579-95ec-90255d785a12",
 			PipelineID: 1,
@@ -180,8 +178,8 @@ func TestStepByUUID(t *testing.T) {
 	store, closer := newTestStore(t, new(model.Step), new(model.Pipeline))
 	defer closer()
 
-	sess := store.engine.NewSession()
-	assert.NoError(t, store.stepCreate(sess, []*model.Step{
+	ctx := context.Background()
+	assert.NoError(t, store.stepCreate(ctx, store.db, []*model.Step{
 		{
 			UUID:       "4db7e5fc-5312-4d02-9e14-b51b9e3242cc",
 			PipelineID: 1,
@@ -201,7 +199,6 @@ func TestStepByUUID(t *testing.T) {
 			ExitCode:   255,
 		},
 	}))
-	_ = sess.Close()
 
 	step, err := store.StepByUUID("4db7e5fc-5312-4d02-9e14-b51b9e3242cc")
 	assert.NoError(t, err)
@@ -216,8 +213,8 @@ func TestStepLoad(t *testing.T) {
 	store, closer := newTestStore(t, new(model.Step))
 	defer closer()
 
-	sess := store.engine.NewSession()
-	assert.NoError(t, store.stepCreate(sess, []*model.Step{
+	ctx := context.Background()
+	assert.NoError(t, store.stepCreate(ctx, store.db, []*model.Step{
 		{
 			UUID:       "4db7e5fc-5312-4d02-9e14-b51b9e3242cc",
 			PipelineID: 1,
@@ -237,7 +234,6 @@ func TestStepLoad(t *testing.T) {
 			ExitCode:   255,
 		},
 	}))
-	_ = sess.Close()
 
 	step, err := store.StepLoad(1)
 	assert.NoError(t, err)

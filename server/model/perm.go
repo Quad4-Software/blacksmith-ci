@@ -15,20 +15,24 @@
 
 package model
 
+import "github.com/uptrace/bun"
+
 // Perm defines a repository permission for an individual user.
 type Perm struct {
-	UserID  int64 `json:"-"       xorm:"UNIQUE(s) INDEX NOT NULL 'user_id'"`
-	RepoID  int64 `json:"-"       xorm:"UNIQUE(s) INDEX NOT NULL 'repo_id'"`
-	Repo    *Repo `json:"-"       xorm:"-"`
-	Pull    bool  `json:"pull"    xorm:"pull"`
-	Push    bool  `json:"push"    xorm:"push"`
-	Admin   bool  `json:"admin"   xorm:"admin"`
-	Synced  int64 `json:"synced"  xorm:"synced"`
-	Created int64 `json:"created" xorm:"created"`
-	Updated int64 `json:"updated" xorm:"updated"`
+	bun.BaseModel `bun:"table:perms"`
+
+	UserID  int64 `json:"-"       bun:"user_id,notnull,unique:s"`
+	RepoID  int64 `json:"-"       bun:"repo_id,notnull,unique:s"`
+	Repo    *Repo `json:"-"       bun:"-"`
+	Pull    bool  `json:"pull"    bun:"pull"`
+	Push    bool  `json:"push"    bun:"push"`
+	Admin   bool  `json:"admin"   bun:"admin"`
+	Synced  int64 `json:"synced"  bun:"synced"`
+	Created int64 `json:"created" bun:",nullzero"`
+	Updated int64 `json:"updated" bun:",nullzero"`
 } //	@name	Perm
 
-// TableName return database table name for xorm.
+// TableName returns the database table name.
 func (Perm) TableName() string {
 	return "perms"
 }

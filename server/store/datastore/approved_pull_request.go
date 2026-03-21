@@ -15,19 +15,21 @@
 package datastore
 
 import (
+	"context"
+
 	"codefloe.com/crowci/crow/v5/server/model"
 )
 
 func (s storage) ApprovedPullRequestFind(repoID int64, ref string) (*model.ApprovedPullRequest, error) {
 	apr := new(model.ApprovedPullRequest)
-	return apr, wrapGet(s.engine.Where("repo_id = ? AND ref = ?", repoID, ref).Get(apr))
+	return apr, wrapGet(s.db.NewSelect().Model(apr).Where("repo_id = ? AND ref = ?", repoID, ref).Scan(context.Background()))
 }
 
 func (s storage) ApprovedPullRequestCreate(apr *model.ApprovedPullRequest) error {
-	_, err := s.engine.Insert(apr)
+	_, err := s.db.NewInsert().Model(apr).Exec(context.Background())
 	return err
 }
 
 func (s storage) ApprovedPullRequestDelete(repoID int64, ref string) error {
-	return wrapDelete(s.engine.Where("repo_id = ? AND ref = ?", repoID, ref).Delete(new(model.ApprovedPullRequest)))
+	return wrapDelete(s.db.NewDelete().Model((*model.ApprovedPullRequest)(nil)).Where("repo_id = ? AND ref = ?", repoID, ref).Exec(context.Background()))
 }

@@ -15,13 +15,17 @@
 
 package model
 
+import "github.com/uptrace/bun"
+
 // Config represents a pipeline configuration.
 type Config struct {
-	ID     int64  `json:"-"    xorm:"pk autoincr 'id'"`
-	RepoID int64  `json:"-"    xorm:"UNIQUE(s) 'repo_id'"`
-	Hash   string `json:"hash" xorm:"UNIQUE(s) 'hash'"`
-	Name   string `json:"name" xorm:"UNIQUE(s) 'name'"`
-	Data   []byte `json:"data" xorm:"LONGBLOB 'data'"`
+	bun.BaseModel `bun:"table:configs"`
+
+	ID     int64  `json:"-"    bun:"id,pk,autoincrement"`
+	RepoID int64  `json:"-"    bun:"repo_id,unique:s"`
+	Hash   string `json:"hash" bun:"hash,unique:s"`
+	Name   string `json:"name" bun:"name,unique:s"`
+	Data   []byte `json:"data" bun:"data"`
 } //	@name	Config
 
 func (Config) TableName() string {
@@ -30,8 +34,10 @@ func (Config) TableName() string {
 
 // PipelineConfig is the n:n relation between Pipeline and Config.
 type PipelineConfig struct {
-	ConfigID   int64 `json:"-"   xorm:"UNIQUE(s) NOT NULL 'config_id'"`
-	PipelineID int64 `json:"-"   xorm:"UNIQUE(s) NOT NULL 'pipeline_id'"`
+	bun.BaseModel `bun:"table:pipeline_configs"`
+
+	ConfigID   int64 `json:"-"   bun:"config_id,notnull,unique:s"`
+	PipelineID int64 `json:"-"   bun:"pipeline_id,notnull,unique:s"`
 }
 
 func (PipelineConfig) TableName() string {

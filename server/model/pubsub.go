@@ -14,16 +14,20 @@
 
 package model
 
+import "github.com/uptrace/bun"
+
 // DistributedMessage represents a message stored in the database for distributed pub/sub.
 type DistributedMessage struct {
-	ID         string            `json:"id" xorm:"pk 'id'"`
-	Data       []byte            `json:"data" xorm:"LONGBLOB 'data'"`
-	Labels     map[string]string `json:"labels" xorm:"json 'labels'"`
-	CreatedAt  int64             `json:"created_at" xorm:"'created_at'"`
-	InstanceID string            `json:"instance_id" xorm:"'instance_id'"`
+	bun.BaseModel `bun:"table:pubsub_messages"`
+
+	ID         string              `json:"id" bun:"id,pk"`
+	Data       []byte              `json:"data" bun:"data"`
+	Labels     JSONMapStringString `json:"labels" bun:"labels,type:text"`
+	CreatedAt  int64               `json:"created_at" bun:"created_at"`
+	InstanceID string              `json:"instance_id" bun:"instance_id"`
 } //	@name	DistributedMessage
 
-// TableName returns the table name for xorm.
+// TableName returns the database table name.
 func (DistributedMessage) TableName() string {
 	return "pubsub_messages"
 }

@@ -15,102 +15,107 @@
 package datastore
 
 import (
+	"context"
 	"strconv"
 	"time"
 
-	"xorm.io/builder"
-	"xorm.io/xorm"
+	"github.com/uptrace/bun"
 
 	"codefloe.com/crowci/crow/v5/server/model"
 )
 
 func (s storage) GetPipeline(id int64) (*model.Pipeline, error) {
 	pipeline := &model.Pipeline{}
-	return pipeline, wrapGet(s.engine.ID(id).Get(pipeline))
+	return pipeline, wrapGet(s.db.NewSelect().Model(pipeline).Where("id = ?", id).Scan(context.Background()))
 }
 
 func (s storage) GetPipelineNumber(repo *model.Repo, num int64) (*model.Pipeline, error) {
 	pipeline := new(model.Pipeline)
-	return pipeline, wrapGet(s.engine.Where(
-		builder.Eq{"repo_id": repo.ID, "number": num},
-	).Get(pipeline))
+	return pipeline, wrapGet(s.db.NewSelect().Model(pipeline).
+		Where("repo_id = ?", repo.ID).
+		Where("number = ?", num).
+		Scan(context.Background()))
 }
 
 func (s storage) GetPipelineBadge(repo *model.Repo, branch string) (*model.Pipeline, error) {
 	pipeline := new(model.Pipeline)
-	return pipeline, wrapGet(s.engine.
-		Desc("number").
-		Where(builder.Eq{"repo_id": repo.ID, "branch": branch, "event": model.EventPush}).
-		Where(builder.Neq{"status": model.StatusBlocked}).
-		Get(pipeline))
+	return pipeline, wrapGet(s.db.NewSelect().Model(pipeline).
+		Where("repo_id = ?", repo.ID).
+		Where("branch = ?", branch).
+		Where("event = ?", model.EventPush).
+		Where("status != ?", model.StatusBlocked).
+		Order("number DESC").
+		Limit(1).
+		Scan(context.Background()))
 }
 
 func (s storage) GetPipelineLast(repo *model.Repo, branch string) (*model.Pipeline, error) {
 	pipeline := new(model.Pipeline)
-	return pipeline, wrapGet(s.engine.
-		Desc("number").
-		Where(builder.Eq{"repo_id": repo.ID, "branch": branch, "event": model.EventPush}).
-		Get(pipeline))
+	return pipeline, wrapGet(s.db.NewSelect().Model(pipeline).
+		Where("repo_id = ?", repo.ID).
+		Where("branch = ?", branch).
+		Where("event = ?", model.EventPush).
+		Order("number DESC").
+		Limit(1).
+		Scan(context.Background()))
 }
 
 func (s storage) GetPipelineLastBefore(repo *model.Repo, branch string, num int64) (*model.Pipeline, error) {
 	pipeline := new(model.Pipeline)
-	return pipeline, wrapGet(s.engine.
-		Desc("number").
-		Where(builder.Lt{"id": num}.
-			And(builder.Eq{"repo_id": repo.ID, "branch": branch})).
-		Get(pipeline))
+	return pipeline, wrapGet(s.db.NewSelect().Model(pipeline).
+		Where("id < ?", num).
+		Where("repo_id = ?", repo.ID).
+		Where("branch = ?", branch).
+		Order("number DESC").
+		Limit(1).
+		Scan(context.Background()))
 }
 
 func (s storage) GetPipelineList(repo *model.Repo, p *model.ListOptions, f *model.PipelineFilter) ([]*model.Pipeline, error) {
 	pipelines := make([]*model.Pipeline, 0, 16)
 
-	cond := builder.NewCond().And(builder.Eq{"repo_id": repo.ID})
+	q := s.db.NewSelect().Model(&pipelines).Where("repo_id = ?", repo.ID)
 
 	if f != nil {
 		if f.After != 0 {
-			cond = cond.And(builder.Gt{"created": f.After})
+			q = q.Where("created > ?", f.After)
 		}
 
 		if f.Before != 0 {
-			cond = cond.And(builder.Lt{"created": f.Before})
+			q = q.Where("created < ?", f.Before)
 		}
 
 		if f.Branch != "" {
-			cond = cond.And(builder.Eq{"branch": f.Branch})
+			q = q.Where("branch = ?", f.Branch)
 		}
 
 		if f.Status != "" {
-			cond = cond.And(builder.Eq{"status": f.Status})
+			q = q.Where("status = ?", f.Status)
 		}
 
 		if len(f.Events) != 0 {
-			cond = cond.And(builder.In("event", f.Events))
+			q = q.Where("event IN (?)", bun.List(f.Events))
 		}
 
 		if f.RefContains != "" {
-			cond = cond.And(builder.Like{"ref", f.RefContains})
+			q = q.Where("ref LIKE ?", "%"+f.RefContains+"%")
 		}
 
 		if f.Search != "" {
 			searchPattern := "%" + f.Search + "%"
-			searchCond := builder.Or(
-				builder.Like{"message", searchPattern},
-				builder.Like{"branch", searchPattern},
-				builder.Like{"author", searchPattern},
-				builder.Like{"event", searchPattern},
-			)
+			searchExpr := "(message LIKE ? OR branch LIKE ? OR author LIKE ? OR event LIKE ?"
+			args := []any{searchPattern, searchPattern, searchPattern, searchPattern}
 			// Also search by pipeline number if the search term is numeric
 			if _, err := strconv.ParseInt(f.Search, 10, 64); err == nil {
-				searchCond = searchCond.Or(builder.Like{s.castAsText("number"), f.Search})
+				searchExpr += " OR " + s.castAsText("number") + " LIKE ?"
+				args = append(args, f.Search)
 			}
-			cond = cond.And(searchCond)
+			searchExpr += ")"
+			q = q.Where(searchExpr, args...)
 		}
 	}
 
-	return pipelines, s.paginate(p).Where(cond).
-		Desc("number").
-		Find(&pipelines)
+	return pipelines, s.paginate(q.Order("number DESC"), p).Scan(context.Background())
 }
 
 // GetRepoLatestPipelines get the latest pipeline for each repo.
@@ -118,150 +123,160 @@ func (s storage) GetRepoLatestPipelines(repoIDs []int64) ([]*model.Pipeline, err
 	pipelines := make([]*model.Pipeline, 0, len(repoIDs))
 
 	pipelineIDs := make([]int64, 0, len(repoIDs))
-	if err := s.engine.Select("MAX(id) AS id").
-		Table("pipelines").
-		Where(builder.In("repo_id", repoIDs)).
-		GroupBy("repo_id").
-		Find(&pipelineIDs); err != nil {
+	err := s.db.NewSelect().
+		TableExpr("pipelines").
+		ColumnExpr("MAX(id) AS id").
+		Where("repo_id IN (?)", bun.List(repoIDs)).
+		GroupExpr("repo_id").
+		Scan(context.Background(), &pipelineIDs)
+	if err != nil {
 		return nil, err
 	}
 
-	return pipelines, s.engine.Where(builder.In("id", pipelineIDs)).Find(&pipelines)
+	return pipelines, s.db.NewSelect().Model(&pipelines).
+		Where("id IN (?)", bun.List(pipelineIDs)).
+		Scan(context.Background())
 }
 
 // GetActivePipelineList get all pipelines that are pending, running or blocked.
 func (s storage) GetActivePipelineList(repo *model.Repo) ([]*model.Pipeline, error) {
 	pipelines := make([]*model.Pipeline, 0)
-	query := s.engine.
+	return pipelines, s.db.NewSelect().Model(&pipelines).
 		Where("repo_id = ?", repo.ID).
-		In("status", model.StatusPending, model.StatusRunning, model.StatusBlocked).
-		Desc("number")
-	return pipelines, query.Find(&pipelines)
+		Where("status IN (?)", bun.List([]model.StatusValue{model.StatusPending, model.StatusRunning, model.StatusBlocked})).
+		Order("number DESC").
+		Scan(context.Background())
 }
 
 func (s storage) GetPipelineCount() (int64, error) {
-	return s.engine.Count(new(model.Pipeline))
+	n, err := s.db.NewSelect().Model((*model.Pipeline)(nil)).Count(context.Background())
+	return int64(n), err
 }
 
 func (s storage) GetPipelineCountByRepo(repoID int64) (int64, error) {
-	return s.engine.Where("repo_id = ?", repoID).Count(new(model.Pipeline))
+	n, err := s.db.NewSelect().Model((*model.Pipeline)(nil)).Where("repo_id = ?", repoID).Count(context.Background())
+	return int64(n), err
 }
 
 func (s storage) CreatePipeline(pipeline *model.Pipeline, stepList ...*model.Step) error {
-	sess := s.engine.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-
-	repoExist, err := sess.Where("id = ?", pipeline.RepoID).Exist(&model.Repo{})
-	if err != nil {
-		return err
-	}
-
-	if !repoExist {
-		return ErrorRepoNotExist{RepoID: pipeline.RepoID}
-	}
-
-	// calc pipeline number
-	var number int64
-	if _, err := sess.Select("MAX(number)").
-		Table(new(model.Pipeline)).
-		Where("repo_id = ?", pipeline.RepoID).
-		Get(&number); err != nil {
-		return err
-	}
-	pipeline.Number = number + 1
-
-	pipeline.Created = time.Now().UTC().Unix()
-	// only Insert set auto created ID back to object
-	if _, err := sess.Insert(pipeline); err != nil {
-		return err
-	}
-
-	for i := range stepList {
-		stepList[i].PipelineID = pipeline.ID
-		// only Insert set auto created ID back to object
-		if _, err := sess.Insert(stepList[i]); err != nil {
+	return s.db.RunInTx(context.Background(), nil, func(ctx context.Context, tx bun.Tx) error {
+		repoExist, err := tx.NewSelect().Model((*model.Repo)(nil)).Where("id = ?", pipeline.RepoID).Exists(ctx)
+		if err != nil {
 			return err
 		}
-	}
 
-	return sess.Commit()
+		if !repoExist {
+			return ErrorRepoNotExist{RepoID: pipeline.RepoID}
+		}
+
+		// calc pipeline number
+		var number int64
+		err = tx.NewSelect().
+			TableExpr("pipelines").
+			ColumnExpr("COALESCE(MAX(number), 0)").
+			Where("repo_id = ?", pipeline.RepoID).
+			Scan(ctx, &number)
+		if err != nil {
+			return err
+		}
+		pipeline.Number = number + 1
+
+		pipeline.Created = time.Now().UTC().Unix()
+		// only Insert set auto created ID back to object
+		if _, err := tx.NewInsert().Model(pipeline).Exec(ctx); err != nil {
+			return err
+		}
+
+		for i := range stepList {
+			stepList[i].PipelineID = pipeline.ID
+			// only Insert set auto created ID back to object
+			if _, err := tx.NewInsert().Model(stepList[i]).Exec(ctx); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 }
 
 func (s storage) UpdatePipeline(pipeline *model.Pipeline) error {
-	_, err := s.engine.ID(pipeline.ID).AllCols().Update(pipeline)
+	_, err := s.db.NewUpdate().Model(pipeline).WherePK().Exec(context.Background())
 	return err
 }
 
 func (s storage) DeletePipeline(pipeline *model.Pipeline) error {
-	return s.deletePipeline(s.engine.NewSession(), pipeline.ID)
+	return s.db.RunInTx(context.Background(), nil, func(ctx context.Context, tx bun.Tx) error {
+		return s.deletePipeline(ctx, tx, pipeline.ID)
+	})
 }
 
-func (s storage) deletePipeline(sess *xorm.Session, pipelineID int64) error {
-	if err := s.workflowsDelete(sess, pipelineID); err != nil {
+func (s storage) deletePipeline(ctx context.Context, db bun.IDB, pipelineID int64) error {
+	if err := s.workflowsDelete(ctx, db, pipelineID); err != nil {
 		return err
 	}
 
 	// Delete tasks associated with this pipeline to prevent orphaned tasks
-	if _, err := sess.Where("pipeline_id = ?", pipelineID).Delete(new(model.Task)); err != nil {
+	if _, err := db.NewDelete().Model((*model.Task)(nil)).Where("pipeline_id = ?", pipelineID).Exec(ctx); err != nil {
 		return err
 	}
 
 	var confIDs []int64
-	if err := sess.Table(new(model.PipelineConfig)).Select("config_id").Where("pipeline_id = ?", pipelineID).Find(&confIDs); err != nil {
+	if err := db.NewSelect().TableExpr("pipeline_configs").ColumnExpr("config_id").Where("pipeline_id = ?", pipelineID).Scan(ctx, &confIDs); err != nil {
 		return err
 	}
 	for _, confID := range confIDs {
-		exist, err := sess.Where(builder.Eq{"config_id": confID}.And(builder.Neq{"pipeline_id": pipelineID})).Exist(new(model.PipelineConfig))
+		exist, err := db.NewSelect().Model((*model.PipelineConfig)(nil)).
+			Where("config_id = ?", confID).
+			Where("pipeline_id != ?", pipelineID).
+			Exists(ctx)
 		if err != nil {
 			return err
 		}
 		if !exist {
 			// this config is only used for this pipeline. so delete it
-			if _, err := sess.Where(builder.Eq{"id": confID}).Delete(new(model.Config)); err != nil {
+			if _, err := db.NewDelete().Model((*model.Config)(nil)).Where("id = ?", confID).Exec(ctx); err != nil {
 				return err
 			}
 		}
 	}
 
-	if _, err := sess.Where("pipeline_id = ?", pipelineID).Delete(new(model.PipelineConfig)); err != nil {
+	if _, err := db.NewDelete().Model((*model.PipelineConfig)(nil)).Where("pipeline_id = ?", pipelineID).Exec(ctx); err != nil {
 		return err
 	}
-	return wrapDelete(sess.ID(pipelineID).Delete(new(model.Pipeline)))
+	return wrapDelete(db.NewDelete().Model((*model.Pipeline)(nil)).Where("id = ?", pipelineID).Exec(ctx))
 }
 
 func (s storage) SetPipelineLogPurged(pipeline *model.Pipeline) error {
 	pipeline.LogsDeleted = true
-	_, err := s.engine.ID(pipeline.ID).Cols("logs_deleted").Update(pipeline)
+	_, err := s.db.NewUpdate().Model(pipeline).Column("logs_deleted").Where("id = ?", pipeline.ID).Exec(context.Background())
 	return err
 }
 
 func (s storage) GetPipelineLogPurged(pipeline *model.Pipeline) (bool, error) {
 	var logsPurged bool
-	has, err := s.engine.
-		Table("pipelines").
-		Select("logs_deleted").
+	err := s.db.NewSelect().
+		TableExpr("pipelines").
+		ColumnExpr("logs_deleted").
 		Where("id = ?", pipeline.ID).
-		Get(&logsPurged)
-	if !has {
+		Scan(context.Background(), &logsPurged)
+	if err != nil {
 		return false, err
 	}
-	return logsPurged, err
+	return logsPurged, nil
 }
 
 func (s storage) GetPipelineListKeyset(repo *model.Repo, lastID int64, beforeDate int64, limit int) ([]*model.Pipeline, error) {
 	pipelines := make([]*model.Pipeline, 0)
-	return pipelines, s.engine.
-		Where(builder.Lt{"id": lastID}.
-			And(builder.Lt{"created": beforeDate}).
-			And(builder.Eq{"repo_id": repo.ID})).
-		OrderBy("id DESC").
-		Limit(limit, 0).
-		Find(&pipelines)
+	return pipelines, s.db.NewSelect().Model(&pipelines).
+		Where("id < ?", lastID).
+		Where("created < ?", beforeDate).
+		Where("repo_id = ?", repo.ID).
+		Order("id DESC").
+		Limit(limit).
+		Scan(context.Background())
 }
 
 func (s storage) GetRepoSpecificPipelineCount(repo *model.Repo) (int64, error) {
-	return s.engine.Where(builder.Eq{"repo_id": repo.ID}).Count(new(model.Pipeline))
+	n, err := s.db.NewSelect().Model((*model.Pipeline)(nil)).Where("repo_id = ?", repo.ID).Count(context.Background())
+	return int64(n), err
 }

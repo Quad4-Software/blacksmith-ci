@@ -16,49 +16,51 @@
 package model
 
 import (
-	"codefloe.com/crowci/crow/v5/pipeline/errors/types"
+	"github.com/uptrace/bun"
 )
 
 type Pipeline struct {
-	ID                  int64                  `json:"id"                      xorm:"pk autoincr 'id'"`
-	RepoID              int64                  `json:"-"                       xorm:"UNIQUE(s) INDEX 'repo_id'"`
-	Number              int64                  `json:"number"                  xorm:"UNIQUE(s) 'number'"`
-	Author              string                 `json:"author"                  xorm:"INDEX 'author'"`
-	Parent              int64                  `json:"parent"                  xorm:"parent"`
-	Event               WebhookEvent           `json:"event"                   xorm:"event"`
-	Status              StatusValue            `json:"status"                  xorm:"INDEX 'status'"`
-	Errors              []*types.PipelineError `json:"errors"                  xorm:"json 'errors'"`
-	Created             int64                  `json:"created"                 xorm:"'created' NOT NULL DEFAULT 0 created"`
-	Updated             int64                  `json:"updated"                 xorm:"'updated' NOT NULL DEFAULT 0 updated"`
-	Started             int64                  `json:"started"                 xorm:"started"`
-	Finished            int64                  `json:"finished"                xorm:"finished"`
-	DeployTo            string                 `json:"deploy_to"               xorm:"deploy"`
-	DeployTask          string                 `json:"deploy_task"             xorm:"deploy_task"`
-	Commit              string                 `json:"commit"                  xorm:"commit"`
-	Branch              string                 `json:"branch"                  xorm:"branch"`
-	Ref                 string                 `json:"ref"                     xorm:"ref"`
-	Refspec             string                 `json:"refspec"                 xorm:"refspec"`
-	Title               string                 `json:"title"                   xorm:"title"`
-	Message             string                 `json:"message"                 xorm:"TEXT 'message'"`
-	Timestamp           int64                  `json:"timestamp"               xorm:"'timestamp'"`
-	Sender              string                 `json:"sender"                  xorm:"sender"` // uses reported user for webhooks and name of cron for cron pipelines
-	Avatar              string                 `json:"author_avatar"           xorm:"varchar(500) avatar"`
-	Email               string                 `json:"author_email"            xorm:"varchar(500) email"`
-	ForgeURL            string                 `json:"forge_url"               xorm:"forge_url"`
-	Reviewer            string                 `json:"reviewed_by"             xorm:"reviewer"`
-	Reviewed            int64                  `json:"reviewed"                xorm:"reviewed"`
-	Workflows           []*Workflow            `json:"workflows,omitempty"     xorm:"-"`
-	ChangedFiles        []string               `json:"changed_files,omitempty" xorm:"LONGTEXT 'changed_files'"`
-	AdditionalVariables map[string]string      `json:"variables,omitempty"     xorm:"json 'additional_variables'"`
-	PullRequestLabels   []string               `json:"pr_labels,omitempty"     xorm:"json 'pr_labels'"`
-	IsPrerelease        bool                   `json:"is_prerelease,omitempty" xorm:"is_prerelease"`
-	FromFork            bool                   `json:"from_fork,omitempty"     xorm:"from_fork"`
-	LogsDeleted         bool                   `json:"logs_deleted,omitempty"  xorm:"logs_deleted"`
-	IsAlwaysApproved    bool                   `json:"is_always_approved,omitempty" xorm:"-"`
-	NotifyOverride      *NotifyYAMLConfig      `json:"notify_override,omitempty"   xorm:"json 'notify_override'"`
+	bun.BaseModel `bun:"table:pipelines"`
+
+	ID                  int64                  `json:"id"                      bun:"id,pk,autoincrement"`
+	RepoID              int64                  `json:"-"                       bun:"repo_id,unique:s"`
+	Number              int64                  `json:"number"                  bun:"number,unique:s"`
+	Author              string                 `json:"author"                  bun:"author"`
+	Parent              int64                  `json:"parent"                  bun:"parent"`
+	Event               WebhookEvent           `json:"event"                   bun:"event"`
+	Status              StatusValue            `json:"status"                  bun:"status"`
+	Errors              JSONSlicePipelineError `json:"errors"                  bun:"errors,type:text"`
+	Created             int64                  `json:"created"                 bun:"created,notnull,default:0"`
+	Updated             int64                  `json:"updated"                 bun:"updated,notnull,default:0"`
+	Started             int64                  `json:"started"                 bun:"started"`
+	Finished            int64                  `json:"finished"                bun:"finished"`
+	DeployTo            string                 `json:"deploy_to"               bun:"deploy"`
+	DeployTask          string                 `json:"deploy_task"             bun:"deploy_task"`
+	Commit              string                 `json:"commit"                  bun:"commit"`
+	Branch              string                 `json:"branch"                  bun:"branch"`
+	Ref                 string                 `json:"ref"                     bun:"ref"`
+	Refspec             string                 `json:"refspec"                 bun:"refspec"`
+	Title               string                 `json:"title"                   bun:"title"`
+	Message             string                 `json:"message"                 bun:"message,type:text"`
+	Timestamp           int64                  `json:"timestamp"               bun:"timestamp"`
+	Sender              string                 `json:"sender"                  bun:"sender"`
+	Avatar              string                 `json:"author_avatar"           bun:"avatar,type:varchar(500)"`
+	Email               string                 `json:"author_email"            bun:"email,type:varchar(500)"`
+	ForgeURL            string                 `json:"forge_url"               bun:"forge_url"`
+	Reviewer            string                 `json:"reviewed_by"             bun:"reviewer"`
+	Reviewed            int64                  `json:"reviewed"                bun:"reviewed"`
+	Workflows           []*Workflow            `json:"workflows,omitempty"     bun:"-"`
+	ChangedFiles        JSONSliceString        `json:"changed_files,omitempty" bun:"changed_files,type:text"`
+	AdditionalVariables JSONMapStringString    `json:"variables,omitempty"     bun:"additional_variables,type:text"`
+	PullRequestLabels   JSONSliceString        `json:"pr_labels,omitempty"     bun:"pr_labels,type:text"`
+	IsPrerelease        bool                   `json:"is_prerelease,omitempty" bun:"is_prerelease"`
+	FromFork            bool                   `json:"from_fork,omitempty"     bun:"from_fork"`
+	LogsDeleted         bool                   `json:"logs_deleted,omitempty"  bun:"logs_deleted"`
+	IsAlwaysApproved    bool                   `json:"is_always_approved,omitempty" bun:"-"`
+	NotifyOverride      *NotifyYAMLConfig      `json:"notify_override,omitempty"   bun:"notify_override,type:text"`
 } //	@name	Pipeline
 
-// TableName return database table name for xorm.
+// TableName returns the database table name.
 func (Pipeline) TableName() string {
 	return "pipelines"
 }

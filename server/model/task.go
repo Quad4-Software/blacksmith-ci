@@ -17,25 +17,29 @@ package model
 import (
 	"fmt"
 
+	"github.com/uptrace/bun"
+
 	"codefloe.com/crowci/crow/v5/pipeline"
 )
 
 // Task defines scheduled pipeline Task.
 type Task struct {
-	ID           string                 `json:"id"           xorm:"PK UNIQUE 'id'"`
-	PID          int                    `json:"pid"          xorm:"'pid'"`
-	Name         string                 `json:"name"         xorm:"'name'"`
-	Data         []byte                 `json:"-"            xorm:"LONGBLOB 'data'"`
-	Labels       map[string]string      `json:"labels"       xorm:"json 'labels'"`
-	Dependencies []string               `json:"dependencies" xorm:"json 'dependencies'"`
-	RunOn        []string               `json:"run_on"       xorm:"json 'run_on'"`
-	DepStatus    map[string]StatusValue `json:"dep_status"   xorm:"json 'dependencies_status'"`
-	AgentID      int64                  `json:"agent_id"     xorm:"'agent_id'"`
-	PipelineID   int64                  `json:"pipeline_id"  xorm:"'pipeline_id'"`
-	RepoID       int64                  `json:"repo_id"      xorm:"'repo_id'"`
+	bun.BaseModel `bun:"table:tasks"`
+
+	ID           string                   `json:"id"           bun:"id,pk"`
+	PID          int                      `json:"pid"          bun:"pid"`
+	Name         string                   `json:"name"         bun:"name"`
+	Data         []byte                   `json:"-"            bun:"data"`
+	Labels       JSONMapStringString      `json:"labels"       bun:"labels,type:text"`
+	Dependencies JSONSliceString          `json:"dependencies" bun:"dependencies,type:text"`
+	RunOn        JSONSliceString          `json:"run_on"       bun:"run_on,type:text"`
+	DepStatus    JSONMapStringStatusValue `json:"dep_status"   bun:"dependencies_status,type:text"`
+	AgentID      int64                    `json:"agent_id"     bun:"agent_id"`
+	PipelineID   int64                    `json:"pipeline_id"  bun:"pipeline_id"`
+	RepoID       int64                    `json:"repo_id"      bun:"repo_id"`
 } //	@name	Task
 
-// TableName return database table name for xorm.
+// TableName returns the database table name.
 func (Task) TableName() string {
 	return "tasks"
 }
@@ -49,7 +53,7 @@ func (t *Task) ApplyLabelsFromRepo(r *Repo) error {
 		return fmt.Errorf("repo is nil but needed to get task labels")
 	}
 	if t.Labels == nil {
-		t.Labels = make(map[string]string)
+		t.Labels = make(JSONMapStringString)
 	}
 	t.Labels[pipeline.LabelRepoFullName] = r.FullName
 	t.Labels[pipeline.LabelOrgID] = fmt.Sprintf("%d", r.OrgID)

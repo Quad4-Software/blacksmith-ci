@@ -21,34 +21,37 @@ import (
 	"fmt"
 
 	"github.com/tink-crypto/tink-go/v2/subtle/random"
+	"github.com/uptrace/bun"
 
 	"codefloe.com/crowci/crow/v5/pipeline"
 )
 
 type Agent struct {
-	ID                     int64             `json:"id"            xorm:"pk autoincr 'id'"`
-	Created                int64             `json:"created"       xorm:"created"`
-	Updated                int64             `json:"updated"       xorm:"updated"`
-	Name                   string            `json:"name"          xorm:"name"`
-	OwnerID                int64             `json:"owner_id"      xorm:"'owner_id'"`
-	Token                  string            `json:"token"                     xorm:"token"`
-	PersistentID           string            `json:"persistent_id"             xorm:"VARCHAR(64) INDEX 'persistent_id'"`
-	LastContact            int64             `json:"last_contact"              xorm:"last_contact"`
-	WorkflowPollingHealthy bool              `json:"workflow_polling_healthy"  xorm:"workflow_polling_healthy"`
-	LastWork               int64             `json:"last_work"                 xorm:"last_work"` // last time the agent did something, this value is used to determine if the agent is still doing work used by the autoscaler
-	Platform               string            `json:"platform"                  xorm:"VARCHAR(100) 'platform'"`
-	Backend                string            `json:"backend"       xorm:"VARCHAR(100) 'backend'"`
-	Hostname               string            `json:"hostname"      xorm:"VARCHAR(255) 'hostname'"`
-	Capacity               int32             `json:"capacity"      xorm:"capacity"`
-	Version                string            `json:"version"       xorm:"'version'"`
-	BuildDate              string            `json:"build_date"    xorm:"'build_date'"`
-	NoSchedule             bool              `json:"no_schedule"   xorm:"no_schedule"`
-	Priority               int32             `json:"priority"      xorm:"DEFAULT 0 'priority'"`
-	CustomLabels           map[string]string `json:"custom_labels"    xorm:"JSON 'custom_labels'"`
-	LimitMem               int64             `json:"limit_mem"        xorm:"'limit_mem'"`
-	LimitCPUQuota          int64             `json:"limit_cpu_quota"  xorm:"'limit_cpu_quota'"`
+	bun.BaseModel `bun:"table:agents"`
+
+	ID                     int64               `json:"id"            bun:"id,pk,autoincrement"`
+	Created                int64               `json:"created"       bun:",nullzero"`
+	Updated                int64               `json:"updated"       bun:",nullzero"`
+	Name                   string              `json:"name"          bun:"name"`
+	OwnerID                int64               `json:"owner_id"      bun:"owner_id"`
+	Token                  string              `json:"token"                     bun:"token"`
+	PersistentID           string              `json:"persistent_id"             bun:"persistent_id,type:varchar(64)"`
+	LastContact            int64               `json:"last_contact"              bun:"last_contact"`
+	WorkflowPollingHealthy bool                `json:"workflow_polling_healthy"  bun:"workflow_polling_healthy"`
+	LastWork               int64               `json:"last_work"                 bun:"last_work"`
+	Platform               string              `json:"platform"                  bun:"platform,type:varchar(100)"`
+	Backend                string              `json:"backend"       bun:"backend,type:varchar(100)"`
+	Hostname               string              `json:"hostname"      bun:"hostname,type:varchar(255)"`
+	Capacity               int32               `json:"capacity"      bun:"capacity"`
+	Version                string              `json:"version"       bun:"version"`
+	BuildDate              string              `json:"build_date"    bun:"build_date"`
+	NoSchedule             bool                `json:"no_schedule"   bun:"no_schedule"`
+	Priority               int32               `json:"priority"      bun:"priority,default:0"`
+	CustomLabels           JSONMapStringString `json:"custom_labels"    bun:"custom_labels,type:text"`
+	LimitMem               int64               `json:"limit_mem"        bun:"limit_mem"`
+	LimitCPUQuota          int64               `json:"limit_cpu_quota"  bun:"limit_cpu_quota"`
 	// OrgID is counted as unset if set to -1, this is done to ensure a new(Agent) still enforce the OrgID check by default
-	OrgID int64 `json:"org_id"        xorm:"INDEX 'org_id'"`
+	OrgID int64 `json:"org_id"        bun:"org_id"`
 } //	@name	Agent
 
 // AgentWithStats is used for API responses to include runtime stats.
@@ -72,7 +75,7 @@ type AgentListOptions struct {
 	Order    string // Sort order: asc or desc
 }
 
-// TableName return database table name for xorm.
+// TableName returns the database table name.
 func (Agent) TableName() string {
 	return "agents"
 }

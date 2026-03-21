@@ -15,12 +15,14 @@
 package datastore
 
 import (
+	"context"
+
 	"codefloe.com/crowci/crow/v5/server/model"
 )
 
 func (s storage) TaskList() ([]*model.Task, error) {
 	tasks := make([]*model.Task, 0, perPage)
-	return tasks, s.engine.Find(&tasks)
+	return tasks, s.db.NewSelect().Model(&tasks).Scan(context.Background())
 }
 
 // TaskListPending returns only tasks whose corresponding workflows are still pending or running.
@@ -33,36 +35,39 @@ func (s storage) TaskListPending() ([]*model.Task, error) {
 	// MySQL "Illegal mix of collations" errors that occur when CAST(...
 	// AS CHAR) produces a string with the connection default collation
 	// while the tasks.id column may use a different collation.
-	err := s.engine.
-		Join("INNER", "workflows", "workflows.id = "+s.castAsInteger("tasks.id")).
+	err := s.db.NewSelect().Model(&tasks).
+		Join("INNER JOIN workflows ON workflows.id = "+s.castAsInteger("task.id")).
 		Where("workflows.state IN (?, ?)", model.StatusPending, model.StatusRunning).
-		Find(&tasks)
+		Scan(context.Background())
 	return tasks, err
 }
 
 func (s storage) TaskInsert(task *model.Task) error {
 	// only Insert set auto created ID back to object
-	_, err := s.engine.Insert(task)
+	_, err := s.db.NewInsert().Model(task).Exec(context.Background())
 	return err
 }
 
 func (s storage) TaskUpdate(task *model.Task) error {
-	_, err := s.engine.ID(task.ID).Update(task)
+	_, err := s.db.NewUpdate().Model(task).WherePK().Exec(context.Background())
 	return err
 }
 
 func (s storage) TaskDelete(id string) error {
-	return wrapDelete(s.engine.Where("id = ?", id).Delete(new(model.Task)))
+	return wrapDelete(s.db.NewDelete().Model((*model.Task)(nil)).Where("id = ?", id).Exec(context.Background()))
 }
 
 func (s storage) TaskAtomicAssign(taskID string, agentID int64) (bool, error) {
 	// Atomically assign task to agent only if it's currently unassigned (agent_id = 0)
-	affected, err := s.engine.Where("id = ? AND agent_id = 0", taskID).
-		Cols("agent_id").
-		Update(&model.Task{AgentID: agentID})
+	res, err := s.db.NewUpdate().Model((*model.Task)(nil)).
+		Set("agent_id = ?", agentID).
+		Where("id = ?", taskID).
+		Where("agent_id = 0").
+		Exec(context.Background())
 	if err != nil {
 		return false, err
 	}
+	affected, _ := res.RowsAffected()
 	// Return true if exactly one row was affected (successful assignment)
 	return affected == 1, nil
 }
@@ -71,12 +76,15 @@ func (s storage) TaskAtomicClaim(taskID string, agentID int64) (*model.Task, err
 	// Atomically claim a task for adoption if it was previously assigned to this agent.
 	// This is HA-safe because we check that agent_id matches the requesting agent.
 	task := new(model.Task)
-	found, err := s.engine.Where("id = ? AND agent_id = ?", taskID, agentID).Get(task)
+	err := s.db.NewSelect().Model(task).
+		Where("id = ?", taskID).
+		Where("agent_id = ?", agentID).
+		Scan(context.Background())
 	if err != nil {
+		if wrapGet(err) != nil {
+			return nil, nil // Task doesn't exist or belongs to a different agent
+		}
 		return nil, err
-	}
-	if !found {
-		return nil, nil // Task doesn't exist or belongs to a different agent
 	}
 	return task, nil
 }

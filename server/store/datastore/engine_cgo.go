@@ -17,43 +17,60 @@
 package datastore
 
 import (
-	"xorm.io/xorm"
+	"database/sql"
+
+	"github.com/uptrace/bun"
+	"github.com/uptrace/bun/dialect/mysqldialect"
+	"github.com/uptrace/bun/dialect/pgdialect"
+	"github.com/uptrace/bun/dialect/sqlitedialect"
 
 	"codefloe.com/crowci/crow/v5/server/store"
 )
 
-// configureEngine applies driver-specific configuration.
-// For SQLite (CGO builds), it applies optimizations to prevent locking issues.
-func configureEngine(engine *xorm.Engine, opts *store.Opts) error {
-	// SQLite works best with a single connection to avoid locking issues.
-	// Multiple connections don't help since SQLite serializes writes anyway.
-	if opts.Driver == DriverSqlite {
-		engine.SetMaxOpenConns(1)
-		engine.SetMaxIdleConns(1)
-		engine.SetConnMaxLifetime(0) // Don't close the connection
+// newBunDB creates a *bun.DB with the appropriate dialect for the driver.
+func newBunDB(sqldb *sql.DB, driver string) *bun.DB {
+	switch driver {
+	case DriverSqlite:
+		return bun.NewDB(sqldb, sqlitedialect.New())
+	case DriverMysql:
+		return bun.NewDB(sqldb, mysqldialect.New())
+	case DriverPostgres:
+		return bun.NewDB(sqldb, pgdialect.New())
+	default:
+		return bun.NewDB(sqldb, pgdialect.New())
+	}
+}
 
-		if err := applySQLitePragmas(engine); err != nil {
+// configureSQL applies driver-specific configuration to the underlying sql.DB.
+// For SQLite (CGO builds), it applies optimizations to prevent locking issues.
+func configureSQL(sqldb *sql.DB, opts *store.Opts) error {
+	if opts.Driver == DriverSqlite {
+		sqldb.SetMaxOpenConns(1)
+		sqldb.SetMaxIdleConns(1)
+		sqldb.SetConnMaxLifetime(0)
+
+		if err := applySQLitePragmas(sqldb); err != nil {
 			return err
 		}
 	} else {
-		engine.SetMaxOpenConns(opts.XORM.MaxOpenConns)
-		engine.SetMaxIdleConns(opts.XORM.MaxIdleConns)
-		engine.SetConnMaxLifetime(opts.XORM.ConnMaxLifetime)
+		sqldb.SetMaxOpenConns(opts.DB.MaxOpenConns)
+		sqldb.SetMaxIdleConns(opts.DB.MaxIdleConns)
+		sqldb.SetConnMaxLifetime(opts.DB.ConnMaxLifetime)
 	}
 
 	return nil
 }
 
 // applySQLitePragmas sets recommended SQLite pragmas for better concurrency.
-func applySQLitePragmas(engine *xorm.Engine) error {
+func applySQLitePragmas(sqldb *sql.DB) error {
 	pragmas := []string{
-		"PRAGMA busy_timeout = 5000;",  // Wait 5s before returning SQLITE_BUSY
-		"PRAGMA journal_mode = WAL;",   // Write-Ahead Logging for better concurrency
-		"PRAGMA synchronous = NORMAL;", // Good balance of safety and performance with WAL
+		"PRAGMA busy_timeout = 5000;",
+		"PRAGMA journal_mode = WAL;",
+		"PRAGMA synchronous = NORMAL;",
 	}
 
 	for _, pragma := range pragmas {
-		if _, err := engine.Exec(pragma); err != nil {
+		if _, err := sqldb.Exec(pragma); err != nil {
 			return err
 		}
 	}

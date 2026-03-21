@@ -15,6 +15,7 @@
 package datastore
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -126,7 +127,8 @@ func TestTaskListPending(t *testing.T) {
 	runningWorkflow := &model.Workflow{ID: 20, PipelineID: 1, PID: 2, Name: "running-wf", State: model.StatusRunning}
 	successWorkflow := &model.Workflow{ID: 30, PipelineID: 1, PID: 3, Name: "success-wf", State: model.StatusSuccess}
 
-	_, err := store.engine.Insert(pendingWorkflow, runningWorkflow, successWorkflow)
+	workflows := []*model.Workflow{pendingWorkflow, runningWorkflow, successWorkflow}
+	_, err := store.db.NewInsert().Model(&workflows).Exec(context.Background())
 	assert.NoError(t, err)
 
 	// Create tasks whose IDs match the workflow IDs (as strings)

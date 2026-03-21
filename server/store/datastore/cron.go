@@ -15,7 +15,9 @@
 package datastore
 
 import (
-	"xorm.io/builder"
+	"context"
+
+	"github.com/uptrace/bun"
 
 	"codefloe.com/crowci/crow/v5/server/model"
 )
@@ -24,50 +26,59 @@ func (s storage) CronCreate(cron *model.Cron) error {
 	if err := cron.Validate(); err != nil {
 		return err
 	}
-	_, err := s.engine.Insert(cron)
+	_, err := s.db.NewInsert().Model(cron).Exec(context.Background())
 	return err
 }
 
 func (s storage) CronFind(repo *model.Repo, id int64) (*model.Cron, error) {
 	cron := new(model.Cron)
-	return cron, wrapGet(s.engine.ID(id).Where("repo_id = ?", repo.ID).Get(cron))
+	return cron, wrapGet(s.db.NewSelect().Model(cron).Where("id = ?", id).Where("repo_id = ?", repo.ID).Scan(context.Background()))
 }
 
 func (s storage) CronList(repo *model.Repo, p *model.ListOptions) ([]*model.Cron, error) {
 	var crons []*model.Cron
-	return crons, s.paginate(p).Where("repo_id = ?", repo.ID).OrderBy("name").Find(&crons)
+	return crons, s.paginate(s.db.NewSelect().Model(&crons).Where("repo_id = ?", repo.ID).Order("name ASC"), p).Scan(context.Background())
 }
 
 func (s storage) CronUpdate(_ *model.Repo, cron *model.Cron) error {
-	_, err := s.engine.ID(cron.ID).AllCols().Update(cron)
+	_, err := s.db.NewUpdate().Model(cron).WherePK().Exec(context.Background())
 	return err
 }
 
 func (s storage) CronDelete(repo *model.Repo, id int64) error {
-	return wrapDelete(s.engine.ID(id).Where("repo_id = ?", repo.ID).Delete(new(model.Cron)))
+	return wrapDelete(s.db.NewDelete().Model((*model.Cron)(nil)).Where("id = ?", id).Where("repo_id = ?", repo.ID).Exec(context.Background()))
 }
 
 // CronListNextExecute returns limited number of jobs with NextExec being less or equal to the provided unix timestamp.
 // Disabled crons are excluded.
 func (s storage) CronListNextExecute(nextExec, limit int64) ([]*model.Cron, error) {
 	crons := make([]*model.Cron, 0, limit)
-	return crons, s.engine.Where(builder.And(
-		builder.Lte{"next_exec": nextExec},
-		builder.Eq{"disabled": false},
-	)).Limit(int(limit)).Find(&crons)
+	return crons, s.db.NewSelect().Model(&crons).
+		Where("next_exec <= ?", nextExec).
+		Where("disabled = ?", false).
+		Limit(int(limit)).
+		Scan(context.Background())
 }
 
 // CronGetLock try to get a lock by updating NextExec.
 func (s storage) CronGetLock(cron *model.Cron, newNextExec int64) (bool, error) {
-	cols, err := s.engine.ID(cron.ID).Where(builder.Eq{"next_exec": cron.NextExec}).
-		Cols("next_exec").Update(&model.Cron{NextExec: newNextExec})
-	gotLock := cols != 0
+	res, err := s.db.NewUpdate().Model((*model.Cron)(nil)).
+		Set("next_exec = ?", newNextExec).
+		Where("id = ?", cron.ID).
+		Where("next_exec = ?", cron.NextExec).
+		Exec(context.Background())
+	if err != nil {
+		return false, err
+	}
 
-	if err == nil && gotLock {
+	n, _ := res.RowsAffected()
+	gotLock := n != 0
+
+	if gotLock {
 		cron.NextExec = newNextExec
 	}
 
-	return gotLock, err
+	return gotLock, nil
 }
 
 // UserCronList returns all crons from repos the user has access to.
@@ -78,12 +89,12 @@ func (s storage) UserCronList(repoIDs []int64, searchTerm string, p *model.ListO
 		return crons, nil
 	}
 
-	cond := builder.In("repo_id", repoIDs)
+	q := s.db.NewSelect().Model(&crons).Where("repo_id IN (?)", bun.List(repoIDs))
 
 	// Add search filter if provided
 	if searchTerm != "" {
-		cond = builder.And(cond, builder.Like{"name", "%" + searchTerm + "%"})
+		q = q.Where("name LIKE ?", "%"+searchTerm+"%")
 	}
 
-	return crons, s.paginate(p).Where(cond).OrderBy("name").Find(&crons)
+	return crons, s.paginate(q.Order("name ASC"), p).Scan(context.Background())
 }

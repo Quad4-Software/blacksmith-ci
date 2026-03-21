@@ -14,12 +14,16 @@
 
 package model
 
+import "github.com/uptrace/bun"
+
 // CacheEntry represents a distributed cache entry.
 type CacheEntry struct {
-	Key       string `json:"key" xorm:"pk 'key'"`
-	Data      []byte `json:"data" xorm:"LONGBLOB 'data'"`
-	ExpiresAt int64  `json:"expires_at" xorm:"'expires_at'"`
-	CreatedAt int64  `json:"created_at" xorm:"'created_at'"`
+	bun.BaseModel `bun:"table:cache_entries"`
+
+	Key       string `json:"key" bun:"key,pk"`
+	Data      []byte `json:"data" bun:"data"`
+	ExpiresAt int64  `json:"expires_at" bun:"expires_at"`
+	CreatedAt int64  `json:"created_at" bun:"created_at"`
 }
 
 // TableName returns the table name for cache entries.

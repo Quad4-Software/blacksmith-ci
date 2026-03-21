@@ -15,158 +15,154 @@
 package datastore
 
 import (
-	"xorm.io/builder"
+	"context"
+
+	"github.com/uptrace/bun"
 
 	"codefloe.com/crowci/crow/v5/server/model"
 )
 
 // GetOrgCount gets a count of all organizations in the system.
 func (s storage) GetOrgCount() (int64, error) {
-	return s.engine.Count(new(model.Org))
+	n, err := s.db.NewSelect().Model((*model.Org)(nil)).Count(context.Background())
+	return int64(n), err
 }
 
 // GetWorkflowCountByAgent gets a count of workflows executed by a specific agent with optional time filter.
 func (s storage) GetWorkflowCountByAgent(agentID int64, after, before int64) (int64, error) {
-	cond := builder.NewCond().And(builder.Eq{"agent_id": agentID})
+	q := s.db.NewSelect().Model((*model.Workflow)(nil)).Where("agent_id = ?", agentID)
 
 	if after > 0 {
-		cond = cond.And(builder.Gte{"started": after})
+		q = q.Where("started >= ?", after)
 	}
 	if before > 0 {
-		cond = cond.And(builder.Lte{"started": before})
+		q = q.Where("started <= ?", before)
 	}
 
-	return s.engine.Where(cond).Count(new(model.Workflow))
+	n, err := q.Count(context.Background())
+	return int64(n), err
 }
 
 // GetPipelineCountByOrg gets a count of pipelines for a specific org with optional time filter.
 func (s storage) GetPipelineCountByOrg(orgID int64, after, before int64) (int64, error) {
-	cond := builder.NewCond()
+	q := s.db.NewSelect().
+		TableExpr("pipelines").
+		Join("INNER JOIN repos ON pipelines.repo_id = repos.id").
+		Where("repos.org_id = ?", orgID)
 
 	if after > 0 {
-		cond = cond.And(builder.Gte{"pipelines.created": after})
+		q = q.Where("pipelines.created >= ?", after)
 	}
 	if before > 0 {
-		cond = cond.And(builder.Lte{"pipelines.created": before})
+		q = q.Where("pipelines.created <= ?", before)
 	}
 
-	return s.engine.
-		Table("pipelines").
-		Join("INNER", "repos", "pipelines.repo_id = repos.id").
-		Where("repos.org_id = ?", orgID).
-		And(cond).
-		Count(new(model.Pipeline))
+	n, err := q.Count(context.Background())
+	return int64(n), err
 }
 
 // GetAveragePipelineDuration gets the average duration of pipelines with optional time and repo filter.
 func (s storage) GetAveragePipelineDuration(after, before int64, repoIDs []int64) (float64, error) {
-	type result struct {
-		AvgDuration float64 `xorm:"avg_duration"`
-	}
+	ctx := context.Background()
 
-	cond := builder.NewCond().
-		And(builder.Gt{"finished": 0}).
-		And(builder.Gt{"started": 0})
+	q := s.db.NewSelect().
+		TableExpr("pipelines").
+		ColumnExpr("AVG(finished - started) as avg_duration").
+		Where("finished > 0").
+		Where("started > 0")
 
 	if after > 0 {
-		cond = cond.And(builder.Gte{"created": after})
+		q = q.Where("created >= ?", after)
 	}
 	if before > 0 {
-		cond = cond.And(builder.Lte{"created": before})
+		q = q.Where("created <= ?", before)
 	}
 	if len(repoIDs) > 0 {
-		cond = cond.And(builder.In("repo_id", repoIDs))
+		q = q.Where("repo_id IN (?)", bun.List(repoIDs))
 	}
 
-	var res result
-	_, err := s.engine.
-		Table("pipelines").
-		Where(cond).
-		Select("AVG(finished - started) as avg_duration").
-		Get(&res)
-
-	return res.AvgDuration, err
+	var avgDuration float64
+	err := q.Scan(ctx, &avgDuration)
+	return avgDuration, err
 }
 
 // GetAverageStepsPerWorkflow gets the average number of steps per workflow with optional time and repo filter.
 func (s storage) GetAverageStepsPerWorkflow(after, before int64, repoIDs []int64) (float64, error) {
-	type result struct {
-		AvgSteps float64 `xorm:"avg_steps"`
-	}
+	ctx := context.Background()
 
 	if after > 0 || before > 0 || len(repoIDs) > 0 {
 		// Join with pipelines to filter by time and/or repo
-		pipelineCond := builder.NewCond()
+		q := s.db.NewSelect().
+			TableExpr("steps").
+			Join("INNER JOIN pipelines ON steps.pipeline_id = pipelines.id").
+			ColumnExpr("COUNT(steps.id) * 1.0 / COUNT(DISTINCT steps.pipeline_id) as avg_steps")
+
 		if after > 0 {
-			pipelineCond = pipelineCond.And(builder.Gte{"pipelines.created": after})
+			q = q.Where("pipelines.created >= ?", after)
 		}
 		if before > 0 {
-			pipelineCond = pipelineCond.And(builder.Lte{"pipelines.created": before})
+			q = q.Where("pipelines.created <= ?", before)
 		}
 		if len(repoIDs) > 0 {
-			pipelineCond = pipelineCond.And(builder.In("pipelines.repo_id", repoIDs))
+			q = q.Where("pipelines.repo_id IN (?)", bun.List(repoIDs))
 		}
 
-		var res result
-		_, err := s.engine.
-			Table("steps").
-			Join("INNER", "pipelines", "steps.pipeline_id = pipelines.id").
-			Where(pipelineCond).
-			Select("COUNT(steps.id) * 1.0 / COUNT(DISTINCT steps.pipeline_id) as avg_steps").
-			Get(&res)
-
-		return res.AvgSteps, err
+		var avgSteps float64
+		err := q.Scan(ctx, &avgSteps)
+		return avgSteps, err
 	}
 
 	// No filters - simpler query
-	var res result
-	_, err := s.engine.
-		Table("steps").
-		Select("COUNT(id) * 1.0 / COUNT(DISTINCT pipeline_id) as avg_steps").
-		Get(&res)
-
-	return res.AvgSteps, err
+	var avgSteps float64
+	err := s.db.NewSelect().
+		TableExpr("steps").
+		ColumnExpr("COUNT(id) * 1.0 / COUNT(DISTINCT pipeline_id) as avg_steps").
+		Scan(ctx, &avgSteps)
+	return avgSteps, err
 }
 
 // GetWorkflowCountsByAgent returns workflow counts grouped by agent ID with optional time and repo filter.
 func (s storage) GetWorkflowCountsByAgent(after, before int64, repoIDs []int64) (map[int64]int64, error) {
 	type result struct {
-		AgentID int64 `xorm:"agent_id"`
-		Count   int64 `xorm:"count"`
+		AgentID int64 `bun:"agent_id"`
+		Count   int64 `bun:"count"`
 	}
 
-	cond := builder.NewCond()
-
-	if after > 0 {
-		cond = cond.And(builder.Gte{"workflows.started": after})
-	}
-	if before > 0 {
-		cond = cond.And(builder.Lte{"workflows.started": before})
-	}
-
+	ctx := context.Background()
 	var results []result
-	var err error
 
 	if len(repoIDs) > 0 {
-		// Need to join with pipelines to filter by repo
-		cond = cond.And(builder.In("pipelines.repo_id", repoIDs))
-		err = s.engine.
-			Table("workflows").
-			Join("INNER", "pipelines", "workflows.pipeline_id = pipelines.id").
-			Where(cond).
-			Select("workflows.agent_id, COUNT(*) as count").
-			GroupBy("workflows.agent_id").
-			Find(&results)
+		q := s.db.NewSelect().
+			TableExpr("workflows").
+			Join("INNER JOIN pipelines ON workflows.pipeline_id = pipelines.id").
+			ColumnExpr("workflows.agent_id, COUNT(*) as count")
+
+		if after > 0 {
+			q = q.Where("workflows.started >= ?", after)
+		}
+		if before > 0 {
+			q = q.Where("workflows.started <= ?", before)
+		}
+		q = q.Where("pipelines.repo_id IN (?)", bun.List(repoIDs))
+
+		if err := q.GroupExpr("workflows.agent_id").Scan(ctx, &results); err != nil {
+			return nil, err
+		}
 	} else {
-		err = s.engine.
-			Table("workflows").
-			Where(cond).
-			Select("agent_id, COUNT(*) as count").
-			GroupBy("agent_id").
-			Find(&results)
-	}
-	if err != nil {
-		return nil, err
+		q := s.db.NewSelect().
+			TableExpr("workflows").
+			ColumnExpr("agent_id, COUNT(*) as count")
+
+		if after > 0 {
+			q = q.Where("started >= ?", after)
+		}
+		if before > 0 {
+			q = q.Where("started <= ?", before)
+		}
+
+		if err := q.GroupExpr("agent_id").Scan(ctx, &results); err != nil {
+			return nil, err
+		}
 	}
 
 	counts := make(map[int64]int64)
@@ -182,48 +178,51 @@ func (s storage) GetWorkflowCountsByAgent(after, before int64, repoIDs []int64) 
 // For workflows without a persistent ID (legacy data), it falls back to agent_id grouping.
 func (s storage) GetWorkflowCountsByAgentPersistentID(after, before int64, repoIDs []int64) ([]model.AgentMetricData, error) {
 	type result struct {
-		AgentPersistentID string `xorm:"agent_persistent_id"`
-		AgentName         string `xorm:"agent_name"`
-		Platform          string `xorm:"platform"`
-		Count             int64  `xorm:"count"`
+		AgentPersistentID string `bun:"agent_persistent_id"`
+		AgentName         string `bun:"agent_name"`
+		Platform          string `bun:"platform"`
+		Count             int64  `bun:"count"`
 	}
 
-	cond := builder.NewCond()
-
-	if after > 0 {
-		cond = cond.And(builder.Gte{"workflows.started": after})
-	}
-	if before > 0 {
-		cond = cond.And(builder.Lte{"workflows.started": before})
-	}
-
-	// Only include workflows with a persistent ID (skip legacy data without it)
-	cond = cond.And(builder.Neq{"workflows.agent_persistent_id": ""})
-	cond = cond.And(builder.NotNull{"workflows.agent_persistent_id"})
-
+	ctx := context.Background()
 	var results []result
-	var err error
 
 	if len(repoIDs) > 0 {
-		// Need to join with pipelines to filter by repo
-		cond = cond.And(builder.In("pipelines.repo_id", repoIDs))
-		err = s.engine.
-			Table("workflows").
-			Join("INNER", "pipelines", "workflows.pipeline_id = pipelines.id").
-			Where(cond).
-			Select("workflows.agent_persistent_id, MAX(workflows.agent_name) as agent_name, MAX(workflows.platform) as platform, COUNT(*) as count").
-			GroupBy("workflows.agent_persistent_id").
-			Find(&results)
+		q := s.db.NewSelect().
+			TableExpr("workflows").
+			Join("INNER JOIN pipelines ON workflows.pipeline_id = pipelines.id").
+			ColumnExpr("workflows.agent_persistent_id, MAX(workflows.agent_name) as agent_name, MAX(workflows.platform) as platform, COUNT(*) as count")
+
+		if after > 0 {
+			q = q.Where("workflows.started >= ?", after)
+		}
+		if before > 0 {
+			q = q.Where("workflows.started <= ?", before)
+		}
+		q = q.Where("workflows.agent_persistent_id != ''").
+			Where("workflows.agent_persistent_id IS NOT NULL").
+			Where("pipelines.repo_id IN (?)", bun.List(repoIDs))
+
+		if err := q.GroupExpr("workflows.agent_persistent_id").Scan(ctx, &results); err != nil {
+			return nil, err
+		}
 	} else {
-		err = s.engine.
-			Table("workflows").
-			Where(cond).
-			Select("agent_persistent_id, MAX(agent_name) as agent_name, MAX(platform) as platform, COUNT(*) as count").
-			GroupBy("agent_persistent_id").
-			Find(&results)
-	}
-	if err != nil {
-		return nil, err
+		q := s.db.NewSelect().
+			TableExpr("workflows").
+			ColumnExpr("agent_persistent_id, MAX(agent_name) as agent_name, MAX(platform) as platform, COUNT(*) as count")
+
+		if after > 0 {
+			q = q.Where("started >= ?", after)
+		}
+		if before > 0 {
+			q = q.Where("started <= ?", before)
+		}
+		q = q.Where("agent_persistent_id != ''").
+			Where("agent_persistent_id IS NOT NULL")
+
+		if err := q.GroupExpr("agent_persistent_id").Scan(ctx, &results); err != nil {
+			return nil, err
+		}
 	}
 
 	data := make([]model.AgentMetricData, 0, len(results))
@@ -242,33 +241,31 @@ func (s storage) GetWorkflowCountsByAgentPersistentID(after, before int64, repoI
 // GetBuildTimeStatsByRepo returns average and total build times grouped by repo ID with optional time and repo filter.
 func (s storage) GetBuildTimeStatsByRepo(after, before int64, repoIDs []int64) (map[int64]map[string]float64, error) {
 	type result struct {
-		RepoID      int64   `xorm:"repo_id"`
-		AvgDuration float64 `xorm:"avg_duration"`
-		TotalTime   float64 `xorm:"total_time"`
+		RepoID      int64   `bun:"repo_id"`
+		AvgDuration float64 `bun:"avg_duration"`
+		TotalTime   float64 `bun:"total_time"`
 	}
 
-	cond := builder.NewCond().
-		And(builder.Gt{"finished": 0}).
-		And(builder.Gt{"started": 0})
+	ctx := context.Background()
+
+	q := s.db.NewSelect().
+		TableExpr("pipelines").
+		ColumnExpr("repo_id, AVG(finished - started) as avg_duration, SUM(finished - started) as total_time").
+		Where("finished > 0").
+		Where("started > 0")
 
 	if after > 0 {
-		cond = cond.And(builder.Gte{"created": after})
+		q = q.Where("created >= ?", after)
 	}
 	if before > 0 {
-		cond = cond.And(builder.Lte{"created": before})
+		q = q.Where("created <= ?", before)
 	}
 	if len(repoIDs) > 0 {
-		cond = cond.And(builder.In("repo_id", repoIDs))
+		q = q.Where("repo_id IN (?)", bun.List(repoIDs))
 	}
 
 	var results []result
-	err := s.engine.
-		Table("pipelines").
-		Where(cond).
-		Select("repo_id, AVG(finished - started) as avg_duration, SUM(finished - started) as total_time").
-		GroupBy("repo_id").
-		Find(&results)
-	if err != nil {
+	if err := q.GroupExpr("repo_id").Scan(ctx, &results); err != nil {
 		return nil, err
 	}
 
@@ -286,34 +283,32 @@ func (s storage) GetBuildTimeStatsByRepo(after, before int64, repoIDs []int64) (
 // GetBuildTimeStatsByOrg returns average and total build times grouped by org ID with optional time and repo filter.
 func (s storage) GetBuildTimeStatsByOrg(after, before int64, repoIDs []int64) (map[int64]map[string]float64, error) {
 	type result struct {
-		OrgID       int64   `xorm:"org_id"`
-		AvgDuration float64 `xorm:"avg_duration"`
-		TotalTime   float64 `xorm:"total_time"`
+		OrgID       int64   `bun:"org_id"`
+		AvgDuration float64 `bun:"avg_duration"`
+		TotalTime   float64 `bun:"total_time"`
 	}
 
-	cond := builder.NewCond().
-		And(builder.Gt{"pipelines.finished": 0}).
-		And(builder.Gt{"pipelines.started": 0})
+	ctx := context.Background()
+
+	q := s.db.NewSelect().
+		TableExpr("pipelines").
+		Join("INNER JOIN repos ON pipelines.repo_id = repos.id").
+		ColumnExpr("repos.org_id, AVG(pipelines.finished - pipelines.started) as avg_duration, SUM(pipelines.finished - pipelines.started) as total_time").
+		Where("pipelines.finished > 0").
+		Where("pipelines.started > 0")
 
 	if after > 0 {
-		cond = cond.And(builder.Gte{"pipelines.created": after})
+		q = q.Where("pipelines.created >= ?", after)
 	}
 	if before > 0 {
-		cond = cond.And(builder.Lte{"pipelines.created": before})
+		q = q.Where("pipelines.created <= ?", before)
 	}
 	if len(repoIDs) > 0 {
-		cond = cond.And(builder.In("pipelines.repo_id", repoIDs))
+		q = q.Where("pipelines.repo_id IN (?)", bun.List(repoIDs))
 	}
 
 	var results []result
-	err := s.engine.
-		Table("pipelines").
-		Join("INNER", "repos", "pipelines.repo_id = repos.id").
-		Where(cond).
-		Select("repos.org_id, AVG(pipelines.finished - pipelines.started) as avg_duration, SUM(pipelines.finished - pipelines.started) as total_time").
-		GroupBy("repos.org_id").
-		Find(&results)
-	if err != nil {
+	if err := q.GroupExpr("repos.org_id").Scan(ctx, &results); err != nil {
 		return nil, err
 	}
 
@@ -331,30 +326,28 @@ func (s storage) GetBuildTimeStatsByOrg(after, before int64, repoIDs []int64) (m
 // GetPipelineCountsByRepo returns pipeline counts grouped by repo ID with optional time and repo filter.
 func (s storage) GetPipelineCountsByRepo(after, before int64, repoIDs []int64) (map[int64]int64, error) {
 	type result struct {
-		RepoID int64 `xorm:"repo_id"`
-		Count  int64 `xorm:"count"`
+		RepoID int64 `bun:"repo_id"`
+		Count  int64 `bun:"count"`
 	}
 
-	cond := builder.NewCond()
+	ctx := context.Background()
+
+	q := s.db.NewSelect().
+		TableExpr("pipelines").
+		ColumnExpr("repo_id, COUNT(*) as count")
 
 	if after > 0 {
-		cond = cond.And(builder.Gte{"created": after})
+		q = q.Where("created >= ?", after)
 	}
 	if before > 0 {
-		cond = cond.And(builder.Lte{"created": before})
+		q = q.Where("created <= ?", before)
 	}
 	if len(repoIDs) > 0 {
-		cond = cond.And(builder.In("repo_id", repoIDs))
+		q = q.Where("repo_id IN (?)", bun.List(repoIDs))
 	}
 
 	var results []result
-	err := s.engine.
-		Table("pipelines").
-		Where(cond).
-		Select("repo_id, COUNT(*) as count").
-		GroupBy("repo_id").
-		Find(&results)
-	if err != nil {
+	if err := q.GroupExpr("repo_id").Scan(ctx, &results); err != nil {
 		return nil, err
 	}
 
@@ -369,31 +362,29 @@ func (s storage) GetPipelineCountsByRepo(after, before int64, repoIDs []int64) (
 // GetPipelineCountsByOrg returns pipeline counts grouped by org ID with optional time and repo filter.
 func (s storage) GetPipelineCountsByOrg(after, before int64, repoIDs []int64) (map[int64]int64, error) {
 	type result struct {
-		OrgID int64 `xorm:"org_id"`
-		Count int64 `xorm:"count"`
+		OrgID int64 `bun:"org_id"`
+		Count int64 `bun:"count"`
 	}
 
-	cond := builder.NewCond()
+	ctx := context.Background()
+
+	q := s.db.NewSelect().
+		TableExpr("pipelines").
+		Join("INNER JOIN repos ON pipelines.repo_id = repos.id").
+		ColumnExpr("repos.org_id, COUNT(*) as count")
 
 	if after > 0 {
-		cond = cond.And(builder.Gte{"pipelines.created": after})
+		q = q.Where("pipelines.created >= ?", after)
 	}
 	if before > 0 {
-		cond = cond.And(builder.Lte{"pipelines.created": before})
+		q = q.Where("pipelines.created <= ?", before)
 	}
 	if len(repoIDs) > 0 {
-		cond = cond.And(builder.In("pipelines.repo_id", repoIDs))
+		q = q.Where("pipelines.repo_id IN (?)", bun.List(repoIDs))
 	}
 
 	var results []result
-	err := s.engine.
-		Table("pipelines").
-		Join("INNER", "repos", "pipelines.repo_id = repos.id").
-		Where(cond).
-		Select("repos.org_id, COUNT(*) as count").
-		GroupBy("repos.org_id").
-		Find(&results)
-	if err != nil {
+	if err := q.GroupExpr("repos.org_id").Scan(ctx, &results); err != nil {
 		return nil, err
 	}
 

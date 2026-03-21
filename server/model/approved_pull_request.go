@@ -14,12 +14,16 @@
 
 package model
 
+import "github.com/uptrace/bun"
+
 type ApprovedPullRequest struct {
-	ID         int64  `json:"id"          xorm:"pk autoincr 'id'"`
-	RepoID     int64  `json:"repo_id"     xorm:"UNIQUE(s) INDEX 'repo_id'"`
-	Ref        string `json:"ref"         xorm:"UNIQUE(s) 'ref'"`
-	ApprovedBy string `json:"approved_by" xorm:"'approved_by'"`
-	Created    int64  `json:"created"     xorm:"'created' NOT NULL DEFAULT 0 created"`
+	bun.BaseModel `bun:"table:approved_pull_requests"`
+
+	ID         int64  `json:"id"          bun:"id,pk,autoincrement"`
+	RepoID     int64  `json:"repo_id"     bun:"repo_id,unique:s"`
+	Ref        string `json:"ref"         bun:"ref,unique:s"`
+	ApprovedBy string `json:"approved_by" bun:"approved_by"`
+	Created    int64  `json:"created"     bun:"created,notnull,default:0"`
 }
 
 func (ApprovedPullRequest) TableName() string {

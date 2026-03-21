@@ -15,9 +15,8 @@
 package datastore
 
 import (
+	"context"
 	"fmt"
-
-	"xorm.io/builder"
 
 	"codefloe.com/crowci/crow/v5/server/model"
 )
@@ -41,29 +40,32 @@ pipelines.author as pipeline_author,
 pipelines.email as pipeline_email,
 pipelines.avatar as pipeline_avatar`
 
-	return fmt.Sprintf(feedTemplate, s.engine.Dialect().Quoter().Quote("commit"))
+	return fmt.Sprintf(feedTemplate, s.quoteIdent("commit"))
 }
 
 func (s storage) GetPipelineQueue() ([]*model.Feed, error) {
 	feed := make([]*model.Feed, 0, perPage)
-	err := s.engine.Table("pipelines").
-		Select(s.getFeedSelect()).
-		Join("INNER", "repos", "pipelines.repo_id = repos.id").
-		In("pipelines.status", model.StatusPending, model.StatusRunning).
-		Find(&feed)
+	err := s.db.NewSelect().
+		TableExpr("pipelines").
+		ColumnExpr(s.getFeedSelect()).
+		Join("INNER JOIN repos ON pipelines.repo_id = repos.id").
+		Where("pipelines.status IN (?, ?)", model.StatusPending, model.StatusRunning).
+		Scan(context.Background(), &feed)
 	return feed, err
 }
 
 func (s storage) UserFeed(user *model.User) ([]*model.Feed, error) {
 	feed := make([]*model.Feed, 0, perPage)
-	err := s.engine.Table("repos").
-		Select(s.getFeedSelect()).
-		Join("INNER", "perms", "repos.id = perms.repo_id").
-		Join("INNER", "pipelines", "repos.id = pipelines.repo_id").
-		Where(userPushOrAdminCondition(user.ID)).
-		Desc("pipelines.id").
+	err := s.db.NewSelect().
+		TableExpr("repos").
+		ColumnExpr(s.getFeedSelect()).
+		Join("INNER JOIN perms ON repos.id = perms.repo_id").
+		Join("INNER JOIN pipelines ON repos.id = pipelines.repo_id").
+		Where("perms.user_id = ?", user.ID).
+		Where("(perms.push = ? OR perms.admin = ?)", true, true).
+		OrderExpr("pipelines.id DESC").
 		Limit(perPage).
-		Find(&feed)
+		Scan(context.Background(), &feed)
 
 	return feed, err
 }
@@ -71,19 +73,21 @@ func (s storage) UserFeed(user *model.User) ([]*model.Feed, error) {
 func (s storage) RepoListLatest(user *model.User) ([]*model.Feed, error) {
 	feed := make([]*model.Feed, 0, perPage)
 
-	err := s.engine.Table("repos").
-		Select(s.getFeedSelect()).
-		Join("INNER", "perms", "repos.id = perms.repo_id").
-		Join("LEFT", "pipelines", "pipelines.id = "+`(
+	err := s.db.NewSelect().
+		TableExpr("repos").
+		ColumnExpr(s.getFeedSelect()).
+		Join("INNER JOIN perms ON repos.id = perms.repo_id").
+		Join(`LEFT JOIN pipelines ON pipelines.id = (
 			SELECT pipelines.id FROM pipelines
 			WHERE pipelines.repo_id = repos.id
 			ORDER BY pipelines.id DESC
 			LIMIT 1
 			)`).
-		Where(userPushOrAdminCondition(user.ID)).
-		And(builder.Eq{"repos.active": true}).
-		Asc("repos.full_name").
-		Find(&feed)
+		Where("perms.user_id = ?", user.ID).
+		Where("(perms.push = ? OR perms.admin = ?)", true, true).
+		Where("repos.active = ?", true).
+		OrderExpr("repos.full_name ASC").
+		Scan(context.Background(), &feed)
 
 	return feed, err
 }

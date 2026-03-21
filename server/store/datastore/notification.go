@@ -15,31 +15,35 @@
 package datastore
 
 import (
+	"context"
+	"database/sql"
+	"errors"
+
 	"codefloe.com/crowci/crow/v5/server/model"
 )
 
 func (s storage) NotificationConfigFind(repoID int64) (*model.NotificationConfig, error) {
 	config := new(model.NotificationConfig)
-	return config, wrapGet(s.engine.Where("repo_id = ?", repoID).Get(config))
+	return config, wrapGet(s.db.NewSelect().Model(config).Where("repo_id = ?", repoID).Scan(context.Background()))
 }
 
 func (s storage) NotificationConfigUpsert(config *model.NotificationConfig) error {
 	existing := new(model.NotificationConfig)
-	has, err := s.engine.Where("repo_id = ?", config.RepoID).Get(existing)
-	if err != nil {
+	err := s.db.NewSelect().Model(existing).Where("repo_id = ?", config.RepoID).Scan(context.Background())
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return err
 	}
 
-	if has {
+	if err == nil {
 		config.ID = existing.ID
-		_, err = s.engine.ID(config.ID).AllCols().Update(config)
+		_, err = s.db.NewUpdate().Model(config).WherePK().Exec(context.Background())
 		return err
 	}
 
-	_, err = s.engine.Insert(config)
+	_, err = s.db.NewInsert().Model(config).Exec(context.Background())
 	return err
 }
 
 func (s storage) NotificationConfigDelete(repoID int64) error {
-	return wrapDelete(s.engine.Where("repo_id = ?", repoID).Delete(new(model.NotificationConfig)))
+	return wrapDelete(s.db.NewDelete().Model((*model.NotificationConfig)(nil)).Where("repo_id = ?", repoID).Exec(context.Background()))
 }

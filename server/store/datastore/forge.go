@@ -15,45 +15,41 @@
 package datastore
 
 import (
+	"context"
+
+	"github.com/uptrace/bun"
+
 	"codefloe.com/crowci/crow/v5/server/model"
 )
 
 func (s storage) ForgeGet(id int64) (*model.Forge, error) {
 	forge := new(model.Forge)
-	return forge, wrapGet(s.engine.ID(id).Get(forge))
+	return forge, wrapGet(s.db.NewSelect().Model(forge).Where("id = ?", id).Scan(context.Background()))
 }
 
 func (s storage) ForgeList(p *model.ListOptions) ([]*model.Forge, error) {
 	forges := make([]*model.Forge, 0, 10)
-	return forges, s.paginate(p).Find(&forges)
+	return forges, s.paginate(s.db.NewSelect().Model(&forges), p).Scan(context.Background())
 }
 
 func (s storage) ForgeListAll() ([]*model.Forge, error) {
 	var forges []*model.Forge
-	return forges, s.engine.Find(&forges)
+	return forges, s.db.NewSelect().Model(&forges).Scan(context.Background())
 }
 
 func (s storage) ForgeCreate(forge *model.Forge) error {
 	// only Insert set auto created ID back to object
-	_, err := s.engine.Insert(forge)
+	_, err := s.db.NewInsert().Model(forge).Exec(context.Background())
 	return err
 }
 
 func (s storage) ForgeUpdate(forge *model.Forge) error {
-	_, err := s.engine.ID(forge.ID).AllCols().Update(forge)
+	_, err := s.db.NewUpdate().Model(forge).WherePK().Exec(context.Background())
 	return err
 }
 
 func (s storage) ForgeDelete(forge *model.Forge) error {
-	sess := s.engine.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-
-	if _, err := sess.ID(forge.ID).Delete(new(model.Forge)); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return s.db.RunInTx(context.Background(), nil, func(ctx context.Context, tx bun.Tx) error {
+		return wrapDelete(tx.NewDelete().Model((*model.Forge)(nil)).Where("id = ?", forge.ID).Exec(ctx))
+	})
 }

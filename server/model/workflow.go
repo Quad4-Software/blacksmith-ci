@@ -15,32 +15,36 @@
 
 package model
 
+import "github.com/uptrace/bun"
+
 // Workflow represents a workflow in the pipeline.
 type Workflow struct {
-	ID                          int64             `json:"id"                            xorm:"pk autoincr 'id'"`
-	PipelineID                  int64             `json:"pipeline_id"                   xorm:"UNIQUE(s) INDEX 'pipeline_id'"`
-	PID                         int               `json:"pid"                           xorm:"UNIQUE(s) 'pid'"`
-	Name                        string            `json:"name"                          xorm:"name"`
-	PipelineName                string            `json:"pipeline_name"                 xorm:"pipeline_name"`
-	State                       StatusValue       `json:"state"                         xorm:"state"`
-	Error                       string            `json:"error,omitempty"               xorm:"TEXT 'error'"`
-	Started                     int64             `json:"started,omitempty"             xorm:"started"`
-	Finished                    int64             `json:"finished,omitempty"            xorm:"finished"`
-	AgentID                     int64             `json:"agent_id,omitempty"            xorm:"agent_id"`
-	AgentPersistentID           string            `json:"agent_persistent_id,omitempty" xorm:"VARCHAR(64) INDEX 'agent_persistent_id'"`
-	AgentName                   string            `json:"agent_name,omitempty"          xorm:"VARCHAR(255) 'agent_name'"`
-	Platform                    string            `json:"platform,omitempty"            xorm:"platform"`
-	Environ                     map[string]string `json:"environ,omitempty"             xorm:"json 'environ'"`
-	DependsOn                   []string          `json:"depends_on,omitempty"          xorm:"json 'depends_on'"`
-	AxisID                      int               `json:"-"                             xorm:"axis_id"`
-	OriginalWorkflowID          int64             `json:"original_workflow_id"           xorm:"'original_workflow_id' DEFAULT 0"`
-	Attempt                     int               `json:"attempt"                       xorm:"'attempt' DEFAULT 1"`
-	Children                    []*Step           `json:"children,omitempty"                     xorm:"-"`
-	AutoscalerProvisioning      bool              `json:"autoscaler_provisioning,omitempty"       xorm:"-"`
-	AutoscalerProvisioningStale bool              `json:"autoscaler_provisioning_stale,omitempty" xorm:"-"`
+	bun.BaseModel `bun:"table:workflows"`
+
+	ID                          int64               `json:"id"                            bun:"id,pk,autoincrement"`
+	PipelineID                  int64               `json:"pipeline_id"                   bun:"pipeline_id,unique:s"`
+	PID                         int                 `json:"pid"                           bun:"pid,unique:s"`
+	Name                        string              `json:"name"                          bun:"name"`
+	PipelineName                string              `json:"pipeline_name"                 bun:"pipeline_name"`
+	State                       StatusValue         `json:"state"                         bun:"state"`
+	Error                       string              `json:"error,omitempty"               bun:"error,type:text"`
+	Started                     int64               `json:"started,omitempty"             bun:"started"`
+	Finished                    int64               `json:"finished,omitempty"            bun:"finished"`
+	AgentID                     int64               `json:"agent_id,omitempty"            bun:"agent_id"`
+	AgentPersistentID           string              `json:"agent_persistent_id,omitempty" bun:"agent_persistent_id,type:varchar(64)"`
+	AgentName                   string              `json:"agent_name,omitempty"          bun:"agent_name,type:varchar(255)"`
+	Platform                    string              `json:"platform,omitempty"            bun:"platform"`
+	Environ                     JSONMapStringString `json:"environ,omitempty"             bun:"environ,type:text"`
+	DependsOn                   JSONSliceString     `json:"depends_on,omitempty"          bun:"depends_on,type:text"`
+	AxisID                      int                 `json:"-"                             bun:"axis_id"`
+	OriginalWorkflowID          int64               `json:"original_workflow_id"           bun:"original_workflow_id,default:0"`
+	Attempt                     int                 `json:"attempt"                       bun:"attempt,default:1"`
+	Children                    []*Step             `json:"children,omitempty"                     bun:"-"`
+	AutoscalerProvisioning      bool                `json:"autoscaler_provisioning,omitempty"       bun:"-"`
+	AutoscalerProvisioningStale bool                `json:"autoscaler_provisioning_stale,omitempty" bun:"-"`
 }
 
-// TableName return database table name for xorm.
+// TableName returns the database table name.
 func (Workflow) TableName() string {
 	return "workflows"
 }
@@ -58,7 +62,7 @@ func (p *Workflow) Failing() bool {
 // LatestAttempts returns only the latest attempt of each workflow,
 // grouping by OriginalWorkflowID (or by the workflow's own ID if it is the original).
 func LatestAttempts(workflows []*Workflow) []*Workflow {
-	// Map from original workflow ID → latest workflow attempt
+	// Map from original workflow ID -> latest workflow attempt
 	latest := make(map[int64]*Workflow)
 	for _, wf := range workflows {
 		key := wf.OriginalWorkflowID

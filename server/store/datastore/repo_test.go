@@ -16,6 +16,7 @@
 package datastore
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -301,10 +302,10 @@ func TestRepoCrud(t *testing.T) {
 	_, err = store.GetRepo(repo.ID)
 	assert.Error(t, err)
 
-	stepCount, err := store.engine.Count(new(model.Step))
+	stepCount, err := store.db.NewSelect().Model((*model.Step)(nil)).Count(context.Background())
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, stepCount)
-	pipelineCount, err := store.engine.Count(new(model.Pipeline))
+	pipelineCount, err := store.db.NewSelect().Model((*model.Pipeline)(nil)).Count(context.Background())
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, pipelineCount)
 }

@@ -73,7 +73,7 @@ func Test_parsePush(t *testing.T) {
 		assert.Equal(t, hook.Commits[0].Message, pipeline.Message)
 		assert.Equal(t, "http://1.gravatar.com/avatar/8c58a0be77ee441bb8f8595b7f1b4e87", pipeline.Avatar)
 		assert.Equal(t, hook.Sender.UserName, pipeline.Author)
-		assert.Equal(t, []string{"CHANGELOG.md", "app/controller/application.rb"}, pipeline.ChangedFiles)
+		assert.EqualValues(t, []string{"CHANGELOG.md", "app/controller/application.rb"}, pipeline.ChangedFiles)
 	})
 
 	t.Run("Should return a Repo struct from a push hook", func(t *testing.T) {

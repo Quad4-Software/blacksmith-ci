@@ -140,7 +140,7 @@ func Test_GitLab(t *testing.T) {
 			assert.Equal(t, "http://example.com/uploads/project/avatar/555/Outh-20-Logo.jpg", hookRepo.Avatar)
 			assert.Equal(t, "develop", hookRepo.Branch)
 			assert.Equal(t, "refs/heads/main", pipeline.Ref)
-			assert.Equal(t, []string{"cmd/cli/main.go"}, pipeline.ChangedFiles)
+			assert.EqualValues(t, []string{"cmd/cli/main.go"}, pipeline.ChangedFiles)
 			assert.Equal(t, model.EventPush, pipeline.Event)
 		}
 	})

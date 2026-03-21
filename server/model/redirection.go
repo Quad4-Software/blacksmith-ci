@@ -14,11 +14,15 @@
 
 package model
 
+import "github.com/uptrace/bun"
+
 type Redirection struct {
-	ID       int64  `xorm:"pk autoincr 'id'"`
-	ForgeID  int64  `xorm:"UNIQUE(forge) 'forge_id'"`
-	RepoID   int64  `xorm:"'repo_id'"`
-	FullName string `xorm:"UNIQUE(forge) INDEX 'repo_full_name'"`
+	bun.BaseModel `bun:"table:redirections"`
+
+	ID       int64  `bun:"id,pk,autoincrement"`
+	ForgeID  int64  `bun:"forge_id,unique:forge"`
+	RepoID   int64  `bun:"repo_id"`
+	FullName string `bun:"repo_full_name,unique:forge"`
 }
 
 func (r Redirection) TableName() string {
