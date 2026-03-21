@@ -45,18 +45,24 @@ type SMTPStatus struct {
 	AuthType   string `json:"auth_type,omitempty"`
 }
 
+// UserEmailLookup resolves a forge login name to the user's configured email.
+// Returns empty string if the user is not found.
+type UserEmailLookup func(login string) string
+
 type service struct {
-	store      model.NotificationConfigStore
-	smtpCfg    SMTPConfig
-	serverHost string
+	store           model.NotificationConfigStore
+	smtpCfg         SMTPConfig
+	serverHost      string
+	userEmailLookup UserEmailLookup
 }
 
 // NewService creates a notification service.
-func NewService(store model.NotificationConfigStore, smtpCfg SMTPConfig, serverHost string) Service {
+func NewService(store model.NotificationConfigStore, smtpCfg SMTPConfig, serverHost string, userEmailLookup UserEmailLookup) Service {
 	return &service{
-		store:      store,
-		smtpCfg:    smtpCfg,
-		serverHost: serverHost,
+		store:           store,
+		smtpCfg:         smtpCfg,
+		serverHost:      serverHost,
+		userEmailLookup: userEmailLookup,
 	}
 }
 
@@ -116,8 +122,14 @@ func (s *service) Dispatch(_ context.Context, repo *model.Repo, pipeline *model.
 	}
 
 	recipient := pipeline.Email
-	if recipient == "" {
-		log.Debug().Int64("pipeline_id", pipeline.ID).Msg("no commit author email, skipping notification")
+	if strings.Contains(recipient, "noreply") && s.userEmailLookup != nil && pipeline.Author != "" {
+		if userEmail := s.userEmailLookup(pipeline.Author); userEmail != "" {
+			log.Debug().Str("commit_email", recipient).Str("user_email", userEmail).Msg("commit email is noreply, using user account email")
+			recipient = userEmail
+		}
+	}
+	if recipient == "" || strings.Contains(recipient, "noreply") {
+		log.Debug().Str("email", recipient).Int64("pipeline_id", pipeline.ID).Msg("no deliverable email for commit author, skipping notification")
 		return nil
 	}
 
