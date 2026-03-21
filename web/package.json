@@ -22,7 +22,6 @@
     "@dagrejs/dagre": "^1.1.8",
     "@iconify/vue": "^5.0.0",
     "@internationalized/date": "^3.10.0",
-    "@mdi/js": "^7.4.47",
     "@tailwindcss/postcss": "4.2.1",
     "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "4.2.1",
@@ -62,7 +61,7 @@
     "vue-i18n": "^11.2.2",
     "vue-router": "^5.0.0",
     "vue-sonner": "^2.0.9",
-    "vuedraggable": "^4.1.0",
+    "vue-draggable-plus": "^0.6.0",
     "zod": "^4.1.13"
   },
   "devDependencies": {
@@ -75,7 +74,6 @@
     "@types/node": "^25.0.0",
     "@types/prismjs": "^1.26.5",
     "@types/semver": "^7.7.1",
-    "@types/tinycolor2": "^1.4.6",
     "@vitejs/plugin-vue": "^6.0.2",
     "@vue/compiler-sfc": "^3.5.25",
     "@vue/test-utils": "^2.4.6",
@@ -85,7 +83,6 @@
     "happy-dom": "^20.0.11",
     "jsdom": "^28.0.0",
     "prettier": "^3.7.3",
-    "tinycolor2": "^1.6.0",
     "ts-node": "^10.9.2",
     "typescript": "5.9.3",
     "vite": "^7.2.6",

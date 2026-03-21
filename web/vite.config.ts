@@ -89,7 +89,7 @@ export default defineConfig({
           vue: ['vue', 'vue-router', 'pinia'],
           'vue-i18n': ['vue-i18n'],
           vueuse: ['@vueuse/core'],
-          icons: ['@iconify/vue', '@mdi/js', 'simple-icons'],
+          icons: ['@iconify/vue', 'simple-icons'],
           flow: ['@vue-flow/core', '@vue-flow/background', '@vue-flow/controls'],
         },
       },

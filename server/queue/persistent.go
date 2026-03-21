@@ -18,8 +18,8 @@ package queue
 import (
 	"context"
 	"errors"
+	"fmt"
 
-	pkgerrors "github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 
 	"codefloe.com/crowci/crow/v5/server/model"
@@ -56,7 +56,7 @@ func (q *persistentQueue) Push(c context.Context, task *model.Task) error {
 	err := q.Queue.Push(c, task)
 	if err != nil {
 		if err2 := q.store.TaskDelete(task.ID); err2 != nil {
-			err = pkgerrors.Wrapf(err, "delete task '%s' failed: %v", task.ID, err2)
+			err = fmt.Errorf("delete task '%s' failed: %w: %w", task.ID, err2, err)
 		}
 	}
 	return err

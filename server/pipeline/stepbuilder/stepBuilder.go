@@ -18,6 +18,7 @@ package stepbuilder
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"path/filepath"
@@ -27,7 +28,6 @@ import (
 
 	"github.com/oklog/ulid/v2"
 	"github.com/rs/zerolog/log"
-	"go.uber.org/multierr"
 
 	"codefloe.com/crowci/crow/v5/pipeline"
 	backend_types "codefloe.com/crowci/crow/v5/pipeline/backend/types"
@@ -175,7 +175,7 @@ func (b *StepBuilder) Build() (items []*Item, errorsAndWarnings error) {
 			if err != nil && pipeline_errors.HasBlockingErrors(err) {
 				return nil, err
 			} else if err != nil {
-				errorsAndWarnings = multierr.Append(errorsAndWarnings, err)
+				errorsAndWarnings = errors.Join(errorsAndWarnings, err)
 			}
 
 			if item == nil {
@@ -282,7 +282,7 @@ func (b *StepBuilder) genItemForWorkflow(workflow *model.Workflow, axis matrix.A
 	// substitute vars
 	substituted, err := metadata.EnvVarSubst(data, environ)
 	if err != nil {
-		return nil, multierr.Append(errorsAndWarnings, err)
+		return nil, errors.Join(errorsAndWarnings, err)
 	}
 
 	// parse yaml pipeline
@@ -292,7 +292,7 @@ func (b *StepBuilder) genItemForWorkflow(workflow *model.Workflow, axis matrix.A
 	}
 
 	// lint pipeline
-	errorsAndWarnings = multierr.Append(errorsAndWarnings, linter.New(
+	errorsAndWarnings = errors.Join(errorsAndWarnings, linter.New(
 		linter.WithTrusted(linter.TrustedConfiguration{
 			Network:  b.Repo.Trusted.Network,
 			Volumes:  b.Repo.Trusted.Volumes,
@@ -319,12 +319,12 @@ func (b *StepBuilder) genItemForWorkflow(workflow *model.Workflow, axis matrix.A
 		log.Debug().Str("pipeline", workflow.Name).Msg(
 			"pipeline config could not be parsed",
 		)
-		return nil, multierr.Append(errorsAndWarnings, err)
+		return nil, errors.Join(errorsAndWarnings, err)
 	}
 
 	ir, err := b.toInternalRepresentation(parsed, environ, workflowMetadata, workflow.ID, workflow.Name)
 	if err != nil {
-		return nil, multierr.Append(errorsAndWarnings, err)
+		return nil, errors.Join(errorsAndWarnings, err)
 	}
 
 	if len(ir.Stages) == 0 {

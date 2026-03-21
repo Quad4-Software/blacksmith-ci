@@ -15,11 +15,10 @@
 package linter
 
 import (
+	"errors"
 	"fmt"
 
-	"go.uber.org/multierr"
-
-	"codefloe.com/crowci/crow/v5/pipeline/errors"
+	pipelineErrors "codefloe.com/crowci/crow/v5/pipeline/errors"
 	errorTypes "codefloe.com/crowci/crow/v5/pipeline/errors/types"
 	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/linter/schema"
 	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/types"
@@ -68,7 +67,7 @@ func (l *Linter) Lint(configs []*WorkflowConfig) error {
 
 	for _, config := range configs {
 		if err := l.lintFile(config); err != nil {
-			linterErr = multierr.Append(linterErr, err)
+			linterErr = errors.Join(linterErr, err)
 		}
 	}
 
@@ -79,31 +78,31 @@ func (l *Linter) lintFile(config *WorkflowConfig) error {
 	var linterErr error
 
 	if len(config.Workflow.Steps.ContainerList) == 0 {
-		linterErr = multierr.Append(linterErr, newLinterError("Invalid or missing `steps` section", config.File, "steps", false))
+		linterErr = errors.Join(linterErr, newLinterError("Invalid or missing `steps` section", config.File, "steps", false))
 	}
 
 	if err := l.lintCloneSteps(config); err != nil {
-		linterErr = multierr.Append(linterErr, err)
+		linterErr = errors.Join(linterErr, err)
 	}
 
 	if err := l.lintContainers(config, "clone"); err != nil {
-		linterErr = multierr.Append(linterErr, err)
+		linterErr = errors.Join(linterErr, err)
 	}
 	if err := l.lintContainers(config, "steps"); err != nil {
-		linterErr = multierr.Append(linterErr, err)
+		linterErr = errors.Join(linterErr, err)
 	}
 	if err := l.lintContainers(config, "services"); err != nil {
-		linterErr = multierr.Append(linterErr, err)
+		linterErr = errors.Join(linterErr, err)
 	}
 
 	if err := l.lintSchema(config); err != nil {
-		linterErr = multierr.Append(linterErr, err)
+		linterErr = errors.Join(linterErr, err)
 	}
 	if err := l.lintDeprecations(config); err != nil {
-		linterErr = multierr.Append(linterErr, err)
+		linterErr = errors.Join(linterErr, err)
 	}
 	if err := l.lintBadHabits(config); err != nil {
-		linterErr = multierr.Append(linterErr, err)
+		linterErr = errors.Join(linterErr, err)
 	}
 
 	return linterErr
@@ -122,7 +121,7 @@ func (l *Linter) lintCloneSteps(config *WorkflowConfig) error {
 	var linterErr error
 	for _, container := range config.Workflow.Clone.ContainerList {
 		if !utils.MatchImageDynamic(container.Image, trustedClonePlugins...) {
-			linterErr = multierr.Append(linterErr,
+			linterErr = errors.Join(linterErr,
 				newLinterError(
 					"The specified clone image does not match the images in the allow list (`CROW_PLUGINS_TRUSTED_CLONE`), not injecting `.netrc` credentials.",
 					config.File, fmt.Sprintf("clone.%s", container.Name), true),
@@ -148,22 +147,22 @@ func (l *Linter) lintContainers(config *WorkflowConfig, area string) error {
 
 	for _, container := range containers {
 		if err := l.lintImage(config, container, area); err != nil {
-			linterErr = multierr.Append(linterErr, err)
+			linterErr = errors.Join(linterErr, err)
 		}
 		if err := l.lintTrusted(config, container, area); err != nil {
-			linterErr = multierr.Append(linterErr, err)
+			linterErr = errors.Join(linterErr, err)
 		}
 		if err := l.lintSettings(config, container, area); err != nil {
-			linterErr = multierr.Append(linterErr, err)
+			linterErr = errors.Join(linterErr, err)
 		}
 		if err := l.lintPrivilegedPlugins(config, container, area); err != nil {
-			linterErr = multierr.Append(linterErr, err)
+			linterErr = errors.Join(linterErr, err)
 		}
 		if err := l.lintContainerDeprecations(config, container, area); err != nil {
-			linterErr = multierr.Append(linterErr, err)
+			linterErr = errors.Join(linterErr, err)
 		}
 		if err := l.lintDependsOn(config, container, area); err != nil {
-			linterErr = multierr.Append(linterErr, err)
+			linterErr = errors.Join(linterErr, err)
 		}
 	}
 
@@ -183,7 +182,7 @@ check:
 				continue check
 			}
 		}
-		linterErr = multierr.Append(linterErr,
+		linterErr = errors.Join(linterErr,
 			newLinterError(
 				"One or more of the specified step dependencies do not exist. Double-check for typos.",
 				config.File, fmt.Sprintf("%s.%s.depends_on", area, c.Name), false,
@@ -243,10 +242,10 @@ func (l *Linter) lintSettings(config *WorkflowConfig, c *types.Container, field 
 
 func (l *Linter) lintContainerDeprecations(config *WorkflowConfig, c *types.Container, field string) (err error) {
 	if len(c.Secrets) != 0 {
-		err = multierr.Append(err, &errorTypes.PipelineError{
+		err = errors.Join(err, &errorTypes.PipelineError{
 			Type:    errorTypes.PipelineErrorTypeDeprecation,
 			Message: "The usage of `secrets:` is deprecated since v2.8.x and was removed in >=3.x. Use `environment:` in combination with `from_secret:`.",
-			Data: errors.DeprecationErrorData{
+			Data: pipelineErrors.DeprecationErrorData{
 				File:  config.File,
 				Field: fmt.Sprintf("%s.%s.secrets", field, c.Name),
 				Docs:  "https://crowci.dev/dev/usage/secrets/#defining-secrets",
@@ -259,45 +258,43 @@ func (l *Linter) lintContainerDeprecations(config *WorkflowConfig, c *types.Cont
 
 func (l *Linter) lintTrusted(config *WorkflowConfig, c *types.Container, area string) error {
 	yamlPath := fmt.Sprintf("%s.%s", area, c.Name)
-	errors := []string{}
+	var msgs []string
 	if !l.trusted.Security {
 		if c.Privileged {
-			errors = append(errors, "Insufficient `security` privileges. To allow, check the 'security' option in the 'Privileges & Security' repository settings.")
+			msgs = append(msgs, "Insufficient `security` privileges. To allow, check the 'security' option in the 'Privileges & Security' repository settings.")
 		}
 	}
 	if !l.trusted.Network {
 		if len(c.DNS) != 0 {
-			errors = append(errors, "Insufficient `network` privileges. To allow using 'dns' options, check the 'Network' option in the 'Privileges & Security' repository settings.")
+			msgs = append(msgs, "Insufficient `network` privileges. To allow using 'dns' options, check the 'Network' option in the 'Privileges & Security' repository settings.")
 		}
 		if len(c.DNSSearch) != 0 {
-			errors = append(errors, "Insufficient `network` privileges. To allow using 'dns_search' options, check the 'Network' option in the 'Privileges & Security' repository settings.")
+			msgs = append(msgs, "Insufficient `network` privileges. To allow using 'dns_search' options, check the 'Network' option in the 'Privileges & Security' repository settings.")
 		}
 		if len(c.ExtraHosts) != 0 {
-			errors = append(errors, "Insufficient `network` privileges. To allow using 'extra_hosts' options, check the 'Network' option in the 'Privileges & Security' repository settings.")
+			msgs = append(msgs, "Insufficient `network` privileges. To allow using 'extra_hosts' options, check the 'Network' option in the 'Privileges & Security' repository settings.")
 		}
 		if len(c.NetworkMode) != 0 {
-			errors = append(errors, "Insufficient `network` privileges. To allow using 'network_mode' options, check the 'Network' option in the 'Privileges & Security' repository settings.")
+			msgs = append(msgs, "Insufficient `network` privileges. To allow using 'network_mode' options, check the 'Network' option in the 'Privileges & Security' repository settings.")
 		}
 	}
 	if !l.trusted.Volumes {
 		if len(c.Devices) != 0 {
-			errors = append(errors, "Insufficient `volumes` privileges. To allow using 'devices' options, check the 'Volumes' option in the 'Privileges & Security' repository settings.")
+			msgs = append(msgs, "Insufficient `volumes` privileges. To allow using 'devices' options, check the 'Volumes' option in the 'Privileges & Security' repository settings.")
 		}
 		if len(c.Volumes.Volumes) != 0 {
-			errors = append(errors, "Insufficient `volumes` privileges. To allow using 'volumes' options, check the 'Volumes' option in the 'Privileges & Security' repository settings.")
+			msgs = append(msgs, "Insufficient `volumes` privileges. To allow using 'volumes' options, check the 'Volumes' option in the 'Privileges & Security' repository settings.")
 		}
 		if len(c.Tmpfs) != 0 {
-			errors = append(errors, "Insufficient `volumes` privileges. To allow using 'tmpfs' options, check the 'Volumes' option in the 'Privileges & Security' repository settings.")
+			msgs = append(msgs, "Insufficient `volumes` privileges. To allow using 'tmpfs' options, check the 'Volumes' option in the 'Privileges & Security' repository settings.")
 		}
 	}
 
-	if len(errors) > 0 {
+	if len(msgs) > 0 {
 		var err error
-
-		for _, e := range errors {
-			err = multierr.Append(err, newLinterError(e, config.File, yamlPath, false))
+		for _, e := range msgs {
+			err = errors.Join(err, newLinterError(e, config.File, yamlPath, false))
 		}
-
 		return err
 	}
 
@@ -309,7 +306,7 @@ func (l *Linter) lintSchema(config *WorkflowConfig) error {
 	schemaErrors, err := schema.LintString(config.RawConfig)
 	if err != nil {
 		for _, schemaError := range schemaErrors {
-			linterErr = multierr.Append(linterErr, newLinterErrorWithLocation(
+			linterErr = errors.Join(linterErr, newLinterErrorWithLocation(
 				schemaError.Description(),
 				config.File,
 				schemaError.Field(),
@@ -365,10 +362,10 @@ func (l *Linter) lintBadHabits(config *WorkflowConfig) (err error) {
 				}
 			}
 			if field != "" {
-				err = multierr.Append(err, &errorTypes.PipelineError{
+				err = errors.Join(err, &errorTypes.PipelineError{
 					Type:    errorTypes.PipelineErrorTypeBadHabit,
 					Message: "Either set an event filter (`when:`) for all individual steps or for the entire workflow.",
-					Data: errors.BadHabitErrorData{
+					Data: pipelineErrors.BadHabitErrorData{
 						File:  config.File,
 						Field: field,
 						Docs:  "https://crowci.dev/dev/usage/workflow-syntax/#when---conditional-execution",

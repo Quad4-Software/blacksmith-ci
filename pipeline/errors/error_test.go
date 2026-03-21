@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/multierr"
 
 	pipeline_errors "codefloe.com/crowci/crow/v5/pipeline/errors"
 	"codefloe.com/crowci/crow/v5/pipeline/errors/types"
@@ -48,7 +47,7 @@ func TestGetPipelineErrors(t *testing.T) {
 		},
 		{
 			title: "multiple warnings",
-			err: multierr.Combine(
+			err: errors.Join(
 				&types.PipelineError{
 					IsWarning: true,
 				},
@@ -67,7 +66,7 @@ func TestGetPipelineErrors(t *testing.T) {
 		},
 		{
 			title: "multiple errors and warnings",
-			err: multierr.Combine(
+			err: errors.Join(
 				&types.PipelineError{
 					IsWarning: true,
 				},
@@ -126,7 +125,7 @@ func TestHasBlockingErrors(t *testing.T) {
 		},
 		{
 			title: "multiple warnings",
-			err: multierr.Combine(
+			err: errors.Join(
 				&types.PipelineError{
 					IsWarning: true,
 				},
@@ -138,7 +137,7 @@ func TestHasBlockingErrors(t *testing.T) {
 		},
 		{
 			title: "multiple errors and warnings",
-			err: multierr.Combine(
+			err: errors.Join(
 				&types.PipelineError{
 					IsWarning: true,
 				},

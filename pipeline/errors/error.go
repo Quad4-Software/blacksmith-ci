@@ -3,8 +3,6 @@ package errors
 import (
 	"errors"
 
-	"go.uber.org/multierr"
-
 	"codefloe.com/crowci/crow/v5/pipeline/errors/types"
 )
 
@@ -58,7 +56,7 @@ func NewCompilerError(message, file, step string) *types.PipelineError {
 
 func GetPipelineErrors(err error) []*types.PipelineError {
 	var pipelineErrors []*types.PipelineError
-	for _, _err := range multierr.Errors(err) {
+	for _, _err := range unwrapErrors(err) {
 		var err *types.PipelineError
 		if errors.As(_err, &err) {
 			pipelineErrors = append(pipelineErrors, err)
@@ -71,6 +69,22 @@ func GetPipelineErrors(err error) []*types.PipelineError {
 	}
 
 	return pipelineErrors
+}
+
+// unwrapErrors recursively flattens all errors wrapped by errors.Join,
+// returning leaf errors. A single non-joined error returns a one-element slice.
+func unwrapErrors(err error) []error {
+	if err == nil {
+		return nil
+	}
+	if multi, ok := err.(interface{ Unwrap() []error }); ok {
+		var result []error
+		for _, e := range multi.Unwrap() {
+			result = append(result, unwrapErrors(e)...)
+		}
+		return result
+	}
+	return []error{err}
 }
 
 func HasBlockingErrors(err error) bool {

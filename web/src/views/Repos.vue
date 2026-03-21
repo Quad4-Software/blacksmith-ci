@@ -38,25 +38,24 @@
               <h2 class="text-foreground text-lg">{{ $t('repositories.pinned.title') }}</h2>
               <span class="text-muted-foreground">{{ $t('repositories.pinned.desc') }}</span>
             </div>
-            <draggable
+            <VueDraggable
               :model-value="pinnedRepos"
-              item-key="id"
               handle=".drag-handle"
               ghost-class="opacity-50"
-              animation="200"
+              :animation="200"
               class="flex flex-col gap-3 w-full"
               @update:model-value="handleReorder"
             >
-              <template #item="{ element: repo }">
-                <RepoItem
-                  :repo="repo"
-                  :is-pinned="true"
-                  :can-pin="true"
-                  :show-drag-handle="true"
-                  @toggle-pin="handleTogglePin(repo.id)"
-                />
-              </template>
-            </draggable>
+              <RepoItem
+                v-for="repo in pinnedRepos"
+                :key="repo.id"
+                :repo="repo"
+                :is-pinned="true"
+                :can-pin="true"
+                :show-drag-handle="true"
+                @toggle-pin="handleTogglePin(repo.id)"
+              />
+            </VueDraggable>
           </div>
 
           <!-- All Repos Section -->
@@ -105,7 +104,7 @@ import { useStorage } from '@vueuse/core';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
-import draggable from 'vuedraggable';
+import { VueDraggable } from 'vue-draggable-plus';
 
 import Icon from '~/components/atomic/Icon.vue';
 import Scaffold from '~/components/layout/scaffold/Scaffold.vue';

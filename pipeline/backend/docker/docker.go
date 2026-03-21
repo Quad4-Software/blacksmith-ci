@@ -35,9 +35,9 @@ import (
 	tls_config "github.com/docker/go-connections/tlsconfig"
 	json_message "github.com/moby/moby/pkg/jsonmessage"
 	std_copy "github.com/moby/moby/pkg/stdcopy"
-	"github.com/moby/term"
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v3"
+	"golang.org/x/term"
 
 	backend "codefloe.com/crowci/crow/v5/pipeline/backend/types"
 	"codefloe.com/crowci/crow/v5/shared/utils"
@@ -196,7 +196,8 @@ func (e *docker) StartStep(ctx context.Context, step *backend.Step, taskUUID str
 		responseBody, pErr := e.client.ImagePull(ctx, config.Image, pullOpts)
 		if pErr == nil {
 			// TODO(1936): show image pull progress in web-ui
-			fd, isTerminal := term.GetFdInfo(os.Stdout)
+			fd := os.Stdout.Fd()
+			isTerminal := term.IsTerminal(int(fd))
 			if err := json_message.DisplayJSONMessagesStream(responseBody, os.Stdout, fd, isTerminal, nil); err != nil {
 				log.Error().Err(err).Msg("DisplayJSONMessagesStream")
 			}
@@ -221,7 +222,8 @@ func (e *docker) StartStep(ctx context.Context, step *backend.Step, taskUUID str
 			return pErr
 		}
 		// TODO(1936): show image pull progress in web-ui
-		fd, isTerminal := term.GetFdInfo(os.Stdout)
+		fd := os.Stdout.Fd()
+		isTerminal := term.IsTerminal(int(fd))
 		if err := json_message.DisplayJSONMessagesStream(responseBody, os.Stdout, fd, isTerminal, nil); err != nil {
 			log.Error().Err(err).Msg("DisplayJSONMessagesStream")
 		}

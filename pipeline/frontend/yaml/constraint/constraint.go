@@ -15,6 +15,7 @@
 package constraint
 
 import (
+	"errors"
 	"fmt"
 	"maps"
 	"path"
@@ -23,7 +24,6 @@ import (
 
 	"github.com/bmatcuk/doublestar/v4"
 	"github.com/expr-lang/expr"
-	"go.uber.org/multierr"
 
 	"codefloe.com/crowci/crow/v5/pipeline/frontend/metadata"
 	yamlBaseTypes "codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/types/base"
@@ -266,7 +266,7 @@ func (c *List) UnmarshalYAML(unmarshal func(any) error) error {
 	)
 
 	if err1 != nil && err2 != nil {
-		return fmt.Errorf("could not parse condition: %w", multierr.Append(err1, err2))
+		return fmt.Errorf("could not parse condition: %w", errors.Join(err1, err2))
 	}
 
 	return nil
@@ -348,7 +348,7 @@ func (c *Path) UnmarshalYAML(unmarshal func(any) error) error {
 	)
 
 	if err1 != nil && err2 != nil {
-		return fmt.Errorf("could not parse condition: %w", multierr.Append(err1, err2))
+		return fmt.Errorf("could not parse condition: %w", errors.Join(err1, err2))
 	}
 
 	return nil
