@@ -27,6 +27,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/dustin/go-humanize"
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v3"
 	"golang.org/x/sync/errgroup"
@@ -53,7 +54,8 @@ const (
 )
 
 const (
-	shutdownTimeout = time.Second * 5
+	microsecondsPerCore = 100000
+	shutdownTimeout     = time.Second * 5
 
 	// ForceExitTimeout is the maximum time to wait for graceful shutdown before forcing exit.
 	// This ensures the agent process terminates even if some goroutines are stuck,
@@ -262,8 +264,8 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 			}
 			log.Info().
 				Str("input", memStr).
-				Int64("bytes", limitMem).
-				Msg("parsed Docker memory limit")
+				Str("limit", humanize.IBytes(uint64(limitMem))).
+				Msg("Docker memory limit")
 		}
 
 		if cpuStr != "" {
@@ -274,8 +276,8 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 			}
 			log.Info().
 				Str("input", cpuStr).
-				Int64("quota", limitCPUQuota).
-				Msg("parsed Docker CPU quota")
+				Str("quota", fmt.Sprintf("%.2f cores", float64(limitCPUQuota)/microsecondsPerCore)).
+				Msg("Docker CPU quota")
 		}
 	}
 

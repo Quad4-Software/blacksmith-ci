@@ -18,7 +18,7 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/docker/go-units"
+	"github.com/dustin/go-humanize"
 )
 
 // StringOrInt represents a string or an integer.
@@ -59,11 +59,11 @@ func (s *MemStringOrInt) UnmarshalYAML(unmarshal func(any) error) error {
 
 	var stringType string
 	if err := unmarshal(&stringType); err == nil {
-		intType, err := units.RAMInBytes(stringType)
+		bytes, err := humanize.ParseBytes(stringType)
 		if err != nil {
 			return err
 		}
-		*s = MemStringOrInt(intType)
+		*s = MemStringOrInt(bytes)
 		return nil
 	}
 

@@ -17,7 +17,7 @@ require (
 	github.com/docker/cli v29.3.0+incompatible
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/docker/go-connections v0.6.0
-	github.com/docker/go-units v0.5.0
+	github.com/dustin/go-humanize v1.0.1
 	github.com/expr-lang/expr v1.17.8
 	github.com/fluxcd/pkg/envsubst v1.5.0
 	github.com/fsnotify/fsnotify v1.9.0
@@ -94,8 +94,8 @@ require (
 	github.com/davidmz/go-pageant v1.0.2 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 // indirect
 	github.com/docker/docker-credential-helpers v0.9.4 // indirect
+	github.com/docker/go-units v0.5.0 // indirect
 	github.com/dunglas/httpsfv v1.1.0 // indirect
-	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.13.0 // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
