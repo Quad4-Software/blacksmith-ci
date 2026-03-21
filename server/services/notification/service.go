@@ -215,7 +215,7 @@ func shouldNotify(events []model.NotificationEvent, current, previous model.Stat
 				return true
 			}
 		case model.NotificationEventFailure:
-			if current == model.StatusFailure || current == model.StatusError || current == model.StatusKilled {
+			if current == model.StatusFailure || current == model.StatusError {
 				return true
 			}
 		case model.NotificationEventStatusChange:
@@ -231,7 +231,7 @@ func normalizeTerminal(s model.StatusValue) string {
 	switch s {
 	case model.StatusSuccess:
 		return "success"
-	case model.StatusFailure, model.StatusError, model.StatusKilled:
+	case model.StatusFailure, model.StatusError:
 		return "failure"
 	default:
 		return ""
