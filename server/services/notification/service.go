@@ -133,11 +133,11 @@ func (s *service) Dispatch(_ context.Context, repo *model.Repo, pipeline *model.
 		return nil
 	}
 
-	subject := fmt.Sprintf("[%s] %s #%d on %s",
-		strings.ToUpper(string(pipeline.Status)),
+	subject := fmt.Sprintf("[Crow CI] %s: build #%d on %s (%s)",
 		repo.FullName,
 		pipeline.Number,
 		pipeline.Branch,
+		statusChangeLabel(pipeline.Status, previousStatus),
 	)
 
 	body := buildEmailBody(s.serverHost, repo, pipeline)
@@ -169,15 +169,42 @@ func buildEmailBody(serverHost string, repo *model.Repo, pipeline *model.Pipelin
 		message = message[:idx]
 	}
 
+	rows := []struct{ Label, Value string }{
+		{"Repository", repo.FullName},
+		{"Pipeline", fmt.Sprintf("#%d", pipeline.Number)},
+		{"Status", string(pipeline.Status)},
+		{"Branch", pipeline.Branch},
+		{"Commit", commit},
+		{"Message", message},
+	}
+
 	var b strings.Builder
-	fmt.Fprintf(&b, "Repository: %s\n", repo.FullName)
-	fmt.Fprintf(&b, "Pipeline:   #%d\n", pipeline.Number)
-	fmt.Fprintf(&b, "Status:     %s\n", pipeline.Status)
-	fmt.Fprintf(&b, "Branch:     %s\n", pipeline.Branch)
-	fmt.Fprintf(&b, "Commit:     %s\n", commit)
-	fmt.Fprintf(&b, "Message:    %s\n", message)
-	fmt.Fprintf(&b, "\nView: %s\n", link)
+	b.WriteString(`<table style="border-collapse:collapse;font-family:sans-serif">`)
+	for _, r := range rows {
+		fmt.Fprintf(&b,
+			`<tr><td style="padding:4px 12px 4px 0;font-weight:bold;white-space:nowrap;vertical-align:top">%s</td>`+
+				`<td style="padding:4px 0">%s</td></tr>`,
+			r.Label, r.Value,
+		)
+	}
+	b.WriteString(`</table>`)
+	fmt.Fprintf(&b, `<p><a href="%s">View pipeline</a></p>`, link)
 	return b.String()
+}
+
+// statusChangeLabel returns a human-readable label for the status transition.
+func statusChangeLabel(current, previous model.StatusValue) string {
+	if previous != "" {
+		curNorm := normalizeTerminal(current)
+		prevNorm := normalizeTerminal(previous)
+		if curNorm != prevNorm && curNorm != "" && prevNorm != "" {
+			if curNorm == "success" {
+				return "fixed"
+			}
+			return "broken"
+		}
+	}
+	return string(current)
 }
 
 func shouldNotify(events []model.NotificationEvent, current, previous model.StatusValue) bool {

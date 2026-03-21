@@ -77,7 +77,7 @@ func sendEmail(cfg SMTPConfig, to []string, subject, body string) error {
 		return fmt.Errorf("invalid to address: %w", err)
 	}
 	msg.Subject(subject)
-	msg.SetBodyString(mail.TypeTextPlain, body)
+	msg.SetBodyString(mail.TypeTextHTML, body)
 
 	var opts []mail.Option
 
