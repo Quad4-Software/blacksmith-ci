@@ -1,6 +1,6 @@
 <template>
   <Dialog :open="open" @update:open="(val) => !val && $emit('close')">
-    <DialogContent class="sm:w-fit sm:min-w-80 sm:max-w-2xl">
+    <DialogContent class="sm:w-fit sm:min-w-80 sm:max-w-2xl max-h-[85vh] overflow-y-auto">
       <DialogHeader class="text-left">
         <DialogTitle>{{ $t('repo.manual_pipeline.title') }}</DialogTitle>
         <DialogDescription>

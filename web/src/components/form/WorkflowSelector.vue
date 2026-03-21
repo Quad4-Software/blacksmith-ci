@@ -15,7 +15,7 @@
     </div>
 
     <!-- Workflow list -->
-    <div v-if="workflows.length > 0" class="flex flex-col gap-1 max-h-64 overflow-y-auto">
+    <div v-if="workflows.length > 0" class="flex flex-col gap-1">
       <div
         v-for="workflow in workflows"
         :key="workflow.name"
