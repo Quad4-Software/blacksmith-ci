@@ -18,8 +18,8 @@ require (
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/docker/go-connections v0.6.0
 	github.com/docker/go-units v0.5.0
-	github.com/drone/envsubst v1.0.3
 	github.com/expr-lang/expr v1.17.8
+	github.com/fluxcd/pkg/envsubst v1.5.0
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/gdgvda/cron v0.6.0
 	github.com/getkin/kin-openapi v0.133.0

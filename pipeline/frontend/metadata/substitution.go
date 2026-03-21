@@ -18,15 +18,15 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/drone/envsubst"
+	"github.com/fluxcd/pkg/envsubst"
 )
 
 func EnvVarSubst(yaml string, environ map[string]string) (string, error) {
-	return envsubst.Eval(yaml, func(name string) string {
-		env := environ[name]
-		if strings.Contains(env, "\n") {
+	return envsubst.Eval(yaml, func(name string) (string, bool) {
+		env, ok := environ[name]
+		if ok && strings.Contains(env, "\n") {
 			env = fmt.Sprintf("%q", env)
 		}
-		return env
+		return env, true
 	})
 }

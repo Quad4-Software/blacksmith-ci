@@ -25,7 +25,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/drone/envsubst"
+	"github.com/fluxcd/pkg/envsubst"
 	"github.com/oklog/ulid/v2"
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v3"
@@ -217,12 +217,21 @@ func execWithAxis(ctx context.Context, c *cli.Command, name, repoPath, yamlConte
 		environ[before] = after
 	}
 
+	// extract user-defined variables from the "variables:" block
+	if userVars, err := frontend_yaml.ParseVariablesString(yamlContent); err == nil {
+		for k, v := range userVars {
+			if _, exists := environ[k]; !exists {
+				environ[k] = v
+			}
+		}
+	}
+
 	tmpl, err := envsubst.Parse(yamlContent)
 	if err != nil {
 		return err
 	}
-	confStr, err := tmpl.Execute(func(name string) string {
-		return environ[name]
+	confStr, err := tmpl.Execute(func(name string) (string, bool) {
+		return environ[name], true
 	})
 	if err != nil {
 		return err

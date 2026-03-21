@@ -21,6 +21,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	backend_types "codefloe.com/crowci/crow/v5/pipeline/backend/types"
 	"codefloe.com/crowci/crow/v5/pipeline/errors"
 	"codefloe.com/crowci/crow/v5/server/forge"
 	forge_mocks "codefloe.com/crowci/crow/v5/server/forge/mocks"
@@ -1019,4 +1020,92 @@ steps:
 			}
 		}
 	}
+}
+
+func TestVariablesInterpolation(t *testing.T) {
+	t.Parallel()
+
+	b := StepBuilder{
+		Forge: getMockForge(),
+		Repo:  &model.Repo{},
+		Curr: &model.Pipeline{
+			Event: model.EventPush,
+		},
+		Prev:  &model.Pipeline{},
+		Netrc: &model.Netrc{},
+		Secs:  []*model.Secret{},
+		Regs:  []*model.Registry{},
+		Host:  "",
+		Yamls: []*forge_types.FileMeta{
+			{Data: []byte(`
+variables:
+  FOO_VERSION: "3.12"
+  BAR_VERSION: "0.3.1"
+
+when:
+  event: push
+steps:
+  test:
+    image: example.com/myorg/myimage:${FOO_VERSION}-${BAR_VERSION}
+    commands:
+      - echo test
+`)},
+		},
+	}
+
+	pipelineItems, err := b.Build()
+	assert.NoError(t, err)
+	assert.Len(t, pipelineItems, 1)
+
+	// Find the test step (skip clone step)
+	var testStep *backend_types.Step
+	for _, stage := range pipelineItems[0].Config.Stages {
+		for _, step := range stage.Steps {
+			if step.Name == "test" {
+				testStep = step
+			}
+		}
+	}
+	assert.NotNil(t, testStep)
+	assert.Equal(t, "example.com/myorg/myimage:3.12-0.3.1", testStep.Image)
+}
+
+func TestVariablesDoNotOverrideCIVars(t *testing.T) {
+	t.Parallel()
+
+	b := StepBuilder{
+		Forge: getMockForge(),
+		Repo:  &model.Repo{},
+		Curr: &model.Pipeline{
+			Event:   model.EventPush,
+			Message: "real commit message",
+		},
+		Prev:  &model.Pipeline{},
+		Netrc: &model.Netrc{},
+		Secs:  []*model.Secret{},
+		Regs:  []*model.Registry{},
+		Host:  "",
+		Yamls: []*forge_types.FileMeta{
+			{Data: []byte(`
+variables:
+  CI_COMMIT_MESSAGE: "should not override"
+
+when:
+  event: push
+steps:
+  test:
+    image: scratch
+    settings:
+      msg: ${CI_COMMIT_MESSAGE}
+`)},
+		},
+	}
+
+	pipelineItems, err := b.Build()
+	assert.NoError(t, err)
+	assert.Len(t, pipelineItems, 1)
+
+	// CI_COMMIT_MESSAGE should come from the pipeline, not from variables
+	env := pipelineItems[0].Config.Stages[0].Steps[0].Environment
+	assert.Equal(t, "real commit message", env["CI_COMMIT_MESSAGE"])
 }

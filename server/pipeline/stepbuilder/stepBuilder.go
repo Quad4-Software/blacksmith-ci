@@ -260,6 +260,16 @@ func (b *StepBuilder) genItemForWorkflow(workflow *model.Workflow, axis matrix.A
 	workflowMetadata := MetadataFromStruct(b.Forge, b.Repo, b.Curr, b.Prev, workflow, b.Host)
 	environ := b.environmentVariables(workflowMetadata, axis)
 
+	// extract user-defined variables from the "variables:" block and add them
+	// to the substitution environment (lower priority than CI/matrix vars)
+	if userVars, err := yaml.ParseVariablesString(data); err == nil {
+		for k, v := range userVars {
+			if _, exists := environ[k]; !exists {
+				environ[k] = v
+			}
+		}
+	}
+
 	// add global environment variables for substituting
 	for k, v := range b.Envs {
 		if _, exists := environ[k]; exists {
