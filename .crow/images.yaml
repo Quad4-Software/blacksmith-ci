@@ -4,6 +4,8 @@ variables:
   - &xgo_image 'reg.devxy.io/docker.io/techknowlogick/xgo:go-1.26.x'
   - &buildx_plugin 'codefloe.com/crow-plugins/docker-buildx:2.2.1'
   - &platforms_release 'linux/arm/v6,linux/arm/v7,linux/arm64/v8,linux/386,linux/amd64,linux/ppc64le,linux/riscv64,linux/s390x,freebsd/arm64,freebsd/amd64,openbsd/arm64,openbsd/amd64'
+  # Agent excludes freebsd/openbsd because the Podman SDK's storage library doesn't compile there
+  - &platforms_agent 'linux/arm/v6,linux/arm/v7,linux/arm64/v8,linux/386,linux/amd64,linux/ppc64le,linux/riscv64,linux/s390x'
   - &platforms_server 'linux/arm/v7,linux/arm64/v8,linux/amd64,linux/ppc64le,linux/riscv64'
   - &platforms_pr 'linux/amd64'
   - &platforms_alpine 'linux/arm/v6,linux/arm/v7,linux/arm64/v8,linux/amd64,linux/ppc64le'
@@ -240,7 +242,7 @@ steps:
     settings:
       repo: *publish_repos_agent
       dockerfile: images/Containerfile.agent.multiarch
-      platforms: *platforms_release
+      platforms: *platforms_agent
       tag: [dev, 'dev-${CI_COMMIT_SHA:0:10}']
       logins: *publish_logins
       build_args: *build_args
@@ -267,7 +269,7 @@ steps:
     settings:
       repo: *publish_repos_agent
       dockerfile: images/Containerfile.agent.multiarch
-      platforms: *platforms_release
+      platforms: *platforms_agent
       tag: ['${CI_COMMIT_TAG%%.*}', '${CI_COMMIT_TAG%.*}', '${CI_COMMIT_TAG}']
       logins: *publish_logins
       build_args: *build_args
