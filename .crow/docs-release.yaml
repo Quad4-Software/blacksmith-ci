@@ -107,6 +107,22 @@ steps:
         sed -i "s|documentation](/v[0-9]*-[0-9]*/)|documentation](/$${VERSION_SLUG}/)|g" src/content/docs/index.mdx
         cd ..
 
+        # Remove old versions, keeping only the 4 most recent (plus dev)
+        KEEP_COUNT=4
+        ALL_VERSIONS=$(ls -d docs/src/content/docs/v[0-9]*-[0-9]* | sed 's|.*/||' | sort -t- -k1.2,1n -k2,2n)
+        TOTAL=$(echo "$ALL_VERSIONS" | wc -l)
+        if [ "$TOTAL" -gt "$KEEP_COUNT" ]; then
+          REMOVE_COUNT=$((TOTAL - KEEP_COUNT))
+          OLD_VERSIONS=$(echo "$ALL_VERSIONS" | head -n $REMOVE_COUNT)
+          for OLD in $OLD_VERSIONS; do
+            echo "Removing old version: $OLD"
+            rm -rf "docs/src/content/docs/$OLD"
+            rm -f "docs/src/content/versions/$OLD.json"
+            # Remove from astro.config.mjs versions array
+            sed -i "/slug: '$OLD'/d" docs/astro.config.mjs
+          done
+        fi
+
         # Commit and push changes (skip if no changes)
         git add -A
         git diff --cached --quiet || git commit -m "docs: add version $${VERSION_LABEL}"
