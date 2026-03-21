@@ -336,7 +336,7 @@ release-agent:
 
             echo "Building crow-agent for $os/$arch..."
             mkdir -p {{ DIST_DIR }}/agent/${os}_${arch}
-            GOOS=$os GOARCH=$arch CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' \
+            GOOS=$os GOARCH=$arch CGO_ENABLED=0 go build -tags '{{ TAGS }}' -ldflags '{{ LDFLAGS }}' \
                 -o {{ DIST_DIR }}/agent/${os}_${arch}/crow-agent${bin_suffix} \
                 codefloe.com/crowci/crow/v5/cmd/agent
 
