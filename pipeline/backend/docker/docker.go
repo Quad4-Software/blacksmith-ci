@@ -39,6 +39,7 @@ import (
 	"github.com/urfave/cli/v3"
 	"golang.org/x/term"
 
+	"codefloe.com/crowci/crow/v5/pipeline/backend/common"
 	backend "codefloe.com/crowci/crow/v5/pipeline/backend/types"
 	"codefloe.com/crowci/crow/v5/shared/utils"
 )
@@ -477,15 +478,7 @@ var removeOpts = container.RemoveOptions{
 }
 
 func isErrContainerNotFoundOrNotRunning(err error) bool {
-	// Error response from daemon: Cannot kill container: ...: No such container: ...
-	// Error response from daemon: Cannot kill container: ...: Container ... is not running"
-	// Error response from podman daemon: can only kill running containers. ... is in state exited
-	// Error: No such container: ...
-	// Error response from daemon: removal of container ... is already in progress
-	return err != nil && (strings.Contains(err.Error(), "No such container") ||
-		strings.Contains(err.Error(), "is not running") ||
-		strings.Contains(err.Error(), "can only kill running containers") ||
-		strings.Contains(err.Error(), "already in progress"))
+	return common.IsContainerNotFoundOrNotRunning(err)
 }
 
 // normalizeArchType converts the arch type reported by docker info into

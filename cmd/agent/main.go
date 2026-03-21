@@ -24,6 +24,7 @@ import (
 	"codefloe.com/crowci/crow/v5/pipeline/backend/docker"
 	"codefloe.com/crowci/crow/v5/pipeline/backend/kubernetes"
 	"codefloe.com/crowci/crow/v5/pipeline/backend/local"
+	"codefloe.com/crowci/crow/v5/pipeline/backend/podman"
 	backendTypes "codefloe.com/crowci/crow/v5/pipeline/backend/types"
 	"codefloe.com/crowci/crow/v5/shared/utils"
 )
@@ -31,6 +32,7 @@ import (
 var backends = []backendTypes.Backend{
 	kubernetes.New(),
 	docker.New(),
+	podman.New(),
 	local.New(),
 }
 

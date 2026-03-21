@@ -6,7 +6,11 @@ BIN_SUFFIX := if TARGETOS == "windows" { ".exe" } else { "" }
 DIST_DIR := "dist"
 CI_COMMIT_SHA := env("CI_COMMIT_SHA", `git rev-parse HEAD 2>/dev/null || echo "unknown"`)
 CI_COMMIT_TAG := env("CI_COMMIT_TAG", "")
-TAGS := ""
+# Build tags for Podman SDK:
+# - containers_image_openpgp: Use pure Go crypto instead of gpgme C library
+# - exclude_graphdriver_btrfs: Exclude btrfs driver (requires btrfs headers)
+# - exclude_graphdriver_devicemapper: Exclude devicemapper driver (requires libdevmapper)
+TAGS := "containers_image_openpgp exclude_graphdriver_btrfs exclude_graphdriver_devicemapper"
 STATIC_BUILD := "true"
 BUILD_DATE := `date -u +%Y-%m-%d`
 

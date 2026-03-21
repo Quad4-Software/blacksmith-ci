@@ -2,6 +2,9 @@ version: '2'
 run:
   build-tags:
     - test
+    - containers_image_openpgp
+    - exclude_graphdriver_btrfs
+    - exclude_graphdriver_devicemapper
 linters:
   default: none
   enable:

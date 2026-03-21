@@ -37,16 +37,11 @@ const (
 )
 
 // Container label constants for workflow discovery and adoption.
+// These are re-exported from common for backwards compatibility.
 const (
-	// LabelTaskUUID identifies which workflow/task a container belongs to.
-	// Used by DiscoverWorkflows to find orphaned containers for adoption.
-	LabelTaskUUID = "crowci/task-uuid"
-
-	// LabelStepUUID identifies the specific step within a workflow.
-	LabelStepUUID = "crowci/step-uuid"
-
-	// LabelStepName is the human-readable step name.
-	LabelStepName = "crowci/step"
+	LabelTaskUUID = common.LabelTaskUUID
+	LabelStepUUID = common.LabelStepUUID
+	LabelStepName = common.LabelStepName
 )
 
 // returns a container configuration.
