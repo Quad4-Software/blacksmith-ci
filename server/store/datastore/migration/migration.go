@@ -85,7 +85,11 @@ func Migrate(_ context.Context, db *sql.DB, _ string, _ bool) error {
 	}
 
 	// Run any new migrations (added after the baseline).
-	// To add a new migration, append it to this slice.
+	// IMPORTANT: New migration IDs must NOT be in crowMigrations (constants.go).
+	// That list is for already-applied migrations. Add the ID there only after
+	// it has run on production. The checkLegacyMigrationsComplete check runs
+	// before these migrations, so any ID in crowMigrations that isn't in the
+	// DB yet will cause a fatal "upgrade to v5.6 first" error.
 	newMigrations := []*migration{
 		{ID: "crow-add-autoscaler-pending-since", Migrate: addColumnIfNotExists(
 			"autoscalers", "pending_since", "INTEGER",

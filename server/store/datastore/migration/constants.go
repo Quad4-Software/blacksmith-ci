@@ -52,9 +52,12 @@ var sharedMigrations = []string{
 	"replace-zero-forge-ids-in-orgs",
 }
 
-// crowMigrations contains migration IDs that are exclusive to Crow CI.
-// These migrations implement Crow-specific features like HA mode,
-// maintenance system, autoscalers, etc.
+// crowMigrations contains migration IDs that are exclusive to Crow CI
+// and have ALREADY BEEN APPLIED to production databases.
+//
+// IMPORTANT: Only add IDs here AFTER they have run on the production DB.
+// New migrations go in newMigrations in migration.go first. Once applied,
+// move their ID here so the detector recognizes them as known.
 //
 // When adding new migrations, use the "crow-" prefix to avoid future
 // conflicts with Woodpecker migrations.
@@ -89,7 +92,7 @@ var crowMigrations = []string{
 	"crow-add-stale-threshold",
 	"crow-add-cron-failure-tracking",
 	"crow-add-notification-configs",
-	"crow-add-email-unsubscribes",
+	"crow-add-autoscaler-pending-since",
 }
 
 // allKnownMigrations returns a combined list of all known migration IDs.
