@@ -553,10 +553,11 @@ func (b *StepBuilder) toInternalRepresentation(parsed *yaml_types.Workflow, envi
 
 	var secrets []compiler.Secret
 
-	// Add external secrets first so they get masked in logs
-	for _, value := range externalSecrets {
+	// Add external secrets first so they get masked in logs.
+	// Each must have a unique name since compiler stores secrets in a map keyed by name.
+	for key, value := range externalSecrets {
 		secrets = append(secrets, compiler.Secret{
-			Name:  "external", // Name doesn't matter for masking, only value
+			Name:  "external:" + key,
 			Value: value,
 		})
 	}

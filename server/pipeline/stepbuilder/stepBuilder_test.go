@@ -16,6 +16,7 @@
 package stepbuilder
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -23,6 +24,7 @@ import (
 
 	backend_types "codefloe.com/crowci/crow/v5/pipeline/backend/types"
 	"codefloe.com/crowci/crow/v5/pipeline/errors"
+	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/compiler/settings"
 	"codefloe.com/crowci/crow/v5/server/forge"
 	forge_mocks "codefloe.com/crowci/crow/v5/server/forge/mocks"
 	forge_types "codefloe.com/crowci/crow/v5/server/forge/types"
@@ -1068,6 +1070,73 @@ steps:
 	}
 	assert.NotNil(t, testStep)
 	assert.Equal(t, "example.com/myorg/myimage:3.12-0.3.1", testStep.Image)
+}
+
+func TestExternalSecretsMaskedInLogs(t *testing.T) {
+	t.Parallel()
+
+	// Simulate fetching multiple keys from the same integration/path.
+	// Before the fix, all external secrets were stored under the same compiler
+	// map key "external", so only the last value survived for log masking.
+	fetcher := func(_ context.Context, ref settings.ExternalSecretRef) (string, error) {
+		switch ref.Key {
+		case "username":
+			return "smtp-user@example.com", nil
+		case "password":
+			return "super-secret-password", nil
+		default:
+			return "", fmt.Errorf("unknown key: %s", ref.Key)
+		}
+	}
+
+	b := StepBuilder{
+		Forge: getMockForge(),
+		Repo:  &model.Repo{},
+		Curr: &model.Pipeline{
+			Event: model.EventPush,
+		},
+		Prev:                  &model.Pipeline{},
+		Netrc:                 &model.Netrc{},
+		Secs:                  []*model.Secret{},
+		Regs:                  []*model.Registry{},
+		Host:                  "",
+		ExternalSecretFetcher: fetcher,
+		Yamls: []*forge_types.FileMeta{
+			{Data: []byte(`
+when:
+  event: push
+steps:
+  deploy:
+    image: alpine
+    environment:
+      SMTP_USER:
+        from_secret:
+          integration: 1
+          path: zoho/smtp
+          key: username
+      SMTP_PASS:
+        from_secret:
+          integration: 1
+          path: zoho/smtp
+          key: password
+`)},
+		},
+	}
+
+	pipelineItems, err := b.Build()
+	assert.NoError(t, err)
+	assert.Len(t, pipelineItems, 1)
+
+	// Collect all secret values registered for masking
+	maskedValues := make(map[string]bool)
+	for _, secret := range pipelineItems[0].Config.Secrets {
+		maskedValues[secret.Value] = true
+	}
+
+	assert.True(t, maskedValues["smtp-user@example.com"],
+		"username secret should be masked in logs")
+	assert.True(t, maskedValues["super-secret-password"],
+		"password secret should be masked in logs")
 }
 
 func TestVariablesDoNotOverrideCIVars(t *testing.T) {
