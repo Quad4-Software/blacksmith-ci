@@ -93,17 +93,12 @@ export default defineConfig({
       plugins: [
         starlightImageZoom(),
         starlightVersions({
-          current: { label: 'v5.6 (latest)', redirect: 'root' },
+          current: { label: 'v5.7 (latest)', redirect: 'root' },
           versions: [
+            { slug: 'v5-7', label: 'v5.7' },
             { slug: 'v5-6', label: 'v5.6' },
             { slug: 'v5-5', label: 'v5.5' },
             { slug: 'v5-4', label: 'v5.4' },
-            { slug: 'v5-3', label: 'v5.3' },
-            { slug: 'v5-2', label: 'v5.2' },
-            { slug: 'v5-1', label: 'v5.1' },
-            { slug: 'v5-0', label: 'v5.0' },
-            { slug: 'v4-6', label: 'v4.6' },
-            { slug: 'v4-5', label: 'v4.5' },
             { slug: 'dev', label: 'dev' },
           ],
         }),
