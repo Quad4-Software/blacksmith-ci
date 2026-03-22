@@ -124,7 +124,7 @@ func PostAutoscaler(ctx context.Context, input *PostAutoscalerInput) (*PostAutos
 
 	// Return token only on creation
 	return &PostAutoscalerOutput{Body: &model.AutoscalerWithToken{
-		Autoscaler: autoscaler,
+		Autoscaler: *autoscaler,
 		Token:      autoscaler.Token,
 	}}, nil
 }

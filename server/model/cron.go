@@ -62,7 +62,7 @@ func (c *Cron) Validate() error {
 
 // CronWithRepo extends Cron with repository context for user views.
 type CronWithRepo struct {
-	*Cron
+	Cron
 	RepoName          string `json:"repo_name"`
 	RepoOwner         string `json:"repo_owner"`
 	RepoDefaultBranch string `json:"repo_default_branch"`
@@ -75,7 +75,7 @@ type CronWithRepo struct {
 // WithRepo creates a CronWithRepo from a Cron with repo details.
 func (c *Cron) WithRepo(repoName, repoOwner, repoDefaultBranch string, forgeID int64, forgeName, forgeIcon, forgeType string) *CronWithRepo {
 	return &CronWithRepo{
-		Cron:              c,
+		Cron:              *c,
 		RepoName:          repoName,
 		RepoOwner:         repoOwner,
 		RepoDefaultBranch: repoDefaultBranch,

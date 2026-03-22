@@ -58,7 +58,7 @@ const (
 
 // AutoscalerWithToken is used for API responses that include the token (only on creation).
 type AutoscalerWithToken struct {
-	*Autoscaler
+	Autoscaler
 	Token string `json:"token"`
 } //	@name	AutoscalerWithToken
 
