@@ -158,15 +158,22 @@ func (s *service) Dispatch(_ context.Context, repo *model.Repo, pipeline *model.
 		}
 	}
 
+	refLabel := pipeline.Branch
+	if pipeline.Event == model.EventPull || pipeline.Event == model.EventPullClosed || pipeline.Event == model.EventPullMerged || pipeline.Event == model.EventPullEdited {
+		if pr := extractPRNumber(pipeline.Ref); pr != "" {
+			refLabel = "PR #" + pr
+		}
+	}
+
 	subject := fmt.Sprintf("[Crow CI] %s: build #%d on %s (%s)",
 		repo.FullName,
 		pipeline.Number,
-		pipeline.Branch,
+		refLabel,
 		statusChangeLabel(pipeline.Status, previousStatus),
 	)
 
 	unsubscribeURL := s.buildUnsubscribeURL(userID, repo, recipient)
-	body := buildEmailBody(s.serverHost, repo, pipeline, unsubscribeURL)
+	body := buildEmailBody(s.serverHost, repo, pipeline, refLabel, unsubscribeURL)
 
 	if err := sendEmail(s.smtpCfg, []string{recipient}, subject, body); err != nil {
 		return fmt.Errorf("failed to send notification for %s#%d: %w", repo.FullName, pipeline.Number, err)
@@ -205,7 +212,7 @@ func (s *service) buildUnsubscribeURL(userID int64, repo *model.Repo, email stri
 	)
 }
 
-func buildEmailBody(serverHost string, repo *model.Repo, pipeline *model.Pipeline, unsubscribeURL string) string {
+func buildEmailBody(serverHost string, repo *model.Repo, pipeline *model.Pipeline, refLabel, unsubscribeURL string) string {
 	link := fmt.Sprintf("%s/repos/%d/pipeline/%d", strings.TrimRight(serverHost, "/"), repo.ID, pipeline.Number)
 
 	commit := pipeline.Commit
@@ -218,11 +225,17 @@ func buildEmailBody(serverHost string, repo *model.Repo, pipeline *model.Pipelin
 		message = message[:idx]
 	}
 
+	// Use "Pull Request" label for PR events, "Branch" otherwise
+	refRowLabel := "Branch"
+	if pipeline.Event == model.EventPull || pipeline.Event == model.EventPullClosed || pipeline.Event == model.EventPullMerged || pipeline.Event == model.EventPullEdited {
+		refRowLabel = "Pull Request"
+	}
+
 	rows := []struct{ Label, Value string }{
 		{"Repository", repo.FullName},
 		{"Pipeline", fmt.Sprintf("#%d", pipeline.Number)},
 		{"Status", string(pipeline.Status)},
-		{"Branch", pipeline.Branch},
+		{refRowLabel, refLabel},
 		{"Commit", commit},
 		{"Message", message},
 	}
@@ -244,6 +257,21 @@ func buildEmailBody(serverHost string, repo *model.Repo, pipeline *model.Pipelin
 	}
 
 	return b.String()
+}
+
+// extractPRNumber extracts the PR number from a git ref like "refs/pull/123/head".
+func extractPRNumber(ref string) string {
+	// Forgejo/Gitea/GitHub: refs/pull/<number>/head
+	// GitLab: refs/merge-requests/<number>/head
+	for _, prefix := range []string{"refs/pull/", "refs/merge-requests/"} {
+		if strings.HasPrefix(ref, prefix) {
+			rest := ref[len(prefix):]
+			if idx := strings.IndexByte(rest, '/'); idx > 0 {
+				return rest[:idx]
+			}
+		}
+	}
+	return ""
 }
 
 // statusChangeLabel returns a human-readable label for the status transition.
