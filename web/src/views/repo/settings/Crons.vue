@@ -577,7 +577,7 @@ async function fetchAllRecentRuns() {
     // Fetch ALL pipelines (like calendar view does)
     const allPipelines = await apiClient.getPipelineList(repo.value.id, {
       page: 1,
-      perPage: 100,
+      perPage: 50,
     });
 
     if (!allPipelines || allPipelines.length === 0) {
