@@ -221,17 +221,20 @@ func updatePipelinePending(ctx context.Context, _forge forge.Forge, _store store
 // validateAgentAvailability checks if there are agents that can run the pipeline items.
 // Returns an error with details if no matching agents are found and no autoscaler can provision them.
 func validateAgentAvailability(_store store.Store, pipelineItems []*stepbuilder.Item) error {
-	// Get all agents
-	agents, err := _store.AgentList(nil)
+	// Get all agents (must use All:true to bypass pagination defaults)
+	agents, err := _store.AgentList(&model.AgentListOptions{
+		ListOptions: model.ListOptions{All: true},
+	})
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed to list agents during validation - skipping agent validation")
 		return nil // Don't fail pipeline creation if we can't check agents
 	}
 
-	// Get all enabled autoscalers
+	// Get all enabled autoscalers (must use All:true to bypass pagination defaults)
 	enabledTrue := true
 	autoscalers, err := _store.AutoscalerList(&model.AutoscalerListOptions{
-		Enabled: &enabledTrue,
+		ListOptions: model.ListOptions{All: true},
+		Enabled:     &enabledTrue,
 	})
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed to list autoscalers during validation - continuing without autoscaler check")
