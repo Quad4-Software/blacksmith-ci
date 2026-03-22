@@ -52,12 +52,11 @@ var sharedMigrations = []string{
 	"replace-zero-forge-ids-in-orgs",
 }
 
-// crowMigrations contains migration IDs that are exclusive to Crow CI
-// and have ALREADY BEEN APPLIED to production databases.
+// crowMigrations contains Crow-specific migration IDs that were part of v5.6
+// (the last XORM-based release). These are checked by checkLegacyMigrationsComplete
+// to verify the DB was properly upgraded to v5.6 before migrating to the Bun-based runner.
 //
-// IMPORTANT: Only add IDs here AFTER they have run on the production DB.
-// New migrations go in newMigrations in migration.go first. Once applied,
-// move their ID here so the detector recognizes them as known.
+// Do NOT add new migration IDs here. New migrations go in newMigrations in migration.go.
 //
 // When adding new migrations, use the "crow-" prefix to avoid future
 // conflicts with Woodpecker migrations.
@@ -92,14 +91,22 @@ var crowMigrations = []string{
 	"crow-add-stale-threshold",
 	"crow-add-cron-failure-tracking",
 	"crow-add-notification-configs",
+}
+
+// newMigrationIDs lists IDs of migrations in newMigrations (migration.go).
+// These are recognized as known by the detector but NOT required by the
+// legacy completeness check, since they haven't run on all databases yet.
+var newMigrationIDs = []string{
 	"crow-add-autoscaler-pending-since",
+	"crow-add-email-unsubscribes",
 }
 
 // allKnownMigrations returns a combined list of all known migration IDs.
 // Used to identify unknown migrations in the database.
 func allKnownMigrations() []string {
-	result := make([]string, 0, len(sharedMigrations)+len(crowMigrations))
+	result := make([]string, 0, len(sharedMigrations)+len(crowMigrations)+len(newMigrationIDs))
 	result = append(result, sharedMigrations...)
 	result = append(result, crowMigrations...)
+	result = append(result, newMigrationIDs...)
 	return result
 }

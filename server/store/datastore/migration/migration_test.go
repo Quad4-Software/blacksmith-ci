@@ -16,20 +16,30 @@ package migration
 
 import (
 	"database/sql"
+	"fmt"
 	"testing"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestMigrate_FreshDatabase(t *testing.T) {
+// --- SQLite-only tests ---
+// These test migration logic (legacy table handling, completeness checks)
+// and use SQLite because they need to simulate specific migration table states.
+
+func openSQLiteMemory(t *testing.T) *sql.DB {
+	t.Helper()
 	db, err := sql.Open("sqlite3", ":memory:")
 	require.NoError(t, err)
-	defer db.Close()
-	db.SetMaxOpenConns(1) // SQLite in-memory requires single connection
+	db.SetMaxOpenConns(1)
+	t.Cleanup(func() { db.Close() })
+	return db
+}
 
-	err = Migrate(t.Context(), db, "sqlite3", true)
+func TestMigrate_FreshDatabase(t *testing.T) {
+	db := openSQLiteMemory(t)
+
+	err := Migrate(t.Context(), db, "sqlite3", true)
 	require.NoError(t, err)
 
 	// Verify that baseline tables were created
@@ -55,14 +65,11 @@ func TestMigrate_FreshDatabase(t *testing.T) {
 }
 
 func TestMigrate_LegacyXormTable(t *testing.T) {
-	db, err := sql.Open("sqlite3", ":memory:")
-	require.NoError(t, err)
-	defer db.Close()
-	db.SetMaxOpenConns(1)
+	db := openSQLiteMemory(t)
 
 	// Simulate an XORM-based database: legacy "migration" table (singular),
 	// no "migrations" table, and existing data tables.
-	_, err = db.Exec(`CREATE TABLE migration (id TEXT NULL)`)
+	_, err := db.Exec(`CREATE TABLE migration (id TEXT NULL)`)
 	require.NoError(t, err)
 	for _, id := range allLegacyMigrationIDs {
 		_, err = db.Exec("INSERT INTO migration (id) VALUES (?)", id)
@@ -93,13 +100,10 @@ func TestMigrate_LegacyXormTable(t *testing.T) {
 }
 
 func TestMigrate_ExistingDatabase_AllLegacyApplied(t *testing.T) {
-	db, err := sql.Open("sqlite3", ":memory:")
-	require.NoError(t, err)
-	defer db.Close()
-	db.SetMaxOpenConns(1)
+	db := openSQLiteMemory(t)
 
 	// Simulate an existing database with ALL legacy migrations applied
-	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS migrations (id TEXT NULL)`)
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS migrations (id TEXT NULL)`)
 	require.NoError(t, err)
 	for _, id := range allLegacyMigrationIDs {
 		_, err = db.Exec("INSERT INTO migrations (id) VALUES (?)", id)
@@ -113,14 +117,35 @@ func TestMigrate_ExistingDatabase_AllLegacyApplied(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestMigrate_ExistingDatabase_IncompleteLegacy(t *testing.T) {
-	db, err := sql.Open("sqlite3", ":memory:")
+func TestMigrate_ExistingDatabase_MissingSharedMigrations(t *testing.T) {
+	db := openSQLiteMemory(t)
+
+	// Simulate a v5.6 database created via InitSchema: it has SCHEMA_INIT and
+	// all crow migrations, but some shared (Woodpecker-era) migration IDs like
+	// "add-polling-instances" were never recorded because InitSchema skipped them.
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS migrations (id TEXT NULL)`)
 	require.NoError(t, err)
-	defer db.Close()
-	db.SetMaxOpenConns(1)
+	_, err = db.Exec("INSERT INTO migrations (id) VALUES (?)", "SCHEMA_INIT")
+	require.NoError(t, err)
+	// Add all crow migrations but skip some shared ones
+	for _, id := range crowMigrations {
+		_, err = db.Exec("INSERT INTO migrations (id) VALUES (?)", id)
+		require.NoError(t, err)
+	}
+	// Create tables that new migrations will alter
+	_, err = db.Exec(`CREATE TABLE autoscalers (id INTEGER PRIMARY KEY)`)
+	require.NoError(t, err)
+
+	// Should succeed — missing shared migrations are not checked
+	err = Migrate(t.Context(), db, "sqlite3", true)
+	require.NoError(t, err)
+}
+
+func TestMigrate_ExistingDatabase_IncompleteLegacy(t *testing.T) {
+	db := openSQLiteMemory(t)
 
 	// Simulate a database with only some legacy migrations applied
-	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS migrations (id TEXT NULL)`)
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS migrations (id TEXT NULL)`)
 	require.NoError(t, err)
 	_, err = db.Exec("INSERT INTO migrations (id) VALUES (?)", "legacy-to-xormigrate")
 	require.NoError(t, err)
@@ -129,4 +154,44 @@ func TestMigrate_ExistingDatabase_IncompleteLegacy(t *testing.T) {
 	err = Migrate(t.Context(), db, "sqlite3", true)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "upgrade to v5.6 first")
+}
+
+// --- Multi-driver tests ---
+// These run against whichever database is configured via env vars (SQLite, PostgreSQL, MySQL)
+// and verify that new migration DDL is portable across all drivers.
+
+// TestMigrate_NewMigrations_PortableSQL verifies that new migrations use
+// SQL syntax compatible with all supported databases.
+// It simulates an existing database with all legacy migrations applied,
+// then runs only the new migrations — this is the actual upgrade path
+// that must work on PostgreSQL and MySQL.
+func TestMigrate_NewMigrations_PortableSQL(t *testing.T) {
+	db, driver := testDB(t)
+
+	// Set up the migrations table and mark all legacy migrations as applied.
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS migrations (id TEXT NULL)`)
+	require.NoError(t, err)
+	for _, id := range allLegacyMigrationIDs {
+		_, err = db.Exec(fmt.Sprintf("INSERT INTO migrations (id) VALUES ('%s')", id))
+		require.NoError(t, err)
+	}
+	// Create tables that new migrations will alter
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS autoscalers (id INTEGER PRIMARY KEY)`)
+	require.NoError(t, err)
+
+	// Run Migrate — should only execute new migrations, not the baseline
+	err = Migrate(t.Context(), db, driver, true)
+	require.NoError(t, err)
+
+	// Verify new migration tables/columns were created
+	var count int
+	err = db.QueryRow("SELECT COUNT(*) FROM email_unsubscribes").Scan(&count)
+	assert.NoError(t, err, "email_unsubscribes table should exist")
+
+	// Verify pending_since column exists on autoscalers
+	rows, err := db.Query("SELECT pending_since FROM autoscalers LIMIT 1")
+	if assert.NoError(t, err, "pending_since column should exist on autoscalers") {
+		defer rows.Close()
+		_ = rows.Err()
+	}
 }

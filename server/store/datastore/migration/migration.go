@@ -96,7 +96,7 @@ func Migrate(_ context.Context, db *sql.DB, _ string, _ bool) error {
 		)},
 		{ID: "crow-add-email-unsubscribes", Migrate: func(tx *sql.Tx) error {
 			_, err := tx.Exec(`CREATE TABLE IF NOT EXISTS email_unsubscribes (
-				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				id INTEGER PRIMARY KEY,
 				user_id INTEGER NOT NULL,
 				repo_id INTEGER NOT NULL,
 				email TEXT NOT NULL,
@@ -116,9 +116,12 @@ func Migrate(_ context.Context, db *sql.DB, _ string, _ bool) error {
 	return nil
 }
 
-// checkLegacyMigrationsComplete verifies that all legacy migrations have been applied.
-// If any are missing, the user must first upgrade to v5.6 (the last XORM-based release)
-// before upgrading to this version.
+// checkLegacyMigrationsComplete verifies that Crow-specific migrations have been applied.
+// Only checks crowMigrations (not shared/Woodpecker migrations) because databases created
+// with InitSchema or very old Woodpecker versions may not have every shared migration ID
+// recorded, even though the schema is up to date.
+// If Crow migrations are missing, the user must first upgrade to v5.6 (the last XORM-based
+// release) before upgrading to this version.
 func checkLegacyMigrationsComplete(info *MigrationInfo) error {
 	applied := make(map[string]bool, len(info.AppliedMigrations))
 	for _, id := range info.AppliedMigrations {
@@ -126,7 +129,7 @@ func checkLegacyMigrationsComplete(info *MigrationInfo) error {
 	}
 
 	var missing []string
-	for _, id := range allLegacyMigrationIDs {
+	for _, id := range crowMigrations {
 		if !applied[id] {
 			missing = append(missing, id)
 		}
@@ -135,10 +138,10 @@ func checkLegacyMigrationsComplete(info *MigrationInfo) error {
 	if len(missing) > 0 {
 		log.Error().
 			Strs("missing_migrations", missing).
-			Msg("Database has unapplied legacy migrations. " +
+			Msg("Database has unapplied Crow migrations. " +
 				"Please first upgrade to Crow v5.6, run the server once to apply all migrations, " +
 				"then upgrade to this version.")
-		return fmt.Errorf("database has %d unapplied legacy migrations — upgrade to v5.6 first", len(missing))
+		return fmt.Errorf("database has %d unapplied Crow migrations — upgrade to v5.6 first", len(missing))
 	}
 
 	return nil

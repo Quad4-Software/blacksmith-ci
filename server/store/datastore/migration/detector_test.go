@@ -150,7 +150,7 @@ func TestAllKnownMigrations(t *testing.T) {
 	known := allKnownMigrations()
 	assert.Contains(t, known, "add-org-id")
 	assert.Contains(t, known, "add-autoscalers")
-	assert.Equal(t, len(sharedMigrations)+len(crowMigrations), len(known))
+	assert.Equal(t, len(sharedMigrations)+len(crowMigrations)+len(newMigrationIDs), len(known))
 }
 
 func TestConstantsConsistency(t *testing.T) {
