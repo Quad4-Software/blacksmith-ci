@@ -1,6 +1,5 @@
--- Baseline schema for Crow CI
+-- Baseline schema for Crow CI (SQLite)
 -- Generated from server/model/ bun struct tags
--- Compatible with SQLite (primary target for fresh test DBs)
 
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

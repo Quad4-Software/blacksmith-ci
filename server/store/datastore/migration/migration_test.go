@@ -50,6 +50,8 @@ func TestMigrate_FreshDatabase(t *testing.T) {
 		"server_configs", "access_tokens", "integrations", "notification_configs",
 		"approved_pull_requests", "distributed_locks", "pubsub_messages",
 		"cache_entries", "maintenance_config", "user_forges", "redirections",
+		"email_unsubscribes", "maintenance_operation_config",
+		"maintenance_stats", "maintenance_logs",
 	}
 	for _, table := range tables {
 		var count int

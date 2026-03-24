@@ -25,7 +25,13 @@ import (
 )
 
 //go:embed baseline_schema.sql
-var baselineSchema string
+var baselineSchemaSQLite string
+
+//go:embed baseline_schema_postgres.sql
+var baselineSchemaPostgres string
+
+//go:embed baseline_schema_mysql.sql
+var baselineSchemaMySQL string
 
 // allLegacyMigrationIDs contains the IDs of all migrations that existed before
 // the switch to the Bun-based migration runner. For fresh databases, the baseline
@@ -38,15 +44,16 @@ var allLegacyMigrationIDs = append(
 // Migrate runs all pending database migrations.
 // For fresh databases, it creates the full schema from the baseline DDL.
 // For existing databases, it runs only new migrations that haven't been applied yet.
-func Migrate(_ context.Context, db *sql.DB, _ string, _ bool) error {
+func Migrate(_ context.Context, db *sql.DB, driver string, _ bool) error {
 	r := newRunner(db)
 
 	if r.isFreshDatabase() {
-		log.Info().Msg("fresh database detected, creating baseline schema")
+		log.Info().Str("driver", driver).Msg("fresh database detected, creating baseline schema")
 		if err := r.ensureMigrationsTable(); err != nil {
 			return fmt.Errorf("ensure migrations table: %w", err)
 		}
-		if err := execStatements(db, baselineSchema); err != nil {
+		schema := baselineSchemaForDriver(driver)
+		if err := execStatements(db, schema); err != nil {
 			return fmt.Errorf("create baseline schema: %w", err)
 		}
 		if err := r.markApplied(allLegacyMigrationIDs); err != nil {
@@ -94,17 +101,7 @@ func Migrate(_ context.Context, db *sql.DB, _ string, _ bool) error {
 		{ID: "crow-add-autoscaler-pending-since", Migrate: addColumnIfNotExists(
 			"autoscalers", "pending_since", "INTEGER",
 		)},
-		{ID: "crow-add-email-unsubscribes", Migrate: func(tx *sql.Tx) error {
-			_, err := tx.Exec(`CREATE TABLE IF NOT EXISTS email_unsubscribes (
-				id INTEGER PRIMARY KEY,
-				user_id INTEGER NOT NULL,
-				repo_id INTEGER NOT NULL,
-				email TEXT NOT NULL,
-				created_at INTEGER,
-				UNIQUE(user_id, repo_id)
-			)`)
-			return err
-		}},
+		{ID: "crow-add-email-unsubscribes", Migrate: createEmailUnsubscribes(driver)},
 	}
 
 	if len(newMigrations) > 0 {
@@ -176,4 +173,55 @@ func truncate(s string, n int) string {
 		return s
 	}
 	return s[:n] + "..."
+}
+
+// baselineSchemaForDriver returns the embedded baseline DDL for the given database driver.
+func baselineSchemaForDriver(driver string) string {
+	switch driver {
+	case "postgres":
+		return baselineSchemaPostgres
+	case "mysql":
+		return baselineSchemaMySQL
+	default:
+		return baselineSchemaSQLite
+	}
+}
+
+// createEmailUnsubscribes returns a migration function that creates the email_unsubscribes
+// table with the correct auto-increment syntax for the given driver.
+func createEmailUnsubscribes(driver string) func(tx *sql.Tx) error {
+	return func(tx *sql.Tx) error {
+		var ddl string
+		switch driver {
+		case "postgres":
+			ddl = `CREATE TABLE IF NOT EXISTS email_unsubscribes (
+				id BIGSERIAL PRIMARY KEY,
+				user_id INTEGER NOT NULL,
+				repo_id INTEGER NOT NULL,
+				email TEXT NOT NULL,
+				created_at INTEGER,
+				UNIQUE(user_id, repo_id)
+			)`
+		case "mysql":
+			ddl = `CREATE TABLE IF NOT EXISTS email_unsubscribes (
+				id BIGINT PRIMARY KEY AUTO_INCREMENT,
+				user_id INTEGER NOT NULL,
+				repo_id INTEGER NOT NULL,
+				email TEXT NOT NULL,
+				created_at INTEGER,
+				UNIQUE(user_id, repo_id)
+			)`
+		default:
+			ddl = `CREATE TABLE IF NOT EXISTS email_unsubscribes (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				user_id INTEGER NOT NULL,
+				repo_id INTEGER NOT NULL,
+				email TEXT NOT NULL,
+				created_at INTEGER,
+				UNIQUE(user_id, repo_id)
+			)`
+		}
+		_, err := tx.Exec(ddl)
+		return err
+	}
 }
