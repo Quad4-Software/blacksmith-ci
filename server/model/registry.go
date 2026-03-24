@@ -91,7 +91,7 @@ func (r *Registry) Copy() *Registry {
 
 // RegistryWithOrg extends Registry with organization context for user views.
 type RegistryWithOrg struct {
-	*Registry
+	Registry
 	OrgName   string `json:"org_name"`
 	ScopeType string `json:"scope_type"`           // "user", "org", or "global"
 	ForgeID   int64  `json:"forge_id,omitempty"`   // forge ID for multi-forge display
@@ -109,7 +109,7 @@ func (r *Registry) WithOrg(orgName string, isPersonalOrg bool, forgeID int64, fo
 		scopeType = "user"
 	}
 	return &RegistryWithOrg{
-		Registry:  r,
+		Registry:  *r,
 		OrgName:   orgName,
 		ScopeType: scopeType,
 		ForgeID:   forgeID,

@@ -115,7 +115,7 @@ func GetRepos(ctx context.Context, input *GetReposInput) (*GetReposOutput, error
 	repos := make([]*model.RepoLastPipeline, len(activeRepos))
 	for i, repo := range activeRepos {
 		repos[i] = &model.RepoLastPipeline{
-			Repo:         repo,
+			Repo:         *repo,
 			LastPipeline: latestPipelines[repo.ID],
 		}
 	}

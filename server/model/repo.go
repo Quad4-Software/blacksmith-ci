@@ -174,6 +174,6 @@ type TrustedConfigurationPatch struct {
 
 // RepoLastPipeline represents a repository with last pipeline execution information.
 type RepoLastPipeline struct {
-	*Repo
+	Repo
 	LastPipeline *Pipeline `json:"last_pipeline,omitempty"`
 } //	@name	RepoLastPipeline

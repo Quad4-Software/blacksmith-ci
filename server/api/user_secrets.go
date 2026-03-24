@@ -251,7 +251,7 @@ func GetUserSecretList(ctx context.Context, input *GetUserSecretListInput) (*Get
 	for i, s := range enrichedSecrets {
 		copied := s.Copy()
 		result[i] = &model.SecretWithOrg{
-			Secret:    copied,
+			Secret:    *copied,
 			OrgName:   s.OrgName,
 			RepoName:  s.RepoName,
 			ScopeType: s.ScopeType,

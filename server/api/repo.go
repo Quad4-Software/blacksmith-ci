@@ -1105,7 +1105,7 @@ func GetPublicRepos(ctx context.Context, input *GetPublicReposInput) (*GetPublic
 	result := make([]*model.RepoLastPipeline, len(repos))
 	for i, repo := range repos {
 		result[i] = &model.RepoLastPipeline{
-			Repo:         repo,
+			Repo:         *repo,
 			LastPipeline: latestPipelines[repo.ID],
 		}
 	}

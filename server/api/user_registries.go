@@ -173,7 +173,7 @@ func GetUserRegistryList(ctx context.Context, input *GetUserRegistryListInput) (
 	for i, r := range enrichedRegistries {
 		copied := r.Copy()
 		result[i] = &model.RegistryWithOrg{
-			Registry:  copied,
+			Registry:  *copied,
 			OrgName:   r.OrgName,
 			ScopeType: r.ScopeType,
 			ForgeID:   r.ForgeID,

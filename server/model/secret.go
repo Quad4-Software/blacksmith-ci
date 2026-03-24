@@ -213,7 +213,7 @@ func sortEvents(wel JSONSliceWebhookEvent) JSONSliceWebhookEvent {
 
 // SecretWithOrg extends Secret with organization and repository context for user views.
 type SecretWithOrg struct {
-	*Secret
+	Secret
 	OrgName   string `json:"org_name"`
 	RepoName  string `json:"repo_name,omitempty"`
 	ScopeType string `json:"scope_type"`           // "user", "org", "repo", or "global"
@@ -232,7 +232,7 @@ func (s *Secret) WithOrg(orgName string, isPersonalOrg bool, forgeID int64, forg
 		scopeType = "user"
 	}
 	return &SecretWithOrg{
-		Secret:    s,
+		Secret:    *s,
 		OrgName:   orgName,
 		ScopeType: scopeType,
 		ForgeID:   forgeID,
@@ -245,7 +245,7 @@ func (s *Secret) WithOrg(orgName string, isPersonalOrg bool, forgeID int64, forg
 // WithRepo creates a SecretWithOrg from a Secret with the given repo name.
 func (s *Secret) WithRepo(repoName string, forgeID int64, forgeName, forgeIcon, forgeType string) *SecretWithOrg {
 	return &SecretWithOrg{
-		Secret:    s,
+		Secret:    *s,
 		RepoName:  repoName,
 		ScopeType: "repo",
 		ForgeID:   forgeID,
