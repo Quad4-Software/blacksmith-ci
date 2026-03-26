@@ -116,14 +116,29 @@ func Restart(ctx context.Context, store store.Store, lastPipeline *model.Pipelin
 		return nil, errors.New(msg)
 	}
 
+	// If the original pipeline had no configs saved (e.g., due to a forge connectivity
+	// error during the initial run), try to use the freshly-fetched configs instead.
 	if len(configs) == 0 {
-		newPipeline, uErr := UpdateToStatusError(store, *newPipeline, errors.New("There was an error loading the pipeline definition of the current run. This is usually caused by connectivity/timeout issues on the forge side. Restarting the build will not help, a new (fresh) commit (or force-push) must be issued to trigger a clean reload.")) //nolint
-		if uErr != nil {
-			log.Debug().Err(uErr).Msg("failure to update pipeline status")
-		} else {
-			updatePipelineStatus(ctx, forge, newPipeline, repo, user)
+		if len(pipelineFiles) == 0 {
+			newPipeline, uErr := UpdateToStatusError(store, *newPipeline, errors.New("failed to load pipeline config from database or forge"))
+			if uErr != nil {
+				log.Debug().Err(uErr).Msg("failure to update pipeline status")
+			} else {
+				updatePipelineStatus(ctx, forge, newPipeline, repo, user)
+			}
+			return newPipeline, nil
 		}
-		return newPipeline, nil
+
+		log.Info().Str("repo", repo.FullName).Msg("original pipeline had no configs saved, using freshly-fetched configs from forge")
+		for _, pf := range pipelineFiles {
+			config, persistErr := findOrPersistPipelineConfig(store, newPipeline, pf)
+			if persistErr != nil {
+				msg := fmt.Sprintf("failure to persist pipeline config for %s", repo.FullName)
+				log.Error().Err(persistErr).Msg(msg)
+				return nil, errors.New(msg)
+			}
+			configs = append(configs, config)
+		}
 	}
 	if err := linkPipelineConfigs(store, configs, newPipeline.ID); err != nil {
 		msg := fmt.Sprintf("failure to persist pipeline config for %s.", repo.FullName)
