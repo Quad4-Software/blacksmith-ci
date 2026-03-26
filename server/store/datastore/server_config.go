@@ -17,8 +17,6 @@ package datastore
 import (
 	"context"
 
-	"github.com/uptrace/bun"
-
 	"codefloe.com/crowci/crow/v5/server/model"
 )
 
@@ -33,24 +31,22 @@ func (s storage) ServerConfigGet(key string) (string, error) {
 }
 
 func (s storage) ServerConfigSet(key, value string) error {
-	return s.db.RunInTx(context.Background(), nil, func(ctx context.Context, tx bun.Tx) error {
-		count, err := tx.NewSelect().Model((*model.ServerConfig)(nil)).Where("\"key\" = ?", key).Count(ctx)
-		if err != nil {
-			return err
-		}
-
-		config := &model.ServerConfig{
-			Key:   key,
-			Value: value,
-		}
-
-		if count == 0 {
-			_, err = tx.NewInsert().Model(config).Exec(ctx)
-		} else {
-			_, err = tx.NewUpdate().Model(config).Column("value").Where("\"key\" = ?", key).Exec(ctx)
-		}
-		return err
-	})
+	config := &model.ServerConfig{
+		Key:   key,
+		Value: value,
+	}
+	var err error
+	if s.driver == DriverMysql {
+		_, err = s.db.NewInsert().Model(config).
+			On("DUPLICATE KEY UPDATE value = VALUES(value)").
+			Exec(context.Background())
+	} else {
+		_, err = s.db.NewInsert().Model(config).
+			On("CONFLICT (\"key\") DO UPDATE").
+			Set("value = EXCLUDED.value").
+			Exec(context.Background())
+	}
+	return err
 }
 
 func (s storage) ServerConfigDelete(key string) error {
