@@ -508,7 +508,9 @@ func isContainerNotFoundOrNotRunning(err error) bool {
 	return strings.Contains(errStr, "no such container") ||
 		strings.Contains(errStr, "container not found") ||
 		strings.Contains(errStr, "is not running") ||
-		strings.Contains(errStr, "no container with")
+		strings.Contains(errStr, "no container with") ||
+		strings.Contains(errStr, "can only kill running containers") ||
+		strings.Contains(errStr, "container state improper")
 }
 
 // normalizeArchType converts the arch type reported by podman info into
