@@ -28,19 +28,15 @@ const (
 
 // DistributedLockAcquire attempts to acquire a distributed lock for HA coordination.
 // Returns true if lock was acquired, false if already held by another instance.
+// Uses a two-step approach to minimize TOCTOU race windows:
+// 1. UPDATE existing row if expired or owned by us
+// 2. INSERT with conflict suppression if row doesn't exist.
 func (s storage) DistributedLockAcquire(lockName string, instanceID string, ttlSeconds int64) (bool, error) {
 	ctx := context.Background()
 	now := time.Now().Unix()
 	expiresAt := now + ttlSeconds
 
-	// Clean up this specific lock if it's expired
-	// This ensures we don't wait for the periodic cleanup
-	_, _ = s.db.NewDelete().Model((*model.DistributedLock)(nil)).
-		Where("name = ?", lockName).
-		Where("expires_at < ?", now).
-		Exec(ctx)
-
-	// Try to update the lock if it exists and is expired or owned by us
+	// Step 1: Try to claim via UPDATE — succeeds when the row is expired OR already ours.
 	res, err := s.db.NewUpdate().Model((*model.DistributedLock)(nil)).
 		Set("instance_id = ?", instanceID).
 		Set("acquired_at = ?", now).
@@ -52,26 +48,11 @@ func (s storage) DistributedLockAcquire(lockName string, instanceID string, ttlS
 		return false, err
 	}
 
-	affected, _ := res.RowsAffected()
-	if affected > 0 {
-		// Successfully acquired the lock
+	if affected, _ := res.RowsAffected(); affected > 0 {
 		return true, nil
 	}
 
-	// Check if lock exists
-	exists, err := s.db.NewSelect().Model((*model.DistributedLock)(nil)).
-		Where("name = ?", lockName).
-		Exists(ctx)
-	if err != nil {
-		return false, err
-	}
-
-	if exists {
-		// Lock exists and is held by another instance
-		return false, nil
-	}
-
-	// Lock doesn't exist, create it
+	// Step 2: Row doesn't exist yet — INSERT, suppressing duplicate key.
 	lock := &model.DistributedLock{
 		Name:       lockName,
 		InstanceID: instanceID,
@@ -79,13 +60,22 @@ func (s storage) DistributedLockAcquire(lockName string, instanceID string, ttlS
 		ExpiresAt:  expiresAt,
 	}
 
-	_, err = s.db.NewInsert().Model(lock).Exec(ctx)
+	var insertRes interface{ RowsAffected() (int64, error) }
+	if s.driver == DriverMysql {
+		insertRes, err = s.db.NewInsert().Model(lock).
+			On("DUPLICATE KEY UPDATE acquired_at = acquired_at"). // no-op = DO NOTHING
+			Exec(ctx)
+	} else {
+		insertRes, err = s.db.NewInsert().Model(lock).
+			On("CONFLICT (name) DO NOTHING").
+			Exec(ctx)
+	}
 	if err != nil {
-		// Another instance created it in the race, that's OK
-		return false, nil
+		return false, nil //nolint:nilerr // duplicate key race is expected
 	}
 
-	return true, nil
+	affected, _ := insertRes.RowsAffected()
+	return affected == 1, nil
 }
 
 // DistributedLockRelease releases a distributed lock held by this instance.

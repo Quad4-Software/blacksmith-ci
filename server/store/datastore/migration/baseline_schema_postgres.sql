@@ -181,7 +181,9 @@ CREATE TABLE IF NOT EXISTS tasks (
     dependencies_status TEXT,
     agent_id INTEGER,
     pipeline_id INTEGER,
-    repo_id INTEGER
+    repo_id INTEGER,
+    canceled INTEGER DEFAULT 0,
+    canceled_at INTEGER DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS log_entries (

@@ -10616,6 +10616,72 @@ func (_c *MockStore_TaskAtomicClaim_Call) RunAndReturn(run func(taskID string, a
 	return _c
 }
 
+// TaskAtomicResetOrphan provides a mock function for the type MockStore
+func (_mock *MockStore) TaskAtomicResetOrphan(taskID string, expectedAgentID int64) (bool, error) {
+	ret := _mock.Called(taskID, expectedAgentID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for TaskAtomicResetOrphan")
+	}
+
+	var r0 bool
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(string, int64) (bool, error)); ok {
+		return returnFunc(taskID, expectedAgentID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(string, int64) bool); ok {
+		r0 = returnFunc(taskID, expectedAgentID)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	if returnFunc, ok := ret.Get(1).(func(string, int64) error); ok {
+		r1 = returnFunc(taskID, expectedAgentID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_TaskAtomicResetOrphan_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'TaskAtomicResetOrphan'
+type MockStore_TaskAtomicResetOrphan_Call struct {
+	*mock.Call
+}
+
+// TaskAtomicResetOrphan is a helper method to define mock.On call
+//   - taskID string
+//   - expectedAgentID int64
+func (_e *MockStore_Expecter) TaskAtomicResetOrphan(taskID interface{}, expectedAgentID interface{}) *MockStore_TaskAtomicResetOrphan_Call {
+	return &MockStore_TaskAtomicResetOrphan_Call{Call: _e.mock.On("TaskAtomicResetOrphan", taskID, expectedAgentID)}
+}
+
+func (_c *MockStore_TaskAtomicResetOrphan_Call) Run(run func(taskID string, expectedAgentID int64)) *MockStore_TaskAtomicResetOrphan_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_TaskAtomicResetOrphan_Call) Return(b bool, err error) *MockStore_TaskAtomicResetOrphan_Call {
+	_c.Call.Return(b, err)
+	return _c
+}
+
+func (_c *MockStore_TaskAtomicResetOrphan_Call) RunAndReturn(run func(taskID string, expectedAgentID int64) (bool, error)) *MockStore_TaskAtomicResetOrphan_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // TaskDelete provides a mock function for the type MockStore
 func (_mock *MockStore) TaskDelete(s string) error {
 	ret := _mock.Called(s)
@@ -10663,6 +10729,242 @@ func (_c *MockStore_TaskDelete_Call) Return(err error) *MockStore_TaskDelete_Cal
 }
 
 func (_c *MockStore_TaskDelete_Call) RunAndReturn(run func(s string) error) *MockStore_TaskDelete_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// TaskDeleteCancelledBefore provides a mock function for the type MockStore
+func (_mock *MockStore) TaskDeleteCancelledBefore(cancelledBefore int64) error {
+	ret := _mock.Called(cancelledBefore)
+
+	if len(ret) == 0 {
+		panic("no return value specified for TaskDeleteCancelledBefore")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(int64) error); ok {
+		r0 = returnFunc(cancelledBefore)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_TaskDeleteCancelledBefore_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'TaskDeleteCancelledBefore'
+type MockStore_TaskDeleteCancelledBefore_Call struct {
+	*mock.Call
+}
+
+// TaskDeleteCancelledBefore is a helper method to define mock.On call
+//   - cancelledBefore int64
+func (_e *MockStore_Expecter) TaskDeleteCancelledBefore(cancelledBefore interface{}) *MockStore_TaskDeleteCancelledBefore_Call {
+	return &MockStore_TaskDeleteCancelledBefore_Call{Call: _e.mock.On("TaskDeleteCancelledBefore", cancelledBefore)}
+}
+
+func (_c *MockStore_TaskDeleteCancelledBefore_Call) Run(run func(cancelledBefore int64)) *MockStore_TaskDeleteCancelledBefore_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_TaskDeleteCancelledBefore_Call) Return(err error) *MockStore_TaskDeleteCancelledBefore_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_TaskDeleteCancelledBefore_Call) RunAndReturn(run func(cancelledBefore int64) error) *MockStore_TaskDeleteCancelledBefore_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// TaskDeleteStale provides a mock function for the type MockStore
+func (_mock *MockStore) TaskDeleteStale() (int64, error) {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for TaskDeleteStale")
+	}
+
+	var r0 int64
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func() (int64, error)); ok {
+		return returnFunc()
+	}
+	if returnFunc, ok := ret.Get(0).(func() int64); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+	if returnFunc, ok := ret.Get(1).(func() error); ok {
+		r1 = returnFunc()
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_TaskDeleteStale_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'TaskDeleteStale'
+type MockStore_TaskDeleteStale_Call struct {
+	*mock.Call
+}
+
+// TaskDeleteStale is a helper method to define mock.On call
+func (_e *MockStore_Expecter) TaskDeleteStale() *MockStore_TaskDeleteStale_Call {
+	return &MockStore_TaskDeleteStale_Call{Call: _e.mock.On("TaskDeleteStale")}
+}
+
+func (_c *MockStore_TaskDeleteStale_Call) Run(run func()) *MockStore_TaskDeleteStale_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockStore_TaskDeleteStale_Call) Return(n int64, err error) *MockStore_TaskDeleteStale_Call {
+	_c.Call.Return(n, err)
+	return _c
+}
+
+func (_c *MockStore_TaskDeleteStale_Call) RunAndReturn(run func() (int64, error)) *MockStore_TaskDeleteStale_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// TaskGetAgentID provides a mock function for the type MockStore
+func (_mock *MockStore) TaskGetAgentID(taskID string, agentID int64) (bool, error) {
+	ret := _mock.Called(taskID, agentID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for TaskGetAgentID")
+	}
+
+	var r0 bool
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(string, int64) (bool, error)); ok {
+		return returnFunc(taskID, agentID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(string, int64) bool); ok {
+		r0 = returnFunc(taskID, agentID)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	if returnFunc, ok := ret.Get(1).(func(string, int64) error); ok {
+		r1 = returnFunc(taskID, agentID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_TaskGetAgentID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'TaskGetAgentID'
+type MockStore_TaskGetAgentID_Call struct {
+	*mock.Call
+}
+
+// TaskGetAgentID is a helper method to define mock.On call
+//   - taskID string
+//   - agentID int64
+func (_e *MockStore_Expecter) TaskGetAgentID(taskID interface{}, agentID interface{}) *MockStore_TaskGetAgentID_Call {
+	return &MockStore_TaskGetAgentID_Call{Call: _e.mock.On("TaskGetAgentID", taskID, agentID)}
+}
+
+func (_c *MockStore_TaskGetAgentID_Call) Run(run func(taskID string, agentID int64)) *MockStore_TaskGetAgentID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_TaskGetAgentID_Call) Return(b bool, err error) *MockStore_TaskGetAgentID_Call {
+	_c.Call.Return(b, err)
+	return _c
+}
+
+func (_c *MockStore_TaskGetAgentID_Call) RunAndReturn(run func(taskID string, agentID int64) (bool, error)) *MockStore_TaskGetAgentID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// TaskGetCancelled provides a mock function for the type MockStore
+func (_mock *MockStore) TaskGetCancelled(id string) (bool, bool, error) {
+	ret := _mock.Called(id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for TaskGetCancelled")
+	}
+
+	var r0 bool
+	var r1 bool
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(string) (bool, bool, error)); ok {
+		return returnFunc(id)
+	}
+	if returnFunc, ok := ret.Get(0).(func(string) bool); ok {
+		r0 = returnFunc(id)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	if returnFunc, ok := ret.Get(1).(func(string) bool); ok {
+		r1 = returnFunc(id)
+	} else {
+		r1 = ret.Get(1).(bool)
+	}
+	if returnFunc, ok := ret.Get(2).(func(string) error); ok {
+		r2 = returnFunc(id)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockStore_TaskGetCancelled_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'TaskGetCancelled'
+type MockStore_TaskGetCancelled_Call struct {
+	*mock.Call
+}
+
+// TaskGetCancelled is a helper method to define mock.On call
+//   - id string
+func (_e *MockStore_Expecter) TaskGetCancelled(id interface{}) *MockStore_TaskGetCancelled_Call {
+	return &MockStore_TaskGetCancelled_Call{Call: _e.mock.On("TaskGetCancelled", id)}
+}
+
+func (_c *MockStore_TaskGetCancelled_Call) Run(run func(id string)) *MockStore_TaskGetCancelled_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_TaskGetCancelled_Call) Return(canceled bool, exists bool, err error) *MockStore_TaskGetCancelled_Call {
+	_c.Call.Return(canceled, exists, err)
+	return _c
+}
+
+func (_c *MockStore_TaskGetCancelled_Call) RunAndReturn(run func(id string) (bool, bool, error)) *MockStore_TaskGetCancelled_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -10824,6 +11126,57 @@ func (_c *MockStore_TaskListPending_Call) Return(tasks []*model.Task, err error)
 }
 
 func (_c *MockStore_TaskListPending_Call) RunAndReturn(run func() ([]*model.Task, error)) *MockStore_TaskListPending_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// TaskSetCancelled provides a mock function for the type MockStore
+func (_mock *MockStore) TaskSetCancelled(id string) error {
+	ret := _mock.Called(id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for TaskSetCancelled")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(string) error); ok {
+		r0 = returnFunc(id)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_TaskSetCancelled_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'TaskSetCancelled'
+type MockStore_TaskSetCancelled_Call struct {
+	*mock.Call
+}
+
+// TaskSetCancelled is a helper method to define mock.On call
+//   - id string
+func (_e *MockStore_Expecter) TaskSetCancelled(id interface{}) *MockStore_TaskSetCancelled_Call {
+	return &MockStore_TaskSetCancelled_Call{Call: _e.mock.On("TaskSetCancelled", id)}
+}
+
+func (_c *MockStore_TaskSetCancelled_Call) Run(run func(id string)) *MockStore_TaskSetCancelled_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_TaskSetCancelled_Call) Return(err error) *MockStore_TaskSetCancelled_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_TaskSetCancelled_Call) RunAndReturn(run func(id string) error) *MockStore_TaskSetCancelled_Call {
 	_c.Call.Return(run)
 	return _c
 }

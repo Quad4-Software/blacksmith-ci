@@ -102,6 +102,7 @@ func Migrate(_ context.Context, db *sql.DB, driver string, _ bool) error {
 			"autoscalers", "pending_since", "INTEGER",
 		)},
 		{ID: "crow-add-email-unsubscribes", Migrate: createEmailUnsubscribes(driver)},
+		{ID: "crow-add-task-canceled", Migrate: addTaskCancelledColumns},
 	}
 
 	if len(newMigrations) > 0 {
@@ -224,4 +225,29 @@ func createEmailUnsubscribes(driver string) func(tx *sql.Tx) error {
 		_, err := tx.Exec(ddl)
 		return err
 	}
+}
+
+// addTaskCancelledColumns adds canceled and canceled_at columns to the tasks table
+// for cross-instance cancel propagation in HA mode.
+// Skips gracefully if the tasks table doesn't exist (fresh databases get these
+// columns from the baseline schema).
+func addTaskCancelledColumns(tx *sql.Tx) error {
+	// Check if the tasks table exists before trying to add columns.
+	_, _ = tx.Exec("SAVEPOINT table_check")
+	rows, err := tx.Query("SELECT 1 FROM tasks LIMIT 1") //nolint:gosec
+	if err != nil {
+		// Table doesn't exist — nothing to alter (baseline schema has the columns).
+		_, _ = tx.Exec("ROLLBACK TO SAVEPOINT table_check")
+		return nil
+	}
+	defer rows.Close()
+	_ = rows.Err()
+	_, _ = tx.Exec("RELEASE SAVEPOINT table_check")
+
+	addCanceled := addColumnIfNotExists("tasks", "canceled", "INTEGER DEFAULT 0")
+	if err := addCanceled(tx); err != nil {
+		return err
+	}
+	addCanceledAt := addColumnIfNotExists("tasks", "canceled_at", "INTEGER DEFAULT 0")
+	return addCanceledAt(tx)
 }

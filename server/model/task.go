@@ -37,6 +37,8 @@ type Task struct {
 	AgentID      int64                    `json:"agent_id"     bun:"agent_id"`
 	PipelineID   int64                    `json:"pipeline_id"  bun:"pipeline_id"`
 	RepoID       int64                    `json:"repo_id"      bun:"repo_id"`
+	Canceled     int64                    `json:"canceled"    bun:"canceled"`
+	CancelledAt  int64                    `json:"canceled_at" bun:"canceled_at"`
 } //	@name	Task
 
 // TableName returns the database table name.

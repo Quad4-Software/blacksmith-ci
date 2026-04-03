@@ -199,6 +199,18 @@ type Store interface {
 	// TaskAtomicClaim atomically claims a task for adoption if it was previously assigned to this agent.
 	// Used by restarted agents to reclaim orphaned workflows. Returns the task if claimed, nil if not.
 	TaskAtomicClaim(taskID string, agentID int64) (*model.Task, error)
+	// TaskAtomicResetOrphan atomically resets agent_id to 0 only when still assigned to expectedAgentID.
+	TaskAtomicResetOrphan(taskID string, expectedAgentID int64) (bool, error)
+	// TaskGetCancelled checks if a task exists and whether it is canceled.
+	TaskGetCancelled(id string) (canceled bool, exists bool, err error)
+	// TaskSetCancelled atomically marks a task as canceled in the database.
+	TaskSetCancelled(id string) error
+	// TaskGetAgentID checks if a task exists and is assigned to the given agent.
+	TaskGetAgentID(taskID string, agentID int64) (bool, error)
+	// TaskDeleteCancelledBefore deletes canceled tasks older than the given timestamp.
+	TaskDeleteCancelledBefore(cancelledBefore int64) error
+	// TaskDeleteStale removes tasks whose workflows are no longer pending/running or don't exist.
+	TaskDeleteStale() (int64, error)
 
 	// ServerConfig
 	ServerConfigGet(string) (string, error)

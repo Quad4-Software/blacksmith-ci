@@ -24,11 +24,6 @@ import (
 	"codefloe.com/crowci/crow/v5/server/store"
 )
 
-const (
-	// Lock context timeout multiplier for renewal cycles.
-	lockTimeoutMultiplier = 2
-)
-
 // Service provides distributed locking capabilities for HA deployments.
 type Service struct {
 	store      store.Store
@@ -85,8 +80,9 @@ func (s *Service) AcquireLock(ctx context.Context, lockName string, ttl time.Dur
 
 	log.Info().Str("lock", lockName).Str("instanceID", s.instanceID).Dur("ttl", ttl).Msg("Successfully acquired distributed lock")
 
-	// Create local lock tracking
-	lockCtx, cancel := context.WithTimeout(ctx, ttl*lockTimeoutMultiplier) // Allow for renewal cycles
+	// Use WithCancel instead of WithTimeout so the lock lives as long as
+	// renewals succeed. The renewal goroutine cancels the context on lock loss.
+	lockCtx, cancel := context.WithCancelCause(ctx)
 	info := &lockInfo{
 		name:      lockName,
 		acquired:  true,
@@ -95,13 +91,13 @@ func (s *Service) AcquireLock(ctx context.Context, lockName string, ttl time.Dur
 
 	s.locks.Store(lockName, info)
 
-	// Start lock renewal goroutine
-	go s.renewLock(lockCtx, lockName, ttl)
+	// Start lock renewal goroutine — it will call cancel() if the lock is lost
+	cancelFn := func() { cancel(nil) }
+	go s.renewLock(lockCtx, cancelFn, lockName, ttl)
 
-	// Return context and cancel function
 	return lockCtx, func() {
 		_ = s.releaseLock(lockName)
-		cancel()
+		cancel(nil)
 	}, nil
 }
 
@@ -207,8 +203,9 @@ func (s *Service) releaseLock(lockName string) error {
 	return err
 }
 
-// renewLock periodically renews a lock until context is canceled.
-func (s *Service) renewLock(ctx context.Context, lockName string, ttl time.Duration) {
+// renewLock periodically renews a lock until context is canceled or lock is lost.
+// On lock loss, it cancels the context to notify the holder.
+func (s *Service) renewLock(ctx context.Context, cancelFn context.CancelFunc, lockName string, ttl time.Duration) {
 	ticker := time.NewTicker(ttl / 3) // Renew at 1/3 of TTL
 	defer ticker.Stop()
 
@@ -218,7 +215,8 @@ func (s *Service) renewLock(ctx context.Context, lockName string, ttl time.Durat
 			return
 		case <-ticker.C:
 			if err := s.renewSingleLock(lockName, ttl); err != nil {
-				log.Error().Err(err).Str("lock", lockName).Msg("Failed to renew lock")
+				log.Error().Err(err).Str("lock", lockName).Msg("Failed to renew lock — canceling lock context")
+				cancelFn()
 				return
 			}
 		}

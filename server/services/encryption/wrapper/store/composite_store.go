@@ -548,6 +548,30 @@ func (c *CompositeEncryptedStore) TaskAtomicClaim(taskID string, agentID int64) 
 	return c.baseStore.TaskAtomicClaim(taskID, agentID)
 }
 
+func (c *CompositeEncryptedStore) TaskAtomicResetOrphan(taskID string, expectedAgentID int64) (bool, error) {
+	return c.baseStore.TaskAtomicResetOrphan(taskID, expectedAgentID)
+}
+
+func (c *CompositeEncryptedStore) TaskGetCancelled(id string) (bool, bool, error) {
+	return c.baseStore.TaskGetCancelled(id)
+}
+
+func (c *CompositeEncryptedStore) TaskSetCancelled(id string) error {
+	return c.baseStore.TaskSetCancelled(id)
+}
+
+func (c *CompositeEncryptedStore) TaskGetAgentID(taskID string, agentID int64) (bool, error) {
+	return c.baseStore.TaskGetAgentID(taskID, agentID)
+}
+
+func (c *CompositeEncryptedStore) TaskDeleteCancelledBefore(cancelledBefore int64) error {
+	return c.baseStore.TaskDeleteCancelledBefore(cancelledBefore)
+}
+
+func (c *CompositeEncryptedStore) TaskDeleteStale() (int64, error) {
+	return c.baseStore.TaskDeleteStale()
+}
+
 // ServerConfig.
 func (c *CompositeEncryptedStore) ServerConfigGet(key string) (string, error) {
 	return c.baseStore.ServerConfigGet(key)
