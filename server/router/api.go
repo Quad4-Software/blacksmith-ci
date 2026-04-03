@@ -406,6 +406,11 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 		Security: BearerSecurity, Middlewares: repoPullMW,
 	}, api.GetPipelines)
 	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-workflow-names", Method: http.MethodGet, Path: "/repos/{repo_id}/workflows/names",
+		Summary: "List distinct workflow names for a repository", Tags: []string{"Pipelines"},
+		Security: BearerSecurity, Middlewares: repoPullMW,
+	}, api.GetWorkflowNames)
+	huma.Register(humaAPI, huma.Operation{
 		OperationID: "create-pipeline", Method: http.MethodPost, Path: "/repos/{repo_id}/pipelines",
 		Summary: "Create a new pipeline", Tags: []string{"Pipelines"},
 		Security: BearerSecurity, Middlewares: repoPushMW,

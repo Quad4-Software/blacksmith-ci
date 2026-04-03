@@ -289,6 +289,17 @@ func (s storage) WorkflowLoad(id int64) (*model.Workflow, error) {
 	return workflow, wrapGet(s.db.NewSelect().Model(workflow).Where("id = ?", id).Scan(context.Background()))
 }
 
+func (s storage) WorkflowNamesByRepo(repoID int64) ([]string, error) {
+	var names []string
+	err := s.db.NewSelect().
+		TableExpr("workflows").
+		ColumnExpr("DISTINCT name").
+		Where("pipeline_id IN (SELECT id FROM pipelines WHERE repo_id = ?)", repoID).
+		OrderExpr("name ASC").
+		Scan(context.Background(), &names)
+	return names, err
+}
+
 func (s storage) WorkflowUpdate(workflow *model.Workflow) error {
 	_, err := s.db.NewUpdate().Model(workflow).WherePK().Exec(context.Background())
 	return err

@@ -173,6 +173,7 @@ export const usePipelineStore = defineStore('pipelines', () => {
       branch?: string;
       events?: string;
       search?: string;
+      workflow?: string;
     },
   ): Promise<Pipeline[]> {
     const _pipelines = await apiClient.getPipelineList(repoId, opts);

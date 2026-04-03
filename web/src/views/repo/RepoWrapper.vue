@@ -171,9 +171,38 @@
             </PopoverContent>
           </Popover>
 
+          <!-- Workflow filter -->
+          <DropdownMenu v-if="workflowNames.length > 0" :modal="false">
+            <DropdownMenuTrigger as-child>
+              <Button variant="outline" size="sm" class="h-8 border-dashed">
+                <Icon name="tasks" class="mr-2 h-4 w-4" />
+                {{ $t('repo.pipeline.filter.workflow') }}
+                <template v-if="workflowFilter">
+                  <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
+                  <span class="mx-2" aria-hidden="true">|</span>
+                  <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
+                  <Badge variant="secondary" class="rounded-sm px-1 font-normal max-w-[100px] truncate">
+                    {{ workflowFilter }}
+                  </Badge>
+                </template>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent class="w-[220px] max-h-[300px] overflow-y-auto" align="end">
+              <DropdownMenuRadioGroup v-model="workflowFilter">
+                <DropdownMenuRadioItem value="">
+                  {{ $t('repo.pipeline.filter.all_workflows') }}
+                </DropdownMenuRadioItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuRadioItem v-for="name in workflowNames" :key="name" :value="name">
+                  {{ name }}
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <!-- Clear all filters -->
           <Button
-            v-if="selectedEvents.length > 0 || branchFilter || hasDateFilter"
+            v-if="selectedEvents.length > 0 || branchFilter || hasDateFilter || workflowFilter"
             variant="ghost"
             size="sm"
             class="h-8"
@@ -272,11 +301,13 @@ const dateFrom = ref('');
 const dateTo = ref('');
 const selectedEvents = ref<string[]>([]);
 const branchFilter = ref('');
+const workflowFilter = ref('');
 const hasDateFilter = ref(false); // Track if user has actually set a filter
 
 // Branches and PRs for filters
 const branches = ref<string[]>([]);
 const pullRequests = ref<{ index: string; title: string }[]>([]);
+const workflowNames = ref<string[]>([]);
 
 // Set default "to" date to today (for the input field, not the filter)
 const today = new Date().toISOString().split('T')[0];
@@ -333,6 +364,7 @@ function clearDateFilter() {
 function clearAllFilters() {
   selectedEvents.value = [];
   branchFilter.value = '';
+  workflowFilter.value = '';
   clearDateFilter();
 }
 
@@ -345,6 +377,7 @@ vueProvide('date-from', dateFrom);
 vueProvide('date-to', dateTo);
 vueProvide('selected-events', selectedEvents);
 vueProvide('branch-filter', branchFilter);
+vueProvide('workflow-filter', workflowFilter);
 
 function toggleMultiselectMode() {
   isMultiselectMode.value = !isMultiselectMode.value;
@@ -417,7 +450,15 @@ watch(
         }
       };
 
-      void Promise.all([loadBranches(), loadPRs()]);
+      const loadWorkflowNames = async () => {
+        try {
+          workflowNames.value = await apiClient.getWorkflowNames(repoId);
+        } catch {
+          workflowNames.value = [];
+        }
+      };
+
+      void Promise.all([loadBranches(), loadPRs(), loadWorkflowNames()]);
     }
   },
   { immediate: true },

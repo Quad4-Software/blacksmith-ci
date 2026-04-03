@@ -743,6 +743,10 @@ func (c *CompositeEncryptedStore) WorkflowUpdate(workflow *model.Workflow) error
 	return c.baseStore.WorkflowUpdate(workflow)
 }
 
+func (c *CompositeEncryptedStore) WorkflowNamesByRepo(repoID int64) ([]string, error) {
+	return c.baseStore.WorkflowNamesByRepo(repoID)
+}
+
 // Org.
 func (c *CompositeEncryptedStore) OrgCreate(org *model.Org) error {
 	return c.baseStore.OrgCreate(org)

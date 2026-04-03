@@ -14,6 +14,7 @@ export interface UseReactivePipelinesOptions {
     branch?: Ref<string | null> | Ref<string> | null;
     dateFrom?: Ref<string | null> | Ref<string> | null;
     dateTo?: Ref<string | null> | Ref<string> | null;
+    workflow?: Ref<string | null> | Ref<string> | null;
   };
 }
 
@@ -108,6 +109,7 @@ export default function useReactivePipelines(options: UseReactivePipelinesOption
       const dateFromValue = filters?.dateFrom?.value;
       const dateToValue = filters?.dateTo?.value;
       const branchValue = filters?.branch?.value;
+      const workflowValue = filters?.workflow?.value;
 
       const opts: Parameters<typeof pipelineStore.loadRepoPipelines>[1] = {
         page: nextPage,
@@ -134,6 +136,10 @@ export default function useReactivePipelines(options: UseReactivePipelinesOption
         } else {
           opts.branch = branchValue;
         }
+      }
+
+      if (workflowValue !== null && workflowValue !== undefined && workflowValue !== '') {
+        opts.workflow = workflowValue;
       }
 
       const fetchedPipelines = await pipelineStore.loadRepoPipelines(repoId.value, opts);
@@ -177,6 +183,7 @@ export default function useReactivePipelines(options: UseReactivePipelinesOption
       filters.branch ?? ref(null),
       filters.dateFrom ?? ref(null),
       filters.dateTo ?? ref(null),
+      filters.workflow ?? ref(null),
     ];
 
     watch(

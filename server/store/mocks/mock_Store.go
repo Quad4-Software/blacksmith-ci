@@ -11981,6 +11981,68 @@ func (_c *MockStore_WorkflowLoad_Call) RunAndReturn(run func(n int64) (*model.Wo
 	return _c
 }
 
+// WorkflowNamesByRepo provides a mock function for the type MockStore
+func (_mock *MockStore) WorkflowNamesByRepo(repoID int64) ([]string, error) {
+	ret := _mock.Called(repoID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WorkflowNamesByRepo")
+	}
+
+	var r0 []string
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64) ([]string, error)); ok {
+		return returnFunc(repoID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64) []string); ok {
+		r0 = returnFunc(repoID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64) error); ok {
+		r1 = returnFunc(repoID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_WorkflowNamesByRepo_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WorkflowNamesByRepo'
+type MockStore_WorkflowNamesByRepo_Call struct {
+	*mock.Call
+}
+
+// WorkflowNamesByRepo is a helper method to define mock.On call
+//   - repoID int64
+func (_e *MockStore_Expecter) WorkflowNamesByRepo(repoID interface{}) *MockStore_WorkflowNamesByRepo_Call {
+	return &MockStore_WorkflowNamesByRepo_Call{Call: _e.mock.On("WorkflowNamesByRepo", repoID)}
+}
+
+func (_c *MockStore_WorkflowNamesByRepo_Call) Run(run func(repoID int64)) *MockStore_WorkflowNamesByRepo_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_WorkflowNamesByRepo_Call) Return(strings []string, err error) *MockStore_WorkflowNamesByRepo_Call {
+	_c.Call.Return(strings, err)
+	return _c
+}
+
+func (_c *MockStore_WorkflowNamesByRepo_Call) RunAndReturn(run func(repoID int64) ([]string, error)) *MockStore_WorkflowNamesByRepo_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // WorkflowUpdate provides a mock function for the type MockStore
 func (_mock *MockStore) WorkflowUpdate(workflow *model.Workflow) error {
 	ret := _mock.Called(workflow)

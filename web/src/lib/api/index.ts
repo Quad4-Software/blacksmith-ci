@@ -190,10 +190,15 @@ export default class CrowClient extends ApiClient {
       branch?: string;
       events?: string;
       search?: string;
+      workflow?: string;
     },
   ): Promise<Pipeline[]> {
     const query = encodeQueryString(opts);
     return this._get(`/api/v1/repos/${repoId}/pipelines?${query}`) as Promise<Pipeline[]>;
+  }
+
+  async getWorkflowNames(repoId: number): Promise<string[]> {
+    return this._get(`/api/v1/repos/${repoId}/workflows/names`) as Promise<string[]>;
   }
 
   async getPipeline(repoId: number, pipelineNumber: number | 'latest'): Promise<Pipeline> {

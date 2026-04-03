@@ -624,7 +624,9 @@
         "until_date": "Until {date}",
         "event": "Event",
         "branch": "Branch / PR",
-        "all_branches": "All branches"
+        "all_branches": "All branches",
+        "workflow": "Workflow",
+        "workflows": "Workflows"
       },
       "search": {
         "title": "Search logs (Ctrl+F)",

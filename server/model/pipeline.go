@@ -66,13 +66,14 @@ func (Pipeline) TableName() string {
 }
 
 type PipelineFilter struct {
-	Before      int64
-	After       int64
-	Branch      string
-	Events      []WebhookEvent
-	RefContains string
-	Status      StatusValue
-	Search      string // Search query for number, message, branch, author
+	Before       int64
+	After        int64
+	Branch       string
+	Events       []WebhookEvent
+	RefContains  string
+	Status       StatusValue
+	Search       string // Search query for number, message, branch, author
+	WorkflowName string // Filter by workflow name (exact match)
 }
 
 // IsMultiPipeline checks if step list contain more than one parent step.

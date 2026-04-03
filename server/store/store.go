@@ -297,6 +297,7 @@ type Store interface {
 	WorkflowsReplace(*model.Pipeline, []*model.Workflow) error
 	WorkflowLoad(int64) (*model.Workflow, error)
 	WorkflowUpdate(*model.Workflow) error
+	WorkflowNamesByRepo(repoID int64) ([]string, error)
 
 	// Org
 	OrgCreate(*model.Org) error

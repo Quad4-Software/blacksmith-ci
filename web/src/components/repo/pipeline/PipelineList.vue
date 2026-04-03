@@ -73,6 +73,22 @@
     <!-- Search input -->
     <SearchInput v-if="searchQuery !== null" v-model="searchQuery" :placeholder="t('search')" class="w-full" />
 
+    <!-- Workflow quick-filter -->
+    <div v-if="workflowNames.length > 0" class="flex flex-wrap items-center gap-1.5">
+      <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
+      <span class="text-xs text-muted-foreground shrink-0">{{ t('repo.pipeline.filter.workflows') }}:</span>
+      <ShadcnButton
+        v-for="name in workflowNames"
+        :key="name"
+        :variant="workflowFilter === name ? 'default' : 'outline'"
+        size="sm"
+        class="h-7 text-xs px-2.5"
+        @click="toggleWorkflowChip(name)"
+      >
+        {{ name }}
+      </ShadcnButton>
+    </div>
+
     <!-- Hidden pipelines toggle and multi-select header -->
     <div
       v-if="(isMultiselectMode && displayPipelines.length > 0 && repoPermissions?.push) || hiddenCount > 0"
@@ -233,6 +249,7 @@ const dateFrom = inject<Ref<string> | null>('date-from', null);
 const dateTo = inject<Ref<string> | null>('date-to', null);
 const selectedEvents = inject<Ref<string[]> | null>('selected-events', null);
 const branchFilter = inject<Ref<string> | null>('branch-filter', null);
+const workflowFilter = inject<Ref<string> | null>('workflow-filter', null);
 
 // Use reactive pipelines composable when in infinite scroll mode
 // This provides SSE-reactive data and handles pagination automatically
@@ -246,6 +263,7 @@ const reactivePipelines =
           branch: branchFilter,
           dateFrom,
           dateTo,
+          workflow: workflowFilter,
         },
       })
     : null;
@@ -253,6 +271,29 @@ const reactivePipelines =
 // Extract loading and hasMore from composable or use local defaults
 const loading = reactivePipelines?.loading ?? ref(false);
 const hasMore = reactivePipelines?.hasMore ?? computed(() => false);
+
+// Workflow quick-filter chips
+const workflowNames = ref<string[]>([]);
+
+if (props.repo) {
+  apiClient
+    .getWorkflowNames(props.repo.id)
+    .then((names) => {
+      workflowNames.value = names;
+      return undefined;
+    })
+    .catch(() => {
+      workflowNames.value = [];
+    });
+}
+
+function toggleWorkflowChip(name: string) {
+  if (workflowFilter?.value === name) {
+    workflowFilter.value = '';
+  } else if (workflowFilter) {
+    workflowFilter.value = name;
+  }
+}
 
 // Hidden pipelines state - stored per repo
 const storageKey = computed(() =>

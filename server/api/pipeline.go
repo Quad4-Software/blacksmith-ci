@@ -169,14 +169,15 @@ func createTmpPipeline(event model.WebhookEvent, commit *model.Commit, user *mod
 
 type GetPipelinesInput struct {
 	PaginationParams
-	RepoID int64  `path:"repo_id" doc:"the repository id"`
-	Before string `query:"before" doc:"only return pipelines before this RFC3339 date"`
-	After  string `query:"after" doc:"only return pipelines after this RFC3339 date"`
-	Branch string `query:"branch" doc:"filter pipelines by branch"`
-	Event  string `query:"event" doc:"filter pipelines by webhook events (comma separated)"`
-	Ref    string `query:"ref" doc:"filter pipelines by strings contained in ref"`
-	Status string `query:"status" doc:"filter pipelines by status"`
-	Search string `query:"search" doc:"search pipelines by number, message, branch, or author"`
+	RepoID   int64  `path:"repo_id" doc:"the repository id"`
+	Before   string `query:"before" doc:"only return pipelines before this RFC3339 date"`
+	After    string `query:"after" doc:"only return pipelines after this RFC3339 date"`
+	Branch   string `query:"branch" doc:"filter pipelines by branch"`
+	Event    string `query:"event" doc:"filter pipelines by webhook events (comma separated)"`
+	Ref      string `query:"ref" doc:"filter pipelines by strings contained in ref"`
+	Status   string `query:"status" doc:"filter pipelines by status"`
+	Search   string `query:"search" doc:"search pipelines by number, message, branch, or author"`
+	Workflow string `query:"workflow" doc:"filter pipelines by workflow name"`
 }
 
 type GetPipelinesOutput struct {
@@ -188,9 +189,10 @@ func GetPipelines(ctx context.Context, input *GetPipelinesInput) (*GetPipelinesO
 	repo := session.Repo(c)
 
 	filter := &model.PipelineFilter{
-		Branch:      input.Branch,
-		RefContains: input.Ref,
-		Search:      input.Search,
+		Branch:       input.Branch,
+		RefContains:  input.Ref,
+		Search:       input.Search,
+		WorkflowName: input.Workflow,
 	}
 
 	if input.Event != "" {
@@ -236,6 +238,25 @@ func GetPipelines(ctx context.Context, input *GetPipelinesInput) (*GetPipelinesO
 		return nil, huma.Error500InternalServerError("error getting pipeline list", err)
 	}
 	return &GetPipelinesOutput{Body: pipelines}, nil
+}
+
+type GetWorkflowNamesInput struct {
+	RepoID int64 `path:"repo_id" doc:"the repository id"`
+}
+
+type GetWorkflowNamesOutput struct {
+	Body []string
+}
+
+func GetWorkflowNames(ctx context.Context, input *GetWorkflowNamesInput) (*GetWorkflowNamesOutput, error) {
+	c := ginCtx(ctx)
+	repo := session.Repo(c)
+
+	names, err := store.FromContext(c).WorkflowNamesByRepo(repo.ID)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("error getting workflow names", err)
+	}
+	return &GetWorkflowNamesOutput{Body: names}, nil
 }
 
 type DeletePipelineInput struct {
