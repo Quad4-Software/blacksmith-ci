@@ -22,15 +22,20 @@ import (
 
 // DefaultFactory is the standard provider factory implementation.
 type DefaultFactory struct {
-	// vaultFactory is injected to avoid import cycles
-	vaultFactory func(*model.Integration) (Provider, error)
+	// Factory functions are injected to avoid import cycles
+	vaultFactory         func(*model.Integration) (Provider, error)
+	azureKeyVaultFactory func(*model.Integration) (Provider, error)
 }
 
 // NewDefaultFactory creates a new DefaultFactory.
-// The vault factory function should be provided by the vault package.
-func NewDefaultFactory(vaultFactory func(*model.Integration) (Provider, error)) *DefaultFactory {
+// Factory functions should be provided by the respective provider packages.
+func NewDefaultFactory(
+	vaultFactory func(*model.Integration) (Provider, error),
+	azureKeyVaultFactory func(*model.Integration) (Provider, error),
+) *DefaultFactory {
 	return &DefaultFactory{
-		vaultFactory: vaultFactory,
+		vaultFactory:         vaultFactory,
+		azureKeyVaultFactory: azureKeyVaultFactory,
 	}
 }
 
@@ -47,11 +52,15 @@ func (f *DefaultFactory) Create(integration *model.Integration) (Provider, error
 		}
 		return f.vaultFactory(integration)
 
+	case model.IntegrationTypeAzureKeyVault:
+		if f.azureKeyVaultFactory == nil {
+			return nil, fmt.Errorf("%w: azure key vault provider not configured", ErrProviderNotSupported)
+		}
+		return f.azureKeyVaultFactory(integration)
+
 	// Future integration types:
 	// case model.IntegrationTypeAWS:
 	//     return aws.NewProvider(integration)
-	// case model.IntegrationTypeAzure:
-	//     return azure.NewProvider(integration)
 	// case model.IntegrationTypeGCP:
 	//     return gcp.NewProvider(integration)
 
@@ -62,10 +71,13 @@ func (f *DefaultFactory) Create(integration *model.Integration) (Provider, error
 
 // SupportedTypes returns the list of integration types this factory supports.
 func (f *DefaultFactory) SupportedTypes() []model.IntegrationType {
-	types := make([]model.IntegrationType, 0, 1)
+	types := make([]model.IntegrationType, 0, 2)
 
 	if f.vaultFactory != nil {
 		types = append(types, model.IntegrationTypeVault)
+	}
+	if f.azureKeyVaultFactory != nil {
+		types = append(types, model.IntegrationTypeAzureKeyVault)
 	}
 
 	return types

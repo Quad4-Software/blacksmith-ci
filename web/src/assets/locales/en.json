@@ -1211,6 +1211,13 @@
     "allowed_users_help": "Users who can use this integration in their pipelines",
     "allowed_orgs_help": "All repositories in these organizations can use this integration",
     "allowed_repos_help": "Specific repositories that can use this integration",
+    "type_azure_key_vault": "Azure Key Vault",
+    "azure_kv_config": "Azure Key Vault Configuration",
+    "azure_kv_vault_url": "Vault URL",
+    "azure_kv_tenant_id": "Tenant ID",
+    "azure_kv_client_id": "Client ID",
+    "azure_kv_client_secret": "Client Secret",
+    "azure_kv_client_secret_unchanged": "Leave empty to keep current",
     "allowlist": {
       "selected": "selected",
       "no_results": "No results found"

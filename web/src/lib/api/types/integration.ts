@@ -1,6 +1,6 @@
 // Integration types for external secret store integrations
 
-export type IntegrationType = 'vault';
+export type IntegrationType = 'vault' | 'azure_key_vault';
 
 export interface Integration {
   id: number;
@@ -32,4 +32,12 @@ export interface VaultConfig {
   namespace?: string;
   tls_skip_verify?: boolean;
   ca_certificate?: string;
+}
+
+// Azure Key Vault-specific config structure (for form handling)
+export interface AzureKeyVaultConfig {
+  vault_url: string;
+  tenant_id: string;
+  client_id: string;
+  client_secret: string;
 }

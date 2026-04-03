@@ -37,11 +37,11 @@ var (
 type IntegrationType string
 
 const (
-	IntegrationTypeVault IntegrationType = "vault"
+	IntegrationTypeVault         IntegrationType = "vault"
+	IntegrationTypeAzureKeyVault IntegrationType = "azure_key_vault"
 	// Future integration types.
-	// IntegrationTypeAWS   IntegrationType = "aws_secrets_manager".
-	// IntegrationTypeAzure IntegrationType = "azure_key_vault".
-	// IntegrationTypeGCP   IntegrationType = "gcp_secret_manager".
+	// IntegrationTypeAWS IntegrationType = "aws_secrets_manager".
+	// IntegrationTypeGCP IntegrationType = "gcp_secret_manager".
 )
 
 const (
@@ -54,6 +54,7 @@ const (
 // ValidIntegrationTypes lists all supported integration types.
 var ValidIntegrationTypes = []IntegrationType{
 	IntegrationTypeVault,
+	IntegrationTypeAzureKeyVault,
 }
 
 // IsValid checks if the integration type is valid.
@@ -140,8 +141,17 @@ func (i *Integration) Validate() error {
 	}
 
 	// Validate type-specific configuration
-	if i.Type == IntegrationTypeVault {
+	switch i.Type {
+	case IntegrationTypeVault:
 		var config VaultConfig
+		if err := json.Unmarshal([]byte(i.Config), &config); err != nil {
+			return errors.Join(ErrIntegrationConfigInvalid, err)
+		}
+		if err := config.Validate(); err != nil {
+			return err
+		}
+	case IntegrationTypeAzureKeyVault:
+		var config AzureKeyVaultConfig
 		if err := json.Unmarshal([]byte(i.Config), &config); err != nil {
 			return errors.Join(ErrIntegrationConfigInvalid, err)
 		}
@@ -173,19 +183,28 @@ func (i *Integration) Copy() *Integration {
 
 // CopyWithRedactedConfig returns a copy with configuration redacted for display.
 func (i *Integration) CopyWithRedactedConfig() *Integration {
-	copy := i.Copy()
+	cp := i.Copy()
 
-	if i.Type == IntegrationTypeVault {
+	switch i.Type {
+	case IntegrationTypeVault:
 		var config VaultConfig
 		if err := json.Unmarshal([]byte(i.Config), &config); err == nil {
 			redacted := config.Redacted()
 			if configJSON, err := json.Marshal(redacted); err == nil {
-				copy.Config = string(configJSON)
+				cp.Config = string(configJSON)
+			}
+		}
+	case IntegrationTypeAzureKeyVault:
+		var config AzureKeyVaultConfig
+		if err := json.Unmarshal([]byte(i.Config), &config); err == nil {
+			redacted := config.Redacted()
+			if configJSON, err := json.Marshal(redacted); err == nil {
+				cp.Config = string(configJSON)
 			}
 		}
 	}
 
-	return copy
+	return cp
 }
 
 // HasAccess checks if the given user/org/repo has access to use this integration.
@@ -363,6 +382,85 @@ func redactCert(cert string) string {
 		return ""
 	}
 	return "[certificate present]"
+}
+
+// AzureKeyVaultConfig holds Azure Key Vault specific configuration.
+type AzureKeyVaultConfig struct {
+	VaultURL     string `json:"vault_url"`     // Key Vault URL (e.g., https://my-vault.vault.azure.net)
+	TenantID     string `json:"tenant_id"`     // Azure AD Tenant ID
+	ClientID     string `json:"client_id"`     // Service Principal Client ID
+	ClientSecret string `json:"client_secret"` // Service Principal Client Secret
+}
+
+// Validate validates the Azure Key Vault configuration.
+func (c *AzureKeyVaultConfig) Validate() error {
+	if c.VaultURL == "" {
+		return fmt.Errorf("%w: vault_url is required", ErrIntegrationConfigInvalid)
+	}
+
+	u, err := url.Parse(c.VaultURL)
+	if err != nil {
+		return errors.Join(ErrIntegrationConfigInvalid, fmt.Errorf("invalid vault_url: %w", err))
+	}
+	if u.Scheme != "https" {
+		return fmt.Errorf("%w: vault_url must use https scheme", ErrIntegrationConfigInvalid)
+	}
+
+	if c.TenantID == "" {
+		return fmt.Errorf("%w: tenant_id is required", ErrIntegrationConfigInvalid)
+	}
+
+	if c.ClientID == "" {
+		return fmt.Errorf("%w: client_id is required", ErrIntegrationConfigInvalid)
+	}
+
+	if c.ClientSecret == "" {
+		return fmt.Errorf("%w: client_secret is required", ErrIntegrationConfigInvalid)
+	}
+
+	return nil
+}
+
+// Redacted returns a copy with sensitive fields redacted.
+func (c *AzureKeyVaultConfig) Redacted() *AzureKeyVaultConfig {
+	return &AzureKeyVaultConfig{
+		VaultURL:     c.VaultURL,
+		TenantID:     c.TenantID,
+		ClientID:     abbreviateSecret(c.ClientID),
+		ClientSecret: "***",
+	}
+}
+
+// WithDefaults returns a copy with default values applied.
+func (c *AzureKeyVaultConfig) WithDefaults() *AzureKeyVaultConfig {
+	config := *c
+	return &config
+}
+
+// GetAzureKeyVaultConfig parses and returns the Azure Key Vault configuration.
+func (i *Integration) GetAzureKeyVaultConfig() (*AzureKeyVaultConfig, error) {
+	if i.Type != IntegrationTypeAzureKeyVault {
+		return nil, fmt.Errorf("integration type is not azure_key_vault")
+	}
+
+	var config AzureKeyVaultConfig
+	if err := json.Unmarshal([]byte(i.Config), &config); err != nil {
+		return nil, fmt.Errorf("failed to parse azure key vault config: %w", err)
+	}
+
+	return &config, nil
+}
+
+// SetAzureKeyVaultConfig sets the Azure Key Vault configuration.
+func (i *Integration) SetAzureKeyVaultConfig(config *AzureKeyVaultConfig) error {
+	configJSON, err := json.Marshal(config)
+	if err != nil {
+		return fmt.Errorf("failed to marshal azure key vault config: %w", err)
+	}
+
+	i.Type = IntegrationTypeAzureKeyVault
+	i.Config = string(configJSON)
+	return nil
 }
 
 // ExternalSecretRef represents a reference to an external secret in YAML.

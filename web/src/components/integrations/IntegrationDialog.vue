@@ -27,6 +27,7 @@
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="vault">{{ $t('integrations.type_vault') }}</SelectItem>
+              <SelectItem value="azure_key_vault">{{ $t('integrations.type_azure_key_vault') }}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -106,6 +107,53 @@
               rows="3"
               class="font-mono text-xs"
             />
+          </div>
+        </div>
+
+        <!-- Azure Key Vault Configuration -->
+        <div v-if="form.type === 'azure_key_vault'" class="space-y-4 p-4 border rounded-lg">
+          <h4 class="font-medium">{{ $t('integrations.azure_kv_config') }}</h4>
+
+          <div class="space-y-2">
+            <Label for="azure-vault-url">{{ $t('integrations.azure_kv_vault_url') }}</Label>
+            <Input
+              id="azure-vault-url"
+              v-model="azureKeyVaultConfig.vault_url"
+              required
+              placeholder="https://my-vault.vault.azure.net"
+            />
+          </div>
+
+          <div class="space-y-2">
+            <Label for="azure-tenant-id">{{ $t('integrations.azure_kv_tenant_id') }}</Label>
+            <Input
+              id="azure-tenant-id"
+              v-model="azureKeyVaultConfig.tenant_id"
+              required
+              placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+            />
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-2">
+              <Label for="azure-client-id">{{ $t('integrations.azure_kv_client_id') }}</Label>
+              <Input
+                id="azure-client-id"
+                v-model="azureKeyVaultConfig.client_id"
+                required
+                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+              />
+            </div>
+            <div class="space-y-2">
+              <Label for="azure-client-secret">{{ $t('integrations.azure_kv_client_secret') }}</Label>
+              <Input
+                id="azure-client-secret"
+                v-model="azureKeyVaultConfig.client_secret"
+                type="password"
+                :required="!isEditing"
+                :placeholder="isEditing ? $t('integrations.azure_kv_client_secret_unchanged') : 'client-secret'"
+              />
+            </div>
           </div>
         </div>
 
@@ -189,7 +237,7 @@ import { Label } from '~/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import { Textarea } from '~/components/ui/textarea';
 import useApiClient from '~/compositions/useApiClient';
-import type { Integration, IntegrationType, VaultConfig } from '~/lib/api/types';
+import type { AzureKeyVaultConfig, Integration, IntegrationType, VaultConfig } from '~/lib/api/types';
 
 const props = defineProps<{
   open: boolean;
@@ -231,6 +279,13 @@ const vaultConfig = ref<VaultConfig>({
   namespace: '',
   tls_skip_verify: false,
   ca_certificate: '',
+});
+
+const azureKeyVaultConfig = ref<AzureKeyVaultConfig>({
+  vault_url: '',
+  tenant_id: '',
+  client_id: '',
+  client_secret: '',
 });
 
 // Allowlist data
@@ -327,11 +382,26 @@ watch(
             ca_certificate: parsed.ca_certificate || '',
           };
         } catch {
-          // Reset to defaults if parsing fails
           resetVaultConfig();
         }
       } else {
         resetVaultConfig();
+      }
+
+      if (newIntegration.config && newIntegration.type === 'azure_key_vault') {
+        try {
+          const parsed = JSON.parse(newIntegration.config) as AzureKeyVaultConfig;
+          azureKeyVaultConfig.value = {
+            vault_url: parsed.vault_url || '',
+            tenant_id: parsed.tenant_id || '',
+            client_id: parsed.client_id || '',
+            client_secret: '', // Don't show existing client_secret
+          };
+        } catch {
+          resetAzureKeyVaultConfig();
+        }
+      } else {
+        resetAzureKeyVaultConfig();
       }
     } else {
       resetForm();
@@ -353,6 +423,15 @@ function resetVaultConfig() {
   };
 }
 
+function resetAzureKeyVaultConfig() {
+  azureKeyVaultConfig.value = {
+    vault_url: '',
+    tenant_id: '',
+    client_id: '',
+    client_secret: '',
+  };
+}
+
 function resetForm() {
   form.value = {
     name: '',
@@ -364,6 +443,7 @@ function resetForm() {
     allowed_repo_ids: [],
   };
   resetVaultConfig();
+  resetAzureKeyVaultConfig();
 }
 
 function handleSave() {
@@ -395,6 +475,19 @@ function handleSave() {
     }
     if (vaultConfig.value.ca_certificate) {
       configObj.ca_certificate = vaultConfig.value.ca_certificate;
+    }
+
+    config = JSON.stringify(configObj);
+  } else if (form.value.type === 'azure_key_vault') {
+    const configObj: Record<string, unknown> = {
+      vault_url: azureKeyVaultConfig.value.vault_url,
+      tenant_id: azureKeyVaultConfig.value.tenant_id,
+      client_id: azureKeyVaultConfig.value.client_id,
+    };
+
+    // Only include client_secret if provided (for new or if user wants to update)
+    if (azureKeyVaultConfig.value.client_secret) {
+      configObj.client_secret = azureKeyVaultConfig.value.client_secret;
     }
 
     config = JSON.stringify(configObj);

@@ -34,6 +34,7 @@ import (
 	"codefloe.com/crowci/crow/v5/server/cache"
 	"codefloe.com/crowci/crow/v5/server/forge/setup"
 	"codefloe.com/crowci/crow/v5/server/integrations"
+	"codefloe.com/crowci/crow/v5/server/integrations/azure"
 	"codefloe.com/crowci/crow/v5/server/integrations/vault"
 	"codefloe.com/crowci/crow/v5/server/logging"
 	"codefloe.com/crowci/crow/v5/server/model"
@@ -315,7 +316,7 @@ func setupEvilGlobals(ctx context.Context, c *cli.Command, s store.Store) (err e
 	server.Config.Services.MaintenanceService = maintenance.NewService(s)
 
 	// integration service (external secret stores)
-	providerFactory := integrations.NewDefaultFactory(vault.NewProviderFunc())
+	providerFactory := integrations.NewDefaultFactory(vault.NewProviderFunc(), azure.NewProviderFunc())
 	integrations.SetGlobalFactory(providerFactory)
 	server.Config.Services.IntegrationService = integrationService.NewService(s, providerFactory)
 

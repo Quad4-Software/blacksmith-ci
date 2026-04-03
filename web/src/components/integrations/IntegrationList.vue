@@ -118,6 +118,7 @@ defineEmits<{
 
 const typeNames: Record<IntegrationType, string> = {
   vault: 'HashiCorp Vault / OpenBao',
+  azure_key_vault: 'Azure Key Vault',
 };
 
 function getTypeName(type: IntegrationType): string {
