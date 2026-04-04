@@ -39,6 +39,7 @@ type IntegrationType string
 const (
 	IntegrationTypeVault         IntegrationType = "vault"
 	IntegrationTypeAzureKeyVault IntegrationType = "azure_key_vault"
+	IntegrationTypeInfisical     IntegrationType = "infisical"
 	// Future integration types.
 	// IntegrationTypeAWS IntegrationType = "aws_secrets_manager".
 	// IntegrationTypeGCP IntegrationType = "gcp_secret_manager".
@@ -55,6 +56,7 @@ const (
 var ValidIntegrationTypes = []IntegrationType{
 	IntegrationTypeVault,
 	IntegrationTypeAzureKeyVault,
+	IntegrationTypeInfisical,
 }
 
 // IsValid checks if the integration type is valid.
@@ -158,6 +160,14 @@ func (i *Integration) Validate() error {
 		if err := config.Validate(); err != nil {
 			return err
 		}
+	case IntegrationTypeInfisical:
+		var config InfisicalConfig
+		if err := json.Unmarshal([]byte(i.Config), &config); err != nil {
+			return errors.Join(ErrIntegrationConfigInvalid, err)
+		}
+		if err := config.Validate(); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -196,6 +206,14 @@ func (i *Integration) CopyWithRedactedConfig() *Integration {
 		}
 	case IntegrationTypeAzureKeyVault:
 		var config AzureKeyVaultConfig
+		if err := json.Unmarshal([]byte(i.Config), &config); err == nil {
+			redacted := config.Redacted()
+			if configJSON, err := json.Marshal(redacted); err == nil {
+				cp.Config = string(configJSON)
+			}
+		}
+	case IntegrationTypeInfisical:
+		var config InfisicalConfig
 		if err := json.Unmarshal([]byte(i.Config), &config); err == nil {
 			redacted := config.Redacted()
 			if configJSON, err := json.Marshal(redacted); err == nil {
@@ -459,6 +477,101 @@ func (i *Integration) SetAzureKeyVaultConfig(config *AzureKeyVaultConfig) error 
 	}
 
 	i.Type = IntegrationTypeAzureKeyVault
+	i.Config = string(configJSON)
+	return nil
+}
+
+// InfisicalConfig holds Infisical specific configuration.
+type InfisicalConfig struct {
+	SiteURL      string `json:"site_url"`      // Infisical instance URL (e.g., https://app.infisical.com)
+	ClientID     string `json:"client_id"`     // Machine Identity Client ID
+	ClientSecret string `json:"client_secret"` // Machine Identity Client Secret
+	ProjectID    string `json:"project_id"`    // Infisical Project ID
+	Environment  string `json:"environment"`   // Environment slug (e.g., dev, staging, prod)
+	SecretPath   string `json:"secret_path"`   // Secret path/folder (default: "/")
+}
+
+// Validate validates the Infisical configuration.
+func (c *InfisicalConfig) Validate() error {
+	if c.SiteURL == "" {
+		return fmt.Errorf("%w: site_url is required", ErrIntegrationConfigInvalid)
+	}
+
+	u, err := url.Parse(c.SiteURL)
+	if err != nil {
+		return errors.Join(ErrIntegrationConfigInvalid, fmt.Errorf("invalid site_url: %w", err))
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return fmt.Errorf("%w: site_url must use http or https scheme", ErrIntegrationConfigInvalid)
+	}
+
+	if c.ClientID == "" {
+		return fmt.Errorf("%w: client_id is required", ErrIntegrationConfigInvalid)
+	}
+
+	if c.ClientSecret == "" {
+		return fmt.Errorf("%w: client_secret is required", ErrIntegrationConfigInvalid)
+	}
+
+	if c.ProjectID == "" {
+		return fmt.Errorf("%w: project_id is required", ErrIntegrationConfigInvalid)
+	}
+
+	if c.Environment == "" {
+		return fmt.Errorf("%w: environment is required", ErrIntegrationConfigInvalid)
+	}
+
+	return nil
+}
+
+// Redacted returns a copy with sensitive fields redacted.
+func (c *InfisicalConfig) Redacted() *InfisicalConfig {
+	return &InfisicalConfig{
+		SiteURL:      c.SiteURL,
+		ClientID:     abbreviateSecret(c.ClientID),
+		ClientSecret: "***",
+		ProjectID:    c.ProjectID,
+		Environment:  c.Environment,
+		SecretPath:   c.SecretPath,
+	}
+}
+
+// WithDefaults returns a copy with default values applied.
+func (c *InfisicalConfig) WithDefaults() *InfisicalConfig {
+	config := *c
+
+	if config.SiteURL == "" {
+		config.SiteURL = "https://app.infisical.com"
+	}
+	if config.SecretPath == "" {
+		config.SecretPath = "/"
+	}
+
+	return &config
+}
+
+// GetInfisicalConfig parses and returns the Infisical configuration.
+func (i *Integration) GetInfisicalConfig() (*InfisicalConfig, error) {
+	if i.Type != IntegrationTypeInfisical {
+		return nil, fmt.Errorf("integration type is not infisical")
+	}
+
+	var config InfisicalConfig
+	if err := json.Unmarshal([]byte(i.Config), &config); err != nil {
+		return nil, fmt.Errorf("failed to parse infisical config: %w", err)
+	}
+
+	return &config, nil
+}
+
+// SetInfisicalConfig sets the Infisical configuration.
+func (i *Integration) SetInfisicalConfig(config *InfisicalConfig) error {
+	configJSON, err := json.Marshal(config)
+	if err != nil {
+		return fmt.Errorf("failed to marshal infisical config: %w", err)
+	}
+
+	i.Type = IntegrationTypeInfisical
 	i.Config = string(configJSON)
 	return nil
 }

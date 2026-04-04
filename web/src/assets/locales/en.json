@@ -1218,6 +1218,18 @@
     "azure_kv_client_id": "Client ID",
     "azure_kv_client_secret": "Client Secret",
     "azure_kv_client_secret_unchanged": "Leave empty to keep current",
+    "type_infisical": "Infisical",
+    "infisical_config": "Infisical Configuration",
+    "infisical_site_url": "Site URL",
+    "infisical_site_url_help": "Your Infisical instance URL (default: https://app.infisical.com)",
+    "infisical_client_id": "Client ID",
+    "infisical_client_secret": "Client Secret",
+    "infisical_client_secret_unchanged": "Leave empty to keep current",
+    "infisical_project_id": "Project ID",
+    "infisical_environment": "Environment",
+    "infisical_environment_help": "Environment slug (e.g., dev, staging, prod)",
+    "infisical_secret_path": "Secret Path",
+    "infisical_secret_path_help": "Folder path for secrets (default: /)",
     "allowlist": {
       "selected": "selected",
       "no_results": "No results found"

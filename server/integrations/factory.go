@@ -25,6 +25,7 @@ type DefaultFactory struct {
 	// Factory functions are injected to avoid import cycles
 	vaultFactory         func(*model.Integration) (Provider, error)
 	azureKeyVaultFactory func(*model.Integration) (Provider, error)
+	infisicalFactory     func(*model.Integration) (Provider, error)
 }
 
 // NewDefaultFactory creates a new DefaultFactory.
@@ -32,10 +33,12 @@ type DefaultFactory struct {
 func NewDefaultFactory(
 	vaultFactory func(*model.Integration) (Provider, error),
 	azureKeyVaultFactory func(*model.Integration) (Provider, error),
+	infisicalFactory func(*model.Integration) (Provider, error),
 ) *DefaultFactory {
 	return &DefaultFactory{
 		vaultFactory:         vaultFactory,
 		azureKeyVaultFactory: azureKeyVaultFactory,
+		infisicalFactory:     infisicalFactory,
 	}
 }
 
@@ -58,6 +61,12 @@ func (f *DefaultFactory) Create(integration *model.Integration) (Provider, error
 		}
 		return f.azureKeyVaultFactory(integration)
 
+	case model.IntegrationTypeInfisical:
+		if f.infisicalFactory == nil {
+			return nil, fmt.Errorf("%w: infisical provider not configured", ErrProviderNotSupported)
+		}
+		return f.infisicalFactory(integration)
+
 	// Future integration types:
 	// case model.IntegrationTypeAWS:
 	//     return aws.NewProvider(integration)
@@ -71,13 +80,16 @@ func (f *DefaultFactory) Create(integration *model.Integration) (Provider, error
 
 // SupportedTypes returns the list of integration types this factory supports.
 func (f *DefaultFactory) SupportedTypes() []model.IntegrationType {
-	types := make([]model.IntegrationType, 0, 2)
+	types := make([]model.IntegrationType, 0, 3)
 
 	if f.vaultFactory != nil {
 		types = append(types, model.IntegrationTypeVault)
 	}
 	if f.azureKeyVaultFactory != nil {
 		types = append(types, model.IntegrationTypeAzureKeyVault)
+	}
+	if f.infisicalFactory != nil {
+		types = append(types, model.IntegrationTypeInfisical)
 	}
 
 	return types

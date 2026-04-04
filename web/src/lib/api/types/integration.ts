@@ -1,6 +1,6 @@
 // Integration types for external secret store integrations
 
-export type IntegrationType = 'vault' | 'azure_key_vault';
+export type IntegrationType = 'vault' | 'azure_key_vault' | 'infisical';
 
 export interface Integration {
   id: number;
@@ -40,4 +40,14 @@ export interface AzureKeyVaultConfig {
   tenant_id: string;
   client_id: string;
   client_secret: string;
+}
+
+// Infisical-specific config structure (for form handling)
+export interface InfisicalConfig {
+  site_url: string;
+  client_id: string;
+  client_secret: string;
+  project_id: string;
+  environment: string;
+  secret_path?: string;
 }

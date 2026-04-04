@@ -28,6 +28,7 @@
             <SelectContent>
               <SelectItem value="vault">{{ $t('integrations.type_vault') }}</SelectItem>
               <SelectItem value="azure_key_vault">{{ $t('integrations.type_azure_key_vault') }}</SelectItem>
+              <SelectItem value="infisical">{{ $t('integrations.type_infisical') }}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -157,6 +158,57 @@
           </div>
         </div>
 
+        <!-- Infisical Configuration -->
+        <div v-if="form.type === 'infisical'" class="space-y-4 p-4 border rounded-lg">
+          <h4 class="font-medium">{{ $t('integrations.infisical_config') }}</h4>
+
+          <div class="space-y-2">
+            <Label for="infisical-site-url">{{ $t('integrations.infisical_site_url') }}</Label>
+            <Input
+              id="infisical-site-url"
+              v-model="infisicalConfig.site_url"
+              required
+              placeholder="https://app.infisical.com"
+            />
+            <p class="text-xs text-muted-foreground">{{ $t('integrations.infisical_site_url_help') }}</p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-2">
+              <Label for="infisical-client-id">{{ $t('integrations.infisical_client_id') }}</Label>
+              <Input id="infisical-client-id" v-model="infisicalConfig.client_id" required />
+            </div>
+            <div class="space-y-2">
+              <Label for="infisical-client-secret">{{ $t('integrations.infisical_client_secret') }}</Label>
+              <Input
+                id="infisical-client-secret"
+                v-model="infisicalConfig.client_secret"
+                type="password"
+                :required="!isEditing"
+                :placeholder="isEditing ? $t('integrations.infisical_client_secret_unchanged') : ''"
+              />
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <Label for="infisical-project-id">{{ $t('integrations.infisical_project_id') }}</Label>
+            <Input id="infisical-project-id" v-model="infisicalConfig.project_id" required />
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-2">
+              <Label for="infisical-environment">{{ $t('integrations.infisical_environment') }}</Label>
+              <Input id="infisical-environment" v-model="infisicalConfig.environment" required placeholder="prod" />
+              <p class="text-xs text-muted-foreground">{{ $t('integrations.infisical_environment_help') }}</p>
+            </div>
+            <div class="space-y-2">
+              <Label for="infisical-secret-path">{{ $t('integrations.infisical_secret_path') }}</Label>
+              <Input id="infisical-secret-path" v-model="infisicalConfig.secret_path" placeholder="/" />
+              <p class="text-xs text-muted-foreground">{{ $t('integrations.infisical_secret_path_help') }}</p>
+            </div>
+          </div>
+        </div>
+
         <!-- Access Control / Allowlists -->
         <div class="space-y-4 p-4 border rounded-lg">
           <h4 class="font-medium">{{ $t('integrations.access_control') }}</h4>
@@ -237,7 +289,7 @@ import { Label } from '~/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import { Textarea } from '~/components/ui/textarea';
 import useApiClient from '~/compositions/useApiClient';
-import type { AzureKeyVaultConfig, Integration, IntegrationType, VaultConfig } from '~/lib/api/types';
+import type { AzureKeyVaultConfig, InfisicalConfig, Integration, IntegrationType, VaultConfig } from '~/lib/api/types';
 
 const props = defineProps<{
   open: boolean;
@@ -286,6 +338,15 @@ const azureKeyVaultConfig = ref<AzureKeyVaultConfig>({
   tenant_id: '',
   client_id: '',
   client_secret: '',
+});
+
+const infisicalConfig = ref<InfisicalConfig>({
+  site_url: '',
+  client_id: '',
+  client_secret: '',
+  project_id: '',
+  environment: '',
+  secret_path: '',
 });
 
 // Allowlist data
@@ -403,6 +464,24 @@ watch(
       } else {
         resetAzureKeyVaultConfig();
       }
+
+      if (newIntegration.config && newIntegration.type === 'infisical') {
+        try {
+          const parsed = JSON.parse(newIntegration.config) as InfisicalConfig;
+          infisicalConfig.value = {
+            site_url: parsed.site_url || '',
+            client_id: parsed.client_id || '',
+            client_secret: '', // Don't show existing client_secret
+            project_id: parsed.project_id || '',
+            environment: parsed.environment || '',
+            secret_path: parsed.secret_path || '',
+          };
+        } catch {
+          resetInfisicalConfig();
+        }
+      } else {
+        resetInfisicalConfig();
+      }
     } else {
       resetForm();
     }
@@ -432,6 +511,17 @@ function resetAzureKeyVaultConfig() {
   };
 }
 
+function resetInfisicalConfig() {
+  infisicalConfig.value = {
+    site_url: '',
+    client_id: '',
+    client_secret: '',
+    project_id: '',
+    environment: '',
+    secret_path: '',
+  };
+}
+
 function resetForm() {
   form.value = {
     name: '',
@@ -444,6 +534,7 @@ function resetForm() {
   };
   resetVaultConfig();
   resetAzureKeyVaultConfig();
+  resetInfisicalConfig();
 }
 
 function handleSave() {
@@ -488,6 +579,22 @@ function handleSave() {
     // Only include client_secret if provided (for new or if user wants to update)
     if (azureKeyVaultConfig.value.client_secret) {
       configObj.client_secret = azureKeyVaultConfig.value.client_secret;
+    }
+
+    config = JSON.stringify(configObj);
+  } else if (form.value.type === 'infisical') {
+    const configObj: Record<string, unknown> = {
+      site_url: infisicalConfig.value.site_url,
+      client_id: infisicalConfig.value.client_id,
+      project_id: infisicalConfig.value.project_id,
+      environment: infisicalConfig.value.environment,
+    };
+
+    if (infisicalConfig.value.client_secret) {
+      configObj.client_secret = infisicalConfig.value.client_secret;
+    }
+    if (infisicalConfig.value.secret_path) {
+      configObj.secret_path = infisicalConfig.value.secret_path;
     }
 
     config = JSON.stringify(configObj);
