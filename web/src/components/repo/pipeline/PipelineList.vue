@@ -74,11 +74,15 @@
     <SearchInput v-if="searchQuery !== null" v-model="searchQuery" :placeholder="t('search')" class="w-full" />
 
     <!-- Workflow quick-filter -->
-    <div v-if="workflowNames.length > 0" class="flex flex-wrap items-center gap-1.5">
+    <div
+      v-if="workflowNames.length > 0"
+      ref="workflowChipsContainer"
+      class="flex flex-wrap items-center gap-1.5 max-h-[4rem] overflow-hidden"
+    >
       <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
       <span class="text-xs text-muted-foreground shrink-0">{{ t('repo.pipeline.filter.workflows') }}:</span>
       <ShadcnButton
-        v-for="name in workflowNames"
+        v-for="name in visibleWorkflows"
         :key="name"
         :variant="workflowFilter === name ? 'default' : 'outline'"
         size="sm"
@@ -87,6 +91,29 @@
       >
         {{ name }}
       </ShadcnButton>
+      <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
+      <DropdownMenu v-if="overflowWorkflows.length > 0">
+        <DropdownMenuTrigger as-child>
+          <ShadcnButton
+            :variant="overflowWorkflows.some((n) => workflowFilter === n) ? 'default' : 'outline'"
+            size="sm"
+            class="h-7 text-xs px-2.5"
+          >
+            +{{ overflowWorkflows.length }}
+          </ShadcnButton>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent class="max-h-[300px] overflow-y-auto" align="start">
+          <DropdownMenuItem
+            v-for="name in overflowWorkflows"
+            :key="name"
+            :class="{ 'bg-accent': workflowFilter === name }"
+            @click="toggleWorkflowChip(name)"
+          >
+            {{ name }}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
     </div>
 
     <!-- Hidden pipelines toggle and multi-select header -->
@@ -202,11 +229,17 @@
 <script lang="ts" setup>
 import { useIntersectionObserver, useStorage } from '@vueuse/core';
 import type { Ref } from 'vue';
-import { computed, inject, ref, watch } from 'vue';
+import { computed, inject, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Icon from '~/components/atomic/Icon.vue';
 import Checkbox from '~/components/ui/checkbox/Checkbox.vue';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu';
 import Panel from '~/components/layout/Panel.vue';
 import SearchInput from '~/components/ui/input/SearchInput.vue';
 import PipelineItem from '~/components/repo/pipeline/PipelineItem.vue';
@@ -272,8 +305,77 @@ const reactivePipelines =
 const loading = reactivePipelines?.loading ?? ref(false);
 const hasMore = reactivePipelines?.hasMore ?? computed(() => false);
 
-// Workflow quick-filter chips
+// Workflow quick-filter chips with two-row overflow
 const workflowNames = ref<string[]>([]);
+const workflowChipsContainer = ref<HTMLElement | null>(null);
+const maxVisibleCount = ref(Infinity);
+
+const visibleWorkflows = computed(() => workflowNames.value.slice(0, maxVisibleCount.value));
+const overflowWorkflows = computed(() => workflowNames.value.slice(maxVisibleCount.value));
+
+function measureOverflow() {
+  const el = workflowChipsContainer.value;
+  if (!el || workflowNames.value.length === 0) return;
+
+  // Temporarily remove max-height to measure natural positions
+  el.style.maxHeight = 'none';
+  el.style.overflow = 'visible';
+
+  const children = Array.from(el.children) as HTMLElement[];
+  // Skip the label span and any existing overflow button
+  const buttons = children.filter((c) => c.tagName === 'BUTTON');
+  if (buttons.length === 0) {
+    el.style.maxHeight = '';
+    el.style.overflow = '';
+    return;
+  }
+
+  // Find the top position of the first button row
+  const firstTop = buttons[0].offsetTop;
+  let rowCount = 1;
+  let prevTop = firstTop;
+  let cutIndex = buttons.length;
+
+  for (let i = 1; i < buttons.length; i++) {
+    if (buttons[i].offsetTop > prevTop) {
+      rowCount++;
+      prevTop = buttons[i].offsetTop;
+      if (rowCount > 2) {
+        cutIndex = i;
+        break;
+      }
+    }
+  }
+
+  // Restore constraints
+  el.style.maxHeight = '';
+  el.style.overflow = '';
+
+  // Account for the "+N" button needing space — if we're cutting, reserve one slot
+  if (cutIndex < buttons.length && cutIndex > 0) {
+    maxVisibleCount.value = cutIndex;
+  } else {
+    maxVisibleCount.value = Infinity;
+  }
+}
+
+let resizeObserver: ResizeObserver | null = null;
+
+watch(workflowNames, () => {
+  void nextTick(measureOverflow);
+});
+
+watch(workflowChipsContainer, (el) => {
+  resizeObserver?.disconnect();
+  if (el) {
+    resizeObserver = new ResizeObserver(() => measureOverflow());
+    resizeObserver.observe(el);
+  }
+});
+
+onBeforeUnmount(() => {
+  resizeObserver?.disconnect();
+});
 
 if (props.repo) {
   apiClient
