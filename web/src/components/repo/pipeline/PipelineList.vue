@@ -73,12 +73,26 @@
     <!-- Search input -->
     <SearchInput v-if="searchQuery !== null" v-model="searchQuery" :placeholder="t('search')" class="w-full" />
 
-    <!-- Workflow quick-filter -->
+    <!-- Workflow quick-filter: hidden measurement container (renders all chips off-screen to measure row breaks) -->
     <div
       v-if="workflowNames.length > 0"
-      ref="workflowChipsContainer"
-      class="flex flex-wrap items-center gap-1.5 max-h-[4rem] overflow-hidden"
+      ref="workflowMeasureContainer"
+      aria-hidden="true"
+      class="flex flex-wrap items-center gap-1.5 absolute invisible pointer-events-none -z-10 left-0 right-0"
+      :style="{ width: measureWidth }"
     >
+      <span class="text-xs shrink-0">&nbsp;</span>
+      <span
+        v-for="name in workflowNames"
+        :key="name"
+        class="inline-flex items-center h-7 text-xs px-2.5 border rounded-md"
+      >
+        {{ name }}
+      </span>
+    </div>
+
+    <!-- Workflow quick-filter: visible -->
+    <div v-if="workflowNames.length > 0" ref="workflowVisibleContainer" class="flex flex-wrap items-center gap-1.5">
       <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
       <span class="text-xs text-muted-foreground shrink-0">{{ t('repo.pipeline.filter.workflows') }}:</span>
       <ShadcnButton
@@ -307,56 +321,50 @@ const hasMore = reactivePipelines?.hasMore ?? computed(() => false);
 
 // Workflow quick-filter chips with two-row overflow
 const workflowNames = ref<string[]>([]);
-const workflowChipsContainer = ref<HTMLElement | null>(null);
+const workflowMeasureContainer = ref<HTMLElement | null>(null);
+const workflowVisibleContainer = ref<HTMLElement | null>(null);
 const maxVisibleCount = ref(Infinity);
+const measureWidth = ref('auto');
 
 const visibleWorkflows = computed(() => workflowNames.value.slice(0, maxVisibleCount.value));
 const overflowWorkflows = computed(() => workflowNames.value.slice(maxVisibleCount.value));
 
 function measureOverflow() {
-  const el = workflowChipsContainer.value;
+  const el = workflowMeasureContainer.value;
   if (!el || workflowNames.value.length === 0) return;
 
-  // Temporarily remove max-height to measure natural positions
-  el.style.maxHeight = 'none';
-  el.style.overflow = 'visible';
-
-  const children = Array.from(el.children) as HTMLElement[];
-  // Skip the label span and any existing overflow button
-  const buttons = children.filter((c) => c.tagName === 'BUTTON');
-  if (buttons.length === 0) {
-    el.style.maxHeight = '';
-    el.style.overflow = '';
-    return;
+  // Sync measurement container width with visible container
+  const visibleEl = workflowVisibleContainer.value;
+  if (visibleEl) {
+    measureWidth.value = `${visibleEl.offsetWidth}px`;
   }
 
-  // Find the top position of the first button row
-  const firstTop = buttons[0].offsetTop;
-  let rowCount = 1;
-  let prevTop = firstTop;
-  let cutIndex = buttons.length;
+  // Wait a frame for the width to apply before measuring
+  requestAnimationFrame(() => {
+    const spans = Array.from(el.querySelectorAll('span:not(:first-child)')) as HTMLElement[];
+    if (spans.length === 0) return;
 
-  for (let i = 1; i < buttons.length; i++) {
-    if (buttons[i].offsetTop > prevTop) {
-      rowCount++;
-      prevTop = buttons[i].offsetTop;
-      if (rowCount > 2) {
-        cutIndex = i;
-        break;
+    let rowCount = 1;
+    let prevTop = spans[0].offsetTop;
+    let cutIndex = spans.length;
+
+    for (let i = 1; i < spans.length; i++) {
+      if (spans[i].offsetTop > prevTop) {
+        rowCount++;
+        prevTop = spans[i].offsetTop;
+        if (rowCount > 2) {
+          cutIndex = i;
+          break;
+        }
       }
     }
-  }
 
-  // Restore constraints
-  el.style.maxHeight = '';
-  el.style.overflow = '';
-
-  // Account for the "+N" button needing space — if we're cutting, reserve one slot
-  if (cutIndex < buttons.length && cutIndex > 0) {
-    maxVisibleCount.value = cutIndex;
-  } else {
-    maxVisibleCount.value = Infinity;
-  }
+    if (cutIndex < spans.length) {
+      maxVisibleCount.value = cutIndex;
+    } else {
+      maxVisibleCount.value = Infinity;
+    }
+  });
 }
 
 let resizeObserver: ResizeObserver | null = null;
@@ -365,7 +373,8 @@ watch(workflowNames, () => {
   void nextTick(measureOverflow);
 });
 
-watch(workflowChipsContainer, (el) => {
+// Observe the visible container for width changes (window resize, sidebar toggle, etc.)
+watch(workflowVisibleContainer, (el) => {
   resizeObserver?.disconnect();
   if (el) {
     resizeObserver = new ResizeObserver(() => measureOverflow());
