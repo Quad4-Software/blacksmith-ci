@@ -124,7 +124,9 @@
             </div>
             <template v-else>
               <div
-                v-if="pipeline!.is_always_approved && repoPermissions!.push"
+                v-if="
+                  pipeline!.is_always_approved && repoPermissions!.push && pipeline!.event?.startsWith('pull_request')
+                "
                 class="flex items-center justify-between bg-muted/50 px-4 py-1.5 text-xs text-muted-foreground"
               >
                 <span>{{ $t('repo.pipeline.protected.always_approved') }}</span>
@@ -210,7 +212,7 @@
       </div>
       <template v-else>
         <div
-          v-if="pipeline!.is_always_approved && repoPermissions!.push"
+          v-if="pipeline!.is_always_approved && repoPermissions!.push && pipeline!.event?.startsWith('pull_request')"
           class="flex items-center justify-between bg-muted/50 px-4 py-1.5 text-xs text-muted-foreground"
         >
           <span>{{ $t('repo.pipeline.protected.always_approved') }}</span>
