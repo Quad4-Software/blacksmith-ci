@@ -2,7 +2,7 @@ variables:
   - &golang_image 'reg.devxy.io/docker.io/library/golang:1.26-alpine3.22'
   - &node_image 'reg.devxy.io/docker.io/oven/bun:1.3-alpine'
   - &xgo_image 'reg.devxy.io/docker.io/techknowlogick/xgo:go-1.26.x'
-  - &buildx_plugin 'codefloe.com/crow-plugins/docker-buildx:2.2.1'
+  - &buildx_plugin 'codefloe.com/crow-plugins/docker-buildx:2.3.0'
   - &platforms_release 'linux/arm/v6,linux/arm/v7,linux/arm64/v8,linux/386,linux/amd64,linux/ppc64le,linux/riscv64,linux/s390x,freebsd/arm64,freebsd/amd64,openbsd/arm64,openbsd/amd64'
   # Agent excludes freebsd/openbsd because the Podman SDK's storage library doesn't compile there
   - &platforms_agent 'linux/arm/v6,linux/arm/v7,linux/arm64/v8,linux/386,linux/amd64,linux/ppc64le,linux/riscv64,linux/s390x'
