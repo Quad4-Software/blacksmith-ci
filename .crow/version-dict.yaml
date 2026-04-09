@@ -43,6 +43,20 @@ steps:
     when:
       - event: tag
 
+  - name: 'Generate versions.json for CLI update check'
+    image: reg.devxy.io/docker.io/library/alpine:3.23
+    commands:
+      - apk add --no-cache -q jq
+      - |
+        # Convert crow-versions.json to the format the CLI updater expects.
+        # crow-versions.json: [{"latest": "v4.5.0", "dev": "dev-abc", "rc": "v4.6.0-rc1"}]
+        # versions.json:      [{"version": "v4.5.0", "title": "v4.5.0", "aliases": ["latest"]}, ...]
+        jq '[
+          .[0] | to_entries[] | select(.value != "") |
+          {version: .value, title: .value, aliases: [.key]}
+        ]' crow-versions.json > versions.json
+        cat versions.json
+
   - name: 'Push changes to branch'
     image: reg.devxy.io/docker.io/appleboy/drone-git-push:1.2.2
     settings:
