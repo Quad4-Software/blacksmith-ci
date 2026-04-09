@@ -41,11 +41,12 @@ echo "=== Bumping homebrew-tap ==="
 rm -rf homebrew-tap
 git clone --depth 1 ssh://git@codefloe.com/crowci/homebrew-tap.git
 cd homebrew-tap
-curl -s -O "https://codefloe.com/crowci/crow/archive/refs/tags/${CI_COMMIT_TAG}.tar.gz"
-SHA256=$(sha256sum "${CI_COMMIT_TAG}.tar.gz" | cut -d' ' -f1)
-sed -i "s|url .*\.tar\.gz|url \"https://codefloe.com/crowci/crow/archive/refs/tags/${CI_COMMIT_TAG}.tar.gz|" Formula/crow.rb
+TARBALL_URL="https://codefloe.com/crowci/crow/releases/download/${CI_COMMIT_TAG}/crow-src.tar.gz"
+curl -sL -o crow-src.tar.gz "$TARBALL_URL"
+SHA256=$(sha256sum crow-src.tar.gz | cut -d' ' -f1)
+sed -i "s|url .*\.tar\.gz.*|url \"$TARBALL_URL\"|" Formula/crow.rb
 sed -i "s/sha256 \"[^\"]*\"/sha256 \"$SHA256\"/" Formula/crow.rb
-rm -f "${CI_COMMIT_TAG}.tar.gz"
+rm -f crow-src.tar.gz
 git config user.name "crowci-bot"
 git config user.email "admin@crowci.dev"
 git add -A

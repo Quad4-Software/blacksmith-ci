@@ -30,20 +30,22 @@ const (
 type Step struct {
 	bun.BaseModel `bun:"table:steps"`
 
-	ID         int64           `json:"id"                   bun:"id,pk,autoincrement"`
-	UUID       string          `json:"uuid"                 bun:"uuid"`
-	PipelineID int64           `json:"pipeline_id"          bun:"pipeline_id,unique:s"`
-	PID        int             `json:"pid"                  bun:"pid,unique:s"`
-	PPID       int             `json:"ppid"                 bun:"ppid"`
-	Name       string          `json:"name"                 bun:"name"`
-	State      StatusValue     `json:"state"                bun:"state"`
-	Error      string          `json:"error,omitempty"      bun:"error,type:text"`
-	Failure    string          `json:"-"                    bun:"failure"`
-	ExitCode   int             `json:"exit_code"            bun:"exit_code"`
-	Started    int64           `json:"started,omitempty"    bun:"started"`
-	Finished   int64           `json:"finished,omitempty"   bun:"finished"`
-	Type       StepType        `json:"type,omitempty"       bun:"type"`
-	DependsOn  JSONSliceString `json:"depends_on,omitempty" bun:"depends_on,type:text"`
+	ID             int64           `json:"id"                   bun:"id,pk,autoincrement"`
+	UUID           string          `json:"uuid"                 bun:"uuid"`
+	PipelineID     int64           `json:"pipeline_id"          bun:"pipeline_id,unique:s"`
+	PID            int             `json:"pid"                  bun:"pid,unique:s"`
+	PPID           int             `json:"ppid"                 bun:"ppid"`
+	Name           string          `json:"name"                 bun:"name"`
+	State          StatusValue     `json:"state"                bun:"state"`
+	Error          string          `json:"error,omitempty"      bun:"error,type:text"`
+	Failure        string          `json:"-"                    bun:"failure"`
+	ExitCode       int             `json:"exit_code"            bun:"exit_code"`
+	Started        int64           `json:"started,omitempty"    bun:"started"`
+	Finished       int64           `json:"finished,omitempty"   bun:"finished"`
+	Type           StepType        `json:"type,omitempty"        bun:"type"`
+	DependsOn      JSONSliceString `json:"depends_on,omitempty"  bun:"depends_on,type:text"`
+	OriginalStepID int64           `json:"original_step_id"      bun:"original_step_id,default:0"`
+	Attempt        int             `json:"attempt"               bun:"attempt,default:1"`
 } //	@name	Step
 
 // TableName returns the database table name.

@@ -86,14 +86,14 @@
 
         <!-- Right: Action buttons -->
         <div class="flex flex-row items-center gap-x-2 shrink-0">
-          <TooltipProvider v-if="hasPushPermission && currentWorkflow && isWorkflowCompleted">
+          <TooltipProvider v-if="hasPushPermission && currentWorkflow && step && isStepCompleted">
             <Tooltip>
               <TooltipTrigger as-child>
-                <Button variant="ghost" size="icon-sm" @click="emit('rerunWorkflow', currentWorkflow!.id)">
+                <Button variant="ghost" size="icon-sm" @click="emit('rerunStep', currentWorkflow!.id, step!.id)">
                   <Icon name="solar:restart-bold" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>{{ $t('repo.pipeline.actions.rerun_workflow') }}</TooltipContent>
+              <TooltipContent>{{ $t('repo.pipeline.actions.rerun_step') }}</TooltipContent>
             </Tooltip>
           </TooltipProvider>
           <TooltipProvider v-if="step?.finished !== undefined && hasLogs">
@@ -715,6 +715,7 @@ const emit = defineEmits<{
   (event: 'update:step-id', stepId: number | null): true;
   (event: 'update:auto-follow-enabled', value: boolean): true;
   (event: 'rerunWorkflow', workflowId: number): true;
+  (event: 'rerunStep', workflowId: number, stepId: number): true;
 }>();
 const HTML_TAG_REGEX = /<[^>]*>/g;
 const URL_REGEX = /https?:\/\/\S+/g;
@@ -750,9 +751,9 @@ const currentWorkflow = computed(() => {
   if (!pipeline.value?.workflows) return null;
   return pipeline.value.workflows.find((wf) => wf.children?.some((s) => s.pid === stepId.value)) ?? null;
 });
-const isWorkflowCompleted = computed(() => {
-  const wf = currentWorkflow.value;
-  return wf != null && wf.state !== 'pending' && wf.state !== 'running';
+const isStepCompleted = computed(() => {
+  const s = step.value;
+  return s != null && s.state !== 'pending' && s.state !== 'running';
 });
 const workflowAttempts = computed(() => {
   const wf = currentWorkflow.value;

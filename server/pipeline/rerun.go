@@ -22,6 +22,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
+	backend_types "codefloe.com/crowci/crow/v5/pipeline/backend/types"
 	"codefloe.com/crowci/crow/v5/server/forge"
 	forge_types "codefloe.com/crowci/crow/v5/server/forge/types"
 	"codefloe.com/crowci/crow/v5/server/model"
@@ -337,4 +338,304 @@ func collectRerunWorkflows(target *model.Workflow, allWorkflows []*model.Workflo
 		result = append(result, name)
 	}
 	return result
+}
+
+// RerunStep reruns a specific step (and its dependents) within an existing pipeline.
+// It creates a new workflow attempt with a filtered config containing only the target step,
+// its dependent steps, and any clone/service steps needed for the workspace.
+func RerunStep(ctx context.Context, _forge forge.Forge, _store store.Store, currentPipeline *model.Pipeline, workflowID, stepID int64, user *model.User, repo *model.Repo) error {
+	// Load all workflows for the pipeline
+	workflows, err := _store.WorkflowGetTree(currentPipeline)
+	if err != nil {
+		return &ErrNotFound{Msg: err.Error()}
+	}
+
+	// Find the parent workflow
+	var parentWorkflow *model.Workflow
+	for _, wf := range workflows {
+		if wf.ID == workflowID {
+			parentWorkflow = wf
+			break
+		}
+	}
+	if parentWorkflow == nil {
+		return &ErrNotFound{Msg: fmt.Sprintf("workflow with ID %d not found in pipeline", workflowID)}
+	}
+
+	// Find the target step
+	var targetStep *model.Step
+	for _, step := range parentWorkflow.Children {
+		if step.ID == stepID {
+			targetStep = step
+			break
+		}
+	}
+	if targetStep == nil {
+		return &ErrNotFound{Msg: fmt.Sprintf("step with ID %d not found in workflow %d", stepID, workflowID)}
+	}
+
+	// Validate the step is completed (not running or pending)
+	if targetStep.Running() {
+		return &ErrBadRequest{Msg: "cannot rerun a step that is still running or pending"}
+	}
+
+	// Fetch pipeline configs
+	configs, err := _store.ConfigsForPipeline(currentPipeline.ID)
+	if err != nil {
+		return &ErrNotFound{Msg: fmt.Sprintf("failure to get pipeline config for %s: %s", repo.FullName, err)}
+	}
+
+	var pipelineFiles []*forge_types.FileMeta
+	for _, y := range configs {
+		pipelineFiles = append(pipelineFiles, &forge_types.FileMeta{Data: y.Data, Name: y.Name})
+	}
+
+	// Build workflow filter: parent workflow + upstream dependencies
+	// (upstream deps are needed so the step builder doesn't strip the workflow for missing deps)
+	depNames := make(map[string][]string)
+	for _, wf := range workflows {
+		depNames[wf.Name] = wf.DependsOn
+	}
+	included := map[string]bool{parentWorkflow.Name: true}
+	changed := true
+	for changed {
+		changed = false
+		for name := range included {
+			for _, dep := range depNames[name] {
+				if !included[dep] {
+					included[dep] = true
+					changed = true
+				}
+			}
+		}
+	}
+	workflowFilter := make([]string, 0, len(included))
+	for name := range included {
+		workflowFilter = append(workflowFilter, name)
+	}
+
+	log.Debug().
+		Int64("pipeline_id", currentPipeline.ID).
+		Int64("workflow_id", workflowID).
+		Int64("step_id", stepID).
+		Str("step_name", targetStep.Name).
+		Strs("workflow_filter", workflowFilter).
+		Msg("rerunning step")
+
+	pipelineItems, err := parsePipeline(_forge, _store, currentPipeline, user, repo, pipelineFiles, nil, workflowFilter) //nolint:contextcheck
+	if err != nil {
+		return fmt.Errorf("failure to parse pipeline for step rerun: %w", err)
+	}
+
+	// Find the item matching the parent workflow (by name and environ)
+	targetEnvKey := environKey(parentWorkflow.Environ)
+	var targetItem *stepbuilder.Item
+	for _, item := range pipelineItems {
+		if item.Workflow.Name == parentWorkflow.Name && environKey(item.Workflow.Environ) == targetEnvKey {
+			targetItem = item
+			break
+		}
+	}
+	if targetItem == nil {
+		return &ErrBadRequest{Msg: "could not find matching workflow config for step rerun"}
+	}
+
+	// Determine which steps to keep: target + dependents + clone + service
+	keepNames := collectRerunSteps(targetStep.Name, targetItem.Config)
+	filterConfigInPlace(targetItem.Config, keepNames)
+
+	// If config is now empty, nothing to do
+	hasSteps := false
+	for _, stage := range targetItem.Config.Stages {
+		if len(stage.Steps) > 0 {
+			hasSteps = true
+			break
+		}
+	}
+	if !hasSteps {
+		return &ErrBadRequest{Msg: "no steps matched for rerun"}
+	}
+
+	// Find the current max PID in the pipeline
+	maxPID := 0
+	for _, wf := range workflows {
+		if wf.PID > maxPID {
+			maxPID = wf.PID
+		}
+		for _, step := range wf.Children {
+			if step.PID > maxPID {
+				maxPID = step.PID
+			}
+		}
+	}
+
+	// Build attempt info for the workflow
+	attemptInfo := buildAttemptInfo(workflows)
+	vKey := variantKey(parentWorkflow.Name, parentWorkflow.Environ)
+	wfInfo := attemptInfo[vKey]
+
+	// Set up new workflow
+	maxPID++
+	targetItem.Workflow.PID = maxPID
+	targetItem.Workflow.PipelineID = currentPipeline.ID
+	targetItem.Workflow.State = model.StatusPending
+	targetItem.Workflow.OriginalWorkflowID = wfInfo.originalID
+	targetItem.Workflow.Attempt = wfInfo.maxAttempt + 1
+	targetItem.Workflow.Started = 0
+	targetItem.Workflow.Finished = 0
+	targetItem.Workflow.Error = ""
+	targetItem.Workflow.AgentID = 0
+	targetItem.Workflow.AgentPersistentID = ""
+	targetItem.Workflow.AgentName = ""
+
+	// Build step attempt info from all workflow attempts for this variant
+	stepAttemptInfo := buildStepAttemptInfo(workflows, parentWorkflow.Name, parentWorkflow.Environ)
+
+	// Build child steps from the filtered config
+	targetItem.Workflow.Children = nil
+	for _, stage := range targetItem.Config.Stages {
+		for _, step := range stage.Steps {
+			maxPID++
+			childStep := &model.Step{
+				Name:       step.Name,
+				UUID:       step.UUID,
+				PipelineID: currentPipeline.ID,
+				PID:        maxPID,
+				PPID:       targetItem.Workflow.PID,
+				State:      model.StatusPending,
+				Failure:    step.Failure,
+				Type:       model.StepType(step.Type),
+				DependsOn:  step.DependsOn,
+			}
+			// Set step attempt tracking
+			if info, ok := stepAttemptInfo[step.Name]; ok {
+				childStep.OriginalStepID = info.originalID
+				childStep.Attempt = info.maxAttempt + 1
+			}
+			targetItem.Workflow.Children = append(targetItem.Workflow.Children, childStep)
+		}
+	}
+
+	// Persist the new workflow and steps
+	if err := _store.WorkflowsCreate([]*model.Workflow{targetItem.Workflow}); err != nil {
+		return fmt.Errorf("failure to persist step rerun workflow: %w", err)
+	}
+
+	// Update pipeline status back to running if it was finished
+	if currentPipeline.Status != model.StatusRunning && currentPipeline.Status != model.StatusPending {
+		currentPipeline.Status = model.StatusRunning
+		currentPipeline.Finished = 0
+		if err := _store.UpdatePipeline(currentPipeline); err != nil {
+			return fmt.Errorf("failure to update pipeline status: %w", err)
+		}
+	}
+
+	// Reload all workflows to get fresh state
+	currentPipeline.Workflows, err = _store.WorkflowGetTree(currentPipeline)
+	if err != nil {
+		return err
+	}
+
+	// Queue the new workflow
+	if err := queuePipeline(ctx, repo, []*stepbuilder.Item{targetItem}); err != nil {
+		return fmt.Errorf("failure to queue step rerun workflow: %w", err)
+	}
+
+	// Publish update for real-time UI
+	updatePipelineStatus(ctx, _forge, currentPipeline, repo, user)
+	publishToTopic(currentPipeline, repo)
+
+	return nil
+}
+
+// collectRerunSteps determines which steps to keep for a step rerun:
+// the target step, any steps that depend on it (transitively), plus all clone and service steps.
+// Clone/service steps are added after the cascade to avoid pulling in all steps
+// (since the compiler sets implicit DependsOn=[clone] on every step).
+func collectRerunSteps(targetStepName string, cfg *backend_types.Config) map[string]bool {
+	keepNames := map[string]bool{targetStepName: true}
+
+	// Collect all steps from the config
+	var allSteps []*backend_types.Step
+	for _, stage := range cfg.Stages {
+		allSteps = append(allSteps, stage.Steps...)
+	}
+
+	// Forward-cascade from target only: steps that depend on anything in keepNames
+	changed := true
+	for changed {
+		changed = false
+		for _, step := range allSteps {
+			if keepNames[step.Name] {
+				continue
+			}
+			for _, dep := range step.DependsOn {
+				if keepNames[dep] {
+					keepNames[step.Name] = true
+					changed = true
+					break
+				}
+			}
+		}
+	}
+
+	// Add clone and service steps after the cascade so they don't drive inclusion
+	for _, step := range allSteps {
+		if step.Type == backend_types.StepTypeClone || step.Type == backend_types.StepTypeService {
+			keepNames[step.Name] = true
+		}
+	}
+
+	return keepNames
+}
+
+// filterConfigInPlace removes steps not in keepNames from the config's stages,
+// and drops stages that become empty.
+func filterConfigInPlace(cfg *backend_types.Config, keepNames map[string]bool) {
+	var filteredStages []*backend_types.Stage
+	for _, stage := range cfg.Stages {
+		var filteredSteps []*backend_types.Step
+		for _, step := range stage.Steps {
+			if keepNames[step.Name] {
+				filteredSteps = append(filteredSteps, step)
+			}
+		}
+		if len(filteredSteps) > 0 {
+			stage.Steps = filteredSteps
+			filteredStages = append(filteredStages, stage)
+		}
+	}
+	cfg.Stages = filteredStages
+}
+
+type stepAttemptData struct {
+	originalID int64
+	maxAttempt int
+}
+
+// buildStepAttemptInfo builds a map from step name to its original step ID and highest attempt
+// across all workflow attempts for the given workflow variant.
+func buildStepAttemptInfo(workflows []*model.Workflow, workflowName string, workflowEnviron map[string]string) map[string]stepAttemptData {
+	envKey := environKey(workflowEnviron)
+	info := make(map[string]stepAttemptData)
+
+	for _, wf := range workflows {
+		if wf.Name != workflowName || environKey(wf.Environ) != envKey {
+			continue
+		}
+		for _, step := range wf.Children {
+			existing, found := info[step.Name]
+			originalID := step.OriginalStepID
+			if originalID == 0 {
+				originalID = step.ID
+			}
+			if !found || step.Attempt > existing.maxAttempt {
+				info[step.Name] = stepAttemptData{
+					originalID: originalID,
+					maxAttempt: step.Attempt,
+				}
+			}
+		}
+	}
+	return info
 }

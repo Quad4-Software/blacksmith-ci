@@ -1273,6 +1273,54 @@ func RerunWorkflow(ctx context.Context, input *RerunWorkflowInput) (*RerunWorkfl
 	return &RerunWorkflowOutput{Body: pl}, nil
 }
 
+type RerunStepInput struct {
+	RepoID     int64 `path:"repo_id" doc:"the repository id"`
+	Number     int64 `path:"number" doc:"the pipeline's number"`
+	WorkflowID int64 `path:"workflow_id" doc:"the workflow's id"`
+	StepID     int64 `path:"step_id" doc:"the step's id"`
+}
+
+type RerunStepOutput struct {
+	Body *model.Pipeline
+}
+
+func RerunStep(ctx context.Context, input *RerunStepInput) (*RerunStepOutput, error) {
+	c := ginCtx(ctx)
+	_store := store.FromContext(c)
+	repo := session.Repo(c)
+	user := session.User(c)
+	_forge, err := server.Config.Services.Manager.ForgeFromRepo(repo)
+	if err != nil {
+		log.Error().Err(err).Msg("Cannot get forge from repo")
+		return nil, huma.Error500InternalServerError("cannot get forge from repo", err)
+	}
+
+	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
+	if userForge, ufErr := _store.UserForgeGet(user.ID, repo.ForgeID); ufErr == nil && userForge != nil {
+		user.AccessToken = userForge.AccessToken
+		user.RefreshToken = userForge.RefreshToken
+		user.Expiry = userForge.Expiry
+		user.ForgeID = userForge.ForgeID
+		user.ForgeRemoteID = userForge.ForgeRemoteID
+	}
+
+	// Refresh tokens before forge API call
+	refreshUserTokenForForge(c, user, repo.ForgeID)
+	if c.IsAborted() {
+		return nil, huma.Error401Unauthorized("Your authorization has expired and couldn't be refreshed automatically. Please log in again")
+	}
+
+	pl, err := _store.GetPipelineNumber(repo, input.Number)
+	if err != nil {
+		return nil, dbErr(err)
+	}
+
+	if err := pipeline.RerunStep(c, _forge, _store, pl, input.WorkflowID, input.StepID, user, repo); err != nil {
+		return nil, pipelineErr(err)
+	}
+	return &RerunStepOutput{Body: pl}, nil
+}
+
 // notifyPipelineRestart sends redirect signals to any active log streaming sessions
 // for the old pipeline, directing them to the new restarted pipeline.
 func notifyPipelineRestart(oldPipeline, newPipeline *model.Pipeline) {

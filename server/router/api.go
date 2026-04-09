@@ -456,6 +456,11 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 		Security: BearerSecurity, Middlewares: repoPushMW,
 	}, api.RerunWorkflow)
 	huma.Register(humaAPI, huma.Operation{
+		OperationID: "rerun-step", Method: http.MethodPost, Path: "/repos/{repo_id}/pipelines/{number}/workflows/{workflow_id}/steps/{step_id}/rerun",
+		Summary: "Rerun a step", Tags: []string{"Pipelines"},
+		Security: BearerSecurity, Middlewares: repoPushMW,
+	}, api.RerunStep)
+	huma.Register(humaAPI, huma.Operation{
 		OperationID: "post-approval", Method: http.MethodPost, Path: "/repos/{repo_id}/pipelines/{number}/approve",
 		Summary: "Approve a pipeline", Tags: []string{"Pipelines"},
 		Security: BearerSecurity, Middlewares: repoPushMW,

@@ -242,6 +242,16 @@
               />
               <span class="min-w-0 truncate text-sm">{{ step.name }}</span>
               <span class="flex-1" />
+              <!-- Rerun step -->
+              <IconButton
+                v-if="hasPushPermission && isStepCompleted(step)"
+                :is-loading="isRerunningStep[step.id]"
+                icon="solar:restart-bold"
+                class="shrink-0 text-primary hover:text-primary/80 hover:bg-accent"
+                size="0.8rem"
+                :title="$t('repo.pipeline.actions.rerun_step')"
+                @click.stop="$emit('rerunStep', workflow.id, step.id)"
+              />
               <span class="shrink-0 text-right w-10 pr-1">
                 <PipelineStepDuration :step="step" class="text-xs" />
               </span>
@@ -287,7 +297,7 @@ import {
 } from '~/components/ui/dropdown-menu';
 import { requiredInject } from '~/compositions/useInjectProvide';
 import { StepType } from '~/lib/api/types';
-import type { PipelineStatus, PipelineWorkflow } from '~/lib/api/types';
+import type { PipelineStatus, PipelineStep, PipelineWorkflow } from '~/lib/api/types';
 import {
   aggregateWorkflowDuration,
   aggregateWorkflowStatus,
@@ -303,12 +313,14 @@ const props = defineProps<{
   agentDetails: Record<number, { name?: string }>;
   isCancelingWorkflow: Record<number, boolean>;
   isRerunningWorkflow: Record<number, boolean>;
+  isRerunningStep: Record<number, boolean>;
 }>();
 
 const emit = defineEmits<{
   (event: 'update:selectedStepId', stepId: number): void;
   (event: 'cancelWorkflow', workflowId: number): void;
   (event: 'rerunWorkflow', workflowId: number): void;
+  (event: 'rerunStep', workflowId: number, stepId: number): void;
 }>();
 
 const LARGE_GROUP_THRESHOLD = 8;
@@ -541,6 +553,10 @@ function switchAttempt(targetAttempt: PipelineWorkflow) {
 
 function getAgentDisplay(agentId: number): string {
   return props.agentDetails[agentId]?.name || '';
+}
+
+function isStepCompleted(step: PipelineStep) {
+  return step.state !== 'pending' && step.state !== 'running';
 }
 </script>
 

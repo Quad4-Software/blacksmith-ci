@@ -151,6 +151,7 @@
                 class="w-full"
                 @update:auto-follow-enabled="handleAutoFollowUpdate"
                 @rerun-workflow="rerunWorkflow"
+                @rerun-step="rerunStep"
               />
             </template>
           </div>
@@ -239,6 +240,7 @@
           @update:step-id="selectedStepId = $event"
           @update:auto-follow-enabled="handleAutoFollowUpdate"
           @rerun-workflow="rerunWorkflow"
+          @rerun-step="rerunStep"
         />
         <!-- Step Selection (when no step is selected) -->
         <div v-else class="h-full overflow-y-auto">
@@ -423,6 +425,25 @@ async function rerunWorkflow(workflowId: number) {
     notifications.notify({
       title: i18n.t('notify_title_success'),
       text: i18n.t('repo.pipeline.actions.notify_text_rerun_success'),
+      type: 'success',
+      duration: 6000,
+    });
+  } catch {
+    notifications.notify({
+      title: i18n.t('notify_title_error'),
+      text: i18n.t('unknown_error'),
+      type: 'error',
+      duration: 9000,
+    });
+  }
+}
+
+async function rerunStep(workflowId: number, stepId: number) {
+  try {
+    await apiClient.rerunStep(repo.value.id, pipeline.value.number, workflowId, stepId);
+    notifications.notify({
+      title: i18n.t('notify_title_success'),
+      text: i18n.t('repo.pipeline.actions.notify_text_step_rerun_success'),
       type: 'success',
       duration: 6000,
     });

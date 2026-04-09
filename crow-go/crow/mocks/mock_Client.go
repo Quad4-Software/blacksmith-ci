@@ -5577,6 +5577,86 @@ func (_c *MockClient_StepLogsPurge_Call) RunAndReturn(run func(repoID int64, pip
 	return _c
 }
 
+// StepRerun provides a mock function for the type MockClient
+func (_mock *MockClient) StepRerun(repoID int64, pipeline int64, workflowID int64, stepID int64) (*crow.Pipeline, error) {
+	ret := _mock.Called(repoID, pipeline, workflowID, stepID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for StepRerun")
+	}
+
+	var r0 *crow.Pipeline
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, int64, int64) (*crow.Pipeline, error)); ok {
+		return returnFunc(repoID, pipeline, workflowID, stepID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, int64, int64) *crow.Pipeline); ok {
+		r0 = returnFunc(repoID, pipeline, workflowID, stepID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*crow.Pipeline)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, int64, int64, int64) error); ok {
+		r1 = returnFunc(repoID, pipeline, workflowID, stepID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClient_StepRerun_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'StepRerun'
+type MockClient_StepRerun_Call struct {
+	*mock.Call
+}
+
+// StepRerun is a helper method to define mock.On call
+//   - repoID int64
+//   - pipeline int64
+//   - workflowID int64
+//   - stepID int64
+func (_e *MockClient_Expecter) StepRerun(repoID interface{}, pipeline interface{}, workflowID interface{}, stepID interface{}) *MockClient_StepRerun_Call {
+	return &MockClient_StepRerun_Call{Call: _e.mock.On("StepRerun", repoID, pipeline, workflowID, stepID)}
+}
+
+func (_c *MockClient_StepRerun_Call) Run(run func(repoID int64, pipeline int64, workflowID int64, stepID int64)) *MockClient_StepRerun_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		var arg2 int64
+		if args[2] != nil {
+			arg2 = args[2].(int64)
+		}
+		var arg3 int64
+		if args[3] != nil {
+			arg3 = args[3].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_StepRerun_Call) Return(pipeline1 *crow.Pipeline, err error) *MockClient_StepRerun_Call {
+	_c.Call.Return(pipeline1, err)
+	return _c
+}
+
+func (_c *MockClient_StepRerun_Call) RunAndReturn(run func(repoID int64, pipeline int64, workflowID int64, stepID int64) (*crow.Pipeline, error)) *MockClient_StepRerun_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // User provides a mock function for the type MockClient
 func (_mock *MockClient) User(s string) (*crow.User, error) {
 	ret := _mock.Called(s)

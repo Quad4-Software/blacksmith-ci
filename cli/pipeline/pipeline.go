@@ -35,6 +35,7 @@ var Command = &cli.Command{
 	Commands: []*cli.Command{
 		pipelineApproveCmd,
 		PipelineCancelWorkflowCmd,
+		PipelineRerunStepCmd,
 		pipelineCreateCmd,
 		pipelineDeclineCmd,
 		deploy.Command,

@@ -167,6 +167,8 @@ CREATE TABLE IF NOT EXISTS steps (
     finished INTEGER,
     type TEXT,
     depends_on TEXT,
+    original_step_id INTEGER DEFAULT 0,
+    attempt INTEGER DEFAULT 1,
     UNIQUE(pipeline_id, pid)
 );
 

@@ -256,6 +256,7 @@ const emit = defineEmits<{
   (event: 'update:step-id', stepId: number | null): void;
   (event: 'update:auto-follow-enabled', value: boolean): void;
   (event: 'rerunWorkflow', workflowId: number): void;
+  (event: 'rerunStep', workflowId: number, stepId: number): void;
 }>();
 
 const apiClient = useApiClient();

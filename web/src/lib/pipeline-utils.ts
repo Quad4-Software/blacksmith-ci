@@ -1,4 +1,4 @@
-import type { PipelineStatus, PipelineWorkflow } from '~/lib/api/types';
+import type { PipelineStatus, PipelineStep, PipelineWorkflow } from '~/lib/api/types';
 
 /**
  * Group workflows by their pipeline_name field to identify matrix groups.
@@ -132,4 +132,36 @@ export function getWorkflowAttempts(workflows: PipelineWorkflow[], workflow: Pip
  */
 export function hasReruns(workflows: PipelineWorkflow[], workflow: PipelineWorkflow): boolean {
   return getWorkflowAttempts(workflows, workflow).length > 1;
+}
+
+/**
+ * Get all attempts for a given step across all workflow attempts for the same variant.
+ * Returns steps with matching name, sorted by attempt number.
+ */
+export function getStepAttempts(allWorkflows: PipelineWorkflow[], step: PipelineStep): PipelineStep[] {
+  // Find the parent workflow of this step
+  const parentWorkflow = allWorkflows.find((wf) => wf.children.some((s) => s.id === step.id));
+  if (!parentWorkflow) return [step];
+
+  // Get all workflow attempts for this variant
+  const workflowAttempts = getWorkflowAttempts(allWorkflows, parentWorkflow);
+
+  // Collect all steps with the same name across all workflow attempts
+  const attempts: PipelineStep[] = [];
+  for (const wf of workflowAttempts) {
+    for (const s of wf.children) {
+      if (s.name === step.name) {
+        attempts.push(s);
+      }
+    }
+  }
+
+  return attempts.toSorted((a, b) => (a.attempt ?? 1) - (b.attempt ?? 1));
+}
+
+/**
+ * Check if a step has reruns (more than one attempt exists across workflow attempts).
+ */
+export function hasStepReruns(allWorkflows: PipelineWorkflow[], step: PipelineStep): boolean {
+  return getStepAttempts(allWorkflows, step).length > 1;
 }

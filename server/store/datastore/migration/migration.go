@@ -103,6 +103,7 @@ func Migrate(_ context.Context, db *sql.DB, driver string, _ bool) error {
 		)},
 		{ID: "crow-add-email-unsubscribes", Migrate: createEmailUnsubscribes(driver)},
 		{ID: "crow-add-task-canceled", Migrate: addTaskCancelledColumns},
+		{ID: "crow-add-step-rerun-fields", Migrate: addStepRerunFields},
 	}
 
 	if len(newMigrations) > 0 {
@@ -250,4 +251,27 @@ func addTaskCancelledColumns(tx *sql.Tx) error {
 	}
 	addCanceledAt := addColumnIfNotExists("tasks", "canceled_at", "INTEGER DEFAULT 0")
 	return addCanceledAt(tx)
+}
+
+// addStepRerunFields adds original_step_id and attempt columns to the steps table
+// for step-level rerun tracking.
+// Skips gracefully if the steps table doesn't exist (fresh databases get these
+// columns from the baseline schema).
+func addStepRerunFields(tx *sql.Tx) error {
+	// Check if the steps table exists before trying to add columns.
+	_, _ = tx.Exec("SAVEPOINT table_check")
+	rows, err := tx.Query("SELECT 1 FROM steps LIMIT 1") //nolint:gosec
+	if err != nil {
+		// Table doesn't exist — nothing to alter (baseline schema has the columns).
+		_, _ = tx.Exec("ROLLBACK TO SAVEPOINT table_check")
+		return nil
+	}
+	defer rows.Close()
+	_ = rows.Err()
+	_, _ = tx.Exec("RELEASE SAVEPOINT table_check")
+
+	if err := addColumnIfNotExists("steps", "original_step_id", "INTEGER DEFAULT 0")(tx); err != nil {
+		return err
+	}
+	return addColumnIfNotExists("steps", "attempt", "INTEGER DEFAULT 1")(tx)
 }

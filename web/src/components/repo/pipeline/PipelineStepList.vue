@@ -73,9 +73,11 @@
               :agent-details="agentDetails"
               :is-canceling-workflow="isCancelingWorkflow"
               :is-rerunning-workflow="isRerunningWorkflow"
+              :is-rerunning-step="isRerunningStep"
               @update:selected-step-id="selectStep"
               @cancel-workflow="cancelWorkflow($event)"
               @rerun-workflow="rerunWorkflow($event)"
+              @rerun-step="(wfId: number, sId: number) => rerunStep(wfId, sId)"
             />
             <!-- Single workflow: render as before -->
             <div v-else class="rounded-md border border-border bg-card p-2 shadow-xs">
@@ -205,7 +207,42 @@
                     class="h-4 w-4 shrink-0 mr-0.5"
                   />
                   <span class="min-w-0 truncate">{{ step.name }}</span>
+                  <!-- Step attempt dropdown -->
+                  <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
+                  <DropdownMenu v-if="stepHasReruns(step)">
+                    <DropdownMenuTrigger as-child>
+                      <button
+                        class="shrink-0 inline-flex items-center gap-0.5 rounded border border-primary/70 px-1 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-accent transition-colors"
+                        @click.stop
+                      >
+                        #{{ step.attempt ?? 1 }}
+                        <Icon name="chevron-down" class="h-2.5 w-2.5" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuItem
+                        v-for="attempt in stepAttempts(step)"
+                        :key="attempt.id"
+                        class="flex items-center gap-2 text-xs"
+                        @click.stop="selectStep(attempt.pid)"
+                      >
+                        <PipelineStatusIcon :status="attempt.state" class="h-3.5 w-3.5" />
+                        #{{ attempt.attempt ?? 1 }}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
                   <span class="flex-1" />
+                  <!-- Rerun step -->
+                  <IconButton
+                    v-if="hasPushPermission && isStepCompleted(step)"
+                    :is-loading="isRerunningStep[step.id]"
+                    icon="solar:restart-bold"
+                    class="shrink-0 text-primary hover:text-primary/80 hover:bg-accent"
+                    size="0.9rem"
+                    :title="$t('repo.pipeline.actions.rerun_step')"
+                    @click.stop="rerunStep(group.workflows[0].id, step.id)"
+                  />
                   <span class="shrink-0 text-right w-10 pr-1">
                     <PipelineStepDuration :step="step" />
                   </span>
@@ -243,7 +280,14 @@ import useApiClient from '~/compositions/useApiClient';
 import useNotifications from '~/compositions/useNotifications';
 import { StepType } from '~/lib/api/types';
 import type { Pipeline, PipelineStep, PipelineWorkflow } from '~/lib/api/types';
-import { identifyMatrixGroups, getLatestAttempts, getWorkflowAttempts, hasReruns } from '~/lib/pipeline-utils';
+import {
+  identifyMatrixGroups,
+  getLatestAttempts,
+  getWorkflowAttempts,
+  hasReruns,
+  getStepAttempts,
+  hasStepReruns,
+} from '~/lib/pipeline-utils';
 import { usePipelineStore } from '~/store/pipelines';
 import { useI18n } from 'vue-i18n';
 
@@ -285,6 +329,7 @@ const workflowsCollapsed = ref<Record<PipelineStep['id'], boolean>>(
 
 const isCancelingWorkflow = ref<Record<number, boolean>>({});
 const isRerunningWorkflow = ref<Record<number, boolean>>({});
+const isRerunningStep = ref<Record<number, boolean>>({});
 const agentDetails = ref<Record<number, { name?: string }>>({});
 
 const hasPushPermission = computed(() => repoPermissions.value && repoPermissions.value.push);
@@ -404,6 +449,41 @@ function workflowHasReruns(workflow: PipelineWorkflow) {
 
 function isWorkflowCompleted(workflow: PipelineWorkflow) {
   return workflow.state !== 'pending' && workflow.state !== 'running';
+}
+
+function isStepCompleted(step: PipelineStep) {
+  return step.state !== 'pending' && step.state !== 'running';
+}
+
+function stepAttempts(step: PipelineStep) {
+  return getStepAttempts(allWorkflows.value, step);
+}
+
+function stepHasReruns(step: PipelineStep) {
+  return hasStepReruns(allWorkflows.value, step);
+}
+
+async function rerunStep(workflowId: number, stepId: number) {
+  if (!repo.value || !pipeline.value?.number) return;
+  isRerunningStep.value = { ...isRerunningStep.value, [stepId]: true };
+  try {
+    await apiClient.rerunStep(repo.value.id, pipeline.value.number, workflowId, stepId);
+    notifications.notify({
+      title: i18n.t('notify_title_success'),
+      text: i18n.t('repo.pipeline.actions.notify_text_step_rerun_success'),
+      type: 'success',
+      duration: 6000,
+    });
+  } catch {
+    notifications.notify({
+      title: i18n.t('notify_title_error'),
+      text: i18n.t('unknown_error'),
+      type: 'error',
+      duration: 9000,
+    });
+  } finally {
+    isRerunningStep.value = { ...isRerunningStep.value, [stepId]: false };
+  }
 }
 
 function switchAttempt(_workflow: PipelineWorkflow, targetAttempt: PipelineWorkflow) {

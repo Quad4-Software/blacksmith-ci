@@ -99,6 +99,9 @@ type Client interface {
 	// WorkflowCancel cancels a specific workflow in a pipeline.
 	WorkflowCancel(repoID, pipeline, workflowID int64) error
 
+	// StepRerun reruns a specific step in a workflow.
+	StepRerun(repoID, pipeline, workflowID, stepID int64) (*Pipeline, error)
+
 	// PipelineApprove approves a blocked pipeline.
 	PipelineApprove(repoID, pipeline int64) (*Pipeline, error)
 

@@ -231,6 +231,12 @@ export default class CrowClient extends ApiClient {
     ) as Promise<Pipeline>;
   }
 
+  async rerunStep(repoId: number, pipelineNumber: number, workflowId: number, stepId: number): Promise<Pipeline> {
+    return this._post(
+      `/api/v1/repos/${repoId}/pipelines/${pipelineNumber}/workflows/${workflowId}/steps/${stepId}/rerun`,
+    ) as Promise<Pipeline>;
+  }
+
   async approvePipeline(repoId: number, pipelineNumber: string): Promise<unknown> {
     return this._post(`/api/v1/repos/${repoId}/pipelines/${pipelineNumber}/approve`);
   }

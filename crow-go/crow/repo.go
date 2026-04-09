@@ -27,6 +27,7 @@ const (
 	pathPipelineID            = "%s/api/v1/repos/%d/pipelines/%d"
 	pathStop                  = "%s/api/v1/repos/%d/pipelines/%d/cancel"
 	pathWorkflowCancel        = "%s/api/v1/repos/%d/pipelines/%d/workflows/%d/cancel"
+	pathStepRerun             = "%s/api/v1/repos/%d/pipelines/%d/workflows/%d/steps/%d/rerun"
 	pathApprove               = "%s/api/v1/repos/%d/pipelines/%d/approve"
 	pathDecline               = "%s/api/v1/repos/%d/pipelines/%d/decline"
 	pathPipelineLogs          = "%s/api/v1/repos/%d/logs/%d"
@@ -385,6 +386,14 @@ func (c *client) WorkflowCancel(repoID, pipeline, workflowID int64) error {
 	uri := fmt.Sprintf(pathWorkflowCancel, c.addr, repoID, pipeline, workflowID)
 	err := c.post(uri, nil, nil)
 	return err
+}
+
+// StepRerun reruns a specific step in a workflow.
+func (c *client) StepRerun(repoID, pipeline, workflowID, stepID int64) (*Pipeline, error) {
+	var out Pipeline
+	uri := fmt.Sprintf(pathStepRerun, c.addr, repoID, pipeline, workflowID, stepID)
+	err := c.post(uri, nil, &out)
+	return &out, err
 }
 
 // PipelineApprove approves a blocked pipeline.

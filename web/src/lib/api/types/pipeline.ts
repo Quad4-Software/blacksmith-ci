@@ -165,6 +165,8 @@ export interface PipelineStep {
   error?: string;
   type?: StepType;
   depends_on?: string[];
+  original_step_id: number;
+  attempt: number;
 }
 
 export interface PipelineLog {

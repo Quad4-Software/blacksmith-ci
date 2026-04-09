@@ -22,6 +22,12 @@ steps:
     commands:
       - go mod vendor
 
+  source-tarball:
+    image: *golang_image
+    commands:
+      - mkdir -p dist
+      - git archive --format=tar.gz --prefix=crow/ -o dist/crow-src.tar.gz HEAD
+
   build-cli:
     image: *golang_image
     commands:

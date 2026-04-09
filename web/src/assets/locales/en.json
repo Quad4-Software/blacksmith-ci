@@ -492,7 +492,9 @@
         "canceled_by_user": "Canceled by user",
         "stderr_output": "Error Output (stderr)",
         "rerun_workflow": "Rerun workflow",
-        "notify_text_rerun_success": "Workflow rerun started"
+        "rerun_step": "Rerun step",
+        "notify_text_rerun_success": "Workflow rerun started",
+        "notify_text_step_rerun_success": "Step rerun started"
       },
       "matrix": {
         "filter_placeholder": "Filter variants…",
