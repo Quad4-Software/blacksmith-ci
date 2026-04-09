@@ -81,7 +81,7 @@ func RunCron(ctx context.Context, input *RunCronInput) (*RunCronOutput, error) {
 
 	repo, newPipeline, err := cronScheduler.CreatePipeline(c, _store, cron)
 	if err != nil {
-		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error creating pipeline for cron %q. %s", input.Cron, err))
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error creating pipeline for cron %d. %s", input.Cron, err))
 	}
 
 	pl, err := pipeline.Create(c, _store, repo, newPipeline)
