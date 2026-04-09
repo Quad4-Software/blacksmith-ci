@@ -28,7 +28,7 @@ func Handler() http.Handler {
 
 	e := gin.New()
 	e.POST("/site/oauth2/access_token", getOauth)
-	e.GET("/2.0/workspaces/", getWorkspaces)
+	e.GET("/2.0/workspaces", getWorkspaces)
 	e.GET("/2.0/repositories/:owner/:name", getRepo)
 	e.GET("/2.0/repositories/:owner/:name/hooks", getRepoHooks)
 	e.GET("/2.0/repositories/:owner/:name/src/:commit/:file", getRepoFile)
@@ -37,7 +37,7 @@ func Handler() http.Handler {
 	e.POST("/2.0/repositories/:owner/:name/commit/:commit/statuses/build", createRepoStatus)
 	e.GET("/2.0/repositories/:owner", getUserRepos)
 	e.GET("/2.0/user/", getUser)
-	e.GET("/2.0/user/permissions/repositories", getPermissions)
+	e.GET("/2.0/user/workspaces/:workspace/permissions/repositories", getPermissions)
 	e.GET("/2.0/repositories/:owner/:name/commits/:commit", getBranchHead)
 	e.GET("/2.0/repositories/:owner/:name/pullrequests", getPullRequests)
 	return e

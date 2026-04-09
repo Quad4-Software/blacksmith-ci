@@ -168,7 +168,7 @@ func (c *config) Repo(ctx context.Context, u *model.User, remoteID model.ForgeRe
 	if err != nil {
 		return nil, err
 	}
-	perm, err := client.GetPermission(repo.FullName)
+	perm, err := client.GetPermission(owner, repo.FullName)
 	if err != nil {
 		return nil, err
 	}
@@ -195,24 +195,24 @@ func (c *config) Repos(ctx context.Context, u *model.User) ([]*model.Repo, error
 		return nil, err
 	}
 
-	userPermissions, err := client.ListPermissionsAll()
-	if err != nil {
-		return nil, err
-	}
-
-	userPermissionsByRepo := make(map[string]*internal.RepoPerm)
-	for _, permission := range userPermissions {
-		userPermissionsByRepo[permission.Repo.FullName] = permission
-	}
-
 	var all []*model.Repo
 	for _, workspace := range workspaces {
+		permissions, err := client.ListPermissionsAll(workspace.Slug)
+		if err != nil {
+			return nil, err
+		}
+
+		permByRepo := make(map[string]*internal.RepoPerm)
+		for _, perm := range permissions {
+			permByRepo[perm.Repo.FullName] = perm
+		}
+
 		repos, err := client.ListReposAll(workspace.Slug)
 		if err != nil {
 			return nil, err
 		}
 		for _, repo := range repos {
-			if perm, ok := userPermissionsByRepo[repo.FullName]; ok {
+			if perm, ok := permByRepo[repo.FullName]; ok {
 				all = append(all, convertRepo(repo, perm))
 			}
 		}

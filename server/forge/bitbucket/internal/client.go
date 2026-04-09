@@ -32,9 +32,9 @@ import (
 const (
 	pathUser          = "%s/2.0/user/"
 	pathEmails        = "%s/2.0/user/emails"
-	pathPermission    = "%s/2.0/user/permissions/repositories?q=repository.full_name=%q"
-	pathPermissions   = "%s/2.0/user/permissions/repositories?%s"
-	pathWorkspaces    = "%s/2.0/workspaces/?%s"
+	pathPermission    = "%s/2.0/user/workspaces/%s/permissions/repositories?q=repository.full_name=%q"
+	pathPermissions   = "%s/2.0/user/workspaces/%s/permissions/repositories?%s"
+	pathWorkspaces    = "%s/2.0/workspaces?%s"
 	pathWorkspace     = "%s/2.0/workspaces/%s"
 	pathRepo          = "%s/2.0/repositories/%s/%s"
 	pathRepos         = "%s/2.0/repositories/%s?%s"
@@ -155,9 +155,9 @@ func (c *Client) CreateStatus(owner, name, revision string, status *PipelineStat
 	return err
 }
 
-func (c *Client) GetPermission(fullName string) (*RepoPerm, error) {
+func (c *Client) GetPermission(workspace, fullName string) (*RepoPerm, error) {
 	out := new(RepoPermResp)
-	uri := fmt.Sprintf(pathPermission, c.base, fullName)
+	uri := fmt.Sprintf(pathPermission, c.base, workspace, fullName)
 	_, err := c.do(uri, http.MethodGet, nil, out)
 	if err != nil {
 		return nil, err
@@ -169,16 +169,16 @@ func (c *Client) GetPermission(fullName string) (*RepoPerm, error) {
 	return out.Values[0], nil
 }
 
-func (c *Client) ListPermissions(opts *ListOpts) (*RepoPermResp, error) {
+func (c *Client) ListPermissions(workspace string, opts *ListOpts) (*RepoPermResp, error) {
 	out := new(RepoPermResp)
-	uri := fmt.Sprintf(pathPermissions, c.base, opts.Encode())
+	uri := fmt.Sprintf(pathPermissions, c.base, workspace, opts.Encode())
 	_, err := c.do(uri, http.MethodGet, nil, out)
 	return out, err
 }
 
-func (c *Client) ListPermissionsAll() ([]*RepoPerm, error) {
+func (c *Client) ListPermissionsAll(workspace string) ([]*RepoPerm, error) {
 	return shared_utils.Paginate(func(page int) ([]*RepoPerm, error) {
-		resp, err := c.ListPermissions(&ListOpts{Page: page, PageLen: pageSize})
+		resp, err := c.ListPermissions(workspace, &ListOpts{Page: page, PageLen: pageSize})
 		if err != nil {
 			return nil, err
 		}
