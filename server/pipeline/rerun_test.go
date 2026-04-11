@@ -6,8 +6,54 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	backend_types "codefloe.com/crowci/crow/v5/pipeline/backend/types"
 	"codefloe.com/crowci/crow/v5/server/model"
 )
+
+func TestUpdateWorkflowNumberInConfig(t *testing.T) {
+	cfg := &backend_types.Config{
+		Stages: []*backend_types.Stage{
+			{
+				Steps: []*backend_types.Step{
+					{
+						Name: "clone",
+						Environment: map[string]string{
+							"CI_WORKFLOW_NUMBER": "1",
+							"CI_REPO_OWNER":      "owner",
+						},
+					},
+					{
+						Name: "build",
+						Environment: map[string]string{
+							"CI_WORKFLOW_NUMBER": "1",
+							"CI_REPO_OWNER":      "owner",
+						},
+					},
+				},
+			},
+			{
+				Steps: []*backend_types.Step{
+					{
+						Name: "test",
+						Environment: map[string]string{
+							"CI_WORKFLOW_NUMBER": "1",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	updateWorkflowNumberInConfig(cfg, 5)
+
+	for _, stage := range cfg.Stages {
+		for _, step := range stage.Steps {
+			assert.Equal(t, "5", step.Environment["CI_WORKFLOW_NUMBER"], "step %s should have updated CI_WORKFLOW_NUMBER", step.Name)
+		}
+	}
+	// Other env vars should be untouched
+	assert.Equal(t, "owner", cfg.Stages[0].Steps[0].Environment["CI_REPO_OWNER"])
+}
 
 func TestCollectRerunWorkflows(t *testing.T) {
 	tests := []struct {

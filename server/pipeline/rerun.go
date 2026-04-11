@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/rs/zerolog/log"
@@ -131,6 +132,12 @@ func RerunWorkflow(ctx context.Context, _forge forge.Forge, _store store.Store, 
 		item.Workflow.PID = maxPID
 		item.Workflow.PipelineID = currentPipeline.ID
 		item.Workflow.State = model.StatusPending
+
+		// Update CI_WORKFLOW_NUMBER in step environments to match the new PID.
+		// parsePipeline bakes in sequential PIDs (1, 2, ...) during compilation,
+		// but we've reassigned PIDs to avoid clashes with existing workflows.
+		// Without this, restarted containers get the same name as the originals.
+		updateWorkflowNumberInConfig(item.Config, maxPID)
 
 		// Set rerun fields using variant key (name+environ) for correct matrix matching
 		vKey := variantKey(item.Workflow.Name, item.Workflow.Environ)
@@ -479,6 +486,9 @@ func RerunStep(ctx context.Context, _forge forge.Forge, _store store.Store, curr
 	targetItem.Workflow.PID = maxPID
 	targetItem.Workflow.PipelineID = currentPipeline.ID
 	targetItem.Workflow.State = model.StatusPending
+
+	// Update CI_WORKFLOW_NUMBER in step environments to match the new PID
+	updateWorkflowNumberInConfig(targetItem.Config, maxPID)
 	targetItem.Workflow.OriginalWorkflowID = wfInfo.originalID
 	targetItem.Workflow.Attempt = wfInfo.maxAttempt + 1
 	targetItem.Workflow.Started = 0
@@ -606,6 +616,22 @@ func filterConfigInPlace(cfg *backend_types.Config, keepNames map[string]bool) {
 		}
 	}
 	cfg.Stages = filteredStages
+}
+
+// updateWorkflowNumberInConfig updates CI_WORKFLOW_NUMBER in all step
+// environments within a compiled config. This is necessary because parsePipeline
+// bakes in sequential PIDs during compilation, but rerun assigns new PIDs to
+// avoid clashes with existing workflows. Without this update, restarted
+// containers in matrix workflows get the same name as the originals.
+func updateWorkflowNumberInConfig(cfg *backend_types.Config, newPID int) {
+	pidStr := strconv.Itoa(newPID)
+	for _, stage := range cfg.Stages {
+		for _, step := range stage.Steps {
+			if step.Environment != nil {
+				step.Environment["CI_WORKFLOW_NUMBER"] = pidStr
+			}
+		}
+	}
 }
 
 type stepAttemptData struct {
