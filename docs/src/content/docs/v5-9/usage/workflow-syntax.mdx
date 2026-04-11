@@ -73,6 +73,29 @@ If neither is set, the file name is used.
 If set, they are only used for workflow naming and not passed to the environment.
 :::
 
+## notify
+
+The `notify` block overrides the repository-level [email notification](/dev/usage/notifications/) settings for a single pipeline run.
+
+To disable notifications entirely for a workflow:
+
+```yaml
+notify:
+  disabled: true
+```
+
+To override which events trigger a notification:
+
+```yaml
+notify:
+  events:
+    - success
+    - failure
+    - status_change
+```
+
+See the [email notifications](/dev/usage/notifications/) documentation for the full list of events and setup instructions.
+
 ## depends_on
 
 Multiple workflows can be set up for a repository.
@@ -453,6 +476,38 @@ For the `docker` backend, this option can be used to mount files or folders from
 For the `kubernetes` backend, an existing persistent volume claim (PVC) is used.
 
 More details can be found in the [volumes documentation](/dev/usage/volumes/).
+
+### tmpfs
+
+Tmpfs mounts create in-memory filesystems inside the container.
+This is useful for speeding up I/O-heavy workloads like database tests, since data is stored in RAM instead of on disk.
+
+Unlike `volumes`, tmpfs does **not** require the "Volumes" privilege — it is safe for any user because it doesn't expose the host filesystem.
+
+```yaml
+steps:
+  - name: test
+    image: golang
+    commands:
+      - go test ./...
+
+services:
+  - name: database
+    image: postgres:18
+    tmpfs:
+      - /var/lib/postgresql
+```
+
+An optional size limit and other mount options can be specified after a colon:
+
+```yaml
+tmpfs:
+  - /var/lib/data:size=512M
+  - /tmp:size=1G,mode=1770
+```
+
+If the agent has a memory limit configured (`CROW_BACKEND_DOCKER_LIMIT_MEM`), tmpfs size is automatically capped to that limit.
+When no explicit `size=` option is given, one is injected automatically.
 
 ### when
 

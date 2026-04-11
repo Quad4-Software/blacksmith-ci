@@ -29,6 +29,7 @@
             "configuration/server",
             "configuration/agent",
             "configuration/autoscaler",
+            "configuration/forge-oauth",
             {
               "label": "Environment Variables",
               "collapsed": true,

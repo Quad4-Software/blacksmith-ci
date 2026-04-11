@@ -137,6 +137,19 @@ If the pipeline has not finished within the timeout, it will be treated as timed
 
 This option defines whether previous pipelines of the same event and context should be canceled before starting the newly triggered one.
 
+## Notifications
+
+Email notifications can be enabled per repository in the **Notifications** tab.
+This requires the server administrator to configure SMTP first (see [email notifications](/dev/usage/notifications/)).
+
+When SMTP is configured, you can:
+
+- **Enable/disable** email notifications for the repository.
+- **Select events** that trigger a notification: failure, success, or status change.
+
+Notifications are sent to the commit author's email address.
+Repository-level settings can be overridden per-pipeline using the [`notify:` block](/dev/usage/workflow-syntax/#notify) in your workflow YAML.
+
 ## Log retention
 
 These settings determine for how long the step logs of pipelines are being stored.
