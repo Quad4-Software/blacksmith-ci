@@ -233,17 +233,9 @@ func createEmailUnsubscribes(driver string) func(tx *sql.Tx) error {
 // Skips gracefully if the tasks table doesn't exist (fresh databases get these
 // columns from the baseline schema).
 func addTaskCancelledColumns(tx *sql.Tx) error {
-	// Check if the tasks table exists before trying to add columns.
-	_, _ = tx.Exec("SAVEPOINT table_check")
-	rows, err := tx.Query("SELECT 1 FROM tasks LIMIT 1") //nolint:gosec
-	if err != nil {
-		// Table doesn't exist — nothing to alter (baseline schema has the columns).
-		_, _ = tx.Exec("ROLLBACK TO SAVEPOINT table_check")
+	if !tableExists(tx, "tasks") {
 		return nil
 	}
-	defer rows.Close()
-	_ = rows.Err()
-	_, _ = tx.Exec("RELEASE SAVEPOINT table_check")
 
 	addCanceled := addColumnIfNotExists("tasks", "canceled", "INTEGER DEFAULT 0")
 	if err := addCanceled(tx); err != nil {
@@ -258,20 +250,28 @@ func addTaskCancelledColumns(tx *sql.Tx) error {
 // Skips gracefully if the steps table doesn't exist (fresh databases get these
 // columns from the baseline schema).
 func addStepRerunFields(tx *sql.Tx) error {
-	// Check if the steps table exists before trying to add columns.
-	_, _ = tx.Exec("SAVEPOINT table_check")
-	rows, err := tx.Query("SELECT 1 FROM steps LIMIT 1") //nolint:gosec
-	if err != nil {
-		// Table doesn't exist — nothing to alter (baseline schema has the columns).
-		_, _ = tx.Exec("ROLLBACK TO SAVEPOINT table_check")
+	if !tableExists(tx, "steps") {
 		return nil
 	}
-	defer rows.Close()
-	_ = rows.Err()
-	_, _ = tx.Exec("RELEASE SAVEPOINT table_check")
 
 	if err := addColumnIfNotExists("steps", "original_step_id", "INTEGER DEFAULT 0")(tx); err != nil {
 		return err
 	}
 	return addColumnIfNotExists("steps", "attempt", "INTEGER DEFAULT 1")(tx)
+}
+
+// tableExists checks whether a table exists in the database using a savepoint
+// so that a failed probe doesn't poison the surrounding transaction.
+// The rows are closed before returning, ensuring no open result sets leak to callers.
+func tableExists(tx *sql.Tx, table string) bool {
+	_, _ = tx.Exec("SAVEPOINT table_check")
+	rows, err := tx.Query(fmt.Sprintf("SELECT 1 FROM %s LIMIT 1", table)) //nolint:gosec
+	if err != nil {
+		_, _ = tx.Exec("ROLLBACK TO SAVEPOINT table_check")
+		return false
+	}
+	defer rows.Close()
+	_ = rows.Err()
+	_, _ = tx.Exec("RELEASE SAVEPOINT table_check")
+	return true
 }
