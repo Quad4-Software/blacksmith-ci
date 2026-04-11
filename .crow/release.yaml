@@ -25,6 +25,7 @@ steps:
   source-tarball:
     image: *golang_image
     commands:
+      - apk add --no-cache -q git
       - mkdir -p dist
       - git archive --format=tar.gz --prefix=crow/ -o dist/crow-src.tar.gz HEAD
 
