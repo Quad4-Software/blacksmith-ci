@@ -16,6 +16,7 @@ package migration
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/rs/zerolog/log"
@@ -171,13 +172,14 @@ func (r *runner) migrateLegacyTable() error {
 // skipping if the column already exists. Works across SQLite, PostgreSQL, and MySQL
 // by using a savepoint to isolate the column-existence probe so a failed SELECT
 // doesn't poison the PostgreSQL transaction.
+// Uses QueryRow+Scan to fully consume the result inline, avoiding open result
+// sets that break MySQL's single-result-set-per-connection constraint.
 func addColumnIfNotExists(table, column, colType string) func(tx *sql.Tx) error {
 	return func(tx *sql.Tx) error {
 		_, _ = tx.Exec("SAVEPOINT add_col_check")
-		rows, err := tx.Query(fmt.Sprintf("SELECT %s FROM %s LIMIT 1", column, table)) //nolint:gosec
-		if err == nil {
-			defer rows.Close()
-			_ = rows.Err()
+		var dummy any
+		err := tx.QueryRow(fmt.Sprintf("SELECT %s FROM %s LIMIT 1", column, table)).Scan(&dummy) //nolint:gosec
+		if err == nil || errors.Is(err, sql.ErrNoRows) {
 			_, _ = tx.Exec("RELEASE SAVEPOINT add_col_check")
 			return nil // column already exists
 		}

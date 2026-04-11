@@ -162,6 +162,42 @@ func TestMigrate_ExistingDatabase_IncompleteLegacy(t *testing.T) {
 // These run against whichever database is configured via env vars (SQLite, PostgreSQL, MySQL)
 // and verify that new migration DDL is portable across all drivers.
 
+// TestMigrate_NewMigrations_IdempotentRerun verifies that running migrations a
+// second time (columns/tables already exist) doesn't cause "bad connection" errors.
+// This is the exact scenario that broke MySQL: tableExists and addColumnIfNotExists
+// opened result sets via tx.Query but issued further tx.Exec calls before closing
+// them, triggering MySQL's single-open-result-set constraint.
+func TestMigrate_NewMigrations_IdempotentRerun(t *testing.T) {
+	db, driver := testDB(t)
+
+	// Set up the migrations table and mark all legacy migrations as applied.
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS migrations (id TEXT NULL)`)
+	require.NoError(t, err)
+	for _, id := range allLegacyMigrationIDs {
+		_, err = db.Exec(fmt.Sprintf("INSERT INTO migrations (id) VALUES ('%s')", id))
+		require.NoError(t, err)
+	}
+
+	// Create tables with the columns that new migrations would add.
+	// This simulates a database that already ran these migrations successfully.
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS autoscalers (id INTEGER PRIMARY KEY, pending_since INTEGER)`)
+	require.NoError(t, err)
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY, canceled INTEGER DEFAULT 0, canceled_at INTEGER DEFAULT 0)`)
+	require.NoError(t, err)
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS steps (id INTEGER PRIMARY KEY, original_step_id INTEGER DEFAULT 0, attempt INTEGER DEFAULT 1)`)
+	require.NoError(t, err)
+
+	// First run — migrations execute but columns already exist, so
+	// addColumnIfNotExists takes the "column exists" path.
+	err = Migrate(t.Context(), db, driver, true)
+	require.NoError(t, err)
+
+	// Second run — all migration IDs are already recorded, nothing executes.
+	// This confirms the migrations were properly recorded.
+	err = Migrate(t.Context(), db, driver, true)
+	require.NoError(t, err)
+}
+
 // TestMigrate_NewMigrations_PortableSQL verifies that new migrations use
 // SQL syntax compatible with all supported databases.
 // It simulates an existing database with all legacy migrations applied,

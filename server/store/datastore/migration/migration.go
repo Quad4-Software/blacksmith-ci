@@ -262,16 +262,16 @@ func addStepRerunFields(tx *sql.Tx) error {
 
 // tableExists checks whether a table exists in the database using a savepoint
 // so that a failed probe doesn't poison the surrounding transaction.
-// The rows are closed before returning, ensuring no open result sets leak to callers.
+// Uses QueryRow+Scan to fully consume the result inline, avoiding open result
+// sets that break MySQL's single-result-set-per-connection constraint.
 func tableExists(tx *sql.Tx, table string) bool {
 	_, _ = tx.Exec("SAVEPOINT table_check")
-	rows, err := tx.Query(fmt.Sprintf("SELECT 1 FROM %s LIMIT 1", table)) //nolint:gosec
+	var dummy int
+	err := tx.QueryRow(fmt.Sprintf("SELECT 1 FROM %s LIMIT 1", table)).Scan(&dummy) //nolint:gosec
 	if err != nil {
 		_, _ = tx.Exec("ROLLBACK TO SAVEPOINT table_check")
 		return false
 	}
-	defer rows.Close()
-	_ = rows.Err()
 	_, _ = tx.Exec("RELEASE SAVEPOINT table_check")
 	return true
 }
