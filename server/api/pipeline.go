@@ -237,6 +237,9 @@ func GetPipelines(ctx context.Context, input *GetPipelinesInput) (*GetPipelinesO
 	if err != nil {
 		return nil, huma.Error500InternalServerError("error getting pipeline list", err)
 	}
+	if pipelines == nil {
+		pipelines = []*model.Pipeline{}
+	}
 	return &GetPipelinesOutput{Body: pipelines}, nil
 }
 
@@ -255,6 +258,9 @@ func GetWorkflowNames(ctx context.Context, input *GetWorkflowNamesInput) (*GetWo
 	names, err := store.FromContext(c).WorkflowNamesByRepo(repo.ID)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("error getting workflow names", err)
+	}
+	if names == nil {
+		names = []string{}
 	}
 	return &GetWorkflowNamesOutput{Body: names}, nil
 }

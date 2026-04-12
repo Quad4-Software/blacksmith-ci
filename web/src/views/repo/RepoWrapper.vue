@@ -452,7 +452,7 @@ watch(
 
       const loadWorkflowNames = async () => {
         try {
-          workflowNames.value = await apiClient.getWorkflowNames(repoId);
+          workflowNames.value = (await apiClient.getWorkflowNames(repoId)) ?? [];
         } catch {
           workflowNames.value = [];
         }

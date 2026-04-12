@@ -176,7 +176,7 @@ export const usePipelineStore = defineStore('pipelines', () => {
       workflow?: string;
     },
   ): Promise<Pipeline[]> {
-    const _pipelines = await apiClient.getPipelineList(repoId, opts);
+    const _pipelines = (await apiClient.getPipelineList(repoId, opts)) ?? [];
 
     // Store all fetched pipelines
     _pipelines.forEach((pipeline) => {

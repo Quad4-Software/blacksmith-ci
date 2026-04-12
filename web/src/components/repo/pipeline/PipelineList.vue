@@ -390,7 +390,7 @@ if (props.repo) {
   apiClient
     .getWorkflowNames(props.repo.id)
     .then((names) => {
-      workflowNames.value = names;
+      workflowNames.value = names ?? [];
       return undefined;
     })
     .catch(() => {
