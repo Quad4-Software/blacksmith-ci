@@ -117,6 +117,11 @@ func newHumaAPI(engine *gin.Engine, group *gin.RouterGroup, title, version strin
 		config.DocsPath = ""
 	}
 	config.SchemasPath = ""
+	// Disable the SchemaLinkTransformer that huma registers by default.
+	// It calls reflect.StructOf on response types, which panics for types
+	// that embed a struct with methods (e.g. AutoscalerWithToken embeds
+	// Autoscaler). Since SchemasPath is empty the feature is unused anyway.
+	config.CreateHooks = nil
 
 	humaAPI := humagin.NewWithGroup(engine, group, config)
 
