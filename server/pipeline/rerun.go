@@ -24,6 +24,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	backend_types "codefloe.com/crowci/crow/v5/pipeline/backend/types"
+	"codefloe.com/crowci/crow/v5/server"
 	"codefloe.com/crowci/crow/v5/server/forge"
 	forge_types "codefloe.com/crowci/crow/v5/server/forge/types"
 	"codefloe.com/crowci/crow/v5/server/model"
@@ -97,9 +98,11 @@ func RerunWorkflow(ctx context.Context, _forge forge.Forge, _store store.Store, 
 				filteredItems = append(filteredItems, item)
 			}
 		} else {
-			// For cascading dependents, check if the corresponding existing variant was failing/skipped
+			// For cascading dependents, check if the corresponding existing variant was failing/skipped/pending.
+			// Pending dependents are included because they are stuck waiting on a failed dependency
+			// and will never become eligible without being re-queued with the new dependency IDs.
 			latestExisting := findLatestWorkflowByVariant(workflows, item.Workflow.Name, item.Workflow.Environ)
-			if latestExisting != nil && (latestExisting.Failing() || latestExisting.State == model.StatusSkipped) {
+			if latestExisting != nil && (latestExisting.Failing() || latestExisting.State == model.StatusSkipped || latestExisting.State == model.StatusPending) {
 				filteredItems = append(filteredItems, item)
 			}
 		}
@@ -182,6 +185,11 @@ func RerunWorkflow(ctx context.Context, _forge forge.Forge, _store store.Store, 
 	if err := _store.WorkflowsCreate(newWorkflows); err != nil {
 		return fmt.Errorf("failure to persist rerun workflows: %w", err)
 	}
+
+	// Evict old pending tasks from the queue and mark superseded workflows as skipped.
+	// When a dependent workflow was stuck pending (its dep failed), the old task is in
+	// the queue with stale dependency IDs that can never be satisfied.
+	evictSupersededWorkflows(ctx, _store, workflows, pipelineItems)
 
 	// Update pipeline status back to running if it was finished
 	if currentPipeline.Status != model.StatusRunning && currentPipeline.Status != model.StatusPending {
@@ -295,7 +303,7 @@ func buildAttemptInfo(workflows []*model.Workflow) map[string]attemptData {
 // Upstream dependencies must be included in the filter so that
 // filterItemsWithMissingDependencies (in the step builder) does not strip
 // the target workflow for having "missing" deps. The post-filter in
-// RerunWorkflow ensures only the target and its failing/skipped dependents
+// RerunWorkflow ensures only the target and its failing/skipped/pending dependents
 // are actually rerun — successful upstream deps are excluded there.
 //
 // Note: this returns names for the WorkflowFilter. For matrix builds,
@@ -664,4 +672,47 @@ func buildStepAttemptInfo(workflows []*model.Workflow, workflowName string, work
 		}
 	}
 	return info
+}
+
+// evictSupersededWorkflows removes old pending tasks from the queue and marks
+// old workflows as skipped when they are being superseded by new rerun attempts.
+// This prevents stale tasks (with outdated dependency IDs) from lingering in the queue.
+func evictSupersededWorkflows(ctx context.Context, _store store.Store, existingWorkflows []*model.Workflow, newItems []*stepbuilder.Item) {
+	rerunVariants := make(map[string]bool, len(newItems))
+	for _, item := range newItems {
+		rerunVariants[variantKey(item.Workflow.Name, item.Workflow.Environ)] = true
+	}
+
+	var taskIDsToEvict []string
+	var workflowsToSkip []*model.Workflow
+
+	for _, wf := range existingWorkflows {
+		if wf.State != model.StatusPending {
+			continue
+		}
+		if !rerunVariants[variantKey(wf.Name, wf.Environ)] {
+			continue
+		}
+		taskIDsToEvict = append(taskIDsToEvict, fmt.Sprint(wf.ID))
+		workflowsToSkip = append(workflowsToSkip, wf)
+	}
+
+	if len(taskIDsToEvict) > 0 {
+		if err := server.Config.Services.Queue.EvictAtOnce(ctx, taskIDsToEvict); err != nil {
+			log.Error().Err(err).Strs("taskIDs", taskIDsToEvict).Msg("failed to evict superseded tasks from queue")
+		}
+	}
+
+	for _, wf := range workflowsToSkip {
+		if _, err := UpdateWorkflowToStatusSkipped(_store, *wf); err != nil {
+			log.Error().Err(err).Int64("workflowID", wf.ID).Msg("failed to mark superseded workflow as skipped")
+		}
+		for _, step := range wf.Children {
+			if step.State == model.StatusPending {
+				if _, err := UpdateStepToStatusSkipped(_store, *step, 0); err != nil {
+					log.Error().Err(err).Int64("stepID", step.ID).Msg("failed to mark superseded step as skipped")
+				}
+			}
+		}
+	}
 }
