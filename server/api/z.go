@@ -27,7 +27,7 @@ import (
 // Version serves the server version (registered on the base route, not the API).
 func Version(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
-		"source":  "https://codeberg.org/crowci/crow",
+		"source":  "https://codefloe.com/crowci/crow",
 		"version": version.String(),
 	})
 }
