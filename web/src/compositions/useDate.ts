@@ -9,7 +9,7 @@ function splitDuration(durationMs: number) {
 
   const seconds = Math.floor(totalSeconds) % 60;
   const minutes = Math.floor(totalMinutes) % 60;
-  const hours = Math.floor(totalHours) % 24;
+  const hours = Math.floor(totalHours);
 
   return {
     seconds,
@@ -69,11 +69,14 @@ function prettyDuration(durationMs: number) {
   const t = splitDuration(durationMs);
 
   if (t.totalHours > 1) {
-    const hours = Math.floor(t.totalHours);
-    const totalMinutesRemaining = (t.totalHours - hours) * 60;
+    const totalHoursFloor = Math.floor(t.totalHours);
+    const days = Math.floor(totalHoursFloor / 24);
+    const hours = totalHoursFloor % 24;
+    const totalMinutesRemaining = (t.totalHours - totalHoursFloor) * 60;
     const minutes = Math.floor(totalMinutesRemaining);
     const seconds = Math.round((totalMinutesRemaining - minutes) * 60);
-    return `${hours}h ${minutes}m ${seconds}s`;
+    const hms = `${hours}h ${minutes}m ${seconds}s`;
+    return days > 0 ? `${days}d ${hms}` : hms;
   }
   if (t.totalMinutes > 1) {
     const minutes = Math.floor(t.totalMinutes);
@@ -103,7 +106,13 @@ function prettyDuration(durationMs: number) {
 function durationAsNumber(durationMs: number): string {
   const { seconds, minutes, hours } = splitDuration(durationMs);
 
+  const days = Math.floor(hours / 24);
+  const remainingHours = hours % 24;
   const minSecFormat = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+  if (days > 0) {
+    return `${days}d ${remainingHours.toString().padStart(2, '0')}:${minSecFormat}`;
+  }
 
   if (hours > 0) {
     return `${hours.toString().padStart(2, '0')}:${minSecFormat}`;

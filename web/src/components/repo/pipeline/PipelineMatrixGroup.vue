@@ -201,7 +201,7 @@
               @click.stop="$emit('cancelWorkflow', workflow.id)"
             />
             <!-- Duration -->
-            <span class="shrink-0 text-xs text-right w-10 pr-1">
+            <span class="shrink-0 text-xs text-right w-16 pr-1">
               <PipelineStepDuration
                 v-if="workflow.started !== workflow.finished"
                 :workflow="workflow"
@@ -252,7 +252,7 @@
                 :title="$t('repo.pipeline.actions.rerun_step')"
                 @click.stop="$emit('rerunStep', workflow.id, step.id)"
               />
-              <span class="shrink-0 text-right w-10 pr-1">
+              <span class="shrink-0 text-right w-16 pr-1">
                 <PipelineStepDuration :step="step" class="text-xs" />
               </span>
             </div>
