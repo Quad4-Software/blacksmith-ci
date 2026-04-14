@@ -141,7 +141,10 @@ func (s *CrowAuthServer) authenticateWithAgentMasterToken(id int64) (*AuthEntity
 	agent, err := s.store.AgentFind(id)
 	if err != nil {
 		if errors.Is(err, types.RecordNotExist) {
-			return nil, "", fmt.Errorf("agent ID not found in database")
+			// Agent ID no longer exists (e.g. after a server upgrade or database reset).
+			// Re-register as a new agent instead of failing.
+			log.Warn().Int64("agent_id", id).Msg("agent ID not found in database, re-registering as new agent")
+			return s.authenticateWithAgentMasterToken(-1)
 		}
 		return nil, "", err
 	}
