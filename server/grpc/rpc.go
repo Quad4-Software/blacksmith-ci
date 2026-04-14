@@ -24,7 +24,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 	grpcMetadata "google.golang.org/grpc/metadata"
 
@@ -44,12 +43,11 @@ import (
 const updateAgentLastWorkDelay = time.Minute
 
 type RPC struct {
-	queue         queue.Queue
-	pubsub        pubsub.Publisher
-	logger        logging.Log
-	store         store.Store
-	pipelineTime  *prometheus.GaugeVec
-	pipelineCount *prometheus.CounterVec
+	queue   queue.Queue
+	pubsub  pubsub.Publisher
+	logger  logging.Log
+	store   store.Store
+	metrics *GRPCMetrics
 }
 
 // Replaces legacy filter labels with new ones.
@@ -434,11 +432,13 @@ func (s *RPC) Done(c context.Context, strWorkflowID string, state rpc.WorkflowSt
 	}
 
 	if currentPipeline.Status == model.StatusSuccess || currentPipeline.Status == model.StatusFailure {
-		s.pipelineCount.WithLabelValues(repo.FullName, currentPipeline.Branch, string(currentPipeline.Status), "total").Inc()
-		s.pipelineTime.WithLabelValues(repo.FullName, currentPipeline.Branch, string(currentPipeline.Status), "total").Set(float64(currentPipeline.Finished - currentPipeline.Started))
+		s.metrics.PipelineCount.WithLabelValues(repo.FullName, currentPipeline.Branch, string(currentPipeline.Status), "total").Inc()
+		s.metrics.PipelineTime.WithLabelValues(repo.FullName, currentPipeline.Branch, string(currentPipeline.Status), "total").Set(float64(currentPipeline.Finished - currentPipeline.Started))
+		duration := float64(currentPipeline.Finished - currentPipeline.Started)
+		s.metrics.PipelineDuration.WithLabelValues(repo.FullName, currentPipeline.Branch, string(currentPipeline.Status)).Observe(duration)
 	}
 	if currentPipeline.IsMultiPipeline() {
-		s.pipelineTime.WithLabelValues(repo.FullName, currentPipeline.Branch, string(workflow.State), workflow.Name).Set(float64(workflow.Finished - workflow.Started))
+		s.metrics.PipelineTime.WithLabelValues(repo.FullName, currentPipeline.Branch, string(workflow.State), workflow.Name).Set(float64(workflow.Finished - workflow.Started))
 	}
 
 	s.publishAgentStats(c, agent.ID)
@@ -551,6 +551,8 @@ func (s *RPC) RegisterAgent(ctx context.Context, info rpc.AgentInfo) (int64, str
 		return -1, "", err
 	}
 
+	s.metrics.AgentRegistrations.Inc()
+
 	log.Info().
 		Int64("agent_id", agent.ID).
 		Str("name", agent.Name).
@@ -568,18 +570,22 @@ func (s *RPC) RegisterAgent(ctx context.Context, info rpc.AgentInfo) (int64, str
 // UnregisterAgent removes the agent from the database.
 func (s *RPC) UnregisterAgent(ctx context.Context) error {
 	agent, err := s.getAgentFromContext(ctx)
+	if err != nil {
+		return err
+	}
 	if !agent.IsSystemAgent() {
 		// registered with individual agent token -> do not unregister
 		return nil
 	}
 	log.Debug().Msgf("un-registering agent with ID %d", agent.ID)
-	if err != nil {
+
+	if err = s.store.AgentDelete(agent); err != nil {
 		return err
 	}
 
-	err = s.store.AgentDelete(agent)
+	s.metrics.AgentUnregistrations.Inc()
 
-	return err
+	return nil
 }
 
 func (s *RPC) ReportHealth(ctx context.Context, status string, workflowPollingHealthy bool) (*rpc.DockerCleanupConfig, error) {

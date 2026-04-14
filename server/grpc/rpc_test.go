@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc/metadata"
@@ -33,7 +34,33 @@ import (
 	"codefloe.com/crowci/crow/v5/server/store/types"
 )
 
+// newTestGRPCMetrics creates a GRPCMetrics using a fresh registry to avoid
+// duplicate registration panics when multiple tests run in the same process.
+func newTestGRPCMetrics() *GRPCMetrics {
+	f := promauto.With(prometheus.NewRegistry())
+	return &GRPCMetrics{
+		PipelineTime: f.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: "crow", Name: "pipeline_time",
+		}, []string{"repo", "branch", "status", "pipeline"}),
+		PipelineCount: f.NewCounterVec(prometheus.CounterOpts{
+			Namespace: "crow", Name: "pipeline_count",
+		}, []string{"repo", "branch", "status", "pipeline"}),
+		PipelineDuration: f.NewHistogramVec(prometheus.HistogramOpts{
+			Namespace: "crow", Name: "pipeline_duration_seconds",
+			Buckets: []float64{30, 60, 120, 300, 600, 1200, 1800, 3600},
+		}, []string{"repo", "branch", "status"}),
+		AgentRegistrations: f.NewCounter(prometheus.CounterOpts{
+			Namespace: "crow", Name: "agent_registrations_total",
+		}),
+		AgentUnregistrations: f.NewCounter(prometheus.CounterOpts{
+			Namespace: "crow", Name: "agent_unregistrations_total",
+		}),
+	}
+}
+
 func TestRegisterAgent(t *testing.T) {
+	metrics := newTestGRPCMetrics()
+
 	t.Run("When existing agent Name is empty it should update Name with hostname from metadata", func(t *testing.T) {
 		store := new(store_mocks.MockStore)
 		storeAgent := new(model.Agent)
@@ -53,7 +80,8 @@ func TestRegisterAgent(t *testing.T) {
 		store.On("AgentFind", int64(1337)).Once().Return(storeAgent, nil)
 		store.On("AgentUpdate", agentMatcher).Once().Return(nil)
 		grpc := RPC{
-			store: store,
+			store:   store,
+			metrics: metrics,
 		}
 		ctx := metadata.NewIncomingContext(
 			t.Context(),
@@ -93,7 +121,8 @@ func TestRegisterAgent(t *testing.T) {
 		store.On("AgentFind", int64(1337)).Once().Return(storeAgent, nil)
 		store.On("AgentUpdate", agentMatcher).Once().Return(nil)
 		grpc := RPC{
-			store: store,
+			store:   store,
+			metrics: metrics,
 		}
 		ctx := metadata.NewIncomingContext(
 			t.Context(),
@@ -171,12 +200,11 @@ func TestRPC_Done_MissingWorkflow(t *testing.T) {
 	mockLogger := logging.New()
 
 	rpcServer := &RPC{
-		queue:         mockQueue,
-		pubsub:        pubsub.New(),
-		logger:        mockLogger,
-		store:         mockStore,
-		pipelineTime:  prometheus.NewGaugeVec(prometheus.GaugeOpts{}, []string{"repo", "branch", "status", "type"}),
-		pipelineCount: prometheus.NewCounterVec(prometheus.CounterOpts{}, []string{"repo", "branch", "status", "type"}),
+		queue:   mockQueue,
+		pubsub:  pubsub.New(),
+		logger:  mockLogger,
+		store:   mockStore,
+		metrics: newTestGRPCMetrics(),
 	}
 
 	// Create context with required metadata
@@ -213,12 +241,11 @@ func TestRPC_Done_MissingWorkflow_QueueError(t *testing.T) {
 	mockLogger := logging.New()
 
 	rpcServer := &RPC{
-		queue:         mockQueue,
-		pubsub:        pubsub.New(),
-		logger:        mockLogger,
-		store:         mockStore,
-		pipelineTime:  prometheus.NewGaugeVec(prometheus.GaugeOpts{}, []string{"repo", "branch", "status", "type"}),
-		pipelineCount: prometheus.NewCounterVec(prometheus.CounterOpts{}, []string{"repo", "branch", "status", "type"}),
+		queue:   mockQueue,
+		pubsub:  pubsub.New(),
+		logger:  mockLogger,
+		store:   mockStore,
+		metrics: newTestGRPCMetrics(),
 	}
 
 	// Create context with required metadata

@@ -18,8 +18,6 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/prometheus/client_golang/prometheus"
-	prometheus_auto "github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/rs/zerolog/log"
 
 	"codefloe.com/crowci/crow/v5/pipeline/rpc"
@@ -38,23 +36,12 @@ type CrowServer struct {
 }
 
 func NewCrowServer(queue queue.Queue, logger logging.Log, pubsub pubsub.Publisher, store store.Store) proto.CrowServer {
-	pipelineTime := prometheus_auto.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "crow",
-		Name:      "pipeline_time",
-		Help:      "Pipeline time.",
-	}, []string{"repo", "branch", "status", "pipeline"})
-	pipelineCount := prometheus_auto.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "crow",
-		Name:      "pipeline_count",
-		Help:      "Pipeline count.",
-	}, []string{"repo", "branch", "status", "pipeline"})
 	peer := RPC{
-		store:         store,
-		queue:         queue,
-		pubsub:        pubsub,
-		logger:        logger,
-		pipelineTime:  pipelineTime,
-		pipelineCount: pipelineCount,
+		store:   store,
+		queue:   queue,
+		pubsub:  pubsub,
+		logger:  logger,
+		metrics: NewGRPCMetrics(),
 	}
 	return &CrowServer{peer: peer}
 }

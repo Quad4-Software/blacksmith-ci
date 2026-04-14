@@ -63,6 +63,11 @@ func startMetricsCollector(ctx context.Context, _store store.Store) {
 		Name:      "repo_count",
 		Help:      "Total number of repos.",
 	})
+	connectedAgents := prometheus_auto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "crow",
+		Name:      "connected_agents",
+		Help:      "Current number of connected agents.",
+	})
 
 	go func() {
 		log.Info().Msg("queue metric collector started")
@@ -89,11 +94,13 @@ func startMetricsCollector(ctx context.Context, _store store.Store) {
 			repoCount, repoErr := _store.GetRepoCount()
 			userCount, userErr := _store.GetUserCount()
 			pipelineCount, pipelineErr := _store.GetPipelineCount()
+			agents, agentErr := _store.AgentList(nil)
 			pipelines.Set(float64(pipelineCount))
 			users.Set(float64(userCount))
 			repos.Set(float64(repoCount))
+			connectedAgents.Set(float64(len(agents)))
 
-			if err := errors.Join(repoErr, userErr, pipelineErr); err != nil {
+			if err := errors.Join(repoErr, userErr, pipelineErr, agentErr); err != nil {
 				log.Error().Err(err).Msg("could not update store information for metrics")
 			}
 
