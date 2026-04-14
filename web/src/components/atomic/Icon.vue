@@ -149,6 +149,7 @@ const iconMap: Record<string, string> = {
   docker: 'package',
   'visibility-private': 'lock',
   'visibility-internal': 'lock-open',
+  dependency: 'git-merge',
   'mdi-wind-power-outline': 'wind',
   'email-outline': 'mail',
   graph: 'chart-bar',

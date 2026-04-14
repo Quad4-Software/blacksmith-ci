@@ -42,7 +42,7 @@
         <span class="truncate ml-1">{{ prettyRef }}</span>
       </div>
 
-      <div class="flex shrink-0 items-center">
+      <div class="flex shrink-0 items-center gap-1">
         <template v-if="pipeline.event === 'pull_request'">
           <Icon name="commit" size="1rem" /> <span>{{ pipeline.commit.slice(0, 10) }}</span>
         </template>
@@ -54,6 +54,22 @@
         >
           <Icon name="commit" size="1rem" /> <span class="truncate ml-1">{{ pipeline.commit.slice(0, 10) }}</span>
         </a>
+        <!-- Tree/flat view toggle -->
+        <TooltipProvider v-if="hasAnyDependencies">
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <button
+                class="inline-flex items-center justify-center rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                @click="treeView = !treeView"
+              >
+                <Icon :name="treeView ? 'tasks' : 'list'" size="1rem" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              {{ treeView ? $t('repo.pipeline.actions.flat_view') : $t('repo.pipeline.actions.tree_view') }}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </div>
     <Panel v-if="pipeline.workflows === undefined || pipeline.workflows.length === 0">
@@ -74,6 +90,7 @@
               :is-canceling-workflow="isCancelingWorkflow"
               :is-rerunning-workflow="isRerunningWorkflow"
               :is-rerunning-step="isRerunningStep"
+              :tree-view="treeView"
               @update:selected-step-id="selectStep"
               @cancel-workflow="cancelWorkflow($event)"
               @rerun-workflow="rerunWorkflow($event)"
@@ -107,6 +124,23 @@
                 <span class="min-w-0 font-medium truncate">
                   {{ group.workflows[0].name }}
                 </span>
+                <!-- Workflow depends_on tooltip -->
+                <TooltipProvider v-if="group.workflows[0].depends_on && group.workflows[0].depends_on.length > 0">
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <span class="shrink-0 text-muted-foreground">
+                        <Icon name="dependency" size="0.85rem" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {{
+                        $t('repo.pipeline.actions.workflow_depends_on_tooltip', {
+                          names: group.workflows[0].depends_on.join(', '),
+                        })
+                      }}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
                 <!-- Attempt dropdown -->
                 <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
                 <DropdownMenu v-if="workflowHasReruns(group.workflows[0])">
@@ -191,37 +225,67 @@
                 :class="{ 'max-h-0': workflowsCollapsed[group.workflows[0].id] }"
               >
                 <div
-                  v-for="step in group.workflows[0].children"
-                  :key="step.pid"
+                  v-for="(node, nodeIdx) in getStepNodes(group.workflows[0])"
+                  :key="node.step.pid"
                   class="flex items-center gap-1 h-8 px-1 transition-colors hover:bg-accent cursor-pointer border-b border-border last:border-b-0"
                   :class="{
-                    'border-t border-border': step === group.workflows[0].children[0],
-                    'bg-accent': step.pid === selectedStepId,
+                    'border-t border-border': nodeIdx === 0,
+                    'bg-accent': node.step.pid === selectedStepId,
                   }"
-                  @click="selectStep(step.pid)"
+                  @click="selectStep(node.step.pid)"
                 >
-                  <span class="shrink-0 w-4" />
+                  <!-- Indentation with tree connectors -->
+                  <template v-if="treeView && node.depth > 0">
+                    <span
+                      v-for="d in node.depth"
+                      :key="d"
+                      class="step-tree-connector shrink-0 w-4 h-8 relative"
+                      :class="{
+                        'connector-vertical': d < node.depth && node.connectorLines[d - 1],
+                        'connector-branch': d === node.depth && !node.isLast,
+                        'connector-last': d === node.depth && node.isLast,
+                      }"
+                    />
+                  </template>
+                  <span v-else class="shrink-0 w-4" />
                   <PipelineStatusIcon
-                    :service="step.type === StepType.Service"
-                    :status="step.state"
+                    :service="node.step.type === StepType.Service"
+                    :status="node.step.state"
                     class="h-4 w-4 shrink-0 mr-0.5"
                   />
-                  <span class="min-w-0 truncate">{{ step.name }}</span>
+                  <span class="min-w-0 truncate">{{ node.step.name }}</span>
+                  <!-- Multi-dependency tooltip -->
+                  <TooltipProvider v-if="node.effectiveDeps.length > 1">
+                    <Tooltip>
+                      <TooltipTrigger as-child>
+                        <span class="shrink-0 text-muted-foreground">
+                          <Icon name="dependency" size="0.85rem" />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {{
+                          $t('repo.pipeline.actions.depends_on_tooltip', {
+                            names: node.effectiveDeps.join(', '),
+                          })
+                        }}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                   <!-- Step attempt dropdown -->
                   <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
-                  <DropdownMenu v-if="stepHasReruns(step)">
+                  <DropdownMenu v-if="stepHasReruns(node.step)">
                     <DropdownMenuTrigger as-child>
                       <button
                         class="shrink-0 inline-flex items-center gap-0.5 rounded border border-primary/70 px-1 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-accent transition-colors"
                         @click.stop
                       >
-                        #{{ step.attempt ?? 1 }}
+                        #{{ node.step.attempt ?? 1 }}
                         <Icon name="chevron-down" class="h-2.5 w-2.5" />
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
                       <DropdownMenuItem
-                        v-for="attempt in stepAttempts(step)"
+                        v-for="attempt in stepAttempts(node.step)"
                         :key="attempt.id"
                         class="flex items-center gap-2 text-xs"
                         @click.stop="selectStep(attempt.pid)"
@@ -235,16 +299,16 @@
                   <span class="flex-1" />
                   <!-- Rerun step -->
                   <IconButton
-                    v-if="hasPushPermission && isStepCompleted(step)"
-                    :is-loading="isRerunningStep[step.id]"
+                    v-if="hasPushPermission && isStepCompleted(node.step)"
+                    :is-loading="isRerunningStep[node.step.id]"
                     icon="solar:restart-bold"
                     class="shrink-0 text-primary hover:text-primary/80 hover:bg-accent"
                     size="0.9rem"
                     :title="$t('repo.pipeline.actions.rerun_step')"
-                    @click.stop="rerunStep(group.workflows[0].id, step.id)"
+                    @click.stop="rerunStep(group.workflows[0].id, node.step.id)"
                   />
                   <span class="shrink-0 text-right w-16 pr-1">
-                    <PipelineStepDuration :step="step" />
+                    <PipelineStepDuration :step="node.step" />
                   </span>
                 </div>
               </div>
@@ -274,12 +338,14 @@ import {
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu';
 import { ScrollArea } from '~/components/ui/scroll-area';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import { requiredInject } from '~/compositions/useInjectProvide';
 import usePipeline from '~/compositions/usePipeline';
 import useApiClient from '~/compositions/useApiClient';
 import useNotifications from '~/compositions/useNotifications';
 import { StepType } from '~/lib/api/types';
 import type { Pipeline, PipelineStep, PipelineWorkflow } from '~/lib/api/types';
+import type { StepTreeNode } from '~/lib/pipeline-utils';
 import {
   identifyMatrixGroups,
   getLatestAttempts,
@@ -287,6 +353,7 @@ import {
   hasReruns,
   getStepAttempts,
   hasStepReruns,
+  buildStepTree,
 } from '~/lib/pipeline-utils';
 import { usePipelineStore } from '~/store/pipelines';
 import { useI18n } from 'vue-i18n';
@@ -312,6 +379,31 @@ const i18n = useI18n();
 
 const allWorkflows = computed(() => pipeline.value.workflows || []);
 const workflowGroups = computed(() => identifyMatrixGroups(getLatestAttempts(allWorkflows.value)));
+
+const treeView = ref(true);
+
+const hasAnyDependencies = computed(() =>
+  allWorkflows.value.some(
+    (wf) =>
+      (wf.depends_on && wf.depends_on.length > 0) || wf.children.some((s) => s.depends_on && s.depends_on.length > 0),
+  ),
+);
+
+function getStepNodes(workflow: PipelineWorkflow): StepTreeNode[] {
+  if (treeView.value) {
+    return buildStepTree(workflow.children);
+  }
+  const dagRootNames = new Set(
+    workflow.children.filter((s) => !s.depends_on || s.depends_on.length === 0).map((s) => s.name),
+  );
+  return workflow.children.map((step) => ({
+    step,
+    depth: 0,
+    isLast: true,
+    connectorLines: [],
+    effectiveDeps: (step.depends_on ?? []).filter((d) => !dagRootNames.has(d)),
+  }));
+}
 
 const workflowsCollapsed = ref<Record<PipelineStep['id'], boolean>>(
   pipeline.value.workflows && pipeline.value.workflows.length > 1
@@ -498,3 +590,60 @@ function selectStep(stepId: number) {
   emit('update:selected-step-id', stepId);
 }
 </script>
+
+<style scoped>
+.step-tree-connector {
+  --connector-color: var(--color-border);
+}
+
+/* Vertical line through the full height (ancestor still has children below) */
+.connector-vertical::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--connector-color);
+}
+
+/* Branch connector: vertical line + horizontal branch (├──) */
+.connector-branch::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--connector-color);
+}
+.connector-branch::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 50%;
+  height: 1px;
+  background: var(--connector-color);
+}
+
+/* Last child connector: vertical line from top to middle + horizontal branch (└──) */
+.connector-last::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  height: 50%;
+  width: 1px;
+  background: var(--connector-color);
+}
+.connector-last::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 50%;
+  height: 1px;
+  background: var(--connector-color);
+}
+</style>

@@ -228,32 +228,62 @@
             :class="{ 'max-h-0': expandedVariantId !== workflow.id }"
           >
             <div
-              v-for="step in workflow.children"
-              :key="step.pid"
+              v-for="node in getStepNodes(workflow)"
+              :key="node.step.pid"
               class="flex items-center gap-1 h-7 px-1 transition-colors hover:bg-accent cursor-pointer border-b border-border last:border-b-0 bg-muted/30"
-              :class="{ 'bg-accent!': step.pid === selectedStepId }"
-              @click.stop="$emit('update:selectedStepId', step.pid)"
+              :class="{ 'bg-accent!': node.step.pid === selectedStepId }"
+              @click.stop="$emit('update:selectedStepId', node.step.pid)"
             >
-              <span class="shrink-0 w-3" />
+              <!-- Indentation with tree connectors -->
+              <template v-if="treeView && node.depth > 0">
+                <span
+                  v-for="d in node.depth"
+                  :key="d"
+                  class="step-tree-connector shrink-0 w-3 h-7 relative"
+                  :class="{
+                    'connector-vertical': d < node.depth && node.connectorLines[d - 1],
+                    'connector-branch': d === node.depth && !node.isLast,
+                    'connector-last': d === node.depth && node.isLast,
+                  }"
+                />
+              </template>
+              <span v-else class="shrink-0 w-3" />
               <PipelineStatusIcon
-                :service="step.type === StepType.Service"
-                :status="step.state"
+                :service="node.step.type === StepType.Service"
+                :status="node.step.state"
                 class="h-3.5 w-3.5 shrink-0 mr-0.5"
               />
-              <span class="min-w-0 truncate text-sm">{{ step.name }}</span>
+              <span class="min-w-0 truncate text-sm">{{ node.step.name }}</span>
+              <!-- Multi-dependency tooltip -->
+              <TooltipProvider v-if="node.effectiveDeps.length > 1">
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <span class="shrink-0 text-muted-foreground">
+                      <Icon name="dependency" size="0.75rem" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {{
+                      $t('repo.pipeline.actions.depends_on_tooltip', {
+                        names: node.effectiveDeps.join(', '),
+                      })
+                    }}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <span class="flex-1" />
               <!-- Rerun step -->
               <IconButton
-                v-if="hasPushPermission && isStepCompleted(step)"
-                :is-loading="isRerunningStep[step.id]"
+                v-if="hasPushPermission && isStepCompleted(node.step)"
+                :is-loading="isRerunningStep[node.step.id]"
                 icon="solar:restart-bold"
                 class="shrink-0 text-primary hover:text-primary/80 hover:bg-accent"
                 size="0.8rem"
                 :title="$t('repo.pipeline.actions.rerun_step')"
-                @click.stop="$emit('rerunStep', workflow.id, step.id)"
+                @click.stop="$emit('rerunStep', workflow.id, node.step.id)"
               />
               <span class="shrink-0 text-right w-16 pr-1">
-                <PipelineStepDuration :step="step" class="text-xs" />
+                <PipelineStepDuration :step="node.step" class="text-xs" />
               </span>
             </div>
           </div>
@@ -278,6 +308,7 @@ import Icon from '~/components/atomic/Icon.vue';
 import IconButton from '~/components/atomic/IconButton.vue';
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
 import PipelineStepDuration from '~/components/repo/pipeline/PipelineStepDuration.vue';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import {
   Combobox,
   ComboboxAnchor,
@@ -298,11 +329,13 @@ import {
 import { requiredInject } from '~/compositions/useInjectProvide';
 import { StepType } from '~/lib/api/types';
 import type { PipelineStatus, PipelineStep, PipelineWorkflow } from '~/lib/api/types';
+import type { StepTreeNode } from '~/lib/pipeline-utils';
 import {
   aggregateWorkflowDuration,
   aggregateWorkflowStatus,
   hasReruns,
   getWorkflowAttempts,
+  buildStepTree,
 } from '~/lib/pipeline-utils';
 
 const props = defineProps<{
@@ -314,6 +347,7 @@ const props = defineProps<{
   isCancelingWorkflow: Record<number, boolean>;
   isRerunningWorkflow: Record<number, boolean>;
   isRerunningStep: Record<number, boolean>;
+  treeView: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -558,6 +592,22 @@ function getAgentDisplay(agentId: number): string {
 function isStepCompleted(step: PipelineStep) {
   return step.state !== 'pending' && step.state !== 'running';
 }
+
+function getStepNodes(workflow: PipelineWorkflow): StepTreeNode[] {
+  if (props.treeView) {
+    return buildStepTree(workflow.children);
+  }
+  const dagRootNames = new Set(
+    workflow.children.filter((s) => !s.depends_on || s.depends_on.length === 0).map((s) => s.name),
+  );
+  return workflow.children.map((step) => ({
+    step,
+    depth: 0,
+    isLast: true,
+    connectorLines: [],
+    effectiveDeps: (step.depends_on ?? []).filter((d) => !dagRootNames.has(d)),
+  }));
+}
 </script>
 
 <style scoped>
@@ -569,5 +619,57 @@ function isStepCompleted(step: PipelineStep) {
 
 :deep([data-slot='command-input-wrapper'] > svg) {
   display: none;
+}
+
+.step-tree-connector {
+  --connector-color: var(--color-border);
+}
+
+.connector-vertical::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--connector-color);
+}
+
+.connector-branch::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--connector-color);
+}
+.connector-branch::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 50%;
+  height: 1px;
+  background: var(--connector-color);
+}
+
+.connector-last::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  height: 50%;
+  width: 1px;
+  background: var(--connector-color);
+}
+.connector-last::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 50%;
+  height: 1px;
+  background: var(--connector-color);
 }
 </style>

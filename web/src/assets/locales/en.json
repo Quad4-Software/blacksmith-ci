@@ -494,7 +494,11 @@
         "rerun_workflow": "Rerun workflow",
         "rerun_step": "Rerun step",
         "notify_text_rerun_success": "Workflow rerun started",
-        "notify_text_step_rerun_success": "Step rerun started"
+        "notify_text_step_rerun_success": "Step rerun started",
+        "tree_view": "Tree view",
+        "flat_view": "Flat view",
+        "depends_on_tooltip": "Depends on: {names}",
+        "workflow_depends_on_tooltip": "Waiting on: {names}"
       },
       "matrix": {
         "filter_placeholder": "Filter variants…",

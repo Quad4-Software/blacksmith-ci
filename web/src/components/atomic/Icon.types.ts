@@ -128,6 +128,7 @@ export type IconNames =
   | 'lucide:corner-down-left'
   | 'lucide:heart-pulse'
   | 'lucide:lock'
+  | 'dependency'
   | 'mdi-wind-power-outline'
   | 'email-outline'
   | 'solar:restart-bold';
