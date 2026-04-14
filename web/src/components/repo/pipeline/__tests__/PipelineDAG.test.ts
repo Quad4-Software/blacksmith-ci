@@ -191,11 +191,11 @@ describe('pipelineDAG', () => {
     });
 
     // Wait for component to initialize
-    await (wrapper.vm as any).$nextTick();
+    await wrapper.vm.$nextTick();
 
-    // Access the internal nodes and edges
-    const nodes = (wrapper.vm as any).nodes as any[];
-    const edges = (wrapper.vm as any).edges as any[];
+    // Access the internal nodes and edges (not on the public type, but exposed by vue-flow)
+    // @ts-expect-error nodes/edges are internal shallowRefs not on ComponentPublicInstance
+    const { nodes, edges } = wrapper.vm;
 
     // Verify that all nodes are created (includes workflow group nodes)
     expect(nodes).toHaveLength(6); // 2 workflows x 2 steps each + 2 workflow group nodes
@@ -281,10 +281,10 @@ describe('pipelineDAG', () => {
       },
     });
 
-    await (wrapper.vm as any).$nextTick();
+    await wrapper.vm.$nextTick();
 
-    const nodes = (wrapper.vm as any).nodes as any[];
-    const edges = (wrapper.vm as any).edges as any[];
+    // @ts-expect-error nodes/edges are internal shallowRefs not on ComponentPublicInstance
+    const { nodes, edges } = wrapper.vm;
 
     expect(nodes).toHaveLength(0);
     expect(edges).toHaveLength(0);
@@ -358,10 +358,10 @@ describe('pipelineDAG', () => {
       },
     });
 
-    await (wrapper.vm as any).$nextTick();
+    await wrapper.vm.$nextTick();
 
-    const nodes = (wrapper.vm as any).nodes as any[];
-    const edges = (wrapper.vm as any).edges as any[];
+    // @ts-expect-error nodes/edges are internal shallowRefs not on ComponentPublicInstance
+    const { nodes, edges } = wrapper.vm;
 
     expect(nodes).toHaveLength(2); // 1 step + 1 workflow group node
     expect(edges).toHaveLength(0); // No dependencies, so no edges

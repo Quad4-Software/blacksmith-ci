@@ -2065,13 +2065,17 @@ onMounted(() => {
   window.addEventListener('resize', handleResize);
 });
 
-// Clean up resize listener and debounce timeout
+// Clean up resize listener, debounce timeout, and vue-flow state
 onBeforeUnmount(() => {
   window.removeEventListener('resize', handleResize);
 
   if (debounceTimeout.value) {
     clearTimeout(debounceTimeout.value);
   }
+
+  // Clear nodes/edges before unmount to prevent vue-flow from accessing removed DOM elements
+  nodes.value = [];
+  edges.value = [];
 });
 </script>
 
