@@ -38,7 +38,7 @@ function getStepState(nodeData: unknown): string {
 const layoutCache = new Map<string, Node[]>();
 
 export function useLayout() {
-  const { findNode } = useVueFlow();
+  const { findNode } = useVueFlow('pipeline-dag');
 
   function layout(nodes: Node[], edges: Edge[], direction: string = 'LR') {
     // Create cache key based on nodes, edges, and direction
