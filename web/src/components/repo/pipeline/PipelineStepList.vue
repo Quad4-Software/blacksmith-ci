@@ -234,7 +234,9 @@
                   }"
                   @click="selectStep(node.step.pid)"
                 >
-                  <!-- Indentation with tree connectors -->
+                  <!-- Base indentation spacer -->
+                  <span class="shrink-0 w-4" />
+                  <!-- Tree connectors for nested steps -->
                   <template v-if="treeView && node.depth > 0">
                     <span
                       v-for="d in node.depth"
@@ -247,7 +249,6 @@
                       }"
                     />
                   </template>
-                  <span v-else class="shrink-0 w-4" />
                   <PipelineStatusIcon
                     :service="node.step.type === StepType.Service"
                     :status="node.step.state"

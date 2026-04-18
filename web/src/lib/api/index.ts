@@ -43,6 +43,7 @@ import type {
   ImportSettingsResponse,
   ImportPreviewResponse,
   Secret,
+  SecretTarget,
   SecretWithOrg,
   NotificationConfig,
   SMTPStatus,
@@ -429,6 +430,25 @@ export default class CrowClient extends ApiClient {
   async getGlobalSecretAbbreviated(secretName: string): Promise<Secret> {
     const name = encodeURIComponent(secretName);
     return this._get(`/api/v1/secrets/${name}/abbreviated`) as Promise<Secret>;
+  }
+
+  async getSecretTargets(secretId: number): Promise<SecretTarget[]> {
+    return this._get(`/api/v1/secret-targets/${secretId}/targets`) as Promise<SecretTarget[]>;
+  }
+
+  async createSecretTarget(secretId: number, target: { org_id: number; repo_id: number }): Promise<SecretTarget> {
+    return this._post(`/api/v1/secret-targets/${secretId}/targets`, target) as Promise<SecretTarget>;
+  }
+
+  async deleteSecretTarget(secretId: number, targetId: number): Promise<unknown> {
+    return this._delete(`/api/v1/secret-targets/${secretId}/targets/${targetId}`);
+  }
+
+  async transferSecretOwner(
+    secretId: number,
+    data: { org_id: number; repo_id: number; keep_as_target: boolean },
+  ): Promise<unknown> {
+    return this._patch(`/api/v1/secret-targets/${secretId}/owner`, data);
   }
 
   async getSelf(): Promise<unknown> {

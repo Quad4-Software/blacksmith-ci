@@ -181,6 +181,10 @@ func (c *CompositeEncryptedStore) SecretFind(repo *model.Repo, name string) (*mo
 	return c.secretStore.SecretFind(repo, name)
 }
 
+func (c *CompositeEncryptedStore) SecretFindByID(id int64) (*model.Secret, error) {
+	return c.secretStore.SecretFindByID(id)
+}
+
 func (c *CompositeEncryptedStore) SecretList(repo *model.Repo, includeGlobalAndOrg bool, p *model.ListOptions) ([]*model.Secret, error) {
 	return c.secretStore.SecretList(repo, includeGlobalAndOrg, p)
 }
@@ -920,6 +924,31 @@ func (c *CompositeEncryptedStore) CacheDelete(key string) error {
 
 func (c *CompositeEncryptedStore) CacheCleanupExpired(cutoff int64) error {
 	return c.baseStore.CacheCleanupExpired(cutoff)
+}
+
+// Secret targets - pass through to base store.
+func (c *CompositeEncryptedStore) SecretTargetCreate(target *model.SecretTarget) error {
+	return c.baseStore.SecretTargetCreate(target)
+}
+
+func (c *CompositeEncryptedStore) SecretTargetDelete(target *model.SecretTarget) error {
+	return c.baseStore.SecretTargetDelete(target)
+}
+
+func (c *CompositeEncryptedStore) SecretTargetList(secretID int64) ([]*model.SecretTarget, error) {
+	return c.baseStore.SecretTargetList(secretID)
+}
+
+func (c *CompositeEncryptedStore) SecretTargetFind(secretID int64, orgID int64, repoID int64) (*model.SecretTarget, error) {
+	return c.baseStore.SecretTargetFind(secretID, orgID, repoID)
+}
+
+func (c *CompositeEncryptedStore) SecretTargetDeleteBySecretID(secretID int64) error {
+	return c.baseStore.SecretTargetDeleteBySecretID(secretID)
+}
+
+func (c *CompositeEncryptedStore) SecretTargetCheckConflict(secretID int64, secretName string, orgID int64, repoID int64) error {
+	return c.baseStore.SecretTargetCheckConflict(secretID, secretName, orgID, repoID)
 }
 
 // Integration operations - pass through to base store.

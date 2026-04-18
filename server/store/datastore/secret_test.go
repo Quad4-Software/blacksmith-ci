@@ -47,6 +47,21 @@ func TestSecretFind(t *testing.T) {
 	assert.Equal(t, "node", secret.Images[1])
 }
 
+func TestSecretFindByID(t *testing.T) {
+	store, closer := newTestStore(t, new(model.Secret))
+	defer closer()
+
+	created := &model.Secret{RepoID: 1, Name: "foo", Value: "bar"}
+	assert.NoError(t, store.SecretCreate(created))
+
+	found, err := store.SecretFindByID(created.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, "foo", found.Name)
+
+	_, err = store.SecretFindByID(99999)
+	assert.Error(t, err)
+}
+
 func TestSecretList(t *testing.T) {
 	store, closer := newTestStore(t, new(model.Secret))
 	defer closer()
@@ -70,7 +85,7 @@ func TestSecretListAll(t *testing.T) {
 }
 
 func TestSecretPipelineList(t *testing.T) {
-	store, closer := newTestStore(t, new(model.Secret))
+	store, closer := newTestStore(t, new(model.Secret), new(model.SecretTarget))
 	defer closer()
 
 	createTestSecrets(t, store)
@@ -179,7 +194,7 @@ func TestOrgSecretFind(t *testing.T) {
 }
 
 func TestOrgSecretList(t *testing.T) {
-	store, closer := newTestStore(t, new(model.Secret))
+	store, closer := newTestStore(t, new(model.Secret), new(model.SecretTarget))
 	defer closer()
 
 	createTestSecrets(t, store)
@@ -224,4 +239,58 @@ func TestGlobalSecretList(t *testing.T) {
 	assert.Len(t, list, 1)
 
 	assert.True(t, list[0].IsGlobal())
+}
+
+func TestSecretListIncludesSharedSecrets(t *testing.T) {
+	store, closer := newTestStore(t, new(model.Secret), new(model.SecretTarget))
+	defer closer()
+
+	// Create a secret owned by org 1
+	secret := &model.Secret{OrgID: 1, Name: "shared-key", Value: "val"}
+	assert.NoError(t, store.SecretCreate(secret))
+
+	// Share it with repo 42
+	assert.NoError(t, store.SecretTargetCreate(&model.SecretTarget{SecretID: secret.ID, RepoID: 42}))
+
+	// SecretList for repo 42 with includeGlobalAndOrgSecrets=true should include the shared secret
+	list, err := store.SecretList(&model.Repo{ID: 42, OrgID: 99}, true, &model.ListOptions{All: true})
+	assert.NoError(t, err)
+	assert.Len(t, list, 1)
+	assert.Equal(t, "shared-key", list[0].Name)
+}
+
+func TestOrgSecretListIncludesSharedSecrets(t *testing.T) {
+	store, closer := newTestStore(t, new(model.Secret), new(model.SecretTarget))
+	defer closer()
+
+	// Create a secret owned by repo 10
+	secret := &model.Secret{RepoID: 10, Name: "shared-key", Value: "val"}
+	assert.NoError(t, store.SecretCreate(secret))
+
+	// Share it with org 5
+	assert.NoError(t, store.SecretTargetCreate(&model.SecretTarget{SecretID: secret.ID, OrgID: 5}))
+
+	// OrgSecretList for org 5 should include the shared secret
+	list, err := store.OrgSecretList(5, &model.ListOptions{All: true})
+	assert.NoError(t, err)
+	assert.Len(t, list, 1)
+	assert.Equal(t, "shared-key", list[0].Name)
+}
+
+func TestUserSecretListIncludesSharedSecrets(t *testing.T) {
+	store, closer := newTestStore(t, new(model.Secret), new(model.SecretTarget))
+	defer closer()
+
+	// Create a secret owned by org 1
+	secret := &model.Secret{OrgID: 1, Name: "shared-key", Value: "val"}
+	assert.NoError(t, store.SecretCreate(secret))
+
+	// Share it with repo 42
+	assert.NoError(t, store.SecretTargetCreate(&model.SecretTarget{SecretID: secret.ID, RepoID: 42}))
+
+	// UserSecretList for repo 42 should include the shared secret
+	list, err := store.UserSecretList(nil, []int64{42}, false, "", &model.ListOptions{All: true})
+	assert.NoError(t, err)
+	assert.Len(t, list, 1)
+	assert.Equal(t, "shared-key", list[0].Name)
 }

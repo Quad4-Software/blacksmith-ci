@@ -227,6 +227,15 @@ CREATE TABLE IF NOT EXISTS secrets (
     UNIQUE(org_id, repo_id, name)
 );
 
+CREATE TABLE IF NOT EXISTS secret_targets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    secret_id INTEGER NOT NULL REFERENCES secrets(id) ON DELETE CASCADE,
+    org_id INTEGER NOT NULL DEFAULT 0,
+    repo_id INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER,
+    UNIQUE(secret_id, org_id, repo_id)
+);
+
 CREATE TABLE IF NOT EXISTS registries (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     org_id INTEGER NOT NULL DEFAULT 0,

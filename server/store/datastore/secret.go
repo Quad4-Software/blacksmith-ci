@@ -31,11 +31,22 @@ func (s storage) SecretFind(repo *model.Repo, name string) (*model.Secret, error
 		Scan(context.Background()))
 }
 
+func (s storage) SecretFindByID(id int64) (*model.Secret, error) {
+	secret := new(model.Secret)
+	return secret, wrapGet(s.db.NewSelect().Model(secret).
+		Where("id = ?", id).
+		Scan(context.Background()))
+}
+
 func (s storage) SecretList(repo *model.Repo, includeGlobalAndOrgSecrets bool, p *model.ListOptions) ([]*model.Secret, error) {
 	var secrets []*model.Secret
 	q := s.db.NewSelect().Model(&secrets)
 	if includeGlobalAndOrgSecrets {
-		q = q.Where("repo_id = ? OR org_id = ? OR (org_id = 0 AND repo_id = 0)", repo.ID, repo.OrgID)
+		q = q.Where(
+			"repo_id = ? OR org_id = ? OR (org_id = 0 AND repo_id = 0)"+
+				" OR id IN (SELECT secret_id FROM secret_targets WHERE repo_id = ? OR org_id = ?)",
+			repo.ID, repo.OrgID, repo.ID, repo.OrgID,
+		)
 	} else {
 		q = q.Where("repo_id = ?", repo.ID)
 	}
@@ -71,7 +82,11 @@ func (s storage) OrgSecretFind(orgID int64, name string) (*model.Secret, error) 
 
 func (s storage) OrgSecretList(orgID int64, p *model.ListOptions) ([]*model.Secret, error) {
 	secrets := make([]*model.Secret, 0)
-	return secrets, s.paginate(s.db.NewSelect().Model(&secrets).Where("org_id = ?", orgID).Order(orderSecretsBy), p).Scan(context.Background())
+	return secrets, s.paginate(
+		s.db.NewSelect().Model(&secrets).
+			Where("org_id = ? OR id IN (SELECT secret_id FROM secret_targets WHERE org_id = ?)", orgID, orgID).
+			Order(orderSecretsBy), p,
+	).Scan(context.Background())
 }
 
 func (s storage) GlobalSecretFind(name string) (*model.Secret, error) {
@@ -101,9 +116,11 @@ func (s storage) UserSecretList(orgIDs []int64, repoIDs []int64, includeGlobal b
 	q = q.WhereGroup(" AND ", func(sq *bun.SelectQuery) *bun.SelectQuery {
 		if len(orgIDs) > 0 {
 			sq = sq.WhereOr("(org_id IN (?) AND repo_id = 0)", bun.List(orgIDs))
+			sq = sq.WhereOr("id IN (SELECT secret_id FROM secret_targets WHERE org_id IN (?))", bun.List(orgIDs))
 		}
 		if len(repoIDs) > 0 {
 			sq = sq.WhereOr("repo_id IN (?)", bun.List(repoIDs))
+			sq = sq.WhereOr("id IN (SELECT secret_id FROM secret_targets WHERE repo_id IN (?))", bun.List(repoIDs))
 		}
 		if includeGlobal {
 			sq = sq.WhereOr("(org_id = 0 AND repo_id = 0)")

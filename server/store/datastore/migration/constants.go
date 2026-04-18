@@ -101,6 +101,7 @@ var newMigrationIDs = []string{
 	"crow-add-email-unsubscribes",
 	"crow-add-task-canceled",
 	"crow-add-step-rerun-fields",
+	"crow-add-secret-targets",
 }
 
 // allKnownMigrations returns a combined list of all known migration IDs.

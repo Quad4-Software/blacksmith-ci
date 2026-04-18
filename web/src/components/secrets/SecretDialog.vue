@@ -330,6 +330,19 @@
             </FormItem>
           </FormField>
 
+          <!-- Target Management (edit mode only) -->
+          <SecretTargetManager
+            v-if="isEditing && secret?.id"
+            :secret-id="Number(secret.id)"
+            :owner-name="getOwnerName()"
+            :targets="secretTargets"
+            :org-names="orgNameMap"
+            :repo-names="repoNameMap"
+            @add-target="handleAddTarget"
+            @remove-target="handleRemoveTarget"
+            @make-owner="handleMakeOwner"
+          />
+
           <div class="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" @click="isOpen = false">
               {{ $t('cancel') }}
@@ -352,6 +365,7 @@ import { useI18n } from 'vue-i18n';
 import * as z from 'zod';
 
 import Icon from '~/components/atomic/Icon.vue';
+import SecretTargetManager from './SecretTargetManager.vue';
 import { Alert, AlertDescription } from '~/components/ui/alert';
 import { Button } from '~/components/ui/button';
 import { Checkbox } from '~/components/ui/checkbox';
@@ -376,7 +390,7 @@ import useNotifications from '~/compositions/useNotifications';
 import { WebhookEvents } from '~/lib/api/types';
 import type { CheckboxOption } from '~/components/form/form.types';
 import type { IconNames } from '~/components/atomic/Icon.types';
-import type { Org, Repo, Secret } from '~/lib/api/types';
+import type { Org, Repo, Secret, SecretTarget } from '~/lib/api/types';
 
 const props = withDefaults(
   defineProps<{
@@ -524,6 +538,9 @@ const canViewAbbreviated = computed(() => {
 });
 const newImage = ref('');
 const isGlobal = ref(false);
+const secretTargets = ref<SecretTarget[]>([]);
+const orgNameMap = ref<Record<number, string>>({});
+const repoNameMap = ref<Record<number, string>>({});
 
 // Track copied state for images
 const copiedImages = reactive<Record<string, boolean>>({});
@@ -595,12 +612,15 @@ watch(isOpen, (open) => {
     } else {
       selectedTarget.value = '';
     }
+  } else if (open && isEditing.value) {
+    loadTargets();
   } else if (!open) {
     // Reset state when dialog closes
     searchTerm.value = '';
     showAbbreviatedValue.value = false;
     abbreviatedValue.value = null;
     isLoadingAbbreviatedValue.value = false;
+    secretTargets.value = [];
   }
 });
 
@@ -697,6 +717,56 @@ async function toggleAbbreviatedValue() {
     });
   } finally {
     isLoadingAbbreviatedValue.value = false;
+  }
+}
+
+async function loadTargets() {
+  if (!props.secret?.id) return;
+  try {
+    secretTargets.value = await apiClient.getSecretTargets(Number(props.secret.id));
+  } catch {
+    // Silent failure
+  }
+}
+
+function getOwnerName(): string {
+  const secret = props.secret as any;
+  if (secret?.repo_name) return secret.repo_name;
+  if (secret?.org_name) return secret.org_name;
+  return 'Global';
+}
+
+async function handleAddTarget(type: 'org' | 'repo', id: number) {
+  try {
+    await apiClient.createSecretTarget(Number(props.secret!.id!), {
+      org_id: type === 'org' ? id : 0,
+      repo_id: type === 'repo' ? id : 0,
+    });
+    await loadTargets();
+  } catch (err: any) {
+    notifications.notify({ title: t('notify_title_error'), text: err.message, type: 'error' });
+  }
+}
+
+async function handleRemoveTarget(target: SecretTarget) {
+  try {
+    await apiClient.deleteSecretTarget(Number(props.secret!.id!), target.id);
+    await loadTargets();
+  } catch (err: any) {
+    notifications.notify({ title: t('notify_title_error'), text: err.message, type: 'error' });
+  }
+}
+
+async function handleMakeOwner(target: SecretTarget) {
+  try {
+    await apiClient.transferSecretOwner(Number(props.secret!.id!), {
+      org_id: target.org_id,
+      repo_id: target.repo_id,
+      keep_as_target: true,
+    });
+    await loadTargets();
+  } catch (err: any) {
+    notifications.notify({ title: t('notify_title_error'), text: err.message, type: 'error' });
   }
 }
 

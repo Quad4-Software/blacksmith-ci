@@ -1123,7 +1123,13 @@
     "events": {
       "events": "Restrict secret for specific events",
       "warning": "Exposing secrets to pull requests could allow bad actors to expose/steal your secrets with a malicious pull request."
-    }
+    },
+    "shadow_warning": "This shared secret is overridden by an owned secret with the same name",
+    "shared_with": "Shared with",
+    "owner": "Owner",
+    "shared": "Shared",
+    "make_owner": "Make owner",
+    "add_target": "Share with..."
   },
   "registries": {
     "registries": "Registries",

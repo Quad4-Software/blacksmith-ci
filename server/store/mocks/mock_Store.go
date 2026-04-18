@@ -9642,6 +9642,68 @@ func (_c *MockStore_SecretFind_Call) RunAndReturn(run func(repo *model.Repo, s s
 	return _c
 }
 
+// SecretFindByID provides a mock function for the type MockStore
+func (_mock *MockStore) SecretFindByID(n int64) (*model.Secret, error) {
+	ret := _mock.Called(n)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SecretFindByID")
+	}
+
+	var r0 *model.Secret
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64) (*model.Secret, error)); ok {
+		return returnFunc(n)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64) *model.Secret); ok {
+		r0 = returnFunc(n)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.Secret)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64) error); ok {
+		r1 = returnFunc(n)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_SecretFindByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SecretFindByID'
+type MockStore_SecretFindByID_Call struct {
+	*mock.Call
+}
+
+// SecretFindByID is a helper method to define mock.On call
+//   - n int64
+func (_e *MockStore_Expecter) SecretFindByID(n interface{}) *MockStore_SecretFindByID_Call {
+	return &MockStore_SecretFindByID_Call{Call: _e.mock.On("SecretFindByID", n)}
+}
+
+func (_c *MockStore_SecretFindByID_Call) Run(run func(n int64)) *MockStore_SecretFindByID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_SecretFindByID_Call) Return(secret *model.Secret, err error) *MockStore_SecretFindByID_Call {
+	_c.Call.Return(secret, err)
+	return _c
+}
+
+func (_c *MockStore_SecretFindByID_Call) RunAndReturn(run func(n int64) (*model.Secret, error)) *MockStore_SecretFindByID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // SecretList provides a mock function for the type MockStore
 func (_mock *MockStore) SecretList(repo *model.Repo, b bool, listOptions *model.ListOptions) ([]*model.Secret, error) {
 	ret := _mock.Called(repo, b, listOptions)
@@ -9767,6 +9829,364 @@ func (_c *MockStore_SecretListAll_Call) Return(secrets []*model.Secret, err erro
 }
 
 func (_c *MockStore_SecretListAll_Call) RunAndReturn(run func() ([]*model.Secret, error)) *MockStore_SecretListAll_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SecretTargetCheckConflict provides a mock function for the type MockStore
+func (_mock *MockStore) SecretTargetCheckConflict(secretID int64, secretName string, orgID int64, repoID int64) error {
+	ret := _mock.Called(secretID, secretName, orgID, repoID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SecretTargetCheckConflict")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(int64, string, int64, int64) error); ok {
+		r0 = returnFunc(secretID, secretName, orgID, repoID)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_SecretTargetCheckConflict_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SecretTargetCheckConflict'
+type MockStore_SecretTargetCheckConflict_Call struct {
+	*mock.Call
+}
+
+// SecretTargetCheckConflict is a helper method to define mock.On call
+//   - secretID int64
+//   - secretName string
+//   - orgID int64
+//   - repoID int64
+func (_e *MockStore_Expecter) SecretTargetCheckConflict(secretID interface{}, secretName interface{}, orgID interface{}, repoID interface{}) *MockStore_SecretTargetCheckConflict_Call {
+	return &MockStore_SecretTargetCheckConflict_Call{Call: _e.mock.On("SecretTargetCheckConflict", secretID, secretName, orgID, repoID)}
+}
+
+func (_c *MockStore_SecretTargetCheckConflict_Call) Run(run func(secretID int64, secretName string, orgID int64, repoID int64)) *MockStore_SecretTargetCheckConflict_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 int64
+		if args[2] != nil {
+			arg2 = args[2].(int64)
+		}
+		var arg3 int64
+		if args[3] != nil {
+			arg3 = args[3].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_SecretTargetCheckConflict_Call) Return(err error) *MockStore_SecretTargetCheckConflict_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_SecretTargetCheckConflict_Call) RunAndReturn(run func(secretID int64, secretName string, orgID int64, repoID int64) error) *MockStore_SecretTargetCheckConflict_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SecretTargetCreate provides a mock function for the type MockStore
+func (_mock *MockStore) SecretTargetCreate(secretTarget *model.SecretTarget) error {
+	ret := _mock.Called(secretTarget)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SecretTargetCreate")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(*model.SecretTarget) error); ok {
+		r0 = returnFunc(secretTarget)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_SecretTargetCreate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SecretTargetCreate'
+type MockStore_SecretTargetCreate_Call struct {
+	*mock.Call
+}
+
+// SecretTargetCreate is a helper method to define mock.On call
+//   - secretTarget *model.SecretTarget
+func (_e *MockStore_Expecter) SecretTargetCreate(secretTarget interface{}) *MockStore_SecretTargetCreate_Call {
+	return &MockStore_SecretTargetCreate_Call{Call: _e.mock.On("SecretTargetCreate", secretTarget)}
+}
+
+func (_c *MockStore_SecretTargetCreate_Call) Run(run func(secretTarget *model.SecretTarget)) *MockStore_SecretTargetCreate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.SecretTarget
+		if args[0] != nil {
+			arg0 = args[0].(*model.SecretTarget)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_SecretTargetCreate_Call) Return(err error) *MockStore_SecretTargetCreate_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_SecretTargetCreate_Call) RunAndReturn(run func(secretTarget *model.SecretTarget) error) *MockStore_SecretTargetCreate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SecretTargetDelete provides a mock function for the type MockStore
+func (_mock *MockStore) SecretTargetDelete(secretTarget *model.SecretTarget) error {
+	ret := _mock.Called(secretTarget)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SecretTargetDelete")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(*model.SecretTarget) error); ok {
+		r0 = returnFunc(secretTarget)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_SecretTargetDelete_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SecretTargetDelete'
+type MockStore_SecretTargetDelete_Call struct {
+	*mock.Call
+}
+
+// SecretTargetDelete is a helper method to define mock.On call
+//   - secretTarget *model.SecretTarget
+func (_e *MockStore_Expecter) SecretTargetDelete(secretTarget interface{}) *MockStore_SecretTargetDelete_Call {
+	return &MockStore_SecretTargetDelete_Call{Call: _e.mock.On("SecretTargetDelete", secretTarget)}
+}
+
+func (_c *MockStore_SecretTargetDelete_Call) Run(run func(secretTarget *model.SecretTarget)) *MockStore_SecretTargetDelete_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.SecretTarget
+		if args[0] != nil {
+			arg0 = args[0].(*model.SecretTarget)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_SecretTargetDelete_Call) Return(err error) *MockStore_SecretTargetDelete_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_SecretTargetDelete_Call) RunAndReturn(run func(secretTarget *model.SecretTarget) error) *MockStore_SecretTargetDelete_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SecretTargetDeleteBySecretID provides a mock function for the type MockStore
+func (_mock *MockStore) SecretTargetDeleteBySecretID(secretID int64) error {
+	ret := _mock.Called(secretID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SecretTargetDeleteBySecretID")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(int64) error); ok {
+		r0 = returnFunc(secretID)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_SecretTargetDeleteBySecretID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SecretTargetDeleteBySecretID'
+type MockStore_SecretTargetDeleteBySecretID_Call struct {
+	*mock.Call
+}
+
+// SecretTargetDeleteBySecretID is a helper method to define mock.On call
+//   - secretID int64
+func (_e *MockStore_Expecter) SecretTargetDeleteBySecretID(secretID interface{}) *MockStore_SecretTargetDeleteBySecretID_Call {
+	return &MockStore_SecretTargetDeleteBySecretID_Call{Call: _e.mock.On("SecretTargetDeleteBySecretID", secretID)}
+}
+
+func (_c *MockStore_SecretTargetDeleteBySecretID_Call) Run(run func(secretID int64)) *MockStore_SecretTargetDeleteBySecretID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_SecretTargetDeleteBySecretID_Call) Return(err error) *MockStore_SecretTargetDeleteBySecretID_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_SecretTargetDeleteBySecretID_Call) RunAndReturn(run func(secretID int64) error) *MockStore_SecretTargetDeleteBySecretID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SecretTargetFind provides a mock function for the type MockStore
+func (_mock *MockStore) SecretTargetFind(secretID int64, orgID int64, repoID int64) (*model.SecretTarget, error) {
+	ret := _mock.Called(secretID, orgID, repoID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SecretTargetFind")
+	}
+
+	var r0 *model.SecretTarget
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, int64) (*model.SecretTarget, error)); ok {
+		return returnFunc(secretID, orgID, repoID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, int64) *model.SecretTarget); ok {
+		r0 = returnFunc(secretID, orgID, repoID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.SecretTarget)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, int64, int64) error); ok {
+		r1 = returnFunc(secretID, orgID, repoID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_SecretTargetFind_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SecretTargetFind'
+type MockStore_SecretTargetFind_Call struct {
+	*mock.Call
+}
+
+// SecretTargetFind is a helper method to define mock.On call
+//   - secretID int64
+//   - orgID int64
+//   - repoID int64
+func (_e *MockStore_Expecter) SecretTargetFind(secretID interface{}, orgID interface{}, repoID interface{}) *MockStore_SecretTargetFind_Call {
+	return &MockStore_SecretTargetFind_Call{Call: _e.mock.On("SecretTargetFind", secretID, orgID, repoID)}
+}
+
+func (_c *MockStore_SecretTargetFind_Call) Run(run func(secretID int64, orgID int64, repoID int64)) *MockStore_SecretTargetFind_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		var arg2 int64
+		if args[2] != nil {
+			arg2 = args[2].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_SecretTargetFind_Call) Return(secretTarget *model.SecretTarget, err error) *MockStore_SecretTargetFind_Call {
+	_c.Call.Return(secretTarget, err)
+	return _c
+}
+
+func (_c *MockStore_SecretTargetFind_Call) RunAndReturn(run func(secretID int64, orgID int64, repoID int64) (*model.SecretTarget, error)) *MockStore_SecretTargetFind_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SecretTargetList provides a mock function for the type MockStore
+func (_mock *MockStore) SecretTargetList(secretID int64) ([]*model.SecretTarget, error) {
+	ret := _mock.Called(secretID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SecretTargetList")
+	}
+
+	var r0 []*model.SecretTarget
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64) ([]*model.SecretTarget, error)); ok {
+		return returnFunc(secretID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64) []*model.SecretTarget); ok {
+		r0 = returnFunc(secretID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.SecretTarget)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64) error); ok {
+		r1 = returnFunc(secretID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_SecretTargetList_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SecretTargetList'
+type MockStore_SecretTargetList_Call struct {
+	*mock.Call
+}
+
+// SecretTargetList is a helper method to define mock.On call
+//   - secretID int64
+func (_e *MockStore_Expecter) SecretTargetList(secretID interface{}) *MockStore_SecretTargetList_Call {
+	return &MockStore_SecretTargetList_Call{Call: _e.mock.On("SecretTargetList", secretID)}
+}
+
+func (_c *MockStore_SecretTargetList_Call) Run(run func(secretID int64)) *MockStore_SecretTargetList_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_SecretTargetList_Call) Return(secretTargets []*model.SecretTarget, err error) *MockStore_SecretTargetList_Call {
+	_c.Call.Return(secretTargets, err)
+	return _c
+}
+
+func (_c *MockStore_SecretTargetList_Call) RunAndReturn(run func(secretID int64) ([]*model.SecretTarget, error)) *MockStore_SecretTargetList_Call {
 	_c.Call.Return(run)
 	return _c
 }

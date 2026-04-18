@@ -147,6 +147,7 @@ type Store interface {
 
 	// Secrets
 	SecretFind(*model.Repo, string) (*model.Secret, error)
+	SecretFindByID(int64) (*model.Secret, error)
 	SecretList(*model.Repo, bool, *model.ListOptions) ([]*model.Secret, error)
 	SecretListAll() ([]*model.Secret, error)
 	SecretCreate(*model.Secret) error
@@ -157,6 +158,14 @@ type Store interface {
 	GlobalSecretFind(string) (*model.Secret, error)
 	GlobalSecretList(*model.ListOptions) ([]*model.Secret, error)
 	UserSecretList(orgIDs []int64, repoIDs []int64, includeGlobal bool, searchTerm string, p *model.ListOptions) ([]*model.Secret, error)
+
+	// Secret targets
+	SecretTargetCreate(*model.SecretTarget) error
+	SecretTargetDelete(*model.SecretTarget) error
+	SecretTargetList(secretID int64) ([]*model.SecretTarget, error)
+	SecretTargetFind(secretID int64, orgID int64, repoID int64) (*model.SecretTarget, error)
+	SecretTargetDeleteBySecretID(secretID int64) error
+	SecretTargetCheckConflict(secretID int64, secretName string, orgID int64, repoID int64) error
 
 	// Registries
 	RegistryFind(*model.Repo, string) (*model.Registry, error)

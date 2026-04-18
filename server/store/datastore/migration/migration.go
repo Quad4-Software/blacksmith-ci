@@ -104,6 +104,7 @@ func Migrate(_ context.Context, db *sql.DB, driver string, _ bool) error {
 		{ID: "crow-add-email-unsubscribes", Migrate: createEmailUnsubscribes(driver)},
 		{ID: "crow-add-task-canceled", Migrate: addTaskCancelledColumns},
 		{ID: "crow-add-step-rerun-fields", Migrate: addStepRerunFields},
+		{ID: "crow-add-secret-targets", Migrate: createSecretTargets(driver)},
 	}
 
 	if len(newMigrations) > 0 {
@@ -258,6 +259,51 @@ func addStepRerunFields(tx *sql.Tx) error {
 		return err
 	}
 	return addColumnIfNotExists("steps", "attempt", "INTEGER DEFAULT 1")(tx)
+}
+
+// createSecretTargets creates the secret_targets junction table for multi-scope secret sharing.
+// Skips gracefully if the secrets table doesn't exist (fresh databases get this
+// table from the baseline schema).
+func createSecretTargets(driver string) func(tx *sql.Tx) error {
+	return func(tx *sql.Tx) error {
+		if !tableExists(tx, "secrets") {
+			return nil
+		}
+
+		var ddl string
+		switch driver {
+		case "postgres":
+			ddl = `CREATE TABLE IF NOT EXISTS secret_targets (
+				id BIGSERIAL PRIMARY KEY,
+				secret_id INTEGER NOT NULL REFERENCES secrets(id) ON DELETE CASCADE,
+				org_id INTEGER NOT NULL DEFAULT 0,
+				repo_id INTEGER NOT NULL DEFAULT 0,
+				created_at INTEGER,
+				UNIQUE(secret_id, org_id, repo_id)
+			)`
+		case "mysql":
+			ddl = `CREATE TABLE IF NOT EXISTS secret_targets (
+				id BIGINT PRIMARY KEY AUTO_INCREMENT,
+				secret_id INTEGER NOT NULL,
+				org_id INTEGER NOT NULL DEFAULT 0,
+				repo_id INTEGER NOT NULL DEFAULT 0,
+				created_at INTEGER,
+				UNIQUE(secret_id, org_id, repo_id),
+				FOREIGN KEY (secret_id) REFERENCES secrets(id) ON DELETE CASCADE
+			)`
+		default:
+			ddl = `CREATE TABLE IF NOT EXISTS secret_targets (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				secret_id INTEGER NOT NULL REFERENCES secrets(id) ON DELETE CASCADE,
+				org_id INTEGER NOT NULL DEFAULT 0,
+				repo_id INTEGER NOT NULL DEFAULT 0,
+				created_at INTEGER,
+				UNIQUE(secret_id, org_id, repo_id)
+			)`
+		}
+		_, err := tx.Exec(ddl)
+		return err
+	}
 }
 
 // tableExists checks whether a table exists in the database using a savepoint

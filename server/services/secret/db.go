@@ -15,6 +15,8 @@
 package secret
 
 import (
+	"fmt"
+
 	"codefloe.com/crowci/crow/v5/server/model"
 	"codefloe.com/crowci/crow/v5/server/store"
 )
@@ -42,10 +44,22 @@ func (d *db) SecretListPipeline(repo *model.Repo, _ *model.Pipeline) ([]*model.S
 		return nil, err
 	}
 
-	// Return only secrets with unique name
-	// Priority order in case of duplicate names are repository, user/organization, global
+	// Classify each secret as first-owner or shared relative to this repo.
+	isFirstOwner := func(secret *model.Secret) bool {
+		if secret.IsRepository() && secret.RepoID == repo.ID {
+			return true
+		}
+		if secret.IsOrganization() && secret.OrgID == repo.OrgID {
+			return true
+		}
+		return secret.IsGlobal()
+	}
+
+	// Priority: first-owner repo > first-owner org > first-owner global > shared
 	secrets := make([]*model.Secret, 0, len(s))
 	uniq := make(map[string]struct{})
+
+	// Pass 1: first-owner secrets by priority
 	for _, condition := range []struct {
 		IsRepository   bool
 		IsOrganization bool
@@ -56,7 +70,12 @@ func (d *db) SecretListPipeline(repo *model.Repo, _ *model.Pipeline) ([]*model.S
 		{IsGlobal: true},
 	} {
 		for _, secret := range s {
-			if secret.IsRepository() != condition.IsRepository || secret.IsOrganization() != condition.IsOrganization || secret.IsGlobal() != condition.IsGlobal {
+			if !isFirstOwner(secret) {
+				continue
+			}
+			if secret.IsRepository() != condition.IsRepository ||
+				secret.IsOrganization() != condition.IsOrganization ||
+				secret.IsGlobal() != condition.IsGlobal {
 				continue
 			}
 			if _, ok := uniq[secret.Name]; ok {
@@ -66,6 +85,26 @@ func (d *db) SecretListPipeline(repo *model.Repo, _ *model.Pipeline) ([]*model.S
 			secrets = append(secrets, secret)
 		}
 	}
+
+	// Pass 2: shared secrets (not first-owner for this repo)
+	sharedNames := make(map[string]struct{})
+	for _, secret := range s {
+		if isFirstOwner(secret) {
+			continue
+		}
+		if _, ok := uniq[secret.Name]; ok {
+			// First-owner secret shadows this shared secret — skip silently
+			continue
+		}
+		if _, ok := sharedNames[secret.Name]; ok {
+			// Multiple shared secrets with the same name — runtime safety net
+			return nil, fmt.Errorf("multiple shared secrets named %q target this repository", secret.Name)
+		}
+		sharedNames[secret.Name] = struct{}{}
+		uniq[secret.Name] = struct{}{}
+		secrets = append(secrets, secret)
+	}
+
 	return secrets, nil
 }
 
@@ -131,4 +170,66 @@ func (d *db) GlobalSecretDelete(name string) error {
 		return err
 	}
 	return d.store.SecretDelete(secret)
+}
+
+func (d *db) SecretTargetCreate(secretID int64, orgID int64, repoID int64) error {
+	// Look up the secret to get its name for conflict checking
+	secret, err := d.store.SecretFindByID(secretID)
+	if err != nil {
+		return fmt.Errorf("secret not found: %d", secretID)
+	}
+
+	if err := d.store.SecretTargetCheckConflict(secretID, secret.Name, orgID, repoID); err != nil {
+		return err
+	}
+
+	return d.store.SecretTargetCreate(&model.SecretTarget{
+		SecretID: secretID,
+		OrgID:    orgID,
+		RepoID:   repoID,
+	})
+}
+
+func (d *db) SecretTargetDelete(secretID int64, orgID int64, repoID int64) error {
+	target, err := d.store.SecretTargetFind(secretID, orgID, repoID)
+	if err != nil {
+		return err
+	}
+	return d.store.SecretTargetDelete(target)
+}
+
+func (d *db) SecretTargetList(secretID int64) ([]*model.SecretTarget, error) {
+	return d.store.SecretTargetList(secretID)
+}
+
+func (d *db) SecretTransferOwner(secretID int64, newOrgID int64, newRepoID int64, keepOldOwnerAsTarget bool) error {
+	secret, err := d.store.SecretFindByID(secretID)
+	if err != nil {
+		return fmt.Errorf("secret not found: %d", secretID)
+	}
+
+	oldOrgID := secret.OrgID
+	oldRepoID := secret.RepoID
+
+	secret.OrgID = newOrgID
+	secret.RepoID = newRepoID
+	if err := d.store.SecretUpdate(secret); err != nil {
+		return err
+	}
+
+	// Remove the new owner from targets if it was previously a target
+	if target, err := d.store.SecretTargetFind(secretID, newOrgID, newRepoID); err == nil && target != nil {
+		_ = d.store.SecretTargetDelete(target)
+	}
+
+	// Optionally keep old owner as a target
+	if keepOldOwnerAsTarget && (oldOrgID != 0 || oldRepoID != 0) {
+		_ = d.store.SecretTargetCreate(&model.SecretTarget{
+			SecretID: secretID,
+			OrgID:    oldOrgID,
+			RepoID:   oldRepoID,
+		})
+	}
+
+	return nil
 }

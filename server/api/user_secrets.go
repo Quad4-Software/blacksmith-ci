@@ -130,6 +130,16 @@ func GetUserSecretList(ctx context.Context, input *GetUserSecretListInput) (*Get
 		repoIDs = append(repoIDs, repo.ID)
 	}
 
+	// Build sets for quick membership checks
+	orgIDSet := make(map[int64]struct{}, len(orgIDs))
+	for _, id := range orgIDs {
+		orgIDSet[id] = struct{}{}
+	}
+	repoIDSet := make(map[int64]struct{}, len(repoIDs))
+	for _, id := range repoIDs {
+		repoIDSet[id] = struct{}{}
+	}
+
 	// Fetch secrets from datastore
 	log.Debug().
 		Interface("org_ids", orgIDs).
@@ -243,6 +253,29 @@ func GetUserSecretList(ctx context.Context, input *GetUserSecretListInput) (*Get
 			enriched = secret.WithOrg(orgName, isPersonalOrg, forgeID, forgeName, forgeIcon, forgeType)
 		}
 
+		// Annotate shared secrets: a secret is shared into a scope when its
+		// first-owner (OrgID/RepoID) doesn't match the entities the user
+		// directly owns.  Secrets that appear via secret_targets will have a
+		// first-owner that is absent from the user's orgIDSet / repoIDSet.
+		if secret.RepoID != 0 {
+			if _, owned := repoIDSet[secret.RepoID]; !owned {
+				enriched.IsShared = true
+				// First owner is the repo the secret belongs to
+				if info, ok := repoCache[secret.RepoID]; ok {
+					enriched.FirstOwnerName = info.fullName
+				}
+			}
+		} else if secret.OrgID != 0 {
+			if _, owned := orgIDSet[secret.OrgID]; !owned {
+				enriched.IsShared = true
+				// First owner is the org the secret belongs to
+				if info, ok := orgCache[secret.OrgID]; ok {
+					enriched.FirstOwnerName = info.name
+				}
+			}
+		}
+		// Global secrets (OrgID == 0 && RepoID == 0) are never shared.
+
 		enrichedSecrets = append(enrichedSecrets, enriched)
 	}
 
@@ -251,14 +284,16 @@ func GetUserSecretList(ctx context.Context, input *GetUserSecretListInput) (*Get
 	for i, s := range enrichedSecrets {
 		copied := s.Copy()
 		result[i] = &model.SecretWithOrg{
-			Secret:    *copied,
-			OrgName:   s.OrgName,
-			RepoName:  s.RepoName,
-			ScopeType: s.ScopeType,
-			ForgeID:   s.ForgeID,
-			ForgeName: s.ForgeName,
-			ForgeIcon: s.ForgeIcon,
-			ForgeType: s.ForgeType,
+			Secret:         *copied,
+			OrgName:        s.OrgName,
+			RepoName:       s.RepoName,
+			ScopeType:      s.ScopeType,
+			ForgeID:        s.ForgeID,
+			ForgeName:      s.ForgeName,
+			ForgeIcon:      s.ForgeIcon,
+			ForgeType:      s.ForgeType,
+			IsShared:       s.IsShared,
+			FirstOwnerName: s.FirstOwnerName,
 		}
 	}
 

@@ -21,4 +21,14 @@ export interface SecretWithOrg extends Secret {
   forge_name?: string;
   forge_icon?: string;
   forge_type?: string;
+  is_shared?: boolean;
+  first_owner_name?: string;
+}
+
+export interface SecretTarget {
+  id: number;
+  secret_id: number;
+  org_id: number;
+  repo_id: number;
+  created_at: number;
 }

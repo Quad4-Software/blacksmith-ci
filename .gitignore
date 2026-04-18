@@ -62,3 +62,4 @@ crow-cli
 crow-agent
 .claude/*
 !.claude/skills/
+.worktrees/

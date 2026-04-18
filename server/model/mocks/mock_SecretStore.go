@@ -466,6 +466,68 @@ func (_c *MockSecretStore_SecretFind_Call) RunAndReturn(run func(repo *model.Rep
 	return _c
 }
 
+// SecretFindByID provides a mock function for the type MockSecretStore
+func (_mock *MockSecretStore) SecretFindByID(n int64) (*model.Secret, error) {
+	ret := _mock.Called(n)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SecretFindByID")
+	}
+
+	var r0 *model.Secret
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64) (*model.Secret, error)); ok {
+		return returnFunc(n)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64) *model.Secret); ok {
+		r0 = returnFunc(n)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.Secret)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64) error); ok {
+		r1 = returnFunc(n)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockSecretStore_SecretFindByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SecretFindByID'
+type MockSecretStore_SecretFindByID_Call struct {
+	*mock.Call
+}
+
+// SecretFindByID is a helper method to define mock.On call
+//   - n int64
+func (_e *MockSecretStore_Expecter) SecretFindByID(n interface{}) *MockSecretStore_SecretFindByID_Call {
+	return &MockSecretStore_SecretFindByID_Call{Call: _e.mock.On("SecretFindByID", n)}
+}
+
+func (_c *MockSecretStore_SecretFindByID_Call) Run(run func(n int64)) *MockSecretStore_SecretFindByID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockSecretStore_SecretFindByID_Call) Return(secret *model.Secret, err error) *MockSecretStore_SecretFindByID_Call {
+	_c.Call.Return(secret, err)
+	return _c
+}
+
+func (_c *MockSecretStore_SecretFindByID_Call) RunAndReturn(run func(n int64) (*model.Secret, error)) *MockSecretStore_SecretFindByID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // SecretList provides a mock function for the type MockSecretStore
 func (_mock *MockSecretStore) SecretList(repo *model.Repo, b bool, listOptions *model.ListOptions) ([]*model.Secret, error) {
 	ret := _mock.Called(repo, b, listOptions)

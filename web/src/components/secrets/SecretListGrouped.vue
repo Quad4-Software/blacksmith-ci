@@ -861,6 +861,25 @@ const columns: ColumnDef<SecretWithOrg>[] = [
           },
           h(copiedSecrets[name] ? Check : Copy, { class: 'h-3 w-3 text-muted-foreground' }),
         ),
+        // Shared badge
+        secret.is_shared
+          ? h(
+              Badge,
+              { variant: 'outline' as const, class: 'text-xs ml-1' },
+              () => `Shared from ${secret.first_owner_name || 'unknown'}`,
+            )
+          : null,
+        // Shadow warning
+        secret.is_shared && props.secrets?.some((s) => s.name === secret.name && s.id !== secret.id && !s.is_shared)
+          ? h(
+              'span',
+              {
+                class: 'text-amber-500 ml-1',
+                title: t('secrets.shadow_warning'),
+              },
+              h(Icon, { name: 'alert', class: 'h-4 w-4' }),
+            )
+          : null,
       ]);
     },
     size: 200,

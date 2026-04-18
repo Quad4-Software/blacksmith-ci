@@ -35,6 +35,7 @@ var (
 // SecretStore persists secret information to storage.
 type SecretStore interface {
 	SecretFind(*Repo, string) (*Secret, error)
+	SecretFindByID(int64) (*Secret, error)
 	SecretList(*Repo, bool, *ListOptions) ([]*Secret, error)
 	SecretCreate(*Secret) error
 	SecretUpdate(*Secret) error
@@ -214,13 +215,15 @@ func sortEvents(wel JSONSliceWebhookEvent) JSONSliceWebhookEvent {
 // SecretWithOrg extends Secret with organization and repository context for user views.
 type SecretWithOrg struct {
 	Secret
-	OrgName   string `json:"org_name"`
-	RepoName  string `json:"repo_name,omitempty"`
-	ScopeType string `json:"scope_type"`           // "user", "org", "repo", or "global"
-	ForgeID   int64  `json:"forge_id,omitempty"`   // forge ID for multi-forge display
-	ForgeName string `json:"forge_name,omitempty"` // forge hostname for multi-forge display
-	ForgeIcon string `json:"forge_icon,omitempty"` // forge icon name/URL for multi-forge display
-	ForgeType string `json:"forge_type,omitempty"` // forge type (github, gitlab, etc.) for icon fallback
+	OrgName        string `json:"org_name"`
+	RepoName       string `json:"repo_name,omitempty"`
+	ScopeType      string `json:"scope_type"`           // "user", "org", "repo", or "global"
+	ForgeID        int64  `json:"forge_id,omitempty"`   // forge ID for multi-forge display
+	ForgeName      string `json:"forge_name,omitempty"` // forge hostname for multi-forge display
+	ForgeIcon      string `json:"forge_icon,omitempty"` // forge icon name/URL for multi-forge display
+	ForgeType      string `json:"forge_type,omitempty"` // forge type (github, gitlab, etc.) for icon fallback
+	IsShared       bool   `json:"is_shared,omitempty"`
+	FirstOwnerName string `json:"first_owner_name,omitempty"`
 } //	@name	SecretWithOrg
 
 // WithOrg creates a SecretWithOrg from a Secret with the given org name.

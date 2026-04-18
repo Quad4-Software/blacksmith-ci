@@ -37,4 +37,9 @@ type Service interface {
 	GlobalSecretCreate(*model.Secret) error
 	GlobalSecretUpdate(*model.Secret) error
 	GlobalSecretDelete(string) error
+	// Secret targets
+	SecretTargetCreate(secretID int64, orgID int64, repoID int64) error
+	SecretTargetDelete(secretID int64, orgID int64, repoID int64) error
+	SecretTargetList(secretID int64) ([]*model.SecretTarget, error)
+	SecretTransferOwner(secretID int64, newOrgID int64, newRepoID int64, keepOldOwnerAsTarget bool) error
 }

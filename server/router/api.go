@@ -725,6 +725,28 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
 	}, api.DeleteGlobalSecret)
 
+	// ── Secret targets ───────────────────────────────────────────────────
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-secret-targets", Method: http.MethodGet, Path: "/secret-targets/{secret_id}/targets",
+		Summary: "List secret targets", Tags: []string{"Secret Targets"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetSecretTargetList)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "post-secret-target", Method: http.MethodPost, Path: "/secret-targets/{secret_id}/targets",
+		Summary: "Add a secret target", Tags: []string{"Secret Targets"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.PostSecretTarget)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "delete-secret-target", Method: http.MethodDelete, Path: "/secret-targets/{secret_id}/targets/{target_id}",
+		Summary: "Remove a secret target", Tags: []string{"Secret Targets"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.DeleteSecretTarget)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "patch-secret-owner", Method: http.MethodPatch, Path: "/secret-targets/{secret_id}/owner",
+		Summary: "Transfer secret ownership", Tags: []string{"Secret Targets"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.PatchSecretOwner)
+
 	// ── Global registries ────────────────────────────────────────────────
 	// Readable by any authenticated user (without actual values)
 	huma.Register(humaAPI, huma.Operation{
