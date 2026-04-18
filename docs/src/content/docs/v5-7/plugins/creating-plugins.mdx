@@ -99,7 +99,7 @@ Parse these in your plugin:
 ```bash
 #!/bin/bash
 # Parse JSON array
-TARGETS=$(echo "$PLUGIN_TARGETS" | jq -r '.[]')
+TARGETS=$(echo "$PLUGIN_TARGETS" | jq -rRs '. as $raw | try (fromjson | .[]) catch $raw')
 
 # Parse JSON object
 RETRIES=$(echo "$PLUGIN_CONFIG" | jq -r '.retries')
