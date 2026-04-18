@@ -31,6 +31,40 @@ steps:
 `${<variable>}` expressions are subject to pre-processing of the YAML parser. If this is not desired, the variable must be escaped via `$$`, resulting in `$${<variable>}`.
 :::
 
+## Pipeline Variables
+
+You can define reusable variables in the top-level `variables:` block of your pipeline YAML.
+Scalar string values defined here are available for `${...}` interpolation throughout the rest of the file:
+
+```yaml
+variables:
+  HELM_VERSION: "3.12"
+  UNITTEST_VERSION: "0.3.1"
+
+steps:
+  - name: test
+    image: docker.io/helmunittest/helm-unittest:${HELM_VERSION}-${UNITTEST_VERSION}
+    commands:
+      - helm unittest .
+```
+
+Pipeline variables can also reference CI variables:
+
+```yaml
+variables:
+  FULL_IMAGE: "docker.io/myorg/myapp:${CI_COMMIT_SHA}"
+
+steps:
+  - name: deploy
+    image: ${FULL_IMAGE}
+    commands:
+      - echo "Deploying..."
+```
+
+Pipeline variables have lower priority than CI variables (like `CI_COMMIT_BRANCH`) and matrix axes, so they cannot override built-in values.
+
+The `variables:` block can also be used for YAML anchors and aliases as before — non-scalar values (maps, sequences) are ignored for interpolation but work normally as anchors.
+
 ## String Substitution
 
 ## String Operations

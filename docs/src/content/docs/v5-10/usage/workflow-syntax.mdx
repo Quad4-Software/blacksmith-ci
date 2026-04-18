@@ -477,6 +477,38 @@ For the `kubernetes` backend, an existing persistent volume claim (PVC) is used.
 
 More details can be found in the [volumes documentation](/dev/usage/volumes/).
 
+### tmpfs
+
+Tmpfs mounts create in-memory filesystems inside the container.
+This is useful for speeding up I/O-heavy workloads like database tests, since data is stored in RAM instead of on disk.
+
+Unlike `volumes`, tmpfs does **not** require the "Volumes" privilege — it is safe for any user because it doesn't expose the host filesystem.
+
+```yaml
+steps:
+  - name: test
+    image: golang
+    commands:
+      - go test ./...
+
+services:
+  - name: database
+    image: postgres:18
+    tmpfs:
+      - /var/lib/postgresql
+```
+
+An optional size limit and other mount options can be specified after a colon:
+
+```yaml
+tmpfs:
+  - /var/lib/data:size=512M
+  - /tmp:size=1G,mode=1770
+```
+
+If the agent has a memory limit configured (`CROW_BACKEND_DOCKER_LIMIT_MEM`), tmpfs size is automatically capped to that limit.
+When no explicit `size=` option is given, one is injected automatically.
+
 ### when
 
 Woodpecker supports defining a list of conditions for a step by using a when block.

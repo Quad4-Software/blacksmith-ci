@@ -1,0 +1,306 @@
+---
+title: "Forge OAuth2 Setup"
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+Crow authenticates users via OAuth2 from a Git forge.
+Each forge requires creating an OAuth application that Crow uses to authenticate users and access repositories.
+
+The callback/redirect URL for all forges is:
+
+```
+https://<your-crow-domain>/authorize
+```
+
+Replace `<your-crow-domain>` with your actual Crow instance URL (e.g., `ci.example.com`).
+For local development, use `http://localhost:8000/authorize`.
+
+## Forgejo / Gitea
+
+Forgejo and Gitea share the same OAuth2 setup process.
+This also applies to hosted instances like Codeberg and Codefloe.
+
+<Steps>
+
+1. Log in to your Forgejo/Gitea instance and go to **Settings** (click your avatar in the top-right corner).
+
+2. Select **Applications** from the sidebar.
+
+3. Under **Manage OAuth2 Applications**, fill in the form:
+    - **Application Name**: `Crow CI` (or any name you prefer)
+    - **Redirect URI**: `https://<your-crow-domain>/authorize`
+    - Leave **Confidential Client** checked (default)
+
+4. Click **Create Application**.
+
+5. Copy the **Client ID** and **Client Secret** shown on the next page. **The secret is only displayed once — copy it immediately.**
+
+6. Configure Crow with the credentials:
+
+    **Single forge:**
+    ```bash
+    CROW_FORGEJO=true
+    CROW_FORGEJO_URL=https://codefloe.com  # or your instance URL
+    CROW_FORGEJO_CLIENT=<client-id>
+    CROW_FORGEJO_SECRET=<client-secret>
+    ```
+
+    **Multi-forge:**
+    ```bash
+    CROW_FORGES=codefloe
+    CROW_FORGE_CODEFLOE_TYPE=forgejo
+    CROW_FORGE_CODEFLOE_URL=https://codefloe.com
+    CROW_FORGE_CODEFLOE_CLIENT=<client-id>
+    CROW_FORGE_CODEFLOE_SECRET=<client-secret>
+    ```
+
+</Steps>
+
+:::tip
+For Gitea, replace `CROW_FORGEJO` with `CROW_GITEA` (single forge) or set `CROW_FORGE_{NAME}_TYPE=gitea` (multi-forge).
+The setup process is identical.
+:::
+
+## GitHub
+
+<Steps>
+
+1. Go to [github.com/settings/developers](https://github.com/settings/developers) (or **Settings → Developer settings → OAuth Apps** from your profile).
+
+2. Click **New OAuth App**.
+
+3. Fill in the application details:
+    - **Application name**: `Crow CI`
+    - **Homepage URL**: `https://<your-crow-domain>`
+    - **Authorization callback URL**: `https://<your-crow-domain>/authorize`
+
+4. Click **Register application**.
+
+5. On the application page, copy the **Client ID**.
+
+6. Click **Generate a new client secret** and copy the secret. **The secret is only displayed once — copy it immediately.**
+
+7. Configure Crow with the credentials:
+
+    **Single forge:**
+    ```bash
+    CROW_GITHUB=true
+    CROW_GITHUB_CLIENT=<client-id>
+    CROW_GITHUB_SECRET=<client-secret>
+    ```
+
+    **Multi-forge:**
+    ```bash
+    CROW_FORGES=github
+    CROW_FORGE_GITHUB_TYPE=github
+    CROW_FORGE_GITHUB_CLIENT=<client-id>
+    CROW_FORGE_GITHUB_SECRET=<client-secret>
+    ```
+
+</Steps>
+
+### GitHub Enterprise
+
+For GitHub Enterprise, additionally set the forge URL:
+
+```bash
+# Single forge
+CROW_FORGE_URL=https://github.example.com
+
+# Multi-forge
+CROW_FORGE_GITHUB_URL=https://github.example.com
+```
+
+### OAuth Scopes
+
+Crow requests the following GitHub OAuth scopes:
+
+| Scope | Purpose |
+| ----- | ------- |
+| `repo` | Full access to repositories (webhooks, statuses, content) |
+| `user:email` | Read user email addresses |
+| `read:org` | Read organization membership |
+
+When `CROW_GITHUB_PUBLIC_ONLY=true` is set, Crow requests reduced scopes instead of `repo`:
+
+| Scope | Purpose |
+| ----- | ------- |
+| `admin:repo_hook` | Manage repository webhooks |
+| `repo:status` | Access commit status API |
+
+## GitLab
+
+<Steps>
+
+1. Go to [gitlab.com/-/user_settings/applications](https://gitlab.com/-/user_settings/applications) (or **Edit profile → Applications** from your avatar menu).
+
+2. Click **Add new application**.
+
+3. Fill in the application details:
+    - **Name**: `Crow CI`
+    - **Redirect URI**: `https://<your-crow-domain>/authorize`
+    - **Confidential**: Yes (checked)
+    - **Scopes**: Select `api`
+
+4. Click **Save application**.
+
+5. Copy the **Application ID** (this is the Client ID) and **Secret**.
+
+6. Configure Crow with the credentials:
+
+    **Single forge:**
+    ```bash
+    CROW_GITLAB=true
+    CROW_GITLAB_CLIENT=<application-id>
+    CROW_GITLAB_SECRET=<secret>
+    ```
+
+    **Multi-forge:**
+    ```bash
+    CROW_FORGES=gitlab
+    CROW_FORGE_GITLAB_TYPE=gitlab
+    CROW_FORGE_GITLAB_CLIENT=<application-id>
+    CROW_FORGE_GITLAB_SECRET=<secret>
+    ```
+
+</Steps>
+
+### Self-Hosted GitLab
+
+For self-hosted GitLab, additionally set the forge URL:
+
+```bash
+# Single forge
+CROW_FORGE_URL=https://gitlab.example.com
+
+# Multi-forge
+CROW_FORGE_GITLAB_URL=https://gitlab.example.com
+```
+
+### OAuth Scopes
+
+Crow requests the `api` scope, which grants full API access including reading user info, managing repositories, and setting commit statuses.
+
+## Bitbucket Cloud
+
+<Steps>
+
+1. Go to your **Workspace settings** in Bitbucket (click your workspace name → **Settings**).
+
+2. Under **Apps and features**, select **OAuth consumers**.
+
+3. Click **Add consumer**.
+
+4. Fill in the consumer details:
+    - **Name**: `Crow CI`
+    - **Callback URL**: `https://<your-crow-domain>/authorize`
+    - **Permissions**: Select the following:
+      - **Account**: Read
+      - **Repositories**: Read, Write
+      - **Pull requests**: Read, Write
+      - **Webhooks**: Read and write
+
+5. Click **Save**.
+
+6. Copy the **Key** (this is the Client ID) and **Secret**.
+
+7. Configure Crow with the credentials:
+
+    **Single forge:**
+    ```bash
+    CROW_BITBUCKET=true
+    CROW_BITBUCKET_CLIENT=<key>
+    CROW_BITBUCKET_SECRET=<secret>
+    ```
+
+    **Multi-forge:**
+    ```bash
+    CROW_FORGES=bitbucket
+    CROW_FORGE_BITBUCKET_TYPE=bitbucket
+    CROW_FORGE_BITBUCKET_CLIENT=<key>
+    CROW_FORGE_BITBUCKET_SECRET=<secret>
+    ```
+
+</Steps>
+
+## Bitbucket Data Center / Server
+
+<Steps>
+
+1. Log in to your Bitbucket Data Center instance as an **administrator**.
+
+2. Go to **Administration → Application Links**.
+
+3. Click **Create link**.
+
+4. Select **External application** and **Incoming** direction.
+
+5. Fill in the details:
+    - **Name**: `Crow CI`
+    - **Redirect URL**: `https://<your-crow-domain>/authorize`
+    - **Application permissions**: Select `REPO_READ`, `REPO_WRITE`, and `REPO_ADMIN`
+
+6. Click **Save** and copy the **Client ID** and **Client Secret**.
+
+7. Configure Crow with the credentials:
+
+    **Single forge:**
+    ```bash
+    CROW_BITBUCKET_DC=true
+    CROW_FORGE_URL=https://bitbucket.example.com
+    CROW_BITBUCKET_DC_CLIENT=<client-id>
+    CROW_BITBUCKET_DC_SECRET=<client-secret>
+    CROW_BITBUCKET_DC_GIT_USERNAME=<service-account-username>
+    CROW_BITBUCKET_DC_GIT_PASSWORD=<service-account-password>
+    ```
+
+    **Multi-forge:**
+    ```bash
+    CROW_FORGES=bitbucket-dc
+    CROW_FORGE_BITBUCKET_DC_TYPE=bitbucket-dc
+    CROW_FORGE_BITBUCKET_DC_URL=https://bitbucket.example.com
+    CROW_FORGE_BITBUCKET_DC_CLIENT=<client-id>
+    CROW_FORGE_BITBUCKET_DC_SECRET=<client-secret>
+    CROW_FORGE_BITBUCKET_DC_GIT_USERNAME=<service-account-username>
+    CROW_FORGE_BITBUCKET_DC_GIT_PASSWORD=<service-account-password>
+    ```
+
+</Steps>
+
+:::note
+Bitbucket Data Center requires a service account for git operations (`GIT_USERNAME` and `GIT_PASSWORD`).
+This account needs read access to the repositories you want to use with Crow.
+:::
+
+## Troubleshooting
+
+### "Invalid redirect URI" error
+
+Ensure the redirect URI in your OAuth application exactly matches `https://<your-crow-domain>/authorize`.
+Common mistakes:
+- Missing trailing `/authorize`
+- Using `http` instead of `https` (or vice versa)
+- Including a trailing slash after `/authorize`
+- Domain mismatch between `CROW_HOST` and the OAuth redirect URI
+
+### "OAuth client ID/secret" errors
+
+Verify that:
+- The client ID and secret are correctly copied (no extra whitespace)
+- The correct forge driver is enabled (e.g., `CROW_FORGEJO=true` not `CROW_GITEA=true` for Forgejo)
+- For multi-forge setups, the forge name in env vars matches the name in `CROW_FORGES`
+
+### Self-hosted forge behind a proxy
+
+If your forge uses a different public URL than its internal URL, set the OAuth host explicitly:
+
+```bash
+# Single forge
+CROW_EXPERT_FORGE_OAUTH_HOST=https://git.public.example.com
+
+# Multi-forge
+CROW_FORGE_{NAME}_OAUTH_HOST=https://git.public.example.com
+```
+
+See [Forge Integration](/dev/configuration/env-vars/forge/) for all available environment variables.
