@@ -723,7 +723,7 @@ async function toggleAbbreviatedValue() {
 async function loadTargets() {
   if (!props.secret?.id) return;
   try {
-    secretTargets.value = await apiClient.getSecretTargets(Number(props.secret.id));
+    secretTargets.value = (await apiClient.getSecretTargets(Number(props.secret.id))) || [];
   } catch {
     // Silent failure
   }

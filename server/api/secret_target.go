@@ -123,6 +123,9 @@ func GetSecretTargetList(ctx context.Context, input *GetSecretTargetListInput) (
 	if err != nil {
 		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error listing secret targets: %s", err))
 	}
+	if targets == nil {
+		targets = []*model.SecretTarget{}
+	}
 	return &GetSecretTargetListOutput{Body: targets}, nil
 }
 
