@@ -275,7 +275,7 @@ func createSecretTargets(driver string) func(tx *sql.Tx) error {
 		case "postgres":
 			ddl = `CREATE TABLE IF NOT EXISTS secret_targets (
 				id BIGSERIAL PRIMARY KEY,
-				secret_id INTEGER NOT NULL REFERENCES secrets(id) ON DELETE CASCADE,
+				secret_id BIGINT NOT NULL REFERENCES secrets(id) ON DELETE CASCADE,
 				org_id INTEGER NOT NULL DEFAULT 0,
 				repo_id INTEGER NOT NULL DEFAULT 0,
 				created_at INTEGER,
@@ -284,7 +284,7 @@ func createSecretTargets(driver string) func(tx *sql.Tx) error {
 		case "mysql":
 			ddl = `CREATE TABLE IF NOT EXISTS secret_targets (
 				id BIGINT PRIMARY KEY AUTO_INCREMENT,
-				secret_id INTEGER NOT NULL,
+				secret_id BIGINT NOT NULL,
 				org_id INTEGER NOT NULL DEFAULT 0,
 				repo_id INTEGER NOT NULL DEFAULT 0,
 				created_at INTEGER,

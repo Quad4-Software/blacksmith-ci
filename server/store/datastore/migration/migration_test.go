@@ -43,16 +43,7 @@ func TestMigrate_FreshDatabase(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify that baseline tables were created
-	tables := []string{
-		"users", "repos", "pipelines", "workflows", "steps", "tasks",
-		"log_entries", "configs", "pipeline_configs", "secrets", "registries",
-		"perms", "agents", "autoscalers", "crons", "orgs", "forges",
-		"server_configs", "access_tokens", "integrations", "notification_configs",
-		"approved_pull_requests", "distributed_locks", "pubsub_messages",
-		"cache_entries", "maintenance_config", "user_forges", "redirections",
-		"email_unsubscribes", "maintenance_operation_config",
-		"maintenance_stats", "maintenance_logs",
-	}
+	tables := freshDatabaseTables()
 	for _, table := range tables {
 		var count int
 		err := db.QueryRow("SELECT COUNT(*) FROM " + table).Scan(&count)
@@ -64,6 +55,43 @@ func TestMigrate_FreshDatabase(t *testing.T) {
 	err = db.QueryRow("SELECT COUNT(*) FROM migrations").Scan(&migrationCount)
 	require.NoError(t, err)
 	assert.Greater(t, migrationCount, 0, "legacy migrations should be marked as applied")
+}
+
+// TestMigrate_FreshDatabase_MultiDriver runs the full baseline schema and
+// migrations against whichever database is configured via env vars.
+// On MySQL/Postgres this validates that every CREATE TABLE statement —
+// including FK constraints — uses compatible column types.
+// This is the test that would have caught issue #945.
+func TestMigrate_FreshDatabase_MultiDriver(t *testing.T) {
+	db, driver := testDB(t)
+
+	err := Migrate(t.Context(), db, driver, true)
+	require.NoError(t, err)
+
+	tables := freshDatabaseTables()
+	for _, table := range tables {
+		var count int
+		err := db.QueryRow("SELECT COUNT(*) FROM " + table).Scan(&count)
+		assert.NoError(t, err, "table %s should exist after fresh migration on %s", table, driver)
+	}
+
+	var migrationCount int
+	err = db.QueryRow("SELECT COUNT(*) FROM migrations").Scan(&migrationCount)
+	require.NoError(t, err)
+	assert.Greater(t, migrationCount, 0, "legacy migrations should be marked as applied")
+}
+
+func freshDatabaseTables() []string {
+	return []string{
+		"users", "repos", "pipelines", "workflows", "steps", "tasks",
+		"log_entries", "configs", "pipeline_configs", "secrets", "secret_targets",
+		"registries", "perms", "agents", "autoscalers", "crons", "orgs", "forges",
+		"server_configs", "access_tokens", "integrations", "notification_configs",
+		"approved_pull_requests", "distributed_locks", "pubsub_messages",
+		"cache_entries", "maintenance_config", "user_forges", "redirections",
+		"email_unsubscribes", "maintenance_operation_config",
+		"maintenance_stats", "maintenance_logs",
+	}
 }
 
 func TestMigrate_LegacyXormTable(t *testing.T) {
@@ -213,8 +241,28 @@ func TestMigrate_NewMigrations_PortableSQL(t *testing.T) {
 		_, err = db.Exec(fmt.Sprintf("INSERT INTO migrations (id) VALUES ('%s')", id))
 		require.NoError(t, err)
 	}
-	// Create tables that new migrations will alter
-	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS autoscalers (id INTEGER PRIMARY KEY)`)
+	// Create tables that new migrations will alter or reference with FKs.
+	// Use BIGINT for PKs to match the real schema — MySQL requires FK column
+	// types to match the referenced PK type exactly.
+	var createAutoscalers, createSecrets string
+	switch driver {
+	case "mysql":
+		createAutoscalers = `CREATE TABLE IF NOT EXISTS autoscalers (id BIGINT PRIMARY KEY AUTO_INCREMENT)`
+		createSecrets = `CREATE TABLE IF NOT EXISTS secrets (id BIGINT PRIMARY KEY AUTO_INCREMENT, org_id INTEGER NOT NULL DEFAULT 0, repo_id INTEGER NOT NULL DEFAULT 0, name VARCHAR(250) NOT NULL)`
+	case "postgres":
+		createAutoscalers = `CREATE TABLE IF NOT EXISTS autoscalers (id BIGSERIAL PRIMARY KEY)`
+		createSecrets = `CREATE TABLE IF NOT EXISTS secrets (id BIGSERIAL PRIMARY KEY, org_id INTEGER NOT NULL DEFAULT 0, repo_id INTEGER NOT NULL DEFAULT 0, name TEXT NOT NULL)`
+	default:
+		createAutoscalers = `CREATE TABLE IF NOT EXISTS autoscalers (id INTEGER PRIMARY KEY)`
+		createSecrets = `CREATE TABLE IF NOT EXISTS secrets (id INTEGER PRIMARY KEY, org_id INTEGER NOT NULL DEFAULT 0, repo_id INTEGER NOT NULL DEFAULT 0, name TEXT NOT NULL)`
+	}
+	_, err = db.Exec(createAutoscalers)
+	require.NoError(t, err)
+	_, err = db.Exec(createSecrets)
+	require.NoError(t, err)
+	// Insert a row so tableExists() sees a non-empty table and the
+	// createSecretTargets migration actually runs the FK DDL.
+	_, err = db.Exec(`INSERT INTO secrets (org_id, repo_id, name) VALUES (0, 1, 'test')`)
 	require.NoError(t, err)
 
 	// Run Migrate — should only execute new migrations, not the baseline
@@ -225,6 +273,10 @@ func TestMigrate_NewMigrations_PortableSQL(t *testing.T) {
 	var count int
 	err = db.QueryRow("SELECT COUNT(*) FROM email_unsubscribes").Scan(&count)
 	assert.NoError(t, err, "email_unsubscribes table should exist")
+
+	// Verify secret_targets was created with proper FK
+	err = db.QueryRow("SELECT COUNT(*) FROM secret_targets").Scan(&count)
+	assert.NoError(t, err, "secret_targets table should exist")
 
 	// Verify pending_since column exists on autoscalers
 	rows, err := db.Query("SELECT pending_since FROM autoscalers LIMIT 1")

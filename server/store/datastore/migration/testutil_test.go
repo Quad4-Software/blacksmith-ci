@@ -71,16 +71,20 @@ func testDB(t *testing.T) (*sql.DB, string) {
 // cleanupTestTables drops tables that migration tests create,
 // so PostgreSQL/MySQL test databases stay clean between runs.
 func cleanupTestTables(db *sql.DB) {
+	// Drop tables with FK dependencies first, then the rest.
 	tables := []string{
+		"secret_targets", "pipeline_configs",
 		"email_unsubscribes",
 		"migrations",
 		"migration",
 		"users", "repos", "pipelines", "workflows", "steps", "tasks",
-		"log_entries", "configs", "pipeline_configs", "secrets", "registries",
+		"log_entries", "configs", "secrets", "registries",
 		"perms", "agents", "autoscalers", "crons", "orgs", "forges",
 		"server_configs", "access_tokens", "integrations", "notification_configs",
 		"approved_pull_requests", "distributed_locks", "pubsub_messages",
-		"cache_entries", "maintenance_config", "user_forges", "redirections",
+		"cache_entries", "maintenance_config", "maintenance_operation_config",
+		"maintenance_stats", "maintenance_logs",
+		"user_forges", "redirections",
 	}
 	for _, t := range tables {
 		_, _ = db.Exec("DROP TABLE IF EXISTS " + t + " CASCADE")
