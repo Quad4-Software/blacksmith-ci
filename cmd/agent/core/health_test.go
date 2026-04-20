@@ -33,6 +33,8 @@ func TestHealthy(t *testing.T) {
 	assert.Equal(t, time.Hour, s.Metadata["1"].Timeout)
 	assert.Equal(t, "octocat/hello-world", s.Metadata["1"].Repo)
 
+	s.SetHealthy(true)
+
 	s.Metadata["1"] = agent.Info{
 		Timeout: time.Hour,
 		Started: time.Now().UTC(),

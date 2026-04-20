@@ -550,14 +550,24 @@ func stringSliceAddToMap(sl []string, m map[string]string) error {
 		m = make(map[string]string)
 	}
 	for _, v := range utils.StringSliceDeleteEmpty(sl) {
-		before, after, _ := strings.Cut(v, "=")
-		switch {
-		case before != "" && after != "":
-			m[before] = after
-		case before != "":
-			return fmt.Errorf("key '%s' does not have a value assigned", before)
-		default:
-			return fmt.Errorf("empty string in slice")
+		for _, part := range strings.Split(v, ",") {
+			part = strings.TrimSpace(part)
+			if part == "" {
+				continue
+			}
+			before, after, found := strings.Cut(part, "=")
+			switch {
+			case before != "" && found:
+				if existing, ok := m[before]; ok {
+					m[before] = existing + "|" + after
+				} else {
+					m[before] = after
+				}
+			case before != "":
+				return fmt.Errorf("key '%s' does not have a value assigned", before)
+			default:
+				return fmt.Errorf("empty string in slice")
+			}
 		}
 	}
 	return nil
