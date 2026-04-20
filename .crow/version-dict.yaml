@@ -58,7 +58,7 @@ steps:
         cat versions.json
 
   - name: 'Push changes to branch'
-    image: reg.devxy.io/docker.io/appleboy/drone-git-push:1.2.2
+    image: reg.devxy.io/docker.io/appleboy/drone-git-push:1.2.3
     settings:
       remote: ${CI_REPO_CLONE_SSH_URL}
       branch: pages
