@@ -1,7 +1,7 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
-import starlightThemeNova from 'starlight-theme-nova';
+import starlightCelestiaTheme from 'starlight-celestia-theme';
 import markdoc from '@astrojs/markdoc';
 import starlightLinksValidator from 'starlight-links-validator';
 import starlightUtils from '@lorenzo_lewis/starlight-utils';
@@ -20,11 +20,13 @@ export default defineConfig({
     markdoc(),
     starlight({
       title: 'Crow CI',
+      logo: {
+        src: './public/logo.svg',
+        replacesTitle: true,
+      },
       favicon: '/favicon-light.svg',
-      customCss: ['./src/styles/base.css', './src/styles/starlight-mappings.css', './src/styles/custom.css'],
+      customCss: ['./src/styles/custom.css'],
       head: [
-        // Theme-aware favicons: dark icon for light mode, light icon for dark mode
-        // Note: favicon-light = dark icon (for light backgrounds), favicon-dark = light icon (for dark backgrounds)
         {
           tag: 'link',
           attrs: {
@@ -43,7 +45,6 @@ export default defineConfig({
             media: '(prefers-color-scheme: dark)',
           },
         },
-        // PNG fallback for browsers that don't support SVG favicons
         {
           tag: 'link',
           attrs: {
@@ -74,24 +75,19 @@ export default defineConfig({
         },
       ],
       components: {
-        SiteTitle: './src/components/SiteTitle.astro',
-        // Override Banner and PageTitle to remove version outdated warnings
+        // Override Banner and PageTitle to suppress version outdated warnings
         Banner: './src/components/Banner.astro',
         PageTitle: './src/components/PageTitle.astro',
-        // Custom theme switcher
-        ThemeProvider: './src/components/ThemeProvider.astro',
-        ThemeSelect: './src/components/ThemeSelect.astro',
-        // Custom Codefloe icon + Liberapay donation link
-        SocialIcons: './src/components/SocialIcons.astro',
-      },
-      expressiveCode: {
-        themes: ['catppuccin-mocha', 'github-light'],
-        useStarlightDarkModeSwitch: true,
-        useStarlightUiThemeColors: false,
-        styleOverrides: { borderRadius: '0', codePaddingBlock: '0.8rem' },
       },
       plugins: [
         starlightImageZoom(),
+        starlightCelestiaTheme({
+          stylingSystem: 'css',
+          nav: [
+            { label: 'CodeFloe', href: 'https://codefloe.com/crowci/crow' },
+            { label: 'Donate', href: 'https://liberapay.com/crowci' },
+          ],
+        }),
         starlightVersions({
           current: { label: 'v5.10 (latest)', redirect: 'root' },
           versions: [
@@ -102,9 +98,6 @@ export default defineConfig({
             { slug: 'dev', label: 'dev' },
           ],
         }),
-        starlightThemeNova({
-          stylingSystem: 'css', // Disable Tailwind auto-detection to avoid conflicts with Tailwind v4
-        }),
         starlightLinksValidator(),
         starlightUtils({
           multiSidebar: {
@@ -113,13 +106,10 @@ export default defineConfig({
         }),
         starlightScrollToTop(),
       ],
-      social: [
-        // Codefloe icon is rendered via custom SocialIcons component
-      ],
+      social: [],
       editLink: {
         baseUrl: 'https://codefloe.com/crowci/crow/src/branch/main/docs/src/content/docs/',
       },
-      // Sidebar is empty at root level - versioned docs use their own sidebar configs
       sidebar: [],
     }),
   ],

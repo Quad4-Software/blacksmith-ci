@@ -1,200 +1,29 @@
 /*
  * Crow CI Custom Styles
  *
- * This file contains Crow-specific style overrides and customizations.
- * Keep this file minimal - prefer using design tokens in base.css.
+ * Minimal overrides on top of starlight-celestia-theme.
  */
 
-/* ==========================================================================
-    Global Overrides
-    ========================================================================== */
-
-/* Restore list styles (Nova theme's tailwind.gen.css resets them) */
-.sl-markdown-content ul:not(.contains-task-list):not(.sl-steps) {
-  list-style-type: disc;
-  padding-left: 1.5rem;
+/* Invert logo for light mode (logo is white/gray for dark backgrounds) */
+:root[data-theme="light"] img[src*="logo"] {
+  filter: invert(1) brightness(0.3);
 }
 
-.sl-markdown-content ol:not(.sl-steps) {
-  list-style-type: decimal;
-  padding-left: 1.5rem;
-}
-
-.sl-markdown-content ul:not(.sl-steps) ul {
-  list-style-type: circle;
-}
-
-.sl-markdown-content ul:not(.sl-steps) ul ul {
-  list-style-type: square;
-}
-
-/* Base font size for content and sidebars */
-.sl-markdown-content,
-.sidebar-content,
-.right-sidebar {
-  font-size: 0.875rem;
-}
-
-/* Override right sidebar width */
-:root {
-  --sl-sidebar-width: 15rem;
-}
-
-.sl-markdown-content pre,
-.sl-markdown-content pre code {
-  font-size: 0.9em;
-}
-
-.sl-markdown-content :not(pre) > code {
-  font-size: 0.9em;
-}
-
-/* Remove border radius globally for sharper aesthetic */
-* {
-  border-radius: 0 !important;
-}
-
-/* ==========================================================================
-    Sidebar Styles
-    ========================================================================== */
-
-/* Avoid flickering when switching between items */
-:where(.astro-3ii7xxms) {
-  border: 1px solid transparent;
-}
-
-/* Tab styling */
+/* Restore multi-sidebar tab borders (tailwind preflight resets them) */
 .tab > [role="tab"] {
-  border: none !important;
-  border-bottom: 2px solid transparent !important;
+  border-bottom: 1px solid var(--sl-color-gray-5) !important;
 }
 
 .tab > [role="tab"][aria-selected="true"] {
   border-bottom: 2px solid var(--sl-color-text-accent) !important;
 }
 
-/* Sidebar hover states */
-.sidebar-content {
-  background-color: var(--crow-sidebar);
-}
-
-.sidebar-content a:hover,
-.sidebar-content a:focus {
-  background-color: var(--crow-sidebar-accent) !important;
-  color: var(--crow-sidebar-accent-foreground) !important;
-}
-
-/* ==========================================================================
-    Version Switcher
-    ========================================================================== */
-
-/* Hide the default starlight-versions switcher (we use custom one in SiteTitle) */
+/* Hide the default starlight-versions switcher (celestia's SiteTitleVersioned handles it) */
 starlight-version-select {
   display: none !important;
 }
 
-/* Show only our custom version switcher in SiteTitle */
+/* Show version switcher inside the site title wrapper */
 .site-title-wrapper starlight-version-select {
   display: flex !important;
-}
-
-/* ==========================================================================
-    Checkboxes (task lists)
-    ========================================================================== */
-
-/* Task list container */
-.contains-task-list {
-  list-style: none;
-  padding-left: 0.5rem;
-}
-
-.task-list-item {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  margin-bottom: 0.25rem;
-}
-
-/* Base checkbox styling */
-.task-list-item input[type="checkbox"] {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 1rem;
-  height: 1rem;
-  border: 2px solid var(--sl-color-gray-4);
-  background: transparent;
-  cursor: default;
-  flex-shrink: 0;
-  position: relative;
-  top: 0.15rem;
-}
-
-/* Checked checkbox - green */
-.task-list-item input[type="checkbox"]:checked {
-  background-color: #22c55e;
-  border-color: #22c55e;
-  background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
-  background-size: 100% 100%;
-  background-position: center;
-  background-repeat: no-repeat;
-}
-
-/* ==========================================================================
-    Header Spacing
-    ========================================================================== */
-
-/* Top-level header bar spacing */
-header > div.flex {
-  gap: 1rem !important;
-}
-
-/* Right-side action items (social icons, donate, theme toggle) */
-header > div.flex > .hidden.items-center.md\:flex {
-  gap: 1rem !important;
-}
-
-/* ==========================================================================
-    Logo Styles
-    ========================================================================== */
-
-.crow-logo {
-  display: inline-block;
-  height: 1.5rem;
-  width: auto;
-}
-
-/* Invert logo for light mode if needed */
-[data-theme="light"] .crow-logo-invert {
-  filter: invert(1);
-}
-
-/* ==========================================================================
-    Full-width pages (when TOC is hidden)
-    ========================================================================== */
-
-/* When page has no TOC, expand content to use full width */
-@media (min-width: 72rem) {
-  .main-frame:has(aside[data-has-toc="false"]),
-  .main-frame:not(:has(.right-sidebar-panel starlight-toc)) {
-    --sl-content-width: 100%;
-  }
-
-  .main-frame:not(:has(.right-sidebar-panel starlight-toc)) .main-pane,
-  .main-frame:not(:has(.right-sidebar-panel starlight-toc)) .content-panel,
-  .main-frame:not(:has(.right-sidebar-panel starlight-toc)) .sl-container,
-  .main-frame:not(:has(.right-sidebar-panel starlight-toc)) .sl-markdown-content {
-    max-width: 100% !important;
-    width: 100% !important;
-  }
-
-  /* Remove right sidebar space when TOC is hidden */
-  .right-sidebar:has([data-has-toc="false"]),
-  .right-sidebar:not(:has(starlight-toc)) {
-    display: none;
-  }
-}
-
-/* Full-width content class for specific pages */
-.full-width-content .sl-markdown-content {
-  max-width: none !important;
 }
