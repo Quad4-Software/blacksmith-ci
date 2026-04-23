@@ -66,7 +66,17 @@ func GetUserRegistryList(ctx context.Context, input *GetUserRegistryListInput) (
 			return nil, huma.Error500InternalServerError("Cannot get forge from user", err)
 		}
 
-		teams, err := _forge.Teams(c, user)
+		// Build a user with the latest forge credentials if available.
+		forgeUser := user
+		if uf, ufErr := _store.UserForgeGet(user.ID, user.ForgeID); ufErr == nil && uf != nil {
+			forgeUserCopy := *user
+			forgeUserCopy.AccessToken = uf.AccessToken
+			forgeUserCopy.RefreshToken = uf.RefreshToken
+			forgeUserCopy.Expiry = uf.Expiry
+			forgeUser = &forgeUserCopy
+		}
+
+		teams, err := _forge.Teams(c, forgeUser)
 		if err != nil {
 			log.Error().Err(err).Msg("Cannot get user teams")
 			return nil, huma.Error500InternalServerError("Error fetching teams", err)
