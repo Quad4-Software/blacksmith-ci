@@ -187,6 +187,13 @@ func (e *podman) SetupWorkflow(ctx context.Context, conf *backend.Config, taskUU
 		log.Debug().Str("network", conf.Network).Msg("Network already exists, continuing")
 	}
 
+	if err := e.startNetworkKeepaliveContainer(conf, taskUUID); err != nil {
+		log.Warn().
+			Err(err).
+			Str("taskUUID", taskUUID).
+			Msg("failed to start podman network keepalive helper; continuing without keepalive")
+	}
+
 	return nil
 }
 
@@ -408,6 +415,10 @@ func (e *podman) DestroyWorkflow(ctx context.Context, conf *backend.Config, task
 		log.Error().Err(err).Msgf("could not remove volume '%s'", conf.Volume)
 	}
 
+	if err := e.stopNetworkKeepaliveContainer(taskUUID); err != nil {
+		log.Error().Err(err).Msg("could not remove network keepalive helper container")
+	}
+
 	//nolint:contextcheck // Podman SDK uses context embedded in connection
 	if _, err := network.Remove(e.conn, conf.Network, nil); err != nil {
 		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "no such network") {
@@ -440,6 +451,9 @@ func (e *podman) DiscoverWorkflows(ctx context.Context) ([]*backend.DiscoveredWo
 	for _, c := range containerList {
 		taskUUID := c.Labels[common.LabelTaskUUID]
 		if taskUUID == "" {
+			continue
+		}
+		if c.Labels[keepaliveLabel] == "true" || c.Labels[common.LabelStepUUID] == "" {
 			continue
 		}
 

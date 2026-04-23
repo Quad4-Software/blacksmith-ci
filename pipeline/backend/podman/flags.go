@@ -37,6 +37,23 @@ var Flags = []cli.Flag{
 		Usage:   "podman network attached to all pipeline steps",
 	},
 	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_BACKEND_PODMAN_NETWORK_KEEPALIVE_INTERVAL"),
+		Name:    "backend-podman-network-keepalive-interval",
+		Usage:   "interval for optional Podman network keepalive helper (for example: 30s, 1m); empty disables it",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_BACKEND_PODMAN_NETWORK_KEEPALIVE_IMAGE"),
+		Name:    "backend-podman-network-keepalive-image",
+		Usage:   "container image used by the optional Podman network keepalive helper",
+		Value:   keepaliveDefaultImage,
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_BACKEND_PODMAN_NETWORK_KEEPALIVE_HOST"),
+		Name:    "backend-podman-network-keepalive-host",
+		Usage:   "host queried by the optional Podman network keepalive helper",
+		Value:   keepaliveDefaultHost,
+	},
+	&cli.StringFlag{
 		Sources: cli.EnvVars("CROW_BACKEND_PODMAN_VOLUMES"),
 		Name:    "backend-podman-volumes",
 		Usage:   "additional volumes to mount (comma-separated)",

@@ -16,7 +16,10 @@ package podman
 
 import (
 	"fmt"
+	"net"
+	"regexp"
 	"strings"
+	"time"
 
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v3"
@@ -25,10 +28,13 @@ import (
 )
 
 type config struct {
-	enableIPv6    bool
-	network       string
-	volumes       []string
-	resourceLimit resourceLimit
+	enableIPv6               bool
+	network                  string
+	volumes                  []string
+	networkKeepaliveInterval time.Duration
+	networkKeepaliveImage    string
+	networkKeepaliveHost     string
+	resourceLimit            resourceLimit
 }
 
 type resourceLimit struct {
@@ -38,6 +44,28 @@ type resourceLimit struct {
 	CPUQuota     int64
 	CPUShares    int64
 	CPUSet       string
+}
+
+var keepaliveHostPattern = regexp.MustCompile(`^[a-zA-Z0-9.-]+$`)
+
+func isValidKeepaliveHost(host string) bool {
+	if host == "" {
+		return false
+	}
+
+	if net.ParseIP(host) != nil {
+		return true
+	}
+
+	if !keepaliveHostPattern.MatchString(host) {
+		return false
+	}
+
+	if strings.HasPrefix(host, "-") || strings.HasPrefix(host, ".") || strings.HasSuffix(host, "-") || strings.HasSuffix(host, ".") {
+		return false
+	}
+
+	return true
 }
 
 func configFromCli(c *cli.Command) (config, error) {
@@ -62,9 +90,35 @@ func configFromCli(c *cli.Command) (config, error) {
 		return config{}, fmt.Errorf("invalid CPU quota: %w", err)
 	}
 
+	networkKeepaliveInterval := time.Duration(0)
+	durationStr := strings.TrimSpace(c.String("backend-podman-network-keepalive-interval"))
+	if durationStr != "" {
+		networkKeepaliveInterval, err = time.ParseDuration(durationStr)
+		if err != nil {
+			return config{}, fmt.Errorf("invalid network keepalive interval: %w", err)
+		}
+		if networkKeepaliveInterval < time.Second {
+			return config{}, fmt.Errorf("network keepalive interval must be at least 1s")
+		}
+	}
+
+	networkKeepaliveHost := strings.TrimSpace(c.String("backend-podman-network-keepalive-host"))
+	networkKeepaliveImage := strings.TrimSpace(c.String("backend-podman-network-keepalive-image"))
+	if networkKeepaliveInterval > 0 {
+		if networkKeepaliveImage == "" {
+			return config{}, fmt.Errorf("network keepalive image cannot be empty")
+		}
+		if !isValidKeepaliveHost(networkKeepaliveHost) {
+			return config{}, fmt.Errorf("invalid network keepalive host %q: expected hostname or IP", networkKeepaliveHost)
+		}
+	}
+
 	conf := config{
-		enableIPv6: c.Bool("backend-podman-ipv6"),
-		network:    c.String("backend-podman-network"),
+		enableIPv6:               c.Bool("backend-podman-ipv6"),
+		network:                  c.String("backend-podman-network"),
+		networkKeepaliveInterval: networkKeepaliveInterval,
+		networkKeepaliveImage:    networkKeepaliveImage,
+		networkKeepaliveHost:     networkKeepaliveHost,
 		resourceLimit: resourceLimit{
 			MemSwapLimit: memSwap,
 			MemLimit:     memLimit,

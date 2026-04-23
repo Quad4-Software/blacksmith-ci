@@ -43,6 +43,33 @@ The Podman backend uses the native Podman Go SDK (`github.com/containers/podman`
 
 ---
 
+### BACKEND_PODMAN_NETWORK_KEEPALIVE_INTERVAL
+
+- Name: `CROW_BACKEND_PODMAN_NETWORK_KEEPALIVE_INTERVAL`
+- Description: Interval for an optional helper container that periodically issues DNS lookups on the workflow network.
+  This can mitigate Podman network DNS/HTTPS failures after long idle periods.
+  Example values: `30s`, `1m`.
+- Default: disabled (empty)
+
+---
+
+### BACKEND_PODMAN_NETWORK_KEEPALIVE_IMAGE
+
+- Name: `CROW_BACKEND_PODMAN_NETWORK_KEEPALIVE_IMAGE`
+- Description: Container image used for the optional network keepalive helper.
+  The image must provide `/bin/sh` and `nslookup`.
+- Default: `docker.io/library/busybox:1.37.0`
+
+---
+
+### BACKEND_PODMAN_NETWORK_KEEPALIVE_HOST
+
+- Name: `CROW_BACKEND_PODMAN_NETWORK_KEEPALIVE_HOST`
+- Description: Hostname or IP queried by the optional network keepalive helper.
+- Default: `example.com`
+
+---
+
 ## Volumes
 
 ### BACKEND_PODMAN_VOLUMES
