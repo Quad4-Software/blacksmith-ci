@@ -171,6 +171,7 @@ func TestPipelineCreateHTMLResponse(t *testing.T) {
 		statusCode    int
 		contentType   string
 		responseBody  string
+		headers       map[string]string
 		expectError   bool
 		errorContains string
 	}{
@@ -190,6 +191,16 @@ func TestPipelineCreateHTMLResponse(t *testing.T) {
 			expectError:   false,
 			errorContains: "",
 		},
+		{
+			name:        "server returns no content when pipeline is filtered",
+			statusCode:  http.StatusNoContent,
+			contentType: "application/json",
+			headers: map[string]string{
+				"Pipeline-Filtered": "true",
+			},
+			expectError:   true,
+			errorContains: "pipeline was filtered out",
+		},
 	}
 
 	for _, tt := range tests {
@@ -200,6 +211,9 @@ func TestPipelineCreateHTMLResponse(t *testing.T) {
 				assert.Contains(t, r.URL.Path, "/pipelines")
 
 				w.Header().Set("Content-Type", tt.contentType)
+				for key, value := range tt.headers {
+					w.Header().Set(key, value)
+				}
 				w.WriteHeader(tt.statusCode)
 				_, _ = w.Write([]byte(tt.responseBody))
 			}))

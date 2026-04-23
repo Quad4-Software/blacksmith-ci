@@ -158,12 +158,24 @@ func (c *client) delete(rawURL string) error {
 
 // Helper function to make an http request.
 func (c *client) do(rawURL, method string, in, out any) error {
-	body, err := c.open(rawURL, method, in)
+	body, statusCode, headers, err := c.openWithMeta(rawURL, method, in)
 	if err != nil {
 		return err
 	}
 	defer body.Close()
 	if out != nil {
+		if statusCode == http.StatusNoContent {
+			if headers.Get("Pipeline-Filtered") == "true" {
+				return &ClientError{
+					StatusCode: statusCode,
+					Message:    "pipeline was filtered out by `when` constraints",
+				}
+			}
+			return &ClientError{
+				StatusCode: statusCode,
+				Message:    "server returned no content for a response that expects JSON",
+			}
+		}
 		return json.NewDecoder(body).Decode(out)
 	}
 	return nil
@@ -171,18 +183,24 @@ func (c *client) do(rawURL, method string, in, out any) error {
 
 // Helper function to open an http request.
 func (c *client) open(rawURL, method string, in any) (io.ReadCloser, error) {
+	body, _, _, err := c.openWithMeta(rawURL, method, in)
+	return body, err
+}
+
+// Helper function to open an http request and return response metadata.
+func (c *client) openWithMeta(rawURL, method string, in any) (io.ReadCloser, int, http.Header, error) {
 	uri, err := url.Parse(rawURL)
 	if err != nil {
-		return nil, err
+		return nil, 0, nil, err
 	}
 	req, err := http.NewRequest(method, uri.String(), nil)
 	if err != nil {
-		return nil, err
+		return nil, 0, nil, err
 	}
 	if in != nil {
 		decoded, decodeErr := json.Marshal(in)
 		if decodeErr != nil {
-			return nil, decodeErr
+			return nil, 0, nil, decodeErr
 		}
 		buf := bytes.NewBuffer(decoded)
 		req.Body = io.NopCloser(buf)
@@ -192,7 +210,7 @@ func (c *client) open(rawURL, method string, in any) (io.ReadCloser, error) {
 	}
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, 0, nil, err
 	}
 
 	// Handle error status codes with specific messages
@@ -201,7 +219,7 @@ func (c *client) open(rawURL, method string, in any) (io.ReadCloser, error) {
 		body, _ := io.ReadAll(resp.Body)
 		msg := extractErrorMessage(body)
 
-		return nil, &ClientError{
+		return nil, resp.StatusCode, resp.Header, &ClientError{
 			StatusCode: resp.StatusCode,
 			Message:    formatErrorMessage(resp.StatusCode, msg),
 		}
@@ -213,13 +231,13 @@ func (c *client) open(rawURL, method string, in any) (io.ReadCloser, error) {
 	if isHTMLContentType(contentType) {
 		defer resp.Body.Close()
 		body, _ := io.ReadAll(resp.Body)
-		return nil, &ClientError{
+		return nil, resp.StatusCode, resp.Header, &ClientError{
 			StatusCode: resp.StatusCode,
 			Message:    detectHTMLErrorCause(string(body), c.addr),
 		}
 	}
 
-	return resp.Body, nil
+	return resp.Body, resp.StatusCode, resp.Header, nil
 }
 
 // isHTMLContentType checks if the content-type indicates an HTML response.
