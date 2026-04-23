@@ -618,6 +618,27 @@ func TestConstraints(t *testing.T) {
 			env:  map[string]string{"TESTVAR": "qwe"},
 			want: false,
 		},
+		{
+			desc: "manual task selector requires evaluate",
+			conf: `{ event: manual }`,
+			with: metadata.Metadata{Curr: metadata.Pipeline{Event: metadata.EventManual}},
+			env:  map[string]string{"task": "build-all-amd64"},
+			want: false,
+		},
+		{
+			desc: "manual task selector matches evaluate",
+			conf: `{ event: manual, evaluate: 'task == "build-all-amd64"' }`,
+			with: metadata.Metadata{Curr: metadata.Pipeline{Event: metadata.EventManual}},
+			env:  map[string]string{"task": "build-all-amd64"},
+			want: true,
+		},
+		{
+			desc: "manual task selector does not match evaluate",
+			conf: `{ event: manual, evaluate: 'task == "build-all-arm64"' }`,
+			with: metadata.Metadata{Curr: metadata.Pipeline{Event: metadata.EventManual}},
+			env:  map[string]string{"task": "build-all-amd64"},
+			want: false,
+		},
 	}
 
 	for _, test := range testdata {

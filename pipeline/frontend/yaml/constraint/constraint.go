@@ -183,6 +183,18 @@ func (c *Constraint) Match(m metadata.Metadata, global bool, env map[string]stri
 			c.Task.Match(m.Curr.DeployTask)
 	}
 
+	// For manual runs started with a task selector variable, only constraints
+	// with an explicit evaluate expression are eligible to match.
+	if m.Curr.Event == metadata.EventManual {
+		taskSelector := ""
+		if env != nil {
+			taskSelector = strings.TrimSpace(env["task"])
+		}
+		if taskSelector != "" && c.Evaluate == "" {
+			match = false
+		}
+	}
+
 	if c.Evaluate != "" {
 		if env == nil {
 			env = m.Environ()
