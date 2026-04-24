@@ -13,7 +13,7 @@ import (
 // Command exports the update command.
 var Command = &cli.Command{
 	Name:  "update",
-	Usage: "update the crow-cli to the latest version",
+	Usage: "update the crow CLI to the latest version",
 	Flags: []cli.Flag{
 		&cli.BoolFlag{
 			Name:  "force",
@@ -32,7 +32,7 @@ func update(ctx context.Context, c *cli.Command) error {
 	}
 
 	if newVersion == nil {
-		fmt.Println("you are using the latest version of crow-cli")
+		fmt.Println("you are using the latest version of crow")
 		return nil
 	}
 
@@ -67,7 +67,7 @@ func update(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
-	log.Info().Msgf("crow-cli has been updated to version %s successfully!", newVersion.Version)
+	log.Info().Msgf("crow has been updated to version %s successfully!", newVersion.Version)
 
 	return nil
 }

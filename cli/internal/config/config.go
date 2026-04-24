@@ -30,7 +30,7 @@ func Load(ctx context.Context, c *cli.Command) error {
 	}
 
 	if config.ServerURL == "" || config.Token == "" {
-		fmt.Fprintln(os.Stderr, "crow-cli requires configuration via environment variables (CROW_SERVER & CROW_TOKEN) or command line flags (--server <url> --token <token>)")
+		fmt.Fprintln(os.Stderr, "crow requires configuration via environment variables (CROW_SERVER & CROW_TOKEN) or command line flags (--server <url> --token <token>)")
 		return fmt.Errorf("missing required configuration")
 	}
 
