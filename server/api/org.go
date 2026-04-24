@@ -150,7 +150,19 @@ func LookupOrg(ctx context.Context, input *LookupOrgInput) (*LookupOrgOutput, er
 		if !user.Admin && org.Name != user.Login {
 			return nil, huma.Error404NotFound("not found")
 		} else if !user.Admin {
-			perm, err := server.Config.Services.Membership.Get(c, _forge, user, org.Name)
+			// Build a user with the latest forge credentials to avoid using
+			// the deprecated/stale users.access_token when calling the forge.
+			forgeUser := user
+			if uf, ufErr := _store.UserForgeGet(user.ID, org.ForgeID); ufErr == nil && uf != nil {
+				forgeUserCopy := *user
+				forgeUserCopy.ForgeID = org.ForgeID
+				forgeUserCopy.AccessToken = uf.AccessToken
+				forgeUserCopy.RefreshToken = uf.RefreshToken
+				forgeUserCopy.Expiry = uf.Expiry
+				forgeUser = &forgeUserCopy
+			}
+
+			perm, err := server.Config.Services.Membership.Get(c, _forge, forgeUser, org.Name)
 			if err != nil {
 				log.Error().Err(err).Msg("failed to check membership")
 				return nil, huma.Error500InternalServerError("failed to check membership")
@@ -195,7 +207,19 @@ func LookupOrgGin(c *gin.Context) {
 			c.String(http.StatusNotFound, "not found")
 			return
 		} else if !user.Admin {
-			perm, err := server.Config.Services.Membership.Get(c, _forge, user, org.Name)
+			// Build a user with the latest forge credentials to avoid using
+			// the deprecated/stale users.access_token when calling the forge.
+			forgeUser := user
+			if uf, ufErr := _store.UserForgeGet(user.ID, org.ForgeID); ufErr == nil && uf != nil {
+				forgeUserCopy := *user
+				forgeUserCopy.ForgeID = org.ForgeID
+				forgeUserCopy.AccessToken = uf.AccessToken
+				forgeUserCopy.RefreshToken = uf.RefreshToken
+				forgeUserCopy.Expiry = uf.Expiry
+				forgeUser = &forgeUserCopy
+			}
+
+			perm, err := server.Config.Services.Membership.Get(c, _forge, forgeUser, org.Name)
 			if err != nil {
 				log.Error().Err(err).Msg("failed to check membership")
 				c.String(http.StatusInternalServerError, "failed to check membership")

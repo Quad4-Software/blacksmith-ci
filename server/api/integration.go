@@ -321,13 +321,26 @@ func getUserOrgIDs(c *gin.Context, user *model.User) ([]int64, error) {
 		return nil, err
 	}
 
-	teams, err := _forge.Teams(c, user)
+	_store := server.Config.Services.Manager.Store()
+
+	// Build a user with the latest forge credentials if available,
+	// otherwise the session user may carry a stale token from the
+	// deprecated users.access_token field.
+	forgeUser := user
+	if uf, ufErr := _store.UserForgeGet(user.ID, user.ForgeID); ufErr == nil && uf != nil {
+		forgeUserCopy := *user
+		forgeUserCopy.AccessToken = uf.AccessToken
+		forgeUserCopy.RefreshToken = uf.RefreshToken
+		forgeUserCopy.Expiry = uf.Expiry
+		forgeUser = &forgeUserCopy
+	}
+
+	teams, err := _forge.Teams(c, forgeUser)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get org IDs from our database by matching org names
-	_store := server.Config.Services.Manager.Store()
 	orgIDs := make([]int64, 0, len(teams))
 	for _, team := range teams {
 		dbOrg, err := _store.OrgFindByName(team.Login, user.ForgeID)
