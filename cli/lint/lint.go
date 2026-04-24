@@ -35,7 +35,7 @@ import (
 var Command = &cli.Command{
 	Name:      "lint",
 	Usage:     "lint a pipeline configuration file",
-	ArgsUsage: "[path/to/.woodpecker.yaml]",
+	ArgsUsage: "[path/to/.crow.yaml | path/to/.crow/]",
 	Action:    lint,
 	Flags: []cli.Flag{
 		&cli.StringSliceFlag{

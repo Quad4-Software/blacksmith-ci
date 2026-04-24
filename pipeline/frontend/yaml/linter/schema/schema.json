@@ -349,6 +349,41 @@
         "dns_search": {
           "description": "Change DNS lookup domain for step. Only allowed if 'Trusted Network' option is enabled in repo settings by an admin",
           "$ref": "#/definitions/string_or_string_slice"
+        },
+        "network_mode": {
+          "description": "Set the network mode for the step container (e.g. 'host', 'bridge'). Only allowed if 'Trusted Network' option is enabled in repo settings by an admin.",
+          "type": "string"
+        },
+        "extra_hosts": {
+          "description": "Add hostname mappings to the step container. Only allowed if 'Trusted Network' option is enabled in repo settings by an admin.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minLength": 1
+        },
+        "devices": {
+          "description": "Expose host devices to the step container. Only allowed if 'Trusted Security' option is enabled in repo settings by an admin.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minLength": 1
+        },
+        "ports": {
+          "description": "Expose ports to which other steps can connect to",
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "minLength": 1
         }
       }
     },
@@ -947,6 +982,34 @@
                 "type": "string"
               }
             ]
+          },
+          "minLength": 1
+        },
+        "dns": {
+          "description": "Change DNS server for service. Only allowed if 'Trusted Network' option is enabled in repo settings by an admin",
+          "$ref": "#/definitions/string_or_string_slice"
+        },
+        "dns_search": {
+          "description": "Change DNS lookup domain for service. Only allowed if 'Trusted Network' option is enabled in repo settings by an admin",
+          "$ref": "#/definitions/string_or_string_slice"
+        },
+        "network_mode": {
+          "description": "Set the network mode for the service container (e.g. 'host', 'bridge'). Only allowed if 'Trusted Network' option is enabled in repo settings by an admin.",
+          "type": "string"
+        },
+        "extra_hosts": {
+          "description": "Add hostname mappings to the service container. Only allowed if 'Trusted Network' option is enabled in repo settings by an admin.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minLength": 1
+        },
+        "devices": {
+          "description": "Expose host devices to the service container. Only allowed if 'Trusted Security' option is enabled in repo settings by an admin.",
+          "type": "array",
+          "items": {
+            "type": "string"
           },
           "minLength": 1
         }
