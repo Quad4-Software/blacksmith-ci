@@ -243,7 +243,7 @@ func (s storage) GetBuildTimeStatsByRepo(after, before int64, repoIDs []int64) (
 	type result struct {
 		RepoID      int64   `bun:"repo_id"`
 		AvgDuration float64 `bun:"avg_duration"`
-		TotalTime   float64 `bun:"total_time"`
+		TotalTime   int64   `bun:"total_time"`
 	}
 
 	ctx := context.Background()
@@ -273,7 +273,7 @@ func (s storage) GetBuildTimeStatsByRepo(after, before int64, repoIDs []int64) (
 	for _, r := range results {
 		stats[r.RepoID] = map[string]float64{
 			"avg":   r.AvgDuration,
-			"total": r.TotalTime,
+			"total": float64(r.TotalTime),
 		}
 	}
 
@@ -285,7 +285,7 @@ func (s storage) GetBuildTimeStatsByOrg(after, before int64, repoIDs []int64) (m
 	type result struct {
 		OrgID       int64   `bun:"org_id"`
 		AvgDuration float64 `bun:"avg_duration"`
-		TotalTime   float64 `bun:"total_time"`
+		TotalTime   int64   `bun:"total_time"`
 	}
 
 	ctx := context.Background()
@@ -316,7 +316,7 @@ func (s storage) GetBuildTimeStatsByOrg(after, before int64, repoIDs []int64) (m
 	for _, r := range results {
 		stats[r.OrgID] = map[string]float64{
 			"avg":   r.AvgDuration,
-			"total": r.TotalTime,
+			"total": float64(r.TotalTime),
 		}
 	}
 
