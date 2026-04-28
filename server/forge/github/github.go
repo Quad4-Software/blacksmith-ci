@@ -171,6 +171,12 @@ func (c *client) Auth(ctx context.Context, token, _ string) (string, error) {
 
 // Refresh refreshes the GitHub oauth2 access token. If the token is
 // refreshed the user is updated and a true value is returned.
+//
+// We pass an Expiry in the past so the oauth2 library always performs a real
+// token exchange; otherwise it would short-circuit when the cached token is
+// not yet within ~10s of expiry and return the same access token unchanged.
+// `refreshed` is true only when the access token actually changed, so callers
+// don't unnecessarily persist identical values.
 func (c *client) Refresh(ctx context.Context, user *model.User) (bool, error) {
 	// when using Github OAuth app no refresh token is provided
 	// and the access tokens don't expire, so skip refresh
@@ -183,7 +189,7 @@ func (c *client) Refresh(ctx context.Context, user *model.User) (bool, error) {
 	source := config.TokenSource(ctx, &oauth2.Token{
 		AccessToken:  user.AccessToken,
 		RefreshToken: user.RefreshToken,
-		Expiry:       time.Unix(user.Expiry, 0),
+		Expiry:       time.Unix(1, 0),
 	})
 
 	token, err := source.Token()
@@ -191,10 +197,11 @@ func (c *client) Refresh(ctx context.Context, user *model.User) (bool, error) {
 		return false, err
 	}
 
+	refreshed := token.AccessToken != user.AccessToken
 	user.AccessToken = token.AccessToken
 	user.RefreshToken = token.RefreshToken
 	user.Expiry = forge.TokenExpiryToUnix(token.Expiry)
-	return true, nil
+	return refreshed, nil
 }
 
 // Teams returns a list of all team membership for the GitHub account.

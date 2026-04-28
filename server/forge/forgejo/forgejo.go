@@ -156,6 +156,12 @@ func (c *Forgejo) Auth(ctx context.Context, token, _ string) (string, error) {
 
 // Refresh refreshes the Forgejo oauth2 access token. If the token is
 // refreshed, the user is updated and a true value is returned.
+//
+// We pass an Expiry in the past so the oauth2 library always performs a real
+// token exchange; otherwise it would short-circuit when the cached token is
+// not yet within ~10s of expiry and return the same access token unchanged.
+// `refreshed` is true only when the access token actually changed, so callers
+// don't unnecessarily persist identical values.
 func (c *Forgejo) Refresh(ctx context.Context, user *model.User) (bool, error) {
 	config, oauth2Ctx := c.oauth2Config(ctx)
 	config.RedirectURL = ""
@@ -163,7 +169,7 @@ func (c *Forgejo) Refresh(ctx context.Context, user *model.User) (bool, error) {
 	source := config.TokenSource(oauth2Ctx, &oauth2.Token{
 		AccessToken:  user.AccessToken,
 		RefreshToken: user.RefreshToken,
-		Expiry:       time.Unix(user.Expiry, 0),
+		Expiry:       time.Unix(1, 0),
 	})
 
 	token, err := source.Token()
@@ -171,10 +177,11 @@ func (c *Forgejo) Refresh(ctx context.Context, user *model.User) (bool, error) {
 		return false, err
 	}
 
+	refreshed := token.AccessToken != user.AccessToken
 	user.AccessToken = token.AccessToken
 	user.RefreshToken = token.RefreshToken
 	user.Expiry = forge.TokenExpiryToUnix(token.Expiry)
-	return true, nil
+	return refreshed, nil
 }
 
 // Teams is supported by the Forgejo driver.
