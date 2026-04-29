@@ -397,6 +397,20 @@ func (s *RPC) Done(c context.Context, strWorkflowID string, state rpc.WorkflowSt
 	}
 	s.completeChildrenIfParentCompleted(workflow)
 
+	// When a workflow finishes non-successfully, eagerly skip any pending
+	// downstream workflows whose default run-on-success semantics make them
+	// unrunnable. Without this, those workflows would linger in Pending
+	// state and IsThereRunningStage() below would keep the pipeline stuck
+	// in "running" until an agent lazily polled and dropped them.
+	if workflow.State != model.StatusSuccess {
+		if cascadeErr := serverPipeline.CascadeSkipBlockedWorkflows(c, s.store, s.queue, currentPipeline); cascadeErr != nil {
+			logger.Error().Err(cascadeErr).Msg("cascade skip blocked workflows failed")
+		}
+		if currentPipeline.Workflows, err = s.store.WorkflowGetTree(currentPipeline); err != nil {
+			return err
+		}
+	}
+
 	if !model.IsThereRunningStage(currentPipeline.Workflows) {
 		if currentPipeline, err = serverPipeline.UpdateStatusToDone(s.store, *currentPipeline, model.PipelineStatus(currentPipeline.Workflows), workflow.Finished); err != nil {
 			logger.Error().Err(err).Msgf("serverPipeline.UpdateStatusToDone: cannot update workflows final state")
