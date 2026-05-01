@@ -21,6 +21,7 @@ import (
 
 	"codefloe.com/crowci/crow/v5/pipeline/backend/types"
 	"codefloe.com/crowci/crow/v5/pipeline/frontend/metadata"
+	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/constraint"
 	yaml_types "codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/types"
 	yaml_base_types "codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/types/base"
 	"codefloe.com/crowci/crow/v5/shared/constant"
@@ -840,4 +841,104 @@ func TestCompilerOrgID(t *testing.T) {
 			assert.Equal(t, int64(0), step.OrgID, "Step %s should have default OrgID 0", step.Name)
 		}
 	}
+}
+
+// TestCompilerManualTaskSelectorKeepsSteps mirrors the UI flow for a manual
+// pipeline triggered with a `task` selector via the "additional variables"
+// dialog. The workflow's top-level `when` selects the workflow via
+// `evaluate: 'task == "..."'`. Steps without their own `when` clause must
+// still be compiled — otherwise the user sees "all pipeline steps have been
+// filtered out" even though the workflow was selected correctly.
+func TestCompilerManualTaskSelectorKeepsSteps(t *testing.T) {
+	t.Parallel()
+
+	repoURL := "https://github.com/test/repo"
+
+	// Workflow-level constraint matching the task selector. This is the
+	// `when:` block from the user's pipeline:
+	//
+	//   when:
+	//     - event: manual
+	//       evaluate: 'task == "sampling-staging"'
+	workflowWhen := constraint.When{
+		Constraints: []constraint.Constraint{{
+			Event:    yaml_base_types.StringOrSlice{string(metadata.EventManual)},
+			Evaluate: `task == "sampling-staging"`,
+		}},
+	}
+
+	conf := &yaml_types.Workflow{
+		SkipClone: true,
+		When:      workflowWhen,
+		Steps: yaml_types.ContainerList{
+			ContainerList: []*yaml_types.Container{
+				{
+					Name:     "build",
+					Image:    "alpine",
+					Commands: []string{"echo build"},
+				},
+				{
+					Name:     "deploy",
+					Image:    "alpine",
+					Commands: []string{"echo deploy"},
+				},
+			},
+		},
+	}
+
+	newCompiler := func() *Compiler {
+		return New(
+			WithMetadata(metadata.Metadata{
+				Repo: metadata.Repo{
+					Owner:    "test",
+					Name:     "repo",
+					Private:  false,
+					ForgeURL: repoURL,
+					CloneURL: "https://github.com/test/repo.git",
+				},
+				Curr: metadata.Pipeline{Event: string(metadata.EventManual)},
+			}),
+			WithWorkspaceFromURL("/crow", repoURL),
+		)
+	}
+
+	t.Run("matching task keeps all steps", func(t *testing.T) {
+		c := newCompiler()
+		WithEnviron(map[string]string{"task": "sampling-staging"})(c)
+
+		result, err := c.Compile(conf)
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Len(t, result.Stages, 2, "expected 2 stages (one per step), got %d", len(result.Stages))
+
+		gotNames := make([]string, 0, len(result.Stages))
+		for _, stage := range result.Stages {
+			for _, step := range stage.Steps {
+				gotNames = append(gotNames, step.Name)
+			}
+		}
+		assert.ElementsMatch(t, []string{"build", "deploy"}, gotNames,
+			"steps without their own `when` clause must not be filtered out when the workflow-level evaluate matches the task selector")
+	})
+
+	t.Run("non-matching task filters the workflow", func(t *testing.T) {
+		c := newCompiler()
+		WithEnviron(map[string]string{"task": "different-task"})(c)
+
+		result, err := c.Compile(conf)
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Empty(t, result.Stages,
+			"expected no stages when the workflow-level evaluate does not match the task selector")
+	})
+
+	t.Run("missing task selector still drops a workflow that requires evaluate", func(t *testing.T) {
+		c := newCompiler()
+
+		result, err := c.Compile(conf)
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Empty(t, result.Stages,
+			"workflow with `evaluate: 'task == ...'` should not run when no task is provided (task is undefined → expression is false)")
+	})
 }

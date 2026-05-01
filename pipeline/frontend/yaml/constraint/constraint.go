@@ -183,9 +183,15 @@ func (c *Constraint) Match(m metadata.Metadata, global bool, env map[string]stri
 			c.Task.Match(m.Curr.DeployTask)
 	}
 
-	// For manual runs started with a task selector variable, only constraints
-	// with an explicit evaluate expression are eligible to match.
-	if m.Curr.Event == metadata.EventManual {
+	// For manual runs started with a `task` selector variable, only
+	// workflow-level constraints with an explicit evaluate expression are
+	// eligible to match. The task selector is conceptually a workflow
+	// picker, so this check must not apply at the step level: otherwise
+	// every step that does not declare its own `when.evaluate` (which is
+	// the common case) would be filtered out as soon as the user passes
+	// `task=...` via the manual-run UI, even when the workflow has already
+	// been selected by a matching workflow-level evaluate expression.
+	if global && m.Curr.Event == metadata.EventManual {
 		taskSelector := ""
 		if env != nil {
 			taskSelector = strings.TrimSpace(env["task"])

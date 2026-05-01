@@ -120,6 +120,13 @@ func run(ctx context.Context, c *cli.Command) error {
 		return fmt.Errorf("can't setup globals: %w", err)
 	}
 
+	// setupEvilGlobals built the service manager which owns the encryption
+	// wrapper around the store. From this point on every consumer (gRPC, cron,
+	// metrics) MUST use the wrapped store; otherwise reads of users / user
+	// forges return raw ciphertext and that ciphertext ends up being sent to
+	// forges as a Bearer token (crowci/crow#974).
+	_store = server.Config.Services.Manager.Store()
+
 	// wait for all services until one do stops with an error
 	serviceWaitingGroup := errgroup.Group{}
 

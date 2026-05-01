@@ -434,11 +434,12 @@ func TestConstraintStatusSuccess(t *testing.T) {
 
 func TestConstraints(t *testing.T) {
 	testdata := []struct {
-		desc string
-		conf string
-		with metadata.Metadata
-		env  map[string]string
-		want bool
+		desc   string
+		conf   string
+		with   metadata.Metadata
+		env    map[string]string
+		global bool // if true, simulate workflow-level match (default: step-level)
+		want   bool
 	}{
 		{
 			desc: "no constraints, must match on default events",
@@ -619,24 +620,64 @@ func TestConstraints(t *testing.T) {
 			want: false,
 		},
 		{
-			desc: "manual task selector requires evaluate",
-			conf: `{ event: manual }`,
-			with: metadata.Metadata{Curr: metadata.Pipeline{Event: metadata.EventManual}},
-			env:  map[string]string{"task": "build-all-amd64"},
-			want: false,
+			desc:   "workflow-level event:manual without evaluate is filtered when task selector is provided",
+			conf:   `{ event: manual }`,
+			with:   metadata.Metadata{Curr: metadata.Pipeline{Event: metadata.EventManual}},
+			env:    map[string]string{"task": "build-all-amd64"},
+			global: true,
+			want:   false,
 		},
 		{
-			desc: "manual task selector matches evaluate",
-			conf: `{ event: manual, evaluate: 'task == "build-all-amd64"' }`,
+			desc:   "workflow-level evaluate matching task selector is included",
+			conf:   `{ event: manual, evaluate: 'task == "build-all-amd64"' }`,
+			with:   metadata.Metadata{Curr: metadata.Pipeline{Event: metadata.EventManual}},
+			env:    map[string]string{"task": "build-all-amd64"},
+			global: true,
+			want:   true,
+		},
+		{
+			desc:   "workflow-level evaluate not matching task selector is filtered",
+			conf:   `{ event: manual, evaluate: 'task == "build-all-arm64"' }`,
+			with:   metadata.Metadata{Curr: metadata.Pipeline{Event: metadata.EventManual}},
+			env:    map[string]string{"task": "build-all-amd64"},
+			global: true,
+			want:   false,
+		},
+		{
+			// Regression: when a workflow-level when.evaluate matches the
+			// task selector, individual steps without their own `when` clause
+			// must still match. The task selector is a workflow-level
+			// filter; it must not silently drop default steps.
+			desc: "step without when matches when manual task selector is provided",
+			conf: ``,
 			with: metadata.Metadata{Curr: metadata.Pipeline{Event: metadata.EventManual}},
-			env:  map[string]string{"task": "build-all-amd64"},
+			env:  map[string]string{"task": "sampling-staging"},
 			want: true,
 		},
 		{
-			desc: "manual task selector does not match evaluate",
-			conf: `{ event: manual, evaluate: 'task == "build-all-arm64"' }`,
+			// Regression: a step that explicitly opts in to manual events
+			// (without referencing the task selector) should still run when
+			// the workflow has been selected via the task selector.
+			desc: "step with event:manual matches when manual task selector is provided",
+			conf: `{ event: manual }`,
 			with: metadata.Metadata{Curr: metadata.Pipeline{Event: metadata.EventManual}},
-			env:  map[string]string{"task": "build-all-amd64"},
+			env:  map[string]string{"task": "sampling-staging"},
+			want: true,
+		},
+		{
+			// A step-level evaluate referencing the task selector should
+			// still be honored.
+			desc: "step-level evaluate matching task selector is included",
+			conf: `{ evaluate: 'task == "sampling-staging"' }`,
+			with: metadata.Metadata{Curr: metadata.Pipeline{Event: metadata.EventManual}},
+			env:  map[string]string{"task": "sampling-staging"},
+			want: true,
+		},
+		{
+			desc: "step-level evaluate not matching task selector is filtered",
+			conf: `{ evaluate: 'task == "other"' }`,
+			with: metadata.Metadata{Curr: metadata.Pipeline{Event: metadata.EventManual}},
+			env:  map[string]string{"task": "sampling-staging"},
 			want: false,
 		},
 	}
@@ -646,7 +687,7 @@ func TestConstraints(t *testing.T) {
 			conf, err := metadata.EnvVarSubst(test.conf, test.with.Environ())
 			assert.NoError(t, err)
 			c := parseConstraints(t, conf)
-			got, err := c.Match(test.with, false, test.env)
+			got, err := c.Match(test.with, test.global, test.env)
 			assert.NoError(t, err)
 			assert.Equal(t, test.want, got)
 		})

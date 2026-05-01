@@ -307,6 +307,16 @@ func setupEvilGlobals(ctx context.Context, c *cli.Command, s store.Store) (err e
 	if err != nil {
 		return fmt.Errorf("could not setup service manager: %w", err)
 	}
+
+	// From here on, route everything through the manager's encrypted store
+	// wrapper. The raw `s` was needed earlier (queue, lock, pubsub, logging
+	// services that don't touch encrypted columns) but every downstream service
+	// reads/writes user, user_forge, secret, registry or forge rows — those
+	// must go through the encryption wrapper or the data will be ciphertext at
+	// runtime. The gRPC server in particular caused crowci/crow#974 by reading
+	// raw ciphertext access tokens and forwarding them as Bearer tokens.
+	s = server.Config.Services.Manager.Store()
+
 	server.Config.Services.LogStore, err = setupLogStore(ctx, c, s)
 	if err != nil {
 		return fmt.Errorf("could not setup log store: %w", err)
