@@ -9,18 +9,14 @@
           "badge": "后端"
         },
         "capacity": {
-          "badge": "容量",
           "capacity": "容量",
           "desc": "该 Agent 并行执行流水线的最大数量。"
         },
-        "created": "已创建 Agent",
         "delete_agent": "删除 Agent",
         "delete_confirm": "你真的要删除该 Agent 吗？删除后它将无法再次连接到此服务器。",
-        "deleted": "已删除 Agent",
         "desc": "注册到此服务器的 Agents",
         "edit_agent": "编辑 Agent",
         "id": "ID",
-        "last_contact": "最后访问",
         "name": {
           "name": "名称",
           "placeholder": "Agent 名称"
@@ -36,76 +32,39 @@
           "platform": "平台"
         },
         "save": "保存 Agent",
-        "saved": "已保存 Agent",
         "show": "显示 Agents",
-        "token": "Token",
-        "version": "版本"
+        "token": "Token"
       },
-      "not_allowed": "你没有访问服务器设置的权限",
       "orgs": {
-        "delete_confirm": "你真的想删除该组织吗？这也将删除该组织拥有的所有存储库。",
-        "delete_org": "删除组织",
-        "deleted": "组织已删除",
-        "desc": "在此服务器上拥有存储库的组织",
-        "none": "还没有任何组织。",
-        "org_settings": "组织设置",
-        "orgs": "组织",
-        "view": "查看组织"
+        "orgs": "组织"
       },
       "queue": {
-        "agent": "agent",
         "desc": "正在等待 Agents 执行的任务",
         "pause": "暂停",
         "paused": "队列已暂停",
         "queue": "队列",
         "resume": "恢复",
-        "resumed": "队列已恢复",
         "stats": {
-          "completed_count": "已完成的任务",
           "pending_count": "等待中",
           "running_count": "运行中",
           "waiting_on_deps_count": "等待依赖项",
           "worker_count": "空闲"
         },
-        "task_pending": "任务正在等待中",
-        "task_running": "任务正在运行",
-        "task_waiting_on_deps": "任务正在等待依赖项",
         "tasks": "任务",
         "waiting_for": "正在等待"
       },
       "repos": {
         "desc": "该服务器上已启用或曾经启用的仓库",
-        "disabled": "已禁用",
         "none": "目前还没有存储库。",
         "repair": {
-          "repair": "修复所有",
-          "success": "仓库已修复"
+          "repair": "修复所有"
         },
         "repos": "仓库",
         "settings": "仓库设置",
         "view": "查看仓库"
       },
       "secrets": {
-        "add": "添加密钥",
-        "created": "全局密钥已创建",
-        "deleted": "全局密钥已删除",
         "desc": "全局密钥可以当做环境变量传给任意仓库的各个流水线步骤。",
-        "events": {
-          "events": "对以下事件可用",
-          "pr_warning": "慎选这个选项：用户可以提交一个恶意推送请求以暴露你的密钥。"
-        },
-        "images": {
-          "desc": "此密钥可用于此处填写的镜像列表，用逗号分隔，留空以允许所有镜像",
-          "images": "可用于以下镜像"
-        },
-        "name": "名称",
-        "none": "现在没有全局密钥。",
-        "plugins_only": "仅对插件有效",
-        "save": "保存密钥",
-        "saved": "全局密钥已保存",
-        "secrets": "密钥",
-        "show": "显示所有密钥",
-        "value": "值",
         "warning": "该密钥对所有服务器用户可用。"
       },
       "settings": "设置",
@@ -116,27 +75,20 @@
           "placeholder": "此用户是管理员"
         },
         "avatar_url": "Avatar URL",
-        "cancel": "取消",
-        "created": "用户已创建",
-        "delete_confirm": "你真的想删除这个用户吗？这也将删除该用户拥有的所有存储库。",
-        "delete_user": "删除用户",
-        "deleted": "删除用户",
-        "desc": "注册此服务器的用户",
         "edit_user": "编辑用户",
         "email": "Email",
         "login": "登录",
-        "none": "还没有任何用户。",
         "save": "保存用户",
-        "saved": "已保存用户",
-        "show": "显示用户",
-        "users": "用户"
-      }
+        "users": "用户",
+        "notify_text_deleted": "用户已删除",
+        "notify_text_created": "用户已创建"
+      },
+      "sidebar_title": "管理員设置"
     }
   },
   "api": "API",
   "back": "返回",
   "cancel": "取消",
-  "default": "默认",
   "docs": "文档",
   "documentation_for": "\"{topic}\"的文档",
   "errors": {
@@ -151,30 +103,9 @@
   },
   "org": {
     "settings": {
-      "not_allowed": "你没有访问组织设置的权限",
       "secrets": {
-        "add": "添加密钥",
-        "created": "组织密钥已创建",
-        "deleted": "组织密钥已删除",
-        "desc": "组织密钥可以被当做环境变量传递给该组织的所有仓库的各个流水线步骤。",
-        "events": {
-          "events": "对以下事件可用",
-          "pr_warning": "慎选这个选项：用户可以提交一个恶意推送请求以暴露你的密钥。"
-        },
-        "images": {
-          "desc": "此密钥可用于此处填写的镜像列表，用逗号分隔，留空以允许所有镜像",
-          "images": "可用于以下镜像"
-        },
-        "name": "名称",
-        "none": "没有组织密钥。",
-        "plugins_only": "仅对插件有效",
-        "save": "保存密钥",
-        "saved": "组织密钥已保存",
-        "secrets": "密钥",
-        "show": "显示所有密钥",
-        "value": "值"
-      },
-      "settings": "设置"
+        "desc": "组织密钥可以被当做环境变量传递给该组织的所有仓库的各个流水线步骤。"
+      }
     }
   },
   "password": "密码",
@@ -182,56 +113,43 @@
   "repo": {
     "activity": "活动",
     "add": "添加仓库",
-    "branches": "分支",
     "deploy_pipeline": {
-      "enter_target": "目标部署环境",
       "title": "触发当前流水线 #{pipelineId} 的部署事件",
       "trigger": "部署",
       "variables": {
-        "add": "添加变量",
         "desc": "指定传递到流水线中的变量。相同名称的变量会被覆盖。",
         "name": "变量名",
         "title": "添加流水线变量",
         "value": "变量值",
         "delete": "删除变量"
-      },
-      "enter_task": "部署任务"
+      }
     },
     "enable": {
-      "disabled": "已禁用",
       "enable": "启用",
-      "enabled": "已经启用了",
-      "list_reloaded": "仓库列表已刷新",
-      "reload": "刷新项目列表",
-      "success": "此仓库已成功启用"
+      "enabled": "已经启用了"
     },
     "manual_pipeline": {
       "select_branch": "选择分支",
       "title": "手动触发流水线运行",
       "trigger": "运行流水线",
       "variables": {
-        "add": "添加变量",
         "desc": "指定要添加在流水线中使用的变量，相同名称的变量将被覆盖。",
         "name": "变量名称",
         "title": "添加流水线变量",
         "value": "变量值",
         "delete": "删除变量"
-      },
-      "show_pipelines": "查看流水线"
+      }
     },
-    "not_allowed": "你没有权限访问这个仓库",
     "open_in_forge": "在版本控制系统中打开",
     "pipeline": {
       "actions": {
         "cancel": "取消",
-        "cancel_success": "流水线已被取消",
         "canceled": "该步骤已被取消。",
         "deploy": "部署",
         "log_auto_scroll": "自动滚动",
         "log_auto_scroll_off": "关闭自动滚动",
         "log_download": "下载",
-        "restart": "重启",
-        "restart_success": "流水线已重启"
+        "restart": "重启"
       },
       "config": "配置",
       "errors": "错误 ({count})",
@@ -248,21 +166,13 @@
       "files": "修改的文件（{files}）",
       "loading": "载入中…",
       "log_download_error": "下载日志文件中发生了错误",
-      "log_title": "步骤日志",
-      "no_files": "没有文件修改。",
       "no_pipeline_steps": "没有流水线步骤可用！",
       "no_pipelines": "尚未启动过流水线。",
       "pipeline": "流水线 #{pipelineId}",
-      "pipelines_for": "{branch} 分支的流水线",
-      "pipelines_for_pr": "来自合并请求 #{index} 的流水线",
       "protected": {
-        "approve": "同意",
-        "approve_success": "流水线已被许可",
         "awaits": "该流水线正在等待维护者许可！",
         "decline": "拒绝",
-        "decline_success": "流水线已被拒绝",
-        "declined": "该流水线已被拒绝！",
-        "review": "审查变更"
+        "declined": "该流水线已被拒绝！"
       },
       "show_errors": "显示错误",
       "status": {
@@ -283,26 +193,20 @@
       "warnings": "警告 ({count})",
       "we_got_some_errors": "哦不，我们遇到了一些错误！"
     },
-    "pull_requests": "合并请求",
     "settings": {
       "actions": {
         "actions": "操作",
         "delete": {
-          "confirm": "该操作将会删除所有数据！！！\n\n你确定真的要继续吗？",
-          "delete": "删除仓库",
-          "success": "仓库已删除"
+          "delete": "删除仓库"
         },
         "disable": {
-          "disable": "禁用仓库",
-          "success": "仓库已禁用"
+          "disable": "禁用仓库"
         },
         "enable": {
-          "enable": "启用仓库",
-          "success": "此仓库已成功启用"
+          "enable": "启用仓库"
         },
         "repair": {
-          "repair": "修复仓库",
-          "success": "仓库已修复"
+          "repair": "修复仓库"
         }
       },
       "badge": {
@@ -319,10 +223,8 @@
           "placeholder": "分支（若为空，将使用默认分支）",
           "title": "分支"
         },
-        "created": "计划已创建",
         "crons": "计划",
         "delete": "删除计划",
-        "deleted": "计划已删除",
         "desc": "计划作业可用于定期触发流水线。",
         "edit": "编辑计划",
         "name": {
@@ -334,7 +236,6 @@
         "not_executed_yet": "还没有执行过",
         "run": "立即执行",
         "save": "保存计划",
-        "saved": "计划已保存",
         "schedule": {
           "placeholder": "计划任务",
           "title": "计划任务（基于 UTC）"
@@ -362,79 +263,14 @@
           "path": "流水线路径"
         },
         "project": "项目设置",
-        "protected": {
-          "desc": "每个流水线都需要在执行之前获得批准。",
-          "protected": "受保护"
-        },
         "save": "保存设置",
-        "success": "仓库设置已更新",
         "timeout": {
           "minutes": "分钟",
           "timeout": "流水线最大执行时长"
         },
         "trusted": {
-          "desc": "流水线容器可以使用高级功能，比如挂载卷。",
           "trusted": "受信任"
-        },
-        "visibility": {
-          "internal": {
-            "desc": "只有经过身份验证的 Crow 用户才能看到此项目。",
-            "internal": "内部"
-          },
-          "private": {
-            "desc": "只有你和此仓库的所有者可以看到此项目。",
-            "private": "私有"
-          },
-          "public": {
-            "desc": "用户无需登录即可看到你的项目。",
-            "public": "公开"
-          },
-          "visibility": "项目可见性"
         }
-      },
-      "not_allowed": "你没有权限访问此仓库的设置",
-      "registries": {
-        "add": "添加 Registry",
-        "address": {
-          "address": "地址",
-          "placeholder": "Registry 地址（如 docker.io）"
-        },
-        "created": "Registry 密码已创建",
-        "credentials": "Registry 凭据",
-        "delete": "删除 registry",
-        "deleted": "Registry 密码已删除",
-        "desc": "可以添加 Registry 密码，以在流水线中使用私有镜像。",
-        "edit": "编辑 Registry",
-        "none": "现在没有 Registry 密码。",
-        "registries": "注册表",
-        "save": "保存 Registry",
-        "saved": "Registry 密码已保存",
-        "show": "显示 Registry"
-      },
-      "secrets": {
-        "add": "添加秘密",
-        "created": "秘密已创建",
-        "delete": "删除密钥",
-        "delete_confirm": "你真的要删除这个密钥吗？",
-        "deleted": "秘密已删除",
-        "desc": "密钥可以在运行时作为环境变量传递给各个流水线步骤。",
-        "edit": "编辑密钥",
-        "events": {
-          "events": "对以下事件可用",
-          "pr_warning": "慎选这个选项：用户可以提交一个恶意推送请求以暴露你的密钥。"
-        },
-        "images": {
-          "desc": "此秘密可用于此处填写的镜像列表，用逗号分隔，留空以允许所有镜像",
-          "images": "可用于以下镜像"
-        },
-        "name": "名称",
-        "none": "还未添加任何秘密。",
-        "plugins_only": "仅对插件有效",
-        "save": "保存秘密",
-        "saved": "秘密已保存",
-        "secrets": "密钥",
-        "show": "显示所有秘密",
-        "value": "值"
       },
       "settings": "设置"
     },
@@ -455,70 +291,27 @@
       }
     }
   },
-  "repos": "仓库",
-  "repositories": "仓库",
   "running_version": "你正在运行 Crow {0}",
   "search": "查找仓库…",
   "time": {
-    "days_short": "天",
-    "hours_short": "小时",
-    "min_short": "分",
     "not_started": "还没有运行过",
-    "sec_short": "秒",
-    "template": "YYYY 年 MM 月 D 日 HH:mm z",
-    "weeks_short": "周"
+    "just_now": "刚刚",
+    "minutes_ago": "{count} 分钟前",
+    "hours_ago": "{count} 小时前",
+    "days_ago": "{count} 天前"
   },
   "unknown_error": "发生了未知错误",
   "update_crow": "请更新你的 Crow 实例到 {0}",
-  "url": "URL",
   "user": {
-    "access_denied": "你没有登陆的权限",
-    "internal_error": "发生了一些内部错误",
-    "oauth_error": "Oauth 认证错误",
     "settings": {
-      "api": {
-        "api": "API",
-        "api_usage": "API 用例",
-        "cli_usage": "CLI 用例",
-        "desc": "个人访问令牌和 API 使用",
-        "dl_cli": "下载 CLI",
-        "reset_token": "重置令牌",
-        "shell_setup": "Shell 设置",
-        "shell_setup_before": "在 shell 设置步骤之前",
-        "swagger_ui": "Swagger UI",
-        "token": "个人访问令牌"
-      },
       "general": {
         "general": "基本设置",
         "language": "语言",
         "theme": {
           "auto": "自动",
           "dark": "暗色",
-          "light": "亮色",
-          "theme": "主题"
+          "light": "亮色"
         }
-      },
-      "secrets": {
-        "add": "添加密钥",
-        "created": "已创建用户密钥",
-        "deleted": "已删除用户密钥",
-        "desc": "用户密钥可以在运行时作为环境变量传递到所有用户的存储库的各个流水线步骤。",
-        "events": {
-          "events": "对以下事件可用",
-          "pr_warning": "慎选这个选项：用户可以提交一个恶意推送请求以暴露你的密钥。"
-        },
-        "images": {
-          "desc": "此密钥可用于此处填写的镜像，多个镜像请使用逗号分隔，留空则允许所有镜像",
-          "images": "可用于以下镜像"
-        },
-        "name": "名称",
-        "none": "还未添加任何密钥。",
-        "plugins_only": "仅对插件有效",
-        "save": "保存密钥",
-        "saved": "已保存用户密钥",
-        "secrets": "密钥",
-        "show": "显示所有密钥",
-        "value": "值"
       },
       "settings": "用户设置",
       "cli_and_api": {
@@ -534,12 +327,8 @@
     }
   },
   "username": "用户名",
-  "welcome": "欢迎来到 Crow",
   "welcome_to_crow": "欢迎来到 Crow CI",
   "login_oauth_message": "请使用您的 OAuth 提供商安全登录。",
-  "sign_in_with_github": "使用 GitHub 登录",
-  "login_with": "使用 {forge} 登录",
-  "empty_list": "找不到 {entity} ！",
   "login_to_cli": "登录到 CLI",
   "global_level_secret": "全局密钥",
   "org_level_secret": "组织密钥",
@@ -548,5 +337,61 @@
   "cli_login_failed": "登录到 CLI 失败",
   "cli_login_denied": "登录 CLI 被拒绝",
   "login_to_cli_description": "点击继续以登录到 CLI。",
-  "return_to_cli": "您现在可以关闭此选项卡并返回 CLI。"
+  "return_to_cli": "您现在可以关闭此选项卡并返回 CLI。",
+  "secrets": {
+    "scope": {
+      "select_target": "组织 / 仓库",
+      "global_selected": "全局范围（所有组织和仓库）",
+      "personal": "全局范围（所有组织和仓库）",
+      "organizations": "组织",
+      "repositories": "仓库"
+    },
+    "save": "保存密钥",
+    "show": "所有密钥"
+  },
+  "access_tokens": {
+    "title": "API Tokens",
+    "info": "API 令牌允许您使用 API 进行身份验证,而无需使用密码。您可以将它们与CLI一起使用,也可以用于自定义集成。"
+  },
+  "edit": "编辑",
+  "delete": "删除",
+  "save": "保存",
+  "saving": "保存中...",
+  "copy": "复制",
+  "copied": "已复制！",
+  "command_palette": {
+    "title": "命令面板",
+    "search_placeholder": "输入命令或搜索...",
+    "no_results": "未找到命令。",
+    "go_to": "前往",
+    "actions": "操作",
+    "toggle_theme": "切换主题"
+  },
+  "done": "完成",
+  "close": "关闭",
+  "nav_ci_cd": "CI / CD",
+  "nav_credentials": "凭证",
+  "nav_general": "通用",
+  "filter": "筛选",
+  "forge": "Forge",
+  "name": "名称",
+  "repositories": {
+    "title": "仓库",
+    "pinned": {
+      "title": "已置顶",
+      "desc": "快速访问您置顶的仓库"
+    },
+    "filter": {
+      "show_all": "仅显示有权限的仓库"
+    },
+    "sort": {
+      "alphabetical": "按字母顺序",
+      "last_pipeline": "最后流水线创建时间",
+      "status": "状态"
+    },
+    "pin_limit_reached": "最多可置顶 4 个仓库",
+    "no_public": "没有可用的公开仓库"
+  },
+  "download": "下载",
+  "no_repos": "未找到存储库"
 }

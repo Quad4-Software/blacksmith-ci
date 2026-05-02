@@ -24,8 +24,7 @@
           "minutes": "percek"
         },
         "save": "Beállítások mentése",
-        "project": "Projekt beállítások",
-        "success": "Projekt beállítások frissítve"
+        "project": "Projekt beállítások"
       },
       "actions": {
         "disable": {
@@ -43,19 +42,12 @@
   "admin": {
     "settings": {
       "users": {
-        "show": "Mutasd a felhasználokat",
-        "cancel": "Mégse",
         "save": "Felhasználó mentése",
         "add": "Felhasználó hozzáadása",
-        "deleted": "Felhasználó törölve",
-        "created": "Felhasználó létrehozva",
-        "saved": "Felhasználó mentve",
-        "delete_user": "Felhasználó törlése",
         "edit_user": "Felhasználó szerkesztése"
       },
       "orgs": {
-        "orgs": "Szervezetek",
-        "delete_org": "Szervezet törlése"
+        "orgs": "Szervezetek"
       }
     }
   },

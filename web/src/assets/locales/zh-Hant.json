@@ -4,14 +4,23 @@
   "login": "登入",
   "logout": "登出",
   "password": "密碼",
-  "repos": "儲存庫",
-  "repositories": "儲存庫",
   "search": "搜索…",
   "unknown_error": "出現未知錯誤",
-  "url": "URL",
-  "welcome": "歡迎使用 Crow",
   "welcome_to_crow": "歡迎來到 Crow CI",
   "login_oauth_message": "請使用您的 OAuth 提供者安全登入。",
-  "sign_in_with_github": "使用 GitHub 登入",
-  "login_with": "使用 {forge} 登入"
+  "command_palette": {
+    "title": "控制面板",
+    "no_results": "未找到指令。",
+    "search_placeholder": "輸入指令或搜索。。。",
+    "go_to": "前往"
+  },
+  "done": "完成",
+  "save": "儲存",
+  "copy": "複製",
+  "cancel": "取消",
+  "close": "關閉",
+  "edit": "編輯",
+  "saving": "存儲中。。。",
+  "copied": "已複製！",
+  "delete": "刪除"
 }

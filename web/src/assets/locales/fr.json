@@ -9,18 +9,14 @@
           "badge": "backend"
         },
         "capacity": {
-          "badge": "capacité",
           "capacity": "Capacité",
           "desc": "Le nombre maximum de pipelines exécutées en parallèle par cet agent."
         },
-        "created": "Agent crée",
         "delete_agent": "Supprimer l'agent",
         "delete_confirm": "Voulez vous vraiment supprimer cet agent ? Il ne pourra plus se connecter sur le serveur.",
-        "deleted": "Agent supprimé",
         "desc": "Agents enregistrés sur ce serveur.",
         "edit_agent": "Éditer l'agent",
         "id": "ID",
-        "last_contact": "Dernier contact",
         "name": {
           "name": "Nom",
           "placeholder": "Nom de l'agent"
@@ -36,76 +32,39 @@
           "platform": "Platforme"
         },
         "save": "Enregistrer l'agent",
-        "saved": "Agent enregistré",
         "show": "Afficher les agents",
-        "token": "Jeton",
-        "version": "Version"
+        "token": "Jeton"
       },
-      "not_allowed": "Vous n'êtes pas autorisé à accéder aux réglages du serveur.",
       "orgs": {
-        "delete_confirm": "Voulez-vous vraiment supprimer cette organisation ? Cela supprimera tous les dépôts que possède cette organisation.",
-        "delete_org": "Supprimer l'organisation",
-        "deleted": "Organisation supprimée",
-        "desc": "Organisations possédant des dépôts sur ce serveur.",
-        "none": "Il n'y a pas encore d'organisation.",
-        "org_settings": "Réglages de l'organisation",
-        "orgs": "Organisations",
-        "view": "Voir l'organisation"
+        "orgs": "Organisations"
       },
       "queue": {
-        "agent": "agent",
         "desc": "Tâches en attente d'exécution par des agents",
         "pause": "Mettre en pause",
         "paused": "La queue est en pause",
         "queue": "Queue",
         "resume": "Relancer",
-        "resumed": "La queue est repartie",
         "stats": {
-          "completed_count": "Tâches complétées",
           "pending_count": "En attente",
           "running_count": "En cours d'exécution",
           "waiting_on_deps_count": "En attente de dépendances",
           "worker_count": "Libre"
         },
-        "task_pending": "La tâche est en attente",
-        "task_running": "La tâche est en cours d'exécution",
-        "task_waiting_on_deps": "La tâche est en attente de ses dépendances",
         "tasks": "Tâches",
         "waiting_for": "en attente de"
       },
       "repos": {
         "desc": "Dépôts actifs ou anciennement actifs sur ce serveur.",
-        "disabled": "Désactivé",
         "none": "Il n'y a pas encore de dépôts.",
         "repair": {
-          "repair": "Tout réparer",
-          "success": "Dépôts réparés"
+          "repair": "Tout réparer"
         },
         "repos": "Dépôts",
         "settings": "Réglages du dépôt",
         "view": "Voir le dépôt"
       },
       "secrets": {
-        "add": "Ajouter un secret",
-        "created": "Secret global crée",
-        "deleted": "Secret global supprimé",
         "desc": "Les secrets globaux sont transmis sous forme de variable d'environnement lors de l'exécution de toutes les étapes d'un pipeline.",
-        "events": {
-          "events": "Disponible pour les événements suivants",
-          "pr_warning": "Faites attention avec cette option car un acteur malicieux peut soumettre une pull request qui révélerait vos secrets."
-        },
-        "images": {
-          "desc": "Liste des images pour lesquelles ce secret est accessible, laisser vide pour donner l'accès à toutes les images",
-          "images": "Disponible pour les images suivantes"
-        },
-        "name": "Nom",
-        "none": "Il n'y a pas de secrets globaux.",
-        "plugins_only": "Disponible uniquement pour les plugins",
-        "save": "Enregistrer un secret",
-        "saved": "Secret global enregistré",
-        "secrets": "Secrets",
-        "show": "Afficher les secrets",
-        "value": "Valeur",
         "warning": "Ces secrets seront disponibles pour tout les comptes."
       },
       "settings": "Réglages",
@@ -116,19 +75,10 @@
           "placeholder": "Le compte utilisateur est un administrateur"
         },
         "avatar_url": "URL de l'avatar",
-        "cancel": "Annuler",
-        "created": "Compte utilisateur créé",
-        "delete_confirm": "Voulez vous vraiment supprimer ce compte utilisateur ? Cela supprimera tout les dépôts que possède ce compte utilisateur.",
-        "delete_user": "Supprimer le compte utilisateur",
-        "deleted": "Compte utilisateur supprimé",
-        "desc": "Utilisateurs enregistrés sur le serveur",
         "edit_user": "Éditer le compte utilisateur",
         "email": "Courriel",
         "login": "Login",
-        "none": "Il n'y a pas de compte utilisateur pour le moment.",
         "save": "Enregistrer le compte utilisateur",
-        "saved": "Compte utilisateur enregistré",
-        "show": "Afficher les comptes utilisateurs",
         "users": "Utilisateurs"
       },
       "registries": {
@@ -140,7 +90,6 @@
   "api": "API",
   "back": "Revenir en arrière",
   "cancel": "Annuler",
-  "default": "défaut",
   "docs": "Docs",
   "documentation_for": "Documentation sur \"{topic}\"",
   "errors": {
@@ -152,34 +101,14 @@
   "logout": "Déconnexion",
   "not_found": {
     "back_home": "Retour à l'accueil",
-    "not_found": "Whoa 404, soit nous avons cassé quelque chose, soit vous avez fait une faute de frappe :-/"
+    "not_found": "Whoa 404, soit nous avons cassé quelque chose, soit vous avez fait une faute de frappe :-/",
+    "heading": "404"
   },
   "org": {
     "settings": {
-      "not_allowed": "Vous n'êtes pas autorisé à accéder aux réglages de cette organisation",
       "secrets": {
-        "add": "Ajouter un secret",
-        "created": "Secret d'organisation crée",
-        "deleted": "Secret d'organisation supprimé",
-        "desc": "Les secrets d'organisation sont transmis sous forme de variable d'environnement à chaque étape d'un pipeline de tout les dépôts de l'organisation.",
-        "events": {
-          "events": "Disponible pour les événements suivants",
-          "pr_warning": "Faites attention avec cette option car un acteur malicieux pourrait soumettre une pull request qui va afficher vos secrets."
-        },
-        "images": {
-          "desc": "Liste des images pour lesquelles ce secret est accessible, laisser vide pour donner l'accès à toutes les images",
-          "images": "Disponible pour les images suivantes"
-        },
-        "name": "Nom",
-        "none": "Il n'y a pas de secrets d'organisation.",
-        "plugins_only": "Disponible uniquement pour les plugins",
-        "save": "Enregistrer un secret",
-        "saved": "Secret d'organisation enregistré",
-        "secrets": "Secrets",
-        "show": "Afficher les secrets",
-        "value": "Valeur"
+        "desc": "Les secrets d'organisation sont transmis sous forme de variable d'environnement à chaque étape d'un pipeline de tout les dépôts de l'organisation."
       },
-      "settings": "Réglages",
       "registries": {
         "desc": "Les codes d'accès aux registres de l'organisation peuvent être ajouté pour utiliser les images privées sur tout les pipelines de l'organisation."
       }
@@ -191,56 +120,93 @@
   "repo": {
     "activity": "Activité",
     "add": "Ajouter un dépôt",
-    "branches": "Branches",
     "deploy_pipeline": {
-      "enter_target": "Environnement de 'déploiement' ciblé",
       "title": "Déclenchement d'un événement de 'déploiement' pour le pipeline courant #{pipelineId}",
       "trigger": "Déployer",
       "variables": {
-        "add": "Ajouter une variable",
         "desc": "Spécifiez les variables additionnelles que votre pipeline va utiliser. Les variables portant le même nom seront écrasées.",
         "name": "Nom de la variable",
         "title": "Variables additionnelles du pipeline",
         "value": "Valeur de la variable",
         "delete": "Supprimer la variable"
       },
-      "enter_task": "Tâche de déploiement"
+      "enter_target": {
+        "title": "Environnement cible pour le déploiement",
+        "desc": "(Requis) Environnement cible tel que \"production\". Les workflows peuvent filtrer en ajoutant \"environnement : production\" à leur bloc \"quand\"."
+      },
+      "enter_task": {
+        "desc": "(Optionnel) Tâche de déploiement comme \"déploiement-app\". Les workflows peuvent filtrer en ajoutant \"tâche : déploiement-app\" à leur bloc \"quand\".",
+        "title": "Tâche de déploiement"
+      }
     },
     "enable": {
-      "disabled": "Désactivé",
       "enable": "Activer",
       "enabled": "Déjà activé",
-      "list_reloaded": "Liste des dépôts actualisée",
-      "reload": "Actualiser les dépôts",
-      "success": "Dépôt activé"
+      "import": {
+        "preview": {
+          "from_repo": "Depuis le dépôt sélectionné :",
+          "from_org": "Depuis l'organisation contenant {name} ({forge}) :",
+          "title": "Aperçu de l'importation"
+        },
+        "title": "Importer depuis un autre dépôt",
+        "select_source": "Sélectionner le dépôt source",
+        "no_importable_repos": "Aucun autre dépôt disponible pour l'importation",
+        "migrate": "Migrer",
+        "source_placeholder": "Choisir un dépôt à importer depuis",
+        "desc": "Copiez des paramètres, des secrets, et plus encore depuis un dépôt existant."
+      },
+      "notify_text_error_multiple": "Échec d'activation de {count} dépôts",
+      "notify_text_error": "Échec de l'activation du dépôt",
+      "filter": {
+        "enabled": "Activé",
+        "all_forges": "Toutes les forges",
+        "all": "Tout",
+        "all_owners": "Tous les propriétaires",
+        "not_enabled": "Non activé"
+      },
+      "selected_count": "{count} sélectionné",
+      "forge_connection_issue": "Certaines connexions aux forges nécessitent votre attention",
+      "forge_connection_issue_desc": "Certaines de vos forges liées ont des tokens expirés ou en cours d'expiration. Les dépôts de ces forges peuvent ne pas s'afficher tant que vous ne vous reconnectez pas.",
+      "enable_selected": "Activer {count} sélectionné",
+      "total_repos": "{total} dépôts ({not_enabled} non activé)",
+      "notify_text_enabled": "Dépôt activé",
+      "notify_text_enabled_multiple": "{count} dépôts activés",
+      "migration_info": "Migration des données de l'organisation",
+      "select_all": "Sélectionner tout ({count})",
+      "clear_selection": "Effacer la sélection"
     },
     "manual_pipeline": {
       "select_branch": "Sélectionner une branche",
       "title": "Déclencher manuellement une exécution de pipeline",
       "trigger": "Exécuter un pipeline",
       "variables": {
-        "add": "Ajouter une variable",
         "desc": "Ajoutez des variables pour le lancement du pipeline. Les variables existantes seront écrasés.",
         "name": "Nom de la variable",
         "title": "Variables de pipeline supplémentaire",
         "value": "Valeur de la variable",
         "delete": "Supprimer la variable"
       },
-      "show_pipelines": "Afficher les pieplines"
+      "no_workflows": "Aucun workflow avec un déclencheur manuel trouvé",
+      "select_all": "Sélectionner tout",
+      "desc": "Sélectionnez les workflows à exécuter. Seuls les workflows avec le déclencher d'évènement \"manuel\" sont affichés.",
+      "fetch_workflows_failed": "Échec de la récupération des workflows.",
+      "steps_filtered_out": "Le pipeline n'a pas été créé car toutes les étapes ont été filtrées par des conditions \"quand\".",
+      "default_branch_suffix": "(par défaut)",
+      "depends_on": "dépend de {count} | dépend de {count}",
+      "quick_start": "Exécuter ce workflow",
+      "when_condition_help": "Découvrez l'exécution conditionnelle",
+      "fetch_branches_failed": "Échec de la récupération des branches."
     },
-    "not_allowed": "Vous n'êtes pas autorisé à accéder à ce dépôt",
     "open_in_forge": "Ouvrir le dépôt dans la forge",
     "pipeline": {
       "actions": {
         "cancel": "Annuler",
-        "cancel_success": "Pipeline annulé",
         "canceled": "Cette étape a été annulée.",
         "deploy": "Déployer",
         "log_auto_scroll": "Automatiquement défiler vers le bas",
         "log_auto_scroll_off": "Désactiver le défilement automatique",
         "log_download": "Télécharger",
         "restart": "Redémarrer",
-        "restart_success": "Pipeline redémarré",
         "log_delete": "Supprimer"
       },
       "config": "Configuration",
@@ -253,27 +219,21 @@
         "push": "Push",
         "tag": "Tag",
         "release": "Release",
-        "pr_closed": "Pull Request fusionnée / fermée"
+        "pr_closed": "Pull Request fermée",
+        "pr_merged": "Pull Request fusionnée",
+        "pr_edited": "Pull Request modifiée"
       },
       "exit_code": "Code de retour {exitCode}",
       "files": "Fichiers changés ({files})",
       "loading": "Chargement…",
       "log_download_error": "Il y a eu une erreur lors du téléchargement du fichier de journal",
-      "log_title": "Journal des étapes",
-      "no_files": "Aucun fichier n'a été modifié.",
       "no_pipeline_steps": "Aucune étape disponible !",
       "no_pipelines": "Aucun pipeline n'a démarré pour le moment.",
       "pipeline": "Pipeline #{pipelineId}",
-      "pipelines_for": "Pipelines pour la branche \"{branch}\"",
-      "pipelines_for_pr": "Pipeline pour la pull request #{index}",
       "protected": {
-        "approve": "Approuver",
-        "approve_success": "Pipeline approuvé",
         "awaits": "Ce pipeline attend d'être approuvé par un mainteneur !",
         "decline": "Refuser",
-        "decline_success": "Pipeline refusé",
-        "declined": "Le pipeline a été refusé !",
-        "review": "Vérifier les changements"
+        "declined": "Le pipeline a été refusé !"
       },
       "show_errors": "Afficher les erreurs",
       "status": {
@@ -298,34 +258,28 @@
       "no_logs": "Aucun logs",
       "duration": "Durée du pipeline",
       "created": "Crée : {created}",
-      "debug": {
-        "title": "Débogage",
-        "download_metadata": "Télécharger les métadonnées",
-        "metadata_download_error": "Erreur lors du téléchargement des métadonnées"
-      },
       "previous_step": "Étape précédente",
-      "next_step": "Étape suivante"
+      "next_step": "Étape suivante",
+      "metadata": {
+        "pipeline_info": "Information sur la pipeline"
+      },
+      "previous_step_short": "Préc.",
+      "duration_label": "Durée :"
     },
-    "pull_requests": "Pull requests",
     "settings": {
       "actions": {
         "actions": "Actions",
         "delete": {
-          "confirm": "Toutes les données vont être perdues aprés cette action ! ! !\n\nVoulez vous vraiment continuer ?",
-          "delete": "Supprimer le dépôt",
-          "success": "Dépôt supprimé"
+          "delete": "Supprimer le dépôt"
         },
         "disable": {
-          "disable": "Désactiver le dépôt",
-          "success": "Dépôt désactivé"
+          "disable": "Désactiver le dépôt"
         },
         "enable": {
-          "enable": "Activer le dépôt",
-          "success": "Dépôt activé"
+          "enable": "Activer le dépôt"
         },
         "repair": {
-          "repair": "Réparer un dépôt",
-          "success": "Dépôt réparé"
+          "repair": "Réparer un dépôt"
         }
       },
       "badge": {
@@ -342,10 +296,8 @@
           "placeholder": "Branche (utilise la branche par défaut si non renseigné)",
           "title": "Branche"
         },
-        "created": "Tâche planifiée crée",
         "crons": "Tâches planifiées",
         "delete": "Supprimer la tâche planifiée",
-        "deleted": "Tâche planifiée supprimée",
         "desc": "Les tâches planifiées peuvent déclencher des pipelines à intervalles réguliers.",
         "edit": "Modifier la tâche planifiée",
         "name": {
@@ -357,7 +309,6 @@
         "not_executed_yet": "Non exécuté pour le moment",
         "run": "Lancer immédiatement",
         "save": "Enregistrer la tâche planifiée",
-        "saved": "Tâche planifiée enregistrée",
         "schedule": {
           "placeholder": "Horaire",
           "title": "Horaire (basé sur UTC)"
@@ -385,18 +336,12 @@
           "path": "Chemin vers le pipeline"
         },
         "project": "Paramètres du projet",
-        "protected": {
-          "desc": "Chaque pipeline doit être approuvé avant d'être exécuté.",
-          "protected": "Protégé"
-        },
         "save": "Enregistrer les paramètres",
-        "success": "Paramètres du projet mis à jour",
         "timeout": {
           "minutes": "minutes",
           "timeout": "Délai d'inactivité"
         },
         "trusted": {
-          "desc": "Les conteneurs du pipeline ont accès à des capacités privilégiées (comme le montage de volumes).",
           "trusted": "Vérifié",
           "network": {
             "network": "Réseau"
@@ -408,69 +353,10 @@
             "security": "Sécurité"
           }
         },
-        "visibility": {
-          "internal": {
-            "desc": "Seuls les utilisateurs authentifiés de l'instance peuvent voir ce projet.",
-            "internal": "Interne"
-          },
-          "private": {
-            "desc": "Seulement vous et les autres propriétaires de ce dépôt peuvent voir ce projet.",
-            "private": "Privée"
-          },
-          "public": {
-            "desc": "Tout les utilisateurs peuvent voir votre projet sans être connecté.",
-            "public": "Publique"
-          },
-          "visibility": "Visibilité du projet"
-        },
         "allow_deploy": {
           "allow": "Autoriser les événements de 'déploiement'.",
           "desc": "Permettre les déploiements depuis les pipelines ayant réussis. À utiliser que si vous avez confiance dans les utilisateurs ayant un accès en écriture."
         }
-      },
-      "not_allowed": "Vous n'êtes pas autorisé à accéder aux paramètres de ce dépôt",
-      "registries": {
-        "add": "Ajouter un registre",
-        "address": {
-          "address": "Adresse",
-          "placeholder": "Adresse du registre (e.g. docker.io)"
-        },
-        "created": "Authentifiant de connexion à un registre crée",
-        "credentials": "Authentifiants de connexion à un registre",
-        "delete": "Supprimer le registre",
-        "deleted": "Authentifiant de connexion à un registre supprimé",
-        "desc": "Des authentifiants de connexion pour les registres peuvent être ajouté pour permettre d'utiliser des images privées pour vos pipelines.",
-        "edit": "Modifier le registre",
-        "none": "Il n'y a pas d'authentifiant de connexion à un registre pour le moment.",
-        "registries": "Registres",
-        "save": "Enregistrer le registre",
-        "saved": "Authentifiant de connexion à un registre enregistré",
-        "show": "Afficher les registres"
-      },
-      "secrets": {
-        "add": "Ajouter un secret",
-        "created": "Secret crée",
-        "delete": "Supprimer le secret",
-        "delete_confirm": "Voulez vous vraiment supprimer ce secret ?",
-        "deleted": "Secret supprimé",
-        "desc": "Les secrets sont transmis sous forme de variable d'environnement lors de l'exécution d'une étape d'un pipeline.",
-        "edit": "Modifier le secret",
-        "events": {
-          "events": "Disponible pour les événements suivants",
-          "pr_warning": "Faites attention avec cette option car un acteur malicieux pourrait soumettre une pull request qui va afficher vos secrets."
-        },
-        "images": {
-          "desc": "Liste des images pour lesquelles ce secret est accessible, laisser vide pour donner l'accès à toutes les images",
-          "images": "Disponible pour les images suivantes"
-        },
-        "name": "Nom",
-        "none": "Il n'y a pas de secrets pour le moment.",
-        "plugins_only": "Disponible uniquement pour les plugins",
-        "save": "Enregistrer un secret",
-        "saved": "Secret enregistré",
-        "secrets": "Secrets",
-        "show": "Afficher les secrets",
-        "value": "Valeur"
       },
       "settings": "Paramètres"
     },
@@ -489,73 +375,34 @@
         "internal": "Interne",
         "desc": "Seuls les comptes identifiés sur cet instance de Crow peuvent voir ce projet."
       }
-    }
+    },
+    "notify_text_not_allowed": "Autorisations manquantes. Vous n'êtes pas connecté(e), votre token d'accès a expiré ou vous n'avez pas accès au référentiel.",
+    "unpin": "Détacher le dépôt",
+    "disable": "Désactiver le dépôt",
+    "add_desc": "Activez un dépôt depuis votre forge pour commencer à créer des pipelines.",
+    "pin": "Épingler le dépôt"
   },
-  "repos": "Dépôt",
-  "repositories": "Dépôts",
   "running_version": "Vous utilisez Crow {0}",
   "search": "Rechercher…",
   "time": {
-    "days_short": "j",
-    "hours_short": "h",
-    "min_short": "min",
     "not_started": "pas encore démarré",
-    "sec_short": "sec",
-    "template": "D MMM, YYYY, HH:mm z",
-    "weeks_short": "s",
-    "just_now": "il y a peu de temps"
+    "just_now": "il y a peu de temps",
+    "minutes_ago": "il y a {count} minute(s)",
+    "hours_ago": "il y a {count} heure(s)",
+    "days_ago": "il y a {count} jour(s)"
   },
   "unknown_error": "Une erreur inconnue est survenue",
   "update_crow": "Merci de mettre à jour votre instance Crow vers la version {0}",
-  "url": "URL",
   "user": {
-    "access_denied": "Vous n'êtes pas autorisé à vous connecter",
-    "internal_error": "Une erreur interne est arrivé",
-    "oauth_error": "Erreur lors de l'authentification auprès du fournisseur OAuth",
     "settings": {
-      "api": {
-        "api": "API",
-        "api_usage": "Exemple d'utilisation de l'API",
-        "cli_usage": "Exemple d'utilisation de l'interface en ligne de commande",
-        "desc": "Jeton d'Accès Personnel et usage de l'API",
-        "dl_cli": "Télécharger l'Interface en ligne de commande",
-        "reset_token": "Réinitialiser le jeton",
-        "shell_setup": "Configuration de l'interpréteur de commande",
-        "shell_setup_before": "Faites les étapes de configuration de l'interpréteur de commande avant",
-        "swagger_ui": "Interface Swagger",
-        "token": "Jeton d'Accès Personnel"
-      },
       "general": {
         "general": "Général",
         "language": "Langue",
         "theme": {
           "auto": "Automatique",
           "dark": "Sombre",
-          "light": "Clair",
-          "theme": "Thème"
+          "light": "Clair"
         }
-      },
-      "secrets": {
-        "add": "Ajouter un secret",
-        "created": "Secret d'utilisateur crée",
-        "deleted": "Secret d'utilisateur supprimé",
-        "desc": "Les secrets d'utilisateur peuvent être passés à toutes les étapes d'un pipeline personnel sous forme de variables d'environnement.",
-        "events": {
-          "events": "Disponible pour les événements suivants",
-          "pr_warning": "Attention, si cette option est activée, un acteur malveillant peut proposer une pull request qui affiche vos secrets."
-        },
-        "images": {
-          "desc": "Liste des où ce secret sera utilisable, laisser vide pour autoriser toutes les images",
-          "images": "Disponible pour les images suivantes"
-        },
-        "name": "Nom",
-        "none": "Il n'y a pas encore de secrets d'utilisateur.",
-        "plugins_only": "Disponible uniquement pour les plugins",
-        "save": "Enregistrer le secret",
-        "saved": "Secret d'utilisateur enregistré",
-        "secrets": "Secrets",
-        "show": "Afficher les secrets",
-        "value": "Valeur"
       },
       "settings": "Paramètres du compte utilisateur",
       "cli_and_api": {
@@ -571,8 +418,6 @@
     }
   },
   "username": "Nom d'utilisateur",
-  "welcome": "Bienvenue sur Crow",
-  "empty_list": "Aucune {entity} trouvée !",
   "login_to_cli": "Login en ligne de commande",
   "abort": "Abandonner",
   "cli_login_success": "Connexion en ligne de commande réussie",
@@ -583,30 +428,41 @@
   "secrets": {
     "secrets": "Secrets",
     "desc": "Les secrets peuvent être transmis aux différentes étapes de la pipeline en tant que variables d'environnement.",
-    "images": {
-      "desc": "Liste des images pour lesquelles ce secret est disponible, laisser vide pour autoriser toutes les images",
-      "images": "Disponible pour les images suivantes"
-    },
     "none": "Il n'y a pas encore de secrets.",
     "add": "Ajouter un secret",
     "save": "Sauvegarder le secret",
     "show": "Afficher les secrets",
     "name": "Nom",
     "value": "Valeur",
-    "deleted": "Secret supprimé",
-    "created": "Secret créé",
-    "saved": "Secret sauvegardé",
     "events": {
       "events": "Disponible lors des événements suivants",
-      "pr_warning": "Soyez prudent avec cette option : un acteur malveillant peut soumettre une pull request qui expose vos secrets."
+      "warning": "Exposer des secrets aux pull requests peut permettre à des acteurs malveillants de les récupérer ou de les voler via une pull request frauduleuse."
     },
-    "plugins_only": "Uniquement disponible pour les plugins",
     "edit": "Modifier le secret",
     "delete": "Supprimer le secret",
     "delete_confirm": "Voulez vous vraiment supprimer ce secret ?",
     "plugins": {
-      "images": "Disponible pour les plugins suivants"
-    }
+      "images": "Disponible pour les plugins suivants",
+      "add_image": "Saisir le nom de l'image",
+      "desc": "Laisser vide pour autoriser n'importe quel plugin ou image (les restrictions s'appliquent uniquement aux plugins)."
+    },
+    "scope": {
+      "repositories": "Dépôts",
+      "search_target": "Rechercher dans les organisations ou dépôts...",
+      "organizations": "Organisations",
+      "select_target": "Organisation / Dépôt"
+    },
+    "delete_confirm_title": "Supprimer le secret",
+    "last_edited": "Dernière modification",
+    "notify_text_created": "Secret créé",
+    "notify_text_saved": "Secret enregistré",
+    "validation": {
+      "name_required": "Le nom du secret est obligatoire",
+      "events_required": "Au moins un événement doit être sélectionné"
+    },
+    "show_value": "Afficher la valeur abrégée",
+    "notify_text_deleted": "Secret supprimé",
+    "edit_description": "Mettre à jour la configuration du secret."
   },
   "internal_error": "Une erreur interne est survenue",
   "access_denied": "Vous n'êtes pas autorisé à accéder à cette instance",
@@ -616,7 +472,6 @@
   "registries": {
     "registries": "Registres",
     "delete_confirm": "Voulez vous vraiment supprimer ce registre ?",
-    "deleted": "Codes d'accès aux registres supprimés",
     "desc": "Les codes d'accès aux registres peuvent être ajouté pour utiliser des images privées sur les pipelines.",
     "credentials": "Codes d'accès aux registres",
     "edit": "Éditer le registre",
@@ -629,23 +484,121 @@
       "address": "Adresse",
       "desc": "Adresse du registre (e.g. docker.io)"
     },
-    "saved": "Codes d'accès aux registres enregistrés",
-    "created": "Codes d'accès aux registres crées",
     "none": "Il n'y a pas de code d'accès aux registres."
   },
   "invalid_state": "L'état OAuth est invalide",
-  "by_user": "par {user}",
-  "pushed_to": "poussé vers",
-  "closed": "fermé",
-  "deployed_to": "déployé vers",
-  "created": "crée",
-  "triggered": "déclenché",
-  "pipeline_duration": "Durée du pipeline",
-  "pipeline_since": "Pipeline crée {created} minutes ago",
-  "pipeline_has_warnings": "Le pipeline a des alertes",
-  "pipeline_has_errors": "Le pipeline a des erreurs",
-  "login_with": "Se connecter avec {forge}",
   "welcome_to_crow": "Bienvenue sur Crow CI",
   "login_oauth_message": "Connectez-vous en toute sécurité avec votre fournisseur OAuth.",
-  "sign_in_with_github": "Se connecter avec GitHub"
+  "access_tokens": {
+    "create": "Créer un Token",
+    "create_description": "Créer un nouveau Token d'API avec des permissions spécifiques.",
+    "deselect_all": "Tout désélectionner",
+    "expiration_30d": "30 jours",
+    "created_description": "Votre Token a été créé avec succès. Copiez le maintenant - vous ne pourrez plus le voir par la suite.",
+    "scopes_description": "Sélectionnez les permissions que ce token doit avoir.",
+    "expiration_placeholder": "Sélectionnez la date d'expiration",
+    "expiring_soon": "Arrive bientôt à expiration",
+    "edit": "Modifier le token",
+    "delete_bulk_confirm": "Êtes-vous sûr de vouloir supprimer {count} token ? Cette action est irréversible. | Êtes-vous sûr de vouloir supprimer {count} tokens ? Cette action est irréversible.",
+    "admin_scopes": "Permissions administrateur",
+    "expiration": "Expiration",
+    "expiration_never": "Jamais",
+    "last_used": "Dernière utilisation",
+    "edit_description": "Modifiez le nom ou les permissions du token.",
+    "delete_confirm": "Êtes-vous sûr de vouloir supprimer le token \"{name}\" ? Cette action est irréversible.",
+    "expiration_1y": "1 an",
+    "notify_created": "Token d'API créé avec succès.",
+    "expires": "Expire",
+    "empty_description": "Créez un token pour accéder à l'API par programmation.",
+    "created_title": "Token créé",
+    "copy_warning": "Assurez-vous de copier votre token maintenant. Vous ne pourrez plus le voir par la suite !",
+    "your_token": "Votre Token",
+    "name": "Nom",
+    "name_placeholder": "Mon API Token",
+    "select_all": "Tout sélectionner",
+    "scopes": "Permissions",
+    "user_scopes": "Permissions utilisateur",
+    "created": "Créé",
+    "never_used": "Jamais utilisé",
+    "no_expiration": "Pas d'expiration",
+    "expired": "Expiré",
+    "delete": "Supprimer le token",
+    "unnamed": "Token sans nom",
+    "empty": "Aucun API token",
+    "delete_confirm_title": "Supprimer le token",
+    "notify_deleted": "Token d'API supprimé avec succès.",
+    "notify_bulk_deleted": "{count} token d'API supprimé avec succès. | {count} tokens d'API supprimés avec succès.",
+    "notify_updated": "Le token d'API a été mis à jour avec succès.",
+    "expiration_60d": "60 jours",
+    "expiration_90d": "90 jours"
+  },
+  "edit": "Modifier",
+  "command_palette": {
+    "go_to": "Aller à",
+    "search_placeholder": "Saisissez une commande ou effectuez une recherche...",
+    "actions": "Actions",
+    "title": "Palette de commandes",
+    "no_results": "Aucune commande trouvée.",
+    "toggle_theme": "Changer le thème"
+  },
+  "clear_filters": "Effacer les filtres",
+  "close": "Fermer",
+  "delete": "Supprimer",
+  "keyboard_shortcuts": {
+    "show_shortcuts": "Afficher les raccourcis clavier",
+    "description": "Référence rapide de tous les raccourcis clavier disponibles.",
+    "title": "Raccourcis clavier",
+    "general": "Général",
+    "navigation": "Navigation"
+  },
+  "repositories": {
+    "pinned": {
+      "desc": "Accès rapide à vos dépôts épinglés",
+      "title": "Épinglés"
+    },
+    "title": "Dépôts",
+    "sort": {
+      "alphabetical": "Alphabétique",
+      "last_pipeline": "Dernière création de pipeline",
+      "status": "Statut"
+    },
+    "pin_limit_reached": "Au maximum 4 dépôts peuvent être épinglés",
+    "filter": {
+      "show_all": "Afficher uniquement les dépôts accessibles"
+    },
+    "no_public": "Aucun dépôt public disponible"
+  },
+  "loading": "Chargement…",
+  "no_repos": "Aucun dépôt trouvé",
+  "nav_general": "Général",
+  "pagination": {
+    "previous": "Précédent",
+    "next": "Suivant",
+    "last": "Aller à la dernière page"
+  },
+  "scope_type": "Portée",
+  "owner": "Propriétaire",
+  "selected": "sélectionné",
+  "actions": "Actions",
+  "columns": "Colonnes",
+  "done": "Fait",
+  "navbar": {
+    "forge_auth_expired": "Les connexions à la forge nécessitent une attention",
+    "forge_auth_expired_tooltip": "{count} connexion(s) à la forge expirée(s)",
+    "forge_auth_view_all": "Voir toutes les connexions"
+  },
+  "copied": "Copié !",
+  "forge": "Forge",
+  "sort": "Trier",
+  "clear": "Effacer",
+  "notify_title_success": "Succès",
+  "save": "Sauvegarder",
+  "copy": "Copie",
+  "saving": "Enregistrement en cours...",
+  "nav_ci_cd": "CI / CD",
+  "nav_credentials": "Identifiants",
+  "filter": "Filtrer",
+  "name": "Nom",
+  "notify_title_error": "Erreur",
+  "download": "Télécharger"
 }

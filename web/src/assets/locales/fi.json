@@ -6,11 +6,7 @@
   "logout": "Kirjaudu ulos",
   "password": "Salasana",
   "search": "Etsi…",
-  "url": "URL",
   "username": "Käyttäjätunnus",
-  "welcome": "Tervetuloa Crowiin",
   "welcome_to_crow": "Tervetuloa Crow CI:hin",
-  "login_oauth_message": "Kirjaudu turvallisesti OAuth-palveluntarjoajallasi.",
-  "sign_in_with_github": "Kirjaudu GitHubilla",
-  "login_with": "Kirjaudu sisään {forge}"
+  "login_oauth_message": "Kirjaudu turvallisesti OAuth-palveluntarjoajallasi."
 }
