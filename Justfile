@@ -357,18 +357,6 @@ release-agent:
 ## images
 # platforms must be handed over via this syntax for the underlying cross-compile-server step which applies some string splitting on a list of items
 
-# env PLATFORMS='linux|amd64;linux|arm64' just image-server
-image-server TAG REGISTRY_USER='crowci-bot' REGISTRY='codefloe.com' IMAGE='crowci/crow-server':
-    just build-ui
-    just cross-compile-server
-    echo $crowci_bot_token | docker login {{ REGISTRY }} -u {{ REGISTRY_USER }} --password-stdin
-    FIXED_PLATFORMS=$(echo $PLATFORMS | sed "s/|/\//g; s/;/,/g") && \
-    docker buildx build --platform $FIXED_PLATFORMS \
-        --build-arg CI_COMMIT_SHA={{ CI_COMMIT_SHA }} \
-        --build-arg CI_COMMIT_TAG={{ CI_COMMIT_TAG }} \
-        -t {{ REGISTRY }}/{{ IMAGE }}:{{ TAG }} \
-        -f images/Containerfile.server.multiarch.rootless --push .
-
 # env PLATFORMS='linux|amd64;linux|arm64' just image-server-alpine dev
 image-server-alpine TAG REGISTRY_USER='crowci-bot' REGISTRY='codefloe.com' IMAGE='crowci/crow-server':
     just build-ui
@@ -379,17 +367,9 @@ image-server-alpine TAG REGISTRY_USER='crowci-bot' REGISTRY='codefloe.com' IMAGE
         --build-arg CACHE_BUST=$(date +%s) \
         --build-arg CI_COMMIT_SHA={{ CI_COMMIT_SHA }} \
         --build-arg CI_COMMIT_TAG={{ CI_COMMIT_TAG }} \
+        -t {{ REGISTRY }}/{{ IMAGE }}:{{ TAG }} \
         -t {{ REGISTRY }}/{{ IMAGE }}:{{ TAG }}-alpine \
         -f images/Containerfile.server.alpine.multiarch.rootless --push .
-
-# env PLATFORMS='linux/amd64,linux/arm64' just image-agent
-image-agent TAG REGISTRY_USER='crowci-bot' REGISTRY='codefloe.com' IMAGE='crowci/crow-agent':
-    echo $crowci_bot_token | docker login {{ REGISTRY }} -u {{ REGISTRY_USER }} --password-stdin
-    docker buildx build --platform $PLATFORMS \
-        --build-arg CI_COMMIT_SHA={{ CI_COMMIT_SHA }} \
-        --build-arg CI_COMMIT_TAG={{ CI_COMMIT_TAG }} \
-        -t {{ REGISTRY }}/{{ IMAGE }}:{{ TAG }} \
-        -f images/Containerfile.agent.multiarch --push .
 
 # env PLATFORMS='linux/amd64,linux/arm64' just image-agent-alpine dev
 image-agent-alpine TAG REGISTRY_USER='crowci-bot' REGISTRY='codefloe.com' IMAGE='crowci/crow-agent':
@@ -397,6 +377,7 @@ image-agent-alpine TAG REGISTRY_USER='crowci-bot' REGISTRY='codefloe.com' IMAGE=
     docker buildx build --platform $PLATFORMS \
         --build-arg CI_COMMIT_SHA={{ CI_COMMIT_SHA }} \
         --build-arg CI_COMMIT_TAG={{ CI_COMMIT_TAG }} \
+        -t {{ REGISTRY }}/{{ IMAGE }}:{{ TAG }} \
         -t {{ REGISTRY }}/{{ IMAGE }}:{{ TAG }}-alpine \
         -f images/Containerfile.agent.alpine.multiarch --push .
 

@@ -3,12 +3,8 @@ variables:
   - &node_image 'reg.devxy.io/docker.io/oven/bun:1.3-alpine'
   - &xgo_image 'reg.devxy.io/docker.io/techknowlogick/xgo:go-1.26.x'
   - &buildx_plugin 'codefloe.com/crow-plugins/docker-buildx:2.3.0'
-  - &platforms_release 'linux/arm/v6,linux/arm/v7,linux/arm64/v8,linux/386,linux/amd64,linux/ppc64le,linux/riscv64,linux/s390x,freebsd/arm64,freebsd/amd64,openbsd/arm64,openbsd/amd64'
-  # Agent excludes freebsd/openbsd because the Podman SDK's storage library doesn't compile there
-  - &platforms_agent 'linux/arm/v6,linux/arm/v7,linux/arm64/v8,linux/386,linux/amd64,linux/ppc64le,linux/riscv64,linux/s390x'
-  - &platforms_server 'linux/arm/v7,linux/arm64/v8,linux/amd64,linux/ppc64le,linux/riscv64'
   - &platforms_pr 'linux/amd64'
-  - &platforms_alpine 'linux/arm/v6,linux/arm/v7,linux/arm64/v8,linux/amd64,linux/ppc64le'
+  - &platforms_alpine 'linux/arm/v7,linux/arm64/v8,linux/amd64,linux/ppc64le,linux/riscv64,linux/s390x'
   - build_args: &build_args
       CI_COMMIT_SHA: ${CI_COMMIT_SHA}
       CI_COMMIT_TAG: ${CI_COMMIT_TAG}
@@ -112,7 +108,7 @@ steps:
       - apt install -y tree
       # install just FIXME: 'apt install -y just' from Debian >= 13
       - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/bin/
-      - PLATFORMS='linux|arm/v7;linux|arm64/v8;linux|amd64;linux|ppc64le;linux|riscv64' just cross-compile-server
+      - PLATFORMS='linux|arm/v7;linux|arm64/v8;linux|amd64;linux|ppc64le;linux|riscv64;linux|s390x' just cross-compile-server
     environment:
       GITHUB_TOKEN:
         from_secret: github_token
@@ -128,7 +124,7 @@ steps:
       repo: crowci/crow-server
       dockerfile: images/Containerfile.server.alpine.multiarch.rootless
       platforms: *platforms_pr
-      tag: pull_${CI_COMMIT_PULL_REQUEST}-alpine
+      tag: ['pull_${CI_COMMIT_PULL_REQUEST}', 'pull_${CI_COMMIT_PULL_REQUEST}-alpine']
       logins: *publish_logins
     when: &when-preview
       evaluate: 'CI_COMMIT_PULL_REQUEST_LABELS contains "build_pr_images"'
@@ -143,27 +139,13 @@ steps:
     settings:
       dry_run: true
       repo: crowci/crow-server
-      dockerfile: images/Containerfile.server.multiarch.rootless
+      dockerfile: images/Containerfile.server.alpine.multiarch.rootless
       platforms: *platforms_pr
       tag: pull_${CI_COMMIT_PULL_REQUEST}
     when: &when-dryrun
       - evaluate: 'not (CI_COMMIT_PULL_REQUEST_LABELS contains "build_pr_images")'
         event: pull_request
         path: *when_path
-
-  publish-server-[dev]:
-    depends_on:
-      - cross-compile-server
-    image: *buildx_plugin
-    settings:
-      repo: *publish_repos_server
-      dockerfile: images/Containerfile.server.multiarch.rootless
-      platforms: *platforms_server
-      tag: [dev, 'dev-${CI_COMMIT_SHA:0:10}']
-      logins: *publish_logins
-      build_args: *build_args
-    when: &when-publish-dev
-      event: deployment
 
   publish-server-alpine-[dev]:
     depends_on:
@@ -173,24 +155,11 @@ steps:
       repo: *publish_repos_server
       dockerfile: images/Containerfile.server.alpine.multiarch.rootless
       platforms: *platforms_alpine
-      tag: [dev-alpine, 'dev-${CI_COMMIT_SHA:0:10}-alpine']
+      tag: [dev, 'dev-${CI_COMMIT_SHA:0:10}', dev-alpine, 'dev-${CI_COMMIT_SHA:0:10}-alpine']
       logins: *publish_logins
       build_args: *build_args
-    when: *when-publish-dev
-
-  release-server:
-    depends_on:
-      - cross-compile-server
-    image: *buildx_plugin
-    settings:
-      repo: *publish_repos_server
-      dockerfile: images/Containerfile.server.multiarch.rootless
-      platforms: *platforms_server
-      tag: ['${CI_COMMIT_TAG%%.*}', '${CI_COMMIT_TAG%.*}', '${CI_COMMIT_TAG}']
-      logins: *publish_logins
-      build_args: *build_args
-    when: &when-release
-      event: tag
+    when: &when-publish-dev
+      event: deployment
 
   release-server-alpine:
     depends_on:
@@ -200,10 +169,17 @@ steps:
       repo: *publish_repos_server
       dockerfile: images/Containerfile.server.alpine.multiarch.rootless
       platforms: *platforms_alpine
-      tag: ['${CI_COMMIT_TAG%%.*}-alpine', '${CI_COMMIT_TAG%.*}-alpine', '${CI_COMMIT_TAG}-alpine']
+      tag:
+        - '${CI_COMMIT_TAG%%.*}'
+        - '${CI_COMMIT_TAG%.*}'
+        - '${CI_COMMIT_TAG}'
+        - '${CI_COMMIT_TAG%%.*}-alpine'
+        - '${CI_COMMIT_TAG%.*}-alpine'
+        - '${CI_COMMIT_TAG}-alpine'
       logins: *publish_logins
       build_args: *build_args
-    when: *when-release
+    when: &when-release
+      event: tag
 
   #############
   # A g e n t #
@@ -217,7 +193,7 @@ steps:
       repo: crowci/crow-agent
       dockerfile: images/Containerfile.agent.alpine.multiarch
       platforms: *platforms_pr
-      tag: pull_${CI_COMMIT_PULL_REQUEST}-alpine
+      tag: ['pull_${CI_COMMIT_PULL_REQUEST}', 'pull_${CI_COMMIT_PULL_REQUEST}-alpine']
       build_args: *build_args
       logins: *publish_logins
     when: *when-preview
@@ -229,25 +205,11 @@ steps:
     settings:
       dry_run: true
       repo: crowci/crow-agent
-      dockerfile: images/Containerfile.agent.multiarch
+      dockerfile: images/Containerfile.agent.alpine.multiarch
       platforms: *platforms_pr
       tag: pull_${CI_COMMIT_PULL_REQUEST}
       build_args: *build_args
     when: *when-dryrun
-
-  publish-agent-[dev]:
-    depends_on:
-      - vendor
-    image: *buildx_plugin
-    settings:
-      repo: *publish_repos_agent
-      dockerfile: images/Containerfile.agent.multiarch
-      platforms: *platforms_agent
-      tag: [dev, 'dev-${CI_COMMIT_SHA:0:10}']
-      logins: *publish_logins
-      build_args: *build_args
-    when: &when-publish-dev
-      event: deployment
 
   publish-agent-alpine-[dev]:
     depends_on:
@@ -257,23 +219,10 @@ steps:
       repo: *publish_repos_agent
       dockerfile: images/Containerfile.agent.alpine.multiarch
       platforms: *platforms_alpine
-      tag: [dev-alpine, 'dev-${CI_COMMIT_SHA:0:10}-alpine']
+      tag: [dev, 'dev-${CI_COMMIT_SHA:0:10}', dev-alpine, 'dev-${CI_COMMIT_SHA:0:10}-alpine']
       logins: *publish_logins
       build_args: *build_args
     when: *when-publish-dev
-
-  release-agent:
-    depends_on:
-      - vendor
-    image: *buildx_plugin
-    settings:
-      repo: *publish_repos_agent
-      dockerfile: images/Containerfile.agent.multiarch
-      platforms: *platforms_agent
-      tag: ['${CI_COMMIT_TAG%%.*}', '${CI_COMMIT_TAG%.*}', '${CI_COMMIT_TAG}']
-      logins: *publish_logins
-      build_args: *build_args
-    when: *when-release
 
   release-agent-alpine:
     depends_on:
@@ -283,7 +232,13 @@ steps:
       repo: *publish_repos_agent
       dockerfile: images/Containerfile.agent.alpine.multiarch
       platforms: *platforms_alpine
-      tag: ['${CI_COMMIT_TAG%%.*}-alpine', '${CI_COMMIT_TAG%.*}-alpine', '${CI_COMMIT_TAG}-alpine']
+      tag:
+        - '${CI_COMMIT_TAG%%.*}'
+        - '${CI_COMMIT_TAG%.*}'
+        - '${CI_COMMIT_TAG}'
+        - '${CI_COMMIT_TAG%%.*}-alpine'
+        - '${CI_COMMIT_TAG%.*}-alpine'
+        - '${CI_COMMIT_TAG}-alpine'
       logins: *publish_logins
       build_args: *build_args
     when: *when-release
@@ -312,7 +267,7 @@ steps:
     settings:
       repo: *publish_repos_cli
       dockerfile: images/Containerfile.cli.multiarch.rootless
-      platforms: *platforms_release
+      platforms: *platforms_alpine
       tag: [dev, 'dev-${CI_COMMIT_SHA:0:10}']
       logins: *publish_logins
       build_args: *build_args
@@ -338,7 +293,7 @@ steps:
     settings:
       repo: *publish_repos_cli
       dockerfile: images/Containerfile.cli.multiarch.rootless
-      platforms: *platforms_release
+      platforms: *platforms_alpine
       tag: ['${CI_COMMIT_TAG%%.*}', '${CI_COMMIT_TAG%.*}', '${CI_COMMIT_TAG}']
       logins: *publish_logins
       build_args: *build_args
