@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@astrojs/markdoc": "1.0.4",
-    "@astrojs/starlight": "0.38.3",
+    "@astrojs/starlight": "0.38.4",
     "@astrojs/starlight-markdoc": "^0.6.0",
     "@lorenzo_lewis/starlight-utils": "^0.3.2",
     "@microflash/rehype-figure": "^2.1.4",
