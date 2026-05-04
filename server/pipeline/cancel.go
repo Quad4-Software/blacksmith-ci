@@ -165,11 +165,16 @@ func cancelPreviousPipelines(
 }
 
 // CancelWorkflow cancels a specific workflow and returns the status.
+//
+// Note: We intentionally do NOT gate on the parent pipeline's status here. A
+// workflow can legitimately be in pending/running while the pipeline is in a
+// terminal state — the typical case is an autoscaler-provisioned agent that
+// dies before acking a queue.Error from a previous Cancel(), leaving the
+// workflow as a "ghost" in the DB. The UI keeps showing the cancel button
+// (it's gated on workflow state, not pipeline state), and the user must be
+// able to clean up that ghost. The actual cancel-eligibility check happens
+// against the target workflow's state below.
 func CancelWorkflow(ctx context.Context, _forge forge.Forge, store store.Store, repo *model.Repo, user *model.User, pipeline *model.Pipeline, workflowID int64) error {
-	if pipeline.Status != model.StatusRunning && pipeline.Status != model.StatusPending && pipeline.Status != model.StatusBlocked {
-		return &ErrBadRequest{Msg: "Cannot cancel a workflow in a non-running or non-pending or non-blocked pipeline"}
-	}
-
 	workflows, err := store.WorkflowGetTree(pipeline)
 	if err != nil {
 		return &ErrNotFound{Msg: err.Error()}
@@ -245,8 +250,14 @@ func CancelWorkflow(ctx context.Context, _forge forge.Forge, store store.Store, 
 		}
 	}
 
-	// If all workflows are completed, update pipeline status
-	if allCompleted {
+	// If all workflows are completed, update pipeline status — but only if
+	// the pipeline is still in a non-terminal state. Ghost-workflow cleanup on
+	// an already-terminal pipeline must not downgrade or refresh that
+	// outcome (e.g., re-pushing a stale "killed" forge status).
+	pipelineActive := pipeline.Status == model.StatusRunning ||
+		pipeline.Status == model.StatusPending ||
+		pipeline.Status == model.StatusBlocked
+	if allCompleted && pipelineActive {
 		pipeline.Status = model.PipelineStatus(pipeline.Workflows)
 		if err := store.UpdatePipeline(pipeline); err != nil {
 			log.Error().Err(err).Msgf("UpdatePipeline: %v", pipeline)

@@ -200,27 +200,34 @@ func TestCancelWorkflow(t *testing.T) {
 		assert.Contains(t, err.Error(), "Cannot cancel a workflow with status success")
 	})
 
-	t.Run("pipeline not in cancellable state", func(t *testing.T) {
-		// Setup
+	t.Run("non-cancellable workflow on terminal pipeline", func(t *testing.T) {
+		// Even with the ghost-workflow allowance for terminal pipelines,
+		// we still must not let users cancel a workflow that has already
+		// reached a terminal state itself. The workflow-level check is
+		// the only safety guard for this.
 		pipeline := &model.Pipeline{
 			ID:     1,
 			RepoID: 1,
 			Status: model.StatusSuccess,
 		}
 
-		// Mock store
-		mockStore := new(store_mocks.MockStore)
+		workflow := &model.Workflow{
+			ID:         1,
+			PipelineID: 1,
+			State:      model.StatusSuccess,
+			Children:   []*model.Step{},
+		}
 
-		// Mock forge
+		mockStore := new(store_mocks.MockStore)
+		mockStore.On("WorkflowGetTree", mock.AnythingOfType("*model.Pipeline")).Return([]*model.Workflow{workflow}, nil)
+
 		mockForge := new(forge_mocks.MockForge)
 
-		// Execute
 		err := CancelWorkflow(ctx, mockForge, mockStore, repo, user, pipeline, 1)
 
-		// Assert
 		assert.Error(t, err)
 		assert.IsType(t, &ErrBadRequest{}, err)
-		assert.Contains(t, err.Error(), "Cannot cancel a workflow in a non-running or non-pending or non-blocked pipeline")
+		assert.Contains(t, err.Error(), "Cannot cancel a workflow with status success")
 	})
 
 	t.Run("store error getting workflows", func(t *testing.T) {
@@ -361,6 +368,55 @@ func TestCancelWorkflow(t *testing.T) {
 		err := CancelWorkflow(ctx, mockForge, mockStore, repo, user, pipeline, 1)
 
 		// Assert
+		assert.NoError(t, err)
+		mockStore.AssertExpectations(t)
+		mockQueue.AssertExpectations(t)
+	})
+
+	t.Run("cancel ghost workflow on already-killed pipeline", func(t *testing.T) {
+		// Reproduces the autoscaler scenario: a previous Cancel() (or
+		// cancelPreviousPipelines()) marked the pipeline as killed and sent
+		// queue.Error to the running workflow, but the autoscaler-provisioned
+		// agent never acked the cancel signal (agent died, was reaped during
+		// scale-down, etc.). The workflow stays in "running" state in DB while
+		// the pipeline is already killed. The UI keeps showing the cancel
+		// button (it's gated on workflow state, not pipeline state). The user
+		// must be able to clean up the ghost workflow.
+		pipeline := &model.Pipeline{
+			ID:     1,
+			RepoID: 1,
+			Status: model.StatusKilled,
+		}
+
+		ghostWorkflow := &model.Workflow{
+			ID:         1,
+			PipelineID: 1,
+			State:      model.StatusRunning,
+			Children:   []*model.Step{},
+		}
+
+		workflows := []*model.Workflow{ghostWorkflow}
+
+		mockStore := new(store_mocks.MockStore)
+		mockStore.On("WorkflowGetTree", mock.AnythingOfType("*model.Pipeline")).Return(workflows, nil)
+		mockStore.On("WorkflowUpdate", mock.AnythingOfType("*model.Workflow")).Return(nil)
+		// Pipeline is already in a terminal state, so no UpdatePipeline expected
+		// (we don't downgrade or refresh terminal pipeline status).
+
+		mockForge := new(forge_mocks.MockForge)
+
+		originalQueue := server.Config.Services.Queue
+		mockQueue := new(queue_mocks.MockQueue)
+		mockQueue.On("Error", ctx, "1", queue.ErrCancel).Return(nil)
+		server.Config.Services.Queue = mockQueue
+		defer func() { server.Config.Services.Queue = originalQueue }()
+
+		originalPubsub := server.Config.Services.Pubsub
+		server.Config.Services.Pubsub = pubsub.New()
+		defer func() { server.Config.Services.Pubsub = originalPubsub }()
+
+		err := CancelWorkflow(ctx, mockForge, mockStore, repo, user, pipeline, 1)
+
 		assert.NoError(t, err)
 		mockStore.AssertExpectations(t)
 		mockQueue.AssertExpectations(t)
