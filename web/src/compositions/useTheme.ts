@@ -63,7 +63,7 @@ const fontSize = useStorage<number>('crow:font-size', 14);
 
 // Current theme definition (computed from mode-specific theme name)
 const currentTheme = computed(() => {
-  const mode = resolvedTheme.value as 'light' | 'dark';
+  const mode = resolvedTheme.value;
   const themeName = mode === 'light' ? lightThemeName.value : darkThemeName.value;
   return getTheme(themeName);
 });
@@ -133,7 +133,7 @@ function applyFontSize(size: number) {
  * Update theme classes, attributes, and CSS variables
  */
 function updateTheme() {
-  const mode = resolvedTheme.value as 'light' | 'dark';
+  const mode = resolvedTheme.value;
   const theme = currentTheme.value;
 
   // Update document classes and data-theme attribute
