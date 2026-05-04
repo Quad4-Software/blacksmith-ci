@@ -47,7 +47,7 @@ steps:
       - apk add --no-cache -q just git sqlite-dev libc-dev gcc g++ build-base musl-dev binutils binutils-gold linux-headers
       # using this instead of apk as it is always using the most recent go version - otherwise golangci-lint complains about a mismatch when a new go version is released
       # renovate: datasource=github-releases depName=golangci/golangci-lint
-      - wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b /usr/local/bin v2.11.4
+      - wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b /usr/local/bin v2.12.1
       - golangci-lint run
     when: *when
 
