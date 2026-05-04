@@ -85,7 +85,7 @@ func schemaNamer(t reflect.Type, hint string) string {
 func elementTypeName(t reflect.Type) (string, string) {
 	for {
 		switch t.Kind() {
-		case reflect.Slice, reflect.Array, reflect.Ptr:
+		case reflect.Slice, reflect.Array, reflect.Pointer:
 			t = t.Elem()
 		case reflect.Map:
 			t = t.Elem()

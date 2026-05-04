@@ -217,7 +217,7 @@ func TestAllBodySchemas_NoAccidentalRequired(t *testing.T) {
 				}
 
 				isOmitempty := strings.Contains(jsonTag, "omitempty")
-				isPointer := field.Type.Kind() == reflect.Ptr
+				isPointer := field.Type.Kind() == reflect.Pointer
 				isRequired := requiredSet[jsonName]
 
 				// A pointer field that is required is suspicious — pointers are
