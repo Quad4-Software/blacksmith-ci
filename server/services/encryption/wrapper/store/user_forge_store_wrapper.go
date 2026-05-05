@@ -208,23 +208,51 @@ func (wrapper *EncryptedUserForgeStore) UserForgeGetPrimary(userID int64) (*mode
 }
 
 // UserForgeCreate creates a new user forge connection.
+//
+// Tokens must be encrypted *after* the row is inserted: the ID is part of the
+// AEAD associated data, and an auto-increment ID is only assigned by the
+// database during the insert. Encrypting before the insert would bake the
+// placeholder ID `0` into the ciphertext, after which every subsequent
+// UserForgeGet would fail to decrypt because the row's real ID no longer
+// matches the AAD bound to the ciphertext. So we insert first, then encrypt
+// and update, then decrypt back so the caller still sees plaintext.
 func (wrapper *EncryptedUserForgeStore) UserForgeCreate(userForge *model.UserForge) error {
-	if wrapper.encryption != nil {
-		if err := wrapper.encrypt(userForge); err != nil {
-			return err
-		}
+	if err := wrapper.store.UserForgeCreate(userForge); err != nil {
+		return err
 	}
-	return wrapper.store.UserForgeCreate(userForge)
+
+	if wrapper.encryption == nil {
+		return nil
+	}
+
+	if userForge.AccessToken == "" && userForge.RefreshToken == "" {
+		return nil
+	}
+
+	if err := wrapper.encrypt(userForge); err != nil {
+		return err
+	}
+	if err := wrapper.store.UserForgeUpdate(userForge); err != nil {
+		return err
+	}
+	// Decrypt back so the caller continues to see plaintext.
+	return wrapper.decrypt(userForge)
 }
 
 // UserForgeUpdate updates a user forge connection.
 func (wrapper *EncryptedUserForgeStore) UserForgeUpdate(userForge *model.UserForge) error {
-	if wrapper.encryption != nil {
-		if err := wrapper.encrypt(userForge); err != nil {
-			return err
-		}
+	if wrapper.encryption == nil {
+		return wrapper.store.UserForgeUpdate(userForge)
 	}
-	return wrapper.store.UserForgeUpdate(userForge)
+
+	if err := wrapper.encrypt(userForge); err != nil {
+		return err
+	}
+	if err := wrapper.store.UserForgeUpdate(userForge); err != nil {
+		return err
+	}
+	// Decrypt back so the caller continues to see plaintext.
+	return wrapper.decrypt(userForge)
 }
 
 // UserForgeDelete deletes a user forge connection.
