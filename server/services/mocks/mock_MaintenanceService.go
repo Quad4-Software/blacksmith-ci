@@ -381,6 +381,50 @@ func (_c *MockMaintenanceService_IsKubernetesEnvVarsConfigured_Call) RunAndRetur
 	return _c
 }
 
+// IsOrphanedDataEnvVarsConfigured provides a mock function for the type MockMaintenanceService
+func (_mock *MockMaintenanceService) IsOrphanedDataEnvVarsConfigured() bool {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for IsOrphanedDataEnvVarsConfigured")
+	}
+
+	var r0 bool
+	if returnFunc, ok := ret.Get(0).(func() bool); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	return r0
+}
+
+// MockMaintenanceService_IsOrphanedDataEnvVarsConfigured_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IsOrphanedDataEnvVarsConfigured'
+type MockMaintenanceService_IsOrphanedDataEnvVarsConfigured_Call struct {
+	*mock.Call
+}
+
+// IsOrphanedDataEnvVarsConfigured is a helper method to define mock.On call
+func (_e *MockMaintenanceService_Expecter) IsOrphanedDataEnvVarsConfigured() *MockMaintenanceService_IsOrphanedDataEnvVarsConfigured_Call {
+	return &MockMaintenanceService_IsOrphanedDataEnvVarsConfigured_Call{Call: _e.mock.On("IsOrphanedDataEnvVarsConfigured")}
+}
+
+func (_c *MockMaintenanceService_IsOrphanedDataEnvVarsConfigured_Call) Run(run func()) *MockMaintenanceService_IsOrphanedDataEnvVarsConfigured_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockMaintenanceService_IsOrphanedDataEnvVarsConfigured_Call) Return(b bool) *MockMaintenanceService_IsOrphanedDataEnvVarsConfigured_Call {
+	_c.Call.Return(b)
+	return _c
+}
+
+func (_c *MockMaintenanceService_IsOrphanedDataEnvVarsConfigured_Call) RunAndReturn(run func() bool) *MockMaintenanceService_IsOrphanedDataEnvVarsConfigured_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // IsVacuumEnvVarsConfigured provides a mock function for the type MockMaintenanceService
 func (_mock *MockMaintenanceService) IsVacuumEnvVarsConfigured() bool {
 	ret := _mock.Called()
@@ -592,6 +636,63 @@ func (_c *MockMaintenanceService_RunMaintenance_Call) Return(err error) *MockMai
 }
 
 func (_c *MockMaintenanceService_RunMaintenance_Call) RunAndReturn(run func(ctx context.Context) error) *MockMaintenanceService_RunMaintenance_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// RunOrphanedDataCleanup provides a mock function for the type MockMaintenanceService
+func (_mock *MockMaintenanceService) RunOrphanedDataCleanup(ctx context.Context, dryRun bool) error {
+	ret := _mock.Called(ctx, dryRun)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RunOrphanedDataCleanup")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, bool) error); ok {
+		r0 = returnFunc(ctx, dryRun)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockMaintenanceService_RunOrphanedDataCleanup_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RunOrphanedDataCleanup'
+type MockMaintenanceService_RunOrphanedDataCleanup_Call struct {
+	*mock.Call
+}
+
+// RunOrphanedDataCleanup is a helper method to define mock.On call
+//   - ctx context.Context
+//   - dryRun bool
+func (_e *MockMaintenanceService_Expecter) RunOrphanedDataCleanup(ctx interface{}, dryRun interface{}) *MockMaintenanceService_RunOrphanedDataCleanup_Call {
+	return &MockMaintenanceService_RunOrphanedDataCleanup_Call{Call: _e.mock.On("RunOrphanedDataCleanup", ctx, dryRun)}
+}
+
+func (_c *MockMaintenanceService_RunOrphanedDataCleanup_Call) Run(run func(ctx context.Context, dryRun bool)) *MockMaintenanceService_RunOrphanedDataCleanup_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 bool
+		if args[1] != nil {
+			arg1 = args[1].(bool)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockMaintenanceService_RunOrphanedDataCleanup_Call) Return(err error) *MockMaintenanceService_RunOrphanedDataCleanup_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockMaintenanceService_RunOrphanedDataCleanup_Call) RunAndReturn(run func(ctx context.Context, dryRun bool) error) *MockMaintenanceService_RunOrphanedDataCleanup_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -842,6 +943,46 @@ func (_c *MockMaintenanceService_SetKubernetesEnvVarsConfigured_Call) Return() *
 }
 
 func (_c *MockMaintenanceService_SetKubernetesEnvVarsConfigured_Call) RunAndReturn(run func(k8sEnvVarsSet bool)) *MockMaintenanceService_SetKubernetesEnvVarsConfigured_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetOrphanedDataEnvVarsConfigured provides a mock function for the type MockMaintenanceService
+func (_mock *MockMaintenanceService) SetOrphanedDataEnvVarsConfigured(orphanEnvVarsSet bool) {
+	_mock.Called(orphanEnvVarsSet)
+	return
+}
+
+// MockMaintenanceService_SetOrphanedDataEnvVarsConfigured_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetOrphanedDataEnvVarsConfigured'
+type MockMaintenanceService_SetOrphanedDataEnvVarsConfigured_Call struct {
+	*mock.Call
+}
+
+// SetOrphanedDataEnvVarsConfigured is a helper method to define mock.On call
+//   - orphanEnvVarsSet bool
+func (_e *MockMaintenanceService_Expecter) SetOrphanedDataEnvVarsConfigured(orphanEnvVarsSet interface{}) *MockMaintenanceService_SetOrphanedDataEnvVarsConfigured_Call {
+	return &MockMaintenanceService_SetOrphanedDataEnvVarsConfigured_Call{Call: _e.mock.On("SetOrphanedDataEnvVarsConfigured", orphanEnvVarsSet)}
+}
+
+func (_c *MockMaintenanceService_SetOrphanedDataEnvVarsConfigured_Call) Run(run func(orphanEnvVarsSet bool)) *MockMaintenanceService_SetOrphanedDataEnvVarsConfigured_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 bool
+		if args[0] != nil {
+			arg0 = args[0].(bool)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockMaintenanceService_SetOrphanedDataEnvVarsConfigured_Call) Return() *MockMaintenanceService_SetOrphanedDataEnvVarsConfigured_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockMaintenanceService_SetOrphanedDataEnvVarsConfigured_Call) RunAndReturn(run func(orphanEnvVarsSet bool)) *MockMaintenanceService_SetOrphanedDataEnvVarsConfigured_Call {
 	_c.Run(run)
 	return _c
 }

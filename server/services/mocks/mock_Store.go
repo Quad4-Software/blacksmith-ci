@@ -2264,6 +2264,114 @@ func (_c *MockStore_CronDelete_Call) RunAndReturn(run func(repo *model.Repo, n i
 	return _c
 }
 
+// CronDeleteByID provides a mock function for the type MockStore
+func (_mock *MockStore) CronDeleteByID(id int64) error {
+	ret := _mock.Called(id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CronDeleteByID")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(int64) error); ok {
+		r0 = returnFunc(id)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_CronDeleteByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CronDeleteByID'
+type MockStore_CronDeleteByID_Call struct {
+	*mock.Call
+}
+
+// CronDeleteByID is a helper method to define mock.On call
+//   - id int64
+func (_e *MockStore_Expecter) CronDeleteByID(id interface{}) *MockStore_CronDeleteByID_Call {
+	return &MockStore_CronDeleteByID_Call{Call: _e.mock.On("CronDeleteByID", id)}
+}
+
+func (_c *MockStore_CronDeleteByID_Call) Run(run func(id int64)) *MockStore_CronDeleteByID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_CronDeleteByID_Call) Return(err error) *MockStore_CronDeleteByID_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_CronDeleteByID_Call) RunAndReturn(run func(id int64) error) *MockStore_CronDeleteByID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CronDisableOrphaned provides a mock function for the type MockStore
+func (_mock *MockStore) CronDisableOrphaned(id int64, msg string) error {
+	ret := _mock.Called(id, msg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CronDisableOrphaned")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(int64, string) error); ok {
+		r0 = returnFunc(id, msg)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_CronDisableOrphaned_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CronDisableOrphaned'
+type MockStore_CronDisableOrphaned_Call struct {
+	*mock.Call
+}
+
+// CronDisableOrphaned is a helper method to define mock.On call
+//   - id int64
+//   - msg string
+func (_e *MockStore_Expecter) CronDisableOrphaned(id interface{}, msg interface{}) *MockStore_CronDisableOrphaned_Call {
+	return &MockStore_CronDisableOrphaned_Call{Call: _e.mock.On("CronDisableOrphaned", id, msg)}
+}
+
+func (_c *MockStore_CronDisableOrphaned_Call) Run(run func(id int64, msg string)) *MockStore_CronDisableOrphaned_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_CronDisableOrphaned_Call) Return(err error) *MockStore_CronDisableOrphaned_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_CronDisableOrphaned_Call) RunAndReturn(run func(id int64, msg string) error) *MockStore_CronDisableOrphaned_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CronFind provides a mock function for the type MockStore
 func (_mock *MockStore) CronFind(repo *model.Repo, n int64) (*model.Cron, error) {
 	ret := _mock.Called(repo, n)
@@ -2530,6 +2638,116 @@ func (_c *MockStore_CronListNextExecute_Call) Return(crons []*model.Cron, err er
 }
 
 func (_c *MockStore_CronListNextExecute_Call) RunAndReturn(run func(n int64, n1 int64) ([]*model.Cron, error)) *MockStore_CronListNextExecute_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CronListOrphaned provides a mock function for the type MockStore
+func (_mock *MockStore) CronListOrphaned() ([]*model.Cron, error) {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for CronListOrphaned")
+	}
+
+	var r0 []*model.Cron
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func() ([]*model.Cron, error)); ok {
+		return returnFunc()
+	}
+	if returnFunc, ok := ret.Get(0).(func() []*model.Cron); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.Cron)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func() error); ok {
+		r1 = returnFunc()
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_CronListOrphaned_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CronListOrphaned'
+type MockStore_CronListOrphaned_Call struct {
+	*mock.Call
+}
+
+// CronListOrphaned is a helper method to define mock.On call
+func (_e *MockStore_Expecter) CronListOrphaned() *MockStore_CronListOrphaned_Call {
+	return &MockStore_CronListOrphaned_Call{Call: _e.mock.On("CronListOrphaned")}
+}
+
+func (_c *MockStore_CronListOrphaned_Call) Run(run func()) *MockStore_CronListOrphaned_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockStore_CronListOrphaned_Call) Return(crons []*model.Cron, err error) *MockStore_CronListOrphaned_Call {
+	_c.Call.Return(crons, err)
+	return _c
+}
+
+func (_c *MockStore_CronListOrphaned_Call) RunAndReturn(run func() ([]*model.Cron, error)) *MockStore_CronListOrphaned_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CronListOrphanedOwner provides a mock function for the type MockStore
+func (_mock *MockStore) CronListOrphanedOwner() ([]*model.Cron, error) {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for CronListOrphanedOwner")
+	}
+
+	var r0 []*model.Cron
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func() ([]*model.Cron, error)); ok {
+		return returnFunc()
+	}
+	if returnFunc, ok := ret.Get(0).(func() []*model.Cron); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.Cron)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func() error); ok {
+		r1 = returnFunc()
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_CronListOrphanedOwner_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CronListOrphanedOwner'
+type MockStore_CronListOrphanedOwner_Call struct {
+	*mock.Call
+}
+
+// CronListOrphanedOwner is a helper method to define mock.On call
+func (_e *MockStore_Expecter) CronListOrphanedOwner() *MockStore_CronListOrphanedOwner_Call {
+	return &MockStore_CronListOrphanedOwner_Call{Call: _e.mock.On("CronListOrphanedOwner")}
+}
+
+func (_c *MockStore_CronListOrphanedOwner_Call) Run(run func()) *MockStore_CronListOrphanedOwner_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockStore_CronListOrphanedOwner_Call) Return(crons []*model.Cron, err error) *MockStore_CronListOrphanedOwner_Call {
+	_c.Call.Return(crons, err)
+	return _c
+}
+
+func (_c *MockStore_CronListOrphanedOwner_Call) RunAndReturn(run func() ([]*model.Cron, error)) *MockStore_CronListOrphanedOwner_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -9480,6 +9698,61 @@ func (_c *MockStore_RepoListLatest_Call) Return(feeds []*model.Feed, err error) 
 }
 
 func (_c *MockStore_RepoListLatest_Call) RunAndReturn(run func(user *model.User) ([]*model.Feed, error)) *MockStore_RepoListLatest_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// RepoListOrphanedOwner provides a mock function for the type MockStore
+func (_mock *MockStore) RepoListOrphanedOwner() ([]*model.Repo, error) {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for RepoListOrphanedOwner")
+	}
+
+	var r0 []*model.Repo
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func() ([]*model.Repo, error)); ok {
+		return returnFunc()
+	}
+	if returnFunc, ok := ret.Get(0).(func() []*model.Repo); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.Repo)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func() error); ok {
+		r1 = returnFunc()
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_RepoListOrphanedOwner_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RepoListOrphanedOwner'
+type MockStore_RepoListOrphanedOwner_Call struct {
+	*mock.Call
+}
+
+// RepoListOrphanedOwner is a helper method to define mock.On call
+func (_e *MockStore_Expecter) RepoListOrphanedOwner() *MockStore_RepoListOrphanedOwner_Call {
+	return &MockStore_RepoListOrphanedOwner_Call{Call: _e.mock.On("RepoListOrphanedOwner")}
+}
+
+func (_c *MockStore_RepoListOrphanedOwner_Call) Run(run func()) *MockStore_RepoListOrphanedOwner_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockStore_RepoListOrphanedOwner_Call) Return(repos []*model.Repo, err error) *MockStore_RepoListOrphanedOwner_Call {
+	_c.Call.Return(repos, err)
+	return _c
+}
+
+func (_c *MockStore_RepoListOrphanedOwner_Call) RunAndReturn(run func() ([]*model.Repo, error)) *MockStore_RepoListOrphanedOwner_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -377,6 +377,43 @@ func setupEvilGlobals(ctx context.Context, c *cli.Command, s store.Store) (err e
 		}
 	}
 
+	// Check if orphaned-data-cleanup-specific maintenance environment variables are set
+	orphanEnvVarsSet := os.Getenv("CROW_MAINTENANCE_ORPHANED_DATA_CLEANUP_ENABLED") != "" ||
+		os.Getenv("CROW_MAINTENANCE_ORPHANED_DATA_CLEANUP_SCHEDULE") != ""
+
+	server.Config.Services.MaintenanceService.SetOrphanedDataEnvVarsConfigured(orphanEnvVarsSet)
+
+	if orphanEnvVarsSet {
+		orphanEnabled := c.Bool("maintenance-orphaned-data-cleanup-enabled")
+		orphanSchedule := c.String("maintenance-orphaned-data-cleanup-schedule")
+
+		orphanConfig, err := server.Config.Services.MaintenanceService.GetMaintenanceConfigByAction("orphaned_data_cleanup")
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to get orphaned_data_cleanup action config")
+		} else {
+			needsUpdate := false
+			if orphanConfig.Enabled != orphanEnabled {
+				orphanConfig.Enabled = orphanEnabled
+				needsUpdate = true
+			}
+			if orphanConfig.Schedule != orphanSchedule {
+				orphanConfig.Schedule = orphanSchedule
+				needsUpdate = true
+			}
+
+			if needsUpdate {
+				log.Info().
+					Bool("setting_enabled", orphanConfig.Enabled).
+					Str("setting_schedule", orphanConfig.Schedule).
+					Msg("Updating orphaned data cleanup configuration from environment variables")
+
+				if err := server.Config.Services.MaintenanceService.UpdateMaintenanceConfigByAction("orphaned_data_cleanup", orphanConfig); err != nil {
+					log.Error().Err(err).Msg("Failed to update orphaned_data_cleanup action config")
+				}
+			}
+		}
+	}
+
 	k8sCleanupAge := c.String("maintenance-kubernetes-cleanup-age")
 
 	// Auto-enable if using Kubernetes backend (detect via CROW_BACKEND environment variable)

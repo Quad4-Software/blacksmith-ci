@@ -729,6 +729,18 @@ var flags = append([]cli.Flag{
 		Usage:   "Duration after which agents are considered stale (e.g., 24h for 1 day)",
 		Value:   "24h",
 	},
+	&cli.BoolFlag{
+		Sources: cli.EnvVars("CROW_MAINTENANCE_ORPHANED_DATA_CLEANUP_ENABLED"),
+		Name:    "maintenance-orphaned-data-cleanup-enabled",
+		Usage:   "Enable automatic cleanup of orphaned database rows (deleted users/repos)",
+		Value:   true,
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_MAINTENANCE_ORPHANED_DATA_CLEANUP_SCHEDULE"),
+		Name:    "maintenance-orphaned-data-cleanup-schedule",
+		Usage:   "Cron schedule for orphaned data cleanup",
+		Value:   "0 5 * * *",
+	},
 	// SMTP notification flags
 	&cli.StringFlag{
 		Sources: cli.EnvVars("CROW_SMTP_HOST"),

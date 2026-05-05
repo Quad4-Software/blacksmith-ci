@@ -383,6 +383,107 @@
         </CardContent>
       </Card>
 
+      <!-- Orphaned Data Cleanup Operation -->
+      <Card>
+        <CardHeader>
+          <CardTitle>{{ $t('admin.settings.maintenance.operations.orphaned_data_cleanup') }}</CardTitle>
+          <CardDescription>{{
+            $t('admin.settings.maintenance.operations.orphaned_data_cleanup_desc')
+          }}</CardDescription>
+        </CardHeader>
+        <CardContent class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-end pb-2">
+            <!-- Schedule -->
+            <div class="flex flex-col gap-2">
+              <Label>{{ $t('admin.settings.maintenance.schedule') }}</Label>
+              <Input
+                v-model="orphanedDataCleanupConfig.schedule"
+                :placeholder="$t('admin.settings.maintenance.schedule_placeholder')"
+                :disabled="orphanedDataEnvVarsSet"
+              />
+            </div>
+
+            <!-- Status with Enable/Disable -->
+            <div class="flex flex-col gap-2">
+              <Label>{{ $t('admin.settings.maintenance.status') }}</Label>
+              <div class="flex items-center h-9 space-x-2">
+                <Checkbox
+                  :checked="orphanedDataCleanupConfig.enabled"
+                  :disabled="orphanedDataEnvVarsSet"
+                  @update:checked="(v) => (orphanedDataCleanupConfig.enabled = v === true)"
+                />
+                <Label
+                  class="cursor-pointer"
+                  @click="
+                    !orphanedDataEnvVarsSet && (orphanedDataCleanupConfig.enabled = !orphanedDataCleanupConfig.enabled)
+                  "
+                >
+                  {{ $t('admin.settings.maintenance.enabled') }}
+                </Label>
+              </div>
+            </div>
+
+            <!-- Total Runs -->
+            <div class="flex flex-col gap-2">
+              <Label>{{ $t('admin.settings.maintenance.total_runs') }}</Label>
+              <div class="text-sm text-muted-foreground flex items-center h-9">
+                {{ orphanedDataCleanupConfig.total_runs || 0 }}
+              </div>
+            </div>
+
+            <!-- Options (dry run) -->
+            <div class="flex flex-col gap-2">
+              <Label>{{ $t('admin.settings.maintenance.options') }}</Label>
+              <div class="flex items-center h-9 space-x-2">
+                <Checkbox :checked="orphanedDataDryRun" @update:checked="(v) => (orphanedDataDryRun = v === true)" />
+                <Label class="cursor-pointer" @click="orphanedDataDryRun = !orphanedDataDryRun">
+                  {{ $t('admin.settings.maintenance.dry_run') }}
+                </Label>
+              </div>
+            </div>
+
+            <!-- Last Run -->
+            <div class="flex flex-col gap-2">
+              <Label>{{ $t('admin.settings.maintenance.last_run') }}</Label>
+              <div class="text-sm text-muted-foreground flex items-center h-9">
+                {{ formatLastRun(orphanedDataCleanupConfig.last_run || '') }}
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex flex-col gap-2">
+              <Label>{{ $t('admin.settings.maintenance.actions') }}</Label>
+              <div class="flex items-center h-9 space-x-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  :title="
+                    orphanedDataEnvVarsSet
+                      ? $t('admin.settings.maintenance.env_vars_set_tooltip')
+                      : $t('admin.settings.maintenance.save_config')
+                  "
+                  :disabled="isSavingOrphanedData || orphanedDataEnvVarsSet"
+                  @click="saveOrphanedDataConfig(false)"
+                >
+                  <Icon v-if="!isSavingOrphanedData" name="content-save-outline" class="h-4 w-4" />
+                  <Icon v-else name="loading" class="h-4 w-4 animate-spin" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  :title="$t('admin.settings.maintenance.run_orphaned_data_cleanup')"
+                  :disabled="!orphanedDataCleanupConfig.enabled || isRunningOrphanedData"
+                  @click="runOrphanedDataCleanup"
+                >
+                  <Icon v-if="!isRunningOrphanedData" name="play-outline" class="h-4 w-4" />
+                  <Icon v-else name="loading" class="h-4 w-4 animate-spin" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <!-- Recent Logs -->
       <Card v-if="logs.length > 0">
         <CardHeader>
@@ -583,6 +684,23 @@ const dockerCleanupConfig = ref<MaintenanceOperationConfig & { stale_threshold?:
 });
 const dockerCleanupAvailable = ref(false);
 
+// Orphaned data cleanup operation configuration
+const orphanedDataCleanupConfig = ref<MaintenanceOperationConfig>({
+  id: 0,
+  operation: 'orphanedDataCleanup',
+  enabled: true,
+  schedule: '0 5 * * *',
+  total_runs: 0,
+  last_run: '',
+  created: 0,
+  updated: 0,
+});
+
+const isSavingOrphanedData = ref(false);
+const isRunningOrphanedData = ref(false);
+const orphanedDataDryRun = ref(false);
+const orphanedDataEnvVarsSet = ref(false);
+
 // Computed property to display stale threshold as human-readable duration
 const dockerStaleThresholdDisplay = computed({
   get: () => {
@@ -672,6 +790,10 @@ const getOperationName = (log: MaintenanceLog) => {
     if (log.details.includes('Docker resource cleanup') || log.details.includes('docker_cleanup')) {
       return t('admin.settings.maintenance.operations.docker_cleanup');
     }
+    // Check for orphaned data cleanup
+    if (log.details.includes('Orphaned data cleanup') || log.details.includes('orphaned_data_cleanup')) {
+      return t('admin.settings.maintenance.operations.orphaned_data_cleanup');
+    }
   }
   return t('admin.settings.maintenance.operations.vacuum_log_table');
 };
@@ -687,33 +809,44 @@ const loadData = async (reset = false) => {
     const previousLogs = [...logs.value];
 
     // Load configs for each action separately, plus logs and stats
-    const [vacuumConfigData, k8sConfigData, staleAgentConfigData, dockerConfigData, logsData, statsData] =
-      await Promise.all([
-        apiClient.getMaintenanceConfigByAction('vacuum').catch((error) => {
-          console.error('Failed to load vacuum config:', error);
-          return null;
-        }),
-        apiClient.getMaintenanceConfigByAction('kubernetes_cleanup').catch((error) => {
-          console.error('Failed to load kubernetes cleanup config:', error);
-          return null;
-        }),
-        apiClient.getMaintenanceConfigByAction('stale_agent_cleanup').catch((error) => {
-          console.error('Failed to load stale agent cleanup config:', error);
-          return null;
-        }),
-        apiClient.getMaintenanceConfigByAction('docker_cleanup').catch((error) => {
-          console.error('Failed to load docker cleanup config:', error);
-          return null;
-        }),
-        apiClient.getMaintenanceLogs(logsLimit.value).catch((error) => {
-          console.error('Failed to load maintenance logs:', error);
-          return [];
-        }),
-        apiClient.getMaintenanceStats().catch((error) => {
-          console.error('Failed to load maintenance stats:', error);
-          return null;
-        }),
-      ]);
+    const [
+      vacuumConfigData,
+      k8sConfigData,
+      staleAgentConfigData,
+      dockerConfigData,
+      orphanedDataConfigData,
+      logsData,
+      statsData,
+    ] = await Promise.all([
+      apiClient.getMaintenanceConfigByAction('vacuum').catch((error) => {
+        console.error('Failed to load vacuum config:', error);
+        return null;
+      }),
+      apiClient.getMaintenanceConfigByAction('kubernetes_cleanup').catch((error) => {
+        console.error('Failed to load kubernetes cleanup config:', error);
+        return null;
+      }),
+      apiClient.getMaintenanceConfigByAction('stale_agent_cleanup').catch((error) => {
+        console.error('Failed to load stale agent cleanup config:', error);
+        return null;
+      }),
+      apiClient.getMaintenanceConfigByAction('docker_cleanup').catch((error) => {
+        console.error('Failed to load docker cleanup config:', error);
+        return null;
+      }),
+      apiClient.getMaintenanceConfigByAction('orphaned_data_cleanup').catch((error) => {
+        console.error('Failed to load orphaned data cleanup config:', error);
+        return null;
+      }),
+      apiClient.getMaintenanceLogs(logsLimit.value).catch((error) => {
+        console.error('Failed to load maintenance logs:', error);
+        return [];
+      }),
+      apiClient.getMaintenanceStats().catch((error) => {
+        console.error('Failed to load maintenance stats:', error);
+        return null;
+      }),
+    ]);
 
     if (vacuumConfigData) {
       vacuumLogTableConfig.value.enabled = vacuumConfigData.enabled;
@@ -807,6 +940,17 @@ const loadData = async (reset = false) => {
       dockerCleanupConfig.value.last_run = dockerConfigData.last_run || '';
       dockerCleanupConfig.value.stale_threshold = dockerConfigData.stale_threshold || 3600;
       dockerCleanupAvailable.value = dockerConfigData.docker_cleanup_available || false;
+    }
+
+    if (orphanedDataConfigData) {
+      orphanedDataCleanupConfig.value.enabled = orphanedDataConfigData.enabled;
+      orphanedDataCleanupConfig.value.schedule = orphanedDataConfigData.schedule;
+      orphanedDataCleanupConfig.value.total_runs = orphanedDataConfigData.total_runs || 0;
+      orphanedDataCleanupConfig.value.last_run = orphanedDataConfigData.last_run || '';
+      orphanedDataCleanupConfig.value.id = orphanedDataConfigData.id;
+      orphanedDataCleanupConfig.value.created = orphanedDataConfigData.created;
+      orphanedDataCleanupConfig.value.updated = orphanedDataConfigData.updated;
+      orphanedDataEnvVarsSet.value = orphanedDataConfigData.env_vars_set || false;
     }
 
     logs.value = logsData || [];
@@ -1080,6 +1224,8 @@ const addActionLog = (message: string, jobType: string = 'vacuum') => {
     jobTitle = t('admin.settings.maintenance.operations.stale_agent_cleanup');
   } else if (jobType === 'docker') {
     jobTitle = t('admin.settings.maintenance.operations.docker_cleanup');
+  } else if (jobType === 'orphaned_data') {
+    jobTitle = t('admin.settings.maintenance.operations.orphaned_data_cleanup');
   }
   actionLogs.value.unshift(`[${year}/${month}/${day} ${time}] [${jobTitle}] ${message}`);
   // Keep only the last 50 action log lines
@@ -1704,6 +1850,66 @@ const runK8sCleanup = async () => {
       type: 'error',
     });
     isRunningK8sCleanup.value = false;
+  }
+};
+
+const saveOrphanedDataConfig = async (silent = false) => {
+  isSavingOrphanedData.value = true;
+  if (!silent) {
+    addActionLog('Saving orphaned data cleanup configuration...', 'orphaned_data');
+  }
+
+  try {
+    const updatedConfig = await apiClient.updateMaintenanceConfigByAction('orphaned_data_cleanup', {
+      enabled: orphanedDataCleanupConfig.value.enabled,
+      schedule: orphanedDataCleanupConfig.value.schedule,
+    });
+
+    orphanedDataCleanupConfig.value.enabled = updatedConfig.enabled;
+    orphanedDataCleanupConfig.value.schedule = updatedConfig.schedule;
+    orphanedDataCleanupConfig.value.id = updatedConfig.id;
+    orphanedDataCleanupConfig.value.created = updatedConfig.created;
+    orphanedDataCleanupConfig.value.updated = updatedConfig.updated;
+
+    if (!silent) {
+      notifications.notify({
+        title: t('admin.settings.maintenance.notify_text_config_saved'),
+        type: 'success',
+      });
+    }
+  } catch (error) {
+    console.error('Failed to save orphaned data cleanup configuration:', error);
+    const errorMessage = (error as Error).message || 'Unknown error';
+    addActionLog(`Error saving configuration: ${errorMessage}`, 'orphaned_data');
+    if (!silent) {
+      notifications.notify({
+        title: t('admin.settings.maintenance.notify_text_config_error'),
+        type: 'error',
+      });
+    }
+  } finally {
+    isSavingOrphanedData.value = false;
+  }
+};
+
+const runOrphanedDataCleanup = async () => {
+  isRunningOrphanedData.value = true;
+  addActionLog(`Starting orphaned data cleanup${orphanedDataDryRun.value ? ' (dry run)' : ''}...`, 'orphaned_data');
+
+  try {
+    await apiClient.runMaintenanceNow('orphanedDataCleanup', orphanedDataDryRun.value);
+    notifications.notify({
+      title: t('admin.settings.maintenance.notify_text_orphaned_data_cleanup_started'),
+      type: 'success',
+    });
+  } catch (error) {
+    console.error('Failed to run orphaned data cleanup:', error);
+    notifications.notify({
+      title: t('admin.settings.maintenance.notify_text_orphaned_data_cleanup_error'),
+      type: 'error',
+    });
+  } finally {
+    isRunningOrphanedData.value = false;
   }
 };
 

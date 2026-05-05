@@ -241,6 +241,143 @@ func TestService_RunKubernetesCleanup_LogCreationError(t *testing.T) {
 	mockStore.AssertExpectations(t)
 }
 
+func TestService_RunOrphanedDataCleanup_DryRun(t *testing.T) {
+	mockStore := &store.MockStore{}
+	svc, ok := NewService(mockStore).(*service)
+	require.True(t, ok)
+
+	dangling := []*model.Cron{{ID: 11, Name: "dangling"}}
+	orphanOwner := []*model.Cron{{ID: 22, Name: "orphan_active"}}
+	orphanRepos := []*model.Repo{{ID: 5, FullName: "alice/orphan"}}
+
+	mockStore.On("CronListOrphaned").Return(dangling, nil)
+	mockStore.On("CronListOrphanedOwner").Return(orphanOwner, nil)
+	mockStore.On("RepoListOrphanedOwner").Return(orphanRepos, nil)
+	mockStore.On("MaintenanceLogCreate", mock.AnythingOfType("*model.MaintenanceLog")).Return(nil)
+	// dry-run skips updateActionLastRun — but updateActionStats still runs
+	mockStore.On("MaintenanceConfigGetByActionType", "orphaned_data_cleanup").Return(&model.MaintenanceConfig{ActionType: "orphaned_data_cleanup", Enabled: true}, nil)
+	mockStore.On("MaintenanceConfigUpdateByActionType", "orphaned_data_cleanup", mock.AnythingOfType("*model.MaintenanceConfig")).Return(nil)
+
+	err := svc.RunOrphanedDataCleanup(t.Context(), true)
+	assert.NoError(t, err)
+
+	// Crucial: no mutation calls in dry-run
+	mockStore.AssertNotCalled(t, "CronDeleteByID", mock.Anything)
+	mockStore.AssertNotCalled(t, "CronDisableOrphaned", mock.Anything, mock.Anything)
+	mockStore.AssertExpectations(t)
+}
+
+func TestService_RunOrphanedDataCleanup_Apply(t *testing.T) {
+	mockStore := &store.MockStore{}
+	svc, ok := NewService(mockStore).(*service)
+	require.True(t, ok)
+
+	dangling := []*model.Cron{{ID: 11}, {ID: 12}}
+	orphanOwner := []*model.Cron{{ID: 22}}
+	orphanRepos := []*model.Repo{{ID: 5, FullName: "alice/orphan"}}
+
+	mockStore.On("CronListOrphaned").Return(dangling, nil)
+	mockStore.On("CronListOrphanedOwner").Return(orphanOwner, nil)
+	mockStore.On("RepoListOrphanedOwner").Return(orphanRepos, nil)
+	mockStore.On("CronDeleteByID", int64(11)).Return(nil)
+	mockStore.On("CronDeleteByID", int64(12)).Return(nil)
+	mockStore.On("CronDisableOrphaned", int64(22), "auto-disabled by maintenance: repo owner missing").Return(nil)
+	mockStore.On("MaintenanceLogCreate", mock.AnythingOfType("*model.MaintenanceLog")).Return(nil)
+	// non-dry-run hits updateActionLastRun (Get + Update) AND updateActionStats (Get + Update)
+	mockStore.On("MaintenanceConfigGetByActionType", "orphaned_data_cleanup").Return(&model.MaintenanceConfig{ActionType: "orphaned_data_cleanup", Enabled: true}, nil)
+	mockStore.On("MaintenanceConfigUpdateByActionType", "orphaned_data_cleanup", mock.AnythingOfType("*model.MaintenanceConfig")).Return(nil)
+
+	err := svc.RunOrphanedDataCleanup(t.Context(), false)
+	assert.NoError(t, err)
+
+	mockStore.AssertExpectations(t)
+}
+
+func TestService_RunOrphanedDataCleanup_Empty(t *testing.T) {
+	mockStore := &store.MockStore{}
+	svc, ok := NewService(mockStore).(*service)
+	require.True(t, ok)
+
+	mockStore.On("CronListOrphaned").Return([]*model.Cron{}, nil)
+	mockStore.On("CronListOrphanedOwner").Return([]*model.Cron{}, nil)
+	mockStore.On("RepoListOrphanedOwner").Return([]*model.Repo{}, nil)
+	mockStore.On("MaintenanceLogCreate", mock.AnythingOfType("*model.MaintenanceLog")).Return(nil)
+	mockStore.On("MaintenanceConfigGetByActionType", "orphaned_data_cleanup").Return(&model.MaintenanceConfig{ActionType: "orphaned_data_cleanup", Enabled: true}, nil)
+	mockStore.On("MaintenanceConfigUpdateByActionType", "orphaned_data_cleanup", mock.AnythingOfType("*model.MaintenanceConfig")).Return(nil)
+
+	err := svc.RunOrphanedDataCleanup(t.Context(), false)
+	assert.NoError(t, err)
+
+	mockStore.AssertNotCalled(t, "CronDeleteByID", mock.Anything)
+	mockStore.AssertNotCalled(t, "CronDisableOrphaned", mock.Anything, mock.Anything)
+	mockStore.AssertExpectations(t)
+}
+
+func TestService_RunOrphanedDataCleanup_QueryFailure(t *testing.T) {
+	mockStore := &store.MockStore{}
+	svc, ok := NewService(mockStore).(*service)
+	require.True(t, ok)
+
+	mockStore.On("CronListOrphaned").Return([]*model.Cron(nil), errors.New("db down"))
+	mockStore.On("MaintenanceLogCreate", mock.AnythingOfType("*model.MaintenanceLog")).Return(nil)
+	mockStore.On("MaintenanceConfigGetByActionType", "orphaned_data_cleanup").Return(&model.MaintenanceConfig{ActionType: "orphaned_data_cleanup"}, nil)
+	mockStore.On("MaintenanceConfigUpdateByActionType", "orphaned_data_cleanup", mock.AnythingOfType("*model.MaintenanceConfig")).Return(nil)
+
+	err := svc.RunOrphanedDataCleanup(t.Context(), false)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "listing dangling crons")
+
+	mockStore.AssertNotCalled(t, "CronListOrphanedOwner")
+	mockStore.AssertExpectations(t)
+}
+
+func TestService_RunOrphanedDataCleanup_PartialFailure(t *testing.T) {
+	mockStore := &store.MockStore{}
+	svc, ok := NewService(mockStore).(*service)
+	require.True(t, ok)
+
+	dangling := []*model.Cron{{ID: 11}, {ID: 12}}
+	orphanOwner := []*model.Cron{{ID: 22}}
+
+	mockStore.On("CronListOrphaned").Return(dangling, nil)
+	mockStore.On("CronListOrphanedOwner").Return(orphanOwner, nil)
+	mockStore.On("RepoListOrphanedOwner").Return([]*model.Repo{}, nil)
+	// ID 11 fails, ID 12 succeeds
+	mockStore.On("CronDeleteByID", int64(11)).Return(errors.New("locked"))
+	mockStore.On("CronDeleteByID", int64(12)).Return(nil)
+	mockStore.On("CronDisableOrphaned", int64(22), "auto-disabled by maintenance: repo owner missing").Return(nil)
+
+	var capturedLog *model.MaintenanceLog
+	mockStore.On("MaintenanceLogCreate", mock.AnythingOfType("*model.MaintenanceLog")).Run(func(args mock.Arguments) {
+		entry, ok := args.Get(0).(*model.MaintenanceLog)
+		require.True(t, ok)
+		capturedLog = entry
+	}).Return(nil)
+
+	// non-dry-run hits updateActionLastRun (Get + Update) AND updateActionStats (Get + Update)
+	mockStore.On("MaintenanceConfigGetByActionType", "orphaned_data_cleanup").Return(&model.MaintenanceConfig{ActionType: "orphaned_data_cleanup", Enabled: true}, nil)
+	var capturedConfig *model.MaintenanceConfig
+	mockStore.On("MaintenanceConfigUpdateByActionType", "orphaned_data_cleanup", mock.AnythingOfType("*model.MaintenanceConfig")).Run(func(args mock.Arguments) {
+		cfg, ok := args.Get(1).(*model.MaintenanceConfig)
+		require.True(t, ok)
+		capturedConfig = cfg
+	}).Return(nil)
+
+	err := svc.RunOrphanedDataCleanup(t.Context(), false)
+	// Partial failures do not abort: function must return nil
+	require.NoError(t, err)
+
+	require.NotNil(t, capturedLog)
+	assert.False(t, capturedLog.Success)
+	assert.Contains(t, capturedLog.Error, "partial failure")
+
+	// The last captured config update (from updateActionStats) should reflect failure
+	require.NotNil(t, capturedConfig)
+	assert.False(t, capturedConfig.LastRunSuccess)
+
+	mockStore.AssertExpectations(t)
+}
+
 func TestService_ActionStatsTracking(t *testing.T) {
 	tests := []struct {
 		name        string

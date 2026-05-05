@@ -371,6 +371,25 @@ func TestGetRepoByForgeOwnerName(t *testing.T) {
 	assert.Equal(t, model.ForgeRemoteID("300"), got.ForgeRemoteID)
 }
 
+func TestRepoListOrphanedOwner(t *testing.T) {
+	store, closer := newTestStore(t, new(model.Repo))
+	defer closer()
+
+	good := &model.Repo{FullName: "alice/active", Owner: "alice", Name: "active", UserID: 1}
+	orphan1 := &model.Repo{FullName: "alice/orphan1", Owner: "alice", Name: "orphan1", UserID: 0}
+	orphan2 := &model.Repo{FullName: "bob/orphan2", Owner: "bob", Name: "orphan2", UserID: 0}
+	assert.NoError(t, store.CreateRepo(good))
+	assert.NoError(t, store.CreateRepo(orphan1))
+	assert.NoError(t, store.CreateRepo(orphan2))
+
+	rows, err := store.RepoListOrphanedOwner()
+	assert.NoError(t, err)
+	assert.Len(t, rows, 2)
+	names := []string{rows[0].FullName, rows[1].FullName}
+	assert.Contains(t, names, "alice/orphan1")
+	assert.Contains(t, names, "bob/orphan2")
+}
+
 func TestRepoRedirection(t *testing.T) {
 	store, closer := newTestStore(t,
 		new(model.Repo),

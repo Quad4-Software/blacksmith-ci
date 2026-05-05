@@ -885,7 +885,9 @@
           "stale_agent_cleanup": "Stale Agent Cleanup",
           "stale_agent_cleanup_desc": "Remove agents that haven't connected for the configured duration (default: 24 hours)",
           "docker_cleanup": "Docker Resource Cleanup",
-          "docker_cleanup_desc": "Remove stale containers, networks, and volumes left behind by non-properly terminated pipelines on Docker agents"
+          "docker_cleanup_desc": "Remove stale containers, networks, and volumes left behind by non-properly terminated pipelines on Docker agents",
+          "orphaned_data_cleanup": "Orphaned Data Cleanup",
+          "orphaned_data_cleanup_desc": "Detects and cleans up database rows that reference deleted forge users or repositories. Removes crons pointing at deleted repos, disables crons whose repo's owner was deleted, and reports orphaned repos for admin review."
         },
         "notify_text_config_saved": "Maintenance configuration saved",
         "notify_text_config_error": "Failed to save maintenance configuration",
@@ -901,6 +903,9 @@
         "notify_text_docker_cleanup_started": "Docker cleanup triggered",
         "notify_text_docker_cleanup_error": "Failed to trigger Docker cleanup",
         "run_docker_cleanup": "Run Docker cleanup",
+        "notify_text_orphaned_data_cleanup_started": "Orphaned data cleanup started",
+        "notify_text_orphaned_data_cleanup_error": "Failed to start orphaned data cleanup",
+        "run_orphaned_data_cleanup": "Run orphaned data cleanup",
         "stale_threshold": "Stale threshold",
         "stale_threshold_desc": "Resources older than this threshold will be removed",
         "stale_duration_24h": "24h",

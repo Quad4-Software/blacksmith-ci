@@ -143,6 +143,9 @@ func (s storage) MaintenanceConfigGetByActionType(actionType string) (*model.Mai
 		defaultConfig.Enabled = false
 		defaultConfig.Schedule = "0 */1 * * *" // Hourly
 		defaultConfig.StaleThreshold = 3600    // 1 hour
+	case "orphaned_data_cleanup":
+		defaultConfig.Enabled = true
+		defaultConfig.Schedule = "0 5 * * *" // Daily at 5 AM
 	}
 
 	// Use Insert with unique constraint handling to avoid race conditions

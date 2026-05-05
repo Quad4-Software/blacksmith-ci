@@ -110,6 +110,8 @@ func (s *Scheduler) checkMaintenance() {
 	s.checkAction("kubernetes_cleanup", now)
 
 	s.checkAction("stale_agent_cleanup", now)
+
+	s.checkAction("orphaned_data_cleanup", now)
 }
 
 // checkAction checks if a specific maintenance action should be run.
@@ -286,6 +288,10 @@ func (s *Scheduler) runActionUnsafe(actionType string, ctx ...context.Context) {
 		staleDuration := GetStaleAgentDuration()
 		if err := s.service.RunStaleAgentCleanup(runCtx, staleDuration); err != nil {
 			log.Error().Err(err).Msg("Scheduled stale agent cleanup failed")
+		}
+	case "orphaned_data_cleanup":
+		if err := s.service.RunOrphanedDataCleanup(runCtx, false); err != nil {
+			log.Error().Err(err).Msg("Scheduled orphaned data cleanup failed")
 		}
 	default:
 		log.Warn().Str("action", actionType).Msg("Unknown maintenance action type")

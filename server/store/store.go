@@ -85,6 +85,8 @@ type Store interface {
 	UpdateRepo(*model.Repo) error
 	// DeleteRepo deletes a user repository.
 	DeleteRepo(*model.Repo) error
+	// RepoListOrphanedOwner returns repos whose owner user has been deleted (user_id = 0).
+	RepoListOrphanedOwner() ([]*model.Repo, error)
 
 	// Redirections
 	// CreateRedirection creates a redirection
@@ -239,6 +241,14 @@ type Store interface {
 	CronListNextExecute(int64, int64) ([]*model.Cron, error)
 	CronGetLock(*model.Cron, int64) (bool, error)
 	UserCronList(repoIDs []int64, searchTerm string, p *model.ListOptions) ([]*model.Cron, error)
+	// CronListOrphaned returns crons whose repo_id does not match any existing repo.
+	CronListOrphaned() ([]*model.Cron, error)
+	// CronListOrphanedOwner returns active crons whose repo's owner has been deleted.
+	CronListOrphanedOwner() ([]*model.Cron, error)
+	// CronDeleteByID deletes a cron without requiring a repo scope.
+	CronDeleteByID(id int64) error
+	// CronDisableOrphaned marks a cron disabled and sets fail_msg.
+	CronDisableOrphaned(id int64, msg string) error
 
 	// Forge
 	ForgeCreate(*model.Forge) error

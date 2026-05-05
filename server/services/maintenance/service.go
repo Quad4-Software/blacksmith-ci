@@ -17,6 +17,7 @@ package maintenance
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -36,6 +37,9 @@ type Service interface {
 	RunKubernetesCleanup(ctx context.Context, dryRun bool) error
 	// RunStaleAgentCleanup executes stale agent cleanup.
 	RunStaleAgentCleanup(ctx context.Context, staleDuration time.Duration) error
+	// RunOrphanedDataCleanup detects and cleans up DB rows that reference
+	// deleted forge users or repositories.
+	RunOrphanedDataCleanup(ctx context.Context, dryRun bool) error
 	// GetMaintenanceConfig returns the current maintenance configuration
 	GetMaintenanceConfig() *model.MaintenanceConfig
 	// UpdateMaintenanceConfig updates the maintenance configuration
@@ -60,6 +64,10 @@ type Service interface {
 	SetKubernetesEnvVarsConfigured(k8sEnvVarsSet bool)
 	// IsKubernetesEnvVarsConfigured returns whether Kubernetes-specific environment variables are set
 	IsKubernetesEnvVarsConfigured() bool
+	// SetOrphanedDataEnvVarsConfigured sets whether orphaned-data-cleanup-specific environment variables are set
+	SetOrphanedDataEnvVarsConfigured(orphanEnvVarsSet bool)
+	// IsOrphanedDataEnvVarsConfigured returns whether orphaned-data-cleanup-specific environment variables are set
+	IsOrphanedDataEnvVarsConfigured() bool
 	// IsDockerCleanupAvailable returns whether Docker cleanup is available
 	IsDockerCleanupAvailable() bool
 	// SetDockerCleanupAvailable sets whether Docker cleanup is available
@@ -73,14 +81,15 @@ type Service interface {
 }
 
 type service struct {
-	store                      store.Store
-	kubernetesCleanupFunc      func(ctx context.Context, dryRun bool) error
-	kubernetesCleanupAvailable bool
-	kubernetesCleanupEnabled   bool
-	vacuumEnvVarsConfigured    bool
-	k8sEnvVarsConfigured       bool
-	dockerCleanupAvailable     bool
-	dockerCleanupRunNow        atomic.Bool
+	store                         store.Store
+	kubernetesCleanupFunc         func(ctx context.Context, dryRun bool) error
+	kubernetesCleanupAvailable    bool
+	kubernetesCleanupEnabled      bool
+	vacuumEnvVarsConfigured       bool
+	k8sEnvVarsConfigured          bool
+	orphanedDataEnvVarsConfigured bool
+	dockerCleanupAvailable        bool
+	dockerCleanupRunNow           atomic.Bool
 }
 
 // New creates a new maintenance service.
@@ -126,6 +135,16 @@ func (s *service) SetKubernetesEnvVarsConfigured(k8sEnvVarsSet bool) {
 // IsKubernetesEnvVarsConfigured returns whether Kubernetes-specific environment variables are set.
 func (s *service) IsKubernetesEnvVarsConfigured() bool {
 	return s.k8sEnvVarsConfigured
+}
+
+// SetOrphanedDataEnvVarsConfigured sets whether orphaned-data-cleanup-specific environment variables are set.
+func (s *service) SetOrphanedDataEnvVarsConfigured(orphanEnvVarsSet bool) {
+	s.orphanedDataEnvVarsConfigured = orphanEnvVarsSet
+}
+
+// IsOrphanedDataEnvVarsConfigured returns whether orphaned-data-cleanup-specific environment variables are set.
+func (s *service) IsOrphanedDataEnvVarsConfigured() bool {
+	return s.orphanedDataEnvVarsConfigured
 }
 
 // RunMaintenance executes database maintenance operations based on the database type.
@@ -531,6 +550,151 @@ func (s *service) GetDockerCleanupConfigForAgent() *rpc.DockerCleanupConfig {
 		IntervalSeconds:       defaultDockerCleanupIntervalSeconds,
 		RunNow:                runNow,
 	}
+}
+
+const orphanDataDisableMsg = "auto-disabled by maintenance: repo owner missing"
+
+// RunOrphanedDataCleanup detects and cleans up rows referencing deleted forge
+// users or repos. It runs three passes: hard-delete dangling crons, disable
+// orphan-owner crons, and report orphan-owner repos for admin review.
+func (s *service) RunOrphanedDataCleanup(ctx context.Context, dryRun bool) error {
+	if !dryRun {
+		s.updateActionLastRun("orphaned_data_cleanup")
+	}
+
+	start := time.Now()
+	log.Info().Bool("dry_run", dryRun).Msg("Starting orphaned data cleanup")
+
+	// Pass 1: dangling crons
+	dangling, err := s.store.CronListOrphaned()
+	if err != nil {
+		return s.recordOrphanCleanupFailure(start, dryRun, fmt.Errorf("listing dangling crons: %w", err))
+	}
+	danglingDeleted := 0
+	danglingFailed := 0
+	if !dryRun {
+		for _, c := range dangling {
+			if dErr := s.store.CronDeleteByID(c.ID); dErr != nil {
+				log.Warn().Err(dErr).Int64("cron_id", c.ID).Msg("Failed to delete dangling cron")
+				danglingFailed++
+				continue
+			}
+			danglingDeleted++
+		}
+	}
+
+	// Pass 2: orphan-owner crons
+	orphanOwnerCrons, err := s.store.CronListOrphanedOwner()
+	if err != nil {
+		return s.recordOrphanCleanupFailure(start, dryRun, fmt.Errorf("listing orphan-owner crons: %w", err))
+	}
+	disabled := 0
+	disableFailed := 0
+	if !dryRun {
+		for _, c := range orphanOwnerCrons {
+			if dErr := s.store.CronDisableOrphaned(c.ID, orphanDataDisableMsg); dErr != nil {
+				log.Warn().Err(dErr).Int64("cron_id", c.ID).Msg("Failed to disable orphan-owner cron")
+				disableFailed++
+				continue
+			}
+			disabled++
+		}
+	}
+
+	// Pass 3: orphan-owner repos (report only)
+	orphanRepos, err := s.store.RepoListOrphanedOwner()
+	if err != nil {
+		return s.recordOrphanCleanupFailure(start, dryRun, fmt.Errorf("listing orphan-owner repos: %w", err))
+	}
+	repoSample := orphanCleanupRepoSample(orphanRepos)
+
+	duration := time.Since(start)
+	details := fmt.Sprintf(
+		"Operation: Orphaned data cleanup, Duration: %v, DryRun: %v, Dangling crons: found=%d",
+		duration, dryRun, len(dangling),
+	)
+	if dryRun {
+		details += " (would delete)"
+	} else {
+		details += fmt.Sprintf(" deleted=%d failed=%d", danglingDeleted, danglingFailed)
+	}
+	details += fmt.Sprintf(", Orphan-owner crons: found=%d", len(orphanOwnerCrons))
+	if dryRun {
+		details += " (would disable)"
+	} else {
+		details += fmt.Sprintf(" disabled=%d failed=%d", disabled, disableFailed)
+	}
+	details += fmt.Sprintf(", Orphan-owner repos: found=%d (report only)", len(orphanRepos))
+	if repoSample != "" {
+		details += ": " + repoSample
+	}
+
+	totalFailed := danglingFailed + disableFailed
+	success := totalFailed == 0
+	logEntry := &model.MaintenanceLog{
+		RunTime:  start,
+		Success:  success,
+		Duration: duration.Milliseconds(),
+		Details:  details,
+		Created:  start.Unix(),
+	}
+	errMsg := ""
+	if !success {
+		errMsg = fmt.Sprintf("partial failure: %d dangling deletes failed, %d disables failed", danglingFailed, disableFailed)
+		logEntry.Error = errMsg
+	}
+	s.updateActionStats("orphaned_data_cleanup", success, duration, errMsg)
+	if logErr := s.store.MaintenanceLogCreate(logEntry); logErr != nil {
+		log.Error().Err(logErr).Msg("Failed to create maintenance log entry for orphaned data cleanup")
+	}
+
+	if success {
+		log.Info().Dur("duration", duration).Msg("Orphaned data cleanup completed successfully")
+	} else {
+		log.Warn().Dur("duration", duration).Int("dangling_failed", danglingFailed).Int("disable_failed", disableFailed).Msg("Orphaned data cleanup completed with per-row failures")
+	}
+	return nil
+}
+
+// recordOrphanCleanupFailure records a failed run and returns the wrapped error.
+func (s *service) recordOrphanCleanupFailure(start time.Time, dryRun bool, runErr error) error {
+	duration := time.Since(start)
+	details := fmt.Sprintf("Operation: Orphaned data cleanup, Duration: %v, DryRun: %v, Failed: %s", duration, dryRun, runErr)
+	logEntry := &model.MaintenanceLog{
+		RunTime:  start,
+		Success:  false,
+		Duration: duration.Milliseconds(),
+		Error:    runErr.Error(),
+		Details:  details,
+		Created:  start.Unix(),
+	}
+	s.updateActionStats("orphaned_data_cleanup", false, duration, runErr.Error())
+	if logErr := s.store.MaintenanceLogCreate(logEntry); logErr != nil {
+		log.Error().Err(logErr).Msg("Failed to create maintenance log entry for orphaned data cleanup")
+	}
+	log.Error().Err(runErr).Dur("duration", duration).Msg("Orphaned data cleanup failed")
+	return runErr
+}
+
+// orphanCleanupRepoSample returns up to 10 repo full_names, with "..." appended
+// if there are more than 10 to summarize.
+func orphanCleanupRepoSample(repos []*model.Repo) string {
+	const max = 10
+	if len(repos) == 0 {
+		return ""
+	}
+	names := make([]string, 0, max)
+	for i, r := range repos {
+		if i >= max {
+			break
+		}
+		names = append(names, r.FullName)
+	}
+	out := strings.Join(names, ", ")
+	if len(repos) > max {
+		out += ", ..."
+	}
+	return out
 }
 
 // RecordDockerCleanupResult records a Docker cleanup result from an agent.

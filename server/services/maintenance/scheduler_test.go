@@ -209,7 +209,14 @@ func TestScheduler_CheckAction_AllActionsRun(t *testing.T) {
 		LastRun:    time.Date(2025, 1, 6, 7, 0, 0, 0, time.UTC),
 	}
 
-	// Setup expectations - all three should run
+	orphanedDataConfig := &model.MaintenanceConfig{
+		ActionType: "orphaned_data_cleanup",
+		Enabled:    true,
+		Schedule:   "0 7 * * *",
+		LastRun:    time.Date(2025, 1, 6, 7, 0, 0, 0, time.UTC),
+	}
+
+	// Setup expectations - all four should run
 	mockService.EXPECT().
 		GetMaintenanceConfigByAction("vacuum").
 		Return(vacuumConfig, nil)
@@ -236,6 +243,14 @@ func TestScheduler_CheckAction_AllActionsRun(t *testing.T) {
 
 	mockService.EXPECT().
 		RunStaleAgentCleanup(mock.Anything, mock.AnythingOfType("time.Duration")).
+		Return(nil)
+
+	mockService.EXPECT().
+		GetMaintenanceConfigByAction("orphaned_data_cleanup").
+		Return(orphanedDataConfig, nil)
+
+	mockService.EXPECT().
+		RunOrphanedDataCleanup(mock.Anything, false).
 		Return(nil)
 
 	scheduler.checkMaintenance()

@@ -217,6 +217,15 @@ func (s storage) RepoListAll(active bool, p *model.ListOptions) ([]*model.Repo, 
 	return repos, s.paginate(q.Order("full_name ASC"), p).Scan(context.Background())
 }
 
+// RepoListOrphanedOwner returns repos whose owner user has been deleted.
+// Repos.user_id = 0 is the zero-default left behind because there is no FK
+// constraint and no ON DELETE SET NULL behavior (issue #1010).
+func (s storage) RepoListOrphanedOwner() ([]*model.Repo, error) {
+	var repos []*model.Repo
+	err := s.db.NewSelect().Model(&repos).Where("user_id = ?", 0).Scan(context.Background())
+	return repos, err
+}
+
 // RepoListPublic returns all active public repos for anonymous browsing.
 func (s storage) RepoListPublic(p *model.ListOptions) ([]*model.Repo, error) {
 	repos := make([]*model.Repo, 0)

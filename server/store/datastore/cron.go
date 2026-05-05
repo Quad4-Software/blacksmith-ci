@@ -81,6 +81,51 @@ func (s storage) CronGetLock(cron *model.Cron, newNextExec int64) (bool, error) 
 	return gotLock, nil
 }
 
+// CronListOrphaned returns crons whose repo_id does not match any existing repo.
+// These are dead — there is no execution target.
+func (s storage) CronListOrphaned() ([]*model.Cron, error) {
+	var crons []*model.Cron
+	err := s.db.NewSelect().
+		Model(&crons).
+		Join("LEFT JOIN repos ON repos.id = ?TableAlias.repo_id").
+		Where("repos.id IS NULL").
+		Scan(context.Background())
+	return crons, err
+}
+
+// CronListOrphanedOwner returns active (not-disabled) crons whose repo's owner
+// has been deleted (repos.user_id = 0). Already-disabled rows are excluded so
+// re-runs do not overwrite admin-set fail_msg values.
+func (s storage) CronListOrphanedOwner() ([]*model.Cron, error) {
+	var crons []*model.Cron
+	err := s.db.NewSelect().
+		Model(&crons).
+		Join("INNER JOIN repos ON repos.id = ?TableAlias.repo_id").
+		Where("repos.user_id = ?", 0).
+		Where("?TableAlias.disabled = ?", false).
+		Scan(context.Background())
+	return crons, err
+}
+
+// CronDeleteByID deletes a cron row by its primary key without requiring a repo
+// scope. Used by the orphaned-data-cleanup maintenance job, which encounters
+// crons whose repo no longer exists.
+func (s storage) CronDeleteByID(id int64) error {
+	return wrapDelete(s.db.NewDelete().Model((*model.Cron)(nil)).Where("id = ?", id).Exec(context.Background()))
+}
+
+// CronDisableOrphaned marks a cron as disabled and sets fail_msg to the
+// supplied reason. Used by the orphaned-data-cleanup maintenance job.
+func (s storage) CronDisableOrphaned(id int64, msg string) error {
+	_, err := s.db.NewUpdate().
+		Model((*model.Cron)(nil)).
+		Set("disabled = ?", true).
+		Set("fail_msg = ?", msg).
+		Where("id = ?", id).
+		Exec(context.Background())
+	return err
+}
+
 // UserCronList returns all crons from repos the user has access to.
 func (s storage) UserCronList(repoIDs []int64, searchTerm string, p *model.ListOptions) ([]*model.Cron, error) {
 	crons := make([]*model.Cron, 0)

@@ -355,6 +355,10 @@ func (c *CompositeEncryptedStore) DeleteRepo(repo *model.Repo) error {
 	return c.baseStore.DeleteRepo(repo)
 }
 
+func (c *CompositeEncryptedStore) RepoListOrphanedOwner() ([]*model.Repo, error) {
+	return c.baseStore.RepoListOrphanedOwner()
+}
+
 // Redirections.
 func (c *CompositeEncryptedStore) CreateRedirection(redirection *model.Redirection) error {
 	return c.baseStore.CreateRedirection(redirection)
@@ -624,6 +628,22 @@ func (c *CompositeEncryptedStore) CronGetLock(cron *model.Cron, now int64) (bool
 
 func (c *CompositeEncryptedStore) UserCronList(repoIDs []int64, searchTerm string, p *model.ListOptions) ([]*model.Cron, error) {
 	return c.baseStore.UserCronList(repoIDs, searchTerm, p)
+}
+
+func (c *CompositeEncryptedStore) CronListOrphaned() ([]*model.Cron, error) {
+	return c.baseStore.CronListOrphaned()
+}
+
+func (c *CompositeEncryptedStore) CronListOrphanedOwner() ([]*model.Cron, error) {
+	return c.baseStore.CronListOrphanedOwner()
+}
+
+func (c *CompositeEncryptedStore) CronDeleteByID(id int64) error {
+	return c.baseStore.CronDeleteByID(id)
+}
+
+func (c *CompositeEncryptedStore) CronDisableOrphaned(id int64, msg string) error {
+	return c.baseStore.CronDisableOrphaned(id, msg)
 }
 
 // Agent.

@@ -31,6 +31,9 @@ type MaintenanceService interface {
 	RunKubernetesCleanup(ctx context.Context, dryRun bool) error
 	// RunStaleAgentCleanup executes stale agent cleanup
 	RunStaleAgentCleanup(ctx context.Context, staleDuration time.Duration) error
+	// RunOrphanedDataCleanup detects and cleans up DB rows that reference
+	// deleted forge users or repositories
+	RunOrphanedDataCleanup(ctx context.Context, dryRun bool) error
 	// GetMaintenanceConfig returns the current maintenance configuration
 	GetMaintenanceConfig() *model.MaintenanceConfig
 	// UpdateMaintenanceConfig updates the maintenance configuration
@@ -55,6 +58,10 @@ type MaintenanceService interface {
 	SetKubernetesEnvVarsConfigured(k8sEnvVarsSet bool)
 	// IsKubernetesEnvVarsConfigured returns whether Kubernetes-specific environment variables are set
 	IsKubernetesEnvVarsConfigured() bool
+	// SetOrphanedDataEnvVarsConfigured sets whether orphaned-data-cleanup-specific environment variables are set
+	SetOrphanedDataEnvVarsConfigured(orphanEnvVarsSet bool)
+	// IsOrphanedDataEnvVarsConfigured returns whether orphaned-data-cleanup-specific environment variables are set
+	IsOrphanedDataEnvVarsConfigured() bool
 	// IsDockerCleanupAvailable returns whether Docker cleanup is available (a Docker agent is connected)
 	IsDockerCleanupAvailable() bool
 	// SetDockerCleanupAvailable sets whether Docker cleanup is available

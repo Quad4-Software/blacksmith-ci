@@ -91,7 +91,7 @@ func UpdateMaintenanceConfig(ctx context.Context, input *UpdateMaintenanceConfig
 }
 
 type GetMaintenanceConfigByActionInput struct {
-	Action string `path:"action" doc:"Action type (vacuum, kubernetes_cleanup, stale_agent_cleanup, docker_cleanup)"`
+	Action string `path:"action" doc:"Action type (vacuum, kubernetes_cleanup, stale_agent_cleanup, docker_cleanup, orphaned_data_cleanup)"`
 }
 
 type GetMaintenanceConfigByActionOutput struct {
@@ -105,8 +105,11 @@ func GetMaintenanceConfigByAction(ctx context.Context, input *GetMaintenanceConf
 		return nil, huma.Error403Forbidden("Forbidden")
 	}
 
-	if input.Action != "vacuum" && input.Action != "kubernetes_cleanup" && input.Action != "stale_agent_cleanup" && input.Action != "docker_cleanup" {
-		return nil, huma.Error400BadRequest("Invalid action type. Must be 'vacuum', 'kubernetes_cleanup', 'stale_agent_cleanup', or 'docker_cleanup'")
+	switch input.Action {
+	case "vacuum", "kubernetes_cleanup", "stale_agent_cleanup", "docker_cleanup", "orphaned_data_cleanup":
+		// valid
+	default:
+		return nil, huma.Error400BadRequest("Invalid action type. Must be 'vacuum', 'kubernetes_cleanup', 'stale_agent_cleanup', 'docker_cleanup', or 'orphaned_data_cleanup'")
 	}
 
 	config, err := server.Config.Services.MaintenanceService.GetMaintenanceConfigByAction(input.Action)
@@ -124,13 +127,15 @@ func GetMaintenanceConfigByAction(ctx context.Context, input *GetMaintenanceConf
 		config.EnvVarsSet = server.Config.Services.MaintenanceService.IsVacuumEnvVarsConfigured()
 	case "docker_cleanup":
 		config.DockerCleanupAvailable = server.Config.Services.MaintenanceService.IsDockerCleanupAvailable()
+	case "orphaned_data_cleanup":
+		config.EnvVarsSet = server.Config.Services.MaintenanceService.IsOrphanedDataEnvVarsConfigured()
 	}
 
 	return &GetMaintenanceConfigByActionOutput{Body: config}, nil
 }
 
 type UpdateMaintenanceConfigByActionInput struct {
-	Action string `path:"action" doc:"Action type (vacuum, kubernetes_cleanup, docker_cleanup)"`
+	Action string `path:"action" doc:"Action type (vacuum, kubernetes_cleanup, stale_agent_cleanup, docker_cleanup, orphaned_data_cleanup)"`
 	Body   UpdateMaintenanceConfigBody
 }
 
@@ -145,8 +150,11 @@ func UpdateMaintenanceConfigByAction(ctx context.Context, input *UpdateMaintenan
 		return nil, huma.Error403Forbidden("Forbidden")
 	}
 
-	if input.Action != "vacuum" && input.Action != "kubernetes_cleanup" && input.Action != "docker_cleanup" {
-		return nil, huma.Error400BadRequest("Invalid action type. Must be 'vacuum', 'kubernetes_cleanup', or 'docker_cleanup'")
+	switch input.Action {
+	case "vacuum", "kubernetes_cleanup", "docker_cleanup", "orphaned_data_cleanup":
+		// valid
+	default:
+		return nil, huma.Error400BadRequest("Invalid action type. Must be 'vacuum', 'kubernetes_cleanup', 'docker_cleanup', or 'orphaned_data_cleanup'")
 	}
 
 	actionConfig := &model.MaintenanceConfig{
@@ -241,7 +249,7 @@ func GetMaintenanceLogs(ctx context.Context, input *GetMaintenanceLogsInput) (*G
 // RunMaintenanceRequest represents the request payload for running maintenance.
 type RunMaintenanceRequest struct {
 	Job    string `json:"job" doc:"The maintenance job to run"`
-	DryRun bool   `json:"dry_run,omitempty" doc:"Run in dry-run mode (only for kubernetesCleanup)"`
+	DryRun bool   `json:"dry_run,omitempty" doc:"Run in dry-run mode (applicable to kubernetesCleanup and orphanedDataCleanup)"`
 }
 
 type RunMaintenanceNowInput struct {
@@ -330,8 +338,24 @@ func RunMaintenanceNow(ctx context.Context, input *RunMaintenanceNowInput) (*Run
 
 		server.Config.Services.MaintenanceService.SetDockerCleanupRunNow()
 
+	case "orphanedDataCleanup":
+		if server.Config.Services.MaintenanceService == nil {
+			return nil, huma.Error500InternalServerError("Maintenance service not available")
+		}
+
+		orphanConfig, err := server.Config.Services.MaintenanceService.GetMaintenanceConfigByAction("orphaned_data_cleanup")
+		if err != nil || !orphanConfig.Enabled {
+			return nil, huma.Error400BadRequest("Orphaned data cleanup is not enabled. Enable it in the maintenance settings.")
+		}
+
+		go func() {
+			if err := server.Config.Services.MaintenanceService.RunOrphanedDataCleanup(context.Background(), input.Body.DryRun); err != nil {
+				log.Error().Err(err).Bool("dry_run", input.Body.DryRun).Msg("Orphaned data cleanup failed")
+			}
+		}()
+
 	default:
-		return nil, huma.Error400BadRequest("Invalid job type. Supported jobs: vacuumLogTable, kubernetesCleanup, staleAgentCleanup, dockerCleanup")
+		return nil, huma.Error400BadRequest("Invalid job type. Supported jobs: vacuumLogTable, kubernetesCleanup, staleAgentCleanup, dockerCleanup, orphanedDataCleanup")
 	}
 
 	return &RunMaintenanceNowOutput{Body: RunMaintenanceResponse{
