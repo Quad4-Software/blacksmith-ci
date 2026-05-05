@@ -28,7 +28,7 @@ func Handler() http.Handler {
 
 	e := gin.New()
 	e.POST("/site/oauth2/access_token", getOauth)
-	e.GET("/2.0/workspaces", getWorkspaces)
+	e.GET("/2.0/user/workspaces", getWorkspaces)
 	e.GET("/2.0/repositories/:owner/:name", getRepo)
 	e.GET("/2.0/repositories/:owner/:name/hooks", getRepoHooks)
 	e.GET("/2.0/repositories/:owner/:name/src/:commit/:file", getRepoFile)
@@ -69,9 +69,6 @@ func getOauth(c *gin.Context) {
 }
 
 func getWorkspaces(c *gin.Context) {
-	// TODO: should the role be used ?
-	// role, _ := c.Params.Get("role")
-
 	switch c.Request.Header.Get("Authorization") {
 	case "Bearer teams_not_found", "Bearer c81e728d":
 		c.String(http.StatusNotFound, "")
@@ -188,11 +185,32 @@ func getUserRepos(c *gin.Context) {
 }
 
 func getPermissions(c *gin.Context) {
+	workspace := c.Param("workspace")
+	q := c.Query("q")
+
 	if c.Query("page") == "" || c.Query("page") == "1" {
-		c.String(http.StatusOK, permissionsPayLoad)
-	} else {
-		c.String(http.StatusOK, "{\"values\":[]}")
+		switch workspace {
+		case "test_name":
+			// Handle query for specific repo (new GetPermission format)
+			if q == "repository.full_name=\"test_name/repo_name\"" {
+				c.String(http.StatusOK, permissionPayLoad)
+				return
+			}
+			// Handle listing all permissions (ListPermissionsAll)
+			if q == "" {
+				c.String(http.StatusOK, permissionsPayLoad)
+				return
+			}
+		case "martinherren1984":
+			// Handle hook test cases
+			if q == "repository.full_name=\"martinherren1984/publictestrepo\"" {
+				c.String(http.StatusOK, permissionHookPayLoad)
+				return
+			}
+		}
 	}
+
+	c.String(http.StatusOK, "{\"values\":[]}")
 }
 
 const tokenPayload = `
@@ -476,19 +494,19 @@ const workspacesPayload = `
 	"size": 1,
 	"values": [
 		{
-			"type": "workspace",
-			"uuid": "{c7a04a76-fa20-43e4-dc42-a7506db4c95b}",
-			"name": "Ueber Dev",
-			"slug": "ueberdev42",
-			"links": {
-				"avatar": {
-					"href": "https://bitbucket.org/workspaces/ueberdev42/avatar/?ts=1658761964"
-				},
-				"html": {
-					"href": "https://bitbucket.org/ueberdev42/"
-				},
-				"self": {
-					"href": "https://api.bitbucket.org/2.0/workspaces/ueberdev42"
+			"type": "workspace_access",
+			"administrator": true,
+			"workspace": {
+				"type": "workspace_base",
+				"uuid": "{c7a04a76-fa20-43e4-dc42-a7506db4c95b}",
+				"slug": "test_name",
+				"links": {
+					"avatar": {
+						"href": "https://bitbucket.org/workspaces/ueberdev42/avatar/?ts=1658761964"
+					},
+					"self": {
+						"href": "https://api.bitbucket.org/2.0/workspaces/ueberdev42"
+					}
 				}
 			}
 		}
@@ -522,6 +540,36 @@ const permissionsPayLoad = `
 		{
 			"repository": {
 				"full_name": "test_name/permission_admin"
+			},
+			"permission": "admin"
+		}
+	]
+}
+`
+
+const permissionPayLoad = `
+{
+	"pagelen": 100,
+	"page": 1,
+	"values": [
+		{
+			"repository": {
+				"full_name": "test_name/repo_name"
+			},
+			"permission": "read"
+		}
+	]
+}
+`
+
+const permissionHookPayLoad = `
+{
+	"pagelen": 100,
+	"page": 1,
+	"values": [
+		{
+			"repository": {
+				"full_name": "martinherren1984/publictestrepo"
 			},
 			"permission": "admin"
 		}

@@ -138,6 +138,18 @@ func convertUser(from *internal.Account, token *oauth2.Token) *model.User {
 	}
 }
 
+// extractWorkspaces unwraps workspace membership objects from the /2.0/user/workspaces
+// API response, which nests each Workspace under a WorkspaceAccess membership envelope.
+func extractWorkspaces(accesses []*internal.WorkspaceAccess) []*internal.Workspace {
+	var workspaces []*internal.Workspace
+	for _, access := range accesses {
+		if access.Workspace != nil {
+			workspaces = append(workspaces, access.Workspace)
+		}
+	}
+	return workspaces
+}
+
 // convertWorkspaceList is a helper function used to convert a Bitbucket team list
 // structure to the Woodpecker Team structure.
 func convertWorkspaceList(from []*internal.Workspace) []*model.Team {

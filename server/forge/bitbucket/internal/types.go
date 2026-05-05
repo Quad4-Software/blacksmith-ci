@@ -38,12 +38,18 @@ type Workspace struct {
 	Links Links  `json:"links"`
 }
 
+type WorkspaceAccess struct {
+	Type          string     `json:"type"`
+	Administrator bool       `json:"administrator"`
+	Workspace     *Workspace `json:"workspace"`
+}
+
 type WorkspacesResp struct {
-	Page   int          `json:"page"`
-	Pages  int          `json:"pagelen"`
-	Size   int          `json:"size"`
-	Next   string       `json:"next"`
-	Values []*Workspace `json:"values"`
+	Page   int                `json:"page"`
+	Pages  int                `json:"pagelen"`
+	Size   int                `json:"size"`
+	Next   string             `json:"next"`
+	Values []*WorkspaceAccess `json:"values"`
 }
 
 type PipelineStatus struct {
@@ -217,26 +223,6 @@ func (o *ListOpts) Encode() string {
 	}
 	if o.PageLen != 0 {
 		params.Set("pagelen", strconv.Itoa(o.PageLen))
-	}
-	return params.Encode()
-}
-
-type ListWorkspacesOpts struct {
-	Page    int
-	PageLen int
-	Role    string
-}
-
-func (o *ListWorkspacesOpts) Encode() string {
-	params := url.Values{}
-	if o.Page != 0 {
-		params.Set("page", strconv.Itoa(o.Page))
-	}
-	if o.PageLen != 0 {
-		params.Set("pagelen", strconv.Itoa(o.PageLen))
-	}
-	if len(o.Role) != 0 {
-		params.Set("role", o.Role)
 	}
 	return params.Encode()
 }

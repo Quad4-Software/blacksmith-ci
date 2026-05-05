@@ -111,6 +111,7 @@ func TestBitbucket(t *testing.T) {
 
 	repos, err := c.Repos(ctx, fakeUser)
 	assert.NoError(t, err)
+	assert.Len(t, repos, 1)
 	assert.Equal(t, fakeRepo.FullName, repos[0].FullName)
 
 	_, err = c.Repos(ctx, fakeUserNoTeams)
@@ -121,7 +122,7 @@ func TestBitbucket(t *testing.T) {
 
 	teams, err := c.Teams(ctx, fakeUser)
 	assert.NoError(t, err)
-	assert.Equal(t, "ueberdev42", teams[0].Login)
+	assert.Equal(t, "test_name", teams[0].Login)
 	assert.Equal(t, "https://bitbucket.org/workspaces/ueberdev42/avatar/?ts=1658761964", teams[0].Avatar)
 
 	_, err = c.Teams(ctx, fakeUserNoTeams)

@@ -133,16 +133,15 @@ func (c *config) Refresh(ctx context.Context, user *model.User) (bool, error) {
 // Teams returns a list of all team membership for the Bitbucket account.
 func (c *config) Teams(ctx context.Context, u *model.User) ([]*model.Team, error) {
 	return shared_utils.Paginate(func(page int) ([]*model.Team, error) {
-		opts := &internal.ListWorkspacesOpts{
+		opts := &internal.ListOpts{
 			PageLen: pageSize,
 			Page:    page,
-			Role:    "member",
 		}
 		resp, err := c.newClient(ctx, u).ListWorkspaces(opts)
 		if err != nil {
 			return nil, err
 		}
-		return convertWorkspaceList(resp.Values), nil
+		return convertWorkspaceList(extractWorkspaces(resp.Values)), nil
 	}, -1)
 }
 
@@ -181,15 +180,14 @@ func (c *config) Repos(ctx context.Context, u *model.User) ([]*model.Repo, error
 	client := c.newClient(ctx, u)
 
 	workspaces, err := shared_utils.Paginate(func(page int) ([]*internal.Workspace, error) {
-		resp, err := client.ListWorkspaces(&internal.ListWorkspacesOpts{
+		resp, err := client.ListWorkspaces(&internal.ListOpts{
 			Page:    page,
 			PageLen: pageSize,
-			Role:    "member",
 		})
 		if err != nil {
 			return nil, err
 		}
-		return resp.Values, nil
+		return extractWorkspaces(resp.Values), nil
 	}, -1)
 	if err != nil {
 		return nil, err
@@ -211,6 +209,13 @@ func (c *config) Repos(ctx context.Context, u *model.User) ([]*model.Repo, error
 		if err != nil {
 			return nil, err
 		}
+
+		userPermissionsByRepo := make(map[string]*internal.RepoPerm)
+
+		for _, permission := range permissions {
+			userPermissionsByRepo[permission.Repo.FullName] = permission
+		}
+
 		for _, repo := range repos {
 			if perm, ok := permByRepo[repo.FullName]; ok {
 				all = append(all, convertRepo(repo, perm))
