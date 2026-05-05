@@ -48,5 +48,45 @@ type OomError struct {
 
 // Error returns the error message in string format.
 func (e *OomError) Error() string {
-	return fmt.Sprintf("uuid=%s: received oom kill", e.UUID)
+	return fmt.Sprintf("uuid=%s: step container was OOM-killed (exit code %d). "+
+		"The step exceeded its memory limit. Increase the step's memory limit via "+
+		"backend_options.docker.mem_limit (or remove it). "+
+		"See https://crowci.dev/dev/troubleshooting/#step-container-oom-killed",
+		e.UUID, e.Code)
+}
+
+// A DaemonUnreachableError reports that a call from the agent to the container
+// backend (Docker / containerd) failed at the transport layer rather than
+// returning a normal API response. This identifies the *class* of failure (the
+// connection between the agent and the daemon was severed mid-call) but
+// intentionally does not speculate about why — many distinct causes produce
+// the same transport-level error, and the agent cannot tell them apart from
+// the SDK error alone. See the troubleshooting docs for diagnosis.
+//
+// Operation is the backend call that failed (e.g. "inspect", "wait", "logs"),
+// Container is the container the call was targeting (may be empty), and Cause
+// is the original error from the SDK.
+type DaemonUnreachableError struct {
+	Operation string
+	Container string
+	Cause     error
+}
+
+// Error returns the error message in string format.
+func (e *DaemonUnreachableError) Error() string {
+	target := e.Container
+	if target == "" {
+		target = "container"
+	}
+	return fmt.Sprintf(
+		"lost connection to the container backend while running %s on %s: %v. "+
+			"See https://crowci.dev/dev/troubleshooting/#agent-lost-backend-connection "+
+			"for diagnostic steps.",
+		e.Operation, target, e.Cause,
+	)
+}
+
+// Unwrap returns the underlying cause so callers can use errors.Is / errors.As.
+func (e *DaemonUnreachableError) Unwrap() error {
+	return e.Cause
 }

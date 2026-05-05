@@ -17,7 +17,6 @@ package docker
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -233,7 +232,7 @@ func (e *docker) StartStep(ctx context.Context, step *backend.Step, taskUUID str
 		_, err = e.client.ContainerCreate(ctx, config, hostConfig, nil, nil, containerName)
 	}
 	if err != nil {
-		return err
+		return wrapDaemonError("create container", containerName, err)
 	}
 
 	if len(step.NetworkMode) == 0 {
@@ -242,7 +241,7 @@ func (e *docker) StartStep(ctx context.Context, step *backend.Step, taskUUID str
 				Aliases: net.Aliases,
 			})
 			if err != nil {
-				return err
+				return wrapDaemonError("connect network", containerName, err)
 			}
 		}
 
@@ -250,12 +249,12 @@ func (e *docker) StartStep(ctx context.Context, step *backend.Step, taskUUID str
 		if e.config.network != "" {
 			err = e.client.NetworkConnect(ctx, e.config.network, containerName, &network.EndpointSettings{})
 			if err != nil {
-				return err
+				return wrapDaemonError("connect network", containerName, err)
 			}
 		}
 	}
 
-	return e.client.ContainerStart(ctx, containerName, container.StartOptions{})
+	return wrapDaemonError("start container", containerName, e.client.ContainerStart(ctx, containerName, container.StartOptions{}))
 }
 
 func (e *docker) WaitStep(ctx context.Context, step *backend.Step, taskUUID string) (*backend.State, error) {
@@ -264,14 +263,22 @@ func (e *docker) WaitStep(ctx context.Context, step *backend.Step, taskUUID stri
 	containerName := toContainerName(step)
 
 	wait, errC := e.client.ContainerWait(ctx, containerName, "")
+	var waitErr error
 	select {
 	case <-wait:
-	case <-errC:
+	case waitErr = <-errC:
 	}
 
 	info, err := e.client.ContainerInspect(ctx, containerName)
 	if err != nil {
-		return nil, err
+		// If both calls failed, the inspect error is usually the more
+		// informative one (it carries the actual transport failure), but we
+		// fall back to the wait-channel error if inspect happens to succeed
+		// later in some retry path.
+		return nil, wrapDaemonError("inspect", containerName, err)
+	}
+	if waitErr != nil {
+		return nil, wrapDaemonError("wait", containerName, waitErr)
 	}
 
 	return &backend.State{
@@ -284,7 +291,8 @@ func (e *docker) WaitStep(ctx context.Context, step *backend.Step, taskUUID stri
 func (e *docker) TailStep(ctx context.Context, step *backend.Step, taskUUID string) (io.ReadCloser, error) {
 	log.Trace().Str("taskUUID", taskUUID).Msgf("tail logs of step %s", step.Name)
 
-	logs, err := e.client.ContainerLogs(ctx, toContainerName(step), container.LogsOptions{
+	containerName := toContainerName(step)
+	logs, err := e.client.ContainerLogs(ctx, containerName, container.LogsOptions{
 		Follow:     true,
 		ShowStdout: true,
 		ShowStderr: true,
@@ -292,7 +300,7 @@ func (e *docker) TailStep(ctx context.Context, step *backend.Step, taskUUID stri
 		Timestamps: false,
 	})
 	if err != nil {
-		return nil, err
+		return nil, wrapDaemonError("tail logs", containerName, err)
 	}
 	rc, wc := io.Pipe()
 
@@ -450,7 +458,7 @@ func (e *docker) ResumeStep(ctx context.Context, step *backend.Step, taskUUID st
 	// Verify the container exists and is running
 	info, err := e.client.ContainerInspect(ctx, containerName)
 	if err != nil {
-		return fmt.Errorf("failed to inspect container %s: %w", containerName, err)
+		return wrapDaemonError("inspect", containerName, err)
 	}
 
 	if !info.State.Running {
