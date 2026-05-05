@@ -5075,6 +5075,80 @@ func (_c *MockStore_GetRepoByForgeAndRemoteID_Call) RunAndReturn(run func(forgeI
 	return _c
 }
 
+// GetRepoByForgeOwnerName provides a mock function for the type MockStore
+func (_mock *MockStore) GetRepoByForgeOwnerName(forgeID int64, owner string, name string) (*model.Repo, error) {
+	ret := _mock.Called(forgeID, owner, name)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetRepoByForgeOwnerName")
+	}
+
+	var r0 *model.Repo
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, string, string) (*model.Repo, error)); ok {
+		return returnFunc(forgeID, owner, name)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, string, string) *model.Repo); ok {
+		r0 = returnFunc(forgeID, owner, name)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.Repo)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, string, string) error); ok {
+		r1 = returnFunc(forgeID, owner, name)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_GetRepoByForgeOwnerName_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetRepoByForgeOwnerName'
+type MockStore_GetRepoByForgeOwnerName_Call struct {
+	*mock.Call
+}
+
+// GetRepoByForgeOwnerName is a helper method to define mock.On call
+//   - forgeID int64
+//   - owner string
+//   - name string
+func (_e *MockStore_Expecter) GetRepoByForgeOwnerName(forgeID interface{}, owner interface{}, name interface{}) *MockStore_GetRepoByForgeOwnerName_Call {
+	return &MockStore_GetRepoByForgeOwnerName_Call{Call: _e.mock.On("GetRepoByForgeOwnerName", forgeID, owner, name)}
+}
+
+func (_c *MockStore_GetRepoByForgeOwnerName_Call) Run(run func(forgeID int64, owner string, name string)) *MockStore_GetRepoByForgeOwnerName_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_GetRepoByForgeOwnerName_Call) Return(repo *model.Repo, err error) *MockStore_GetRepoByForgeOwnerName_Call {
+	_c.Call.Return(repo, err)
+	return _c
+}
+
+func (_c *MockStore_GetRepoByForgeOwnerName_Call) RunAndReturn(run func(forgeID int64, owner string, name string) (*model.Repo, error)) *MockStore_GetRepoByForgeOwnerName_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetRepoCount provides a mock function for the type MockStore
 func (_mock *MockStore) GetRepoCount() (int64, error) {
 	ret := _mock.Called()

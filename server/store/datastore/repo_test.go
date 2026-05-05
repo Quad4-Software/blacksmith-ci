@@ -22,6 +22,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/store/types"
 )
 
 func TestCreateRepo(t *testing.T) {
@@ -308,6 +309,66 @@ func TestRepoCrud(t *testing.T) {
 	pipelineCount, err := store.db.NewSelect().Model((*model.Pipeline)(nil)).Count(context.Background())
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, pipelineCount)
+}
+
+func TestGetRepoByForgeOwnerName(t *testing.T) {
+	store, closer := newTestStore(t, new(model.Repo))
+	defer closer()
+
+	forgeAID := int64(1)
+	forgeBID := int64(2)
+
+	repoA := &model.Repo{
+		UserID:        1,
+		ForgeID:       forgeAID,
+		ForgeRemoteID: "100",
+		FullName:      "octocat/hello-world",
+		Owner:         "octocat",
+		Name:          "hello-world",
+	}
+	// Same (owner, name) on a different forge — must not be returned for forgeAID.
+	repoB := &model.Repo{
+		UserID:        1,
+		ForgeID:       forgeBID,
+		ForgeRemoteID: "200",
+		FullName:      "gitlab-octocat/hello-world",
+		Owner:         "octocat",
+		Name:          "hello-world",
+	}
+	assert.NoError(t, store.CreateRepo(repoA))
+	assert.NoError(t, store.CreateRepo(repoB))
+
+	got, err := store.GetRepoByForgeOwnerName(forgeAID, "octocat", "hello-world")
+	assert.NoError(t, err)
+	assert.Equal(t, repoA.ID, got.ID)
+	assert.Equal(t, forgeAID, got.ForgeID)
+
+	got, err = store.GetRepoByForgeOwnerName(forgeBID, "octocat", "hello-world")
+	assert.NoError(t, err)
+	assert.Equal(t, repoB.ID, got.ID)
+	assert.Equal(t, forgeBID, got.ForgeID)
+
+	_, err = store.GetRepoByForgeOwnerName(forgeAID, "octocat", "does-not-exist")
+	assert.ErrorIs(t, err, types.RecordNotExist)
+
+	// Regression for issue #1009: a repo deleted+recreated on the forge gets a
+	// new forge_remote_id, but (forge_id, owner, name) still resolves the stale
+	// row so PostRepo can update it instead of inserting a duplicate.
+	stale := &model.Repo{
+		UserID:        1,
+		ForgeID:       forgeAID,
+		ForgeRemoteID: "300",
+		FullName:      "octocat/recreated",
+		Owner:         "octocat",
+		Name:          "recreated",
+		IsActive:      false,
+	}
+	assert.NoError(t, store.CreateRepo(stale))
+
+	got, err = store.GetRepoByForgeOwnerName(forgeAID, "octocat", "recreated")
+	assert.NoError(t, err)
+	assert.Equal(t, stale.ID, got.ID)
+	assert.Equal(t, model.ForgeRemoteID("300"), got.ForgeRemoteID)
 }
 
 func TestRepoRedirection(t *testing.T) {

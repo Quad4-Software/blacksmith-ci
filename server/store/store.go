@@ -69,6 +69,10 @@ type Store interface {
 	// GetRepoByForgeAndRemoteID gets a repo by both forge ID and forge remote ID.
 	// This is the preferred method for multi-forge setups as forge_remote_id alone is not unique.
 	GetRepoByForgeAndRemoteID(forgeID int64, remoteID model.ForgeRemoteID) (*model.Repo, error)
+	// GetRepoByForgeOwnerName gets a repo by forge ID, owner, and name (the UQE_repos_forge constraint).
+	// Use this to find a stale row when a forge has recreated a repo with the same owner/name
+	// but a new forge_remote_id.
+	GetRepoByForgeOwnerName(forgeID int64, owner, name string) (*model.Repo, error)
 	// GetRepoNameFallback gets the repo by its forge ID and if this doesn't exist by its full name.
 	GetRepoNameFallback(remoteID model.ForgeRemoteID, fullName string) (*model.Repo, error)
 	// GetRepoName gets a repo by its full name.

@@ -48,6 +48,15 @@ func (s storage) GetRepoByForgeAndRemoteID(forgeID int64, remoteID model.ForgeRe
 		Scan(context.Background()))
 }
 
+func (s storage) GetRepoByForgeOwnerName(forgeID int64, owner, name string) (*model.Repo, error) {
+	repo := new(model.Repo)
+	return repo, wrapGet(s.db.NewSelect().Model(repo).
+		Where("forge_id = ?", forgeID).
+		Where("owner = ?", owner).
+		Where("name = ?", name).
+		Scan(context.Background()))
+}
+
 func (s storage) GetRepoNameFallback(remoteID model.ForgeRemoteID, fullName string) (*model.Repo, error) {
 	return s.getRepoNameFallback(context.Background(), s.db, remoteID, fullName)
 }

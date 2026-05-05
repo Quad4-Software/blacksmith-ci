@@ -403,6 +403,24 @@ func PostRepo(ctx context.Context, input *PostRepoInput) (*PostRepoOutput, error
 		return nil, huma.Error403Forbidden("Repository owner is not in allowlist")
 	}
 
+	// If forge_remote_id missed, fall back to (forge_id, owner, name) to handle
+	// repos that were deleted+recreated on the forge (the new forge_remote_id
+	// differs but the unique (forge_id, owner, name) row still exists).
+	if !enabledOnce {
+		existing, lookupErr := _store.GetRepoByForgeOwnerName(forgeID, from.Owner, from.Name)
+		if lookupErr == nil {
+			if existing.IsActive {
+				log.Error().Msg("Repository is already active")
+				return nil, huma.Error409Conflict("Repository is already active")
+			}
+			repo = existing
+			enabledOnce = true
+		} else if !errors.Is(lookupErr, types.RecordNotExist) {
+			log.Error().Err(lookupErr).Msg("Unable to look up repository by name")
+			return nil, huma.Error500InternalServerError("Unable to look up repository by name")
+		}
+	}
+
 	if enabledOnce {
 		repo.Update(from)
 	} else {
