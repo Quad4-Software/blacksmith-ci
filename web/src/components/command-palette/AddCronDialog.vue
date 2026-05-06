@@ -273,7 +273,7 @@ function clearRepoSelection() {
 // Load repos when dialog opens
 async function loadRepos() {
   try {
-    const reposData = await apiClient.getRepoList();
+    const reposData = await apiClient.getActiveRepos();
     repos.value = reposData || [];
   } catch {
     // Silent fail - repos will remain empty

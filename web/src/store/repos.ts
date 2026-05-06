@@ -57,8 +57,9 @@ export const useRepoStore = defineStore('repos', () => {
       return;
     }
 
-    // Authenticated user - fetch their repos
-    const _ownedRepos = (await apiClient.getRepoList({ all })) ?? [];
+    // The available endpoint does not populate last_pipeline, so pipeline
+    // status is only present in the active view.
+    const _ownedRepos = (await (all ? apiClient.getAvailableRepos() : apiClient.getActiveRepos())) ?? [];
 
     _ownedRepos.forEach((repo) => {
       if (repo.last_pipeline) {

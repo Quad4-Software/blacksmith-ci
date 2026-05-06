@@ -342,9 +342,7 @@ function updateSelectedRepos(repoIds: number[]) {
 
 async function loadUserRepos() {
   try {
-    const repos = await apiClient.getRepoList();
-    // Filter to only active repos
-    userRepos.value = repos.filter((r) => r.active);
+    userRepos.value = await apiClient.getActiveRepos();
   } catch {
     userRepos.value = [];
   }

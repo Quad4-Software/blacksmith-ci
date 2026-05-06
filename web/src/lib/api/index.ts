@@ -54,8 +54,9 @@ import type {
   ManualWorkflowsResponse,
 } from './types';
 
-interface RepoListOptions {
-  all?: boolean;
+interface AvailableReposOptions {
+  forge_id?: number;
+  only_unenabled?: boolean;
 }
 
 // PipelineOptions is the data for creating a new pipeline
@@ -91,9 +92,16 @@ interface AgentListOptions extends PaginationOptions {
 }
 
 export default class CrowClient extends ApiClient {
-  async getRepoList(opts?: RepoListOptions): Promise<Repo[]> {
+  // Returns the user's active repositories with last pipeline info populated.
+  async getActiveRepos(): Promise<Repo[]> {
+    return this._get(`/api/v1/user/repos/active`) as Promise<Repo[]>;
+  }
+
+  // Returns repositories visible from linked forges. Already-enabled repos are
+  // flagged with active=true; their last_pipeline field is not populated.
+  async getAvailableRepos(opts?: AvailableReposOptions): Promise<Repo[]> {
     const query = encodeQueryString(opts);
-    return this._get(`/api/v1/user/repos?${query}`) as Promise<Repo[]>;
+    return this._get(`/api/v1/user/repos/available?${query}`) as Promise<Repo[]>;
   }
 
   async getPublicRepos(opts?: PaginationOptions): Promise<Repo[]> {

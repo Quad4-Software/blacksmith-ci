@@ -400,7 +400,7 @@ async function loadAllowlistOptions() {
   // Load repos (user's repos)
   loadingRepos.value = true;
   try {
-    const repos = await apiClient.getRepoList();
+    const repos = await apiClient.getActiveRepos();
     availableRepos.value = (repos || []).map((r) => ({
       id: r.id,
       name: r.full_name,

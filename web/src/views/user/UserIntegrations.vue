@@ -89,7 +89,7 @@ onMounted(async () => {
   const [usersData, orgsData, reposData] = await Promise.all([
     apiClient.getUsers().catch(() => []),
     apiClient.getUserOrgs().catch(() => []),
-    apiClient.getRepoList().catch(() => []),
+    apiClient.getActiveRepos().catch(() => []),
   ]);
   users.value = usersData || [];
   orgs.value = orgsData || [];

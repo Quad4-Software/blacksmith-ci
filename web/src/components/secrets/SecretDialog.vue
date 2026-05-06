@@ -589,7 +589,7 @@ function clearSelection() {
 
 async function loadReposAndOrgs() {
   try {
-    const [reposData, orgsData] = await Promise.all([apiClient.getRepoList(), apiClient.getUserOrgs()]);
+    const [reposData, orgsData] = await Promise.all([apiClient.getActiveRepos(), apiClient.getUserOrgs()]);
     repos.value = reposData || [];
     orgs.value = orgsData || [];
   } catch {

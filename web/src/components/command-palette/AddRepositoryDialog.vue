@@ -709,7 +709,7 @@ watch(
       if (!repos.value) {
         loading.value = true;
         try {
-          repos.value = (await apiClient.getRepoList({ all: true })) ?? [];
+          repos.value = (await apiClient.getAvailableRepos()) ?? [];
         } catch {
           notifications.notify({
             title: t('notify_title_error'),
