@@ -49,9 +49,28 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 	}, api.GetFeed)
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "get-user-repos", Method: http.MethodGet, Path: "/user/repos",
-		Summary: "Get the currently authenticated user's repositories", Tags: []string{"User"},
+		Summary: "Get the currently authenticated user's repositories",
+		Description: "Returns active repos by default, or active+inactive when ?all=true. " +
+			"The response shape changes based on the query parameter, so the OpenAPI schema " +
+			"is untyped (Body any). Prefer GET /user/repos/active or GET /user/repos/available " +
+			"for typed responses suitable for client codegen.",
+		Tags: []string{"User"}, Deprecated: true,
 		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
 	}, api.GetRepos)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-user-repos-active", Method: http.MethodGet, Path: "/user/repos/active",
+		Summary: "Get the user's active repositories with last pipeline info", Tags: []string{"User"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetActiveRepos)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-user-repos-available", Method: http.MethodGet, Path: "/user/repos/available",
+		Summary: "Get repositories visible from linked forges (enabled and enableable)",
+		Description: "Returns all repos the authenticated user can see across linked forges. " +
+			"Already-enabled repos are flagged with active=true. Use ?forge_id= to scope to one " +
+			"forge and avoid fanning out to others, or ?only_unenabled=true to omit already-enabled repos.",
+		Tags:     []string{"User"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetAvailableRepos)
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "get-user-orgs", Method: http.MethodGet, Path: "/user/orgs",
 		Summary: "Get the currently authenticated user's organizations", Tags: []string{"User"},

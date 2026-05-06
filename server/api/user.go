@@ -84,7 +84,6 @@ func GetRepos(ctx context.Context, input *GetReposInput) (*GetReposOutput, error
 	user := session.User(c)
 
 	if input.All {
-		// Get all repos from all linked forges
 		repos, err := getAllReposFromAllForges(c, _store, user)
 		if err != nil {
 			return nil, huma.Error500InternalServerError("Error fetching repository list", err)
@@ -92,6 +91,15 @@ func GetRepos(ctx context.Context, input *GetReposInput) (*GetReposOutput, error
 		return &GetReposOutput{Body: repos}, nil
 	}
 
+	repos, err := listActiveReposWithPipelines(_store, user)
+	if err != nil {
+		return nil, err
+	}
+	return &GetReposOutput{Body: repos}, nil
+}
+
+// listActiveReposWithPipelines returns the user's active repos hydrated with last pipeline info.
+func listActiveReposWithPipelines(_store store.Store, user *model.User) ([]*model.RepoLastPipeline, error) {
 	activeRepos, err := _store.RepoList(user, true, true)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("Error fetching repository list", err)
@@ -120,7 +128,62 @@ func GetRepos(ctx context.Context, input *GetReposInput) (*GetReposOutput, error
 		}
 	}
 
-	return &GetReposOutput{Body: repos}, nil
+	return repos, nil
+}
+
+type GetActiveReposInput struct{}
+
+type GetActiveReposOutput struct {
+	Body []*model.RepoLastPipeline
+}
+
+// GetActiveRepos returns the user's active repos with last pipeline info.
+// Same data as GET /user/repos (default), but with a concrete OpenAPI schema.
+func GetActiveRepos(ctx context.Context, _ *GetActiveReposInput) (*GetActiveReposOutput, error) {
+	c := ginCtx(ctx)
+	_store := store.FromContext(c)
+	user := session.User(c)
+
+	repos, err := listActiveReposWithPipelines(_store, user)
+	if err != nil {
+		return nil, err
+	}
+	return &GetActiveReposOutput{Body: repos}, nil
+}
+
+type GetAvailableReposInput struct {
+	ForgeID       int64 `query:"forge_id"       doc:"only return repos from this forge id (0 = all linked forges)"`
+	OnlyUnenabled bool  `query:"only_unenabled" doc:"omit repos already enabled in Crow"`
+}
+
+type GetAvailableReposOutput struct {
+	Body []*model.Repo
+}
+
+// GetAvailableRepos returns repos visible to the user across linked forges,
+// including both already-enabled and enableable ones (distinguished by IsActive).
+// Optional filters narrow by forge or to unenabled-only.
+func GetAvailableRepos(ctx context.Context, input *GetAvailableReposInput) (*GetAvailableReposOutput, error) {
+	c := ginCtx(ctx)
+	_store := store.FromContext(c)
+	user := session.User(c)
+
+	repos, err := getAllReposFromAllForges(c, _store, user)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("Error fetching repository list", err)
+	}
+
+	filtered := make([]*model.Repo, 0, len(repos))
+	for _, r := range repos {
+		if input.ForgeID != 0 && r.ForgeID != input.ForgeID {
+			continue
+		}
+		if input.OnlyUnenabled && r.IsActive {
+			continue
+		}
+		filtered = append(filtered, r)
+	}
+	return &GetAvailableReposOutput{Body: filtered}, nil
 }
 
 // getAllReposFromAllForges fetches repos from all forges the user has linked.
