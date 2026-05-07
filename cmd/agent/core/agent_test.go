@@ -15,10 +15,56 @@
 package core
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestRunWithRecover(t *testing.T) {
+	t.Run("returns nil for non-panicking function", func(t *testing.T) {
+		fn := runWithRecover("test", func() error { return nil })
+		assert.NoError(t, fn())
+	})
+
+	t.Run("returns error for non-panicking function that errors", func(t *testing.T) {
+		want := errors.New("boom")
+		fn := runWithRecover("test", func() error { return want })
+		assert.ErrorIs(t, fn(), want)
+	})
+
+	t.Run("recovers from panic and returns it as error", func(t *testing.T) {
+		fn := runWithRecover("test", func() error {
+			panic("oh no") //nolint:forbidigo // testing recover()
+		})
+		err := fn()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "panic in test")
+		assert.Contains(t, err.Error(), "oh no")
+	})
+
+	t.Run("recovers from panic with non-string value", func(t *testing.T) {
+		fn := runWithRecover("test", func() error {
+			panic(errors.New("typed panic")) //nolint:forbidigo // testing recover()
+		})
+		err := fn()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "panic in test")
+		assert.Contains(t, err.Error(), "typed panic")
+	})
+
+	t.Run("recovers from runtime panic (out-of-range index)", func(t *testing.T) {
+		fn := runWithRecover("test", func() error {
+			s := []int{}
+			i := len(s) // computed at runtime so nilness can't prove the panic
+			_ = s[i]
+			return nil
+		})
+		err := fn()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "panic in test")
+	})
+}
 
 func TestStringSliceAddToMap(t *testing.T) {
 	tests := []struct {

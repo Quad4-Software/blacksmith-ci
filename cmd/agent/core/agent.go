@@ -23,6 +23,7 @@ import (
 	"maps"
 	"net/http"
 	"os"
+	"runtime/debug"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -47,6 +48,32 @@ import (
 	"codefloe.com/crowci/crow/v5/shared/utils"
 	"codefloe.com/crowci/crow/v5/version"
 )
+
+// runWithRecover wraps a goroutine body in a deferred recover() so a panic in
+// one goroutine doesn't crash the whole agent process. The recovered panic is
+// converted into an error and logged with its stack trace; callers handle it
+// the same way as a returned error (typically: log + trigger graceful shutdown
+// → supervisor restarts the container with a clean state).
+func runWithRecover(name string, fn func() error) func() error {
+	return func() (err error) {
+		defer func() {
+			if r := recover(); r != nil {
+				stack := debug.Stack()
+				log.Error().
+					Str("goroutine", name).
+					Interface("recovered", r).
+					Bytes("stack", stack).
+					Msg("recover triggered in agent goroutine")
+				err = fmt.Errorf("panic in %s: %v", name, r)
+			}
+		}()
+		return fn()
+	}
+}
+
+// runnerRetryDelay is the cooldown between non-fatal runner errors, to avoid a
+// hot loop when the runner repeatedly returns transient errors.
+const runnerRetryDelay = 5 * time.Second
 
 const (
 	reportHealthInterval           = time.Second * 10
@@ -122,23 +149,22 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 	counter.Running = 0
 
 	if c.Bool("healthcheck") {
-		serviceWaitingGroup.Go(
-			func() error {
-				server := &http.Server{Addr: c.String("healthcheck-addr")}
-				go func() {
-					<-agentCtx.Done()
-					log.Info().Msg("shutdown healthcheck server ...")
-					if err := server.Shutdown(shutdownCtx); err != nil { //nolint:contextcheck
-						log.Error().Err(err).Msg("shutdown healthcheck server failed")
-					} else {
-						log.Info().Msg("healthcheck server stopped")
-					}
-				}()
-				if err := server.ListenAndServe(); err != nil {
-					log.Error().Err(err).Msgf("cannot listen on address %s", c.String("healthcheck-addr"))
+		serviceWaitingGroup.Go(runWithRecover("healthcheck-server", func() error {
+			server := &http.Server{Addr: c.String("healthcheck-addr")}
+			go func() {
+				<-agentCtx.Done()
+				log.Info().Msg("shutdown healthcheck server ...")
+				if err := server.Shutdown(shutdownCtx); err != nil { //nolint:contextcheck
+					log.Error().Err(err).Msg("shutdown healthcheck server failed")
+				} else {
+					log.Info().Msg("healthcheck server stopped")
 				}
-				return nil
-			})
+			}()
+			if err := server.ListenAndServe(); err != nil {
+				log.Error().Err(err).Msgf("cannot listen on address %s", c.String("healthcheck-addr"))
+			}
+			return nil
+		}))
 	}
 
 	var transport grpc.DialOption
@@ -191,6 +217,7 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 	defer conn.Close()
 
 	client := agent_rpc.NewGrpcClient(ctx, conn)
+	client.SetMaxErrorDuration(c.Duration("grpc-max-error-duration"))
 	agentConfigPersisted := atomic.Bool{}
 
 	grpcCtx := metadata.NewOutgoingContext(grpcClientCtx, metadata.Pairs("hostname", hostname))
@@ -349,7 +376,7 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 		return nil
 	})
 
-	serviceWaitingGroup.Go(func() error {
+	serviceWaitingGroup.Go(runWithRecover("agent-unregister", func() error {
 		// we close grpc client context once unregister was handled
 		defer grpcClientCtxCancel(nil)
 		// we wait till agent context is done
@@ -366,7 +393,7 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 			}
 		}
 		return nil
-	})
+	}))
 
 	if agentConfigPath != "" {
 		if err := writeAgentConfig(agentConfig, agentConfigPath); err == nil {
@@ -394,8 +421,7 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 
 	// Spawn runners for adopted workflows (discovered earlier, now that filter is defined)
 	for _, adopted := range adoptedWorkflows {
-		adopted := adopted // capture loop variable
-		serviceWaitingGroup.Go(func() error {
+		serviceWaitingGroup.Go(runWithRecover(fmt.Sprintf("adopted-runner-%s", adopted.Workflow.ID), func() error {
 			runner := agent.NewRunner(client, filter, hostname, counter, &backendEngine)
 			log.Info().
 				Str("workflow_id", adopted.Workflow.ID).
@@ -416,14 +442,14 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 				Str("task_uuid", adopted.TaskUUID).
 				Msg("adopted workflow completed")
 			return nil
-		})
+		}))
 	}
 
 	// Docker cleanup config shared between health reporting and cleanup goroutines
 	var dockerCleanupConfig atomic.Pointer[rpc.DockerCleanupConfig]
 	dockerCleanupRunNow := make(chan struct{}, 1) // signal channel for immediate cleanup
 
-	serviceWaitingGroup.Go(func() error {
+	serviceWaitingGroup.Go(runWithRecover("health-reporting", func() error {
 		log.Trace().Msg("health reporting goroutine started")
 		for {
 			cleanupCfg, err := client.ReportHealth(grpcCtx)
@@ -438,8 +464,9 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 				}
 			}
 			if err != nil {
-				// Check for fatal consecutive error threshold FIRST - this must always trigger restart
-				if errors.Is(err, agent_rpc.ErrMaxConsecutiveErrors) {
+				// Threshold reached: server is unreachable beyond what the
+				// supervisor can be expected to wait. Exit for restart.
+				if errors.Is(err, agent_rpc.ErrAgentRestartRequired) {
 					log.Error().Err(err).Msg("health reporting encountered fatal error, agent will exit for restart")
 					stopAgentFunc(err) // Trigger agent shutdown
 					return err
@@ -462,13 +489,13 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 			case <-time.After(reportHealthInterval):
 			}
 		}
-	})
+	}))
 
 	// Start Docker cleanup goroutine if using Docker backend
 	if backendEngine.Name() == "docker" {
-		serviceWaitingGroup.Go(func() error {
+		serviceWaitingGroup.Go(runWithRecover("docker-cleanup", func() error {
 			return runDockerCleanup(agentCtx, grpcCtx, client, &backendEngine, &dockerCleanupConfig, dockerCleanupRunNow)
-		})
+		}))
 	}
 
 	if maxWorkflows == 0 {
@@ -483,7 +510,7 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 
 	for i := 0; i < maxWorkflows; i++ {
 		i := i
-		serviceWaitingGroup.Go(func() error {
+		serviceWaitingGroup.Go(runWithRecover(fmt.Sprintf("workflow-runner-%d", i), func() error {
 			runner := agent.NewRunner(client, filter, hostname, counter, &backendEngine)
 			log.Trace().Msgf("created new runner %d", i)
 
@@ -493,27 +520,35 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 				}
 
 				log.Trace().Msg("polling new steps")
-				if err := runner.Run(agentCtx, shutdownCtx); err != nil {
-					// Check for fatal consecutive error threshold FIRST - this must always trigger restart
-					if errors.Is(err, agent_rpc.ErrMaxConsecutiveErrors) {
-						log.Error().Err(err).Msg("workflow polling encountered fatal error, agent will exit for restart")
-						stopAgentFunc(err) // Trigger agent shutdown
-						return err
-					}
+				err := runner.Run(agentCtx, shutdownCtx)
+				if err == nil {
+					continue
+				}
 
-					// Check if context is canceled - this is expected during shutdown
-					if agentCtx.Err() != nil {
-						return nil
-					}
-
-					// For any other error, log and exit to trigger pod restart
-					// This ensures a clean slate and follows the pattern that errors should cause restarts
-					log.Error().Err(err).Msg("runner encountered an error, agent will exit for restart")
+				// Threshold reached: server is unreachable beyond what the
+				// supervisor can be expected to wait. Exit for restart.
+				if errors.Is(err, agent_rpc.ErrAgentRestartRequired) {
+					log.Error().Err(err).Msg("workflow polling encountered fatal error, agent will exit for restart")
 					stopAgentFunc(err) // Trigger agent shutdown
 					return err
 				}
+
+				// Check if context is canceled - this is expected during shutdown
+				if agentCtx.Err() != nil {
+					return nil
+				}
+
+				// Other errors are transient. Log and retry; do not exit the
+				// whole agent — that's what ErrAgentRestartRequired is for.
+				// A short cooldown avoids a hot loop on persistent errors.
+				log.Warn().Err(err).Msgf("runner %d returned a transient error, retrying after %s", i, runnerRetryDelay)
+				select {
+				case <-agentCtx.Done():
+					return nil
+				case <-time.After(runnerRetryDelay):
+				}
 			}
-		})
+		}))
 	}
 
 	log.Info().Msgf(

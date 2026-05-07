@@ -140,6 +140,14 @@ Core agent configuration variables.
 
 ---
 
+### GRPC_MAX_ERROR_DURATION
+
+- Name: `CROW_GRPC_MAX_ERROR_DURATION`
+- Description: How long the agent keeps retrying gRPC calls to the server before giving up and exiting for a supervisor restart. Sized to outlast a normal server bounce (kernel auto-reboot, deploy, cert renewal) so transient outages do not cost the whole agent process. Each successful call resets the timer; only an uninterrupted error window beyond this duration triggers the exit.
+- Default: `5m`
+
+---
+
 ## Health & Logging
 
 ### HEALTHCHECK

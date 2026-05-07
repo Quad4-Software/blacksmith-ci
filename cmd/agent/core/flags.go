@@ -118,4 +118,10 @@ var flags = []cli.Flag{
 		Usage:   "initial duration to wait before retrying to connect to the server (uses exponential backoff)",
 		Value:   time.Second * 2,
 	},
+	&cli.DurationFlag{
+		Sources: cli.EnvVars("CROW_GRPC_MAX_ERROR_DURATION"),
+		Name:    "grpc-max-error-duration",
+		Usage:   "how long to keep retrying gRPC calls to the server before exiting for supervisor restart; sized to outlast a normal server bounce",
+		Value:   5 * time.Minute,
+	},
 }

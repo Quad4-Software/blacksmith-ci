@@ -37,9 +37,9 @@ import (
 	"codefloe.com/crowci/crow/v5/pipeline/rpc/proto"
 )
 
-// ErrMaxConsecutiveErrors is returned when the agent has experienced too many
-// consecutive errors and should restart.
-var ErrMaxConsecutiveErrors = errors.New("maximum consecutive errors reached, agent restart required")
+// ErrAgentRestartRequired is returned when the agent has been unable to reach
+// the server for too long and should be restarted by its supervisor.
+var ErrAgentRestartRequired = errors.New("agent unable to reach server for too long, restart required")
 
 // ErrAgentShuttingDown is returned when operations are aborted because the agent is shutting down.
 var ErrAgentShuttingDown = errors.New("agent is shutting down")
@@ -60,9 +60,12 @@ const (
 	// Attempts 1,2,4 log at INFO, attempts 8+ log at WARN to indicate persistent issues.
 	retryWarnThreshold = 8
 
-	// Maximum consecutive errors before forcing agent restart.
-	// After this many errors, the agent will exit with error code, causing pod/container restart.
-	maxConsecutiveErrors = 10
+	// DefaultMaxErrorDuration is the default time the agent will keep retrying
+	// gRPC calls before giving up and asking its supervisor to restart it. Sized
+	// to comfortably outlast a normal server bounce (kernel auto-reboot, deploy,
+	// cert renewal) without giving up so quickly that a transient outage costs
+	// us the whole agent process.
+	DefaultMaxErrorDuration = 5 * time.Minute
 )
 
 // Global flags to track agent connectivity state (shared across all client instances and runners)
@@ -90,6 +93,7 @@ type client struct {
 	conn                  *grpc.ClientConn
 	logs                  chan *proto.LogEntry
 	reregistrationHandler func(context.Context) error // callback to re-register agent when not found on server
+	maxErrorDuration      time.Duration
 }
 
 // NewGrpcClient returns a new grpc Client.
@@ -98,8 +102,19 @@ func NewGrpcClient(ctx context.Context, conn *grpc.ClientConn) rpc.Peer {
 	client.client = proto.NewCrowClient(conn)
 	client.conn = conn
 	client.logs = make(chan *proto.LogEntry, 10) // max memory use: 10 lines * 1 MiB
+	client.maxErrorDuration = DefaultMaxErrorDuration
 	go client.processLogs(ctx)
 	return client
+}
+
+// SetMaxErrorDuration overrides the default amount of time the client will
+// keep retrying gRPC calls before returning ErrAgentRestartRequired. Zero or
+// negative values reset to DefaultMaxErrorDuration.
+func (c *client) SetMaxErrorDuration(d time.Duration) {
+	if d <= 0 {
+		d = DefaultMaxErrorDuration
+	}
+	c.maxErrorDuration = d
 }
 
 // SetReregistrationHandler sets a callback that will be invoked when the agent
@@ -248,6 +263,7 @@ func (c *client) Next(ctx context.Context, filter rpc.Filter) (*rpc.Workflow, er
 
 	attemptCount := 0
 	var lastBackoff time.Duration
+	var firstErrorAt time.Time
 
 	for {
 		// Log connection state before attempting Next() call
@@ -296,19 +312,25 @@ func (c *client) Next(ctx context.Context, filter rpc.Filter) (*rpc.Workflow, er
 		}
 
 		attemptCount++
+		if firstErrorAt.IsZero() {
+			firstErrorAt = time.Now()
+		}
 
 		// Mark workflow polling as unhealthy and reset operational flag
 		// Only do this for ACTUAL errors, not "sql: no rows"
 		workflowPollingHealthy.Store(false)
 		agentOperationalLogged.Store(false)
 
-		// Check if we've exceeded the maximum consecutive error threshold
-		if attemptCount >= maxConsecutiveErrors {
+		// Give up if we've been failing for longer than the supervisor can be
+		// expected to wait. Returning this signals the agent to exit for restart.
+		if errSpan := time.Since(firstErrorAt); errSpan >= c.maxErrorDuration {
 			log.Error().
 				Str("error", cleanGrpcError(err)).
 				Int("consecutive_errors", attemptCount).
-				Msg("maximum consecutive workflow polling errors reached, agent will exit for restart")
-			return nil, ErrMaxConsecutiveErrors
+				Dur("error_duration", errSpan).
+				Dur("threshold", c.maxErrorDuration).
+				Msg("workflow polling unable to reach server, agent will exit for restart")
+			return nil, ErrAgentRestartRequired
 		}
 
 		switch status.Code(err) {
@@ -827,6 +849,7 @@ func (c *client) ReportHealth(ctx context.Context) (cleanupConfig *rpc.DockerCle
 
 	attemptCount := 0
 	var lastBackoff time.Duration
+	var firstErrorAt time.Time
 
 	for {
 		var res *proto.ReportHealthResponse
@@ -877,18 +900,24 @@ func (c *client) ReportHealth(ctx context.Context) (cleanupConfig *rpc.DockerCle
 		}
 
 		attemptCount++
+		if firstErrorAt.IsZero() {
+			firstErrorAt = time.Now()
+		}
 
 		// Mark health reporting as unhealthy and reset operational flag
 		healthReportingHealthy.Store(false)
 		agentOperationalLogged.Store(false)
 
-		// Check if we've exceeded the maximum consecutive error threshold
-		if attemptCount >= maxConsecutiveErrors {
+		// Give up if we've been failing for longer than the supervisor can be
+		// expected to wait. Returning this signals the agent to exit for restart.
+		if errSpan := time.Since(firstErrorAt); errSpan >= c.maxErrorDuration {
 			log.Error().
 				Str("error", cleanGrpcError(err)).
 				Int("consecutive_errors", attemptCount).
-				Msg("maximum consecutive health reporting errors reached, agent will exit for restart")
-			return nil, ErrMaxConsecutiveErrors
+				Dur("error_duration", errSpan).
+				Dur("threshold", c.maxErrorDuration).
+				Msg("health reporting unable to reach server, agent will exit for restart")
+			return nil, ErrAgentRestartRequired
 		}
 
 		switch status.Code(err) {

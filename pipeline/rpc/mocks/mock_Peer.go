@@ -6,6 +6,7 @@ package rpc
 
 import (
 	"context"
+	"time"
 
 	"codefloe.com/crowci/crow/v5/pipeline/rpc"
 	mock "github.com/stretchr/testify/mock"
@@ -585,6 +586,46 @@ func (_c *MockPeer_ReportHealth_Call) Return(dockerCleanupConfig *rpc.DockerClea
 
 func (_c *MockPeer_ReportHealth_Call) RunAndReturn(run func(c context.Context) (*rpc.DockerCleanupConfig, error)) *MockPeer_ReportHealth_Call {
 	_c.Call.Return(run)
+	return _c
+}
+
+// SetMaxErrorDuration provides a mock function for the type MockPeer
+func (_mock *MockPeer) SetMaxErrorDuration(d time.Duration) {
+	_mock.Called(d)
+	return
+}
+
+// MockPeer_SetMaxErrorDuration_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetMaxErrorDuration'
+type MockPeer_SetMaxErrorDuration_Call struct {
+	*mock.Call
+}
+
+// SetMaxErrorDuration is a helper method to define mock.On call
+//   - d time.Duration
+func (_e *MockPeer_Expecter) SetMaxErrorDuration(d interface{}) *MockPeer_SetMaxErrorDuration_Call {
+	return &MockPeer_SetMaxErrorDuration_Call{Call: _e.mock.On("SetMaxErrorDuration", d)}
+}
+
+func (_c *MockPeer_SetMaxErrorDuration_Call) Run(run func(d time.Duration)) *MockPeer_SetMaxErrorDuration_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 time.Duration
+		if args[0] != nil {
+			arg0 = args[0].(time.Duration)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockPeer_SetMaxErrorDuration_Call) Return() *MockPeer_SetMaxErrorDuration_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockPeer_SetMaxErrorDuration_Call) RunAndReturn(run func(d time.Duration)) *MockPeer_SetMaxErrorDuration_Call {
+	_c.Run(run)
 	return _c
 }
 
