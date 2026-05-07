@@ -138,7 +138,7 @@
     "manual_pipeline": {
       "title": "Trigger a manual pipeline run",
       "desc": "Select workflows to run. Only workflows with the 'manual' event trigger are shown.",
-      "trigger": "Run pipeline | Run selected pipelines",
+      "trigger": "Run pipeline",
       "default_branch_suffix": "(default)",
       "select_branch": "Select branch",
       "select_all": "Select all",

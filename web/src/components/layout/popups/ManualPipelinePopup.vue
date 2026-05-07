@@ -69,7 +69,7 @@
           <Button type="submit" :disabled="!isFormValid || isSubmitting">
             <Icon v-if="isSubmitting" name="spinner" class="mr-1 h-4 w-4 animate-spin" />
             <Icon v-else name="play" class="mr-1 h-4 w-4" />
-            {{ $t('repo.manual_pipeline.trigger', selectedWorkflows.size) }}
+            {{ $t('repo.manual_pipeline.trigger') }}
           </Button>
         </DialogFooter>
       </form>
