@@ -10,7 +10,7 @@
   </div>
 
   <div v-else class="app flex h-full w-full flex-col bg-background text-foreground">
-    <router-view v-if="blank" v-slot="{ Component }">
+    <router-view v-if="blank" v-slot="{ Component }" :key="$route.matched[0]?.path">
       <Transition name="fade" mode="out-in">
         <component :is="Component" />
       </Transition>
@@ -142,7 +142,7 @@
 
           <!-- Main content area with PipelineFeedSidebar -->
           <div class="relative flex flex-1 min-h-0 overflow-hidden">
-            <router-view v-slot="{ Component }">
+            <router-view v-slot="{ Component }" :key="$route.matched[0]?.path">
               <Transition name="fade" mode="out-in">
                 <component :is="Component" />
               </Transition>
