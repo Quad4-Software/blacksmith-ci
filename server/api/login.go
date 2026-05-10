@@ -511,7 +511,7 @@ func updateRepoPermissions(c *gin.Context, user *model.User, _store store.Store)
 		repos, _ := _forge.Repos(c, &forgeUser)
 
 		for _, forgeRepo := range repos {
-			dbRepo, err := _store.GetRepoForgeID(forgeRepo.ForgeRemoteID)
+			dbRepo, err := _store.GetRepoByForgeAndRemoteID(uf.ForgeID, forgeRepo.ForgeRemoteID)
 			if err != nil && errors.Is(err, types.RecordNotExist) {
 				continue
 			}

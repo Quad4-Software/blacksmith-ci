@@ -311,6 +311,49 @@ func TestRepoCrud(t *testing.T) {
 	assert.EqualValues(t, 1, pipelineCount)
 }
 
+func TestGetRepoByForgeAndRemoteID(t *testing.T) {
+	store, closer := newTestStore(t, new(model.Repo))
+	defer closer()
+
+	forgeAID := int64(1)
+	forgeBID := int64(2)
+
+	// Regression for issue #1019: two repos on different forges share the same
+	// forge_remote_id. The lookup must scope by forge_id so each returns its own row.
+	repoA := &model.Repo{
+		UserID:        1,
+		ForgeID:       forgeAID,
+		ForgeRemoteID: "1",
+		FullName:      "octocat/hello-world",
+		Owner:         "octocat",
+		Name:          "hello-world",
+		IsActive:      true,
+	}
+	repoB := &model.Repo{
+		UserID:        1,
+		ForgeID:       forgeBID,
+		ForgeRemoteID: "1",
+		FullName:      "other/repo",
+		Owner:         "other",
+		Name:          "repo",
+	}
+	assert.NoError(t, store.CreateRepo(repoA))
+	assert.NoError(t, store.CreateRepo(repoB))
+
+	got, err := store.GetRepoByForgeAndRemoteID(forgeAID, "1")
+	assert.NoError(t, err)
+	assert.Equal(t, repoA.ID, got.ID)
+	assert.Equal(t, forgeAID, got.ForgeID)
+
+	got, err = store.GetRepoByForgeAndRemoteID(forgeBID, "1")
+	assert.NoError(t, err)
+	assert.Equal(t, repoB.ID, got.ID)
+	assert.Equal(t, forgeBID, got.ForgeID)
+
+	_, err = store.GetRepoByForgeAndRemoteID(forgeAID, "999")
+	assert.ErrorIs(t, err, types.RecordNotExist)
+}
+
 func TestGetRepoByForgeOwnerName(t *testing.T) {
 	store, closer := newTestStore(t, new(model.Repo))
 	defer closer()

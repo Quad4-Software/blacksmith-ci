@@ -526,7 +526,7 @@ func (c *client) getUserAndRepo(ctx context.Context, r *model.Repo) (*model.User
 		return nil, nil, fmt.Errorf("unable to get store from context")
 	}
 
-	repo, err := _store.GetRepoForgeID(r.ForgeRemoteID)
+	repo, err := _store.GetRepoByForgeAndRemoteID(r.ForgeID, r.ForgeRemoteID)
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to get repo: %w", err)
 	}

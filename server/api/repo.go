@@ -379,7 +379,7 @@ func PostRepo(ctx context.Context, input *PostRepoInput) (*PostRepoOutput, error
 		return nil, huma.Error400BadRequest("The provided 'forge_remote_id' is either invalid or empty")
 	}
 
-	repo, err := _store.GetRepoForgeID(forgeRemoteID)
+	repo, err := _store.GetRepoByForgeAndRemoteID(forgeID, forgeRemoteID)
 	enabledOnce := err == nil // if there's no error, the repo was found and enabled once already
 	if enabledOnce && repo.IsActive {
 		log.Error().Msg("Repository is already active")
