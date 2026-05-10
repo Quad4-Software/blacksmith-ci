@@ -98,9 +98,18 @@ crow exec --workflow .crow/build.yaml
 
 ### Linting
 
+`crow lint` validates **local** pipeline configuration files against the Crow schema — it does not fetch configuration from the server or forge.
+Point it at a single YAML/Jsonnet file or a directory containing workflow files.
+
 ```sh
-# Lint pipeline configuration
+# Lint a directory of workflow files
 crow lint .crow/
+
+# Lint a single workflow file
+crow lint .crow/build.yaml
+
+# Treat warnings as errors
+crow lint --strict .crow/
 ```
 
 ### Agent Management

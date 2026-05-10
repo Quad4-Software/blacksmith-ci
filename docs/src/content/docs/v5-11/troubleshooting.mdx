@@ -1,0 +1,165 @@
+---
+title: 'Troubleshooting'
+---
+
+This page collects recurring failure modes that show up in pipeline logs or agent output, what they mean, and how to diagnose them.
+
+## Step container OOM-killed
+
+Symptom — a step fails with:
+
+```
+uuid=<step-uuid>: step container was OOM-killed (exit code 137).
+The step exceeded its memory limit.
+```
+
+What it means — the **step's** container hit the memory limit configured for it (not the agent's limit) and was killed by the kernel.
+This is reported by Docker via the container's `State.OOMKilled` flag, so this classification is reliable: when Crow shows this error, the kernel definitively OOM-killed the container.
+
+### Where the limit comes from
+
+Two layers, in order of precedence.
+
+**Per-step**, in your pipeline YAML:
+
+```yaml
+steps:
+  - name: build
+    image: golang:1.23
+    commands:
+      - go build ./...
+    backend_options:
+      docker:
+        mem_limit: '4g' # or remove to drop the limit for this step
+```
+
+**Agent default**, applied to every step container the agent spawns, via the `CROW_BACKEND_DOCKER_LIMIT_MEM` environment variable (e.g. `3Gi`).
+This is convenient as a safety net, but it caps every step on that agent equally — workloads that legitimately need more memory will hit it.
+
+### Fixing it
+
+Pick whichever fits:
+
+- Raise `CROW_BACKEND_DOCKER_LIMIT_MEM` on the agent (affects every step on that agent).
+- Override it for the specific step via `backend_options.docker.mem_limit`.
+- Move the heavy step to an agent label that points at a host with more headroom (no per-step limit, or a higher one).
+
+## Agent lost backend connection
+
+Symptom — a step fails with a message similar to:
+
+```
+lost connection to the container backend while running inspect on
+codefloe-infrastructure-as-code-1208-1-dev-certbot-apply: error during connect:
+Get "http://%2Fvar%2Frun%2Fdocker.sock/v1.51/containers/.../json":
+received signal: 0x29c016660d90
+```
+
+Older agent versions show only the raw Docker SDK error (the `error during connect: ...` portion).
+The agent emits the friendlier wrapper as of the release that introduced this troubleshooting page.
+
+What it means — the agent's call to the container backend (Docker / containerd) did not return a normal API response; the *connection* between the agent and the daemon was severed mid-call.
+The exact `received signal: 0x...` text is a Go pointer formatted as a signal name, which the Docker SDK falls back to when the underlying transport closes abruptly.
+
+This identifies the *class* of failure — a transport-level error, not a daemon API error like "no such container".
+It does **not** tell you the cause: many distinct conditions on the agent host produce the same error, and Crow cannot tell them apart from the SDK error alone.
+You have to inspect the host to find which one applies.
+
+### Possible causes to check
+
+Each of these can produce a transport-level error indistinguishable from the others.
+Check each on the agent host until one matches.
+
+#### The Docker daemon restarted or was reloaded
+
+Verify:
+
+```sh
+systemctl status docker --no-pager | head -20
+journalctl -u docker --since "<run start>" --until "<run end + 2m>"
+```
+
+Look for `Started Docker Application Container Engine` entries inside the run window or messages about reloading the daemon.
+
+#### The agent host ran out of disk on `/var/lib/docker`
+
+When the storage backing `/var/lib/docker` is full, the daemon stops responding to inspect / wait calls.
+Verify:
+
+```sh
+df -h /var/lib/docker
+du -sh /var/lib/docker/containers /var/lib/docker/overlay2 2>/dev/null
+```
+
+#### The agent process was OOM-killed by its cgroup
+
+A cgroup-internal kill does **not** appear in the host's `dmesg` on cgroup v2 — you must check the cgroup directly.
+
+Verify on the agent host:
+
+```sh
+# Was the agent container itself killed?
+docker inspect <agent-container> \
+  --format '{{.State.OOMKilled}} restarts={{.RestartCount}}'
+
+# Cgroup-level OOM events for the agent (cgroup v2)
+cat /sys/fs/cgroup/system.slice/docker-$(docker inspect -f '{{.Id}}' <agent-container>).scope/memory.events
+# Look for non-zero oom_kill / oom_group_kill
+```
+
+The agent container's memory limit is configured outside Crow (in your `docker-compose.yml`, Helm values, systemd unit, etc.); Crow itself does not enforce an agent-side memory cap.
+
+Note that this is distinct from a step container hitting `CROW_BACKEND_DOCKER_LIMIT_MEM` or `backend_options.docker.mem_limit` — those produce a clean exit 137 with `State.OOMKilled=true` and Crow reports them as ["Step container OOM-killed"](#step-container-oom-killed) above, not as a lost connection.
+
+#### The agent lost its gRPC connection to the server
+
+If the agent's connection to the Crow server drops, the agent may tear down its workers, which cancels in-flight Docker calls.
+This usually shows up alongside server-side log entries about the agent disconnecting.
+Verify:
+
+```sh
+docker logs <agent-container> --since "<run start>" --until "<run end + 2m>" 2>&1 \
+  | grep -iE 'connection|disconnect|grpc|transport'
+```
+
+#### Docker daemon resource exhaustion
+
+The daemon can stop responding without restarting if it runs out of file descriptors, memory, or hits an internal deadlock.
+Verify:
+
+```sh
+journalctl -u docker --since "1 hour ago" --no-pager | tail -100
+```
+
+Look for messages about `too many open files`, panic traces, or hung goroutines.
+
+### What we report in the workflow status
+
+The agent classifies these errors into a `DaemonUnreachableError` whenever it can detect that the failing call was a transport-level failure (socket, TCP, pipe).
+In the workflow's error field you'll see the operation that failed (`inspect`, `wait`, `tail logs`, `start container`, `connect network`) and the target container name, followed by the underlying SDK error.
+The error message intentionally does not name a specific cause — that would mislead users as often as it helps, since the agent cannot infer the cause from the SDK error.
+
+## Diagnosing on the agent host
+
+A short copy-paste block for first-pass triage of any agent-side failure:
+
+```sh
+# Daemon health
+systemctl status docker --no-pager | head -20
+journalctl -u docker --since "1 hour ago" --no-pager | tail -50
+
+# Agent container state
+docker inspect <agent-container> \
+  --format 'OOMKilled={{.State.OOMKilled}} ExitCode={{.State.ExitCode}} RestartCount={{.RestartCount}} MemLimit={{.HostConfig.Memory}} StartedAt={{.State.StartedAt}}'
+docker stats --no-stream <agent-container>
+
+# Recent kernel / cgroup OOM events
+journalctl -k --since "1 hour ago" | grep -iE 'oom|out of memory'
+for f in $(find /sys/fs/cgroup/system.slice -maxdepth 3 -name memory.events 2>/dev/null); do
+  oom=$(grep '^oom_kill ' "$f" | awk '{print $2}')
+  [ "$oom" != "0" ] && [ -n "$oom" ] && echo "$f: oom_kill=$oom"
+done
+
+# Disk pressure
+df -h / /var/lib/docker
+```
