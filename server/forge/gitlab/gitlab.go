@@ -47,6 +47,7 @@ const (
 
 // Opts defines configuration options.
 type Opts struct {
+	ID           int64  // Crow forge row ID, used to scope multi-forge DB lookups.
 	URL          string // Gitlab server url.
 	ClientID     string // Oauth2 client id.
 	ClientSecret string // Oauth2 client secret.
@@ -56,6 +57,7 @@ type Opts struct {
 
 // Gitlab implements "Forge" interface.
 type GitLab struct {
+	forgeID      int64
 	url          string
 	ClientID     string
 	ClientSecret string
@@ -69,6 +71,7 @@ type GitLab struct {
 // source Git service. See https://gitlab.com
 func New(opts Opts) (forge.Forge, error) {
 	return &GitLab{
+		forgeID:      opts.ID,
 		url:          opts.URL,
 		ClientID:     opts.ClientID,
 		ClientSecret: opts.ClientSecret,
@@ -814,7 +817,7 @@ func (g *GitLab) loadChangedFilesFromMergeRequest(ctx context.Context, tmpRepo *
 		return pipeline, nil
 	}
 
-	repo, err := _store.GetRepoNameFallback(tmpRepo.ForgeRemoteID, tmpRepo.FullName)
+	repo, err := _store.GetRepoNameFallback(g.forgeID, tmpRepo.ForgeRemoteID, tmpRepo.FullName)
 	if err != nil {
 		return nil, err
 	}

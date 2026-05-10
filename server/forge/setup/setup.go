@@ -41,6 +41,7 @@ func Forge(forge *model.Forge) (forge.Forge, error) {
 
 func setupBitbucket(forge *model.Forge) (forge.Forge, error) {
 	opts := &bitbucket.Opts{
+		ID:     forge.ID,
 		Client: forge.Client,
 		Secret: forge.ClientSecret,
 	}
@@ -59,6 +60,7 @@ func setupGitea(forge *model.Forge) (forge.Forge, error) {
 	}
 
 	opts := gitea.Opts{
+		ID:         forge.ID,
 		URL:        strings.TrimRight(serverURL.String(), "/"),
 		Client:     forge.Client,
 		Secret:     forge.ClientSecret,
@@ -86,6 +88,7 @@ func setupForgejo(forge *model.Forge) (forge.Forge, error) {
 	}
 
 	opts := forgejo.Opts{
+		ID:         forge.ID,
 		URL:        strings.TrimRight(server.String(), "/"),
 		Client:     forge.Client,
 		Secret:     forge.ClientSecret,
@@ -108,6 +111,7 @@ func setupForgejo(forge *model.Forge) (forge.Forge, error) {
 
 func setupGitLab(forge *model.Forge) (forge.Forge, error) {
 	opts := gitlab.Opts{
+		ID:           forge.ID,
 		URL:          forge.URL,
 		ClientID:     forge.Client,
 		ClientSecret: forge.ClientSecret,
@@ -137,6 +141,7 @@ func setupGitHub(forge *model.Forge) (forge.Forge, error) {
 	}
 
 	opts := github.Opts{
+		ID:         forge.ID,
 		URL:        forge.URL,
 		Client:     forge.Client,
 		Secret:     forge.ClientSecret,
@@ -174,6 +179,7 @@ func setupBitbucketDatacenter(forge *model.Forge) (forge.Forge, error) {
 	}
 
 	opts := bitbucketdatacenter.Opts{
+		ID:                           forge.ID,
 		URL:                          forge.URL,
 		ClientID:                     forge.Client,
 		ClientSecret:                 forge.ClientSecret,

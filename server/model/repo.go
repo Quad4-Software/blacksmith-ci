@@ -50,7 +50,7 @@ type Repo struct {
 
 	ID      int64 `json:"id,omitempty"                    bun:"id,pk,autoincrement"`
 	UserID  int64 `json:"-"                               bun:"user_id"`
-	ForgeID int64 `json:"forge_id,omitempty"              bun:"forge_id,unique:forge"`
+	ForgeID int64 `json:"forge_id,omitempty"              bun:"forge_id,unique:forge,unique:forge_full_name"`
 	// ForgeRemoteID is the unique identifier for the repository on the forge.
 	ForgeRemoteID                ForgeRemoteID         `json:"forge_remote_id"                 bun:"forge_remote_id"`
 	OrgID                        int64                 `json:"org_id"                          bun:"org_id"`

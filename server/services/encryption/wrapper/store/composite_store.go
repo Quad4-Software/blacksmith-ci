@@ -331,8 +331,8 @@ func (c *CompositeEncryptedStore) GetRepoByForgeOwnerName(forgeID int64, owner, 
 	return c.baseStore.GetRepoByForgeOwnerName(forgeID, owner, name)
 }
 
-func (c *CompositeEncryptedStore) GetRepoNameFallback(remoteID model.ForgeRemoteID, fullName string) (*model.Repo, error) {
-	return c.baseStore.GetRepoNameFallback(remoteID, fullName)
+func (c *CompositeEncryptedStore) GetRepoNameFallback(forgeID int64, remoteID model.ForgeRemoteID, fullName string) (*model.Repo, error) {
+	return c.baseStore.GetRepoNameFallback(forgeID, remoteID, fullName)
 }
 
 func (c *CompositeEncryptedStore) GetRepoName(name string) (*model.Repo, error) {

@@ -43,7 +43,7 @@ func (s storage) permUpsert(ctx context.Context, db bun.IDB, perm *model.Perm) e
 
 	// lookup repo based on name or forge ID if possible
 	if perm.RepoID == 0 && perm.Repo != nil {
-		r, err := s.getRepoNameFallback(ctx, db, perm.Repo.ForgeRemoteID, perm.Repo.FullName)
+		r, err := s.getRepoNameFallback(ctx, db, perm.Repo.ForgeID, perm.Repo.ForgeRemoteID, perm.Repo.FullName)
 		if err != nil {
 			return err
 		}

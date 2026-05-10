@@ -57,14 +57,23 @@ func (s storage) GetRepoByForgeOwnerName(forgeID int64, owner, name string) (*mo
 		Scan(context.Background()))
 }
 
-func (s storage) GetRepoNameFallback(remoteID model.ForgeRemoteID, fullName string) (*model.Repo, error) {
-	return s.getRepoNameFallback(context.Background(), s.db, remoteID, fullName)
+func (s storage) GetRepoNameFallback(forgeID int64, remoteID model.ForgeRemoteID, fullName string) (*model.Repo, error) {
+	return s.getRepoNameFallback(context.Background(), s.db, forgeID, remoteID, fullName)
 }
 
-func (s storage) getRepoNameFallback(ctx context.Context, db bun.IDB, remoteID model.ForgeRemoteID, fullName string) (*model.Repo, error) {
-	repo, err := s.getRepoForgeID(ctx, db, remoteID)
+func (s storage) getRepoNameFallback(ctx context.Context, db bun.IDB, forgeID int64, remoteID model.ForgeRemoteID, fullName string) (*model.Repo, error) {
+	repo := new(model.Repo)
+	err := wrapGet(db.NewSelect().Model(repo).
+		Where("forge_id = ?", forgeID).
+		Where("forge_remote_id = ?", remoteID).
+		Scan(ctx))
 	if errors.Is(err, types.RecordNotExist) {
-		return s.getRepoName(ctx, db, fullName)
+		// Forge-scoped full_name fallback for legacy rows that predate forge_remote_id tracking.
+		repo = new(model.Repo)
+		return repo, wrapGet(db.NewSelect().Model(repo).
+			Where("forge_id = ?", forgeID).
+			Where("LOWER(full_name) = ?", strings.ToLower(fullName)).
+			Scan(ctx))
 	}
 	return repo, err
 }

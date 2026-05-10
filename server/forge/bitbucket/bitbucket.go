@@ -44,25 +44,28 @@ const (
 
 // Opts are forge options for bitbucket.
 type Opts struct {
+	ID     int64 // Crow forge row ID, used to scope multi-forge DB lookups.
 	Client string
 	Secret string
 }
 
 type config struct {
-	API    string
-	url    string
-	Client string
-	Secret string
+	forgeID int64
+	API     string
+	url     string
+	Client  string
+	Secret  string
 }
 
 // New returns a new forge Configuration for integrating with the Bitbucket
 // repository hosting service at https://bitbucket.org
 func New(opts *Opts) (forge.Forge, error) {
 	return &config{
-		API:    DefaultAPI,
-		url:    DefaultURL,
-		Client: opts.Client,
-		Secret: opts.Secret,
+		forgeID: opts.ID,
+		API:     DefaultAPI,
+		url:     DefaultURL,
+		Client:  opts.Client,
+		Secret:  opts.Secret,
 	}, nil
 	// TODO: add checks
 }

@@ -42,6 +42,7 @@ const (
 
 // Opts defines configuration options.
 type Opts struct {
+	ID                           int64  // Crow forge row ID, used to scope multi-forge DB lookups.
 	URL                          string // Bitbucket server url for API access.
 	Username                     string // Git machine account username.
 	Password                     string // Git machine account password.
@@ -52,6 +53,7 @@ type Opts struct {
 }
 
 type client struct {
+	forgeID                      int64
 	url                          string
 	urlAPI                       string
 	clientID                     string
@@ -66,6 +68,7 @@ type client struct {
 // the on-premise edition of Bitbucket Cloud, formerly known as Stash.
 func New(opts Opts) (forge.Forge, error) {
 	config := &client{
+		forgeID:                      opts.ID,
 		url:                          opts.URL,
 		urlAPI:                       fmt.Sprintf("%s/rest", opts.URL),
 		clientID:                     opts.ClientID,

@@ -463,7 +463,7 @@ func TestRepoRedirection(t *testing.T) {
 	}))
 
 	// test redirection from old repo name
-	repoFromStore, err := store.GetRepoNameFallback("1", "bradrydzewski/test")
+	repoFromStore, err := store.GetRepoNameFallback(0, "1", "bradrydzewski/test")
 	assert.NoError(t, err)
 	assert.Equal(t, repoFromStore.FullName, repoUpdated.FullName)
 
@@ -476,7 +476,57 @@ func TestRepoRedirection(t *testing.T) {
 	}
 	assert.NoError(t, store.CreateRepo(&repo))
 
-	repoFromStore, err = store.GetRepoNameFallback("", "bradrydzewski/test-no-forge-id")
+	repoFromStore, err = store.GetRepoNameFallback(0, "", "bradrydzewski/test-no-forge-id")
 	assert.NoError(t, err)
 	assert.Equal(t, repoFromStore.FullName, repo.FullName)
+}
+
+// TestGetRepoNameFallbackForgeScoped verifies the lookup is forge-scoped on
+// both the forge_remote_id step and the legacy full_name step, so a repo on a
+// different forge with the same remote ID or full name is never returned.
+func TestGetRepoNameFallbackForgeScoped(t *testing.T) {
+	store, closer := newTestStore(t, new(model.Repo))
+	defer closer()
+
+	forgeAID := int64(1)
+	forgeBID := int64(2)
+
+	// (forgeA, "10") — primary lookup target.
+	repoA := &model.Repo{
+		UserID: 1, ForgeID: forgeAID, ForgeRemoteID: "10",
+		FullName: "octocat/repo", Owner: "octocat", Name: "repo",
+	}
+	// (forgeB, "10") — same remote ID on another forge, must not be returned for forgeA.
+	repoB := &model.Repo{
+		UserID: 1, ForgeID: forgeBID, ForgeRemoteID: "10",
+		FullName: "other/repo", Owner: "other", Name: "repo",
+	}
+	// (forgeB, "") — same full_name on another forge, must not be returned for forgeA's fallback.
+	repoBLegacy := &model.Repo{
+		UserID: 1, ForgeID: forgeBID, ForgeRemoteID: "",
+		FullName: "octocat/legacy", Owner: "octocat", Name: "legacy",
+	}
+	// (forgeA, "") — legacy row on forgeA that the full_name fallback should resolve.
+	repoALegacy := &model.Repo{
+		UserID: 1, ForgeID: forgeAID, ForgeRemoteID: "",
+		FullName: "octocat/legacy", Owner: "octocat", Name: "legacy",
+	}
+	assert.NoError(t, store.CreateRepo(repoA))
+	assert.NoError(t, store.CreateRepo(repoB))
+	assert.NoError(t, store.CreateRepo(repoBLegacy))
+	assert.NoError(t, store.CreateRepo(repoALegacy))
+
+	got, err := store.GetRepoNameFallback(forgeAID, "10", "octocat/repo")
+	assert.NoError(t, err)
+	assert.Equal(t, repoA.ID, got.ID)
+
+	got, err = store.GetRepoNameFallback(forgeBID, "10", "other/repo")
+	assert.NoError(t, err)
+	assert.Equal(t, repoB.ID, got.ID)
+
+	// Legacy fallback on forgeA must return forgeA's legacy row, not forgeB's.
+	got, err = store.GetRepoNameFallback(forgeAID, "missing", "octocat/legacy")
+	assert.NoError(t, err)
+	assert.Equal(t, repoALegacy.ID, got.ID)
+	assert.Equal(t, forgeAID, got.ForgeID)
 }

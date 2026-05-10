@@ -45,6 +45,7 @@ const (
 )
 
 type Forgejo struct {
+	forgeID      int64
 	url          string
 	oauth2URL    string
 	ClientID     string
@@ -54,6 +55,7 @@ type Forgejo struct {
 
 // Opts defines configuration options.
 type Opts struct {
+	ID         int64  // Crow forge row ID, used to scope multi-forge DB lookups.
 	URL        string // Forgejo server url.
 	OAuth2URL  string // User-facing Forgejo server url for OAuth2.
 	Client     string // OAuth2 Client ID
@@ -69,6 +71,7 @@ func New(opts Opts) (forge.Forge, error) {
 	}
 
 	return &Forgejo{
+		forgeID:      opts.ID,
 		url:          opts.URL,
 		oauth2URL:    opts.OAuth2URL,
 		ClientID:     opts.Client,
@@ -652,7 +655,7 @@ func (c *Forgejo) getChangedFilesForPR(ctx context.Context, repo *model.Repo, in
 		return []string{}, nil
 	}
 
-	repo, err := _store.GetRepoNameFallback(repo.ForgeRemoteID, repo.FullName)
+	repo, err := _store.GetRepoNameFallback(c.forgeID, repo.ForgeRemoteID, repo.FullName)
 	if err != nil {
 		return nil, err
 	}
@@ -695,7 +698,7 @@ func (c *Forgejo) getTagCommitSHA(ctx context.Context, repo *model.Repo, tagName
 		return "", nil
 	}
 
-	repo, err := _store.GetRepoNameFallback(repo.ForgeRemoteID, repo.FullName)
+	repo, err := _store.GetRepoNameFallback(c.forgeID, repo.ForgeRemoteID, repo.FullName)
 	if err != nil {
 		return "", err
 	}

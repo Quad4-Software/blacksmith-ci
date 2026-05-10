@@ -50,6 +50,7 @@ const (
 
 // Opts defines configuration options.
 type Opts struct {
+	ID         int64  // Crow forge row ID, used to scope multi-forge DB lookups.
 	URL        string // GitHub server url.
 	Client     string // GitHub oauth client id.
 	Secret     string // GitHub oauth client secret.
@@ -63,6 +64,7 @@ type Opts struct {
 // GitHub Enterprise version control hosting provider.
 func New(opts Opts) (forge.Forge, error) {
 	r := &client{
+		forgeID:    opts.ID,
 		API:        defaultAPI,
 		url:        defaultURL,
 		Client:     opts.Client,
@@ -81,6 +83,7 @@ func New(opts Opts) (forge.Forge, error) {
 }
 
 type client struct {
+	forgeID    int64
 	url        string
 	API        string
 	Client     string
@@ -705,7 +708,7 @@ func (c *client) loadChangedFilesFromPullRequest(ctx context.Context, pull *gith
 		return pipeline, nil
 	}
 
-	repo, err := _store.GetRepoNameFallback(tmpRepo.ForgeRemoteID, tmpRepo.FullName)
+	repo, err := _store.GetRepoNameFallback(c.forgeID, tmpRepo.ForgeRemoteID, tmpRepo.FullName)
 	if err != nil {
 		log.Warn().Err(err).Msg("failed to get repo for loading PR changed files, skipping")
 		return pipeline, nil
@@ -746,7 +749,7 @@ func (c *client) getTagCommitSHA(ctx context.Context, repo *model.Repo, tagName 
 		return "", nil
 	}
 
-	repo, err := _store.GetRepoNameFallback(repo.ForgeRemoteID, repo.FullName)
+	repo, err := _store.GetRepoNameFallback(c.forgeID, repo.ForgeRemoteID, repo.FullName)
 	if err != nil {
 		return "", err
 	}
@@ -794,7 +797,7 @@ func (c *client) loadChangedFilesFromCommits(ctx context.Context, tmpRepo *model
 		log.Trace().Msg("GitHub tag event, fetching changed files using current commit")
 	}
 
-	repo, err := _store.GetRepoNameFallback(tmpRepo.ForgeRemoteID, tmpRepo.FullName)
+	repo, err := _store.GetRepoNameFallback(c.forgeID, tmpRepo.ForgeRemoteID, tmpRepo.FullName)
 	if err != nil {
 		log.Warn().Err(err).Msg("failed to get repo for loading changed files, skipping")
 		return pipeline, nil

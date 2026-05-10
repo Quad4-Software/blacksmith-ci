@@ -73,8 +73,11 @@ type Store interface {
 	// Use this to find a stale row when a forge has recreated a repo with the same owner/name
 	// but a new forge_remote_id.
 	GetRepoByForgeOwnerName(forgeID int64, owner, name string) (*model.Repo, error)
-	// GetRepoNameFallback gets the repo by its forge ID and if this doesn't exist by its full name.
-	GetRepoNameFallback(remoteID model.ForgeRemoteID, fullName string) (*model.Repo, error)
+	// GetRepoNameFallback gets the repo by (forgeID, remoteID) and falls back to a
+	// forge-scoped full_name match for legacy rows that predate forge_remote_id
+	// tracking. Both lookups are scoped by forgeID so a repo on a different forge
+	// with the same remote ID or full name is never returned.
+	GetRepoNameFallback(forgeID int64, remoteID model.ForgeRemoteID, fullName string) (*model.Repo, error)
 	// GetRepoName gets a repo by its full name.
 	GetRepoName(string) (*model.Repo, error)
 	// GetRepoCount gets a count of all repositories in the system.
