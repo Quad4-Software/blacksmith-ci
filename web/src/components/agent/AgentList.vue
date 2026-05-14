@@ -208,7 +208,7 @@
 
             <!-- Action Buttons (desktop only - moved to bottom on mobile) -->
             <div
-              v-if="(agent.org_id === -1 && props.isAdmin) || agent.org_id === props.userOrgId"
+              v-if="props.isAdmin || agent.org_id === props.userOrgId"
               class="hidden md:flex items-center gap-1 shrink-0 ml-3"
             >
               <Button
@@ -377,10 +377,7 @@
           <!-- Action Buttons (mobile only - at bottom) -->
           <Separator class="my-3 md:hidden" />
           <div class="flex md:hidden justify-end gap-1">
-            <div
-              v-if="(agent.org_id === -1 && props.isAdmin) || agent.org_id === props.userOrgId"
-              class="flex items-center gap-1"
-            >
+            <div v-if="props.isAdmin || agent.org_id === props.userOrgId" class="flex items-center gap-1">
               <Button
                 variant="ghost"
                 size="icon"

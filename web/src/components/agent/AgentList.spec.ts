@@ -57,27 +57,38 @@ const sampleAgent = {
   running_workflows: 2,
 };
 
+function mountWithAgent(agent: typeof sampleAgent, opts: { isAdmin?: boolean; userOrgId?: number } = {}) {
+  return mount(AgentList, {
+    props: {
+      agents: [agent],
+      isDeleting: false,
+      loading: false,
+      isAdmin: opts.isAdmin,
+      userOrgId: opts.userOrgId,
+      agentFilters: {
+        search: '',
+        platform: '',
+        backend: '',
+        sort: 'status',
+        order: 'asc',
+      },
+      currentPage: 1,
+      hasMore: false,
+      isJumpingToLast: false,
+    },
+  });
+}
+
+function hasManagementButtons(wrapper: ReturnType<typeof mountWithAgent>) {
+  return (
+    wrapper.find('button[title="admin.settings.agents.edit_agent"]').exists() &&
+    wrapper.find('button[title="admin.settings.agents.delete_agent"]').exists()
+  );
+}
+
 describe('agentList', () => {
   it('renders agent metadata and aligns columns', () => {
-    const wrapper = mount(AgentList, {
-      props: {
-        agents: [sampleAgent],
-        isDeleting: false,
-        loading: false,
-        isAdmin: true,
-        userOrgId: 1,
-        agentFilters: {
-          search: '',
-          platform: '',
-          backend: '',
-          sort: 'status',
-          order: 'asc',
-        },
-        currentPage: 1,
-        hasMore: false,
-        isJumpingToLast: false,
-      },
-    });
+    const wrapper = mountWithAgent(sampleAgent, { isAdmin: true, userOrgId: 1 });
     // Check agent name
     expect(wrapper.text()).toContain('Test Agent');
     // Check running/capacity (note: there are spaces around the /)
@@ -87,5 +98,32 @@ describe('agentList', () => {
     // Check that the info grid exists
     const infoGrid = wrapper.find('.grid');
     expect(infoGrid.exists()).toBe(true);
+  });
+
+  describe('management button visibility', () => {
+    it('shows edit/delete buttons for admin on a global agent', () => {
+      const wrapper = mountWithAgent({ ...sampleAgent, org_id: -1 }, { isAdmin: true });
+      expect(hasManagementButtons(wrapper)).toBe(true);
+    });
+
+    it('shows edit/delete buttons for admin on a user/org agent in another org', () => {
+      const wrapper = mountWithAgent({ ...sampleAgent, org_id: 42 }, { isAdmin: true, userOrgId: 1 });
+      expect(hasManagementButtons(wrapper)).toBe(true);
+    });
+
+    it('shows edit/delete buttons for a regular user on their own org agent', () => {
+      const wrapper = mountWithAgent({ ...sampleAgent, org_id: 1 }, { isAdmin: false, userOrgId: 1 });
+      expect(hasManagementButtons(wrapper)).toBe(true);
+    });
+
+    it('hides edit/delete buttons for a regular user on a global agent', () => {
+      const wrapper = mountWithAgent({ ...sampleAgent, org_id: -1 }, { isAdmin: false, userOrgId: 1 });
+      expect(hasManagementButtons(wrapper)).toBe(false);
+    });
+
+    it("hides edit/delete buttons for a regular user on another org's agent", () => {
+      const wrapper = mountWithAgent({ ...sampleAgent, org_id: 42 }, { isAdmin: false, userOrgId: 1 });
+      expect(hasManagementButtons(wrapper)).toBe(false);
+    });
   });
 });
