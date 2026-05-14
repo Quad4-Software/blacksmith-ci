@@ -85,8 +85,12 @@ func createFilterFuncWithPriority(agentFilter rpc.Filter, customLabels map[strin
 				continue
 			}
 
-			// Skip infrastructure labels (crowci/* prefix) - these are backend-specific metadata
-			if strings.HasPrefix(taskLabel, "crowci/") {
+			// Skip infrastructure labels (crowci/* prefix) - these are backend-specific metadata.
+			// LabelOrgID and LabelRepoFullName are excluded: they're used for agent scoping
+			// (org-/repo-scoped agents) and must be compared against the agent's filter labels.
+			if strings.HasPrefix(taskLabel, "crowci/") &&
+				taskLabel != pipeline.LabelOrgID &&
+				taskLabel != pipeline.LabelRepoFullName {
 				log.Debug().
 					Str("task_id", task.ID).
 					Str("label", taskLabel).

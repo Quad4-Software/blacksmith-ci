@@ -567,6 +567,90 @@ func TestCreateFilterFunc(t *testing.T) {
 			wantMatched: true,
 			wantScore:   21, // 10 (hostname) + 10 (agent) + 1 (repo wildcard)
 		},
+		// Internal-prefix label tests (crowci/org-id, crowci/repo-full-name).
+		// These are the labels added by stepBuilder.ApplyLabelsFromRepo in production,
+		// so the filter must compare them — not skip them with the crowci/ prefix rule.
+		// The agent filter labels mirror what rpc.Next() builds: migrated repo + injected org-id.
+		{
+			name: "Org agent rejects task from different org (crowci/org-id)",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{
+					"crowci/org-id":         "5",
+					"crowci/repo-full-name": "*",
+					"platform":              "linux",
+				},
+			},
+			customLabels: map[string]string{},
+			task: &model.Task{
+				Labels: map[string]string{
+					"crowci/org-id":         "2",
+					"crowci/repo-full-name": "other/repo",
+					"platform":              "linux",
+				},
+			},
+			wantMatched: false,
+			wantScore:   0,
+		},
+		{
+			name: "Org agent accepts task from its own org (crowci/org-id)",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{
+					"crowci/org-id":         "5",
+					"crowci/repo-full-name": "*",
+					"platform":              "linux",
+				},
+			},
+			customLabels: map[string]string{},
+			task: &model.Task{
+				Labels: map[string]string{
+					"crowci/org-id":         "5",
+					"crowci/repo-full-name": "myorg/repo",
+					"platform":              "linux",
+				},
+			},
+			wantMatched: true,
+			wantScore:   21, // 10 (org-id exact) + 1 (repo wildcard) + 10 (platform exact)
+		},
+		{
+			name: "Global agent accepts task from any org (crowci/org-id wildcard)",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{
+					"crowci/org-id":         "*",
+					"crowci/repo-full-name": "*",
+					"platform":              "linux",
+				},
+			},
+			customLabels: map[string]string{},
+			task: &model.Task{
+				Labels: map[string]string{
+					"crowci/org-id":         "7",
+					"crowci/repo-full-name": "any/repo",
+					"platform":              "linux",
+				},
+			},
+			wantMatched: true,
+			wantScore:   12, // 1 (org-id wildcard) + 1 (repo wildcard) + 10 (platform exact)
+		},
+		{
+			name: "Repo-scoped agent rejects task from different repo (crowci/repo-full-name)",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{
+					"crowci/org-id":         "*",
+					"crowci/repo-full-name": "myorg/myrepo",
+					"platform":              "linux",
+				},
+			},
+			customLabels: map[string]string{},
+			task: &model.Task{
+				Labels: map[string]string{
+					"crowci/org-id":         "5",
+					"crowci/repo-full-name": "myorg/otherrepo",
+					"platform":              "linux",
+				},
+			},
+			wantMatched: false,
+			wantScore:   0,
+		},
 	}
 
 	for _, tt := range tests {
