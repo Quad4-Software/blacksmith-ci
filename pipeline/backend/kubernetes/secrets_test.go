@@ -22,6 +22,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 
+	"codefloe.com/crowci/crow/v5/pipeline"
 	"codefloe.com/crowci/crow/v5/pipeline/backend/types"
 )
 
@@ -240,4 +241,84 @@ func TestRegistrySecret(t *testing.T) {
 
 	ja := jsonassert.New(t)
 	ja.Assertf(string(secretJSON), expected)
+}
+
+// TestRegistrySecretSanitizesInternalLabels ensures that crow's internal
+// workflow labels (which may contain characters Kubernetes rejects in label
+// values, such as '/' in repo full names or '{}' in some forge IDs) are
+// sanitized before being attached to a registry pull secret. See issue #1033.
+func TestRegistrySecretSanitizesInternalLabels(t *testing.T) {
+	secret, err := mkRegistrySecret(&types.Step{
+		UUID:  "01he8bebctabr3kgk0qj36d2me-0",
+		Name:  "go-test",
+		Image: "meltwater/drone-cache",
+		AuthConfig: types.Auth{
+			Username: "foo",
+			Password: "bar",
+		},
+		WorkflowLabels: map[string]string{
+			pipeline.LabelRepoFullName: "foo-team/baz-arch",
+			pipeline.LabelRepoForgeID:  "{00000000-0000-0000-0000-000000000000}",
+			pipeline.LabelBranch:       "feature/some-thing",
+			pipeline.LabelRepoID:       "42",
+		},
+	}, &config{
+		Namespace: "woodpecker",
+	})
+	assert.NoError(t, err)
+
+	assert.Equal(t, "foo-team-baz-arch", secret.Labels[pipeline.LabelRepoFullName])
+	assert.Equal(t, "00000000-0000-0000-0000-000000000000", secret.Labels[pipeline.LabelRepoForgeID])
+	assert.Equal(t, "feature-some-thing", secret.Labels[pipeline.LabelBranch])
+	assert.Equal(t, "42", secret.Labels[pipeline.LabelRepoID])
+}
+
+// TestRegistrySecretFiltersUserLabelsWhenDisallowed ensures non-internal labels
+// from the workflow are filtered out unless PodLabelsAllowFromStep is enabled,
+// matching the behavior of podLabels.
+func TestRegistrySecretFiltersUserLabelsWhenDisallowed(t *testing.T) {
+	secret, err := mkRegistrySecret(&types.Step{
+		UUID:  "01he8bebctabr3kgk0qj36d2me-0",
+		Name:  "go-test",
+		Image: "meltwater/drone-cache",
+		AuthConfig: types.Auth{
+			Username: "foo",
+			Password: "bar",
+		},
+		WorkflowLabels: map[string]string{
+			pipeline.LabelRepoFullName: "foo-team/baz-arch",
+			"user-label":               "should-not-appear",
+		},
+	}, &config{
+		Namespace:              "woodpecker",
+		PodLabelsAllowFromStep: false,
+	})
+	assert.NoError(t, err)
+
+	assert.Equal(t, "foo-team-baz-arch", secret.Labels[pipeline.LabelRepoFullName])
+	_, hasUserLabel := secret.Labels["user-label"]
+	assert.False(t, hasUserLabel, "user label should not be propagated when PodLabelsAllowFromStep is false")
+}
+
+// TestRegistrySecretSanitizesUserLabelsWhenAllowed ensures user-supplied labels
+// also get sanitized when PodLabelsAllowFromStep is enabled.
+func TestRegistrySecretSanitizesUserLabelsWhenAllowed(t *testing.T) {
+	secret, err := mkRegistrySecret(&types.Step{
+		UUID:  "01he8bebctabr3kgk0qj36d2me-0",
+		Name:  "go-test",
+		Image: "meltwater/drone-cache",
+		AuthConfig: types.Auth{
+			Username: "foo",
+			Password: "bar",
+		},
+		WorkflowLabels: map[string]string{
+			"team": "platform/infra",
+		},
+	}, &config{
+		Namespace:              "woodpecker",
+		PodLabelsAllowFromStep: true,
+	})
+	assert.NoError(t, err)
+
+	assert.Equal(t, "platform-infra", secret.Labels["team"])
 }

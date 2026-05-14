@@ -260,7 +260,9 @@ func registrySecretLabels(step *types.Step, config *config) (map[string]string, 
 		// Only copy user labels if allowed by agent config.
 		// Internal labels are filtered on the server-side.
 		if config.PodLabelsAllowFromStep || strings.HasPrefix(k, pipeline.InternalLabelPrefix) {
-			labels[k] = v
+			// Sanitize label values to comply with Kubernetes label requirements
+			// (e.g. repo full names contain '/' and some forge IDs are wrapped in '{}').
+			labels[k] = sanitizeLabelValue(v)
 		}
 	}
 

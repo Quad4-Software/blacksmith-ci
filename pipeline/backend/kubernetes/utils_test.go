@@ -15,6 +15,7 @@
 package kubernetes
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -70,4 +71,27 @@ func TestToDnsName(t *testing.T) {
 
 	_, err = toDNSName("-build-and-deploy")
 	assert.ErrorIs(t, err, ErrDNSPatternInvalid)
+}
+
+func TestSanitizeLabelValue(t *testing.T) {
+	tests := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{name: "plain alphanumeric is unchanged", in: "go-test", want: "go-test"},
+		{name: "underscores and dots are preserved", in: "a_b.c", want: "a_b.c"},
+		{name: "slashes in repo full name are replaced", in: "foo-team/baz-arch", want: "foo-team-baz-arch"},
+		{name: "curly-brace wrapped uuid is trimmed", in: "{00000000-0000-0000-0000-000000000000}", want: "00000000-0000-0000-0000-000000000000"},
+		{name: "leading and trailing non-alphanumeric are trimmed", in: "--foo--", want: "foo"},
+		{name: "spaces are replaced with dashes", in: "build and deploy", want: "build-and-deploy"},
+		{name: "value over 63 chars is truncated and trimmed", in: strings.Repeat("a", 70), want: strings.Repeat("a", 63)},
+		{name: "truncated value with trailing dash is re-trimmed", in: strings.Repeat("a", 62) + "-bbbb", want: strings.Repeat("a", 62)},
+		{name: "all-invalid input becomes empty", in: "///", want: ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, sanitizeLabelValue(tt.in))
+		})
+	}
 }
