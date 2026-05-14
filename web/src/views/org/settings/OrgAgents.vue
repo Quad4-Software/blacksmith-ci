@@ -6,6 +6,7 @@
     :update-agent="updateAgent"
     :delete-agent="deleteAgent"
     :agent-filters="agentFilters"
+    :user-org-id="org.id"
   />
 </template>
 
