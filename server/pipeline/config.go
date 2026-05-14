@@ -17,14 +17,16 @@ package pipeline
 import (
 	forge_types "codefloe.com/crowci/crow/v5/server/forge/types"
 	"codefloe.com/crowci/crow/v5/server/model"
-	"codefloe.com/crowci/crow/v5/server/pipeline/stepbuilder"
 	"codefloe.com/crowci/crow/v5/server/store"
 )
 
 func findOrPersistPipelineConfig(store store.Store, currentPipeline *model.Pipeline, forgeYamlConfig *forge_types.FileMeta) (*model.Config, error) {
+	// Preserve the original file name (including extension) so that
+	// on restart, .jsonnet files can be re-recognized by preprocessJsonnet.
+	// Consumers that need a display-friendly name apply SanitizePath themselves.
 	return store.ConfigPersist(&model.Config{
 		RepoID: currentPipeline.RepoID,
-		Name:   stepbuilder.SanitizePath(forgeYamlConfig.Name),
+		Name:   forgeYamlConfig.Name,
 		Data:   forgeYamlConfig.Data,
 	})
 }
