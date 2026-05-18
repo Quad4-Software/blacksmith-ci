@@ -26,6 +26,6 @@
     "starlight-image-zoom": "^0.14.1",
     "starlight-links-validator": "^0.24.0",
     "starlight-scroll-to-top": "^1.0.0",
-    "starlight-versions": "^0.8.1"
+    "starlight-versions": "^0.9.0"
   }
 }
