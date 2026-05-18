@@ -13,8 +13,8 @@
           />
 
           <!-- Scope Filter -->
-          <DropdownMenu :modal="false">
-            <DropdownMenuTrigger as-child>
+          <Popover :modal="false">
+            <PopoverTrigger as-child>
               <Button variant="outline" size="sm" class="h-8 border-dashed">
                 <Icon name="filter" class="mr-2 h-4 w-4" />
                 {{ $t('scope_type') }}
@@ -26,33 +26,39 @@
                   </Badge>
                 </template>
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent class="w-[200px]" align="start">
-              <div class="max-h-[300px] overflow-y-auto">
-                <div v-if="uniqueScopes.length === 0" class="px-2 py-4 text-sm text-muted-foreground">
-                  {{ $t('no_search_results') }}
-                </div>
-                <DropdownMenuCheckboxItem
-                  v-for="label in uniqueScopes"
-                  :key="label"
-                  :model-value="selectedScopeLabels.includes(label)"
-                  @update:model-value="(value) => toggleScopeLabel(label, !!value)"
-                >
-                  {{ label }}
-                </DropdownMenuCheckboxItem>
-              </div>
-              <template v-if="selectedScopes.length > 0">
-                <DropdownMenuSeparator />
-                <DropdownMenuItem @click="clearScopeFilters">
-                  {{ $t('clear_filters') }}
-                </DropdownMenuItem>
-              </template>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </PopoverTrigger>
+            <PopoverContent class="w-[220px] p-0" align="start">
+              <Command>
+                <CommandInput :placeholder="$t('search')" />
+                <CommandList>
+                  <CommandEmpty>{{ $t('no_search_results') }}</CommandEmpty>
+                  <CommandGroup>
+                    <CommandItem
+                      v-for="label in uniqueScopes"
+                      :key="label"
+                      :value="label"
+                      @select="toggleScopeLabel(label, !selectedScopeLabels.includes(label))"
+                    >
+                      <Checkbox :checked="selectedScopeLabels.includes(label)" class="mr-2" />
+                      {{ label }}
+                    </CommandItem>
+                  </CommandGroup>
+                  <template v-if="selectedScopes.length > 0">
+                    <CommandSeparator />
+                    <CommandGroup>
+                      <CommandItem :value="$t('clear_filters')" @select="clearScopeFilters">
+                        {{ $t('clear_filters') }}
+                      </CommandItem>
+                    </CommandGroup>
+                  </template>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
 
           <!-- Owner Filter -->
-          <DropdownMenu :modal="false">
-            <DropdownMenuTrigger as-child>
+          <Popover :modal="false">
+            <PopoverTrigger as-child>
               <Button variant="outline" size="sm" class="h-8 border-dashed">
                 <Icon name="filter" class="mr-2 h-4 w-4" />
                 {{ $t('owner') }}
@@ -64,30 +70,39 @@
                   </Badge>
                 </template>
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent class="w-[200px]" align="start">
-              <div class="max-h-[300px] overflow-y-auto">
-                <DropdownMenuCheckboxItem
-                  v-for="owner in uniqueOwners"
-                  :key="owner"
-                  :model-value="selectedOwners.includes(owner)"
-                  @update:model-value="(value) => toggleOwnerFilter(owner, !!value)"
-                >
-                  {{ owner }}
-                </DropdownMenuCheckboxItem>
-              </div>
-              <template v-if="selectedOwners.length > 0">
-                <DropdownMenuSeparator />
-                <DropdownMenuItem @click="clearOwnerFilters">
-                  {{ $t('clear_filters') }}
-                </DropdownMenuItem>
-              </template>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </PopoverTrigger>
+            <PopoverContent class="w-[240px] p-0" align="start">
+              <Command>
+                <CommandInput :placeholder="$t('search')" />
+                <CommandList>
+                  <CommandEmpty>{{ $t('no_search_results') }}</CommandEmpty>
+                  <CommandGroup>
+                    <CommandItem
+                      v-for="owner in uniqueOwners"
+                      :key="owner"
+                      :value="owner"
+                      @select="toggleOwnerFilter(owner, !selectedOwners.includes(owner))"
+                    >
+                      <Checkbox :checked="selectedOwners.includes(owner)" class="mr-2" />
+                      <span class="truncate">{{ owner }}</span>
+                    </CommandItem>
+                  </CommandGroup>
+                  <template v-if="selectedOwners.length > 0">
+                    <CommandSeparator />
+                    <CommandGroup>
+                      <CommandItem :value="$t('clear_filters')" @select="clearOwnerFilters">
+                        {{ $t('clear_filters') }}
+                      </CommandItem>
+                    </CommandGroup>
+                  </template>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
 
           <!-- Forge Filter (only shown when multiple forges configured) -->
-          <DropdownMenu v-if="showForgeColumn" :modal="false">
-            <DropdownMenuTrigger as-child>
+          <Popover v-if="showForgeColumn" :modal="false">
+            <PopoverTrigger as-child>
               <Button variant="outline" size="sm" class="h-8 border-dashed">
                 <Icon name="filter" class="mr-2 h-4 w-4" />
                 {{ $t('forge') }}
@@ -99,29 +114,36 @@
                   </Badge>
                 </template>
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent class="w-[220px]" align="start">
-              <div class="max-h-[300px] overflow-y-auto">
-                <DropdownMenuCheckboxItem
-                  v-for="forge in uniqueForgeNames"
-                  :key="forge"
-                  :model-value="selectedForges.includes(forge)"
-                  @update:model-value="(value) => toggleForgeFilter(forge, !!value)"
-                >
-                  <div class="flex items-center gap-2">
-                    <Icon :name="getForgeIconForName(forge)" class="h-4 w-4 text-muted-foreground" />
-                    <span>{{ forge }}</span>
-                  </div>
-                </DropdownMenuCheckboxItem>
-              </div>
-              <template v-if="selectedForges.length > 0">
-                <DropdownMenuSeparator />
-                <DropdownMenuItem @click="clearForgeFilters">
-                  {{ $t('clear_filters') }}
-                </DropdownMenuItem>
-              </template>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </PopoverTrigger>
+            <PopoverContent class="w-[240px] p-0" align="start">
+              <Command>
+                <CommandInput :placeholder="$t('search')" />
+                <CommandList>
+                  <CommandEmpty>{{ $t('no_search_results') }}</CommandEmpty>
+                  <CommandGroup>
+                    <CommandItem
+                      v-for="forge in uniqueForgeNames"
+                      :key="forge"
+                      :value="forge"
+                      @select="toggleForgeFilter(forge, !selectedForges.includes(forge))"
+                    >
+                      <Checkbox :checked="selectedForges.includes(forge)" class="mr-2" />
+                      <Icon :name="getForgeIconForName(forge)" class="h-4 w-4 text-muted-foreground" />
+                      <span class="truncate">{{ forge }}</span>
+                    </CommandItem>
+                  </CommandGroup>
+                  <template v-if="selectedForges.length > 0">
+                    <CommandSeparator />
+                    <CommandGroup>
+                      <CommandItem :value="$t('clear_filters')" @select="clearForgeFilters">
+                        {{ $t('clear_filters') }}
+                      </CommandItem>
+                    </CommandGroup>
+                  </template>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
 
           <!-- Column Visibility -->
           <DropdownMenu>
@@ -306,11 +328,19 @@ import { Badge } from '~/components/ui/badge';
 import { Button } from '~/components/ui/button';
 import { Checkbox } from '~/components/ui/checkbox';
 import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from '~/components/ui/command';
+import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu';
 import SearchInput from '~/components/ui/input/SearchInput.vue';
