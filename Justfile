@@ -20,7 +20,7 @@ PROTOC_VERSION := "34.1"
 
 # renovate: datasource=go depName=mvdan.cc/gofumpt
 
-GOFUMPT_VERSION := "v0.9.2"
+GOFUMPT_VERSION := "v0.10.0"
 
 # renovate: datasource=go depName=github.com/daixiang0/gci
 
