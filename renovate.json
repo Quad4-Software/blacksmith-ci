@@ -51,6 +51,11 @@
       "allowedVersions": "<2.0.0"
     },
     {
+      "description": "runtime-spec v1.3.0 changed LinuxPids.Limit from int64 to *int64, which breaks podman v5 (<=v5.8.2) and runtime-tools (<=v0.9.0). Revisit once both ship releases supporting v1.3.0.",
+      "matchPackageNames": ["github.com/opencontainers/runtime-spec"],
+      "allowedVersions": "<1.3.0"
+    },
+    {
       "groupName": "golang-lang",
       "matchUpdateTypes": ["minor", "patch"],
       "matchPackageNames": ["/^golang$/", "/xgo/"]
