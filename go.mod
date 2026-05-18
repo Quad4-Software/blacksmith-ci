@@ -256,7 +256,10 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/opencontainers/runc v1.3.4 // indirect
-	github.com/opencontainers/runtime-tools v0.9.1-0.20250523060157-0ea5ed0382a2 // indirect
+	// Pinned to a post-v0.9.0 master commit because the only tagged release (v0.9.0)
+	// is incompatible with runtime-spec v1.3.0 (LinuxPids.Limit became *int64).
+	// Move back to a semver tag once runtime-tools cuts a release > v0.9.0.
+	github.com/opencontainers/runtime-tools v0.9.1-0.20260316125833-8a4db579f5c8 // indirect
 	github.com/opencontainers/selinux v1.13.1 // indirect
 	github.com/oracle/oci-go-sdk/v65 v65.95.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.3.0 // indirect
