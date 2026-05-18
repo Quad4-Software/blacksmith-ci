@@ -40,7 +40,7 @@ PROTOC_GEN_GO_VERSION := "v1.36.11"
 
 # renovate: datasource=go depName=google.golang.org/grpc/cmd/protoc-gen-go-grpc
 
-PROTOC_GEN_GO_GRPC_VERSION := "v1.6.1"
+PROTOC_GEN_GO_GRPC_VERSION := "v1.6.2"
 
 # Set version based on CI environment
 
