@@ -27,7 +27,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v85/github"
+	"github.com/google/go-github/v87/github"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
 
@@ -510,8 +510,15 @@ func (c *client) newClientToken(ctx context.Context, token string) *github.Clien
 			},
 		}
 	}
-	client := github.NewClient(tc)
-	client.BaseURL, _ = url.Parse(c.API)
+	opts := []github.ClientOptionsFunc{github.WithHTTPClient(tc)}
+	if c.API != defaultAPI {
+		opts = append(opts, github.WithEnterpriseURLs(c.url, c.url))
+	}
+	client, err := github.NewClient(opts...)
+	if err != nil {
+		log.Error().Err(err).Str("api", c.API).Msg("failed to create github client, falling back to defaults")
+		client, _ = github.NewClient(github.WithHTTPClient(tc))
+	}
 	return client
 }
 

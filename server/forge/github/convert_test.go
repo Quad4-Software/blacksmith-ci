@@ -18,7 +18,7 @@ package github
 import (
 	"testing"
 
-	"github.com/google/go-github/v85/github"
+	"github.com/google/go-github/v87/github"
 	"github.com/stretchr/testify/assert"
 
 	"codefloe.com/crowci/crow/v5/server/model"
