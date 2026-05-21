@@ -17,9 +17,45 @@ package core
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestBackendProbeTracker(t *testing.T) {
+	probeErr := errors.New("ping failed")
+	start := time.Unix(1_700_000_000, 0)
+
+	t.Run("healthy probes never produce an error", func(t *testing.T) {
+		tracker := backendProbeTracker{maxUnhealthy: time.Minute}
+		assert.NoError(t, tracker.record(start, nil))
+		assert.NoError(t, tracker.record(start.Add(10*time.Minute), nil))
+	})
+
+	t.Run("failures under the threshold return nil and keep the start time", func(t *testing.T) {
+		tracker := backendProbeTracker{maxUnhealthy: time.Minute}
+		assert.NoError(t, tracker.record(start, probeErr))
+		assert.NoError(t, tracker.record(start.Add(30*time.Second), probeErr))
+		assert.Equal(t, start, tracker.unhealthySince, "unhealthySince must be pinned to the first failure, not the latest")
+	})
+
+	t.Run("failure past the threshold returns ErrBackendUnavailable", func(t *testing.T) {
+		tracker := backendProbeTracker{maxUnhealthy: time.Minute}
+		assert.NoError(t, tracker.record(start, probeErr))
+		err := tracker.record(start.Add(61*time.Second), probeErr)
+		assert.ErrorIs(t, err, ErrBackendUnavailable)
+	})
+
+	t.Run("a recovery resets the streak so later failures get a fresh budget", func(t *testing.T) {
+		tracker := backendProbeTracker{maxUnhealthy: time.Minute}
+		assert.NoError(t, tracker.record(start, probeErr))
+		assert.NoError(t, tracker.record(start.Add(30*time.Second), nil), "recovery must clear unhealthySince")
+		assert.True(t, tracker.unhealthySince.IsZero())
+		// New failure window starts here; threshold must not be measured from the original failure.
+		assert.NoError(t, tracker.record(start.Add(45*time.Second), probeErr))
+		assert.NoError(t, tracker.record(start.Add(90*time.Second), probeErr))
+	})
+}
 
 func TestRunWithRecover(t *testing.T) {
 	t.Run("returns nil for non-panicking function", func(t *testing.T) {

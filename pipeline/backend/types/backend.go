@@ -108,6 +108,16 @@ type ResourceCleaner interface {
 	CleanupStaleResources(ctx context.Context, staleThreshold time.Duration) (*CleanupResult, error)
 }
 
+// Pinger is an optional interface that backends can implement to expose a
+// live readiness probe against the underlying engine (Docker daemon,
+// Kubernetes API, …). IsAvailable only checks static prerequisites at
+// startup; Ping is intended to be called periodically while the agent is
+// running so the agent can detect engines that became unreachable after
+// startup (e.g. Docker socket replaced by a daemon upgrade).
+type Pinger interface {
+	Ping(ctx context.Context) error
+}
+
 // CleanupResult holds the results of a stale resource cleanup operation.
 type CleanupResult struct {
 	ContainersFound   int64

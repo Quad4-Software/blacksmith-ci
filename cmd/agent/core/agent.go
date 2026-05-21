@@ -498,6 +498,23 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 		}))
 	}
 
+	// Start backend liveness probe if the engine supports it. This catches
+	// post-startup failures (e.g. host dockerd restart leaving the agent
+	// holding a stale socket) by flipping /healthz to 500 so supervisors
+	// and humans can react. After backendMaxUnhealthyDuration of sustained
+	// failures, the probe returns ErrBackendUnavailable so the agent exits
+	// for restart — same pattern used for gRPC's ErrAgentRestartRequired.
+	if _, ok := backendEngine.(types.Pinger); ok {
+		serviceWaitingGroup.Go(runWithRecover("backend-probe", func() error {
+			err := runBackendProbe(agentCtx, backendEngine)
+			if err != nil && errors.Is(err, ErrBackendUnavailable) {
+				log.Error().Err(err).Msg("backend probe encountered fatal error, agent will exit for restart")
+				stopAgentFunc(err)
+			}
+			return err
+		}))
+	}
+
 	if maxWorkflows == 0 {
 		log.Error().Msg("agent is configured with max-workflows=0, no pipelines will be processed!")
 		log.Error().Msg("set CROW_MAX_WORKFLOWS or WOODPECKER_MAX_WORKFLOWS environment variable to at least 1")
@@ -613,6 +630,114 @@ func stringSliceAddToMap(sl []string, m map[string]string) error {
 type AdoptedWorkflow struct {
 	Workflow *rpc.Workflow
 	TaskUUID string
+}
+
+// ErrBackendUnavailable is returned when the backend engine has been
+// unreachable through Ping for longer than backendMaxUnhealthyDuration. The
+// agent treats this as fatal so its supervisor (Docker/Kubernetes/systemd)
+// restarts the container, which is the only way to recover from situations
+// like a stale Docker socket bind mount after a host dockerd upgrade.
+var ErrBackendUnavailable = errors.New("backend engine unreachable for too long, restart required")
+
+// Backend liveness probe tuning. The interval is short enough that a stale
+// socket is detected within ~minute, the timeout is well under
+// reportHealthInterval so a stuck probe never blocks the rest of the agent,
+// and the max unhealthy duration is long enough to ride out a normal
+// daemon restart (apt upgrade, manual systemctl restart) without giving up
+// so quickly that we churn through container restarts during routine
+// maintenance.
+const (
+	backendProbeInterval        = 15 * time.Second
+	backendProbeTimeout         = 5 * time.Second
+	backendMaxUnhealthyDuration = 3 * time.Minute
+)
+
+// backendProbeTracker decides, given a sequence of probe results, whether
+// the backend has been unhealthy long enough to warrant a fatal agent
+// exit. Extracted from the probe loop so the time-based threshold logic
+// can be unit-tested without spinning real timers.
+type backendProbeTracker struct {
+	maxUnhealthy   time.Duration
+	unhealthySince time.Time // zero means currently healthy
+}
+
+// record applies a single probe result at the given moment and returns a
+// non-nil error iff the backend has been unreachable for longer than the
+// configured threshold. The error wraps ErrBackendUnavailable so callers
+// can identify the cause via errors.Is.
+func (t *backendProbeTracker) record(now time.Time, probeErr error) error {
+	if probeErr == nil {
+		t.unhealthySince = time.Time{}
+		return nil
+	}
+	if t.unhealthySince.IsZero() {
+		t.unhealthySince = now
+	}
+	if now.Sub(t.unhealthySince) > t.maxUnhealthy {
+		return fmt.Errorf("%w (unreachable for %s)", ErrBackendUnavailable, now.Sub(t.unhealthySince).Round(time.Second))
+	}
+	return nil
+}
+
+// runBackendProbe periodically calls Ping on the backend engine, flips the
+// package-level health flag consumed by /healthz, and returns a fatal
+// error after the engine has been unreachable for longer than
+// backendMaxUnhealthyDuration. The probe is started only for backends
+// that implement types.Pinger; for backends that do not, the default-true
+// health flag means /healthz behaves exactly as before.
+func runBackendProbe(ctx context.Context, backendEngine types.Backend) error {
+	pinger, ok := backendEngine.(types.Pinger)
+	if !ok {
+		return nil
+	}
+
+	log.Trace().
+		Str("backend", backendEngine.Name()).
+		Dur("interval", backendProbeInterval).
+		Dur("max_unhealthy_duration", backendMaxUnhealthyDuration).
+		Msg("backend liveness probe started")
+
+	tracker := backendProbeTracker{maxUnhealthy: backendMaxUnhealthyDuration}
+
+	// Returns a non-nil error only when the threshold was crossed; per-call
+	// failures merely flip the /healthz flag and log a warning.
+	probe := func() error {
+		probeCtx, cancel := context.WithTimeout(ctx, backendProbeTimeout)
+		defer cancel()
+		probeErr := pinger.Ping(probeCtx)
+		// Don't act on probe errors that are really just context cancellation
+		// from agent shutdown — those are not backend-unavailability.
+		if probeErr != nil && ctx.Err() != nil {
+			return nil
+		}
+		if probeErr != nil {
+			SetBackendHealthy(false)
+			log.Warn().
+				Err(probeErr).
+				Str("backend", backendEngine.Name()).
+				Msg("backend liveness probe failed; marking agent unhealthy")
+		} else {
+			SetBackendHealthy(true)
+		}
+		return tracker.record(time.Now(), probeErr)
+	}
+
+	// Run the first probe immediately so a backend that is already broken at
+	// agent startup is reflected in /healthz without waiting a full interval.
+	if err := probe(); err != nil {
+		return err
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-time.After(backendProbeInterval):
+			if err := probe(); err != nil {
+				return err
+			}
+		}
+	}
 }
 
 // runDockerCleanup runs a goroutine that periodically cleans up stale Docker resources.

@@ -15,6 +15,8 @@
 package core
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -22,6 +24,34 @@ import (
 
 	"codefloe.com/crowci/crow/v5/agent"
 )
+
+func TestHealthzBackendProbe(t *testing.T) {
+	prev := counter
+	t.Cleanup(func() { counter = prev })
+	counter = &agent.State{Metadata: map[string]agent.Info{}}
+	counter.SetHealthy(true)
+
+	t.Cleanup(func() { SetBackendHealthy(true) })
+
+	// Default: backend assumed healthy → 200.
+	SetBackendHealthy(true)
+	rec := httptest.NewRecorder()
+	handleHeartbeat(rec, httptest.NewRequest(http.MethodGet, "/healthz", nil))
+	assert.Equal(t, http.StatusOK, rec.Code, "healthy counter + healthy backend should return 200")
+
+	// Backend probe failing → 500 even though counter is healthy.
+	SetBackendHealthy(false)
+	rec = httptest.NewRecorder()
+	handleHeartbeat(rec, httptest.NewRequest(http.MethodGet, "/healthz", nil))
+	assert.Equal(t, http.StatusInternalServerError, rec.Code, "healthy counter + unhealthy backend should return 500")
+
+	// Counter unhealthy → 500 regardless of backend state.
+	counter.SetHealthy(false)
+	SetBackendHealthy(true)
+	rec = httptest.NewRecorder()
+	handleHeartbeat(rec, httptest.NewRequest(http.MethodGet, "/healthz", nil))
+	assert.Equal(t, http.StatusInternalServerError, rec.Code, "unhealthy counter should return 500 even if backend is healthy")
+}
 
 func TestHealthy(t *testing.T) {
 	s := agent.State{}

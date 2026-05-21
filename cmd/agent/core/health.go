@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync/atomic"
 
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v3"
@@ -39,11 +40,28 @@ func initHealth() {
 }
 
 func handleHeartbeat(w http.ResponseWriter, _ *http.Request) {
-	if counter.Healthy() {
+	if counter.Healthy() && backendHealthy.Load() {
 		w.WriteHeader(http.StatusOK)
 	} else {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
+}
+
+// backendHealthy reflects the most recent result of the periodic backend
+// engine probe. It defaults to true so backends that do not implement the
+// Pinger interface (or before the first probe runs) are not reported as
+// unhealthy.
+var backendHealthy = func() *atomic.Bool {
+	var b atomic.Bool
+	b.Store(true)
+	return &b
+}()
+
+// SetBackendHealthy records whether the backend engine is currently
+// reachable. Called by the backend probe goroutine in agent.go and from
+// tests.
+func SetBackendHealthy(healthy bool) {
+	backendHealthy.Store(healthy)
 }
 
 func handleVersion(w http.ResponseWriter, _ *http.Request) {

@@ -17,6 +17,7 @@ package docker
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"os"
@@ -75,6 +76,19 @@ func (e *docker) IsAvailable(ctx context.Context) bool {
 	}
 	_, err := os.Stat("/var/run/docker.sock")
 	return err == nil
+}
+
+// Ping checks that the Docker daemon is reachable through the live API
+// client. This detects post-startup failures that IsAvailable cannot — for
+// example, when the host's dockerd is restarted (e.g. by an unattended
+// package upgrade) and the agent container's bind-mounted socket still
+// references the unlinked inode of the previous socket file.
+func (e *docker) Ping(ctx context.Context) error {
+	if e.client == nil {
+		return errors.New("docker client not initialized")
+	}
+	_, err := e.client.Ping(ctx)
+	return err
 }
 
 func httpClientOfOpts(dockerCertPath string, verifyTLS bool) *http.Client {
