@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build !windows
+
 // Package podman provides an experimental Podman backend for running pipeline steps.
 // It uses the native Podman Go bindings SDK for direct communication with Podman.
 //

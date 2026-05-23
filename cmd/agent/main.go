@@ -21,20 +21,8 @@ import (
 
 	"codefloe.com/crowci/crow/v5/cmd/agent/core"
 	"codefloe.com/crowci/crow/v5/pipeline"
-	"codefloe.com/crowci/crow/v5/pipeline/backend/docker"
-	"codefloe.com/crowci/crow/v5/pipeline/backend/kubernetes"
-	"codefloe.com/crowci/crow/v5/pipeline/backend/local"
-	"codefloe.com/crowci/crow/v5/pipeline/backend/podman"
-	backendTypes "codefloe.com/crowci/crow/v5/pipeline/backend/types"
 	"codefloe.com/crowci/crow/v5/shared/utils"
 )
-
-var backends = []backendTypes.Backend{
-	kubernetes.New(),
-	docker.New(),
-	podman.New(),
-	local.New(),
-}
 
 func main() {
 	ctx := utils.WithContextSigtermCallback(context.Background(), func() {
