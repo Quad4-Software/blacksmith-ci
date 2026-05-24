@@ -572,6 +572,13 @@
       "details": "Details",
       "exit_code_label": "Exit Code:",
       "agent_label": "Agent:",
+      "agent_tooltip": {
+        "platform": "Platform",
+        "backend": "Backend",
+        "workflows": "Workflows",
+        "limit_mem": "Memory",
+        "limit_cpu_quota": "CPU"
+      },
       "duration_label": "Duration:",
       "metadata": {
         "title": "Metadata",

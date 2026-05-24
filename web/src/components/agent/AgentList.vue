@@ -159,14 +159,14 @@
                   <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
                   <span v-if="agent.backend === 'docker'" class="text-xs text-muted-foreground">
                     {{ $t('admin.settings.agents.limit_mem') }}<span aria-hidden="true">:</span>
-                    {{ formatBytes(agent.limit_mem) }}
+                    {{ formatBytes(agent.limit_mem, t) }}
                   </span>
                   <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
                   <!-- Docker CPU Quota -->
                   <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
                   <span v-if="agent.backend === 'docker'" class="text-xs text-muted-foreground">
                     {{ $t('admin.settings.agents.limit_cpu_quota') }}<span aria-hidden="true">:</span>
-                    {{ formatCPUQuota(agent.limit_cpu_quota) }}
+                    {{ formatCPUQuota(agent.limit_cpu_quota, t) }}
                   </span>
                   <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
                 </div>
@@ -191,11 +191,11 @@
                     <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
                     <span class="text-xs text-muted-foreground min-w-[50px]">
                       Mem/Workflow<span aria-hidden="true">:</span>
-                      {{ formatBytes(agent.limit_mem) }}
+                      {{ formatBytes(agent.limit_mem, t) }}
                     </span>
                     <span class="text-xs text-muted-foreground min-w-[50px]">
                       CPU/Workflow<span aria-hidden="true">:</span>
-                      {{ formatCPUQuota(agent.limit_cpu_quota) }}
+                      {{ formatCPUQuota(agent.limit_cpu_quota, t) }}
                     </span>
                     <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
                   </div>
@@ -464,6 +464,7 @@ import { Separator } from '~/components/ui/separator';
 import { useDate } from '~/compositions/useDate';
 import useConfig from '~/compositions/useConfig';
 import type { Agent } from '~/lib/api/types';
+import { formatBytes, formatCPUQuota } from '~/lib/agent-utils';
 import type { SelectOption } from '~/components/form/form.types';
 
 const props = defineProps<{
@@ -500,22 +501,6 @@ function getAgentDisplayName(agent: Agent): string {
 const date = useDate();
 const { t } = useI18n();
 const config = useConfig();
-
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return t('admin.settings.agents.unlimited');
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${Math.round((bytes / k ** i) * 100) / 100} ${sizes[i]}`;
-}
-
-function formatCPUQuota(quota: number): string {
-  // CPU quota is in microseconds per 100ms period
-  // 100000 = 1 CPU core, 200000 = 2 CPU cores, etc.
-  if (quota === 0) return t('admin.settings.agents.unlimited');
-  const cores = quota / 100000;
-  return cores >= 1 ? `${cores}` : `${quota}µs`;
-}
 
 // Check if agent version differs from server version
 function isVersionMismatch(agentVersion: string): boolean {

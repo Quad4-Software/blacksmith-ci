@@ -169,18 +169,47 @@
             <!-- Spacer -->
             <span class="flex-1" />
             <!-- Agent -->
-            <a
-              v-if="workflow.agent_id"
-              :href="repoPermissions?.admin ? '/admin/agents/' : '/user/agents/'"
-              class="shrink-0 text-primary hover:text-primary/80 flex items-center gap-1"
-              :title="getAgentDisplay(workflow.agent_id)"
-              @click.stop
-            >
-              <Icon name="agent" class="w-3.5 h-3.5" />
-              <span class="text-xs hidden lg:inline truncate max-w-[100px]">
-                {{ getAgentDisplay(workflow.agent_id) }}
-              </span>
-            </a>
+            <TooltipProvider v-if="workflow.agent_id">
+              <Tooltip>
+                <TooltipTrigger as-child>
+                  <a
+                    :href="repoPermissions?.admin ? '/admin/agents/' : '/user/agents/'"
+                    class="shrink-0 text-primary hover:text-primary/80 flex items-center gap-1"
+                    @click.stop
+                  >
+                    <Icon name="agent" class="w-3.5 h-3.5" />
+                    <span class="text-xs hidden lg:inline truncate max-w-[100px]">
+                      {{ getAgentDisplay(workflow.agent_id) }}
+                    </span>
+                  </a>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
+                    <div class="col-span-2 font-medium text-foreground mb-1">
+                      {{ getAgent(workflow.agent_id)?.name ?? `#${workflow.agent_id}` }}
+                    </div>
+                    <template v-if="getAgent(workflow.agent_id)">
+                      <span class="text-muted-foreground">{{ $t('repo.pipeline.agent_tooltip.platform') }}</span>
+                      <span>{{ getAgent(workflow.agent_id)!.platform }}</span>
+                      <span class="text-muted-foreground">{{ $t('repo.pipeline.agent_tooltip.backend') }}</span>
+                      <span>{{ getAgent(workflow.agent_id)!.backend }}</span>
+                      <span class="text-muted-foreground">{{ $t('repo.pipeline.agent_tooltip.workflows') }}</span>
+                      <span>{{
+                        `${getAgent(workflow.agent_id)!.running_workflows} / ${getAgent(workflow.agent_id)!.capacity}`
+                      }}</span>
+                      <template v-if="getAgent(workflow.agent_id)!.backend === 'docker'">
+                        <span class="text-muted-foreground">{{ $t('repo.pipeline.agent_tooltip.limit_mem') }}</span>
+                        <span>{{ formatBytes(getAgent(workflow.agent_id)!.limit_mem, $t) }}</span>
+                        <span class="text-muted-foreground">{{
+                          $t('repo.pipeline.agent_tooltip.limit_cpu_quota')
+                        }}</span>
+                        <span>{{ formatCPUQuota(getAgent(workflow.agent_id)!.limit_cpu_quota, $t) }}</span>
+                      </template>
+                    </template>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <!-- Rerun -->
             <IconButton
               v-if="hasPushPermission && workflow.state !== 'pending' && workflow.state !== 'running'"
@@ -310,6 +339,7 @@ import IconButton from '~/components/atomic/IconButton.vue';
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
 import PipelineStepDuration from '~/components/repo/pipeline/PipelineStepDuration.vue';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
+import { formatBytes, formatCPUQuota } from '~/lib/agent-utils';
 import {
   Combobox,
   ComboboxAnchor,
@@ -329,7 +359,7 @@ import {
 } from '~/components/ui/dropdown-menu';
 import { requiredInject } from '~/compositions/useInjectProvide';
 import { StepType } from '~/lib/api/types';
-import type { PipelineStatus, PipelineStep, PipelineWorkflow } from '~/lib/api/types';
+import type { Agent, PipelineStatus, PipelineStep, PipelineWorkflow } from '~/lib/api/types';
 import type { StepTreeNode } from '~/lib/pipeline-utils';
 import {
   aggregateWorkflowDuration,
@@ -344,7 +374,7 @@ const props = defineProps<{
   allWorkflows: PipelineWorkflow[];
   groupName: string;
   selectedStepId?: number | null;
-  agentDetails: Record<number, { name?: string }>;
+  agentDetails: Record<number, Agent>;
   isCancelingWorkflow: Record<number, boolean>;
   isRerunningWorkflow: Record<number, boolean>;
   isRerunningStep: Record<number, boolean>;
@@ -588,6 +618,10 @@ function switchAttempt(targetAttempt: PipelineWorkflow) {
 
 function getAgentDisplay(agentId: number): string {
   return props.agentDetails[agentId]?.name || '';
+}
+
+function getAgent(agentId: number): Agent | undefined {
+  return props.agentDetails[agentId];
 }
 
 function isStepCompleted(step: PipelineStep) {

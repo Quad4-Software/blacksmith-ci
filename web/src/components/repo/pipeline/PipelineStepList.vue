@@ -169,18 +169,49 @@
                 <!-- Spacer -->
                 <span class="flex-1" />
                 <!-- Agent -->
-                <a
-                  v-if="group.workflows[0].agent_id"
-                  :href="repoPermissions?.admin ? '/admin/agents/' : '/user/agents/'"
-                  class="shrink-0 text-primary hover:text-primary/80 flex items-center gap-1.5"
-                  :title="getAgentDisplay(group.workflows[0].agent_id) || 'Agent'"
-                  @click.stop
-                >
-                  <Icon name="agent" class="w-4 h-4" />
-                  <span class="text-sm hidden lg:inline truncate max-w-[100px]">
-                    {{ getAgentDisplay(group.workflows[0].agent_id) }}
-                  </span>
-                </a>
+                <TooltipProvider v-if="group.workflows[0].agent_id">
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <a
+                        :href="repoPermissions?.admin ? '/admin/agents/' : '/user/agents/'"
+                        class="shrink-0 text-primary hover:text-primary/80 flex items-center gap-1.5"
+                        @click.stop
+                      >
+                        <Icon name="agent" class="w-4 h-4" />
+                        <span class="text-sm hidden lg:inline truncate max-w-[100px]">
+                          {{ getAgentDisplay(group.workflows[0].agent_id) }}
+                        </span>
+                      </a>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
+                        <div class="col-span-2 font-medium text-foreground mb-1">
+                          {{ getAgent(group.workflows[0].agent_id)?.name ?? `#${group.workflows[0].agent_id}` }}
+                        </div>
+                        <template v-if="getAgent(group.workflows[0].agent_id)">
+                          <span class="text-muted-foreground">{{ $t('repo.pipeline.agent_tooltip.platform') }}</span>
+                          <span>{{ getAgent(group.workflows[0].agent_id)!.platform }}</span>
+                          <span class="text-muted-foreground">{{ $t('repo.pipeline.agent_tooltip.backend') }}</span>
+                          <span>{{ getAgent(group.workflows[0].agent_id)!.backend }}</span>
+                          <span class="text-muted-foreground">{{ $t('repo.pipeline.agent_tooltip.workflows') }}</span>
+                          <span>{{
+                            `${getAgent(group.workflows[0].agent_id)!.running_workflows} / ${getAgent(group.workflows[0].agent_id)!.capacity}`
+                          }}</span>
+                          <template v-if="getAgent(group.workflows[0].agent_id)!.backend === 'docker'">
+                            <span class="text-muted-foreground">{{ $t('repo.pipeline.agent_tooltip.limit_mem') }}</span>
+                            <span>{{ formatBytes(getAgent(group.workflows[0].agent_id)!.limit_mem, $t) }}</span>
+                            <span class="text-muted-foreground">{{
+                              $t('repo.pipeline.agent_tooltip.limit_cpu_quota')
+                            }}</span>
+                            <span>{{
+                              formatCPUQuota(getAgent(group.workflows[0].agent_id)!.limit_cpu_quota, $t)
+                            }}</span>
+                          </template>
+                        </template>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
                 <!-- Rerun -->
                 <IconButton
                   v-if="hasPushPermission && isWorkflowCompleted(group.workflows[0])"
@@ -345,7 +376,8 @@ import usePipeline from '~/compositions/usePipeline';
 import useApiClient from '~/compositions/useApiClient';
 import useNotifications from '~/compositions/useNotifications';
 import { StepType } from '~/lib/api/types';
-import type { Pipeline, PipelineStep, PipelineWorkflow } from '~/lib/api/types';
+import type { Agent, Pipeline, PipelineStep, PipelineWorkflow } from '~/lib/api/types';
+import { formatBytes, formatCPUQuota } from '~/lib/agent-utils';
 import type { StepTreeNode } from '~/lib/pipeline-utils';
 import {
   identifyMatrixGroups,
@@ -423,7 +455,7 @@ const workflowsCollapsed = ref<Record<PipelineStep['id'], boolean>>(
 const isCancelingWorkflow = ref<Record<number, boolean>>({});
 const isRerunningWorkflow = ref<Record<number, boolean>>({});
 const isRerunningStep = ref<Record<number, boolean>>({});
-const agentDetails = ref<Record<number, { name?: string }>>({});
+const agentDetails = ref<Record<number, Agent>>({});
 
 const hasPushPermission = computed(() => repoPermissions.value && repoPermissions.value.push);
 
@@ -434,6 +466,10 @@ function toggleWorkflow(id: number) {
 function getAgentDisplay(agentId: number): string {
   const agent = agentDetails.value[agentId];
   return agent?.name || '';
+}
+
+function getAgent(agentId: number): Agent | undefined {
+  return agentDetails.value[agentId];
 }
 
 async function loadAgentDetails() {
@@ -456,14 +492,13 @@ async function loadAgentDetails() {
   }
 
   // Load details for each agent
-  const details: Record<number, { name?: string }> = {};
+  const details: Record<number, Agent> = {};
   for (const agentId of agentIds) {
     try {
       const agent = await apiClient.getAgent(agentId);
       details[agentId] = agent;
     } catch (error) {
       console.warn(`Failed to load agent ${agentId}:`, error);
-      details[agentId] = {};
     }
   }
 
