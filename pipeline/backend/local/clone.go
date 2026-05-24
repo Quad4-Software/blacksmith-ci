@@ -24,6 +24,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/rs/zerolog/log"
@@ -35,6 +36,37 @@ import (
 func checkGitCloneCap() error {
 	_, err := exec.LookPath("git")
 	return err
+}
+
+// gitCloneEnv augments the clone command's environment with:
+//
+//  1. GIT_TERMINAL_PROMPT=0 and GCM_INTERACTIVE=Never — git and the
+//     Windows-bundled Git Credential Manager refuse to interactively prompt
+//     for credentials. Without these, missing or wrong credentials cause an
+//     indefinite hang on a headless agent instead of a fast failure.
+//
+//  2. The CI_NETRC_* family from the step environment — these are added by
+//     the server's pipeline compiler so the clone plugin can authenticate.
+//     They get stripped from the regular subprocess env by StartStep's
+//     notAllowedEnvVarOverwrites filter (which is meant to stop user pipeline
+//     YAML from overriding them but accidentally also blocks the legitimate
+//     server-set values). Re-add them here for the clone step specifically.
+func gitCloneEnv(base []string, stepEnv map[string]string) []string {
+	out := slices.Clone(base)
+	out = append(out,
+		"GIT_TERMINAL_PROMPT=0",
+		"GCM_INTERACTIVE=Never",
+	)
+	for _, k := range []string{
+		"CI_NETRC_MACHINE",
+		"CI_NETRC_USERNAME",
+		"CI_NETRC_PASSWORD",
+	} {
+		if v, ok := stepEnv[k]; ok && v != "" {
+			out = append(out, k+"="+v)
+		}
+	}
+	return out
 }
 
 // loadClone on backend start determine if there is a global plugin-clone binary.
@@ -98,7 +130,7 @@ func (e *local) execClone(ctx context.Context, step *types.Step, state *workflow
 		// if we have NO netrc, we can just exec the clone directly
 		cmd = exec.CommandContext(ctx, state.cloneBinary)
 	}
-	cmd.Env = env
+	cmd.Env = gitCloneEnv(env, step.Environment)
 	cmd.Dir = state.workspaceDir
 
 	// Wrap with sandbox if enabled
