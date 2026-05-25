@@ -83,7 +83,7 @@ type GetAgentInput struct {
 }
 
 type GetAgentOutput struct {
-	Body *model.Agent
+	Body *model.AgentWithStats
 }
 
 func GetAgent(ctx context.Context, input *GetAgentInput) (*GetAgentOutput, error) {
@@ -92,7 +92,19 @@ func GetAgent(ctx context.Context, input *GetAgentInput) (*GetAgentOutput, error
 	if err != nil {
 		return nil, dbErr(err)
 	}
-	return &GetAgentOutput{Body: agent}, nil
+
+	info := server.Config.Services.Queue.Info(c)
+	running := 0
+	for _, task := range info.Running {
+		if task.AgentID == agent.ID {
+			running++
+		}
+	}
+
+	return &GetAgentOutput{Body: &model.AgentWithStats{
+		Agent:            *agent,
+		RunningWorkflows: running,
+	}}, nil
 }
 
 type GetAgentTasksInput struct {

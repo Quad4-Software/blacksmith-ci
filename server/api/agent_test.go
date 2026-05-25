@@ -89,6 +89,10 @@ func TestGetAgent(t *testing.T) {
 		mockStore := new(store_mocks.MockStore)
 		mockStore.On("AgentFind", int64(1)).Return(fakeAgent, nil)
 
+		mockQueue := new(queue_mocks.MockQueue)
+		mockQueue.On("Info", mock.Anything).Return(queue.InfoT{})
+		server.Config.Services.Queue = mockQueue
+
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Set("store", mockStore)
@@ -97,9 +101,12 @@ func TestGetAgent(t *testing.T) {
 		output, err := GetAgent(testCtx(c), &GetAgentInput{AgentID: 1})
 
 		mockStore.AssertCalled(t, "AgentFind", int64(1))
+		mockQueue.AssertCalled(t, "Info", mock.Anything)
 		assert.NoError(t, err)
 		assert.NotNil(t, output)
-		assert.Equal(t, fakeAgent, output.Body)
+		assert.Equal(t, fakeAgent.ID, output.Body.ID)
+		assert.Equal(t, fakeAgent.Name, output.Body.Name)
+		assert.Equal(t, 0, output.Body.RunningWorkflows)
 	})
 
 	t.Run("should return not found for non-existent agent", func(t *testing.T) {

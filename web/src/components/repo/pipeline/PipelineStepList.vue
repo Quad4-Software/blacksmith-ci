@@ -185,24 +185,22 @@
                     </TooltipTrigger>
                     <TooltipContent>
                       <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
-                        <div class="col-span-2 font-medium text-foreground mb-1">
+                        <div class="col-span-2 font-medium mb-1">
                           {{ getAgent(group.workflows[0].agent_id)?.name ?? `#${group.workflows[0].agent_id}` }}
                         </div>
                         <template v-if="getAgent(group.workflows[0].agent_id)">
-                          <span class="text-muted-foreground">{{ $t('repo.pipeline.agent_tooltip.platform') }}</span>
+                          <span class="opacity-70">{{ $t('repo.pipeline.agent_tooltip.platform') }}</span>
                           <span>{{ getAgent(group.workflows[0].agent_id)!.platform }}</span>
-                          <span class="text-muted-foreground">{{ $t('repo.pipeline.agent_tooltip.backend') }}</span>
+                          <span class="opacity-70">{{ $t('repo.pipeline.agent_tooltip.backend') }}</span>
                           <span>{{ getAgent(group.workflows[0].agent_id)!.backend }}</span>
-                          <span class="text-muted-foreground">{{ $t('repo.pipeline.agent_tooltip.workflows') }}</span>
+                          <span class="opacity-70">{{ $t('repo.pipeline.agent_tooltip.workflows') }}</span>
                           <span>{{
                             `${getAgent(group.workflows[0].agent_id)!.running_workflows} / ${getAgent(group.workflows[0].agent_id)!.capacity}`
                           }}</span>
                           <template v-if="getAgent(group.workflows[0].agent_id)!.backend === 'docker'">
-                            <span class="text-muted-foreground">{{ $t('repo.pipeline.agent_tooltip.limit_mem') }}</span>
+                            <span class="opacity-70">{{ $t('repo.pipeline.agent_tooltip.limit_mem') }}</span>
                             <span>{{ formatBytes(getAgent(group.workflows[0].agent_id)!.limit_mem, $t) }}</span>
-                            <span class="text-muted-foreground">{{
-                              $t('repo.pipeline.agent_tooltip.limit_cpu_quota')
-                            }}</span>
+                            <span class="opacity-70">{{ $t('repo.pipeline.agent_tooltip.limit_cpu_quota') }}</span>
                             <span>{{
                               formatCPUQuota(getAgent(group.workflows[0].agent_id)!.limit_cpu_quota, $t)
                             }}</span>
