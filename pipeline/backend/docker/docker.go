@@ -24,6 +24,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/containerd/errdefs"
 	"github.com/docker/docker/api/types/container"
@@ -80,11 +81,33 @@ func defaultDockerEndpoint() string {
 	return "/var/run/docker.sock"
 }
 
+// isAvailableTimeout caps the Ping attempt in IsAvailable. The local Docker
+// daemon usually responds in <10ms; if it doesn't (e.g. crashed mid-startup),
+// blocking longer just delays the agent picking another backend.
+const isAvailableTimeout = 2 * time.Second
+
 func (e *docker) IsAvailable(ctx context.Context) bool {
 	if c, ok := ctx.Value(backend.CliCommand).(*cli.Command); ok {
 		if c.IsSet("backend-docker-host") {
 			return true
 		}
+	}
+	// On Linux the Unix socket exists as a real file and os.Stat is fast and
+	// reliable. On Windows the Docker daemon listens on a named pipe; Go's
+	// os.Stat behavior on \\.\pipe\* paths is conservative and returns
+	// errors even when the pipe is present (Test-Path / CreateFile succeed
+	// against the same path). Use a real client ping there — slower in the
+	// missing-daemon case but the only signal that's actually reliable.
+	if runtime.GOOS == "windows" {
+		cl, err := client.NewClientWithOpts(client.WithAPIVersionNegotiation())
+		if err != nil {
+			return false
+		}
+		defer cl.Close()
+		pingCtx, cancel := context.WithTimeout(ctx, isAvailableTimeout)
+		defer cancel()
+		_, err = cl.Ping(pingCtx)
+		return err == nil
 	}
 	_, err := os.Stat(defaultDockerEndpoint())
 	return err == nil
