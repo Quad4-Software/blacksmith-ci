@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/containerd/errdefs"
@@ -68,13 +69,24 @@ func (e *docker) Name() string {
 	return EngineName
 }
 
+// defaultDockerEndpoint returns the local Docker daemon endpoint path the
+// agent should probe when DOCKER_HOST / --backend-docker-host isn't set.
+// Matches the Docker SDK's default-host selection: Unix domain socket on
+// Linux/macOS, named pipe on Windows.
+func defaultDockerEndpoint() string {
+	if runtime.GOOS == "windows" {
+		return `\\.\pipe\docker_engine`
+	}
+	return "/var/run/docker.sock"
+}
+
 func (e *docker) IsAvailable(ctx context.Context) bool {
 	if c, ok := ctx.Value(backend.CliCommand).(*cli.Command); ok {
 		if c.IsSet("backend-docker-host") {
 			return true
 		}
 	}
-	_, err := os.Stat("/var/run/docker.sock")
+	_, err := os.Stat(defaultDockerEndpoint())
 	return err == nil
 }
 
