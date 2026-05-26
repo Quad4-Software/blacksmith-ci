@@ -30,8 +30,14 @@ func TestGenerateContainerConf(t *testing.T) {
 	assert.Equal(t, windowsScriptBase64, gotEnv["CI_SCRIPT"])
 	assert.Equal(t, "powershell.exe", gotEnv["SHELL"])
 	assert.Equal(t, []string{
-		"cmd", "/c",
-		`if exist "C:\Program Files\PowerShell\7\pwsh.exe" ("C:\Program Files\PowerShell\7\pwsh.exe" -noprofile -noninteractive -command "[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($Env:CI_SCRIPT)) | iex") else if exist "C:\Program Files\PowerShell\pwsh.exe" ("C:\Program Files\PowerShell\pwsh.exe" -noprofile -noninteractive -command "[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($Env:CI_SCRIPT)) | iex") else if exist "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" ("C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -noprofile -noninteractive -command "[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($Env:CI_SCRIPT)) | iex") else (echo Neither pwsh.exe nor powershell.exe found in the container 1>&2 & exit /b 1)`,
+		"cmd", "/v:on", "/c",
+		`set "PWSH=" & ` +
+			`if exist "C:\Program Files\PowerShell\7\pwsh.exe" set "PWSH=C:\Program Files\PowerShell\7\pwsh.exe" & ` +
+			`if not defined PWSH if exist "C:\Program Files\PowerShell\pwsh.exe" set "PWSH=C:\Program Files\PowerShell\pwsh.exe" & ` +
+			`if not defined PWSH if exist "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" set "PWSH=C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" & ` +
+			`if not defined PWSH echo Neither pwsh.exe nor powershell.exe found in the container 1>&2 & ` +
+			`if not defined PWSH exit /b 1 & ` +
+			`"!PWSH!" -NoProfile -NonInteractive -Command "Invoke-Expression([System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($env:CI_SCRIPT)))"`,
 	}, gotEntry)
 	gotEnv, gotEntry = GenerateContainerConf([]string{"echo hello world"}, "linux", "/woodpecker/some")
 	assert.Equal(t, posixScriptBase64, gotEnv["CI_SCRIPT"])
