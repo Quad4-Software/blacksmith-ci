@@ -424,7 +424,10 @@ func TestToWindowsConfig(t *testing.T) {
 		WorkingDir:   "C:/src",
 		AttachStdout: true,
 		AttachStderr: true,
-		Entrypoint:   []string{"powershell", "-noprofile", "-noninteractive", "-command", "[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($Env:CI_SCRIPT)) | iex"},
+		Entrypoint: []string{
+			"cmd", "/c",
+			`where pwsh >NUL 2>&1 & if errorlevel 1 (powershell -noprofile -noninteractive -command "[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($Env:CI_SCRIPT)) | iex") else (pwsh -noprofile -noninteractive -command "[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($Env:CI_SCRIPT)) | iex")`,
+		},
 		Labels: map[string]string{
 			"wp_step":     "test",
 			"wp_uuid":     "23434553",
