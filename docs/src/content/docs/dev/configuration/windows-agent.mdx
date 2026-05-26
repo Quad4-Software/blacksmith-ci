@@ -39,7 +39,8 @@ For Windows clone steps:
 - Output streams to the UI via the same `TailStep` path as container steps.
 - When the process exits, the netrc dir is wiped from disk.
 
-For every other Windows step, Crow uses the normal `docker run` path with one twist: the container entrypoint is `cmd.exe`, which picks `pwsh.exe` when present and falls back to `powershell.exe` otherwise.
+For every other Windows step, Crow uses the normal `docker run` path with `pwsh` as the container entrypoint.
+The agent passes the script payload through `$env:CI_SCRIPT` and invokes `pwsh -NoProfile -NonInteractive -Command "Invoke-Expression(...)"` to decode and execute it.
 
 ## Host Requirements
 
@@ -59,20 +60,20 @@ You can stop or disable that service via user-data if it bothers you.
 
 ## Recommended Container Images
 
-Step images differ wildly in what's installed.
-Crow's entrypoint needs **either** `pwsh.exe` (PowerShell 7+) **or** `powershell.exe` (Windows PowerShell 5.1) on PATH.
+Step images **must have `pwsh` (PowerShell 7+) on PATH**.
+Crow invokes `pwsh` directly as the container entrypoint to sidestep cmd.exe's argument-quoting quirks, which silently corrupt our launcher when interleaved with Docker's standard argv escaping.
+Windows PowerShell 5.1 (`powershell.exe`) is not supported as an entrypoint.
 
-| Image                                                       | PowerShell             | Approx. size on disk | When to pick                                                       |
-| ----------------------------------------------------------- | ---------------------- | -------------------- | ------------------------------------------------------------------ |
-| `mcr.microsoft.com/powershell:nanoserver-ltsc2022`          | `pwsh.exe` (7+)        | ~290 MB              | **Default**. Smallest image with PowerShell.                       |
-| `mcr.microsoft.com/powershell:windowsservercore-ltsc2022`   | Both                   | ~3 GB                | You need both PowerShell editions or full Server Core APIs.        |
-| `mcr.microsoft.com/windows/servercore:ltsc2022`             | `powershell.exe` (5.1) | ~2 GB                | Legacy code that requires Windows PowerShell specifically.         |
-| `mcr.microsoft.com/windows/nanoserver:ltsc2022`             | None                   | ~120 MB              | Only useful if your step shells out to `cmd.exe` directly.         |
+| Image                                                       | Works | Approx. size on disk | Notes                                                              |
+| ----------------------------------------------------------- | ----- | -------------------- | ------------------------------------------------------------------ |
+| `mcr.microsoft.com/powershell:nanoserver-ltsc2022`          | ✅    | ~290 MB              | **Default**. Smallest image with PowerShell 7 on PATH.             |
+| `mcr.microsoft.com/powershell:windowsservercore-ltsc2022`   | ✅    | ~3 GB                | Full Server Core APIs plus both PowerShell editions.               |
+| `mcr.microsoft.com/windows/servercore:ltsc2022`             | ❌    | ~2 GB                | Only ships `powershell.exe` (5.1), no `pwsh`. Use the `powershell:windowsservercore-*` variant instead. |
+| `mcr.microsoft.com/windows/nanoserver:ltsc2022`             | ❌    | ~120 MB              | Only ships `cmd.exe`. Use the `powershell:nanoserver-*` variant instead. |
 
 :::caution
-The bare `mcr.microsoft.com/windows/nanoserver:*` image ships **only `cmd.exe`** — no PowerShell at all.
-Steps that run in it will fail at `hcs::System::CreateProcess` with `0x2` (file not found) because Crow's entrypoint can't find an interpreter.
-Use the `mcr.microsoft.com/powershell:nanoserver-*` variant instead.
+If your image doesn't have `pwsh` on PATH, every step fails immediately with `hcs::System::CreateProcess: pwsh: ... The system cannot find the file specified (0x2)`.
+The fix is to switch to one of the `mcr.microsoft.com/powershell:*` variants, or add `pwsh` to your custom image and ensure it's on PATH.
 :::
 
 ## Routing Workflows

@@ -425,14 +425,8 @@ func TestToWindowsConfig(t *testing.T) {
 		AttachStdout: true,
 		AttachStderr: true,
 		Entrypoint: []string{
-			"cmd", "/v:on", "/c",
-			`set "PWSH=" & ` +
-				`if exist "C:\Program Files\PowerShell\7\pwsh.exe" set "PWSH=C:\Program Files\PowerShell\7\pwsh.exe" & ` +
-				`if not defined PWSH if exist "C:\Program Files\PowerShell\pwsh.exe" set "PWSH=C:\Program Files\PowerShell\pwsh.exe" & ` +
-				`if not defined PWSH if exist "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" set "PWSH=C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" & ` +
-				`if not defined PWSH echo Neither pwsh.exe nor powershell.exe found in the container 1>&2 & ` +
-				`if not defined PWSH exit /b 1 & ` +
-				`"!PWSH!" -NoProfile -NonInteractive -Command "Invoke-Expression([System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($env:CI_SCRIPT)))"`,
+			"pwsh", "-NoProfile", "-NonInteractive", "-Command",
+			`Invoke-Expression([System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($env:CI_SCRIPT)))`,
 		},
 		Labels: map[string]string{
 			"wp_step":     "test",
@@ -444,7 +438,7 @@ func TestToWindowsConfig(t *testing.T) {
 		Env: []string{
 			"CI_SCRIPT=CiRFcnJvckFjdGlvblByZWZlcmVuY2UgPSAnU3RvcCc7CmlmICgtbm90IChUZXN0LVBhdGggIkM6L3NyYy9hYmMiKSkgeyBOZXctSXRlbSAtUGF0aCAiQzovc3JjL2FiYyIgLUl0ZW1UeXBlIERpcmVjdG9yeSAtRm9yY2UgfTsKaWYgKC1ub3QgW0Vudmlyb25tZW50XTo6R2V0RW52aXJvbm1lbnRWYXJpYWJsZSgnSE9NRScpKSB7IFtFbnZpcm9ubWVudF06OlNldEVudmlyb25tZW50VmFyaWFibGUoJ0hPTUUnLCAnYzpccm9vdCcpIH07CmlmICgtbm90IChUZXN0LVBhdGggIiRlbnY6SE9NRSIpKSB7IE5ldy1JdGVtIC1QYXRoICIkZW52OkhPTUUiIC1JdGVtVHlwZSBEaXJlY3RvcnkgLUZvcmNlIH07CmlmICgkRW52OkNJX05FVFJDX01BQ0hJTkUpIHsKJG5ldHJjPVtzdHJpbmddOjpGb3JtYXQoInswfVxfbmV0cmMiLCRFbnY6SE9NRSk7CiJtYWNoaW5lICRFbnY6Q0lfTkVUUkNfTUFDSElORSIgPj4gJG5ldHJjOwoibG9naW4gJEVudjpDSV9ORVRSQ19VU0VSTkFNRSIgPj4gJG5ldHJjOwoicGFzc3dvcmQgJEVudjpDSV9ORVRSQ19QQVNTV09SRCIgPj4gJG5ldHJjOwp9OwpbRW52aXJvbm1lbnRdOjpTZXRFbnZpcm9ubWVudFZhcmlhYmxlKCJDSV9ORVRSQ19QQVNTV09SRCIsJG51bGwpOwpbRW52aXJvbm1lbnRdOjpTZXRFbnZpcm9ubWVudFZhcmlhYmxlKCJDSV9TQ1JJUFQiLCRudWxsKTsKY2QgIkM6L3NyYy9hYmMiOwoKV3JpdGUtT3V0cHV0ICgnKyAiZ28gdGVzdCInKTsKJiBnbyB0ZXN0OyBpZiAoJExBU1RFWElUQ09ERSAtbmUgMCkge2V4aXQgJExBU1RFWElUQ09ERX0KCldyaXRlLU91dHB1dCAoJysgImdvIHZldCAuLy4uLiInKTsKJiBnbyB2ZXQgLi8uLi47IGlmICgkTEFTVEVYSVRDT0RFIC1uZSAwKSB7ZXhpdCAkTEFTVEVYSVRDT0RFfQo=",
 			"CI_WORKSPACE=C:/src",
-			"SHELL=powershell.exe",
+			"SHELL=pwsh.exe",
 			"TAGS=sqlite",
 		},
 		Volumes: map[string]struct{}{
