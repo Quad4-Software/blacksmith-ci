@@ -5,6 +5,9 @@ when:
       - ${CI_REPO_DEFAULT_BRANCH}
       - v4.*
 
+labels:
+  agent: thumper
+
 steps:
   - name: editorconfig
     image: reg.devxy.io/docker.io/mstruebing/editorconfig-checker:v3.6.1

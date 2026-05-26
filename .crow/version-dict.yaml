@@ -10,6 +10,9 @@ clone:
       ref: pages
       depth: 0
 
+labels:
+  agent: thumper
+
 steps:
   - name: 'Update dev version hash'
     image: reg.devxy.io/docker.io/library/alpine:3.23

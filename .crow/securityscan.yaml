@@ -2,6 +2,9 @@ when:
   - event: cron
     cron: securityscan
 
+labels:
+  agent: thumper
+
 steps:
   - name: scan
     image: reg.devxy.io/docker.io/aquasec/trivy:0.70.0

@@ -9,6 +9,9 @@ when:
     branch: ${CI_REPO_DEFAULT_BRANCH}
   - event: manual
 
+labels:
+  agent: thumper
+
 steps:
   - name: 'Upcoming Changelog'
     environment:
