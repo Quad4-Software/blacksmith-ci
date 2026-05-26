@@ -17,57 +17,16 @@ package local
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"os"
 	"os/exec"
 	"path/filepath"
-	"slices"
 	"strings"
 
 	"github.com/rs/zerolog/log"
 
+	"codefloe.com/crowci/crow/v5/pipeline/backend/common/clone"
 	"codefloe.com/crowci/crow/v5/pipeline/backend/types"
 )
-
-// checkGitCloneCap check if we have the git binary on hand.
-func checkGitCloneCap() error {
-	_, err := exec.LookPath("git")
-	return err
-}
-
-// gitCloneEnv augments the clone command's environment with:
-//
-//  1. GIT_TERMINAL_PROMPT=0 and GCM_INTERACTIVE=Never — git and the
-//     Windows-bundled Git Credential Manager refuse to interactively prompt
-//     for credentials. Without these, missing or wrong credentials cause an
-//     indefinite hang on a headless agent instead of a fast failure.
-//
-//  2. The CI_NETRC_* family from the step environment — these are added by
-//     the server's pipeline compiler so the clone plugin can authenticate.
-//     They get stripped from the regular subprocess env by StartStep's
-//     notAllowedEnvVarOverwrites filter (which is meant to stop user pipeline
-//     YAML from overriding them but accidentally also blocks the legitimate
-//     server-set values). Re-add them here for the clone step specifically.
-func gitCloneEnv(base []string, stepEnv map[string]string) []string {
-	out := slices.Clone(base)
-	out = append(out,
-		"GIT_TERMINAL_PROMPT=0",
-		"GCM_INTERACTIVE=Never",
-	)
-	for _, k := range []string{
-		"CI_NETRC_MACHINE",
-		"CI_NETRC_USERNAME",
-		"CI_NETRC_PASSWORD",
-	} {
-		if v, ok := stepEnv[k]; ok && v != "" {
-			out = append(out, k+"="+v)
-		}
-	}
-	return out
-}
 
 // loadClone on backend start determine if there is a global plugin-clone binary.
 func (e *local) loadClone() {
@@ -80,7 +39,7 @@ func (e *local) loadClone() {
 }
 
 // setupClone prepare the clone environment before exec.
-func (e *local) setupClone(state *workflowState) error {
+func (e *local) setupClone(ctx context.Context, state *workflowState) error {
 	if e.cloneBinary != "" {
 		state.cloneBinary = e.cloneBinary
 		return nil
@@ -91,16 +50,20 @@ func (e *local) setupClone(state *workflowState) error {
 	if e.os == "windows" {
 		state.cloneBinary += ".exe"
 	}
-	return e.downloadLatestCloneBinary(state.cloneBinary)
+	return clone.EnsureBinary(ctx, clone.EnsureBinaryConfig{
+		Dest: state.cloneBinary,
+		OS:   e.os,
+		Arch: e.arch,
+	})
 }
 
 // execClone executes a clone-step locally.
 func (e *local) execClone(ctx context.Context, step *types.Step, state *workflowState, env []string) error {
-	if err := checkGitCloneCap(); err != nil {
+	if err := clone.CheckGitAvailable(); err != nil {
 		return fmt.Errorf("check for git clone capabilities failed: %w", err)
 	}
 
-	if err := e.setupClone(state); err != nil {
+	if err := e.setupClone(ctx, state); err != nil {
 		return fmt.Errorf("setup clone step failed: %w", err)
 	}
 
@@ -108,16 +71,17 @@ func (e *local) execClone(ctx context.Context, step *types.Step, state *workflow
 		log.Warn().Msgf("the clone step image '%s' does not match the default clone image. Ignoring and using the default clone image anyway.", step.Image)
 	}
 
-	rmCmd, err := e.writeNetRC(step, state)
+	netrcPath, err := clone.WriteNetRC(state.homeDir, e.os, step.Environment)
 	if err != nil {
 		return err
 	}
 
-	// Prepare command
 	var cmd *exec.Cmd
-	if rmCmd != "" {
-		// if we have a netrc injected we have to make sure it's deleted in any case after clone was attempted
+	if netrcPath != "" {
+		// Make sure the netrc is removed even if the clone fails.
+		rmCmd := fmt.Sprintf("rm %q", netrcPath)
 		if e.os == "windows" {
+			rmCmd = fmt.Sprintf("del %q", netrcPath)
 			pwsh, err := exec.LookPath("powershell.exe")
 			if err != nil {
 				return err
@@ -127,23 +91,18 @@ func (e *local) execClone(ctx context.Context, step *types.Step, state *workflow
 			cmd = exec.CommandContext(ctx, "/bin/sh", "-c", fmt.Sprintf("%s ; export code=$? ; %s ; exit $code", state.cloneBinary, rmCmd))
 		}
 	} else {
-		// if we have NO netrc, we can just exec the clone directly
 		cmd = exec.CommandContext(ctx, state.cloneBinary)
 	}
-	cmd.Env = gitCloneEnv(env, step.Environment)
+	cmd.Env = clone.Env(env, step.Environment)
 	cmd.Dir = state.workspaceDir
 
-	// Wrap with sandbox if enabled
 	cmd, err = e.wrapCommandWithSandbox(ctx, cmd, state)
 	if err != nil {
 		return fmt.Errorf("could not wrap command with sandbox: %w", err)
 	}
 
-	// Capture stdout and stderr separately with stream tags
 	stdoutPipe, _ := cmd.StdoutPipe()
 	stderrPipe, _ := cmd.StderrPipe()
-
-	// Create merged output with stream tags
 	e.output = createTaggedMergedPipe(stdoutPipe, stderrPipe, e.os == "windows")
 
 	state.stepCMDsMu.Lock()
@@ -151,78 +110,4 @@ func (e *local) execClone(ctx context.Context, step *types.Step, state *workflow
 	state.stepCMDsMu.Unlock()
 
 	return cmd.Start()
-}
-
-// writeNetRC write a netrc file into the home dir of a given workflow state.
-func (e *local) writeNetRC(step *types.Step, state *workflowState) (string, error) {
-	if step.Environment["CI_NETRC_MACHINE"] == "" {
-		log.Trace().Msg("no netrc to write")
-		return "", nil
-	}
-
-	file := filepath.Join(state.homeDir, ".netrc")
-	rmCmd := fmt.Sprintf("rm \"%s\"", file)
-	if e.os == "windows" {
-		file = filepath.Join(state.homeDir, "_netrc")
-		rmCmd = fmt.Sprintf("del \"%s\"", file)
-	}
-
-	log.Trace().Msgf("try to write netrc to '%s'", file)
-	return rmCmd, os.WriteFile(file, []byte(genNetRC(step.Environment)), 0o600)
-}
-
-// downloadLatestCloneBinary download the latest clone binary based on runtime OS and Arch
-// and saves it to dest.
-func (e *local) downloadLatestCloneBinary(dest string) error {
-	type asset struct {
-		Name               string
-		BrowserDownloadURL string `json:"browser_download_url"`
-	}
-
-	type release struct {
-		Assets []asset
-	}
-
-	// get latest release
-	req, _ := http.NewRequest(http.MethodGet, "https://codeberg.org/api/v1/repos/crow-plugins/clone/releases/latest", nil)
-	req.Header.Set("Accept", "application/json")
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("could not get latest release: %w", err)
-	}
-	raw, _ := io.ReadAll(resp.Body)
-	_ = resp.Body.Close()
-	var rel release
-	if err := json.Unmarshal(raw, &rel); err != nil {
-		return fmt.Errorf("could not unmarshal github response: %w", err)
-	}
-
-	for _, at := range rel.Assets {
-		if strings.Contains(at.Name, e.os) && strings.Contains(at.Name, e.arch) {
-			resp2, err := http.Get(at.BrowserDownloadURL)
-			if err != nil {
-				return fmt.Errorf("could not download clone plugin: %w", err)
-			}
-			defer resp2.Body.Close()
-
-			file, err := os.Create(dest)
-			if err != nil {
-				return fmt.Errorf("could not create clone plugin: %w", err)
-			}
-			defer file.Close()
-
-			if _, err := io.Copy(file, resp2.Body); err != nil {
-				return fmt.Errorf("could not download clone plugin: %w", err)
-			}
-			if err := os.Chmod(dest, 0o755); err != nil {
-				return err
-			}
-
-			// download successful
-			log.Trace().Msgf("download of 'clone' plugin to '%s' successful", dest)
-			return nil
-		}
-	}
-
-	return fmt.Errorf("could not download clone plugin, binary for this os/arch not found")
 }

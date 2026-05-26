@@ -14,10 +14,7 @@
 
 package local
 
-import (
-	"errors"
-	"fmt"
-)
+import "errors"
 
 // notAllowedEnvVarOverwrites are all env vars that cannot be overwritten by step config.
 var notAllowedEnvVarOverwrites = []string{
@@ -34,18 +31,3 @@ var (
 	ErrUnsupportedStepType   = errors.New("unsupported step type")
 	ErrWorkflowStateNotFound = errors.New("workflow state not found")
 )
-
-const netrcFile = `
-machine %s
-login %s
-password %s
-`
-
-func genNetRC(env map[string]string) string {
-	return fmt.Sprintf(
-		netrcFile,
-		env["CI_NETRC_MACHINE"],
-		env["CI_NETRC_USERNAME"],
-		env["CI_NETRC_PASSWORD"],
-	)
-}
