@@ -29,6 +29,7 @@
             "configuration/server",
             "configuration/agent",
             "configuration/autoscaler",
+            "configuration/windows-agent",
             "configuration/forge-oauth",
             {
               "label": "Environment Variables",
