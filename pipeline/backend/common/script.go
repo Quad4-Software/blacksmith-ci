@@ -25,6 +25,15 @@ import (
 //nolint:gosec // base64 + iex by design; CI_SCRIPT is agent-controlled
 const windowsInnerScript = `[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($Env:CI_SCRIPT)) | iex`
 
+// Canonical install paths for the two PowerShell interpreters. We probe these
+// via `if exist` rather than `where`: nanoserver-based images can have pwsh.exe
+// installed without it being on PATH, and `where.exe` itself isn't always
+// shipped with stripped-down Windows base images.
+const (
+	winPwshPath       = `%ProgramFiles%\PowerShell\7\pwsh.exe`
+	winPowershellPath = `%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe`
+)
+
 func GenerateContainerConf(commands []string, osType, workDir string) (env map[string]string, entry []string) {
 	env = make(map[string]string)
 	if osType == "windows" {
@@ -33,12 +42,14 @@ func GenerateContainerConf(commands []string, osType, workDir string) (env map[s
 		// cmd.exe ships in every Windows container (including nanoserver),
 		// so we use it as a launcher that picks pwsh.exe (PowerShell 7+)
 		// when present and falls back to the legacy powershell.exe
-		// (Windows PowerShell 5.1) otherwise. Nanoserver-based PowerShell
-		// images carry only pwsh; servercore carries powershell.exe.
+		// (Windows PowerShell 5.1) otherwise. We use absolute paths via
+		// `if exist` because nanoserver-based PowerShell images install
+		// pwsh at the canonical location but don't always add it to PATH,
+		// and `where.exe` isn't reliably present in nanoserver either.
 		// cspell:disable-next-line
 		entry = []string{
 			"cmd", "/c",
-			`where pwsh >NUL 2>&1 & if errorlevel 1 (powershell -noprofile -noninteractive -command "` + windowsInnerScript + `") else (pwsh -noprofile -noninteractive -command "` + windowsInnerScript + `")`,
+			`if exist "` + winPwshPath + `" ("` + winPwshPath + `" -noprofile -noninteractive -command "` + windowsInnerScript + `") else if exist "` + winPowershellPath + `" ("` + winPowershellPath + `" -noprofile -noninteractive -command "` + windowsInnerScript + `") else (echo Neither pwsh.exe nor powershell.exe found in the container 1>&2 & exit /b 1)`,
 		}
 	} else {
 		env["CI_SCRIPT"] = base64.StdEncoding.EncodeToString([]byte(generateScriptPosix(commands, workDir)))
