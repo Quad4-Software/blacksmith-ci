@@ -208,11 +208,29 @@ func TestMigrate_NewMigrations_IdempotentRerun(t *testing.T) {
 
 	// Create tables with the columns that new migrations would add.
 	// This simulates a database that already ran these migrations successfully.
-	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS autoscalers (id INTEGER PRIMARY KEY, pending_since INTEGER)`)
+	// Use driver-appropriate auto-increment syntax so the post-migration
+	// PostgreSQL sequence check (checkPostgresSequences) doesn't flag the
+	// fixture tables as broken.
+	var createAutoscalers, createTasks, createSteps string
+	switch driver {
+	case "mysql":
+		createAutoscalers = `CREATE TABLE IF NOT EXISTS autoscalers (id BIGINT PRIMARY KEY AUTO_INCREMENT, pending_since INTEGER)`
+		createTasks = `CREATE TABLE IF NOT EXISTS tasks (id VARCHAR(64) PRIMARY KEY, canceled INTEGER DEFAULT 0, canceled_at INTEGER DEFAULT 0)`
+		createSteps = `CREATE TABLE IF NOT EXISTS steps (id BIGINT PRIMARY KEY AUTO_INCREMENT, original_step_id INTEGER DEFAULT 0, attempt INTEGER DEFAULT 1)`
+	case "postgres":
+		createAutoscalers = `CREATE TABLE IF NOT EXISTS autoscalers (id BIGSERIAL PRIMARY KEY, pending_since INTEGER)`
+		createTasks = `CREATE TABLE IF NOT EXISTS tasks (id TEXT PRIMARY KEY, canceled INTEGER DEFAULT 0, canceled_at INTEGER DEFAULT 0)`
+		createSteps = `CREATE TABLE IF NOT EXISTS steps (id BIGSERIAL PRIMARY KEY, original_step_id INTEGER DEFAULT 0, attempt INTEGER DEFAULT 1)`
+	default:
+		createAutoscalers = `CREATE TABLE IF NOT EXISTS autoscalers (id INTEGER PRIMARY KEY, pending_since INTEGER)`
+		createTasks = `CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY, canceled INTEGER DEFAULT 0, canceled_at INTEGER DEFAULT 0)`
+		createSteps = `CREATE TABLE IF NOT EXISTS steps (id INTEGER PRIMARY KEY, original_step_id INTEGER DEFAULT 0, attempt INTEGER DEFAULT 1)`
+	}
+	_, err = db.Exec(createAutoscalers)
 	require.NoError(t, err)
-	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY, canceled INTEGER DEFAULT 0, canceled_at INTEGER DEFAULT 0)`)
+	_, err = db.Exec(createTasks)
 	require.NoError(t, err)
-	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS steps (id INTEGER PRIMARY KEY, original_step_id INTEGER DEFAULT 0, attempt INTEGER DEFAULT 1)`)
+	_, err = db.Exec(createSteps)
 	require.NoError(t, err)
 
 	// First run — migrations execute but columns already exist, so

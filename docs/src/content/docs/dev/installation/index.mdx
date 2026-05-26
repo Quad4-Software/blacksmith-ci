@@ -27,6 +27,15 @@ Crow uses SQLite by default. For production, PostgreSQL or MariaDB is recommende
 Database deployment is not covered here. Use existing guides or managed cloud services. You can start with SQLite and migrate later.
 :::
 
+:::caution[Switching database backends]
+Generic SQLite-to-PostgreSQL tools such as `pgloader` are **not** a supported migration path.
+They copy data without translating SQLite's implicit `INTEGER PRIMARY KEY` autoincrement into a PostgreSQL sequence, leaving `id` columns as `bigint NOT NULL` with no `DEFAULT nextval(...)`.
+The next `INSERT` then fails with `SQLSTATE 23502` ("null value in column 'id'") — see [#1067](https://codefloe.com/crowci/crow/issues/1067).
+
+The Crow server refuses to start when this corruption is detected and prints copy-pasteable repair SQL.
+See the [Database Backend Migration](/dev/installation/migration/#database-backend-migration) section for the supported approach.
+:::
+
 ## Container Images
 
 Images are published to the Codeberg Container Registry:

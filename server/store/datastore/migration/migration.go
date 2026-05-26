@@ -113,6 +113,10 @@ func Migrate(_ context.Context, db *sql.DB, driver string, _ bool) error {
 		}
 	}
 
+	if err := checkPostgresSequences(db, driver); err != nil {
+		return err
+	}
+
 	return nil
 }
 
