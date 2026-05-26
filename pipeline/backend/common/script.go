@@ -25,13 +25,21 @@ import (
 //nolint:gosec // base64 + iex by design; CI_SCRIPT is agent-controlled
 const windowsInnerScript = `[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($Env:CI_SCRIPT)) | iex`
 
-// Canonical install paths for the two PowerShell interpreters. We probe these
-// via `if exist` rather than `where`: nanoserver-based images can have pwsh.exe
-// installed without it being on PATH, and `where.exe` itself isn't always
-// shipped with stripped-down Windows base images.
+// Canonical install paths for the PowerShell interpreters in Windows
+// containers. We probe these via `if exist` rather than `where`:
+// nanoserver-based images can have pwsh.exe installed without it being on
+// PATH, and `where.exe` itself isn't always shipped with stripped-down
+// Windows base images. The literal `C:\...` form avoids relying on
+// %ProgramFiles%/%SystemRoot% expansion, which not every image guarantees.
+//
+// Two candidate pwsh locations because the install layout shifted between
+// 7.x releases:
+//   - PowerShell 7.0-7.2 nanoserver images install flat: \PowerShell\pwsh.exe
+//   - PowerShell 7.3+ uses the versioned subdir: \PowerShell\7\pwsh.exe
 const (
-	winPwshPath       = `%ProgramFiles%\PowerShell\7\pwsh.exe`
-	winPowershellPath = `%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe`
+	winPwshVersionedPath = `C:\Program Files\PowerShell\7\pwsh.exe`
+	winPwshFlatPath      = `C:\Program Files\PowerShell\pwsh.exe`
+	winPowershellPath    = `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`
 )
 
 func GenerateContainerConf(commands []string, osType, workDir string) (env map[string]string, entry []string) {
@@ -42,14 +50,12 @@ func GenerateContainerConf(commands []string, osType, workDir string) (env map[s
 		// cmd.exe ships in every Windows container (including nanoserver),
 		// so we use it as a launcher that picks pwsh.exe (PowerShell 7+)
 		// when present and falls back to the legacy powershell.exe
-		// (Windows PowerShell 5.1) otherwise. We use absolute paths via
-		// `if exist` because nanoserver-based PowerShell images install
-		// pwsh at the canonical location but don't always add it to PATH,
-		// and `where.exe` isn't reliably present in nanoserver either.
+		// (Windows PowerShell 5.1) otherwise. See the const block above for
+		// why we check three candidate locations.
 		// cspell:disable-next-line
 		entry = []string{
 			"cmd", "/c",
-			`if exist "` + winPwshPath + `" ("` + winPwshPath + `" -noprofile -noninteractive -command "` + windowsInnerScript + `") else if exist "` + winPowershellPath + `" ("` + winPowershellPath + `" -noprofile -noninteractive -command "` + windowsInnerScript + `") else (echo Neither pwsh.exe nor powershell.exe found in the container 1>&2 & exit /b 1)`,
+			`if exist "` + winPwshVersionedPath + `" ("` + winPwshVersionedPath + `" -noprofile -noninteractive -command "` + windowsInnerScript + `") else if exist "` + winPwshFlatPath + `" ("` + winPwshFlatPath + `" -noprofile -noninteractive -command "` + windowsInnerScript + `") else if exist "` + winPowershellPath + `" ("` + winPowershellPath + `" -noprofile -noninteractive -command "` + windowsInnerScript + `") else (echo Neither pwsh.exe nor powershell.exe found in the container 1>&2 & exit /b 1)`,
 		}
 	} else {
 		env["CI_SCRIPT"] = base64.StdEncoding.EncodeToString([]byte(generateScriptPosix(commands, workDir)))

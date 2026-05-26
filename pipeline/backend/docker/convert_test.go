@@ -426,7 +426,7 @@ func TestToWindowsConfig(t *testing.T) {
 		AttachStderr: true,
 		Entrypoint: []string{
 			"cmd", "/c",
-			`if exist "%ProgramFiles%\PowerShell\7\pwsh.exe" ("%ProgramFiles%\PowerShell\7\pwsh.exe" -noprofile -noninteractive -command "[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($Env:CI_SCRIPT)) | iex") else if exist "%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" ("%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -noprofile -noninteractive -command "[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($Env:CI_SCRIPT)) | iex") else (echo Neither pwsh.exe nor powershell.exe found in the container 1>&2 & exit /b 1)`,
+			`if exist "C:\Program Files\PowerShell\7\pwsh.exe" ("C:\Program Files\PowerShell\7\pwsh.exe" -noprofile -noninteractive -command "[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($Env:CI_SCRIPT)) | iex") else if exist "C:\Program Files\PowerShell\pwsh.exe" ("C:\Program Files\PowerShell\pwsh.exe" -noprofile -noninteractive -command "[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($Env:CI_SCRIPT)) | iex") else if exist "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" ("C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -noprofile -noninteractive -command "[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($Env:CI_SCRIPT)) | iex") else (echo Neither pwsh.exe nor powershell.exe found in the container 1>&2 & exit /b 1)`,
 		},
 		Labels: map[string]string{
 			"wp_step":     "test",
