@@ -82,8 +82,8 @@ var flags = []cli.Flag{
 		Usage:   "map of secrets, ex. 'secret=\"val\",secret2=\"value2\"'",
 	},
 	&cli.StringFlag{
-		Sources: cli.EnvVars("WOODPECKER_SECRETS_FILE"),
-		Name:    "secrets",
+		Sources: cli.EnvVars("WOODPECKER_SECRETS_FILE", "CROW_SECRETS_FILE"),
+		Name:    "secrets-file",
 		Usage:   "path to yaml file with secrets map",
 	},
 
