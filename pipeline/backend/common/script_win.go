@@ -64,7 +64,18 @@ var setupScriptWinTmpl, _ = template.New("").Parse(setupScriptWinProto)
 
 // traceScript is a helper script that is added to the step script
 // to trace a command.
+//
+// We deliberately do NOT prefix the command with PowerShell's `&` call
+// operator. `&` invokes the value of its argument as a command, which
+// breaks for commands that are expressions starting with a variable
+// (e.g. `$PSVersionTable | Format-List`) — `&` would try to invoke the
+// hashtable value, not pipe it. Running the command directly lets pwsh
+// parse it as the user typed it: native commands, cmdlets, pipelines,
+// and variable references all work. Users invoking quoted paths
+// (e.g. `'C:\Some Path\prog.exe' -arg`) must include their own `&`
+// prefix, which is standard pwsh idiom.
 const traceScriptWin = `
 Write-Output ('+ %s');
-& %s; if ($LASTEXITCODE -ne 0) {exit $LASTEXITCODE}
+%s
+if ($LASTEXITCODE -ne 0) {exit $LASTEXITCODE}
 `

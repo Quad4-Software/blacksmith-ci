@@ -44,13 +44,16 @@ $netrc=[string]::Format("{0}\_netrc",$Env:HOME);
 cd "/woodpecker/some";
 
 Write-Output ('+ "echo %PATH%"');
-& echo %PATH%; if ($LASTEXITCODE -ne 0) {exit $LASTEXITCODE}
+echo %PATH%
+if ($LASTEXITCODE -ne 0) {exit $LASTEXITCODE}
 
 Write-Output ('+ "go build"');
-& go build; if ($LASTEXITCODE -ne 0) {exit $LASTEXITCODE}
+go build
+if ($LASTEXITCODE -ne 0) {exit $LASTEXITCODE}
 
 Write-Output ('+ "go test"');
-& go test; if ($LASTEXITCODE -ne 0) {exit $LASTEXITCODE}
+go test
+if ($LASTEXITCODE -ne 0) {exit $LASTEXITCODE}
 `,
 		},
 	}
