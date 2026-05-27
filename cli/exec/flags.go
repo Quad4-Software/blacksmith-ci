@@ -27,12 +27,6 @@ var flags = []cli.Flag{
 		Usage:   "run from local directory",
 		Value:   true,
 	},
-	&cli.BoolFlag{
-		Sources: cli.EnvVars("WOODPECKER_LOCAL", "CROW_LOCAL"),
-		Name:    "local",
-		Usage:   "run from local directory",
-		Value:   true,
-	},
 	&cli.StringFlag{
 		Sources: cli.EnvVars("WOODPECKER_REPO_PATH", "CROW_REPO_PATH"),
 		Name:    "repo-path",
