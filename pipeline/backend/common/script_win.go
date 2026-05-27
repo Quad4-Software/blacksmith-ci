@@ -46,9 +46,9 @@ func generateScriptWindows(commands []string, workDir string) string {
 
 const setupScriptWinProto = `
 $ErrorActionPreference = 'Stop';
-if (-not (Test-Path "{{.WorkDir}}")) { New-Item -Path "{{.WorkDir}}" -ItemType Directory -Force };
+if (-not (Test-Path "{{.WorkDir}}")) { New-Item -Path "{{.WorkDir}}" -ItemType Directory -Force | Out-Null };
 if (-not [Environment]::GetEnvironmentVariable('HOME')) { [Environment]::SetEnvironmentVariable('HOME', 'c:\root') };
-if (-not (Test-Path "$env:HOME")) { New-Item -Path "$env:HOME" -ItemType Directory -Force };
+if (-not (Test-Path "$env:HOME")) { New-Item -Path "$env:HOME" -ItemType Directory -Force | Out-Null };
 if ($Env:CI_NETRC_MACHINE) {
 $netrc=[string]::Format("{0}\_netrc",$Env:HOME);
 "machine $Env:CI_NETRC_MACHINE" >> $netrc;
