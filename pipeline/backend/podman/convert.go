@@ -117,11 +117,16 @@ func newVolumeCreateOptions(name string) types.VolumeCreateOptions {
 }
 
 // newNetworkCreateOptions creates network options for Podman.
+//
+// DNSEnabled mirrors Docker's bridge-network default so service containers
+// are reachable by hostname; Podman requires opting in explicitly and the
+// bridge driver is the only one that supports it.
 func newNetworkCreateOptions(name string, enableIPv6 bool) *nettypes.Network {
 	return &nettypes.Network{
 		Name:        name,
 		Driver:      networkDriverBridge,
 		IPv6Enabled: enableIPv6,
+		DNSEnabled:  true,
 	}
 }
 
