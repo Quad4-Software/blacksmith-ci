@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"net"
 	"net/http"
 	"os"
 	"runtime/debug"
@@ -96,7 +97,39 @@ var (
 	shutdownCtx                                = context.Background()
 )
 
+// validateGRPCConfig fails fast on common misconfigurations of the agent's
+// gRPC settings. Operators frequently set CROW_GRPC_ADDR by following docs
+// for the server or autoscaler; the agent does not read it, so a silent
+// fallback to a half-configured CROW_SERVER produces confusing dial errors
+// further down. Returning an explicit error here points operators at the
+// correct variable before any gRPC client is constructed.
+func validateGRPCConfig(server string, grpcSecure bool) error {
+	for _, name := range []string{"CROW_GRPC_ADDR", "WOODPECKER_GRPC_ADDR"} {
+		if os.Getenv(name) != "" {
+			return fmt.Errorf("%s is a server/autoscaler-only variable and is ignored by the agent; "+
+				"set CROW_SERVER=<host>:<port> instead (e.g. CROW_SERVER=grpc.example.com:443), "+
+				"plus CROW_GRPC_SECURE=true for TLS endpoints", name)
+		}
+	}
+
+	if !grpcSecure {
+		if _, port, err := net.SplitHostPort(server); err == nil &&
+			(port == "443" || port == "8443") {
+			log.Warn().Str("server", server).
+				Msg("CROW_SERVER targets a TLS-typical port but CROW_GRPC_SECURE is not set; " +
+					"the agent will use plaintext and will likely fail with 'reading server preface: EOF'. " +
+					"Set CROW_GRPC_SECURE=true if the server is behind a TLS-terminating proxy.")
+		}
+	}
+
+	return nil
+}
+
 func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
+	if err := validateGRPCConfig(c.String("server"), c.Bool("grpc-secure")); err != nil {
+		return err
+	}
+
 	agentCtx, ctxCancel := context.WithCancelCause(ctx)
 	stopAgentFunc = func(err error) {
 		msg := "shutdown of whole agent"

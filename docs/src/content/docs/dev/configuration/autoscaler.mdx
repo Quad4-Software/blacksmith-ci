@@ -45,7 +45,7 @@ Additional providers with a Go SDK can be added — contributions welcome!
 
 3. **Configure scaling limits** — set min/max agents and workflows per agent
 
-4. **Configure gRPC** — remote agents need secure gRPC connection to server
+4. **Configure gRPC** — set the autoscaler's gRPC endpoint, and forward it to spawned agents via `CROW_AGENT_ENV`
 
 5. **Configure cloud provider** — set provider credentials and instance settings
 
@@ -76,7 +76,7 @@ services:
       - CROW_MAX_AGENTS=2
       - CROW_WORKFLOWS_PER_AGENT=5
 
-      # gRPC (for remote agents)
+      # Autoscaler's own gRPC connection to the server
       - CROW_GRPC_ADDR=grpc.crow.example.com
       - CROW_GRPC_SECURE=true
 
@@ -138,12 +138,14 @@ If billed hourly, consider keeping agents alive longer to handle subsequent buil
 
 ### gRPC Connection
 
-Remote agents require secure gRPC to connect back to the server.
+The autoscaler needs its own gRPC connection to the Crow server for queue and agent management.
+These variables configure the *autoscaler's* connection, not the agents it spawns.
+For configuring spawned agents, see [Spawned Agent Environment](#spawned-agent-environment) below.
 
-| Variable           | Description                              |
-| ------------------ | ---------------------------------------- |
-| `CROW_GRPC_ADDR`   | Public gRPC address (no protocol prefix) |
-| `CROW_GRPC_SECURE` | Set `true` for TLS connection            |
+| Variable           | Description                                              |
+| ------------------ | -------------------------------------------------------- |
+| `CROW_GRPC_ADDR`   | gRPC address the autoscaler dials (no protocol prefix)   |
+| `CROW_GRPC_SECURE` | Set `true` when the autoscaler's gRPC target uses TLS    |
 
 ### Agent Image
 
@@ -167,6 +169,20 @@ Example agent environment:
 ```yaml
 CROW_AGENT_ENV=CROW_AGENT_LABELS=tier=heavy,CROW_LOG_LEVEL=debug,CROW_HEALTHCHECK=false
 ```
+
+### Spawned Agent Environment
+
+The autoscaler does not automatically forward its own connection settings to the agents it spawns.
+Every variable a spawned agent needs — including how to reach the Crow server — must be set via `CROW_AGENT_ENV`.
+
+A typical remote setup forwards the server endpoint and TLS flag:
+
+```yaml
+- CROW_AGENT_ENV=CROW_SERVER=grpc.crow.example.com:443,CROW_GRPC_SECURE=true,CROW_LOG_LEVEL=info
+```
+
+Note that the spawned agent reads `CROW_SERVER` as a gRPC address, not as the HTTP URL the autoscaler itself uses.
+The example above is the form the *agent* expects (host:port), passed through `CROW_AGENT_ENV`.
 
 ## gRPC Proxy Setup
 

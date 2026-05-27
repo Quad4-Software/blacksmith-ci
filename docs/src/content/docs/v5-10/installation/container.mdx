@@ -94,8 +94,10 @@ The autoscaler is optional. See [Autoscaler Configuration](/dev/configuration/au
     environment:
       - CROW_SERVER=https://ci.example.com
       - CROW_TOKEN=${CROW_TOKEN}
-      - CROW_GRPC_ADDR=https://grpc.ci.example.com
+      - CROW_GRPC_ADDR=grpc.ci.example.com:443
       - CROW_GRPC_SECURE=true
+      # Forward server endpoint to spawned agents (host:port, no protocol)
+      - CROW_AGENT_ENV=CROW_SERVER=grpc.ci.example.com:443,CROW_GRPC_SECURE=true
       - CROW_PROVIDER=hetznercloud
       - CROW_HETZNERCLOUD_API_TOKEN=${HETZNER_TOKEN}
 ```

@@ -81,8 +81,7 @@ Agents can run on separate machines from the server.
 Connect using private IP addresses:
 
 ```yaml
-CROW_SERVER: <private-ip>:8000
-CROW_GRPC_ADDR: <private-ip>:9000
+CROW_SERVER: <private-ip>:9000
 CROW_AGENT_SECRET: <token>
 ```
 
@@ -91,8 +90,7 @@ CROW_AGENT_SECRET: <token>
 Requires TLS for secure GRPC connection:
 
 ```yaml
-CROW_SERVER: crow.mydomain.com
-CROW_GRPC_ADDR: grpc.crow.mydomain.com
+CROW_SERVER: grpc.crow.mydomain.com:443
 CROW_GRPC_SECURE: "true"
 CROW_AGENT_SECRET: <token>
 ```
@@ -101,10 +99,6 @@ Requirements:
 - Subdomain for GRPC service
 - Valid SSL certificate
 - TLS-terminating proxy
-
-:::caution
-Do not prefix `CROW_SERVER` with `https://`.
-:::
 
 See [Reverse Proxy Setup](/dev/installation/proxy/) for ingress configuration examples.
 

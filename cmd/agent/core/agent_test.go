@@ -15,11 +15,15 @@
 package core
 
 import (
+	"bytes"
 	"errors"
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBackendProbeTracker(t *testing.T) {
@@ -214,4 +218,82 @@ func TestStringSliceAddToMap(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestValidateGRPCConfig(t *testing.T) {
+	t.Run("CROW_GRPC_ADDR set returns error", func(t *testing.T) {
+		t.Setenv("CROW_GRPC_ADDR", "grpc.example.com:443")
+		t.Setenv("WOODPECKER_GRPC_ADDR", "")
+
+		err := validateGRPCConfig("server:9000", false)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "CROW_GRPC_ADDR is a server/autoscaler-only variable")
+		assert.Contains(t, err.Error(), "CROW_SERVER")
+	})
+
+	t.Run("WOODPECKER_GRPC_ADDR set returns error naming WOODPECKER_GRPC_ADDR", func(t *testing.T) {
+		t.Setenv("CROW_GRPC_ADDR", "")
+		t.Setenv("WOODPECKER_GRPC_ADDR", "grpc.example.com:443")
+
+		err := validateGRPCConfig("server:9000", false)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "WOODPECKER_GRPC_ADDR is a server/autoscaler-only variable")
+	})
+
+	t.Run("port 443 without grpc-secure logs warning", func(t *testing.T) {
+		t.Setenv("CROW_GRPC_ADDR", "")
+		t.Setenv("WOODPECKER_GRPC_ADDR", "")
+
+		var buf bytes.Buffer
+		originalLogger := log.Logger
+		log.Logger = zerolog.New(&buf)
+		t.Cleanup(func() { log.Logger = originalLogger })
+
+		err := validateGRPCConfig("grpc.example.com:443", false)
+		require.NoError(t, err)
+		assert.Contains(t, buf.String(), "TLS-typical port")
+		assert.Contains(t, buf.String(), "CROW_GRPC_SECURE")
+	})
+
+	t.Run("port 8443 without grpc-secure logs warning", func(t *testing.T) {
+		t.Setenv("CROW_GRPC_ADDR", "")
+		t.Setenv("WOODPECKER_GRPC_ADDR", "")
+
+		var buf bytes.Buffer
+		originalLogger := log.Logger
+		log.Logger = zerolog.New(&buf)
+		t.Cleanup(func() { log.Logger = originalLogger })
+
+		err := validateGRPCConfig("grpc.example.com:8443", false)
+		require.NoError(t, err)
+		assert.Contains(t, buf.String(), "TLS-typical port")
+	})
+
+	t.Run("port 443 with grpc-secure does not warn", func(t *testing.T) {
+		t.Setenv("CROW_GRPC_ADDR", "")
+		t.Setenv("WOODPECKER_GRPC_ADDR", "")
+
+		var buf bytes.Buffer
+		originalLogger := log.Logger
+		log.Logger = zerolog.New(&buf)
+		t.Cleanup(func() { log.Logger = originalLogger })
+
+		err := validateGRPCConfig("grpc.example.com:443", true)
+		require.NoError(t, err)
+		assert.Empty(t, buf.String())
+	})
+
+	t.Run("port 9000 without grpc-secure does not warn", func(t *testing.T) {
+		t.Setenv("CROW_GRPC_ADDR", "")
+		t.Setenv("WOODPECKER_GRPC_ADDR", "")
+
+		var buf bytes.Buffer
+		originalLogger := log.Logger
+		log.Logger = zerolog.New(&buf)
+		t.Cleanup(func() { log.Logger = originalLogger })
+
+		err := validateGRPCConfig("server:9000", false)
+		require.NoError(t, err)
+		assert.Empty(t, buf.String())
+	})
 }

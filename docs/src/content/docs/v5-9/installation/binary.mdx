@@ -59,8 +59,6 @@ Paste the following content (update `CROW_SERVER` and `CROW_AGENT_SECRET` with y
     <key>EnvironmentVariables</key>
     <dict>
         <key>CROW_SERVER</key>
-        <string>your-server.com</string>
-        <key>CROW_GRPC_ADDR</key>
         <string>grpc.your-server.com:443</string>
         <key>CROW_GRPC_SECURE</key>
         <string>true</string>
@@ -95,8 +93,7 @@ Paste the following content (update `CROW_SERVER` and `CROW_AGENT_SECRET` with y
 :::note
 **For remote/public servers**: The example above assumes a secure gRPC connection (typical for remote agents).
 
-- `CROW_SERVER`: Your main server address (without protocol or port)
-- `CROW_GRPC_ADDR`: The gRPC endpoint (subdomain + port, typically 443 for TLS)
+- `CROW_SERVER`: The gRPC endpoint as `<host>:<port>` (typically `:443` for a TLS-terminating proxy)
 - `CROW_GRPC_SECURE`: Set to `true` for TLS connections
 
 **For local servers**: If connecting to a server on the same network without TLS, use:
@@ -106,7 +103,7 @@ Paste the following content (update `CROW_SERVER` and `CROW_AGENT_SECRET` with y
 <string>your-server-ip:9000</string>
 ```
 
-And remove the `CROW_GRPC_ADDR` and `CROW_GRPC_SECURE` keys.
+And remove the `CROW_GRPC_SECURE` key.
 :::
 
 After saving the file, validate it:
