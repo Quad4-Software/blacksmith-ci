@@ -240,16 +240,70 @@ func cleanGrpcError(err error) string {
 	return errMsg
 }
 
-// Version returns the server- & grpc-version.
+// Version returns the server- & grpc-version. It retries transient gRPC
+// errors (e.g. the server isn't listening yet) using exponential backoff,
+// giving up after c.maxErrorDuration so a supervisor can restart the agent
+// during prolonged outages.
 func (c *client) Version(ctx context.Context) (*rpc.Version, error) {
-	res, err := c.client.Version(ctx, &proto.Empty{})
-	if err != nil {
-		return nil, err
+	retry := c.newBackOff()
+	var firstErrorAt time.Time
+	attemptCount := 0
+	for {
+		if agentShuttingDown.Load() {
+			return nil, ErrAgentShuttingDown
+		}
+
+		res, err := c.client.Version(ctx, &proto.Empty{})
+		if err == nil {
+			return &rpc.Version{
+				GrpcVersion:   res.GrpcVersion,
+				ServerVersion: res.ServerVersion,
+			}, nil
+		}
+
+		switch status.Code(err) {
+		case codes.Canceled:
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
+			return nil, err
+		case codes.Aborted,
+			codes.DataLoss,
+			codes.DeadlineExceeded,
+			codes.Internal,
+			codes.Unavailable,
+			codes.Unknown:
+			// transient — retry
+		default:
+			return nil, err
+		}
+
+		attemptCount++
+		if firstErrorAt.IsZero() {
+			firstErrorAt = time.Now()
+		}
+		if time.Since(firstErrorAt) >= c.maxErrorDuration {
+			log.Error().
+				Str("error", cleanGrpcError(err)).
+				Int("attempts", attemptCount).
+				Dur("threshold", c.maxErrorDuration).
+				Msg("could not reach grpc server, giving up")
+			return nil, ErrAgentRestartRequired
+		}
+
+		next := retry.NextBackOff()
+		log.Warn().
+			Str("error", cleanGrpcError(err)).
+			Int("attempt", attemptCount).
+			Dur("retry_in", next).
+			Msg("grpc server version check failed, retrying")
+
+		select {
+		case <-time.After(next):
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
 	}
-	return &rpc.Version{
-		GrpcVersion:   res.GrpcVersion,
-		ServerVersion: res.ServerVersion,
-	}, nil
 }
 
 // Next returns the next workflow in the queue.
