@@ -17,6 +17,7 @@ package schema_test
 import (
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -129,6 +130,117 @@ func TestSchema(t *testing.T) {
 			} else {
 				assert.NoError(t, err, fmt.Sprintf("Validation failed: %v", configErrors))
 			}
+		})
+	}
+}
+
+// TestSchemaErrorMessages pins the user-facing shape of schema errors:
+// the field path, line number, and message text. Together they make the error
+// actionable in the UI — a regression in any one of them turns the report back
+// into the "lint-and-test:steps@ line 62 / validation failed" noise that
+// motivated this work.
+func TestSchemaErrorMessages(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name        string
+		yaml        string
+		wantField   string
+		wantLine    int
+		wantMessage string
+	}{
+		{
+			name: "empty environment under a step (real-world regression case)",
+			yaml: `steps:
+  install:
+    image: alpine
+    commands:
+      - echo hi
+
+  typecheck:
+    image: alpine
+    environment:
+    commands:
+      - echo typecheck
+
+  tail:
+    image: alpine
+    commands:
+      - echo tail
+`,
+			// Path points at the actually-broken field, not at the parent
+			// 'steps' map and not at the last step in that map.
+			wantField:   "steps.typecheck.environment",
+			wantLine:    9,
+			wantMessage: "Expected object, got null.",
+		},
+		{
+			name: "unknown top-level property",
+			yaml: `pipelines:
+  - name: foo
+steps:
+  test:
+    image: alpine
+    commands: echo hi
+`,
+			// Field and line point at the offending key, not the parent object.
+			// Typo map kicks in -> 'pipelines' suggests 'steps'.
+			wantField:   "pipelines",
+			wantLine:    1,
+			wantMessage: "Unknown property `pipelines`. Did you mean `steps`?",
+		},
+		{
+			name: "unknown property without a typo match",
+			yaml: `steps:
+  test:
+    image: alpine
+    commands: echo hi
+totallyUnknown: 1
+`,
+			wantField:   "totallyUnknown",
+			wantLine:    5,
+			wantMessage: "Unknown property `totallyUnknown`.",
+		},
+		{
+			name: "missing required steps key",
+			yaml: `when:
+  - event: push
+`,
+			wantField:   "(root)",
+			wantLine:    1,
+			wantMessage: "Required property `steps` is missing.",
+		},
+		{
+			name: "enum violation on when.event",
+			yaml: `steps:
+  test:
+    image: alpine
+    commands: echo hi
+when:
+  - event: not_a_real_event
+`,
+			wantField: "when[0].event",
+			wantLine:  6,
+			// Just assert a prefix — the enum list is long and may grow.
+			wantMessage: "Value `not_a_real_event` is not allowed. Must be one of:",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			errs, err := schema.LintString(tc.yaml)
+			assert.Error(t, err, "expected validation to fail")
+			if !assert.NotEmpty(t, errs, "expected at least one schema error") {
+				return
+			}
+			got := errs[0]
+			assert.Equal(t, tc.wantField, got.Field(), "field path")
+			assert.Equal(t, tc.wantLine, got.Line(), "line number")
+			assert.True(t,
+				strings.HasPrefix(got.Description(), tc.wantMessage),
+				"message %q should start with %q", got.Description(), tc.wantMessage,
+			)
 		})
 	}
 }

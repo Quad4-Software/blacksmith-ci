@@ -21,13 +21,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"regexp"
 	"strings"
 
 	goyaml "github.com/goccy/go-yaml"
 	"github.com/goccy/go-yaml/ast"
 	"github.com/goccy/go-yaml/parser"
 	"github.com/santhosh-tekuri/jsonschema/v6"
+	"github.com/santhosh-tekuri/jsonschema/v6/kind"
 
 	"codefloe.com/crowci/crow/v5/shared/yaml"
 )
@@ -111,15 +111,20 @@ func walkNode(node ast.Node, path string, locations pathLocations) {
 		return
 	}
 
-	// Get the token position for this node
-	tok := node.GetToken()
-	if tok != nil && tok.Position != nil {
-		locations[path] = struct {
-			line   int
-			column int
-		}{
-			line:   tok.Position.Line,
-			column: tok.Position.Column,
+	// Record the position for this path on first visit only.
+	// Children walked with the same path (e.g. MappingNode → MappingValueNode → value)
+	// would otherwise overwrite it and the last child would win, pointing the error
+	// at the wrong line.
+	if _, ok := locations[path]; !ok {
+		tok := node.GetToken()
+		if tok != nil && tok.Position != nil {
+			locations[path] = struct {
+				line   int
+				column int
+			}{
+				line:   tok.Position.Line,
+				column: tok.Position.Column,
+			}
 		}
 	}
 
@@ -139,7 +144,8 @@ func walkNode(node ast.Node, path string, locations pathLocations) {
 				childPath = path + "/" + keyName
 			}
 		}
-		// Record the key position
+		// Record the key position (overrides any earlier set from walkNode top,
+		// because the key line/column is more useful than the value's first token).
 		if tok := n.Key.GetToken(); tok != nil && tok.Position != nil {
 			locations[childPath] = struct {
 				line   int
@@ -182,27 +188,28 @@ func getKeyName(node ast.Node) string {
 	return ""
 }
 
-// jsonPointerToYAMLPath converts a JSON pointer like "/steps/0/image" to a YAML-style path like "steps[0].image".
+// jsonPointerToYAMLPath converts a JSON pointer like "/steps/0/image" to a
+// YAML-style path like "steps[0].image". A dot is written before every named
+// segment except the first; a numeric segment is rendered as `[N]` with no
+// dot in front of it.
 func jsonPointerToYAMLPath(pointer string) string {
 	if pointer == "" || pointer == "/" {
 		return "(root)"
 	}
 
-	// Remove leading slash
 	pointer = strings.TrimPrefix(pointer, "/")
 	parts := strings.Split(pointer, "/")
 
 	var result strings.Builder
 	for i, part := range parts {
-		// Check if this part is a numeric index
 		if isNumeric(part) {
 			result.WriteString("[" + part + "]")
-		} else {
-			if i > 0 && !isNumeric(parts[i-1]) {
-				result.WriteString(".")
-			}
-			result.WriteString(part)
+			continue
 		}
+		if i > 0 {
+			result.WriteString(".")
+		}
+		result.WriteString(part)
 	}
 
 	return result.String()
@@ -223,54 +230,82 @@ var validProperties = []string{
 	"matrix", "labels", "depends_on", "runs_on", "name", "variables", "$schema",
 }
 
-// makeUserFriendlyMessage converts technical JSON schema error messages to user-friendly messages.
-func makeUserFriendlyMessage(errMsg string) string {
-	// Handle "additional properties X not allowed"
-	if strings.Contains(errMsg, "additional properties") {
-		re := regexp.MustCompile(`additional properties '([^']+)' not allowed`)
-		if matches := re.FindStringSubmatch(errMsg); len(matches) > 1 {
-			propName := matches[1]
+// describeKind turns a concrete ErrorKind into a user-friendly message.
+// Returns "" when the kind is a container (OneOf, AnyOf, AllOf, etc.) that
+// should not be surfaced on its own — callers should recurse into its causes.
+func describeKind(k jsonschema.ErrorKind) string {
+	switch k := k.(type) {
+	case *kind.Type:
+		want := strings.Join(k.Want, " or ")
+		return fmt.Sprintf("Expected %s, got %s.", want, k.Got)
 
-			// Find similar property names
-			suggestion := findSimilarProperty(propName)
-			if suggestion != "" {
-				return fmt.Sprintf("Unknown property `%s`. Did you mean `%s`?", propName, suggestion)
+	case *kind.AdditionalProperties:
+		if len(k.Properties) == 1 {
+			name := k.Properties[0]
+			if suggestion := findSimilarProperty(name); suggestion != "" {
+				return fmt.Sprintf("Unknown property `%s`. Did you mean `%s`?", name, suggestion)
 			}
-
-			return fmt.Sprintf("Unknown property `%s`. This property is not recognized in the Crow configuration.", propName)
+			return fmt.Sprintf("Unknown property `%s`.", name)
 		}
-	}
-
-	// Handle "missing properties"
-	if strings.Contains(errMsg, "missing properties") {
-		re := regexp.MustCompile(`missing properties: '([^']+)'`)
-		if matches := re.FindStringSubmatch(errMsg); len(matches) > 1 {
-			return fmt.Sprintf("Required property `%s` is missing.", matches[1])
+		quoted := make([]string, len(k.Properties))
+		for i, p := range k.Properties {
+			quoted[i] = "`" + p + "`"
 		}
-	}
+		return fmt.Sprintf("Unknown properties: %s.", strings.Join(quoted, ", "))
 
-	// Handle type errors
-	if strings.Contains(errMsg, "expected") && strings.Contains(errMsg, "but got") {
-		return errMsg // Already reasonably clear
-	}
-
-	// Handle enum errors
-	if strings.Contains(errMsg, "value must be one of") {
-		return errMsg // Already clear
-	}
-
-	// Handle "doesn't validate with" - often too technical, simplify
-	if strings.Contains(errMsg, "doesn't validate with") {
-		// Extract the key information if possible
-		if strings.Contains(errMsg, "required") {
-			return "This section is missing required properties."
+	case *kind.Required:
+		if len(k.Missing) == 1 {
+			return fmt.Sprintf("Required property `%s` is missing.", k.Missing[0])
 		}
-		if strings.Contains(errMsg, "additionalProperties") {
-			return "This section contains unrecognized properties."
+		quoted := make([]string, len(k.Missing))
+		for i, p := range k.Missing {
+			quoted[i] = "`" + p + "`"
 		}
+		return fmt.Sprintf("Required properties missing: %s.", strings.Join(quoted, ", "))
+
+	case *kind.Enum:
+		quoted := make([]string, len(k.Want))
+		for i, v := range k.Want {
+			quoted[i] = fmt.Sprintf("`%v`", v)
+		}
+		return fmt.Sprintf("Value `%v` is not allowed. Must be one of: %s.", k.Got, strings.Join(quoted, ", "))
+
+	case *kind.Const:
+		return fmt.Sprintf("Value `%v` is not allowed. Must be `%v`.", k.Got, k.Want)
+
+	case *kind.Pattern:
+		return fmt.Sprintf("Value `%s` does not match the required pattern `%s`.", k.Got, k.Want)
+
+	case *kind.MinLength:
+		return fmt.Sprintf("Value is too short (got length %d, minimum %d).", k.Got, k.Want)
+	case *kind.MaxLength:
+		return fmt.Sprintf("Value is too long (got length %d, maximum %d).", k.Got, k.Want)
+	case *kind.MinItems:
+		return fmt.Sprintf("List is too short (got %d items, minimum %d).", k.Got, k.Want)
+	case *kind.MaxItems:
+		return fmt.Sprintf("List is too long (got %d items, maximum %d).", k.Got, k.Want)
+	case *kind.MinProperties:
+		return fmt.Sprintf("Object has too few properties (got %d, minimum %d).", k.Got, k.Want)
+	case *kind.MaxProperties:
+		return fmt.Sprintf("Object has too many properties (got %d, maximum %d).", k.Got, k.Want)
+
+	case *kind.UniqueItems:
+		return fmt.Sprintf("List items must be unique (duplicate at positions %d and %d).", k.Duplicates[0], k.Duplicates[1])
+
+	case *kind.Format:
+		return fmt.Sprintf("Value does not match the `%s` format.", k.Want)
+
+	case *kind.FalseSchema:
+		return "This value is not allowed here."
+
+	// Container kinds — let the caller recurse into causes.
+	case *kind.OneOf, *kind.AnyOf, *kind.AllOf, *kind.Not,
+		*kind.Reference, *kind.Schema, *kind.Group:
+		return ""
 	}
 
-	return errMsg
+	// Fallback: use the library's own localized rendering.
+	return k.LocalizedString(nil)
 }
 
 // findSimilarProperty finds a similar valid property name using simple string matching.
@@ -317,49 +352,44 @@ func findSimilarProperty(input string) string {
 	return ""
 }
 
-// extractErrors converts a ValidationError into a slice of SchemaErrors with line numbers.
+// extractErrors converts a ValidationError tree into a slice of SchemaErrors.
+//
+// It walks the Causes tree and surfaces leaf errors only. For OneOf/AnyOf
+// containers it picks the single branch the user got closest to satisfying
+// (the deepest InstanceLocation under that branch) — otherwise the failing
+// alternatives of every disjunction would all surface as noise.
+//
+// Results are deduplicated by (InstanceLocation, message) so the same leaf
+// reached through multiple AllOf/$ref paths does not appear twice.
 func extractErrors(validationErr *jsonschema.ValidationError, locations pathLocations) []*SchemaError {
-	var schemaErrors []*SchemaError
+	leaves := collectLeaves(validationErr)
+	seen := make(map[string]struct{}, len(leaves))
+	var out []*SchemaError
 
-	// Get basic output which contains error details
-	basic := validationErr.BasicOutput()
-	if basic.Errors != nil {
-		for _, e := range basic.Errors {
-			errMsg := ""
-			if e.Error != nil {
-				errMsg = e.Error.String()
-			}
-
-			field := e.InstanceLocation
-			friendlyField := jsonPointerToYAMLPath(field)
-			friendlyMsg := makeUserFriendlyMessage(errMsg)
-
-			// Look up line number
-			line, column := 0, 0
-			if loc, ok := locations[field]; ok {
-				line = loc.line
-				column = loc.column
-			}
-
-			schemaErrors = append(schemaErrors, &SchemaError{
-				field:       friendlyField,
-				description: friendlyMsg,
-				line:        line,
-				column:      column,
-			})
-		}
-	}
-
-	// If no nested errors, use the top-level error
-	if len(schemaErrors) == 0 {
-		errMsg := validationErr.Error()
-		if basic.Error != nil {
-			errMsg = basic.Error.String()
+	for _, leaf := range leaves {
+		msg := describeKind(leaf.ErrorKind)
+		if msg == "" {
+			// describeKind returned empty (container kind that slipped through)
+			// — fall back to the lib's localized text rather than dropping the error.
+			msg = leaf.ErrorKind.LocalizedString(nil)
 		}
 
-		field := basic.InstanceLocation
-		friendlyField := jsonPointerToYAMLPath(field)
-		friendlyMsg := makeUserFriendlyMessage(errMsg)
+		// AdditionalProperties reports failure on the parent object, but the
+		// useful location is the unknown child key itself. Reach down so the
+		// 'jump to line' link in the UI lands on the offending key.
+		field := instancePointer(leaf.InstanceLocation)
+		if ap, ok := leaf.ErrorKind.(*kind.AdditionalProperties); ok && len(ap.Properties) == 1 {
+			child := field + "/" + escapePointerSegment(ap.Properties[0])
+			if _, hasLoc := locations[child]; hasLoc {
+				field = child
+			}
+		}
+
+		key := field + "\x00" + msg
+		if _, dup := seen[key]; dup {
+			continue
+		}
+		seen[key] = struct{}{}
 
 		line, column := 0, 0
 		if loc, ok := locations[field]; ok {
@@ -367,15 +397,110 @@ func extractErrors(validationErr *jsonschema.ValidationError, locations pathLoca
 			column = loc.column
 		}
 
-		schemaErrors = append(schemaErrors, &SchemaError{
-			field:       friendlyField,
-			description: friendlyMsg,
+		out = append(out, &SchemaError{
+			field:       jsonPointerToYAMLPath(field),
+			description: msg,
 			line:        line,
 			column:      column,
 		})
 	}
 
-	return schemaErrors
+	// Defensive: if for some reason the tree produced no leaves, surface the
+	// top-level error rather than returning an empty slice with err != nil.
+	if len(out) == 0 {
+		field := instancePointer(validationErr.InstanceLocation)
+		line, column := 0, 0
+		if loc, ok := locations[field]; ok {
+			line = loc.line
+			column = loc.column
+		}
+		out = append(out, &SchemaError{
+			field:       jsonPointerToYAMLPath(field),
+			description: validationErr.ErrorKind.LocalizedString(nil),
+			line:        line,
+			column:      column,
+		})
+	}
+
+	return out
+}
+
+// collectLeaves walks the ValidationError tree and returns the concrete
+// (non-container) failures that should be shown to the user.
+func collectLeaves(verr *jsonschema.ValidationError) []*jsonschema.ValidationError {
+	if verr == nil {
+		return nil
+	}
+	if len(verr.Causes) == 0 {
+		return []*jsonschema.ValidationError{verr}
+	}
+
+	switch verr.ErrorKind.(type) {
+	case *kind.OneOf, *kind.AnyOf:
+		// All branches failed. Surface only the branch the user got closest to
+		// satisfying — i.e. the one whose deepest leaf reaches furthest into
+		// the instance. The others are alternatives the user clearly did not
+		// intend (e.g. "got object, want array" when they wrote a map).
+		best := verr.Causes[0]
+		bestDepth := maxLeafDepth(best)
+		for _, c := range verr.Causes[1:] {
+			if d := maxLeafDepth(c); d > bestDepth {
+				best = c
+				bestDepth = d
+			}
+		}
+		return collectLeaves(best)
+
+	default:
+		// AllOf, Reference, Schema, Group and other container kinds — every
+		// cause is independently failing and worth surfacing.
+		var leaves []*jsonschema.ValidationError
+		for _, c := range verr.Causes {
+			leaves = append(leaves, collectLeaves(c)...)
+		}
+		return leaves
+	}
+}
+
+// maxLeafDepth returns the deepest InstanceLocation length found among the
+// leaves of this subtree. Used as a "closeness to valid" score for picking
+// among OneOf/AnyOf branches.
+func maxLeafDepth(verr *jsonschema.ValidationError) int {
+	if verr == nil {
+		return 0
+	}
+	if len(verr.Causes) == 0 {
+		return len(verr.InstanceLocation)
+	}
+	max := len(verr.InstanceLocation)
+	for _, c := range verr.Causes {
+		if d := maxLeafDepth(c); d > max {
+			max = d
+		}
+	}
+	return max
+}
+
+// instancePointer converts the library's []string instance location back into
+// a JSON pointer string (e.g. ["steps","typecheck","environment"] → "/steps/typecheck/environment").
+func instancePointer(parts []string) string {
+	if len(parts) == 0 {
+		return ""
+	}
+	var b strings.Builder
+	for _, p := range parts {
+		b.WriteByte('/')
+		b.WriteString(escapePointerSegment(p))
+	}
+	return b.String()
+}
+
+// escapePointerSegment escapes a single JSON pointer segment per RFC 6901
+// (`~` → `~0`, `/` → `~1`).
+func escapePointerSegment(s string) string {
+	s = strings.ReplaceAll(s, "~", "~0")
+	s = strings.ReplaceAll(s, "/", "~1")
+	return s
 }
 
 // Lint lints an io.Reader against the Crow `schema.json`.
