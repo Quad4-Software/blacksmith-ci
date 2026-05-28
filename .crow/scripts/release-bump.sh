@@ -125,4 +125,32 @@ ssh-add ~/.ssh/id_ed25519
 git sv tag || echo "Tag already exists for devxy/ansible-cicd, skipping"
 cd ..
 
+#
+# Bump and release autoscaler
+#
+echo "=== Bumping autoscaler ==="
+rm -rf autoscaler
+git clone ssh://git@codefloe.com/crowci/autoscaler.git
+cd autoscaler
+echo "Current agent image: $(grep 'crow-agent:' cmd/crow-autoscaler/flags.go)"
+sed -i "s|crow-agent:v[0-9]*\.[0-9]*\.[0-9]*|crow-agent:${CI_COMMIT_TAG}|" cmd/crow-autoscaler/flags.go
+echo "Updated agent image: $(grep 'crow-agent:' cmd/crow-autoscaler/flags.go)"
+
+git config user.name "crowci-bot"
+git config user.email "admin@crowci.dev"
+git add -A
+if git diff --cached --quiet; then
+    echo "Nothing to commit (autoscaler already at ${CI_COMMIT_TAG})"
+else
+    git commit -m "chore${BREAKING}: bump agent version to ${CI_COMMIT_TAG}"
+    git push origin main
+fi
+
+# Create release tag (skip if already tagged)
+echo "=== Creating release for crowci/autoscaler ==="
+eval $(ssh-agent -s)
+ssh-add ~/.ssh/id_ed25519
+git sv tag || echo "Tag already exists for crowci/autoscaler, skipping"
+cd ..
+
 echo "=== All bumps completed ==="
