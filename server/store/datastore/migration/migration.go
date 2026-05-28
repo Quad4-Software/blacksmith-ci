@@ -106,6 +106,7 @@ func Migrate(_ context.Context, db *sql.DB, driver string, _ bool) error {
 		{ID: "crow-add-step-rerun-fields", Migrate: addStepRerunFields},
 		{ID: "crow-add-secret-targets", Migrate: createSecretTargets(driver)},
 		{ID: "crow-add-proc-log-entries", Migrate: createProcLogEntries(driver)},
+		{ID: "crow-repair-postgres-id-sequences", Migrate: repairPostgresIDSequences(driver)},
 	}
 
 	if len(newMigrations) > 0 {

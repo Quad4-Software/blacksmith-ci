@@ -16,6 +16,7 @@ package migration
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -137,4 +138,63 @@ func repairSQLFor(tables []string) string {
 		)
 	}
 	return b.String()
+}
+
+// repairPostgresIDSequences returns a migration that auto-applies the same
+// repair operators were previously asked to run by hand: for every table in
+// expectedBigSerialTables whose `id` column has no sequence-backed default,
+// create the `<table>_id_seq` sequence, advance it past existing rows, and
+// attach it as the column default. No-op on non-PostgreSQL drivers and on
+// tables that are either absent or already healthy, so a clean DB sees
+// nothing happen.
+//
+// Affects existing deployments that ran the buggy `crow-add-email-unsubscribes`
+// migration before da8da2fdf (when it created the table with `id INTEGER
+// PRIMARY KEY` on Postgres) and pgloader-style SQLite→Postgres migrations
+// (issue #1067).
+func repairPostgresIDSequences(driver string) func(tx *sql.Tx) error {
+	return func(tx *sql.Tx) error {
+		if driver != "postgres" {
+			return nil
+		}
+
+		for _, table := range expectedBigSerialTables {
+			var hasDefault bool
+			err := tx.QueryRow(`
+				SELECT column_default IS NOT NULL
+				FROM information_schema.columns
+				WHERE table_schema = 'public' AND table_name = $1 AND column_name = 'id'
+			`, table).Scan(&hasDefault)
+			if errors.Is(err, sql.ErrNoRows) {
+				continue
+			}
+			if err != nil {
+				return fmt.Errorf("inspect %s.id default: %w", table, err)
+			}
+			if hasDefault {
+				continue
+			}
+
+			log.Warn().Str("table", table).Msg("repairing missing PostgreSQL id sequence")
+
+			seq := table + "_id_seq"
+			if _, err := tx.Exec(fmt.Sprintf(
+				`CREATE SEQUENCE IF NOT EXISTS %s OWNED BY %s.id`, seq, table,
+			)); err != nil { //nolint:gosec
+				return fmt.Errorf("create sequence %s: %w", seq, err)
+			}
+			if _, err := tx.Exec(fmt.Sprintf(
+				`SELECT setval('%s', COALESCE((SELECT MAX(id) FROM %s), 0) + 1, false)`, seq, table,
+			)); err != nil { //nolint:gosec
+				return fmt.Errorf("setval %s: %w", seq, err)
+			}
+			if _, err := tx.Exec(fmt.Sprintf(
+				`ALTER TABLE %s ALTER COLUMN id SET DEFAULT nextval('%s')`, table, seq,
+			)); err != nil { //nolint:gosec
+				return fmt.Errorf("set default on %s.id: %w", table, err)
+			}
+		}
+
+		return nil
+	}
 }

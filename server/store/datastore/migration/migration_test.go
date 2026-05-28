@@ -303,3 +303,60 @@ func TestMigrate_NewMigrations_PortableSQL(t *testing.T) {
 		_ = rows.Err()
 	}
 }
+
+// TestMigrate_RepairsBrokenPostgresIDSequence simulates the production failure
+// mode from May 2026: an existing PostgreSQL database where
+// `crow-add-email-unsubscribes` was applied during the window when it created
+// the table with `id INTEGER PRIMARY KEY` (no sequence). The new
+// `crow-repair-postgres-id-sequences` migration must restore the sequence so
+// inserts without an explicit id succeed and the post-migration sequence
+// check passes.
+func TestMigrate_RepairsBrokenPostgresIDSequence(t *testing.T) {
+	db, driver := testDB(t)
+	if driver != "postgres" {
+		t.Skip("repair is a no-op outside PostgreSQL")
+	}
+
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS migrations (id TEXT NULL)`)
+	require.NoError(t, err)
+	for _, id := range allLegacyMigrationIDs {
+		_, err = db.Exec(fmt.Sprintf("INSERT INTO migrations (id) VALUES ('%s')", id))
+		require.NoError(t, err)
+	}
+	// Pretend the buggy email_unsubscribes migration already ran.
+	_, err = db.Exec("INSERT INTO migrations (id) VALUES ('crow-add-email-unsubscribes')")
+	require.NoError(t, err)
+
+	// Fixtures other new migrations need.
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS autoscalers (id BIGSERIAL PRIMARY KEY)`)
+	require.NoError(t, err)
+
+	// Recreate the broken historical schema: id is a plain INTEGER PRIMARY KEY
+	// with no DEFAULT and no backing sequence.
+	_, err = db.Exec(`CREATE TABLE email_unsubscribes (
+		id INTEGER PRIMARY KEY,
+		user_id INTEGER NOT NULL,
+		repo_id INTEGER NOT NULL,
+		email TEXT NOT NULL,
+		created_at INTEGER,
+		UNIQUE(user_id, repo_id)
+	)`)
+	require.NoError(t, err)
+
+	// Seed with an explicit id so the repair has a row to skip past.
+	_, err = db.Exec(`INSERT INTO email_unsubscribes (id, user_id, repo_id, email) VALUES (42, 1, 1, 'seed@example.com')`)
+	require.NoError(t, err)
+
+	// Sanity check: in the broken state, INSERT without an id violates NOT NULL.
+	_, err = db.Exec(`INSERT INTO email_unsubscribes (user_id, repo_id, email) VALUES (2, 2, 'pre@example.com')`)
+	require.Error(t, err, "broken table must reject inserts without an explicit id")
+
+	err = Migrate(t.Context(), db, driver, true)
+	require.NoError(t, err)
+
+	// Post-repair: INSERT without id works and the sequence advances past the seeded row.
+	var newID int
+	err = db.QueryRow(`INSERT INTO email_unsubscribes (user_id, repo_id, email) VALUES (3, 3, 'post@example.com') RETURNING id`).Scan(&newID)
+	require.NoError(t, err)
+	assert.Greater(t, newID, 42, "repaired sequence must skip past existing max id")
+}
