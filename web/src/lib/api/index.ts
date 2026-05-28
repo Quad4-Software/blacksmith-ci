@@ -48,6 +48,7 @@ import type {
   NotificationConfig,
   SMTPStatus,
   SMTPTestResult,
+  Task,
   UnlinkForgeResponse,
   User,
   UserForge,
@@ -535,6 +536,10 @@ export default class CrowClient extends ApiClient {
 
   async getAgent(agentId: Agent['id']): Promise<Agent> {
     return this._get(`/api/v1/agents/${agentId}`) as Promise<Agent>;
+  }
+
+  async getAgentTasks(agentId: Agent['id']): Promise<Task[] | null> {
+    return this._get(`/api/v1/agents/${agentId}/tasks`) as Promise<Task[] | null>;
   }
 
   async createAgent(agent: Partial<Agent>): Promise<Agent> {

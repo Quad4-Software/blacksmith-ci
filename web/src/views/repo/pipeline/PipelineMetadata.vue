@@ -120,7 +120,10 @@
               <CardContent class="pt-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <MetadataField :label="$t('repo.pipeline.metadata.fields.agent_id')">
-                    <router-link :to="agentPageRoute" class="text-primary hover:underline font-mono text-sm">
+                    <router-link
+                      :to="{ name: 'admin-agent-detail', params: { id: agent.id } }"
+                      class="text-primary hover:underline font-mono text-sm"
+                    >
                       {{ agent.id }}
                     </router-link>
                   </MetadataField>
@@ -304,14 +307,6 @@ const metadataFileName = computed(
 
 const downloadUrlTooltip = computed(() => {
   return `/api/repos/${repo?.value?.id}/pipelines/${pipeline?.value?.number}/metadata`;
-});
-
-const agentPageRoute = computed(() => {
-  // Navigate to admin agents page if user has admin permissions, otherwise user agents page
-  if (repoPermissions?.value?.admin) {
-    return { name: 'admin-settings-agents' };
-  }
-  return { name: 'user-agents' };
 });
 
 function formatDate(timestamp: number | string | null | undefined): string {

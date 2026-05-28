@@ -770,7 +770,8 @@
         "tab_info": "Info",
         "tab_tasks": "Tasks",
         "tab_logs": "Logs",
-        "tab_tasks_coming_soon": "Per-agent tasks view coming soon."
+        "tasks_empty": "No tasks currently running on this agent.",
+        "tasks_running_count": "{count} running task | {count} running tasks"
       },
       "autoscalers": {
         "autoscalers": "Autoscalers",
@@ -1366,6 +1367,9 @@
     "search": "Search…",
     "pause": "Pause",
     "resume": "Resume",
+    "copy": "Copy visible logs",
+    "copied": "Copied!",
+    "download": "Download visible logs",
     "empty": "No log entries yet.",
     "level": {
       "all": "All levels",

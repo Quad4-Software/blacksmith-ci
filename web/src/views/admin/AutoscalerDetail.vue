@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col h-full p-4 gap-4">
+  <div class="flex flex-col h-full p-4 gap-4 w-full min-w-0 flex-1">
     <header class="flex items-center gap-3">
       <h1 class="text-xl font-semibold">
         {{ autoscaler?.name ?? $t('admin.settings.autoscalers.detail_loading') }}

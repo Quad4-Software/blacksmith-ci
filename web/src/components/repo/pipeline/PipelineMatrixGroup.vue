@@ -172,8 +172,8 @@
             <TooltipProvider v-if="workflow.agent_id">
               <Tooltip>
                 <TooltipTrigger as-child>
-                  <a
-                    :href="repoPermissions?.admin ? '/admin/agents/' : '/user/agents/'"
+                  <router-link
+                    :to="{ name: 'admin-agent-detail', params: { id: workflow.agent_id } }"
                     class="shrink-0 text-primary hover:text-primary/80 flex items-center gap-1"
                     @click.stop
                   >
@@ -181,7 +181,7 @@
                     <span class="text-xs hidden lg:inline truncate max-w-[100px]">
                       {{ getAgentDisplay(workflow.agent_id) }}
                     </span>
-                  </a>
+                  </router-link>
                 </TooltipTrigger>
                 <TooltipContent>
                   <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">

@@ -17,6 +17,26 @@
       <Button variant="outline" size="sm" @click="paused = !paused">
         {{ paused ? $t('proclog.resume') : $t('proclog.pause') }}
       </Button>
+      <Button
+        variant="outline"
+        size="icon"
+        class="h-8 w-8"
+        :disabled="visible.length === 0"
+        :title="copied ? $t('proclog.copied') : $t('proclog.copy')"
+        @click="copyLogs"
+      >
+        <Icon :name="copied ? 'lucide:check' : 'lucide:copy'" class="h-4 w-4" />
+      </Button>
+      <Button
+        variant="outline"
+        size="icon"
+        class="h-8 w-8"
+        :disabled="visible.length === 0"
+        :title="$t('proclog.download')"
+        @click="downloadLogs"
+      >
+        <Icon name="download" class="h-4 w-4" />
+      </Button>
     </div>
 
     <div ref="scrollEl" class="flex-1 overflow-auto font-mono text-xs">
@@ -35,6 +55,7 @@
 <script lang="ts" setup>
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 
+import Icon from '~/components/atomic/Icon.vue';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
@@ -54,7 +75,9 @@ const entries = ref<ProcLogEntry[]>([]);
 const search = ref('');
 const levelFilter = ref<'all' | ProcLogEntry['level']>('all');
 const paused = ref(false);
+const copied = ref(false);
 const scrollEl = ref<HTMLDivElement | null>(null);
+let copiedTimer: ReturnType<typeof setTimeout> | null = null;
 
 const visible = computed(() =>
   entries.value.filter((e) => {
@@ -91,6 +114,39 @@ function formatTime(t: number): string {
   return new Date(t / 1_000_000).toISOString().slice(11, 23);
 }
 
+function visibleAsText(): string {
+  return visible.value
+    .map((e) => `${new Date(e.time / 1_000_000).toISOString().slice(11, 19)} ${e.level.toUpperCase()} ${e.line}`)
+    .join('\n');
+}
+
+async function copyLogs() {
+  if (visible.value.length === 0) return;
+  try {
+    await navigator.clipboard.writeText(visibleAsText());
+    copied.value = true;
+    if (copiedTimer) clearTimeout(copiedTimer);
+    copiedTimer = setTimeout(() => {
+      copied.value = false;
+    }, 1500);
+  } catch {
+    // clipboard write rejected (insecure context or denied) — silently no-op
+  }
+}
+
+function downloadLogs() {
+  if (visible.value.length === 0) return;
+  const blob = new Blob([visibleAsText()], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${props.source}-${props.sourceId}-logs.log`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 function levelClass(level: ProcLogEntry['level']) {
   return {
     'text-muted-foreground': level === 'debug' || level === 'trace',
@@ -117,5 +173,6 @@ watch(
 
 onBeforeUnmount(() => {
   evtSource?.close();
+  if (copiedTimer) clearTimeout(copiedTimer);
 });
 </script>
