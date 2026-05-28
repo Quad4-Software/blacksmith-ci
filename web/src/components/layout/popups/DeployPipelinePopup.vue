@@ -1,10 +1,11 @@
 <template>
-  <Popup :open="open" @close="$emit('close')">
-    <Panel v-if="!loading">
-      <form @submit.prevent="triggerDeployPipeline">
-        <span class="text-xl text-foreground">{{
-          $t('repo.deploy_pipeline.title', { pipelineId: pipelineNumber })
-        }}</span>
+  <Dialog :open="open" @update:open="(val) => !val && $emit('close')">
+    <DialogContent class="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogHeader class="text-left">
+        <DialogTitle>{{ $t('repo.deploy_pipeline.title', { pipelineId: pipelineNumber }) }}</DialogTitle>
+      </DialogHeader>
+
+      <form class="space-y-4" @submit.prevent="triggerDeployPipeline">
         <InputField v-slot="{ id }" :label="$t('repo.deploy_pipeline.enter_target.title')">
           <span class="mb-2 text-sm text-muted-foreground">{{ $t('repo.deploy_pipeline.enter_target.desc') }}</span>
           <Input :id="id" v-model="payload.environment" required />
@@ -24,22 +25,25 @@
             @update:is-valid="isVariablesValid = $event"
           />
         </InputField>
-        <Button type="submit" :disabled="!isFormValid">{{ $t('repo.deploy_pipeline.trigger') }}</Button>
+        <DialogFooter class="sm:justify-start">
+          <Button type="submit" :disabled="!isFormValid || isSubmitting">
+            {{ $t('repo.deploy_pipeline.trigger') }}
+          </Button>
+        </DialogFooter>
       </form>
-    </Panel>
-  </Popup>
+    </DialogContent>
+  </Dialog>
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref, toRef } from 'vue';
+import { computed, ref, toRef } from 'vue';
 import { useRouter } from 'vue-router';
 
-import { Button } from '~/components/ui/button';
 import InputField from '~/components/form/InputField.vue';
 import KeyValueEditor from '~/components/form/KeyValueEditor.vue';
+import { Button } from '~/components/ui/button';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Input } from '~/components/ui/input';
-import Panel from '~/components/layout/Panel.vue';
-import Popup from '~/components/layout/Popup.vue';
 import useApiClient from '~/compositions/useApiClient';
 import { requiredInject } from '~/compositions/useInjectProvide';
 
@@ -69,6 +73,7 @@ const payload = ref<{
 });
 
 const isVariablesValid = ref(true);
+const isSubmitting = ref(false);
 
 const isFormValid = computed(() => {
   return payload.value.environment !== '' && isVariablesValid.value;
@@ -79,14 +84,9 @@ const pipelineOptions = computed(() => ({
   variables: payload.value.variables,
 }));
 
-const loading = ref(true);
-onMounted(async () => {
-  loading.value = false;
-});
-
 const pipelineNumber = toRef(props, 'pipelineNumber');
 async function triggerDeployPipeline() {
-  loading.value = true;
+  isSubmitting.value = true;
   try {
     const newPipeline = await apiClient.deployPipeline(repo.value.id, pipelineNumber.value, pipelineOptions.value);
 
@@ -99,10 +99,9 @@ async function triggerDeployPipeline() {
       },
     });
   } catch {
-    // Close popup on error - the global error handler will show the notification
     emit('close');
   } finally {
-    loading.value = false;
+    isSubmitting.value = false;
   }
 }
 </script>
