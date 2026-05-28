@@ -136,9 +136,14 @@
                 <h3 class="text-base font-semibold truncate">
                   <router-link
                     :to="{ name: 'admin-agent-detail', params: { id: agent.id } }"
-                    class="text-primary hover:underline"
+                    class="group inline-flex items-center gap-1 text-primary hover:underline"
+                    :title="$t('admin.settings.agents.view_details')"
                   >
                     {{ getAgentDisplayName(agent) }}
+                    <Icon
+                      name="chevron-right"
+                      class="h-4 w-4 opacity-60 transition-transform group-hover:translate-x-0.5 group-hover:opacity-100"
+                    />
                   </router-link>
                 </h3>
                 <!-- Desktop: single line metadata -->
@@ -469,7 +474,15 @@ import { Separator } from '~/components/ui/separator';
 import { useDate } from '~/compositions/useDate';
 import useConfig from '~/compositions/useConfig';
 import type { Agent } from '~/lib/api/types';
-import { formatBytes, formatCPUQuota } from '~/lib/agent-utils';
+import {
+  formatBytes,
+  formatCPUQuota,
+  getAgentDisplayName,
+  getAgentStatusAnimation,
+  getAgentStatusColor,
+  getAgentStatusTitle,
+  isAgentVersionMismatch,
+} from '~/lib/agent-utils';
 import type { SelectOption } from '~/components/form/form.types';
 
 const props = defineProps<{
@@ -499,101 +512,14 @@ const emit = defineEmits<{
   updateFilters: [filters: { search?: string; platform?: string; backend?: string; sort?: string; order?: string }];
 }>();
 
-function getAgentDisplayName(agent: Agent): string {
-  return agent.name || `Agent ${agent.id}`;
-}
-
 const date = useDate();
 const { t } = useI18n();
 const config = useConfig();
 
-// Check if agent version differs from server version
-function isVersionMismatch(agentVersion: string): boolean {
-  const serverVersion = config.version;
-  if (!serverVersion || !agentVersion) {
-    return false;
-  }
-  return agentVersion !== serverVersion;
-}
-
-// Get status color based on agent health
-function getStatusColor(agent: Agent): string {
-  // Disabled agents
-  if (agent.no_schedule) {
-    return 'bg-muted-foreground';
-  }
-
-  // Never contacted or last_contact is 0
-  if (!agent.last_contact || agent.last_contact === 0) {
-    return 'bg-red-500';
-  }
-
-  // Check workflow polling health - if false, agent cannot receive tasks
-  if (!agent.workflow_polling_healthy) {
-    return 'bg-red-500';
-  }
-
-  // Check last contact time
-  const now = Date.now() / 1000;
-  const timeSinceContact = now - agent.last_contact;
-
-  if (timeSinceContact < 60) {
-    // Less than 1 minute - healthy
-    return 'bg-green-500';
-  } else if (timeSinceContact < 300) {
-    // 1-5 minutes - warning
-    return 'bg-yellow-500';
-  } else {
-    // More than 5 minutes - offline
-    return 'bg-red-500';
-  }
-}
-
-// Get status title for tooltip
-function getStatusTitle(agent: Agent): string {
-  if (agent.no_schedule) {
-    return 'Agent is disabled';
-  }
-
-  // Never contacted or last_contact is 0
-  if (!agent.last_contact || agent.last_contact === 0) {
-    return 'Agent has never connected';
-  }
-
-  // Check workflow polling health
-  if (!agent.workflow_polling_healthy) {
-    return 'Agent cannot poll for workflows - check agent logs';
-  }
-
-  const now = Date.now() / 1000;
-  const timeSinceContact = now - agent.last_contact;
-
-  if (timeSinceContact < 60) {
-    return 'Agent is healthy and active';
-  } else if (timeSinceContact < 300) {
-    return 'Agent connection may be unstable';
-  } else {
-    return 'Agent is offline or unreachable';
-  }
-}
-
-// Get status animation class
-function getStatusAnimation(agent: Agent): string {
-  // Only animate healthy agents
-  if (agent.no_schedule || !agent.last_contact || agent.last_contact === 0) {
-    return '';
-  }
-
-  const now = Date.now() / 1000;
-  const timeSinceContact = now - agent.last_contact;
-
-  // Only healthy agents (< 1 minute) get the pulse animation
-  if (timeSinceContact < 60) {
-    return 'animate-pulse-slow';
-  }
-
-  return '';
-}
+const isVersionMismatch = (agentVersion: string) => isAgentVersionMismatch(agentVersion, config.version);
+const getStatusColor = getAgentStatusColor;
+const getStatusAnimation = getAgentStatusAnimation;
+const getStatusTitle = (agent: Agent) => getAgentStatusTitle(agent, t);
 
 // Local search state for immediate UI updates without losing focus
 const localSearchQuery = ref(props.agentFilters.search);

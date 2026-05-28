@@ -45,8 +45,22 @@
         <span class="ml-2 uppercase font-semibold" :class="levelClass(entry.level)">{{ entry.level }}</span>
         <span class="ml-2 whitespace-pre-wrap">{{ entry.line }}</span>
       </div>
-      <div v-if="visible.length === 0" class="px-3 py-4 text-muted-foreground">
-        {{ $t('proclog.empty') }}
+      <div v-if="visible.length === 0" class="px-3 py-4 text-muted-foreground text-sm font-sans">
+        <div v-if="connState === 'connecting'" class="flex items-center gap-2">
+          <Icon name="loading" class="h-4 w-4 animate-spin" />
+          <span>{{ $t('proclog.connecting') }}</span>
+        </div>
+        <div v-else-if="connState === 'error'" class="flex items-center gap-2 text-destructive">
+          <Icon name="alert" class="h-4 w-4" />
+          <span>{{ $t('proclog.connection_error') }}</span>
+        </div>
+        <div v-else class="flex items-start gap-2">
+          <Icon name="info" class="h-4 w-4 mt-0.5 shrink-0" />
+          <div>
+            <p>{{ entries.length === 0 ? $t('proclog.waiting') : $t('proclog.no_match') }}</p>
+            <p v-if="entries.length === 0" class="mt-1 text-xs">{{ $t('proclog.waiting_hint') }}</p>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -76,6 +90,7 @@ const search = ref('');
 const levelFilter = ref<'all' | ProcLogEntry['level']>('all');
 const paused = ref(false);
 const copied = ref(false);
+const connState = ref<'connecting' | 'open' | 'error'>('connecting');
 const scrollEl = ref<HTMLDivElement | null>(null);
 let copiedTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -91,10 +106,17 @@ let evtSource: EventSource | null = null;
 
 function open() {
   evtSource?.close();
+  connState.value = 'connecting';
   evtSource =
     props.source === 'agent'
       ? apiClient.subscribeAgentLogs(props.sourceId, onEntry)
       : apiClient.subscribeAutoscalerLogs(props.sourceId, onEntry);
+  evtSource.addEventListener('open', () => {
+    connState.value = 'open';
+  });
+  evtSource.addEventListener('error', () => {
+    connState.value = evtSource?.readyState === EventSource.CLOSED ? 'error' : 'connecting';
+  });
 }
 
 function onEntry(entry: ProcLogEntry) {

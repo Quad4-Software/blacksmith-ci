@@ -771,7 +771,23 @@
         "tab_tasks": "Tasks",
         "tab_logs": "Logs",
         "tasks_empty": "No tasks currently running on this agent.",
-        "tasks_running_count": "{count} running task | {count} running tasks"
+        "tasks_running_count": "{count} running task | {count} running tasks",
+        "back_to_agents": "Back to agents",
+        "view_details": "View details",
+        "section_identity": "Identity",
+        "section_runtime": "Runtime",
+        "section_limits": "Limits",
+        "section_labels": "Custom labels",
+        "no_custom_labels": "None",
+        "build_date": "Build date",
+        "status": {
+          "disabled": "Agent is disabled",
+          "never_connected": "Agent has never connected",
+          "polling_unhealthy": "Agent cannot poll for workflows - check agent logs",
+          "healthy": "Agent is healthy and active",
+          "unstable": "Agent connection may be unstable",
+          "offline": "Agent is offline or unreachable"
+        }
       },
       "autoscalers": {
         "autoscalers": "Autoscalers",
@@ -1370,7 +1386,11 @@
     "copy": "Copy visible logs",
     "copied": "Copied!",
     "download": "Download visible logs",
-    "empty": "No log entries yet.",
+    "connecting": "Connecting to log stream…",
+    "connection_error": "Log stream disconnected. Try reloading the page.",
+    "waiting": "Connected. Waiting for log entries.",
+    "waiting_hint": "Entries appear once the agent ships logs. Make sure the agent is running with CROW_PROCLOG_SHIP_ENABLED and the server with CROW_PROCLOG_ENABLED (both default to true).",
+    "no_match": "No entries match the current filter.",
     "level": {
       "all": "All levels",
       "debug": "Debug",

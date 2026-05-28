@@ -4,6 +4,9 @@
 !.vscode/settings.json
 !.vscode/launch.json
 !.vscode/extensions.json
+!.vscode/tasks.json
+!.vscode/direnv-to-env.sh
+!.vscode/wait-for-server.sh
 
 ### GO ###
 # Binaries for programs and plugins

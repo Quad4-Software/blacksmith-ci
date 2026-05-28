@@ -112,25 +112,31 @@ type GetAgentTasksInput struct {
 }
 
 type GetAgentTasksOutput struct {
-	Body []*model.Task
+	Body []model.QueueTask
 }
 
 func GetAgentTasks(ctx context.Context, input *GetAgentTasksInput) (*GetAgentTasksOutput, error) {
 	c := ginCtx(ctx)
-	agent, err := store.FromContext(c).AgentFind(input.AgentID)
+	_store := store.FromContext(c)
+	agent, err := _store.AgentFind(input.AgentID)
 	if err != nil {
 		return nil, dbErr(err)
 	}
 
-	var tasks []*model.Task
+	var running []*model.Task
 	info := server.Config.Services.Queue.Info(c)
 	for _, task := range info.Running {
 		if task.AgentID == agent.ID {
-			tasks = append(tasks, task)
+			running = append(running, task)
 		}
 	}
 
-	return &GetAgentTasksOutput{Body: tasks}, nil
+	enriched, err := processQueueTasks(_store, running, map[int64]string{})
+	if err != nil {
+		return nil, huma.Error500InternalServerError("error enriching agent tasks", err)
+	}
+
+	return &GetAgentTasksOutput{Body: enriched}, nil
 }
 
 type PatchAgentBody struct {

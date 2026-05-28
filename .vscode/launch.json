@@ -15,8 +15,10 @@
       "mode": "debug",
       "program": "${workspaceFolder}/cmd/server/",
       "cwd": "${workspaceFolder}",
+      "preLaunchTask": "direnv-export",
+      "envFile": "${workspaceFolder}/.env",
       "env": {
-        "CROW_DEV_WWW_PROXY": "http://localhost:8010"
+        "CROW_DATABASE_DATASOURCE": "${workspaceFolder}/crow.sqlite"
       }
     },
     {
@@ -26,7 +28,8 @@
       "mode": "debug",
       "program": "${workspaceFolder}/cmd/agent/",
       "cwd": "${workspaceFolder}",
-      "preLaunchTask": "wait-for-server"
+      "preLaunchTask": "direnv-then-wait-for-server",
+      "envFile": "${workspaceFolder}/.env"
     },
     {
       "name": "Go: current file",
