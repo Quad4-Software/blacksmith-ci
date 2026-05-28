@@ -18,6 +18,29 @@ This page covers the architecture, host requirements, recommended images, and kn
 
 The rest of this page assumes the **docker backend**.
 
+## Linux Docker vs Windows Docker
+
+Docker on Linux and Docker on Windows share a CLI but run different container runtimes with different constraints.
+Understanding these differences explains most of the Windows-specific behavior on this page.
+
+| Concern                | Linux Docker                                          | Windows Docker (Windows-container mode)                                          |
+| ---------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Containers it can run  | Linux containers only                                 | Windows containers only — Linux images fail at `docker pull`                     |
+| Image manifest tag     | `linux/amd64`, `linux/arm64`, …                       | `windows/amd64` matching the host build (LTSC2022, etc.)                         |
+| Base image size        | Tens of MB (alpine ~5 MB)                             | Hundreds of MB to multi-GB (`nanoserver` ~290 MB, `servercore` ~3 GB)            |
+| Volume host path       | `/var/lib/docker/volumes/<vol>/_data`                 | `C:\ProgramData\Docker\volumes\<vol>\_data`                                      |
+| Step entrypoint (Crow) | `/bin/sh` against the container                       | `pwsh` directly — `cmd.exe` and Windows PowerShell 5.1 don't work as entrypoint  |
+| Clone step (Crow)      | Linux clone plugin container (`crow-plugins/clone`)   | Native `plugin-clone.exe` on the host — no Linux container can run               |
+| Host OS requirement    | Any Linux distro with Docker CE                       | Windows Server 2022+ with Docker CE in Windows-container mode                    |
+
+Two practical consequences fall out of this:
+
+1. **Image manifests don't cross OS boundaries.**
+    A Linux image manifest cannot be pulled on a Windows daemon, and vice versa.
+    This is why every workflow in a mixed pool needs explicit `labels: platform:` — the scheduler must not put a Linux job on a Windows agent or it will fail at `docker pull`.
+2. **The Linux clone container can't run on a Windows daemon.**
+    Crow's standard clone step is a `linux/amd64` plugin container, so on Windows the agent runs `plugin-clone.exe` directly on the host instead, writing into the workflow volume's host mountpoint so subsequent container steps see the cloned files at the expected workspace path.
+
 ## How It Works
 
 Linux Docker can run Linux containers; Windows Docker runs Windows containers.
@@ -179,10 +202,11 @@ The clone writes directly into the workflow volume's host mountpoint.
 Subsequent container steps mount the same Docker named volume and see the cloned files at the expected workspace path inside the container.
 The volume is removed by `DestroyWorkflow` at the end of the workflow.
 
-### No kubernetes / podman / local backend support
+### Native clone runs only on docker and local backends
 
-Only the docker backend has the routing logic for native clone.
-If you mount a Windows agent with `CROW_BACKEND=kubernetes` or `CROW_BACKEND=podman`, clone steps will try to pull and run the Linux clone plugin and fail.
+Only the docker and local backends know how to fall back to `plugin-clone.exe` on the host.
+A Windows agent running `CROW_BACKEND=kubernetes` would try to schedule the Linux clone plugin as a pod and fail.
+The podman backend isn't built for Windows at all (`//go:build !windows`), so `CROW_BACKEND=podman` won't start there in the first place.
 
 ### The `plugin-clone.exe` binary is downloaded on first use
 
