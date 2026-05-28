@@ -531,6 +531,23 @@ func (c *CompositeEncryptedStore) LogDelete(step *model.Step) error {
 	return c.baseStore.LogDelete(step)
 }
 
+// ProcLogs.
+func (c *CompositeEncryptedStore) ProcLogInsert(ctx context.Context, entries []*model.ProcLogEntry) error {
+	return c.baseStore.ProcLogInsert(ctx, entries)
+}
+
+func (c *CompositeEncryptedStore) ProcLogTail(ctx context.Context, sourceType string, sourceID int64, sinceID int64, limit int) ([]*model.ProcLogEntry, error) {
+	return c.baseStore.ProcLogTail(ctx, sourceType, sourceID, sinceID, limit)
+}
+
+func (c *CompositeEncryptedStore) ProcLogTrim(ctx context.Context, sourceType string, sourceID int64, keepLastN int) error {
+	return c.baseStore.ProcLogTrim(ctx, sourceType, sourceID, keepLastN)
+}
+
+func (c *CompositeEncryptedStore) ProcLogListSources(ctx context.Context) ([]model.ProcLogSourceKey, error) {
+	return c.baseStore.ProcLogListSources(ctx)
+}
+
 // Tasks.
 func (c *CompositeEncryptedStore) TaskList() ([]*model.Task, error) {
 	return c.baseStore.TaskList()

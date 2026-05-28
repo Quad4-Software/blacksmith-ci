@@ -764,7 +764,13 @@
           "capacity": "Capacity"
         },
         "no_match": "No agents match your filters",
-        "sort_descending": "Descending"
+        "sort_descending": "Descending",
+        "detail_loading": "Loading…",
+        "detail_id": "#{id}",
+        "tab_info": "Info",
+        "tab_tasks": "Tasks",
+        "tab_logs": "Logs",
+        "tab_tasks_coming_soon": "Per-agent tasks view coming soon."
       },
       "autoscalers": {
         "autoscalers": "Autoscalers",
@@ -816,7 +822,15 @@
         "clear_filters": "Clear filters",
         "no_match": "No autoscalers match your filters",
         "sort_descending": "Sort descending",
-        "never": "Never"
+        "never": "Never",
+        "detail_loading": "Loading…",
+        "detail_id": "#{id}",
+        "tab_info": "Info",
+        "tab_logs": "Logs",
+        "detail_provider": "Provider",
+        "detail_instance_type": "Instance Type",
+        "detail_active_agents": "Active Agents",
+        "detail_pending_agents": "Pending Agents"
       },
       "queue": {
         "queue": "Queue",
@@ -1347,5 +1361,18 @@
   "login_oauth_message": "Sign in with OAuth",
   "link_forge_title": "Link Forge Account",
   "link_forge_message": "Sign in to link this forge to your account",
-  "disabled": "Disabled"
+  "disabled": "Disabled",
+  "proclog": {
+    "search": "Search…",
+    "pause": "Pause",
+    "resume": "Resume",
+    "empty": "No log entries yet.",
+    "level": {
+      "all": "All levels",
+      "debug": "Debug",
+      "info": "Info",
+      "warn": "Warn",
+      "error": "Error"
+    }
+  }
 }

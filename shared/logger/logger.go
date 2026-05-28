@@ -26,6 +26,10 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
+// currentOutput is the writer that the global zerolog logger was last configured with.
+// It is set at the end of SetupGlobalLogger so that SetGlobalExtraWriter can tee it.
+var currentOutput io.Writer
+
 var GlobalLoggerFlags = []cli.Flag{
 	&cli.StringFlag{
 		Sources: cli.EnvVars("WOODPECKER_LOG_LEVEL", "CROW_LOG_LEVEL"),
@@ -74,15 +78,16 @@ func SetupGlobalLogger(ctx context.Context, c *cli.Command, outputLvl bool) erro
 		noColor = true
 	}
 
+	var output io.Writer = file
 	log.Logger = zerolog.New(file).With().Timestamp().Logger()
 
 	if pretty {
-		log.Logger = log.Output(
-			zerolog.ConsoleWriter{
-				Out:     file,
-				NoColor: noColor,
-			},
-		)
+		cw := zerolog.ConsoleWriter{
+			Out:     file,
+			NoColor: noColor,
+		}
+		log.Logger = log.Output(cw)
+		output = cw
 	}
 
 	// TODO: format output & options to switch to json aka. option to add channels to send logs to
@@ -98,9 +103,26 @@ func SetupGlobalLogger(ctx context.Context, c *cli.Command, outputLvl bool) erro
 		log.Logger = log.With().Caller().Logger()
 	}
 
+	// Record the output writer so SetGlobalExtraWriter can tee it later.
+	currentOutput = output
+
 	if outputLvl {
 		log.Info().Msgf("log level: %s", zerolog.GlobalLevel().String())
 	}
 
 	return nil
+}
+
+// SetGlobalExtraWriter tees the global zerolog logger into extra in addition to
+// its existing output. It is a no-op when extra is nil. Must be called after
+// SetupGlobalLogger has been called at least once.
+func SetGlobalExtraWriter(extra io.Writer) {
+	if extra == nil {
+		return
+	}
+	out := currentOutput
+	if out == nil {
+		out = os.Stderr
+	}
+	log.Logger = log.Logger.Output(zerolog.MultiLevelWriter(out, extra))
 }

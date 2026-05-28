@@ -157,6 +157,19 @@ func run(ctx context.Context, c *cli.Command) error {
 		return nil
 	})
 
+	// start the proclog janitor
+	if server.Config.Services.ProcLogJanitor != nil {
+		serviceWaitingGroup.Go(func() error {
+			log.Info().Msg("starting proclog janitor ...")
+			if err := server.Config.Services.ProcLogJanitor.Run(ctx); err != nil {
+				go stopServerFunc(err)
+				return err
+			}
+			log.Info().Msg("proclog janitor stopped")
+			return nil
+		})
+	}
+
 	// start the grpc server
 	serviceWaitingGroup.Go(func() error {
 		log.Info().Msg("starting grpc server ...")

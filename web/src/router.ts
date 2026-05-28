@@ -20,9 +20,21 @@ const routes: RouteRecordRaw[] = [
     meta: { authentication: 'required' },
   },
   {
+    path: `${rootPath}/agents/:id`,
+    name: 'admin-agent-detail',
+    component: (): Component => import('~/views/admin/AgentDetail.vue'),
+    meta: { authentication: 'required' },
+  },
+  {
     path: `${rootPath}/autoscalers`,
     name: 'autoscalers',
     component: (): Component => import('~/views/Autoscalers.vue'),
+    meta: { authentication: 'required' },
+  },
+  {
+    path: `${rootPath}/autoscalers/:id`,
+    name: 'admin-autoscaler-detail',
+    component: (): Component => import('~/views/admin/AutoscalerDetail.vue'),
     meta: { authentication: 'required' },
   },
   {

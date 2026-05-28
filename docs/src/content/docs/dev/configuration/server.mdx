@@ -401,6 +401,11 @@ Alpine images auto-rotate logs when `CROW_LOG_FILE` is set to a file path:
 | `CROW_LOGROTATE_SCHEDULE`    | `0 0 * * *` | Cron schedule |
 | `CROW_LOGROTATE_RETAIN_DAYS` | `7`         | Days to keep  |
 
+## Process Logs
+
+Crow surfaces agent and autoscaler process logs in the UI under **Admin → Agents/Autoscalers → Logs**.
+See [Process Logs](/dev/usage/process-logs/) for details.
+
 ## External Config API
 
 A server-side hook that lets Crow admins dynamically generate or modify pipeline configurations before execution.

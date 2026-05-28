@@ -105,6 +105,7 @@ func Migrate(_ context.Context, db *sql.DB, driver string, _ bool) error {
 		{ID: "crow-add-task-canceled", Migrate: addTaskCancelledColumns},
 		{ID: "crow-add-step-rerun-fields", Migrate: addStepRerunFields},
 		{ID: "crow-add-secret-targets", Migrate: createSecretTargets(driver)},
+		{ID: "crow-add-proc-log-entries", Migrate: createProcLogEntries(driver)},
 	}
 
 	if len(newMigrations) > 0 {
@@ -306,6 +307,68 @@ func createSecretTargets(driver string) func(tx *sql.Tx) error {
 			)`
 		}
 		_, err := tx.Exec(ddl)
+		return err
+	}
+}
+
+// createProcLogEntries creates the proc_log_entries table for streaming process
+// logs from agents and autoscalers into the database.
+func createProcLogEntries(driver string) func(tx *sql.Tx) error {
+	return func(tx *sql.Tx) error {
+		var ddl string
+		switch driver {
+		case "postgres":
+			ddl = `CREATE TABLE IF NOT EXISTS proc_log_entries (
+				id BIGSERIAL PRIMARY KEY,
+				source_type TEXT NOT NULL,
+				source_id INTEGER NOT NULL,
+				time INTEGER NOT NULL,
+				level TEXT NOT NULL,
+				line TEXT NOT NULL
+			)`
+		case "mysql":
+			ddl = `CREATE TABLE IF NOT EXISTS proc_log_entries (
+				id BIGINT PRIMARY KEY AUTO_INCREMENT,
+				source_type TEXT NOT NULL,
+				source_id INTEGER NOT NULL,
+				time INTEGER NOT NULL,
+				level TEXT NOT NULL,
+				line TEXT NOT NULL
+			)`
+		default:
+			ddl = `CREATE TABLE IF NOT EXISTS proc_log_entries (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				source_type TEXT NOT NULL,
+				source_id INTEGER NOT NULL,
+				time INTEGER NOT NULL,
+				level TEXT NOT NULL,
+				line TEXT NOT NULL
+			)`
+		}
+		if _, err := tx.Exec(ddl); err != nil {
+			return err
+		}
+		if driver == "mysql" {
+			// MySQL does not allow indexing TEXT columns without a prefix length,
+			// and does not support CREATE INDEX IF NOT EXISTS. Check INFORMATION_SCHEMA
+			// first so this migration is idempotent on re-run or across shared test DBs.
+			var count int
+			if err := tx.QueryRow(
+				`SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS` +
+					` WHERE TABLE_SCHEMA = DATABASE()` +
+					` AND TABLE_NAME = 'proc_log_entries'` +
+					` AND INDEX_NAME = 'idx_proc_log_entries_source_id'`,
+			).Scan(&count); err != nil {
+				return err
+			}
+			if count == 0 {
+				if _, err := tx.Exec(`CREATE INDEX idx_proc_log_entries_source_id ON proc_log_entries (source_type(32), source_id, id)`); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+		_, err := tx.Exec(`CREATE INDEX IF NOT EXISTS idx_proc_log_entries_source_id ON proc_log_entries (source_type, source_id, id)`)
 		return err
 	}
 }

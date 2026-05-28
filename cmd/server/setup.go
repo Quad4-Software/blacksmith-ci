@@ -39,6 +39,7 @@ import (
 	"codefloe.com/crowci/crow/v5/server/integrations/vault"
 	"codefloe.com/crowci/crow/v5/server/logging"
 	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/proclog"
 	"codefloe.com/crowci/crow/v5/server/pubsub"
 	"codefloe.com/crowci/crow/v5/server/queue"
 	"codefloe.com/crowci/crow/v5/server/services"
@@ -640,6 +641,21 @@ func setupEvilGlobals(ctx context.Context, c *cli.Command, s store.Store) (err e
 			},
 		)
 		log.Info().Str("host", smtpCfg.Host).Int("port", smtpCfg.Port).Msg("SMTP notification service configured")
+	}
+
+	// proclog services
+	if c.Bool("proclog-enabled") {
+		const proclogChannelBuffer = 256
+		server.Config.Services.ProcLogReceiver = proclog.NewReceiver(s)
+		server.Config.Services.ProcLogStream = proclog.NewStream(s, proclog.StreamOpts{
+			PollInterval:  c.Duration("proclog-poll-interval"),
+			MaxFlushRows:  c.Int("proclog-max-rows-per-source"),
+			ChannelBuffer: proclogChannelBuffer,
+		})
+		server.Config.Services.ProcLogJanitor = proclog.NewJanitor(s, proclog.JanitorOpts{
+			KeepPerSource: c.Int("proclog-max-rows-per-source"),
+			Interval:      c.Duration("proclog-janitor-interval"),
+		})
 	}
 
 	// permissions

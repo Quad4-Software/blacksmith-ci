@@ -59,8 +59,13 @@
 
             <!-- Autoscaler Name -->
             <div class="min-w-0 flex-1">
-              <h3 class="text-base font-semibold text-foreground truncate">
-                {{ autoscaler.name }}
+              <h3 class="text-base font-semibold truncate">
+                <router-link
+                  :to="{ name: 'admin-autoscaler-detail', params: { id: autoscaler.id } }"
+                  class="text-primary hover:underline"
+                >
+                  {{ autoscaler.name }}
+                </router-link>
               </h3>
               <div class="flex items-center gap-2 mt-1 flex-wrap">
                 <span class="text-xs text-muted-foreground"

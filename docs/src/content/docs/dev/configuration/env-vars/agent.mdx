@@ -195,3 +195,43 @@ Core agent configuration variables.
 - Name: `CROW_DEBUG_PRETTY`
 - Description: Enable pretty-printed debug output.
 - Default: `false`
+
+## Process Logs
+
+### PROCLOG_SHIP_ENABLED
+
+- Name: `CROW_PROCLOG_SHIP_ENABLED`
+- Description: Tee the agent's zerolog output to the server for visibility in the Crow UI under **Admin → Agents → Logs**.
+- Default: `true`
+
+---
+
+### PROCLOG_LOCAL_BUFFER
+
+- Name: `CROW_PROCLOG_LOCAL_BUFFER`
+- Description: Local ring buffer size (lines) for outgoing process logs. Lines accumulated during a temporary gRPC outage are back-filled on reconnect.
+- Default: `500`
+
+---
+
+### PROCLOG_BATCH_INTERVAL
+
+- Name: `CROW_PROCLOG_BATCH_INTERVAL`
+- Description: Maximum interval between batch sends to the server, regardless of buffer fill level.
+- Default: `1s`
+
+---
+
+### PROCLOG_BATCH_SIZE
+
+- Name: `CROW_PROCLOG_BATCH_SIZE`
+- Description: Buffered-line count that triggers an immediate batch send to the server.
+- Default: `100`
+
+---
+
+### PROCLOG_RATE_LIMIT
+
+- Name: `CROW_PROCLOG_RATE_LIMIT`
+- Description: Token-bucket refill rate (lines/sec); bucket capacity is 2× this value. Lines exceeding the limit are collapsed into a single `"N dropped (rate limit)"` line per second.
+- Default: `100`

@@ -37,6 +37,7 @@ service Crow {
   rpc ReportHealth    (ReportHealthRequest)          returns (ReportHealthResponse) {}
   rpc ReportDockerCleanup (DockerCleanupResultRequest) returns (Empty) {}
   rpc ClaimTask       (ClaimTaskRequest)              returns (ClaimTaskResponse) {}
+  rpc StreamProcLogs (stream ProcLogBatch) returns (ProcLogAck) {}
 }
 
 //
@@ -200,4 +201,18 @@ message AuthResponse {
   string status        = 1;
   int64  agent_id      = 2;
   string access_token  = 3;
+}
+
+message ProcLogBatch {
+  repeated ProcLogEntry entries = 1;
+}
+
+message ProcLogEntry {
+  int64  time   = 1; // unix nanos, producer-side
+  string level  = 2; // "debug" | "info" | "warn" | "error"
+  string line   = 3; // raw human-readable line
+}
+
+message ProcLogAck {
+  int64 received = 1;
 }

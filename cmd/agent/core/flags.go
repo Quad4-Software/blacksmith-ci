@@ -124,4 +124,34 @@ var flags = []cli.Flag{
 		Usage:   "how long to keep retrying gRPC calls to the server before exiting for supervisor restart; sized to outlast a normal server bounce",
 		Value:   5 * time.Minute,
 	},
+	&cli.BoolFlag{
+		Sources: cli.EnvVars("CROW_PROCLOG_SHIP_ENABLED"),
+		Name:    "proclog-ship-enabled",
+		Usage:   "tee zerolog output to the server for UI visibility",
+		Value:   true,
+	},
+	&cli.IntFlag{
+		Sources: cli.EnvVars("CROW_PROCLOG_LOCAL_BUFFER"),
+		Name:    "proclog-local-buffer",
+		Usage:   "local ring buffer size (lines) for outgoing process logs",
+		Value:   500,
+	},
+	&cli.DurationFlag{
+		Sources: cli.EnvVars("CROW_PROCLOG_BATCH_INTERVAL"),
+		Name:    "proclog-batch-interval",
+		Usage:   "maximum interval between proc-log batch sends",
+		Value:   time.Second,
+	},
+	&cli.IntFlag{
+		Sources: cli.EnvVars("CROW_PROCLOG_BATCH_SIZE"),
+		Name:    "proclog-batch-size",
+		Usage:   "max buffered proc-log lines that trigger a batch send",
+		Value:   100,
+	},
+	&cli.IntFlag{
+		Sources: cli.EnvVars("CROW_PROCLOG_RATE_LIMIT"),
+		Name:    "proclog-rate-limit",
+		Usage:   "max proc-log lines/sec shipped (token bucket; capacity = 2 * rate)",
+		Value:   100,
+	},
 }

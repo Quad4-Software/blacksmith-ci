@@ -875,6 +875,19 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 		OperationID: "post-autoscaler-heartbeat", Method: http.MethodPost, Path: "/autoscalers/{autoscaler_id}/heartbeat",
 		Summary: "Send an autoscaler heartbeat", Tags: []string{"Autoscalers"},
 	}, api.PostAutoscalerHeartbeat)
+	// NDJSON ingest uses raw gin (not huma) because it reads a streaming body.
+	// SetAutoscaler() is already applied globally on apiBase; MustAutoscaler()
+	// enforces that a valid token was found.
+	apiBase.POST("/autoscalers/:autoscaler_id/logs",
+		session.MustAutoscaler(),
+		api.PostAutoscalerLogs(server.Config.Services.ProcLogReceiver))
+	// SSE log streams use raw gin (not huma) — SSE is not compatible with huma's request/response model.
+	apiBase.GET("/agents/:agent_id/logs/stream",
+		session.MustAdmin(),
+		api.StreamAgentLogsSSE(server.Config.Services.ProcLogStream))
+	apiBase.GET("/autoscalers/:autoscaler_id/logs/stream",
+		session.MustAdmin(),
+		api.StreamAutoscalerLogsSSE(server.Config.Services.ProcLogStream))
 
 	// ── Forges ───────────────────────────────────────────────────────────
 	huma.Register(humaAPI, huma.Operation{

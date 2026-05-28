@@ -774,6 +774,33 @@ var flags = append([]cli.Flag{
 		Usage:   "SMTP authentication mechanism: LOGIN, PLAIN, CRAM-MD5, AUTO (auto-discover), or NONE",
 		Value:   "LOGIN",
 	},
+	//
+	// process log (proclog) flags
+	//
+	&cli.BoolFlag{
+		Sources: cli.EnvVars("CROW_PROCLOG_ENABLED"),
+		Name:    "proclog-enabled",
+		Usage:   "enable agent/autoscaler process log ingest and streaming",
+		Value:   true,
+	},
+	&cli.IntFlag{
+		Sources: cli.EnvVars("CROW_PROCLOG_MAX_ROWS_PER_SOURCE"),
+		Name:    "proclog-max-rows-per-source",
+		Usage:   "maximum process-log rows retained per (source_type, source_id); janitor trims to this cap",
+		Value:   5000,
+	},
+	&cli.DurationFlag{
+		Sources: cli.EnvVars("CROW_PROCLOG_JANITOR_INTERVAL"),
+		Name:    "proclog-janitor-interval",
+		Usage:   "how often the process-log janitor runs",
+		Value:   5 * time.Minute,
+	},
+	&cli.DurationFlag{
+		Sources: cli.EnvVars("CROW_PROCLOG_POLL_INTERVAL"),
+		Name:    "proclog-poll-interval",
+		Usage:   "SSE handler poll cadence for new process-log rows",
+		Value:   100 * time.Millisecond,
+	},
 }, logger.GlobalLoggerFlags...)
 
 // datasourceDefaultValue returns the default datasource path, checking for

@@ -198,6 +198,15 @@ CREATE TABLE IF NOT EXISTS log_entries (
     type INTEGER
 );
 
+CREATE TABLE IF NOT EXISTS proc_log_entries (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    source_type TEXT NOT NULL,
+    source_id INTEGER NOT NULL,
+    time INTEGER NOT NULL,
+    level TEXT NOT NULL,
+    line TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS configs (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     repo_id INTEGER,
@@ -478,6 +487,8 @@ CREATE INDEX idx_steps_pipeline_id ON steps (pipeline_id);
 CREATE INDEX idx_steps_uuid ON steps (uuid(255));
 
 CREATE INDEX idx_log_entries_step_id ON log_entries (step_id);
+
+CREATE INDEX idx_proc_log_entries_source_id ON proc_log_entries (source_type(32), source_id, id);
 
 CREATE INDEX idx_workflows_pipeline_id ON workflows (pipeline_id);
 

@@ -47,6 +47,7 @@ const (
 	Crow_ReportHealth_FullMethodName        = "/proto.Crow/ReportHealth"
 	Crow_ReportDockerCleanup_FullMethodName = "/proto.Crow/ReportDockerCleanup"
 	Crow_ClaimTask_FullMethodName           = "/proto.Crow/ClaimTask"
+	Crow_StreamProcLogs_FullMethodName      = "/proto.Crow/StreamProcLogs"
 )
 
 // CrowClient is the client API for Crow service.
@@ -68,6 +69,7 @@ type CrowClient interface {
 	ReportHealth(ctx context.Context, in *ReportHealthRequest, opts ...grpc.CallOption) (*ReportHealthResponse, error)
 	ReportDockerCleanup(ctx context.Context, in *DockerCleanupResultRequest, opts ...grpc.CallOption) (*Empty, error)
 	ClaimTask(ctx context.Context, in *ClaimTaskRequest, opts ...grpc.CallOption) (*ClaimTaskResponse, error)
+	StreamProcLogs(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[ProcLogBatch, ProcLogAck], error)
 }
 
 type crowClient struct {
@@ -208,6 +210,19 @@ func (c *crowClient) ClaimTask(ctx context.Context, in *ClaimTaskRequest, opts .
 	return out, nil
 }
 
+func (c *crowClient) StreamProcLogs(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[ProcLogBatch, ProcLogAck], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &Crow_ServiceDesc.Streams[0], Crow_StreamProcLogs_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[ProcLogBatch, ProcLogAck]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type Crow_StreamProcLogsClient = grpc.ClientStreamingClient[ProcLogBatch, ProcLogAck]
+
 // CrowServer is the server API for Crow service.
 // All implementations must embed UnimplementedCrowServer
 // for forward compatibility.
@@ -227,6 +242,7 @@ type CrowServer interface {
 	ReportHealth(context.Context, *ReportHealthRequest) (*ReportHealthResponse, error)
 	ReportDockerCleanup(context.Context, *DockerCleanupResultRequest) (*Empty, error)
 	ClaimTask(context.Context, *ClaimTaskRequest) (*ClaimTaskResponse, error)
+	StreamProcLogs(grpc.ClientStreamingServer[ProcLogBatch, ProcLogAck]) error
 	mustEmbedUnimplementedCrowServer()
 }
 
@@ -275,6 +291,9 @@ func (UnimplementedCrowServer) ReportDockerCleanup(context.Context, *DockerClean
 }
 func (UnimplementedCrowServer) ClaimTask(context.Context, *ClaimTaskRequest) (*ClaimTaskResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ClaimTask not implemented")
+}
+func (UnimplementedCrowServer) StreamProcLogs(grpc.ClientStreamingServer[ProcLogBatch, ProcLogAck]) error {
+	return status.Error(codes.Unimplemented, "method StreamProcLogs not implemented")
 }
 func (UnimplementedCrowServer) mustEmbedUnimplementedCrowServer() {}
 func (UnimplementedCrowServer) testEmbeddedByValue()              {}
@@ -531,6 +550,13 @@ func _Crow_ClaimTask_Handler(srv interface{}, ctx context.Context, dec func(inte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Crow_StreamProcLogs_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(CrowServer).StreamProcLogs(&grpc.GenericServerStream[ProcLogBatch, ProcLogAck]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type Crow_StreamProcLogsServer = grpc.ClientStreamingServer[ProcLogBatch, ProcLogAck]
+
 // Crow_ServiceDesc is the grpc.ServiceDesc for Crow service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -591,7 +617,13 @@ var Crow_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Crow_ClaimTask_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "StreamProcLogs",
+			Handler:       _Crow_StreamProcLogs_Handler,
+			ClientStreams: true,
+		},
+	},
 	Metadata: "crow.proto",
 }
 

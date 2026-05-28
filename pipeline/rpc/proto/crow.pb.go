@@ -1508,6 +1508,154 @@ func (x *AuthResponse) GetAccessToken() string {
 	return ""
 }
 
+type ProcLogBatch struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Entries       []*ProcLogEntry        `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ProcLogBatch) Reset() {
+	*x = ProcLogBatch{}
+	mi := &file_crow_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ProcLogBatch) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProcLogBatch) ProtoMessage() {}
+
+func (x *ProcLogBatch) ProtoReflect() protoreflect.Message {
+	mi := &file_crow_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProcLogBatch.ProtoReflect.Descriptor instead.
+func (*ProcLogBatch) Descriptor() ([]byte, []int) {
+	return file_crow_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *ProcLogBatch) GetEntries() []*ProcLogEntry {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
+type ProcLogEntry struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Time          int64                  `protobuf:"varint,1,opt,name=time,proto3" json:"time,omitempty"`  // unix nanos, producer-side
+	Level         string                 `protobuf:"bytes,2,opt,name=level,proto3" json:"level,omitempty"` // "debug" | "info" | "warn" | "error"
+	Line          string                 `protobuf:"bytes,3,opt,name=line,proto3" json:"line,omitempty"`   // raw human-readable line
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ProcLogEntry) Reset() {
+	*x = ProcLogEntry{}
+	mi := &file_crow_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ProcLogEntry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProcLogEntry) ProtoMessage() {}
+
+func (x *ProcLogEntry) ProtoReflect() protoreflect.Message {
+	mi := &file_crow_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProcLogEntry.ProtoReflect.Descriptor instead.
+func (*ProcLogEntry) Descriptor() ([]byte, []int) {
+	return file_crow_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *ProcLogEntry) GetTime() int64 {
+	if x != nil {
+		return x.Time
+	}
+	return 0
+}
+
+func (x *ProcLogEntry) GetLevel() string {
+	if x != nil {
+		return x.Level
+	}
+	return ""
+}
+
+func (x *ProcLogEntry) GetLine() string {
+	if x != nil {
+		return x.Line
+	}
+	return ""
+}
+
+type ProcLogAck struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Received      int64                  `protobuf:"varint,1,opt,name=received,proto3" json:"received,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ProcLogAck) Reset() {
+	*x = ProcLogAck{}
+	mi := &file_crow_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ProcLogAck) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProcLogAck) ProtoMessage() {}
+
+func (x *ProcLogAck) ProtoReflect() protoreflect.Message {
+	mi := &file_crow_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProcLogAck.ProtoReflect.Descriptor instead.
+func (*ProcLogAck) Descriptor() ([]byte, []int) {
+	return file_crow_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *ProcLogAck) GetReceived() int64 {
+	if x != nil {
+		return x.Received
+	}
+	return 0
+}
+
 var File_crow_proto protoreflect.FileDescriptor
 
 const file_crow_proto_rawDesc = "" +
@@ -1620,7 +1768,16 @@ const file_crow_proto_rawDesc = "" +
 	"\fAuthResponse\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\tR\x06status\x12\x19\n" +
 	"\bagent_id\x18\x02 \x01(\x03R\aagentId\x12!\n" +
-	"\faccess_token\x18\x03 \x01(\tR\vaccessToken2\xd0\x05\n" +
+	"\faccess_token\x18\x03 \x01(\tR\vaccessToken\"=\n" +
+	"\fProcLogBatch\x12-\n" +
+	"\aentries\x18\x01 \x03(\v2\x13.proto.ProcLogEntryR\aentries\"L\n" +
+	"\fProcLogEntry\x12\x12\n" +
+	"\x04time\x18\x01 \x01(\x03R\x04time\x12\x14\n" +
+	"\x05level\x18\x02 \x01(\tR\x05level\x12\x12\n" +
+	"\x04line\x18\x03 \x01(\tR\x04line\"(\n" +
+	"\n" +
+	"ProcLogAck\x12\x1a\n" +
+	"\breceived\x18\x01 \x01(\x03R\breceived2\x8e\x06\n" +
 	"\x04Crow\x121\n" +
 	"\aVersion\x12\f.proto.Empty\x1a\x16.proto.VersionResponse\"\x00\x121\n" +
 	"\x04Next\x12\x12.proto.NextRequest\x1a\x13.proto.NextResponse\"\x00\x12*\n" +
@@ -1634,7 +1791,8 @@ const file_crow_proto_rawDesc = "" +
 	"\x0fUnregisterAgent\x12\f.proto.Empty\x1a\f.proto.Empty\"\x00\x12I\n" +
 	"\fReportHealth\x12\x1a.proto.ReportHealthRequest\x1a\x1b.proto.ReportHealthResponse\"\x00\x12H\n" +
 	"\x13ReportDockerCleanup\x12!.proto.DockerCleanupResultRequest\x1a\f.proto.Empty\"\x00\x12@\n" +
-	"\tClaimTask\x12\x17.proto.ClaimTaskRequest\x1a\x18.proto.ClaimTaskResponse\"\x002=\n" +
+	"\tClaimTask\x12\x17.proto.ClaimTaskRequest\x1a\x18.proto.ClaimTaskResponse\"\x00\x12<\n" +
+	"\x0eStreamProcLogs\x12\x13.proto.ProcLogBatch\x1a\x11.proto.ProcLogAck\"\x00(\x012=\n" +
 	"\bCrowAuth\x121\n" +
 	"\x04Auth\x12\x12.proto.AuthRequest\x1a\x13.proto.AuthResponse\"\x00B0Z.codefloe.com/crowci/crow/v5/pipeline/rpc/protob\x06proto3"
 
@@ -1650,7 +1808,7 @@ func file_crow_proto_rawDescGZIP() []byte {
 	return file_crow_proto_rawDescData
 }
 
-var file_crow_proto_msgTypes = make([]protoimpl.MessageInfo, 28)
+var file_crow_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
 var file_crow_proto_goTypes = []any{
 	(*StepState)(nil),                  // 0: proto.StepState
 	(*WorkflowState)(nil),              // 1: proto.WorkflowState
@@ -1678,54 +1836,60 @@ var file_crow_proto_goTypes = []any{
 	(*DockerCleanupResultRequest)(nil), // 23: proto.DockerCleanupResultRequest
 	(*AuthRequest)(nil),                // 24: proto.AuthRequest
 	(*AuthResponse)(nil),               // 25: proto.AuthResponse
-	nil,                                // 26: proto.Filter.LabelsEntry
-	nil,                                // 27: proto.AgentInfo.CustomLabelsEntry
+	(*ProcLogBatch)(nil),               // 26: proto.ProcLogBatch
+	(*ProcLogEntry)(nil),               // 27: proto.ProcLogEntry
+	(*ProcLogAck)(nil),                 // 28: proto.ProcLogAck
+	nil,                                // 29: proto.Filter.LabelsEntry
+	nil,                                // 30: proto.AgentInfo.CustomLabelsEntry
 }
 var file_crow_proto_depIdxs = []int32{
-	26, // 0: proto.Filter.labels:type_name -> proto.Filter.LabelsEntry
+	29, // 0: proto.Filter.labels:type_name -> proto.Filter.LabelsEntry
 	3,  // 1: proto.NextRequest.filter:type_name -> proto.Filter
 	1,  // 2: proto.InitRequest.state:type_name -> proto.WorkflowState
 	1,  // 3: proto.DoneRequest.state:type_name -> proto.WorkflowState
 	0,  // 4: proto.UpdateRequest.state:type_name -> proto.StepState
 	2,  // 5: proto.LogRequest.logEntries:type_name -> proto.LogEntry
-	27, // 6: proto.AgentInfo.customLabels:type_name -> proto.AgentInfo.CustomLabelsEntry
+	30, // 6: proto.AgentInfo.customLabels:type_name -> proto.AgentInfo.CustomLabelsEntry
 	15, // 7: proto.RegisterAgentRequest.info:type_name -> proto.AgentInfo
 	4,  // 8: proto.NextResponse.workflow:type_name -> proto.Workflow
 	4,  // 9: proto.ClaimTaskResponse.workflow:type_name -> proto.Workflow
 	22, // 10: proto.ReportHealthResponse.docker_cleanup_config:type_name -> proto.DockerCleanupConfig
-	12, // 11: proto.Crow.Version:input_type -> proto.Empty
-	5,  // 12: proto.Crow.Next:input_type -> proto.NextRequest
-	6,  // 13: proto.Crow.Init:input_type -> proto.InitRequest
-	7,  // 14: proto.Crow.Wait:input_type -> proto.WaitRequest
-	8,  // 15: proto.Crow.Done:input_type -> proto.DoneRequest
-	9,  // 16: proto.Crow.Extend:input_type -> proto.ExtendRequest
-	10, // 17: proto.Crow.Update:input_type -> proto.UpdateRequest
-	11, // 18: proto.Crow.Log:input_type -> proto.LogRequest
-	16, // 19: proto.Crow.RegisterAgent:input_type -> proto.RegisterAgentRequest
-	12, // 20: proto.Crow.UnregisterAgent:input_type -> proto.Empty
-	13, // 21: proto.Crow.ReportHealth:input_type -> proto.ReportHealthRequest
-	23, // 22: proto.Crow.ReportDockerCleanup:input_type -> proto.DockerCleanupResultRequest
-	14, // 23: proto.Crow.ClaimTask:input_type -> proto.ClaimTaskRequest
-	24, // 24: proto.CrowAuth.Auth:input_type -> proto.AuthRequest
-	17, // 25: proto.Crow.Version:output_type -> proto.VersionResponse
-	18, // 26: proto.Crow.Next:output_type -> proto.NextResponse
-	12, // 27: proto.Crow.Init:output_type -> proto.Empty
-	12, // 28: proto.Crow.Wait:output_type -> proto.Empty
-	12, // 29: proto.Crow.Done:output_type -> proto.Empty
-	12, // 30: proto.Crow.Extend:output_type -> proto.Empty
-	12, // 31: proto.Crow.Update:output_type -> proto.Empty
-	12, // 32: proto.Crow.Log:output_type -> proto.Empty
-	19, // 33: proto.Crow.RegisterAgent:output_type -> proto.RegisterAgentResponse
-	12, // 34: proto.Crow.UnregisterAgent:output_type -> proto.Empty
-	21, // 35: proto.Crow.ReportHealth:output_type -> proto.ReportHealthResponse
-	12, // 36: proto.Crow.ReportDockerCleanup:output_type -> proto.Empty
-	20, // 37: proto.Crow.ClaimTask:output_type -> proto.ClaimTaskResponse
-	25, // 38: proto.CrowAuth.Auth:output_type -> proto.AuthResponse
-	25, // [25:39] is the sub-list for method output_type
-	11, // [11:25] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	27, // 11: proto.ProcLogBatch.entries:type_name -> proto.ProcLogEntry
+	12, // 12: proto.Crow.Version:input_type -> proto.Empty
+	5,  // 13: proto.Crow.Next:input_type -> proto.NextRequest
+	6,  // 14: proto.Crow.Init:input_type -> proto.InitRequest
+	7,  // 15: proto.Crow.Wait:input_type -> proto.WaitRequest
+	8,  // 16: proto.Crow.Done:input_type -> proto.DoneRequest
+	9,  // 17: proto.Crow.Extend:input_type -> proto.ExtendRequest
+	10, // 18: proto.Crow.Update:input_type -> proto.UpdateRequest
+	11, // 19: proto.Crow.Log:input_type -> proto.LogRequest
+	16, // 20: proto.Crow.RegisterAgent:input_type -> proto.RegisterAgentRequest
+	12, // 21: proto.Crow.UnregisterAgent:input_type -> proto.Empty
+	13, // 22: proto.Crow.ReportHealth:input_type -> proto.ReportHealthRequest
+	23, // 23: proto.Crow.ReportDockerCleanup:input_type -> proto.DockerCleanupResultRequest
+	14, // 24: proto.Crow.ClaimTask:input_type -> proto.ClaimTaskRequest
+	26, // 25: proto.Crow.StreamProcLogs:input_type -> proto.ProcLogBatch
+	24, // 26: proto.CrowAuth.Auth:input_type -> proto.AuthRequest
+	17, // 27: proto.Crow.Version:output_type -> proto.VersionResponse
+	18, // 28: proto.Crow.Next:output_type -> proto.NextResponse
+	12, // 29: proto.Crow.Init:output_type -> proto.Empty
+	12, // 30: proto.Crow.Wait:output_type -> proto.Empty
+	12, // 31: proto.Crow.Done:output_type -> proto.Empty
+	12, // 32: proto.Crow.Extend:output_type -> proto.Empty
+	12, // 33: proto.Crow.Update:output_type -> proto.Empty
+	12, // 34: proto.Crow.Log:output_type -> proto.Empty
+	19, // 35: proto.Crow.RegisterAgent:output_type -> proto.RegisterAgentResponse
+	12, // 36: proto.Crow.UnregisterAgent:output_type -> proto.Empty
+	21, // 37: proto.Crow.ReportHealth:output_type -> proto.ReportHealthResponse
+	12, // 38: proto.Crow.ReportDockerCleanup:output_type -> proto.Empty
+	20, // 39: proto.Crow.ClaimTask:output_type -> proto.ClaimTaskResponse
+	28, // 40: proto.Crow.StreamProcLogs:output_type -> proto.ProcLogAck
+	25, // 41: proto.CrowAuth.Auth:output_type -> proto.AuthResponse
+	27, // [27:42] is the sub-list for method output_type
+	12, // [12:27] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_crow_proto_init() }
@@ -1739,7 +1903,7 @@ func file_crow_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_crow_proto_rawDesc), len(file_crow_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   28,
+			NumMessages:   31,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

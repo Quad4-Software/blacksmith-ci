@@ -21,6 +21,7 @@ import (
 	"codefloe.com/crowci/crow/v5/server/cache"
 	"codefloe.com/crowci/crow/v5/server/logging"
 	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/proclog"
 	"codefloe.com/crowci/crow/v5/server/pubsub"
 	"codefloe.com/crowci/crow/v5/server/queue"
 	"codefloe.com/crowci/crow/v5/server/services"
@@ -43,6 +44,9 @@ var Config = struct {
 		Store                services.Store
 		IntegrationService   integration.Service
 		NotificationService  notification.Service
+		ProcLogReceiver      *proclog.Receiver
+		ProcLogStream        *proclog.Stream
+		ProcLogJanitor       *proclog.Janitor
 	}
 	Server struct {
 		JWTSecret           string

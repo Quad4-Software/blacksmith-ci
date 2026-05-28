@@ -204,6 +204,16 @@ type Store interface {
 	LogAppend(*model.Step, []*model.LogEntry) error
 	LogDelete(*model.Step) error
 
+	// ProcLogs
+	// ProcLogInsert batch-inserts process log entries.
+	ProcLogInsert(ctx context.Context, entries []*model.ProcLogEntry) error
+	// ProcLogTail returns up to `limit` entries for the given source with id > sinceID, ordered by id ASC.
+	ProcLogTail(ctx context.Context, sourceType string, sourceID int64, sinceID int64, limit int) ([]*model.ProcLogEntry, error)
+	// ProcLogTrim keeps only the most recent `keepLastN` entries for the given source.
+	ProcLogTrim(ctx context.Context, sourceType string, sourceID int64, keepLastN int) error
+	// ProcLogListSources returns all distinct (source_type, source_id) keys currently present in proc_log_entries.
+	ProcLogListSources(ctx context.Context) ([]model.ProcLogSourceKey, error)
+
 	// Tasks
 	// TaskList TODO: paginate & opt filter
 	TaskList() ([]*model.Task, error)

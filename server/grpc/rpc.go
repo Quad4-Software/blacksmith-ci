@@ -21,19 +21,24 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"strconv"
 	"time"
 
 	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc/codes"
 	grpcMetadata "google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 
 	"codefloe.com/crowci/crow/v5/pipeline"
 	"codefloe.com/crowci/crow/v5/pipeline/rpc"
+	"codefloe.com/crowci/crow/v5/pipeline/rpc/proto"
 	"codefloe.com/crowci/crow/v5/server"
 	"codefloe.com/crowci/crow/v5/server/forge"
 	"codefloe.com/crowci/crow/v5/server/logging"
 	"codefloe.com/crowci/crow/v5/server/model"
 	serverPipeline "codefloe.com/crowci/crow/v5/server/pipeline"
+	"codefloe.com/crowci/crow/v5/server/proclog"
 	"codefloe.com/crowci/crow/v5/server/pubsub"
 	"codefloe.com/crowci/crow/v5/server/queue"
 	"codefloe.com/crowci/crow/v5/server/store"
@@ -43,11 +48,12 @@ import (
 const updateAgentLastWorkDelay = time.Minute
 
 type RPC struct {
-	queue   queue.Queue
-	pubsub  pubsub.Publisher
-	logger  logging.Log
-	store   store.Store
-	metrics *GRPCMetrics
+	queue           queue.Queue
+	pubsub          pubsub.Publisher
+	logger          logging.Log
+	store           store.Store
+	metrics         *GRPCMetrics
+	procLogReceiver *proclog.Receiver
 }
 
 // Replaces legacy filter labels with new ones.
@@ -518,6 +524,45 @@ func (s *RPC) Log(c context.Context, stepUUID string, rpcLogEntries []*rpc.LogEn
 	}
 
 	return nil
+}
+
+// StreamProcLogs receives client-streamed batches of process log entries and forwards them to the
+// proclog receiver for storage. Returns Unimplemented when the receiver is not configured.
+func (s *RPC) StreamProcLogs(stream proto.Crow_StreamProcLogsServer) error {
+	if s.procLogReceiver == nil {
+		return status.Error(codes.Unimplemented, "process log ingest is disabled on this server")
+	}
+
+	agent, err := s.getAgentFromContext(stream.Context())
+	if err != nil {
+		return err
+	}
+
+	var received int64
+	for {
+		batch, err := stream.Recv()
+		if errors.Is(err, io.EOF) {
+			return stream.SendAndClose(&proto.ProcLogAck{Received: received})
+		}
+		if err != nil {
+			return err
+		}
+
+		entries := make([]*model.ProcLogEntry, 0, len(batch.GetEntries()))
+		for _, e := range batch.GetEntries() {
+			entries = append(entries, &model.ProcLogEntry{
+				Time:  e.GetTime(),
+				Level: e.GetLevel(),
+				Line:  e.GetLine(),
+			})
+		}
+
+		if err := s.procLogReceiver.Ingest(stream.Context(), proclog.SourceTypeAgent, agent.ID, entries); err != nil {
+			log.Error().Err(err).Msg("proclog: failed to ingest batch")
+			return err
+		}
+		received += int64(len(entries))
+	}
 }
 
 func (s *RPC) RegisterAgent(ctx context.Context, info rpc.AgentInfo) (int64, string, error) {

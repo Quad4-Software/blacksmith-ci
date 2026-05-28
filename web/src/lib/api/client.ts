@@ -1,4 +1,5 @@
 import type { useAuthStore } from '~/store/auth';
+import type { ProcLogEntry } from '~/lib/api/types/procLog';
 
 export interface ApiError {
   status: number;
@@ -241,6 +242,22 @@ export default class ApiClient {
     };
 
     return events;
+  }
+
+  subscribeAgentLogs(
+    agentId: number,
+    // eslint-disable-next-line promise/prefer-await-to-callbacks
+    callback: (entry: ProcLogEntry) => void,
+  ) {
+    return this._subscribe<ProcLogEntry>(`/api/v1/agents/${agentId}/logs/stream`, callback);
+  }
+
+  subscribeAutoscalerLogs(
+    autoscalerId: number,
+    // eslint-disable-next-line promise/prefer-await-to-callbacks
+    callback: (entry: ProcLogEntry) => void,
+  ) {
+    return this._subscribe<ProcLogEntry>(`/api/v1/autoscalers/${autoscalerId}/logs/stream`, callback);
   }
 
   setErrorHandler(onerror: (err: ApiError) => void) {

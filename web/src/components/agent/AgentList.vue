@@ -133,8 +133,13 @@
 
               <!-- Agent Name -->
               <div class="min-w-0 flex-1">
-                <h3 class="text-base font-semibold text-foreground truncate">
-                  {{ getAgentDisplayName(agent) }}
+                <h3 class="text-base font-semibold truncate">
+                  <router-link
+                    :to="{ name: 'admin-agent-detail', params: { id: agent.id } }"
+                    class="text-primary hover:underline"
+                  >
+                    {{ getAgentDisplayName(agent) }}
+                  </router-link>
                 </h3>
                 <!-- Desktop: single line metadata -->
                 <div class="hidden md:flex items-center gap-2 mt-1">

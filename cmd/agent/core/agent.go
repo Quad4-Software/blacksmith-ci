@@ -40,11 +40,13 @@ import (
 	"google.golang.org/grpc/metadata"
 
 	"codefloe.com/crowci/crow/v5/agent"
+	"codefloe.com/crowci/crow/v5/agent/proclog"
 	agent_rpc "codefloe.com/crowci/crow/v5/agent/rpc"
 	"codefloe.com/crowci/crow/v5/pipeline"
 	"codefloe.com/crowci/crow/v5/pipeline/backend"
 	"codefloe.com/crowci/crow/v5/pipeline/backend/types"
 	"codefloe.com/crowci/crow/v5/pipeline/rpc"
+	"codefloe.com/crowci/crow/v5/pipeline/rpc/proto"
 	"codefloe.com/crowci/crow/v5/shared/logger"
 	"codefloe.com/crowci/crow/v5/shared/utils"
 	"codefloe.com/crowci/crow/v5/version"
@@ -251,6 +253,20 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 
 	client := agent_rpc.NewGrpcClient(ctx, conn)
 	client.SetMaxErrorDuration(c.Duration("grpc-max-error-duration"))
+
+	if c.Bool("proclog-ship-enabled") {
+		sink := proclog.NewSink(c.Int("proclog-local-buffer"))
+		ring := proclog.NewRing(c.Int("proclog-local-buffer"))
+		grpcProcLogClient := proclog.NewGrpcClient(proto.NewCrowClient(conn))
+		shipper := proclog.NewShipper(sink, ring, grpcProcLogClient, proclog.ShipperOpts{
+			BatchInterval: c.Duration("proclog-batch-interval"),
+			BatchSize:     c.Int("proclog-batch-size"),
+			RateLimit:     c.Int("proclog-rate-limit"),
+		})
+		go shipper.Run(agentCtx)
+		logger.SetGlobalExtraWriter(sink)
+	}
+
 	agentConfigPersisted := atomic.Bool{}
 
 	grpcCtx := metadata.NewOutgoingContext(grpcClientCtx, metadata.Pairs("hostname", hostname))

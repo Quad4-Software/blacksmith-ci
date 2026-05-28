@@ -23,6 +23,7 @@ import (
 	"codefloe.com/crowci/crow/v5/pipeline/rpc"
 	"codefloe.com/crowci/crow/v5/pipeline/rpc/proto"
 	"codefloe.com/crowci/crow/v5/server/logging"
+	"codefloe.com/crowci/crow/v5/server/proclog"
 	"codefloe.com/crowci/crow/v5/server/pubsub"
 	"codefloe.com/crowci/crow/v5/server/queue"
 	"codefloe.com/crowci/crow/v5/server/store"
@@ -35,13 +36,14 @@ type CrowServer struct {
 	peer RPC
 }
 
-func NewCrowServer(queue queue.Queue, logger logging.Log, pubsub pubsub.Publisher, store store.Store) proto.CrowServer {
+func NewCrowServer(queue queue.Queue, logger logging.Log, pubsub pubsub.Publisher, store store.Store, procLogReceiver *proclog.Receiver) proto.CrowServer {
 	peer := RPC{
-		store:   store,
-		queue:   queue,
-		pubsub:  pubsub,
-		logger:  logger,
-		metrics: NewGRPCMetrics(),
+		store:           store,
+		queue:           queue,
+		pubsub:          pubsub,
+		logger:          logger,
+		metrics:         NewGRPCMetrics(),
+		procLogReceiver: procLogReceiver,
 	}
 	return &CrowServer{peer: peer}
 }
@@ -213,6 +215,10 @@ func (s *CrowServer) ReportDockerCleanup(c context.Context, req *proto.DockerCle
 		Manual:            req.GetManual(),
 	})
 	return res, err
+}
+
+func (s *CrowServer) StreamProcLogs(stream proto.Crow_StreamProcLogsServer) error {
+	return s.peer.StreamProcLogs(stream)
 }
 
 func (s *CrowServer) ClaimTask(c context.Context, req *proto.ClaimTaskRequest) (*proto.ClaimTaskResponse, error) {
