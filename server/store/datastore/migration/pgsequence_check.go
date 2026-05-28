@@ -198,3 +198,54 @@ func repairPostgresIDSequences(driver string) func(tx *sql.Tx) error {
 		return nil
 	}
 }
+
+// repairMySQLAutoIncrementIDs returns a migration that ensures every table in
+// expectedBigSerialTables has an AUTO_INCREMENT id column on MySQL. For tables
+// whose id column is missing AUTO_INCREMENT (a `column_type` lookup whose
+// `extra` does not contain "auto_increment"), it issues an
+// `ALTER TABLE ... MODIFY COLUMN id <existing_type> NOT NULL AUTO_INCREMENT`.
+// The existing column type is preserved so other tables' FK columns continue
+// to match. MySQL automatically advances the auto-increment counter past
+// existing rows when AUTO_INCREMENT is added.
+//
+// No-op on non-MySQL drivers and on already-healthy columns. Affects MySQL
+// deployments that ran the buggy `crow-add-email-unsubscribes` migration
+// before da8da2fdf (when it created the table with `id INTEGER PRIMARY KEY`,
+// i.e. INT with no AUTO_INCREMENT on MySQL).
+func repairMySQLAutoIncrementIDs(driver string) func(tx *sql.Tx) error {
+	return func(tx *sql.Tx) error {
+		if driver != "mysql" {
+			return nil
+		}
+
+		for _, table := range expectedBigSerialTables {
+			var columnType, extra string
+			err := tx.QueryRow(`
+				SELECT column_type, extra
+				FROM information_schema.columns
+				WHERE table_schema = DATABASE() AND table_name = ? AND column_name = 'id'
+			`, table).Scan(&columnType, &extra)
+			if errors.Is(err, sql.ErrNoRows) {
+				continue
+			}
+			if err != nil {
+				return fmt.Errorf("inspect %s.id on MySQL: %w", table, err)
+			}
+			if strings.Contains(strings.ToLower(extra), "auto_increment") {
+				continue
+			}
+
+			log.Warn().Str("table", table).Msg("repairing missing MySQL AUTO_INCREMENT on id column")
+
+			stmt := fmt.Sprintf(
+				`ALTER TABLE %s MODIFY COLUMN id %s NOT NULL AUTO_INCREMENT`,
+				table, columnType,
+			)
+			if _, err := tx.Exec(stmt); err != nil { //nolint:gosec
+				return fmt.Errorf("add AUTO_INCREMENT to %s.id: %w", table, err)
+			}
+		}
+
+		return nil
+	}
+}

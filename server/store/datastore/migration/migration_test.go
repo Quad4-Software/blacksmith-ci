@@ -304,6 +304,62 @@ func TestMigrate_NewMigrations_PortableSQL(t *testing.T) {
 	}
 }
 
+// TestMigrate_RepairsBrokenMySQLAutoIncrement simulates the MySQL analog of
+// the bug in TestMigrate_RepairsBrokenPostgresIDSequence: the buggy migration
+// window left email_unsubscribes as `id INT PRIMARY KEY` (no AUTO_INCREMENT).
+// The new `crow-repair-mysql-id-auto-increment` migration must restore the
+// AUTO_INCREMENT attribute so inserts without an explicit id succeed and the
+// counter advances past the existing row.
+func TestMigrate_RepairsBrokenMySQLAutoIncrement(t *testing.T) {
+	db, driver := testDB(t)
+	if driver != "mysql" {
+		t.Skip("repair is a no-op outside MySQL")
+	}
+
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS migrations (id TEXT NULL)`)
+	require.NoError(t, err)
+	for _, id := range allLegacyMigrationIDs {
+		_, err = db.Exec(fmt.Sprintf("INSERT INTO migrations (id) VALUES ('%s')", id))
+		require.NoError(t, err)
+	}
+	_, err = db.Exec("INSERT INTO migrations (id) VALUES ('crow-add-email-unsubscribes')")
+	require.NoError(t, err)
+
+	// Fixtures other new migrations expect.
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS autoscalers (id BIGINT PRIMARY KEY AUTO_INCREMENT)`)
+	require.NoError(t, err)
+
+	// Recreate the broken historical schema on MySQL: id is INT PRIMARY KEY
+	// with no AUTO_INCREMENT, no default, NOT NULL by virtue of PRIMARY KEY.
+	_, err = db.Exec(`CREATE TABLE email_unsubscribes (
+		id INT PRIMARY KEY,
+		user_id INTEGER NOT NULL,
+		repo_id INTEGER NOT NULL,
+		email TEXT NOT NULL,
+		created_at INTEGER,
+		UNIQUE(user_id, repo_id)
+	)`)
+	require.NoError(t, err)
+
+	_, err = db.Exec(`INSERT INTO email_unsubscribes (id, user_id, repo_id, email) VALUES (42, 1, 1, 'seed@example.com')`)
+	require.NoError(t, err)
+
+	// Sanity check: in the broken state, INSERT without an id fails because
+	// the column has no AUTO_INCREMENT and no default.
+	_, err = db.Exec(`INSERT INTO email_unsubscribes (user_id, repo_id, email) VALUES (2, 2, 'pre@example.com')`)
+	require.Error(t, err, "broken table must reject inserts without an explicit id")
+
+	err = Migrate(t.Context(), db, driver, true)
+	require.NoError(t, err)
+
+	// Post-repair: INSERT without id works and the counter advances past 42.
+	res, err := db.Exec(`INSERT INTO email_unsubscribes (user_id, repo_id, email) VALUES (3, 3, 'post@example.com')`)
+	require.NoError(t, err)
+	newID, err := res.LastInsertId()
+	require.NoError(t, err)
+	assert.Greater(t, newID, int64(42), "repaired AUTO_INCREMENT must skip past existing max id")
+}
+
 // TestMigrate_RepairsBrokenPostgresIDSequence simulates the production failure
 // mode from May 2026: an existing PostgreSQL database where
 // `crow-add-email-unsubscribes` was applied during the window when it created
