@@ -220,10 +220,17 @@ func TestTinyPod(t *testing.T) {
 							"name": "workspace",
 							"mountPath": "/woodpecker/src"
 						}
-					]
+					],
+					"securityContext": {
+						"capabilities": {"drop": ["ALL"]},
+						"allowPrivilegeEscalation": false
+					}
 				}
 			],
-			"restartPolicy": "Never"
+			"restartPolicy": "Never",
+			"securityContext": {
+				"seccompProfile": {"type": "RuntimeDefault"}
+			}
 		},
 		"status": {}
 	}`
@@ -514,10 +521,12 @@ func TestPodPrivilege(t *testing.T) {
 		FSGroup:                  newInt64(0),
 		Sysctls:                  []v1.Sysctl(nil),
 		FSGroupChangePolicy:      (*v1.PodFSGroupChangePolicy)(nil),
-		SeccompProfile:           (*v1.SeccompProfile)(nil),
+		SeccompProfile:           &v1.SeccompProfile{Type: v1.SeccompProfileTypeRuntimeDefault},
 		AppArmorProfile:          (*v1.AppArmorProfile)(nil),
 	}, pod.Spec.SecurityContext)
-	assert.Nil(t, pod.Spec.Containers[0].SecurityContext)
+	assert.NotNil(t, pod.Spec.Containers[0].SecurityContext, "non-privileged step gets restricted-compliant container context")
+	assert.False(t, *pod.Spec.Containers[0].SecurityContext.AllowPrivilegeEscalation)
+	assert.Equal(t, []v1.Capability{"ALL"}, pod.Spec.Containers[0].SecurityContext.Capabilities.Drop)
 
 	// step is not privileged, but security context is requesting privileged
 	secCtx = SecurityContext{
@@ -525,8 +534,9 @@ func TestPodPrivilege(t *testing.T) {
 	}
 	pod, err = createTestPod(false, false, secCtx)
 	assert.NoError(t, err)
-	assert.Nil(t, pod.Spec.SecurityContext)
-	assert.Equal(t, (*v1.PodSecurityContext)(nil), pod.Spec.SecurityContext)
+	// non-privileged step still gets default seccomp profile (restricted-compliant)
+	assert.NotNil(t, pod.Spec.SecurityContext)
+	assert.Equal(t, v1.SeccompProfileTypeRuntimeDefault, pod.Spec.SecurityContext.SeccompProfile.Type)
 
 	// step is privileged and security context is requesting privileged
 	secCtx = SecurityContext{
@@ -574,10 +584,17 @@ func TestScratchPod(t *testing.T) {
 						"-v",
 						"google.com"
 					],
-					"resources": {}
+					"resources": {},
+					"securityContext": {
+						"capabilities": {"drop": ["ALL"]},
+						"allowPrivilegeEscalation": false
+					}
 				}
 			],
-			"restartPolicy": "Never"
+			"restartPolicy": "Never",
+			"securityContext": {
+				"seccompProfile": {"type": "RuntimeDefault"}
+			}
 		},
 		"status": {}
 	}`
@@ -674,10 +691,17 @@ func TestSecrets(t *testing.T) {
 							"subPath": ".dockerconfigjson",
 							"readOnly": true
 						}
-					]
+					],
+					"securityContext": {
+						"capabilities": {"drop": ["ALL"]},
+						"allowPrivilegeEscalation": false
+					}
 				}
 			],
-			"restartPolicy": "Never"
+			"restartPolicy": "Never",
+			"securityContext": {
+				"seccompProfile": {"type": "RuntimeDefault"}
+			}
 		},
 		"status": {}
 	}`
@@ -739,10 +763,17 @@ func TestPodTolerations(t *testing.T) {
 				{
 					"name": "crow-01he8bebctabr3kgk0qj36d2me-0",
 					"image": "alpine",
-					"resources": {}
+					"resources": {},
+					"securityContext": {
+						"capabilities": {"drop": ["ALL"]},
+						"allowPrivilegeEscalation": false
+					}
 				}
 			],
 			"restartPolicy": "Never",
+			"securityContext": {
+				"seccompProfile": {"type": "RuntimeDefault"}
+			},
 			"tolerations": [
 				{
 					"key": "foo",
@@ -800,10 +831,17 @@ func TestPodTolerationsAllowFromStep(t *testing.T) {
 				{
 					"name": "crow-01he8bebctabr3kgk0qj36d2me-0",
 					"image": "alpine",
-					"resources": {}
+					"resources": {},
+					"securityContext": {
+						"capabilities": {"drop": ["ALL"]},
+						"allowPrivilegeEscalation": false
+					}
 				}
 			],
-			"restartPolicy": "Never"
+			"restartPolicy": "Never",
+			"securityContext": {
+				"seccompProfile": {"type": "RuntimeDefault"}
+			}
 		},
 		"status": {}
 	}`
@@ -824,10 +862,17 @@ func TestPodTolerationsAllowFromStep(t *testing.T) {
 				{
 					"name": "crow-01he8bebctabr3kgk0qj36d2me-0",
 					"image": "alpine",
-					"resources": {}
+					"resources": {},
+					"securityContext": {
+						"capabilities": {"drop": ["ALL"]},
+						"allowPrivilegeEscalation": false
+					}
 				}
 			],
 			"restartPolicy": "Never",
+			"securityContext": {
+				"seccompProfile": {"type": "RuntimeDefault"}
+			},
 			"tolerations": [
 				{
 					"key": "custom",
@@ -966,4 +1011,119 @@ func TestStepSecret(t *testing.T) {
 
 	ja := jsonassert.New(t)
 	ja.Assertf(string(secretJSON), expected)
+}
+
+func TestRestrictedDefaultsForNonPrivilegedStep(t *testing.T) {
+	pod, err := mkPod(&types.Step{
+		Name:  "go-test",
+		Image: "golang:1.22",
+		UUID:  "01he8bebctabr3kgk0qj36d2me-0",
+	}, &config{
+		Namespace: "crow",
+	}, "crow-01he8bebctabr3kgk0qj36d2me-0", "linux/amd64", BackendOptions{}, taskUUID)
+	assert.NoError(t, err)
+
+	sc := pod.Spec.Containers[0].SecurityContext
+	if assert.NotNil(t, sc, "container securityContext should be set for non-privileged steps") {
+		if assert.NotNil(t, sc.AllowPrivilegeEscalation) {
+			assert.False(t, *sc.AllowPrivilegeEscalation)
+		}
+		if assert.NotNil(t, sc.Capabilities) {
+			assert.Equal(t, []v1.Capability{"ALL"}, sc.Capabilities.Drop)
+		}
+	}
+
+	podSC := pod.Spec.SecurityContext
+	if assert.NotNil(t, podSC, "pod securityContext should be set for non-privileged steps") {
+		if assert.NotNil(t, podSC.SeccompProfile) {
+			assert.Equal(t, v1.SeccompProfileTypeRuntimeDefault, podSC.SeccompProfile.Type)
+		}
+	}
+}
+
+func TestRestrictedDefaultsWithPerStepCapabilitiesAdd(t *testing.T) {
+	pod, err := mkPod(&types.Step{
+		Name:  "bind-low-port",
+		Image: "alpine:3.20",
+		UUID:  "01he8bebctabr3kgk0qj36d2me-0",
+	}, &config{
+		Namespace: "crow",
+	}, "crow-01he8bebctabr3kgk0qj36d2me-0", "linux/amd64", BackendOptions{
+		SecurityContext: &SecurityContext{
+			Capabilities: &Capabilities{
+				Add: []string{"NET_BIND_SERVICE"},
+			},
+		},
+	}, taskUUID)
+	assert.NoError(t, err)
+
+	sc := pod.Spec.Containers[0].SecurityContext
+	if assert.NotNil(t, sc) && assert.NotNil(t, sc.Capabilities) {
+		assert.Equal(t, []v1.Capability{"NET_BIND_SERVICE"}, sc.Capabilities.Add)
+		assert.Equal(t, []v1.Capability{"ALL"}, sc.Capabilities.Drop, "ALL must still be dropped by default")
+	}
+}
+
+func TestRestrictedDefaultsWithPerStepCapabilitiesDropOverride(t *testing.T) {
+	pod, err := mkPod(&types.Step{
+		Name:  "custom-drop",
+		Image: "alpine:3.20",
+		UUID:  "01he8bebctabr3kgk0qj36d2me-0",
+	}, &config{
+		Namespace: "crow",
+	}, "crow-01he8bebctabr3kgk0qj36d2me-0", "linux/amd64", BackendOptions{
+		SecurityContext: &SecurityContext{
+			Capabilities: &Capabilities{
+				Drop: []string{"NET_RAW", "SYS_PTRACE"},
+			},
+		},
+	}, taskUUID)
+	assert.NoError(t, err)
+
+	sc := pod.Spec.Containers[0].SecurityContext
+	if assert.NotNil(t, sc) && assert.NotNil(t, sc.Capabilities) {
+		assert.Equal(t, []v1.Capability{"NET_RAW", "SYS_PTRACE"}, sc.Capabilities.Drop, "explicit drop list replaces default")
+	}
+}
+
+func TestRestrictedDefaultsRespectExistingSeccompProfile(t *testing.T) {
+	pod, err := mkPod(&types.Step{
+		Name:  "custom-seccomp",
+		Image: "alpine:3.20",
+		UUID:  "01he8bebctabr3kgk0qj36d2me-0",
+	}, &config{
+		Namespace: "crow",
+	}, "crow-01he8bebctabr3kgk0qj36d2me-0", "linux/amd64", BackendOptions{
+		SecurityContext: &SecurityContext{
+			SeccompProfile: &SecProfile{
+				Type:             "Localhost",
+				LocalhostProfile: "profiles/audit.json",
+			},
+		},
+	}, taskUUID)
+	assert.NoError(t, err)
+
+	podSC := pod.Spec.SecurityContext
+	if assert.NotNil(t, podSC) && assert.NotNil(t, podSC.SeccompProfile) {
+		assert.Equal(t, v1.SeccompProfileTypeLocalhost, podSC.SeccompProfile.Type, "user-provided seccomp profile must not be overwritten")
+	}
+}
+
+func TestPrivilegedStepSkipsRestrictedDefaults(t *testing.T) {
+	pod, err := mkPod(&types.Step{
+		Name:       "privileged-step",
+		Image:      "docker:dind",
+		UUID:       "01he8bebctabr3kgk0qj36d2me-0",
+		Privileged: true,
+	}, &config{
+		Namespace: "crow",
+	}, "crow-01he8bebctabr3kgk0qj36d2me-0", "linux/amd64", BackendOptions{}, taskUUID)
+	assert.NoError(t, err)
+
+	sc := pod.Spec.Containers[0].SecurityContext
+	if assert.NotNil(t, sc) {
+		assert.True(t, *sc.Privileged, "privileged step must remain privileged")
+		assert.Nil(t, sc.AllowPrivilegeEscalation, "restricted defaults must not apply to privileged steps")
+		assert.Nil(t, sc.Capabilities, "restricted defaults must not apply to privileged steps")
+	}
 }

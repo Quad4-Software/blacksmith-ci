@@ -50,13 +50,21 @@ const (
 )
 
 type SecurityContext struct {
-	Privileged      *bool       `mapstructure:"privileged"`
-	RunAsNonRoot    *bool       `mapstructure:"runAsNonRoot"`
-	RunAsUser       *int64      `mapstructure:"runAsUser"`
-	RunAsGroup      *int64      `mapstructure:"runAsGroup"`
-	FSGroup         *int64      `mapstructure:"fsGroup"`
-	SeccompProfile  *SecProfile `mapstructure:"seccompProfile"`
-	ApparmorProfile *SecProfile `mapstructure:"apparmorProfile"`
+	Privileged      *bool         `mapstructure:"privileged"`
+	RunAsNonRoot    *bool         `mapstructure:"runAsNonRoot"`
+	RunAsUser       *int64        `mapstructure:"runAsUser"`
+	RunAsGroup      *int64        `mapstructure:"runAsGroup"`
+	FSGroup         *int64        `mapstructure:"fsGroup"`
+	SeccompProfile  *SecProfile   `mapstructure:"seccompProfile"`
+	ApparmorProfile *SecProfile   `mapstructure:"apparmorProfile"`
+	Capabilities    *Capabilities `mapstructure:"capabilities"`
+}
+
+// Capabilities lets a non-privileged step add or replace the default capability
+// drop list that the backend applies to satisfy the PodSecurity `restricted` profile.
+type Capabilities struct {
+	Add  []string `mapstructure:"add"`
+	Drop []string `mapstructure:"drop"`
 }
 
 type SecProfile struct {

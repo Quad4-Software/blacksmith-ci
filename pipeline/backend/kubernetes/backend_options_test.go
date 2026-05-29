@@ -55,6 +55,10 @@ func Test_parseBackendOptions(t *testing.T) {
 								"type":             "Localhost",
 								"localhostProfile": "k8s-apparmor-example-deny-write",
 							},
+							"capabilities": map[string]any{
+								"add":  []string{"NET_BIND_SERVICE"},
+								"drop": []string{"NET_RAW"},
+							},
 						},
 						"secrets": []map[string]any{
 							{
@@ -98,6 +102,10 @@ func Test_parseBackendOptions(t *testing.T) {
 					ApparmorProfile: &SecProfile{
 						Type:             "Localhost",
 						LocalhostProfile: "k8s-apparmor-example-deny-write",
+					},
+					Capabilities: &Capabilities{
+						Add:  []string{"NET_BIND_SERVICE"},
+						Drop: []string{"NET_RAW"},
 					},
 				},
 				Secrets: []SecretRef{

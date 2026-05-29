@@ -561,6 +561,12 @@ func podSecurityContext(sc *SecurityContext, secCtxConf SecurityContextConfig, s
 		apparmor = apparmorProfile(sc.ApparmorProfile)
 	}
 
+	// Default seccomp to RuntimeDefault for non-privileged steps so pods satisfy
+	// the PodSecurity `restricted` profile out of the box.
+	if seccomp == nil && !stepPrivileged {
+		seccomp = &v1.SeccompProfile{Type: v1.SeccompProfileTypeRuntimeDefault}
+	}
+
 	if nonRoot == nil && user == nil && group == nil && fsGroup == nil && seccomp == nil && apparmor == nil {
 		return nil
 	}
@@ -610,23 +616,54 @@ func apparmorProfile(scp *SecProfile) *v1.AppArmorProfile {
 }
 
 func containerSecurityContext(sc *SecurityContext, stepPrivileged bool) *v1.SecurityContext {
-	if !stepPrivileged {
+	if stepPrivileged {
+		// 1st condition: if security context privileged is set explicitly
+		// 2nd condition: if security context privileged is not set explicitly, but step is privileged
+		privileged := (sc != nil && sc.Privileged != nil && *sc.Privileged) || ((sc == nil || sc.Privileged == nil) && stepPrivileged)
+
+		if privileged {
+			securityContext := &v1.SecurityContext{
+				Privileged: newBool(true),
+			}
+			log.Trace().Msgf("container security context that will be used: %v", securityContext)
+			return securityContext
+		}
+
 		return nil
 	}
 
-	// 1st condition: if security context privileged is set explicitly
-	// 2nd condition: if security context privileged is not set explicitly, but step is privileged
-	privileged := (sc != nil && sc.Privileged != nil && *sc.Privileged) || ((sc == nil || sc.Privileged == nil) && stepPrivileged)
-
-	if privileged {
-		securityContext := &v1.SecurityContext{
-			Privileged: newBool(true),
+	// Non-privileged step: emit container securityContext that satisfies the
+	// PodSecurity `restricted` profile. Per-step overrides via backend_options
+	// still win.
+	drop := []v1.Capability{"ALL"}
+	var add []v1.Capability
+	if sc != nil && sc.Capabilities != nil {
+		if sc.Capabilities.Drop != nil {
+			drop = toCapabilities(sc.Capabilities.Drop)
 		}
-		log.Trace().Msgf("container security context that will be used: %v", securityContext)
-		return securityContext
+		add = toCapabilities(sc.Capabilities.Add)
 	}
 
-	return nil
+	securityContext := &v1.SecurityContext{
+		AllowPrivilegeEscalation: newBool(false),
+		Capabilities: &v1.Capabilities{
+			Add:  add,
+			Drop: drop,
+		},
+	}
+	log.Trace().Msgf("container security context that will be used: %v", securityContext)
+	return securityContext
+}
+
+func toCapabilities(caps []string) []v1.Capability {
+	if len(caps) == 0 {
+		return nil
+	}
+	out := make([]v1.Capability, len(caps))
+	for i, c := range caps {
+		out[i] = v1.Capability(c)
+	}
+	return out
 }
 
 func mapToEnvVars(m map[string]string) []v1.EnvVar {
