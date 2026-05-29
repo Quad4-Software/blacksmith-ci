@@ -108,6 +108,7 @@ func Migrate(_ context.Context, db *sql.DB, driver string, _ bool) error {
 		{ID: "crow-add-proc-log-entries", Migrate: createProcLogEntries(driver)},
 		{ID: "crow-repair-postgres-id-sequences", Migrate: repairPostgresIDSequences(driver)},
 		{ID: "crow-repair-mysql-id-auto-increment", Migrate: repairMySQLAutoIncrementIDs(driver)},
+		{ID: "crow-fix-proc-log-int64-columns", Migrate: fixProcLogInt64Columns(driver)},
 	}
 
 	if len(newMigrations) > 0 {
@@ -314,7 +315,9 @@ func createSecretTargets(driver string) func(tx *sql.Tx) error {
 }
 
 // createProcLogEntries creates the proc_log_entries table for streaming process
-// logs from agents and autoscalers into the database.
+// logs from agents and autoscalers into the database. `time` holds Unix
+// nanoseconds and `source_id` mirrors model int64 IDs, so both must be 64-bit
+// on PostgreSQL and MySQL — a plain INTEGER (int32) overflows on every insert.
 func createProcLogEntries(driver string) func(tx *sql.Tx) error {
 	return func(tx *sql.Tx) error {
 		var ddl string
@@ -323,8 +326,8 @@ func createProcLogEntries(driver string) func(tx *sql.Tx) error {
 			ddl = `CREATE TABLE IF NOT EXISTS proc_log_entries (
 				id BIGSERIAL PRIMARY KEY,
 				source_type TEXT NOT NULL,
-				source_id INTEGER NOT NULL,
-				time INTEGER NOT NULL,
+				source_id BIGINT NOT NULL,
+				time BIGINT NOT NULL,
 				level TEXT NOT NULL,
 				line TEXT NOT NULL
 			)`
@@ -332,8 +335,8 @@ func createProcLogEntries(driver string) func(tx *sql.Tx) error {
 			ddl = `CREATE TABLE IF NOT EXISTS proc_log_entries (
 				id BIGINT PRIMARY KEY AUTO_INCREMENT,
 				source_type TEXT NOT NULL,
-				source_id INTEGER NOT NULL,
-				time INTEGER NOT NULL,
+				source_id BIGINT NOT NULL,
+				time BIGINT NOT NULL,
 				level TEXT NOT NULL,
 				line TEXT NOT NULL
 			)`
@@ -372,6 +375,32 @@ func createProcLogEntries(driver string) func(tx *sql.Tx) error {
 		}
 		_, err := tx.Exec(`CREATE INDEX IF NOT EXISTS idx_proc_log_entries_source_id ON proc_log_entries (source_type, source_id, id)`)
 		return err
+	}
+}
+
+// fixProcLogInt64Columns widens proc_log_entries.time and .source_id from 32-bit
+// to 64-bit on existing PostgreSQL and MySQL databases. The original migration
+// declared these as INTEGER, which overflows on every insert because `time`
+// stores Unix nanoseconds (~1.78e18 today). SQLite's INTEGER is dynamic and
+// already stores int64, so no action is needed there.
+func fixProcLogInt64Columns(driver string) func(tx *sql.Tx) error {
+	return func(tx *sql.Tx) error {
+		if !tableExists(tx, "proc_log_entries") {
+			return nil
+		}
+		switch driver {
+		case "postgres":
+			_, err := tx.Exec(`ALTER TABLE proc_log_entries
+				ALTER COLUMN time TYPE BIGINT,
+				ALTER COLUMN source_id TYPE BIGINT`)
+			return err
+		case "mysql":
+			_, err := tx.Exec(`ALTER TABLE proc_log_entries
+				MODIFY time BIGINT NOT NULL,
+				MODIFY source_id BIGINT NOT NULL`)
+			return err
+		}
+		return nil
 	}
 }
 

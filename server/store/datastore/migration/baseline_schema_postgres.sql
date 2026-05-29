@@ -201,8 +201,8 @@ CREATE TABLE IF NOT EXISTS log_entries (
 CREATE TABLE IF NOT EXISTS proc_log_entries (
     id BIGSERIAL PRIMARY KEY,
     source_type TEXT NOT NULL,
-    source_id INTEGER NOT NULL,
-    time INTEGER NOT NULL,
+    source_id BIGINT NOT NULL,
+    time BIGINT NOT NULL,
     level TEXT NOT NULL,
     line TEXT NOT NULL
 );

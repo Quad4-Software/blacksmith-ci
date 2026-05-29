@@ -105,6 +105,7 @@ var newMigrationIDs = []string{
 	"crow-add-proc-log-entries",
 	"crow-repair-postgres-id-sequences",
 	"crow-repair-mysql-id-auto-increment",
+	"crow-fix-proc-log-int64-columns",
 }
 
 // allKnownMigrations returns a combined list of all known migration IDs.
