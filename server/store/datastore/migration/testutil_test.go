@@ -85,6 +85,7 @@ func cleanupTestTables(db *sql.DB) {
 		"cache_entries", "maintenance_config", "maintenance_operation_config",
 		"maintenance_stats", "maintenance_logs",
 		"user_forges", "redirections",
+		"table_exists_probe",
 	}
 	for _, t := range tables {
 		_, _ = db.Exec("DROP TABLE IF EXISTS " + t + " CASCADE")

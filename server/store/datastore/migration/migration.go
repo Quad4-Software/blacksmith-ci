@@ -18,6 +18,7 @@ import (
 	"context"
 	"database/sql"
 	_ "embed"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -109,6 +110,12 @@ func Migrate(_ context.Context, db *sql.DB, driver string, _ bool) error {
 		{ID: "crow-repair-postgres-id-sequences", Migrate: repairPostgresIDSequences(driver)},
 		{ID: "crow-repair-mysql-id-auto-increment", Migrate: repairMySQLAutoIncrementIDs(driver)},
 		{ID: "crow-fix-proc-log-int64-columns", Migrate: fixProcLogInt64Columns(driver)},
+		// v2 re-runs the same ALTER on databases where v1 landed as a silent no-op
+		// because tableExists wrongly returned false for the empty proc_log_entries
+		// table. With tableExists now fixed, v1 also works going forward, but the
+		// migrations table on already-deployed clusters still has v1 marked applied —
+		// only a new ID will trigger the widening.
+		{ID: "crow-fix-proc-log-int64-columns-v2", Migrate: fixProcLogInt64Columns(driver)},
 	}
 
 	if len(newMigrations) > 0 {
@@ -408,14 +415,19 @@ func fixProcLogInt64Columns(driver string) func(tx *sql.Tx) error {
 // so that a failed probe doesn't poison the surrounding transaction.
 // Uses QueryRow+Scan to fully consume the result inline, avoiding open result
 // sets that break MySQL's single-result-set-per-connection constraint.
+//
+// An empty table returns sql.ErrNoRows from Scan but the table still exists,
+// so treat that as "exists" — mirroring addColumnIfNotExists. Treating empty
+// tables as missing previously caused crow-fix-proc-log-int64-columns to
+// silently no-op on every deployment, since proc_log_entries had no rows yet.
 func tableExists(tx *sql.Tx, table string) bool {
 	_, _ = tx.Exec("SAVEPOINT table_check")
 	var dummy int
 	err := tx.QueryRow(fmt.Sprintf("SELECT 1 FROM %s LIMIT 1", table)).Scan(&dummy) //nolint:gosec
-	if err != nil {
-		_, _ = tx.Exec("ROLLBACK TO SAVEPOINT table_check")
-		return false
+	if err == nil || errors.Is(err, sql.ErrNoRows) {
+		_, _ = tx.Exec("RELEASE SAVEPOINT table_check")
+		return true
 	}
-	_, _ = tx.Exec("RELEASE SAVEPOINT table_check")
-	return true
+	_, _ = tx.Exec("ROLLBACK TO SAVEPOINT table_check")
+	return false
 }

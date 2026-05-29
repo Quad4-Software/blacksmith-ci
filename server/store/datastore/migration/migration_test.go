@@ -416,3 +416,22 @@ func TestMigrate_RepairsBrokenPostgresIDSequence(t *testing.T) {
 	require.NoError(t, err)
 	assert.Greater(t, newID, 42, "repaired sequence must skip past existing max id")
 }
+
+// TestTableExists_EmptyTable guards against a regression where tableExists
+// treated a Scan returning sql.ErrNoRows (empty table) as "table does not
+// exist". That bug silently turned crow-fix-proc-log-int64-columns into a
+// no-op on every deployed cluster, because proc_log_entries was always empty
+// at migration time.
+func TestTableExists_EmptyTable(t *testing.T) {
+	db, _ := testDB(t)
+
+	_, err := db.Exec(`CREATE TABLE table_exists_probe (id INTEGER PRIMARY KEY)`)
+	require.NoError(t, err)
+
+	tx, err := db.Begin()
+	require.NoError(t, err)
+	defer func() { _ = tx.Rollback() }()
+
+	assert.True(t, tableExists(tx, "table_exists_probe"), "empty table must report as existing")
+	assert.False(t, tableExists(tx, "definitely_does_not_exist"), "unknown table must report as missing")
+}
