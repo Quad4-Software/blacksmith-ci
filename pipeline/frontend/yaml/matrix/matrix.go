@@ -57,7 +57,7 @@ func ParseWithLimit(data []byte, limit int) ([]Axis, error) {
 		// Check limit for explicit matrix include list
 		if limit > 0 && len(axis) > limit {
 			return nil, &errorTypes.PipelineError{
-				Message: fmt.Sprintf("matrix permutation limit exceeded: %d requested, maximum is %d", len(axis), limit),
+				Message: fmt.Sprintf("matrix permutation limit exceeded: %d requested, maximum is %d (configure via CROW_MAX_MATRIX_SIZE; set to 0 to disable)", len(axis), limit),
 				Type:    errorTypes.PipelineErrorTypeCompiler,
 			}
 		}
@@ -102,7 +102,7 @@ func calc(matrix Matrix, limit int) ([]Axis, error) {
 	// Check if the number of permutations exceeds the limit
 	if limit > 0 && perm > limit {
 		return nil, &errorTypes.PipelineError{
-			Message: fmt.Sprintf("matrix permutation limit exceeded: %d permutations requested, maximum is %d", perm, limit),
+			Message: fmt.Sprintf("matrix permutation limit exceeded: %d permutations requested, maximum is %d (configure via CROW_MAX_MATRIX_SIZE; set to 0 to disable)", perm, limit),
 			Type:    errorTypes.PipelineErrorTypeCompiler,
 		}
 	}
