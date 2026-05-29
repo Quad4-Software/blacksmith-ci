@@ -1,13 +1,29 @@
 #!/bin/sh
-# This script runs as root to set up log rotation, then switches to specified user
+# This script may run as root or as a non-root user (e.g. when the image is
+# started with `USER crow` or with `runAsNonRoot: true` in Kubernetes).
+#
+# When running as root, it sets up log rotation (cron + logrotate) and then
+# switches to the specified user via su-exec.
+#
+# When running as a non-root user, the cron-based log rotation setup is
+# skipped (it requires root to write /etc/periodic and start crond) and the
+# binary is exec'd directly without su-exec.
 set -e
 
-# Get target user from first argument (empty or missing = stay as root)
+# Get target user from first argument (empty or missing = stay as current user)
 if [ $# -gt 0 ]; then
   TARGET_USER="$1"
   shift  # Remove user argument, leaving only the command
 else
   TARGET_USER=""
+fi
+
+# Detect whether we are running as root (UID 0). This determines whether the
+# logrotate setup and the su-exec user switch can be performed.
+if [ "$(id -u)" = "0" ]; then
+  IS_ROOT=1
+else
+  IS_ROOT=0
 fi
 
 # Default configuration with WOODPECKER_* fallback for backward compatibility
@@ -38,8 +54,16 @@ should_enable_rotation() {
   [ "$LOG_FILE" != "stderr" ]
 }
 
-# Set up log rotation
-if should_enable_rotation; then
+# Set up log rotation. The cron-based setup requires root (it writes to
+# /etc/periodic, /var/spool/cron and starts crond). When running as a
+# non-root user, skip the setup and emit a warning if the user explicitly
+# requested file-based rotation.
+if should_enable_rotation && [ "$IS_ROOT" = "0" ]; then
+  echo "Warning: log rotation requested (CROW_LOG_FILE=$LOG_FILE) but the container is not running as root."
+  echo "         Internal cron-based log rotation requires root. Skipping setup."
+  echo "         For non-root containers, route logs to stdout/stderr and rotate them outside the container,"
+  echo "         or override the user (e.g. runAsUser: 0 in Kubernetes) if you need the built-in rotation."
+elif should_enable_rotation; then
   echo "Setting up log rotation for $LOG_FILE (schedule: $CROW_LOGROTATE_SCHEDULE, retain: $CROW_LOGROTATE_RETAIN_DAYS days)"
 
   # Ensure log directory exists (may require root in some configurations)
@@ -122,11 +146,12 @@ else
   echo "Log rotation disabled (LOG_FILE not configured or set to stdout/stderr)"
 fi
 
-# Execute crow binary as the target user (replaces this process)
-if [ -n "$TARGET_USER" ]; then
-  # Switch to target user before executing
+# Execute crow binary (replaces this process). su-exec requires root, so only
+# attempt the user switch when we are root and a target user was supplied.
+# When we are already running as a non-root user the binary is exec'd
+# directly, regardless of what TARGET_USER says.
+if [ "$IS_ROOT" = "1" ] && [ -n "$TARGET_USER" ]; then
   exec su-exec "$TARGET_USER" "$@"
 else
-  # Stay as root
   exec "$@"
 fi

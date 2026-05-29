@@ -35,6 +35,12 @@ COPY dist/server/${TARGETOS}_${TARGETARCH}/crow-server /bin/
 COPY images/scripts/crow-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/crow-entrypoint.sh
 
-# Note: Entrypoint runs as root to set up cron, then switches to crow before exec'ing server
+# Default to the non-root crow user so the image is compatible with Kubernetes
+# `runAsNonRoot: true` and the "restricted" Pod Security Standard.
+# Override at runtime (e.g. `runAsUser: 0`) when the built-in cron-based log
+# rotation is needed; the entrypoint detects the effective user and adapts
+# accordingly.
+USER crow
+
 HEALTHCHECK CMD ["/bin/crow-server", "ping"]
 ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/crow-entrypoint.sh", "crow", "/bin/crow-server"]
