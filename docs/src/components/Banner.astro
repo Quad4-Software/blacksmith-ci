@@ -1,6 +1,18 @@
 ---
-// Custom Banner that omits the version outdated warning
+// Custom Banner that omits the version outdated warning.
+// Also emits a hidden `data-pagefind-filter` element so pagefind tags each page
+// with its docs version. starlight-versions sets the same attribute on
+// `<site-search>`, but that element sits outside `<main data-pagefind-body>`
+// and is therefore ignored by the index — see
+// https://github.com/HiDeoo/starlight-versions/blob/main/packages/starlight-versions/components/VersionSearch.astro
 import Default from '@astrojs/starlight/components/Banner.astro'
+import starlightVersionsConfig from 'virtual:starlight-versions-config'
+
+const { entry } = Astro.locals.starlightRoute
+const firstSegment = entry.id.split('/')[0] ?? ''
+const matchedVersion = starlightVersionsConfig.versions.find((v) => v.slug === firstSegment)
+const versionId = matchedVersion?.slug ?? 'current'
 ---
 
 <Default><slot /></Default>
+<div data-pagefind-filter={`version:${versionId}`} hidden></div>
