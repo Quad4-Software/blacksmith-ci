@@ -78,6 +78,9 @@ export default defineConfig({
         // Override Banner and PageTitle to suppress version outdated warnings
         Banner: './src/components/Banner.astro',
         PageTitle: './src/components/PageTitle.astro',
+        // Override Search to scope results to the current docs version
+        // (forked from Celestia's Search; see file header for context)
+        Search: './src/components/Search.astro',
       },
       plugins: [
         starlightImageZoom(),

@@ -1,0 +1,325 @@
+---
+// Customized fork of starlight-theme-celestia's <Search> component.
+// Two changes vs. upstream:
+//   1. Pre-filter Pagefind results to the docs version of the current page
+//      (read from the slug's first segment, falling back to the latest version
+//      for landing / non-versioned pages — matches the tagging in Banner.astro).
+//   2. Hide Pagefind's per-version filter checkboxes — once the filter is
+//      pre-applied, the panel is just noise that pushes the actual results
+//      down the dialog.
+//
+// Why fork instead of override: starlight-versions ships a `VersionSearch`
+// component that already does this, but Celestia also overrides `Search` and
+// Starlight's plugin system only allows one override per component, so
+// starlight-versions silently bails. Until that conflict is resolved upstream
+// we maintain this local copy.
+//
+// Upstream source: docs/node_modules/starlight-theme-celestia/src/components/Search.astro
+import project from 'virtual:starlight/project-context'
+import starlightVersionsConfig from 'virtual:starlight-versions-config'
+
+const pagefindTranslations = {
+  placeholder: Astro.locals.t('search.label'),
+  ...Object.fromEntries(
+    Object.entries(Astro.locals.t.all())
+      .filter(([key]) => key.startsWith('pagefind.'))
+      .map(([key, value]) => [key.replace('pagefind.', ''), value]),
+  ),
+}
+
+const { entry } = Astro.locals.starlightRoute
+const firstSegment = entry.id.split('/')[0] ?? ''
+const matchedVersion = starlightVersionsConfig.versions.find((v) => v.slug === firstSegment)
+const latestVersionSlug = starlightVersionsConfig.versions[0]?.slug ?? ''
+const versionId = matchedVersion?.slug ?? latestVersionSlug
+
+const dataAttributes: DOMStringMap = {
+  'data-translations': JSON.stringify(pagefindTranslations),
+}
+if (project.trailingSlash === 'never') dataAttributes['data-strip-trailing-slash'] = ''
+if (versionId) dataAttributes['data-docs-version'] = versionId
+---
+
+<site-search class={Astro.props.class} {...dataAttributes}>
+  <button
+    class="flex size-8 rounded-md p-2 text-(--sl-color-text) transition hover:bg-gray-400/30 focus-visible:outline-offset-1 active:scale-90 md:h-9 md:w-full md:max-w-88 md:rounded-md md:border md:border-solid md:border-(--sl-color-gray-5) md:p-2 md:text-(--sl-color-text) md:transition-colors md:hover:bg-gray-400/10"
+    data-open-modal
+    disabled
+    aria-label={Astro.locals.t('search.label')}
+    aria-keyshortcuts="Control+K"
+  >
+    <svg
+      class="size-4"
+      xmlns="http://www.w3.org/2000/svg"
+      width="1em"
+      height="1em"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+        <path d="m21 21l-4.34-4.34"></path>
+        <circle cx="11" cy="11" r="8"></circle>
+      </g>
+    </svg>
+    <span class="sl-hidden md:sl-block" aria-hidden="true">{Astro.locals.t('search.label')}</span>
+    <kbd class="sl-hidden md:sl-flex" style="display: none;">
+      <kbd>{Astro.locals.t('search.ctrlKey')}</kbd><kbd>K</kbd>
+    </kbd>
+  </button>
+
+  <dialog style="padding:0" aria-label={Astro.locals.t('search.label')}>
+    <div class="dialog-frame sl-flex">
+      <button data-close-modal class="sl-flex md:sl-hidden">
+        {Astro.locals.t('search.cancelLabel')}
+      </button>
+      {
+        import.meta.env.DEV ? (
+          <div style="margin: auto; text-align: center; white-space: pre-line;" dir="ltr">
+            <p>{Astro.locals.t('search.devWarning')}</p>
+          </div>
+        ) : (
+          <div class="search-container">
+            <div id="starlight__search" />
+          </div>
+        )
+      }
+    </div>
+  </dialog>
+</site-search>
+
+<script is:inline>
+  ;(() => {
+    const openBtn = document.querySelector('button[data-open-modal]')
+    const shortcut = openBtn?.querySelector('kbd')
+    if (!openBtn || !(shortcut instanceof HTMLElement)) return
+    const platformKey = shortcut.querySelector('kbd')
+    if (platformKey && /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform)) {
+      platformKey.textContent = '⌘'
+      openBtn.setAttribute('aria-keyshortcuts', 'Meta+K')
+    }
+    shortcut.style.display = ''
+  })()
+</script>
+
+<script>
+  import { pagefindUserConfig } from 'virtual:starlight/pagefind-config'
+
+  class SiteSearch extends HTMLElement {
+    constructor() {
+      super()
+      const openBtn = this.querySelector<HTMLButtonElement>('button[data-open-modal]')!
+      const closeBtn = this.querySelector<HTMLButtonElement>('button[data-close-modal]')!
+      const dialog = this.querySelector('dialog')!
+      const dialogFrame = this.querySelector('.dialog-frame')!
+
+      const onClick = (event: MouseEvent) => {
+        const isLink = 'href' in (event.target || {})
+        if (
+          isLink ||
+          (document.body.contains(event.target as Node) && !dialogFrame.contains(event.target as Node))
+        ) {
+          closeModal()
+        }
+      }
+
+      const openModal = (event?: MouseEvent) => {
+        dialog.showModal()
+        document.body.toggleAttribute('data-search-modal-open', true)
+        this.querySelector('input')?.focus()
+        event?.stopPropagation()
+        window.addEventListener('click', onClick)
+      }
+
+      const closeModal = () => dialog.close()
+
+      openBtn.addEventListener('click', openModal)
+      openBtn.disabled = false
+      closeBtn.addEventListener('click', closeModal)
+
+      dialog.addEventListener('close', () => {
+        document.body.toggleAttribute('data-search-modal-open', false)
+        window.removeEventListener('click', onClick)
+      })
+
+      window.addEventListener('keydown', (e) => {
+        if ((e.metaKey === true || e.ctrlKey === true) && e.key === 'k') {
+          dialog.open ? closeModal() : openModal()
+          e.preventDefault()
+        }
+      })
+
+      let translations = {}
+      try {
+        translations = JSON.parse(this.dataset.translations || '{}')
+      } catch {}
+
+      const shouldStrip = this.dataset.stripTrailingSlash !== undefined
+      const stripTrailingSlash = (path: string) => path.replace(/(.)\/(#.*)?$/, '$1$2')
+      const formatURL = shouldStrip ? stripTrailingSlash : (path: string) => path
+      const docsVersion = this.dataset.docsVersion
+
+      window.addEventListener('DOMContentLoaded', () => {
+        if (import.meta.env.DEV) return
+        const onIdle = window.requestIdleCallback || ((cb) => setTimeout(cb, 1))
+        onIdle(async () => {
+          // @ts-expect-error — Missing types for @pagefind/default-ui package.
+          const { PagefindUI } = await import('@pagefind/default-ui')
+          const search = new PagefindUI({
+            ...pagefindUserConfig,
+            element: '#starlight__search',
+            baseUrl: import.meta.env.BASE_URL,
+            bundlePath: import.meta.env.BASE_URL.replace(/\/$/, '') + '/pagefind/',
+            showImages: false,
+            translations,
+            showSubResults: true,
+            processResult: (result: { url: string; sub_results: Array<{ url: string }> }) => {
+              result.url = formatURL(result.url)
+              result.sub_results = result.sub_results.map((sub_result) => {
+                sub_result.url = formatURL(sub_result.url)
+                return sub_result
+              })
+            },
+          })
+          if (docsVersion) {
+            search.triggerFilters({ version: [docsVersion] })
+          }
+        })
+      })
+    }
+  }
+  customElements.define('site-search', SiteSearch)
+</script>
+
+<style>
+  @layer starlight.core {
+    site-search {
+      display: contents;
+    }
+    button[data-open-modal] {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border: 0;
+      background-color: transparent;
+      color: var(--sl-color-gray-1);
+      cursor: pointer;
+      height: 2.5rem;
+      font-size: var(--sl-text-xl);
+    }
+
+    @media (min-width: 50rem) {
+      button[data-open-modal] {
+        padding-inline-start: 0.75rem;
+        padding-inline-end: 0.5rem;
+        background-color: var(--sl-color-black);
+        color: var(--sl-color-gray-2);
+        font-size: var(--sl-text-sm);
+      }
+
+      button[data-open-modal] > :last-child {
+        margin-inline-start: auto;
+      }
+    }
+
+    button > kbd {
+      border-radius: 0.25rem;
+      font-size: var(--sl-text-2xs);
+      gap: 0.25em;
+      padding-inline: 0.375rem;
+      background-color: var(--sl-color-gray-6);
+    }
+
+    kbd {
+      font-family: var(--__sl-font);
+    }
+
+    dialog {
+      margin: 0;
+      background-color: var(--sl-color-gray-6);
+      border: 1px solid var(--sl-color-gray-5);
+      width: 100%;
+      max-width: 100%;
+      height: 100%;
+      max-height: 100%;
+      box-shadow: var(--sl-shadow-lg);
+    }
+    dialog[open] {
+      display: flex;
+    }
+
+    dialog::backdrop {
+      background-color: var(--sl-color-backdrop-overlay);
+      -webkit-backdrop-filter: blur(0.25rem);
+      backdrop-filter: blur(0.25rem);
+    }
+
+    .dialog-frame {
+      position: relative;
+      overflow: auto;
+      flex-direction: column;
+      flex-grow: 1;
+      gap: 1rem;
+      padding: 1rem;
+    }
+
+    button[data-close-modal] {
+      position: absolute;
+      z-index: 1;
+      align-items: center;
+      align-self: flex-end;
+      height: calc(64px * var(--pagefind-ui-scale));
+      padding: 0.25rem;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      color: var(--sl-color-text-accent);
+    }
+
+    #starlight__search {
+      --pagefind-ui-primary: var(--sl-color-text);
+      --pagefind-ui-text: var(--sl-color-gray-2);
+      --pagefind-ui-font: var(--__sl-font);
+      --pagefind-ui-background: var(--sl-color-black);
+      --pagefind-ui-border: var(--sl-color-gray-5);
+      --pagefind-ui-border-width: 1px;
+      --pagefind-ui-tag: var(--sl-color-gray-5);
+      --sl-search-cancel-space: 5rem;
+    }
+
+    :root[data-theme='light'] #starlight__search {
+      --pagefind-ui-tag: var(--sl-color-gray-6);
+    }
+
+    @media (min-width: 50rem) {
+      #starlight__search {
+        --sl-search-cancel-space: 0px;
+      }
+
+      dialog {
+        margin: 4rem auto auto;
+        border-radius: 0.5rem;
+        width: 90%;
+        max-width: 40rem;
+        height: max-content;
+        min-height: 15rem;
+        max-height: calc(100% - 8rem);
+      }
+
+      .dialog-frame {
+        padding: 1.5rem;
+      }
+    }
+  }
+</style>
+
+<style is:global>
+  /*
+    Hide the per-version filter checkboxes that pagefind renders by default.
+    We pre-apply the version filter via the script above, so the panel is
+    redundant and only serves to push the actual search results down the
+    dialog.
+  */
+  #starlight__search .pagefind-ui__filter-panel {
+    display: none;
+  }
+</style>

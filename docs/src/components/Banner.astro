@@ -5,14 +5,19 @@
 // `<site-search>`, but that element sits outside `<main data-pagefind-body>`
 // and is therefore ignored by the index — see
 // https://github.com/HiDeoo/starlight-versions/blob/main/packages/starlight-versions/components/VersionSearch.astro
+//
+// Pages that don't live under a versioned slug (the landing page, redirects)
+// are tagged with the first / latest version so they show up alongside the
+// latest docs when the search UI is pre-filtered.
 import Default from '@astrojs/starlight/components/Banner.astro'
 import starlightVersionsConfig from 'virtual:starlight-versions-config'
 
 const { entry } = Astro.locals.starlightRoute
 const firstSegment = entry.id.split('/')[0] ?? ''
 const matchedVersion = starlightVersionsConfig.versions.find((v) => v.slug === firstSegment)
-const versionId = matchedVersion?.slug ?? 'current'
+const latestVersionSlug = starlightVersionsConfig.versions[0]?.slug ?? ''
+const versionId = matchedVersion?.slug ?? latestVersionSlug
 ---
 
 <Default><slot /></Default>
-<div data-pagefind-filter={`version:${versionId}`} hidden></div>
+{versionId && <div data-pagefind-filter={`version:${versionId}`} hidden></div>}
