@@ -17,9 +17,11 @@ While Crow CI provides a built-in secret store using `from_secret`, integrations
 
 ## Supported Integrations
 
-| Type    | Description                                                                                                  |
-| ------- | ------------------------------------------------------------------------------------------------------------ |
-| `vault` | HashiCorp Vault / OpenBao via [AppRole authentication](https://developer.hashicorp.com/vault/docs/auth/approle) |
+| Type              | Description                                                                                                  |
+| ----------------- | ------------------------------------------------------------------------------------------------------------ |
+| `vault`           | HashiCorp Vault / OpenBao via [AppRole authentication](https://developer.hashicorp.com/vault/docs/auth/approle) |
+| `azure_key_vault` | Azure Key Vault via [Service Principal](https://learn.microsoft.com/en-us/entra/identity-platform/app-objects-and-service-principals) authentication |
+| `infisical`       | [Infisical](https://infisical.com) via [Universal Auth](https://infisical.com/docs/documentation/platform/identities/universal-auth) (Machine Identity) |
 
 :::note
 AppRole is HashiCorp Vault's recommended authentication method for machine-to-machine scenarios. It uses a Role ID (like a username) and Secret ID (like a password) to authenticate applications securely.
@@ -87,9 +89,117 @@ vault read auth/approle/role/crow-ci/role-id
 vault write -f auth/approle/role/crow-ci/secret-id
 ```
 
+## Azure Key Vault Configuration
+
+When configuring an Azure Key Vault integration, provide the following settings:
+
+| Setting             | Required | Description                                                                |
+| ------------------- | -------- | -------------------------------------------------------------------------- |
+| **Vault URL**       | Yes      | Full URL to your Key Vault (e.g., `https://my-vault.vault.azure.net`)     |
+| **Tenant ID**       | Yes      | Azure AD (Entra ID) Tenant ID                                             |
+| **Client ID**       | Yes      | Service Principal Application (Client) ID                                 |
+| **Client Secret**   | Yes      | Service Principal Client Secret                                           |
+
+### Azure Setup
+
+To configure a Service Principal for Crow CI:
+
+```bash
+# Create a Service Principal
+az ad sp create-for-rbac --name crow-ci --skip-assignment
+
+# Note the appId (Client ID), password (Client Secret), and tenant (Tenant ID)
+
+# Grant the Service Principal access to your Key Vault
+az keyvault set-policy \
+  --name my-vault \
+  --spn <appId> \
+  --secret-permissions get list
+```
+
+Alternatively, if using Azure RBAC for Key Vault access control, assign the **Key Vault Secrets User** role:
+
+```bash
+az role assignment create \
+  --role "Key Vault Secrets User" \
+  --assignee <appId> \
+  --scope /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.KeyVault/vaults/<vault-name>
+```
+
+### Azure Key Vault Secret Syntax
+
+Azure Key Vault secrets are single-valued (each secret name maps to one value), unlike Vault's key-value pairs.
+Use `path` for the secret name and set `key` to `"value"` by convention:
+
+```yaml
+steps:
+  - name: deploy
+    image: alpine
+    environment:
+      DB_PASSWORD:
+        from_secret:
+          integration: "my-azure-kv"
+          path: 'prod-db-password'    # Azure Key Vault secret name
+          key: 'value'                # Convention for single-valued secrets
+```
+
+:::note
+Azure Key Vault version pinning is not currently supported.
+The latest version of the secret is always fetched.
+:::
+
+## Infisical Configuration
+
+When configuring an Infisical integration, provide the following settings:
+
+| Setting             | Required | Description                                                                |
+| ------------------- | -------- | -------------------------------------------------------------------------- |
+| **Site URL**        | Yes      | Your Infisical instance URL (default: `https://app.infisical.com`)         |
+| **Client ID**       | Yes      | Machine Identity Client ID                                                 |
+| **Client Secret**   | Yes      | Machine Identity Client Secret                                             |
+| **Project ID**      | Yes      | The Infisical project ID where secrets are stored                          |
+| **Environment**     | Yes      | Environment slug (e.g., `dev`, `staging`, `prod`)                          |
+| **Secret Path**     | No       | Folder path for secrets (default: `/`)                                     |
+
+### Infisical Setup
+
+<Steps>
+
+1. In Infisical, go to **Organization Settings > Machine Identities** and create a new identity
+
+2. Under the identity, add **Universal Auth** and note the **Client ID** and **Client Secret**
+
+3. Go to your **Project Settings > Access Control > Machine Identities**, add the identity, and assign the **Viewer** role (or a custom role with read access)
+
+4. Note your **Project ID** from the project's URL or settings page
+
+</Steps>
+
+### Infisical Secret Syntax
+
+Infisical secrets are scoped by project, environment, and path (configured in the integration).
+Use `path` for the secret key name and set `key` to `"value"` by convention:
+
+```yaml
+steps:
+  - name: deploy
+    image: alpine
+    environment:
+      DB_PASSWORD:
+        from_secret:
+          integration: "infisical-prod"
+          path: 'DATABASE_PASSWORD'   # Infisical secret key name
+          key: 'value'                # Convention for single-valued secrets
+```
+
+:::note
+Create separate integrations for different project/environment combinations.
+For example, one integration for `prod` and another for `staging`.
+:::
+
 ## Using External Secrets in Pipelines
 
-Both internal (Crow CI) and external (Vault) secrets use the same `from_secret` keyword.
+Both internal (Crow CI) and external (Vault, Azure Key Vault, Infisical) secrets use the same `from_secret` keyword.
 The difference is in the value:
 
 - **String value** = internal secret (from Crow CI's secret store)
@@ -127,8 +237,8 @@ steps:
 | Field         | Required | Description                                                           |
 | ------------- | -------- | --------------------------------------------------------------------- |
 | `integration` | Yes      | Integration ID (number) or name (string)                              |
-| `path`        | Yes      | Path to the secret in Vault (without the `secret/data/` prefix)       |
-| `key`         | Yes      | Key within the secret to retrieve                                     |
+| `path`        | Yes      | Secret path (Vault), secret name (Azure Key Vault), or key name (Infisical) |
+| `key`         | Yes      | Key within the secret (Vault) or `"value"` (Azure Key Vault, Infisical) |
 | `version`     | No       | Specific version to fetch (default: `0` = latest)                     |
 
 ### Using Integration by Name
@@ -229,8 +339,8 @@ Best practices:
 
 After creating an integration, use the **Test Connection** button to verify connectivity:
 
-- Tests AppRole authentication
-- Verifies network connectivity to Vault
+- Tests authentication (AppRole for Vault, Service Principal for Azure Key Vault, Universal Auth for Infisical)
+- Verifies network connectivity to the secret store
 - Does not access any actual secrets
 
 A successful test shows "Connection test successful".

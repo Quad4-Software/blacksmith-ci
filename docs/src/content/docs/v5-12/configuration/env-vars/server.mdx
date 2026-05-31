@@ -266,3 +266,35 @@ Core server configuration variables.
 - Name: `CROW_PROMETHEUS_AUTH_TOKEN`
 - Description: Token to secure Prometheus metrics endpoint.
 - Default: none
+
+---
+
+## PROCLOG_ENABLED
+
+- Name: `CROW_PROCLOG_ENABLED`
+- Description: Master switch for process logs. When `false`, ingest endpoints are unavailable, the SSE stream returns empty, and the janitor does not run.
+- Default: `true`
+
+---
+
+## PROCLOG_MAX_ROWS_PER_SOURCE
+
+- Name: `CROW_PROCLOG_MAX_ROWS_PER_SOURCE`
+- Description: Maximum process-log rows retained per (source_type, source_id). Older rows are trimmed by the janitor.
+- Default: `5000`
+
+---
+
+## PROCLOG_JANITOR_INTERVAL
+
+- Name: `CROW_PROCLOG_JANITOR_INTERVAL`
+- Description: How often the process-log janitor trims rows that exceed `CROW_PROCLOG_MAX_ROWS_PER_SOURCE`.
+- Default: `5m`
+
+---
+
+## PROCLOG_POLL_INTERVAL
+
+- Name: `CROW_PROCLOG_POLL_INTERVAL`
+- Description: Database poll cadence for the SSE stream when pushing live entries to the client.
+- Default: `100ms`

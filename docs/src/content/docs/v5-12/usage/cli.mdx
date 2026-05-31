@@ -94,13 +94,30 @@ crow exec
 
 # Run with specific workflow file
 crow exec --workflow .crow/build.yaml
+
+# Supply secrets inline as key=value pairs
+crow exec --secrets 'token=abc,api_key=xyz'
+
+# Supply secrets from a YAML file on disk
+crow exec --secrets-file ./secrets.yaml
 ```
+
+`--secrets-file` reads a YAML map of `name: value` pairs and is also configurable via `CROW_SECRETS_FILE` (or `WOODPECKER_SECRETS_FILE`).
 
 ### Linting
 
+`crow lint` validates **local** pipeline configuration files against the Crow schema — it does not fetch configuration from the server or forge.
+Point it at a single YAML/Jsonnet file or a directory containing workflow files.
+
 ```sh
-# Lint pipeline configuration
+# Lint a directory of workflow files
 crow lint .crow/
+
+# Lint a single workflow file
+crow lint .crow/build.yaml
+
+# Treat warnings as errors
+crow lint --strict .crow/
 ```
 
 ### Agent Management

@@ -4,16 +4,26 @@ title: "Pipelines"
 
 ![Pipeline List View](img/pipeline-list-view.png)
 
-A pipeline consists of **one or more** workflows.
-A workflow consist of **one or more** steps.
+## Concepts
+
+Crow uses a three-level hierarchy: **pipeline > workflow > step**.
+
+- **Pipeline** — a single CI invocation. A pipeline is _not_ defined in a file; it is created at runtime in response to one event (push, pull request, manual run, ...) and bundles all workflows that match that event.
+- **Workflow** — a YAML file in `.crow/` (or [Jsonnet](/dev/usage/jsonnet/) `.jsonnet`) defining a collection of steps. This is what you author to describe what should run.
+- **Step** — a single command sequence executed inside a container.
 
 :::caution
 Pipeline > Workflow > Step
 :::
 
-A YAML file in `.crow/` defines _one or more_ workflow(s) ("more" if a "matrix" workflow is defined).
-[Jsonnet files](/dev/usage/jsonnet/) (`.jsonnet`) can also be used alongside or instead of YAML.
-The following file tree would consist of _four_ workflows:
+When an event reaches Crow, every workflow whose `when` block matches that event is collected into _one_ pipeline and executed.
+A push that matches three workflow files results in **one** pipeline containing three workflows — not three pipelines.
+The pipeline is the run; the workflows are what runs inside it.
+
+Each YAML file in `.crow/` defines _one_ workflow.
+A workflow that uses a [matrix](#matrix-workflows) expands at runtime into one workflow instance per matrix combination, so a single matrix file can produce multiple workflows in the resulting pipeline.
+
+The following file tree defines _four_ workflows:
 
 ```tree
 .crow/
@@ -240,7 +250,8 @@ The naming scheme can be set via the server environment variable `CROW_CONTAINER
 
 ## Manual Pipeline Triggering
 
-Pipelines can be triggered manually from the UI or CLI. To enable manual triggering for a workflow, add the `manual` event to the `when` block:
+A pipeline can also be triggered manually from the UI or CLI rather than by an event like `push` or `pull_request`.
+To make a workflow eligible for manual triggering, add the `manual` event to its `when` block:
 
 ```yaml
 when:
@@ -257,11 +268,12 @@ when:
 
 ### UI Workflow Selection
 
-When triggering a manual pipeline from the UI, you'll see a list of all workflows that have the `manual` event configured. You can:
+When triggering a manual pipeline from the UI, you'll see a list of all workflows that have the `manual` event configured.
+The selected workflows are bundled into a single new pipeline. You can:
 
-- **Select multiple workflows**: Check the workflows you want to run and click "Trigger"
-- **Quick-start a single workflow**: Click the play button next to any workflow to immediately start just that workflow
-- **Select all**: Use the "Select all" checkbox to select all available workflows
+- **Select multiple workflows**: Check the workflows you want to include and click "Run pipeline"
+- **Quick-start a single workflow**: Click the play button next to any workflow to start a pipeline containing just that workflow
+- **Select all**: Use the "Select all" checkbox to include every available workflow
 
 <div style="max-width: 400px; margin: 1rem auto;">
 ![Manual pipeline Selection](img/manual-pipelines.png)

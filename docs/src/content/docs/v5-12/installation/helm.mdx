@@ -171,18 +171,35 @@ The Helm chart configures security contexts for both server and agent components
 
 ### Server
 
-The server uses `fsGroup: 1000` to ensure the `crow` user can write to the persistent volume at `/var/lib/crow`.
+The server image defaults to the non-root `crow` user (UID 1000) and is compatible with `runAsNonRoot: true`.
+Use `fsGroup: 1000` so the `crow` user can write to the persistent volume at `/var/lib/crow`.
 
-:::caution[Do not set runAsNonRoot for server]
-The server's alpine image entrypoint must start as root to configure log rotation (cron/logrotate), then switches to the `crow` user (UID 1000) via `su-exec`.
-
-If you set `runAsNonRoot: true` or `runAsUser: 1000` in the server's `securityContext`, you will see:
-
+```yaml
+server:
+  podSecurityContext:
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: true
 ```
-su-exec: setgroups: Operation not permitted
-```
 
-Only modify `podSecurityContext.fsGroup`, not the container `securityContext`.
+:::note[Built-in log rotation requires root]
+The server's alpine image ships with a cron-based `logrotate` setup that activates when `CROW_LOG_FILE` points to a file path.
+That setup needs to write to `/etc/periodic` and start `crond`, which requires root.
+
+When running as the default non-root `crow` user, the entrypoint logs a warning and skips the rotation setup.
+The server itself continues to start normally.
+
+If you need the built-in rotation, override the user (`runAsUser: 0`).
+Otherwise, leave logs on stdout/stderr (the default) and rotate them outside the container.
 :::
 
 ### Agent
