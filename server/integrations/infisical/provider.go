@@ -55,9 +55,8 @@ func NewProvider(integration *model.Integration) (integrations.Provider, error) 
 	config = config.WithDefaults()
 
 	client := infisical.NewInfisicalClient(context.Background(), infisical.Config{
-		SiteUrl:          config.SiteURL,
-		AutoTokenRefresh: true,
-		SilentMode:       true,
+		SiteUrl:    config.SiteURL,
+		SilentMode: true,
 	})
 
 	_, err = client.Auth().UniversalAuthLogin(config.ClientID, config.ClientSecret)
