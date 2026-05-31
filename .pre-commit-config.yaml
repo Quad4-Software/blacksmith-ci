@@ -43,3 +43,13 @@ repos:
     rev: v3.6.1
     hooks:
       - id: editorconfig-checker
+  - repo: local
+    hooks:
+      - id: go-build-linux
+        name: go build (GOOS=linux)
+        description: Cross-compile to linux to catch OS-gated build errors before push.
+        entry: env GOOS=linux go build -tags 'containers_image_openpgp exclude_graphdriver_btrfs exclude_graphdriver_devicemapper' ./...
+        language: system
+        pass_filenames: false
+        files: \.(go|mod|sum)$
+        stages: [pre-push]

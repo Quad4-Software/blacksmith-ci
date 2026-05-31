@@ -41,7 +41,10 @@ bun install
 
 ```sh
 pre-commit install
+pre-commit install --hook-type pre-push
 ```
+
+The `pre-push` stage cross-compiles for linux (`GOOS=linux go build`) to catch OS-gated typecheck and build errors before they reach CI.
 
 ## Alternative: Dev Containers
 
