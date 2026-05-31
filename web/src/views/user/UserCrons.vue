@@ -575,6 +575,7 @@ import { useCrowTitle } from '~/compositions/useCrowTitle';
 import { useDate } from '~/compositions/useDate';
 import { useForges } from '~/compositions/useForges';
 import { useGlobalDialogs } from '~/compositions/useGlobalDialogs';
+import { useLoadingOverlay } from '~/compositions/useLoadingOverlay';
 import useNotifications from '~/compositions/useNotifications';
 import { usePagination } from '~/compositions/usePaginate';
 import { useResizableColumns } from '~/compositions/useResizableColumns';
@@ -609,6 +610,7 @@ const SortIndicator = defineComponent({
 
 const apiClient = useApiClient();
 const notifications = useNotifications();
+const overlay = useLoadingOverlay();
 const { t } = useI18n();
 const router = useRouter();
 const date = useDate();
@@ -1047,14 +1049,16 @@ const { doSubmit: handleBulkRun, isLoading: isBulkRunning } = useAsyncAction(asy
   let successCount = 0;
   const failedCrons: string[] = [];
 
-  for (const cron of selectedCrons.value) {
-    try {
-      await apiClient.runCron(cron.repo_id, cron.id);
-      successCount++;
-    } catch {
-      failedCrons.push(cron.name);
+  await overlay.withOverlay(t('loading_overlay.triggering_cron'), async () => {
+    for (const cron of selectedCrons.value) {
+      try {
+        await apiClient.runCron(cron.repo_id, cron.id);
+        successCount++;
+      } catch {
+        failedCrons.push(cron.name);
+      }
     }
-  }
+  });
 
   if (successCount > 0) {
     notifications.notify({
@@ -1082,7 +1086,9 @@ function editCron(cron: CronWithRepo) {
 }
 
 const { doSubmit: runCronAction } = useAsyncAction(async (cron: CronWithRepo) => {
-  const pipeline = await apiClient.runCron(cron.repo_id, cron.id);
+  const pipeline = await overlay.withOverlay(t('loading_overlay.triggering_cron'), () =>
+    apiClient.runCron(cron.repo_id, cron.id),
+  );
 
   if (pipeline && typeof pipeline === 'object' && 'number' in pipeline) {
     await router.push({

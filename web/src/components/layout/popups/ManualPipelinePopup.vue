@@ -98,6 +98,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import useApiClient from '~/compositions/useApiClient';
 import { requiredInject } from '~/compositions/useInjectProvide';
+import { useLoadingOverlay } from '~/compositions/useLoadingOverlay';
 import useNotifications from '~/compositions/useNotifications';
 import { PipelineFilteredError } from '~/lib/api/client';
 import { usePaginate } from '~/compositions/usePaginate';
@@ -113,6 +114,7 @@ const emit = defineEmits<{
 
 const apiClient = useApiClient();
 const notifications = useNotifications();
+const overlay = useLoadingOverlay();
 const i18n = useI18n();
 const router = useRouter();
 
@@ -216,15 +218,16 @@ async function triggerManualPipeline() {
   isSubmitting.value = true;
 
   try {
-    const pipeline = await apiClient.createPipeline(repo.value.id, {
-      branch: payload.value.branch,
-      variables: variables.value,
-      workflows: [...selectedWorkflows.value],
-    });
+    const pipeline = await overlay.withOverlay(i18n.t('loading_overlay.creating_pipeline'), () =>
+      apiClient.createPipeline(repo.value.id, {
+        branch: payload.value.branch,
+        variables: variables.value,
+        workflows: [...selectedWorkflows.value],
+      }),
+    );
 
     emit('close');
 
-    // Reset form for next use
     selectedWorkflows.value = new Set();
     variables.value = {};
     showVariables.value = false;
@@ -239,7 +242,6 @@ async function triggerManualPipeline() {
     emit('close');
 
     if (error instanceof PipelineFilteredError) {
-      // All steps were filtered out by `when` conditions
       const helpUrl = 'https://crowci.dev/dev/usage/workflow-syntax/#when-step';
       notifications.notify({
         title: i18n.t('notify_title_error'),
@@ -248,7 +250,6 @@ async function triggerManualPipeline() {
         text: `${i18n.t('repo.manual_pipeline.steps_filtered_out')} <a href='${helpUrl}' target='_blank' class='text-primary underline'>${i18n.t('repo.manual_pipeline.when_condition_help')}</a>`,
       });
     } else {
-      // Show the actual error message from the server
       const errorMessage = error instanceof Error ? error.message : String(error);
       notifications.notify({
         title: i18n.t('notify_title_error'),
@@ -267,15 +268,16 @@ async function handleQuickStart(workflowName: string) {
   isSubmitting.value = true;
 
   try {
-    const pipeline = await apiClient.createPipeline(repo.value.id, {
-      branch: payload.value.branch,
-      variables: variables.value,
-      workflows: [workflowName],
-    });
+    const pipeline = await overlay.withOverlay(i18n.t('loading_overlay.creating_pipeline'), () =>
+      apiClient.createPipeline(repo.value.id, {
+        branch: payload.value.branch,
+        variables: variables.value,
+        workflows: [workflowName],
+      }),
+    );
 
     emit('close');
 
-    // Reset form for next use
     variables.value = {};
     showVariables.value = false;
 
@@ -295,7 +297,6 @@ async function handleQuickStart(workflowName: string) {
         text: i18n.t('repo.manual_pipeline.steps_filtered_out'),
       });
     } else {
-      // Show the actual error message from the server
       const errorMessage = error instanceof Error ? error.message : String(error);
       notifications.notify({
         title: i18n.t('notify_title_error'),

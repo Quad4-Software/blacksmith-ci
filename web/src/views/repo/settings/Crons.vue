@@ -397,6 +397,7 @@ import { useAsyncAction } from '~/compositions/useAsyncAction';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
 import { useDate } from '~/compositions/useDate';
 import { requiredInject } from '~/compositions/useInjectProvide';
+import { useLoadingOverlay } from '~/compositions/useLoadingOverlay';
 import useNotifications from '~/compositions/useNotifications';
 import { usePagination } from '~/compositions/usePaginate';
 import { useResizableColumns } from '~/compositions/useResizableColumns';
@@ -405,6 +406,7 @@ import router from '~/router';
 
 const apiClient = useApiClient();
 const notifications = useNotifications();
+const overlay = useLoadingOverlay();
 const i18n = useI18n();
 const route = useRoute();
 const routerInstance = useRouter();
@@ -500,7 +502,9 @@ async function confirmDelete(cron: Cron) {
 }
 
 const { doSubmit: runCron } = useAsyncAction(async (_cron: Cron) => {
-  const pipeline = await apiClient.runCron(repo.value.id, _cron.id);
+  const pipeline = await overlay.withOverlay(i18n.t('loading_overlay.triggering_cron'), () =>
+    apiClient.runCron(repo.value.id, _cron.id),
+  );
 
   // If we got a valid pipeline, navigate to it
   if (pipeline && typeof pipeline === 'object' && 'number' in pipeline) {

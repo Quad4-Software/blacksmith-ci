@@ -214,9 +214,10 @@ import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vu
 import { Button } from '~/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import useApiClient from '~/compositions/useApiClient';
+import { requiredInject } from '~/compositions/useInjectProvide';
+import { useLoadingOverlay } from '~/compositions/useLoadingOverlay';
 import useNotifications from '~/compositions/useNotifications';
 import usePipeline from '~/compositions/usePipeline';
-import { requiredInject } from '~/compositions/useInjectProvide';
 import type { Pipeline } from '~/lib/api/types';
 
 const props = defineProps<{
@@ -237,6 +238,7 @@ const { t } = useI18n();
 const router = useRouter();
 const apiClient = useApiClient();
 const notifications = useNotifications();
+const overlay = useLoadingOverlay();
 const repo = requiredInject('repo');
 const isRerunning = ref(false);
 const isCanceling = ref(false);
@@ -318,7 +320,9 @@ async function rerunPipeline(event: Event) {
 
   isRerunning.value = true;
   try {
-    const newPipeline = await apiClient.restartPipeline(repo.value.id, pipeline.value.number.toString());
+    const newPipeline = await overlay.withOverlay(t('loading_overlay.restarting_pipeline'), () =>
+      apiClient.restartPipeline(repo.value.id, pipeline.value.number.toString()),
+    );
     notifications.notify({
       title: t('repo.pipeline.rerun_success'),
       type: 'success',

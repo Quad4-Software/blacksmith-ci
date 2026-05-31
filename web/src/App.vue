@@ -161,6 +161,8 @@
       close-button-position="top-right"
     />
 
+    <LoadingOverlay />
+
     <!-- Global Command Palette and Dialogs -->
     <GlobalCommandPalette />
     <KeyboardShortcutsDialog />
@@ -194,6 +196,7 @@ import AddAgentDialog from '~/components/command-palette/AddAgentDialog.vue';
 import AddRepositoryDialog from '~/components/command-palette/AddRepositoryDialog.vue';
 import AddCronDialog from '~/components/command-palette/AddCronDialog.vue';
 import AppSidebar from '~/components/layout/AppSidebar.vue';
+import LoadingOverlay from '~/components/layout/LoadingOverlay.vue';
 import ActivePipelines from '~/components/layout/header/ActivePipelines.vue';
 import ForgeAuthStatus from '~/components/layout/header/ForgeAuthStatus.vue';
 import PipelineFeedSidebar from '~/components/pipeline-feed/PipelineFeedSidebar.vue';

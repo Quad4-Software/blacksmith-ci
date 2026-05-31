@@ -37,6 +37,7 @@
 
 <script lang="ts" setup>
 import { computed, ref, toRef } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import InputField from '~/components/form/InputField.vue';
@@ -46,6 +47,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Input } from '~/components/ui/input';
 import useApiClient from '~/compositions/useApiClient';
 import { requiredInject } from '~/compositions/useInjectProvide';
+import { useLoadingOverlay } from '~/compositions/useLoadingOverlay';
 
 const props = defineProps<{
   open: boolean;
@@ -57,6 +59,8 @@ const emit = defineEmits<{
 }>();
 
 const apiClient = useApiClient();
+const overlay = useLoadingOverlay();
+const i18n = useI18n();
 const repo = requiredInject('repo');
 const router = useRouter();
 
@@ -88,7 +92,9 @@ const pipelineNumber = toRef(props, 'pipelineNumber');
 async function triggerDeployPipeline() {
   isSubmitting.value = true;
   try {
-    const newPipeline = await apiClient.deployPipeline(repo.value.id, pipelineNumber.value, pipelineOptions.value);
+    const newPipeline = await overlay.withOverlay(i18n.t('loading_overlay.deploying_pipeline'), () =>
+      apiClient.deployPipeline(repo.value.id, pipelineNumber.value, pipelineOptions.value),
+    );
 
     emit('close');
 

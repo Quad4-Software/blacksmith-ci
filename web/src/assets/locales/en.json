@@ -53,6 +53,12 @@
   "search": "Search…",
   "sort": "Sort",
   "loading": "Loading…",
+  "loading_overlay": {
+    "creating_pipeline": "Creating pipeline...",
+    "triggering_cron": "Triggering cron...",
+    "deploying_pipeline": "Deploying pipeline...",
+    "restarting_pipeline": "Restarting pipeline..."
+  },
   "username": "Username",
   "password": "Password",
   "back": "Back",

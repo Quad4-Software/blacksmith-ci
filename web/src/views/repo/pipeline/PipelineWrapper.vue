@@ -173,6 +173,7 @@ import useApiClient from '~/compositions/useApiClient';
 import { useAsyncAction } from '~/compositions/useAsyncAction';
 import { useFavicon } from '~/compositions/useFavicon';
 import { provide, requiredInject } from '~/compositions/useInjectProvide';
+import { useLoadingOverlay } from '~/compositions/useLoadingOverlay';
 import useNotifications from '~/compositions/useNotifications';
 import usePipeline from '~/compositions/usePipeline';
 import { useRouteBack } from '~/compositions/useRouteBack';
@@ -191,6 +192,7 @@ const router = useRouter();
 const notifications = useNotifications();
 const favicon = useFavicon();
 const i18n = useI18n();
+const overlay = useLoadingOverlay();
 
 const pipelineStore = usePipelineStore();
 const pipelineId = toRef(props, 'pipelineId');
@@ -253,9 +255,9 @@ const { doSubmit: restartPipeline, isLoading: isRestartingPipeline } = useAsyncA
     throw new Error('Unexpected: Repo is undefined');
   }
 
-  const newPipeline = await apiClient.restartPipeline(repo.value.id, pipelineId.value, {
-    fork: true,
-  });
+  const newPipeline = await overlay.withOverlay(i18n.t('loading_overlay.restarting_pipeline'), () =>
+    apiClient.restartPipeline(repo.value.id, pipelineId.value, { fork: true }),
+  );
   notifications.notify({
     title: i18n.t('notify_title_success'),
     text: i18n.t('repo.pipeline.actions.notify_text_restart_success'),

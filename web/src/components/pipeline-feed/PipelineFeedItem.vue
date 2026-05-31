@@ -95,6 +95,7 @@ import InlineMarkdown from '~/components/atomic/InlineMarkdown.vue';
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
 import useApiClient from '~/compositions/useApiClient';
 import { useAsyncAction } from '~/compositions/useAsyncAction';
+import { useLoadingOverlay } from '~/compositions/useLoadingOverlay';
 import useNotifications from '~/compositions/useNotifications';
 import usePipeline from '~/compositions/usePipeline';
 import type { PipelineFeed } from '~/lib/api/types';
@@ -109,6 +110,7 @@ const repoStore = useRepoStore();
 const pipelineStore = usePipelineStore();
 const apiClient = useApiClient();
 const notifications = useNotifications();
+const overlay = useLoadingOverlay();
 const { t } = useI18n();
 
 const pipeline = toRef(props, 'pipeline');
@@ -129,9 +131,9 @@ const { doSubmit: cancelPipelineAction, isLoading: isCanceling } = useAsyncActio
 });
 
 const { doSubmit: restartPipelineAction, isLoading: isRestarting } = useAsyncAction(async () => {
-  await apiClient.restartPipeline(pipeline.value.repo_id, pipeline.value.number.toString(), {
-    fork: true,
-  });
+  await overlay.withOverlay(t('loading_overlay.restarting_pipeline'), () =>
+    apiClient.restartPipeline(pipeline.value.repo_id, pipeline.value.number.toString(), { fork: true }),
+  );
   notifications.notify({
     title: t('notify_title_success'),
     text: t('repo.pipeline.actions.notify_text_restart_success'),

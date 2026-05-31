@@ -197,6 +197,7 @@ import { Button } from '~/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import useApiClient from '~/compositions/useApiClient';
 import { useForges } from '~/compositions/useForges';
+import { useLoadingOverlay } from '~/compositions/useLoadingOverlay';
 import useNotifications from '~/compositions/useNotifications';
 import usePipeline from '~/compositions/usePipeline';
 import type { Repo, Forge, Pipeline } from '~/lib/api/types';
@@ -218,6 +219,7 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const apiClient = useApiClient();
 const notifications = useNotifications();
+const overlay = useLoadingOverlay();
 const repoStore = useRepoStore();
 const isUpdating = ref(false);
 const recentPipelines = ref<Pipeline[]>([]);
@@ -328,11 +330,14 @@ const { stop: stopObserver } = useIntersectionObserver(
 );
 
 async function rerunPipeline() {
-  if (!lastPipeline.value) return;
+  const last = lastPipeline.value;
+  if (!last) return;
 
   isRerunning.value = true;
   try {
-    await apiClient.restartPipeline(props.repo.id, lastPipeline.value.number.toString());
+    await overlay.withOverlay(t('loading_overlay.restarting_pipeline'), () =>
+      apiClient.restartPipeline(props.repo.id, last.number.toString()),
+    );
     notifications.notify({
       title: t('repo.pipeline.rerun_success'),
       type: 'success',

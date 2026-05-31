@@ -264,9 +264,10 @@ import { Card, CardContent } from '~/components/ui/card';
 import { Label } from '~/components/ui/label';
 import { useAsyncAction } from '~/compositions/useAsyncAction';
 import useApiClient from '~/compositions/useApiClient';
+import { requiredInject } from '~/compositions/useInjectProvide';
+import { useLoadingOverlay } from '~/compositions/useLoadingOverlay';
 import useNotifications from '~/compositions/useNotifications';
 import useReactivePipelines from '~/compositions/useReactivePipelines';
-import { requiredInject } from '~/compositions/useInjectProvide';
 import type { Pipeline, Repo } from '~/lib/api/types';
 
 const props = defineProps<{
@@ -278,6 +279,7 @@ const props = defineProps<{
 const { t } = useI18n();
 const apiClient = useApiClient();
 const notifications = useNotifications();
+const overlay = useLoadingOverlay();
 const scrollTrigger = ref<HTMLElement | null>(null);
 // Try to get repo permissions, may not be available in all contexts
 let repoPermissions;
@@ -598,15 +600,17 @@ const { doSubmit: restartSelectedPipelines, isLoading: isRestartingBulk } = useA
   }
 
   // Run restarts sequentially to avoid race conditions
-  const results = [];
-  for (const pipeline of selectedPipelines.value) {
-    try {
-      const result = await apiClient.restartPipeline(props.repo!.id, String(pipeline.number), { fork: true });
-      results.push({ status: 'fulfilled', value: result });
-    } catch (error) {
-      results.push({ status: 'rejected', reason: error });
+  const results: Array<{ status: 'fulfilled' | 'rejected'; value?: unknown; reason?: unknown }> = [];
+  await overlay.withOverlay(t('loading_overlay.restarting_pipeline'), async () => {
+    for (const pipeline of selectedPipelines.value) {
+      try {
+        const result = await apiClient.restartPipeline(props.repo!.id, String(pipeline.number), { fork: true });
+        results.push({ status: 'fulfilled', value: result });
+      } catch (error) {
+        results.push({ status: 'rejected', reason: error });
+      }
     }
-  }
+  });
 
   // Count successful restarts
   const successCount = results.filter((r) => r.status === 'fulfilled').length;
