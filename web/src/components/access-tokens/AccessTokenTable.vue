@@ -128,7 +128,7 @@
 <script lang="ts" setup>
 import type { ColumnDef, SortingState, VisibilityState } from '@tanstack/vue-table';
 import { FlexRender, getCoreRowModel, getSortedRowModel, useVueTable } from '@tanstack/vue-table';
-import { Check, Copy, MoreVertical } from 'lucide-vue-next';
+import { Check, Copy, MoreVertical } from '@lucide/vue';
 import { h, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 

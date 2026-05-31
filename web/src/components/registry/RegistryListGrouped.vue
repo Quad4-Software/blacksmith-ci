@@ -272,7 +272,7 @@ import {
   getSortedRowModel,
   useVueTable,
 } from '@tanstack/vue-table';
-import { ArrowUpDown, Check, Copy, MoreVertical } from 'lucide-vue-next';
+import { ArrowUpDown, Check, Copy, MoreVertical } from '@lucide/vue';
 import { computed, h, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
