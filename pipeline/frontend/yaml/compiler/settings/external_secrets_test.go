@@ -288,11 +288,16 @@ func TestFetchExternalSecrets(t *testing.T) {
 			collected.RefsByKey[externalSecretKey(ref)] = ref
 		}
 
-		fetcher := func(_ context.Context, ref ExternalSecretRef) (string, error) {
-			if ref.Key == "api_key" {
-				return "key_value_123", nil
+		fetcher := func(_ context.Context, refs []ExternalSecretRef) (map[ExternalSecretRef]string, error) {
+			result := make(map[ExternalSecretRef]string, len(refs))
+			for _, ref := range refs {
+				if ref.Key == "api_key" {
+					result[ref] = "key_value_123"
+				} else {
+					result[ref] = "secret_value_456"
+				}
 			}
-			return "secret_value_456", nil
+			return result, nil
 		}
 
 		fetched, err := FetchExternalSecrets(ctx, collected, fetcher)
@@ -308,13 +313,67 @@ func TestFetchExternalSecrets(t *testing.T) {
 			RefsByKey: make(map[string]ExternalSecretRef),
 		}
 
-		fetcher := func(_ context.Context, _ ExternalSecretRef) (string, error) {
-			return "", fmt.Errorf("vault unreachable")
+		fetcher := func(_ context.Context, _ []ExternalSecretRef) (map[ExternalSecretRef]string, error) {
+			return nil, fmt.Errorf("vault unreachable")
 		}
 
 		_, err := FetchExternalSecrets(ctx, collected, fetcher)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to fetch external secret")
+		assert.Contains(t, err.Error(), "failed to fetch external secrets")
+	})
+
+	t.Run("batch called once with all refs", func(t *testing.T) {
+		collected := &CollectedExternalSecrets{
+			Refs: []ExternalSecretRef{
+				{IntegrationID: 1, Path: "secret/a", Key: "k1"},
+				{IntegrationID: 1, Path: "secret/b", Key: "k2"},
+				{IntegrationID: 2, Path: "secret/c", Key: "k3"},
+			},
+			RefsByKey: make(map[string]ExternalSecretRef),
+		}
+
+		var calls int
+		var receivedRefs []ExternalSecretRef
+		fetcher := func(_ context.Context, refs []ExternalSecretRef) (map[ExternalSecretRef]string, error) {
+			calls++
+			receivedRefs = refs
+			result := make(map[ExternalSecretRef]string, len(refs))
+			for _, ref := range refs {
+				result[ref] = "value-" + ref.Key
+			}
+			return result, nil
+		}
+
+		fetched, err := FetchExternalSecrets(ctx, collected, fetcher)
+		assert.NoError(t, err)
+		assert.Equal(t, 1, calls, "fetcher should be called exactly once for the whole batch")
+		assert.Len(t, receivedRefs, 3, "fetcher should receive all refs in one call")
+		assert.Len(t, fetched.Secrets, 3)
+	})
+
+	t.Run("missing ref in fetcher result", func(t *testing.T) {
+		collected := &CollectedExternalSecrets{
+			Refs: []ExternalSecretRef{
+				{IntegrationID: 1, Path: "secret/test", Key: "present"},
+				{IntegrationID: 1, Path: "secret/test", Key: "absent"},
+			},
+			RefsByKey: make(map[string]ExternalSecretRef),
+		}
+
+		fetcher := func(_ context.Context, refs []ExternalSecretRef) (map[ExternalSecretRef]string, error) {
+			result := make(map[ExternalSecretRef]string)
+			for _, ref := range refs {
+				if ref.Key == "present" {
+					result[ref] = "value"
+				}
+			}
+			return result, nil
+		}
+
+		_, err := FetchExternalSecrets(ctx, collected, fetcher)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "external secret not returned by fetcher")
+		assert.Contains(t, err.Error(), "absent")
 	})
 }
 

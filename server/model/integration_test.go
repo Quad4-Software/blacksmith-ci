@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -425,6 +426,42 @@ func TestVaultConfig_WithDefaults(t *testing.T) {
 	assert.Equal(t, "secret", result.MountPath)
 	assert.Equal(t, "auth/approle", result.AuthPath)
 	assert.Equal(t, config.Address, result.Address)
+	assert.Equal(t, DefaultVaultTimeoutSeconds, result.TimeoutSeconds)
+}
+
+func TestVaultConfig_WithDefaults_KeepsExplicitTimeout(t *testing.T) {
+	config := VaultConfig{
+		Address:        "https://vault.example.com",
+		RoleID:         "r",
+		SecretID:       "s",
+		TimeoutSeconds: 120,
+	}
+
+	result := config.WithDefaults()
+
+	assert.Equal(t, 120, result.TimeoutSeconds, "explicit timeout must not be overwritten by default")
+}
+
+func TestVaultConfig_RequestTimeout(t *testing.T) {
+	t.Run("unset uses default", func(t *testing.T) {
+		c := &VaultConfig{}
+		assert.Equal(t, time.Duration(DefaultVaultTimeoutSeconds)*time.Second, c.RequestTimeout())
+	})
+
+	t.Run("zero uses default", func(t *testing.T) {
+		c := &VaultConfig{TimeoutSeconds: 0}
+		assert.Equal(t, time.Duration(DefaultVaultTimeoutSeconds)*time.Second, c.RequestTimeout())
+	})
+
+	t.Run("negative uses default", func(t *testing.T) {
+		c := &VaultConfig{TimeoutSeconds: -5}
+		assert.Equal(t, time.Duration(DefaultVaultTimeoutSeconds)*time.Second, c.RequestTimeout())
+	})
+
+	t.Run("explicit value is honored", func(t *testing.T) {
+		c := &VaultConfig{TimeoutSeconds: 90}
+		assert.Equal(t, 90*time.Second, c.RequestTimeout())
+	})
 }
 
 func TestVaultConfig_Redacted(t *testing.T) {

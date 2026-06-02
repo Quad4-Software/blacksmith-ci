@@ -21,6 +21,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -33,8 +34,6 @@ import (
 )
 
 const (
-	// DefaultTimeout is the default HTTP timeout for Vault requests.
-	defaultTimeout = 30 * time.Second
 	// CloseTimeout is the timeout for closing/revoking tokens.
 	closeTimeout = 5 * time.Second
 	// TokenRefreshRatio is the percentage of TTL at which to refresh tokens (80 out of 100).
@@ -65,7 +64,7 @@ func NewProvider(integration *model.Integration) (integrations.Provider, error) 
 	// Create Vault client configuration
 	vaultConfig := vault.DefaultConfig()
 	vaultConfig.Address = config.Address
-	vaultConfig.Timeout = defaultTimeout
+	vaultConfig.Timeout = config.RequestTimeout()
 
 	// Configure TLS
 	if config.TLSConfig != nil {
@@ -137,7 +136,7 @@ func (p *Provider) GetSecret(ctx context.Context, path, key string, version int)
 	}
 
 	if err != nil {
-		return "", errors.Join(integrations.ErrProviderConnectionFail, fmt.Errorf("failed to read secret at %s: %w", path, err))
+		return "", p.wrapReadError(err, path)
 	}
 
 	if secret == nil || secret.Data == nil {
@@ -206,7 +205,7 @@ func (p *Provider) GetSecretsBatch(ctx context.Context, requests []integrations.
 		}
 
 		if err != nil {
-			return nil, errors.Join(integrations.ErrProviderConnectionFail, fmt.Errorf("failed to read secret at %s: %w", firstReq.Path, err))
+			return nil, p.wrapReadError(err, firstReq.Path)
 		}
 
 		if secret == nil || secret.Data == nil {
@@ -290,10 +289,7 @@ func (p *Provider) authenticate(ctx context.Context) error {
 	// Perform AppRole login
 	resp, err := p.client.Logical().WriteWithContext(ctx, p.config.AuthPath+"/login", loginData)
 	if err != nil {
-		return fmt.Errorf("%w: integration '%s' (id=%d) failed to authenticate with Vault at %s. "+
-			"The role_id or secret_id may be incorrect or expired. "+
-			"Please verify the integration credentials in settings: %w",
-			integrations.ErrAuthenticationFailed, p.integration.Name, p.integration.ID, p.config.Address, err)
+		return p.wrapAuthError(err)
 	}
 
 	if resp == nil || resp.Auth == nil {
@@ -335,6 +331,63 @@ func (p *Provider) ensureToken(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// wrapAuthError classifies an error from the AppRole login call and returns
+// a user-friendly error wrapping the most specific sentinel:
+//   - timeouts (context deadline / net.Error.Timeout) → ErrProviderTimeout
+//   - HTTP 4xx responses from Vault → ErrAuthenticationFailed (credentials hint)
+//   - HTTP 5xx responses from Vault → ErrProviderConnectionFail (server hint)
+//   - everything else (network, DNS, TLS) → ErrProviderConnectionFail
+func (p *Provider) wrapAuthError(err error) error {
+	if isTimeoutError(err) {
+		return fmt.Errorf("%w: integration '%s' (id=%d) timed out connecting to Vault at %s after %s. "+
+			"This usually means Vault is unreachable, overloaded, or the network is slow. "+
+			"Increase 'timeout_seconds' on the integration if Vault is healthy but slow: %w",
+			integrations.ErrProviderTimeout, p.integration.Name, p.integration.ID,
+			p.config.Address, p.config.RequestTimeout(), err)
+	}
+
+	var respErr *vault.ResponseError
+	if errors.As(err, &respErr) {
+		if respErr.StatusCode >= 400 && respErr.StatusCode < 500 {
+			return fmt.Errorf("%w: integration '%s' (id=%d) was rejected by Vault at %s (HTTP %d). "+
+				"The role_id or secret_id is incorrect, expired, or the AppRole is misconfigured. "+
+				"Please verify the integration credentials in settings: %w",
+				integrations.ErrAuthenticationFailed, p.integration.Name, p.integration.ID,
+				p.config.Address, respErr.StatusCode, err)
+		}
+		return fmt.Errorf("%w: integration '%s' (id=%d) - Vault at %s returned HTTP %d. "+
+			"The Vault server appears unhealthy: %w",
+			integrations.ErrProviderConnectionFail, p.integration.Name, p.integration.ID,
+			p.config.Address, respErr.StatusCode, err)
+	}
+
+	return fmt.Errorf("%w: integration '%s' (id=%d) could not reach Vault at %s: %w",
+		integrations.ErrProviderConnectionFail, p.integration.Name, p.integration.ID,
+		p.config.Address, err)
+}
+
+// wrapReadError classifies an error from a secret read call.
+func (p *Provider) wrapReadError(err error, path string) error {
+	if isTimeoutError(err) {
+		return fmt.Errorf("%w: timed out reading secret at '%s' from Vault at %s after %s: %w",
+			integrations.ErrProviderTimeout, path, p.config.Address, p.config.RequestTimeout(), err)
+	}
+	return errors.Join(integrations.ErrProviderConnectionFail,
+		fmt.Errorf("failed to read secret at %s: %w", path, err))
+}
+
+// isTimeoutError reports whether err represents a context deadline or a network timeout.
+func isTimeoutError(err error) bool {
+	if errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return true
+	}
+	return false
 }
 
 // buildTLSConfig creates a TLS configuration from VaultTLSConfig.

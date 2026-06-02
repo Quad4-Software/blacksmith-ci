@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"time"
 
 	"github.com/uptrace/bun"
 )
@@ -304,8 +305,23 @@ type VaultConfig struct {
 	MountPath string `json:"mount_path"` // Secrets engine mount path (default: "secret")
 	AuthPath  string `json:"auth_path"`  // Auth method path (default: "auth/approle")
 
+	// TimeoutSeconds is the HTTP request timeout for Vault calls (auth + reads).
+	// Defaults to DefaultVaultTimeoutSeconds when unset or <= 0.
+	TimeoutSeconds int `json:"timeout_seconds,omitempty"`
+
 	// TLS Configuration
 	TLSConfig *VaultTLSConfig `json:"tls_config,omitempty"`
+}
+
+// DefaultVaultTimeoutSeconds is the default HTTP request timeout in seconds.
+const DefaultVaultTimeoutSeconds = 30
+
+// RequestTimeout returns the configured HTTP timeout for Vault requests.
+func (c *VaultConfig) RequestTimeout() time.Duration {
+	if c.TimeoutSeconds <= 0 {
+		return DefaultVaultTimeoutSeconds * time.Second
+	}
+	return time.Duration(c.TimeoutSeconds) * time.Second
 }
 
 // VaultTLSConfig holds TLS configuration for Vault connections.
@@ -350,12 +366,13 @@ func (c *VaultConfig) Validate() error {
 // Redacted returns a copy with sensitive fields redacted.
 func (c *VaultConfig) Redacted() *VaultConfig {
 	redacted := &VaultConfig{
-		Address:   c.Address,
-		Namespace: c.Namespace,
-		RoleID:    abbreviateSecret(c.RoleID),
-		SecretID:  "***", // Always fully redact SecretID
-		MountPath: c.MountPath,
-		AuthPath:  c.AuthPath,
+		Address:        c.Address,
+		Namespace:      c.Namespace,
+		RoleID:         abbreviateSecret(c.RoleID),
+		SecretID:       "***", // Always fully redact SecretID
+		MountPath:      c.MountPath,
+		AuthPath:       c.AuthPath,
+		TimeoutSeconds: c.TimeoutSeconds,
 	}
 
 	if c.TLSConfig != nil {
@@ -381,6 +398,9 @@ func (c *VaultConfig) WithDefaults() *VaultConfig {
 	}
 	if config.AuthPath == "" {
 		config.AuthPath = "auth/approle"
+	}
+	if config.TimeoutSeconds <= 0 {
+		config.TimeoutSeconds = DefaultVaultTimeoutSeconds
 	}
 
 	return &config

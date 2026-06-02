@@ -61,7 +61,7 @@ type StepBuilder struct {
 	Forge                 metadata.ServerForge
 	DefaultLabels         map[string]string
 	ProxyOpts             compiler.ProxyOptions
-	ExternalSecretFetcher settings.ExternalSecretFetcher
+	ExternalSecretFetcher settings.ExternalSecretBatchFetcher
 	WorkflowFilter        []string // If set, only build workflows with these names
 }
 

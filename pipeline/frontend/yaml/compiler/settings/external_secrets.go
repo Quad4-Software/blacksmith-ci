@@ -97,37 +97,43 @@ type FetchedExternalSecrets struct {
 	Secrets map[string]string
 }
 
-// FetchExternalSecrets fetches all collected external secrets using the provided fetcher.
+// FetchExternalSecrets fetches all collected external secrets using the provided batch fetcher.
 // Returns a map that can be used to resolve references during YAML processing.
-func FetchExternalSecrets(ctx context.Context, collected *CollectedExternalSecrets, fetcher ExternalSecretFetcher) (*FetchedExternalSecrets, error) {
+// A single batch call lets the fetcher authenticate against each integration only once,
+// which avoids per-secret HTTP overhead when a workflow references many external secrets.
+func FetchExternalSecrets(ctx context.Context, collected *CollectedExternalSecrets, fetcher ExternalSecretBatchFetcher) (*FetchedExternalSecrets, error) {
 	fetched := &FetchedExternalSecrets{
 		Secrets: make(map[string]string, len(collected.Refs)),
 	}
 
-	if fetcher == nil {
-		if len(collected.Refs) > 0 {
-			return nil, fmt.Errorf("external secret fetcher not configured but %d external secrets found", len(collected.Refs))
-		}
+	if len(collected.Refs) == 0 {
 		return fetched, nil
 	}
 
+	if fetcher == nil {
+		return nil, fmt.Errorf("external secret fetcher not configured but %d external secrets found", len(collected.Refs))
+	}
+
+	values, err := fetcher(ctx, collected.Refs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch external secrets: %w", err)
+	}
+
 	for _, ref := range collected.Refs {
-		value, err := fetcher(ctx, ref)
-		if err != nil {
+		value, ok := values[ref]
+		if !ok {
 			integrationInfo := fmt.Sprintf("ID: %d", ref.IntegrationID)
 			if ref.IntegrationName != "" {
 				integrationInfo = fmt.Sprintf("Name: %s", ref.IntegrationName)
 			}
-			return nil, fmt.Errorf("failed to fetch external secret:\n\n"+
+			return nil, fmt.Errorf("external secret not returned by fetcher:\n\n"+
 				"- **Integration:** %s\n"+
 				"- **Path:** `%s`\n"+
-				"- **Key:** `%s`\n\n"+
-				"%w",
-				integrationInfo, ref.Path, ref.Key, err)
+				"- **Key:** `%s`",
+				integrationInfo, ref.Path, ref.Key)
 		}
 
-		key := externalSecretKey(ref)
-		fetched.Secrets[key] = value
+		fetched.Secrets[externalSecretKey(ref)] = value
 	}
 
 	return fetched, nil

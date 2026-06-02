@@ -28,6 +28,7 @@ var (
 	ErrProviderNotSupported   = errors.New("integration provider type not supported")
 	ErrProviderNotConfigured  = errors.New("integration provider not properly configured")
 	ErrProviderConnectionFail = errors.New("failed to connect to secret store")
+	ErrProviderTimeout        = errors.New("secret store request timed out")
 	ErrSecretNotFound         = errors.New("secret not found")
 	ErrSecretKeyNotFound      = errors.New("secret key not found")
 	ErrAuthenticationFailed   = errors.New("authentication failed")

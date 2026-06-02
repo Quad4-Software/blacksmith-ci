@@ -15,10 +15,17 @@
 package vault
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"testing"
+	"time"
 
+	vault "github.com/hashicorp/vault/api"
 	"github.com/stretchr/testify/assert"
 
 	"codefloe.com/crowci/crow/v5/server/integrations"
@@ -282,6 +289,160 @@ func TestExternalSecretRef_Validate(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestIsTimeoutError(t *testing.T) {
+	t.Run("context deadline exceeded", func(t *testing.T) {
+		assert.True(t, isTimeoutError(context.DeadlineExceeded))
+	})
+
+	t.Run("wrapped context deadline exceeded", func(t *testing.T) {
+		wrapped := fmt.Errorf("doing thing: %w", context.DeadlineExceeded)
+		assert.True(t, isTimeoutError(wrapped))
+	})
+
+	t.Run("net.Error timeout", func(t *testing.T) {
+		urlErr := &url.Error{
+			Op:  "Post",
+			URL: "https://vault.example.com/v1/auth/approle/login",
+			Err: &timeoutNetError{},
+		}
+		assert.True(t, isTimeoutError(urlErr))
+	})
+
+	t.Run("non-timeout error", func(t *testing.T) {
+		assert.False(t, isTimeoutError(errors.New("connection refused")))
+	})
+
+	t.Run("nil", func(t *testing.T) {
+		assert.False(t, isTimeoutError(nil))
+	})
+}
+
+// timeoutNetError implements net.Error and reports Timeout()=true.
+type timeoutNetError struct{}
+
+func (*timeoutNetError) Error() string   { return "i/o timeout" }
+func (*timeoutNetError) Timeout() bool   { return true }
+func (*timeoutNetError) Temporary() bool { return true }
+
+func TestProvider_WrapAuthError(t *testing.T) {
+	p := &Provider{
+		integration: &model.Integration{ID: 42, Name: "test-vault"},
+		config: (&model.VaultConfig{
+			Address: "https://vault.example.com",
+		}).WithDefaults(),
+	}
+
+	t.Run("timeout classifies as ErrProviderTimeout", func(t *testing.T) {
+		err := p.wrapAuthError(context.DeadlineExceeded)
+		assert.ErrorIs(t, err, integrations.ErrProviderTimeout)
+		assert.NotErrorIs(t, err, integrations.ErrAuthenticationFailed,
+			"timeouts must NOT be reported as authentication failures")
+		assert.Contains(t, err.Error(), "timed out")
+		assert.Contains(t, err.Error(), "timeout_seconds")
+	})
+
+	t.Run("Vault 4xx classifies as ErrAuthenticationFailed", func(t *testing.T) {
+		respErr := &vault.ResponseError{
+			HTTPMethod: http.MethodPost,
+			URL:        "https://vault.example.com/v1/auth/approle/login",
+			StatusCode: http.StatusBadRequest,
+			Errors:     []string{"invalid role or secret ID"},
+		}
+		err := p.wrapAuthError(respErr)
+		assert.ErrorIs(t, err, integrations.ErrAuthenticationFailed)
+		assert.NotErrorIs(t, err, integrations.ErrProviderTimeout)
+		assert.Contains(t, err.Error(), "role_id or secret_id")
+		assert.Contains(t, err.Error(), "HTTP 400")
+	})
+
+	t.Run("Vault 5xx classifies as ErrProviderConnectionFail", func(t *testing.T) {
+		respErr := &vault.ResponseError{
+			HTTPMethod: http.MethodPost,
+			URL:        "https://vault.example.com/v1/auth/approle/login",
+			StatusCode: http.StatusServiceUnavailable,
+			Errors:     []string{"sealed"},
+		}
+		err := p.wrapAuthError(respErr)
+		assert.ErrorIs(t, err, integrations.ErrProviderConnectionFail)
+		assert.NotErrorIs(t, err, integrations.ErrAuthenticationFailed,
+			"5xx must NOT be reported as bad credentials")
+		assert.Contains(t, err.Error(), "HTTP 503")
+		assert.Contains(t, err.Error(), "unhealthy")
+	})
+
+	t.Run("generic network error classifies as ErrProviderConnectionFail", func(t *testing.T) {
+		err := p.wrapAuthError(errors.New("connection refused"))
+		assert.ErrorIs(t, err, integrations.ErrProviderConnectionFail)
+		assert.NotErrorIs(t, err, integrations.ErrAuthenticationFailed)
+		assert.NotErrorIs(t, err, integrations.ErrProviderTimeout)
+	})
+}
+
+func TestProvider_WrapReadError(t *testing.T) {
+	p := &Provider{
+		integration: &model.Integration{ID: 1, Name: "test"},
+		config: (&model.VaultConfig{
+			Address: "https://vault.example.com",
+		}).WithDefaults(),
+	}
+
+	t.Run("timeout classifies as ErrProviderTimeout", func(t *testing.T) {
+		err := p.wrapReadError(context.DeadlineExceeded, "secret/foo")
+		assert.ErrorIs(t, err, integrations.ErrProviderTimeout)
+		assert.Contains(t, err.Error(), "secret/foo")
+	})
+
+	t.Run("non-timeout falls back to connection error", func(t *testing.T) {
+		err := p.wrapReadError(errors.New("eof"), "secret/foo")
+		assert.ErrorIs(t, err, integrations.ErrProviderConnectionFail)
+		assert.Contains(t, err.Error(), "secret/foo")
+	})
+}
+
+// TestNewProvider_VaultRejectsCredentials exercises the auth-error path end-to-end
+// against a fake Vault that returns HTTP 400 and verifies the resulting error
+// is classified as a credentials failure rather than a generic connection error.
+// Timeout classification is covered by direct unit tests on isTimeoutError and
+// wrapAuthError above to avoid the slow Vault-SDK retry loop on a hanging server.
+func TestNewProvider_VaultRejectsCredentials(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(`{"errors":["invalid role or secret ID"]}`))
+	}))
+	defer srv.Close()
+
+	config := model.VaultConfig{
+		Address:        srv.URL,
+		RoleID:         "role",
+		SecretID:       "secret",
+		MountPath:      "secret",
+		AuthPath:       "auth/approle",
+		TimeoutSeconds: 5,
+	}
+	cfgJSON, err := json.Marshal(config)
+	assert.NoError(t, err)
+
+	integration := &model.Integration{
+		ID:     7,
+		Name:   "rejecting-vault",
+		Type:   model.IntegrationTypeVault,
+		Config: string(cfgJSON),
+	}
+
+	start := time.Now()
+	_, err = NewProvider(integration)
+	elapsed := time.Since(start)
+
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, integrations.ErrAuthenticationFailed,
+		"4xx must be classified as ErrAuthenticationFailed, got: %v", err)
+	assert.NotErrorIs(t, err, integrations.ErrProviderTimeout)
+	assert.Contains(t, err.Error(), "role_id or secret_id")
+	// Sanity: real auth-rejection should be near-instant, not waiting for retries.
+	assert.Less(t, elapsed, 30*time.Second, "rejection should not block on retries")
 }
 
 func TestExternalSecretRef_CacheKey(t *testing.T) {

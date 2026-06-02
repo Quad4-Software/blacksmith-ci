@@ -1078,15 +1078,19 @@ func TestExternalSecretsMaskedInLogs(t *testing.T) {
 	// Simulate fetching multiple keys from the same integration/path.
 	// Before the fix, all external secrets were stored under the same compiler
 	// map key "external", so only the last value survived for log masking.
-	fetcher := func(_ context.Context, ref settings.ExternalSecretRef) (string, error) {
-		switch ref.Key {
-		case "username":
-			return "smtp-user@example.com", nil
-		case "password":
-			return "super-secret-password", nil
-		default:
-			return "", fmt.Errorf("unknown key: %s", ref.Key)
+	fetcher := func(_ context.Context, refs []settings.ExternalSecretRef) (map[settings.ExternalSecretRef]string, error) {
+		result := make(map[settings.ExternalSecretRef]string, len(refs))
+		for _, ref := range refs {
+			switch ref.Key {
+			case "username":
+				result[ref] = "smtp-user@example.com"
+			case "password":
+				result[ref] = "super-secret-password"
+			default:
+				return nil, fmt.Errorf("unknown key: %s", ref.Key)
+			}
 		}
+		return result, nil
 	}
 
 	b := StepBuilder{

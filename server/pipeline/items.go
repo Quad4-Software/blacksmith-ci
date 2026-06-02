@@ -72,18 +72,41 @@ func parsePipeline(forge forge.Forge, store store.Store, currentPipeline *model.
 		envs[k] = v
 	}
 
-	// Create external secret fetcher for vault/external secrets
-	var externalSecretFetcher settings.ExternalSecretFetcher
+	// Create external secret fetcher for vault/external secrets.
+	// Uses the batch interface so each integration authenticates only once per workflow
+	// even when many secrets are referenced.
+	var externalSecretFetcher settings.ExternalSecretBatchFetcher
 	if integrationSvc := server.Config.Services.IntegrationService; integrationSvc != nil {
-		externalSecretFetcher = func(ctx context.Context, ref settings.ExternalSecretRef) (string, error) {
-			// Convert settings ref to model ref
-			modelRef := &model.ExternalSecretRef{
-				IntegrationID: ref.IntegrationID,
-				Path:          ref.Path,
-				Key:           ref.Key,
-				Version:       ref.Version,
+		externalSecretFetcher = func(ctx context.Context, refs []settings.ExternalSecretRef) (map[settings.ExternalSecretRef]string, error) {
+			if len(refs) == 0 {
+				return map[settings.ExternalSecretRef]string{}, nil
 			}
-			return integrationSvc.FetchSecret(ctx, modelRef, user.ID, repo.OrgID, repo.ID, currentPipeline.ID)
+
+			modelRefs := make([]*model.ExternalSecretRef, 0, len(refs))
+			settingsRefByCacheKey := make(map[string]settings.ExternalSecretRef, len(refs))
+			for _, ref := range refs {
+				modelRef := &model.ExternalSecretRef{
+					IntegrationID: ref.IntegrationID,
+					Path:          ref.Path,
+					Key:           ref.Key,
+					Version:       ref.Version,
+				}
+				modelRefs = append(modelRefs, modelRef)
+				settingsRefByCacheKey[modelRef.CacheKey()] = ref
+			}
+
+			fetched, err := integrationSvc.FetchSecretsBatch(ctx, modelRefs, user.ID, repo.OrgID, repo.ID, currentPipeline.ID)
+			if err != nil {
+				return nil, err
+			}
+
+			result := make(map[settings.ExternalSecretRef]string, len(fetched))
+			for cacheKey, value := range fetched {
+				if ref, ok := settingsRefByCacheKey[cacheKey]; ok {
+					result[ref] = value
+				}
+			}
+			return result, nil
 		}
 	}
 

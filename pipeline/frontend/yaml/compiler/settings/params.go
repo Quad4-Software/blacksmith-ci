@@ -34,8 +34,15 @@ type ExternalSecretRef struct {
 	Version         int
 }
 
-// ExternalSecretFetcher is a function that fetches secrets from external stores.
+// ExternalSecretFetcher is a function that fetches a single secret from an external store.
+// Kept for callers (e.g., tests) that fetch one secret at a time. Production callers should
+// prefer ExternalSecretBatchFetcher, which only authenticates against each integration once.
 type ExternalSecretFetcher func(ctx context.Context, ref ExternalSecretRef) (string, error)
+
+// ExternalSecretBatchFetcher fetches a batch of external secrets in a single call.
+// The returned map MUST contain an entry for every input ref on success;
+// implementations should group by integration to share authentication and minimize round-trips.
+type ExternalSecretBatchFetcher func(ctx context.Context, refs []ExternalSecretRef) (map[ExternalSecretRef]string, error)
 
 // ParamsToEnv uses reflection to convert a map[string]interface to a list
 // of environment variables.
