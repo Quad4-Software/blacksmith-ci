@@ -4,6 +4,7 @@ import type { Ref } from 'vue';
 
 import useApiClient from '~/compositions/useApiClient';
 import type { Pipeline, PipelineFeed, PipelineWorkflow } from '~/lib/api/types';
+import { mergePipeline } from '~/lib/pipeline-merge';
 import { useRepoStore } from '~/store/repos';
 
 /**
@@ -114,10 +115,7 @@ export const usePipelineStore = defineStore('pipelines', () => {
 
   function setPipeline(repoId: number, pipeline: Pipeline) {
     const repoPipelines = pipelines.get(repoId) ?? new Map<number, Pipeline>();
-    repoPipelines.set(pipeline.number, {
-      ...(repoPipelines.get(pipeline.number) ?? {}),
-      ...pipeline,
-    });
+    repoPipelines.set(pipeline.number, mergePipeline(repoPipelines.get(pipeline.number), pipeline));
 
     // Update last pipeline number for the repo
     const repo = repoStore.repos.get(repoId);
