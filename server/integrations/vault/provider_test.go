@@ -18,10 +18,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"testing"
 	"time"
 
@@ -290,41 +288,6 @@ func TestExternalSecretRef_Validate(t *testing.T) {
 		})
 	}
 }
-
-func TestIsTimeoutError(t *testing.T) {
-	t.Run("context deadline exceeded", func(t *testing.T) {
-		assert.True(t, isTimeoutError(context.DeadlineExceeded))
-	})
-
-	t.Run("wrapped context deadline exceeded", func(t *testing.T) {
-		wrapped := fmt.Errorf("doing thing: %w", context.DeadlineExceeded)
-		assert.True(t, isTimeoutError(wrapped))
-	})
-
-	t.Run("net.Error timeout", func(t *testing.T) {
-		urlErr := &url.Error{
-			Op:  "Post",
-			URL: "https://vault.example.com/v1/auth/approle/login",
-			Err: &timeoutNetError{},
-		}
-		assert.True(t, isTimeoutError(urlErr))
-	})
-
-	t.Run("non-timeout error", func(t *testing.T) {
-		assert.False(t, isTimeoutError(errors.New("connection refused")))
-	})
-
-	t.Run("nil", func(t *testing.T) {
-		assert.False(t, isTimeoutError(nil))
-	})
-}
-
-// timeoutNetError implements net.Error and reports Timeout()=true.
-type timeoutNetError struct{}
-
-func (*timeoutNetError) Error() string   { return "i/o timeout" }
-func (*timeoutNetError) Timeout() bool   { return true }
-func (*timeoutNetError) Temporary() bool { return true }
 
 func TestProvider_WrapAuthError(t *testing.T) {
 	p := &Provider{

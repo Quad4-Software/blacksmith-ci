@@ -21,7 +21,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -340,7 +339,7 @@ func (p *Provider) ensureToken(ctx context.Context) error {
 //   - HTTP 5xx responses from Vault → ErrProviderConnectionFail (server hint)
 //   - everything else (network, DNS, TLS) → ErrProviderConnectionFail
 func (p *Provider) wrapAuthError(err error) error {
-	if isTimeoutError(err) {
+	if integrations.IsTimeoutError(err) {
 		return fmt.Errorf("%w: integration '%s' (id=%d) timed out connecting to Vault at %s after %s. "+
 			"This usually means Vault is unreachable, overloaded, or the network is slow. "+
 			"Increase 'timeout_seconds' on the integration if Vault is healthy but slow: %w",
@@ -370,24 +369,12 @@ func (p *Provider) wrapAuthError(err error) error {
 
 // wrapReadError classifies an error from a secret read call.
 func (p *Provider) wrapReadError(err error, path string) error {
-	if isTimeoutError(err) {
+	if integrations.IsTimeoutError(err) {
 		return fmt.Errorf("%w: timed out reading secret at '%s' from Vault at %s after %s: %w",
 			integrations.ErrProviderTimeout, path, p.config.Address, p.config.RequestTimeout(), err)
 	}
 	return errors.Join(integrations.ErrProviderConnectionFail,
 		fmt.Errorf("failed to read secret at %s: %w", path, err))
-}
-
-// isTimeoutError reports whether err represents a context deadline or a network timeout.
-func isTimeoutError(err error) bool {
-	if errors.Is(err, context.DeadlineExceeded) {
-		return true
-	}
-	var netErr net.Error
-	if errors.As(err, &netErr) && netErr.Timeout() {
-		return true
-	}
-	return false
 }
 
 // buildTLSConfig creates a TLS configuration from VaultTLSConfig.

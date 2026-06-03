@@ -372,6 +372,11 @@ func TestMapInfisicalError(t *testing.T) {
 		wantError error
 	}{
 		{
+			name:      "context deadline maps to ErrProviderTimeout",
+			err:       context.DeadlineExceeded,
+			wantError: integrations.ErrProviderTimeout,
+		},
+		{
 			name:      "404 maps to ErrSecretNotFound",
 			err:       &sdkErrors.APIError{StatusCode: http.StatusNotFound},
 			wantError: integrations.ErrSecretNotFound,
@@ -393,7 +398,7 @@ func TestMapInfisicalError(t *testing.T) {
 		},
 		{
 			name:      "generic error maps to ErrProviderConnectionFail",
-			err:       fmt.Errorf("network timeout"),
+			err:       fmt.Errorf("connection refused"),
 			wantError: integrations.ErrProviderConnectionFail,
 		},
 	}
@@ -404,4 +409,43 @@ func TestMapInfisicalError(t *testing.T) {
 			assert.True(t, errors.Is(result, tt.wantError))
 		})
 	}
+}
+
+func TestWrapAuthError(t *testing.T) {
+	integration := &model.Integration{ID: 42, Name: "test-infisical"}
+	config := &model.InfisicalConfig{SiteURL: "https://app.infisical.com"}
+
+	t.Run("timeout classifies as ErrProviderTimeout", func(t *testing.T) {
+		err := wrapAuthError(integration, config, context.DeadlineExceeded)
+		assert.ErrorIs(t, err, integrations.ErrProviderTimeout)
+		assert.NotErrorIs(t, err, integrations.ErrAuthenticationFailed,
+			"timeouts must NOT be reported as authentication failures")
+		assert.Contains(t, err.Error(), "timed out")
+	})
+
+	t.Run("Infisical 4xx classifies as ErrAuthenticationFailed", func(t *testing.T) {
+		apiErr := &sdkErrors.APIError{StatusCode: http.StatusUnauthorized}
+		err := wrapAuthError(integration, config, apiErr)
+		assert.ErrorIs(t, err, integrations.ErrAuthenticationFailed)
+		assert.NotErrorIs(t, err, integrations.ErrProviderTimeout)
+		assert.Contains(t, err.Error(), "client_id or client_secret")
+		assert.Contains(t, err.Error(), "HTTP 401")
+	})
+
+	t.Run("Infisical 5xx classifies as ErrProviderConnectionFail", func(t *testing.T) {
+		apiErr := &sdkErrors.APIError{StatusCode: http.StatusServiceUnavailable}
+		err := wrapAuthError(integration, config, apiErr)
+		assert.ErrorIs(t, err, integrations.ErrProviderConnectionFail)
+		assert.NotErrorIs(t, err, integrations.ErrAuthenticationFailed,
+			"5xx must NOT be reported as bad credentials")
+		assert.Contains(t, err.Error(), "HTTP 503")
+		assert.Contains(t, err.Error(), "unhealthy")
+	})
+
+	t.Run("generic network error classifies as ErrProviderConnectionFail", func(t *testing.T) {
+		err := wrapAuthError(integration, config, errors.New("dial tcp: connection refused"))
+		assert.ErrorIs(t, err, integrations.ErrProviderConnectionFail)
+		assert.NotErrorIs(t, err, integrations.ErrAuthenticationFailed)
+		assert.NotErrorIs(t, err, integrations.ErrProviderTimeout)
+	})
 }

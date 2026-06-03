@@ -61,8 +61,7 @@ func NewProvider(integration *model.Integration) (integrations.Provider, error) 
 
 	_, err = client.Auth().UniversalAuthLogin(config.ClientID, config.ClientSecret)
 	if err != nil {
-		return nil, errors.Join(integrations.ErrAuthenticationFailed,
-			fmt.Errorf("failed to authenticate with Infisical at %s: %w", config.SiteURL, err))
+		return nil, wrapAuthError(integration, config, err)
 	}
 
 	log.Debug().
@@ -167,8 +166,12 @@ func (p *Provider) Close() error {
 	return nil
 }
 
-// mapInfisicalError maps Infisical SDK errors to integration error types.
+// mapInfisicalError maps Infisical SDK errors from secret reads to integration error types.
 func mapInfisicalError(err error, secretName string) error {
+	if integrations.IsTimeoutError(err) {
+		return fmt.Errorf("%w: timed out reading secret '%s' from Infisical: %w",
+			integrations.ErrProviderTimeout, secretName, err)
+	}
 	var apiErr *sdkErrors.APIError
 	if errors.As(err, &apiErr) {
 		switch apiErr.StatusCode {
@@ -179,6 +182,42 @@ func mapInfisicalError(err error, secretName string) error {
 		}
 	}
 	return errors.Join(integrations.ErrProviderConnectionFail, fmt.Errorf("failed to read secret '%s': %w", secretName, err))
+}
+
+// wrapAuthError classifies an error from the Infisical UniversalAuthLogin call:
+//   - timeouts (context deadline / net.Error.Timeout) → ErrProviderTimeout
+//   - Infisical APIError 4xx → ErrAuthenticationFailed (credentials hint)
+//   - Infisical APIError 5xx → ErrProviderConnectionFail (server hint)
+//   - everything else (network, DNS, TLS) → ErrProviderConnectionFail
+//
+// This replaces the previous behavior of wrapping every login error as
+// ErrAuthenticationFailed, which misled users into thinking timeouts or
+// network failures were credentials problems.
+func wrapAuthError(integration *model.Integration, config *model.InfisicalConfig, err error) error {
+	if integrations.IsTimeoutError(err) {
+		return fmt.Errorf("%w: integration '%s' (id=%d) timed out connecting to Infisical at %s. "+
+			"This usually means Infisical is unreachable, overloaded, or the network is slow: %w",
+			integrations.ErrProviderTimeout, integration.Name, integration.ID, config.SiteURL, err)
+	}
+
+	var apiErr *sdkErrors.APIError
+	if errors.As(err, &apiErr) {
+		if apiErr.StatusCode >= 400 && apiErr.StatusCode < 500 {
+			return fmt.Errorf("%w: integration '%s' (id=%d) was rejected by Infisical at %s (HTTP %d). "+
+				"The client_id or client_secret is incorrect, expired, or the Machine Identity is misconfigured. "+
+				"Please verify the integration credentials in settings: %w",
+				integrations.ErrAuthenticationFailed, integration.Name, integration.ID,
+				config.SiteURL, apiErr.StatusCode, err)
+		}
+		return fmt.Errorf("%w: integration '%s' (id=%d) - Infisical at %s returned HTTP %d. "+
+			"The Infisical server appears unhealthy: %w",
+			integrations.ErrProviderConnectionFail, integration.Name, integration.ID,
+			config.SiteURL, apiErr.StatusCode, err)
+	}
+
+	return fmt.Errorf("%w: integration '%s' (id=%d) could not reach Infisical at %s: %w",
+		integrations.ErrProviderConnectionFail, integration.Name, integration.ID,
+		config.SiteURL, err)
 }
 
 // NewProviderFunc returns a function that creates Infisical providers.
