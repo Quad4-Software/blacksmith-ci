@@ -15,7 +15,7 @@ export default () => {
 
   initialized = true;
 
-  apiClient.on((data) => {
+  const events = apiClient.on((data) => {
     // contains repo update
     if (!data.repo) {
       return;
@@ -33,5 +33,20 @@ export default () => {
     // Mark as SSE-delivered for deduplication with pagination
     // This ensures the pipeline appears in the list even if pagination hasn't fetched it yet
     pipelineStore.markAsSSEDelivered(repo.id, pipeline.number);
+  });
+
+  // The browser's EventSource auto-reconnects on transient failures, but any events
+  // published while the connection is down are lost — there is no replay protocol on
+  // the server. Detect the error → open transition and bump a generation counter so
+  // views currently rendering live pipeline state can refetch to catch up.
+  let sawError = false;
+  events.addEventListener('error', () => {
+    sawError = true;
+  });
+  events.addEventListener('open', () => {
+    if (sawError) {
+      sawError = false;
+      pipelineStore.markSseReconnect();
+    }
   });
 };

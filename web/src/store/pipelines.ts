@@ -53,6 +53,18 @@ export const usePipelineStore = defineStore('pipelines', () => {
   const paginationStates: Map<number, PaginationState> = reactive(new Map());
 
   /**
+   * Generation counter for the SSE connection. Incremented whenever the EventSource
+   * reconnects after an error, signalling to any view watching live pipeline state
+   * that it should refetch — events published while the connection was down are
+   * dropped by the browser's auto-reconnect and would otherwise leave the UI stale.
+   */
+  const sseConnectionId = ref(0);
+
+  function markSseReconnect(): void {
+    sseConnectionId.value++;
+  }
+
+  /**
    * Initialize or get pagination state for a repository.
    */
   function initPagination(repoId: number): PaginationState {
@@ -257,5 +269,8 @@ export const usePipelineStore = defineStore('pipelines', () => {
     getPaginationState,
     markAsSSEDelivered,
     markAsFetched,
+    // SSE connection lifecycle
+    sseConnectionId,
+    markSseReconnect,
   };
 });

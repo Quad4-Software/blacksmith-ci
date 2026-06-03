@@ -272,6 +272,15 @@ const { doSubmit: restartPipeline, isLoading: isRestartingPipeline } = useAsyncA
 
 onMounted(loadPipeline);
 watch([repositoryId, pipelineId], loadPipeline);
+// Refetch when the SSE connection comes back from a drop — events broadcast during
+// the disconnect were lost, so the store may be missing state transitions for this
+// pipeline.
+watch(
+  () => pipelineStore.sseConnectionId,
+  () => {
+    void loadPipeline();
+  },
+);
 onBeforeUnmount(() => {
   favicon.updateStatus('default');
 });
