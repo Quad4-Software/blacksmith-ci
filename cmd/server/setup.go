@@ -61,6 +61,9 @@ const (
 	storeInfoRefreshInterval = 10 * time.Second
 	// SqliteDirPerm is the permission mode for SQLite database directories.
 	sqliteDirPerm = 0o750
+	// MinApprovalGateSweepInterval is the lower bound for the approval gate
+	// timeout sweeper interval. Values below this are clamped up.
+	minApprovalGateSweepInterval = 5 * time.Second
 )
 
 func setupStore(ctx context.Context, c *cli.Command) (store.Store, error) {
@@ -554,6 +557,14 @@ func setupEvilGlobals(ctx context.Context, c *cli.Command, s store.Store) (err e
 	server.Config.Pipeline.DefaultTimeout = c.Int64("default-pipeline-timeout")
 	server.Config.Pipeline.MaxTimeout = c.Int64("max-pipeline-timeout")
 	server.Config.Pipeline.MaxMatrixSize = c.Int("max-matrix-size")
+
+	sweep := c.Duration("approval-gate-sweep-interval")
+	if sweep < minApprovalGateSweepInterval {
+		sweep = minApprovalGateSweepInterval
+	}
+	server.Config.Pipeline.ApprovalGateTimeoutDefault = c.Duration("approval-gate-timeout-default")
+	server.Config.Pipeline.ApprovalGateTimeoutMax = c.Duration("approval-gate-timeout-max")
+	server.Config.Pipeline.ApprovalGateSweepInterval = sweep
 
 	_labels := c.StringSlice("default-workflow-labels")
 	labels := make(map[string]string, len(_labels))

@@ -32,12 +32,28 @@ type (
 		RunsOn    []string          `yaml:"runs_on,omitempty"`
 		SkipClone bool              `yaml:"skip_clone"`
 		Notify    *NotifyConfig     `yaml:"notify,omitempty"`
+		Approval  *ApprovalConfig   `yaml:"approval,omitempty"`
 	}
 
 	// NotifyConfig allows per-pipeline notification overrides in .crow.yml.
 	NotifyConfig struct {
 		Disabled bool     `yaml:"disabled,omitempty"`
 		Events   []string `yaml:"events,omitempty"`
+	}
+
+	// ApprovalConfig declares a workflow-level approval gate that blocks the
+	// workflow from running until an authorized user approves it.
+	ApprovalConfig struct {
+		Required  bool               `yaml:"required,omitempty"`
+		Approvers *ApprovalApprovers `yaml:"approvers,omitempty"`
+		Timeout   string             `yaml:"timeout,omitempty"` // Go duration; "24h", "30m", etc.
+	}
+
+	// ApprovalApprovers names the users and teams permitted to approve.
+	// Names are resolved against the repo's forge at approval time.
+	ApprovalApprovers struct {
+		Users []string `yaml:"users,omitempty"`
+		Teams []string `yaml:"teams,omitempty"`
 	}
 
 	// Workspace defines a pipeline workspace.

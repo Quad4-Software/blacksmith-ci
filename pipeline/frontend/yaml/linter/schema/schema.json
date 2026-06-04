@@ -55,9 +55,47 @@
     "name": {
       "type": "string",
       "description": "Optional workflow name. If set, overrides the default name derived from the file name. Supports variable substitution."
+    },
+    "approval": {
+      "$ref": "#/definitions/approval"
     }
   },
   "definitions": {
+    "approval": {
+      "description": "Configures a workflow-level approval gate that blocks the workflow from running until an authorized user approves it.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "required": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether this workflow requires explicit approval before running."
+        },
+        "approvers": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Users and teams permitted to approve. Names are resolved against the repo's forge at approval time.",
+          "properties": {
+            "users": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "teams": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "timeout": {
+          "type": "string",
+          "description": "Go duration string (e.g. '24h', '30m') after which the gate auto-expires."
+        }
+      }
+    },
     "string_or_string_slice": {
       "oneOf": [
         {

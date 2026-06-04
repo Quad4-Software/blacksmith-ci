@@ -158,6 +158,8 @@ func lintYAMLConfig(c *cli.Command, name, rawConfig string) error {
 		}),
 		linter.PrivilegedPluginsWithMatchType(c.StringSlice("plugins-privileged"), c.String("plugins-privileged-match-type")),
 		linter.WithTrustedClonePlugins(c.StringSlice("plugins-trusted-clone")),
+		// CLI is for local dev; disable the per-gate timeout cap.
+		linter.WithApprovalTimeoutMax(0),
 	).Lint([]*linter.WorkflowConfig{config})
 	if err != nil {
 		str, err := FormatLintError(config.File, err, c.Bool("strict"))

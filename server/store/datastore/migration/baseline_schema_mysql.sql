@@ -149,7 +149,22 @@ CREATE TABLE IF NOT EXISTS workflows (
     axis_id INTEGER,
     original_workflow_id INTEGER DEFAULT 0,
     attempt INTEGER DEFAULT 1,
+    requires_approval BOOLEAN DEFAULT FALSE,
+    approval_users TEXT,
+    approval_teams TEXT,
+    approval_state VARCHAR(16) NOT NULL DEFAULT '',
+    approval_deadline BIGINT DEFAULT 0,
+    approval_timeout_seconds BIGINT DEFAULT 0,
     UNIQUE(pipeline_id, pid)
+);
+
+CREATE TABLE IF NOT EXISTS workflow_approval_events (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    workflow_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL DEFAULT 0,
+    action TEXT NOT NULL,
+    reason TEXT,
+    created_at BIGINT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS steps (
@@ -491,6 +506,9 @@ CREATE INDEX idx_log_entries_step_id ON log_entries (step_id);
 CREATE INDEX idx_proc_log_entries_source_id ON proc_log_entries (source_type(32), source_id, id);
 
 CREATE INDEX idx_workflows_pipeline_id ON workflows (pipeline_id);
+CREATE INDEX idx_workflows_approval ON workflows (approval_state, approval_deadline);
+
+CREATE INDEX idx_workflow_approval_events_workflow_id ON workflow_approval_events (workflow_id);
 
 CREATE INDEX idx_repos_user_id ON repos (user_id);
 CREATE INDEX idx_repos_org_id ON repos (org_id);

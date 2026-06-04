@@ -13257,6 +13257,119 @@ func (_c *MockStore_UserSecretList_Call) RunAndReturn(run func(orgIDs []int64, r
 	return _c
 }
 
+// WorkflowApprovalEventCreate provides a mock function for the type MockStore
+func (_mock *MockStore) WorkflowApprovalEventCreate(ev *model.WorkflowApprovalEvent) error {
+	ret := _mock.Called(ev)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WorkflowApprovalEventCreate")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(*model.WorkflowApprovalEvent) error); ok {
+		r0 = returnFunc(ev)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_WorkflowApprovalEventCreate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WorkflowApprovalEventCreate'
+type MockStore_WorkflowApprovalEventCreate_Call struct {
+	*mock.Call
+}
+
+// WorkflowApprovalEventCreate is a helper method to define mock.On call
+//   - ev *model.WorkflowApprovalEvent
+func (_e *MockStore_Expecter) WorkflowApprovalEventCreate(ev interface{}) *MockStore_WorkflowApprovalEventCreate_Call {
+	return &MockStore_WorkflowApprovalEventCreate_Call{Call: _e.mock.On("WorkflowApprovalEventCreate", ev)}
+}
+
+func (_c *MockStore_WorkflowApprovalEventCreate_Call) Run(run func(ev *model.WorkflowApprovalEvent)) *MockStore_WorkflowApprovalEventCreate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.WorkflowApprovalEvent
+		if args[0] != nil {
+			arg0 = args[0].(*model.WorkflowApprovalEvent)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_WorkflowApprovalEventCreate_Call) Return(err error) *MockStore_WorkflowApprovalEventCreate_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_WorkflowApprovalEventCreate_Call) RunAndReturn(run func(ev *model.WorkflowApprovalEvent) error) *MockStore_WorkflowApprovalEventCreate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// WorkflowApprovalEventsForWorkflow provides a mock function for the type MockStore
+func (_mock *MockStore) WorkflowApprovalEventsForWorkflow(workflowID int64) ([]*model.WorkflowApprovalEvent, error) {
+	ret := _mock.Called(workflowID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WorkflowApprovalEventsForWorkflow")
+	}
+
+	var r0 []*model.WorkflowApprovalEvent
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64) ([]*model.WorkflowApprovalEvent, error)); ok {
+		return returnFunc(workflowID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64) []*model.WorkflowApprovalEvent); ok {
+		r0 = returnFunc(workflowID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.WorkflowApprovalEvent)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64) error); ok {
+		r1 = returnFunc(workflowID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_WorkflowApprovalEventsForWorkflow_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WorkflowApprovalEventsForWorkflow'
+type MockStore_WorkflowApprovalEventsForWorkflow_Call struct {
+	*mock.Call
+}
+
+// WorkflowApprovalEventsForWorkflow is a helper method to define mock.On call
+//   - workflowID int64
+func (_e *MockStore_Expecter) WorkflowApprovalEventsForWorkflow(workflowID interface{}) *MockStore_WorkflowApprovalEventsForWorkflow_Call {
+	return &MockStore_WorkflowApprovalEventsForWorkflow_Call{Call: _e.mock.On("WorkflowApprovalEventsForWorkflow", workflowID)}
+}
+
+func (_c *MockStore_WorkflowApprovalEventsForWorkflow_Call) Run(run func(workflowID int64)) *MockStore_WorkflowApprovalEventsForWorkflow_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_WorkflowApprovalEventsForWorkflow_Call) Return(workflowApprovalEvents []*model.WorkflowApprovalEvent, err error) *MockStore_WorkflowApprovalEventsForWorkflow_Call {
+	_c.Call.Return(workflowApprovalEvents, err)
+	return _c
+}
+
+func (_c *MockStore_WorkflowApprovalEventsForWorkflow_Call) RunAndReturn(run func(workflowID int64) ([]*model.WorkflowApprovalEvent, error)) *MockStore_WorkflowApprovalEventsForWorkflow_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // WorkflowGetTree provides a mock function for the type MockStore
 func (_mock *MockStore) WorkflowGetTree(pipeline *model.Pipeline) ([]*model.Workflow, error) {
 	ret := _mock.Called(pipeline)
@@ -13490,6 +13603,68 @@ func (_c *MockStore_WorkflowUpdate_Call) Return(err error) *MockStore_WorkflowUp
 }
 
 func (_c *MockStore_WorkflowUpdate_Call) RunAndReturn(run func(workflow *model.Workflow) error) *MockStore_WorkflowUpdate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// WorkflowsAwaitingApprovalBefore provides a mock function for the type MockStore
+func (_mock *MockStore) WorkflowsAwaitingApprovalBefore(now int64) ([]*model.Workflow, error) {
+	ret := _mock.Called(now)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WorkflowsAwaitingApprovalBefore")
+	}
+
+	var r0 []*model.Workflow
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64) ([]*model.Workflow, error)); ok {
+		return returnFunc(now)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64) []*model.Workflow); ok {
+		r0 = returnFunc(now)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.Workflow)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64) error); ok {
+		r1 = returnFunc(now)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_WorkflowsAwaitingApprovalBefore_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WorkflowsAwaitingApprovalBefore'
+type MockStore_WorkflowsAwaitingApprovalBefore_Call struct {
+	*mock.Call
+}
+
+// WorkflowsAwaitingApprovalBefore is a helper method to define mock.On call
+//   - now int64
+func (_e *MockStore_Expecter) WorkflowsAwaitingApprovalBefore(now interface{}) *MockStore_WorkflowsAwaitingApprovalBefore_Call {
+	return &MockStore_WorkflowsAwaitingApprovalBefore_Call{Call: _e.mock.On("WorkflowsAwaitingApprovalBefore", now)}
+}
+
+func (_c *MockStore_WorkflowsAwaitingApprovalBefore_Call) Run(run func(now int64)) *MockStore_WorkflowsAwaitingApprovalBefore_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_WorkflowsAwaitingApprovalBefore_Call) Return(workflows []*model.Workflow, err error) *MockStore_WorkflowsAwaitingApprovalBefore_Call {
+	_c.Call.Return(workflows, err)
+	return _c
+}
+
+func (_c *MockStore_WorkflowsAwaitingApprovalBefore_Call) RunAndReturn(run func(now int64) ([]*model.Workflow, error)) *MockStore_WorkflowsAwaitingApprovalBefore_Call {
 	_c.Call.Return(run)
 	return _c
 }

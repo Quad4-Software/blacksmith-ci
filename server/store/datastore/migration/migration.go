@@ -116,6 +116,8 @@ func Migrate(_ context.Context, db *sql.DB, driver string, _ bool) error {
 		// migrations table on already-deployed clusters still has v1 marked applied —
 		// only a new ID will trigger the widening.
 		{ID: "crow-fix-proc-log-int64-columns-v2", Migrate: fixProcLogInt64Columns(driver)},
+		{ID: "crow-add-workflow-approval", Migrate: addWorkflowApprovalColumns(driver)},
+		{ID: "crow-create-workflow-approval-events", Migrate: createWorkflowApprovalEvents(driver)},
 	}
 
 	if len(newMigrations) > 0 {
@@ -274,6 +276,120 @@ func addStepRerunFields(tx *sql.Tx) error {
 		return err
 	}
 	return addColumnIfNotExists("steps", "attempt", "INTEGER DEFAULT 1")(tx)
+}
+
+// addWorkflowApprovalColumns adds gate-tracking columns to the workflows table
+// and an index used by the timeout sweeper.
+// Skips gracefully if the workflows table is missing (fresh databases get the
+// columns from the baseline schema).
+func addWorkflowApprovalColumns(driver string) func(tx *sql.Tx) error {
+	return func(tx *sql.Tx) error {
+		if !tableExists(tx, "workflows") {
+			return nil
+		}
+
+		cols := []struct{ name, typ string }{
+			{"requires_approval", "BOOLEAN DEFAULT FALSE"},
+			{"approval_users", "TEXT"},
+			{"approval_teams", "TEXT"},
+			// VARCHAR not TEXT: MySQL rejects DEFAULT on TEXT in strict mode, and
+			// a sized VARCHAR also lets the composite index work without a prefix.
+			{"approval_state", "VARCHAR(16) NOT NULL DEFAULT ''"},
+			{"approval_deadline", "BIGINT DEFAULT 0"},
+			{"approval_timeout_seconds", "BIGINT DEFAULT 0"},
+		}
+		for _, c := range cols {
+			if err := addColumnIfNotExists("workflows", c.name, c.typ)(tx); err != nil {
+				return fmt.Errorf("add column workflows.%s: %w", c.name, err)
+			}
+		}
+
+		// Partial index would be nicer but not portable across all three DBs
+		// at this codebase's compatibility floor — use a plain composite index.
+		if driver == "mysql" {
+			// MySQL does not support CREATE INDEX IF NOT EXISTS. Probe
+			// INFORMATION_SCHEMA so this migration is idempotent on re-run.
+			var count int
+			if err := tx.QueryRow(
+				`SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS` +
+					` WHERE TABLE_SCHEMA = DATABASE()` +
+					` AND TABLE_NAME = 'workflows'` +
+					` AND INDEX_NAME = 'idx_workflows_approval'`,
+			).Scan(&count); err != nil {
+				return fmt.Errorf("probe idx_workflows_approval: %w", err)
+			}
+			if count == 0 {
+				if _, err := tx.Exec(`CREATE INDEX idx_workflows_approval ON workflows (approval_state, approval_deadline)`); err != nil {
+					return fmt.Errorf("create idx_workflows_approval: %w", err)
+				}
+			}
+			return nil
+		}
+		idxStmt := "CREATE INDEX IF NOT EXISTS idx_workflows_approval ON workflows (approval_state, approval_deadline)"
+		if _, err := tx.Exec(idxStmt); err != nil {
+			return fmt.Errorf("create idx_workflows_approval: %w", err)
+		}
+		return nil
+	}
+}
+
+// createWorkflowApprovalEvents creates the audit table that records each
+// approval/decline/expiry decision against a workflow gate.
+//
+// The index on workflow_id is a plain BIGINT index — MySQL has no TEXT-prefix
+// requirement here — but `CREATE INDEX IF NOT EXISTS` is unsupported on MySQL
+// versions older than MariaDB 10.5, so we probe INFORMATION_SCHEMA.STATISTICS
+// for idempotency, mirroring the pattern used by createProcLogEntries and
+// addWorkflowApprovalColumns above.
+func createWorkflowApprovalEvents(driver string) func(tx *sql.Tx) error {
+	return func(tx *sql.Tx) error {
+		idType := "INTEGER PRIMARY KEY AUTOINCREMENT"
+		switch driver {
+		case "postgres":
+			idType = "BIGSERIAL PRIMARY KEY"
+		case "mysql":
+			idType = "BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY"
+		}
+
+		stmt := fmt.Sprintf(`CREATE TABLE IF NOT EXISTS workflow_approval_events (
+			id          %s,
+			workflow_id BIGINT NOT NULL,
+			user_id     BIGINT NOT NULL DEFAULT 0,
+			action      TEXT   NOT NULL,
+			reason      TEXT,
+			created_at  BIGINT NOT NULL
+		)`, idType)
+		if _, err := tx.Exec(stmt); err != nil {
+			return fmt.Errorf("create workflow_approval_events: %w", err)
+		}
+
+		if driver == "mysql" {
+			var count int
+			if err := tx.QueryRow(
+				`SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS` +
+					` WHERE TABLE_SCHEMA = DATABASE()` +
+					` AND TABLE_NAME = 'workflow_approval_events'` +
+					` AND INDEX_NAME = 'idx_workflow_approval_events_workflow_id'`,
+			).Scan(&count); err != nil {
+				return fmt.Errorf("probe idx_workflow_approval_events_workflow_id: %w", err)
+			}
+			if count == 0 {
+				if _, err := tx.Exec(
+					"CREATE INDEX idx_workflow_approval_events_workflow_id ON workflow_approval_events (workflow_id)",
+				); err != nil {
+					return fmt.Errorf("create idx_workflow_approval_events_workflow_id: %w", err)
+				}
+			}
+			return nil
+		}
+
+		if _, err := tx.Exec(
+			"CREATE INDEX IF NOT EXISTS idx_workflow_approval_events_workflow_id ON workflow_approval_events (workflow_id)",
+		); err != nil {
+			return fmt.Errorf("create idx_workflow_approval_events_workflow_id: %w", err)
+		}
+		return nil
+	}
 }
 
 // createSecretTargets creates the secret_targets junction table for multi-scope secret sharing.

@@ -16,6 +16,7 @@ package linter_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -211,6 +212,117 @@ func TestLintErrors(t *testing.T) {
 			}
 		}
 		assert.True(t, found, "Expected error %q, got %q", test.want, lerrors)
+	}
+}
+
+func TestLintApprovalGate(t *testing.T) {
+	cases := []struct {
+		name    string
+		yaml    string
+		wantErr string // substring of expected error; "" = no error
+	}{
+		{
+			name: "valid timeout 24h",
+			yaml: `
+when:
+  event: push
+steps:
+  build:
+    image: alpine
+approval:
+  required: true
+  timeout: 24h
+`,
+			wantErr: "",
+		},
+		{
+			name: "approvers without required is invalid",
+			yaml: `
+when:
+  event: push
+steps:
+  build:
+    image: alpine
+approval:
+  required: false
+  approvers:
+    users: [alice]
+`,
+			wantErr: "approvers without required",
+		},
+		{
+			name: "zero timeout",
+			yaml: `
+when:
+  event: push
+steps:
+  build:
+    image: alpine
+approval:
+  required: true
+  timeout: 0s
+`,
+			wantErr: "timeout must be positive",
+		},
+		{
+			name: "negative timeout",
+			yaml: `
+when:
+  event: push
+steps:
+  build:
+    image: alpine
+approval:
+  required: true
+  timeout: -1h
+`,
+			wantErr: "timeout must be positive",
+		},
+		{
+			name: "unparseable timeout",
+			yaml: `
+when:
+  event: push
+steps:
+  build:
+    image: alpine
+approval:
+  required: true
+  timeout: forever
+`,
+			wantErr: "invalid timeout",
+		},
+		{
+			name: "timeout above max (default cap 168h)",
+			yaml: `
+when:
+  event: push
+steps:
+  build:
+    image: alpine
+approval:
+  required: true
+  timeout: 200h
+`,
+			wantErr: "timeout exceeds max",
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			conf, perr := yaml.ParseString(c.yaml)
+			assert.NoError(t, perr)
+			err := linter.New(linter.WithApprovalTimeoutMax(168 * time.Hour)).Lint([]*linter.WorkflowConfig{{
+				File:      "x",
+				RawConfig: c.yaml,
+				Workflow:  conf,
+			}})
+			if c.wantErr == "" {
+				assert.NoError(t, err)
+			} else {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), c.wantErr)
+			}
+		})
 	}
 }
 

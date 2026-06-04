@@ -816,6 +816,18 @@ func (c *CompositeEncryptedStore) WorkflowNamesByRepo(repoID int64) ([]string, e
 	return c.baseStore.WorkflowNamesByRepo(repoID)
 }
 
+func (c *CompositeEncryptedStore) WorkflowsAwaitingApprovalBefore(now int64) ([]*model.Workflow, error) {
+	return c.baseStore.WorkflowsAwaitingApprovalBefore(now)
+}
+
+func (c *CompositeEncryptedStore) WorkflowApprovalEventCreate(ev *model.WorkflowApprovalEvent) error {
+	return c.baseStore.WorkflowApprovalEventCreate(ev)
+}
+
+func (c *CompositeEncryptedStore) WorkflowApprovalEventsForWorkflow(workflowID int64) ([]*model.WorkflowApprovalEvent, error) {
+	return c.baseStore.WorkflowApprovalEventsForWorkflow(workflowID)
+}
+
 // Org.
 func (c *CompositeEncryptedStore) OrgCreate(org *model.Org) error {
 	return c.baseStore.OrgCreate(org)

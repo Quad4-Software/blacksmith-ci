@@ -300,6 +300,7 @@ func (b *StepBuilder) genItemForWorkflow(workflow *model.Workflow, axis matrix.A
 		}),
 		linter.PrivilegedPluginsWithMatchType(server.Config.Pipeline.PrivilegedPlugins, server.Config.Pipeline.PrivilegedPluginsMatchType),
 		linter.WithTrustedClonePlugins(server.Config.Pipeline.TrustedClonePlugins),
+		linter.WithApprovalTimeoutMax(server.Config.Pipeline.ApprovalGateTimeoutMax),
 	).Lint([]*linter.WorkflowConfig{{
 		Workflow:  parsed,
 		File:      workflow.Name,

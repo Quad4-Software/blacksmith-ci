@@ -107,6 +107,8 @@ var newMigrationIDs = []string{
 	"crow-repair-mysql-id-auto-increment",
 	"crow-fix-proc-log-int64-columns",
 	"crow-fix-proc-log-int64-columns-v2",
+	"crow-add-workflow-approval",
+	"crow-create-workflow-approval-events",
 }
 
 // allKnownMigrations returns a combined list of all known migration IDs.

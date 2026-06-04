@@ -26,19 +26,21 @@ import (
 type Task struct {
 	bun.BaseModel `bun:"table:tasks"`
 
-	ID           string                   `json:"id"           bun:"id,pk"`
-	PID          int                      `json:"pid"          bun:"pid"`
-	Name         string                   `json:"name"         bun:"name"`
-	Data         []byte                   `json:"-"            bun:"data"`
-	Labels       JSONMapStringString      `json:"labels"       bun:"labels,type:text"`
-	Dependencies JSONSliceString          `json:"dependencies" bun:"dependencies,type:text"`
-	RunOn        JSONSliceString          `json:"run_on"       bun:"run_on,type:text"`
-	DepStatus    JSONMapStringStatusValue `json:"dep_status"   bun:"dependencies_status,type:text"`
-	AgentID      int64                    `json:"agent_id"     bun:"agent_id"`
-	PipelineID   int64                    `json:"pipeline_id"  bun:"pipeline_id"`
-	RepoID       int64                    `json:"repo_id"      bun:"repo_id"`
-	Canceled     int64                    `json:"canceled"    bun:"canceled"`
-	CancelledAt  int64                    `json:"canceled_at" bun:"canceled_at"`
+	ID               string                   `json:"id"           bun:"id,pk"`
+	PID              int                      `json:"pid"          bun:"pid"`
+	Name             string                   `json:"name"         bun:"name"`
+	Data             []byte                   `json:"-"            bun:"data"`
+	Labels           JSONMapStringString      `json:"labels"       bun:"labels,type:text"`
+	Dependencies     JSONSliceString          `json:"dependencies" bun:"dependencies,type:text"`
+	RunOn            JSONSliceString          `json:"run_on"       bun:"run_on,type:text"`
+	RequiresApproval bool                     `json:"requires_approval,omitempty" bun:"-"`
+	ApprovalState    ApprovalState            `json:"approval_state,omitempty"    bun:"-"`
+	DepStatus        JSONMapStringStatusValue `json:"dep_status"   bun:"dependencies_status,type:text"`
+	AgentID          int64                    `json:"agent_id"     bun:"agent_id"`
+	PipelineID       int64                    `json:"pipeline_id"  bun:"pipeline_id"`
+	RepoID           int64                    `json:"repo_id"      bun:"repo_id"`
+	Canceled         int64                    `json:"canceled"    bun:"canceled"`
+	CancelledAt      int64                    `json:"canceled_at" bun:"canceled_at"`
 } //	@name	Task
 
 // TableName returns the database table name.

@@ -275,6 +275,8 @@ func execWithAxis(ctx context.Context, c *cli.Command, name, repoPath, yamlConte
 		}),
 		linter.PrivilegedPluginsWithMatchType(privilegedPlugins, privilegedPluginsMatchType),
 		linter.WithTrustedClonePlugins(constant.TrustedClonePlugins),
+		// CLI is for local dev; disable the per-gate timeout cap.
+		linter.WithApprovalTimeoutMax(0),
 	).Lint([]*linter.WorkflowConfig{{
 		File:      path.Base(name),
 		RawConfig: confStr,

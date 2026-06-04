@@ -198,6 +198,24 @@ var flags = append([]cli.Flag{
 		Usage:   "The maximum number of matrix permutations allowed per pipeline (0 = unlimited)",
 		Value:   25,
 	},
+	&cli.DurationFlag{
+		Sources: cli.EnvVars("CROW_APPROVAL_GATE_TIMEOUT_DEFAULT"),
+		Name:    "approval-gate-timeout-default",
+		Usage:   "Default approval gate timeout when not set in YAML.",
+		Value:   24 * time.Hour,
+	},
+	&cli.DurationFlag{
+		Sources: cli.EnvVars("CROW_APPROVAL_GATE_TIMEOUT_MAX"),
+		Name:    "approval-gate-timeout-max",
+		Usage:   "Hard upper bound on per-gate timeout. YAML values above this fail lint.",
+		Value:   168 * time.Hour,
+	},
+	&cli.DurationFlag{
+		Sources: cli.EnvVars("CROW_APPROVAL_GATE_SWEEP_INTERVAL"),
+		Name:    "approval-gate-sweep-interval",
+		Usage:   "How often the gate timeout sweeper runs. Clamped to >=5s.",
+		Value:   30 * time.Second,
+	},
 	&cli.StringSliceFlag{
 		Sources: cli.EnvVars("WOODPECKER_DEFAULT_WORKFLOW_LABELS", "CROW_DEFAULT_WORKFLOW_LABELS"),
 		Name:    "default-workflow-labels",

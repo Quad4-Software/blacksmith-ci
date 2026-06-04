@@ -346,6 +346,16 @@ type Store interface {
 	WorkflowLoad(int64) (*model.Workflow, error)
 	WorkflowUpdate(*model.Workflow) error
 	WorkflowNamesByRepo(repoID int64) ([]string, error)
+	// WorkflowsAwaitingApprovalBefore returns workflows whose approval gate
+	// has expired (deadline <= now and state still pending). Used by the sweeper.
+	WorkflowsAwaitingApprovalBefore(now int64) ([]*model.Workflow, error)
+
+	// WorkflowApprovalEventCreate inserts an audit row.
+	WorkflowApprovalEventCreate(ev *model.WorkflowApprovalEvent) error
+
+	// WorkflowApprovalEventsForWorkflow returns the audit trail for a workflow,
+	// ordered by created_at ascending.
+	WorkflowApprovalEventsForWorkflow(workflowID int64) ([]*model.WorkflowApprovalEvent, error)
 
 	// Org
 	OrgCreate(*model.Org) error

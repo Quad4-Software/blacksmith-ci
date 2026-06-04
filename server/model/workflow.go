@@ -36,6 +36,12 @@ type Workflow struct {
 	Platform                    string              `json:"platform,omitempty"            bun:"platform"`
 	Environ                     JSONMapStringString `json:"environ,omitempty"             bun:"environ,type:text"`
 	DependsOn                   JSONSliceString     `json:"depends_on,omitempty"          bun:"depends_on,type:text"`
+	RequiresApproval            bool                `json:"requires_approval,omitempty"        bun:"requires_approval,default:false"`
+	ApprovalUsers               JSONSliceString     `json:"approval_users,omitempty"           bun:"approval_users,type:text"`
+	ApprovalTeams               JSONSliceString     `json:"approval_teams,omitempty"           bun:"approval_teams,type:text"`
+	ApprovalState               ApprovalState       `json:"approval_state,omitempty"           bun:"approval_state"`
+	ApprovalDeadline            int64               `json:"approval_deadline,omitempty"        bun:"approval_deadline,default:0"`
+	ApprovalTimeoutSeconds      int64               `json:"approval_timeout_seconds,omitempty" bun:"approval_timeout_seconds,default:0"`
 	AxisID                      int                 `json:"-"                             bun:"axis_id"`
 	OriginalWorkflowID          int64               `json:"original_workflow_id"           bun:"original_workflow_id,default:0"`
 	Attempt                     int                 `json:"attempt"                       bun:"attempt,default:1"`
@@ -96,16 +102,24 @@ func IsThereRunningStage(workflows []*Workflow) bool {
 // Only considers the latest attempt of each workflow.
 func PipelineStatus(workflows []*Workflow) StatusValue {
 	status := StatusSuccess
+	declinedSeen := false
 
 	for _, p := range LatestAttempts(workflows) {
 		if p.State == StatusKilled {
 			return StatusKilled
+		}
+		if p.State == StatusDeclined {
+			declinedSeen = true
+			continue
 		}
 		if p.Failing() {
 			status = p.State
 		}
 	}
 
+	if declinedSeen {
+		return StatusDeclined
+	}
 	return status
 }
 

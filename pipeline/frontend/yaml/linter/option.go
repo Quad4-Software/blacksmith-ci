@@ -14,6 +14,8 @@
 
 package linter
 
+import "time"
+
 // Option configures a linting option.
 type Option func(*Linter)
 
@@ -37,4 +39,11 @@ func PrivilegedPluginsWithMatchType(plugins []string, matchType string) Option {
 		linter.privilegedPlugins = &plugins
 		linter.privilegedPluginsMatchType = matchType
 	}
+}
+
+// WithApprovalTimeoutMax bounds the per-gate approval timeout. The default,
+// applied if no option is passed, is 168h (7d). Setting to 0 disables the cap
+// (callers that want "no cap" must opt in explicitly).
+func WithApprovalTimeoutMax(d time.Duration) Option {
+	return func(l *Linter) { l.approvalTimeoutMax = d }
 }

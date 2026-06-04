@@ -17,6 +17,7 @@ package linter
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	pipelineErrors "codefloe.com/crowci/crow/v5/pipeline/errors"
 	errorTypes "codefloe.com/crowci/crow/v5/pipeline/errors/types"
@@ -27,12 +28,18 @@ import (
 	"codefloe.com/crowci/crow/v5/shared/yaml"
 )
 
+// defaultApprovalTimeoutMax is the default upper bound on `approval.timeout`
+// in a workflow's YAML. It is applied when callers do not pass
+// WithApprovalTimeoutMax.
+const defaultApprovalTimeoutMax = 7 * 24 * time.Hour
+
 // A Linter lints a pipeline configuration.
 type Linter struct {
 	trusted                    TrustedConfiguration
 	privilegedPlugins          *[]string
 	privilegedPluginsMatchType string
 	trustedClonePlugins        *[]string
+	approvalTimeoutMax         time.Duration
 }
 
 type TrustedConfiguration struct {
@@ -44,6 +51,7 @@ type TrustedConfiguration struct {
 // New creates a new Linter with options.
 func New(opts ...Option) *Linter {
 	linter := new(Linter)
+	linter.approvalTimeoutMax = defaultApprovalTimeoutMax
 	for _, opt := range opts {
 		opt(linter)
 	}
@@ -104,8 +112,36 @@ func (l *Linter) lintFile(config *WorkflowConfig) error {
 	if err := l.lintBadHabits(config); err != nil {
 		linterErr = errors.Join(linterErr, err)
 	}
+	if err := l.lintApproval(config.File, config.Workflow.Approval); err != nil {
+		linterErr = errors.Join(linterErr, err)
+	}
 
 	return linterErr
+}
+
+func (l *Linter) lintApproval(file string, ap *types.ApprovalConfig) error {
+	if ap == nil {
+		return nil
+	}
+	if !ap.Required && ap.Approvers != nil &&
+		(len(ap.Approvers.Users) > 0 || len(ap.Approvers.Teams) > 0) {
+		return newLinterError("approvers without required: true", file, "approval", false)
+	}
+	if ap.Timeout != "" {
+		d, err := time.ParseDuration(ap.Timeout)
+		if err != nil {
+			return newLinterError(fmt.Sprintf("invalid timeout: %v", err), file, "approval.timeout", false)
+		}
+		if d <= 0 {
+			return newLinterError("timeout must be positive", file, "approval.timeout", false)
+		}
+		if l.approvalTimeoutMax > 0 && d > l.approvalTimeoutMax {
+			return newLinterError(
+				fmt.Sprintf("timeout exceeds max (%s)", l.approvalTimeoutMax),
+				file, "approval.timeout", false)
+		}
+	}
+	return nil
 }
 
 func (l *Linter) lintCloneSteps(config *WorkflowConfig) error {
