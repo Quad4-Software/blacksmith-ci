@@ -120,7 +120,7 @@ func Create(ctx context.Context, _store store.Store, repo *model.Repo, pipeline 
 		return nil, ErrFiltered
 	} else if configFetchErr != nil {
 		log.Error().Str("repo", repo.FullName).Err(configFetchErr).Msgf("error while fetching config '%s' in '%s' with user: '%s'", repo.Config, pipeline.Ref, repoUser.Login)
-		return nil, updatePipelineWithErr(ctx, _forge, _store, pipeline, repo, repoUser, fmt.Errorf("There was an error retrieving the pipeline configuration from the forge. This is usually caused by connectivity/timeout issues on the forge side. Restarting the build will not help, a new (fresh) commit (or force-push) must be issued to trigger a clean reload.")) //nolint
+		return pipeline, updatePipelineWithErr(ctx, _forge, _store, pipeline, repo, repoUser, fmt.Errorf("There was an error retrieving the pipeline configuration from the forge. This is usually caused by connectivity/timeout issues on the forge side. Restarting the build will not help, a new (fresh) commit (or force-push) must be issued to trigger a clean reload.")) //nolint
 	}
 
 	// Persist the pipeline config BEFORE parsing. This ensures configs are available
