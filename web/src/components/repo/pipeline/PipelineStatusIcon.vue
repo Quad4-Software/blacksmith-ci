@@ -11,11 +11,12 @@
         :size="size"
         class="transition-colors duration-300"
         :class="{
-          'text-destructive': pipelineStatusColors[status] === 'red', // error, declined
-          'text-muted-foreground': pipelineStatusColors[status] === 'gray', // blocked, killed, skipped
+          'text-destructive': pipelineStatusColors[status] === 'red', // error, failure, killed
+          'text-muted-foreground': pipelineStatusColors[status] === 'gray', // blocked, skipped
           'text-green-500': pipelineStatusColors[status] === 'green', // success
           'text-primary': pipelineStatusColors[status] === 'orange', // running, started
           'text-yellow-500': pipelineStatusColors[status] === 'yellow', // pending
+          'text-amber-500': pipelineStatusColors[status] === 'amber', // declined
         }"
       />
       <div v-else key="spinner" class="flex items-center justify-center" :style="{ width: size, height: size }">

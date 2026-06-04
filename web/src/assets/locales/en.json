@@ -71,7 +71,33 @@
   "navbar": {
     "forge_auth_expired": "Forge connections need attention",
     "forge_auth_expired_tooltip": "{count} forge connection expired | {count} forge connections expired",
-    "forge_auth_view_all": "View all connections"
+    "forge_auth_view_all": "View all connections",
+    "approvals": {
+      "pipelines": "Pipelines awaiting approval",
+      "workflows": "Workflow gates awaiting approval"
+    }
+  },
+  "workflow": {
+    "approval": {
+      "title": "Approval required",
+      "approvers": "Approvers",
+      "approve": "Approve",
+      "decline": "Decline",
+      "reason_placeholder": "Optional reason for the audit trail",
+      "expires_in": "Expires in {delta}",
+      "expired": "expired",
+      "cant_approve": "You are not authorized to approve this gate.",
+      "no_approvers": "no approvers configured",
+      "audit_trail": "Audit trail",
+      "audit_empty": "No decisions yet",
+      "audit_action": {
+        "approved": "approved",
+        "declined": "declined",
+        "expired": "expired"
+      },
+      "notify_approve_success": "Workflow approved",
+      "notify_decline_success": "Workflow declined"
+    }
   },
   "notify_title_success": "Success",
   "notify_title_error": "Error",

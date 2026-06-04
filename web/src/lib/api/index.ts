@@ -31,6 +31,7 @@ import type {
   PipelineConfig,
   PipelineFeed,
   PipelineLog,
+  PipelineWorkflow,
   PullRequest,
   QueueInfo,
   Registry,
@@ -52,6 +53,8 @@ import type {
   UnlinkForgeResponse,
   User,
   UserForge,
+  UserPendingApprovalsResponse,
+  WorkflowApprovalState,
   ManualWorkflowsResponse,
 } from './types';
 
@@ -261,6 +264,47 @@ export default class CrowClient extends ApiClient {
 
   async declinePipeline(repoId: number, pipelineNumber: string): Promise<unknown> {
     return this._post(`/api/v1/repos/${repoId}/pipelines/${pipelineNumber}/decline`);
+  }
+
+  // Workflow-level approval gate API.
+  async workflowApprove(
+    repoId: number,
+    pipelineNumber: number,
+    workflowPid: number,
+    reason?: string,
+  ): Promise<PipelineWorkflow> {
+    const body = reason !== undefined && reason !== '' ? { reason } : undefined;
+    return this._post(
+      `/api/v1/repos/${repoId}/pipelines/${pipelineNumber}/workflows/${workflowPid}/approve`,
+      body,
+    ) as Promise<PipelineWorkflow>;
+  }
+
+  async workflowDecline(
+    repoId: number,
+    pipelineNumber: number,
+    workflowPid: number,
+    reason?: string,
+  ): Promise<PipelineWorkflow> {
+    const body = reason !== undefined && reason !== '' ? { reason } : undefined;
+    return this._post(
+      `/api/v1/repos/${repoId}/pipelines/${pipelineNumber}/workflows/${workflowPid}/decline`,
+      body,
+    ) as Promise<PipelineWorkflow>;
+  }
+
+  async getWorkflowApproval(
+    repoId: number,
+    pipelineNumber: number,
+    workflowPid: number,
+  ): Promise<WorkflowApprovalState> {
+    return this._get(
+      `/api/v1/repos/${repoId}/pipelines/${pipelineNumber}/workflows/${workflowPid}/approval`,
+    ) as Promise<WorkflowApprovalState>;
+  }
+
+  async getUserPendingApprovals(): Promise<UserPendingApprovalsResponse> {
+    return this._get('/api/v1/user/approvals/pending') as Promise<UserPendingApprovalsResponse>;
   }
 
   async restartPipeline(

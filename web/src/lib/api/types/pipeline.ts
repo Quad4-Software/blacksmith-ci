@@ -149,6 +149,41 @@ export interface PipelineWorkflow {
   autoscaler_provisioning?: boolean;
   autoscaler_provisioning_stale?: boolean;
   children: PipelineStep[];
+  // Workflow approval gate fields (only set when the workflow declares one).
+  requires_approval?: boolean;
+  approval_users?: string[];
+  approval_teams?: string[];
+  approval_state?: ApprovalState;
+  approval_deadline?: number;
+}
+
+// ApprovalState describes the lifecycle of a workflow-level approval gate.
+// '' (empty) means the workflow has no gate configured.
+export type ApprovalState = '' | 'pending' | 'approved' | 'declined' | 'expired';
+
+// WorkflowApprovalEvent is a single append-only entry in the audit trail for a
+// workflow approval gate.
+export interface WorkflowApprovalEvent {
+  id: number;
+  workflow_id: number;
+  user_id: number;
+  action: 'approved' | 'declined' | 'expired';
+  reason?: string;
+  created_at: number;
+}
+
+// WorkflowApprovalState is the response payload of GET .../workflows/{pid}/approval.
+export interface WorkflowApprovalState {
+  workflow: PipelineWorkflow;
+  events: WorkflowApprovalEvent[];
+}
+
+// UserPendingApprovalsResponse is the response payload of
+// GET /api/v1/user/approvals/pending. Workflows are flattened — the caller is
+// expected to use the embedded pipeline/repo IDs to deep-link back to a
+// pipeline detail page if needed.
+export interface UserPendingApprovalsResponse {
+  workflows: PipelineWorkflow[];
 }
 
 export interface PipelineStep {

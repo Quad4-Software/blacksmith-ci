@@ -30,6 +30,8 @@ const (
 	pathStepRerun             = "%s/api/v1/repos/%d/pipelines/%d/workflows/%d/steps/%d/rerun"
 	pathApprove               = "%s/api/v1/repos/%d/pipelines/%d/approve"
 	pathDecline               = "%s/api/v1/repos/%d/pipelines/%d/decline"
+	pathWorkflowApprove       = "%s/api/v1/repos/%d/pipelines/%d/workflows/%d/approve"
+	pathWorkflowDecline       = "%s/api/v1/repos/%d/pipelines/%d/workflows/%d/decline"
 	pathPipelineLogs          = "%s/api/v1/repos/%d/logs/%d"
 	pathStepLogs              = "%s/api/v1/repos/%d/logs/%d/%d"
 )
@@ -409,6 +411,37 @@ func (c *client) PipelineDecline(repoID, pipeline int64) (*Pipeline, error) {
 	out := new(Pipeline)
 	uri := fmt.Sprintf(pathDecline, c.addr, repoID, pipeline)
 	err := c.post(uri, nil, out)
+	return out, err
+}
+
+// workflowApprovalBody is the JSON payload accepted by the workflow
+// approve/decline endpoints. The reason is optional and recorded in the
+// audit trail.
+type workflowApprovalBody struct {
+	Reason string `json:"reason,omitempty"`
+}
+
+// WorkflowApprove approves a per-workflow approval gate.
+func (c *client) WorkflowApprove(repoID, pipeline int64, wfPID int, reason string) (*Workflow, error) {
+	out := new(Workflow)
+	uri := fmt.Sprintf(pathWorkflowApprove, c.addr, repoID, pipeline, wfPID)
+	var in any
+	if reason != "" {
+		in = &workflowApprovalBody{Reason: reason}
+	}
+	err := c.post(uri, in, out)
+	return out, err
+}
+
+// WorkflowDecline declines a per-workflow approval gate.
+func (c *client) WorkflowDecline(repoID, pipeline int64, wfPID int, reason string) (*Workflow, error) {
+	out := new(Workflow)
+	uri := fmt.Sprintf(pathWorkflowDecline, c.addr, repoID, pipeline, wfPID)
+	var in any
+	if reason != "" {
+		in = &workflowApprovalBody{Reason: reason}
+	}
+	err := c.post(uri, in, out)
 	return out, err
 }
 

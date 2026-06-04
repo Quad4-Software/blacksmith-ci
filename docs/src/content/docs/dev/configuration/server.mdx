@@ -648,6 +648,19 @@ CROW_ENABLE_HA=true
 
 With Helm, set `server.replicaCount > 1`.
 
+## Approval gates
+
+Workflow-level approval gates pause a pipeline mid-way until a human approves the next workflow.
+The server applies the following defaults and bounds.
+
+| Variable                             | Default | Description                                                       |
+| ------------------------------------ | ------- | ----------------------------------------------------------------- |
+| `CROW_APPROVAL_GATE_TIMEOUT_DEFAULT` | `24h`   | Default timeout when YAML omits `approval.timeout`.               |
+| `CROW_APPROVAL_GATE_TIMEOUT_MAX`     | `168h`  | Hard upper bound; YAML values above fail lint.                    |
+| `CROW_APPROVAL_GATE_SWEEP_INTERVAL`  | `30s`   | How often the timeout sweeper runs (min 5s).                      |
+
+See [Approval gates](/dev/usage/approvals/) for the feature overview.
+
 ## Email Notifications
 
 Crow can send email notifications to commit authors when pipelines complete.

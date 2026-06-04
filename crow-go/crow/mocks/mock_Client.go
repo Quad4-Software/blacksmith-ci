@@ -6011,6 +6011,86 @@ func (_c *MockClient_Version_Call) RunAndReturn(run func() (*crow.Version, error
 	return _c
 }
 
+// WorkflowApprove provides a mock function for the type MockClient
+func (_mock *MockClient) WorkflowApprove(repoID int64, pipeline int64, wfPID int, reason string) (*crow.Workflow, error) {
+	ret := _mock.Called(repoID, pipeline, wfPID, reason)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WorkflowApprove")
+	}
+
+	var r0 *crow.Workflow
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, int, string) (*crow.Workflow, error)); ok {
+		return returnFunc(repoID, pipeline, wfPID, reason)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, int, string) *crow.Workflow); ok {
+		r0 = returnFunc(repoID, pipeline, wfPID, reason)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*crow.Workflow)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, int64, int, string) error); ok {
+		r1 = returnFunc(repoID, pipeline, wfPID, reason)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClient_WorkflowApprove_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WorkflowApprove'
+type MockClient_WorkflowApprove_Call struct {
+	*mock.Call
+}
+
+// WorkflowApprove is a helper method to define mock.On call
+//   - repoID int64
+//   - pipeline int64
+//   - wfPID int
+//   - reason string
+func (_e *MockClient_Expecter) WorkflowApprove(repoID interface{}, pipeline interface{}, wfPID interface{}, reason interface{}) *MockClient_WorkflowApprove_Call {
+	return &MockClient_WorkflowApprove_Call{Call: _e.mock.On("WorkflowApprove", repoID, pipeline, wfPID, reason)}
+}
+
+func (_c *MockClient_WorkflowApprove_Call) Run(run func(repoID int64, pipeline int64, wfPID int, reason string)) *MockClient_WorkflowApprove_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		var arg2 int
+		if args[2] != nil {
+			arg2 = args[2].(int)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_WorkflowApprove_Call) Return(workflow *crow.Workflow, err error) *MockClient_WorkflowApprove_Call {
+	_c.Call.Return(workflow, err)
+	return _c
+}
+
+func (_c *MockClient_WorkflowApprove_Call) RunAndReturn(run func(repoID int64, pipeline int64, wfPID int, reason string) (*crow.Workflow, error)) *MockClient_WorkflowApprove_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // WorkflowCancel provides a mock function for the type MockClient
 func (_mock *MockClient) WorkflowCancel(repoID int64, pipeline int64, workflowID int64) error {
 	ret := _mock.Called(repoID, pipeline, workflowID)
@@ -6070,6 +6150,86 @@ func (_c *MockClient_WorkflowCancel_Call) Return(err error) *MockClient_Workflow
 }
 
 func (_c *MockClient_WorkflowCancel_Call) RunAndReturn(run func(repoID int64, pipeline int64, workflowID int64) error) *MockClient_WorkflowCancel_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// WorkflowDecline provides a mock function for the type MockClient
+func (_mock *MockClient) WorkflowDecline(repoID int64, pipeline int64, wfPID int, reason string) (*crow.Workflow, error) {
+	ret := _mock.Called(repoID, pipeline, wfPID, reason)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WorkflowDecline")
+	}
+
+	var r0 *crow.Workflow
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, int, string) (*crow.Workflow, error)); ok {
+		return returnFunc(repoID, pipeline, wfPID, reason)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, int, string) *crow.Workflow); ok {
+		r0 = returnFunc(repoID, pipeline, wfPID, reason)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*crow.Workflow)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, int64, int, string) error); ok {
+		r1 = returnFunc(repoID, pipeline, wfPID, reason)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClient_WorkflowDecline_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WorkflowDecline'
+type MockClient_WorkflowDecline_Call struct {
+	*mock.Call
+}
+
+// WorkflowDecline is a helper method to define mock.On call
+//   - repoID int64
+//   - pipeline int64
+//   - wfPID int
+//   - reason string
+func (_e *MockClient_Expecter) WorkflowDecline(repoID interface{}, pipeline interface{}, wfPID interface{}, reason interface{}) *MockClient_WorkflowDecline_Call {
+	return &MockClient_WorkflowDecline_Call{Call: _e.mock.On("WorkflowDecline", repoID, pipeline, wfPID, reason)}
+}
+
+func (_c *MockClient_WorkflowDecline_Call) Run(run func(repoID int64, pipeline int64, wfPID int, reason string)) *MockClient_WorkflowDecline_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		var arg2 int
+		if args[2] != nil {
+			arg2 = args[2].(int)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_WorkflowDecline_Call) Return(workflow *crow.Workflow, err error) *MockClient_WorkflowDecline_Call {
+	_c.Call.Return(workflow, err)
+	return _c
+}
+
+func (_c *MockClient_WorkflowDecline_Call) RunAndReturn(run func(repoID int64, pipeline int64, wfPID int, reason string) (*crow.Workflow, error)) *MockClient_WorkflowDecline_Call {
 	_c.Call.Return(run)
 	return _c
 }

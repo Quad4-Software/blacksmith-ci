@@ -141,8 +141,17 @@
                   <template v-else>{{ $t('repo.pipeline.protected.revoke_always') }}</template>
                 </Button>
               </div>
+              <div v-if="selectedWorkflowApproval" class="w-full p-4">
+                <WorkflowApprovalPanel
+                  :key="selectedWorkflowApproval.id"
+                  :repo-id="repo.id"
+                  :pipeline-number="pipeline!.number"
+                  :workflow="selectedWorkflowApproval"
+                  @updated="onWorkflowApprovalUpdated"
+                />
+              </div>
               <PipelineLog
-                v-if="selectedStepId !== null"
+                v-else-if="selectedStepId !== null"
                 v-model:step-id="selectedStepId"
                 :pipeline="pipeline!"
                 :previous-step-id="previousStepId"
@@ -210,6 +219,15 @@
             <p class="text-xl">{{ $t('repo.pipeline.protected.declined') }}</p>
           </div>
         </Panel>
+      </div>
+      <div v-else-if="selectedWorkflowApproval" class="p-4 flex-1">
+        <WorkflowApprovalPanel
+          :key="selectedWorkflowApproval.id"
+          :repo-id="repo.id"
+          :pipeline-number="pipeline!.number"
+          :workflow="selectedWorkflowApproval"
+          @updated="onWorkflowApprovalUpdated"
+        />
       </div>
       <template v-else>
         <div
@@ -351,12 +369,14 @@ import PipelineStepList from '~/components/repo/pipeline/PipelineStepList.vue';
 import PipelineMatrixGroupMobile from '~/components/repo/pipeline/PipelineMatrixGroupMobile.vue';
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
 import PipelineStepDuration from '~/components/repo/pipeline/PipelineStepDuration.vue';
+import WorkflowApprovalPanel from '~/components/workflow/WorkflowApprovalPanel.vue';
 import useApiClient from '~/compositions/useApiClient';
 import { useAsyncAction } from '~/compositions/useAsyncAction';
 import { requiredInject } from '~/compositions/useInjectProvide';
 import useNotifications from '~/compositions/useNotifications';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
 import { usePipelineNavigation } from '~/compositions/usePipelineNavigation';
+import { usePipelineStore } from '~/store/pipelines';
 import { identifyMatrixGroups, getLatestAttempts, getWorkflowAttempts, hasReruns } from '~/lib/pipeline-utils';
 import type { PipelineWorkflow } from '~/lib/api/types';
 
@@ -367,6 +387,7 @@ const props = defineProps<{
 const apiClient = useApiClient();
 const notifications = useNotifications();
 const i18n = useI18n();
+const pipelineStore = usePipelineStore();
 
 const pipeline = requiredInject('pipeline');
 const repo = requiredInject('repo');
@@ -377,6 +398,35 @@ const stepId = toRef(props, 'stepId');
 const { selectedStepId, previousStepId, nextStepId, autoFollowEnabled, handleAutoFollowUpdate } = usePipelineNavigation(
   { pipeline, stepIdProp: stepId },
 );
+
+// Workflow with a pending approval gate that matches the currently-selected
+// step. Resolves the selected step back to its workflow and shows the
+// approval panel when that workflow is waiting for a decision.
+const selectedWorkflowApproval = computed<PipelineWorkflow | null>(() => {
+  const workflows = pipeline.value?.workflows;
+  if (!workflows || workflows.length === 0) {
+    return null;
+  }
+  // Prefer the workflow containing the selected step. Fall back to the first
+  // pending-approval workflow if no step is selected yet (e.g. mobile, or the
+  // selected step lives in an unrelated workflow).
+  const sId = selectedStepId.value;
+  if (sId !== null && sId !== undefined) {
+    const wfForStep = workflows.find((w) => w.children?.some((s) => s.pid === sId));
+    if (wfForStep && wfForStep.approval_state === 'pending') {
+      return wfForStep;
+    }
+  }
+  const pending = workflows.find((w) => w.approval_state === 'pending');
+  return pending ?? null;
+});
+
+async function onWorkflowApprovalUpdated(_updated: PipelineWorkflow) {
+  if (!repo.value || !pipeline.value?.number) return;
+  // Reload the pipeline so the store has fresh workflow + status data; the
+  // panel will disappear automatically as approval_state moves off 'pending'.
+  await pipelineStore.loadPipeline(repo.value.id, pipeline.value.number);
+}
 
 const { doSubmit: approvePipeline, isLoading: isApprovingPipeline } = useAsyncAction(async () => {
   await apiClient.approvePipeline(repo.value.id, `${pipeline.value.number}`);

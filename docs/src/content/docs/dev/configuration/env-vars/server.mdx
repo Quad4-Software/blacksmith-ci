@@ -298,3 +298,27 @@ Core server configuration variables.
 - Name: `CROW_PROCLOG_POLL_INTERVAL`
 - Description: Database poll cadence for the SSE stream when pushing live entries to the client.
 - Default: `100ms`
+
+---
+
+## APPROVAL_GATE_TIMEOUT_DEFAULT
+
+- Name: `CROW_APPROVAL_GATE_TIMEOUT_DEFAULT`
+- Description: Default workflow approval gate timeout applied when YAML omits `approval.timeout`. See [Approval gates](/dev/usage/approvals/).
+- Default: `24h`
+
+---
+
+## APPROVAL_GATE_TIMEOUT_MAX
+
+- Name: `CROW_APPROVAL_GATE_TIMEOUT_MAX`
+- Description: Hard upper bound on per-gate timeout. YAML values above this fail lint.
+- Default: `168h`
+
+---
+
+## APPROVAL_GATE_SWEEP_INTERVAL
+
+- Name: `CROW_APPROVAL_GATE_SWEEP_INTERVAL`
+- Description: How often the approval gate timeout sweeper runs. Clamped to a minimum of 5s.
+- Default: `30s`

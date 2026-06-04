@@ -1,0 +1,63 @@
+---
+title: Approval gates
+description: Pause a pipeline mid-way until a human approves the next workflow.
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+Crow supports two distinct approval mechanisms:
+
+1. **Pipeline-level approval** — gates an entire pipeline before any workflow runs. Configured per repo via [Approval requirements](/dev/usage/repo-settings/#approval-requirements).
+2. **Workflow-level approval gates** — gates a single workflow in the middle of a pipeline. Configured per workflow in `.crow.yml`.
+
+This page is about the second.
+
+## YAML
+
+See [approval](/dev/usage/workflow-syntax/#approval) in the workflow syntax reference for the schema.
+
+## Behaviour
+
+<Steps>
+1. The pipeline starts and runs all upstream workflows normally.
+2. When a gated workflow's upstream deps all finish successfully, the workflow goes to the **blocked** state. No agent slot is held while it waits.
+3. An authorized user approves or declines via the UI or CLI. If neither happens, the timeout sweeper auto-declines after the gate's configured timeout.
+4. On approve, the gated workflow runs.
+5. On decline (or timeout), the gated workflow is marked **declined**, all of its downstream workflows are marked **skipped**, and the pipeline finishes with a top-level **declined** status.
+</Steps>
+
+## Approving via UI
+
+Open the pipeline view.
+Gated workflows show an "Approval required" panel with **Approve** and **Decline** buttons.
+Add an optional reason for the audit trail.
+
+The navbar pending-approvals indicator also surfaces workflow gates you can approve, across all your repos.
+
+## Approving via CLI
+
+```bash
+crow pipeline workflow approve <repo> <pipeline-number> <workflow-name> [--reason "..."]
+crow pipeline workflow decline <repo> <pipeline-number> <workflow-name> [--reason "..."]
+```
+
+See [pipeline workflow](/dev/usage/cli/#pipeline-workflow) in the CLI reference.
+
+## Server configuration
+
+Three environment variables control gate behaviour:
+
+- `CROW_APPROVAL_GATE_TIMEOUT_DEFAULT` (default `24h`) — applied when YAML omits `timeout`.
+- `CROW_APPROVAL_GATE_TIMEOUT_MAX` (default `168h`, 7d) — hard cap. YAML with a longer timeout fails lint.
+- `CROW_APPROVAL_GATE_SWEEP_INTERVAL` (default `30s`, minimum `5s`) — how often the timeout sweeper runs.
+
+See [Approval gates](/dev/configuration/server/#approval-gates) in the server configuration reference for details.
+
+## Differences from pipeline-level approval
+
+|                  | Pipeline-level                       | Workflow-level                           |
+| ---------------- | ------------------------------------ | ---------------------------------------- |
+| Configured in    | Repo settings                        | `.crow.yml` per workflow                 |
+| Triggered by     | Forge events (e.g. PR from fork)     | `approval.required: true`                |
+| Approvers        | Anyone with push perm                | Configurable list + push perm fallback   |
+| Granularity      | Entire pipeline before anything runs | Single workflow mid-pipeline             |

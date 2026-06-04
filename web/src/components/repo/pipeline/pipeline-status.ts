@@ -1,8 +1,11 @@
 import type { PipelineStatus } from '~/lib/api/types';
 
-export const pipelineStatusColors: Record<PipelineStatus, 'green' | 'gray' | 'red' | 'blue' | 'yellow' | 'orange'> = {
+export const pipelineStatusColors: Record<
+  PipelineStatus,
+  'green' | 'gray' | 'red' | 'blue' | 'yellow' | 'orange' | 'amber'
+> = {
   blocked: 'gray',
-  declined: 'red',
+  declined: 'amber',
   error: 'red',
   failure: 'red',
   killed: 'red',

@@ -73,6 +73,23 @@ crow pipeline start owner/repo
 crow pipeline stop owner/repo <pipeline-id>
 ```
 
+#### `pipeline workflow`
+
+Subcommands for managing workflows within a pipeline run.
+Currently used for [workflow-level approval gates](/dev/usage/approvals/).
+
+```sh
+# Approve a blocked workflow
+crow pipeline workflow approve <repo> <pipeline-number> <workflow-name> [--reason "..."]
+
+# Decline a blocked workflow
+crow pipeline workflow decline <repo> <pipeline-number> <workflow-name> [--reason "..."]
+```
+
+The workflow is resolved by name within the given pipeline.
+The caller must be in the workflow's `approvers` list, or hold push permission on the repo if no approvers are configured.
+An optional `--reason` is recorded in the audit trail.
+
 ### Secrets Management
 
 ```sh

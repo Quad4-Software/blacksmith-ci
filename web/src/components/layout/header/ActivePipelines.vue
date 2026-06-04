@@ -23,11 +23,19 @@
         </span>
       </div>
 
-      <!-- Awaiting approval indicator -->
+      <!-- Awaiting pipeline-level approval indicator -->
       <div v-if="blockedCount > 0" class="flex items-center gap-1.5">
         <Icon name="status-blocked" class="size-4 text-muted-foreground" />
         <span class="text-xs font-semibold leading-none text-muted-foreground tabular-nums">
           {{ blockedCount }}
+        </span>
+      </div>
+
+      <!-- Awaiting workflow-level approval indicator -->
+      <div v-if="workflowApprovalCount > 0" class="flex items-center gap-1.5">
+        <Icon name="lucide:lock" class="size-4 text-yellow-500" />
+        <span class="text-xs font-semibold leading-none text-yellow-600 tabular-nums">
+          {{ workflowApprovalCount }}
         </span>
       </div>
 
@@ -38,15 +46,19 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, toRef } from 'vue';
+import { computed, onMounted, ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Icon from '~/components/atomic/Icon.vue';
 import { Spinner } from '~/components/ui/spinner';
+import useApiClient from '~/compositions/useApiClient';
+import useAuthentication from '~/compositions/useAuthentication';
 import usePipelineFeed from '~/compositions/usePipelineFeed';
 
 const { t } = useI18n();
 const pipelineFeed = usePipelineFeed();
+const apiClient = useApiClient();
+const auth = useAuthentication();
 const activePipelines = toRef(pipelineFeed, 'activePipelines');
 const { toggle } = pipelineFeed;
 
@@ -58,7 +70,26 @@ const pendingCount = computed(() => activePipelines.value.filter((p) => p.status
 
 const blockedCount = computed(() => activePipelines.value.filter((p) => p.status === 'blocked').length);
 
-const totalCount = computed(() => runningCount.value + pendingCount.value + blockedCount.value);
+// Workflow-level approval gates the current user can act on. The endpoint
+// already filters by approver permission, so the returned array length is the
+// badge count.
+const workflowApprovalCount = ref(0);
+
+async function loadWorkflowApprovals() {
+  if (!auth.isAuthenticated) {
+    return;
+  }
+  try {
+    const { workflows } = await apiClient.getUserPendingApprovals();
+    workflowApprovalCount.value = workflows?.length ?? 0;
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+const totalCount = computed(
+  () => runningCount.value + pendingCount.value + blockedCount.value + workflowApprovalCount.value,
+);
 
 const tooltipText = computed(() => {
   if (totalCount.value === 0) {
@@ -73,12 +104,16 @@ const tooltipText = computed(() => {
     parts.push(`${pendingCount.value} ${t('repo.pipeline.status.pending').toLowerCase()}`);
   }
   if (blockedCount.value > 0) {
-    parts.push(`${blockedCount.value} ${t('repo.pipeline.status.blocked').toLowerCase()}`);
+    parts.push(`${blockedCount.value} ${t('navbar.approvals.pipelines').toLowerCase()}`);
+  }
+  if (workflowApprovalCount.value > 0) {
+    parts.push(`${workflowApprovalCount.value} ${t('navbar.approvals.workflows').toLowerCase()}`);
   }
   return `${t('pipeline_feed')}: ${parts.join(', ')}`;
 });
 
 onMounted(async () => {
   await pipelineFeed.load();
+  await loadWorkflowApprovals();
 });
 </script>

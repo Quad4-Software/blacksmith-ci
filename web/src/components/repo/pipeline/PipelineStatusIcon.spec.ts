@@ -28,7 +28,7 @@ describe('pipelineStatusIcon', () => {
       { status: 'success', expectedClass: 'text-green-500' },
       { status: 'failure', expectedClass: 'text-destructive' },
       { status: 'error', expectedClass: 'text-destructive' },
-      { status: 'declined', expectedClass: 'text-destructive' },
+      { status: 'declined', expectedClass: 'text-amber-500' },
       { status: 'killed', expectedClass: 'text-destructive' },
       { status: 'blocked', expectedClass: 'text-muted-foreground' },
       { status: 'skipped', expectedClass: 'text-muted-foreground' },

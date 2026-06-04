@@ -108,6 +108,12 @@ type Client interface {
 	// PipelineDecline declines a blocked pipeline.
 	PipelineDecline(repoID, pipeline int64) (*Pipeline, error)
 
+	// WorkflowApprove approves a per-workflow approval gate.
+	WorkflowApprove(repoID, pipeline int64, wfPID int, reason string) (*Workflow, error)
+
+	// WorkflowDecline declines a per-workflow approval gate.
+	WorkflowDecline(repoID, pipeline int64, wfPID int, reason string) (*Workflow, error)
+
 	// PipelineMetadata returns metadata for a pipeline.
 	PipelineMetadata(repoID int64, pipelineNumber int) ([]byte, error)
 
