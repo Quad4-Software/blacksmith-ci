@@ -53,3 +53,16 @@ func (s storage) WorkflowApprovalEventsForWorkflow(workflowID int64) ([]*model.W
 		Scan(context.Background())
 	return out, err
 }
+
+// WorkflowsPendingApprovalForUser returns workflows whose approval gate is in
+// the pending state. The caller is expected to filter the result set through
+// authz.CanApproveWorkflow because team membership resolution requires forge
+// calls outside the scope of a raw SQL query.
+func (s storage) WorkflowsPendingApprovalForUser(_ int64) ([]*model.Workflow, error) {
+	var out []*model.Workflow
+	err := s.db.NewSelect().
+		Model(&out).
+		Where("approval_state = ?", model.ApprovalPending).
+		Scan(context.Background())
+	return out, err
+}

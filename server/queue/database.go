@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -26,6 +27,13 @@ import (
 	"codefloe.com/crowci/crow/v5/server/model"
 	"codefloe.com/crowci/crow/v5/server/store"
 )
+
+// workflowIDFromTaskID parses a task ID as a workflow ID. Task IDs are
+// fmt.Sprint(workflow.ID) when queued from the stepbuilder pipeline, so
+// strconv.ParseInt is the inverse mapping.
+func workflowIDFromTaskID(taskID string) (int64, error) {
+	return strconv.ParseInt(taskID, 10, 64)
+}
 
 const (
 	// Maximum time to wait for a task before returning nil.
@@ -69,6 +77,21 @@ type DatabaseQueue struct {
 	cancelledTasks   map[string]error
 	cancelledTasksMu sync.RWMutex
 
+	// Approval gate cache. Task.RequiresApproval and Task.ApprovalState are
+	// bun:"-" so they are not persisted on the tasks row. We cache them in
+	// memory keyed by task ID so the assignment loop can gate dispatch
+	// without re-querying the workflows table for every task on every pass.
+	// On a cache miss (e.g. tasks pushed by a different server instance, or
+	// reloaded after a restart), the cache is lazily populated from the
+	// workflow row — the workflows table is the durable source of truth.
+	approvalGates   map[string]approvalGate
+	approvalGatesMu sync.RWMutex
+
+	// blockOnApproval activates the workflow approval gate when upstream deps
+	// clear. Injected at server startup; nil during tests and pre-init.
+	blockOnApprovalMu sync.RWMutex
+	blockOnApproval   BlockOnApprovalFn
+
 	// Polling agents connected to THIS server instance.
 	pollingInstances   map[string]*pollingInstance
 	pollingInstancesMu sync.RWMutex
@@ -79,6 +102,12 @@ type DatabaseQueue struct {
 	assignTrigger chan struct{}
 
 	processLeaderLockTTL time.Duration
+}
+
+// approvalGate captures the per-task approval cache entry.
+type approvalGate struct {
+	requires bool
+	state    model.ApprovalState
 }
 
 type pollingInstance struct {
@@ -99,6 +128,7 @@ func NewDatabaseQueue(ctx context.Context, store store.Store, lockService LockSe
 		instanceID:           instanceID,
 		startupTime:          time.Now(),
 		cancelledTasks:       make(map[string]error),
+		approvalGates:        make(map[string]approvalGate),
 		pollingInstances:     make(map[string]*pollingInstance),
 		assignTrigger:        make(chan struct{}, 1),
 		processLeaderLockTTL: processLeaderLockTTL,
@@ -140,6 +170,7 @@ func (q *DatabaseQueue) Push(ctx context.Context, task *model.Task) error {
 	if err := q.store.TaskInsert(task); err != nil {
 		return err
 	}
+	q.cacheApprovalGate(task)
 	q.signalAssignment()
 	return nil
 }
@@ -152,8 +183,114 @@ func (q *DatabaseQueue) PushAtOnce(ctx context.Context, tasks []*model.Task) err
 			return err
 		}
 	}
+	for _, task := range tasks {
+		q.cacheApprovalGate(task)
+	}
 	q.signalAssignment()
 	return nil
+}
+
+// cacheApprovalGate records the in-memory approval gate for a task. The
+// task struct carries RequiresApproval/ApprovalState (bun:"-") at push time;
+// since these are not persisted on the tasks row, the queue needs an
+// in-memory copy so subsequent assignment passes can gate dispatch without
+// a workflow lookup on every iteration.
+func (q *DatabaseQueue) cacheApprovalGate(task *model.Task) {
+	q.approvalGatesMu.Lock()
+	q.approvalGates[task.ID] = approvalGate{
+		requires: task.RequiresApproval,
+		state:    task.ApprovalState,
+	}
+	q.approvalGatesMu.Unlock()
+}
+
+// clearApprovalGate removes any cached approval state for a task. Called on
+// terminal transitions (Done/Error/Evict) so the map does not leak entries
+// across long-running server instances.
+func (q *DatabaseQueue) clearApprovalGate(taskID string) {
+	q.approvalGatesMu.Lock()
+	delete(q.approvalGates, taskID)
+	q.approvalGatesMu.Unlock()
+}
+
+// awaitingApproval reports whether a task should be held because its
+// workflow approval gate has not been granted. The cache is consulted
+// first; on a miss the workflow row is loaded and the result is cached
+// so future passes don't re-hit the DB.
+//
+// On lookup error (e.g. workflow row gone — possible during a race with
+// pipeline cleanup), the task is treated as not gated so it does not get
+// stuck forever; the dispatch path will discover the broken state via its
+// existing failure modes.
+func (q *DatabaseQueue) awaitingApproval(task *model.Task) bool {
+	q.approvalGatesMu.RLock()
+	gate, cached := q.approvalGates[task.ID]
+	q.approvalGatesMu.RUnlock()
+
+	if !cached {
+		// Cache miss: fall back to the workflow row (durable source of truth)
+		// so HA peers and post-restart loads still gate correctly.
+		wfID, err := workflowIDFromTaskID(task.ID)
+		if err != nil {
+			log.Debug().Err(err).Str("taskID", task.ID).
+				Msg("Skipping approval gate lookup: task ID is not a workflow ID")
+			return false
+		}
+		wf, err := q.store.WorkflowLoad(wfID)
+		if err != nil {
+			log.Warn().Err(err).Str("taskID", task.ID).
+				Msg("Failed to load workflow for approval gate; treating as not gated")
+			return false
+		}
+		gate = approvalGate{
+			requires: wf.RequiresApproval,
+			state:    wf.ApprovalState,
+		}
+		q.approvalGatesMu.Lock()
+		q.approvalGates[task.ID] = gate
+		q.approvalGatesMu.Unlock()
+	}
+
+	if !gate.requires {
+		return false
+	}
+	return gate.state == model.ApprovalPending || gate.state == model.ApprovalNone
+}
+
+// shouldActivateApprovalGate reports whether the task is a gated task that
+// has not yet been moved out of ApprovalNone. Called after deps are confirmed
+// met, so this is exactly the activation moment.
+//
+// Reads via the same cache lookup awaitingApproval uses, so a cache miss
+// triggers the workflow-row fallback already covered there.
+func (q *DatabaseQueue) shouldActivateApprovalGate(task *model.Task) bool {
+	q.approvalGatesMu.RLock()
+	gate, cached := q.approvalGates[task.ID]
+	q.approvalGatesMu.RUnlock()
+
+	if !cached {
+		// Same fallback path as awaitingApproval — load the workflow row
+		// (durable source of truth) and cache the result. We don't dedup with
+		// awaitingApproval to keep the activation check side-effect-free
+		// before the hook runs.
+		wfID, err := workflowIDFromTaskID(task.ID)
+		if err != nil {
+			return false
+		}
+		wf, err := q.store.WorkflowLoad(wfID)
+		if err != nil {
+			return false
+		}
+		gate = approvalGate{
+			requires: wf.RequiresApproval,
+			state:    wf.ApprovalState,
+		}
+		q.approvalGatesMu.Lock()
+		q.approvalGates[task.ID] = gate
+		q.approvalGatesMu.Unlock()
+	}
+
+	return gate.requires && gate.state == model.ApprovalNone
 }
 
 // signalAssignment sends a non-blocking signal to trigger immediate assignment.
@@ -215,6 +352,7 @@ func (q *DatabaseQueue) Poll(ctx context.Context, agentID int64, filter FilterFn
 // Done marks a task as completed and removes it from the database.
 func (q *DatabaseQueue) Done(ctx context.Context, id string, exitStatus model.StatusValue) error {
 	q.updateDependentTasks(id, exitStatus)
+	q.clearApprovalGate(id)
 	return q.store.TaskDelete(id)
 }
 
@@ -240,6 +378,7 @@ func (q *DatabaseQueue) Error(ctx context.Context, id string, err error) error {
 		// The row stays with canceled=true so Wait() on other server instances
 		// can detect the cancellation. A background cleaner removes it later.
 		q.updateDependentTasks(id, model.StatusFailure)
+		q.clearApprovalGate(id)
 		return nil
 	}
 
@@ -268,6 +407,8 @@ func (q *DatabaseQueue) Evict(ctx context.Context, taskID string) error {
 	q.cancelledTasks[taskID] = ErrCancel
 	q.cancelledTasksMu.Unlock()
 
+	q.clearApprovalGate(taskID)
+
 	return q.store.TaskDelete(taskID)
 }
 
@@ -292,6 +433,7 @@ func (q *DatabaseQueue) EvictAtOnce(ctx context.Context, taskIDs []string) error
 	}
 
 	for _, id := range taskIDs {
+		q.clearApprovalGate(id)
 		if err := q.store.TaskDelete(id); err != nil {
 			return err
 		}
@@ -403,12 +545,12 @@ func (q *DatabaseQueue) Info(ctx context.Context) InfoT {
 		case task.AgentID > 0:
 			info.Running = append(info.Running, task)
 			info.Stats.Running++
-		case q.areDependenciesMet(task, tasks):
-			info.Pending = append(info.Pending, task)
-			info.Stats.Pending++
-		default:
+		case !q.areDependenciesMet(task, tasks) || q.awaitingApproval(task):
 			info.WaitingOnDeps = append(info.WaitingOnDeps, task)
 			info.Stats.WaitingOnDeps++
+		default:
+			info.Pending = append(info.Pending, task)
+			info.Stats.Pending++
 		}
 	}
 
@@ -446,6 +588,70 @@ func (q *DatabaseQueue) Resume() {
 	q.paused = false
 	q.mu.Unlock()
 	log.Info().Msg("Database queue resumed")
+}
+
+// SetBlockOnApprovalHook injects the callback used to activate the workflow
+// approval gate (persist State=Blocked, ApprovalState=Pending, deadline) when
+// upstream deps clear. Pass nil to disable.
+func (q *DatabaseQueue) SetBlockOnApprovalHook(fn BlockOnApprovalFn) {
+	q.blockOnApprovalMu.Lock()
+	defer q.blockOnApprovalMu.Unlock()
+	q.blockOnApproval = fn
+}
+
+// activateApprovalGate fires the injected hook (if any) asynchronously and
+// flips the cached gate state to Pending so subsequent passes through
+// tryBatchAssignment treat the task as gate-blocked rather than
+// gate-not-yet-activated. The hook runs in a goroutine because it does DB IO
+// (workflow update) we don't want to block the assignment loop on, and
+// because it calls back into the queue via SetApprovalState.
+func (q *DatabaseQueue) activateApprovalGate(taskID string) {
+	q.blockOnApprovalMu.RLock()
+	fn := q.blockOnApproval
+	q.blockOnApprovalMu.RUnlock()
+	if fn != nil {
+		log.Debug().Str("taskID", taskID).Msg("queue: deps cleared on gated task, activating approval gate")
+		go fn(q.ctx, taskID)
+	}
+	q.approvalGatesMu.Lock()
+	gate, ok := q.approvalGates[taskID]
+	if !ok {
+		gate = approvalGate{requires: true}
+	}
+	gate.state = model.ApprovalPending
+	q.approvalGates[taskID] = gate
+	q.approvalGatesMu.Unlock()
+}
+
+// SetApprovalState updates the cached approval gate for a task and signals
+// the assignment loop to re-evaluate eligibility. The durable source of truth
+// for the gate lives on the workflow row in the DB (updated by the caller);
+// this cache update lets the next assignment pass dispatch the task without
+// having to re-query the workflow row.
+//
+// The cache write must precede the signal so the re-evaluation observes the
+// new state instead of racing against it.
+func (q *DatabaseQueue) SetApprovalState(_ context.Context, taskID string, state model.ApprovalState) error {
+	q.approvalGatesMu.Lock()
+	gate, exists := q.approvalGates[taskID]
+	if !exists {
+		// No prior cache entry — the task may have been pushed by another
+		// server instance, or this server restarted after the original Push.
+		// Mark it as approval-required so the next assignment pass treats the
+		// supplied state authoritatively (rather than skipping the task as
+		// "not gated" because the cache is empty).
+		gate = approvalGate{requires: true}
+	}
+	gate.state = state
+	q.approvalGates[taskID] = gate
+	q.approvalGatesMu.Unlock()
+
+	log.Debug().Str("taskID", taskID).Str("state", string(state)).
+		Msg("Database queue approval gate updated")
+
+	// Signal AFTER the cache write so the assignment loop sees the new state.
+	q.signalAssignment()
+	return nil
 }
 
 // KickAgentWorkers cancels all polling instances for a given agent.
@@ -688,6 +894,20 @@ func (q *DatabaseQueue) tryBatchAssignment() {
 		}
 
 		if !q.areDependenciesMet(task, tasks) {
+			continue
+		}
+
+		// Gate activation: deps just cleared on a task that requires approval
+		// but has not yet been blocked. Fire the injected hook (which persists
+		// the workflow row) and mark the cache Pending so this and subsequent
+		// passes hold the task until the gate is decided.
+		if q.shouldActivateApprovalGate(task) {
+			q.activateApprovalGate(task.ID)
+			continue
+		}
+
+		// Skip tasks whose workflow is still gated on approval.
+		if q.awaitingApproval(task) {
 			continue
 		}
 

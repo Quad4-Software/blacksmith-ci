@@ -23,6 +23,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -39,6 +40,7 @@ import (
 	"codefloe.com/crowci/crow/v5/server/integrations/vault"
 	"codefloe.com/crowci/crow/v5/server/logging"
 	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/pipeline"
 	"codefloe.com/crowci/crow/v5/server/proclog"
 	"codefloe.com/crowci/crow/v5/server/pubsub"
 	"codefloe.com/crowci/crow/v5/server/queue"
@@ -168,6 +170,26 @@ func setupQueue(ctx context.Context, s store.Store, lockService *lock.Service, c
 	if err != nil {
 		return nil, err
 	}
+
+	// Wire the approval-gate activation hook. The queue invokes this when a
+	// gated task's upstream deps reach a terminal state — we then persist
+	// State=Blocked/ApprovalState=Pending and the deadline on the workflow
+	// row. The pipeline package can't be imported from the queue package
+	// (cycle), so the wiring happens here.
+	//
+	// The closure reads server.Config.Pipeline.ApprovalGateTimeoutDefault
+	// lazily so the timeout flag, which is parsed later in setupEvilGlobals,
+	// is observed at invocation time rather than at construction.
+	q.SetBlockOnApprovalHook(func(hookCtx context.Context, taskID string) {
+		wfID, err := strconv.ParseInt(taskID, 10, 64)
+		if err != nil {
+			log.Error().Err(err).Str("task_id", taskID).Msg("BlockOnApproval: invalid task id")
+			return
+		}
+		if err := pipeline.BlockOnApproval(hookCtx, s, q, wfID, server.Config.Pipeline.ApprovalGateTimeoutDefault); err != nil {
+			log.Error().Err(err).Int64("workflow_id", wfID).Msg("BlockOnApproval failed")
+		}
+	})
 
 	// Clean up orphaned workflows on startup
 	go func() {

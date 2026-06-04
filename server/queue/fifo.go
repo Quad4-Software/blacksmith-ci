@@ -46,14 +46,15 @@ type worker struct {
 type fifo struct {
 	sync.Mutex
 
-	ctx           context.Context
-	store         store.Store // Database store for task persistence
-	workers       map[*worker]struct{}
-	running       map[string]*entry
-	pending       *list.List
-	waitingOnDeps *list.List
-	extension     time.Duration
-	paused        bool
+	ctx             context.Context
+	store           store.Store // Database store for task persistence
+	workers         map[*worker]struct{}
+	running         map[string]*entry
+	pending         *list.List
+	waitingOnDeps   *list.List
+	extension       time.Duration
+	paused          bool
+	blockOnApproval BlockOnApprovalFn
 }
 
 // processTimeInterval is the time till the queue rearranges things,
@@ -407,8 +408,26 @@ func (q *fifo) filterWaiting() {
 	for element := q.pending.Front(); element != nil; element = nextPending {
 		nextPending = element.Next()
 		task, _ := element.Value.(*model.Task)
-		if q.depsInQueue(task) {
-			log.Debug().Msgf("queue: waiting due to unmet dependencies %v", task.ID)
+
+		depsBlocked := q.depsInQueue(task)
+		// Gate activation: deps just cleared on a task that requires approval
+		// but has not yet been blocked. Fire the injected hook (which persists
+		// the workflow row) asynchronously so we don't block the queue mutex
+		// on DB IO — the hook itself calls q.SetApprovalState which would
+		// re-enter q.Lock(). Mirror the state locally so the task stays in
+		// waitingOnDeps for this and subsequent passes until the gate is
+		// approved or declined.
+		if !depsBlocked && task.RequiresApproval && task.ApprovalState == model.ApprovalNone {
+			if fn := q.blockOnApproval; fn != nil {
+				log.Debug().Str("task_id", task.ID).Msg("queue: deps cleared on gated task, activating approval gate")
+				taskID := task.ID
+				go fn(q.ctx, taskID)
+			}
+			task.ApprovalState = model.ApprovalPending
+		}
+
+		if depsBlocked || q.awaitingApproval(task) {
+			log.Debug().Msgf("queue: waiting due to unmet dependencies or pending approval %v", task.ID)
 			q.waitingOnDeps.PushBack(task)
 			filtered = append(filtered, element)
 		}
@@ -552,6 +571,18 @@ func (q *fifo) resubmitExpiredPipelines() {
 	}
 }
 
+// awaitingApproval reports whether a task is gated on a workflow-level
+// approval that has not yet been granted. Tasks in ApprovalNone (the initial
+// state before BlockOnApproval has flipped them to ApprovalPending) are also
+// held so they cannot leak past the gate before deps clear.
+func (q *fifo) awaitingApproval(task *model.Task) bool {
+	if !task.RequiresApproval {
+		return false
+	}
+	return task.ApprovalState == model.ApprovalPending ||
+		task.ApprovalState == model.ApprovalNone
+}
+
 func (q *fifo) depsInQueue(task *model.Task) bool {
 	var next *list.Element
 	for element := q.pending.Front(); element != nil; element = next {
@@ -610,6 +641,47 @@ func (q *fifo) updateDepStatusInQueue(taskID string, status model.StatusValue) {
 	if status == model.StatusSuccess {
 		q.filterWaiting()
 	}
+}
+
+// SetBlockOnApprovalHook injects the callback used to activate the workflow
+// approval gate (persist State=Blocked, ApprovalState=Pending, deadline) when
+// upstream deps clear. Pass nil to disable.
+func (q *fifo) SetBlockOnApprovalHook(fn BlockOnApprovalFn) {
+	q.Lock()
+	defer q.Unlock()
+	q.blockOnApproval = fn
+}
+
+// SetApprovalState mutates the in-queue task's approval state and triggers
+// a re-evaluation of waiting tasks. Returns nil if the task is not present
+// (it may have already moved to running, or have been replaced by a rerun).
+func (q *fifo) SetApprovalState(_ context.Context, taskID string, state model.ApprovalState) error {
+	q.Lock()
+	defer q.Unlock()
+
+	var found bool
+	for e := q.waitingOnDeps.Front(); e != nil; e = e.Next() {
+		t, ok := e.Value.(*model.Task)
+		if ok && t.ID == taskID {
+			t.ApprovalState = state
+			found = true
+			break
+		}
+	}
+	if !found {
+		for e := q.pending.Front(); e != nil; e = e.Next() {
+			t, ok := e.Value.(*model.Task)
+			if ok && t.ID == taskID {
+				t.ApprovalState = state
+				found = true
+				break
+			}
+		}
+	}
+	if found {
+		q.filterWaiting()
+	}
+	return nil
 }
 
 func (q *fifo) removeFromPending(taskID string) {

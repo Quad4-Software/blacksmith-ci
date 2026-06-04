@@ -40,6 +40,8 @@ func queuePipeline(ctx context.Context, repo *model.Repo, pipelineItems []*stepb
 			PipelineID: item.Workflow.PipelineID,
 			RepoID:     repo.ID,
 		}
+		task.RequiresApproval = item.Workflow.RequiresApproval
+		task.ApprovalState = item.Workflow.ApprovalState
 		maps.Copy(task.Labels, item.Labels)
 		err := task.ApplyLabelsFromRepo(repo)
 		if err != nil {

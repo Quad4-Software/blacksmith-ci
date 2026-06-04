@@ -146,6 +146,17 @@ func run(ctx context.Context, c *cli.Command) error {
 		return nil
 	})
 
+	// approval gate timeout sweeper — transitions workflows whose approval
+	// deadline has passed to ApprovalExpired. Runs in every server instance
+	// (the underlying UPDATE is idempotent and the per-row state check
+	// short-circuits double-processing).
+	serviceWaitingGroup.Go(func() error {
+		log.Info().Msg("starting approval gate sweeper ...")
+		cron.RunSweeper(ctx, _store, server.Config.Services.Queue, server.Config.Pipeline.ApprovalGateSweepInterval)
+		log.Info().Msg("approval gate sweeper stopped")
+		return nil
+	})
+
 	// start maintenance scheduler shutdown watcher
 	serviceWaitingGroup.Go(func() error {
 		<-ctx.Done()

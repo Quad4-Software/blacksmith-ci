@@ -24,6 +24,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/oklog/ulid/v2"
@@ -334,6 +335,19 @@ func (b *StepBuilder) genItemForWorkflow(workflow *model.Workflow, axis matrix.A
 
 	// Copy dependencies to the workflow model for API response and database storage
 	workflow.DependsOn = parsed.DependsOn
+
+	if parsed.Approval != nil {
+		workflow.RequiresApproval = parsed.Approval.Required
+		if parsed.Approval.Approvers != nil {
+			workflow.ApprovalUsers = parsed.Approval.Approvers.Users
+			workflow.ApprovalTeams = parsed.Approval.Approvers.Teams
+		}
+		if parsed.Approval.Timeout != "" {
+			if d, err := time.ParseDuration(parsed.Approval.Timeout); err == nil && d > 0 {
+				workflow.ApprovalTimeoutSeconds = int64(d / time.Second)
+			}
+		}
+	}
 
 	item = &Item{
 		Workflow:     workflow,

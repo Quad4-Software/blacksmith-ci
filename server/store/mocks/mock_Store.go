@@ -13720,6 +13720,68 @@ func (_c *MockStore_WorkflowsCreate_Call) RunAndReturn(run func(workflows []*mod
 	return _c
 }
 
+// WorkflowsPendingApprovalForUser provides a mock function for the type MockStore
+func (_mock *MockStore) WorkflowsPendingApprovalForUser(userID int64) ([]*model.Workflow, error) {
+	ret := _mock.Called(userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WorkflowsPendingApprovalForUser")
+	}
+
+	var r0 []*model.Workflow
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64) ([]*model.Workflow, error)); ok {
+		return returnFunc(userID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64) []*model.Workflow); ok {
+		r0 = returnFunc(userID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.Workflow)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64) error); ok {
+		r1 = returnFunc(userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_WorkflowsPendingApprovalForUser_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WorkflowsPendingApprovalForUser'
+type MockStore_WorkflowsPendingApprovalForUser_Call struct {
+	*mock.Call
+}
+
+// WorkflowsPendingApprovalForUser is a helper method to define mock.On call
+//   - userID int64
+func (_e *MockStore_Expecter) WorkflowsPendingApprovalForUser(userID interface{}) *MockStore_WorkflowsPendingApprovalForUser_Call {
+	return &MockStore_WorkflowsPendingApprovalForUser_Call{Call: _e.mock.On("WorkflowsPendingApprovalForUser", userID)}
+}
+
+func (_c *MockStore_WorkflowsPendingApprovalForUser_Call) Run(run func(userID int64)) *MockStore_WorkflowsPendingApprovalForUser_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_WorkflowsPendingApprovalForUser_Call) Return(workflows []*model.Workflow, err error) *MockStore_WorkflowsPendingApprovalForUser_Call {
+	_c.Call.Return(workflows, err)
+	return _c
+}
+
+func (_c *MockStore_WorkflowsPendingApprovalForUser_Call) RunAndReturn(run func(userID int64) ([]*model.Workflow, error)) *MockStore_WorkflowsPendingApprovalForUser_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // WorkflowsReplace provides a mock function for the type MockStore
 func (_mock *MockStore) WorkflowsReplace(pipeline *model.Pipeline, workflows []*model.Workflow) error {
 	ret := _mock.Called(pipeline, workflows)

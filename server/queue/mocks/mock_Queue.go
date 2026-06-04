@@ -853,6 +853,109 @@ func (_c *MockQueue_Resume_Call) RunAndReturn(run func()) *MockQueue_Resume_Call
 	return _c
 }
 
+// SetApprovalState provides a mock function for the type MockQueue
+func (_mock *MockQueue) SetApprovalState(ctx context.Context, taskID string, state model.ApprovalState) error {
+	ret := _mock.Called(ctx, taskID, state)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SetApprovalState")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, model.ApprovalState) error); ok {
+		r0 = returnFunc(ctx, taskID, state)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockQueue_SetApprovalState_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetApprovalState'
+type MockQueue_SetApprovalState_Call struct {
+	*mock.Call
+}
+
+// SetApprovalState is a helper method to define mock.On call
+//   - ctx context.Context
+//   - taskID string
+//   - state model.ApprovalState
+func (_e *MockQueue_Expecter) SetApprovalState(ctx interface{}, taskID interface{}, state interface{}) *MockQueue_SetApprovalState_Call {
+	return &MockQueue_SetApprovalState_Call{Call: _e.mock.On("SetApprovalState", ctx, taskID, state)}
+}
+
+func (_c *MockQueue_SetApprovalState_Call) Run(run func(ctx context.Context, taskID string, state model.ApprovalState)) *MockQueue_SetApprovalState_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 model.ApprovalState
+		if args[2] != nil {
+			arg2 = args[2].(model.ApprovalState)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockQueue_SetApprovalState_Call) Return(err error) *MockQueue_SetApprovalState_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockQueue_SetApprovalState_Call) RunAndReturn(run func(ctx context.Context, taskID string, state model.ApprovalState) error) *MockQueue_SetApprovalState_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SetBlockOnApprovalHook provides a mock function for the type MockQueue
+func (_mock *MockQueue) SetBlockOnApprovalHook(blockOnApprovalFn queue.BlockOnApprovalFn) {
+	_mock.Called(blockOnApprovalFn)
+	return
+}
+
+// MockQueue_SetBlockOnApprovalHook_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetBlockOnApprovalHook'
+type MockQueue_SetBlockOnApprovalHook_Call struct {
+	*mock.Call
+}
+
+// SetBlockOnApprovalHook is a helper method to define mock.On call
+//   - blockOnApprovalFn queue.BlockOnApprovalFn
+func (_e *MockQueue_Expecter) SetBlockOnApprovalHook(blockOnApprovalFn interface{}) *MockQueue_SetBlockOnApprovalHook_Call {
+	return &MockQueue_SetBlockOnApprovalHook_Call{Call: _e.mock.On("SetBlockOnApprovalHook", blockOnApprovalFn)}
+}
+
+func (_c *MockQueue_SetBlockOnApprovalHook_Call) Run(run func(blockOnApprovalFn queue.BlockOnApprovalFn)) *MockQueue_SetBlockOnApprovalHook_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 queue.BlockOnApprovalFn
+		if args[0] != nil {
+			arg0 = args[0].(queue.BlockOnApprovalFn)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockQueue_SetBlockOnApprovalHook_Call) Return() *MockQueue_SetBlockOnApprovalHook_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockQueue_SetBlockOnApprovalHook_Call) RunAndReturn(run func(blockOnApprovalFn queue.BlockOnApprovalFn)) *MockQueue_SetBlockOnApprovalHook_Call {
+	_c.Run(run)
+	return _c
+}
+
 // Wait provides a mock function for the type MockQueue
 func (_mock *MockQueue) Wait(c context.Context, id string) error {
 	ret := _mock.Called(c, id)

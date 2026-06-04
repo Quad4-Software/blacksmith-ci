@@ -74,6 +74,14 @@ func (t *InfoT) String() string {
 // The int32 return value represents the agent priority (0 = no priority).
 type FilterFn func(*model.Task) (bool, int, int32)
 
+// BlockOnApprovalFn is called by the queue when a gated task's upstream deps
+// have all reached a terminal state and the gate must now be activated.
+// Implementations live in the pipeline package and persist the workflow row
+// (State=Blocked, ApprovalState=Pending, ApprovalDeadline=now+timeout). The
+// queue cannot import the pipeline package directly (import cycle), so the
+// hook is injected at server startup via SetBlockOnApprovalHook.
+type BlockOnApprovalFn func(ctx context.Context, taskID string)
+
 // Queue defines a task queue for scheduling tasks among
 // a pool of workers.
 type Queue interface {
@@ -126,6 +134,18 @@ type Queue interface {
 
 	// KickAgentWorkers kicks all workers for a given agent.
 	KickAgentWorkers(agentID int64)
+
+	// SetApprovalState updates the in-queue task's approval state and triggers
+	// a re-evaluation of which waiting tasks are now eligible to run.
+	SetApprovalState(ctx context.Context, taskID string, state model.ApprovalState) error
+
+	// SetBlockOnApprovalHook injects a callback that the queue invokes when a
+	// gated task's upstream dependencies have all cleared. The callback is
+	// expected to persist the workflow row (State=Blocked, ApprovalState=
+	// Pending, ApprovalDeadline=now+timeout). Implementations call it at most
+	// once per task per transition out of ApprovalNone. A nil function disables
+	// the hook (useful in tests).
+	SetBlockOnApprovalHook(BlockOnApprovalFn)
 }
 
 // Config holds the configuration for the queue.

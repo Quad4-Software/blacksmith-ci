@@ -17,6 +17,7 @@ package queue
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -55,6 +56,7 @@ func newTestDatabaseQueue(t *testing.T) (*DatabaseQueue, *mocks_store.MockStore)
 		instanceID:           "test-instance",
 		startupTime:          time.Now(),
 		cancelledTasks:       make(map[string]error),
+		approvalGates:        make(map[string]approvalGate),
 		pollingInstances:     make(map[string]*pollingInstance),
 		assignTrigger:        make(chan struct{}, 1),
 		processLeaderLockTTL: 30 * time.Second,
@@ -368,4 +370,352 @@ func TestDatabaseQueueInfoShowsWorkerCount(t *testing.T) {
 
 	info := q.Info(t.Context())
 	assert.Equal(t, 3, info.Stats.Workers, "Worker count should reflect polling instances")
+}
+
+// TestDatabaseQueueAwaitingApproval verifies that a task gated on a workflow
+// approval is NOT dispatched even when a matching polling instance is
+// waiting. Mirrors TestFifoAwaitingApproval for the DB-backed queue.
+func TestDatabaseQueueAwaitingApproval(t *testing.T) {
+	q, mockStore := newTestDatabaseQueue(t)
+
+	gated := &model.Task{
+		ID:               "gated",
+		Data:             []byte("{}"),
+		RequiresApproval: true,
+		ApprovalState:    model.ApprovalPending,
+	}
+	free := &model.Task{ID: "free", Data: []byte("{}")}
+
+	// Push both tasks so the approval gate cache is populated for "gated"
+	// and an empty (non-gated) entry exists for "free".
+	mockStore.EXPECT().TaskInsert(mock.AnythingOfType("*model.Task")).Return(nil).Times(2)
+	assert.NoError(t, q.PushAtOnce(t.Context(), []*model.Task{gated, free}))
+
+	// Register a polling instance for the assignment loop to match.
+	responseChan := make(chan *model.Task, 1)
+	_, instCancel := testCancelCtx(t.Context())
+	defer instCancel()
+	q.pollingInstancesMu.Lock()
+	q.pollingInstances["test-inst"] = &pollingInstance{
+		instanceID: "test-inst",
+		agentID:    10,
+		filter:     filterFnTrue,
+		response:   responseChan,
+		pollTime:   time.Now(),
+		cancel:     instCancel,
+	}
+	q.pollingInstancesMu.Unlock()
+
+	// tryBatchAssignment lists tasks and assigns only ungated ones.
+	mockStore.EXPECT().TaskList().Return([]*model.Task{gated, free}, nil)
+	mockStore.EXPECT().TaskAtomicAssign("free", int64(10)).Return(true, nil)
+
+	q.tryBatchAssignment()
+
+	// Only "free" should be delivered to the polling instance. The mock
+	// for TaskAtomicAssign is only registered for "free" — if the gated
+	// task were dispatched, mockery would fail on the unexpected call.
+	select {
+	case got := <-responseChan:
+		assert.Equal(t, "free", got.ID, "expect free task to be dispatched")
+	default:
+		t.Fatal("Expected free task to be delivered to response channel")
+	}
+}
+
+// TestDatabaseQueueAwaitingApprovalInfoStats verifies that gated tasks appear
+// in the WaitingOnDeps bucket of Info, not Pending.
+func TestDatabaseQueueAwaitingApprovalInfoStats(t *testing.T) {
+	q, mockStore := newTestDatabaseQueue(t)
+
+	gated := &model.Task{
+		ID:               "gated",
+		Data:             []byte("{}"),
+		RequiresApproval: true,
+		ApprovalState:    model.ApprovalPending,
+	}
+
+	// Push to seed the gate cache.
+	mockStore.EXPECT().TaskInsert(mock.AnythingOfType("*model.Task")).Return(nil)
+	assert.NoError(t, q.Push(t.Context(), gated))
+
+	mockStore.EXPECT().TaskList().Return([]*model.Task{gated}, nil)
+	info := q.Info(t.Context())
+
+	assert.Equal(t, 1, info.Stats.WaitingOnDeps, "gated task should be counted as WaitingOnDeps")
+	assert.Equal(t, 0, info.Stats.Pending, "gated task must not appear in Pending")
+}
+
+// TestDatabaseQueueSetApprovalStateReleases verifies that calling
+// SetApprovalState(approved) lets the previously gated task be dispatched on
+// the next assignment pass. Mirrors TestFifoSetApprovalStateReleases for the
+// DB-backed queue.
+func TestDatabaseQueueSetApprovalStateReleases(t *testing.T) {
+	q, mockStore := newTestDatabaseQueue(t)
+
+	gated := &model.Task{
+		ID:               "gated",
+		Data:             []byte("{}"),
+		RequiresApproval: true,
+		ApprovalState:    model.ApprovalPending,
+	}
+	mockStore.EXPECT().TaskInsert(mock.AnythingOfType("*model.Task")).Return(nil)
+	assert.NoError(t, q.Push(t.Context(), gated))
+
+	// Drain the push signal so we can observe the SetApprovalState signal.
+	select {
+	case <-q.assignTrigger:
+	default:
+	}
+
+	// Initially, the task is gated — confirm via Info stats.
+	mockStore.EXPECT().TaskList().Return([]*model.Task{gated}, nil)
+	info := q.Info(t.Context())
+	assert.Equal(t, 1, info.Stats.WaitingOnDeps)
+
+	// Flip the gate to approved.
+	assert.NoError(t, q.SetApprovalState(t.Context(), "gated", model.ApprovalApproved))
+
+	// Verify the signal channel was fired so the assignment loop re-evaluates.
+	select {
+	case <-q.assignTrigger:
+		// expected
+	default:
+		t.Fatal("SetApprovalState should signal the assignment loop")
+	}
+
+	// Register a polling instance and run an assignment pass.
+	responseChan := make(chan *model.Task, 1)
+	_, instCancel := testCancelCtx(t.Context())
+	defer instCancel()
+	q.pollingInstancesMu.Lock()
+	q.pollingInstances["test-inst"] = &pollingInstance{
+		instanceID: "test-inst",
+		agentID:    10,
+		filter:     filterFnTrue,
+		response:   responseChan,
+		pollTime:   time.Now(),
+		cancel:     instCancel,
+	}
+	q.pollingInstancesMu.Unlock()
+
+	mockStore.EXPECT().TaskList().Return([]*model.Task{gated}, nil)
+	mockStore.EXPECT().TaskAtomicAssign("gated", int64(10)).Return(true, nil)
+	q.tryBatchAssignment()
+
+	select {
+	case got := <-responseChan:
+		assert.Equal(t, "gated", got.ID, "approved task should be dispatched")
+	default:
+		t.Fatal("Expected gated task to be delivered after approval")
+	}
+}
+
+// TestDatabaseQueueSetApprovalStateUnknownTask verifies that SetApprovalState
+// on a task with no cache entry (e.g. pushed by a different HA peer, or
+// reloaded after a restart) still records the state so the next assignment
+// pass dispatches the task. We assert the cache was populated.
+func TestDatabaseQueueSetApprovalStateUnknownTask(t *testing.T) {
+	q, _ := newTestDatabaseQueue(t)
+
+	assert.NoError(t, q.SetApprovalState(t.Context(), "remote-task", model.ApprovalApproved))
+
+	q.approvalGatesMu.RLock()
+	gate, exists := q.approvalGates["remote-task"]
+	q.approvalGatesMu.RUnlock()
+
+	assert.True(t, exists, "SetApprovalState should populate the cache for unknown tasks")
+	assert.True(t, gate.requires, "Unknown tasks should be marked as requires-approval so the new state is authoritative")
+	assert.Equal(t, model.ApprovalApproved, gate.state, "Cached state should match the supplied state")
+}
+
+// TestDatabaseQueueDoneClearsApprovalCache verifies that completing a task
+// removes its entry from the approval gate cache to prevent unbounded growth.
+func TestDatabaseQueueDoneClearsApprovalCache(t *testing.T) {
+	q, mockStore := newTestDatabaseQueue(t)
+
+	gated := &model.Task{
+		ID:               "gated",
+		Data:             []byte("{}"),
+		RequiresApproval: true,
+		ApprovalState:    model.ApprovalPending,
+	}
+	mockStore.EXPECT().TaskInsert(mock.AnythingOfType("*model.Task")).Return(nil)
+	assert.NoError(t, q.Push(t.Context(), gated))
+
+	q.approvalGatesMu.RLock()
+	_, exists := q.approvalGates["gated"]
+	q.approvalGatesMu.RUnlock()
+	assert.True(t, exists, "approval gate should be cached after Push")
+
+	mockStore.EXPECT().TaskList().Return([]*model.Task{}, nil)
+	mockStore.EXPECT().TaskDelete("gated").Return(nil)
+	assert.NoError(t, q.Done(t.Context(), "gated", model.StatusSuccess))
+
+	q.approvalGatesMu.RLock()
+	_, exists = q.approvalGates["gated"]
+	q.approvalGatesMu.RUnlock()
+	assert.False(t, exists, "approval gate should be cleared after Done")
+}
+
+// TestDatabaseQueueAwaitingApprovalCacheMissFallsBackToWorkflow verifies that
+// on a cache miss (e.g. an HA peer pushed the task), awaitingApproval loads
+// the workflow row to determine the gate state.
+func TestDatabaseQueueAwaitingApprovalCacheMissFallsBackToWorkflow(t *testing.T) {
+	q, mockStore := newTestDatabaseQueue(t)
+
+	// Task with numeric ID so it parses to a workflow ID.
+	task := &model.Task{ID: "42", Data: []byte("{}")}
+
+	// Cache miss → store.WorkflowLoad called with workflow ID 42.
+	mockStore.EXPECT().WorkflowLoad(int64(42)).Return(&model.Workflow{
+		ID:               42,
+		RequiresApproval: true,
+		ApprovalState:    model.ApprovalPending,
+	}, nil)
+
+	assert.True(t, q.awaitingApproval(task), "should treat task as gated based on workflow row")
+
+	// Result should be cached now.
+	q.approvalGatesMu.RLock()
+	gate, exists := q.approvalGates["42"]
+	q.approvalGatesMu.RUnlock()
+	assert.True(t, exists, "workflow load result should be cached")
+	assert.True(t, gate.requires)
+	assert.Equal(t, model.ApprovalPending, gate.state)
+
+	// Second call should hit the cache (no extra WorkflowLoad mock — mockery
+	// would fail the test on an unexpected call).
+	assert.True(t, q.awaitingApproval(task))
+}
+
+// TestDatabaseQueueAwaitingApprovalNonNumericTaskID verifies that tasks
+// whose IDs aren't workflow IDs (e.g. legacy / synthetic IDs) are treated as
+// not gated when the cache is empty — they cannot be looked up against the
+// workflows table.
+func TestDatabaseQueueAwaitingApprovalNonNumericTaskID(t *testing.T) {
+	q, _ := newTestDatabaseQueue(t)
+
+	task := &model.Task{ID: "not-a-number", Data: []byte("{}")}
+
+	assert.False(t, q.awaitingApproval(task), "non-numeric task IDs should not be gated when cache is empty")
+}
+
+// TestDatabaseQueueBlockOnApprovalHookFiresWhenDepsClear verifies that the
+// DB queue invokes the injected BlockOnApprovalFn when an ApprovalNone-gated
+// task's upstream deps are satisfied, flips the cached gate to Pending so
+// the task is held, and does not dispatch the task while activation is in
+// flight.
+func TestDatabaseQueueBlockOnApprovalHookFiresWhenDepsClear(t *testing.T) {
+	q, mockStore := newTestDatabaseQueue(t)
+
+	var (
+		hookCalls   atomic.Int32
+		hookTaskID  atomic.Value // string
+		hookFiredCh = make(chan struct{}, 1)
+	)
+	q.SetBlockOnApprovalHook(func(_ context.Context, taskID string) {
+		hookTaskID.Store(taskID)
+		if hookCalls.Add(1) == 1 {
+			hookFiredCh <- struct{}{}
+		}
+	})
+
+	// Seed the approval gate cache for the gated task. With ApprovalNone
+	// already cached we don't need to mock WorkflowLoad.
+	q.approvalGatesMu.Lock()
+	q.approvalGates["2"] = approvalGate{requires: true, state: model.ApprovalNone}
+	q.approvalGatesMu.Unlock()
+
+	// Gated task with a satisfied dependency (DepStatus reports success and
+	// task1 is NOT in the returned task list, so areDependenciesMet succeeds).
+	gated := &model.Task{
+		ID:           "2",
+		Data:         []byte("{}"),
+		Dependencies: []string{"1"},
+		DepStatus: map[string]model.StatusValue{
+			"1": model.StatusSuccess,
+		},
+		AgentID: 0,
+	}
+
+	// Register a polling instance so tryBatchAssignment has something to
+	// dispatch to (otherwise it returns early).
+	responseChan := make(chan *model.Task, 1)
+	_, instCancel := testCancelCtx(t.Context())
+	defer instCancel()
+	q.pollingInstancesMu.Lock()
+	q.pollingInstances["test-inst"] = &pollingInstance{
+		instanceID: "test-inst",
+		agentID:    10,
+		filter:     filterFnTrue,
+		response:   responseChan,
+		pollTime:   time.Now(),
+		cancel:     instCancel,
+	}
+	q.pollingInstancesMu.Unlock()
+
+	mockStore.EXPECT().TaskList().Return([]*model.Task{gated}, nil)
+	// TaskAtomicAssign must NOT be called — the gate intercepts dispatch.
+
+	q.tryBatchAssignment()
+
+	// Hook fires asynchronously; wait for it.
+	select {
+	case <-hookFiredCh:
+	case <-time.After(2 * time.Second):
+		t.Fatal("BlockOnApprovalFn was not invoked after deps cleared")
+	}
+	assert.Equal(t, "2", hookTaskID.Load())
+
+	// Cache must now report the gate as Pending so the next assignment pass
+	// also withholds the task.
+	q.approvalGatesMu.RLock()
+	gate := q.approvalGates["2"]
+	q.approvalGatesMu.RUnlock()
+	assert.True(t, gate.requires)
+	assert.Equal(t, model.ApprovalPending, gate.state)
+	assert.True(t, q.awaitingApproval(gated),
+		"awaitingApproval must hold the task after activation")
+
+	// Verify dispatch was indeed blocked.
+	select {
+	case got := <-responseChan:
+		t.Fatalf("gated task should not have been dispatched, got %v", got)
+	default:
+		// expected
+	}
+}
+
+// TestDatabaseQueueActivateApprovalGateIdempotent verifies the gate
+// activation is a no-op when called repeatedly — subsequent passes after the
+// state flips to Pending must not re-fire the hook.
+func TestDatabaseQueueActivateApprovalGateIdempotent(t *testing.T) {
+	q, _ := newTestDatabaseQueue(t)
+
+	var hookCalls atomic.Int32
+	q.SetBlockOnApprovalHook(func(_ context.Context, _ string) {
+		hookCalls.Add(1)
+	})
+
+	gated := &model.Task{ID: "9", Data: []byte("{}")}
+
+	// First, seed ApprovalNone — activation should trigger.
+	q.approvalGatesMu.Lock()
+	q.approvalGates["9"] = approvalGate{requires: true, state: model.ApprovalNone}
+	q.approvalGatesMu.Unlock()
+
+	assert.True(t, q.shouldActivateApprovalGate(gated),
+		"task in ApprovalNone with requires=true should activate")
+	q.activateApprovalGate("9")
+
+	// After activation, shouldActivateApprovalGate must return false on
+	// subsequent calls (state is now Pending).
+	assert.False(t, q.shouldActivateApprovalGate(gated),
+		"task in ApprovalPending should not re-activate")
+
+	// Give the goroutine time to fire.
+	time.Sleep(50 * time.Millisecond)
+	assert.Equal(t, int32(1), hookCalls.Load(),
+		"hook should fire exactly once for the activation")
 }

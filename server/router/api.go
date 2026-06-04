@@ -91,6 +91,11 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 		Summary: "Get the currently authenticated user's cron jobs", Tags: []string{"User"},
 		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
 	}, api.GetUserCronList)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-user-pending-approvals", Method: http.MethodGet, Path: "/user/approvals/pending",
+		Summary: "List workflow approval gates the current user can act on", Tags: []string{"User"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetUserPendingApprovals)
 
 	// User forge connections (multi-forge support)
 	huma.Register(humaAPI, huma.Operation{
@@ -499,6 +504,21 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 		Summary: "Decline a pipeline", Tags: []string{"Pipelines"},
 		Security: BearerSecurity, Middlewares: repoPushMW,
 	}, api.PostDecline)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "post-workflow-approve", Method: http.MethodPost, Path: "/repos/{repo_id}/pipelines/{number}/workflows/{wf_pid}/approve",
+		Summary: "Approve a per-workflow approval gate", Tags: []string{"Pipelines"},
+		Security: BearerSecurity, Middlewares: repoPushMW,
+	}, api.PostWorkflowApprove)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "post-workflow-decline", Method: http.MethodPost, Path: "/repos/{repo_id}/pipelines/{number}/workflows/{wf_pid}/decline",
+		Summary: "Decline a per-workflow approval gate", Tags: []string{"Pipelines"},
+		Security: BearerSecurity, Middlewares: repoPushMW,
+	}, api.PostWorkflowDecline)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-workflow-approval", Method: http.MethodGet, Path: "/repos/{repo_id}/pipelines/{number}/workflows/{wf_pid}/approval",
+		Summary: "Get workflow approval state and audit trail", Tags: []string{"Pipelines"},
+		Security: BearerSecurity, Middlewares: repoPullMW,
+	}, api.GetWorkflowApproval)
 
 	// Logs
 	huma.Register(humaAPI, huma.Operation{

@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -877,6 +878,178 @@ func TestFifoOrphanedTaskGracePeriod(t *testing.T) {
 	entry := q.running["orphan-1"]
 	q.Unlock()
 	assert.NotNil(t, entry, "expect task still in running during grace period")
+}
+
+func TestFifoAwaitingApproval(t *testing.T) {
+	ctx, cancel := context.WithCancelCause(t.Context())
+	t.Cleanup(func() { cancel(nil) })
+
+	q, _ := NewMemoryQueue(ctx, nil).(*fifo)
+
+	gated := &model.Task{
+		ID:               "gated",
+		Data:             []byte("{}"),
+		RequiresApproval: true,
+		ApprovalState:    model.ApprovalPending,
+	}
+	free := &model.Task{
+		ID:   "free",
+		Data: []byte("{}"),
+	}
+	assert.NoError(t, q.PushAtOnce(ctx, []*model.Task{gated, free}))
+
+	waitForProcess()
+	info := q.Info(ctx)
+	// The gated task must be held in waitingOnDeps (1) and only the free task
+	// available for polling.
+	assert.Equal(t, 1, info.Stats.WaitingOnDeps, "expect gated task in waitingOnDeps")
+	assert.Len(t, info.Pending, 1, "expect free task pending")
+
+	got, err := q.Poll(ctx, 1, filterFnTrue)
+	assert.NoError(t, err)
+	assert.Equal(t, "free", got.ID)
+}
+
+func TestFifoSetApprovalStateReleases(t *testing.T) {
+	ctx, cancel := context.WithCancelCause(t.Context())
+	t.Cleanup(func() { cancel(nil) })
+
+	q, _ := NewMemoryQueue(ctx, nil).(*fifo)
+
+	gated := &model.Task{
+		ID:               "gated",
+		Data:             []byte("{}"),
+		RequiresApproval: true,
+		ApprovalState:    model.ApprovalPending,
+	}
+	assert.NoError(t, q.Push(ctx, gated))
+	waitForProcess()
+	info := q.Info(ctx)
+	assert.Equal(t, 1, info.Stats.WaitingOnDeps)
+
+	assert.NoError(t, q.SetApprovalState(ctx, "gated", model.ApprovalApproved))
+
+	waitForProcess()
+	got, err := q.Poll(ctx, 1, filterFnTrue)
+	assert.NoError(t, err)
+	assert.Equal(t, "gated", got.ID)
+}
+
+// TestFifoBlockOnApprovalHookFiresWhenDepsClear verifies that the queue
+// invokes the injected BlockOnApprovalFn exactly once when an
+// ApprovalNone-gated task's upstream deps finish, and that the task's
+// in-queue ApprovalState flips to Pending so subsequent passes keep gating
+// it.
+func TestFifoBlockOnApprovalHookFiresWhenDepsClear(t *testing.T) {
+	ctx, cancel := context.WithCancelCause(t.Context())
+	t.Cleanup(func() { cancel(nil) })
+
+	q, _ := NewMemoryQueue(ctx, nil).(*fifo)
+	assert.NotNil(t, q)
+
+	var (
+		hookCalls   atomic.Int32
+		hookTaskID  atomic.Value // string
+		hookFiredCh = make(chan struct{}, 1)
+	)
+	q.SetBlockOnApprovalHook(func(_ context.Context, taskID string) {
+		hookTaskID.Store(taskID)
+		if hookCalls.Add(1) == 1 {
+			hookFiredCh <- struct{}{}
+		}
+	})
+
+	// task1 is the upstream dep. task2 requires approval but starts in
+	// ApprovalNone — the hook should fire when task1 completes.
+	task1 := &model.Task{
+		ID:   "1",
+		Data: []byte("{}"),
+	}
+	task2 := &model.Task{
+		ID:               "2",
+		Data:             []byte("{}"),
+		Dependencies:     []string{"1"},
+		DepStatus:        make(map[string]model.StatusValue),
+		RequiresApproval: true,
+		ApprovalState:    model.ApprovalNone,
+	}
+
+	assert.NoError(t, q.PushAtOnce(ctx, []*model.Task{task1, task2}))
+
+	// While task1 is in queue, the gate should NOT activate — deps haven't
+	// cleared yet.
+	waitForProcess()
+	assert.Equal(t, int32(0), hookCalls.Load(),
+		"hook should not fire while upstream dep is still queued")
+
+	// Drain task1.
+	got, err := q.Poll(ctx, 1, filterFnTrue)
+	assert.NoError(t, err)
+	assert.Equal(t, "1", got.ID)
+	assert.NoError(t, q.Done(ctx, "1", model.StatusSuccess))
+
+	// Wait for the gate activation. Use a generous timeout to absorb the
+	// goroutine-scheduling jitter of the async hook invocation.
+	select {
+	case <-hookFiredCh:
+	case <-time.After(2 * time.Second):
+		t.Fatal("BlockOnApprovalFn was not invoked after deps cleared")
+	}
+
+	assert.Equal(t, "2", hookTaskID.Load(), "hook should fire for the gated task")
+
+	// task2 must remain held — local ApprovalState flipped to Pending.
+	waitForProcess()
+	info := q.Info(ctx)
+	assert.Equal(t, 1, info.Stats.WaitingOnDeps,
+		"gated task should remain in waitingOnDeps after activation")
+	assert.Empty(t, info.Pending, "gated task must not be dispatchable")
+
+	// Verify in-queue ApprovalState mirror.
+	q.Lock()
+	var liveTask *model.Task
+	for e := q.waitingOnDeps.Front(); e != nil; e = e.Next() {
+		if t, _ := e.Value.(*model.Task); t.ID == "2" {
+			liveTask = t
+			break
+		}
+	}
+	q.Unlock()
+	assert.NotNil(t, liveTask, "task2 must be present in waitingOnDeps")
+	assert.Equal(t, model.ApprovalPending, liveTask.ApprovalState,
+		"queue must mirror ApprovalPending so future passes keep gating the task")
+
+	// Subsequent filter passes must not re-fire the hook — state is no
+	// longer ApprovalNone, so activation is idempotent.
+	waitForProcess()
+	waitForProcess()
+	assert.Equal(t, int32(1), hookCalls.Load(),
+		"BlockOnApprovalFn must fire exactly once per activation")
+}
+
+// TestFifoBlockOnApprovalHookNotFiredForUngatedTask verifies the hook is
+// never invoked for tasks that don't require approval.
+func TestFifoBlockOnApprovalHookNotFiredForUngatedTask(t *testing.T) {
+	ctx, cancel := context.WithCancelCause(t.Context())
+	t.Cleanup(func() { cancel(nil) })
+
+	q, _ := NewMemoryQueue(ctx, nil).(*fifo)
+
+	var hookCalls atomic.Int32
+	q.SetBlockOnApprovalHook(func(_ context.Context, _ string) {
+		hookCalls.Add(1)
+	})
+
+	ungated := genDummyTask()
+	assert.NoError(t, q.Push(ctx, ungated))
+
+	waitForProcess()
+	got, err := q.Poll(ctx, 1, filterFnTrue)
+	assert.NoError(t, err)
+	assert.Equal(t, "1", got.ID)
+
+	assert.Equal(t, int32(0), hookCalls.Load(),
+		"hook should not fire for non-gated tasks")
 }
 
 func TestFifoOrphanedTaskReclaimedDuringGracePeriod(t *testing.T) {

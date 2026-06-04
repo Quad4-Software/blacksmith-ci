@@ -828,6 +828,10 @@ func (c *CompositeEncryptedStore) WorkflowApprovalEventsForWorkflow(workflowID i
 	return c.baseStore.WorkflowApprovalEventsForWorkflow(workflowID)
 }
 
+func (c *CompositeEncryptedStore) WorkflowsPendingApprovalForUser(userID int64) ([]*model.Workflow, error) {
+	return c.baseStore.WorkflowsPendingApprovalForUser(userID)
+}
+
 // Org.
 func (c *CompositeEncryptedStore) OrgCreate(org *model.Org) error {
 	return c.baseStore.OrgCreate(org)

@@ -357,6 +357,12 @@ type Store interface {
 	// ordered by created_at ascending.
 	WorkflowApprovalEventsForWorkflow(workflowID int64) ([]*model.WorkflowApprovalEvent, error)
 
+	// WorkflowsPendingApprovalForUser returns candidate workflows with
+	// ApprovalState=pending. The caller (API handler) is expected to apply
+	// authz filtering (CanApproveWorkflow) on the returned set, because that
+	// requires forge.Teams() calls we don't want in raw SQL.
+	WorkflowsPendingApprovalForUser(userID int64) ([]*model.Workflow, error)
+
 	// Org
 	OrgCreate(*model.Org) error
 	OrgGet(int64) (*model.Org, error)

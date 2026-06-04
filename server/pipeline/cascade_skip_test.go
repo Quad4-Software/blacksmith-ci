@@ -310,6 +310,131 @@ func TestCascadeSkipBlockedWorkflows_SkippedDepCascades(t *testing.T) {
 	mockQueue.AssertExpectations(t)
 }
 
+// TestCascadeSkipFromDeclined verifies that when a workflow gate is declined,
+// its transitively-dependent workflows are marked Skipped — same as the
+// failure cascade but triggered by StatusDeclined.
+//
+// 3-workflow DAG: build (success) -> gate (declined) -> deploy (pending).
+// After the cascade, build is unchanged, gate stays declined, deploy is
+// Skipped.
+func TestCascadeSkipFromDeclined(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	pipeline := &model.Pipeline{ID: 700}
+
+	buildWF := &model.Workflow{
+		ID:         60,
+		PipelineID: 700,
+		Name:       "build",
+		State:      model.StatusSuccess,
+	}
+	gateWF := &model.Workflow{
+		ID:            61,
+		PipelineID:    700,
+		Name:          "gate",
+		State:         model.StatusDeclined,
+		ApprovalState: model.ApprovalDeclined,
+		DependsOn:     model.JSONSliceString{"build"},
+	}
+	deployStep := &model.Step{
+		ID:    62,
+		PID:   61,
+		Name:  "deploy-step",
+		State: model.StatusPending,
+	}
+	deployWF := &model.Workflow{
+		ID:         62,
+		PipelineID: 700,
+		Name:       "deploy",
+		State:      model.StatusPending,
+		DependsOn:  model.JSONSliceString{"gate"},
+		Children:   []*model.Step{deployStep},
+	}
+
+	mockStore := new(store_mocks.MockStore)
+	mockStore.On("GetPipeline", int64(700)).Return(pipeline, nil)
+	mockStore.On("WorkflowGetTree", pipeline).Return(
+		[]*model.Workflow{buildWF, gateWF, deployWF}, nil)
+	mockStore.On("TaskList").Return([]*model.Task{
+		{ID: "61", Dependencies: model.JSONSliceString{"60"}},
+		{ID: "62", Dependencies: model.JSONSliceString{"61"}},
+	}, nil)
+	mockStore.On("WorkflowUpdate", mock.MatchedBy(func(wf *model.Workflow) bool {
+		return wf.ID == 62 && wf.State == model.StatusSkipped
+	})).Return(nil)
+	mockStore.On("StepUpdate", mock.MatchedBy(func(s *model.Step) bool {
+		return s.ID == 62 && s.State == model.StatusSkipped
+	})).Return(nil)
+
+	mockQueue := new(queue_mocks.MockQueue)
+	mockQueue.On("EvictAtOnce", mock.Anything, []string{"62"}).Return(nil)
+
+	err := cascadeSkipFromDeclined(ctx, mockStore, mockQueue, gateWF)
+	assert.NoError(t, err)
+
+	// build was not touched.
+	mockStore.AssertNotCalled(t, "WorkflowUpdate", mock.MatchedBy(func(wf *model.Workflow) bool {
+		return wf.ID == 60
+	}))
+	// gate stays declined — cascade must not flip a declined dep to skipped.
+	mockStore.AssertNotCalled(t, "WorkflowUpdate", mock.MatchedBy(func(wf *model.Workflow) bool {
+		return wf.ID == 61
+	}))
+	mockStore.AssertExpectations(t)
+	mockQueue.AssertExpectations(t)
+}
+
+// TestCascadeSkipFromDeclined_RunsOnFailureNotSkipped verifies that a
+// workflow with run_on: [failure] is NOT skipped when its upstream gate is
+// declined — declined counts as "did not succeed" so failure-only handlers
+// should still run.
+func TestCascadeSkipFromDeclined_RunsOnFailureNotSkipped(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	pipeline := &model.Pipeline{ID: 800}
+
+	gateWF := &model.Workflow{
+		ID:            70,
+		PipelineID:    800,
+		Name:          "gate",
+		State:         model.StatusDeclined,
+		ApprovalState: model.ApprovalDeclined,
+	}
+	notifyWF := &model.Workflow{
+		ID:         71,
+		PipelineID: 800,
+		Name:       "notify",
+		State:      model.StatusPending,
+		DependsOn:  model.JSONSliceString{"gate"},
+	}
+
+	mockStore := new(store_mocks.MockStore)
+	mockStore.On("GetPipeline", int64(800)).Return(pipeline, nil)
+	mockStore.On("WorkflowGetTree", pipeline).Return(
+		[]*model.Workflow{gateWF, notifyWF}, nil)
+	mockStore.On("TaskList").Return([]*model.Task{
+		{
+			ID:           "71",
+			Dependencies: model.JSONSliceString{"70"},
+			RunOn:        model.JSONSliceString{string(model.StatusFailure)},
+		},
+	}, nil)
+
+	mockQueue := new(queue_mocks.MockQueue)
+
+	err := cascadeSkipFromDeclined(ctx, mockStore, mockQueue, gateWF)
+	assert.NoError(t, err)
+
+	// notify should still be allowed to run — no skip cascade.
+	mockStore.AssertNotCalled(t, "WorkflowUpdate", mock.Anything)
+	mockStore.AssertNotCalled(t, "StepUpdate", mock.Anything)
+	mockQueue.AssertNotCalled(t, "EvictAtOnce", mock.Anything, mock.Anything)
+}
+
 // TestShouldSkipDueToBlockedDep covers the small predicate directly to lock in
 // its semantics independently of orchestration.
 func TestShouldSkipDueToBlockedDep(t *testing.T) {
