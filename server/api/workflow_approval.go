@@ -30,9 +30,9 @@ import (
 
 // WorkflowApprovalInput describes the path/body shape for approve and decline.
 type WorkflowApprovalInput struct {
-	RepoID         int64 `path:"repo_id" doc:"the repository id"`
-	PipelineNumber int64 `path:"number"  doc:"the pipeline number"`
-	WorkflowPID    int   `path:"wf_pid"  doc:"the workflow PID inside the pipeline"`
+	RepoID         int64 `path:"repo_id"     doc:"the repository id"`
+	PipelineNumber int64 `path:"number"      doc:"the pipeline number"`
+	WorkflowID     int64 `path:"workflow_id" doc:"the workflow id"`
 	Body           *struct {
 		Reason string `json:"reason,omitempty" doc:"optional human-readable note recorded in the audit trail"`
 	}
@@ -50,7 +50,7 @@ func PostWorkflowApprove(ctx context.Context, input *WorkflowApprovalInput) (*Wo
 	repo := session.Repo(c)
 	user := session.User(c)
 
-	wf, err := loadWorkflowByPID(_store, repo, input.PipelineNumber, input.WorkflowPID)
+	wf, err := loadWorkflowByID(_store, repo, input.PipelineNumber, input.WorkflowID)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func PostWorkflowDecline(ctx context.Context, input *WorkflowApprovalInput) (*Wo
 	repo := session.Repo(c)
 	user := session.User(c)
 
-	wf, err := loadWorkflowByPID(_store, repo, input.PipelineNumber, input.WorkflowPID)
+	wf, err := loadWorkflowByID(_store, repo, input.PipelineNumber, input.WorkflowID)
 	if err != nil {
 		return nil, err
 	}
@@ -119,11 +119,11 @@ func PostWorkflowDecline(ctx context.Context, input *WorkflowApprovalInput) (*Wo
 	return &WorkflowApprovalOutput{Body: updated}, nil
 }
 
-// GetWorkflowApprovalInput identifies a workflow gate by pipeline number + PID.
+// GetWorkflowApprovalInput identifies a workflow gate by repo + pipeline number + workflow id.
 type GetWorkflowApprovalInput struct {
-	RepoID         int64 `path:"repo_id" doc:"the repository id"`
-	PipelineNumber int64 `path:"number"  doc:"the pipeline number"`
-	WorkflowPID    int   `path:"wf_pid"  doc:"the workflow PID inside the pipeline"`
+	RepoID         int64 `path:"repo_id"     doc:"the repository id"`
+	PipelineNumber int64 `path:"number"      doc:"the pipeline number"`
+	WorkflowID     int64 `path:"workflow_id" doc:"the workflow id"`
 }
 
 // GetWorkflowApprovalBody is the response shape for the approval-state endpoint.
@@ -143,7 +143,7 @@ func GetWorkflowApproval(ctx context.Context, input *GetWorkflowApprovalInput) (
 	_store := store.FromContext(c)
 	repo := session.Repo(c)
 
-	wf, err := loadWorkflowByPID(_store, repo, input.PipelineNumber, input.WorkflowPID)
+	wf, err := loadWorkflowByID(_store, repo, input.PipelineNumber, input.WorkflowID)
 	if err != nil {
 		return nil, err
 	}
@@ -202,21 +202,22 @@ func GetUserPendingApprovals(ctx context.Context, _ *struct{}) (*GetUserPendingA
 	}}, nil
 }
 
-// loadWorkflowByPID resolves a (pipeline number, workflow PID) tuple against a
-// repo, returning a typed huma error suitable for direct return from a handler.
-func loadWorkflowByPID(s store.Store, repo *model.Repo, pipelineNumber int64, wfPID int) (*model.Workflow, error) {
+// loadWorkflowByID loads a workflow by its database id and verifies it belongs
+// to the pipeline identified by (repo, pipelineNumber). Returns a typed huma
+// error so handlers can return it directly. The pipeline-number lookup is the
+// IDOR fence: even though we look up the workflow by primary key, we refuse to
+// act on it unless its PipelineID matches the URL's pipeline.
+func loadWorkflowByID(s store.Store, repo *model.Repo, pipelineNumber, workflowID int64) (*model.Workflow, error) {
 	pl, err := s.GetPipelineNumber(repo, pipelineNumber)
 	if err != nil {
 		return nil, dbErr(err)
 	}
-	tree, err := s.WorkflowGetTree(pl)
+	wf, err := s.WorkflowLoad(workflowID)
 	if err != nil {
-		return nil, huma.Error500InternalServerError("workflow tree load failed", err)
+		return nil, dbErr(err)
 	}
-	for _, w := range tree {
-		if w.PID == wfPID {
-			return w, nil
-		}
+	if wf.PipelineID != pl.ID {
+		return nil, huma.Error404NotFound("workflow not found")
 	}
-	return nil, huma.Error404NotFound("workflow not found")
+	return wf, nil
 }

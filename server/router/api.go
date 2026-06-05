@@ -505,17 +505,17 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 		Security: BearerSecurity, Middlewares: repoPushMW,
 	}, api.PostDecline)
 	huma.Register(humaAPI, huma.Operation{
-		OperationID: "post-workflow-approve", Method: http.MethodPost, Path: "/repos/{repo_id}/pipelines/{number}/workflows/{wf_pid}/approve",
+		OperationID: "post-workflow-approve", Method: http.MethodPost, Path: "/repos/{repo_id}/pipelines/{number}/workflows/{workflow_id}/approve",
 		Summary: "Approve a per-workflow approval gate", Tags: []string{"Pipelines"},
 		Security: BearerSecurity, Middlewares: repoPushMW,
 	}, api.PostWorkflowApprove)
 	huma.Register(humaAPI, huma.Operation{
-		OperationID: "post-workflow-decline", Method: http.MethodPost, Path: "/repos/{repo_id}/pipelines/{number}/workflows/{wf_pid}/decline",
+		OperationID: "post-workflow-decline", Method: http.MethodPost, Path: "/repos/{repo_id}/pipelines/{number}/workflows/{workflow_id}/decline",
 		Summary: "Decline a per-workflow approval gate", Tags: []string{"Pipelines"},
 		Security: BearerSecurity, Middlewares: repoPushMW,
 	}, api.PostWorkflowDecline)
 	huma.Register(humaAPI, huma.Operation{
-		OperationID: "get-workflow-approval", Method: http.MethodGet, Path: "/repos/{repo_id}/pipelines/{number}/workflows/{wf_pid}/approval",
+		OperationID: "get-workflow-approval", Method: http.MethodGet, Path: "/repos/{repo_id}/pipelines/{number}/workflows/{workflow_id}/approval",
 		Summary: "Get workflow approval state and audit trail", Tags: []string{"Pipelines"},
 		Security: BearerSecurity, Middlewares: repoPullMW,
 	}, api.GetWorkflowApproval)
