@@ -19,9 +19,111 @@ package podman
 import (
 	"testing"
 
+	"github.com/containers/podman/v5/pkg/specgen"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/assert"
+	nettypes "go.podman.io/common/libnetwork/types"
+
+	backend "codefloe.com/crowci/crow/v5/pipeline/backend/types"
 )
+
+func TestToSpecGeneratorAttachesNetworksAtCreateTime(t *testing.T) {
+	engine := podman{}
+
+	spec := engine.toSpecGenerator(&backend.Step{
+		Image: "alpine:latest",
+		Networks: []backend.Conn{
+			{Name: "crow_default", Aliases: []string{"clone"}},
+			{Name: "extra_network"},
+		},
+	}, BackendOptions{}, "task-123")
+
+	assert.Equal(t, specgen.Bridge, spec.NetNS.NSMode)
+	assert.Len(t, spec.Networks, 2)
+	assert.Equal(t, "eth0", spec.Networks["crow_default"].InterfaceName)
+	assert.Equal(t, "eth1", spec.Networks["extra_network"].InterfaceName)
+	assert.Equal(t, []string{"clone"}, spec.Networks["crow_default"].Aliases)
+	assert.Empty(t, spec.Networks["extra_network"].Aliases)
+}
+
+func TestToSpecGeneratorPreservesExplicitNetworkMode(t *testing.T) {
+	engine := podman{}
+
+	spec := engine.toSpecGenerator(&backend.Step{
+		Image:       "alpine:latest",
+		NetworkMode: "host",
+		Networks: []backend.Conn{
+			{Name: "crow_default", Aliases: []string{"clone"}},
+		},
+	}, BackendOptions{}, "task-123")
+
+	assert.Equal(t, specgen.Host, spec.NetNS.NSMode)
+	assert.Empty(t, spec.Networks)
+}
+
+func TestAddConfiguredNetworkToSpecAppends(t *testing.T) {
+	engine := podman{}
+	spec := engine.toSpecGenerator(&backend.Step{
+		Image: "alpine:latest",
+		Networks: []backend.Conn{
+			{Name: "crow_default", Aliases: []string{"clone"}},
+		},
+	}, BackendOptions{}, "task-123")
+
+	addConfiguredNetworkToSpec(spec, "configured_network")
+
+	assert.Equal(t, specgen.Bridge, spec.NetNS.NSMode)
+	assert.Len(t, spec.Networks, 2)
+	assert.Equal(t, "eth0", spec.Networks["crow_default"].InterfaceName)
+	assert.Equal(t, "eth1", spec.Networks["configured_network"].InterfaceName)
+	assert.Empty(t, spec.Networks["configured_network"].Aliases)
+}
+
+func TestAddConfiguredNetworkToSpecPreservesStepAliases(t *testing.T) {
+	engine := podman{}
+	spec := engine.toSpecGenerator(&backend.Step{
+		Image: "alpine:latest",
+		Networks: []backend.Conn{
+			{Name: "crow_default", Aliases: []string{"clone"}},
+		},
+	}, BackendOptions{}, "task-123")
+
+	addConfiguredNetworkToSpec(spec, "crow_default")
+
+	assert.Len(t, spec.Networks, 1)
+	assert.Equal(t, "eth0", spec.Networks["crow_default"].InterfaceName)
+	assert.Equal(t, []string{"clone"}, spec.Networks["crow_default"].Aliases)
+}
+
+func TestNextSpecNetworkInterfaceNameSkipsUsedNames(t *testing.T) {
+	engine := podman{}
+	spec := engine.toSpecGenerator(&backend.Step{
+		Image: "alpine:latest",
+		Networks: []backend.Conn{
+			{Name: "crow_default"},
+			{Name: "extra_network"},
+		},
+	}, BackendOptions{}, "task-123")
+
+	addNetworkToSpec(spec, "third_network", nettypes.PerNetworkOptions{})
+
+	assert.Equal(t, "eth2", spec.Networks["third_network"].InterfaceName)
+}
+
+func TestAddNetworkToSpecPreservesInterfaceNameOnUpdate(t *testing.T) {
+	engine := podman{}
+	spec := engine.toSpecGenerator(&backend.Step{
+		Image: "alpine:latest",
+		Networks: []backend.Conn{
+			{Name: "crow_default", Aliases: []string{"clone"}},
+		},
+	}, BackendOptions{}, "task-123")
+
+	addNetworkToSpec(spec, "crow_default", nettypes.PerNetworkOptions{Aliases: []string{"updated"}})
+
+	assert.Equal(t, "eth0", spec.Networks["crow_default"].InterfaceName)
+	assert.Equal(t, []string{"updated"}, spec.Networks["crow_default"].Aliases)
+}
 
 // TestToResourceLimits tests conversion to OCI spec.LinuxResources.
 // This is Podman-specific as Docker uses different types.

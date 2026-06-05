@@ -17,6 +17,7 @@
 package podman
 
 import (
+	"fmt"
 	"maps"
 	"net"
 	"strings"
@@ -69,6 +70,12 @@ func (e *podman) toSpecGenerator(step *backendTypes.Step, options BackendOptions
 		s.NetNS = specgen.Namespace{
 			NSMode: specgen.NamespaceMode(step.NetworkMode),
 		}
+	} else if len(step.Networks) != 0 {
+		for _, n := range step.Networks {
+			addNetworkToSpec(s, n.Name, nettypes.PerNetworkOptions{
+				Aliases: n.Aliases,
+			})
+		}
 	}
 
 	// DNS configuration
@@ -106,6 +113,63 @@ func (e *podman) toSpecGenerator(step *backendTypes.Step, options BackendOptions
 	s.ResourceLimits = toResourceLimits(&e.config)
 
 	return s
+}
+
+// ensureSpecNetworks forces NSMode to Bridge and initializes the network map if needed.
+// Callers must already have verified step.NetworkMode is empty, since this overrides any
+// previously-set NSMode.
+func ensureSpecNetworks(s *specgen.SpecGenerator) {
+	s.NetNS = specgen.Namespace{NSMode: specgen.Bridge}
+	if s.Networks == nil {
+		s.Networks = make(map[string]nettypes.PerNetworkOptions)
+	}
+}
+
+func addNetworkToSpec(s *specgen.SpecGenerator, name string, opts nettypes.PerNetworkOptions) {
+	if name == "" {
+		return
+	}
+	ensureSpecNetworks(s)
+	existing, ok := s.Networks[name]
+	if opts.InterfaceName == "" {
+		if ok {
+			opts.InterfaceName = existing.InterfaceName
+		} else {
+			opts.InterfaceName = nextSpecNetworkInterfaceName(s)
+		}
+	}
+	s.Networks[name] = opts
+}
+
+func addConfiguredNetworkToSpec(s *specgen.SpecGenerator, name string) {
+	if name == "" {
+		return
+	}
+	// Do not overwrite a step network with the same name; preserve its aliases.
+	if _, ok := s.Networks[name]; ok {
+		return
+	}
+	addNetworkToSpec(s, name, nettypes.PerNetworkOptions{})
+}
+
+func nextSpecNetworkInterfaceName(s *specgen.SpecGenerator) string {
+	// Podman v5 stores spec networks in a map, so preserve Crow's network order
+	// by assigning interface names as networks are added. The "eth" prefix is
+	// only a hint to Podman's ordering — the actual in-container interface name
+	// is assigned by netavark and is not affected by this value.
+	used := make(map[string]struct{}, len(s.Networks))
+	for _, opts := range s.Networks {
+		if opts.InterfaceName != "" {
+			used[opts.InterfaceName] = struct{}{}
+		}
+	}
+
+	for i := 0; ; i++ {
+		name := fmt.Sprintf("eth%d", i)
+		if _, ok := used[name]; !ok {
+			return name
+		}
+	}
 }
 
 // newVolumeCreateOptions creates volume options for Podman.

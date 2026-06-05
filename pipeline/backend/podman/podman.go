@@ -37,7 +37,6 @@ import (
 	"github.com/containers/podman/v5/pkg/bindings/volumes"
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v3"
-	nettypes "go.podman.io/common/libnetwork/types"
 
 	"codefloe.com/crowci/crow/v5/pipeline/backend/common"
 	backend "codefloe.com/crowci/crow/v5/pipeline/backend/types"
@@ -211,6 +210,9 @@ func (e *podman) StartStep(ctx context.Context, step *backend.Step, taskUUID str
 	spec := e.toSpecGenerator(step, options, taskUUID)
 	containerName := common.ToContainerName(step)
 	spec.Name = containerName
+	if len(step.NetworkMode) == 0 {
+		addConfiguredNetworkToSpec(spec, e.config.network)
+	}
 
 	// Add default volumes
 	spec.Volumes = append(spec.Volumes, toNamedVolumes(e.config.volumes)...)
@@ -250,29 +252,6 @@ func (e *podman) StartStep(ctx context.Context, step *backend.Step, taskUUID str
 	}
 	if err != nil {
 		return fmt.Errorf("failed to create container: %w", err)
-	}
-
-	// Connect to networks (if not using custom network mode)
-	if len(step.NetworkMode) == 0 {
-		for _, n := range step.Networks {
-			opts := &nettypes.PerNetworkOptions{
-				Aliases: n.Aliases,
-			}
-			//nolint:contextcheck // Podman SDK uses context embedded in connection
-			err = network.Connect(e.conn, n.Name, response.ID, opts)
-			if err != nil {
-				return fmt.Errorf("failed to connect to network %s: %w", n.Name, err)
-			}
-		}
-
-		// Join the container to an existing network if configured
-		if e.config.network != "" {
-			//nolint:contextcheck // Podman SDK uses context embedded in connection
-			err = network.Connect(e.conn, e.config.network, response.ID, nil)
-			if err != nil {
-				return fmt.Errorf("failed to connect to configured network %s: %w", e.config.network, err)
-			}
-		}
 	}
 
 	//nolint:contextcheck // Podman SDK uses context embedded in connection
