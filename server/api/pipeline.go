@@ -134,7 +134,10 @@ func CreatePipeline(ctx context.Context, input *CreatePipelineInput) (*CreatePip
 }
 
 func createTmpPipeline(event model.WebhookEvent, commit *model.Commit, user *model.User, opts *model.PipelineOptions) *model.Pipeline {
-	messageText := "Manual run"
+	messageText := strings.TrimSpace(commit.Message)
+	if messageText == "" {
+		messageText = "Manual run"
+	}
 	if len(opts.Variables) > 0 {
 		varsText := ""
 		first := true

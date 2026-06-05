@@ -470,6 +470,7 @@ func (c *Gitea) BranchHead(ctx context.Context, u *model.User, r *model.Repo, br
 	return &model.Commit{
 		SHA:      b.Commit.ID,
 		ForgeURL: b.Commit.URL,
+		Message:  b.Commit.Message,
 	}, nil
 }
 

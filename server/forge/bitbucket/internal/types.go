@@ -274,8 +274,9 @@ type CommitsResp struct {
 }
 
 type Commit struct {
-	Hash  string `json:"hash"`
-	Links struct {
+	Hash    string `json:"hash"`
+	Message string `json:"message"`
+	Links   struct {
 		HTML struct {
 			Href string `json:"href"`
 		} `json:"html"`

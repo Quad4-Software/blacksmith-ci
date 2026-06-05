@@ -384,6 +384,7 @@ func (c *config) BranchHead(ctx context.Context, u *model.User, r *model.Repo, b
 	return &model.Commit{
 		SHA:      commit.Hash,
 		ForgeURL: commit.Links.HTML.Href,
+		Message:  commit.Message,
 	}, nil
 }
 
