@@ -816,6 +816,10 @@ func (c *CompositeEncryptedStore) WorkflowNamesByRepo(repoID int64) ([]string, e
 	return c.baseStore.WorkflowNamesByRepo(repoID)
 }
 
+func (c *CompositeEncryptedStore) WorkflowListByAgent(agentID int64, p *model.ListOptions) ([]*model.AgentWorkflow, error) {
+	return c.baseStore.WorkflowListByAgent(agentID, p)
+}
+
 func (c *CompositeEncryptedStore) WorkflowsAwaitingApprovalBefore(now int64) ([]*model.Workflow, error) {
 	return c.baseStore.WorkflowsAwaitingApprovalBefore(now)
 }

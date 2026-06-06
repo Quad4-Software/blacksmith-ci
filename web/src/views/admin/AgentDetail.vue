@@ -156,31 +156,72 @@
       <!-- Tasks -->
       <TabsContent value="tasks" class="flex-1 overflow-auto">
         <div class="flex items-center gap-2 mb-4">
-          <h3 class="text-lg font-semibold">
-            {{ $t('admin.settings.agents.tasks_running_count', { count: tasks?.length ?? 0 }) }}
-          </h3>
+          <!-- Running | History toggle -->
+          <div class="inline-flex rounded-md border p-0.5">
+            <Button :variant="tasksMode === 'running' ? 'default' : 'ghost'" size="sm" @click="tasksMode = 'running'">
+              {{ $t('admin.settings.agents.tasks_running') }}
+            </Button>
+            <Button :variant="tasksMode === 'history' ? 'default' : 'ghost'" size="sm" @click="tasksMode = 'history'">
+              {{ $t('admin.settings.agents.tasks_history') }}
+            </Button>
+          </div>
           <div class="flex-1" />
-          <Button variant="outline" size="sm" :disabled="tasksLoading" @click="loadTasks">
-            <Icon name="lucide:refresh-cw" class="h-4 w-4" :class="{ 'animate-spin': tasksLoading }" />
+          <Button
+            variant="outline"
+            size="sm"
+            :disabled="tasksMode === 'running' ? tasksLoading : workflowsLoading"
+            @click="tasksMode === 'running' ? loadTasks() : loadWorkflows(true)"
+          >
+            <Icon
+              name="lucide:refresh-cw"
+              class="h-4 w-4"
+              :class="{ 'animate-spin': tasksMode === 'running' ? tasksLoading : workflowsLoading }"
+            />
           </Button>
         </div>
 
-        <QueueTaskList
-          v-if="tasksWithStatus.length > 0"
-          :tasks="tasksWithStatus"
-          :get-status-color="() => 'bg-blue-500'"
-          :get-status-label="() => $t('admin.settings.queue.running')"
-          :get-status-badge-variant="() => 'default'"
-          :time-ago="date.timeAgo"
-          :pretty-duration="date.prettyDuration"
-        />
-        <div v-else-if="!tasksLoading" class="text-center py-12 text-muted-foreground">
-          <Icon name="list" class="h-12 w-12 mx-auto mb-3 opacity-50" />
-          <p>{{ $t('admin.settings.agents.tasks_empty') }}</p>
-        </div>
-        <div v-else class="flex items-center justify-center py-12 text-muted-foreground">
-          <Icon name="loading" class="h-6 w-6 animate-spin" />
-        </div>
+        <!-- Running tasks -->
+        <template v-if="tasksMode === 'running'">
+          <QueueTaskList
+            v-if="tasksWithStatus.length > 0"
+            :tasks="tasksWithStatus"
+            :get-status-color="() => 'bg-blue-500'"
+            :get-status-label="() => $t('admin.settings.queue.running')"
+            :get-status-badge-variant="() => 'default'"
+            :time-ago="date.timeAgo"
+            :pretty-duration="date.prettyDuration"
+          />
+          <div v-else-if="!tasksLoading" class="text-center py-12 text-muted-foreground">
+            <Icon name="list" class="h-12 w-12 mx-auto mb-3 opacity-50" />
+            <p>{{ $t('admin.settings.agents.tasks_empty') }}</p>
+          </div>
+          <div v-else class="flex items-center justify-center py-12 text-muted-foreground">
+            <Icon name="loading" class="h-6 w-6 animate-spin" />
+          </div>
+        </template>
+
+        <!-- Historic workflows -->
+        <template v-else>
+          <AgentWorkflowList
+            v-if="workflows.length > 0"
+            :workflows="workflows"
+            :time-ago="date.timeAgo"
+            :pretty-duration="date.prettyDuration"
+          />
+          <div v-else-if="!workflowsLoading" class="text-center py-12 text-muted-foreground">
+            <Icon name="list" class="h-12 w-12 mx-auto mb-3 opacity-50" />
+            <p>{{ $t('admin.settings.agents.workflows_empty') }}</p>
+          </div>
+
+          <div v-if="workflowsLoading" class="flex items-center justify-center py-6 text-muted-foreground">
+            <Icon name="loading" class="h-6 w-6 animate-spin" />
+          </div>
+          <div v-else-if="workflowsHasMore" class="flex justify-center mt-4">
+            <Button variant="outline" size="sm" @click="loadWorkflows(false)">
+              {{ $t('admin.settings.agents.workflows_load_more') }}
+            </Button>
+          </div>
+        </template>
       </TabsContent>
 
       <!-- Logs -->
@@ -196,6 +237,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 
+import AgentWorkflowList from '~/components/admin/settings/agent/AgentWorkflowList.vue';
 import QueueTaskList from '~/components/admin/settings/queue/QueueTaskList.vue';
 import Icon from '~/components/atomic/Icon.vue';
 import ProcLogViewer from '~/components/log/ProcLogViewer.vue';
@@ -220,7 +262,7 @@ import {
   getAgentStatusTitle,
   isAgentVersionMismatch,
 } from '~/lib/agent-utils';
-import type { Agent, Task } from '~/lib/api/types';
+import type { Agent, AgentWorkflow, Task } from '~/lib/api/types';
 
 const route = useRoute();
 const apiClient = useApiClient();
@@ -230,32 +272,72 @@ const notifications = useNotifications();
 const { t } = useI18n();
 const id = Number(route.params.id);
 
+const WORKFLOWS_PER_PAGE = 25;
+
 const activeTab = ref<'info' | 'tasks' | 'logs'>('info');
+const tasksMode = ref<'running' | 'history'>('running');
 const agent = ref<Agent | null>(null);
 const tasks = ref<Task[]>();
 const tasksLoading = ref(false);
+const workflows = ref<AgentWorkflow[]>([]);
+const workflowsLoaded = ref(false);
+const workflowsLoading = ref(false);
+const workflowsPage = ref(0);
+const workflowsHasMore = ref(false);
 
 const tasksWithStatus = computed(() => (tasks.value ?? []).map((task) => ({ ...task, status: 'running' as const })));
+
+function notifyError(err: unknown) {
+  notifications.notify({
+    title: t('notify_title_error'),
+    text: err instanceof Error ? err.message : String(err),
+    type: 'error',
+    duration: 6000,
+  });
+}
 
 async function loadTasks() {
   tasksLoading.value = true;
   try {
     tasks.value = (await apiClient.getAgentTasks(id)) ?? [];
   } catch (err) {
-    notifications.notify({
-      title: t('notify_title_error'),
-      text: err instanceof Error ? err.message : String(err),
-      type: 'error',
-      duration: 6000,
-    });
+    notifyError(err);
   } finally {
     tasksLoading.value = false;
+  }
+}
+
+// loadWorkflows fetches a page of historic workflows. Pass reset=true to start
+// over from the first page (e.g. on manual refresh); otherwise it appends the
+// next page for the "Load more" button.
+async function loadWorkflows(reset: boolean) {
+  if (workflowsLoading.value) {
+    return;
+  }
+  workflowsLoading.value = true;
+  const page = reset ? 1 : workflowsPage.value + 1;
+  try {
+    const batch = (await apiClient.getAgentWorkflows(id, { page, perPage: WORKFLOWS_PER_PAGE })) ?? [];
+    workflows.value = reset ? batch : [...workflows.value, ...batch];
+    workflowsPage.value = page;
+    workflowsHasMore.value = batch.length === WORKFLOWS_PER_PAGE;
+    workflowsLoaded.value = true;
+  } catch (err) {
+    notifyError(err);
+  } finally {
+    workflowsLoading.value = false;
   }
 }
 
 watch(activeTab, (tab) => {
   if (tab === 'tasks' && tasks.value === undefined) {
     loadTasks();
+  }
+});
+
+watch(tasksMode, (mode) => {
+  if (mode === 'history' && !workflowsLoaded.value) {
+    loadWorkflows(true);
   }
 });
 

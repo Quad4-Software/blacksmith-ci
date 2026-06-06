@@ -55,6 +55,14 @@ func (Workflow) TableName() string {
 	return "workflows"
 }
 
+// AgentWorkflow is a historic workflow processed by an agent, enriched with the
+// owning pipeline's repo and number so the frontend can deep-link to it.
+type AgentWorkflow struct {
+	Workflow
+	RepoID         int64 `json:"repo_id"         bun:"repo_id,scanonly"`
+	PipelineNumber int64 `json:"pipeline_number" bun:"pipeline_number,scanonly"`
+}
+
 // Running returns true if the process state is pending or running.
 func (p *Workflow) Running() bool {
 	return p.State == StatusPending || p.State == StatusRunning

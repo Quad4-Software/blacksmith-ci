@@ -289,6 +289,28 @@ func (s storage) WorkflowLoad(id int64) (*model.Workflow, error) {
 	return workflow, wrapGet(s.db.NewSelect().Model(workflow).Where("id = ?", id).Scan(context.Background()))
 }
 
+// WorkflowListByAgent returns historic workflows processed by the given agent,
+// most recently finished first, enriched with the owning pipeline's repo and
+// number for deep-linking.
+func (s storage) WorkflowListByAgent(agentID int64, p *model.ListOptions) ([]*model.AgentWorkflow, error) {
+	var list []*model.AgentWorkflow
+	q := s.db.NewSelect().
+		ColumnExpr("w.*").
+		ColumnExpr("p.repo_id AS repo_id").
+		ColumnExpr("p.number AS pipeline_number").
+		TableExpr("workflows AS w").
+		Join("JOIN pipelines AS p ON p.id = w.pipeline_id").
+		Where("w.agent_id = ?", agentID).
+		OrderExpr("w.finished DESC, w.started DESC, w.id DESC")
+	if !p.All {
+		q = q.Limit(p.PerPage).Offset(p.PerPage * (p.Page - 1))
+	}
+	if err := q.Scan(context.Background(), &list); err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
 func (s storage) WorkflowNamesByRepo(repoID int64) ([]string, error) {
 	var names []string
 	err := s.db.NewSelect().

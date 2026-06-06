@@ -13432,6 +13432,74 @@ func (_c *MockStore_WorkflowGetTree_Call) RunAndReturn(run func(pipeline *model.
 	return _c
 }
 
+// WorkflowListByAgent provides a mock function for the type MockStore
+func (_mock *MockStore) WorkflowListByAgent(agentID int64, p *model.ListOptions) ([]*model.AgentWorkflow, error) {
+	ret := _mock.Called(agentID, p)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WorkflowListByAgent")
+	}
+
+	var r0 []*model.AgentWorkflow
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, *model.ListOptions) ([]*model.AgentWorkflow, error)); ok {
+		return returnFunc(agentID, p)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, *model.ListOptions) []*model.AgentWorkflow); ok {
+		r0 = returnFunc(agentID, p)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.AgentWorkflow)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, *model.ListOptions) error); ok {
+		r1 = returnFunc(agentID, p)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_WorkflowListByAgent_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WorkflowListByAgent'
+type MockStore_WorkflowListByAgent_Call struct {
+	*mock.Call
+}
+
+// WorkflowListByAgent is a helper method to define mock.On call
+//   - agentID int64
+//   - p *model.ListOptions
+func (_e *MockStore_Expecter) WorkflowListByAgent(agentID interface{}, p interface{}) *MockStore_WorkflowListByAgent_Call {
+	return &MockStore_WorkflowListByAgent_Call{Call: _e.mock.On("WorkflowListByAgent", agentID, p)}
+}
+
+func (_c *MockStore_WorkflowListByAgent_Call) Run(run func(agentID int64, p *model.ListOptions)) *MockStore_WorkflowListByAgent_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 *model.ListOptions
+		if args[1] != nil {
+			arg1 = args[1].(*model.ListOptions)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_WorkflowListByAgent_Call) Return(agentWorkflows []*model.AgentWorkflow, err error) *MockStore_WorkflowListByAgent_Call {
+	_c.Call.Return(agentWorkflows, err)
+	return _c
+}
+
+func (_c *MockStore_WorkflowListByAgent_Call) RunAndReturn(run func(agentID int64, p *model.ListOptions) ([]*model.AgentWorkflow, error)) *MockStore_WorkflowListByAgent_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // WorkflowLoad provides a mock function for the type MockStore
 func (_mock *MockStore) WorkflowLoad(n int64) (*model.Workflow, error) {
 	ret := _mock.Called(n)

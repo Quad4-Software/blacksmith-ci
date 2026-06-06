@@ -16,6 +16,7 @@
 package datastore
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -57,6 +58,47 @@ func TestWorkflowLoad(t *testing.T) {
 	assert.EqualValues(t, 1, workflowGet.PipelineID)
 	assert.Equal(t, 1, workflowGet.PID)
 	assert.Len(t, workflowGet.Children, 0)
+}
+
+func TestWorkflowListByAgent(t *testing.T) {
+	store, closer := newTestStore(t, new(model.Pipeline), new(model.Workflow))
+	defer closer()
+
+	ctx := context.Background()
+	p1 := &model.Pipeline{RepoID: 1, Number: 7}
+	p2 := &model.Pipeline{RepoID: 1, Number: 8}
+	_, err := store.db.NewInsert().Model(p1).Exec(ctx)
+	assert.NoError(t, err)
+	_, err = store.db.NewInsert().Model(p2).Exec(ctx)
+	assert.NoError(t, err)
+
+	wfs := []*model.Workflow{
+		{PipelineID: p1.ID, PID: 1, Name: "older", AgentID: 1, Started: 100, Finished: 150, State: model.StatusSuccess},
+		{PipelineID: p2.ID, PID: 1, Name: "newer", AgentID: 1, Started: 200, Finished: 250, State: model.StatusFailure},
+		{PipelineID: p1.ID, PID: 2, Name: "other-agent", AgentID: 2, Started: 100, Finished: 300, State: model.StatusSuccess},
+	}
+	assert.NoError(t, store.WorkflowsCreate(wfs))
+
+	// Only agent 1's workflows, most recently finished first, enriched with repo + number.
+	got, err := store.WorkflowListByAgent(1, &model.ListOptions{All: true})
+	assert.NoError(t, err)
+	assert.Len(t, got, 2)
+	assert.Equal(t, "newer", got[0].Name)
+	assert.Equal(t, "older", got[1].Name)
+	assert.EqualValues(t, 1, got[0].RepoID)
+	assert.EqualValues(t, 8, got[0].PipelineNumber)
+	assert.EqualValues(t, 7, got[1].PipelineNumber)
+
+	// Pagination splits the two results across pages.
+	page1, err := store.WorkflowListByAgent(1, &model.ListOptions{Page: 1, PerPage: 1})
+	assert.NoError(t, err)
+	assert.Len(t, page1, 1)
+	assert.Equal(t, "newer", page1[0].Name)
+
+	page2, err := store.WorkflowListByAgent(1, &model.ListOptions{Page: 2, PerPage: 1})
+	assert.NoError(t, err)
+	assert.Len(t, page2, 1)
+	assert.Equal(t, "older", page2[0].Name)
 }
 
 func TestWorkflowGetTree(t *testing.T) {

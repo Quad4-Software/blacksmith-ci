@@ -346,6 +346,9 @@ type Store interface {
 	WorkflowLoad(int64) (*model.Workflow, error)
 	WorkflowUpdate(*model.Workflow) error
 	WorkflowNamesByRepo(repoID int64) ([]string, error)
+	// WorkflowListByAgent returns historic workflows processed by an agent,
+	// most recently finished first, enriched with repo and pipeline number.
+	WorkflowListByAgent(agentID int64, p *model.ListOptions) ([]*model.AgentWorkflow, error)
 	// WorkflowsAwaitingApprovalBefore returns workflows whose approval gate
 	// has expired (deadline <= now and state still pending). Used by the sweeper.
 	WorkflowsAwaitingApprovalBefore(now int64) ([]*model.Workflow, error)

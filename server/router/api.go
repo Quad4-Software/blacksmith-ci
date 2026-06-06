@@ -840,6 +840,11 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
 	}, api.GetAgentTasks)
 	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-agent-workflows", Method: http.MethodGet, Path: "/agents/{agent_id}/workflows",
+		Summary: "List historic workflows processed by an agent", Tags: []string{"Agents"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetAgentWorkflows)
+	huma.Register(humaAPI, huma.Operation{
 		OperationID: "post-agent", Method: http.MethodPost, Path: "/agents",
 		Summary: "Create a new agent", Tags: []string{"Agents"},
 		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},

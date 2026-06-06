@@ -139,6 +139,36 @@ func GetAgentTasks(ctx context.Context, input *GetAgentTasksInput) (*GetAgentTas
 	return &GetAgentTasksOutput{Body: enriched}, nil
 }
 
+type GetAgentWorkflowsInput struct {
+	PaginationParams
+	AgentID int64 `path:"agent_id" doc:"the agent's id"`
+}
+
+type GetAgentWorkflowsOutput struct {
+	Body []*model.AgentWorkflow
+}
+
+// GetAgentWorkflows returns the historic workflows processed by an agent,
+// most recently finished first, paginated.
+func GetAgentWorkflows(ctx context.Context, input *GetAgentWorkflowsInput) (*GetAgentWorkflowsOutput, error) {
+	c := ginCtx(ctx)
+	_store := store.FromContext(c)
+	agent, err := _store.AgentFind(input.AgentID)
+	if err != nil {
+		return nil, dbErr(err)
+	}
+
+	workflows, err := _store.WorkflowListByAgent(agent.ID, &model.ListOptions{
+		Page:    input.Page,
+		PerPage: input.PerPage,
+	})
+	if err != nil {
+		return nil, huma.Error500InternalServerError("error getting agent workflows", err)
+	}
+
+	return &GetAgentWorkflowsOutput{Body: workflows}, nil
+}
+
 type PatchAgentBody struct {
 	Name       string `json:"name" doc:"name of the agent"`
 	NoSchedule bool   `json:"no_schedule" doc:"disable scheduling for this agent"`

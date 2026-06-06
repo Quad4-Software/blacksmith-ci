@@ -7,6 +7,7 @@ import type {
   UpdateAccessTokenRequest,
   AdminMetrics,
   Agent,
+  AgentWorkflow,
   Autoscaler,
   AutoscalerListOptions,
   AutoscalerWithToken,
@@ -584,6 +585,11 @@ export default class CrowClient extends ApiClient {
 
   async getAgentTasks(agentId: Agent['id']): Promise<Task[] | null> {
     return this._get(`/api/v1/agents/${agentId}/tasks`) as Promise<Task[] | null>;
+  }
+
+  async getAgentWorkflows(agentId: Agent['id'], opts?: PaginationOptions): Promise<AgentWorkflow[] | null> {
+    const query = encodeQueryString(opts);
+    return this._get(`/api/v1/agents/${agentId}/workflows?${query}`) as Promise<AgentWorkflow[] | null>;
   }
 
   async createAgent(agent: Partial<Agent>): Promise<Agent> {
