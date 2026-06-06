@@ -270,12 +270,12 @@ export default class CrowClient extends ApiClient {
   async workflowApprove(
     repoId: number,
     pipelineNumber: number,
-    workflowPid: number,
+    workflowId: number,
     reason?: string,
   ): Promise<PipelineWorkflow> {
     const body = reason !== undefined && reason !== '' ? { reason } : undefined;
     return this._post(
-      `/api/v1/repos/${repoId}/pipelines/${pipelineNumber}/workflows/${workflowPid}/approve`,
+      `/api/v1/repos/${repoId}/pipelines/${pipelineNumber}/workflows/${workflowId}/approve`,
       body,
     ) as Promise<PipelineWorkflow>;
   }
@@ -283,12 +283,12 @@ export default class CrowClient extends ApiClient {
   async workflowDecline(
     repoId: number,
     pipelineNumber: number,
-    workflowPid: number,
+    workflowId: number,
     reason?: string,
   ): Promise<PipelineWorkflow> {
     const body = reason !== undefined && reason !== '' ? { reason } : undefined;
     return this._post(
-      `/api/v1/repos/${repoId}/pipelines/${pipelineNumber}/workflows/${workflowPid}/decline`,
+      `/api/v1/repos/${repoId}/pipelines/${pipelineNumber}/workflows/${workflowId}/decline`,
       body,
     ) as Promise<PipelineWorkflow>;
   }
@@ -296,10 +296,10 @@ export default class CrowClient extends ApiClient {
   async getWorkflowApproval(
     repoId: number,
     pipelineNumber: number,
-    workflowPid: number,
+    workflowId: number,
   ): Promise<WorkflowApprovalState> {
     return this._get(
-      `/api/v1/repos/${repoId}/pipelines/${pipelineNumber}/workflows/${workflowPid}/approval`,
+      `/api/v1/repos/${repoId}/pipelines/${pipelineNumber}/workflows/${workflowId}/approval`,
     ) as Promise<WorkflowApprovalState>;
   }
 

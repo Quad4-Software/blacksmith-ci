@@ -159,7 +159,7 @@ function formatEventTime(unixSeconds: number): string {
 
 async function loadApprovalState() {
   try {
-    const state = await apiClient.getWorkflowApproval(props.repoId, props.pipelineNumber, workflow.value.pid);
+    const state = await apiClient.getWorkflowApproval(props.repoId, props.pipelineNumber, workflow.value.id);
     events.value = state.events ?? [];
   } catch (error) {
     console.error(error);
@@ -186,7 +186,7 @@ async function onApprove() {
     const updated = await apiClient.workflowApprove(
       props.repoId,
       props.pipelineNumber,
-      workflow.value.pid,
+      workflow.value.id,
       reason.value,
     );
     reason.value = '';
@@ -217,7 +217,7 @@ async function onDecline() {
     const updated = await apiClient.workflowDecline(
       props.repoId,
       props.pipelineNumber,
-      workflow.value.pid,
+      workflow.value.id,
       reason.value,
     );
     reason.value = '';
