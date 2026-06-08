@@ -399,26 +399,29 @@ const { selectedStepId, previousStepId, nextStepId, autoFollowEnabled, handleAut
   { pipeline, stepIdProp: stepId },
 );
 
-// Workflow with a pending approval gate that matches the currently-selected
-// step. Resolves the selected step back to its workflow and shows the
-// approval panel when that workflow is waiting for a decision.
+// Workflow with an approval gate that matches the currently-selected step.
+// Resolves the selected step back to its workflow and shows the approval
+// panel for any non-empty approval_state — 'pending' renders the interactive
+// gate; 'approved' / 'declined' / 'expired' render a read-only summary so
+// the user can still see what happened after the gate resolved.
 const selectedWorkflowApproval = computed<PipelineWorkflow | null>(() => {
   const workflows = pipeline.value?.workflows;
   if (!workflows || workflows.length === 0) {
     return null;
   }
-  // Prefer the workflow containing the selected step. Fall back to the first
-  // pending-approval workflow if no step is selected yet (e.g. mobile, or the
-  // selected step lives in an unrelated workflow).
+  const hasGate = (w: PipelineWorkflow) => !!w.approval_state;
+  // Prefer the workflow containing the selected step. Fall back to any
+  // workflow with a non-empty approval_state if no step is selected yet
+  // (e.g. mobile, or the selected step lives in an unrelated workflow).
   const sId = selectedStepId.value;
   if (sId !== null && sId !== undefined) {
     const wfForStep = workflows.find((w) => w.children?.some((s) => s.pid === sId));
-    if (wfForStep && wfForStep.approval_state === 'pending') {
+    if (wfForStep && hasGate(wfForStep)) {
       return wfForStep;
     }
   }
-  const pending = workflows.find((w) => w.approval_state === 'pending');
-  return pending ?? null;
+  const gated = workflows.find(hasGate);
+  return gated ?? null;
 });
 
 async function onWorkflowApprovalUpdated(_updated: PipelineWorkflow) {

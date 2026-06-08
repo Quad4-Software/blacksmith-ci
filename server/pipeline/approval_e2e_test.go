@@ -27,6 +27,9 @@ import (
 	store_mocks "codefloe.com/crowci/crow/v5/server/store/mocks"
 )
 
+// Local Decline / Timeout helpers reuse withApprovalPublishServices, which
+// is defined in approval_gate_test.go in this same package.
+
 // approvalDAG bundles the actors of the canonical 3-workflow approval-gate
 // DAG used by the e2e scenarios below.
 type approvalDAG struct {
@@ -93,11 +96,14 @@ func dagFixture() approvalDAG {
 //     dispatch it once gate transitions to Success). Cascading skip is the
 //     decline / expire path, not the approve path.
 func TestApprovalGate_DAG_Approve(t *testing.T) {
-	t.Parallel()
+	// Cannot t.Parallel — manipulates server.Config.Services globals.
 
 	ctx := context.Background()
 	d := dagFixture()
 	user := &model.User{ID: 7}
+	d.pipeline.RepoID = 1
+	d.pipeline.Status = model.StatusBlocked
+	repo := &model.Repo{ID: 1, FullName: "test/repo", UserID: 7}
 
 	s := store_mocks.NewMockStore(t)
 	q := queue_mocks.NewMockQueue(t)
@@ -116,14 +122,33 @@ func TestApprovalGate_DAG_Approve(t *testing.T) {
 	})).Return(nil)
 	q.On("SetApprovalState", mock.Anything, "902", model.ApprovalApproved).Return(nil)
 
+	// refreshAndPublishPipeline runs after approve to refresh SSE clients.
+	// It loads the pipeline + repo and walks the tree; the rollup status
+	// after approval is StatusPending (gate now Pending, deploy still Pending,
+	// build Success — Failing() returns false for all) so it stays at the
+	// existing Blocked status — wait, that's only the rollup. The pipeline
+	// was Blocked before, and PipelineStatus([success, pending, pending]) =
+	// success since none are failing. So UpdatePipeline IS expected.
+	s.On("GetPipeline", d.pipeline.ID).Return(d.pipeline, nil)
+	s.On("GetRepo", int64(1)).Return(repo, nil)
+	s.On("WorkflowGetTree", d.pipeline).
+		Return([]*model.Workflow{d.build, d.gate, d.deploy}, nil)
+	s.On("UpdatePipeline", mock.MatchedBy(func(p *model.Pipeline) bool {
+		return p.ID == d.pipeline.ID
+	})).Return(nil).Maybe()
+
+	mockForge, cleanup := withApprovalPublishServices(t, repo)
+	defer cleanup()
+
 	err := ApproveWorkflow(ctx, s, q, user, d.gate.ID, "ship it")
 	assert.NoError(t, err)
 
-	// Approve must NOT trigger a cascade — downstream deploy stays Pending.
-	s.AssertNotCalled(t, "GetPipeline", mock.Anything)
-	s.AssertNotCalled(t, "WorkflowGetTree", mock.Anything)
+	// Approve must NOT trigger a cascade walk — TaskList would be the smoking
+	// gun, as the skip cascade reads it; refreshAndPublishPipeline does not.
+	s.AssertNotCalled(t, "TaskList")
 	s.AssertExpectations(t)
 	q.AssertExpectations(t)
+	mockForge.AssertExpectations(t)
 }
 
 // TestApprovalGate_DAG_Decline walks the explicit-no path: an approver
@@ -138,11 +163,14 @@ func TestApprovalGate_DAG_Approve(t *testing.T) {
 //   - build is NOT touched — it already completed successfully and is upstream
 //     of the declined gate
 func TestApprovalGate_DAG_Decline(t *testing.T) {
-	t.Parallel()
+	// Cannot t.Parallel — manipulates server.Config.Services globals.
 
 	ctx := context.Background()
 	d := dagFixture()
+	d.pipeline.RepoID = 1
+	d.pipeline.Status = model.StatusBlocked
 	user := &model.User{ID: 7}
+	repo := &model.Repo{ID: 1, FullName: "test/repo", UserID: 7}
 
 	s := store_mocks.NewMockStore(t)
 	q := queue_mocks.NewMockQueue(t)
@@ -180,6 +208,17 @@ func TestApprovalGate_DAG_Decline(t *testing.T) {
 	})).Return(nil)
 	q.On("EvictAtOnce", mock.Anything, []string{"903"}).Return(nil)
 
+	// refreshAndPublishPipeline runs after the cascade. The recomputed rollup
+	// is StatusDeclined, which differs from the prior Blocked, so the pipeline
+	// status is persisted via UpdatePipeline.
+	s.On("GetRepo", int64(1)).Return(repo, nil)
+	s.On("UpdatePipeline", mock.MatchedBy(func(p *model.Pipeline) bool {
+		return p.ID == d.pipeline.ID && p.Status == model.StatusDeclined
+	})).Return(nil)
+
+	mockForge, cleanup := withApprovalPublishServices(t, repo)
+	defer cleanup()
+
 	err := DeclineWorkflow(ctx, s, q, user, d.gate.ID, "no go")
 	assert.NoError(t, err)
 
@@ -196,6 +235,7 @@ func TestApprovalGate_DAG_Decline(t *testing.T) {
 
 	s.AssertExpectations(t)
 	q.AssertExpectations(t)
+	mockForge.AssertExpectations(t)
 }
 
 // TestApprovalGate_DAG_Timeout walks the auto-expire path: the cron sweeper
@@ -214,12 +254,16 @@ func TestApprovalGate_DAG_Decline(t *testing.T) {
 // sweeper IS the unit under test for the timeout path, and a ticker would
 // only add flakiness.
 func TestApprovalGate_DAG_Timeout(t *testing.T) {
-	t.Parallel()
+	// Cannot t.Parallel — manipulates server.Config.Services globals.
 
 	ctx := context.Background()
 	d := dagFixture()
+	d.pipeline.RepoID = 1
+	d.pipeline.Status = model.StatusBlocked
 	// Move the deadline 60s into the past so the sweeper picks this gate up.
 	d.gate.ApprovalDeadline = time.Now().Unix() - 60
+	repo := &model.Repo{ID: 1, FullName: "test/repo", UserID: 7}
+	repoOwner := &model.User{ID: 7, Login: "owner"}
 
 	s := store_mocks.NewMockStore(t)
 	q := queue_mocks.NewMockQueue(t)
@@ -261,6 +305,17 @@ func TestApprovalGate_DAG_Timeout(t *testing.T) {
 	})).Return(nil)
 	q.On("EvictAtOnce", mock.Anything, []string{"903"}).Return(nil)
 
+	// refreshAndPublishPipeline: load repo, fall back to repo owner because
+	// ExpireWorkflow passes a UserID=0 system stub, then publish.
+	s.On("GetRepo", int64(1)).Return(repo, nil)
+	s.On("GetUser", int64(7)).Return(repoOwner, nil)
+	s.On("UpdatePipeline", mock.MatchedBy(func(p *model.Pipeline) bool {
+		return p.ID == d.pipeline.ID && p.Status == model.StatusDeclined
+	})).Return(nil)
+
+	mockForge, cleanup := withApprovalPublishServices(t, repo)
+	defer cleanup()
+
 	// Call the same code path the cron loop would: load expired gates and
 	// run ExpireWorkflow on each. We invoke ExpireWorkflow directly here
 	// rather than importing server/cron to avoid a test-time package import
@@ -286,4 +341,5 @@ func TestApprovalGate_DAG_Timeout(t *testing.T) {
 
 	s.AssertExpectations(t)
 	q.AssertExpectations(t)
+	mockForge.AssertExpectations(t)
 }

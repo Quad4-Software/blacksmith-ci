@@ -20,6 +20,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/rs/zerolog/log"
+
+	"codefloe.com/crowci/crow/v5/server"
 	"codefloe.com/crowci/crow/v5/server/model"
 	"codefloe.com/crowci/crow/v5/server/queue"
 	"codefloe.com/crowci/crow/v5/server/store"
@@ -109,6 +112,10 @@ func ApproveWorkflow(
 	if err := q.SetApprovalState(ctx, fmt.Sprint(workflowID), model.ApprovalApproved); err != nil {
 		return fmt.Errorf("queue notify: %w", err)
 	}
+	// Refresh + publish so SSE clients see the gate-decision update without
+	// having to wait for another workflow to republish. Errors here must not
+	// fail the transition — the gate is already approved in the DB.
+	refreshAndPublishPipeline(ctx, s, wf.PipelineID, user)
 	return nil
 }
 
@@ -179,7 +186,14 @@ func declineWorkflowInternal(
 		return fmt.Errorf("queue notify: %w", err)
 	}
 	// Trigger downstream skip cascade — implemented in Task 23.
-	return cascadeSkipFromDeclined(ctx, s, q, wf)
+	if err := cascadeSkipFromDeclined(ctx, s, q, wf); err != nil {
+		return err
+	}
+	// Refresh + publish so SSE clients see the cascade'd state immediately.
+	// For expire/decline, the acting user may be the system stub (ID=0); the
+	// helper falls back to the repo owner for the forge call.
+	refreshAndPublishPipeline(ctx, s, wf.PipelineID, user)
+	return nil
 }
 
 // cascadeSkipFromDeclined marks all workflows whose dependency chain
@@ -199,4 +213,81 @@ func cascadeSkipFromDeclined(ctx context.Context, s store.Store, q queue.Queue, 
 		return fmt.Errorf("cascade skip from declined: load pipeline %d: %w", declined.PipelineID, err)
 	}
 	return CascadeSkipBlockedWorkflows(ctx, s, q, pipeline)
+}
+
+// refreshAndPublishPipeline reloads the parent pipeline, recomputes its
+// rollup status from the latest workflow tree, persists the updated status,
+// and publishes the change to SSE/websocket subscribers so the UI updates
+// without a page reload.
+//
+// Errors here are logged but never propagated: the underlying gate
+// transition has already succeeded and persisted, so a publish failure
+// must not roll that back. The next state change (or a manual refresh)
+// will reconcile the view.
+//
+// Actor is the user attributed to the action — for approve/decline this is
+// the requesting user, for expire it is the system stub (UserID=0). When
+// the actor has no ID (system-driven path) we fall back to the repo owner
+// so the forge.Status call has a token to authenticate with, matching the
+// idiom used in server/pipeline/approve.go.
+func refreshAndPublishPipeline(ctx context.Context, s store.Store, pipelineID int64, actor *model.User) {
+	pl, err := s.GetPipeline(pipelineID)
+	if err != nil {
+		log.Error().Err(err).Int64("pipeline_id", pipelineID).
+			Msg("refresh and publish: load pipeline failed")
+		return
+	}
+	repo, err := s.GetRepo(pl.RepoID)
+	if err != nil {
+		log.Error().Err(err).Int64("repo_id", pl.RepoID).
+			Msg("refresh and publish: load repo failed")
+		return
+	}
+	pl.Workflows, err = s.WorkflowGetTree(pl)
+	if err != nil {
+		log.Error().Err(err).Int64("pipeline_id", pipelineID).
+			Msg("refresh and publish: load workflow tree failed")
+		return
+	}
+
+	// Recompute and persist the pipeline rollup. Only overwrite if the
+	// pipeline isn't already terminal in a way the rollup doesn't see — a
+	// previously running pipeline becomes Declined the moment a gate
+	// rejects, even if other workflows are still pending.
+	newStatus := model.PipelineStatus(pl.Workflows)
+	if newStatus != pl.Status {
+		pl.Status = newStatus
+		if err := s.UpdatePipeline(pl); err != nil {
+			log.Error().Err(err).Int64("pipeline_id", pipelineID).
+				Msg("refresh and publish: persist pipeline status failed")
+			// fall through — still publish what we have
+		}
+	}
+
+	// For the forge.Status call (commit status push), the acting user must
+	// have a token. System-driven sweeper actions arrive with UserID=0;
+	// fall back to the repo owner the same way other system paths do.
+	forgeUser := actor
+	if forgeUser == nil || forgeUser.ID == 0 {
+		owner, err := s.GetUser(repo.UserID)
+		if err != nil {
+			log.Error().Err(err).Int64("repo_id", pl.RepoID).
+				Msg("refresh and publish: load repo owner failed")
+			// Still publish to the topic — only the forge.Status call needs the user.
+			publishToTopic(pl, repo)
+			return
+		}
+		forgeUser = owner
+	}
+
+	forge, err := server.Config.Services.Manager.ForgeFromRepo(repo)
+	if err != nil {
+		log.Error().Err(err).Str("repo", repo.FullName).
+			Msg("refresh and publish: load forge failed")
+		// Still publish to the topic — pubsub doesn't need the forge.
+		publishToTopic(pl, repo)
+		return
+	}
+
+	publishPipeline(ctx, forge, pl, repo, forgeUser)
 }

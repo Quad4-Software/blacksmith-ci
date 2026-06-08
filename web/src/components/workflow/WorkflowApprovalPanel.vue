@@ -3,9 +3,14 @@
     <div class="flex flex-col gap-4">
       <!-- Heading -->
       <div class="flex items-center gap-3">
-        <Icon name="lucide:lock" size="1.5rem" class="size-8 text-yellow-500" />
+        <Icon :name="headerIcon" size="1.5rem" class="size-8" :class="headerIconClass" />
         <div class="flex flex-col">
-          <span class="text-lg font-semibold">{{ $t('workflow.approval.title') }}</span>
+          <span class="text-lg font-semibold">
+            <template v-if="approvalState === 'approved'">{{ $t('workflow.approval.title_approved') }}</template>
+            <template v-else-if="approvalState === 'declined'">{{ $t('workflow.approval.title_declined') }}</template>
+            <template v-else-if="approvalState === 'expired'">{{ $t('workflow.approval.title_expired') }}</template>
+            <template v-else>{{ $t('workflow.approval.title_pending') }}</template>
+          </span>
           <span class="text-sm text-muted-foreground">{{ workflow.name }}</span>
         </div>
       </div>
@@ -22,16 +27,17 @@
         <span class="text-muted-foreground">{{ approversLabel }}</span>
       </div>
 
-      <!-- Reason input -->
+      <!-- Reason input (pending only) -->
       <Textarea
+        v-if="isPending"
         v-model="reason"
         :placeholder="$t('workflow.approval.reason_placeholder')"
         class="min-h-20"
         :disabled="isBusy"
       />
 
-      <!-- Action buttons -->
-      <div class="flex flex-wrap items-center gap-2">
+      <!-- Action buttons (pending only) -->
+      <div v-if="isPending" class="flex flex-wrap items-center gap-2">
         <Button
           variant="outline"
           class="border-green-500 hover:border-green-600 hover:bg-green-50 dark:hover:bg-green-950/20"
@@ -79,7 +85,7 @@ import useApiClient from '~/compositions/useApiClient';
 import { useDate } from '~/compositions/useDate';
 import useNotifications from '~/compositions/useNotifications';
 import type { IconNames } from '~/components/atomic/Icon.types';
-import type { PipelineWorkflow, WorkflowApprovalEvent } from '~/lib/api/types';
+import type { ApprovalState, PipelineWorkflow, WorkflowApprovalEvent } from '~/lib/api/types';
 
 const props = defineProps<{
   repoId: number;
@@ -108,6 +114,35 @@ const events = ref<WorkflowApprovalEvent[]>([]);
 const isBusy = computed(() => isApproving.value || isDeclining.value);
 const canAct = computed(() => canApprove.value);
 
+const approvalState = computed<ApprovalState>(() => workflow.value.approval_state ?? '');
+const isPending = computed(() => approvalState.value === 'pending');
+
+const headerIcon = computed<IconNames>(() => {
+  switch (approvalState.value) {
+    case 'approved':
+      return 'status-success';
+    case 'declined':
+      return 'status-declined';
+    case 'expired':
+      return 'status-blocked';
+    default:
+      return 'lucide:lock';
+  }
+});
+
+const headerIconClass = computed(() => {
+  switch (approvalState.value) {
+    case 'approved':
+      return 'text-green-500';
+    case 'declined':
+      return 'text-amber-500';
+    case 'expired':
+      return 'text-amber-500';
+    default:
+      return 'text-yellow-500';
+  }
+});
+
 const approversLabel = computed(() => {
   const users = (workflow.value.approval_users ?? []).map((u) => u);
   const teams = (workflow.value.approval_teams ?? []).map((g) => `@${g}`);
@@ -121,6 +156,11 @@ const deadlineLabel = computed(() => {
     return '';
   }
   const deadlineMs = deadlineSec * 1000;
+  // Past-tense rendering for terminal states: show the deadline as a
+  // historical timestamp instead of a live countdown.
+  if (!isPending.value) {
+    return t('workflow.approval.deadline_was', { at: toLocaleString(new Date(deadlineMs)) });
+  }
   const remaining = deadlineMs - Date.now();
   if (remaining <= 0) {
     return t('workflow.approval.expired');
@@ -167,6 +207,13 @@ async function loadApprovalState() {
 }
 
 async function loadCanApprove() {
+  // Only pending gates accept approve/decline. Skip the API call for terminal
+  // states — buttons aren't rendered anyway.
+  if (!isPending.value) {
+    canApprove.value = false;
+    approvalLoading.value = false;
+    return;
+  }
   approvalLoading.value = true;
   try {
     const { workflows } = await apiClient.getUserPendingApprovals();
@@ -250,6 +297,15 @@ watch(
   () => workflow.value.id,
   async () => {
     await loadApprovalState();
+  },
+);
+
+// Re-check approve permission when state changes (e.g., approval just landed
+// via SSE while the panel was open).
+watch(
+  () => workflow.value.approval_state,
+  async () => {
+    await loadCanApprove();
   },
 );
 </script>

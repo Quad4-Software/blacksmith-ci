@@ -21,13 +21,17 @@ import (
 
 	"github.com/stretchr/testify/mock"
 
+	"codefloe.com/crowci/crow/v5/server"
+	forge_mocks "codefloe.com/crowci/crow/v5/server/forge/mocks"
 	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v5/server/pubsub"
 	queue_mocks "codefloe.com/crowci/crow/v5/server/queue/mocks"
+	manager_mocks "codefloe.com/crowci/crow/v5/server/services/mocks"
 	store_mocks "codefloe.com/crowci/crow/v5/server/store/mocks"
 )
 
 func TestSweepExpiredApprovalsCallsExpire(t *testing.T) {
-	t.Parallel()
+	// Cannot t.Parallel — manipulates server.Config.Services globals.
 	s := store_mocks.NewMockStore(t)
 	q := queue_mocks.NewMockQueue(t)
 
@@ -57,6 +61,35 @@ func TestSweepExpiredApprovalsCallsExpire(t *testing.T) {
 	s.On("WorkflowGetTree", mock.AnythingOfType("*model.Pipeline")).
 		Return([]*model.Workflow{expired}, nil).Maybe()
 	s.On("TaskList").Return([]*model.Task{}, nil).Maybe()
+	// After cascade, refreshAndPublishPipeline re-loads the pipeline + repo,
+	// recomputes the rollup status and republishes to SSE clients. For a
+	// system-driven expire (UserID=0) it also looks up the repo owner for
+	// forge auth. All reads are .Maybe() because this sweeper test only
+	// asserts that ExpireWorkflow ran end-to-end without error.
+	s.On("GetRepo", mock.AnythingOfType("int64")).
+		Return(&model.Repo{ID: 1, FullName: "test/repo", UserID: 7}, nil).Maybe()
+	s.On("GetUser", mock.AnythingOfType("int64")).
+		Return(&model.User{ID: 7, Login: "owner"}, nil).Maybe()
+	s.On("UpdatePipeline", mock.AnythingOfType("*model.Pipeline")).
+		Return(nil).Maybe()
+
+	// Wire the bare minimum global services that refreshAndPublishPipeline
+	// reaches into: a Manager that returns a forge mock, and a pubsub.
+	mockForge := new(forge_mocks.MockForge)
+	mockForge.On("Status", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(nil).Maybe()
+	mockManager := new(manager_mocks.MockManager)
+	mockManager.On("ForgeFromRepo", mock.AnythingOfType("*model.Repo")).
+		Return(mockForge, nil).Maybe()
+
+	originalManager := server.Config.Services.Manager
+	originalPubsub := server.Config.Services.Pubsub
+	server.Config.Services.Manager = mockManager
+	server.Config.Services.Pubsub = pubsub.New()
+	defer func() {
+		server.Config.Services.Manager = originalManager
+		server.Config.Services.Pubsub = originalPubsub
+	}()
 
 	SweepExpiredApprovals(context.Background(), s, q)
 }

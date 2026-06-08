@@ -79,13 +79,17 @@
   },
   "workflow": {
     "approval": {
-      "title": "Approval required",
+      "title_pending": "Approval required",
+      "title_approved": "Approval granted",
+      "title_declined": "Approval declined",
+      "title_expired": "Approval gate expired",
       "approvers": "Approvers",
       "approve": "Approve",
       "decline": "Decline",
       "reason_placeholder": "Optional reason for the audit trail",
       "expires_in": "Expires in {delta}",
       "expired": "expired",
+      "deadline_was": "Deadline was {at}",
       "cant_approve": "You are not authorized to approve this gate.",
       "no_approvers": "no approvers configured",
       "audit_trail": "Audit trail",
