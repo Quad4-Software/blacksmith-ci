@@ -17,6 +17,7 @@ package pipeline
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -185,6 +186,63 @@ func TestExpireWorkflowFallsBackToRepoOwnerForForgeAuth(t *testing.T) {
 
 	s.AssertExpectations(t)
 	q.AssertExpectations(t)
+	mockForge.AssertCalled(t, "Status", mock.Anything, repoOwner,
+		mock.Anything, mock.Anything, mock.Anything)
+}
+
+// TestBlockOnApprovalPublishesPipelineUpdate is the block-activation twin of
+// the approve/decline/expire publish tests. When the queue activates a gate
+// (upstream deps cleared), the DB row flips to Blocked + Pending and the
+// in-flight SSE topic must see the change immediately — without it, the
+// approval panel needs a full page reload to appear. The action is
+// system-driven, so the helper falls back to the repo owner for forge auth.
+func TestBlockOnApprovalPublishesPipelineUpdate(t *testing.T) {
+	// Cannot t.Parallel — manipulates server.Config.Services globals.
+	s := store_mocks.NewMockStore(t)
+	q := queue_mocks.NewMockQueue(t)
+
+	repo := &model.Repo{ID: 1, FullName: "test/repo", UserID: 7}
+	repoOwner := &model.User{ID: 7, Login: "owner"}
+	pl := &model.Pipeline{ID: 99, RepoID: 1, Status: model.StatusBlocked}
+	wf := &model.Workflow{
+		ID: 42, PipelineID: 99, RequiresApproval: true, ApprovalTimeoutSeconds: 3600,
+	}
+
+	s.On("WorkflowLoad", int64(42)).Return(wf, nil)
+	s.On("WorkflowUpdate", mock.MatchedBy(func(w *model.Workflow) bool {
+		return w.State == model.StatusBlocked &&
+			w.ApprovalState == model.ApprovalPending
+	})).Return(nil)
+	q.On("SetApprovalState", mock.Anything, "42", model.ApprovalPending).Return(nil)
+
+	// refreshAndPublishPipeline path: reload + recompute + (maybe) persist + publish.
+	s.On("GetPipeline", int64(99)).Return(pl, nil)
+	s.On("GetRepo", int64(1)).Return(repo, nil)
+	s.On("WorkflowGetTree", pl).Return([]*model.Workflow{wf}, nil)
+	// System-driven activation — actor is nil, so the helper looks up the
+	// repo owner to authenticate the forge.Status() push.
+	s.On("GetUser", int64(7)).Return(repoOwner, nil)
+	// The pipeline rollup over a single Blocked workflow is StatusSuccess
+	// (Blocked is not Failing/Killed/Declined). That differs from the seed
+	// StatusBlocked, so UpdatePipeline is expected.
+	s.On("UpdatePipeline", mock.MatchedBy(func(p *model.Pipeline) bool {
+		return p.ID == 99
+	})).Return(nil)
+
+	mockForge, cleanup := withApprovalPublishServices(t, repo)
+	defer cleanup()
+	// forge.Status receives the repo owner, not a nil actor.
+	mockForge.On("Status", mock.Anything, repoOwner, mock.Anything, mock.Anything, mock.Anything).
+		Return(nil)
+
+	defaultTimeout := 24 * time.Hour
+	err := BlockOnApproval(context.Background(), s, q, 42, defaultTimeout)
+	assert.NoError(t, err)
+
+	s.AssertExpectations(t)
+	q.AssertExpectations(t)
+	// Specifically prove the forge.Status() call happened — that's the visible
+	// signal that publishPipeline ran end-to-end after gate activation.
 	mockForge.AssertCalled(t, "Status", mock.Anything, repoOwner,
 		mock.Anything, mock.Anything, mock.Anything)
 }

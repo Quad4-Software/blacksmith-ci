@@ -73,6 +73,11 @@ func BlockOnApproval(
 	// any more (server restart racing with state change) the next poll-cycle
 	// reload will pick up the new state from the workflow row.
 	_ = q.SetApprovalState(ctx, fmt.Sprint(workflowID), model.ApprovalPending)
+	// Refresh + publish so SSE clients see the just-activated gate without
+	// needing a full page reload. This path is system-driven (queue-triggered
+	// when upstream deps clear) so there is no acting user — the helper falls
+	// back to the repo owner for the forge.Status auth call.
+	refreshAndPublishPipeline(ctx, s, wf.PipelineID, nil)
 	return nil
 }
 

@@ -1,11 +1,10 @@
-import { defineStore } from 'pinia';
-import { computed, reactive, readonly, ref } from 'vue';
-import type { Ref } from 'vue';
-
 import useApiClient from '~/compositions/useApiClient';
 import type { Pipeline, PipelineFeed, PipelineWorkflow } from '~/lib/api/types';
 import { mergePipeline } from '~/lib/pipeline-merge';
 import { useRepoStore } from '~/store/repos';
+import { defineStore } from 'pinia';
+import { computed, reactive, readonly, ref } from 'vue';
+import type { Ref } from 'vue';
 
 /**
  * Pagination state for a repository's pipeline list.
@@ -53,10 +52,12 @@ export const usePipelineStore = defineStore('pipelines', () => {
   const paginationStates: Map<number, PaginationState> = reactive(new Map());
 
   /**
-   * Generation counter for the SSE connection. Incremented whenever the EventSource
-   * reconnects after an error, signalling to any view watching live pipeline state
-   * that it should refetch — events published while the connection was down are
-   * dropped by the browser's auto-reconnect and would otherwise leave the UI stale.
+   * Generation counter for the SSE connection. Incremented on every transition to
+   * OPEN — the initial connect after page mount as well as any auto-reconnect after
+   * an error — signalling to any view watching live pipeline state that it should
+   * refetch. The server has no replay protocol, so events published while the
+   * EventSource was still CONNECTING or reconnecting are dropped and the UI would
+   * otherwise be stuck on the snapshot it fetched before the connection opened.
    */
   const sseConnectionId = ref(0);
 

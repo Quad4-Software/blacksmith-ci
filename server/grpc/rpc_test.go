@@ -15,7 +15,10 @@
 package grpc
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -431,4 +434,145 @@ func TestFilterLabelsIntegrity(t *testing.T) {
 		assert.Equal(t, "k8s-agent", agentFilter.Labels["hostname"])
 		assert.Equal(t, "production", agentFilter.Labels["agent-name"])
 	})
+}
+
+// TestRPC_Update_PublishesPipelineWithUpdatedStepState is the regression test
+// for the "step state stuck pending" UI bug: when an agent reports a step has
+// started, the gRPC Update handler must publish a pubsub message carrying the
+// freshly-reloaded pipeline tree (with the step now in Running state) so the
+// SSE-subscribed UI flips out of the stale pending payload it received from
+// the initial GET /pipelines/N response.
+//
+// If a future refactor drops the publish, or stops reloading the workflow
+// tree after persisting the step transition, the UI silently stops receiving
+// step-progress updates until the workflow finishes — exactly the bug this
+// guards against.
+func TestRPC_Update_PublishesPipelineWithUpdatedStepState(t *testing.T) {
+	t.Parallel()
+
+	mockStore := new(store_mocks.MockStore)
+	broker := pubsub.New()
+
+	rpcServer := &RPC{
+		pubsub:  broker,
+		logger:  logging.New(),
+		store:   mockStore,
+		metrics: newTestGRPCMetrics(),
+	}
+
+	const (
+		agentID    int64 = 1
+		workflowID int64 = 42
+		pipelineID int64 = 99
+		repoID     int64 = 7
+		stepUUID         = "step-uuid-1"
+	)
+
+	// Subscribe before invoking Update so we capture the publish.
+	subCtx, cancel := context.WithCancelCause(t.Context())
+	defer cancel(nil)
+
+	var (
+		mu       sync.Mutex
+		received []pubsub.Message
+	)
+	subscribed := make(chan struct{})
+	go func() {
+		close(subscribed)
+		broker.Subscribe(subCtx, func(m pubsub.Message) {
+			mu.Lock()
+			defer mu.Unlock()
+			received = append(received, m)
+		})
+	}()
+	<-subscribed
+	// Give the goroutine a tick to register with the broker before publishing.
+	time.Sleep(50 * time.Millisecond)
+
+	// Fixture: agent allowed (global agent), pipeline running, workflow
+	// running, step starts running mid-execution.
+	agent := &model.Agent{ID: agentID, OrgID: model.IDNotSet}
+	repo := &model.Repo{ID: repoID, FullName: "owner/repo"}
+	pipeline := &model.Pipeline{ID: pipelineID, RepoID: repoID, Status: model.StatusRunning}
+	workflow := &model.Workflow{ID: workflowID, PipelineID: pipelineID, State: model.StatusRunning}
+	// Step row as it stands in the DB before the agent reports Started.
+	stepBefore := &model.Step{
+		ID: 5, UUID: stepUUID, PipelineID: pipelineID,
+		State: model.StatusPending,
+	}
+	// Workflow tree the publish should observe — i.e., AFTER UpdateStepStatus
+	// has persisted the Running state. This is the load that the handler does
+	// via WorkflowGetTree right before constructing the pubsub message.
+	stepAfter := &model.Step{
+		ID: 5, UUID: stepUUID, PipelineID: pipelineID,
+		State: model.StatusRunning, Started: 100,
+	}
+	wfTree := []*model.Workflow{{
+		ID: workflowID, PipelineID: pipelineID, State: model.StatusRunning,
+		Children: []*model.Step{stepAfter},
+	}}
+
+	mockStore.On("WorkflowLoad", workflowID).Return(workflow, nil)
+	mockStore.On("GetPipeline", pipelineID).Return(pipeline, nil)
+	mockStore.On("AgentFind", agentID).Return(agent, nil)
+	mockStore.On("StepByUUID", stepUUID).Return(stepBefore, nil)
+	mockStore.On("GetRepo", repoID).Return(repo, nil)
+	// UpdateStepStatus persists the transition; the matcher proves we wrote
+	// Running back to the store (the input the publish reads via the tree).
+	mockStore.On("StepUpdate", mock.MatchedBy(func(s *model.Step) bool {
+		return s.UUID == stepUUID && s.State == model.StatusRunning && s.Started == 100
+	})).Return(nil)
+	mockStore.On("WorkflowGetTree", pipeline).Return(wfTree, nil)
+
+	ctx := metadata.NewIncomingContext(
+		t.Context(),
+		metadata.Pairs("agent_id", "1"),
+	)
+
+	err := rpcServer.Update(ctx, "42", rpc.StepState{
+		StepUUID: stepUUID,
+		Started:  100,
+		Exited:   false,
+	})
+	assert.NoError(t, err)
+
+	// pubsub delivery is async (broker.Publish spawns a goroutine per
+	// subscriber); wait until the receiver captures at least one message.
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		mu.Lock()
+		got := len(received)
+		mu.Unlock()
+		if got >= 1 {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("Update handler never published to pubsub — UI would stay stuck on stale step state")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+	msg := received[0]
+	assert.Equal(t, "owner/repo", msg.Labels["repo"])
+
+	var ev model.Event
+	if assert.NoError(t, json.Unmarshal(msg.Data, &ev)) {
+		assert.Equal(t, pipelineID, ev.Pipeline.ID)
+		// The freshly-reloaded tree must be in the payload — that's the whole
+		// point of WorkflowGetTree being called between the step update and
+		// the publish. Without it, the UI sees a Pipeline with no Workflows.
+		if assert.Len(t, ev.Pipeline.Workflows, 1) {
+			wf := ev.Pipeline.Workflows[0]
+			if assert.Len(t, wf.Children, 1) {
+				step := wf.Children[0]
+				assert.Equal(t, model.StatusRunning, step.State,
+					"published pipeline must carry the post-update step state — "+
+						"if this is Pending the UI sits frozen on the stale value")
+			}
+		}
+	}
+
+	mockStore.AssertExpectations(t)
 }

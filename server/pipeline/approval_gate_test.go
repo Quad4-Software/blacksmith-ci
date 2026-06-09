@@ -58,10 +58,15 @@ func withApprovalPublishServices(t *testing.T, repo *model.Repo) (*forge_mocks.M
 }
 
 func TestBlockOnApprovalSetsDeadlineFromNow(t *testing.T) {
-	t.Parallel()
+	// Cannot t.Parallel — refreshAndPublishPipeline manipulates server.Config.Services globals.
 	s := store_mocks.NewMockStore(t)
 	q := queue_mocks.NewMockQueue(t)
-	wf := &model.Workflow{ID: 42, RequiresApproval: true, ApprovalTimeoutSeconds: 3600}
+	repo := &model.Repo{ID: 1, FullName: "test/repo", UserID: 7}
+	repoOwner := &model.User{ID: 7, Login: "owner"}
+	pl := &model.Pipeline{ID: 99, RepoID: 1, Status: model.StatusBlocked}
+	wf := &model.Workflow{
+		ID: 42, PipelineID: 99, RequiresApproval: true, ApprovalTimeoutSeconds: 3600,
+	}
 
 	s.On("WorkflowLoad", int64(42)).Return(wf, nil)
 	s.On("WorkflowUpdate", mock.MatchedBy(func(w *model.Workflow) bool {
@@ -72,16 +77,36 @@ func TestBlockOnApprovalSetsDeadlineFromNow(t *testing.T) {
 	})).Return(nil)
 	q.On("SetApprovalState", mock.Anything, "42", model.ApprovalPending).Return(nil)
 
+	// refreshAndPublishPipeline path — system-driven (no actor user), falls
+	// back to repo owner for the forge auth. Pipeline rollup over a single
+	// Blocked workflow is StatusSuccess (Blocked is not Failing/Killed/Declined),
+	// which differs from the seed StatusBlocked, so UpdatePipeline fires.
+	s.On("GetPipeline", int64(99)).Return(pl, nil)
+	s.On("GetRepo", int64(1)).Return(repo, nil)
+	s.On("WorkflowGetTree", pl).Return([]*model.Workflow{wf}, nil)
+	s.On("GetUser", int64(7)).Return(repoOwner, nil)
+	s.On("UpdatePipeline", mock.MatchedBy(func(p *model.Pipeline) bool {
+		return p.ID == 99
+	})).Return(nil)
+
+	_, cleanup := withApprovalPublishServices(t, repo)
+	defer cleanup()
+
 	defaultTimeout := 24 * time.Hour
 	err := BlockOnApproval(context.Background(), s, q, 42, defaultTimeout)
 	assert.NoError(t, err)
 }
 
 func TestBlockOnApprovalUsesDefaultWhenWorkflowHasZero(t *testing.T) {
-	t.Parallel()
+	// Cannot t.Parallel — refreshAndPublishPipeline manipulates server.Config.Services globals.
 	s := store_mocks.NewMockStore(t)
 	q := queue_mocks.NewMockQueue(t)
-	wf := &model.Workflow{ID: 42, RequiresApproval: true, ApprovalTimeoutSeconds: 0}
+	repo := &model.Repo{ID: 1, FullName: "test/repo", UserID: 7}
+	repoOwner := &model.User{ID: 7, Login: "owner"}
+	pl := &model.Pipeline{ID: 99, RepoID: 1, Status: model.StatusBlocked}
+	wf := &model.Workflow{
+		ID: 42, PipelineID: 99, RequiresApproval: true, ApprovalTimeoutSeconds: 0,
+	}
 
 	s.On("WorkflowLoad", int64(42)).Return(wf, nil)
 	s.On("WorkflowUpdate", mock.MatchedBy(func(w *model.Workflow) bool {
@@ -89,6 +114,18 @@ func TestBlockOnApprovalUsesDefaultWhenWorkflowHasZero(t *testing.T) {
 		return w.ApprovalDeadline >= want-5 && w.ApprovalDeadline <= want+5
 	})).Return(nil)
 	q.On("SetApprovalState", mock.Anything, "42", model.ApprovalPending).Return(nil)
+
+	// refreshAndPublishPipeline path — same fallback to repo owner.
+	s.On("GetPipeline", int64(99)).Return(pl, nil)
+	s.On("GetRepo", int64(1)).Return(repo, nil)
+	s.On("WorkflowGetTree", pl).Return([]*model.Workflow{wf}, nil)
+	s.On("GetUser", int64(7)).Return(repoOwner, nil)
+	s.On("UpdatePipeline", mock.MatchedBy(func(p *model.Pipeline) bool {
+		return p.ID == 99
+	})).Return(nil)
+
+	_, cleanup := withApprovalPublishServices(t, repo)
+	defer cleanup()
 
 	defaultTimeout := 24 * time.Hour
 	err := BlockOnApproval(context.Background(), s, q, 42, defaultTimeout)

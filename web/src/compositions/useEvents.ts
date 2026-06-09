@@ -1,6 +1,5 @@
 import { usePipelineStore } from '~/store/pipelines';
 import { useRepoStore } from '~/store/repos';
-
 import useApiClient from './useApiClient';
 
 const apiClient = useApiClient();
@@ -35,18 +34,12 @@ export default () => {
     pipelineStore.markAsSSEDelivered(repo.id, pipeline.number);
   });
 
-  // The browser's EventSource auto-reconnects on transient failures, but any events
-  // published while the connection is down are lost — there is no replay protocol on
-  // the server. Detect the error → open transition and bump a generation counter so
-  // views currently rendering live pipeline state can refetch to catch up.
-  let sawError = false;
-  events.addEventListener('error', () => {
-    sawError = true;
-  });
+  // Refetch on every SSE (re)connect because the server has no replay protocol — any
+  // Update events fired while the EventSource was still CONNECTING (initial mount) or
+  // while it was reconnecting after a transient failure are silently dropped. Bumping
+  // a generation counter signals to views rendering live pipeline state to refetch
+  // and catch up to the true server state.
   events.addEventListener('open', () => {
-    if (sawError) {
-      sawError = false;
-      pipelineStore.markSseReconnect();
-    }
+    pipelineStore.markSseReconnect();
   });
 };

@@ -35,6 +35,13 @@ export default antfu(
       'perfectionist/sort-named-imports': 'off',
       'promise/prefer-await-to-callbacks': 'error',
 
+      // Some v-model emit names in this codebase use kebab-case (e.g.
+      // `update:current-page`) to mirror the kebab-case props they pair with;
+      // others use camelCase. Vue accepts both forms for v-model. Ignore casing
+      // checks for `update:*` events while keeping the camelCase default for
+      // all other custom events.
+      'vue/custom-event-name-casing': ['error', 'camelCase', { ignores: ['/^update:/'] }],
+
       // Vue I18n
       '@intlify/vue-i18n/no-raw-text': [
         'error',
