@@ -183,7 +183,7 @@ func (q *fifo) finished(ids []string, exitStatus model.StatusValue, err error) e
 			delete(q.running, id)
 			// Task deletion from database is handled by persistentQueue wrapper
 		} else {
-			q.removeFromPending(id)
+			q.removeFromQueues(id)
 		}
 		q.updateDepStatusInQueue(id, exitStatus)
 	}
@@ -197,23 +197,24 @@ func (q *fifo) Evict(ctx context.Context, taskID string) error {
 	return q.EvictAtOnce(ctx, []string{taskID})
 }
 
-// EvictAtOnce removes multiple pending tasks from the queue.
+// EvictAtOnce removes multiple queued tasks from the queue. Tasks may live in
+// either the pending list or the waitingOnDeps list (when held back by unmet
+// dependencies or a pending approval), so both must be searched. Returns
+// ErrNotFound only if none of the given IDs were queued.
 func (q *fifo) EvictAtOnce(_ context.Context, taskIDs []string) error {
 	q.Lock()
 	defer q.Unlock()
 
+	evicted := false
 	for _, id := range taskIDs {
-		var next *list.Element
-		for element := q.pending.Front(); element != nil; element = next {
-			next = element.Next()
-			task, ok := element.Value.(*model.Task)
-			if ok && task.ID == id {
-				q.pending.Remove(element)
-				return nil
-			}
+		if q.removeFromList(q.pending, id) || q.removeFromList(q.waitingOnDeps, id) {
+			evicted = true
 		}
 	}
-	return ErrNotFound
+	if !evicted {
+		return ErrNotFound
+	}
+	return nil
 }
 
 // Wait waits until the item is done executing.
@@ -684,16 +685,32 @@ func (q *fifo) SetApprovalState(_ context.Context, taskID string, state model.Ap
 	return nil
 }
 
-func (q *fifo) removeFromPending(taskID string) {
-	log.Debug().Msgf("queue: trying to remove %s", taskID)
+// removeFromList removes the first task matching taskID from the given list.
+// Returns true if a task was removed.
+func (q *fifo) removeFromList(l *list.List, taskID string) bool {
 	var next *list.Element
-	for element := q.pending.Front(); element != nil; element = next {
+	for element := l.Front(); element != nil; element = next {
 		next = element.Next()
-		task, _ := element.Value.(*model.Task)
-		if task.ID == taskID {
-			log.Debug().Msgf("queue: %s is removed from pending", taskID)
-			q.pending.Remove(element)
-			return
+		if task, ok := element.Value.(*model.Task); ok && task.ID == taskID {
+			l.Remove(element)
+			return true
 		}
+	}
+	return false
+}
+
+// removeFromQueues removes a task from every queue it might be waiting in. A
+// task held back by unmet dependencies or a pending approval lives in
+// waitingOnDeps rather than pending, so canceling it must search both lists —
+// otherwise the task lingers and gets promoted back to pending once its
+// dependency leaves the queue (issue #1147).
+func (q *fifo) removeFromQueues(taskID string) {
+	log.Debug().Msgf("queue: trying to remove %s", taskID)
+	if q.removeFromList(q.pending, taskID) {
+		log.Debug().Msgf("queue: %s is removed from pending", taskID)
+		return
+	}
+	if q.removeFromList(q.waitingOnDeps, taskID) {
+		log.Debug().Msgf("queue: %s is removed from waitingOnDeps", taskID)
 	}
 }

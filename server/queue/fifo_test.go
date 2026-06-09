@@ -414,6 +414,8 @@ func TestFifoCancel(t *testing.T) {
 
 	assert.NoError(t, q.PushAtOnce(ctx, []*model.Task{task2, task3, task1}))
 
+	// task1 has no deps and is polled into running; task2 and task3 depend on
+	// task1 and therefore sit in waitingOnDeps.
 	_, _ = q.Poll(ctx, 1, filterFnTrue)
 	assert.NoError(t, q.Error(ctx, task1.ID, fmt.Errorf("canceled")))
 	assert.NoError(t, q.Error(ctx, task2.ID, fmt.Errorf("canceled")))
@@ -421,11 +423,15 @@ func TestFifoCancel(t *testing.T) {
 	info := q.Info(ctx)
 	assert.Len(t, info.Pending, 0, "all pipelines should be canceled")
 
+	// Canceled tasks must be fully removed from every internal list. Previously
+	// tasks waiting on dependencies were left in waitingOnDeps and got promoted
+	// back to pending once their (canceled) dependency left the queue, so an
+	// agent would still execute them — see issue #1147.
 	time.Sleep(processTimeInterval * 2)
 	info = q.Info(ctx)
-	assert.Len(t, info.Pending, 2, "canceled are rescheduled")
-	assert.Len(t, info.Running, 0, "canceled are rescheduled")
-	assert.Len(t, info.WaitingOnDeps, 0, "canceled are rescheduled")
+	assert.Len(t, info.Pending, 0, "canceled tasks must not be rescheduled")
+	assert.Len(t, info.Running, 0, "canceled tasks must not be rescheduled")
+	assert.Len(t, info.WaitingOnDeps, 0, "canceled tasks must not be rescheduled")
 }
 
 func TestFifoPause(t *testing.T) {
