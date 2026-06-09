@@ -216,8 +216,8 @@ async function loadCanApprove() {
   }
   approvalLoading.value = true;
   try {
-    const { workflows } = await apiClient.getUserPendingApprovals();
-    canApprove.value = (workflows ?? []).some((wf) => wf.id === workflow.value.id);
+    const { approvals } = await apiClient.getUserPendingApprovals();
+    canApprove.value = (approvals ?? []).some((item) => item.workflow.id === workflow.value.id);
   } catch (error) {
     console.error(error);
     canApprove.value = false;

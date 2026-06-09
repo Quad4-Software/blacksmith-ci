@@ -157,9 +157,19 @@ func GetWorkflowApproval(ctx context.Context, input *GetWorkflowApprovalInput) (
 	}}, nil
 }
 
+// PendingApprovalItem bundles a workflow gate with the minimal pipeline+repo
+// context the UI needs to deep-link back to the pipeline detail page without
+// issuing per-item lookups.
+type PendingApprovalItem struct {
+	Workflow       *model.Workflow `json:"workflow"`
+	PipelineNumber int64           `json:"pipeline_number"`
+	RepoID         int64           `json:"repo_id"`
+	RepoFullName   string          `json:"repo_full_name"`
+}
+
 // GetUserPendingApprovalsBody is the response shape for the user-pending list.
 type GetUserPendingApprovalsBody struct {
-	Workflows []*model.Workflow `json:"workflows"`
+	Approvals []*PendingApprovalItem `json:"approvals"`
 }
 
 // GetUserPendingApprovalsOutput wraps the response body for huma.
@@ -171,6 +181,10 @@ type GetUserPendingApprovalsOutput struct {
 // is authorized to act on. The store returns all pending candidates; the
 // handler filters them via authz.CanApproveWorkflow because that requires
 // forge.Teams() calls we don't want in raw SQL.
+//
+// Each entry carries the pipeline number plus the repo id and full name so the
+// pipeline-feed sidebar can render a row with the repo label and link straight
+// to the gated pipeline without issuing N additional fetches.
 func GetUserPendingApprovals(ctx context.Context, _ *struct{}) (*GetUserPendingApprovalsOutput, error) {
 	c := ginCtx(ctx)
 	_store := store.FromContext(c)
@@ -181,7 +195,7 @@ func GetUserPendingApprovals(ctx context.Context, _ *struct{}) (*GetUserPendingA
 		return nil, huma.Error500InternalServerError("pending approvals query failed", err)
 	}
 
-	approvable := []*model.Workflow{}
+	approvable := []*PendingApprovalItem{}
 	for _, wf := range candidates {
 		pl, err := _store.GetPipeline(wf.PipelineID)
 		if err != nil {
@@ -193,12 +207,17 @@ func GetUserPendingApprovals(ctx context.Context, _ *struct{}) (*GetUserPendingA
 		}
 		ok, _, err := authz.CanApproveWorkflow(ctx, _store, server.Config.Services.Manager, user, wf, repo)
 		if err == nil && ok {
-			approvable = append(approvable, wf)
+			approvable = append(approvable, &PendingApprovalItem{
+				Workflow:       wf,
+				PipelineNumber: pl.Number,
+				RepoID:         repo.ID,
+				RepoFullName:   repo.FullName,
+			})
 		}
 	}
 
 	return &GetUserPendingApprovalsOutput{Body: GetUserPendingApprovalsBody{
-		Workflows: approvable,
+		Approvals: approvable,
 	}}, nil
 }
 

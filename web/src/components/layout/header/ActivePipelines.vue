@@ -46,20 +46,17 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref, toRef } from 'vue';
+import { computed, onMounted, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Icon from '~/components/atomic/Icon.vue';
 import { Spinner } from '~/components/ui/spinner';
-import useApiClient from '~/compositions/useApiClient';
-import useAuthentication from '~/compositions/useAuthentication';
 import usePipelineFeed from '~/compositions/usePipelineFeed';
 
 const { t } = useI18n();
 const pipelineFeed = usePipelineFeed();
-const apiClient = useApiClient();
-const auth = useAuthentication();
 const activePipelines = toRef(pipelineFeed, 'activePipelines');
+const pendingWorkflowApprovals = toRef(pipelineFeed, 'pendingWorkflowApprovals');
 const { toggle } = pipelineFeed;
 
 const runningCount = computed(
@@ -71,21 +68,9 @@ const pendingCount = computed(() => activePipelines.value.filter((p) => p.status
 const blockedCount = computed(() => activePipelines.value.filter((p) => p.status === 'blocked').length);
 
 // Workflow-level approval gates the current user can act on. The endpoint
-// already filters by approver permission, so the returned array length is the
-// badge count.
-const workflowApprovalCount = ref(0);
-
-async function loadWorkflowApprovals() {
-  if (!auth.isAuthenticated) {
-    return;
-  }
-  try {
-    const { workflows } = await apiClient.getUserPendingApprovals();
-    workflowApprovalCount.value = workflows?.length ?? 0;
-  } catch (error) {
-    console.error(error);
-  }
-}
+// already filters by approver permission, so the array length is the badge
+// count. State is owned by usePipelineFeed so the sidebar can render the list.
+const workflowApprovalCount = computed(() => pendingWorkflowApprovals.value.length);
 
 const totalCount = computed(
   () => runningCount.value + pendingCount.value + blockedCount.value + workflowApprovalCount.value,
@@ -114,6 +99,5 @@ const tooltipText = computed(() => {
 
 onMounted(async () => {
   await pipelineFeed.load();
-  await loadWorkflowApprovals();
 });
 </script>

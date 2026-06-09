@@ -178,12 +178,20 @@ export interface WorkflowApprovalState {
   events: WorkflowApprovalEvent[];
 }
 
+// PendingApprovalItem bundles a workflow gate with the minimal pipeline+repo
+// context the UI needs to deep-link back to the pipeline detail page without
+// issuing per-item lookups.
+export interface PendingApprovalItem {
+  workflow: PipelineWorkflow;
+  pipeline_number: number;
+  repo_id: number;
+  repo_full_name: string;
+}
+
 // UserPendingApprovalsResponse is the response payload of
-// GET /api/v1/user/approvals/pending. Workflows are flattened — the caller is
-// expected to use the embedded pipeline/repo IDs to deep-link back to a
-// pipeline detail page if needed.
+// GET /api/v1/user/approvals/pending.
 export interface UserPendingApprovalsResponse {
-  workflows: PipelineWorkflow[];
+  approvals: PendingApprovalItem[];
 }
 
 export interface PipelineStep {

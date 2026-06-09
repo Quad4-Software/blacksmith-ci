@@ -74,7 +74,9 @@
     "forge_auth_view_all": "View all connections",
     "approvals": {
       "pipelines": "Pipelines awaiting approval",
-      "workflows": "Workflow gates awaiting approval"
+      "workflows": "Workflow gates awaiting approval",
+      "section_title": "Workflow gates",
+      "pipeline_ref": "Pipeline #{number}"
     }
   },
   "workflow": {
