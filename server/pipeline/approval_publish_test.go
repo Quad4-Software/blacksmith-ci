@@ -222,12 +222,10 @@ func TestBlockOnApprovalPublishesPipelineUpdate(t *testing.T) {
 	// System-driven activation — actor is nil, so the helper looks up the
 	// repo owner to authenticate the forge.Status() push.
 	s.On("GetUser", int64(7)).Return(repoOwner, nil)
-	// The pipeline rollup over a single Blocked workflow is StatusSuccess
-	// (Blocked is not Failing/Killed/Declined). That differs from the seed
-	// StatusBlocked, so UpdatePipeline is expected.
-	s.On("UpdatePipeline", mock.MatchedBy(func(p *model.Pipeline) bool {
-		return p.ID == 99
-	})).Return(nil)
+	// The pipeline rollup over a single Blocked workflow is StatusBlocked,
+	// matching the seed StatusBlocked, so UpdatePipeline is not called —
+	// publish-only. This is the visible signal the gate-activation publish
+	// path is now consistent with the rollup precedence.
 
 	mockForge, cleanup := withApprovalPublishServices(t, repo)
 	defer cleanup()

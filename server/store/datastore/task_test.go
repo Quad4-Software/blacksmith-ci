@@ -127,8 +127,9 @@ func TestTaskListPending(t *testing.T) {
 	pendingWorkflow := &model.Workflow{ID: 10, PipelineID: 1, PID: 1, Name: "pending-wf", State: model.StatusPending}
 	runningWorkflow := &model.Workflow{ID: 20, PipelineID: 1, PID: 2, Name: "running-wf", State: model.StatusRunning}
 	successWorkflow := &model.Workflow{ID: 30, PipelineID: 1, PID: 3, Name: "success-wf", State: model.StatusSuccess}
+	blockedWorkflow := &model.Workflow{ID: 40, PipelineID: 1, PID: 4, Name: "blocked-wf", State: model.StatusBlocked}
 
-	workflows := []*model.Workflow{pendingWorkflow, runningWorkflow, successWorkflow}
+	workflows := []*model.Workflow{pendingWorkflow, runningWorkflow, successWorkflow, blockedWorkflow}
 	_, err := store.db.NewInsert().Model(&workflows).Exec(context.Background())
 	assert.NoError(t, err)
 
@@ -136,11 +137,14 @@ func TestTaskListPending(t *testing.T) {
 	assert.NoError(t, store.TaskInsert(&model.Task{ID: "10", Data: []byte("pending-task")}))
 	assert.NoError(t, store.TaskInsert(&model.Task{ID: "20", Data: []byte("running-task")}))
 	assert.NoError(t, store.TaskInsert(&model.Task{ID: "30", Data: []byte("completed-task")}))
+	assert.NoError(t, store.TaskInsert(&model.Task{ID: "40", Data: []byte("blocked-task")}))
 
-	// TaskListPending should only return tasks for pending/running workflows
+	// TaskListPending should return tasks for pending/running AND blocked workflows.
+	// Blocked workflows are paused awaiting human approval — their tasks must
+	// survive a server restart so dispatch can resume after ApproveWorkflow runs.
 	list, err := store.TaskListPending()
 	assert.NoError(t, err)
-	assert.Len(t, list, 2)
+	assert.Len(t, list, 3)
 
 	ids := make(map[string]bool)
 	for _, task := range list {
@@ -149,6 +153,7 @@ func TestTaskListPending(t *testing.T) {
 	assert.True(t, ids["10"], "Should include task for pending workflow")
 	assert.True(t, ids["20"], "Should include task for running workflow")
 	assert.False(t, ids["30"], "Should exclude task for completed workflow")
+	assert.True(t, ids["40"], "Should include task for blocked workflow awaiting approval")
 }
 
 func TestTaskAtomicResetOrphan(t *testing.T) {
@@ -348,6 +353,7 @@ func TestTaskDeleteStale(t *testing.T) {
 		{ID: 30, PipelineID: 1, PID: 3, Name: "success-wf", State: model.StatusSuccess},
 		{ID: 40, PipelineID: 1, PID: 4, Name: "failure-wf", State: model.StatusFailure},
 		{ID: 50, PipelineID: 1, PID: 5, Name: "skipped-wf", State: model.StatusSkipped},
+		{ID: 60, PipelineID: 1, PID: 6, Name: "blocked-wf", State: model.StatusBlocked},
 	}
 	_, err := store.db.NewInsert().Model(&workflows).Exec(context.Background())
 	assert.NoError(t, err)
@@ -358,17 +364,19 @@ func TestTaskDeleteStale(t *testing.T) {
 	assert.NoError(t, store.TaskInsert(&model.Task{ID: "30", Data: []byte("success-stale")}))
 	assert.NoError(t, store.TaskInsert(&model.Task{ID: "40", Data: []byte("failure-stale")}))
 	assert.NoError(t, store.TaskInsert(&model.Task{ID: "50", Data: []byte("skipped-stale")}))
+	assert.NoError(t, store.TaskInsert(&model.Task{ID: "60", Data: []byte("blocked-waiting-approval")}))
 	assert.NoError(t, store.TaskInsert(&model.Task{ID: "999", Data: []byte("orphaned-no-workflow")}))
 
-	// Delete stale tasks
+	// Delete stale tasks. Blocked workflows are paused awaiting approval —
+	// their tasks must survive so dispatch can resume after ApproveWorkflow.
 	deleted, err := store.TaskDeleteStale()
 	assert.NoError(t, err)
-	assert.Equal(t, int64(4), deleted, "Should delete 4 stale tasks (success + failure + skipped + orphaned)")
+	assert.Equal(t, int64(4), deleted, "Should delete 4 stale tasks (success + failure + skipped + orphaned); blocked must be preserved")
 
-	// Only pending and running should remain
+	// Pending, running, and blocked tasks should remain
 	list, err := store.TaskList()
 	assert.NoError(t, err)
-	assert.Len(t, list, 2)
+	assert.Len(t, list, 3)
 
 	ids := make(map[string]bool)
 	for _, task := range list {
@@ -376,4 +384,5 @@ func TestTaskDeleteStale(t *testing.T) {
 	}
 	assert.True(t, ids["10"], "Pending workflow task should remain")
 	assert.True(t, ids["20"], "Running workflow task should remain")
+	assert.True(t, ids["60"], "Blocked workflow task awaiting approval must NOT be deleted")
 }

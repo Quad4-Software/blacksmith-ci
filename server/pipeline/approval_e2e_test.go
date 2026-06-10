@@ -123,12 +123,12 @@ func TestApprovalGate_DAG_Approve(t *testing.T) {
 	q.On("SetApprovalState", mock.Anything, "902", model.ApprovalApproved).Return(nil)
 
 	// refreshAndPublishPipeline runs after approve to refresh SSE clients.
-	// It loads the pipeline + repo and walks the tree; the rollup status
-	// after approval is StatusPending (gate now Pending, deploy still Pending,
-	// build Success — Failing() returns false for all) so it stays at the
-	// existing Blocked status — wait, that's only the rollup. The pipeline
-	// was Blocked before, and PipelineStatus([success, pending, pending]) =
-	// success since none are failing. So UpdatePipeline IS expected.
+	// It loads the pipeline + repo and walks the tree. After approval the
+	// gate flips Blocked -> Pending, deploy stays Pending, build stays
+	// Success; PipelineStatus([success, pending, pending]) rolls up to
+	// StatusRunning (pending workflows mean the pipeline is still going),
+	// which differs from the seed StatusBlocked, so UpdatePipeline IS
+	// expected.
 	s.On("GetPipeline", d.pipeline.ID).Return(d.pipeline, nil)
 	s.On("GetRepo", int64(1)).Return(repo, nil)
 	s.On("WorkflowGetTree", d.pipeline).

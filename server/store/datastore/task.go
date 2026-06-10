@@ -28,8 +28,13 @@ func (s storage) TaskList() ([]*model.Task, error) {
 	return tasks, s.db.NewSelect().Model(&tasks).Scan(context.Background())
 }
 
-// TaskListPending returns only tasks whose corresponding workflows are still pending or running.
-// This prevents completed tasks from being reloaded into the queue on server restart.
+// TaskListPending returns only tasks whose corresponding workflows are still
+// pending, running, or blocked (awaiting approval).
+// This prevents completed tasks from being reloaded into the queue on server
+// restart. Blocked workflows are paused awaiting human approval — their tasks
+// must be preserved until ApproveWorkflow/DeclineWorkflow/ExpireWorkflow runs,
+// otherwise a server restart while a gate is pending would permanently lose
+// the task and the workflow would never dispatch.
 func (s storage) TaskListPending() ([]*model.Task, error) {
 	tasks := make([]*model.Task, 0, perPage)
 	// Join tasks with workflows to filter by workflow state.
@@ -40,7 +45,7 @@ func (s storage) TaskListPending() ([]*model.Task, error) {
 	// while the tasks.id column may use a different collation.
 	err := s.db.NewSelect().Model(&tasks).
 		Join("INNER JOIN workflows ON workflows.id = "+s.castAsInteger("task.id")).
-		Where("workflows.state IN (?, ?)", model.StatusPending, model.StatusRunning).
+		Where("workflows.state IN (?, ?, ?)", model.StatusPending, model.StatusRunning, model.StatusBlocked).
 		Scan(context.Background())
 	return tasks, err
 }
@@ -150,17 +155,24 @@ func (s storage) TaskDeleteCancelledBefore(cancelledBefore int64) error {
 }
 
 // TaskDeleteStale removes task rows whose corresponding workflows are no longer
-// pending or running (i.e. completed, failed, skipped) or whose workflows don't
-// exist at all. This handles cleanup after DB connection failures where Done()
-// couldn't delete the task row, and ensures a clean state when transitioning
-// from single-instance (memory queue) to HA mode (database queue).
+// pending, running, or blocked (i.e. completed, failed, skipped, declined) or
+// whose workflows don't exist at all. This handles cleanup after DB connection
+// failures where Done() couldn't delete the task row, and ensures a clean state
+// when transitioning from single-instance (memory queue) to HA mode (database
+// queue).
+//
+// Blocked workflows are intentionally preserved: they are paused awaiting human
+// approval and their tasks must survive until ApproveWorkflow/DeclineWorkflow/
+// ExpireWorkflow runs. Deleting a Blocked workflow's task row here would cause
+// the workflow to never dispatch after approval, because the periodic
+// TaskDeleteStale sweep (~every 30s) would race the user's approval action.
 func (s storage) TaskDeleteStale() (int64, error) {
 	// Delete tasks that have no matching workflow or whose workflow is not active.
 	// Uses a subquery to find task IDs with active workflows, then deletes the rest.
 	// This approach works across SQLite, PostgreSQL, and MySQL.
 	res, err := s.db.NewDelete().Model((*model.Task)(nil)).
-		Where(s.castAsInteger("task.id")+" NOT IN (SELECT w.id FROM workflows AS w WHERE w.state IN (?, ?))",
-			model.StatusPending, model.StatusRunning).
+		Where(s.castAsInteger("task.id")+" NOT IN (SELECT w.id FROM workflows AS w WHERE w.state IN (?, ?, ?))",
+			model.StatusPending, model.StatusRunning, model.StatusBlocked).
 		Exec(context.Background())
 	if err != nil {
 		return 0, err

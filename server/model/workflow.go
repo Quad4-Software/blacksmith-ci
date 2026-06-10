@@ -106,11 +106,28 @@ func IsThereRunningStage(workflows []*Workflow) bool {
 	return false
 }
 
-// PipelineStatus determine pipeline status based on corresponding workflow list.
-// Only considers the latest attempt of each workflow.
+// PipelineStatus determines pipeline status based on the corresponding
+// workflow list. Only the latest attempt of each workflow is considered.
+//
+// Precedence (highest wins):
+//  1. StatusKilled — any workflow killed by the user.
+//  2. StatusDeclined — any workflow declined or expired at an approval gate.
+//  3. StatusFailure / StatusError — any workflow failed (terminal outcome).
+//  4. StatusBlocked — any workflow still waiting for an approval gate. This
+//     is more actionable than "running" and matches what the pipeline-level
+//     approval gate uses, so the UI shows the same icon and affordances.
+//  5. StatusRunning — any workflow still pending or running.
+//  6. StatusSuccess — every workflow reached a non-failing terminal state.
+//
+// Failure overrides blocked / running because it is terminal: the pipeline is
+// doomed regardless of any other gates or pending work. Blocked overrides
+// running because a blocked gate requires human action, which is more useful
+// to surface to the user than a generic "wait".
 func PipelineStatus(workflows []*Workflow) StatusValue {
 	status := StatusSuccess
 	declinedSeen := false
+	blockedSeen := false
+	runningSeen := false
 
 	for _, p := range LatestAttempts(workflows) {
 		if p.State == StatusKilled {
@@ -122,11 +139,31 @@ func PipelineStatus(workflows []*Workflow) StatusValue {
 		}
 		if p.Failing() {
 			status = p.State
+			continue
+		}
+		if p.State == StatusBlocked {
+			blockedSeen = true
+			continue
+		}
+		if p.State == StatusPending || p.State == StatusRunning {
+			runningSeen = true
+			continue
 		}
 	}
 
 	if declinedSeen {
 		return StatusDeclined
+	}
+	// A failure (status != StatusSuccess at this point means a Failing() hit)
+	// outranks blocked / running because it is terminal.
+	if status != StatusSuccess {
+		return status
+	}
+	if blockedSeen {
+		return StatusBlocked
+	}
+	if runningSeen {
+		return StatusRunning
 	}
 	return status
 }
