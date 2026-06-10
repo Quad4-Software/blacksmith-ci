@@ -3,7 +3,7 @@
     <Transition name="loading-overlay">
       <div
         v-if="state.visible"
-        class="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center"
+        class="fixed inset-0 z-[100] bg-background/80 backdrop-blur-sm flex items-center justify-center"
       >
         <div
           class="bg-card text-card-foreground border rounded-lg shadow-lg px-6 py-5 flex flex-col items-center gap-3"
