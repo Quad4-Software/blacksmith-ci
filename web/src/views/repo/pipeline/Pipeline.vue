@@ -77,7 +77,7 @@
                 </div>
               </Panel>
             </div>
-            <div v-else-if="pipeline!.status === 'blocked'" class="w-full mb-auto p-4">
+            <div v-else-if="isPipelineLevelBlocked" class="w-full mb-auto p-4">
               <Panel>
                 <div class="flex flex-col items-center gap-4">
                   <Icon name="status-blocked" size="1.5rem" class="h-16 w-16" />
@@ -180,7 +180,7 @@
           </div>
         </Panel>
       </div>
-      <div v-else-if="pipeline!.status === 'blocked'" class="p-4 flex-1">
+      <div v-else-if="isPipelineLevelBlocked" class="p-4 flex-1">
         <Panel>
           <div class="flex flex-col items-center gap-4">
             <Icon name="status-blocked" size="1.5rem" class="h-16 w-16" />
@@ -423,6 +423,12 @@ const selectedWorkflowApproval = computed<PipelineWorkflow | null>(() => {
   const gated = workflows.find(hasGate);
   return gated ?? null;
 });
+
+// True when the whole pipeline is blocked (e.g. fork PR approval) and no
+// individual workflow has its own approval gate. When a workflow-level gate
+// is also present, prefer the workflow approval panel — it still exposes
+// Approve / Decline buttons so the user can resolve the gate.
+const isPipelineLevelBlocked = computed(() => pipeline.value?.status === 'blocked' && !selectedWorkflowApproval.value);
 
 async function onWorkflowApprovalUpdated(_updated: PipelineWorkflow) {
   if (!repo.value || !pipeline.value?.number) return;
