@@ -349,6 +349,45 @@ const debounceTimeout = ref<ReturnType<typeof setTimeout> | null>(null);
 const isLayouting = ref(false);
 const isInitialized = ref(false);
 
+// Lifecycle guard: deferred callbacks (layout/fitView timers, rAF chains) must
+// not run after the component starts unmounting, otherwise they mutate Vue Flow
+// state while its node DOM elements are already gone, producing the intermittent
+// "can't access property parentNode of null" crash from a stale internal effect.
+let isActive = true;
+const pendingTimers = new Set<ReturnType<typeof setTimeout>>();
+const pendingRafs = new Set<number>();
+
+// TEMP breadcrumb: confirm the unmount-race path fires in production. Remove once verified.
+function dagBreadcrumb(msg: string) {
+  console.warn(`[PipelineDAG guard] ${msg}`);
+}
+
+function trackedSetTimeout(fn: () => void, delay: number, label = 'timer') {
+  if (!isActive) return;
+  const id = setTimeout(() => {
+    pendingTimers.delete(id);
+    if (isActive) {
+      fn();
+    } else {
+      dagBreadcrumb(`${label} fired after unmount (skipped)`);
+    }
+  }, delay);
+  pendingTimers.add(id);
+}
+
+function trackedRaf(fn: () => void, label = 'raf') {
+  if (!isActive) return;
+  const id = requestAnimationFrame(() => {
+    pendingRafs.delete(id);
+    if (isActive) {
+      fn();
+    } else {
+      dagBreadcrumb(`${label} fired after unmount (skipped)`);
+    }
+  });
+  pendingRafs.add(id);
+}
+
 // Use VueFlow composable with the specific flow ID
 const { fitView } = useVueFlow('pipeline-dag');
 
@@ -701,7 +740,7 @@ function onNodesInitialized() {
 
   // Wait for nodes to be fully rendered before applying layout
   nextTick(() => {
-    setTimeout(() => {
+    trackedSetTimeout(() => {
       applyLayout('LR');
     }, 150);
   });
@@ -728,7 +767,7 @@ function applyLayout(direction: string) {
 
       if (!nodesWithDimensions) {
         // Retry after a short delay if nodes don't have dimensions yet
-        setTimeout(applyLayout, 25, direction);
+        trackedSetTimeout(() => applyLayout(direction), 25);
         return;
       }
     }
@@ -798,10 +837,10 @@ function applyLayout(direction: string) {
     // Trigger fit-to-view to ensure all nodes are visible after full render and layout
     nextTick(() => {
       // Wait for all layout calculations to complete
-      setTimeout(() => {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
+      trackedSetTimeout(() => {
+        trackedRaf(() => {
+          trackedRaf(() => {
+            trackedRaf(() => {
               if (vueFlowRef.value) {
                 vueFlowRef.value.fitView({
                   padding: 0.1,
@@ -810,7 +849,7 @@ function applyLayout(direction: string) {
                 });
 
                 // Mark layout as complete and emit ready event
-                setTimeout(() => {
+                trackedSetTimeout(() => {
                   isLayouting.value = false;
                   isInitialized.value = true;
                   emit('dagReady');
@@ -893,10 +932,10 @@ function applyFallbackLayout(direction: string) {
 
   nextTick(() => {
     // Wait for all layout calculations to complete
-    setTimeout(() => {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
+    trackedSetTimeout(() => {
+      trackedRaf(() => {
+        trackedRaf(() => {
+          trackedRaf(() => {
             if (vueFlowRef.value) {
               vueFlowRef.value.fitView({
                 padding: 0.1,
@@ -905,7 +944,7 @@ function applyFallbackLayout(direction: string) {
               });
 
               // Mark layout as complete and emit ready event
-              setTimeout(() => {
+              trackedSetTimeout(() => {
                 isLayouting.value = false;
                 isInitialized.value = true;
                 emit('dagReady');
@@ -1746,6 +1785,10 @@ function handleKeyDown(event: KeyboardEvent) {
 
     // Center the view on the selected node
     nextTick(() => {
+      if (!isActive) {
+        dagBreadcrumb('keydown fitView skipped after unmount');
+        return;
+      }
       if (vueFlowRef.value) {
         vueFlowRef.value.fitView({
           nodes: [nextNode],
@@ -2035,6 +2078,10 @@ watch(
 
       debounceTimeout.value = setTimeout(() => {
         nextTick(() => {
+          if (!isActive) {
+            dagBreadcrumb('workflow-change layout skipped after unmount');
+            return;
+          }
           const stepNodes = nodes.value.filter((node) => node.type === 'pipeline-step');
           if (stepNodes.length > 0) {
             applyLayout('LR');
@@ -2049,7 +2096,7 @@ watch(
 // Handle window resize to ensure proper fit
 function handleResize() {
   nextTick(() => {
-    setTimeout(() => {
+    trackedSetTimeout(() => {
       if (vueFlowRef.value && nodes.value.length > 0) {
         vueFlowRef.value.fitView({ padding: 0.1, includeHiddenNodes: false });
       }
@@ -2066,11 +2113,23 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  isActive = false;
   window.removeEventListener('resize', handleResize);
 
   if (debounceTimeout.value) {
     clearTimeout(debounceTimeout.value);
   }
+
+  // TEMP breadcrumb: a non-zero count proves deferred layout/fitView work was
+  // still in flight at teardown — i.e. the source of the parentNode-null race.
+  if (pendingTimers.size > 0 || pendingRafs.size > 0) {
+    dagBreadcrumb(`unmount cancelled ${pendingTimers.size} timer(s), ${pendingRafs.size} rAF(s) in flight`);
+  }
+
+  pendingTimers.forEach((id) => clearTimeout(id));
+  pendingTimers.clear();
+  pendingRafs.forEach((id) => cancelAnimationFrame(id));
+  pendingRafs.clear();
 });
 </script>
 
