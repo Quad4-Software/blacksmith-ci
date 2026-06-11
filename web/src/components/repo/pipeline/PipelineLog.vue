@@ -109,6 +109,19 @@
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+          <TooltipProvider v-if="hasLogs">
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <Button variant="ghost" size="icon-sm" :disabled="copyInProgress" @click="copyLogs">
+                  <Icon v-if="copyInProgress" name="spinner" class="animate-spin" />
+                  <Icon v-else :name="logsCopied ? 'lucide:check' : 'lucide:copy'" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {{ logsCopied ? $t('copied') : $t('repo.pipeline.actions.log_copy') }}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <TooltipProvider v-if="step?.finished !== undefined && hasLogs && hasPushPermission">
             <Tooltip>
               <TooltipTrigger as-child>
@@ -329,6 +342,11 @@
 
             <!-- Action buttons -->
             <div class="grid grid-cols-2 gap-2 pt-2 border-t">
+              <Button v-if="hasLogs" variant="outline" size="sm" :disabled="copyInProgress" @click="copyLogs">
+                <Icon v-if="copyInProgress" name="spinner" class="animate-spin mr-2" />
+                <Icon v-else :name="logsCopied ? 'lucide:check' : 'lucide:copy'" class="mr-2" />
+                {{ logsCopied ? $t('copied') : $t('repo.pipeline.actions.log_copy') }}
+              </Button>
               <Button
                 v-if="step?.finished !== undefined && hasLogs"
                 variant="outline"
@@ -783,6 +801,9 @@ const hasLogs = computed(
 );
 const autoScroll = useStorage('crow:log-auto-scroll', false);
 const downloadInProgress = ref(false);
+const copyInProgress = ref(false);
+const logsCopied = ref(false);
+let logsCopiedTimer: ReturnType<typeof setTimeout> | undefined;
 const ansiUp = ref(new AnsiUp());
 ansiUp.value.use_classes = true;
 const logBuffer = ref<LogLine[]>([]);
@@ -1129,6 +1150,32 @@ async function download() {
   window.URL.revokeObjectURL(fileURL);
 }
 
+async function copyLogs() {
+  if (!repo?.value || !pipeline.value || !step.value) {
+    throw new Error('The repository, pipeline or step was undefined');
+  }
+
+  try {
+    copyInProgress.value = true;
+    const logs = await apiClient.getLogs(repo.value.id, pipeline.value.number, step.value.id);
+    await navigator.clipboard.writeText(logs.map((line) => decode(line.data ?? '')).join('\n'));
+    logsCopied.value = true;
+    if (logsCopiedTimer) clearTimeout(logsCopiedTimer);
+    logsCopiedTimer = setTimeout(() => {
+      logsCopied.value = false;
+    }, 2000);
+  } catch {
+    notifications.notify({
+      title: i18n.t('notify_title_error'),
+      text: i18n.t('repo.pipeline.log_copy_error'),
+      type: 'error',
+      duration: 9000,
+    });
+  } finally {
+    copyInProgress.value = false;
+  }
+}
+
 async function loadLogs() {
   if (loadedStepSlug.value === stepSlug.value) {
     return;
@@ -1258,6 +1305,9 @@ onBeforeUnmount(() => {
   const el = logContainerRef.value;
   if (el) {
     el.removeEventListener('scroll', debouncedUpdateScrollState);
+  }
+  if (logsCopiedTimer) {
+    clearTimeout(logsCopiedTimer);
   }
 });
 
