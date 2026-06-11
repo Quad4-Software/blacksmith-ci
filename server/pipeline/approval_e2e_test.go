@@ -36,6 +36,7 @@ type approvalDAG struct {
 	pipeline   *model.Pipeline
 	build      *model.Workflow
 	gate       *model.Workflow
+	gateStep   *model.Step
 	deploy     *model.Workflow
 	deployStep *model.Step
 }
@@ -44,7 +45,10 @@ type approvalDAG struct {
 // build (success) -> gate (blocked, awaiting approval) -> deploy (pending,
 // depends on gate). The deploy workflow carries a single pending child step
 // so we can observe the cascade reaching down into the step layer on the
-// decline / timeout paths.
+// decline / timeout paths. The gate workflow ALSO carries a pending child
+// step so the decline / timeout paths can assert that the gate's own step
+// rows transition to Skipped (otherwise WorkflowStatus() recomputed from
+// children returns Success even when wf.State = Declined).
 //
 // Each call returns fresh pointers so individual scenarios can mutate state
 // (e.g. flip ApprovalDeadline into the past) without leaking between tests.
@@ -57,6 +61,12 @@ func dagFixture() approvalDAG {
 		Name:       "build",
 		State:      model.StatusSuccess,
 	}
+	d.gateStep = &model.Step{
+		ID:    9019,
+		PID:   902,
+		Name:  "gate-step",
+		State: model.StatusPending,
+	}
 	d.gate = &model.Workflow{
 		ID:                     902,
 		PipelineID:             900,
@@ -67,6 +77,7 @@ func dagFixture() approvalDAG {
 		ApprovalDeadline:       time.Now().Add(1 * time.Hour).Unix(),
 		ApprovalTimeoutSeconds: 3600,
 		DependsOn:              model.JSONSliceString{"build"},
+		Children:               []*model.Step{d.gateStep},
 	}
 	d.deployStep = &model.Step{
 		ID:    9020,
@@ -182,6 +193,13 @@ func TestApprovalGate_DAG_Decline(t *testing.T) {
 			w.State == model.StatusDeclined &&
 			w.ApprovalState == model.ApprovalDeclined
 	})).Return(nil)
+	// Gate's own pending child step must be marked Skipped — without this,
+	// per-workflow rollups computed from children stay at Success even though
+	// wf.State = Declined.
+	s.On("StepListFromWorkflowFind", d.gate).Return([]*model.Step{d.gateStep}, nil)
+	s.On("StepUpdate", mock.MatchedBy(func(st *model.Step) bool {
+		return st.ID == d.gateStep.ID && st.State == model.StatusSkipped
+	})).Return(nil)
 	s.On("WorkflowApprovalEventCreate", mock.MatchedBy(func(e *model.WorkflowApprovalEvent) bool {
 		return e.WorkflowID == d.gate.ID &&
 			e.Action == model.ApprovalActionDeclined &&
@@ -232,6 +250,11 @@ func TestApprovalGate_DAG_Decline(t *testing.T) {
 	rollupStatus := model.PipelineStatus([]*model.Workflow{d.build, d.gate, d.deploy})
 	assert.Equal(t, model.StatusDeclined, rollupStatus,
 		"pipeline rollup after decline cascade should be StatusDeclined")
+	// Regression: the declined gate's own pending child step must be marked
+	// Skipped via StepUpdate. The StepUpdate mock above is matched on
+	// st.ID == d.gateStep.ID && st.State == model.StatusSkipped, and the
+	// s.AssertExpectations below fails if that mock wasn't called — proving
+	// the step-skip path runs and the row doesn't linger as Pending.
 
 	s.AssertExpectations(t)
 	q.AssertExpectations(t)
@@ -278,6 +301,13 @@ func TestApprovalGate_DAG_Timeout(t *testing.T) {
 		return w.ID == d.gate.ID &&
 			w.State == model.StatusDeclined &&
 			w.ApprovalState == model.ApprovalExpired
+	})).Return(nil)
+	// Expired gate's own pending child step must be marked Skipped — same
+	// invariant as the decline path. Without this, the step row lingers as
+	// Pending and the per-workflow icon in the UI shows the wrong state.
+	s.On("StepListFromWorkflowFind", d.gate).Return([]*model.Step{d.gateStep}, nil)
+	s.On("StepUpdate", mock.MatchedBy(func(st *model.Step) bool {
+		return st.ID == d.gateStep.ID && st.State == model.StatusSkipped
 	})).Return(nil)
 	s.On("WorkflowApprovalEventCreate", mock.MatchedBy(func(e *model.WorkflowApprovalEvent) bool {
 		return e.WorkflowID == d.gate.ID &&

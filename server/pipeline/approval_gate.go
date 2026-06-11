@@ -177,6 +177,19 @@ func declineWorkflowInternal(
 	if err := s.WorkflowUpdate(wf); err != nil {
 		return fmt.Errorf("workflow %d update: %w", workflowID, err)
 	}
+	// Skip the declined gate's own pending child steps. WorkflowLoad does not
+	// populate Children, so we re-fetch them from the step store. Without
+	// this, the step rows linger in Pending — which leaves WorkflowStatus()
+	// (when recomputed from children, e.g. by frontend per-workflow rollups)
+	// returning Success and the per-workflow icon showing the wrong state.
+	// The downstream cascade in cascadeSkipFromDeclined only handles
+	// transitively-dependent workflows, not the declined workflow's own steps.
+	if err := skipDeclinedWorkflowSteps(s, wf); err != nil {
+		log.Error().Err(err).Int64("workflow_id", workflowID).
+			Msg("decline: failed to skip pending child steps")
+		// fall through — the gate transition is already persisted; downstream
+		// cascade and publish should still happen.
+	}
 	ev := &model.WorkflowApprovalEvent{
 		WorkflowID: workflowID,
 		UserID:     user.ID,
@@ -218,6 +231,29 @@ func cascadeSkipFromDeclined(ctx context.Context, s store.Store, q queue.Queue, 
 		return fmt.Errorf("cascade skip from declined: load pipeline %d: %w", declined.PipelineID, err)
 	}
 	return CascadeSkipBlockedWorkflows(ctx, s, q, pipeline)
+}
+
+// skipDeclinedWorkflowSteps marks every pending child step of the declined
+// workflow as Skipped so the workflow's terminal state reflects in the
+// per-step rows. WorkflowLoad does not populate Children, so we re-fetch them
+// from the step store. Mirrors the pattern in Cancel (server/pipeline/cancel.go)
+// and the downstream-cascade step skip in CascadeSkipBlockedWorkflows
+// (server/pipeline/cascade_skip.go).
+func skipDeclinedWorkflowSteps(s store.Store, wf *model.Workflow) error {
+	steps, err := s.StepListFromWorkflowFind(wf)
+	if err != nil {
+		return fmt.Errorf("load steps for workflow %d: %w", wf.ID, err)
+	}
+	for _, step := range steps {
+		if step.State != model.StatusPending {
+			continue
+		}
+		if _, err := UpdateStepToStatusSkipped(s, *step, 0); err != nil {
+			log.Error().Err(err).Int64("step_id", step.ID).
+				Msg("decline: failed to mark pending step as skipped")
+		}
+	}
+	return nil
 }
 
 // refreshAndPublishPipeline reloads the parent pipeline, recomputes its

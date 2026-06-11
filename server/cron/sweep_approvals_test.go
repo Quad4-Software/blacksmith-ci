@@ -47,6 +47,11 @@ func TestSweepExpiredApprovalsCallsExpire(t *testing.T) {
 	s.On("WorkflowUpdate", mock.MatchedBy(func(w *model.Workflow) bool {
 		return w.ApprovalState == model.ApprovalExpired
 	})).Return(nil)
+	// ExpireWorkflow now skips the expired gate's own pending child steps
+	// via StepListFromWorkflowFind + UpdateStepToStatusSkipped (step layer
+	// of the decline cascade). The bare-minimum fixture in this test has no
+	// children, so we expect an empty list and no StepUpdate calls.
+	s.On("StepListFromWorkflowFind", expired).Return([]*model.Step{}, nil)
 	s.On("WorkflowApprovalEventCreate", mock.MatchedBy(func(e *model.WorkflowApprovalEvent) bool {
 		return e.Action == model.ApprovalActionExpired && e.UserID == 0
 	})).Return(nil)

@@ -103,6 +103,8 @@ func TestDeclineWorkflowPublishesPipelineUpdate(t *testing.T) {
 		return w.State == model.StatusDeclined &&
 			w.ApprovalState == model.ApprovalDeclined
 	})).Return(nil)
+	// Declined gate has no children in this fixture.
+	s.On("StepListFromWorkflowFind", wf).Return([]*model.Step{}, nil)
 	s.On("WorkflowApprovalEventCreate", mock.AnythingOfType("*model.WorkflowApprovalEvent")).
 		Return(nil)
 	q.On("SetApprovalState", mock.Anything, "42", model.ApprovalDeclined).Return(nil)
@@ -155,6 +157,8 @@ func TestExpireWorkflowFallsBackToRepoOwnerForForgeAuth(t *testing.T) {
 	s.On("WorkflowUpdate", mock.MatchedBy(func(w *model.Workflow) bool {
 		return w.ApprovalState == model.ApprovalExpired
 	})).Return(nil)
+	// Expired gate has no children in this fixture.
+	s.On("StepListFromWorkflowFind", wf).Return([]*model.Step{}, nil)
 	s.On("WorkflowApprovalEventCreate", mock.MatchedBy(func(e *model.WorkflowApprovalEvent) bool {
 		// System-driven — UserID stays 0.
 		return e.UserID == 0 && e.Action == model.ApprovalActionExpired

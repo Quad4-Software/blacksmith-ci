@@ -202,6 +202,9 @@ func TestDeclineWorkflowMarksDeclined(t *testing.T) {
 	s.On("WorkflowUpdate", mock.MatchedBy(func(w *model.Workflow) bool {
 		return w.State == model.StatusDeclined && w.ApprovalState == model.ApprovalDeclined
 	})).Return(nil)
+	// Declined gate has no children in this fixture — skipDeclinedWorkflowSteps
+	// fetches them and finds none.
+	s.On("StepListFromWorkflowFind", wf).Return([]*model.Step{}, nil)
 	s.On("WorkflowApprovalEventCreate", mock.MatchedBy(func(e *model.WorkflowApprovalEvent) bool {
 		return e.Action == model.ApprovalActionDeclined
 	})).Return(nil)
