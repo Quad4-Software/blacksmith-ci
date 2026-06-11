@@ -141,7 +141,7 @@
                   <template v-else>{{ $t('repo.pipeline.protected.revoke_always') }}</template>
                 </Button>
               </div>
-              <div v-if="selectedWorkflowApproval" class="w-full p-4">
+              <div v-if="selectedWorkflowApproval" class="w-full p-4 shrink-0 overflow-y-auto max-h-[40%]">
                 <WorkflowApprovalPanel
                   :key="selectedWorkflowApproval.id"
                   :repo-id="repo.id"
@@ -151,7 +151,7 @@
                 />
               </div>
               <PipelineLog
-                v-else-if="selectedStepId !== null"
+                v-if="selectedStepId !== null"
                 v-model:step-id="selectedStepId"
                 :pipeline="pipeline!"
                 :previous-step-id="previousStepId"
@@ -220,15 +220,6 @@
           </div>
         </Panel>
       </div>
-      <div v-else-if="selectedWorkflowApproval" class="p-4 flex-1">
-        <WorkflowApprovalPanel
-          :key="selectedWorkflowApproval.id"
-          :repo-id="repo.id"
-          :pipeline-number="pipeline!.number"
-          :workflow="selectedWorkflowApproval"
-          @updated="onWorkflowApprovalUpdated"
-        />
-      </div>
       <template v-else>
         <div
           v-if="pipeline!.is_always_approved && repoPermissions!.push && pipeline!.event?.startsWith('pull_request')"
@@ -245,6 +236,15 @@
             <Icon v-if="isRevokingAlways" name="spinner" class="size-3 animate-spin" />
             <template v-else>{{ $t('repo.pipeline.protected.revoke_always') }}</template>
           </Button>
+        </div>
+        <div v-if="selectedWorkflowApproval" class="p-4 shrink-0 overflow-y-auto max-h-[40%]">
+          <WorkflowApprovalPanel
+            :key="selectedWorkflowApproval.id"
+            :repo-id="repo.id"
+            :pipeline-number="pipeline!.number"
+            :workflow="selectedWorkflowApproval"
+            @updated="onWorkflowApprovalUpdated"
+          />
         </div>
         <!-- Mobile Log Viewer with step info panel and bottom sheet navigation -->
         <PipelineLogMobile
