@@ -125,6 +125,113 @@ func TestAddNetworkToSpecPreservesInterfaceNameOnUpdate(t *testing.T) {
 	assert.Equal(t, []string{"updated"}, spec.Networks["crow_default"].Aliases)
 }
 
+func TestToNamedVolumesSkipsBindMounts(t *testing.T) {
+	volumes := toNamedVolumes([]string{
+		"cache:/cache",
+		"readonly-cache:/readonly:ro",
+		"/host/cache:/container/cache",
+	})
+
+	assert.Equal(t, []*specgen.NamedVolume{
+		{
+			Name: "cache",
+			Dest: "/cache",
+		},
+		{
+			Name:    "readonly-cache",
+			Dest:    "/readonly",
+			Options: []string{"ro"},
+		},
+	}, volumes)
+}
+
+func TestToMountsConvertsBindMounts(t *testing.T) {
+	mounts := toMounts([]string{
+		"/host/cache:/container/cache",
+		"/host/readonly:/container/readonly:ro",
+		"cache:/cache",
+	})
+
+	assert.Equal(t, []spec.Mount{
+		{
+			Type:        "bind",
+			Source:      "/host/cache",
+			Destination: "/container/cache",
+		},
+		{
+			Type:        "bind",
+			Source:      "/host/readonly",
+			Destination: "/container/readonly",
+			Options:     []string{"ro"},
+		},
+	}, mounts)
+}
+
+func TestToMountsUsesSourceAsDestinationWhenDestinationIsMissing(t *testing.T) {
+	mounts := toMounts([]string{"/host/cache"})
+
+	assert.Equal(t, []spec.Mount{
+		{
+			Type:        "bind",
+			Source:      "/host/cache",
+			Destination: "/host/cache",
+		},
+	}, mounts)
+}
+
+func TestToSpecGeneratorKeepsNamedVolumesBindMountsAndTmpfs(t *testing.T) {
+	engine := podman{}
+
+	generatedSpec := engine.toSpecGenerator(&backend.Step{
+		Image:   "alpine:latest",
+		Volumes: []string{"cache:/cache", "/host/cache:/container/cache:ro"},
+		Tmpfs:   []string{"/tmp:size=64m"},
+	}, BackendOptions{}, "task-123")
+
+	assert.Equal(t, []*specgen.NamedVolume{
+		{
+			Name: "cache",
+			Dest: "/cache",
+		},
+	}, generatedSpec.Volumes)
+	assert.Equal(t, []spec.Mount{
+		{
+			Type:        "bind",
+			Source:      "/host/cache",
+			Destination: "/container/cache",
+			Options:     []string{"ro"},
+		},
+		{
+			Type:        "tmpfs",
+			Source:      "tmpfs",
+			Destination: "/tmp",
+			Options:     []string{"size=64m"},
+		},
+	}, generatedSpec.Mounts)
+}
+
+func TestConfiguredVolumesSplitIntoNamedVolumesAndBindMounts(t *testing.T) {
+	confVolumes := []string{
+		"cache:/cache",
+		"/host/cache:/container/cache:ro",
+	}
+
+	assert.Equal(t, []*specgen.NamedVolume{
+		{
+			Name: "cache",
+			Dest: "/cache",
+		},
+	}, toNamedVolumes(confVolumes))
+	assert.Equal(t, []spec.Mount{
+		{
+			Type:        "bind",
+			Source:      "/host/cache",
+			Destination: "/container/cache",
+			Options:     []string{"ro"},
+		},
+	}, toMounts(confVolumes))
+}
+
 // TestToResourceLimits tests conversion to OCI spec.LinuxResources.
 // This is Podman-specific as Docker uses different types.
 func TestToResourceLimits(t *testing.T) {

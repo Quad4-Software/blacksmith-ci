@@ -217,6 +217,9 @@ func (e *podman) StartStep(ctx context.Context, step *backend.Step, taskUUID str
 	// Add default volumes
 	spec.Volumes = append(spec.Volumes, toNamedVolumes(e.config.volumes)...)
 
+	// Add default bind mounts
+	spec.Mounts = append(spec.Mounts, toMounts(e.config.volumes)...)
+
 	// Automatically pull the latest version of the image if requested
 	if step.Pull {
 		pullOpts := new(images.PullOptions)

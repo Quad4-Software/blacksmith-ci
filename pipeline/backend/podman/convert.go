@@ -102,11 +102,12 @@ func (e *podman) toSpecGenerator(step *backendTypes.Step, options BackendOptions
 	// Volumes
 	if len(step.Volumes) != 0 {
 		s.Volumes = toNamedVolumes(step.Volumes)
+		s.Mounts = toMounts(step.Volumes)
 	}
 
 	// Tmpfs mounts
 	if len(step.Tmpfs) != 0 {
-		s.Mounts = toTmpfsMounts(step.Tmpfs)
+		s.Mounts = append(s.Mounts, toTmpfsMounts(step.Tmpfs)...)
 	}
 
 	// Resource limits
@@ -202,6 +203,9 @@ func toNamedVolumes(volumes []string) []*specgen.NamedVolume {
 
 	result := make([]*specgen.NamedVolume, 0, len(volumes))
 	for _, vol := range volumes {
+		if strings.HasPrefix(vol, "/") {
+			continue
+		}
 		parts, err := common.SplitVolumeParts(vol)
 		if err != nil || len(parts) < common.MinVolumeComponents {
 			continue
@@ -220,6 +224,38 @@ func toNamedVolumes(volumes []string) []*specgen.NamedVolume {
 		result = append(result, nv)
 	}
 	return result
+}
+
+func toMounts(volumes []string) []spec.Mount {
+	if len(volumes) == 0 {
+		return nil
+	}
+	mounts := make([]spec.Mount, 0, len(volumes))
+	for _, vol := range volumes {
+		if !strings.HasPrefix(vol, "/") {
+			continue
+		}
+		parts, err := common.SplitVolumeParts(vol)
+		if err != nil || len(parts) == 0 {
+			continue
+		}
+
+		mount := spec.Mount{
+			Type:        "bind",
+			Source:      parts[0],
+			Destination: parts[0],
+		}
+
+		if len(parts) > 1 {
+			mount.Destination = parts[1]
+		}
+		if len(parts) > volumeOptionsIndex {
+			mount.Options = strings.Split(parts[volumeOptionsIndex], ",")
+		}
+
+		mounts = append(mounts, mount)
+	}
+	return mounts
 }
 
 // toLinuxDevices converts a slice of device paths to spec.LinuxDevice.
