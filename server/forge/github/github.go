@@ -226,6 +226,32 @@ func (c *client) Teams(ctx context.Context, u *model.User) ([]*model.Team, error
 	return teams, nil
 }
 
+// TeamMemberships returns the caller's team memberships across all orgs.
+func (c *client) TeamMemberships(ctx context.Context, u *model.User) ([]*model.TeamMembership, error) {
+	gh := c.newClientToken(ctx, u.AccessToken)
+	opts := new(github.ListOptions)
+	opts.Page = 1
+
+	var out []*model.TeamMembership
+	for opts.Page > 0 {
+		list, resp, err := gh.Teams.ListUserTeams(ctx, opts)
+		if err != nil {
+			return nil, err
+		}
+		for _, t := range list {
+			if t.Slug == nil || t.Organization == nil || t.Organization.Login == nil {
+				continue
+			}
+			out = append(out, &model.TeamMembership{
+				Org:  t.GetOrganization().GetLogin(),
+				Team: t.GetSlug(),
+			})
+		}
+		opts.Page = resp.NextPage
+	}
+	return out, nil
+}
+
 // Repo returns the GitHub repository.
 func (c *client) Repo(ctx context.Context, u *model.User, id model.ForgeRemoteID, owner, name string) (*model.Repo, error) {
 	client := c.newClientToken(ctx, u.AccessToken)

@@ -211,6 +211,10 @@ func (c *Forgejo) Teams(ctx context.Context, u *model.User) ([]*model.Team, erro
 	}, -1)
 }
 
+func (c *Forgejo) TeamMemberships(_ context.Context, _ *model.User) ([]*model.TeamMembership, error) {
+	return nil, nil
+}
+
 // TeamPerm is not supported by the Forgejo driver.
 func (c *Forgejo) TeamPerm(_ *model.User, _ string) (*model.Perm, error) {
 	return nil, nil

@@ -213,6 +213,10 @@ func (c *Gitea) Teams(ctx context.Context, u *model.User) ([]*model.Team, error)
 	}, -1)
 }
 
+func (c *Gitea) TeamMemberships(_ context.Context, _ *model.User) ([]*model.TeamMembership, error) {
+	return nil, nil
+}
+
 // TeamPerm is not supported by the Gitea driver.
 func (c *Gitea) TeamPerm(_ *model.User, _ string) (*model.Perm, error) {
 	return nil, nil

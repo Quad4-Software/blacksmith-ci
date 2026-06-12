@@ -56,6 +56,10 @@ func (m *mockForgeWithRefresher) Teams(context.Context, *model.User) ([]*model.T
 	return nil, nil
 }
 
+func (m *mockForgeWithRefresher) TeamMemberships(context.Context, *model.User) ([]*model.TeamMembership, error) {
+	return nil, nil
+}
+
 func (m *mockForgeWithRefresher) Repo(context.Context, *model.User, model.ForgeRemoteID, string, string) (*model.Repo, error) {
 	return nil, nil
 }

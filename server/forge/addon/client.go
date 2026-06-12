@@ -123,6 +123,10 @@ func (g *RPC) Teams(_ context.Context, u *model.User) ([]*model.Team, error) {
 	return resp, json.Unmarshal(jsonResp, &resp)
 }
 
+func (g *RPC) TeamMemberships(_ context.Context, _ *model.User) ([]*model.TeamMembership, error) {
+	return nil, nil
+}
+
 func (g *RPC) Repo(_ context.Context, u *model.User, remoteID model.ForgeRemoteID, owner, name string) (*model.Repo, error) {
 	args, err := json.Marshal(&argumentsRepo{
 		U:        modelUserFromModel(u),

@@ -55,6 +55,12 @@ type Forge interface {
 	// Teams fetches a list of team memberships from the forge.
 	Teams(ctx context.Context, u *model.User) ([]*model.Team, error)
 
+	// TeamMemberships returns the user's team memberships on the forge.
+	// Returned membership paths take the form "org/team" (GitHub) or
+	// "parent/sub/.../team" (GitLab nested subgroups).
+	// Forges without a team concept return (nil, nil).
+	TeamMemberships(ctx context.Context, u *model.User) ([]*model.TeamMembership, error)
+
 	// Repo fetches the repository from the forge, preferred is using the ID, fallback is owner/name.
 	Repo(ctx context.Context, u *model.User, remoteID model.ForgeRemoteID, owner, name string) (*model.Repo, error)
 

@@ -1301,6 +1301,74 @@ func (_c *MockForge_Status_Call) RunAndReturn(run func(ctx context.Context, u *m
 	return _c
 }
 
+// TeamMemberships provides a mock function for the type MockForge
+func (_mock *MockForge) TeamMemberships(ctx context.Context, u *model.User) ([]*model.TeamMembership, error) {
+	ret := _mock.Called(ctx, u)
+
+	if len(ret) == 0 {
+		panic("no return value specified for TeamMemberships")
+	}
+
+	var r0 []*model.TeamMembership
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *model.User) ([]*model.TeamMembership, error)); ok {
+		return returnFunc(ctx, u)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *model.User) []*model.TeamMembership); ok {
+		r0 = returnFunc(ctx, u)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.TeamMembership)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *model.User) error); ok {
+		r1 = returnFunc(ctx, u)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockForge_TeamMemberships_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'TeamMemberships'
+type MockForge_TeamMemberships_Call struct {
+	*mock.Call
+}
+
+// TeamMemberships is a helper method to define mock.On call
+//   - ctx context.Context
+//   - u *model.User
+func (_e *MockForge_Expecter) TeamMemberships(ctx interface{}, u interface{}) *MockForge_TeamMemberships_Call {
+	return &MockForge_TeamMemberships_Call{Call: _e.mock.On("TeamMemberships", ctx, u)}
+}
+
+func (_c *MockForge_TeamMemberships_Call) Run(run func(ctx context.Context, u *model.User)) *MockForge_TeamMemberships_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *model.User
+		if args[1] != nil {
+			arg1 = args[1].(*model.User)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockForge_TeamMemberships_Call) Return(teamMemberships []*model.TeamMembership, err error) *MockForge_TeamMemberships_Call {
+	_c.Call.Return(teamMemberships, err)
+	return _c
+}
+
+func (_c *MockForge_TeamMemberships_Call) RunAndReturn(run func(ctx context.Context, u *model.User) ([]*model.TeamMembership, error)) *MockForge_TeamMemberships_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Teams provides a mock function for the type MockForge
 func (_mock *MockForge) Teams(ctx context.Context, u *model.User) ([]*model.Team, error) {
 	ret := _mock.Called(ctx, u)

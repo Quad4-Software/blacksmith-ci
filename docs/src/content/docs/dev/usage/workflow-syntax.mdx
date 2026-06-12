@@ -132,8 +132,10 @@ The server caps `timeout` at `CROW_APPROVAL_GATE_TIMEOUT_MAX` (default 7d).
 YAML with a longer timeout fails lint.
 
 :::note
-`teams:` entries in the form `org/team` currently only match users against organization membership on the forge (the `team` half is ignored).
-Fine-grained team matching is a planned follow-up.
+Team approvers are resolved on forges with a team API: GitHub (via `Teams.ListUserTeams`) and GitLab (via subgroup membership).
+Listed on Gitea, Forgejo, Bitbucket, or Bitbucket Datacenter repos, team approvers will not match — only user-list approvers are honored on those forges.
+Matching is strict: YAML `parent/sub` does not match a user whose only membership is `parent`.
+On GitLab, the YAML path must equal the full group path including all intermediate subgroups (`parent/sub/leaf` matches the user only if they are an explicit member of `parent/sub/leaf`, not of an ancestor).
 :::
 
 See [Approval gates](/dev/usage/approvals/) for the full feature overview, including UI behaviour, CLI commands, and server configuration.

@@ -17,7 +17,9 @@ package gitlab
 
 import (
 	"bytes"
+	"context"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"strconv"
 	"testing"
@@ -363,4 +365,36 @@ func TestExtractFromPath(t *testing.T) {
 			assert.EqualValues(t, tc.wantName, name)
 		})
 	}
+}
+
+func TestGitLabTeamMemberships(t *testing.T) {
+	// Stub GitLab API: GET /api/v4/groups returns 3 entries with FullPath of
+	// varying depth.
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v4/groups", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		page := r.URL.Query().Get("page")
+		if page == "" || page == "1" {
+			w.Header().Set("X-Total-Pages", "1")
+			_, _ = w.Write([]byte(`[
+                {"id": 1, "full_path": "parent"},
+                {"id": 2, "full_path": "parent/sub"},
+                {"id": 3, "full_path": "parent/sub/team"}
+            ]`))
+			return
+		}
+		_, _ = w.Write([]byte(`[]`))
+	})
+	s := httptest.NewServer(mux)
+	defer s.Close()
+
+	g := &GitLab{url: s.URL, SkipVerify: true}
+	user := &model.User{AccessToken: "tok"}
+
+	got, err := g.TeamMemberships(context.Background(), user)
+	assert.NoError(t, err)
+	assert.Equal(t, []*model.TeamMembership{
+		{Org: "parent", Team: "sub"},
+		{Org: "parent", Team: "sub/team"},
+	}, got)
 }

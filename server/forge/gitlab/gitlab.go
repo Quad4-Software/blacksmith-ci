@@ -228,6 +228,53 @@ func (g *GitLab) Teams(ctx context.Context, user *model.User) ([]*model.Team, er
 	return teams, nil
 }
 
+// TeamMemberships returns the caller's group memberships, projected as
+// (Org=root group, Team=relative subgroup path). Top-level groups (no
+// subgroup component) are dropped — they have no role in team matching.
+func (g *GitLab) TeamMemberships(ctx context.Context, user *model.User) ([]*model.TeamMembership, error) {
+	client, err := newClient(g.url, user.AccessToken, g.SkipVerify)
+	if err != nil {
+		return nil, err
+	}
+
+	var out []*model.TeamMembership
+	for i := int64(1); true; i++ {
+		batch, _, err := client.Groups.ListGroups(&gitlab.ListGroupsOptions{
+			ListOptions:    gitlab.ListOptions{Page: i, PerPage: perPage},
+			AllAvailable:   gitlab.Ptr(false),
+			MinAccessLevel: gitlab.Ptr(gitlab.GuestPermissions),
+		}, gitlab.WithContext(ctx))
+		if err != nil {
+			return nil, err
+		}
+
+		for _, gr := range batch {
+			if gr.FullPath == "" {
+				continue
+			}
+			org, team, ok := splitGitLabPath(gr.FullPath)
+			if !ok {
+				continue
+			}
+			out = append(out, &model.TeamMembership{Org: org, Team: team})
+		}
+
+		if len(batch) < perPage {
+			break
+		}
+	}
+
+	return out, nil
+}
+
+func splitGitLabPath(p string) (org, team string, ok bool) {
+	i := strings.IndexByte(p, '/')
+	if i <= 0 || i == len(p)-1 {
+		return "", "", false
+	}
+	return p[:i], p[i+1:], true
+}
+
 // getProject fetches the named repository from the forge.
 func (g *GitLab) getProject(ctx context.Context, client *gitlab.Client, forgeRemoteID model.ForgeRemoteID, owner, name string) (*gitlab.Project, error) {
 	var (

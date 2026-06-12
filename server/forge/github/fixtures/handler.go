@@ -30,6 +30,7 @@ func Handler() http.Handler {
 	e.GET("/api/v3/repositories/:id", getRepoByID)
 	e.GET("/api/v3/orgs/:org/memberships/:user", getMembership)
 	e.GET("/api/v3/user/memberships/orgs/:org", getMembership)
+	e.GET("/api/v3/user/teams", getUserTeams)
 
 	return e
 }
@@ -62,6 +63,17 @@ func getMembership(c *gin.Context) {
 		c.String(http.StatusOK, membershipIsOwnerPayload)
 	}
 }
+
+func getUserTeams(c *gin.Context) {
+	c.Header("Content-Type", "application/json")
+	c.String(http.StatusOK, userTeamsPayload)
+}
+
+var userTeamsPayload = `[
+	{"slug": "admins", "organization": {"login": "myorg"}},
+	{"slug": "devs",   "organization": {"login": "myorg"}},
+	{"slug": "ops",    "organization": {"login": "otherorg"}}
+]`
 
 var repoPayload = `
 {

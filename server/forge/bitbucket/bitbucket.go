@@ -148,6 +148,10 @@ func (c *config) Teams(ctx context.Context, u *model.User) ([]*model.Team, error
 	}, -1)
 }
 
+func (c *config) TeamMemberships(_ context.Context, _ *model.User) ([]*model.TeamMembership, error) {
+	return nil, nil
+}
+
 // Repo returns the named Bitbucket repository.
 func (c *config) Repo(ctx context.Context, u *model.User, remoteID model.ForgeRemoteID, owner, name string) (*model.Repo, error) {
 	if remoteID.IsValid() {

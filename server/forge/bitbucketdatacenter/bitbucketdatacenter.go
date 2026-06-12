@@ -635,6 +635,10 @@ func (c *client) Teams(ctx context.Context, u *model.User) ([]*model.Team, error
 	return convertProjectsToTeams(allProjects, bc), nil
 }
 
+func (c *client) TeamMemberships(_ context.Context, _ *model.User) ([]*model.TeamMembership, error) {
+	return nil, nil
+}
+
 // TeamPerm is not supported.
 func (*client) TeamPerm(_ *model.User, _ string) (*model.Perm, error) {
 	return nil, nil

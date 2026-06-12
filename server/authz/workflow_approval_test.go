@@ -130,8 +130,8 @@ func TestCanApproveWorkflow_TeamMatch(t *testing.T) {
 	st.On("UserForgeGet", int64(1), int64(100)).
 		Return(&model.UserForge{ForgeLogin: "bob"}, nil)
 	fmgr.On("ForgeFromRepo", repo).Return(frg, nil)
-	frg.On("Teams", ctx, mock.Anything).
-		Return([]*model.Team{{Login: "myorg"}}, nil)
+	frg.On("TeamMemberships", ctx, mock.Anything).
+		Return([]*model.TeamMembership{{Org: "myorg", Team: "admins"}}, nil)
 
 	ok, _, err := CanApproveWorkflow(ctx, st, fmgr, user, wf, repo)
 	assert.NoError(t, err)
@@ -155,8 +155,82 @@ func TestCanApproveWorkflow_TeamNoMatchDenies(t *testing.T) {
 	st.On("UserForgeGet", int64(1), int64(100)).
 		Return(&model.UserForge{ForgeLogin: "bob"}, nil)
 	fmgr.On("ForgeFromRepo", repo).Return(frg, nil)
-	frg.On("Teams", ctx, mock.Anything).
-		Return([]*model.Team{{Login: "myorg"}}, nil)
+	frg.On("TeamMemberships", ctx, mock.Anything).
+		Return([]*model.TeamMembership{{Org: "myorg", Team: "admins"}}, nil)
+
+	ok, reason, err := CanApproveWorkflow(ctx, st, fmgr, user, wf, repo)
+	assert.NoError(t, err)
+	assert.False(t, ok)
+	assert.Contains(t, reason, "not in approvers list")
+}
+
+func TestCanApproveWorkflow_TeamMatch_GitLabSubgroup(t *testing.T) {
+	ctx := context.Background()
+	st := store_mocks.NewMockStore(t)
+	fmgr := services_mocks.NewMockManager(t)
+	frg := forge_mocks.NewMockForge(t)
+
+	user := &model.User{ID: 1}
+	repo := &model.Repo{ID: 10, ForgeID: 100}
+	wf := &model.Workflow{
+		ID: 50, RequiresApproval: true,
+		ApprovalTeams: []string{"parent/sub/team"},
+	}
+
+	st.On("UserForgeGet", int64(1), int64(100)).
+		Return(&model.UserForge{ForgeLogin: "bob"}, nil)
+	fmgr.On("ForgeFromRepo", repo).Return(frg, nil)
+	frg.On("TeamMemberships", ctx, mock.Anything).
+		Return([]*model.TeamMembership{{Org: "parent", Team: "sub/team"}}, nil)
+
+	ok, _, err := CanApproveWorkflow(ctx, st, fmgr, user, wf, repo)
+	assert.NoError(t, err)
+	assert.True(t, ok)
+}
+
+func TestCanApproveWorkflow_TeamNoMatch_StrictNoInheritance(t *testing.T) {
+	ctx := context.Background()
+	st := store_mocks.NewMockStore(t)
+	fmgr := services_mocks.NewMockManager(t)
+	frg := forge_mocks.NewMockForge(t)
+
+	user := &model.User{ID: 1}
+	repo := &model.Repo{ID: 10, ForgeID: 100}
+	wf := &model.Workflow{
+		ID: 50, RequiresApproval: true,
+		ApprovalTeams: []string{"parent/sub"},
+	}
+
+	st.On("UserForgeGet", int64(1), int64(100)).
+		Return(&model.UserForge{ForgeLogin: "bob"}, nil)
+	fmgr.On("ForgeFromRepo", repo).Return(frg, nil)
+	frg.On("TeamMemberships", ctx, mock.Anything).
+		Return([]*model.TeamMembership{{Org: "parent", Team: "other"}}, nil)
+
+	ok, reason, err := CanApproveWorkflow(ctx, st, fmgr, user, wf, repo)
+	assert.NoError(t, err)
+	assert.False(t, ok)
+	assert.Contains(t, reason, "not in approvers list")
+}
+
+func TestCanApproveWorkflow_TeamNotSupportedByForge(t *testing.T) {
+	ctx := context.Background()
+	st := store_mocks.NewMockStore(t)
+	fmgr := services_mocks.NewMockManager(t)
+	frg := forge_mocks.NewMockForge(t)
+
+	user := &model.User{ID: 1}
+	repo := &model.Repo{ID: 10, ForgeID: 100}
+	wf := &model.Workflow{
+		ID: 50, RequiresApproval: true,
+		ApprovalTeams: []string{"myorg/admins"},
+	}
+
+	st.On("UserForgeGet", int64(1), int64(100)).
+		Return(&model.UserForge{ForgeLogin: "bob"}, nil)
+	fmgr.On("ForgeFromRepo", repo).Return(frg, nil)
+	frg.On("TeamMemberships", ctx, mock.Anything).
+		Return(nil, nil) // forge has no team concept
 
 	ok, reason, err := CanApproveWorkflow(ctx, st, fmgr, user, wf, repo)
 	assert.NoError(t, err)

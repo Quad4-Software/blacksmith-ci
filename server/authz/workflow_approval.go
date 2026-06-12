@@ -18,7 +18,6 @@ package authz
 
 import (
 	"context"
-	"strings"
 
 	"codefloe.com/crowci/crow/v5/server/model"
 	"codefloe.com/crowci/crow/v5/server/services"
@@ -39,14 +38,11 @@ import (
 //  2. Otherwise, resolve the caller's identity on the repo's forge via
 //     user_forges. No row ⇒ deny.
 //  3. Direct username match against ApprovalUsers ⇒ allow.
-//  4. For each "org/team" entry in ApprovalTeams, list the caller's teams
-//     (orgs) on the forge and check membership ⇒ allow on match.
+//  4. For each "org/team" entry in ApprovalTeams, fetch the caller's team
+//     memberships from the forge and require an exact canonical path match
+//     (TeamMembership.Path() == entry). No org-level inheritance. Forges
+//     without a team concept return no memberships ⇒ deny by absence.
 //  5. Else deny.
-//
-// NOTE: forge.Forge.Teams currently returns the caller's organizations
-// (model.Team.Login == org login). Membership in the named org therefore
-// satisfies an "org/team" entry; finer-grained team-within-org checks are
-// not yet supported across all forges.
 func CanApproveWorkflow(
 	ctx context.Context,
 	s store.Store,
@@ -84,17 +80,13 @@ func CanApproveWorkflow(
 		if err != nil {
 			return false, "forge lookup failed", err
 		}
-		teams, err := f.Teams(ctx, user)
+		memberships, err := f.TeamMemberships(ctx, user)
 		if err != nil {
 			return false, "forge team lookup failed", err
 		}
 		for _, want := range wf.ApprovalTeams {
-			orgName, _, ok := splitOrgTeam(want)
-			if !ok {
-				continue
-			}
-			for _, t := range teams {
-				if t.Login == orgName {
+			for _, m := range memberships {
+				if m.Path() == want {
 					return true, "", nil
 				}
 			}
@@ -102,14 +94,4 @@ func CanApproveWorkflow(
 	}
 
 	return false, "not in approvers list", nil
-}
-
-// splitOrgTeam splits an "org/team" string into its parts. Empty halves
-// or a missing separator returns ok=false.
-func splitOrgTeam(s string) (org, team string, ok bool) {
-	i := strings.IndexByte(s, '/')
-	if i <= 0 || i == len(s)-1 {
-		return "", "", false
-	}
-	return s[:i], s[i+1:], true
 }

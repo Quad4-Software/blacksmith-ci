@@ -90,6 +90,16 @@ func Test_github(t *testing.T) {
 		_, err := c.Repo(ctx, fakeUser, "0", fakeRepoNotFound.Owner, fakeRepoNotFound.Name)
 		assert.Error(t, err)
 	})
+
+	t.Run("Should list the user's team memberships", func(t *testing.T) {
+		memberships, err := c.TeamMemberships(ctx, fakeUser)
+		assert.NoError(t, err)
+		assert.Equal(t, []*model.TeamMembership{
+			{Org: "myorg", Team: "admins"},
+			{Org: "myorg", Team: "devs"},
+			{Org: "otherorg", Team: "ops"},
+		}, memberships)
+	})
 }
 
 func TestHook(t *testing.T) {

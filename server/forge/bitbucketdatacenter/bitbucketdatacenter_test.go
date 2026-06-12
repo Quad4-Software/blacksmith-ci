@@ -15,6 +15,7 @@
 package bitbucketdatacenter
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -126,3 +127,11 @@ var (
 		State: model.StatusSuccess,
 	}
 )
+
+func TestBitbucketDatacenterTeamMembershipsReturnsNil(t *testing.T) {
+	t.Parallel()
+	c := &client{}
+	got, err := c.TeamMemberships(context.Background(), &model.User{})
+	assert.NoError(t, err)
+	assert.Nil(t, got)
+}

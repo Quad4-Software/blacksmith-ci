@@ -16,6 +16,7 @@ package forgejo
 
 import (
 	"bytes"
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -172,3 +173,11 @@ var (
 		State: model.StatusSuccess,
 	}
 )
+
+func TestForgejoTeamMembershipsReturnsNil(t *testing.T) {
+	t.Parallel()
+	c := &Forgejo{}
+	got, err := c.TeamMemberships(context.Background(), &model.User{})
+	assert.NoError(t, err)
+	assert.Nil(t, got)
+}
