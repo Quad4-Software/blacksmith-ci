@@ -48,6 +48,7 @@
       "runtimeExecutable": "bun",
       "runtimeArgs": ["start"],
       "cwd": "${workspaceFolder}/web",
+      "preLaunchTask": "direnv-export",
       "resolveSourceMapLocations": ["${workspaceFolder}/web/**", "!**/node_modules/**"],
       "envFile": "${workspaceFolder}/.env",
       "skipFiles": ["<node_internals>/**"]

@@ -1,73 +1,89 @@
 <template>
   <Panel>
     <div class="flex flex-col gap-4">
-      <!-- Heading -->
+      <!-- Compact header (always visible) -->
       <div class="flex items-center gap-3">
-        <Icon :name="headerIcon" size="1.5rem" class="size-8" :class="headerIconClass" />
-        <div class="flex flex-col">
-          <span class="text-lg font-semibold">
+        <Icon :name="headerIcon" size="1.5rem" class="size-8 shrink-0" :class="headerIconClass" />
+        <div class="flex min-w-0 flex-1 flex-col">
+          <span class="truncate text-base font-semibold">
             <template v-if="approvalState === 'approved'">{{ $t('workflow.approval.title_approved') }}</template>
             <template v-else-if="approvalState === 'declined'">{{ $t('workflow.approval.title_declined') }}</template>
             <template v-else-if="approvalState === 'expired'">{{ $t('workflow.approval.title_expired') }}</template>
             <template v-else>{{ $t('workflow.approval.title_pending') }}</template>
           </span>
-          <span class="text-sm text-muted-foreground">{{ workflow.name }}</span>
+          <span class="truncate text-sm text-muted-foreground">{{ workflow.name }}</span>
+        </div>
+        <div class="flex shrink-0 items-center gap-2">
+          <!-- Action buttons (pending only) -->
+          <template v-if="isPending">
+            <Button
+              variant="outline"
+              size="sm"
+              class="border-green-500 hover:border-green-600 hover:bg-green-50 dark:hover:bg-green-950/20"
+              :disabled="!canAct || isBusy"
+              @click="onApprove"
+            >
+              <Icon v-if="isApproving" name="spinner" class="size-4 animate-spin" />
+              <template v-else>{{ $t('workflow.approval.approve') }}</template>
+            </Button>
+            <Button variant="destructive" size="sm" :disabled="!canAct || isBusy" @click="onDecline">
+              <Icon v-if="isDeclining" name="spinner" class="size-4 animate-spin" />
+              <template v-else>{{ $t('workflow.approval.decline') }}</template>
+            </Button>
+          </template>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            :aria-expanded="expanded"
+            :aria-label="expanded ? 'Collapse approval details' : 'Expand approval details'"
+            @click="expanded = !expanded"
+          >
+            <Icon name="chevron-down" class="size-4 transition-transform" :class="{ 'rotate-180': expanded }" />
+          </Button>
         </div>
       </div>
 
-      <!-- Deadline -->
-      <div v-if="deadlineLabel" class="flex items-center gap-2 text-sm text-muted-foreground">
-        <Icon name="lucide:hourglass" size="1rem" class="size-4" />
-        <span>{{ deadlineLabel }}</span>
-      </div>
+      <!-- Expanded detail (only when expanded) -->
+      <div v-if="expanded" class="flex flex-col gap-4">
+        <!-- Deadline -->
+        <div v-if="deadlineLabel" class="flex items-center gap-2 text-sm text-muted-foreground">
+          <Icon name="lucide:hourglass" size="1rem" class="size-4" />
+          <span>{{ deadlineLabel }}</span>
+        </div>
 
-      <!-- Approvers -->
-      <div class="flex flex-col gap-1 text-sm">
-        <span class="font-medium">{{ $t('workflow.approval.approvers') }}</span>
-        <span class="text-muted-foreground">{{ approversLabel }}</span>
-      </div>
+        <!-- Approvers -->
+        <div class="flex flex-col gap-1 text-sm">
+          <span class="font-medium">{{ $t('workflow.approval.approvers') }}</span>
+          <span class="text-muted-foreground">{{ approversLabel }}</span>
+        </div>
 
-      <!-- Reason input (pending only) -->
-      <Textarea
-        v-if="isPending"
-        v-model="reason"
-        :placeholder="$t('workflow.approval.reason_placeholder')"
-        class="min-h-20"
-        :disabled="isBusy"
-      />
+        <!-- Reason input (pending only) -->
+        <Textarea
+          v-if="isPending"
+          v-model="reason"
+          :placeholder="$t('workflow.approval.reason_placeholder')"
+          class="min-h-20"
+          :disabled="isBusy"
+        />
 
-      <!-- Action buttons (pending only) -->
-      <div v-if="isPending" class="flex flex-wrap items-center gap-2">
-        <Button
-          variant="outline"
-          class="border-green-500 hover:border-green-600 hover:bg-green-50 dark:hover:bg-green-950/20"
-          :disabled="!canAct || isBusy"
-          @click="onApprove"
-        >
-          <Icon v-if="isApproving" name="spinner" class="size-5 animate-spin" />
-          <template v-else>{{ $t('workflow.approval.approve') }}</template>
-        </Button>
-        <Button variant="destructive" :disabled="!canAct || isBusy" @click="onDecline">
-          <Icon v-if="isDeclining" name="spinner" class="size-5 animate-spin" />
-          <template v-else>{{ $t('workflow.approval.decline') }}</template>
-        </Button>
-        <span v-if="!canApprove && !approvalLoading" class="text-sm text-muted-foreground">
+        <!-- Cant-approve hint (pending only) -->
+        <span v-if="isPending && !canApprove && !approvalLoading" class="text-sm text-muted-foreground">
           {{ $t('workflow.approval.cant_approve') }}
         </span>
-      </div>
 
-      <!-- Audit trail -->
-      <div class="flex flex-col gap-2 border-t border-border pt-4">
-        <span class="text-sm font-medium">{{ $t('workflow.approval.audit_trail') }}</span>
-        <ul v-if="events.length > 0" class="flex flex-col gap-1 text-xs">
-          <li v-for="evt in events" :key="evt.id" class="flex items-center gap-2 text-muted-foreground">
-            <Icon :name="iconForAction(evt.action)" class="size-3.5 shrink-0" :class="colorForAction(evt.action)" />
-            <span>{{ actionLabel(evt.action) }}</span>
-            <span v-if="evt.reason" class="italic">{{ evt.reason }}</span>
-            <span class="ml-auto tabular-nums">{{ formatEventTime(evt.created_at) }}</span>
-          </li>
-        </ul>
-        <span v-else class="text-xs italic text-muted-foreground">{{ $t('workflow.approval.audit_empty') }}</span>
+        <!-- Audit trail -->
+        <div class="flex flex-col gap-2 border-t border-border pt-4">
+          <span class="text-sm font-medium">{{ $t('workflow.approval.audit_trail') }}</span>
+          <ul v-if="events.length > 0" class="flex max-h-48 flex-col gap-1 overflow-y-auto text-xs">
+            <li v-for="evt in events" :key="evt.id" class="flex items-center gap-2 text-muted-foreground">
+              <Icon :name="iconForAction(evt.action)" class="size-3.5 shrink-0" :class="colorForAction(evt.action)" />
+              <span>{{ actionLabel(evt.action) }}</span>
+              <span v-if="evt.reason" class="italic">{{ evt.reason }}</span>
+              <span class="ml-auto tabular-nums">{{ formatEventTime(evt.created_at) }}</span>
+            </li>
+          </ul>
+          <span v-else class="text-xs italic text-muted-foreground">{{ $t('workflow.approval.audit_empty') }}</span>
+        </div>
       </div>
     </div>
   </Panel>
@@ -113,6 +129,14 @@ const events = ref<WorkflowApprovalEvent[]>([]);
 
 const isBusy = computed(() => isApproving.value || isDeclining.value);
 const canAct = computed(() => canApprove.value);
+
+// Compact-header-by-default for every state. Terminal states
+// (approved/declined/expired) start collapsed so the resolved gate doesn't take
+// unnecessary space; pending also stays folded because the approve/decline
+// buttons live in the always-visible header. Per-session state is fine; no need
+// to persist across navigation/SSE reload. The parent re-keys this panel per
+// workflow, so this re-initialises when the displayed workflow changes.
+const expanded = ref(false);
 
 const approvalState = computed<ApprovalState>(() => workflow.value.approval_state ?? '');
 const isPending = computed(() => approvalState.value === 'pending');

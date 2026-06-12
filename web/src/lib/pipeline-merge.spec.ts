@@ -67,8 +67,11 @@ function pipeline(
 }
 
 describe('stateRank', () => {
-  it('orders the lifecycle: pending/blocked < running/started < terminal', () => {
-    expect(stateRank('pending')).toEqual(stateRank('blocked'));
+  it('orders the lifecycle: pending < blocked < running/started < terminal', () => {
+    // `blocked` ranks strictly above `pending`: the approval gate only activates after
+    // the workflow was pending, so a stale pending snapshot must never tie/overwrite it.
+    expect(stateRank('pending')).toBeLessThan(stateRank('blocked'));
+    expect(stateRank('blocked')).toBeLessThan(stateRank('running'));
     expect(stateRank('pending')).toBeLessThan(stateRank('running'));
     expect(stateRank('running')).toEqual(stateRank('started'));
     expect(stateRank('running')).toBeLessThan(stateRank('success'));
@@ -274,5 +277,60 @@ describe('mergePipeline', () => {
 
     const merged = mergePipeline(existing, incoming);
     expect(merged.message).toBe('new');
+  });
+
+  it('applies a pending->blocked gate activation and carries approval_state', () => {
+    // Workflow was pending on mount; an SSE event fires when the approval gate activates,
+    // flipping it to blocked with approval_state=pending. This must be applied.
+    const existing = pipeline({
+      number: 1,
+      status: 'pending',
+      workflows: [workflow({ id: 10, state: 'pending', children: [step({ id: 100, state: 'pending' })] })],
+    });
+    const fromSse = pipeline({
+      number: 1,
+      status: 'blocked',
+      workflows: [
+        workflow({
+          id: 10,
+          state: 'blocked',
+          requires_approval: true,
+          approval_state: 'pending',
+          children: [step({ id: 100, state: 'pending' })],
+        }),
+      ],
+    });
+
+    const merged = mergePipeline(existing, fromSse);
+    expect(merged.workflows![0].state).toBe('blocked');
+    expect(merged.workflows![0].approval_state).toBe('pending');
+  });
+
+  it('does not regress a blocked workflow when a stale pending snapshot arrives after the gate activated', () => {
+    // The mount-time GET /pipelines/N (read while still pending) can resolve AFTER the
+    // blocked SSE event. Its stale pending snapshot must not regress blocked or drop
+    // approval_state.
+    const fromSse = pipeline({
+      number: 1,
+      status: 'blocked',
+      workflows: [
+        workflow({
+          id: 10,
+          state: 'blocked',
+          requires_approval: true,
+          approval_state: 'pending',
+          children: [step({ id: 100, state: 'pending' })],
+        }),
+      ],
+    });
+    const stalePending = pipeline({
+      number: 1,
+      status: 'pending',
+      workflows: [workflow({ id: 10, state: 'pending', children: [step({ id: 100, state: 'pending' })] })],
+    });
+
+    const merged = mergePipeline(fromSse, stalePending);
+    expect(merged.workflows![0].state).toBe('blocked');
+    expect(merged.workflows![0].approval_state).toBe('pending');
   });
 });

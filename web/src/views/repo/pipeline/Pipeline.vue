@@ -141,7 +141,7 @@
                   <template v-else>{{ $t('repo.pipeline.protected.revoke_always') }}</template>
                 </Button>
               </div>
-              <div v-if="selectedWorkflowApproval" class="w-full p-4 shrink-0 overflow-y-auto max-h-[40%]">
+              <div v-if="selectedWorkflowApproval" class="w-full pb-4 shrink-0">
                 <WorkflowApprovalPanel
                   :key="selectedWorkflowApproval.id"
                   :repo-id="repo.id"
@@ -237,7 +237,7 @@
             <template v-else>{{ $t('repo.pipeline.protected.revoke_always') }}</template>
           </Button>
         </div>
-        <div v-if="selectedWorkflowApproval" class="p-4 shrink-0 overflow-y-auto max-h-[40%]">
+        <div v-if="selectedWorkflowApproval" class="w-full pb-4 shrink-0">
           <WorkflowApprovalPanel
             :key="selectedWorkflowApproval.id"
             :repo-id="repo.id"
@@ -399,30 +399,59 @@ const { selectedStepId, previousStepId, nextStepId, autoFollowEnabled, handleAut
   { pipeline, stepIdProp: stepId },
 );
 
-// Workflow with an approval gate that matches the currently-selected step.
-// Resolves the selected step back to its workflow and shows the approval
-// panel for any non-empty approval_state — 'pending' renders the interactive
-// gate; 'approved' / 'declined' / 'expired' render a read-only summary so
-// the user can still see what happened after the gate resolved.
-const selectedWorkflowApproval = computed<PipelineWorkflow | null>(() => {
+const hasGate = (w: PipelineWorkflow) => !!w.approval_state;
+
+// Resolve the workflow that owns the currently-selected step.
+const selectedWorkflow = computed<PipelineWorkflow | null>(() => {
   const workflows = pipeline.value?.workflows;
   if (!workflows || workflows.length === 0) {
     return null;
   }
-  const hasGate = (w: PipelineWorkflow) => !!w.approval_state;
-  // Prefer the workflow containing the selected step. Fall back to any
-  // workflow with a non-empty approval_state if no step is selected yet
-  // (e.g. mobile, or the selected step lives in an unrelated workflow).
   const sId = selectedStepId.value;
-  if (sId !== null && sId !== undefined) {
-    const wfForStep = workflows.find((w) => w.children?.some((s) => s.pid === sId));
-    if (wfForStep && hasGate(wfForStep)) {
-      return wfForStep;
-    }
+  if (sId === null || sId === undefined) {
+    return null;
   }
-  const gated = workflows.find(hasGate);
-  return gated ?? null;
+  return workflows.find((w) => w.children?.some((s) => s.pid === sId)) ?? null;
 });
+
+// Approval gate for the workflow whose logs are currently displayed. The panel
+// must always correspond to the selected workflow — never float above an
+// unrelated workflow's logs. 'pending' renders the interactive gate;
+// 'approved' / 'declined' / 'expired' render a read-only summary so the user
+// can still see what happened after the gate resolved. Returns null when no
+// step is selected or the selected step's workflow has no gate.
+const selectedWorkflowApproval = computed<PipelineWorkflow | null>(() => {
+  const wf = selectedWorkflow.value;
+  return wf && hasGate(wf) ? wf : null;
+});
+
+// First-load default selection: when the user has not navigated to a specific
+// step yet (no stepId in the route) but the pipeline has a gated workflow,
+// select that workflow's first step so its steps + the approval panel show
+// together. On desktop `selectedStepId` synthesises the FIRST workflow's step
+// as a default, which may not be the gated one — so we key off the raw route
+// param (`stepId`) to detect "not navigated yet" rather than `selectedStepId`.
+// Runs once per pipeline to avoid fighting subsequent manual selections.
+let didDefaultToGatedWorkflow = false;
+watch(
+  [() => pipeline.value?.workflows, stepId],
+  ([workflows, rawStepId]) => {
+    if (didDefaultToGatedWorkflow) {
+      return;
+    }
+    // User has explicitly navigated to a step — respect their selection.
+    if (rawStepId !== '' && rawStepId !== null && rawStepId !== undefined) {
+      didDefaultToGatedWorkflow = true;
+      return;
+    }
+    const gated = workflows?.find(hasGate);
+    if (gated && gated.children.length > 0) {
+      didDefaultToGatedWorkflow = true;
+      selectedStepId.value = gated.children[0].pid;
+    }
+  },
+  { immediate: true },
+);
 
 // True when the whole pipeline is blocked (e.g. fork PR approval) and no
 // individual workflow has its own approval gate. When a workflow-level gate
