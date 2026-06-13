@@ -527,7 +527,12 @@
                 : 'grid-cols-[min-content_minmax(0,1fr)_min-content]',
             ]"
           >
-            <div v-for="line in log" :key="line.index" class="contents font-mono">
+            <div
+              v-for="line in log"
+              :key="line.index"
+              class="grid grid-cols-subgrid font-mono"
+              :class="hideTimestamps ? 'col-span-2' : 'col-span-3'"
+            >
               <a
                 :id="`L${line.number}`"
                 :href="`#L${line.number}`"
@@ -543,7 +548,7 @@
               </a>
               <!-- eslint-disable vue/no-v-html -->
               <span
-                class="whitespace-pre-wrap wrap-break-word align-top"
+                class="min-w-0 whitespace-pre-wrap wrap-anywhere align-top"
                 :class="{
                   'bg-red-600/40 dark:bg-red-800/50': line.type === 'error',
                   'bg-yellow-600/40 dark:bg-yellow-800/50': line.type === 'warning',
@@ -1081,6 +1086,13 @@ const flushLogs = debounce((scroll: boolean) => {
   if (buffer.length < limit && log.value) {
     buffer = [...log.value.slice(-(limit - buffer.length)), ...buffer];
   }
+
+  // deduplicate lines by index: an SSE reconnect can replay already-seen
+  // lines, and duplicate keys make Vue mis-patch a row's grid cells, shifting
+  // the whole log layout. Keep the last occurrence of each index.
+  const seenIndex = new Map<number, number>();
+  buffer.forEach((line, i) => seenIndex.set(line.index, i));
+  buffer = buffer.filter((line, i) => seenIndex.get(line.index) === i);
 
   // deduplicate repeating times
   buffer = buffer.reduce(
