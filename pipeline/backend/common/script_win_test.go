@@ -63,6 +63,16 @@ if ($LASTEXITCODE -ne 0) {exit $LASTEXITCODE}
 	}
 }
 
+func TestGenerateScriptWinEscapesSingleQuotes(t *testing.T) {
+	// The trace line wraps the command in a PowerShell single-quoted string
+	// (Write-Output ('+ ...')). A single quote inside the command would close
+	// that string early and make the whole script fail to parse, so single
+	// quotes must be doubled. The command itself still runs unescaped.
+	script := generateScriptWindows([]string{"$x = 'Stop'"}, "/w")
+	assert.Contains(t, script, `Write-Output ('+ "\$x = ''Stop''"');`)
+	assert.Contains(t, script, "\n$x = 'Stop'\n")
+}
+
 func TestSetupScriptWinProtoParse(t *testing.T) {
 	// just ensure that we have a working `setupScriptWinTmpl` at runtime
 	_, err := template.New("").Parse(setupScriptWinProto)

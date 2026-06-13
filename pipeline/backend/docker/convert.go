@@ -184,6 +184,14 @@ func toVol(paths []string) map[string]struct{} {
 		if len(parts) < minVolumeComponents {
 			continue
 		}
+		// Windows named pipes (e.g. \\.\pipe\docker_engine) are valid bind mounts
+		// but cannot be declared as anonymous volumes: the Windows daemon requires
+		// anonymous-volume mount points to be directories and rejects a pipe with
+		// "Only directories can be mapped on this platform". The bind itself is
+		// still forwarded via HostConfig.Binds.
+		if isWindowsNamedPipe(parts[1]) {
+			continue
+		}
 		set[parts[1]] = struct{}{}
 	}
 	return set

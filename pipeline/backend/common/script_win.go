@@ -34,6 +34,11 @@ func generateScriptWindows(commands []string, workDir string) string {
 	for _, command := range commands {
 		escaped := fmt.Sprintf("%q", command)
 		escaped = strings.ReplaceAll(escaped, "$", `\$`)
+		// The trace line embeds this value inside a PowerShell single-quoted
+		// string (Write-Output ('+ ...')). Any single quote in the command
+		// would terminate that string early and break parsing, so double them
+		// per PowerShell's single-quote escaping rule.
+		escaped = strings.ReplaceAll(escaped, "'", "''")
 		fmt.Fprintf(&buf,
 			traceScriptWin,
 			escaped,

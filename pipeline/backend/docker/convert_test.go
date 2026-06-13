@@ -207,6 +207,20 @@ func TestToVol(t *testing.T) {
 	assert.EqualValues(t, map[string]struct{}{"/test": {}}, toVol([]string{"test:/test"}))
 }
 
+func TestToVolSkipsWindowsNamedPipe(t *testing.T) {
+	// Windows named-pipe binds (docker-out-of-docker, e.g. \\.\pipe\docker_engine)
+	// must NOT be declared as anonymous volumes: the Windows daemon validates
+	// anonymous-volume mount points as directories and rejects a pipe with
+	// "Only directories can be mapped on this platform". The pipe is still
+	// forwarded via HostConfig.Binds, so it remains usable as a bind mount.
+	_, exists := toVol([]string{`\\.\pipe\docker_engine:\\.\pipe\docker_engine`})[`\\.\pipe\docker_engine`]
+	assert.False(t, exists, "named pipe destination must not become an anonymous volume")
+
+	// real binds alongside a pipe keep their destinations; only the pipe is dropped
+	assert.EqualValues(t, map[string]struct{}{"/test": {}},
+		toVol([]string{`\\.\pipe\docker_engine:\\.\pipe\docker_engine`, "test:/test"}))
+}
+
 func TestEncodeAuthToBase64(t *testing.T) {
 	res, err := encodeAuthToBase64(backend.Auth{})
 	assert.NoError(t, err)

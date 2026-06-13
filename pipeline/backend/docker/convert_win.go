@@ -41,6 +41,13 @@ var MustNotAddWindowsLetterPattern = regexp.MustCompile(`^(?:` +
 	`\.(?:\\|/)` +
 	`)`)
 
+// isWindowsNamedPipe reports whether path refers to a Windows named pipe
+// (e.g. \\.\pipe\docker_engine or //./pipe/docker_engine). Such paths are valid
+// bind sources/targets but must not be declared as anonymous volumes.
+func isWindowsNamedPipe(path string) bool {
+	return strings.HasPrefix(strings.ReplaceAll(path, "/", `\`), `\\.\pipe\`)
+}
+
 func (e *docker) windowsPathPatch(step *types.Step) {
 	// only patch if target is windows
 	if strings.ToLower(e.info.OSType) != osTypeWindows {
