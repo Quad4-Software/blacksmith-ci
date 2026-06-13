@@ -16,10 +16,14 @@ package model
 
 import (
 	"encoding/base32"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/tink-crypto/tink-go/v2/subtle/random"
 	"github.com/uptrace/bun"
+
+	"codefloe.com/crowci/crow/v5/pipeline"
 )
 
 // Autoscaler represents an autoscaler instance that provisions agents on demand.
@@ -89,7 +93,9 @@ func GenerateNewAutoscalerToken() string {
 }
 
 // CanProvision checks if the autoscaler can provision an agent with the given labels.
-// This performs label matching similar to agent label matching logic.
+// The matching mirrors the queue's agent filter (see server/grpc/filter.go) so that a
+// pending task is only flagged as "being provisioned" when an agent the autoscaler spins
+// up would actually be eligible to run it.
 func (a *Autoscaler) CanProvision(requiredLabels map[string]string) bool {
 	if !a.Enabled {
 		return false
@@ -100,15 +106,39 @@ func (a *Autoscaler) CanProvision(requiredLabels map[string]string) bool {
 		return false
 	}
 
-	// Check if autoscaler's agent labels match required labels
 	for key, requiredValue := range requiredLabels {
+		// Empty task labels are ignored, mirroring the queue filter.
+		if requiredValue == "" {
+			continue
+		}
+
+		switch key {
+		case pipeline.LabelOrgID:
+			// System (global) autoscalers serve every org; org-scoped autoscalers
+			// only provision for their own org.
+			if !a.IsSystemAutoscaler() && requiredValue != strconv.FormatInt(a.OrgID, 10) {
+				return false
+			}
+			continue
+		case pipeline.LabelRepoFullName:
+			// Provisioned agents allow all repos by default (the agent repo filter
+			// defaults to "*"), so repo scoping never blocks provisioning.
+			continue
+		}
+
+		// Other reserved crowci/* labels are backend metadata and are not used for
+		// matching, mirroring the queue filter.
+		if strings.HasPrefix(key, pipeline.InternalLabelPrefix+"/") {
+			continue
+		}
+
+		// Remaining labels (platform, backend, custom) must be satisfied by the
+		// labels the autoscaler's agents advertise.
 		autoscalerValue, exists := a.AgentLabels[key]
 		if !exists {
 			return false
 		}
-
-		// Support wildcard matching
-		if autoscalerValue != requiredValue && autoscalerValue != "*" {
+		if autoscalerValue != "*" && autoscalerValue != requiredValue {
 			return false
 		}
 	}
