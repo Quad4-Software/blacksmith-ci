@@ -41,6 +41,30 @@ var MustNotAddWindowsLetterPattern = regexp.MustCompile(`^(?:` +
 	`\.(?:\\|/)` +
 	`)`)
 
+// windowsCloneTagSuffix is appended to the clone plugin image tag on Windows
+// agents so the Windows-native image variant is used. The Linux clone image
+// cannot run in a Windows container, so the pipeline's clone image (e.g.
+// codefloe.com/crow-plugins/clone:1.0.4) is rewritten to its Windows tag
+// (…:1.0.4-windows-ltsc2022) before the clone step runs.
+const windowsCloneTagSuffix = "windows-ltsc2022"
+
+// appendImageTagSuffix appends "-<suffix>" to the tag of a docker image
+// reference. A reference without a tag becomes ":latest-<suffix>"; a
+// digest-pinned reference is returned unchanged (it cannot be retagged).
+func appendImageTagSuffix(image, suffix string) string {
+	name := image
+	if i := strings.LastIndex(name, "/"); i >= 0 {
+		name = name[i+1:]
+	}
+	if strings.Contains(name, "@") {
+		return image
+	}
+	if strings.Contains(name, ":") {
+		return image + "-" + suffix
+	}
+	return image + ":latest-" + suffix
+}
+
 // isWindowsNamedPipe reports whether path refers to a Windows named pipe
 // (e.g. \\.\pipe\docker_engine or //./pipe/docker_engine). Such paths are valid
 // bind sources/targets but must not be declared as anonymous volumes.

@@ -14,7 +14,11 @@
 
 package docker
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
 
 func TestMustNotAddWindowsLetterPattern(t *testing.T) {
 	tests := map[string]bool{
@@ -40,5 +44,20 @@ func TestMustNotAddWindowsLetterPattern(t *testing.T) {
 		if result != expected {
 			t.Errorf("Test case %q: expected %v but got %v", testCase, expected, result)
 		}
+	}
+}
+
+func TestAppendImageTagSuffix(t *testing.T) {
+	tests := []struct {
+		image string
+		want  string
+	}{
+		{"codefloe.com/crow-plugins/clone:1.0.4", "codefloe.com/crow-plugins/clone:1.0.4-windows-ltsc2022"},
+		{"reg.example.com:5000/foo/bar:2.1", "reg.example.com:5000/foo/bar:2.1-windows-ltsc2022"},
+		{"alpine", "alpine:latest-windows-ltsc2022"},
+		{"foo/bar@sha256:abc123", "foo/bar@sha256:abc123"},
+	}
+	for _, tc := range tests {
+		assert.Equal(t, tc.want, appendImageTagSuffix(tc.image, "windows-ltsc2022"), "image %q", tc.image)
 	}
 }

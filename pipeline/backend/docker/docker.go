@@ -18,14 +18,12 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/containerd/errdefs"
@@ -52,15 +50,6 @@ type docker struct {
 	client client.APIClient
 	info   system.Info
 	config config
-
-	// taskVolumes maps taskUUID -> workflow volume name. SetupWorkflow stores
-	// the volume name so StartStep can look it up when routing a Windows
-	// clone step through the native plugin-clone path (native_clone.go).
-	taskVolumes sync.Map
-
-	// nativeClones tracks clone steps that run natively on the host (Windows
-	// only — see native_clone.go). Keyed by step.UUID, value *nativeCloneState.
-	nativeClones sync.Map
 }
 
 const (
@@ -215,7 +204,6 @@ func (e *docker) SetupWorkflow(ctx context.Context, conf *backend.Config, taskUU
 	if err != nil {
 		return err
 	}
-	e.taskVolumes.Store(taskUUID, conf.Volume)
 
 	networkDriver := networkDriverBridge
 	if e.info.OSType == "windows" {
@@ -234,19 +222,14 @@ func (e *docker) SetupWorkflow(ctx context.Context, conf *backend.Config, taskUU
 }
 
 func (e *docker) StartStep(ctx context.Context, step *backend.Step, taskUUID string) error {
+	// On Windows the Linux clone plugin image cannot run, and writing the clone
+	// to the workflow volume's host mountpoint does not propagate into container
+	// steps. Run the clone as a normal container using the Windows variant of
+	// the plugin image (tag + "-" + windowsCloneTagSuffix); it writes through
+	// the shared workspace volume mount like any other step.
 	if step.Type == backend.StepTypeClone && e.info.OSType == "windows" {
-		vol, ok := e.taskVolumes.Load(taskUUID)
-		if !ok {
-			return fmt.Errorf("no workflow volume registered for task %s", taskUUID)
-		}
-		volName, _ := vol.(string)
-		log.Trace().Str("step", step.Name).Msg("routing Windows clone step through native plugin-clone")
-		_, err := e.startNativeClone(ctx, step, nativeCloneConfig{
-			VolumeName: volName,
-			OS:         e.info.OSType,
-			Arch:       normalizeArchType(e.info.Architecture),
-		})
-		return err
+		step.Image = appendImageTagSuffix(step.Image, windowsCloneTagSuffix)
+		log.Trace().Str("step", step.Name).Str("image", step.Image).Msg("routing Windows clone step to containerized plugin-clone")
 	}
 
 	options, err := parseBackendOptions(step)
@@ -334,11 +317,6 @@ func (e *docker) StartStep(ctx context.Context, step *backend.Step, taskUUID str
 }
 
 func (e *docker) WaitStep(ctx context.Context, step *backend.Step, taskUUID string) (*backend.State, error) {
-	if v, ok := e.nativeClones.Load(step.UUID); ok {
-		//nolint:forcetypeassert // nativeClones only ever stores *nativeCloneState
-		return v.(*nativeCloneState).wait()
-	}
-
 	log.Trace().Str("taskUUID", taskUUID).Msgf("wait for step %s", step.Name)
 
 	containerName := toContainerName(step)
@@ -370,11 +348,6 @@ func (e *docker) WaitStep(ctx context.Context, step *backend.Step, taskUUID stri
 }
 
 func (e *docker) TailStep(ctx context.Context, step *backend.Step, taskUUID string) (io.ReadCloser, error) {
-	if v, ok := e.nativeClones.Load(step.UUID); ok {
-		//nolint:forcetypeassert // nativeClones only ever stores *nativeCloneState
-		return v.(*nativeCloneState).tail(), nil
-	}
-
 	log.Trace().Str("taskUUID", taskUUID).Msgf("tail logs of step %s", step.Name)
 
 	containerName := toContainerName(step)
@@ -442,12 +415,6 @@ func (tw *taggedWriter) Write(p []byte) (n int, err error) {
 }
 
 func (e *docker) DestroyStep(ctx context.Context, step *backend.Step, taskUUID string) error {
-	if _, ok := e.nativeClones.LoadAndDelete(step.UUID); ok {
-		// Nothing to clean up on disk — the cloned files are inside the
-		// workflow volume, which DestroyWorkflow tears down.
-		return nil
-	}
-
 	log.Trace().Str("taskUUID", taskUUID).Msgf("stop step %s", step.Name)
 
 	containerName := toContainerName(step)
@@ -488,7 +455,6 @@ func (e *docker) DestroyWorkflow(ctx context.Context, conf *backend.Config, task
 			log.Error().Err(err).Msgf("could not remove network '%s'", conf.Network)
 		}
 	}
-	e.taskVolumes.Delete(taskUUID)
 	return nil
 }
 
@@ -545,16 +511,6 @@ func (e *docker) DiscoverWorkflows(ctx context.Context) ([]*backend.DiscoveredWo
 // ResumeStep resumes monitoring of an already-running step (for adopted workflows).
 // Unlike StartStep, this does not create a new container - it verifies the container exists and is running.
 func (e *docker) ResumeStep(ctx context.Context, step *backend.Step, taskUUID string) error {
-	if step.Type == backend.StepTypeClone && e.info.OSType == "windows" {
-		if _, ok := e.nativeClones.Load(step.UUID); ok {
-			// Still tracked in memory — nothing to resume, WaitStep will
-			// pick up the existing state.
-			return nil
-		}
-		// State was lost (agent restart). Caller must re-execute.
-		return fmt.Errorf("native clone for step %s not resumable; re-execute the workflow", step.UUID)
-	}
-
 	containerName := toContainerName(step)
 	log.Trace().Str("taskUUID", taskUUID).Str("container", containerName).Msgf("resuming step %s", step.Name)
 
