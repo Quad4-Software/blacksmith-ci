@@ -566,6 +566,7 @@
                   'bg-yellow-600/40 dark:bg-yellow-800/50': line.type === 'warning',
                   'bg-blue-600/30': isSelected(line),
                 }"
+                :title="formatAbsoluteTime(line.time)"
               >
                 {{ formatTime(line.time) }}
               </span>
@@ -957,6 +958,17 @@ function isSelected(line: LogLine): boolean {
 
 function formatTime(time?: number): string {
   return time === undefined ? '' : `${time}s`;
+}
+
+function formatAbsoluteTime(time?: number): string {
+  const started = step.value?.started;
+  if (time === undefined || started === undefined) return '';
+  return new Date((started + time) * 1000).toLocaleTimeString(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
 }
 
 function processText(text: string): string {
