@@ -16,7 +16,7 @@ BUILD_DATE := `date -u +%Y-%m-%d`
 
 # renovate: datasource=github-releases depName=protocolbuffers/protobuf versioning=loose extractVersion=^v(?<version>.+)$
 
-PROTOC_VERSION := "35.0"
+PROTOC_VERSION := "35.1"
 
 # renovate: datasource=go depName=mvdan.cc/gofumpt
 
