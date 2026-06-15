@@ -2,8 +2,6 @@
 title: 'Windows Agents'
 ---
 
-import { Steps } from '@astrojs/starlight/components';
-
 Crow can execute pipelines on Windows hosts using the Docker backend in Windows-container mode.
 This page covers the architecture, host requirements, recommended images, and known caveats.
 
@@ -11,7 +9,7 @@ This page covers the architecture, host requirements, recommended images, and kn
 
 | Backend      | Windows | Notes                                                         |
 | ------------ | ------- | ------------------------------------------------------------- |
-| `docker`     | ✅      | Native git on the host + container steps; see below           |
+| `docker`     | ✅      | Container steps (incl. clone); see below                      |
 | `local`      | ⚠️      | Works if everything you run is a native Windows executable    |
 | `kubernetes` | ❌      | Pod scheduling onto Windows nodes is not implemented yet      |
 | `podman`     | ❌      | Podman doesn't run on Windows in the way Crow expects         |
@@ -28,42 +26,41 @@ Understanding these differences explains most of the Windows-specific behavior o
 | Containers it can run  | Linux containers only                                 | Windows containers only — Linux images fail at `docker pull`                     |
 | Image manifest tag     | `linux/amd64`, `linux/arm64`, …                       | `windows/amd64` matching the host build (LTSC2022, etc.)                         |
 | Base image size        | Tens of MB (alpine ~5 MB)                             | Hundreds of MB to multi-GB (`nanoserver` ~290 MB, `servercore` ~3 GB)            |
-| Volume host path       | `/var/lib/docker/volumes/<vol>/_data`                 | `C:\ProgramData\Docker\volumes\<vol>\_data`                                      |
 | Step entrypoint (Crow) | `/bin/sh` against the container                       | `pwsh` directly — `cmd.exe` and Windows PowerShell 5.1 don't work as entrypoint  |
-| Clone step (Crow)      | Linux clone plugin container (`crow-plugins/clone`)   | Native `plugin-clone.exe` on the host — no Linux container can run               |
+| Clone step (Crow)      | Linux clone plugin container (`crow-plugins/clone`)   | **Windows variant** of the clone image (`…-windows-ltsc2022`)                    |
 | Host OS requirement    | Any Linux distro with Docker CE                       | Windows Server 2022+ with Docker CE in Windows-container mode                    |
 
-Two practical consequences fall out of this:
-
-1. **Image manifests don't cross OS boundaries.**
-    A Linux image manifest cannot be pulled on a Windows daemon, and vice versa.
-    This is why every workflow in a mixed pool needs explicit `labels: platform:` — the scheduler must not put a Linux job on a Windows agent or it will fail at `docker pull`.
-2. **The Linux clone container can't run on a Windows daemon.**
-    Crow's standard clone step is a `linux/amd64` plugin container, so on Windows the agent runs `plugin-clone.exe` directly on the host instead, writing into the workflow volume's host mountpoint so subsequent container steps see the cloned files at the expected workspace path.
+The key consequence: **image manifests don't cross OS boundaries.**
+A Linux image manifest cannot be pulled on a Windows daemon, and vice versa.
+This is why every workflow in a mixed pool needs explicit `labels: platform:` — the scheduler must not put a Linux job on a Windows agent or it will fail at `docker pull`.
+It is also why the clone step needs a Windows-specific image (see below).
 
 ## How It Works
 
-Linux Docker can run Linux containers; Windows Docker runs Windows containers.
-Crow's clone step is normally a Linux container (`crow-plugins/clone`), so on Windows it cannot run inside Docker.
+Every step on a Windows agent — including the clone — runs as a normal Windows container via `docker run`.
+Crow's standard clone image (`crow-plugins/clone`) is published as a Linux image, which cannot run on a Windows daemon, so a **separate Windows image** is published with a `-windows-ltsc2022` tag suffix.
 
-Instead, the docker backend routes each step based on the host OS and step type:
+On a Windows agent the docker backend automatically rewrites the clone step's image tag to that Windows variant and always re-pulls it:
 
-| Host OS | Step type | Path                                                            |
-| ------- | --------- | --------------------------------------------------------------- |
-| Linux   | any       | Container step via `docker run`                                 |
-| Windows | clone     | Native `plugin-clone.exe` against the workflow volume mountpoint |
-| Windows | other     | Container step via `docker run`                                 |
+| Configured clone image                     | Image actually used on Windows                              |
+| ------------------------------------------ | ----------------------------------------------------------- |
+| `codefloe.com/crow-plugins/clone:1.1.0`    | `codefloe.com/crow-plugins/clone:1.1.0-windows-ltsc2022`    |
 
-For Windows clone steps:
+The rewrite appends `-windows-ltsc2022` to the existing tag (a digest-pinned reference is left unchanged) and forces a pull, so a reused agent VM never runs a stale cached image.
 
-- The agent inspects the workflow volume to find its host mountpoint (e.g. `C:\ProgramData\Docker\volumes\<vol>\_data`).
-- It downloads `plugin-clone.exe` to a host cache dir (next to the volume) if not already present.
-- It writes a per-workflow netrc into a temp dir, then spawns `plugin-clone.exe` against the volume directory.
-- Output streams to the UI via the same `TailStep` path as container steps.
-- When the process exits, the netrc dir is wiped from disk.
+:::caution[Pin a clone image that has a Windows variant]
+The rewrite only works if the resulting `…-windows-ltsc2022` tag actually exists in the registry.
+The server's **default** clone image has no Windows build, so a Windows workflow that relies on the default will fail the clone with `manifest unknown`.
+**Pin a clone image whose Windows variant is published**, e.g.:
 
-For every other Windows step, Crow uses the normal `docker run` path with `pwsh` as the container entrypoint.
-The agent passes the script payload through `$env:CI_SCRIPT` and invokes `pwsh -NoProfile -NonInteractive -Command "Invoke-Expression(...)"` to decode and execute it.
+```yaml
+clone:
+  git:
+    image: codefloe.com/crow-plugins/clone:1.1.0
+```
+:::
+
+The clone runs in the container with the workflow volume mounted at the workspace path, so subsequent steps (which mount the same named volume) see the cloned source — standard Docker volume sharing, identical to Linux.
 
 ## Host Requirements
 
@@ -71,8 +68,9 @@ The agent passes the script payload through `$env:CI_SCRIPT` and invokes `pwsh -
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------- |
 | **Windows Server 2022+** | LTSC builds. Earlier versions lack the HCS features Crow relies on.                                              |
 | **Docker CE**            | In Windows-container mode (the default on Windows Server). Tested on Docker 25.x.                                 |
-| **`git` on PATH**        | Required for the native clone path. The Git-for-Windows installer is fine; so is `scoop install git`.            |
-| **Network egress**       | The agent needs outbound HTTPS to your forge, to MCR (`mcr.microsoft.com`), and to the Crow releases endpoint.   |
+| **Network egress**       | The agent needs outbound HTTPS to your forge, to MCR (`mcr.microsoft.com`), and to your container registry.      |
+
+`git` is **not** required on the host — cloning happens inside the clone container.
 
 AWS's `Windows_Server-2022-English-Full-ECS_Optimized` AMI matches all of these out of the box (Docker 25.x pre-installed) and is the recommended starting point if you're using the autoscaler.
 
@@ -98,6 +96,39 @@ Windows PowerShell 5.1 (`powershell.exe`) is not supported as an entrypoint.
 If your image doesn't have `pwsh` on PATH, every step fails immediately with `hcs::System::CreateProcess: pwsh: ... The system cannot find the file specified (0x2)`.
 The fix is to switch to one of the `mcr.microsoft.com/powershell:*` variants, or add `pwsh` to your custom image and ensure it's on PATH.
 :::
+
+### The clone image must be servercore-based
+
+`git submodule` is the one git operation that shells out to a POSIX helper run via the bundled MSYS2 `sh.exe`.
+That shell **cannot start on `nanoserver`** (it fails with `STATUS_ENTRYPOINT_NOT_FOUND` because nanoserver lacks Win32 APIs the MSYS2 runtime needs).
+The published Windows clone image is therefore **servercore-based**.
+This only affects the clone image — your *step* images can still be nanoserver-based as long as they don't run `git submodule` themselves.
+
+## Building Windows container images in pipelines
+
+Windows images must be built on a Windows host, and the Docker buildx multi-arch flow used for Linux doesn't apply.
+The pattern is docker-out-of-docker: a step mounts the host Docker daemon's named pipe and runs `docker build`/`docker push`:
+
+```yaml
+labels:
+  platform: windows/amd64
+
+steps:
+  build-image:
+    image: mcr.microsoft.com/powershell:windowsservercore-ltsc2022
+    volumes:
+      - '\\.\pipe\docker_engine:\\.\pipe\docker_engine'
+    commands:
+      - docker build -f Containerfile.windows -t my/image:tag .
+      - docker push my/image:tag
+```
+
+:::caution[Volumes privilege required]
+Mounting `\\.\pipe\docker_engine` is a `volumes` option, which is privileged.
+Enable **Volumes** under the repository's **Privileges & Security** settings (`trusted.volumes`), otherwise the pipeline fails its config lint with _"Insufficient `volumes` privileges"_.
+:::
+
+The build context is sent to the daemon by the in-container Docker client, so a normal `.` context works as long as the workspace is populated (i.e. the clone succeeded).
 
 ## Routing Workflows
 
@@ -168,7 +199,7 @@ CROW_AWS_INSTANCE_TYPE: m5.large
 CROW_AWS_AMI_ID: <Windows Server 2022 ECS-Optimized AMI>
 CROW_AWS_OS: windows
 CROW_AGENT_IMAGE: https://example.com/releases/crow-agent_windows_amd64.zip
-CROW_AGENT_ENV: CROW_HEALTHCHECK=false,CROW_AGENT_LABELS=tier=windows
+CROW_AGENT_ENV: CROW_HEALTHCHECK=false,CROW_AGENT_LABELS=platform=windows/amd64
 ```
 
 See [Autoscaler configuration](/dev/configuration/autoscaler) for the full surface.
@@ -178,8 +209,7 @@ See [Autoscaler configuration](/dev/configuration/autoscaler) for the full surfa
 ### First-step image pull is slow
 
 A fresh Windows VM has Docker installed but no images pre-pulled.
-The first step that uses `mcr.microsoft.com/powershell:nanoserver-ltsc2022` will pull ~290 MB.
-`windowsservercore-ltsc2022`-based images can take several minutes to pull on first use.
+The first step that uses `mcr.microsoft.com/powershell:nanoserver-ltsc2022` will pull ~290 MB; `windowsservercore`-based images (including the clone image) can take several minutes to pull on first use.
 
 Pull progress goes to the agent's stdout, **not** the step output in the UI, so the workflow may appear to hang.
 Subsequent runs on the same VM are instant.
@@ -187,29 +217,10 @@ Subsequent runs on the same VM are instant.
 **Mitigations:**
 
 - Pre-pull common images in user-data when provisioning the VM.
-- Bake a custom AMI with the image already present (e.g. with Packer).
+- Bake a custom AMI with the images already present (e.g. with Packer).
 - Run a registry pull-through cache in the same region.
 
-### Native clone state is in-memory
+### The clone image is always re-pulled
 
-The agent tracks in-flight clone steps in a `sync.Map`.
-If the agent process restarts mid-clone, the state is gone and the step must be re-executed.
-This is acceptable because native clones complete in seconds-to-minutes and the workflow engine handles re-execution.
-
-### Workflow volume = host filesystem
-
-The clone writes directly into the workflow volume's host mountpoint.
-Subsequent container steps mount the same Docker named volume and see the cloned files at the expected workspace path inside the container.
-The volume is removed by `DestroyWorkflow` at the end of the workflow.
-
-### Native clone runs only on docker and local backends
-
-Only the docker and local backends know how to fall back to `plugin-clone.exe` on the host.
-A Windows agent running `CROW_BACKEND=kubernetes` would try to schedule the Linux clone plugin as a pod and fail.
-The podman backend isn't built for Windows at all (`//go:build !windows`), so `CROW_BACKEND=podman` won't start there in the first place.
-
-### The `plugin-clone.exe` binary is downloaded on first use
-
-The first Windows clone on a fresh host downloads `plugin-clone.exe` from the configured releases URL to a host cache dir.
-The download is atomic (temp file + rename) and cached for subsequent clones, so this cost is paid once per host.
-The 10-minute HTTP timeout means a hung releases endpoint won't pin a workflow indefinitely.
+Because the Windows clone tag is mutable, the agent forces a pull of the clone image on every clone step so a reused VM can't run a stale copy.
+This adds the (cached after first use) pull cost per fresh VM.
