@@ -64,7 +64,7 @@ type MockWorkflowResumer_ResumeStep_Call struct {
 //   - ctx context.Context
 //   - step *types.Step
 //   - taskUUID string
-func (_e *MockWorkflowResumer_Expecter) ResumeStep(ctx interface{}, step interface{}, taskUUID interface{}) *MockWorkflowResumer_ResumeStep_Call {
+func (_e *MockWorkflowResumer_Expecter) ResumeStep(ctx any, step any, taskUUID any) *MockWorkflowResumer_ResumeStep_Call {
 	return &MockWorkflowResumer_ResumeStep_Call{Call: _e.mock.On("ResumeStep", ctx, step, taskUUID)}
 }
 

@@ -60,7 +60,7 @@ type MockService_GlobalRegistryCreate_Call struct {
 
 // GlobalRegistryCreate is a helper method to define mock.On call
 //   - registry *model.Registry
-func (_e *MockService_Expecter) GlobalRegistryCreate(registry interface{}) *MockService_GlobalRegistryCreate_Call {
+func (_e *MockService_Expecter) GlobalRegistryCreate(registry any) *MockService_GlobalRegistryCreate_Call {
 	return &MockService_GlobalRegistryCreate_Call{Call: _e.mock.On("GlobalRegistryCreate", registry)}
 }
 
@@ -111,7 +111,7 @@ type MockService_GlobalRegistryDelete_Call struct {
 
 // GlobalRegistryDelete is a helper method to define mock.On call
 //   - s string
-func (_e *MockService_Expecter) GlobalRegistryDelete(s interface{}) *MockService_GlobalRegistryDelete_Call {
+func (_e *MockService_Expecter) GlobalRegistryDelete(s any) *MockService_GlobalRegistryDelete_Call {
 	return &MockService_GlobalRegistryDelete_Call{Call: _e.mock.On("GlobalRegistryDelete", s)}
 }
 
@@ -173,7 +173,7 @@ type MockService_GlobalRegistryFind_Call struct {
 
 // GlobalRegistryFind is a helper method to define mock.On call
 //   - s string
-func (_e *MockService_Expecter) GlobalRegistryFind(s interface{}) *MockService_GlobalRegistryFind_Call {
+func (_e *MockService_Expecter) GlobalRegistryFind(s any) *MockService_GlobalRegistryFind_Call {
 	return &MockService_GlobalRegistryFind_Call{Call: _e.mock.On("GlobalRegistryFind", s)}
 }
 
@@ -235,7 +235,7 @@ type MockService_GlobalRegistryList_Call struct {
 
 // GlobalRegistryList is a helper method to define mock.On call
 //   - listOptions *model.ListOptions
-func (_e *MockService_Expecter) GlobalRegistryList(listOptions interface{}) *MockService_GlobalRegistryList_Call {
+func (_e *MockService_Expecter) GlobalRegistryList(listOptions any) *MockService_GlobalRegistryList_Call {
 	return &MockService_GlobalRegistryList_Call{Call: _e.mock.On("GlobalRegistryList", listOptions)}
 }
 
@@ -286,7 +286,7 @@ type MockService_GlobalRegistryUpdate_Call struct {
 
 // GlobalRegistryUpdate is a helper method to define mock.On call
 //   - registry *model.Registry
-func (_e *MockService_Expecter) GlobalRegistryUpdate(registry interface{}) *MockService_GlobalRegistryUpdate_Call {
+func (_e *MockService_Expecter) GlobalRegistryUpdate(registry any) *MockService_GlobalRegistryUpdate_Call {
 	return &MockService_GlobalRegistryUpdate_Call{Call: _e.mock.On("GlobalRegistryUpdate", registry)}
 }
 
@@ -338,7 +338,7 @@ type MockService_OrgRegistryCreate_Call struct {
 // OrgRegistryCreate is a helper method to define mock.On call
 //   - n int64
 //   - registry *model.Registry
-func (_e *MockService_Expecter) OrgRegistryCreate(n interface{}, registry interface{}) *MockService_OrgRegistryCreate_Call {
+func (_e *MockService_Expecter) OrgRegistryCreate(n any, registry any) *MockService_OrgRegistryCreate_Call {
 	return &MockService_OrgRegistryCreate_Call{Call: _e.mock.On("OrgRegistryCreate", n, registry)}
 }
 
@@ -395,7 +395,7 @@ type MockService_OrgRegistryDelete_Call struct {
 // OrgRegistryDelete is a helper method to define mock.On call
 //   - n int64
 //   - s string
-func (_e *MockService_Expecter) OrgRegistryDelete(n interface{}, s interface{}) *MockService_OrgRegistryDelete_Call {
+func (_e *MockService_Expecter) OrgRegistryDelete(n any, s any) *MockService_OrgRegistryDelete_Call {
 	return &MockService_OrgRegistryDelete_Call{Call: _e.mock.On("OrgRegistryDelete", n, s)}
 }
 
@@ -463,7 +463,7 @@ type MockService_OrgRegistryFind_Call struct {
 // OrgRegistryFind is a helper method to define mock.On call
 //   - n int64
 //   - s string
-func (_e *MockService_Expecter) OrgRegistryFind(n interface{}, s interface{}) *MockService_OrgRegistryFind_Call {
+func (_e *MockService_Expecter) OrgRegistryFind(n any, s any) *MockService_OrgRegistryFind_Call {
 	return &MockService_OrgRegistryFind_Call{Call: _e.mock.On("OrgRegistryFind", n, s)}
 }
 
@@ -531,7 +531,7 @@ type MockService_OrgRegistryList_Call struct {
 // OrgRegistryList is a helper method to define mock.On call
 //   - n int64
 //   - listOptions *model.ListOptions
-func (_e *MockService_Expecter) OrgRegistryList(n interface{}, listOptions interface{}) *MockService_OrgRegistryList_Call {
+func (_e *MockService_Expecter) OrgRegistryList(n any, listOptions any) *MockService_OrgRegistryList_Call {
 	return &MockService_OrgRegistryList_Call{Call: _e.mock.On("OrgRegistryList", n, listOptions)}
 }
 
@@ -588,7 +588,7 @@ type MockService_OrgRegistryUpdate_Call struct {
 // OrgRegistryUpdate is a helper method to define mock.On call
 //   - n int64
 //   - registry *model.Registry
-func (_e *MockService_Expecter) OrgRegistryUpdate(n interface{}, registry interface{}) *MockService_OrgRegistryUpdate_Call {
+func (_e *MockService_Expecter) OrgRegistryUpdate(n any, registry any) *MockService_OrgRegistryUpdate_Call {
 	return &MockService_OrgRegistryUpdate_Call{Call: _e.mock.On("OrgRegistryUpdate", n, registry)}
 }
 
@@ -645,7 +645,7 @@ type MockService_RegistryCreate_Call struct {
 // RegistryCreate is a helper method to define mock.On call
 //   - repo *model.Repo
 //   - registry *model.Registry
-func (_e *MockService_Expecter) RegistryCreate(repo interface{}, registry interface{}) *MockService_RegistryCreate_Call {
+func (_e *MockService_Expecter) RegistryCreate(repo any, registry any) *MockService_RegistryCreate_Call {
 	return &MockService_RegistryCreate_Call{Call: _e.mock.On("RegistryCreate", repo, registry)}
 }
 
@@ -702,7 +702,7 @@ type MockService_RegistryDelete_Call struct {
 // RegistryDelete is a helper method to define mock.On call
 //   - repo *model.Repo
 //   - s string
-func (_e *MockService_Expecter) RegistryDelete(repo interface{}, s interface{}) *MockService_RegistryDelete_Call {
+func (_e *MockService_Expecter) RegistryDelete(repo any, s any) *MockService_RegistryDelete_Call {
 	return &MockService_RegistryDelete_Call{Call: _e.mock.On("RegistryDelete", repo, s)}
 }
 
@@ -770,7 +770,7 @@ type MockService_RegistryFind_Call struct {
 // RegistryFind is a helper method to define mock.On call
 //   - repo *model.Repo
 //   - s string
-func (_e *MockService_Expecter) RegistryFind(repo interface{}, s interface{}) *MockService_RegistryFind_Call {
+func (_e *MockService_Expecter) RegistryFind(repo any, s any) *MockService_RegistryFind_Call {
 	return &MockService_RegistryFind_Call{Call: _e.mock.On("RegistryFind", repo, s)}
 }
 
@@ -838,7 +838,7 @@ type MockService_RegistryList_Call struct {
 // RegistryList is a helper method to define mock.On call
 //   - repo *model.Repo
 //   - listOptions *model.ListOptions
-func (_e *MockService_Expecter) RegistryList(repo interface{}, listOptions interface{}) *MockService_RegistryList_Call {
+func (_e *MockService_Expecter) RegistryList(repo any, listOptions any) *MockService_RegistryList_Call {
 	return &MockService_RegistryList_Call{Call: _e.mock.On("RegistryList", repo, listOptions)}
 }
 
@@ -906,7 +906,7 @@ type MockService_RegistryListPipeline_Call struct {
 // RegistryListPipeline is a helper method to define mock.On call
 //   - repo *model.Repo
 //   - pipeline *model.Pipeline
-func (_e *MockService_Expecter) RegistryListPipeline(repo interface{}, pipeline interface{}) *MockService_RegistryListPipeline_Call {
+func (_e *MockService_Expecter) RegistryListPipeline(repo any, pipeline any) *MockService_RegistryListPipeline_Call {
 	return &MockService_RegistryListPipeline_Call{Call: _e.mock.On("RegistryListPipeline", repo, pipeline)}
 }
 
@@ -963,7 +963,7 @@ type MockService_RegistryUpdate_Call struct {
 // RegistryUpdate is a helper method to define mock.On call
 //   - repo *model.Repo
 //   - registry *model.Registry
-func (_e *MockService_Expecter) RegistryUpdate(repo interface{}, registry interface{}) *MockService_RegistryUpdate_Call {
+func (_e *MockService_Expecter) RegistryUpdate(repo any, registry any) *MockService_RegistryUpdate_Call {
 	return &MockService_RegistryUpdate_Call{Call: _e.mock.On("RegistryUpdate", repo, registry)}
 }
 

@@ -60,7 +60,7 @@ type MockNotificationConfigStore_NotificationConfigDelete_Call struct {
 
 // NotificationConfigDelete is a helper method to define mock.On call
 //   - repoID int64
-func (_e *MockNotificationConfigStore_Expecter) NotificationConfigDelete(repoID interface{}) *MockNotificationConfigStore_NotificationConfigDelete_Call {
+func (_e *MockNotificationConfigStore_Expecter) NotificationConfigDelete(repoID any) *MockNotificationConfigStore_NotificationConfigDelete_Call {
 	return &MockNotificationConfigStore_NotificationConfigDelete_Call{Call: _e.mock.On("NotificationConfigDelete", repoID)}
 }
 
@@ -122,7 +122,7 @@ type MockNotificationConfigStore_NotificationConfigFind_Call struct {
 
 // NotificationConfigFind is a helper method to define mock.On call
 //   - repoID int64
-func (_e *MockNotificationConfigStore_Expecter) NotificationConfigFind(repoID interface{}) *MockNotificationConfigStore_NotificationConfigFind_Call {
+func (_e *MockNotificationConfigStore_Expecter) NotificationConfigFind(repoID any) *MockNotificationConfigStore_NotificationConfigFind_Call {
 	return &MockNotificationConfigStore_NotificationConfigFind_Call{Call: _e.mock.On("NotificationConfigFind", repoID)}
 }
 
@@ -173,7 +173,7 @@ type MockNotificationConfigStore_NotificationConfigUpsert_Call struct {
 
 // NotificationConfigUpsert is a helper method to define mock.On call
 //   - notificationConfig *model.NotificationConfig
-func (_e *MockNotificationConfigStore_Expecter) NotificationConfigUpsert(notificationConfig interface{}) *MockNotificationConfigStore_NotificationConfigUpsert_Call {
+func (_e *MockNotificationConfigStore_Expecter) NotificationConfigUpsert(notificationConfig any) *MockNotificationConfigStore_NotificationConfigUpsert_Call {
 	return &MockNotificationConfigStore_NotificationConfigUpsert_Call{Call: _e.mock.On("NotificationConfigUpsert", notificationConfig)}
 }
 

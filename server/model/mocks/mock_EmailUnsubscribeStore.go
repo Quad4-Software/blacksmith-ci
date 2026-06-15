@@ -60,7 +60,7 @@ type MockEmailUnsubscribeStore_EmailUnsubscribeCreate_Call struct {
 
 // EmailUnsubscribeCreate is a helper method to define mock.On call
 //   - emailUnsubscribe *model.EmailUnsubscribe
-func (_e *MockEmailUnsubscribeStore_Expecter) EmailUnsubscribeCreate(emailUnsubscribe interface{}) *MockEmailUnsubscribeStore_EmailUnsubscribeCreate_Call {
+func (_e *MockEmailUnsubscribeStore_Expecter) EmailUnsubscribeCreate(emailUnsubscribe any) *MockEmailUnsubscribeStore_EmailUnsubscribeCreate_Call {
 	return &MockEmailUnsubscribeStore_EmailUnsubscribeCreate_Call{Call: _e.mock.On("EmailUnsubscribeCreate", emailUnsubscribe)}
 }
 
@@ -112,7 +112,7 @@ type MockEmailUnsubscribeStore_EmailUnsubscribeDelete_Call struct {
 // EmailUnsubscribeDelete is a helper method to define mock.On call
 //   - userID int64
 //   - repoID int64
-func (_e *MockEmailUnsubscribeStore_Expecter) EmailUnsubscribeDelete(userID interface{}, repoID interface{}) *MockEmailUnsubscribeStore_EmailUnsubscribeDelete_Call {
+func (_e *MockEmailUnsubscribeStore_Expecter) EmailUnsubscribeDelete(userID any, repoID any) *MockEmailUnsubscribeStore_EmailUnsubscribeDelete_Call {
 	return &MockEmailUnsubscribeStore_EmailUnsubscribeDelete_Call{Call: _e.mock.On("EmailUnsubscribeDelete", userID, repoID)}
 }
 
@@ -180,7 +180,7 @@ type MockEmailUnsubscribeStore_EmailUnsubscribeFind_Call struct {
 // EmailUnsubscribeFind is a helper method to define mock.On call
 //   - userID int64
 //   - repoID int64
-func (_e *MockEmailUnsubscribeStore_Expecter) EmailUnsubscribeFind(userID interface{}, repoID interface{}) *MockEmailUnsubscribeStore_EmailUnsubscribeFind_Call {
+func (_e *MockEmailUnsubscribeStore_Expecter) EmailUnsubscribeFind(userID any, repoID any) *MockEmailUnsubscribeStore_EmailUnsubscribeFind_Call {
 	return &MockEmailUnsubscribeStore_EmailUnsubscribeFind_Call{Call: _e.mock.On("EmailUnsubscribeFind", userID, repoID)}
 }
 

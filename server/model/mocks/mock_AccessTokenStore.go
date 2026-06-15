@@ -60,7 +60,7 @@ type MockAccessTokenStore_AccessTokenCreate_Call struct {
 
 // AccessTokenCreate is a helper method to define mock.On call
 //   - accessToken *model.AccessToken
-func (_e *MockAccessTokenStore_Expecter) AccessTokenCreate(accessToken interface{}) *MockAccessTokenStore_AccessTokenCreate_Call {
+func (_e *MockAccessTokenStore_Expecter) AccessTokenCreate(accessToken any) *MockAccessTokenStore_AccessTokenCreate_Call {
 	return &MockAccessTokenStore_AccessTokenCreate_Call{Call: _e.mock.On("AccessTokenCreate", accessToken)}
 }
 
@@ -111,7 +111,7 @@ type MockAccessTokenStore_AccessTokenDelete_Call struct {
 
 // AccessTokenDelete is a helper method to define mock.On call
 //   - accessToken *model.AccessToken
-func (_e *MockAccessTokenStore_Expecter) AccessTokenDelete(accessToken interface{}) *MockAccessTokenStore_AccessTokenDelete_Call {
+func (_e *MockAccessTokenStore_Expecter) AccessTokenDelete(accessToken any) *MockAccessTokenStore_AccessTokenDelete_Call {
 	return &MockAccessTokenStore_AccessTokenDelete_Call{Call: _e.mock.On("AccessTokenDelete", accessToken)}
 }
 
@@ -173,7 +173,7 @@ type MockAccessTokenStore_AccessTokenFind_Call struct {
 
 // AccessTokenFind is a helper method to define mock.On call
 //   - n int64
-func (_e *MockAccessTokenStore_Expecter) AccessTokenFind(n interface{}) *MockAccessTokenStore_AccessTokenFind_Call {
+func (_e *MockAccessTokenStore_Expecter) AccessTokenFind(n any) *MockAccessTokenStore_AccessTokenFind_Call {
 	return &MockAccessTokenStore_AccessTokenFind_Call{Call: _e.mock.On("AccessTokenFind", n)}
 }
 
@@ -235,7 +235,7 @@ type MockAccessTokenStore_AccessTokenFindByHash_Call struct {
 
 // AccessTokenFindByHash is a helper method to define mock.On call
 //   - s string
-func (_e *MockAccessTokenStore_Expecter) AccessTokenFindByHash(s interface{}) *MockAccessTokenStore_AccessTokenFindByHash_Call {
+func (_e *MockAccessTokenStore_Expecter) AccessTokenFindByHash(s any) *MockAccessTokenStore_AccessTokenFindByHash_Call {
 	return &MockAccessTokenStore_AccessTokenFindByHash_Call{Call: _e.mock.On("AccessTokenFindByHash", s)}
 }
 
@@ -298,7 +298,7 @@ type MockAccessTokenStore_AccessTokenList_Call struct {
 // AccessTokenList is a helper method to define mock.On call
 //   - userID int64
 //   - p *model.ListOptions
-func (_e *MockAccessTokenStore_Expecter) AccessTokenList(userID interface{}, p interface{}) *MockAccessTokenStore_AccessTokenList_Call {
+func (_e *MockAccessTokenStore_Expecter) AccessTokenList(userID any, p any) *MockAccessTokenStore_AccessTokenList_Call {
 	return &MockAccessTokenStore_AccessTokenList_Call{Call: _e.mock.On("AccessTokenList", userID, p)}
 }
 
@@ -355,7 +355,7 @@ type MockAccessTokenStore_AccessTokenUpdateLastUsed_Call struct {
 // AccessTokenUpdateLastUsed is a helper method to define mock.On call
 //   - n int64
 //   - n1 int64
-func (_e *MockAccessTokenStore_Expecter) AccessTokenUpdateLastUsed(n interface{}, n1 interface{}) *MockAccessTokenStore_AccessTokenUpdateLastUsed_Call {
+func (_e *MockAccessTokenStore_Expecter) AccessTokenUpdateLastUsed(n any, n1 any) *MockAccessTokenStore_AccessTokenUpdateLastUsed_Call {
 	return &MockAccessTokenStore_AccessTokenUpdateLastUsed_Call{Call: _e.mock.On("AccessTokenUpdateLastUsed", n, n1)}
 }
 

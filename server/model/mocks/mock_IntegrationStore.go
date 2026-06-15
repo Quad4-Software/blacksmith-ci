@@ -60,7 +60,7 @@ type MockIntegrationStore_IntegrationCreate_Call struct {
 
 // IntegrationCreate is a helper method to define mock.On call
 //   - integration *model.Integration
-func (_e *MockIntegrationStore_Expecter) IntegrationCreate(integration interface{}) *MockIntegrationStore_IntegrationCreate_Call {
+func (_e *MockIntegrationStore_Expecter) IntegrationCreate(integration any) *MockIntegrationStore_IntegrationCreate_Call {
 	return &MockIntegrationStore_IntegrationCreate_Call{Call: _e.mock.On("IntegrationCreate", integration)}
 }
 
@@ -111,7 +111,7 @@ type MockIntegrationStore_IntegrationDelete_Call struct {
 
 // IntegrationDelete is a helper method to define mock.On call
 //   - integration *model.Integration
-func (_e *MockIntegrationStore_Expecter) IntegrationDelete(integration interface{}) *MockIntegrationStore_IntegrationDelete_Call {
+func (_e *MockIntegrationStore_Expecter) IntegrationDelete(integration any) *MockIntegrationStore_IntegrationDelete_Call {
 	return &MockIntegrationStore_IntegrationDelete_Call{Call: _e.mock.On("IntegrationDelete", integration)}
 }
 
@@ -173,7 +173,7 @@ type MockIntegrationStore_IntegrationFind_Call struct {
 
 // IntegrationFind is a helper method to define mock.On call
 //   - n int64
-func (_e *MockIntegrationStore_Expecter) IntegrationFind(n interface{}) *MockIntegrationStore_IntegrationFind_Call {
+func (_e *MockIntegrationStore_Expecter) IntegrationFind(n any) *MockIntegrationStore_IntegrationFind_Call {
 	return &MockIntegrationStore_IntegrationFind_Call{Call: _e.mock.On("IntegrationFind", n)}
 }
 
@@ -236,7 +236,7 @@ type MockIntegrationStore_IntegrationFindByName_Call struct {
 // IntegrationFindByName is a helper method to define mock.On call
 //   - userID int64
 //   - name string
-func (_e *MockIntegrationStore_Expecter) IntegrationFindByName(userID interface{}, name interface{}) *MockIntegrationStore_IntegrationFindByName_Call {
+func (_e *MockIntegrationStore_Expecter) IntegrationFindByName(userID any, name any) *MockIntegrationStore_IntegrationFindByName_Call {
 	return &MockIntegrationStore_IntegrationFindByName_Call{Call: _e.mock.On("IntegrationFindByName", userID, name)}
 }
 
@@ -304,7 +304,7 @@ type MockIntegrationStore_IntegrationList_Call struct {
 // IntegrationList is a helper method to define mock.On call
 //   - userID int64
 //   - opts *model.ListOptions
-func (_e *MockIntegrationStore_Expecter) IntegrationList(userID interface{}, opts interface{}) *MockIntegrationStore_IntegrationList_Call {
+func (_e *MockIntegrationStore_Expecter) IntegrationList(userID any, opts any) *MockIntegrationStore_IntegrationList_Call {
 	return &MockIntegrationStore_IntegrationList_Call{Call: _e.mock.On("IntegrationList", userID, opts)}
 }
 
@@ -374,7 +374,7 @@ type MockIntegrationStore_IntegrationListAccessible_Call struct {
 //   - orgIDs []int64
 //   - repoIDs []int64
 //   - opts *model.ListOptions
-func (_e *MockIntegrationStore_Expecter) IntegrationListAccessible(userID interface{}, orgIDs interface{}, repoIDs interface{}, opts interface{}) *MockIntegrationStore_IntegrationListAccessible_Call {
+func (_e *MockIntegrationStore_Expecter) IntegrationListAccessible(userID any, orgIDs any, repoIDs any, opts any) *MockIntegrationStore_IntegrationListAccessible_Call {
 	return &MockIntegrationStore_IntegrationListAccessible_Call{Call: _e.mock.On("IntegrationListAccessible", userID, orgIDs, repoIDs, opts)}
 }
 
@@ -495,7 +495,7 @@ type MockIntegrationStore_IntegrationUpdate_Call struct {
 
 // IntegrationUpdate is a helper method to define mock.On call
 //   - integration *model.Integration
-func (_e *MockIntegrationStore_Expecter) IntegrationUpdate(integration interface{}) *MockIntegrationStore_IntegrationUpdate_Call {
+func (_e *MockIntegrationStore_Expecter) IntegrationUpdate(integration any) *MockIntegrationStore_IntegrationUpdate_Call {
 	return &MockIntegrationStore_IntegrationUpdate_Call{Call: _e.mock.On("IntegrationUpdate", integration)}
 }
 

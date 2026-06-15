@@ -69,7 +69,7 @@ type MockEncryptionService_Decrypt_Call struct {
 // Decrypt is a helper method to define mock.On call
 //   - ciphertext string
 //   - associatedData string
-func (_e *MockEncryptionService_Expecter) Decrypt(ciphertext interface{}, associatedData interface{}) *MockEncryptionService_Decrypt_Call {
+func (_e *MockEncryptionService_Expecter) Decrypt(ciphertext any, associatedData any) *MockEncryptionService_Decrypt_Call {
 	return &MockEncryptionService_Decrypt_Call{Call: _e.mock.On("Decrypt", ciphertext, associatedData)}
 }
 
@@ -179,7 +179,7 @@ type MockEncryptionService_Encrypt_Call struct {
 // Encrypt is a helper method to define mock.On call
 //   - plaintext string
 //   - associatedData string
-func (_e *MockEncryptionService_Expecter) Encrypt(plaintext interface{}, associatedData interface{}) *MockEncryptionService_Encrypt_Call {
+func (_e *MockEncryptionService_Expecter) Encrypt(plaintext any, associatedData any) *MockEncryptionService_Encrypt_Call {
 	return &MockEncryptionService_Encrypt_Call{Call: _e.mock.On("Encrypt", plaintext, associatedData)}
 }
 

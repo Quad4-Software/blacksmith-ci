@@ -1,0 +1,96 @@
+when:
+  - event: manual
+  - event: tag
+
+clone:
+  git:
+    image: codefloe.com/crow-plugins/clone:1.1.0
+    settings:
+      tags: true
+
+labels:
+  platform: windows/amd64
+
+variables:
+  - &windows_image 'mcr.microsoft.com/powershell:windowsservercore-ltsc2022'
+  - &windows_suffix 'windows-ltsc2022'
+  # renovate: datasource=github-releases depName=docker/cli
+  - &docker_version '29.5.3'
+
+steps:
+  build-and-publish-windows-agent:
+    image: *windows_image
+    pull: true
+    volumes:
+      - '\\.\pipe\docker_engine:\\.\pipe\docker_engine'
+    environment:
+      DOCKER_VERSION: *docker_version
+      WINDOWS_SUFFIX: *windows_suffix
+      CODEFLOE_TOKEN:
+        from_secret: crowci_bot_token
+      CODEBERG_TOKEN:
+        from_secret: codeberg_bot_token
+    commands:
+      - |
+        $ErrorActionPreference = 'Stop'
+
+        $dockerDir = Join-Path $env:TEMP 'docker-cli'
+        $dockerExe = Join-Path $dockerDir 'docker\docker.exe'
+        if (-not (Test-Path $dockerExe)) {
+          $zip = Join-Path $env:TEMP "docker-$env:DOCKER_VERSION.zip"
+          Invoke-WebRequest -UseBasicParsing -Uri "https://download.docker.com/win/static/stable/x86_64/docker-$env:DOCKER_VERSION.zip" -OutFile $zip
+          Expand-Archive -Path $zip -DestinationPath $dockerDir -Force
+        }
+        $env:PATH = "$(Split-Path $dockerExe);$env:PATH"
+        docker version
+
+        $repos = @(
+          'codefloe.com/crowci/crow-agent',
+          'codeberg.org/crowci/crow-agent'
+        )
+
+        $tags = @()
+        if ($env:CI_PIPELINE_EVENT -eq 'tag') {
+          if (-not $env:CI_COMMIT_TAG) {
+            throw 'CI_COMMIT_TAG is required for tag builds'
+          }
+
+          $versionParts = $env:CI_COMMIT_TAG.TrimStart('v').Split('.')
+          $tags += "$env:CI_COMMIT_TAG-$env:WINDOWS_SUFFIX"
+          if ($versionParts.Length -ge 2) {
+            $tags += "v$($versionParts[0]).$($versionParts[1])-$env:WINDOWS_SUFFIX"
+          }
+          if ($versionParts.Length -ge 1) {
+            $tags += "v$($versionParts[0])-$env:WINDOWS_SUFFIX"
+          }
+        } else {
+          $tags += "manual-$($env:CI_COMMIT_SHA.Substring(0, 10))-$env:WINDOWS_SUFFIX"
+        }
+
+        $imageTags = @()
+        foreach ($repo in $repos) {
+          foreach ($tag in $tags) {
+            $imageTags += "$repo`:$tag"
+          }
+        }
+
+        $tagArgs = @()
+        foreach ($imageTag in $imageTags) {
+          $tagArgs += @('-t', $imageTag)
+        }
+
+        $env:CODEFLOE_TOKEN | docker login codefloe.com -u crowci-bot --password-stdin
+        $env:CODEBERG_TOKEN | docker login codeberg.org -u crowci-bot --password-stdin
+
+        docker build `
+          --build-arg "CI_COMMIT_SHA=$env:CI_COMMIT_SHA" `
+          --build-arg "CI_COMMIT_TAG=$env:CI_COMMIT_TAG" `
+          --build-arg "WINDOWS_VERSION=ltsc2022" `
+          --build-arg "GO_VERSION=1.26" `
+          @tagArgs `
+          -f images/Containerfile.agent.windows.ltsc2022 `
+          .
+
+        foreach ($imageTag in $imageTags) {
+          docker push $imageTag
+        }

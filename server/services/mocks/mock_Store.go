@@ -62,7 +62,7 @@ type MockStore_AccessTokenCreate_Call struct {
 
 // AccessTokenCreate is a helper method to define mock.On call
 //   - accessToken *model.AccessToken
-func (_e *MockStore_Expecter) AccessTokenCreate(accessToken interface{}) *MockStore_AccessTokenCreate_Call {
+func (_e *MockStore_Expecter) AccessTokenCreate(accessToken any) *MockStore_AccessTokenCreate_Call {
 	return &MockStore_AccessTokenCreate_Call{Call: _e.mock.On("AccessTokenCreate", accessToken)}
 }
 
@@ -113,7 +113,7 @@ type MockStore_AccessTokenDelete_Call struct {
 
 // AccessTokenDelete is a helper method to define mock.On call
 //   - accessToken *model.AccessToken
-func (_e *MockStore_Expecter) AccessTokenDelete(accessToken interface{}) *MockStore_AccessTokenDelete_Call {
+func (_e *MockStore_Expecter) AccessTokenDelete(accessToken any) *MockStore_AccessTokenDelete_Call {
 	return &MockStore_AccessTokenDelete_Call{Call: _e.mock.On("AccessTokenDelete", accessToken)}
 }
 
@@ -175,7 +175,7 @@ type MockStore_AccessTokenFind_Call struct {
 
 // AccessTokenFind is a helper method to define mock.On call
 //   - n int64
-func (_e *MockStore_Expecter) AccessTokenFind(n interface{}) *MockStore_AccessTokenFind_Call {
+func (_e *MockStore_Expecter) AccessTokenFind(n any) *MockStore_AccessTokenFind_Call {
 	return &MockStore_AccessTokenFind_Call{Call: _e.mock.On("AccessTokenFind", n)}
 }
 
@@ -237,7 +237,7 @@ type MockStore_AccessTokenFindByHash_Call struct {
 
 // AccessTokenFindByHash is a helper method to define mock.On call
 //   - s string
-func (_e *MockStore_Expecter) AccessTokenFindByHash(s interface{}) *MockStore_AccessTokenFindByHash_Call {
+func (_e *MockStore_Expecter) AccessTokenFindByHash(s any) *MockStore_AccessTokenFindByHash_Call {
 	return &MockStore_AccessTokenFindByHash_Call{Call: _e.mock.On("AccessTokenFindByHash", s)}
 }
 
@@ -300,7 +300,7 @@ type MockStore_AccessTokenList_Call struct {
 // AccessTokenList is a helper method to define mock.On call
 //   - userID int64
 //   - p *model.ListOptions
-func (_e *MockStore_Expecter) AccessTokenList(userID interface{}, p interface{}) *MockStore_AccessTokenList_Call {
+func (_e *MockStore_Expecter) AccessTokenList(userID any, p any) *MockStore_AccessTokenList_Call {
 	return &MockStore_AccessTokenList_Call{Call: _e.mock.On("AccessTokenList", userID, p)}
 }
 
@@ -356,7 +356,7 @@ type MockStore_AccessTokenUpdate_Call struct {
 
 // AccessTokenUpdate is a helper method to define mock.On call
 //   - accessToken *model.AccessToken
-func (_e *MockStore_Expecter) AccessTokenUpdate(accessToken interface{}) *MockStore_AccessTokenUpdate_Call {
+func (_e *MockStore_Expecter) AccessTokenUpdate(accessToken any) *MockStore_AccessTokenUpdate_Call {
 	return &MockStore_AccessTokenUpdate_Call{Call: _e.mock.On("AccessTokenUpdate", accessToken)}
 }
 
@@ -408,7 +408,7 @@ type MockStore_AccessTokenUpdateLastUsed_Call struct {
 // AccessTokenUpdateLastUsed is a helper method to define mock.On call
 //   - n int64
 //   - n1 int64
-func (_e *MockStore_Expecter) AccessTokenUpdateLastUsed(n interface{}, n1 interface{}) *MockStore_AccessTokenUpdateLastUsed_Call {
+func (_e *MockStore_Expecter) AccessTokenUpdateLastUsed(n any, n1 any) *MockStore_AccessTokenUpdateLastUsed_Call {
 	return &MockStore_AccessTokenUpdateLastUsed_Call{Call: _e.mock.On("AccessTokenUpdateLastUsed", n, n1)}
 }
 
@@ -464,7 +464,7 @@ type MockStore_AgentCreate_Call struct {
 
 // AgentCreate is a helper method to define mock.On call
 //   - agent *model.Agent
-func (_e *MockStore_Expecter) AgentCreate(agent interface{}) *MockStore_AgentCreate_Call {
+func (_e *MockStore_Expecter) AgentCreate(agent any) *MockStore_AgentCreate_Call {
 	return &MockStore_AgentCreate_Call{Call: _e.mock.On("AgentCreate", agent)}
 }
 
@@ -515,7 +515,7 @@ type MockStore_AgentDelete_Call struct {
 
 // AgentDelete is a helper method to define mock.On call
 //   - agent *model.Agent
-func (_e *MockStore_Expecter) AgentDelete(agent interface{}) *MockStore_AgentDelete_Call {
+func (_e *MockStore_Expecter) AgentDelete(agent any) *MockStore_AgentDelete_Call {
 	return &MockStore_AgentDelete_Call{Call: _e.mock.On("AgentDelete", agent)}
 }
 
@@ -577,7 +577,7 @@ type MockStore_AgentFind_Call struct {
 
 // AgentFind is a helper method to define mock.On call
 //   - n int64
-func (_e *MockStore_Expecter) AgentFind(n interface{}) *MockStore_AgentFind_Call {
+func (_e *MockStore_Expecter) AgentFind(n any) *MockStore_AgentFind_Call {
 	return &MockStore_AgentFind_Call{Call: _e.mock.On("AgentFind", n)}
 }
 
@@ -639,7 +639,7 @@ type MockStore_AgentFindByToken_Call struct {
 
 // AgentFindByToken is a helper method to define mock.On call
 //   - s string
-func (_e *MockStore_Expecter) AgentFindByToken(s interface{}) *MockStore_AgentFindByToken_Call {
+func (_e *MockStore_Expecter) AgentFindByToken(s any) *MockStore_AgentFindByToken_Call {
 	return &MockStore_AgentFindByToken_Call{Call: _e.mock.On("AgentFindByToken", s)}
 }
 
@@ -701,7 +701,7 @@ type MockStore_AgentList_Call struct {
 
 // AgentList is a helper method to define mock.On call
 //   - opts *model.AgentListOptions
-func (_e *MockStore_Expecter) AgentList(opts interface{}) *MockStore_AgentList_Call {
+func (_e *MockStore_Expecter) AgentList(opts any) *MockStore_AgentList_Call {
 	return &MockStore_AgentList_Call{Call: _e.mock.On("AgentList", opts)}
 }
 
@@ -764,7 +764,7 @@ type MockStore_AgentListForOrg_Call struct {
 // AgentListForOrg is a helper method to define mock.On call
 //   - orgID int64
 //   - opt *model.ListOptions
-func (_e *MockStore_Expecter) AgentListForOrg(orgID interface{}, opt interface{}) *MockStore_AgentListForOrg_Call {
+func (_e *MockStore_Expecter) AgentListForOrg(orgID any, opt any) *MockStore_AgentListForOrg_Call {
 	return &MockStore_AgentListForOrg_Call{Call: _e.mock.On("AgentListForOrg", orgID, opt)}
 }
 
@@ -820,7 +820,7 @@ type MockStore_AgentUpdate_Call struct {
 
 // AgentUpdate is a helper method to define mock.On call
 //   - agent *model.Agent
-func (_e *MockStore_Expecter) AgentUpdate(agent interface{}) *MockStore_AgentUpdate_Call {
+func (_e *MockStore_Expecter) AgentUpdate(agent any) *MockStore_AgentUpdate_Call {
 	return &MockStore_AgentUpdate_Call{Call: _e.mock.On("AgentUpdate", agent)}
 }
 
@@ -871,7 +871,7 @@ type MockStore_ApprovedPullRequestCreate_Call struct {
 
 // ApprovedPullRequestCreate is a helper method to define mock.On call
 //   - approvedPullRequest *model.ApprovedPullRequest
-func (_e *MockStore_Expecter) ApprovedPullRequestCreate(approvedPullRequest interface{}) *MockStore_ApprovedPullRequestCreate_Call {
+func (_e *MockStore_Expecter) ApprovedPullRequestCreate(approvedPullRequest any) *MockStore_ApprovedPullRequestCreate_Call {
 	return &MockStore_ApprovedPullRequestCreate_Call{Call: _e.mock.On("ApprovedPullRequestCreate", approvedPullRequest)}
 }
 
@@ -923,7 +923,7 @@ type MockStore_ApprovedPullRequestDelete_Call struct {
 // ApprovedPullRequestDelete is a helper method to define mock.On call
 //   - repoID int64
 //   - ref string
-func (_e *MockStore_Expecter) ApprovedPullRequestDelete(repoID interface{}, ref interface{}) *MockStore_ApprovedPullRequestDelete_Call {
+func (_e *MockStore_Expecter) ApprovedPullRequestDelete(repoID any, ref any) *MockStore_ApprovedPullRequestDelete_Call {
 	return &MockStore_ApprovedPullRequestDelete_Call{Call: _e.mock.On("ApprovedPullRequestDelete", repoID, ref)}
 }
 
@@ -991,7 +991,7 @@ type MockStore_ApprovedPullRequestFind_Call struct {
 // ApprovedPullRequestFind is a helper method to define mock.On call
 //   - repoID int64
 //   - ref string
-func (_e *MockStore_Expecter) ApprovedPullRequestFind(repoID interface{}, ref interface{}) *MockStore_ApprovedPullRequestFind_Call {
+func (_e *MockStore_Expecter) ApprovedPullRequestFind(repoID any, ref any) *MockStore_ApprovedPullRequestFind_Call {
 	return &MockStore_ApprovedPullRequestFind_Call{Call: _e.mock.On("ApprovedPullRequestFind", repoID, ref)}
 }
 
@@ -1047,7 +1047,7 @@ type MockStore_AutoscalerCreate_Call struct {
 
 // AutoscalerCreate is a helper method to define mock.On call
 //   - autoscaler *model.Autoscaler
-func (_e *MockStore_Expecter) AutoscalerCreate(autoscaler interface{}) *MockStore_AutoscalerCreate_Call {
+func (_e *MockStore_Expecter) AutoscalerCreate(autoscaler any) *MockStore_AutoscalerCreate_Call {
 	return &MockStore_AutoscalerCreate_Call{Call: _e.mock.On("AutoscalerCreate", autoscaler)}
 }
 
@@ -1098,7 +1098,7 @@ type MockStore_AutoscalerDelete_Call struct {
 
 // AutoscalerDelete is a helper method to define mock.On call
 //   - autoscaler *model.Autoscaler
-func (_e *MockStore_Expecter) AutoscalerDelete(autoscaler interface{}) *MockStore_AutoscalerDelete_Call {
+func (_e *MockStore_Expecter) AutoscalerDelete(autoscaler any) *MockStore_AutoscalerDelete_Call {
 	return &MockStore_AutoscalerDelete_Call{Call: _e.mock.On("AutoscalerDelete", autoscaler)}
 }
 
@@ -1160,7 +1160,7 @@ type MockStore_AutoscalerFind_Call struct {
 
 // AutoscalerFind is a helper method to define mock.On call
 //   - n int64
-func (_e *MockStore_Expecter) AutoscalerFind(n interface{}) *MockStore_AutoscalerFind_Call {
+func (_e *MockStore_Expecter) AutoscalerFind(n any) *MockStore_AutoscalerFind_Call {
 	return &MockStore_AutoscalerFind_Call{Call: _e.mock.On("AutoscalerFind", n)}
 }
 
@@ -1222,7 +1222,7 @@ type MockStore_AutoscalerFindByName_Call struct {
 
 // AutoscalerFindByName is a helper method to define mock.On call
 //   - s string
-func (_e *MockStore_Expecter) AutoscalerFindByName(s interface{}) *MockStore_AutoscalerFindByName_Call {
+func (_e *MockStore_Expecter) AutoscalerFindByName(s any) *MockStore_AutoscalerFindByName_Call {
 	return &MockStore_AutoscalerFindByName_Call{Call: _e.mock.On("AutoscalerFindByName", s)}
 }
 
@@ -1284,7 +1284,7 @@ type MockStore_AutoscalerFindByToken_Call struct {
 
 // AutoscalerFindByToken is a helper method to define mock.On call
 //   - s string
-func (_e *MockStore_Expecter) AutoscalerFindByToken(s interface{}) *MockStore_AutoscalerFindByToken_Call {
+func (_e *MockStore_Expecter) AutoscalerFindByToken(s any) *MockStore_AutoscalerFindByToken_Call {
 	return &MockStore_AutoscalerFindByToken_Call{Call: _e.mock.On("AutoscalerFindByToken", s)}
 }
 
@@ -1346,7 +1346,7 @@ type MockStore_AutoscalerList_Call struct {
 
 // AutoscalerList is a helper method to define mock.On call
 //   - opts *model.AutoscalerListOptions
-func (_e *MockStore_Expecter) AutoscalerList(opts interface{}) *MockStore_AutoscalerList_Call {
+func (_e *MockStore_Expecter) AutoscalerList(opts any) *MockStore_AutoscalerList_Call {
 	return &MockStore_AutoscalerList_Call{Call: _e.mock.On("AutoscalerList", opts)}
 }
 
@@ -1397,7 +1397,7 @@ type MockStore_AutoscalerUpdate_Call struct {
 
 // AutoscalerUpdate is a helper method to define mock.On call
 //   - autoscaler *model.Autoscaler
-func (_e *MockStore_Expecter) AutoscalerUpdate(autoscaler interface{}) *MockStore_AutoscalerUpdate_Call {
+func (_e *MockStore_Expecter) AutoscalerUpdate(autoscaler any) *MockStore_AutoscalerUpdate_Call {
 	return &MockStore_AutoscalerUpdate_Call{Call: _e.mock.On("AutoscalerUpdate", autoscaler)}
 }
 
@@ -1452,7 +1452,7 @@ type MockStore_AutoscalerUpdateHeartbeat_Call struct {
 //   - pendingAgents int32
 //   - pendingSince int64
 //   - version string
-func (_e *MockStore_Expecter) AutoscalerUpdateHeartbeat(id interface{}, activeAgents interface{}, pendingAgents interface{}, pendingSince interface{}, version interface{}) *MockStore_AutoscalerUpdateHeartbeat_Call {
+func (_e *MockStore_Expecter) AutoscalerUpdateHeartbeat(id any, activeAgents any, pendingAgents any, pendingSince any, version any) *MockStore_AutoscalerUpdateHeartbeat_Call {
 	return &MockStore_AutoscalerUpdateHeartbeat_Call{Call: _e.mock.On("AutoscalerUpdateHeartbeat", id, activeAgents, pendingAgents, pendingSince, version)}
 }
 
@@ -1523,7 +1523,7 @@ type MockStore_CacheCleanupExpired_Call struct {
 
 // CacheCleanupExpired is a helper method to define mock.On call
 //   - cutoff int64
-func (_e *MockStore_Expecter) CacheCleanupExpired(cutoff interface{}) *MockStore_CacheCleanupExpired_Call {
+func (_e *MockStore_Expecter) CacheCleanupExpired(cutoff any) *MockStore_CacheCleanupExpired_Call {
 	return &MockStore_CacheCleanupExpired_Call{Call: _e.mock.On("CacheCleanupExpired", cutoff)}
 }
 
@@ -1574,7 +1574,7 @@ type MockStore_CacheDelete_Call struct {
 
 // CacheDelete is a helper method to define mock.On call
 //   - key string
-func (_e *MockStore_Expecter) CacheDelete(key interface{}) *MockStore_CacheDelete_Call {
+func (_e *MockStore_Expecter) CacheDelete(key any) *MockStore_CacheDelete_Call {
 	return &MockStore_CacheDelete_Call{Call: _e.mock.On("CacheDelete", key)}
 }
 
@@ -1636,7 +1636,7 @@ type MockStore_CacheGet_Call struct {
 
 // CacheGet is a helper method to define mock.On call
 //   - key string
-func (_e *MockStore_Expecter) CacheGet(key interface{}) *MockStore_CacheGet_Call {
+func (_e *MockStore_Expecter) CacheGet(key any) *MockStore_CacheGet_Call {
 	return &MockStore_CacheGet_Call{Call: _e.mock.On("CacheGet", key)}
 }
 
@@ -1687,7 +1687,7 @@ type MockStore_CacheSet_Call struct {
 
 // CacheSet is a helper method to define mock.On call
 //   - entry *model.CacheEntry
-func (_e *MockStore_Expecter) CacheSet(entry interface{}) *MockStore_CacheSet_Call {
+func (_e *MockStore_Expecter) CacheSet(entry any) *MockStore_CacheSet_Call {
 	return &MockStore_CacheSet_Call{Call: _e.mock.On("CacheSet", entry)}
 }
 
@@ -1738,7 +1738,7 @@ type MockStore_CleanupOrphanedWorkflows_Call struct {
 
 // CleanupOrphanedWorkflows is a helper method to define mock.On call
 //   - workflowIDs []string
-func (_e *MockStore_Expecter) CleanupOrphanedWorkflows(workflowIDs interface{}) *MockStore_CleanupOrphanedWorkflows_Call {
+func (_e *MockStore_Expecter) CleanupOrphanedWorkflows(workflowIDs any) *MockStore_CleanupOrphanedWorkflows_Call {
 	return &MockStore_CleanupOrphanedWorkflows_Call{Call: _e.mock.On("CleanupOrphanedWorkflows", workflowIDs)}
 }
 
@@ -1844,7 +1844,7 @@ type MockStore_ConfigPersist_Call struct {
 
 // ConfigPersist is a helper method to define mock.On call
 //   - config *model.Config
-func (_e *MockStore_Expecter) ConfigPersist(config interface{}) *MockStore_ConfigPersist_Call {
+func (_e *MockStore_Expecter) ConfigPersist(config any) *MockStore_ConfigPersist_Call {
 	return &MockStore_ConfigPersist_Call{Call: _e.mock.On("ConfigPersist", config)}
 }
 
@@ -1906,7 +1906,7 @@ type MockStore_ConfigsForPipeline_Call struct {
 
 // ConfigsForPipeline is a helper method to define mock.On call
 //   - pipelineID int64
-func (_e *MockStore_Expecter) ConfigsForPipeline(pipelineID interface{}) *MockStore_ConfigsForPipeline_Call {
+func (_e *MockStore_Expecter) ConfigsForPipeline(pipelineID any) *MockStore_ConfigsForPipeline_Call {
 	return &MockStore_ConfigsForPipeline_Call{Call: _e.mock.On("ConfigsForPipeline", pipelineID)}
 }
 
@@ -1936,11 +1936,11 @@ func (_c *MockStore_ConfigsForPipeline_Call) RunAndReturn(run func(pipelineID in
 // CreatePipeline provides a mock function for the type MockStore
 func (_mock *MockStore) CreatePipeline(pipeline *model.Pipeline, steps ...*model.Step) error {
 	// *model.Step
-	_va := make([]interface{}, len(steps))
+	_va := make([]any, len(steps))
 	for _i := range steps {
 		_va[_i] = steps[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, pipeline)
 	_ca = append(_ca, _va...)
 	ret := _mock.Called(_ca...)
@@ -1966,9 +1966,9 @@ type MockStore_CreatePipeline_Call struct {
 // CreatePipeline is a helper method to define mock.On call
 //   - pipeline *model.Pipeline
 //   - steps ...*model.Step
-func (_e *MockStore_Expecter) CreatePipeline(pipeline interface{}, steps ...interface{}) *MockStore_CreatePipeline_Call {
+func (_e *MockStore_Expecter) CreatePipeline(pipeline any, steps ...any) *MockStore_CreatePipeline_Call {
 	return &MockStore_CreatePipeline_Call{Call: _e.mock.On("CreatePipeline",
-		append([]interface{}{pipeline}, steps...)...)}
+		append([]any{pipeline}, steps...)...)}
 }
 
 func (_c *MockStore_CreatePipeline_Call) Run(run func(pipeline *model.Pipeline, steps ...*model.Step)) *MockStore_CreatePipeline_Call {
@@ -2027,7 +2027,7 @@ type MockStore_CreateRedirection_Call struct {
 
 // CreateRedirection is a helper method to define mock.On call
 //   - redirection *model.Redirection
-func (_e *MockStore_Expecter) CreateRedirection(redirection interface{}) *MockStore_CreateRedirection_Call {
+func (_e *MockStore_Expecter) CreateRedirection(redirection any) *MockStore_CreateRedirection_Call {
 	return &MockStore_CreateRedirection_Call{Call: _e.mock.On("CreateRedirection", redirection)}
 }
 
@@ -2078,7 +2078,7 @@ type MockStore_CreateRepo_Call struct {
 
 // CreateRepo is a helper method to define mock.On call
 //   - repo *model.Repo
-func (_e *MockStore_Expecter) CreateRepo(repo interface{}) *MockStore_CreateRepo_Call {
+func (_e *MockStore_Expecter) CreateRepo(repo any) *MockStore_CreateRepo_Call {
 	return &MockStore_CreateRepo_Call{Call: _e.mock.On("CreateRepo", repo)}
 }
 
@@ -2129,7 +2129,7 @@ type MockStore_CreateUser_Call struct {
 
 // CreateUser is a helper method to define mock.On call
 //   - user *model.User
-func (_e *MockStore_Expecter) CreateUser(user interface{}) *MockStore_CreateUser_Call {
+func (_e *MockStore_Expecter) CreateUser(user any) *MockStore_CreateUser_Call {
 	return &MockStore_CreateUser_Call{Call: _e.mock.On("CreateUser", user)}
 }
 
@@ -2180,7 +2180,7 @@ type MockStore_CronCreate_Call struct {
 
 // CronCreate is a helper method to define mock.On call
 //   - cron *model.Cron
-func (_e *MockStore_Expecter) CronCreate(cron interface{}) *MockStore_CronCreate_Call {
+func (_e *MockStore_Expecter) CronCreate(cron any) *MockStore_CronCreate_Call {
 	return &MockStore_CronCreate_Call{Call: _e.mock.On("CronCreate", cron)}
 }
 
@@ -2232,7 +2232,7 @@ type MockStore_CronDelete_Call struct {
 // CronDelete is a helper method to define mock.On call
 //   - repo *model.Repo
 //   - n int64
-func (_e *MockStore_Expecter) CronDelete(repo interface{}, n interface{}) *MockStore_CronDelete_Call {
+func (_e *MockStore_Expecter) CronDelete(repo any, n any) *MockStore_CronDelete_Call {
 	return &MockStore_CronDelete_Call{Call: _e.mock.On("CronDelete", repo, n)}
 }
 
@@ -2288,7 +2288,7 @@ type MockStore_CronDeleteByID_Call struct {
 
 // CronDeleteByID is a helper method to define mock.On call
 //   - id int64
-func (_e *MockStore_Expecter) CronDeleteByID(id interface{}) *MockStore_CronDeleteByID_Call {
+func (_e *MockStore_Expecter) CronDeleteByID(id any) *MockStore_CronDeleteByID_Call {
 	return &MockStore_CronDeleteByID_Call{Call: _e.mock.On("CronDeleteByID", id)}
 }
 
@@ -2340,7 +2340,7 @@ type MockStore_CronDisableOrphaned_Call struct {
 // CronDisableOrphaned is a helper method to define mock.On call
 //   - id int64
 //   - msg string
-func (_e *MockStore_Expecter) CronDisableOrphaned(id interface{}, msg interface{}) *MockStore_CronDisableOrphaned_Call {
+func (_e *MockStore_Expecter) CronDisableOrphaned(id any, msg any) *MockStore_CronDisableOrphaned_Call {
 	return &MockStore_CronDisableOrphaned_Call{Call: _e.mock.On("CronDisableOrphaned", id, msg)}
 }
 
@@ -2408,7 +2408,7 @@ type MockStore_CronFind_Call struct {
 // CronFind is a helper method to define mock.On call
 //   - repo *model.Repo
 //   - n int64
-func (_e *MockStore_Expecter) CronFind(repo interface{}, n interface{}) *MockStore_CronFind_Call {
+func (_e *MockStore_Expecter) CronFind(repo any, n any) *MockStore_CronFind_Call {
 	return &MockStore_CronFind_Call{Call: _e.mock.On("CronFind", repo, n)}
 }
 
@@ -2474,7 +2474,7 @@ type MockStore_CronGetLock_Call struct {
 // CronGetLock is a helper method to define mock.On call
 //   - cron *model.Cron
 //   - n int64
-func (_e *MockStore_Expecter) CronGetLock(cron interface{}, n interface{}) *MockStore_CronGetLock_Call {
+func (_e *MockStore_Expecter) CronGetLock(cron any, n any) *MockStore_CronGetLock_Call {
 	return &MockStore_CronGetLock_Call{Call: _e.mock.On("CronGetLock", cron, n)}
 }
 
@@ -2542,7 +2542,7 @@ type MockStore_CronList_Call struct {
 // CronList is a helper method to define mock.On call
 //   - repo *model.Repo
 //   - listOptions *model.ListOptions
-func (_e *MockStore_Expecter) CronList(repo interface{}, listOptions interface{}) *MockStore_CronList_Call {
+func (_e *MockStore_Expecter) CronList(repo any, listOptions any) *MockStore_CronList_Call {
 	return &MockStore_CronList_Call{Call: _e.mock.On("CronList", repo, listOptions)}
 }
 
@@ -2610,7 +2610,7 @@ type MockStore_CronListNextExecute_Call struct {
 // CronListNextExecute is a helper method to define mock.On call
 //   - n int64
 //   - n1 int64
-func (_e *MockStore_Expecter) CronListNextExecute(n interface{}, n1 interface{}) *MockStore_CronListNextExecute_Call {
+func (_e *MockStore_Expecter) CronListNextExecute(n any, n1 any) *MockStore_CronListNextExecute_Call {
 	return &MockStore_CronListNextExecute_Call{Call: _e.mock.On("CronListNextExecute", n, n1)}
 }
 
@@ -2777,7 +2777,7 @@ type MockStore_CronUpdate_Call struct {
 // CronUpdate is a helper method to define mock.On call
 //   - repo *model.Repo
 //   - cron *model.Cron
-func (_e *MockStore_Expecter) CronUpdate(repo interface{}, cron interface{}) *MockStore_CronUpdate_Call {
+func (_e *MockStore_Expecter) CronUpdate(repo any, cron any) *MockStore_CronUpdate_Call {
 	return &MockStore_CronUpdate_Call{Call: _e.mock.On("CronUpdate", repo, cron)}
 }
 
@@ -2833,7 +2833,7 @@ type MockStore_DeletePipeline_Call struct {
 
 // DeletePipeline is a helper method to define mock.On call
 //   - pipeline *model.Pipeline
-func (_e *MockStore_Expecter) DeletePipeline(pipeline interface{}) *MockStore_DeletePipeline_Call {
+func (_e *MockStore_Expecter) DeletePipeline(pipeline any) *MockStore_DeletePipeline_Call {
 	return &MockStore_DeletePipeline_Call{Call: _e.mock.On("DeletePipeline", pipeline)}
 }
 
@@ -2884,7 +2884,7 @@ type MockStore_DeleteRepo_Call struct {
 
 // DeleteRepo is a helper method to define mock.On call
 //   - repo *model.Repo
-func (_e *MockStore_Expecter) DeleteRepo(repo interface{}) *MockStore_DeleteRepo_Call {
+func (_e *MockStore_Expecter) DeleteRepo(repo any) *MockStore_DeleteRepo_Call {
 	return &MockStore_DeleteRepo_Call{Call: _e.mock.On("DeleteRepo", repo)}
 }
 
@@ -2935,7 +2935,7 @@ type MockStore_DeleteUser_Call struct {
 
 // DeleteUser is a helper method to define mock.On call
 //   - user *model.User
-func (_e *MockStore_Expecter) DeleteUser(user interface{}) *MockStore_DeleteUser_Call {
+func (_e *MockStore_Expecter) DeleteUser(user any) *MockStore_DeleteUser_Call {
 	return &MockStore_DeleteUser_Call{Call: _e.mock.On("DeleteUser", user)}
 }
 
@@ -2997,7 +2997,7 @@ type MockStore_DistributedLockAcquire_Call struct {
 //   - lockName string
 //   - instanceID string
 //   - ttlSeconds int64
-func (_e *MockStore_Expecter) DistributedLockAcquire(lockName interface{}, instanceID interface{}, ttlSeconds interface{}) *MockStore_DistributedLockAcquire_Call {
+func (_e *MockStore_Expecter) DistributedLockAcquire(lockName any, instanceID any, ttlSeconds any) *MockStore_DistributedLockAcquire_Call {
 	return &MockStore_DistributedLockAcquire_Call{Call: _e.mock.On("DistributedLockAcquire", lockName, instanceID, ttlSeconds)}
 }
 
@@ -3113,7 +3113,7 @@ type MockStore_DistributedLockExtend_Call struct {
 //   - lockName string
 //   - instanceID string
 //   - ttlSeconds int64
-func (_e *MockStore_Expecter) DistributedLockExtend(lockName interface{}, instanceID interface{}, ttlSeconds interface{}) *MockStore_DistributedLockExtend_Call {
+func (_e *MockStore_Expecter) DistributedLockExtend(lockName any, instanceID any, ttlSeconds any) *MockStore_DistributedLockExtend_Call {
 	return &MockStore_DistributedLockExtend_Call{Call: _e.mock.On("DistributedLockExtend", lockName, instanceID, ttlSeconds)}
 }
 
@@ -3274,7 +3274,7 @@ type MockStore_DistributedLockRelease_Call struct {
 // DistributedLockRelease is a helper method to define mock.On call
 //   - lockName string
 //   - instanceID string
-func (_e *MockStore_Expecter) DistributedLockRelease(lockName interface{}, instanceID interface{}) *MockStore_DistributedLockRelease_Call {
+func (_e *MockStore_Expecter) DistributedLockRelease(lockName any, instanceID any) *MockStore_DistributedLockRelease_Call {
 	return &MockStore_DistributedLockRelease_Call{Call: _e.mock.On("DistributedLockRelease", lockName, instanceID)}
 }
 
@@ -3330,7 +3330,7 @@ type MockStore_EmailUnsubscribeCreate_Call struct {
 
 // EmailUnsubscribeCreate is a helper method to define mock.On call
 //   - emailUnsubscribe *model.EmailUnsubscribe
-func (_e *MockStore_Expecter) EmailUnsubscribeCreate(emailUnsubscribe interface{}) *MockStore_EmailUnsubscribeCreate_Call {
+func (_e *MockStore_Expecter) EmailUnsubscribeCreate(emailUnsubscribe any) *MockStore_EmailUnsubscribeCreate_Call {
 	return &MockStore_EmailUnsubscribeCreate_Call{Call: _e.mock.On("EmailUnsubscribeCreate", emailUnsubscribe)}
 }
 
@@ -3382,7 +3382,7 @@ type MockStore_EmailUnsubscribeDelete_Call struct {
 // EmailUnsubscribeDelete is a helper method to define mock.On call
 //   - userID int64
 //   - repoID int64
-func (_e *MockStore_Expecter) EmailUnsubscribeDelete(userID interface{}, repoID interface{}) *MockStore_EmailUnsubscribeDelete_Call {
+func (_e *MockStore_Expecter) EmailUnsubscribeDelete(userID any, repoID any) *MockStore_EmailUnsubscribeDelete_Call {
 	return &MockStore_EmailUnsubscribeDelete_Call{Call: _e.mock.On("EmailUnsubscribeDelete", userID, repoID)}
 }
 
@@ -3450,7 +3450,7 @@ type MockStore_EmailUnsubscribeFind_Call struct {
 // EmailUnsubscribeFind is a helper method to define mock.On call
 //   - userID int64
 //   - repoID int64
-func (_e *MockStore_Expecter) EmailUnsubscribeFind(userID interface{}, repoID interface{}) *MockStore_EmailUnsubscribeFind_Call {
+func (_e *MockStore_Expecter) EmailUnsubscribeFind(userID any, repoID any) *MockStore_EmailUnsubscribeFind_Call {
 	return &MockStore_EmailUnsubscribeFind_Call{Call: _e.mock.On("EmailUnsubscribeFind", userID, repoID)}
 }
 
@@ -3506,7 +3506,7 @@ type MockStore_ForgeCreate_Call struct {
 
 // ForgeCreate is a helper method to define mock.On call
 //   - forge *model.Forge
-func (_e *MockStore_Expecter) ForgeCreate(forge interface{}) *MockStore_ForgeCreate_Call {
+func (_e *MockStore_Expecter) ForgeCreate(forge any) *MockStore_ForgeCreate_Call {
 	return &MockStore_ForgeCreate_Call{Call: _e.mock.On("ForgeCreate", forge)}
 }
 
@@ -3557,7 +3557,7 @@ type MockStore_ForgeDelete_Call struct {
 
 // ForgeDelete is a helper method to define mock.On call
 //   - forge *model.Forge
-func (_e *MockStore_Expecter) ForgeDelete(forge interface{}) *MockStore_ForgeDelete_Call {
+func (_e *MockStore_Expecter) ForgeDelete(forge any) *MockStore_ForgeDelete_Call {
 	return &MockStore_ForgeDelete_Call{Call: _e.mock.On("ForgeDelete", forge)}
 }
 
@@ -3619,7 +3619,7 @@ type MockStore_ForgeGet_Call struct {
 
 // ForgeGet is a helper method to define mock.On call
 //   - n int64
-func (_e *MockStore_Expecter) ForgeGet(n interface{}) *MockStore_ForgeGet_Call {
+func (_e *MockStore_Expecter) ForgeGet(n any) *MockStore_ForgeGet_Call {
 	return &MockStore_ForgeGet_Call{Call: _e.mock.On("ForgeGet", n)}
 }
 
@@ -3681,7 +3681,7 @@ type MockStore_ForgeList_Call struct {
 
 // ForgeList is a helper method to define mock.On call
 //   - p *model.ListOptions
-func (_e *MockStore_Expecter) ForgeList(p interface{}) *MockStore_ForgeList_Call {
+func (_e *MockStore_Expecter) ForgeList(p any) *MockStore_ForgeList_Call {
 	return &MockStore_ForgeList_Call{Call: _e.mock.On("ForgeList", p)}
 }
 
@@ -3787,7 +3787,7 @@ type MockStore_ForgeUpdate_Call struct {
 
 // ForgeUpdate is a helper method to define mock.On call
 //   - forge *model.Forge
-func (_e *MockStore_Expecter) ForgeUpdate(forge interface{}) *MockStore_ForgeUpdate_Call {
+func (_e *MockStore_Expecter) ForgeUpdate(forge any) *MockStore_ForgeUpdate_Call {
 	return &MockStore_ForgeUpdate_Call{Call: _e.mock.On("ForgeUpdate", forge)}
 }
 
@@ -3849,7 +3849,7 @@ type MockStore_GetActivePipelineList_Call struct {
 
 // GetActivePipelineList is a helper method to define mock.On call
 //   - repo *model.Repo
-func (_e *MockStore_Expecter) GetActivePipelineList(repo interface{}) *MockStore_GetActivePipelineList_Call {
+func (_e *MockStore_Expecter) GetActivePipelineList(repo any) *MockStore_GetActivePipelineList_Call {
 	return &MockStore_GetActivePipelineList_Call{Call: _e.mock.On("GetActivePipelineList", repo)}
 }
 
@@ -3911,7 +3911,7 @@ type MockStore_GetAveragePipelineDuration_Call struct {
 //   - after int64
 //   - before int64
 //   - repoIDs []int64
-func (_e *MockStore_Expecter) GetAveragePipelineDuration(after interface{}, before interface{}, repoIDs interface{}) *MockStore_GetAveragePipelineDuration_Call {
+func (_e *MockStore_Expecter) GetAveragePipelineDuration(after any, before any, repoIDs any) *MockStore_GetAveragePipelineDuration_Call {
 	return &MockStore_GetAveragePipelineDuration_Call{Call: _e.mock.On("GetAveragePipelineDuration", after, before, repoIDs)}
 }
 
@@ -3983,7 +3983,7 @@ type MockStore_GetAverageStepsPerWorkflow_Call struct {
 //   - after int64
 //   - before int64
 //   - repoIDs []int64
-func (_e *MockStore_Expecter) GetAverageStepsPerWorkflow(after interface{}, before interface{}, repoIDs interface{}) *MockStore_GetAverageStepsPerWorkflow_Call {
+func (_e *MockStore_Expecter) GetAverageStepsPerWorkflow(after any, before any, repoIDs any) *MockStore_GetAverageStepsPerWorkflow_Call {
 	return &MockStore_GetAverageStepsPerWorkflow_Call{Call: _e.mock.On("GetAverageStepsPerWorkflow", after, before, repoIDs)}
 }
 
@@ -4057,7 +4057,7 @@ type MockStore_GetBuildTimeStatsByOrg_Call struct {
 //   - after int64
 //   - before int64
 //   - repoIDs []int64
-func (_e *MockStore_Expecter) GetBuildTimeStatsByOrg(after interface{}, before interface{}, repoIDs interface{}) *MockStore_GetBuildTimeStatsByOrg_Call {
+func (_e *MockStore_Expecter) GetBuildTimeStatsByOrg(after any, before any, repoIDs any) *MockStore_GetBuildTimeStatsByOrg_Call {
 	return &MockStore_GetBuildTimeStatsByOrg_Call{Call: _e.mock.On("GetBuildTimeStatsByOrg", after, before, repoIDs)}
 }
 
@@ -4131,7 +4131,7 @@ type MockStore_GetBuildTimeStatsByRepo_Call struct {
 //   - after int64
 //   - before int64
 //   - repoIDs []int64
-func (_e *MockStore_Expecter) GetBuildTimeStatsByRepo(after interface{}, before interface{}, repoIDs interface{}) *MockStore_GetBuildTimeStatsByRepo_Call {
+func (_e *MockStore_Expecter) GetBuildTimeStatsByRepo(after any, before any, repoIDs any) *MockStore_GetBuildTimeStatsByRepo_Call {
 	return &MockStore_GetBuildTimeStatsByRepo_Call{Call: _e.mock.On("GetBuildTimeStatsByRepo", after, before, repoIDs)}
 }
 
@@ -4256,7 +4256,7 @@ type MockStore_GetPipeline_Call struct {
 
 // GetPipeline is a helper method to define mock.On call
 //   - n int64
-func (_e *MockStore_Expecter) GetPipeline(n interface{}) *MockStore_GetPipeline_Call {
+func (_e *MockStore_Expecter) GetPipeline(n any) *MockStore_GetPipeline_Call {
 	return &MockStore_GetPipeline_Call{Call: _e.mock.On("GetPipeline", n)}
 }
 
@@ -4319,7 +4319,7 @@ type MockStore_GetPipelineBadge_Call struct {
 // GetPipelineBadge is a helper method to define mock.On call
 //   - repo *model.Repo
 //   - s string
-func (_e *MockStore_Expecter) GetPipelineBadge(repo interface{}, s interface{}) *MockStore_GetPipelineBadge_Call {
+func (_e *MockStore_Expecter) GetPipelineBadge(repo any, s any) *MockStore_GetPipelineBadge_Call {
 	return &MockStore_GetPipelineBadge_Call{Call: _e.mock.On("GetPipelineBadge", repo, s)}
 }
 
@@ -4439,7 +4439,7 @@ type MockStore_GetPipelineCountByOrg_Call struct {
 //   - orgID int64
 //   - after int64
 //   - before int64
-func (_e *MockStore_Expecter) GetPipelineCountByOrg(orgID interface{}, after interface{}, before interface{}) *MockStore_GetPipelineCountByOrg_Call {
+func (_e *MockStore_Expecter) GetPipelineCountByOrg(orgID any, after any, before any) *MockStore_GetPipelineCountByOrg_Call {
 	return &MockStore_GetPipelineCountByOrg_Call{Call: _e.mock.On("GetPipelineCountByOrg", orgID, after, before)}
 }
 
@@ -4509,7 +4509,7 @@ type MockStore_GetPipelineCountByRepo_Call struct {
 
 // GetPipelineCountByRepo is a helper method to define mock.On call
 //   - n int64
-func (_e *MockStore_Expecter) GetPipelineCountByRepo(n interface{}) *MockStore_GetPipelineCountByRepo_Call {
+func (_e *MockStore_Expecter) GetPipelineCountByRepo(n any) *MockStore_GetPipelineCountByRepo_Call {
 	return &MockStore_GetPipelineCountByRepo_Call{Call: _e.mock.On("GetPipelineCountByRepo", n)}
 }
 
@@ -4573,7 +4573,7 @@ type MockStore_GetPipelineCountsByOrg_Call struct {
 //   - after int64
 //   - before int64
 //   - repoIDs []int64
-func (_e *MockStore_Expecter) GetPipelineCountsByOrg(after interface{}, before interface{}, repoIDs interface{}) *MockStore_GetPipelineCountsByOrg_Call {
+func (_e *MockStore_Expecter) GetPipelineCountsByOrg(after any, before any, repoIDs any) *MockStore_GetPipelineCountsByOrg_Call {
 	return &MockStore_GetPipelineCountsByOrg_Call{Call: _e.mock.On("GetPipelineCountsByOrg", after, before, repoIDs)}
 }
 
@@ -4647,7 +4647,7 @@ type MockStore_GetPipelineCountsByRepo_Call struct {
 //   - after int64
 //   - before int64
 //   - repoIDs []int64
-func (_e *MockStore_Expecter) GetPipelineCountsByRepo(after interface{}, before interface{}, repoIDs interface{}) *MockStore_GetPipelineCountsByRepo_Call {
+func (_e *MockStore_Expecter) GetPipelineCountsByRepo(after any, before any, repoIDs any) *MockStore_GetPipelineCountsByRepo_Call {
 	return &MockStore_GetPipelineCountsByRepo_Call{Call: _e.mock.On("GetPipelineCountsByRepo", after, before, repoIDs)}
 }
 
@@ -4720,7 +4720,7 @@ type MockStore_GetPipelineLast_Call struct {
 // GetPipelineLast is a helper method to define mock.On call
 //   - repo *model.Repo
 //   - s string
-func (_e *MockStore_Expecter) GetPipelineLast(repo interface{}, s interface{}) *MockStore_GetPipelineLast_Call {
+func (_e *MockStore_Expecter) GetPipelineLast(repo any, s any) *MockStore_GetPipelineLast_Call {
 	return &MockStore_GetPipelineLast_Call{Call: _e.mock.On("GetPipelineLast", repo, s)}
 }
 
@@ -4789,7 +4789,7 @@ type MockStore_GetPipelineLastBefore_Call struct {
 //   - repo *model.Repo
 //   - s string
 //   - n int64
-func (_e *MockStore_Expecter) GetPipelineLastBefore(repo interface{}, s interface{}, n interface{}) *MockStore_GetPipelineLastBefore_Call {
+func (_e *MockStore_Expecter) GetPipelineLastBefore(repo any, s any, n any) *MockStore_GetPipelineLastBefore_Call {
 	return &MockStore_GetPipelineLastBefore_Call{Call: _e.mock.On("GetPipelineLastBefore", repo, s, n)}
 }
 
@@ -4863,7 +4863,7 @@ type MockStore_GetPipelineList_Call struct {
 //   - repo *model.Repo
 //   - listOptions *model.ListOptions
 //   - pipelineFilter *model.PipelineFilter
-func (_e *MockStore_Expecter) GetPipelineList(repo interface{}, listOptions interface{}, pipelineFilter interface{}) *MockStore_GetPipelineList_Call {
+func (_e *MockStore_Expecter) GetPipelineList(repo any, listOptions any, pipelineFilter any) *MockStore_GetPipelineList_Call {
 	return &MockStore_GetPipelineList_Call{Call: _e.mock.On("GetPipelineList", repo, listOptions, pipelineFilter)}
 }
 
@@ -4938,7 +4938,7 @@ type MockStore_GetPipelineListKeyset_Call struct {
 //   - startID int64
 //   - beforeDate int64
 //   - limit int
-func (_e *MockStore_Expecter) GetPipelineListKeyset(repo interface{}, startID interface{}, beforeDate interface{}, limit interface{}) *MockStore_GetPipelineListKeyset_Call {
+func (_e *MockStore_Expecter) GetPipelineListKeyset(repo any, startID any, beforeDate any, limit any) *MockStore_GetPipelineListKeyset_Call {
 	return &MockStore_GetPipelineListKeyset_Call{Call: _e.mock.On("GetPipelineListKeyset", repo, startID, beforeDate, limit)}
 }
 
@@ -5013,7 +5013,7 @@ type MockStore_GetPipelineLogPurged_Call struct {
 
 // GetPipelineLogPurged is a helper method to define mock.On call
 //   - pipeline *model.Pipeline
-func (_e *MockStore_Expecter) GetPipelineLogPurged(pipeline interface{}) *MockStore_GetPipelineLogPurged_Call {
+func (_e *MockStore_Expecter) GetPipelineLogPurged(pipeline any) *MockStore_GetPipelineLogPurged_Call {
 	return &MockStore_GetPipelineLogPurged_Call{Call: _e.mock.On("GetPipelineLogPurged", pipeline)}
 }
 
@@ -5076,7 +5076,7 @@ type MockStore_GetPipelineNumber_Call struct {
 // GetPipelineNumber is a helper method to define mock.On call
 //   - repo *model.Repo
 //   - n int64
-func (_e *MockStore_Expecter) GetPipelineNumber(repo interface{}, n interface{}) *MockStore_GetPipelineNumber_Call {
+func (_e *MockStore_Expecter) GetPipelineNumber(repo any, n any) *MockStore_GetPipelineNumber_Call {
 	return &MockStore_GetPipelineNumber_Call{Call: _e.mock.On("GetPipelineNumber", repo, n)}
 }
 
@@ -5198,7 +5198,7 @@ type MockStore_GetRepo_Call struct {
 
 // GetRepo is a helper method to define mock.On call
 //   - n int64
-func (_e *MockStore_Expecter) GetRepo(n interface{}) *MockStore_GetRepo_Call {
+func (_e *MockStore_Expecter) GetRepo(n any) *MockStore_GetRepo_Call {
 	return &MockStore_GetRepo_Call{Call: _e.mock.On("GetRepo", n)}
 }
 
@@ -5261,7 +5261,7 @@ type MockStore_GetRepoByForgeAndRemoteID_Call struct {
 // GetRepoByForgeAndRemoteID is a helper method to define mock.On call
 //   - forgeID int64
 //   - remoteID model.ForgeRemoteID
-func (_e *MockStore_Expecter) GetRepoByForgeAndRemoteID(forgeID interface{}, remoteID interface{}) *MockStore_GetRepoByForgeAndRemoteID_Call {
+func (_e *MockStore_Expecter) GetRepoByForgeAndRemoteID(forgeID any, remoteID any) *MockStore_GetRepoByForgeAndRemoteID_Call {
 	return &MockStore_GetRepoByForgeAndRemoteID_Call{Call: _e.mock.On("GetRepoByForgeAndRemoteID", forgeID, remoteID)}
 }
 
@@ -5330,7 +5330,7 @@ type MockStore_GetRepoByForgeOwnerName_Call struct {
 //   - forgeID int64
 //   - owner string
 //   - name string
-func (_e *MockStore_Expecter) GetRepoByForgeOwnerName(forgeID interface{}, owner interface{}, name interface{}) *MockStore_GetRepoByForgeOwnerName_Call {
+func (_e *MockStore_Expecter) GetRepoByForgeOwnerName(forgeID any, owner any, name any) *MockStore_GetRepoByForgeOwnerName_Call {
 	return &MockStore_GetRepoByForgeOwnerName_Call{Call: _e.mock.On("GetRepoByForgeOwnerName", forgeID, owner, name)}
 }
 
@@ -5455,7 +5455,7 @@ type MockStore_GetRepoForgeID_Call struct {
 
 // GetRepoForgeID is a helper method to define mock.On call
 //   - forgeRemoteID model.ForgeRemoteID
-func (_e *MockStore_Expecter) GetRepoForgeID(forgeRemoteID interface{}) *MockStore_GetRepoForgeID_Call {
+func (_e *MockStore_Expecter) GetRepoForgeID(forgeRemoteID any) *MockStore_GetRepoForgeID_Call {
 	return &MockStore_GetRepoForgeID_Call{Call: _e.mock.On("GetRepoForgeID", forgeRemoteID)}
 }
 
@@ -5517,7 +5517,7 @@ type MockStore_GetRepoLatestPipelines_Call struct {
 
 // GetRepoLatestPipelines is a helper method to define mock.On call
 //   - int64s []int64
-func (_e *MockStore_Expecter) GetRepoLatestPipelines(int64s interface{}) *MockStore_GetRepoLatestPipelines_Call {
+func (_e *MockStore_Expecter) GetRepoLatestPipelines(int64s any) *MockStore_GetRepoLatestPipelines_Call {
 	return &MockStore_GetRepoLatestPipelines_Call{Call: _e.mock.On("GetRepoLatestPipelines", int64s)}
 }
 
@@ -5579,7 +5579,7 @@ type MockStore_GetRepoName_Call struct {
 
 // GetRepoName is a helper method to define mock.On call
 //   - s string
-func (_e *MockStore_Expecter) GetRepoName(s interface{}) *MockStore_GetRepoName_Call {
+func (_e *MockStore_Expecter) GetRepoName(s any) *MockStore_GetRepoName_Call {
 	return &MockStore_GetRepoName_Call{Call: _e.mock.On("GetRepoName", s)}
 }
 
@@ -5643,7 +5643,7 @@ type MockStore_GetRepoNameFallback_Call struct {
 //   - forgeID int64
 //   - remoteID model.ForgeRemoteID
 //   - fullName string
-func (_e *MockStore_Expecter) GetRepoNameFallback(forgeID interface{}, remoteID interface{}, fullName interface{}) *MockStore_GetRepoNameFallback_Call {
+func (_e *MockStore_Expecter) GetRepoNameFallback(forgeID any, remoteID any, fullName any) *MockStore_GetRepoNameFallback_Call {
 	return &MockStore_GetRepoNameFallback_Call{Call: _e.mock.On("GetRepoNameFallback", forgeID, remoteID, fullName)}
 }
 
@@ -5715,7 +5715,7 @@ type MockStore_GetUser_Call struct {
 
 // GetUser is a helper method to define mock.On call
 //   - n int64
-func (_e *MockStore_Expecter) GetUser(n interface{}) *MockStore_GetUser_Call {
+func (_e *MockStore_Expecter) GetUser(n any) *MockStore_GetUser_Call {
 	return &MockStore_GetUser_Call{Call: _e.mock.On("GetUser", n)}
 }
 
@@ -5830,7 +5830,7 @@ type MockStore_GetUserList_Call struct {
 
 // GetUserList is a helper method to define mock.On call
 //   - p *model.ListOptions
-func (_e *MockStore_Expecter) GetUserList(p interface{}) *MockStore_GetUserList_Call {
+func (_e *MockStore_Expecter) GetUserList(p any) *MockStore_GetUserList_Call {
 	return &MockStore_GetUserList_Call{Call: _e.mock.On("GetUserList", p)}
 }
 
@@ -5892,7 +5892,7 @@ type MockStore_GetUserLogin_Call struct {
 
 // GetUserLogin is a helper method to define mock.On call
 //   - s string
-func (_e *MockStore_Expecter) GetUserLogin(s interface{}) *MockStore_GetUserLogin_Call {
+func (_e *MockStore_Expecter) GetUserLogin(s any) *MockStore_GetUserLogin_Call {
 	return &MockStore_GetUserLogin_Call{Call: _e.mock.On("GetUserLogin", s)}
 }
 
@@ -5955,7 +5955,7 @@ type MockStore_GetUserRemoteID_Call struct {
 // GetUserRemoteID is a helper method to define mock.On call
 //   - forgeRemoteID model.ForgeRemoteID
 //   - s string
-func (_e *MockStore_Expecter) GetUserRemoteID(forgeRemoteID interface{}, s interface{}) *MockStore_GetUserRemoteID_Call {
+func (_e *MockStore_Expecter) GetUserRemoteID(forgeRemoteID any, s any) *MockStore_GetUserRemoteID_Call {
 	return &MockStore_GetUserRemoteID_Call{Call: _e.mock.On("GetUserRemoteID", forgeRemoteID, s)}
 }
 
@@ -6022,7 +6022,7 @@ type MockStore_GetWorkflowCountByAgent_Call struct {
 //   - agentID int64
 //   - after int64
 //   - before int64
-func (_e *MockStore_Expecter) GetWorkflowCountByAgent(agentID interface{}, after interface{}, before interface{}) *MockStore_GetWorkflowCountByAgent_Call {
+func (_e *MockStore_Expecter) GetWorkflowCountByAgent(agentID any, after any, before any) *MockStore_GetWorkflowCountByAgent_Call {
 	return &MockStore_GetWorkflowCountByAgent_Call{Call: _e.mock.On("GetWorkflowCountByAgent", agentID, after, before)}
 }
 
@@ -6096,7 +6096,7 @@ type MockStore_GetWorkflowCountsByAgent_Call struct {
 //   - after int64
 //   - before int64
 //   - repoIDs []int64
-func (_e *MockStore_Expecter) GetWorkflowCountsByAgent(after interface{}, before interface{}, repoIDs interface{}) *MockStore_GetWorkflowCountsByAgent_Call {
+func (_e *MockStore_Expecter) GetWorkflowCountsByAgent(after any, before any, repoIDs any) *MockStore_GetWorkflowCountsByAgent_Call {
 	return &MockStore_GetWorkflowCountsByAgent_Call{Call: _e.mock.On("GetWorkflowCountsByAgent", after, before, repoIDs)}
 }
 
@@ -6170,7 +6170,7 @@ type MockStore_GetWorkflowCountsByAgentPersistentID_Call struct {
 //   - after int64
 //   - before int64
 //   - repoIDs []int64
-func (_e *MockStore_Expecter) GetWorkflowCountsByAgentPersistentID(after interface{}, before interface{}, repoIDs interface{}) *MockStore_GetWorkflowCountsByAgentPersistentID_Call {
+func (_e *MockStore_Expecter) GetWorkflowCountsByAgentPersistentID(after any, before any, repoIDs any) *MockStore_GetWorkflowCountsByAgentPersistentID_Call {
 	return &MockStore_GetWorkflowCountsByAgentPersistentID_Call{Call: _e.mock.On("GetWorkflowCountsByAgentPersistentID", after, before, repoIDs)}
 }
 
@@ -6242,7 +6242,7 @@ type MockStore_GlobalRegistryFind_Call struct {
 
 // GlobalRegistryFind is a helper method to define mock.On call
 //   - s string
-func (_e *MockStore_Expecter) GlobalRegistryFind(s interface{}) *MockStore_GlobalRegistryFind_Call {
+func (_e *MockStore_Expecter) GlobalRegistryFind(s any) *MockStore_GlobalRegistryFind_Call {
 	return &MockStore_GlobalRegistryFind_Call{Call: _e.mock.On("GlobalRegistryFind", s)}
 }
 
@@ -6304,7 +6304,7 @@ type MockStore_GlobalRegistryList_Call struct {
 
 // GlobalRegistryList is a helper method to define mock.On call
 //   - listOptions *model.ListOptions
-func (_e *MockStore_Expecter) GlobalRegistryList(listOptions interface{}) *MockStore_GlobalRegistryList_Call {
+func (_e *MockStore_Expecter) GlobalRegistryList(listOptions any) *MockStore_GlobalRegistryList_Call {
 	return &MockStore_GlobalRegistryList_Call{Call: _e.mock.On("GlobalRegistryList", listOptions)}
 }
 
@@ -6366,7 +6366,7 @@ type MockStore_GlobalSecretFind_Call struct {
 
 // GlobalSecretFind is a helper method to define mock.On call
 //   - s string
-func (_e *MockStore_Expecter) GlobalSecretFind(s interface{}) *MockStore_GlobalSecretFind_Call {
+func (_e *MockStore_Expecter) GlobalSecretFind(s any) *MockStore_GlobalSecretFind_Call {
 	return &MockStore_GlobalSecretFind_Call{Call: _e.mock.On("GlobalSecretFind", s)}
 }
 
@@ -6428,7 +6428,7 @@ type MockStore_GlobalSecretList_Call struct {
 
 // GlobalSecretList is a helper method to define mock.On call
 //   - listOptions *model.ListOptions
-func (_e *MockStore_Expecter) GlobalSecretList(listOptions interface{}) *MockStore_GlobalSecretList_Call {
+func (_e *MockStore_Expecter) GlobalSecretList(listOptions any) *MockStore_GlobalSecretList_Call {
 	return &MockStore_GlobalSecretList_Call{Call: _e.mock.On("GlobalSecretList", listOptions)}
 }
 
@@ -6489,7 +6489,7 @@ type MockStore_HasRedirectionForRepo_Call struct {
 // HasRedirectionForRepo is a helper method to define mock.On call
 //   - n int64
 //   - s string
-func (_e *MockStore_Expecter) HasRedirectionForRepo(n interface{}, s interface{}) *MockStore_HasRedirectionForRepo_Call {
+func (_e *MockStore_Expecter) HasRedirectionForRepo(n any, s any) *MockStore_HasRedirectionForRepo_Call {
 	return &MockStore_HasRedirectionForRepo_Call{Call: _e.mock.On("HasRedirectionForRepo", n, s)}
 }
 
@@ -6545,7 +6545,7 @@ type MockStore_IntegrationCreate_Call struct {
 
 // IntegrationCreate is a helper method to define mock.On call
 //   - integration *model.Integration
-func (_e *MockStore_Expecter) IntegrationCreate(integration interface{}) *MockStore_IntegrationCreate_Call {
+func (_e *MockStore_Expecter) IntegrationCreate(integration any) *MockStore_IntegrationCreate_Call {
 	return &MockStore_IntegrationCreate_Call{Call: _e.mock.On("IntegrationCreate", integration)}
 }
 
@@ -6596,7 +6596,7 @@ type MockStore_IntegrationDelete_Call struct {
 
 // IntegrationDelete is a helper method to define mock.On call
 //   - integration *model.Integration
-func (_e *MockStore_Expecter) IntegrationDelete(integration interface{}) *MockStore_IntegrationDelete_Call {
+func (_e *MockStore_Expecter) IntegrationDelete(integration any) *MockStore_IntegrationDelete_Call {
 	return &MockStore_IntegrationDelete_Call{Call: _e.mock.On("IntegrationDelete", integration)}
 }
 
@@ -6658,7 +6658,7 @@ type MockStore_IntegrationFind_Call struct {
 
 // IntegrationFind is a helper method to define mock.On call
 //   - n int64
-func (_e *MockStore_Expecter) IntegrationFind(n interface{}) *MockStore_IntegrationFind_Call {
+func (_e *MockStore_Expecter) IntegrationFind(n any) *MockStore_IntegrationFind_Call {
 	return &MockStore_IntegrationFind_Call{Call: _e.mock.On("IntegrationFind", n)}
 }
 
@@ -6721,7 +6721,7 @@ type MockStore_IntegrationFindByName_Call struct {
 // IntegrationFindByName is a helper method to define mock.On call
 //   - userID int64
 //   - name string
-func (_e *MockStore_Expecter) IntegrationFindByName(userID interface{}, name interface{}) *MockStore_IntegrationFindByName_Call {
+func (_e *MockStore_Expecter) IntegrationFindByName(userID any, name any) *MockStore_IntegrationFindByName_Call {
 	return &MockStore_IntegrationFindByName_Call{Call: _e.mock.On("IntegrationFindByName", userID, name)}
 }
 
@@ -6789,7 +6789,7 @@ type MockStore_IntegrationList_Call struct {
 // IntegrationList is a helper method to define mock.On call
 //   - userID int64
 //   - opts *model.ListOptions
-func (_e *MockStore_Expecter) IntegrationList(userID interface{}, opts interface{}) *MockStore_IntegrationList_Call {
+func (_e *MockStore_Expecter) IntegrationList(userID any, opts any) *MockStore_IntegrationList_Call {
 	return &MockStore_IntegrationList_Call{Call: _e.mock.On("IntegrationList", userID, opts)}
 }
 
@@ -6859,7 +6859,7 @@ type MockStore_IntegrationListAccessible_Call struct {
 //   - orgIDs []int64
 //   - repoIDs []int64
 //   - opts *model.ListOptions
-func (_e *MockStore_Expecter) IntegrationListAccessible(userID interface{}, orgIDs interface{}, repoIDs interface{}, opts interface{}) *MockStore_IntegrationListAccessible_Call {
+func (_e *MockStore_Expecter) IntegrationListAccessible(userID any, orgIDs any, repoIDs any, opts any) *MockStore_IntegrationListAccessible_Call {
 	return &MockStore_IntegrationListAccessible_Call{Call: _e.mock.On("IntegrationListAccessible", userID, orgIDs, repoIDs, opts)}
 }
 
@@ -6980,7 +6980,7 @@ type MockStore_IntegrationUpdate_Call struct {
 
 // IntegrationUpdate is a helper method to define mock.On call
 //   - integration *model.Integration
-func (_e *MockStore_Expecter) IntegrationUpdate(integration interface{}) *MockStore_IntegrationUpdate_Call {
+func (_e *MockStore_Expecter) IntegrationUpdate(integration any) *MockStore_IntegrationUpdate_Call {
 	return &MockStore_IntegrationUpdate_Call{Call: _e.mock.On("IntegrationUpdate", integration)}
 }
 
@@ -7032,7 +7032,7 @@ type MockStore_LogAppend_Call struct {
 // LogAppend is a helper method to define mock.On call
 //   - step *model.Step
 //   - logEntrys []*model.LogEntry
-func (_e *MockStore_Expecter) LogAppend(step interface{}, logEntrys interface{}) *MockStore_LogAppend_Call {
+func (_e *MockStore_Expecter) LogAppend(step any, logEntrys any) *MockStore_LogAppend_Call {
 	return &MockStore_LogAppend_Call{Call: _e.mock.On("LogAppend", step, logEntrys)}
 }
 
@@ -7088,7 +7088,7 @@ type MockStore_LogDelete_Call struct {
 
 // LogDelete is a helper method to define mock.On call
 //   - step *model.Step
-func (_e *MockStore_Expecter) LogDelete(step interface{}) *MockStore_LogDelete_Call {
+func (_e *MockStore_Expecter) LogDelete(step any) *MockStore_LogDelete_Call {
 	return &MockStore_LogDelete_Call{Call: _e.mock.On("LogDelete", step)}
 }
 
@@ -7150,7 +7150,7 @@ type MockStore_LogFind_Call struct {
 
 // LogFind is a helper method to define mock.On call
 //   - step *model.Step
-func (_e *MockStore_Expecter) LogFind(step interface{}) *MockStore_LogFind_Call {
+func (_e *MockStore_Expecter) LogFind(step any) *MockStore_LogFind_Call {
 	return &MockStore_LogFind_Call{Call: _e.mock.On("LogFind", step)}
 }
 
@@ -7213,7 +7213,7 @@ type MockStore_LogFindAfter_Call struct {
 // LogFindAfter is a helper method to define mock.On call
 //   - stepID int64
 //   - afterLogID int64
-func (_e *MockStore_Expecter) LogFindAfter(stepID interface{}, afterLogID interface{}) *MockStore_LogFindAfter_Call {
+func (_e *MockStore_Expecter) LogFindAfter(stepID any, afterLogID any) *MockStore_LogFindAfter_Call {
 	return &MockStore_LogFindAfter_Call{Call: _e.mock.On("LogFindAfter", stepID, afterLogID)}
 }
 
@@ -7335,7 +7335,7 @@ type MockStore_MaintenanceConfigGetByActionType_Call struct {
 
 // MaintenanceConfigGetByActionType is a helper method to define mock.On call
 //   - actionType string
-func (_e *MockStore_Expecter) MaintenanceConfigGetByActionType(actionType interface{}) *MockStore_MaintenanceConfigGetByActionType_Call {
+func (_e *MockStore_Expecter) MaintenanceConfigGetByActionType(actionType any) *MockStore_MaintenanceConfigGetByActionType_Call {
 	return &MockStore_MaintenanceConfigGetByActionType_Call{Call: _e.mock.On("MaintenanceConfigGetByActionType", actionType)}
 }
 
@@ -7386,7 +7386,7 @@ type MockStore_MaintenanceConfigUpdate_Call struct {
 
 // MaintenanceConfigUpdate is a helper method to define mock.On call
 //   - maintenanceConfig *model.MaintenanceConfig
-func (_e *MockStore_Expecter) MaintenanceConfigUpdate(maintenanceConfig interface{}) *MockStore_MaintenanceConfigUpdate_Call {
+func (_e *MockStore_Expecter) MaintenanceConfigUpdate(maintenanceConfig any) *MockStore_MaintenanceConfigUpdate_Call {
 	return &MockStore_MaintenanceConfigUpdate_Call{Call: _e.mock.On("MaintenanceConfigUpdate", maintenanceConfig)}
 }
 
@@ -7438,7 +7438,7 @@ type MockStore_MaintenanceConfigUpdateByActionType_Call struct {
 // MaintenanceConfigUpdateByActionType is a helper method to define mock.On call
 //   - actionType string
 //   - config *model.MaintenanceConfig
-func (_e *MockStore_Expecter) MaintenanceConfigUpdateByActionType(actionType interface{}, config interface{}) *MockStore_MaintenanceConfigUpdateByActionType_Call {
+func (_e *MockStore_Expecter) MaintenanceConfigUpdateByActionType(actionType any, config any) *MockStore_MaintenanceConfigUpdateByActionType_Call {
 	return &MockStore_MaintenanceConfigUpdateByActionType_Call{Call: _e.mock.On("MaintenanceConfigUpdateByActionType", actionType, config)}
 }
 
@@ -7494,7 +7494,7 @@ type MockStore_MaintenanceLogCreate_Call struct {
 
 // MaintenanceLogCreate is a helper method to define mock.On call
 //   - maintenanceLog *model.MaintenanceLog
-func (_e *MockStore_Expecter) MaintenanceLogCreate(maintenanceLog interface{}) *MockStore_MaintenanceLogCreate_Call {
+func (_e *MockStore_Expecter) MaintenanceLogCreate(maintenanceLog any) *MockStore_MaintenanceLogCreate_Call {
 	return &MockStore_MaintenanceLogCreate_Call{Call: _e.mock.On("MaintenanceLogCreate", maintenanceLog)}
 }
 
@@ -7556,7 +7556,7 @@ type MockStore_MaintenanceLogList_Call struct {
 
 // MaintenanceLogList is a helper method to define mock.On call
 //   - limit int
-func (_e *MockStore_Expecter) MaintenanceLogList(limit interface{}) *MockStore_MaintenanceLogList_Call {
+func (_e *MockStore_Expecter) MaintenanceLogList(limit any) *MockStore_MaintenanceLogList_Call {
 	return &MockStore_MaintenanceLogList_Call{Call: _e.mock.On("MaintenanceLogList", limit)}
 }
 
@@ -7607,7 +7607,7 @@ type MockStore_MaintenanceRun_Call struct {
 
 // MaintenanceRun is a helper method to define mock.On call
 //   - context1 context.Context
-func (_e *MockStore_Expecter) MaintenanceRun(context1 interface{}) *MockStore_MaintenanceRun_Call {
+func (_e *MockStore_Expecter) MaintenanceRun(context1 any) *MockStore_MaintenanceRun_Call {
 	return &MockStore_MaintenanceRun_Call{Call: _e.mock.On("MaintenanceRun", context1)}
 }
 
@@ -7713,7 +7713,7 @@ type MockStore_MaintenanceStatsUpdate_Call struct {
 
 // MaintenanceStatsUpdate is a helper method to define mock.On call
 //   - maintenanceStats *model.MaintenanceStats
-func (_e *MockStore_Expecter) MaintenanceStatsUpdate(maintenanceStats interface{}) *MockStore_MaintenanceStatsUpdate_Call {
+func (_e *MockStore_Expecter) MaintenanceStatsUpdate(maintenanceStats any) *MockStore_MaintenanceStatsUpdate_Call {
 	return &MockStore_MaintenanceStatsUpdate_Call{Call: _e.mock.On("MaintenanceStatsUpdate", maintenanceStats)}
 }
 
@@ -7765,7 +7765,7 @@ type MockStore_Migrate_Call struct {
 // Migrate is a helper method to define mock.On call
 //   - context1 context.Context
 //   - b bool
-func (_e *MockStore_Expecter) Migrate(context1 interface{}, b interface{}) *MockStore_Migrate_Call {
+func (_e *MockStore_Expecter) Migrate(context1 any, b any) *MockStore_Migrate_Call {
 	return &MockStore_Migrate_Call{Call: _e.mock.On("Migrate", context1, b)}
 }
 
@@ -7821,7 +7821,7 @@ type MockStore_NotificationConfigDelete_Call struct {
 
 // NotificationConfigDelete is a helper method to define mock.On call
 //   - repoID int64
-func (_e *MockStore_Expecter) NotificationConfigDelete(repoID interface{}) *MockStore_NotificationConfigDelete_Call {
+func (_e *MockStore_Expecter) NotificationConfigDelete(repoID any) *MockStore_NotificationConfigDelete_Call {
 	return &MockStore_NotificationConfigDelete_Call{Call: _e.mock.On("NotificationConfigDelete", repoID)}
 }
 
@@ -7883,7 +7883,7 @@ type MockStore_NotificationConfigFind_Call struct {
 
 // NotificationConfigFind is a helper method to define mock.On call
 //   - repoID int64
-func (_e *MockStore_Expecter) NotificationConfigFind(repoID interface{}) *MockStore_NotificationConfigFind_Call {
+func (_e *MockStore_Expecter) NotificationConfigFind(repoID any) *MockStore_NotificationConfigFind_Call {
 	return &MockStore_NotificationConfigFind_Call{Call: _e.mock.On("NotificationConfigFind", repoID)}
 }
 
@@ -7934,7 +7934,7 @@ type MockStore_NotificationConfigUpsert_Call struct {
 
 // NotificationConfigUpsert is a helper method to define mock.On call
 //   - notificationConfig *model.NotificationConfig
-func (_e *MockStore_Expecter) NotificationConfigUpsert(notificationConfig interface{}) *MockStore_NotificationConfigUpsert_Call {
+func (_e *MockStore_Expecter) NotificationConfigUpsert(notificationConfig any) *MockStore_NotificationConfigUpsert_Call {
 	return &MockStore_NotificationConfigUpsert_Call{Call: _e.mock.On("NotificationConfigUpsert", notificationConfig)}
 }
 
@@ -7985,7 +7985,7 @@ type MockStore_OrgCreate_Call struct {
 
 // OrgCreate is a helper method to define mock.On call
 //   - org *model.Org
-func (_e *MockStore_Expecter) OrgCreate(org interface{}) *MockStore_OrgCreate_Call {
+func (_e *MockStore_Expecter) OrgCreate(org any) *MockStore_OrgCreate_Call {
 	return &MockStore_OrgCreate_Call{Call: _e.mock.On("OrgCreate", org)}
 }
 
@@ -8036,7 +8036,7 @@ type MockStore_OrgDelete_Call struct {
 
 // OrgDelete is a helper method to define mock.On call
 //   - n int64
-func (_e *MockStore_Expecter) OrgDelete(n interface{}) *MockStore_OrgDelete_Call {
+func (_e *MockStore_Expecter) OrgDelete(n any) *MockStore_OrgDelete_Call {
 	return &MockStore_OrgDelete_Call{Call: _e.mock.On("OrgDelete", n)}
 }
 
@@ -8099,7 +8099,7 @@ type MockStore_OrgFindByName_Call struct {
 // OrgFindByName is a helper method to define mock.On call
 //   - s string
 //   - n int64
-func (_e *MockStore_Expecter) OrgFindByName(s interface{}, n interface{}) *MockStore_OrgFindByName_Call {
+func (_e *MockStore_Expecter) OrgFindByName(s any, n any) *MockStore_OrgFindByName_Call {
 	return &MockStore_OrgFindByName_Call{Call: _e.mock.On("OrgFindByName", s, n)}
 }
 
@@ -8166,7 +8166,7 @@ type MockStore_OrgFindByNameAllForges_Call struct {
 
 // OrgFindByNameAllForges is a helper method to define mock.On call
 //   - s string
-func (_e *MockStore_Expecter) OrgFindByNameAllForges(s interface{}) *MockStore_OrgFindByNameAllForges_Call {
+func (_e *MockStore_Expecter) OrgFindByNameAllForges(s any) *MockStore_OrgFindByNameAllForges_Call {
 	return &MockStore_OrgFindByNameAllForges_Call{Call: _e.mock.On("OrgFindByNameAllForges", s)}
 }
 
@@ -8228,7 +8228,7 @@ type MockStore_OrgGet_Call struct {
 
 // OrgGet is a helper method to define mock.On call
 //   - n int64
-func (_e *MockStore_Expecter) OrgGet(n interface{}) *MockStore_OrgGet_Call {
+func (_e *MockStore_Expecter) OrgGet(n any) *MockStore_OrgGet_Call {
 	return &MockStore_OrgGet_Call{Call: _e.mock.On("OrgGet", n)}
 }
 
@@ -8290,7 +8290,7 @@ type MockStore_OrgList_Call struct {
 
 // OrgList is a helper method to define mock.On call
 //   - listOptions *model.ListOptions
-func (_e *MockStore_Expecter) OrgList(listOptions interface{}) *MockStore_OrgList_Call {
+func (_e *MockStore_Expecter) OrgList(listOptions any) *MockStore_OrgList_Call {
 	return &MockStore_OrgList_Call{Call: _e.mock.On("OrgList", listOptions)}
 }
 
@@ -8353,7 +8353,7 @@ type MockStore_OrgRegistryFind_Call struct {
 // OrgRegistryFind is a helper method to define mock.On call
 //   - n int64
 //   - s string
-func (_e *MockStore_Expecter) OrgRegistryFind(n interface{}, s interface{}) *MockStore_OrgRegistryFind_Call {
+func (_e *MockStore_Expecter) OrgRegistryFind(n any, s any) *MockStore_OrgRegistryFind_Call {
 	return &MockStore_OrgRegistryFind_Call{Call: _e.mock.On("OrgRegistryFind", n, s)}
 }
 
@@ -8421,7 +8421,7 @@ type MockStore_OrgRegistryList_Call struct {
 // OrgRegistryList is a helper method to define mock.On call
 //   - n int64
 //   - listOptions *model.ListOptions
-func (_e *MockStore_Expecter) OrgRegistryList(n interface{}, listOptions interface{}) *MockStore_OrgRegistryList_Call {
+func (_e *MockStore_Expecter) OrgRegistryList(n any, listOptions any) *MockStore_OrgRegistryList_Call {
 	return &MockStore_OrgRegistryList_Call{Call: _e.mock.On("OrgRegistryList", n, listOptions)}
 }
 
@@ -8489,7 +8489,7 @@ type MockStore_OrgRepoList_Call struct {
 // OrgRepoList is a helper method to define mock.On call
 //   - org *model.Org
 //   - listOptions *model.ListOptions
-func (_e *MockStore_Expecter) OrgRepoList(org interface{}, listOptions interface{}) *MockStore_OrgRepoList_Call {
+func (_e *MockStore_Expecter) OrgRepoList(org any, listOptions any) *MockStore_OrgRepoList_Call {
 	return &MockStore_OrgRepoList_Call{Call: _e.mock.On("OrgRepoList", org, listOptions)}
 }
 
@@ -8557,7 +8557,7 @@ type MockStore_OrgSecretFind_Call struct {
 // OrgSecretFind is a helper method to define mock.On call
 //   - n int64
 //   - s string
-func (_e *MockStore_Expecter) OrgSecretFind(n interface{}, s interface{}) *MockStore_OrgSecretFind_Call {
+func (_e *MockStore_Expecter) OrgSecretFind(n any, s any) *MockStore_OrgSecretFind_Call {
 	return &MockStore_OrgSecretFind_Call{Call: _e.mock.On("OrgSecretFind", n, s)}
 }
 
@@ -8625,7 +8625,7 @@ type MockStore_OrgSecretList_Call struct {
 // OrgSecretList is a helper method to define mock.On call
 //   - n int64
 //   - listOptions *model.ListOptions
-func (_e *MockStore_Expecter) OrgSecretList(n interface{}, listOptions interface{}) *MockStore_OrgSecretList_Call {
+func (_e *MockStore_Expecter) OrgSecretList(n any, listOptions any) *MockStore_OrgSecretList_Call {
 	return &MockStore_OrgSecretList_Call{Call: _e.mock.On("OrgSecretList", n, listOptions)}
 }
 
@@ -8681,7 +8681,7 @@ type MockStore_OrgUpdate_Call struct {
 
 // OrgUpdate is a helper method to define mock.On call
 //   - org *model.Org
-func (_e *MockStore_Expecter) OrgUpdate(org interface{}) *MockStore_OrgUpdate_Call {
+func (_e *MockStore_Expecter) OrgUpdate(org any) *MockStore_OrgUpdate_Call {
 	return &MockStore_OrgUpdate_Call{Call: _e.mock.On("OrgUpdate", org)}
 }
 
@@ -8744,7 +8744,7 @@ type MockStore_PermFind_Call struct {
 // PermFind is a helper method to define mock.On call
 //   - user *model.User
 //   - repo *model.Repo
-func (_e *MockStore_Expecter) PermFind(user interface{}, repo interface{}) *MockStore_PermFind_Call {
+func (_e *MockStore_Expecter) PermFind(user any, repo any) *MockStore_PermFind_Call {
 	return &MockStore_PermFind_Call{Call: _e.mock.On("PermFind", user, repo)}
 }
 
@@ -8800,7 +8800,7 @@ type MockStore_PermUpsert_Call struct {
 
 // PermUpsert is a helper method to define mock.On call
 //   - perm *model.Perm
-func (_e *MockStore_Expecter) PermUpsert(perm interface{}) *MockStore_PermUpsert_Call {
+func (_e *MockStore_Expecter) PermUpsert(perm any) *MockStore_PermUpsert_Call {
 	return &MockStore_PermUpsert_Call{Call: _e.mock.On("PermUpsert", perm)}
 }
 
@@ -8895,7 +8895,7 @@ type MockStore_PipelineConfigCreate_Call struct {
 
 // PipelineConfigCreate is a helper method to define mock.On call
 //   - pipelineConfig *model.PipelineConfig
-func (_e *MockStore_Expecter) PipelineConfigCreate(pipelineConfig interface{}) *MockStore_PipelineConfigCreate_Call {
+func (_e *MockStore_Expecter) PipelineConfigCreate(pipelineConfig any) *MockStore_PipelineConfigCreate_Call {
 	return &MockStore_PipelineConfigCreate_Call{Call: _e.mock.On("PipelineConfigCreate", pipelineConfig)}
 }
 
@@ -8947,7 +8947,7 @@ type MockStore_ProcLogInsert_Call struct {
 // ProcLogInsert is a helper method to define mock.On call
 //   - ctx context.Context
 //   - entries []*model.ProcLogEntry
-func (_e *MockStore_Expecter) ProcLogInsert(ctx interface{}, entries interface{}) *MockStore_ProcLogInsert_Call {
+func (_e *MockStore_Expecter) ProcLogInsert(ctx any, entries any) *MockStore_ProcLogInsert_Call {
 	return &MockStore_ProcLogInsert_Call{Call: _e.mock.On("ProcLogInsert", ctx, entries)}
 }
 
@@ -9014,7 +9014,7 @@ type MockStore_ProcLogListSources_Call struct {
 
 // ProcLogListSources is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *MockStore_Expecter) ProcLogListSources(ctx interface{}) *MockStore_ProcLogListSources_Call {
+func (_e *MockStore_Expecter) ProcLogListSources(ctx any) *MockStore_ProcLogListSources_Call {
 	return &MockStore_ProcLogListSources_Call{Call: _e.mock.On("ProcLogListSources", ctx)}
 }
 
@@ -9080,7 +9080,7 @@ type MockStore_ProcLogTail_Call struct {
 //   - sourceID int64
 //   - sinceID int64
 //   - limit int
-func (_e *MockStore_Expecter) ProcLogTail(ctx interface{}, sourceType interface{}, sourceID interface{}, sinceID interface{}, limit interface{}) *MockStore_ProcLogTail_Call {
+func (_e *MockStore_Expecter) ProcLogTail(ctx any, sourceType any, sourceID any, sinceID any, limit any) *MockStore_ProcLogTail_Call {
 	return &MockStore_ProcLogTail_Call{Call: _e.mock.On("ProcLogTail", ctx, sourceType, sourceID, sinceID, limit)}
 }
 
@@ -9154,7 +9154,7 @@ type MockStore_ProcLogTrim_Call struct {
 //   - sourceType string
 //   - sourceID int64
 //   - keepLastN int
-func (_e *MockStore_Expecter) ProcLogTrim(ctx interface{}, sourceType interface{}, sourceID interface{}, keepLastN interface{}) *MockStore_ProcLogTrim_Call {
+func (_e *MockStore_Expecter) ProcLogTrim(ctx any, sourceType any, sourceID any, keepLastN any) *MockStore_ProcLogTrim_Call {
 	return &MockStore_ProcLogTrim_Call{Call: _e.mock.On("ProcLogTrim", ctx, sourceType, sourceID, keepLastN)}
 }
 
@@ -9220,7 +9220,7 @@ type MockStore_PubSubMessageCleanupOlderThan_Call struct {
 
 // PubSubMessageCleanupOlderThan is a helper method to define mock.On call
 //   - timestamp int64
-func (_e *MockStore_Expecter) PubSubMessageCleanupOlderThan(timestamp interface{}) *MockStore_PubSubMessageCleanupOlderThan_Call {
+func (_e *MockStore_Expecter) PubSubMessageCleanupOlderThan(timestamp any) *MockStore_PubSubMessageCleanupOlderThan_Call {
 	return &MockStore_PubSubMessageCleanupOlderThan_Call{Call: _e.mock.On("PubSubMessageCleanupOlderThan", timestamp)}
 }
 
@@ -9271,7 +9271,7 @@ type MockStore_PubSubMessageInsert_Call struct {
 
 // PubSubMessageInsert is a helper method to define mock.On call
 //   - msg *model.DistributedMessage
-func (_e *MockStore_Expecter) PubSubMessageInsert(msg interface{}) *MockStore_PubSubMessageInsert_Call {
+func (_e *MockStore_Expecter) PubSubMessageInsert(msg any) *MockStore_PubSubMessageInsert_Call {
 	return &MockStore_PubSubMessageInsert_Call{Call: _e.mock.On("PubSubMessageInsert", msg)}
 }
 
@@ -9333,7 +9333,7 @@ type MockStore_PubSubMessageListAfter_Call struct {
 
 // PubSubMessageListAfter is a helper method to define mock.On call
 //   - timestamp int64
-func (_e *MockStore_Expecter) PubSubMessageListAfter(timestamp interface{}) *MockStore_PubSubMessageListAfter_Call {
+func (_e *MockStore_Expecter) PubSubMessageListAfter(timestamp any) *MockStore_PubSubMessageListAfter_Call {
 	return &MockStore_PubSubMessageListAfter_Call{Call: _e.mock.On("PubSubMessageListAfter", timestamp)}
 }
 
@@ -9384,7 +9384,7 @@ type MockStore_RegistryCreate_Call struct {
 
 // RegistryCreate is a helper method to define mock.On call
 //   - registry *model.Registry
-func (_e *MockStore_Expecter) RegistryCreate(registry interface{}) *MockStore_RegistryCreate_Call {
+func (_e *MockStore_Expecter) RegistryCreate(registry any) *MockStore_RegistryCreate_Call {
 	return &MockStore_RegistryCreate_Call{Call: _e.mock.On("RegistryCreate", registry)}
 }
 
@@ -9435,7 +9435,7 @@ type MockStore_RegistryDelete_Call struct {
 
 // RegistryDelete is a helper method to define mock.On call
 //   - registry *model.Registry
-func (_e *MockStore_Expecter) RegistryDelete(registry interface{}) *MockStore_RegistryDelete_Call {
+func (_e *MockStore_Expecter) RegistryDelete(registry any) *MockStore_RegistryDelete_Call {
 	return &MockStore_RegistryDelete_Call{Call: _e.mock.On("RegistryDelete", registry)}
 }
 
@@ -9498,7 +9498,7 @@ type MockStore_RegistryFind_Call struct {
 // RegistryFind is a helper method to define mock.On call
 //   - repo *model.Repo
 //   - s string
-func (_e *MockStore_Expecter) RegistryFind(repo interface{}, s interface{}) *MockStore_RegistryFind_Call {
+func (_e *MockStore_Expecter) RegistryFind(repo any, s any) *MockStore_RegistryFind_Call {
 	return &MockStore_RegistryFind_Call{Call: _e.mock.On("RegistryFind", repo, s)}
 }
 
@@ -9567,7 +9567,7 @@ type MockStore_RegistryList_Call struct {
 //   - repo *model.Repo
 //   - b bool
 //   - listOptions *model.ListOptions
-func (_e *MockStore_Expecter) RegistryList(repo interface{}, b interface{}, listOptions interface{}) *MockStore_RegistryList_Call {
+func (_e *MockStore_Expecter) RegistryList(repo any, b any, listOptions any) *MockStore_RegistryList_Call {
 	return &MockStore_RegistryList_Call{Call: _e.mock.On("RegistryList", repo, b, listOptions)}
 }
 
@@ -9683,7 +9683,7 @@ type MockStore_RegistryUpdate_Call struct {
 
 // RegistryUpdate is a helper method to define mock.On call
 //   - registry *model.Registry
-func (_e *MockStore_Expecter) RegistryUpdate(registry interface{}) *MockStore_RegistryUpdate_Call {
+func (_e *MockStore_Expecter) RegistryUpdate(registry any) *MockStore_RegistryUpdate_Call {
 	return &MockStore_RegistryUpdate_Call{Call: _e.mock.On("RegistryUpdate", registry)}
 }
 
@@ -9747,7 +9747,7 @@ type MockStore_RepoList_Call struct {
 //   - user *model.User
 //   - owned bool
 //   - active bool
-func (_e *MockStore_Expecter) RepoList(user interface{}, owned interface{}, active interface{}) *MockStore_RepoList_Call {
+func (_e *MockStore_Expecter) RepoList(user any, owned any, active any) *MockStore_RepoList_Call {
 	return &MockStore_RepoList_Call{Call: _e.mock.On("RepoList", user, owned, active)}
 }
 
@@ -9820,7 +9820,7 @@ type MockStore_RepoListAll_Call struct {
 // RepoListAll is a helper method to define mock.On call
 //   - active bool
 //   - p *model.ListOptions
-func (_e *MockStore_Expecter) RepoListAll(active interface{}, p interface{}) *MockStore_RepoListAll_Call {
+func (_e *MockStore_Expecter) RepoListAll(active any, p any) *MockStore_RepoListAll_Call {
 	return &MockStore_RepoListAll_Call{Call: _e.mock.On("RepoListAll", active, p)}
 }
 
@@ -9888,7 +9888,7 @@ type MockStore_RepoListByUserAndForge_Call struct {
 // RepoListByUserAndForge is a helper method to define mock.On call
 //   - userID int64
 //   - forgeID int64
-func (_e *MockStore_Expecter) RepoListByUserAndForge(userID interface{}, forgeID interface{}) *MockStore_RepoListByUserAndForge_Call {
+func (_e *MockStore_Expecter) RepoListByUserAndForge(userID any, forgeID any) *MockStore_RepoListByUserAndForge_Call {
 	return &MockStore_RepoListByUserAndForge_Call{Call: _e.mock.On("RepoListByUserAndForge", userID, forgeID)}
 }
 
@@ -9955,7 +9955,7 @@ type MockStore_RepoListLatest_Call struct {
 
 // RepoListLatest is a helper method to define mock.On call
 //   - user *model.User
-func (_e *MockStore_Expecter) RepoListLatest(user interface{}) *MockStore_RepoListLatest_Call {
+func (_e *MockStore_Expecter) RepoListLatest(user any) *MockStore_RepoListLatest_Call {
 	return &MockStore_RepoListLatest_Call{Call: _e.mock.On("RepoListLatest", user)}
 }
 
@@ -10072,7 +10072,7 @@ type MockStore_RepoListPublic_Call struct {
 
 // RepoListPublic is a helper method to define mock.On call
 //   - p *model.ListOptions
-func (_e *MockStore_Expecter) RepoListPublic(p interface{}) *MockStore_RepoListPublic_Call {
+func (_e *MockStore_Expecter) RepoListPublic(p any) *MockStore_RepoListPublic_Call {
 	return &MockStore_RepoListPublic_Call{Call: _e.mock.On("RepoListPublic", p)}
 }
 
@@ -10123,7 +10123,7 @@ type MockStore_SecretCreate_Call struct {
 
 // SecretCreate is a helper method to define mock.On call
 //   - secret *model.Secret
-func (_e *MockStore_Expecter) SecretCreate(secret interface{}) *MockStore_SecretCreate_Call {
+func (_e *MockStore_Expecter) SecretCreate(secret any) *MockStore_SecretCreate_Call {
 	return &MockStore_SecretCreate_Call{Call: _e.mock.On("SecretCreate", secret)}
 }
 
@@ -10174,7 +10174,7 @@ type MockStore_SecretDelete_Call struct {
 
 // SecretDelete is a helper method to define mock.On call
 //   - secret *model.Secret
-func (_e *MockStore_Expecter) SecretDelete(secret interface{}) *MockStore_SecretDelete_Call {
+func (_e *MockStore_Expecter) SecretDelete(secret any) *MockStore_SecretDelete_Call {
 	return &MockStore_SecretDelete_Call{Call: _e.mock.On("SecretDelete", secret)}
 }
 
@@ -10237,7 +10237,7 @@ type MockStore_SecretFind_Call struct {
 // SecretFind is a helper method to define mock.On call
 //   - repo *model.Repo
 //   - s string
-func (_e *MockStore_Expecter) SecretFind(repo interface{}, s interface{}) *MockStore_SecretFind_Call {
+func (_e *MockStore_Expecter) SecretFind(repo any, s any) *MockStore_SecretFind_Call {
 	return &MockStore_SecretFind_Call{Call: _e.mock.On("SecretFind", repo, s)}
 }
 
@@ -10304,7 +10304,7 @@ type MockStore_SecretFindByID_Call struct {
 
 // SecretFindByID is a helper method to define mock.On call
 //   - n int64
-func (_e *MockStore_Expecter) SecretFindByID(n interface{}) *MockStore_SecretFindByID_Call {
+func (_e *MockStore_Expecter) SecretFindByID(n any) *MockStore_SecretFindByID_Call {
 	return &MockStore_SecretFindByID_Call{Call: _e.mock.On("SecretFindByID", n)}
 }
 
@@ -10368,7 +10368,7 @@ type MockStore_SecretList_Call struct {
 //   - repo *model.Repo
 //   - b bool
 //   - listOptions *model.ListOptions
-func (_e *MockStore_Expecter) SecretList(repo interface{}, b interface{}, listOptions interface{}) *MockStore_SecretList_Call {
+func (_e *MockStore_Expecter) SecretList(repo any, b any, listOptions any) *MockStore_SecretList_Call {
 	return &MockStore_SecretList_Call{Call: _e.mock.On("SecretList", repo, b, listOptions)}
 }
 
@@ -10487,7 +10487,7 @@ type MockStore_SecretTargetCheckConflict_Call struct {
 //   - secretName string
 //   - orgID int64
 //   - repoID int64
-func (_e *MockStore_Expecter) SecretTargetCheckConflict(secretID interface{}, secretName interface{}, orgID interface{}, repoID interface{}) *MockStore_SecretTargetCheckConflict_Call {
+func (_e *MockStore_Expecter) SecretTargetCheckConflict(secretID any, secretName any, orgID any, repoID any) *MockStore_SecretTargetCheckConflict_Call {
 	return &MockStore_SecretTargetCheckConflict_Call{Call: _e.mock.On("SecretTargetCheckConflict", secretID, secretName, orgID, repoID)}
 }
 
@@ -10553,7 +10553,7 @@ type MockStore_SecretTargetCreate_Call struct {
 
 // SecretTargetCreate is a helper method to define mock.On call
 //   - secretTarget *model.SecretTarget
-func (_e *MockStore_Expecter) SecretTargetCreate(secretTarget interface{}) *MockStore_SecretTargetCreate_Call {
+func (_e *MockStore_Expecter) SecretTargetCreate(secretTarget any) *MockStore_SecretTargetCreate_Call {
 	return &MockStore_SecretTargetCreate_Call{Call: _e.mock.On("SecretTargetCreate", secretTarget)}
 }
 
@@ -10604,7 +10604,7 @@ type MockStore_SecretTargetDelete_Call struct {
 
 // SecretTargetDelete is a helper method to define mock.On call
 //   - secretTarget *model.SecretTarget
-func (_e *MockStore_Expecter) SecretTargetDelete(secretTarget interface{}) *MockStore_SecretTargetDelete_Call {
+func (_e *MockStore_Expecter) SecretTargetDelete(secretTarget any) *MockStore_SecretTargetDelete_Call {
 	return &MockStore_SecretTargetDelete_Call{Call: _e.mock.On("SecretTargetDelete", secretTarget)}
 }
 
@@ -10655,7 +10655,7 @@ type MockStore_SecretTargetDeleteBySecretID_Call struct {
 
 // SecretTargetDeleteBySecretID is a helper method to define mock.On call
 //   - secretID int64
-func (_e *MockStore_Expecter) SecretTargetDeleteBySecretID(secretID interface{}) *MockStore_SecretTargetDeleteBySecretID_Call {
+func (_e *MockStore_Expecter) SecretTargetDeleteBySecretID(secretID any) *MockStore_SecretTargetDeleteBySecretID_Call {
 	return &MockStore_SecretTargetDeleteBySecretID_Call{Call: _e.mock.On("SecretTargetDeleteBySecretID", secretID)}
 }
 
@@ -10719,7 +10719,7 @@ type MockStore_SecretTargetFind_Call struct {
 //   - secretID int64
 //   - orgID int64
 //   - repoID int64
-func (_e *MockStore_Expecter) SecretTargetFind(secretID interface{}, orgID interface{}, repoID interface{}) *MockStore_SecretTargetFind_Call {
+func (_e *MockStore_Expecter) SecretTargetFind(secretID any, orgID any, repoID any) *MockStore_SecretTargetFind_Call {
 	return &MockStore_SecretTargetFind_Call{Call: _e.mock.On("SecretTargetFind", secretID, orgID, repoID)}
 }
 
@@ -10791,7 +10791,7 @@ type MockStore_SecretTargetList_Call struct {
 
 // SecretTargetList is a helper method to define mock.On call
 //   - secretID int64
-func (_e *MockStore_Expecter) SecretTargetList(secretID interface{}) *MockStore_SecretTargetList_Call {
+func (_e *MockStore_Expecter) SecretTargetList(secretID any) *MockStore_SecretTargetList_Call {
 	return &MockStore_SecretTargetList_Call{Call: _e.mock.On("SecretTargetList", secretID)}
 }
 
@@ -10842,7 +10842,7 @@ type MockStore_SecretUpdate_Call struct {
 
 // SecretUpdate is a helper method to define mock.On call
 //   - secret *model.Secret
-func (_e *MockStore_Expecter) SecretUpdate(secret interface{}) *MockStore_SecretUpdate_Call {
+func (_e *MockStore_Expecter) SecretUpdate(secret any) *MockStore_SecretUpdate_Call {
 	return &MockStore_SecretUpdate_Call{Call: _e.mock.On("SecretUpdate", secret)}
 }
 
@@ -10893,7 +10893,7 @@ type MockStore_ServerConfigDelete_Call struct {
 
 // ServerConfigDelete is a helper method to define mock.On call
 //   - s string
-func (_e *MockStore_Expecter) ServerConfigDelete(s interface{}) *MockStore_ServerConfigDelete_Call {
+func (_e *MockStore_Expecter) ServerConfigDelete(s any) *MockStore_ServerConfigDelete_Call {
 	return &MockStore_ServerConfigDelete_Call{Call: _e.mock.On("ServerConfigDelete", s)}
 }
 
@@ -10953,7 +10953,7 @@ type MockStore_ServerConfigGet_Call struct {
 
 // ServerConfigGet is a helper method to define mock.On call
 //   - s string
-func (_e *MockStore_Expecter) ServerConfigGet(s interface{}) *MockStore_ServerConfigGet_Call {
+func (_e *MockStore_Expecter) ServerConfigGet(s any) *MockStore_ServerConfigGet_Call {
 	return &MockStore_ServerConfigGet_Call{Call: _e.mock.On("ServerConfigGet", s)}
 }
 
@@ -11005,7 +11005,7 @@ type MockStore_ServerConfigSet_Call struct {
 // ServerConfigSet is a helper method to define mock.On call
 //   - s string
 //   - s1 string
-func (_e *MockStore_Expecter) ServerConfigSet(s interface{}, s1 interface{}) *MockStore_ServerConfigSet_Call {
+func (_e *MockStore_Expecter) ServerConfigSet(s any, s1 any) *MockStore_ServerConfigSet_Call {
 	return &MockStore_ServerConfigSet_Call{Call: _e.mock.On("ServerConfigSet", s, s1)}
 }
 
@@ -11061,7 +11061,7 @@ type MockStore_SetPipelineLogPurged_Call struct {
 
 // SetPipelineLogPurged is a helper method to define mock.On call
 //   - pipeline *model.Pipeline
-func (_e *MockStore_Expecter) SetPipelineLogPurged(pipeline interface{}) *MockStore_SetPipelineLogPurged_Call {
+func (_e *MockStore_Expecter) SetPipelineLogPurged(pipeline any) *MockStore_SetPipelineLogPurged_Call {
 	return &MockStore_SetPipelineLogPurged_Call{Call: _e.mock.On("SetPipelineLogPurged", pipeline)}
 }
 
@@ -11123,7 +11123,7 @@ type MockStore_StepByUUID_Call struct {
 
 // StepByUUID is a helper method to define mock.On call
 //   - s string
-func (_e *MockStore_Expecter) StepByUUID(s interface{}) *MockStore_StepByUUID_Call {
+func (_e *MockStore_Expecter) StepByUUID(s any) *MockStore_StepByUUID_Call {
 	return &MockStore_StepByUUID_Call{Call: _e.mock.On("StepByUUID", s)}
 }
 
@@ -11187,7 +11187,7 @@ type MockStore_StepChild_Call struct {
 //   - pipeline *model.Pipeline
 //   - n int
 //   - s string
-func (_e *MockStore_Expecter) StepChild(pipeline interface{}, n interface{}, s interface{}) *MockStore_StepChild_Call {
+func (_e *MockStore_Expecter) StepChild(pipeline any, n any, s any) *MockStore_StepChild_Call {
 	return &MockStore_StepChild_Call{Call: _e.mock.On("StepChild", pipeline, n, s)}
 }
 
@@ -11260,7 +11260,7 @@ type MockStore_StepFind_Call struct {
 // StepFind is a helper method to define mock.On call
 //   - pipeline *model.Pipeline
 //   - n int
-func (_e *MockStore_Expecter) StepFind(pipeline interface{}, n interface{}) *MockStore_StepFind_Call {
+func (_e *MockStore_Expecter) StepFind(pipeline any, n any) *MockStore_StepFind_Call {
 	return &MockStore_StepFind_Call{Call: _e.mock.On("StepFind", pipeline, n)}
 }
 
@@ -11327,7 +11327,7 @@ type MockStore_StepList_Call struct {
 
 // StepList is a helper method to define mock.On call
 //   - pipeline *model.Pipeline
-func (_e *MockStore_Expecter) StepList(pipeline interface{}) *MockStore_StepList_Call {
+func (_e *MockStore_Expecter) StepList(pipeline any) *MockStore_StepList_Call {
 	return &MockStore_StepList_Call{Call: _e.mock.On("StepList", pipeline)}
 }
 
@@ -11389,7 +11389,7 @@ type MockStore_StepListFromWorkflowFind_Call struct {
 
 // StepListFromWorkflowFind is a helper method to define mock.On call
 //   - workflow *model.Workflow
-func (_e *MockStore_Expecter) StepListFromWorkflowFind(workflow interface{}) *MockStore_StepListFromWorkflowFind_Call {
+func (_e *MockStore_Expecter) StepListFromWorkflowFind(workflow any) *MockStore_StepListFromWorkflowFind_Call {
 	return &MockStore_StepListFromWorkflowFind_Call{Call: _e.mock.On("StepListFromWorkflowFind", workflow)}
 }
 
@@ -11451,7 +11451,7 @@ type MockStore_StepLoad_Call struct {
 
 // StepLoad is a helper method to define mock.On call
 //   - n int64
-func (_e *MockStore_Expecter) StepLoad(n interface{}) *MockStore_StepLoad_Call {
+func (_e *MockStore_Expecter) StepLoad(n any) *MockStore_StepLoad_Call {
 	return &MockStore_StepLoad_Call{Call: _e.mock.On("StepLoad", n)}
 }
 
@@ -11502,7 +11502,7 @@ type MockStore_StepUpdate_Call struct {
 
 // StepUpdate is a helper method to define mock.On call
 //   - step *model.Step
-func (_e *MockStore_Expecter) StepUpdate(step interface{}) *MockStore_StepUpdate_Call {
+func (_e *MockStore_Expecter) StepUpdate(step any) *MockStore_StepUpdate_Call {
 	return &MockStore_StepUpdate_Call{Call: _e.mock.On("StepUpdate", step)}
 }
 
@@ -11563,7 +11563,7 @@ type MockStore_TaskAtomicAssign_Call struct {
 // TaskAtomicAssign is a helper method to define mock.On call
 //   - taskID string
 //   - agentID int64
-func (_e *MockStore_Expecter) TaskAtomicAssign(taskID interface{}, agentID interface{}) *MockStore_TaskAtomicAssign_Call {
+func (_e *MockStore_Expecter) TaskAtomicAssign(taskID any, agentID any) *MockStore_TaskAtomicAssign_Call {
 	return &MockStore_TaskAtomicAssign_Call{Call: _e.mock.On("TaskAtomicAssign", taskID, agentID)}
 }
 
@@ -11631,7 +11631,7 @@ type MockStore_TaskAtomicClaim_Call struct {
 // TaskAtomicClaim is a helper method to define mock.On call
 //   - taskID string
 //   - agentID int64
-func (_e *MockStore_Expecter) TaskAtomicClaim(taskID interface{}, agentID interface{}) *MockStore_TaskAtomicClaim_Call {
+func (_e *MockStore_Expecter) TaskAtomicClaim(taskID any, agentID any) *MockStore_TaskAtomicClaim_Call {
 	return &MockStore_TaskAtomicClaim_Call{Call: _e.mock.On("TaskAtomicClaim", taskID, agentID)}
 }
 
@@ -11697,7 +11697,7 @@ type MockStore_TaskAtomicResetOrphan_Call struct {
 // TaskAtomicResetOrphan is a helper method to define mock.On call
 //   - taskID string
 //   - expectedAgentID int64
-func (_e *MockStore_Expecter) TaskAtomicResetOrphan(taskID interface{}, expectedAgentID interface{}) *MockStore_TaskAtomicResetOrphan_Call {
+func (_e *MockStore_Expecter) TaskAtomicResetOrphan(taskID any, expectedAgentID any) *MockStore_TaskAtomicResetOrphan_Call {
 	return &MockStore_TaskAtomicResetOrphan_Call{Call: _e.mock.On("TaskAtomicResetOrphan", taskID, expectedAgentID)}
 }
 
@@ -11753,7 +11753,7 @@ type MockStore_TaskDelete_Call struct {
 
 // TaskDelete is a helper method to define mock.On call
 //   - s string
-func (_e *MockStore_Expecter) TaskDelete(s interface{}) *MockStore_TaskDelete_Call {
+func (_e *MockStore_Expecter) TaskDelete(s any) *MockStore_TaskDelete_Call {
 	return &MockStore_TaskDelete_Call{Call: _e.mock.On("TaskDelete", s)}
 }
 
@@ -11804,7 +11804,7 @@ type MockStore_TaskDeleteCancelledBefore_Call struct {
 
 // TaskDeleteCancelledBefore is a helper method to define mock.On call
 //   - cancelledBefore int64
-func (_e *MockStore_Expecter) TaskDeleteCancelledBefore(cancelledBefore interface{}) *MockStore_TaskDeleteCancelledBefore_Call {
+func (_e *MockStore_Expecter) TaskDeleteCancelledBefore(cancelledBefore any) *MockStore_TaskDeleteCancelledBefore_Call {
 	return &MockStore_TaskDeleteCancelledBefore_Call{Call: _e.mock.On("TaskDeleteCancelledBefore", cancelledBefore)}
 }
 
@@ -11918,7 +11918,7 @@ type MockStore_TaskGetAgentID_Call struct {
 // TaskGetAgentID is a helper method to define mock.On call
 //   - taskID string
 //   - agentID int64
-func (_e *MockStore_Expecter) TaskGetAgentID(taskID interface{}, agentID interface{}) *MockStore_TaskGetAgentID_Call {
+func (_e *MockStore_Expecter) TaskGetAgentID(taskID any, agentID any) *MockStore_TaskGetAgentID_Call {
 	return &MockStore_TaskGetAgentID_Call{Call: _e.mock.On("TaskGetAgentID", taskID, agentID)}
 }
 
@@ -11989,7 +11989,7 @@ type MockStore_TaskGetCancelled_Call struct {
 
 // TaskGetCancelled is a helper method to define mock.On call
 //   - id string
-func (_e *MockStore_Expecter) TaskGetCancelled(id interface{}) *MockStore_TaskGetCancelled_Call {
+func (_e *MockStore_Expecter) TaskGetCancelled(id any) *MockStore_TaskGetCancelled_Call {
 	return &MockStore_TaskGetCancelled_Call{Call: _e.mock.On("TaskGetCancelled", id)}
 }
 
@@ -12040,7 +12040,7 @@ type MockStore_TaskInsert_Call struct {
 
 // TaskInsert is a helper method to define mock.On call
 //   - task *model.Task
-func (_e *MockStore_Expecter) TaskInsert(task interface{}) *MockStore_TaskInsert_Call {
+func (_e *MockStore_Expecter) TaskInsert(task any) *MockStore_TaskInsert_Call {
 	return &MockStore_TaskInsert_Call{Call: _e.mock.On("TaskInsert", task)}
 }
 
@@ -12201,7 +12201,7 @@ type MockStore_TaskSetCancelled_Call struct {
 
 // TaskSetCancelled is a helper method to define mock.On call
 //   - id string
-func (_e *MockStore_Expecter) TaskSetCancelled(id interface{}) *MockStore_TaskSetCancelled_Call {
+func (_e *MockStore_Expecter) TaskSetCancelled(id any) *MockStore_TaskSetCancelled_Call {
 	return &MockStore_TaskSetCancelled_Call{Call: _e.mock.On("TaskSetCancelled", id)}
 }
 
@@ -12252,7 +12252,7 @@ type MockStore_TaskUpdate_Call struct {
 
 // TaskUpdate is a helper method to define mock.On call
 //   - task *model.Task
-func (_e *MockStore_Expecter) TaskUpdate(task interface{}) *MockStore_TaskUpdate_Call {
+func (_e *MockStore_Expecter) TaskUpdate(task any) *MockStore_TaskUpdate_Call {
 	return &MockStore_TaskUpdate_Call{Call: _e.mock.On("TaskUpdate", task)}
 }
 
@@ -12303,7 +12303,7 @@ type MockStore_UpdatePipeline_Call struct {
 
 // UpdatePipeline is a helper method to define mock.On call
 //   - pipeline *model.Pipeline
-func (_e *MockStore_Expecter) UpdatePipeline(pipeline interface{}) *MockStore_UpdatePipeline_Call {
+func (_e *MockStore_Expecter) UpdatePipeline(pipeline any) *MockStore_UpdatePipeline_Call {
 	return &MockStore_UpdatePipeline_Call{Call: _e.mock.On("UpdatePipeline", pipeline)}
 }
 
@@ -12354,7 +12354,7 @@ type MockStore_UpdateRepo_Call struct {
 
 // UpdateRepo is a helper method to define mock.On call
 //   - repo *model.Repo
-func (_e *MockStore_Expecter) UpdateRepo(repo interface{}) *MockStore_UpdateRepo_Call {
+func (_e *MockStore_Expecter) UpdateRepo(repo any) *MockStore_UpdateRepo_Call {
 	return &MockStore_UpdateRepo_Call{Call: _e.mock.On("UpdateRepo", repo)}
 }
 
@@ -12405,7 +12405,7 @@ type MockStore_UpdateUser_Call struct {
 
 // UpdateUser is a helper method to define mock.On call
 //   - user *model.User
-func (_e *MockStore_Expecter) UpdateUser(user interface{}) *MockStore_UpdateUser_Call {
+func (_e *MockStore_Expecter) UpdateUser(user any) *MockStore_UpdateUser_Call {
 	return &MockStore_UpdateUser_Call{Call: _e.mock.On("UpdateUser", user)}
 }
 
@@ -12469,7 +12469,7 @@ type MockStore_UserCronList_Call struct {
 //   - repoIDs []int64
 //   - searchTerm string
 //   - p *model.ListOptions
-func (_e *MockStore_Expecter) UserCronList(repoIDs interface{}, searchTerm interface{}, p interface{}) *MockStore_UserCronList_Call {
+func (_e *MockStore_Expecter) UserCronList(repoIDs any, searchTerm any, p any) *MockStore_UserCronList_Call {
 	return &MockStore_UserCronList_Call{Call: _e.mock.On("UserCronList", repoIDs, searchTerm, p)}
 }
 
@@ -12541,7 +12541,7 @@ type MockStore_UserFeed_Call struct {
 
 // UserFeed is a helper method to define mock.On call
 //   - user *model.User
-func (_e *MockStore_Expecter) UserFeed(user interface{}) *MockStore_UserFeed_Call {
+func (_e *MockStore_Expecter) UserFeed(user any) *MockStore_UserFeed_Call {
 	return &MockStore_UserFeed_Call{Call: _e.mock.On("UserFeed", user)}
 }
 
@@ -12592,7 +12592,7 @@ type MockStore_UserForgeCreate_Call struct {
 
 // UserForgeCreate is a helper method to define mock.On call
 //   - userForge *model.UserForge
-func (_e *MockStore_Expecter) UserForgeCreate(userForge interface{}) *MockStore_UserForgeCreate_Call {
+func (_e *MockStore_Expecter) UserForgeCreate(userForge any) *MockStore_UserForgeCreate_Call {
 	return &MockStore_UserForgeCreate_Call{Call: _e.mock.On("UserForgeCreate", userForge)}
 }
 
@@ -12643,7 +12643,7 @@ type MockStore_UserForgeDelete_Call struct {
 
 // UserForgeDelete is a helper method to define mock.On call
 //   - userForge *model.UserForge
-func (_e *MockStore_Expecter) UserForgeDelete(userForge interface{}) *MockStore_UserForgeDelete_Call {
+func (_e *MockStore_Expecter) UserForgeDelete(userForge any) *MockStore_UserForgeDelete_Call {
 	return &MockStore_UserForgeDelete_Call{Call: _e.mock.On("UserForgeDelete", userForge)}
 }
 
@@ -12706,7 +12706,7 @@ type MockStore_UserForgeGet_Call struct {
 // UserForgeGet is a helper method to define mock.On call
 //   - userID int64
 //   - forgeID int64
-func (_e *MockStore_Expecter) UserForgeGet(userID interface{}, forgeID interface{}) *MockStore_UserForgeGet_Call {
+func (_e *MockStore_Expecter) UserForgeGet(userID any, forgeID any) *MockStore_UserForgeGet_Call {
 	return &MockStore_UserForgeGet_Call{Call: _e.mock.On("UserForgeGet", userID, forgeID)}
 }
 
@@ -12774,7 +12774,7 @@ type MockStore_UserForgeGetByRemoteID_Call struct {
 // UserForgeGetByRemoteID is a helper method to define mock.On call
 //   - forgeID int64
 //   - remoteID model.ForgeRemoteID
-func (_e *MockStore_Expecter) UserForgeGetByRemoteID(forgeID interface{}, remoteID interface{}) *MockStore_UserForgeGetByRemoteID_Call {
+func (_e *MockStore_Expecter) UserForgeGetByRemoteID(forgeID any, remoteID any) *MockStore_UserForgeGetByRemoteID_Call {
 	return &MockStore_UserForgeGetByRemoteID_Call{Call: _e.mock.On("UserForgeGetByRemoteID", forgeID, remoteID)}
 }
 
@@ -12841,7 +12841,7 @@ type MockStore_UserForgeGetPrimary_Call struct {
 
 // UserForgeGetPrimary is a helper method to define mock.On call
 //   - userID int64
-func (_e *MockStore_Expecter) UserForgeGetPrimary(userID interface{}) *MockStore_UserForgeGetPrimary_Call {
+func (_e *MockStore_Expecter) UserForgeGetPrimary(userID any) *MockStore_UserForgeGetPrimary_Call {
 	return &MockStore_UserForgeGetPrimary_Call{Call: _e.mock.On("UserForgeGetPrimary", userID)}
 }
 
@@ -12903,7 +12903,7 @@ type MockStore_UserForgeList_Call struct {
 
 // UserForgeList is a helper method to define mock.On call
 //   - userID int64
-func (_e *MockStore_Expecter) UserForgeList(userID interface{}) *MockStore_UserForgeList_Call {
+func (_e *MockStore_Expecter) UserForgeList(userID any) *MockStore_UserForgeList_Call {
 	return &MockStore_UserForgeList_Call{Call: _e.mock.On("UserForgeList", userID)}
 }
 
@@ -13009,7 +13009,7 @@ type MockStore_UserForgeUpdate_Call struct {
 
 // UserForgeUpdate is a helper method to define mock.On call
 //   - userForge *model.UserForge
-func (_e *MockStore_Expecter) UserForgeUpdate(userForge interface{}) *MockStore_UserForgeUpdate_Call {
+func (_e *MockStore_Expecter) UserForgeUpdate(userForge any) *MockStore_UserForgeUpdate_Call {
 	return &MockStore_UserForgeUpdate_Call{Call: _e.mock.On("UserForgeUpdate", userForge)}
 }
 
@@ -13129,7 +13129,7 @@ type MockStore_UserRegistryList_Call struct {
 //   - includeGlobal bool
 //   - searchTerm string
 //   - p *model.ListOptions
-func (_e *MockStore_Expecter) UserRegistryList(orgIDs interface{}, includeGlobal interface{}, searchTerm interface{}, p interface{}) *MockStore_UserRegistryList_Call {
+func (_e *MockStore_Expecter) UserRegistryList(orgIDs any, includeGlobal any, searchTerm any, p any) *MockStore_UserRegistryList_Call {
 	return &MockStore_UserRegistryList_Call{Call: _e.mock.On("UserRegistryList", orgIDs, includeGlobal, searchTerm, p)}
 }
 
@@ -13210,7 +13210,7 @@ type MockStore_UserSecretList_Call struct {
 //   - includeGlobal bool
 //   - searchTerm string
 //   - p *model.ListOptions
-func (_e *MockStore_Expecter) UserSecretList(orgIDs interface{}, repoIDs interface{}, includeGlobal interface{}, searchTerm interface{}, p interface{}) *MockStore_UserSecretList_Call {
+func (_e *MockStore_Expecter) UserSecretList(orgIDs any, repoIDs any, includeGlobal any, searchTerm any, p any) *MockStore_UserSecretList_Call {
 	return &MockStore_UserSecretList_Call{Call: _e.mock.On("UserSecretList", orgIDs, repoIDs, includeGlobal, searchTerm, p)}
 }
 
@@ -13281,7 +13281,7 @@ type MockStore_WorkflowApprovalEventCreate_Call struct {
 
 // WorkflowApprovalEventCreate is a helper method to define mock.On call
 //   - ev *model.WorkflowApprovalEvent
-func (_e *MockStore_Expecter) WorkflowApprovalEventCreate(ev interface{}) *MockStore_WorkflowApprovalEventCreate_Call {
+func (_e *MockStore_Expecter) WorkflowApprovalEventCreate(ev any) *MockStore_WorkflowApprovalEventCreate_Call {
 	return &MockStore_WorkflowApprovalEventCreate_Call{Call: _e.mock.On("WorkflowApprovalEventCreate", ev)}
 }
 
@@ -13343,7 +13343,7 @@ type MockStore_WorkflowApprovalEventsForWorkflow_Call struct {
 
 // WorkflowApprovalEventsForWorkflow is a helper method to define mock.On call
 //   - workflowID int64
-func (_e *MockStore_Expecter) WorkflowApprovalEventsForWorkflow(workflowID interface{}) *MockStore_WorkflowApprovalEventsForWorkflow_Call {
+func (_e *MockStore_Expecter) WorkflowApprovalEventsForWorkflow(workflowID any) *MockStore_WorkflowApprovalEventsForWorkflow_Call {
 	return &MockStore_WorkflowApprovalEventsForWorkflow_Call{Call: _e.mock.On("WorkflowApprovalEventsForWorkflow", workflowID)}
 }
 
@@ -13405,7 +13405,7 @@ type MockStore_WorkflowGetTree_Call struct {
 
 // WorkflowGetTree is a helper method to define mock.On call
 //   - pipeline *model.Pipeline
-func (_e *MockStore_Expecter) WorkflowGetTree(pipeline interface{}) *MockStore_WorkflowGetTree_Call {
+func (_e *MockStore_Expecter) WorkflowGetTree(pipeline any) *MockStore_WorkflowGetTree_Call {
 	return &MockStore_WorkflowGetTree_Call{Call: _e.mock.On("WorkflowGetTree", pipeline)}
 }
 
@@ -13468,7 +13468,7 @@ type MockStore_WorkflowListByAgent_Call struct {
 // WorkflowListByAgent is a helper method to define mock.On call
 //   - agentID int64
 //   - p *model.ListOptions
-func (_e *MockStore_Expecter) WorkflowListByAgent(agentID interface{}, p interface{}) *MockStore_WorkflowListByAgent_Call {
+func (_e *MockStore_Expecter) WorkflowListByAgent(agentID any, p any) *MockStore_WorkflowListByAgent_Call {
 	return &MockStore_WorkflowListByAgent_Call{Call: _e.mock.On("WorkflowListByAgent", agentID, p)}
 }
 
@@ -13535,7 +13535,7 @@ type MockStore_WorkflowLoad_Call struct {
 
 // WorkflowLoad is a helper method to define mock.On call
 //   - n int64
-func (_e *MockStore_Expecter) WorkflowLoad(n interface{}) *MockStore_WorkflowLoad_Call {
+func (_e *MockStore_Expecter) WorkflowLoad(n any) *MockStore_WorkflowLoad_Call {
 	return &MockStore_WorkflowLoad_Call{Call: _e.mock.On("WorkflowLoad", n)}
 }
 
@@ -13597,7 +13597,7 @@ type MockStore_WorkflowNamesByRepo_Call struct {
 
 // WorkflowNamesByRepo is a helper method to define mock.On call
 //   - repoID int64
-func (_e *MockStore_Expecter) WorkflowNamesByRepo(repoID interface{}) *MockStore_WorkflowNamesByRepo_Call {
+func (_e *MockStore_Expecter) WorkflowNamesByRepo(repoID any) *MockStore_WorkflowNamesByRepo_Call {
 	return &MockStore_WorkflowNamesByRepo_Call{Call: _e.mock.On("WorkflowNamesByRepo", repoID)}
 }
 
@@ -13648,7 +13648,7 @@ type MockStore_WorkflowUpdate_Call struct {
 
 // WorkflowUpdate is a helper method to define mock.On call
 //   - workflow *model.Workflow
-func (_e *MockStore_Expecter) WorkflowUpdate(workflow interface{}) *MockStore_WorkflowUpdate_Call {
+func (_e *MockStore_Expecter) WorkflowUpdate(workflow any) *MockStore_WorkflowUpdate_Call {
 	return &MockStore_WorkflowUpdate_Call{Call: _e.mock.On("WorkflowUpdate", workflow)}
 }
 
@@ -13710,7 +13710,7 @@ type MockStore_WorkflowsAwaitingApprovalBefore_Call struct {
 
 // WorkflowsAwaitingApprovalBefore is a helper method to define mock.On call
 //   - now int64
-func (_e *MockStore_Expecter) WorkflowsAwaitingApprovalBefore(now interface{}) *MockStore_WorkflowsAwaitingApprovalBefore_Call {
+func (_e *MockStore_Expecter) WorkflowsAwaitingApprovalBefore(now any) *MockStore_WorkflowsAwaitingApprovalBefore_Call {
 	return &MockStore_WorkflowsAwaitingApprovalBefore_Call{Call: _e.mock.On("WorkflowsAwaitingApprovalBefore", now)}
 }
 
@@ -13761,7 +13761,7 @@ type MockStore_WorkflowsCreate_Call struct {
 
 // WorkflowsCreate is a helper method to define mock.On call
 //   - workflows []*model.Workflow
-func (_e *MockStore_Expecter) WorkflowsCreate(workflows interface{}) *MockStore_WorkflowsCreate_Call {
+func (_e *MockStore_Expecter) WorkflowsCreate(workflows any) *MockStore_WorkflowsCreate_Call {
 	return &MockStore_WorkflowsCreate_Call{Call: _e.mock.On("WorkflowsCreate", workflows)}
 }
 
@@ -13823,7 +13823,7 @@ type MockStore_WorkflowsPendingApprovalForUser_Call struct {
 
 // WorkflowsPendingApprovalForUser is a helper method to define mock.On call
 //   - userID int64
-func (_e *MockStore_Expecter) WorkflowsPendingApprovalForUser(userID interface{}) *MockStore_WorkflowsPendingApprovalForUser_Call {
+func (_e *MockStore_Expecter) WorkflowsPendingApprovalForUser(userID any) *MockStore_WorkflowsPendingApprovalForUser_Call {
 	return &MockStore_WorkflowsPendingApprovalForUser_Call{Call: _e.mock.On("WorkflowsPendingApprovalForUser", userID)}
 }
 
@@ -13875,7 +13875,7 @@ type MockStore_WorkflowsReplace_Call struct {
 // WorkflowsReplace is a helper method to define mock.On call
 //   - pipeline *model.Pipeline
 //   - workflows []*model.Workflow
-func (_e *MockStore_Expecter) WorkflowsReplace(pipeline interface{}, workflows interface{}) *MockStore_WorkflowsReplace_Call {
+func (_e *MockStore_Expecter) WorkflowsReplace(pipeline any, workflows any) *MockStore_WorkflowsReplace_Call {
 	return &MockStore_WorkflowsReplace_Call{Call: _e.mock.On("WorkflowsReplace", pipeline, workflows)}
 }
 

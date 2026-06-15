@@ -51,7 +51,7 @@ type MockPublisher_Publish_Call struct {
 
 // Publish is a helper method to define mock.On call
 //   - message pubsub.Message
-func (_e *MockPublisher_Expecter) Publish(message interface{}) *MockPublisher_Publish_Call {
+func (_e *MockPublisher_Expecter) Publish(message any) *MockPublisher_Publish_Call {
 	return &MockPublisher_Publish_Call{Call: _e.mock.On("Publish", message)}
 }
 
@@ -92,7 +92,7 @@ type MockPublisher_Subscribe_Call struct {
 // Subscribe is a helper method to define mock.On call
 //   - c context.Context
 //   - receiver pubsub.Receiver
-func (_e *MockPublisher_Expecter) Subscribe(c interface{}, receiver interface{}) *MockPublisher_Subscribe_Call {
+func (_e *MockPublisher_Expecter) Subscribe(c any, receiver any) *MockPublisher_Subscribe_Call {
 	return &MockPublisher_Subscribe_Call{Call: _e.mock.On("Subscribe", c, receiver)}
 }
 

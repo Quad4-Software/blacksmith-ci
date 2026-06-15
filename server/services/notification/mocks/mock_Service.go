@@ -66,7 +66,7 @@ type MockService_Dispatch_Call struct {
 //   - repo *model.Repo
 //   - pipeline *model.Pipeline
 //   - previousStatus model.StatusValue
-func (_e *MockService_Expecter) Dispatch(ctx interface{}, repo interface{}, pipeline interface{}, previousStatus interface{}) *MockService_Dispatch_Call {
+func (_e *MockService_Expecter) Dispatch(ctx any, repo any, pipeline any, previousStatus any) *MockService_Dispatch_Call {
 	return &MockService_Dispatch_Call{Call: _e.mock.On("Dispatch", ctx, repo, pipeline, previousStatus)}
 }
 
@@ -176,7 +176,7 @@ type MockService_TestSMTP_Call struct {
 
 // TestSMTP is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *MockService_Expecter) TestSMTP(ctx interface{}) *MockService_TestSMTP_Call {
+func (_e *MockService_Expecter) TestSMTP(ctx any) *MockService_TestSMTP_Call {
 	return &MockService_TestSMTP_Call{Call: _e.mock.On("TestSMTP", ctx)}
 }
 

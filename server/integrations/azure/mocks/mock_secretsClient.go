@@ -74,7 +74,7 @@ type mocksecretsClient_GetSecret_Call struct {
 //   - name string
 //   - version string
 //   - options *azsecrets.GetSecretOptions
-func (_e *mocksecretsClient_Expecter) GetSecret(ctx interface{}, name interface{}, version interface{}, options interface{}) *mocksecretsClient_GetSecret_Call {
+func (_e *mocksecretsClient_Expecter) GetSecret(ctx any, name any, version any, options any) *mocksecretsClient_GetSecret_Call {
 	return &mocksecretsClient_GetSecret_Call{Call: _e.mock.On("GetSecret", ctx, name, version, options)}
 }
 

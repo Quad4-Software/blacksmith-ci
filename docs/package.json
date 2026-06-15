@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@astrojs/markdoc": "1.0.6",
-    "@astrojs/starlight": "0.39.2",
+    "@astrojs/starlight": "0.40.0",
     "@astrojs/starlight-markdoc": "^0.6.0",
     "@lorenzo_lewis/starlight-utils": "^0.3.2",
     "@microflash/rehype-figure": "^2.1.4",
@@ -22,7 +22,7 @@
     "pagefind": "^1.4.0",
     "playwright": "^1.58.2",
     "rehype-mermaid": "^3.0.0",
-    "sharp": "^0.34.5",
+    "sharp": "^0.35.0",
     "starlight-theme-celestia": "^0.2.2",
     "starlight-image-zoom": "^0.14.1",
     "starlight-links-validator": "^0.24.0",

@@ -119,7 +119,7 @@ type MockProvider_GetSecret_Call struct {
 //   - path string
 //   - key string
 //   - version int
-func (_e *MockProvider_Expecter) GetSecret(ctx interface{}, path interface{}, key interface{}, version interface{}) *MockProvider_GetSecret_Call {
+func (_e *MockProvider_Expecter) GetSecret(ctx any, path any, key any, version any) *MockProvider_GetSecret_Call {
 	return &MockProvider_GetSecret_Call{Call: _e.mock.On("GetSecret", ctx, path, key, version)}
 }
 
@@ -197,7 +197,7 @@ type MockProvider_GetSecretsBatch_Call struct {
 // GetSecretsBatch is a helper method to define mock.On call
 //   - ctx context.Context
 //   - requests []integrations.SecretRequest
-func (_e *MockProvider_Expecter) GetSecretsBatch(ctx interface{}, requests interface{}) *MockProvider_GetSecretsBatch_Call {
+func (_e *MockProvider_Expecter) GetSecretsBatch(ctx any, requests any) *MockProvider_GetSecretsBatch_Call {
 	return &MockProvider_GetSecretsBatch_Call{Call: _e.mock.On("GetSecretsBatch", ctx, requests)}
 }
 
@@ -253,7 +253,7 @@ type MockProvider_TestConnection_Call struct {
 
 // TestConnection is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *MockProvider_Expecter) TestConnection(ctx interface{}) *MockProvider_TestConnection_Call {
+func (_e *MockProvider_Expecter) TestConnection(ctx any) *MockProvider_TestConnection_Call {
 	return &MockProvider_TestConnection_Call{Call: _e.mock.On("TestConnection", ctx)}
 }
 

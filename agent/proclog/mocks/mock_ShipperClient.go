@@ -63,7 +63,7 @@ type MockShipperClient_SendBatch_Call struct {
 // SendBatch is a helper method to define mock.On call
 //   - ctx context.Context
 //   - batch *proto.ProcLogBatch
-func (_e *MockShipperClient_Expecter) SendBatch(ctx interface{}, batch interface{}) *MockShipperClient_SendBatch_Call {
+func (_e *MockShipperClient_Expecter) SendBatch(ctx any, batch any) *MockShipperClient_SendBatch_Call {
 	return &MockShipperClient_SendBatch_Call{Call: _e.mock.On("SendBatch", ctx, batch)}
 }
 
