@@ -101,8 +101,8 @@ func (s storage) GetPipelineList(repo *model.Repo, p *model.ListOptions, f *mode
 			q = q.Where("ref LIKE ?", "%"+f.RefContains+"%")
 		}
 
-		if f.WorkflowName != "" {
-			q = q.Where("EXISTS (SELECT 1 FROM workflows WHERE workflows.pipeline_id = pipeline.id AND workflows.name = ?)", f.WorkflowName)
+		if len(f.WorkflowNames) != 0 {
+			q = q.Where("EXISTS (SELECT 1 FROM workflows WHERE workflows.pipeline_id = pipeline.id AND workflows.name IN (?))", bun.List(f.WorkflowNames))
 		}
 
 		if f.Search != "" {

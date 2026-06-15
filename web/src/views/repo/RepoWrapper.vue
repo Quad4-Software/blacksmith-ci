@@ -61,6 +61,13 @@
           </Button>
         </div>
 
+        <!-- Search (drops below the filters on mobile, sits between actions and filters on desktop) -->
+        <SearchInput
+          v-model="searchQuery"
+          :placeholder="$t('search')"
+          class="order-last mt-2 w-full md:order-none md:mt-0 md:w-64 lg:w-80"
+        />
+
         <!-- Filters -->
         <div class="flex items-center gap-2 flex-wrap">
           <!-- Event type filter (multi-select) -->
@@ -177,41 +184,14 @@
             </PopoverContent>
           </Popover>
 
-          <!-- Workflow filter -->
-          <DropdownMenu v-if="workflowNames.length > 0" :modal="false">
-            <DropdownMenuTrigger as-child>
-              <Button variant="outline" size="sm" class="h-8 border-dashed">
-                <Icon name="tasks" class="mr-2 h-4 w-4" />
-                {{ $t('repo.pipeline.filter.workflow') }}
-                <template v-if="workflowFilter">
-                  <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
-                  <span class="mx-2" aria-hidden="true">|</span>
-                  <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
-                  <Badge variant="secondary" class="rounded-sm px-1 font-normal max-w-[100px] truncate">
-                    {{ workflowFilter }}
-                  </Badge>
-                </template>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent class="w-[220px] max-h-[300px] overflow-y-auto" align="end">
-              <DropdownMenuRadioGroup v-model="workflowFilter">
-                <DropdownMenuRadioItem value="">
-                  {{ $t('repo.pipeline.filter.all_workflows') }}
-                </DropdownMenuRadioItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuRadioItem v-for="name in workflowNames" :key="name" :value="name">
-                  {{ name }}
-                </DropdownMenuRadioItem>
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <!-- Clear all filters -->
+          <!-- Clear all filters (kept mounted to reserve its space and avoid a row shift) -->
           <Button
-            v-if="selectedEvents.length > 0 || branchFilter || hasDateFilter || workflowFilter"
             variant="ghost"
             size="sm"
             class="h-8"
+            :class="{ 'invisible pointer-events-none': !hasActiveFilters }"
+            :aria-hidden="!hasActiveFilters"
+            :tabindex="hasActiveFilters ? undefined : -1"
             @click="clearAllFilters"
           >
             {{ $t('clear_filters') }}
@@ -246,6 +226,7 @@ import {
 } from '~/components/ui/dropdown-menu';
 import { Label } from '~/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
+import SearchInput from '~/components/ui/input/SearchInput.vue';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import Icon from '~/components/atomic/Icon.vue';
 import type { IconNames } from '~/components/atomic/Icon.types';
@@ -307,13 +288,12 @@ const dateFrom = ref('');
 const dateTo = ref('');
 const selectedEvents = ref<string[]>([]);
 const branchFilter = ref('');
-const workflowFilter = ref('');
+const workflowFilter = ref<string[]>([]);
 const hasDateFilter = ref(false); // Track if user has actually set a filter
 
 // Branches and PRs for filters
 const branches = ref<string[]>([]);
 const pullRequests = ref<{ index: string; title: string }[]>([]);
-const workflowNames = ref<string[]>([]);
 
 // Set default "to" date to today (for the input field, not the filter)
 const today = new Date().toISOString().split('T')[0];
@@ -341,6 +321,11 @@ const branchFilterLabel = computed(() => {
   }
   return branchFilter.value;
 });
+
+const hasActiveFilters = computed(
+  () =>
+    selectedEvents.value.length > 0 || !!branchFilter.value || hasDateFilter.value || workflowFilter.value.length > 0,
+);
 
 // Watch for changes to activate the filter
 watch([dateFrom, dateTo], ([newFrom, newTo]) => {
@@ -370,7 +355,7 @@ function clearDateFilter() {
 function clearAllFilters() {
   selectedEvents.value = [];
   branchFilter.value = '';
-  workflowFilter.value = '';
+  workflowFilter.value = [];
   clearDateFilter();
 }
 
@@ -456,15 +441,7 @@ watch(
         }
       };
 
-      const loadWorkflowNames = async () => {
-        try {
-          workflowNames.value = (await apiClient.getWorkflowNames(repoId)) ?? [];
-        } catch {
-          workflowNames.value = [];
-        }
-      };
-
-      void Promise.all([loadBranches(), loadPRs(), loadWorkflowNames()]);
+      void Promise.all([loadBranches(), loadPRs()]);
     }
   },
   { immediate: true },

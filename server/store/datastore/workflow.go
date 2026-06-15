@@ -311,15 +311,49 @@ func (s storage) WorkflowListByAgent(agentID int64, p *model.ListOptions) ([]*mo
 	return list, nil
 }
 
+// WorkflowNamesByRepo returns the currently-active workflow names for a repo,
+// i.e. the workflows of its most recent default-branch pipeline (falling back to
+// the latest pipeline overall). Workflows that were removed from the config no
+// longer appear in recent pipelines, so they are excluded from the filter list.
 func (s storage) WorkflowNamesByRepo(repoID int64) ([]string, error) {
-	var names []string
+	ctx := context.Background()
+
+	// Prefer the latest push pipeline on the repo's default branch, as it best
+	// reflects the current config; otherwise fall back to the latest pipeline.
+	var pipelineID int64
 	err := s.db.NewSelect().
+		TableExpr("pipelines AS p").
+		ColumnExpr("p.id").
+		Join("JOIN repos AS r ON r.id = p.repo_id").
+		Where("p.repo_id = ?", repoID).
+		Where("p.branch = r.branch").
+		Where("p.event = ?", model.EventPush).
+		OrderExpr("p.number DESC").
+		Limit(1).
+		Scan(ctx, &pipelineID)
+	if err != nil || pipelineID == 0 {
+		if err := s.db.NewSelect().
+			TableExpr("pipelines").
+			ColumnExpr("id").
+			Where("repo_id = ?", repoID).
+			OrderExpr("number DESC").
+			Limit(1).
+			Scan(ctx, &pipelineID); err != nil {
+			// No pipelines yet: nothing to filter by.
+			return []string{}, nil
+		}
+	}
+
+	names := []string{}
+	if err := s.db.NewSelect().
 		TableExpr("workflows").
 		ColumnExpr("DISTINCT name").
-		Where("pipeline_id IN (SELECT id FROM pipelines WHERE repo_id = ?)", repoID).
+		Where("pipeline_id = ?", pipelineID).
 		OrderExpr("name ASC").
-		Scan(context.Background(), &names)
-	return names, err
+		Scan(ctx, &names); err != nil {
+		return nil, err
+	}
+	return names, nil
 }
 
 func (s storage) WorkflowUpdate(workflow *model.Workflow) error {

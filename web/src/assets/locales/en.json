@@ -682,7 +682,6 @@
         "event": "Event",
         "branch": "Branch / PR",
         "all_branches": "All branches",
-        "workflow": "Workflow",
         "workflows": "Workflows"
       },
       "search": {

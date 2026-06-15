@@ -101,6 +101,40 @@ func TestWorkflowListByAgent(t *testing.T) {
 	assert.Equal(t, "older", page2[0].Name)
 }
 
+func TestWorkflowNamesByRepo(t *testing.T) {
+	store, closer := newTestStore(t, new(model.Repo), new(model.Pipeline), new(model.Workflow))
+	defer closer()
+
+	ctx := context.Background()
+	repo := &model.Repo{UserID: 1, FullName: "owner/repo", Owner: "owner", Name: "repo", Branch: "main"}
+	assert.NoError(t, store.CreateRepo(repo))
+
+	// Older default-branch push still ran the since-removed "legacy" workflow.
+	older := &model.Pipeline{RepoID: repo.ID, Number: 1, Branch: "main", Event: model.EventPush}
+	_, err := store.db.NewInsert().Model(older).Exec(ctx)
+	assert.NoError(t, err)
+	// Newer default-branch push reflects the current config (no "legacy").
+	newer := &model.Pipeline{RepoID: repo.ID, Number: 2, Branch: "main", Event: model.EventPush}
+	_, err = store.db.NewInsert().Model(newer).Exec(ctx)
+	assert.NoError(t, err)
+	// A later PR on another branch must not influence the active set.
+	pr := &model.Pipeline{RepoID: repo.ID, Number: 3, Branch: "feature", Event: model.EventPull}
+	_, err = store.db.NewInsert().Model(pr).Exec(ctx)
+	assert.NoError(t, err)
+
+	assert.NoError(t, store.WorkflowsCreate([]*model.Workflow{
+		{PipelineID: older.ID, PID: 1, Name: "build"},
+		{PipelineID: older.ID, PID: 2, Name: "legacy"},
+		{PipelineID: newer.ID, PID: 1, Name: "build"},
+		{PipelineID: newer.ID, PID: 2, Name: "test"},
+		{PipelineID: pr.ID, PID: 1, Name: "pr-only"},
+	}))
+
+	names, err := store.WorkflowNamesByRepo(repo.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"build", "test"}, names)
+}
+
 func TestWorkflowGetTree(t *testing.T) {
 	store, closer := newTestStore(t, new(model.Step), new(model.Pipeline), new(model.Workflow))
 	defer closer()

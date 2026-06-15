@@ -257,7 +257,7 @@ type GetPipelinesInput struct {
 	Ref      string `query:"ref" doc:"filter pipelines by strings contained in ref"`
 	Status   string `query:"status" doc:"filter pipelines by status"`
 	Search   string `query:"search" doc:"search pipelines by number, message, branch, or author"`
-	Workflow string `query:"workflow" doc:"filter pipelines by workflow name"`
+	Workflow string `query:"workflow" doc:"filter pipelines by workflow names (comma separated)"`
 }
 
 type GetPipelinesOutput struct {
@@ -269,10 +269,13 @@ func GetPipelines(ctx context.Context, input *GetPipelinesInput) (*GetPipelinesO
 	repo := session.Repo(c)
 
 	filter := &model.PipelineFilter{
-		Branch:       input.Branch,
-		RefContains:  input.Ref,
-		Search:       input.Search,
-		WorkflowName: input.Workflow,
+		Branch:      input.Branch,
+		RefContains: input.Ref,
+		Search:      input.Search,
+	}
+
+	if input.Workflow != "" {
+		filter.WorkflowNames = strings.Split(input.Workflow, ",")
 	}
 
 	if input.Event != "" {

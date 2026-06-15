@@ -14,7 +14,7 @@ export interface UseReactivePipelinesOptions {
     branch?: Ref<string | null> | Ref<string> | null;
     dateFrom?: Ref<string | null> | Ref<string> | null;
     dateTo?: Ref<string | null> | Ref<string> | null;
-    workflow?: Ref<string | null> | Ref<string> | null;
+    workflow?: Ref<string[] | null> | Ref<string[]> | null;
   };
 }
 
@@ -95,54 +95,54 @@ export default function useReactivePipelines(options: UseReactivePipelinesOption
   /**
    * Load the next page of pipelines.
    */
+  /** Build API options from the current filter values for the given page. */
+  function buildOpts(page: number): NonNullable<Parameters<typeof pipelineStore.loadRepoPipelines>[1]> {
+    const searchValue = filters?.search?.value;
+    const eventsValue = filters?.events?.value;
+    const dateFromValue = filters?.dateFrom?.value;
+    const dateToValue = filters?.dateTo?.value;
+    const branchValue = filters?.branch?.value;
+    const workflowValue = filters?.workflow?.value;
+
+    const opts: NonNullable<Parameters<typeof pipelineStore.loadRepoPipelines>[1]> = {
+      page,
+      perPage: pageSize,
+      search: searchValue !== null && searchValue !== undefined && searchValue !== '' ? searchValue : undefined,
+      events:
+        eventsValue !== null && eventsValue !== undefined && eventsValue.length > 0 ? eventsValue.join(',') : undefined,
+      after:
+        dateFromValue !== null && dateFromValue !== undefined && dateFromValue !== ''
+          ? new Date(dateFromValue).toISOString()
+          : undefined,
+      before:
+        dateToValue !== null && dateToValue !== undefined && dateToValue !== ''
+          ? new Date(`${dateToValue}T23:59:59`).toISOString()
+          : undefined,
+    };
+
+    // Handle branch/ref filter
+    if (branchValue !== null && branchValue !== undefined && branchValue !== '') {
+      if (branchValue.startsWith('refs/')) {
+        opts.ref = branchValue;
+      } else {
+        opts.branch = branchValue;
+      }
+    }
+
+    if (workflowValue !== null && workflowValue !== undefined && workflowValue.length > 0) {
+      opts.workflow = workflowValue.join(',');
+    }
+
+    return opts;
+  }
+
   async function loadMore(): Promise<void> {
     if (loading.value || !hasMore.value) return;
 
     loading.value = true;
     try {
       const state = pipelineStore.initPagination(repoId.value);
-      const nextPage = state.page + 1;
-
-      // Build API options from filters
-      const searchValue = filters?.search?.value;
-      const eventsValue = filters?.events?.value;
-      const dateFromValue = filters?.dateFrom?.value;
-      const dateToValue = filters?.dateTo?.value;
-      const branchValue = filters?.branch?.value;
-      const workflowValue = filters?.workflow?.value;
-
-      const opts: Parameters<typeof pipelineStore.loadRepoPipelines>[1] = {
-        page: nextPage,
-        perPage: pageSize,
-        search: searchValue !== null && searchValue !== undefined && searchValue !== '' ? searchValue : undefined,
-        events:
-          eventsValue !== null && eventsValue !== undefined && eventsValue.length > 0
-            ? eventsValue.join(',')
-            : undefined,
-        after:
-          dateFromValue !== null && dateFromValue !== undefined && dateFromValue !== ''
-            ? new Date(dateFromValue).toISOString()
-            : undefined,
-        before:
-          dateToValue !== null && dateToValue !== undefined && dateToValue !== ''
-            ? new Date(`${dateToValue}T23:59:59`).toISOString()
-            : undefined,
-      };
-
-      // Handle branch/ref filter
-      if (branchValue !== null && branchValue !== undefined && branchValue !== '') {
-        if (branchValue.startsWith('refs/')) {
-          opts.ref = branchValue;
-        } else {
-          opts.branch = branchValue;
-        }
-      }
-
-      if (workflowValue !== null && workflowValue !== undefined && workflowValue !== '') {
-        opts.workflow = workflowValue;
-      }
-
-      const fetchedPipelines = await pipelineStore.loadRepoPipelines(repoId.value, opts);
+      const fetchedPipelines = await pipelineStore.loadRepoPipelines(repoId.value, buildOpts(state.page + 1));
       localHasMore.value = fetchedPipelines.length >= pageSize;
     } catch (error) {
       notifications.notify({ title: 'Failed to load pipelines', type: 'error' });
@@ -157,9 +157,19 @@ export default function useReactivePipelines(options: UseReactivePipelinesOption
    * Called automatically when filters change.
    */
   async function reset(): Promise<void> {
-    pipelineStore.resetPagination(repoId.value);
-    localHasMore.value = true;
-    await loadMore();
+    loading.value = true;
+    try {
+      // Fetch the new first page, then atomically swap it in. The previous
+      // results stay on screen until the new ones arrive, avoiding the empty
+      // list / skeleton flash that a clear-then-fetch would produce.
+      const fetchedPipelines = await pipelineStore.reloadRepoPipelines(repoId.value, buildOpts(1));
+      localHasMore.value = fetchedPipelines.length >= pageSize;
+    } catch (error) {
+      notifications.notify({ title: 'Failed to load pipelines', type: 'error' });
+      console.error('Error loading pipelines:', error);
+    } finally {
+      loading.value = false;
+    }
   }
 
   // Initial load - only if we have a valid repoId

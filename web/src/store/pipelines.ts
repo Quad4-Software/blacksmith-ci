@@ -92,18 +92,6 @@ export const usePipelineStore = defineStore('pipelines', () => {
   }
 
   /**
-   * Reset pagination state for a repository (e.g., when filters change).
-   */
-  function resetPagination(repoId: number): void {
-    paginationStates.set(repoId, {
-      page: 0,
-      hasMore: true,
-      fetchedPipelineNumbers: new Set(),
-      ssePipelineNumbers: new Set(),
-    });
-  }
-
-  /**
    * Mark a pipeline as delivered via SSE (for deduplication with pagination).
    */
   function markAsSSEDelivered(repoId: number, pipelineNumber: number): void {
@@ -210,6 +198,45 @@ export const usePipelineStore = defineStore('pipelines', () => {
     return _pipelines;
   }
 
+  /**
+   * Fetch the first page for a (possibly new) filter set and atomically replace
+   * the visible pagination window once the data has arrived. Because the swap
+   * only happens after the response lands, the UI keeps showing the previous
+   * results until the new ones are ready (stale-while-revalidate) and never
+   * flashes an empty/skeleton state mid-filter.
+   */
+  async function reloadRepoPipelines(
+    repoId: number,
+    opts: {
+      page?: number;
+      perPage?: number;
+      before?: string;
+      after?: string;
+      ref?: string;
+      branch?: string;
+      events?: string;
+      search?: string;
+      workflow?: string;
+    },
+  ): Promise<Pipeline[]> {
+    const page = opts.page ?? 1;
+    const pageSize = opts.perPage ?? 25;
+    const _pipelines = (await apiClient.getPipelineList(repoId, { ...opts, page })) ?? [];
+
+    _pipelines.forEach((pipeline) => {
+      setPipeline(repoId, pipeline);
+    });
+
+    paginationStates.set(repoId, {
+      page,
+      hasMore: _pipelines.length >= pageSize,
+      fetchedPipelineNumbers: new Set(_pipelines.map((p) => p.number)),
+      ssePipelineNumbers: new Set(),
+    });
+
+    return _pipelines;
+  }
+
   async function loadPipeline(repoId: number, pipelinesNumber: number) {
     const pipeline = await apiClient.getPipeline(repoId, pipelinesNumber);
     setPipeline(repoId, pipeline);
@@ -258,6 +285,7 @@ export const usePipelineStore = defineStore('pipelines', () => {
     getRepoPipelines,
     getPipeline,
     loadRepoPipelines,
+    reloadRepoPipelines,
     loadPipeline,
     activePipelines,
     pipelineFeed,
@@ -266,7 +294,6 @@ export const usePipelineStore = defineStore('pipelines', () => {
     paginationStates: readonly(paginationStates),
     initPagination,
     updatePagination,
-    resetPagination,
     getPaginationState,
     markAsSSEDelivered,
     markAsFetched,

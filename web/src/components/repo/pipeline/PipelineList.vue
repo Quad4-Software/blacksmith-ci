@@ -70,192 +70,183 @@
       </div>
     </Transition>
 
-    <!-- Search input -->
-    <SearchInput v-if="searchQuery !== null" v-model="searchQuery" :placeholder="t('search')" class="w-full" />
-
-    <!-- Workflow quick-filter: hidden measurement container (renders all chips off-screen to measure row breaks) -->
-    <div
-      v-if="workflowNames.length > 0"
-      ref="workflowMeasureContainer"
-      aria-hidden="true"
-      class="flex flex-wrap items-center gap-1.5 absolute invisible pointer-events-none -z-10 left-0 right-0"
-      :style="{ width: measureWidth }"
-    >
-      <span class="text-xs shrink-0">&nbsp;</span>
-      <span
-        v-for="name in workflowNames"
-        :key="name"
-        class="inline-flex items-center h-7 text-xs px-2.5 border rounded-md"
+    <!-- Workflow filter sidebar + pipeline list -->
+    <div class="flex flex-col sm:flex-row gap-4">
+      <!-- Foldable workflow filter (folded by default) -->
+      <Card
+        v-if="workflowNames.length > 0"
+        class="self-start overflow-hidden p-0"
+        :class="workflowPanelOpen ? 'w-full sm:w-56' : 'w-fit sm:shrink-0'"
+        :style="!workflowPanelOpen && firstCardHeight ? { height: `${firstCardHeight}px` } : undefined"
       >
-        {{ name }}
-      </span>
-    </div>
-
-    <!-- Workflow quick-filter: visible -->
-    <div v-if="workflowNames.length > 0" ref="workflowVisibleContainer" class="flex flex-wrap items-center gap-1.5">
-      <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-      <span class="text-xs text-muted-foreground shrink-0">{{ t('repo.pipeline.filter.workflows') }}:</span>
-      <ShadcnButton
-        v-for="name in visibleWorkflows"
-        :key="name"
-        :variant="workflowFilter === name ? 'default' : 'outline'"
-        size="sm"
-        class="h-7 text-xs px-2.5"
-        @click="toggleWorkflowChip(name)"
-      >
-        {{ name }}
-      </ShadcnButton>
-      <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
-      <DropdownMenu v-if="overflowWorkflows.length > 0">
-        <DropdownMenuTrigger as-child>
-          <ShadcnButton
-            :variant="overflowWorkflows.some((n) => workflowFilter === n) ? 'default' : 'outline'"
-            size="sm"
-            class="h-7 text-xs px-2.5"
-          >
-            +{{ overflowWorkflows.length }}
-          </ShadcnButton>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent class="max-h-[300px] overflow-y-auto" align="start">
-          <DropdownMenuItem
-            v-for="name in overflowWorkflows"
+        <button
+          type="button"
+          class="flex w-full items-center gap-2 text-sm font-medium transition-colors hover:bg-accent/50"
+          :class="workflowPanelOpen ? 'h-9 px-3' : 'h-full flex-col justify-center px-2 py-3'"
+          :aria-expanded="workflowPanelOpen"
+          :title="t('repo.pipeline.filter.workflows')"
+          @click="workflowPanelOpen = !workflowPanelOpen"
+        >
+          <Icon name="lucide:workflow" class="shrink-0 opacity-70" :class="workflowPanelOpen ? 'h-4 w-4' : 'h-5 w-5'" />
+          <span v-if="workflowPanelOpen" class="flex-1 text-left">{{ t('repo.pipeline.filter.workflows') }}</span>
+          <Badge v-if="(workflowFilter?.length ?? 0) > 0" variant="secondary" class="rounded-sm px-1.5 font-normal">
+            {{ workflowFilter?.length }}
+          </Badge>
+          <Icon v-if="workflowPanelOpen" name="chevron-down" class="h-4 w-4 shrink-0 opacity-60" />
+        </button>
+        <div v-if="workflowPanelOpen" class="max-h-[60vh] overflow-y-auto border-t p-1">
+          <button
+            v-for="name in workflowNames"
             :key="name"
-            :class="{ 'bg-accent': workflowFilter === name }"
+            type="button"
+            class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent"
+            :class="{ 'bg-accent/60': isWorkflowSelected(name) }"
             @click="toggleWorkflowChip(name)"
           >
-            {{ name }}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-      <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
-    </div>
-
-    <!-- Hidden pipelines toggle and multi-select header -->
-    <div
-      v-if="(isMultiselectMode && displayPipelines.length > 0 && repoPermissions?.push) || hiddenCount > 0"
-      class="flex flex-wrap items-center justify-between gap-2"
-    >
-      <div
-        v-if="isMultiselectMode && displayPipelines.length > 0 && repoPermissions?.push"
-        class="flex items-center gap-2"
-      >
-        <div class="w-7 shrink-0 flex items-center justify-center">
-          <Checkbox
-            id="select-all"
-            :checked="isAllSelected ? true : isPartiallySelected ? 'indeterminate' : false"
-            @update:checked="toggleSelectAll"
-          />
+            <Checkbox :checked="isWorkflowSelected(name)" class="pointer-events-none shrink-0" />
+            <span class="truncate">{{ name }}</span>
+          </button>
+          <div v-if="(workflowFilter?.length ?? 0) > 0" class="mt-1 border-t pt-1">
+            <button
+              type="button"
+              class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-muted-foreground transition-colors hover:bg-accent"
+              @click="clearWorkflowFilter"
+            >
+              <Icon name="lucide:x" class="h-3.5 w-3.5 shrink-0" />
+              {{ t('clear') }}
+            </button>
+          </div>
         </div>
-        <Label
-          for="select-all"
-          class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-        >
-          {{ $t('repo.pipeline.select_all') }}
-        </Label>
-      </div>
-      <div v-else />
+      </Card>
 
-      <!-- Hidden pipelines toggle -->
-      <div v-if="hiddenCount > 0" class="flex flex-wrap items-center gap-1 sm:gap-2">
-        <ShadcnButton
-          variant="ghost"
-          size="sm"
-          class="h-8 text-muted-foreground text-xs sm:text-sm"
-          @click="showHiddenPipelines = !showHiddenPipelines"
+      <!-- Main column -->
+      <div ref="pipelineListEl" class="min-w-0 flex-1 space-y-4">
+        <!-- Hidden pipelines toggle and multi-select header -->
+        <div
+          v-if="(isMultiselectMode && displayPipelines.length > 0 && repoPermissions?.push) || hiddenCount > 0"
+          class="flex flex-wrap items-center justify-between gap-2"
         >
-          <Icon :name="showHiddenPipelines ? 'lucide:eye' : 'lucide:eye-off'" class="mr-1 sm:mr-1.5 h-4 w-4 shrink-0" />
-          <span class="truncate">
-            {{
-              showHiddenPipelines
-                ? $t('repo.pipeline.hide_hidden')
-                : $t('repo.pipeline.show_hidden', { count: hiddenCount })
-            }}
-          </span>
-        </ShadcnButton>
-        <ShadcnButton
-          v-if="showHiddenPipelines"
-          variant="ghost"
-          size="sm"
-          class="h-8 text-muted-foreground text-xs sm:text-sm"
-          @click="clearHiddenPipelines"
+          <div
+            v-if="isMultiselectMode && displayPipelines.length > 0 && repoPermissions?.push"
+            class="flex items-center gap-2"
+          >
+            <div class="w-7 shrink-0 flex items-center justify-center">
+              <Checkbox
+                id="select-all"
+                :checked="isAllSelected ? true : isPartiallySelected ? 'indeterminate' : false"
+                @update:checked="toggleSelectAll"
+              />
+            </div>
+            <Label
+              for="select-all"
+              class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+            >
+              {{ $t('repo.pipeline.select_all') }}
+            </Label>
+          </div>
+          <div v-else />
+
+          <!-- Hidden pipelines toggle -->
+          <div v-if="hiddenCount > 0" class="flex flex-wrap items-center gap-1 sm:gap-2">
+            <ShadcnButton
+              variant="ghost"
+              size="sm"
+              class="h-8 text-muted-foreground text-xs sm:text-sm"
+              @click="showHiddenPipelines = !showHiddenPipelines"
+            >
+              <Icon
+                :name="showHiddenPipelines ? 'lucide:eye' : 'lucide:eye-off'"
+                class="mr-1 sm:mr-1.5 h-4 w-4 shrink-0"
+              />
+              <span class="truncate">
+                {{
+                  showHiddenPipelines
+                    ? $t('repo.pipeline.hide_hidden')
+                    : $t('repo.pipeline.show_hidden', { count: hiddenCount })
+                }}
+              </span>
+            </ShadcnButton>
+            <ShadcnButton
+              v-if="showHiddenPipelines"
+              variant="ghost"
+              size="sm"
+              class="h-8 text-muted-foreground text-xs sm:text-sm"
+              @click="clearHiddenPipelines"
+            >
+              <Icon name="lucide:x" class="mr-1 sm:mr-1.5 h-4 w-4 shrink-0" />
+              <span class="truncate">{{ $t('repo.pipeline.unhide_all') }}</span>
+            </ShadcnButton>
+          </div>
+        </div>
+
+        <!-- Skeleton loading state for initial load -->
+        <template v-if="loading && pipelineDisplayItems.length === 0">
+          <PipelineItemSkeleton v-for="i in 5" :key="`skeleton-${i}`" />
+        </template>
+
+        <!-- Pipeline list with hidden indicators -->
+        <template
+          v-for="item in pipelineDisplayItems"
+          :key="item.type === 'pipeline' ? item.pipeline.id : `hidden-${item.pipelineIds[0]}`"
         >
-          <Icon name="lucide:x" class="mr-1 sm:mr-1.5 h-4 w-4 shrink-0" />
-          <span class="truncate">{{ $t('repo.pipeline.unhide_all') }}</span>
-        </ShadcnButton>
+          <PipelineItem
+            v-if="item.type === 'pipeline'"
+            data-pipeline-card
+            :to="{
+              name: 'repo-pipeline',
+              params: { pipelineId: item.pipeline.number },
+            }"
+            :pipeline="item.pipeline"
+            :is-selected="selectedPipelineIds.has(item.pipeline.id)"
+            :is-hidden="hiddenPipelineIds.includes(item.pipeline.id)"
+            :show-checkbox="isMultiselectMode && repoPermissions?.push"
+            :class="{ 'opacity-50': showHiddenPipelines && hiddenPipelineIds.includes(item.pipeline.id) }"
+            @toggle-select="togglePipelineSelection(item.pipeline)"
+            @hide="hidePipeline"
+            @unhide="unhidePipeline"
+          />
+          <!-- Hidden indicator (simplified on mobile) -->
+          <div
+            v-else
+            class="flex items-center justify-center gap-2 py-1 -mt-1.5 sm:-mt-1 text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+            @click="showHiddenPipelines = true"
+          >
+            <div class="hidden sm:block flex-1 border-t border-dashed border-muted-foreground/30" />
+            <Icon name="lucide:eye-off" class="h-4 w-4 shrink-0" />
+            <span class="whitespace-nowrap">{{ $t('repo.pipeline.hidden_count', { count: item.count }) }}</span>
+            <div class="hidden sm:block flex-1 border-t border-dashed border-muted-foreground/30" />
+          </div>
+        </template>
+
+        <!-- Loading indicator for infinite scroll -->
+        <div v-if="infiniteScroll && loading" class="flex justify-center items-center py-8">
+          <div class="w-8 h-8">
+            <PipelineProgressSpinner />
+          </div>
+          <span class="ml-3 text-foreground">{{ $t('repo.pipeline.loading') }}</span>
+        </div>
+
+        <!-- Scroll trigger element -->
+        <div v-if="infiniteScroll && hasMore" ref="scrollTrigger" class="h-4" />
+
+        <Panel v-if="visiblePipelines.length === 0 && hiddenCount === 0 && !loading">
+          <span class="text-foreground">{{ $t('repo.pipeline.no_pipelines') }}</span>
+        </Panel>
       </div>
     </div>
-
-    <!-- Skeleton loading state for initial load -->
-    <template v-if="loading && pipelineDisplayItems.length === 0">
-      <PipelineItemSkeleton v-for="i in 5" :key="`skeleton-${i}`" />
-    </template>
-
-    <!-- Pipeline list with hidden indicators -->
-    <template
-      v-for="item in pipelineDisplayItems"
-      :key="item.type === 'pipeline' ? item.pipeline.id : `hidden-${item.pipelineIds[0]}`"
-    >
-      <PipelineItem
-        v-if="item.type === 'pipeline'"
-        :to="{
-          name: 'repo-pipeline',
-          params: { pipelineId: item.pipeline.number },
-        }"
-        :pipeline="item.pipeline"
-        :is-selected="selectedPipelineIds.has(item.pipeline.id)"
-        :is-hidden="hiddenPipelineIds.includes(item.pipeline.id)"
-        :show-checkbox="isMultiselectMode && repoPermissions?.push"
-        :class="{ 'opacity-50': showHiddenPipelines && hiddenPipelineIds.includes(item.pipeline.id) }"
-        @toggle-select="togglePipelineSelection(item.pipeline)"
-        @hide="hidePipeline"
-        @unhide="unhidePipeline"
-      />
-      <!-- Hidden indicator (simplified on mobile) -->
-      <div
-        v-else
-        class="flex items-center justify-center gap-2 py-1 -mt-1.5 sm:-mt-1 text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
-        @click="showHiddenPipelines = true"
-      >
-        <div class="hidden sm:block flex-1 border-t border-dashed border-muted-foreground/30" />
-        <Icon name="lucide:eye-off" class="h-4 w-4 shrink-0" />
-        <span class="whitespace-nowrap">{{ $t('repo.pipeline.hidden_count', { count: item.count }) }}</span>
-        <div class="hidden sm:block flex-1 border-t border-dashed border-muted-foreground/30" />
-      </div>
-    </template>
-
-    <!-- Loading indicator for infinite scroll -->
-    <div v-if="infiniteScroll && loading" class="flex justify-center items-center py-8">
-      <div class="w-8 h-8">
-        <PipelineProgressSpinner />
-      </div>
-      <span class="ml-3 text-foreground">{{ $t('repo.pipeline.loading') }}</span>
-    </div>
-
-    <!-- Scroll trigger element -->
-    <div v-if="infiniteScroll && hasMore" ref="scrollTrigger" class="h-4" />
-
-    <Panel v-if="visiblePipelines.length === 0 && hiddenCount === 0 && !loading">
-      <span class="text-foreground">{{ $t('repo.pipeline.no_pipelines') }}</span>
-    </Panel>
   </div>
 </template>
 
 <script lang="ts" setup>
 import { useIntersectionObserver, useStorage } from '@vueuse/core';
 import type { Ref } from 'vue';
-import { computed, inject, nextTick, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Icon from '~/components/atomic/Icon.vue';
+import { Badge } from '~/components/ui/badge';
 import Checkbox from '~/components/ui/checkbox/Checkbox.vue';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '~/components/ui/dropdown-menu';
 import Panel from '~/components/layout/Panel.vue';
-import SearchInput from '~/components/ui/input/SearchInput.vue';
 import PipelineItem from '~/components/repo/pipeline/PipelineItem.vue';
 import PipelineItemSkeleton from '~/components/repo/pipeline/PipelineItemSkeleton.vue';
 import PipelineProgressSpinner from '~/components/repo/pipeline/PipelineProgressSpinner.vue';
@@ -298,7 +289,7 @@ const dateFrom = inject<Ref<string> | null>('date-from', null);
 const dateTo = inject<Ref<string> | null>('date-to', null);
 const selectedEvents = inject<Ref<string[]> | null>('selected-events', null);
 const branchFilter = inject<Ref<string> | null>('branch-filter', null);
-const workflowFilter = inject<Ref<string> | null>('workflow-filter', null);
+const workflowFilter = inject<Ref<string[]> | null>('workflow-filter', null);
 
 // Use reactive pipelines composable when in infinite scroll mode
 // This provides SSE-reactive data and handles pagination automatically
@@ -321,72 +312,9 @@ const reactivePipelines =
 const loading = reactivePipelines?.loading ?? ref(false);
 const hasMore = reactivePipelines?.hasMore ?? computed(() => false);
 
-// Workflow quick-filter chips with two-row overflow
+// Foldable workflow filter sidebar (folded by default)
 const workflowNames = ref<string[]>([]);
-const workflowMeasureContainer = ref<HTMLElement | null>(null);
-const workflowVisibleContainer = ref<HTMLElement | null>(null);
-const maxVisibleCount = ref(Infinity);
-const measureWidth = ref('auto');
-
-const visibleWorkflows = computed(() => workflowNames.value.slice(0, maxVisibleCount.value));
-const overflowWorkflows = computed(() => workflowNames.value.slice(maxVisibleCount.value));
-
-function measureOverflow() {
-  const el = workflowMeasureContainer.value;
-  if (!el || workflowNames.value.length === 0) return;
-
-  // Sync measurement container width with visible container
-  const visibleEl = workflowVisibleContainer.value;
-  if (visibleEl) {
-    measureWidth.value = `${visibleEl.offsetWidth}px`;
-  }
-
-  // Wait a frame for the width to apply before measuring
-  requestAnimationFrame(() => {
-    const spans = Array.from(el.querySelectorAll('span:not(:first-child)')) as HTMLElement[];
-    if (spans.length === 0) return;
-
-    let rowCount = 1;
-    let prevTop = spans[0].offsetTop;
-    let cutIndex = spans.length;
-
-    for (let i = 1; i < spans.length; i++) {
-      if (spans[i].offsetTop > prevTop) {
-        rowCount++;
-        prevTop = spans[i].offsetTop;
-        if (rowCount > 2) {
-          cutIndex = i;
-          break;
-        }
-      }
-    }
-
-    if (cutIndex < spans.length) {
-      maxVisibleCount.value = cutIndex;
-    } else {
-      maxVisibleCount.value = Infinity;
-    }
-  });
-}
-
-let resizeObserver: ResizeObserver | null = null;
-
-watch(workflowNames, () => {
-  void nextTick(measureOverflow);
-});
-
-// Observe the visible container for width changes (window resize, sidebar toggle, etc.)
-watch(workflowVisibleContainer, (el) => {
-  resizeObserver?.disconnect();
-  if (el) {
-    resizeObserver = new ResizeObserver(() => measureOverflow());
-    resizeObserver.observe(el);
-  }
-});
-
-onBeforeUnmount(() => {
-  resizeObserver?.disconnect();
-});
+const workflowPanelOpen = ref(false);
 
 if (props.repo) {
   apiClient
@@ -400,12 +328,21 @@ if (props.repo) {
     });
 }
 
+function isWorkflowSelected(name: string): boolean {
+  return workflowFilter?.value.includes(name) ?? false;
+}
+
 function toggleWorkflowChip(name: string) {
-  if (workflowFilter?.value === name) {
-    workflowFilter.value = '';
-  } else if (workflowFilter) {
-    workflowFilter.value = name;
+  if (!workflowFilter) return;
+  if (workflowFilter.value.includes(name)) {
+    workflowFilter.value = workflowFilter.value.filter((n) => n !== name);
+  } else {
+    workflowFilter.value = [...workflowFilter.value, name];
   }
+}
+
+function clearWorkflowFilter() {
+  if (workflowFilter) workflowFilter.value = [];
 }
 
 // Hidden pipelines state - stored per repo
@@ -511,6 +448,26 @@ const pipelineDisplayItems = computed<PipelineDisplayItem[]>(() => {
 const visiblePipelines = computed(() =>
   pipelineDisplayItems.value.filter((item) => item.type === 'pipeline').map((item) => (item as any).pipeline),
 );
+
+// Match the folded workflow sidebar's height to the first pipeline card.
+const pipelineListEl = ref<HTMLElement | null>(null);
+const firstCardHeight = ref<number | undefined>(undefined);
+let cardResizeObserver: ResizeObserver | null = null;
+
+function measureFirstCard() {
+  const card = pipelineListEl.value?.querySelector<HTMLElement>('[data-pipeline-card]');
+  firstCardHeight.value = card?.offsetHeight || undefined;
+}
+
+onMounted(() => {
+  cardResizeObserver = new ResizeObserver(() => measureFirstCard());
+  if (pipelineListEl.value) cardResizeObserver.observe(pipelineListEl.value);
+  measureFirstCard();
+});
+
+watch(pipelineDisplayItems, () => void nextTick(measureFirstCard));
+
+onBeforeUnmount(() => cardResizeObserver?.disconnect());
 
 // Multi-select state - use injected or local
 const localMultiselectMode = ref(false);
