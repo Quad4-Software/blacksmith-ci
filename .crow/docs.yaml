@@ -36,19 +36,29 @@ steps:
         git config --global user.name "crowci-bot"
         git remote set-url origin "https://crowci-bot:$${crowci_bot_token}@codefloe.com/crowci/crow.git"
 
-        # Deploy to pages branch (create if missing)
-        if git fetch origin pages 2>/dev/null; then
-          git checkout -B pages origin/pages
-        else
-          git checkout --orphan pages
-          git reset --hard
-        fi
+        # Deploy to pages branch (create if missing), retrying on concurrent updates
+        for attempt in 1 2 3 4 5; do
+          if git fetch origin pages 2>/dev/null; then
+            git checkout -B pages origin/pages
+          else
+            git checkout --orphan pages
+            git reset --hard
+          fi
 
-        cp -r /tmp/docs-dist/* .
-        echo "crowci.dev" > .domains
-        git add -A
-        git commit -m "[skip ci] Deploy docs ${CI_COMMIT_SHA:0:10}" || true
-        git push origin pages
+          cp -r /tmp/docs-dist/* .
+          echo "crowci.dev" > .domains
+          git add -A
+          git commit -m "[skip ci] Deploy docs ${CI_COMMIT_SHA:0:10}" || true
+
+          if git push origin pages; then
+            break
+          fi
+          if [ "$attempt" = "5" ]; then
+            echo "Failed to push pages after $attempt attempts"
+            exit 1
+          fi
+          echo "Push rejected (likely concurrent deploy), retrying ($attempt)..."
+        done
     when:
       - event: push
         branch: ${CI_REPO_DEFAULT_BRANCH}
