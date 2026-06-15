@@ -215,6 +215,21 @@ deadcode:
 lint-frontend:
     cd web/ && bun run lint --quiet
 
+# Run server + agent + UI together for local development (Ctrl-C stops all).
+dev:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if command -v direnv >/dev/null 2>&1; then eval "$(direnv export bash)" || true; fi
+    if [ -f .env ]; then set -a; . ./.env; set +a; fi
+    export CGO_ENABLED=1
+    export CROW_DATABASE_DATASOURCE="${CROW_DATABASE_DATASOURCE:-$PWD/crow.sqlite}"
+    pids=()
+    go run ./cmd/server & pids+=($!)
+    ( until bash -c "echo > /dev/tcp/localhost/8000" 2>/dev/null; do sleep 1; done; exec go run ./cmd/agent ) & pids+=($!)
+    ( cd web && exec bun start ) & pids+=($!)
+    trap 'kill "${pids[@]}" 2>/dev/null || true' EXIT INT TERM
+    wait
+
 # FIXME: feature of 1.38.0 [working-directory('web')]
 build-ui:
     cd web/ && bun install --frozen-lockfile
