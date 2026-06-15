@@ -268,16 +268,35 @@ when:
 
 ### UI Workflow Selection
 
-When triggering a manual pipeline from the UI, you'll see a list of all workflows that have the `manual` event configured.
+When triggering a manual pipeline from the UI, the dialog has two columns: the available workflows on the left and their variables on the right.
+Only workflows with the `manual` event configured are listed.
 The selected workflows are bundled into a single new pipeline. You can:
 
-- **Select multiple workflows**: Check the workflows you want to include and click "Run pipeline"
-- **Quick-start a single workflow**: Click the play button next to any workflow to start a pipeline containing just that workflow
-- **Select all**: Use the "Select all" checkbox to include every available workflow
+- **Select workflows**: Click anywhere on a workflow row (or its checkbox) to include it, then click "Run pipeline".
+- **Quick-start a single workflow**: Click the play button next to a workflow to immediately start a pipeline containing just that workflow.
+- **Select all**: Use the "Select all" checkbox to include every available workflow.
 
-<div style="max-width: 400px; margin: 1rem auto;">
-![Manual pipeline Selection](img/manual-pipelines.png)
+Workflows that depend on others show a dependency icon; hover it to see the dependencies.
+
+<div style="max-width: 720px; margin: 1rem auto;">
+![Manual pipeline trigger dialog](img/manual-pipelines.png)
 </div>
+
+### Variables in the UI
+
+The right column shows the variables the selected workflows accept, grouped by workflow so it is clear which variable belongs where.
+Variables declared by more than one selected workflow appear once in a **Shared** group at the top; each remaining workflow's variables follow under its own heading.
+
+These variables are derived from each workflow's declared [`variables:`](/dev/usage/workflow-syntax/#manual-variables) block and from the variables referenced in its `when.evaluate` expressions.
+Variables with a fixed set of values render as dropdowns; others as text inputs, both prefilled with their declared default.
+Required variables are marked and must be set before the pipeline can run.
+
+<div style="max-width: 720px; margin: 1rem auto;">
+![Manual pipeline variables panel](img/manual-pipeline-variables.png)
+</div>
+
+Free-form variable entry is not available: only declared or evaluate-referenced variables can be set.
+Submitting a value outside a variable's declared options, or omitting a required variable, is rejected.
 
 ### Dependency Handling
 

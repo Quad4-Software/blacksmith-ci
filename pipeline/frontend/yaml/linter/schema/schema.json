@@ -12,7 +12,28 @@
       "format": "uri"
     },
     "variables": {
-      "description": "Use yaml aliases to define variables"
+      "description": "Top-level variables. Either a map (each value a scalar default or an object declaring description, options, default, and required) or a sequence of YAML anchors.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": ["string", "number", "boolean", "array"] },
+              {
+                "type": "object",
+                "properties": {
+                  "description": { "type": "string" },
+                  "options": { "type": "array", "items": { "type": "string" } },
+                  "default": { "type": "string" },
+                  "required": { "type": "boolean" }
+                },
+                "additionalProperties": true
+              }
+            ]
+          }
+        },
+        { "type": "array" }
+      ]
     },
     "clone": {
       "$ref": "#/definitions/clone"

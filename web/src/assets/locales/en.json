@@ -181,7 +181,8 @@
       "select_branch": "Select branch",
       "select_all": "Select all",
       "no_workflows": "No workflows with manual trigger found",
-      "depends_on": "depends on {count} | depends on {count}",
+      "dependencies": "Dependencies",
+      "dependencies_list": "Dependencies: {names}",
       "quick_start": "Run this workflow",
       "fetch_workflows_failed": "Failed to fetch workflows.",
       "selected_count": "{selected} / {total}",
@@ -189,11 +190,14 @@
       "when_condition_help": "Learn about conditional execution",
       "fetch_branches_failed": "Failed to fetch branches.",
       "variables": {
-        "title": "Additional variables",
-        "desc": "Add key-value pairs to use with the 'evaluate' filter option in your workflow.",
-        "name": "Variable name",
+        "heading": "Variables",
+        "shared": "Shared",
+        "empty_no_selection": "Select workflows to configure their variables.",
+        "empty_no_variables": "Selected workflows have no configurable variables.",
         "value": "Variable value",
-        "delete": "Delete variable"
+        "select": "Select a value",
+        "required": "*",
+        "used_by": "Used by: {workflows}"
       }
     },
     "deploy_pipeline": {

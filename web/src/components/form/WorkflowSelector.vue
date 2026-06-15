@@ -19,28 +19,37 @@
       <div
         v-for="workflow in workflows"
         :key="workflow.name"
-        class="flex items-center gap-3 p-3 rounded-md border bg-card hover:bg-accent transition-colors"
+        role="button"
+        tabindex="0"
+        class="flex items-center gap-3 p-3 rounded-md border bg-card hover:bg-accent transition-colors cursor-pointer"
         :class="isSelected(workflow.name) ? 'border-primary bg-primary/5' : 'border-border'"
+        @click="toggleWorkflow(workflow.name)"
+        @keydown.enter.prevent="toggleWorkflow(workflow.name)"
+        @keydown.space.prevent="toggleWorkflow(workflow.name)"
       >
-        <!-- Checkbox -->
-        <Checkbox
-          :id="`workflow-${workflow.name}`"
-          :checked="isSelected(workflow.name)"
-          @update:checked="toggleWorkflow(workflow.name)"
-        />
+        <!-- Checkbox (visual only; the whole row toggles selection) -->
+        <Checkbox :checked="isSelected(workflow.name)" tabindex="-1" aria-hidden="true" class="pointer-events-none" />
 
         <!-- Workflow info -->
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2">
-            <label :for="`workflow-${workflow.name}`" class="font-medium cursor-pointer truncate">
-              {{ workflow.name }}
-            </label>
-            <Badge v-if="workflow.depends_on?.length" variant="outline" class="text-xs">
-              {{ $t('repo.manual_pipeline.depends_on', { count: workflow.depends_on.length }) }}
-            </Badge>
-          </div>
-          <div v-if="workflow.depends_on?.length" class="text-xs text-muted-foreground mt-1 truncate">
-            {{ workflow.depends_on.join(', ') }}
+            <span class="font-medium truncate">{{ workflow.name }}</span>
+            <TooltipProvider v-if="workflow.depends_on?.length">
+              <Tooltip>
+                <TooltipTrigger as-child>
+                  <span
+                    class="inline-flex text-muted-foreground"
+                    :aria-label="$t('repo.manual_pipeline.dependencies')"
+                    @click.stop
+                  >
+                    <Icon name="dependency" class="h-4 w-4" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {{ $t('repo.manual_pipeline.dependencies_list', { names: workflow.depends_on.join(', ') }) }}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
 
@@ -83,7 +92,6 @@ import { computed } from 'vue';
 import type { ManualWorkflow } from '~/lib/api/types';
 import Icon from '~/components/atomic/Icon.vue';
 import { Button } from '~/components/ui/button';
-import { Badge } from '~/components/ui/badge';
 import { Checkbox } from '~/components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 

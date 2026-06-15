@@ -235,12 +235,22 @@ export enum StepType {
 }
 /* eslint-enable */
 
+// A user-settable variable surfaced by GET /repos/:id/configs
+export interface ManualVariable {
+  name: string;
+  description?: string;
+  options?: string[];
+  default?: string;
+  required?: boolean;
+}
+
 // Workflow information returned from GET /repos/:id/configs
 export interface ManualWorkflow {
   name: string;
   pipeline_name: string;
   depends_on?: string[];
   has_manual: boolean;
+  variables?: ManualVariable[];
 }
 
 // Response from GET /repos/:id/configs?filter=manual

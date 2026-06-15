@@ -1,6 +1,6 @@
 <template>
   <Dialog :open="open" @update:open="(val) => !val && $emit('close')">
-    <DialogContent class="sm:w-fit sm:min-w-80 sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+    <DialogContent class="sm:min-w-[56rem] sm:max-w-5xl max-h-[85vh] overflow-y-auto">
       <DialogHeader class="text-left">
         <DialogTitle>{{ $t('repo.manual_pipeline.title') }}</DialogTitle>
         <DialogDescription>
@@ -30,40 +30,33 @@
       </div>
 
       <form v-else class="space-y-4" @submit.prevent="triggerManualPipeline">
-        <!-- Workflow selection -->
-        <div class="space-y-2">
-          <div v-if="workflowsLoading" class="flex justify-center py-8">
-            <Icon name="spinner" class="h-5 w-5 animate-spin" />
-          </div>
-          <WorkflowSelector
-            v-else
-            :workflows="workflows"
-            :selected-workflows="selectedWorkflows"
-            :warnings="workflowWarnings"
-            @update:selected-workflows="selectedWorkflows = $event"
-            @quick-start="handleQuickStart"
-          />
-        </div>
-
-        <!-- Additional variables (collapsible) -->
-        <Collapsible v-model:open="showVariables" class="border rounded-md">
-          <CollapsibleTrigger
-            class="flex w-full items-center justify-between p-3 text-sm font-medium hover:bg-accent transition-colors"
-          >
-            <span>{{ $t('repo.manual_pipeline.variables.title') }}</span>
-            <Icon :name="showVariables ? 'chevron-up' : 'chevron-down'" class="h-4 w-4" />
-          </CollapsibleTrigger>
-          <CollapsibleContent class="px-3 pb-3">
-            <p class="text-sm text-muted-foreground mb-3">{{ $t('repo.manual_pipeline.variables.desc') }}</p>
-            <KeyValueEditor
-              v-model="variables"
-              :key-placeholder="$t('repo.manual_pipeline.variables.name')"
-              :value-placeholder="$t('repo.manual_pipeline.variables.value')"
-              :delete-title="$t('repo.manual_pipeline.variables.delete')"
-              @update:is-valid="isVariablesValid = $event"
+        <!-- Fixed body height so the dialog doesn't resize when a workflow with many
+             variables is selected; each column scrolls internally instead. -->
+        <div class="flex flex-col sm:flex-row gap-4 sm:gap-6 sm:h-[60vh]">
+          <!-- Left: workflow selection -->
+          <div class="sm:w-2/5 sm:border-r sm:pr-4 sm:overflow-y-auto">
+            <div v-if="workflowsLoading" class="flex justify-center py-8">
+              <Icon name="spinner" class="h-5 w-5 animate-spin" />
+            </div>
+            <WorkflowSelector
+              v-else
+              :workflows="workflows"
+              :selected-workflows="selectedWorkflows"
+              :warnings="workflowWarnings"
+              @update:selected-workflows="selectedWorkflows = $event"
+              @quick-start="handleQuickStart"
             />
-          </CollapsibleContent>
-        </Collapsible>
+          </div>
+
+          <!-- Right: variables (top divider on mobile where columns stack) -->
+          <div class="flex-1 min-w-0 border-t pt-4 sm:border-t-0 sm:pt-0 sm:overflow-y-auto">
+            <ManualVariablesPanel
+              v-model="variableValues"
+              :grouped="grouped"
+              :has-selection="selectedWorkflows.size > 0"
+            />
+          </div>
+        </div>
 
         <DialogFooter class="sm:justify-start">
           <Button type="submit" :disabled="!isFormValid || isSubmitting">
@@ -83,10 +76,8 @@ import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import Icon from '~/components/atomic/Icon.vue';
-import KeyValueEditor from '~/components/form/KeyValueEditor.vue';
 import WorkflowSelector from '~/components/form/WorkflowSelector.vue';
 import { Button } from '~/components/ui/button';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '~/components/ui/collapsible';
 import {
   Dialog,
   DialogContent,
@@ -96,13 +87,15 @@ import {
   DialogTitle,
 } from '~/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
+import ManualVariablesPanel from '~/components/layout/popups/ManualVariablesPanel.vue';
+import { groupManualVariables } from '~/components/layout/popups/manualVariableGroups';
 import useApiClient from '~/compositions/useApiClient';
 import { requiredInject } from '~/compositions/useInjectProvide';
 import { useLoadingOverlay } from '~/compositions/useLoadingOverlay';
 import useNotifications from '~/compositions/useNotifications';
 import { PipelineFilteredError } from '~/lib/api/client';
 import { usePaginate } from '~/compositions/usePaginate';
-import type { ManualWorkflow } from '~/lib/api/types';
+import type { ManualVariable, ManualWorkflow } from '~/lib/api/types';
 
 const props = defineProps<{
   open: boolean;
@@ -134,13 +127,26 @@ const loading = ref(false);
 const isSubmitting = ref(false);
 const hasFetchedBranches = ref(false);
 
-// Variables for evaluate filter
-const showVariables = ref(false);
-const variables = ref<Record<string, string>>({});
-const isVariablesValid = ref(true);
+// Variables derived from the selected workflows
+const variableValues = ref<Record<string, string>>({});
+
+const grouped = computed(() => groupManualVariables(workflows.value, selectedWorkflows.value));
+
+const requiredVariablesValid = computed(() =>
+  grouped.value.all.every((v) => !v.required || (variableValues.value[v.name] ?? '') !== ''),
+);
 
 const isFormValid = computed(() => {
-  return payload.value.branch !== '' && selectedWorkflows.value.size > 0 && isVariablesValid.value;
+  return payload.value.branch !== '' && selectedWorkflows.value.size > 0 && requiredVariablesValid.value;
+});
+
+// Seed defaults when the selection changes, preserving values the user already entered.
+watch(grouped, (g) => {
+  const next: Record<string, string> = {};
+  for (const v of g.all) {
+    next[v.name] = variableValues.value[v.name] ?? v.default ?? '';
+  }
+  variableValues.value = next;
 });
 
 // Fetch branches when dialog opens
@@ -210,6 +216,22 @@ watch(
   { immediate: true },
 );
 
+function buildPayloadFromVariables(vars: ManualVariable[]): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const v of vars) {
+    // Fall back to the declared default so quick-start works even when the
+    // workflow was never selected (and thus never seeded into variableValues).
+    const value = variableValues.value[v.name] ?? v.default ?? '';
+    if (value === '' && !v.required && !v.default) continue;
+    result[v.name] = value;
+  }
+  return result;
+}
+
+function buildVariablePayload(): Record<string, string> {
+  return buildPayloadFromVariables(grouped.value.all);
+}
+
 async function triggerManualPipeline() {
   if (selectedWorkflows.value.size === 0) {
     return;
@@ -221,7 +243,7 @@ async function triggerManualPipeline() {
     const pipeline = await overlay.withOverlay(i18n.t('loading_overlay.creating_pipeline'), () =>
       apiClient.createPipeline(repo.value.id, {
         branch: payload.value.branch,
-        variables: variables.value,
+        variables: buildVariablePayload(),
         workflows: [...selectedWorkflows.value],
       }),
     );
@@ -229,8 +251,7 @@ async function triggerManualPipeline() {
     emit('close');
 
     selectedWorkflows.value = new Set();
-    variables.value = {};
-    showVariables.value = false;
+    variableValues.value = {};
 
     await router.push({
       name: 'repo-pipeline',
@@ -267,19 +288,20 @@ async function triggerManualPipeline() {
 async function handleQuickStart(workflowName: string) {
   isSubmitting.value = true;
 
+  const workflow = workflows.value.find((w) => w.name === workflowName);
+
   try {
     const pipeline = await overlay.withOverlay(i18n.t('loading_overlay.creating_pipeline'), () =>
       apiClient.createPipeline(repo.value.id, {
         branch: payload.value.branch,
-        variables: variables.value,
+        variables: buildPayloadFromVariables(workflow?.variables ?? []),
         workflows: [workflowName],
       }),
     );
 
     emit('close');
 
-    variables.value = {};
-    showVariables.value = false;
+    variableValues.value = {};
 
     await router.push({
       name: 'repo-pipeline',

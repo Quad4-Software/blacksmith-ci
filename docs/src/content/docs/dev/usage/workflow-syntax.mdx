@@ -316,6 +316,37 @@ Advanced YAML features such as _anchors_ and _aliases_ are supported.
 
 For more details and examples see the [advanced usage](/dev/usage/advanced/) documentation.
 
+### Manual variables
+
+Workflows can declare variables that users set when triggering a pipeline manually.
+Declare them in the top-level `variables:` block.
+
+```yaml
+variables:
+  DEPLOY_ENV:
+    description: Target deployment environment
+    options: [staging, production]
+    default: staging
+    required: true
+  VERSION:
+    description: Release version tag
+    default: ''
+
+when:
+  - event: manual
+    evaluate: 'DEPLOY_ENV in ["staging", "production"]'
+```
+
+Each variable supports `description`, `options` (which render as a dropdown), `default`, and `required`.
+A plain scalar (`NAME: value`) is shorthand for a variable with only a default.
+
+Variables referenced in a [`when.evaluate`](#evaluate) expression are surfaced automatically even without a declaration.
+Their names are extracted, and simple `==` / `in` comparisons against string literals become dropdown options.
+Built-in `CI_*` variables and the deployment `task` selector are never offered.
+
+An explicit declaration always overrides what is auto-extracted.
+A variable used only via `$VAR` substitution in a command, and never in `evaluate`, must be declared here to be settable.
+
 ## when
 
 The `when:` defines the events when a workflow is triggered.

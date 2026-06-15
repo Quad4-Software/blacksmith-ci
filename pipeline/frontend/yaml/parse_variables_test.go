@@ -21,7 +21,86 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestParseVariableDefs(t *testing.T) {
+	t.Run("parses rich mapping form", func(t *testing.T) {
+		defs, err := ParseVariableDefsString(`
+variables:
+  DEPLOY_ENV:
+    description: Target env
+    options: [staging, production]
+    default: staging
+    required: true
+steps:
+  test:
+    image: golang
+`)
+		require.NoError(t, err)
+		assert.Equal(t, Variable{
+			Description: "Target env",
+			Options:     []string{"staging", "production"},
+			Default:     "staging",
+			Required:    true,
+		}, defs["DEPLOY_ENV"])
+	})
+
+	t.Run("parses scalar shorthand as default", func(t *testing.T) {
+		defs, err := ParseVariableDefsString(`
+variables:
+  FOO_VERSION: "3.12"
+`)
+		require.NoError(t, err)
+		assert.Equal(t, Variable{Default: "3.12"}, defs["FOO_VERSION"])
+	})
+
+	t.Run("ignores non-scalar non-mapping values", func(t *testing.T) {
+		defs, err := ParseVariableDefsString(`
+variables:
+  base_cmds: &base
+    - go version
+`)
+		require.NoError(t, err)
+		_, ok := defs["base_cmds"]
+		assert.False(t, ok)
+	})
+
+	t.Run("parses sparse mapping (required only)", func(t *testing.T) {
+		defs, err := ParseVariableDefsString(`
+variables:
+  DEPLOY_ENV:
+    required: true
+`)
+		require.NoError(t, err)
+		assert.Equal(t, Variable{Required: true}, defs["DEPLOY_ENV"])
+	})
+
+	t.Run("treats empty mapping as zero-value variable", func(t *testing.T) {
+		defs, err := ParseVariableDefsString(`
+variables:
+  DEPLOY_ENV: {}
+`)
+		require.NoError(t, err)
+		v, ok := defs["DEPLOY_ENV"]
+		require.True(t, ok)
+		assert.Equal(t, Variable{}, v)
+	})
+}
+
 func TestParseVariables(t *testing.T) {
+	t.Run("ParseVariables still returns name to default map", func(t *testing.T) {
+		vars, err := ParseVariablesString(`
+variables:
+  DEPLOY_ENV:
+    options: [staging, production]
+    default: staging
+  FOO_VERSION: "3.12"
+`)
+		require.NoError(t, err)
+		assert.Equal(t, map[string]string{
+			"DEPLOY_ENV":  "staging",
+			"FOO_VERSION": "3.12",
+		}, vars)
+	})
+
 	t.Run("extracts scalar string variables", func(t *testing.T) {
 		vars, err := ParseVariablesString(`
 variables:

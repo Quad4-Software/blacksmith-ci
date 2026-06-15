@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 
 	crow_jsonnet "codefloe.com/crowci/crow/v5/pipeline/frontend/jsonnet"
@@ -32,6 +33,7 @@ import (
 	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml"
 	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/constraint"
 	"codefloe.com/crowci/crow/v5/server"
+	"codefloe.com/crowci/crow/v5/server/forge"
 	forge_types "codefloe.com/crowci/crow/v5/server/forge/types"
 	"codefloe.com/crowci/crow/v5/server/model"
 	"codefloe.com/crowci/crow/v5/server/pipeline"
@@ -116,6 +118,14 @@ func CreatePipeline(ctx context.Context, input *CreatePipelineInput) (*CreatePip
 		return nil, forgeErr(err)
 	}
 
+	allowedVars, varErr := collectAllowedVariables(c, _forge, user, repo, input.Body.Branch, lastCommit.SHA, input.Body.Workflows)
+	if varErr != nil {
+		return nil, forgeErr(varErr)
+	}
+	if vErr := validateManualVariables(input.Body.Variables, allowedVars); vErr != nil {
+		return nil, huma.Error400BadRequest(vErr.Error())
+	}
+
 	pipelineOpts := &model.PipelineOptions{
 		Branch:    input.Body.Branch,
 		Variables: input.Body.Variables,
@@ -168,6 +178,73 @@ func createTmpPipeline(event model.WebhookEvent, commit *model.Commit, user *mod
 
 		ForgeURL: commit.ForgeURL,
 	}
+}
+
+// collectAllowedVariables returns the union of manual variables across the
+// selected workflows (all workflows if selectedWorkflows is empty), keyed by name.
+func collectAllowedVariables(
+	c *gin.Context,
+	_forge forge.Forge,
+	user *model.User,
+	repo *model.Repo,
+	branch string,
+	commitSHA string,
+	selectedWorkflows []string,
+) (map[string]yaml.ManualVariable, error) {
+	tmpPipeline := &model.Pipeline{
+		Event:  model.EventManual,
+		Commit: commitSHA,
+		Branch: branch,
+		Ref:    branch,
+	}
+	configService := server.Config.Services.Manager.ConfigServiceFromRepo(repo)
+	forgeYamlConfigs, err := configService.Fetch(c, _forge, user, repo, tmpPipeline, nil, false)
+	if err != nil {
+		return nil, err
+	}
+	forgeYamlConfigs, err = preprocessJsonnetConfigs(forgeYamlConfigs, repo, tmpPipeline, _forge)
+	if err != nil {
+		return nil, err
+	}
+
+	selected := make(map[string]bool, len(selectedWorkflows))
+	for _, name := range selectedWorkflows {
+		selected[name] = true
+	}
+
+	allowed := map[string]yaml.ManualVariable{}
+	for _, forgeConfig := range forgeYamlConfigs {
+		workflowName := stepbuilder.SanitizePath(forgeConfig.Name)
+		parsed, parseErr := yaml.ParseBytes(forgeConfig.Data)
+		if parseErr == nil && parsed.Name != "" {
+			workflowName = parsed.Name
+		}
+		explicitlySelected := selected[workflowName]
+		if len(selected) > 0 && !explicitlySelected {
+			continue
+		}
+		// A workflow the user explicitly selected must contribute its variables;
+		// failing silently here would bypass required-variable enforcement.
+		if parseErr != nil {
+			if explicitlySelected {
+				return nil, fmt.Errorf("failed to parse selected workflow %q: %w", forgeConfig.Name, parseErr)
+			}
+			log.Warn().Err(parseErr).Str("file", forgeConfig.Name).Msg("skipping unparseable workflow config for variable validation")
+			continue
+		}
+		vars, varErr := yaml.ExtractManualVariables(forgeConfig.Data)
+		if varErr != nil {
+			if explicitlySelected {
+				return nil, fmt.Errorf("failed to extract variables for selected workflow %q: %w", forgeConfig.Name, varErr)
+			}
+			log.Warn().Err(varErr).Str("file", forgeConfig.Name).Msg("skipping workflow with variable extraction error")
+			continue
+		}
+		for _, v := range vars {
+			allowed[v.Name] = v
+		}
+	}
+	return allowed, nil
 }
 
 type GetPipelinesInput struct {
@@ -523,10 +600,11 @@ func getConfigPipelineName(config *model.Config) string {
 
 // ManualWorkflow represents a workflow that can be manually triggered.
 type ManualWorkflow struct {
-	Name         string   `json:"name"`
-	PipelineName string   `json:"pipeline_name"`
-	DependsOn    []string `json:"depends_on,omitempty"`
-	HasManual    bool     `json:"has_manual"`
+	Name         string                `json:"name"`
+	PipelineName string                `json:"pipeline_name"`
+	DependsOn    []string              `json:"depends_on,omitempty"`
+	HasManual    bool                  `json:"has_manual"`
+	Variables    []yaml.ManualVariable `json:"variables,omitempty"`
 }
 
 // ManualWorkflowsResponse is the response for the GetManualWorkflows endpoint.
@@ -637,11 +715,18 @@ func GetRepoConfigs(ctx context.Context, input *GetRepoConfigsInput) (*GetRepoCo
 			Int("constraintCount", len(parsed.When.Constraints)).
 			Msg("checking workflow for manual trigger")
 
+		manualVars, varErr := yaml.ExtractManualVariables(forgeConfig.Data)
+		if varErr != nil {
+			log.Debug().Err(varErr).Str("file", forgeConfig.Name).Msg("error extracting manual variables")
+			manualVars = nil
+		}
+
 		wf := ManualWorkflow{
 			Name:         workflowName,
 			PipelineName: stepbuilder.SanitizePath(forgeConfig.Name),
 			DependsOn:    parsed.DependsOn,
 			HasManual:    hasManual,
+			Variables:    manualVars,
 		}
 
 		workflowMap[workflowName] = wf
