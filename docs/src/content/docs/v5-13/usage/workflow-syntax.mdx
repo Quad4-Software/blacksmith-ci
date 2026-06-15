@@ -102,6 +102,44 @@ Multiple workflows can be set up for a repository.
 Those will run independent of each other by default.
 To introduce a dependency among these, the `depends_on` keyword can be used with the workflow name (usually the name of the YAML file).
 
+## approval
+
+Block a workflow from running until a human approves it.
+The approval gate sits on top of `depends_on`: upstream workflows still need to complete, AND an authorized user has to approve.
+
+```yaml
+depends_on:
+  - build
+approval:
+  required: true              # required to enable the gate
+  approvers:                  # optional; if omitted, anyone with push permission may approve
+    users:
+      - alice                 # username on the repo's forge
+    teams:
+      - "myorg/admins"        # team slug on the repo's forge
+  timeout: 24h                # optional; defaults to CROW_APPROVAL_GATE_TIMEOUT_DEFAULT
+```
+
+When the upstream `build` workflow finishes, this workflow enters the `blocked` state.
+An approver clicks **Approve** in the UI (or runs `crow pipeline workflow approve`).
+The deployment then proceeds.
+If the timeout elapses without approval, the gate is auto-declined.
+
+Approver names are resolved in the context of the repo's forge.
+If a Crow user is linked to multiple forges with different usernames, the match is against the username on the forge that hosts this repo.
+
+The server caps `timeout` at `CROW_APPROVAL_GATE_TIMEOUT_MAX` (default 7d).
+YAML with a longer timeout fails lint.
+
+:::note
+Team approvers are resolved on forges with a team API: GitHub (via `Teams.ListUserTeams`) and GitLab (via subgroup membership).
+Listed on Gitea, Forgejo, Bitbucket, or Bitbucket Datacenter repos, team approvers will not match — only user-list approvers are honored on those forges.
+Matching is strict: YAML `parent/sub` does not match a user whose only membership is `parent`.
+On GitLab, the YAML path must equal the full group path including all intermediate subgroups (`parent/sub/leaf` matches the user only if they are an explicit member of `parent/sub/leaf`, not of an ancestor).
+:::
+
+See [Approval gates](/dev/usage/approvals/) for the full feature overview, including UI behaviour, CLI commands, and server configuration.
+
 ## labels
 
 Labels can be set for workflows.

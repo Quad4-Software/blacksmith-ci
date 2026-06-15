@@ -25,13 +25,13 @@ sequenceDiagram
 
 ## Supported Providers
 
-| Provider      | Configuration Reference                                                                        |
-| ------------- | ---------------------------------------------------------------------------------------------- |
-| AWS           | [flags.go](https://codefloe.com/crowci/autoscaler/src/branch/main/providers/aws/flags.go)      |
+| Provider      | Configuration Reference                                                                             |
+| ------------- | --------------------------------------------------------------------------------------------------- |
+| AWS           | [flags.go](https://codefloe.com/crowci/autoscaler/src/branch/main/providers/aws/flags.go)           |
 | Hetzner Cloud | [flags.go](https://codefloe.com/crowci/autoscaler/src/branch/main/providers/hetznercloud/flags.go)  |
-| Linode        | [flags.go](https://codefloe.com/crowci/autoscaler/src/branch/main/providers/linode/flags.go)   |
-| Scaleway      | [flags.go](https://codefloe.com/crowci/autoscaler/src/branch/main/providers/scaleway/flags.go) |
-| Vultr         | [flags.go](https://codefloe.com/crowci/autoscaler/src/branch/main/providers/vultr/flags.go)    |
+| Linode        | [flags.go](https://codefloe.com/crowci/autoscaler/src/branch/main/providers/linode/flags.go)        |
+| Scaleway      | [flags.go](https://codefloe.com/crowci/autoscaler/src/branch/main/providers/scaleway/flags.go)      |
+| Vultr         | [flags.go](https://codefloe.com/crowci/autoscaler/src/branch/main/providers/vultr/flags.go)         |
 
 Additional providers with a Go SDK can be added — contributions welcome!
 
@@ -50,6 +50,10 @@ Additional providers with a Go SDK can be added — contributions welcome!
 5. **Configure cloud provider** — set provider credentials and instance settings
 
 </Steps>
+
+:::tip
+Provisioning **Windows** VMs through the autoscaler? `CROW_AGENT_IMAGE` is treated as a URL to a `crow-agent_windows_amd64.zip` artifact, not a container image. See [Windows Agents](/dev/configuration/windows-agent) for the full picture, including recommended container images for your steps.
+:::
 
 ## Complete Example
 

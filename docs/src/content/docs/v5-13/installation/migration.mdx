@@ -91,6 +91,37 @@ version or fork. Migration will continue but review is recommended.
 
 This is informational — Crow will continue and apply its own migrations. Your data is preserved.
 
+## Database Backend Migration
+
+Switching from one database backend (e.g. SQLite) to another (e.g. PostgreSQL) is a separate concern from migrating between Crow and Woodpecker.
+The Crow server has no built-in command for this; the recommended approach is to start the new backend fresh and re-create the data you need, or to use a tool that preserves auto-increment semantics.
+
+:::caution[Avoid `pgloader` and similar generic tools]
+`pgloader` and other SQLite-to-PostgreSQL copy tools have repeatedly been observed to leave Crow's `id` columns as plain `bigint NOT NULL` instead of `bigint NOT NULL DEFAULT nextval('<table>_id_seq')`.
+The original SQLite database uses implicit ROWID autoincrement, which has no direct PostgreSQL analogue, and these tools do not always create a backing sequence — especially for tables that were empty at the time of the copy.
+
+Subsequent `INSERT`s then fail with:
+
+```
+ERROR: null value in column "id" of relation "<table>" violates not-null constraint (SQLSTATE 23502)
+```
+
+Crow detects this at startup and refuses to start until it's repaired.
+The startup error includes the exact `CREATE SEQUENCE` / `ALTER TABLE ... SET DEFAULT` SQL for each affected table.
+:::
+
+### Supported approaches
+
+<Steps>
+
+1. **Fresh start** (recommended for most users): point Crow at the new backend and let pipelines re-populate organically. Existing build history is lost, but no data corruption risks.
+
+2. **Backup-restore between identical backends**: `pg_dump`/`pg_restore` between two PostgreSQL instances, or copying the SQLite file directly.
+
+3. **If you must migrate across backends**: use a tool that explicitly creates and attaches sequences for every PK column, or apply the repair SQL surfaced by the startup check after the data copy.
+
+</Steps>
+
 ## From Drone
 
 Woodpecker forked from Drone in 2019, and Crow inherits that compatibility

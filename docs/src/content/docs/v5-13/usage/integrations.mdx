@@ -58,8 +58,13 @@ When configuring a Vault integration, provide the following settings:
 | **Auth Path**          | No       | Mount path for AppRole auth (default: `approle`)                       |
 | **Mount Path**         | No       | Secrets engine mount path (default: `secret`)                          |
 | **Namespace**          | No       | Vault Enterprise namespace (leave empty for OSS)                       |
+| **Timeout (seconds)**  | No       | HTTP timeout for Vault requests (auth + reads). Default: `30`. Raise this if your Vault server is reachable but slow (cold-start TLS handshakes, in-cluster DNS, etc.). |
 | **Skip TLS Verify**    | No       | Skip TLS certificate verification (not recommended for production)     |
 | **CA Certificate**     | No       | Custom CA certificate for TLS verification                             |
+
+:::tip
+If pipeline compilation fails with `secret store request timed out`, the Vault server is reachable but responded too slowly. Bump the **Timeout (seconds)** setting. A misleading `authentication failed: ... role_id or secret_id may be incorrect` was the previous symptom of the same root cause prior to v5.x — it has since been split into distinct error types so timeouts no longer masquerade as credential failures.
+:::
 
 ### AppRole Setup in Vault
 

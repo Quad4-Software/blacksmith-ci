@@ -312,6 +312,33 @@ Some options require explicit permission in agent configuration:
 - `CROW_BACKEND_K8S_SERVICE_ACCOUNT_NAME_ALLOW_FROM_STEP=true` for serviceAccountName
 :::
 
+#### Pod Security defaults
+
+For non-privileged steps Crow emits a container security context that satisfies most of the [Pod Security Standards `restricted` profile](https://kubernetes.io/docs/concepts/security/pod-security-standards/):
+
+- container `allowPrivilegeEscalation: false`
+- container `capabilities.drop: ["ALL"]`
+- pod `seccompProfile.type: RuntimeDefault`
+
+`runAsNonRoot` is intentionally not defaulted because it would break step images that run as root (UID 0).
+Enable it explicitly via `CROW_BACKEND_K8S_SECCTX_NONROOT=true` once your step images are confirmed non-root, or via per-step `securityContext.runAsNonRoot`.
+
+Steps that legitimately need a capability without going full `privileged: true` can add it back via `backend_options.kubernetes.securityContext.capabilities`:
+
+```yaml
+steps:
+  - name: serve
+    image: alpine
+    backend_options:
+      kubernetes:
+        securityContext:
+          capabilities:
+            add: ["NET_BIND_SERVICE"]
+```
+
+Setting `capabilities.drop` explicitly replaces the default `["ALL"]` drop list.
+Steps marked `privileged: true` skip the restricted defaults entirely.
+
 ### Local
 
 :::danger
@@ -400,6 +427,11 @@ Alpine images auto-rotate logs when `CROW_LOG_FILE` is set to a file path:
 | ---------------------------- | ----------- | ------------- |
 | `CROW_LOGROTATE_SCHEDULE`    | `0 0 * * *` | Cron schedule |
 | `CROW_LOGROTATE_RETAIN_DAYS` | `7`         | Days to keep  |
+
+## Process Logs
+
+Crow surfaces agent and autoscaler process logs in the UI under **Admin → Agents/Autoscalers → Logs**.
+See [Process Logs](/dev/usage/process-logs/) for details.
 
 ## External Config API
 
@@ -615,6 +647,19 @@ CROW_ENABLE_HA=true
 | `CROW_CRON_LOCK_TTL`  | `90s`   | Cron lock timeout  |
 
 With Helm, set `server.replicaCount > 1`.
+
+## Approval gates
+
+Workflow-level approval gates pause a pipeline mid-way until a human approves the next workflow.
+The server applies the following defaults and bounds.
+
+| Variable                             | Default | Description                                                       |
+| ------------------------------------ | ------- | ----------------------------------------------------------------- |
+| `CROW_APPROVAL_GATE_TIMEOUT_DEFAULT` | `24h`   | Default timeout when YAML omits `approval.timeout`.               |
+| `CROW_APPROVAL_GATE_TIMEOUT_MAX`     | `168h`  | Hard upper bound; YAML values above fail lint.                    |
+| `CROW_APPROVAL_GATE_SWEEP_INTERVAL`  | `30s`   | How often the timeout sweeper runs (min 5s).                      |
+
+See [Approval gates](/dev/usage/approvals/) for the feature overview.
 
 ## Email Notifications
 
