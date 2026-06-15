@@ -16,7 +16,7 @@ labels:
 
 steps:
   - name: 'Check version type'
-    image: reg.devxy.io/docker.io/library/alpine:3.23
+    image: reg.devxy.io/docker.io/library/alpine:3.24
     pull: true
     commands:
       - apk add --no-cache -q jq git

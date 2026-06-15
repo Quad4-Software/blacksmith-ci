@@ -15,7 +15,7 @@ labels:
 
 steps:
   - name: 'Update dev version hash'
-    image: reg.devxy.io/docker.io/library/alpine:3.23
+    image: reg.devxy.io/docker.io/library/alpine:3.24
     commands:
       - apk add --no-cache -q yq curl
       - |
@@ -29,7 +29,7 @@ steps:
 
   # used by Crow to make checks for outdated versions
   - name: 'Update release version hash'
-    image: reg.devxy.io/docker.io/library/alpine:3.23
+    image: reg.devxy.io/docker.io/library/alpine:3.24
     commands:
       - apk add --no-cache -q yq
       - |
@@ -47,7 +47,7 @@ steps:
       - event: tag
 
   - name: 'Generate versions.json for CLI update check'
-    image: reg.devxy.io/docker.io/library/alpine:3.23
+    image: reg.devxy.io/docker.io/library/alpine:3.24
     commands:
       - apk add --no-cache -q jq
       - |
