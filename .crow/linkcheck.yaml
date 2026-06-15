@@ -1,0 +1,26 @@
+when:
+  - event: pull_request
+    path: ['docs/**', '.crow/linkcheck.yaml']
+  - event: cron
+    cron: linkcheck
+
+labels:
+  agent: thumper
+
+steps:
+  - name: lychee
+    image: reg.devxy.io/docker.io/lycheeverse/lychee:0.24.2
+    commands:
+      - |
+        lychee \
+          --root-dir "$${CI_WORKSPACE}" \
+          --scheme https \
+          --scheme http \
+          --max-retries 3 \
+          --retry-wait-time 5 \
+          --accept '200,429' \
+          --exclude-all-private \
+          --exclude 'example\.(com|org)' \
+          --exclude 'gitlab\.com/-/user_settings' \
+          --no-progress \
+          'docs/src/content/**/*.mdx'
