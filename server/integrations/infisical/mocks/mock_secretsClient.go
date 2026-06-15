@@ -69,7 +69,7 @@ type mocksecretsClient_Retrieve_Call struct {
 
 // Retrieve is a helper method to define mock.On call
 //   - options infisical.RetrieveSecretOptions
-func (_e *mocksecretsClient_Expecter) Retrieve(options interface{}) *mocksecretsClient_Retrieve_Call {
+func (_e *mocksecretsClient_Expecter) Retrieve(options any) *mocksecretsClient_Retrieve_Call {
 	return &mocksecretsClient_Retrieve_Call{Call: _e.mock.On("Retrieve", options)}
 }
 

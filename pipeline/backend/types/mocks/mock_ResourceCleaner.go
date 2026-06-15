@@ -75,7 +75,7 @@ type MockResourceCleaner_CleanupStaleResources_Call struct {
 // CleanupStaleResources is a helper method to define mock.On call
 //   - ctx context.Context
 //   - staleThreshold time.Duration
-func (_e *MockResourceCleaner_Expecter) CleanupStaleResources(ctx interface{}, staleThreshold interface{}) *MockResourceCleaner_CleanupStaleResources_Call {
+func (_e *MockResourceCleaner_Expecter) CleanupStaleResources(ctx any, staleThreshold any) *MockResourceCleaner_CleanupStaleResources_Call {
 	return &MockResourceCleaner_CleanupStaleResources_Call{Call: _e.mock.On("CleanupStaleResources", ctx, staleThreshold)}
 }
 

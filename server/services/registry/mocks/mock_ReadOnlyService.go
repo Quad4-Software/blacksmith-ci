@@ -71,7 +71,7 @@ type MockReadOnlyService_GlobalRegistryFind_Call struct {
 
 // GlobalRegistryFind is a helper method to define mock.On call
 //   - s string
-func (_e *MockReadOnlyService_Expecter) GlobalRegistryFind(s interface{}) *MockReadOnlyService_GlobalRegistryFind_Call {
+func (_e *MockReadOnlyService_Expecter) GlobalRegistryFind(s any) *MockReadOnlyService_GlobalRegistryFind_Call {
 	return &MockReadOnlyService_GlobalRegistryFind_Call{Call: _e.mock.On("GlobalRegistryFind", s)}
 }
 
@@ -133,7 +133,7 @@ type MockReadOnlyService_GlobalRegistryList_Call struct {
 
 // GlobalRegistryList is a helper method to define mock.On call
 //   - listOptions *model.ListOptions
-func (_e *MockReadOnlyService_Expecter) GlobalRegistryList(listOptions interface{}) *MockReadOnlyService_GlobalRegistryList_Call {
+func (_e *MockReadOnlyService_Expecter) GlobalRegistryList(listOptions any) *MockReadOnlyService_GlobalRegistryList_Call {
 	return &MockReadOnlyService_GlobalRegistryList_Call{Call: _e.mock.On("GlobalRegistryList", listOptions)}
 }
 

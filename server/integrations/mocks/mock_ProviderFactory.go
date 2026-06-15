@@ -72,7 +72,7 @@ type MockProviderFactory_Create_Call struct {
 
 // Create is a helper method to define mock.On call
 //   - integration *model.Integration
-func (_e *MockProviderFactory_Expecter) Create(integration interface{}) *MockProviderFactory_Create_Call {
+func (_e *MockProviderFactory_Expecter) Create(integration any) *MockProviderFactory_Create_Call {
 	return &MockProviderFactory_Create_Call{Call: _e.mock.On("Create", integration)}
 }
 

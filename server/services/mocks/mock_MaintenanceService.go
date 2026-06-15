@@ -167,7 +167,7 @@ type MockMaintenanceService_GetMaintenanceConfigByAction_Call struct {
 
 // GetMaintenanceConfigByAction is a helper method to define mock.On call
 //   - actionType string
-func (_e *MockMaintenanceService_Expecter) GetMaintenanceConfigByAction(actionType interface{}) *MockMaintenanceService_GetMaintenanceConfigByAction_Call {
+func (_e *MockMaintenanceService_Expecter) GetMaintenanceConfigByAction(actionType any) *MockMaintenanceService_GetMaintenanceConfigByAction_Call {
 	return &MockMaintenanceService_GetMaintenanceConfigByAction_Call{Call: _e.mock.On("GetMaintenanceConfigByAction", actionType)}
 }
 
@@ -495,7 +495,7 @@ type MockMaintenanceService_RecordDockerCleanupResult_Call struct {
 //   - agentID int64
 //   - agentName string
 //   - result rpc.DockerCleanupResult
-func (_e *MockMaintenanceService_Expecter) RecordDockerCleanupResult(agentID interface{}, agentName interface{}, result interface{}) *MockMaintenanceService_RecordDockerCleanupResult_Call {
+func (_e *MockMaintenanceService_Expecter) RecordDockerCleanupResult(agentID any, agentName any, result any) *MockMaintenanceService_RecordDockerCleanupResult_Call {
 	return &MockMaintenanceService_RecordDockerCleanupResult_Call{Call: _e.mock.On("RecordDockerCleanupResult", agentID, agentName, result)}
 }
 
@@ -557,7 +557,7 @@ type MockMaintenanceService_RunKubernetesCleanup_Call struct {
 // RunKubernetesCleanup is a helper method to define mock.On call
 //   - ctx context.Context
 //   - dryRun bool
-func (_e *MockMaintenanceService_Expecter) RunKubernetesCleanup(ctx interface{}, dryRun interface{}) *MockMaintenanceService_RunKubernetesCleanup_Call {
+func (_e *MockMaintenanceService_Expecter) RunKubernetesCleanup(ctx any, dryRun any) *MockMaintenanceService_RunKubernetesCleanup_Call {
 	return &MockMaintenanceService_RunKubernetesCleanup_Call{Call: _e.mock.On("RunKubernetesCleanup", ctx, dryRun)}
 }
 
@@ -613,7 +613,7 @@ type MockMaintenanceService_RunMaintenance_Call struct {
 
 // RunMaintenance is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *MockMaintenanceService_Expecter) RunMaintenance(ctx interface{}) *MockMaintenanceService_RunMaintenance_Call {
+func (_e *MockMaintenanceService_Expecter) RunMaintenance(ctx any) *MockMaintenanceService_RunMaintenance_Call {
 	return &MockMaintenanceService_RunMaintenance_Call{Call: _e.mock.On("RunMaintenance", ctx)}
 }
 
@@ -665,7 +665,7 @@ type MockMaintenanceService_RunOrphanedDataCleanup_Call struct {
 // RunOrphanedDataCleanup is a helper method to define mock.On call
 //   - ctx context.Context
 //   - dryRun bool
-func (_e *MockMaintenanceService_Expecter) RunOrphanedDataCleanup(ctx interface{}, dryRun interface{}) *MockMaintenanceService_RunOrphanedDataCleanup_Call {
+func (_e *MockMaintenanceService_Expecter) RunOrphanedDataCleanup(ctx any, dryRun any) *MockMaintenanceService_RunOrphanedDataCleanup_Call {
 	return &MockMaintenanceService_RunOrphanedDataCleanup_Call{Call: _e.mock.On("RunOrphanedDataCleanup", ctx, dryRun)}
 }
 
@@ -722,7 +722,7 @@ type MockMaintenanceService_RunStaleAgentCleanup_Call struct {
 // RunStaleAgentCleanup is a helper method to define mock.On call
 //   - ctx context.Context
 //   - staleDuration time.Duration
-func (_e *MockMaintenanceService_Expecter) RunStaleAgentCleanup(ctx interface{}, staleDuration interface{}) *MockMaintenanceService_RunStaleAgentCleanup_Call {
+func (_e *MockMaintenanceService_Expecter) RunStaleAgentCleanup(ctx any, staleDuration any) *MockMaintenanceService_RunStaleAgentCleanup_Call {
 	return &MockMaintenanceService_RunStaleAgentCleanup_Call{Call: _e.mock.On("RunStaleAgentCleanup", ctx, staleDuration)}
 }
 
@@ -767,7 +767,7 @@ type MockMaintenanceService_SetDockerCleanupAvailable_Call struct {
 
 // SetDockerCleanupAvailable is a helper method to define mock.On call
 //   - available bool
-func (_e *MockMaintenanceService_Expecter) SetDockerCleanupAvailable(available interface{}) *MockMaintenanceService_SetDockerCleanupAvailable_Call {
+func (_e *MockMaintenanceService_Expecter) SetDockerCleanupAvailable(available any) *MockMaintenanceService_SetDockerCleanupAvailable_Call {
 	return &MockMaintenanceService_SetDockerCleanupAvailable_Call{Call: _e.mock.On("SetDockerCleanupAvailable", available)}
 }
 
@@ -840,7 +840,7 @@ type MockMaintenanceService_SetKubernetesCleanupEnabled_Call struct {
 
 // SetKubernetesCleanupEnabled is a helper method to define mock.On call
 //   - enabled bool
-func (_e *MockMaintenanceService_Expecter) SetKubernetesCleanupEnabled(enabled interface{}) *MockMaintenanceService_SetKubernetesCleanupEnabled_Call {
+func (_e *MockMaintenanceService_Expecter) SetKubernetesCleanupEnabled(enabled any) *MockMaintenanceService_SetKubernetesCleanupEnabled_Call {
 	return &MockMaintenanceService_SetKubernetesCleanupEnabled_Call{Call: _e.mock.On("SetKubernetesCleanupEnabled", enabled)}
 }
 
@@ -880,7 +880,7 @@ type MockMaintenanceService_SetKubernetesCleanupFunc_Call struct {
 
 // SetKubernetesCleanupFunc is a helper method to define mock.On call
 //   - f func(ctx context.Context, dryRun bool) error
-func (_e *MockMaintenanceService_Expecter) SetKubernetesCleanupFunc(f interface{}) *MockMaintenanceService_SetKubernetesCleanupFunc_Call {
+func (_e *MockMaintenanceService_Expecter) SetKubernetesCleanupFunc(f any) *MockMaintenanceService_SetKubernetesCleanupFunc_Call {
 	return &MockMaintenanceService_SetKubernetesCleanupFunc_Call{Call: _e.mock.On("SetKubernetesCleanupFunc", f)}
 }
 
@@ -920,7 +920,7 @@ type MockMaintenanceService_SetKubernetesEnvVarsConfigured_Call struct {
 
 // SetKubernetesEnvVarsConfigured is a helper method to define mock.On call
 //   - k8sEnvVarsSet bool
-func (_e *MockMaintenanceService_Expecter) SetKubernetesEnvVarsConfigured(k8sEnvVarsSet interface{}) *MockMaintenanceService_SetKubernetesEnvVarsConfigured_Call {
+func (_e *MockMaintenanceService_Expecter) SetKubernetesEnvVarsConfigured(k8sEnvVarsSet any) *MockMaintenanceService_SetKubernetesEnvVarsConfigured_Call {
 	return &MockMaintenanceService_SetKubernetesEnvVarsConfigured_Call{Call: _e.mock.On("SetKubernetesEnvVarsConfigured", k8sEnvVarsSet)}
 }
 
@@ -960,7 +960,7 @@ type MockMaintenanceService_SetOrphanedDataEnvVarsConfigured_Call struct {
 
 // SetOrphanedDataEnvVarsConfigured is a helper method to define mock.On call
 //   - orphanEnvVarsSet bool
-func (_e *MockMaintenanceService_Expecter) SetOrphanedDataEnvVarsConfigured(orphanEnvVarsSet interface{}) *MockMaintenanceService_SetOrphanedDataEnvVarsConfigured_Call {
+func (_e *MockMaintenanceService_Expecter) SetOrphanedDataEnvVarsConfigured(orphanEnvVarsSet any) *MockMaintenanceService_SetOrphanedDataEnvVarsConfigured_Call {
 	return &MockMaintenanceService_SetOrphanedDataEnvVarsConfigured_Call{Call: _e.mock.On("SetOrphanedDataEnvVarsConfigured", orphanEnvVarsSet)}
 }
 
@@ -1000,7 +1000,7 @@ type MockMaintenanceService_SetVacuumEnvVarsConfigured_Call struct {
 
 // SetVacuumEnvVarsConfigured is a helper method to define mock.On call
 //   - vacuumEnvVarsSet bool
-func (_e *MockMaintenanceService_Expecter) SetVacuumEnvVarsConfigured(vacuumEnvVarsSet interface{}) *MockMaintenanceService_SetVacuumEnvVarsConfigured_Call {
+func (_e *MockMaintenanceService_Expecter) SetVacuumEnvVarsConfigured(vacuumEnvVarsSet any) *MockMaintenanceService_SetVacuumEnvVarsConfigured_Call {
 	return &MockMaintenanceService_SetVacuumEnvVarsConfigured_Call{Call: _e.mock.On("SetVacuumEnvVarsConfigured", vacuumEnvVarsSet)}
 }
 
@@ -1051,7 +1051,7 @@ type MockMaintenanceService_UpdateMaintenanceConfig_Call struct {
 
 // UpdateMaintenanceConfig is a helper method to define mock.On call
 //   - config *model.MaintenanceConfig
-func (_e *MockMaintenanceService_Expecter) UpdateMaintenanceConfig(config interface{}) *MockMaintenanceService_UpdateMaintenanceConfig_Call {
+func (_e *MockMaintenanceService_Expecter) UpdateMaintenanceConfig(config any) *MockMaintenanceService_UpdateMaintenanceConfig_Call {
 	return &MockMaintenanceService_UpdateMaintenanceConfig_Call{Call: _e.mock.On("UpdateMaintenanceConfig", config)}
 }
 
@@ -1103,7 +1103,7 @@ type MockMaintenanceService_UpdateMaintenanceConfigByAction_Call struct {
 // UpdateMaintenanceConfigByAction is a helper method to define mock.On call
 //   - actionType string
 //   - config *model.MaintenanceConfig
-func (_e *MockMaintenanceService_Expecter) UpdateMaintenanceConfigByAction(actionType interface{}, config interface{}) *MockMaintenanceService_UpdateMaintenanceConfigByAction_Call {
+func (_e *MockMaintenanceService_Expecter) UpdateMaintenanceConfigByAction(actionType any, config any) *MockMaintenanceService_UpdateMaintenanceConfigByAction_Call {
 	return &MockMaintenanceService_UpdateMaintenanceConfigByAction_Call{Call: _e.mock.On("UpdateMaintenanceConfigByAction", actionType, config)}
 }
 

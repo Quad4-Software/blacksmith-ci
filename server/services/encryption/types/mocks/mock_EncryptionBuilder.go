@@ -106,7 +106,7 @@ type MockEncryptionBuilder_WithClient_Call struct {
 
 // WithClient is a helper method to define mock.On call
 //   - client types.EncryptionClient
-func (_e *MockEncryptionBuilder_Expecter) WithClient(client interface{}) *MockEncryptionBuilder_WithClient_Call {
+func (_e *MockEncryptionBuilder_Expecter) WithClient(client any) *MockEncryptionBuilder_WithClient_Call {
 	return &MockEncryptionBuilder_WithClient_Call{Call: _e.mock.On("WithClient", client)}
 }
 

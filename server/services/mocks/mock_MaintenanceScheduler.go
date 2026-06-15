@@ -181,7 +181,7 @@ type MockMaintenanceScheduler_UpdateSchedule_Call struct {
 // UpdateSchedule is a helper method to define mock.On call
 //   - schedule string
 //   - enabled bool
-func (_e *MockMaintenanceScheduler_Expecter) UpdateSchedule(schedule interface{}, enabled interface{}) *MockMaintenanceScheduler_UpdateSchedule_Call {
+func (_e *MockMaintenanceScheduler_Expecter) UpdateSchedule(schedule any, enabled any) *MockMaintenanceScheduler_UpdateSchedule_Call {
 	return &MockMaintenanceScheduler_UpdateSchedule_Call{Call: _e.mock.On("UpdateSchedule", schedule, enabled)}
 }
 

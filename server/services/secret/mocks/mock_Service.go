@@ -60,7 +60,7 @@ type MockService_GlobalSecretCreate_Call struct {
 
 // GlobalSecretCreate is a helper method to define mock.On call
 //   - secret *model.Secret
-func (_e *MockService_Expecter) GlobalSecretCreate(secret interface{}) *MockService_GlobalSecretCreate_Call {
+func (_e *MockService_Expecter) GlobalSecretCreate(secret any) *MockService_GlobalSecretCreate_Call {
 	return &MockService_GlobalSecretCreate_Call{Call: _e.mock.On("GlobalSecretCreate", secret)}
 }
 
@@ -111,7 +111,7 @@ type MockService_GlobalSecretDelete_Call struct {
 
 // GlobalSecretDelete is a helper method to define mock.On call
 //   - s string
-func (_e *MockService_Expecter) GlobalSecretDelete(s interface{}) *MockService_GlobalSecretDelete_Call {
+func (_e *MockService_Expecter) GlobalSecretDelete(s any) *MockService_GlobalSecretDelete_Call {
 	return &MockService_GlobalSecretDelete_Call{Call: _e.mock.On("GlobalSecretDelete", s)}
 }
 
@@ -173,7 +173,7 @@ type MockService_GlobalSecretFind_Call struct {
 
 // GlobalSecretFind is a helper method to define mock.On call
 //   - s string
-func (_e *MockService_Expecter) GlobalSecretFind(s interface{}) *MockService_GlobalSecretFind_Call {
+func (_e *MockService_Expecter) GlobalSecretFind(s any) *MockService_GlobalSecretFind_Call {
 	return &MockService_GlobalSecretFind_Call{Call: _e.mock.On("GlobalSecretFind", s)}
 }
 
@@ -235,7 +235,7 @@ type MockService_GlobalSecretList_Call struct {
 
 // GlobalSecretList is a helper method to define mock.On call
 //   - listOptions *model.ListOptions
-func (_e *MockService_Expecter) GlobalSecretList(listOptions interface{}) *MockService_GlobalSecretList_Call {
+func (_e *MockService_Expecter) GlobalSecretList(listOptions any) *MockService_GlobalSecretList_Call {
 	return &MockService_GlobalSecretList_Call{Call: _e.mock.On("GlobalSecretList", listOptions)}
 }
 
@@ -286,7 +286,7 @@ type MockService_GlobalSecretUpdate_Call struct {
 
 // GlobalSecretUpdate is a helper method to define mock.On call
 //   - secret *model.Secret
-func (_e *MockService_Expecter) GlobalSecretUpdate(secret interface{}) *MockService_GlobalSecretUpdate_Call {
+func (_e *MockService_Expecter) GlobalSecretUpdate(secret any) *MockService_GlobalSecretUpdate_Call {
 	return &MockService_GlobalSecretUpdate_Call{Call: _e.mock.On("GlobalSecretUpdate", secret)}
 }
 
@@ -338,7 +338,7 @@ type MockService_OrgSecretCreate_Call struct {
 // OrgSecretCreate is a helper method to define mock.On call
 //   - n int64
 //   - secret *model.Secret
-func (_e *MockService_Expecter) OrgSecretCreate(n interface{}, secret interface{}) *MockService_OrgSecretCreate_Call {
+func (_e *MockService_Expecter) OrgSecretCreate(n any, secret any) *MockService_OrgSecretCreate_Call {
 	return &MockService_OrgSecretCreate_Call{Call: _e.mock.On("OrgSecretCreate", n, secret)}
 }
 
@@ -395,7 +395,7 @@ type MockService_OrgSecretDelete_Call struct {
 // OrgSecretDelete is a helper method to define mock.On call
 //   - n int64
 //   - s string
-func (_e *MockService_Expecter) OrgSecretDelete(n interface{}, s interface{}) *MockService_OrgSecretDelete_Call {
+func (_e *MockService_Expecter) OrgSecretDelete(n any, s any) *MockService_OrgSecretDelete_Call {
 	return &MockService_OrgSecretDelete_Call{Call: _e.mock.On("OrgSecretDelete", n, s)}
 }
 
@@ -463,7 +463,7 @@ type MockService_OrgSecretFind_Call struct {
 // OrgSecretFind is a helper method to define mock.On call
 //   - n int64
 //   - s string
-func (_e *MockService_Expecter) OrgSecretFind(n interface{}, s interface{}) *MockService_OrgSecretFind_Call {
+func (_e *MockService_Expecter) OrgSecretFind(n any, s any) *MockService_OrgSecretFind_Call {
 	return &MockService_OrgSecretFind_Call{Call: _e.mock.On("OrgSecretFind", n, s)}
 }
 
@@ -531,7 +531,7 @@ type MockService_OrgSecretList_Call struct {
 // OrgSecretList is a helper method to define mock.On call
 //   - n int64
 //   - listOptions *model.ListOptions
-func (_e *MockService_Expecter) OrgSecretList(n interface{}, listOptions interface{}) *MockService_OrgSecretList_Call {
+func (_e *MockService_Expecter) OrgSecretList(n any, listOptions any) *MockService_OrgSecretList_Call {
 	return &MockService_OrgSecretList_Call{Call: _e.mock.On("OrgSecretList", n, listOptions)}
 }
 
@@ -588,7 +588,7 @@ type MockService_OrgSecretUpdate_Call struct {
 // OrgSecretUpdate is a helper method to define mock.On call
 //   - n int64
 //   - secret *model.Secret
-func (_e *MockService_Expecter) OrgSecretUpdate(n interface{}, secret interface{}) *MockService_OrgSecretUpdate_Call {
+func (_e *MockService_Expecter) OrgSecretUpdate(n any, secret any) *MockService_OrgSecretUpdate_Call {
 	return &MockService_OrgSecretUpdate_Call{Call: _e.mock.On("OrgSecretUpdate", n, secret)}
 }
 
@@ -645,7 +645,7 @@ type MockService_SecretCreate_Call struct {
 // SecretCreate is a helper method to define mock.On call
 //   - repo *model.Repo
 //   - secret *model.Secret
-func (_e *MockService_Expecter) SecretCreate(repo interface{}, secret interface{}) *MockService_SecretCreate_Call {
+func (_e *MockService_Expecter) SecretCreate(repo any, secret any) *MockService_SecretCreate_Call {
 	return &MockService_SecretCreate_Call{Call: _e.mock.On("SecretCreate", repo, secret)}
 }
 
@@ -702,7 +702,7 @@ type MockService_SecretDelete_Call struct {
 // SecretDelete is a helper method to define mock.On call
 //   - repo *model.Repo
 //   - s string
-func (_e *MockService_Expecter) SecretDelete(repo interface{}, s interface{}) *MockService_SecretDelete_Call {
+func (_e *MockService_Expecter) SecretDelete(repo any, s any) *MockService_SecretDelete_Call {
 	return &MockService_SecretDelete_Call{Call: _e.mock.On("SecretDelete", repo, s)}
 }
 
@@ -770,7 +770,7 @@ type MockService_SecretFind_Call struct {
 // SecretFind is a helper method to define mock.On call
 //   - repo *model.Repo
 //   - s string
-func (_e *MockService_Expecter) SecretFind(repo interface{}, s interface{}) *MockService_SecretFind_Call {
+func (_e *MockService_Expecter) SecretFind(repo any, s any) *MockService_SecretFind_Call {
 	return &MockService_SecretFind_Call{Call: _e.mock.On("SecretFind", repo, s)}
 }
 
@@ -838,7 +838,7 @@ type MockService_SecretList_Call struct {
 // SecretList is a helper method to define mock.On call
 //   - repo *model.Repo
 //   - listOptions *model.ListOptions
-func (_e *MockService_Expecter) SecretList(repo interface{}, listOptions interface{}) *MockService_SecretList_Call {
+func (_e *MockService_Expecter) SecretList(repo any, listOptions any) *MockService_SecretList_Call {
 	return &MockService_SecretList_Call{Call: _e.mock.On("SecretList", repo, listOptions)}
 }
 
@@ -906,7 +906,7 @@ type MockService_SecretListPipeline_Call struct {
 // SecretListPipeline is a helper method to define mock.On call
 //   - repo *model.Repo
 //   - pipeline *model.Pipeline
-func (_e *MockService_Expecter) SecretListPipeline(repo interface{}, pipeline interface{}) *MockService_SecretListPipeline_Call {
+func (_e *MockService_Expecter) SecretListPipeline(repo any, pipeline any) *MockService_SecretListPipeline_Call {
 	return &MockService_SecretListPipeline_Call{Call: _e.mock.On("SecretListPipeline", repo, pipeline)}
 }
 
@@ -964,7 +964,7 @@ type MockService_SecretTargetCreate_Call struct {
 //   - secretID int64
 //   - orgID int64
 //   - repoID int64
-func (_e *MockService_Expecter) SecretTargetCreate(secretID interface{}, orgID interface{}, repoID interface{}) *MockService_SecretTargetCreate_Call {
+func (_e *MockService_Expecter) SecretTargetCreate(secretID any, orgID any, repoID any) *MockService_SecretTargetCreate_Call {
 	return &MockService_SecretTargetCreate_Call{Call: _e.mock.On("SecretTargetCreate", secretID, orgID, repoID)}
 }
 
@@ -1027,7 +1027,7 @@ type MockService_SecretTargetDelete_Call struct {
 //   - secretID int64
 //   - orgID int64
 //   - repoID int64
-func (_e *MockService_Expecter) SecretTargetDelete(secretID interface{}, orgID interface{}, repoID interface{}) *MockService_SecretTargetDelete_Call {
+func (_e *MockService_Expecter) SecretTargetDelete(secretID any, orgID any, repoID any) *MockService_SecretTargetDelete_Call {
 	return &MockService_SecretTargetDelete_Call{Call: _e.mock.On("SecretTargetDelete", secretID, orgID, repoID)}
 }
 
@@ -1099,7 +1099,7 @@ type MockService_SecretTargetList_Call struct {
 
 // SecretTargetList is a helper method to define mock.On call
 //   - secretID int64
-func (_e *MockService_Expecter) SecretTargetList(secretID interface{}) *MockService_SecretTargetList_Call {
+func (_e *MockService_Expecter) SecretTargetList(secretID any) *MockService_SecretTargetList_Call {
 	return &MockService_SecretTargetList_Call{Call: _e.mock.On("SecretTargetList", secretID)}
 }
 
@@ -1153,7 +1153,7 @@ type MockService_SecretTransferOwner_Call struct {
 //   - newOrgID int64
 //   - newRepoID int64
 //   - keepOldOwnerAsTarget bool
-func (_e *MockService_Expecter) SecretTransferOwner(secretID interface{}, newOrgID interface{}, newRepoID interface{}, keepOldOwnerAsTarget interface{}) *MockService_SecretTransferOwner_Call {
+func (_e *MockService_Expecter) SecretTransferOwner(secretID any, newOrgID any, newRepoID any, keepOldOwnerAsTarget any) *MockService_SecretTransferOwner_Call {
 	return &MockService_SecretTransferOwner_Call{Call: _e.mock.On("SecretTransferOwner", secretID, newOrgID, newRepoID, keepOldOwnerAsTarget)}
 }
 
@@ -1220,7 +1220,7 @@ type MockService_SecretUpdate_Call struct {
 // SecretUpdate is a helper method to define mock.On call
 //   - repo *model.Repo
 //   - secret *model.Secret
-func (_e *MockService_Expecter) SecretUpdate(repo interface{}, secret interface{}) *MockService_SecretUpdate_Call {
+func (_e *MockService_Expecter) SecretUpdate(repo any, secret any) *MockService_SecretUpdate_Call {
 	return &MockService_SecretUpdate_Call{Call: _e.mock.On("SecretUpdate", repo, secret)}
 }
 

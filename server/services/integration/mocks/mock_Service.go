@@ -66,7 +66,7 @@ type MockService_CheckAccess_Call struct {
 //   - userID int64
 //   - orgID int64
 //   - repoID int64
-func (_e *MockService_Expecter) CheckAccess(integration interface{}, userID interface{}, orgID interface{}, repoID interface{}) *MockService_CheckAccess_Call {
+func (_e *MockService_Expecter) CheckAccess(integration any, userID any, orgID any, repoID any) *MockService_CheckAccess_Call {
 	return &MockService_CheckAccess_Call{Call: _e.mock.On("CheckAccess", integration, userID, orgID, repoID)}
 }
 
@@ -179,7 +179,7 @@ type MockService_FetchSecret_Call struct {
 //   - orgID int64
 //   - repoID int64
 //   - pipelineID int64
-func (_e *MockService_Expecter) FetchSecret(ctx interface{}, ref interface{}, userID interface{}, orgID interface{}, repoID interface{}, pipelineID interface{}) *MockService_FetchSecret_Call {
+func (_e *MockService_Expecter) FetchSecret(ctx any, ref any, userID any, orgID any, repoID any, pipelineID any) *MockService_FetchSecret_Call {
 	return &MockService_FetchSecret_Call{Call: _e.mock.On("FetchSecret", ctx, ref, userID, orgID, repoID, pipelineID)}
 }
 
@@ -271,7 +271,7 @@ type MockService_FetchSecretsBatch_Call struct {
 //   - orgID int64
 //   - repoID int64
 //   - pipelineID int64
-func (_e *MockService_Expecter) FetchSecretsBatch(ctx interface{}, refs interface{}, userID interface{}, orgID interface{}, repoID interface{}, pipelineID interface{}) *MockService_FetchSecretsBatch_Call {
+func (_e *MockService_Expecter) FetchSecretsBatch(ctx any, refs any, userID any, orgID any, repoID any, pipelineID any) *MockService_FetchSecretsBatch_Call {
 	return &MockService_FetchSecretsBatch_Call{Call: _e.mock.On("FetchSecretsBatch", ctx, refs, userID, orgID, repoID, pipelineID)}
 }
 
@@ -360,7 +360,7 @@ type MockService_GetProvider_Call struct {
 //   - ctx context.Context
 //   - integrationID int64
 //   - pipelineID int64
-func (_e *MockService_Expecter) GetProvider(ctx interface{}, integrationID interface{}, pipelineID interface{}) *MockService_GetProvider_Call {
+func (_e *MockService_Expecter) GetProvider(ctx any, integrationID any, pipelineID any) *MockService_GetProvider_Call {
 	return &MockService_GetProvider_Call{Call: _e.mock.On("GetProvider", ctx, integrationID, pipelineID)}
 }
 
@@ -421,7 +421,7 @@ type MockService_IntegrationCreate_Call struct {
 
 // IntegrationCreate is a helper method to define mock.On call
 //   - integration *model.Integration
-func (_e *MockService_Expecter) IntegrationCreate(integration interface{}) *MockService_IntegrationCreate_Call {
+func (_e *MockService_Expecter) IntegrationCreate(integration any) *MockService_IntegrationCreate_Call {
 	return &MockService_IntegrationCreate_Call{Call: _e.mock.On("IntegrationCreate", integration)}
 }
 
@@ -473,7 +473,7 @@ type MockService_IntegrationDelete_Call struct {
 // IntegrationDelete is a helper method to define mock.On call
 //   - userID int64
 //   - integrationID int64
-func (_e *MockService_Expecter) IntegrationDelete(userID interface{}, integrationID interface{}) *MockService_IntegrationDelete_Call {
+func (_e *MockService_Expecter) IntegrationDelete(userID any, integrationID any) *MockService_IntegrationDelete_Call {
 	return &MockService_IntegrationDelete_Call{Call: _e.mock.On("IntegrationDelete", userID, integrationID)}
 }
 
@@ -541,7 +541,7 @@ type MockService_IntegrationFind_Call struct {
 // IntegrationFind is a helper method to define mock.On call
 //   - userID int64
 //   - integrationID int64
-func (_e *MockService_Expecter) IntegrationFind(userID interface{}, integrationID interface{}) *MockService_IntegrationFind_Call {
+func (_e *MockService_Expecter) IntegrationFind(userID any, integrationID any) *MockService_IntegrationFind_Call {
 	return &MockService_IntegrationFind_Call{Call: _e.mock.On("IntegrationFind", userID, integrationID)}
 }
 
@@ -608,7 +608,7 @@ type MockService_IntegrationFindByID_Call struct {
 
 // IntegrationFindByID is a helper method to define mock.On call
 //   - integrationID int64
-func (_e *MockService_Expecter) IntegrationFindByID(integrationID interface{}) *MockService_IntegrationFindByID_Call {
+func (_e *MockService_Expecter) IntegrationFindByID(integrationID any) *MockService_IntegrationFindByID_Call {
 	return &MockService_IntegrationFindByID_Call{Call: _e.mock.On("IntegrationFindByID", integrationID)}
 }
 
@@ -671,7 +671,7 @@ type MockService_IntegrationList_Call struct {
 // IntegrationList is a helper method to define mock.On call
 //   - userID int64
 //   - opts *model.ListOptions
-func (_e *MockService_Expecter) IntegrationList(userID interface{}, opts interface{}) *MockService_IntegrationList_Call {
+func (_e *MockService_Expecter) IntegrationList(userID any, opts any) *MockService_IntegrationList_Call {
 	return &MockService_IntegrationList_Call{Call: _e.mock.On("IntegrationList", userID, opts)}
 }
 
@@ -741,7 +741,7 @@ type MockService_IntegrationListAccessible_Call struct {
 //   - orgIDs []int64
 //   - repoIDs []int64
 //   - opts *model.ListOptions
-func (_e *MockService_Expecter) IntegrationListAccessible(userID interface{}, orgIDs interface{}, repoIDs interface{}, opts interface{}) *MockService_IntegrationListAccessible_Call {
+func (_e *MockService_Expecter) IntegrationListAccessible(userID any, orgIDs any, repoIDs any, opts any) *MockService_IntegrationListAccessible_Call {
 	return &MockService_IntegrationListAccessible_Call{Call: _e.mock.On("IntegrationListAccessible", userID, orgIDs, repoIDs, opts)}
 }
 
@@ -807,7 +807,7 @@ type MockService_IntegrationUpdate_Call struct {
 
 // IntegrationUpdate is a helper method to define mock.On call
 //   - integration *model.Integration
-func (_e *MockService_Expecter) IntegrationUpdate(integration interface{}) *MockService_IntegrationUpdate_Call {
+func (_e *MockService_Expecter) IntegrationUpdate(integration any) *MockService_IntegrationUpdate_Call {
 	return &MockService_IntegrationUpdate_Call{Call: _e.mock.On("IntegrationUpdate", integration)}
 }
 
@@ -847,7 +847,7 @@ type MockService_ReleasePipeline_Call struct {
 
 // ReleasePipeline is a helper method to define mock.On call
 //   - pipelineID int64
-func (_e *MockService_Expecter) ReleasePipeline(pipelineID interface{}) *MockService_ReleasePipeline_Call {
+func (_e *MockService_Expecter) ReleasePipeline(pipelineID any) *MockService_ReleasePipeline_Call {
 	return &MockService_ReleasePipeline_Call{Call: _e.mock.On("ReleasePipeline", pipelineID)}
 }
 
@@ -898,7 +898,7 @@ type MockService_TestConnection_Call struct {
 
 // TestConnection is a helper method to define mock.On call
 //   - integration *model.Integration
-func (_e *MockService_Expecter) TestConnection(integration interface{}) *MockService_TestConnection_Call {
+func (_e *MockService_Expecter) TestConnection(integration any) *MockService_TestConnection_Call {
 	return &MockService_TestConnection_Call{Call: _e.mock.On("TestConnection", integration)}
 }
 

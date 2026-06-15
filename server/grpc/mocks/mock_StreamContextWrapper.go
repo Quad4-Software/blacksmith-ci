@@ -108,7 +108,7 @@ type MockStreamContextWrapper_RecvMsg_Call struct {
 
 // RecvMsg is a helper method to define mock.On call
 //   - m any
-func (_e *MockStreamContextWrapper_Expecter) RecvMsg(m interface{}) *MockStreamContextWrapper_RecvMsg_Call {
+func (_e *MockStreamContextWrapper_Expecter) RecvMsg(m any) *MockStreamContextWrapper_RecvMsg_Call {
 	return &MockStreamContextWrapper_RecvMsg_Call{Call: _e.mock.On("RecvMsg", m)}
 }
 
@@ -159,7 +159,7 @@ type MockStreamContextWrapper_SendHeader_Call struct {
 
 // SendHeader is a helper method to define mock.On call
 //   - mD metadata.MD
-func (_e *MockStreamContextWrapper_Expecter) SendHeader(mD interface{}) *MockStreamContextWrapper_SendHeader_Call {
+func (_e *MockStreamContextWrapper_Expecter) SendHeader(mD any) *MockStreamContextWrapper_SendHeader_Call {
 	return &MockStreamContextWrapper_SendHeader_Call{Call: _e.mock.On("SendHeader", mD)}
 }
 
@@ -210,7 +210,7 @@ type MockStreamContextWrapper_SendMsg_Call struct {
 
 // SendMsg is a helper method to define mock.On call
 //   - m any
-func (_e *MockStreamContextWrapper_Expecter) SendMsg(m interface{}) *MockStreamContextWrapper_SendMsg_Call {
+func (_e *MockStreamContextWrapper_Expecter) SendMsg(m any) *MockStreamContextWrapper_SendMsg_Call {
 	return &MockStreamContextWrapper_SendMsg_Call{Call: _e.mock.On("SendMsg", m)}
 }
 
@@ -250,7 +250,7 @@ type MockStreamContextWrapper_SetContext_Call struct {
 
 // SetContext is a helper method to define mock.On call
 //   - context1 context.Context
-func (_e *MockStreamContextWrapper_Expecter) SetContext(context1 interface{}) *MockStreamContextWrapper_SetContext_Call {
+func (_e *MockStreamContextWrapper_Expecter) SetContext(context1 any) *MockStreamContextWrapper_SetContext_Call {
 	return &MockStreamContextWrapper_SetContext_Call{Call: _e.mock.On("SetContext", context1)}
 }
 
@@ -301,7 +301,7 @@ type MockStreamContextWrapper_SetHeader_Call struct {
 
 // SetHeader is a helper method to define mock.On call
 //   - mD metadata.MD
-func (_e *MockStreamContextWrapper_Expecter) SetHeader(mD interface{}) *MockStreamContextWrapper_SetHeader_Call {
+func (_e *MockStreamContextWrapper_Expecter) SetHeader(mD any) *MockStreamContextWrapper_SetHeader_Call {
 	return &MockStreamContextWrapper_SetHeader_Call{Call: _e.mock.On("SetHeader", mD)}
 }
 
@@ -341,7 +341,7 @@ type MockStreamContextWrapper_SetTrailer_Call struct {
 
 // SetTrailer is a helper method to define mock.On call
 //   - mD metadata.MD
-func (_e *MockStreamContextWrapper_Expecter) SetTrailer(mD interface{}) *MockStreamContextWrapper_SetTrailer_Call {
+func (_e *MockStreamContextWrapper_Expecter) SetTrailer(mD any) *MockStreamContextWrapper_SetTrailer_Call {
 	return &MockStreamContextWrapper_SetTrailer_Call{Call: _e.mock.On("SetTrailer", mD)}
 }
 

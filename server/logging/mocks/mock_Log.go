@@ -64,7 +64,7 @@ type MockLog_Close_Call struct {
 // Close is a helper method to define mock.On call
 //   - c context.Context
 //   - stepID int64
-func (_e *MockLog_Expecter) Close(c interface{}, stepID interface{}) *MockLog_Close_Call {
+func (_e *MockLog_Expecter) Close(c any, stepID any) *MockLog_Close_Call {
 	return &MockLog_Close_Call{Call: _e.mock.On("Close", c, stepID)}
 }
 
@@ -121,7 +121,7 @@ type MockLog_Open_Call struct {
 // Open is a helper method to define mock.On call
 //   - c context.Context
 //   - stepID int64
-func (_e *MockLog_Expecter) Open(c interface{}, stepID interface{}) *MockLog_Open_Call {
+func (_e *MockLog_Expecter) Open(c any, stepID any) *MockLog_Open_Call {
 	return &MockLog_Open_Call{Call: _e.mock.On("Open", c, stepID)}
 }
 
@@ -179,7 +179,7 @@ type MockLog_Tail_Call struct {
 //   - c context.Context
 //   - stepID int64
 //   - handler logging.LogChan
-func (_e *MockLog_Expecter) Tail(c interface{}, stepID interface{}, handler interface{}) *MockLog_Tail_Call {
+func (_e *MockLog_Expecter) Tail(c any, stepID any, handler any) *MockLog_Tail_Call {
 	return &MockLog_Tail_Call{Call: _e.mock.On("Tail", c, stepID, handler)}
 }
 
@@ -242,7 +242,7 @@ type MockLog_Write_Call struct {
 //   - c context.Context
 //   - stepID int64
 //   - entries []*model.LogEntry
-func (_e *MockLog_Expecter) Write(c interface{}, stepID interface{}, entries interface{}) *MockLog_Write_Call {
+func (_e *MockLog_Expecter) Write(c any, stepID any, entries any) *MockLog_Write_Call {
 	return &MockLog_Write_Call{Call: _e.mock.On("Write", c, stepID, entries)}
 }
 

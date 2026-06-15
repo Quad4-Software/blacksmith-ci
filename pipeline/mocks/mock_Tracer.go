@@ -60,7 +60,7 @@ type MockTracer_Trace_Call struct {
 
 // Trace is a helper method to define mock.On call
 //   - state *pipeline.State
-func (_e *MockTracer_Expecter) Trace(state interface{}) *MockTracer_Trace_Call {
+func (_e *MockTracer_Expecter) Trace(state any) *MockTracer_Trace_Call {
 	return &MockTracer_Trace_Call{Call: _e.mock.On("Trace", state)}
 }
 

@@ -73,7 +73,7 @@ type MockWorkflowDiscoverer_DiscoverWorkflows_Call struct {
 
 // DiscoverWorkflows is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *MockWorkflowDiscoverer_Expecter) DiscoverWorkflows(ctx interface{}) *MockWorkflowDiscoverer_DiscoverWorkflows_Call {
+func (_e *MockWorkflowDiscoverer_Expecter) DiscoverWorkflows(ctx any) *MockWorkflowDiscoverer_DiscoverWorkflows_Call {
 	return &MockWorkflowDiscoverer_DiscoverWorkflows_Call{Call: _e.mock.On("DiscoverWorkflows", ctx)}
 }
 

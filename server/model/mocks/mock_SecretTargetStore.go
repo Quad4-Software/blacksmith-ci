@@ -63,7 +63,7 @@ type MockSecretTargetStore_SecretTargetCheckConflict_Call struct {
 //   - secretName string
 //   - orgID int64
 //   - repoID int64
-func (_e *MockSecretTargetStore_Expecter) SecretTargetCheckConflict(secretID interface{}, secretName interface{}, orgID interface{}, repoID interface{}) *MockSecretTargetStore_SecretTargetCheckConflict_Call {
+func (_e *MockSecretTargetStore_Expecter) SecretTargetCheckConflict(secretID any, secretName any, orgID any, repoID any) *MockSecretTargetStore_SecretTargetCheckConflict_Call {
 	return &MockSecretTargetStore_SecretTargetCheckConflict_Call{Call: _e.mock.On("SecretTargetCheckConflict", secretID, secretName, orgID, repoID)}
 }
 
@@ -129,7 +129,7 @@ type MockSecretTargetStore_SecretTargetCreate_Call struct {
 
 // SecretTargetCreate is a helper method to define mock.On call
 //   - target *model.SecretTarget
-func (_e *MockSecretTargetStore_Expecter) SecretTargetCreate(target interface{}) *MockSecretTargetStore_SecretTargetCreate_Call {
+func (_e *MockSecretTargetStore_Expecter) SecretTargetCreate(target any) *MockSecretTargetStore_SecretTargetCreate_Call {
 	return &MockSecretTargetStore_SecretTargetCreate_Call{Call: _e.mock.On("SecretTargetCreate", target)}
 }
 
@@ -180,7 +180,7 @@ type MockSecretTargetStore_SecretTargetDelete_Call struct {
 
 // SecretTargetDelete is a helper method to define mock.On call
 //   - target *model.SecretTarget
-func (_e *MockSecretTargetStore_Expecter) SecretTargetDelete(target interface{}) *MockSecretTargetStore_SecretTargetDelete_Call {
+func (_e *MockSecretTargetStore_Expecter) SecretTargetDelete(target any) *MockSecretTargetStore_SecretTargetDelete_Call {
 	return &MockSecretTargetStore_SecretTargetDelete_Call{Call: _e.mock.On("SecretTargetDelete", target)}
 }
 
@@ -231,7 +231,7 @@ type MockSecretTargetStore_SecretTargetDeleteBySecretID_Call struct {
 
 // SecretTargetDeleteBySecretID is a helper method to define mock.On call
 //   - secretID int64
-func (_e *MockSecretTargetStore_Expecter) SecretTargetDeleteBySecretID(secretID interface{}) *MockSecretTargetStore_SecretTargetDeleteBySecretID_Call {
+func (_e *MockSecretTargetStore_Expecter) SecretTargetDeleteBySecretID(secretID any) *MockSecretTargetStore_SecretTargetDeleteBySecretID_Call {
 	return &MockSecretTargetStore_SecretTargetDeleteBySecretID_Call{Call: _e.mock.On("SecretTargetDeleteBySecretID", secretID)}
 }
 
@@ -295,7 +295,7 @@ type MockSecretTargetStore_SecretTargetFind_Call struct {
 //   - secretID int64
 //   - orgID int64
 //   - repoID int64
-func (_e *MockSecretTargetStore_Expecter) SecretTargetFind(secretID interface{}, orgID interface{}, repoID interface{}) *MockSecretTargetStore_SecretTargetFind_Call {
+func (_e *MockSecretTargetStore_Expecter) SecretTargetFind(secretID any, orgID any, repoID any) *MockSecretTargetStore_SecretTargetFind_Call {
 	return &MockSecretTargetStore_SecretTargetFind_Call{Call: _e.mock.On("SecretTargetFind", secretID, orgID, repoID)}
 }
 
@@ -367,7 +367,7 @@ type MockSecretTargetStore_SecretTargetList_Call struct {
 
 // SecretTargetList is a helper method to define mock.On call
 //   - secretID int64
-func (_e *MockSecretTargetStore_Expecter) SecretTargetList(secretID interface{}) *MockSecretTargetStore_SecretTargetList_Call {
+func (_e *MockSecretTargetStore_Expecter) SecretTargetList(secretID any) *MockSecretTargetStore_SecretTargetList_Call {
 	return &MockSecretTargetStore_SecretTargetList_Call{Call: _e.mock.On("SecretTargetList", secretID)}
 }
 

@@ -71,7 +71,7 @@ type MockSecretStore_GlobalSecretFind_Call struct {
 
 // GlobalSecretFind is a helper method to define mock.On call
 //   - s string
-func (_e *MockSecretStore_Expecter) GlobalSecretFind(s interface{}) *MockSecretStore_GlobalSecretFind_Call {
+func (_e *MockSecretStore_Expecter) GlobalSecretFind(s any) *MockSecretStore_GlobalSecretFind_Call {
 	return &MockSecretStore_GlobalSecretFind_Call{Call: _e.mock.On("GlobalSecretFind", s)}
 }
 
@@ -133,7 +133,7 @@ type MockSecretStore_GlobalSecretList_Call struct {
 
 // GlobalSecretList is a helper method to define mock.On call
 //   - listOptions *model.ListOptions
-func (_e *MockSecretStore_Expecter) GlobalSecretList(listOptions interface{}) *MockSecretStore_GlobalSecretList_Call {
+func (_e *MockSecretStore_Expecter) GlobalSecretList(listOptions any) *MockSecretStore_GlobalSecretList_Call {
 	return &MockSecretStore_GlobalSecretList_Call{Call: _e.mock.On("GlobalSecretList", listOptions)}
 }
 
@@ -196,7 +196,7 @@ type MockSecretStore_OrgSecretFind_Call struct {
 // OrgSecretFind is a helper method to define mock.On call
 //   - n int64
 //   - s string
-func (_e *MockSecretStore_Expecter) OrgSecretFind(n interface{}, s interface{}) *MockSecretStore_OrgSecretFind_Call {
+func (_e *MockSecretStore_Expecter) OrgSecretFind(n any, s any) *MockSecretStore_OrgSecretFind_Call {
 	return &MockSecretStore_OrgSecretFind_Call{Call: _e.mock.On("OrgSecretFind", n, s)}
 }
 
@@ -264,7 +264,7 @@ type MockSecretStore_OrgSecretList_Call struct {
 // OrgSecretList is a helper method to define mock.On call
 //   - n int64
 //   - listOptions *model.ListOptions
-func (_e *MockSecretStore_Expecter) OrgSecretList(n interface{}, listOptions interface{}) *MockSecretStore_OrgSecretList_Call {
+func (_e *MockSecretStore_Expecter) OrgSecretList(n any, listOptions any) *MockSecretStore_OrgSecretList_Call {
 	return &MockSecretStore_OrgSecretList_Call{Call: _e.mock.On("OrgSecretList", n, listOptions)}
 }
 
@@ -320,7 +320,7 @@ type MockSecretStore_SecretCreate_Call struct {
 
 // SecretCreate is a helper method to define mock.On call
 //   - secret *model.Secret
-func (_e *MockSecretStore_Expecter) SecretCreate(secret interface{}) *MockSecretStore_SecretCreate_Call {
+func (_e *MockSecretStore_Expecter) SecretCreate(secret any) *MockSecretStore_SecretCreate_Call {
 	return &MockSecretStore_SecretCreate_Call{Call: _e.mock.On("SecretCreate", secret)}
 }
 
@@ -371,7 +371,7 @@ type MockSecretStore_SecretDelete_Call struct {
 
 // SecretDelete is a helper method to define mock.On call
 //   - secret *model.Secret
-func (_e *MockSecretStore_Expecter) SecretDelete(secret interface{}) *MockSecretStore_SecretDelete_Call {
+func (_e *MockSecretStore_Expecter) SecretDelete(secret any) *MockSecretStore_SecretDelete_Call {
 	return &MockSecretStore_SecretDelete_Call{Call: _e.mock.On("SecretDelete", secret)}
 }
 
@@ -434,7 +434,7 @@ type MockSecretStore_SecretFind_Call struct {
 // SecretFind is a helper method to define mock.On call
 //   - repo *model.Repo
 //   - s string
-func (_e *MockSecretStore_Expecter) SecretFind(repo interface{}, s interface{}) *MockSecretStore_SecretFind_Call {
+func (_e *MockSecretStore_Expecter) SecretFind(repo any, s any) *MockSecretStore_SecretFind_Call {
 	return &MockSecretStore_SecretFind_Call{Call: _e.mock.On("SecretFind", repo, s)}
 }
 
@@ -501,7 +501,7 @@ type MockSecretStore_SecretFindByID_Call struct {
 
 // SecretFindByID is a helper method to define mock.On call
 //   - n int64
-func (_e *MockSecretStore_Expecter) SecretFindByID(n interface{}) *MockSecretStore_SecretFindByID_Call {
+func (_e *MockSecretStore_Expecter) SecretFindByID(n any) *MockSecretStore_SecretFindByID_Call {
 	return &MockSecretStore_SecretFindByID_Call{Call: _e.mock.On("SecretFindByID", n)}
 }
 
@@ -565,7 +565,7 @@ type MockSecretStore_SecretList_Call struct {
 //   - repo *model.Repo
 //   - b bool
 //   - listOptions *model.ListOptions
-func (_e *MockSecretStore_Expecter) SecretList(repo interface{}, b interface{}, listOptions interface{}) *MockSecretStore_SecretList_Call {
+func (_e *MockSecretStore_Expecter) SecretList(repo any, b any, listOptions any) *MockSecretStore_SecretList_Call {
 	return &MockSecretStore_SecretList_Call{Call: _e.mock.On("SecretList", repo, b, listOptions)}
 }
 
@@ -681,7 +681,7 @@ type MockSecretStore_SecretUpdate_Call struct {
 
 // SecretUpdate is a helper method to define mock.On call
 //   - secret *model.Secret
-func (_e *MockSecretStore_Expecter) SecretUpdate(secret interface{}) *MockSecretStore_SecretUpdate_Call {
+func (_e *MockSecretStore_Expecter) SecretUpdate(secret any) *MockSecretStore_SecretUpdate_Call {
 	return &MockSecretStore_SecretUpdate_Call{Call: _e.mock.On("SecretUpdate", secret)}
 }
 

@@ -69,7 +69,7 @@ type MockPipelineListKeyset_GetPipelineCount_Call struct {
 
 // GetPipelineCount is a helper method to define mock.On call
 //   - repo *model.Repo
-func (_e *MockPipelineListKeyset_Expecter) GetPipelineCount(repo interface{}) *MockPipelineListKeyset_GetPipelineCount_Call {
+func (_e *MockPipelineListKeyset_Expecter) GetPipelineCount(repo any) *MockPipelineListKeyset_GetPipelineCount_Call {
 	return &MockPipelineListKeyset_GetPipelineCount_Call{Call: _e.mock.On("GetPipelineCount", repo)}
 }
 
@@ -134,7 +134,7 @@ type MockPipelineListKeyset_GetPipelineListKeyset_Call struct {
 //   - lastID int64
 //   - beforeDate int64
 //   - limit int
-func (_e *MockPipelineListKeyset_Expecter) GetPipelineListKeyset(repo interface{}, lastID interface{}, beforeDate interface{}, limit interface{}) *MockPipelineListKeyset_GetPipelineListKeyset_Call {
+func (_e *MockPipelineListKeyset_Expecter) GetPipelineListKeyset(repo any, lastID any, beforeDate any, limit any) *MockPipelineListKeyset_GetPipelineListKeyset_Call {
 	return &MockPipelineListKeyset_GetPipelineListKeyset_Call{Call: _e.mock.On("GetPipelineListKeyset", repo, lastID, beforeDate, limit)}
 }
 

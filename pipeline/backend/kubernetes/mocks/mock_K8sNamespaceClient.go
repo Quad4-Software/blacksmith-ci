@@ -76,7 +76,7 @@ type MockK8sNamespaceClient_Create_Call struct {
 //   - ctx context.Context
 //   - namespace *v1.Namespace
 //   - opts v10.CreateOptions
-func (_e *MockK8sNamespaceClient_Expecter) Create(ctx interface{}, namespace interface{}, opts interface{}) *MockK8sNamespaceClient_Create_Call {
+func (_e *MockK8sNamespaceClient_Expecter) Create(ctx any, namespace any, opts any) *MockK8sNamespaceClient_Create_Call {
 	return &MockK8sNamespaceClient_Create_Call{Call: _e.mock.On("Create", ctx, namespace, opts)}
 }
 
@@ -150,7 +150,7 @@ type MockK8sNamespaceClient_Get_Call struct {
 //   - ctx context.Context
 //   - name string
 //   - opts v10.GetOptions
-func (_e *MockK8sNamespaceClient_Expecter) Get(ctx interface{}, name interface{}, opts interface{}) *MockK8sNamespaceClient_Get_Call {
+func (_e *MockK8sNamespaceClient_Expecter) Get(ctx any, name any, opts any) *MockK8sNamespaceClient_Get_Call {
 	return &MockK8sNamespaceClient_Get_Call{Call: _e.mock.On("Get", ctx, name, opts)}
 }
 

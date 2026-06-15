@@ -77,7 +77,7 @@ type MockMembershipService_Get_Call struct {
 //   - _forge forge.Forge
 //   - u *model.User
 //   - org string
-func (_e *MockMembershipService_Expecter) Get(ctx interface{}, _forge interface{}, u interface{}, org interface{}) *MockMembershipService_Get_Call {
+func (_e *MockMembershipService_Expecter) Get(ctx any, _forge any, u any, org any) *MockMembershipService_Get_Call {
 	return &MockMembershipService_Get_Call{Call: _e.mock.On("Get", ctx, _forge, u, org)}
 }
 

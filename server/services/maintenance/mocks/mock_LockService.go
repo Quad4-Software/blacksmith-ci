@@ -83,7 +83,7 @@ type MockLockService_AcquireLock_Call struct {
 //   - ctx context.Context
 //   - lockName string
 //   - ttl time.Duration
-func (_e *MockLockService_Expecter) AcquireLock(ctx interface{}, lockName interface{}, ttl interface{}) *MockLockService_AcquireLock_Call {
+func (_e *MockLockService_Expecter) AcquireLock(ctx any, lockName any, ttl any) *MockLockService_AcquireLock_Call {
 	return &MockLockService_AcquireLock_Call{Call: _e.mock.On("AcquireLock", ctx, lockName, ttl)}
 }
 
