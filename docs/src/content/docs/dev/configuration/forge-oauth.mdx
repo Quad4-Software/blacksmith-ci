@@ -16,6 +16,12 @@ https://<your-crow-domain>/authorize
 Replace `<your-crow-domain>` with your actual Crow instance URL (e.g., `ci.example.com`).
 For local development, use `http://localhost:8000/authorize`.
 
+:::note
+All API requests the server sends to a forge carry a `User-Agent` header of the form `crow-server/<version>` (e.g. `crow-server/v5.2.0`).
+This lets forge administrators identify Crow in their access logs and rate-limit dashboards.
+The header is set automatically and is not configurable.
+:::
+
 ## Forgejo / Gitea
 
 Forgejo and Gitea share the same OAuth2 setup process.

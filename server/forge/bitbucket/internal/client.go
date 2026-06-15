@@ -26,6 +26,7 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/bitbucket"
 
+	"codefloe.com/crowci/crow/v5/shared/httputil"
 	shared_utils "codefloe.com/crowci/crow/v5/shared/utils"
 )
 
@@ -69,7 +70,7 @@ func NewClientToken(ctx context.Context, url, client, secret string, token *oaut
 		ClientSecret: secret,
 		Endpoint:     bitbucket.Endpoint,
 	}
-	return NewClient(ctx, url, config.Client(ctx, token))
+	return NewClient(ctx, url, httputil.WithUserAgent(config.Client(ctx, token)))
 }
 
 func (c *Client) FindCurrent() (*Account, error) {

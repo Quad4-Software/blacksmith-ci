@@ -21,6 +21,8 @@ import (
 
 	gitlab "gitlab.com/gitlab-org/api/client-go/v2"
 	"golang.org/x/oauth2"
+
+	"codefloe.com/crowci/crow/v5/shared/httputil"
 )
 
 const (
@@ -32,12 +34,12 @@ const (
 func newClient(url, accessToken string, skipVerify bool) (*gitlab.Client, error) {
 	return gitlab.NewAuthSourceClient(gitlab.OAuthTokenSource{
 		TokenSource: oauth2.StaticTokenSource(&oauth2.Token{AccessToken: accessToken}),
-	}, gitlab.WithBaseURL(url), gitlab.WithHTTPClient(&http.Client{
+	}, gitlab.WithBaseURL(url), gitlab.WithHTTPClient(httputil.WithUserAgent(&http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: skipVerify},
 			Proxy:           http.ProxyFromEnvironment,
 		},
-	}))
+	})))
 }
 
 // isRead is a helper function that returns true if the

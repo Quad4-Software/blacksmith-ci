@@ -37,6 +37,7 @@ import (
 	forge_types "codefloe.com/crowci/crow/v5/server/forge/types"
 	"codefloe.com/crowci/crow/v5/server/model"
 	"codefloe.com/crowci/crow/v5/server/store"
+	"codefloe.com/crowci/crow/v5/shared/httputil"
 	"codefloe.com/crowci/crow/v5/shared/utils"
 )
 
@@ -536,6 +537,7 @@ func (c *client) newClientToken(ctx context.Context, token string) *github.Clien
 			},
 		}
 	}
+	httputil.WithUserAgent(tc)
 	opts := []github.ClientOptionsFunc{github.WithHTTPClient(tc)}
 	if c.API != defaultAPI {
 		opts = append(opts, github.WithEnterpriseURLs(c.url, c.url))

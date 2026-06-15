@@ -33,6 +33,7 @@ import (
 	forge_types "codefloe.com/crowci/crow/v5/server/forge/types"
 	"codefloe.com/crowci/crow/v5/server/model"
 	"codefloe.com/crowci/crow/v5/server/store"
+	"codefloe.com/crowci/crow/v5/shared/httputil"
 )
 
 const (
@@ -759,6 +760,6 @@ func (c *client) newClient(ctx context.Context, u *model.User) (*bb.Client, erro
 	t := &oauth2.Token{
 		AccessToken: u.AccessToken,
 	}
-	client := config.Client(ctx, t)
+	client := httputil.WithUserAgent(config.Client(ctx, t))
 	return bb.NewClient(c.urlAPI, client)
 }

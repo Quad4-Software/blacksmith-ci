@@ -34,6 +34,7 @@ import (
 	forge_types "codefloe.com/crowci/crow/v5/server/forge/types"
 	"codefloe.com/crowci/crow/v5/server/model"
 	"codefloe.com/crowci/crow/v5/server/store"
+	"codefloe.com/crowci/crow/v5/shared/httputil"
 	shared_utils "codefloe.com/crowci/crow/v5/shared/utils"
 )
 
@@ -601,6 +602,7 @@ func (c *Forgejo) newClientToken(ctx context.Context, token string) (*forgejo.Cl
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		}
 	}
+	httputil.WithUserAgent(httpClient)
 	// Always set the Forgejo version explicitly to avoid an unauthenticated
 	// call to /api/v1/version. Some Forgejo instances block unauthenticated
 	// API access, which would cause client creation to fail.
