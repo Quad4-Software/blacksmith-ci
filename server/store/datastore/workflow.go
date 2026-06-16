@@ -311,44 +311,44 @@ func (s storage) WorkflowListByAgent(agentID int64, p *model.ListOptions) ([]*mo
 	return list, nil
 }
 
-// WorkflowNamesByRepo returns the currently-active workflow names for a repo,
-// i.e. the workflows of its most recent default-branch pipeline (falling back to
-// the latest pipeline overall). Workflows that were removed from the config no
-// longer appear in recent pipelines, so they are excluded from the filter list.
+// recentPipelineWindow bounds how many of a repo's most recent pipelines are
+// scanned for active workflow names. A window (rather than a single pipeline)
+// covers repos whose workflows run across separate pipelines — e.g. cron/manual
+// or matrix configs where any one pipeline only runs a subset of the workflows —
+// while still letting workflows removed from the config age out of the list.
+const recentPipelineWindow = 100
+
+// WorkflowNamesByRepo returns the active workflow names for a repo, i.e. the
+// distinct workflow names seen across its most recent pipelines (see
+// recentPipelineWindow). Workflows long removed from the config eventually drop
+// out of the window and so disappear from the filter list.
 func (s storage) WorkflowNamesByRepo(repoID int64) ([]string, error) {
 	ctx := context.Background()
 
-	// Prefer the latest push pipeline on the repo's default branch, as it best
-	// reflects the current config; otherwise fall back to the latest pipeline.
-	var pipelineID int64
-	err := s.db.NewSelect().
-		TableExpr("pipelines AS p").
-		ColumnExpr("p.id").
-		Join("JOIN repos AS r ON r.id = p.repo_id").
-		Where("p.repo_id = ?", repoID).
-		Where("p.branch = r.branch").
-		Where("p.event = ?", model.EventPush).
-		OrderExpr("p.number DESC").
-		Limit(1).
-		Scan(ctx, &pipelineID)
-	if err != nil || pipelineID == 0 {
-		if err := s.db.NewSelect().
-			TableExpr("pipelines").
-			ColumnExpr("id").
-			Where("repo_id = ?", repoID).
-			OrderExpr("number DESC").
-			Limit(1).
-			Scan(ctx, &pipelineID); err != nil {
-			// No pipelines yet: nothing to filter by.
-			return []string{}, nil
-		}
+	// Resolve the recent pipeline IDs first, then filter workflows by them.
+	// MySQL does not support LIMIT inside an IN (...) subquery, so this is done
+	// in two steps rather than a single nested query.
+	var pipelineIDs []int64
+	if err := s.db.NewSelect().
+		TableExpr("pipelines").
+		ColumnExpr("id").
+		Where("repo_id = ?", repoID).
+		OrderExpr("number DESC").
+		Limit(recentPipelineWindow).
+		Scan(ctx, &pipelineIDs); err != nil {
+		return nil, err
+	}
+	if len(pipelineIDs) == 0 {
+		// No pipelines yet: nothing to filter by.
+		return []string{}, nil
 	}
 
 	names := []string{}
 	if err := s.db.NewSelect().
 		TableExpr("workflows").
 		ColumnExpr("DISTINCT name").
-		Where("pipeline_id = ?", pipelineID).
+		Where("pipeline_id IN (?)", bun.List(pipelineIDs)).
+		Where("name != ''").
 		OrderExpr("name ASC").
 		Scan(ctx, &names); err != nil {
 		return nil, err

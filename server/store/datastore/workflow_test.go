@@ -109,30 +109,64 @@ func TestWorkflowNamesByRepo(t *testing.T) {
 	repo := &model.Repo{UserID: 1, FullName: "owner/repo", Owner: "owner", Name: "repo", Branch: "main"}
 	assert.NoError(t, store.CreateRepo(repo))
 
-	// Older default-branch push still ran the since-removed "legacy" workflow.
-	older := &model.Pipeline{RepoID: repo.ID, Number: 1, Branch: "main", Event: model.EventPush}
-	_, err := store.db.NewInsert().Model(older).Exec(ctx)
+	// No pipelines yet: nothing to filter by.
+	names, err := store.WorkflowNamesByRepo(repo.ID)
 	assert.NoError(t, err)
-	// Newer default-branch push reflects the current config (no "legacy").
-	newer := &model.Pipeline{RepoID: repo.ID, Number: 2, Branch: "main", Event: model.EventPush}
-	_, err = store.db.NewInsert().Model(newer).Exec(ctx)
+	assert.Empty(t, names)
+
+	// Workflows are spread across separate pipelines and events, as happens with
+	// cron/manual or matrix configs where any single pipeline only runs a subset
+	// of the repo's workflows. All of them are "active" and should be listed.
+	push := &model.Pipeline{RepoID: repo.ID, Number: 1, Branch: "main", Event: model.EventPush}
+	_, err = store.db.NewInsert().Model(push).Exec(ctx)
 	assert.NoError(t, err)
-	// A later PR on another branch must not influence the active set.
-	pr := &model.Pipeline{RepoID: repo.ID, Number: 3, Branch: "feature", Event: model.EventPull}
-	_, err = store.db.NewInsert().Model(pr).Exec(ctx)
+	cron := &model.Pipeline{RepoID: repo.ID, Number: 2, Branch: "main", Event: model.EventCron}
+	_, err = store.db.NewInsert().Model(cron).Exec(ctx)
+	assert.NoError(t, err)
+	manual := &model.Pipeline{RepoID: repo.ID, Number: 3, Branch: "main", Event: model.EventManual}
+	_, err = store.db.NewInsert().Model(manual).Exec(ctx)
 	assert.NoError(t, err)
 
 	assert.NoError(t, store.WorkflowsCreate([]*model.Workflow{
-		{PipelineID: older.ID, PID: 1, Name: "build"},
-		{PipelineID: older.ID, PID: 2, Name: "legacy"},
-		{PipelineID: newer.ID, PID: 1, Name: "build"},
-		{PipelineID: newer.ID, PID: 2, Name: "test"},
-		{PipelineID: pr.ID, PID: 1, Name: "pr-only"},
+		{PipelineID: push.ID, PID: 1, Name: "build"},
+		{PipelineID: cron.ID, PID: 1, Name: "weekly-rebuild"},
+		{PipelineID: manual.ID, PID: 1, Name: "process-updates"},
+		{PipelineID: manual.ID, PID: 2, Name: "build"}, // same name in another pipeline -> deduped
+		{PipelineID: manual.ID, PID: 3, Name: ""},      // unnamed workflow -> excluded
 	}))
+
+	// Distinct, non-empty names aggregated across recent pipelines, sorted.
+	names, err = store.WorkflowNamesByRepo(repo.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"build", "process-updates", "weekly-rebuild"}, names)
+}
+
+func TestWorkflowNamesByRepoWindow(t *testing.T) {
+	store, closer := newTestStore(t, new(model.Repo), new(model.Pipeline), new(model.Workflow))
+	defer closer()
+
+	ctx := context.Background()
+	repo := &model.Repo{UserID: 1, FullName: "owner/repo", Owner: "owner", Name: "repo", Branch: "main"}
+	assert.NoError(t, store.CreateRepo(repo))
+
+	// The oldest pipeline ran a workflow that no longer appears in newer ones.
+	// Once it falls outside the recent window it must drop out of the list.
+	workflows := []*model.Workflow{}
+	for i := 1; i <= recentPipelineWindow+1; i++ {
+		p := &model.Pipeline{RepoID: repo.ID, Number: int64(i), Branch: "main", Event: model.EventPush}
+		_, err := store.db.NewInsert().Model(p).Exec(ctx)
+		assert.NoError(t, err)
+		name := "current"
+		if i == 1 {
+			name = "ancient"
+		}
+		workflows = append(workflows, &model.Workflow{PipelineID: p.ID, PID: 1, Name: name})
+	}
+	assert.NoError(t, store.WorkflowsCreate(workflows))
 
 	names, err := store.WorkflowNamesByRepo(repo.ID)
 	assert.NoError(t, err)
-	assert.Equal(t, []string{"build", "test"}, names)
+	assert.Equal(t, []string{"current"}, names)
 }
 
 func TestWorkflowGetTree(t *testing.T) {
