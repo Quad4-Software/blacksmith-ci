@@ -874,7 +874,6 @@ func (c *client) RegisterAgent(ctx context.Context, info rpc.AgentInfo) (int64, 
 		BuildDate:     info.BuildDate,
 		Capacity:      int32(info.Capacity),
 		CustomLabels:  info.CustomLabels,
-		Priority:      info.Priority,
 		LimitMem:      info.LimitMem,
 		LimitCpuQuota: info.LimitCPUQuota,
 	}

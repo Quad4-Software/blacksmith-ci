@@ -70,13 +70,8 @@ Only agents with matching labels will process workflows with those labels.
 
 ### Priority
 
-When multiple agents match, higher priority agents are preferred:
-
-```yaml
-CROW_AGENT_PRIORITY=100
-```
-
-Use this to prefer agents with more capacity when available.
+When multiple agents match, higher priority agents are preferred.
+Priority is managed server-side per agent in the web UI (agent settings) or via the API, and persists across agent and server restarts.
 
 ## Agent Types
 

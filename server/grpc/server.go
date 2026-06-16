@@ -169,7 +169,6 @@ func (s *CrowServer) RegisterAgent(c context.Context, req *proto.RegisterAgentRe
 		Backend:       agentInfo.GetBackend(),
 		Capacity:      int(agentInfo.GetCapacity()),
 		CustomLabels:  agentInfo.GetCustomLabels(),
-		Priority:      agentInfo.GetPriority(),
 		LimitMem:      agentInfo.GetLimitMem(),
 		LimitCPUQuota: agentInfo.GetLimitCpuQuota(),
 	})

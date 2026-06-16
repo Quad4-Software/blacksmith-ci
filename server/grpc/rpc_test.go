@@ -144,6 +144,34 @@ func TestRegisterAgent(t *testing.T) {
 
 		assert.EqualValues(t, 1337, agentID)
 	})
+
+	t.Run("It should preserve the server-managed priority across re-registration", func(t *testing.T) {
+		store := new(store_mocks.MockStore)
+		storeAgent := new(model.Agent)
+		storeAgent.ID = 1337
+		storeAgent.Priority = 42 // set server-side, must survive registration
+		agentMatcher := mock.MatchedBy(func(a *model.Agent) bool {
+			return a.ID == 1337 && a.Priority == 42
+		})
+
+		store.On("AgentFind", int64(1337)).Once().Return(storeAgent, nil)
+		store.On("AgentUpdate", agentMatcher).Once().Return(nil)
+		grpc := RPC{
+			store:   store,
+			metrics: metrics,
+		}
+		ctx := metadata.NewIncomingContext(
+			t.Context(),
+			metadata.Pairs("hostname", "hostname", "agent_id", "1337"),
+		)
+		_, _, err := grpc.RegisterAgent(ctx, rpc.AgentInfo{
+			Version:  "version",
+			Platform: "platform",
+			Backend:  "backend",
+			Capacity: 2,
+		})
+		assert.NoError(t, err)
+	})
 }
 
 func TestUpdateAgentLastWork(t *testing.T) {

@@ -594,7 +594,8 @@ func (s *RPC) RegisterAgent(ctx context.Context, info rpc.AgentInfo) (int64, str
 	agent.Version = info.Version
 	agent.BuildDate = info.BuildDate
 	agent.CustomLabels = info.CustomLabels
-	agent.Priority = info.Priority
+	// Priority is managed server-side via the API/UI and persisted in the DB.
+	// It is intentionally not taken from the agent here, so it survives re-registration.
 	agent.LimitMem = info.LimitMem
 	agent.LimitCPUQuota = info.LimitCPUQuota
 	// Reset NoSchedule when agent registers - allows previously disabled agents to receive tasks again
