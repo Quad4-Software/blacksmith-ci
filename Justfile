@@ -232,8 +232,11 @@ dev:
 
 # FIXME: feature of 1.38.0 [working-directory('web')]
 build-ui:
+    rm -rf web/dist
     cd web/ && bun install --frozen-lockfile
     cd web/ && bun run build
+    test -s web/dist/index.html || { echo 'ERROR: web/dist/index.html missing after bun run build'; exit 1; }
+    sha256sum web/dist/index.html 2>/dev/null || shasum -a 256 web/dist/index.html 2>/dev/null || true
 
 build-agent:
     CGO_ENABLED=0 GOOS={{ TARGETOS }} GOARCH={{ TARGETARCH }} go build -tags '{{ TAGS }}' -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/crow-agent{{ BIN_SUFFIX }} codefloe.com/crowci/crow/v5/cmd/agent
@@ -262,6 +265,12 @@ vendor:
 cross-compile-server:
     #!/usr/bin/env bash
     set -euxo pipefail
+
+    # Guard: the freshly-built UI must be present before xgo embeds web/dist
+    # (//go:embed all:dist). A missing dist would silently ship a broken/stale UI.
+    if [ ! -s web/dist/index.html ]; then echo 'FATAL: web/dist/index.html missing - build-ui did not run or its output is not in this workspace'; exit 1; fi
+    echo "cross-compile-server embedding web/dist/index.html:"
+    sha256sum web/dist/index.html 2>/dev/null || shasum -a 256 web/dist/index.html 2>/dev/null || true
 
     PLATFORMS="${PLATFORMS:-{{ TARGETOS }}/{{ TARGETARCH }}}"
     IFS=';' read -ra PLATFORMS_ARRAY <<< "${PLATFORMS}"

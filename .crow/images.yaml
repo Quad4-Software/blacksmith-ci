@@ -66,8 +66,15 @@ steps:
     image: *node_image
     directory: web/
     commands:
+      # Remove any stale dist left in a reused workspace before rebuilding, so the
+      # xgo cross-compile step embeds this run's UI and not a leftover bundle.
+      - rm -rf dist
       - bun install --frozen-lockfile
       - bun run build
+      - 'test -s dist/index.html || { echo "FATAL: dist/index.html missing after bun run build"; exit 1; }'
+      # Log the embedded bundle hash; compare against cross-compile-server's log to
+      # confirm the same dist is what xgo embeds.
+      - sha256sum dist/index.html
     when:
       - event: pull_request
         evaluate: 'CI_COMMIT_PULL_REQUEST_LABELS contains "build_pr_images"'
