@@ -957,7 +957,14 @@ function isSelected(line: LogLine): boolean {
 }
 
 function formatTime(time?: number): string {
-  return time === undefined ? '' : `${time}s`;
+  if (time === undefined) return '';
+  const hours = Math.floor(time / 3600);
+  const minutes = Math.floor((time % 3600) / 60);
+  const seconds = Math.floor(time % 60);
+  let result = '';
+  if (hours > 0) result += `${hours}h`;
+  if (hours > 0 || minutes > 0) result += `${minutes}m`;
+  return `${result}${seconds}s`;
 }
 
 function formatAbsoluteTime(time?: number): string {
