@@ -493,7 +493,7 @@ async function loadAgentDetails() {
   const details: Record<number, Agent> = {};
   for (const agentId of agentIds) {
     try {
-      const agent = await apiClient.getAgent(agentId);
+      const agent = await apiClient.getAgent(agentId, { silent: true });
       details[agentId] = agent;
     } catch (error) {
       console.warn(`Failed to load agent ${agentId}:`, error);

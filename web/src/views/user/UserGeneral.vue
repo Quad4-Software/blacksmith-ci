@@ -507,7 +507,7 @@ async function unlinkForge(userForge: UserForge) {
   showUnlinkDialog.value = true;
 
   try {
-    affectedRepos.value = await apiClient.getForgeAffectedRepos(userForge.forge_id);
+    affectedRepos.value = await apiClient.getForgeAffectedRepos(userForge.forge_id, { silent: true });
   } catch {
     affectedRepos.value = [];
   } finally {

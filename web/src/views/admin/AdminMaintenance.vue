@@ -818,31 +818,31 @@ const loadData = async (reset = false) => {
       logsData,
       statsData,
     ] = await Promise.all([
-      apiClient.getMaintenanceConfigByAction('vacuum').catch((error) => {
+      apiClient.getMaintenanceConfigByAction('vacuum', { silent: true }).catch((error) => {
         console.error('Failed to load vacuum config:', error);
         return null;
       }),
-      apiClient.getMaintenanceConfigByAction('kubernetes_cleanup').catch((error) => {
+      apiClient.getMaintenanceConfigByAction('kubernetes_cleanup', { silent: true }).catch((error) => {
         console.error('Failed to load kubernetes cleanup config:', error);
         return null;
       }),
-      apiClient.getMaintenanceConfigByAction('stale_agent_cleanup').catch((error) => {
+      apiClient.getMaintenanceConfigByAction('stale_agent_cleanup', { silent: true }).catch((error) => {
         console.error('Failed to load stale agent cleanup config:', error);
         return null;
       }),
-      apiClient.getMaintenanceConfigByAction('docker_cleanup').catch((error) => {
+      apiClient.getMaintenanceConfigByAction('docker_cleanup', { silent: true }).catch((error) => {
         console.error('Failed to load docker cleanup config:', error);
         return null;
       }),
-      apiClient.getMaintenanceConfigByAction('orphaned_data_cleanup').catch((error) => {
+      apiClient.getMaintenanceConfigByAction('orphaned_data_cleanup', { silent: true }).catch((error) => {
         console.error('Failed to load orphaned data cleanup config:', error);
         return null;
       }),
-      apiClient.getMaintenanceLogs(logsLimit.value).catch((error) => {
+      apiClient.getMaintenanceLogs(logsLimit.value, { silent: true }).catch((error) => {
         console.error('Failed to load maintenance logs:', error);
         return [];
       }),
-      apiClient.getMaintenanceStats().catch((error) => {
+      apiClient.getMaintenanceStats({ silent: true }).catch((error) => {
         console.error('Failed to load maintenance stats:', error);
         return null;
       }),

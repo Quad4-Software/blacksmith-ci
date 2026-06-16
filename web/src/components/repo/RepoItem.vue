@@ -319,7 +319,7 @@ const { stop: stopObserver } = useIntersectionObserver(
       pipelinesLoaded.value = true;
       stopObserver();
       try {
-        const pipelines = await apiClient.getPipelineList(props.repo.id, { perPage: 5 });
+        const pipelines = await apiClient.getPipelineList(props.repo.id, { perPage: 5 }, { silent: true });
         recentPipelines.value = pipelines || [];
       } catch {
         // Silently fail - the card still shows the last pipeline from the repo object

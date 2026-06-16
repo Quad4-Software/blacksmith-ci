@@ -18,6 +18,12 @@ export class PipelineFilteredError extends Error {
   }
 }
 
+export interface RequestOptions {
+  // Skip the global onerror handler (e.g. the 404 toast) for this request.
+  // Use for optional/background fetches whose failure the caller handles itself.
+  silent?: boolean;
+}
+
 type QueryParams = Record<string, string | number | boolean>;
 
 export function encodeQueryString(_params: unknown = {}): string {
@@ -66,7 +72,7 @@ export default class ApiClient {
     this.authStore = store;
   }
 
-  private async _request(method: string, path: string, data?: unknown): Promise<unknown> {
+  private async _request(method: string, path: string, data?: unknown, opts?: RequestOptions): Promise<unknown> {
     // Check if session is expired or we're redirecting to login
     // This prevents additional requests during session invalidation
     if (this.authStore?.isSessionExpired || this.authStore?.isRedirecting) {
@@ -132,7 +138,7 @@ export default class ApiClient {
           this.authStore.invalidateSession();
         }
 
-        if (this.onerror) {
+        if (this.onerror && !opts?.silent) {
           this.onerror(error);
         }
         throw new Error(message);
@@ -161,8 +167,8 @@ export default class ApiClient {
     }
   }
 
-  async _get(path: string) {
-    return this._request('GET', path);
+  async _get(path: string, opts?: RequestOptions) {
+    return this._request('GET', path, undefined, opts);
   }
 
   async _post(path: string, data?: unknown) {

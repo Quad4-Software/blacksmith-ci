@@ -424,7 +424,7 @@ watch(
       // Load branches and PRs in parallel
       const loadBranches = async () => {
         try {
-          branches.value = await apiClient.getRepoBranches(repoId, { page: 1 });
+          branches.value = await apiClient.getRepoBranches(repoId, { page: 1 }, { silent: true });
         } catch {
           branches.value = [];
         }
@@ -433,7 +433,7 @@ watch(
       const loadPRs = async () => {
         if (repo.value?.pr_enabled && repo.value?.allow_pr) {
           try {
-            const prs = await apiClient.getRepoPullRequests(repoId, { page: 1 });
+            const prs = await apiClient.getRepoPullRequests(repoId, { page: 1 }, { silent: true });
             pullRequests.value = prs.map((pr) => ({ index: pr.index, title: pr.title }));
           } catch {
             pullRequests.value = [];

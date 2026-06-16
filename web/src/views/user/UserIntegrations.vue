@@ -87,9 +87,9 @@ const reposMap = computed(() => new Map(repos.value.map((r) => [r.id, r])));
 onMounted(async () => {
   // Load lookup data in parallel
   const [usersData, orgsData, reposData] = await Promise.all([
-    apiClient.getUsers().catch(() => []),
-    apiClient.getUserOrgs().catch(() => []),
-    apiClient.getActiveRepos().catch(() => []),
+    apiClient.getUsers(undefined, { silent: true }).catch(() => []),
+    apiClient.getUserOrgs({ silent: true }).catch(() => []),
+    apiClient.getActiveRepos({ silent: true }).catch(() => []),
   ]);
   users.value = usersData || [];
   orgs.value = orgsData || [];

@@ -527,10 +527,14 @@ async function fetchPipelinesForMonth(): Promise<void> {
 
   try {
     // Fetch all cron pipelines for this repository
-    const pipelines = await apiClient.getPipelineList(repoId.value, {
-      page: 1,
-      perPage: 500, // Get a large number to cover the month
-    });
+    const pipelines = await apiClient.getPipelineList(
+      repoId.value,
+      {
+        page: 1,
+        perPage: 500, // Get a large number to cover the month
+      },
+      { silent: true },
+    );
 
     // Filter to only cron events within the current month
     const cronPipelines = pipelines.filter((p) => {

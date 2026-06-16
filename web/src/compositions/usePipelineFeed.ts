@@ -37,7 +37,7 @@ export default () => {
       return;
     }
     try {
-      const { approvals } = await apiClient.getUserPendingApprovals();
+      const { approvals } = await apiClient.getUserPendingApprovals({ silent: true });
       pendingWorkflowApprovals.value = approvals ?? [];
     } catch (error) {
       console.error(error);

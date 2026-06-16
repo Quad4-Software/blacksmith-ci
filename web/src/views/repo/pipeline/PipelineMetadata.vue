@@ -322,7 +322,7 @@ async function loadMetadata() {
   }
 
   try {
-    metadata.value = await apiClient.getPipelineMetadata(repo.value.id, pipeline.value.number);
+    metadata.value = await apiClient.getPipelineMetadata(repo.value.id, pipeline.value.number, { silent: true });
 
     // Load agent details for all agents used in this pipeline
     if (pipeline.value.workflows) {
@@ -330,7 +330,7 @@ async function loadMetadata() {
 
       for (const agentId of agentIds) {
         try {
-          const agent = await apiClient.getAgent(agentId as number);
+          const agent = await apiClient.getAgent(agentId as number, { silent: true });
           agentDetails.value.set(agentId as number, agent);
         } catch (error) {
           console.warn(`Failed to load agent ${agentId}:`, error);

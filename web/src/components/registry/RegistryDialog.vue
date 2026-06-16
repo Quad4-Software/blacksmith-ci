@@ -340,7 +340,7 @@ function clearSelection() {
 
 async function loadOrgs() {
   try {
-    const orgsData = await apiClient.getUserOrgs();
+    const orgsData = await apiClient.getUserOrgs({ silent: true });
     orgs.value = orgsData || [];
   } catch {
     // Silent failure - orgs will remain empty

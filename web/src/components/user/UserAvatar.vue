@@ -94,7 +94,9 @@ async function handleOpenChange(open: boolean) {
   if (open && !hasFetched.value) {
     isLoading.value = true;
     try {
-      userData.value = await apiClient.getUser(props.username);
+      // Authors may not be registered Crow users (e.g. forge bots), so a 404 is
+      // expected here — fetch silently and let the catch below handle it.
+      userData.value = await apiClient.getUser(props.username, { silent: true });
 
       // Determine which forge to use: prefer explicit forgeId prop, fall back to user's primary forge
       const forgeIdToUse = props.forgeId ?? userData.value?.forge_id;
@@ -102,7 +104,7 @@ async function handleOpenChange(open: boolean) {
       // Fetch forge data
       if (forgeIdToUse) {
         try {
-          forgeData.value = await apiClient.getForge(forgeIdToUse);
+          forgeData.value = await apiClient.getForge(forgeIdToUse, { silent: true });
         } catch (error) {
           console.error('Failed to fetch forge data:', error);
         }

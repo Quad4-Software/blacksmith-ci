@@ -365,7 +365,7 @@ async function loadAgentDetails() {
   }
 
   try {
-    agentDetails.value = await apiClient.getAgent(agentId);
+    agentDetails.value = await apiClient.getAgent(agentId, { silent: true });
   } catch (error) {
     console.warn(`Failed to load agent ${agentId}:`, error);
     agentDetails.value = null;

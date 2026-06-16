@@ -1,4 +1,5 @@
 import ApiClient, { encodeQueryString } from './client';
+import type { RequestOptions } from './client';
 import type {
   AccessToken,
   AccessTokenWithSecret,
@@ -98,8 +99,8 @@ interface AgentListOptions extends PaginationOptions {
 
 export default class CrowClient extends ApiClient {
   // Returns the user's active repositories with last pipeline info populated.
-  async getActiveRepos(): Promise<Repo[]> {
-    return this._get(`/api/v1/user/repos/active`) as Promise<Repo[]>;
+  async getActiveRepos(opts?: RequestOptions): Promise<Repo[]> {
+    return this._get(`/api/v1/user/repos/active`, opts) as Promise<Repo[]>;
   }
 
   // Returns repositories visible from linked forges. Already-enabled repos are
@@ -126,14 +127,18 @@ export default class CrowClient extends ApiClient {
     return this._get(`/api/v1/repos/${repoId}/permissions`) as Promise<RepoPermissions>;
   }
 
-  async getRepoBranches(repoId: number, opts?: PaginationOptions): Promise<string[]> {
+  async getRepoBranches(repoId: number, opts?: PaginationOptions, reqOpts?: RequestOptions): Promise<string[]> {
     const query = encodeQueryString(opts);
-    return this._get(`/api/v1/repos/${repoId}/branches?${query}`) as Promise<string[]>;
+    return this._get(`/api/v1/repos/${repoId}/branches?${query}`, reqOpts) as Promise<string[]>;
   }
 
-  async getRepoPullRequests(repoId: number, opts?: PaginationOptions): Promise<PullRequest[]> {
+  async getRepoPullRequests(
+    repoId: number,
+    opts?: PaginationOptions,
+    reqOpts?: RequestOptions,
+  ): Promise<PullRequest[]> {
     const query = encodeQueryString(opts);
-    return this._get(`/api/v1/repos/${repoId}/pull_requests?${query}`) as Promise<PullRequest[]>;
+    return this._get(`/api/v1/repos/${repoId}/pull_requests?${query}`, reqOpts) as Promise<PullRequest[]>;
   }
 
   async getRepoManualWorkflows(repoId: number, branch: string): Promise<ManualWorkflowsResponse> {
@@ -206,13 +211,14 @@ export default class CrowClient extends ApiClient {
       search?: string;
       workflow?: string;
     },
+    reqOpts?: RequestOptions,
   ): Promise<Pipeline[]> {
     const query = encodeQueryString(opts);
-    return this._get(`/api/v1/repos/${repoId}/pipelines?${query}`) as Promise<Pipeline[]>;
+    return this._get(`/api/v1/repos/${repoId}/pipelines?${query}`, reqOpts) as Promise<Pipeline[]>;
   }
 
-  async getWorkflowNames(repoId: number): Promise<string[]> {
-    return this._get(`/api/v1/repos/${repoId}/workflows/names`) as Promise<string[]>;
+  async getWorkflowNames(repoId: number, opts?: RequestOptions): Promise<string[]> {
+    return this._get(`/api/v1/repos/${repoId}/workflows/names`, opts) as Promise<string[]>;
   }
 
   async getPipeline(repoId: number, pipelineNumber: number | 'latest'): Promise<Pipeline> {
@@ -223,8 +229,8 @@ export default class CrowClient extends ApiClient {
     return this._get(`/api/v1/repos/${repoId}/pipelines/${pipelineNumber}/config`) as Promise<PipelineConfig[]>;
   }
 
-  async getPipelineMetadata(repoId: number, pipelineNumber: number): Promise<any> {
-    return this._get(`/api/v1/repos/${repoId}/pipelines/${pipelineNumber}/metadata`) as Promise<any>;
+  async getPipelineMetadata(repoId: number, pipelineNumber: number, opts?: RequestOptions): Promise<any> {
+    return this._get(`/api/v1/repos/${repoId}/pipelines/${pipelineNumber}/metadata`, opts) as Promise<any>;
   }
 
   async getPipelineFeed(): Promise<PipelineFeed[]> {
@@ -298,14 +304,16 @@ export default class CrowClient extends ApiClient {
     repoId: number,
     pipelineNumber: number,
     workflowId: number,
+    opts?: RequestOptions,
   ): Promise<WorkflowApprovalState> {
     return this._get(
       `/api/v1/repos/${repoId}/pipelines/${pipelineNumber}/workflows/${workflowId}/approval`,
+      opts,
     ) as Promise<WorkflowApprovalState>;
   }
 
-  async getUserPendingApprovals(): Promise<UserPendingApprovalsResponse> {
-    return this._get('/api/v1/user/approvals/pending') as Promise<UserPendingApprovalsResponse>;
+  async getUserPendingApprovals(opts?: RequestOptions): Promise<UserPendingApprovalsResponse> {
+    return this._get('/api/v1/user/approvals/pending', opts) as Promise<UserPendingApprovalsResponse>;
   }
 
   async restartPipeline(
@@ -486,8 +494,8 @@ export default class CrowClient extends ApiClient {
     return this._get(`/api/v1/secrets/${name}/abbreviated`) as Promise<Secret>;
   }
 
-  async getSecretTargets(secretId: number): Promise<SecretTarget[]> {
-    return this._get(`/api/v1/secret-targets/${secretId}/targets`) as Promise<SecretTarget[]>;
+  async getSecretTargets(secretId: number, opts?: RequestOptions): Promise<SecretTarget[]> {
+    return this._get(`/api/v1/secret-targets/${secretId}/targets`, opts) as Promise<SecretTarget[]>;
   }
 
   async createSecretTarget(secretId: number, target: { org_id: number; repo_id: number }): Promise<SecretTarget> {
@@ -544,8 +552,8 @@ export default class CrowClient extends ApiClient {
   }
 
   // User Forges (multi-forge support)
-  async getUserForges(): Promise<UserForge[]> {
-    return this._get('/api/v1/user/forges') as Promise<UserForge[]>;
+  async getUserForges(opts?: RequestOptions): Promise<UserForge[]> {
+    return this._get('/api/v1/user/forges', opts) as Promise<UserForge[]>;
   }
 
   async getUserForge(forgeId: number): Promise<UserForge> {
@@ -556,8 +564,8 @@ export default class CrowClient extends ApiClient {
     return this._get('/api/v1/user/forges/available') as Promise<AvailableForge[]>;
   }
 
-  async getForgeAffectedRepos(forgeId: number): Promise<Repo[]> {
-    return this._get(`/api/v1/user/forges/${forgeId}/affected-repos`) as Promise<Repo[]>;
+  async getForgeAffectedRepos(forgeId: number, opts?: RequestOptions): Promise<Repo[]> {
+    return this._get(`/api/v1/user/forges/${forgeId}/affected-repos`, opts) as Promise<Repo[]>;
   }
 
   async unlinkForge(forgeId: number): Promise<UnlinkForgeResponse> {
@@ -579,8 +587,8 @@ export default class CrowClient extends ApiClient {
     return this._get(`/api/v1/agents?${query}`) as Promise<Agent[] | null>;
   }
 
-  async getAgent(agentId: Agent['id']): Promise<Agent> {
-    return this._get(`/api/v1/agents/${agentId}`) as Promise<Agent>;
+  async getAgent(agentId: Agent['id'], opts?: RequestOptions): Promise<Agent> {
+    return this._get(`/api/v1/agents/${agentId}`, opts) as Promise<Agent>;
   }
 
   async getAgentTasks(agentId: Agent['id']): Promise<Task[] | null> {
@@ -650,13 +658,13 @@ export default class CrowClient extends ApiClient {
     return this._post(`/api/v1/autoscalers/${autoscalerId}/token`) as Promise<{ token: string }>;
   }
 
-  async getForges(opts?: PaginationOptions): Promise<Forge[] | null> {
+  async getForges(opts?: PaginationOptions, reqOpts?: RequestOptions): Promise<Forge[] | null> {
     const query = encodeQueryString(opts);
-    return this._get(`/api/v1/forges?${query}`) as Promise<Forge[] | null>;
+    return this._get(`/api/v1/forges?${query}`, reqOpts) as Promise<Forge[] | null>;
   }
 
-  async getForge(forgeId: Forge['id']): Promise<Forge> {
-    return this._get(`/api/v1/forges/${forgeId}`) as Promise<Forge>;
+  async getForge(forgeId: Forge['id'], opts?: RequestOptions): Promise<Forge> {
+    return this._get(`/api/v1/forges/${forgeId}`, opts) as Promise<Forge>;
   }
 
   async createForge(forge: Partial<Forge>): Promise<Forge> {
@@ -683,13 +691,13 @@ export default class CrowClient extends ApiClient {
     return this._post('/api/v1/queue/resume');
   }
 
-  async getUsers(opts?: PaginationOptions): Promise<User[] | null> {
+  async getUsers(opts?: PaginationOptions, reqOpts?: RequestOptions): Promise<User[] | null> {
     const query = encodeQueryString(opts);
-    return this._get(`/api/v1/users?${query}`) as Promise<User[] | null>;
+    return this._get(`/api/v1/users?${query}`, reqOpts) as Promise<User[] | null>;
   }
 
-  async getUser(username: string): Promise<User> {
-    return this._get(`/api/v1/users/${username}`) as Promise<User>;
+  async getUser(username: string, opts?: RequestOptions): Promise<User> {
+    return this._get(`/api/v1/users/${username}`, opts) as Promise<User>;
   }
 
   async createUser(user: Partial<User>): Promise<User> {
@@ -717,8 +725,8 @@ export default class CrowClient extends ApiClient {
     return this._get(`/api/v1/orgs?${query}`) as Promise<Org[] | null>;
   }
 
-  async getUserOrgs(): Promise<Org[]> {
-    return this._get(`/api/v1/user/orgs`) as Promise<Org[]>;
+  async getUserOrgs(opts?: RequestOptions): Promise<Org[]> {
+    return this._get(`/api/v1/user/orgs`, opts) as Promise<Org[]>;
   }
 
   async deleteOrg(org: Org): Promise<unknown> {
@@ -770,8 +778,9 @@ export default class CrowClient extends ApiClient {
   // Action-specific maintenance config methods
   async getMaintenanceConfigByAction(
     action: 'vacuum' | 'kubernetes_cleanup' | 'stale_agent_cleanup' | 'docker_cleanup' | 'orphaned_data_cleanup',
+    opts?: RequestOptions,
   ): Promise<MaintenanceConfig> {
-    return this._get(`/api/v1/admin/maintenance/config/${action}`) as Promise<MaintenanceConfig>;
+    return this._get(`/api/v1/admin/maintenance/config/${action}`, opts) as Promise<MaintenanceConfig>;
   }
 
   async updateMaintenanceConfigByAction(
@@ -781,13 +790,13 @@ export default class CrowClient extends ApiClient {
     return this._put(`/api/v1/admin/maintenance/config/${action}`, config) as Promise<MaintenanceConfig>;
   }
 
-  async getMaintenanceStats(): Promise<MaintenanceStats> {
-    return this._get('/api/v1/admin/maintenance/stats') as Promise<MaintenanceStats>;
+  async getMaintenanceStats(opts?: RequestOptions): Promise<MaintenanceStats> {
+    return this._get('/api/v1/admin/maintenance/stats', opts) as Promise<MaintenanceStats>;
   }
 
-  async getMaintenanceLogs(limit?: number): Promise<MaintenanceLog[]> {
+  async getMaintenanceLogs(limit?: number, opts?: RequestOptions): Promise<MaintenanceLog[]> {
     const query = limit !== undefined && limit > 0 ? `?limit=${limit}` : '';
-    return this._get(`/api/v1/admin/maintenance/logs${query}`) as Promise<MaintenanceLog[]>;
+    return this._get(`/api/v1/admin/maintenance/logs${query}`, opts) as Promise<MaintenanceLog[]>;
   }
 
   async runMaintenanceNow(job: string, dryRun?: boolean): Promise<{ message: string; job: string }> {
@@ -858,8 +867,8 @@ export default class CrowClient extends ApiClient {
   }
 
   // Notification API methods
-  async getRepoNotificationConfig(repoId: number): Promise<NotificationConfig> {
-    return this._get(`/api/v1/repos/${repoId}/notification`) as Promise<NotificationConfig>;
+  async getRepoNotificationConfig(repoId: number, opts?: RequestOptions): Promise<NotificationConfig> {
+    return this._get(`/api/v1/repos/${repoId}/notification`, opts) as Promise<NotificationConfig>;
   }
 
   async saveRepoNotificationConfig(
@@ -873,8 +882,8 @@ export default class CrowClient extends ApiClient {
     return this._delete(`/api/v1/repos/${repoId}/notification`) as Promise<void>;
   }
 
-  async getAdminSMTPStatus(): Promise<SMTPStatus> {
-    return this._get('/api/v1/admin/notifications/smtp') as Promise<SMTPStatus>;
+  async getAdminSMTPStatus(opts?: RequestOptions): Promise<SMTPStatus> {
+    return this._get('/api/v1/admin/notifications/smtp', opts) as Promise<SMTPStatus>;
   }
 
   async testAdminSMTP(): Promise<SMTPTestResult> {

@@ -223,7 +223,9 @@ function formatEventTime(unixSeconds: number): string {
 
 async function loadApprovalState() {
   try {
-    const state = await apiClient.getWorkflowApproval(props.repoId, props.pipelineNumber, workflow.value.id);
+    const state = await apiClient.getWorkflowApproval(props.repoId, props.pipelineNumber, workflow.value.id, {
+      silent: true,
+    });
     events.value = state.events ?? [];
   } catch (error) {
     console.error(error);
@@ -240,7 +242,7 @@ async function loadCanApprove() {
   }
   approvalLoading.value = true;
   try {
-    const { approvals } = await apiClient.getUserPendingApprovals();
+    const { approvals } = await apiClient.getUserPendingApprovals({ silent: true });
     canApprove.value = (approvals ?? []).some((item) => item.workflow.id === workflow.value.id);
   } catch (error) {
     console.error(error);

@@ -82,8 +82,8 @@ function toggleEvent(event: NotificationEvent, checked: boolean) {
 
 async function loadConfig() {
   try {
-    smtpStatus.value = await apiClient.getAdminSMTPStatus();
-    const config = await apiClient.getRepoNotificationConfig(repo.value.id);
+    smtpStatus.value = await apiClient.getAdminSMTPStatus({ silent: true });
+    const config = await apiClient.getRepoNotificationConfig(repo.value.id, { silent: true });
     isEnabled.value = config.is_enabled;
     if (config.events && config.events.length > 0) {
       events.value = config.events;

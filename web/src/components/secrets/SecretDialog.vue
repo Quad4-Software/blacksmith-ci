@@ -589,7 +589,10 @@ function clearSelection() {
 
 async function loadReposAndOrgs() {
   try {
-    const [reposData, orgsData] = await Promise.all([apiClient.getActiveRepos(), apiClient.getUserOrgs()]);
+    const [reposData, orgsData] = await Promise.all([
+      apiClient.getActiveRepos({ silent: true }),
+      apiClient.getUserOrgs({ silent: true }),
+    ]);
     repos.value = reposData || [];
     orgs.value = orgsData || [];
   } catch {
@@ -723,7 +726,7 @@ async function toggleAbbreviatedValue() {
 async function loadTargets() {
   if (!props.secret?.id) return;
   try {
-    secretTargets.value = (await apiClient.getSecretTargets(Number(props.secret.id))) || [];
+    secretTargets.value = (await apiClient.getSecretTargets(Number(props.secret.id), { silent: true })) || [];
   } catch {
     // Silent failure
   }

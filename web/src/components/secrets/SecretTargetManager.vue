@@ -117,7 +117,10 @@ function handleAddTarget(type: 'org' | 'repo', id: number) {
 
 onMounted(async () => {
   try {
-    const [reposData, orgsData] = await Promise.all([apiClient.getActiveRepos(), apiClient.getUserOrgs()]);
+    const [reposData, orgsData] = await Promise.all([
+      apiClient.getActiveRepos({ silent: true }),
+      apiClient.getUserOrgs({ silent: true }),
+    ]);
     repos.value = reposData || [];
     orgs.value = orgsData || [];
   } catch {

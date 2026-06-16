@@ -144,7 +144,7 @@ const getReconnectUrl = (forgeId: number): string => {
 
 const loadForges = async () => {
   try {
-    userForges.value = await apiClient.getUserForges();
+    userForges.value = await apiClient.getUserForges({ silent: true });
   } catch {
     // Silently fail - user might not be authenticated or API error
     userForges.value = [];

@@ -21,7 +21,7 @@ export function useForges() {
     loadPromise = (async () => {
       try {
         isLoading.value = true;
-        const data = await apiClient.getForges();
+        const data = await apiClient.getForges(undefined, { silent: true });
         forges.value = data ?? [];
         isLoaded.value = true;
       } catch (error) {

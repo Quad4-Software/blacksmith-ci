@@ -135,7 +135,10 @@ watch(isOpen, async (open) => {
 
     if (repos.value.length === 0) {
       try {
-        const [reposData, orgsData] = await Promise.all([apiClient.getActiveRepos(), apiClient.getUserOrgs()]);
+        const [reposData, orgsData] = await Promise.all([
+          apiClient.getActiveRepos({ silent: true }),
+          apiClient.getUserOrgs({ silent: true }),
+        ]);
         repos.value = reposData || [];
         orgs.value = orgsData || [];
       } catch {

@@ -318,7 +318,7 @@ const workflowPanelOpen = ref(false);
 
 if (props.repo) {
   apiClient
-    .getWorkflowNames(props.repo.id)
+    .getWorkflowNames(props.repo.id, { silent: true })
     .then((names) => {
       workflowNames.value = Array.isArray(names) ? names : [];
       return undefined;

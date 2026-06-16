@@ -1135,7 +1135,7 @@ async function fetchAllRecentRuns() {
   const results = await Promise.all(
     Array.from(cronsByRepo.entries(), async ([repoId, repoCrons]) => {
       try {
-        const pipelines = await apiClient.getPipelineList(repoId, { page: 1, perPage: 50 });
+        const pipelines = await apiClient.getPipelineList(repoId, { page: 1, perPage: 50 }, { silent: true });
         if (!pipelines) return { repoId, repoCrons, pipelines: [] };
 
         // Filter to cron events only
