@@ -1182,3 +1182,57 @@ steps:
 	env := pipelineItems[0].Config.Stages[0].Steps[0].Environment
 	assert.Equal(t, "real commit message", env["CI_COMMIT_MESSAGE"])
 }
+
+func TestManualVariablesOverrideDefaults(t *testing.T) {
+	t.Parallel()
+
+	// A manual-run variable (passed via Envs / AdditionalVariables) must take
+	// precedence over the matching default declared in the "variables:" block,
+	// both for substitution and for when-filter evaluation. Otherwise a manual
+	// override can never differ from the declared default.
+	b := StepBuilder{
+		Forge: getMockForge(),
+		Repo:  &model.Repo{},
+		Curr: &model.Pipeline{
+			Event: model.EventManual,
+		},
+		Prev:  &model.Pipeline{},
+		Netrc: &model.Netrc{},
+		Secs:  []*model.Secret{},
+		Regs:  []*model.Registry{},
+		Host:  "",
+		// simulates the manual-run form passing target_arch=arm64
+		Envs: map[string]string{"target_arch": "arm64"},
+		Yamls: []*forge_types.FileMeta{
+			{Data: []byte(`
+variables:
+  target_arch: amd64
+
+when:
+  - event: manual
+    evaluate: 'target_arch == "arm64"'
+steps:
+  test:
+    image: example.com/build:${target_arch}
+    commands:
+      - echo test
+`)},
+		},
+	}
+
+	pipelineItems, err := b.Build()
+	assert.NoError(t, err)
+	// the override makes the when-filter match, so the workflow is not filtered out
+	assert.Len(t, pipelineItems, 1)
+
+	var testStep *backend_types.Step
+	for _, stage := range pipelineItems[0].Config.Stages {
+		for _, step := range stage.Steps {
+			if step.Name == "test" {
+				testStep = step
+			}
+		}
+	}
+	assert.NotNil(t, testStep)
+	assert.Equal(t, "example.com/build:arm64", testStep.Image)
+}
