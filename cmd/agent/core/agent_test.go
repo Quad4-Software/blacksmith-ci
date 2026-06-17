@@ -61,6 +61,57 @@ func TestBackendProbeTracker(t *testing.T) {
 	})
 }
 
+func TestPlanRunners(t *testing.T) {
+	tests := []struct {
+		name         string
+		adoptedCount int
+		maxWorkflows int
+		want         runnerPlan
+	}{
+		{
+			// The 6/5 bug: capacity 5, one workflow reclaimed after a restart.
+			// Long-lived polling runners must stay at 5 total — the adopted one
+			// occupies a slot, leaving only 4 to pull new work.
+			name:         "one adopted under capacity",
+			adoptedCount: 1,
+			maxWorkflows: 5,
+			want:         runnerPlan{pollingAdopted: 1, pollingPlain: 4, drainAdopted: 0},
+		},
+		{
+			name:         "no adopted workflows",
+			adoptedCount: 0,
+			maxWorkflows: 5,
+			want:         runnerPlan{pollingAdopted: 0, pollingPlain: 5, drainAdopted: 0},
+		},
+		{
+			name:         "adopted exactly at capacity",
+			adoptedCount: 5,
+			maxWorkflows: 5,
+			want:         runnerPlan{pollingAdopted: 5, pollingPlain: 0, drainAdopted: 0},
+		},
+		{
+			// Capacity was lowered while workflows were in-flight. Those already
+			// running on this host can't be killed, so the overflow gets
+			// drain-only runners that exit instead of polling for more.
+			name:         "more adopted than capacity",
+			adoptedCount: 7,
+			maxWorkflows: 5,
+			want:         runnerPlan{pollingAdopted: 5, pollingPlain: 0, drainAdopted: 2},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := planRunners(tt.adoptedCount, tt.maxWorkflows)
+			assert.Equal(t, tt.want, got)
+			// Long-lived polling runners must never exceed capacity.
+			assert.LessOrEqual(t, got.pollingAdopted+got.pollingPlain, tt.maxWorkflows)
+			// Every adopted workflow is handled exactly once.
+			assert.Equal(t, tt.adoptedCount, got.pollingAdopted+got.drainAdopted)
+		})
+	}
+}
+
 func TestRunWithRecover(t *testing.T) {
 	t.Run("returns nil for non-panicking function", func(t *testing.T) {
 		fn := runWithRecover("test", func() error { return nil })

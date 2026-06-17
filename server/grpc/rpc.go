@@ -105,6 +105,30 @@ func (s *RPC) Next(c context.Context, agentFilter rpc.Filter) (*rpc.Workflow, er
 		return nil, nil
 	}
 
+	// Defense-in-depth capacity backstop: the agent self-limits to its capacity
+	// via a bounded runner pool, but if it ever over-spawns (e.g. after
+	// reclaiming in-flight workflows on restart) we must not pile more work on
+	// top. Refuse to hand out work while the agent is already at or above
+	// capacity. The real bound lives agent-side; this just prevents the queue
+	// from making an over-spawn worse.
+	if agent.Capacity > 0 {
+		running := int32(0)
+		for _, task := range s.queue.Info(c).Running {
+			if task.AgentID == agent.ID {
+				running++
+			}
+		}
+		if running >= agent.Capacity {
+			log.Debug().
+				Int64("agent_id", agent.ID).
+				Int32("running", running).
+				Int32("capacity", agent.Capacity).
+				Msg("agent already at capacity, not handing out more work")
+			time.Sleep(1 * time.Second)
+			return nil, nil
+		}
+	}
+
 	agentServerLabels, err := agent.GetServerLabels()
 	if err != nil {
 		return nil, err

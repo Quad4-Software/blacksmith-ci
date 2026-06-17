@@ -468,31 +468,9 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 
 	log.Trace().Msgf("agent registered with ID %d", agentConfig.AgentID)
 
-	// Spawn runners for adopted workflows (discovered earlier, now that filter is defined)
-	for _, adopted := range adoptedWorkflows {
-		serviceWaitingGroup.Go(runWithRecover(fmt.Sprintf("adopted-runner-%s", adopted.Workflow.ID), func() error {
-			runner := agent.NewRunner(client, filter, hostname, counter, &backendEngine)
-			log.Info().
-				Str("workflow_id", adopted.Workflow.ID).
-				Str("task_uuid", adopted.TaskUUID).
-				Msg("starting runner for adopted workflow")
-
-			if err := runner.RunAdopted(agentCtx, shutdownCtx, adopted.Workflow, adopted.TaskUUID); err != nil {
-				log.Error().
-					Err(err).
-					Str("workflow_id", adopted.Workflow.ID).
-					Str("task_uuid", adopted.TaskUUID).
-					Msg("adopted workflow runner failed")
-				return nil // Don't fail the whole agent for one adopted workflow
-			}
-
-			log.Info().
-				Str("workflow_id", adopted.Workflow.ID).
-				Str("task_uuid", adopted.TaskUUID).
-				Msg("adopted workflow completed")
-			return nil
-		}))
-	}
+	// Runners for adopted workflows are spawned together with the polling pool
+	// below (after the capacity check) so that adopted workflows occupy capacity
+	// slots instead of running on top of a full fresh pool.
 
 	// Docker cleanup config shared between health reporting and cleanup goroutines
 	var dockerCleanupConfig atomic.Pointer[rpc.DockerCleanupConfig]
@@ -574,11 +552,47 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 	// is available, so we can't wait for it to return before setting the flag
 	client.SetWorkflowPollingHealthy(true)
 
-	for i := 0; i < maxWorkflows; i++ {
-		i := i
+	plan := planRunners(len(adoptedWorkflows), maxWorkflows)
+	log.Debug().
+		Int("adopted", len(adoptedWorkflows)).
+		Int("polling_adopted", plan.pollingAdopted).
+		Int("polling_plain", plan.pollingPlain).
+		Int("drain_adopted", plan.drainAdopted).
+		Int("capacity", maxWorkflows).
+		Msg("planned workflow runners")
+
+	// Long-lived polling pool. Slots [0, pollingAdopted) first resume an adopted
+	// workflow, then fall into the normal poll loop; the remaining slots poll
+	// immediately. The pool size equals maxWorkflows, so the agent stays within
+	// capacity even after reclaiming in-flight workflows on restart.
+	pollPool := plan.pollingAdopted + plan.pollingPlain
+	for i := range pollPool {
+		var adopted *AdoptedWorkflow
+		if i < plan.pollingAdopted {
+			adopted = adoptedWorkflows[i]
+		}
 		serviceWaitingGroup.Go(runWithRecover(fmt.Sprintf("workflow-runner-%d", i), func() error {
 			runner := agent.NewRunner(client, filter, hostname, counter, &backendEngine)
 			log.Trace().Msgf("created new runner %d", i)
+
+			if adopted != nil {
+				log.Info().
+					Str("workflow_id", adopted.Workflow.ID).
+					Str("task_uuid", adopted.TaskUUID).
+					Msg("starting runner for adopted workflow")
+				if err := runner.RunAdopted(agentCtx, shutdownCtx, adopted.Workflow, adopted.TaskUUID); err != nil {
+					log.Error().
+						Err(err).
+						Str("workflow_id", adopted.Workflow.ID).
+						Str("task_uuid", adopted.TaskUUID).
+						Msg("adopted workflow runner failed")
+				} else {
+					log.Info().
+						Str("workflow_id", adopted.Workflow.ID).
+						Str("task_uuid", adopted.TaskUUID).
+						Msg("adopted workflow completed")
+				}
+			}
 
 			for {
 				if agentCtx.Err() != nil {
@@ -614,6 +628,34 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 				case <-time.After(runnerRetryDelay):
 				}
 			}
+		}))
+	}
+
+	// Adopted workflows beyond capacity (e.g. capacity was lowered while they
+	// were in-flight) get drain-only runners: resume the workflow, then exit
+	// without polling, so the agent converges back down to capacity instead of
+	// staying above it indefinitely.
+	for i := range plan.drainAdopted {
+		adopted := adoptedWorkflows[plan.pollingAdopted+i]
+		serviceWaitingGroup.Go(runWithRecover(fmt.Sprintf("adopted-drain-runner-%s", adopted.Workflow.ID), func() error {
+			runner := agent.NewRunner(client, filter, hostname, counter, &backendEngine)
+			log.Info().
+				Str("workflow_id", adopted.Workflow.ID).
+				Str("task_uuid", adopted.TaskUUID).
+				Msg("starting drain-only runner for adopted workflow (over capacity)")
+			if err := runner.RunAdopted(agentCtx, shutdownCtx, adopted.Workflow, adopted.TaskUUID); err != nil {
+				log.Error().
+					Err(err).
+					Str("workflow_id", adopted.Workflow.ID).
+					Str("task_uuid", adopted.TaskUUID).
+					Msg("adopted workflow runner failed")
+				return nil
+			}
+			log.Info().
+				Str("workflow_id", adopted.Workflow.ID).
+				Str("task_uuid", adopted.TaskUUID).
+				Msg("adopted workflow completed (drain-only)")
+			return nil
 		}))
 	}
 
@@ -679,6 +721,41 @@ func stringSliceAddToMap(sl []string, m map[string]string) error {
 type AdoptedWorkflow struct {
 	Workflow *rpc.Workflow
 	TaskUUID string
+}
+
+// runnerPlan describes how many runner goroutines to spawn on startup, given the
+// number of workflows adopted from a previous agent instance and the configured
+// capacity (maxWorkflows).
+type runnerPlan struct {
+	// pollingAdopted runners first resume an adopted workflow, then enter the
+	// normal poll loop. pollingPlain runners poll immediately. Together they are
+	// the long-lived pool and always sum to maxWorkflows, so the agent never
+	// pulls new work beyond its capacity — including right after a restart that
+	// reclaimed in-flight workflows.
+	pollingAdopted int
+	pollingPlain   int
+	// drainAdopted runners resume an adopted workflow then exit without polling.
+	// Only used when more workflows were reclaimed than capacity allows (e.g.
+	// capacity was lowered); they let the agent converge back down to capacity
+	// instead of staying over it indefinitely.
+	drainAdopted int
+}
+
+// planRunners decides how to spawn runners so that the long-lived polling pool
+// never exceeds maxWorkflows, while still resuming every adopted workflow.
+func planRunners(adoptedCount, maxWorkflows int) runnerPlan {
+	if adoptedCount < 0 {
+		adoptedCount = 0
+	}
+	if maxWorkflows < 0 {
+		maxWorkflows = 0
+	}
+	pollingAdopted := min(adoptedCount, maxWorkflows)
+	return runnerPlan{
+		pollingAdopted: pollingAdopted,
+		pollingPlain:   maxWorkflows - pollingAdopted,
+		drainAdopted:   adoptedCount - pollingAdopted,
+	}
 }
 
 // ErrBackendUnavailable is returned when the backend engine has been
