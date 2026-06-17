@@ -142,6 +142,7 @@ export interface PipelineWorkflow {
   started?: number;
   finished?: number;
   agent_id?: number;
+  agent_name?: string;
   error?: string;
   depends_on?: string[];
   original_workflow_id: number;

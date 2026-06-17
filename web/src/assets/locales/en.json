@@ -68,6 +68,7 @@
   "unknown_error": "An unknown error occurred",
   "documentation_for": "Documentation for \"{topic}\"",
   "pipeline_feed": "Pipeline feed",
+  "pipeline_feed_agents_title": "Processed by",
   "navbar": {
     "forge_auth_expired": "Forge connections need attention",
     "forge_auth_expired_tooltip": "{count} forge connection expired | {count} forge connections expired",

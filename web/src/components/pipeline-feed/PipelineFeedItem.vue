@@ -81,6 +81,24 @@
           <Icon name="duration" class="w-4 h-4" />
           <span>{{ duration }}</span>
         </div>
+        <TooltipProvider v-if="agentNames.length > 0">
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <div class="flex items-center gap-1.5 min-w-0 cursor-default">
+                <Icon name="agent" class="w-4 h-4 shrink-0" />
+                <span class="truncate max-w-[8rem]">{{
+                  agentNames.length === 1 ? agentNames[0] : agentNames.length
+                }}</span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p class="font-medium mb-1">{{ $t('pipeline_feed_agents_title') }}</p>
+              <ul>
+                <li v-for="name in agentNames" :key="name">{{ name }}</li>
+              </ul>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </div>
   </div>
@@ -93,6 +111,7 @@ import { useI18n } from 'vue-i18n';
 import Icon from '~/components/atomic/Icon.vue';
 import InlineMarkdown from '~/components/atomic/InlineMarkdown.vue';
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import useApiClient from '~/compositions/useApiClient';
 import { useAsyncAction } from '~/compositions/useAsyncAction';
 import { useLoadingOverlay } from '~/compositions/useLoadingOverlay';
@@ -119,6 +138,13 @@ const repo = repoStore.getRepo(computed(() => pipeline.value.repo_id));
 const { startDate, duration, shortMessage, message, prettyRef, created } = usePipeline(pipeline);
 
 const isActive = computed(() => ['pending', 'running', 'started'].includes(pipeline.value.status));
+
+const agentNames = computed(() => {
+  const names = (pipeline.value.workflows ?? [])
+    .filter((wf) => wf.agent_id && ['running', 'started'].includes(wf.state))
+    .map((wf) => wf.agent_name?.trim() || `#${wf.agent_id}`);
+  return [...new Set(names)];
+});
 
 const { doSubmit: cancelPipelineAction, isLoading: isCanceling } = useAsyncAction(async () => {
   await apiClient.cancelPipeline(pipeline.value.repo_id, pipeline.value.number);
