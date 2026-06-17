@@ -48,9 +48,9 @@
         <!-- Center: Step name, status, and exit code -->
         <div class="flex items-center gap-2 flex-1 min-w-0">
           <PipelineStatusIcon v-if="step" :status="step.state" class="h-4 w-4 shrink-0" />
-          <span class="text-sm font-semibold text-foreground truncate">
-            {{ step?.name }}
-          </span>
+          <span class="text-sm font-semibold text-foreground truncate"
+            >{{ step?.name }}<span class="font-normal text-muted-foreground">{{ stepNameSuffix }}</span></span
+          >
           <span
             v-if="step?.exit_code !== undefined"
             class="text-xs border rounded-full px-2 py-0.5 shrink-0"
@@ -670,15 +670,7 @@
 
 <script lang="ts" setup>
 import '~/style/console.css';
-
 import { useStorage } from '@vueuse/core';
-import { AnsiUp } from 'ansi_up';
-import { decode } from 'js-base64';
-import { debounce } from 'lodash';
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, toRef, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRoute } from 'vue-router';
-
 import Icon from '~/components/atomic/Icon.vue';
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
@@ -693,13 +685,14 @@ import {
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog';
 import { Button } from '~/components/ui/button';
+import { Card, CardContent, CardHeader } from '~/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu';
-import { Card, CardContent, CardHeader } from '~/components/ui/card';
+import { Input } from '~/components/ui/input';
 import {
   NumberField,
   NumberFieldContent,
@@ -707,7 +700,6 @@ import {
   NumberFieldIncrement,
   NumberFieldInput,
 } from '~/components/ui/number-field';
-import { Input } from '~/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '~/components/ui/sheet';
@@ -717,7 +709,13 @@ import useApiClient from '~/compositions/useApiClient';
 import { requiredInject } from '~/compositions/useInjectProvide';
 import useNotifications from '~/compositions/useNotifications';
 import type { Pipeline, PipelineStep, PipelineWorkflow } from '~/lib/api/types';
-import { getWorkflowAttempts } from '~/lib/pipeline-utils';
+import { duplicateStepNameIndexes, getWorkflowAttempts } from '~/lib/pipeline-utils';
+import { AnsiUp } from 'ansi_up';
+import { decode } from 'js-base64';
+import { debounce } from 'lodash';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, toRef, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRoute } from 'vue-router';
 
 const props = withDefaults(
   defineProps<{
@@ -785,6 +783,14 @@ const workflowAttempts = computed(() => {
   return getWorkflowAttempts(pipeline.value.workflows, wf);
 });
 const hasMultipleAttempts = computed(() => workflowAttempts.value.length > 1);
+
+const stepNameSuffix = computed(() => {
+  const wf = currentWorkflow.value;
+  const s = step.value;
+  if (wf == null || s == null) return '';
+  const index = duplicateStepNameIndexes(wf.children).get(s.pid);
+  return index ? ` (${index})` : '';
+});
 
 function switchToAttempt(attempt: PipelineWorkflow) {
   // Navigate to the first step of the selected attempt

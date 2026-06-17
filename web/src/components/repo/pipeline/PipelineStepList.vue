@@ -283,7 +283,12 @@
                     :status="node.step.state"
                     class="h-4 w-4 shrink-0 mr-0.5"
                   />
-                  <span class="min-w-0 truncate">{{ node.step.name }}</span>
+                  <span class="min-w-0 truncate"
+                    >{{ node.step.name
+                    }}<span class="text-muted-foreground">{{
+                      stepDupSuffix(group.workflows[0], node.step)
+                    }}</span></span
+                  >
                   <!-- Multi-dependency tooltip -->
                   <TooltipProvider v-if="node.effectiveDeps.length > 1">
                     <Tooltip>
@@ -351,16 +356,13 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, toRef, watch } from 'vue';
-
+import Badge from '~/components/atomic/Badge.vue';
 import Icon from '~/components/atomic/Icon.vue';
 import IconButton from '~/components/atomic/IconButton.vue';
-import Badge from '~/components/atomic/Badge.vue';
 import Panel from '~/components/layout/Panel.vue';
 import PipelineMatrixGroup from '~/components/repo/pipeline/PipelineMatrixGroup.vue';
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
 import PipelineStepDuration from '~/components/repo/pipeline/PipelineStepDuration.vue';
-import UserAvatar from '~/components/user/UserAvatar.vue';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -369,24 +371,27 @@ import {
 } from '~/components/ui/dropdown-menu';
 import { ScrollArea } from '~/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
-import { requiredInject } from '~/compositions/useInjectProvide';
-import usePipeline from '~/compositions/usePipeline';
+import UserAvatar from '~/components/user/UserAvatar.vue';
 import useApiClient from '~/compositions/useApiClient';
+import { requiredInject } from '~/compositions/useInjectProvide';
 import useNotifications from '~/compositions/useNotifications';
+import usePipeline from '~/compositions/usePipeline';
+import { formatBytes, formatCPUQuota } from '~/lib/agent-utils';
 import { StepType } from '~/lib/api/types';
 import type { Agent, Pipeline, PipelineStep, PipelineWorkflow } from '~/lib/api/types';
-import { formatBytes, formatCPUQuota } from '~/lib/agent-utils';
 import type { StepTreeNode } from '~/lib/pipeline-utils';
 import {
-  identifyMatrixGroups,
+  buildStepTree,
+  duplicateStepNameIndexes,
   getLatestAttempts,
+  getStepAttempts,
   getWorkflowAttempts,
   hasReruns,
-  getStepAttempts,
   hasStepReruns,
-  buildStepTree,
+  identifyMatrixGroups,
 } from '~/lib/pipeline-utils';
 import { usePipelineStore } from '~/store/pipelines';
+import { computed, ref, toRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{
@@ -419,6 +424,19 @@ const hasAnyDependencies = computed(() =>
       (wf.depends_on && wf.depends_on.length > 0) || wf.children.some((s) => s.depends_on && s.depends_on.length > 0),
   ),
 );
+
+const stepNameDupIndexes = computed(() => {
+  const map = new Map<number, Map<number, number>>();
+  for (const wf of allWorkflows.value) {
+    map.set(wf.id, duplicateStepNameIndexes(wf.children));
+  }
+  return map;
+});
+
+function stepDupSuffix(workflow: PipelineWorkflow, step: PipelineStep): string {
+  const index = stepNameDupIndexes.value.get(workflow.id)?.get(step.pid);
+  return index ? ` (${index})` : '';
+}
 
 function getStepNodes(workflow: PipelineWorkflow): StepTreeNode[] {
   if (treeView.value) {

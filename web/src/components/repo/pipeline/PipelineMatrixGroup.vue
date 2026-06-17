@@ -281,7 +281,10 @@
                 :status="node.step.state"
                 class="h-3.5 w-3.5 shrink-0 mr-0.5"
               />
-              <span class="min-w-0 truncate text-sm">{{ node.step.name }}</span>
+              <span class="min-w-0 truncate text-sm"
+                >{{ node.step.name
+                }}<span class="text-muted-foreground">{{ stepDupSuffix(workflow, node.step) }}</span></span
+              >
               <!-- Multi-dependency tooltip -->
               <TooltipProvider v-if="node.effectiveDeps.length > 1">
                 <Tooltip>
@@ -330,14 +333,10 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue';
-
 import Icon from '~/components/atomic/Icon.vue';
 import IconButton from '~/components/atomic/IconButton.vue';
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
 import PipelineStepDuration from '~/components/repo/pipeline/PipelineStepDuration.vue';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
-import { formatBytes, formatCPUQuota } from '~/lib/agent-utils';
 import {
   Combobox,
   ComboboxAnchor,
@@ -355,17 +354,21 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import { requiredInject } from '~/compositions/useInjectProvide';
+import { formatBytes, formatCPUQuota } from '~/lib/agent-utils';
 import { StepType } from '~/lib/api/types';
 import type { Agent, PipelineStatus, PipelineStep, PipelineWorkflow } from '~/lib/api/types';
 import type { StepTreeNode } from '~/lib/pipeline-utils';
 import {
   aggregateWorkflowDuration,
   aggregateWorkflowStatus,
-  hasReruns,
-  getWorkflowAttempts,
   buildStepTree,
+  duplicateStepNameIndexes,
+  getWorkflowAttempts,
+  hasReruns,
 } from '~/lib/pipeline-utils';
+import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{
   workflows: PipelineWorkflow[];
@@ -624,6 +627,19 @@ function getAgent(agentId: number): Agent | undefined {
 
 function isStepCompleted(step: PipelineStep) {
   return step.state !== 'pending' && step.state !== 'running';
+}
+
+const stepNameDupIndexes = computed(() => {
+  const map = new Map<number, Map<number, number>>();
+  for (const wf of props.workflows) {
+    map.set(wf.id, duplicateStepNameIndexes(wf.children));
+  }
+  return map;
+});
+
+function stepDupSuffix(workflow: PipelineWorkflow, step: PipelineStep): string {
+  const index = stepNameDupIndexes.value.get(workflow.id)?.get(step.pid);
+  return index ? ` (${index})` : '';
 }
 
 function getStepNodes(workflow: PipelineWorkflow): StepTreeNode[] {

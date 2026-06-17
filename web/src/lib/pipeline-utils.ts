@@ -251,6 +251,30 @@ export function hasStepReruns(allWorkflows: PipelineWorkflow[], step: PipelineSt
 }
 
 /**
+ * For steps whose name occurs more than once within the same workflow, return a
+ * 1-based occurrence index keyed by step pid. Steps with a unique name are omitted.
+ * Lets the UI append a disambiguating suffix (e.g. "deploy (2)") so identically
+ * named steps can be told apart.
+ */
+export function duplicateStepNameIndexes(steps: PipelineStep[]): Map<number, number> {
+  const totals = new Map<string, number>();
+  for (const s of steps) {
+    totals.set(s.name, (totals.get(s.name) ?? 0) + 1);
+  }
+
+  const seen = new Map<string, number>();
+  const result = new Map<number, number>();
+  for (const s of steps) {
+    if ((totals.get(s.name) ?? 0) > 1) {
+      const index = (seen.get(s.name) ?? 0) + 1;
+      seen.set(s.name, index);
+      result.set(s.pid, index);
+    }
+  }
+  return result;
+}
+
+/**
  * A flattened tree node representing a step with its nesting metadata.
  * Used to render steps as a tree in the step list when depends_on forms a single-parent chain.
  */
