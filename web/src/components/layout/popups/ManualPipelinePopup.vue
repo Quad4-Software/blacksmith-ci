@@ -25,7 +25,7 @@
         </Select>
       </div>
 
-      <div v-if="loading" class="flex justify-center py-8">
+      <div v-if="loading" class="flex justify-center items-center py-8 sm:h-[60vh]">
         <Icon name="spinner" class="h-6 w-6 animate-spin" />
       </div>
 
