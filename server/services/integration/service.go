@@ -204,27 +204,63 @@ func (s *service) FetchSecret(ctx context.Context, ref *model.ExternalSecretRef,
 	return provider.GetSecret(ctx, ref.Path, ref.Key, ref.Version)
 }
 
-// FetchSecretsBatch fetches multiple secrets efficiently.
+// resolveRefIntegration resolves an external secret reference to its integration.
+// References may target an integration by numeric ID or by name; name lookups are
+// scoped to the integrations accessible to the requesting user/org/repo, mirroring
+// the access model enforced for ID-based lookups.
+func (s *service) resolveRefIntegration(ref *model.ExternalSecretRef, userID int64, orgID int64, repoID int64) (*model.Integration, error) {
+	if ref.IntegrationID > 0 {
+		return s.store.IntegrationFind(ref.IntegrationID)
+	}
+
+	if ref.IntegrationName == "" {
+		return nil, fmt.Errorf("external secret reference requires an integration ID or name")
+	}
+
+	var orgIDs, repoIDs []int64
+	if orgID > 0 {
+		orgIDs = []int64{orgID}
+	}
+	if repoID > 0 {
+		repoIDs = []int64{repoID}
+	}
+
+	accessible, err := s.store.IntegrationListAccessible(userID, orgIDs, repoIDs, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, integration := range accessible {
+		if integration.Name == ref.IntegrationName {
+			return integration, nil
+		}
+	}
+
+	return nil, fmt.Errorf("%w: no accessible integration named %q", model.ErrIntegrationNotFound, ref.IntegrationName)
+}
+
 func (s *service) FetchSecretsBatch(ctx context.Context, refs []*model.ExternalSecretRef, userID int64, orgID int64, repoID int64, pipelineID int64) (map[string]string, error) {
 	if len(refs) == 0 {
 		return make(map[string]string), nil
 	}
 
-	// Group refs by integration ID
+	// Group refs by integration, resolving name-based references to an integration.
 	byIntegration := make(map[int64][]*model.ExternalSecretRef)
+	integrationByID := make(map[int64]*model.Integration)
 	for _, ref := range refs {
-		byIntegration[ref.IntegrationID] = append(byIntegration[ref.IntegrationID], ref)
+		integration, err := s.resolveRefIntegration(ref, userID, orgID, repoID)
+		if err != nil {
+			return nil, err
+		}
+		byIntegration[integration.ID] = append(byIntegration[integration.ID], ref)
+		integrationByID[integration.ID] = integration
 	}
 
 	results := make(map[string]string, len(refs))
 
 	// Process each integration's secrets
 	for integrationID, integrationRefs := range byIntegration {
-		// Get and validate integration
-		integration, err := s.store.IntegrationFind(integrationID)
-		if err != nil {
-			return nil, err
-		}
+		integration := integrationByID[integrationID]
 
 		if err := s.CheckAccess(integration, userID, orgID, repoID); err != nil {
 			return nil, err

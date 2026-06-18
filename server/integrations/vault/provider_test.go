@@ -243,14 +243,14 @@ func TestExternalSecretRef_Validate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "missing integration_id",
+			name: "missing integration_id and integration_name",
 			ref: model.ExternalSecretRef{
 				IntegrationID: 0,
 				Path:          "secret/test",
 				Key:           "api_key",
 			},
 			wantErr:     true,
-			errContains: "integration_id is required",
+			errContains: "integration_id or integration_name is required",
 		},
 		{
 			name: "missing path",

@@ -86,10 +86,11 @@ func parsePipeline(forge forge.Forge, store store.Store, currentPipeline *model.
 			settingsRefByCacheKey := make(map[string]settings.ExternalSecretRef, len(refs))
 			for _, ref := range refs {
 				modelRef := &model.ExternalSecretRef{
-					IntegrationID: ref.IntegrationID,
-					Path:          ref.Path,
-					Key:           ref.Key,
-					Version:       ref.Version,
+					IntegrationID:   ref.IntegrationID,
+					IntegrationName: ref.IntegrationName,
+					Path:            ref.Path,
+					Key:             ref.Key,
+					Version:         ref.Version,
 				}
 				modelRefs = append(modelRefs, modelRef)
 				settingsRefByCacheKey[modelRef.CacheKey()] = ref

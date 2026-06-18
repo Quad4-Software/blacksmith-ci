@@ -514,3 +514,41 @@ func TestIntegration_BeforeInsert(t *testing.T) {
 	assert.Empty(t, integration.AllowedOrgIDs)
 	assert.Empty(t, integration.AllowedRepoIDs)
 }
+
+func TestExternalSecretRef_Validate(t *testing.T) {
+	tests := []struct {
+		name    string
+		ref     ExternalSecretRef
+		wantErr bool
+	}{
+		{"by id", ExternalSecretRef{IntegrationID: 1, Path: "p", Key: "k"}, false},
+		{"by name", ExternalSecretRef{IntegrationName: "vault", Path: "p", Key: "k"}, false},
+		{"neither id nor name", ExternalSecretRef{Path: "p", Key: "k"}, true},
+		{"missing path", ExternalSecretRef{IntegrationName: "vault", Key: "k"}, true},
+		{"missing key", ExternalSecretRef{IntegrationName: "vault", Path: "p"}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.ref.Validate()
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestExternalSecretRef_CacheKey(t *testing.T) {
+	// ID- and name-based references must not collide, and the key must stay
+	// stable so the fetch round-trip can map results back to their reference.
+	idRef := ExternalSecretRef{IntegrationID: 1, Path: "db", Key: "value"}
+	nameRef := ExternalSecretRef{IntegrationName: "vault", Path: "db", Key: "value"}
+
+	assert.Equal(t, "1:db:value", idRef.CacheKey())
+	assert.Equal(t, "name:vault:db:value", nameRef.CacheKey())
+	assert.NotEqual(t, idRef.CacheKey(), nameRef.CacheKey())
+
+	versioned := ExternalSecretRef{IntegrationName: "vault", Path: "db", Key: "value", Version: 3}
+	assert.Equal(t, "name:vault:db:value:v3", versioned.CacheKey())
+}

@@ -489,6 +489,58 @@ func TestFetchSecretsBatch(t *testing.T) {
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, model.ErrIntegrationAccessDenied)
 	})
+
+	t.Run("name-based reference resolves and fetches", func(t *testing.T) {
+		store := modelMocks.NewMockIntegrationStore(t)
+		factory := intMocks.NewMockProviderFactory(t)
+		provider := intMocks.NewMockProvider(t)
+
+		integration := &model.Integration{
+			ID:             7,
+			Name:           "azure-kv",
+			UserID:         100,
+			Type:           model.IntegrationTypeVault,
+			Config:         validVaultConfig(),
+			IsActive:       true,
+			AllowedUserIDs: []int64{100},
+		}
+
+		ref := &model.ExternalSecretRef{IntegrationName: "azure-kv", Path: "secret/test", Key: "value"}
+
+		store.EXPECT().
+			IntegrationListAccessible(int64(100), mock.Anything, mock.Anything, mock.Anything).
+			Return([]*model.Integration{integration}, nil)
+		factory.EXPECT().Create(integration).Return(provider, nil)
+		provider.EXPECT().
+			GetSecretsBatch(mock.Anything, mock.Anything).
+			Return(map[string]string{ref.CacheKey(): "s3cr3t"}, nil)
+		provider.EXPECT().Close().Return(nil)
+
+		svc := NewService(store, factory)
+		defer svc.Close()
+
+		result, err := svc.FetchSecretsBatch(context.Background(), []*model.ExternalSecretRef{ref}, 100, 0, 0, 1000)
+		assert.NoError(t, err)
+		assert.Equal(t, "s3cr3t", result[ref.CacheKey()])
+	})
+
+	t.Run("name-based reference not found", func(t *testing.T) {
+		store := modelMocks.NewMockIntegrationStore(t)
+		factory := intMocks.NewMockProviderFactory(t)
+
+		store.EXPECT().
+			IntegrationListAccessible(int64(100), mock.Anything, mock.Anything, mock.Anything).
+			Return([]*model.Integration{}, nil)
+
+		svc := NewService(store, factory)
+		refs := []*model.ExternalSecretRef{
+			{IntegrationName: "missing", Path: "secret/test", Key: "value"},
+		}
+
+		_, err := svc.FetchSecretsBatch(context.Background(), refs, 100, 0, 0, 1000)
+		assert.Error(t, err)
+		assert.ErrorIs(t, err, model.ErrIntegrationNotFound)
+	})
 }
 
 func TestClose(t *testing.T) {

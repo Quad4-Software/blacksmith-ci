@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/uptrace/bun"
@@ -597,17 +598,20 @@ func (i *Integration) SetInfisicalConfig(config *InfisicalConfig) error {
 }
 
 // ExternalSecretRef represents a reference to an external secret in YAML.
+// An integration is referenced either by numeric ID or by name; name takes
+// precedence when both are set and is resolved to an integration at fetch time.
 type ExternalSecretRef struct {
-	IntegrationID int64  `json:"integration_id" yaml:"integration_id"`
-	Path          string `json:"path"           yaml:"path"`
-	Key           string `json:"key"            yaml:"key"`
-	Version       int    `json:"version"        yaml:"version,omitempty"`
+	IntegrationID   int64  `json:"integration_id"   yaml:"integration_id"`
+	IntegrationName string `json:"integration_name" yaml:"integration_name,omitempty"`
+	Path            string `json:"path"             yaml:"path"`
+	Key             string `json:"key"              yaml:"key"`
+	Version         int    `json:"version"          yaml:"version,omitempty"`
 }
 
 // Validate validates the external secret reference.
 func (r *ExternalSecretRef) Validate() error {
-	if r.IntegrationID <= 0 {
-		return fmt.Errorf("integration_id is required")
+	if r.IntegrationID <= 0 && r.IntegrationName == "" {
+		return fmt.Errorf("integration_id or integration_name is required")
 	}
 	if r.Path == "" {
 		return fmt.Errorf("path is required")
@@ -618,10 +622,16 @@ func (r *ExternalSecretRef) Validate() error {
 	return nil
 }
 
-// CacheKey returns a unique key for caching this secret.
+// CacheKey returns a unique key for caching this secret. It must be stable for
+// the lifetime of a reference, so name-based references are keyed by name (they
+// are resolved to an ID only at fetch time, which must not change the key).
 func (r *ExternalSecretRef) CacheKey() string {
-	if r.Version > 0 {
-		return fmt.Sprintf("%d:%s:%s:v%d", r.IntegrationID, r.Path, r.Key, r.Version)
+	integration := strconv.FormatInt(r.IntegrationID, 10)
+	if r.IntegrationID == 0 && r.IntegrationName != "" {
+		integration = "name:" + r.IntegrationName
 	}
-	return fmt.Sprintf("%d:%s:%s", r.IntegrationID, r.Path, r.Key)
+	if r.Version > 0 {
+		return fmt.Sprintf("%s:%s:%s:v%d", integration, r.Path, r.Key, r.Version)
+	}
+	return fmt.Sprintf("%s:%s:%s", integration, r.Path, r.Key)
 }
