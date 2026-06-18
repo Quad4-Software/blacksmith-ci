@@ -244,6 +244,16 @@ func (c *Compiler) Compile(conf *yaml_types.Workflow) (*backend_types.Config, er
 		}
 	}
 
+	// Names already used by clone steps. Work step names are deduplicated against
+	// this set so that every step in a workflow has a unique name. Uniqueness is
+	// required: the DAG compiler keys steps by name (see dag.go), so two steps
+	// sharing a name would otherwise silently overwrite each other. It also keeps
+	// name-based rerun matching and the UI unambiguous.
+	usedStepNames := make(map[string]struct{}, len(allSteps))
+	for _, s := range allSteps {
+		usedStepNames[s.name] = struct{}{}
+	}
+
 	// add pipeline steps
 	for pos, container := range conf.Steps.ContainerList {
 		// Skip if local and should not run local
@@ -256,6 +266,10 @@ func (c *Compiler) Compile(conf *yaml_types.Workflow) (*backend_types.Config, er
 		} else if err != nil {
 			return nil, err
 		}
+
+		// The first occurrence keeps its name; later duplicates get a deterministic
+		// " (N)" suffix. Derived from step order, so reruns reproduce the same names.
+		container.Name = uniqueStepName(container.Name, usedStepNames)
 
 		stepType := backend_types.StepTypeCommands
 		if container.IsPlugin() {
@@ -320,6 +334,20 @@ func (c *Compiler) Compile(conf *yaml_types.Workflow) (*backend_types.Config, er
 	config.Stages = append(config.Stages, allStages...)
 
 	return config, nil
+}
+
+// uniqueStepName returns name if it is not already in used; otherwise it appends
+// " (N)" using the lowest N >= 2 that is free. The returned name is recorded in
+// used so subsequent calls keep producing unique names.
+func uniqueStepName(name string, used map[string]struct{}) string {
+	candidate := name
+	for i := 2; ; i++ {
+		if _, taken := used[candidate]; !taken {
+			used[candidate] = struct{}{}
+			return candidate
+		}
+		candidate = fmt.Sprintf("%s (%d)", name, i)
+	}
 }
 
 // hasWorkSteps checks if the step list contains at least one work step

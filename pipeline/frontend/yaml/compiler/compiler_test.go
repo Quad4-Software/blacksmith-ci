@@ -534,6 +534,53 @@ func TestCompilerCompilePrivileged(t *testing.T) {
 	assert.False(t, backConf.Stages[0].Steps[2].Privileged)
 }
 
+func TestCompilerDeduplicatesStepNames(t *testing.T) {
+	t.Parallel()
+
+	compiler := New()
+
+	fronConf := &yaml_types.Workflow{
+		SkipClone: true,
+		Steps: yaml_types.ContainerList{
+			ContainerList: []*yaml_types.Container{
+				{Name: "Crow (apply)", Image: "alpine", Commands: []string{"echo a"}},
+				{Name: "Crow (apply)", Image: "alpine", Commands: []string{"echo b"}},
+				{Name: "Crow (apply)", Image: "alpine", Commands: []string{"echo c"}},
+				{Name: "lint", Image: "alpine", Commands: []string{"echo lint"}},
+			},
+		},
+	}
+
+	backConf, err := compiler.Compile(fronConf)
+	assert.NoError(t, err)
+
+	names := make([]string, 0)
+	for _, stage := range backConf.Stages {
+		for _, step := range stage.Steps {
+			names = append(names, step.Name)
+		}
+	}
+
+	// First occurrence keeps its name, later duplicates get a deterministic suffix.
+	// Unique names guarantee every step survives the DAG compiler (which keys by name).
+	assert.Contains(t, names, "Crow (apply)")
+	assert.Contains(t, names, "Crow (apply) (2)")
+	assert.Contains(t, names, "Crow (apply) (3)")
+	assert.Contains(t, names, "lint")
+	assert.Len(t, names, 4)
+}
+
+func TestUniqueStepName(t *testing.T) {
+	t.Parallel()
+
+	used := map[string]struct{}{}
+	assert.Equal(t, "build", uniqueStepName("build", used))
+	assert.Equal(t, "build (2)", uniqueStepName("build", used))
+	assert.Equal(t, "build (3)", uniqueStepName("build", used))
+	assert.Equal(t, "deploy", uniqueStepName("deploy", used))
+	assert.Equal(t, "build (4)", uniqueStepName("build", used))
+}
+
 func TestCompilerImplicitCloneDependencies(t *testing.T) {
 	t.Parallel()
 
