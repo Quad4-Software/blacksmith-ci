@@ -47,7 +47,6 @@ PROTOC_GEN_GO_GRPC_VERSION := "v1.6.2"
 VERSION := if env("CI_COMMIT_TAG", "") != "" { replace(env("CI_COMMIT_TAG", ""), "v", "") } else { "dev-" + `echo "${CI_COMMIT_SHA:-$(git rev-parse HEAD)}" | cut -c -10 2>/dev/null || echo "unknown"` }
 
 # Conditional assignment for LDFLAGS if STATIC_BUILD is true
-# FIXME: https://github.com/casey/just/issues/11
 
 LDFLAGS := if STATIC_BUILD == "true" { "-s -w -extldflags '-static' -X codefloe.com/crowci/crow/v5/version.Version=" + VERSION + " -X codefloe.com/crowci/crow/v5/version.BuildDate=" + BUILD_DATE } else { "-X codefloe.com/crowci/crow/v5/version.Version=" + VERSION + " -X codefloe.com/crowci/crow/v5/version.BuildDate=" + BUILD_DATE }
 
@@ -165,13 +164,13 @@ test-server-datastore:
 test-server-datastore-coverage:
     CGO_ENABLED=1 go test -race -cover -coverprofile datastore-coverage.out -timeout 600s -tags 'test {{ TAGS }}' codefloe.com/crowci/crow/v5/server/store/...
 
-# FIXME: feature of 1.38.0 [working-directory('web')]
+[working-directory('web')]
 test-ui:
-    cd web && bun install --frozen-lockfile
-    cd web && bun run lint
-    cd web && bun run format:check
-    cd web && bun run typecheck
-    cd web && bun run test
+    bun install --frozen-lockfile
+    bun run lint
+    bun run format:check
+    bun run typecheck
+    bun run test
 
 test-lib:
     CGO_ENABLED=1 go test -race -cover -coverprofile coverage.out -timeout 60s -tags 'test {{ TAGS }}' `go list ./... | grep -v '/cmd\|/agent\|/cli\|/server'`
@@ -211,9 +210,9 @@ lint-backend: install-dev-deps
 deadcode:
     go run golang.org/x/tools/cmd/deadcode@latest -generated=false -f='{{{{println .Path}}{{{{range .Funcs}}{{{{printf "\t%s\n" .Name}}{{{{end}}{{{{println}}' -test codefloe.com/crowci/crow/v5/...
 
-# FIXME: feature of 1.38.0 [working-directory('web')]
+[working-directory('web')]
 lint-frontend:
-    cd web/ && bun run lint --quiet
+    bun run lint --quiet
 
 # Run server + agent + UI together for local development (Ctrl-C stops all).
 dev:
@@ -230,13 +229,13 @@ dev:
     trap 'kill "${pids[@]}" 2>/dev/null || true' EXIT INT TERM
     wait
 
-# FIXME: feature of 1.38.0 [working-directory('web')]
+[working-directory('web')]
 build-ui:
-    rm -rf web/dist
-    cd web/ && bun install --frozen-lockfile
-    cd web/ && bun run build
-    test -s web/dist/index.html || { echo 'ERROR: web/dist/index.html missing after bun run build'; exit 1; }
-    sha256sum web/dist/index.html 2>/dev/null || shasum -a 256 web/dist/index.html 2>/dev/null || true
+    rm -rf dist
+    bun install --frozen-lockfile
+    bun run build
+    test -s dist/index.html || { echo 'ERROR: web/dist/index.html missing after bun run build'; exit 1; }
+    sha256sum dist/index.html 2>/dev/null || shasum -a 256 dist/index.html 2>/dev/null || true
 
 build-agent:
     CGO_ENABLED=0 GOOS={{ TARGETOS }} GOARCH={{ TARGETARCH }} go build -tags '{{ TAGS }}' -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/crow-agent{{ BIN_SUFFIX }} codefloe.com/crowci/crow/v5/cmd/agent
