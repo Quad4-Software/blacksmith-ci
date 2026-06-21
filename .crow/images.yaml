@@ -91,7 +91,7 @@ steps:
     commands:
       - apt update
       - apt install -y tree
-      # install just FIXME: 'apt install -y just' from Debian >= 13
+      # install latest just; the xgo base (Ubuntu 24.04) only packages just 1.21, too old for the [working-directory] recipe attribute used in the Justfile
       - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/bin/
       - PLATFORMS='linux|arm64;linux|amd64' just cross-compile-server
     environment:
@@ -113,7 +113,7 @@ steps:
     commands:
       - apt update
       - apt install -y tree
-      # install just FIXME: 'apt install -y just' from Debian >= 13
+      # install latest just; the xgo base (Ubuntu 24.04) only packages just 1.21, too old for the [working-directory] recipe attribute used in the Justfile
       - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/bin/
       - PLATFORMS='linux|arm/v7;linux|arm64/v8;linux|amd64;linux|ppc64le;linux|riscv64;linux|s390x' just cross-compile-server
     environment:
