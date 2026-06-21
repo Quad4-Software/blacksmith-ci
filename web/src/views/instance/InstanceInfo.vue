@@ -1,9 +1,7 @@
 <template>
   <Settings :title="$t('info')">
     <div class="flex flex-col items-center gap-4">
-      <!-- <component :is="isLightTheme ? CrowLogoDark : CrowLogo" class="w-32 h-32 fill-muted-foreground" /> -->
-      <!-- FIXME: theme-switch is working but the dark svg is somewhat not rendered correctly -->
-      <component :is="CrowLogo" v-if="!isLightTheme" class="h-32 w-32 fill-muted-foreground" />
+      <component :is="isLightTheme ? CrowLogoDark : CrowLogo" class="h-32 w-32" />
       <i18n-t keypath="running_version" tag="p" class="text-center text-xl">
         <span class="font-bold">{{ version?.current }}</span>
       </i18n-t>
@@ -28,6 +26,7 @@
 import { onMounted, ref } from 'vue';
 
 import CrowLogo from '~/assets/logo.svg?component';
+import CrowLogoDark from '~/assets/logo-dark.svg?component';
 import Settings from '~/components/layout/Settings.vue';
 import { useVersion } from '~/compositions/useVersion';
 
