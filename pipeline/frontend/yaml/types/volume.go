@@ -86,8 +86,7 @@ func (v *Volumes) UnmarshalYAML(unmarshal func(any) error) error {
 					AccessMode:  elements[2],
 				}
 			default:
-				// FIXME
-				return fmt.Errorf("")
+				return fmt.Errorf("invalid volume definition %q: expected 'destination', 'source:destination' or 'source:destination:mode'", name)
 			}
 			v.Volumes = append(v.Volumes, vol)
 		}
