@@ -40,11 +40,14 @@ Notifications can be triggered on the following events:
 
 | Event | Description |
 | --- | --- |
-| **Failure** | Pipeline finished with a failure, error, or killed status. |
+| **Failure** | Pipeline finished with a failure or error status. |
 | **Success** | Pipeline finished successfully. |
 | **Status change** | Pipeline status differs from the previous pipeline on the same branch (e.g. a previously passing pipeline now fails, or vice versa). Note: the first pipeline on a branch has no previous status, so this event will not fire for it. |
 
 The default when enabling notifications is **Failure** only.
+
+Notifications are only sent for genuine build outcomes (success, failure, error).
+Pipelines that were canceled, superseded by a newer pipeline (e.g. a follow-up push to the same branch that cancels the previous run), declined, or skipped never trigger a notification, regardless of the configured events.
 
 ## Per-pipeline YAML override
 

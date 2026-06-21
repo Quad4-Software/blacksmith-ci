@@ -290,6 +290,12 @@ func statusChangeLabel(current, previous model.StatusValue) string {
 }
 
 func shouldNotify(events []model.NotificationEvent, current, previous model.StatusValue) bool {
+	// Only notify on genuine build outcomes. Builds that were canceled,
+	// superseded by a newer build (StatusKilled), declined, or skipped did not
+	// fail because of the code under test and must never trigger a notification.
+	if !isNotifiableStatus(current) {
+		return false
+	}
 	for _, ev := range events {
 		switch ev {
 		case model.NotificationEventSuccess:
@@ -307,6 +313,18 @@ func shouldNotify(events []model.NotificationEvent, current, previous model.Stat
 		}
 	}
 	return false
+}
+
+// isNotifiableStatus reports whether a terminal pipeline status represents a
+// genuine build outcome worth emailing about. Canceled/superseded (killed),
+// declined, skipped, blocked and non-terminal states are intentionally excluded.
+func isNotifiableStatus(s model.StatusValue) bool {
+	switch s {
+	case model.StatusSuccess, model.StatusFailure, model.StatusError:
+		return true
+	default:
+		return false
+	}
 }
 
 func normalizeTerminal(s model.StatusValue) string {

@@ -172,6 +172,13 @@ func TestShouldNotify(t *testing.T) {
 		{name: "status change skips same", events: []model.NotificationEvent{model.NotificationEventStatusChange}, current: model.StatusFailure, previous: model.StatusFailure, want: false},
 		{name: "status change skips no previous", events: []model.NotificationEvent{model.NotificationEventStatusChange}, current: model.StatusFailure, previous: "", want: false},
 		{name: "multiple events match any", events: []model.NotificationEvent{model.NotificationEventSuccess, model.NotificationEventFailure}, current: model.StatusFailure, previous: "", want: true},
+		{name: "failure event skips killed (superseded/canceled)", events: []model.NotificationEvent{model.NotificationEventFailure}, current: model.StatusKilled, previous: "", want: false},
+		{name: "failure event skips killed after success", events: []model.NotificationEvent{model.NotificationEventFailure}, current: model.StatusKilled, previous: model.StatusSuccess, want: false},
+		{name: "status change skips killed after success", events: []model.NotificationEvent{model.NotificationEventStatusChange}, current: model.StatusKilled, previous: model.StatusSuccess, want: false},
+		{name: "status change skips killed after failure", events: []model.NotificationEvent{model.NotificationEventStatusChange}, current: model.StatusKilled, previous: model.StatusFailure, want: false},
+		{name: "failure event skips declined", events: []model.NotificationEvent{model.NotificationEventFailure}, current: model.StatusDeclined, previous: "", want: false},
+		{name: "failure event skips skipped", events: []model.NotificationEvent{model.NotificationEventFailure}, current: model.StatusSkipped, previous: "", want: false},
+		{name: "failure event skips blocked", events: []model.NotificationEvent{model.NotificationEventFailure}, current: model.StatusBlocked, previous: "", want: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

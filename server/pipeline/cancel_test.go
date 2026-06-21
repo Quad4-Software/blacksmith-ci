@@ -21,6 +21,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
 	"codefloe.com/crowci/crow/v5/server"
 	forge_mocks "codefloe.com/crowci/crow/v5/server/forge/mocks"
@@ -466,6 +467,68 @@ func TestCancelWorkflow(t *testing.T) {
 		// Assert - should still succeed despite queue error (errors are logged but don't fail the operation)
 		assert.NoError(t, err)
 		mockStore.AssertExpectations(t)
+		mockQueue.AssertExpectations(t)
+	})
+}
+
+func TestCancel(t *testing.T) {
+	// Not parallel: mutates the global server.Config.Services.Queue, which would
+	// race with the parallel TestCancelWorkflow.
+	ctx := t.Context()
+	repo := &model.Repo{ID: 1, FullName: "test/repo"}
+	user := &model.User{ID: 1, Login: "testuser"}
+
+	// A superseded/canceled pipeline must deterministically resolve to
+	// StatusKilled: running workflows and their running steps are marked killed
+	// immediately rather than waiting for the agent to ack the cancel signal.
+	t.Run("running workflow and step are killed, pending are skipped", func(t *testing.T) {
+		runningStep := &model.Step{ID: 10, State: model.StatusRunning}
+		pendingStep := &model.Step{ID: 20, State: model.StatusPending}
+		runningWorkflow := &model.Workflow{ID: 1, PipelineID: 1, State: model.StatusRunning, Children: []*model.Step{runningStep}}
+		pendingWorkflow := &model.Workflow{ID: 2, PipelineID: 1, State: model.StatusPending, Children: []*model.Step{pendingStep}}
+		workflows := []*model.Workflow{runningWorkflow, pendingWorkflow}
+
+		pipeline := &model.Pipeline{ID: 1, RepoID: 1, Status: model.StatusRunning}
+
+		mockStore := new(store_mocks.MockStore)
+		mockStore.On("WorkflowGetTree", mock.AnythingOfType("*model.Pipeline")).Return(workflows, nil)
+		mockStore.On("UpdatePipeline", mock.AnythingOfType("*model.Pipeline")).Return(nil)
+
+		wfStates := map[int64]model.StatusValue{}
+		mockStore.On("WorkflowUpdate", mock.AnythingOfType("*model.Workflow")).Run(func(args mock.Arguments) {
+			wf, ok := args.Get(0).(*model.Workflow)
+			require.True(t, ok)
+			wfStates[wf.ID] = wf.State
+		}).Return(nil)
+
+		stepStates := map[int64]model.StatusValue{}
+		mockStore.On("StepUpdate", mock.AnythingOfType("*model.Step")).Run(func(args mock.Arguments) {
+			st, ok := args.Get(0).(*model.Step)
+			require.True(t, ok)
+			stepStates[st.ID] = st.State
+		}).Return(nil)
+
+		mockForge := new(forge_mocks.MockForge)
+
+		originalQueue := server.Config.Services.Queue
+		mockQueue := new(queue_mocks.MockQueue)
+		mockQueue.On("EvictAtOnce", ctx, []string{"2"}).Return(nil)
+		mockQueue.On("ErrorAtOnce", ctx, []string{"2"}, queue.ErrCancel).Return(nil)
+		mockQueue.On("ErrorAtOnce", ctx, []string{"1"}, queue.ErrCancel).Return(nil)
+		server.Config.Services.Queue = mockQueue
+		defer func() { server.Config.Services.Queue = originalQueue }()
+
+		originalPubsub := server.Config.Services.Pubsub
+		server.Config.Services.Pubsub = pubsub.New()
+		defer func() { server.Config.Services.Pubsub = originalPubsub }()
+
+		err := Cancel(ctx, mockForge, mockStore, repo, user, pipeline)
+
+		assert.NoError(t, err)
+		assert.Equal(t, model.StatusKilled, wfStates[1], "running workflow should be killed")
+		assert.Equal(t, model.StatusSkipped, wfStates[2], "pending workflow should be skipped")
+		assert.Equal(t, model.StatusKilled, stepStates[10], "running step should be killed")
+		assert.Equal(t, model.StatusSkipped, stepStates[20], "pending step should be skipped")
 		mockQueue.AssertExpectations(t)
 	})
 }

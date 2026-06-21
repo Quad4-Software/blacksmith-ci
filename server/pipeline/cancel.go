@@ -66,18 +66,33 @@ func Cancel(ctx context.Context, _forge forge.Forge, store store.Store, repo *mo
 		}
 	}
 
-	// Then update the DB status for pending pipelines
-	// Running ones will be set when the agents stop on the cancel signal
+	// Update the DB status for each workflow and its steps. Pending work is
+	// marked skipped; running work is marked killed immediately rather than
+	// waiting for the agent to ack the cancel signal. Marking running workflows
+	// killed here makes a canceled/superseded pipeline deterministically
+	// resolve to StatusKilled: otherwise the agent's Done report (which carries
+	// the cancel error) can race the step's killed-exit update and flip the
+	// workflow to StatusFailure, wrongly triggering a failure notification.
 	for _, workflow := range workflows {
-		if workflow.State == model.StatusPending {
+		switch workflow.State {
+		case model.StatusPending:
 			if _, err = UpdateWorkflowToStatusSkipped(store, *workflow); err != nil {
 				log.Error().Err(err).Msgf("cannot update workflow with id %d state", workflow.ID)
 			}
+		case model.StatusRunning:
+			if _, err = UpdateWorkflowToStatusKilled(store, *workflow); err != nil {
+				log.Error().Err(err).Msgf("cannot update workflow with id %d state to killed", workflow.ID)
+			}
 		}
 		for _, step := range workflow.Children {
-			if step.State == model.StatusPending {
+			switch step.State {
+			case model.StatusPending:
 				if _, err = UpdateStepToStatusSkipped(store, *step, 0); err != nil {
-					log.Error().Err(err).Msgf("cannot update workflow with id %d state", workflow.ID)
+					log.Error().Err(err).Msgf("cannot update step with id %d state", step.ID)
+				}
+			case model.StatusRunning:
+				if _, err = UpdateStepToStatusKilled(store, *step); err != nil {
+					log.Error().Err(err).Msgf("cannot update step with id %d state to killed", step.ID)
 				}
 			}
 		}
