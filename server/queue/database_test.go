@@ -158,6 +158,50 @@ func TestDatabaseQueueBatchAssignmentCAS(t *testing.T) {
 	assert.False(t, exists, "Polling instance should be removed after assignment")
 }
 
+// TestDatabaseQueueBatchAssignmentFifoOrder verifies that, regardless of the
+// order TaskList returns rows in, the oldest queued task (smallest workflow ID)
+// is assigned first (issue #1208).
+func TestDatabaseQueueBatchAssignmentFifoOrder(t *testing.T) {
+	q, mockStore := newTestDatabaseQueue(t)
+
+	// Pre-cache approval gates so the assignment loop does not hit the store's
+	// WorkflowLoad fallback for these numeric task IDs.
+	q.cacheApprovalGate(&model.Task{ID: "2"})
+	q.cacheApprovalGate(&model.Task{ID: "3"})
+
+	// Older task is "2", newer is "3" — but TaskList returns them newest-first.
+	older := &model.Task{ID: "2", Data: []byte("{}"), AgentID: 0}
+	newer := &model.Task{ID: "3", Data: []byte("{}"), AgentID: 0}
+
+	responseChan := make(chan *model.Task, 1)
+	_, instCancel := testCancelCtx(t.Context())
+	defer instCancel()
+	q.pollingInstancesMu.Lock()
+	q.pollingInstances["test-inst"] = &pollingInstance{
+		instanceID: "test-inst",
+		agentID:    10,
+		filter:     filterFnTrue,
+		response:   responseChan,
+		pollTime:   time.Now(),
+		cancel:     instCancel,
+	}
+	q.pollingInstancesMu.Unlock()
+
+	mockStore.EXPECT().TaskList().Return([]*model.Task{newer, older}, nil)
+	// Only the older task should be assigned; a mock for "3" is intentionally
+	// absent so an out-of-order assignment would fail the test.
+	mockStore.EXPECT().TaskAtomicAssign("2", int64(10)).Return(true, nil)
+
+	q.tryBatchAssignment()
+
+	select {
+	case got := <-responseChan:
+		assert.Equal(t, "2", got.ID, "older task must be assigned before newer one")
+	default:
+		t.Fatal("Expected the older task to be delivered to the response channel")
+	}
+}
+
 func TestDatabaseQueueBatchAssignmentCASRace(t *testing.T) {
 	q, mockStore := newTestDatabaseQueue(t)
 

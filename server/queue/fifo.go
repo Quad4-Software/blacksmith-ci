@@ -18,6 +18,8 @@ import (
 	"container/list"
 	"context"
 	"fmt"
+	"sort"
+	"strconv"
 	"sync"
 	"time"
 
@@ -394,11 +396,29 @@ func (q *fifo) process() {
 }
 
 func (q *fifo) filterWaiting() {
-	// resubmits all waiting tasks to pending, deps may have cleared
-	var nextWaiting *list.Element
-	for e := q.waitingOnDeps.Front(); e != nil; e = nextWaiting {
-		nextWaiting = e.Next()
-		task, _ := e.Value.(*model.Task)
+	// Merge waiting and pending tasks into a single slice, then restore global
+	// FIFO order before re-partitioning. Previously waiting tasks were appended
+	// to the tail of pending, so a workflow that was briefly blocked on a
+	// dependency lost its queue position to pipelines enqueued while it waited —
+	// causing newer pipelines to overtake older ones (issue #1208). Workflow IDs
+	// are assigned monotonically at creation, so ascending numeric ID equals
+	// enqueue order; sorting by it also restores correct order after a restart
+	// regardless of the order rows come back from the database.
+	var all []*model.Task
+	for e := q.waitingOnDeps.Front(); e != nil; e = e.Next() {
+		if task, ok := e.Value.(*model.Task); ok {
+			all = append(all, task)
+		}
+	}
+	for e := q.pending.Front(); e != nil; e = e.Next() {
+		if task, ok := e.Value.(*model.Task); ok {
+			all = append(all, task)
+		}
+	}
+	sort.SliceStable(all, func(i, j int) bool { return taskLess(all[i], all[j]) })
+
+	q.pending = list.New()
+	for _, task := range all {
 		q.pending.PushBack(task)
 	}
 
@@ -438,6 +458,19 @@ func (q *fifo) filterWaiting() {
 	for _, f := range filtered {
 		q.pending.Remove(f)
 	}
+}
+
+// taskLess orders tasks by enqueue order. Workflow IDs are numeric and
+// monotonically increasing, so smaller ID == enqueued earlier. Non-numeric IDs
+// (only used in tests) fall back to lexicographic comparison so the ordering
+// stays total and deterministic.
+func taskLess(a, b *model.Task) bool {
+	ai, aerr := strconv.ParseInt(a.ID, 10, 64)
+	bi, berr := strconv.ParseInt(b.ID, 10, 64)
+	if aerr == nil && berr == nil {
+		return ai < bi
+	}
+	return a.ID < b.ID
 }
 
 func (q *fifo) assignToWorker() (*list.Element, *worker) {

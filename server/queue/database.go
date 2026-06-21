@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 	"sync"
 	"time"
@@ -860,6 +861,12 @@ func (q *DatabaseQueue) tryBatchAssignment() {
 		log.Error().Err(err).Msg("Failed to list tasks for batch assignment")
 		return
 	}
+
+	// TaskList has no defined order (the tasks.id column is TEXT, and the row
+	// order drifts as agent_id is updated/reset). Assign oldest-first so older
+	// pipelines are served before newer ones — workflow IDs are monotonic, so
+	// taskLess yields enqueue order (issue #1208).
+	sort.SliceStable(tasks, func(i, j int) bool { return taskLess(tasks[i], tasks[j]) })
 
 	// Get snapshot of polling instances
 	q.pollingInstancesMu.RLock()

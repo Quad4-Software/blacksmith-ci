@@ -522,6 +522,51 @@ func TestWaitingVsPending(t *testing.T) {
 	assert.Equal(t, 1, info.Stats.Pending)
 }
 
+// TestFifoFairOrderingAfterWaiting reproduces issue #1208: a workflow that is
+// briefly held in waitingOnDeps must not lose its queue position to pipelines
+// that were enqueued later. The older workflow must be served first (FIFO).
+func TestFifoFairOrderingAfterWaiting(t *testing.T) {
+	ctx, cancel := context.WithCancelCause(t.Context())
+	t.Cleanup(func() { cancel(nil) })
+
+	q, _ := NewMemoryQueue(ctx, nil).(*fifo)
+	assert.NotNil(t, q)
+
+	// Older pipeline: task1 plus task2 which depends on task1.
+	task1 := &model.Task{ID: "1", Data: []byte("{}")}
+	task2 := &model.Task{
+		ID:           "2",
+		Dependencies: []string{"1"},
+		DepStatus:    make(map[string]model.StatusValue),
+		Data:         []byte("{}"),
+	}
+	assert.NoError(t, q.PushAtOnce(ctx, []*model.Task{task1, task2}))
+
+	// Drain task1 so task2 is held in waitingOnDeps.
+	waitForProcess()
+	got, err := q.Poll(ctx, 1, filterFnTrue)
+	assert.NoError(t, err)
+	assert.Equal(t, "1", got.ID)
+
+	waitForProcess()
+	info := q.Info(ctx)
+	assert.Equal(t, 1, info.Stats.WaitingOnDeps, "task2 should wait on task1")
+
+	// A newer pipeline arrives while task2 is still blocked.
+	task3 := &model.Task{ID: "3", Data: []byte("{}")}
+	assert.NoError(t, q.Push(ctx, task3))
+
+	// task1 finishes, unblocking task2.
+	assert.NoError(t, q.Done(ctx, "1", model.StatusSuccess))
+
+	// The older pipeline's workflow (task2) must be served before the newer
+	// pipeline's workflow (task3).
+	waitForProcess()
+	got, err = q.Poll(ctx, 1, filterFnTrue)
+	assert.NoError(t, err)
+	assert.Equal(t, "2", got.ID, "older queued workflow must run before a newer one")
+}
+
 func TestShouldRun(t *testing.T) {
 	task := &model.Task{
 		ID:           "2",
