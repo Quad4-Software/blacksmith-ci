@@ -81,6 +81,9 @@ export default defineConfig({
         // Override Search to scope results to the current docs version
         // (forked from Celestia's Search; see file header for context)
         Search: './src/components/Search.astro',
+        // Compose celestia's MarkdownContent (code copy button) with image-zoom's,
+        // which otherwise clobber each other depending on plugin order.
+        MarkdownContent: './src/components/MarkdownContent.astro',
       },
       plugins: [
         starlightImageZoom(),

@@ -1,0 +1,11 @@
+---
+// Both starlight-image-zoom and starlight-theme-celestia override MarkdownContent.
+// Whichever plugin runs last would otherwise win and drop the other's behaviour
+// (image-zoom drops celestia's code copy button; the order here drops image zoom).
+// Compose both explicitly so code blocks keep their copy button AND images stay zoomable.
+import CelestiaMarkdownContent from 'starlight-theme-celestia/components/MarkdownContent.astro';
+import ImageZoom from 'starlight-image-zoom/components/ImageZoom.astro';
+---
+
+<ImageZoom />
+<CelestiaMarkdownContent><slot /></CelestiaMarkdownContent>
