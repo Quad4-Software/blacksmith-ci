@@ -10,7 +10,7 @@ require (
 	codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v3 v3.0.0
 	github.com/6543/logfile-open v1.2.1
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.22.0
-	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.13.1
+	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.14.0
 	github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets v1.5.0
 	github.com/bmatcuk/doublestar/v4 v4.10.0
 	github.com/cenkalti/backoff/v5 v5.0.3
@@ -18,7 +18,7 @@ require (
 	github.com/containers/podman/v5 v5.8.3
 	github.com/danielgtaylor/huma/v2 v2.38.0
 	github.com/distribution/reference v0.6.0
-	github.com/docker/cli v29.5.3+incompatible
+	github.com/docker/cli v29.6.0+incompatible
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/docker/go-connections v0.7.0
 	github.com/dustin/go-humanize v1.0.1
@@ -44,7 +44,7 @@ require (
 	github.com/jellydator/ttlcache/v3 v3.4.0
 	github.com/joho/godotenv v1.5.1
 	github.com/kinbiko/jsonassert v1.2.0
-	github.com/mattn/go-sqlite3 v1.14.45
+	github.com/mattn/go-sqlite3 v1.14.47
 	github.com/minio/minio-go/v7 v7.2.0
 	github.com/moby/moby v28.5.2+incompatible
 	github.com/muesli/termenv v0.16.0
@@ -65,8 +65,8 @@ require (
 	github.com/urfave/cli/v3 v3.10.0
 	github.com/wneessen/go-mail v0.7.3
 	github.com/yaronf/httpsign v0.5.1
-	gitlab.com/gitlab-org/api/client-go/v2 v2.39.0
-	go.podman.io/common v0.67.1
+	gitlab.com/gitlab-org/api/client-go/v2 v2.40.0
+	go.podman.io/common v0.68.0
 	golang.org/x/net v0.56.0
 	golang.org/x/oauth2 v0.36.0
 	golang.org/x/sync v0.21.0
