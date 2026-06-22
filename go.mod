@@ -10,11 +10,7 @@ require (
 	codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v3 v3.0.0
 	github.com/6543/logfile-open v1.2.1
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.22.0
-<<<<<<< HEAD
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.14.0
-=======
-	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.13.1
->>>>>>> bf19529d1 (chore(deps): update golang-packages)
 	github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets v1.5.0
 	github.com/bmatcuk/doublestar/v4 v4.10.0
 	github.com/cenkalti/backoff/v5 v5.0.3
@@ -22,11 +18,7 @@ require (
 	github.com/containers/podman/v5 v5.8.3
 	github.com/danielgtaylor/huma/v2 v2.38.0
 	github.com/distribution/reference v0.6.0
-<<<<<<< HEAD
 	github.com/docker/cli v29.6.0+incompatible
-=======
-	github.com/docker/cli v29.5.3+incompatible
->>>>>>> bf19529d1 (chore(deps): update golang-packages)
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/docker/go-connections v0.7.0
 	github.com/dustin/go-humanize v1.0.1
@@ -52,17 +44,14 @@ require (
 	github.com/jellydator/ttlcache/v3 v3.4.0
 	github.com/joho/godotenv v1.5.1
 	github.com/kinbiko/jsonassert v1.2.0
-<<<<<<< HEAD
 	github.com/mattn/go-sqlite3 v1.14.47
-=======
-	github.com/mattn/go-sqlite3 v1.14.45
->>>>>>> bf19529d1 (chore(deps): update golang-packages)
 	github.com/minio/minio-go/v7 v7.2.0
-	github.com/moby/moby v28.5.2+incompatible
+	github.com/moby/moby/api v1.54.2
+	github.com/moby/moby/client v0.4.1
 	github.com/muesli/termenv v0.16.0
 	github.com/neticdk/go-bitbucket v1.0.5
 	github.com/oklog/ulid/v2 v2.1.1
-	github.com/opencontainers/runtime-spec v1.2.1
+	github.com/opencontainers/runtime-spec v1.3.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/rs/zerolog v1.35.1
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2
@@ -77,12 +66,8 @@ require (
 	github.com/urfave/cli/v3 v3.10.0
 	github.com/wneessen/go-mail v0.7.3
 	github.com/yaronf/httpsign v0.5.1
-<<<<<<< HEAD
 	gitlab.com/gitlab-org/api/client-go/v2 v2.40.0
-=======
-	gitlab.com/gitlab-org/api/client-go/v2 v2.39.0
->>>>>>> bf19529d1 (chore(deps): update golang-packages)
-	go.podman.io/common v0.68.0
+	go.podman.io/common v0.67.1
 	golang.org/x/net v0.56.0
 	golang.org/x/oauth2 v0.36.0
 	golang.org/x/sync v0.21.0
@@ -101,6 +86,7 @@ require (
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
 	cloud.google.com/go/iam v1.11.0 // indirect
+	cyphar.com/go-pathrs v0.2.4 // indirect
 	dario.cat/mergo v1.0.2 // indirect
 	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/42wim/httpsig v1.2.4 // indirect
@@ -147,9 +133,8 @@ require (
 	github.com/containers/psgo v1.9.1-0.20250826150930-4ae76f200c86 // indirect
 	github.com/coreos/go-systemd/v22 v22.7.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
-	github.com/creack/pty v1.1.24 // indirect
 	github.com/cyberphone/json-canonicalization v0.0.0-20241213102144-19d51d7fe467 // indirect
-	github.com/cyphar/filepath-securejoin v0.5.2 // indirect
+	github.com/cyphar/filepath-securejoin v0.6.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/davidmz/go-pageant v1.0.2 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.1 // indirect
@@ -268,7 +253,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/opencontainers/runc v1.3.4 // indirect
-	github.com/opencontainers/runtime-tools v0.9.1-0.20250523060157-0ea5ed0382a2 // indirect
+	github.com/opencontainers/runtime-tools v0.9.1-0.20260316125833-8a4db579f5c8 // indirect
 	github.com/opencontainers/selinux v1.14.1 // indirect
 	github.com/oracle/oci-go-sdk/v65 v65.116.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.3.1 // indirect
@@ -345,5 +330,5 @@ require (
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.2 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
-	tags.cncf.io/container-device-interface v1.0.1 // indirect
+	tags.cncf.io/container-device-interface v1.1.0 // indirect
 )
