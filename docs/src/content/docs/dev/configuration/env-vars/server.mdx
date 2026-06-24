@@ -12,6 +12,16 @@ Core server configuration variables.
 
 ---
 
+## ADMIN_TOKEN
+
+- Name: `CROW_ADMIN_TOKEN`
+- Description: Opaque secret (at least 32 characters) seeded at startup as a full-admin API token for automation.
+  Owned by the dedicated `crow-admin` system user.
+  Changing the value rotates the credential and revokes the previous one on next boot.
+- Default: none
+
+---
+
 ## HOST
 
 - Name: `CROW_HOST`

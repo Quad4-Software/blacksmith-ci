@@ -73,41 +73,45 @@ func Parse(allowedTypes []Type, raw string, fn SecretFunc) (*Token, error) {
 	return token, nil
 }
 
-func ParseRequest(allowedTypes []Type, r *http.Request, fn SecretFunc) (*Token, error) {
-	// first we attempt to get the token from the
-	// authorization header.
+// ExtractToken returns the raw token string from the request without parsing
+// it (Authorization bearer, X-Gitlab-Token, access_token query, or session
+// cookie), in that order of precedence.
+func ExtractToken(r *http.Request) (string, error) {
 	token := r.Header.Get("Authorization")
 	if len(token) != 0 {
-		log.Trace().Msgf("token.ParseRequest: found token in header: %s", token)
+		log.Trace().Msg("token.ExtractToken: found token in Authorization header")
 		bearer := token
 		if _, err := fmt.Sscanf(token, "Bearer %s", &bearer); err != nil {
-			return nil, err
+			return "", err
 		}
-		return Parse(allowedTypes, bearer, fn)
+		return bearer, nil
 	}
 
 	token = r.Header.Get("X-Gitlab-Token")
 	if len(token) != 0 {
-		return Parse(allowedTypes, token, fn)
+		return token, nil
 	}
 
-	// then we attempt to get the token from the
-	// access_token url query parameter
 	// Note: Use r.URL.Query().Get() instead of r.FormValue() to avoid
 	// consuming the request body when Content-Type is form-urlencoded.
-	// This is important for webhook handlers that need to read the body later.
 	token = r.URL.Query().Get("access_token")
 	if len(token) != 0 {
-		return Parse(allowedTypes, token, fn)
+		return token, nil
 	}
 
-	// and finally we attempt to get the token from
-	// the user session cookie
 	cookie, err := r.Cookie("user_sess")
+	if err != nil {
+		return "", err
+	}
+	return cookie.Value, nil
+}
+
+func ParseRequest(allowedTypes []Type, r *http.Request, fn SecretFunc) (*Token, error) {
+	raw, err := ExtractToken(r)
 	if err != nil {
 		return nil, err
 	}
-	return Parse(allowedTypes, cookie.Value, fn)
+	return Parse(allowedTypes, raw, fn)
 }
 
 func CheckCsrf(r *http.Request, fn SecretFunc) error {

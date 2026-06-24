@@ -35,6 +35,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"codefloe.com/crowci/crow/v5/server"
+	"codefloe.com/crowci/crow/v5/server/bootstrap"
 	"codefloe.com/crowci/crow/v5/server/cron"
 	"codefloe.com/crowci/crow/v5/server/router"
 	"codefloe.com/crowci/crow/v5/server/router/middleware"
@@ -127,6 +128,10 @@ func run(ctx context.Context, c *cli.Command) error {
 	// forges return raw ciphertext and that ciphertext ends up being sent to
 	// forges as a Bearer token (crowci/crow#974).
 	_store = server.Config.Services.Manager.Store()
+
+	if err := bootstrap.AdminToken(_store, c.String("admin-token")); err != nil {
+		return fmt.Errorf("admin token bootstrap failed: %w", err)
+	}
 
 	// wait for all services until one do stops with an error
 	serviceWaitingGroup := errgroup.Group{}

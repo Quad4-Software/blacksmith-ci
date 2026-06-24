@@ -29,6 +29,10 @@ var errUserLoginInvalid = errors.New("invalid user login")
 
 const maxLoginLen = 250
 
+// SystemAdminLogin is the login of the dedicated, forge-less admin user that
+// owns the bootstrap access token seeded from CROW_ADMIN_TOKEN.
+const SystemAdminLogin = "crow-admin"
+
 // User represents a registered user.
 type User struct {
 	bun.BaseModel `bun:"table:users"`

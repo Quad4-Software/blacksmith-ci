@@ -135,6 +135,11 @@ var flags = append([]cli.Flag{
 		Name:    "admin",
 		Usage:   "list of admin users",
 	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("WOODPECKER_ADMIN_TOKEN", "CROW_ADMIN_TOKEN"),
+		Name:    "admin-token",
+		Usage:   "opaque API token (>= 32 chars) seeded as a full-admin bootstrap credential for automation",
+	},
 	&cli.StringSliceFlag{
 		Sources: cli.EnvVars("WOODPECKER_ORGS", "CROW_ORGS"),
 		Name:    "orgs",

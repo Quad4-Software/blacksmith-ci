@@ -17,6 +17,7 @@ package session
 import (
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -25,6 +26,7 @@ import (
 	"codefloe.com/crowci/crow/v5/server"
 	"codefloe.com/crowci/crow/v5/server/model"
 	"codefloe.com/crowci/crow/v5/server/store"
+	"codefloe.com/crowci/crow/v5/server/store/datastore"
 	"codefloe.com/crowci/crow/v5/shared/httputil"
 	"codefloe.com/crowci/crow/v5/shared/token"
 )
@@ -45,6 +47,16 @@ func SetUser() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var user *model.User
 		var accessToken *model.AccessToken
+
+		// Opaque bootstrap-token path: a non-JWT bearer authenticates only if
+		// it resolves to the dedicated system admin user (CROW_ADMIN_TOKEN).
+		if raw, err := token.ExtractToken(c.Request); err == nil && raw != "" && strings.Count(raw, ".") != 2 {
+			if u, at, ok := resolveOpaqueToken(c, raw); ok {
+				applyAccessToken(c, u, at)
+			}
+			c.Next()
+			return
+		}
 
 		t, err := token.ParseRequest([]token.Type{token.UserToken, token.SessToken, token.AccessToken}, c.Request, func(t *token.Token) (string, error) {
 			var err error
@@ -100,15 +112,7 @@ func SetUser() gin.HandlerFunc {
 
 			// Store access token in context for scope checking
 			if accessToken != nil {
-				c.Set("access_token", accessToken)
-
-				// Update last used timestamp asynchronously
-				go func(tokenID int64) {
-					// Create a fresh store connection for the goroutine
-					if err := store.FromContext(c).AccessTokenUpdateLastUsed(tokenID, time.Now().Unix()); err != nil {
-						log.Debug().Err(err).Int64("token_id", tokenID).Msg("Failed to update access token last used")
-					}
-				}(accessToken.ID)
+				applyAccessToken(c, user, accessToken)
 			}
 
 			// if this is a session token (ie not the API token)
@@ -128,6 +132,42 @@ func SetUser() gin.HandlerFunc {
 		}
 		c.Next()
 	}
+}
+
+// resolveOpaqueToken looks up a raw (non-JWT) bearer by its hash and returns
+// the owning user only when the token belongs to the system admin user and is
+// not expired. This is the CROW_ADMIN_TOKEN bootstrap credential path.
+func resolveOpaqueToken(c *gin.Context, raw string) (*model.User, *model.AccessToken, bool) {
+	_store := store.FromContext(c)
+
+	at, err := _store.AccessTokenFindByHash(datastore.HashAccessToken(raw))
+	if err != nil {
+		return nil, nil, false
+	}
+	user, err := _store.GetUser(at.UserID)
+	if err != nil {
+		return nil, nil, false
+	}
+	if user.Login != model.SystemAdminLogin {
+		return nil, nil, false
+	}
+	if at.IsExpired() {
+		return nil, nil, false
+	}
+	return user, at, true
+}
+
+// applyAccessToken sets the authenticated user and access token on the context
+// and records the token's last-used timestamp asynchronously.
+func applyAccessToken(c *gin.Context, user *model.User, at *model.AccessToken) {
+	c.Set("user", user)
+	c.Set("access_token", at)
+
+	go func(tokenID int64) {
+		if err := store.FromContext(c).AccessTokenUpdateLastUsed(tokenID, time.Now().Unix()); err != nil {
+			log.Debug().Err(err).Int64("token_id", tokenID).Msg("Failed to update access token last used")
+		}
+	}(at.ID)
 }
 
 func MustAdmin() gin.HandlerFunc {

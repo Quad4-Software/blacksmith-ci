@@ -43,6 +43,20 @@ CROW_ADMIN=johnDoe,janeSmith
 
 Admins can also be promoted via UI: Settings → Users → Edit User.
 
+### Admin Token Bootstrap
+
+For zero-touch automation (e.g. Terraform), seed a full-admin API token at startup with `CROW_ADMIN_TOKEN`.
+Provide an opaque secret of at least 32 characters, generated with e.g. `openssl rand -hex 32`:
+
+```yaml
+CROW_ADMIN_TOKEN=<your-secret>
+```
+
+The token is owned by a dedicated, non-interactive `crow-admin` system user and grants full admin scope.
+Use the same value directly as the API bearer token (e.g. `CROW_TOKEN` for the CLI).
+The bootstrap is idempotent; changing the value rotates the credential and revokes the previous one on the next boot.
+Keep the secret safe — anyone holding it has full admin access.
+
 ## Multi-Forge Support
 
 Crow can connect to multiple Git forges simultaneously, allowing users to manage repositories from different sources (e.g., GitHub and Codeberg) under a single account.
