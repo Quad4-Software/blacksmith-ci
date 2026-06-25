@@ -162,13 +162,19 @@ Set this variable explicitly only if you need to pin a specific agent version or
 | Variable             | Default | Description                                                    |
 | -------------------- | ------- | -------------------------------------------------------------- |
 | `CROW_AGENT_ENV`     | _none_  | Environment variables passed to spawned agents (comma-separated `KEY=value` pairs) |
-| `CROW_FILTER_LABELS` | _none_  | Only count queued tasks matching this label (`key=value`) toward scaling decisions. Required for [multiple autoscalers](#multiple-autoscalers). |
+| `CROW_FILTER_LABELS` | _none_  | Only count queued tasks matching these labels (comma-separated `key=value`, a task must match **all**) toward scaling decisions. Required for [multiple autoscalers](#multiple-autoscalers). |
 
 Example agent environment:
 
 ```yaml
 CROW_AGENT_ENV=CROW_AGENT_LABELS=tier=heavy,CROW_LOG_LEVEL=debug,CROW_HEALTHCHECK=false
 ```
+
+:::note
+`CROW_AGENT_LABELS` accepts multiple labels as a comma-separated list, e.g. `CROW_AGENT_LABELS=tier=heavy,gpu=true`.
+Even though it lives inside the comma-separated `CROW_AGENT_ENV`, the autoscaler reassembles the full label list, so no labels are lost.
+Label keys must be lower-case so they can be distinguished from the upper-case environment variable names that share `CROW_AGENT_ENV`.
+:::
 
 ### Spawned Agent Environment
 

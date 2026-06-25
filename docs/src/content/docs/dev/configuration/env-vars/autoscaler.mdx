@@ -54,12 +54,25 @@ The provider-specific settings are documented in their respective source files t
 ## FILTER_LABELS
 
 - Name: `CROW_FILTER_LABELS`
-- Description: only count queued tasks matching this label toward scaling decisions.
-  Format: `key=value`.
+- Description: only count queued tasks matching these labels toward scaling decisions.
+  Format: a comma-separated list of `key=value` pairs (e.g. `tier=heavy,arch=arm64`); a task must match **all** of them.
   Required when running [multiple autoscalers](/dev/configuration/autoscaler/#multiple-autoscalers) to prevent each autoscaler from scaling for tasks meant for another.
 - Default: none (all pending tasks are counted)
 - Synonyms:
     - `WOODPECKER_FILTER_LABELS`
+
+---
+
+## AGENT_ENV
+
+- Name: `CROW_AGENT_ENV`
+- Description: environment variables passed to spawned agents, as a comma-separated list of `KEY=value` pairs (e.g. `CROW_LOG_LEVEL=debug,CROW_HEALTHCHECK=false`).
+  Agent labels are configured here through `CROW_AGENT_LABELS`, whose value is itself a comma-separated list of `key=value` labels.
+  Because `CROW_AGENT_ENV` is also comma-separated, the autoscaler reassembles a multi-label `CROW_AGENT_LABELS` value: `CROW_AGENT_ENV=CROW_AGENT_LABELS=tier=heavy,gpu=true` is read as the two labels `tier=heavy` and `gpu=true` rather than dropping `gpu`.
+  For this to work, label keys must be lower-case — env var names are upper-case, which is how the two are told apart.
+- Default: none
+- Synonyms:
+    - `WOODPECKER_AGENT_ENV`
 
 ---
 
