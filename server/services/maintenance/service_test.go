@@ -50,6 +50,21 @@ func TestService_SetKubernetesCleanupFunc(t *testing.T) {
 	assert.True(t, service.kubernetesCleanupEnabled)
 }
 
+func TestService_StaleAgentEnvVarsConfigured(t *testing.T) {
+	mockStore := &store.MockStore{}
+	service, ok := NewService(mockStore).(*service)
+	require.True(t, ok)
+
+	// Defaults to false until setup reconciles the env var.
+	assert.False(t, service.IsStaleAgentEnvVarsConfigured())
+
+	service.SetStaleAgentEnvVarsConfigured(true)
+	assert.True(t, service.IsStaleAgentEnvVarsConfigured())
+
+	service.SetStaleAgentEnvVarsConfigured(false)
+	assert.False(t, service.IsStaleAgentEnvVarsConfigured())
+}
+
 func TestService_GetMaintenanceConfig_KubernetesFlag(t *testing.T) {
 	tests := []struct {
 		name                 string

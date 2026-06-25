@@ -145,3 +145,53 @@ func TestGetMaintenanceConfigByAction_EnvVarsNotSet(t *testing.T) {
 	assert.False(t, response.Enabled)
 	assert.True(t, response.KubernetesCleanupAvailable)
 }
+
+func TestGetMaintenanceConfigByAction_StaleAgentEnvVarsSet(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	mockService := mocks_service.NewMockService(t)
+
+	// Stale agent cleanup disabled via CROW_MAINTENANCE_STALE_AGENT_CLEANUP_ENABLED=false
+	staleAgentConfig := &model.MaintenanceConfig{
+		ID:         1,
+		ActionType: "stale_agent_cleanup",
+		Enabled:    false,
+		Schedule:   "0 5 * * *",
+	}
+
+	mockService.EXPECT().
+		GetMaintenanceConfigByAction("stale_agent_cleanup").
+		Return(staleAgentConfig, nil)
+
+	mockService.EXPECT().
+		IsStaleAgentEnvVarsConfigured().
+		Return(true)
+
+	originalService := server.Config.Services.MaintenanceService
+	server.Config.Services.MaintenanceService = mockService
+	defer func() {
+		server.Config.Services.MaintenanceService = originalService
+	}()
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request, _ = http.NewRequest(http.MethodGet, "/admin/maintenance/config/stale_agent_cleanup", nil)
+	c.Set("user", &model.User{
+		ID:    1,
+		Login: "admin",
+		Admin: true,
+	})
+
+	output, err := GetMaintenanceConfigByAction(testCtx(c), &GetMaintenanceConfigByActionInput{
+		Action: "stale_agent_cleanup",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, output)
+
+	response := output.Body
+
+	// env_vars_set must reflect the env override so the UI marks it as env-managed
+	assert.True(t, response.EnvVarsSet, "env_vars_set should be true when environment variables are set")
+	assert.Equal(t, "stale_agent_cleanup", response.ActionType)
+	assert.False(t, response.Enabled, "stale agent cleanup should report disabled when env disables it")
+}

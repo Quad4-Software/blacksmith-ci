@@ -425,6 +425,50 @@ func (_c *MockService_IsOrphanedDataEnvVarsConfigured_Call) RunAndReturn(run fun
 	return _c
 }
 
+// IsStaleAgentEnvVarsConfigured provides a mock function for the type MockService
+func (_mock *MockService) IsStaleAgentEnvVarsConfigured() bool {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for IsStaleAgentEnvVarsConfigured")
+	}
+
+	var r0 bool
+	if returnFunc, ok := ret.Get(0).(func() bool); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	return r0
+}
+
+// MockService_IsStaleAgentEnvVarsConfigured_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IsStaleAgentEnvVarsConfigured'
+type MockService_IsStaleAgentEnvVarsConfigured_Call struct {
+	*mock.Call
+}
+
+// IsStaleAgentEnvVarsConfigured is a helper method to define mock.On call
+func (_e *MockService_Expecter) IsStaleAgentEnvVarsConfigured() *MockService_IsStaleAgentEnvVarsConfigured_Call {
+	return &MockService_IsStaleAgentEnvVarsConfigured_Call{Call: _e.mock.On("IsStaleAgentEnvVarsConfigured")}
+}
+
+func (_c *MockService_IsStaleAgentEnvVarsConfigured_Call) Run(run func()) *MockService_IsStaleAgentEnvVarsConfigured_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockService_IsStaleAgentEnvVarsConfigured_Call) Return(b bool) *MockService_IsStaleAgentEnvVarsConfigured_Call {
+	_c.Call.Return(b)
+	return _c
+}
+
+func (_c *MockService_IsStaleAgentEnvVarsConfigured_Call) RunAndReturn(run func() bool) *MockService_IsStaleAgentEnvVarsConfigured_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // IsVacuumEnvVarsConfigured provides a mock function for the type MockService
 func (_mock *MockService) IsVacuumEnvVarsConfigured() bool {
 	ret := _mock.Called()
@@ -983,6 +1027,46 @@ func (_c *MockService_SetOrphanedDataEnvVarsConfigured_Call) Return() *MockServi
 }
 
 func (_c *MockService_SetOrphanedDataEnvVarsConfigured_Call) RunAndReturn(run func(orphanEnvVarsSet bool)) *MockService_SetOrphanedDataEnvVarsConfigured_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetStaleAgentEnvVarsConfigured provides a mock function for the type MockService
+func (_mock *MockService) SetStaleAgentEnvVarsConfigured(staleAgentEnvVarsSet bool) {
+	_mock.Called(staleAgentEnvVarsSet)
+	return
+}
+
+// MockService_SetStaleAgentEnvVarsConfigured_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetStaleAgentEnvVarsConfigured'
+type MockService_SetStaleAgentEnvVarsConfigured_Call struct {
+	*mock.Call
+}
+
+// SetStaleAgentEnvVarsConfigured is a helper method to define mock.On call
+//   - staleAgentEnvVarsSet bool
+func (_e *MockService_Expecter) SetStaleAgentEnvVarsConfigured(staleAgentEnvVarsSet any) *MockService_SetStaleAgentEnvVarsConfigured_Call {
+	return &MockService_SetStaleAgentEnvVarsConfigured_Call{Call: _e.mock.On("SetStaleAgentEnvVarsConfigured", staleAgentEnvVarsSet)}
+}
+
+func (_c *MockService_SetStaleAgentEnvVarsConfigured_Call) Run(run func(staleAgentEnvVarsSet bool)) *MockService_SetStaleAgentEnvVarsConfigured_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 bool
+		if args[0] != nil {
+			arg0 = args[0].(bool)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockService_SetStaleAgentEnvVarsConfigured_Call) Return() *MockService_SetStaleAgentEnvVarsConfigured_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockService_SetStaleAgentEnvVarsConfigured_Call) RunAndReturn(run func(staleAgentEnvVarsSet bool)) *MockService_SetStaleAgentEnvVarsConfigured_Call {
 	_c.Run(run)
 	return _c
 }

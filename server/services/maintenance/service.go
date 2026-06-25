@@ -68,6 +68,10 @@ type Service interface {
 	SetOrphanedDataEnvVarsConfigured(orphanEnvVarsSet bool)
 	// IsOrphanedDataEnvVarsConfigured returns whether orphaned-data-cleanup-specific environment variables are set
 	IsOrphanedDataEnvVarsConfigured() bool
+	// SetStaleAgentEnvVarsConfigured sets whether stale-agent-cleanup-specific environment variables are set
+	SetStaleAgentEnvVarsConfigured(staleAgentEnvVarsSet bool)
+	// IsStaleAgentEnvVarsConfigured returns whether stale-agent-cleanup-specific environment variables are set
+	IsStaleAgentEnvVarsConfigured() bool
 	// IsDockerCleanupAvailable returns whether Docker cleanup is available
 	IsDockerCleanupAvailable() bool
 	// SetDockerCleanupAvailable sets whether Docker cleanup is available
@@ -88,6 +92,7 @@ type service struct {
 	vacuumEnvVarsConfigured       bool
 	k8sEnvVarsConfigured          bool
 	orphanedDataEnvVarsConfigured bool
+	staleAgentEnvVarsConfigured   bool
 	dockerCleanupAvailable        bool
 	dockerCleanupRunNow           atomic.Bool
 }
@@ -145,6 +150,16 @@ func (s *service) SetOrphanedDataEnvVarsConfigured(orphanEnvVarsSet bool) {
 // IsOrphanedDataEnvVarsConfigured returns whether orphaned-data-cleanup-specific environment variables are set.
 func (s *service) IsOrphanedDataEnvVarsConfigured() bool {
 	return s.orphanedDataEnvVarsConfigured
+}
+
+// SetStaleAgentEnvVarsConfigured sets whether stale-agent-cleanup-specific environment variables are set.
+func (s *service) SetStaleAgentEnvVarsConfigured(staleAgentEnvVarsSet bool) {
+	s.staleAgentEnvVarsConfigured = staleAgentEnvVarsSet
+}
+
+// IsStaleAgentEnvVarsConfigured returns whether stale-agent-cleanup-specific environment variables are set.
+func (s *service) IsStaleAgentEnvVarsConfigured() bool {
+	return s.staleAgentEnvVarsConfigured
 }
 
 // RunMaintenance executes database maintenance operations based on the database type.

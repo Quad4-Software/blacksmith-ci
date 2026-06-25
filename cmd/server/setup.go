@@ -440,6 +440,32 @@ func setupEvilGlobals(ctx context.Context, c *cli.Command, s store.Store) (err e
 		}
 	}
 
+	// Check if stale-agent-cleanup-specific maintenance environment variables are set
+	staleAgentEnvVarsSet := os.Getenv("CROW_MAINTENANCE_STALE_AGENT_CLEANUP_ENABLED") != "" ||
+		os.Getenv("CROW_MAINTENANCE_STALE_AGENT_DURATION") != ""
+
+	server.Config.Services.MaintenanceService.SetStaleAgentEnvVarsConfigured(staleAgentEnvVarsSet)
+
+	if staleAgentEnvVarsSet {
+		staleAgentEnabled := c.Bool("maintenance-stale-agent-cleanup-enabled")
+
+		staleAgentConfig, err := server.Config.Services.MaintenanceService.GetMaintenanceConfigByAction("stale_agent_cleanup")
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to get stale_agent_cleanup action config")
+		} else if staleAgentConfig.Enabled != staleAgentEnabled {
+			staleAgentConfig.Enabled = staleAgentEnabled
+
+			log.Info().
+				Bool("setting_enabled", staleAgentConfig.Enabled).
+				Str("setting_schedule", staleAgentConfig.Schedule).
+				Msg("Updating stale agent cleanup configuration from environment variables")
+
+			if err := server.Config.Services.MaintenanceService.UpdateMaintenanceConfigByAction("stale_agent_cleanup", staleAgentConfig); err != nil {
+				log.Error().Err(err).Msg("Failed to update stale_agent_cleanup action config")
+			}
+		}
+	}
+
 	k8sCleanupAge := c.String("maintenance-kubernetes-cleanup-age")
 
 	// Auto-enable if using Kubernetes backend (detect via CROW_BACKEND environment variable)

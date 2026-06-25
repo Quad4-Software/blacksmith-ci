@@ -62,6 +62,10 @@ type MaintenanceService interface {
 	SetOrphanedDataEnvVarsConfigured(orphanEnvVarsSet bool)
 	// IsOrphanedDataEnvVarsConfigured returns whether orphaned-data-cleanup-specific environment variables are set
 	IsOrphanedDataEnvVarsConfigured() bool
+	// SetStaleAgentEnvVarsConfigured sets whether stale-agent-cleanup-specific environment variables are set
+	SetStaleAgentEnvVarsConfigured(staleAgentEnvVarsSet bool)
+	// IsStaleAgentEnvVarsConfigured returns whether stale-agent-cleanup-specific environment variables are set
+	IsStaleAgentEnvVarsConfigured() bool
 	// IsDockerCleanupAvailable returns whether Docker cleanup is available (a Docker agent is connected)
 	IsDockerCleanupAvailable() bool
 	// SetDockerCleanupAvailable sets whether Docker cleanup is available

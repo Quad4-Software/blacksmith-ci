@@ -129,6 +129,8 @@ func GetMaintenanceConfigByAction(ctx context.Context, input *GetMaintenanceConf
 		config.DockerCleanupAvailable = server.Config.Services.MaintenanceService.IsDockerCleanupAvailable()
 	case "orphaned_data_cleanup":
 		config.EnvVarsSet = server.Config.Services.MaintenanceService.IsOrphanedDataEnvVarsConfigured()
+	case "stale_agent_cleanup":
+		config.EnvVarsSet = server.Config.Services.MaintenanceService.IsStaleAgentEnvVarsConfigured()
 	}
 
 	return &GetMaintenanceConfigByActionOutput{Body: config}, nil
