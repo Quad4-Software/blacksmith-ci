@@ -3,11 +3,47 @@ import type { Ref } from 'vue';
 import { computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-import type { Pipeline, PipelineStep } from '~/lib/api/types';
+import type { Pipeline, PipelineStep, PipelineWorkflow } from '~/lib/api/types';
+import { StepType } from '~/lib/api/types';
 
 export interface UsePipelineNavigationOptions {
   pipeline: Ref<Pipeline>;
   stepIdProp: Ref<string | null | undefined>;
+}
+
+// Pick the running step within a workflow that auto-follow should switch to.
+// Service steps stay in the "running" state for the whole workflow lifetime, so
+// they must be excluded — otherwise auto-follow keeps jumping back to the
+// service instead of advancing to the actual running task step (issue #1219).
+function findRunningStep(workflow: PipelineWorkflow): PipelineStep | undefined {
+  return workflow.children?.find((step) => step.state === 'running' && step.type !== StepType.Service);
+}
+
+// Determine which step auto-follow should select, given the current selection.
+// Returns the step's pid, or null when there is nothing to follow.
+export function getAutoFollowStepId(workflows: PipelineWorkflow[], currentStepId: number | null): number | null {
+  const currentWorkflow =
+    currentStepId === null || currentStepId === 0
+      ? null
+      : (workflows.find((w) => w.children?.some((s) => s.pid === currentStepId)) ?? null);
+
+  if (currentWorkflow) {
+    // Only auto-follow within the current workflow.
+    const runningStep = findRunningStep(currentWorkflow);
+    if (runningStep && runningStep.pid !== currentStepId) {
+      return runningStep.pid;
+    }
+    return null;
+  }
+
+  // No step selected yet - find the first running step in any workflow.
+  for (const workflow of workflows) {
+    const runningStep = findRunningStep(workflow);
+    if (runningStep) {
+      return runningStep.pid;
+    }
+  }
+  return null;
 }
 
 export function usePipelineNavigation({ pipeline, stepIdProp }: UsePipelineNavigationOptions) {
@@ -93,13 +129,7 @@ export function usePipelineNavigation({ pipeline, stepIdProp }: UsePipelineNavig
     autoFollowEnabled.value = value;
   }
 
-  // Find the workflow containing a given step ID
-  function getWorkflowForStep(stepId: number | null) {
-    if (stepId === null || stepId === 0 || !pipeline.value?.workflows) return null;
-    return pipeline.value.workflows.find((w) => w.children?.some((s) => s.pid === stepId)) ?? null;
-  }
-
-  // Auto-follow logic: automatically switch to the running step within the current workflow
+  // Auto-follow logic: automatically switch to the running step, skipping services
   watch(
     [() => pipeline.value?.workflows, autoFollowEnabled, selectedStepId],
     ([workflows, enabled, currentStepId]) => {
@@ -107,24 +137,9 @@ export function usePipelineNavigation({ pipeline, stepIdProp }: UsePipelineNavig
         return;
       }
 
-      // Find the workflow containing the currently selected step
-      const currentWorkflow = getWorkflowForStep(currentStepId);
-
-      if (currentWorkflow) {
-        // Only auto-follow within the current workflow
-        const runningStep = currentWorkflow.children?.find((step) => step.state === 'running');
-        if (runningStep && runningStep.pid !== currentStepId) {
-          selectedStepId.value = runningStep.pid;
-        }
-      } else {
-        // No step selected yet - find the first running step in any workflow
-        for (const workflow of workflows) {
-          const runningStep = workflow.children?.find((step) => step.state === 'running');
-          if (runningStep) {
-            selectedStepId.value = runningStep.pid;
-            return;
-          }
-        }
+      const nextStepId = getAutoFollowStepId(workflows, currentStepId);
+      if (nextStepId !== null) {
+        selectedStepId.value = nextStepId;
       }
     },
     { deep: true, immediate: true },
