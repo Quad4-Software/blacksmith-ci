@@ -200,9 +200,24 @@ func (e *docker) SetupWorkflow(ctx context.Context, conf *backend.Config, taskUU
 	_, err := e.client.VolumeCreate(ctx, volume.CreateOptions{
 		Name:   conf.Volume,
 		Driver: volumeDriver,
+		Labels: map[string]string{
+			LabelTaskUUID: taskUUID,
+		},
 	})
 	if err != nil {
 		return err
+	}
+	for _, tempVolume := range conf.TempVolumes {
+		_, err := e.client.VolumeCreate(ctx, volume.CreateOptions{
+			Name:   tempVolume,
+			Driver: volumeDriver,
+			Labels: map[string]string{
+				LabelTaskUUID: taskUUID,
+			},
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	networkDriver := networkDriverBridge
@@ -446,6 +461,11 @@ func (e *docker) DestroyWorkflow(ctx context.Context, conf *backend.Config, task
 	}
 	if err := e.client.VolumeRemove(ctx, conf.Volume, true); err != nil {
 		log.Error().Err(err).Msgf("could not remove volume '%s'", conf.Volume)
+	}
+	for _, tempVolume := range conf.TempVolumes {
+		if err := e.client.VolumeRemove(ctx, tempVolume, true); err != nil {
+			log.Error().Err(err).Msgf("could not remove temp volume '%s'", tempVolume)
+		}
 	}
 	if err := e.client.NetworkRemove(ctx, conf.Network); err != nil {
 		// Ignore "not found" errors as the network may have already been removed

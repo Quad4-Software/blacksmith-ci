@@ -15,6 +15,7 @@
 package compiler
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -988,4 +989,84 @@ func TestCompilerManualTaskSelectorKeepsSteps(t *testing.T) {
 		assert.Empty(t, result.Stages,
 			"workflow with `evaluate: 'task == ...'` should not run when no task is provided (task is undefined → expression is false)")
 	})
+}
+
+func TestCompilerTempVolumes(t *testing.T) {
+	compiler := New(
+		WithPrefix("test"),
+		WithWorkspace("/crow", "src"),
+	)
+
+	result, err := compiler.Compile(&yaml_types.Workflow{
+		SkipClone: true,
+		Steps: yaml_types.ContainerList{ContainerList: []*yaml_types.Container{{
+			Name:     "build",
+			Image:    "docker",
+			Commands: yaml_base_types.StringOrSlice{"docker version"},
+			TempVolumes: yaml_types.Volumes{Volumes: []*yaml_types.Volume{{
+				Source:      "dind",
+				Destination: "/var/run",
+			}}},
+		}}},
+		Services: yaml_types.ContainerList{ContainerList: []*yaml_types.Container{{
+			Name:  "dind",
+			Image: "docker:dind",
+			TempVolumes: yaml_types.Volumes{Volumes: []*yaml_types.Volume{{
+				Source:      "dind",
+				Destination: "/var/run",
+			}}},
+		}}},
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"test_tmp_dind"}, result.TempVolumes)
+	assert.Len(t, result.Stages, 2)
+	assert.Contains(t, result.Stages[0].Steps[0].Volumes, "test_tmp_dind:/var/run")
+	assert.Contains(t, result.Stages[1].Steps[0].Volumes, "test_tmp_dind:/var/run")
+}
+
+func TestCompilerTempVolumesRejectHostPathSource(t *testing.T) {
+	compiler := New(
+		WithPrefix("test"),
+		WithWorkspace("/crow", "src"),
+	)
+
+	_, err := compiler.Compile(&yaml_types.Workflow{
+		SkipClone: true,
+		Steps: yaml_types.ContainerList{ContainerList: []*yaml_types.Container{{
+			Name:     "build",
+			Image:    "docker",
+			Commands: yaml_base_types.StringOrSlice{"docker version"},
+			TempVolumes: yaml_types.Volumes{Volumes: []*yaml_types.Volume{{
+				Source:      "/var/run",
+				Destination: "/var/run",
+			}}},
+		}}},
+	})
+	assert.ErrorContains(t, err, "must be a logical name")
+}
+
+func TestCompilerTempVolumesEnforcesCap(t *testing.T) {
+	compiler := New(
+		WithPrefix("test"),
+		WithWorkspace("/crow", "src"),
+	)
+
+	tempVolumes := make([]*yaml_types.Volume, 0, maxTempVolumes+1)
+	for i := 0; i <= maxTempVolumes; i++ {
+		tempVolumes = append(tempVolumes, &yaml_types.Volume{
+			Source:      fmt.Sprintf("vol%d", i),
+			Destination: fmt.Sprintf("/mnt/vol%d", i),
+		})
+	}
+
+	_, err := compiler.Compile(&yaml_types.Workflow{
+		SkipClone: true,
+		Steps: yaml_types.ContainerList{ContainerList: []*yaml_types.Container{{
+			Name:        "build",
+			Image:       "docker",
+			Commands:    yaml_base_types.StringOrSlice{"docker version"},
+			TempVolumes: yaml_types.Volumes{Volumes: tempVolumes},
+		}}},
+	})
+	assert.ErrorContains(t, err, "too many temp volumes")
 }

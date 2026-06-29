@@ -15,10 +15,21 @@
 package kubernetes
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"codefloe.com/crowci/crow/v5/pipeline/backend/types"
 )
+
+func TestSetupWorkflowRejectsTempVolumes(t *testing.T) {
+	engine := kube{config: &config{}}
+	err := engine.SetupWorkflow(context.Background(), &types.Config{
+		TempVolumes: []string{"crow_tmp_dind"},
+	}, "task-uuid")
+	assert.ErrorContains(t, err, "does not support `temp_volumes`")
+}
 
 func TestGettingConfig(t *testing.T) {
 	engine := kube{

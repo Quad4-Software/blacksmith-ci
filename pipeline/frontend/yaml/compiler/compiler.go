@@ -87,6 +87,7 @@ type Compiler struct {
 	escalatedMatchType      string
 	prefix                  string
 	volumes                 []string
+	tempVolumes             map[string]string
 	networks                []string
 	env                     map[string]string
 	cloneEnv                map[string]string
@@ -136,6 +137,11 @@ func (c *Compiler) Compile(conf *yaml_types.Workflow) (*backend_types.Config, er
 
 	// create a default network
 	config.Network = fmt.Sprintf("%s_default", c.prefix)
+
+	c.tempVolumes = make(map[string]string)
+	defer func() {
+		c.tempVolumes = nil
+	}()
 
 	// create secrets for mask
 	for _, sec := range c.secrets {
@@ -332,6 +338,10 @@ func (c *Compiler) Compile(conf *yaml_types.Workflow) (*backend_types.Config, er
 	}
 
 	config.Stages = append(config.Stages, allStages...)
+	for _, volume := range c.tempVolumes {
+		config.TempVolumes = append(config.TempVolumes, volume)
+	}
+	slices.Sort(config.TempVolumes)
 
 	return config, nil
 }

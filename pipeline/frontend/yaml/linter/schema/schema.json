@@ -377,6 +377,9 @@
         "volumes": {
           "$ref": "#/definitions/step_volumes"
         },
+        "temp_volumes": {
+          "$ref": "#/definitions/step_temp_volumes"
+        },
         "tmpfs": {
           "$ref": "#/definitions/step_tmpfs"
         },
@@ -476,6 +479,9 @@
         },
         "volumes": {
           "$ref": "#/definitions/step_volumes"
+        },
+        "temp_volumes": {
+          "$ref": "#/definitions/step_temp_volumes"
         },
         "tmpfs": {
           "$ref": "#/definitions/step_tmpfs"
@@ -747,6 +753,15 @@
         "type": "string"
       },
       "minLength": 1
+    },
+    "step_temp_volumes": {
+      "description": "Mount Crow-managed temporary volumes into your container. Volumes are scoped to one workflow run and removed when the workflow ends. Format: 'name:/path' or 'name:/path:ro'",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*:/[^:]*(:ro|:rw)?$"
+      },
+      "minItems": 1
     },
     "step_tmpfs": {
       "description": "Mount tmpfs (in-memory) filesystems into the container. Size is automatically capped to the agent's memory limit if configured. Format: '/path' or '/path:size=1G'",
@@ -1022,6 +1037,9 @@
         },
         "volumes": {
           "$ref": "#/definitions/step_volumes"
+        },
+        "temp_volumes": {
+          "$ref": "#/definitions/step_temp_volumes"
         },
         "tmpfs": {
           "$ref": "#/definitions/step_tmpfs"

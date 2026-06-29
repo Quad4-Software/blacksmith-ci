@@ -174,10 +174,11 @@ func nextSpecNetworkInterfaceName(s *specgen.SpecGenerator) string {
 }
 
 // newVolumeCreateOptions creates volume options for Podman.
-func newVolumeCreateOptions(name string) types.VolumeCreateOptions {
+func newVolumeCreateOptions(name string, labels map[string]string) types.VolumeCreateOptions {
 	return types.VolumeCreateOptions{
 		Name:   name,
 		Driver: "local",
+		Labels: labels,
 	}
 }
 

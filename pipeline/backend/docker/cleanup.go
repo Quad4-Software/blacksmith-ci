@@ -141,7 +141,7 @@ func (e *docker) cleanupStaleVolumes(ctx context.Context, cutoff time.Time, resu
 	}
 
 	for _, v := range volumes.Volumes {
-		if !isCrowResource(v.Name) {
+		if !isCrowResource(v.Name) && v.Labels[LabelTaskUUID] == "" {
 			continue
 		}
 

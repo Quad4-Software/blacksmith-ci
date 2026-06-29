@@ -22,6 +22,35 @@ For the docker backend, volumes are mounted to the host machine.
 This requires the use of absolute paths when configuring volumes.
 Attempting to use relative paths will result in an error.
 
+## Temporary Volumes
+
+Use `temp_volumes` when a workflow needs disk-backed shared storage that should not persist after the run.
+The source is a logical workflow-local name, not a host path.
+Crow creates the real backend volume when the workflow starts and removes it when the workflow finishes, fails, or is canceled.
+
+:::note
+`temp_volumes` is only supported by the `docker` and `podman` backends.
+The `kubernetes` and `local` backends reject workflows that use it.
+A workflow may declare at most 10 distinct temp volumes.
+:::
+
+```yaml
+services:
+  - name: dind
+    image: docker:dind
+    privileged: true
+    temp_volumes:
+      - dind:/var/run
+
+steps:
+  - name: build
+    image: docker
+    temp_volumes:
+      - dind:/var/run
+    commands:
+      - docker version
+```
+
 ## Kubernetes
 
 To mount volumes in Kubernetes, PersistentVolumeClaim (PVC) is which can be referenced in steps via the `volumes` option.

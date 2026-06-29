@@ -172,10 +172,19 @@ func (e *podman) SetupWorkflow(ctx context.Context, conf *backend.Config, taskUU
 	log.Trace().Str("taskUUID", taskUUID).Msg("create workflow environment")
 
 	// Create volume
-	//nolint:contextcheck // Podman SDK uses context embedded in connection
-	_, err := volumes.Create(e.conn, newVolumeCreateOptions(conf.Volume), nil)
+	labels := map[string]string{
+		common.LabelTaskUUID: taskUUID,
+	}
+	_, err := volumes.Create(e.conn, newVolumeCreateOptions(conf.Volume, labels), nil) //nolint:contextcheck // Podman SDK uses context embedded in connection
 	if err != nil {
 		return fmt.Errorf("failed to create volume %s: %w", conf.Volume, err)
+	}
+	for _, tempVolume := range conf.TempVolumes {
+		//nolint:contextcheck // Podman SDK uses context embedded in connection
+		_, err := volumes.Create(e.conn, newVolumeCreateOptions(tempVolume, labels), nil)
+		if err != nil {
+			return fmt.Errorf("failed to create temp volume %s: %w", tempVolume, err)
+		}
 	}
 
 	// Create network
@@ -397,6 +406,12 @@ func (e *podman) DestroyWorkflow(ctx context.Context, conf *backend.Config, task
 	//nolint:contextcheck // Podman SDK uses context embedded in connection
 	if err := volumes.Remove(e.conn, conf.Volume, new(volumes.RemoveOptions).WithForce(true)); err != nil {
 		log.Error().Err(err).Msgf("could not remove volume '%s'", conf.Volume)
+	}
+	for _, tempVolume := range conf.TempVolumes {
+		//nolint:contextcheck // Podman SDK uses context embedded in connection
+		if err := volumes.Remove(e.conn, tempVolume, new(volumes.RemoveOptions).WithForce(true)); err != nil {
+			log.Error().Err(err).Msgf("could not remove temp volume '%s'", tempVolume)
+		}
 	}
 
 	if err := e.stopNetworkKeepaliveContainer(taskUUID); err != nil {

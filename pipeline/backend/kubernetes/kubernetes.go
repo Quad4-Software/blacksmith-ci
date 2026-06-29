@@ -220,6 +220,10 @@ func (e *kube) getConfig() *config {
 func (e *kube) SetupWorkflow(ctx context.Context, conf *types.Config, taskUUID string) error {
 	log.Trace().Str("taskUUID", taskUUID).Msgf("Setting up Kubernetes primitives")
 
+	if len(conf.TempVolumes) > 0 {
+		return fmt.Errorf("the kubernetes backend does not support `temp_volumes`")
+	}
+
 	namespace := e.config.GetNamespace(conf.Stages[0].Steps[0].OrgID)
 
 	if e.config.EnableNamespacePerOrg {

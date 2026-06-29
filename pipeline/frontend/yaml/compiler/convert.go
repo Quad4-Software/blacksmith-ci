@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"maps"
 	"path"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -37,6 +38,14 @@ const (
 	// DefaultWorkspaceBase is set if not altered by the user.
 	DefaultWorkspaceBase = pluginWorkspaceBase
 )
+
+var tempVolumeNamePattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.-]*$`)
+
+// maxTempVolumes caps the number of distinct temp volumes a single workflow may
+// declare. Temp volumes can be created by untrusted pipelines without the
+// `volumes` privilege, so this limit guards against disk exhaustion through
+// excessive volume creation.
+const maxTempVolumes = 10
 
 func (c *Compiler) createProcess(container *yaml_types.Container, workflow *yaml_types.Workflow, stepType backend_types.StepType) (*backend_types.Step, error) {
 	var (
@@ -85,6 +94,13 @@ func (c *Compiler) createProcess(container *yaml_types.Container, workflow *yaml
 	volumes = append(volumes, c.volumes...)
 	for _, volume := range container.Volumes.Volumes {
 		volumes = append(volumes, volume.String())
+	}
+	for _, volume := range container.TempVolumes.Volumes {
+		mount, err := c.tempVolumeMount(volume)
+		if err != nil {
+			return nil, pipeline_errors.NewCompilerError(err.Error(), c.file, container.Name)
+		}
+		volumes = append(volumes, mount)
 	}
 
 	// append default environment variables
@@ -190,6 +206,39 @@ func (c *Compiler) createProcess(container *yaml_types.Container, workflow *yaml
 		ContainerNameScheme: c.ContainerNameScheme,
 		DependsOn:           container.DependsOn,
 	}, nil
+}
+
+func (c *Compiler) tempVolumeMount(volume *yaml_types.Volume) (string, error) {
+	if volume.Source == "" || volume.Destination == "" {
+		return "", fmt.Errorf("temp volume %q must use 'name:/container/path' format", volume.String())
+	}
+	if path.IsAbs(volume.Source) {
+		return "", fmt.Errorf("temp volume source %q must be a logical name, not a host path", volume.Source)
+	}
+	if !tempVolumeNamePattern.MatchString(volume.Source) {
+		return "", fmt.Errorf("temp volume source %q contains unsupported characters", volume.Source)
+	}
+	if !path.IsAbs(volume.Destination) {
+		return "", fmt.Errorf("temp volume destination %q must be an absolute path", volume.Destination)
+	}
+	if volume.AccessMode != "" && volume.AccessMode != "ro" && volume.AccessMode != "rw" {
+		return "", fmt.Errorf("temp volume %q only supports 'ro' or 'rw' access mode", volume.String())
+	}
+
+	name := c.tempVolumes[volume.Source]
+	if name == "" {
+		if len(c.tempVolumes) >= maxTempVolumes {
+			return "", fmt.Errorf("too many temp volumes: a workflow may declare at most %d", maxTempVolumes)
+		}
+		name = fmt.Sprintf("%s_tmp_%s", c.prefix, volume.Source)
+		c.tempVolumes[volume.Source] = name
+	}
+
+	parts := []string{name, volume.Destination}
+	if volume.AccessMode != "" {
+		parts = append(parts, volume.AccessMode)
+	}
+	return strings.Join(parts, ":"), nil
 }
 
 func (c *Compiler) stepWorkingDir(container *yaml_types.Container) string {

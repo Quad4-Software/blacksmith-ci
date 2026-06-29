@@ -111,8 +111,12 @@ func (e *local) Load(ctx context.Context) (*types.BackendInfo, error) {
 }
 
 // SetupWorkflow the pipeline environment.
-func (e *local) SetupWorkflow(_ context.Context, _ *types.Config, taskUUID string) error {
+func (e *local) SetupWorkflow(_ context.Context, conf *types.Config, taskUUID string) error {
 	log.Trace().Str("taskUUID", taskUUID).Msg("create workflow environment")
+
+	if len(conf.TempVolumes) > 0 {
+		return fmt.Errorf("the local backend does not support `temp_volumes`")
+	}
 
 	baseDir, err := os.MkdirTemp(e.tempDir, "crow-local-*")
 	if err != nil {

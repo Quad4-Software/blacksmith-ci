@@ -46,7 +46,8 @@ type (
 		Failure   string             `yaml:"failure,omitempty"`
 		Detached  bool               `yaml:"detach,omitempty"`
 		// state
-		Volumes Volumes `yaml:"volumes,omitempty"`
+		Volumes     Volumes `yaml:"volumes,omitempty"`
+		TempVolumes Volumes `yaml:"temp_volumes,omitempty"`
 		// network
 		Ports     []string           `yaml:"ports,omitempty"`
 		DNS       base.StringOrSlice `yaml:"dns,omitempty"`

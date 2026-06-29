@@ -358,6 +358,30 @@ steps:
 	}
 }
 
+func TestTempVolumesAllowedWithoutVolumesPrivilege(t *testing.T) {
+	yamlData := `
+when:
+  event: push
+
+steps:
+  test:
+    image: docker
+    temp_volumes:
+      - dind:/var/run
+    commands:
+      - docker version
+`
+	conf, err := yaml.ParseString(yamlData)
+	assert.NoError(t, err)
+
+	err = linter.New().Lint([]*linter.WorkflowConfig{{
+		File:      "temp-volumes-test",
+		RawConfig: yamlData,
+		Workflow:  conf,
+	}})
+	assert.NoError(t, err)
+}
+
 func TestBadHabits(t *testing.T) {
 	testdata := []struct {
 		from string
