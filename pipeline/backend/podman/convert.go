@@ -22,10 +22,10 @@ import (
 	"net"
 	"strings"
 
-	"github.com/containers/podman/v5/pkg/domain/entities/types"
-	"github.com/containers/podman/v5/pkg/specgen"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	nettypes "go.podman.io/common/libnetwork/types"
+	"go.podman.io/podman/v6/pkg/domain/entities/types"
+	"go.podman.io/podman/v6/pkg/specgen"
 
 	"codefloe.com/crowci/crow/v5/pipeline/backend/common"
 	backendTypes "codefloe.com/crowci/crow/v5/pipeline/backend/types"

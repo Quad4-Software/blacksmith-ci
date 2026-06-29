@@ -22,11 +22,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/podman/v5/pkg/bindings/containers"
-	"github.com/containers/podman/v5/pkg/bindings/images"
-	"github.com/containers/podman/v5/pkg/specgen"
 	"github.com/rs/zerolog/log"
 	nettypes "go.podman.io/common/libnetwork/types"
+	"go.podman.io/podman/v6/pkg/bindings/containers"
+	"go.podman.io/podman/v6/pkg/bindings/images"
+	"go.podman.io/podman/v6/pkg/specgen"
 
 	"codefloe.com/crowci/crow/v5/pipeline/backend/common"
 	backend "codefloe.com/crowci/crow/v5/pipeline/backend/types"

@@ -19,10 +19,10 @@ package podman
 import (
 	"testing"
 
-	"github.com/containers/podman/v5/pkg/specgen"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/assert"
 	nettypes "go.podman.io/common/libnetwork/types"
+	"go.podman.io/podman/v6/pkg/specgen"
 
 	backend "codefloe.com/crowci/crow/v5/pipeline/backend/types"
 )

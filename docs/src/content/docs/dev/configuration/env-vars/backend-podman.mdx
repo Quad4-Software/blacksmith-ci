@@ -10,7 +10,21 @@ Please report issues you encounter so we can stabilize it.
 </Aside>
 
 Podman backend configuration variables for agents.
-The Podman backend uses the native Podman Go SDK (`github.com/containers/podman`) for direct communication with Podman, supporting both rootful and rootless installations.
+The Podman backend uses the native Podman Go SDK (`go.podman.io/podman`) for direct communication with Podman, supporting both rootful and rootless installations.
+
+## Host Requirements
+
+The Podman backend is built against the Podman v6 Go bindings and talks to a Podman v6 socket.
+Podman v6 dropped several legacy subsystems, so the host running Podman must meet the following requirements:
+
+- **cgroups v2** — cgroups v1 is no longer supported. Most current Linux distributions already default to cgroups v2.
+- **Netavark networking** — the legacy CNI network stack has been removed. Networks must be managed by Netavark (with Aardvark for DNS).
+- **Pasta for rootless networking** — the `slirp4netns` rootless network stack has been removed; rootless containers use Pasta instead.
+- **nftables** — the `iptables` firewall driver has been removed in favor of nftables.
+- **Network isolation on by default** — Podman v6 enables network isolation by default, which can change connectivity between steps compared to earlier versions.
+
+When upgrading an existing Podman host to v6, BoltDB databases are automatically migrated to SQLite on first use.
+See the [Podman v6.0.0 release notes](https://github.com/containers/podman/releases/tag/v6.0.0) for the full list of breaking changes.
 
 ## Socket Configuration
 
