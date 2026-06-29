@@ -19,6 +19,9 @@
         <DropdownMenuCheckboxItem :model-value="showAllRepos" @update:model-value="$emit('toggleShowAll')">
           {{ $t('repositories.filter.show_all') }}
         </DropdownMenuCheckboxItem>
+        <DropdownMenuCheckboxItem :model-value="showPublicRepos" @update:model-value="$emit('toggleShowPublic')">
+          {{ $t('repositories.filter.show_public') }}
+        </DropdownMenuCheckboxItem>
       </div>
 
       <!-- Owner Filter Section -->
@@ -69,12 +72,14 @@ interface Props {
   owners: string[];
   selectedOwners: string[];
   showAllRepos: boolean;
+  showPublicRepos: boolean;
   activeFilterCount: number;
 }
 
 interface Emits {
   (event: 'toggleOwner', owner: string): void;
   (event: 'toggleShowAll'): void;
+  (event: 'toggleShowPublic'): void;
   (event: 'clearFilters'): void;
 }
 

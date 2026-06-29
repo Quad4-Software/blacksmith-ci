@@ -5,17 +5,20 @@ import type { Repo } from '~/lib/api/types';
 export interface RepoFilters {
   selectedOwners: string[];
   showAllRepos: boolean;
+  showPublicRepos: boolean;
 }
 
 const DEFAULT_FILTERS: RepoFilters = {
   selectedOwners: [],
   showAllRepos: false,
+  showPublicRepos: false,
 };
 
 export function useRepoFilters() {
   // Persist filter state to localStorage
   const selectedOwners = useStorage<string[]>('crow:repo-filter-owners', DEFAULT_FILTERS.selectedOwners);
   const showAllRepos = useStorage<boolean>('crow:repo-filter-show-all', DEFAULT_FILTERS.showAllRepos);
+  const showPublicRepos = useStorage<boolean>('crow:repo-filter-show-public', DEFAULT_FILTERS.showPublicRepos);
 
   // Check if any filters are active
   const hasActiveFilters = computed(() => selectedOwners.value.length > 0);
@@ -26,6 +29,9 @@ export function useRepoFilters() {
       count += selectedOwners.value.length;
     }
     if (showAllRepos.value) {
+      count += 1;
+    }
+    if (showPublicRepos.value) {
       count += 1;
     }
     return count;
@@ -60,11 +66,13 @@ export function useRepoFilters() {
   function clearAllFilters() {
     selectedOwners.value = [];
     showAllRepos.value = false;
+    showPublicRepos.value = false;
   }
 
   return {
     selectedOwners,
     showAllRepos,
+    showPublicRepos,
     hasActiveFilters,
     activeFilterCount,
     filterReposByOwner,

@@ -37,22 +37,22 @@ export const useRepoStore = defineStore('repos', () => {
     return repo;
   }
 
-  async function loadRepos(all = false) {
+  function hydrateRepo(repo: Repo) {
+    if (repo.last_pipeline) {
+      pipelineStore.setPipeline(repo.id, repo.last_pipeline);
+      repo.last_pipeline_number = repo.last_pipeline.number;
+    }
+    setRepo(repo);
+  }
+
+  async function loadRepos(all = false, includePublic = false) {
     const { user } = useConfig();
     const isAuthenticated = !!user;
 
     // For anonymous users, load public repos only
     if (!isAuthenticated) {
       const publicRepos = await apiClient.getPublicRepos();
-
-      publicRepos.forEach((repo) => {
-        if (repo.last_pipeline) {
-          pipelineStore.setPipeline(repo.id, repo.last_pipeline);
-          repo.last_pipeline_number = repo.last_pipeline.number;
-        }
-        setRepo(repo);
-      });
-
+      publicRepos.forEach(hydrateRepo);
       ownedRepoIds.value = publicRepos.map((repo) => repo.id);
       return;
     }
@@ -60,16 +60,21 @@ export const useRepoStore = defineStore('repos', () => {
     // The available endpoint does not populate last_pipeline, so pipeline
     // status is only present in the active view.
     const _ownedRepos = (await (all ? apiClient.getAvailableRepos() : apiClient.getActiveRepos())) ?? [];
+    _ownedRepos.forEach(hydrateRepo);
 
-    _ownedRepos.forEach((repo) => {
-      if (repo.last_pipeline) {
-        pipelineStore.setPipeline(repo.id, repo.last_pipeline);
-        repo.last_pipeline_number = repo.last_pipeline.number;
-      }
-      setRepo(repo);
-    });
+    const displayedRepoIds = new Set(_ownedRepos.map((repo) => repo.id));
 
-    ownedRepoIds.value = _ownedRepos.map((repo) => repo.id);
+    // Optionally fold in all public repos the user is not a member of, so
+    // logged-in users can browse the public instance like logged-out ones.
+    if (includePublic) {
+      const publicRepos = await apiClient.getPublicRepos();
+      publicRepos.forEach((repo) => {
+        hydrateRepo(repo);
+        displayedRepoIds.add(repo.id);
+      });
+    }
+
+    ownedRepoIds.value = [...displayedRepoIds];
 
     // If the current user is a system admin, also hydrate the store with all repos (paginated)
     const isSystemAdmin = !!user?.admin;

@@ -37,7 +37,8 @@
       "desc": "Quick access to your pinned repositories"
     },
     "filter": {
-      "show_all": "Show only repositories with access"
+      "show_all": "Show only repositories with access",
+      "show_public": "Show all public repositories"
     },
     "sort": {
       "alphabetical": "Alphabetical",

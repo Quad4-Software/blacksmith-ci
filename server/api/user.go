@@ -99,8 +99,10 @@ func GetRepos(ctx context.Context, input *GetReposInput) (*GetReposOutput, error
 }
 
 // listActiveReposWithPipelines returns the user's active repos hydrated with last pipeline info.
+// Owned=false so repos the user only has read (pull) access to are included too,
+// otherwise read-only org members never see their org repos in the overview (issue #1225).
 func listActiveReposWithPipelines(_store store.Store, user *model.User) ([]*model.RepoLastPipeline, error) {
-	activeRepos, err := _store.RepoList(user, true, true)
+	activeRepos, err := _store.RepoList(user, false, true)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("Error fetching repository list", err)
 	}

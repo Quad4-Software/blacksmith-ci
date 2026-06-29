@@ -22,9 +22,11 @@
           :owners="organizationOwners"
           :selected-owners="selectedOwners"
           :show-all-repos="showAllRepos"
+          :show-public-repos="showPublicRepos"
           :active-filter-count="activeFilterCount"
           @toggle-owner="toggleOwner"
           @toggle-show-all="showAllRepos = !showAllRepos"
+          @toggle-show-public="showPublicRepos = !showPublicRepos"
           @clear-filters="clearAllFilters"
         />
       </div>
@@ -131,8 +133,15 @@ const repoStore = useRepoStore();
 const notifications = useNotifications();
 
 const { sortReposByLastActivity, repoWithLastPipeline } = useRepos();
-const { selectedOwners, showAllRepos, activeFilterCount, filterReposByOwner, toggleOwner, clearAllFilters } =
-  useRepoFilters();
+const {
+  selectedOwners,
+  showAllRepos,
+  showPublicRepos,
+  activeFilterCount,
+  filterReposByOwner,
+  toggleOwner,
+  clearAllFilters,
+} = useRepoFilters();
 const { isPinned, canPin, togglePin, getPinnedRepos, getUnpinnedRepos, reorderPins } = usePinnedRepos();
 
 // Sort state with localStorage persistence
@@ -193,15 +202,15 @@ const reposLastActivity = computed(() => {
   }
 });
 
-// Reload repos when showAllRepos filter changes
-watch(showAllRepos, async (newValue) => {
-  await repoStore.loadRepos(newValue);
+// Reload repos when the source filters change
+watch([showAllRepos, showPublicRepos], async () => {
+  await repoStore.loadRepos(showAllRepos.value, showPublicRepos.value);
 });
 
 const { t } = useI18n();
 
 onMounted(async () => {
-  await repoStore.loadRepos(showAllRepos.value);
+  await repoStore.loadRepos(showAllRepos.value, showPublicRepos.value);
 });
 
 // Handle pin toggle with error notifications
