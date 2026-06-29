@@ -83,6 +83,30 @@
             <Input v-model.number="form.priority" type="number" min="0" max="2147483647" />
           </div>
 
+          <div v-if="scopeEditable" class="space-y-2">
+            <label class="text-sm font-medium">{{ $t('admin.settings.agents.scope.label') }}</label>
+            <select v-model="scopeMode" class="w-full rounded-md border bg-background px-3 py-2 text-sm">
+              <option value="global">{{ $t('admin.settings.agents.scope.global') }}</option>
+              <option value="orgs">{{ $t('admin.settings.agents.scope.specific_orgs') }}</option>
+            </select>
+            <p v-if="scopeMode === 'global'" class="text-xs text-muted-foreground">
+              {{ $t('admin.settings.agents.scope.global_desc') }}
+            </p>
+            <div v-else class="max-h-40 overflow-y-auto rounded-md border p-2 space-y-2">
+              <p v-if="orgs.length === 0" class="text-xs text-muted-foreground">
+                {{ $t('admin.settings.agents.scope.no_orgs') }}
+              </p>
+              <div v-for="org in orgs" :key="org.id" class="flex items-center gap-2">
+                <Checkbox
+                  :id="`scope-org-${org.id}`"
+                  :checked="selectedOrgIds.includes(org.id)"
+                  @update:checked="toggleOrg(org.id, $event === true)"
+                />
+                <label :for="`scope-org-${org.id}`" class="text-sm cursor-pointer">{{ org.name }}</label>
+              </div>
+            </div>
+          </div>
+
           <!-- Read-only fields when editing -->
           <template v-if="isEditing && agent">
             <!-- Token field for admins -->
@@ -143,7 +167,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 
 import Icon from '~/components/atomic/Icon.vue';
 import { Alert, AlertDescription } from '~/components/ui/alert';
@@ -151,8 +175,9 @@ import { Button } from '~/components/ui/button';
 import { Checkbox } from '~/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Input } from '~/components/ui/input';
+import useApiClient from '~/compositions/useApiClient';
 import { useDate } from '~/compositions/useDate';
-import type { Agent } from '~/lib/api/types';
+import type { Agent, Org } from '~/lib/api/types';
 
 const props = withDefaults(
   defineProps<{
@@ -160,12 +185,14 @@ const props = withDefaults(
     agent?: Agent | null;
     isSaving?: boolean;
     isAdmin?: boolean;
+    scopeEditable?: boolean;
   }>(),
   {
     open: false,
     agent: null,
     isSaving: false,
     isAdmin: false,
+    scopeEditable: false,
   },
 );
 
@@ -177,6 +204,7 @@ const emit = defineEmits<{
 }>();
 
 const date = useDate();
+const apiClient = useApiClient();
 
 const isOpen = computed({
   get: () => props.open,
@@ -190,6 +218,44 @@ const form = ref<Partial<Agent>>({
   no_schedule: false,
   priority: 0,
 });
+
+const orgs = ref<Org[]>([]);
+const scopeMode = ref<'global' | 'orgs'>('global');
+const selectedOrgIds = ref<number[]>([]);
+
+onMounted(async () => {
+  if (props.scopeEditable) {
+    const allOrgs: Org[] = [];
+    let page = 1;
+    let done = false;
+    while (!done) {
+      const batch = (await apiClient.getOrgs({ page, perPage: 50 })) ?? [];
+      allOrgs.push(...batch);
+      if (batch.length < 50) {
+        done = true;
+      } else {
+        page += 1;
+      }
+    }
+    orgs.value = allOrgs;
+  }
+});
+
+function syncScopeFromAgent(agent: Agent | null) {
+  const ids = agent?.org_ids ?? [];
+  scopeMode.value = ids.length > 0 ? 'orgs' : 'global';
+  selectedOrgIds.value = [...ids];
+}
+
+function toggleOrg(orgId: number, checked: boolean) {
+  if (checked) {
+    if (!selectedOrgIds.value.includes(orgId)) {
+      selectedOrgIds.value = [...selectedOrgIds.value, orgId];
+    }
+  } else {
+    selectedOrgIds.value = selectedOrgIds.value.filter((id) => id !== orgId);
+  }
+}
 
 const createdAgent = ref<Agent | null>(null);
 const copiedCreated = ref(false);
@@ -212,6 +278,7 @@ watch(
         priority: 0,
       };
     }
+    syncScopeFromAgent(newAgent ?? null);
   },
   { immediate: true },
 );
@@ -227,14 +294,21 @@ watch(isOpen, (open) => {
       no_schedule: false,
       priority: 0,
     };
+    scopeMode.value = 'global';
+    selectedOrgIds.value = [];
   }
 });
 
 function handleSave() {
+  const orgIds = props.scopeEditable
+    ? scopeMode.value === 'orgs'
+      ? [...selectedOrgIds.value]
+      : []
+    : (props.agent?.org_ids ?? []);
   emit('save', {
     ...form.value,
     id: props.agent?.id,
-    org_id: props.agent?.org_id,
+    org_ids: orgIds,
   });
 }
 

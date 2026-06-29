@@ -609,6 +609,7 @@ export default class CrowClient extends ApiClient {
       name: agent.name,
       no_schedule: agent.no_schedule,
       priority: agent.priority,
+      org_ids: agent.org_ids,
     }) as Promise<Agent>;
   }
 

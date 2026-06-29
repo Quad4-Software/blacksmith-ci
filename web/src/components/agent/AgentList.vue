@@ -151,15 +151,18 @@
                   <span class="text-xs text-muted-foreground"
                     >{{ $t('admin.settings.agents.agent_id') }} {{ agent.id }}</span
                   >
-                  <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-                  <span v-if="agent.org_id !== -1" class="text-xs text-muted-foreground" aria-hidden="true">•</span>
-                  <router-link
-                    v-if="agent.org_id !== -1"
-                    :to="`/orgs/${agent.org_id}`"
-                    class="text-xs text-primary hover:underline"
-                  >
-                    {{ $t('admin.settings.agents.org_prefix') }} {{ agent.org_id }}
-                  </router-link>
+                  <template v-if="agent.org_ids.length > 0">
+                    <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
+                    <span class="text-xs text-muted-foreground" aria-hidden="true">•</span>
+                    <router-link
+                      v-for="orgId in agent.org_ids"
+                      :key="orgId"
+                      :to="`/orgs/${orgId}`"
+                      class="text-xs text-primary hover:underline"
+                    >
+                      {{ $t('admin.settings.agents.org_prefix') }} {{ orgId }}
+                    </router-link>
+                  </template>
                   <!-- Docker Memory Limit -->
                   <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
                   <span v-if="agent.backend === 'docker'" class="text-xs text-muted-foreground" aria-hidden="true"
@@ -186,15 +189,18 @@
                     <span class="text-xs text-muted-foreground"
                       >{{ $t('admin.settings.agents.agent_id') }} {{ agent.id }}</span
                     >
-                    <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-                    <span v-if="agent.org_id !== -1" class="text-xs text-muted-foreground" aria-hidden="true">•</span>
-                    <router-link
-                      v-if="agent.org_id !== -1"
-                      :to="`/orgs/${agent.org_id}`"
-                      class="text-xs text-primary hover:underline"
-                    >
-                      {{ $t('admin.settings.agents.org_prefix') }} {{ agent.org_id }}
-                    </router-link>
+                    <template v-if="agent.org_ids.length > 0">
+                      <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
+                      <span class="text-xs text-muted-foreground" aria-hidden="true">•</span>
+                      <router-link
+                        v-for="orgId in agent.org_ids"
+                        :key="orgId"
+                        :to="`/orgs/${orgId}`"
+                        class="text-xs text-primary hover:underline"
+                      >
+                        {{ $t('admin.settings.agents.org_prefix') }} {{ orgId }}
+                      </router-link>
+                    </template>
                   </div>
                   <!-- Resource limits on separate line for mobile -->
                   <div v-if="agent.backend === 'docker'" class="flex items-center gap-2">
@@ -218,7 +224,7 @@
 
             <!-- Action Buttons (desktop only - moved to bottom on mobile) -->
             <div
-              v-if="props.isAdmin || agent.org_id === props.userOrgId"
+              v-if="props.isAdmin || (props.userOrgId !== undefined && agent.org_ids.includes(props.userOrgId))"
               class="hidden md:flex items-center gap-1 shrink-0 ml-3"
             >
               <Button
@@ -354,7 +360,7 @@
               }}</span>
 
               <!-- Type Badge - neutral secondary styling -->
-              <UiBadge v-if="agent.org_id === -1" variant="secondary">
+              <UiBadge v-if="agent.org_ids.length === 0" variant="secondary">
                 {{ $t('admin.settings.agents.type.global') }}
               </UiBadge>
 
@@ -387,7 +393,10 @@
           <!-- Action Buttons (mobile only - at bottom) -->
           <Separator class="my-3 md:hidden" />
           <div class="flex md:hidden justify-end gap-1">
-            <div v-if="props.isAdmin || agent.org_id === props.userOrgId" class="flex items-center gap-1">
+            <div
+              v-if="props.isAdmin || (props.userOrgId !== undefined && agent.org_ids.includes(props.userOrgId))"
+              class="flex items-center gap-1"
+            >
               <Button
                 variant="ghost"
                 size="icon"

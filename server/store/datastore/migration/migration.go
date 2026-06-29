@@ -118,6 +118,7 @@ func Migrate(_ context.Context, db *sql.DB, driver string, _ bool) error {
 		{ID: "crow-fix-proc-log-int64-columns-v2", Migrate: fixProcLogInt64Columns(driver)},
 		{ID: "crow-add-workflow-approval", Migrate: addWorkflowApprovalColumns(driver)},
 		{ID: "crow-create-workflow-approval-events", Migrate: createWorkflowApprovalEvents(driver)},
+		{ID: "crow-agent-org-ids", Migrate: migrateAgentOrgIDs(driver)},
 	}
 
 	if len(newMigrations) > 0 {
@@ -546,4 +547,103 @@ func tableExists(tx *sql.Tx, table string) bool {
 	}
 	_, _ = tx.Exec("ROLLBACK TO SAVEPOINT table_check")
 	return false
+}
+
+// columnExists reports whether a column exists, using a savepoint so a failed
+// probe doesn't poison the surrounding transaction (mirrors tableExists).
+func columnExists(tx *sql.Tx, table, column string) bool {
+	_, _ = tx.Exec("SAVEPOINT col_check")
+	var dummy any
+	err := tx.QueryRow(fmt.Sprintf("SELECT %s FROM %s LIMIT 1", column, table)).Scan(&dummy) //nolint:gosec
+	if err == nil || errors.Is(err, sql.ErrNoRows) {
+		_, _ = tx.Exec("RELEASE SAVEPOINT col_check")
+		return true
+	}
+	_, _ = tx.Exec("ROLLBACK TO SAVEPOINT col_check")
+	return false
+}
+
+// dropIndexIfExists drops an index in a driver-portable, idempotent way.
+func dropIndexIfExists(tx *sql.Tx, driver, index, table string) error {
+	if driver == "mysql" {
+		var count int
+		if err := tx.QueryRow(
+			`SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS`+
+				` WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ?`,
+			table, index,
+		).Scan(&count); err != nil {
+			return fmt.Errorf("probe index %s: %w", index, err)
+		}
+		if count == 0 {
+			return nil
+		}
+		if _, err := tx.Exec(fmt.Sprintf("DROP INDEX %s ON %s", index, table)); err != nil {
+			return fmt.Errorf("drop index %s: %w", index, err)
+		}
+		return nil
+	}
+	if _, err := tx.Exec("DROP INDEX IF EXISTS " + index); err != nil {
+		return fmt.Errorf("drop index %s: %w", index, err)
+	}
+	return nil
+}
+
+// migrateAgentOrgIDs adds the org_ids list column, backfills it from the legacy
+// single org_id column (-1 -> global/empty list, otherwise [org_id]), and drops
+// the old org_id column and its index. Fresh databases get org_ids from the
+// baseline schema and skip this (tableExists guard plus the runner's applied set).
+func migrateAgentOrgIDs(driver string) func(tx *sql.Tx) error {
+	return func(tx *sql.Tx) error {
+		if !tableExists(tx, "agents") {
+			return nil
+		}
+
+		if err := addColumnIfNotExists("agents", "org_ids", "TEXT")(tx); err != nil {
+			return fmt.Errorf("add agents.org_ids: %w", err)
+		}
+
+		// A fresh-but-migrated DB may already lack org_id (baseline). If the
+		// legacy column is gone there is nothing to backfill or drop.
+		if !columnExists(tx, "agents", "org_id") {
+			return nil
+		}
+
+		rows, err := tx.Query("SELECT id, org_id FROM agents")
+		if err != nil {
+			return fmt.Errorf("read agents for org_ids backfill: %w", err)
+		}
+		defer rows.Close()
+		type agentRow struct{ id, orgID int64 }
+		var pending []agentRow
+		for rows.Next() {
+			var r agentRow
+			if err := rows.Scan(&r.id, &r.orgID); err != nil {
+				return fmt.Errorf("scan agent row: %w", err)
+			}
+			pending = append(pending, r)
+		}
+		if err := rows.Err(); err != nil {
+			return err
+		}
+		rows.Close()
+
+		for _, r := range pending {
+			orgIDs := "[]"
+			if r.orgID >= 0 {
+				orgIDs = fmt.Sprintf("[%d]", r.orgID)
+			}
+			stmt := fmt.Sprintf("UPDATE agents SET org_ids = '%s' WHERE id = %d", orgIDs, r.id)
+			if _, err := tx.Exec(stmt); err != nil {
+				return fmt.Errorf("backfill agent %d org_ids: %w", r.id, err)
+			}
+		}
+
+		if err := dropIndexIfExists(tx, driver, "idx_agents_org_id", "agents"); err != nil {
+			return err
+		}
+		if _, err := tx.Exec("ALTER TABLE agents DROP COLUMN org_id"); err != nil {
+			return fmt.Errorf("drop agents.org_id: %w", err)
+		}
+		return nil
+	}
 }

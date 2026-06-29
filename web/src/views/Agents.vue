@@ -133,18 +133,18 @@ const { doSubmit: handleSave, isLoading: isSaving } = useAsyncAction(async (agen
 
   if (isEditing) {
     // Editing: check permissions first
-    const canEdit = isAdmin.value || agentData.org_id === user.org_id;
+    const canEdit = isAdmin.value || (agentData.org_ids?.includes(user.org_id) ?? false);
 
     if (!canEdit) {
       throw new Error('Unauthorized: Cannot edit this agent');
     }
 
     if (isAdmin.value) {
-      // Admin uses the global endpoint, which works for any agent regardless of org_id
+      // Admin uses the global endpoint, which works for any agent regardless of org scope
       await apiClient.updateAgent(agentData as Agent);
     } else {
       // Non-admin: must use the org-scoped endpoint for their own org
-      await apiClient.updateOrgAgent(agentData.org_id!, agentData.id!, agentData);
+      await apiClient.updateOrgAgent(user.org_id, agentData.id!, agentData);
     }
 
     notifications.notify({
@@ -180,7 +180,7 @@ const { doSubmit: handleSave, isLoading: isSaving } = useAsyncAction(async (agen
 
 function openDeleteDialog(agent: Agent) {
   // Check permissions before showing dialog
-  const canDelete = isAdmin.value || agent.org_id === user!.org_id;
+  const canDelete = isAdmin.value || agent.org_ids.includes(user!.org_id);
 
   if (!canDelete) {
     notifications.notify({
@@ -203,11 +203,11 @@ const { doSubmit: confirmDelete, isLoading: isDeleting } = useAsyncAction(async 
   const agent = agentToDelete.value;
 
   if (isAdmin.value) {
-    // Admin uses the global endpoint, which works for any agent regardless of org_id
+    // Admin uses the global endpoint, which works for any agent regardless of org scope
     await apiClient.deleteAgent(agent);
   } else {
     // Non-admin: must use the org-scoped endpoint for their own org
-    await apiClient.deleteOrgAgent(agent.org_id, agent.id);
+    await apiClient.deleteOrgAgent(user.org_id, agent.id);
   }
 
   notifications.notify({

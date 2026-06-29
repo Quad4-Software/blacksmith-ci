@@ -405,7 +405,7 @@ func TestFilterLabelsIntegrity(t *testing.T) {
 
 		// Step 2: Get server labels (as done in Next())
 		agent := &model.Agent{
-			OrgID: model.IDNotSet, // Global agent
+			OrgIDs: nil, // Global agent
 		}
 		serverLabels, err := agent.GetServerLabels()
 		assert.NoError(t, err)
@@ -443,7 +443,7 @@ func TestFilterLabelsIntegrity(t *testing.T) {
 
 		// Organization agent
 		agent := &model.Agent{
-			OrgID: 42,
+			OrgIDs: model.JSONSliceInt64{42},
 		}
 		serverLabels, err := agent.GetServerLabels()
 		assert.NoError(t, err)
@@ -519,7 +519,7 @@ func TestRPC_Update_PublishesPipelineWithUpdatedStepState(t *testing.T) {
 
 	// Fixture: agent allowed (global agent), pipeline running, workflow
 	// running, step starts running mid-execution.
-	agent := &model.Agent{ID: agentID, OrgID: model.IDNotSet}
+	agent := &model.Agent{ID: agentID}
 	repo := &model.Repo{ID: repoID, FullName: "owner/repo"}
 	pipeline := &model.Pipeline{ID: pipelineID, RepoID: repoID, Status: model.StatusRunning}
 	workflow := &model.Workflow{ID: workflowID, PipelineID: pipelineID, State: model.StatusRunning}

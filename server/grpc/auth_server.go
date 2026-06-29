@@ -91,7 +91,7 @@ type AuthEntity struct {
 	Name    string
 	Token   string
 	OwnerID int64
-	OrgID   int64
+	OrgIDs  model.JSONSliceInt64
 }
 
 // authenticateByToken tries to authenticate as either an agent or autoscaler
@@ -120,7 +120,6 @@ func (s *CrowAuthServer) authenticateWithAgentMasterToken(id int64) (*AuthEntity
 		// Create new system agent
 		agent := &model.Agent{
 			OwnerID:  model.IDNotSet,
-			OrgID:    model.IDNotSet,
 			Token:    s.agentMasterToken,
 			Capacity: -1,
 		}
@@ -133,7 +132,7 @@ func (s *CrowAuthServer) authenticateWithAgentMasterToken(id int64) (*AuthEntity
 			Name:    agent.Name,
 			Token:   agent.Token,
 			OwnerID: agent.OwnerID,
-			OrgID:   agent.OrgID,
+			OrgIDs:  agent.OrgIDs,
 		}, "agent", nil
 	}
 
@@ -154,7 +153,7 @@ func (s *CrowAuthServer) authenticateWithAgentMasterToken(id int64) (*AuthEntity
 		Name:    agent.Name,
 		Token:   agent.Token,
 		OwnerID: agent.OwnerID,
-		OrgID:   agent.OrgID,
+		OrgIDs:  agent.OrgIDs,
 	}, "agent", nil
 }
 
@@ -169,7 +168,7 @@ func (s *CrowAuthServer) authenticateAsAgent(token string) (*AuthEntity, error) 
 		Name:    agent.Name,
 		Token:   agent.Token,
 		OwnerID: agent.OwnerID,
-		OrgID:   agent.OrgID,
+		OrgIDs:  agent.OrgIDs,
 	}, nil
 }
 
@@ -179,11 +178,15 @@ func (s *CrowAuthServer) authenticateAsAutoscaler(token string) (*AuthEntity, er
 		return nil, err
 	}
 
+	var orgIDs model.JSONSliceInt64
+	if autoscaler.OrgID != model.IDNotSet {
+		orgIDs = model.JSONSliceInt64{autoscaler.OrgID}
+	}
 	return &AuthEntity{
 		ID:      autoscaler.ID,
 		Name:    autoscaler.Name,
 		Token:   autoscaler.Token,
 		OwnerID: autoscaler.OwnerID,
-		OrgID:   autoscaler.OrgID,
+		OrgIDs:  orgIDs,
 	}, nil
 }

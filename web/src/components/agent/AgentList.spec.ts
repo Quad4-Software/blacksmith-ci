@@ -38,7 +38,7 @@ const sampleAgent = {
   id: 1,
   name: 'Test Agent',
   owner_id: 1,
-  org_id: 1,
+  org_ids: [1],
   token: '',
   created: 0,
   updated: 0,
@@ -102,27 +102,27 @@ describe('agentList', () => {
 
   describe('management button visibility', () => {
     it('shows edit/delete buttons for admin on a global agent', () => {
-      const wrapper = mountWithAgent({ ...sampleAgent, org_id: -1 }, { isAdmin: true });
+      const wrapper = mountWithAgent({ ...sampleAgent, org_ids: [] }, { isAdmin: true });
       expect(hasManagementButtons(wrapper)).toBe(true);
     });
 
     it('shows edit/delete buttons for admin on a user/org agent in another org', () => {
-      const wrapper = mountWithAgent({ ...sampleAgent, org_id: 42 }, { isAdmin: true, userOrgId: 1 });
+      const wrapper = mountWithAgent({ ...sampleAgent, org_ids: [42] }, { isAdmin: true, userOrgId: 1 });
       expect(hasManagementButtons(wrapper)).toBe(true);
     });
 
     it('shows edit/delete buttons for a regular user on their own org agent', () => {
-      const wrapper = mountWithAgent({ ...sampleAgent, org_id: 1 }, { isAdmin: false, userOrgId: 1 });
+      const wrapper = mountWithAgent({ ...sampleAgent, org_ids: [1] }, { isAdmin: false, userOrgId: 1 });
       expect(hasManagementButtons(wrapper)).toBe(true);
     });
 
     it('hides edit/delete buttons for a regular user on a global agent', () => {
-      const wrapper = mountWithAgent({ ...sampleAgent, org_id: -1 }, { isAdmin: false, userOrgId: 1 });
+      const wrapper = mountWithAgent({ ...sampleAgent, org_ids: [] }, { isAdmin: false, userOrgId: 1 });
       expect(hasManagementButtons(wrapper)).toBe(false);
     });
 
     it("hides edit/delete buttons for a regular user on another org's agent", () => {
-      const wrapper = mountWithAgent({ ...sampleAgent, org_id: 42 }, { isAdmin: false, userOrgId: 1 });
+      const wrapper = mountWithAgent({ ...sampleAgent, org_ids: [42] }, { isAdmin: false, userOrgId: 1 });
       expect(hasManagementButtons(wrapper)).toBe(false);
     });
   });

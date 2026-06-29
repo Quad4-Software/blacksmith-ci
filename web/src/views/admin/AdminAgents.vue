@@ -7,6 +7,7 @@
     :delete-agent="deleteAgent"
     :agent-filters="agentFilters"
     :is-admin="true"
+    :scope-editable="true"
     @update-filters="(filters) => Object.assign(agentFilters, filters)"
   />
 </template>

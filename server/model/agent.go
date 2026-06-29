@@ -19,6 +19,9 @@ import (
 	"encoding/base32"
 	"encoding/hex"
 	"fmt"
+	"slices"
+	"strconv"
+	"strings"
 
 	"github.com/tink-crypto/tink-go/v2/subtle/random"
 	"github.com/uptrace/bun"
@@ -50,8 +53,9 @@ type Agent struct {
 	CustomLabels           JSONMapStringString `json:"custom_labels"    bun:"custom_labels,type:text"`
 	LimitMem               int64               `json:"limit_mem"        bun:"limit_mem"`
 	LimitCPUQuota          int64               `json:"limit_cpu_quota"  bun:"limit_cpu_quota"`
-	// OrgID is counted as unset if set to -1, this is done to ensure a new(Agent) still enforce the OrgID check by default
-	OrgID int64 `json:"org_id"        bun:"org_id"`
+	// OrgIDs scopes the agent to one or more organizations. An empty list means
+	// the agent is global and can process tasks from any organization.
+	OrgIDs JSONSliceInt64 `json:"org_ids" bun:"org_ids,type:text"`
 } //	@name	Agent
 
 // AgentWithStats is used for API responses to include runtime stats.
@@ -70,7 +74,6 @@ type AgentListOptions struct {
 	Search   string // Search in name, platform, backend, custom labels
 	Platform string // Filter by platform
 	Backend  string // Filter by backend
-	OrgID    *int64 // Filter by org_id (nil = all, -1 = global agents only)
 	Sort     string // Sort field: id, name, platform, backend, last_contact
 	Order    string // Sort order: asc or desc
 }
@@ -82,6 +85,11 @@ func (Agent) TableName() string {
 
 func (a *Agent) IsSystemAgent() bool {
 	return a.OwnerID == IDNotSet
+}
+
+// IsGlobal reports whether the agent can process tasks from any organization.
+func (a *Agent) IsGlobal() bool {
+	return len(a.OrgIDs) == 0
 }
 
 func GenerateNewAgentToken() string {
@@ -105,11 +113,15 @@ func GeneratePersistentID(token, name, platform, backend string) string {
 func (a *Agent) GetServerLabels() (map[string]string, error) {
 	filters := make(map[string]string)
 
-	// enforce filters for user and organization agents
-	if a.OrgID != IDNotSet {
-		filters[pipeline.LabelOrgID] = fmt.Sprintf("%d", a.OrgID)
-	} else {
+	// enforce filters for organization-scoped agents; global agents match any org
+	if a.IsGlobal() {
 		filters[pipeline.LabelOrgID] = "*"
+	} else {
+		ids := make([]string, len(a.OrgIDs))
+		for i, id := range a.OrgIDs {
+			ids[i] = strconv.FormatInt(id, 10)
+		}
+		filters[pipeline.LabelOrgID] = strings.Join(ids, "|")
 	}
 
 	return filters, nil
@@ -117,14 +129,10 @@ func (a *Agent) GetServerLabels() (map[string]string, error) {
 
 func (a *Agent) CanAccessRepo(repo *Repo) bool {
 	// global agent
-	if a.OrgID == IDNotSet {
+	if a.IsGlobal() {
 		return true
 	}
 
-	// agent has access to the organization
-	if a.OrgID == repo.OrgID {
-		return true
-	}
-
-	return false
+	// agent scoped to the repo's organization
+	return slices.Contains(a.OrgIDs, repo.OrgID)
 }

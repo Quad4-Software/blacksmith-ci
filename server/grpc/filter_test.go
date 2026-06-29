@@ -19,6 +19,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"codefloe.com/crowci/crow/v5/pipeline"
 	"codefloe.com/crowci/crow/v5/pipeline/rpc"
 	"codefloe.com/crowci/crow/v5/server/model"
 )
@@ -662,4 +663,30 @@ func TestCreateFilterFunc(t *testing.T) {
 			assert.Equal(t, tt.wantScore, gotScore, "Score")
 		})
 	}
+}
+
+func TestFilterMultiOrgAgent(t *testing.T) {
+	// Verify that an agent with two org IDs produces the expected pipe-joined label.
+	labels, err := (&model.Agent{OrgIDs: model.JSONSliceInt64{5, 7}}).GetServerLabels()
+	assert.NoError(t, err)
+	assert.Equal(t, "5|7", labels[pipeline.LabelOrgID])
+
+	// Build the agent filter using the labels produced by GetServerLabels and verify
+	// that tasks for org 5 and org 7 match while org 9 does not.
+	agentFilter := rpc.Filter{Labels: labels}
+
+	taskOrg5 := &model.Task{Labels: map[string]string{pipeline.LabelOrgID: "5"}}
+	taskOrg7 := &model.Task{Labels: map[string]string{pipeline.LabelOrgID: "7"}}
+	taskOrg9 := &model.Task{Labels: map[string]string{pipeline.LabelOrgID: "9"}}
+
+	filterFunc := createFilterFunc(agentFilter, nil)
+
+	matched5, _, _ := filterFunc(taskOrg5)
+	assert.True(t, matched5, "org-5 task should match a 5|7 agent")
+
+	matched7, _, _ := filterFunc(taskOrg7)
+	assert.True(t, matched7, "org-7 task should match a 5|7 agent")
+
+	matched9, _, _ := filterFunc(taskOrg9)
+	assert.False(t, matched9, "org-9 task should NOT match a 5|7 agent")
 }

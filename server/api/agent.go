@@ -16,6 +16,8 @@ package api
 
 import (
 	"context"
+	"fmt"
+	"slices"
 
 	"github.com/danielgtaylor/huma/v2"
 
@@ -24,6 +26,16 @@ import (
 	"codefloe.com/crowci/crow/v5/server/router/middleware/session"
 	"codefloe.com/crowci/crow/v5/server/store"
 )
+
+// validateOrgIDs ensures every referenced organization exists.
+func validateOrgIDs(s store.Store, orgIDs []int64) error {
+	for _, id := range orgIDs {
+		if _, err := s.OrgGet(id); err != nil {
+			return huma.Error400BadRequest(fmt.Sprintf("organization %d does not exist", id))
+		}
+	}
+	return nil
+}
 
 //
 // Global Agents.
@@ -170,9 +182,10 @@ func GetAgentWorkflows(ctx context.Context, input *GetAgentWorkflowsInput) (*Get
 }
 
 type PatchAgentBody struct {
-	Name       string `json:"name" doc:"name of the agent"`
-	NoSchedule bool   `json:"no_schedule" doc:"disable scheduling for this agent"`
-	Priority   int32  `json:"priority" doc:"agent priority"`
+	Name       string   `json:"name" doc:"name of the agent"`
+	NoSchedule bool     `json:"no_schedule" doc:"disable scheduling for this agent"`
+	Priority   int32    `json:"priority" doc:"agent priority"`
+	OrgIDs     *[]int64 `json:"org_ids,omitempty" doc:"organizations this agent is scoped to; empty means global. Admin only; ignored on org-scoped patch"`
 }
 
 type PatchAgentInput struct {
@@ -201,6 +214,13 @@ func PatchAgent(ctx context.Context, input *PatchAgentInput) (*PatchAgentOutput,
 		server.Config.Services.Queue.KickAgentWorkers(agent.ID)
 	}
 
+	if input.Body.OrgIDs != nil {
+		if err := validateOrgIDs(_store, *input.Body.OrgIDs); err != nil {
+			return nil, err
+		}
+		agent.OrgIDs = *input.Body.OrgIDs
+	}
+
 	if err = _store.AgentUpdate(agent); err != nil {
 		return nil, huma.Error409Conflict("conflict updating agent")
 	}
@@ -213,6 +233,7 @@ type PostAgentBody struct {
 	NoSchedule   bool              `json:"no_schedule,omitempty" doc:"disable scheduling for this agent"`
 	Priority     int32             `json:"priority,omitempty" doc:"agent priority"`
 	CustomLabels map[string]string `json:"custom_labels,omitempty" doc:"custom labels for the agent"`
+	OrgIDs       []int64           `json:"org_ids,omitempty" doc:"organizations this agent is scoped to; empty means global"`
 }
 
 type PostAgentInput struct {
@@ -226,17 +247,22 @@ type PostAgentOutput struct {
 func PostAgent(ctx context.Context, input *PostAgentInput) (*PostAgentOutput, error) {
 	c := ginCtx(ctx)
 	user := session.User(c)
+	_store := store.FromContext(c)
+
+	if err := validateOrgIDs(_store, input.Body.OrgIDs); err != nil {
+		return nil, err
+	}
 
 	agent := &model.Agent{
 		Name:         input.Body.Name,
 		OwnerID:      user.ID,
-		OrgID:        model.IDNotSet,
+		OrgIDs:       input.Body.OrgIDs,
 		NoSchedule:   input.Body.NoSchedule,
 		Priority:     input.Body.Priority,
 		CustomLabels: input.Body.CustomLabels,
 		Token:        model.GenerateNewAgentToken(),
 	}
-	if err := store.FromContext(c).AgentCreate(agent); err != nil {
+	if err := _store.AgentCreate(agent); err != nil {
 		return nil, huma.Error500InternalServerError(err.Error())
 	}
 	return &PostAgentOutput{Body: agent}, nil
@@ -286,7 +312,7 @@ func PostOrgAgent(ctx context.Context, input *PostOrgAgentInput) (*PostAgentOutp
 	agent := &model.Agent{
 		Name:         input.Body.Name,
 		OwnerID:      user.ID,
-		OrgID:        input.OrgID,
+		OrgIDs:       model.JSONSliceInt64{input.OrgID},
 		NoSchedule:   input.Body.NoSchedule,
 		Priority:     input.Body.Priority,
 		CustomLabels: input.Body.CustomLabels,
@@ -353,7 +379,7 @@ func PatchOrgAgent(ctx context.Context, input *PatchOrgAgentInput) (*PatchAgentO
 		return nil, huma.Error404NotFound("Agent not found")
 	}
 
-	if agent.OrgID != org.ID {
+	if !slices.Contains(agent.OrgIDs, org.ID) {
 		return nil, huma.Error400BadRequest("Agent does not belong to this organization")
 	}
 
@@ -388,7 +414,7 @@ func DeleteOrgAgent(ctx context.Context, input *DeleteOrgAgentInput) (*struct{},
 		return nil, huma.Error404NotFound("Agent not found")
 	}
 
-	if agent.OrgID != org.ID {
+	if !slices.Contains(agent.OrgIDs, org.ID) {
 		return nil, huma.Error400BadRequest("Agent does not belong to this organization")
 	}
 
@@ -399,10 +425,23 @@ func DeleteOrgAgent(ctx context.Context, input *DeleteOrgAgentInput) (*struct{},
 		}
 	}
 
+	// De-scope: drop this org from the agent. Keep the agent alive if other
+	// orgs still use it; only delete when this was its sole scope.
+	remaining := slices.DeleteFunc(slices.Clone(agent.OrgIDs), func(id int64) bool {
+		return id == org.ID
+	})
+	if len(remaining) > 0 {
+		agent.OrgIDs = remaining
+		if err := _store.AgentUpdate(agent); err != nil {
+			return nil, huma.Error500InternalServerError(err.Error())
+		}
+		return nil, nil
+	}
+
 	server.Config.Services.Queue.KickAgentWorkers(agent.ID)
 
 	if err := _store.AgentDelete(agent); err != nil {
-		return nil, huma.Error500InternalServerError("Error deleting agent", err)
+		return nil, huma.Error500InternalServerError(err.Error())
 	}
 
 	return nil, nil

@@ -307,7 +307,7 @@ CREATE TABLE IF NOT EXISTS agents (
     custom_labels TEXT,
     limit_mem INTEGER,
     limit_cpu_quota INTEGER,
-    org_id INTEGER
+    org_ids TEXT
 );
 
 CREATE TABLE IF NOT EXISTS autoscalers (
@@ -515,8 +515,6 @@ CREATE INDEX idx_repos_org_id ON repos (org_id);
 
 CREATE INDEX idx_perms_user_id ON perms (user_id);
 CREATE INDEX idx_perms_repo_id ON perms (repo_id);
-
-CREATE INDEX idx_agents_org_id ON agents (org_id);
 
 CREATE INDEX idx_autoscalers_org_id ON autoscalers (org_id);
 

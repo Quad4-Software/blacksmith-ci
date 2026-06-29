@@ -34,6 +34,7 @@
       :agent="selectedAgent"
       :is-saving="isSaving"
       :is-admin="isAdmin"
+      :scope-editable="props.scopeEditable"
       @save="handleSave"
       @cancel="dialogOpen = false"
     />
@@ -97,6 +98,7 @@ const props = defineProps<{
   };
   isAdmin?: boolean;
   userOrgId?: number;
+  scopeEditable?: boolean;
 }>();
 
 const emit = defineEmits<{

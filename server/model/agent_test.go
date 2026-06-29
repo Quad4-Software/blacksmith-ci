@@ -32,61 +32,29 @@ func TestGenerateNewAgentToken(t *testing.T) {
 	assert.Len(t, token1, 56)
 }
 
-func TestAgent_GetServerLabels(t *testing.T) {
-	t.Run("EmptyAgent", func(t *testing.T) {
-		agent := &Agent{}
-		filters, err := agent.GetServerLabels()
-		assert.NoError(t, err)
-		assert.EqualValues(t, map[string]string{
-			pipeline.LabelOrgID: "0",
-		}, filters)
-	})
-
-	t.Run("GlobalAgent", func(t *testing.T) {
-		agent := &Agent{
-			OrgID: IDNotSet,
-		}
-		filters, err := agent.GetServerLabels()
-		assert.NoError(t, err)
-		assert.EqualValues(t, map[string]string{
-			pipeline.LabelOrgID: "*",
-		}, filters)
-	})
-
-	t.Run("OrgAgent", func(t *testing.T) {
-		agent := &Agent{
-			OrgID: 123,
-		}
-		filters, err := agent.GetServerLabels()
-		assert.NoError(t, err)
-		assert.EqualValues(t, map[string]string{
-			pipeline.LabelOrgID: "123",
-		}, filters)
-	})
+func TestAgentIsGlobal(t *testing.T) {
+	assert.True(t, (&Agent{OrgIDs: nil}).IsGlobal())
+	assert.True(t, (&Agent{OrgIDs: JSONSliceInt64{}}).IsGlobal())
+	assert.False(t, (&Agent{OrgIDs: JSONSliceInt64{5}}).IsGlobal())
 }
 
-func TestAgent_CanAccessRepo(t *testing.T) {
-	repo := &Repo{ID: 123, OrgID: 12}
-	otherRepo := &Repo{ID: 456, OrgID: 45}
+func TestAgentGetServerLabels(t *testing.T) {
+	global, err := (&Agent{OrgIDs: nil}).GetServerLabels()
+	assert.NoError(t, err)
+	assert.Equal(t, "*", global[pipeline.LabelOrgID])
 
-	t.Run("EmptyAgent", func(t *testing.T) {
-		agent := &Agent{}
-		assert.False(t, agent.CanAccessRepo(repo))
-	})
+	one, err := (&Agent{OrgIDs: JSONSliceInt64{5}}).GetServerLabels()
+	assert.NoError(t, err)
+	assert.Equal(t, "5", one[pipeline.LabelOrgID])
 
-	t.Run("GlobalAgent", func(t *testing.T) {
-		agent := &Agent{
-			OrgID: IDNotSet,
-		}
+	multi, err := (&Agent{OrgIDs: JSONSliceInt64{5, 7}}).GetServerLabels()
+	assert.NoError(t, err)
+	assert.Equal(t, "5|7", multi[pipeline.LabelOrgID])
+}
 
-		assert.True(t, agent.CanAccessRepo(repo))
-	})
-
-	t.Run("OrgAgent", func(t *testing.T) {
-		agent := &Agent{
-			OrgID: 12,
-		}
-		assert.True(t, agent.CanAccessRepo(repo))
-		assert.False(t, agent.CanAccessRepo(otherRepo))
-	})
+func TestAgentCanAccessRepo(t *testing.T) {
+	repo := &Repo{OrgID: 7}
+	assert.True(t, (&Agent{OrgIDs: nil}).CanAccessRepo(repo))
+	assert.True(t, (&Agent{OrgIDs: JSONSliceInt64{5, 7}}).CanAccessRepo(repo))
+	assert.False(t, (&Agent{OrgIDs: JSONSliceInt64{5}}).CanAccessRepo(repo))
 }

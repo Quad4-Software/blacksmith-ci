@@ -110,19 +110,19 @@ func TestAgentListForOrg(t *testing.T) {
 	defer closer()
 
 	agent1 := &model.Agent{
-		ID:    int64(1),
-		Name:  "test-1",
-		OrgID: int64(100),
+		ID:     int64(1),
+		Name:   "test-1",
+		OrgIDs: model.JSONSliceInt64{100},
 	}
 	agent2 := &model.Agent{
-		ID:    int64(2),
-		Name:  "test-2",
-		OrgID: int64(100),
+		ID:     int64(2),
+		Name:   "test-2",
+		OrgIDs: model.JSONSliceInt64{100},
 	}
 	agent3 := &model.Agent{
-		ID:    int64(3),
-		Name:  "test-3",
-		OrgID: int64(200),
+		ID:     int64(3),
+		Name:   "test-3",
+		OrgIDs: model.JSONSliceInt64{200},
 	}
 	assert.NoError(t, store.AgentCreate(agent1))
 	assert.NoError(t, store.AgentCreate(agent2))
@@ -143,4 +143,26 @@ func TestAgentListForOrg(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(agents))
 	assert.Equal(t, "test-1", agents[0].Name)
+}
+
+func TestAgentListForOrgMultiOrg(t *testing.T) {
+	store, closer := newTestStore(t, new(model.Agent))
+	defer closer()
+
+	global := &model.Agent{Name: "global", OrgIDs: nil, Token: "t-global"}
+	orgFive := &model.Agent{Name: "five", OrgIDs: model.JSONSliceInt64{5}, Token: "t-5"}
+	shared := &model.Agent{Name: "shared", OrgIDs: model.JSONSliceInt64{5, 7}, Token: "t-57"}
+	orgNine := &model.Agent{Name: "nine", OrgIDs: model.JSONSliceInt64{9}, Token: "t-9"}
+	for _, a := range []*model.Agent{global, orgFive, shared, orgNine} {
+		assert.NoError(t, store.AgentCreate(a))
+	}
+
+	got, err := store.AgentListForOrg(5, &model.ListOptions{All: true})
+	assert.NoError(t, err)
+
+	names := make([]string, 0, len(got))
+	for _, a := range got {
+		names = append(names, a.Name)
+	}
+	assert.ElementsMatch(t, []string{"five", "shared"}, names)
 }

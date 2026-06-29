@@ -25,6 +25,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
 	"codefloe.com/crowci/crow/v5/server"
 	"codefloe.com/crowci/crow/v5/server/model"
@@ -277,5 +278,207 @@ func TestPostOrgAgent(t *testing.T) {
 
 		// Ensure an agent was created
 		mockStore.AssertCalled(t, "AgentCreate", mock.AnythingOfType("*model.Agent"))
+	})
+}
+
+func TestPostAgentScopedToOrgs(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	t.Run("org_ids [5,7] sets OrgIDs on created agent", func(t *testing.T) {
+		mockStore := new(store_mocks.MockStore)
+		mockStore.On("OrgGet", int64(5)).Return(&model.Org{ID: 5}, nil)
+		mockStore.On("OrgGet", int64(7)).Return(&model.Org{ID: 7}, nil)
+		mockStore.On("AgentCreate", mock.AnythingOfType("*model.Agent")).Return(nil)
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Set("store", mockStore)
+		c.Set("user", &model.User{ID: 1})
+		c.Request, _ = http.NewRequest(http.MethodPost, "/", nil)
+
+		output, err := PostAgent(testCtx(c), &PostAgentInput{
+			Body: PostAgentBody{Name: "a", OrgIDs: []int64{5, 7}},
+		})
+
+		assert.NoError(t, err)
+		assert.NotNil(t, output)
+		assert.Equal(t, model.JSONSliceInt64{5, 7}, output.Body.OrgIDs)
+		mockStore.AssertCalled(t, "OrgGet", int64(5))
+		mockStore.AssertCalled(t, "OrgGet", int64(7))
+		mockStore.AssertCalled(t, "AgentCreate", mock.AnythingOfType("*model.Agent"))
+	})
+
+	t.Run("no org_ids creates global agent", func(t *testing.T) {
+		mockStore := new(store_mocks.MockStore)
+		mockStore.On("AgentCreate", mock.AnythingOfType("*model.Agent")).Return(nil)
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Set("store", mockStore)
+		c.Set("user", &model.User{ID: 1})
+		c.Request, _ = http.NewRequest(http.MethodPost, "/", nil)
+
+		output, err := PostAgent(testCtx(c), &PostAgentInput{
+			Body: PostAgentBody{Name: "b"},
+		})
+
+		assert.NoError(t, err)
+		assert.NotNil(t, output)
+		assert.Empty(t, output.Body.OrgIDs)
+	})
+
+	t.Run("unknown org id returns 400", func(t *testing.T) {
+		mockStore := new(store_mocks.MockStore)
+		mockStore.On("OrgGet", int64(999)).Return((*model.Org)(nil), errors.New("not found"))
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Set("store", mockStore)
+		c.Set("user", &model.User{ID: 1})
+		c.Request, _ = http.NewRequest(http.MethodPost, "/", nil)
+
+		output, err := PostAgent(testCtx(c), &PostAgentInput{
+			Body: PostAgentBody{Name: "c", OrgIDs: []int64{999}},
+		})
+
+		assert.Nil(t, output)
+		assert.Error(t, err)
+		var humaErr huma.StatusError
+		if errors.As(err, &humaErr) {
+			assert.Equal(t, http.StatusBadRequest, humaErr.GetStatus())
+		}
+	})
+}
+
+func TestPatchOrgAgentDoesNotChangeOrgIDs(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	t.Run("org admin can patch multi-org agent name without changing OrgIDs", func(t *testing.T) {
+		// Agent belongs to orgs 5 and 7; org admin for org 5 patches name.
+		agentMultiOrg := &model.Agent{
+			ID:      42,
+			Name:    "old-name",
+			OwnerID: 1,
+			OrgIDs:  model.JSONSliceInt64{5, 7},
+		}
+
+		mockStore := new(store_mocks.MockStore)
+		mockStore.On("AgentFind", int64(42)).Return(agentMultiOrg, nil)
+		mockStore.On("AgentUpdate", mock.AnythingOfType("*model.Agent")).Return(nil)
+
+		mockQueue := new(queue_mocks.MockQueue)
+		mockQueue.On("Info", mock.Anything).Return(queue.InfoT{})
+		server.Config.Services.Queue = mockQueue
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Set("store", mockStore)
+		c.Set("org", &model.Org{ID: 5})
+		c.Request, _ = http.NewRequest(http.MethodPatch, "/", nil)
+
+		output, err := PatchOrgAgent(testCtx(c), &PatchOrgAgentInput{
+			OrgID:   5,
+			AgentID: 42,
+			Body:    PatchAgentBody{Name: "new-name"},
+		})
+
+		assert.NoError(t, err)
+		assert.NotNil(t, output)
+		assert.Equal(t, "new-name", output.Body.Name)
+		// OrgIDs must remain unchanged — org patch must not modify scope.
+		assert.Equal(t, model.JSONSliceInt64{5, 7}, output.Body.OrgIDs)
+	})
+}
+
+func TestDeleteOrgAgentDescopes(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	t.Run("agent scoped to [5,7]: delete from org 5 keeps agent with OrgIDs==[7]", func(t *testing.T) {
+		agentTwoOrgs := &model.Agent{
+			ID:     10,
+			Name:   "multi-org-agent",
+			OrgIDs: model.JSONSliceInt64{5, 7},
+		}
+
+		mockStore := new(store_mocks.MockStore)
+		mockStore.On("AgentFind", int64(10)).Return(agentTwoOrgs, nil)
+		mockStore.On("AgentUpdate", mock.AnythingOfType("*model.Agent")).Return(nil)
+
+		mockQueue := new(queue_mocks.MockQueue)
+		mockQueue.On("Info", mock.Anything).Return(queue.InfoT{})
+		server.Config.Services.Queue = mockQueue
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Set("store", mockStore)
+		c.Set("org", &model.Org{ID: 5})
+		c.Request, _ = http.NewRequest(http.MethodDelete, "/", nil)
+
+		_, err := DeleteOrgAgent(testCtx(c), &DeleteOrgAgentInput{OrgID: 5, AgentID: 10})
+
+		assert.NoError(t, err)
+		mockStore.AssertCalled(t, "AgentUpdate", mock.AnythingOfType("*model.Agent"))
+		mockStore.AssertNotCalled(t, "AgentDelete", mock.Anything)
+		// Verify remaining OrgIDs on the updated agent.
+		updateCall := mockStore.Calls[1]
+		updatedAgent, ok := updateCall.Arguments.Get(0).(*model.Agent)
+		require.True(t, ok, "expected *model.Agent argument to AgentUpdate")
+		assert.Equal(t, model.JSONSliceInt64{7}, updatedAgent.OrgIDs)
+	})
+
+	t.Run("agent scoped to [5]: delete from org 5 deletes agent", func(t *testing.T) {
+		agentOneOrg := &model.Agent{
+			ID:     11,
+			Name:   "sole-org-agent",
+			OrgIDs: model.JSONSliceInt64{5},
+		}
+
+		mockStore := new(store_mocks.MockStore)
+		mockStore.On("AgentFind", int64(11)).Return(agentOneOrg, nil)
+		mockStore.On("AgentDelete", mock.AnythingOfType("*model.Agent")).Return(nil)
+
+		mockQueue := new(queue_mocks.MockQueue)
+		mockQueue.On("Info", mock.Anything).Return(queue.InfoT{})
+		mockQueue.On("KickAgentWorkers", int64(11)).Return()
+		server.Config.Services.Queue = mockQueue
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Set("store", mockStore)
+		c.Set("org", &model.Org{ID: 5})
+		c.Request, _ = http.NewRequest(http.MethodDelete, "/", nil)
+
+		_, err := DeleteOrgAgent(testCtx(c), &DeleteOrgAgentInput{OrgID: 5, AgentID: 11})
+
+		assert.NoError(t, err)
+		mockStore.AssertCalled(t, "AgentDelete", mock.AnythingOfType("*model.Agent"))
+		mockQueue.AssertCalled(t, "KickAgentWorkers", int64(11))
+	})
+
+	t.Run("agent scoped to [7]: delete from org 5 returns 400", func(t *testing.T) {
+		agentOtherOrg := &model.Agent{
+			ID:     12,
+			Name:   "other-org-agent",
+			OrgIDs: model.JSONSliceInt64{7},
+		}
+
+		mockStore := new(store_mocks.MockStore)
+		mockStore.On("AgentFind", int64(12)).Return(agentOtherOrg, nil)
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Set("store", mockStore)
+		c.Set("org", &model.Org{ID: 5})
+		c.Request, _ = http.NewRequest(http.MethodDelete, "/", nil)
+
+		_, err := DeleteOrgAgent(testCtx(c), &DeleteOrgAgentInput{OrgID: 5, AgentID: 12})
+
+		assert.Error(t, err)
+		var humaErr huma.StatusError
+		if errors.As(err, &humaErr) {
+			assert.Equal(t, http.StatusBadRequest, humaErr.GetStatus())
+		}
+		mockStore.AssertNotCalled(t, "AgentDelete", mock.Anything)
+		mockStore.AssertNotCalled(t, "AgentUpdate", mock.Anything)
 	})
 }

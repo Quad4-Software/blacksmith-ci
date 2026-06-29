@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"codefloe.com/crowci/crow/v5/server/model"
@@ -38,11 +39,6 @@ func (s storage) AgentList(opts *model.AgentListOptions) (agents []*model.Agent,
 	}
 
 	q := s.db.NewSelect().Model(&agents)
-
-	// Apply org filter if specified
-	if opts.OrgID != nil {
-		q = q.Where("org_id = ?", *opts.OrgID)
-	}
 
 	// Apply platform filter
 	if opts.Platform != "" {
@@ -133,6 +129,21 @@ func (s storage) AgentDelete(agent *model.Agent) error {
 	return wrapDelete(s.db.NewDelete().Model((*model.Agent)(nil)).Where("id = ?", agent.ID).Exec(context.Background()))
 }
 
-func (s storage) AgentListForOrg(orgID int64, p *model.ListOptions) (agents []*model.Agent, _ error) {
-	return agents, s.paginate(s.db.NewSelect().Model(&agents).Where("org_id = ?", orgID).Order("id ASC"), p).Scan(context.Background())
+func (s storage) AgentListForOrg(orgID int64, p *model.ListOptions) ([]*model.Agent, error) {
+	var all []*model.Agent
+	if err := s.db.NewSelect().Model(&all).Order("id ASC").Scan(context.Background()); err != nil {
+		return nil, err
+	}
+
+	filtered := make([]*model.Agent, 0, len(all))
+	for _, agent := range all {
+		if slices.Contains(agent.OrgIDs, orgID) {
+			filtered = append(filtered, agent)
+		}
+	}
+
+	if p != nil {
+		filtered = model.ApplyPagination(p, filtered)
+	}
+	return filtered, nil
 }

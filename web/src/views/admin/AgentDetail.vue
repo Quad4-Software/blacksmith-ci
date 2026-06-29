@@ -19,7 +19,7 @@
         />
         <h1 class="text-xl font-semibold truncate">{{ getAgentDisplayName(agent) }}</h1>
         <UiBadge v-if="agent.no_schedule" variant="secondary">{{ $t('disabled') }}</UiBadge>
-        <UiBadge v-if="agent.org_id === -1" variant="outline">
+        <UiBadge v-if="agent.org_ids.length === 0" variant="outline">
           {{ $t('admin.settings.agents.type.global') }}
         </UiBadge>
       </div>
@@ -35,11 +35,9 @@
           <span aria-hidden="true">•</span>
           <span>{{ agent.backend }}</span>
         </template>
-        <template v-if="agent.org_id !== -1">
-          <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-          <span aria-hidden="true">•</span>
-          <router-link :to="`/orgs/${agent.org_id}`" class="hover:underline">
-            {{ $t('admin.settings.agents.org_prefix') }} {{ agent.org_id }}
+        <template v-if="agent.org_ids.length > 0">
+          <router-link v-for="orgId in agent.org_ids" :key="orgId" :to="`/orgs/${orgId}`" class="hover:underline">
+            {{ $t('admin.settings.agents.org_prefix') }} {{ orgId }}
           </router-link>
         </template>
       </div>

@@ -772,6 +772,13 @@
         "type": {
           "global": "Global"
         },
+        "scope": {
+          "label": "Scope",
+          "global": "Global",
+          "specific_orgs": "Specific organizations",
+          "global_desc": "This agent can run pipelines for any organization.",
+          "no_orgs": "No organizations available."
+        },
         "version": {
           "label": "Version",
           "mismatch": "Version differs from server"

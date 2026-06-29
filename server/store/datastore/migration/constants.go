@@ -109,6 +109,7 @@ var newMigrationIDs = []string{
 	"crow-fix-proc-log-int64-columns-v2",
 	"crow-add-workflow-approval",
 	"crow-create-workflow-approval-events",
+	"crow-agent-org-ids",
 }
 
 // allKnownMigrations returns a combined list of all known migration IDs.

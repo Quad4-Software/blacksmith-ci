@@ -124,6 +124,16 @@ Multi-org labels appear highlighted in the agent list:
 
 ![Multi-org Agent](img/multi-org-agent.png)
 
+## Agent Scope
+
+Admins choose an agent's scope in the **Add agent** dialog.
+**Global** (the default) lets the agent run pipelines for any organization.
+**Specific organizations** scopes the agent to one or more selected orgs.
+
+Org admins can manage agents scoped to their organization from the org's agent settings page.
+Deleting a multi-org agent there removes it from that organization only;
+it is fully deleted when that was its last remaining organization.
+
 ## Backend Options
 
 Configure backend-specific settings at the agent level. See [environment variables](/dev/configuration/env-vars/) for all `CROW_BACKEND_*` options.
