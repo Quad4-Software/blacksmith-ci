@@ -10,6 +10,9 @@ import starlightVersions from 'starlight-versions';
 import starlightImageZoom from 'starlight-image-zoom';
 import rehypeMermaid from 'rehype-mermaid';
 import rehypeFigure from '@microflash/rehype-figure';
+// Astro 7 defaults to its native Sätteri Markdown pipeline; opt back into the
+// remark/rehype (unified) processor so the rehype plugins below keep working.
+import { unified } from '@astrojs/markdown-remark';
 
 // https://astro.build/config
 export default defineConfig({
@@ -121,6 +124,7 @@ export default defineConfig({
   ],
 
   markdown: {
+    processor: unified(),
     // Astro 6.4.2 regressed the default for `gfm` from true to false;
     // see https://github.com/withastro/astro/issues/16971
     gfm: true,
