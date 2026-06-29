@@ -933,9 +933,13 @@ func DeleteRepo(ctx context.Context, input *DeleteRepoInput) (*DeleteRepoOutput,
 		return nil, huma.Error401Unauthorized("Your authorization has expired and couldn't be refreshed automatically. Please log in again")
 	}
 
+	// Removing the webhook on the forge is best-effort: if the repo was deleted
+	// on the forge the call fails (e.g. 404), but that must not block local
+	// removal — otherwise the stale repo row becomes permanently un-deletable
+	// (see issue #1226). A leftover webhook on a missing/recreated forge repo is
+	// harmless: its hook calls no longer resolve to an active Crow repo.
 	if err := _forge.Deactivate(c, forgeUser, repo, server.Config.Server.WebhookHost); err != nil {
-		log.Error().Err(err).Msg("Failed to deactivate repo")
-		return nil, huma.Error500InternalServerError("Failed to deactivate repo", err)
+		log.Warn().Err(err).Str("repo", repo.FullName).Msg("Failed to deactivate repo on forge, removing from Crow anyway")
 	}
 
 	if input.Remove {
