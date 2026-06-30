@@ -14,6 +14,9 @@ export interface LinterErrorData {
   field: string;
   line?: number;
   column?: number;
+  // Names the repository "Privileges & Security" option that resolves this
+  // error ('security', 'network' or 'volumes'); absent for unrelated errors.
+  trusted?: string;
 }
 
 export interface DeprecationErrorData {

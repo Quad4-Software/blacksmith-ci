@@ -28,6 +28,15 @@ func newLinterError(message, file, field string, isWarning bool) *errorTypes.Pip
 	}
 }
 
+func newTrustedLinterError(message, file, field, trusted string) *errorTypes.PipelineError {
+	return &errorTypes.PipelineError{
+		Type:      errorTypes.PipelineErrorTypeLinter,
+		Message:   message,
+		Data:      &errors.LinterErrorData{File: file, Field: field, Trusted: trusted},
+		IsWarning: false,
+	}
+}
+
 func newLinterErrorWithLocation(message, file, field string, line, column int, isWarning bool) *errorTypes.PipelineError {
 	return &errorTypes.PipelineError{
 		Type:    errorTypes.PipelineErrorTypeLinter,

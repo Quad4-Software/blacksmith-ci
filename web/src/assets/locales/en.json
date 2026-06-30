@@ -604,6 +604,7 @@
       "error_location": {
         "line": "line {line}"
       },
+      "open_privileges_settings": "Open Privileges & Security settings",
       "show_errors": "Show errors",
       "we_got_some_errors": "Oh no, an error occurred!",
       "duration": "Pipeline duration",

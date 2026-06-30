@@ -11,6 +11,10 @@ type LinterErrorData struct {
 	Field  string `json:"field"`
 	Line   int    `json:"line,omitempty"`
 	Column int    `json:"column,omitempty"`
+	// Trusted names the repository "Privileges & Security" option that would
+	// resolve this error ("security", "network" or "volumes"). Empty for
+	// linter errors unrelated to trusted privileges.
+	Trusted string `json:"trusted,omitempty"`
 }
 
 type DeprecationErrorData struct {

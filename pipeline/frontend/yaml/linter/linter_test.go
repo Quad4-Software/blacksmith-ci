@@ -215,6 +215,48 @@ func TestLintErrors(t *testing.T) {
 	}
 }
 
+func TestLintTrustedErrorData(t *testing.T) {
+	testdata := []struct {
+		from        string
+		wantTrusted string
+	}{
+		{
+			from:        "steps: { build: { image: golang, privileged: true }  }",
+			wantTrusted: "security",
+		},
+		{
+			from:        "steps: { build: { image: golang, dns: [ 8.8.8.8 ] }  }",
+			wantTrusted: "network",
+		},
+		{
+			from:        "steps: { build: { image: golang, volumes: [ '/opt/data:/var/lib/mysql' ] }  }",
+			wantTrusted: "volumes",
+		},
+	}
+
+	for _, test := range testdata {
+		conf, err := yaml.ParseString(test.from)
+		assert.NoError(t, err)
+
+		lerr := linter.New().Lint([]*linter.WorkflowConfig{{
+			File:      test.from,
+			RawConfig: test.from,
+			Workflow:  conf,
+		}})
+		assert.Error(t, lerr, "expected lint error for configuration", test.from)
+
+		found := false
+		for _, lerr := range errors.GetPipelineErrors(lerr) {
+			if data := errors.GetLinterData(lerr); data != nil && data.Trusted != "" {
+				assert.Equal(t, test.wantTrusted, data.Trusted, "unexpected trusted setting for %q", test.from)
+				found = true
+				break
+			}
+		}
+		assert.True(t, found, "Expected a linter error carrying trusted data for %q", test.from)
+	}
+}
+
 func TestLintApprovalGate(t *testing.T) {
 	cases := []struct {
 		name    string

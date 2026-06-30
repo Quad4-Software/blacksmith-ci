@@ -294,39 +294,43 @@ func (l *Linter) lintContainerDeprecations(config *WorkflowConfig, c *types.Cont
 
 func (l *Linter) lintTrusted(config *WorkflowConfig, c *types.Container, area string) error {
 	yamlPath := fmt.Sprintf("%s.%s", area, c.Name)
-	var msgs []string
+	type trustedMsg struct {
+		msg     string
+		trusted string
+	}
+	var msgs []trustedMsg
 	if !l.trusted.Security {
 		if c.Privileged {
-			msgs = append(msgs, "Insufficient `security` privileges. To allow, check the 'security' option in the 'Privileges & Security' repository settings.")
+			msgs = append(msgs, trustedMsg{"Insufficient `security` privileges. To allow, check the 'security' option in the 'Privileges & Security' repository settings.", "security"})
 		}
 	}
 	if !l.trusted.Network {
 		if len(c.DNS) != 0 {
-			msgs = append(msgs, "Insufficient `network` privileges. To allow using 'dns' options, check the 'Network' option in the 'Privileges & Security' repository settings.")
+			msgs = append(msgs, trustedMsg{"Insufficient `network` privileges. To allow using 'dns' options, check the 'Network' option in the 'Privileges & Security' repository settings.", "network"})
 		}
 		if len(c.DNSSearch) != 0 {
-			msgs = append(msgs, "Insufficient `network` privileges. To allow using 'dns_search' options, check the 'Network' option in the 'Privileges & Security' repository settings.")
+			msgs = append(msgs, trustedMsg{"Insufficient `network` privileges. To allow using 'dns_search' options, check the 'Network' option in the 'Privileges & Security' repository settings.", "network"})
 		}
 		if len(c.ExtraHosts) != 0 {
-			msgs = append(msgs, "Insufficient `network` privileges. To allow using 'extra_hosts' options, check the 'Network' option in the 'Privileges & Security' repository settings.")
+			msgs = append(msgs, trustedMsg{"Insufficient `network` privileges. To allow using 'extra_hosts' options, check the 'Network' option in the 'Privileges & Security' repository settings.", "network"})
 		}
 		if len(c.NetworkMode) != 0 {
-			msgs = append(msgs, "Insufficient `network` privileges. To allow using 'network_mode' options, check the 'Network' option in the 'Privileges & Security' repository settings.")
+			msgs = append(msgs, trustedMsg{"Insufficient `network` privileges. To allow using 'network_mode' options, check the 'Network' option in the 'Privileges & Security' repository settings.", "network"})
 		}
 	}
 	if !l.trusted.Volumes {
 		if len(c.Devices) != 0 {
-			msgs = append(msgs, "Insufficient `volumes` privileges. To allow using 'devices' options, check the 'Volumes' option in the 'Privileges & Security' repository settings.")
+			msgs = append(msgs, trustedMsg{"Insufficient `volumes` privileges. To allow using 'devices' options, check the 'Volumes' option in the 'Privileges & Security' repository settings.", "volumes"})
 		}
 		if len(c.Volumes.Volumes) != 0 {
-			msgs = append(msgs, "Insufficient `volumes` privileges. To allow using 'volumes' options, check the 'Volumes' option in the 'Privileges & Security' repository settings.")
+			msgs = append(msgs, trustedMsg{"Insufficient `volumes` privileges. To allow using 'volumes' options, check the 'Volumes' option in the 'Privileges & Security' repository settings.", "volumes"})
 		}
 	}
 
 	if len(msgs) > 0 {
 		var err error
 		for _, e := range msgs {
-			err = errors.Join(err, newLinterError(e, config.File, yamlPath, false))
+			err = errors.Join(err, newTrustedLinterError(e.msg, config.File, yamlPath, e.trusted))
 		}
 		return err
 	}

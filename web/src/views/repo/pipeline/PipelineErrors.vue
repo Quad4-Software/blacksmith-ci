@@ -73,6 +73,16 @@
           <div class="pl-0.5">
             <RenderMarkdown :content="error.message" class="error-markdown-content" />
           </div>
+
+          <!-- Quick link to the repo Privileges & Security settings (admins only) -->
+          <RouterLink
+            v-if="getTrustedSetting(error) && repoPermissions.admin"
+            :to="{ name: 'repo-settings' }"
+            class="mt-3 inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+          >
+            <Icon name="settings" class="size-4" />
+            {{ t('repo.pipeline.open_privileges_settings') }}
+          </RouterLink>
         </div>
       </template>
     </div>
@@ -100,6 +110,7 @@ import type {
 } from '~/lib/api/types';
 
 const repo = requiredInject('repo');
+const repoPermissions = requiredInject('repo-permissions');
 const pipeline = requiredInject('pipeline');
 
 type ErrorData = LinterErrorData | DeprecationErrorData | BadHabitErrorData | CompilerErrorData;
@@ -143,6 +154,12 @@ function getLinterData(error: PipelineError): LinterErrorData | undefined {
     return error.data;
   }
   return undefined;
+}
+
+// Returns the "Privileges & Security" option a trusted-privilege linter error
+// relates to, or undefined for errors that aren't about repo trust settings.
+function getTrustedSetting(error: PipelineError): string | undefined {
+  return getLinterData(error)?.trusted || undefined;
 }
 
 function getFieldOrStep(error: PipelineError): string | undefined {
