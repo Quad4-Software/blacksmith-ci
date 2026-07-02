@@ -11,6 +11,7 @@ export * from './notification';
 export * from './org';
 export * from './pipeline';
 export * from './pipelineConfig';
+export * from './pipelineMetadata';
 export * from './procLog';
 export * from './pull_request';
 export * from './queue';

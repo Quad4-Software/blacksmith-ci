@@ -33,6 +33,7 @@ import type {
   PipelineConfig,
   PipelineFeed,
   PipelineLog,
+  PipelineMetadata,
   PipelineWorkflow,
   PullRequest,
   QueueInfo,
@@ -229,8 +230,8 @@ export default class CrowClient extends ApiClient {
     return this._get(`/api/v1/repos/${repoId}/pipelines/${pipelineNumber}/config`) as Promise<PipelineConfig[]>;
   }
 
-  async getPipelineMetadata(repoId: number, pipelineNumber: number, opts?: RequestOptions): Promise<any> {
-    return this._get(`/api/v1/repos/${repoId}/pipelines/${pipelineNumber}/metadata`, opts) as Promise<any>;
+  async getPipelineMetadata(repoId: number, pipelineNumber: number, opts?: RequestOptions): Promise<PipelineMetadata> {
+    return this._get(`/api/v1/repos/${repoId}/pipelines/${pipelineNumber}/metadata`, opts) as Promise<PipelineMetadata>;
   }
 
   async getPipelineFeed(): Promise<PipelineFeed[]> {

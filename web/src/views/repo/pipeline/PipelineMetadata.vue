@@ -196,6 +196,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import useApiClient from '~/compositions/useApiClient';
 import { requiredInject } from '~/compositions/useInjectProvide';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
+import type { PipelineMetadata } from '~/lib/api/types';
 
 defineProps<{
   repoId: string;
@@ -210,7 +211,7 @@ const pipeline = requiredInject('pipeline');
 const repoPermissions = requiredInject('repo-permissions');
 
 const isLoading = ref(false);
-const metadata = ref<any>(null);
+const metadata = ref<PipelineMetadata | null>(null);
 const agentDetails = ref<Map<number, any>>(new Map());
 
 // Computed properties for statistics and agent information
@@ -273,15 +274,15 @@ const commitUrl = computed(() => {
 });
 
 const hasDeployment = computed(() => {
-  return !!(metadata?.value?.curr?.deploy_to || pipeline?.value?.deploy_to);
+  return !!(metadata?.value?.curr?.target || pipeline?.value?.deploy_to);
 });
 
 const deploymentEnvironment = computed(() => {
-  return metadata?.value?.curr?.deploy_to || pipeline?.value?.deploy_to || 'default';
+  return metadata?.value?.curr?.target || pipeline?.value?.deploy_to || 'default';
 });
 
 const defaultBranch = computed(() => {
-  return metadata?.value?.repo?.branch || repo?.value?.default_branch || 'main';
+  return metadata?.value?.repo?.default_branch || repo?.value?.default_branch || 'main';
 });
 
 const repositoryUrl = computed(() => {

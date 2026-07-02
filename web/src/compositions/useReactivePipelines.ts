@@ -59,6 +59,11 @@ export default function useReactivePipelines(options: UseReactivePipelinesOption
   const loading = ref(false);
   const localHasMore = ref(true);
 
+  // Monotonic serial for reset() calls. Rapid filter changes can fire several
+  // resets concurrently; only the latest one is allowed to apply its result so
+  // a slow earlier response can't clobber a faster later one.
+  let resetSerial = 0;
+
   // Get all pipelines for this repo from store (reactive to SSE updates)
   const allRepoPipelines = pipelineStore.getRepoPipelines(repoId);
 
@@ -157,18 +162,36 @@ export default function useReactivePipelines(options: UseReactivePipelinesOption
    * Called automatically when filters change.
    */
   async function reset(): Promise<void> {
+    // Claim a serial for this call. If another reset starts while this one is
+    // in flight, `serial` will no longer equal `resetSerial` and this (now
+    // stale) response must not apply its result or the store swap it just
+    // performed, letting the latest request win regardless of resolve order.
+    resetSerial += 1;
+    const serial = resetSerial;
+
     loading.value = true;
     try {
       // Fetch the new first page, then atomically swap it in. The previous
       // results stay on screen until the new ones arrive, avoiding the empty
       // list / skeleton flash that a clear-then-fetch would produce.
       const fetchedPipelines = await pipelineStore.reloadRepoPipelines(repoId.value, buildOpts(1));
+      if (serial !== resetSerial) {
+        // A newer reset superseded this one; discard the stale result.
+        return;
+      }
       localHasMore.value = fetchedPipelines.length >= pageSize;
     } catch (error) {
+      if (serial !== resetSerial) {
+        return;
+      }
       notifications.notify({ title: 'Failed to load pipelines', type: 'error' });
       console.error('Error loading pipelines:', error);
     } finally {
-      loading.value = false;
+      // Only the latest request clears the loading flag, so a stale response
+      // resolving early can't hide the spinner while a newer fetch is pending.
+      if (serial === resetSerial) {
+        loading.value = false;
+      }
     }
   }
 

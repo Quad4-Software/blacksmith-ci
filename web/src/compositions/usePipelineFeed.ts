@@ -3,9 +3,8 @@ import { computed, ref, toRef } from 'vue';
 import useApiClient from '~/compositions/useApiClient';
 import useUserConfig from '~/compositions/useUserConfig';
 import type { PendingApprovalItem } from '~/lib/api/types';
+import { useAuthStore } from '~/store/auth';
 import { usePipelineStore } from '~/store/pipelines';
-
-import useAuthentication from './useAuthentication';
 
 const userConfig = useUserConfig();
 
@@ -23,16 +22,18 @@ function close() {
 
 export default () => {
   const pipelineStore = usePipelineStore();
-  const { isAuthenticated } = useAuthentication();
+  const authStore = useAuthStore();
   const apiClient = useApiClient();
 
-  const isOpen = computed(() => userConfig.userConfig.value.isPipelineFeedOpen && !!isAuthenticated);
+  // Reference the store getter inside the computed so it stays reactive to
+  // auth changes; destructuring would capture a plain boolean snapshot.
+  const isOpen = computed(() => userConfig.userConfig.value.isPipelineFeedOpen && authStore.isAuthenticated);
 
   const sortedPipelines = toRef(pipelineStore, 'pipelineFeed');
   const activePipelines = toRef(pipelineStore, 'activePipelines');
 
   async function loadWorkflowApprovals() {
-    if (!isAuthenticated) {
+    if (!authStore.isAuthenticated) {
       pendingWorkflowApprovals.value = [];
       return;
     }

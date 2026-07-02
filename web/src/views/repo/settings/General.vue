@@ -379,8 +379,8 @@ async function loadRepo() {
   loadRepoSettings();
 }
 
-const { doSubmit: saveRepoSettingsAction, isLoading: isSaving } = useAsyncAction(async () => {
-  await apiClient.updateRepo(repo.value.id, values as RepoSettings);
+const { doSubmit: saveRepoSettingsAction, isLoading: isSaving } = useAsyncAction(async (settings: RepoSettings) => {
+  await apiClient.updateRepo(repo.value.id, settings);
   await loadRepo();
   notifications.notify({
     title: i18n.t('notify_title_success'),
@@ -390,8 +390,26 @@ const { doSubmit: saveRepoSettingsAction, isLoading: isSaving } = useAsyncAction
   });
 });
 
-const saveRepoSettings = handleSubmit(() => {
-  saveRepoSettingsAction();
+// `handleSubmit` only fires after validation, so its callback receives the
+// fully-populated, schema-typed values rather than the loosely-typed reactive
+// `values` proxy — no blind `as RepoSettings` cast needed.
+const saveRepoSettings = handleSubmit((validated) => {
+  const settings: RepoSettings = {
+    config_file: validated.config_file,
+    timeout: validated.timeout,
+    visibility: validated.visibility,
+    require_approval: validated.require_approval,
+    trusted: validated.trusted,
+    allow_pr: validated.allow_pr,
+    allow_deploy: validated.allow_deploy,
+    allow_manual: validated.allow_manual,
+    deploy_team: validated.deploy_team,
+    cancel_previous_pipeline_events: validated.cancel_previous_pipeline_events,
+    logs_keep_duration: validated.logs_keep_duration,
+    logs_keep_min: validated.logs_keep_min,
+    netrc_trusted: validated.netrc_trusted,
+  };
+  saveRepoSettingsAction(settings);
 });
 
 onMounted(() => {

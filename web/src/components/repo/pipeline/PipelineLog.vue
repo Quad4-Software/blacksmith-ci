@@ -711,6 +711,8 @@ import useNotifications from '~/compositions/useNotifications';
 import type { Pipeline, PipelineStep, PipelineWorkflow } from '~/lib/api/types';
 import { duplicateStepNameIndexes, getWorkflowAttempts } from '~/lib/pipeline-utils';
 import { AnsiUp } from 'ansi_up';
+import DOMPurify from 'dompurify';
+import type { Config as DOMPurifyConfig } from 'dompurify';
 import { decode } from 'js-base64';
 import { debounce } from 'lodash';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, toRef, watch } from 'vue';
@@ -801,6 +803,9 @@ function switchToAttempt(attempt: PipelineWorkflow) {
 
 const stream = ref<EventSource>();
 const log = ref<LogLine[]>();
+// Guards the debounced flushLogs from touching detached refs after the
+// component has been torn down (the timer can fire up to 500ms post-unmount).
+let isUnmounted = false;
 const logContainerRef = ref<HTMLElement | null>(null);
 const componentRef = ref<HTMLElement | null>(null);
 const logsDeleted = computed(() => pipeline.value.logs_deleted);
@@ -899,16 +904,69 @@ const currentMatch = computed(() => {
   return searchMatches.value[idx];
 });
 
-// Highlight search term in text (returns HTML with <mark> tags)
+// Allowlist for the log HTML we render via v-html. ansi_to_html output plus our
+// URL-linking step is safe by construction, but we sanitize as insurance.
+const LOG_SANITIZE_CONFIG: DOMPurifyConfig = {
+  ALLOWED_TAGS: ['span', 'a', 'mark'],
+  ALLOWED_ATTR: ['href', 'class', 'target', 'rel', 'style'],
+};
+
+/**
+ * Wrap search-term matches in <mark> elements, operating on text nodes only so
+ * we never inject markup inside tags or attribute values (e.g. searching for
+ * "href" or a class name). The result is sanitized before being handed to
+ * v-html as defense-in-depth.
+ */
 function highlightSearchTerm(text: string): string {
   if (!searchTerm.value || searchTerm.value.length === 0) {
-    return text;
+    return DOMPurify.sanitize(text, LOG_SANITIZE_CONFIG);
   }
 
-  // Simple approach: search in the text and wrap matches
-  // This works because the text already has HTML from ANSI conversion
-  const regex = new RegExp(`(${escapeRegExp(searchTerm.value)})`, 'gi');
-  return text.replace(regex, '<mark class="bg-yellow-300 dark:bg-yellow-700 text-inherit">$1</mark>');
+  const template = document.createElement('template');
+  template.innerHTML = text;
+
+  const regex = new RegExp(escapeRegExp(searchTerm.value), 'gi');
+  const walker = document.createTreeWalker(template.content, NodeFilter.SHOW_TEXT);
+  const textNodes: Text[] = [];
+  let node = walker.nextNode();
+  while (node) {
+    textNodes.push(node as Text);
+    node = walker.nextNode();
+  }
+
+  textNodes.forEach((textNode) => {
+    const value = textNode.nodeValue ?? '';
+    regex.lastIndex = 0;
+    if (!regex.test(value)) {
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    let lastIndex = 0;
+    regex.lastIndex = 0;
+    let match = regex.exec(value);
+    while (match) {
+      if (match.index > lastIndex) {
+        fragment.appendChild(document.createTextNode(value.slice(lastIndex, match.index)));
+      }
+      const mark = document.createElement('mark');
+      mark.className = 'bg-yellow-300 dark:bg-yellow-700 text-inherit';
+      mark.textContent = match[0];
+      fragment.appendChild(mark);
+      lastIndex = match.index + match[0].length;
+      // Guard against zero-length matches to avoid an infinite loop.
+      if (match[0].length === 0) {
+        regex.lastIndex += 1;
+      }
+      match = regex.exec(value);
+    }
+    if (lastIndex < value.length) {
+      fragment.appendChild(document.createTextNode(value.slice(lastIndex)));
+    }
+    textNode.parentNode?.replaceChild(fragment, textNode);
+  });
+
+  return DOMPurify.sanitize(template.innerHTML, LOG_SANITIZE_CONFIG);
 }
 
 // Helper to escape special regex characters
@@ -1092,6 +1150,11 @@ function scrollToTop() {
 }
 
 const flushLogs = debounce((scroll: boolean) => {
+  // A pending debounce can still fire after unmount; bail out so we don't
+  // mutate detached refs or touch a torn-down DOM.
+  if (isUnmounted) {
+    return;
+  }
   const limit = logLineLimit.value;
 
   // Track pre-truncation total for accurate detection
@@ -1438,6 +1501,10 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
+  isUnmounted = true;
+  // Cancel pending debounced work so it can't fire against detached refs.
+  flushLogs.cancel();
+  debouncedUpdateScrollState.cancel();
   stream.value?.close();
   window.removeEventListener('keydown', handleKeydown);
 });
