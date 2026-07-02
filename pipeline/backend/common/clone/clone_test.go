@@ -16,6 +16,9 @@ package clone
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -150,18 +153,49 @@ func TestCheckGitAvailable_OnSystemsWithGit(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestEnsureBinary_DownloadsWhenMissing(t *testing.T) {
-	// Mock the releases API and the asset download with two paired servers.
-	expectedBody := []byte("fake-binary-bytes")
+func sha256Hex(b []byte) string {
+	sum := sha256.Sum256(b)
+	return hex.EncodeToString(sum[:])
+}
+
+const testAssetName = "plugin-clone-test-os-test-arch"
+
+// releaseServers spins up a paired asset server and releases-metadata server.
+// The metadata advertises both the platform binary and a checksums.txt whose
+// body is produced by checksumsBody(binaryDigest).
+func releaseServers(t *testing.T, binaryBody []byte, checksumsBody func(binaryDigest string) string) (releasesURL string) {
+	t.Helper()
+
+	binaryDigest := sha256Hex(binaryBody)
+	checksums := checksumsBody(binaryDigest)
+
 	assetSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write(expectedBody)
+		_, _ = w.Write(binaryBody)
 	}))
-	defer assetSrv.Close()
+	t.Cleanup(assetSrv.Close)
+
+	checksumsSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(checksums))
+	}))
+	t.Cleanup(checksumsSrv.Close)
 
 	releasesSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(`{"assets":[{"name":"plugin-clone-test-os-test-arch","browser_download_url":"` + assetSrv.URL + `"}]}`))
+		body := fmt.Sprintf(
+			`{"assets":[{"name":%q,"browser_download_url":%q},{"name":"checksums.txt","browser_download_url":%q}]}`,
+			testAssetName, assetSrv.URL, checksumsSrv.URL,
+		)
+		_, _ = w.Write([]byte(body))
 	}))
-	defer releasesSrv.Close()
+	t.Cleanup(releasesSrv.Close)
+
+	return releasesSrv.URL
+}
+
+func TestEnsureBinary_DownloadsWhenMissing(t *testing.T) {
+	expectedBody := []byte("fake-binary-bytes")
+	releasesURL := releaseServers(t, expectedBody, func(digest string) string {
+		return digest + "  " + testAssetName + "\n"
+	})
 
 	tmp := t.TempDir()
 	dest := filepath.Join(tmp, "plugin-clone")
@@ -170,7 +204,7 @@ func TestEnsureBinary_DownloadsWhenMissing(t *testing.T) {
 		Dest:        dest,
 		OS:          "test-os",
 		Arch:        "test-arch",
-		ReleasesURL: releasesSrv.URL,
+		ReleasesURL: releasesURL,
 	})
 
 	require.NoError(t, err)
@@ -181,7 +215,7 @@ func TestEnsureBinary_DownloadsWhenMissing(t *testing.T) {
 
 func TestEnsureBinary_NoMatchingAsset(t *testing.T) {
 	releasesSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(`{"assets":[{"name":"plugin-clone-other-os-other-arch","browser_download_url":"http://example.invalid"}]}`))
+		_, _ = w.Write([]byte(`{"assets":[{"name":"plugin-clone-other-os-other-arch","browser_download_url":"https://codefloe.com/x"}]}`))
 	}))
 	defer releasesSrv.Close()
 
@@ -195,4 +229,82 @@ func TestEnsureBinary_NoMatchingAsset(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "test-os")
 	assert.Contains(t, err.Error(), "test-arch")
+}
+
+func TestEnsureBinary_RejectsChecksumMismatch(t *testing.T) {
+	// checksums.txt advertises a digest for a different payload, so the
+	// downloaded binary must be rejected and never written to dest.
+	releasesURL := releaseServers(t, []byte("tampered-binary-bytes"), func(_ string) string {
+		return sha256Hex([]byte("the-expected-binary")) + "  " + testAssetName + "\n"
+	})
+
+	dest := filepath.Join(t.TempDir(), "plugin-clone")
+
+	err := EnsureBinary(context.Background(), EnsureBinaryConfig{
+		Dest:        dest,
+		OS:          "test-os",
+		Arch:        "test-arch",
+		ReleasesURL: releasesURL,
+	})
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "checksum mismatch")
+	_, statErr := os.Stat(dest)
+	assert.True(t, os.IsNotExist(statErr), "tampered binary must not be left at dest")
+}
+
+func TestEnsureBinary_RejectsMissingChecksumEntry(t *testing.T) {
+	// checksums.txt exists but lists no line for our asset.
+	releasesURL := releaseServers(t, []byte("some-binary"), func(_ string) string {
+		return sha256Hex([]byte("unrelated")) + "  some-other-asset\n"
+	})
+
+	dest := filepath.Join(t.TempDir(), "plugin-clone")
+
+	err := EnsureBinary(context.Background(), EnsureBinaryConfig{
+		Dest:        dest,
+		OS:          "test-os",
+		Arch:        "test-arch",
+		ReleasesURL: releasesURL,
+	})
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "no checksum listed")
+	_, statErr := os.Stat(dest)
+	assert.True(t, os.IsNotExist(statErr))
+}
+
+func TestEnsureBinary_RejectsMissingChecksumsAsset(t *testing.T) {
+	// Release advertises the binary but no checksums.txt at all: refuse to
+	// install an unverifiable binary.
+	assetSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("some-binary"))
+	}))
+	defer assetSrv.Close()
+	releasesSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = fmt.Fprintf(w, `{"assets":[{"name":%q,"browser_download_url":%q}]}`, testAssetName, assetSrv.URL)
+	}))
+	defer releasesSrv.Close()
+
+	dest := filepath.Join(t.TempDir(), "plugin-clone")
+
+	err := EnsureBinary(context.Background(), EnsureBinaryConfig{
+		Dest:        dest,
+		OS:          "test-os",
+		Arch:        "test-arch",
+		ReleasesURL: releasesSrv.URL,
+	})
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "checksums.txt")
+	_, statErr := os.Stat(dest)
+	assert.True(t, os.IsNotExist(statErr))
+}
+
+func TestValidateAssetURL(t *testing.T) {
+	require.NoError(t, validateAssetURL("https://codefloe.com/crow-plugins/clone/releases/download/v1/linux-amd64_plugin-clone"))
+	require.NoError(t, validateAssetURL("https://sub.codefloe.com/asset"))
+	assert.Error(t, validateAssetURL("http://codefloe.com/asset"), "plaintext http must be rejected")
+	assert.Error(t, validateAssetURL("https://evil.example.com/asset"), "foreign host must be rejected")
+	assert.Error(t, validateAssetURL("https://codefloe.com.evil.com/asset"), "suffix-spoofed host must be rejected")
 }

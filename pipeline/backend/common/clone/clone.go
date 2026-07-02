@@ -19,12 +19,15 @@
 package clone
 
 import (
+	"bufio"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -105,7 +108,7 @@ var osWriteFile = os.WriteFile
 
 // DefaultReleasesURL is where the latest crow-plugins/clone release metadata
 // lives. Tests override it via EnsureBinaryConfig.ReleasesURL.
-const DefaultReleasesURL = "https://codeberg.org/api/v1/repos/crow-plugins/clone/releases/latest"
+const DefaultReleasesURL = "https://codefloe.com/api/v1/repos/crow-plugins/clone/releases/latest"
 
 // CheckGitAvailable verifies that the git binary is on PATH. Returns an
 // error if it isn't — the clone plugin shells out to git, so this is a
@@ -148,6 +151,12 @@ var httpClient = &http.Client{Timeout: httpTimeout}
 // renamed into place atomically so concurrent callers or crash-resumed
 // downloads never observe a partial binary at cfg.Dest.
 func EnsureBinary(ctx context.Context, cfg EnsureBinaryConfig) error {
+	// Only the production releases endpoint is subject to HTTPS/host
+	// pinning on asset URLs. Tests set a custom (http httptest) ReleasesURL
+	// and legitimately serve assets from 127.0.0.1; the same override that
+	// redirects the metadata endpoint opts out of transport pinning. The
+	// SHA256 checksum verification below always runs regardless.
+	pinTransport := cfg.ReleasesURL == "" || cfg.ReleasesURL == DefaultReleasesURL
 	if cfg.ReleasesURL == "" {
 		cfg.ReleasesURL = DefaultReleasesURL
 	}
@@ -183,15 +192,117 @@ func EnsureBinary(ctx context.Context, cfg EnsureBinaryConfig) error {
 		return fmt.Errorf("decode release metadata: %w", err)
 	}
 
+	// Locate the checksums manifest and the platform binary in a single
+	// pass. Both are required: without the manifest we cannot verify the
+	// binary, and an unverified download must never be executed.
+	var binaryName, binaryURL, checksumsURL string
 	for _, asset := range rel.Assets {
-		if strings.Contains(asset.Name, cfg.OS) && strings.Contains(asset.Name, cfg.Arch) {
-			return downloadAndChmod(ctx, asset.URL, cfg.Dest)
+		if asset.Name == checksumsFileName {
+			checksumsURL = asset.URL
+			continue
+		}
+		if binaryName == "" && strings.Contains(asset.Name, cfg.OS) && strings.Contains(asset.Name, cfg.Arch) {
+			binaryName = asset.Name
+			binaryURL = asset.URL
 		}
 	}
-	return fmt.Errorf("no plugin-clone asset found for %s/%s", cfg.OS, cfg.Arch)
+	if binaryURL == "" {
+		return fmt.Errorf("no plugin-clone asset found for %s/%s", cfg.OS, cfg.Arch)
+	}
+	if checksumsURL == "" {
+		return fmt.Errorf("release publishes no %s asset; refusing to install unverified plugin-clone binary", checksumsFileName)
+	}
+
+	// Reject any asset URL that isn't HTTPS. The API response is trusted
+	// only to the extent that TLS protects the download; a plaintext or
+	// non-Codefloe URL would defeat that and is treated as tampering.
+	if pinTransport {
+		for _, u := range []string{binaryURL, checksumsURL} {
+			if err := validateAssetURL(u); err != nil {
+				return err
+			}
+		}
+	}
+
+	wantDigest, err := fetchExpectedDigest(ctx, checksumsURL, binaryName)
+	if err != nil {
+		return err
+	}
+
+	return downloadVerifyChmod(ctx, binaryURL, cfg.Dest, wantDigest)
 }
 
-func downloadAndChmod(ctx context.Context, url, dest string) error {
+// checksumsFileName is the release asset holding one `<sha256>  <name>` line
+// per published binary, in the standard `sha256sum` output format. Every
+// crow-plugins/clone release publishes it.
+const checksumsFileName = "checksums.txt"
+
+// validateAssetURL rejects any asset download URL that is not HTTPS on the
+// expected Codefloe host. The releases API response is attacker-influenceable
+// (a compromised API or MITM without TLS), so the transport and host are
+// pinned rather than trusted verbatim.
+func validateAssetURL(rawURL string) error {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return fmt.Errorf("parse asset url %q: %w", rawURL, err)
+	}
+	if u.Scheme != "https" {
+		return fmt.Errorf("refusing non-https asset url %q", rawURL)
+	}
+	if host := strings.ToLower(u.Hostname()); host != assetHost && !strings.HasSuffix(host, "."+assetHost) {
+		return fmt.Errorf("refusing asset url with unexpected host %q (want %s)", rawURL, assetHost)
+	}
+	return nil
+}
+
+// assetHost is the only host plugin-clone assets are accepted from.
+const assetHost = "codefloe.com"
+
+// fetchExpectedDigest downloads the checksums manifest over TLS and returns
+// the lower-case hex SHA256 recorded for assetName. It errors if the asset is
+// not listed — an unlisted binary cannot be verified and must not be run.
+func fetchExpectedDigest(ctx context.Context, checksumsURL, assetName string) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, checksumsURL, nil)
+	if err != nil {
+		return "", fmt.Errorf("build checksums request: %w", err)
+	}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("download checksums: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return "", fmt.Errorf("%s: HTTP %d", checksumsURL, resp.StatusCode)
+	}
+
+	// Each manifest line is `<sha256hex>  <asset-name>` (sha256sum format).
+	const checksumFields = 2
+	sc := bufio.NewScanner(resp.Body)
+	for sc.Scan() {
+		fields := strings.Fields(sc.Text())
+		if len(fields) != checksumFields {
+			continue
+		}
+		if fields[1] == assetName {
+			digest := strings.ToLower(fields[0])
+			if _, err := hex.DecodeString(digest); err != nil || len(digest) != sha256.Size*2 {
+				return "", fmt.Errorf("malformed checksum for %q in %s", assetName, checksumsFileName)
+			}
+			return digest, nil
+		}
+	}
+	if err := sc.Err(); err != nil {
+		return "", fmt.Errorf("read checksums: %w", err)
+	}
+	return "", fmt.Errorf("no checksum listed for %q in %s", assetName, checksumsFileName)
+}
+
+// downloadVerifyChmod downloads url into a temp file next to dest while
+// streaming a SHA256 hash of the bytes, verifies that hash against wantDigest,
+// and only then makes the binary executable and renames it into place. On any
+// hash mismatch (or download error) the temp file is removed and no binary is
+// ever exposed at dest, so a tampered download can never be executed.
+func downloadVerifyChmod(ctx context.Context, url, dest, wantDigest string) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return fmt.Errorf("build download request: %w", err)
@@ -217,10 +328,20 @@ func downloadAndChmod(ctx context.Context, url, dest string) error {
 	// remove tmpPath explicitly below before returning nil).
 	defer func() { _ = os.Remove(tmpPath) }()
 
-	if _, err := io.Copy(tmp, resp.Body); err != nil {
+	// Hash the bytes as they are written so we never buffer the whole
+	// ~50MB binary and never re-read it from disk.
+	hasher := sha256.New()
+	if _, err := io.Copy(tmp, io.TeeReader(resp.Body, hasher)); err != nil {
 		_ = tmp.Close()
 		return fmt.Errorf("write binary: %w", err)
 	}
+
+	gotDigest := hex.EncodeToString(hasher.Sum(nil))
+	if gotDigest != wantDigest {
+		_ = tmp.Close()
+		return fmt.Errorf("checksum mismatch for plugin-clone binary: want %s, got %s", wantDigest, gotDigest)
+	}
+
 	if err := tmp.Chmod(0o755); err != nil {
 		_ = tmp.Close()
 		return fmt.Errorf("chmod temp file: %w", err)
@@ -240,6 +361,3 @@ func downloadAndChmod(ctx context.Context, url, dest string) error {
 	}
 	return nil
 }
-
-// Ensure errors is used (the import will be needed in later tasks).
-var _ = errors.New
