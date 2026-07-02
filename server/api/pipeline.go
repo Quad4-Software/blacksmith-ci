@@ -414,6 +414,9 @@ func GetPipeline(ctx context.Context, input *GetPipelineInput) (*GetPipelineOutp
 
 // parseNumber parses a string into an int64, returning a huma 400 error on failure.
 func parseNumber(s string) (int64, error) {
+	if s == "" {
+		return 0, huma.Error400BadRequest("invalid number: empty")
+	}
 	var num int64
 	for _, ch := range s {
 		if ch < '0' || ch > '9' {
@@ -1197,8 +1200,11 @@ func PostPipeline(ctx context.Context, input *PostPipelineInput) (*PostPipelineO
 			continue
 		default:
 			// We only accept string literals, because pipeline parameters will be
-			// injected as environment variables
-			// TODO: sanitize the value
+			// injected as environment variables. Reject CROW_-prefixed keys so
+			// callers cannot override or forge reserved Crow environment variables.
+			if strings.HasPrefix(strings.ToUpper(key), "CROW_") {
+				return nil, huma.Error400BadRequest(fmt.Sprintf("invalid parameter %q: keys with the CROW_ prefix are reserved", key))
+			}
 			envs[key] = val[0]
 		}
 	}
@@ -1269,7 +1275,7 @@ func DeletePipelineLogs(ctx context.Context, input *DeletePipelineLogsInput) (*s
 	}
 
 	for _, step := range steps {
-		if lErr := server.Config.Services.LogStore.LogDelete(step); err != nil {
+		if lErr := server.Config.Services.LogStore.LogDelete(step); lErr != nil {
 			err = errors.Join(err, lErr)
 		}
 	}

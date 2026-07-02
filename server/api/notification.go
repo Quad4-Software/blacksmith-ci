@@ -46,6 +46,10 @@ func GetRepoNotificationConfig(ctx context.Context, input *GetRepoNotificationCo
 
 	config, err := _store.NotificationConfigFind(repo.ID)
 	if err != nil {
+		if !errors.Is(err, types.RecordNotExist) {
+			return nil, huma.Error500InternalServerError(fmt.Sprintf("failed to load notification config: %s", err))
+		}
+		// No config stored yet: return the implicit default.
 		return &GetRepoNotificationConfigOutput{Body: &model.NotificationConfig{
 			RepoID:    repo.ID,
 			IsEnabled: false,

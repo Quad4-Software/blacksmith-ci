@@ -87,10 +87,7 @@ func authorizeSecretAccess(ctx context.Context, _store store.Store, secretID int
 	}
 
 	if secret.IsOrganization() {
-		if !user.Admin {
-			return huma.Error403Forbidden("admin access required for org secrets")
-		}
-		return nil
+		return authorizeOrgSecretAccess(ctx, _store, user, secret.OrgID)
 	}
 
 	if secret.IsRepository() {
@@ -106,6 +103,50 @@ func authorizeSecretAccess(ctx context.Context, _store store.Store, secretID int
 	}
 
 	return huma.Error403Forbidden("access denied")
+}
+
+// authorizeOrgSecretAccess mirrors MustOrgMember(admin=true) semantics: the user
+// must be an instance admin, own the org (personal org), or be an org admin as
+// reported by the forge membership service.
+func authorizeOrgSecretAccess(ctx context.Context, _store store.Store, user *model.User, orgID int64) error {
+	if user.Admin {
+		return nil
+	}
+
+	org, err := _store.OrgGet(orgID)
+	if err != nil {
+		return huma.Error404NotFound("organization not found")
+	}
+
+	// User can always manage their own (personal) org secrets.
+	if org.Name == user.Login {
+		return nil
+	}
+
+	_forge, err := server.Config.Services.Manager.ForgeByID(org.ForgeID)
+	if err != nil {
+		return huma.Error500InternalServerError("cannot get forge for organization")
+	}
+
+	// Build a user with the correct forge credentials for this org's forge.
+	forgeUser := user
+	if uf, ufErr := _store.UserForgeGet(user.ID, org.ForgeID); ufErr == nil && uf != nil {
+		forgeUserCopy := *user
+		forgeUserCopy.ForgeID = org.ForgeID
+		forgeUserCopy.AccessToken = uf.AccessToken
+		forgeUserCopy.RefreshToken = uf.RefreshToken
+		forgeUserCopy.Expiry = uf.Expiry
+		forgeUser = &forgeUserCopy
+	}
+
+	perm, err := server.Config.Services.Membership.Get(ctx, _forge, forgeUser, org.Name)
+	if err != nil {
+		return huma.Error500InternalServerError("failed to check org membership")
+	}
+	if perm == nil || !perm.Admin {
+		return huma.Error403Forbidden("org admin access required for org secrets")
+	}
+	return nil
 }
 
 // ── Handlers ─────────────────────────────────────────────────────────.

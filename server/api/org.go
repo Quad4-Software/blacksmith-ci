@@ -182,6 +182,12 @@ func LookupOrg(ctx context.Context, input *LookupOrgInput) (*LookupOrgOutput, er
 func LookupOrgGin(c *gin.Context) {
 	_store := store.FromContext(c)
 	user := session.User(c)
+	// This route has no auth middleware, so the session user may be nil.
+	// ForgeFromUser and the private-org check below both dereference it.
+	if user == nil {
+		c.String(http.StatusUnauthorized, "authentication required")
+		return
+	}
 	_forge, err := server.Config.Services.Manager.ForgeFromUser(user)
 	if err != nil {
 		log.Error().Err(err).Msg("Cannot get forge from user")
@@ -198,11 +204,6 @@ func LookupOrgGin(c *gin.Context) {
 	}
 
 	if org.Private {
-		if user == nil {
-			c.String(http.StatusNotFound, "not found")
-			return
-		}
-
 		if !user.Admin && org.Name != user.Login {
 			c.String(http.StatusNotFound, "not found")
 			return

@@ -331,3 +331,32 @@ func TestGetConfigPipelineName(t *testing.T) {
 		assert.Equal(t, "crow", result)
 	})
 }
+
+func TestParseNumber(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		want    int64
+		wantErr bool
+	}{
+		{name: "simple number", input: "42", want: 42},
+		{name: "zero", input: "0", want: 0},
+		{name: "large number", input: "1234567890", want: 1234567890},
+		{name: "empty string", input: "", wantErr: true},
+		{name: "non-digit", input: "12a", wantErr: true},
+		{name: "negative sign", input: "-1", wantErr: true},
+		{name: "whitespace", input: " 1", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseNumber(tt.input)
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}

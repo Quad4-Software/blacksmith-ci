@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
@@ -156,10 +157,18 @@ func ResumeQueue(c *gin.Context) {
 
 // BlockTilQueueHasRunningItem blocks until the pipeline queue has no running items.
 func BlockTilQueueHasRunningItem(c *gin.Context) {
+	const pollInterval = 500 * time.Millisecond
 	for {
 		info := server.Config.Services.Queue.Info(c)
 		if info.Stats.Running == 0 {
 			break
+		}
+		// Avoid a hot spin while waiting for the queue to drain; also bail out
+		// early if the client disconnects or the request is canceled.
+		select {
+		case <-c.Request.Context().Done():
+			return
+		case <-time.After(pollInterval):
 		}
 	}
 	c.Status(http.StatusNoContent)
