@@ -601,7 +601,92 @@ func (q *fifo) resubmitExpiredPipelines() {
 			taskState.error = fmt.Errorf("task orphaned and not reclaimed within grace period")
 			delete(q.running, taskID)
 			close(taskState.done)
+			q.updateDepStatusInQueue(taskID, model.StatusKilled)
+
+			// Persist the terminal state. Closing done only unblocks the
+			// in-memory Wait; unlike the normal completion path (gRPC Done),
+			// no agent report follows to update the DB, so the workflow and
+			// pipeline rows would otherwise stay StatusRunning forever. Run it
+			// off the queue mutex to avoid blocking task assignment on DB I/O.
+			go q.finalizeZombieWorkflow(taskID)
 		}
+	}
+}
+
+// finalizeZombieWorkflow marks an orphaned workflow (and its running steps and,
+// if it was the last running stage, its pipeline) as killed in the store. It
+// mirrors the DB side of the normal gRPC Done path for the case where no agent
+// report will ever arrive. It only reads the store; it does not touch the
+// in-memory queue, so it is safe to run without the queue mutex held.
+func (q *fifo) finalizeZombieWorkflow(taskID string) {
+	if q.store == nil {
+		return
+	}
+
+	workflowID, err := strconv.ParseInt(taskID, 10, 64)
+	if err != nil {
+		log.Error().Err(err).Str("task_id", taskID).Msg("queue: cannot parse zombie workflow id")
+		return
+	}
+
+	workflow, err := q.store.WorkflowLoad(workflowID)
+	if err != nil {
+		log.Error().Err(err).Str("task_id", taskID).Msg("queue: cannot load zombie workflow")
+		return
+	}
+
+	// Only transition workflows that are still non-terminal; a late agent
+	// report may already have finalized this workflow.
+	if workflow.State != model.StatusRunning && workflow.State != model.StatusPending {
+		return
+	}
+
+	steps, err := q.store.StepListFromWorkflowFind(workflow)
+	if err != nil {
+		log.Error().Err(err).Str("task_id", taskID).Msg("queue: cannot load zombie workflow steps")
+		return
+	}
+	now := time.Now().Unix()
+	for _, step := range steps {
+		if step.State != model.StatusRunning && step.State != model.StatusPending {
+			continue
+		}
+		step.State = model.StatusKilled
+		step.Finished = now
+		if step.Started == 0 {
+			step.Started = now
+		}
+		if err := q.store.StepUpdate(step); err != nil {
+			log.Error().Err(err).Str("task_id", taskID).Int64("step_id", step.ID).Msg("queue: cannot kill zombie step")
+		}
+	}
+
+	workflow.State = model.StatusKilled
+	workflow.Finished = now
+	if err := q.store.WorkflowUpdate(workflow); err != nil {
+		log.Error().Err(err).Str("task_id", taskID).Msg("queue: cannot kill zombie workflow")
+		return
+	}
+
+	// If this was the last running stage, mark the pipeline done so it does not
+	// linger in StatusRunning.
+	pipeline, err := q.store.GetPipeline(workflow.PipelineID)
+	if err != nil {
+		log.Error().Err(err).Str("task_id", taskID).Int64("pipeline_id", workflow.PipelineID).Msg("queue: cannot load zombie pipeline")
+		return
+	}
+	workflows, err := q.store.WorkflowGetTree(pipeline)
+	if err != nil {
+		log.Error().Err(err).Str("task_id", taskID).Int64("pipeline_id", pipeline.ID).Msg("queue: cannot load zombie pipeline workflow tree")
+		return
+	}
+	if model.IsThereRunningStage(workflows) {
+		return
+	}
+	pipeline.Status = model.PipelineStatus(workflows)
+	pipeline.Finished = now
+	if err := q.store.UpdatePipeline(pipeline); err != nil {
+		log.Error().Err(err).Str("task_id", taskID).Int64("pipeline_id", pipeline.ID).Msg("queue: cannot finalize zombie pipeline")
 	}
 }
 

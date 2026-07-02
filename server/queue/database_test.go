@@ -65,6 +65,52 @@ func newTestDatabaseQueue(t *testing.T) (*DatabaseQueue, *mocks_store.MockStore)
 	return q, mockStore
 }
 
+func TestAreDependenciesMet(t *testing.T) {
+	t.Run("no dependencies are always met", func(t *testing.T) {
+		q, _ := newTestDatabaseQueue(t)
+		task := &model.Task{ID: "task-1"}
+		assert.True(t, q.areDependenciesMet(task, []*model.Task{task}))
+	})
+
+	t.Run("dependency still present is not met", func(t *testing.T) {
+		q, _ := newTestDatabaseQueue(t)
+		dep := &model.Task{ID: "dep"}
+		task := &model.Task{ID: "task-1", Dependencies: []string{"dep"}}
+		assert.False(t, q.areDependenciesMet(task, []*model.Task{task, dep}))
+	})
+
+	t.Run("gone dependency with success status is met", func(t *testing.T) {
+		q, _ := newTestDatabaseQueue(t)
+		task := &model.Task{
+			ID:           "task-1",
+			Dependencies: []string{"dep"},
+			DepStatus:    map[string]model.StatusValue{"dep": model.StatusSuccess},
+		}
+		assert.True(t, q.areDependenciesMet(task, []*model.Task{task}))
+	})
+
+	t.Run("gone dependency with failure status is not met", func(t *testing.T) {
+		q, _ := newTestDatabaseQueue(t)
+		task := &model.Task{
+			ID:           "task-1",
+			Dependencies: []string{"dep"},
+			DepStatus:    map[string]model.StatusValue{"dep": model.StatusFailure},
+		}
+		assert.False(t, q.areDependenciesMet(task, []*model.Task{task}))
+	})
+
+	// Regression: a dependency that vanished before its status was recorded must
+	// not block the downstream forever. It is synthesized as failed and persisted.
+	t.Run("gone dependency without status is treated as failed and persisted", func(t *testing.T) {
+		q, mockStore := newTestDatabaseQueue(t)
+		task := &model.Task{ID: "task-1", Dependencies: []string{"dep"}}
+		mockStore.EXPECT().TaskUpdate(task).Return(nil).Once()
+
+		assert.False(t, q.areDependenciesMet(task, []*model.Task{task}))
+		assert.Equal(t, model.StatusFailure, task.DepStatus["dep"])
+	})
+}
+
 func TestDatabaseQueuePushTriggersAssignment(t *testing.T) {
 	q, mockStore := newTestDatabaseQueue(t)
 

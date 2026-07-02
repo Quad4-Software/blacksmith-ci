@@ -63,22 +63,40 @@ func (q *persistentQueue) Push(c context.Context, task *model.Task) error {
 }
 
 // PushAtOnce pushes multiple tasks to the tail of this queue.
+//
+// The store exposes no transaction/session primitive that spans multiple
+// TaskInsert calls, so partial failures are handled with a compensating
+// delete: if any insert fails midway, the rows already inserted in this call
+// are removed again. Otherwise those orphaned rows would be re-pushed on the
+// next restart via WithTaskStore, duplicating tasks.
 func (q *persistentQueue) PushAtOnce(c context.Context, tasks []*model.Task) error {
-	// TODO: invent store.NewSession who return context including a session and make TaskInsert & TaskDelete use it
+	inserted := make([]*model.Task, 0, len(tasks))
 	for _, task := range tasks {
 		if err := q.store.TaskInsert(task); err != nil {
+			// Roll back the rows already inserted in this batch.
+			q.deleteTasks(inserted)
 			return err
 		}
+		inserted = append(inserted, task)
 	}
-	err := q.Queue.PushAtOnce(c, tasks)
-	if err != nil {
-		for _, task := range tasks {
-			if err := q.store.TaskDelete(task.ID); err != nil {
-				return err
-			}
+	if err := q.Queue.PushAtOnce(c, tasks); err != nil {
+		// The in-memory push failed, so drop the persisted rows again to keep
+		// the store consistent with the queue.
+		q.deleteTasks(tasks)
+		return err
+	}
+	return nil
+}
+
+// deleteTasks best-effort deletes the given tasks from the store, continuing
+// past individual failures so a single missing row does not leave the rest
+// orphaned.
+func (q *persistentQueue) deleteTasks(tasks []*model.Task) {
+	for _, task := range tasks {
+		if err := q.store.TaskDelete(task.ID); err != nil {
+			log.Error().Err(err).Str("taskID", task.ID).Msg("queue: push_at_once: failed to clean up task after error")
 		}
 	}
-	return err
 }
 
 // Poll retrieves and removes a task head of this queue.

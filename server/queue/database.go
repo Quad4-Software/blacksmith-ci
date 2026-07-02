@@ -821,6 +821,20 @@ func (q *DatabaseQueue) processLoop() {
 }
 
 // areDependenciesMet checks if all dependencies for a task are completed successfully.
+//
+// A dependency can be in one of three states:
+//   - still present as a task row → not finished yet, keep waiting.
+//   - gone, with a status recorded in DepStatus → resolved; met only if success.
+//   - gone, with no status recorded → the dependency task disappeared before its
+//     completion status was persisted into this task's DepStatus. This is a race
+//     between updateDependentTasks (which records DepStatus) and task deletion
+//     (Done/Error → TaskDelete, or the TaskDeleteStale reconciler). If we simply
+//     returned false here the downstream would wait forever: the dependency is
+//     gone, so no future updateDependentTasks call will ever populate DepStatus.
+//     Treat such a phantom dependency as failed — record it so the state is
+//     observable and stable — which unblocks the downstream (it will not be
+//     assigned, and is reaped by the pipeline-level cascade-skip that operates
+//     on the workflow tree, not on task rows).
 func (q *DatabaseQueue) areDependenciesMet(task *model.Task, allTasks []*model.Task) bool {
 	if len(task.Dependencies) == 0 {
 		return true
@@ -831,25 +845,39 @@ func (q *DatabaseQueue) areDependenciesMet(task *model.Task, allTasks []*model.T
 		existingTasks[t.ID] = t
 	}
 
+	met := true
 	for _, depID := range task.Dependencies {
 		if _, exists := existingTasks[depID]; exists {
+			// Dependency still queued/running — not finished yet.
 			return false
 		}
 
 		if task.DepStatus != nil {
 			if status, hasStatus := task.DepStatus[depID]; hasStatus {
 				if status != model.StatusSuccess {
-					return false
+					met = false
 				}
-			} else {
-				return false
+				continue
 			}
-		} else {
-			return false
 		}
+
+		// Dependency is gone and left no status: it terminated in a way we can
+		// no longer observe. Assume failure so the downstream unblocks instead
+		// of waiting on a phantom dependency forever.
+		log.Warn().Str("taskID", task.ID).Str("depID", depID).
+			Msg("dependency vanished without a recorded status — treating as failed to avoid a permanent block")
+		if task.DepStatus == nil {
+			task.DepStatus = make(map[string]model.StatusValue)
+		}
+		task.DepStatus[depID] = model.StatusFailure
+		if err := q.store.TaskUpdate(task); err != nil {
+			log.Error().Err(err).Str("taskID", task.ID).Str("depID", depID).
+				Msg("failed to persist synthesized failed dependency status")
+		}
+		met = false
 	}
 
-	return true
+	return met
 }
 
 // tryBatchAssignment attempts to assign tasks to all polling instances.
