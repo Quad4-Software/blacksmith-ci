@@ -24,7 +24,7 @@ import (
 )
 
 func TestUsers(t *testing.T) {
-	store, closer := newTestStore(t, new(model.User), new(model.Org), new(model.Secret), new(model.Repo), new(model.Perm))
+	store, closer := newTestStore(t, new(model.User), new(model.Org), new(model.Secret), new(model.Repo), new(model.Perm), new(model.UserForge))
 	defer closer()
 
 	count, err := store.GetUserCount()

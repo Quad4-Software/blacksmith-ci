@@ -119,6 +119,7 @@ func Migrate(_ context.Context, db *sql.DB, driver string, _ bool) error {
 		{ID: "crow-add-workflow-approval", Migrate: addWorkflowApprovalColumns(driver)},
 		{ID: "crow-create-workflow-approval-events", Migrate: createWorkflowApprovalEvents(driver)},
 		{ID: "crow-agent-org-ids", Migrate: migrateAgentOrgIDs(driver)},
+		{ID: "crow-add-log-entries-unique-index", Migrate: addLogEntriesUniqueIndex(driver)},
 	}
 
 	if len(newMigrations) > 0 {
@@ -627,13 +628,17 @@ func migrateAgentOrgIDs(driver string) func(tx *sql.Tx) error {
 		}
 		rows.Close()
 
+		// Postgres uses $N placeholders; SQLite and MySQL use ?.
+		updateStmt := "UPDATE agents SET org_ids = ? WHERE id = ?"
+		if driver == "postgres" {
+			updateStmt = "UPDATE agents SET org_ids = $1 WHERE id = $2"
+		}
 		for _, r := range pending {
 			orgIDs := "[]"
 			if r.orgID >= 0 {
 				orgIDs = fmt.Sprintf("[%d]", r.orgID)
 			}
-			stmt := fmt.Sprintf("UPDATE agents SET org_ids = '%s' WHERE id = %d", orgIDs, r.id)
-			if _, err := tx.Exec(stmt); err != nil {
+			if _, err := tx.Exec(updateStmt, orgIDs, r.id); err != nil {
 				return fmt.Errorf("backfill agent %d org_ids: %w", r.id, err)
 			}
 		}
@@ -643,6 +648,54 @@ func migrateAgentOrgIDs(driver string) func(tx *sql.Tx) error {
 		}
 		if _, err := tx.Exec("ALTER TABLE agents DROP COLUMN org_id"); err != nil {
 			return fmt.Errorf("drop agents.org_id: %w", err)
+		}
+		return nil
+	}
+}
+
+// addLogEntriesUniqueIndex removes any pre-existing duplicate (step_id, line)
+// rows (the old racy SELECT-then-INSERT dedup could leave some) and then adds a
+// UNIQUE index on (step_id, line). LogAppend relies on this index for atomic
+// INSERT ... ON CONFLICT DO NOTHING deduplication. Fresh databases already get
+// the index from the baseline schema and skip this via the runner's applied set.
+func addLogEntriesUniqueIndex(driver string) func(tx *sql.Tx) error {
+	return func(tx *sql.Tx) error {
+		if !tableExists(tx, "log_entries") {
+			return nil
+		}
+
+		// Delete duplicate rows, keeping the lowest id per (step_id, line).
+		// Correlated subquery form is portable across SQLite, PostgreSQL and MySQL.
+		if _, err := tx.Exec(`DELETE FROM log_entries
+			WHERE id NOT IN (
+				SELECT keep_id FROM (
+					SELECT MIN(id) AS keep_id FROM log_entries GROUP BY step_id, line
+				) AS keep
+			)`); err != nil {
+			return fmt.Errorf("dedup log_entries before unique index: %w", err)
+		}
+
+		const indexName = "idx_log_entries_step_id_line"
+		if driver == "mysql" {
+			// MySQL has no CREATE UNIQUE INDEX IF NOT EXISTS; probe first.
+			var count int
+			if err := tx.QueryRow(
+				`SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS`+
+					` WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'log_entries' AND INDEX_NAME = ?`,
+				indexName,
+			).Scan(&count); err != nil {
+				return fmt.Errorf("probe %s: %w", indexName, err)
+			}
+			if count == 0 {
+				if _, err := tx.Exec(`CREATE UNIQUE INDEX ` + indexName + ` ON log_entries (step_id, line)`); err != nil {
+					return fmt.Errorf("create %s: %w", indexName, err)
+				}
+			}
+			return nil
+		}
+
+		if _, err := tx.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS ` + indexName + ` ON log_entries (step_id, line)`); err != nil {
+			return fmt.Errorf("create %s: %w", indexName, err)
 		}
 		return nil
 	}

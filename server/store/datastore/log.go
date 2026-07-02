@@ -50,54 +50,21 @@ func (s storage) LogAppend(_ *model.Step, logEntries []*model.LogEntry) error {
 
 	ctx := context.Background()
 
-	// Group entries by step_id for efficient duplicate checking
-	stepGroups := make(map[int64][]*model.LogEntry)
-	for _, entry := range logEntries {
-		stepGroups[entry.StepID] = append(stepGroups[entry.StepID], entry)
-	}
-
-	var filteredEntries []*model.LogEntry
-	for stepID, entries := range stepGroups {
-		// Get existing line numbers for this step
-		var existingLines []int
-		err := s.db.NewSelect().
-			Model((*model.LogEntry)(nil)).
-			Column("line").
-			Where("step_id = ?", stepID).
-			Scan(ctx, &existingLines)
-		if err != nil {
-			log.Error().Err(err).Int64("stepID", stepID).Msg("failed to query existing log lines")
-			// Fall back to inserting all entries if query fails
-			filteredEntries = append(filteredEntries, entries...)
-			continue
-		}
-
-		// Create a set of existing lines for fast lookup
-		existingLineSet := make(map[int]bool)
-		for _, line := range existingLines {
-			existingLineSet[line] = true
-		}
-
-		// Filter out entries that already exist
-		for _, entry := range entries {
-			if !existingLineSet[entry.Line] {
-				filteredEntries = append(filteredEntries, entry)
-			}
-		}
-	}
-
-	if len(filteredEntries) == 0 {
-		// All entries already exist
-		return nil
-	}
-
 	var err error
 	// TODO: adapted from slices.Chunk(); switch to it in Go 1.23+
-	for i := 0; i < len(filteredEntries); i += pgBatchSize {
-		end := min(pgBatchSize, len(filteredEntries[i:]))
-		chunk := filteredEntries[i : i+end]
+	for i := 0; i < len(logEntries); i += pgBatchSize {
+		end := min(pgBatchSize, len(logEntries[i:]))
+		chunk := logEntries[i : i+end]
 
-		if _, err = s.db.NewInsert().Model(&chunk).Exec(ctx); err != nil {
+		// Rely on the UNIQUE(step_id, line) index to dedup atomically instead of
+		// a racy SELECT-then-INSERT that scanned every existing line per step.
+		q := s.db.NewInsert().Model(&chunk)
+		if s.driver == DriverMysql {
+			q = q.On("DUPLICATE KEY UPDATE step_id = step_id") // no-op = DO NOTHING
+		} else {
+			q = q.On("CONFLICT (step_id, line) DO NOTHING")
+		}
+		if _, err = q.Exec(ctx); err != nil {
 			log.Error().Err(err).Msg("could not store log entries to db")
 		}
 	}

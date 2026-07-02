@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
+	"github.com/uptrace/bun"
 
 	"codefloe.com/crowci/crow/v5/server/model"
 )
@@ -164,63 +165,37 @@ func (s storage) MaintenanceConfigGetByActionType(actionType string) (*model.Mai
 
 // MaintenanceConfigUpdate updates or creates the maintenance configuration.
 func (s storage) MaintenanceConfigUpdate(config *model.MaintenanceConfig) error {
-	ctx := context.Background()
-
 	log.Info().
 		Bool("incoming_enabled", config.Enabled).
 		Str("incoming_schedule", config.Schedule).
 		Msg("Store: Updating maintenance config")
 
-	// Get existing config - there should only be one after merging
-	existing := &model.MaintenanceConfig{}
-	err := s.db.NewSelect().Model(existing).Limit(1).Scan(ctx)
-	has := err == nil
+	// Wrap the read-modify-write in a transaction so a concurrent writer can't
+	// slip between the existence check and the update/insert.
+	return s.db.RunInTx(context.Background(), nil, func(ctx context.Context, tx bun.Tx) error {
+		// Get existing config - there should only be one after merging.
+		// Order deterministically so the "one row" we pick is stable.
+		existing := &model.MaintenanceConfig{}
+		err := tx.NewSelect().Model(existing).Order("id ASC").Limit(1).Scan(ctx)
+		has := err == nil
 
-	if has {
-		log.Info().Msg("Store: Found existing config")
+		if has {
+			config.ID = existing.ID
+			config.Created = existing.Created
+			config.Updated = time.Now().Unix()
 
-		// Update existing config
-		config.ID = existing.ID
-		config.Created = existing.Created
-		config.Updated = time.Now().Unix() // Set the updated timestamp
-
-		// Log what we're about to update
-		log.Info().
-			Int64("updating_id", existing.ID).
-			Bool("updating_enabled", config.Enabled).
-			Str("updating_schedule", config.Schedule).
-			Msg("Store: About to update config")
-
-		// Update only the vacuum-related columns
-		res, err := s.db.NewUpdate().Model(config).
-			Column("enabled", "schedule", "updated").
-			Where("id = ?", existing.ID).
-			Exec(ctx)
-
-		affected, _ := res.RowsAffected()
-		log.Info().
-			Int64("affected_rows", affected).
-			Err(err).
-			Msg("Store: Update completed")
-
-		// Verify the update by reading back
-		if err == nil {
-			verified := &model.MaintenanceConfig{}
-			if verifyErr := s.db.NewSelect().Model(verified).Where("id = ?", existing.ID).Scan(ctx); verifyErr == nil {
-				log.Info().
-					Bool("verified_enabled", verified.Enabled).
-					Str("verified_schedule", verified.Schedule).
-					Msg("Store: Verified updated config")
-			}
+			// Update only the vacuum-related columns
+			_, err := tx.NewUpdate().Model(config).
+				Column("enabled", "schedule", "updated").
+				Where("id = ?", existing.ID).
+				Exec(ctx)
+			return err
 		}
 
+		// Create new config
+		_, err = tx.NewInsert().Model(config).Exec(ctx)
 		return err
-	}
-
-	log.Info().Msg("Store: Creating new config")
-	// Create new config
-	_, err = s.db.NewInsert().Model(config).Exec(ctx)
-	return err
+	})
 }
 
 // MaintenanceConfigUpdateByActionType updates config for a specific action type.

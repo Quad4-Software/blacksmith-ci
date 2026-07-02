@@ -16,8 +16,6 @@ package datastore
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 
 	"codefloe.com/crowci/crow/v5/server/model"
 )
@@ -28,19 +26,21 @@ func (s storage) NotificationConfigFind(repoID int64) (*model.NotificationConfig
 }
 
 func (s storage) NotificationConfigUpsert(config *model.NotificationConfig) error {
-	existing := new(model.NotificationConfig)
-	err := s.db.NewSelect().Model(existing).Where("repo_id = ?", config.RepoID).Scan(context.Background())
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return err
+	// Native upsert keyed on the UNIQUE(repo_id) constraint so concurrent writers
+	// don't race between a SELECT and an INSERT and hit the unique violation.
+	var err error
+	if s.driver == DriverMysql {
+		_, err = s.db.NewInsert().Model(config).
+			On("DUPLICATE KEY UPDATE is_enabled = VALUES(is_enabled), events = VALUES(events), updated_at = VALUES(updated_at)").
+			Exec(context.Background())
+	} else {
+		_, err = s.db.NewInsert().Model(config).
+			On("CONFLICT (repo_id) DO UPDATE").
+			Set("is_enabled = EXCLUDED.is_enabled").
+			Set("events = EXCLUDED.events").
+			Set("updated_at = EXCLUDED.updated_at").
+			Exec(context.Background())
 	}
-
-	if err == nil {
-		config.ID = existing.ID
-		_, err = s.db.NewUpdate().Model(config).WherePK().Exec(context.Background())
-		return err
-	}
-
-	_, err = s.db.NewInsert().Model(config).Exec(context.Background())
 	return err
 }
 

@@ -33,7 +33,9 @@ CREATE TABLE IF NOT EXISTS user_forges (
     forge_avatar VARCHAR(500),
     linked_at INTEGER NOT NULL,
     last_used INTEGER,
-    UNIQUE(forge_id, forge_remote_id(255))
+    UNIQUE(forge_id, forge_remote_id(255)),
+    INDEX idx_user_forges_user_id (user_id),
+    INDEX idx_user_forges_forge_id (forge_id)
 );
 
 CREATE TABLE IF NOT EXISTS repos (
@@ -68,7 +70,9 @@ CREATE TABLE IF NOT EXISTS repos (
     logs_keep_min INTEGER,
     logs_keep_duration VARCHAR(500),
     UNIQUE(forge_id, owner, name),
-    UNIQUE(forge_id, full_name)
+    UNIQUE(forge_id, full_name),
+    INDEX idx_repos_user_id (user_id),
+    INDEX idx_repos_org_id (org_id)
 );
 
 CREATE TABLE IF NOT EXISTS orgs (
@@ -127,7 +131,10 @@ CREATE TABLE IF NOT EXISTS pipelines (
     from_fork BOOLEAN,
     logs_deleted BOOLEAN,
     notify_override TEXT,
-    UNIQUE(repo_id, number)
+    UNIQUE(repo_id, number),
+    INDEX idx_pipelines_repo_id (repo_id),
+    INDEX idx_pipelines_author (author(255)),
+    INDEX idx_pipelines_status (status(255))
 );
 
 CREATE TABLE IF NOT EXISTS workflows (
@@ -155,7 +162,9 @@ CREATE TABLE IF NOT EXISTS workflows (
     approval_state VARCHAR(16) NOT NULL DEFAULT '',
     approval_deadline BIGINT DEFAULT 0,
     approval_timeout_seconds BIGINT DEFAULT 0,
-    UNIQUE(pipeline_id, pid)
+    UNIQUE(pipeline_id, pid),
+    INDEX idx_workflows_pipeline_id (pipeline_id),
+    INDEX idx_workflows_approval (approval_state, approval_deadline)
 );
 
 CREATE TABLE IF NOT EXISTS workflow_approval_events (
@@ -164,7 +173,8 @@ CREATE TABLE IF NOT EXISTS workflow_approval_events (
     user_id BIGINT NOT NULL DEFAULT 0,
     action TEXT NOT NULL,
     reason TEXT,
-    created_at BIGINT NOT NULL
+    created_at BIGINT NOT NULL,
+    INDEX idx_workflow_approval_events_workflow_id (workflow_id)
 );
 
 CREATE TABLE IF NOT EXISTS steps (
@@ -184,7 +194,9 @@ CREATE TABLE IF NOT EXISTS steps (
     depends_on TEXT,
     original_step_id INTEGER DEFAULT 0,
     attempt INTEGER DEFAULT 1,
-    UNIQUE(pipeline_id, pid)
+    UNIQUE(pipeline_id, pid),
+    INDEX idx_steps_pipeline_id (pipeline_id),
+    INDEX idx_steps_uuid (uuid(255))
 );
 
 CREATE TABLE IF NOT EXISTS tasks (
@@ -210,7 +222,9 @@ CREATE TABLE IF NOT EXISTS log_entries (
     line INTEGER,
     data BLOB,
     created INTEGER,
-    type INTEGER
+    type INTEGER,
+    INDEX idx_log_entries_step_id (step_id),
+    UNIQUE KEY idx_log_entries_step_id_line (step_id, line)
 );
 
 CREATE TABLE IF NOT EXISTS proc_log_entries (
@@ -219,7 +233,8 @@ CREATE TABLE IF NOT EXISTS proc_log_entries (
     source_id BIGINT NOT NULL,
     time BIGINT NOT NULL,
     level TEXT NOT NULL,
-    line TEXT NOT NULL
+    line TEXT NOT NULL,
+    INDEX idx_proc_log_entries_source_id (source_type(32), source_id, id)
 );
 
 CREATE TABLE IF NOT EXISTS configs (
@@ -282,7 +297,9 @@ CREATE TABLE IF NOT EXISTS perms (
     synced INTEGER,
     created INTEGER,
     updated INTEGER,
-    UNIQUE(user_id, repo_id)
+    UNIQUE(user_id, repo_id),
+    INDEX idx_perms_user_id (user_id),
+    INDEX idx_perms_repo_id (repo_id)
 );
 
 CREATE TABLE IF NOT EXISTS agents (
@@ -332,7 +349,8 @@ CREATE TABLE IF NOT EXISTS autoscalers (
     active_agents INTEGER,
     pending_agents INTEGER,
     pending_since INTEGER,
-    org_id INTEGER
+    org_id INTEGER,
+    INDEX idx_autoscalers_org_id (org_id)
 );
 
 CREATE TABLE IF NOT EXISTS crons (
@@ -347,7 +365,9 @@ CREATE TABLE IF NOT EXISTS crons (
     fail_count INTEGER NOT NULL DEFAULT 0,
     fail_msg TEXT,
     disabled BOOLEAN NOT NULL DEFAULT false,
-    UNIQUE(name, repo_id)
+    UNIQUE(name, repo_id),
+    INDEX idx_crons_repo_id (repo_id),
+    INDEX idx_crons_creator_id (creator_id)
 );
 
 CREATE TABLE IF NOT EXISTS redirections (
@@ -374,7 +394,10 @@ CREATE TABLE IF NOT EXISTS access_tokens (
     expires_at INTEGER,
     last_used INTEGER,
     created_at INTEGER,
-    updated_at INTEGER
+    updated_at INTEGER,
+    INDEX idx_access_tokens_user_id (user_id),
+    INDEX idx_access_tokens_org_id (org_id),
+    INDEX idx_access_tokens_repo_id (repo_id)
 );
 
 CREATE TABLE IF NOT EXISTS integrations (
@@ -492,38 +515,7 @@ CREATE TABLE IF NOT EXISTS maintenance_logs (
     created INTEGER
 );
 
--- Indexes
-
-CREATE INDEX idx_pipelines_repo_id ON pipelines (repo_id);
-CREATE INDEX idx_pipelines_author ON pipelines (author(255));
-CREATE INDEX idx_pipelines_status ON pipelines (status(255));
-
-CREATE INDEX idx_steps_pipeline_id ON steps (pipeline_id);
-CREATE INDEX idx_steps_uuid ON steps (uuid(255));
-
-CREATE INDEX idx_log_entries_step_id ON log_entries (step_id);
-
-CREATE INDEX idx_proc_log_entries_source_id ON proc_log_entries (source_type(32), source_id, id);
-
-CREATE INDEX idx_workflows_pipeline_id ON workflows (pipeline_id);
-CREATE INDEX idx_workflows_approval ON workflows (approval_state, approval_deadline);
-
-CREATE INDEX idx_workflow_approval_events_workflow_id ON workflow_approval_events (workflow_id);
-
-CREATE INDEX idx_repos_user_id ON repos (user_id);
-CREATE INDEX idx_repos_org_id ON repos (org_id);
-
-CREATE INDEX idx_perms_user_id ON perms (user_id);
-CREATE INDEX idx_perms_repo_id ON perms (repo_id);
-
-CREATE INDEX idx_autoscalers_org_id ON autoscalers (org_id);
-
-CREATE INDEX idx_crons_repo_id ON crons (repo_id);
-CREATE INDEX idx_crons_creator_id ON crons (creator_id);
-
-CREATE INDEX idx_user_forges_user_id ON user_forges (user_id);
-CREATE INDEX idx_user_forges_forge_id ON user_forges (forge_id);
-
-CREATE INDEX idx_access_tokens_user_id ON access_tokens (user_id);
-CREATE INDEX idx_access_tokens_org_id ON access_tokens (org_id);
-CREATE INDEX idx_access_tokens_repo_id ON access_tokens (repo_id);
+-- Indexes are declared inline within each CREATE TABLE above.
+-- MySQL has no portable "CREATE INDEX IF NOT EXISTS", so keeping index
+-- definitions inside the (idempotent) CREATE TABLE IF NOT EXISTS statements
+-- lets the baseline be re-run safely without "Duplicate key name" errors.

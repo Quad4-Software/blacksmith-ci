@@ -865,7 +865,7 @@ func GetPipelineMetadata(ctx context.Context, input *GetPipelineMetadataInput) (
 		return nil, huma.Error500InternalServerError("cannot get forge from repo", err)
 	}
 
-	prevPipeline, err := _store.GetPipelineLastBefore(repo, currentPipeline.Branch, currentPipeline.ID)
+	prevPipeline, err := _store.GetPipelineLastBefore(repo, currentPipeline.Branch, currentPipeline.Number)
 	if err != nil && !errors.Is(err, types.RecordNotExist) {
 		return nil, dbErr(err)
 	}

@@ -115,6 +115,10 @@ func (s storage) DeleteUser(user *model.User) error {
 			return fmt.Errorf("failed to delete perms: %w", err)
 		}
 
+		if _, err := tx.NewDelete().Model((*model.UserForge)(nil)).Where("user_id = ?", user.ID).Exec(ctx); err != nil {
+			return fmt.Errorf("failed to delete user forges: %w", err)
+		}
+
 		return nil
 	})
 }

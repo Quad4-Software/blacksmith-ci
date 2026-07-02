@@ -115,7 +115,7 @@ func TestPipelines(t *testing.T) {
 	err1 = store.CreatePipeline(pipeline3, []*model.Step{}...)
 	assert.NoError(t, err1)
 
-	GetPipeline, err4 := store.GetPipelineLastBefore(&model.Repo{ID: 1}, pipeline3.Branch, pipeline3.ID)
+	GetPipeline, err4 := store.GetPipelineLastBefore(&model.Repo{ID: 1}, pipeline3.Branch, pipeline3.Number)
 	assert.NoError(t, err4)
 	assert.Equal(t, pipeline2.ID, GetPipeline.ID)
 	assert.Equal(t, pipeline2.RepoID, GetPipeline.RepoID)

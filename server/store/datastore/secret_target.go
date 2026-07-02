@@ -9,6 +9,10 @@ import (
 )
 
 func (s storage) SecretTargetCreate(target *model.SecretTarget) error {
+	// Left as a plain INSERT: the table already carries a
+	// UNIQUE(secret_id, org_id, repo_id) constraint, so this is atomic (no
+	// SELECT-then-INSERT race) and callers rely on a duplicate returning an
+	// error rather than being silently upserted.
 	_, err := s.db.NewInsert().Model(target).Exec(context.Background())
 	return err
 }

@@ -63,7 +63,7 @@ func (s storage) GetPipelineLast(repo *model.Repo, branch string) (*model.Pipeli
 func (s storage) GetPipelineLastBefore(repo *model.Repo, branch string, num int64) (*model.Pipeline, error) {
 	pipeline := new(model.Pipeline)
 	return pipeline, wrapGet(s.db.NewSelect().Model(pipeline).
-		Where("id < ?", num).
+		Where("number < ?", num).
 		Where("repo_id = ?", repo.ID).
 		Where("branch = ?", branch).
 		Order("number DESC").

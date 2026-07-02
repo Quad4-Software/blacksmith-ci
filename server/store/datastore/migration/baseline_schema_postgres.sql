@@ -501,6 +501,7 @@ CREATE INDEX IF NOT EXISTS idx_steps_pipeline_id ON steps (pipeline_id);
 CREATE INDEX IF NOT EXISTS idx_steps_uuid ON steps (uuid);
 
 CREATE INDEX IF NOT EXISTS idx_log_entries_step_id ON log_entries (step_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_log_entries_step_id_line ON log_entries (step_id, line);
 
 CREATE INDEX IF NOT EXISTS idx_proc_log_entries_source_id ON proc_log_entries (source_type, source_id, id);
 

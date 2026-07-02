@@ -45,6 +45,7 @@ var expectedBigSerialTables = []string{
 	"notification_configs",
 	"orgs",
 	"pipelines",
+	"proc_log_entries",
 	"redirections",
 	"registries",
 	"repos",
@@ -53,6 +54,7 @@ var expectedBigSerialTables = []string{
 	"steps",
 	"user_forges",
 	"users",
+	"workflow_approval_events",
 	"workflows",
 }
 

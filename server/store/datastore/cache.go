@@ -37,10 +37,20 @@ func (s *storage) CacheGet(key string) (*model.CacheEntry, error) {
 
 // CacheSet stores a cache entry.
 func (s *storage) CacheSet(entry *model.CacheEntry) error {
-	// Try insert first; if duplicate key, update instead
-	_, err := s.db.NewInsert().Model(entry).Exec(context.Background())
-	if err != nil {
-		_, err = s.db.NewUpdate().Model(entry).Where("\"key\" = ?", entry.Key).Exec(context.Background())
+	// Native upsert keyed on the primary key so a transient INSERT error is not
+	// silently swallowed by a zero-row UPDATE returning nil.
+	var err error
+	if s.driver == DriverMysql {
+		_, err = s.db.NewInsert().Model(entry).
+			On("DUPLICATE KEY UPDATE data = VALUES(data), expires_at = VALUES(expires_at), created_at = VALUES(created_at)").
+			Exec(context.Background())
+	} else {
+		_, err = s.db.NewInsert().Model(entry).
+			On("CONFLICT (\"key\") DO UPDATE").
+			Set("data = EXCLUDED.data").
+			Set("expires_at = EXCLUDED.expires_at").
+			Set("created_at = EXCLUDED.created_at").
+			Exec(context.Background())
 	}
 	return err
 }

@@ -31,9 +31,9 @@ type LogEntry struct {
 	bun.BaseModel `bun:"table:log_entries"`
 
 	ID      int64        `json:"id"       bun:"id,pk,autoincrement"`
-	StepID  int64        `json:"step_id"  bun:"step_id"`
+	StepID  int64        `json:"step_id"  bun:"step_id,unique:log_entries_step_id_line"`
 	Time    int64        `json:"time"     bun:"time"`
-	Line    int          `json:"line"     bun:"line"`
+	Line    int          `json:"line"     bun:"line,unique:log_entries_step_id_line"`
 	Data    []byte       `json:"data"     bun:"data,type:bytea"`
 	Created int64        `json:"-"        bun:",nullzero"`
 	Type    LogEntryType `json:"type"     bun:"type"`
