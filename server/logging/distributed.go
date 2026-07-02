@@ -18,6 +18,7 @@ import (
 	"context"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	logger "github.com/rs/zerolog/log"
@@ -52,7 +53,7 @@ type streamSession struct {
 	ctx            context.Context
 	cancel         context.CancelCauseFunc
 	notify         chan struct{} // Channel to notify of new logs
-	reloadSignaled bool          // Track if we've already sent reload signal
+	reloadSignaled atomic.Bool   // Track if we've already sent reload signal
 }
 
 // NewDistributed returns a new distributed logger.
@@ -115,7 +116,7 @@ func (d *distributedLog) Write(ctx context.Context, stepID int64, entries []*mod
 	session, exists := d.sessions[stepID]
 	d.mu.RUnlock()
 
-	if exists && len(entries) > 0 && !session.reloadSignaled {
+	if exists && len(entries) > 0 && !session.reloadSignaled.Load() {
 		// This appears to be the first live log for this session
 		// Send a special reload signal to trigger page refresh
 		logger.Info().Int64("stepID", stepID).Str("instanceID", d.instanceID).Msg("first live log detected - sending page reload signal")
@@ -133,7 +134,7 @@ func (d *distributedLog) Write(ctx context.Context, stepID int64, entries []*mod
 		select {
 		case session.handler <- []*model.LogEntry{reloadEntry}:
 			logger.Debug().Int64("stepID", stepID).Str("instanceID", d.instanceID).Msg("sent reload signal to UI")
-			session.reloadSignaled = true // Mark that we've sent the reload signal
+			session.reloadSignaled.Store(true) // Mark that we've sent the reload signal
 		default:
 			// Channel full, skip reload signal
 		}
@@ -159,13 +160,12 @@ func (d *distributedLog) Tail(ctx context.Context, stepID int64, handler LogChan
 	// Create a new streaming session
 	sessionCtx, cancel := context.WithCancelCause(ctx)
 	session := &streamSession{
-		stepID:         stepID,
-		lastLogID:      0,
-		handler:        handler,
-		ctx:            sessionCtx,
-		cancel:         cancel,
-		notify:         make(chan struct{}, 1), // Buffered to avoid blocking
-		reloadSignaled: false,
+		stepID:    stepID,
+		lastLogID: 0,
+		handler:   handler,
+		ctx:       sessionCtx,
+		cancel:    cancel,
+		notify:    make(chan struct{}, 1), // Buffered to avoid blocking
 	}
 	d.sessions[stepID] = session
 
@@ -192,7 +192,7 @@ func (d *distributedLog) Close(ctx context.Context, stepID int64) error {
 	// Send reload signal before closing to notify UI that workflow has ended
 	if session, exists := d.sessions[stepID]; exists {
 		// Send reload signal to trigger UI update for workflow completion
-		if !session.reloadSignaled || true { // Always send on close to update final status
+		{ // Always send on close to update final status
 			logger.Debug().Int64("stepID", stepID).Str("instanceID", d.instanceID).Msg("workflow completed - sending reload signal")
 
 			reloadEntry := &model.LogEntry{
@@ -245,7 +245,7 @@ func (d *distributedLog) streamFromDatabase(session *streamSession) {
 	}
 
 	// If there were historical logs, send reload signal to ensure UI updates
-	if historicalLogCount > 0 && !session.reloadSignaled {
+	if historicalLogCount > 0 && !session.reloadSignaled.Load() {
 		logger.Info().Int64("stepID", session.stepID).Int("historicalLogs", historicalLogCount).Str("instanceID", d.instanceID).Msg("step has logs - sending page reload signal")
 
 		reloadEntry := &model.LogEntry{
@@ -263,7 +263,7 @@ func (d *distributedLog) streamFromDatabase(session *streamSession) {
 			return
 		case session.handler <- []*model.LogEntry{reloadEntry}:
 			logger.Debug().Int64("stepID", session.stepID).Str("instanceID", d.instanceID).Msg("sent reload signal for existing logs")
-			session.reloadSignaled = true // Mark that we've sent the reload signal
+			session.reloadSignaled.Store(true) // Mark that we've sent the reload signal
 		}
 	}
 
@@ -278,7 +278,7 @@ func (d *distributedLog) streamFromDatabase(session *streamSession) {
 			return
 		case <-ticker.C:
 			// On first poll after historical logs, ensure reload signal was sent if needed
-			if firstPoll && historicalLogCount > 0 && !session.reloadSignaled {
+			if firstPoll && historicalLogCount > 0 && !session.reloadSignaled.Load() {
 				logger.Warn().Int64("stepID", session.stepID).Str("instanceID", d.instanceID).Msg("reload signal was not sent after historical logs, sending now")
 
 				reloadEntry := &model.LogEntry{
@@ -293,7 +293,7 @@ func (d *distributedLog) streamFromDatabase(session *streamSession) {
 				select {
 				case session.handler <- []*model.LogEntry{reloadEntry}:
 					logger.Info().Int64("stepID", session.stepID).Str("instanceID", d.instanceID).Msg("sent delayed reload signal")
-					session.reloadSignaled = true
+					session.reloadSignaled.Store(true)
 				default:
 					logger.Error().Int64("stepID", session.stepID).Str("instanceID", d.instanceID).Msg("failed to send delayed reload signal - channel full")
 				}
@@ -370,7 +370,7 @@ func (d *distributedLog) pollNewLogs(session *streamSession) error {
 	}
 
 	// Check if this is the first live log and send reload signal if needed
-	if !session.reloadSignaled {
+	if !session.reloadSignaled.Load() {
 		logger.Info().Int64("stepID", session.stepID).Str("instanceID", d.instanceID).Msg("first live log detected via polling - sending page reload signal")
 
 		reloadEntry := &model.LogEntry{
@@ -388,7 +388,7 @@ func (d *distributedLog) pollNewLogs(session *streamSession) error {
 			return nil
 		case session.handler <- []*model.LogEntry{reloadEntry}:
 			logger.Debug().Int64("stepID", session.stepID).Str("instanceID", d.instanceID).Msg("sent reload signal to UI via polling")
-			session.reloadSignaled = true // Mark that we've sent the reload signal
+			session.reloadSignaled.Store(true) // Mark that we've sent the reload signal
 		default:
 			// Channel full, skip reload signal but continue with logs
 		}

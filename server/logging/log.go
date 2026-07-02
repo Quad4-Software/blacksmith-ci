@@ -90,7 +90,13 @@ func (l *log) Write(ctx context.Context, stepID int64, entries []*model.LogEntry
 		if err != nil {
 			return err
 		}
-		s = l.streams[stepID]
+		l.Lock()
+		s, ok = l.streams[stepID]
+		l.Unlock()
+		if !ok {
+			// The stream was closed concurrently between Open and this re-read.
+			return nil
+		}
 	}
 
 	s.Lock()

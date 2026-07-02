@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -99,12 +100,12 @@ func (r *Runner) Run(runnerCtx, shutdownCtx context.Context) error { //nolint:co
 		logger.Error().Msg("Received sigterm termination signal")
 	})
 
-	canceled := false
+	var canceled atomic.Bool
 	go func() {
 		logger.Debug().Msg("listen for cancel signal")
 
 		if err := r.client.Wait(workflowCtx, workflow.ID); err != nil {
-			canceled = true
+			canceled.Store(true)
 			logger.Warn().Err(err).Msg("cancel signal received")
 			cancel()
 		} else {
@@ -155,8 +156,8 @@ func (r *Runner) Run(runnerCtx, shutdownCtx context.Context) error { //nolint:co
 	state.Finished = time.Now().Unix()
 
 	if errors.Is(err, pipeline.ErrCancel) {
-		canceled = true
-	} else if canceled {
+		canceled.Store(true)
+	} else if canceled.Load() {
 		err = errors.Join(err, pipeline.ErrCancel)
 	}
 
@@ -166,7 +167,7 @@ func (r *Runner) Run(runnerCtx, shutdownCtx context.Context) error { //nolint:co
 
 	logger.Debug().
 		Str("error", state.Error).
-		Bool("canceled", canceled).
+		Bool("canceled", canceled.Load()).
 		Msg("workflow finished")
 
 	// If workflows are being preserved for adoption, don't report Done to server.
@@ -251,12 +252,12 @@ func (r *Runner) RunAdopted(runnerCtx, shutdownCtx context.Context, workflow *rp
 		logger.Error().Msg("Received sigterm termination signal")
 	})
 
-	canceled := false
+	var canceled atomic.Bool
 	go func() {
 		logger.Debug().Msg("listen for cancel signal")
 
 		if err := r.client.Wait(workflowCtx, workflow.ID); err != nil {
-			canceled = true
+			canceled.Store(true)
 			logger.Warn().Err(err).Msg("cancel signal received")
 			cancel()
 		} else {
@@ -305,8 +306,8 @@ func (r *Runner) RunAdopted(runnerCtx, shutdownCtx context.Context, workflow *rp
 	state.Finished = time.Now().Unix()
 
 	if errors.Is(err, pipeline.ErrCancel) {
-		canceled = true
-	} else if canceled {
+		canceled.Store(true)
+	} else if canceled.Load() {
 		err = errors.Join(err, pipeline.ErrCancel)
 	}
 
@@ -316,7 +317,7 @@ func (r *Runner) RunAdopted(runnerCtx, shutdownCtx context.Context, workflow *rp
 
 	logger.Debug().
 		Str("error", state.Error).
-		Bool("canceled", canceled).
+		Bool("canceled", canceled.Load()).
 		Msg("adopted workflow finished")
 
 	logger.Debug().Msg("uploading logs and traces / states ...")
