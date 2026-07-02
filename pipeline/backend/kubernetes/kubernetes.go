@@ -85,6 +85,16 @@ func (c *config) GetNamespace(orgID int64) string {
 	return c.Namespace
 }
 
+// workflowNamespace resolves the namespace for a workflow based on its first
+// step's org. It falls back to the default namespace when the workflow has no
+// stages/steps, avoiding an index-out-of-range panic.
+func (e *kube) workflowNamespace(conf *types.Config) string {
+	if len(conf.Stages) > 0 && len(conf.Stages[0].Steps) > 0 {
+		return e.config.GetNamespace(conf.Stages[0].Steps[0].OrgID)
+	}
+	return e.config.Namespace
+}
+
 type SecurityContextConfig struct {
 	RunAsNonRoot bool
 	FSGroup      *int64
@@ -224,7 +234,7 @@ func (e *kube) SetupWorkflow(ctx context.Context, conf *types.Config, taskUUID s
 		return fmt.Errorf("the kubernetes backend does not support `temp_volumes`")
 	}
 
-	namespace := e.config.GetNamespace(conf.Stages[0].Steps[0].OrgID)
+	namespace := e.workflowNamespace(conf)
 
 	if e.config.EnableNamespacePerOrg {
 		err := mkNamespace(ctx, e.client.CoreV1().Namespaces(), namespace)
@@ -468,28 +478,26 @@ func (e *kube) DestroyStep(ctx context.Context, step *types.Step, taskUUID strin
 func (e *kube) DestroyWorkflow(ctx context.Context, conf *types.Config, taskUUID string) error {
 	log.Trace().Str("taskUUID", taskUUID).Msg("deleting Kubernetes primitives")
 
+	var errs []error
 	for _, stage := range conf.Stages {
 		for _, step := range stage.Steps {
-			err := stopPod(ctx, e, step, defaultDeleteOptions)
-			if err != nil {
-				return err
+			if err := stopPod(ctx, e, step, defaultDeleteOptions); err != nil {
+				errs = append(errs, err)
 			}
 
 			if isService(step) {
-				err := stopService(ctx, e, step, defaultDeleteOptions)
-				if err != nil {
-					return err
+				if err := stopService(ctx, e, step, defaultDeleteOptions); err != nil {
+					errs = append(errs, err)
 				}
 			}
 		}
 	}
 
-	err := stopVolume(ctx, e, conf.Volume, e.config.GetNamespace(conf.Stages[0].Steps[0].OrgID), defaultDeleteOptions)
-	if err != nil {
-		return err
+	if err := stopVolume(ctx, e, conf.Volume, e.workflowNamespace(conf), defaultDeleteOptions); err != nil {
+		errs = append(errs, err)
 	}
 
-	return nil
+	return std_errs.Join(errs...)
 }
 
 // DiscoverWorkflows finds orphaned workflow pods that can be adopted after agent restart.

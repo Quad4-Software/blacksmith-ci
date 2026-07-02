@@ -37,6 +37,7 @@ import (
 
 type workflowState struct {
 	stepCMDs     map[string]*exec.Cmd
+	stepOutputs  map[string]io.ReadCloser
 	stepCMDsMu   sync.RWMutex
 	baseDir      string
 	homeDir      string
@@ -47,7 +48,6 @@ type workflowState struct {
 type local struct {
 	tempDir      string
 	workflows    sync.Map
-	output       io.ReadCloser
 	cloneBinary  string
 	os, arch     string
 	sandboxLevel sandboxLevel
@@ -125,6 +125,7 @@ func (e *local) SetupWorkflow(_ context.Context, conf *types.Config, taskUUID st
 
 	state := &workflowState{
 		stepCMDs:     make(map[string]*exec.Cmd),
+		stepOutputs:  make(map[string]io.ReadCloser),
 		baseDir:      baseDir,
 		workspaceDir: filepath.Join(baseDir, "workspace"),
 		homeDir:      filepath.Join(baseDir, "home"),
@@ -217,10 +218,11 @@ func (e *local) execCommands(ctx context.Context, step *types.Step, state *workf
 	}
 
 	// Create merged output with stream tags
-	e.output = createTaggedMergedPipe(stdoutPipe, stderrPipe, e.os == "windows")
+	output := createTaggedMergedPipe(stdoutPipe, stderrPipe, e.os == "windows")
 
 	state.stepCMDsMu.Lock()
 	state.stepCMDs[step.UUID] = cmd
+	state.stepOutputs[step.UUID] = output
 	state.stepCMDsMu.Unlock()
 
 	return cmd.Start()
@@ -249,14 +251,21 @@ func (e *local) execService(ctx context.Context, step *types.Step, state *workfl
 	}
 
 	// Capture stdout and stderr separately with stream tags
-	stdoutPipe, _ := cmd.StdoutPipe()
-	stderrPipe, _ := cmd.StderrPipe()
+	stdoutPipe, err := cmd.StdoutPipe()
+	if err != nil {
+		return fmt.Errorf("could not create stdout pipe: %w", err)
+	}
+	stderrPipe, err := cmd.StderrPipe()
+	if err != nil {
+		return fmt.Errorf("could not create stderr pipe: %w", err)
+	}
 
 	// Create merged output with stream tags
-	e.output = createTaggedMergedPipe(stdoutPipe, stderrPipe, e.os == "windows")
+	output := createTaggedMergedPipe(stdoutPipe, stderrPipe, e.os == "windows")
 
 	state.stepCMDsMu.Lock()
 	state.stepCMDs[step.UUID] = cmd
+	state.stepOutputs[step.UUID] = output
 	state.stepCMDsMu.Unlock()
 
 	return cmd.Start()
@@ -280,14 +289,21 @@ func (e *local) execPlugin(ctx context.Context, step *types.Step, state *workflo
 	}
 
 	// Capture stdout and stderr separately with stream tags
-	stdoutPipe, _ := cmd.StdoutPipe()
-	stderrPipe, _ := cmd.StderrPipe()
+	stdoutPipe, err := cmd.StdoutPipe()
+	if err != nil {
+		return fmt.Errorf("could not create stdout pipe: %w", err)
+	}
+	stderrPipe, err := cmd.StderrPipe()
+	if err != nil {
+		return fmt.Errorf("could not create stderr pipe: %w", err)
+	}
 
 	// Create merged output with stream tags
-	e.output = createTaggedMergedPipe(stdoutPipe, stderrPipe, e.os == "windows")
+	output := createTaggedMergedPipe(stdoutPipe, stderrPipe, e.os == "windows")
 
 	state.stepCMDsMu.Lock()
 	state.stepCMDs[step.UUID] = cmd
+	state.stepOutputs[step.UUID] = output
 	state.stepCMDsMu.Unlock()
 
 	return cmd.Start()
@@ -329,7 +345,20 @@ func (e *local) WaitStep(_ context.Context, step *types.Step, taskUUID string) (
 // TailStep the pipeline step logs.
 func (e *local) TailStep(_ context.Context, step *types.Step, taskUUID string) (io.ReadCloser, error) {
 	log.Trace().Str("taskUUID", taskUUID).Msgf("tail logs of step %s", step.Name)
-	return e.output, nil
+
+	state, err := e.getState(taskUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	state.stepCMDsMu.RLock()
+	output, ok := state.stepOutputs[step.UUID]
+	state.stepCMDsMu.RUnlock()
+	if !ok {
+		return nil, fmt.Errorf("step output for %s not found", step.UUID)
+	}
+
+	return output, nil
 }
 
 // createTaggedMergedPipe creates a pipe that merges stdout and stderr with stream tags.

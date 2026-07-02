@@ -197,6 +197,16 @@ func (e *docker) Load(ctx context.Context) (*backend.BackendInfo, error) {
 func (e *docker) SetupWorkflow(ctx context.Context, conf *backend.Config, taskUUID string) error {
 	log.Trace().Str("taskUUID", taskUUID).Msg("create workflow environment")
 
+	// track created volumes so we can roll them back if a later setup step fails
+	var createdVolumes []string
+	rollbackVolumes := func() {
+		for _, name := range createdVolumes {
+			if err := e.client.VolumeRemove(ctx, name, true); err != nil {
+				log.Error().Err(err).Msgf("could not roll back volume '%s'", name)
+			}
+		}
+	}
+
 	_, err := e.client.VolumeCreate(ctx, volume.CreateOptions{
 		Name:   conf.Volume,
 		Driver: volumeDriver,
@@ -207,6 +217,7 @@ func (e *docker) SetupWorkflow(ctx context.Context, conf *backend.Config, taskUU
 	if err != nil {
 		return err
 	}
+	createdVolumes = append(createdVolumes, conf.Volume)
 	for _, tempVolume := range conf.TempVolumes {
 		_, err := e.client.VolumeCreate(ctx, volume.CreateOptions{
 			Name:   tempVolume,
@@ -216,8 +227,10 @@ func (e *docker) SetupWorkflow(ctx context.Context, conf *backend.Config, taskUU
 			},
 		})
 		if err != nil {
+			rollbackVolumes()
 			return err
 		}
+		createdVolumes = append(createdVolumes, tempVolume)
 	}
 
 	networkDriver := networkDriverBridge
@@ -228,12 +241,16 @@ func (e *docker) SetupWorkflow(ctx context.Context, conf *backend.Config, taskUU
 		Driver:     networkDriver,
 		EnableIPv6: &e.config.enableIPv6,
 	})
-	// Ignore "already exists" errors as this can happen in concurrent workflows
-	if err != nil && strings.Contains(err.Error(), "already exists") {
-		log.Debug().Str("network", conf.Network).Msg("Network already exists, continuing")
-		return nil
+	if err != nil {
+		// Ignore "already exists" errors as this can happen in concurrent workflows
+		if strings.Contains(err.Error(), "already exists") {
+			log.Debug().Str("network", conf.Network).Msg("Network already exists, continuing")
+			return nil
+		}
+		rollbackVolumes()
+		return err
 	}
-	return err
+	return nil
 }
 
 func (e *docker) StartStep(ctx context.Context, step *backend.Step, taskUUID string) error {
@@ -384,6 +401,9 @@ func (e *docker) TailStep(ctx context.Context, step *backend.Step, taskUUID stri
 		stdoutWriter := &taggedWriter{w: wc, tag: '\x01'} // Tag stdout with 0x01
 		stderrWriter := &taggedWriter{w: wc, tag: '\x02'} // Tag stderr with 0x02
 		_, _ = std_copy.StdCopy(stdoutWriter, stderrWriter, logs)
+		// flush any trailing data that was not terminated by a newline
+		_ = stdoutWriter.Flush()
+		_ = stderrWriter.Flush()
 		_ = logs.Close()
 		_ = wc.Close()
 	}()
@@ -427,6 +447,23 @@ func (tw *taggedWriter) Write(p []byte) (n int, err error) {
 	}
 
 	return len(p), nil
+}
+
+// Flush writes any buffered data that was not terminated by a newline. It must
+// be called once the underlying stream is closed to avoid dropping the final
+// unterminated log line.
+func (tw *taggedWriter) Flush() error {
+	if len(tw.buffer) == 0 {
+		return nil
+	}
+
+	tagged := make([]byte, len(tw.buffer)+1)
+	tagged[0] = tw.tag
+	copy(tagged[1:], tw.buffer)
+	tw.buffer = nil
+
+	_, err := tw.w.Write(tagged)
+	return err
 }
 
 func (e *docker) DestroyStep(ctx context.Context, step *backend.Step, taskUUID string) error {

@@ -461,9 +461,12 @@ func nodeSelector(backendNodeSelector, configNodeSelector map[string]string, pla
 	nodeSelector := make(map[string]string)
 
 	if platform != "" {
-		arch := strings.Split(platform, "/")[1]
-		nodeSelector[v1.LabelArchStable] = arch
-		log.Trace().Msgf("using the node selector from the Agent's platform: %v", nodeSelector)
+		if _, arch, ok := strings.Cut(platform, "/"); ok {
+			nodeSelector[v1.LabelArchStable] = arch
+			log.Trace().Msgf("using the node selector from the Agent's platform: %v", nodeSelector)
+		} else {
+			log.Warn().Msgf("could not derive arch from platform %q, skipping arch node selector", platform)
+		}
 	}
 
 	if len(configNodeSelector) > 0 {
@@ -544,11 +547,6 @@ func podSecurityContext(sc *SecurityContext, secCtxConf SecurityContextConfig, s
 
 		// only allow to set fsGroup if its not root or step is privileged
 		if sc.FSGroup != nil && (*sc.FSGroup != 0 || stepPrivileged) {
-			fsGroup = sc.FSGroup
-		}
-
-		// if unset, set fsGroup to 1000 by default to support non-root images
-		if sc.FSGroup != nil {
 			fsGroup = sc.FSGroup
 		}
 

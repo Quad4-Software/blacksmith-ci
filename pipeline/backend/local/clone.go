@@ -101,12 +101,19 @@ func (e *local) execClone(ctx context.Context, step *types.Step, state *workflow
 		return fmt.Errorf("could not wrap command with sandbox: %w", err)
 	}
 
-	stdoutPipe, _ := cmd.StdoutPipe()
-	stderrPipe, _ := cmd.StderrPipe()
-	e.output = createTaggedMergedPipe(stdoutPipe, stderrPipe, e.os == "windows")
+	stdoutPipe, err := cmd.StdoutPipe()
+	if err != nil {
+		return fmt.Errorf("could not create stdout pipe: %w", err)
+	}
+	stderrPipe, err := cmd.StderrPipe()
+	if err != nil {
+		return fmt.Errorf("could not create stderr pipe: %w", err)
+	}
+	output := createTaggedMergedPipe(stdoutPipe, stderrPipe, e.os == "windows")
 
 	state.stepCMDsMu.Lock()
 	state.stepCMDs[step.UUID] = cmd
+	state.stepOutputs[step.UUID] = output
 	state.stepCMDsMu.Unlock()
 
 	return cmd.Start()

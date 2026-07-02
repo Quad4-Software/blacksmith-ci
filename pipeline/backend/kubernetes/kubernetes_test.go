@@ -23,6 +23,49 @@ import (
 	"codefloe.com/crowci/crow/v5/pipeline/backend/types"
 )
 
+func TestWorkflowNamespace(t *testing.T) {
+	engine := kube{config: &config{Namespace: "crow"}}
+
+	tests := []struct {
+		name string
+		conf *types.Config
+		want string
+	}{
+		{
+			name: "no stages falls back to default namespace",
+			conf: &types.Config{},
+			want: "crow",
+		},
+		{
+			name: "stage without steps falls back to default namespace",
+			conf: &types.Config{Stages: []*types.Stage{{}}},
+			want: "crow",
+		},
+		{
+			name: "resolves namespace from first step",
+			conf: &types.Config{Stages: []*types.Stage{{Steps: []*types.Step{{OrgID: 42}}}}},
+			want: "crow",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, engine.workflowNamespace(tc.conf))
+		})
+	}
+}
+
+func TestWorkflowNamespacePerOrg(t *testing.T) {
+	engine := kube{config: &config{Namespace: "crow", EnableNamespacePerOrg: true}}
+
+	// no stages must not panic and must fall back to the base namespace
+	assert.Equal(t, "crow", engine.workflowNamespace(&types.Config{}))
+
+	// with a step the org id is appended
+	conf := &types.Config{Stages: []*types.Stage{{Steps: []*types.Step{{OrgID: 42}}}}}
+	assert.Equal(t, "crow-42", engine.workflowNamespace(conf))
+}
+
 func TestSetupWorkflowRejectsTempVolumes(t *testing.T) {
 	engine := kube{config: &config{}}
 	err := engine.SetupWorkflow(context.Background(), &types.Config{

@@ -28,6 +28,32 @@ import (
 
 const taskUUID = "11301"
 
+func TestNodeSelector(t *testing.T) {
+	tests := []struct {
+		name     string
+		platform string
+		wantArch string // "" means no arch label expected
+	}{
+		{name: "platform with os/arch", platform: "linux/amd64", wantArch: "amd64"},
+		{name: "platform without slash does not panic", platform: "linux", wantArch: ""},
+		{name: "empty platform", platform: "", wantArch: ""},
+		{name: "platform with variant keeps remainder as arch", platform: "linux/arm/v7", wantArch: "arm/v7"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			selector := nodeSelector(nil, nil, tc.platform)
+			arch, ok := selector[v1.LabelArchStable]
+			if tc.wantArch == "" {
+				assert.False(t, ok, "expected no arch node selector")
+			} else {
+				assert.True(t, ok)
+				assert.Equal(t, tc.wantArch, arch)
+			}
+		})
+	}
+}
+
 func TestPodName(t *testing.T) {
 	name, err := podName(&types.Step{UUID: "01he8bebctabr3kgk0qj36d2me-0"})
 	assert.NoError(t, err)
@@ -510,6 +536,7 @@ func TestPodPrivilege(t *testing.T) {
 	}
 	pod, err = createTestPod(false, false, secCtx)
 	assert.NoError(t, err)
+	// the privilege guard must refuse fsGroup: 0 for unprivileged steps
 	assert.Equal(t, &v1.PodSecurityContext{
 		SELinuxOptions:           (*v1.SELinuxOptions)(nil),
 		WindowsOptions:           (*v1.WindowsSecurityContextOptions)(nil),
@@ -518,7 +545,7 @@ func TestPodPrivilege(t *testing.T) {
 		RunAsNonRoot:             (*bool)(nil),
 		SupplementalGroups:       []int64(nil),
 		SupplementalGroupsPolicy: (*v1.SupplementalGroupsPolicy)(nil),
-		FSGroup:                  newInt64(0),
+		FSGroup:                  (*int64)(nil),
 		Sysctls:                  []v1.Sysctl(nil),
 		FSGroupChangePolicy:      (*v1.PodFSGroupChangePolicy)(nil),
 		SeccompProfile:           &v1.SeccompProfile{Type: v1.SeccompProfileTypeRuntimeDefault},
