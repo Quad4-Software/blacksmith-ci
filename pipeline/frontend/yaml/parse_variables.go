@@ -30,10 +30,12 @@ type Variable struct {
 
 // ParseVariableDefs extracts the structured top-level "variables" block.
 // Values that are neither scalars nor mappings (e.g. YAML anchor sequences)
-// are skipped.
+// are skipped. A "variables" block written as a sequence — the documented
+// anchor form (e.g. `variables:\n  - &img 'golang'`) — declares no
+// user-settable variables and yields an empty result.
 func ParseVariableDefs(data []byte) (map[string]Variable, error) {
 	var doc struct {
-		Variables map[string]variableNode `yaml:"variables"`
+		Variables variableDefs `yaml:"variables"`
 	}
 	if err := sharedYaml.Unmarshal(data, &doc); err != nil {
 		return nil, err
@@ -46,6 +48,27 @@ func ParseVariableDefs(data []byte) (map[string]Variable, error) {
 		result[k] = v.value
 	}
 	return result, nil
+}
+
+// variableDefs is the top-level "variables" mapping of name to declaration.
+// It accepts the anchor sequence form (`variables:\n  - &img 'golang'`) by
+// treating it as an empty declaration set rather than failing the whole parse.
+type variableDefs map[string]variableNode
+
+func (d *variableDefs) UnmarshalYAML(unmarshal func(any) error) error {
+	var m map[string]variableNode
+	if err := unmarshal(&m); err != nil {
+		// A sequence (the anchor form) carries no declared variables. Ignore it;
+		// surface any other error (genuinely malformed YAML).
+		var seq []any
+		if seqErr := unmarshal(&seq); seqErr == nil {
+			*d = variableDefs{}
+			return nil
+		}
+		return err
+	}
+	*d = m
+	return nil
 }
 
 // ParseVariableDefsString is the string variant of ParseVariableDefs.

@@ -83,6 +83,35 @@ variables:
 		require.True(t, ok)
 		assert.Equal(t, Variable{}, v)
 	})
+
+	t.Run("ignores anchor sequence form of variables block", func(t *testing.T) {
+		defs, err := ParseVariableDefsString(`
+variables:
+  - &golang_image 'golang:1.18'
+
+steps:
+  test:
+    image: *golang_image
+`)
+		require.NoError(t, err)
+		assert.Empty(t, defs)
+	})
+
+	t.Run("ignores nested sequence anchor variables block", func(t *testing.T) {
+		defs, err := ParseVariableDefsString(`
+variables:
+  - logins:
+      - registry: https://index.docker.io/v1/
+        username: pats22
+        password: secret
+
+steps:
+  test:
+    image: golang
+`)
+		require.NoError(t, err)
+		assert.Empty(t, defs)
+	})
 }
 
 func TestParseVariables(t *testing.T) {
