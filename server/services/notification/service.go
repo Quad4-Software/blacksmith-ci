@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"html"
 	"net/url"
 	"strconv"
 	"strings"
@@ -243,10 +244,13 @@ func buildEmailBody(serverHost string, repo *model.Repo, pipeline *model.Pipelin
 	var b strings.Builder
 	b.WriteString(`<table style="border-collapse:collapse;font-family:sans-serif">`)
 	for _, r := range rows {
+		// r.Label values are constant, hard-coded strings; r.Value carries
+		// user-controlled data (repo name, ref label, commit message) and must
+		// be HTML-escaped to prevent markup/script injection into the email.
 		fmt.Fprintf(&b,
 			`<tr><td style="padding:4px 12px 4px 0;font-weight:bold;white-space:nowrap;vertical-align:top">%s</td>`+
 				`<td style="padding:4px 0">%s</td></tr>`,
-			r.Label, r.Value,
+			r.Label, html.EscapeString(r.Value),
 		)
 	}
 	b.WriteString(`</table>`)

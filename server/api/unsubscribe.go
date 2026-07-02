@@ -17,6 +17,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"html"
 	"net/http"
 	"strconv"
 	"time"
@@ -72,7 +73,9 @@ func GetUnsubscribe(ctx context.Context, input *GetUnsubscribeInput) (*struct{},
 		return nil, nil
 	}
 
-	msg := fmt.Sprintf("You have been unsubscribed from email notifications for <strong>%s</strong>.", repoName)
+	// repoName originates from a signed token claim (repo.FullName) that is
+	// ultimately user-controlled, so escape it before embedding in the HTML page.
+	msg := fmt.Sprintf("You have been unsubscribed from email notifications for <strong>%s</strong>.", html.EscapeString(repoName))
 	writeUnsubscribePage(c.Writer, msg, true)
 	return nil, nil
 }

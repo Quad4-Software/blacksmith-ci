@@ -131,6 +131,30 @@ func TestBuildEmailBody_UnsubscribeLink(t *testing.T) {
 	assert.Contains(t, body, "https://ci.example.com/unsubscribe?token=xyz")
 }
 
+func TestBuildEmailBody_EscapesHTML(t *testing.T) {
+	repo := &model.Repo{ID: 1, FullName: `crowci/<b>crow</b>`}
+	pipeline := &model.Pipeline{
+		Number:  1,
+		Status:  model.StatusSuccess,
+		Event:   model.EventPush,
+		Branch:  "main",
+		Commit:  "abc123",
+		Message: `<script>alert('xss')</script>`,
+	}
+
+	body := buildEmailBody("https://ci.example.com", repo, pipeline, `feat/<img src=x onerror=alert(1)>`, "")
+
+	// Raw markup from user-controlled fields must not appear verbatim.
+	assert.NotContains(t, body, "<script>")
+	assert.NotContains(t, body, "<b>crow</b>")
+	assert.NotContains(t, body, "<img src=x")
+
+	// The escaped forms must be present instead.
+	assert.Contains(t, body, "&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;")
+	assert.Contains(t, body, "crowci/&lt;b&gt;crow&lt;/b&gt;")
+	assert.Contains(t, body, "feat/&lt;img src=x onerror=alert(1)&gt;")
+}
+
 func TestStatusChangeLabel(t *testing.T) {
 	tests := []struct {
 		name     string
