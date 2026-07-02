@@ -665,12 +665,34 @@ func addLogEntriesUniqueIndex(driver string) func(tx *sql.Tx) error {
 		}
 
 		// Delete duplicate rows, keeping the lowest id per (step_id, line).
-		// Correlated subquery form is portable across SQLite, PostgreSQL and MySQL.
+		//
+		// Only rows in a group that actually has duplicates are touched: the inner
+		// GROUP BY ... HAVING COUNT(*) > 1 yields just the duplicated (step_id, line)
+		// keys (typically a handful even on huge tables), and the join deletes the
+		// non-minimum ids within those groups. This is a single pass over the table
+		// plus a tiny hash join, versus the old `id NOT IN (SELECT MIN(id) ... GROUP
+		// BY ...)` form which the planner executed as a per-row anti-join against a
+		// materialized set of every group — effectively O(n^2) and multi-minute on a
+		// table with millions of log lines, blowing the startup window.
+		//
+		// The extra derived table (aliased "x") materializes the id list before the
+		// DELETE so MySQL does not reject reading the delete target in a subquery
+		// (error 1093). NULL step_id/line rows never match the self-join equality, so
+		// they are left alone — correct, since a UNIQUE index treats NULLs as
+		// distinct across SQLite, PostgreSQL and MySQL.
 		if _, err := tx.Exec(`DELETE FROM log_entries
-			WHERE id NOT IN (
-				SELECT keep_id FROM (
-					SELECT MIN(id) AS keep_id FROM log_entries GROUP BY step_id, line
-				) AS keep
+			WHERE id IN (
+				SELECT del_id FROM (
+					SELECT le.id AS del_id
+					FROM log_entries le
+					JOIN (
+						SELECT step_id, line, MIN(id) AS keep_id
+						FROM log_entries
+						GROUP BY step_id, line
+						HAVING COUNT(*) > 1
+					) dup ON le.step_id = dup.step_id AND le.line = dup.line
+					WHERE le.id <> dup.keep_id
+				) AS x
 			)`); err != nil {
 			return fmt.Errorf("dedup log_entries before unique index: %w", err)
 		}

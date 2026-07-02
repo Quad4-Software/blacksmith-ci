@@ -435,3 +435,56 @@ func TestTableExists_EmptyTable(t *testing.T) {
 	assert.True(t, tableExists(tx, "table_exists_probe"), "empty table must report as existing")
 	assert.False(t, tableExists(tx, "definitely_does_not_exist"), "unknown table must report as missing")
 }
+
+// TestAddLogEntriesUniqueIndex_DedupsAndIndexes verifies that the migration
+// removes only the surplus duplicate (step_id, line) rows (keeping the lowest
+// id per group), leaves unique rows untouched, and then successfully creates
+// the UNIQUE index. It also guards against the regression where the dedup used
+// a whole-table `id NOT IN (SELECT MIN(id) ... GROUP BY ...)` anti-join that the
+// planner executed as O(n^2), hanging startup on large log_entries tables.
+func TestAddLogEntriesUniqueIndex_DedupsAndIndexes(t *testing.T) {
+	db, driver := testDB(t)
+
+	_, err := db.Exec(`CREATE TABLE log_entries (
+		id INTEGER PRIMARY KEY,
+		step_id INTEGER,
+		line INTEGER,
+		data TEXT
+	)`)
+	require.NoError(t, err)
+
+	// Two duplicate groups plus unique rows. The lowest id in each duplicate
+	// group must survive; the rest must be deleted.
+	_, err = db.Exec(`INSERT INTO log_entries (id, step_id, line, data) VALUES
+		(1, 10, 0, 'keep'),
+		(2, 10, 0, 'dup'),
+		(3, 10, 0, 'dup'),
+		(4, 10, 1, 'unique'),
+		(5, 20, 0, 'keep'),
+		(6, 20, 0, 'dup'),
+		(7, 20, 1, 'unique')`)
+	require.NoError(t, err)
+
+	tx, err := db.Begin()
+	require.NoError(t, err)
+
+	require.NoError(t, addLogEntriesUniqueIndex(driver)(tx))
+	require.NoError(t, tx.Commit())
+
+	// Surviving ids are the lowest per (step_id, line) group.
+	rows, err := db.Query(`SELECT id FROM log_entries ORDER BY id`)
+	require.NoError(t, err)
+	defer rows.Close()
+	var got []int
+	for rows.Next() {
+		var id int
+		require.NoError(t, rows.Scan(&id))
+		got = append(got, id)
+	}
+	require.NoError(t, rows.Err())
+	assert.Equal(t, []int{1, 4, 5, 7}, got, "only surplus duplicates should be deleted")
+
+	// The UNIQUE index now exists and enforces (step_id, line).
+	_, err = db.Exec(`INSERT INTO log_entries (id, step_id, line, data) VALUES (99, 10, 0, 'conflict')`)
+	assert.Error(t, err, "unique index must reject a duplicate (step_id, line)")
+}
