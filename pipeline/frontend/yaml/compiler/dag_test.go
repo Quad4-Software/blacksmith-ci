@@ -138,6 +138,29 @@ func TestConvertDAGToStages(t *testing.T) {
 	}}, stages)
 }
 
+// TestDfsVisitUnknownDependency verifies that dfsVisit returns
+// ErrStepMissingDependency instead of panicking on a nil map entry when it
+// encounters a dependency name that is not present in the step map. This
+// guards the traversal independently of convertDAGToStages' pre-check.
+func TestDfsVisitUnknownDependency(t *testing.T) {
+	steps := map[string]*dagCompilerStep{
+		"step1": {
+			step:      &backend_types.Step{},
+			name:      "step1",
+			dependsOn: []string{"missing"},
+		},
+	}
+
+	err := dfsVisit(steps, "step1", make(map[string]struct{}), []string{})
+	assert.ErrorIs(t, err, &ErrStepMissingDependency{})
+
+	var missingErr *ErrStepMissingDependency
+	if assert.ErrorAs(t, err, &missingErr) {
+		assert.Equal(t, "step1", missingErr.name)
+		assert.Equal(t, "missing", missingErr.dep)
+	}
+}
+
 func TestIsDag(t *testing.T) {
 	steps := []*dagCompilerStep{
 		{

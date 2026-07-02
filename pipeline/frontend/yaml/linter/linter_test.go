@@ -15,6 +15,7 @@
 package linter_test
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -422,6 +423,166 @@ steps:
 		Workflow:  conf,
 	}})
 	assert.NoError(t, err)
+}
+
+func TestLintDependsOnClone(t *testing.T) {
+	cases := []struct {
+		name    string
+		yaml    string
+		wantErr bool
+	}{
+		{
+			name: "depends_on implicit clone is valid",
+			yaml: `
+when:
+  event: push
+steps:
+  build:
+    image: golang
+    depends_on: [clone]
+    commands: [go build]
+`,
+			wantErr: false,
+		},
+		{
+			name: "depends_on custom clone step is valid",
+			yaml: `
+when:
+  event: push
+clone:
+  my-clone:
+    image: some/clone
+steps:
+  build:
+    image: golang
+    depends_on: [my-clone]
+    commands: [go build]
+`,
+			wantErr: false,
+		},
+		{
+			name: "depends_on unknown step is flagged",
+			yaml: `
+when:
+  event: push
+steps:
+  build:
+    image: golang
+    depends_on: [does-not-exist]
+    commands: [go build]
+`,
+			wantErr: true,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			conf, perr := yaml.ParseString(c.yaml)
+			assert.NoError(t, perr)
+			err := linter.New().Lint([]*linter.WorkflowConfig{{
+				File:      c.name,
+				RawConfig: c.yaml,
+				Workflow:  conf,
+			}})
+
+			depErr := false
+			for _, lerr := range errors.GetPipelineErrors(err) {
+				if lerr.Message == "One or more of the specified step dependencies do not exist. Double-check for typos." {
+					depErr = true
+				}
+			}
+			assert.Equal(t, c.wantErr, depErr, "unexpected depends_on lint result for %q", c.name)
+		})
+	}
+}
+
+func TestLintPluginRestrictions(t *testing.T) {
+	cases := []struct {
+		name    string
+		yaml    string
+		wantErr string // substring; "" = no plugin-restriction error expected
+	}{
+		{
+			name: "plugin with settings and environment hard-errors",
+			yaml: `
+when:
+  event: push
+steps:
+  publish:
+    image: some/plugin
+    settings:
+      repo: foo/bar
+    environment:
+      FOO: bar
+`,
+			wantErr: "Plugin steps may not set `environment:`",
+		},
+		{
+			name: "plugin with settings and secrets hard-errors",
+			yaml: `
+when:
+  event: push
+steps:
+  publish:
+    image: some/plugin
+    settings:
+      repo: foo/bar
+    secrets: [mysql_password]
+`,
+			wantErr: "Plugin steps may not set `secrets:`",
+		},
+		{
+			name: "plugin with only settings is fine",
+			yaml: `
+when:
+  event: push
+steps:
+  publish:
+    image: some/plugin
+    settings:
+      repo: foo/bar
+`,
+			wantErr: "",
+		},
+		{
+			name: "regular step with environment is fine",
+			yaml: `
+when:
+  event: push
+steps:
+  build:
+    image: golang
+    environment:
+      FOO: bar
+    commands: [go build]
+`,
+			wantErr: "",
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			conf, perr := yaml.ParseString(c.yaml)
+			assert.NoError(t, perr)
+			err := linter.New().Lint([]*linter.WorkflowConfig{{
+				File:      c.name,
+				RawConfig: c.yaml,
+				Workflow:  conf,
+			}})
+
+			found := ""
+			for _, lerr := range errors.GetPipelineErrors(err) {
+				if !lerr.IsWarning && strings.Contains(lerr.Message, "Plugin steps may not set") {
+					found = lerr.Message
+				}
+			}
+			if c.wantErr == "" {
+				assert.Empty(t, found, "did not expect a plugin-restriction error for %q", c.name)
+			} else {
+				assert.Contains(t, found, c.wantErr, "expected plugin-restriction error for %q", c.name)
+			}
+		})
+	}
 }
 
 func TestBadHabits(t *testing.T) {

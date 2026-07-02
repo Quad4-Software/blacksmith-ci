@@ -64,6 +64,14 @@ type Runtime struct {
 
 	taskUUID string
 
+	// detachedLogWg tracks the logging goroutines spawned for detached steps.
+	// Those goroutines outlive the step's runStep call (a detached step returns
+	// immediately) and are only unblocked when their TailStep reader closes,
+	// e.g. on context cancellation or workflow teardown. Run/RunAdopted wait on
+	// this group before returning so the goroutines are always joined instead
+	// of left dangling.
+	detachedLogWg sync.WaitGroup
+
 	Description map[string]string // The runtime descriptors.
 }
 
@@ -122,6 +130,11 @@ func (r *Runtime) Run(runnerCtx context.Context) error {
 		if err := r.engine.DestroyWorkflow(ctx, r.spec, r.taskUUID); err != nil {
 			logger.Error().Err(err).Msg("could not destroy engine")
 		}
+
+		// Join detached steps' logging goroutines. Their TailStep readers close
+		// once the workflow is torn down above (or once r.ctx is canceled), so
+		// this wait cannot deadlock and ensures no goroutine is left dangling.
+		r.detachedLogWg.Wait()
 	}()
 
 	r.started = time.Now().Unix()
@@ -287,6 +300,11 @@ func (r *Runtime) RunAdopted(runnerCtx context.Context) error {
 		if err := r.engine.DestroyWorkflow(ctx, r.spec, r.taskUUID); err != nil {
 			logger.Error().Err(err).Msg("could not destroy engine")
 		}
+
+		// Join detached steps' logging goroutines. Their TailStep readers close
+		// once the workflow is torn down above (or once r.ctx is canceled), so
+		// this wait cannot deadlock and ensures no goroutine is left dangling.
+		r.detachedLogWg.Wait()
 	}()
 
 	r.started = time.Now().Unix()
@@ -375,7 +393,13 @@ func (r *Runtime) runAdoptedStep(step *backend.Step, resumer backend.WorkflowRes
 		return nil, err
 	}
 
-	var wg sync.WaitGroup
+	// For detached steps the logging goroutine outlives this call, so it is
+	// tracked on the runtime-wide WaitGroup and joined by Run/RunAdopted. For
+	// regular steps a local WaitGroup is used and waited on below.
+	wg := &r.detachedLogWg
+	if !step.Detached {
+		wg = new(sync.WaitGroup)
+	}
 	if r.logger != nil {
 		rc, err := r.engine.TailStep(r.ctx, step, r.taskUUID)
 		if err != nil {
@@ -435,7 +459,13 @@ func (r *Runtime) runStep(step *backend.Step) (*backend.State, error) {
 		return nil, err
 	}
 
-	var wg sync.WaitGroup
+	// For detached steps the logging goroutine outlives this call, so it is
+	// tracked on the runtime-wide WaitGroup and joined by Run/RunAdopted. For
+	// regular steps a local WaitGroup is used and waited on below.
+	wg := &r.detachedLogWg
+	if !step.Detached {
+		wg = new(sync.WaitGroup)
+	}
 	if r.logger != nil {
 		rc, err := r.engine.TailStep(r.ctx, step, r.taskUUID)
 		if err != nil {

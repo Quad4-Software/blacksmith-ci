@@ -33,6 +33,11 @@ import (
 // WithApprovalTimeoutMax.
 const defaultApprovalTimeoutMax = 7 * 24 * time.Hour
 
+// defaultCloneName is the name of the implicit clone step that the compiler
+// injects when no custom clone containers are defined. It must match
+// compiler.defaultCloneName so that `depends_on: [clone]` lints correctly.
+const defaultCloneName = "clone"
+
 // A Linter lints a pipeline configuration.
 type Linter struct {
 	trusted                    TrustedConfiguration
@@ -197,6 +202,9 @@ func (l *Linter) lintContainers(config *WorkflowConfig, area string) error {
 		if err := l.lintContainerDeprecations(config, container, area); err != nil {
 			linterErr = errors.Join(linterErr, err)
 		}
+		if err := l.lintPluginRestrictions(config, container, area); err != nil {
+			linterErr = errors.Join(linterErr, err)
+		}
 		if err := l.lintDependsOn(config, container, area); err != nil {
 			linterErr = errors.Join(linterErr, err)
 		}
@@ -205,18 +213,81 @@ func (l *Linter) lintContainers(config *WorkflowConfig, area string) error {
 	return linterErr
 }
 
+// isUsedAsPlugin reports whether a step is a plugin or is meant to be run as
+// one, independent of the `environment:`/`secrets:` fields that
+// Container.IsPlugin() also inspects. A step is treated as a plugin when it
+// carries plugin `settings:` (which mandate plugin execution) or when its image
+// is on one of the plugin allow lists (privileged plugins or trusted clone
+// plugins). We deliberately do NOT consider `environment:`/`secrets:` here so
+// that we can surface the conflict below instead of silently downgrading the
+// step to a non-plugin.
+func (l *Linter) isUsedAsPlugin(c *types.Container) bool {
+	if len(c.Settings) > 0 {
+		return true
+	}
+	if l.privilegedPlugins != nil && utils.MatchImageWithType(c.Image, l.privilegedPluginsMatchType, *l.privilegedPlugins...) {
+		return true
+	}
+	trustedClonePlugins := constant.TrustedClonePlugins
+	if l.trustedClonePlugins != nil {
+		trustedClonePlugins = *l.trustedClonePlugins
+	}
+	return utils.MatchImageDynamic(c.Image, trustedClonePlugins...)
+}
+
+// lintPluginRestrictions hard-errors when a step is used as a plugin but also
+// sets `environment:` or `secrets:`. Such a step would silently stop being
+// treated as a plugin (see Container.IsPlugin): it would lose plugin-restricted
+// secret access and would not be escalated to privileged even if its image is
+// on the privileged/escalated allow list. Surfacing this as an explicit lint
+// error avoids the silent semantic change.
+func (l *Linter) lintPluginRestrictions(config *WorkflowConfig, c *types.Container, area string) error {
+	if !l.isUsedAsPlugin(c) {
+		return nil
+	}
+
+	var linterErr error
+	yamlPath := fmt.Sprintf("%s.%s", area, c.Name)
+	if len(c.Environment) != 0 {
+		linterErr = errors.Join(linterErr, newLinterError(
+			"Plugin steps may not set `environment:`. Pass configuration via `settings:` instead. A plugin with `environment:` set is not treated as a plugin and is neither granted plugin-restricted secret access nor escalated to privileged mode.",
+			config.File, yamlPath, false,
+		))
+	}
+	if len(c.Secrets) != 0 {
+		linterErr = errors.Join(linterErr, newLinterError(
+			"Plugin steps may not set `secrets:`. Pass secrets via `settings:` with `from_secret:` instead. A plugin with `secrets:` set is not treated as a plugin and is neither granted plugin-restricted secret access nor escalated to privileged mode.",
+			config.File, yamlPath, false,
+		))
+	}
+	return linterErr
+}
+
 func (l *Linter) lintDependsOn(config *WorkflowConfig, c *types.Container, area string) error {
 	if area != "steps" {
 		return nil
 	}
 
+	// Valid dependency targets are all work steps plus the clone steps. The
+	// clone step is implicit (named "clone" by default) unless the user defines
+	// custom clone containers, so a `depends_on: [clone]` must not be flagged.
+	validDeps := make(map[string]struct{}, len(config.Workflow.Steps.ContainerList)+len(config.Workflow.Clone.ContainerList)+1)
+	for _, step := range config.Workflow.Steps.ContainerList {
+		validDeps[step.Name] = struct{}{}
+	}
+	if len(config.Workflow.Clone.ContainerList) > 0 {
+		for _, clone := range config.Workflow.Clone.ContainerList {
+			validDeps[clone.Name] = struct{}{}
+		}
+	} else {
+		// implicit default clone step
+		validDeps[defaultCloneName] = struct{}{}
+	}
+
 	var linterErr error
-check:
 	for _, dep := range c.DependsOn {
-		for _, step := range config.Workflow.Steps.ContainerList {
-			if dep == step.Name {
-				continue check
-			}
+		if _, ok := validDeps[dep]; ok {
+			continue
 		}
 		linterErr = errors.Join(linterErr,
 			newLinterError(

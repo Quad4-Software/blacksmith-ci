@@ -126,10 +126,23 @@ func dfsVisit(steps map[string]*dagCompilerStep, name string, visited map[string
 		return &ErrStepDependencyCycle{path: path}
 	}
 
+	// Guard against an unknown dependency name. convertDAGToStages validates
+	// dependencies before calling dfsVisit, but this keeps the traversal safe
+	// against a nil map entry (which would otherwise panic) and returns the
+	// proper error instead.
+	step, ok := steps[name]
+	if !ok {
+		parent := name
+		if len(path) > 0 {
+			parent = path[len(path)-1]
+		}
+		return &ErrStepMissingDependency{name: parent, dep: name}
+	}
+
 	visited[name] = struct{}{}
 	path = append(path, name)
 
-	for _, dep := range steps[name].dependsOn {
+	for _, dep := range step.dependsOn {
 		if err := dfsVisit(steps, dep, visited, path); err != nil {
 			return err
 		}
