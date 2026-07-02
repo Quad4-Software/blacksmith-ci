@@ -65,8 +65,8 @@ func SetBackendHealthy(healthy bool) {
 }
 
 func handleVersion(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusOK)
 	w.Header().Add("Content-Type", "text/json")
+	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(versionResp{
 		Source:  "https://codefloe.com/crowci/crow",
 		Version: version.String(),
@@ -77,12 +77,12 @@ func handleVersion(w http.ResponseWriter, _ *http.Request) {
 }
 
 func handleStats(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Add("Content-Type", "text/json")
 	if counter.Healthy() {
 		w.WriteHeader(http.StatusOK)
 	} else {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
-	w.Header().Add("Content-Type", "text/json")
 	if _, err := counter.WriteTo(w); err != nil {
 		log.Error().Err(err).Msg("handleStats")
 	}

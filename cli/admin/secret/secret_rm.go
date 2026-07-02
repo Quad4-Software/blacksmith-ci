@@ -16,6 +16,7 @@ package secret
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/urfave/cli/v3"
 
@@ -36,6 +37,9 @@ var secretDeleteCmd = &cli.Command{
 
 func secretDelete(ctx context.Context, c *cli.Command) error {
 	secretName := c.String("name")
+	if secretName == "" {
+		return fmt.Errorf("missing secret name")
+	}
 
 	client, err := internal.NewClient(ctx, c)
 	if err != nil {

@@ -32,6 +32,9 @@ var userRemoveCmd = &cli.Command{
 
 func userRemove(ctx context.Context, c *cli.Command) error {
 	login := c.Args().First()
+	if login == "" {
+		return fmt.Errorf("missing user login")
+	}
 
 	client, err := internal.NewClient(ctx, c)
 	if err != nil {
