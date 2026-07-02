@@ -23,6 +23,7 @@ import (
 	bb "github.com/neticdk/go-bitbucket/bitbucket"
 	"golang.org/x/oauth2"
 
+	"codefloe.com/crowci/crow/v5/server/forge"
 	"codefloe.com/crowci/crow/v5/server/model"
 )
 
@@ -173,7 +174,7 @@ func convertListOptions(p *model.ListOptions) bb.ListOptions {
 func updateUserCredentials(u *model.User, t *oauth2.Token) {
 	u.AccessToken = t.AccessToken
 	u.RefreshToken = t.RefreshToken
-	u.Expiry = t.Expiry.UTC().Unix()
+	u.Expiry = forge.TokenExpiryToUnix(t.Expiry)
 }
 
 func convertProjectsToTeams(projects []*bb.Project, client *bb.Client) []*model.Team {

@@ -117,7 +117,6 @@ func convertRepoList(from []*github.Repository) []*model.Repo {
 	for _, repo := range from {
 		repos = append(repos, convertRepo(repo))
 	}
-	fmt.Print("test")
 	return repos
 }
 

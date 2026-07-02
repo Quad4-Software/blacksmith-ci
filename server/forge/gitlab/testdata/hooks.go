@@ -24,15 +24,20 @@ var (
 	ServiceHookURL, _ = url.Parse(
 		"http://10.40.8.5:8000/hook?owner=test&name=woodpecker&access_token=dummyToken." +
 			"eyJ0ZXh0IjoidGVzdC93b29kcGVja2VyIiwidHlwZSI6Imhvb2sifQ.x3kPnmZtxZQ_9_eMhfQ1HSmj_SLhdT_Lu2hMczWjKh0")
+	// hookToken is the access_token JWT carried in ServiceHookURL. GitLab echoes
+	// it back in the X-Gitlab-Token header on incoming webhooks.
+	hookToken          = "dummyToken.eyJ0ZXh0IjoidGVzdC93b29kcGVja2VyIiwidHlwZSI6Imhvb2sifQ.x3kPnmZtxZQ_9_eMhfQ1HSmj_SLhdT_Lu2hMczWjKh0"
 	ServiceHookHeaders = http.Header{
 		"Content-Type":   []string{"application/json"},
 		"User-Agent":     []string{"GitLab/14.3.0"},
 		"X-Gitlab-Event": []string{"Service Hook"},
+		"X-Gitlab-Token": []string{hookToken},
 	}
 	ReleaseHookHeaders = http.Header{
 		"Content-Type":   []string{"application/json"},
 		"User-Agent":     []string{"GitLab/14.3.0"},
 		"X-Gitlab-Event": []string{"Release Hook"},
+		"X-Gitlab-Token": []string{hookToken},
 	}
 )
 

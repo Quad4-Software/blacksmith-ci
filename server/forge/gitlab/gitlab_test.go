@@ -300,6 +300,36 @@ func Test_GitLab(t *testing.T) {
 			assert.Equal(t, model.EventRelease, pipeline.Event)
 		}
 	})
+
+	t.Run("reject hook with mismatched X-Gitlab-Token", func(t *testing.T) {
+		req, _ := http.NewRequest(
+			testdata.ServiceHookMethod,
+			testdata.ServiceHookURL.String(),
+			bytes.NewReader(testdata.HookPush),
+		)
+		req.Header = testdata.ServiceHookHeaders.Clone()
+		req.Header.Set("X-Gitlab-Token", "wrong-token")
+
+		hookRepo, pipeline, err := client.Hook(ctx, req)
+		assert.Error(t, err)
+		assert.Nil(t, hookRepo)
+		assert.Nil(t, pipeline)
+	})
+
+	t.Run("reject hook with missing X-Gitlab-Token", func(t *testing.T) {
+		req, _ := http.NewRequest(
+			testdata.ServiceHookMethod,
+			testdata.ServiceHookURL.String(),
+			bytes.NewReader(testdata.HookPush),
+		)
+		req.Header = testdata.ServiceHookHeaders.Clone()
+		req.Header.Del("X-Gitlab-Token")
+
+		hookRepo, pipeline, err := client.Hook(ctx, req)
+		assert.Error(t, err)
+		assert.Nil(t, hookRepo)
+		assert.Nil(t, pipeline)
+	})
 }
 
 func TestExtractFromPath(t *testing.T) {

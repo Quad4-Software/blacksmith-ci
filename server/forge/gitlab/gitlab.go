@@ -17,6 +17,7 @@ package gitlab
 
 import (
 	"context"
+	"crypto/subtle"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -162,10 +163,11 @@ func (g *GitLab) Refresh(ctx context.Context, user *model.User) (bool, error) {
 	config, oauth2Ctx := g.oauth2Config(ctx)
 	config.RedirectURL = ""
 
+	// Force a token exchange by treating the current token as already expired.
 	source := config.TokenSource(oauth2Ctx, &oauth2.Token{
 		AccessToken:  user.AccessToken,
 		RefreshToken: user.RefreshToken,
-		Expiry:       time.Unix(user.Expiry, 0),
+		Expiry:       time.Unix(1, 0),
 	})
 
 	token, err := source.Token()
@@ -173,10 +175,11 @@ func (g *GitLab) Refresh(ctx context.Context, user *model.User) (bool, error) {
 		return false, err
 	}
 
+	refreshed := token.AccessToken != user.AccessToken
 	user.AccessToken = token.AccessToken
 	user.RefreshToken = token.RefreshToken
 	user.Expiry = forge.TokenExpiryToUnix(token.Expiry)
-	return true, nil
+	return refreshed, nil
 }
 
 // Auth authenticates the session and returns the forge user login for the given token.
@@ -362,6 +365,11 @@ func (g *GitLab) Repos(ctx context.Context, user *model.User) ([]*model.Repo, er
 		}
 
 		for i := range batch {
+			// NOTE: This performs one GetInheritedProjectMember call per project
+			// (an N+1 access pattern). GitLab does not expose a batched
+			// inherited-membership endpoint that reliably reflects group-level
+			// inheritance for the calling user, so per-project resolution is kept
+			// here to preserve correct permission data.
 			projectMember, _, err := client.ProjectMembers.GetInheritedProjectMember(batch[i].ID, intUserID, gitlab.WithContext(ctx))
 			if err != nil {
 				return nil, err
@@ -454,8 +462,8 @@ func (g *GitLab) Dir(ctx context.Context, user *model.User, repo *model.Repo, pi
 		Recursive:   gitlab.Ptr(false),
 	}
 
-	for i := 1; true; i++ {
-		opts.Page = 1
+	for i := int64(1); true; i++ {
+		opts.Page = i
 		batch, _, err := client.Repositories.ListTree(_repo.ID, opts, gitlab.WithContext(ctx))
 		if err != nil {
 			return nil, err
@@ -606,7 +614,7 @@ func (g *GitLab) Deactivate(ctx context.Context, user *model.User, repo *model.R
 		}
 
 		for _, hook := range hooks {
-			if strings.Contains(hook.URL, webURL) {
+			if hook.URL == webURL {
 				_, err = client.Projects.DeleteProjectHook(_repo.ID, hook.ID, gitlab.WithContext(ctx))
 				log.Info().Msg(fmt.Sprintf("successfully deleted hook with ID %d for repo %s", hook.ID, repo.FullName))
 				if err != nil {
@@ -711,6 +719,18 @@ func (g *GitLab) refreshedTokenForRepo(ctx context.Context, r *model.Repo, u *mo
 // and returns the required data in a standard format.
 func (g *GitLab) Hook(ctx context.Context, req *http.Request) (*model.Repo, *model.Pipeline, error) {
 	defer req.Body.Close()
+
+	// Verify the secret token GitLab echoes back in the X-Gitlab-Token header.
+	// On Activate we set the hook secret to the access_token (a JWT signed with
+	// the repo hash) carried in the webhook URL. GitLab returns that exact value
+	// in X-Gitlab-Token, so it must match the access_token query parameter that
+	// PostHook has already validated against the repo hash.
+	if expected := req.URL.Query().Get("access_token"); expected != "" {
+		if got := req.Header.Get("X-Gitlab-Token"); subtle.ConstantTimeCompare([]byte(got), []byte(expected)) != 1 {
+			return nil, nil, fmt.Errorf("gitlab webhook token mismatch")
+		}
+	}
+
 	payload, err := io.ReadAll(req.Body)
 	if err != nil {
 		return nil, nil, err
@@ -772,7 +792,7 @@ func (g *GitLab) OrgMembership(ctx context.Context, u *model.User, owner string)
 	}
 	var gid int64
 	for _, group := range groups {
-		if group.Name == owner {
+		if group.FullPath == owner {
 			gid = group.ID
 			break
 		}

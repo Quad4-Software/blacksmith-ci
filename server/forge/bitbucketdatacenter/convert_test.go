@@ -21,6 +21,7 @@ import (
 
 	bb "github.com/neticdk/go-bitbucket/bitbucket"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/oauth2"
 
 	"codefloe.com/crowci/crow/v5/server/model"
 )
@@ -361,5 +362,39 @@ func Test_convertProjectsToTeams(t *testing.T) {
 		actual := convertProjectsToTeams(tt.projects, mockClient)
 
 		assert.Equal(t, tt.expected, actual)
+	}
+}
+
+func Test_updateUserCredentials(t *testing.T) {
+	tests := []struct {
+		name       string
+		expiry     time.Time
+		wantExpiry int64
+	}{
+		{
+			name:       "zero expiry maps to 0 instead of a huge negative",
+			expiry:     time.Time{},
+			wantExpiry: 0,
+		},
+		{
+			name:       "concrete expiry is converted to unix seconds",
+			expiry:     time.Unix(1700000000, 0),
+			wantExpiry: 1700000000,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			u := &model.User{}
+			tok := &oauth2.Token{
+				AccessToken:  "access",
+				RefreshToken: "refresh",
+				Expiry:       tt.expiry,
+			}
+			updateUserCredentials(u, tok)
+			assert.Equal(t, "access", u.AccessToken)
+			assert.Equal(t, "refresh", u.RefreshToken)
+			assert.Equal(t, tt.wantExpiry, u.Expiry)
+		})
 	}
 }

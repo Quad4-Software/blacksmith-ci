@@ -851,7 +851,7 @@ func (c *client) loadChangedFilesFromCommits(ctx context.Context, tmpRepo *model
 	if prev == "" {
 		opts := &github.ListOptions{Page: 1}
 		for opts.Page > 0 {
-			commit, resp, err := gh.Repositories.GetCommit(ctx, repo.Owner, repo.Name, curr, &github.ListOptions{})
+			commit, resp, err := gh.Repositories.GetCommit(ctx, repo.Owner, repo.Name, curr, opts)
 			if err != nil {
 				log.Warn().Err(err).Msg("failed to get commit for loading changed files, skipping")
 				return pipeline, nil

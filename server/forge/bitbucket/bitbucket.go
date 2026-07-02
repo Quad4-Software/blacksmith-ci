@@ -411,6 +411,13 @@ func (c *config) PullRequests(ctx context.Context, u *model.User, r *model.Repo,
 
 // Hook parses the incoming Bitbucket hook and returns the Repository and
 // Pipeline details. If the hook is unsupported nil values are returned.
+//
+// NOTE: Unlike Bitbucket Datacenter, the Bitbucket Cloud webhook API does not
+// support configuring a shared secret and does not send an HMAC signature
+// header, so payload-level signature verification is not possible here.
+// Authenticity is instead guaranteed by the JWT access_token embedded in the
+// webhook URL, which PostHook validates against the repo hash before this
+// method is called.
 func (c *config) Hook(ctx context.Context, req *http.Request) (*model.Repo, *model.Pipeline, error) {
 	repo, pl, err := parseHook(req)
 	if err != nil {
