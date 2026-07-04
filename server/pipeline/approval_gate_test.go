@@ -214,7 +214,7 @@ func TestDeclineWorkflowMarksDeclined(t *testing.T) {
 	// WorkflowGetTree which are idempotent reads, so a single .On(...) is fine.
 	s.On("GetPipeline", int64(99)).Return(pipeline, nil)
 	s.On("WorkflowGetTree", pipeline).Return([]*model.Workflow{wf}, nil)
-	s.On("TaskList").Return([]*model.Task{}, nil)
+	s.On("TaskListPending").Return([]*model.Task{}, nil)
 	// refreshAndPublishPipeline picks up the now-declined gate and rolls the
 	// pipeline status to Declined.
 	s.On("GetRepo", int64(1)).Return(repo, nil)

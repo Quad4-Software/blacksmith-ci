@@ -65,7 +65,7 @@ func TestSweepExpiredApprovalsCallsExpire(t *testing.T) {
 		Return(&model.Pipeline{ID: expired.PipelineID}, nil).Maybe()
 	s.On("WorkflowGetTree", mock.AnythingOfType("*model.Pipeline")).
 		Return([]*model.Workflow{expired}, nil).Maybe()
-	s.On("TaskList").Return([]*model.Task{}, nil).Maybe()
+	s.On("TaskListPending").Return([]*model.Task{}, nil).Maybe()
 	// After cascade, refreshAndPublishPipeline re-loads the pipeline + repo,
 	// recomputes the rollup status and republishes to SSE clients. For a
 	// system-driven expire (UserID=0) it also looks up the repo owner for

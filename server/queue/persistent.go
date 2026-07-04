@@ -29,6 +29,17 @@ import (
 // WithTaskStore returns a queue that is backed by the TaskStore. This
 // ensures the task Queue can be restored when the system starts.
 func WithTaskStore(ctx context.Context, q Queue, s store.Store) Queue {
+	// Reconcile stale rows first: tasks whose workflows already completed.
+	// The success path did not delete its task row until the Done override
+	// below was added, so long-running single-instance deployments may have
+	// accumulated stale rows that unfiltered TaskList() callers keep
+	// re-reading in full. Mirrors the DatabaseQueue startup reconciliation.
+	if deleted, err := s.TaskDeleteStale(); err != nil {
+		log.Error().Err(err).Msg("Failed to clean up stale tasks on startup")
+	} else if deleted > 0 {
+		log.Info().Int64("deleted", deleted).Msg("Cleaned up stale tasks on startup (workflows already completed)")
+	}
+
 	// Only load tasks for workflows that are still pending or running
 	// This prevents completed tasks from being reprocessed on server restart
 	tasks, err := s.TaskListPending()
@@ -139,6 +150,23 @@ func (q *persistentQueue) EvictAtOnce(c context.Context, ids []string) error {
 			// This prevents one missing task from failing the entire operation
 			log.Trace().Err(err).Msgf("queue: evict_at_once: failed to delete task %s from database - task may have been already deleted", id)
 		}
+	}
+	return nil
+}
+
+// Done signals the task is complete and removes its persisted row.
+// Without this override only the error/evict paths deleted rows, so every
+// successfully completed workflow leaked its task row into the tasks table
+// (in production deployments this grew to tens of thousands of rows that
+// unfiltered TaskList() callers then re-read wholesale on every invocation).
+func (q *persistentQueue) Done(c context.Context, id string, exitStatus model.StatusValue) error {
+	if err := q.Queue.Done(c, id, exitStatus); err != nil {
+		return err
+	}
+	if err := q.store.TaskDelete(id); err != nil {
+		// Log the error but don't fail the operation; the startup
+		// reconciliation in WithTaskStore removes any row left behind.
+		log.Trace().Err(err).Msgf("queue: done: failed to delete task %s from database - task may have been already deleted", id)
 	}
 	return nil
 }

@@ -113,7 +113,7 @@ func TestDeclineWorkflowPublishesPipelineUpdate(t *testing.T) {
 	// so it's a no-op after the lookup).
 	s.On("GetPipeline", int64(99)).Return(pl, nil)
 	s.On("WorkflowGetTree", pl).Return([]*model.Workflow{wf}, nil)
-	s.On("TaskList").Return([]*model.Task{}, nil)
+	s.On("TaskListPending").Return([]*model.Task{}, nil)
 
 	// refreshAndPublishPipeline: pipeline rollup now collapses to Declined.
 	s.On("GetRepo", int64(1)).Return(repo, nil)
@@ -168,7 +168,7 @@ func TestExpireWorkflowFallsBackToRepoOwnerForForgeAuth(t *testing.T) {
 	// Cascade tree load.
 	s.On("GetPipeline", int64(99)).Return(pl, nil)
 	s.On("WorkflowGetTree", pl).Return([]*model.Workflow{wf}, nil)
-	s.On("TaskList").Return([]*model.Task{}, nil)
+	s.On("TaskListPending").Return([]*model.Task{}, nil)
 
 	// refreshAndPublishPipeline.
 	s.On("GetRepo", int64(1)).Return(repo, nil)

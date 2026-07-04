@@ -52,7 +52,12 @@ func CascadeSkipBlockedWorkflows(ctx context.Context, _store store.Store, q queu
 		return fmt.Errorf("cascade skip: load workflow tree: %w", err)
 	}
 
-	tasks, err := _store.TaskList()
+	// Only tasks of pending workflows are consulted below, so the filtered
+	// query suffices. The unfiltered TaskList() re-read every row in the
+	// tasks table on each non-success workflow completion, which turned
+	// leaked stale rows into repeated whole-table loads (678 MB per call in
+	// the production incident this fixes).
+	tasks, err := _store.TaskListPending()
 	if err != nil {
 		return fmt.Errorf("cascade skip: load tasks: %w", err)
 	}

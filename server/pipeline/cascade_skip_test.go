@@ -62,7 +62,7 @@ func TestCascadeSkipBlockedWorkflows_SingleDepFailure(t *testing.T) {
 	mockStore.On("WorkflowGetTree", pipeline).Return([]*model.Workflow{failedWorkflow, pendingWorkflow}, nil)
 	// Default RunOn behavior (success only) — no need to look up tasks if RunOn is empty,
 	// but the helper still calls TaskList for correctness.
-	mockStore.On("TaskList").Return([]*model.Task{
+	mockStore.On("TaskListPending").Return([]*model.Task{
 		{ID: "2", Dependencies: model.JSONSliceString{"1"}},
 	}, nil)
 	mockStore.On("WorkflowUpdate", mock.MatchedBy(func(wf *model.Workflow) bool {
@@ -115,7 +115,7 @@ func TestCascadeSkipBlockedWorkflows_TransitiveCascade(t *testing.T) {
 
 	mockStore := new(store_mocks.MockStore)
 	mockStore.On("WorkflowGetTree", pipeline).Return([]*model.Workflow{wfA, wfB, wfC}, nil)
-	mockStore.On("TaskList").Return([]*model.Task{
+	mockStore.On("TaskListPending").Return([]*model.Task{
 		{ID: "11", Dependencies: model.JSONSliceString{"10"}},
 		{ID: "12", Dependencies: model.JSONSliceString{"11"}},
 	}, nil)
@@ -166,7 +166,7 @@ func TestCascadeSkipBlockedWorkflows_RunsOnFailureNotSkipped(t *testing.T) {
 
 	mockStore := new(store_mocks.MockStore)
 	mockStore.On("WorkflowGetTree", pipeline).Return([]*model.Workflow{wfA, wfB}, nil)
-	mockStore.On("TaskList").Return([]*model.Task{
+	mockStore.On("TaskListPending").Return([]*model.Task{
 		{
 			ID:           "21",
 			Dependencies: model.JSONSliceString{"20"},
@@ -211,7 +211,7 @@ func TestCascadeSkipBlockedWorkflows_RunsOnBothNotSkipped(t *testing.T) {
 
 	mockStore := new(store_mocks.MockStore)
 	mockStore.On("WorkflowGetTree", pipeline).Return([]*model.Workflow{wfA, wfB}, nil)
-	mockStore.On("TaskList").Return([]*model.Task{
+	mockStore.On("TaskListPending").Return([]*model.Task{
 		{
 			ID:           "31",
 			Dependencies: model.JSONSliceString{"30"},
@@ -254,7 +254,7 @@ func TestCascadeSkipBlockedWorkflows_NoFailedDepsNoChanges(t *testing.T) {
 
 	mockStore := new(store_mocks.MockStore)
 	mockStore.On("WorkflowGetTree", pipeline).Return([]*model.Workflow{wfA, wfB}, nil)
-	mockStore.On("TaskList").Return([]*model.Task{
+	mockStore.On("TaskListPending").Return([]*model.Task{
 		{ID: "41", Dependencies: model.JSONSliceString{"40"}},
 	}, nil)
 
@@ -293,7 +293,7 @@ func TestCascadeSkipBlockedWorkflows_SkippedDepCascades(t *testing.T) {
 
 	mockStore := new(store_mocks.MockStore)
 	mockStore.On("WorkflowGetTree", pipeline).Return([]*model.Workflow{wfA, wfB}, nil)
-	mockStore.On("TaskList").Return([]*model.Task{
+	mockStore.On("TaskListPending").Return([]*model.Task{
 		{ID: "51", Dependencies: model.JSONSliceString{"50"}},
 	}, nil)
 	mockStore.On("WorkflowUpdate", mock.MatchedBy(func(wf *model.Workflow) bool {
@@ -357,7 +357,7 @@ func TestCascadeSkipFromDeclined(t *testing.T) {
 	mockStore.On("GetPipeline", int64(700)).Return(pipeline, nil)
 	mockStore.On("WorkflowGetTree", pipeline).Return(
 		[]*model.Workflow{buildWF, gateWF, deployWF}, nil)
-	mockStore.On("TaskList").Return([]*model.Task{
+	mockStore.On("TaskListPending").Return([]*model.Task{
 		{ID: "61", Dependencies: model.JSONSliceString{"60"}},
 		{ID: "62", Dependencies: model.JSONSliceString{"61"}},
 	}, nil)
@@ -416,7 +416,7 @@ func TestCascadeSkipFromDeclined_RunsOnFailureNotSkipped(t *testing.T) {
 	mockStore.On("GetPipeline", int64(800)).Return(pipeline, nil)
 	mockStore.On("WorkflowGetTree", pipeline).Return(
 		[]*model.Workflow{gateWF, notifyWF}, nil)
-	mockStore.On("TaskList").Return([]*model.Task{
+	mockStore.On("TaskListPending").Return([]*model.Task{
 		{
 			ID:           "71",
 			Dependencies: model.JSONSliceString{"70"},

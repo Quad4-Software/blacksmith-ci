@@ -212,7 +212,7 @@ func TestApprovalGate_DAG_Decline(t *testing.T) {
 	s.On("GetPipeline", d.pipeline.ID).Return(d.pipeline, nil)
 	s.On("WorkflowGetTree", d.pipeline).Return(
 		[]*model.Workflow{d.build, d.gate, d.deploy}, nil)
-	s.On("TaskList").Return([]*model.Task{
+	s.On("TaskListPending").Return([]*model.Task{
 		{ID: "902", Dependencies: model.JSONSliceString{"901"}},
 		{ID: "903", Dependencies: model.JSONSliceString{"902"}},
 	}, nil)
@@ -321,7 +321,7 @@ func TestApprovalGate_DAG_Timeout(t *testing.T) {
 	s.On("GetPipeline", d.pipeline.ID).Return(d.pipeline, nil)
 	s.On("WorkflowGetTree", d.pipeline).Return(
 		[]*model.Workflow{d.build, d.gate, d.deploy}, nil)
-	s.On("TaskList").Return([]*model.Task{
+	s.On("TaskListPending").Return([]*model.Task{
 		{ID: "902", Dependencies: model.JSONSliceString{"901"}},
 		{ID: "903", Dependencies: model.JSONSliceString{"902"}},
 	}, nil)
