@@ -783,6 +783,68 @@ func (_c *MockService_IntegrationListAccessible_Call) RunAndReturn(run func(user
 	return _c
 }
 
+// IntegrationListAll provides a mock function for the type MockService
+func (_mock *MockService) IntegrationListAll(opts *model.ListOptions) ([]*model.Integration, error) {
+	ret := _mock.Called(opts)
+
+	if len(ret) == 0 {
+		panic("no return value specified for IntegrationListAll")
+	}
+
+	var r0 []*model.Integration
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(*model.ListOptions) ([]*model.Integration, error)); ok {
+		return returnFunc(opts)
+	}
+	if returnFunc, ok := ret.Get(0).(func(*model.ListOptions) []*model.Integration); ok {
+		r0 = returnFunc(opts)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.Integration)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(*model.ListOptions) error); ok {
+		r1 = returnFunc(opts)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockService_IntegrationListAll_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IntegrationListAll'
+type MockService_IntegrationListAll_Call struct {
+	*mock.Call
+}
+
+// IntegrationListAll is a helper method to define mock.On call
+//   - opts *model.ListOptions
+func (_e *MockService_Expecter) IntegrationListAll(opts any) *MockService_IntegrationListAll_Call {
+	return &MockService_IntegrationListAll_Call{Call: _e.mock.On("IntegrationListAll", opts)}
+}
+
+func (_c *MockService_IntegrationListAll_Call) Run(run func(opts *model.ListOptions)) *MockService_IntegrationListAll_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.ListOptions
+		if args[0] != nil {
+			arg0 = args[0].(*model.ListOptions)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockService_IntegrationListAll_Call) Return(integrations1 []*model.Integration, err error) *MockService_IntegrationListAll_Call {
+	_c.Call.Return(integrations1, err)
+	return _c
+}
+
+func (_c *MockService_IntegrationListAll_Call) RunAndReturn(run func(opts *model.ListOptions) ([]*model.Integration, error)) *MockService_IntegrationListAll_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // IntegrationUpdate provides a mock function for the type MockService
 func (_mock *MockService) IntegrationUpdate(integration *model.Integration) error {
 	ret := _mock.Called(integration)

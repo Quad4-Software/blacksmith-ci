@@ -294,6 +294,14 @@ Integrations use allowlists to control which pipelines can access secrets:
 If no allowlist is configured, no pipelines can use the integration. You must explicitly allow at least one user, organization, or repository.
 :::
 
+### Ownership and admin visibility
+
+Each integration is owned by the user who created it.
+Regular users only see and manage the integrations they own on the `/integrations` page.
+
+Instance admins see every integration added by any user on the server, with the owner shown on each entry.
+Admins view other users' integrations read-only; only the owner can edit, test, or delete an integration.
+
 ## Mixing Internal and External Secrets
 
 You can use both internal and external secrets in the same pipeline:

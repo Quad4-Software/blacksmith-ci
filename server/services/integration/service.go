@@ -29,6 +29,7 @@ type Service interface {
 	IntegrationFind(userID, integrationID int64) (*model.Integration, error)
 	IntegrationFindByID(integrationID int64) (*model.Integration, error)
 	IntegrationList(userID int64, opts *model.ListOptions) ([]*model.Integration, error)
+	IntegrationListAll(opts *model.ListOptions) ([]*model.Integration, error)
 	IntegrationListAccessible(userID int64, orgIDs []int64, repoIDs []int64, opts *model.ListOptions) ([]*model.Integration, error)
 	IntegrationCreate(integration *model.Integration) error
 	IntegrationUpdate(integration *model.Integration) error
@@ -90,6 +91,12 @@ func (s *service) IntegrationFindByID(integrationID int64) (*model.Integration, 
 // IntegrationList lists integrations owned by a user.
 func (s *service) IntegrationList(userID int64, opts *model.ListOptions) ([]*model.Integration, error) {
 	return s.store.IntegrationList(userID, opts)
+}
+
+// IntegrationListAll lists every integration on the instance regardless of owner.
+// Intended for instance admins to audit all configured integrations.
+func (s *service) IntegrationListAll(opts *model.ListOptions) ([]*model.Integration, error) {
+	return s.store.IntegrationListAll(opts)
 }
 
 // IntegrationListAccessible lists integrations accessible to a user based on allowlists.

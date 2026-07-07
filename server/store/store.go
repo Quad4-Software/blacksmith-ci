@@ -304,7 +304,7 @@ type Store interface {
 	IntegrationFind(int64) (*model.Integration, error)
 	IntegrationFindByName(userID int64, name string) (*model.Integration, error)
 	IntegrationList(userID int64, opts *model.ListOptions) ([]*model.Integration, error)
-	IntegrationListAll() ([]*model.Integration, error)
+	IntegrationListAll(opts *model.ListOptions) ([]*model.Integration, error)
 	IntegrationListAccessible(userID int64, orgIDs []int64, repoIDs []int64, opts *model.ListOptions) ([]*model.Integration, error)
 	IntegrationCreate(*model.Integration) error
 	IntegrationUpdate(*model.Integration) error

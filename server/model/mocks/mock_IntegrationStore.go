@@ -417,8 +417,8 @@ func (_c *MockIntegrationStore_IntegrationListAccessible_Call) RunAndReturn(run 
 }
 
 // IntegrationListAll provides a mock function for the type MockIntegrationStore
-func (_mock *MockIntegrationStore) IntegrationListAll() ([]*model.Integration, error) {
-	ret := _mock.Called()
+func (_mock *MockIntegrationStore) IntegrationListAll(opts *model.ListOptions) ([]*model.Integration, error) {
+	ret := _mock.Called(opts)
 
 	if len(ret) == 0 {
 		panic("no return value specified for IntegrationListAll")
@@ -426,18 +426,18 @@ func (_mock *MockIntegrationStore) IntegrationListAll() ([]*model.Integration, e
 
 	var r0 []*model.Integration
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func() ([]*model.Integration, error)); ok {
-		return returnFunc()
+	if returnFunc, ok := ret.Get(0).(func(*model.ListOptions) ([]*model.Integration, error)); ok {
+		return returnFunc(opts)
 	}
-	if returnFunc, ok := ret.Get(0).(func() []*model.Integration); ok {
-		r0 = returnFunc()
+	if returnFunc, ok := ret.Get(0).(func(*model.ListOptions) []*model.Integration); ok {
+		r0 = returnFunc(opts)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*model.Integration)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func() error); ok {
-		r1 = returnFunc()
+	if returnFunc, ok := ret.Get(1).(func(*model.ListOptions) error); ok {
+		r1 = returnFunc(opts)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -450,13 +450,20 @@ type MockIntegrationStore_IntegrationListAll_Call struct {
 }
 
 // IntegrationListAll is a helper method to define mock.On call
-func (_e *MockIntegrationStore_Expecter) IntegrationListAll() *MockIntegrationStore_IntegrationListAll_Call {
-	return &MockIntegrationStore_IntegrationListAll_Call{Call: _e.mock.On("IntegrationListAll")}
+//   - opts *model.ListOptions
+func (_e *MockIntegrationStore_Expecter) IntegrationListAll(opts any) *MockIntegrationStore_IntegrationListAll_Call {
+	return &MockIntegrationStore_IntegrationListAll_Call{Call: _e.mock.On("IntegrationListAll", opts)}
 }
 
-func (_c *MockIntegrationStore_IntegrationListAll_Call) Run(run func()) *MockIntegrationStore_IntegrationListAll_Call {
+func (_c *MockIntegrationStore_IntegrationListAll_Call) Run(run func(opts *model.ListOptions)) *MockIntegrationStore_IntegrationListAll_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run()
+		var arg0 *model.ListOptions
+		if args[0] != nil {
+			arg0 = args[0].(*model.ListOptions)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -466,7 +473,7 @@ func (_c *MockIntegrationStore_IntegrationListAll_Call) Return(integrations []*m
 	return _c
 }
 
-func (_c *MockIntegrationStore_IntegrationListAll_Call) RunAndReturn(run func() ([]*model.Integration, error)) *MockIntegrationStore_IntegrationListAll_Call {
+func (_c *MockIntegrationStore_IntegrationListAll_Call) RunAndReturn(run func(opts *model.ListOptions) ([]*model.Integration, error)) *MockIntegrationStore_IntegrationListAll_Call {
 	_c.Call.Return(run)
 	return _c
 }

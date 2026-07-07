@@ -1026,8 +1026,8 @@ func (c *CompositeEncryptedStore) IntegrationList(userID int64, opts *model.List
 	return c.baseStore.IntegrationList(userID, opts)
 }
 
-func (c *CompositeEncryptedStore) IntegrationListAll() ([]*model.Integration, error) {
-	return c.baseStore.IntegrationListAll()
+func (c *CompositeEncryptedStore) IntegrationListAll(opts *model.ListOptions) ([]*model.Integration, error) {
+	return c.baseStore.IntegrationListAll(opts)
 }
 
 func (c *CompositeEncryptedStore) IntegrationListAccessible(userID int64, orgIDs []int64, repoIDs []int64, opts *model.ListOptions) ([]*model.Integration, error) {

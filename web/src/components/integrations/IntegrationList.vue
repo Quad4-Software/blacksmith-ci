@@ -18,6 +18,10 @@
             <Badge variant="outline" class="shrink-0">
               {{ getTypeName(integration.type) }}
             </Badge>
+            <Badge v-if="!isOwnedByCurrentUser(integration)" variant="secondary" class="shrink-0">
+              <Icon name="user" class="mr-1 size-3" />
+              {{ $t('integrations.owner', { name: ownerName(integration) }) }}
+            </Badge>
           </div>
           <p v-if="integration.description" class="text-sm text-muted-foreground mb-2 line-clamp-2">
             {{ integration.description }}
@@ -74,7 +78,7 @@
           </div>
         </div>
 
-        <div class="flex items-center gap-2 shrink-0">
+        <div v-if="isOwnedByCurrentUser(integration)" class="flex items-center gap-2 shrink-0">
           <Button variant="outline" size="sm" :disabled="isTesting" @click="$emit('test', integration)">
             <Icon name="lucide:zap" class="mr-1 size-4" />
             {{ $t('integrations.test_connection') }}
@@ -101,10 +105,11 @@ import { Card } from '~/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip';
 import type { Integration, IntegrationType, Org, Repo, User } from '~/lib/api/types';
 
-defineProps<{
+const props = defineProps<{
   integrations: Integration[];
   isDeleting: boolean;
   isTesting: boolean;
+  currentUserId: number;
   usersMap: Map<number, User>;
   orgsMap: Map<number, Org>;
   reposMap: Map<number, Repo>;
@@ -132,5 +137,16 @@ function hasAnyAllowlist(integration: Integration): boolean {
     (integration.allowed_org_ids?.length ?? 0) > 0 ||
     (integration.allowed_repo_ids?.length ?? 0) > 0
   );
+}
+
+// An integration is owned by the current user when their IDs match. Admins may
+// see integrations owned by other users (via the server-side admin listing);
+// those are shown read-only since only the owner can manage them.
+function isOwnedByCurrentUser(integration: Integration): boolean {
+  return integration.user_id === props.currentUserId;
+}
+
+function ownerName(integration: Integration): string {
+  return props.usersMap.get(integration.user_id)?.login || `User #${integration.user_id}`;
 }
 </script>

@@ -76,7 +76,7 @@ type IntegrationStore interface {
 	IntegrationFind(int64) (*Integration, error)
 	IntegrationFindByName(userID int64, name string) (*Integration, error)
 	IntegrationList(userID int64, opts *ListOptions) ([]*Integration, error)
-	IntegrationListAll() ([]*Integration, error)
+	IntegrationListAll(opts *ListOptions) ([]*Integration, error)
 	IntegrationListAccessible(userID int64, orgIDs []int64, repoIDs []int64, opts *ListOptions) ([]*Integration, error)
 	IntegrationCreate(*Integration) error
 	IntegrationUpdate(*Integration) error

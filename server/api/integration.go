@@ -41,7 +41,17 @@ func GetIntegrationList(ctx context.Context, input *GetIntegrationListInput) (*G
 	user := session.User(c)
 	integrationService := server.Config.Services.IntegrationService
 
-	list, err := integrationService.IntegrationList(user.ID, &model.ListOptions{Page: input.Page, PerPage: input.PerPage})
+	opts := &model.ListOptions{Page: input.Page, PerPage: input.PerPage}
+
+	// Instance admins can see every integration on the server, regardless of
+	// owner. Regular users only see the integrations they own.
+	var list []*model.Integration
+	var err error
+	if user.Admin {
+		list, err = integrationService.IntegrationListAll(opts)
+	} else {
+		list, err = integrationService.IntegrationList(user.ID, opts)
+	}
 	if err != nil {
 		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error getting integration list. %s", err))
 	}

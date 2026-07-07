@@ -1278,6 +1278,7 @@
     "active": "Active",
     "inactive": "Inactive",
     "id_label": "ID: {id}",
+    "owner": "Owner: {name}",
     "name": "Name",
     "name_placeholder": "My Vault Integration",
     "type": "Type",

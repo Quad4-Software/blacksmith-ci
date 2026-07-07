@@ -130,6 +130,25 @@ func TestIntegrationList(t *testing.T) {
 	assert.Len(t, result, 2)
 }
 
+func TestIntegrationListAll(t *testing.T) {
+	store := modelMocks.NewMockIntegrationStore(t)
+	factory := intMocks.NewMockProviderFactory(t)
+
+	integrations := []*model.Integration{
+		{ID: 1, UserID: 100, Name: "vault-1"},
+		{ID: 2, UserID: 200, Name: "vault-2"},
+	}
+	opts := &model.ListOptions{Page: 1, PerPage: 10}
+
+	store.EXPECT().IntegrationListAll(opts).Return(integrations, nil)
+
+	svc := NewService(store, factory)
+	result, err := svc.IntegrationListAll(opts)
+
+	assert.NoError(t, err)
+	assert.Len(t, result, 2)
+}
+
 func TestIntegrationListAccessible(t *testing.T) {
 	store := modelMocks.NewMockIntegrationStore(t)
 	factory := intMocks.NewMockProviderFactory(t)

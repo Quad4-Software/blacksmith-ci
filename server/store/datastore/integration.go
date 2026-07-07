@@ -40,9 +40,11 @@ func (s storage) IntegrationList(userID int64, opts *model.ListOptions) ([]*mode
 		Scan(context.Background())
 }
 
-func (s storage) IntegrationListAll() ([]*model.Integration, error) {
+func (s storage) IntegrationListAll(opts *model.ListOptions) ([]*model.Integration, error) {
 	integrations := make([]*model.Integration, 0)
-	return integrations, s.db.NewSelect().Model(&integrations).Order("name ASC").Scan(context.Background())
+	return integrations, s.paginate(s.db.NewSelect().Model(&integrations).
+		Order("name ASC"), opts).
+		Scan(context.Background())
 }
 
 // IntegrationListAccessible returns integrations that the user can access.

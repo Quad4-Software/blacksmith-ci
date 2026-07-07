@@ -28,6 +28,7 @@
         :integrations="integrations"
         :is-deleting="isDeleting"
         :is-testing="isTesting"
+        :current-user-id="user?.id ?? 0"
         :users-map="usersMap"
         :orgs-map="orgsMap"
         :repos-map="reposMap"
@@ -50,6 +51,7 @@ import IntegrationList from '~/components/integrations/IntegrationList.vue';
 import Scaffold from '~/components/layout/scaffold/Scaffold.vue';
 import { Button } from '~/components/ui/button';
 import useApiClient from '~/compositions/useApiClient';
+import useAuthentication from '~/compositions/useAuthentication';
 import { useAsyncAction } from '~/compositions/useAsyncAction';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
 import useNotifications from '~/compositions/useNotifications';
@@ -69,6 +71,7 @@ const emptyIntegration: Partial<Integration> = {
 
 const apiClient = useApiClient();
 const notifications = useNotifications();
+const { user } = useAuthentication();
 const { t } = useI18n();
 
 const isDialogOpen = ref(false);
