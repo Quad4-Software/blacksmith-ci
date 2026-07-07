@@ -63,7 +63,7 @@ require (
 	github.com/uptrace/bun/extra/bundebug v1.2.18
 	github.com/urfave/cli-docs/v3 v3.1.0
 	github.com/urfave/cli/v3 v3.10.1
-	github.com/wneessen/go-mail v0.8.0
+	github.com/wneessen/go-mail v0.8.1-0.20260706081522-65e2023e7f01
 	github.com/yaronf/httpsign v0.5.1
 	gitlab.com/gitlab-org/api/client-go/v2 v2.46.0
 	go.podman.io/common v0.68.0
