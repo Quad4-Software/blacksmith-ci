@@ -84,12 +84,12 @@ function prettyDuration(durationMs: number) {
     const remainingSeconds = Math.round(seconds % 60);
     const formattedMinutes =
       minutes > 0
-        ? Intl.NumberFormat(currentLocale, { style: 'unit', unit: 'minute', unitDisplay: 'short' }).format(minutes)
+        ? new Intl.NumberFormat(currentLocale, { style: 'unit', unit: 'minute', unitDisplay: 'short' }).format(minutes)
         : '';
 
     const formattedSeconds =
       remainingSeconds > 0 || minutes === 0
-        ? Intl.NumberFormat(currentLocale, { style: 'unit', unit: 'second', unitDisplay: 'short' }).format(
+        ? new Intl.NumberFormat(currentLocale, { style: 'unit', unit: 'second', unitDisplay: 'short' }).format(
             remainingSeconds,
           )
         : '';
@@ -98,7 +98,7 @@ function prettyDuration(durationMs: number) {
       ? `${formattedMinutes} ${formattedSeconds}`
       : `${formattedMinutes}${formattedSeconds}`;
   }
-  return Intl.NumberFormat(currentLocale, { style: 'unit', unit: 'second', unitDisplay: 'short' }).format(
+  return new Intl.NumberFormat(currentLocale, { style: 'unit', unit: 'second', unitDisplay: 'short' }).format(
     Math.round(t.totalSeconds),
   );
 }
