@@ -595,10 +595,16 @@ func (e *docker) ResumeStep(ctx context.Context, step *backend.Step, taskUUID st
 	return nil
 }
 
+// removeOpts is used by DestroyStep/DestroyWorkflow, which only ever target
+// crow's own named step containers (toContainerName). Force is enabled so that
+// a container caught in a non-removable state (removal in progress, restarting)
+// during an aborted/canceled build is still torn down, cascading its anonymous
+// volumes via RemoveVolumes. This mirrors the crow-scoped stale reaper in
+// cleanup.go and prevents container + anonymous-volume leaks on failed builds.
 var removeOpts = container.RemoveOptions{
 	RemoveVolumes: true,
 	RemoveLinks:   false,
-	Force:         false,
+	Force:         true,
 }
 
 func isErrContainerNotFoundOrNotRunning(err error) bool {

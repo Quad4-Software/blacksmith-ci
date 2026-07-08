@@ -58,6 +58,22 @@ func isCrowResource(name string) bool {
 		strings.HasSuffix(name, "_default")
 }
 
+// isReapableContainerState reports whether a container in the given state is safe
+// for the stale reaper to force-remove. Only terminal states (exited/dead) and
+// "created" (created but never started, i.e. an orphan) qualify. Anything that
+// could belong to an active build (running, paused, restarting) or is already
+// being torn down (removing) is left alone, as is any unrecognized future state.
+// This prevents the reaper from ever killing a still-running pipeline, even one
+// that has been running longer than the stale threshold.
+func isReapableContainerState(state string) bool {
+	switch state {
+	case container.StateExited, container.StateDead, container.StateCreated:
+		return true
+	default:
+		return false
+	}
+}
+
 func (e *docker) cleanupStaleContainers(ctx context.Context, cutoff time.Time, result *backend.CleanupResult) error {
 	containers, err := e.client.ContainerList(ctx, container.ListOptions{
 		All: true,
@@ -70,6 +86,10 @@ func (e *docker) cleanupStaleContainers(ctx context.Context, cutoff time.Time, r
 	}
 
 	for _, c := range containers {
+		// Never touch containers belonging to an active build, regardless of age.
+		if !isReapableContainerState(c.State) {
+			continue
+		}
 		created := time.Unix(c.Created, 0)
 		if created.Before(cutoff) {
 			result.ContainersFound++
