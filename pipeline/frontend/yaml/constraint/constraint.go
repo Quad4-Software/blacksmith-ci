@@ -25,8 +25,8 @@ import (
 	"github.com/bmatcuk/doublestar/v4"
 	"github.com/expr-lang/expr"
 
-	"codefloe.com/crowci/crow/v5/pipeline/frontend/metadata"
-	yamlBaseTypes "codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/types/base"
+	"codefloe.com/crowci/crow/v6/pipeline/frontend/metadata"
+	yamlBaseTypes "codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/types/base"
 )
 
 type (

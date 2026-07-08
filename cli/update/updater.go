@@ -14,7 +14,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"codefloe.com/crowci/crow/v5/version"
+	"codefloe.com/crowci/crow/v6/version"
 )
 
 func CheckForUpdate(ctx context.Context, force bool) (*NewVersion, error) {

@@ -1,4 +1,4 @@
-module codefloe.com/crowci/crow/v5
+module codefloe.com/crowci/crow/v6
 
 go 1.26.0
 

@@ -21,7 +21,7 @@ import (
 	"strings"
 	"syscall"
 
-	"codefloe.com/crowci/crow/v5/pipeline"
+	"codefloe.com/crowci/crow/v6/pipeline"
 )
 
 // isDaemonUnreachable reports whether err indicates that the Docker daemon

@@ -22,7 +22,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"codefloe.com/crowci/crow/v5/server"
+	"codefloe.com/crowci/crow/v6/server"
 )
 
 type GetSignaturePublicKeyInput struct{}

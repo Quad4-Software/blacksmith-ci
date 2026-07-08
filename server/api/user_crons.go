@@ -20,9 +20,9 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/rs/zerolog/log"
 
-	"codefloe.com/crowci/crow/v5/server/model"
-	"codefloe.com/crowci/crow/v5/server/router/middleware/session"
-	"codefloe.com/crowci/crow/v5/server/store"
+	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/server/router/middleware/session"
+	"codefloe.com/crowci/crow/v6/server/store"
 )
 
 type GetUserCronListInput struct {

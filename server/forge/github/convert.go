@@ -20,7 +20,7 @@ import (
 
 	"github.com/google/go-github/v89/github"
 
-	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v6/server/model"
 )
 
 const (

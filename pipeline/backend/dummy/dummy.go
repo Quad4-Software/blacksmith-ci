@@ -26,7 +26,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v3"
 
-	backend "codefloe.com/crowci/crow/v5/pipeline/backend/types"
+	backend "codefloe.com/crowci/crow/v6/pipeline/backend/types"
 )
 
 type dummy struct {

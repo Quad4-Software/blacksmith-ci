@@ -6,9 +6,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"codefloe.com/crowci/crow/v5/pipeline/rpc"
-	"codefloe.com/crowci/crow/v5/server/model"
-	store_mocks "codefloe.com/crowci/crow/v5/server/store/mocks"
+	"codefloe.com/crowci/crow/v6/pipeline/rpc"
+	"codefloe.com/crowci/crow/v6/server/model"
+	store_mocks "codefloe.com/crowci/crow/v6/server/store/mocks"
 )
 
 func TestUpdateWorkflowStatusToDonePreservesKilledState(t *testing.T) {

@@ -18,7 +18,7 @@ import (
 	"context"
 	"fmt"
 
-	"codefloe.com/crowci/crow/v5/pipeline/backend/types"
+	"codefloe.com/crowci/crow/v6/pipeline/backend/types"
 )
 
 func FindBackend(ctx context.Context, backends []types.Backend, backendName string) (types.Backend, error) {

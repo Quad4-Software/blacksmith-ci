@@ -24,7 +24,7 @@ import (
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/dialect/sqlitedialect"
 
-	"codefloe.com/crowci/crow/v5/server/store"
+	"codefloe.com/crowci/crow/v6/server/store"
 )
 
 // newBunDB creates a *bun.DB with the appropriate dialect for the driver.

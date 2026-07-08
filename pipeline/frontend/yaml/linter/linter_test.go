@@ -21,9 +21,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"codefloe.com/crowci/crow/v5/pipeline/errors"
-	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml"
-	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/linter"
+	"codefloe.com/crowci/crow/v6/pipeline/errors"
+	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml"
+	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/linter"
 )
 
 func TestLint(t *testing.T) {

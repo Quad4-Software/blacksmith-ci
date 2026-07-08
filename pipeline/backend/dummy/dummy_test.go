@@ -20,8 +20,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"codefloe.com/crowci/crow/v5/pipeline/backend/dummy"
-	"codefloe.com/crowci/crow/v5/pipeline/backend/types"
+	"codefloe.com/crowci/crow/v6/pipeline/backend/dummy"
+	"codefloe.com/crowci/crow/v6/pipeline/backend/types"
 )
 
 func TestSmalPipelineDummyRun(t *testing.T) {

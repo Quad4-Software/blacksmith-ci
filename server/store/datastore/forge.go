@@ -19,7 +19,7 @@ import (
 
 	"github.com/uptrace/bun"
 
-	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v6/server/model"
 )
 
 func (s storage) ForgeGet(id int64) (*model.Forge, error) {

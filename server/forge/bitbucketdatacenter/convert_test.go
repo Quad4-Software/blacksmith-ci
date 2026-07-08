@@ -23,7 +23,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/oauth2"
 
-	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v6/server/model"
 )
 
 func Test_convertStatus(t *testing.T) {

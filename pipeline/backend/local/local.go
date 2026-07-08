@@ -32,7 +32,7 @@ import (
 	"golang.org/x/text/encoding/unicode"
 	"golang.org/x/text/transform"
 
-	"codefloe.com/crowci/crow/v5/pipeline/backend/types"
+	"codefloe.com/crowci/crow/v6/pipeline/backend/types"
 )
 
 type workflowState struct {

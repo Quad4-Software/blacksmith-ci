@@ -3,7 +3,7 @@ package errors
 import (
 	"errors"
 
-	"codefloe.com/crowci/crow/v5/pipeline/errors/types"
+	"codefloe.com/crowci/crow/v6/pipeline/errors/types"
 )
 
 type LinterErrorData struct {

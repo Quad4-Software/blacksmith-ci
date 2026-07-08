@@ -3,7 +3,7 @@
 package compiler
 
 import (
-	compiler "codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/compiler"
+	compiler "codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/compiler"
 	mock "github.com/stretchr/testify/mock"
 )
 

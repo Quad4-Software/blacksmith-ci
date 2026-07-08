@@ -26,8 +26,8 @@ import (
 
 	"github.com/docker/docker/api/types/container"
 
-	"codefloe.com/crowci/crow/v5/pipeline/backend/common"
-	"codefloe.com/crowci/crow/v5/pipeline/backend/types"
+	"codefloe.com/crowci/crow/v6/pipeline/backend/common"
+	"codefloe.com/crowci/crow/v6/pipeline/backend/types"
 )
 
 // Valid container volumes must have at least two components, source and destination.

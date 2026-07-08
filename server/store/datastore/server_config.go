@@ -17,7 +17,7 @@ package datastore
 import (
 	"context"
 
-	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v6/server/model"
 )
 
 func (s storage) ServerConfigGet(key string) (string, error) {

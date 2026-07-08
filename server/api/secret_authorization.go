@@ -19,10 +19,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"codefloe.com/crowci/crow/v5/server/cache"
-	"codefloe.com/crowci/crow/v5/server/forge"
-	"codefloe.com/crowci/crow/v5/server/model"
-	"codefloe.com/crowci/crow/v5/server/store"
+	"codefloe.com/crowci/crow/v6/server/cache"
+	"codefloe.com/crowci/crow/v6/server/forge"
+	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/server/store"
 )
 
 // SecretViewAuthorizer handles authorization for viewing abbreviated secret values.

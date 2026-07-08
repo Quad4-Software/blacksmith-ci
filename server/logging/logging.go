@@ -18,7 +18,7 @@ import (
 	"context"
 	"errors"
 
-	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v6/server/model"
 )
 
 // ErrNotFound is returned when the log does not exist.

@@ -26,14 +26,14 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v3"
 
-	"codefloe.com/crowci/crow/v5/server/model"
-	"codefloe.com/crowci/crow/v5/server/services/config"
-	"codefloe.com/crowci/crow/v5/server/services/encryption"
-	encryptedStore "codefloe.com/crowci/crow/v5/server/services/encryption/wrapper/store"
-	"codefloe.com/crowci/crow/v5/server/services/registry"
-	"codefloe.com/crowci/crow/v5/server/services/secret"
-	"codefloe.com/crowci/crow/v5/server/store"
-	"codefloe.com/crowci/crow/v5/server/store/types"
+	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/server/services/config"
+	"codefloe.com/crowci/crow/v6/server/services/encryption"
+	encryptedStore "codefloe.com/crowci/crow/v6/server/services/encryption/wrapper/store"
+	"codefloe.com/crowci/crow/v6/server/services/registry"
+	"codefloe.com/crowci/crow/v6/server/services/secret"
+	"codefloe.com/crowci/crow/v6/server/store"
+	"codefloe.com/crowci/crow/v6/server/store/types"
 )
 
 func setupRegistryService(store store.Store, dockerConfig string) registry.Service {

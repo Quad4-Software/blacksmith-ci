@@ -25,9 +25,9 @@ import (
 	"github.com/hashicorp/go-plugin"
 	"github.com/rs/zerolog/log"
 
-	"codefloe.com/crowci/crow/v5/server/forge"
-	"codefloe.com/crowci/crow/v5/server/forge/types"
-	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v6/server/forge"
+	"codefloe.com/crowci/crow/v6/server/forge/types"
+	"codefloe.com/crowci/crow/v6/server/model"
 )
 
 // make sure RPC implements forge.Forge.

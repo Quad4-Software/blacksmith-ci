@@ -23,12 +23,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 
-	"codefloe.com/crowci/crow/v5/server"
-	"codefloe.com/crowci/crow/v5/server/model"
-	"codefloe.com/crowci/crow/v5/server/store"
-	"codefloe.com/crowci/crow/v5/server/store/datastore"
-	"codefloe.com/crowci/crow/v5/shared/httputil"
-	"codefloe.com/crowci/crow/v5/shared/token"
+	"codefloe.com/crowci/crow/v6/server"
+	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/server/store"
+	"codefloe.com/crowci/crow/v6/server/store/datastore"
+	"codefloe.com/crowci/crow/v6/shared/httputil"
+	"codefloe.com/crowci/crow/v6/shared/token"
 )
 
 func User(c *gin.Context) *model.User {

@@ -21,7 +21,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"codefloe.com/crowci/crow/v5/server/store"
+	"codefloe.com/crowci/crow/v6/server/store"
 )
 
 // Service provides distributed locking capabilities for HA deployments.

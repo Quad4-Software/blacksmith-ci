@@ -24,7 +24,7 @@ import (
 	nettypes "go.podman.io/common/libnetwork/types"
 	"go.podman.io/podman/v6/pkg/specgen"
 
-	backend "codefloe.com/crowci/crow/v5/pipeline/backend/types"
+	backend "codefloe.com/crowci/crow/v6/pipeline/backend/types"
 )
 
 func TestToSpecGeneratorAttachesNetworksAtCreateTime(t *testing.T) {

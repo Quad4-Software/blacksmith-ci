@@ -19,9 +19,9 @@ package authz
 import (
 	"context"
 
-	"codefloe.com/crowci/crow/v5/server/model"
-	"codefloe.com/crowci/crow/v5/server/services"
-	"codefloe.com/crowci/crow/v5/server/store"
+	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/server/services"
+	"codefloe.com/crowci/crow/v6/server/store"
 )
 
 // CanApproveWorkflow returns (allowed, denial-reason, error).

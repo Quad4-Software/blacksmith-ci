@@ -21,10 +21,10 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"codefloe.com/crowci/crow/v5/server"
-	forge_types "codefloe.com/crowci/crow/v5/server/forge/types"
-	"codefloe.com/crowci/crow/v5/server/model"
-	"codefloe.com/crowci/crow/v5/server/store"
+	"codefloe.com/crowci/crow/v6/server"
+	forge_types "codefloe.com/crowci/crow/v6/server/forge/types"
+	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/server/store"
 )
 
 // Approve update the status to pending for a blocked pipeline so it can be executed.

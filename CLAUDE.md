@@ -29,7 +29,7 @@ feature: implement SMTP auth using a modern go mailing sdk and allow configuring
 
 - `go test -v -run TestName ./path/to/package` - Run specific test
 - `go test -tags 'test' -run TestName ./path/to/package` - Run test with build tags
-- Example: `go test -v -run TestPipeline codeberg.org/crowci/crow/v5/server/pipeline`
+- Example: `go test -v -run TestPipeline codeberg.org/crowci/crow/v6/server/pipeline`
 
 ### Linting and Formatting
 

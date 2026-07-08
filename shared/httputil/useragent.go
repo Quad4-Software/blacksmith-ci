@@ -17,7 +17,7 @@ package httputil
 import (
 	"net/http"
 
-	"codefloe.com/crowci/crow/v5/version"
+	"codefloe.com/crowci/crow/v6/version"
 )
 
 // UserAgent returns the User-Agent header value identifying the Crow

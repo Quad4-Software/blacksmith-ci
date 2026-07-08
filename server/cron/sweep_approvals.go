@@ -20,9 +20,9 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"codefloe.com/crowci/crow/v5/server/pipeline"
-	"codefloe.com/crowci/crow/v5/server/queue"
-	"codefloe.com/crowci/crow/v5/server/store"
+	"codefloe.com/crowci/crow/v6/server/pipeline"
+	"codefloe.com/crowci/crow/v6/server/queue"
+	"codefloe.com/crowci/crow/v6/server/store"
 )
 
 // SweepExpiredApprovals scans for workflow approval gates whose deadline has

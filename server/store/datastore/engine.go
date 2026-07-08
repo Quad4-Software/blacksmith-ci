@@ -22,8 +22,8 @@ import (
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/extra/bundebug"
 
-	"codefloe.com/crowci/crow/v5/server/store"
-	"codefloe.com/crowci/crow/v5/server/store/datastore/migration"
+	"codefloe.com/crowci/crow/v6/server/store"
+	"codefloe.com/crowci/crow/v6/server/store/datastore/migration"
 )
 
 type storage struct {

@@ -26,7 +26,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v3"
 
-	"codefloe.com/crowci/crow/v5/pipeline/backend/common"
+	"codefloe.com/crowci/crow/v6/pipeline/backend/common"
 )
 
 type config struct {

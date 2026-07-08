@@ -20,7 +20,7 @@ import (
 
 	logger "github.com/rs/zerolog/log"
 
-	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v6/server/model"
 )
 
 // TODO: (bradrydzewski) writing to subscribers is currently a blocking

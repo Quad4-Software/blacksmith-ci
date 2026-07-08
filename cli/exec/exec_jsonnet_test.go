@@ -22,9 +22,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"codefloe.com/crowci/crow/v5/cli/common"
-	crow_jsonnet "codefloe.com/crowci/crow/v5/pipeline/frontend/jsonnet"
-	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/matrix"
+	"codefloe.com/crowci/crow/v6/cli/common"
+	crow_jsonnet "codefloe.com/crowci/crow/v6/pipeline/frontend/jsonnet"
+	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/matrix"
 )
 
 // TestJsonnetEvaluationProducesParseableYAML verifies that Jsonnet files

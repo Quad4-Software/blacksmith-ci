@@ -18,10 +18,10 @@ package pipeline
 import (
 	"time"
 
-	"codefloe.com/crowci/crow/v5/pipeline"
-	"codefloe.com/crowci/crow/v5/pipeline/rpc"
-	"codefloe.com/crowci/crow/v5/server/model"
-	"codefloe.com/crowci/crow/v5/server/store"
+	"codefloe.com/crowci/crow/v6/pipeline"
+	"codefloe.com/crowci/crow/v6/pipeline/rpc"
+	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/server/store"
 )
 
 func UpdateStepStatus(store store.Store, step *model.Step, state rpc.StepState) error {

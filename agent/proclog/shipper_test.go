@@ -25,7 +25,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"codefloe.com/crowci/crow/v5/pipeline/rpc/proto"
+	"codefloe.com/crowci/crow/v6/pipeline/rpc/proto"
 )
 
 type fakeClient struct {

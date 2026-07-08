@@ -21,10 +21,10 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"codefloe.com/crowci/crow/v5/server/model"
-	encryption_types "codefloe.com/crowci/crow/v5/server/services/encryption/types"
-	encryption_mocks "codefloe.com/crowci/crow/v5/server/services/encryption/types/mocks"
-	store_mocks "codefloe.com/crowci/crow/v5/server/store/mocks"
+	"codefloe.com/crowci/crow/v6/server/model"
+	encryption_types "codefloe.com/crowci/crow/v6/server/services/encryption/types"
+	encryption_mocks "codefloe.com/crowci/crow/v6/server/services/encryption/types/mocks"
+	store_mocks "codefloe.com/crowci/crow/v6/server/store/mocks"
 )
 
 func TestEncryptedSecretStore_SecretFind(t *testing.T) {

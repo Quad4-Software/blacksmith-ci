@@ -23,9 +23,9 @@ import (
 	"github.com/danielgtaylor/huma/v2/adapters/humagin"
 	"github.com/gin-gonic/gin"
 
-	"codefloe.com/crowci/crow/v5/server"
-	"codefloe.com/crowci/crow/v5/server/api"
-	"codefloe.com/crowci/crow/v5/server/router/middleware/session"
+	"codefloe.com/crowci/crow/v6/server"
+	"codefloe.com/crowci/crow/v6/server/api"
+	"codefloe.com/crowci/crow/v6/server/router/middleware/session"
 )
 
 // BearerSecurity is the OpenAPI security requirement for authenticated endpoints.

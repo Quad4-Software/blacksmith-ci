@@ -19,7 +19,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"codefloe.com/crowci/crow/v5/shared/yaml"
+	"codefloe.com/crowci/crow/v6/shared/yaml"
 )
 
 type StructStringOrSlice struct {

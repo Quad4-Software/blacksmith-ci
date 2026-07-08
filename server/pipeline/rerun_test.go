@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	backend_types "codefloe.com/crowci/crow/v5/pipeline/backend/types"
-	"codefloe.com/crowci/crow/v5/server/model"
+	backend_types "codefloe.com/crowci/crow/v6/pipeline/backend/types"
+	"codefloe.com/crowci/crow/v6/server/model"
 )
 
 func TestUpdateWorkflowNumberInConfig(t *testing.T) {

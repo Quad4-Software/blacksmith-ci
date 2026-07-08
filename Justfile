@@ -48,7 +48,7 @@ VERSION := if env("CI_COMMIT_TAG", "") != "" { replace(env("CI_COMMIT_TAG", ""),
 
 # Conditional assignment for LDFLAGS if STATIC_BUILD is true
 
-LDFLAGS := if STATIC_BUILD == "true" { "-s -w -extldflags '-static' -X codefloe.com/crowci/crow/v5/version.Version=" + VERSION + " -X codefloe.com/crowci/crow/v5/version.BuildDate=" + BUILD_DATE } else { "-X codefloe.com/crowci/crow/v5/version.Version=" + VERSION + " -X codefloe.com/crowci/crow/v5/version.BuildDate=" + BUILD_DATE }
+LDFLAGS := if STATIC_BUILD == "true" { "-s -w -extldflags '-static' -X codefloe.com/crowci/crow/v6/version.Version=" + VERSION + " -X codefloe.com/crowci/crow/v6/version.BuildDate=" + BUILD_DATE } else { "-X codefloe.com/crowci/crow/v6/version.Version=" + VERSION + " -X codefloe.com/crowci/crow/v6/version.BuildDate=" + BUILD_DATE }
 
 # only used to compile server
 
@@ -149,20 +149,20 @@ install-protoc:
 ## test
 
 test-agent:
-    CGO_ENABLED=1 go test -race -cover -coverprofile agent-coverage.out -timeout 60s -tags 'test {{ TAGS }}' codefloe.com/crowci/crow/v5/cmd/agent codefloe.com/crowci/crow/v5/agent/...
+    CGO_ENABLED=1 go test -race -cover -coverprofile agent-coverage.out -timeout 60s -tags 'test {{ TAGS }}' codefloe.com/crowci/crow/v6/cmd/agent codefloe.com/crowci/crow/v6/agent/...
 
 test-server:
-    CGO_ENABLED=1 go test -race -cover -coverprofile server-coverage.out -timeout 60s -tags 'test {{ TAGS }}' codefloe.com/crowci/crow/v5/cmd/server `go list codefloe.com/crowci/crow/v5/server/... | grep -v '/store'`
+    CGO_ENABLED=1 go test -race -cover -coverprofile server-coverage.out -timeout 60s -tags 'test {{ TAGS }}' codefloe.com/crowci/crow/v6/cmd/server `go list codefloe.com/crowci/crow/v6/server/... | grep -v '/store'`
 
 test-cli:
-    CGO_ENABLED=1 go test -race -cover -coverprofile cli-coverage.out -timeout 60s -tags 'test {{ TAGS }}' codefloe.com/crowci/crow/v5/cmd/cli codefloe.com/crowci/crow/v5/cli/...
+    CGO_ENABLED=1 go test -race -cover -coverprofile cli-coverage.out -timeout 60s -tags 'test {{ TAGS }}' codefloe.com/crowci/crow/v6/cmd/cli codefloe.com/crowci/crow/v6/cli/...
 
 test-server-datastore:
-    CGO_ENABLED=1 go test -timeout 300s -tags 'test {{ TAGS }}' -run TestMigrate codefloe.com/crowci/crow/v5/server/store/...
-    go test -race -timeout 100s -tags 'test {{ TAGS }}' -skip TestMigrate codefloe.com/crowci/crow/v5/server/store/...
+    CGO_ENABLED=1 go test -timeout 300s -tags 'test {{ TAGS }}' -run TestMigrate codefloe.com/crowci/crow/v6/server/store/...
+    go test -race -timeout 100s -tags 'test {{ TAGS }}' -skip TestMigrate codefloe.com/crowci/crow/v6/server/store/...
 
 test-server-datastore-coverage:
-    CGO_ENABLED=1 go test -race -cover -coverprofile datastore-coverage.out -timeout 600s -tags 'test {{ TAGS }}' codefloe.com/crowci/crow/v5/server/store/...
+    CGO_ENABLED=1 go test -race -cover -coverprofile datastore-coverage.out -timeout 600s -tags 'test {{ TAGS }}' codefloe.com/crowci/crow/v6/server/store/...
 
 [working-directory('web')]
 test-ui:
@@ -208,7 +208,7 @@ lint-backend: install-dev-deps
     golangci-lint run
 
 deadcode:
-    go run golang.org/x/tools/cmd/deadcode@latest -generated=false -f='{{{{println .Path}}{{{{range .Funcs}}{{{{printf "\t%s\n" .Name}}{{{{end}}{{{{println}}' -test codefloe.com/crowci/crow/v5/...
+    go run golang.org/x/tools/cmd/deadcode@latest -generated=false -f='{{{{println .Path}}{{{{range .Funcs}}{{{{printf "\t%s\n" .Name}}{{{{end}}{{{{println}}' -test codefloe.com/crowci/crow/v6/...
 
 [working-directory('web')]
 lint-frontend:
@@ -238,10 +238,10 @@ build-ui:
     sha256sum dist/index.html 2>/dev/null || shasum -a 256 dist/index.html 2>/dev/null || true
 
 build-agent:
-    CGO_ENABLED=0 GOOS={{ TARGETOS }} GOARCH={{ TARGETARCH }} go build -tags '{{ TAGS }}' -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/crow-agent{{ BIN_SUFFIX }} codefloe.com/crowci/crow/v5/cmd/agent
+    CGO_ENABLED=0 GOOS={{ TARGETOS }} GOARCH={{ TARGETARCH }} go build -tags '{{ TAGS }}' -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/crow-agent{{ BIN_SUFFIX }} codefloe.com/crowci/crow/v6/cmd/agent
 
 build-cli:
-    CGO_ENABLED=0 GOOS={{ TARGETOS }} GOARCH={{ TARGETARCH }} go build -tags '{{ TAGS }}' -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/crow-cli{{ BIN_SUFFIX }} codefloe.com/crowci/crow/v5/cmd/cli
+    CGO_ENABLED=0 GOOS={{ TARGETOS }} GOARCH={{ TARGETARCH }} go build -tags '{{ TAGS }}' -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/crow-cli{{ BIN_SUFFIX }} codefloe.com/crowci/crow/v6/cmd/cli
 
 install-cli-dev: build-cli
     mkdir -p ~/.local/bin
@@ -317,12 +317,12 @@ release-checksums:
 
 release-cli:
     # compile
-    GOOS=linux   GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/linux_amd64/crow-cli       codefloe.com/crowci/crow/v5/cmd/cli
-    GOOS=linux   GOARCH=arm64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/linux_arm64/crow-cli       codefloe.com/crowci/crow/v5/cmd/cli
-    GOOS=linux   GOARCH=arm   CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/linux_arm/crow-cli         codefloe.com/crowci/crow/v5/cmd/cli
-    GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/windows_amd64/crow-cli.exe codefloe.com/crowci/crow/v5/cmd/cli
-    GOOS=darwin  GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/darwin_amd64/crow-cli      codefloe.com/crowci/crow/v5/cmd/cli
-    GOOS=darwin  GOARCH=arm64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/darwin_arm64/crow-cli      codefloe.com/crowci/crow/v5/cmd/cli
+    GOOS=linux   GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/linux_amd64/crow-cli       codefloe.com/crowci/crow/v6/cmd/cli
+    GOOS=linux   GOARCH=arm64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/linux_arm64/crow-cli       codefloe.com/crowci/crow/v6/cmd/cli
+    GOOS=linux   GOARCH=arm   CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/linux_arm/crow-cli         codefloe.com/crowci/crow/v6/cmd/cli
+    GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/windows_amd64/crow-cli.exe codefloe.com/crowci/crow/v6/cmd/cli
+    GOOS=darwin  GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/darwin_amd64/crow-cli      codefloe.com/crowci/crow/v6/cmd/cli
+    GOOS=darwin  GOARCH=arm64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/darwin_arm64/crow-cli      codefloe.com/crowci/crow/v6/cmd/cli
     # tar binary files
     tar -cvzf {{ DIST_DIR }}/crow-cli_linux_amd64.tar.gz   -C {{ DIST_DIR }}/cli/linux_amd64   crow-cli
     tar -cvzf {{ DIST_DIR }}/crow-cli_linux_arm64.tar.gz   -C {{ DIST_DIR }}/cli/linux_arm64   crow-cli
@@ -361,7 +361,7 @@ release-agent:
             mkdir -p {{ DIST_DIR }}/agent/${os}_${arch}
             GOOS=$os GOARCH=$arch CGO_ENABLED=0 go build -tags '{{ TAGS }}' -ldflags '{{ LDFLAGS }}' \
                 -o {{ DIST_DIR }}/agent/${os}_${arch}/crow-agent${bin_suffix} \
-                codefloe.com/crowci/crow/v5/cmd/agent
+                codefloe.com/crowci/crow/v6/cmd/agent
 
             # Create archives
             if [[ "$os" == "windows" ]]; then

@@ -22,8 +22,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 
-	"codefloe.com/crowci/crow/v5/pipeline"
-	"codefloe.com/crowci/crow/v5/pipeline/backend/types"
+	"codefloe.com/crowci/crow/v6/pipeline"
+	"codefloe.com/crowci/crow/v6/pipeline/backend/types"
 )
 
 func TestNativeSecretsEnabled(t *testing.T) {

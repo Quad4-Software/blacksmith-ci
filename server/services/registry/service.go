@@ -14,7 +14,7 @@
 
 package registry
 
-import "codefloe.com/crowci/crow/v5/server/model"
+import "codefloe.com/crowci/crow/v6/server/model"
 
 // Service defines a service for managing registries.
 type Service interface {

@@ -23,8 +23,8 @@ import (
 
 	gitlab "gitlab.com/gitlab-org/api/client-go/v2"
 
-	"codefloe.com/crowci/crow/v5/server/model"
-	"codefloe.com/crowci/crow/v5/shared/utils"
+	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/shared/utils"
 )
 
 const (

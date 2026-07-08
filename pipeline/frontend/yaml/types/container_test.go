@@ -20,9 +20,9 @@ import (
 	"github.com/docker/docker/api/types/strslice"
 	"github.com/stretchr/testify/assert"
 
-	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/constraint"
-	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/types/base"
-	"codefloe.com/crowci/crow/v5/shared/yaml"
+	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/constraint"
+	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/types/base"
+	"codefloe.com/crowci/crow/v6/shared/yaml"
 )
 
 var containerYaml = []byte(`

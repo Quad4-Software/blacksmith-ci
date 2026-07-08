@@ -38,9 +38,9 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
-	"codefloe.com/crowci/crow/v5/pipeline/backend/types"
-	pipelineErrors "codefloe.com/crowci/crow/v5/pipeline/errors/types"
-	"codefloe.com/crowci/crow/v5/shared/yaml"
+	"codefloe.com/crowci/crow/v6/pipeline/backend/types"
+	pipelineErrors "codefloe.com/crowci/crow/v6/pipeline/errors/types"
+	"codefloe.com/crowci/crow/v6/shared/yaml"
 )
 
 const (

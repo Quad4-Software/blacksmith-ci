@@ -17,8 +17,8 @@ package registry
 import (
 	"github.com/urfave/cli/v3"
 
-	"codefloe.com/crowci/crow/v5/cli/internal"
-	crow "codefloe.com/crowci/crow/v5/crow-go/crow"
+	"codefloe.com/crowci/crow/v6/cli/internal"
+	crow "codefloe.com/crowci/crow/v6/crow-go/crow"
 )
 
 // Command exports the registry command set.

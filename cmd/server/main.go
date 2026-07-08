@@ -24,8 +24,8 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v3"
 
-	"codefloe.com/crowci/crow/v5/shared/utils"
-	"codefloe.com/crowci/crow/v5/version"
+	"codefloe.com/crowci/crow/v6/shared/utils"
+	"codefloe.com/crowci/crow/v6/version"
 )
 
 func main() {

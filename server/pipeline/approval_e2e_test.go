@@ -22,9 +22,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"codefloe.com/crowci/crow/v5/server/model"
-	queue_mocks "codefloe.com/crowci/crow/v5/server/queue/mocks"
-	store_mocks "codefloe.com/crowci/crow/v5/server/store/mocks"
+	"codefloe.com/crowci/crow/v6/server/model"
+	queue_mocks "codefloe.com/crowci/crow/v6/server/queue/mocks"
+	store_mocks "codefloe.com/crowci/crow/v6/server/store/mocks"
 )
 
 // Local Decline / Timeout helpers reuse withApprovalPublishServices, which

@@ -26,9 +26,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"codefloe.com/crowci/crow/v5/server/forge/types"
-	"codefloe.com/crowci/crow/v5/server/model"
-	mocks_store "codefloe.com/crowci/crow/v5/server/store/mocks"
+	"codefloe.com/crowci/crow/v6/server/forge/types"
+	"codefloe.com/crowci/crow/v6/server/model"
+	mocks_store "codefloe.com/crowci/crow/v6/server/store/mocks"
 )
 
 // mockForgeWithRefresher implements both Forge and Refresher interfaces for testing.

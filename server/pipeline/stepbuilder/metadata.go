@@ -19,9 +19,9 @@ import (
 	"net/url"
 	"strings"
 
-	"codefloe.com/crowci/crow/v5/pipeline/frontend/metadata"
-	"codefloe.com/crowci/crow/v5/server/model"
-	"codefloe.com/crowci/crow/v5/version"
+	"codefloe.com/crowci/crow/v6/pipeline/frontend/metadata"
+	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/version"
 )
 
 // MetadataFromStruct return the metadata from a pipeline will run with.

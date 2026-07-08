@@ -17,7 +17,7 @@ package compiler
 import (
 	"sort"
 
-	backend_types "codefloe.com/crowci/crow/v5/pipeline/backend/types"
+	backend_types "codefloe.com/crowci/crow/v6/pipeline/backend/types"
 )
 
 type dagCompilerStep struct {

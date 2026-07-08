@@ -19,7 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"codefloe.com/crowci/crow/v5/pipeline/errors/types"
+	"codefloe.com/crowci/crow/v6/pipeline/errors/types"
 )
 
 // jsonValue marshals v to a JSON string for database storage.

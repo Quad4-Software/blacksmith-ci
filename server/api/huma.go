@@ -21,7 +21,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/gin-gonic/gin"
 
-	"codefloe.com/crowci/crow/v5/server/store/types"
+	"codefloe.com/crowci/crow/v6/server/store/types"
 )
 
 // ginCtxKeyType is the context key type for storing *gin.Context in context.Context.

@@ -22,8 +22,8 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"codefloe.com/crowci/crow/v5/server/model"
-	store_mocks "codefloe.com/crowci/crow/v5/server/store/mocks"
+	"codefloe.com/crowci/crow/v6/server/model"
+	store_mocks "codefloe.com/crowci/crow/v6/server/store/mocks"
 )
 
 func TestReceiverIngest(t *testing.T) {

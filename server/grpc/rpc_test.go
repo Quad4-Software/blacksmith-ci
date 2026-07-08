@@ -28,13 +28,13 @@ import (
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc/metadata"
 
-	"codefloe.com/crowci/crow/v5/pipeline/rpc"
-	"codefloe.com/crowci/crow/v5/server/logging"
-	"codefloe.com/crowci/crow/v5/server/model"
-	"codefloe.com/crowci/crow/v5/server/pubsub"
-	queue_mocks "codefloe.com/crowci/crow/v5/server/queue/mocks"
-	store_mocks "codefloe.com/crowci/crow/v5/server/store/mocks"
-	"codefloe.com/crowci/crow/v5/server/store/types"
+	"codefloe.com/crowci/crow/v6/pipeline/rpc"
+	"codefloe.com/crowci/crow/v6/server/logging"
+	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/server/pubsub"
+	queue_mocks "codefloe.com/crowci/crow/v6/server/queue/mocks"
+	store_mocks "codefloe.com/crowci/crow/v6/server/store/mocks"
+	"codefloe.com/crowci/crow/v6/server/store/types"
 )
 
 // newTestGRPCMetrics creates a GRPCMetrics using a fresh registry to avoid

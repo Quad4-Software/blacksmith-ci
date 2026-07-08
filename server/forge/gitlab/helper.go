@@ -22,7 +22,7 @@ import (
 	gitlab "gitlab.com/gitlab-org/api/client-go/v2"
 	"golang.org/x/oauth2"
 
-	"codefloe.com/crowci/crow/v5/shared/httputil"
+	"codefloe.com/crowci/crow/v6/shared/httputil"
 )
 
 const (

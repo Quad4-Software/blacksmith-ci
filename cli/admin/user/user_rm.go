@@ -20,7 +20,7 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"codefloe.com/crowci/crow/v5/cli/internal"
+	"codefloe.com/crowci/crow/v6/cli/internal"
 )
 
 var userRemoveCmd = &cli.Command{

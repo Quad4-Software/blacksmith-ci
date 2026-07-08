@@ -14,7 +14,7 @@
 
 package badges
 
-import "codefloe.com/crowci/crow/v5/server/model"
+import "codefloe.com/crowci/crow/v6/server/model"
 
 // cspell:words Verdana
 

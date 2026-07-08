@@ -23,8 +23,8 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	crow_jsonnet "codefloe.com/crowci/crow/v5/pipeline/frontend/jsonnet"
-	"codefloe.com/crowci/crow/v5/shared/constant"
+	crow_jsonnet "codefloe.com/crowci/crow/v6/pipeline/frontend/jsonnet"
+	"codefloe.com/crowci/crow/v6/shared/constant"
 )
 
 func DetectPipelineConfig() (isDir bool, config string, _ error) {

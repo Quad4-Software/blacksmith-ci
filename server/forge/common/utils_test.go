@@ -19,7 +19,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"codefloe.com/crowci/crow/v5/server/forge/common"
+	"codefloe.com/crowci/crow/v6/server/forge/common"
 )
 
 func Test_Netrc(t *testing.T) {

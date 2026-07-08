@@ -18,8 +18,8 @@ import (
 	"errors"
 	"fmt"
 
-	"codefloe.com/crowci/crow/v5/server/services/encryption/types"
-	storeTypes "codefloe.com/crowci/crow/v5/server/store/types"
+	"codefloe.com/crowci/crow/v6/server/services/encryption/types"
+	storeTypes "codefloe.com/crowci/crow/v6/server/store/types"
 )
 
 func (b builder) getService(keyType string) (types.EncryptionService, error) {

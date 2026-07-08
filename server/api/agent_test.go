@@ -27,13 +27,13 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"codefloe.com/crowci/crow/v5/server"
-	"codefloe.com/crowci/crow/v5/server/model"
-	"codefloe.com/crowci/crow/v5/server/queue"
-	queue_mocks "codefloe.com/crowci/crow/v5/server/queue/mocks"
-	mocks_manager "codefloe.com/crowci/crow/v5/server/services/mocks"
-	store_mocks "codefloe.com/crowci/crow/v5/server/store/mocks"
-	"codefloe.com/crowci/crow/v5/server/store/types"
+	"codefloe.com/crowci/crow/v6/server"
+	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/server/queue"
+	queue_mocks "codefloe.com/crowci/crow/v6/server/queue/mocks"
+	mocks_manager "codefloe.com/crowci/crow/v6/server/services/mocks"
+	store_mocks "codefloe.com/crowci/crow/v6/server/store/mocks"
+	"codefloe.com/crowci/crow/v6/server/store/types"
 )
 
 var fakeAgent = &model.Agent{

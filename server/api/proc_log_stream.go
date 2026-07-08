@@ -25,7 +25,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 
-	"codefloe.com/crowci/crow/v5/server/proclog"
+	"codefloe.com/crowci/crow/v6/server/proclog"
 )
 
 // streamProcLogs is the shared SSE handler used by both agent and autoscaler endpoints.

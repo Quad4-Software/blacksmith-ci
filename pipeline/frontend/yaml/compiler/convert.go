@@ -24,12 +24,12 @@ import (
 
 	"github.com/oklog/ulid/v2"
 
-	backend_types "codefloe.com/crowci/crow/v5/pipeline/backend/types"
-	pipeline_errors "codefloe.com/crowci/crow/v5/pipeline/errors"
-	"codefloe.com/crowci/crow/v5/pipeline/frontend/metadata"
-	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/compiler/settings"
-	yaml_types "codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/types"
-	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/utils"
+	backend_types "codefloe.com/crowci/crow/v6/pipeline/backend/types"
+	pipeline_errors "codefloe.com/crowci/crow/v6/pipeline/errors"
+	"codefloe.com/crowci/crow/v6/pipeline/frontend/metadata"
+	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/compiler/settings"
+	yaml_types "codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/types"
+	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/utils"
 )
 
 const (

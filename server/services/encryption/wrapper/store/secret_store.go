@@ -17,7 +17,7 @@ package store
 import (
 	"fmt"
 
-	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v6/server/model"
 )
 
 func (wrapper *EncryptedSecretStore) SecretFind(repo *model.Repo, s string) (*model.Secret, error) {

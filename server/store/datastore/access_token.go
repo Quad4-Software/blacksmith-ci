@@ -19,7 +19,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 
-	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v6/server/model"
 )
 
 func (s storage) AccessTokenCreate(token *model.AccessToken) error {

@@ -5,8 +5,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"codefloe.com/crowci/crow/v5/server/model"
-	store_mocks "codefloe.com/crowci/crow/v5/server/store/mocks"
+	"codefloe.com/crowci/crow/v6/server/model"
+	store_mocks "codefloe.com/crowci/crow/v6/server/store/mocks"
 )
 
 // The active-repos overview must include repos the user only has read (pull)

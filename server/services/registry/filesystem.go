@@ -24,8 +24,8 @@ import (
 	config_file "github.com/docker/cli/cli/config/configfile"
 	"github.com/docker/cli/cli/config/types"
 
-	"codefloe.com/crowci/crow/v5/server/model"
-	model_types "codefloe.com/crowci/crow/v5/server/store/types"
+	"codefloe.com/crowci/crow/v6/server/model"
+	model_types "codefloe.com/crowci/crow/v6/server/store/types"
 )
 
 type filesystem struct {

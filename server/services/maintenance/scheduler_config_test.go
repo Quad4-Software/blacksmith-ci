@@ -20,9 +20,9 @@ import (
 
 	"github.com/stretchr/testify/mock"
 
-	"codefloe.com/crowci/crow/v5/server/model"
-	mocks_service "codefloe.com/crowci/crow/v5/server/services/maintenance/mocks"
-	mocks_store "codefloe.com/crowci/crow/v5/server/store/mocks"
+	"codefloe.com/crowci/crow/v6/server/model"
+	mocks_service "codefloe.com/crowci/crow/v6/server/services/maintenance/mocks"
+	mocks_store "codefloe.com/crowci/crow/v6/server/store/mocks"
 )
 
 func TestScheduler_ConfigChangeDetection(t *testing.T) {

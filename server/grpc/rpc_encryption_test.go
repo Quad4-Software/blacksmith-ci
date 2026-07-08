@@ -26,14 +26,14 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"codefloe.com/crowci/crow/v5/server"
-	forge_mocks "codefloe.com/crowci/crow/v5/server/forge/mocks"
-	"codefloe.com/crowci/crow/v5/server/model"
-	"codefloe.com/crowci/crow/v5/server/services/encryption/types"
-	encryptedStore "codefloe.com/crowci/crow/v5/server/services/encryption/wrapper/store"
-	manager_mocks "codefloe.com/crowci/crow/v5/server/services/mocks"
-	"codefloe.com/crowci/crow/v5/server/store"
-	store_mocks "codefloe.com/crowci/crow/v5/server/store/mocks"
+	"codefloe.com/crowci/crow/v6/server"
+	forge_mocks "codefloe.com/crowci/crow/v6/server/forge/mocks"
+	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/server/services/encryption/types"
+	encryptedStore "codefloe.com/crowci/crow/v6/server/services/encryption/wrapper/store"
+	manager_mocks "codefloe.com/crowci/crow/v6/server/services/mocks"
+	"codefloe.com/crowci/crow/v6/server/store"
+	store_mocks "codefloe.com/crowci/crow/v6/server/store/mocks"
 )
 
 // fakeEncryption is a deterministic, reversible encoding for tests. It is

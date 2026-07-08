@@ -19,7 +19,7 @@ import (
 
 	"github.com/uptrace/bun"
 
-	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v6/server/model"
 )
 
 // GetOrgCount gets a count of all organizations in the system.

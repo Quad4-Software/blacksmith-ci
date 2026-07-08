@@ -22,10 +22,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	forge_mocks "codefloe.com/crowci/crow/v5/server/forge/mocks"
-	"codefloe.com/crowci/crow/v5/server/model"
-	services_mocks "codefloe.com/crowci/crow/v5/server/services/mocks"
-	store_mocks "codefloe.com/crowci/crow/v5/server/store/mocks"
+	forge_mocks "codefloe.com/crowci/crow/v6/server/forge/mocks"
+	"codefloe.com/crowci/crow/v6/server/model"
+	services_mocks "codefloe.com/crowci/crow/v6/server/services/mocks"
+	store_mocks "codefloe.com/crowci/crow/v6/server/store/mocks"
 )
 
 func TestCanApproveWorkflow_EmptyListFallsBackToRepoPerm(t *testing.T) {

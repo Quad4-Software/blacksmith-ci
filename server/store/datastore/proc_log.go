@@ -19,7 +19,7 @@ import (
 	"database/sql"
 	"errors"
 
-	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v6/server/model"
 )
 
 func (s storage) ProcLogInsert(ctx context.Context, entries []*model.ProcLogEntry) error {

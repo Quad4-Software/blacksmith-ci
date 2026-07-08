@@ -1,8 +1,8 @@
 package permissions
 
 import (
-	"codefloe.com/crowci/crow/v5/server/model"
-	"codefloe.com/crowci/crow/v5/shared/utils"
+	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/shared/utils"
 )
 
 func NewOwnersAllowlist(owners []string) *OwnersAllowlist {

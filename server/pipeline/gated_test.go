@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"codefloe.com/crowci/crow/v5/server/model"
-	mocks "codefloe.com/crowci/crow/v5/server/store/mocks"
+	"codefloe.com/crowci/crow/v6/server/model"
+	mocks "codefloe.com/crowci/crow/v6/server/store/mocks"
 )
 
 func TestSetRequireApprovalState(t *testing.T) {

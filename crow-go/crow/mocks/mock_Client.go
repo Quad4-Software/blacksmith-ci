@@ -7,7 +7,7 @@ package crow
 import (
 	"net/http"
 
-	"codefloe.com/crowci/crow/v5/crow-go/crow"
+	"codefloe.com/crowci/crow/v6/crow-go/crow"
 	mock "github.com/stretchr/testify/mock"
 )
 

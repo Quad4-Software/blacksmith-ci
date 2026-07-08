@@ -22,7 +22,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"codefloe.com/crowci/crow/v5/agent"
+	"codefloe.com/crowci/crow/v6/agent"
 )
 
 func TestHealthzBackendProbe(t *testing.T) {

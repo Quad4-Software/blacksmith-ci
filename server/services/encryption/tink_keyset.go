@@ -26,7 +26,7 @@ import (
 	insecure_clear_text_keyset "github.com/tink-crypto/tink-go/v2/insecurecleartextkeyset"
 	"github.com/tink-crypto/tink-go/v2/keyset"
 
-	"codefloe.com/crowci/crow/v5/server/store/types"
+	"codefloe.com/crowci/crow/v6/server/store/types"
 )
 
 func (svc *tinkEncryptionService) loadKeyset() error {

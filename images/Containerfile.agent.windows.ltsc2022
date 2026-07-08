@@ -20,7 +20,7 @@ RUN $version = $env:CI_COMMIT_TAG; `
     } `
     if ($version.StartsWith('v')) { $version = $version.Substring(1) } `
     $env:CGO_ENABLED = '0'; `
-    go build -tags 'containers_image_openpgp exclude_graphdriver_btrfs exclude_graphdriver_devicemapper' -ldflags \"-s -w -X codefloe.com/crowci/crow/v5/version.Version=$version\" -o C:\out\crow-agent.exe codefloe.com/crowci/crow/v5/cmd/agent
+    go build -tags 'containers_image_openpgp exclude_graphdriver_btrfs exclude_graphdriver_devicemapper' -ldflags \"-s -w -X codefloe.com/crowci/crow/v6/version.Version=$version\" -o C:\out\crow-agent.exe codefloe.com/crowci/crow/v6/cmd/agent
 
 FROM docker.io/library/golang:${GO_VERSION}-windowsservercore-${WINDOWS_VERSION}
 

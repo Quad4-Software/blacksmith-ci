@@ -20,10 +20,10 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"codefloe.com/crowci/crow/v5/server"
-	"codefloe.com/crowci/crow/v5/server/model"
-	"codefloe.com/crowci/crow/v5/server/router/middleware/session"
-	"codefloe.com/crowci/crow/v5/server/store"
+	"codefloe.com/crowci/crow/v6/server"
+	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/server/router/middleware/session"
+	"codefloe.com/crowci/crow/v6/server/store"
 )
 
 // ── Input / Output types ─────────────────────────────────────────────.

@@ -39,17 +39,17 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
 
-	"codefloe.com/crowci/crow/v5/agent"
-	"codefloe.com/crowci/crow/v5/agent/proclog"
-	agent_rpc "codefloe.com/crowci/crow/v5/agent/rpc"
-	"codefloe.com/crowci/crow/v5/pipeline"
-	"codefloe.com/crowci/crow/v5/pipeline/backend"
-	"codefloe.com/crowci/crow/v5/pipeline/backend/types"
-	"codefloe.com/crowci/crow/v5/pipeline/rpc"
-	"codefloe.com/crowci/crow/v5/pipeline/rpc/proto"
-	"codefloe.com/crowci/crow/v5/shared/logger"
-	"codefloe.com/crowci/crow/v5/shared/utils"
-	"codefloe.com/crowci/crow/v5/version"
+	"codefloe.com/crowci/crow/v6/agent"
+	"codefloe.com/crowci/crow/v6/agent/proclog"
+	agent_rpc "codefloe.com/crowci/crow/v6/agent/rpc"
+	"codefloe.com/crowci/crow/v6/pipeline"
+	"codefloe.com/crowci/crow/v6/pipeline/backend"
+	"codefloe.com/crowci/crow/v6/pipeline/backend/types"
+	"codefloe.com/crowci/crow/v6/pipeline/rpc"
+	"codefloe.com/crowci/crow/v6/pipeline/rpc/proto"
+	"codefloe.com/crowci/crow/v6/shared/logger"
+	"codefloe.com/crowci/crow/v6/shared/utils"
+	"codefloe.com/crowci/crow/v6/version"
 )
 
 // runWithRecover wraps a goroutine body in a deferred recover() so a panic in

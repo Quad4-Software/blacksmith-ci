@@ -22,7 +22,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
 
-	"codefloe.com/crowci/crow/v5/pipeline/rpc/proto"
+	"codefloe.com/crowci/crow/v6/pipeline/rpc/proto"
 )
 
 const (

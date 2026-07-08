@@ -20,12 +20,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"codefloe.com/crowci/crow/v5/pipeline/backend/types"
-	"codefloe.com/crowci/crow/v5/pipeline/frontend/metadata"
-	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/constraint"
-	yaml_types "codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/types"
-	yaml_base_types "codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/types/base"
-	"codefloe.com/crowci/crow/v5/shared/constant"
+	"codefloe.com/crowci/crow/v6/pipeline/backend/types"
+	"codefloe.com/crowci/crow/v6/pipeline/frontend/metadata"
+	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/constraint"
+	yaml_types "codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/types"
+	yaml_base_types "codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/types/base"
+	"codefloe.com/crowci/crow/v6/shared/constant"
 )
 
 func TestSecretAvailable(t *testing.T) {

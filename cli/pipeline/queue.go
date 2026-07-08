@@ -23,10 +23,10 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"codefloe.com/crowci/crow/v5/cli/common"
-	"codefloe.com/crowci/crow/v5/cli/internal"
-	"codefloe.com/crowci/crow/v5/cli/output"
-	crow "codefloe.com/crowci/crow/v5/crow-go/crow"
+	"codefloe.com/crowci/crow/v6/cli/common"
+	"codefloe.com/crowci/crow/v6/cli/internal"
+	"codefloe.com/crowci/crow/v6/cli/output"
+	crow "codefloe.com/crowci/crow/v6/crow-go/crow"
 )
 
 var pipelineQueueCmd = &cli.Command{

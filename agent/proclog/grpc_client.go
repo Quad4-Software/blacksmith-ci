@@ -18,7 +18,7 @@ import (
 	"context"
 	"sync"
 
-	"codefloe.com/crowci/crow/v5/pipeline/rpc/proto"
+	"codefloe.com/crowci/crow/v6/pipeline/rpc/proto"
 )
 
 // GrpcClient wraps a long-lived StreamProcLogs gRPC stream so the Shipper can call

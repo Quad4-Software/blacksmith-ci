@@ -22,8 +22,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"codefloe.com/crowci/crow/v5/server/model"
-	mock_store "codefloe.com/crowci/crow/v5/server/store/mocks"
+	"codefloe.com/crowci/crow/v6/server/model"
+	mock_store "codefloe.com/crowci/crow/v6/server/store/mocks"
 )
 
 func TestRunStaleAgentCleanup(t *testing.T) {

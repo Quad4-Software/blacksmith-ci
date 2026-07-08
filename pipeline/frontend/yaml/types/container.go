@@ -19,9 +19,9 @@ import (
 
 	"github.com/goccy/go-yaml"
 
-	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/constraint"
-	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/types/base"
-	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/utils"
+	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/constraint"
+	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/types/base"
+	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/utils"
 )
 
 type (

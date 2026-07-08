@@ -15,7 +15,7 @@
 package yaml
 
 import (
-	sharedYaml "codefloe.com/crowci/crow/v5/shared/yaml"
+	sharedYaml "codefloe.com/crowci/crow/v6/shared/yaml"
 )
 
 // Variable describes a user-settable pipeline variable declared in the

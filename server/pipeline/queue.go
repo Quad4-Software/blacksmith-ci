@@ -20,10 +20,10 @@ import (
 	"fmt"
 	"maps"
 
-	"codefloe.com/crowci/crow/v5/pipeline/rpc"
-	"codefloe.com/crowci/crow/v5/server"
-	"codefloe.com/crowci/crow/v5/server/model"
-	"codefloe.com/crowci/crow/v5/server/pipeline/stepbuilder"
+	"codefloe.com/crowci/crow/v6/pipeline/rpc"
+	"codefloe.com/crowci/crow/v6/server"
+	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/server/pipeline/stepbuilder"
 )
 
 func queuePipeline(ctx context.Context, repo *model.Repo, pipelineItems []*stepbuilder.Item) error {

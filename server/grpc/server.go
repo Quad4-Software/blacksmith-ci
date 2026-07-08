@@ -20,14 +20,14 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"codefloe.com/crowci/crow/v5/pipeline/rpc"
-	"codefloe.com/crowci/crow/v5/pipeline/rpc/proto"
-	"codefloe.com/crowci/crow/v5/server/logging"
-	"codefloe.com/crowci/crow/v5/server/proclog"
-	"codefloe.com/crowci/crow/v5/server/pubsub"
-	"codefloe.com/crowci/crow/v5/server/queue"
-	"codefloe.com/crowci/crow/v5/server/store"
-	"codefloe.com/crowci/crow/v5/version"
+	"codefloe.com/crowci/crow/v6/pipeline/rpc"
+	"codefloe.com/crowci/crow/v6/pipeline/rpc/proto"
+	"codefloe.com/crowci/crow/v6/server/logging"
+	"codefloe.com/crowci/crow/v6/server/proclog"
+	"codefloe.com/crowci/crow/v6/server/pubsub"
+	"codefloe.com/crowci/crow/v6/server/queue"
+	"codefloe.com/crowci/crow/v6/server/store"
+	"codefloe.com/crowci/crow/v6/version"
 )
 
 // CrowServer is a grpc server implementation.

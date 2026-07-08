@@ -3,7 +3,7 @@
 package pubsub
 
 import (
-	pubsub "codefloe.com/crowci/crow/v5/server/pubsub"
+	pubsub "codefloe.com/crowci/crow/v6/server/pubsub"
 	mock "github.com/stretchr/testify/mock"
 )
 

@@ -21,7 +21,7 @@ import (
 
 	"github.com/uptrace/bun"
 
-	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v6/server/model"
 )
 
 func (s storage) GetPipeline(id int64) (*model.Pipeline, error) {

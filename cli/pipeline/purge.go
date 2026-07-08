@@ -24,9 +24,9 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v3"
 
-	"codefloe.com/crowci/crow/v5/cli/internal"
-	crow "codefloe.com/crowci/crow/v5/crow-go/crow"
-	shared_utils "codefloe.com/crowci/crow/v5/shared/utils"
+	"codefloe.com/crowci/crow/v6/cli/internal"
+	crow "codefloe.com/crowci/crow/v6/crow-go/crow"
+	shared_utils "codefloe.com/crowci/crow/v6/shared/utils"
 )
 
 //nolint:mnd

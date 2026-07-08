@@ -22,9 +22,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 
-	"codefloe.com/crowci/crow/v5/server/model"
-	"codefloe.com/crowci/crow/v5/server/proclog"
-	"codefloe.com/crowci/crow/v5/server/router/middleware/session"
+	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/server/proclog"
+	"codefloe.com/crowci/crow/v6/server/router/middleware/session"
 )
 
 const (

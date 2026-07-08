@@ -8,7 +8,7 @@ import (
 	"context"
 	"time"
 
-	"codefloe.com/crowci/crow/v5/pipeline/rpc"
+	"codefloe.com/crowci/crow/v6/pipeline/rpc"
 	mock "github.com/stretchr/testify/mock"
 )
 

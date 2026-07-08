@@ -23,7 +23,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"codefloe.com/crowci/crow/v5/pipeline/backend/common"
+	"codefloe.com/crowci/crow/v6/pipeline/backend/common"
 )
 
 func TestKeepaliveContainerName(t *testing.T) {

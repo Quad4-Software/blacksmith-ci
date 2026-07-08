@@ -15,8 +15,8 @@
 package pipeline
 
 import (
-	"codefloe.com/crowci/crow/v5/server/model"
-	"codefloe.com/crowci/crow/v5/server/store"
+	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/server/store"
 )
 
 func setApprovalState(_store store.Store, repo *model.Repo, pipeline *model.Pipeline) {

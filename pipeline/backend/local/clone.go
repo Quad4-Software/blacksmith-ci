@@ -24,8 +24,8 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"codefloe.com/crowci/crow/v5/pipeline/backend/common/clone"
-	"codefloe.com/crowci/crow/v5/pipeline/backend/types"
+	"codefloe.com/crowci/crow/v6/pipeline/backend/common/clone"
+	"codefloe.com/crowci/crow/v6/pipeline/backend/types"
 )
 
 // loadClone on backend start determine if there is a global plugin-clone binary.

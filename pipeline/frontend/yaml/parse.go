@@ -15,8 +15,8 @@
 package yaml
 
 import (
-	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/types"
-	"codefloe.com/crowci/crow/v5/shared/yaml"
+	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/types"
+	"codefloe.com/crowci/crow/v6/shared/yaml"
 )
 
 // ParseBytes parses the configuration from bytes b.

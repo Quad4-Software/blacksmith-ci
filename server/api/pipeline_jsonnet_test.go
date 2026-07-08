@@ -20,11 +20,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml"
-	yamlBaseTypes "codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/types/base"
-	forge_mocks "codefloe.com/crowci/crow/v5/server/forge/mocks"
-	forge_types "codefloe.com/crowci/crow/v5/server/forge/types"
-	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml"
+	yamlBaseTypes "codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/types/base"
+	forge_mocks "codefloe.com/crowci/crow/v6/server/forge/mocks"
+	forge_types "codefloe.com/crowci/crow/v6/server/forge/types"
+	"codefloe.com/crowci/crow/v6/server/model"
 )
 
 func TestPreprocessJsonnetConfigs(t *testing.T) {

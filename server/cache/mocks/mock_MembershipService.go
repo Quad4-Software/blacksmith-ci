@@ -7,8 +7,8 @@ package cache
 import (
 	"context"
 
-	"codefloe.com/crowci/crow/v5/server/forge"
-	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v6/server/forge"
+	"codefloe.com/crowci/crow/v6/server/model"
 	mock "github.com/stretchr/testify/mock"
 )
 

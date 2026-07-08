@@ -26,9 +26,9 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/urfave/cli/v3"
 
-	"codefloe.com/crowci/crow/v5/cli/common"
-	"codefloe.com/crowci/crow/v5/crow-go/crow"
-	crow_mocks "codefloe.com/crowci/crow/v5/crow-go/crow/mocks"
+	"codefloe.com/crowci/crow/v6/cli/common"
+	"codefloe.com/crowci/crow/v6/crow-go/crow"
+	crow_mocks "codefloe.com/crowci/crow/v6/crow-go/crow/mocks"
 )
 
 func TestOrgAgentList(t *testing.T) {

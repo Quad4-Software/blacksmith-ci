@@ -17,7 +17,7 @@ package pipeline
 import (
 	"io"
 
-	backend "codefloe.com/crowci/crow/v5/pipeline/backend/types"
+	backend "codefloe.com/crowci/crow/v6/pipeline/backend/types"
 )
 
 // Logger handles the process logging.

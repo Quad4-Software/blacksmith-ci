@@ -21,7 +21,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v6/server/model"
 )
 
 // ForgeConfig represents the configuration for a single forge parsed from environment variables.

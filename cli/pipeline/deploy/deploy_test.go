@@ -23,7 +23,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v3"
 
-	"codefloe.com/crowci/crow/v5/cli/internal"
+	"codefloe.com/crowci/crow/v6/cli/internal"
 )
 
 func TestDeployCmd_ParamFlagCommaHandling(t *testing.T) {

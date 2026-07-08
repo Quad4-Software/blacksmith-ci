@@ -24,8 +24,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v3"
 
-	"codefloe.com/crowci/crow/v5/pipeline/frontend/metadata"
-	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/matrix"
+	"codefloe.com/crowci/crow/v6/pipeline/frontend/metadata"
+	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/matrix"
 )
 
 func TestMetadataFromContext(t *testing.T) {

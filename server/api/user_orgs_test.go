@@ -26,12 +26,12 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"codefloe.com/crowci/crow/v5/server"
-	forge_mocks "codefloe.com/crowci/crow/v5/server/forge/mocks"
-	"codefloe.com/crowci/crow/v5/server/model"
-	mocks_services "codefloe.com/crowci/crow/v5/server/services/mocks"
-	store_mocks "codefloe.com/crowci/crow/v5/server/store/mocks"
-	"codefloe.com/crowci/crow/v5/server/store/types"
+	"codefloe.com/crowci/crow/v6/server"
+	forge_mocks "codefloe.com/crowci/crow/v6/server/forge/mocks"
+	"codefloe.com/crowci/crow/v6/server/model"
+	mocks_services "codefloe.com/crowci/crow/v6/server/services/mocks"
+	store_mocks "codefloe.com/crowci/crow/v6/server/store/mocks"
+	"codefloe.com/crowci/crow/v6/server/store/types"
 )
 
 func TestGetUserOrgList(t *testing.T) {

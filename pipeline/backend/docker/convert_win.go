@@ -19,7 +19,7 @@ import (
 	"regexp"
 	"strings"
 
-	"codefloe.com/crowci/crow/v5/pipeline/backend/types"
+	"codefloe.com/crowci/crow/v6/pipeline/backend/types"
 )
 
 const (

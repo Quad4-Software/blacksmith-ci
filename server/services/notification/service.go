@@ -25,9 +25,9 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"codefloe.com/crowci/crow/v5/server/model"
-	"codefloe.com/crowci/crow/v5/server/store/types"
-	"codefloe.com/crowci/crow/v5/shared/token"
+	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/server/store/types"
+	"codefloe.com/crowci/crow/v6/shared/token"
 )
 
 // Service handles sending pipeline notifications.

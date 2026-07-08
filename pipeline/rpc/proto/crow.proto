@@ -15,7 +15,7 @@
 
 syntax = "proto3";
 
-option go_package = "codefloe.com/crowci/crow/v5/pipeline/rpc/proto";
+option go_package = "codefloe.com/crowci/crow/v6/pipeline/rpc/proto";
 package proto;
 
 // !IMPORTANT!

@@ -26,12 +26,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"codefloe.com/crowci/crow/v5/server/forge/bitbucket/fixtures"
-	"codefloe.com/crowci/crow/v5/server/forge/bitbucket/internal"
-	"codefloe.com/crowci/crow/v5/server/forge/types"
-	"codefloe.com/crowci/crow/v5/server/model"
-	"codefloe.com/crowci/crow/v5/server/store"
-	mocks_store "codefloe.com/crowci/crow/v5/server/store/mocks"
+	"codefloe.com/crowci/crow/v6/server/forge/bitbucket/fixtures"
+	"codefloe.com/crowci/crow/v6/server/forge/bitbucket/internal"
+	"codefloe.com/crowci/crow/v6/server/forge/types"
+	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/server/store"
+	mocks_store "codefloe.com/crowci/crow/v6/server/store/mocks"
 )
 
 func TestNew(t *testing.T) {

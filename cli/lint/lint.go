@@ -24,11 +24,11 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"codefloe.com/crowci/crow/v5/cli/common"
-	crow_jsonnet "codefloe.com/crowci/crow/v5/pipeline/frontend/jsonnet"
-	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml"
-	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/linter"
-	"codefloe.com/crowci/crow/v5/shared/constant"
+	"codefloe.com/crowci/crow/v6/cli/common"
+	crow_jsonnet "codefloe.com/crowci/crow/v6/pipeline/frontend/jsonnet"
+	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml"
+	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/linter"
+	"codefloe.com/crowci/crow/v6/shared/constant"
 )
 
 // Command exports the info command.

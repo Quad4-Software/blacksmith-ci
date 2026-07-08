@@ -22,7 +22,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"golang.org/x/time/rate"
 
-	"codefloe.com/crowci/crow/v5/pipeline/rpc/proto"
+	"codefloe.com/crowci/crow/v6/pipeline/rpc/proto"
 )
 
 // burstFactor is the multiplier applied to RateLimit to set the token-bucket burst capacity.

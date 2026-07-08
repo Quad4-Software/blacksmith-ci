@@ -18,17 +18,17 @@ package server
 import (
 	"time"
 
-	"codefloe.com/crowci/crow/v5/server/cache"
-	"codefloe.com/crowci/crow/v5/server/logging"
-	"codefloe.com/crowci/crow/v5/server/model"
-	"codefloe.com/crowci/crow/v5/server/proclog"
-	"codefloe.com/crowci/crow/v5/server/pubsub"
-	"codefloe.com/crowci/crow/v5/server/queue"
-	"codefloe.com/crowci/crow/v5/server/services"
-	"codefloe.com/crowci/crow/v5/server/services/integration"
-	"codefloe.com/crowci/crow/v5/server/services/log"
-	"codefloe.com/crowci/crow/v5/server/services/notification"
-	"codefloe.com/crowci/crow/v5/server/services/permissions"
+	"codefloe.com/crowci/crow/v6/server/cache"
+	"codefloe.com/crowci/crow/v6/server/logging"
+	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/server/proclog"
+	"codefloe.com/crowci/crow/v6/server/pubsub"
+	"codefloe.com/crowci/crow/v6/server/queue"
+	"codefloe.com/crowci/crow/v6/server/services"
+	"codefloe.com/crowci/crow/v6/server/services/integration"
+	"codefloe.com/crowci/crow/v6/server/services/log"
+	"codefloe.com/crowci/crow/v6/server/services/notification"
+	"codefloe.com/crowci/crow/v6/server/services/permissions"
 )
 
 var Config = struct {

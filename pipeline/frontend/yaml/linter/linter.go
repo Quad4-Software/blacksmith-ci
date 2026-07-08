@@ -19,13 +19,13 @@ import (
 	"fmt"
 	"time"
 
-	pipelineErrors "codefloe.com/crowci/crow/v5/pipeline/errors"
-	errorTypes "codefloe.com/crowci/crow/v5/pipeline/errors/types"
-	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/linter/schema"
-	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/types"
-	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/utils"
-	"codefloe.com/crowci/crow/v5/shared/constant"
-	"codefloe.com/crowci/crow/v5/shared/yaml"
+	pipelineErrors "codefloe.com/crowci/crow/v6/pipeline/errors"
+	errorTypes "codefloe.com/crowci/crow/v6/pipeline/errors/types"
+	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/linter/schema"
+	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/types"
+	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/utils"
+	"codefloe.com/crowci/crow/v6/shared/constant"
+	"codefloe.com/crowci/crow/v6/shared/yaml"
 )
 
 // defaultApprovalTimeoutMax is the default upper bound on `approval.timeout`

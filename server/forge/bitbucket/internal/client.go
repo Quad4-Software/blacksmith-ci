@@ -26,8 +26,8 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/bitbucket"
 
-	"codefloe.com/crowci/crow/v5/shared/httputil"
-	shared_utils "codefloe.com/crowci/crow/v5/shared/utils"
+	"codefloe.com/crowci/crow/v6/shared/httputil"
+	shared_utils "codefloe.com/crowci/crow/v6/shared/utils"
 )
 
 const (

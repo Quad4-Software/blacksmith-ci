@@ -17,7 +17,7 @@ package store
 import (
 	"time"
 
-	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v6/server/model"
 )
 
 // DBOpts contains database connection pool and logging options.

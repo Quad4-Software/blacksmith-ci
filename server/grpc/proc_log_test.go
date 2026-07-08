@@ -24,10 +24,10 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
-	"codefloe.com/crowci/crow/v5/pipeline/rpc/proto"
-	"codefloe.com/crowci/crow/v5/server/model"
-	"codefloe.com/crowci/crow/v5/server/proclog"
-	storeMocks "codefloe.com/crowci/crow/v5/server/store/mocks"
+	"codefloe.com/crowci/crow/v6/pipeline/rpc/proto"
+	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/server/proclog"
+	storeMocks "codefloe.com/crowci/crow/v6/server/store/mocks"
 )
 
 // fakeStreamProcLogsServer implements proto.Crow_StreamProcLogsServer.

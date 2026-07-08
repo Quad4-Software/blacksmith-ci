@@ -22,11 +22,11 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	backend_types "codefloe.com/crowci/crow/v5/pipeline/backend/types"
-	"codefloe.com/crowci/crow/v5/pipeline/frontend/metadata"
-	yaml_types "codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/types"
-	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/utils"
-	"codefloe.com/crowci/crow/v5/shared/constant"
+	backend_types "codefloe.com/crowci/crow/v6/pipeline/backend/types"
+	"codefloe.com/crowci/crow/v6/pipeline/frontend/metadata"
+	yaml_types "codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/types"
+	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/utils"
+	"codefloe.com/crowci/crow/v6/shared/constant"
 )
 
 const (

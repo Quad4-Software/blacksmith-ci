@@ -22,8 +22,8 @@ import (
 
 	"github.com/hashicorp/go-plugin"
 
-	"codefloe.com/crowci/crow/v5/server/forge"
-	"codefloe.com/crowci/crow/v5/server/forge/types"
+	"codefloe.com/crowci/crow/v6/server/forge"
+	"codefloe.com/crowci/crow/v6/server/forge/types"
 )
 
 func Serve(impl forge.Forge) {

@@ -21,11 +21,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 
-	"codefloe.com/crowci/crow/v5/server"
-	"codefloe.com/crowci/crow/v5/server/api"
-	"codefloe.com/crowci/crow/v5/server/api/debug"
-	"codefloe.com/crowci/crow/v5/server/router/middleware/session"
-	"codefloe.com/crowci/crow/v5/server/router/middleware/token"
+	"codefloe.com/crowci/crow/v6/server"
+	"codefloe.com/crowci/crow/v6/server/api"
+	"codefloe.com/crowci/crow/v6/server/api/debug"
+	"codefloe.com/crowci/crow/v6/server/router/middleware/session"
+	"codefloe.com/crowci/crow/v6/server/router/middleware/token"
 )
 
 func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {

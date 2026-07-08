@@ -23,8 +23,8 @@ import (
 
 	"github.com/rs/zerolog"
 
-	"codefloe.com/crowci/crow/v5/pipeline"
-	"codefloe.com/crowci/crow/v5/pipeline/rpc"
+	"codefloe.com/crowci/crow/v6/pipeline"
+	"codefloe.com/crowci/crow/v6/pipeline/rpc"
 )
 
 func (r *Runner) createTracer(ctxMeta context.Context, uploads *sync.WaitGroup, logger zerolog.Logger, workflow *rpc.Workflow) pipeline.TraceFunc {

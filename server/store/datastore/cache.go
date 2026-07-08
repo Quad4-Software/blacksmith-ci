@@ -19,7 +19,7 @@ import (
 	"database/sql"
 	"errors"
 
-	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v6/server/model"
 )
 
 // CacheGet retrieves a cache entry by key.

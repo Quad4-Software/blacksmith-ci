@@ -32,9 +32,9 @@ import (
 	"google.golang.org/grpc/status"
 	grpcproto "google.golang.org/protobuf/proto"
 
-	backend "codefloe.com/crowci/crow/v5/pipeline/backend/types"
-	"codefloe.com/crowci/crow/v5/pipeline/rpc"
-	"codefloe.com/crowci/crow/v5/pipeline/rpc/proto"
+	backend "codefloe.com/crowci/crow/v6/pipeline/backend/types"
+	"codefloe.com/crowci/crow/v6/pipeline/rpc"
+	"codefloe.com/crowci/crow/v6/pipeline/rpc/proto"
 )
 
 // ErrAgentRestartRequired is returned when the agent has been unable to reach

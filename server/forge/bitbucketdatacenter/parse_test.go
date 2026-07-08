@@ -8,8 +8,8 @@ import (
 	bb "github.com/neticdk/go-bitbucket/bitbucket"
 	"github.com/stretchr/testify/assert"
 
-	"codefloe.com/crowci/crow/v5/server/forge/bitbucketdatacenter/fixtures"
-	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v6/server/forge/bitbucketdatacenter/fixtures"
+	"codefloe.com/crowci/crow/v6/server/model"
 )
 
 func Test_parseHook(t *testing.T) {

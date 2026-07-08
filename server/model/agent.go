@@ -26,7 +26,7 @@ import (
 	"github.com/tink-crypto/tink-go/v2/subtle/random"
 	"github.com/uptrace/bun"
 
-	"codefloe.com/crowci/crow/v5/pipeline"
+	"codefloe.com/crowci/crow/v6/pipeline"
 )
 
 type Agent struct {

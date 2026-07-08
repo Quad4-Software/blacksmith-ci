@@ -20,12 +20,12 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"codefloe.com/crowci/crow/v5/server"
-	"codefloe.com/crowci/crow/v5/server/authz"
-	"codefloe.com/crowci/crow/v5/server/model"
-	"codefloe.com/crowci/crow/v5/server/pipeline"
-	"codefloe.com/crowci/crow/v5/server/router/middleware/session"
-	"codefloe.com/crowci/crow/v5/server/store"
+	"codefloe.com/crowci/crow/v6/server"
+	"codefloe.com/crowci/crow/v6/server/authz"
+	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/server/pipeline"
+	"codefloe.com/crowci/crow/v6/server/router/middleware/session"
+	"codefloe.com/crowci/crow/v6/server/store"
 )
 
 // WorkflowApprovalInput describes the path/body shape for approve and decline.

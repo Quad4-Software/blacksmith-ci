@@ -8,9 +8,9 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"codefloe.com/crowci/crow/v5/server/model"
-	logService "codefloe.com/crowci/crow/v5/server/services/log"
-	"codefloe.com/crowci/crow/v5/server/store"
+	"codefloe.com/crowci/crow/v6/server/model"
+	logService "codefloe.com/crowci/crow/v6/server/services/log"
+	"codefloe.com/crowci/crow/v6/server/store"
 )
 
 func pipelineLogPurge(store store.Store, logStore logService.Service, repo *model.Repo) error {

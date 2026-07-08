@@ -20,7 +20,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"codefloe.com/crowci/crow/v5/pipeline"
+	"codefloe.com/crowci/crow/v6/pipeline"
 )
 
 // realTaskLabels returns the label set a task actually carries in production:

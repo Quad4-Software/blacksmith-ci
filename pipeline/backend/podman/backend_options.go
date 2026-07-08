@@ -19,7 +19,7 @@ package podman
 import (
 	"github.com/go-viper/mapstructure/v2"
 
-	backend "codefloe.com/crowci/crow/v5/pipeline/backend/types"
+	backend "codefloe.com/crowci/crow/v6/pipeline/backend/types"
 )
 
 // BackendOptions defines all the advanced options for the podman backend.

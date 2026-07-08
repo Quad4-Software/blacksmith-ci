@@ -30,15 +30,15 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/tink-crypto/tink-go/v2/subtle/random"
 
-	"codefloe.com/crowci/crow/v5/server"
-	"codefloe.com/crowci/crow/v5/server/forge"
-	forge_types "codefloe.com/crowci/crow/v5/server/forge/types"
-	"codefloe.com/crowci/crow/v5/server/model"
-	"codefloe.com/crowci/crow/v5/server/router/middleware/session"
-	"codefloe.com/crowci/crow/v5/server/store"
-	"codefloe.com/crowci/crow/v5/server/store/types"
-	"codefloe.com/crowci/crow/v5/shared/token"
-	shared_utils "codefloe.com/crowci/crow/v5/shared/utils"
+	"codefloe.com/crowci/crow/v6/server"
+	"codefloe.com/crowci/crow/v6/server/forge"
+	forge_types "codefloe.com/crowci/crow/v6/server/forge/types"
+	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/server/router/middleware/session"
+	"codefloe.com/crowci/crow/v6/server/store"
+	"codefloe.com/crowci/crow/v6/server/store/types"
+	"codefloe.com/crowci/crow/v6/shared/token"
+	shared_utils "codefloe.com/crowci/crow/v6/shared/utils"
 )
 
 // RepoFields is a method-free copy of model.Repo for clean huma schema generation.

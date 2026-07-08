@@ -21,13 +21,13 @@ import (
 
 	"github.com/stretchr/testify/mock"
 
-	"codefloe.com/crowci/crow/v5/server"
-	forge_mocks "codefloe.com/crowci/crow/v5/server/forge/mocks"
-	"codefloe.com/crowci/crow/v5/server/model"
-	"codefloe.com/crowci/crow/v5/server/pubsub"
-	queue_mocks "codefloe.com/crowci/crow/v5/server/queue/mocks"
-	manager_mocks "codefloe.com/crowci/crow/v5/server/services/mocks"
-	store_mocks "codefloe.com/crowci/crow/v5/server/store/mocks"
+	"codefloe.com/crowci/crow/v6/server"
+	forge_mocks "codefloe.com/crowci/crow/v6/server/forge/mocks"
+	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/server/pubsub"
+	queue_mocks "codefloe.com/crowci/crow/v6/server/queue/mocks"
+	manager_mocks "codefloe.com/crowci/crow/v6/server/services/mocks"
+	store_mocks "codefloe.com/crowci/crow/v6/server/store/mocks"
 )
 
 func TestSweepExpiredApprovalsCallsExpire(t *testing.T) {

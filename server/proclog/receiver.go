@@ -17,8 +17,8 @@ package proclog
 import (
 	"context"
 
-	"codefloe.com/crowci/crow/v5/server/model"
-	"codefloe.com/crowci/crow/v5/server/store"
+	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/server/store"
 )
 
 // Receiver ingests batches of process log entries into the store.

@@ -22,10 +22,10 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"codefloe.com/crowci/crow/v5/cli/output"
-	"codefloe.com/crowci/crow/v5/cli/pipeline/deploy"
-	"codefloe.com/crowci/crow/v5/cli/pipeline/log"
-	crow "codefloe.com/crowci/crow/v5/crow-go/crow"
+	"codefloe.com/crowci/crow/v6/cli/output"
+	"codefloe.com/crowci/crow/v6/cli/pipeline/deploy"
+	"codefloe.com/crowci/crow/v6/cli/pipeline/log"
+	crow "codefloe.com/crowci/crow/v6/crow-go/crow"
 )
 
 // Command exports the pipeline command set.

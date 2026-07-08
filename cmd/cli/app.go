@@ -17,16 +17,16 @@ package main
 import (
 	"github.com/urfave/cli/v3"
 
-	"codefloe.com/crowci/crow/v5/cli/admin"
-	"codefloe.com/crowci/crow/v5/cli/common"
-	"codefloe.com/crowci/crow/v5/cli/exec"
-	"codefloe.com/crowci/crow/v5/cli/info"
-	"codefloe.com/crowci/crow/v5/cli/lint"
-	"codefloe.com/crowci/crow/v5/cli/org"
-	"codefloe.com/crowci/crow/v5/cli/pipeline"
-	"codefloe.com/crowci/crow/v5/cli/repo"
-	"codefloe.com/crowci/crow/v5/cli/update"
-	"codefloe.com/crowci/crow/v5/version"
+	"codefloe.com/crowci/crow/v6/cli/admin"
+	"codefloe.com/crowci/crow/v6/cli/common"
+	"codefloe.com/crowci/crow/v6/cli/exec"
+	"codefloe.com/crowci/crow/v6/cli/info"
+	"codefloe.com/crowci/crow/v6/cli/lint"
+	"codefloe.com/crowci/crow/v6/cli/org"
+	"codefloe.com/crowci/crow/v6/cli/pipeline"
+	"codefloe.com/crowci/crow/v6/cli/repo"
+	"codefloe.com/crowci/crow/v6/cli/update"
+	"codefloe.com/crowci/crow/v6/version"
 )
 
 //go:generate go run docs.go app.go

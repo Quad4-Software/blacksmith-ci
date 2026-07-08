@@ -20,8 +20,8 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"codefloe.com/crowci/crow/v5/server/services/encryption/types"
-	"codefloe.com/crowci/crow/v5/server/store"
+	"codefloe.com/crowci/crow/v6/server/services/encryption/types"
+	"codefloe.com/crowci/crow/v6/server/store"
 )
 
 type tinkConfiguration struct {

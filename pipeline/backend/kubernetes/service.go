@@ -25,7 +25,7 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	int_str "k8s.io/apimachinery/pkg/util/intstr"
 
-	"codefloe.com/crowci/crow/v5/pipeline/backend/types"
+	"codefloe.com/crowci/crow/v6/pipeline/backend/types"
 )
 
 func mkService(step *types.Step, config *config) (*v1.Service, error) {

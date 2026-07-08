@@ -1794,7 +1794,7 @@ const file_crow_proto_rawDesc = "" +
 	"\tClaimTask\x12\x17.proto.ClaimTaskRequest\x1a\x18.proto.ClaimTaskResponse\"\x00\x12<\n" +
 	"\x0eStreamProcLogs\x12\x13.proto.ProcLogBatch\x1a\x11.proto.ProcLogAck\"\x00(\x012=\n" +
 	"\bCrowAuth\x121\n" +
-	"\x04Auth\x12\x12.proto.AuthRequest\x1a\x13.proto.AuthResponse\"\x00B0Z.codefloe.com/crowci/crow/v5/pipeline/rpc/protob\x06proto3"
+	"\x04Auth\x12\x12.proto.AuthRequest\x1a\x13.proto.AuthResponse\"\x00B0Z.codefloe.com/crowci/crow/v6/pipeline/rpc/protob\x06proto3"
 
 var (
 	file_crow_proto_rawDescOnce sync.Once

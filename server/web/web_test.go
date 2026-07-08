@@ -23,7 +23,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 
-	"codefloe.com/crowci/crow/v5/server"
+	"codefloe.com/crowci/crow/v6/server"
 )
 
 func Test_custom_file_returns_OK_and_empty_content_and_fitting_mimetype(t *testing.T) {

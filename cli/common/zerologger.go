@@ -19,7 +19,7 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"codefloe.com/crowci/crow/v5/shared/logger"
+	"codefloe.com/crowci/crow/v6/shared/logger"
 )
 
 func setupGlobalLogger(ctx context.Context, c *cli.Command) error {

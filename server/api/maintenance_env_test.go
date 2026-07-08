@@ -23,9 +23,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"codefloe.com/crowci/crow/v5/server"
-	"codefloe.com/crowci/crow/v5/server/model"
-	mocks_service "codefloe.com/crowci/crow/v5/server/services/maintenance/mocks"
+	"codefloe.com/crowci/crow/v6/server"
+	"codefloe.com/crowci/crow/v6/server/model"
+	mocks_service "codefloe.com/crowci/crow/v6/server/services/maintenance/mocks"
 )
 
 func TestGetMaintenanceConfigByAction_EnvVarsSet(t *testing.T) {

@@ -20,10 +20,10 @@ import (
 
 	"github.com/rs/zerolog"
 
-	"codefloe.com/crowci/crow/v5/pipeline"
-	backend "codefloe.com/crowci/crow/v5/pipeline/backend/types"
-	"codefloe.com/crowci/crow/v5/pipeline/log"
-	"codefloe.com/crowci/crow/v5/pipeline/rpc"
+	"codefloe.com/crowci/crow/v6/pipeline"
+	backend "codefloe.com/crowci/crow/v6/pipeline/backend/types"
+	"codefloe.com/crowci/crow/v6/pipeline/log"
+	"codefloe.com/crowci/crow/v6/pipeline/rpc"
 )
 
 func (r *Runner) createLogger(_logger zerolog.Logger, uploads *sync.WaitGroup, workflow *rpc.Workflow) pipeline.Logger {

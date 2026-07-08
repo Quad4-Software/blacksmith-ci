@@ -7,13 +7,13 @@ package services
 import (
 	"crypto"
 
-	"codefloe.com/crowci/crow/v5/server/forge"
-	"codefloe.com/crowci/crow/v5/server/model"
-	"codefloe.com/crowci/crow/v5/server/services/config"
-	"codefloe.com/crowci/crow/v5/server/services/environment"
-	"codefloe.com/crowci/crow/v5/server/services/registry"
-	"codefloe.com/crowci/crow/v5/server/services/secret"
-	"codefloe.com/crowci/crow/v5/server/store"
+	"codefloe.com/crowci/crow/v6/server/forge"
+	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/server/services/config"
+	"codefloe.com/crowci/crow/v6/server/services/environment"
+	"codefloe.com/crowci/crow/v6/server/services/registry"
+	"codefloe.com/crowci/crow/v6/server/services/secret"
+	"codefloe.com/crowci/crow/v6/server/store"
 	mock "github.com/stretchr/testify/mock"
 )
 

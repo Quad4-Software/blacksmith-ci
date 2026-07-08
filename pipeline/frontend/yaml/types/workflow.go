@@ -15,7 +15,7 @@
 package types
 
 import (
-	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/constraint"
+	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/constraint"
 )
 
 type (

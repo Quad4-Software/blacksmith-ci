@@ -25,7 +25,7 @@ import (
 	"github.com/docker/docker/api/types/volume"
 	"github.com/rs/zerolog/log"
 
-	backend "codefloe.com/crowci/crow/v5/pipeline/backend/types"
+	backend "codefloe.com/crowci/crow/v6/pipeline/backend/types"
 )
 
 // CleanupStaleResources finds and removes stale Docker containers, networks, and volumes

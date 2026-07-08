@@ -7,7 +7,7 @@ package types
 import (
 	"context"
 
-	"codefloe.com/crowci/crow/v5/pipeline/backend/types"
+	"codefloe.com/crowci/crow/v6/pipeline/backend/types"
 	mock "github.com/stretchr/testify/mock"
 )
 

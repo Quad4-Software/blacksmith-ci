@@ -41,9 +41,9 @@ import (
 	"github.com/urfave/cli/v3"
 	"golang.org/x/term"
 
-	"codefloe.com/crowci/crow/v5/pipeline/backend/common"
-	backend "codefloe.com/crowci/crow/v5/pipeline/backend/types"
-	"codefloe.com/crowci/crow/v5/shared/utils"
+	"codefloe.com/crowci/crow/v6/pipeline/backend/common"
+	backend "codefloe.com/crowci/crow/v6/pipeline/backend/types"
+	"codefloe.com/crowci/crow/v6/shared/utils"
 )
 
 type docker struct {

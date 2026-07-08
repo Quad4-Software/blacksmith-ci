@@ -25,7 +25,7 @@ import (
 	"github.com/docker/docker/api/types/system"
 	"github.com/stretchr/testify/assert"
 
-	backend "codefloe.com/crowci/crow/v5/pipeline/backend/types"
+	backend "codefloe.com/crowci/crow/v6/pipeline/backend/types"
 )
 
 func TestSplitVolumeParts(t *testing.T) {

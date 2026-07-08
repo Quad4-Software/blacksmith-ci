@@ -19,7 +19,7 @@ import (
 
 	"github.com/uptrace/bun"
 
-	"codefloe.com/crowci/crow/v5/pipeline"
+	"codefloe.com/crowci/crow/v6/pipeline"
 )
 
 // Task defines scheduled pipeline Task.

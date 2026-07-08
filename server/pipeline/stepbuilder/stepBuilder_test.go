@@ -22,13 +22,13 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	backend_types "codefloe.com/crowci/crow/v5/pipeline/backend/types"
-	"codefloe.com/crowci/crow/v5/pipeline/errors"
-	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/compiler/settings"
-	"codefloe.com/crowci/crow/v5/server/forge"
-	forge_mocks "codefloe.com/crowci/crow/v5/server/forge/mocks"
-	forge_types "codefloe.com/crowci/crow/v5/server/forge/types"
-	"codefloe.com/crowci/crow/v5/server/model"
+	backend_types "codefloe.com/crowci/crow/v6/pipeline/backend/types"
+	"codefloe.com/crowci/crow/v6/pipeline/errors"
+	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/compiler/settings"
+	"codefloe.com/crowci/crow/v6/server/forge"
+	forge_mocks "codefloe.com/crowci/crow/v6/server/forge/mocks"
+	forge_types "codefloe.com/crowci/crow/v6/server/forge/types"
+	"codefloe.com/crowci/crow/v6/server/model"
 )
 
 func TestGlobalEnvsubst(t *testing.T) {

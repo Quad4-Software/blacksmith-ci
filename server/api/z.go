@@ -21,7 +21,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"codefloe.com/crowci/crow/v5/version"
+	"codefloe.com/crowci/crow/v6/version"
 )
 
 // Version serves the server version (registered on the base route, not the API).

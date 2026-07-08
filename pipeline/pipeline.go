@@ -26,9 +26,9 @@ import (
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
 
-	backend "codefloe.com/crowci/crow/v5/pipeline/backend/types"
-	pipelineErrors "codefloe.com/crowci/crow/v5/pipeline/errors/types"
-	"codefloe.com/crowci/crow/v5/pipeline/frontend/metadata"
+	backend "codefloe.com/crowci/crow/v6/pipeline/backend/types"
+	pipelineErrors "codefloe.com/crowci/crow/v6/pipeline/errors/types"
+	"codefloe.com/crowci/crow/v6/pipeline/frontend/metadata"
 )
 
 // TODO: move runtime into "runtime" subpackage

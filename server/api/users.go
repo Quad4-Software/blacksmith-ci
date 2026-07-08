@@ -21,8 +21,8 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/tink-crypto/tink-go/v2/subtle/random"
 
-	"codefloe.com/crowci/crow/v5/server/model"
-	"codefloe.com/crowci/crow/v5/server/store"
+	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/server/store"
 )
 
 type GetUsersInput struct {

@@ -29,7 +29,7 @@ import (
 	"github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/santhosh-tekuri/jsonschema/v6/kind"
 
-	"codefloe.com/crowci/crow/v5/shared/yaml"
+	"codefloe.com/crowci/crow/v6/shared/yaml"
 )
 
 //go:embed schema.json

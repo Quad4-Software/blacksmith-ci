@@ -21,9 +21,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml"
-	"codefloe.com/crowci/crow/v5/pipeline/frontend/yaml/matrix"
-	"codefloe.com/crowci/crow/v5/server/model"
+	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml"
+	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/matrix"
+	"codefloe.com/crowci/crow/v6/server/model"
 )
 
 func TestWorkflowLoad(t *testing.T) {

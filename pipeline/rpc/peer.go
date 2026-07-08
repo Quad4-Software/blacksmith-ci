@@ -19,7 +19,7 @@ import (
 	"context"
 	"time"
 
-	backend "codefloe.com/crowci/crow/v5/pipeline/backend/types"
+	backend "codefloe.com/crowci/crow/v6/pipeline/backend/types"
 )
 
 type (

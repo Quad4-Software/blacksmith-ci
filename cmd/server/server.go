@@ -34,17 +34,17 @@ import (
 	"github.com/urfave/cli/v3"
 	"golang.org/x/sync/errgroup"
 
-	"codefloe.com/crowci/crow/v5/server"
-	"codefloe.com/crowci/crow/v5/server/bootstrap"
-	"codefloe.com/crowci/crow/v5/server/cron"
-	"codefloe.com/crowci/crow/v5/server/router"
-	"codefloe.com/crowci/crow/v5/server/router/middleware"
-	"codefloe.com/crowci/crow/v5/server/services/lock"
-	"codefloe.com/crowci/crow/v5/server/store"
-	"codefloe.com/crowci/crow/v5/server/web"
-	"codefloe.com/crowci/crow/v5/shared/logger"
-	"codefloe.com/crowci/crow/v5/shared/utils"
-	"codefloe.com/crowci/crow/v5/version"
+	"codefloe.com/crowci/crow/v6/server"
+	"codefloe.com/crowci/crow/v6/server/bootstrap"
+	"codefloe.com/crowci/crow/v6/server/cron"
+	"codefloe.com/crowci/crow/v6/server/router"
+	"codefloe.com/crowci/crow/v6/server/router/middleware"
+	"codefloe.com/crowci/crow/v6/server/services/lock"
+	"codefloe.com/crowci/crow/v6/server/store"
+	"codefloe.com/crowci/crow/v6/server/web"
+	"codefloe.com/crowci/crow/v6/shared/logger"
+	"codefloe.com/crowci/crow/v6/shared/utils"
+	"codefloe.com/crowci/crow/v6/version"
 )
 
 const (

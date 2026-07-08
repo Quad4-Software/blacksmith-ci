@@ -19,7 +19,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"codefloe.com/crowci/crow/v5/pipeline/backend/types"
+	"codefloe.com/crowci/crow/v6/pipeline/backend/types"
 )
 
 // Container label constants for workflow discovery and adoption.

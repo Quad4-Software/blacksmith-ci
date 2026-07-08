@@ -5,6 +5,6 @@ template: testify
 template-data:
   unroll-variadic: true
 packages:
-  codefloe.com/crowci/crow/v5:
+  codefloe.com/crowci/crow/v6:
     config:
       recursive: true

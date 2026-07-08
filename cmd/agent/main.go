@@ -19,9 +19,9 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"codefloe.com/crowci/crow/v5/cmd/agent/core"
-	"codefloe.com/crowci/crow/v5/pipeline"
-	"codefloe.com/crowci/crow/v5/shared/utils"
+	"codefloe.com/crowci/crow/v6/cmd/agent/core"
+	"codefloe.com/crowci/crow/v6/pipeline"
+	"codefloe.com/crowci/crow/v6/shared/utils"
 )
 
 func main() {

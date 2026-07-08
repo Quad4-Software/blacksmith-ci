@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	pipeline_errors "codefloe.com/crowci/crow/v5/pipeline/errors"
-	"codefloe.com/crowci/crow/v5/pipeline/errors/types"
+	pipeline_errors "codefloe.com/crowci/crow/v6/pipeline/errors"
+	"codefloe.com/crowci/crow/v6/pipeline/errors/types"
 )
 
 func TestGetPipelineErrors(t *testing.T) {

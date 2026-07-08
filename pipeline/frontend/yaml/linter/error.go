@@ -15,8 +15,8 @@
 package linter
 
 import (
-	"codefloe.com/crowci/crow/v5/pipeline/errors"
-	errorTypes "codefloe.com/crowci/crow/v5/pipeline/errors/types"
+	"codefloe.com/crowci/crow/v6/pipeline/errors"
+	errorTypes "codefloe.com/crowci/crow/v6/pipeline/errors/types"
 )
 
 func newLinterError(message, file, field string, isWarning bool) *errorTypes.PipelineError {
