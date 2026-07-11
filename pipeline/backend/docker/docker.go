@@ -240,6 +240,9 @@ func (e *docker) SetupWorkflow(ctx context.Context, conf *backend.Config, taskUU
 	_, err = e.client.NetworkCreate(ctx, conf.Network, network.CreateOptions{
 		Driver:     networkDriver,
 		EnableIPv6: &e.config.enableIPv6,
+		Labels: map[string]string{
+			LabelTaskUUID: taskUUID,
+		},
 	})
 	if err != nil {
 		// Ignore "already exists" errors as this can happen in concurrent workflows

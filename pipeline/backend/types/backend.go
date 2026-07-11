@@ -104,8 +104,11 @@ type WorkflowResumer interface {
 // to support cleaning up stale resources left behind by improperly terminated pipelines.
 type ResourceCleaner interface {
 	// CleanupStaleResources finds and removes stale containers, networks, and volumes
-	// that are older than the given threshold.
-	CleanupStaleResources(ctx context.Context, staleThreshold time.Duration) (*CleanupResult, error)
+	// that are older than the given threshold. Resources whose task UUID is present
+	// in activeTaskUUIDs belong to a build currently running on this agent and are
+	// always left alone, regardless of age or state, so an in-flight pipeline that
+	// outlives the stale threshold is never reclaimed.
+	CleanupStaleResources(ctx context.Context, staleThreshold time.Duration, activeTaskUUIDs map[string]struct{}) (*CleanupResult, error)
 }
 
 // Pinger is an optional interface that backends can implement to expose a

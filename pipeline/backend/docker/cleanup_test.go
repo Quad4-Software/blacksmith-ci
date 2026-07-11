@@ -66,11 +66,41 @@ func TestCleanupStaleContainersNeverRemovesActiveBuilds(t *testing.T) {
 	result := &backend.CleanupResult{}
 	cutoff := time.Now().Add(-time.Hour)
 
-	err := e.cleanupStaleContainers(context.Background(), cutoff, result)
+	err := e.cleanupStaleContainers(context.Background(), cutoff, nil, result)
 	assert.NoError(t, err)
 
 	assert.ElementsMatch(t, []string{"exited_old_00", "dead_old_0000", "created_old_0"}, fake.removed,
 		"reaper must remove only stale terminal/never-started containers and never active builds")
 	assert.Equal(t, int64(3), result.ContainersRemoved)
 	assert.Equal(t, int64(3), result.ContainersFound)
+}
+
+func TestCleanupStaleContainersSkipsActiveTaskUUIDs(t *testing.T) {
+	old := time.Now().Add(-2 * time.Hour).Unix()
+
+	// A build that has legitimately been running longer than the stale threshold
+	// cycles its step containers through terminal (exited) and never-started
+	// (created) states between steps. Those must survive as long as the task is
+	// still running on this agent, even though their state and age would otherwise
+	// make them reapable.
+	fake := &fakeCleanupClient{listed: []container.Summary{
+		{ID: "live_exited_00", State: container.StateExited, Created: old, Labels: map[string]string{LabelTaskUUID: "task-live"}},
+		{ID: "live_created_0", State: container.StateCreated, Created: old, Labels: map[string]string{LabelTaskUUID: "task-live"}},
+		{ID: "live_dead_0000", State: container.StateDead, Created: old, Labels: map[string]string{LabelTaskUUID: "task-live"}},
+		// A terminal orphan from a task that is no longer running is still reaped.
+		{ID: "orphan_exited0", State: container.StateExited, Created: old, Labels: map[string]string{LabelTaskUUID: "task-gone"}},
+	}}
+
+	e := &docker{client: fake}
+	result := &backend.CleanupResult{}
+	cutoff := time.Now().Add(-time.Hour)
+	active := map[string]struct{}{"task-live": {}}
+
+	err := e.cleanupStaleContainers(context.Background(), cutoff, active, result)
+	assert.NoError(t, err)
+
+	assert.ElementsMatch(t, []string{"orphan_exited0"}, fake.removed,
+		"reaper must skip every container of an in-flight build and reap only orphans")
+	assert.Equal(t, int64(1), result.ContainersRemoved)
+	assert.Equal(t, int64(1), result.ContainersFound)
 }

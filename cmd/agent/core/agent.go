@@ -966,7 +966,10 @@ func executeDockerCleanup(
 
 	cleanupCtx, cancel := context.WithTimeout(grpcCtx, staleThreshold)
 	defer cancel()
-	result, err := cleaner.CleanupStaleResources(cleanupCtx, staleThreshold)
+	// Snapshot the workflows currently running on this agent so the reaper never
+	// reclaims resources belonging to an in-flight build, even one that has been
+	// running longer than the stale threshold.
+	result, err := cleaner.CleanupStaleResources(cleanupCtx, staleThreshold, counter.ActiveTaskUUIDs())
 
 	duration := time.Since(start)
 

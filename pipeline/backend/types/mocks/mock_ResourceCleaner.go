@@ -40,8 +40,8 @@ func (_m *MockResourceCleaner) EXPECT() *MockResourceCleaner_Expecter {
 }
 
 // CleanupStaleResources provides a mock function for the type MockResourceCleaner
-func (_mock *MockResourceCleaner) CleanupStaleResources(ctx context.Context, staleThreshold time.Duration) (*types.CleanupResult, error) {
-	ret := _mock.Called(ctx, staleThreshold)
+func (_mock *MockResourceCleaner) CleanupStaleResources(ctx context.Context, staleThreshold time.Duration, activeTaskUUIDs map[string]struct{}) (*types.CleanupResult, error) {
+	ret := _mock.Called(ctx, staleThreshold, activeTaskUUIDs)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CleanupStaleResources")
@@ -49,18 +49,18 @@ func (_mock *MockResourceCleaner) CleanupStaleResources(ctx context.Context, sta
 
 	var r0 *types.CleanupResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, time.Duration) (*types.CleanupResult, error)); ok {
-		return returnFunc(ctx, staleThreshold)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, time.Duration, map[string]struct{}) (*types.CleanupResult, error)); ok {
+		return returnFunc(ctx, staleThreshold, activeTaskUUIDs)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, time.Duration) *types.CleanupResult); ok {
-		r0 = returnFunc(ctx, staleThreshold)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, time.Duration, map[string]struct{}) *types.CleanupResult); ok {
+		r0 = returnFunc(ctx, staleThreshold, activeTaskUUIDs)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*types.CleanupResult)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, time.Duration) error); ok {
-		r1 = returnFunc(ctx, staleThreshold)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, time.Duration, map[string]struct{}) error); ok {
+		r1 = returnFunc(ctx, staleThreshold, activeTaskUUIDs)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -75,11 +75,12 @@ type MockResourceCleaner_CleanupStaleResources_Call struct {
 // CleanupStaleResources is a helper method to define mock.On call
 //   - ctx context.Context
 //   - staleThreshold time.Duration
-func (_e *MockResourceCleaner_Expecter) CleanupStaleResources(ctx any, staleThreshold any) *MockResourceCleaner_CleanupStaleResources_Call {
-	return &MockResourceCleaner_CleanupStaleResources_Call{Call: _e.mock.On("CleanupStaleResources", ctx, staleThreshold)}
+//   - activeTaskUUIDs map[string]struct{}
+func (_e *MockResourceCleaner_Expecter) CleanupStaleResources(ctx any, staleThreshold any, activeTaskUUIDs any) *MockResourceCleaner_CleanupStaleResources_Call {
+	return &MockResourceCleaner_CleanupStaleResources_Call{Call: _e.mock.On("CleanupStaleResources", ctx, staleThreshold, activeTaskUUIDs)}
 }
 
-func (_c *MockResourceCleaner_CleanupStaleResources_Call) Run(run func(ctx context.Context, staleThreshold time.Duration)) *MockResourceCleaner_CleanupStaleResources_Call {
+func (_c *MockResourceCleaner_CleanupStaleResources_Call) Run(run func(ctx context.Context, staleThreshold time.Duration, activeTaskUUIDs map[string]struct{})) *MockResourceCleaner_CleanupStaleResources_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -89,9 +90,14 @@ func (_c *MockResourceCleaner_CleanupStaleResources_Call) Run(run func(ctx conte
 		if args[1] != nil {
 			arg1 = args[1].(time.Duration)
 		}
+		var arg2 map[string]struct{}
+		if args[2] != nil {
+			arg2 = args[2].(map[string]struct{})
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -102,7 +108,7 @@ func (_c *MockResourceCleaner_CleanupStaleResources_Call) Return(cleanupResult *
 	return _c
 }
 
-func (_c *MockResourceCleaner_CleanupStaleResources_Call) RunAndReturn(run func(ctx context.Context, staleThreshold time.Duration) (*types.CleanupResult, error)) *MockResourceCleaner_CleanupStaleResources_Call {
+func (_c *MockResourceCleaner_CleanupStaleResources_Call) RunAndReturn(run func(ctx context.Context, staleThreshold time.Duration, activeTaskUUIDs map[string]struct{}) (*types.CleanupResult, error)) *MockResourceCleaner_CleanupStaleResources_Call {
 	_c.Call.Return(run)
 	return _c
 }
