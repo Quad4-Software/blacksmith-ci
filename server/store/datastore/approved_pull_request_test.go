@@ -47,7 +47,8 @@ func TestApprovedPullRequestFindNotExist(t *testing.T) {
 	store, closer := newTestStore(t, new(model.ApprovedPullRequest))
 	defer closer()
 
-	_, err := store.ApprovedPullRequestFind(1, "refs/pull/99/head")
+	found, err := store.ApprovedPullRequestFind(1, "refs/pull/99/head")
+	assert.Nil(t, found)
 	assert.ErrorIs(t, err, types.RecordNotExist)
 }
 

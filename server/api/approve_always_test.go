@@ -118,6 +118,20 @@ func TestPopulateAlwaysApproved(t *testing.T) {
 		assert.False(t, pl.IsAlwaysApproved)
 	})
 
+	t.Run("does not set flag when lookup returns an object alongside an error", func(t *testing.T) {
+		mockStore := new(store_mocks.MockStore)
+		repo := &model.Repo{ID: 1}
+		pl := &model.Pipeline{Ref: "refs/pull/42/head"}
+
+		// A non-nil object returned together with an error must not be treated
+		// as a valid permanent approval.
+		mockStore.On("ApprovedPullRequestFind", int64(1), "refs/pull/42/head").Return(new(model.ApprovedPullRequest), types.RecordNotExist)
+
+		populateAlwaysApproved(mockStore, repo, pl)
+
+		assert.False(t, pl.IsAlwaysApproved)
+	})
+
 	t.Run("does not set flag when ref is empty", func(t *testing.T) {
 		mockStore := new(store_mocks.MockStore)
 		repo := &model.Repo{ID: 1}

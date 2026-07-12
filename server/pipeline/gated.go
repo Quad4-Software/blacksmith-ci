@@ -25,7 +25,8 @@ func setApprovalState(_store store.Store, repo *model.Repo, pipeline *model.Pipe
 	}
 
 	// Check if this PR has been always-approved
-	if apr, _ := _store.ApprovedPullRequestFind(repo.ID, pipeline.Ref); apr != nil {
+	apr, err := _store.ApprovedPullRequestFind(repo.ID, pipeline.Ref)
+	if err == nil && apr != nil {
 		return
 	}
 

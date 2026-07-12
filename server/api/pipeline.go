@@ -450,7 +450,9 @@ func getPipelineLast(ctx context.Context) (*GetPipelineOutput, error) {
 
 func populateAlwaysApproved(_store store.Store, repo *model.Repo, pl *model.Pipeline) {
 	if pl.Ref != "" {
-		if apr, _ := _store.ApprovedPullRequestFind(repo.ID, pl.Ref); apr != nil {
+		// Only a successful lookup of a matching record marks the ref as
+		// always-approved; a missing record or datastore error must not.
+		if apr, err := _store.ApprovedPullRequestFind(repo.ID, pl.Ref); err == nil && apr != nil {
 			pl.IsAlwaysApproved = true
 		}
 	}

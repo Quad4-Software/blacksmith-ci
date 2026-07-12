@@ -8,6 +8,7 @@ import (
 
 	"codefloe.com/crowci/crow/v6/server/model"
 	mocks "codefloe.com/crowci/crow/v6/server/store/mocks"
+	"codefloe.com/crowci/crow/v6/server/store/types"
 )
 
 func TestSetRequireApprovalState(t *testing.T) {
@@ -181,4 +182,26 @@ func TestSetRequireApprovalStateStoreErrorFallsBackToBlocked(t *testing.T) {
 
 	setApprovalState(mockStore, repo, pl)
 	assert.Equal(t, model.StatusBlocked, pl.Status, "pipeline should still be blocked when store returns an error (safe default)")
+}
+
+func TestSetRequireApprovalStateNonNilApprovalOnLookupErrorFallsBackToBlocked(t *testing.T) {
+	t.Parallel()
+
+	repo := &model.Repo{
+		ID:              1,
+		RequireApproval: model.RequireApprovalForks,
+	}
+	pl := &model.Pipeline{
+		Event:    model.EventPull,
+		FromFork: true,
+		Ref:      "refs/pull/42/head",
+	}
+
+	mockStore := mocks.NewMockStore(t)
+	// A lookup error must not be treated as a valid permanent approval, even if
+	// the store returns a non-nil object alongside the error.
+	mockStore.On("ApprovedPullRequestFind", repo.ID, pl.Ref).Return(new(model.ApprovedPullRequest), types.RecordNotExist)
+
+	setApprovalState(mockStore, repo, pl)
+	assert.Equal(t, model.StatusBlocked, pl.Status, "pipeline should be blocked when an approval lookup returns an object and an error")
 }

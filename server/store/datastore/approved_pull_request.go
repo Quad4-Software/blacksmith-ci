@@ -22,7 +22,11 @@ import (
 
 func (s storage) ApprovedPullRequestFind(repoID int64, ref string) (*model.ApprovedPullRequest, error) {
 	apr := new(model.ApprovedPullRequest)
-	return apr, wrapGet(s.db.NewSelect().Model(apr).Where("repo_id = ? AND ref = ?", repoID, ref).Scan(context.Background()))
+	err := wrapGet(s.db.NewSelect().Model(apr).Where("repo_id = ? AND ref = ?", repoID, ref).Scan(context.Background()))
+	if err != nil {
+		return nil, err
+	}
+	return apr, nil
 }
 
 func (s storage) ApprovedPullRequestCreate(apr *model.ApprovedPullRequest) error {
