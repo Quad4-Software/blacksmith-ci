@@ -29,29 +29,72 @@ import (
 )
 
 // CleanupStaleResources finds and removes stale Docker containers, networks, and volumes
-// created by Crow pipelines that were not properly cleaned up. Resources whose
-// LabelTaskUUID is in activeTaskUUIDs belong to a build currently running on this
-// agent and are never touched, regardless of age or state.
+// created by Crow pipelines that were not properly cleaned up. Resources belonging to a
+// build that is still executing are never touched, regardless of age or state.
 func (e *docker) CleanupStaleResources(ctx context.Context, staleThreshold time.Duration, activeTaskUUIDs map[string]struct{}) (*backend.CleanupResult, error) {
 	result := &backend.CleanupResult{}
 	cutoff := time.Now().Add(-staleThreshold)
 
+	// Build the set of task UUIDs whose resources must be protected. Two
+	// independent signals are combined so a live build is never reclaimed:
+	//
+	//  1. activeTaskUUIDs — workflows this agent tracks in memory. This covers the
+	//     brief between-steps window where a build momentarily has no running
+	//     container (previous step torn down, next step not yet created).
+	//  2. live containers on this daemon — any task UUID that still has a running
+	//     container. This is the authoritative signal and does not depend on the
+	//     agent's in-memory bookkeeping, so it also protects builds whose in-memory
+	//     ID differs from the container label (adopted workflows, whose task UUID
+	//     and workflow ID are distinct) and builds owned by another agent sharing
+	//     this daemon. An actively executing build always has at least one running
+	//     container.
+	protected := make(map[string]struct{}, len(activeTaskUUIDs))
+	for uuid := range activeTaskUUIDs {
+		protected[uuid] = struct{}{}
+	}
+	if err := e.addLiveTaskUUIDs(ctx, protected); err != nil {
+		log.Warn().Err(err).Msg("could not determine live task UUIDs for cleanup; relying on agent-reported active set only")
+	}
+
 	// Clean up stale containers (identified by crowci labels)
-	if err := e.cleanupStaleContainers(ctx, cutoff, activeTaskUUIDs, result); err != nil {
+	if err := e.cleanupStaleContainers(ctx, cutoff, protected, result); err != nil {
 		log.Error().Err(err).Msg("error during stale container cleanup")
 	}
 
 	// Clean up stale networks (matching wp_*_default or crow_*_default patterns)
-	if err := e.cleanupStaleNetworks(ctx, cutoff, activeTaskUUIDs, result); err != nil {
+	if err := e.cleanupStaleNetworks(ctx, cutoff, protected, result); err != nil {
 		log.Error().Err(err).Msg("error during stale network cleanup")
 	}
 
 	// Clean up stale volumes (matching wp_*_default or crow_*_default patterns)
-	if err := e.cleanupStaleVolumes(ctx, cutoff, activeTaskUUIDs, result); err != nil {
+	if err := e.cleanupStaleVolumes(ctx, cutoff, protected, result); err != nil {
 		log.Error().Err(err).Msg("error during stale volume cleanup")
 	}
 
 	return result, nil
+}
+
+// addLiveTaskUUIDs adds to protected the task UUID of every crow container that is
+// currently running on this daemon. A ListOptions with All left false returns only
+// containers Docker considers active (running, restarting, paused), which is exactly
+// the set that proves a build is still executing.
+func (e *docker) addLiveTaskUUIDs(ctx context.Context, protected map[string]struct{}) error {
+	containers, err := e.client.ContainerList(ctx, container.ListOptions{
+		Filters: filters.NewArgs(
+			filters.Arg("label", LabelTaskUUID),
+		),
+	})
+	if err != nil {
+		return err
+	}
+
+	for _, c := range containers {
+		if uuid := c.Labels[LabelTaskUUID]; uuid != "" {
+			protected[uuid] = struct{}{}
+		}
+	}
+
+	return nil
 }
 
 // isCrowResource returns true if the name matches the crow/wp pipeline naming convention.
@@ -61,16 +104,16 @@ func isCrowResource(name string) bool {
 }
 
 // belongsToActiveBuild reports whether the given LabelTaskUUID value identifies a
-// workflow currently running on this agent. Such resources are never reaped: an
-// in-flight build legitimately passes its containers through terminal (exited) and
-// never-started (created) states between steps, and keeps its volume and network
-// for the whole run, so age and container state alone cannot distinguish a live
-// build from an orphan. The active-task set is the authoritative signal.
-func belongsToActiveBuild(taskUUID string, activeTaskUUIDs map[string]struct{}) bool {
+// build that is still executing (see CleanupStaleResources for how the protected
+// set is built). Such resources are never reaped: an in-flight build legitimately
+// passes its containers through terminal (exited) and never-started (created)
+// states between steps, and keeps its volume and network for the whole run, so age
+// and container state alone cannot distinguish a live build from an orphan.
+func belongsToActiveBuild(taskUUID string, protectedTaskUUIDs map[string]struct{}) bool {
 	if taskUUID == "" {
 		return false
 	}
-	_, ok := activeTaskUUIDs[taskUUID]
+	_, ok := protectedTaskUUIDs[taskUUID]
 	return ok
 }
 
@@ -90,7 +133,7 @@ func isReapableContainerState(state string) bool {
 	}
 }
 
-func (e *docker) cleanupStaleContainers(ctx context.Context, cutoff time.Time, activeTaskUUIDs map[string]struct{}, result *backend.CleanupResult) error {
+func (e *docker) cleanupStaleContainers(ctx context.Context, cutoff time.Time, protectedTaskUUIDs map[string]struct{}, result *backend.CleanupResult) error {
 	containers, err := e.client.ContainerList(ctx, container.ListOptions{
 		All: true,
 		Filters: filters.NewArgs(
@@ -102,13 +145,13 @@ func (e *docker) cleanupStaleContainers(ctx context.Context, cutoff time.Time, a
 	}
 
 	for _, c := range containers {
-		// Never touch containers belonging to a build running on this agent,
+		// Never touch containers belonging to a build that is still executing,
 		// regardless of age or state: a live build cycles its step containers
 		// through exited/created states between steps.
-		if belongsToActiveBuild(c.Labels[LabelTaskUUID], activeTaskUUIDs) {
+		if belongsToActiveBuild(c.Labels[LabelTaskUUID], protectedTaskUUIDs) {
 			continue
 		}
-		// Never touch containers belonging to an active build, regardless of age.
+		// Leave running/paused/restarting/removing and any unknown state alone.
 		if !isReapableContainerState(c.State) {
 			continue
 		}
@@ -134,7 +177,7 @@ func (e *docker) cleanupStaleContainers(ctx context.Context, cutoff time.Time, a
 	return nil
 }
 
-func (e *docker) cleanupStaleNetworks(ctx context.Context, cutoff time.Time, activeTaskUUIDs map[string]struct{}, result *backend.CleanupResult) error {
+func (e *docker) cleanupStaleNetworks(ctx context.Context, cutoff time.Time, protectedTaskUUIDs map[string]struct{}, result *backend.CleanupResult) error {
 	networks, err := e.client.NetworkList(ctx, network.ListOptions{})
 	if err != nil {
 		return err
@@ -148,7 +191,7 @@ func (e *docker) cleanupStaleNetworks(ctx context.Context, cutoff time.Time, act
 		// Networks created by SetupWorkflow carry the task UUID label; never remove
 		// one that belongs to a build running on this agent, even in the brief
 		// between-steps window where no container is attached.
-		if belongsToActiveBuild(n.Labels[LabelTaskUUID], activeTaskUUIDs) {
+		if belongsToActiveBuild(n.Labels[LabelTaskUUID], protectedTaskUUIDs) {
 			continue
 		}
 
@@ -183,7 +226,7 @@ func (e *docker) cleanupStaleNetworks(ctx context.Context, cutoff time.Time, act
 	return nil
 }
 
-func (e *docker) cleanupStaleVolumes(ctx context.Context, cutoff time.Time, activeTaskUUIDs map[string]struct{}, result *backend.CleanupResult) error {
+func (e *docker) cleanupStaleVolumes(ctx context.Context, cutoff time.Time, protectedTaskUUIDs map[string]struct{}, result *backend.CleanupResult) error {
 	volumes, err := e.client.VolumeList(ctx, volume.ListOptions{})
 	if err != nil {
 		return err
@@ -196,7 +239,7 @@ func (e *docker) cleanupStaleVolumes(ctx context.Context, cutoff time.Time, acti
 
 		// Never remove a volume that belongs to a build running on this agent; the
 		// workspace and temp volumes live for the whole run.
-		if belongsToActiveBuild(v.Labels[LabelTaskUUID], activeTaskUUIDs) {
+		if belongsToActiveBuild(v.Labels[LabelTaskUUID], protectedTaskUUIDs) {
 			continue
 		}
 

@@ -20,6 +20,8 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/network"
+	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/stretchr/testify/assert"
 
@@ -35,13 +37,36 @@ type fakeCleanupClient struct {
 	removed []string
 }
 
-func (f *fakeCleanupClient) ContainerList(_ context.Context, _ container.ListOptions) ([]container.Summary, error) {
-	return f.listed, nil
+// ContainerList mirrors Docker: with All left false only containers Docker
+// considers active (running, restarting, paused) are returned, which is what the
+// live-task detection relies on. With All set, every container is returned.
+func (f *fakeCleanupClient) ContainerList(_ context.Context, opts container.ListOptions) ([]container.Summary, error) {
+	if opts.All {
+		return f.listed, nil
+	}
+	var running []container.Summary
+	for _, c := range f.listed {
+		switch c.State {
+		case container.StateRunning, container.StateRestarting, container.StatePaused:
+			running = append(running, c)
+		}
+	}
+	return running, nil
 }
 
 func (f *fakeCleanupClient) ContainerRemove(_ context.Context, containerID string, _ container.RemoveOptions) error {
 	f.removed = append(f.removed, containerID)
 	return nil
+}
+
+// NetworkList and VolumeList let CleanupStaleResources run end-to-end; the reaper
+// only cares about containers in these tests, so both return nothing.
+func (f *fakeCleanupClient) NetworkList(_ context.Context, _ network.ListOptions) ([]network.Summary, error) {
+	return nil, nil
+}
+
+func (f *fakeCleanupClient) VolumeList(_ context.Context, _ volume.ListOptions) (volume.ListResponse, error) {
+	return volume.ListResponse{}, nil
 }
 
 func TestCleanupStaleContainersNeverRemovesActiveBuilds(t *testing.T) {
@@ -103,4 +128,30 @@ func TestCleanupStaleContainersSkipsActiveTaskUUIDs(t *testing.T) {
 		"reaper must skip every container of an in-flight build and reap only orphans")
 	assert.Equal(t, int64(1), result.ContainersRemoved)
 	assert.Equal(t, int64(1), result.ContainersFound)
+}
+
+func TestCleanupStaleResourcesProtectsLiveButUntrackedTasks(t *testing.T) {
+	old := time.Now().Add(-2 * time.Hour).Unix()
+
+	// task-adopted models a build the agent does not track in its in-memory active
+	// set (e.g. an adopted workflow whose in-memory ID differs from the container
+	// label, or a build owned by another agent sharing this daemon). It has one
+	// running step plus an old exited step from earlier in the same build. Because
+	// a running container proves the build is live, none of its containers may be
+	// reaped. task-gone is a genuine orphan with no running container and is reaped.
+	fake := &fakeCleanupClient{listed: []container.Summary{
+		{ID: "adopted_run00", State: container.StateRunning, Created: old, Labels: map[string]string{LabelTaskUUID: "task-adopted"}},
+		{ID: "adopted_exit0", State: container.StateExited, Created: old, Labels: map[string]string{LabelTaskUUID: "task-adopted"}},
+		{ID: "gone_exited_0", State: container.StateExited, Created: old, Labels: map[string]string{LabelTaskUUID: "task-gone"}},
+	}}
+
+	e := &docker{client: fake}
+
+	// The agent reports no active tasks: protection must come from daemon liveness.
+	result, err := e.CleanupStaleResources(context.Background(), time.Hour, nil)
+	assert.NoError(t, err)
+
+	assert.ElementsMatch(t, []string{"gone_exited_0"}, fake.removed,
+		"a build with any running container must be fully protected even when the agent does not track it")
+	assert.Equal(t, int64(1), result.ContainersRemoved)
 }
