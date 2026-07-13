@@ -2,7 +2,7 @@ module codefloe.com/crowci/crow/v6
 
 go 1.26.0
 
-toolchain go1.26.4
+toolchain go1.26.5
 
 require (
 	al.essio.dev/pkg/shellescape v1.6.0
@@ -25,7 +25,7 @@ require (
 	github.com/fluxcd/pkg/envsubst v1.7.0
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/gdgvda/cron v0.7.0
-	github.com/getkin/kin-openapi v0.140.0
+	github.com/getkin/kin-openapi v0.142.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/gitsight/go-vcsurl v1.0.1
 	github.com/go-sql-driver/mysql v1.10.0
@@ -63,15 +63,15 @@ require (
 	github.com/uptrace/bun/extra/bundebug v1.2.18
 	github.com/urfave/cli-docs/v3 v3.1.0
 	github.com/urfave/cli/v3 v3.10.1
-	github.com/wneessen/go-mail v0.8.1-0.20260706081522-65e2023e7f01
+	github.com/wneessen/go-mail v0.8.1
 	github.com/yaronf/httpsign v0.5.1
-	gitlab.com/gitlab-org/api/client-go/v2 v2.46.0
-	go.podman.io/common v0.68.0
-	golang.org/x/net v0.56.0
+	gitlab.com/gitlab-org/api/client-go/v2 v2.47.0
+	go.podman.io/common v0.68.1
+	golang.org/x/net v0.57.0
 	golang.org/x/oauth2 v0.36.0
-	golang.org/x/sync v0.21.0
-	golang.org/x/term v0.44.0
-	golang.org/x/text v0.39.0
+	golang.org/x/sync v0.22.0
+	golang.org/x/term v0.45.0
+	golang.org/x/text v0.40.0
 	golang.org/x/time v0.15.0
 	google.golang.org/grpc v1.82.0
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
@@ -259,8 +259,8 @@ require (
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/nxadm/tail v1.4.11 // indirect
-	github.com/oasdiff/yaml v0.1.0 // indirect
-	github.com/oasdiff/yaml3 v0.0.13 // indirect
+	github.com/oasdiff/yaml v0.1.1 // indirect
+	github.com/oasdiff/yaml3 v0.0.14 // indirect
 	github.com/oklog/run v1.2.0 // indirect
 	github.com/opencontainers/cgroups v0.0.6 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
@@ -320,14 +320,14 @@ require (
 	go.opentelemetry.io/otel/metric v1.44.0 // indirect
 	go.opentelemetry.io/otel/trace v1.44.0 // indirect
 	go.podman.io/image/v5 v5.40.0 // indirect
-	go.podman.io/podman/v6 v6.0.0
+	go.podman.io/podman/v6 v6.0.1
 	go.podman.io/storage v1.63.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/arch v0.27.0 // indirect
-	golang.org/x/crypto v0.53.0 // indirect
+	golang.org/x/crypto v0.54.0 // indirect
 	golang.org/x/mod v0.37.0 // indirect
-	golang.org/x/sys v0.46.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
 	google.golang.org/api v0.282.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260526163538-3dc84a4a5aaa // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260526163538-3dc84a4a5aaa // indirect
