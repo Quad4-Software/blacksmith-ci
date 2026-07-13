@@ -83,13 +83,14 @@ func TestUpdateStepStatusNotExitedButStopped(t *testing.T) {
 	assert.EqualValues(t, "", step.Error)
 }
 
-func TestUpdateStepStatusExited(t *testing.T) {
+func TestUpdateStepStatusExitedWith137IsFailure(t *testing.T) {
 	t.Parallel()
 
-	// step in db before update
-	step := &model.Step{Started: 42}
+	// step in db before update: a running step that was never canceled
+	step := &model.Step{Started: 42, State: model.StatusRunning}
 
-	// advertised step status
+	// advertised step status: exit 137 (SIGKILL) without a preceding cancel,
+	// e.g. an OOM kill or a host/daemon SIGKILL of the container
 	state := rpc.StepState{
 		Started:  int64(42),
 		Exited:   true,
@@ -100,11 +101,35 @@ func TestUpdateStepStatusExited(t *testing.T) {
 
 	err := UpdateStepStatus(mockStoreStep(), step, state)
 	assert.NoError(t, err)
-	assert.EqualValues(t, model.StatusKilled, step.State)
+	// 137 is not, by itself, a user cancellation: it must surface as a failure.
+	assert.EqualValues(t, model.StatusFailure, step.State)
 	assert.EqualValues(t, 42, step.Started)
 	assert.EqualValues(t, 34, step.Finished)
 	assert.EqualValues(t, pipeline.ExitCodeKilled, step.ExitCode)
 	assert.EqualValues(t, "an error", step.Error)
+}
+
+func TestUpdateStepStatusExitedPreservesKilled(t *testing.T) {
+	t.Parallel()
+
+	// step in db before update: already marked killed by the cancel path
+	step := &model.Step{Started: 42, State: model.StatusKilled}
+
+	// advertised step status: the torn-down container's final report (exit 137)
+	state := rpc.StepState{
+		Started:  int64(42),
+		Exited:   true,
+		Finished: int64(34),
+		ExitCode: pipeline.ExitCodeKilled,
+		Error:    "an error",
+	}
+
+	err := UpdateStepStatus(mockStoreStep(), step, state)
+	assert.NoError(t, err)
+	// A genuine cancellation stays killed; the late 137 report must not downgrade it.
+	assert.EqualValues(t, model.StatusKilled, step.State)
+	assert.EqualValues(t, 34, step.Finished)
+	assert.EqualValues(t, pipeline.ExitCodeKilled, step.ExitCode)
 }
 
 func TestUpdateStepStatusExitedButNot137(t *testing.T) {

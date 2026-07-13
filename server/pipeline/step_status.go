@@ -29,12 +29,18 @@ func UpdateStepStatus(store store.Store, step *model.Step, state rpc.StepState) 
 		step.Finished = state.Finished
 		step.ExitCode = state.ExitCode
 		step.Error = state.Error
-		step.State = model.StatusSuccess
-		if state.ExitCode != 0 || state.Error != "" {
-			step.State = model.StatusFailure
-		}
-		if state.ExitCode == pipeline.ExitCodeKilled {
-			step.State = model.StatusKilled
+		// Do not derive "killed" from the exit code. Exit 137 (128+SIGKILL) is
+		// reported for an OOM kill or a host/daemon SIGKILL just as much as for a
+		// user cancellation, so treating every 137 as "killed" mislabels genuine
+		// failures as intentional stops. A real cancellation is recorded via the
+		// cancel path (UpdateStepToStatusKilled) before the agent's final report
+		// lands, so preserve an already-killed step rather than inventing the
+		// state here or downgrading it to failure.
+		if step.State != model.StatusKilled {
+			step.State = model.StatusSuccess
+			if state.ExitCode != 0 || state.Error != "" {
+				step.State = model.StatusFailure
+			}
 		}
 	} else if step.Finished == 0 {
 		step.Started = state.Started
