@@ -100,6 +100,7 @@ export type IconNames =
   | 'lucide:minimize'
   | 'lucide:maximize'
   | 'lucide:check'
+  | 'lucide:user-plus'
   | 'lucide:copy'
   | 'lucide:calendar'
   | 'lucide:clock'

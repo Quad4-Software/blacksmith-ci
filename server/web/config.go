@@ -24,6 +24,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"codefloe.com/crowci/crow/v6/server"
+	"codefloe.com/crowci/crow/v6/server/api"
 	"codefloe.com/crowci/crow/v6/server/router/middleware/session"
 	"codefloe.com/crowci/crow/v6/shared/token"
 	"codefloe.com/crowci/crow/v6/version"
@@ -41,6 +42,7 @@ func Config(c *gin.Context) {
 
 	configData := map[string]any{
 		"user":                   user,
+		"accounts":               api.SwitchAccounts(c, user),
 		"csrf":                   csrf,
 		"version":                version.String(),
 		"build_date":             version.Date(),
@@ -76,6 +78,7 @@ func Config(c *gin.Context) {
 
 const configTemplate = `
 window.CROW_USER = {{ json .user }};
+window.CROW_ACCOUNTS = {{ json .accounts }};
 window.CROW_CSRF = "{{ .csrf }}";
 window.CROW_VERSION = "{{ .version }}";
 window.CROW_BUILD_DATE = "{{ .build_date }}";

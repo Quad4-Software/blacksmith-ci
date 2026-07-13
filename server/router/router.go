@@ -53,6 +53,7 @@ func Load(noRouteHandler http.HandlerFunc, middleware ...gin.HandlerFunc) http.H
 		base.GET("/web-config.js", web.Config)
 
 		base.GET("/logout", api.GetLogout)
+		base.GET("/switch-account", api.SwitchAccount)
 		auth := base.Group("/authorize")
 		{
 			auth.GET("", api.HandleAuth)

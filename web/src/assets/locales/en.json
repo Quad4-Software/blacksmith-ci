@@ -51,6 +51,13 @@
   "docs": "Docs",
   "api": "API",
   "logout": "Logout",
+  "account_switch": {
+    "title": "Switch account",
+    "add": "Add another account",
+    "add_message": "Sign in with another account. You can switch between accounts without logging out.",
+    "logout_current": "Sign out of this account",
+    "logout_all": "Sign out of all accounts"
+  },
   "search": "Search…",
   "sort": "Sort",
   "loading": "Loading…",

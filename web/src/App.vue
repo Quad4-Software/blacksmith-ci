@@ -82,6 +82,43 @@
                         <p class="text-xs leading-none text-muted-foreground">{{ user.email }}</p>
                       </div>
                     </DropdownMenuLabel>
+                    <template v-if="switchAccounts.length > 1">
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel class="text-xs font-normal text-muted-foreground">
+                        {{ $t('account_switch.title') }}
+                      </DropdownMenuLabel>
+                      <DropdownMenuItem
+                        v-for="account in switchAccounts"
+                        :key="account.id"
+                        as-child
+                        :disabled="account.active"
+                      >
+                        <a
+                          :href="account.active ? undefined : `${address}/switch-account?id=${account.id}`"
+                          class="flex w-full cursor-pointer items-center"
+                        >
+                          <Avatar class="mr-2 h-5 w-5">
+                            <AvatarImage v-if="account.avatar_url" :src="account.avatar_url" :alt="account.login" />
+                            <AvatarFallback class="text-xs">{{
+                              account.login?.charAt(0).toUpperCase()
+                            }}</AvatarFallback>
+                          </Avatar>
+                          <span class="flex-1 truncate">{{ account.login }}</span>
+                          <Icon v-if="account.active" name="lucide:check" class="ml-2 size-4" />
+                        </a>
+                      </DropdownMenuItem>
+                    </template>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem as-child>
+                      <router-link
+                        :to="{ name: 'login', query: { add: 'true' } }"
+                        class="flex w-full cursor-pointer items-center"
+                      >
+                        <Icon name="lucide:user-plus" class="mr-2 size-4" />
+                        {{ $t('account_switch.add') }}
+                      </router-link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     <div class="flex items-center gap-1 px-2 py-1.5">
                       <Button
                         variant="ghost"
@@ -125,7 +162,13 @@
                     <DropdownMenuItem as-child>
                       <a :href="`${address}/logout`" class="flex w-full cursor-pointer items-center">
                         <Icon name="logout" class="mr-2 size-4" />
-                        {{ $t('logout') }}
+                        {{ switchAccounts.length > 1 ? $t('account_switch.logout_current') : $t('logout') }}
+                      </a>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem v-if="switchAccounts.length > 1" as-child>
+                      <a :href="`${address}/logout?all=true`" class="flex w-full cursor-pointer items-center">
+                        <Icon name="logout" class="mr-2 size-4" />
+                        {{ $t('account_switch.logout_all') }}
                       </a>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -176,29 +219,22 @@
 
 <script lang="ts" setup>
 import 'vue-sonner/style.css';
-
-import { computed, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRoute } from 'vue-router';
-import { toast } from 'vue-sonner';
-
 import CrowLogoPng from '~/assets/logo-dark.png';
-import CrowLogoDarkPng from '~/assets/logo.png';
 import CrowLogoSvg from '~/assets/logo-dark.svg?component';
+import CrowLogoDarkPng from '~/assets/logo.png';
 import CrowLogoDarkSvg from '~/assets/logo.svg?component';
 import Icon from '~/components/atomic/Icon.vue';
-import { i18nReady } from '~/compositions/useI18n';
+import AddAgentDialog from '~/components/command-palette/AddAgentDialog.vue';
+import AddCronDialog from '~/components/command-palette/AddCronDialog.vue';
+import AddRegistryDialog from '~/components/command-palette/AddRegistryDialog.vue';
+import AddRepositoryDialog from '~/components/command-palette/AddRepositoryDialog.vue';
+import AddSecretDialog from '~/components/command-palette/AddSecretDialog.vue';
 import GlobalCommandPalette from '~/components/command-palette/GlobalCommandPalette.vue';
 import KeyboardShortcutsDialog from '~/components/keyboard-shortcuts/KeyboardShortcutsDialog.vue';
-import AddSecretDialog from '~/components/command-palette/AddSecretDialog.vue';
-import AddRegistryDialog from '~/components/command-palette/AddRegistryDialog.vue';
-import AddAgentDialog from '~/components/command-palette/AddAgentDialog.vue';
-import AddRepositoryDialog from '~/components/command-palette/AddRepositoryDialog.vue';
-import AddCronDialog from '~/components/command-palette/AddCronDialog.vue';
 import AppSidebar from '~/components/layout/AppSidebar.vue';
-import LoadingOverlay from '~/components/layout/LoadingOverlay.vue';
 import ActivePipelines from '~/components/layout/header/ActivePipelines.vue';
 import ForgeAuthStatus from '~/components/layout/header/ForgeAuthStatus.vue';
+import LoadingOverlay from '~/components/layout/LoadingOverlay.vue';
 import PipelineFeedSidebar from '~/components/pipeline-feed/PipelineFeedSidebar.vue';
 import Avatar from '~/components/ui/avatar/Avatar.vue';
 import AvatarFallback from '~/components/ui/avatar/AvatarFallback.vue';
@@ -217,10 +253,15 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from '~/components/ui/s
 import { Toaster } from '~/components/ui/sonner';
 import useApiClient from '~/compositions/useApiClient';
 import useAuthentication from '~/compositions/useAuthentication';
-import { is404Suppressed } from '~/compositions/useNotificationControl';
 import useConfig from '~/compositions/useConfig';
+import { i18nReady } from '~/compositions/useI18n';
+import { is404Suppressed } from '~/compositions/useNotificationControl';
 import useNotifications from '~/compositions/useNotifications';
 import { useTheme } from '~/compositions/useTheme';
+import { computed, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRoute } from 'vue-router';
+import { toast } from 'vue-sonner';
 
 const BRACKETED_PREFIX_REGEX = /^\[[\w\s]+\]\s*/;
 
@@ -232,6 +273,10 @@ const { isAuthenticated, user } = useAuthentication();
 const { storeTheme, theme } = useTheme();
 const config = useConfig();
 const address = `${window.location.protocol}//${window.location.host}${config.rootPath}`;
+
+// Accounts the browser has authenticated with, for quick-switching without a
+// full logout/login. Injected by the server into the page config.
+const switchAccounts = computed(() => config.accounts);
 
 const isDark = computed(() => theme.value === 'dark');
 

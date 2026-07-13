@@ -34,6 +34,26 @@ If your Crow instance has [multiple forges configured](/dev/configuration/server
 
 </Steps>
 
+## Switching Between Accounts
+
+Linking a forge joins another forge connection to your _existing_ Crow account.
+Account switching is different: it lets you stay signed in to several _distinct_ Crow accounts in the same browser and jump between them without a full logout and login each time.
+This is handy when you maintain separate accounts, for example a personal and an organization account.
+
+<Steps>
+
+1. Open the user menu (avatar in the top right) and click **Add another account**
+
+2. Choose the forge and authenticate with the other account via OAuth
+
+3. Both accounts now appear under **Switch account** in the user menu; click one to switch to it instantly
+
+</Steps>
+
+Each remembered account keeps its own session, so switching does not require re-entering credentials.
+The user menu offers **Sign out of this account** (leaves your other accounts signed in and drops you into the next one) and **Sign out of all accounts** (a full logout).
+Remembered sessions are stored in a secure, `HttpOnly` cookie just like the active session, and a stale or expired session is dropped from the switcher automatically.
+
 ## Managing Linked Forges
 
 ### Expired Token Notifications

@@ -1,8 +1,9 @@
-import type { User } from '~/lib/api/types';
+import type { SwitchAccount, User } from '~/lib/api/types';
 
 declare global {
   interface Window {
     CROW_USER: User | undefined;
+    CROW_ACCOUNTS: SwitchAccount[] | undefined;
     CROW_VERSION: string | undefined;
     CROW_BUILD_DATE: string | undefined;
     CROW_SKIP_VERSION_CHECK: boolean | undefined;
@@ -15,6 +16,7 @@ declare global {
 
 export default () => ({
   user: window.CROW_USER ?? null,
+  accounts: window.CROW_ACCOUNTS ?? [],
   version: window.CROW_VERSION,
   buildDate: window.CROW_BUILD_DATE,
   skipVersionCheck: window.CROW_SKIP_VERSION_CHECK === true || false,

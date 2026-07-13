@@ -119,8 +119,23 @@ func HandleAuth(c *gin.Context) {
 			}
 		}
 
-		// Check if user is already logged in (linking mode)
-		linkingUser := getLinkingUser(c)
+		// Check if user is already logged in (linking mode).
+		// When adding another account for quick-switching, we deliberately ignore
+		// the current session so the OAuth flow logs in as a distinct account
+		// instead of linking a forge to the existing one.
+		var linkingUser *model.User
+		if c.Request.FormValue("add_account") == "true" {
+			// Persist the current session in the accounts cookie before starting a
+			// fresh login, so a pre-existing session (which may not yet be tracked)
+			// stays switch-able after the new account is added.
+			if current := getLinkingUser(c); current != nil {
+				if sess, cErr := c.Request.Cookie("user_sess"); cErr == nil && sess.Value != "" {
+					rememberAccount(c.Writer, c.Request, current.ID, sess.Value)
+				}
+			}
+		} else {
+			linkingUser = getLinkingUser(c)
+		}
 
 		// Check if this is a reconnect request (refreshing tokens for existing link)
 		isReconnect = c.Request.FormValue("reconnect") == "true"
@@ -485,6 +500,10 @@ func HandleAuth(c *gin.Context) {
 
 	httputil.SetCookie(c.Writer, c.Request, "user_sess", tokenString)
 
+	// Remember this account so it can be quick-switched to later without a full
+	// logout/login cycle.
+	rememberAccount(c.Writer, c.Request, user.ID, tokenString)
+
 	c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/")
 }
 
@@ -541,7 +560,35 @@ func updateRepoPermissions(c *gin.Context, user *model.User, _store store.Store)
 }
 
 func GetLogout(c *gin.Context) {
+	rootPath := server.Config.Server.RootPath
+
+	// Full sign-out: drop the active session and forget every remembered account.
+	if c.Request.FormValue("all") == "true" {
+		httputil.DelCookie(c.Writer, c.Request, "user_sess")
+		httputil.DelCookie(c.Writer, c.Request, "user_last")
+		httputil.DelCookie(c.Writer, c.Request, accountsCookie)
+		c.Redirect(http.StatusSeeOther, rootPath+"/")
+		return
+	}
+
+	// Sign out of the current account only. If other accounts remain, switch the
+	// active session to the most recently used one so the user stays logged in.
+	if current := session.User(c); current != nil {
+		remaining := forgetAccount(c.Writer, c.Request, current.ID)
+		_store := store.FromContext(c)
+		for _, acc := range remaining {
+			if validAccountToken(_store, acc) == nil {
+				continue
+			}
+			httputil.SetCookie(c.Writer, c.Request, "user_sess", acc.Token)
+			c.Redirect(http.StatusSeeOther, rootPath+"/")
+			return
+		}
+	}
+
+	// No valid account left: clear everything.
 	httputil.DelCookie(c.Writer, c.Request, "user_sess")
 	httputil.DelCookie(c.Writer, c.Request, "user_last")
-	c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/")
+	httputil.DelCookie(c.Writer, c.Request, accountsCookie)
+	c.Redirect(http.StatusSeeOther, rootPath+"/")
 }

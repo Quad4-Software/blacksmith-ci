@@ -9,6 +9,10 @@
         <h1 class="text-3xl font-extrabold text-center">{{ $t('link_forge_title') }}</h1>
         <p class="text-center text-lg mb-2">{{ $t('link_forge_message') }}</p>
       </template>
+      <template v-else-if="isAddAccountMode">
+        <h1 class="text-3xl font-extrabold text-center">{{ $t('account_switch.add') }}</h1>
+        <p class="text-center text-lg mb-2">{{ $t('account_switch.add_message') }}</p>
+      </template>
       <template v-else>
         <h1 class="text-3xl font-extrabold text-center">{{ $t('welcome_to_crow') }}</h1>
         <p class="text-center text-lg mb-2">{{ $t('login_oauth_message') }}</p>
@@ -46,6 +50,12 @@
           {{ $t('cancel') }}
         </router-link>
       </div>
+      <!-- Cancel link for add-account mode -->
+      <div v-else-if="isAddAccountMode" class="mt-2">
+        <router-link :to="{ name: 'home' }" class="text-sm text-muted-foreground hover:underline">
+          {{ $t('cancel') }}
+        </router-link>
+      </div>
       <div
         v-if="errorMessage"
         class="w-full text-center text-red-500 bg-red-50 dark:bg-red-900/30 rounded-lg py-2 px-3 mt-2"
@@ -57,20 +67,19 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref, nextTick, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRoute, useRouter } from 'vue-router';
-import { useTheme } from '~/compositions/useTheme';
-
-import CrowLogo from '~/assets/logo.svg?component';
 import CrowLogoDark from '~/assets/logo-dark.svg?component';
-import { Button } from '~/components/ui/button';
+import CrowLogo from '~/assets/logo.svg?component';
+import type { IconNames } from '~/components/atomic/Icon.types';
 import Icon from '~/components/atomic/Icon.vue';
+import { Button } from '~/components/ui/button';
 import useApiClient from '~/compositions/useApiClient';
 import useAuthentication from '~/compositions/useAuthentication';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
-import type { IconNames } from '~/components/atomic/Icon.types';
+import { useTheme } from '~/compositions/useTheme';
 import type { Forge } from '~/lib/api/types';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRoute, useRouter } from 'vue-router';
 
 const route = useRoute();
 const router = useRouter();
@@ -86,6 +95,8 @@ const loading = ref<number | null>(null);
 
 // Linking mode: when user wants to link an additional forge
 const isLinkingMode = computed(() => route.query.link === 'true');
+// Add-account mode: when a logged-in user wants to add another account for quick-switching
+const isAddAccountMode = computed(() => route.query.add === 'true');
 const linkForgeId = computed(() => {
   const id = route.query.forge_id;
   return id ? Number(id) : null;
@@ -175,8 +186,8 @@ function hasBuiltInIcon(forge: Forge) {
 function doLogin(forgeId?: number) {
   loading.value = forgeId ?? null;
   const url = typeof route.query.url === 'string' ? route.query.url : '';
-  // Pass link=true when in linking mode
-  authentication.authenticate(url, forgeId, isLinkingMode.value);
+  // Pass link=true when in linking mode, add_account=true when adding an account
+  authentication.authenticate(url, forgeId, isLinkingMode.value, isAddAccountMode.value);
 }
 
 const authErrorMessages = {

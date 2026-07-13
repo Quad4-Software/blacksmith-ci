@@ -30,3 +30,18 @@ export interface User {
   timezone?: string;
   // The user's timezone (e.g., "America/New_York", "Europe/Berlin").
 }
+
+// A remembered account available for quick-switching without a full re-login.
+export interface SwitchAccount {
+  id: number;
+  // The unique identifier for the account.
+
+  login: string;
+  // The login name for the account.
+
+  avatar_url: string;
+  // The url for the avatar image.
+
+  active: boolean;
+  // Whether this is the currently active account.
+}

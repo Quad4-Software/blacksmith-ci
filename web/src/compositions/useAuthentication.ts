@@ -18,7 +18,7 @@ export default () => {
       return authStore.user;
     },
 
-    authenticate(url?: string, forgeId?: number, link?: boolean) {
+    authenticate(url?: string, forgeId?: number, link?: boolean, addAccount?: boolean) {
       if (url !== undefined) {
         const config = useUserConfig();
         config.setUserConfig('redirectUrl', url);
@@ -29,6 +29,9 @@ export default () => {
       }
       if (link) {
         params.set('link', 'true');
+      }
+      if (addAccount) {
+        params.set('add_account', 'true');
       }
       const queryString = params.toString();
       window.location.href = `${useConfig().rootPath}/authorize${queryString ? `?${queryString}` : ''}`;
