@@ -184,10 +184,18 @@ func HandleAuth(c *gin.Context) {
 		return
 	}
 
-	userFromForge, redirectURL, err := _forge.Login(c, &forge_types.OAuthRequest{
+	oauthReq := &forge_types.OAuthRequest{
 		Code:  c.Request.FormValue("code"),
 		State: state,
-	})
+	}
+	// When adding another account, force the forge to re-authenticate so the user
+	// can sign in as a different account instead of being silently logged in with
+	// the forge's existing session.
+	if !isCallback && c.Request.FormValue("add_account") == "true" {
+		oauthReq.Prompt = "login"
+	}
+
+	userFromForge, redirectURL, err := _forge.Login(c, oauthReq)
 	if err != nil {
 		log.Error().Err(err).Msg("cannot authenticate user")
 		c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/login?error=oauth_error")

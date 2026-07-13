@@ -14,7 +14,24 @@
 
 package types
 
+import "golang.org/x/oauth2"
+
 type OAuthRequest struct {
 	Code  string
 	State string
+	// Prompt is the OAuth "prompt" parameter forwarded to the forge's authorize
+	// endpoint (e.g. "login" to force re-authentication so a different account
+	// can be chosen). Empty means the parameter is omitted.
+	Prompt string
+}
+
+// AuthCodeOptions returns the extra AuthCodeURL options derived from the
+// request, currently the OAuth "prompt" parameter when set. Forges pass the
+// result to oauth2 config.AuthCodeURL so account-selection intent reaches the
+// provider.
+func (r *OAuthRequest) AuthCodeOptions() []oauth2.AuthCodeOption {
+	if r.Prompt == "" {
+		return nil
+	}
+	return []oauth2.AuthCodeOption{oauth2.SetAuthURLParam("prompt", r.Prompt)}
 }

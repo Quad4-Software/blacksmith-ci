@@ -119,7 +119,7 @@ func (g *GitLab) oauth2Config(ctx context.Context) (*oauth2.Config, context.Cont
 // forge user details.
 func (g *GitLab) Login(ctx context.Context, req *forge_types.OAuthRequest) (*model.User, string, error) {
 	config, oauth2Ctx := g.oauth2Config(ctx)
-	redirectURL := config.AuthCodeURL(req.State)
+	redirectURL := config.AuthCodeURL(req.State, req.AuthCodeOptions()...)
 
 	// check the OAuth code
 	if len(req.Code) == 0 {

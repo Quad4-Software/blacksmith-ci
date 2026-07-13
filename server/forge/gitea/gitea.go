@@ -114,7 +114,7 @@ func (c *Gitea) oauth2Config(ctx context.Context) (*oauth2.Config, context.Conte
 // Gitea account details are returned when the user is successfully authenticated.
 func (c *Gitea) Login(ctx context.Context, req *forge_types.OAuthRequest) (*model.User, string, error) {
 	config, oauth2Ctx := c.oauth2Config(ctx)
-	redirectURL := config.AuthCodeURL(req.State)
+	redirectURL := config.AuthCodeURL(req.State, req.AuthCodeOptions()...)
 
 	// check the OAuth code
 	if len(req.Code) == 0 {
