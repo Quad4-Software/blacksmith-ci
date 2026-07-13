@@ -223,13 +223,20 @@ func (r *Runner) RunAdopted(runnerCtx, shutdownCtx context.Context, workflow *rp
 	repoName := extractRepositoryName(workflow.Config)
 	pipelineNumber := extractPipelineNumber(workflow.Config)
 
+	// Register the build under its taskUUID, not workflow.ID. The counter feeds
+	// State.ActiveTaskUUIDs(), which the stale-resource reaper matches against the
+	// LabelTaskUUID stamped on every container, volume, and network. For an adopted
+	// workflow taskUUID and workflow.ID are distinct identifiers, and the resources
+	// carry taskUUID; keying by workflow.ID would leave them unmatched, so the reaper
+	// could reclaim this build's workspace volume and step containers during the brief
+	// between-steps window where it has no running container to protect it.
 	r.counter.Add(
-		workflow.ID,
+		taskUUID,
 		timeout,
 		repoName,
 		pipelineNumber,
 	)
-	defer r.counter.Done(workflow.ID)
+	defer r.counter.Done(taskUUID)
 
 	logger := log.With().
 		Str("repo", repoName).

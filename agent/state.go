@@ -61,11 +61,14 @@ func (s *State) Done(id string) {
 }
 
 // ActiveTaskUUIDs returns the set of task UUIDs for workflows currently running
-// on this agent. The keys are the workflow IDs passed to Add, which are the same
-// values the Docker backend stamps on every container, volume, and network as the
-// LabelTaskUUID label. The stale-resource reaper uses this set to skip resources
-// that belong to an in-flight build, so a pipeline running longer than the stale
-// threshold is never reclaimed out from under itself.
+// on this agent. The keys are the taskUUID values passed to Add, which are exactly
+// the values the Docker backend stamps on every container, volume, and network as
+// the LabelTaskUUID label. For freshly scheduled workflows the taskUUID equals the
+// workflow ID; for adopted workflows the two differ, and Add is deliberately keyed
+// by the taskUUID so the set still matches the resource labels. The stale-resource
+// reaper uses this set to skip resources that belong to an in-flight build, so a
+// pipeline running longer than the stale threshold is never reclaimed out from
+// under itself.
 func (s *State) ActiveTaskUUIDs() map[string]struct{} {
 	s.Lock()
 	defer s.Unlock()
