@@ -223,9 +223,9 @@ watch(() => i18n.locale, updateButtonWidths); // update on language change
 
 // Ensure favicon is checked on mount for all forges
 onMounted(async () => {
-  // In linking mode, stay on the page even if authenticated
-  // (user needs to authenticate with the additional forge)
-  if (authentication.isAuthenticated && !isLinkingMode.value) {
+  // In linking or add-account mode, stay on the page even if authenticated
+  // (the user needs to authenticate with the additional forge/account)
+  if (authentication.isAuthenticated && !isLinkingMode.value && !isAddAccountMode.value) {
     await router.replace({ name: 'home' });
     return;
   }
