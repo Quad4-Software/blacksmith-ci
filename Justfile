@@ -241,11 +241,11 @@ build-agent:
     CGO_ENABLED=0 GOOS={{ TARGETOS }} GOARCH={{ TARGETARCH }} go build -tags '{{ TAGS }}' -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/crow-agent{{ BIN_SUFFIX }} codefloe.com/crowci/crow/v6/cmd/agent
 
 build-cli:
-    CGO_ENABLED=0 GOOS={{ TARGETOS }} GOARCH={{ TARGETARCH }} go build -tags '{{ TAGS }}' -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/crow-cli{{ BIN_SUFFIX }} codefloe.com/crowci/crow/v6/cmd/cli
+    CGO_ENABLED=0 GOOS={{ TARGETOS }} GOARCH={{ TARGETARCH }} go build -tags '{{ TAGS }}' -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/crow{{ BIN_SUFFIX }} codefloe.com/crowci/crow/v6/cmd/cli
 
 install-cli-dev: build-cli
     mkdir -p ~/.local/bin
-    cp {{ DIST_DIR }}/crow-cli{{ BIN_SUFFIX }} ~/.local/bin/crow-dev{{ BIN_SUFFIX }}
+    cp {{ DIST_DIR }}/crow{{ BIN_SUFFIX }} ~/.local/bin/crow-dev{{ BIN_SUFFIX }}
     @echo "Installed crow-dev to ~/.local/bin/crow-dev"
 
 # build-server
@@ -317,18 +317,18 @@ release-checksums:
 
 release-cli:
     # compile
-    GOOS=linux   GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/linux_amd64/crow-cli       codefloe.com/crowci/crow/v6/cmd/cli
-    GOOS=linux   GOARCH=arm64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/linux_arm64/crow-cli       codefloe.com/crowci/crow/v6/cmd/cli
-    GOOS=linux   GOARCH=arm   CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/linux_arm/crow-cli         codefloe.com/crowci/crow/v6/cmd/cli
-    GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/windows_amd64/crow-cli.exe codefloe.com/crowci/crow/v6/cmd/cli
-    GOOS=darwin  GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/darwin_amd64/crow-cli      codefloe.com/crowci/crow/v6/cmd/cli
-    GOOS=darwin  GOARCH=arm64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/darwin_arm64/crow-cli      codefloe.com/crowci/crow/v6/cmd/cli
+    GOOS=linux   GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/linux_amd64/crow       codefloe.com/crowci/crow/v6/cmd/cli
+    GOOS=linux   GOARCH=arm64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/linux_arm64/crow       codefloe.com/crowci/crow/v6/cmd/cli
+    GOOS=linux   GOARCH=arm   CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/linux_arm/crow         codefloe.com/crowci/crow/v6/cmd/cli
+    GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/windows_amd64/crow.exe codefloe.com/crowci/crow/v6/cmd/cli
+    GOOS=darwin  GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/darwin_amd64/crow      codefloe.com/crowci/crow/v6/cmd/cli
+    GOOS=darwin  GOARCH=arm64 CGO_ENABLED=0 go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/cli/darwin_arm64/crow      codefloe.com/crowci/crow/v6/cmd/cli
     # tar binary files
-    tar -cvzf {{ DIST_DIR }}/crow-cli_linux_amd64.tar.gz   -C {{ DIST_DIR }}/cli/linux_amd64   crow-cli
-    tar -cvzf {{ DIST_DIR }}/crow-cli_linux_arm64.tar.gz   -C {{ DIST_DIR }}/cli/linux_arm64   crow-cli
-    tar -cvzf {{ DIST_DIR }}/crow-cli_linux_arm.tar.gz     -C {{ DIST_DIR }}/cli/linux_arm     crow-cli
-    tar -cvzf {{ DIST_DIR }}/crow-cli_darwin_amd64.tar.gz  -C {{ DIST_DIR }}/cli/darwin_amd64  crow-cli
-    tar -cvzf {{ DIST_DIR }}/crow-cli_darwin_arm64.tar.gz  -C {{ DIST_DIR }}/cli/darwin_arm64  crow-cli
+    tar -cvzf {{ DIST_DIR }}/crow-cli_linux_amd64.tar.gz   -C {{ DIST_DIR }}/cli/linux_amd64   crow
+    tar -cvzf {{ DIST_DIR }}/crow-cli_linux_arm64.tar.gz   -C {{ DIST_DIR }}/cli/linux_arm64   crow
+    tar -cvzf {{ DIST_DIR }}/crow-cli_linux_arm.tar.gz     -C {{ DIST_DIR }}/cli/linux_arm     crow
+    tar -cvzf {{ DIST_DIR }}/crow-cli_darwin_amd64.tar.gz  -C {{ DIST_DIR }}/cli/darwin_amd64  crow
+    tar -cvzf {{ DIST_DIR }}/crow-cli_darwin_arm64.tar.gz  -C {{ DIST_DIR }}/cli/darwin_arm64  crow
     # zip binary files
 
 # Build agent for all platforms: just release-agent

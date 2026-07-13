@@ -29,9 +29,9 @@ RUN apk add -U --no-cache ca-certificates && \
 ENV GODEBUG=netdns=go
 ENV WOODPECKER_DISABLE_UPDATE_CHECK=true
 
-COPY --from=build /src/dist/crow-cli /bin/
+COPY --from=build /src/dist/crow /bin/
 
 USER crow
 
-HEALTHCHECK CMD ["/bin/crow-cli", "ping"]
-ENTRYPOINT ["/bin/crow-cli"]
+HEALTHCHECK CMD ["/bin/crow", "ping"]
+ENTRYPOINT ["/bin/crow"]

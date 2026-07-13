@@ -60,7 +60,7 @@ local.sh
 *.bkp
 .DS_Store
 crow-server
-crow-cli
+crow
 crow-agent
 .claude/*
 !.claude/skills/

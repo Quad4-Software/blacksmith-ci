@@ -65,7 +65,7 @@ feature: implement SMTP auth using a modern go mailing sdk and allow configuring
 
 - `./dist/crow-server` - Run server (after building with `just build-server`)
 - `./dist/crow-agent` - Run agent (after building with `just build-agent`)
-- `./dist/crow-cli` - Run CLI (after building with `just build-cli`)
+- `./dist/crow` - Run CLI (after building with `just build-cli`)
 - Environment variables can be set via `.env` file (auto-loaded) or command line
 - Use `--help` flag to see all available options for each binary
 

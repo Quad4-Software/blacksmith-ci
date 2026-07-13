@@ -145,7 +145,7 @@ func extractNewVersion(tarFilePath string) (string, error) {
 
 	log.Debug().Msgf("new version extracted to %s", tmpDir)
 
-	return path.Join(tmpDir, "crow-cli"), nil
+	return path.Join(tmpDir, "crow"), nil
 }
 
 // isDevVersion returns true if the version string indicates a development build
