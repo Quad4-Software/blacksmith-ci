@@ -188,11 +188,14 @@ func HandleAuth(c *gin.Context) {
 		Code:  c.Request.FormValue("code"),
 		State: state,
 	}
-	// When adding another account, force the forge to re-authenticate so the user
-	// can sign in as a different account instead of being silently logged in with
-	// the forge's existing session.
+	// When adding another account, ask the forge to show its account picker so the
+	// user can sign in as a different account instead of being silently logged in
+	// with the forge's existing session. "select_account" is the OpenID Connect
+	// account-selection prompt: GitHub and standards-compliant OIDC providers
+	// (GitLab, Keycloak, ...) honor it; Gitea/Forgejo currently ignore it (no
+	// error) until their OAuth provider learns the prompt parameter.
 	if !isCallback && c.Request.FormValue("add_account") == "true" {
-		oauthReq.Prompt = "login"
+		oauthReq.Prompt = "select_account"
 	}
 
 	userFromForge, redirectURL, err := _forge.Login(c, oauthReq)

@@ -36,10 +36,10 @@ func TestOAuthRequestAuthCodeOptions(t *testing.T) {
 	assert.Empty(t, parsed.Query().Get("prompt"))
 	assert.Equal(t, "state-token", parsed.Query().Get("state"))
 
-	// With a prompt, it is forwarded so the forge can force re-authentication.
-	req.Prompt = "login"
+	// With a prompt, it is forwarded so the forge can show its account picker.
+	req.Prompt = "select_account"
 	parsed, err = url.Parse(cfg.AuthCodeURL(req.State, req.AuthCodeOptions()...))
 	assert.NoError(t, err)
-	assert.Equal(t, "login", parsed.Query().Get("prompt"))
+	assert.Equal(t, "select_account", parsed.Query().Get("prompt"))
 	assert.Equal(t, "state-token", parsed.Query().Get("state"))
 }
