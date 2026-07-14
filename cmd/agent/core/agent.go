@@ -662,7 +662,6 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 	log.Info().Msgf(
 		"starting Crow agent with version '%s' and backend '%s' using platform '%s' running up to %d pipelines in parallel",
 		version.String(), backendEngine.Name(), engInfo.Platform, maxWorkflows)
-	utils.LogAlpineTagDeprecation("crow-agent")
 
 	// Mark agent as healthy now that it has started successfully
 	counter.SetHealthy(true)

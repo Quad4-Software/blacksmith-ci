@@ -43,7 +43,6 @@ import (
 	"codefloe.com/crowci/crow/v6/server/store"
 	"codefloe.com/crowci/crow/v6/server/web"
 	"codefloe.com/crowci/crow/v6/shared/logger"
-	"codefloe.com/crowci/crow/v6/shared/utils"
 	"codefloe.com/crowci/crow/v6/version"
 )
 
@@ -137,7 +136,6 @@ func run(ctx context.Context, c *cli.Command) error {
 	serviceWaitingGroup := errgroup.Group{}
 
 	log.Info().Msgf("starting Crow server with version '%s'", version.String())
-	utils.LogAlpineTagDeprecation("crow-server")
 
 	serviceWaitingGroup.Go(func() error {
 		log.Info().Msg("starting cron service ...")
