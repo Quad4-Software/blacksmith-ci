@@ -79,6 +79,22 @@ Priority is managed server-side per agent in the web UI (agent settings) or via 
 
 Admin-managed agents that process all workflows. Configure via environment variables on the agent.
 
+#### System Agents (shared secret)
+
+Agents that authenticate with the shared `CROW_AGENT_SECRET` register as **system agents** and are labeled `System` in the admin agent list.
+They share a single token, so the server identifies them by hostname.
+
+On reconnect, a system agent re-binds to its existing row using its hostname instead of creating a new one.
+This keeps a restarted agent (for example, a container without persistent `agent-config`) visible under one stable entry rather than accumulating orphaned rows.
+
+:::note
+Run at most one system agent per hostname.
+Multiple agents that share the secret and hostname re-bind to the same row.
+Give each its own pre-generated per-agent token (created via **Add agent**) when you need several agents on one host.
+:::
+
+Agents configured with a per-agent token always bind to their pre-created row by token, regardless of hostname.
+
 ### Organization/User Agents
 
 Non-admin users can register agents scoped to their org or user account.

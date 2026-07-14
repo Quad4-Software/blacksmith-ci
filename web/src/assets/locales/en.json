@@ -778,7 +778,9 @@
           "desc": "Agent priority for task assignment (higher values have priority). Labels take precedence over priority."
         },
         "type": {
-          "global": "Global"
+          "global": "Global",
+          "system": "System",
+          "system_desc": "Registered with the shared server agent secret. Re-binds to this row on restart via its hostname."
         },
         "scope": {
           "label": "Scope",

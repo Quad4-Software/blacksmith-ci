@@ -676,6 +676,10 @@ func (c *CompositeEncryptedStore) AgentFindByToken(token string) (*model.Agent, 
 	return c.baseStore.AgentFindByToken(token)
 }
 
+func (c *CompositeEncryptedStore) AgentFindSystemByHostname(hostname string) (*model.Agent, error) {
+	return c.baseStore.AgentFindSystemByHostname(hostname)
+}
+
 func (c *CompositeEncryptedStore) AgentList(opts *model.AgentListOptions) ([]*model.Agent, error) {
 	return c.baseStore.AgentList(opts)
 }

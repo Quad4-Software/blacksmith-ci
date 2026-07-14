@@ -666,6 +666,68 @@ func (_c *MockStore_AgentFindByToken_Call) RunAndReturn(run func(s string) (*mod
 	return _c
 }
 
+// AgentFindSystemByHostname provides a mock function for the type MockStore
+func (_mock *MockStore) AgentFindSystemByHostname(hostname string) (*model.Agent, error) {
+	ret := _mock.Called(hostname)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AgentFindSystemByHostname")
+	}
+
+	var r0 *model.Agent
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(string) (*model.Agent, error)); ok {
+		return returnFunc(hostname)
+	}
+	if returnFunc, ok := ret.Get(0).(func(string) *model.Agent); ok {
+		r0 = returnFunc(hostname)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.Agent)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(string) error); ok {
+		r1 = returnFunc(hostname)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_AgentFindSystemByHostname_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AgentFindSystemByHostname'
+type MockStore_AgentFindSystemByHostname_Call struct {
+	*mock.Call
+}
+
+// AgentFindSystemByHostname is a helper method to define mock.On call
+//   - hostname string
+func (_e *MockStore_Expecter) AgentFindSystemByHostname(hostname any) *MockStore_AgentFindSystemByHostname_Call {
+	return &MockStore_AgentFindSystemByHostname_Call{Call: _e.mock.On("AgentFindSystemByHostname", hostname)}
+}
+
+func (_c *MockStore_AgentFindSystemByHostname_Call) Run(run func(hostname string)) *MockStore_AgentFindSystemByHostname_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_AgentFindSystemByHostname_Call) Return(agent *model.Agent, err error) *MockStore_AgentFindSystemByHostname_Call {
+	_c.Call.Return(agent, err)
+	return _c
+}
+
+func (_c *MockStore_AgentFindSystemByHostname_Call) RunAndReturn(run func(hostname string) (*model.Agent, error)) *MockStore_AgentFindSystemByHostname_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // AgentList provides a mock function for the type MockStore
 func (_mock *MockStore) AgentList(opts *model.AgentListOptions) ([]*model.Agent, error) {
 	ret := _mock.Called(opts)

@@ -24,7 +24,10 @@ import (
 	"codefloe.com/crowci/crow/v6/server/model"
 )
 
-var ErrNoTokenProvided = errors.New("please provide a token")
+var (
+	ErrNoTokenProvided    = errors.New("please provide a token")
+	ErrNoHostnameProvided = errors.New("please provide a hostname")
+)
 
 const (
 	// AgentHealthyThresholdSeconds defines how many seconds ago an agent must have contacted
@@ -112,6 +115,23 @@ func (s storage) AgentFindByToken(token string) (*model.Agent, error) {
 	}
 	agent := new(model.Agent)
 	return agent, wrapGet(s.db.NewSelect().Model(agent).Where("token = ?", token).Scan(context.Background()))
+}
+
+// AgentFindSystemByHostname returns the oldest system agent (owner_id = -1)
+// that previously registered from the given hostname. Master-token agents share
+// a single token and are only distinguishable by hostname, so this lets a
+// restarted agent re-bind to its existing row instead of creating an orphan.
+func (s storage) AgentFindSystemByHostname(hostname string) (*model.Agent, error) {
+	if hostname == "" {
+		return nil, ErrNoHostnameProvided
+	}
+	agent := new(model.Agent)
+	return agent, wrapGet(s.db.NewSelect().Model(agent).
+		Where("owner_id = ?", model.IDNotSet).
+		Where("hostname = ?", hostname).
+		Order("id ASC").
+		Limit(1).
+		Scan(context.Background()))
 }
 
 func (s storage) AgentCreate(agent *model.Agent) error {

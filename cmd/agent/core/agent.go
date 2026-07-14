@@ -229,7 +229,7 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 	agentToken := c.String("grpc-token")
 	grpcClientCtx, grpcClientCtxCancel := context.WithCancelCause(context.Background())
 	defer grpcClientCtxCancel(nil)
-	authClient := agent_rpc.NewAuthGrpcClient(authConn, agentToken, agentConfig.AgentID)
+	authClient := agent_rpc.NewAuthGrpcClient(authConn, agentToken, agentConfig.AgentID, hostname)
 	authInterceptor, err := agent_rpc.NewAuthInterceptor(grpcClientCtx, authClient, authInterceptorRefreshInterval) //nolint:contextcheck
 	if err != nil {
 		return fmt.Errorf("agent could not auth: %w", err)

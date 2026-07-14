@@ -60,6 +60,36 @@ func TestAgentFindByID(t *testing.T) {
 	assert.Equal(t, "secret-token", _agent.Token)
 }
 
+func TestAgentFindSystemByHostname(t *testing.T) {
+	store, closer := newTestStore(t, new(model.Agent))
+	defer closer()
+
+	// two orphaned system agents from the same host (e.g. repeated restarts)
+	older := &model.Agent{OwnerID: model.IDNotSet, Token: "master", Hostname: "runner-1"}
+	newer := &model.Agent{OwnerID: model.IDNotSet, Token: "master", Hostname: "runner-1"}
+	// an unrelated system agent on a different host
+	other := &model.Agent{OwnerID: model.IDNotSet, Token: "master", Hostname: "runner-2"}
+	// a user-owned agent on the same host must never be matched
+	owned := &model.Agent{OwnerID: 5, Token: "per-agent", Hostname: "runner-1"}
+	for _, a := range []*model.Agent{older, newer, other, owned} {
+		assert.NoError(t, store.AgentCreate(a))
+	}
+
+	// binds to the oldest system agent for the hostname
+	found, err := store.AgentFindSystemByHostname("runner-1")
+	assert.NoError(t, err)
+	assert.Equal(t, older.ID, found.ID)
+	assert.True(t, found.IsSystemAgent())
+
+	// unknown hostname yields a not-found error
+	_, err = store.AgentFindSystemByHostname("unknown")
+	assert.Error(t, err)
+
+	// empty hostname is rejected
+	_, err = store.AgentFindSystemByHostname("")
+	assert.ErrorIs(t, err, ErrNoHostnameProvided)
+}
+
 func TestAgentList(t *testing.T) {
 	store, closer := newTestStore(t, new(model.Agent))
 	defer closer()

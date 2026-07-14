@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/rs/zerolog/log"
+	grpcMetadata "google.golang.org/grpc/metadata"
 
 	"codefloe.com/crowci/crow/v6/pipeline/rpc/proto"
 	"codefloe.com/crowci/crow/v6/server/model"
@@ -38,14 +39,17 @@ func NewCrowAuthServer(jwtManager *JWTManager, agentMasterToken string, store st
 	return &CrowAuthServer{jwtManager: jwtManager, agentMasterToken: agentMasterToken, store: store}
 }
 
-func (s *CrowAuthServer) Auth(_ context.Context, req *proto.AuthRequest) (*proto.AuthResponse, error) {
+func (s *CrowAuthServer) Auth(ctx context.Context, req *proto.AuthRequest) (*proto.AuthResponse, error) {
+	hostname := hostnameFromContext(ctx)
+
 	log.Trace().
 		Int64("agent-id", req.AgentId).
 		Bool("has-agent-token", req.AgentToken != "").
+		Str("hostname", hostname).
 		Msg("Server received Auth request")
 
 	// Determine if this is an agent or autoscaler by checking which table has the token
-	entity, entityType, err := s.authenticateByToken(req.AgentId, req.AgentToken)
+	entity, entityType, err := s.authenticateByToken(req.AgentId, req.AgentToken, hostname)
 	if err != nil {
 		log.Trace().
 			Int64("id", req.AgentId).
@@ -96,10 +100,10 @@ type AuthEntity struct {
 
 // authenticateByToken tries to authenticate as either an agent or autoscaler
 // Returns the entity, entity type ("agent" or "autoscaler"), and any error.
-func (s *CrowAuthServer) authenticateByToken(id int64, token string) (*AuthEntity, string, error) {
+func (s *CrowAuthServer) authenticateByToken(id int64, token, hostname string) (*AuthEntity, string, error) {
 	// Try global agent secret first
 	if s.agentMasterToken != "" && token == s.agentMasterToken {
-		return s.authenticateWithAgentMasterToken(id)
+		return s.authenticateWithAgentMasterToken(id, hostname)
 	}
 
 	// Try individual agent token
@@ -115,8 +119,25 @@ func (s *CrowAuthServer) authenticateByToken(id int64, token string) (*AuthEntit
 	return nil, "", fmt.Errorf("token not found in agent or autoscaler tables")
 }
 
-func (s *CrowAuthServer) authenticateWithAgentMasterToken(id int64) (*AuthEntity, string, error) {
+func (s *CrowAuthServer) authenticateWithAgentMasterToken(id int64, hostname string) (*AuthEntity, string, error) {
 	if id == -1 {
+		// Re-bind to an existing system agent for this hostname if one exists.
+		// Master-token agents share a single token, so without a persisted agent
+		// ID they would otherwise create a fresh orphaned row on every reconnect
+		// (e.g. container restarts without persistent config). Binding by hostname
+		// keeps the agent visible under a single, stable row.
+		if hostname != "" {
+			agent, err := s.store.AgentFindSystemByHostname(hostname)
+			if err == nil {
+				log.Debug().Int64("agent_id", agent.ID).Str("hostname", hostname).
+					Msg("re-binding system agent by hostname")
+				return authEntityFromAgent(agent), "agent", nil
+			}
+			if !errors.Is(err, types.RecordNotExist) {
+				return nil, "", err
+			}
+		}
+
 		// Create new system agent
 		agent := &model.Agent{
 			OwnerID:  model.IDNotSet,
@@ -127,13 +148,7 @@ func (s *CrowAuthServer) authenticateWithAgentMasterToken(id int64) (*AuthEntity
 			log.Error().Err(err).Msg("error creating system agent")
 			return nil, "", err
 		}
-		return &AuthEntity{
-			ID:      agent.ID,
-			Name:    agent.Name,
-			Token:   agent.Token,
-			OwnerID: agent.OwnerID,
-			OrgIDs:  agent.OrgIDs,
-		}, "agent", nil
+		return authEntityFromAgent(agent), "agent", nil
 	}
 
 	// Find existing agent by ID
@@ -143,18 +158,35 @@ func (s *CrowAuthServer) authenticateWithAgentMasterToken(id int64) (*AuthEntity
 			// Agent ID no longer exists (e.g. after a server upgrade or database reset).
 			// Re-register as a new agent instead of failing.
 			log.Warn().Int64("agent_id", id).Msg("agent ID not found in database, re-registering as new agent")
-			return s.authenticateWithAgentMasterToken(-1)
+			return s.authenticateWithAgentMasterToken(-1, hostname)
 		}
 		return nil, "", err
 	}
 
+	return authEntityFromAgent(agent), "agent", nil
+}
+
+func authEntityFromAgent(agent *model.Agent) *AuthEntity {
 	return &AuthEntity{
 		ID:      agent.ID,
 		Name:    agent.Name,
 		Token:   agent.Token,
 		OwnerID: agent.OwnerID,
 		OrgIDs:  agent.OrgIDs,
-	}, "agent", nil
+	}
+}
+
+// hostnameFromContext extracts the agent hostname from the gRPC request metadata.
+// It returns an empty string when no hostname was provided.
+func hostnameFromContext(ctx context.Context) string {
+	md, ok := grpcMetadata.FromIncomingContext(ctx)
+	if !ok {
+		return ""
+	}
+	if values := md.Get("hostname"); len(values) > 0 {
+		return values[0]
+	}
+	return ""
 }
 
 func (s *CrowAuthServer) authenticateAsAgent(token string) (*AuthEntity, error) {

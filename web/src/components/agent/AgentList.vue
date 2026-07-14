@@ -360,7 +360,14 @@
               }}</span>
 
               <!-- Type Badge - neutral secondary styling -->
-              <UiBadge v-if="agent.org_ids.length === 0" variant="secondary">
+              <UiBadge
+                v-if="agent.owner_id === -1"
+                variant="secondary"
+                :title="$t('admin.settings.agents.type.system_desc')"
+              >
+                {{ $t('admin.settings.agents.type.system') }}
+              </UiBadge>
+              <UiBadge v-else-if="agent.org_ids.length === 0" variant="secondary">
                 {{ $t('admin.settings.agents.type.global') }}
               </UiBadge>
 

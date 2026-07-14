@@ -276,6 +276,10 @@ type Store interface {
 	AgentCreate(*model.Agent) error
 	AgentFind(int64) (*model.Agent, error)
 	AgentFindByToken(string) (*model.Agent, error)
+	// AgentFindSystemByHostname returns the oldest system agent (owner_id = -1)
+	// registered from the given hostname, used to re-bind master-token agents on
+	// reconnect instead of creating a new orphaned row.
+	AgentFindSystemByHostname(hostname string) (*model.Agent, error)
 	AgentList(opts *model.AgentListOptions) ([]*model.Agent, error)
 	AgentUpdate(*model.Agent) error
 	AgentDelete(*model.Agent) error

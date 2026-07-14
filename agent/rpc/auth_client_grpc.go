@@ -21,6 +21,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
+	"google.golang.org/grpc/metadata"
 
 	"codefloe.com/crowci/crow/v6/pipeline/rpc/proto"
 )
@@ -35,14 +36,16 @@ type AuthClient struct {
 	conn       *grpc.ClientConn
 	agentToken string
 	agentID    int64
+	hostname   string
 }
 
-func NewAuthGrpcClient(conn *grpc.ClientConn, agentToken string, agentID int64) *AuthClient {
+func NewAuthGrpcClient(conn *grpc.ClientConn, agentToken string, agentID int64, hostname string) *AuthClient {
 	client := new(AuthClient)
 	client.client = proto.NewCrowAuthClient(conn)
 	client.conn = conn
 	client.agentToken = agentToken
 	client.agentID = agentID
+	client.hostname = hostname
 	return client
 }
 
@@ -83,6 +86,12 @@ func (c *AuthClient) Auth(ctx context.Context) (string, int64, error) {
 
 	ctx, cancel := context.WithTimeout(ctx, authClientTimeout)
 	defer cancel()
+
+	// Send the hostname so the server can re-bind master-token agents to their
+	// existing row on reconnect instead of creating orphaned duplicates.
+	if c.hostname != "" {
+		ctx = metadata.AppendToOutgoingContext(ctx, "hostname", c.hostname)
+	}
 
 	req := &proto.AuthRequest{
 		AgentToken: c.agentToken,
