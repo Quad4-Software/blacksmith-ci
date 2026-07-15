@@ -175,7 +175,9 @@
                   :key="key"
                   class="text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded font-mono leading-tight"
                 >
-                  {{ key }}={{ value }}
+                  {{ key }}=<span class="font-semibold" :style="{ color: matrixValueColor(String(value)) }">{{
+                    value
+                  }}</span>
                 </span>
               </div>
               <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
@@ -320,7 +322,7 @@ import '@vue-flow/core/dist/theme-default.css';
 import '@vue-flow/controls/dist/style.css';
 import type { Node, Edge } from '@vue-flow/core';
 import type { Pipeline, PipelineStep, PipelineWorkflow, PipelineStatus } from '~/lib/api/types';
-import { identifyMatrixGroupsMap, getLatestAttempts } from '~/lib/pipeline-utils';
+import { identifyMatrixGroupsMap, getLatestAttempts, matrixValueColor } from '~/lib/pipeline-utils';
 import { useLayout } from '~/compositions/useLayout';
 
 const props = defineProps<Props>();

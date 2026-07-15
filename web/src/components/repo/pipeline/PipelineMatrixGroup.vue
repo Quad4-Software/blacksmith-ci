@@ -35,6 +35,22 @@
 
     <!-- Variant List (expanded) -->
     <div class="overflow-hidden transition-height duration-150" :class="{ 'max-h-0': !groupExpanded }">
+      <!-- Shared axes (constant across every variant) hoisted out of the rows -->
+      <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
+      <div v-if="classification.shared.length > 0" class="flex flex-wrap items-center gap-1 px-1 pt-2 pl-[1.375rem]">
+        <span class="text-[10px] uppercase tracking-wide text-muted-foreground/70 mr-0.5">{{
+          $t('repo.pipeline.matrix.shared')
+        }}</span>
+        <span
+          v-for="axis in classification.shared"
+          :key="axis.key"
+          class="inline-flex items-center rounded-none border border-border bg-muted/50 px-1 py-px font-mono text-[11px] leading-tight text-muted-foreground"
+        >
+          <span class="text-muted-foreground/70">{{ axis.key }}=</span>
+          <span :style="{ color: matrixValueColor(axis.value) }">{{ axis.value }}</span>
+        </span>
+      </div>
+      <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
       <!-- Filter combobox + Status chips for large groups -->
       <div v-if="isLargeGroup" class="px-1 pt-2 pb-1 space-y-1.5">
         <!-- Multi-select combobox with KEY=value suggestions -->
@@ -120,121 +136,116 @@
       <!-- Variant rows -->
       <div class="border-t border-border mt-1">
         <template v-for="workflow in filteredWorkflows" :key="workflow.id">
-          <!-- Variant Row -->
+          <!-- Variant Row (dynamic axis flow) -->
           <div
-            class="flex items-center gap-1 h-7 px-1 transition-colors hover:bg-accent cursor-pointer border-b border-border last:border-b-0"
+            class="px-1 py-1 transition-colors hover:bg-accent cursor-pointer border-b border-border last:border-b-0"
             :class="{ 'bg-accent/50': expandedVariantId === workflow.id }"
             @click="toggleVariant(workflow)"
           >
-            <!-- Expand chevron -->
-            <Icon
-              name="chevron-right"
-              class="h-3 w-3 shrink-0 text-muted-foreground transition-transform duration-150"
-              :class="{ 'rotate-90 transform': expandedVariantId === workflow.id }"
-            />
-            <!-- Status Icon -->
-            <PipelineStatusIcon :status="workflow.state" class="h-3.5 w-3.5 shrink-0 mr-0.5" />
-            <!-- Environ values -->
-            <span
-              class="min-w-0 truncate text-xs text-muted-foreground font-mono"
-              :title="formatEnviron(workflow.environ)"
-            >
-              {{ formatEnviron(workflow.environ) }}
-            </span>
-            <!-- Attempt dropdown -->
-            <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
-            <DropdownMenu v-if="workflowHasReruns(workflow)">
-              <DropdownMenuTrigger as-child>
-                <button
-                  class="shrink-0 inline-flex items-center gap-0.5 rounded border border-primary/70 px-1 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-accent transition-colors"
-                  @click.stop
-                >
-                  #{{ workflow.attempt }}
-                  <Icon name="chevron-down" class="h-2.5 w-2.5" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                <DropdownMenuItem
-                  v-for="attempt in workflowAttemptsList(workflow)"
-                  :key="attempt.id"
-                  class="flex items-center gap-2 text-xs"
-                  @click.stop="switchAttempt(attempt)"
-                >
-                  <PipelineStatusIcon :status="attempt.state" class="h-3.5 w-3.5" />
-                  #{{ attempt.attempt }}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
-            <!-- Spacer -->
-            <span class="flex-1" />
-            <!-- Agent -->
-            <TooltipProvider v-if="workflow.agent_id">
-              <Tooltip>
-                <TooltipTrigger as-child>
-                  <router-link
-                    :to="{ name: 'admin-agent-detail', params: { id: workflow.agent_id } }"
-                    class="shrink-0 text-primary hover:text-primary/80 flex items-center gap-1"
+            <div class="flex items-start gap-1">
+              <!-- Expand chevron -->
+              <Icon
+                name="chevron-right"
+                class="h-3 w-3 mt-1 shrink-0 text-muted-foreground transition-transform duration-150"
+                :class="{ 'rotate-90 transform': expandedVariantId === workflow.id }"
+              />
+              <!-- Status Icon -->
+              <PipelineStatusIcon :status="workflow.state" class="h-3.5 w-3.5 mt-0.5 shrink-0 mr-0.5" />
+              <!-- Axis chips (flow: all axes, primary first, +N overflow) -->
+              <MatrixVariantChips v-if="axisKeys.length > 0" :chips="axisChipsFor(workflow)" />
+              <span v-else class="min-w-0 flex-1 mt-0.5 truncate font-mono text-xs text-muted-foreground">{{
+                workflow.name
+              }}</span>
+              <!-- Attempt dropdown -->
+              <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
+              <DropdownMenu v-if="workflowHasReruns(workflow)">
+                <DropdownMenuTrigger as-child>
+                  <button
+                    class="shrink-0 inline-flex items-center gap-0.5 rounded border border-primary/70 px-1 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-accent transition-colors"
                     @click.stop
                   >
-                    <Icon name="agent" class="w-3.5 h-3.5" />
-                    <span class="text-xs hidden lg:inline truncate max-w-[100px]">
-                      {{ getAgentDisplay(workflow.agent_id) }}
-                    </span>
-                  </router-link>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
-                    <div class="col-span-2 font-medium mb-1">
-                      {{ getAgent(workflow.agent_id)?.name ?? `#${workflow.agent_id}` }}
-                    </div>
-                    <template v-if="getAgent(workflow.agent_id)">
-                      <span class="opacity-70">{{ $t('repo.pipeline.agent_tooltip.platform') }}</span>
-                      <span>{{ getAgent(workflow.agent_id)!.platform }}</span>
-                      <span class="opacity-70">{{ $t('repo.pipeline.agent_tooltip.backend') }}</span>
-                      <span>{{ getAgent(workflow.agent_id)!.backend }}</span>
-                      <span class="opacity-70">{{ $t('repo.pipeline.agent_tooltip.workflows') }}</span>
-                      <span>{{
-                        `${getAgent(workflow.agent_id)!.running_workflows} / ${getAgent(workflow.agent_id)!.capacity}`
-                      }}</span>
-                      <template v-if="getAgent(workflow.agent_id)!.backend === 'docker'">
-                        <span class="opacity-70">{{ $t('repo.pipeline.agent_tooltip.limit_mem') }}</span>
-                        <span>{{ formatBytes(getAgent(workflow.agent_id)!.limit_mem, $t) }}</span>
-                        <span class="opacity-70">{{ $t('repo.pipeline.agent_tooltip.limit_cpu_quota') }}</span>
-                        <span>{{ formatCPUQuota(getAgent(workflow.agent_id)!.limit_cpu_quota, $t) }}</span>
+                    #{{ workflow.attempt }}
+                    <Icon name="chevron-down" class="h-2.5 w-2.5" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem
+                    v-for="attempt in workflowAttemptsList(workflow)"
+                    :key="attempt.id"
+                    class="flex items-center gap-2 text-xs"
+                    @click.stop="switchAttempt(attempt)"
+                  >
+                    <PipelineStatusIcon :status="attempt.state" class="h-3.5 w-3.5" />
+                    #{{ attempt.attempt }}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
+              <!-- Agent (icon only, name in tooltip) -->
+              <TooltipProvider v-if="workflow.agent_id">
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <router-link
+                      :to="{ name: 'admin-agent-detail', params: { id: workflow.agent_id } }"
+                      class="shrink-0 mt-0.5 text-primary hover:text-primary/80 flex items-center"
+                      @click.stop
+                    >
+                      <Icon name="agent" class="w-3.5 h-3.5" />
+                    </router-link>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
+                      <div class="col-span-2 font-medium mb-1">
+                        {{ getAgent(workflow.agent_id)?.name ?? `#${workflow.agent_id}` }}
+                      </div>
+                      <template v-if="getAgent(workflow.agent_id)">
+                        <span class="opacity-70">{{ $t('repo.pipeline.agent_tooltip.platform') }}</span>
+                        <span>{{ getAgent(workflow.agent_id)!.platform }}</span>
+                        <span class="opacity-70">{{ $t('repo.pipeline.agent_tooltip.backend') }}</span>
+                        <span>{{ getAgent(workflow.agent_id)!.backend }}</span>
+                        <span class="opacity-70">{{ $t('repo.pipeline.agent_tooltip.workflows') }}</span>
+                        <span>{{
+                          `${getAgent(workflow.agent_id)!.running_workflows} / ${getAgent(workflow.agent_id)!.capacity}`
+                        }}</span>
+                        <template v-if="getAgent(workflow.agent_id)!.backend === 'docker'">
+                          <span class="opacity-70">{{ $t('repo.pipeline.agent_tooltip.limit_mem') }}</span>
+                          <span>{{ formatBytes(getAgent(workflow.agent_id)!.limit_mem, $t) }}</span>
+                          <span class="opacity-70">{{ $t('repo.pipeline.agent_tooltip.limit_cpu_quota') }}</span>
+                          <span>{{ formatCPUQuota(getAgent(workflow.agent_id)!.limit_cpu_quota, $t) }}</span>
+                        </template>
                       </template>
-                    </template>
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <!-- Rerun -->
-            <IconButton
-              v-if="hasPushPermission && workflow.state !== 'pending' && workflow.state !== 'running'"
-              :is-loading="isRerunningWorkflow[workflow.id]"
-              icon="solar:restart-bold"
-              class="shrink-0 text-primary hover:text-primary/80 hover:bg-accent"
-              :title="$t('repo.pipeline.actions.rerun_workflow')"
-              @click.stop="$emit('rerunWorkflow', workflow.id)"
-            />
-            <!-- Cancel -->
-            <IconButton
-              v-if="hasPushPermission && (workflow.state === 'pending' || workflow.state === 'running')"
-              :is-loading="isCancelingWorkflow[workflow.id]"
-              icon="close"
-              class="shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-              :title="$t('repo.pipeline.actions.cancel')"
-              size="1.1rem"
-              @click.stop="$emit('cancelWorkflow', workflow.id)"
-            />
-            <!-- Duration -->
-            <span class="shrink-0 text-xs text-right w-16 pr-1">
-              <PipelineStepDuration
-                v-if="workflow.started !== workflow.finished"
-                :workflow="workflow"
-                class="text-xs"
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <!-- Rerun -->
+              <IconButton
+                v-if="hasPushPermission && workflow.state !== 'pending' && workflow.state !== 'running'"
+                :is-loading="isRerunningWorkflow[workflow.id]"
+                icon="solar:restart-bold"
+                class="shrink-0 text-primary hover:text-primary/80 hover:bg-accent"
+                :title="$t('repo.pipeline.actions.rerun_workflow')"
+                @click.stop="$emit('rerunWorkflow', workflow.id)"
               />
-            </span>
+              <!-- Cancel -->
+              <IconButton
+                v-if="hasPushPermission && (workflow.state === 'pending' || workflow.state === 'running')"
+                :is-loading="isCancelingWorkflow[workflow.id]"
+                icon="close"
+                class="shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                :title="$t('repo.pipeline.actions.cancel')"
+                size="1.1rem"
+                @click.stop="$emit('cancelWorkflow', workflow.id)"
+              />
+              <!-- Duration -->
+              <span class="shrink-0 mt-0.5 text-xs text-right w-16 pr-1">
+                <PipelineStepDuration
+                  v-if="workflow.started !== workflow.finished"
+                  :workflow="workflow"
+                  class="text-xs"
+                />
+              </span>
+            </div>
           </div>
 
           <!-- Canceled Message for this variant -->
@@ -335,6 +346,8 @@
 <script lang="ts" setup>
 import Icon from '~/components/atomic/Icon.vue';
 import IconButton from '~/components/atomic/IconButton.vue';
+import MatrixVariantChips from '~/components/repo/pipeline/MatrixVariantChips.vue';
+import type { MatrixChip } from '~/components/repo/pipeline/MatrixVariantChips.vue';
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
 import PipelineStepDuration from '~/components/repo/pipeline/PipelineStepDuration.vue';
 import {
@@ -364,9 +377,11 @@ import {
   aggregateWorkflowDuration,
   aggregateWorkflowStatus,
   buildStepTree,
+  classifyMatrixAxes,
   duplicateStepNameIndexes,
   getWorkflowAttempts,
   hasReruns,
+  matrixValueColor,
 } from '~/lib/pipeline-utils';
 import { computed, ref, watch } from 'vue';
 
@@ -595,11 +610,20 @@ function toggleVariant(workflow: PipelineWorkflow) {
   }
 }
 
-function formatEnviron(environ?: Record<string, string>): string {
-  if (!environ) return '';
-  return Object.entries(environ)
-    .map(([k, v]) => `${k}=${v}`)
-    .join(' ');
+// Classify the group's matrix axes: shared axes are hoisted to the header; the
+// rest (primary first) flow as chips on each variant row.
+const classification = computed(() => classifyMatrixAxes(props.workflows));
+const axisKeys = computed(() => {
+  const c = classification.value;
+  return [c.primary, ...c.secondary].filter((k): k is string => k !== undefined);
+});
+
+function axisChipsFor(workflow: PipelineWorkflow): MatrixChip[] {
+  return axisKeys.value.map((key) => ({
+    key,
+    value: workflow.environ?.[key],
+    present: !!workflow.environ && key in workflow.environ,
+  }));
 }
 
 function workflowHasReruns(workflow: PipelineWorkflow): boolean {
@@ -615,10 +639,6 @@ function switchAttempt(targetAttempt: PipelineWorkflow) {
   if (targetAttempt.children && targetAttempt.children.length > 0) {
     emit('update:selectedStepId', targetAttempt.children[0].pid);
   }
-}
-
-function getAgentDisplay(agentId: number): string {
-  return props.agentDetails[agentId]?.name || '';
 }
 
 function getAgent(agentId: number): Agent | undefined {

@@ -81,37 +81,44 @@
         </Combobox>
       </div>
 
+      <!-- Shared axes (constant across every variant) hoisted out of the rows -->
+      <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
+      <div v-if="classification.shared.length > 0" class="flex flex-wrap items-center gap-1 pb-2 pl-6">
+        <span class="text-[10px] uppercase tracking-wide text-muted-foreground/70 mr-0.5">{{
+          $t('repo.pipeline.matrix.shared')
+        }}</span>
+        <span
+          v-for="axis in classification.shared"
+          :key="axis.key"
+          class="inline-flex items-center rounded-none border border-border bg-muted/50 px-1 py-px font-mono text-[11px] leading-tight text-muted-foreground"
+        >
+          <span class="text-muted-foreground/70">{{ axis.key }}=</span>
+          <span :style="{ color: matrixValueColor(axis.value) }">{{ axis.value }}</span>
+        </span>
+      </div>
+      <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
+
       <div :class="{ 'max-h-[50vh] overflow-y-auto': isLargeGroup }">
         <div v-for="workflow in filteredWorkflows" :key="workflow.id" class="border-t border-border">
-          <!-- Variant row -->
-          <div class="flex items-center gap-2 py-1.5 px-1 w-full">
-            <button
-              class="flex items-center gap-2 flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
-              @click="toggleVariant(workflow.id)"
-            >
-              <Icon
-                name="chevron-right"
-                class="size-3.5 transition-transform duration-200 text-muted-foreground shrink-0"
-                :class="{ 'rotate-90': expandedVariantId === workflow.id }"
-              />
-              <PipelineStatusIcon :status="workflow.state" class="h-3.5 w-3.5 shrink-0" />
-              <span
-                class="flex-1 text-xs text-muted-foreground font-mono truncate"
-                :title="formatEnviron(workflow.environ)"
-              >
-                {{ formatEnviron(workflow.environ) }}
-              </span>
-              <PipelineStepDuration
-                v-if="workflow.started !== workflow.finished"
-                :workflow="workflow"
-                class="text-xs text-muted-foreground shrink-0"
-              />
-            </button>
+          <!-- Variant row (dynamic axis flow) -->
+          <div class="flex items-start gap-2 py-1.5 px-1 w-full cursor-pointer" @click="toggleVariant(workflow.id)">
+            <Icon
+              name="chevron-right"
+              class="size-3.5 mt-0.5 transition-transform duration-200 text-muted-foreground shrink-0"
+              :class="{ 'rotate-90': expandedVariantId === workflow.id }"
+            />
+            <PipelineStatusIcon :status="workflow.state" class="h-3.5 w-3.5 mt-0.5 shrink-0" />
+            <!-- Axis chips (flow: all axes, primary first, +N overflow) -->
+            <MatrixVariantChips v-if="axisKeys.length > 0" :chips="axisChipsFor(workflow)" />
+            <span v-else class="min-w-0 flex-1 mt-0.5 truncate font-mono text-xs text-muted-foreground">{{
+              workflow.name
+            }}</span>
             <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
             <DropdownMenu v-if="variantHasReruns(workflow)">
               <DropdownMenuTrigger as-child>
                 <button
-                  class="shrink-0 inline-flex items-center gap-0.5 rounded border border-primary/70 px-1 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-accent transition-colors"
+                  class="shrink-0 mt-0.5 inline-flex items-center gap-0.5 rounded border border-primary/70 px-1 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-accent transition-colors"
+                  @click.stop
                 >
                   #{{ workflow.attempt }}
                   <Icon name="chevron-down" class="h-2.5 w-2.5" />
@@ -122,7 +129,7 @@
                   v-for="attempt in variantAttempts(workflow)"
                   :key="attempt.id"
                   class="flex items-center gap-2 text-xs"
-                  @click="switchVariantAttempt(attempt)"
+                  @click.stop="switchVariantAttempt(attempt)"
                 >
                   <PipelineStatusIcon :status="attempt.state" class="h-3.5 w-3.5" />
                   #{{ attempt.attempt }}
@@ -133,9 +140,14 @@
             <IconButton
               v-if="hasPushPermission && isVariantCompleted(workflow)"
               icon="solar:restart-bold"
-              class="shrink-0 text-primary hover:text-primary/80 hover:bg-accent"
+              class="shrink-0 mt-0.5 text-primary hover:text-primary/80 hover:bg-accent"
               :title="$t('repo.pipeline.actions.rerun_workflow')"
-              @click="$emit('rerunWorkflow', workflow.id)"
+              @click.stop="$emit('rerunWorkflow', workflow.id)"
+            />
+            <PipelineStepDuration
+              v-if="workflow.started !== workflow.finished"
+              :workflow="workflow"
+              class="text-xs text-muted-foreground shrink-0 mt-0.5"
             />
           </div>
 
@@ -170,6 +182,8 @@ import { computed, ref, watch } from 'vue';
 
 import Icon from '~/components/atomic/Icon.vue';
 import IconButton from '~/components/atomic/IconButton.vue';
+import MatrixVariantChips from '~/components/repo/pipeline/MatrixVariantChips.vue';
+import type { MatrixChip } from '~/components/repo/pipeline/MatrixVariantChips.vue';
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
 import PipelineStepDuration from '~/components/repo/pipeline/PipelineStepDuration.vue';
 import {
@@ -190,7 +204,13 @@ import {
   ComboboxViewport,
 } from '~/components/ui/combobox';
 import type { PipelineWorkflow } from '~/lib/api/types';
-import { aggregateWorkflowStatus, getWorkflowAttempts, hasReruns } from '~/lib/pipeline-utils';
+import {
+  aggregateWorkflowStatus,
+  classifyMatrixAxes,
+  getWorkflowAttempts,
+  hasReruns,
+  matrixValueColor,
+} from '~/lib/pipeline-utils';
 
 const props = defineProps<{
   workflows: PipelineWorkflow[];
@@ -326,11 +346,20 @@ function toggleVariant(workflowId: number) {
   expandedVariantId.value = expandedVariantId.value === workflowId ? null : workflowId;
 }
 
-function formatEnviron(environ?: Record<string, string>): string {
-  if (!environ) return '';
-  return Object.entries(environ)
-    .map(([k, v]) => `${k}=${v}`)
-    .join(' ');
+// Classify the group's matrix axes: shared axes are hoisted to the header; the
+// rest (primary first) flow as chips on each variant row.
+const classification = computed(() => classifyMatrixAxes(props.workflows));
+const axisKeys = computed(() => {
+  const c = classification.value;
+  return [c.primary, ...c.secondary].filter((k): k is string => k !== undefined);
+});
+
+function axisChipsFor(workflow: PipelineWorkflow): MatrixChip[] {
+  return axisKeys.value.map((key) => ({
+    key,
+    value: workflow.environ?.[key],
+    present: !!workflow.environ && key in workflow.environ,
+  }));
 }
 </script>
 

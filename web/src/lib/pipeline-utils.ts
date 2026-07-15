@@ -126,6 +126,108 @@ export function identifyMatrixGroupsMap(workflows: PipelineWorkflow[]): Map<stri
   return matrixGroups;
 }
 
+/**
+ * A matrix axis with its key and the distinct values observed across a group.
+ */
+export interface MatrixAxis {
+  key: string;
+  value: string;
+}
+
+/**
+ * Result of classifying the environ axes of a matrix group into the buckets
+ * that drive the per-variant axis-chip flow.
+ *
+ * - `shared`  : axis present in every variant with a single value. These carry
+ *               no distinguishing information, so callers hoist them into the
+ *               group header once instead of repeating them on every row.
+ * - `primary` : the varying axis with the most distinct values. It is rendered
+ *               first so it stays visible even when later axes overflow.
+ * - `secondary`: the remaining per-row axes (other varying axes + partial axes),
+ *               in first-seen order, excluding `primary`. These flow after the
+ *               primary axis and are the first to collapse into a "+N" indicator.
+ * - `partial` : axes present on only some variants. Presence/absence is itself
+ *               distinguishing, so they stay per-row and are never hoisted.
+ */
+export interface MatrixClassification {
+  shared: MatrixAxis[];
+  primary?: string;
+  secondary: string[];
+  partial: string[];
+}
+
+/**
+ * Classify the environ axes of a matrix group.
+ *
+ * The classification is stable: axis keys keep their first-seen order and the
+ * primary axis is chosen by highest cardinality (most distinct values), falling
+ * back to first-seen order on ties.
+ */
+export function classifyMatrixAxes(workflows: PipelineWorkflow[]): MatrixClassification {
+  const total = workflows.length;
+  const presence = new Map<string, number>();
+  const values = new Map<string, Set<string>>();
+  const order: string[] = [];
+
+  for (const wf of workflows) {
+    if (!wf.environ) continue;
+    for (const [key, value] of Object.entries(wf.environ)) {
+      if (!presence.has(key)) {
+        presence.set(key, 0);
+        values.set(key, new Set());
+        order.push(key);
+      }
+      presence.set(key, presence.get(key)! + 1);
+      values.get(key)!.add(value);
+    }
+  }
+
+  const shared: MatrixAxis[] = [];
+  const varying: string[] = [];
+  const partial: string[] = [];
+
+  for (const key of order) {
+    if ((presence.get(key) ?? 0) < total) {
+      partial.push(key);
+    } else if (values.get(key)!.size === 1) {
+      shared.push({ key, value: [...values.get(key)!][0] });
+    } else {
+      varying.push(key);
+    }
+  }
+
+  // Primary axis: highest cardinality varying axis, first-seen order as tiebreaker.
+  let primary: string | undefined;
+  for (const key of varying) {
+    if (primary === undefined || values.get(key)!.size > values.get(primary)!.size) {
+      primary = key;
+    }
+  }
+
+  const secondary = order.filter((key) => key !== primary && (varying.includes(key) || partial.includes(key)));
+
+  return { shared, primary, secondary, partial };
+}
+
+/**
+ * A palette of hues used to color-code the primary matrix axis so identical
+ * values are visually groupable at a glance. Tuned to stay legible on both the
+ * light and dark card backgrounds.
+ */
+const MATRIX_AXIS_PALETTE = ['#cf4a2c', '#2563eb', '#16a34a', '#9333ea', '#d99e0b', '#0891b2', '#db2777', '#4d7c0f'];
+
+/**
+ * Deterministically map a matrix axis value to a stable color from the palette.
+ * The same value always yields the same color across renders and views.
+ */
+export function matrixValueColor(value: string): string {
+  let hash = 0;
+  for (let i = 0; i < value.length; i++) {
+    hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
+  }
+  return MATRIX_AXIS_PALETTE[hash % MATRIX_AXIS_PALETTE.length];
+}
+
 const STATUS_PRIORITY: PipelineStatus[] = [
   'error',
   'failure',
