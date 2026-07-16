@@ -36,6 +36,7 @@ type config struct {
 	networkKeepaliveInterval time.Duration
 	networkKeepaliveImage    string
 	networkKeepaliveHost     string
+	workspaceInitImage       string
 	resourceLimit            resourceLimit
 }
 
@@ -121,6 +122,7 @@ func configFromCli(c *cli.Command) (config, error) {
 		networkKeepaliveInterval: networkKeepaliveInterval,
 		networkKeepaliveImage:    networkKeepaliveImage,
 		networkKeepaliveHost:     networkKeepaliveHost,
+		workspaceInitImage:       strings.TrimSpace(c.String("backend-podman-workspace-init-image")),
 		resourceLimit: resourceLimit{
 			MemSwapLimit: memSwap,
 			MemLimit:     memLimit,

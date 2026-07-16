@@ -56,6 +56,12 @@ var Flags = []cli.Flag{
 		Name:    "backend-docker-volumes",
 		Usage:   "backend docker volumes (comma-separated)",
 	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("WOODPECKER_BACKEND_DOCKER_WORKSPACE_INIT_IMAGE", "CROW_BACKEND_DOCKER_WORKSPACE_INIT_IMAGE"),
+		Name:    "backend-docker-workspace-init-image",
+		Usage:   "image used to seed deterministic workspace ownership before the first step runs (set empty to disable)",
+		Value:   "docker.io/library/busybox:1.37.0",
+	},
 	//
 	// resource limit parameters
 	//

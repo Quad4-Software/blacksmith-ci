@@ -60,6 +60,12 @@ var Flags = []cli.Flag{
 		Name:    "backend-podman-volumes",
 		Usage:   "additional volumes to mount (comma-separated)",
 	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_BACKEND_PODMAN_WORKSPACE_INIT_IMAGE"),
+		Name:    "backend-podman-workspace-init-image",
+		Usage:   "image used to seed deterministic workspace ownership before the first step runs (set empty to disable)",
+		Value:   keepaliveDefaultImage,
+	},
 	//
 	// resource limit parameters
 	//

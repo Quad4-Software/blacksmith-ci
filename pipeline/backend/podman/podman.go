@@ -187,6 +187,12 @@ func (e *podman) SetupWorkflow(ctx context.Context, conf *backend.Config, taskUU
 		}
 	}
 
+	// Seed deterministic workspace ownership before any step runs so it no
+	// longer depends on whether the first pipeline item is a step or a plugin.
+	if err := e.initWorkspace(conf, taskUUID); err != nil {
+		return err
+	}
+
 	// Create network
 	//nolint:contextcheck // Podman SDK uses context embedded in connection
 	_, err = network.Create(e.conn, newNetworkCreateOptions(conf.Network, e.config.enableIPv6))

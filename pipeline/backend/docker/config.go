@@ -23,10 +23,11 @@ import (
 )
 
 type config struct {
-	enableIPv6    bool
-	network       string
-	volumes       []string
-	resourceLimit resourceLimit
+	enableIPv6         bool
+	network            string
+	volumes            []string
+	workspaceInitImage string
+	resourceLimit      resourceLimit
 }
 
 type resourceLimit struct {
@@ -61,8 +62,9 @@ func configFromCli(c *cli.Command) (config, error) {
 	}
 
 	conf := config{
-		enableIPv6: c.Bool("backend-docker-ipv6"),
-		network:    c.String("backend-docker-network"),
+		enableIPv6:         c.Bool("backend-docker-ipv6"),
+		network:            c.String("backend-docker-network"),
+		workspaceInitImage: c.String("backend-docker-workspace-init-image"),
 		resourceLimit: resourceLimit{
 			MemSwapLimit: memSwap,
 			MemLimit:     memLimit,

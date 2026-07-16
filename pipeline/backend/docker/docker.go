@@ -218,6 +218,14 @@ func (e *docker) SetupWorkflow(ctx context.Context, conf *backend.Config, taskUU
 		return err
 	}
 	createdVolumes = append(createdVolumes, conf.Volume)
+
+	// Seed deterministic workspace ownership before any step runs so it no
+	// longer depends on whether the first pipeline item is a step or a plugin.
+	if err := e.initWorkspace(ctx, conf, taskUUID); err != nil {
+		rollbackVolumes()
+		return err
+	}
+
 	for _, tempVolume := range conf.TempVolumes {
 		_, err := e.client.VolumeCreate(ctx, volume.CreateOptions{
 			Name:   tempVolume,
