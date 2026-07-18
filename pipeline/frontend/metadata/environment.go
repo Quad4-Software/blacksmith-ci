@@ -17,6 +17,7 @@ package metadata
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"path"
 	"regexp"
 	"strconv"
@@ -28,6 +29,10 @@ import (
 const (
 	initialEnvMapSize = 100
 	maxChangedFiles   = 500
+	// DefaultWorkspaceBase mirrors compiler.DefaultWorkspaceBase. It is
+	// duplicated here to avoid an import cycle, as the compiler imports this
+	// package.
+	defaultWorkspaceBase = "/crow"
 )
 
 var pullRegexp = regexp.MustCompile(`\d+`)
@@ -63,6 +68,10 @@ func (m *Metadata) Environ() map[string]string {
 	setNonEmptyEnvVar(params, "CI_REPO_TRUSTED_SECURITY", strconv.FormatBool(repo.Trusted.Security))
 	// Deprecated remove in 4.x
 	setNonEmptyEnvVar(params, "CI_REPO_TRUSTED", strconv.FormatBool(m.Repo.Trusted.Security && m.Repo.Trusted.Network && m.Repo.Trusted.Volumes))
+	// CI_WORKSPACE is the default workspace path derived from the repo forge
+	// URL, matching compiler.WithWorkspaceFromURL. A pipeline-level `workspace:`
+	// override is applied later by the compiler and is not reflected here.
+	setNonEmptyEnvVar(params, "CI_WORKSPACE", workspacePathFromURL(repo.ForgeURL))
 
 	pipeline := m.Curr
 	setNonEmptyEnvVar(params, "CI_PIPELINE_NUMBER", strconv.FormatInt(pipeline.Number, 10))
@@ -179,6 +188,18 @@ func getSourceTargetBranches(refspec string) (string, string) {
 	}
 
 	return sourceBranch, targetBranch
+}
+
+// workspacePathFromURL derives the default CI_WORKSPACE value from the repo
+// forge URL. It mirrors compiler.WithWorkspaceFromURL so that ${CI_WORKSPACE}
+// substitutions and jsonnet extVars resolve to the same path the compiler
+// later mounts into the containers.
+func workspacePathFromURL(forgeURL string) string {
+	srcPath := "src"
+	if parsed, err := url.Parse(forgeURL); err == nil {
+		srcPath = path.Join(srcPath, parsed.Hostname(), parsed.Path)
+	}
+	return path.Join(defaultWorkspaceBase, srcPath)
 }
 
 func setNonEmptyEnvVar(env map[string]string, key, value string) {

@@ -51,7 +51,7 @@ func TestMetadataFromStruct(t *testing.T) {
 				"CI_PREV_PIPELINE_STARTED": "0", "CI_PREV_PIPELINE_URL": "/repos/0/pipeline/0",
 				"CI_REPO_PRIVATE": "false", "CI_REPO_TRUSTED": "false", "CI_REPO_TRUSTED_NETWORK": "false", "CI_REPO_TRUSTED_SECURITY": "false", "CI_REPO_TRUSTED_VOLUMES": "false",
 				"CI_STEP_NUMBER": "0", "CI_STEP_URL": "/repos/0/pipeline/0", "CI_SYSTEM_NAME": "crow",
-				"CI_WORKFLOW_NUMBER": "0",
+				"CI_WORKFLOW_NUMBER": "0", "CI_WORKSPACE": "/crow/src",
 			},
 		},
 		{
@@ -85,6 +85,7 @@ func TestMetadataFromStruct(t *testing.T) {
 				"CI_REPO_TRUSTED": "false", "CI_REPO_TRUSTED_NETWORK": "false", "CI_REPO_TRUSTED_SECURITY": "false", "CI_REPO_TRUSTED_VOLUMES": "false",
 				"CI_REPO_URL": "https://gitea.com/testUser/testRepo", "CI_STEP_NUMBER": "0", "CI_STEP_URL": "https://example.com/repos/0/pipeline/3", "CI_SYSTEM_HOST": "example.com",
 				"CI_SYSTEM_NAME": "crow", "CI_SYSTEM_URL": "https://example.com", "CI_WORKFLOW_NAME": "hello", "CI_WORKFLOW_NUMBER": "0",
+				"CI_WORKSPACE": "/crow/src/gitea.com/testUser/testRepo",
 			},
 		},
 	}
