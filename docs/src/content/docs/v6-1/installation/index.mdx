@@ -1,0 +1,131 @@
+---
+title: "Installation"
+---
+
+Crow CI consists of three components:
+
+| Component | Required | Description |
+| --- | --- | --- |
+| **Server** | Yes | UI, API, webhook handling, pipeline parsing |
+| **Agent** | Yes | Executes pipelines via Docker, Kubernetes, or local backend |
+| **Autoscaler** | No | Spins up/down cloud VMs for pending builds |
+
+## Installation Methods
+
+| Method | Best For |
+| --- | --- |
+| [Docker Compose](/dev/installation/container/) | Single-server deployments |
+| [Helm Chart](/dev/installation/helm/) | Kubernetes clusters |
+| [Binary](/dev/installation/binary/) | Custom deployments |
+| [Ansible](/dev/installation/ansible/) | Automated provisioning |
+
+## Database
+
+Crow uses SQLite by default. For production, PostgreSQL or MariaDB is recommended.[^1]
+
+:::note
+Database deployment is not covered here. Use existing guides or managed cloud services. You can start with SQLite and migrate later.
+:::
+
+:::caution[Switching database backends]
+Generic SQLite-to-PostgreSQL tools such as `pgloader` are **not** a supported migration path.
+They copy data without translating SQLite's implicit `INTEGER PRIMARY KEY` autoincrement into a PostgreSQL sequence, leaving `id` columns as `bigint NOT NULL` with no `DEFAULT nextval(...)`.
+The next `INSERT` then fails with `SQLSTATE 23502` ("null value in column 'id'") — see [#1067](https://codefloe.com/crowci/crow/issues/1067).
+
+The Crow server refuses to start when this corruption is detected and prints copy-pasteable repair SQL.
+See the [Database Backend Migration](/dev/installation/migration/#database-backend-migration) section for the supported approach.
+:::
+
+## Container Images
+
+Images are published to the Codeberg Container Registry:
+
+- [crow-server](https://codefloe.com/crowci/-/packages/container/crow-server)
+- [crow-agent](https://codefloe.com/crowci/-/packages/container/crow-agent)
+- [crow-cli](https://codefloe.com/crowci/-/packages/container/crow-cli)
+- [crow-autoscaler](https://codefloe.com/crowci/-/packages/container/crow-autoscaler)
+
+### Image Tags
+
+The unsuffixed and `-alpine` tags differ depending on the component:
+
+- **`crow-server`** and **`crow-agent`** are published as Alpine-based images. The unsuffixed tag and the `-alpine` tag point to the same image — `-alpine` is kept as an alias for backwards compatibility.
+- **`crow-cli`** is published in two flavours: the unsuffixed tag is a minimal `scratch` image, and the `-alpine` tag is the Alpine variant.
+
+| Tag | Description |
+| --- | --- |
+| `vX.Y.Z` | SemVer release (server/agent: Alpine; cli: scratch) |
+| `vX.Y.Z-alpine` | SemVer release (Alpine, rootless; alias of `vX.Y.Z` for server/agent) |
+| `vX`, `vX.Y` | Rolling major/minor version |
+| `vX-alpine`, `vX.Y-alpine` | Rolling major/minor version (Alpine variant) |
+| `dev` | Latest from `main` branch |
+| `dev-alpine` | Latest from `main` branch (Alpine variant) |
+
+:::caution[`-alpine` tag deprecation for server and agent]
+The `-alpine` suffix tags for **`crow-server`** and **`crow-agent`** are deprecated and will be removed in a future release.
+The unsuffixed and `-alpine` tags currently point to the same Alpine-based image, so the suffix is now redundant.
+
+If you currently pull `crow-server:<tag>-alpine` or `crow-agent:<tag>-alpine`, switch to `crow-server:<tag>` / `crow-agent:<tag>` — same image, fewer keystrokes.
+The server and agent print a matching warning at startup as a reminder.
+
+This deprecation does **not** apply to `crow-cli`, where `-alpine` continues to denote a different image (Alpine) than the default (scratch).
+:::
+
+:::note
+No `latest` tag exists to prevent accidental major version upgrades.
+:::
+
+## Agent Authentication
+
+Agents authenticate with the server using tokens via `CROW_AGENT_SECRET`.
+
+### System Token
+
+Set the same `CROW_AGENT_SECRET` on both server and agent. On first connection:
+
+1. Agent connects with system token
+2. Server registers agent and returns unique ID
+3. Agent stores ID in `CROW_AGENT_CONFIG_FILE`
+4. Subsequent connections use stored ID
+
+:::tip
+Persist `CROW_AGENT_CONFIG_FILE` to prevent duplicate agent registrations on container restarts.
+:::
+
+### Agent Token
+
+For multiple agents with different configurations, create tokens via **Settings → Agents → Add agent** or the API. Each agent uses its assigned token in `CROW_AGENT_SECRET`.
+
+![Agent creation](img/new-agent-registration.png)
+
+## Remote Agents
+
+Agents can run on separate machines from the server.
+
+### Internal Network
+
+Connect using private IP addresses:
+
+```yaml
+CROW_SERVER: <private-ip>:9000
+CROW_AGENT_SECRET: <token>
+```
+
+### Public Network
+
+Requires TLS for secure GRPC connection:
+
+```yaml
+CROW_SERVER: grpc.crow.mydomain.com:443
+CROW_GRPC_SECURE: "true"
+CROW_AGENT_SECRET: <token>
+```
+
+Requirements:
+- Subdomain for GRPC service
+- Valid SSL certificate
+- TLS-terminating proxy
+
+See [Reverse Proxy Setup](/dev/installation/proxy/) for ingress configuration examples.
+
+[^1]: Pipeline logs are stored in the database. External log storage is planned.

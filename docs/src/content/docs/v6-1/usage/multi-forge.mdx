@@ -1,0 +1,126 @@
+---
+title: "Multi-Forge"
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+Crow supports connecting to multiple Git forges, allowing you to manage repositories from different sources under a single account.
+
+With multi-forge support, you can:
+
+- Authenticate via multiple forges (e.g., GitHub and Codeberg)
+- Enable repositories from any linked forge
+- Manage all your CI/CD pipelines in one place
+- Keep OAuth tokens separate and secure for each forge
+- [Migrate repository settings](/dev/usage/repo-import/) between forges
+
+## Linking Additional Forges
+
+If your Crow instance has [multiple forges configured](/dev/configuration/server/#multi-forge-support), you can link additional forge accounts to your existing Crow account.
+
+<Steps>
+
+1. Log in to Crow with your primary forge account
+
+2. Navigate to **Settings** (user icon in the top right)
+
+3. In the **General** tab, find the **Linked Forges** section
+
+4. Click **Link another forge** and select the forge you want to connect
+
+5. Authenticate with the selected forge via OAuth
+
+6. Once linked, the new forge appears in your linked forges list
+
+</Steps>
+
+## Switching Between Accounts
+
+Linking a forge joins another forge connection to your _existing_ Crow account.
+Account switching is different: it lets you stay signed in to several _distinct_ Crow accounts in the same browser and jump between them without a full logout and login each time.
+This is handy when you maintain separate accounts, for example a personal and an organization account.
+
+<Steps>
+
+1. Open the user menu (avatar in the top right) and click **Add another account**
+
+2. Choose the forge and authenticate with the other account via OAuth
+
+3. Both accounts now appear under **Switch account** in the user menu; click one to switch to it instantly
+
+</Steps>
+
+Each remembered account keeps its own session, so switching does not require re-entering credentials.
+The user menu offers **Sign out of this account** (leaves your other accounts signed in and drops you into the next one) and **Sign out of all accounts** (a full logout).
+Remembered sessions are stored in a secure, `HttpOnly` cookie just like the active session, and a stale or expired session is dropped from the switcher automatically.
+
+## Managing Linked Forges
+
+### Expired Token Notifications
+
+When a secondary forge's OAuth token expires and cannot be automatically refreshed, Crow displays a warning indicator in the navigation bar.
+This indicator:
+
+- Shows a warning triangle with the count of expired connections
+- Clicking opens a dropdown listing the affected forges
+- Provides quick "Reconnect" buttons to re-authenticate with each forge
+- Links to the full Settings page for detailed management
+
+To resolve an expired connection, click the "Reconnect" button and complete the OAuth flow with the forge.
+
+### Unlinking a Forge
+
+To remove a linked forge:
+
+1. Go to **Settings** → **General**
+2. Find the forge in the **Linked Forges** section
+3. Click the **Unlink** button
+4. Review the list of affected repositories that will be disabled
+5. Confirm the action
+
+When you unlink a forge, Crow automatically:
+- Disables all repositories from that forge
+- Removes webhooks from the forge
+- Deletes the stored OAuth tokens
+
+:::note
+You cannot unlink your primary forge (the one you originally signed up with).
+:::
+
+## Working with Multiple Forges
+
+### Enabling Repositories
+
+When you open the **Enable Repository** dialog:
+
+- Repositories from all linked forges are shown
+- A forge indicator column shows which forge each repository belongs to
+- You can filter repositories by forge using the dropdown
+
+### Repository List
+
+The main repository list shows all your enabled repositories regardless of which forge they belong to. Each repository card displays its source forge.
+
+### Pipeline Execution
+
+When a pipeline runs:
+
+- Crow automatically uses the correct forge credentials
+- Webhooks are configured per-forge
+- Build status is reported back to the correct forge
+
+## Security
+
+### Token Isolation
+
+Each forge connection has its own OAuth tokens:
+
+- Tokens are encrypted at rest (when encryption is enabled)
+- Revoking access on one forge doesn't affect others
+- Token refresh happens independently per forge
+
+### Access Control
+
+- You must authenticate with each forge to link it
+- Crow only requests the permissions it needs
+- You can revoke Crow's access from the forge's OAuth settings at any time

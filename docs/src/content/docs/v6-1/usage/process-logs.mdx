@@ -1,0 +1,48 @@
+---
+title: Process Logs
+description: View agent and autoscaler process logs in the Crow UI.
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+Crow surfaces the **process logs** of each agent and autoscaler — the zerolog output the producer would normally write to stdout — directly in the Crow web UI.
+This lets operators debug a misbehaving producer without SSHing into the host.
+
+## Where to find logs
+
+<Steps>
+
+1. As an administrator, open **Admin → Agents** (or **Autoscalers**).
+2. Click on a row to open the detail page.
+3. Select the **Logs** tab.
+
+</Steps>
+
+The viewer streams live entries via SSE and replays the most recent batch from the database so you have context immediately.
+
+## What is retained
+
+Process logs are stored in the `proc_log_entries` table, bounded per source.
+By default, the **5,000 most recent lines** per producer are retained; older lines are trimmed by a periodic janitor.
+
+Stdout is **not** replaced — `docker logs crow-agent` (or your platform's equivalent) continues to work exactly as before.
+
+## During short network outages
+
+If an agent temporarily loses gRPC connectivity to the server, lines are kept in a small on-agent ring buffer (default 500 lines) and back-filled on reconnect with their original timestamps.
+Longer outages may drop lines beyond the buffer size.
+
+## Disabling
+
+Operators who do not want process-log persistence can disable the feature entirely:
+
+```
+CROW_PROCLOG_ENABLED=false
+```
+
+When disabled, ingest endpoints return `Unimplemented` / 404, the SSE stream returns immediately, and the janitor does not run.
+Producers fall back to stdout-only.
+
+## Tuning
+
+See the [server env vars](/dev/configuration/env-vars/server/) and [agent env vars](/dev/configuration/env-vars/agent/) pages for retention, batch, and rate-limit controls.
