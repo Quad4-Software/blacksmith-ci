@@ -29,8 +29,5 @@
     "starlight-links-validator": "^0.25.0",
     "starlight-scroll-to-top": "^1.0.0",
     "starlight-versions": "^0.9.0"
-  },
-  "overrides": {
-    "esbuild": "0.28.1"
   }
 }
