@@ -355,7 +355,7 @@ func (b *StepBuilder) genItemForWorkflow(workflow *model.Workflow, axis matrix.A
 	item = &Item{
 		Workflow:     workflow,
 		Config:       ir,
-		Labels:       parsed.Labels,
+		Labels:       parsed.Labels.Flatten(),
 		DependsOn:    parsed.DependsOn,
 		RunsOn:       parsed.RunsOn,
 		OriginalName: SanitizePath(originalFileName), // Store original filename for dependency resolution

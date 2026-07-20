@@ -1117,10 +1117,20 @@
       }
     },
     "labels": {
-      "description": "Configures the labels used for the agent selection",
+      "description": "Configures the labels used for the agent selection. A list value matches any of the given values.",
       "type": "object",
       "additionalProperties": {
-        "type": ["boolean", "string", "number"]
+        "oneOf": [
+          {
+            "type": ["boolean", "string", "number"]
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        ]
       }
     }
   }

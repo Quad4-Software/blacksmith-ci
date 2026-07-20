@@ -42,8 +42,10 @@ func TestParse(t *testing.T) {
 		assert.Equal(t, yaml_base_types.StringOrSlice{"go build"}, out.Steps.ContainerList[1].Commands)
 		assert.Equal(t, "notify", out.Steps.ContainerList[2].Name)
 		assert.Equal(t, "slack", out.Steps.ContainerList[2].Image)
-		assert.Equal(t, "frontend", out.Labels["com.example.team"])
-		assert.Equal(t, "build", out.Labels["com.example.type"])
+		assert.Equal(t, yaml_base_types.StringOrSlice{"frontend"}, out.Labels["com.example.team"])
+		assert.Equal(t, yaml_base_types.StringOrSlice{"build"}, out.Labels["com.example.type"])
+		assert.Equal(t, yaml_base_types.StringOrSlice{"agent-1", "agent-2"}, out.Labels["agent"])
+		assert.Equal(t, map[string]string{"com.example.team": "frontend", "com.example.type": "build", "agent": "agent-1|agent-2"}, out.Labels.Flatten())
 		assert.Equal(t, "lint", out.DependsOn[0])
 		assert.Equal(t, "test", out.DependsOn[1])
 		assert.Equal(t, ("success"), out.RunsOn[0])
@@ -200,6 +202,9 @@ services:
 labels:
   com.example.type: "build"
   com.example.team: "frontend"
+  agent:
+    - agent-1
+    - agent-2
 depends_on:
   - lint
   - test

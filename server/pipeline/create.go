@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 
@@ -307,32 +308,40 @@ func validateAgentAvailability(_store store.Store, pipelineItems []*stepbuilder.
 	return nil
 }
 
+// labelMatchesAny reports whether an agent's attribute satisfies a required
+// label value. The required value may list several accepted values
+// (pipe-separated, e.g. `agent: [a, b]` -> "a|b"), in which case the attribute
+// matches any of them.
+func labelMatchesAny(agentValue, requiredValue string) bool {
+	return slices.Contains(strings.Split(requiredValue, "|"), agentValue)
+}
+
 // agentCanMatch checks if an agent could potentially match the required labels.
 func agentCanMatch(agent *model.Agent, requiredLabels map[string]string) bool {
 	// Check platform
 	if requiredPlatform, ok := requiredLabels["platform"]; ok {
-		if agent.Platform != "" && agent.Platform != requiredPlatform {
+		if agent.Platform != "" && !labelMatchesAny(agent.Platform, requiredPlatform) {
 			return false
 		}
 	}
 
 	// Check backend
 	if requiredBackend, ok := requiredLabels["backend"]; ok {
-		if agent.Backend != "" && agent.Backend != requiredBackend {
+		if agent.Backend != "" && !labelMatchesAny(agent.Backend, requiredBackend) {
 			return false
 		}
 	}
 
 	// Check agent name
 	if requiredAgent, ok := requiredLabels["agent"]; ok {
-		if agent.Name != "" && agent.Name != requiredAgent {
+		if agent.Name != "" && !labelMatchesAny(agent.Name, requiredAgent) {
 			return false
 		}
 	}
 
 	// Check hostname
 	if requiredHostname, ok := requiredLabels["hostname"]; ok {
-		if agent.Hostname != "" && agent.Hostname != requiredHostname {
+		if agent.Hostname != "" && !labelMatchesAny(agent.Hostname, requiredHostname) {
 			return false
 		}
 	}
@@ -349,9 +358,9 @@ func agentCanMatch(agent *model.Agent, requiredLabels map[string]string) bool {
 			continue
 		}
 
-		// Check if agent has this custom label with matching value
+		// Check if agent has this custom label with a matching value
 		if agentLabelValue, ok := agent.CustomLabels[labelKey]; ok {
-			if agentLabelValue != labelValue {
+			if !labelMatchesAny(agentLabelValue, labelValue) {
 				return false // Label exists but with different value
 			}
 		} else {

@@ -62,10 +62,12 @@ func createFilterFuncWithPriority(agentFilter rpc.Filter, customLabels map[strin
 			}
 
 			// Check if this is a custom label (defined on agent)
-			// Custom labels: if task has a custom label, agent MUST have it with matching value
+			// Custom labels: if task has a custom label, agent MUST have it with matching value.
+			// The task value may list several accepted values (pipe-separated,
+			// e.g. `mylabel: [a, b]` -> "a|b"); the agent matches any of them.
 			if agentLabelValue, isCustom := customLabels[taskLabel]; isCustom {
-				// Task has a custom label - agent must have matching value
-				if taskLabelValue != agentLabelValue {
+				// Task has a custom label - agent must match one of the accepted values
+				if !slices.Contains(strings.Split(taskLabelValue, "|"), agentLabelValue) {
 					// Values don't match - task cannot be assigned to this agent
 					log.Debug().
 						Str("task_id", task.ID).
@@ -159,18 +161,21 @@ func createFilterFuncWithPriority(agentFilter rpc.Filter, customLabels map[strin
 				return false, 0, priority
 			}
 
-			// Standard matching for other labels
-			switch agentLabelValue {
+			// Standard matching for other labels.
+			// The task value may list several accepted values (pipe-separated,
+			// e.g. `agent: [a, b]` -> "a|b"); the agent matches if its own value
+			// is any of them, or if the agent itself declares a wildcard.
+			switch {
 			// if agent label has a wildcard
-			case "*":
+			case agentLabelValue == "*":
 				log.Debug().
 					Str("task_id", task.ID).
 					Str("label", taskLabel).
 					Str("task_value", taskLabelValue).
 					Msg("filter: wildcard match")
 				score++
-			// if agent label has an exact match
-			case taskLabelValue:
+			// if the agent value is one of the accepted task values
+			case slices.Contains(strings.Split(taskLabelValue, "|"), agentLabelValue):
 				log.Debug().
 					Str("task_id", task.ID).
 					Str("label", taskLabel).

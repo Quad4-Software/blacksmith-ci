@@ -205,6 +205,40 @@ func TestAgentCanMatch(t *testing.T) {
 			},
 			want: true,
 		},
+		// List notation: `agent: [a, b]` is encoded as "a|b" and matches an
+		// agent whose name is any of the listed values.
+		{
+			name: "agent list - name in list",
+			agent: &model.Agent{
+				Name: "build-agent-2",
+			},
+			requiredLabels: map[string]string{
+				"agent": "build-agent-1|build-agent-2",
+			},
+			want: true,
+		},
+		{
+			name: "agent list - name not in list",
+			agent: &model.Agent{
+				Name: "build-agent-3",
+			},
+			requiredLabels: map[string]string{
+				"agent": "build-agent-1|build-agent-2",
+			},
+			want: false,
+		},
+		{
+			name: "custom label list - value in list",
+			agent: &model.Agent{
+				CustomLabels: map[string]string{
+					"team": "backend",
+				},
+			},
+			requiredLabels: map[string]string{
+				"team": "frontend|backend",
+			},
+			want: true,
+		},
 	}
 
 	for _, tt := range tests {

@@ -15,25 +15,34 @@
 package types
 
 import (
+	"strings"
+
 	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/constraint"
+	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/types/base"
 )
 
 type (
 	// Workflow defines a workflow configuration.
 	Workflow struct {
-		Name      string            `yaml:"name,omitempty"`
-		When      constraint.When   `yaml:"when,omitempty"`
-		Workspace Workspace         `yaml:"workspace,omitempty"`
-		Clone     ContainerList     `yaml:"clone,omitempty"`
-		Steps     ContainerList     `yaml:"steps,omitempty"`
-		Services  ContainerList     `yaml:"services,omitempty"`
-		Labels    map[string]string `yaml:"labels,omitempty"`
-		DependsOn []string          `yaml:"depends_on,omitempty"`
-		RunsOn    []string          `yaml:"runs_on,omitempty"`
-		SkipClone bool              `yaml:"skip_clone"`
-		Notify    *NotifyConfig     `yaml:"notify,omitempty"`
-		Approval  *ApprovalConfig   `yaml:"approval,omitempty"`
+		Name      string          `yaml:"name,omitempty"`
+		When      constraint.When `yaml:"when,omitempty"`
+		Workspace Workspace       `yaml:"workspace,omitempty"`
+		Clone     ContainerList   `yaml:"clone,omitempty"`
+		Steps     ContainerList   `yaml:"steps,omitempty"`
+		Services  ContainerList   `yaml:"services,omitempty"`
+		Labels    Labels          `yaml:"labels,omitempty"`
+		DependsOn []string        `yaml:"depends_on,omitempty"`
+		RunsOn    []string        `yaml:"runs_on,omitempty"`
+		SkipClone bool            `yaml:"skip_clone"`
+		Notify    *NotifyConfig   `yaml:"notify,omitempty"`
+		Approval  *ApprovalConfig `yaml:"approval,omitempty"`
 	}
+
+	// Labels maps a label key to one or more values. Each value may be given
+	// as a scalar (`agent: name`) or a list (`agent: [a, b]`), the latter
+	// meaning "match any of these". Values are flattened to the pipe-separated
+	// encoding understood by the agent filter (see Flatten).
+	Labels map[string]base.StringOrSlice
 
 	// NotifyConfig allows per-pipeline notification overrides in .crow.yml.
 	NotifyConfig struct {
@@ -62,3 +71,18 @@ type (
 		Path string
 	}
 )
+
+// Flatten converts the label map into the pipe-separated string encoding used
+// throughout the queue and agent filter. A list value like `[a, b]` becomes
+// `a|b`; a scalar stays as-is. Empty values are preserved (the filter ignores
+// them), keeping behavior identical for single-value labels.
+func (l Labels) Flatten() map[string]string {
+	if l == nil {
+		return nil
+	}
+	out := make(map[string]string, len(l))
+	for key, value := range l {
+		out[key] = strings.Join([]string(value), "|")
+	}
+	return out
+}

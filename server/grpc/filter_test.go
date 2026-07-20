@@ -652,6 +652,68 @@ func TestCreateFilterFunc(t *testing.T) {
 			wantMatched: false,
 			wantScore:   0,
 		},
+		// Task-side list notation: `agent: [a, b]` is encoded as "a|b" and
+		// matches an agent whose name is any of the listed values.
+		{
+			name: "Agent list - first value matches",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{"agent": "build-agent-1", "repo": "*"},
+			},
+			customLabels: map[string]string{},
+			task: &model.Task{
+				Labels: map[string]string{"agent": "build-agent-1|build-agent-2", "repo": "test"},
+			},
+			wantMatched: true,
+			wantScore:   11, // 10 for agent match + 1 for repo wildcard
+		},
+		{
+			name: "Agent list - second value matches",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{"agent": "build-agent-2", "repo": "*"},
+			},
+			customLabels: map[string]string{},
+			task: &model.Task{
+				Labels: map[string]string{"agent": "build-agent-1|build-agent-2", "repo": "test"},
+			},
+			wantMatched: true,
+			wantScore:   11,
+		},
+		{
+			name: "Agent list - agent not in list",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{"agent": "build-agent-3", "repo": "*"},
+			},
+			customLabels: map[string]string{},
+			task: &model.Task{
+				Labels: map[string]string{"agent": "build-agent-1|build-agent-2", "repo": "test"},
+			},
+			wantMatched: false,
+			wantScore:   0,
+		},
+		{
+			name: "Custom label list - agent value in list",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{"repo": "*"},
+			},
+			customLabels: map[string]string{"scope": "lint"},
+			task: &model.Task{
+				Labels: map[string]string{"repo": "test", "scope": "lint|build"},
+			},
+			wantMatched: true,
+			wantScore:   11, // 10 for custom label match + 1 for repo wildcard
+		},
+		{
+			name: "Custom label list - agent value not in list",
+			agentFilter: rpc.Filter{
+				Labels: map[string]string{"repo": "*"},
+			},
+			customLabels: map[string]string{"scope": "deploy"},
+			task: &model.Task{
+				Labels: map[string]string{"repo": "test", "scope": "lint|build"},
+			},
+			wantMatched: false,
+			wantScore:   0,
+		},
 	}
 
 	for _, tt := range tests {

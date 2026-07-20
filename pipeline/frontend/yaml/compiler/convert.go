@@ -202,7 +202,7 @@ func (c *Compiler) createProcess(container *yaml_types.Container, workflow *yaml
 		NetworkMode:         networkMode,
 		Ports:               ports,
 		BackendOptions:      container.BackendOptions,
-		WorkflowLabels:      workflow.Labels,
+		WorkflowLabels:      workflow.Labels.Flatten(),
 		ContainerNameScheme: c.ContainerNameScheme,
 		DependsOn:           container.DependsOn,
 	}, nil
