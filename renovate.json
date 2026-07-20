@@ -60,6 +60,12 @@
       "allowedVersions": "<7.0.0"
     },
     {
+      "description": "These are pinned via `overrides` in docs/ and web/ package.json to keep bun lockfile generation deterministic. bun hoists a package non-deterministically when one consumer pins an exact version and another accepts a range spanning it, which made lockFileMaintenance flip-flop and open a new PR every run. Each pin is the lowest version all consumers accept, so a single copy is hoisted. Do not let Renovate bump them: internmap 2.x violates d3-sankey/d3-array's ^1.0.0, and enhanced-resolve >5.21.6 violates @tailwindcss/node's exact pin. Revisit once bun generates deterministic lockfiles.",
+      "matchManagers": ["bun", "npm"],
+      "matchDepNames": ["internmap", "enhanced-resolve", "@emnapi/core", "@emnapi/runtime"],
+      "enabled": false
+    },
+    {
       "groupName": "golang-lang",
       "matchUpdateTypes": ["minor", "patch"],
       "matchPackageNames": ["/^golang$/", "/xgo/"]
