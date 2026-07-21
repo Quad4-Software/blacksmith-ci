@@ -333,4 +333,86 @@ describe('mergePipeline', () => {
     expect(merged.workflows![0].state).toBe('blocked');
     expect(merged.workflows![0].approval_state).toBe('pending');
   });
+
+  it('drops the pre-approval rows when an approval replaces them in place', () => {
+    // Approving a gated pipeline deletes the blocked workflow/step rows and inserts
+    // freshly-compiled ones with NEW ids but the SAME pid and attempt (attempt is only
+    // bumped by reruns). The stale pre-approval snapshot must not survive the merge as a
+    // phantom — its ids no longer exist server-side and 404 on any fetch (logs, approval).
+    const blocked = pipeline({
+      number: 5,
+      status: 'blocked',
+      workflows: [
+        workflow({
+          id: 1,
+          pid: 1,
+          attempt: 1,
+          state: 'blocked',
+          approval_state: 'pending',
+          children: [step({ id: 10, pid: 1, attempt: 1, state: 'blocked' })],
+        }),
+      ],
+    });
+    const approved = pipeline({
+      number: 5,
+      status: 'running',
+      workflows: [
+        workflow({
+          id: 2,
+          pid: 1,
+          attempt: 1,
+          state: 'running',
+          approval_state: 'approved',
+          children: [step({ id: 20, pid: 1, attempt: 1, state: 'running' })],
+        }),
+      ],
+    });
+
+    const merged = mergePipeline(blocked, approved);
+
+    const wfIds = merged.workflows!.map((w) => w.id);
+    const stepIds = merged.workflows!.flatMap((w) => w.children ?? []).map((s) => s.id);
+    expect(wfIds).toEqual([2]);
+    expect(stepIds).toEqual([20]);
+    expect(merged.workflows![0].approval_state).toBe('approved');
+  });
+
+  it('keeps every attempt when a rerun adds a new one alongside the original', () => {
+    // A rerun bumps `attempt` and KEEPS the prior attempt as history, so both rows are
+    // legitimate. A stale pre-rerun snapshot must not drop the freshly-created attempt,
+    // and the id-regeneration fix must not collapse the two attempts into one.
+    const afterRerun = pipeline({
+      number: 7,
+      status: 'running',
+      workflows: [
+        workflow({
+          id: 2,
+          pid: 1,
+          attempt: 2,
+          state: 'running',
+          children: [step({ id: 20, pid: 1, attempt: 2, state: 'running' })],
+        }),
+      ],
+    });
+    const stalePreRerun = pipeline({
+      number: 7,
+      status: 'failure',
+      workflows: [
+        workflow({
+          id: 1,
+          pid: 1,
+          attempt: 1,
+          state: 'failure',
+          children: [step({ id: 10, pid: 1, attempt: 1, state: 'failure' })],
+        }),
+      ],
+    });
+
+    const merged = mergePipeline(afterRerun, stalePreRerun);
+
+    const wfIds = merged.workflows!.map((w) => w.id).toSorted((a, b) => a - b);
+    const attempts = merged.workflows!.map((w) => w.attempt).toSorted((a, b) => a - b);
+    expect(wfIds).toEqual([1, 2]);
+    expect(attempts).toEqual([1, 2]);
+  });
 });

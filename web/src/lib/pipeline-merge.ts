@@ -35,6 +35,19 @@ export function stateRank(state: PipelineStatus): number {
   }
 }
 
+// Stable identity of a step/workflow *across regenerations of the row*. The
+// database `id` is NOT stable: approving a gated pipeline deletes the blocked
+// workflow/step rows and inserts freshly-compiled ones with new ids (see the
+// server-side Approve → WorkflowsReplace), and a rerun inserts additional rows.
+// `pid` is the deterministic pipeline-local position (unique per pipeline) and
+// `attempt` distinguishes reruns, so `pid:attempt` identifies "the same logical
+// entity" regardless of which `id` the DB assigned. Keying the merge on `id`
+// instead let an approval's pre- and post-replace snapshots coexist, leaving
+// deleted rows in the store as phantoms whose ids 404 on any fetch.
+function entityKey(entity: { pid: number; attempt: number }): string {
+  return `${entity.pid}:${entity.attempt}`;
+}
+
 function mergeStep(existing: PipelineStep, incoming: PipelineStep): PipelineStep {
   return stateRank(incoming.state) >= stateRank(existing.state) ? incoming : existing;
 }
@@ -43,21 +56,24 @@ function mergeSteps(existing: PipelineStep[], incoming: PipelineStep[]): Pipelin
   if (existing.length === 0) return incoming;
   if (incoming.length === 0) return existing;
 
-  const byId = new Map<number, PipelineStep>();
-  for (const s of existing) byId.set(s.id, s);
+  const byKey = new Map<string, PipelineStep>();
+  for (const s of existing) byKey.set(entityKey(s), s);
   for (const s of incoming) {
-    const ex = byId.get(s.id);
-    byId.set(s.id, ex ? mergeStep(ex, s) : s);
+    const key = entityKey(s);
+    const ex = byKey.get(key);
+    byKey.set(key, ex ? mergeStep(ex, s) : s);
   }
 
-  const seen = new Set<number>();
+  const seen = new Set<string>();
   const result: PipelineStep[] = [];
   for (const s of incoming) {
-    seen.add(s.id);
-    result.push(byId.get(s.id)!);
+    const key = entityKey(s);
+    seen.add(key);
+    result.push(byKey.get(key)!);
   }
   for (const s of existing) {
-    if (!seen.has(s.id)) result.push(byId.get(s.id)!);
+    const key = entityKey(s);
+    if (!seen.has(key)) result.push(byKey.get(key)!);
   }
   return result;
 }
@@ -76,23 +92,29 @@ function mergeWorkflows(existing: PipelineWorkflow[], incoming: PipelineWorkflow
   if (existing.length === 0) return incoming;
   if (incoming.length === 0) return existing;
 
-  const byId = new Map<number, PipelineWorkflow>();
-  for (const w of existing) byId.set(w.id, w);
+  const byKey = new Map<string, PipelineWorkflow>();
+  for (const w of existing) byKey.set(entityKey(w), w);
   for (const w of incoming) {
-    const ex = byId.get(w.id);
-    byId.set(w.id, ex ? mergeWorkflow(ex, w) : w);
+    const key = entityKey(w);
+    const ex = byKey.get(key);
+    byKey.set(key, ex ? mergeWorkflow(ex, w) : w);
   }
 
   // Preserve incoming order, then append any workflows only present in existing so that
-  // a stale snapshot can't drop a rerun-created workflow.
-  const seen = new Set<number>();
+  // a stale snapshot can't drop a rerun-created workflow (a rerun bumps `attempt`, so its
+  // key differs from the original and both are kept). Keying on `pid:attempt` rather than
+  // `id` means an approval's replaced-in-place workflow (same pid, same attempt, new id)
+  // collapses onto the incoming row instead of surviving as a phantom.
+  const seen = new Set<string>();
   const result: PipelineWorkflow[] = [];
   for (const w of incoming) {
-    seen.add(w.id);
-    result.push(byId.get(w.id)!);
+    const key = entityKey(w);
+    seen.add(key);
+    result.push(byKey.get(key)!);
   }
   for (const w of existing) {
-    if (!seen.has(w.id)) result.push(byId.get(w.id)!);
+    const key = entityKey(w);
+    if (!seen.has(key)) result.push(byKey.get(key)!);
   }
   return result;
 }
