@@ -72,6 +72,23 @@ Only agents with matching labels will process workflows with those labels.
 
 When multiple agents match, higher priority agents are preferred.
 Priority is managed server-side per agent in the web UI (agent settings) or via the API, and persists across agent and server restarts.
+Priority is honored in both single-instance and High Availability deployments.
+
+### Scheduling strategy
+
+Labels and priority narrow the set of eligible agents.
+When several agents remain eligible (matching labels, tied on the highest priority), the server picks one according to the `CROW_SCHEDULING_STRATEGY` server setting:
+
+| Strategy            | Behavior                                                                                             |
+| ------------------- | ---------------------------------------------------------------------------------------------------- |
+| `least-loaded`      | Assign to the agent with the lowest current load (running workflows relative to its slots). Default. |
+| `pack`              | Concentrate work on the fewest agents by filling the busiest agent that still has a free slot first. |
+| `round-robin`       | Cycle through eligible agents in a stable order, ignoring current load.                              |
+| `random`            | Pick a uniformly random eligible agent.                                                              |
+
+`least-loaded` spreads builds evenly and is the best default for even utilization.
+`pack` pairs well with the [autoscaler](/dev/configuration/autoscaler): keeping idle agents empty lets them be scaled down.
+An agent's number of slots is its [parallel workflow](#parallel-workflows) capacity, so load balancing scales proportionally to each agent's capacity.
 
 ## Agent Types
 

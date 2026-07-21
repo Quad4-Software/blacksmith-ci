@@ -283,6 +283,110 @@ func TestDatabaseQueueBatchAssignmentCASRace(t *testing.T) {
 	}
 }
 
+// TestDatabaseQueueBatchAssignmentHonorsPriority verifies that the HA queue
+// assigns to the highest-priority eligible agent. The old first-match loop
+// discarded the priority returned by the filter, so a lower-priority agent
+// could win purely on map-iteration order.
+func TestDatabaseQueueBatchAssignmentHonorsPriority(t *testing.T) {
+	q, mockStore := newTestDatabaseQueue(t)
+	q.cacheApprovalGate(&model.Task{ID: "1"})
+
+	task := &model.Task{ID: "1", Data: []byte("{}"), AgentID: 0}
+
+	lowPriority := func(*model.Task) (bool, int, int32) { return true, 0, 1 }
+	highPriority := func(*model.Task) (bool, int, int32) { return true, 0, 5 }
+
+	lowChan := make(chan *model.Task, 1)
+	highChan := make(chan *model.Task, 1)
+	_, lowCancel := testCancelCtx(t.Context())
+	defer lowCancel()
+	_, highCancel := testCancelCtx(t.Context())
+	defer highCancel()
+
+	q.pollingInstancesMu.Lock()
+	q.pollingInstances["low"] = &pollingInstance{
+		instanceID: "low", agentID: 10, filter: lowPriority,
+		response: lowChan, pollTime: time.Now(), cancel: lowCancel,
+	}
+	q.pollingInstances["high"] = &pollingInstance{
+		instanceID: "high", agentID: 20, filter: highPriority,
+		response: highChan, pollTime: time.Now(), cancel: highCancel,
+	}
+	q.pollingInstancesMu.Unlock()
+
+	mockStore.EXPECT().TaskList().Return([]*model.Task{task}, nil)
+	// Only the high-priority agent (20) may be assigned; a mock for agent 10 is
+	// intentionally absent so a wrong assignment fails the test.
+	mockStore.EXPECT().TaskAtomicAssign("1", int64(20)).Return(true, nil)
+
+	q.tryBatchAssignment()
+
+	select {
+	case got := <-highChan:
+		assert.Equal(t, "1", got.ID)
+		assert.Equal(t, int64(20), got.AgentID, "task must go to the higher-priority agent")
+	default:
+		t.Fatal("Expected the task to be delivered to the high-priority agent")
+	}
+}
+
+// TestDatabaseQueueBatchAssignmentBalancesLoad verifies that, among equal-
+// priority agents, the least-loaded strategy spreads work by load fraction:
+// agent 10 has two free slots and agent 20 has one, so the first task goes to
+// agent 10 (tie broken by smallest ID) and the second to the now-less-loaded
+// agent 20 rather than filling agent 10's remaining slot.
+func TestDatabaseQueueBatchAssignmentBalancesLoad(t *testing.T) {
+	q, mockStore := newTestDatabaseQueue(t)
+	q.cacheApprovalGate(&model.Task{ID: "1"})
+	q.cacheApprovalGate(&model.Task{ID: "2"})
+
+	task1 := &model.Task{ID: "1", Data: []byte("{}"), AgentID: 0}
+	task2 := &model.Task{ID: "2", Data: []byte("{}"), AgentID: 0}
+
+	samePriority := func(*model.Task) (bool, int, int32) { return true, 0, 0 }
+
+	// Agent 10: two polling instances (capacity 2). Agent 20: one (capacity 1).
+	a1 := make(chan *model.Task, 1)
+	a2 := make(chan *model.Task, 1)
+	b := make(chan *model.Task, 1)
+	_, c1 := testCancelCtx(t.Context())
+	defer c1()
+	_, c2 := testCancelCtx(t.Context())
+	defer c2()
+	_, c3 := testCancelCtx(t.Context())
+	defer c3()
+
+	q.pollingInstancesMu.Lock()
+	q.pollingInstances["a1"] = &pollingInstance{instanceID: "a1", agentID: 10, filter: samePriority, response: a1, pollTime: time.Now(), cancel: c1}
+	q.pollingInstances["a2"] = &pollingInstance{instanceID: "a2", agentID: 10, filter: samePriority, response: a2, pollTime: time.Now(), cancel: c2}
+	q.pollingInstances["b"] = &pollingInstance{instanceID: "b", agentID: 20, filter: samePriority, response: b, pollTime: time.Now(), cancel: c3}
+	q.pollingInstancesMu.Unlock()
+
+	mockStore.EXPECT().TaskList().Return([]*model.Task{task1, task2}, nil)
+	mockStore.EXPECT().TaskAtomicAssign("1", int64(10)).Return(true, nil)
+	mockStore.EXPECT().TaskAtomicAssign("2", int64(20)).Return(true, nil)
+
+	q.tryBatchAssignment()
+
+	// Task 2 lands on agent 20 (deterministic single instance).
+	select {
+	case got := <-b:
+		assert.Equal(t, "2", got.ID)
+		assert.Equal(t, int64(20), got.AgentID)
+	default:
+		t.Fatal("Expected task 2 to be delivered to agent 20")
+	}
+	// Task 1 lands on one of agent 10's two instances.
+	select {
+	case got := <-a1:
+		assert.Equal(t, "1", got.ID)
+	case got := <-a2:
+		assert.Equal(t, "1", got.ID)
+	default:
+		t.Fatal("Expected task 1 to be delivered to agent 10")
+	}
+}
+
 func TestDatabaseQueueErrorCancelKeepsRow(t *testing.T) {
 	q, mockStore := newTestDatabaseQueue(t)
 

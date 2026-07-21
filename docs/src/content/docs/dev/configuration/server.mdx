@@ -641,6 +641,17 @@ func main() {
 The config service receives repository credentials (`netrc`) and can execute arbitrary code via modified pipelines. Only deploy trusted, secured services.
 :::
 
+## Scheduling
+
+When multiple agents are equally eligible for a workflow (matching labels, tied on priority), the server distributes work according to `CROW_SCHEDULING_STRATEGY`.
+
+| Variable                   | Default        | Description                                                        |
+| -------------------------- | -------------- | ----------------------------------------------------------------- |
+| `CROW_SCHEDULING_STRATEGY` | `least-loaded` | One of `least-loaded`, `pack`, `round-robin`, `random`.           |
+
+See [Scheduling strategy](/dev/configuration/agent#scheduling-strategy) for what each strategy does.
+This applies to both single-instance and High Availability deployments.
+
 ## High Availability
 
 :::caution

@@ -57,14 +57,13 @@ type fifo struct {
 	extension       time.Duration
 	paused          bool
 	blockOnApproval BlockOnApprovalFn
+	strategy        Strategy
+	scheduler       schedulerState
 }
 
 // processTimeInterval is the time till the queue rearranges things,
 // as the agent pull in 10 milliseconds we should also give them work asap.
 const processTimeInterval = 100 * time.Millisecond
-
-// minCapacityScore is used as the initial value for capacity scoring during task assignment.
-const minCapacityScore = -1000
 
 // adoptionGracePeriod is the time to wait for an agent to reclaim an orphaned task
 // before canceling it as a zombie. This should be long enough for an agent to restart
@@ -73,8 +72,15 @@ const adoptionGracePeriod = 5 * time.Minute
 
 var ErrWorkerKicked = fmt.Errorf("worker was kicked")
 
-// NewMemoryQueue returns a new fifo queue.
+// NewMemoryQueue returns a new fifo queue using the default scheduling strategy.
 func NewMemoryQueue(ctx context.Context, store store.Store) Queue {
+	return newMemoryQueue(ctx, store, DefaultStrategy)
+}
+
+// newMemoryQueue returns a new fifo queue with the given scheduling strategy.
+// It returns the concrete *fifo so callers (New) can wrap it and tests can
+// reach internals; an empty strategy resolves to the default.
+func newMemoryQueue(ctx context.Context, store store.Store, strategy Strategy) *fifo {
 	q := &fifo{
 		ctx:           ctx,
 		store:         store,
@@ -84,6 +90,7 @@ func NewMemoryQueue(ctx context.Context, store store.Store) Queue {
 		waitingOnDeps: list.New(),
 		extension:     constant.TaskTimeout,
 		paused:        false,
+		strategy:      strategy.orDefault(),
 	}
 
 	// Task loading is handled by WithTaskStore wrapper which filters for pending/running workflows
@@ -474,99 +481,53 @@ func taskLess(a, b *model.Task) bool {
 }
 
 func (q *fifo) assignToWorker() (*list.Element, *worker) {
-	var next *list.Element
+	// Per-agent load snapshot. Because a live agent keeps one outstanding Poll
+	// per free slot, an agent's total capacity equals its running tasks plus its
+	// waiting workers; this lets the scheduler balance by load fraction without
+	// the queue having to be told each agent's configured capacity.
+	agentRunning := make(map[int64]int)
+	for _, e := range q.running {
+		agentRunning[e.item.AgentID]++
+	}
+	agentWaiting := make(map[int64]int)
+	for w := range q.workers {
+		agentWaiting[w.agentID]++
+	}
 
+	var next *list.Element
 	for element := q.pending.Front(); element != nil; element = next {
 		next = element.Next()
 		task, _ := element.Value.(*model.Task)
 		log.Debug().Msgf("queue: trying to assign task: %v with deps %v", task.ID, task.Dependencies)
 
-		// Collect all matching workers with their scores and priorities
-		type workerMatch struct {
-			worker   *worker
-			score    int
-			priority int32
-		}
-		var matches []workerMatch
-
-		for worker := range q.workers {
-			matched, score, priority := worker.filter(task)
-			if matched {
-				matches = append(matches, workerMatch{
-					worker:   worker,
-					score:    score,
-					priority: priority,
-				})
+		// Gather one candidate per eligible agent, remembering a worker to deliver
+		// the task to for each.
+		candidates := make([]agentCandidate, 0, len(q.workers))
+		workerByAgent := make(map[int64]*worker)
+		for w := range q.workers {
+			matched, _, priority := w.filter(task)
+			if !matched {
+				continue
 			}
+			if _, seen := workerByAgent[w.agentID]; seen {
+				continue
+			}
+			workerByAgent[w.agentID] = w
+			candidates = append(candidates, agentCandidate{
+				agentID:  w.agentID,
+				priority: priority,
+				running:  agentRunning[w.agentID],
+				capacity: agentRunning[w.agentID] + agentWaiting[w.agentID],
+			})
 		}
 
-		if len(matches) == 0 {
+		agentID, ok := selectAgent(candidates, q.strategy, &q.scheduler)
+		if !ok {
 			continue
 		}
 
-		// Find the highest priority among all matched agents
-		var maxPriority int32
-		for _, match := range matches {
-			if match.priority > maxPriority {
-				maxPriority = match.priority
-			}
-		}
-
-		// Collect all agents with the highest priority
-		var candidates []workerMatch
-		for _, match := range matches {
-			if match.priority == maxPriority {
-				candidates = append(candidates, match)
-			}
-		}
-
-		// Pick a candidate from those with the highest priority
-		var selectedWorker *worker
-		var selectedPriority int32
-
-		if len(candidates) == 1 {
-			selectedWorker = candidates[0].worker
-			selectedPriority = candidates[0].priority
-		} else {
-			// Multiple candidates with same priority - prefer agent with more available capacity
-			// Count running tasks and waiting workers per agent
-			agentTaskCount := make(map[int64]int)
-			agentWorkerCount := make(map[int64]int)
-
-			// Count running tasks per agent
-			for _, entry := range q.running {
-				agentTaskCount[entry.item.AgentID]++
-			}
-
-			// Count waiting workers per agent
-			for worker := range q.workers {
-				agentWorkerCount[worker.agentID]++
-			}
-
-			// Find the candidate with the most available capacity
-			// Available capacity = waiting workers - running tasks
-			// This ensures we prefer agents that have more workers ready to take tasks
-			maxAvailableCapacity := minCapacityScore
-			for _, candidate := range candidates {
-				runningTasks := agentTaskCount[candidate.worker.agentID]
-				waitingWorkers := agentWorkerCount[candidate.worker.agentID]
-				availableCapacity := waitingWorkers - runningTasks
-
-				log.Debug().Msgf("queue: agent %d has %d waiting workers, %d running tasks, capacity score: %d",
-					candidate.worker.agentID, waitingWorkers, runningTasks, availableCapacity)
-
-				if availableCapacity > maxAvailableCapacity {
-					maxAvailableCapacity = availableCapacity
-					selectedWorker = candidate.worker
-					selectedPriority = candidate.priority
-				}
-			}
-		}
-
-		if selectedWorker != nil {
-			log.Debug().Msgf("queue: assigned task: %v with deps %v to worker with priority %d", task.ID, task.Dependencies, selectedPriority)
-			return element, selectedWorker
-		}
+		log.Debug().Msgf("queue: assigned task: %v with deps %v to agent %d", task.ID, task.Dependencies, agentID)
+		return element, workerByAgent[agentID]
 	}
 
 	return nil, nil

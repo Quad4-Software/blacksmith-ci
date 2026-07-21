@@ -155,11 +155,17 @@ func setupQueue(ctx context.Context, s store.Store, lockService *lock.Service, c
 		log.Info().Bool("haEnabled", false).Msg("Using memory queue for single-instance deployment")
 	}
 
+	strategy, err := queue.ParseStrategy(c.String("scheduling-strategy"))
+	if err != nil {
+		return nil, err
+	}
+
 	config := queue.Config{
 		Backend:       backend,
 		Store:         s,
 		InstanceID:    server.Config.Server.InstanceID,
 		LeaderLockTTL: c.Duration("queue-lock-ttl"),
+		Strategy:      strategy,
 	}
 
 	if backend == queue.TypeDatabase {

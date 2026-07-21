@@ -103,6 +103,10 @@ type DatabaseQueue struct {
 	assignTrigger chan struct{}
 
 	processLeaderLockTTL time.Duration
+
+	// strategy selects which agent receives a task when several are eligible.
+	strategy  Strategy
+	scheduler schedulerState
 }
 
 // approvalGate captures the per-task approval cache entry.
@@ -121,7 +125,7 @@ type pollingInstance struct {
 }
 
 // NewDatabaseQueue creates a new database-backed queue for HA deployments.
-func NewDatabaseQueue(ctx context.Context, store store.Store, lockService LockService, instanceID string, processLeaderLockTTL time.Duration) Queue {
+func NewDatabaseQueue(ctx context.Context, store store.Store, lockService LockService, instanceID string, processLeaderLockTTL time.Duration, strategy Strategy) Queue {
 	q := &DatabaseQueue{
 		ctx:                  ctx,
 		store:                store,
@@ -133,6 +137,7 @@ func NewDatabaseQueue(ctx context.Context, store store.Store, lockService LockSe
 		pollingInstances:     make(map[string]*pollingInstance),
 		assignTrigger:        make(chan struct{}, 1),
 		processLeaderLockTTL: processLeaderLockTTL,
+		strategy:             strategy.orDefault(),
 	}
 
 	log.Info().Str("instanceID", instanceID).Msg("Starting database queue for HA deployment (leaderless assignment)")
@@ -896,11 +901,13 @@ func (q *DatabaseQueue) tryBatchAssignment() {
 	// taskLess yields enqueue order (issue #1208).
 	sort.SliceStable(tasks, func(i, j int) bool { return taskLess(tasks[i], tasks[j]) })
 
-	// Get snapshot of polling instances
+	// Get snapshot of polling instances connected to this server.
 	q.pollingInstancesMu.RLock()
 	instances := make([]*pollingInstance, 0, len(q.pollingInstances))
 	for _, instance := range q.pollingInstances {
-		instances = append(instances, instance)
+		if instance != nil {
+			instances = append(instances, instance)
+		}
 	}
 	q.pollingInstancesMu.RUnlock()
 
@@ -908,18 +915,33 @@ func (q *DatabaseQueue) tryBatchAssignment() {
 		return
 	}
 
-	// Build available instances list
-	availableInstances := make([]*pollingInstance, 0, len(instances))
-	for _, inst := range instances {
-		if inst != nil {
-			availableInstances = append(availableInstances, inst)
+	// Per-agent load snapshot for the scheduler. running counts come from the DB
+	// (global), free slots from the locally-connected pollers. Because a live
+	// agent keeps one outstanding Poll per free slot, running + local pollers
+	// approximates the agent's total capacity, letting the scheduler balance by
+	// load fraction. capacity is fixed for the pass; running is incremented as we
+	// assign so later tasks in the same batch observe the updated load.
+	runningPerAgent := make(map[int64]int)
+	for _, task := range tasks {
+		if task.AgentID != 0 {
+			runningPerAgent[task.AgentID]++
 		}
 	}
+	pollersPerAgent := make(map[int64]int)
+	for _, inst := range instances {
+		pollersPerAgent[inst.agentID]++
+	}
+	capacityPerAgent := make(map[int64]int)
+	for agentID, pollers := range pollersPerAgent {
+		capacityPerAgent[agentID] = runningPerAgent[agentID] + pollers
+	}
 
+	usedInstance := make(map[string]bool)
+	remaining := len(instances)
 	assignmentsMade := 0
 
 	for _, task := range tasks {
-		if len(availableInstances) == 0 {
+		if remaining == 0 {
 			break
 		}
 
@@ -946,74 +968,99 @@ func (q *DatabaseQueue) tryBatchAssignment() {
 			continue
 		}
 
-		for i := 0; i < len(availableInstances); i++ {
-			instance := availableInstances[i]
-
-			if instance.filter != nil {
-				matched, _, _ := instance.filter(task)
+		// Gather one candidate per eligible agent, remembering an instance to
+		// deliver to for each. Priority (dropped in the old first-match loop) now
+		// feeds the selector, so agent priority is honored in HA mode too.
+		candidates := make([]agentCandidate, 0, len(instances))
+		instByAgent := make(map[int64]*pollingInstance)
+		for _, inst := range instances {
+			if usedInstance[inst.instanceID] {
+				continue
+			}
+			priority := int32(0)
+			if inst.filter != nil {
+				matched, _, p := inst.filter(task)
 				if !matched {
 					continue
 				}
+				priority = p
 			}
-
-			// Atomic CAS — only one server wins
-			atomicAssigned, err := q.store.TaskAtomicAssign(task.ID, instance.agentID)
-			if err != nil {
-				log.Error().Err(err).Str("taskID", task.ID).Int64("agentID", instance.agentID).
-					Msg("DB error during atomic task assignment")
-				break
+			if _, seen := instByAgent[inst.agentID]; seen {
+				continue
 			}
+			instByAgent[inst.agentID] = inst
+			candidates = append(candidates, agentCandidate{
+				agentID:  inst.agentID,
+				priority: priority,
+				running:  runningPerAgent[inst.agentID],
+				capacity: capacityPerAgent[inst.agentID],
+			})
+		}
 
-			if atomicAssigned {
-				task.AgentID = instance.agentID
-				assignmentsMade++
+		agentID, ok := selectAgent(candidates, q.strategy, &q.scheduler)
+		if !ok {
+			continue
+		}
+		instance := instByAgent[agentID]
 
-				// Atomically check the instance is still registered and send.
-				// Poll's deferred cleanup closes the channel under pollingInstancesMu,
-				// so holding the lock while sending prevents a send-on-closed-channel panic.
-				delivered := false
-				q.pollingInstancesMu.Lock()
-				if _, stillRegistered := q.pollingInstances[instance.instanceID]; stillRegistered {
-					select {
-					case instance.response <- task:
-						log.Debug().Str("taskID", task.ID).Int64("agentID", instance.agentID).
-							Str("instanceID", instance.instanceID).
-							Msg("Task assigned to polling instance")
-						delivered = true
-					default:
-						log.Warn().Str("taskID", task.ID).Int64("agentID", instance.agentID).
-							Msg("Instance response channel full")
-					}
-					delete(q.pollingInstances, instance.instanceID)
-				} else {
-					log.Debug().Str("taskID", task.ID).Int64("agentID", instance.agentID).
-						Msg("Polling instance gone before delivery")
-				}
-				q.pollingInstancesMu.Unlock()
-
-				// If delivery failed, reset the DB assignment so the task goes
-				// back to the unassigned pool immediately instead of waiting for
-				// orphan cleanup (which could be 30s+ away).
-				if !delivered {
-					if _, resetErr := q.store.TaskAtomicResetOrphan(task.ID, instance.agentID); resetErr != nil {
-						log.Error().Err(resetErr).Str("taskID", task.ID).
-							Msg("Failed to reset task assignment after delivery failure")
-					} else {
-						log.Info().Str("taskID", task.ID).Int64("agentID", instance.agentID).
-							Msg("Reset task assignment after delivery failure — task back in pool")
-						assignmentsMade-- // doesn't count as a successful assignment
-					}
-				}
-
-				// Remove this instance from available list
-				availableInstances[i] = availableInstances[len(availableInstances)-1]
-				availableInstances = availableInstances[:len(availableInstances)-1]
-				break
-			}
-
-			// CAS failed — another server assigned this task; skip to next task
+		// Atomic CAS — only one server wins
+		atomicAssigned, err := q.store.TaskAtomicAssign(task.ID, instance.agentID)
+		if err != nil {
+			log.Error().Err(err).Str("taskID", task.ID).Int64("agentID", instance.agentID).
+				Msg("DB error during atomic task assignment")
+			continue
+		}
+		if !atomicAssigned {
+			// CAS failed — another server assigned this task; skip to next task.
 			log.Debug().Str("taskID", task.ID).Msg("CAS race on task assignment — another server assigned it")
-			break
+			continue
+		}
+
+		task.AgentID = instance.agentID
+		assignmentsMade++
+
+		// Atomically check the instance is still registered and send.
+		// Poll's deferred cleanup closes the channel under pollingInstancesMu,
+		// so holding the lock while sending prevents a send-on-closed-channel panic.
+		delivered := false
+		q.pollingInstancesMu.Lock()
+		if _, stillRegistered := q.pollingInstances[instance.instanceID]; stillRegistered {
+			select {
+			case instance.response <- task:
+				log.Debug().Str("taskID", task.ID).Int64("agentID", instance.agentID).
+					Str("instanceID", instance.instanceID).
+					Msg("Task assigned to polling instance")
+				delivered = true
+			default:
+				log.Warn().Str("taskID", task.ID).Int64("agentID", instance.agentID).
+					Msg("Instance response channel full")
+			}
+			delete(q.pollingInstances, instance.instanceID)
+		} else {
+			log.Debug().Str("taskID", task.ID).Int64("agentID", instance.agentID).
+				Msg("Polling instance gone before delivery")
+		}
+		q.pollingInstancesMu.Unlock()
+
+		// Retire this instance from the local snapshot regardless of delivery.
+		usedInstance[instance.instanceID] = true
+		remaining--
+
+		if delivered {
+			runningPerAgent[instance.agentID]++
+		} else {
+			// Delivery failed — reset the DB assignment so the task goes back to
+			// the unassigned pool immediately instead of waiting for orphan
+			// cleanup (which could be 30s+ away).
+			if _, resetErr := q.store.TaskAtomicResetOrphan(task.ID, instance.agentID); resetErr != nil {
+				log.Error().Err(resetErr).Str("taskID", task.ID).
+					Msg("Failed to reset task assignment after delivery failure")
+			} else {
+				log.Info().Str("taskID", task.ID).Int64("agentID", instance.agentID).
+					Msg("Reset task assignment after delivery failure — task back in pool")
+			}
+			task.AgentID = 0
+			assignmentsMade-- // doesn't count as a successful assignment
 		}
 	}
 

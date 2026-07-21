@@ -306,6 +306,12 @@ var flags = append([]cli.Flag{
 		Usage:   "TTL for queue processing leader election lock in HA deployments",
 		Value:   30 * time.Second,
 	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_SCHEDULING_STRATEGY"),
+		Name:    "scheduling-strategy",
+		Usage:   "strategy for distributing workflows across agents: least-loaded, pack, round-robin or random",
+		Value:   "least-loaded",
+	},
 	&cli.DurationFlag{
 		Sources: cli.EnvVars("CROW_CRON_LOCK_TTL"),
 		Name:    "cron-lock-ttl",

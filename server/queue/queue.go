@@ -155,6 +155,7 @@ type Config struct {
 	LockService   LockService
 	InstanceID    string
 	LeaderLockTTL time.Duration // TTL for leader election lock
+	Strategy      Strategy      // agent scheduling strategy (empty = default)
 }
 
 // LockService defines the interface for distributed locking.
@@ -179,7 +180,7 @@ func New(ctx context.Context, config Config) (Queue, error) {
 
 	switch config.Backend {
 	case TypeMemory:
-		q = NewMemoryQueue(ctx, config.Store)
+		q = newMemoryQueue(ctx, config.Store, config.Strategy)
 		q = WithMetrics(q)
 		if config.Store != nil {
 			q = WithTaskStore(ctx, q, config.Store)
@@ -196,7 +197,7 @@ func New(ctx context.Context, config Config) (Queue, error) {
 		if ttl == 0 {
 			ttl = DefaultLeaderLockTTL
 		}
-		q = WithMetrics(NewDatabaseQueue(ctx, config.Store, config.LockService, config.InstanceID, ttl))
+		q = WithMetrics(NewDatabaseQueue(ctx, config.Store, config.LockService, config.InstanceID, ttl, config.Strategy))
 	default:
 		return nil, fmt.Errorf("unsupported queue backend: %s", config.Backend)
 	}
