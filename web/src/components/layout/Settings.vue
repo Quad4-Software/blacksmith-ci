@@ -2,8 +2,11 @@
   <div class="w-full space-y-6 p-4 md:p-8 max-w-6xl mx-auto">
     <div class="flex flex-col justify-center">
       <div class="flex items-center justify-between">
-        <h1 class="flex items-center gap-1 text-xl text-card-foreground">
-          {{ title }} <DocsLink v-if="docsUrl" :topic="title" :url="docsUrl" />
+        <h1 class="flex items-center gap-2 text-xl text-card-foreground">
+          <span class="flex items-center gap-1">
+            {{ title }} <DocsLink v-if="docsUrl" :topic="title" :url="docsUrl" />
+          </span>
+          <slot v-if="$slots.titleBadge" name="titleBadge" />
         </h1>
         <slot v-if="$slots.titleActions" name="titleActions" />
       </div>

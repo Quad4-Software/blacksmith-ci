@@ -1,7 +1,7 @@
 <template>
   <div class="mx-auto w-full max-w-none overflow-y-auto">
     <Settings :title="$t('admin.settings.agents.agents')" :description="description">
-      <template v-if="schedulingStrategy" #titleActions>
+      <template v-if="schedulingStrategy" #titleBadge>
         <Badge variant="secondary">
           {{ $t('admin.settings.agents.scheduling_strategy', { strategy: schedulingStrategy }) }}
         </Badge>
