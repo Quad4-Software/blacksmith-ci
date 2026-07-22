@@ -111,6 +111,8 @@ var newMigrationIDs = []string{
 	"crow-create-workflow-approval-events",
 	"crow-agent-org-ids",
 	"crow-add-log-entries-unique-index",
+	"crow-add-pipeline-org-identity",
+	"crow-backfill-workflow-agent-identity",
 }
 
 // allKnownMigrations returns a combined list of all known migration IDs.

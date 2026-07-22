@@ -77,6 +77,82 @@ func TestCreateRepo(t *testing.T) {
 	assert.Error(t, err2)
 }
 
+// repoDeleteTestStore builds a store with all tables involved in repo deletion.
+func repoDeleteTestStore(t *testing.T) (*storage, func()) {
+	return newTestStore(t,
+		new(model.Repo), new(model.Org), new(model.Pipeline), new(model.Workflow),
+		new(model.Step), new(model.Task), new(model.Perm), new(model.Registry),
+		new(model.Secret), new(model.Redirection), new(model.Config), new(model.PipelineConfig))
+}
+
+// seedRepoWithHistory creates an org, a repo, and a finished pipeline (with a
+// workflow, a queued task and a perm) so deletion behavior can be asserted.
+func seedRepoWithHistory(t *testing.T, store *storage) (*model.Org, *model.Repo, *model.Pipeline) {
+	org := &model.Org{Name: "acme", ForgeID: 1}
+	assert.NoError(t, store.OrgCreate(org))
+
+	repo := &model.Repo{UserID: 1, OrgID: org.ID, FullName: "acme/test", Owner: "acme", Name: "test"}
+	assert.NoError(t, store.CreateRepo(repo))
+
+	pipeline := &model.Pipeline{RepoID: repo.ID, Status: model.StatusSuccess, Started: 1_000, Finished: 1_060}
+	assert.NoError(t, store.CreatePipeline(pipeline))
+	assert.NoError(t, store.WorkflowsCreate([]*model.Workflow{{PipelineID: pipeline.ID, PID: 1, Name: "wf"}}))
+	assert.NoError(t, store.TaskInsert(&model.Task{ID: "task-1", PipelineID: pipeline.ID, RepoID: repo.ID}))
+	assert.NoError(t, store.PermUpsert(&model.Perm{UserID: 1, RepoID: repo.ID}))
+
+	return org, repo, pipeline
+}
+
+func TestDeleteRepoPreservesMetricsHistory(t *testing.T) {
+	store, closer := repoDeleteTestStore(t)
+	defer closer()
+	store.metricsPreserveDeleted = true
+
+	org, repo, pipeline := seedRepoWithHistory(t, store)
+
+	assert.NoError(t, store.DeleteRepo(repo))
+
+	// Repo, perms and live queue tasks are gone.
+	_, err := store.GetRepo(repo.ID)
+	assert.Error(t, err)
+	taskCount, err := store.db.NewSelect().Model((*model.Task)(nil)).Where("repo_id = ?", repo.ID).Count(context.Background())
+	assert.NoError(t, err)
+	assert.Equal(t, 0, taskCount)
+
+	// Pipelines and workflows survive so historic metrics still resolve.
+	pipeCount, err := store.db.NewSelect().Model((*model.Pipeline)(nil)).Where("repo_id = ?", repo.ID).Count(context.Background())
+	assert.NoError(t, err)
+	assert.Equal(t, 1, pipeCount)
+	wfCount, err := store.db.NewSelect().Model((*model.Workflow)(nil)).Where("pipeline_id = ?", pipeline.ID).Count(context.Background())
+	assert.NoError(t, err)
+	assert.Equal(t, 1, wfCount)
+
+	// The org bar keeps its denormalized name even though the repo row is gone.
+	orgStats, err := store.GetPipelineCountsByOrg(0, 0, nil)
+	assert.NoError(t, err)
+	assert.Len(t, orgStats, 1)
+	assert.Equal(t, org.ID, orgStats[0].OrgID)
+	assert.Equal(t, "acme", orgStats[0].OrgName)
+	assert.Equal(t, int64(1), orgStats[0].PipelineCount)
+}
+
+func TestDeleteRepoPurgesWhenPreserveDisabled(t *testing.T) {
+	store, closer := repoDeleteTestStore(t)
+	defer closer()
+	store.metricsPreserveDeleted = false
+
+	_, repo, pipeline := seedRepoWithHistory(t, store)
+
+	assert.NoError(t, store.DeleteRepo(repo))
+
+	pipeCount, err := store.db.NewSelect().Model((*model.Pipeline)(nil)).Where("repo_id = ?", repo.ID).Count(context.Background())
+	assert.NoError(t, err)
+	assert.Equal(t, 0, pipeCount)
+	wfCount, err := store.db.NewSelect().Model((*model.Workflow)(nil)).Where("pipeline_id = ?", pipeline.ID).Count(context.Background())
+	assert.NoError(t, err)
+	assert.Equal(t, 0, wfCount)
+}
+
 func TestGetRepo(t *testing.T) {
 	store, closer := newTestStore(t, new(model.Repo))
 	defer closer()

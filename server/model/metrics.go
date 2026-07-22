@@ -74,8 +74,86 @@ type AgentMetricData struct {
 	Count             int64
 }
 
+// OrgMetricData holds aggregated pipeline data for an org, with the display
+// name carried straight from the denormalized pipeline rows so it survives org
+// deletion and covers personal-account orgs.
+type OrgMetricData struct {
+	OrgID         int64
+	OrgName       string
+	PipelineCount int64
+	RepoCount     int64
+}
+
+// RepoMetricData holds aggregated pipeline data for a repo, with the display
+// name carried straight from the denormalized pipeline rows so it survives repo
+// deletion.
+type RepoMetricData struct {
+	RepoID        int64
+	RepoFullName  string
+	PipelineCount int64
+}
+
 // MetricsTimeFilter represents time-based filtering for metrics queries.
 type MetricsTimeFilter struct {
 	After  int64 `json:"after,omitempty"`  // Unix timestamp
 	Before int64 `json:"before,omitempty"` // Unix timestamp
+}
+
+// Chart-builder dimensions, metrics, time buckets and units. The API validates
+// requests against these and the store branches on them.
+const (
+	MetricDimensionOrg   = "org"
+	MetricDimensionRepo  = "repo"
+	MetricDimensionAgent = "agent"
+	MetricDimensionTime  = "time"
+
+	MetricPipelineCount  = "pipeline_count"
+	MetricWorkflowCount  = "workflow_count"
+	MetricAvgBuildTime   = "avg_build_time"
+	MetricTotalBuildTime = "total_build_time"
+	MetricAvgSteps       = "avg_steps"
+
+	MetricBucketDay   = "day"
+	MetricBucketWeek  = "week"
+	MetricBucketMonth = "month"
+
+	MetricUnitCount   = "count"
+	MetricUnitSeconds = "seconds"
+)
+
+// MetricSeries is the generic result of a chart-builder query.
+type MetricSeries struct {
+	Dimension string        `json:"dimension"`        // org|repo|agent|time
+	Metric    string        `json:"metric"`           // pipeline_count|workflow_count|avg_build_time|total_build_time|avg_steps
+	Bucket    string        `json:"bucket,omitempty"` // day|week|month (time dimension only)
+	Unit      string        `json:"unit"`             // count|seconds
+	Points    []MetricPoint `json:"points"`
+} //	@name	MetricSeries
+
+// MetricPoint is one bar/point in a MetricSeries.
+type MetricPoint struct {
+	Key   string  `json:"key"`          // stable sort/identity key (id or bucket label)
+	ID    int64   `json:"id,omitempty"` // numeric id for org/repo dimensions
+	Label string  `json:"label"`        // display name
+	Value float64 `json:"value"`
+} //	@name	MetricPoint
+
+// MetricQueryOptions is the validated, access-scoped input to GetMetricSeries.
+type MetricQueryOptions struct {
+	Dimension string
+	Metric    string
+	Bucket    string // day|week|month, time dimension only
+	After     int64
+	Before    int64
+	RepoIDs   []int64 // already access-scoped by the API layer
+}
+
+// Unit returns the value unit produced by the given metric.
+func MetricUnit(metric string) string {
+	switch metric {
+	case MetricAvgBuildTime, MetricTotalBuildTime:
+		return MetricUnitSeconds
+	default:
+		return MetricUnitCount
+	}
 }

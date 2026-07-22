@@ -16,6 +16,8 @@ package datastore
 
 import (
 	"context"
+	"fmt"
+	"strconv"
 
 	"github.com/uptrace/bun"
 
@@ -290,25 +292,26 @@ func (s storage) GetBuildTimeStatsByOrg(after, before int64, repoIDs []int64) (m
 
 	ctx := context.Background()
 
+	// Grouped by the denormalized org_id on pipelines so stats survive repo/org
+	// deletion (no join to repos required).
 	q := s.db.NewSelect().
 		TableExpr("pipelines").
-		Join("INNER JOIN repos ON pipelines.repo_id = repos.id").
-		ColumnExpr("repos.org_id, AVG(pipelines.finished - pipelines.started) as avg_duration, SUM(pipelines.finished - pipelines.started) as total_time").
-		Where("pipelines.finished > 0").
-		Where("pipelines.started > 0")
+		ColumnExpr("org_id, AVG(finished - started) as avg_duration, SUM(finished - started) as total_time").
+		Where("finished > 0").
+		Where("started > 0")
 
 	if after > 0 {
-		q = q.Where("pipelines.created >= ?", after)
+		q = q.Where("created >= ?", after)
 	}
 	if before > 0 {
-		q = q.Where("pipelines.created <= ?", before)
+		q = q.Where("created <= ?", before)
 	}
 	if len(repoIDs) > 0 {
-		q = q.Where("pipelines.repo_id IN (?)", bun.List(repoIDs))
+		q = q.Where("repo_id IN (?)", bun.List(repoIDs))
 	}
 
 	var results []result
-	if err := q.GroupExpr("repos.org_id").Scan(ctx, &results); err != nil {
+	if err := q.GroupExpr("org_id").Scan(ctx, &results); err != nil {
 		return nil, err
 	}
 
@@ -324,17 +327,19 @@ func (s storage) GetBuildTimeStatsByOrg(after, before int64, repoIDs []int64) (m
 }
 
 // GetPipelineCountsByRepo returns pipeline counts grouped by repo ID with optional time and repo filter.
-func (s storage) GetPipelineCountsByRepo(after, before int64, repoIDs []int64) (map[int64]int64, error) {
+// The repo full name is carried from the denormalized column so it survives repo deletion.
+func (s storage) GetPipelineCountsByRepo(after, before int64, repoIDs []int64) ([]model.RepoMetricData, error) {
 	type result struct {
-		RepoID int64 `bun:"repo_id"`
-		Count  int64 `bun:"count"`
+		RepoID       int64  `bun:"repo_id"`
+		RepoFullName string `bun:"repo_full_name"`
+		Count        int64  `bun:"count"`
 	}
 
 	ctx := context.Background()
 
 	q := s.db.NewSelect().
 		TableExpr("pipelines").
-		ColumnExpr("repo_id, COUNT(*) as count")
+		ColumnExpr("repo_id, MAX(repo_full_name) as repo_full_name, COUNT(*) as count")
 
 	if after > 0 {
 		q = q.Where("created >= ?", after)
@@ -351,47 +356,204 @@ func (s storage) GetPipelineCountsByRepo(after, before int64, repoIDs []int64) (
 		return nil, err
 	}
 
-	counts := make(map[int64]int64)
+	data := make([]model.RepoMetricData, 0, len(results))
 	for _, r := range results {
-		counts[r.RepoID] = r.Count
+		data = append(data, model.RepoMetricData{
+			RepoID:        r.RepoID,
+			RepoFullName:  r.RepoFullName,
+			PipelineCount: r.Count,
+		})
 	}
 
-	return counts, nil
+	return data, nil
 }
 
 // GetPipelineCountsByOrg returns pipeline counts grouped by org ID with optional time and repo filter.
-func (s storage) GetPipelineCountsByOrg(after, before int64, repoIDs []int64) (map[int64]int64, error) {
+// The org name and active-repo count are derived from the denormalized pipeline columns so they
+// survive org deletion and cover personal-account orgs (which OrgList excludes).
+func (s storage) GetPipelineCountsByOrg(after, before int64, repoIDs []int64) ([]model.OrgMetricData, error) {
 	type result struct {
-		OrgID int64 `bun:"org_id"`
-		Count int64 `bun:"count"`
+		OrgID     int64  `bun:"org_id"`
+		OrgName   string `bun:"org_name"`
+		Count     int64  `bun:"count"`
+		RepoCount int64  `bun:"repo_count"`
 	}
 
 	ctx := context.Background()
 
 	q := s.db.NewSelect().
 		TableExpr("pipelines").
-		Join("INNER JOIN repos ON pipelines.repo_id = repos.id").
-		ColumnExpr("repos.org_id, COUNT(*) as count")
+		ColumnExpr("org_id, MAX(org_name) as org_name, COUNT(*) as count, COUNT(DISTINCT repo_id) as repo_count")
 
 	if after > 0 {
-		q = q.Where("pipelines.created >= ?", after)
+		q = q.Where("created >= ?", after)
 	}
 	if before > 0 {
-		q = q.Where("pipelines.created <= ?", before)
+		q = q.Where("created <= ?", before)
 	}
 	if len(repoIDs) > 0 {
-		q = q.Where("pipelines.repo_id IN (?)", bun.List(repoIDs))
+		q = q.Where("repo_id IN (?)", bun.List(repoIDs))
 	}
 
 	var results []result
-	if err := q.GroupExpr("repos.org_id").Scan(ctx, &results); err != nil {
+	if err := q.GroupExpr("org_id").Scan(ctx, &results); err != nil {
 		return nil, err
 	}
 
-	counts := make(map[int64]int64)
+	data := make([]model.OrgMetricData, 0, len(results))
 	for _, r := range results {
-		counts[r.OrgID] = r.Count
+		data = append(data, model.OrgMetricData{
+			OrgID:         r.OrgID,
+			OrgName:       r.OrgName,
+			PipelineCount: r.Count,
+			RepoCount:     r.RepoCount,
+		})
 	}
 
-	return counts, nil
+	return data, nil
+}
+
+// GetMetricSeries runs a flexible chart-builder aggregation: one metric grouped
+// by one dimension, optionally filtered by time window and repo set. The caller
+// (API layer) is responsible for validating the dimension/metric combination
+// and for access-scoping RepoIDs before calling this.
+func (s storage) GetMetricSeries(opts model.MetricQueryOptions) ([]model.MetricPoint, error) {
+	ctx := context.Background()
+
+	type seriesRow struct {
+		ID    int64   `bun:"id"`
+		Key   string  `bun:"grp_key"`
+		Label string  `bun:"label"`
+		Value float64 `bun:"value"`
+	}
+
+	agentDim := opts.Dimension == model.MetricDimensionAgent
+	// Agent identity lives on workflows; workflow_count also counts workflow rows.
+	workflowBased := agentDim || opts.Metric == model.MetricWorkflowCount
+
+	q := s.db.NewSelect()
+
+	var timeCol, startedCol, finishedCol string
+	switch {
+	case workflowBased:
+		q = q.TableExpr("workflows")
+		// Join pipelines when we need repo/org columns (repo/org grouping) or a
+		// repo-scope filter. Agent/time grouping over workflow rows needs no join.
+		needPipelines := opts.Dimension == model.MetricDimensionRepo ||
+			opts.Dimension == model.MetricDimensionOrg ||
+			len(opts.RepoIDs) > 0
+		if needPipelines {
+			q = q.Join("INNER JOIN pipelines ON workflows.pipeline_id = pipelines.id")
+		}
+		timeCol, startedCol, finishedCol = "workflows.started", "workflows.started", "workflows.finished"
+	case opts.Metric == model.MetricAvgSteps:
+		q = q.TableExpr("steps").Join("INNER JOIN pipelines ON steps.pipeline_id = pipelines.id")
+		timeCol = "pipelines.created"
+	default:
+		q = q.TableExpr("pipelines")
+		timeCol, startedCol, finishedCol = "pipelines.created", "pipelines.started", "pipelines.finished"
+	}
+
+	// Aggregate expression for the metric.
+	var aggExpr string
+	switch opts.Metric {
+	case model.MetricPipelineCount, model.MetricWorkflowCount:
+		aggExpr = "COUNT(*)"
+	case model.MetricAvgBuildTime:
+		aggExpr = fmt.Sprintf("AVG(%s - %s)", finishedCol, startedCol)
+	case model.MetricTotalBuildTime:
+		aggExpr = fmt.Sprintf("SUM(%s - %s)", finishedCol, startedCol)
+	case model.MetricAvgSteps:
+		aggExpr = "COUNT(steps.id) * 1.0 / COUNT(DISTINCT steps.pipeline_id)"
+	default:
+		return nil, fmt.Errorf("unsupported metric %q", opts.Metric)
+	}
+	// Force a floating-point result so COUNT/SUM (integer) scan into float64.
+	valueExpr := "(" + aggExpr + ") * 1.0"
+
+	// Only completed runs contribute to build-time metrics.
+	if opts.Metric == model.MetricAvgBuildTime || opts.Metric == model.MetricTotalBuildTime {
+		q = q.Where(finishedCol + " > 0").Where(startedCol + " > 0")
+	}
+
+	// Grouping / labels per dimension.
+	switch opts.Dimension {
+	case model.MetricDimensionRepo:
+		q = q.ColumnExpr("pipelines.repo_id AS id, MAX(COALESCE(pipelines.repo_full_name, '')) AS label, " + valueExpr + " AS value").
+			GroupExpr("pipelines.repo_id")
+	case model.MetricDimensionOrg:
+		q = q.ColumnExpr("pipelines.org_id AS id, MAX(COALESCE(pipelines.org_name, '')) AS label, " + valueExpr + " AS value").
+			GroupExpr("pipelines.org_id")
+	case model.MetricDimensionAgent:
+		q = q.ColumnExpr("workflows.agent_persistent_id AS grp_key, MAX(COALESCE(workflows.agent_name, '')) AS label, " + valueExpr + " AS value").
+			Where("workflows.agent_persistent_id != ''").
+			Where("workflows.agent_persistent_id IS NOT NULL").
+			GroupExpr("workflows.agent_persistent_id")
+	case model.MetricDimensionTime:
+		bucket := s.bucketExpr(timeCol, opts.Bucket)
+		q = q.ColumnExpr(bucket + " AS grp_key, " + valueExpr + " AS value").
+			GroupExpr(bucket).
+			OrderExpr(bucket)
+	default:
+		return nil, fmt.Errorf("unsupported dimension %q", opts.Dimension)
+	}
+
+	if opts.After > 0 {
+		q = q.Where(timeCol+" >= ?", opts.After)
+	}
+	if opts.Before > 0 {
+		q = q.Where(timeCol+" <= ?", opts.Before)
+	}
+	if len(opts.RepoIDs) > 0 {
+		q = q.Where("pipelines.repo_id IN (?)", bun.List(opts.RepoIDs))
+	}
+
+	var rows []seriesRow
+	if err := q.Scan(ctx, &rows); err != nil {
+		return nil, err
+	}
+
+	points := make([]model.MetricPoint, 0, len(rows))
+	for _, r := range rows {
+		p := model.MetricPoint{ID: r.ID, Label: r.Label, Value: r.Value}
+		switch opts.Dimension {
+		case model.MetricDimensionRepo:
+			p.Key = strconv.FormatInt(r.ID, 10)
+			if p.Label == "" {
+				p.Label = fmt.Sprintf("Repo #%d", r.ID)
+			}
+		case model.MetricDimensionOrg:
+			p.Key = strconv.FormatInt(r.ID, 10)
+			if p.Label == "" {
+				p.Label = fmt.Sprintf("Org #%d", r.ID)
+			}
+		case model.MetricDimensionAgent:
+			p.Key = r.Key
+			if p.Label == "" {
+				p.Label = r.Key
+			}
+		case model.MetricDimensionTime:
+			p.Key = r.Key
+			p.Label = r.Key
+		}
+		points = append(points, p)
+	}
+
+	return points, nil
+}
+
+// RepoIDsByOrgIDs returns the IDs of existing repos owned by the given orgs.
+// Used to translate a chart-builder org filter into the repo-scoped filter that
+// enforces access control uniformly across the metrics endpoints.
+func (s storage) RepoIDsByOrgIDs(orgIDs []int64) ([]int64, error) {
+	if len(orgIDs) == 0 {
+		return nil, nil
+	}
+	var ids []int64
+	err := s.db.NewSelect().
+		TableExpr("repos").
+		ColumnExpr("id").
+		Where("org_id IN (?)", bun.List(orgIDs)).
+		Scan(context.Background(), &ids)
+	return ids, err
 }

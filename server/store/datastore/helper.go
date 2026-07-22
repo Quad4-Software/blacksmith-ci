@@ -45,6 +45,42 @@ func (s storage) castAsInteger(expr string) string {
 	return "CAST(" + expr + " AS INTEGER)"
 }
 
+// bucketExpr returns a dialect-specific SQL expression that maps a unix-seconds
+// column to a lexicographically-sortable bucket label (e.g. "2026-07-22",
+// "2026-W29" or "2026-07"). Used by the metrics chart-builder time dimension.
+// All bucketing is UTC. `col` is a trusted column reference, never user input.
+func (s storage) bucketExpr(col, bucket string) string {
+	switch s.driver {
+	case DriverPostgres:
+		switch bucket {
+		case model.MetricBucketWeek:
+			return `to_char(to_timestamp(` + col + `), 'IYYY-"W"IW')`
+		case model.MetricBucketMonth:
+			return `to_char(to_timestamp(` + col + `), 'YYYY-MM')`
+		default:
+			return `to_char(to_timestamp(` + col + `), 'YYYY-MM-DD')`
+		}
+	case DriverMysql:
+		switch bucket {
+		case model.MetricBucketWeek:
+			return `DATE_FORMAT(FROM_UNIXTIME(` + col + `), '%x-W%v')`
+		case model.MetricBucketMonth:
+			return `DATE_FORMAT(FROM_UNIXTIME(` + col + `), '%Y-%m')`
+		default:
+			return `DATE_FORMAT(FROM_UNIXTIME(` + col + `), '%Y-%m-%d')`
+		}
+	default: // sqlite
+		switch bucket {
+		case model.MetricBucketWeek:
+			return `strftime('%Y-W%W', ` + col + `, 'unixepoch')`
+		case model.MetricBucketMonth:
+			return `strftime('%Y-%m', ` + col + `, 'unixepoch')`
+		default:
+			return `strftime('%Y-%m-%d', ` + col + `, 'unixepoch')`
+		}
+	}
+}
+
 // wrapGet returns types.RecordNotExist if the error is sql.ErrNoRows,
 // otherwise returns the error as-is.
 func wrapGet(err error) error {

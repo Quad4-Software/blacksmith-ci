@@ -718,6 +718,14 @@ var flags = append([]cli.Flag{
 		Value:   "descriptive",
 	},
 
+	// Metrics configuration flags
+	&cli.BoolFlag{
+		Sources: cli.EnvVars("CROW_METRICS_PRESERVE_DELETED"),
+		Name:    "metrics-preserve-deleted",
+		Usage:   "Keep historic pipeline/workflow metrics when a repository or organization is removed. When disabled, removing a repo/org purges its pipelines and workflows.",
+		Value:   true,
+	},
+
 	// Maintenance configuration flags
 	&cli.StringFlag{
 		Sources: cli.EnvVars("CROW_MAINTENANCE_VACUUM_LOG_TABLE_SCHEDULE"),

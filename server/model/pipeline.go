@@ -22,8 +22,14 @@ import (
 type Pipeline struct {
 	bun.BaseModel `bun:"table:pipelines"`
 
-	ID                  int64                  `json:"id"                      bun:"id,pk,autoincrement"`
-	RepoID              int64                  `json:"-"                       bun:"repo_id,unique:s"`
+	ID     int64 `json:"id"                      bun:"id,pk,autoincrement"`
+	RepoID int64 `json:"-"                       bun:"repo_id,unique:s"`
+	// OrgID, OrgName and RepoFullName are denormalized from the owning repo at
+	// creation time so historic metrics survive repo/org renames and deletion
+	// (mirroring the agent identity denormalized onto workflows).
+	OrgID               int64                  `json:"-"                       bun:"org_id"`
+	OrgName             string                 `json:"-"                       bun:"org_name,type:text"`
+	RepoFullName        string                 `json:"-"                       bun:"repo_full_name,type:text"`
 	Number              int64                  `json:"number"                  bun:"number,unique:s"`
 	Author              string                 `json:"author"                  bun:"author"`
 	Parent              int64                  `json:"parent"                  bun:"parent"`

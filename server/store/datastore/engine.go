@@ -29,6 +29,9 @@ import (
 type storage struct {
 	db     *bun.DB
 	driver string
+	// metricsPreserveDeleted keeps pipelines/workflows/steps when a repo/org is
+	// removed, so historic metrics survive deletion. See store.Opts.
+	metricsPreserveDeleted bool
 }
 
 const perPage = 50
@@ -63,8 +66,9 @@ func NewEngine(opts *store.Opts) (store.Store, error) {
 	}
 
 	return &storage{
-		db:     db,
-		driver: opts.Driver,
+		db:                     db,
+		driver:                 opts.Driver,
+		metricsPreserveDeleted: opts.MetricsPreserveDeleted,
 	}, nil
 }
 

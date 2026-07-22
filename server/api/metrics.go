@@ -46,40 +46,11 @@ func GetMetrics(ctx context.Context, input *GetMetricsInput) (*GetMetricsOutput,
 	after := input.After
 	before := input.Before
 
-	// Determine scope: admin can see all, non-admin sees only their repos
-	showAll := input.All && user.Admin
-	isAdminScope := showAll
-
-	// Get user's accessible repos
-	var repoIDs []int64
-	var accessibleRepos []*model.Repo
-
-	if !showAll {
-		// Get repos user has access to (via perms table)
-		repos, err := _store.RepoList(user, false, true)
-		if err != nil {
-			return nil, huma.Error500InternalServerError(fmt.Sprintf("Error getting user repos: %s", err))
-		}
-		accessibleRepos = repos
-		repoIDs = make([]int64, len(repos))
-		for i, repo := range repos {
-			repoIDs[i] = repo.ID
-		}
+	repoIDs, accessibleRepos, isAdminScope, err := resolveScopedRepoIDs(_store, user, input.All, input.Repos)
+	if err != nil {
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error getting user repos: %s", err))
 	}
-
-	// Apply additional repo subset filter if specified
-	if input.Repos != "" {
-		requestedIDs := parseRepoIDs(input.Repos)
-		if len(requestedIDs) > 0 {
-			if showAll {
-				// Admin viewing all repos but wants subset
-				repoIDs = requestedIDs
-			} else {
-				// Non-admin: intersect with accessible repos
-				repoIDs = intersectRepoIDs(repoIDs, requestedIDs)
-			}
-		}
-	}
+	showAll := isAdminScope
 
 	// Get basic counts (scoped to accessible repos)
 	var repoCount, orgCount, pipelineCount int64
@@ -129,8 +100,8 @@ func GetMetrics(ctx context.Context, input *GetMetricsInput) (*GetMetricsOutput,
 		if err != nil {
 			return nil, huma.Error500InternalServerError(fmt.Sprintf("Error getting pipeline count: %s", err))
 		}
-		for _, count := range pipelinesByRepoID {
-			pipelineCount += count
+		for _, r := range pipelinesByRepoID {
+			pipelineCount += r.PipelineCount
 		}
 	}
 
@@ -183,15 +154,9 @@ func GetMetrics(ctx context.Context, input *GetMetricsInput) (*GetMetricsOutput,
 		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error building agent metrics: %s", err))
 	}
 
-	repoDetails, pipelinesByRepo, err := buildRepoMetrics(_store, pipelinesByRepoID, repoTimeStats)
-	if err != nil {
-		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error building repo metrics: %s", err))
-	}
+	repoDetails, pipelinesByRepo := buildRepoMetrics(pipelinesByRepoID, repoTimeStats)
 
-	orgDetails, pipelinesByOrg, err := buildOrgMetrics(_store, pipelinesByOrgID, orgTimeStats)
-	if err != nil {
-		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error building org metrics: %s", err))
-	}
+	orgDetails, pipelinesByOrg := buildOrgMetrics(pipelinesByOrgID, orgTimeStats)
 
 	metrics := &model.Metrics{
 		TotalRepos:       repoCount,
@@ -237,6 +202,147 @@ func intersectRepoIDs(a, b []int64) []int64 {
 		}
 	}
 	return result
+}
+
+// resolveScopedRepoIDs resolves the set of repo IDs a metrics request may query,
+// honoring admin instance-scope and an optional comma-separated repo subset. A
+// non-admin is always restricted to repos returned by RepoList; the subset can
+// only narrow that set, never widen it. AccessibleRepos is the user's repo list
+// (nil for admin instance-scope) so callers can reuse it without a second query.
+// IsAdminScope is true only when the caller sees instance-wide data.
+func resolveScopedRepoIDs(_store store.Store, user *model.User, all bool, reposCSV string) (repoIDs []int64, accessibleRepos []*model.Repo, isAdminScope bool, err error) {
+	showAll := all && user.Admin
+	isAdminScope = showAll
+
+	if !showAll {
+		repos, err := _store.RepoList(user, false, true)
+		if err != nil {
+			return nil, nil, false, err
+		}
+		accessibleRepos = repos
+		repoIDs = make([]int64, len(repos))
+		for i, repo := range repos {
+			repoIDs[i] = repo.ID
+		}
+	}
+
+	if reposCSV != "" {
+		requestedIDs := parseRepoIDs(reposCSV)
+		if len(requestedIDs) > 0 {
+			if showAll {
+				repoIDs = requestedIDs
+			} else {
+				repoIDs = intersectRepoIDs(repoIDs, requestedIDs)
+			}
+		}
+	}
+
+	return repoIDs, accessibleRepos, isAdminScope, nil
+}
+
+// metricQueryCombos lists the metrics supported for each chart-builder dimension.
+// Aggregating pipelines or step counts per agent is meaningless (a pipeline is
+// not tied to a single agent), so those combinations are rejected.
+var metricQueryCombos = map[string]map[string]bool{
+	model.MetricDimensionRepo: {
+		model.MetricPipelineCount: true, model.MetricWorkflowCount: true,
+		model.MetricAvgBuildTime: true, model.MetricTotalBuildTime: true, model.MetricAvgSteps: true,
+	},
+	model.MetricDimensionOrg: {
+		model.MetricPipelineCount: true, model.MetricWorkflowCount: true,
+		model.MetricAvgBuildTime: true, model.MetricTotalBuildTime: true, model.MetricAvgSteps: true,
+	},
+	model.MetricDimensionAgent: {
+		model.MetricWorkflowCount: true, model.MetricAvgBuildTime: true, model.MetricTotalBuildTime: true,
+	},
+	model.MetricDimensionTime: {
+		model.MetricPipelineCount: true, model.MetricWorkflowCount: true,
+		model.MetricAvgBuildTime: true, model.MetricTotalBuildTime: true, model.MetricAvgSteps: true,
+	},
+}
+
+// GetMetricsQueryInput is the query for the flexible chart-builder endpoint.
+type GetMetricsQueryInput struct {
+	Dimension string `query:"dimension" enum:"org,repo,agent,time" required:"true" doc:"Group-by dimension"`
+	Metric    string `query:"metric" enum:"pipeline_count,workflow_count,avg_build_time,total_build_time,avg_steps" required:"true" doc:"Metric to aggregate"`
+	Bucket    string `query:"bucket" enum:"day,week,month" doc:"Time bucket size (time dimension only, default day)"`
+	After     int64  `query:"after" doc:"Unix timestamp - lower time bound"`
+	Before    int64  `query:"before" doc:"Unix timestamp - upper time bound"`
+	All       bool   `query:"all" doc:"Show all instance metrics (admin only)"`
+	Repos     string `query:"repos" doc:"Comma-separated list of repo IDs to filter by"`
+	Orgs      string `query:"orgs" doc:"Comma-separated list of org IDs to filter by"`
+}
+
+type GetMetricsQueryOutput struct {
+	Body *model.MetricSeries
+}
+
+// GetMetricsQuery runs a single flexible metrics aggregation for the chart builder.
+func GetMetricsQuery(ctx context.Context, input *GetMetricsQueryInput) (*GetMetricsQueryOutput, error) {
+	c := ginCtx(ctx)
+	_store := store.FromContext(c)
+	user := session.User(c)
+
+	if !metricQueryCombos[input.Dimension][input.Metric] {
+		return nil, huma.Error422UnprocessableEntity(
+			fmt.Sprintf("metric %q is not available for dimension %q", input.Metric, input.Dimension))
+	}
+
+	repoIDs, _, isAdminScope, err := resolveScopedRepoIDs(_store, user, input.All, input.Repos)
+	if err != nil {
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error getting user repos: %s", err))
+	}
+
+	// A restricted request must resolve to a concrete repo set. An org filter can
+	// only narrow it (never widen), and it is intersected after access scoping.
+	restricted := !isAdminScope || input.Repos != "" || input.Orgs != ""
+	if input.Orgs != "" {
+		orgIDs := parseRepoIDs(input.Orgs)
+		orgRepoIDs, err := _store.RepoIDsByOrgIDs(orgIDs)
+		if err != nil {
+			return nil, huma.Error500InternalServerError(fmt.Sprintf("Error resolving org filter: %s", err))
+		}
+		if isAdminScope && len(repoIDs) == 0 {
+			repoIDs = orgRepoIDs
+		} else {
+			repoIDs = intersectRepoIDs(repoIDs, orgRepoIDs)
+		}
+	}
+
+	series := &model.MetricSeries{
+		Dimension: input.Dimension,
+		Metric:    input.Metric,
+		Unit:      model.MetricUnit(input.Metric),
+		Points:    []model.MetricPoint{},
+	}
+
+	// An empty repo set on a restricted request means "nothing accessible/matched",
+	// never "all repos" — return an empty series instead of leaking instance data.
+	if restricted && len(repoIDs) == 0 {
+		return &GetMetricsQueryOutput{Body: series}, nil
+	}
+
+	if input.Dimension == model.MetricDimensionTime {
+		series.Bucket = input.Bucket
+		if series.Bucket == "" {
+			series.Bucket = model.MetricBucketDay
+		}
+	}
+
+	points, err := _store.GetMetricSeries(model.MetricQueryOptions{
+		Dimension: input.Dimension,
+		Metric:    input.Metric,
+		Bucket:    series.Bucket,
+		After:     input.After,
+		Before:    input.Before,
+		RepoIDs:   repoIDs,
+	})
+	if err != nil {
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error querying metrics: %s", err))
+	}
+	series.Points = points
+
+	return &GetMetricsQueryOutput{Body: series}, nil
 }
 
 func buildAgentMetrics(_store store.Store, workflowsByPersistentID []model.AgentMetricData, workflowsByAgentID map[int64]int64) ([]model.AgentMetric, map[string]int64, error) {
@@ -289,7 +395,11 @@ func buildAgentMetrics(_store store.Store, workflowsByPersistentID []model.Agent
 			continue
 		}
 
-		agentName := "Unknown"
+		// Legacy workflows (no persistent ID) whose agent has since been deleted
+		// keep a distinct "Agent #<id>" label instead of collapsing every deleted
+		// agent into a single "Unknown" bucket. The backfill migration recovers
+		// names for agents that still exist.
+		agentName := fmt.Sprintf("Agent #%d", agentID)
 		platform := ""
 		backend := ""
 		persistentID := ""
@@ -317,120 +427,78 @@ func buildAgentMetrics(_store store.Store, workflowsByPersistentID []model.Agent
 	return agentDetails, workflowsByAgent, nil
 }
 
-func buildRepoMetrics(_store store.Store, pipelinesByRepoID map[int64]int64, repoTimeStats map[int64]map[string]float64) ([]model.RepoMetric, map[string]int64, error) {
-	// Get all repos for lookup (including inactive ones to ensure we have names for all pipelines)
-	repos, err := _store.RepoListAll(false, &model.ListOptions{All: true})
-	if err != nil {
-		return nil, nil, err
-	}
+func buildRepoMetrics(pipelinesByRepo []model.RepoMetricData, repoTimeStats map[int64]map[string]float64) ([]model.RepoMetric, map[string]int64) {
+	repoDetails := make([]model.RepoMetric, 0, len(pipelinesByRepo))
+	pipelinesByRepoName := make(map[string]int64)
 
-	repoMap := make(map[int64]*model.Repo)
-	for _, repo := range repos {
-		repoMap[repo.ID] = repo
-	}
-
-	repoDetails := make([]model.RepoMetric, 0)
-	pipelinesByRepo := make(map[string]int64)
-
-	for repoID, count := range pipelinesByRepoID {
-		repo, exists := repoMap[repoID]
-		repoName := "Unknown"
-		repoFullName := ""
-
-		if exists {
-			repoName = repo.Name
-			repoFullName = repo.FullName
-		} else {
-			// Fallback: try to fetch the specific repo (might be deleted but still have pipelines)
-			if specificRepo, err := _store.GetRepo(repoID); err == nil && specificRepo != nil {
-				repoName = specificRepo.Name
-				repoFullName = specificRepo.FullName
-			}
-		}
-
-		// Ensure we always have a displayable name
+	for _, r := range pipelinesByRepo {
+		// The full name is denormalized onto the pipeline rows, so it is present
+		// even for renamed or deleted repos. Fall back to a synthetic label only
+		// if the column was never populated (pre-migration orphaned rows).
+		repoFullName := r.RepoFullName
 		if repoFullName == "" {
-			if repoName != "" && repoName != "Unknown" {
-				repoFullName = repoName
-			} else {
-				repoFullName = fmt.Sprintf("Repo #%d", repoID)
-			}
+			repoFullName = fmt.Sprintf("Repo #%d", r.RepoID)
+		}
+		repoName := repoFullName
+		if _, name, ok := strings.Cut(repoFullName, "/"); ok && name != "" {
+			repoName = name
 		}
 
 		// Get build time statistics for this repo
 		avgTime := 0.0
 		totalTime := 0.0
-		if stats, hasStats := repoTimeStats[repoID]; hasStats {
+		if stats, hasStats := repoTimeStats[r.RepoID]; hasStats {
 			avgTime = stats["avg"]
 			totalTime = stats["total"]
 		}
 
 		repoDetails = append(repoDetails, model.RepoMetric{
-			RepoID:         repoID,
+			RepoID:         r.RepoID,
 			RepoName:       repoName,
 			RepoFullName:   repoFullName,
-			PipelineCount:  count,
+			PipelineCount:  r.PipelineCount,
 			AvgBuildTime:   avgTime,
 			TotalBuildTime: totalTime,
 		})
 
-		pipelinesByRepo[repoFullName] = count
+		pipelinesByRepoName[repoFullName] = r.PipelineCount
 	}
 
-	return repoDetails, pipelinesByRepo, nil
+	return repoDetails, pipelinesByRepoName
 }
 
-func buildOrgMetrics(_store store.Store, pipelinesByOrgID map[int64]int64, orgTimeStats map[int64]map[string]float64) ([]model.OrgMetric, map[string]int64, error) {
-	// Get all orgs for lookup
-	orgs, err := _store.OrgList(&model.ListOptions{All: true})
-	if err != nil {
-		return nil, nil, err
-	}
+func buildOrgMetrics(pipelinesByOrg []model.OrgMetricData, orgTimeStats map[int64]map[string]float64) ([]model.OrgMetric, map[string]int64) {
+	orgDetails := make([]model.OrgMetric, 0, len(pipelinesByOrg))
+	pipelinesByOrgName := make(map[string]int64)
 
-	orgMap := make(map[int64]*model.Org)
-	for _, org := range orgs {
-		orgMap[org.ID] = org
-	}
-
-	orgDetails := make([]model.OrgMetric, 0)
-	pipelinesByOrg := make(map[string]int64)
-
-	for orgID, count := range pipelinesByOrgID {
-		org, exists := orgMap[orgID]
-		orgName := "Unknown"
-
-		if exists {
-			orgName = org.Name
-		}
-
-		// Get repo count for this org
-		repoCount := int64(0)
-		if exists {
-			repos, err := _store.OrgRepoList(org, &model.ListOptions{All: true})
-			if err == nil {
-				repoCount = int64(len(repos))
-			}
+	for _, o := range pipelinesByOrg {
+		// The org name is denormalized onto the pipeline rows (from the repo
+		// owner), so it is present even for personal-account orgs and deleted
+		// orgs. Fall back to a synthetic label only for pre-migration rows.
+		orgName := o.OrgName
+		if orgName == "" {
+			orgName = fmt.Sprintf("Org #%d", o.OrgID)
 		}
 
 		// Get build time statistics for this org
 		avgTime := 0.0
 		totalTime := 0.0
-		if stats, hasStats := orgTimeStats[orgID]; hasStats {
+		if stats, hasStats := orgTimeStats[o.OrgID]; hasStats {
 			avgTime = stats["avg"]
 			totalTime = stats["total"]
 		}
 
 		orgDetails = append(orgDetails, model.OrgMetric{
-			OrgID:          orgID,
+			OrgID:          o.OrgID,
 			OrgName:        orgName,
-			PipelineCount:  count,
-			RepoCount:      repoCount,
+			PipelineCount:  o.PipelineCount,
+			RepoCount:      o.RepoCount,
 			AvgBuildTime:   avgTime,
 			TotalBuildTime: totalTime,
 		})
 
-		pipelinesByOrg[orgName] = count
+		pipelinesByOrgName[orgName] = o.PipelineCount
 	}
 
-	return orgDetails, pipelinesByOrg, nil
+	return orgDetails, pipelinesByOrgName
 }

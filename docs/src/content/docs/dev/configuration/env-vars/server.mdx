@@ -150,6 +150,14 @@ Core server configuration variables.
 
 ---
 
+## METRICS_PRESERVE_DELETED
+
+- Name: `CROW_METRICS_PRESERVE_DELETED`
+- Description: Keep a repository's or organization's pipelines and workflows when it is removed, so historic data stays in the metrics dashboard instead of disappearing. When disabled, removing a repo or org purges its pipelines and workflows (the pre-6.x behavior). See [Metrics dashboard](/dev/usage/metrics).
+- Default: `true`
+
+---
+
 ## KEEPALIVE_MIN_TIME
 
 - Name: `CROW_KEEPALIVE_MIN_TIME`

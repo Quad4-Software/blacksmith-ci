@@ -35,6 +35,10 @@ type Opts struct {
 	Config string
 	Schema string // Database schema name (PostgreSQL only)
 	DB     DBOpts
+	// MetricsPreserveDeleted keeps a repo/org's pipelines, workflows and steps
+	// when the repo/org is removed, so historic metrics survive deletion.
+	// When false, removal cascades and purges that data (legacy behavior).
+	MetricsPreserveDeleted bool
 }
 
 type PipelineListKeyset interface {

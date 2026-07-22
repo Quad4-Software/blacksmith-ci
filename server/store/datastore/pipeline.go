@@ -16,6 +16,8 @@ package datastore
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"strconv"
 	"time"
 
@@ -164,14 +166,28 @@ func (s storage) GetPipelineCountByRepo(repoID int64) (int64, error) {
 
 func (s storage) CreatePipeline(pipeline *model.Pipeline, stepList ...*model.Step) error {
 	return s.db.RunInTx(context.Background(), nil, func(ctx context.Context, tx bun.Tx) error {
-		repoExist, err := tx.NewSelect().Model((*model.Repo)(nil)).Where("id = ?", pipeline.RepoID).Exists(ctx)
+		// Fetch the owning repo's identity and denormalize it onto the pipeline so
+		// metrics keep working after the repo/org is renamed or deleted. This also
+		// doubles as the repo-existence check.
+		var repoIdentity struct {
+			OrgID    int64  `bun:"org_id"`
+			Owner    string `bun:"owner"`
+			FullName string `bun:"full_name"`
+		}
+		err := tx.NewSelect().
+			TableExpr("repos").
+			Column("org_id", "owner", "full_name").
+			Where("id = ?", pipeline.RepoID).
+			Scan(ctx, &repoIdentity)
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrorRepoNotExist{RepoID: pipeline.RepoID}
+		}
 		if err != nil {
 			return err
 		}
-
-		if !repoExist {
-			return ErrorRepoNotExist{RepoID: pipeline.RepoID}
-		}
+		pipeline.OrgID = repoIdentity.OrgID
+		pipeline.OrgName = repoIdentity.Owner
+		pipeline.RepoFullName = repoIdentity.FullName
 
 		// calc pipeline number
 		var number int64

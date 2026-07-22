@@ -964,7 +964,17 @@
           "avg_build_time_by_repo": "Average Build Time by Repository",
           "total_build_time_by_repo": "Total Build Time by Repository",
           "avg_build_time_by_org": "Average Build Time by Organization",
-          "total_build_time_by_org": "Total Build Time by Organization"
+          "total_build_time_by_org": "Total Build Time by Organization",
+          "axis": {
+            "count": "Count",
+            "duration": "Duration"
+          },
+          "dataset": {
+            "workflows": "Workflows",
+            "pipelines": "Pipelines",
+            "avg_build_time": "Avg Build Time",
+            "total_build_time": "Total Build Time"
+          }
         }
       },
       "maintenance": {
@@ -1380,7 +1390,38 @@
     "total_time": "Total",
     "tabs": {
       "overview": "Overview",
-      "charts": "Charts"
+      "charts": "Charts",
+      "builder": "Chart Builder"
+    },
+    "builder": {
+      "dimension": "Group by",
+      "metric": "Metric",
+      "bucket": "Time bucket",
+      "chart_type": "Chart type",
+      "no_data": "No data for the selected options",
+      "invalid_combo": "This metric is not available for the selected grouping",
+      "dimensions": {
+        "org": "Organization",
+        "repo": "Repository",
+        "agent": "Agent",
+        "time": "Time"
+      },
+      "metrics": {
+        "pipeline_count": "Pipeline count",
+        "workflow_count": "Workflow count",
+        "avg_build_time": "Average build time",
+        "total_build_time": "Total build time",
+        "avg_steps": "Average steps per workflow"
+      },
+      "buckets": {
+        "day": "Day",
+        "week": "Week",
+        "month": "Month"
+      },
+      "chart_types": {
+        "bar": "Bar",
+        "line": "Line"
+      }
     },
     "filter": {
       "all_time": "All Time",

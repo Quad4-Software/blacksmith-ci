@@ -67,3 +67,32 @@ export interface MetricsFilter extends MetricsTimeFilter {
   all?: boolean; // Show all instance metrics (admin only)
   repos?: string; // Comma-separated list of repo IDs
 }
+
+// Chart builder (custom metrics query) types.
+export type MetricDimension = 'org' | 'repo' | 'agent' | 'time';
+export type MetricName = 'pipeline_count' | 'workflow_count' | 'avg_build_time' | 'total_build_time' | 'avg_steps';
+export type MetricBucket = 'day' | 'week' | 'month';
+
+export interface MetricPoint {
+  key: string;
+  id?: number;
+  label: string;
+  value: number;
+}
+
+export interface MetricSeries {
+  dimension: MetricDimension;
+  metric: MetricName;
+  bucket?: MetricBucket;
+  unit: 'count' | 'seconds';
+  points: MetricPoint[];
+}
+
+export interface MetricQuery extends MetricsTimeFilter {
+  dimension: MetricDimension;
+  metric: MetricName;
+  bucket?: MetricBucket;
+  all?: boolean;
+  repos?: string;
+  orgs?: string;
+}

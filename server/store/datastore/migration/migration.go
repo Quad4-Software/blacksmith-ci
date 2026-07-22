@@ -120,6 +120,8 @@ func Migrate(_ context.Context, db *sql.DB, driver string, _ bool) error {
 		{ID: "crow-create-workflow-approval-events", Migrate: createWorkflowApprovalEvents(driver)},
 		{ID: "crow-agent-org-ids", Migrate: migrateAgentOrgIDs(driver)},
 		{ID: "crow-add-log-entries-unique-index", Migrate: addLogEntriesUniqueIndex(driver)},
+		{ID: "crow-add-pipeline-org-identity", Migrate: addPipelineOrgIdentity(driver)},
+		{ID: "crow-backfill-workflow-agent-identity", Migrate: backfillWorkflowAgentIdentity(driver)},
 	}
 
 	if len(newMigrations) > 0 {
@@ -648,6 +650,90 @@ func migrateAgentOrgIDs(driver string) func(tx *sql.Tx) error {
 		}
 		if _, err := tx.Exec("ALTER TABLE agents DROP COLUMN org_id"); err != nil {
 			return fmt.Errorf("drop agents.org_id: %w", err)
+		}
+		return nil
+	}
+}
+
+// addPipelineOrgIdentity adds the denormalized org_id/org_name/repo_full_name
+// columns to the pipelines table and backfills them from the owning repo. This
+// lets metrics resolve org/repo names directly from the pipeline row, so they
+// survive repo/org renames and deletion (and no longer render personal-account
+// orgs as "Unknown"). Fresh databases get the columns from the baseline schema
+// and skip this via the tableExists guard plus the runner's applied set.
+func addPipelineOrgIdentity(driver string) func(tx *sql.Tx) error {
+	return func(tx *sql.Tx) error {
+		if !tableExists(tx, "pipelines") {
+			return nil
+		}
+
+		if err := addColumnIfNotExists("pipelines", "org_id", "INTEGER")(tx); err != nil {
+			return fmt.Errorf("add pipelines.org_id: %w", err)
+		}
+		if err := addColumnIfNotExists("pipelines", "org_name", "TEXT")(tx); err != nil {
+			return fmt.Errorf("add pipelines.org_name: %w", err)
+		}
+		if err := addColumnIfNotExists("pipelines", "repo_full_name", "TEXT")(tx); err != nil {
+			return fmt.Errorf("add pipelines.repo_full_name: %w", err)
+		}
+
+		// Backfill from repos using correlated subqueries (portable across
+		// SQLite, MySQL and Postgres — avoids the UPDATE...FROM dialect split).
+		// The WHERE EXISTS guard leaves any pre-existing orphaned pipeline
+		// (no matching repo) untouched instead of nulling its identity.
+		if _, err := tx.Exec(`UPDATE pipelines
+			SET org_id         = (SELECT r.org_id    FROM repos r WHERE r.id = pipelines.repo_id),
+			org_name       = (SELECT r.owner     FROM repos r WHERE r.id = pipelines.repo_id),
+			repo_full_name = (SELECT r.full_name FROM repos r WHERE r.id = pipelines.repo_id)
+			WHERE EXISTS (SELECT 1 FROM repos r WHERE r.id = pipelines.repo_id)`); err != nil {
+			return fmt.Errorf("backfill pipelines org identity: %w", err)
+		}
+
+		// Index used by the org-grouped metrics aggregations.
+		const indexName = "idx_pipelines_org_id"
+		if driver == "mysql" {
+			var count int
+			if err := tx.QueryRow(
+				`SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS`+
+					` WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'pipelines' AND INDEX_NAME = ?`,
+				indexName,
+			).Scan(&count); err != nil {
+				return fmt.Errorf("probe %s: %w", indexName, err)
+			}
+			if count == 0 {
+				if _, err := tx.Exec(`CREATE INDEX ` + indexName + ` ON pipelines (org_id)`); err != nil {
+					return fmt.Errorf("create %s: %w", indexName, err)
+				}
+			}
+			return nil
+		}
+		if _, err := tx.Exec(`CREATE INDEX IF NOT EXISTS ` + indexName + ` ON pipelines (org_id)`); err != nil {
+			return fmt.Errorf("create %s: %w", indexName, err)
+		}
+		return nil
+	}
+}
+
+// backfillWorkflowAgentIdentity copies agent_name/agent_persistent_id/platform
+// onto legacy workflow rows (those written before the agent identity was
+// denormalized) from the still-existing agent row. Workflows whose agent has
+// already been deleted cannot be recovered and keep their empty identity; the
+// metrics layer labels those "Agent #<id>" instead of collapsing them into a
+// single "Unknown" bucket.
+func backfillWorkflowAgentIdentity(_ string) func(tx *sql.Tx) error {
+	return func(tx *sql.Tx) error {
+		if !tableExists(tx, "workflows") || !tableExists(tx, "agents") {
+			return nil
+		}
+
+		if _, err := tx.Exec(`UPDATE workflows
+			SET agent_name          = (SELECT a.name          FROM agents a WHERE a.id = workflows.agent_id),
+			agent_persistent_id = (SELECT a.persistent_id FROM agents a WHERE a.id = workflows.agent_id),
+			platform            = (SELECT a.platform      FROM agents a WHERE a.id = workflows.agent_id)
+			WHERE (agent_persistent_id IS NULL OR agent_persistent_id = '')
+			AND agent_id > 0
+			AND EXISTS (SELECT 1 FROM agents a WHERE a.id = workflows.agent_id)`); err != nil {
+			return fmt.Errorf("backfill workflow agent identity: %w", err)
 		}
 		return nil
 	}

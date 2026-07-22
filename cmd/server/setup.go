@@ -103,10 +103,11 @@ func setupStore(ctx context.Context, c *cli.Command) (store.Store, error) {
 	}
 
 	opts := &store.Opts{
-		Driver: driver,
-		Config: datasource,
-		Schema: schema,
-		DB:     dbOpts,
+		Driver:                 driver,
+		Config:                 datasource,
+		Schema:                 schema,
+		DB:                     dbOpts,
+		MetricsPreserveDeleted: c.Bool("metrics-preserve-deleted"),
 	}
 	log.Debug().Str("driver", driver).Str("schema", schema).Any("db", dbOpts).Msg("setting up datastore")
 	store, err := datastore.NewEngine(opts)

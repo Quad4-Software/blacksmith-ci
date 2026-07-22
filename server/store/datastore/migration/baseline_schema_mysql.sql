@@ -99,6 +99,9 @@ CREATE TABLE IF NOT EXISTS forges (
 CREATE TABLE IF NOT EXISTS pipelines (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     repo_id INTEGER,
+    org_id INTEGER,
+    org_name TEXT,
+    repo_full_name TEXT,
     number INTEGER,
     author TEXT,
     parent INTEGER,
@@ -133,6 +136,7 @@ CREATE TABLE IF NOT EXISTS pipelines (
     notify_override TEXT,
     UNIQUE(repo_id, number),
     INDEX idx_pipelines_repo_id (repo_id),
+    INDEX idx_pipelines_org_id (org_id),
     INDEX idx_pipelines_author (author(255)),
     INDEX idx_pipelines_status (status(255))
 );

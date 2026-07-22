@@ -295,6 +295,7 @@ Crow's user-facing documentation lives in `docs/src/content/docs/dev/`. Key file
 - `usage/advanced.mdx` — Advanced pipeline patterns
 - `usage/jsonnet.mdx` — Jsonnet pipeline generation
 - `usage/notifications.mdx` — Email notification configuration and per-pipeline overrides
+- `usage/metrics.mdx` — Metrics dashboard, chart builder, and historic-data preservation for removed repos/orgs
 
 ### Operations and CLI
 

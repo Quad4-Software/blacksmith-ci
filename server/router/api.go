@@ -367,6 +367,11 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 		Summary: "Get pipeline metrics", Tags: []string{"System"},
 		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
 	}, api.GetMetrics)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "query-metrics", Method: http.MethodGet, Path: "/metrics/query",
+		Summary: "Query a custom metrics series", Tags: []string{"System"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetMetricsQuery)
 
 	// ── Repositories ─────────────────────────────────────────────────────
 	huma.Register(humaAPI, huma.Operation{

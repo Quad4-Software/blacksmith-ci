@@ -903,11 +903,11 @@ func (c *CompositeEncryptedStore) GetWorkflowCountsByAgentPersistentID(after, be
 	return c.baseStore.GetWorkflowCountsByAgentPersistentID(after, before, repoIDs)
 }
 
-func (c *CompositeEncryptedStore) GetPipelineCountsByRepo(after, before int64, repoIDs []int64) (map[int64]int64, error) {
+func (c *CompositeEncryptedStore) GetPipelineCountsByRepo(after, before int64, repoIDs []int64) ([]model.RepoMetricData, error) {
 	return c.baseStore.GetPipelineCountsByRepo(after, before, repoIDs)
 }
 
-func (c *CompositeEncryptedStore) GetPipelineCountsByOrg(after, before int64, repoIDs []int64) (map[int64]int64, error) {
+func (c *CompositeEncryptedStore) GetPipelineCountsByOrg(after, before int64, repoIDs []int64) ([]model.OrgMetricData, error) {
 	return c.baseStore.GetPipelineCountsByOrg(after, before, repoIDs)
 }
 
@@ -917,6 +917,14 @@ func (c *CompositeEncryptedStore) GetBuildTimeStatsByRepo(after, before int64, r
 
 func (c *CompositeEncryptedStore) GetBuildTimeStatsByOrg(after, before int64, repoIDs []int64) (map[int64]map[string]float64, error) {
 	return c.baseStore.GetBuildTimeStatsByOrg(after, before, repoIDs)
+}
+
+func (c *CompositeEncryptedStore) GetMetricSeries(opts model.MetricQueryOptions) ([]model.MetricPoint, error) {
+	return c.baseStore.GetMetricSeries(opts)
+}
+
+func (c *CompositeEncryptedStore) RepoIDsByOrgIDs(orgIDs []int64) ([]int64, error) {
+	return c.baseStore.RepoIDsByOrgIDs(orgIDs)
 }
 
 // Store operations.

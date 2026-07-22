@@ -95,6 +95,9 @@ CREATE TABLE IF NOT EXISTS forges (
 CREATE TABLE IF NOT EXISTS pipelines (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     repo_id INTEGER,
+    org_id INTEGER,
+    org_name TEXT,
+    repo_full_name TEXT,
     number INTEGER,
     author TEXT,
     parent INTEGER,
@@ -494,6 +497,7 @@ CREATE TABLE IF NOT EXISTS maintenance_logs (
 -- Indexes
 
 CREATE INDEX IF NOT EXISTS idx_pipelines_repo_id ON pipelines (repo_id);
+CREATE INDEX IF NOT EXISTS idx_pipelines_org_id ON pipelines (org_id);
 CREATE INDEX IF NOT EXISTS idx_pipelines_author ON pipelines (author);
 CREATE INDEX IF NOT EXISTS idx_pipelines_status ON pipelines (status);
 

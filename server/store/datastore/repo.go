@@ -144,9 +144,8 @@ func (s storage) DeleteRepo(repo *model.Repo) error {
 
 func (s storage) deleteRepo(ctx context.Context, db bun.IDB, repo *model.Repo) error {
 	const batchSize = perPage
-	if _, err := db.NewDelete().Model((*model.Config)(nil)).Where("repo_id = ?", repo.ID).Exec(ctx); err != nil {
-		return err
-	}
+
+	// Always remove live per-repo access data.
 	if _, err := db.NewDelete().Model((*model.Perm)(nil)).Where("repo_id = ?", repo.ID).Exec(ctx); err != nil {
 		return err
 	}
@@ -157,6 +156,27 @@ func (s storage) deleteRepo(ctx context.Context, db bun.IDB, repo *model.Repo) e
 		return err
 	}
 	if _, err := db.NewDelete().Model((*model.Redirection)(nil)).Where("repo_id = ?", repo.ID).Exec(ctx); err != nil {
+		return err
+	}
+
+	if s.metricsPreserveDeleted {
+		// Preserve historic metrics: keep the repo's pipelines/workflows/steps
+		// (and their configs) so aggregate metrics survive deletion. Drop only
+		// the live queue tasks so agents don't pick up work for a removed repo,
+		// then remove the repo row. The retained pipelines become orphaned but
+		// are reachable only via metrics, which read the denormalized org/repo
+		// names off the pipeline rows.
+		if _, err := db.NewDelete().
+			Model((*model.Task)(nil)).
+			Where("pipeline_id IN (SELECT id FROM pipelines WHERE repo_id = ?)", repo.ID).
+			Exec(ctx); err != nil {
+			return err
+		}
+		return wrapDelete(db.NewDelete().Model((*model.Repo)(nil)).Where("id = ?", repo.ID).Exec(ctx))
+	}
+
+	// Full cascade (preservation disabled): remove configs and every pipeline.
+	if _, err := db.NewDelete().Model((*model.Config)(nil)).Where("repo_id = ?", repo.ID).Exec(ctx); err != nil {
 		return err
 	}
 

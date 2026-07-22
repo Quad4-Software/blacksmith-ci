@@ -488,3 +488,70 @@ func TestAddLogEntriesUniqueIndex_DedupsAndIndexes(t *testing.T) {
 	_, err = db.Exec(`INSERT INTO log_entries (id, step_id, line, data) VALUES (99, 10, 0, 'conflict')`)
 	assert.Error(t, err, "unique index must reject a duplicate (step_id, line)")
 }
+
+func TestAddPipelineOrgIdentity_Backfill(t *testing.T) {
+	db, driver := testDB(t)
+
+	_, err := db.Exec(`CREATE TABLE repos (id INTEGER PRIMARY KEY, org_id INTEGER, owner TEXT, full_name TEXT)`)
+	require.NoError(t, err)
+	// Pre-migration pipelines table: no org identity columns yet.
+	_, err = db.Exec(`CREATE TABLE pipelines (id INTEGER PRIMARY KEY, repo_id INTEGER, created INTEGER)`)
+	require.NoError(t, err)
+
+	_, err = db.Exec(`INSERT INTO repos (id, org_id, owner, full_name) VALUES (1, 5, 'acme', 'acme/test')`)
+	require.NoError(t, err)
+	_, err = db.Exec(`INSERT INTO pipelines (id, repo_id) VALUES (1, 1), (2, 1), (3, 999)`)
+	require.NoError(t, err)
+
+	tx, err := db.Begin()
+	require.NoError(t, err)
+	require.NoError(t, addPipelineOrgIdentity(driver)(tx))
+	require.NoError(t, tx.Commit())
+
+	var orgID sql.NullInt64
+	var orgName, fullName sql.NullString
+	require.NoError(t, db.QueryRow(`SELECT org_id, org_name, repo_full_name FROM pipelines WHERE id = 1`).Scan(&orgID, &orgName, &fullName))
+	assert.Equal(t, int64(5), orgID.Int64)
+	assert.Equal(t, "acme", orgName.String)
+	assert.Equal(t, "acme/test", fullName.String)
+
+	// The orphaned pipeline (no matching repo) keeps NULL identity.
+	require.NoError(t, db.QueryRow(`SELECT org_id FROM pipelines WHERE id = 3`).Scan(&orgID))
+	assert.False(t, orgID.Valid, "orphaned pipeline must not be backfilled")
+}
+
+func TestBackfillWorkflowAgentIdentity(t *testing.T) {
+	db, driver := testDB(t)
+
+	_, err := db.Exec(`CREATE TABLE agents (id INTEGER PRIMARY KEY, name TEXT, persistent_id TEXT, platform TEXT)`)
+	require.NoError(t, err)
+	_, err = db.Exec(`CREATE TABLE workflows (id INTEGER PRIMARY KEY, agent_id INTEGER, agent_persistent_id TEXT, agent_name TEXT, platform TEXT)`)
+	require.NoError(t, err)
+
+	_, err = db.Exec(`INSERT INTO agents (id, name, persistent_id, platform) VALUES (1, 'artemis', 'pid-1', 'linux/amd64')`)
+	require.NoError(t, err)
+	_, err = db.Exec(`INSERT INTO workflows (id, agent_id, agent_persistent_id, agent_name, platform) VALUES
+		(1, 1, '', '', ''),
+		(2, 2, '', '', ''),
+		(3, 1, 'pid-existing', 'already', 'plat')`)
+	require.NoError(t, err)
+
+	tx, err := db.Begin()
+	require.NoError(t, err)
+	require.NoError(t, backfillWorkflowAgentIdentity(driver)(tx))
+	require.NoError(t, tx.Commit())
+
+	var name, pid string
+	// Legacy workflow with an existing agent is backfilled.
+	require.NoError(t, db.QueryRow(`SELECT agent_name, agent_persistent_id FROM workflows WHERE id = 1`).Scan(&name, &pid))
+	assert.Equal(t, "artemis", name)
+	assert.Equal(t, "pid-1", pid)
+
+	// Legacy workflow whose agent is gone cannot be recovered.
+	require.NoError(t, db.QueryRow(`SELECT agent_name FROM workflows WHERE id = 2`).Scan(&name))
+	assert.Equal(t, "", name)
+
+	// A workflow that already carries a persistent id is left untouched.
+	require.NoError(t, db.QueryRow(`SELECT agent_name FROM workflows WHERE id = 3`).Scan(&name))
+	assert.Equal(t, "already", name)
+}

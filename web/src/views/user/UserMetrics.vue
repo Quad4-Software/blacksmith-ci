@@ -70,6 +70,9 @@
         <TabsTrigger value="charts">
           {{ $t('metrics.tabs.charts') }}
         </TabsTrigger>
+        <TabsTrigger value="builder">
+          {{ $t('metrics.tabs.builder') }}
+        </TabsTrigger>
       </TabsList>
 
       <!-- Overview Tab Content -->
@@ -186,20 +189,26 @@
       <TabsContent value="charts">
         <AdminMetricsCharts :metrics="metrics" />
       </TabsContent>
+
+      <!-- Chart Builder Tab Content -->
+      <TabsContent value="builder">
+        <ChartBuilder
+          :date-range="dateRange"
+          :repo-ids="selectedRepoIds"
+          :show-all="showAllInstance && !!user?.admin"
+        />
+      </TabsContent>
     </Tabs>
   </Settings>
 </template>
 
 <script lang="ts" setup>
 import { useStorage } from '@vueuse/core';
-import { computed, onMounted, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRoute, useRouter } from 'vue-router';
-
 import AdminMetricsCharts from '~/components/admin/AdminMetricsCharts.vue';
 import Badge from '~/components/atomic/Badge.vue';
 import Icon from '~/components/atomic/Icon.vue';
 import Settings from '~/components/layout/Settings.vue';
+import ChartBuilder from '~/components/metrics/ChartBuilder.vue';
 import DateRangeFilter from '~/components/metrics/DateRangeFilter.vue';
 import RepoFilter from '~/components/metrics/RepoFilter.vue';
 import { Badge as BadgeUI } from '~/components/ui/badge';
@@ -218,7 +227,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import useApiClient from '~/compositions/useApiClient';
 import useAuthentication from '~/compositions/useAuthentication';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
+import { formatDuration } from '~/compositions/useMetricsCharts';
 import type { Metrics, Repo } from '~/lib/api/types';
+import { computed, onMounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRoute, useRouter } from 'vue-router';
 
 const apiClient = useApiClient();
 const { t } = useI18n();
@@ -290,45 +303,6 @@ const topOrgs = computed(() => {
   if (!metrics.value?.org_details || !Array.isArray(metrics.value.org_details)) return [];
   return metrics.value.org_details.toSorted((a, b) => (b.pipeline_count || 0) - (a.pipeline_count || 0)).slice(0, 10);
 });
-
-function formatDuration(seconds: number): string {
-  if (!seconds || seconds === 0) return '0s';
-
-  const absSecs = Math.abs(seconds);
-
-  // For very large durations, use days
-  if (absSecs >= 86400) {
-    const days = Math.floor(absSecs / 86400);
-    const hours = Math.floor((absSecs % 86400) / 3600);
-    if (hours > 0) {
-      return `${days}d ${hours}h`;
-    }
-    return `${days}d`;
-  }
-
-  // For medium durations, use hours and minutes
-  if (absSecs >= 3600) {
-    const hours = Math.floor(absSecs / 3600);
-    const minutes = Math.floor((absSecs % 3600) / 60);
-    if (minutes > 0) {
-      return `${hours}h ${minutes}m`;
-    }
-    return `${hours}h`;
-  }
-
-  // For small durations, use minutes and seconds
-  if (absSecs >= 60) {
-    const minutes = Math.floor(absSecs / 60);
-    const secs = Math.floor(absSecs % 60);
-    if (secs > 0) {
-      return `${minutes}m ${secs}s`;
-    }
-    return `${minutes}m`;
-  }
-
-  // For very small durations, just show seconds
-  return `${Math.floor(absSecs)}s`;
-}
 
 function toggleAdminScope() {
   showAllInstance.value = !showAllInstance.value;

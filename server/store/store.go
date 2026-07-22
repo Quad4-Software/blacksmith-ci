@@ -407,17 +407,24 @@ type Store interface {
 	// use GetWorkflowCountsByAgent as fallback.
 	GetWorkflowCountsByAgentPersistentID(after, before int64, repoIDs []int64) ([]model.AgentMetricData, error)
 	// GetPipelineCountsByRepo returns pipeline counts grouped by repo ID with optional time and repo filter.
+	// The repo full name is carried from the denormalized pipeline column so it survives repo deletion.
 	// If repoIDs is nil or empty, returns metrics for all repos.
-	GetPipelineCountsByRepo(after, before int64, repoIDs []int64) (map[int64]int64, error)
+	GetPipelineCountsByRepo(after, before int64, repoIDs []int64) ([]model.RepoMetricData, error)
 	// GetPipelineCountsByOrg returns pipeline counts grouped by org ID with optional time and repo filter.
+	// The org name and active-repo count are carried from the denormalized pipeline columns.
 	// If repoIDs is nil or empty, returns metrics for all repos.
-	GetPipelineCountsByOrg(after, before int64, repoIDs []int64) (map[int64]int64, error)
+	GetPipelineCountsByOrg(after, before int64, repoIDs []int64) ([]model.OrgMetricData, error)
 	// GetBuildTimeStatsByRepo returns average and total build times grouped by repo ID with optional time and repo filter.
 	// If repoIDs is nil or empty, returns metrics for all repos.
 	GetBuildTimeStatsByRepo(after, before int64, repoIDs []int64) (map[int64]map[string]float64, error)
 	// GetBuildTimeStatsByOrg returns average and total build times grouped by org ID with optional time and repo filter.
 	// If repoIDs is nil or empty, returns metrics for all repos.
 	GetBuildTimeStatsByOrg(after, before int64, repoIDs []int64) (map[int64]map[string]float64, error)
+	// GetMetricSeries runs a chart-builder aggregation (one metric grouped by one
+	// dimension) for the given access-scoped options.
+	GetMetricSeries(opts model.MetricQueryOptions) ([]model.MetricPoint, error)
+	// RepoIDsByOrgIDs returns the IDs of existing repos owned by the given orgs.
+	RepoIDsByOrgIDs(orgIDs []int64) ([]int64, error)
 
 	// Store operations
 	Ping() error

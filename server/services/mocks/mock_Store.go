@@ -4230,6 +4230,68 @@ func (_c *MockStore_GetBuildTimeStatsByRepo_Call) RunAndReturn(run func(after in
 	return _c
 }
 
+// GetMetricSeries provides a mock function for the type MockStore
+func (_mock *MockStore) GetMetricSeries(opts model.MetricQueryOptions) ([]model.MetricPoint, error) {
+	ret := _mock.Called(opts)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetMetricSeries")
+	}
+
+	var r0 []model.MetricPoint
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(model.MetricQueryOptions) ([]model.MetricPoint, error)); ok {
+		return returnFunc(opts)
+	}
+	if returnFunc, ok := ret.Get(0).(func(model.MetricQueryOptions) []model.MetricPoint); ok {
+		r0 = returnFunc(opts)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]model.MetricPoint)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(model.MetricQueryOptions) error); ok {
+		r1 = returnFunc(opts)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_GetMetricSeries_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetMetricSeries'
+type MockStore_GetMetricSeries_Call struct {
+	*mock.Call
+}
+
+// GetMetricSeries is a helper method to define mock.On call
+//   - opts model.MetricQueryOptions
+func (_e *MockStore_Expecter) GetMetricSeries(opts any) *MockStore_GetMetricSeries_Call {
+	return &MockStore_GetMetricSeries_Call{Call: _e.mock.On("GetMetricSeries", opts)}
+}
+
+func (_c *MockStore_GetMetricSeries_Call) Run(run func(opts model.MetricQueryOptions)) *MockStore_GetMetricSeries_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 model.MetricQueryOptions
+		if args[0] != nil {
+			arg0 = args[0].(model.MetricQueryOptions)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_GetMetricSeries_Call) Return(metricPoints []model.MetricPoint, err error) *MockStore_GetMetricSeries_Call {
+	_c.Call.Return(metricPoints, err)
+	return _c
+}
+
+func (_c *MockStore_GetMetricSeries_Call) RunAndReturn(run func(opts model.MetricQueryOptions) ([]model.MetricPoint, error)) *MockStore_GetMetricSeries_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetOrgCount provides a mock function for the type MockStore
 func (_mock *MockStore) GetOrgCount() (int64, error) {
 	ret := _mock.Called()
@@ -4599,23 +4661,23 @@ func (_c *MockStore_GetPipelineCountByRepo_Call) RunAndReturn(run func(n int64) 
 }
 
 // GetPipelineCountsByOrg provides a mock function for the type MockStore
-func (_mock *MockStore) GetPipelineCountsByOrg(after int64, before int64, repoIDs []int64) (map[int64]int64, error) {
+func (_mock *MockStore) GetPipelineCountsByOrg(after int64, before int64, repoIDs []int64) ([]model.OrgMetricData, error) {
 	ret := _mock.Called(after, before, repoIDs)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetPipelineCountsByOrg")
 	}
 
-	var r0 map[int64]int64
+	var r0 []model.OrgMetricData
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(int64, int64, []int64) (map[int64]int64, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, []int64) ([]model.OrgMetricData, error)); ok {
 		return returnFunc(after, before, repoIDs)
 	}
-	if returnFunc, ok := ret.Get(0).(func(int64, int64, []int64) map[int64]int64); ok {
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, []int64) []model.OrgMetricData); ok {
 		r0 = returnFunc(after, before, repoIDs)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(map[int64]int64)
+			r0 = ret.Get(0).([]model.OrgMetricData)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(int64, int64, []int64) error); ok {
@@ -4662,34 +4724,34 @@ func (_c *MockStore_GetPipelineCountsByOrg_Call) Run(run func(after int64, befor
 	return _c
 }
 
-func (_c *MockStore_GetPipelineCountsByOrg_Call) Return(int64ToInt64 map[int64]int64, err error) *MockStore_GetPipelineCountsByOrg_Call {
-	_c.Call.Return(int64ToInt64, err)
+func (_c *MockStore_GetPipelineCountsByOrg_Call) Return(orgMetricDatas []model.OrgMetricData, err error) *MockStore_GetPipelineCountsByOrg_Call {
+	_c.Call.Return(orgMetricDatas, err)
 	return _c
 }
 
-func (_c *MockStore_GetPipelineCountsByOrg_Call) RunAndReturn(run func(after int64, before int64, repoIDs []int64) (map[int64]int64, error)) *MockStore_GetPipelineCountsByOrg_Call {
+func (_c *MockStore_GetPipelineCountsByOrg_Call) RunAndReturn(run func(after int64, before int64, repoIDs []int64) ([]model.OrgMetricData, error)) *MockStore_GetPipelineCountsByOrg_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // GetPipelineCountsByRepo provides a mock function for the type MockStore
-func (_mock *MockStore) GetPipelineCountsByRepo(after int64, before int64, repoIDs []int64) (map[int64]int64, error) {
+func (_mock *MockStore) GetPipelineCountsByRepo(after int64, before int64, repoIDs []int64) ([]model.RepoMetricData, error) {
 	ret := _mock.Called(after, before, repoIDs)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetPipelineCountsByRepo")
 	}
 
-	var r0 map[int64]int64
+	var r0 []model.RepoMetricData
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(int64, int64, []int64) (map[int64]int64, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, []int64) ([]model.RepoMetricData, error)); ok {
 		return returnFunc(after, before, repoIDs)
 	}
-	if returnFunc, ok := ret.Get(0).(func(int64, int64, []int64) map[int64]int64); ok {
+	if returnFunc, ok := ret.Get(0).(func(int64, int64, []int64) []model.RepoMetricData); ok {
 		r0 = returnFunc(after, before, repoIDs)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(map[int64]int64)
+			r0 = ret.Get(0).([]model.RepoMetricData)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(int64, int64, []int64) error); ok {
@@ -4736,12 +4798,12 @@ func (_c *MockStore_GetPipelineCountsByRepo_Call) Run(run func(after int64, befo
 	return _c
 }
 
-func (_c *MockStore_GetPipelineCountsByRepo_Call) Return(int64ToInt64 map[int64]int64, err error) *MockStore_GetPipelineCountsByRepo_Call {
-	_c.Call.Return(int64ToInt64, err)
+func (_c *MockStore_GetPipelineCountsByRepo_Call) Return(repoMetricDatas []model.RepoMetricData, err error) *MockStore_GetPipelineCountsByRepo_Call {
+	_c.Call.Return(repoMetricDatas, err)
 	return _c
 }
 
-func (_c *MockStore_GetPipelineCountsByRepo_Call) RunAndReturn(run func(after int64, before int64, repoIDs []int64) (map[int64]int64, error)) *MockStore_GetPipelineCountsByRepo_Call {
+func (_c *MockStore_GetPipelineCountsByRepo_Call) RunAndReturn(run func(after int64, before int64, repoIDs []int64) ([]model.RepoMetricData, error)) *MockStore_GetPipelineCountsByRepo_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -9775,6 +9837,68 @@ func (_c *MockStore_RegistryUpdate_Call) Return(err error) *MockStore_RegistryUp
 }
 
 func (_c *MockStore_RegistryUpdate_Call) RunAndReturn(run func(registry *model.Registry) error) *MockStore_RegistryUpdate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// RepoIDsByOrgIDs provides a mock function for the type MockStore
+func (_mock *MockStore) RepoIDsByOrgIDs(orgIDs []int64) ([]int64, error) {
+	ret := _mock.Called(orgIDs)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RepoIDsByOrgIDs")
+	}
+
+	var r0 []int64
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func([]int64) ([]int64, error)); ok {
+		return returnFunc(orgIDs)
+	}
+	if returnFunc, ok := ret.Get(0).(func([]int64) []int64); ok {
+		r0 = returnFunc(orgIDs)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]int64)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func([]int64) error); ok {
+		r1 = returnFunc(orgIDs)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_RepoIDsByOrgIDs_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RepoIDsByOrgIDs'
+type MockStore_RepoIDsByOrgIDs_Call struct {
+	*mock.Call
+}
+
+// RepoIDsByOrgIDs is a helper method to define mock.On call
+//   - orgIDs []int64
+func (_e *MockStore_Expecter) RepoIDsByOrgIDs(orgIDs any) *MockStore_RepoIDsByOrgIDs_Call {
+	return &MockStore_RepoIDsByOrgIDs_Call{Call: _e.mock.On("RepoIDsByOrgIDs", orgIDs)}
+}
+
+func (_c *MockStore_RepoIDsByOrgIDs_Call) Run(run func(orgIDs []int64)) *MockStore_RepoIDsByOrgIDs_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 []int64
+		if args[0] != nil {
+			arg0 = args[0].([]int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_RepoIDsByOrgIDs_Call) Return(int64s []int64, err error) *MockStore_RepoIDsByOrgIDs_Call {
+	_c.Call.Return(int64s, err)
+	return _c
+}
+
+func (_c *MockStore_RepoIDsByOrgIDs_Call) RunAndReturn(run func(orgIDs []int64) ([]int64, error)) *MockStore_RepoIDsByOrgIDs_Call {
 	_c.Call.Return(run)
 	return _c
 }

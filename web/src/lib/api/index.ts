@@ -3,9 +3,6 @@ import type { RequestOptions } from './client';
 import type {
   AccessToken,
   AccessTokenWithSecret,
-  AvailableScopesResponse,
-  CreateAccessTokenRequest,
-  UpdateAccessTokenRequest,
   AdminMetrics,
   Agent,
   AgentWorkflow,
@@ -13,20 +10,29 @@ import type {
   AutoscalerListOptions,
   AutoscalerWithToken,
   AvailableForge,
+  AvailableScopesResponse,
+  CreateAccessTokenRequest,
   Cron,
   CronWithRepo,
   Entity,
   EntityListOptions,
   Forge,
+  ImportPreviewResponse,
+  ImportSettingsRequest,
+  ImportSettingsResponse,
   Integration,
   IntegrationTypeInfo,
   MaintenanceConfig,
   MaintenanceLog,
   MaintenanceOperationConfig,
   MaintenanceStats,
+  ManualWorkflowsResponse,
+  MetricQuery,
   Metrics,
+  MetricSeries,
   MetricsFilter,
   MetricsTimeFilter,
+  NotificationConfig,
   Org,
   OrgPermissions,
   Pipeline,
@@ -43,22 +49,18 @@ import type {
   RepoPermissions,
   RepoResponse,
   RepoSettings,
-  ImportSettingsRequest,
-  ImportSettingsResponse,
-  ImportPreviewResponse,
   Secret,
   SecretTarget,
   SecretWithOrg,
-  NotificationConfig,
   SMTPStatus,
   SMTPTestResult,
   Task,
   UnlinkForgeResponse,
+  UpdateAccessTokenRequest,
   User,
   UserForge,
   UserPendingApprovalsResponse,
   WorkflowApprovalState,
-  ManualWorkflowsResponse,
 } from './types';
 
 interface AvailableReposOptions {
@@ -826,6 +828,12 @@ export default class CrowClient extends ApiClient {
   async getMetrics(filter?: MetricsFilter): Promise<Metrics> {
     const query = encodeQueryString(filter);
     return this._get(`/api/v1/metrics?${query}`) as Promise<Metrics>;
+  }
+
+  // Chart builder: run a single flexible metrics aggregation.
+  async queryMetrics(query: MetricQuery): Promise<MetricSeries> {
+    const qs = encodeQueryString(query);
+    return this._get(`/api/v1/metrics/query?${qs}`) as Promise<MetricSeries>;
   }
 
   // Deprecated: use getMetrics instead
