@@ -1,6 +1,11 @@
 <template>
   <div class="mx-auto w-full max-w-none overflow-y-auto">
     <Settings :title="$t('admin.settings.agents.agents')" :description="description">
+      <template v-if="schedulingStrategy" #titleActions>
+        <Badge variant="secondary">
+          {{ $t('admin.settings.agents.scheduling_strategy', { strategy: schedulingStrategy }) }}
+        </Badge>
+      </template>
       <template #headerActions>
         <Button @click="showAddAgent">
           <Icon name="plus" class="size-4 mr-1" />{{ $t('admin.settings.agents.add') }}
@@ -60,6 +65,7 @@ import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 
 import Icon from '~/components/atomic/Icon.vue';
+import { Badge } from '~/components/ui/badge';
 import { Button } from '~/components/ui/button';
 import Settings from '~/components/layout/Settings.vue';
 import AgentDialog from '~/components/agent/AgentDialog.vue';
@@ -77,6 +83,7 @@ import {
 import useApiClient from '~/compositions/useApiClient';
 import { useAsyncAction } from '~/compositions/useAsyncAction';
 import useAuthentication from '~/compositions/useAuthentication';
+import useConfig from '~/compositions/useConfig';
 import useNotifications from '~/compositions/useNotifications';
 import { usePaginationWithPages } from '~/compositions/usePaginate';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
@@ -93,6 +100,9 @@ if (!user) {
 }
 
 const isAdmin = computed(() => !!user.admin);
+
+// Server-wide active scheduling strategy, surfaced from the injected config.
+const schedulingStrategy = useConfig().schedulingStrategy;
 
 // Description changes based on user role
 const description = computed(() => (isAdmin.value ? t('admin.settings.agents.desc') : t('user.settings.agents.desc')));

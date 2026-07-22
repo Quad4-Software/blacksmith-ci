@@ -11,6 +11,7 @@ declare global {
     CROW_ROOT_PATH: string | undefined;
     CROW_ENABLE_SWAGGER: boolean | undefined;
     CROW_USER_REGISTERED_AGENTS: boolean | undefined;
+    CROW_SCHEDULING_STRATEGY: string | undefined;
   }
 }
 
@@ -24,4 +25,5 @@ export default () => ({
   rootPath: window.CROW_ROOT_PATH ?? '',
   enableSwagger: window.CROW_ENABLE_SWAGGER === true || false,
   userRegisteredAgents: window.CROW_USER_REGISTERED_AGENTS || false,
+  schedulingStrategy: window.CROW_SCHEDULING_STRATEGY ?? '',
 });

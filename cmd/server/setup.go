@@ -159,6 +159,8 @@ func setupQueue(ctx context.Context, s store.Store, lockService *lock.Service, c
 	if err != nil {
 		return nil, err
 	}
+	// Surface the resolved (default-applied) strategy to the web UI.
+	server.Config.Queue.SchedulingStrategy = string(strategy)
 
 	config := queue.Config{
 		Backend:       backend,

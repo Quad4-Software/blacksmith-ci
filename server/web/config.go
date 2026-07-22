@@ -50,6 +50,7 @@ func Config(c *gin.Context) {
 		"root_path":              server.Config.Server.RootPath,
 		"enable_swagger":         server.Config.WebUI.EnableSwagger,
 		"user_registered_agents": !server.Config.Agent.DisableUserRegisteredAgentRegistration,
+		"scheduling_strategy":    server.Config.Queue.SchedulingStrategy,
 	}
 
 	// default func map with json parser.
@@ -86,4 +87,5 @@ window.CROW_ROOT_PATH = "{{ .root_path }}";
 window.CROW_ENABLE_SWAGGER = {{ .enable_swagger }};
 window.CROW_SKIP_VERSION_CHECK = {{ .skip_version_check }}
 window.CROW_USER_REGISTERED_AGENTS = {{ .user_registered_agents }}
+window.CROW_SCHEDULING_STRATEGY = {{ json .scheduling_strategy }};
 `

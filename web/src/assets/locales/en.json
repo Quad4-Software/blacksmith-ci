@@ -737,6 +737,7 @@
       "agents": {
         "agents": "Agents",
         "desc": "Agents registered on this server.",
+        "scheduling_strategy": "Scheduling: {strategy}",
         "add_desc": "Register a new agent to execute pipelines.",
         "edit_desc": "Modify agent settings.",
         "token_created_title": "Agent Created",

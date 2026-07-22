@@ -73,6 +73,9 @@ var Config = struct {
 		EnableSwagger    bool
 		SkipVersionCheck bool
 	}
+	Queue struct {
+		SchedulingStrategy string // active agent scheduling strategy, surfaced in the UI
+	}
 	Prometheus struct {
 		AuthToken string
 	}
