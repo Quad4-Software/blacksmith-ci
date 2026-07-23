@@ -15,11 +15,13 @@
 package linter_test
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"codefloe.com/crowci/crow/v6/pipeline/errors"
 	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml"
@@ -398,6 +400,68 @@ steps:
 			assert.NotContains(t, lerr.Message, "tmpfs", "tmpfs should not require any privilege")
 			assert.NotContains(t, lerr.Message, "volumes", "tmpfs should not trigger volumes privilege check")
 		}
+	}
+}
+
+func TestTmpfsSyntaxValidation(t *testing.T) {
+	tests := []struct {
+		name    string
+		tmpfs   string
+		wantErr string // substring; "" means the entry should lint cleanly
+	}{
+		{name: "bare path", tmpfs: "/tmp", wantErr: ""},
+		{name: "valid size", tmpfs: "/tmp:size=64m", wantErr: ""},
+		{name: "valid mode", tmpfs: "/home/4000:mode=1777", wantErr: ""},
+		{name: "size and mode", tmpfs: "/tmp:size=512Mi,mode=755", wantErr: ""},
+		{name: "unknown option", tmpfs: "/tmp:foo=bar", wantErr: "Unsupported tmpfs option"},
+		{name: "malformed option", tmpfs: "/tmp:noequals", wantErr: "expected `key=value`"},
+		{name: "invalid mode", tmpfs: "/tmp:mode=9999", wantErr: "Invalid tmpfs mode"},
+		{name: "invalid size", tmpfs: "/tmp:size=big", wantErr: "Invalid tmpfs size"},
+		{name: "missing path", tmpfs: ":size=64m", wantErr: "missing mount path"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			yamlData := fmt.Sprintf(`
+when:
+  event: push
+
+steps:
+  test:
+    image: alpine
+    tmpfs:
+      - %q
+    commands:
+      - echo ok
+`, tt.tmpfs)
+			conf, err := yaml.ParseString(yamlData)
+			assert.NoError(t, err)
+
+			err = linter.New().Lint([]*linter.WorkflowConfig{{
+				File:      "tmpfs-syntax",
+				RawConfig: yamlData,
+				Workflow:  conf,
+			}})
+
+			if tt.wantErr == "" {
+				if err != nil {
+					for _, lerr := range errors.GetPipelineErrors(err) {
+						assert.NotContains(t, lerr.Message, "tmpfs", "valid tmpfs entry should not raise a tmpfs error")
+					}
+				}
+				return
+			}
+
+			require.Error(t, err)
+			var found bool
+			for _, lerr := range errors.GetPipelineErrors(err) {
+				if strings.Contains(lerr.Message, tt.wantErr) {
+					found = true
+					break
+				}
+			}
+			assert.True(t, found, "expected a lint error containing %q", tt.wantErr)
+		})
 	}
 }
 

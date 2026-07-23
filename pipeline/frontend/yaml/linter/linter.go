@@ -17,6 +17,8 @@ package linter
 import (
 	"errors"
 	"fmt"
+	"regexp"
+	"strings"
 	"time"
 
 	pipelineErrors "codefloe.com/crowci/crow/v6/pipeline/errors"
@@ -208,6 +210,9 @@ func (l *Linter) lintContainers(config *WorkflowConfig, area string) error {
 		if err := l.lintDependsOn(config, container, area); err != nil {
 			linterErr = errors.Join(linterErr, err)
 		}
+		if err := l.lintTmpfs(config, container, area); err != nil {
+			linterErr = errors.Join(linterErr, err)
+		}
 	}
 
 	return linterErr
@@ -360,6 +365,64 @@ func (l *Linter) lintContainerDeprecations(config *WorkflowConfig, c *types.Cont
 		})
 	}
 
+	return err
+}
+
+// tmpfsModeLintPattern matches a 3-4 digit octal permission mode (e.g. "1777").
+var tmpfsModeLintPattern = regexp.MustCompile(`^[0-7]{3,4}$`)
+
+// tmpfsSizeLintPattern matches a memory size with an optional unit
+// (e.g. "64m", "512Mi", "1G", "1024").
+var tmpfsSizeLintPattern = regexp.MustCompile(`^\d+(?:\.\d+)?\s*[kKmMgGtT]?[iI]?[bB]?$`)
+
+// lintTmpfs validates the syntax of each `tmpfs` entry up front, so authoring
+// mistakes (an unknown option, a malformed mode or size) are reported at lint
+// time instead of surfacing later on the agent when the container is created.
+// Only the backend-agnostic syntax is checked here; backends may still reject an
+// otherwise-valid entry they cannot honor (e.g. `mode=` on kubernetes).
+func (l *Linter) lintTmpfs(config *WorkflowConfig, c *types.Container, area string) error {
+	var err error
+	for i, entry := range c.Tmpfs {
+		field := fmt.Sprintf("%s.%s.tmpfs[%d]", area, c.Name, i)
+		path, opts, _ := strings.Cut(entry, ":")
+		if path == "" {
+			err = errors.Join(err, newLinterError(
+				fmt.Sprintf("Invalid tmpfs entry %q: missing mount path.", entry),
+				config.File, field, false))
+			continue
+		}
+		for _, opt := range strings.Split(opts, ",") {
+			opt = strings.TrimSpace(opt)
+			if opt == "" {
+				continue
+			}
+			key, val, found := strings.Cut(opt, "=")
+			if !found {
+				err = errors.Join(err, newLinterError(
+					fmt.Sprintf("Invalid tmpfs option %q: expected `key=value`.", opt),
+					config.File, field, false))
+				continue
+			}
+			switch key {
+			case "size":
+				if !tmpfsSizeLintPattern.MatchString(val) {
+					err = errors.Join(err, newLinterError(
+						fmt.Sprintf("Invalid tmpfs size %q: expected a value like `64m`, `512Mi` or `1G`.", val),
+						config.File, field, false))
+				}
+			case "mode":
+				if !tmpfsModeLintPattern.MatchString(val) {
+					err = errors.Join(err, newLinterError(
+						fmt.Sprintf("Invalid tmpfs mode %q: expected 3-4 octal digits (e.g. `1777`).", val),
+						config.File, field, false))
+				}
+			default:
+				err = errors.Join(err, newLinterError(
+					fmt.Sprintf("Unsupported tmpfs option %q: only `size` and `mode` are allowed.", key),
+					config.File, field, false))
+			}
+		}
+	}
 	return err
 }
 

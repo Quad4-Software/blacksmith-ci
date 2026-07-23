@@ -58,12 +58,21 @@ func mkPod(step *types.Step, config *config, podName, goos string, options Backe
 		return nil, err
 	}
 
-	spec, err := podSpec(step, config, options, nsp)
+	memLimit, err := stepMemoryLimit(options.Resources)
+	if err != nil {
+		return nil, err
+	}
+	tmpfs, err := parseTmpfsMounts(step.Tmpfs, memLimit)
 	if err != nil {
 		return nil, err
 	}
 
-	container, err := podContainer(step, podName, goos, options, nsp)
+	spec, err := podSpec(step, config, options, nsp, tmpfs)
+	if err != nil {
+		return nil, err
+	}
+
+	container, err := podContainer(step, podName, goos, options, nsp, tmpfs)
 	if err != nil {
 		return nil, err
 	}
@@ -210,7 +219,7 @@ func podAnnotations(config *config, options BackendOptions) map[string]string {
 	return annotations
 }
 
-func podSpec(step *types.Step, config *config, options BackendOptions, nsp nativeSecretsProcessor) (v1.PodSpec, error) {
+func podSpec(step *types.Step, config *config, options BackendOptions, nsp nativeSecretsProcessor, tmpfs []parsedTmpfs) (v1.PodSpec, error) {
 	var err error
 	spec := v1.PodSpec{
 		RestartPolicy:      v1.RestartPolicyNever,
@@ -233,6 +242,15 @@ func podSpec(step *types.Step, config *config, options BackendOptions, nsp nativ
 	spec.Volumes, err = pvcVolumes(step.Volumes)
 	if err != nil {
 		return spec, err
+	}
+
+	spec.Volumes = append(spec.Volumes, tmpfsVolumes(tmpfs)...)
+	initContainer, err := tmpfsInitContainer(tmpfs, step.Image, tmpfsModeAllowed(step, config, options))
+	if err != nil {
+		return spec, err
+	}
+	if initContainer != nil {
+		spec.InitContainers = append(spec.InitContainers, *initContainer)
 	}
 
 	if len(step.DNS) != 0 || len(step.DNSSearch) != 0 {
@@ -261,7 +279,7 @@ func podSpec(step *types.Step, config *config, options BackendOptions, nsp nativ
 	return spec, nil
 }
 
-func podContainer(step *types.Step, podName, goos string, options BackendOptions, nsp nativeSecretsProcessor) (v1.Container, error) {
+func podContainer(step *types.Step, podName, goos string, options BackendOptions, nsp nativeSecretsProcessor, tmpfs []parsedTmpfs) (v1.Container, error) {
 	var err error
 	container := v1.Container{
 		Name:            podName,
@@ -306,6 +324,8 @@ func podContainer(step *types.Step, podName, goos string, options BackendOptions
 	if err != nil {
 		return container, err
 	}
+
+	container.VolumeMounts = append(container.VolumeMounts, tmpfsVolumeMounts(tmpfs)...)
 
 	container.EnvFrom = append(container.EnvFrom, nsp.envFromSources...)
 	container.Env = append(container.Env, nsp.envVars...)
@@ -442,6 +462,21 @@ func resourceRequirements(resources Resources) (v1.ResourceRequirements, error) 
 	}
 
 	return requirements, nil
+}
+
+// stepMemoryLimit returns the step's configured memory limit, if any, so tmpfs
+// mounts without an explicit `size=` can default to it. Returns nil when no
+// memory limit is set.
+func stepMemoryLimit(resources Resources) (*resource.Quantity, error) {
+	val, ok := resources.Limits[string(v1.ResourceMemory)]
+	if !ok || val == "" {
+		return nil, nil
+	}
+	q, err := resource.ParseQuantity(val)
+	if err != nil {
+		return nil, fmt.Errorf("memory limit %q: %w", val, err)
+	}
+	return &q, nil
 }
 
 func resourceList(resources map[string]string) (v1.ResourceList, error) {
