@@ -1,0 +1,211 @@
+---
+title: 'Agent'
+---
+
+Agent configuration for Crow CI workers.
+
+## Minimum Configuration
+
+```yaml
+CROW_SERVER=crow-server:9000
+CROW_AGENT_SECRET=<token>
+```
+
+| Variable            | Description                              |
+| ------------------- | ---------------------------------------- |
+| `CROW_SERVER`       | Server gRPC address (no protocol prefix) |
+| `CROW_AGENT_SECRET` | Authentication token from server         |
+
+## Parallel Workflows
+
+```yaml
+CROW_MAX_WORKFLOWS=4
+```
+
+By default, agents execute one workflow at a time. Increase based on available resources.
+
+:::note
+A pipeline often consists of multiple workflows. Match this setting to your environment's capacity.
+:::
+
+## Workflow Filtering
+
+Crow routes workflows to agents using two mechanisms:
+
+| Method   | Description                                            |
+| -------- | ------------------------------------------------------ |
+| Labels   | Filter by matching key-value pairs                     |
+| Priority | Prefer agents with higher priority when multiple match |
+
+:::caution
+Label filtering takes precedence. If an agent is excluded by labels, priority has no effect.
+:::
+
+### Labels
+
+Agents have built-in labels:
+
+| Label      | Description                                           |
+| ---------- | ----------------------------------------------------- |
+| `backend`  | Execution backend (docker, kubernetes, local, podman) |
+| `type`     | Agent type                                            |
+| `platform` | OS/architecture                                       |
+| `agent`    | Agent identifier                                      |
+
+Add custom labels to route specific workflows:
+
+```yaml
+# Agent configuration
+CROW_AGENT_LABELS='gpu=true,memory=high'
+```
+
+```yaml
+# Workflow configuration (.crow.yaml)
+labels:
+  gpu: true
+  memory: high
+```
+
+Only agents with matching labels will process workflows with those labels.
+
+### Priority
+
+When multiple agents match, higher priority agents are preferred.
+Priority is managed server-side per agent in the web UI (agent settings) or via the API, and persists across agent and server restarts.
+Priority is honored in both single-instance and High Availability deployments.
+
+### Scheduling strategy
+
+Labels and priority narrow the set of eligible agents.
+When several agents remain eligible (matching labels, tied on the highest priority), the server picks one according to the `CROW_SCHEDULING_STRATEGY` server setting:
+
+| Strategy            | Behavior                                                                                             |
+| ------------------- | ---------------------------------------------------------------------------------------------------- |
+| `least-loaded`      | Assign to the agent with the lowest current load (running workflows relative to its slots). Default. |
+| `pack`              | Concentrate work on the fewest agents by filling the busiest agent that still has a free slot first. |
+| `round-robin`       | Cycle through eligible agents in a stable order, ignoring current load.                              |
+| `random`            | Pick a uniformly random eligible agent.                                                              |
+
+`least-loaded` spreads builds evenly and is the best default for even utilization.
+`pack` pairs well with the [autoscaler](/dev/configuration/autoscaler): keeping idle agents empty lets them be scaled down.
+An agent's number of slots is its [parallel workflow](#parallel-workflows) capacity, so load balancing scales proportionally to each agent's capacity.
+
+## Agent Types
+
+### Global Agents
+
+Admin-managed agents that process all workflows. Configure via environment variables on the agent.
+
+#### System Agents (shared secret)
+
+Agents that authenticate with the shared `CROW_AGENT_SECRET` register as **system agents** and are labeled `System` in the admin agent list.
+They share a single token, so the server identifies them by hostname.
+
+On reconnect, a system agent re-binds to its existing row using its hostname instead of creating a new one.
+This keeps a restarted agent (for example, a container without persistent `agent-config`) visible under one stable entry rather than accumulating orphaned rows.
+
+:::note
+Run at most one system agent per hostname.
+Multiple agents that share the secret and hostname re-bind to the same row.
+Give each its own pre-generated per-agent token (created via **Add agent**) when you need several agents on one host.
+:::
+
+Agents configured with a per-agent token always bind to their pre-created row by token, regardless of hostname.
+
+### Organization/User Agents
+
+Non-admin users can register agents scoped to their org or user account.
+
+:::caution
+Scoped agents can only process workflows from their assigned org/user for security isolation.
+:::
+
+**Remote agent configuration:**
+
+```yaml
+CROW_SERVER=grpc.crow.example.com:443
+CROW_GRPC_SECURE=true
+CROW_AGENT_SECRET=<token>
+CROW_BACKEND=docker
+```
+
+:::tip
+When global agents exist alongside scoped agents, add custom labels to ensure workflows route to the intended agent.
+:::
+
+### Multi-Org Agents
+
+:::note
+Admin-only feature.
+This is for security reasons: otherwise it would be possible to route workflows of other users to a custom agent.
+:::
+
+Process workflows from multiple specified organizations or repositories.
+
+```yaml
+# Multiple orgs (pipe-separated)
+CROW_CUSTOM_LABELS='org=1|2|3'
+
+# Alternative syntax (comma-separated, merged internally)
+CROW_CUSTOM_LABELS='org=1,org=2,org=3'
+
+# Limit to specific repos
+CROW_CUSTOM_LABELS='org=myorg,repo=myorg/specific-repo'
+```
+
+Multi-org labels appear highlighted in the agent list:
+
+![Multi-org Agent](img/multi-org-agent.png)
+
+## Agent Scope
+
+Admins choose an agent's scope in the **Add agent** dialog.
+**Global** (the default) lets the agent run pipelines for any organization.
+**Specific organizations** scopes the agent to one or more selected orgs.
+
+Org admins can manage agents scoped to their organization from the org's agent settings page.
+Deleting a multi-org agent there removes it from that organization only;
+it is fully deleted when that was its last remaining organization.
+
+## Backend Options
+
+Configure backend-specific settings at the agent level. See [environment variables](/dev/configuration/env-vars/) for all `CROW_BACKEND_*` options.
+
+:::tip
+Running agents on Windows hosts? See [Windows Agents](/dev/configuration/windows-agent) for the docker backend specifics, recommended container images, and routing caveats.
+:::
+
+### Local Backend Sandboxing
+
+:::note
+macOS only. Automatically disabled on other platforms.
+:::
+
+Enable process isolation using macOS `sandbox-exec`:
+
+```yaml
+CROW_BACKEND_LOCAL_SANDBOX_LEVEL=standard
+```
+
+| Level      | Network    | System Access | Use Case                          |
+| ---------- | ---------- | ------------- | --------------------------------- |
+| `none`     | ✅ Full    | ✅ Full       | Trusted code only                 |
+| `standard` | ✅ Full    | ⚠️ Limited    | Most CI/CD workloads              |
+| `strict`   | ❌ Blocked | ❌ Minimal    | Offline builds, maximum isolation |
+
+**Standard level details:**
+
+| Allows                            | Denies                                   |
+| --------------------------------- | ---------------------------------------- |
+| Network access (npm, go get, pip) | Writing outside workflow dirs            |
+| System libraries and frameworks   | Sensitive user dirs (Documents, Desktop) |
+| Shell configs (.bashrc, .zshrc)   | SSH private keys                         |
+| Workflow temp directories         |                                          |
+
+:::warning
+`none` runs processes without isolation. Only use with fully trusted code.
+:::
+
+:::note
+`strict` blocks network access, breaking most CI/CD workflows that download dependencies.
+:::

@@ -1,0 +1,72 @@
+---
+title: "Debugging"
+---
+
+Configure VSCode for local Crow CI development and debugging.
+
+## VSCode Configuration
+
+The repository includes `.vscode/launch.json` with a complete "Crow CI" configuration for running all components locally.
+
+### Prerequisites
+
+Create a `.env` file in the repository root:
+
+```sh
+export CROW_OPEN=true
+export CROW_ADMIN=<your-forge-username>
+export CROW_HOST=http://localhost:8000
+
+# Forge configuration (Forgejo example)
+export CROW_FORGEJO=true
+export CROW_FORGEJO_URL=https://codeberg.org
+export CROW_FORGEJO_CLIENT=<oauth-client-id>
+export CROW_FORGEJO_SECRET=<oauth-client-secret>
+
+# Agent configuration
+export CROW_SERVER=localhost:9000
+export CROW_AGENT_SECRET=<agent-secret>
+export CROW_MAX_WORKFLOWS=1
+
+# UI development (enables hot-reload)
+export CROW_DEV_WWW_PROXY=http://localhost:8010
+
+# Disable health-checks while debugging
+export CROW_HEALTHCHECK=false
+
+export CROW_LOG_LEVEL=debug
+```
+
+### Starting Development
+
+1. Open the repository in VSCode
+2. Select "Run and Debug" (Ctrl+Shift+D)
+3. Choose "Crow CI" configuration
+4. Press F5 to start
+5. Open `http://localhost:8000`
+
+## Important Notes
+
+### Database
+
+Crow uses SQLite for local development, stored at `./crow.sqlite` (gitignored). All changes (repos, secrets, etc.) persist in this file.
+
+### OAuth Application
+
+Create a dedicated OAuth application on your forge for local development. Using the same OAuth app across multiple instances causes token conflicts.
+
+### Webhooks
+
+For testing webhooks locally, you have two options:
+
+1. **Use `event: manual`** (recommended) - Trigger pipelines from the Crow UI without external webhooks
+2. **Expose locally** - Set `CROW_EXPERT_WEBHOOK_HOST` to a publicly accessible URL pointing to your local server
+
+### Hot Reload
+
+- **UI changes**: Automatically reload via Vite dev server
+- **Backend changes**: Restart the debug session (refresh button in VSCode debug toolbar)
+
+## Testing Changes
+
+Make a simple change (e.g., edit text in `web/src/assets/locales/en.json`) and verify it appears after refresh.

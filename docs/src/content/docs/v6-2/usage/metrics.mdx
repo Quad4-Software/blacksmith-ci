@@ -1,0 +1,44 @@
+---
+title: "Metrics dashboard"
+---
+
+Crow ships a metrics dashboard that summarizes pipeline activity across your repositories, organizations and agents.
+Open it from the user settings area; administrators can additionally switch to an instance-wide view.
+
+## Scope and filters
+
+The dashboard respects your access: you see metrics only for repositories you can access.
+Use the header controls to narrow the data:
+
+- **Owner** and **Repository** filters restrict the metrics to a subset of your repositories.
+- **Date range** limits the data to a time window (last week, month, quarter, year, or a custom range).
+- **Instance-wide metrics** (administrators only) switches from your repositories to the whole instance.
+
+## Tabs
+
+- **Overview**: headline totals (repositories, organizations, pipelines), average build time and average steps per workflow, plus top agents, repositories and organizations.
+- **Charts**: a fixed set of bar charts (workflows by agent, pipelines by repository/organization, and average/total build time by repository/organization).
+- **Chart Builder**: build your own chart on demand.
+
+## Chart builder
+
+The chart builder renders a single series from three choices:
+
+- **Group by** (dimension): organization, repository, agent or time.
+- **Metric**: pipeline count, workflow count, average build time, total build time or average steps per workflow.
+- **Time bucket** (only when grouping by time): day, week or month.
+- **Chart type**: bar or line (line is the default for the time dimension).
+
+Not every metric applies to every grouping.
+Aggregating pipeline counts or steps per agent is not meaningful, so those combinations are unavailable.
+The builder honors the same owner, repository and date-range filters as the rest of the dashboard.
+
+Build-time axes are labeled with human-readable durations (for example `5m`, `1h 30m`) on round intervals, and counts use thousands separators.
+
+## Historic data for removed repositories and organizations
+
+Every pipeline stores the organization and repository name it belonged to at creation time.
+Because of this, the dashboard keeps showing the correct names even after a repository or organization is renamed or removed, instead of falling back to "Unknown".
+
+By default, removing a repository or organization keeps its pipelines and workflows so their history stays in the metrics.
+Operators who prefer the previous behavior, where removal also purges pipelines and workflows, can set `CROW_METRICS_PRESERVE_DELETED=false` (see the [server configuration](/dev/configuration/server#metrics)).
