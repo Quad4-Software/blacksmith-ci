@@ -76,10 +76,16 @@
       "matchUpdateTypes": ["minor", "patch"]
     },
     {
-      "groupName": "frontend deps non-major",
+      "description": "Bundle every non-major node dependency (web/ and docs/) into a single PR per run so single-package bumps don't each open their own PR.",
+      "groupName": "node deps non-major",
       "matchManagers": ["bun", "npm"],
-      "matchUpdateTypes": ["minor", "patch"],
-      "matchFileNames": ["web/**"]
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "description": "Bundle every major node dependency into a single PR so major bumps are reviewed together instead of one PR each.",
+      "groupName": "node deps major",
+      "matchManagers": ["bun", "npm"],
+      "matchUpdateTypes": ["major"]
     },
     {
       "description": "Extract version from xgo container tags",

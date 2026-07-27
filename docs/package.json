@@ -33,6 +33,7 @@
   "overrides": {
     "@emnapi/core": "1.11.1",
     "@emnapi/runtime": "1.11.1",
-    "internmap": "1.0.1"
+    "internmap": "1.0.1",
+    "typescript": "6.0.3"
   }
 }
