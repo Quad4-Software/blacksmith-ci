@@ -503,6 +503,8 @@
       "exit_code": "Exit Code {exitCode}",
       "loading": "Loading…",
       "no_logs": "No logs",
+      "waiting_for_logs": "Waiting for logs…",
+      "reload_logs": "Reload logs",
       "logs_deleted": "🧹️ Logs have been wiped",
       "log_truncated_title": "Log Output Truncated",
       "log_truncated_desc": "Showing last {limit} lines. Earlier lines have been removed. Adjust the limit in settings or download for complete logs.",

@@ -596,7 +596,17 @@
         <div v-else-if="!loadedLogs">{{ $t('repo.pipeline.loading') }}</div>
 
         <div v-else-if="logsDeleted">{{ $t('repo.pipeline.logs_deleted') }}</div>
-        <div v-else-if="log?.length === 0">{{ $t('repo.pipeline.no_logs') }}</div>
+        <div v-else-if="log?.length === 0 && awaitingLogs" class="flex items-center gap-3">
+          <Icon name="spinner" class="w-6 h-6 animate-spin text-primary" />
+          <span>{{ $t('repo.pipeline.waiting_for_logs') }}</span>
+        </div>
+        <div v-else-if="log?.length === 0" class="flex flex-col items-center gap-3 text-center">
+          <span>{{ $t('repo.pipeline.no_logs') }}</span>
+          <Button variant="outline" size="sm" @click="loadLogs(true)">
+            <Icon name="solar:restart-bold" class="mr-2" />
+            {{ $t('repo.pipeline.reload_logs') }}
+          </Button>
+        </div>
       </CardContent>
 
       <!-- Stderr Error Output Section -->
@@ -816,6 +826,16 @@ const hasLogs = computed(
     // we do not have logs for skipped steps
     repo?.value && pipeline.value && step.value && step.value.state !== 'skipped',
 );
+// A live step keeps producing output, so an empty log view is expected rather
+// than a sign that there is nothing to show.
+const isStepLive = computed(() => step.value?.state === 'running' || step.value?.state === 'pending');
+// Backoff used to re-read the store while logs are still being persisted: a
+// step can be reported as finished a moment before its last batch lands.
+const LOG_RETRY_DELAYS_MS = [1000, 2000, 4000, 8000];
+let logRetryTimer: ReturnType<typeof setTimeout> | undefined;
+const logRetryPending = ref(false);
+// Distinguishes "there is nothing to show yet" from "there is nothing to show".
+const awaitingLogs = computed(() => isStepLive.value || logRetryPending.value);
 const autoScroll = useStorage('crow:log-auto-scroll', false);
 const downloadInProgress = ref(false);
 const copyInProgress = ref(false);
@@ -1276,34 +1296,114 @@ async function copyLogs() {
   }
 }
 
-async function loadLogs() {
-  if (loadedStepSlug.value === stepSlug.value) {
+function clearLogRetry() {
+  if (logRetryTimer) {
+    clearTimeout(logRetryTimer);
+    logRetryTimer = undefined;
+  }
+  logRetryPending.value = false;
+}
+
+/** True once at least one line is known, either rendered or still buffered. */
+function hasReceivedLines(): boolean {
+  return (log.value?.length ?? 0) > 0 || logBuffer.value.length > 0;
+}
+
+/** Read the persisted logs of the current step and return how many lines were found. */
+async function fetchPersistedLogs(): Promise<number> {
+  if (!repo?.value || !pipeline.value || !step.value) {
+    return 0;
+  }
+  const logs = await apiClient.getLogs(repo.value.id, pipeline.value.number, step.value.id);
+  logs?.forEach((line) => writeLog({ index: line.line, text: line.data, time: line.time, logType: line.type }));
+  flushLogs(false);
+  return logs?.length ?? 0;
+}
+
+/**
+ * Re-read the store while the view is still empty. Logs are persisted
+ * asynchronously, so opening a step right after it started (or right after it
+ * finished) can hit a window where the store is still empty and the in-memory
+ * stream has nothing to replay yet. Instead of claiming there are no logs we
+ * retry with a backoff and keep showing a waiting state.
+ */
+function scheduleLogRetry(slug: string, attempt = 0) {
+  const delay = LOG_RETRY_DELAYS_MS[attempt];
+  if (delay === undefined) {
+    logRetryPending.value = false;
     return;
   }
 
-  log.value = undefined;
+  logRetryPending.value = true;
+  logRetryTimer = setTimeout(async () => {
+    logRetryTimer = undefined;
+    // Bail out if we were torn down, switched steps, or logs arrived meanwhile.
+    if (isUnmounted || loadedStepSlug.value !== slug || hasReceivedLines()) {
+      logRetryPending.value = false;
+      return;
+    }
+
+    try {
+      if (await fetchPersistedLogs()) {
+        logRetryPending.value = false;
+        return;
+      }
+    } catch {
+      // keep retrying, the step may simply not have any logs stored yet
+    }
+
+    scheduleLogRetry(slug, attempt + 1);
+  }, delay);
+}
+
+async function loadLogs(force = false) {
+  const isSameStep = loadedStepSlug.value === stepSlug.value;
+  if (isSameStep && !force) {
+    return;
+  }
+
+  clearLogRetry();
+  // Keep what we already have when reloading the same step (e.g. after it
+  // finished) so the view does not flash back to a loading state.
+  if (!isSameStep) {
+    log.value = undefined;
+  }
   logBuffer.value = [];
   isTruncated.value = false; // Reset truncation state for new logs
   ansiUp.value = new AnsiUp();
   ansiUp.value.use_classes = true;
 
   stream.value?.close();
+  stream.value = undefined;
 
   if (!hasLogs.value || !step.value) {
     return;
   }
 
+  loadedStepSlug.value = stepSlug.value;
+  const slug = stepSlug.value;
+
   if (step.value.state !== 'running' && step.value.state !== 'pending') {
-    loadedStepSlug.value = stepSlug.value;
-    const logs = await apiClient.getLogs(repo.value.id, pipeline.value.number, step.value.id);
-    logs?.forEach((line) => writeLog({ index: line.line, text: line.data, time: line.time, logType: line.type }));
-    flushLogs(false);
+    let lines = 0;
+    try {
+      lines = await fetchPersistedLogs();
+    } catch {
+      // fall through to the retry below
+    }
+    if (lines === 0 && !hasReceivedLines()) {
+      scheduleLogRetry(slug);
+    }
   } else {
-    loadedStepSlug.value = stepSlug.value;
     stream.value = apiClient.streamLogs(repo.value.id, pipeline.value.number, step.value.id, (line) => {
+      clearLogRetry();
       writeLog({ index: line.line, text: line.data, time: line.time, logType: line.type });
       flushLogs(true);
     });
+    // The stream only replays what the server still holds in memory, which is
+    // empty after a server restart. Fall back to the store if it stays quiet.
+    if (step.value.started) {
+      scheduleLogRetry(slug);
+    }
   }
 }
 
@@ -1505,6 +1605,7 @@ onBeforeUnmount(() => {
   // Cancel pending debounced work so it can't fire against detached refs.
   flushLogs.cancel();
   debouncedUpdateScrollState.cancel();
+  clearLogRetry();
   stream.value?.close();
   window.removeEventListener('keydown', handleKeydown);
 });
@@ -1520,7 +1621,10 @@ watch(step, async (newStep, oldStep) => {
     }
 
     if (oldStep?.state !== newStep?.state) {
-      await loadLogs();
+      // Force a reload: the step slug does not change with the state, and a
+      // step that just finished needs its logs read back from the store since
+      // the stream is closed at that point.
+      await loadLogs(true);
     }
   }
 });
