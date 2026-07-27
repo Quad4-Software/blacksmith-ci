@@ -27,13 +27,13 @@
             {{ $t('repo.pipeline.matrix.more_axes', { count: hiddenCount }) }}
           </button>
         </TooltipTrigger>
-        <TooltipContent align="start">
+        <TooltipContent align="start" variant="popover">
           <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
           <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 font-mono text-xs">
             <template v-for="chip in chips" :key="chip.key">
               <span class="text-muted-foreground">{{ chip.key }}</span>
               <span v-if="chip.present" :style="{ color: matrixValueColor(String(chip.value)) }">{{ chip.value }}</span>
-              <span v-else class="italic opacity-60">&mdash;</span>
+              <span v-else class="italic text-muted-foreground/60">&mdash;</span>
             </template>
           </div>
           <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
