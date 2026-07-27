@@ -28,7 +28,7 @@ GCI_VERSION := "v0.14.0"
 
 # renovate: datasource=go depName=github.com/vektra/mockery/v3
 
-MOCKERY_VERSION := "v3.7.1"
+MOCKERY_VERSION := "v3.7.2"
 
 # renovate: datasource=go depName=github.com/google/addlicense
 
