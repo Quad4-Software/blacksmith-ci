@@ -134,6 +134,9 @@ message AgentInfo {
   int64 limit_mem = 7;
   int64 limit_cpu_quota = 8;
   string build_date = 9;
+  // total resources of the machine running the workloads, 0 when unknown
+  int32 host_cpus = 10;
+  int64 host_mem = 11;
 }
 
 message RegisterAgentRequest {

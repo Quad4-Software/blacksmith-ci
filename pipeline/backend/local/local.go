@@ -107,6 +107,8 @@ func (e *local) Load(ctx context.Context) (*types.BackendInfo, error) {
 
 	return &types.BackendInfo{
 		Platform: e.os + "/" + e.arch,
+		HostCPUs: int32(runtime.NumCPU()), //nolint:gosec // core count never overflows int32
+		HostMem:  hostMemTotal(),
 	}, nil
 }
 

@@ -131,8 +131,16 @@ func TestAgentUpdate(t *testing.T) {
 	agent.Backend = "local"
 	agent.Capacity = 2
 	agent.Version = "next-abcdef"
+	agent.HostCPUs = 16
+	// exceeds the 32-bit integer range, so this also guards the column type
+	agent.HostMem = 68719476736
 	err = store.AgentUpdate(agent)
 	assert.NoError(t, err)
+
+	updated, err := store.AgentFind(agent.ID)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 16, updated.HostCPUs)
+	assert.EqualValues(t, 68719476736, updated.HostMem)
 }
 
 func TestAgentListForOrg(t *testing.T) {

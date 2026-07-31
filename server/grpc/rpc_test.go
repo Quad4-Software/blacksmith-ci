@@ -172,6 +172,38 @@ func TestRegisterAgent(t *testing.T) {
 		})
 		assert.NoError(t, err)
 	})
+
+	t.Run("It should persist the host resources reported by the agent", func(t *testing.T) {
+		store := new(store_mocks.MockStore)
+		storeAgent := new(model.Agent)
+		storeAgent.ID = 1337
+		// stale values from a previous registration must be overwritten
+		storeAgent.HostCPUs = 2
+		storeAgent.HostMem = 1024
+		agentMatcher := mock.MatchedBy(func(a *model.Agent) bool {
+			return a.ID == 1337 && a.HostCPUs == 16 && a.HostMem == 68719476736
+		})
+
+		store.On("AgentFind", int64(1337)).Once().Return(storeAgent, nil)
+		store.On("AgentUpdate", agentMatcher).Once().Return(nil)
+		grpc := RPC{
+			store:   store,
+			metrics: metrics,
+		}
+		ctx := metadata.NewIncomingContext(
+			t.Context(),
+			metadata.Pairs("hostname", "hostname", "agent_id", "1337"),
+		)
+		_, _, err := grpc.RegisterAgent(ctx, rpc.AgentInfo{
+			Version:  "version",
+			Platform: "platform",
+			Backend:  "backend",
+			Capacity: 2,
+			HostCPUs: 16,
+			HostMem:  68719476736,
+		})
+		assert.NoError(t, err)
+	})
 }
 
 func TestUpdateAgentLastWork(t *testing.T) {

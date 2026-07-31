@@ -116,16 +116,31 @@
             </CardContent>
           </Card>
 
-          <!-- Limits (Docker only) -->
-          <Card v-if="agent.backend === 'docker'">
+          <!-- Resources: Docker limits and, when reported, the host totals -->
+          <Card v-if="hasAgentResources(agent)">
             <CardHeader>
-              <CardTitle class="text-sm">{{ $t('admin.settings.agents.section_limits') }}</CardTitle>
+              <CardTitle class="text-sm">{{ $t('admin.settings.agents.section_resources') }}</CardTitle>
             </CardHeader>
             <CardContent class="space-y-3">
-              <MetadataField :label="$t('admin.settings.agents.limit_mem')" :value="formatBytes(agent.limit_mem, t)" />
+              <template v-if="agent.backend === 'docker'">
+                <MetadataField
+                  :label="$t('admin.settings.agents.limit_mem')"
+                  :value="formatBytes(agent.limit_mem, t)"
+                />
+                <MetadataField
+                  :label="$t('admin.settings.agents.limit_cpu_quota')"
+                  :value="formatCPUQuota(agent.limit_cpu_quota, t)"
+                />
+              </template>
               <MetadataField
-                :label="$t('admin.settings.agents.limit_cpu_quota')"
-                :value="formatCPUQuota(agent.limit_cpu_quota, t)"
+                v-if="agent.host_mem > 0"
+                :label="$t('admin.settings.agents.host_mem')"
+                :value="formatBytes(agent.host_mem, t)"
+              />
+              <MetadataField
+                v-if="agent.host_cpus > 0"
+                :label="$t('admin.settings.agents.host_cpus')"
+                :value="formatHostCores(agent.host_cpus, t)"
               />
             </CardContent>
           </Card>
@@ -254,10 +269,12 @@ import useNotifications from '~/compositions/useNotifications';
 import {
   formatBytes,
   formatCPUQuota,
+  formatHostCores,
   getAgentDisplayName,
   getAgentStatusAnimation,
   getAgentStatusColor,
   getAgentStatusTitle,
+  hasAgentResources,
   isAgentVersionMismatch,
 } from '~/lib/agent-utils';
 import type { Agent, AgentWorkflow, Task } from '~/lib/api/types';

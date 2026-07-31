@@ -122,6 +122,7 @@ func Migrate(_ context.Context, db *sql.DB, driver string, _ bool) error {
 		{ID: "crow-add-log-entries-unique-index", Migrate: addLogEntriesUniqueIndex(driver)},
 		{ID: "crow-add-pipeline-org-identity", Migrate: addPipelineOrgIdentity(driver)},
 		{ID: "crow-backfill-workflow-agent-identity", Migrate: backfillWorkflowAgentIdentity(driver)},
+		{ID: "crow-add-agent-host-resources", Migrate: addAgentHostResources},
 	}
 
 	if len(newMigrations) > 0 {
@@ -661,6 +662,23 @@ func migrateAgentOrgIDs(driver string) func(tx *sql.Tx) error {
 // survive repo/org renames and deletion (and no longer render personal-account
 // orgs as "Unknown"). Fresh databases get the columns from the baseline schema
 // and skip this via the tableExists guard plus the runner's applied set.
+// Adds the host resource totals reported by agents.
+func addAgentHostResources(tx *sql.Tx) error {
+	if !tableExists(tx, "agents") {
+		return nil
+	}
+
+	if err := addColumnIfNotExists("agents", "host_cpus", "INTEGER")(tx); err != nil {
+		return fmt.Errorf("add agents.host_cpus: %w", err)
+	}
+	// BIGINT: a byte count exceeds the 32-bit INTEGER range of Postgres and MySQL.
+	if err := addColumnIfNotExists("agents", "host_mem", "BIGINT")(tx); err != nil {
+		return fmt.Errorf("add agents.host_mem: %w", err)
+	}
+
+	return nil
+}
+
 func addPipelineOrgIdentity(driver string) func(tx *sql.Tx) error {
 	return func(tx *sql.Tx) error {
 		if !tableExists(tx, "pipelines") {

@@ -89,6 +89,11 @@ type (
 		CustomLabels  map[string]string `json:"custom_labels"`
 		LimitMem      int64             `json:"limit_mem"`
 		LimitCPUQuota int64             `json:"limit_cpu_quota"`
+		// HostCPUs and HostMem describe the machine running the workloads, which
+		// is not necessarily the machine running the agent process (e.g. when the
+		// agent talks to a remote Docker daemon). Zero means unknown.
+		HostCPUs int32 `json:"host_cpus"`
+		HostMem  int64 `json:"host_mem"`
 	}
 )
 

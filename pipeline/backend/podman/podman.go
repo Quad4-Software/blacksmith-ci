@@ -140,6 +140,8 @@ func (e *podman) Load(ctx context.Context) (*backend.BackendInfo, error) {
 
 	return &backend.BackendInfo{
 		Platform: info.Host.OS + "/" + normalizeArchType(info.Host.Arch),
+		HostCPUs: int32(info.Host.CPUs), //nolint:gosec // core count never overflows int32
+		HostMem:  info.Host.MemTotal,
 	}, nil
 }
 

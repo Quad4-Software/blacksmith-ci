@@ -835,6 +835,9 @@ type AgentInfo struct {
 	LimitMem      int64                  `protobuf:"varint,7,opt,name=limit_mem,json=limitMem,proto3" json:"limit_mem,omitempty"`
 	LimitCpuQuota int64                  `protobuf:"varint,8,opt,name=limit_cpu_quota,json=limitCpuQuota,proto3" json:"limit_cpu_quota,omitempty"`
 	BuildDate     string                 `protobuf:"bytes,9,opt,name=build_date,json=buildDate,proto3" json:"build_date,omitempty"`
+	// total resources of the machine running the workloads, 0 when unknown
+	HostCpus      int32 `protobuf:"varint,10,opt,name=host_cpus,json=hostCpus,proto3" json:"host_cpus,omitempty"`
+	HostMem       int64 `protobuf:"varint,11,opt,name=host_mem,json=hostMem,proto3" json:"host_mem,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -930,6 +933,20 @@ func (x *AgentInfo) GetBuildDate() string {
 		return x.BuildDate
 	}
 	return ""
+}
+
+func (x *AgentInfo) GetHostCpus() int32 {
+	if x != nil {
+		return x.HostCpus
+	}
+	return 0
+}
+
+func (x *AgentInfo) GetHostMem() int64 {
+	if x != nil {
+		return x.HostMem
+	}
+	return 0
 }
 
 type RegisterAgentRequest struct {
@@ -1713,7 +1730,7 @@ const file_crow_proto_rawDesc = "" +
 	"\x06status\x18\x01 \x01(\tR\x06status\x128\n" +
 	"\x18workflow_polling_healthy\x18\x02 \x01(\bR\x16workflowPollingHealthy\"+\n" +
 	"\x10ClaimTaskRequest\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId\"\x80\x03\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\"\xb8\x03\n" +
 	"\tAgentInfo\x12\x1a\n" +
 	"\bplatform\x18\x01 \x01(\tR\bplatform\x12\x1a\n" +
 	"\bcapacity\x18\x02 \x01(\x05R\bcapacity\x12\x18\n" +
@@ -1724,7 +1741,10 @@ const file_crow_proto_rawDesc = "" +
 	"\tlimit_mem\x18\a \x01(\x03R\blimitMem\x12&\n" +
 	"\x0flimit_cpu_quota\x18\b \x01(\x03R\rlimitCpuQuota\x12\x1d\n" +
 	"\n" +
-	"build_date\x18\t \x01(\tR\tbuildDate\x1a?\n" +
+	"build_date\x18\t \x01(\tR\tbuildDate\x12\x1b\n" +
+	"\thost_cpus\x18\n" +
+	" \x01(\x05R\bhostCpus\x12\x19\n" +
+	"\bhost_mem\x18\v \x01(\x03R\ahostMem\x1a?\n" +
 	"\x11CustomLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"<\n" +

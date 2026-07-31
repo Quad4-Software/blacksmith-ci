@@ -191,6 +191,8 @@ func (e *docker) Load(ctx context.Context) (*backend.BackendInfo, error) {
 
 	return &backend.BackendInfo{
 		Platform: e.info.OSType + "/" + normalizeArchType(e.info.Architecture),
+		HostCPUs: int32(e.info.NCPU), //nolint:gosec // core count never overflows int32
+		HostMem:  e.info.MemTotal,
 	}, nil
 }
 

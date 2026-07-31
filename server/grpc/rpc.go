@@ -622,6 +622,8 @@ func (s *RPC) RegisterAgent(ctx context.Context, info rpc.AgentInfo) (int64, str
 	// It is intentionally not taken from the agent here, so it survives re-registration.
 	agent.LimitMem = info.LimitMem
 	agent.LimitCPUQuota = info.LimitCPUQuota
+	agent.HostCPUs = info.HostCPUs
+	agent.HostMem = info.HostMem
 	// Reset NoSchedule when agent registers - allows previously disabled agents to receive tasks again
 	agent.NoSchedule = false
 

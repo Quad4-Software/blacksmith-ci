@@ -54,6 +54,8 @@ const sampleAgent = {
   custom_labels: { foo: 'bar' },
   limit_mem: 0,
   limit_cpu_quota: 0,
+  host_cpus: 0,
+  host_mem: 0,
   running_workflows: 2,
 };
 
@@ -98,6 +100,36 @@ describe('agentList', () => {
     // Check that the info grid exists
     const infoGrid = wrapper.find('.grid');
     expect(infoGrid.exists()).toBe(true);
+  });
+
+  describe('host resources', () => {
+    it('renders the per-workflow limit against the host total', () => {
+      const wrapper = mountWithAgent({
+        ...sampleAgent,
+        limit_mem: 4 * 1024 ** 3,
+        limit_cpu_quota: 200000,
+        host_cpus: 16,
+        host_mem: 64 * 1024 ** 3,
+      });
+      expect(wrapper.text()).toContain('4 GB / 64 GB');
+      expect(wrapper.text()).toContain('2 / 16 admin.settings.agents.cores');
+    });
+
+    it('renders host totals for a backend without limits', () => {
+      const wrapper = mountWithAgent({
+        ...sampleAgent,
+        backend: 'local',
+        host_cpus: 8,
+        host_mem: 16 * 1024 ** 3,
+      });
+      expect(wrapper.text()).toContain('16 GB');
+      expect(wrapper.text()).toContain('8 admin.settings.agents.cores');
+    });
+
+    it('omits the resource section when nothing is known', () => {
+      const wrapper = mountWithAgent({ ...sampleAgent, backend: 'kubernetes' });
+      expect(wrapper.text()).not.toContain('admin.settings.agents.resource_mem');
+    });
   });
 
   describe('management button visibility', () => {

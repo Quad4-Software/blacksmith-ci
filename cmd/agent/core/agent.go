@@ -366,6 +366,8 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 		CustomLabels:  customLabels,
 		LimitMem:      limitMem,
 		LimitCPUQuota: limitCPUQuota,
+		HostCPUs:      engInfo.HostCPUs,
+		HostMem:       engInfo.HostMem,
 	})
 	if err != nil {
 		log.Error().Err(err).Msg("failed to register agent with server")
@@ -396,6 +398,8 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 			CustomLabels:  customLabels,
 			LimitMem:      limitMem,
 			LimitCPUQuota: limitCPUQuota,
+			HostCPUs:      engInfo.HostCPUs,
+			HostMem:       engInfo.HostMem,
 		})
 		if err != nil {
 			log.Error().Err(err).Msg("failed to re-register agent")

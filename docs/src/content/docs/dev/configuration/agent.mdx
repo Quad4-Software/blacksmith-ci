@@ -79,12 +79,12 @@ Priority is honored in both single-instance and High Availability deployments.
 Labels and priority narrow the set of eligible agents.
 When several agents remain eligible (matching labels, tied on the highest priority), the server picks one according to the `CROW_SCHEDULING_STRATEGY` server setting:
 
-| Strategy            | Behavior                                                                                             |
-| ------------------- | ---------------------------------------------------------------------------------------------------- |
-| `least-loaded`      | Assign to the agent with the lowest current load (running workflows relative to its slots). Default. |
-| `pack`              | Concentrate work on the fewest agents by filling the busiest agent that still has a free slot first. |
-| `round-robin`       | Cycle through eligible agents in a stable order, ignoring current load.                              |
-| `random`            | Pick a uniformly random eligible agent.                                                              |
+| Strategy       | Behavior                                                                                             |
+| -------------- | ---------------------------------------------------------------------------------------------------- |
+| `least-loaded` | Assign to the agent with the lowest current load (running workflows relative to its slots). Default. |
+| `pack`         | Concentrate work on the fewest agents by filling the busiest agent that still has a free slot first. |
+| `round-robin`  | Cycle through eligible agents in a stable order, ignoring current load.                              |
+| `random`       | Pick a uniformly random eligible agent.                                                              |
 
 `least-loaded` spreads builds evenly and is the best default for even utilization.
 `pack` pairs well with the [autoscaler](/dev/configuration/autoscaler): keeping idle agents empty lets them be scaled down.
@@ -166,6 +166,24 @@ Admins choose an agent's scope in the **Add agent** dialog.
 Org admins can manage agents scoped to their organization from the org's agent settings page.
 Deleting a multi-org agent there removes it from that organization only;
 it is fully deleted when that was its last remaining organization.
+
+## Reported Host Resources
+
+Agents report the CPU core count and total memory of the machine that runs their workloads.
+The agent list and the agent detail page show these totals next to the per-workflow limits, so a limit like `4 GB / 64 GB` reads as "4 GB per workflow on a 64 GB host".
+
+The numbers describe the workload host, not the agent process.
+An agent that drives a remote Docker daemon reports the daemon's machine.
+
+| Backend    | Reported                                         |
+| ---------- | ------------------------------------------------ |
+| docker     | cores and memory of the Docker daemon host       |
+| podman     | cores and memory of the Podman host              |
+| local      | cores everywhere, memory on Linux only           |
+| kubernetes | nothing, since workloads are spread across nodes |
+
+Values are read once when the agent starts and refreshed whenever it re-registers.
+Agents older than the server simply report nothing, and the totals stay hidden for them.
 
 ## Backend Options
 

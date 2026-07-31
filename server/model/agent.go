@@ -53,6 +53,11 @@ type Agent struct {
 	CustomLabels           JSONMapStringString `json:"custom_labels"    bun:"custom_labels,type:text"`
 	LimitMem               int64               `json:"limit_mem"        bun:"limit_mem"`
 	LimitCPUQuota          int64               `json:"limit_cpu_quota"  bun:"limit_cpu_quota"`
+	// HostCPUs and HostMem are reported by the agent and describe the machine
+	// running the workloads, not the machine running the agent process. They are
+	// zero for backends that cannot determine them (e.g. Kubernetes).
+	HostCPUs int32 `json:"host_cpus" bun:"host_cpus"`
+	HostMem  int64 `json:"host_mem"  bun:"host_mem"`
 	// OrgIDs scopes the agent to one or more organizations. An empty list means
 	// the agent is global and can process tasks from any organization.
 	OrgIDs JSONSliceInt64 `json:"org_ids" bun:"org_ids,type:text"`

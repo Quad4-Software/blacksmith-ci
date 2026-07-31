@@ -171,6 +171,8 @@ func (s *CrowServer) RegisterAgent(c context.Context, req *proto.RegisterAgentRe
 		CustomLabels:  agentInfo.GetCustomLabels(),
 		LimitMem:      agentInfo.GetLimitMem(),
 		LimitCPUQuota: agentInfo.GetLimitCpuQuota(),
+		HostCPUs:      agentInfo.GetHostCpus(),
+		HostMem:       agentInfo.GetHostMem(),
 	})
 	res.AgentId = agentID
 	res.AgentName = agentName

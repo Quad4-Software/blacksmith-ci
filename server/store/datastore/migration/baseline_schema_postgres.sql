@@ -309,6 +309,8 @@ CREATE TABLE IF NOT EXISTS agents (
     custom_labels TEXT,
     limit_mem INTEGER,
     limit_cpu_quota INTEGER,
+    host_cpus INTEGER,
+    host_mem BIGINT,
     org_ids TEXT
 );
 

@@ -60,6 +60,12 @@ type Backend interface {
 // BackendInfo represents the reported information of a loaded backend.
 type BackendInfo struct {
 	Platform string
+	// HostCPUs is the number of logical CPU cores available on the machine that
+	// runs the workloads. Zero when the backend cannot determine it.
+	HostCPUs int32
+	// HostMem is the total physical memory in bytes of the machine that runs the
+	// workloads. Zero when the backend cannot determine it.
+	HostMem int64
 }
 
 // WorkflowDiscoverer is an optional interface that backends can implement

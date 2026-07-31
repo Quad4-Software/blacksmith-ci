@@ -18,6 +18,38 @@ export function formatCPUQuota(quota: number, t: Translator): string {
   return cores >= 1 ? `${cores}` : `${quota}µs`;
 }
 
+export function formatHostCores(cores: number, t: Translator): string {
+  return `${cores} ${t('admin.settings.agents.cores')}`;
+}
+
+// hasAgentResources reports whether there is anything to show in the resource
+// section: either a host total reported by the agent, or the Docker limits that
+// have always been displayed for the Docker backend.
+export function hasAgentResources(agent: Agent): boolean {
+  return agent.host_cpus > 0 || agent.host_mem > 0 || agent.backend === 'docker';
+}
+
+// formatAgentMemory renders the per-workflow memory limit against the host
+// total, e.g. `4 GB / 64 GB`. Either side is dropped when unknown; with neither
+// known it falls back to the limit, which renders as "unlimited".
+export function formatAgentMemory(agent: Agent, t: Translator): string {
+  const host = agent.host_mem > 0 ? formatBytes(agent.host_mem, t) : null;
+  if (host === null) {
+    return formatBytes(agent.limit_mem, t);
+  }
+  return agent.limit_mem > 0 ? `${formatBytes(agent.limit_mem, t)} / ${host}` : host;
+}
+
+// formatAgentCPU renders the per-workflow CPU quota against the host core
+// count, e.g. `2 / 16 cores`. See formatAgentMemory for the fallbacks.
+export function formatAgentCPU(agent: Agent, t: Translator): string {
+  const host = agent.host_cpus > 0 ? formatHostCores(agent.host_cpus, t) : null;
+  if (host === null) {
+    return formatCPUQuota(agent.limit_cpu_quota, t);
+  }
+  return agent.limit_cpu_quota > 0 ? `${formatCPUQuota(agent.limit_cpu_quota, t)} / ${host}` : host;
+}
+
 export function getAgentDisplayName(agent: Agent): string {
   return agent.name || `Agent ${agent.id}`;
 }

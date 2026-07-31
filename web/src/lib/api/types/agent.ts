@@ -38,5 +38,9 @@ export interface Agent {
   custom_labels: Record<string, string>;
   limit_mem: number;
   limit_cpu_quota: number;
+  /** logical cores of the machine running the workloads, 0 when unknown */
+  host_cpus: number;
+  /** total memory in bytes of the machine running the workloads, 0 when unknown */
+  host_mem: number;
   running_workflows: number;
 }

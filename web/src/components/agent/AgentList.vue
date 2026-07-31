@@ -163,24 +163,19 @@
                       {{ $t('admin.settings.agents.org_prefix') }} {{ orgId }}
                     </router-link>
                   </template>
-                  <!-- Docker Memory Limit -->
+                  <!-- Resources: per-workflow limit / host total -->
                   <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
-                  <span v-if="agent.backend === 'docker'" class="text-xs text-muted-foreground" aria-hidden="true"
-                    >•</span
-                  >
-                  <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
-                  <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
-                  <span v-if="agent.backend === 'docker'" class="text-xs text-muted-foreground">
-                    {{ $t('admin.settings.agents.limit_mem') }}<span aria-hidden="true">:</span>
-                    {{ formatBytes(agent.limit_mem, t) }}
-                  </span>
-                  <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
-                  <!-- Docker CPU Quota -->
-                  <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
-                  <span v-if="agent.backend === 'docker'" class="text-xs text-muted-foreground">
-                    {{ $t('admin.settings.agents.limit_cpu_quota') }}<span aria-hidden="true">:</span>
-                    {{ formatCPUQuota(agent.limit_cpu_quota, t) }}
-                  </span>
+                  <template v-if="hasAgentResources(agent)">
+                    <span class="text-xs text-muted-foreground" aria-hidden="true">•</span>
+                    <span class="text-xs text-muted-foreground" :title="$t('admin.settings.agents.resource_hint')">
+                      {{ $t('admin.settings.agents.resource_mem') }}<span aria-hidden="true">:</span>
+                      {{ formatAgentMemory(agent, t) }}
+                    </span>
+                    <span class="text-xs text-muted-foreground" :title="$t('admin.settings.agents.resource_hint')">
+                      {{ $t('admin.settings.agents.resource_cpu') }}<span aria-hidden="true">:</span>
+                      {{ formatAgentCPU(agent, t) }}
+                    </span>
+                  </template>
                   <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
                 </div>
                 <!-- Mobile: stacked metadata -->
@@ -202,19 +197,19 @@
                       </router-link>
                     </template>
                   </div>
-                  <!-- Resource limits on separate line for mobile -->
-                  <div v-if="agent.backend === 'docker'" class="flex items-center gap-2">
-                    <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
+                  <!-- Resources on separate line for mobile -->
+                  <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
+                  <div v-if="hasAgentResources(agent)" class="flex items-center gap-2">
                     <span class="text-xs text-muted-foreground min-w-[50px]">
-                      Mem/Workflow<span aria-hidden="true">:</span>
-                      {{ formatBytes(agent.limit_mem, t) }}
+                      {{ $t('admin.settings.agents.resource_mem') }}<span aria-hidden="true">:</span>
+                      {{ formatAgentMemory(agent, t) }}
                     </span>
                     <span class="text-xs text-muted-foreground min-w-[50px]">
-                      CPU/Workflow<span aria-hidden="true">:</span>
-                      {{ formatCPUQuota(agent.limit_cpu_quota, t) }}
+                      {{ $t('admin.settings.agents.resource_cpu') }}<span aria-hidden="true">:</span>
+                      {{ formatAgentCPU(agent, t) }}
                     </span>
-                    <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
                   </div>
+                  <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
                 </div>
               </div>
 
@@ -491,12 +486,13 @@ import { useDate } from '~/compositions/useDate';
 import useConfig from '~/compositions/useConfig';
 import type { Agent } from '~/lib/api/types';
 import {
-  formatBytes,
-  formatCPUQuota,
+  formatAgentCPU,
+  formatAgentMemory,
   getAgentDisplayName,
   getAgentStatusAnimation,
   getAgentStatusColor,
   getAgentStatusTitle,
+  hasAgentResources,
   isAgentVersionMismatch,
 } from '~/lib/agent-utils';
 import type { SelectOption } from '~/components/form/form.types';
