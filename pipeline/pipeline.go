@@ -64,6 +64,17 @@ type Runtime struct {
 
 	taskUUID string
 
+	// stepWg tracks the goroutines that execute the steps of the stage currently
+	// in flight, plus the goroutine that publishes that stage's result. On the
+	// cancel path Run returns before the stage has finished, so without this
+	// group those goroutines would outlive Run and keep invoking the tracer and
+	// logger callbacks. The agent uses those callbacks as producers for its
+	// upload WaitGroup and calls Wait() as soon as Run returns, so a late
+	// callback panicked the runner goroutine with "sync: WaitGroup is reused
+	// before previous Wait has returned". Run/RunAdopted join this group during
+	// teardown, after DestroyWorkflow has unblocked the steps.
+	stepWg sync.WaitGroup
+
 	// detachedLogWg tracks the logging goroutines spawned for detached steps.
 	// Those goroutines outlive the step's runStep call (a detached step returns
 	// immediately) and are only unblocked when their TailStep reader closes,
@@ -113,29 +124,7 @@ func (r *Runtime) Run(runnerCtx context.Context) error {
 			Msg("stage")
 	}
 
-	defer func() {
-		// Check if workflows should be preserved for adoption by a restarted agent.
-		// This is set when the agent shuts down due to server disconnect.
-		if ShouldPreserveWorkflows() {
-			logger.Info().
-				Str("task_uuid", r.taskUUID).
-				Msg("preserving workflow containers for adoption (server disconnect)")
-			return
-		}
-
-		ctx := runnerCtx //nolint:contextcheck
-		if ctx.Err() != nil {
-			ctx = GetShutdownCtx()
-		}
-		if err := r.engine.DestroyWorkflow(ctx, r.spec, r.taskUUID); err != nil {
-			logger.Error().Err(err).Msg("could not destroy engine")
-		}
-
-		// Join detached steps' logging goroutines. Their TailStep readers close
-		// once the workflow is torn down above (or once r.ctx is canceled), so
-		// this wait cannot deadlock and ensures no goroutine is left dangling.
-		r.detachedLogWg.Wait()
-	}()
+	defer r.teardown(runnerCtx, logger)
 
 	r.started = time.Now().Unix()
 	if err := r.engine.SetupWorkflow(runnerCtx, r.spec, r.taskUUID); err != nil {
@@ -175,6 +164,46 @@ func (r *Runtime) Run(runnerCtx context.Context) error {
 	return r.err
 }
 
+// teardown destroys the workflow environment and then joins every goroutine the
+// runtime spawned. Run and RunAdopted defer it so that once they return, no
+// tracer or logger callback can still be invoked — callers such as the agent
+// rely on that to know all uploads are accounted for.
+//
+// The order matters: a canceled stage is abandoned with its steps still waiting
+// on running containers, and destroying the workflow is exactly what unblocks
+// them, so DestroyWorkflow has to happen before the joins or they would block
+// until the step timeout.
+func (r *Runtime) teardown(runnerCtx context.Context, logger zerolog.Logger) {
+	// Check if workflows should be preserved for adoption by a restarted agent.
+	// This is set when the agent shuts down due to server disconnect. The
+	// containers deliberately keep running, so joining the step goroutines here
+	// would block until the workflow times out; the agent is on its way out and
+	// reports nothing for this workflow, so they are left to die with the process.
+	if ShouldPreserveWorkflows() {
+		logger.Info().
+			Str("task_uuid", r.taskUUID).
+			Msg("preserving workflow containers for adoption (server disconnect)")
+		return
+	}
+
+	ctx := runnerCtx //nolint:contextcheck
+	if ctx.Err() != nil {
+		ctx = GetShutdownCtx()
+	}
+	if err := r.engine.DestroyWorkflow(ctx, r.spec, r.taskUUID); err != nil {
+		logger.Error().Err(err).Msg("could not destroy engine")
+	}
+
+	// Join the step goroutines of an abandoned stage. They are also what
+	// registers detached logging goroutines, so they have to be joined first.
+	r.stepWg.Wait()
+
+	// Join detached steps' logging goroutines. Their TailStep readers close
+	// once the workflow is torn down above (or once r.ctx is canceled), so
+	// this wait cannot deadlock and ensures no goroutine is left dangling.
+	r.detachedLogWg.Wait()
+}
+
 // Updates the current status of a step.
 func (r *Runtime) traceStep(processState *backend.State, err error, step *backend.Step) error {
 	if r.tracer == nil {
@@ -205,9 +234,14 @@ func (r *Runtime) traceStep(processState *backend.State, err error, step *backen
 }
 
 // Executes a set of parallel steps.
+//
+// The returned channel is buffered: Run abandons the stage when the workflow is
+// canceled and never reads the result, so an unbuffered channel would leave the
+// publishing goroutine blocked on the send forever. Every goroutine started here
+// is registered on r.stepWg, which teardown joins.
 func (r *Runtime) execAll(steps []*backend.Step) <-chan error {
 	var g errgroup.Group
-	done := make(chan error)
+	done := make(chan error, 1)
 	logger := r.MakeLogger()
 
 	for _, step := range steps {
@@ -215,7 +249,10 @@ func (r *Runtime) execAll(steps []*backend.Step) <-chan error {
 		// will be captured by the function. This will
 		// recreate the step "variable"
 		step := step
+		r.stepWg.Add(1)
 		g.Go(func() error {
+			defer r.stepWg.Done()
+
 			// Case the pipeline was already complete.
 			logger.Debug().
 				Str("step", step.Name).
@@ -263,7 +300,9 @@ func (r *Runtime) execAll(steps []*backend.Step) <-chan error {
 		})
 	}
 
+	r.stepWg.Add(1)
 	go func() {
+		defer r.stepWg.Done()
 		done <- g.Wait()
 		close(done)
 	}()
@@ -283,29 +322,9 @@ func (r *Runtime) RunAdopted(runnerCtx context.Context) error {
 		return errors.New("backend does not support workflow resumption")
 	}
 
-	defer func() {
-		// For adopted workflows, we should still clean up when done
-		// (unless preservation is enabled for another restart)
-		if ShouldPreserveWorkflows() {
-			logger.Info().
-				Str("task_uuid", r.taskUUID).
-				Msg("preserving workflow containers for adoption (server disconnect)")
-			return
-		}
-
-		ctx := runnerCtx //nolint:contextcheck
-		if ctx.Err() != nil {
-			ctx = GetShutdownCtx()
-		}
-		if err := r.engine.DestroyWorkflow(ctx, r.spec, r.taskUUID); err != nil {
-			logger.Error().Err(err).Msg("could not destroy engine")
-		}
-
-		// Join detached steps' logging goroutines. Their TailStep readers close
-		// once the workflow is torn down above (or once r.ctx is canceled), so
-		// this wait cannot deadlock and ensures no goroutine is left dangling.
-		r.detachedLogWg.Wait()
-	}()
+	// For adopted workflows we still clean up when done (unless preservation is
+	// enabled for another restart).
+	defer r.teardown(runnerCtx, logger)
 
 	r.started = time.Now().Unix()
 	// Skip SetupWorkflow - the workflow environment (network, volume) already exists
@@ -325,14 +344,18 @@ func (r *Runtime) RunAdopted(runnerCtx context.Context) error {
 }
 
 // runAllAdoptedSteps runs steps in parallel, using ResumeStep instead of StartStep.
+// Channel buffering and r.stepWg bookkeeping work exactly as in execAll.
 func (r *Runtime) runAllAdoptedSteps(steps []*backend.Step, resumer backend.WorkflowResumer) <-chan error {
 	var g errgroup.Group
-	done := make(chan error)
+	done := make(chan error, 1)
 	logger := r.MakeLogger()
 
 	for _, step := range steps {
 		step := step
+		r.stepWg.Add(1)
 		g.Go(func() error {
+			defer r.stepWg.Done()
+
 			logger.Debug().
 				Str("step", step.Name).
 				Msg("resuming adopted step")
@@ -379,7 +402,9 @@ func (r *Runtime) runAllAdoptedSteps(steps []*backend.Step, resumer backend.Work
 		})
 	}
 
+	r.stepWg.Add(1)
 	go func() {
+		defer r.stepWg.Done()
 		done <- g.Wait()
 		close(done)
 	}()

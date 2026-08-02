@@ -155,6 +155,40 @@ func TestRunWithRecover(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "panic in test")
 	})
+
+	// A recovered panic must take the whole agent down: the goroutine is gone and
+	// the workflow-runner loop would otherwise treat the error as transient,
+	// leaving an agent that reports healthy but never runs a pipeline again.
+	t.Run("triggers agent shutdown on panic", func(t *testing.T) {
+		prev := stopAgentFunc
+		t.Cleanup(func() { stopAgentFunc = prev })
+
+		var stopped error
+		var calls int
+		stopAgentFunc = func(err error) {
+			calls++
+			stopped = err
+		}
+
+		err := runWithRecover("workflow-runner-0", func() error {
+			panic("oh no") //nolint:forbidigo // testing recover()
+		})()
+
+		assert.Error(t, err)
+		assert.Equal(t, 1, calls, "panic must trigger exactly one agent shutdown")
+		assert.Equal(t, err, stopped, "agent shutdown must be given the panic error")
+	})
+
+	t.Run("does not trigger agent shutdown for a plain error", func(t *testing.T) {
+		prev := stopAgentFunc
+		t.Cleanup(func() { stopAgentFunc = prev })
+
+		var calls int
+		stopAgentFunc = func(error) { calls++ }
+
+		assert.Error(t, runWithRecover("test", func() error { return errors.New("boom") })())
+		assert.Zero(t, calls, "transient errors must not shut the agent down")
+	})
 }
 
 func TestStringSliceAddToMap(t *testing.T) {

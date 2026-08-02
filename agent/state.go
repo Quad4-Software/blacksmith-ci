@@ -28,6 +28,13 @@ type State struct {
 	Running      int             `json:"running_count"`
 	Metadata     map[string]Info `json:"running"`
 	agentHealthy bool            `json:"-"` // tracks if agent is operational
+
+	// runnersStarted counts the workflow runner goroutines ever started,
+	// runnersLive how many of them are still alive. Together they let Healthy()
+	// detect an agent that lost all of its runners (e.g. to a panic) and would
+	// otherwise keep reporting 200 on /healthz while never picking up work again.
+	runnersStarted int
+	runnersLive    int
 }
 
 type Info struct {
@@ -79,12 +86,35 @@ func (s *State) ActiveTaskUUIDs() map[string]struct{} {
 	return active
 }
 
+// RunnerStarted records that a workflow runner goroutine has started.
+func (s *State) RunnerStarted() {
+	s.Lock()
+	s.runnersStarted++
+	s.runnersLive++
+	s.Unlock()
+}
+
+// RunnerStopped records that a workflow runner goroutine has exited, whether
+// normally or because it panicked.
+func (s *State) RunnerStopped() {
+	s.Lock()
+	s.runnersLive--
+	s.Unlock()
+}
+
 func (s *State) Healthy() bool {
 	s.Lock()
 	defer s.Unlock()
 
 	// If agent has crashed or is not operational, report unhealthy
 	if !s.agentHealthy {
+		return false
+	}
+
+	// An agent that once had workflow runners but has none left cannot process
+	// any pipeline, even though every other signal still looks fine. Report
+	// unhealthy so the supervisor restarts it instead of leaving a zombie behind.
+	if s.runnersStarted > 0 && s.runnersLive == 0 {
 		return false
 	}
 

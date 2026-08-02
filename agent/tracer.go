@@ -18,7 +18,6 @@ import (
 	"context"
 	"runtime"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -27,10 +26,12 @@ import (
 	"codefloe.com/crowci/crow/v6/pipeline/rpc"
 )
 
-func (r *Runner) createTracer(ctxMeta context.Context, uploads *sync.WaitGroup, logger zerolog.Logger, workflow *rpc.Workflow) pipeline.TraceFunc {
+// createTracer returns the callback the pipeline runtime invokes on every step
+// state change. It uploads the step state synchronously; the runtime guarantees
+// that all of its invocations have returned before Run/RunAdopted return, so the
+// runner does not have to track them separately.
+func (r *Runner) createTracer(ctxMeta context.Context, logger zerolog.Logger, workflow *rpc.Workflow) pipeline.TraceFunc {
 	return func(state *pipeline.State) error {
-		uploads.Add(1)
-
 		stepLogger := logger.With().
 			Str("image", state.Pipeline.Step.Image).
 			Str("workflow_id", workflow.ID).
@@ -60,7 +61,6 @@ func (r *Runner) createTracer(ctxMeta context.Context, uploads *sync.WaitGroup, 
 			}
 
 			stepLogger.Debug().Msg("update step status complete")
-			uploads.Done()
 		}()
 		if state.Process.Exited {
 			return nil

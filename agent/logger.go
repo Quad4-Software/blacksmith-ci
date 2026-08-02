@@ -16,7 +16,6 @@ package agent
 
 import (
 	"io"
-	"sync"
 
 	"github.com/rs/zerolog"
 
@@ -26,16 +25,16 @@ import (
 	"codefloe.com/crowci/crow/v6/pipeline/rpc"
 )
 
-func (r *Runner) createLogger(_logger zerolog.Logger, uploads *sync.WaitGroup, workflow *rpc.Workflow) pipeline.Logger {
+// createLogger returns the callback the pipeline runtime invokes to stream a
+// step's logs. Like the tracer it ships everything synchronously, and the
+// runtime joins the goroutines that call it before Run/RunAdopted return.
+func (r *Runner) createLogger(_logger zerolog.Logger, workflow *rpc.Workflow) pipeline.Logger {
 	return func(step *backend.Step, rc io.ReadCloser) error {
 		defer rc.Close()
 
 		logger := _logger.With().
 			Str("image", step.Image).
 			Logger()
-
-		uploads.Add(1)
-		defer uploads.Done()
 
 		var secrets []string
 		for _, secret := range workflow.Config.Secrets {

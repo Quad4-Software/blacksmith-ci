@@ -53,6 +53,38 @@ func TestHealthzBackendProbe(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, rec.Code, "unhealthy counter should return 500 even if backend is healthy")
 }
 
+// TestHealthzRunnerLiveness covers the second half of issue #1396: when the
+// agent's workflow runners are gone there is nobody left to poll for work, so
+// /healthz must stop reporting 200 and let the supervisor restart the agent.
+func TestHealthzRunnerLiveness(t *testing.T) {
+	prev := counter
+	t.Cleanup(func() { counter = prev })
+	counter = &agent.State{Metadata: map[string]agent.Info{}}
+	counter.SetHealthy(true)
+
+	t.Cleanup(func() { SetBackendHealthy(true) })
+	SetBackendHealthy(true)
+
+	status := func() int {
+		rec := httptest.NewRecorder()
+		handleHeartbeat(rec, httptest.NewRequest(http.MethodGet, "/healthz", nil))
+		return rec.Code
+	}
+
+	// Before any runner is started (e.g. during startup) liveness is not asserted.
+	assert.Equal(t, http.StatusOK, status())
+
+	counter.RunnerStarted()
+	counter.RunnerStarted()
+	assert.Equal(t, http.StatusOK, status(), "running agent with live runners should return 200")
+
+	counter.RunnerStopped()
+	assert.Equal(t, http.StatusOK, status(), "one remaining runner is still enough to be healthy")
+
+	counter.RunnerStopped()
+	assert.Equal(t, http.StatusInternalServerError, status(), "agent without any live runner should return 500")
+}
+
 func TestHealthy(t *testing.T) {
 	s := agent.State{}
 	s.Metadata = map[string]agent.Info{}

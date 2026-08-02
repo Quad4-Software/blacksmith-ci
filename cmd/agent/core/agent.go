@@ -26,6 +26,7 @@ import (
 	"os"
 	"runtime/debug"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -53,10 +54,16 @@ import (
 )
 
 // runWithRecover wraps a goroutine body in a deferred recover() so a panic in
-// one goroutine doesn't crash the whole agent process. The recovered panic is
-// converted into an error and logged with its stack trace; callers handle it
-// the same way as a returned error (typically: log + trigger graceful shutdown
-// → supervisor restarts the container with a clean state).
+// one goroutine doesn't take the process down uncontrolled. The recovered panic
+// is converted into an error, logged with its stack trace, and triggers a
+// graceful shutdown of the whole agent.
+//
+// Shutting down is deliberate: a panicking goroutine is gone for good and its
+// invariants are broken, so the agent cannot be trusted to keep working. The
+// workflow-runner loop treats ordinary errors as transient and retries them, so
+// without this an agent whose only runner panicked would keep answering /healthz
+// with 200 while never picking up work again — the zombie agent of issue #1396.
+// Exiting lets the supervisor restart the agent with clean state.
 func runWithRecover(name string, fn func() error) func() error {
 	return func() (err error) {
 		defer func() {
@@ -68,6 +75,7 @@ func runWithRecover(name string, fn func() error) func() error {
 					Bytes("stack", stack).
 					Msg("recover triggered in agent goroutine")
 				err = fmt.Errorf("panic in %s: %v", name, r)
+				stopAgentFunc(err)
 			}
 		}()
 		return fn()
@@ -133,34 +141,40 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 	}
 
 	agentCtx, ctxCancel := context.WithCancelCause(ctx)
+	// Guard the body with a Once rather than having stopAgentFunc overwrite
+	// itself: several goroutines (health reporting, backend probe, any panicking
+	// goroutine wrapped in runWithRecover) may reach it concurrently, and a
+	// self-assignment would be a data race on the package variable.
+	var stopAgentOnce sync.Once
 	stopAgentFunc = func(err error) {
-		msg := "shutdown of whole agent"
-		if err != nil {
-			log.Error().Err(err).Msg(msg)
-		} else {
-			log.Info().Msg(msg)
-		}
-		stopAgentFunc = func(error) {}
+		stopAgentOnce.Do(func() {
+			msg := "shutdown of whole agent"
+			if err != nil {
+				log.Error().Err(err).Msg(msg)
+			} else {
+				log.Info().Msg(msg)
+			}
 
-		// Signal all gRPC retry loops to stop immediately
-		agent_rpc.SignalAgentShutdown()
+			// Signal all gRPC retry loops to stop immediately
+			agent_rpc.SignalAgentShutdown()
 
-		// Always preserve workflows on agent shutdown so they can be adopted by a restarted agent.
-		// This handles all shutdown scenarios: SIGTERM, SIGKILL, server disconnect, pod eviction, etc.
-		// Workflows are only cleaned up when they complete naturally (success/failure), not when agent dies.
-		pipeline.SetPreserveWorkflows(true)
-		log.Info().Msg("agent shutting down, workflows will be preserved for adoption")
+			// Always preserve workflows on agent shutdown so they can be adopted by a restarted agent.
+			// This handles all shutdown scenarios: SIGTERM, SIGKILL, server disconnect, pod eviction, etc.
+			// Workflows are only cleaned up when they complete naturally (success/failure), not when agent dies.
+			pipeline.SetPreserveWorkflows(true)
+			log.Info().Msg("agent shutting down, workflows will be preserved for adoption")
 
-		shutdownCtx, shutdownCancelFunc = context.WithTimeout(shutdownCtx, shutdownTimeout)
-		ctxCancel(err)
+			shutdownCtx, shutdownCancelFunc = context.WithTimeout(shutdownCtx, shutdownTimeout)
+			ctxCancel(err)
 
-		// Start force exit timer - if graceful shutdown takes too long, force exit.
-		// This is critical for container orchestration to detect the exit and restart the agent.
-		go func() {
-			time.Sleep(forceExitTimeout)
-			log.Error().Msg("graceful shutdown timed out, forcing exit")
-			os.Exit(1)
-		}()
+			// Start force exit timer - if graceful shutdown takes too long, force exit.
+			// This is critical for container orchestration to detect the exit and restart the agent.
+			go func() {
+				time.Sleep(forceExitTimeout)
+				log.Error().Msg("graceful shutdown timed out, forcing exit")
+				os.Exit(1)
+			}()
+		})
 	}
 	defer stopAgentFunc(nil)
 	defer shutdownCancelFunc()
@@ -576,6 +590,11 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 			adopted = adoptedWorkflows[i]
 		}
 		serviceWaitingGroup.Go(runWithRecover(fmt.Sprintf("workflow-runner-%d", i), func() error {
+			// Track liveness of the polling pool so /healthz can tell an agent
+			// that lost all its runners from a healthy idle one.
+			counter.RunnerStarted()
+			defer counter.RunnerStopped()
+
 			runner := agent.NewRunner(client, filter, hostname, counter, &backendEngine)
 			log.Trace().Msgf("created new runner %d", i)
 

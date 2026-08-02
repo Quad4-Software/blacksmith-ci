@@ -19,7 +19,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -138,13 +137,16 @@ func (r *Runner) Run(runnerCtx, shutdownCtx context.Context) error { //nolint:co
 		// TODO: should we return here?
 	}
 
-	var uploads sync.WaitGroup
+	// Run only returns once every log and trace callback it triggered has
+	// returned — including on the cancel path, where it joins the abandoned step
+	// goroutines during teardown. The runner therefore never has to wait for
+	// in-flight uploads itself.
 	//nolint:contextcheck
 	err = pipeline.New(workflow.Config,
 		pipeline.WithContext(workflowCtx),
 		pipeline.WithTaskUUID(fmt.Sprint(workflow.ID)),
-		pipeline.WithLogger(r.createLogger(logger, &uploads, workflow)),
-		pipeline.WithTracer(r.createTracer(ctxMeta, &uploads, logger, workflow)),
+		pipeline.WithLogger(r.createLogger(logger, workflow)),
+		pipeline.WithTracer(r.createTracer(ctxMeta, logger, workflow)),
 		pipeline.WithBackend(*r.backend),
 		pipeline.WithDescription(map[string]string{
 			"workflow_id":     workflow.ID,
@@ -176,10 +178,6 @@ func (r *Runner) Run(runnerCtx, shutdownCtx context.Context) error { //nolint:co
 		logger.Info().Msg("workflow preserved for adoption, skipping Done() call")
 		return nil
 	}
-
-	logger.Debug().Msg("uploading logs and traces / states ...")
-	uploads.Wait()
-	logger.Debug().Msg("uploaded logs and traces / states")
 
 	logger.Debug().
 		Str("error", state.Error).
@@ -294,13 +292,14 @@ func (r *Runner) RunAdopted(runnerCtx, shutdownCtx context.Context, workflow *rp
 	// Don't call Init for adopted workflows - they were already initialized
 	// The server already knows about this workflow
 
-	var uploads sync.WaitGroup
+	// See Run: RunAdopted likewise joins its step goroutines before returning, so
+	// no log or trace upload can still be in flight here.
 	//nolint:contextcheck
 	err := pipeline.New(workflow.Config,
 		pipeline.WithContext(workflowCtx),
 		pipeline.WithTaskUUID(taskUUID),
-		pipeline.WithLogger(r.createLogger(logger, &uploads, workflow)),
-		pipeline.WithTracer(r.createTracer(ctxMeta, &uploads, logger, workflow)),
+		pipeline.WithLogger(r.createLogger(logger, workflow)),
+		pipeline.WithTracer(r.createTracer(ctxMeta, logger, workflow)),
 		pipeline.WithBackend(*r.backend),
 		pipeline.WithDescription(map[string]string{
 			"workflow_id":     workflow.ID,
@@ -326,10 +325,6 @@ func (r *Runner) RunAdopted(runnerCtx, shutdownCtx context.Context, workflow *rp
 		Str("error", state.Error).
 		Bool("canceled", canceled.Load()).
 		Msg("adopted workflow finished")
-
-	logger.Debug().Msg("uploading logs and traces / states ...")
-	uploads.Wait()
-	logger.Debug().Msg("uploaded logs and traces / states")
 
 	logger.Debug().
 		Str("error", state.Error).
