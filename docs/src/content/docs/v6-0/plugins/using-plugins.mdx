@@ -46,10 +46,19 @@ Setting names are transformed to uppercase with underscores:
 
 ### Complex Settings
 
-Objects and arrays are serialized as JSON:
+How a setting is encoded depends on its type:
+
+| Setting type                                       | Encoding        |
+| -------------------------------------------------- | --------------- |
+| Object (map)                                       | JSON            |
+| Array containing objects or nested arrays          | JSON            |
+| Array of plain values (strings, numbers, booleans) | Comma-separated |
 
 ```yaml
 settings:
+  targets:
+    - production
+    - staging
   complex:
     abc: 2
     list:
@@ -57,7 +66,18 @@ settings:
       - item2
 ```
 
-Results in `PLUGIN_COMPLEX='{"abc":"2","list":["item1","item2"]}'`.
+Results in:
+
+- `PLUGIN_TARGETS='production,staging'`
+- `PLUGIN_COMPLEX='{"abc":2,"list":["item1","item2"]}'`
+
+`targets` is a top-level array of plain values, so it is comma-separated rather than JSON.
+The nested `list` sits inside an object, so it is encoded as part of that object's JSON.
+
+:::caution
+Comma-separated encoding has no escaping.
+A plain value that itself contains a comma cannot be distinguished from two separate values.
+:::
 
 ## Secrets in Plugins
 

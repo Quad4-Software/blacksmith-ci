@@ -78,7 +78,13 @@ Crow transforms `settings` into environment variables:
 
 ### Complex Values
 
-Objects and arrays are JSON-serialized:
+How a setting is encoded depends on its type:
+
+| Setting type                                       | Encoding        |
+| -------------------------------------------------- | --------------- |
+| Object (map)                                       | JSON            |
+| Array containing objects or nested arrays          | JSON            |
+| Array of plain values (strings, numbers, booleans) | Comma-separated |
 
 ```yaml
 settings:
@@ -88,21 +94,39 @@ settings:
   config:
     retries: 3
     timeout: 30
+  registries:
+    - registry: https://codeberg.org
+      username: crow
 ```
 
 Results in:
-- `PLUGIN_TARGETS='["production","staging"]'`
-- `PLUGIN_CONFIG='{"retries":"3","timeout":"30"}'`
+
+- `PLUGIN_TARGETS='production,staging'`
+- `PLUGIN_CONFIG='{"retries":3,"timeout":30}'`
+- `PLUGIN_REGISTRIES='[{"registry":"https://codeberg.org","username":"crow"}]'`
+
+An array of plain values is never JSON-encoded, regardless of how many elements it has.
+A single-element array such as `targets: [production]` becomes `PLUGIN_TARGETS='production'`, and an empty array becomes an empty string.
+Numbers and booleans keep their type inside JSON output, so `retries: 3` becomes `3` and not `"3"`.
+
+:::caution
+Comma-separated encoding has no escaping.
+A plain value that itself contains a comma cannot be distinguished from two separate values.
+Use an array of objects if your values may contain commas.
+:::
 
 Parse these in your plugin:
 
 ```bash
 #!/bin/bash
-# Parse JSON array
-TARGETS=$(echo "$PLUGIN_TARGETS" | jq -rRs '. as $raw | try (fromjson | .[]) catch $raw')
+# Split a comma-separated list of plain values
+IFS=',' read -ra TARGETS <<< "$PLUGIN_TARGETS"
 
-# Parse JSON object
+# Read a field from a JSON object
 RETRIES=$(echo "$PLUGIN_CONFIG" | jq -r '.retries')
+
+# Iterate over a JSON array of objects
+echo "$PLUGIN_REGISTRIES" | jq -r '.[].registry'
 ```
 
 ## Security Best Practices
