@@ -158,4 +158,21 @@ describe('agentList', () => {
       expect(hasManagementButtons(wrapper)).toBe(false);
     });
   });
+
+  describe('missing org_ids', () => {
+    // Servers predating the empty-array normalization send org_ids: null for
+    // global agents, which used to throw on `.length` and blank the whole list.
+    const agentWithoutOrgIDs = { ...sampleAgent, org_ids: null as unknown as number[] };
+
+    it('renders a global agent whose org_ids is null', () => {
+      const wrapper = mountWithAgent(agentWithoutOrgIDs, { isAdmin: true, userOrgId: 1 });
+      expect(wrapper.text()).toContain('Test Agent');
+      expect(wrapper.text()).toContain('admin.settings.agents.type.global');
+    });
+
+    it('hides edit/delete buttons for a regular user when org_ids is null', () => {
+      const wrapper = mountWithAgent(agentWithoutOrgIDs, { isAdmin: false, userOrgId: 1 });
+      expect(hasManagementButtons(wrapper)).toBe(false);
+    });
+  });
 });

@@ -151,7 +151,7 @@
                   <span class="text-xs text-muted-foreground"
                     >{{ $t('admin.settings.agents.agent_id') }} {{ agent.id }}</span
                   >
-                  <template v-if="agent.org_ids.length > 0">
+                  <template v-if="agent.org_ids?.length">
                     <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
                     <span class="text-xs text-muted-foreground" aria-hidden="true">•</span>
                     <router-link
@@ -184,7 +184,7 @@
                     <span class="text-xs text-muted-foreground"
                       >{{ $t('admin.settings.agents.agent_id') }} {{ agent.id }}</span
                     >
-                    <template v-if="agent.org_ids.length > 0">
+                    <template v-if="agent.org_ids?.length">
                       <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
                       <span class="text-xs text-muted-foreground" aria-hidden="true">•</span>
                       <router-link
@@ -219,7 +219,7 @@
 
             <!-- Action Buttons (desktop only - moved to bottom on mobile) -->
             <div
-              v-if="props.isAdmin || (props.userOrgId !== undefined && agent.org_ids.includes(props.userOrgId))"
+              v-if="props.isAdmin || (props.userOrgId !== undefined && agent.org_ids?.includes(props.userOrgId))"
               class="hidden md:flex items-center gap-1 shrink-0 ml-3"
             >
               <Button
@@ -362,7 +362,7 @@
               >
                 {{ $t('admin.settings.agents.type.system') }}
               </UiBadge>
-              <UiBadge v-else-if="agent.org_ids.length === 0" variant="secondary">
+              <UiBadge v-else-if="!agent.org_ids?.length" variant="secondary">
                 {{ $t('admin.settings.agents.type.global') }}
               </UiBadge>
 
@@ -396,7 +396,7 @@
           <Separator class="my-3 md:hidden" />
           <div class="flex md:hidden justify-end gap-1">
             <div
-              v-if="props.isAdmin || (props.userOrgId !== undefined && agent.org_ids.includes(props.userOrgId))"
+              v-if="props.isAdmin || (props.userOrgId !== undefined && agent.org_ids?.includes(props.userOrgId))"
               class="flex items-center gap-1"
             >
               <Button

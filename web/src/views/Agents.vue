@@ -190,7 +190,7 @@ const { doSubmit: handleSave, isLoading: isSaving } = useAsyncAction(async (agen
 
 function openDeleteDialog(agent: Agent) {
   // Check permissions before showing dialog
-  const canDelete = isAdmin.value || agent.org_ids.includes(user!.org_id);
+  const canDelete = isAdmin.value || (agent.org_ids?.includes(user!.org_id) ?? false);
 
   if (!canDelete) {
     notifications.notify({
