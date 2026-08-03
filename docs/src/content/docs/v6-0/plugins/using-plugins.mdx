@@ -79,6 +79,22 @@ Comma-separated encoding has no escaping.
 A plain value that itself contains a comma cannot be distinguished from two separate values.
 :::
 
+### Lists Containing Commas
+
+To pass values that contain commas, nest the array inside an object to have it encoded as JSON instead:
+
+```yaml
+settings:
+  files:
+    paths:
+      - 'file,with,commas.txt'
+      - CHANGELOG.md
+```
+
+Results in `PLUGIN_FILES='{"paths":["file,with,commas.txt","CHANGELOG.md"]}'`.
+
+The plugin must be written to accept this object form.
+
 ## Secrets in Plugins
 
 Use `from_secret` to inject sensitive values:

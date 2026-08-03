@@ -112,7 +112,7 @@ Numbers and booleans keep their type inside JSON output, so `retries: 3` becomes
 :::caution
 Comma-separated encoding has no escaping.
 A plain value that itself contains a comma cannot be distinguished from two separate values.
-Use an array of objects if your values may contain commas.
+See [Lists containing commas](#lists-containing-commas) for a way around this.
 :::
 
 Parse these in your plugin:
@@ -128,6 +128,35 @@ RETRIES=$(echo "$PLUGIN_CONFIG" | jq -r '.retries')
 # Iterate over a JSON array of objects
 echo "$PLUGIN_REGISTRIES" | jq -r '.[].registry'
 ```
+
+### Lists Containing Commas
+
+The comma-separated encoding exists because most plugins are written in Go using [urfave/cli](https://github.com/urfave/cli), whose slice flags split environment variables on commas by default.
+`PLUGIN_TARGETS=production,staging` therefore arrives as a ready-made `[]string` without any parsing code in the plugin.
+
+That splitting has no escape mechanism, so a value that itself contains a comma cannot be represented in an array of plain values.
+Nest the array inside an object to have it encoded as JSON instead:
+
+```yaml
+settings:
+  files:
+    paths:
+      - 'file,with,commas.txt'
+      - CHANGELOG.md
+```
+
+Results in `PLUGIN_FILES='{"paths":["file,with,commas.txt","CHANGELOG.md"]}'`.
+
+A Go plugin reading this must turn off the default splitting, which would otherwise split the JSON on its own commas:
+
+```go
+cmd := &cli.Command{
+    DisableSliceFlagSeparator: true,
+    // ...
+}
+```
+
+The setting then arrives as a single string, ready to decode with `encoding/json`.
 
 ## Security Best Practices
 
