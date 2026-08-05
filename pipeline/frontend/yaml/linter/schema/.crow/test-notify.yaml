@@ -1,0 +1,16 @@
+when:
+  - event: manual
+  - event: push
+    branch: main
+
+steps:
+  - name: build
+    image: alpine
+    commands:
+      - echo building
+
+notify:
+  events:
+    - failure
+    - success
+    - status_change

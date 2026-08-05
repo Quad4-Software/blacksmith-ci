@@ -82,6 +82,14 @@ func TestSchema(t *testing.T) {
 			testFile: ".crow/test-merge-map-and-sequence.yaml",
 		},
 		{
+			name:     "Notify",
+			testFile: ".crow/test-notify.yaml",
+		},
+		{
+			name:     "Notify disabled",
+			testFile: ".crow/test-notify-disabled.yaml",
+		},
+		{
 			name:     "Backend options",
 			testFile: ".crow/test-backend-options.yaml",
 		},
@@ -209,6 +217,34 @@ totallyUnknown: 1
 			wantField:   "(root)",
 			wantLine:    1,
 			wantMessage: "Required property `steps` is missing.",
+		},
+		{
+			name: "unknown property inside notify",
+			yaml: `steps:
+  test:
+    image: alpine
+    commands: echo hi
+notify:
+  disable: true
+`,
+			wantField:   "notify.disable",
+			wantLine:    6,
+			wantMessage: "Unknown property `disable`.",
+		},
+		{
+			name: "invalid notify event",
+			yaml: `steps:
+  test:
+    image: alpine
+    commands: echo hi
+notify:
+  events:
+    - failure
+    - bogus
+`,
+			wantField:   "notify.events[1]",
+			wantLine:    8,
+			wantMessage: "Value `bogus` is not allowed. Must be one of:",
 		},
 		{
 			name: "enum violation on when.event",

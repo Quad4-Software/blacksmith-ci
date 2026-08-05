@@ -79,9 +79,33 @@
     },
     "approval": {
       "$ref": "#/definitions/approval"
+    },
+    "notify": {
+      "$ref": "#/definitions/notify"
     }
   },
   "definitions": {
+    "notify": {
+      "description": "Overrides the repository-level email notification settings for this pipeline run.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "disabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Disable email notifications entirely for this pipeline run."
+        },
+        "events": {
+          "type": "array",
+          "minLength": 1,
+          "description": "Events that trigger a notification, replacing the repository-level selection.",
+          "items": {
+            "type": "string",
+            "enum": ["success", "failure", "status_change"]
+          }
+        }
+      }
+    },
     "approval": {
       "description": "Configures a workflow-level approval gate that blocks the workflow from running until an authorized user approves it.",
       "type": "object",

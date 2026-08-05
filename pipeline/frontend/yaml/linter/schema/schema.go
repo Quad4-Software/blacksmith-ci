@@ -21,7 +21,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"strings"
+	"sync"
 
 	goyaml "github.com/goccy/go-yaml"
 	"github.com/goccy/go-yaml/ast"
@@ -224,11 +226,24 @@ func isNumeric(s string) bool {
 	return len(s) > 0
 }
 
-// validProperties lists the valid top-level properties in the schema.
-var validProperties = []string{
-	"steps", "services", "clone", "skip_clone", "when", "workspace",
-	"matrix", "labels", "depends_on", "runs_on", "name", "variables", "$schema",
-}
+// validProperties lists the valid top-level properties in the schema. It is
+// derived from schema.json rather than hand-written so a newly added top-level
+// key cannot silently drift out of the typo suggestions.
+var validProperties = sync.OnceValue(func() []string {
+	var doc struct {
+		Properties map[string]json.RawMessage `json:"properties"`
+	}
+	if err := json.Unmarshal(schemaDefinition, &doc); err != nil {
+		return nil
+	}
+	props := make([]string, 0, len(doc.Properties))
+	for name := range doc.Properties {
+		props = append(props, name)
+	}
+	// Sorted so the prefix match below picks the same candidate every run.
+	slices.Sort(props)
+	return props
+})
 
 // describeKind turns a concrete ErrorKind into a user-friendly message.
 // Returns "" when the kind is a container (OneOf, AnyOf, AllOf, etc.) that
@@ -343,7 +358,7 @@ func findSimilarProperty(input string) string {
 	}
 
 	// Check for prefix matches
-	for _, prop := range validProperties {
+	for _, prop := range validProperties() {
 		if strings.HasPrefix(prop, input) || strings.HasPrefix(input, prop) {
 			return prop
 		}

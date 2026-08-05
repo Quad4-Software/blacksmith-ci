@@ -1,0 +1,8 @@
+steps:
+  - name: build
+    image: alpine
+    commands:
+      - echo building
+
+notify:
+  disabled: true
