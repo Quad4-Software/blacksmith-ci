@@ -98,8 +98,9 @@ export default defineConfig({
           ],
         }),
         starlightVersions({
-          current: { label: 'v6.2 (latest)', redirect: 'root' },
+          current: { label: 'v6.3 (latest)', redirect: 'root' },
           versions: [
+            { slug: 'v6-3', label: 'v6.3' },
             { slug: 'v6-2', label: 'v6.2' },
             { slug: 'v6-1', label: 'v6.1' },
             { slug: 'v6-0', label: 'v6.0' },

@@ -1,0 +1,359 @@
+---
+title: "Jsonnet Configuration"
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+Crow supports [Jsonnet](https://jsonnet.org/) as an alternative to YAML for defining pipeline configurations.
+Jsonnet is a data templating language that produces JSON (or YAML) output, enabling dynamic and programmable pipeline definitions that go beyond what static YAML can express.
+
+## Why Jsonnet?
+
+While YAML with [anchors and aliases](/dev/usage/advanced/) covers basic reuse, Jsonnet offers:
+
+- **Dynamic values**: Compute matrix entries, image tags, or step lists programmatically instead of listing them statically.
+- **True variables**: Define variables once and use them anywhere, including inside strings --- unlike YAML anchors which can only substitute entire values.
+- **Functions and abstractions**: Write reusable functions to generate step definitions, reducing duplication across workflows.
+- **Conditionals**: Branch pipeline logic based on CI metadata (repo, event, branch) at config parse time.
+- **Imports**: Split configuration across multiple files with `import` and share libraries across repositories.
+
+:::note
+Jsonnet operates at **config parse time**, before the pipeline runs.
+It cannot access runtime output from previous steps.
+For runtime-dynamic behavior (e.g., generating a matrix from a step's output), a different mechanism would be needed.
+:::
+
+## Getting started
+
+Create a `.crow.jsonnet` file (instead of `.crow.yaml`) in your repository root, or place `.jsonnet` files inside a `.crow/` directory.
+
+A minimal example:
+
+```jsonnet
+{
+  steps: [
+    {
+      name: "test",
+      image: "golang:1.23",
+      commands: [
+        "go test ./...",
+      ],
+    },
+  ],
+}
+```
+
+This Jsonnet evaluates to a JSON object which Crow then parses as a workflow definition, just like YAML.
+
+## Full example
+
+The following example demonstrates a realistic CI pipeline for a Go project with linting, testing, and multi-database integration tests.
+It uses Jsonnet functions to eliminate the repetition that would otherwise require YAML anchors and copy-paste.
+
+```jsonnet
+// Variables used across the pipeline. Unlike YAML anchors, these can be interpolated inside strings.
+local golangImage = "golang:1.26-alpine";
+local apkDeps = "apk add --no-cache -q just git gcc musl-dev";
+
+// A helper function that generates a step with common defaults.
+// In YAML, every step that needs the Go image, the vendor dependency,
+// and the apk install line must repeat all of that.
+local goStep(name, commands, extra={}) = {
+  name: name,
+  image: golangImage,
+  depends_on: ["vendor"],
+  commands: [apkDeps] + commands,
+} + extra;
+
+// Database test step generator --- three databases, same structure.
+local dbTestStep(name, driver, datasource, extra={}) = goStep(
+  name,
+  ["just test-server-datastore"],
+  {
+    environment: {
+      CROW_DATABASE_DRIVER: driver,
+      CROW_DATABASE_DATASOURCE: datasource,
+    },
+  } + extra,
+);
+
+// The pipeline definition.
+{
+  when: [
+    { event: "pull_request" },
+    { event: "push", branch: ["${CI_REPO_DEFAULT_BRANCH}"] },
+  ],
+
+  steps: [
+    // vendor step has no dependencies and no apk install
+    {
+      name: "vendor",
+      image: golangImage,
+      commands: ["go mod vendor"],
+    },
+
+    goStep("lint", [
+      // Install linter from upstream script to always match the current Go version.
+      "wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b /usr/local/bin v2.9.0",
+      "golangci-lint run",
+    ], { when: [{ event: "pull_request" }] }),
+
+    goStep("test", [
+      "just test-agent",
+      "just test-server",
+      "just test-cli",
+      "just test-lib",
+    ]),
+
+    // Database integration tests
+    dbTestStep("sqlite", "sqlite3", "", {
+      // Override commands: sqlite uses a coverage variant
+      commands: [apkDeps, "just test-server-datastore-coverage"],
+    }),
+    dbTestStep(
+      "postgres", "postgres",
+      "host=svc-postgres user=postgres dbname=postgres sslmode=disable",
+      { when: [{ event: "pull_request" }] },
+    ),
+    dbTestStep(
+      "mysql", "mysql",
+      "root@tcp(svc-mysql:3306)/test?parseTime=true",
+      { when: [{ event: "pull_request" }] },
+    ),
+  ],
+
+  services: [
+    {
+      name: "svc-postgres",
+      image: "postgres:17",
+      ports: ["5432"],
+      environment: {
+        POSTGRES_USER: "postgres",
+        POSTGRES_HOST_AUTH_METHOD: "trust",
+      },
+      when: [{ event: "pull_request" }],
+    },
+    {
+      name: "svc-mysql",
+      image: "mysql:9",
+      ports: ["3306"],
+      environment: {
+        MYSQL_DATABASE: "test",
+        MYSQL_ALLOW_EMPTY_PASSWORD: "yes",
+      },
+      when: [{ event: "pull_request" }],
+    },
+  ],
+}
+```
+
+Compare this to the equivalent YAML.
+The Jsonnet version avoids repeating the image name, `depends_on`, and `apk add` install line in every step, and the three database test steps are generated from a single function call each rather than three near-identical blocks.
+
+## Config file detection
+
+Crow searches for configuration files in the following order:
+
+1. `.crow/` (directory: may contain `.yaml`, `.yml`, `.jsonnet`, and `.libsonnet` files)
+2. `.crow.yaml`
+3. `.crow.yml`
+4. `.crow.jsonnet`
+5. `.woodpecker/` (directory)
+6. `.woodpecker.yaml`
+7. `.woodpecker.yml`
+
+The first match wins.
+When using the `.crow/` directory, Jsonnet and YAML files can coexist.
+Each file becomes a separate workflow.
+
+## Dynamic matrices
+
+One of the primary use cases for Jsonnet is generating matrix definitions programmatically:
+
+```jsonnet
+local goVersions = ["1.21", "1.22", "1.23"];
+
+{
+  matrix: {
+    GO_VERSION: goVersions,
+  },
+  steps: [
+    {
+      name: "test",
+      image: "golang:${GO_VERSION}",
+      commands: [
+        "go test ./...",
+      ],
+    },
+  ],
+}
+```
+
+A more advanced example that computes a matrix from structured data:
+
+```jsonnet
+local platforms = [
+  { os: "linux", arch: "amd64" },
+  { os: "linux", arch: "arm64" },
+  { os: "darwin", arch: "arm64" },
+];
+
+{
+  matrix: {
+    include: [
+      { GOOS: p.os, GOARCH: p.arch, NAME: "%s/%s" % [p.os, p.arch] }
+      for p in platforms
+    ],
+  },
+  steps: [
+    {
+      name: "build",
+      image: "golang:1.23",
+      commands: [
+        "GOOS=${GOOS} GOARCH=${GOARCH} go build -o dist/app-${GOOS}-${GOARCH}",
+      ],
+    },
+  ],
+}
+```
+
+## Using CI metadata
+
+Crow passes all CI environment variables as Jsonnet [external variables](https://jsonnet.org/ref/stdlib.html#ext_vars), accessible via `std.extVar()`.
+These are the same variables available as `${CI_REPO}` etc. in YAML variable substitution.
+
+```jsonnet
+local event = std.extVar("CI_PIPELINE_EVENT");
+
+{
+  steps: [
+    {
+      name: "test",
+      image: "golang:1.23",
+      commands: ["go test ./..."],
+    },
+  ] + (
+    if event == "tag" then [{
+      name: "release",
+      image: "goreleaser/goreleaser",
+      commands: ["goreleaser release"],
+    }] else []
+  ),
+}
+```
+
+See [Environment Variables](/dev/usage/env-vars-usage/) for the full list of available variables.
+
+## Imports and libraries
+
+Jsonnet files can import other files using the `import` keyword.
+Library files use the `.libsonnet` extension by convention and are not evaluated as standalone workflows.
+
+```tree
+.crow/
+├── lib.libsonnet
+├── build.jsonnet
+└── test.jsonnet
+```
+
+**`.crow/lib.libsonnet`:**
+
+```jsonnet
+{
+  goImage: "golang:1.23",
+  step(name, commands):: {
+    name: name,
+    image: $.goImage,
+    commands: commands,
+  },
+}
+```
+
+**`.crow/build.jsonnet`:**
+
+```jsonnet
+local lib = import "lib.libsonnet";
+
+{
+  steps: [
+    lib.step("build", ["go build ./..."]),
+  ],
+}
+```
+
+**`.crow/test.jsonnet`:**
+
+```jsonnet
+local lib = import "lib.libsonnet";
+
+{
+  steps: [
+    lib.step("test", ["go test ./..."]),
+  ],
+}
+```
+
+:::note
+Import paths are resolved relative to the importing file.
+In the server pipeline, imports resolve from the set of files fetched from the repository.
+They do not access the filesystem.
+:::
+
+## Multiple workflows from a single file
+
+If a Jsonnet file evaluates to a JSON array, each element becomes a separate workflow:
+
+```jsonnet
+[
+  {
+    name: "lint",
+    steps: [
+      {
+        name: "lint",
+        image: "golangci/golangci-lint",
+        commands: ["golangci-lint run"],
+      },
+    ],
+  },
+  {
+    name: "test",
+    depends_on: ["lint"],
+    steps: [
+      {
+        name: "test",
+        image: "golang:1.23",
+        commands: ["go test ./..."],
+      },
+    ],
+  },
+]
+```
+
+This is equivalent to having two separate YAML files, one for each workflow.
+
+## Processing order
+
+Jsonnet evaluation happens **before** all other pipeline processing steps:
+
+<Steps>
+1. **Jsonnet evaluation** --- `.jsonnet` files are evaluated to produce YAML/JSON
+2. **Matrix expansion** --- `matrix:` definitions generate workflow variants
+3. **Variable substitution** --- `${CI_REPO}` and similar placeholders are replaced
+4. **YAML parsing** --- the final YAML is parsed into the internal workflow model
+5. **Linting** --- the parsed workflow is validated
+6. **Compilation** --- the workflow is compiled into executable steps
+</Steps>
+
+This means Jsonnet output can use all standard YAML features like `matrix:`, `when:`, `depends_on:`, `${VAR}` substitution, and everything else documented in the [workflow syntax reference](/dev/usage/workflow-syntax/).
+
+## CLI linting
+
+Jsonnet files can be linted using the CLI, just like YAML files:
+
+```bash
+crow-cli lint .crow.jsonnet
+crow-cli lint .crow/
+```
+
+When linting a directory, `.jsonnet` files are picked up alongside `.yaml` and `.yml` files.
+Sibling `.libsonnet` files in the same directory are available for imports.
