@@ -71,6 +71,13 @@ func generateStandardProfile(state *workflowState) string {
 	(literal "/dev/urandom")
 	(regex "^/dev/tty")
 	(regex "^/dev/pty")
+	;; The pty multiplexer, which is how a pty is actually allocated on macOS:
+	;; posix_openpt(3) and openpty(3) both open it. "^/dev/pty" only matches the
+	;; legacy BSD /dev/ptyXX devices, so without this, allocating a pty fails
+	;; with "can't get Master/Slave device" while the profile looks like it
+	;; permits ptys. The slave side comes back as /dev/ttysNNN, which "^/dev/tty"
+	;; already covers.
+	(literal "/dev/ptmx")
 	(regex "^/dev/dtracehelper"))
 
 ;; Allow network access (required for package managers, API calls)

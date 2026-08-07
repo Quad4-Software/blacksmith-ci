@@ -50,6 +50,11 @@ func TestGenerateSandboxProfile(t *testing.T) {
 				"(deny default)",
 				"(allow network*)",
 				"(allow file-read*)",
+				// Allocating a pty on macOS opens the multiplexer, so a profile
+				// without it fails as "can't get Master/Slave device" even
+				// though it lists the pty devices. Anything driving a child
+				// process through a pty hits this.
+				`(literal "/dev/ptmx")`,
 				state.workspaceDir,
 				state.baseDir,
 			},
