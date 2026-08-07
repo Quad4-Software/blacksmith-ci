@@ -33,4 +33,13 @@ var Flags = []cli.Flag{
 		Usage:   "sandbox security level on macOS (none, standard, strict)",
 		Value:   "standard",
 	},
+	&cli.BoolFlag{
+		Name:    "backend-local-use-host-home",
+		Sources: cli.EnvVars("CROW_BACKEND_LOCAL_USE_HOST_HOME"),
+		Usage: "run steps with the agent account's own home instead of a per-workflow one. " +
+			"Needed by tools that resolve the home directory from the account rather than $HOME, " +
+			"such as Xcode, which reads provisioning profiles and writes DerivedData there. " +
+			"Trades home isolation between workflows for compatibility with them",
+		Value: false,
+	},
 }

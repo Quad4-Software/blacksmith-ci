@@ -98,17 +98,6 @@ func generateStandardProfile(state *workflowState) string {
 	(regex #"^/var/db/dslocal/nodes/Default/users/")
 	(regex #"^/private/var/db/dslocal/nodes/Default/users/"))
 
-;; Deny reading sensitive user directories
-(deny file-read*
-	(regex #"^/Users/[^/]+/Documents")
-	(regex #"^/Users/[^/]+/Desktop")
-	(regex #"^/Users/[^/]+/Pictures")
-	(regex #"^/Users/[^/]+/Downloads")
-	(regex #"^/Users/[^/]+/\.ssh/id_")
-	(literal "/Users/${USER}/.ssh/id_rsa")
-	(literal "/Users/${USER}/.ssh/id_ed25519")
-	(literal "/Users/${USER}/.ssh/id_ecdsa"))
-
 ;; Allow all file operations in workflow directories and /tmp (including extended attributes)
 (allow file*
 	(regex #"^/tmp/crow-local-")
@@ -168,6 +157,24 @@ func generateStandardProfile(state *workflowState) string {
 ;; Allow IPC
 (allow ipc*)
 (allow mach*)
+
+;; Deny sensitive user directories.
+;;
+;; Last, because a sandbox profile resolves an operation with the final rule
+;; that matches it. These used to sit above the allow blocks, which was harmless
+;; only for as long as nothing below them allowed a path under /Users. With
+;; --backend-local-use-host-home the home directory allowed below IS under
+;; /Users, and an earlier deny would have been overridden by it.
+;;
+;; file* rather than file-read*: with a per-workflow home nothing allowed writes
+;; here either, so this only narrows what the host-home mode would otherwise
+;; open up.
+(deny file*
+	(regex #"^/Users/[^/]+/Documents")
+	(regex #"^/Users/[^/]+/Desktop")
+	(regex #"^/Users/[^/]+/Pictures")
+	(regex #"^/Users/[^/]+/Downloads")
+	(regex #"^/Users/[^/]+/\.ssh/id_"))
 `,
 		baseDirEscaped, workspaceEscaped, homeDirEscaped, // base, workspace and home directories for file operations
 		baseDirEscaped, workspaceEscaped, homeDirEscaped, // base, workspace and home directories for extended attributes

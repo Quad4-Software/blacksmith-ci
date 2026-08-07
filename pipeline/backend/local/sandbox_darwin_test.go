@@ -202,3 +202,43 @@ func TestSandboxProfilePathEscaping(t *testing.T) {
 		t.Errorf("profile does not contain base directory, expected to find: %s", escapedBase)
 	}
 }
+
+// The deny for Documents, Desktop and the like has to come after every allow,
+// because a sandbox profile resolves an operation with the last rule that
+// matches it. With --backend-local-use-host-home the allowed home is itself
+// under /Users, so an earlier deny would be overridden by it.
+func TestSensitiveUserDirDenyComesLast(t *testing.T) {
+	hostHome := "/Users/someone"
+	state := &workflowState{
+		baseDir:      "/tmp/crow-test-base",
+		workspaceDir: "/tmp/crow-test-base/workspace",
+		homeDir:      hostHome,
+		privateDir:   "/tmp/crow-test-base/home",
+		hostHome:     true,
+	}
+
+	profile := generateSandboxProfile(sandboxLevelStandard, state)
+
+	denyIdx := strings.Index(profile, `(regex #"^/Users/[^/]+/Documents")`)
+	if denyIdx < 0 {
+		t.Fatal("the sensitive user directory deny is missing from the standard profile")
+	}
+
+	allowIdx := strings.LastIndex(profile, `(subpath "`+hostHome+`")`)
+	if allowIdx < 0 {
+		t.Fatalf("the host home %q is not allowed in the standard profile", hostHome)
+	}
+
+	if denyIdx < allowIdx {
+		t.Errorf("the sensitive user directory deny is at %d, before the home allow at %d, so the allow overrides it", denyIdx, allowIdx)
+	}
+
+	// Writes matter as much as reads once the allowed home is a real one.
+	if !strings.Contains(profile, ";; Deny sensitive user directories.") {
+		t.Error("expected the sensitive deny block to be present")
+	}
+	if strings.Contains(profile, `(deny file-read*
+	(regex #"^/Users/[^/]+/Documents")`) {
+		t.Error("the sensitive deny still only covers reads")
+	}
+}

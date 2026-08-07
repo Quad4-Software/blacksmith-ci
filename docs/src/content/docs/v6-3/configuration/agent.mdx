@@ -227,3 +227,23 @@ CROW_BACKEND_LOCAL_SANDBOX_LEVEL=standard
 :::note
 `strict` blocks network access, breaking most CI/CD workflows that download dependencies.
 :::
+
+### Host home directory
+
+By default each workflow gets its own home directory and `HOME` points at it, so runs cannot see each other's state.
+
+Some tools ask the operating system for the account's home rather than reading `HOME`, and do not see that directory at all.
+Xcode is the usual case: it looks for provisioning profiles and writes `DerivedData` under the real home, so a signed iOS build fails with `No profile for team '...' matching '...' found` even though `fastlane match` installed one moments earlier.
+
+```yaml
+CROW_BACKEND_LOCAL_USE_HOST_HOME=true
+```
+
+With it set, steps run with the agent account's own home.
+That trades isolation between workflows for compatibility, so enable it only on an agent dedicated to such builds.
+
+Two things stay workflow-private either way.
+The clone step keeps its own directory, because it writes a `.netrc` and removes it afterwards and would otherwise overwrite the account's own, and the sandbox continues to deny the sensitive user directories in the table above, writes included.
+
+On macOS this needs `standard` or `none`.
+`strict` denies the account's home outright.

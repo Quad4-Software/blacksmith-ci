@@ -43,6 +43,15 @@ type workflowState struct {
 	homeDir      string
 	workspaceDir string
 	cloneBinary  string
+	// privateDir is always a directory this workflow owns, whatever homeDir
+	// points at. Anything the backend writes on a step's behalf belongs here
+	// rather than in an account's home: the clone step drops a .netrc and then
+	// deletes it, which would destroy a real one.
+	privateDir string
+	// hostHome records that homeDir is the agent account's own home rather than
+	// a directory this workflow owns, which decides whether it may be created,
+	// and how the sandbox profile has to be ordered.
+	hostHome bool
 }
 
 type local struct {
@@ -51,6 +60,7 @@ type local struct {
 	cloneBinary  string
 	os, arch     string
 	sandboxLevel sandboxLevel
+	useHostHome  bool
 }
 
 // New returns a new local Backend.
@@ -84,6 +94,7 @@ func (e *local) Load(ctx context.Context) (*types.BackendInfo, error) {
 	if ok {
 		e.tempDir = c.String("backend-local-temp-dir")
 		e.sandboxLevel = sandboxLevel(c.String("backend-local-sandbox-level"))
+		e.useHostHome = c.Bool("backend-local-use-host-home")
 	}
 
 	// Validate sandbox level
@@ -131,10 +142,25 @@ func (e *local) SetupWorkflow(_ context.Context, conf *types.Config, taskUUID st
 		baseDir:      baseDir,
 		workspaceDir: filepath.Join(baseDir, "workspace"),
 		homeDir:      filepath.Join(baseDir, "home"),
+		privateDir:   filepath.Join(baseDir, "home"),
+		hostHome:     e.useHostHome,
 	}
 
-	if err := os.Mkdir(state.homeDir, 0o700); err != nil {
+	if err := os.Mkdir(state.privateDir, 0o700); err != nil {
 		return err
+	}
+
+	// A per-workflow home keeps runs from seeing each other's state, and is the
+	// default. It is wrong for tools that ask the account for its home rather
+	// than reading $HOME: Xcode looks for provisioning profiles and writes
+	// DerivedData under the account's real home, so with a redirected HOME it
+	// never sees what fastlane just installed.
+	if state.hostHome {
+		hostHomeDir, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("backend-local-use-host-home is set but the agent account has no resolvable home: %w", err)
+		}
+		state.homeDir = hostHomeDir
 	}
 
 	if err := os.Mkdir(state.workspaceDir, 0o700); err != nil {
@@ -170,9 +196,18 @@ func (e *local) StartStep(ctx context.Context, step *types.Step, taskUUID string
 		}
 	}
 
-	// Set HOME and CI_WORKSPACE
-	env = append(env, "HOME="+state.homeDir)
-	env = append(env, "USERPROFILE="+state.homeDir)
+	// Set HOME and CI_WORKSPACE.
+	//
+	// The clone step keeps the workflow's own directory even when the rest of
+	// the workflow uses the account's home. It writes a .netrc there and removes
+	// it afterwards, so pointing it at a real home would overwrite and then
+	// delete the account's own.
+	stepHome := state.homeDir
+	if step.Type == types.StepTypeClone {
+		stepHome = state.privateDir
+	}
+	env = append(env, "HOME="+stepHome)
+	env = append(env, "USERPROFILE="+stepHome)
 	env = append(env, "CI_WORKSPACE="+state.workspaceDir)
 
 	switch step.Type {

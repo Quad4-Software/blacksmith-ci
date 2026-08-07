@@ -46,7 +46,7 @@ func (e *local) setupClone(ctx context.Context, state *workflowState) error {
 	}
 
 	log.Info().Msg("no global 'clone' plugin installed")
-	state.cloneBinary = filepath.Join(state.homeDir, "plugin-clone")
+	state.cloneBinary = filepath.Join(state.privateDir, "plugin-clone")
 	if e.os == "windows" {
 		state.cloneBinary += ".exe"
 	}
@@ -71,7 +71,7 @@ func (e *local) execClone(ctx context.Context, step *types.Step, state *workflow
 		log.Warn().Msgf("the clone step image '%s' does not match the default clone image. Ignoring and using the default clone image anyway.", step.Image)
 	}
 
-	netrcPath, err := clone.WriteNetRC(state.homeDir, e.os, step.Environment)
+	netrcPath, err := clone.WriteNetRC(state.privateDir, e.os, step.Environment)
 	if err != nil {
 		return err
 	}
