@@ -133,6 +133,6 @@ Thank you.
 
 | Date       | Event                                 |
 | ---------- | ------------------------------------- |
-| 2026-08-10 | Reported privately to the maintainers |
+| 2026-08-05 | Reported privately to the maintainers |
 | 2026-08-10 | Root-caused, fixed and tested         |
 | 2026-08-10 | v6.4.0 released with this advisory    |
