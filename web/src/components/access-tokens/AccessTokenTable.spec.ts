@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { mount, flushPromises } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
+import type { AccessToken } from '~/lib/api/types';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ref } from 'vue';
 import AccessTokenTable from './AccessTokenTable.vue';
-import type { AccessToken } from '~/lib/api/types';
 
 // Mock vue-i18n
 vi.mock('vue-i18n', () => ({
@@ -302,6 +302,46 @@ describe('accessTokenTable', () => {
 
       // Verify the component can receive bulkDelete events
       expect(wrapper.vm).toBeDefined();
+    });
+  });
+
+  describe('table reactivity', () => {
+    it('re-renders rows when the tokens prop changes', async () => {
+      const wrapper = mount(AccessTokenTable, {
+        props: {
+          tokens: [createToken({ id: 1, name: 'First Token' })],
+        },
+      });
+
+      await flushPromises();
+      expect(wrapper.text()).toContain('First Token');
+      expect(wrapper.text()).not.toContain('Second Token');
+
+      await wrapper.setProps({
+        tokens: [createToken({ id: 1, name: 'First Token' }), createToken({ id: 2, name: 'Second Token' })],
+      });
+      await flushPromises();
+
+      expect(wrapper.text()).toContain('First Token');
+      expect(wrapper.text()).toContain('Second Token');
+    });
+
+    it('reflects row selection state in the bulk actions bar', async () => {
+      const wrapper = mount(AccessTokenTable, {
+        props: {
+          tokens: [createToken({ id: 1 }), createToken({ id: 2, name: 'Token 2' })],
+        },
+      });
+
+      await flushPromises();
+      expect(wrapper.text()).not.toContain('selected');
+
+      // The first checkbox is the header "select all" toggle.
+      const selectAll = wrapper.findAllComponents({ name: 'Checkbox' })[0];
+      selectAll.vm.$emit('update:modelValue', true);
+      await flushPromises();
+
+      expect(wrapper.text()).toContain('selected');
     });
   });
 

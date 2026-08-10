@@ -126,14 +126,11 @@
 </template>
 
 <script lang="ts" setup>
-import type { ColumnDef, SortingState, VisibilityState } from '@tanstack/vue-table';
-import { FlexRender, getCoreRowModel, getSortedRowModel, useVueTable } from '@tanstack/vue-table';
 import { Check, Copy, MoreVertical } from '@lucide/vue';
-import { h, reactive, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
-
-import Icon from '~/components/atomic/Icon.vue';
+import type { ColumnDef, ColumnVisibilityState, SortingState } from '@tanstack/vue-table';
+import { FlexRender, useTable } from '@tanstack/vue-table';
 import AccessTokenEditDialog from '~/components/access-tokens/AccessTokenEditDialog.vue';
+import Icon from '~/components/atomic/Icon.vue';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -154,7 +151,10 @@ import {
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
+import { dataTableFeatures } from '~/components/ui/table/features';
 import type { AccessToken, UpdateAccessTokenRequest } from '~/lib/api/types';
+import { h, reactive, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{
   tokens: AccessToken[] | null;
@@ -187,7 +187,7 @@ async function copyTokenName(name: string) {
 
 const sorting = ref<SortingState>([{ id: 'created_at', desc: true }]);
 const rowSelection = ref({});
-const columnVisibility = ref<VisibilityState>({});
+const columnVisibility = ref<ColumnVisibilityState>({});
 
 // Dialog states
 const showBulkDeleteDialog = ref(false);
@@ -270,7 +270,7 @@ function handleEditSave(data: UpdateAccessTokenRequest) {
   }
 }
 
-const columns: ColumnDef<AccessToken>[] = [
+const columns: ColumnDef<typeof dataTableFeatures, AccessToken>[] = [
   {
     id: 'select',
     header: ({ table }) =>
@@ -443,13 +443,12 @@ const columns: ColumnDef<AccessToken>[] = [
   },
 ];
 
-const table = useVueTable({
+const table = useTable({
+  features: dataTableFeatures,
   get data() {
     return props.tokens || [];
   },
   columns,
-  getCoreRowModel: getCoreRowModel(),
-  getSortedRowModel: getSortedRowModel(),
   onSortingChange: (updaterOrValue) => {
     sorting.value = typeof updaterOrValue === 'function' ? updaterOrValue(sorting.value) : updaterOrValue;
   },

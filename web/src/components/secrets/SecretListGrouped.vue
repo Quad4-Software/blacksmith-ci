@@ -293,26 +293,17 @@
 </template>
 
 <script lang="ts" setup>
+import { ArrowUpDown, Check, Copy, MoreVertical } from '@lucide/vue';
 import type {
   ColumnDef,
   ColumnFiltersState,
   ColumnSizingState,
+  ColumnVisibilityState,
   SortingState,
-  VisibilityState,
 } from '@tanstack/vue-table';
-import {
-  FlexRender,
-  getCoreRowModel,
-  getFacetedUniqueValues,
-  getFilteredRowModel,
-  getSortedRowModel,
-  useVueTable,
-} from '@tanstack/vue-table';
+import { FlexRender, useTable } from '@tanstack/vue-table';
 import { useStorage } from '@vueuse/core';
-import { ArrowUpDown, Check, Copy, MoreVertical } from '@lucide/vue';
-import { computed, defineComponent, h, onMounted, reactive, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
-
+import type { IconNames } from '~/components/atomic/Icon.types';
 import Icon from '~/components/atomic/Icon.vue';
 import {
   AlertDialog,
@@ -346,13 +337,15 @@ import {
 import SearchInput from '~/components/ui/input/SearchInput.vue';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
-import type { IconNames } from '~/components/atomic/Icon.types';
+import { dataTableFeatures } from '~/components/ui/table/features';
 import useApiClient from '~/compositions/useApiClient';
 import useConfig from '~/compositions/useConfig';
 import { useForges } from '~/compositions/useForges';
 import useNotifications from '~/compositions/useNotifications';
 import type { SecretWithOrg } from '~/lib/api/types';
 import { WebhookEvents } from '~/lib/api/types';
+import { computed, defineComponent, h, onMounted, reactive, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{
   secrets: SecretWithOrg[] | null;
@@ -485,7 +478,7 @@ const rowSelection = ref({});
 const selectedScopes = useStorage<string[]>('crow:secrets-filter-scopes', []);
 const selectedOwners = useStorage<string[]>('crow:secrets-filter-owners', []);
 const selectedForges = useStorage<string[]>('crow:secrets-filter-forges', []);
-const columnVisibility = ref<VisibilityState>({
+const columnVisibility = ref<ColumnVisibilityState>({
   source: false, // Hide source column by default
   created_at: false, // Hide added column by default
   updated_at: false, // Hide last edited column by default
@@ -826,7 +819,7 @@ const SecretValueViewer = defineComponent({
   },
 });
 
-const columns: ColumnDef<SecretWithOrg>[] = [
+const columns: ColumnDef<typeof dataTableFeatures, SecretWithOrg>[] = [
   {
     id: 'select',
     header: ({ table }) =>
@@ -1187,15 +1180,12 @@ const columns: ColumnDef<SecretWithOrg>[] = [
   },
 ];
 
-const table = useVueTable({
+const table = useTable({
+  features: dataTableFeatures,
   get data() {
     return props.secrets || [];
   },
   columns,
-  getCoreRowModel: getCoreRowModel(),
-  getSortedRowModel: getSortedRowModel(),
-  getFilteredRowModel: getFilteredRowModel(),
-  getFacetedUniqueValues: getFacetedUniqueValues(),
   enableColumnResizing: true,
   columnResizeMode: 'onChange',
   onSortingChange: (updaterOrValue) => {

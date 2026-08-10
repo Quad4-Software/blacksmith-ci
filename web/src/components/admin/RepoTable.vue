@@ -208,21 +208,18 @@
 </template>
 
 <script lang="ts" setup>
+import { ArrowUpDown, Check, Copy, MoreVertical } from '@lucide/vue';
 import type {
   ColumnDef,
   ColumnFiltersState,
   ColumnSizingState,
+  ColumnVisibilityState,
   RowSelectionState,
   SortingState,
-  VisibilityState,
 } from '@tanstack/vue-table';
-import { FlexRender, getCoreRowModel, getFilteredRowModel, getSortedRowModel, useVueTable } from '@tanstack/vue-table';
+import { FlexRender, useTable } from '@tanstack/vue-table';
 import { useStorage } from '@vueuse/core';
-import { ArrowUpDown, Check, Copy, MoreVertical } from '@lucide/vue';
-import { computed, h, onMounted, reactive, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
-
+import type { IconNames } from '~/components/atomic/Icon.types';
 import Icon from '~/components/atomic/Icon.vue';
 import {
   AlertDialog,
@@ -247,9 +244,12 @@ import {
 } from '~/components/ui/dropdown-menu';
 import SearchInput from '~/components/ui/input/SearchInput.vue';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
+import { dataTableFeatures } from '~/components/ui/table/features';
 import { useForges } from '~/compositions/useForges';
 import type { Forge, Repo } from '~/lib/api/types';
-import type { IconNames } from '~/components/atomic/Icon.types';
+import { computed, h, onMounted, reactive, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 
 const props = defineProps<{
   repos: Repo[] | null;
@@ -283,7 +283,7 @@ async function copyRepoName(name: string) {
 
 const sorting = ref<SortingState>([{ id: 'full_name', desc: false }]);
 const columnFilters = ref<ColumnFiltersState>([]);
-const columnVisibility = ref<VisibilityState>({});
+const columnVisibility = ref<ColumnVisibilityState>({});
 const rowSelection = ref<RowSelectionState>({});
 
 // Extract unique owners from repos
@@ -369,7 +369,7 @@ function handleBulkDelete() {
   showBulkDeleteDialog.value = true;
 }
 
-const columns: ColumnDef<Repo>[] = [
+const columns: ColumnDef<typeof dataTableFeatures, Repo>[] = [
   {
     id: 'select',
     header: ({ table }) =>
@@ -564,14 +564,12 @@ const columns: ColumnDef<Repo>[] = [
   },
 ];
 
-const table = useVueTable({
+const table = useTable({
+  features: dataTableFeatures,
   get data() {
     return props.repos || [];
   },
   columns,
-  getCoreRowModel: getCoreRowModel(),
-  getSortedRowModel: getSortedRowModel(),
-  getFilteredRowModel: getFilteredRowModel(),
   enableColumnResizing: true,
   columnResizeMode: 'onChange',
   onSortingChange: (updaterOrValue) => {

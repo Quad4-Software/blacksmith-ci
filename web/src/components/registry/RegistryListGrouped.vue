@@ -257,27 +257,17 @@
 </template>
 
 <script lang="ts" setup>
+import { ArrowUpDown, Check, Copy, MoreVertical } from '@lucide/vue';
 import type {
   ColumnDef,
   ColumnFiltersState,
   ColumnSizingState,
+  ColumnVisibilityState,
   SortingState,
-  VisibilityState,
 } from '@tanstack/vue-table';
-import {
-  FlexRender,
-  getCoreRowModel,
-  getFacetedUniqueValues,
-  getFilteredRowModel,
-  getSortedRowModel,
-  useVueTable,
-} from '@tanstack/vue-table';
-import { ArrowUpDown, Check, Copy, MoreVertical } from '@lucide/vue';
-import { computed, h, reactive, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
-
-import Icon from '~/components/atomic/Icon.vue';
+import { FlexRender, useTable } from '@tanstack/vue-table';
 import type { IconNames } from '~/components/atomic/Icon.types';
+import Icon from '~/components/atomic/Icon.vue';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -301,9 +291,12 @@ import {
 } from '~/components/ui/dropdown-menu';
 import SearchInput from '~/components/ui/input/SearchInput.vue';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
+import { dataTableFeatures } from '~/components/ui/table/features';
 import useConfig from '~/compositions/useConfig';
 import { useForges } from '~/compositions/useForges';
 import type { RegistryWithOrg } from '~/lib/api/types';
+import { computed, h, reactive, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{
   registries: RegistryWithOrg[] | null;
@@ -433,7 +426,7 @@ const rowSelection = ref({});
 const selectedScopes = ref<string[]>([]);
 const selectedOwners = ref<string[]>([]);
 const selectedForges = ref<string[]>([]);
-const columnVisibility = ref<VisibilityState>({
+const columnVisibility = ref<ColumnVisibilityState>({
   created_at: false, // Hide added column by default
   updated_at: false, // Hide last edited column by default
   forge: false, // Forge column visibility controlled by showForgeColumn
@@ -513,7 +506,7 @@ function confirmSingleDelete() {
   showSingleDeleteDialog.value = false;
 }
 
-const columns: ColumnDef<RegistryWithOrg>[] = [
+const columns: ColumnDef<typeof dataTableFeatures, RegistryWithOrg>[] = [
   {
     id: 'select',
     header: ({ table }) =>
@@ -784,15 +777,12 @@ const columns: ColumnDef<RegistryWithOrg>[] = [
   },
 ];
 
-const table = useVueTable({
+const table = useTable({
+  features: dataTableFeatures,
   get data() {
     return props.registries || [];
   },
   columns,
-  getCoreRowModel: getCoreRowModel(),
-  getSortedRowModel: getSortedRowModel(),
-  getFilteredRowModel: getFilteredRowModel(),
-  getFacetedUniqueValues: getFacetedUniqueValues(),
   enableColumnResizing: true,
   columnResizeMode: 'onChange',
   onSortingChange: (updaterOrValue) => {

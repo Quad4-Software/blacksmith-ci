@@ -216,20 +216,17 @@
 </template>
 
 <script lang="ts" setup>
+import { ArrowUpDown, Check, Copy, MoreVertical } from '@lucide/vue';
 import type {
   ColumnDef,
   ColumnFiltersState,
   ColumnSizingState,
+  ColumnVisibilityState,
   SortingState,
-  VisibilityState,
 } from '@tanstack/vue-table';
-import { FlexRender, getCoreRowModel, getFilteredRowModel, getSortedRowModel, useVueTable } from '@tanstack/vue-table';
+import { FlexRender, useTable } from '@tanstack/vue-table';
 import { useStorage } from '@vueuse/core';
-import { ArrowUpDown, Check, Copy, MoreVertical } from '@lucide/vue';
-import { computed, h, onMounted, reactive, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
-
+import type { IconNames } from '~/components/atomic/Icon.types';
 import Icon from '~/components/atomic/Icon.vue';
 import {
   AlertDialog,
@@ -255,10 +252,13 @@ import {
 import SearchInput from '~/components/ui/input/SearchInput.vue';
 import { Switch } from '~/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
+import { dataTableFeatures } from '~/components/ui/table/features';
 import { useForges } from '~/compositions/useForges';
 import type { Entity, Forge } from '~/lib/api/types';
 import { isUserEntity } from '~/lib/api/types';
-import type { IconNames } from '~/components/atomic/Icon.types';
+import { computed, h, onMounted, reactive, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 
 const props = defineProps<{
   entities: Entity[] | null;
@@ -299,7 +299,7 @@ const sorting = ref<SortingState>([
 ]);
 const columnFilters = ref<ColumnFiltersState>([]);
 const rowSelection = ref({});
-const columnVisibility = ref<VisibilityState>({});
+const columnVisibility = ref<ColumnVisibilityState>({});
 
 // Load column sizing from localStorage
 const COLUMN_SIZING_STORAGE_KEY = 'crow-entities-table-column-sizing';
@@ -384,7 +384,7 @@ function confirmSingleDelete() {
   showSingleDeleteDialog.value = false;
 }
 
-const columns: ColumnDef<Entity>[] = [
+const columns: ColumnDef<typeof dataTableFeatures, Entity>[] = [
   {
     id: 'select',
     header: ({ table }) =>
@@ -640,14 +640,12 @@ const columns: ColumnDef<Entity>[] = [
   },
 ];
 
-const table = useVueTable({
+const table = useTable({
+  features: dataTableFeatures,
   get data() {
     return props.entities || [];
   },
   columns,
-  getCoreRowModel: getCoreRowModel(),
-  getSortedRowModel: getSortedRowModel(),
-  getFilteredRowModel: getFilteredRowModel(),
   enableColumnResizing: true,
   columnResizeMode: 'onChange',
   onSortingChange: (updaterOrValue) => {
