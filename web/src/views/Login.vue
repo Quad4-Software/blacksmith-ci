@@ -197,6 +197,7 @@ const authErrorMessages = {
   access_denied: i18n.t('access_denied'),
   invalid_state: i18n.t('invalid_state'),
   org_access_denied: i18n.t('org_access_denied'),
+  login_taken: i18n.t('login_taken'),
 };
 
 const errorMessage = ref<string>();

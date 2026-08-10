@@ -141,8 +141,8 @@ func (c *CompositeEncryptedStore) GetUser(id int64) (*model.User, error) {
 	return c.userStore.GetUser(id)
 }
 
-func (c *CompositeEncryptedStore) GetUserRemoteID(remoteID model.ForgeRemoteID, login string) (*model.User, error) {
-	return c.userStore.GetUserRemoteID(remoteID, login)
+func (c *CompositeEncryptedStore) GetUserByForgeRemoteID(forgeID int64, remoteID model.ForgeRemoteID, login string) (*model.User, error) {
+	return c.userStore.GetUserByForgeRemoteID(forgeID, remoteID, login)
 }
 
 func (c *CompositeEncryptedStore) GetUserLogin(login string) (*model.User, error) {

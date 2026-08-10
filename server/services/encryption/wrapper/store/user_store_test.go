@@ -208,7 +208,7 @@ func TestEncryptedUserStore_DeleteUser(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestEncryptedUserStore_GetUserRemoteID(t *testing.T) {
+func TestEncryptedUserStore_GetUserByForgeRemoteID(t *testing.T) {
 	mockStore := store_mocks.NewMockStore(t)
 	mockEncryption := encryption_mocks.NewMockEncryptionService(t)
 
@@ -223,10 +223,10 @@ func TestEncryptedUserStore_GetUserRemoteID(t *testing.T) {
 		RefreshToken: "",
 	}
 
-	mockStore.On("GetUserRemoteID", model.ForgeRemoteID("123"), "testuser").Return(user, nil)
+	mockStore.On("GetUserByForgeRemoteID", int64(1), model.ForgeRemoteID("123"), "testuser").Return(user, nil)
 	mockEncryption.On("Decrypt", "encrypted-access", "1:access").Return("decrypted-access", nil)
 
-	result, err := wrapper.GetUserRemoteID("123", "testuser")
+	result, err := wrapper.GetUserByForgeRemoteID(1, "123", "testuser")
 	require.NoError(t, err)
 	assert.Equal(t, "decrypted-access", result.AccessToken)
 }

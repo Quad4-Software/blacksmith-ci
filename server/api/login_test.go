@@ -159,7 +159,8 @@ func TestHandleAuth(t *testing.T) {
 
 		_manager.On("ForgeByID", int64(1)).Return(_forge, nil)
 		_forge.On("Login", mock.Anything, mock.Anything).Return(user, "", nil)
-		_store.On("GetUserRemoteID", user.ForgeRemoteID, user.Login).Return(nil, types.RecordNotExist)
+		_store.On("GetUserByForgeRemoteID", int64(1), user.ForgeRemoteID, user.Login).Return(nil, types.RecordNotExist)
+		_store.On("GetUserLogin", user.Login).Return(nil, types.RecordNotExist)
 		// Multi-forge: check if UserForge exists for this remote ID
 		_store.On("UserForgeGetByRemoteID", int64(1), user.ForgeRemoteID).Return(nil, types.RecordNotExist)
 		_store.On("CreateUser", mock.Anything).Return(nil)
@@ -179,6 +180,51 @@ func TestHandleAuth(t *testing.T) {
 		assert.Equal(t, http.StatusSeeOther, c.Writer.Status())
 		assert.Equal(t, "/", c.Writer.Header().Get("Location"))
 		assert.NotEmpty(t, c.Writer.Header().Get("Set-Cookie"))
+	})
+
+	// An account on a second forge must never be able to log in as an existing
+	// user, even when it shares that user's login name. Otherwise anyone able to
+	// register on any connected forge could take over an arbitrary Crow account
+	// by claiming its username.
+	t.Run("should not log in as an existing user with the same login on another forge", func(t *testing.T) {
+		_manager := new(mocks_services.MockManager)
+		_forge := new(forge_mocks.MockForge)
+		_store := new(store_mocks.MockStore)
+		server.Config.Services.Manager = _manager
+		server.Config.Permissions.Open = true
+		server.Config.Permissions.Orgs = permissions.NewOrgs(nil)
+		server.Config.Permissions.Admins = permissions.NewAdmins(nil)
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Set("store", _store)
+		c.Request = &http.Request{
+			Header: make(http.Header),
+			URL: &url.URL{
+				Scheme:   "https",
+				RawQuery: "forge_id=2",
+			},
+		}
+
+		// The victim is an admin registered on forge 1. The attacker registers the
+		// same login on forge 2 and signs in there.
+		victim := &model.User{ID: 1, OrgID: 1, ForgeID: 1, ForgeRemoteID: "remote-id-1", Login: "test", Admin: true}
+		attacker := &model.User{ForgeID: 2, ForgeRemoteID: "remote-id-2", Login: "test"}
+
+		_manager.On("ForgeByID", int64(2)).Return(_forge, nil)
+		_forge.On("Login", mock.Anything, mock.Anything).Return(attacker, "", nil)
+		_store.On("UserForgeGetByRemoteID", int64(2), attacker.ForgeRemoteID).Return(nil, types.RecordNotExist)
+		// Forge-scoped legacy lookup must not resolve the forge 1 user.
+		_store.On("GetUserByForgeRemoteID", int64(2), attacker.ForgeRemoteID, attacker.Login).Return(nil, types.RecordNotExist)
+		// The login is already taken by the victim, so registration is refused.
+		_store.On("GetUserLogin", attacker.Login).Return(victim, nil)
+
+		api.HandleAuth(c)
+
+		assert.Equal(t, http.StatusSeeOther, c.Writer.Status())
+		assert.Equal(t, "/login?error=login_taken", c.Writer.Header().Get("Location"))
+		assert.Empty(t, c.Writer.Header().Get("Set-Cookie"), "no session may be issued")
+		_store.AssertNotCalled(t, "CreateUser", mock.Anything)
+		_store.AssertNotCalled(t, "UserForgeCreate", mock.Anything)
 	})
 
 	t.Run("should login an existing user", func(t *testing.T) {
@@ -250,7 +296,8 @@ func TestHandleAuth(t *testing.T) {
 		_forge.On("Login", mock.Anything, mock.Anything).Return(user, "", nil)
 		// Multi-forge: check if UserForge exists for this remote ID (new user doesn't exist)
 		_store.On("UserForgeGetByRemoteID", int64(1), user.ForgeRemoteID).Return(nil, types.RecordNotExist)
-		_store.On("GetUserRemoteID", user.ForgeRemoteID, user.Login).Return(nil, types.RecordNotExist)
+		_store.On("GetUserByForgeRemoteID", int64(1), user.ForgeRemoteID, user.Login).Return(nil, types.RecordNotExist)
+		_store.On("GetUserLogin", user.Login).Return(nil, types.RecordNotExist)
 
 		api.HandleAuth(c)
 
@@ -313,7 +360,7 @@ func TestHandleAuth(t *testing.T) {
 		_forge.On("Login", mock.Anything, mock.Anything).Return(user, "", nil)
 		// Multi-forge: legacy user doesn't have UserForge record yet
 		_store.On("UserForgeGetByRemoteID", int64(1), user.ForgeRemoteID).Return(nil, types.RecordNotExist)
-		_store.On("GetUserRemoteID", user.ForgeRemoteID, user.Login).Return(user, nil)
+		_store.On("GetUserByForgeRemoteID", int64(1), user.ForgeRemoteID, user.Login).Return(user, nil)
 		_store.On("UserForgeCreate", mock.Anything).Return(nil)
 		_store.On("UserForgeUpdate", mock.Anything).Return(nil)
 		_store.On("OrgFindByName", user.Login, user.ForgeID).Return(nil, types.RecordNotExist)
@@ -353,7 +400,7 @@ func TestHandleAuth(t *testing.T) {
 		_forge.On("Login", mock.Anything, mock.Anything).Return(user, "", nil)
 		// Multi-forge: legacy user doesn't have UserForge record yet
 		_store.On("UserForgeGetByRemoteID", int64(1), user.ForgeRemoteID).Return(nil, types.RecordNotExist)
-		_store.On("GetUserRemoteID", user.ForgeRemoteID, user.Login).Return(user, nil)
+		_store.On("GetUserByForgeRemoteID", int64(1), user.ForgeRemoteID, user.Login).Return(user, nil)
 		_store.On("UserForgeCreate", mock.Anything).Return(nil)
 		_store.On("UserForgeUpdate", mock.Anything).Return(nil)
 		_store.On("OrgFindByName", user.Login, user.ForgeID).Return(org, nil)
@@ -393,7 +440,7 @@ func TestHandleAuth(t *testing.T) {
 		_forge.On("Login", mock.Anything, mock.Anything).Return(user, "", nil)
 		// Multi-forge: legacy user doesn't have UserForge record yet
 		_store.On("UserForgeGetByRemoteID", int64(1), user.ForgeRemoteID).Return(nil, types.RecordNotExist)
-		_store.On("GetUserRemoteID", user.ForgeRemoteID, user.Login).Return(user, nil)
+		_store.On("GetUserByForgeRemoteID", int64(1), user.ForgeRemoteID, user.Login).Return(user, nil)
 		_store.On("UserForgeCreate", mock.Anything).Return(nil)
 		_store.On("UserForgeUpdate", mock.Anything).Return(nil)
 		_store.On("OrgGet", user.OrgID).Return(org, nil)

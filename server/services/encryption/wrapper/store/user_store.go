@@ -30,8 +30,8 @@ func (wrapper *EncryptedUserStore) GetUser(id int64) (*model.User, error) {
 	return result, nil
 }
 
-func (wrapper *EncryptedUserStore) GetUserRemoteID(remoteID model.ForgeRemoteID, login string) (*model.User, error) {
-	result, err := wrapper.store.GetUserRemoteID(remoteID, login)
+func (wrapper *EncryptedUserStore) GetUserByForgeRemoteID(forgeID int64, remoteID model.ForgeRemoteID, login string) (*model.User, error) {
+	result, err := wrapper.store.GetUserByForgeRemoteID(forgeID, remoteID, login)
 	if err != nil {
 		return nil, err
 	}

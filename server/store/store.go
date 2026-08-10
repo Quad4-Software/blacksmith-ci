@@ -26,8 +26,10 @@ type Store interface {
 	// Users
 	// GetUser gets a user by unique ID.
 	GetUser(int64) (*model.User, error)
-	// GetUserRemoteID gets a user by remote ID with fallback to login name.
-	GetUserRemoteID(model.ForgeRemoteID, string) (*model.User, error)
+	// GetUserByForgeRemoteID gets a legacy user by forge and remote ID, with a
+	// fallback to the login name for rows predating remote-ID tracking. Both
+	// lookups are scoped to the given forge.
+	GetUserByForgeRemoteID(int64, model.ForgeRemoteID, string) (*model.User, error)
 	// GetUserLogin gets a user by unique Login name.
 	GetUserLogin(string) (*model.User, error)
 	// GetUserList gets a list of all users in the system.

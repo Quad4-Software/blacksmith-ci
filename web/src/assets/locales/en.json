@@ -1480,6 +1480,7 @@
   "stale_token_error": "Your authentication token has expired and could not be refreshed automatically.",
   "internal_error": "Internal error occurred",
   "registration_closed": "The registration is closed",
+  "login_taken": "This username is already used by an account from another forge. Sign in with that forge and link this account from your user settings.",
   "access_denied": "Missing permissions to access this instance",
   "org_access_denied": "You are not a member of the organization which allows logging into Crow CI (the organization is set via env var `CROW_ORGS').",
   "invalid_state": "The OAuth state is invalid",

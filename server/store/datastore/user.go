@@ -30,13 +30,47 @@ func (s storage) GetUser(id int64) (*model.User, error) {
 	return user, wrapGet(s.db.NewSelect().Model(user).Where("id = ?", id).Scan(context.Background()))
 }
 
-func (s storage) GetUserRemoteID(remoteID model.ForgeRemoteID, login string) (*model.User, error) {
+// MainForgeID is the ID of the forge a single-forge installation uses. Rows
+// written before multi-forge support may carry an unset forge_id; they belong
+// to this forge.
+const MainForgeID = 1
+
+// GetUserByForgeRemoteID looks up the legacy `users` row for an account on the
+// given forge. It is only used to adopt users that predate the `user_forges`
+// table.
+//
+// Every lookup is scoped to forgeID. Forge remote IDs are per-forge sequences
+// and login names are only unique within a forge, so an unscoped lookup would
+// let an account on one forge resolve to a user registered on another and take
+// it over.
+func (s storage) GetUserByForgeRemoteID(forgeID int64, remoteID model.ForgeRemoteID, login string) (*model.User, error) {
 	user := new(model.User)
-	err := wrapGet(s.db.NewSelect().Model(user).Where("forge_remote_id = ?", remoteID).Scan(context.Background()))
-	if err != nil {
-		return s.getUserLogin(s.db, login)
+	err := wrapGet(s.forgeScope(s.db.NewSelect().Model(user), forgeID).
+		Where("forge_remote_id = ?", remoteID).
+		Scan(context.Background()))
+	if err == nil {
+		return user, nil
 	}
-	return user, err
+	if !errors.Is(err, types.RecordNotExist) {
+		return nil, err
+	}
+
+	// Rows created before remote IDs were tracked have no forge_remote_id, so
+	// fall back to the login name for those only.
+	user = new(model.User)
+	return user, wrapGet(s.forgeScope(s.db.NewSelect().Model(user), forgeID).
+		Where("login = ?", login).
+		Where("(forge_remote_id IS NULL OR forge_remote_id = '')").
+		Scan(context.Background()))
+}
+
+// forgeScope restricts a `users` query to a single forge, counting rows with an
+// unset forge_id as belonging to the main forge.
+func (storage) forgeScope(q *bun.SelectQuery, forgeID int64) *bun.SelectQuery {
+	if forgeID == MainForgeID {
+		return q.Where("(forge_id = ? OR forge_id = 0 OR forge_id IS NULL)", forgeID)
+	}
+	return q.Where("forge_id = ?", forgeID)
 }
 
 func (s storage) GetUserLogin(login string) (*model.User, error) {

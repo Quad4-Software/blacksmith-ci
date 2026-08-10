@@ -1,3 +1,5 @@
 CLAUDE.md
 .claude/
 docs/superpowers/
+# release-notes fragment prepended to generated notes, not a standalone document
+.crow/release-extra.md

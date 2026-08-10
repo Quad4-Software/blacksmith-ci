@@ -54,6 +54,14 @@ steps:
       - git sv current-version
       - git sv release-notes -t ${CI_COMMIT_TAG} -o CHANGELOG.md
       - sed -i '1,2d' CHANGELOG.md #  remove version
+      # git-sv renders commit subjects only, so prose that needs to lead the release
+      # notes (security advisories, upgrade warnings) goes in .crow/release-extra.md.
+      # Delete that file again after the release it belongs to.
+      - |
+        if [ -f .crow/release-extra.md ]; then
+          cat .crow/release-extra.md CHANGELOG.md > CHANGELOG.md.new
+          mv CHANGELOG.md.new CHANGELOG.md
+        fi
       - cat CHANGELOG.md
 
   'Create release':

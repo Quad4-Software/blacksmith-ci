@@ -321,8 +321,11 @@ func HandleAuth(c *gin.Context) {
 			return
 		}
 	} else {
-		// Fall back to legacy lookup via User.ForgeRemoteID for backward compatibility
-		user, err = _store.GetUserRemoteID(userFromForge.ForgeRemoteID, userFromForge.Login)
+		// Fall back to the legacy `users` row, for installations that predate the
+		// user_forges table. The lookup is scoped to this forge: an account on
+		// another forge must never resolve to an existing user, or registering a
+		// colliding account there would take that user over.
+		user, err = _store.GetUserByForgeRemoteID(forgeID, userFromForge.ForgeRemoteID, userFromForge.Login)
 		if err != nil && !errors.Is(err, types.RecordNotExist) {
 			log.Error().Err(err).Msgf("cannot get user %s", userFromForge.Login)
 			c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/login?error=internal_error")
@@ -362,6 +365,21 @@ func HandleAuth(c *gin.Context) {
 		if !server.Config.Permissions.Open && !server.Config.Permissions.Admins.IsAdmin(userFromForge) {
 			log.Error().Msgf("cannot register %s. registration closed", userFromForge.Login)
 			c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/login?error=registration_closed")
+			return
+		}
+
+		// `users.login` is unique across all forges, so an account whose name is
+		// already taken by a user from another forge cannot be registered. Fail
+		// closed with a distinguishable error instead of a unique-constraint
+		// violation reported as an internal error. The account can still be
+		// attached to the existing user by linking the forge from user settings.
+		if existing, lErr := _store.GetUserLogin(userFromForge.Login); lErr == nil && existing != nil {
+			log.Error().Msgf("cannot register %s on forge %d: login already taken by user %d", userFromForge.Login, forgeID, existing.ID)
+			c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/login?error=login_taken")
+			return
+		} else if lErr != nil && !errors.Is(lErr, types.RecordNotExist) {
+			log.Error().Err(lErr).Msgf("cannot check login availability for %s", userFromForge.Login)
+			c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/login?error=internal_error")
 			return
 		}
 

@@ -21,6 +21,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/server/store/types"
 )
 
 func TestUsers(t *testing.T) {
@@ -93,6 +94,66 @@ func TestUsers(t *testing.T) {
 	assert.NoError(t, err2)
 	_, err3 := store.GetUser(getUser.ID)
 	assert.Error(t, err3)
+}
+
+// TestGetUserByForgeRemoteIDIsForgeScoped guards against cross-forge account
+// takeover: an account on forge B must never resolve to a user registered on
+// forge A, no matter how the two accounts collide.
+func TestGetUserByForgeRemoteIDIsForgeScoped(t *testing.T) {
+	store, closer := newTestStore(t, new(model.User), new(model.Org), new(model.Perm))
+	defer closer()
+
+	victim := &model.User{
+		Login:         "victim",
+		ForgeID:       1,
+		ForgeRemoteID: "42",
+		Hash:          "A",
+		Admin:         true,
+	}
+	assert.NoError(t, store.CreateUser(victim))
+
+	t.Run("same login on another forge does not match", func(t *testing.T) {
+		// Attacker registers "victim" on forge 2 and gets remote ID 7 there.
+		_, err := store.GetUserByForgeRemoteID(2, "7", "victim")
+		assert.ErrorIs(t, err, types.RecordNotExist)
+	})
+
+	t.Run("same remote ID on another forge does not match", func(t *testing.T) {
+		// Forge remote IDs are per-forge sequences, so collisions are trivial.
+		_, err := store.GetUserByForgeRemoteID(2, "42", "attacker")
+		assert.ErrorIs(t, err, types.RecordNotExist)
+	})
+
+	t.Run("own forge and remote ID still matches", func(t *testing.T) {
+		got, err := store.GetUserByForgeRemoteID(1, "42", "victim")
+		assert.NoError(t, err)
+		assert.Equal(t, victim.ID, got.ID)
+	})
+
+	t.Run("legacy row without remote ID matches by login on its own forge", func(t *testing.T) {
+		legacy := &model.User{Login: "legacy", ForgeID: 1, Hash: "B"}
+		assert.NoError(t, store.CreateUser(legacy))
+
+		got, err := store.GetUserByForgeRemoteID(1, "99", "legacy")
+		assert.NoError(t, err)
+		assert.Equal(t, legacy.ID, got.ID)
+
+		// ... but not from a different forge.
+		_, err = store.GetUserByForgeRemoteID(2, "99", "legacy")
+		assert.ErrorIs(t, err, types.RecordNotExist)
+	})
+
+	t.Run("pre-multi-forge row with unset forge ID belongs to the main forge", func(t *testing.T) {
+		ancient := &model.User{Login: "ancient", ForgeRemoteID: "5", Hash: "C"}
+		assert.NoError(t, store.CreateUser(ancient))
+
+		got, err := store.GetUserByForgeRemoteID(1, "5", "ancient")
+		assert.NoError(t, err)
+		assert.Equal(t, ancient.ID, got.ID)
+
+		_, err = store.GetUserByForgeRemoteID(2, "5", "ancient")
+		assert.ErrorIs(t, err, types.RecordNotExist)
+	})
 }
 
 func TestCreateUserWithExistingOrg(t *testing.T) {
