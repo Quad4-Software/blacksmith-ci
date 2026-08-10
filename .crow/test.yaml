@@ -126,7 +126,7 @@ services:
     when: *when
 
   svc-mysql:
-    image: reg.devxy.io/docker.io/library/mysql:9
+    image: reg.devxy.io/docker.io/library/mysql:26
     ports: ['3306']
     tmpfs:
       - /var/lib/mysql
