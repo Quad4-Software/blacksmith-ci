@@ -18,7 +18,7 @@ package github
 import (
 	"fmt"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v90/github"
 
 	"codefloe.com/crowci/crow/v6/server/model"
 )
@@ -165,7 +165,7 @@ func convertRepoHook(eventRepo *github.PushEventRepository) *model.Repo {
 func convertLabels(from []*github.Label) []string {
 	labels := make([]string, len(from))
 	for i, label := range from {
-		labels[i] = *label.Name
+		labels[i] = label.Name
 	}
 	return labels
 }
