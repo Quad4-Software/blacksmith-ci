@@ -94,6 +94,16 @@ See the [Podman v6.0.0 release notes](https://github.com/containers/podman/relea
 
 ---
 
+### BACKEND_PODMAN_WORKSPACE_INIT_IMAGE
+
+- Name: `CROW_BACKEND_PODMAN_WORKSPACE_INIT_IMAGE`
+- Description: Image used to seed deterministic workspace ownership before the first step runs.
+  A short-lived container makes the shared workspace volume world-writable with the sticky bit (`1777`, like `/tmp`) so its ownership no longer depends on whether the first pipeline item is a step or a plugin.
+  Set to an empty value to disable workspace initialization.
+- Default: `docker.io/library/busybox:1.37.0`
+
+---
+
 ## Resource Limits
 
 ### BACKEND_PODMAN_LIMIT_MEM

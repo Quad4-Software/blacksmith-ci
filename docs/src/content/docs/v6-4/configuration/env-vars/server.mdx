@@ -142,6 +142,22 @@ Core server configuration variables.
 
 ---
 
+## SCHEDULING_STRATEGY
+
+- Name: `CROW_SCHEDULING_STRATEGY`
+- Description: How the server distributes workflows across agents that are equally eligible (same labels, same priority). One of `least-loaded`, `pack`, `round-robin` or `random`. Applies to both the single-instance and High Availability queues. See [Scheduling strategy](/dev/configuration/agent#scheduling-strategy).
+- Default: `least-loaded`
+
+---
+
+## METRICS_PRESERVE_DELETED
+
+- Name: `CROW_METRICS_PRESERVE_DELETED`
+- Description: Keep a repository's or organization's pipelines and workflows when it is removed, so historic data stays in the metrics dashboard instead of disappearing. When disabled, removing a repo or org purges its pipelines and workflows (the pre-6.x behavior). See [Metrics dashboard](/dev/usage/metrics).
+- Default: `true`
+
+---
+
 ## KEEPALIVE_MIN_TIME
 
 - Name: `CROW_KEEPALIVE_MIN_TIME`

@@ -148,6 +148,10 @@ Core agent configuration variables.
 - Description: Enable healthcheck endpoint.
 - Default: `true`
 
+`/healthz` returns `500` when the agent cannot process pipelines.
+That is the case when the backend engine has been unreachable, when a running workflow exceeded its timeout, or when the agent has lost all of its workflow runners.
+Supervisors (Docker, Kubernetes, systemd) should be configured to restart the agent on a failing healthcheck.
+
 ---
 
 ### HEALTHCHECK_ADDR
