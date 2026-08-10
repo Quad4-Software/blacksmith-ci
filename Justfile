@@ -342,7 +342,7 @@ release-agent:
     PLATFORMS="${PLATFORMS:-linux darwin windows}"
 
     declare -A os_archs=(
-        ["linux"]="amd64 arm64 arm"
+        ["linux"]="amd64 arm64"
         ["darwin"]="amd64 arm64"
         ["windows"]="amd64"
     )

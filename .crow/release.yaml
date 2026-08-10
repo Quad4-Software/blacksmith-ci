@@ -35,6 +35,12 @@ steps:
       - apk add --no-cache -q just git sqlite-dev libc-dev gcc g++ build-base musl-dev binutils binutils-gold zip
       - just release-cli
 
+  build-linux-agent:
+    image: *golang_image
+    commands:
+      - apk add --no-cache -q just git sqlite-dev libc-dev gcc g++ build-base musl-dev binutils binutils-gold zip bash
+      - PLATFORMS=linux just release-agent
+
   build-macOS-agent:
     image: *golang_image
     commands:

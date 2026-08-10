@@ -195,8 +195,11 @@ Running agents on Windows hosts? See [Windows Agents](/dev/configuration/windows
 
 ### Local Backend Sandboxing
 
-:::note
-macOS only. Automatically disabled on other platforms.
+:::caution[macOS only]
+Sandboxing is implemented with the macOS `sandbox-exec` utility.
+On Linux and Windows it is a no-op: `CROW_BACKEND_LOCAL_SANDBOX_LEVEL` is accepted but has no effect, and pipeline commands run with the agent user's full access to the host at every level.
+
+Before running a `local` backend agent outside macOS, read the trade-offs on [Standalone Agent Binaries](/dev/installation/binary/).
 :::
 
 Enable process isolation using macOS `sandbox-exec`:
