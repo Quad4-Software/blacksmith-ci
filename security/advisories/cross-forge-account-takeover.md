@@ -5,11 +5,11 @@
 **Severity:** Critical
 **CVSS v3.1:** 9.8 (`AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H`)
 **CWE:** CWE-287 (Improper Authentication), CWE-290 (Authentication Bypass by Spoofing)
-**CVE:** <!-- CVE-TBD --> requested, not yet assigned
+**CVE:** requested from MITRE, not yet assigned. This advisory is updated when the ID is
+issued.
 **Affected:** Crow 5.2.0 through 6.3.0
 **Fixed in:** v6.4.0
-**Reported by:** <!-- CREDIT-TBD --> reported privately, credit pending the reporter's
-consent to be named
+**Reported by:** Cassandra Beelen ([sapphiccode](https://sapphiccode.net/))
 
 If you run Crow with more than one forge configured, upgrade to v6.4.0 and then work
 through [Detecting prior exploitation](#detecting-prior-exploitation) — the fix stops new
@@ -123,14 +123,16 @@ rather than relying on the query alone.
 
 ## Credit
 
-Found and reported privately by an external researcher, who offered a 180-day
+Found and reported privately by Cassandra Beelen
+([sapphiccode](https://sapphiccode.net/)), with a clear reproduction and a 180-day
 coordinated-disclosure window.
 The fix shipped well inside it.
+Thank you.
 
 ## Timeline
 
-| Date              | Event                                 |
-| ----------------- | ------------------------------------- |
-| 2026-08-10        | Reported privately to the maintainers |
-| 2026-08-10        | Root-caused, fixed and tested         |
-| <!-- DATE-TBD --> | v6.4.0 released with this advisory    |
+| Date       | Event                                 |
+| ---------- | ------------------------------------- |
+| 2026-08-10 | Reported privately to the maintainers |
+| 2026-08-10 | Root-caused, fixed and tested         |
+| 2026-08-10 | v6.4.0 released with this advisory    |

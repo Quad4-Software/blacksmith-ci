@@ -59,7 +59,9 @@ steps:
       # Delete that file again after the release it belongs to.
       - |
         if [ -f .crow/release-extra.md ]; then
-          cat .crow/release-extra.md CHANGELOG.md > CHANGELOG.md.new
+          # the blank line matters: without it the trailing blockquote swallows
+          # the first generated heading
+          { cat .crow/release-extra.md; echo; cat CHANGELOG.md; } > CHANGELOG.md.new
           mv CHANGELOG.md.new CHANGELOG.md
         fi
       - cat CHANGELOG.md

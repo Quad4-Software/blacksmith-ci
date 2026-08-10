@@ -8,4 +8,6 @@
 >
 > **Upgrade immediately.** The fix stops new takeovers but does not undo one that already
 > succeeded, so also work through the detection query in the advisory:
-> [security/advisories/cross-forge-account-takeover.md](https://codefloe.com/crowci/crow/src/tag/v6.4.0/security/advisories/cross-forge-account-takeover.md)
+> [security/advisories/cross-forge-account-takeover.md](https://codefloe.com/crowci/crow/src/branch/main/security/advisories/cross-forge-account-takeover.md)
+>
+> Reported by Cassandra Beelen ([sapphiccode](https://sapphiccode.net/)).
