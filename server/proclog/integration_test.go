@@ -48,6 +48,22 @@ func TestProcLogEndToEnd_IngestThenSubscribe(t *testing.T) {
 			}
 		}).Return(nil)
 
+	storeMock.On("ProcLogTailRecent", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(func(_ context.Context, st string, sid int64, limit int) []*model.ProcLogEntry {
+			mu.Lock()
+			defer mu.Unlock()
+			out := make([]*model.ProcLogEntry, 0)
+			for _, e := range stored {
+				if e.SourceType == st && e.SourceID == sid {
+					out = append(out, e)
+				}
+			}
+			if len(out) > limit {
+				out = out[len(out)-limit:]
+			}
+			return out
+		}, nil)
+
 	storeMock.On("ProcLogTail", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(func(_ context.Context, st string, sid int64, since int64, _ int) []*model.ProcLogEntry {
 			mu.Lock()

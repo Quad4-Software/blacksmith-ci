@@ -540,6 +540,10 @@ func (c *CompositeEncryptedStore) ProcLogTail(ctx context.Context, sourceType st
 	return c.baseStore.ProcLogTail(ctx, sourceType, sourceID, sinceID, limit)
 }
 
+func (c *CompositeEncryptedStore) ProcLogTailRecent(ctx context.Context, sourceType string, sourceID int64, limit int) ([]*model.ProcLogEntry, error) {
+	return c.baseStore.ProcLogTailRecent(ctx, sourceType, sourceID, limit)
+}
+
 func (c *CompositeEncryptedStore) ProcLogTrim(ctx context.Context, sourceType string, sourceID int64, keepLastN int) error {
 	return c.baseStore.ProcLogTrim(ctx, sourceType, sourceID, keepLastN)
 }

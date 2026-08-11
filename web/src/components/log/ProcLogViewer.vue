@@ -40,7 +40,7 @@
     </div>
 
     <div ref="scrollEl" class="flex-1 overflow-auto font-mono text-xs">
-      <div v-for="entry in visible" :key="entry.id" :class="rowClass(entry)" class="px-3 py-0.5">
+      <div v-for="entry in visible" :key="entry.id" :class="rowClass(entry)" class="proclog-row px-3 py-0.5">
         <span class="text-muted-foreground">{{ formatTime(entry.time) }}</span>
         <span class="ml-2 uppercase font-semibold" :class="levelClass(entry.level)">{{ entry.level }}</span>
         <span class="ml-2 whitespace-pre-wrap">{{ entry.line }}</span>
@@ -67,14 +67,13 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
-
 import Icon from '~/components/atomic/Icon.vue';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import useApiClient from '~/compositions/useApiClient';
 import type { ProcLogEntry } from '~/lib/api/types/procLog';
+import { computed, nextTick, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
 
 const props = defineProps<{
   source: 'agent' | 'autoscaler';
@@ -83,9 +82,16 @@ const props = defineProps<{
 
 const RATE_LIMIT_MARKER_RE = /^\d+ lines dropped \(rate limit\)$/;
 const MAX_ENTRIES = 5000;
+// The server replays up to MAX_ENTRIES backlog rows on connect, one SSE message
+// each, and a chatty agent keeps that rate up. Rendering per message means one
+// full-list patch plus one forced layout per message, so incoming entries are
+// collected here and flushed at most every FLUSH_INTERVAL ms instead.
+const FLUSH_INTERVAL = 100;
 
 const apiClient = useApiClient();
-const entries = ref<ProcLogEntry[]>([]);
+// shallowRef: entries are append-only and replaced wholesale on flush, so deep
+// reactivity would only cost us a proxy per log line.
+const entries = shallowRef<ProcLogEntry[]>([]);
 const search = ref('');
 const levelFilter = ref<'all' | ProcLogEntry['level']>('all');
 const paused = ref(false);
@@ -93,6 +99,9 @@ const copied = ref(false);
 const connState = ref<'connecting' | 'open' | 'error'>('connecting');
 const scrollEl = ref<HTMLDivElement | null>(null);
 let copiedTimer: ReturnType<typeof setTimeout> | null = null;
+let pending: ProcLogEntry[] = [];
+let flushTimer: ReturnType<typeof setTimeout> | null = null;
+let lastEntryID = 0;
 
 const visible = computed(() =>
   entries.value.filter((e) => {
@@ -119,17 +128,34 @@ function open() {
   });
 }
 
-function onEntry(entry: ProcLogEntry) {
-  if (paused.value) return;
-  entries.value.push(entry);
-  if (entries.value.length > MAX_ENTRIES) {
-    entries.value.splice(0, entries.value.length - MAX_ENTRIES);
-  }
+function flush() {
+  flushTimer = null;
+  if (pending.length === 0) return;
+
+  const next = entries.value.concat(pending);
+  pending = [];
+  entries.value = next.length > MAX_ENTRIES ? next.slice(next.length - MAX_ENTRIES) : next;
+
   void nextTick(() => {
     if (scrollEl.value) {
       scrollEl.value.scrollTop = scrollEl.value.scrollHeight;
     }
   });
+}
+
+function onEntry(entry: ProcLogEntry) {
+  if (paused.value) return;
+  // EventSource reconnects transparently and the server replays its recent
+  // window, so ids we already hold would come back as duplicate `:key`s.
+  if (entry.id <= lastEntryID) return;
+  lastEntryID = entry.id;
+  pending.push(entry);
+  if (pending.length > MAX_ENTRIES) {
+    pending.splice(0, pending.length - MAX_ENTRIES);
+  }
+  // Fixed deadline rather than a debounce: a continuous stream must never
+  // starve the flush.
+  flushTimer ??= setTimeout(flush, FLUSH_INTERVAL);
 }
 
 function formatTime(t: number): string {
@@ -188,6 +214,12 @@ watch(
   () => [props.source, props.sourceId] as const,
   () => {
     entries.value = [];
+    pending = [];
+    lastEntryID = 0;
+    if (flushTimer) {
+      clearTimeout(flushTimer);
+      flushTimer = null;
+    }
     open();
   },
   { immediate: true },
@@ -196,5 +228,6 @@ watch(
 onBeforeUnmount(() => {
   evtSource?.close();
   if (copiedTimer) clearTimeout(copiedTimer);
+  if (flushTimer) clearTimeout(flushTimer);
 });
 </script>

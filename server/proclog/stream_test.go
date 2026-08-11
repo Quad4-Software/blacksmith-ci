@@ -30,7 +30,7 @@ func TestSubscribeInitialFlushThenLive(t *testing.T) {
 	storeMock := storeMocks.NewMockStore(t)
 
 	// Initial flush: return two rows.
-	storeMock.On("ProcLogTail", mock.Anything, SourceTypeAgent, int64(1), int64(0), mock.Anything).
+	storeMock.On("ProcLogTailRecent", mock.Anything, SourceTypeAgent, int64(1), mock.Anything).
 		Return([]*model.ProcLogEntry{
 			{ID: 5, Time: 100, Level: "info", Line: "history-a"},
 			{ID: 6, Time: 200, Level: "info", Line: "history-b"},
@@ -82,7 +82,7 @@ func TestSubscribeInitialFlushExceedsBuffer(t *testing.T) {
 		})
 	}
 
-	storeMock.On("ProcLogTail", mock.Anything, SourceTypeAgent, int64(1), int64(0), mock.Anything).
+	storeMock.On("ProcLogTailRecent", mock.Anything, SourceTypeAgent, int64(1), mock.Anything).
 		Return(historical, nil).Once()
 	storeMock.On("ProcLogTail", mock.Anything, SourceTypeAgent, int64(1), int64(flushed), mock.Anything).
 		Return([]*model.ProcLogEntry{}, nil).Maybe()
@@ -112,6 +112,8 @@ func TestSubscribeInitialFlushExceedsBuffer(t *testing.T) {
 
 func TestSubscribeCancelClosesChannel(t *testing.T) {
 	storeMock := storeMocks.NewMockStore(t)
+	storeMock.On("ProcLogTailRecent", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return([]*model.ProcLogEntry{}, nil).Maybe()
 	storeMock.On("ProcLogTail", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return([]*model.ProcLogEntry{}, nil).Maybe()
 

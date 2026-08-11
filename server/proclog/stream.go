@@ -74,8 +74,10 @@ func (s *Stream) Subscribe(
 ) (<-chan *model.ProcLogEntry, error) {
 	ch := make(chan *model.ProcLogEntry, s.opts.ChannelBuffer)
 
-	// Initial flush: most-recent MaxFlushRows entries.
-	initial, err := s.store.ProcLogTail(ctx, sourceType, sourceID, 0, s.opts.MaxFlushRows)
+	// Initial flush: most-recent MaxFlushRows entries. Starting from the oldest
+	// retained row instead would make a subscriber replay the whole retention
+	// window at livePollBatch rows per tick before it ever reaches "now".
+	initial, err := s.store.ProcLogTailRecent(ctx, sourceType, sourceID, s.opts.MaxFlushRows)
 	if err != nil {
 		close(ch)
 		return nil, err

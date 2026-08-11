@@ -18,6 +18,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"slices"
 
 	"codefloe.com/crowci/crow/v6/server/model"
 )
@@ -43,6 +44,24 @@ func (s storage) ProcLogTail(
 		Limit(limit).
 		Scan(ctx)
 	return out, err
+}
+
+func (s storage) ProcLogTailRecent(
+	ctx context.Context, sourceType string, sourceID int64, limit int,
+) ([]*model.ProcLogEntry, error) {
+	var out []*model.ProcLogEntry
+	err := s.db.NewSelect().
+		Model(&out).
+		Where("source_type = ?", sourceType).
+		Where("source_id = ?", sourceID).
+		OrderExpr("id DESC").
+		Limit(limit).
+		Scan(ctx)
+	if err != nil {
+		return nil, err
+	}
+	slices.Reverse(out)
+	return out, nil
 }
 
 func (s storage) ProcLogTrim(

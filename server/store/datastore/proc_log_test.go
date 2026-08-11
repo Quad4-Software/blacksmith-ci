@@ -16,6 +16,7 @@ package datastore
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -46,6 +47,32 @@ func TestProcLogInsertAndTail(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, got2, 1)
 	assert.Equal(t, "b", got2[0].Line)
+}
+
+func TestProcLogTailRecent(t *testing.T) {
+	store, closer := newTestStore(t, new(model.ProcLogEntry))
+	defer closer()
+	ctx := context.Background()
+
+	entries := make([]*model.ProcLogEntry, 0, 10)
+	for i := range 10 {
+		entries = append(entries, &model.ProcLogEntry{
+			SourceType: model.ProcLogSourceTypeAgent, SourceID: 1,
+			Time: int64(i), Level: "info", Line: fmt.Sprintf("line-%d", i),
+		})
+	}
+	entries = append(entries, &model.ProcLogEntry{
+		SourceType: model.ProcLogSourceTypeAgent, SourceID: 2, Time: 0, Level: "info", Line: "other",
+	})
+	require.NoError(t, store.ProcLogInsert(ctx, entries))
+
+	got, err := store.ProcLogTailRecent(ctx, model.ProcLogSourceTypeAgent, 1, 3)
+	require.NoError(t, err)
+	require.Len(t, got, 3)
+	// newest rows, but handed back oldest-first so the SSE replay stays in order
+	assert.Equal(t, "line-7", got[0].Line)
+	assert.Equal(t, "line-8", got[1].Line)
+	assert.Equal(t, "line-9", got[2].Line)
 }
 
 func TestProcLogTrim(t *testing.T) {

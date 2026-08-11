@@ -9264,6 +9264,86 @@ func (_c *MockStore_ProcLogTail_Call) RunAndReturn(run func(ctx context.Context,
 	return _c
 }
 
+// ProcLogTailRecent provides a mock function for the type MockStore
+func (_mock *MockStore) ProcLogTailRecent(ctx context.Context, sourceType string, sourceID int64, limit int) ([]*model.ProcLogEntry, error) {
+	ret := _mock.Called(ctx, sourceType, sourceID, limit)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ProcLogTailRecent")
+	}
+
+	var r0 []*model.ProcLogEntry
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, int64, int) ([]*model.ProcLogEntry, error)); ok {
+		return returnFunc(ctx, sourceType, sourceID, limit)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, int64, int) []*model.ProcLogEntry); ok {
+		r0 = returnFunc(ctx, sourceType, sourceID, limit)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.ProcLogEntry)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, int64, int) error); ok {
+		r1 = returnFunc(ctx, sourceType, sourceID, limit)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_ProcLogTailRecent_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ProcLogTailRecent'
+type MockStore_ProcLogTailRecent_Call struct {
+	*mock.Call
+}
+
+// ProcLogTailRecent is a helper method to define mock.On call
+//   - ctx context.Context
+//   - sourceType string
+//   - sourceID int64
+//   - limit int
+func (_e *MockStore_Expecter) ProcLogTailRecent(ctx any, sourceType any, sourceID any, limit any) *MockStore_ProcLogTailRecent_Call {
+	return &MockStore_ProcLogTailRecent_Call{Call: _e.mock.On("ProcLogTailRecent", ctx, sourceType, sourceID, limit)}
+}
+
+func (_c *MockStore_ProcLogTailRecent_Call) Run(run func(ctx context.Context, sourceType string, sourceID int64, limit int)) *MockStore_ProcLogTailRecent_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 int64
+		if args[2] != nil {
+			arg2 = args[2].(int64)
+		}
+		var arg3 int
+		if args[3] != nil {
+			arg3 = args[3].(int)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_ProcLogTailRecent_Call) Return(procLogEntrys []*model.ProcLogEntry, err error) *MockStore_ProcLogTailRecent_Call {
+	_c.Call.Return(procLogEntrys, err)
+	return _c
+}
+
+func (_c *MockStore_ProcLogTailRecent_Call) RunAndReturn(run func(ctx context.Context, sourceType string, sourceID int64, limit int) ([]*model.ProcLogEntry, error)) *MockStore_ProcLogTailRecent_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ProcLogTrim provides a mock function for the type MockStore
 func (_mock *MockStore) ProcLogTrim(ctx context.Context, sourceType string, sourceID int64, keepLastN int) error {
 	ret := _mock.Called(ctx, sourceType, sourceID, keepLastN)

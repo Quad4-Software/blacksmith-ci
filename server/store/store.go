@@ -211,6 +211,8 @@ type Store interface {
 	ProcLogInsert(ctx context.Context, entries []*model.ProcLogEntry) error
 	// ProcLogTail returns up to `limit` entries for the given source with id > sinceID, ordered by id ASC.
 	ProcLogTail(ctx context.Context, sourceType string, sourceID int64, sinceID int64, limit int) ([]*model.ProcLogEntry, error)
+	// ProcLogTailRecent returns the most recent `limit` entries for the given source, ordered by id ASC.
+	ProcLogTailRecent(ctx context.Context, sourceType string, sourceID int64, limit int) ([]*model.ProcLogEntry, error)
 	// ProcLogTrim keeps only the most recent `keepLastN` entries for the given source.
 	ProcLogTrim(ctx context.Context, sourceType string, sourceID int64, keepLastN int) error
 	// ProcLogListSources returns all distinct (source_type, source_id) keys currently present in proc_log_entries.
