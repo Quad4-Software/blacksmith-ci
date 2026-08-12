@@ -428,6 +428,9 @@ func (r *Runtime) runAdoptedStep(step *backend.Step, resumer backend.WorkflowRes
 	if r.logger != nil {
 		rc, err := r.engine.TailStep(r.ctx, step, r.taskUUID)
 		if err != nil {
+			if errors.Is(err, context.Canceled) {
+				return nil, ErrCancel
+			}
 			return nil, err
 		}
 
@@ -494,6 +497,9 @@ func (r *Runtime) runStep(step *backend.Step) (*backend.State, error) {
 	if r.logger != nil {
 		rc, err := r.engine.TailStep(r.ctx, step, r.taskUUID)
 		if err != nil {
+			if errors.Is(err, context.Canceled) {
+				return nil, ErrCancel
+			}
 			return nil, err
 		}
 

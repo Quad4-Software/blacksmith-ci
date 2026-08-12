@@ -30,6 +30,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v3"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -300,6 +301,31 @@ func (e *kube) StartStep(ctx context.Context, step *types.Step, taskUUID string)
 	return err
 }
 
+// signalWhenPodGone calls signal if the step pod no longer exists once the
+// informer's cache has synced.
+//
+// An informer only emits delete events for objects it saw in its initial list,
+// and its resync only replays objects still held in the store. A pod deleted
+// between StartStep and the initial list therefore produces no event at all,
+// which would leave WaitStep and TailStep blocked until the workflow is
+// canceled. Waiting for the sync before the lookup is what makes this
+// airtight: it guarantees the lookup happens after the list, so a deletion is
+// caught either by the delete handler or here, never by neither.
+//
+// It is meant to run in its own goroutine; both the cache sync and the lookup
+// abort once stop is closed or ctx is done, so it cannot outlive its caller.
+func (e *kube) signalWhenPodGone(ctx context.Context, step *types.Step, podName string, informer cache.SharedIndexInformer, stop <-chan struct{}, signal func()) {
+	if !cache.WaitForCacheSync(stop, informer.HasSynced) {
+		return
+	}
+
+	_, err := e.client.CoreV1().Pods(e.config.GetNamespace(step.OrgID)).Get(ctx, podName, meta_v1.GetOptions{})
+	if errors.IsNotFound(err) {
+		log.Debug().Str("pod", podName).Msg("step pod is already gone, treating it as terminal")
+		signal()
+	}
+}
+
 // WaitStep waits for the pipeline step to complete and returns
 // the completion results.
 func (e *kube) WaitStep(ctx context.Context, step *types.Step, taskUUID string) (*types.State, error) {
@@ -310,7 +336,13 @@ func (e *kube) WaitStep(ctx context.Context, step *types.Step, taskUUID string) 
 
 	log.Trace().Str("taskUUID", taskUUID).Msgf("waiting for pod: %s", podName)
 
-	finished := make(chan bool)
+	finished := make(chan bool, 1)
+	signalFinished := func() {
+		select {
+		case finished <- true:
+		default:
+		}
+	}
 
 	podUpdated := func(_, newPod any) {
 		pod, ok := newPod.(*v1.Pod)
@@ -321,20 +353,39 @@ func (e *kube) WaitStep(ctx context.Context, step *types.Step, taskUUID string) 
 
 		if pod.Name == podName {
 			if isImagePullBackOffState(pod) || isInvalidImageName(pod) {
-				finished <- true
+				signalFinished()
 			}
 
 			switch pod.Status.Phase {
 			case v1.PodSucceeded, v1.PodFailed, v1.PodUnknown:
-				finished <- true
+				signalFinished()
 			}
 		}
 	}
 
+	podDeleted := func(obj any) {
+		pod, ok := obj.(*v1.Pod)
+		if !ok {
+			if unknown, isUnknown := obj.(cache.DeletedFinalStateUnknown); isUnknown {
+				pod, ok = unknown.Obj.(*v1.Pod)
+			}
+			if !ok {
+				log.Error().Msgf("could not parse deleted pod: %v", obj)
+				return
+			}
+		}
+
+		if pod.Name == podName {
+			signalFinished()
+		}
+	}
+
 	si := informers.NewSharedInformerFactoryWithOptions(e.client, defaultResyncDuration, informers.WithNamespace(e.config.GetNamespace(step.OrgID)))
-	if _, err := si.Core().V1().Pods().Informer().AddEventHandler(
+	informer := si.Core().V1().Pods().Informer()
+	if _, err := informer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			UpdateFunc: podUpdated,
+			DeleteFunc: podDeleted,
 		},
 	); err != nil {
 		return nil, err
@@ -344,11 +395,19 @@ func (e *kube) WaitStep(ctx context.Context, step *types.Step, taskUUID string) 
 	si.Start(stop)
 	defer close(stop)
 
-	// TODO: Cancel on ctx.Done
-	<-finished
+	go e.signalWhenPodGone(ctx, step, podName, informer, stop, signalFinished)
+
+	select {
+	case <-finished:
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
 
 	pod, err := e.client.CoreV1().Pods(e.config.GetNamespace(step.OrgID)).Get(ctx, podName, meta_v1.GetOptions{})
 	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil, fmt.Errorf("pod %s was deleted before the step completed", podName)
+		}
 		return nil, err
 	}
 
@@ -386,7 +445,13 @@ func (e *kube) TailStep(ctx context.Context, step *types.Step, taskUUID string) 
 
 	log.Trace().Str("taskUUID", taskUUID).Msgf("tail logs of pod: %s", podName)
 
-	up := make(chan bool)
+	up := make(chan bool, 1)
+	signalUp := func() {
+		select {
+		case up <- true:
+		default:
+		}
+	}
 
 	podUpdated := func(_, newPod any) {
 		pod, ok := newPod.(*v1.Pod)
@@ -397,19 +462,38 @@ func (e *kube) TailStep(ctx context.Context, step *types.Step, taskUUID string) 
 
 		if pod.Name == podName {
 			if isImagePullBackOffState(pod) || isInvalidImageName(pod) {
-				up <- true
+				signalUp()
 			}
 			switch pod.Status.Phase {
 			case v1.PodRunning, v1.PodSucceeded, v1.PodFailed:
-				up <- true
+				signalUp()
 			}
 		}
 	}
 
+	podDeleted := func(obj any) {
+		pod, ok := obj.(*v1.Pod)
+		if !ok {
+			if unknown, isUnknown := obj.(cache.DeletedFinalStateUnknown); isUnknown {
+				pod, ok = unknown.Obj.(*v1.Pod)
+			}
+			if !ok {
+				log.Error().Msgf("could not parse deleted pod: %v", obj)
+				return
+			}
+		}
+
+		if pod.Name == podName {
+			signalUp()
+		}
+	}
+
 	si := informers.NewSharedInformerFactoryWithOptions(e.client, defaultResyncDuration, informers.WithNamespace(e.config.GetNamespace(step.OrgID)))
-	if _, err := si.Core().V1().Pods().Informer().AddEventHandler(
+	informer := si.Core().V1().Pods().Informer()
+	if _, err := informer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			UpdateFunc: podUpdated,
+			DeleteFunc: podDeleted,
 		},
 	); err != nil {
 		return nil, err
@@ -419,7 +503,13 @@ func (e *kube) TailStep(ctx context.Context, step *types.Step, taskUUID string) 
 	si.Start(stop)
 	defer close(stop)
 
-	<-up
+	go e.signalWhenPodGone(ctx, step, podName, informer, stop, signalUp)
+
+	select {
+	case <-up:
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
 
 	opts := &v1.PodLogOptions{
 		Follow:    true,
