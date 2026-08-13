@@ -39,7 +39,15 @@ func TestGetPipelineStatusContext(t *testing.T) {
 
 	server.Config.Server.StatusContext = "ci/crow"
 	server.Config.Server.StatusContextFormat = "{{ .context }}/{{ .event }}/{{ .workflow }}"
-	assert.EqualValues(t, "ci/crow/pr/lint", GetPipelineStatusContext(repo, pipeline, workflow))
+	for _, event := range []model.WebhookEvent{
+		model.EventPull,
+		model.EventPullClosed,
+		model.EventPullMerged,
+		model.EventPullEdited,
+	} {
+		pipeline.Event = event
+		assert.EqualValues(t, "ci/crow/pr/lint", GetPipelineStatusContext(repo, pipeline, workflow))
+	}
 	pipeline.Event = model.EventPush
 	assert.EqualValues(t, "ci/crow/push/lint", GetPipelineStatusContext(repo, pipeline, workflow))
 
