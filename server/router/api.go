@@ -460,6 +460,11 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 		Security: BearerSecurity, Middlewares: repoPullMW,
 	}, api.GetPipelineConfig)
 	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-pipeline-diff", Method: http.MethodGet, Path: "/repos/{repo_id}/pipelines/{number}/diff",
+		Summary: "Get pipeline diff", Tags: []string{"Pipelines"},
+		Security: BearerSecurity, Middlewares: repoPullMW,
+	}, api.GetPipelineDiff)
+	huma.Register(humaAPI, huma.Operation{
 		OperationID: "get-pipeline-metadata", Method: http.MethodGet, Path: "/repos/{repo_id}/pipelines/{number}/metadata",
 		Summary: "Get pipeline metadata", Tags: []string{"Pipelines"},
 		Security: BearerSecurity, Middlewares: repoPushMW,

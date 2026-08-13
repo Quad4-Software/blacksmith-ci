@@ -484,6 +484,7 @@
       },
       "config": "Config",
       "files": "Changed files",
+      "diff_unavailable": "Diff unavailable for this file.",
       "no_pipelines": "No pipelines have been started yet.",
       "no_pipeline_steps": "No pipeline steps available!",
       "rerun_latest": "Rerun latest pipeline",

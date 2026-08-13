@@ -109,3 +109,9 @@ type Forge interface {
 	// Org fetches the organization from the forge by name. If the name is a user an org with type user is returned.
 	Org(ctx context.Context, u *model.User, org string) (*model.Org, error)
 }
+
+// DiffForge is implemented by forges that can return a pipeline's unified diff.
+// It is kept separate from Forge so integrations can add support independently.
+type DiffForge interface {
+	Diff(ctx context.Context, u *model.User, r *model.Repo, p *model.Pipeline) ([]byte, error)
+}

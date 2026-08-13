@@ -293,6 +293,43 @@ func (c *Gitea) File(ctx context.Context, u *model.User, r *model.Repo, b *model
 	return cfg, err
 }
 
+// Diff returns the unified diff for a pull request or commit pipeline.
+func (c *Gitea) Diff(ctx context.Context, u *model.User, r *model.Repo, p *model.Pipeline) ([]byte, error) {
+	token, err := c.refreshedTokenForRepo(ctx, r, u)
+	if err != nil {
+		return nil, fmt.Errorf("get token for diff: %w", err)
+	}
+	client, err := c.newClientToken(ctx, token)
+	if err != nil {
+		return nil, fmt.Errorf("create client for diff: %w", err)
+	}
+
+	if number, ok := pullRequestNumber(p.Ref); ok {
+		diff, _, err := client.GetPullRequestDiff(r.Owner, r.Name, number, gitea.PullRequestDiffOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("get pull request diff: %w", err)
+		}
+		return diff, nil
+	}
+
+	diff, _, err := client.GetCommitDiff(r.Owner, r.Name, p.Commit)
+	if err != nil {
+		return nil, fmt.Errorf("get commit diff: %w", err)
+	}
+	return diff, nil
+}
+
+func pullRequestNumber(ref string) (int64, bool) {
+	const prefix = "refs/pull/"
+	if !strings.HasPrefix(ref, prefix) {
+		return 0, false
+	}
+	part := strings.TrimPrefix(ref, prefix)
+	part, _, _ = strings.Cut(part, "/")
+	number, err := strconv.ParseInt(part, 10, 64)
+	return number, err == nil
+}
+
 func (c *Gitea) Dir(ctx context.Context, u *model.User, r *model.Repo, b *model.Pipeline, f string) ([]*forge_types.FileMeta, error) {
 	var configs []*forge_types.FileMeta
 

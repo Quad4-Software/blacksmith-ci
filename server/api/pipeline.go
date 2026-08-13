@@ -384,6 +384,60 @@ type GetPipelineOutput struct {
 	Body *model.Pipeline
 }
 
+type GetPipelineDiffInput struct {
+	RepoID int64 `path:"repo_id" doc:"the repository id"`
+	Number int64 `path:"number" doc:"the pipeline number"`
+}
+
+type GetPipelineDiffOutput struct {
+	Body struct {
+		Diff string `json:"diff"`
+	}
+}
+
+// GetPipelineDiff returns the forge-provided unified diff for a pipeline.
+func GetPipelineDiff(ctx context.Context, input *GetPipelineDiffInput) (*GetPipelineDiffOutput, error) {
+	c := ginCtx(ctx)
+	_store := store.FromContext(c)
+	repo := session.Repo(c)
+	pl, err := _store.GetPipelineNumber(repo, input.Number)
+	if err != nil {
+		return nil, dbErr(err)
+	}
+
+	configuredForge, err := server.Config.Services.Manager.ForgeFromRepo(repo)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("cannot get forge from repo", err)
+	}
+	diffForge, ok := configuredForge.(forge.DiffForge)
+	if !ok {
+		return nil, huma.Error501NotImplemented("pipeline diffs are not supported by this forge")
+	}
+
+	user, err := _store.GetUser(repo.UserID)
+	if err != nil {
+		return nil, dbErr(err)
+	}
+	if userForge, userForgeErr := _store.UserForgeGet(user.ID, repo.ForgeID); userForgeErr == nil && userForge != nil {
+		user.AccessToken = userForge.AccessToken
+		user.RefreshToken = userForge.RefreshToken
+		user.Expiry = userForge.Expiry
+		user.ForgeID = userForge.ForgeID
+		user.ForgeRemoteID = userForge.ForgeRemoteID
+	}
+	if err := forge.RefreshUserForge(c, configuredForge, _store, user, repo.ForgeID); err != nil {
+		return nil, huma.Error401Unauthorized("Your authorization has expired and couldn't be refreshed automatically. Please log in again")
+	}
+
+	diff, err := diffForge.Diff(c, user, repo, pl)
+	if err != nil {
+		return nil, huma.Error502BadGateway("could not load pipeline diff", err)
+	}
+	output := &GetPipelineDiffOutput{}
+	output.Body.Diff = string(diff)
+	return output, nil
+}
+
 func GetPipeline(ctx context.Context, input *GetPipelineInput) (*GetPipelineOutput, error) {
 	c := ginCtx(ctx)
 	_store := store.FromContext(c)

@@ -232,6 +232,12 @@ export default class CrowClient extends ApiClient {
     return this._get(`/api/v1/repos/${repoId}/pipelines/${pipelineNumber}/config`) as Promise<PipelineConfig[]>;
   }
 
+  async getPipelineDiff(repoId: number, pipelineNumber: number): Promise<{ diff: string }> {
+    return this._get(`/api/v1/repos/${repoId}/pipelines/${pipelineNumber}/diff`, { silent: true }) as Promise<{
+      diff: string;
+    }>;
+  }
+
   async getPipelineMetadata(repoId: number, pipelineNumber: number, opts?: RequestOptions): Promise<PipelineMetadata> {
     return this._get(`/api/v1/repos/${repoId}/pipelines/${pipelineNumber}/metadata`, opts) as Promise<PipelineMetadata>;
   }
