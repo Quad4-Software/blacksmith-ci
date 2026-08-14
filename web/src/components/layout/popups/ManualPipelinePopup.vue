@@ -10,19 +10,47 @@
 
       <!-- Branch selector below header -->
       <div class="flex items-center gap-2 text-sm pb-2 border-b">
-        <Select v-model="payload.branch" :disabled="loading">
-          <SelectTrigger class="h-8 w-auto min-w-40">
-            <SelectValue :placeholder="$t('repo.manual_pipeline.select_branch')" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem v-for="branch in branches" :key="branch" :value="branch">
-              {{ branch }}
-              <span v-if="branch === repo.default_branch" class="ml-1 text-muted-foreground">{{
-                $t('repo.manual_pipeline.default_branch_suffix')
-              }}</span>
-            </SelectItem>
-          </SelectContent>
-        </Select>
+        <Popover v-model:open="branchPickerOpen">
+          <PopoverTrigger as-child>
+            <Button
+              variant="outline"
+              role="combobox"
+              :aria-expanded="branchPickerOpen"
+              :disabled="loading"
+              class="h-8 w-auto min-w-40 justify-between"
+            >
+              <span class="truncate">{{ payload.branch || $t('repo.manual_pipeline.select_branch') }}</span>
+              <Icon name="lucide:arrow-up-down" class="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent class="w-[var(--reka-popover-trigger-width)] p-0" align="start">
+            <Command>
+              <CommandInput v-model="branchSearch" :placeholder="$t('repo.manual_pipeline.select_branch')" />
+              <CommandList>
+                <CommandEmpty>{{ $t('no_search_results') }}</CommandEmpty>
+                <CommandGroup>
+                  <CommandItem
+                    v-for="branch in branches"
+                    :key="branch"
+                    :value="branch"
+                    class="cursor-pointer"
+                    @select="selectBranch(branch)"
+                  >
+                    <Icon
+                      name="lucide:check"
+                      class="mr-2 h-4 w-4"
+                      :class="payload.branch === branch ? 'opacity-100' : 'opacity-0'"
+                    />
+                    <span class="truncate">{{ branch }}</span>
+                    <span v-if="branch === repo.default_branch" class="ml-1 text-muted-foreground">{{
+                      $t('repo.manual_pipeline.default_branch_suffix')
+                    }}</span>
+                  </CommandItem>
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
       </div>
 
       <div v-if="loading" class="flex justify-center items-center py-8 sm:h-[60vh]">
@@ -76,6 +104,7 @@ import WorkflowSelector from '~/components/form/WorkflowSelector.vue';
 import { getSelectedWorkflowDefault, groupManualVariables } from '~/components/layout/popups/manualVariableGroups';
 import ManualVariablesPanel from '~/components/layout/popups/ManualVariablesPanel.vue';
 import { Button } from '~/components/ui/button';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '~/components/ui/command';
 import {
   Dialog,
   DialogContent,
@@ -84,7 +113,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '~/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import useApiClient from '~/compositions/useApiClient';
 import { requiredInject } from '~/compositions/useInjectProvide';
 import { useLoadingOverlay } from '~/compositions/useLoadingOverlay';
@@ -113,6 +142,8 @@ const router = useRouter();
 const repo = requiredInject('repo');
 
 const branches = ref<string[]>([]);
+const branchPickerOpen = ref(false);
+const branchSearch = ref('');
 const payload = ref<{ branch: string }>({
   branch: '',
 });
@@ -137,6 +168,15 @@ const requiredVariablesValid = computed(() =>
 
 const isFormValid = computed(() => {
   return payload.value.branch !== '' && selectedWorkflows.value.size > 0 && requiredVariablesValid.value;
+});
+
+function selectBranch(branch: string): void {
+  payload.value.branch = branch;
+  branchPickerOpen.value = false;
+}
+
+watch(branchPickerOpen, (isOpen) => {
+  if (!isOpen) branchSearch.value = '';
 });
 
 // Seed defaults when the selection changes, preserving values the user already entered.
