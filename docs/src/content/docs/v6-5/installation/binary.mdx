@@ -1,22 +1,52 @@
 ---
-title: "Binary Installation"
+title: "Standalone Agent Binaries"
+sidebar:
+  badge:
+    text: Advanced
+    variant: caution
 ---
 
-Crow provides pre-built **agent** binaries for macOS to be able to run agents via the "local" backend.
+Crow publishes pre-built **agent** binaries for macOS, Linux and Windows.
+They exist for one purpose only: running an agent with the [`local` backend](/dev/configuration/env-vars/backend-local/), which executes pipeline commands directly on the host instead of in a container.
 
-:::note
-On Linux, Crow should be installed via containers.
-No binaries or .deb/.rpm packages are available!
+:::danger[This is not a general installation method]
+Reach for a binary agent only if you own the host, control who can push to the repositories it builds, and understand the trade-offs below.
+For every other case, run the agent as a container: see [Docker Compose](/dev/installation/container/), [Helm](/dev/installation/helm/) or [Ansible](/dev/installation/ansible/).
+
+The `local` backend is not a container backend with a different name:
+
+- **No isolation from the host.**
+  Pipeline commands run as the agent's user, with that user's filesystem, network and credential access.
+  A pipeline can read the agent's own config and any secret on the host.
+- **No sandboxing outside macOS.**
+  `CROW_BACKEND_LOCAL_SANDBOX_LEVEL` is implemented with macOS `sandbox-exec` and is a no-op on Linux and Windows.
+  On those platforms there is no isolation at all, at any setting.
+- **No plugins.**
+  Plugins are container images, and the `local` backend resolves `image:` with a `PATH` lookup instead.
+  A plugin only runs if a binary of that name happens to be installed on the host.
+- **No service containers.**
+  `services:` are resolved the same way and need the service to already exist as a host binary.
+- **The host is the build environment.**
+  There is no per-pipeline clean slate: pipelines see whatever toolchain versions the host has, and leftovers from one pipeline are visible to the next.
+
+The server itself is container-only.
+These binaries do not let you run a Crow server outside of a container.
 :::
 
 ## Installation
 
+The snippets below resolve the newest release through the forge API.
+Set `TAG` to something like `v6.4.0` instead to pin a specific release, and `ARCH` to your architecture.
+
 ### macOS
 
+Available for `amd64` and `arm64`.
+
 ```bash
-export VERSION=4.3.0
+# resolve the latest release tag
+export TAG=$(curl -s https://codefloe.com/api/v1/repos/crowci/crow/releases/latest | jq -r .tag_name)
 export ARCH=arm64
-curl -LO https://codefloe.com/crowci/crow/releases/download/v$VERSION/crow-agent_darwin_$ARCH.tar.gz
+curl -LO https://codefloe.com/crowci/crow/releases/download/$TAG/crow-agent_darwin_$ARCH.tar.gz
 
 # Extract the archive
 tar -xzf crow-agent_darwin_*.tar.gz
@@ -28,6 +58,50 @@ sudo chmod +x /usr/local/bin/crow-agent
 # Verify installation
 crow-agent --version
 ```
+
+### Linux
+
+Available for `amd64` and `arm64`.
+
+```bash
+# resolve the latest release tag
+export TAG=$(curl -s https://codefloe.com/api/v1/repos/crowci/crow/releases/latest | jq -r .tag_name)
+export ARCH=amd64
+curl -LO https://codefloe.com/crowci/crow/releases/download/$TAG/crow-agent_linux_$ARCH.tar.gz
+
+# Extract the archive
+tar -xzf crow-agent_linux_*.tar.gz
+
+# Move to system path
+sudo mv crow-agent /usr/local/bin/
+sudo chmod +x /usr/local/bin/crow-agent
+
+# Verify installation
+crow-agent --version
+```
+
+:::caution
+Read the box at the top of this page before running this agent on Linux.
+Nothing separates a pipeline from the rest of the machine, so treat every repository the agent builds as having shell access to that host.
+:::
+
+### Windows
+
+`crow-agent_windows_amd64.zip` is published for the same reasons, plus the autoscaler, which downloads it onto Windows VMs.
+Windows agents normally run the **docker** backend rather than the `local` one: see [Windows Agents](/dev/configuration/windows-agent/).
+
+## Why no systemd units, `.deb` or `.rpm` packages
+
+Only plain tarballs are published, and that is deliberate.
+
+Packaging the agent for a distribution, or shipping a ready-made `systemd` unit, presents host installation as an equally supported alternative to the container agent.
+It is not: everything in the box at the top of this page still applies, and the resulting agent is markedly less capable and less contained than a container one.
+Users who install from a distribution package reasonably expect the two to be interchangeable, and then hit the missing plugin and isolation guarantees later, in production.
+
+If you need the agent supervised on Linux, wire the binary into whatever service manager you already run.
+Give it its own unprivileged user, keep that user away from anything the pipelines should not reach, and do not run it as `root`.
+
+See [#1406](https://codefloe.com/crowci/crow/issues/1406) for the discussion behind this.
 
 ## Running as a System Service
 

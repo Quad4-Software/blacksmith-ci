@@ -250,15 +250,20 @@ The naming scheme can be set via the server environment variable `CROW_CONTAINER
 
 ## Manual Pipeline Triggering
 
-A pipeline can also be triggered manually from the UI or CLI rather than by an event like `push` or `pull_request`.
-To make a workflow eligible for manual triggering, add the `manual` event to its `when` block:
+A pipeline can be triggered manually from the UI or CLI instead of by a forge event such as `push` or `pull_request`.
+Manual runs are the way to start deployments, releases, one-off maintenance jobs, or anything else you want to launch on demand, optionally parameterized with variables the user fills in first.
+
+### Enabling manual triggering
+
+A workflow only appears in the manual trigger dialog when its `when` block contains the `manual` event.
+Add it on its own to make the workflow manual-only:
 
 ```yaml
 when:
   - event: manual
 ```
 
-Or combined with other events:
+Or list it alongside other events so the same workflow still runs automatically:
 
 ```yaml
 when:
@@ -266,39 +271,103 @@ when:
     branch: main
 ```
 
-### UI Workflow Selection
+Workflows without the `manual` event are never listed and cannot be started by hand.
 
-When triggering a manual pipeline from the UI, the dialog has two columns: the available workflows on the left and their variables on the right.
-Only workflows with the `manual` event configured are listed.
-The selected workflows are bundled into a single new pipeline. You can:
+### Declaring variables
 
-- **Select workflows**: Click anywhere on a workflow row (or its checkbox) to include it, then click "Run pipeline".
-- **Quick-start a single workflow**: Click the play button next to a workflow to immediately start a pipeline containing just that workflow.
-- **Select all**: Use the "Select all" checkbox to include every available workflow.
+Manual runs can be parameterized with variables that the user sets before the pipeline starts.
+Declare them in the workflow's top-level `variables:` block, keyed by variable name.
+Each entry accepts these fields:
 
-Workflows that depend on others show a dependency icon; hover it to see the dependencies.
+| Field         | Type             | Purpose                                                                                             |
+| ------------- | ---------------- | --------------------------------------------------------------------------------------------------- |
+| `description` | string           | Helper text shown beneath the field in the UI.                                                      |
+| `options`     | list of strings  | Restricts the value to a fixed set and renders it as a dropdown instead of a free-text input.        |
+| `default`     | string           | Pre-filled value; for `options` it selects the initially chosen entry.                              |
+| `required`    | boolean          | When `true`, the field is marked with `*` and the pipeline cannot start until it has a value.        |
 
-<div style="max-width: 720px; margin: 1rem auto;">
-![Manual pipeline trigger dialog](img/manual-pipelines.png)
+A worked example for a deploy workflow:
+
+```yaml
+# .crow/deploy.yaml
+variables:
+  DEPLOY_ENV:
+    description: Target deployment environment
+    options: [staging, production]
+    default: staging
+    required: true
+  VERSION:
+    description: Release version tag (e.g. v1.4.2)
+    default: ''
+  RUN_MIGRATIONS:
+    description: Apply database migrations before deploying
+    options: ['true', 'false']
+    default: 'false'
+  # Shorthand: a bare scalar is a variable with only a default.
+  LOG_LEVEL: info
+
+when:
+  - event: manual
+```
+
+The shorthand form `NAME: value` is equivalent to a declaration carrying only a `default`.
+Every value reaches the pipeline as a string, so quote booleans and numbers (`'true'`, `'3.12'`) to stop YAML from coercing them.
+Inside the workflow a variable is available for `$VAR` substitution in commands and for [`when.evaluate`](/dev/usage/workflow-syntax/#evaluate) expressions.
+A variable used only via `$VAR` substitution, and never in `evaluate`, must be declared here to be settable.
+
+#### Variables inferred from `evaluate`
+
+Variables referenced in a `when.evaluate` expression are surfaced in the dialog automatically, even without a `variables:` declaration.
+Their names are extracted from the expression, and simple `==` or `in` comparisons against string literals become dropdown options:
+
+```yaml
+when:
+  - event: manual
+    evaluate: 'DEPLOY_ENV in ["staging", "production"]'
+```
+
+The snippet above surfaces a `DEPLOY_ENV` dropdown offering `staging` and `production` with no `variables:` block at all.
+An explicit declaration always wins over what is inferred, so declare the variable when you also want a description, a default, or the `required` flag.
+Built-in `CI_*` variables and the deployment `task` selector are never offered as inputs.
+
+### Triggering from the UI
+
+Open the manual trigger dialog from the repository's pipeline list.
+It has two columns: the available workflows on the left and their variables on the right.
+Choose a branch at the top; the workflow list and variables reflect the configuration on that branch.
+
+<div style="max-width: 760px; margin: 1rem auto;">
+![Manual pipeline trigger dialog listing the build, test and deploy workflows](img/manual-pipelines.png)
 </div>
 
-### Variables in the UI
+Only workflows with the `manual` event are listed. From the left column you can:
 
-The right column shows the variables the selected workflows accept, grouped by workflow so it is clear which variable belongs where.
-Variables declared by more than one selected workflow appear once in a **Shared** group at the top; each remaining workflow's variables follow under its own heading.
+- **Select workflows**: click anywhere on a row (or its checkbox) to include it, then click **Run pipeline**. The selected workflows are bundled into one new pipeline.
+- **Quick-start a single workflow**: click the play button on a row to immediately start a pipeline containing just that workflow, using each variable's default.
+- **Select all**: use the **Select all** checkbox to include every listed workflow.
 
-These variables are derived from each workflow's declared [`variables:`](/dev/usage/workflow-syntax/#manual-variables) block and from the variables referenced in its `when.evaluate` expressions.
-Variables with a fixed set of values render as dropdowns; others as text inputs, both prefilled with their declared default.
-Required variables are marked and must be set before the pipeline can run.
+Workflows that depend on others show a branch icon next to their name; hover it to see the dependencies.
 
-<div style="max-width: 720px; margin: 1rem auto;">
-![Manual pipeline variables panel](img/manual-pipeline-variables.png)
+### Setting variables in the UI
+
+The right column shows the variables of the currently selected workflows, grouped so it is clear which variable belongs where.
+A variable declared by more than one selected workflow appears once in a **Shared** group at the top, annotated with a **Used by** note; each remaining workflow's variables follow under its own heading.
+In the screenshot below both `test` and `deploy` declare `LOG_LEVEL`, so it is shown once under **Shared**, while `deploy`'s own variables sit under the `deploy` heading.
+
+<div style="max-width: 760px; margin: 1rem auto;">
+![Manual pipeline variables panel showing a shared LOG_LEVEL dropdown and the deploy workflow's DEPLOY_ENV, VERSION and RUN_MIGRATIONS fields](img/manual-pipeline-variables.png)
 </div>
 
-Free-form variable entry is not available: only declared or evaluate-referenced variables can be set.
+Each field renders according to its declaration:
+
+- variables with `options` render as a dropdown, everything else as a text input;
+- every field is pre-filled with its declared `default`;
+- required variables are marked with `*` and must be set before **Run pipeline** is enabled.
+
+Free-form variable entry is not available: only declared or `evaluate`-referenced variables can be set.
 Submitting a value outside a variable's declared options, or omitting a required variable, is rejected.
 
-### Dependency Handling
+### Dependency handling
 
 When a selected workflow depends on other workflows (via `depends_on`), the system automatically includes those dependencies if they also have the `manual` event trigger.
 
@@ -339,32 +408,43 @@ If you select only "deploy", the "build" workflow will be automatically included
 Dependencies that do **not** have the `manual` event trigger will not be automatically included. A warning will be shown in the UI when this occurs.
 :::
 
-### CLI Triggering
+### CLI triggering
 
-Manual pipelines can also be triggered via the CLI:
-
-```bash
-crow pipeline create --branch main --repo owner/repo
-```
-
-To run specific workflows, use the `--workflow` flag:
+Manual pipelines can also be triggered from the CLI, which is handy for scripts and scheduled jobs.
+The repository is a positional argument (its ID or full name) and `--branch` is required:
 
 ```bash
-crow pipeline create --branch main --repo owner/repo --workflow build --workflow test
+crow pipeline create --branch main owner/repo
 ```
 
-### Filtering with Evaluate
+Pass variables with `--var NAME=value`, repeating the flag for each variable:
 
-The `evaluate` condition can be used to further filter manual workflows. This is useful when you want to pass variables to control which steps run:
+```bash
+crow pipeline create --branch main --var DEPLOY_ENV=production --var VERSION=v1.4.2 owner/repo
+```
+
+All workflows matching the branch are considered; use `when.evaluate` (see below) to control which ones actually run.
+
+### Using variables to control what runs
+
+Because variables are available in `when.evaluate`, they can gate whole workflows or individual steps at runtime.
+A step or workflow whose `evaluate` resolves to `false` is skipped, so the same manual pipeline can behave differently depending on the values entered:
 
 ```yaml
 when:
   - event: manual
-    evaluate: 'DEPLOY_ENV == "production"'
+
+steps:
+  - name: deploy
+    image: alpine
+    commands:
+      - ./deploy.sh
+    when:
+      - evaluate: 'DEPLOY_ENV == "production"'
 ```
 
-When triggering manually via the CLI, you can pass variables:
+Here the `deploy` step only runs when `DEPLOY_ENV` is set to `production`, whether the pipeline was started from the UI or with `--var DEPLOY_ENV=production` on the CLI.
 
-```bash
-crow pipeline create --branch main --repo owner/repo --var DEPLOY_ENV=production
-```
+:::caution
+If every step is filtered out by its `when` conditions, no pipeline is created and the UI reports that all steps were filtered out.
+:::

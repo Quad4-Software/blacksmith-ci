@@ -169,6 +169,26 @@ Setting a custom label also requires assigning this label to at least one agent.
 Otherwise, the workflow will never be run.
 :::
 
+### List notation
+
+Any label value can be given as a list instead of a single value.
+A list matches when an agent satisfies **any** of the given values, letting you scope a workflow to a set of agents rather than a single one:
+
+```yaml
+labels:
+  agent: [ci-1, ci-2] # eligible on either agent
+
+steps:
+  - name: build
+    image: <image>
+    commands:
+      - make build
+```
+
+The workflow still runs on exactly one agent.
+Whichever eligible agent is free first picks it up.
+This works for every label key, including the special `agent` and `hostname` labels below and any custom label.
+
 ### Special labels
 
 Some labels have special meaning and are automatically matched against agent properties:
@@ -346,6 +366,8 @@ Built-in `CI_*` variables and the deployment `task` selector are never offered.
 
 An explicit declaration always overrides what is auto-extracted.
 A variable used only via `$VAR` substitution in a command, and never in `evaluate`, must be declared here to be settable.
+
+See [Manual pipeline triggering](/dev/usage/pipelines/#manual-pipeline-triggering) for the field reference and how these variables appear in the UI and CLI.
 
 ## when
 

@@ -16,8 +16,11 @@ Crow CI consists of three components:
 | --- | --- |
 | [Docker Compose](/dev/installation/container/) | Single-server deployments |
 | [Helm Chart](/dev/installation/helm/) | Kubernetes clusters |
-| [Binary](/dev/installation/binary/) | Custom deployments |
 | [Ansible](/dev/installation/ansible/) | Automated provisioning |
+
+All of them deploy Crow as containers, which is the supported way to run it.
+Standalone [agent binaries](/dev/installation/binary/) also exist, but only to run an agent with the `local` backend, which executes pipeline commands directly on the host with no isolation and no plugin support.
+Read the warnings on that page before choosing it.
 
 ## Database
 
