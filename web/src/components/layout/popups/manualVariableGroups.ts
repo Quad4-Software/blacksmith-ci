@@ -12,6 +12,15 @@ export interface GroupedManualVariables {
   all: ManualVariable[];
 }
 
+export function getSelectedWorkflowDefault(variable: ManualVariable): string {
+  // The UI explicitly filters to selected workflows, so an all-capable gate
+  // can start safely while its YAML default remains none for unfiltered calls.
+  if (variable.default === 'none' && variable.options?.includes('all')) {
+    return 'all';
+  }
+  return variable.default ?? '';
+}
+
 function mergeShared(a: ManualVariable, b: ManualVariable): ManualVariable {
   const options = [...new Set([...(a.options ?? []), ...(b.options ?? [])])];
   return {

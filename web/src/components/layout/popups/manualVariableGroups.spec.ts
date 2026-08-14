@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { groupManualVariables } from './manualVariableGroups';
 import type { ManualWorkflow } from '~/lib/api/types';
+import { describe, expect, it } from 'vitest';
+import { getSelectedWorkflowDefault, groupManualVariables } from './manualVariableGroups';
 
 function wf(name: string, variables: ManualWorkflow['variables']): ManualWorkflow {
   return { name, pipeline_name: name, has_manual: true, variables };
@@ -74,5 +74,25 @@ describe('groupManualVariables', () => {
     expect(g.all).toEqual([]);
     expect(g.groups).toEqual([]);
     expect(g.shared).toEqual([]);
+  });
+});
+
+describe('getSelectedWorkflowDefault', () => {
+  it('selects all for an explicit none/all workflow gate', () => {
+    expect(
+      getSelectedWorkflowDefault({
+        name: 'weekly_audit_missing',
+        default: 'none',
+        options: ['none', 'all', 'alpine-324-amd64'],
+      }),
+    ).toBe('all');
+  });
+
+  it('preserves ordinary defaults', () => {
+    expect(getSelectedWorkflowDefault({ name: 'target', default: 'amd64', options: ['amd64', 'arm64'] })).toBe('amd64');
+  });
+
+  it('preserves none when the variable has no all option', () => {
+    expect(getSelectedWorkflowDefault({ name: 'target', default: 'none', options: ['none', 'amd64'] })).toBe('none');
   });
 });

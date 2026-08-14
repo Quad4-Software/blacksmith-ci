@@ -71,12 +71,10 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
-
 import Icon from '~/components/atomic/Icon.vue';
 import WorkflowSelector from '~/components/form/WorkflowSelector.vue';
+import { getSelectedWorkflowDefault, groupManualVariables } from '~/components/layout/popups/manualVariableGroups';
+import ManualVariablesPanel from '~/components/layout/popups/ManualVariablesPanel.vue';
 import { Button } from '~/components/ui/button';
 import {
   Dialog,
@@ -87,15 +85,16 @@ import {
   DialogTitle,
 } from '~/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
-import ManualVariablesPanel from '~/components/layout/popups/ManualVariablesPanel.vue';
-import { groupManualVariables } from '~/components/layout/popups/manualVariableGroups';
 import useApiClient from '~/compositions/useApiClient';
 import { requiredInject } from '~/compositions/useInjectProvide';
 import { useLoadingOverlay } from '~/compositions/useLoadingOverlay';
 import useNotifications from '~/compositions/useNotifications';
-import { PipelineFilteredError } from '~/lib/api/client';
 import { usePaginate } from '~/compositions/usePaginate';
+import { PipelineFilteredError } from '~/lib/api/client';
 import type { ManualVariable, ManualWorkflow } from '~/lib/api/types';
+import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 
 const props = defineProps<{
   open: boolean;
@@ -144,7 +143,7 @@ const isFormValid = computed(() => {
 watch(grouped, (g) => {
   const next: Record<string, string> = {};
   for (const v of g.all) {
-    next[v.name] = variableValues.value[v.name] ?? v.default ?? '';
+    next[v.name] = variableValues.value[v.name] ?? getSelectedWorkflowDefault(v);
   }
   variableValues.value = next;
 });
@@ -219,9 +218,9 @@ watch(
 function buildPayloadFromVariables(vars: ManualVariable[]): Record<string, string> {
   const result: Record<string, string> = {};
   for (const v of vars) {
-    // Fall back to the declared default so quick-start works even when the
-    // workflow was never selected (and thus never seeded into variableValues).
-    const value = variableValues.value[v.name] ?? v.default ?? '';
+    // Fall back to the selected-workflow default so quick-start works even
+    // when the workflow was never seeded into variableValues.
+    const value = variableValues.value[v.name] ?? getSelectedWorkflowDefault(v);
     if (value === '' && !v.required && !v.default) continue;
     result[v.name] = value;
   }
