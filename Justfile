@@ -36,7 +36,7 @@ ADDLICENSE_VERSION := "v1.2.0"
 
 # renovate: datasource=go depName=google.golang.org/protobuf/cmd/protoc-gen-go
 
-PROTOC_GEN_GO_VERSION := "v1.36.11"
+PROTOC_GEN_GO_VERSION := "v1.36.12"
 
 # renovate: datasource=go depName=google.golang.org/grpc/cmd/protoc-gen-go-grpc
 
