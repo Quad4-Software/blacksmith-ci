@@ -35,6 +35,26 @@ func TestEnvVarSubst(t *testing.T) {
 		want: `steps:
 		step1:
 			image: hello-world`,
+	}, {
+		name: "substitution with a comment containing ${...}",
+		yaml: `steps:
+		step1:
+			commands:
+				- |
+					# Avoids "${ARRAY[@]}" syntax
+					echo hi ${WHO}`,
+		environ: map[string]string{"WHO": "world"},
+		want: `steps:
+		step1:
+			commands:
+				- |
+					# Avoids "${ARRAY[@]}" syntax
+					echo hi world`,
+	}, {
+		name:    "top-level comment with ${...} is untouched",
+		yaml:    `# image is ${IMAGE_IMAGE}`,
+		environ: map[string]string{},
+		want:    `# image is ${IMAGE_IMAGE}`,
 	}}
 
 	for _, testCase := range testCases {
@@ -44,4 +64,16 @@ func TestEnvVarSubst(t *testing.T) {
 			assert.EqualValues(t, testCase.want, result)
 		})
 	}
+}
+
+func TestEnvVarSubstErrorReportsLine(t *testing.T) {
+	yamlText := `steps:
+	step1:
+		commands:
+			- echo "${ARRAY[@]}"`
+
+	_, err := EnvVarSubst(yamlText, map[string]string{})
+	assert.ErrorContains(t, err, "line 4")
+	assert.ErrorContains(t, err, "missing closing brace")
+	assert.ErrorContains(t, err, "$$")
 }
