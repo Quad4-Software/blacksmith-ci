@@ -5,8 +5,9 @@
 **Severity:** Critical
 **CVSS v3.1:** 9.8 (`AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H`)
 **CWE:** CWE-287 (Improper Authentication), CWE-290 (Authentication Bypass by Spoofing)
-**CVE:** requested from MITRE, not yet assigned. This advisory is updated when the ID is
-issued.
+**Go vulnerability ID:** [GO-2026-6216](https://pkg.go.dev/vuln/GO-2026-6216)
+**CVE:** requested from MITRE, not yet assigned.
+This advisory is updated when the ID is issued.
 **Affected:** Crow 5.2.0 through 6.3.0
 **Fixed in:** v6.4.0
 **Reported by:** Cassandra Beelen ([sapphiccode](https://sapphiccode.net/))
