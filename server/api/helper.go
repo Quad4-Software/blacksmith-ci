@@ -89,9 +89,38 @@ func mergeIntegrationConfig(integrationType model.IntegrationType, oldConfig, ne
 	switch integrationType {
 	case model.IntegrationTypeVault:
 		return mergeVaultConfig(oldConfig, newConfig)
+	case model.IntegrationTypeAzureKeyVault:
+		return mergeAzureKeyVaultConfig(oldConfig, newConfig)
 	default:
 		return newConfig, nil
 	}
+}
+
+// mergeAzureKeyVaultConfig preserves credentials redacted or omitted by the web UI.
+func mergeAzureKeyVaultConfig(oldConfig, newConfig string) (string, error) {
+	var oldCfg, newCfg model.AzureKeyVaultConfig
+
+	if err := json.Unmarshal([]byte(oldConfig), &oldCfg); err != nil {
+		return newConfig, nil
+	}
+
+	if err := json.Unmarshal([]byte(newConfig), &newCfg); err != nil {
+		return "", err
+	}
+
+	if strings.Contains(newCfg.ClientID, "...") || newCfg.ClientID == "" {
+		newCfg.ClientID = oldCfg.ClientID
+	}
+	if newCfg.ClientSecret == "***" || newCfg.ClientSecret == "" {
+		newCfg.ClientSecret = oldCfg.ClientSecret
+	}
+
+	merged, err := json.Marshal(newCfg)
+	if err != nil {
+		return "", err
+	}
+
+	return string(merged), nil
 }
 
 // mergeVaultConfig preserves sensitive fields from old config when they appear redacted in new config.

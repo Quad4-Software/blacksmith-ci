@@ -51,6 +51,62 @@ func TestMergeIntegrationConfig(t *testing.T) {
 		assert.Equal(t, newConfig, result)
 	})
 
+	t.Run("azure key vault preserves redacted credentials", func(t *testing.T) {
+		oldConfig := model.AzureKeyVaultConfig{
+			VaultURL:     "https://vault.example.com",
+			TenantID:     "tenant-id",
+			ClientID:     "fdb4238c-21b5-4d15-b333-1b4ed12d3354",
+			ClientSecret: "client-secret",
+		}
+		oldJSON, _ := json.Marshal(oldConfig)
+
+		newConfig := model.AzureKeyVaultConfig{
+			VaultURL:     "https://new-vault.example.com",
+			TenantID:     "new-tenant-id",
+			ClientID:     "fdb4...3354",
+			ClientSecret: "",
+		}
+		newJSON, _ := json.Marshal(newConfig)
+
+		result, err := mergeIntegrationConfig(model.IntegrationTypeAzureKeyVault, string(oldJSON), string(newJSON))
+		assert.NoError(t, err)
+
+		var mergedConfig model.AzureKeyVaultConfig
+		err = json.Unmarshal([]byte(result), &mergedConfig)
+		assert.NoError(t, err)
+		assert.Equal(t, oldConfig.ClientID, mergedConfig.ClientID)
+		assert.Equal(t, oldConfig.ClientSecret, mergedConfig.ClientSecret)
+		assert.Equal(t, newConfig.VaultURL, mergedConfig.VaultURL)
+		assert.Equal(t, newConfig.TenantID, mergedConfig.TenantID)
+	})
+
+	t.Run("azure key vault updates credentials when provided", func(t *testing.T) {
+		oldConfig := model.AzureKeyVaultConfig{
+			VaultURL:     "https://vault.example.com",
+			TenantID:     "tenant-id",
+			ClientID:     "old-client-id",
+			ClientSecret: "old-client-secret",
+		}
+		oldJSON, _ := json.Marshal(oldConfig)
+
+		newConfig := model.AzureKeyVaultConfig{
+			VaultURL:     "https://vault.example.com",
+			TenantID:     "tenant-id",
+			ClientID:     "new-client-id",
+			ClientSecret: "new-client-secret",
+		}
+		newJSON, _ := json.Marshal(newConfig)
+
+		result, err := mergeIntegrationConfig(model.IntegrationTypeAzureKeyVault, string(oldJSON), string(newJSON))
+		assert.NoError(t, err)
+
+		var mergedConfig model.AzureKeyVaultConfig
+		err = json.Unmarshal([]byte(result), &mergedConfig)
+		assert.NoError(t, err)
+		assert.Equal(t, newConfig.ClientID, mergedConfig.ClientID)
+		assert.Equal(t, newConfig.ClientSecret, mergedConfig.ClientSecret)
+	})
+
 	t.Run("vault preserves secret_id when redacted", func(t *testing.T) {
 		oldConfig := model.VaultConfig{
 			Address:   "https://vault.example.com",
