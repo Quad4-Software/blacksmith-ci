@@ -206,11 +206,11 @@
 </template>
 
 <script lang="ts" setup>
-import type { Ref } from 'vue';
-import { computed, onMounted, provide as vueProvide, ref, toRef, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRoute, useRouter } from 'vue-router';
-
+import type { IconNames } from '~/components/atomic/Icon.types';
+import Icon from '~/components/atomic/Icon.vue';
+import IconButton from '~/components/atomic/IconButton.vue';
+import ManualPipelinePopup from '~/components/layout/popups/ManualPipelinePopup.vue';
+import Scaffold from '~/components/layout/scaffold/Scaffold.vue';
 import { Badge } from '~/components/ui/badge';
 import { Button } from '~/components/ui/button';
 import { DatePicker } from '~/components/ui/date-picker';
@@ -224,15 +224,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu';
+import SearchInput from '~/components/ui/input/SearchInput.vue';
 import { Label } from '~/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
-import SearchInput from '~/components/ui/input/SearchInput.vue';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
-import Icon from '~/components/atomic/Icon.vue';
-import type { IconNames } from '~/components/atomic/Icon.types';
-import IconButton from '~/components/atomic/IconButton.vue';
-import ManualPipelinePopup from '~/components/layout/popups/ManualPipelinePopup.vue';
-import Scaffold from '~/components/layout/scaffold/Scaffold.vue';
 import useApiClient from '~/compositions/useApiClient';
 import useAuthentication from '~/compositions/useAuthentication';
 import { useForgeStore } from '~/compositions/useForgeStore';
@@ -240,8 +235,13 @@ import { provide } from '~/compositions/useInjectProvide';
 import useNotifications from '~/compositions/useNotifications';
 import useRepos from '~/compositions/useRepos';
 import type { Forge, Repo, RepoPermissions } from '~/lib/api/types';
+import { WebhookEvents } from '~/lib/api/types';
 import { usePipelineStore } from '~/store/pipelines';
 import { useRepoStore } from '~/store/repos';
+import type { Ref } from 'vue';
+import { computed, onMounted, ref, toRef, provide as vueProvide, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRoute, useRouter } from 'vue-router';
 
 const props = defineProps<{
   repoId: string;
@@ -298,8 +298,10 @@ const pullRequests = ref<{ index: string; title: string }[]>([]);
 // Set default "to" date to today (for the input field, not the filter)
 const today = new Date().toISOString().split('T')[0];
 
-// Event types for filter
-const eventTypes = ['push', 'pull_request', 'pull_request_closed', 'tag', 'cron', 'manual', 'release', 'deploy'];
+// Event types for filter. Derived from the enum so the values stay identical to
+// the ones the server validates the `event` query param against; a literal list
+// drifted here before ('deploy' instead of 'deployment').
+const eventTypes: string[] = Object.values(WebhookEvents);
 
 const dateRangeLabel = computed(() => {
   if (dateFrom.value && dateTo.value) {

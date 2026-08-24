@@ -1,9 +1,8 @@
-import type { ComputedRef, Ref } from 'vue';
-import { computed, ref, watch } from 'vue';
-
 import useNotifications from '~/compositions/useNotifications';
 import type { Pipeline } from '~/lib/api/types';
 import { usePipelineStore } from '~/store/pipelines';
+import type { ComputedRef, Ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 export interface UseReactivePipelinesOptions {
   repoId: Ref<number>;
@@ -113,7 +112,7 @@ export default function useReactivePipelines(options: UseReactivePipelinesOption
       page,
       perPage: pageSize,
       search: searchValue !== null && searchValue !== undefined && searchValue !== '' ? searchValue : undefined,
-      events:
+      event:
         eventsValue !== null && eventsValue !== undefined && eventsValue.length > 0 ? eventsValue.join(',') : undefined,
       after:
         dateFromValue !== null && dateFromValue !== undefined && dateFromValue !== ''

@@ -210,7 +210,8 @@ export default class CrowClient extends ApiClient {
       after?: string;
       ref?: string;
       branch?: string;
-      events?: string;
+      /** comma-separated webhook events; must match the server's `event` query param */
+      event?: string;
       search?: string;
       workflow?: string;
     },

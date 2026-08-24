@@ -170,7 +170,7 @@ export const usePipelineStore = defineStore('pipelines', () => {
       after?: string;
       ref?: string;
       branch?: string;
-      events?: string;
+      event?: string;
       search?: string;
       workflow?: string;
     },
@@ -214,7 +214,7 @@ export const usePipelineStore = defineStore('pipelines', () => {
       after?: string;
       ref?: string;
       branch?: string;
-      events?: string;
+      event?: string;
       search?: string;
       workflow?: string;
     },
