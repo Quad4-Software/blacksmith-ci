@@ -681,6 +681,51 @@ func (c *client) BranchHead(ctx context.Context, u *model.User, r *model.Repo, b
 	}, nil
 }
 
+// Asserted here rather than left to the call-site type assertion, so a
+// signature drift is a build error instead of a silent 501.
+var _ forge.TagForge = new(client)
+
+// Tags returns the names of all tags for the named repository.
+func (c *client) Tags(ctx context.Context, u *model.User, r *model.Repo, p *model.ListOptions) ([]string, error) {
+	token, err := c.refreshedTokenForRepo(ctx, r, u)
+	if err != nil {
+		return nil, err
+	}
+	client := c.newClientToken(ctx, token)
+
+	githubTags, _, err := client.Repositories.ListTags(ctx, r.Owner, r.Name,
+		&github.ListOptions{Page: p.Page, PerPage: p.PerPage})
+	if err != nil {
+		return nil, err
+	}
+
+	tags := make([]string, 0, len(githubTags))
+	for _, tag := range githubTags {
+		tags = append(tags, tag.GetName())
+	}
+	return tags, nil
+}
+
+// TagHead returns the commit the specified tag points at.
+func (c *client) TagHead(ctx context.Context, u *model.User, r *model.Repo, tag string) (*model.Commit, error) {
+	token, err := c.refreshedTokenForRepo(ctx, r, u)
+	if err != nil {
+		return nil, err
+	}
+
+	// GetCommit takes any ref and dereferences annotated tags for us, so this
+	// needs no separate tag-object lookup.
+	commit, _, err := c.newClientToken(ctx, token).Repositories.GetCommit(ctx, r.Owner, r.Name, tag, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &model.Commit{
+		SHA:      commit.GetSHA(),
+		ForgeURL: commit.GetHTMLURL(),
+		Message:  commit.GetCommit().GetMessage(),
+	}, nil
+}
+
 // refreshedTokenForRepo returns a valid access token for the given repo,
 // refreshing it if necessary. This ensures we don't make API calls with
 // expired tokens.

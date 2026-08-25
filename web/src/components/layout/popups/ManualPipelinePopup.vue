@@ -1,6 +1,8 @@
 <template>
   <Dialog :open="open" @update:open="(val) => !val && $emit('close')">
-    <DialogContent class="sm:min-w-[56rem] sm:max-w-5xl max-h-[85vh] overflow-y-auto">
+    <!-- No `min-w` here: `w-full` already fills up to `sm:max-w-5xl`, while a min
+         width would push the dialog past the viewport between 640px and 784px. -->
+    <DialogContent class="sm:max-w-5xl max-h-[85vh] overflow-y-auto">
       <DialogHeader class="text-left">
         <DialogTitle>{{ $t('repo.manual_pipeline.title') }}</DialogTitle>
         <DialogDescription>
@@ -8,43 +10,73 @@
         </DialogDescription>
       </DialogHeader>
 
-      <!-- Branch selector below header -->
+      <!-- Branch/tag selector below header -->
       <div class="flex items-center gap-2 text-sm pb-2 border-b">
-        <Popover v-model:open="branchPickerOpen">
+        <Popover v-model:open="refPickerOpen">
           <PopoverTrigger as-child>
             <Button
               variant="outline"
               role="combobox"
-              :aria-expanded="branchPickerOpen"
+              :aria-expanded="refPickerOpen"
               :disabled="loading"
               class="h-8 w-auto min-w-40 justify-between"
             >
-              <span class="truncate">{{ payload.branch || $t('repo.manual_pipeline.select_branch') }}</span>
+              <span class="flex min-w-0 items-center gap-1.5">
+                <Icon
+                  v-if="selectedRef"
+                  :name="selectedRef.type === 'tag' ? 'tag' : 'branch'"
+                  class="h-3.5 w-3.5 shrink-0 opacity-70"
+                />
+                <span class="truncate">{{ selectedRef?.name || $t('repo.manual_pipeline.select_ref') }}</span>
+              </span>
               <Icon name="lucide:arrow-up-down" class="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent class="w-[var(--reka-popover-trigger-width)] p-0" align="start">
+          <PopoverContent
+            class="w-auto min-w-[var(--reka-popover-trigger-width)] max-w-[min(24rem,90vw)] p-0"
+            align="start"
+          >
             <Command>
-              <CommandInput v-model="branchSearch" :placeholder="$t('repo.manual_pipeline.select_branch')" />
+              <CommandInput v-model="refSearch" :placeholder="$t('repo.manual_pipeline.select_ref')" />
               <CommandList>
                 <CommandEmpty>{{ $t('no_search_results') }}</CommandEmpty>
-                <CommandGroup>
+                <CommandGroup :heading="$t('repo.manual_pipeline.branches')">
                   <CommandItem
                     v-for="branch in branches"
-                    :key="branch"
+                    :key="`branch:${branch}`"
                     :value="branch"
+                    :title="branch"
                     class="cursor-pointer"
-                    @select="selectBranch(branch)"
+                    @select="selectRef('branch', branch)"
                   >
                     <Icon
                       name="lucide:check"
                       class="mr-2 h-4 w-4"
-                      :class="payload.branch === branch ? 'opacity-100' : 'opacity-0'"
+                      :class="isSelected('branch', branch) ? 'opacity-100' : 'opacity-0'"
                     />
                     <span class="truncate">{{ branch }}</span>
-                    <span v-if="branch === repo.default_branch" class="ml-1 text-muted-foreground">{{
+                    <span v-if="branch === repo.default_branch" class="ml-1 shrink-0 text-muted-foreground">{{
                       $t('repo.manual_pipeline.default_branch_suffix')
                     }}</span>
+                  </CommandItem>
+                </CommandGroup>
+                <!-- Omitted entirely when the forge cannot list tags, so the
+                     picker degrades to branches only instead of erroring. -->
+                <CommandGroup v-if="tags.length > 0" :heading="$t('repo.manual_pipeline.tags')">
+                  <CommandItem
+                    v-for="tag in tags"
+                    :key="`tag:${tag}`"
+                    :value="tag"
+                    :title="tag"
+                    class="cursor-pointer"
+                    @select="selectRef('tag', tag)"
+                  >
+                    <Icon
+                      name="lucide:check"
+                      class="mr-2 h-4 w-4"
+                      :class="isSelected('tag', tag) ? 'opacity-100' : 'opacity-0'"
+                    />
+                    <span class="truncate">{{ tag }}</span>
                   </CommandItem>
                 </CommandGroup>
               </CommandList>
@@ -141,12 +173,18 @@ const router = useRouter();
 
 const repo = requiredInject('repo');
 
+type RefKind = 'branch' | 'tag';
+// A branch and a tag may share a name, so the kind has to be tracked alongside it.
+interface SelectedRef {
+  type: RefKind;
+  name: string;
+}
+
 const branches = ref<string[]>([]);
-const branchPickerOpen = ref(false);
-const branchSearch = ref('');
-const payload = ref<{ branch: string }>({
-  branch: '',
-});
+const tags = ref<string[]>([]);
+const refPickerOpen = ref(false);
+const refSearch = ref('');
+const selectedRef = ref<SelectedRef | null>(null);
 
 const workflows = ref<ManualWorkflow[]>([]);
 const selectedWorkflows = ref<Set<string>>(new Set());
@@ -155,7 +193,7 @@ const workflowsLoading = ref(false);
 
 const loading = ref(false);
 const isSubmitting = ref(false);
-const hasFetchedBranches = ref(false);
+const hasFetchedRefs = ref(false);
 
 // Variables derived from the selected workflows
 const variableValues = ref<Record<string, string>>({});
@@ -167,16 +205,26 @@ const requiredVariablesValid = computed(() =>
 );
 
 const isFormValid = computed(() => {
-  return payload.value.branch !== '' && selectedWorkflows.value.size > 0 && requiredVariablesValid.value;
+  return selectedRef.value !== null && selectedWorkflows.value.size > 0 && requiredVariablesValid.value;
 });
 
-function selectBranch(branch: string): void {
-  payload.value.branch = branch;
-  branchPickerOpen.value = false;
+// The request carries either a branch or a tag, never both: the server rejects
+// an ambiguous pair with a 400.
+const refPayload = computed(() =>
+  selectedRef.value?.type === 'tag' ? { tag: selectedRef.value.name } : { branch: selectedRef.value?.name ?? '' },
+);
+
+function isSelected(type: RefKind, name: string): boolean {
+  return selectedRef.value?.type === type && selectedRef.value.name === name;
 }
 
-watch(branchPickerOpen, (isOpen) => {
-  if (!isOpen) branchSearch.value = '';
+function selectRef(type: RefKind, name: string): void {
+  selectedRef.value = { type, name };
+  refPickerOpen.value = false;
+}
+
+watch(refPickerOpen, (isOpen) => {
+  if (!isOpen) refSearch.value = '';
 });
 
 // Seed defaults when the selection changes, preserving values the user already entered.
@@ -188,14 +236,29 @@ watch(grouped, (g) => {
   variableValues.value = next;
 });
 
-// Fetch branches when dialog opens
+// Tags are optional per forge: a forge without tag support answers 501, and
+// repos simply may not have any. Neither is an error, so failures leave the
+// list empty and the picker shows branches only.
+async function fetchTags(): Promise<string[]> {
+  try {
+    return await usePaginate((page) => apiClient.getRepoTags(repo.value.id, { page }));
+  } catch (error) {
+    console.warn('Tags unavailable for this repo:', error);
+    return [];
+  }
+}
+
+// Fetch branches and tags when dialog opens
 watch(
   () => props.open,
   async (isOpen) => {
-    if (isOpen && !hasFetchedBranches.value) {
+    if (isOpen && !hasFetchedRefs.value) {
       loading.value = true;
       try {
-        const data = await usePaginate((page) => apiClient.getRepoBranches(repo.value.id, { page }));
+        const [data, tagData] = await Promise.all([
+          usePaginate((page) => apiClient.getRepoBranches(repo.value.id, { page })),
+          fetchTags(),
+        ]);
         // Sort branches: default branch first, then alphabetically
         const defaultBranch = repo.value.default_branch;
         branches.value = data.sort((a, b) => {
@@ -203,9 +266,11 @@ watch(
           if (b === defaultBranch) return 1;
           return a.localeCompare(b);
         });
-        // Set default branch
-        payload.value.branch = defaultBranch || data[0] || '';
-        hasFetchedBranches.value = true;
+        tags.value = tagData;
+        // Start on the default branch
+        const initialBranch = defaultBranch || data[0] || '';
+        selectedRef.value = initialBranch ? { type: 'branch', name: initialBranch } : null;
+        hasFetchedRefs.value = true;
       } catch (error) {
         console.error('Failed to fetch branches:', error);
         notifications.notify({
@@ -221,11 +286,11 @@ watch(
   { immediate: true },
 );
 
-// Fetch workflows when branch changes
+// Fetch workflows when the selected ref changes
 watch(
-  () => payload.value.branch,
-  async (branch) => {
-    if (!branch) {
+  selectedRef,
+  async (target) => {
+    if (!target) {
       workflows.value = [];
       workflowWarnings.value = [];
       selectedWorkflows.value = new Set();
@@ -234,7 +299,7 @@ watch(
 
     workflowsLoading.value = true;
     try {
-      const response = await apiClient.getRepoManualWorkflows(repo.value.id, branch);
+      const response = await apiClient.getRepoManualWorkflows(repo.value.id, refPayload.value);
       workflows.value = response.workflows;
       workflowWarnings.value = response.warnings || [];
       // Reset selection when workflows change
@@ -281,7 +346,7 @@ async function triggerManualPipeline() {
   try {
     const pipeline = await overlay.withOverlay(i18n.t('loading_overlay.creating_pipeline'), () =>
       apiClient.createPipeline(repo.value.id, {
-        branch: payload.value.branch,
+        ...refPayload.value,
         variables: buildVariablePayload(),
         workflows: [...selectedWorkflows.value],
       }),
@@ -332,7 +397,7 @@ async function handleQuickStart(workflowName: string) {
   try {
     const pipeline = await overlay.withOverlay(i18n.t('loading_overlay.creating_pipeline'), () =>
       apiClient.createPipeline(repo.value.id, {
-        branch: payload.value.branch,
+        ...refPayload.value,
         variables: buildPayloadFromVariables(workflow?.variables ?? []),
         workflows: [workflowName],
       }),

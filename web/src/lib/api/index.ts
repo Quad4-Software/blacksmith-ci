@@ -68,12 +68,15 @@ interface AvailableReposOptions {
   only_unenabled?: boolean;
 }
 
+// PipelineRef is the branch or tag a manual pipeline runs against. Exactly one
+// of the two is sent, since a branch and a tag may share a name.
+export type PipelineRef = { branch: string; tag?: never } | { tag: string; branch?: never };
+
 // PipelineOptions is the data for creating a new pipeline
-interface PipelineOptions {
-  branch: string;
+type PipelineOptions = PipelineRef & {
   variables: Record<string, string>;
   workflows?: string[]; // specific workflows to run (if empty, all matching workflows are run)
-}
+};
 
 interface DeploymentOptions {
   id: string;
@@ -135,6 +138,13 @@ export default class CrowClient extends ApiClient {
     return this._get(`/api/v1/repos/${repoId}/branches?${query}`, reqOpts) as Promise<string[]>;
   }
 
+  // Returns 501 on forges without tag support, which callers are expected to
+  // treat as "this repo has no selectable tags" rather than as a failure.
+  async getRepoTags(repoId: number, opts?: PaginationOptions, reqOpts?: RequestOptions): Promise<string[]> {
+    const query = encodeQueryString(opts);
+    return this._get(`/api/v1/repos/${repoId}/tags?${query}`, reqOpts) as Promise<string[]>;
+  }
+
   async getRepoPullRequests(
     repoId: number,
     opts?: PaginationOptions,
@@ -144,8 +154,8 @@ export default class CrowClient extends ApiClient {
     return this._get(`/api/v1/repos/${repoId}/pull_requests?${query}`, reqOpts) as Promise<PullRequest[]>;
   }
 
-  async getRepoManualWorkflows(repoId: number, branch: string): Promise<ManualWorkflowsResponse> {
-    const query = encodeQueryString({ branch, filter: 'manual' });
+  async getRepoManualWorkflows(repoId: number, ref: PipelineRef): Promise<ManualWorkflowsResponse> {
+    const query = encodeQueryString({ ...ref, filter: 'manual' });
     return this._get(`/api/v1/repos/${repoId}/configs?${query}`) as Promise<ManualWorkflowsResponse>;
   }
 

@@ -1,11 +1,10 @@
+import { useDate } from '~/compositions/useDate';
+import { useElapsedTime } from '~/compositions/useElapsedTime';
+import type { Pipeline } from '~/lib/api/types';
 import { emojify } from 'node-emoji';
 import { computed } from 'vue';
 import type { Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-
-import { useDate } from '~/compositions/useDate';
-import { useElapsedTime } from '~/compositions/useElapsedTime';
-import type { Pipeline } from '~/lib/api/types';
 
 const { toLocaleString, prettyDuration } = useDate();
 
@@ -94,6 +93,12 @@ export default (pipeline: Ref<Pipeline | undefined>) => {
 
     if (pipeline.value?.event === 'tag') {
       return pipeline.value.ref.replaceAll('refs/tags/', '');
+    }
+
+    // A manual run stores a bare branch name, or refs/tags/<tag> when it targets
+    // a tag. Strip either so the raw ref is never shown.
+    if (pipeline.value?.event === 'manual') {
+      return pipeline.value.ref.replaceAll('refs/tags/', '').replaceAll('refs/heads/', '');
     }
 
     if (

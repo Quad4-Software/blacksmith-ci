@@ -115,3 +115,15 @@ type Forge interface {
 type DiffForge interface {
 	Diff(ctx context.Context, u *model.User, r *model.Repo, p *model.Pipeline) ([]byte, error)
 }
+
+// TagForge is implemented by forges that can list a repository's tags and
+// resolve a tag to the commit it points at. It is kept separate from Forge so
+// integrations can add support independently: the Bitbucket Datacenter SDK has
+// no tag API at all, and forge addons would need new RPC plumbing.
+type TagForge interface {
+	// Tags returns the names of all tags for the named repository.
+	Tags(ctx context.Context, u *model.User, r *model.Repo, p *model.ListOptions) ([]string, error)
+
+	// TagHead returns the commit the specified tag points at.
+	TagHead(ctx context.Context, u *model.User, r *model.Repo, tag string) (*model.Commit, error)
+}

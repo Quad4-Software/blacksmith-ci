@@ -516,6 +516,65 @@ func (c *Gitea) BranchHead(ctx context.Context, u *model.User, r *model.Repo, br
 	}, nil
 }
 
+// Asserted here rather than left to the call-site type assertion, so a
+// signature drift is a build error instead of a silent 501.
+var _ forge.TagForge = new(Gitea)
+
+// Tags returns the names of all tags for the named repository.
+func (c *Gitea) Tags(ctx context.Context, u *model.User, r *model.Repo, p *model.ListOptions) ([]string, error) {
+	token, err := c.refreshedTokenForRepo(ctx, r, u)
+	if err != nil {
+		return nil, err
+	}
+	client, err := c.newClientToken(ctx, token)
+	if err != nil {
+		return nil, err
+	}
+
+	tags, _, err := client.ListRepoTags(r.Owner, r.Name,
+		gitea.ListRepoTagsOptions{ListOptions: gitea.ListOptions{Page: p.Page, PageSize: p.PerPage}})
+	if err != nil {
+		return nil, err
+	}
+	result := make([]string, len(tags))
+	for i := range tags {
+		result[i] = tags[i].Name
+	}
+	return result, nil
+}
+
+// TagHead returns the commit the specified tag points at.
+func (c *Gitea) TagHead(ctx context.Context, u *model.User, r *model.Repo, tag string) (*model.Commit, error) {
+	token, err := c.refreshedTokenForRepo(ctx, r, u)
+	if err != nil {
+		return nil, err
+	}
+	client, err := c.newClientToken(ctx, token)
+	if err != nil {
+		return nil, err
+	}
+
+	t, _, err := client.GetTag(r.Owner, r.Name, tag)
+	if err != nil {
+		return nil, err
+	}
+	if t.Commit == nil {
+		return nil, fmt.Errorf("tag %s of %s has no commit", tag, r.FullName)
+	}
+
+	// The tag endpoint only carries the commit SHA and an API URL, so resolve
+	// the commit itself to get the message and web URL a pipeline displays.
+	commit, _, err := client.GetSingleCommit(r.Owner, r.Name, t.Commit.SHA)
+	if err != nil {
+		return nil, err
+	}
+	return &model.Commit{
+		SHA:      t.Commit.SHA,
+		ForgeURL: commit.HTMLURL,
+		Message:  commit.RepoCommit.Message,
+	}, nil
+}
+
 func (c *Gitea) PullRequests(ctx context.Context, u *model.User, r *model.Repo, p *model.ListOptions) ([]*model.PullRequest, error) {
 	token, err := c.refreshedTokenForRepo(ctx, r, u)
 	if err != nil {

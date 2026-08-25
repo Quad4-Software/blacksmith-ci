@@ -418,6 +418,11 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 		Security: BearerSecurity, Middlewares: repoPullMW,
 	}, api.GetRepoBranches)
 	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-repo-tags", Method: http.MethodGet, Path: "/repos/{repo_id}/tags",
+		Summary: "List tags for a repository", Tags: []string{"Repositories"},
+		Security: BearerSecurity, Middlewares: repoPullMW,
+	}, api.GetRepoTags)
+	huma.Register(humaAPI, huma.Operation{
 		OperationID: "get-repo-pull-requests", Method: http.MethodGet, Path: "/repos/{repo_id}/pull_requests",
 		Summary: "List pull requests for a repository", Tags: []string{"Repositories"},
 		Security: BearerSecurity, Middlewares: repoPullMW,

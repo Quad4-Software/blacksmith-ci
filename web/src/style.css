@@ -26,23 +26,28 @@ body {
   box-sizing: border-box;
 }
 
-* {
-  box-sizing: border-box;
-  min-width: 0;
+/* Must stay inside `@layer base`. */
+/* Unlayered rules beat every layered rule regardless of specificity, so an */
+/* unlayered `min-width` here silently overrides every `min-w-*` utility. */
+@layer base {
+  * {
+    box-sizing: border-box;
+    min-width: 0;
+  }
 }
 
 .code-box {
-  @apply wrap-break-word rounded-md bg-zinc-100 dark:bg-zinc-800 p-4 text-sm text-zinc-700 dark:text-zinc-200 font-mono;
+  @apply rounded-md bg-zinc-100 p-4 font-mono text-sm wrap-break-word text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200;
   white-space: pre-wrap;
 }
 
 .code-box-inline,
 code:not(pre > code) {
-  @apply rounded-md bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 text-zinc-700 dark:text-zinc-200 font-mono;
+  @apply rounded-md bg-zinc-100 px-1.5 py-0.5 font-mono text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200;
 }
 
 .code-box-log {
-  @apply wrap-break-word bg-zinc-950 dark:bg-zinc-950 p-4 text-zinc-100 font-mono;
+  @apply bg-zinc-950 p-4 font-mono wrap-break-word text-zinc-100 dark:bg-zinc-950;
   white-space: pre-wrap;
 }
 
@@ -66,5 +71,5 @@ code:not(pre > code) {
 
 /* Link styling within toast descriptions */
 [data-sonner-toast] a {
-  @apply text-primary underline underline-offset-2 hover:text-primary/80;
+  @apply text-primary hover:text-primary/80 underline underline-offset-2;
 }

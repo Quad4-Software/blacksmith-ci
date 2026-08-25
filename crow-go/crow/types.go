@@ -262,8 +262,11 @@ type (
 	}
 
 	// PipelineOptions is the JSON data for creating a new pipeline.
+	// Exactly one of Branch and Tag must be set; the server rejects an
+	// ambiguous pair. Both are omitempty so the unset one is never sent.
 	PipelineOptions struct {
-		Branch    string            `json:"branch"`
+		Branch    string            `json:"branch,omitempty"`
+		Tag       string            `json:"tag,omitempty"`
 		Variables map[string]string `json:"variables"`
 	}
 

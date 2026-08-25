@@ -241,3 +241,49 @@ func TestPipelineCreateHTMLResponse(t *testing.T) {
 		})
 	}
 }
+
+func TestPipelineCreateRefPayload(t *testing.T) {
+	tests := []struct {
+		name    string
+		options *PipelineOptions
+		// wantKeys is the exact set of ref keys the request body may carry. The
+		// server rejects a body holding both branch and tag, so the unset one
+		// must be omitted rather than sent empty.
+		wantKeys map[string]string
+		absent   string
+	}{
+		{
+			name:     "branch only",
+			options:  &PipelineOptions{Branch: "main"},
+			wantKeys: map[string]string{"branch": "main"},
+			absent:   "tag",
+		},
+		{
+			name:     "tag only",
+			options:  &PipelineOptions{Tag: "v1.0.0"},
+			wantKeys: map[string]string{"tag": "v1.0.0"},
+			absent:   "branch",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var body map[string]any
+
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				_ = json.NewDecoder(r.Body).Decode(&body)
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{"id":123}`))
+			}))
+			defer server.Close()
+
+			_, err := New(server.URL).PipelineCreate(5, tt.options)
+			assert.NoError(t, err)
+
+			for key, want := range tt.wantKeys {
+				assert.Equal(t, want, body[key])
+			}
+			assert.NotContains(t, body, tt.absent)
+		})
+	}
+}

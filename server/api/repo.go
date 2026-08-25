@@ -807,20 +807,22 @@ type GetRepoBranchesOutput struct {
 	Body []string
 }
 
-func GetRepoBranches(ctx context.Context, input *GetRepoBranchesInput) (*GetRepoBranchesOutput, error) {
-	c := ginCtx(ctx)
+// repoForgeSession resolves the forge for a repo along with the repo owner
+// carrying a refreshed token for that forge, which every ref-listing endpoint
+// needs before it can call the forge.
+func repoForgeSession(c *gin.Context, repo *model.Repo) (forge.Forge, *model.User, error) {
 	_store := store.FromContext(c)
-	repo := session.Repo(c)
+
 	_forge, err := server.Config.Services.Manager.ForgeFromRepo(repo)
 	if err != nil {
 		log.Error().Err(err).Msg("Unable to get forge information")
-		return nil, huma.Error500InternalServerError("Unable to get forge information")
+		return nil, nil, huma.Error500InternalServerError("Unable to get forge information")
 	}
 
 	repoUser, err := _store.GetUser(repo.UserID)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get user")
-		return nil, dbErr(err)
+		return nil, nil, dbErr(err)
 	}
 
 	// For multi-forge support: use tokens from UserForge if available for this repo's forge.
@@ -834,19 +836,70 @@ func GetRepoBranches(ctx context.Context, input *GetRepoBranchesInput) (*GetRepo
 
 	if refreshErr := forge.RefreshUserForge(c, _forge, _store, repoUser, repo.ForgeID); refreshErr != nil {
 		log.Error().Err(refreshErr).Msg("Failed to refresh user auth token")
-		return nil, huma.Error401Unauthorized("Your authorization has expired and couldn't be refreshed automatically. Please log in again")
+		return nil, nil, huma.Error401Unauthorized("Your authorization has expired and couldn't be refreshed automatically. Please log in again")
+	}
+
+	return _forge, repoUser, nil
+}
+
+// forgeRefErr maps a ref-listing failure to an API error, distinguishing an
+// expired authorization from a genuine forge problem.
+func forgeRefErr(err error, what string) error {
+	log.Error().Err(err).Msgf("Failed to get %s from repo", what)
+	if errors.Is(err, &forge_types.ErrTokenRefreshFailed{}) {
+		return huma.Error401Unauthorized("Your authorization has expired and couldn't be refreshed automatically. Please log in again")
+	}
+	return huma.Error500InternalServerError(err.Error())
+}
+
+func GetRepoBranches(ctx context.Context, input *GetRepoBranchesInput) (*GetRepoBranchesOutput, error) {
+	c := ginCtx(ctx)
+	repo := session.Repo(c)
+
+	_forge, repoUser, err := repoForgeSession(c, repo)
+	if err != nil {
+		return nil, err
 	}
 
 	branches, err := _forge.Branches(c, repoUser, repo, &model.ListOptions{Page: input.Page, PerPage: input.PerPage})
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get branches from repo")
-		if errors.Is(err, &forge_types.ErrTokenRefreshFailed{}) {
-			return nil, huma.Error401Unauthorized("Your authorization has expired and couldn't be refreshed automatically. Please log in again")
-		}
-		return nil, huma.Error500InternalServerError(err.Error())
+		return nil, forgeRefErr(err, "branches")
 	}
 
 	return &GetRepoBranchesOutput{Body: branches}, nil
+}
+
+type GetRepoTagsInput struct {
+	RepoID int64 `path:"repo_id" doc:"the repository id"`
+	PaginationParams
+}
+
+type GetRepoTagsOutput struct {
+	Body []string
+}
+
+// GetRepoTags lists a repository's tags. Tag support is optional per forge, so
+// this returns 501 rather than an error for forges that cannot list tags.
+func GetRepoTags(ctx context.Context, input *GetRepoTagsInput) (*GetRepoTagsOutput, error) {
+	c := ginCtx(ctx)
+	repo := session.Repo(c)
+
+	_forge, repoUser, err := repoForgeSession(c, repo)
+	if err != nil {
+		return nil, err
+	}
+
+	tagForge, ok := _forge.(forge.TagForge)
+	if !ok {
+		return nil, huma.Error501NotImplemented("this forge does not support listing tags")
+	}
+
+	tags, err := tagForge.Tags(c, repoUser, repo, &model.ListOptions{Page: input.Page, PerPage: input.PerPage})
+	if err != nil {
+		return nil, forgeRefErr(err, "tags")
+	}
+
+	return &GetRepoTagsOutput{Body: tags}, nil
 }
 
 type GetRepoPullRequestsInput struct {

@@ -17,6 +17,7 @@
 package api
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -43,6 +44,10 @@ import (
 	"codefloe.com/crowci/crow/v6/server/store/types"
 )
 
+// tagRefPrefix is the git ref namespace for tags. The pipeline metadata builder
+// derives CI_COMMIT_TAG from a ref carrying this prefix.
+const tagRefPrefix = "refs/tags/"
+
 // pipelineErr converts a pipeline error to an appropriate huma error.
 func pipelineErr(err error) error {
 	switch {
@@ -67,9 +72,63 @@ func forgeErr(err error) error {
 }
 
 type CreatePipelineBody struct {
-	Branch    string            `json:"branch" doc:"branch to run pipeline on"`
+	Branch    string            `json:"branch,omitempty" doc:"branch to run pipeline on; mutually exclusive with tag"`
+	Tag       string            `json:"tag,omitempty" doc:"tag to run pipeline on; mutually exclusive with branch"`
 	Variables map[string]string `json:"variables,omitempty" doc:"pipeline variables"`
 	Workflows []string          `json:"workflows,omitempty" doc:"workflows to filter"`
+}
+
+// manualRef is the resolved target of a manual pipeline run: the commit to
+// build and the branch and ref the pipeline records.
+type manualRef struct {
+	Commit *model.Commit
+	// Branch is empty for a tag, matching what a tag webhook produces: a tag is
+	// not on a branch, so `when: branch` must not match it.
+	Branch string
+	// Ref is the bare branch name for a branch, or refs/tags/<tag> for a tag.
+	// The metadata builder keys CI_COMMIT_TAG off that prefix.
+	Ref string
+}
+
+// resolveManualRef turns the branch or tag selected in the manual pipeline
+// dialog into the commit and ref a pipeline should carry. Exactly one of branch
+// and tag must be set.
+//
+// Both the pipeline-creation and the config-listing endpoints go through this
+// so the two cannot drift on what a manual run against a tag looks like.
+func resolveManualRef(
+	c *gin.Context,
+	_forge forge.Forge,
+	user *model.User,
+	repo *model.Repo,
+	branch, tag string,
+) (*manualRef, error) {
+	switch {
+	case branch == "" && tag == "":
+		return nil, huma.Error400BadRequest("either branch or tag is required")
+	case branch != "" && tag != "":
+		return nil, huma.Error400BadRequest("branch and tag are mutually exclusive")
+	}
+
+	if tag != "" {
+		tagForge, ok := _forge.(forge.TagForge)
+		if !ok {
+			return nil, huma.Error501NotImplemented("this forge does not support running pipelines on tags")
+		}
+		// Accept both `v1.0.0` and `refs/tags/v1.0.0` without double-prefixing.
+		tag = strings.TrimPrefix(tag, tagRefPrefix)
+		commit, err := tagForge.TagHead(c, user, repo, tag)
+		if err != nil {
+			return nil, forgeErr(err)
+		}
+		return &manualRef{Commit: commit, Ref: tagRefPrefix + tag}, nil
+	}
+
+	commit, err := _forge.BranchHead(c, user, repo, branch)
+	if err != nil {
+		return nil, forgeErr(err)
+	}
+	return &manualRef{Commit: commit, Branch: branch, Ref: branch}, nil
 }
 
 type CreatePipelineInput struct {
@@ -113,12 +172,13 @@ func CreatePipeline(ctx context.Context, input *CreatePipelineInput) (*CreatePip
 		return nil, huma.Error401Unauthorized("Your authorization has expired and couldn't be refreshed automatically. Please log in again")
 	}
 
-	lastCommit, err := _forge.BranchHead(c, user, repo, input.Body.Branch)
+	target, err := resolveManualRef(c, _forge, user, repo, input.Body.Branch, input.Body.Tag)
 	if err != nil {
-		return nil, forgeErr(err)
+		return nil, err
 	}
+	lastCommit := target.Commit
 
-	allowedVars, varErr := collectAllowedVariables(c, _forge, user, repo, input.Body.Branch, lastCommit.SHA, input.Body.Workflows)
+	allowedVars, varErr := collectAllowedVariables(c, _forge, user, repo, target, input.Body.Workflows)
 	if varErr != nil {
 		return nil, forgeErr(varErr)
 	}
@@ -127,7 +187,8 @@ func CreatePipeline(ctx context.Context, input *CreatePipelineInput) (*CreatePip
 	}
 
 	pipelineOpts := &model.PipelineOptions{
-		Branch:    input.Body.Branch,
+		Branch:    target.Branch,
+		Ref:       target.Ref,
 		Variables: input.Body.Variables,
 		Workflows: input.Body.Workflows,
 	}
@@ -170,13 +231,25 @@ func createTmpPipeline(event model.WebhookEvent, commit *model.Commit, user *mod
 		Avatar:  user.Avatar,
 		Message: messageText,
 
-		Ref:                 opts.Branch,
+		Ref:                 cmp.Or(opts.Ref, opts.Branch),
 		AdditionalVariables: opts.Variables,
 
 		Author: user.Login,
 		Email:  user.Email,
 
 		ForgeURL: commit.ForgeURL,
+	}
+}
+
+// manualTmpPipeline builds the unpersisted pipeline used to fetch and evaluate
+// configs for a manual run, so config listing and pipeline creation agree on
+// which commit and ref the workflows are resolved against.
+func manualTmpPipeline(target *manualRef) *model.Pipeline {
+	return &model.Pipeline{
+		Event:  model.EventManual,
+		Commit: target.Commit.SHA,
+		Branch: target.Branch,
+		Ref:    target.Ref,
 	}
 }
 
@@ -187,16 +260,10 @@ func collectAllowedVariables(
 	_forge forge.Forge,
 	user *model.User,
 	repo *model.Repo,
-	branch string,
-	commitSHA string,
+	target *manualRef,
 	selectedWorkflows []string,
 ) (map[string]yaml.ManualVariable, error) {
-	tmpPipeline := &model.Pipeline{
-		Event:  model.EventManual,
-		Commit: commitSHA,
-		Branch: branch,
-		Ref:    branch,
-	}
+	tmpPipeline := manualTmpPipeline(target)
 	configService := server.Config.Services.Manager.ConfigServiceFromRepo(repo)
 	forgeYamlConfigs, err := configService.Fetch(c, _forge, user, repo, tmpPipeline, nil, false)
 	if err != nil {
@@ -677,7 +744,8 @@ type ManualWorkflowsResponse struct {
 
 type GetRepoConfigsInput struct {
 	RepoID int64  `path:"repo_id" doc:"the repository id"`
-	Branch string `query:"branch" doc:"the branch to get configs from"`
+	Branch string `query:"branch" doc:"the branch to get configs from; mutually exclusive with tag"`
+	Tag    string `query:"tag" doc:"the tag to get configs from; mutually exclusive with branch"`
 	Filter string `query:"filter" doc:"filter workflows by event type (e.g., 'manual')"`
 }
 
@@ -690,10 +758,6 @@ func GetRepoConfigs(ctx context.Context, input *GetRepoConfigsInput) (*GetRepoCo
 	_store := store.FromContext(c)
 	repo := session.Repo(c)
 	user := session.User(c)
-
-	if input.Branch == "" {
-		return nil, huma.Error400BadRequest("branch parameter is required")
-	}
 
 	_forge, err := server.Config.Services.Manager.ForgeFromRepo(repo)
 	if err != nil {
@@ -716,19 +780,14 @@ func GetRepoConfigs(ctx context.Context, input *GetRepoConfigsInput) (*GetRepoCo
 		return nil, huma.Error401Unauthorized("Your authorization has expired and couldn't be refreshed automatically. Please log in again")
 	}
 
-	// Get the branch head commit
-	commit, err := _forge.BranchHead(c, user, repo, input.Branch)
+	// Resolve the selected branch or tag to the commit its configs come from
+	target, err := resolveManualRef(c, _forge, user, repo, input.Branch, input.Tag)
 	if err != nil {
-		return nil, forgeErr(err)
+		return nil, err
 	}
 
 	// Create a temporary pipeline to fetch configs (we won't persist it)
-	tmpPipeline := &model.Pipeline{
-		Event:  model.EventManual,
-		Commit: commit.SHA,
-		Branch: input.Branch,
-		Ref:    input.Branch,
-	}
+	tmpPipeline := manualTmpPipeline(target)
 
 	// Fetch the configs from the forge
 	configService := server.Config.Services.Manager.ConfigServiceFromRepo(repo)

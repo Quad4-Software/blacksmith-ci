@@ -692,6 +692,71 @@ func (g *GitLab) BranchHead(ctx context.Context, u *model.User, r *model.Repo, b
 	}, nil
 }
 
+// Asserted here rather than left to the call-site type assertion, so a
+// signature drift is a build error instead of a silent 501.
+var _ forge.TagForge = new(GitLab)
+
+// Tags returns the names of all tags for the named repository.
+func (g *GitLab) Tags(ctx context.Context, user *model.User, repo *model.Repo, p *model.ListOptions) ([]string, error) {
+	token, err := g.refreshedTokenForRepo(ctx, repo, user)
+	if err != nil {
+		return nil, err
+	}
+	client, err := newClient(g.url, token, g.SkipVerify)
+	if err != nil {
+		return nil, err
+	}
+
+	_repo, err := g.getProject(ctx, client, repo.ForgeRemoteID, repo.Owner, repo.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	gitlabTags, _, err := client.Tags.ListTags(_repo.ID,
+		&gitlab.ListTagsOptions{ListOptions: gitlab.ListOptions{Page: int64(p.Page), PerPage: int64(p.PerPage)}},
+		gitlab.WithContext(ctx))
+	if err != nil {
+		return nil, err
+	}
+
+	tags := make([]string, 0, len(gitlabTags))
+	for _, tag := range gitlabTags {
+		tags = append(tags, tag.Name)
+	}
+	return tags, nil
+}
+
+// TagHead returns the commit the specified tag points at.
+func (g *GitLab) TagHead(ctx context.Context, u *model.User, r *model.Repo, tag string) (*model.Commit, error) {
+	token, err := g.refreshedTokenForRepo(ctx, r, u)
+	if err != nil {
+		return nil, err
+	}
+	client, err := newClient(g.url, token, g.SkipVerify)
+	if err != nil {
+		return nil, err
+	}
+
+	_repo, err := g.getProject(ctx, client, r.ForgeRemoteID, r.Owner, r.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	t, _, err := client.Tags.GetTag(_repo.ID, tag, gitlab.WithContext(ctx))
+	if err != nil {
+		return nil, err
+	}
+	if t.Commit == nil {
+		return nil, fmt.Errorf("tag %s of %s has no commit", tag, r.FullName)
+	}
+
+	return &model.Commit{
+		SHA:      t.Commit.ID,
+		ForgeURL: t.Commit.WebURL,
+		Message:  t.Commit.Message,
+	}, nil
+}
+
 // refreshedTokenForRepo returns a valid access token for the given repo,
 // refreshing it if necessary. This ensures we don't make API calls with
 // expired tokens.

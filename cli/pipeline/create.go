@@ -32,16 +32,32 @@ var pipelineCreateCmd = &cli.Command{
 	Action:                    pipelineCreate,
 	DisableSliceFlagSeparator: true,
 	Flags: append(common.OutputFlags("table"), []cli.Flag{
-		&cli.StringFlag{
-			Name:     "branch",
-			Usage:    "branch to create pipeline from",
-			Required: true,
-		},
 		&cli.StringSliceFlag{
 			Name:  "var",
 			Usage: "key=value",
 		},
 	}...),
+	// Exactly one of the two, matching the server: a pipeline runs against a
+	// branch or a tag, never both.
+	MutuallyExclusiveFlags: []cli.MutuallyExclusiveFlags{
+		{
+			Required: true,
+			Flags: [][]cli.Flag{
+				{
+					&cli.StringFlag{
+						Name:  "branch",
+						Usage: "branch to create pipeline from",
+					},
+				},
+				{
+					&cli.StringFlag{
+						Name:  "tag",
+						Usage: "tag to create pipeline from",
+					},
+				},
+			},
+		},
+	},
 }
 
 func pipelineCreate(ctx context.Context, c *cli.Command) error {
@@ -55,7 +71,6 @@ func pipelineCreate(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
-	branch := c.String("branch")
 	variables := make(map[string]string)
 
 	for _, vaz := range c.StringSlice("var") {
@@ -66,7 +81,8 @@ func pipelineCreate(ctx context.Context, c *cli.Command) error {
 	}
 
 	options := &crow.PipelineOptions{
-		Branch:    branch,
+		Branch:    c.String("branch"),
+		Tag:       c.String("tag"),
 		Variables: variables,
 	}
 
