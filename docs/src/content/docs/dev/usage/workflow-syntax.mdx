@@ -485,6 +485,13 @@ A step can be started immediately by using an empty `depends_on: []`.
 Doing so for a single step will cause all other steps to be executed immediately if no further dependencies are specified.
 :::
 
+Each step starts as soon as the steps it depends on have finished, rather than waiting for every step at the same depth of the graph.
+In the example above, `deploy` waits for `build` and `test` only.
+
+When a step fails, the steps that depend on it are skipped, and so are the steps that depend on those.
+Steps in an unrelated part of the graph keep running, and the workflow as a whole is still reported as failed.
+To stop a step from running after an unrelated failure, make the dependency explicit via `depends_on`.
+
 ### detach
 
 The `detach` options can be used to run steps in the background until a workflow has finished.

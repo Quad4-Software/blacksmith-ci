@@ -24,7 +24,6 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"golang.org/x/sync/errgroup"
 
 	backend "codefloe.com/crowci/crow/v6/pipeline/backend/types"
 	pipelineErrors "codefloe.com/crowci/crow/v6/pipeline/errors/types"
@@ -53,6 +52,7 @@ type (
 
 // Runtime is a configuration runtime.
 type Runtime struct {
+	errMu   sync.RWMutex
 	err     error
 	spec    *backend.Config
 	engine  backend.Backend
@@ -64,14 +64,13 @@ type Runtime struct {
 
 	taskUUID string
 
-	// stepWg tracks the goroutines that execute the steps of the stage currently
-	// in flight, plus the goroutine that publishes that stage's result. On the
-	// cancel path Run returns before the stage has finished, so without this
-	// group those goroutines would outlive Run and keep invoking the tracer and
-	// logger callbacks. The agent uses those callbacks as producers for its
-	// upload WaitGroup and calls Wait() as soon as Run returns, so a late
-	// callback panicked the runner goroutine with "sync: WaitGroup is reused
-	// before previous Wait has returned". Run/RunAdopted join this group during
+	// stepWg tracks the goroutines that execute the steps of a workflow. On the
+	// cancel path Run returns before those steps have finished, so without this
+	// group they would outlive Run and keep invoking the tracer and logger
+	// callbacks. The agent uses those callbacks as producers for its upload
+	// WaitGroup and calls Wait() as soon as Run returns, so a late callback
+	// panicked the runner goroutine with "sync: WaitGroup is reused before
+	// previous Wait has returned". Run/RunAdopted join this group during
 	// teardown, after DestroyWorkflow has unblocked the steps.
 	stepWg sync.WaitGroup
 
@@ -108,20 +107,31 @@ func (r *Runtime) MakeLogger() zerolog.Logger {
 	return logCtx.Logger()
 }
 
+func (r *Runtime) currentError() error {
+	r.errMu.RLock()
+	defer r.errMu.RUnlock()
+	return r.err
+}
+
+func (r *Runtime) recordError(err error) {
+	if err == nil {
+		return
+	}
+	r.errMu.Lock()
+	r.err = err
+	r.errMu.Unlock()
+}
+
 // Run starts the execution of a workflow and waits for it to complete.
 func (r *Runtime) Run(runnerCtx context.Context) error {
 	logger := r.MakeLogger()
-	logger.Debug().Msgf("executing %d stages, in order of:", len(r.spec.Stages))
-	for stagePos, stage := range r.spec.Stages {
-		stepNames := []string{}
+	logger.Debug().Msgf("executing %d steps, each once the steps it depends on finished:", countSteps(r.spec))
+	for _, stage := range r.spec.Stages {
 		for _, step := range stage.Steps {
-			stepNames = append(stepNames, step.Name)
+			logger.Debug().
+				Str("DependsOn", strings.Join(step.DependsOn, ",")).
+				Msg(step.Name)
 		}
-
-		logger.Debug().
-			Int("StagePos", stagePos).
-			Str("Steps", strings.Join(stepNames, ",")).
-			Msg("stage")
 	}
 
 	defer r.teardown(runnerCtx, logger)
@@ -150,18 +160,7 @@ func (r *Runtime) Run(runnerCtx context.Context) error {
 		return err
 	}
 
-	for _, stage := range r.spec.Stages {
-		select {
-		case <-r.ctx.Done():
-			return ErrCancel
-		case err := <-r.execAll(stage.Steps):
-			if err != nil {
-				r.err = err
-			}
-		}
-	}
-
-	return r.err
+	return r.runSteps(r.runStep)
 }
 
 // teardown destroys the workflow environment and then joins every goroutine the
@@ -169,10 +168,10 @@ func (r *Runtime) Run(runnerCtx context.Context) error {
 // tracer or logger callback can still be invoked — callers such as the agent
 // rely on that to know all uploads are accounted for.
 //
-// The order matters: a canceled stage is abandoned with its steps still waiting
-// on running containers, and destroying the workflow is exactly what unblocks
-// them, so DestroyWorkflow has to happen before the joins or they would block
-// until the step timeout.
+// The order matters: a canceled workflow is abandoned with steps still waiting on
+// running containers, and destroying the workflow is exactly what unblocks them,
+// so DestroyWorkflow has to happen before the joins or they would block until the
+// step timeout.
 func (r *Runtime) teardown(runnerCtx context.Context, logger zerolog.Logger) {
 	// Check if workflows should be preserved for adoption by a restarted agent.
 	// This is set when the agent shuts down due to server disconnect. The
@@ -194,7 +193,7 @@ func (r *Runtime) teardown(runnerCtx context.Context, logger zerolog.Logger) {
 		logger.Error().Err(err).Msg("could not destroy engine")
 	}
 
-	// Join the step goroutines of an abandoned stage. They are also what
+	// Join the step goroutines of an abandoned workflow. They are also what
 	// registers detached logging goroutines, so they have to be joined first.
 	r.stepWg.Wait()
 
@@ -225,7 +224,7 @@ func (r *Runtime) traceStep(processState *backend.State, err error, step *backen
 	state.Pipeline.Started = r.started
 	state.Pipeline.Step = step
 	state.Process = processState // empty
-	state.Pipeline.Error = r.err
+	state.Pipeline.Error = r.currentError()
 
 	if traceErr := r.tracer.Trace(state); traceErr != nil {
 		return traceErr
@@ -233,80 +232,219 @@ func (r *Runtime) traceStep(processState *backend.State, err error, step *backen
 	return err
 }
 
-// Executes a set of parallel steps.
+type stepResult struct {
+	step *backend.Step
+	err  error
+}
+
+// runSteps schedules the steps of the workflow, starting each one as soon as
+// the steps it depends on have finished.
 //
-// The returned channel is buffered: Run abandons the stage when the workflow is
-// canceled and never reads the result, so an unbuffered channel would leave the
-// publishing goroutine blocked on the send forever. Every goroutine started here
-// is registered on r.stepWg, which teardown joins.
-func (r *Runtime) execAll(steps []*backend.Step) <-chan error {
-	var g errgroup.Group
-	done := make(chan error, 1)
-	logger := r.MakeLogger()
-
-	for _, step := range steps {
-		// Required since otherwise the loop variable
-		// will be captured by the function. This will
-		// recreate the step "variable"
-		step := step
-		r.stepWg.Add(1)
-		g.Go(func() error {
-			defer r.stepWg.Done()
-
-			// Case the pipeline was already complete.
-			logger.Debug().
-				Str("step", step.Name).
-				Msg("prepare")
-
-			switch {
-			case r.err != nil && !step.OnFailure:
-				logger.Debug().
-					Str("step", step.Name).
-					Err(r.err).
-					Msgf("skipped due to OnFailure=%t", step.OnFailure)
-				return nil
-			case r.err == nil && !step.OnSuccess:
-				logger.Debug().
-					Str("step", step.Name).
-					Msgf("skipped due to OnSuccess=%t", step.OnSuccess)
-				return nil
+// Order comes from Step.DependsOn only. The stage grouping the compiler emits
+// is a by-product of flattening the graph and is not consulted: the compiler
+// expresses order in DependsOn for sequential workflows as well as for DAG ones
+// (see setDependenciesForSequence in the compiler's dag.go), so the graph is
+// always complete on its own.
+func (r *Runtime) runSteps(runStep func(*backend.Step) (*backend.State, error)) error {
+	steps := make([]*backend.Step, 0)
+	services := make([]string, 0)
+	present := make(map[string]struct{})
+	for _, stage := range r.spec.Stages {
+		for _, step := range stage.Steps {
+			steps = append(steps, step)
+			present[step.Name] = struct{}{}
+			if step.Type == backend.StepTypeService {
+				services = append(services, step.Name)
 			}
-
-			// Trace started.
-			err := r.traceStep(nil, nil, step)
-			if err != nil {
-				return err
-			}
-
-			// add compatibility for drone-ci plugins
-			metadata.SetDroneEnviron(step.Environment)
-
-			logger.Debug().
-				Str("step", step.Name).
-				Msg("executing")
-
-			processState, err := r.runStep(step)
-
-			logger.Debug().
-				Str("step", step.Name).
-				Msg("complete")
-
-			// Return the error after tracing it.
-			err = r.traceStep(processState, err, step)
-			if err != nil && step.Failure == metadata.FailureIgnore {
-				return nil
-			}
-			return err
-		})
+		}
 	}
 
-	r.stepWg.Add(1)
-	go func() {
-		defer r.stepWg.Done()
-		done <- g.Wait()
-		close(done)
-	}()
-	return done
+	pending := make(map[string]int, len(steps))
+	dependents := make(map[string][]*backend.Step, len(steps))
+	for _, step := range steps {
+		// Services are not part of the dependency graph: the compiler puts them
+		// in their own stage ahead of everything else and never runs them
+		// through the DAG compiler, so a `depends_on` on a service is neither
+		// linted (lintDependsOn only covers `steps`) nor validated. Honoring
+		// it would let a service wait on a work step while every
+		// dependency-less step waits on the services, deadlocking the workflow.
+		// Services always start first instead.
+		var dependencies []string
+		if step.Type != backend.StepTypeService {
+			dependencies = presentDependencies(step, present)
+			if len(dependencies) == 0 {
+				dependencies = services
+			}
+		}
+		pending[step.Name] = len(dependencies)
+		for _, dependency := range dependencies {
+			dependents[dependency] = append(dependents[dependency], step)
+		}
+	}
+
+	// The channel is buffered so that a step goroutine can always publish its
+	// result and exit: on the cancel path the loop below returns without
+	// draining, and teardown then joins the goroutines via r.stepWg. One slot
+	// per step is enough because every step publishes exactly one result.
+	results := make(chan stepResult, len(steps))
+	logger := r.MakeLogger()
+
+	// upstreamFailed records, per step, whether anything it transitively
+	// depends on failed. Whether a step runs is decided from this and never
+	// from the workflow-wide error: with lanes of different lengths running
+	// concurrently, a workflow-wide error is observed at a point that depends
+	// on which lane happens to finish first, so the same workflow would skip
+	// different steps from run to run.
+	upstreamFailed := make(map[string]bool, len(steps))
+	ready := make([]*backend.Step, 0, len(steps))
+	for _, step := range steps {
+		if pending[step.Name] == 0 {
+			ready = append(ready, step)
+		}
+	}
+
+	// release marks a step as finished and queues the dependents it unblocks,
+	// carrying the failure of its lane down to them.
+	release := func(step *backend.Step, failed bool) {
+		failed = failed || upstreamFailed[step.Name]
+		for _, dependent := range dependents[step.Name] {
+			if failed {
+				upstreamFailed[dependent.Name] = true
+			}
+			pending[dependent.Name]--
+			if pending[dependent.Name] == 0 {
+				ready = append(ready, dependent)
+			}
+		}
+	}
+
+	inFlight := 0
+	completed := 0
+	for completed < len(steps) {
+		// Start everything that became runnable, resolving the steps that are
+		// skipped without spending a goroutine on them. Both the decision and
+		// the bookkeeping happen here on the scheduler goroutine, so they do
+		// not race with running steps.
+		for len(ready) > 0 {
+			step := ready[0]
+			ready = ready[1:]
+
+			if reason, skip := skipReason(step, upstreamFailed[step.Name]); skip {
+				logger.Debug().Str("step", step.Name).Msg(reason)
+				completed++
+				release(step, false)
+				continue
+			}
+
+			inFlight++
+			r.stepWg.Add(1)
+			go func() {
+				defer r.stepWg.Done()
+				results <- stepResult{step: step, err: r.executeStep(step, runStep)}
+			}()
+		}
+
+		if completed >= len(steps) {
+			break
+		}
+
+		// Nothing is running and nothing can be started, but steps remain: the
+		// loop would block on results that will never arrive. Fail loudly
+		// instead of hanging until the workflow timeout.
+		if inFlight == 0 {
+			return &StuckStepGraphError{Steps: unstartedSteps(steps, pending)}
+		}
+
+		select {
+		case <-r.ctx.Done():
+			return ErrCancel
+		case result := <-results:
+			inFlight--
+			completed++
+			r.recordError(result.err)
+			release(result.step, result.err != nil)
+		}
+	}
+
+	return r.currentError()
+}
+
+// skipReason reports whether a step is skipped because of the outcome of the
+// lane it belongs to, and why. A step runs on the failure of its own
+// dependencies rather than on the failure of the workflow as a whole, so an
+// unrelated lane failing no longer takes it down with it.
+func skipReason(step *backend.Step, upstreamFailed bool) (string, bool) {
+	switch {
+	case upstreamFailed && !step.OnFailure:
+		return "skipped, a step it depends on failed", true
+	case !upstreamFailed && !step.OnSuccess:
+		return "skipped, the steps it depends on succeeded", true
+	default:
+		return "", false
+	}
+}
+
+// presentDependencies returns the dependencies of a step that are actually part
+// of the workflow being run. A compiled config can name steps that are not in
+// it: a step rerun keeps the target step and its dependents but drops the steps
+// it depends on (see filterConfigInPlace in server/pipeline/rerun.go), leaving
+// DependsOn pointing at steps that were filtered out. Waiting for those would
+// stall the workflow forever, so they are ignored and the step is scheduled on
+// whatever remains.
+func presentDependencies(step *backend.Step, present map[string]struct{}) []string {
+	dependencies := make([]string, 0, len(step.DependsOn))
+	for _, dependency := range step.DependsOn {
+		if _, ok := present[dependency]; ok {
+			dependencies = append(dependencies, dependency)
+		}
+	}
+	return dependencies
+}
+
+// countSteps returns the number of steps in a workflow across all stages.
+func countSteps(spec *backend.Config) int {
+	count := 0
+	for _, stage := range spec.Stages {
+		count += len(stage.Steps)
+	}
+	return count
+}
+
+// unstartedSteps lists the steps that still have unmet dependencies, for the
+// diagnostics of StuckStepGraphError.
+func unstartedSteps(steps []*backend.Step, pending map[string]int) []string {
+	names := make([]string, 0)
+	for _, step := range steps {
+		if pending[step.Name] > 0 {
+			names = append(names, step.Name)
+		}
+	}
+	return names
+}
+
+// executeStep traces and runs a single step. Whether the step should run at all
+// is decided by the scheduler in runSteps before this is called. The runStep
+// argument starts the step and waits for it, which differs between a fresh
+// workflow and an adopted one.
+func (r *Runtime) executeStep(step *backend.Step, runStep func(*backend.Step) (*backend.State, error)) error {
+	logger := r.MakeLogger()
+	logger.Debug().Str("step", step.Name).Msg("prepare")
+
+	if err := r.traceStep(nil, nil, step); err != nil {
+		return err
+	}
+
+	// add compatibility for drone-ci plugins
+	metadata.SetDroneEnviron(step.Environment)
+	logger.Debug().Str("step", step.Name).Msg("executing")
+	processState, err := runStep(step)
+	logger.Debug().Str("step", step.Name).Msg("complete")
+
+	err = r.traceStep(processState, err, step)
+	if err != nil && step.Failure == metadata.FailureIgnore {
+		return nil
+	}
+	return err
 }
 
 // RunAdopted resumes monitoring of an adopted workflow (from a previous agent instance).
@@ -314,7 +452,7 @@ func (r *Runtime) execAll(steps []*backend.Step) <-chan error {
 // instead of StartStep (containers already running).
 func (r *Runtime) RunAdopted(runnerCtx context.Context) error {
 	logger := r.MakeLogger()
-	logger.Info().Msgf("resuming adopted workflow with %d stages", len(r.spec.Stages))
+	logger.Info().Msgf("resuming adopted workflow with %d steps", countSteps(r.spec))
 
 	// Check if engine supports resuming steps
 	resumer, ok := r.engine.(backend.WorkflowResumer)
@@ -329,90 +467,16 @@ func (r *Runtime) RunAdopted(runnerCtx context.Context) error {
 	r.started = time.Now().Unix()
 	// Skip SetupWorkflow - the workflow environment (network, volume) already exists
 
-	for _, stage := range r.spec.Stages {
-		select {
-		case <-r.ctx.Done():
-			return ErrCancel
-		case err := <-r.runAllAdoptedSteps(stage.Steps, resumer):
-			if err != nil {
-				r.err = err
-			}
-		}
-	}
-
-	return r.err
-}
-
-// runAllAdoptedSteps runs steps in parallel, using ResumeStep instead of StartStep.
-// Channel buffering and r.stepWg bookkeeping work exactly as in execAll.
-func (r *Runtime) runAllAdoptedSteps(steps []*backend.Step, resumer backend.WorkflowResumer) <-chan error {
-	var g errgroup.Group
-	done := make(chan error, 1)
-	logger := r.MakeLogger()
-
-	for _, step := range steps {
-		step := step
-		r.stepWg.Add(1)
-		g.Go(func() error {
-			defer r.stepWg.Done()
-
-			logger.Debug().
-				Str("step", step.Name).
-				Msg("resuming adopted step")
-
-			switch {
-			case r.err != nil && !step.OnFailure:
-				logger.Debug().
-					Str("step", step.Name).
-					Err(r.err).
-					Msgf("skipped due to OnFailure=%t", step.OnFailure)
-				return nil
-			case r.err == nil && !step.OnSuccess:
-				logger.Debug().
-					Str("step", step.Name).
-					Msgf("skipped due to OnSuccess=%t", step.OnSuccess)
-				return nil
-			}
-
-			// Trace started
-			err := r.traceStep(nil, nil, step)
-			if err != nil {
-				return err
-			}
-
-			// add compatibility for drone-ci plugins
-			metadata.SetDroneEnviron(step.Environment)
-
-			logger.Debug().
-				Str("step", step.Name).
-				Msg("running adopted step")
-
-			processState, err := r.runAdoptedStep(step, resumer)
-
-			logger.Debug().
-				Str("step", step.Name).
-				Msg("adopted step complete")
-
-			// Return the error after tracing it
-			err = r.traceStep(processState, err, step)
-			if err != nil && step.Failure == metadata.FailureIgnore {
-				return nil
-			}
-			return err
-		})
-	}
-
-	r.stepWg.Add(1)
-	go func() {
-		defer r.stepWg.Done()
-		done <- g.Wait()
-		close(done)
-	}()
-	return done
+	return r.runSteps(func(step *backend.Step) (*backend.State, error) {
+		return r.runAdoptedStep(step, resumer)
+	})
 }
 
 // runAdoptedStep runs an adopted step (already running container).
 func (r *Runtime) runAdoptedStep(step *backend.Step, resumer backend.WorkflowResumer) (*backend.State, error) {
+	logger := r.MakeLogger()
+	logger.Debug().Str("step", step.Name).Msg("resuming adopted step")
+
 	// Resume step - verifies container exists and is running
 	if err := resumer.ResumeStep(r.ctx, step, r.taskUUID); err != nil {
 		return nil, err

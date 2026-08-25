@@ -17,6 +17,7 @@ package pipeline
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 var (
@@ -89,4 +90,21 @@ func (e *DaemonUnreachableError) Error() string {
 // Unwrap returns the underlying cause so callers can use errors.Is / errors.As.
 func (e *DaemonUnreachableError) Unwrap() error {
 	return e.Cause
+}
+
+// A StuckStepGraphError reports that the step scheduler ran out of runnable
+// steps while some were still unstarted. The scheduler blocks on step results,
+// so without this the workflow would hang until its timeout instead of
+// reporting a problem. Reaching it means the dependency graph handed to the
+// runtime was not schedulable, which is a bug rather than a pipeline error.
+type StuckStepGraphError struct {
+	Steps []string
+}
+
+// Error returns the error message in string format.
+func (e *StuckStepGraphError) Error() string {
+	return fmt.Sprintf(
+		"workflow step dependencies are not schedulable, the following steps never became runnable: %s",
+		strings.Join(e.Steps, ", "),
+	)
 }

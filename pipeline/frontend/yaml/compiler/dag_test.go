@@ -190,3 +190,56 @@ func TestIsDag(t *testing.T) {
 	c = newDAGCompiler(steps)
 	assert.True(t, c.isDAG())
 }
+
+// The runtime schedules steps from Step.DependsOn alone and does not fall back
+// to the stage grouping, so the compiler has to express sequential order there
+// too. Without this, a workflow that sets no depends_on would run in parallel.
+func TestCompileAlwaysExpressesOrderInDependsOn(t *testing.T) {
+	// createProcess already copies the container's depends_on onto the compiled
+	// step, so the fixture mirrors that.
+	newStep := func(name string, position int, dependsOn []string, explicit bool) *dagCompilerStep {
+		return &dagCompilerStep{
+			step:                    &backend_types.Step{Name: name, DependsOn: dependsOn},
+			position:                position,
+			name:                    name,
+			dependsOn:               dependsOn,
+			hasExplicitDependencies: explicit,
+		}
+	}
+
+	t.Run("sequential workflow chains every step", func(t *testing.T) {
+		steps := []*dagCompilerStep{
+			newStep("clone", -1, nil, false),
+			newStep("build", 0, nil, false),
+			newStep("test", 1, nil, false),
+		}
+		_, err := newDAGCompiler(steps).compile()
+		assert.NoError(t, err)
+		assert.Empty(t, steps[0].step.DependsOn, "the clone step starts the chain")
+		assert.Equal(t, []string{"clone"}, steps[1].step.DependsOn)
+		assert.Equal(t, []string{"build"}, steps[2].step.DependsOn)
+	})
+
+	t.Run("sequential workflow without a clone step chains the rest", func(t *testing.T) {
+		steps := []*dagCompilerStep{
+			newStep("build", 0, nil, false),
+			newStep("test", 1, nil, false),
+		}
+		_, err := newDAGCompiler(steps).compile()
+		assert.NoError(t, err)
+		assert.Empty(t, steps[0].step.DependsOn)
+		assert.Equal(t, []string{"build"}, steps[1].step.DependsOn)
+	})
+
+	t.Run("dag workflow anchors dependency-less steps on clone", func(t *testing.T) {
+		steps := []*dagCompilerStep{
+			newStep("clone", -1, nil, false),
+			newStep("build", 0, nil, false),
+			newStep("deploy", 1, []string{"build"}, true),
+		}
+		_, err := newDAGCompiler(steps).compile()
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"clone"}, steps[1].step.DependsOn)
+		assert.Equal(t, []string{"build"}, steps[2].step.DependsOn)
+	})
+}
