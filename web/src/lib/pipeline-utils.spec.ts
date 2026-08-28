@@ -1,6 +1,12 @@
 import type { PipelineStep, PipelineWorkflow } from '~/lib/api/types';
 import { describe, expect, it } from 'vitest';
-import { classifyMatrixAxes, duplicateStepNameIndexes, matrixValueColor } from './pipeline-utils';
+import {
+  classifyMatrixAxes,
+  duplicateStepNameIndexes,
+  getLatestAttempts,
+  getWorkflowAttempts,
+  matrixValueColor,
+} from './pipeline-utils';
 
 function step(pid: number, name: string): PipelineStep {
   return {
@@ -49,6 +55,36 @@ describe('duplicateStepNameIndexes', () => {
 function wf(environ: Record<string, string>): PipelineWorkflow {
   return { name: 'build', environ } as unknown as PipelineWorkflow;
 }
+
+function workflow(id: number, pipelineName: string, attempt = 1): PipelineWorkflow {
+  return {
+    id,
+    pid: id,
+    name: 'python-ubuntu',
+    pipeline_name: pipelineName,
+    environ: { containerfile: 'python/ubuntu/Containerfile', OS_VERSION: 'noble' },
+    attempt,
+    children: [],
+  } as unknown as PipelineWorkflow;
+}
+
+describe('workflow attempts', () => {
+  it('keeps identical matrix variants from different pipelines', () => {
+    const amd64 = workflow(1, 'build-amd64');
+    const arm64 = workflow(2, 'build-arm64');
+
+    expect(getLatestAttempts([amd64, arm64])).toEqual([amd64, arm64]);
+  });
+
+  it('only groups reruns from the same pipeline', () => {
+    const amd64First = workflow(1, 'build-amd64');
+    const amd64Second = workflow(2, 'build-amd64', 2);
+    const arm64 = workflow(3, 'build-arm64');
+
+    expect(getLatestAttempts([amd64First, arm64, amd64Second])).toEqual([amd64Second, arm64]);
+    expect(getWorkflowAttempts([amd64First, arm64, amd64Second], amd64Second)).toEqual([amd64First, amd64Second]);
+  });
+});
 
 describe('classifyMatrixAxes', () => {
   it('hoists axes that are constant across every variant', () => {

@@ -273,22 +273,23 @@ export function aggregateWorkflowDuration(workflows: PipelineWorkflow[]): { star
 }
 
 /**
- * Compute a variant key for a workflow: name + sorted environ entries.
+ * Compute a variant key for a workflow: pipeline name + name + sorted environ entries.
  * This uniquely identifies a matrix variant regardless of original_workflow_id values.
  */
 function variantKey(wf: PipelineWorkflow): string {
+  const identity = `${wf.pipeline_name || wf.name}|${wf.name}`;
   if (!wf.environ || Object.keys(wf.environ).length === 0) {
-    return wf.name;
+    return identity;
   }
   const envStr = Object.entries(wf.environ)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([k, v]) => `${k}=${v}`)
     .join(',');
-  return `${wf.name}|${envStr}`;
+  return `${identity}|${envStr}`;
 }
 
 /**
- * Get the latest attempt of each workflow, grouping by name+environ.
+ * Get the latest attempt of each workflow, grouping by pipeline name+name+environ.
  * This correctly handles matrix variants even if original_workflow_id is corrupted.
  */
 export function getLatestAttempts(workflows: PipelineWorkflow[]): PipelineWorkflow[] {
@@ -306,7 +307,7 @@ export function getLatestAttempts(workflows: PipelineWorkflow[]): PipelineWorkfl
 }
 
 /**
- * Get all attempts for a given workflow (matched by name+environ), sorted by attempt number.
+ * Get all attempts for a given workflow (matched by pipeline name+name+environ), sorted by attempt number.
  */
 export function getWorkflowAttempts(workflows: PipelineWorkflow[], workflow: PipelineWorkflow): PipelineWorkflow[] {
   const targetKey = variantKey(workflow);
