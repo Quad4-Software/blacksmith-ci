@@ -614,7 +614,7 @@ func (g *GitLab) Deactivate(ctx context.Context, user *model.User, repo *model.R
 		}
 
 		for _, hook := range hooks {
-			if hook.URL == webURL {
+			if common.IsCrowHookURL(hook.URL, webURL) {
 				_, err = client.Projects.DeleteProjectHook(_repo.ID, hook.ID, gitlab.WithContext(ctx))
 				log.Info().Msg(fmt.Sprintf("successfully deleted hook with ID %d for repo %s", hook.ID, repo.FullName))
 				if err != nil {

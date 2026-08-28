@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
@@ -453,11 +452,6 @@ func (c *client) Deactivate(ctx context.Context, u *model.User, r *model.Repo, l
 		return fmt.Errorf("unable to create bitbucket client: %w", err)
 	}
 
-	lu, err := url.Parse(link)
-	if err != nil {
-		return err
-	}
-
 	opts := &bb.ListOptions{}
 	var ids []uint64
 	for {
@@ -466,8 +460,7 @@ func (c *client) Deactivate(ctx context.Context, u *model.User, r *model.Repo, l
 			return err
 		}
 		for _, h := range hooks {
-			hu, err := url.Parse(h.URL)
-			if err == nil && hu.Host == lu.Host {
+			if common.IsCrowHookURL(h.URL, link) {
 				ids = append(ids, h.ID)
 			}
 		}

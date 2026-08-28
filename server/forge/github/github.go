@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -570,16 +569,11 @@ func matchingEmail(emails []*github.UserEmail, rawURL string) *github.UserEmail 
 
 // matchingHooks returns matching hook.
 func matchingHooks(hooks []*github.Hook, rawURL string) *github.Hook {
-	link, err := url.Parse(rawURL)
-	if err != nil {
-		return nil
-	}
 	for _, hook := range hooks {
 		if hook.ID == nil {
 			continue
 		}
-		hookURL, err := url.Parse(hook.Config.GetURL())
-		if err == nil && hookURL.Host == link.Host {
+		if common.IsCrowHookURL(hook.Config.GetURL(), rawURL) {
 			return hook
 		}
 	}

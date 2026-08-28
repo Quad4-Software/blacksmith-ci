@@ -24,6 +24,7 @@ import (
 
 	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v3"
 
+	"codefloe.com/crowci/crow/v6/server/forge/common"
 	"codefloe.com/crowci/crow/v6/server/model"
 	"codefloe.com/crowci/crow/v6/shared/utils"
 )
@@ -260,16 +261,9 @@ func expandAvatar(repo, rawURL string) string {
 
 // helper function to return matching hooks.
 func matchingHooks(hooks []*forgejo.Hook, rawURL string) *forgejo.Hook {
-	link, err := url.Parse(rawURL)
-	if err != nil {
-		return nil
-	}
 	for _, hook := range hooks {
-		if val, ok := hook.Config["url"]; ok {
-			hookURL, err := url.Parse(val)
-			if err == nil && hookURL.Host == link.Host {
-				return hook
-			}
+		if val, ok := hook.Config["url"]; ok && common.IsCrowHookURL(val, rawURL) {
+			return hook
 		}
 	}
 	return nil

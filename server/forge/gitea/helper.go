@@ -25,6 +25,7 @@ import (
 
 	"code.gitea.io/sdk/gitea"
 
+	"codefloe.com/crowci/crow/v6/server/forge/common"
 	"codefloe.com/crowci/crow/v6/server/model"
 	"codefloe.com/crowci/crow/v6/shared/utils"
 )
@@ -259,16 +260,9 @@ func expandAvatar(repo, rawURL string) string {
 
 // matchingHooks return matching hooks.
 func matchingHooks(hooks []*gitea.Hook, rawURL string) *gitea.Hook {
-	link, err := url.Parse(rawURL)
-	if err != nil {
-		return nil
-	}
 	for _, hook := range hooks {
-		if val, ok := hook.Config["url"]; ok {
-			hookURL, err := url.Parse(val)
-			if err == nil && hookURL.Host == link.Host {
-				return hook
-			}
+		if val, ok := hook.Config["url"]; ok && common.IsCrowHookURL(val, rawURL) {
+			return hook
 		}
 	}
 	return nil

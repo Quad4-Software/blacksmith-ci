@@ -496,13 +496,8 @@ func (c *config) newOAuth2Config() *oauth2.Config {
 
 // helper function to return matching hooks.
 func matchingHooks(hooks []*internal.Hook, rawURL string) *internal.Hook {
-	link, err := url.Parse(rawURL)
-	if err != nil {
-		return nil
-	}
 	for _, hook := range hooks {
-		hookURL, err := url.Parse(hook.URL)
-		if err == nil && hookURL.Host == link.Host {
+		if common.IsCrowHookURL(hook.URL, rawURL) {
 			return hook
 		}
 	}

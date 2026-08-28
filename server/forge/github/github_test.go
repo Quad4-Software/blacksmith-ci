@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/go-github/v90/github"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
@@ -218,3 +219,20 @@ var (
 		FullName: "test_name/repo_not_found",
 	}
 )
+
+func Test_matchingHooks(t *testing.T) {
+	// see issue #1458: webhooks of unrelated applications may share the public
+	// hostname of the Crow webhook endpoint and only differ by path
+	hooks := []*github.Hook{
+		{ID: github.Ptr(int64(1)), Config: &github.HookConfig{URL: github.Ptr("https://hooks.example.com/somethingelse")}},
+		{ID: github.Ptr(int64(2)), Config: &github.HookConfig{URL: github.Ptr("https://hooks.example.com/api/v1/hook?access_token=abc")}},
+	}
+
+	match := matchingHooks(hooks, "https://hooks.example.com")
+	if assert.NotNil(t, match) {
+		assert.EqualValues(t, 2, match.GetID())
+	}
+
+	assert.Nil(t, matchingHooks(hooks[:1], "https://hooks.example.com"))
+	assert.Nil(t, matchingHooks(hooks, "https://other.example.com"))
+}
