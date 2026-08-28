@@ -216,12 +216,19 @@ CROW_BACKEND_LOCAL_SANDBOX_LEVEL=standard
 
 **Standard level details:**
 
-| Allows                            | Denies                                   |
-| --------------------------------- | ---------------------------------------- |
-| Network access (npm, go get, pip) | Writing outside workflow dirs            |
-| System libraries and frameworks   | Sensitive user dirs (Documents, Desktop) |
-| Shell configs (.bashrc, .zshrc)   | SSH private keys                         |
-| Workflow temp directories         |                                          |
+| Allows                                              | Denies                                           |
+| --------------------------------------------------- | ------------------------------------------------ |
+| Network access (npm, go get, pip)                   | Another workflow's directories on the same agent |
+| System libraries and frameworks                     | Writing anywhere outside the allowed directories |
+| The workflow's own directories, including `$TMPDIR` | Sensitive user dirs (Documents, Desktop)         |
+| Shared build caches and the account's temp dir      | SSH private keys                                 |
+| Shell configs (.bashrc, .zshrc)                     | The agent's own environment and credentials      |
+
+:::caution
+`standard` hardens an agent against the pipelines it runs.
+It does not partition one agent between repositories that do not trust each other: the build caches and the account's temp directory stay shared between workflows.
+See [Standalone Agent Binaries](/dev/installation/binary/#standard-default) for what the profile does and does not cover.
+:::
 
 :::warning
 `none` runs processes without isolation. Only use with fully trusted code.

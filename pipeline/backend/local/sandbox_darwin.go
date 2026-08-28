@@ -19,8 +19,11 @@ package local
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/rs/zerolog/log"
 )
@@ -33,6 +36,114 @@ const (
 	sandboxLevelStandard sandboxLevel = "standard" // Balanced security for CI/CD workloads
 	sandboxLevelStrict   sandboxLevel = "strict"   // Maximum security, minimal permissions
 )
+
+// sandboxLiteral renders a path as a sandbox profile string literal.
+//
+// A profile string is not a regular expression. Escaping one with
+// regexp.QuoteMeta, as this used to, turns a path holding a "." or a "[" into a
+// literal that matches nothing, and the workflow silently loses access to its
+// own directories: an agent account at /Users/some.one was enough.
+func sandboxLiteral(path string) string {
+	return strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(path)
+}
+
+// sandboxPaths expands the paths a rule has to cover into every form the kernel
+// may present them in, dropping empties and duplicates.
+//
+// The kernel resolves /tmp and /var through symlinks into /private and matches
+// the resolved path against the profile's literal, so a rule naming only the
+// unresolved path never fires.
+func sandboxPaths(paths ...string) []string {
+	var expanded []string
+	seen := make(map[string]struct{})
+
+	add := func(path string) {
+		if path == "" {
+			return
+		}
+		if _, ok := seen[path]; ok {
+			return
+		}
+		seen[path] = struct{}{}
+		expanded = append(expanded, path)
+	}
+
+	for _, path := range paths {
+		add(path)
+		if resolved, err := filepath.EvalSymlinks(path); err == nil {
+			add(resolved)
+			continue
+		}
+		// The path need not exist yet, and a rule that was dropped because of
+		// that would fail later as a denied access. Resolve the two symlinks
+		// macOS is known to have by hand instead.
+		if strings.HasPrefix(path, "/var/") || strings.HasPrefix(path, "/tmp/") {
+			add("/private" + path)
+		}
+	}
+
+	return expanded
+}
+
+// sandboxRules renders one `(kind "path")` line per path, indented to sit
+// inside a rule block.
+func sandboxRules(kind string, paths []string) string {
+	rules := make([]string, 0, len(paths))
+	for _, path := range paths {
+		rules = append(rules, fmt.Sprintf("\t(%s \"%s\")", kind, sandboxLiteral(path)))
+	}
+	return strings.Join(rules, "\n")
+}
+
+// sandboxSiblingDeny renders rules denying every workflow directory under the
+// given temp roots, the caller's own included -- the block that follows it in
+// the profile allows that one back.
+//
+// This is a regex and not a subpath because the sibling directories are not
+// known when the profile is built, and because denying the temp dir wholesale
+// would take away temp files that belong to the rest of the system.
+func sandboxSiblingDeny(baseDir string, extraRoots ...string) string {
+	roots := append([]string{filepath.Dir(baseDir)}, extraRoots...)
+	rules := make([]string, 0, len(roots))
+
+	for _, root := range sandboxPaths(roots...) {
+		rules = append(rules, fmt.Sprintf("\t(regex #\"^%s/%s\")", regexp.QuoteMeta(root), workflowDirPrefix))
+	}
+
+	return strings.Join(rules, "\n")
+}
+
+// sandboxSharedTempPaths returns the account's own temp directory.
+//
+// Steps get a TMPDIR of their own inside the workflow, but macOS resolves the
+// per-user temp dir through confstr(_CS_DARWIN_USER_TEMP_DIR) and several tools
+// use that instead of the environment: xcrun writes its lookup cache there and
+// "mktemp -t" creates its file there, both of which fail outright when the
+// directory is not writable. The workflow directories that live inside it are
+// denied separately, so this shares scratch space and not the checkouts.
+func sandboxSharedTempPaths() []string {
+	return []string{os.TempDir()}
+}
+
+// sandboxCachePaths returns the build tool caches shared between workflows.
+//
+// They sit outside the workflow deliberately: a cold cache costs a repeatedly
+// built project more than the isolation is worth on a runner whose workflows
+// trust each other. They are also why `standard` is not a boundary between
+// workflows that do not, which the documentation says in as many words.
+func sandboxCachePaths() []string {
+	paths := []string{"/Library/Caches"}
+
+	// Tools that ask the account for its home rather than reading $HOME write
+	// here even when the workflow has a home of its own.
+	if home, err := os.UserHomeDir(); err == nil && home != "" {
+		for _, dir := range []string{".cargo", ".rustup", ".cache", ".npm", "Library/Caches"} {
+			paths = append(paths, filepath.Join(home, dir))
+		}
+	}
+
+	return paths
+}
 
 // generateSandboxProfile creates a sandbox-exec profile based on the security level and workflow state.
 func generateSandboxProfile(level sandboxLevel, state *workflowState) string {
@@ -50,14 +161,43 @@ func generateSandboxProfile(level sandboxLevel, state *workflowState) string {
 // This profile:
 // - Allows network access (for package downloads, API calls, etc.)
 // - Allows reading system libraries and tools
-// - Restricts writing outside the workflow directory
-// - Denies access to sensitive user directories.
+// - Restricts writing to the workflow's own directories and the shared build caches
+// - Denies access to sensitive user directories and to the agent's own credentials.
 func generateStandardProfile(state *workflowState) string {
-	workspaceEscaped := regexp.QuoteMeta(state.workspaceDir)
-	baseDirEscaped := regexp.QuoteMeta(state.baseDir)
-	homeDirEscaped := regexp.QuoteMeta(state.homeDir)
+	// Only this workflow's directories, never a pattern covering the temp dir
+	// as a whole. `/var/folders/.*/T/` and `^/tmp/crow-local-` used to be
+	// allowed outright, which let any workflow read and write every concurrent
+	// workflow's checkout, home and secrets on the same host.
+	workflowDirs := sandboxPaths(state.baseDir, state.workspaceDir, state.homeDir)
 
-	profile := fmt.Sprintf(`(version 1)
+	// Every workflow directory sharing a temp root with this one, this one
+	// included; the block after the deny allows this one back. Rendered into
+	// both operation classes, like the sensitive directories below.
+	siblingDeny := sandboxSiblingDeny(state.baseDir, sandboxSharedTempPaths()...)
+
+	// Rendered into both a file-read* and a file* deny below.
+	sensitiveUserDirs := strings.Join([]string{
+		`	(regex #"^/Users/[^/]+/Documents")`,
+		`	(regex #"^/Users/[^/]+/Desktop")`,
+		`	(regex #"^/Users/[^/]+/Pictures")`,
+		`	(regex #"^/Users/[^/]+/Downloads")`,
+		`	(regex #"^/Users/[^/]+/\.ssh/id_")`,
+	}, "\n")
+
+	// The launchd job directories are denied unconditionally; a secret file is
+	// only denied when the agent was told to read one.
+	credentialPaths := []string{
+		`	(subpath "/Library/LaunchDaemons")`,
+		`	(subpath "/Library/LaunchAgents")`,
+		`	(subpath "/System/Library/LaunchDaemons")`,
+		`	(regex #"^/Users/[^/]+/Library/LaunchAgents")`,
+	}
+	if rules := sandboxRules("literal", sandboxPaths(state.secretFiles...)); rules != "" {
+		credentialPaths = append(credentialPaths, rules)
+	}
+	credentialDenies := strings.Join(credentialPaths, "\n")
+
+	return fmt.Sprintf(`(version 1)
 (deny default)
 
 ;; Allow all file read operations (metadata and data)
@@ -98,57 +238,34 @@ func generateStandardProfile(state *workflowState) string {
 	(regex #"^/var/db/dslocal/nodes/Default/users/")
 	(regex #"^/private/var/db/dslocal/nodes/Default/users/"))
 
-;; Allow all file operations in workflow directories and /tmp (including extended attributes)
+;; Allow all file operations in this workflow's own directories, which is where
+;; TMPDIR points too (including extended attributes)
 (allow file*
-	(regex #"^/tmp/crow-local-")
-	(regex #"^/private/tmp/crow-local-")
-	(regex #"^/var/folders/.*/T/")
-	(regex #"^/private/var/folders/.*/T/")
-	(subpath "%s")
-	(subpath "%s")
-	(subpath "%s"))
+%s)
 
 ;; Allow extended attributes operations (needed for tar, rsync, etc.)
 (allow file-read-xattr file-write-xattr
-	(regex #"^/tmp/crow-local-")
-	(regex #"^/private/tmp/crow-local-")
-	(regex #"^/var/folders/.*/T/")
-	(regex #"^/private/var/folders/.*/T/")
-	(subpath "%s")
-	(subpath "%s")
-	(subpath "%s"))
+%s)
 
-;; Allow build tool cache directories (Cargo, npm, pip, go, etc.)
+;; Allow build tool cache directories (Cargo, npm, pip, go, etc.), shared
+;; between workflows
 (allow file*
-	(regex #"^/var/root/\.cargo/")
-	(regex #"^/var/root/\.rustup/")
-	(regex #"^/var/root/\.cache/")
-	(regex #"^/var/root/\.npm/")
-	(regex #"^/var/root/Library/Caches/")
-	(regex #"^/private/var/root/\.cargo/")
-	(regex #"^/private/var/root/\.rustup/")
-	(regex #"^/private/var/root/\.cache/")
-	(regex #"^/private/var/root/\.npm/")
-	(regex #"^/private/var/root/Library/Caches/")
-	(regex #"^/Users/.*/\.cargo/")
-	(regex #"^/Users/.*/\.rustup/")
-	(regex #"^/Users/.*/\.cache/")
-	(regex #"^/Users/.*/\.npm/")
-	(regex #"^/Users/.*/Library/Caches/")
-	(regex #"^/Library/Caches/"))
+%s)
 
-;; Allow process execution from standard paths and workflow directories
-(allow process-exec*
-	(subpath "/usr/bin")
-	(subpath "/bin")
-	(subpath "/sbin")
-	(subpath "/usr/sbin")
-	(subpath "/usr/local/bin")
-	(subpath "/opt")
-	(subpath "%s")
-	(subpath "%s"))
+;; Allow the account's own temp directory, which parts of the toolchain use
+;; instead of TMPDIR. The workflow directories inside it are denied further
+;; down, so this shares scratch space and not anybody's checkout.
+(allow file*
+%s)
 
-;; Allow process management
+;; Allow process management.
+;;
+;; Execution is deliberately not restricted to an allowlist of directories. One
+;; used to be listed here and did nothing, because the "(allow process*)" below
+;; matched afterwards and a profile resolves an operation with the last rule
+;; that matches. Reinstating it would not buy anything either: a step may write
+;; into its workspace and execute from it, so anything it can download it can
+;; run. Restricting execution is the container backend's job.
 (allow process*)
 (allow signal)
 (allow sysctl*)
@@ -158,6 +275,30 @@ func generateStandardProfile(state *workflowState) string {
 (allow ipc*)
 (allow mach*)
 
+;; Deny reading the other workflows that share this host's temp directory.
+;;
+;; The blanket "(allow file-read*)" at the top is what makes a host toolchain
+;; usable, and it also handed every workflow every other workflow's checkout,
+;; per-workflow home, and the .netrc the clone step writes there with the forge
+;; credentials in it. Writes were confined above; reads have to be taken back
+;; explicitly.
+(deny file-read*
+%s)
+
+(deny file*
+%s)
+
+;; This workflow's own directories again, because the denies above cover them too.
+;;
+;; Twice, because a rule only overrides an earlier one naming the same operation
+;; class: a single "(allow file*)" would leave the file-read* deny standing and
+;; the workflow would lose access to its own checkout.
+(allow file-read*
+%s)
+
+(allow file*
+%s)
+
 ;; Deny sensitive user directories.
 ;;
 ;; Last, because a sandbox profile resolves an operation with the final rule
@@ -166,22 +307,47 @@ func generateStandardProfile(state *workflowState) string {
 ;; --backend-local-use-host-home the home directory allowed below IS under
 ;; /Users, and an earlier deny would have been overridden by it.
 ;;
-;; file* rather than file-read*: with a per-workflow home nothing allowed writes
-;; here either, so this only narrows what the host-home mode would otherwise
-;; open up.
-(deny file*
-	(regex #"^/Users/[^/]+/Documents")
-	(regex #"^/Users/[^/]+/Desktop")
-	(regex #"^/Users/[^/]+/Pictures")
-	(regex #"^/Users/[^/]+/Downloads")
-	(regex #"^/Users/[^/]+/\.ssh/id_"))
-`,
-		baseDirEscaped, workspaceEscaped, homeDirEscaped, // base, workspace and home directories for file operations
-		baseDirEscaped, workspaceEscaped, homeDirEscaped, // base, workspace and home directories for extended attributes
-		baseDirEscaped, homeDirEscaped, // allow executing binaries from workflow base dir and home dir
-	)
+;; Twice, once per operation class. "Last rule wins" only holds between rules
+;; naming the same class, and the blanket "(allow file-read*)" at the top is the
+;; more specific of the two: with only the file* deny below, as this had, reads
+;; of Documents and of ~/.ssh/id_* went through and just the writes were
+;; stopped.
+(deny file-read*
+%s)
 
-	return profile
+(deny file*
+%s)
+
+;; Deny reading the agent's own credentials.
+;;
+;; A step no longer inherits CROW_AGENT_SECRET in its environment, but the token
+;; is still on disk: in whatever CROW_AGENT_SECRET_FILE points at, and in the
+;; launchd job that starts the agent, whose plist is world readable and in the
+;; documented setup carries the secret inline. Anyone holding that token can
+;; register as an agent and be handed other repositories' tasks, so a pipeline
+;; must not be able to read it back off the host that runs it.
+(deny file-read*
+%s)
+
+;; And not write them either: with --backend-local-use-host-home the account's
+;; own LaunchAgents directory sits inside the home allowed above, which is a
+;; job that survives the workflow that installed it.
+(deny file*
+%s)
+`,
+		sandboxRules("subpath", workflowDirs),
+		sandboxRules("subpath", workflowDirs),
+		sandboxRules("subpath", sandboxPaths(sandboxCachePaths()...)),
+		sandboxRules("subpath", sandboxPaths(sandboxSharedTempPaths()...)),
+		siblingDeny,
+		siblingDeny,
+		sandboxRules("subpath", workflowDirs),
+		sandboxRules("subpath", workflowDirs),
+		sensitiveUserDirs,
+		sensitiveUserDirs,
+		credentialDenies,
+		credentialDenies,
+	)
 }
 
 // generateStrictProfile creates a maximum security profile with minimal permissions.
@@ -191,9 +357,7 @@ func generateStandardProfile(state *workflowState) string {
 // - Strictly limits file writes to workflow directory
 // - Denies access to all user directories.
 func generateStrictProfile(state *workflowState) string {
-	workspaceEscaped := regexp.QuoteMeta(state.workspaceDir)
-	baseDirEscaped := regexp.QuoteMeta(state.baseDir)
-	homeDirEscaped := regexp.QuoteMeta(state.homeDir)
+	workflowDirs := sandboxPaths(state.baseDir, state.workspaceDir, state.homeDir)
 
 	return fmt.Sprintf(`(version 1)
 (deny default)
@@ -215,20 +379,21 @@ func generateStrictProfile(state *workflowState) string {
 
 ;; Allow full access only to workflow directories
 (allow file-read* file-write*
-	(subpath "%s")
-	(subpath "%s")
-	(subpath "%s"))
+%s)
 
 ;; Allow minimal process execution
 (allow process-exec
 	(subpath "/usr/bin")
 	(subpath "/bin")
-	(subpath "%s"))
+%s)
 
 ;; Allow basic process management
 (allow process-fork)
 (allow signal)
-`, workspaceEscaped, baseDirEscaped, homeDirEscaped, baseDirEscaped)
+`,
+		sandboxRules("subpath", workflowDirs),
+		sandboxRules("subpath", sandboxPaths(state.baseDir)),
+	)
 }
 
 // wrapCommandWithSandbox wraps a command with sandbox-exec if sandboxing is enabled.

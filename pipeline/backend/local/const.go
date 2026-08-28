@@ -16,6 +16,10 @@ package local
 
 import "errors"
 
+// workflowDirPrefix names every workflow's base directory inside the shared
+// temp dir. The macOS sandbox profile denies reading it, so the two must agree.
+const workflowDirPrefix = "crow-local-"
+
 // notAllowedEnvVarOverwrites are all env vars that cannot be overwritten by step config.
 var notAllowedEnvVarOverwrites = []string{
 	"CI_NETRC_MACHINE",
@@ -25,6 +29,11 @@ var notAllowedEnvVarOverwrites = []string{
 	"HOME",
 	"SHELL",
 	"CI_WORKSPACE",
+	// The backend points TMPDIR at a directory inside the workflow's own base
+	// dir and the macOS sandbox profile is built around that. A step that moved
+	// it elsewhere would write outside what the profile allows and fail in a
+	// way that looks like a broken tool rather than a denied path.
+	"TMPDIR",
 }
 
 var (

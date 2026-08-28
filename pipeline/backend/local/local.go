@@ -48,6 +48,13 @@ type workflowState struct {
 	// rather than in an account's home: the clone step drops a .netrc and then
 	// deletes it, which would destroy a real one.
 	privateDir string
+	// tmpDir is this workflow's own TMPDIR. Steps used to inherit the agent
+	// account's, which is shared with every other workflow on the host and with
+	// the rest of the account's software.
+	tmpDir string
+	// secretFiles are the paths the agent may have read its own token from, for
+	// the sandbox profile to deny reading.
+	secretFiles []string
 	// hostHome records that homeDir is the agent account's own home rather than
 	// a directory this workflow owns, which decides whether it may be created,
 	// and how the sandbox profile has to be ordered.
@@ -61,6 +68,7 @@ type local struct {
 	os, arch     string
 	sandboxLevel sandboxLevel
 	useHostHome  bool
+	secretFiles  []string
 }
 
 // New returns a new local Backend.
@@ -110,6 +118,8 @@ func (e *local) Load(ctx context.Context) (*types.BackendInfo, error) {
 
 	e.loadClone()
 
+	e.secretFiles = agentSecretFiles()
+
 	if e.sandboxLevel != sandboxLevelNone {
 		log.Info().
 			Str("level", string(e.sandboxLevel)).
@@ -131,7 +141,7 @@ func (e *local) SetupWorkflow(_ context.Context, conf *types.Config, taskUUID st
 		return fmt.Errorf("the local backend does not support `temp_volumes`")
 	}
 
-	baseDir, err := os.MkdirTemp(e.tempDir, "crow-local-*")
+	baseDir, err := os.MkdirTemp(e.tempDir, workflowDirPrefix+"*")
 	if err != nil {
 		return err
 	}
@@ -143,6 +153,8 @@ func (e *local) SetupWorkflow(_ context.Context, conf *types.Config, taskUUID st
 		workspaceDir: filepath.Join(baseDir, "workspace"),
 		homeDir:      filepath.Join(baseDir, "home"),
 		privateDir:   filepath.Join(baseDir, "home"),
+		tmpDir:       filepath.Join(baseDir, "tmp"),
+		secretFiles:  e.secretFiles,
 		hostHome:     e.useHostHome,
 	}
 
@@ -167,6 +179,10 @@ func (e *local) SetupWorkflow(_ context.Context, conf *types.Config, taskUUID st
 		return err
 	}
 
+	if err := os.Mkdir(state.tmpDir, 0o700); err != nil {
+		return err
+	}
+
 	// Create common cache directories for build tools
 	cacheDir := filepath.Join(state.homeDir, "Library", "Caches")
 	if err := os.MkdirAll(cacheDir, 0o700); err != nil {
@@ -187,8 +203,8 @@ func (e *local) StartStep(ctx context.Context, step *types.Step, taskUUID string
 		return err
 	}
 
-	// Get environment variables
-	env := os.Environ()
+	// Get environment variables, minus the agent's own configuration.
+	env := stepEnviron()
 	for a, b := range step.Environment {
 		// append allowed env vars to command env
 		if !slices.Contains(notAllowedEnvVarOverwrites, a) {
@@ -209,6 +225,7 @@ func (e *local) StartStep(ctx context.Context, step *types.Step, taskUUID string
 	env = append(env, "HOME="+stepHome)
 	env = append(env, "USERPROFILE="+stepHome)
 	env = append(env, "CI_WORKSPACE="+state.workspaceDir)
+	env = append(env, "TMPDIR="+state.tmpDir)
 
 	switch step.Type {
 	case types.StepTypeClone:
