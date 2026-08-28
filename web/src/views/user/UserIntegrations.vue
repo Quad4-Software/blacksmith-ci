@@ -10,6 +10,7 @@
           v-model:open="isDialogOpen"
           :integration="selectedIntegration"
           :is-saving="isSaving"
+          :save-error="saveError"
           @save="saveIntegration"
           @cancel="handleDialogClose"
         >
@@ -41,22 +42,21 @@
 </template>
 
 <script lang="ts" setup>
-import { cloneDeep } from 'lodash';
-import { computed, onMounted, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
-
 import Icon from '~/components/atomic/Icon.vue';
 import IntegrationDialog from '~/components/integrations/IntegrationDialog.vue';
 import IntegrationList from '~/components/integrations/IntegrationList.vue';
 import Scaffold from '~/components/layout/scaffold/Scaffold.vue';
 import { Button } from '~/components/ui/button';
 import useApiClient from '~/compositions/useApiClient';
-import useAuthentication from '~/compositions/useAuthentication';
 import { useAsyncAction } from '~/compositions/useAsyncAction';
+import useAuthentication from '~/compositions/useAuthentication';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
 import useNotifications from '~/compositions/useNotifications';
 import { usePagination } from '~/compositions/usePaginate';
 import type { Integration, Org, Repo, User } from '~/lib/api/types';
+import { cloneDeep } from 'lodash';
+import { computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const emptyIntegration: Partial<Integration> = {
   name: '',
@@ -76,6 +76,7 @@ const { t } = useI18n();
 
 const isDialogOpen = ref(false);
 const selectedIntegration = ref<Partial<Integration>>();
+const saveError = ref<string>();
 
 // Lookup data for displaying names in tooltips
 const users = ref<User[]>([]);
@@ -116,6 +117,8 @@ function notifyError(error: unknown) {
 
 const { doSubmit: saveIntegration, isLoading: isSaving } = useAsyncAction(
   async (integrationData: Partial<Integration>) => {
+    saveError.value = undefined;
+
     if (!integrationData) {
       throw new Error("Unexpected: Can't get integration data");
     }
@@ -139,7 +142,7 @@ const { doSubmit: saveIntegration, isLoading: isSaving } = useAsyncAction(
       selectedIntegration.value = undefined;
       await resetPage();
     } catch (error) {
-      notifyError(error);
+      saveError.value = error instanceof Error ? error.message : String(error);
     }
   },
 );
@@ -177,16 +180,19 @@ const { doSubmit: testIntegrationConnection, isLoading: isTesting } = useAsyncAc
 );
 
 function editIntegration(integration: Integration) {
+  saveError.value = undefined;
   selectedIntegration.value = cloneDeep(integration);
   isDialogOpen.value = true;
 }
 
 function showAddIntegration() {
+  saveError.value = undefined;
   selectedIntegration.value = cloneDeep(emptyIntegration);
   isDialogOpen.value = true;
 }
 
 function handleDialogClose() {
+  saveError.value = undefined;
   selectedIntegration.value = undefined;
   isDialogOpen.value = false;
 }

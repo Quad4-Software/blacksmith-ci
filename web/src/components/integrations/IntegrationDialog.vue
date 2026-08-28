@@ -255,6 +255,11 @@
           </Label>
         </div>
 
+        <Alert v-if="saveError" variant="destructive" role="alert">
+          <AlertTitle>{{ $t('notify_title_error') }}</AlertTitle>
+          <AlertDescription class="wrap-break-word">{{ saveError }}</AlertDescription>
+        </Alert>
+
         <DialogFooter>
           <Button type="button" variant="outline" @click="handleCancel">
             {{ $t('cancel') }}
@@ -269,10 +274,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue';
-
-import type { AllowlistItem } from './AllowlistSelector.vue';
-import AllowlistSelector from './AllowlistSelector.vue';
+import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
 import { Button } from '~/components/ui/button';
 import { Checkbox } from '~/components/ui/checkbox';
 import {
@@ -290,11 +292,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~
 import { Textarea } from '~/components/ui/textarea';
 import useApiClient from '~/compositions/useApiClient';
 import type { AzureKeyVaultConfig, InfisicalConfig, Integration, IntegrationType, VaultConfig } from '~/lib/api/types';
+import { computed, ref, watch } from 'vue';
+import type { AllowlistItem } from './AllowlistSelector.vue';
+import AllowlistSelector from './AllowlistSelector.vue';
 
 const props = defineProps<{
   open: boolean;
   integration?: Partial<Integration>;
   isSaving: boolean;
+  saveError?: string;
 }>();
 
 const emit = defineEmits<{
