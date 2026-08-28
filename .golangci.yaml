@@ -1,5 +1,6 @@
 version: '2'
 run:
+  relative-path-mode: cfg
   build-tags:
     - test
     - containers_image_openpgp
@@ -50,14 +51,14 @@ linters:
         agent:
           list-mode: lax
           files:
-            - '**/agent/**/*.go'
-            - '**/agent/*.go'
-            - '**/cmd/agent/**/*.go'
-            - '**/cmd/agent/*.go'
-            - '!**/cli/admin/agent/*.go'
-            - '!**/cli/admin/agent/**/*.go'
-            - '!**/cli/org/agent/*.go'
-            - '!**/cli/org/agent/**/*.go'
+            - '${config-path}/agent/**/*.go'
+            - '${config-path}/agent/*.go'
+            - '${config-path}/cmd/agent/**/*.go'
+            - '${config-path}/cmd/agent/*.go'
+            - '!${config-path}/cli/admin/agent/*.go'
+            - '!${config-path}/cli/admin/agent/**/*.go'
+            - '!${config-path}/cli/org/agent/*.go'
+            - '!${config-path}/cli/org/agent/**/*.go'
           deny:
             - pkg: codefloe.com/crowci/crow/v6/cli
             - pkg: codefloe.com/crowci/crow/v6/cmd/cli

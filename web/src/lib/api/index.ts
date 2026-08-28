@@ -712,6 +712,10 @@ export default class CrowClient extends ApiClient {
     return this._post('/api/v1/queue/resume');
   }
 
+  async cancelQueueTask(taskId: Task['id']): Promise<unknown> {
+    return this._post(`/api/v1/queue/tasks/${taskId}/cancel`);
+  }
+
   async getUsers(opts?: PaginationOptions, reqOpts?: RequestOptions): Promise<User[] | null> {
     const query = encodeQueryString(opts);
     return this._get(`/api/v1/users?${query}`, reqOpts) as Promise<User[] | null>;

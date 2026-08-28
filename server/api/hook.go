@@ -31,6 +31,7 @@ import (
 	"codefloe.com/crowci/crow/v6/server/forge/types"
 	"codefloe.com/crowci/crow/v6/server/model"
 	"codefloe.com/crowci/crow/v6/server/pipeline"
+	"codefloe.com/crowci/crow/v6/server/queue"
 	"codefloe.com/crowci/crow/v6/server/store"
 	"codefloe.com/crowci/crow/v6/shared/token"
 )
@@ -153,6 +154,27 @@ func PauseQueue(c *gin.Context) {
 func ResumeQueue(c *gin.Context) {
 	server.Config.Services.Queue.Resume()
 	c.Status(http.StatusNoContent)
+}
+
+// CancelQueueTask cancels an individual running task.
+func CancelQueueTask(c *gin.Context) {
+	taskID := c.Param("task_id")
+	info := server.Config.Services.Queue.Info(c)
+	for _, task := range info.Running {
+		if task.ID != taskID {
+			continue
+		}
+
+		if err := server.Config.Services.Queue.Error(c, taskID, queue.ErrCancel); err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		c.Status(http.StatusNoContent)
+		return
+	}
+
+	c.String(http.StatusNotFound, "running task not found")
 }
 
 // BlockTilQueueHasRunningItem blocks until the pipeline queue has no running items.

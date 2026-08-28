@@ -742,6 +742,7 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 		queue.GET("/info", api.GetQueueInfo)
 		queue.POST("/pause", api.PauseQueue)
 		queue.POST("/resume", api.ResumeQueue)
+		queue.POST("/tasks/:task_id/cancel", api.CancelQueueTask)
 		queue.GET("/norunningpipelines", api.BlockTilQueueHasRunningItem)
 	}
 

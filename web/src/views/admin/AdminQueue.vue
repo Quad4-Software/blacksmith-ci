@@ -88,6 +88,9 @@
               :get-status-badge-variant="getStatusBadgeVariant"
               :time-ago="timeAgo"
               :pretty-duration="prettyDuration"
+              cancelable
+              :canceling-task-id="cancelingTaskId"
+              @cancel="taskToCancel = $event"
             />
             <div v-if="filteredRunningTasks.length === 0" class="text-center py-8 text-muted-foreground">
               <Icon name="list" class="h-12 w-12 mx-auto mb-3 opacity-50" />
@@ -134,16 +137,45 @@
       </div>
     </div>
   </Settings>
+
+  <AlertDialog :open="taskToCancel !== undefined" @update:open="onCancelDialogOpenChange">
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>{{ $t('admin.settings.queue.cancel_confirm_title') }}</AlertDialogTitle>
+        <AlertDialogDescription>
+          {{ $t('admin.settings.queue.cancel_confirm_desc', { name: taskToCancel?.name }) }}
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel :disabled="cancelingTaskId !== undefined">{{ $t('cancel') }}</AlertDialogCancel>
+        <AlertDialogAction
+          class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          :disabled="cancelingTaskId !== undefined"
+          @click.prevent="cancelTask"
+        >
+          <Icon v-if="cancelingTaskId !== undefined" name="spinner" class="mr-1.5 h-4 w-4 animate-spin" />
+          {{ $t('admin.settings.queue.cancel_task') }}
+        </AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
 </template>
 
 <script lang="ts" setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
-
 import AdminQueueStats from '~/components/admin/settings/queue/AdminQueueStats.vue';
 import TaskList from '~/components/admin/settings/queue/QueueTaskList.vue';
 import Icon from '~/components/atomic/Icon.vue';
 import Settings from '~/components/layout/Settings.vue';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '~/components/ui/alert-dialog';
 import { Badge as UiBadge } from '~/components/ui/badge';
 import { Button } from '~/components/ui/button';
 import {
@@ -158,10 +190,12 @@ import {
 import SearchInput from '~/components/ui/input/SearchInput.vue';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import useApiClient from '~/compositions/useApiClient';
+import { useCrowTitle } from '~/compositions/useCrowTitle';
 import { useDate } from '~/compositions/useDate';
 import useNotifications from '~/compositions/useNotifications';
-import { useCrowTitle } from '~/compositions/useCrowTitle';
 import type { QueueInfo, Task } from '~/lib/api/types';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const apiClient = useApiClient();
 const notifications = useNotifications();
@@ -173,6 +207,8 @@ const searchQuery = ref('');
 const activeTab = ref('running');
 const sortBy = ref('name');
 const sortDesc = ref(false);
+const taskToCancel = ref<TaskWithStatus>();
+const cancelingTaskId = ref<number>();
 
 interface TaskWithStatus extends Task {
   status: 'running' | 'pending' | 'waiting_on_deps';
@@ -331,6 +367,39 @@ async function resumeQueue() {
     type: 'success',
     duration: 6000,
   });
+}
+
+function onCancelDialogOpenChange(open: boolean) {
+  if (!open && cancelingTaskId.value === undefined) {
+    taskToCancel.value = undefined;
+  }
+}
+
+async function cancelTask() {
+  const task = taskToCancel.value;
+  if (!task || cancelingTaskId.value !== undefined) return;
+
+  cancelingTaskId.value = task.id;
+  try {
+    await apiClient.cancelQueueTask(task.id);
+    await loadQueueInfo();
+    taskToCancel.value = undefined;
+    notifications.notify({
+      title: t('notify_title_success'),
+      text: t('admin.settings.queue.notify_text_cancel_success', { name: task.name }),
+      type: 'success',
+      duration: 6000,
+    });
+  } catch {
+    notifications.notify({
+      title: t('notify_title_error'),
+      text: t('unknown_error'),
+      type: 'error',
+      duration: 9000,
+    });
+  } finally {
+    cancelingTaskId.value = undefined;
+  }
 }
 
 const reloadInterval = ref<number>();
