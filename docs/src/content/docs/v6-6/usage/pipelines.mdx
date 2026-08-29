@@ -334,7 +334,7 @@ Built-in `CI_*` variables and the deployment `task` selector are never offered a
 
 Open the manual trigger dialog from the repository's pipeline list.
 It has two columns: the available workflows on the left and their variables on the right.
-Choose a branch at the top; the workflow list and variables reflect the configuration on that branch.
+Choose a branch or a tag at the top; the workflow list and variables reflect the configuration at that ref.
 
 <div style="max-width: 760px; margin: 1rem auto;">
 ![Manual pipeline trigger dialog listing the build, test and deploy workflows](img/manual-pipelines.png)
@@ -347,6 +347,18 @@ Only workflows with the `manual` event are listed. From the left column you can:
 - **Select all**: use the **Select all** checkbox to include every listed workflow.
 
 Workflows that depend on others show a branch icon next to their name; hover it to see the dependencies.
+
+#### Running from a tag
+
+The ref picker lists the repository's branches and tags in separate groups, filtered by a single search box.
+
+A run started from a tag is still a `manual` event, so the same workflows are offered as for a branch.
+Its ref is `refs/tags/<tag>`, which means `CI_COMMIT_TAG` is set just as it is for a `tag` event.
+The run is not associated with a branch, so a workflow gated on `when: branch` will not match it.
+Gate on `when: event: manual` instead if a workflow should be runnable from both branches and tags.
+
+Tag support depends on the forge.
+Gitea, Forgejo, GitHub and GitLab can list tags; on Bitbucket, Bitbucket Datacenter and forge addons the **Tags** group is not shown and only branches can be selected.
 
 ### Setting variables in the UI
 
@@ -411,11 +423,17 @@ Dependencies that do **not** have the `manual` event trigger will not be automat
 ### CLI triggering
 
 Manual pipelines can also be triggered from the CLI, which is handy for scripts and scheduled jobs.
-The repository is a positional argument (its ID or full name) and `--branch` is required:
+The repository is a positional argument (its ID or full name), and exactly one of `--branch` or `--tag` is required:
 
 ```bash
 crow pipeline create --branch main owner/repo
 ```
+
+```bash
+crow pipeline create --tag v1.4.2 owner/repo
+```
+
+Passing both, or neither, is rejected before any request is sent.
 
 Pass variables with `--var NAME=value`, repeating the flag for each variable:
 
@@ -423,7 +441,8 @@ Pass variables with `--var NAME=value`, repeating the flag for each variable:
 crow pipeline create --branch main --var DEPLOY_ENV=production --var VERSION=v1.4.2 owner/repo
 ```
 
-All workflows matching the branch are considered; use `when.evaluate` (see below) to control which ones actually run.
+All workflows matching the ref are considered; use `when.evaluate` (see below) to control which ones actually run.
+A run created with `--tag` follows the same rules as one started from the UI, so it is not associated with a branch.
 
 ### Using variables to control what runs
 
