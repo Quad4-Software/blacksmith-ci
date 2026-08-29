@@ -15,7 +15,6 @@
 package local
 
 import (
-	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -29,9 +28,8 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v3"
-	"golang.org/x/text/encoding/unicode"
-	"golang.org/x/text/transform"
 
+	"codefloe.com/crowci/crow/v6/pipeline/backend/common"
 	"codefloe.com/crowci/crow/v6/pipeline/backend/types"
 )
 
@@ -272,7 +270,7 @@ func (e *local) execCommands(ctx context.Context, step *types.Step, state *workf
 	}
 
 	// Create merged output with stream tags
-	output := createTaggedMergedPipe(stdoutPipe, stderrPipe, e.os == "windows")
+	output := common.TaggedMergedPipe(stdoutPipe, stderrPipe, e.os == "windows")
 
 	state.stepCMDsMu.Lock()
 	state.stepCMDs[step.UUID] = cmd
@@ -315,7 +313,7 @@ func (e *local) execService(ctx context.Context, step *types.Step, state *workfl
 	}
 
 	// Create merged output with stream tags
-	output := createTaggedMergedPipe(stdoutPipe, stderrPipe, e.os == "windows")
+	output := common.TaggedMergedPipe(stdoutPipe, stderrPipe, e.os == "windows")
 
 	state.stepCMDsMu.Lock()
 	state.stepCMDs[step.UUID] = cmd
@@ -353,7 +351,7 @@ func (e *local) execPlugin(ctx context.Context, step *types.Step, state *workflo
 	}
 
 	// Create merged output with stream tags
-	output := createTaggedMergedPipe(stdoutPipe, stderrPipe, e.os == "windows")
+	output := common.TaggedMergedPipe(stdoutPipe, stderrPipe, e.os == "windows")
 
 	state.stepCMDsMu.Lock()
 	state.stepCMDs[step.UUID] = cmd
@@ -413,64 +411,6 @@ func (e *local) TailStep(_ context.Context, step *types.Step, taskUUID string) (
 	}
 
 	return output, nil
-}
-
-// createTaggedMergedPipe creates a pipe that merges stdout and stderr with stream tags.
-// Tags: 0x01 = stdout, 0x02 = stderr.
-func createTaggedMergedPipe(stdout, stderr io.ReadCloser, isWindows bool) io.ReadCloser {
-	pr, pw := io.Pipe()
-
-	go func() {
-		var wg sync.WaitGroup
-		const numStreams = 2 // stdout and stderr
-		wg.Add(numStreams)
-
-		// Copy stdout with tag 0x01
-		go func() {
-			defer wg.Done()
-			reader := stdout
-			if isWindows {
-				// Sanitize non-UTF8 output on Windows
-				reader = io.NopCloser(transform.NewReader(stdout, unicode.UTF8.NewDecoder().Transformer))
-			}
-			copyWithTag(pw, reader, '\x01')
-			stdout.Close()
-		}()
-
-		// Copy stderr with tag 0x02
-		go func() {
-			defer wg.Done()
-			reader := stderr
-			if isWindows {
-				// Sanitize non-UTF8 output on Windows
-				reader = io.NopCloser(transform.NewReader(stderr, unicode.UTF8.NewDecoder().Transformer))
-			}
-			copyWithTag(pw, reader, '\x02')
-			stderr.Close()
-		}()
-
-		wg.Wait()
-		pw.Close()
-	}()
-
-	return pr
-}
-
-// copyWithTag reads from src line-by-line and writes to dst, prepending each line with a tag byte.
-func copyWithTag(dst io.Writer, src io.Reader, tag byte) {
-	scanner := bufio.NewScanner(src)
-	for scanner.Scan() {
-		line := scanner.Bytes()
-		// Prepend tag byte to each line
-		tagged := make([]byte, len(line)+2) // +1 for tag, +1 for newline
-		tagged[0] = tag
-		copy(tagged[1:], line)
-		tagged[len(tagged)-1] = '\n'
-		if _, err := dst.Write(tagged); err != nil {
-			log.Error().Err(err).Msg("failed to write tagged log line")
-			return
-		}
-	}
 }
 
 func (e *local) DestroyStep(_ context.Context, _ *types.Step, _ string) error {

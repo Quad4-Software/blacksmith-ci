@@ -1,0 +1,79 @@
+# Exercises the tart backend against a real macOS VM.
+#
+# The rest of the test suite runs on Linux, where tart does not exist, so this
+# is the only place the backend's end-to-end behavior is checked. It needs an
+# agent on Apple silicon with tart installed and a pre-pulled VM image.
+#
+# Manual-only until a matching agent is registered.
+#
+# A workflow whose labels match no agent does not "skip": the scheduler cannot
+# place it and the whole pipeline is held, so making this run on every pull
+# request before the agent exists would block everyone else's work.
+#
+# Once an Apple silicon agent is registered with `group=macos-tart`, switch the
+# filter below to pull_request and pushes to the default branch. Keep it
+# advisory even then, with the `failure: ignore` already set on each step: a
+# single Mac with two VM slots should not be a single point of failure for the
+# pull request queue until it has proven stable.
+
+when:
+  - event: manual
+
+labels:
+  group: macos-tart
+
+variables:
+  # Pre-pulled on the agent. A cold pull is tens of gigabytes and would blow
+  # the startup timeout on the first workflow.
+  - &tart_image 'ghcr.io/cirruslabs/macos-tahoe-base:latest'
+
+steps:
+  unit:
+    image: /bin/bash
+    failure: ignore
+    commands:
+      - go test ./pipeline/backend/tart/...
+
+  integration:
+    depends_on:
+      - unit
+    image: /bin/bash
+    failure: ignore
+    environment:
+      CROW_BACKEND_TART_IMAGE: *tart_image
+      CROW_BACKEND_TART_CPU: '4'
+      CROW_BACKEND_TART_MEMORY: 8Gi
+    commands:
+      - just test-tart-integration
+
+  # The integration test drives the backend directly. This drives the whole
+  # stack the way a user does, through the compiler and the pipeline runtime.
+  crow-exec:
+    depends_on:
+      - integration
+    image: /bin/bash
+    failure: ignore
+    environment:
+      CROW_BACKEND_TART_IMAGE: *tart_image
+      CROW_BACKEND_TART_CPU: '4'
+      CROW_BACKEND_TART_MEMORY: 8Gi
+      CROW_DISABLE_UPDATE_CHECK: 'true'
+    commands:
+      - just build-cli
+      - mkdir -p .tart-e2e
+      - |
+        cat > .tart-e2e/.crow.yaml <<'EOF'
+        when:
+          - event: manual
+        steps:
+          - name: writes
+            image: /bin/sh
+            commands:
+              - sw_vers -productVersion
+              - echo marker > shared-file
+          - name: reads
+            image: /bin/sh
+            commands:
+              - cat shared-file
+        EOF
+      - cd .tart-e2e && ../dist/crow exec --backend-engine tart .crow.yaml

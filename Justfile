@@ -175,6 +175,14 @@ test-ui:
 test-lib:
     CGO_ENABLED=1 go test -race -cover -coverprofile coverage.out -timeout 60s -tags 'test {{ TAGS }}' `go list ./... | grep -v '/cmd\|/agent\|/cli\|/server'`
 
+# Drive a real Tart VM through the tart backend.
+#
+# Needs macOS on Apple silicon with tart installed. Skips itself when
+# CROW_BACKEND_TART_IMAGE is unset, so it is a no-op anywhere else.
+# The timeout is generous because a first run may pull a multi-gigabyte image.
+test-tart-integration:
+    go test -tags 'tart_integration {{ TAGS }}' -timeout 30m -v codefloe.com/crowci/crow/v6/pipeline/backend/tart
+
 ## docs
 
 # Install docs dependencies

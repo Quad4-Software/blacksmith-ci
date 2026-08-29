@@ -21,6 +21,7 @@ import (
 	"codefloe.com/crowci/crow/v6/pipeline/backend/kubernetes"
 	"codefloe.com/crowci/crow/v6/pipeline/backend/local"
 	"codefloe.com/crowci/crow/v6/pipeline/backend/podman"
+	"codefloe.com/crowci/crow/v6/pipeline/backend/tart"
 	backendTypes "codefloe.com/crowci/crow/v6/pipeline/backend/types"
 )
 
@@ -29,4 +30,10 @@ var backends = []backendTypes.Backend{
 	docker.New(),
 	podman.New(),
 	local.New(),
+	// tart comes last on purpose. Auto-detect takes the first available
+	// backend, and local.IsAvailable is true on any host that is not a
+	// container, so tart is never auto-detected and has to be selected with
+	// CROW_BACKEND=tart. Installing tart on a Mac that already runs a local
+	// backend agent must not silently change how that agent runs pipelines.
+	tart.New(),
 }

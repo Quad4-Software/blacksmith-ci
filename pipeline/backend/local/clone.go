@@ -24,6 +24,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
+	"codefloe.com/crowci/crow/v6/pipeline/backend/common"
 	"codefloe.com/crowci/crow/v6/pipeline/backend/common/clone"
 	"codefloe.com/crowci/crow/v6/pipeline/backend/types"
 )
@@ -109,7 +110,7 @@ func (e *local) execClone(ctx context.Context, step *types.Step, state *workflow
 	if err != nil {
 		return fmt.Errorf("could not create stderr pipe: %w", err)
 	}
-	output := createTaggedMergedPipe(stdoutPipe, stderrPipe, e.os == "windows")
+	output := common.TaggedMergedPipe(stdoutPipe, stderrPipe, e.os == "windows")
 
 	state.stepCMDsMu.Lock()
 	state.stepCMDs[step.UUID] = cmd

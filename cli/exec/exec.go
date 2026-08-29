@@ -37,6 +37,7 @@ import (
 	"codefloe.com/crowci/crow/v6/pipeline/backend/docker"
 	"codefloe.com/crowci/crow/v6/pipeline/backend/kubernetes"
 	"codefloe.com/crowci/crow/v6/pipeline/backend/local"
+	"codefloe.com/crowci/crow/v6/pipeline/backend/tart"
 	backend_types "codefloe.com/crowci/crow/v6/pipeline/backend/types"
 	crow_jsonnet "codefloe.com/crowci/crow/v6/pipeline/frontend/jsonnet"
 	"codefloe.com/crowci/crow/v6/pipeline/frontend/metadata"
@@ -56,13 +57,15 @@ var Command = &cli.Command{
 	Usage:     "execute a local pipeline",
 	ArgsUsage: "[path/to/.crow.yaml|.crow.jsonnet]",
 	Action:    run,
-	Flags:     utils.MergeSlices(flags, docker.Flags, kubernetes.Flags, local.Flags),
+	Flags:     utils.MergeSlices(flags, docker.Flags, kubernetes.Flags, local.Flags, tart.Flags),
 }
 
 var backends = []backend_types.Backend{
 	kubernetes.New(),
 	docker.New(),
 	local.New(),
+	// Last, so auto-detect never reaches it: see cmd/agent/backends_unix.go.
+	tart.New(),
 }
 
 func run(ctx context.Context, c *cli.Command) error {
