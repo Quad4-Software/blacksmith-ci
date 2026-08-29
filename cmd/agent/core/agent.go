@@ -94,12 +94,14 @@ const (
 const (
 	microsecondsPerCore = 100000
 	shutdownTimeout     = time.Second * 5
-
-	// ForceExitTimeout is the maximum time to wait for graceful shutdown before forcing exit.
-	// This ensures the agent process terminates even if some goroutines are stuck,
-	// which is critical for container orchestration (Docker, Kubernetes) to detect the exit and restart.
-	forceExitTimeout = time.Second * 15
 )
+
+// forceExitTimeout is the maximum time to wait for graceful shutdown before forcing exit.
+// This ensures the agent process terminates even if some goroutines are stuck,
+// which is critical for container orchestration (Docker, Kubernetes) to detect the exit and restart.
+// A variable rather than a constant so tests that run a whole agent in-process
+// can push the watchdog out of the way instead of having it exit the test binary.
+var forceExitTimeout = time.Second * 15
 
 var (
 	stopAgentFunc      context.CancelCauseFunc = func(error) {}
@@ -169,8 +171,12 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 
 			// Start force exit timer - if graceful shutdown takes too long, force exit.
 			// This is critical for container orchestration to detect the exit and restart the agent.
+			// Read the timeout here rather than inside the goroutine: the
+			// goroutine outlives the agent, and tests that run several agents
+			// in one process rewrite the variable between them.
+			forceExitAfter := forceExitTimeout
 			go func() {
-				time.Sleep(forceExitTimeout)
+				time.Sleep(forceExitAfter)
 				log.Error().Msg("graceful shutdown timed out, forcing exit")
 				os.Exit(1)
 			}()
@@ -190,9 +196,30 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 	maxWorkflowsConfig := c.Int64("max-workflows")
 	log.Trace().
 		Int64("max-workflows", maxWorkflowsConfig).
+		Int64("max-lifetime-workflows", c.Int64("max-lifetime-workflows")).
 		Str("CROW_MAX_WORKFLOWS", os.Getenv("CROW_MAX_WORKFLOWS")).
 		Str("WOODPECKER_MAX_WORKFLOWS", os.Getenv("WOODPECKER_MAX_WORKFLOWS")).
 		Msg("agent configuration")
+
+	// Lifetime budget for single-use agents: once it is used up the agent stops
+	// polling, drains what it is running, unregisters and exits 0.
+	lifetime := newWorkflowLifetime(int(c.Int64("max-lifetime-workflows")))
+	if lifetime.Enabled() {
+		log.Info().
+			Int("max_lifetime_workflows", lifetime.limit).
+			Msg("agent is single-use: it will retire once its workflow budget is used up")
+
+		// An agent that retires after N workflows can never use more than N
+		// slots, so cap its parallelism at the budget. Otherwise it registers a
+		// capacity it cannot honor and spawns runners that exit on first poll.
+		if int64(lifetime.limit) < maxWorkflowsConfig {
+			log.Info().
+				Int64("max_workflows", maxWorkflowsConfig).
+				Int("max_lifetime_workflows", lifetime.limit).
+				Msg("capping parallel workflows to the agent's workflow lifetime budget")
+			maxWorkflowsConfig = int64(lifetime.limit)
+		}
+	}
 
 	counter.Polling = int(maxWorkflowsConfig)
 	counter.Running = 0
@@ -321,7 +348,7 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 	}
 	log.Trace().Msgf("loaded %s backend engine", backendEngine.Name())
 
-	maxWorkflows := int(c.Int64("max-workflows"))
+	maxWorkflows := int(maxWorkflowsConfig)
 
 	customLabels := make(map[string]string)
 	if err := stringSliceAddToMap(c.StringSlice("labels"), customLabels); err != nil {
@@ -402,6 +429,14 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 
 	// Set up re-registration handler for when server restarts and loses agent data
 	client.SetReregistrationHandler(func(ctx context.Context) error {
+		// A health report that raced the shutdown comes back "agent not found"
+		// right after this agent unregistered itself. Re-registering then would
+		// leave a fresh row behind for a process that is already exiting.
+		if agentCtx.Err() != nil {
+			log.Debug().Msg("skipping re-registration, agent is shutting down")
+			return errors.New("agent is shutting down")
+		}
+
 		log.Info().Msg("re-registering agent with server")
 		newAgentID, newAgentName, err := client.RegisterAgent(ctx, rpc.AgentInfo{
 			Version:       version.String(),
@@ -448,11 +483,18 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 		defer grpcClientCtxCancel(nil)
 		// we wait till agent context is done
 		<-agentCtx.Done()
-		// Remove stateless agents from server
-		if !agentConfigPersisted.Load() {
+		// Remove stateless agents from server. A retired single-use agent also
+		// unregisters even though it persisted its ID: the machine it runs on
+		// is about to be discarded, so there is no later start to reuse it.
+		if !agentConfigPersisted.Load() || counter.Retiring() {
 			log.Debug().Msg("unregister agent from server ...")
+			// Bound the call: it has no retry of its own, and a connection stuck
+			// in CONNECTING would otherwise hold the shutdown open until the
+			// force-exit watchdog fires and turns a clean retirement into exit 1.
+			unregisterCtx, cancelUnregister := context.WithTimeout(grpcClientCtx, shutdownTimeout)
+			defer cancelUnregister()
 			// we want to run it explicit run when context got canceled so run it in background
-			err := client.UnregisterAgent(grpcClientCtx)
+			err := client.UnregisterAgent(unregisterCtx)
 			if err != nil {
 				log.Err(err).Msg("failed to unregister agent from server")
 			} else {
@@ -579,6 +621,11 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 		Int("capacity", maxWorkflows).
 		Msg("planned workflow runners")
 
+	// workflowRunners tracks every runner goroutine, polling and drain-only
+	// alike, so the lifetime supervisor below knows when the agent has finished
+	// its last workflow.
+	var workflowRunners sync.WaitGroup
+
 	// Long-lived polling pool. Slots [0, pollingAdopted) first resume an adopted
 	// workflow, then fall into the normal poll loop; the remaining slots poll
 	// immediately. The pool size equals maxWorkflows, so the agent stays within
@@ -589,7 +636,10 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 		if i < plan.pollingAdopted {
 			adopted = adoptedWorkflows[i]
 		}
+		workflowRunners.Add(1)
 		serviceWaitingGroup.Go(runWithRecover(fmt.Sprintf("workflow-runner-%d", i), func() error {
+			defer workflowRunners.Done()
+
 			// Track liveness of the polling pool so /healthz can tell an agent
 			// that lost all its runners from a healthy idle one.
 			counter.RunnerStarted()
@@ -599,6 +649,15 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 			log.Trace().Msgf("created new runner %d", i)
 
 			if adopted != nil {
+				// An adopted workflow was claimed before this runner existed
+				// and is resumed whatever the budget says, so charge it
+				// directly instead of reserving a slot for it. Charging up
+				// front, before RunAdopted can fail, is deliberate: adoption
+				// only finds workflows whose containers are already on this
+				// host, so the machine is tainted by that pipeline whether or
+				// not resuming it succeeds, which is exactly what the budget
+				// counts.
+				lifetime.Charge()
 				log.Info().
 					Str("workflow_id", adopted.Workflow.ID).
 					Str("task_uuid", adopted.TaskUUID).
@@ -617,40 +676,7 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 				}
 			}
 
-			for {
-				if agentCtx.Err() != nil {
-					return nil
-				}
-
-				log.Trace().Msg("polling new steps")
-				err := runner.Run(agentCtx, shutdownCtx)
-				if err == nil {
-					continue
-				}
-
-				// Threshold reached: server is unreachable beyond what the
-				// supervisor can be expected to wait. Exit for restart.
-				if errors.Is(err, agent_rpc.ErrAgentRestartRequired) {
-					log.Error().Err(err).Msg("workflow polling encountered fatal error, agent will exit for restart")
-					stopAgentFunc(err) // Trigger agent shutdown
-					return err
-				}
-
-				// Check if context is canceled - this is expected during shutdown
-				if agentCtx.Err() != nil {
-					return nil
-				}
-
-				// Other errors are transient. Log and retry; do not exit the
-				// whole agent — that's what ErrAgentRestartRequired is for.
-				// A short cooldown avoids a hot loop on persistent errors.
-				log.Warn().Err(err).Msgf("runner %d returned a transient error, retrying after %s", i, runnerRetryDelay)
-				select {
-				case <-agentCtx.Done():
-					return nil
-				case <-time.After(runnerRetryDelay):
-				}
-			}
+			return pollWorkflows(agentCtx, shutdownCtx, i, &runner, lifetime)
 		}))
 	}
 
@@ -660,7 +686,11 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 	// staying above it indefinitely.
 	for i := range plan.drainAdopted {
 		adopted := adoptedWorkflows[plan.pollingAdopted+i]
+		workflowRunners.Add(1)
 		serviceWaitingGroup.Go(runWithRecover(fmt.Sprintf("adopted-drain-runner-%s", adopted.Workflow.ID), func() error {
+			defer workflowRunners.Done()
+
+			lifetime.Charge()
 			runner := agent.NewRunner(client, filter, hostname, counter, &backendEngine)
 			log.Info().
 				Str("workflow_id", adopted.Workflow.ID).
@@ -682,6 +712,26 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 		}))
 	}
 
+	// Retire the agent once every runner has stopped. Runners only return on
+	// their own when the lifetime budget is used up, so this is the single-use
+	// exit path: unregister and exit 0, leaving the supervisor to discard the
+	// machine instead of restarting the process on it.
+	if lifetime.Enabled() {
+		serviceWaitingGroup.Go(runWithRecover("lifetime-supervisor", func() error {
+			workflowRunners.Wait()
+			if !shouldRetire(agentCtx, lifetime) {
+				return nil
+			}
+			counter.SetRetiring(true)
+			log.Info().
+				Int("workflows", lifetime.Spent()).
+				Int("max_lifetime_workflows", lifetime.limit).
+				Msg("agent reached its workflow lifetime budget, retiring")
+			stopAgentFunc(nil)
+			return nil
+		}))
+	}
+
 	log.Info().Msgf(
 		"starting Crow agent with version '%s' and backend '%s' using platform '%s' running up to %d pipelines in parallel",
 		version.String(), backendEngine.Name(), engInfo.Platform, maxWorkflows)
@@ -691,6 +741,17 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 
 	// Wait for all services to complete
 	err = serviceWaitingGroup.Wait()
+
+	// Every runner has returned, so nothing enqueues log entries any more.
+	// Closing the client flushes the batch its log drain is still holding,
+	// which is up to a second of the last workflow's output — routine loss for
+	// an agent that exits right after finishing a job. rpc.Peer itself has no
+	// Close, only the gRPC implementation of it does.
+	if closer, ok := client.(interface{ Close() error }); ok {
+		if closeErr := closer.Close(); closeErr != nil {
+			log.Debug().Err(closeErr).Msg("closing the gRPC client failed")
+		}
+	}
 
 	// Mark agent as unhealthy when it exits/crashes
 	counter.SetHealthy(false)
@@ -737,6 +798,103 @@ func stringSliceAddToMap(sl []string, m map[string]string) error {
 		}
 	}
 	return nil
+}
+
+// shouldRetire decides whether an agent whose workflow runners have all
+// stopped should retire: unregister and exit 0 as a single-use agent that has
+// done its job.
+//
+// Runners also disappear for reasons that are not retirement. If the agent is
+// already shutting down, something else owns the exit. If the budget is not
+// used up, a runner panicked and runWithRecover is on its way to shutting the
+// agent down with that error — retiring here would race it and report a crash
+// as a clean exit, unregistering an agent whose machine should have been
+// restarted instead.
+func shouldRetire(agentCtx context.Context, lifetime *workflowLifetime) bool {
+	if agentCtx.Err() != nil {
+		return false
+	}
+	if !lifetime.Exhausted() {
+		log.Debug().
+			Int("workflows", lifetime.Spent()).
+			Msg("workflow runners stopped without using up the lifetime budget, not retiring")
+		return false
+	}
+	return true
+}
+
+// workflowRunner is the slice of agent.Runner that the polling loop uses, so
+// the loop can be exercised without a gRPC client or a backend engine.
+type workflowRunner interface {
+	Run(runnerCtx, shutdownCtx context.Context) (bool, error)
+}
+
+// pollWorkflows is the body of a long-lived runner goroutine: pull workflows
+// off the queue until the agent shuts down, treating errors as transient
+// unless the server has been unreachable long enough to warrant a restart.
+//
+// It also enforces the agent's workflow lifetime budget. A slot is reserved
+// before every poll and released again unless a workflow was actually picked
+// up, so an agent that waits an hour for its single job does not spend its
+// lifetime on empty queues. Once the budget is gone the runner returns, and
+// the last runner to do so takes the whole agent down with it.
+func pollWorkflows(agentCtx, shutdownCtx context.Context, id int, runner workflowRunner, lifetime *workflowLifetime) error {
+	for {
+		if agentCtx.Err() != nil {
+			return nil
+		}
+
+		// Single-use agents stop polling once the lifetime budget is used up.
+		// Reserve blocks while a sibling runner still holds an unspent slot, so
+		// the pool keeps its width until the budget is really gone.
+		if !lifetime.Reserve(agentCtx) {
+			if agentCtx.Err() != nil {
+				return nil
+			}
+			// Latch the wind-down before the last runner disappears, so
+			// /healthz never reports the empty runner pool of a retiring agent
+			// as the zombie pool of a broken one.
+			counter.SetRetiring(true)
+			log.Info().Msgf("runner %d stops polling, agent workflow lifetime budget is used up", id)
+			return nil
+		}
+
+		log.Trace().Msg("polling new steps")
+		ranWorkflow, err := runner.Run(agentCtx, shutdownCtx)
+		if ranWorkflow {
+			lifetime.Spend()
+		} else {
+			// The poll found an empty queue or failed, so waiting for work
+			// never costs the agent part of its lifetime.
+			lifetime.Release()
+		}
+		if err == nil {
+			continue
+		}
+
+		// Threshold reached: server is unreachable beyond what the
+		// supervisor can be expected to wait. Exit for restart.
+		if errors.Is(err, agent_rpc.ErrAgentRestartRequired) {
+			log.Error().Err(err).Msg("workflow polling encountered fatal error, agent will exit for restart")
+			stopAgentFunc(err) // Trigger agent shutdown
+			return err
+		}
+
+		// Check if context is canceled - this is expected during shutdown
+		if agentCtx.Err() != nil {
+			return nil
+		}
+
+		// Other errors are transient. Log and retry; do not exit the
+		// whole agent — that's what ErrAgentRestartRequired is for.
+		// A short cooldown avoids a hot loop on persistent errors.
+		log.Warn().Err(err).Msgf("runner %d returned a transient error, retrying after %s", id, runnerRetryDelay)
+		select {
+		case <-agentCtx.Done():
+			return nil
+		case <-time.After(runnerRetryDelay):
+		}
+	}
 }
 
 // AdoptedWorkflow represents a workflow that has been claimed and needs to be monitored.

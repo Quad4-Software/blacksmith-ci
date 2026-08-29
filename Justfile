@@ -149,7 +149,7 @@ install-protoc:
 ## test
 
 test-agent:
-    CGO_ENABLED=1 go test -race -cover -coverprofile agent-coverage.out -timeout 60s -tags 'test {{ TAGS }}' codefloe.com/crowci/crow/v6/cmd/agent codefloe.com/crowci/crow/v6/agent/...
+    CGO_ENABLED=1 go test -race -cover -coverprofile agent-coverage.out -timeout 60s -tags 'test {{ TAGS }}' codefloe.com/crowci/crow/v6/cmd/agent/... codefloe.com/crowci/crow/v6/agent/...
 
 test-server:
     CGO_ENABLED=1 go test -race -cover -coverprofile server-coverage.out -timeout 60s -tags 'test {{ TAGS }}' codefloe.com/crowci/crow/v6/cmd/server `go list codefloe.com/crowci/crow/v6/server/... | grep -v '/store'`

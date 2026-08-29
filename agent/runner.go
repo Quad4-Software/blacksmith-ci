@@ -50,7 +50,12 @@ func NewRunner(workEngine rpc.Peer, f rpc.Filter, h string, state *State, backen
 	}
 }
 
-func (r *Runner) Run(runnerCtx, shutdownCtx context.Context) error { //nolint:contextcheck
+// Run polls for one workflow and executes it. The first return value reports
+// whether a workflow was actually picked up, so the caller can tell "this
+// runner ran a workflow" from "this runner waited around" — the distinction
+// the agent's workflow lifetime budget is accounted in. A poll that found an
+// empty queue or failed returns false.
+func (r *Runner) Run(runnerCtx, shutdownCtx context.Context) (bool, error) { //nolint:contextcheck
 	log.Trace().Msg("request next execution")
 
 	meta, _ := metadata.FromOutgoingContext(runnerCtx)
@@ -59,10 +64,10 @@ func (r *Runner) Run(runnerCtx, shutdownCtx context.Context) error { //nolint:co
 	// get the next workflow from the queue
 	workflow, err := r.client.Next(runnerCtx, r.filter)
 	if err != nil {
-		return err
+		return false, err
 	}
 	if workflow == nil {
-		return nil
+		return false, nil
 	}
 
 	timeout := time.Hour
@@ -176,7 +181,7 @@ func (r *Runner) Run(runnerCtx, shutdownCtx context.Context) error { //nolint:co
 	// The workflow isn't actually done - it will be picked up by the restarted agent.
 	if pipeline.ShouldPreserveWorkflows() {
 		logger.Info().Msg("workflow preserved for adoption, skipping Done() call")
-		return nil
+		return true, nil
 	}
 
 	logger.Debug().
@@ -193,7 +198,7 @@ func (r *Runner) Run(runnerCtx, shutdownCtx context.Context) error { //nolint:co
 		logger.Debug().Msg("updating workflow status complete")
 	}
 
-	return nil
+	return true, nil
 }
 
 func extractRepositoryName(config *backend.Config) string {

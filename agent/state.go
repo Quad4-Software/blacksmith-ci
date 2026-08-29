@@ -35,6 +35,13 @@ type State struct {
 	// otherwise keep reporting 200 on /healthz while never picking up work again.
 	runnersStarted int
 	runnersLive    int
+
+	// retiring records that the agent is winding down on purpose, because its
+	// configured workflow lifetime budget is used up. A retiring agent ends up
+	// with no runners left, which is exactly the zombie signature below, so the
+	// flag tells the two states apart and keeps /healthz green while the agent
+	// finishes its last workflow and exits.
+	retiring bool
 }
 
 type Info struct {
@@ -95,11 +102,32 @@ func (s *State) RunnerStarted() {
 }
 
 // RunnerStopped records that a workflow runner goroutine has exited, whether
-// normally or because it panicked.
+// normally, because its agent retired, or because it panicked. The runner was
+// polling when it stopped — a runner that was executing a workflow has already
+// been through Done — so the polling slot goes away with it.
 func (s *State) RunnerStopped() {
 	s.Lock()
 	s.runnersLive--
+	if s.Polling > 0 {
+		s.Polling--
+	}
 	s.Unlock()
+}
+
+// SetRetiring marks the agent as winding down by design. Called when a
+// single-use agent has used up its workflow lifetime budget.
+func (s *State) SetRetiring(retiring bool) {
+	s.Lock()
+	defer s.Unlock()
+	s.retiring = retiring
+}
+
+// Retiring reports whether the agent is winding down because its workflow
+// lifetime budget is used up, as opposed to being stopped from the outside.
+func (s *State) Retiring() bool {
+	s.Lock()
+	defer s.Unlock()
+	return s.retiring
 }
 
 func (s *State) Healthy() bool {
@@ -114,7 +142,7 @@ func (s *State) Healthy() bool {
 	// An agent that once had workflow runners but has none left cannot process
 	// any pipeline, even though every other signal still looks fine. Report
 	// unhealthy so the supervisor restarts it instead of leaving a zombie behind.
-	if s.runnersStarted > 0 && s.runnersLive == 0 {
+	if !s.retiring && s.runnersStarted > 0 && s.runnersLive == 0 {
 		return false
 	}
 

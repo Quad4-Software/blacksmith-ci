@@ -279,6 +279,7 @@ Workflows on one agent still share the build caches and the account's temp direc
 Execution is not restricted, network access is unrestricted, and `sandbox-exec` is a deprecated Apple utility whose profile language is not a supported security boundary.
 
 For a public instance, or anywhere pull requests from strangers build, give each job a fresh macOS VM and run an agent inside it.
+Set `CROW_AGENT_MAX_LIFETIME_WORKFLOWS=1` so the agent retires after that one job and the VM can be discarded with it, see [Single-Use Agents](/dev/configuration/agent/#single-use-agents).
 :::
 
 #### `strict`

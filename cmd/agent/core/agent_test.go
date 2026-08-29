@@ -16,7 +16,10 @@ package core
 
 import (
 	"bytes"
+	"context"
 	"errors"
+	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -24,6 +27,8 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	agent_rpc "codefloe.com/crowci/crow/v6/agent/rpc"
 )
 
 func TestBackendProbeTracker(t *testing.T) {
@@ -381,4 +386,194 @@ func TestValidateGRPCConfig(t *testing.T) {
 		require.NoError(t, err)
 		assert.Empty(t, buf.String())
 	})
+}
+
+// fakeWorkflowRunner stands in for agent.Runner so the polling loop can be
+// driven without a gRPC client or a backend engine. Each Run consults the
+// behave callback for whether the poll picked up a workflow, and for the error
+// it should return.
+type fakeWorkflowRunner struct {
+	runs   int
+	behave func(run int) (ranWorkflow bool, err error)
+}
+
+func (f *fakeWorkflowRunner) Run(_, _ context.Context) (bool, error) {
+	f.runs++
+	return f.behave(f.runs)
+}
+
+func TestPollWorkflowsStopsAfterLifetimeBudget(t *testing.T) {
+	counter.SetRetiring(false)
+	t.Cleanup(func() { counter.SetRetiring(false) })
+
+	lifetime := newWorkflowLifetime(2)
+	runner := &fakeWorkflowRunner{behave: func(int) (bool, error) { return true, nil }}
+
+	require.NoError(t, pollWorkflows(t.Context(), t.Context(), 0, runner, lifetime))
+	assert.Equal(t, 2, runner.runs, "runner must poll exactly as often as the budget allows")
+	assert.Equal(t, 2, lifetime.Spent())
+	assert.True(t, lifetime.Exhausted())
+}
+
+func TestPollWorkflowsIdlePollsKeepTheBudget(t *testing.T) {
+	counter.SetRetiring(false)
+	t.Cleanup(func() { counter.SetRetiring(false) })
+
+	lifetime := newWorkflowLifetime(1)
+	// The queue is empty for the first three polls; only the fourth hands out
+	// a workflow. A single-use agent must still be around to take it.
+	runner := &fakeWorkflowRunner{behave: func(run int) (bool, error) {
+		return run == 4, nil
+	}}
+
+	require.NoError(t, pollWorkflows(t.Context(), t.Context(), 0, runner, lifetime))
+	assert.Equal(t, 4, runner.runs)
+	assert.Equal(t, 1, lifetime.Spent())
+}
+
+func TestPollWorkflowsRetiringIsLatchedForHealthChecks(t *testing.T) {
+	counter.SetRetiring(false)
+	t.Cleanup(func() { counter.SetRetiring(false) })
+	counter.SetHealthy(true)
+	counter.RunnerStarted()
+
+	lifetime := newWorkflowLifetime(1)
+	runner := &fakeWorkflowRunner{behave: func(int) (bool, error) { return true, nil }}
+	require.NoError(t, pollWorkflows(t.Context(), t.Context(), 0, runner, lifetime))
+
+	// The last runner of a retiring agent is about to exit; an empty runner
+	// pool is expected here and must not be reported as a zombie agent.
+	counter.RunnerStopped()
+	assert.True(t, counter.Healthy(), "a retiring agent must stay healthy while it exits")
+}
+
+func TestPollWorkflowsWithoutLifetimeLimitRunsUntilShutdown(t *testing.T) {
+	ctx, cancel := context.WithCancelCause(t.Context())
+	defer cancel(nil)
+
+	lifetime := newWorkflowLifetime(0)
+	runner := &fakeWorkflowRunner{behave: func(run int) (bool, error) {
+		if run == 25 {
+			cancel(nil)
+		}
+		return true, nil
+	}}
+
+	require.NoError(t, pollWorkflows(ctx, t.Context(), 0, runner, lifetime))
+	assert.Equal(t, 25, runner.runs, "an unlimited agent polls until it is shut down")
+	assert.Zero(t, lifetime.Spent())
+}
+
+func TestPollWorkflowsReturnsFatalRunnerError(t *testing.T) {
+	lifetime := newWorkflowLifetime(0)
+	runner := &fakeWorkflowRunner{behave: func(int) (bool, error) {
+		return false, fmt.Errorf("connection lost: %w", agent_rpc.ErrAgentRestartRequired)
+	}}
+
+	err := pollWorkflows(t.Context(), t.Context(), 0, runner, lifetime)
+	require.ErrorIs(t, err, agent_rpc.ErrAgentRestartRequired)
+	assert.Equal(t, 1, runner.runs)
+}
+
+// Runners now block on a slot held by a sibling instead of exiting, so the
+// whole pool has to come back cleanly: it must share the budget, run exactly
+// what it is allowed to, and every runner must return rather than sit waiting
+// on a budget that will never be released.
+func TestPollWorkflowsSharesTheBudgetBetweenRunners(t *testing.T) {
+	counter.SetRetiring(false)
+	t.Cleanup(func() { counter.SetRetiring(false) })
+
+	const (
+		poolSize = 2
+		budget   = 4
+	)
+	lifetime := newWorkflowLifetime(budget)
+
+	// Runners take turns: each poll blocks until the other runner has had one,
+	// which is the interleaving that used to make the loser exit for good.
+	var (
+		mu      sync.Mutex
+		running int
+		peak    int
+	)
+	newRunner := func() *fakeWorkflowRunner {
+		return &fakeWorkflowRunner{behave: func(int) (bool, error) {
+			mu.Lock()
+			running++
+			peak = max(peak, running)
+			mu.Unlock()
+			time.Sleep(10 * time.Millisecond)
+			mu.Lock()
+			running--
+			mu.Unlock()
+			return true, nil
+		}}
+	}
+
+	runners := make([]*fakeWorkflowRunner, poolSize)
+	var wg sync.WaitGroup
+	for i := range runners {
+		runners[i] = newRunner()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			assert.NoError(t, pollWorkflows(t.Context(), t.Context(), i, runners[i], lifetime))
+		}()
+	}
+	wg.Wait()
+
+	total := 0
+	for _, runner := range runners {
+		total += runner.runs
+		assert.NotZero(t, runner.runs, "every runner must get work while the budget lasts")
+	}
+	assert.Equal(t, budget, total, "the pool must run exactly the budgeted workflows")
+	assert.Equal(t, poolSize, peak, "the pool must keep its width until the budget is gone")
+}
+
+func TestShouldRetire(t *testing.T) {
+	canceled, cancel := context.WithCancelCause(t.Context())
+	cancel(nil)
+
+	spent := newWorkflowLifetime(1)
+	spent.Charge()
+
+	tests := []struct {
+		name     string
+		ctx      context.Context
+		lifetime *workflowLifetime
+		want     bool
+	}{
+		{
+			name:     "budget used up",
+			ctx:      t.Context(),
+			lifetime: spent,
+			want:     true,
+		},
+		{
+			name: "runner gone with budget left, a panic rather than a retirement",
+			ctx:  t.Context(),
+			// The runner that would have spent this slot died instead.
+			lifetime: newWorkflowLifetime(1),
+			want:     false,
+		},
+		{
+			name:     "already shutting down for another reason",
+			ctx:      canceled,
+			lifetime: spent,
+			want:     false,
+		},
+		{
+			name:     "no lifetime limit configured",
+			ctx:      t.Context(),
+			lifetime: newWorkflowLifetime(0),
+			want:     false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.want, shouldRetire(test.ctx, test.lifetime))
+		})
+	}
 }

@@ -76,6 +76,12 @@ var flags = []cli.Flag{
 		Usage:   "agent parallel workflows",
 		Value:   1,
 	},
+	&cli.Int64Flag{
+		Sources: cli.EnvVars("CROW_AGENT_MAX_LIFETIME_WORKFLOWS"),
+		Name:    "max-lifetime-workflows",
+		Usage:   "retire the agent after this many workflows: it stops polling, unregisters and exits 0. Requires a supervisor that does not restart it. 0 disables the limit",
+		Value:   0,
+	},
 	&cli.BoolFlag{
 		Sources: cli.EnvVars("WOODPECKER_HEALTHCHECK", "CROW_HEALTHCHECK"),
 		Name:    "healthcheck",

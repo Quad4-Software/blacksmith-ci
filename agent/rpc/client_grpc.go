@@ -94,6 +94,11 @@ type client struct {
 	logs                  chan *proto.LogEntry
 	reregistrationHandler func(context.Context) error // callback to re-register agent when not found on server
 	maxErrorDuration      time.Duration
+
+	// logsDrained is closed by processLogs once it has flushed its last batch,
+	// and closeOnce keeps Close idempotent, since closing c.logs twice panics.
+	logsDrained chan struct{}
+	closeOnce   sync.Once
 }
 
 // NewGrpcClient returns a new grpc Client.
@@ -102,6 +107,7 @@ func NewGrpcClient(ctx context.Context, conn *grpc.ClientConn) rpc.Peer {
 	client.client = proto.NewCrowClient(conn)
 	client.conn = conn
 	client.logs = make(chan *proto.LogEntry, 10) // max memory use: 10 lines * 1 MiB
+	client.logsDrained = make(chan struct{})
 	client.maxErrorDuration = DefaultMaxErrorDuration
 	go client.processLogs(ctx)
 	return client
@@ -153,8 +159,28 @@ func ResetAgentShutdown() {
 	agentShuttingDown.Store(false)
 }
 
+// logDrainCloseTimeout bounds how long Close waits for the log drain to flush
+// what it is still batching. Long enough for one Log call against a healthy
+// server, short enough to stay well inside the agent's force-exit watchdog.
+const logDrainCloseTimeout = 2 * time.Second
+
+// Close stops the log drain and closes the connection.
+//
+// It waits for the drain to flush before tearing the connection down. Without
+// that wait the last batch — up to maxLogFlushPeriod of a workflow's output —
+// is lost whenever the agent exits right after a workflow finishes, which for
+// a single-use agent is every workflow it runs.
 func (c *client) Close() error {
-	close(c.logs)
+	c.closeOnce.Do(func() {
+		close(c.logs)
+	})
+
+	select {
+	case <-c.logsDrained:
+	case <-time.After(logDrainCloseTimeout):
+		log.Warn().Msg("log drain did not flush in time, queued logs are lost")
+	}
+
 	return c.conn.Close()
 }
 
@@ -779,6 +805,9 @@ func (c *client) EnqueueLog(logEntry *rpc.LogEntry) {
 }
 
 func (c *client) processLogs(ctx context.Context) {
+	// Signals Close that everything queued has been flushed.
+	defer close(c.logsDrained)
+
 	var entries []*proto.LogEntry
 	var bytes int
 
