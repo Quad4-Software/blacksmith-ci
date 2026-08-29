@@ -4,7 +4,7 @@ when:
 
 clone:
   git:
-    image: codefloe.com/crow-plugins/clone:dev
+    image: codefloe.com/crow-plugins/clone:1.2.0
     settings:
       branch: pages
       ref: pages
