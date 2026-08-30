@@ -432,6 +432,7 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 		Summary: "List pipeline configs for a repository", Tags: []string{"Repositories"},
 		Security: BearerSecurity, Middlewares: repoPullMW,
 	}, api.GetRepoConfigs)
+	apiBase.GET("/repos/:repo_id/configs/stream", session.SetRepo(), session.SetPerm(), session.MustPull, api.StreamRepoConfigs)
 
 	// Pipelines
 	huma.Register(humaAPI, huma.Operation{

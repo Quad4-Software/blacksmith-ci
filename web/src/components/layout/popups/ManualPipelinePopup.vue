@@ -95,8 +95,24 @@
         <div class="flex flex-col sm:flex-row gap-4 sm:gap-6 sm:h-[60vh]">
           <!-- Left: workflow selection -->
           <div class="sm:w-2/5 sm:border-r sm:pr-4 sm:overflow-y-auto">
-            <div v-if="workflowsLoading" class="flex justify-center py-8">
-              <Icon name="spinner" class="h-5 w-5 animate-spin" />
+            <div
+              v-if="workflowsLoading"
+              class="flex flex-col items-center justify-center gap-3 px-4 py-8 text-center"
+              role="status"
+              aria-live="polite"
+            >
+              <Icon name="spinner" class="h-5 w-5 animate-spin text-primary" />
+              <div class="space-y-1">
+                <p class="text-sm font-medium">{{ $t('repo.manual_pipeline.parsing_workflows') }}</p>
+                <p v-if="showExtendedWorkflowLoading" class="text-xs text-muted-foreground">
+                  {{ workflowProgressText }}
+                </p>
+              </div>
+              <Progress
+                v-if="showExtendedWorkflowLoading && hasWorkflowProgressTotal"
+                :model-value="workflowProgressPercent"
+                class="h-1.5 max-w-48"
+              />
             </div>
             <WorkflowSelector
               v-else
@@ -146,14 +162,15 @@ import {
   DialogTitle,
 } from '~/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
+import { Progress } from '~/components/ui/progress';
 import useApiClient from '~/compositions/useApiClient';
 import { requiredInject } from '~/compositions/useInjectProvide';
 import { useLoadingOverlay } from '~/compositions/useLoadingOverlay';
 import useNotifications from '~/compositions/useNotifications';
 import { usePaginate } from '~/compositions/usePaginate';
 import { PipelineFilteredError } from '~/lib/api/client';
-import type { ManualVariable, ManualWorkflow } from '~/lib/api/types';
-import { computed, ref, watch } from 'vue';
+import type { ManualVariable, ManualWorkflow, ManualWorkflowsProgress } from '~/lib/api/types';
+import { computed, onScopeDispose, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
@@ -190,10 +207,52 @@ const workflows = ref<ManualWorkflow[]>([]);
 const selectedWorkflows = ref<Set<string>>(new Set());
 const workflowWarnings = ref<string[]>([]);
 const workflowsLoading = ref(false);
+const workflowLoadingSeconds = ref(0);
+const showExtendedWorkflowLoading = computed(() => workflowLoadingSeconds.value >= 3);
+const workflowProgress = ref<ManualWorkflowsProgress>({ stage: 'fetching', current: 0, total: 0 });
+const hasWorkflowProgressTotal = computed(() => Number(workflowProgress.value.total ?? 0) > 0);
+const workflowProgressPercent = computed(() => {
+  if (!workflowProgress.value.total) return 0;
+  return (Number(workflowProgress.value.current ?? 0) / workflowProgress.value.total) * 100;
+});
+const workflowProgressText = computed(() => {
+  const progress = workflowProgress.value;
+  if (progress.stage === 'parsing' && progress.total) {
+    return i18n.t('repo.manual_pipeline.parsing_workflows_progress', {
+      current: progress.current ?? 0,
+      total: progress.total,
+    });
+  }
+  if (progress.stage === 'preprocessing') {
+    return i18n.t('repo.manual_pipeline.preprocessing_workflows');
+  }
+  return i18n.t('repo.manual_pipeline.fetching_workflows');
+});
+let workflowLoadingIntervalId: ReturnType<typeof setInterval> | null = null;
 
 const loading = ref(false);
 const isSubmitting = ref(false);
 const hasFetchedRefs = ref(false);
+
+watch(workflowsLoading, (isLoading) => {
+  if (workflowLoadingIntervalId !== null) {
+    clearInterval(workflowLoadingIntervalId);
+    workflowLoadingIntervalId = null;
+  }
+
+  workflowLoadingSeconds.value = 0;
+  if (isLoading) {
+    workflowLoadingIntervalId = setInterval(() => {
+      workflowLoadingSeconds.value += 1;
+    }, 1000);
+  }
+});
+
+onScopeDispose(() => {
+  if (workflowLoadingIntervalId !== null) {
+    clearInterval(workflowLoadingIntervalId);
+  }
+});
 
 // Variables derived from the selected workflows
 const variableValues = ref<Record<string, string>>({});
@@ -298,8 +357,15 @@ watch(
     }
 
     workflowsLoading.value = true;
+    workflowProgress.value = { stage: 'fetching', current: 0, total: 0 };
     try {
-      const response = await apiClient.getRepoManualWorkflows(repo.value.id, refPayload.value);
+      const response = await apiClient.getRepoManualWorkflowsWithProgress(
+        repo.value.id,
+        refPayload.value,
+        (progress) => {
+          workflowProgress.value = progress;
+        },
+      );
       workflows.value = response.workflows;
       workflowWarnings.value = response.warnings || [];
       // Reset selection when workflows change

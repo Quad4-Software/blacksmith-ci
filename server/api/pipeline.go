@@ -754,6 +754,12 @@ type GetRepoConfigsOutput struct {
 }
 
 func GetRepoConfigs(ctx context.Context, input *GetRepoConfigsInput) (*GetRepoConfigsOutput, error) {
+	return getRepoConfigs(ctx, input, nil)
+}
+
+type repoConfigsProgressFunc func(stage string, current, total int)
+
+func getRepoConfigs(ctx context.Context, input *GetRepoConfigsInput, progress repoConfigsProgressFunc) (*GetRepoConfigsOutput, error) {
 	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 	repo := session.Repo(c)
@@ -790,6 +796,7 @@ func GetRepoConfigs(ctx context.Context, input *GetRepoConfigsInput) (*GetRepoCo
 	tmpPipeline := manualTmpPipeline(target)
 
 	// Fetch the configs from the forge
+	reportRepoConfigsProgress(progress, "fetching", 0, 0)
 	configService := server.Config.Services.Manager.ConfigServiceFromRepo(repo)
 	forgeYamlConfigs, err := configService.Fetch(c, _forge, user, repo, tmpPipeline, nil, false)
 	if err != nil {
@@ -804,6 +811,7 @@ func GetRepoConfigs(ctx context.Context, input *GetRepoConfigsInput) (*GetRepoCo
 	}
 
 	// Pre-process Jsonnet files: evaluate them to YAML before parsing
+	reportRepoConfigsProgress(progress, "preprocessing", 0, len(forgeYamlConfigs))
 	forgeYamlConfigs, err = preprocessJsonnetConfigs(forgeYamlConfigs, repo, tmpPipeline, _forge)
 	if err != nil {
 		log.Debug().Err(err).Msg("error preprocessing Jsonnet configs")
@@ -815,10 +823,12 @@ func GetRepoConfigs(ctx context.Context, input *GetRepoConfigsInput) (*GetRepoCo
 	workflowMap := make(map[string]ManualWorkflow) // for dependency resolution
 	var warnings []string
 
-	for _, forgeConfig := range forgeYamlConfigs {
+	reportRepoConfigsProgress(progress, "parsing", 0, len(forgeYamlConfigs))
+	for index, forgeConfig := range forgeYamlConfigs {
 		parsed, err := yaml.ParseBytes(forgeConfig.Data)
 		if err != nil {
 			log.Debug().Err(err).Str("file", forgeConfig.Name).Msg("error parsing yaml")
+			reportRepoConfigsProgress(progress, "parsing", index+1, len(forgeYamlConfigs))
 			continue
 		}
 
@@ -851,6 +861,7 @@ func GetRepoConfigs(ctx context.Context, input *GetRepoConfigsInput) (*GetRepoCo
 		}
 
 		workflowMap[workflowName] = wf
+		reportRepoConfigsProgress(progress, "parsing", index+1, len(forgeYamlConfigs))
 
 		// If filtering by manual, only include workflows with manual trigger
 		if input.Filter == "manual" && !hasManual {
@@ -875,6 +886,12 @@ func GetRepoConfigs(ctx context.Context, input *GetRepoConfigsInput) (*GetRepoCo
 		Workflows: workflows,
 		Warnings:  warnings,
 	}}, nil
+}
+
+func reportRepoConfigsProgress(progress repoConfigsProgressFunc, stage string, current, total int) {
+	if progress != nil {
+		progress(stage, current, total)
+	}
 }
 
 // workflowHasManualTrigger checks if a workflow's when constraint includes the manual event.

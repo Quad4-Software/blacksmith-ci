@@ -26,6 +26,7 @@ import type {
   MaintenanceLog,
   MaintenanceOperationConfig,
   MaintenanceStats,
+  ManualWorkflowsProgress,
   ManualWorkflowsResponse,
   MetricQuery,
   Metrics,
@@ -157,6 +158,42 @@ export default class CrowClient extends ApiClient {
   async getRepoManualWorkflows(repoId: number, ref: PipelineRef): Promise<ManualWorkflowsResponse> {
     const query = encodeQueryString({ ...ref, filter: 'manual' });
     return this._get(`/api/v1/repos/${repoId}/configs?${query}`) as Promise<ManualWorkflowsResponse>;
+  }
+
+  async getRepoManualWorkflowsWithProgress(
+    repoId: number,
+    ref: PipelineRef,
+    onProgress: (progress: ManualWorkflowsProgress) => void,
+  ): Promise<ManualWorkflowsResponse> {
+    const query = encodeQueryString({ ...ref, filter: 'manual' });
+
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const events = this._subscribe<ManualWorkflowsProgress>(
+        `/api/v1/repos/${repoId}/configs/stream?${query}`,
+        (progress) => {
+          onProgress(progress);
+          if (progress.stage === 'complete' && progress.result) {
+            settled = true;
+            events.close();
+            resolve(progress.result);
+          } else if (progress.stage === 'error') {
+            settled = true;
+            events.close();
+            reject(new Error(progress.error ?? 'Failed to fetch workflows'));
+          }
+        },
+        { reconnect: false },
+      );
+
+      events.addEventListener('error', () => {
+        if (!settled) {
+          settled = true;
+          events.close();
+          reject(new Error('Workflow progress stream disconnected'));
+        }
+      });
+    });
   }
 
   async activateRepo(forgeRemoteId: string, forgeId?: number): Promise<RepoResponse> {

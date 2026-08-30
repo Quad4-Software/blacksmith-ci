@@ -122,17 +122,10 @@ export interface Pipeline {
   is_always_approved?: boolean;
 }
 
-export type PipelineStatus =
-  | 'blocked'
-  | 'declined'
-  | 'error'
-  | 'failure'
-  | 'killed'
-  | 'pending'
-  | 'running'
-  | 'skipped'
-  | 'started'
-  | 'success';
+type ActivePipelineStatus = 'blocked' | 'pending' | 'running' | 'started';
+type CompletedPipelineStatus = 'declined' | 'error' | 'failure' | 'killed' | 'skipped' | 'success';
+
+export type PipelineStatus = ActivePipelineStatus | CompletedPipelineStatus;
 
 export interface PipelineWorkflow {
   id: number;
@@ -261,4 +254,14 @@ export interface ManualWorkflow {
 export interface ManualWorkflowsResponse {
   workflows: ManualWorkflow[];
   warnings?: string[];
+}
+
+export type ManualWorkflowsProgressStage = 'fetching' | 'preprocessing' | 'parsing' | 'complete' | 'error';
+
+export interface ManualWorkflowsProgress {
+  stage: ManualWorkflowsProgressStage;
+  current?: number;
+  total?: number;
+  result?: ManualWorkflowsResponse;
+  error?: string;
 }

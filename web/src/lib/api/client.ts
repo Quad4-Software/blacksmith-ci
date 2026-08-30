@@ -1,5 +1,5 @@
-import type { useAuthStore } from '~/store/auth';
 import type { ProcLogEntry } from '~/lib/api/types/procLog';
+import type { useAuthStore } from '~/store/auth';
 
 export interface ApiError {
   status: number;
@@ -198,7 +198,8 @@ export default class ApiClient {
       access_token: this.token ?? undefined,
     });
     let _path = this.server ? this.server + path : path;
-    _path = this.token !== null ? `${_path}?${query}` : _path;
+    const separator = _path.includes('?') ? '&' : '?';
+    _path = this.token !== null ? `${_path}${separator}${query}` : _path;
 
     const events = new EventSource(_path);
 

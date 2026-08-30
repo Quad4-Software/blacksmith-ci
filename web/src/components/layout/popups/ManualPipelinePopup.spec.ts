@@ -1,6 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import WorkflowSelector from '~/components/form/WorkflowSelector.vue';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ref } from 'vue';
 import ManualPipelinePopup from './ManualPipelinePopup.vue';
 
@@ -26,10 +26,11 @@ vi.mock('~/compositions/useTheme', () => ({
 const getRepoBranches = vi.fn();
 const getRepoTags = vi.fn();
 const getRepoManualWorkflows = vi.fn();
+const getRepoManualWorkflowsWithProgress = vi.fn();
 const createPipeline = vi.fn();
 
 vi.mock('~/compositions/useApiClient', () => ({
-  default: () => ({ getRepoBranches, getRepoTags, getRepoManualWorkflows, createPipeline }),
+  default: () => ({ getRepoBranches, getRepoTags, getRepoManualWorkflowsWithProgress, createPipeline }),
 }));
 
 vi.mock('~/compositions/useNotifications', () => ({
@@ -76,7 +77,40 @@ describe('manualPipelinePopup ref picker', () => {
     getRepoBranches.mockResolvedValue(['main', 'feature']);
     getRepoTags.mockResolvedValue(['v1.0.0']);
     getRepoManualWorkflows.mockResolvedValue({ workflows: [], warnings: [] });
+    getRepoManualWorkflowsWithProgress.mockImplementation((repoId: number, target: { branch?: string; tag?: string }) =>
+      getRepoManualWorkflows(repoId, target),
+    );
     createPipeline.mockResolvedValue({ number: 1 });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('reveals extended parsing progress after three seconds', async () => {
+    vi.useFakeTimers();
+    let resolveWorkflows: ((value: { workflows: never[]; warnings: never[] }) => void) | undefined;
+    getRepoManualWorkflowsWithProgress.mockImplementation(
+      async (_repoId: number, _target: unknown, onProgress: (progress: unknown) => void) => {
+        onProgress({ stage: 'parsing', current: 7, total: 20 });
+        return new Promise((resolve) => {
+          resolveWorkflows = resolve;
+        });
+      },
+    );
+
+    const { wrapper } = mountPopup();
+    await flushPromises();
+
+    expect(wrapper.find('[data-slot="progress"]').exists()).toBe(false);
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(wrapper.find('[data-slot="progress"]').exists()).toBe(true);
+    expect(wrapper.text()).toContain('repo.manual_pipeline.parsing_workflows_progress');
+
+    resolveWorkflows!({ workflows: [], warnings: [] });
+    await flushPromises();
+    expect(wrapper.find('[data-slot="progress"]').exists()).toBe(false);
+    wrapper.unmount();
   });
 
   it('starts on the default branch and asks for its workflows by branch', async () => {
