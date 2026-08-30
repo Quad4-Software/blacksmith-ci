@@ -219,6 +219,23 @@ services:
   For the kubernetes backend, architecture-specific pipelines should be controlled via the [`nodeSelector` backend option](/dev/configuration/server/#backend-options-1).
   :::
 
+## Reading step logs
+
+Each command a step runs is echoed into the log as a `+ <command>` line before it executes.
+The log view uses those markers to group a step's output into one collapsible section per command, so a long step reads as a list of commands rather than an undifferentiated wall of text.
+
+Click a section header to fold or unfold it.
+A folded header keeps showing the command, how many lines it hides, and how long the command ran.
+The toolbar button above the log folds or unfolds every section at once, and output produced before the first command (such as the clone) is never folded away.
+
+Sections are unfolded by default.
+Turn the grouping off entirely under **Log View Settings > Fold command output**; the choice is remembered per browser.
+
+:::note
+Only the traces the step script emits on stdout start a section.
+Shell tracing you enable yourself with `set -x` writes to stderr and is left as plain output.
+:::
+
 ## Skipping commits
 
 Commits can be prohibited from triggering a webhook by adding `[SKIP CI]` or `[CI SKIP]` (case-insensitive) to the commit message.

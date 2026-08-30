@@ -109,6 +109,8 @@ export type IconNames =
   | 'lucide:pin-off'
   | 'lucide:power'
   | 'lucide:arrow-up-down'
+  | 'lucide:chevrons-down-up'
+  | 'lucide:chevrons-up-down'
   | 'lucide:grip-vertical'
   | 'lucide:circle-check'
   | 'lucide:circle-x'

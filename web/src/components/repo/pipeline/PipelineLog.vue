@@ -150,6 +150,31 @@
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+          <TooltipProvider v-if="foldCommands && hasSections">
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  :aria-label="
+                    allSectionsCollapsed
+                      ? $t('repo.pipeline.actions.expand_all_commands')
+                      : $t('repo.pipeline.actions.collapse_all_commands')
+                  "
+                  @click="toggleAllSections"
+                >
+                  <Icon :name="allSectionsCollapsed ? 'lucide:chevrons-up-down' : 'lucide:chevrons-down-up'" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {{
+                  allSectionsCollapsed
+                    ? $t('repo.pipeline.actions.expand_all_commands')
+                    : $t('repo.pipeline.actions.collapse_all_commands')
+                }}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger as-child>
@@ -244,6 +269,18 @@
                 <div class="flex items-center justify-between">
                   <div class="space-y-0.5">
                     <label class="text-sm font-medium text-foreground">{{
+                      $t('repo.pipeline.actions.fold_commands')
+                    }}</label>
+                    <p class="text-xs text-muted-foreground">
+                      {{ $t('repo.pipeline.actions.fold_commands_desc') }}
+                    </p>
+                  </div>
+                  <Switch v-model="foldCommands" />
+                </div>
+
+                <div class="flex items-center justify-between">
+                  <div class="space-y-0.5">
+                    <label class="text-sm font-medium text-foreground">{{
                       $t('repo.pipeline.actions.auto_follow')
                     }}</label>
                     <p class="text-xs text-muted-foreground">
@@ -328,6 +365,17 @@
               <p class="text-xs text-muted-foreground">{{ $t('repo.pipeline.actions.log_line_limit_desc') }}</p>
             </div>
 
+            <!-- Fold command sections -->
+            <div class="flex items-center justify-between">
+              <div class="space-y-0.5">
+                <label class="text-sm font-medium text-foreground">{{
+                  $t('repo.pipeline.actions.fold_commands')
+                }}</label>
+                <p class="text-xs text-muted-foreground">{{ $t('repo.pipeline.actions.fold_commands_desc') }}</p>
+              </div>
+              <Switch v-model="foldCommands" />
+            </div>
+
             <!-- Auto Follow -->
             <div class="flex items-center justify-between">
               <div class="space-y-0.5">
@@ -342,6 +390,17 @@
 
             <!-- Action buttons -->
             <div class="grid grid-cols-2 gap-2 pt-2 border-t">
+              <Button v-if="foldCommands && hasSections" variant="outline" size="sm" @click="toggleAllSections">
+                <Icon
+                  :name="allSectionsCollapsed ? 'lucide:chevrons-up-down' : 'lucide:chevrons-down-up'"
+                  class="mr-2"
+                />
+                {{
+                  allSectionsCollapsed
+                    ? $t('repo.pipeline.actions.expand_all_commands')
+                    : $t('repo.pipeline.actions.collapse_all_commands')
+                }}
+              </Button>
               <Button v-if="hasLogs" variant="outline" size="sm" :disabled="copyInProgress" @click="copyLogs">
                 <Icon v-if="copyInProgress" name="spinner" class="animate-spin mr-2" />
                 <Icon v-else :name="logsCopied ? 'lucide:check' : 'lucide:copy'" class="mr-2" />
@@ -527,50 +586,73 @@
                 : 'grid-cols-[min-content_minmax(0,1fr)_min-content]',
             ]"
           >
-            <div
-              v-for="line in log"
-              :key="line.index"
-              class="grid grid-cols-subgrid font-mono"
-              :class="hideTimestamps ? 'col-span-2' : 'col-span-3'"
-            >
-              <a
-                :id="`L${line.number}`"
-                :href="`#L${line.number}`"
-                class="select-none whitespace-nowrap pl-2 pr-2 md:pr-6 text-right text-muted-foreground"
-                :class="{
-                  'bg-red-600/40 dark:bg-red-800/50': line.type === 'error',
-                  'bg-yellow-600/40 dark:bg-yellow-800/50': line.type === 'warning',
-                  'bg-blue-600/30': isSelected(line),
-                  underline: isSelected(line),
-                }"
+            <template v-for="row in logRows" :key="row.kind === 'header' ? `s${row.id}` : row.line.index">
+              <button
+                v-if="row.kind === 'header'"
+                type="button"
+                data-log-section
+                class="my-0.5 flex items-center gap-2 rounded-md border border-border/60 bg-muted px-2 py-1 text-left font-mono hover:bg-accent transition-colors"
+                :class="hideTimestamps ? 'col-span-2' : 'col-span-3'"
+                :aria-expanded="!collapsedSections.has(row.id)"
+                @click="toggleSection(row.id)"
               >
-                {{ line.number }}
-              </a>
-              <!-- eslint-disable vue/no-v-html -->
-              <span
-                class="min-w-0 whitespace-pre-wrap wrap-anywhere align-top"
-                :class="{
-                  'bg-red-600/40 dark:bg-red-800/50': line.type === 'error',
-                  'bg-yellow-600/40 dark:bg-yellow-800/50': line.type === 'warning',
-                  'bg-blue-600/30': isSelected(line),
-                  'ring-2 ring-yellow-500 ring-offset-1': isCurrentSearchMatch(line),
-                }"
-                v-html="highlightSearchTerm(line.text || '')"
-              />
-              <!-- eslint-enable vue/no-v-html -->
-              <span
-                v-if="!hideTimestamps"
-                class="select-none whitespace-nowrap pr-1 text-right text-muted-foreground"
-                :class="{
-                  'bg-red-600 bg-opacity-40 dark:bg-red-800/50': line.type === 'error',
-                  'bg-yellow-600/40 dark:bg-yellow-800/50': line.type === 'warning',
-                  'bg-blue-600/30': isSelected(line),
-                }"
-                :title="formatAbsoluteTime(line.time)"
+                <Icon
+                  name="chevron-down"
+                  class="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform"
+                  :class="{ '-rotate-90': collapsedSections.has(row.id) }"
+                />
+                <span class="min-w-0 flex-1 truncate text-foreground">{{ row.command }}</span>
+                <span v-if="collapsedSections.has(row.id)" class="shrink-0 text-muted-foreground">
+                  {{ $t('repo.pipeline.folded_lines', { count: row.lineCount }) }}
+                </span>
+                <span v-if="!hideTimestamps && row.duration !== undefined" class="shrink-0 text-muted-foreground">
+                  {{ formatTime(row.duration) }}
+                </span>
+              </button>
+              <div
+                v-else
+                class="grid grid-cols-subgrid font-mono"
+                :class="hideTimestamps ? 'col-span-2' : 'col-span-3'"
               >
-                {{ formatTime(line.time) }}
-              </span>
-            </div>
+                <a
+                  :id="`L${row.line.number}`"
+                  :href="`#L${row.line.number}`"
+                  class="select-none whitespace-nowrap pl-2 pr-2 md:pr-6 text-right text-muted-foreground"
+                  :class="{
+                    'bg-red-600/40 dark:bg-red-800/50': row.line.type === 'error',
+                    'bg-yellow-600/40 dark:bg-yellow-800/50': row.line.type === 'warning',
+                    'bg-blue-600/30': isSelected(row.line),
+                    underline: isSelected(row.line),
+                  }"
+                >
+                  {{ row.line.number }}
+                </a>
+                <!-- eslint-disable vue/no-v-html -->
+                <span
+                  class="min-w-0 whitespace-pre-wrap wrap-anywhere align-top"
+                  :class="{
+                    'bg-red-600/40 dark:bg-red-800/50': row.line.type === 'error',
+                    'bg-yellow-600/40 dark:bg-yellow-800/50': row.line.type === 'warning',
+                    'bg-blue-600/30': isSelected(row.line),
+                    'ring-2 ring-yellow-500 ring-offset-1': isCurrentSearchMatch(row.line),
+                  }"
+                  v-html="highlightSearchTerm(row.line.text || '')"
+                />
+                <!-- eslint-enable vue/no-v-html -->
+                <span
+                  v-if="!hideTimestamps"
+                  class="select-none whitespace-nowrap pr-1 text-right text-muted-foreground"
+                  :class="{
+                    'bg-red-600 bg-opacity-40 dark:bg-red-800/50': row.line.type === 'error',
+                    'bg-yellow-600/40 dark:bg-yellow-800/50': row.line.type === 'warning',
+                    'bg-blue-600/30': isSelected(row.line),
+                  }"
+                  :title="formatAbsoluteTime(row.line.time)"
+                >
+                  {{ formatTime(row.line.time) }}
+                </span>
+              </div>
+            </template>
           </div>
         </div>
       </CardContent>
@@ -719,6 +801,7 @@ import useApiClient from '~/compositions/useApiClient';
 import { requiredInject } from '~/compositions/useInjectProvide';
 import useNotifications from '~/compositions/useNotifications';
 import type { Pipeline, PipelineStep, PipelineWorkflow } from '~/lib/api/types';
+import { commandTrace, findSectionId, groupLogLines } from '~/lib/log-folding';
 import { duplicateStepNameIndexes, getWorkflowAttempts } from '~/lib/pipeline-utils';
 import { AnsiUp } from 'ansi_up';
 import DOMPurify from 'dompurify';
@@ -767,6 +850,7 @@ interface LogLine {
   text?: string;
   time?: number;
   type: 'error' | 'warning' | null;
+  command?: string;
 }
 
 const notifications = useNotifications();
@@ -852,6 +936,44 @@ const hasPushPermission = computed(() => repoPermissions?.value?.push);
 
 // Track if logs have been truncated (for warning banner)
 const isTruncated = ref(false);
+
+// Fold the output of each traced command into a collapsible section.
+const foldCommands = useStorage('crow:log-fold-commands', true);
+const collapsedSections = ref(new Set<number>());
+const logRows = computed(() => {
+  const lines = log.value ?? [];
+  if (!foldCommands.value) {
+    return lines.map((line) => ({ kind: 'line' as const, line, sectionId: null }));
+  }
+  return groupLogLines(lines, collapsedSections.value);
+});
+const sectionIds = computed(() => logRows.value.filter((row) => row.kind === 'header').map((row) => row.id));
+const hasSections = computed(() => sectionIds.value.length > 0);
+const allSectionsCollapsed = computed(
+  () => hasSections.value && sectionIds.value.every((id) => collapsedSections.value.has(id)),
+);
+
+function toggleSection(id: number) {
+  const next = new Set(collapsedSections.value);
+  if (!next.delete(id)) {
+    next.add(id);
+  }
+  collapsedSections.value = next;
+}
+
+function toggleAllSections() {
+  collapsedSections.value = allSectionsCollapsed.value ? new Set() : new Set(sectionIds.value);
+}
+
+/** Reveals a line that a jump target (search hit, `#L` anchor) points at. */
+function revealLine(lineNumber: number) {
+  if (!Number.isFinite(lineNumber) || !foldCommands.value || collapsedSections.value.size === 0) return;
+  const id = findSectionId(log.value ?? [], lineNumber - 1);
+  if (id === null || !collapsedSections.value.has(id)) return;
+  const next = new Set(collapsedSections.value);
+  next.delete(id);
+  collapsedSections.value = next;
+}
 
 const mobileSettingsOpen = ref(false);
 const atTop = ref(true);
@@ -1063,7 +1185,7 @@ function formatAbsoluteTime(time?: number): string {
 }
 
 function processText(text: string): string {
-  let txt = ansiUp.value.ansi_to_html(`${decode(text)}\n`);
+  let txt = ansiUp.value.ansi_to_html(`${text}\n`);
   txt = txt.replace(
     URL_REGEX,
     (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" class="underline">${url}</a>`,
@@ -1108,17 +1230,20 @@ function writeLog(line: Partial<LogLine> & { logType?: number }) {
   // Map backend LogEntryType to frontend type
   // 0 = stdout (null), 1 = stderr, 2 = exit code, 3 = metadata, 4 = progress
   const isStderr = line.logType === 1;
-  const rawText = line.text ?? '';
+  // The API delivers each line base64 encoded, so anything that inspects the
+  // text — classification, command tracing, ANSI conversion — needs it decoded.
+  const text = decode(line.text ?? '');
 
   // Use content-based classification instead of just stderr detection
-  const type = classifyLogLine(rawText, isStderr);
+  const type = classifyLogLine(text, isStderr);
 
   logBuffer.value.push({
     index: line.index ?? 0,
     number: (line.index ?? 0) + 1,
-    text: processText(rawText),
+    text: processText(text),
     time: line.time ?? 0,
     type,
+    command: commandTrace(text, isStderr),
   });
 }
 
@@ -1226,6 +1351,7 @@ const flushLogs = debounce((scroll: boolean) => {
   log.value = buffer;
 
   if (route.hash.length > 0) {
+    revealLine(Number(route.hash.substring(2)));
     nextTick(() => document.getElementById(route.hash.substring(1))?.scrollIntoView());
   } else if (scroll && autoScroll.value) {
     scrollToBottom();
@@ -1367,6 +1493,7 @@ async function loadLogs(force = false) {
   // finished) so the view does not flash back to a loading state.
   if (!isSameStep) {
     log.value = undefined;
+    collapsedSections.value = new Set();
   }
   logBuffer.value = [];
   isTruncated.value = false; // Reset truncation state for new logs
@@ -1578,11 +1705,11 @@ function scrollToCurrentMatch() {
   if (!match) return;
 
   if (match.type === 'log') {
-    // Scroll to log line
-    const lineElement = document.getElementById(`L${match.lineNumber}`);
-    if (lineElement) {
-      lineElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
+    // A hit inside a folded section is only reachable once it is unfolded.
+    revealLine(match.lineNumber);
+    nextTick(() => {
+      document.getElementById(`L${match.lineNumber}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
   } else if (match.type === 'stderr') {
     // Ensure stderr is expanded and scroll into view
     stderrExpanded.value = true;

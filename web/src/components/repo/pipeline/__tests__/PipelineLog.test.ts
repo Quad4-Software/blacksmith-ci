@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import { mount } from '@vue/test-utils';
+import type { Pipeline, PipelineLog as PipelineLogEntry } from '~/lib/api/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick, ref } from 'vue';
 import PipelineLog from '../PipelineLog.vue';
-import type { Pipeline, PipelineLog as PipelineLogEntry } from '~/lib/api/types';
 
 // `localStorage` is not exposed as a bare global in this environment, but the
 // component (and its icon/theme helpers) read from it at import time, so this
@@ -68,8 +68,8 @@ function buildPipeline(state: string): Pipeline {
   } as unknown as Pipeline;
 }
 
-function logEntry(line: number): PipelineLogEntry {
-  return { id: line, step_id: 100, time: 0, line, data: 'aGk=', type: 0 };
+function logEntry(line: number, text = 'hi', type = 0): PipelineLogEntry {
+  return { id: line, step_id: 100, time: 0, line, data: btoa(text), type };
 }
 
 function mountLog(state: string) {
@@ -151,6 +151,93 @@ describe('pipeline log empty state', () => {
     expect(streamLogs).toHaveBeenCalledTimes(1);
     expect(wrapper.text()).toContain('repo.pipeline.waiting_for_logs');
     expect(wrapper.text()).not.toContain('repo.pipeline.no_logs');
+
+    wrapper.unmount();
+  });
+});
+
+describe('pipeline log command folding', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    localStorage.clear();
+    getLogs.mockReset();
+    streamLogs.mockReset();
+    streamLogs.mockReturnValue({ close: vi.fn() });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const tracedLogs = [
+    logEntry(0, 'cloning'),
+    logEntry(1, '+ go build ./...'),
+    logEntry(2, 'building'),
+    logEntry(3, '+ go test ./...'),
+    logEntry(4, 'testing'),
+  ];
+
+  it('renders a fold header per traced command and leaves every section open', async () => {
+    getLogs.mockResolvedValue(tracedLogs);
+
+    const wrapper = mountLog('success');
+    await vi.advanceTimersByTimeAsync(600);
+    await nextTick();
+
+    const headers = wrapper.findAll('button[data-log-section]');
+    expect(headers).toHaveLength(2);
+    expect(headers[0].text()).toContain('go build ./...');
+    expect(headers[1].text()).toContain('go test ./...');
+    expect(headers.every((header) => header.attributes('aria-expanded') === 'true')).toBe(true);
+    expect(wrapper.text()).toContain('building');
+
+    wrapper.unmount();
+  });
+
+  it('hides only the lines of the section that was collapsed', async () => {
+    getLogs.mockResolvedValue(tracedLogs);
+
+    const wrapper = mountLog('success');
+    await vi.advanceTimersByTimeAsync(600);
+    await nextTick();
+
+    await wrapper.findAll('button[data-log-section]')[0].trigger('click');
+
+    expect(wrapper.text()).not.toContain('building');
+    expect(wrapper.text()).toContain('testing');
+    // the lines before the first command are never folded away
+    expect(wrapper.text()).toContain('cloning');
+    expect(wrapper.findAll('button[data-log-section]')).toHaveLength(2);
+
+    wrapper.unmount();
+  });
+
+  it('renders every line ungrouped when folding is turned off', async () => {
+    localStorage.setItem('crow:log-fold-commands', 'false');
+    getLogs.mockResolvedValue(tracedLogs);
+
+    const wrapper = mountLog('success');
+    await vi.advanceTimersByTimeAsync(600);
+    await nextTick();
+
+    expect(wrapper.findAll('button[data-log-section]')).toHaveLength(0);
+    expect(wrapper.text()).toContain('+ go build ./...');
+
+    wrapper.unmount();
+  });
+
+  it('reports how long a command ran up to the start of the next one', async () => {
+    getLogs.mockResolvedValue([
+      { ...logEntry(0, '+ sleep 5'), time: 1 },
+      { ...logEntry(1, '+ echo done'), time: 6 },
+      { ...logEntry(2, 'done'), time: 6 },
+    ]);
+
+    const wrapper = mountLog('success');
+    await vi.advanceTimersByTimeAsync(600);
+    await nextTick();
+
+    expect(wrapper.findAll('button[data-log-section]')[0].text()).toContain('5s');
 
     wrapper.unmount();
   });
