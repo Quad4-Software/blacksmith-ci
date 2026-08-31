@@ -45,6 +45,7 @@ import (
 	"codefloe.com/crowci/crow/v6/server/pubsub"
 	"codefloe.com/crowci/crow/v6/server/queue"
 	"codefloe.com/crowci/crow/v6/server/services"
+	"codefloe.com/crowci/crow/v6/server/services/ciquota"
 	integrationService "codefloe.com/crowci/crow/v6/server/services/integration"
 	"codefloe.com/crowci/crow/v6/server/services/lock"
 	logService "codefloe.com/crowci/crow/v6/server/services/log"
@@ -709,6 +710,17 @@ func setupEvilGlobals(ctx context.Context, c *cli.Command, s store.Store) (err e
 			},
 		)
 		log.Info().Str("host", smtpCfg.Host).Int("port", smtpCfg.Port).Msg("SMTP notification service configured")
+	}
+
+	ciQuotaCfg := ciquota.Config{
+		URL:   c.String("ci-quota-url"),
+		Token: c.String("ci-quota-token"),
+	}
+	if ciQuotaCfg.IsConfigured() {
+		server.Config.Services.CIQuotaReporter = ciquota.New(ciQuotaCfg)
+		log.Info().Str("url", ciQuotaCfg.URL).Msg("Forgejo CI quota accounting configured")
+	} else if ciQuotaCfg.URL != "" || ciQuotaCfg.Token != "" {
+		return fmt.Errorf("both CROW_CI_QUOTA_URL and CROW_CI_QUOTA_TOKEN are required")
 	}
 
 	// proclog services

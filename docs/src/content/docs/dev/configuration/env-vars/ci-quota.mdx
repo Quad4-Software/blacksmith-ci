@@ -1,0 +1,23 @@
+---
+title: CI quota accounting
+---
+
+Crow can report completed workflow runtime to the external CI quota reporter API provided by the CodeFloe Forgejo fork.
+This API is a CodeFloe extension and is not available in upstream Forgejo.
+Both variables are required to enable reporting.
+
+## CI_QUOTA_URL
+
+- Name: `CROW_CI_QUOTA_URL`
+- Description: Base URL of the Forgejo instance that owns the CI quota ledger.
+- Example: `https://code.example.com`
+
+## CI_QUOTA_TOKEN
+
+- Name: `CROW_CI_QUOTA_TOKEN`
+- Description: Dedicated reporter token configured under `[quota.ci.reporter.<name>]` in Forgejo.
+- Secret: yes
+
+Crow reports each completed workflow separately, so parallel workflows consume their individual runner time.
+Queue time is excluded, and Linux, Windows, and macOS workflows are attributed to their respective runner classes.
+Reports use the workflow ID as an idempotency key and retry transient failures during the server process lifetime.

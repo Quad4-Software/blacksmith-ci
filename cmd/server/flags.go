@@ -811,6 +811,16 @@ var flags = append([]cli.Flag{
 		Usage:   "SMTP authentication mechanism: LOGIN, PLAIN, CRAM-MD5, AUTO (auto-discover), or NONE",
 		Value:   "LOGIN",
 	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_CI_QUOTA_URL"),
+		Name:    "ci-quota-url",
+		Usage:   "Forgejo base URL for external CI quota accounting",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_CI_QUOTA_TOKEN"),
+		Name:    "ci-quota-token",
+		Usage:   "reporter token for Forgejo CI quota accounting",
+	},
 	//
 	// process log (proclog) flags
 	//

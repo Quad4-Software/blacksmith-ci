@@ -23,8 +23,10 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
 	grpcMetadata "google.golang.org/grpc/metadata"
@@ -41,11 +43,14 @@ import (
 	"codefloe.com/crowci/crow/v6/server/proclog"
 	"codefloe.com/crowci/crow/v6/server/pubsub"
 	"codefloe.com/crowci/crow/v6/server/queue"
+	"codefloe.com/crowci/crow/v6/server/services/ciquota"
 	"codefloe.com/crowci/crow/v6/server/store"
 )
 
 // updateAgentLastWorkDelay the delay before the LastWork info should be updated.
 const updateAgentLastWorkDelay = time.Minute
+
+const ciQuotaReportTimeout = 15 * time.Second
 
 type RPC struct {
 	queue           queue.Queue
@@ -410,6 +415,7 @@ func (s *RPC) Done(c context.Context, strWorkflowID string, state rpc.WorkflowSt
 	if workflow, err = serverPipeline.UpdateWorkflowStatusToDone(s.store, *workflow, state); err != nil {
 		logger.Error().Err(err).Msgf("serverPipeline.UpdateWorkflowStatusToDone: cannot update workflow state: %s", err)
 	}
+	s.reportCIQuotaUsage(repo, workflow, logger) //nolint:contextcheck // reporting must outlive the completed agent RPC
 
 	var queueErr error
 	if workflow.Failing() {
@@ -487,6 +493,50 @@ func (s *RPC) Done(c context.Context, strWorkflowID string, state rpc.WorkflowSt
 
 	s.publishAgentStats(c, agent.ID)
 	return s.updateAgentLastWork(agent)
+}
+
+func (s *RPC) reportCIQuotaUsage(repo *model.Repo, workflow *model.Workflow, logger zerolog.Logger) {
+	reporter := server.Config.Services.CIQuotaReporter
+	if reporter == nil || workflow.Started <= 0 || workflow.Finished < workflow.Started {
+		return
+	}
+
+	usage := ciquota.Usage{
+		Repository:  repo.FullName,
+		ExternalRef: fmt.Sprintf("crow:workflow:%d", workflow.ID),
+		Started:     time.Unix(workflow.Started, 0).UTC(),
+		Stopped:     time.Unix(workflow.Finished, 0).UTC(),
+		Seconds:     workflow.Finished - workflow.Started,
+		Class:       quotaClass(workflow.Platform),
+	}
+
+	go func() {
+		delays := []time.Duration{0, time.Second, 5 * time.Second}
+		for attempt, delay := range delays {
+			if delay > 0 {
+				time.Sleep(delay)
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), ciQuotaReportTimeout)
+			err := reporter.Report(ctx, usage)
+			cancel()
+			if err == nil {
+				return
+			}
+			logger.Warn().Err(err).Int("attempt", attempt+1).Msg("could not report workflow CI quota usage")
+		}
+	}()
+}
+
+func quotaClass(platform string) string {
+	os, _, _ := strings.Cut(strings.ToLower(strings.TrimSpace(platform)), "/")
+	switch os {
+	case "darwin", "macos":
+		return "macos"
+	case "windows":
+		return "windows"
+	default:
+		return "linux"
+	}
 }
 
 // Log writes a log entry to the database and publishes it to the pubsub.

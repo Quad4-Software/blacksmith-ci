@@ -721,6 +721,25 @@ CROW_SMTP_AUTH_TYPE=LOGIN
 Once configured, notifications must be enabled per-repository in **Repository Settings > Notifications**.
 The SMTP configuration can be verified in **Admin Settings > Notifications**, which includes a test email button.
 
+## Forgejo CI quota accounting
+
+Crow can report completed workflow runtime to the external CI quota ledger provided by the CodeFloe Forgejo fork.
+Upstream Forgejo does not provide this API.
+Configure both values to enable reporting:
+
+```shell
+CROW_CI_QUOTA_URL=https://code.example.com
+CROW_CI_QUOTA_TOKEN=secret-reporter-token
+```
+
+| Environment variable | Required | Default | Description |
+| --- | --- | --- | --- |
+| `CROW_CI_QUOTA_URL` | Yes | — | Base URL of the Forgejo instance that owns the quota ledger |
+| `CROW_CI_QUOTA_TOKEN` | Yes | — | Dedicated external CI reporter token configured in Forgejo |
+
+Each workflow is reported separately after it finishes, excluding queue time.
+Reports are idempotent and are classified as Linux, Windows, or macOS from the workflow platform.
+
 See [email notifications](/dev/usage/notifications/) for full usage documentation.
 
 ## Maintenance

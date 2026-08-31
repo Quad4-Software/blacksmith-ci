@@ -25,6 +25,7 @@ import (
 	"codefloe.com/crowci/crow/v6/server/pubsub"
 	"codefloe.com/crowci/crow/v6/server/queue"
 	"codefloe.com/crowci/crow/v6/server/services"
+	"codefloe.com/crowci/crow/v6/server/services/ciquota"
 	"codefloe.com/crowci/crow/v6/server/services/integration"
 	"codefloe.com/crowci/crow/v6/server/services/log"
 	"codefloe.com/crowci/crow/v6/server/services/notification"
@@ -44,6 +45,7 @@ var Config = struct {
 		Store                services.Store
 		IntegrationService   integration.Service
 		NotificationService  notification.Service
+		CIQuotaReporter      ciquota.Reporter
 		ProcLogReceiver      *proclog.Receiver
 		ProcLogStream        *proclog.Stream
 		ProcLogJanitor       *proclog.Janitor
