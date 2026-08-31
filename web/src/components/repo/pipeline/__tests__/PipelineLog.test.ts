@@ -177,25 +177,35 @@ describe('pipeline log command folding', () => {
     logEntry(4, 'testing'),
   ];
 
-  it('renders a fold header per traced command and leaves every section open', async () => {
+  it('renders compact headers for short commands without repeating their trace lines', async () => {
     getLogs.mockResolvedValue(tracedLogs);
 
     const wrapper = mountLog('success');
     await vi.advanceTimersByTimeAsync(600);
     await nextTick();
 
-    const headers = wrapper.findAll('button[data-log-section]');
+    const headers = wrapper.findAll('[data-log-section]');
     expect(headers).toHaveLength(2);
     expect(headers[0].text()).toContain('go build ./...');
     expect(headers[1].text()).toContain('go test ./...');
-    expect(headers.every((header) => header.attributes('aria-expanded') === 'true')).toBe(true);
+    expect(wrapper.findAll('button[data-log-section]')).toHaveLength(0);
+    expect(wrapper.text()).not.toContain('+ go build ./...');
     expect(wrapper.text()).toContain('building');
 
     wrapper.unmount();
   });
 
   it('hides only the lines of the section that was collapsed', async () => {
-    getLogs.mockResolvedValue(tracedLogs);
+    getLogs.mockResolvedValue([
+      logEntry(0, 'cloning'),
+      logEntry(1, '+ go build ./...'),
+      logEntry(2, 'building'),
+      logEntry(3, 'compiling'),
+      logEntry(4, 'linking'),
+      logEntry(5, 'done'),
+      logEntry(6, '+ go test ./...'),
+      logEntry(7, 'testing'),
+    ]);
 
     const wrapper = mountLog('success');
     await vi.advanceTimersByTimeAsync(600);
@@ -207,7 +217,8 @@ describe('pipeline log command folding', () => {
     expect(wrapper.text()).toContain('testing');
     // the lines before the first command are never folded away
     expect(wrapper.text()).toContain('cloning');
-    expect(wrapper.findAll('button[data-log-section]')).toHaveLength(2);
+    expect(wrapper.findAll('button[data-log-section]')).toHaveLength(1);
+    expect(wrapper.findAll('[data-log-section]')).toHaveLength(2);
 
     wrapper.unmount();
   });
@@ -220,7 +231,7 @@ describe('pipeline log command folding', () => {
     await vi.advanceTimersByTimeAsync(600);
     await nextTick();
 
-    expect(wrapper.findAll('button[data-log-section]')).toHaveLength(0);
+    expect(wrapper.findAll('[data-log-section]')).toHaveLength(0);
     expect(wrapper.text()).toContain('+ go build ./...');
 
     wrapper.unmount();
@@ -237,7 +248,7 @@ describe('pipeline log command folding', () => {
     await vi.advanceTimersByTimeAsync(600);
     await nextTick();
 
-    expect(wrapper.findAll('button[data-log-section]')[0].text()).toContain('5s');
+    expect(wrapper.findAll('[data-log-section]')[0].text()).toContain('5s');
 
     wrapper.unmount();
   });

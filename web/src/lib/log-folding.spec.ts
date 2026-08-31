@@ -48,16 +48,15 @@ describe('groupLogLines', () => {
     const lines = [line(0), command(1, 'make'), line(2)];
     const rows = groupLogLines(lines, new Set());
 
-    expect(rows.map((row) => row.kind)).toEqual(['line', 'header', 'line', 'line']);
+    expect(rows.map((row) => row.kind)).toEqual(['line', 'header', 'line']);
     expect(rows[0]).toMatchObject({ kind: 'line', sectionId: null });
   });
 
-  it('puts the traced command line itself inside its own section', () => {
+  it('replaces the traced command line with its section header', () => {
     const rows = groupLogLines([command(0, 'make'), line(1)], new Set());
 
     expect(rows[0]).toMatchObject({ kind: 'header', id: 0, command: 'make' });
     expect(rows[1]).toMatchObject({ kind: 'line', sectionId: 0 });
-    expect(rows[2]).toMatchObject({ kind: 'line', sectionId: 0 });
   });
 
   it('starts a new section at every traced command', () => {
@@ -68,17 +67,24 @@ describe('groupLogLines', () => {
   });
 
   it('omits the lines of a collapsed section but keeps its header', () => {
-    const lines = [command(0, 'a'), line(1), command(2, 'b'), line(3)];
+    const lines = [command(0, 'a'), line(1), line(2), line(3), line(4), command(5, 'b'), line(6)];
     const rows = groupLogLines(lines, new Set([0]));
 
-    expect(rows.map((row) => row.kind)).toEqual(['header', 'header', 'line', 'line']);
-    expect(rows.filter((row) => row.kind === 'line').map((row) => row.line.index)).toEqual([2, 3]);
+    expect(rows.map((row) => row.kind)).toEqual(['header', 'header', 'line']);
+    expect(rows.filter((row) => row.kind === 'line').map((row) => row.line.index)).toEqual([6]);
   });
 
   it('reports how many lines a section hides', () => {
-    const rows = groupLogLines([command(0, 'a'), line(1), line(2)], new Set([0]));
+    const rows = groupLogLines([command(0, 'a'), line(1), line(2), line(3), line(4)], new Set([0]));
 
-    expect(rows[0]).toMatchObject({ kind: 'header', lineCount: 3 });
+    expect(rows[0]).toMatchObject({ kind: 'header', lineCount: 4, foldable: true });
+  });
+
+  it('keeps short sections expanded and marks them as non-foldable', () => {
+    const rows = groupLogLines([command(0, 'a'), line(1), line(2), line(3)], new Set([0]));
+
+    expect(rows[0]).toMatchObject({ kind: 'header', lineCount: 3, foldable: false });
+    expect(rows.filter((row) => row.kind === 'line').map((row) => row.line.index)).toEqual([1, 2, 3]);
   });
 
   it('measures a section up to the start of the next one', () => {

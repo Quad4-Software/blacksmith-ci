@@ -20,8 +20,18 @@ export interface FoldableLogLine {
 }
 
 export type LogRow<T extends FoldableLogLine> =
-  | { kind: 'header'; id: number; command: string; time?: number; duration?: number; lineCount: number }
+  | {
+      kind: 'header';
+      id: number;
+      command: string;
+      time?: number;
+      duration?: number;
+      lineCount: number;
+      foldable: boolean;
+    }
   | { kind: 'line'; line: T; sectionId: number | null };
+
+const MIN_FOLDABLE_OUTPUT_LINES = 4;
 
 /**
  * Returns the command a raw log line traced, or undefined if it traced none.
@@ -45,6 +55,7 @@ export function commandTrace(text: string, isStderr: boolean): string | undefine
 export function groupLogLines<T extends FoldableLogLine>(lines: T[], collapsed: ReadonlySet<number>): LogRow<T>[] {
   const rows: LogRow<T>[] = [];
   const headers: Extract<LogRow<T>, { kind: 'header' }>[] = [];
+  const outputLineCounts = countOutputLines(lines);
   let sectionId: number | null = null;
   let lastTime: number | undefined;
 
@@ -61,15 +72,18 @@ export function groupLogLines<T extends FoldableLogLine>(lines: T[], collapsed: 
         command: line.command,
         time: lastTime,
         duration: undefined as number | undefined,
-        lineCount: 0,
+        lineCount: outputLineCounts.get(line.index) ?? 0,
+        foldable: (outputLineCounts.get(line.index) ?? 0) >= MIN_FOLDABLE_OUTPUT_LINES,
       };
       headers.push(header);
       rows.push(header);
+      // The header already shows the traced command, so do not repeat it as
+      // the first line of the section.
+      continue;
     }
 
     if (sectionId !== null) {
-      headers.at(-1)!.lineCount += 1;
-      if (collapsed.has(sectionId)) {
+      if (headers.at(-1)!.foldable && collapsed.has(sectionId)) {
         continue;
       }
     }
@@ -81,6 +95,22 @@ export function groupLogLines<T extends FoldableLogLine>(lines: T[], collapsed: 
   setDuration(headers.at(-1), lastTime);
 
   return rows;
+}
+
+function countOutputLines<T extends FoldableLogLine>(lines: T[]): Map<number, number> {
+  const counts = new Map<number, number>();
+  let sectionId: number | null = null;
+
+  for (const line of lines) {
+    if (line.command !== undefined) {
+      sectionId = line.index;
+      counts.set(sectionId, 0);
+    } else if (sectionId !== null) {
+      counts.set(sectionId, counts.get(sectionId)! + 1);
+    }
+  }
+
+  return counts;
 }
 
 function setDuration<T extends FoldableLogLine>(

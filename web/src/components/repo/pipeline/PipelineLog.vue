@@ -587,28 +587,35 @@
             ]"
           >
             <template v-for="row in logRows" :key="row.kind === 'header' ? `s${row.id}` : row.line.index">
-              <button
+              <component
+                :is="row.foldable ? 'button' : 'div'"
                 v-if="row.kind === 'header'"
-                type="button"
+                :type="row.foldable ? 'button' : undefined"
                 data-log-section
-                class="my-0.5 flex items-center gap-2 rounded-md border border-border/60 bg-muted px-2 py-1 text-left font-mono hover:bg-accent transition-colors"
-                :class="hideTimestamps ? 'col-span-2' : 'col-span-3'"
-                :aria-expanded="!collapsedSections.has(row.id)"
-                @click="toggleSection(row.id)"
+                class="flex items-center gap-2 px-2 text-left font-mono"
+                :class="[
+                  hideTimestamps ? 'col-span-2' : 'col-span-3',
+                  row.foldable
+                    ? 'my-0.5 rounded-md border border-border/60 bg-muted py-1 transition-colors hover:bg-accent'
+                    : 'py-0.5',
+                ]"
+                :aria-expanded="row.foldable ? !collapsedSections.has(row.id) : undefined"
+                @click="row.foldable && toggleSection(row.id)"
               >
                 <Icon
+                  v-if="row.foldable"
                   name="chevron-down"
                   class="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform"
                   :class="{ '-rotate-90': collapsedSections.has(row.id) }"
                 />
                 <span class="min-w-0 flex-1 truncate text-foreground">{{ row.command }}</span>
-                <span v-if="collapsedSections.has(row.id)" class="shrink-0 text-muted-foreground">
+                <span v-if="row.foldable && collapsedSections.has(row.id)" class="shrink-0 text-muted-foreground">
                   {{ $t('repo.pipeline.folded_lines', { count: row.lineCount }) }}
                 </span>
                 <span v-if="!hideTimestamps && row.duration !== undefined" class="shrink-0 text-muted-foreground">
                   {{ formatTime(row.duration) }}
                 </span>
-              </button>
+              </component>
               <div
                 v-else
                 class="grid grid-cols-subgrid font-mono"
@@ -947,7 +954,9 @@ const logRows = computed(() => {
   }
   return groupLogLines(lines, collapsedSections.value);
 });
-const sectionIds = computed(() => logRows.value.filter((row) => row.kind === 'header').map((row) => row.id));
+const sectionIds = computed(() =>
+  logRows.value.flatMap((row) => (row.kind === 'header' && row.foldable ? [row.id] : [])),
+);
 const hasSections = computed(() => sectionIds.value.length > 0);
 const allSectionsCollapsed = computed(
   () => hasSections.value && sectionIds.value.every((id) => collapsedSections.value.has(id)),
