@@ -12,8 +12,8 @@
     "build": "vite build --base=/BASE_PATH",
     "serve": "vite preview",
     "lint": "eslint --max-warnings 0 .",
-    "format": "prettier --write --plugin prettier-plugin-tailwindcss --plugin @ianvs/prettier-plugin-sort-imports .",
-    "format:check": "git -C .. diff --name-only --diff-filter=ACMR origin/main HEAD -- web/ | sed 's|^web/||' | xargs -r prettier --check --plugin prettier-plugin-tailwindcss --plugin @ianvs/prettier-plugin-sort-imports",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "typecheck": "vue-tsc --noEmit",
     "test": "vitest --run",
     "test:watch": "vitest"

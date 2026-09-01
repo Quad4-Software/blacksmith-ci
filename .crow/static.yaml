@@ -14,13 +14,13 @@ steps:
     depends_on: []
 
   - name: prettier
-    image: reg.devxy.io/docker.io/woodpeckerci/plugin-prettier:1.4.1
-    pull: true
+    image: reg.devxy.io/docker.io/oven/bun:1.4-alpine
     depends_on: []
-    settings:
-      plugins:
-        - 'prettier-plugin-tailwindcss'
-        - '@ianvs/prettier-plugin-sort-imports'
+    commands:
+      # Use the prettier pinned in web/package.json so CI and the pre-commit hook agree.
+      - bun install --frozen-lockfile --cwd web
+      # Run the script directly: the .bin shim needs node, which this image lacks.
+      - bun web/node_modules/prettier/bin/prettier.cjs --check .
 
   - name: commitlint
     when:

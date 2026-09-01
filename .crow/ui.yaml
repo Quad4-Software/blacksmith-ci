@@ -29,12 +29,10 @@ steps:
   prettier:
     depends_on:
       - install-dependencies
-    image: reg.devxy.io/docker.io/woodpeckerci/plugin-prettier:1.4.1
-    pull: true
-    settings:
-      plugins:
-        - 'prettier-plugin-tailwindcss'
-        - '@ianvs/prettier-plugin-sort-imports'
+    image: *node_image
+    commands:
+      # Run the script directly: the .bin shim needs node, which this image lacks.
+      - bun web/node_modules/prettier/bin/prettier.cjs --check .
     when: *when
 
   lint:
