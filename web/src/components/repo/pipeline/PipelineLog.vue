@@ -1241,12 +1241,16 @@ function writeLog(line: Partial<LogLine> & { logType?: number }) {
   // Map backend LogEntryType to frontend type
   // 0 = stdout (null), 1 = stderr, 2 = exit code, 3 = metadata, 4 = progress
   const isStderr = line.logType === 1;
+  const isProgress = line.logType === 4;
   // The API delivers each line base64 encoded, so anything that inspects the
   // text — classification, command tracing, ANSI conversion — needs it decoded.
   const text = decode(line.text ?? '');
 
-  // Use content-based classification instead of just stderr detection
-  const type = classifyLogLine(text, isStderr);
+  // Use content-based classification instead of just stderr detection. Preparation
+  // milestones come from the agent rather than the step's command, so the content
+  // heuristics must not apply to them: an image reference like `acme/error-parser`
+  // would otherwise light the milestone up as a step error.
+  const type = isProgress ? null : classifyLogLine(text, isStderr);
 
   logBuffer.value.push({
     index: line.index ?? 0,
