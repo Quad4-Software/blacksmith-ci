@@ -28,7 +28,7 @@ GCI_VERSION := "v0.14.0"
 
 # renovate: datasource=go depName=github.com/vektra/mockery/v3
 
-MOCKERY_VERSION := "v3.7.2"
+MOCKERY_VERSION := "v3.7.4"
 
 # renovate: datasource=go depName=github.com/google/addlicense
 
@@ -53,7 +53,7 @@ LDFLAGS := if STATIC_BUILD == "true" { "-s -w -extldflags '-static' -X codefloe.
 # only used to compile server
 
 HAS_GO := `hash go > /dev/null 2>&1 && echo "GO" || echo "NOGO"`
-XGO_VERSION := if HAS_GO == "GO" { "go-1.26.x" } else { "" }
+XGO_VERSION := if HAS_GO == "GO" { "go-1.27.x" } else { "" }
 CGO_CFLAGS := if HAS_GO == "GO" { `go env CGO_CFLAGS` } else { "" }
 
 ### Recipes

@@ -80,10 +80,14 @@ func NewClient(ctx context.Context, c *cli.Command) (crow.Client, error) {
 		if err != nil {
 			return nil, err
 		}
+		contextDialer, ok := dialer.(proxy.ContextDialer)
+		if !ok {
+			return nil, fmt.Errorf("SOCKS5 dialer for %q does not support context dialing", socks)
+		}
 		trans.Base = &http.Transport{
 			TLSClientConfig: tlsConfig,
 			Proxy:           http.ProxyFromEnvironment,
-			Dial:            dialer.Dial,
+			DialContext:     contextDialer.DialContext,
 		}
 	} else {
 		trans.Base = &http.Transport{

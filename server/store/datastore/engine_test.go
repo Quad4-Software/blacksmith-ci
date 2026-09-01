@@ -59,21 +59,23 @@ func newTestStore(t *testing.T, tables ...any) (*storage, func()) {
 		}
 	}
 
-	return &storage{
-			db:     db,
-			driver: driver,
-		}, func() {
-			ctx := context.Background()
-			for _, table := range tables {
-				_, _ = db.NewDropTable().Model(table).IfExists().Cascade().Exec(ctx)
-			}
-			if err := db.Close(); err != nil {
-				t.Error(err)
-				t.FailNow()
-			}
-
-			if driver == "mysql" || driver == "postgres" {
-				time.Sleep(10 * time.Millisecond)
-			}
+	cleanup := func() {
+		ctx := context.Background()
+		for _, table := range tables {
+			_, _ = db.NewDropTable().Model(table).IfExists().Cascade().Exec(ctx)
 		}
+		if err := db.Close(); err != nil {
+			t.Error(err)
+			t.FailNow()
+		}
+
+		if driver == "mysql" || driver == "postgres" {
+			time.Sleep(10 * time.Millisecond)
+		}
+	}
+
+	return &storage{
+		db:     db,
+		driver: driver,
+	}, cleanup
 }

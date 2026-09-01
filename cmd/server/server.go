@@ -208,14 +208,14 @@ func run(ctx context.Context, c *cli.Command) error {
 	} else {
 		origin, _ := url.Parse(proxyWebUI)
 
-		director := func(req *http.Request) {
-			req.Header.Add("X-Forwarded-Host", req.Host)
-			req.Header.Add("X-Origin-Host", origin.Host)
-			req.URL.Scheme = origin.Scheme
-			req.URL.Host = origin.Host
+		rewrite := func(req *httputil.ProxyRequest) {
+			req.SetURL(origin)
+			req.Out.Header.Add("X-Forwarded-Host", req.In.Host)
+			req.Out.Header.Add("X-Origin-Host", origin.Host)
+			req.SetXForwarded()
 		}
 
-		proxy := &httputil.ReverseProxy{Director: director}
+		proxy := &httputil.ReverseProxy{Rewrite: rewrite}
 		webUIServe = proxy.ServeHTTP
 	}
 

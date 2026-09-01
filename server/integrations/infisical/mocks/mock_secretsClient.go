@@ -86,8 +86,8 @@ func (_c *mocksecretsClient_Retrieve_Call) Run(run func(options infisical.Retrie
 	return _c
 }
 
-func (_c *mocksecretsClient_Retrieve_Call) Return(v infisical.Secret, err error) *mocksecretsClient_Retrieve_Call {
-	_c.Call.Return(v, err)
+func (_c *mocksecretsClient_Retrieve_Call) Return(secret infisical.Secret, err error) *mocksecretsClient_Retrieve_Call {
+	_c.Call.Return(secret, err)
 	return _c
 }
 

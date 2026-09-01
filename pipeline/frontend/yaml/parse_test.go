@@ -48,8 +48,8 @@ func TestParse(t *testing.T) {
 		assert.Equal(t, map[string]string{"com.example.team": "frontend", "com.example.type": "build", "agent": "agent-1|agent-2"}, out.Labels.Flatten())
 		assert.Equal(t, "lint", out.DependsOn[0])
 		assert.Equal(t, "test", out.DependsOn[1])
-		assert.Equal(t, ("success"), out.RunsOn[0])
-		assert.Equal(t, ("failure"), out.RunsOn[1])
+		assert.Equal(t, "success", out.RunsOn[0])
+		assert.Equal(t, "failure", out.RunsOn[1])
 		assert.False(t, out.SkipClone)
 	})
 
@@ -255,7 +255,7 @@ func TestSlice(t *testing.T) {
 		assert.NoError(t, err)
 
 		assert.NotNil(t, out.Steps.ContainerList[1].DependsOn)
-		assert.Empty(t, (out.Steps.ContainerList[1].DependsOn))
+		assert.Empty(t, out.Steps.ContainerList[1].DependsOn)
 	})
 }
 

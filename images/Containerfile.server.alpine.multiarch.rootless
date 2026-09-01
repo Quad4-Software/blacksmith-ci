@@ -40,7 +40,7 @@ RUN chmod +x /usr/local/bin/crow-entrypoint.sh
 # Override at runtime (e.g. `runAsUser: 0`) when the built-in cron-based log
 # rotation is needed; the entrypoint detects the effective user and adapts
 # accordingly.
-USER crow
+USER 1000
 
 HEALTHCHECK CMD ["/bin/crow-server", "ping"]
 ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/crow-entrypoint.sh", "crow", "/bin/crow-server"]
