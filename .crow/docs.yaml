@@ -2,7 +2,7 @@ when:
   - event: push
     branch: ${CI_REPO_DEFAULT_BRANCH}
     path: ['docs/**', '.crow/docs.yaml', '.crow/docs-release.yaml']
-  - event: [pull_request, pull_request_closed]
+  - event: [pull_request, pull_request_closed, pull_request_merged]
     path: ['docs/**', '.crow/docs.yaml']
   - event: manual
     evaluate: 'task == "docs"'
@@ -74,13 +74,16 @@ steps:
       - event: pull_request
 
   - name: 'PR docs preview'
-    image: reg.devxy.io/docker.io/woodpeckerci/plugin-surge-preview:1.4.2
+    image: codefloe.com/crow-plugins/roost:v0.12.1
     settings:
-      path: 'docs/dist/'
-      surge_token:
-        from_secret: surge_token
-      forge_repo_token:
+      server:
+        from_secret: roost_server
+      token:
+        from_secret: roost_token
+      comment_token:
         from_secret: crowci_bot_token
+      dir: 'docs/dist'
+      ttl: 168h
     failure: ignore
     when:
-      - event: [pull_request, pull_request_closed]
+      - event: [pull_request, pull_request_closed, pull_request_merged]
