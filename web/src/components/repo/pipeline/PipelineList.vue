@@ -1,6 +1,7 @@
 <template>
   <div
     v-if="pipelines || infiniteScroll"
+    ref="scrollContainer"
     class="space-y-4 mx-auto px-3 py-4 sm:px-4 overflow-x-hidden overflow-y-auto w-full h-full"
   >
     <!-- Bulk actions overlay -->
@@ -259,6 +260,7 @@ import { requiredInject } from '~/compositions/useInjectProvide';
 import { useLoadingOverlay } from '~/compositions/useLoadingOverlay';
 import useNotifications from '~/compositions/useNotifications';
 import useReactivePipelines from '~/compositions/useReactivePipelines';
+import { useScrollRestoration } from '~/compositions/useScrollRestoration';
 import type { Pipeline, Repo } from '~/lib/api/types';
 
 const props = defineProps<{
@@ -272,6 +274,15 @@ const apiClient = useApiClient();
 const notifications = useNotifications();
 const overlay = useLoadingOverlay();
 const scrollTrigger = ref<HTMLElement | null>(null);
+
+// This div is the page's scroll container, so browser back/forward has to restore
+// its offset itself - the window never scrolls and vue-router can't do it for us.
+const scrollContainer = ref<HTMLElement | null>(null);
+useScrollRestoration(
+  scrollContainer,
+  computed(() => `pipeline-list:${props.repo?.id ?? 'none'}`),
+);
+
 // Try to get repo permissions, may not be available in all contexts
 let repoPermissions;
 try {
@@ -411,9 +422,16 @@ const hiddenCount = computed(() => {
 });
 
 // Pipeline display items with hidden indicators
-type PipelineDisplayItem =
-  | { type: 'pipeline'; pipeline: Pipeline }
-  | { type: 'hidden-indicator'; count: number; pipelineIds: number[] };
+interface PipelineEntry {
+  type: 'pipeline';
+  pipeline: Pipeline;
+}
+interface HiddenIndicatorEntry {
+  type: 'hidden-indicator';
+  count: number;
+  pipelineIds: number[];
+}
+type PipelineDisplayItem = PipelineEntry | HiddenIndicatorEntry;
 
 const pipelineDisplayItems = computed<PipelineDisplayItem[]>(() => {
   if (showHiddenPipelines.value) {
