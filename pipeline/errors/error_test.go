@@ -10,6 +10,20 @@ import (
 	"codefloe.com/crowci/crow/v6/pipeline/errors/types"
 )
 
+type quickFixError struct{}
+
+func (quickFixError) Error() string {
+	return `Secret "crow_aws_security_groups" is not allowed to be used with pipeline event "pull_request"`
+}
+
+func (quickFixError) QuickFixSecretName() string {
+	return "crow_aws_security_groups"
+}
+
+func (quickFixError) QuickFixEvent() string {
+	return "pull_request"
+}
+
 func TestGetPipelineErrors(t *testing.T) {
 	t.Parallel()
 
@@ -153,4 +167,22 @@ func TestHasBlockingErrors(t *testing.T) {
 	for _, test := range tests {
 		assert.Equal(t, test.expected, pipeline_errors.HasBlockingErrors(test.err))
 	}
+}
+
+func TestNewCompilerErrorIncludesQuickFixData(t *testing.T) {
+	t.Parallel()
+
+	err := pipeline_errors.NewCompilerError(quickFixError{}, ".crow/check.yaml", "Crow (check)")
+	data, ok := err.Data.(*pipeline_errors.CompilerErrorData)
+	assert.True(t, ok)
+	if !ok {
+		t.Fatal("compiler error data should be CompilerErrorData")
+	}
+
+	assert.Equal(t, types.PipelineErrorTypeCompiler, err.Type)
+	assert.Equal(t, `Secret "crow_aws_security_groups" is not allowed to be used with pipeline event "pull_request"`, err.Message)
+	assert.Equal(t, ".crow/check.yaml", data.File)
+	assert.Equal(t, "Crow (check)", data.Step)
+	assert.Equal(t, "crow_aws_security_groups", data.SecretName)
+	assert.Equal(t, "pull_request", data.Event)
 }

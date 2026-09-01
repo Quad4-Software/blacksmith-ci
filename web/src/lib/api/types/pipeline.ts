@@ -34,6 +34,8 @@ export interface BadHabitErrorData {
 export interface CompilerErrorData {
   file?: string;
   step?: string;
+  secret_name?: string;
+  event?: string;
 }
 
 // A pipeline for a repository.

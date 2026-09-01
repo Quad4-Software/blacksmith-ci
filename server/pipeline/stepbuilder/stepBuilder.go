@@ -564,7 +564,7 @@ func (b *StepBuilder) toInternalRepresentation(parsed *yaml_types.Workflow, envi
 	externalSecrets, err := b.injectExternalSecrets(parsed)
 	if err != nil {
 		return nil, pipeline_errors.NewCompilerError(
-			fmt.Sprintf("### External Secrets Error\n\n%v", err),
+			fmt.Errorf("### External Secrets Error\n\n%w", err),
 			fileName, "",
 		)
 	}

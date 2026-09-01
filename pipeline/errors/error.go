@@ -6,6 +6,12 @@ import (
 	"codefloe.com/crowci/crow/v6/pipeline/errors/types"
 )
 
+type secretEventQuickFixError interface {
+	error
+	QuickFixSecretName() string
+	QuickFixEvent() string
+}
+
 type LinterErrorData struct {
 	File   string `json:"file"`
 	Field  string `json:"field"`
@@ -30,8 +36,10 @@ type BadHabitErrorData struct {
 }
 
 type CompilerErrorData struct {
-	File string `json:"file"`
-	Step string `json:"step,omitempty"`
+	File       string `json:"file"`
+	Step       string `json:"step,omitempty"`
+	SecretName string `json:"secret_name,omitempty"`
+	Event      string `json:"event,omitempty"`
 }
 
 func GetLinterData(e *types.PipelineError) *LinterErrorData {
@@ -47,14 +55,22 @@ func GetLinterData(e *types.PipelineError) *LinterErrorData {
 }
 
 // NewCompilerError creates a new compiler error with file and step context.
-func NewCompilerError(message, file, step string) *types.PipelineError {
+func NewCompilerError(err error, file, step string) *types.PipelineError {
+	data := &CompilerErrorData{
+		File: file,
+		Step: step,
+	}
+
+	var quickFixErr secretEventQuickFixError
+	if errors.As(err, &quickFixErr) {
+		data.SecretName = quickFixErr.QuickFixSecretName()
+		data.Event = quickFixErr.QuickFixEvent()
+	}
+
 	return &types.PipelineError{
 		Type:    types.PipelineErrorTypeCompiler,
-		Message: message,
-		Data: &CompilerErrorData{
-			File: file,
-			Step: step,
-		},
+		Message: err.Error(),
+		Data:    data,
 	}
 }
 

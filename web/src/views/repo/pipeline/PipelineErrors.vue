@@ -74,23 +74,52 @@
             <RenderMarkdown :content="error.message" class="error-markdown-content" />
           </div>
 
-          <!-- Quick link to the repo Privileges & Security settings (admins only) -->
-          <RouterLink
-            v-if="getTrustedSetting(error) && repoPermissions.admin"
-            :to="{ name: 'repo-settings' }"
-            class="mt-3 inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
-          >
-            <Icon name="settings" class="size-4" />
-            {{ t('repo.pipeline.open_privileges_settings') }}
-          </RouterLink>
+          <div class="mt-3 flex flex-wrap items-center gap-3">
+            <Button
+              v-if="repoPermissions.admin && getSecretEventQuickFix(error)"
+              type="button"
+              variant="outline"
+              size="sm"
+              :disabled="quickFixLoadingKey === getQuickFixLoadingKey(error, _index)"
+              @click="openSecretEventQuickFix(error, _index)"
+            >
+              <Icon
+                v-if="quickFixLoadingKey === getQuickFixLoadingKey(error, _index)"
+                name="spinner"
+                class="size-4 animate-spin"
+              />
+              <Icon v-else name="heal" class="size-4" />
+              {{ t('repo.pipeline.quick_fix_secret_event') }}
+            </Button>
+
+            <!-- Quick link to the repo Privileges & Security settings (admins only) -->
+            <RouterLink
+              v-if="getTrustedSetting(error) && repoPermissions.admin"
+              :to="{ name: 'repo-settings' }"
+              class="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+            >
+              <Icon name="settings" class="size-4" />
+              {{ t('repo.pipeline.open_privileges_settings') }}
+            </RouterLink>
+          </div>
         </div>
       </template>
     </div>
+
+    <SecretDialog
+      v-model:open="isQuickFixDialogOpen"
+      :secret="selectedQuickFixSecret || undefined"
+      :is-saving="isSavingQuickFix"
+      :hide-trigger="true"
+      @save="saveQuickFixSecret"
+      @cancel="closeQuickFixDialog"
+    />
   </Panel>
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue';
+import { cloneDeep } from 'lodash';
+import { computed, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 
@@ -98,8 +127,13 @@ import DocsLink from '~/components/atomic/DocsLink.vue';
 import Icon from '~/components/atomic/Icon.vue';
 import RenderMarkdown from '~/components/atomic/RenderMarkdown.vue';
 import Panel from '~/components/layout/Panel.vue';
+import SecretDialog from '~/components/secrets/SecretDialog.vue';
+import { Button } from '~/components/ui/button';
+import useApiClient from '~/compositions/useApiClient';
+import { useAsyncAction } from '~/compositions/useAsyncAction';
 import { requiredInject } from '~/compositions/useInjectProvide';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
+import useNotifications from '~/compositions/useNotifications';
 import type {
   BadHabitErrorData,
   CompilerErrorData,
@@ -107,13 +141,26 @@ import type {
   LinterErrorData,
   PipelineError,
   PipelineErrorType,
+  SecretWithOrg,
 } from '~/lib/api/types';
+
+import {
+  addQuickFixEventToSecret,
+  getSecretEventQuickFix,
+  resolveScopedSecretForQuickFix,
+} from './pipelineErrorsQuickFix';
 
 const repo = requiredInject('repo');
 const repoPermissions = requiredInject('repo-permissions');
 const pipeline = requiredInject('pipeline');
+const apiClient = useApiClient();
+const notifications = useNotifications();
 
 type ErrorData = LinterErrorData | DeprecationErrorData | BadHabitErrorData | CompilerErrorData;
+
+const selectedQuickFixSecret = ref<SecretWithOrg | null>(null);
+const isQuickFixDialogOpen = ref(false);
+const quickFixLoadingKey = ref<string | null>(null);
 
 function isLinterError(error: PipelineError): error is PipelineError<LinterErrorData> {
   return error.type === 'linter';
@@ -192,6 +239,101 @@ function getDocsUrl(error: PipelineError): string | undefined {
 }
 
 const { t } = useI18n();
+
+function getQuickFixLoadingKey(error: PipelineError, index: number): string {
+  const quickFix = getSecretEventQuickFix(error);
+  return `${index}:${quickFix?.secretName || ''}:${quickFix?.event || ''}`;
+}
+
+async function loadQuickFixSecret(secretName: string): Promise<SecretWithOrg | null> {
+  const secrets =
+    (await apiClient.getUserSecretList({
+      scope: 'repo,org,global',
+      search: secretName,
+    })) ?? [];
+
+  return resolveScopedSecretForQuickFix(secrets, secretName, repo.value.id, repo.value.org_id);
+}
+
+async function openSecretEventQuickFix(error: PipelineError, index: number) {
+  const quickFix = getSecretEventQuickFix(error);
+  if (!quickFix) {
+    return;
+  }
+
+  quickFixLoadingKey.value = getQuickFixLoadingKey(error, index);
+  try {
+    const secret = await loadQuickFixSecret(quickFix.secretName);
+    if (!secret) {
+      notifications.notify({
+        title: t('notify_title_error'),
+        text: t('repo.pipeline.quick_fix_secret_event_missing', { secretName: quickFix.secretName }),
+        type: 'error',
+      });
+      return;
+    }
+
+    selectedQuickFixSecret.value = cloneDeep(addQuickFixEventToSecret(secret, quickFix.event));
+    isQuickFixDialogOpen.value = true;
+  } catch (error_) {
+    notifications.notify({
+      title: t('notify_title_error'),
+      text: error_ instanceof Error ? error_.message : t('unknown_error'),
+      type: 'error',
+    });
+  } finally {
+    quickFixLoadingKey.value = null;
+  }
+}
+
+function closeQuickFixDialog() {
+  selectedQuickFixSecret.value = null;
+  isQuickFixDialogOpen.value = false;
+}
+
+const { doSubmit: saveQuickFixSecret, isLoading: isSavingQuickFix } = useAsyncAction(
+  async (secret: Partial<SecretWithOrg>) => {
+    if (!secret.name || !secret.scope_type) {
+      throw new Error(t('repo.pipeline.quick_fix_secret_event_invalid_scope'));
+    }
+
+    switch (secret.scope_type) {
+      case 'repo':
+        if (!secret.repo_id) {
+          throw new Error(t('repo.pipeline.quick_fix_secret_event_invalid_scope'));
+        }
+        await apiClient.updateSecret(secret.repo_id, secret);
+        break;
+      case 'org':
+        if (!secret.org_id) {
+          throw new Error(t('repo.pipeline.quick_fix_secret_event_invalid_scope'));
+        }
+        await apiClient.updateOrgSecret(secret.org_id, secret);
+        break;
+      case 'global':
+        await apiClient.updateGlobalSecret(secret);
+        break;
+      default:
+        throw new Error(t('repo.pipeline.quick_fix_secret_event_invalid_scope'));
+    }
+
+    notifications.notify({
+      title: t('notify_title_success'),
+      text: t('repo.pipeline.quick_fix_secret_event_saved', { secretName: secret.name }),
+      type: 'success',
+      duration: 6000,
+    });
+    closeQuickFixDialog();
+  },
+  // eslint-disable-next-line promise/prefer-await-to-callbacks -- useAsyncAction API requires callback
+  (error) => {
+    notifications.notify({
+      title: t('notify_title_error'),
+      text: error instanceof Error ? error.message : t('unknown_error'),
+      type: 'error',
+    });
+  },
+);
 
 function getErrorTypeLabel(type: PipelineErrorType): string {
   const labels: Record<PipelineErrorType, string> = {

@@ -60,6 +60,11 @@ func TestSecretAvailable(t *testing.T) {
 	assert.ErrorContains(t, secret.Available("pull_request", &yaml_types.Container{
 		Image: "golang",
 	}), "not allowed to be used with pipeline event ")
+
+	err := secret.Available("pull_request_merged", &yaml_types.Container{
+		Image: "golang",
+	})
+	assert.EqualError(t, err, `Secret "foo" is not allowed to be used with pipeline event "pull_request"`)
 }
 
 func TestCompilerCompile(t *testing.T) {

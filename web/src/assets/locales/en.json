@@ -627,6 +627,10 @@
       "error_location": {
         "line": "line {line}"
       },
+      "quick_fix_secret_event": "Add event to secret",
+      "quick_fix_secret_event_missing": "Could not find an editable secret named {secretName}.",
+      "quick_fix_secret_event_invalid_scope": "This secret scope cannot be updated from the quick fix.",
+      "quick_fix_secret_event_saved": "Updated {secretName}. Rerun the pipeline to apply the new event filter.",
       "open_privileges_settings": "Open Privileges & Security settings",
       "show_errors": "Show errors",
       "we_got_some_errors": "Oh no, an error occurred!",

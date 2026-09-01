@@ -47,6 +47,23 @@ type Secret struct {
 	Events         []string
 }
 
+type ErrSecretEventNotAllowed struct {
+	SecretName string
+	Event      string
+}
+
+func (e *ErrSecretEventNotAllowed) Error() string {
+	return fmt.Sprintf("Secret %q is not allowed to be used with pipeline event %q", e.SecretName, e.Event)
+}
+
+func (e *ErrSecretEventNotAllowed) QuickFixSecretName() string {
+	return e.SecretName
+}
+
+func (e *ErrSecretEventNotAllowed) QuickFixEvent() string {
+	return e.Event
+}
+
 func (s *Secret) Available(event string, container *yaml_types.Container) error {
 	onlyAllowSecretForPlugins := len(s.AllowedPlugins) > 0
 	if onlyAllowSecretForPlugins && !container.IsPlugin() {
@@ -58,7 +75,10 @@ func (s *Secret) Available(event string, container *yaml_types.Container) error 
 	}
 
 	if !s.Match(event) {
-		return fmt.Errorf("Secret %q is not allowed to be used with pipeline event %q", s.Name, event)
+		return &ErrSecretEventNotAllowed{
+			SecretName: s.Name,
+			Event:      normalizeSecretEvent(event),
+		}
 	}
 
 	return nil
@@ -71,13 +91,18 @@ func (s *Secret) Match(event string) bool {
 	if len(s.Events) == 0 {
 		return true
 	}
-	// treat all pull events the same way
-	switch event {
-	case "pull_request_closed", "pull_request_merged", "pull_request_edited":
-		event = "pull_request"
-	}
+	event = normalizeSecretEvent(event)
 	// one match is enough
 	return slices.Contains(s.Events, event)
+}
+
+func normalizeSecretEvent(event string) string {
+	switch event {
+	case "pull_request_closed", "pull_request_merged", "pull_request_edited":
+		return "pull_request"
+	default:
+		return event
+	}
 }
 
 // Compiler compiles the yaml.
