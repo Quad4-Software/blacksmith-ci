@@ -297,6 +297,7 @@ func (e *docker) StartStep(ctx context.Context, step *backend.Step, taskUUID str
 	// automatically pull the latest version of the image if requested
 	// by the process configuration.
 	if step.Pull {
+		backend.ReportStepProgress(ctx, "Pulling image "+config.Image)
 		responseBody, pErr := e.client.ImagePull(ctx, config.Image, pullOpts)
 		if pErr == nil {
 			// TODO(1936): show image pull progress in web-ui
@@ -317,10 +318,12 @@ func (e *docker) StartStep(ctx context.Context, step *backend.Step, taskUUID str
 	// add default volumes to the host configuration
 	hostConfig.Binds = utils.DeduplicateStrings(append(hostConfig.Binds, e.config.volumes...))
 
+	backend.ReportStepProgress(ctx, "Creating container")
 	_, err = e.client.ContainerCreate(ctx, config, hostConfig, nil, nil, containerName)
 	if errdefs.IsNotFound(err) {
 		// automatically pull and try to re-create the image if the
 		// failure is caused because the image does not exist.
+		backend.ReportStepProgress(ctx, "Pulling image "+config.Image)
 		responseBody, pErr := e.client.ImagePull(ctx, config.Image, pullOpts)
 		if pErr != nil {
 			return pErr
@@ -340,6 +343,7 @@ func (e *docker) StartStep(ctx context.Context, step *backend.Step, taskUUID str
 	}
 
 	if len(step.NetworkMode) == 0 {
+		backend.ReportStepProgress(ctx, "Connecting container networks")
 		for _, net := range step.Networks {
 			err = e.client.NetworkConnect(ctx, net.Name, containerName, &network.EndpointSettings{
 				Aliases: net.Aliases,
@@ -357,6 +361,8 @@ func (e *docker) StartStep(ctx context.Context, step *backend.Step, taskUUID str
 			}
 		}
 	}
+
+	backend.ReportStepProgress(ctx, "Starting container")
 
 	return wrapDaemonError("start container", containerName, e.client.ContainerStart(ctx, containerName, container.StartOptions{}))
 }

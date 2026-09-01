@@ -55,3 +55,19 @@ func TestLineWriter(t *testing.T) {
 
 	peer.AssertExpectations(t)
 }
+
+func TestLineWriterWritesPreparationProgress(t *testing.T) {
+	peer := rpc_mocks.NewMockPeer(t)
+	peer.On("EnqueueLog", &rpc.LogEntry{
+		Data:     []byte("Pulling image example/clone:latest"),
+		StepUUID: "step-uuid",
+		Type:     rpc.LogEntryProgress,
+		Line:     0,
+		Time:     int64(0),
+	}).Once()
+
+	writer := log.NewLineWriterWithType(peer, "step-uuid", rpc.LogEntryStdout)
+	_, err := writer.WriteProgress([]byte("Pulling image example/clone:latest"))
+
+	assert.NoError(t, err)
+}

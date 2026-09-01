@@ -41,14 +41,22 @@ func (r *Runner) createTracer(ctxMeta context.Context, logger zerolog.Logger, wo
 			Logger()
 
 		stepState := rpc.StepState{
-			StepUUID: state.Pipeline.Step.UUID,
-			Exited:   state.Process.Exited,
-			ExitCode: state.Process.ExitCode,
-			Started:  time.Now().Unix(), // TODO: do not do this
-			Finished: time.Now().Unix(),
+			StepUUID:  state.Pipeline.Step.UUID,
+			Exited:    state.Process.Exited,
+			ExitCode:  state.Process.ExitCode,
+			Started:   time.Now().Unix(), // TODO: do not do this
+			Finished:  time.Now().Unix(),
+			Preparing: state.Process.Preparing,
+		}
+		if state.Process.Preparing {
+			stepState.Started = 0
+			stepState.Finished = 0
 		}
 		if state.Process.Error != nil {
 			stepState.Error = state.Process.Error.Error()
+		}
+		if state.Process.Exited {
+			r.logWriters.Delete(state.Pipeline.Step.UUID)
 		}
 
 		defer func() {

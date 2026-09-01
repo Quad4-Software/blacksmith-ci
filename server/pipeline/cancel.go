@@ -90,7 +90,7 @@ func Cancel(ctx context.Context, _forge forge.Forge, store store.Store, repo *mo
 				if _, err = UpdateStepToStatusSkipped(store, *step, 0); err != nil {
 					log.Error().Err(err).Msgf("cannot update step with id %d state", step.ID)
 				}
-			case model.StatusRunning:
+			case model.StatusPreparing, model.StatusRunning:
 				if _, err = UpdateStepToStatusKilled(store, *step); err != nil {
 					log.Error().Err(err).Msgf("cannot update step with id %d state to killed", step.ID)
 				}
@@ -244,7 +244,7 @@ func CancelWorkflow(ctx context.Context, _forge forge.Forge, store store.Store, 
 			if _, err = UpdateStepToStatusSkipped(store, *step, 0); err != nil {
 				log.Error().Err(err).Msgf("cannot update step with id %d state", step.ID)
 			}
-		case model.StatusRunning:
+		case model.StatusPreparing, model.StatusRunning:
 			if _, err = UpdateStepToStatusKilled(store, *step); err != nil {
 				log.Error().Err(err).Msgf("cannot update step with id %d state to killed", step.ID)
 			}

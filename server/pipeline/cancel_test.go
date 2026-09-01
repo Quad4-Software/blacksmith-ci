@@ -47,11 +47,12 @@ func TestCancelWorkflow(t *testing.T) {
 			Status: model.StatusRunning,
 		}
 
+		preparingStep := &model.Step{ID: 10, State: model.StatusPreparing}
 		workflow1 := &model.Workflow{
 			ID:         1,
 			PipelineID: 1,
 			State:      model.StatusRunning,
-			Children:   []*model.Step{},
+			Children:   []*model.Step{preparingStep},
 		}
 
 		workflow2 := &model.Workflow{
@@ -68,6 +69,12 @@ func TestCancelWorkflow(t *testing.T) {
 		mockStore.On("WorkflowGetTree", mock.AnythingOfType("*model.Pipeline")).Return(workflows, nil)
 		mockStore.On("WorkflowGetTree", mock.AnythingOfType("*model.Pipeline")).Return(workflows, nil) // Called twice
 		mockStore.On("WorkflowUpdate", mock.AnythingOfType("*model.Workflow")).Return(nil)
+		var updatedStepState model.StatusValue
+		mockStore.On("StepUpdate", mock.AnythingOfType("*model.Step")).Run(func(args mock.Arguments) {
+			step, ok := args.Get(0).(*model.Step)
+			require.True(t, ok)
+			updatedStepState = step.State
+		}).Return(nil)
 		mockStore.On("UpdatePipeline", pipeline).Return(nil).Maybe() // May be called if all workflows complete
 
 		// Mock forge
@@ -90,6 +97,7 @@ func TestCancelWorkflow(t *testing.T) {
 
 		// Assert
 		assert.NoError(t, err)
+		assert.Equal(t, model.StatusKilled, updatedStepState)
 		mockStore.AssertExpectations(t)
 		mockQueue.AssertExpectations(t)
 	})
@@ -484,7 +492,8 @@ func TestCancel(t *testing.T) {
 	t.Run("running workflow and step are killed, pending are skipped", func(t *testing.T) {
 		runningStep := &model.Step{ID: 10, State: model.StatusRunning}
 		pendingStep := &model.Step{ID: 20, State: model.StatusPending}
-		runningWorkflow := &model.Workflow{ID: 1, PipelineID: 1, State: model.StatusRunning, Children: []*model.Step{runningStep}}
+		preparingStep := &model.Step{ID: 30, State: model.StatusPreparing}
+		runningWorkflow := &model.Workflow{ID: 1, PipelineID: 1, State: model.StatusRunning, Children: []*model.Step{runningStep, preparingStep}}
 		pendingWorkflow := &model.Workflow{ID: 2, PipelineID: 1, State: model.StatusPending, Children: []*model.Step{pendingStep}}
 		workflows := []*model.Workflow{runningWorkflow, pendingWorkflow}
 
@@ -529,6 +538,7 @@ func TestCancel(t *testing.T) {
 		assert.Equal(t, model.StatusSkipped, wfStates[2], "pending workflow should be skipped")
 		assert.Equal(t, model.StatusKilled, stepStates[10], "running step should be killed")
 		assert.Equal(t, model.StatusSkipped, stepStates[20], "pending step should be skipped")
+		assert.Equal(t, model.StatusKilled, stepStates[30], "preparing step should be killed")
 		mockQueue.AssertExpectations(t)
 	})
 }

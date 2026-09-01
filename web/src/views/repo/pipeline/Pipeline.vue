@@ -332,6 +332,9 @@
                     >
                       <PipelineStatusIcon :service="step.type === 'service'" :status="step.state" class="h-4 w-4" />
                       <span class="flex-1 text-sm text-foreground">{{ step.name }}</span>
+                      <span v-if="step.state === 'preparing'" class="text-xs text-blue-500">
+                        {{ $t('repo.pipeline.status.preparing') }}
+                      </span>
                       <PipelineStepDuration :step="step" class="text-xs text-muted-foreground" />
                     </div>
                   </div>
@@ -346,10 +349,17 @@
 </template>
 
 <script lang="ts" setup>
-import { useStorage, useDebounceFn } from '@vueuse/core';
-import { computed, toRef, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
-
+import { useDebounceFn, useStorage } from '@vueuse/core';
+import Icon from '~/components/atomic/Icon.vue';
+import IconButton from '~/components/atomic/IconButton.vue';
+import Container from '~/components/layout/Container.vue';
+import Panel from '~/components/layout/Panel.vue';
+import PipelineLog from '~/components/repo/pipeline/PipelineLog.vue';
+import PipelineLogMobile from '~/components/repo/pipeline/PipelineLogMobile.vue';
+import PipelineMatrixGroupMobile from '~/components/repo/pipeline/PipelineMatrixGroupMobile.vue';
+import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
+import PipelineStepDuration from '~/components/repo/pipeline/PipelineStepDuration.vue';
+import PipelineStepList from '~/components/repo/pipeline/PipelineStepList.vue';
 import { Button } from '~/components/ui/button';
 import {
   DropdownMenu,
@@ -357,28 +367,20 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu';
-import Icon from '~/components/atomic/Icon.vue';
-import IconButton from '~/components/atomic/IconButton.vue';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '~/components/ui/resizable';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
-import Container from '~/components/layout/Container.vue';
-import Panel from '~/components/layout/Panel.vue';
-import PipelineLog from '~/components/repo/pipeline/PipelineLog.vue';
-import PipelineLogMobile from '~/components/repo/pipeline/PipelineLogMobile.vue';
-import PipelineStepList from '~/components/repo/pipeline/PipelineStepList.vue';
-import PipelineMatrixGroupMobile from '~/components/repo/pipeline/PipelineMatrixGroupMobile.vue';
-import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
-import PipelineStepDuration from '~/components/repo/pipeline/PipelineStepDuration.vue';
 import WorkflowApprovalPanel from '~/components/workflow/WorkflowApprovalPanel.vue';
 import useApiClient from '~/compositions/useApiClient';
 import { useAsyncAction } from '~/compositions/useAsyncAction';
+import { useCrowTitle } from '~/compositions/useCrowTitle';
 import { requiredInject } from '~/compositions/useInjectProvide';
 import useNotifications from '~/compositions/useNotifications';
-import { useCrowTitle } from '~/compositions/useCrowTitle';
 import { usePipelineNavigation } from '~/compositions/usePipelineNavigation';
-import { usePipelineStore } from '~/store/pipelines';
-import { identifyMatrixGroups, getLatestAttempts, getWorkflowAttempts, hasReruns } from '~/lib/pipeline-utils';
 import type { PipelineWorkflow } from '~/lib/api/types';
+import { getLatestAttempts, getWorkflowAttempts, hasReruns, identifyMatrixGroups } from '~/lib/pipeline-utils';
+import { usePipelineStore } from '~/store/pipelines';
+import { computed, ref, toRef, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{
   stepId?: string | null;

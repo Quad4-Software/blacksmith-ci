@@ -44,6 +44,7 @@ type StepState struct {
 	Exited        bool                   `protobuf:"varint,4,opt,name=exited,proto3" json:"exited,omitempty"`
 	ExitCode      int32                  `protobuf:"varint,5,opt,name=exit_code,json=exitCode,proto3" json:"exit_code,omitempty"`
 	Error         string                 `protobuf:"bytes,6,opt,name=error,proto3" json:"error,omitempty"`
+	Preparing     bool                   `protobuf:"varint,7,opt,name=preparing,proto3" json:"preparing,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -118,6 +119,13 @@ func (x *StepState) GetError() string {
 		return x.Error
 	}
 	return ""
+}
+
+func (x *StepState) GetPreparing() bool {
+	if x != nil {
+		return x.Preparing
+	}
+	return false
 }
 
 type WorkflowState struct {
@@ -1678,14 +1686,15 @@ var File_crow_proto protoreflect.FileDescriptor
 const file_crow_proto_rawDesc = "" +
 	"\n" +
 	"\n" +
-	"crow.proto\x12\x05proto\"\xa9\x01\n" +
+	"crow.proto\x12\x05proto\"\xc7\x01\n" +
 	"\tStepState\x12\x1b\n" +
 	"\tstep_uuid\x18\x01 \x01(\tR\bstepUuid\x12\x18\n" +
 	"\astarted\x18\x02 \x01(\x03R\astarted\x12\x1a\n" +
 	"\bfinished\x18\x03 \x01(\x03R\bfinished\x12\x16\n" +
 	"\x06exited\x18\x04 \x01(\bR\x06exited\x12\x1b\n" +
 	"\texit_code\x18\x05 \x01(\x05R\bexitCode\x12\x14\n" +
-	"\x05error\x18\x06 \x01(\tR\x05error\"[\n" +
+	"\x05error\x18\x06 \x01(\tR\x05error\x12\x1c\n" +
+	"\tpreparing\x18\a \x01(\bR\tpreparing\"[\n" +
 	"\rWorkflowState\x12\x18\n" +
 	"\astarted\x18\x04 \x01(\x03R\astarted\x12\x1a\n" +
 	"\bfinished\x18\x05 \x01(\x03R\bfinished\x12\x14\n" +

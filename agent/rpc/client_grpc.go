@@ -742,6 +742,7 @@ func (c *client) Update(ctx context.Context, workflowID string, state rpc.StepSt
 	req.State.Exited = state.Exited
 	req.State.ExitCode = int32(state.ExitCode)
 	req.State.Error = state.Error
+	req.State.Preparing = state.Preparing
 	for {
 		// Check if agent is shutting down before attempting RPC
 		if agentShuttingDown.Load() {

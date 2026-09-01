@@ -1,10 +1,9 @@
 import { useStorage } from '@vueuse/core';
+import type { Pipeline, PipelineStep, PipelineWorkflow } from '~/lib/api/types';
+import { StepType } from '~/lib/api/types';
 import type { Ref } from 'vue';
 import { computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-
-import type { Pipeline, PipelineStep, PipelineWorkflow } from '~/lib/api/types';
-import { StepType } from '~/lib/api/types';
 
 export interface UsePipelineNavigationOptions {
   pipeline: Ref<Pipeline>;
@@ -16,7 +15,9 @@ export interface UsePipelineNavigationOptions {
 // they must be excluded — otherwise auto-follow keeps jumping back to the
 // service instead of advancing to the actual running task step (issue #1219).
 function findRunningStep(workflow: PipelineWorkflow): PipelineStep | undefined {
-  return workflow.children?.find((step) => step.state === 'running' && step.type !== StepType.Service);
+  return workflow.children?.find(
+    (step) => (step.state === 'preparing' || step.state === 'running') && step.type !== StepType.Service,
+  );
 }
 
 // Determine which step auto-follow should select, given the current selection.

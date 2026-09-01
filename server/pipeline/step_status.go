@@ -25,7 +25,8 @@ import (
 )
 
 func UpdateStepStatus(store store.Store, step *model.Step, state rpc.StepState) error {
-	if state.Exited {
+	switch {
+	case state.Exited:
 		step.Finished = state.Finished
 		step.ExitCode = state.ExitCode
 		step.Error = state.Error
@@ -42,7 +43,9 @@ func UpdateStepStatus(store store.Store, step *model.Step, state rpc.StepState) 
 				step.State = model.StatusFailure
 			}
 		}
-	} else if step.Finished == 0 {
+	case step.Finished == 0 && state.Preparing:
+		step.State = model.StatusPreparing
+	case step.Finished == 0:
 		step.Started = state.Started
 		step.State = model.StatusRunning
 	}

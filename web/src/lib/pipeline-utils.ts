@@ -232,6 +232,7 @@ const STATUS_PRIORITY: PipelineStatus[] = [
   'error',
   'failure',
   'running',
+  'preparing',
   'started',
   'pending',
   'killed',

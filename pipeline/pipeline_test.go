@@ -188,17 +188,20 @@ func newRecordingRuntime(ctx context.Context, eng backend.Backend, rec *callback
 	)
 }
 
-// A canceled single-step workflow traces twice (started + finished) and logs once.
-const expectedCallbacks = 3
+// A canceled single-step workflow traces preparation, start, and finish, and logs once.
+const (
+	expectedCallbacks        = 4
+	expectedAdoptedCallbacks = 3
+)
 
 // waitForCallbacks blocks until every expected tracer/logger callback has been
 // invoked, no matter which goroutine invoked it.
-func waitForCallbacks(t *testing.T, rec *callbackRecorder) {
+func waitForCallbacks(t *testing.T, rec *callbackRecorder, expected int) {
 	t.Helper()
 	assert.Eventually(t, func() bool {
 		total, _, _ := rec.snapshot()
-		return total >= expectedCallbacks
-	}, 2*time.Second, 5*time.Millisecond, "expected %d tracer/logger callbacks", expectedCallbacks)
+		return total >= expected
+	}, 2*time.Second, 5*time.Millisecond, "expected %d tracer/logger callbacks", expected)
 }
 
 // TestRunJoinsStepGoroutinesOnCancel is the regression test for
@@ -231,7 +234,7 @@ func TestRunJoinsStepGoroutinesOnCancel(t *testing.T) {
 
 	// Give any goroutine that outlived Run the chance to invoke a callback, so
 	// afterRun reports a real violation rather than passing vacuously.
-	waitForCallbacks(t, rec)
+	waitForCallbacks(t, rec, expectedCallbacks)
 
 	total, afterRun, atSplit := rec.snapshot()
 	assert.Equal(t, expectedCallbacks, atSplit, "all tracer/logger callbacks must complete before Run returns")
@@ -262,12 +265,12 @@ func TestRunAdoptedJoinsStepGoroutinesOnCancel(t *testing.T) {
 
 	assert.ErrorIs(t, err, ErrCancel)
 
-	waitForCallbacks(t, rec)
+	waitForCallbacks(t, rec, expectedAdoptedCallbacks)
 
 	total, afterRun, atSplit := rec.snapshot()
-	assert.Equal(t, expectedCallbacks, atSplit, "all tracer/logger callbacks must complete before RunAdopted returns")
+	assert.Equal(t, expectedAdoptedCallbacks, atSplit, "all tracer/logger callbacks must complete before RunAdopted returns")
 	assert.Equal(t, 0, afterRun, "no tracer/logger callback may run after RunAdopted returned")
-	assert.Equal(t, expectedCallbacks, total)
+	assert.Equal(t, expectedAdoptedCallbacks, total)
 }
 
 // TestRunLeavesNoGoroutineBehind asserts that abandoning a stage on cancel does

@@ -609,7 +609,7 @@ func (q *fifo) finalizeZombieWorkflow(taskID string) {
 	}
 	now := time.Now().Unix()
 	for _, step := range steps {
-		if step.State != model.StatusRunning && step.State != model.StatusPending {
+		if !step.Running() {
 			continue
 		}
 		step.State = model.StatusKilled

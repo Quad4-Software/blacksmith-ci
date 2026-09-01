@@ -227,12 +227,16 @@ func (e *local) StartStep(ctx context.Context, step *types.Step, taskUUID string
 
 	switch step.Type {
 	case types.StepTypeClone:
+		types.ReportStepProgress(ctx, "Starting clone process")
 		return e.execClone(ctx, step, state, env)
 	case types.StepTypeCommands:
+		types.ReportStepProgress(ctx, "Starting command process")
 		return e.execCommands(ctx, step, state, env)
 	case types.StepTypePlugin:
+		types.ReportStepProgress(ctx, "Starting plugin process")
 		return e.execPlugin(ctx, step, state, env)
 	case types.StepTypeService:
+		types.ReportStepProgress(ctx, "Starting service process")
 		return e.execService(ctx, step, state, env)
 	default:
 		return ErrUnsupportedStepType

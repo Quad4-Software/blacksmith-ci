@@ -37,6 +37,13 @@ func WithLogger(logger Logger) Option {
 	}
 }
 
+// WithProgress returns an option configured with a preparation progress reporter.
+func WithProgress(progress Progress) Option {
+	return func(r *Runtime) {
+		r.progress = progress
+	}
+}
+
 // WithTracer returns an option configured with a runtime tracer.
 func WithTracer(tracer Tracer) Option {
 	return func(r *Runtime) {

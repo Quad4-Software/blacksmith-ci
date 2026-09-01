@@ -87,12 +87,13 @@ func (s *CrowServer) Init(c context.Context, req *proto.InitRequest) (*proto.Emp
 
 func (s *CrowServer) Update(c context.Context, req *proto.UpdateRequest) (*proto.Empty, error) {
 	state := rpc.StepState{
-		StepUUID: req.GetState().GetStepUuid(),
-		Started:  req.GetState().GetStarted(),
-		Finished: req.GetState().GetFinished(),
-		Exited:   req.GetState().GetExited(),
-		Error:    req.GetState().GetError(),
-		ExitCode: int(req.GetState().GetExitCode()),
+		StepUUID:  req.GetState().GetStepUuid(),
+		Started:   req.GetState().GetStarted(),
+		Finished:  req.GetState().GetFinished(),
+		Exited:    req.GetState().GetExited(),
+		Error:     req.GetState().GetError(),
+		ExitCode:  int(req.GetState().GetExitCode()),
+		Preparing: req.GetState().GetPreparing(),
 	}
 	res := new(proto.Empty)
 	err := s.peer.Update(c, req.GetId(), state)

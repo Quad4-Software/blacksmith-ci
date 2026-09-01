@@ -283,6 +283,7 @@ func (e *kube) StartStep(ctx context.Context, step *types.Step, taskUUID string)
 	}
 
 	if needsRegistrySecret(step) {
+		types.ReportStepProgress(ctx, "Creating registry credentials")
 		err = startRegistrySecret(ctx, e, step)
 		if err != nil {
 			return err
@@ -290,6 +291,7 @@ func (e *kube) StartStep(ctx context.Context, step *types.Step, taskUUID string)
 	}
 
 	if needsStepSecret(step) {
+		types.ReportStepProgress(ctx, "Creating step credentials")
 		err = startStepSecret(ctx, e, step)
 		if err != nil {
 			return err
@@ -297,6 +299,7 @@ func (e *kube) StartStep(ctx context.Context, step *types.Step, taskUUID string)
 	}
 
 	log.Trace().Str("taskUUID", taskUUID).Msgf("starting step: %s", step.Name)
+	types.ReportStepProgress(ctx, "Creating pod")
 	_, err = startPod(ctx, e, step, options, taskUUID)
 	return err
 }

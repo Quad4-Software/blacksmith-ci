@@ -604,6 +604,7 @@
         "status": "Status: {status}",
         "blocked": "blocked",
         "pending": "pending",
+        "preparing": "preparing",
         "running": "running",
         "started": "started",
         "skipped": "skipped",

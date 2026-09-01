@@ -124,7 +124,7 @@ export interface Pipeline {
   is_always_approved?: boolean;
 }
 
-type ActivePipelineStatus = 'blocked' | 'pending' | 'running' | 'started';
+type ActivePipelineStatus = 'blocked' | 'pending' | 'preparing' | 'running' | 'started';
 type CompletedPipelineStatus = 'declined' | 'error' | 'failure' | 'killed' | 'skipped' | 'success';
 
 export type PipelineStatus = ActivePipelineStatus | CompletedPipelineStatus;

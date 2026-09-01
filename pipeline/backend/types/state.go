@@ -16,6 +16,8 @@ package types
 
 // State defines a container state.
 type State struct {
+	// Preparing indicates that the backend is preparing the step but has not started it yet.
+	Preparing bool `json:"preparing"`
 	// Container exit code
 	ExitCode int `json:"exit_code"`
 	// Container exited, true or false

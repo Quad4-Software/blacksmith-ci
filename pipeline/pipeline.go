@@ -58,9 +58,10 @@ type Runtime struct {
 	engine  backend.Backend
 	started int64
 
-	ctx    context.Context
-	tracer Tracer
-	logger Logger
+	ctx      context.Context
+	tracer   Tracer
+	logger   Logger
+	progress Progress
 
 	taskUUID string
 
@@ -430,11 +431,10 @@ func (r *Runtime) executeStep(step *backend.Step, runStep func(*backend.Step) (*
 	logger := r.MakeLogger()
 	logger.Debug().Str("step", step.Name).Msg("prepare")
 
-	if err := r.traceStep(nil, nil, step); err != nil {
-		return err
-	}
-
 	// add compatibility for drone-ci plugins
+	if step.Environment == nil {
+		step.Environment = map[string]string{}
+	}
 	metadata.SetDroneEnviron(step.Environment)
 	logger.Debug().Str("step", step.Name).Msg("executing")
 	processState, err := runStep(step)
@@ -476,6 +476,9 @@ func (r *Runtime) RunAdopted(runnerCtx context.Context) error {
 func (r *Runtime) runAdoptedStep(step *backend.Step, resumer backend.WorkflowResumer) (*backend.State, error) {
 	logger := r.MakeLogger()
 	logger.Debug().Str("step", step.Name).Msg("resuming adopted step")
+	if err := r.traceStep(nil, nil, step); err != nil {
+		return nil, err
+	}
 
 	// Resume step - verifies container exists and is running
 	if err := resumer.ResumeStep(r.ctx, step, r.taskUUID); err != nil {
@@ -547,7 +550,19 @@ func (r *Runtime) runAdoptedStep(step *backend.Step, resumer backend.WorkflowRes
 
 // Runs the step and returns the state and error.
 func (r *Runtime) runStep(step *backend.Step) (*backend.State, error) {
-	if err := r.engine.StartStep(r.ctx, step, r.taskUUID); err != nil {
+	if err := r.traceStep(&backend.State{Preparing: true}, nil, step); err != nil {
+		return nil, err
+	}
+	stepCtx := backend.WithStepProgress(r.ctx, func(message string) {
+		if r.progress != nil {
+			r.progress(step, message)
+		}
+	})
+	backend.ReportStepProgress(stepCtx, "Preparing step")
+	if err := r.engine.StartStep(stepCtx, step, r.taskUUID); err != nil {
+		return nil, err
+	}
+	if err := r.traceStep(nil, nil, step); err != nil {
 		return nil, err
 	}
 

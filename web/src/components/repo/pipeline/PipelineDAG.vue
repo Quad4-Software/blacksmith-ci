@@ -311,19 +311,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, shallowRef, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { VueFlow, Handle, Position, useVueFlow } from '@vue-flow/core';
 import { Background } from '@vue-flow/background';
 import { Controls } from '@vue-flow/controls';
+import { Handle, Position, useVueFlow, VueFlow } from '@vue-flow/core';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import PlatformMarker from './PlatformMarker.vue';
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 import '@vue-flow/controls/dist/style.css';
-import type { Node, Edge } from '@vue-flow/core';
-import type { Pipeline, PipelineStep, PipelineWorkflow, PipelineStatus } from '~/lib/api/types';
-import { identifyMatrixGroupsMap, getLatestAttempts, matrixValueColor } from '~/lib/pipeline-utils';
+import type { Edge, Node } from '@vue-flow/core';
 import { useLayout } from '~/compositions/useLayout';
+import type { Pipeline, PipelineStatus, PipelineStep, PipelineWorkflow } from '~/lib/api/types';
+import { getLatestAttempts, identifyMatrixGroupsMap, matrixValueColor } from '~/lib/pipeline-utils';
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
@@ -1698,6 +1698,7 @@ function getAggregatedWorkflowState(workflows: PipelineWorkflow[]): PipelineStat
     failure: 6,
     killed: 5,
     running: 4,
+    preparing: 4,
     pending: 3,
     success: 2,
     skipped: 1,

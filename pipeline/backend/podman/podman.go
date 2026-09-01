@@ -239,6 +239,7 @@ func (e *podman) StartStep(ctx context.Context, step *backend.Step, taskUUID str
 
 	// Automatically pull the latest version of the image if requested
 	if step.Pull {
+		backend.ReportStepProgress(ctx, "Pulling image "+step.Image)
 		pullOpts := new(images.PullOptions)
 		if step.AuthConfig.Username != "" && step.AuthConfig.Password != "" {
 			pullOpts = pullOpts.WithUsername(step.AuthConfig.Username).WithPassword(step.AuthConfig.Password)
@@ -252,11 +253,13 @@ func (e *podman) StartStep(ctx context.Context, step *backend.Step, taskUUID str
 	}
 
 	// Create container
+	backend.ReportStepProgress(ctx, "Creating container")
 	//nolint:contextcheck // Podman SDK uses context embedded in connection
 	response, err := containers.CreateWithSpec(e.conn, spec, nil)
 	if err != nil {
 		// Image not found, try to pull
 		if strings.Contains(err.Error(), "image not known") || strings.Contains(err.Error(), "no such image") {
+			backend.ReportStepProgress(ctx, "Pulling image "+step.Image)
 			pullOpts := new(images.PullOptions)
 			if step.AuthConfig.Username != "" && step.AuthConfig.Password != "" {
 				pullOpts = pullOpts.WithUsername(step.AuthConfig.Username).WithPassword(step.AuthConfig.Password)
@@ -274,6 +277,7 @@ func (e *podman) StartStep(ctx context.Context, step *backend.Step, taskUUID str
 		return fmt.Errorf("failed to create container: %w", err)
 	}
 
+	backend.ReportStepProgress(ctx, "Starting container")
 	//nolint:contextcheck // Podman SDK uses context embedded in connection
 	return containers.Start(e.conn, response.ID, nil)
 }

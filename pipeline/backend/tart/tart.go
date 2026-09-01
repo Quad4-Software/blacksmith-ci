@@ -264,20 +264,24 @@ func (e *tart) StartStep(ctx context.Context, step *types.Step, taskUUID string)
 	)
 	switch step.Type {
 	case types.StepTypeClone:
+		types.ReportStepProgress(ctx, "Preparing clone process")
 		script, err = e.cloneStepScript(ctx, step, state)
 		if err != nil {
 			return err
 		}
 	case types.StepTypeCommands, types.StepTypeService:
+		types.ReportStepProgress(ctx, "Preparing command process")
 		shell = stepShell(step)
 		script = buildScript(stepEnv(step, state.paths), state.paths.Workspace, step.Commands)
 	case types.StepTypePlugin:
+		types.ReportStepProgress(ctx, "Preparing plugin process")
 		// A plugin is a binary on the guest's PATH, as in the local backend.
 		script = buildScript(stepEnv(step, state.paths), state.paths.Workspace, []string{shellescape.Quote(step.Image)})
 	default:
 		return ErrUnsupportedStepType
 	}
 
+	types.ReportStepProgress(ctx, "Starting guest process")
 	cmd, output, err := e.runGuestScript(ctx, state.vm, shell, script)
 	if err != nil {
 		return err

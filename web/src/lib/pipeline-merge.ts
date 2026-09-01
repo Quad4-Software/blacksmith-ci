@@ -3,10 +3,10 @@ import type { Pipeline, PipelineStatus, PipelineStep, PipelineWorkflow } from '~
 /**
  * State-machine progression rank for a single entity (step, workflow, or pipeline).
  *
- * The pipeline lifecycle is monotonic forward: `pending` → `blocked` (approval gate
- * activates) → `running`/`started` → terminal. We use this rank to decide which of two
- * concurrent snapshots of the same entity is "more recent" so we never regress state
- * when a stale HTTP response races a fresh SSE update (or vice-versa).
+ * The lifecycle is monotonic forward: workflows can progress through `blocked`, while steps
+ * progress through `preparing`, before either reaches `running`/`started` and then terminal.
+ * We use this rank to decide which of two concurrent snapshots of the same entity is "more
+ * recent" so we never regress state when a stale HTTP response races a fresh SSE update.
  *
  * `blocked` ranks strictly above `pending`: a workflow only becomes `blocked` once its
  * approval gate activates, which always happens after it was `pending`. Giving them the
@@ -20,16 +20,18 @@ export function stateRank(state: PipelineStatus): number {
       return 1;
     case 'blocked':
       return 2;
+    case 'preparing':
+      return 3;
     case 'started':
     case 'running':
-      return 3;
+      return 4;
     case 'declined':
     case 'error':
     case 'failure':
     case 'killed':
     case 'skipped':
     case 'success':
-      return 4;
+      return 5;
     default:
       return 0;
   }

@@ -39,6 +39,12 @@ Steps within a workflow are executed sequentially by their order of definition.
 
 Both steps and workflows accept a `depends_on: []` key which can be used to specify an explicit execution order.
 
+### Step preparation
+
+A step enters the `preparing` state while its backend pulls or locates the image, creates the container, connects its networks, and starts it.
+The step changes to `running` only after the backend has successfully started the process, so the running duration does not include backend setup time.
+The step log shows preparation milestones such as image pulls and container creation as they happen.
+
 :::caution
 Each workflow is isolated from other workflows with respect to its working directory and file access.
 _Steps within a workflow_ have access to the same files as they share a common workflow-specific volume which is attached to all steps within the workflow.

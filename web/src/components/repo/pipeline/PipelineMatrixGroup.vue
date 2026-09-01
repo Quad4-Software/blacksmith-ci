@@ -410,6 +410,7 @@ const STATUS_SORT_ORDER: Record<PipelineStatus, number> = {
   error: 0,
   failure: 1,
   running: 2,
+  preparing: 2,
   started: 3,
   pending: 4,
   killed: 5,
@@ -646,7 +647,7 @@ function getAgent(agentId: number): Agent | undefined {
 }
 
 function isStepCompleted(step: PipelineStep) {
-  return step.state !== 'pending' && step.state !== 'running';
+  return step.state !== 'pending' && step.state !== 'preparing' && step.state !== 'running';
 }
 
 const stepNameDupIndexes = computed(() => {

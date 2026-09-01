@@ -66,12 +66,21 @@ func NewLineWriterWithType(peer rpc.Peer, stepUUID string, logType int, secret .
 }
 
 func (w *LineWriter) Write(p []byte) (n int, err error) {
+	return w.write(p, w.logType)
+}
+
+// WriteProgress writes a backend preparation progress line.
+func (w *LineWriter) WriteProgress(p []byte) (n int, err error) {
+	return w.write(p, rpc.LogEntryProgress)
+}
+
+func (w *LineWriter) write(p []byte, defaultLogType int) (n int, err error) {
 	w.Lock()
 	defer w.Unlock()
 
 	// Check for stream tag byte (added by Docker backend's taggedWriter)
 	// 0x01 = stdout, 0x02 = stderr
-	logType := w.logType
+	logType := defaultLogType
 	data := p
 	if len(p) > 0 && (p[0] == '\x01' || p[0] == '\x02') {
 		switch p[0] {

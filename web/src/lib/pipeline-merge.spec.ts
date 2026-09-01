@@ -1,7 +1,5 @@
-import { describe, expect, it } from 'vitest';
-
 import type { Pipeline, PipelineStep, PipelineWorkflow } from '~/lib/api/types';
-
+import { describe, expect, it } from 'vitest';
 import { mergePipeline, stateRank } from './pipeline-merge';
 
 function step(overrides: Partial<PipelineStep> & { id: number; state: PipelineStep['state'] }): PipelineStep {
@@ -67,11 +65,12 @@ function pipeline(
 }
 
 describe('stateRank', () => {
-  it('orders the lifecycle: pending < blocked < running/started < terminal', () => {
+  it('orders the lifecycle: pending < blocked < preparing < running/started < terminal', () => {
     // `blocked` ranks strictly above `pending`: the approval gate only activates after
     // the workflow was pending, so a stale pending snapshot must never tie/overwrite it.
     expect(stateRank('pending')).toBeLessThan(stateRank('blocked'));
-    expect(stateRank('blocked')).toBeLessThan(stateRank('running'));
+    expect(stateRank('blocked')).toBeLessThan(stateRank('preparing'));
+    expect(stateRank('preparing')).toBeLessThan(stateRank('running'));
     expect(stateRank('pending')).toBeLessThan(stateRank('running'));
     expect(stateRank('running')).toEqual(stateRank('started'));
     expect(stateRank('running')).toBeLessThan(stateRank('success'));

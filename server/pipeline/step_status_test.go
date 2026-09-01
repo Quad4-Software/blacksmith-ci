@@ -184,6 +184,17 @@ func TestUpdateStepToStatusStarted(t *testing.T) {
 	assert.EqualValues(t, 42, step.Started)
 }
 
+func TestUpdateStepStatusPreparingDoesNotStartTimer(t *testing.T) {
+	step := &model.Step{State: model.StatusPending}
+	state := rpc.StepState{Preparing: true}
+
+	err := UpdateStepStatus(mockStoreStep(), step, state)
+
+	assert.NoError(t, err)
+	assert.Equal(t, model.StatusPreparing, step.State)
+	assert.Zero(t, step.Started)
+}
+
 func TestUpdateStepToStatusSkipped(t *testing.T) {
 	t.Parallel()
 

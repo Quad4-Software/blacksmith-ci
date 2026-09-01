@@ -878,7 +878,7 @@ const currentWorkflow = computed(() => {
 });
 const isStepCompleted = computed(() => {
   const s = step.value;
-  return s != null && s.state !== 'pending' && s.state !== 'running';
+  return s != null && s.state !== 'pending' && s.state !== 'preparing' && s.state !== 'running';
 });
 const workflowAttempts = computed(() => {
   const wf = currentWorkflow.value;
@@ -919,7 +919,9 @@ const hasLogs = computed(
 );
 // A live step keeps producing output, so an empty log view is expected rather
 // than a sign that there is nothing to show.
-const isStepLive = computed(() => step.value?.state === 'running' || step.value?.state === 'pending');
+const isStepLive = computed(
+  () => step.value?.state === 'preparing' || step.value?.state === 'running' || step.value?.state === 'pending',
+);
 // Backoff used to re-read the store while logs are still being persisted: a
 // step can be reported as finished a moment before its last batch lands.
 const LOG_RETRY_DELAYS_MS = [1000, 2000, 4000, 8000];
@@ -1519,7 +1521,7 @@ async function loadLogs(force = false) {
   loadedStepSlug.value = stepSlug.value;
   const slug = stepSlug.value;
 
-  if (step.value.state !== 'running' && step.value.state !== 'pending') {
+  if (step.value.state !== 'preparing' && step.value.state !== 'running' && step.value.state !== 'pending') {
     let lines = 0;
     try {
       lines = await fetchPersistedLogs();

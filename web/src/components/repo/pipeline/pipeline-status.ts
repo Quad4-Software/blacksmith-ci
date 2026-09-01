@@ -10,6 +10,7 @@ export const pipelineStatusColors: Record<
   failure: 'red',
   killed: 'red',
   pending: 'yellow',
+  preparing: 'blue',
   skipped: 'gray',
   running: 'orange',
   started: 'orange',

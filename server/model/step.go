@@ -53,9 +53,9 @@ func (Step) TableName() string {
 	return "steps"
 }
 
-// Running returns true if the process state is pending or running.
+// Running returns true if the process state is pending, preparing, or running.
 func (p *Step) Running() bool {
-	return p.State == StatusPending || p.State == StatusRunning
+	return p.State == StatusPending || p.State == StatusPreparing || p.State == StatusRunning
 }
 
 // Failing returns true if the process state is failed, killed or error.

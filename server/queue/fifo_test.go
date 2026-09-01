@@ -24,8 +24,10 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 
 	"codefloe.com/crowci/crow/v6/server/model"
+	store_mocks "codefloe.com/crowci/crow/v6/server/store/mocks"
 )
 
 var (
@@ -66,6 +68,31 @@ func TestFifo(t *testing.T) {
 	info = q.Info(ctx)
 	assert.Len(t, info.Pending, 0, "expect task removed from pending queue")
 	assert.Len(t, info.Running, 0, "expect task removed from running queue")
+}
+
+func TestFinalizeZombieWorkflowKillsPreparingStep(t *testing.T) {
+	workflow := &model.Workflow{ID: 42, PipelineID: 7, State: model.StatusRunning}
+	preparingStep := &model.Step{ID: 11, State: model.StatusPreparing}
+	successfulStep := &model.Step{ID: 12, State: model.StatusSuccess}
+	pipeline := &model.Pipeline{ID: 7, Status: model.StatusRunning}
+
+	mockStore := new(store_mocks.MockStore)
+	mockStore.On("WorkflowLoad", int64(42)).Return(workflow, nil)
+	mockStore.On("StepListFromWorkflowFind", workflow).Return([]*model.Step{preparingStep, successfulStep}, nil)
+	mockStore.On("StepUpdate", preparingStep).Return(nil)
+	mockStore.On("WorkflowUpdate", workflow).Return(nil)
+	mockStore.On("GetPipeline", int64(7)).Return(pipeline, nil)
+	mockStore.On("WorkflowGetTree", pipeline).Return([]*model.Workflow{workflow}, nil)
+	mockStore.On("UpdatePipeline", mock.AnythingOfType("*model.Pipeline")).Return(nil)
+
+	q := &fifo{store: mockStore}
+	q.finalizeZombieWorkflow("42")
+
+	assert.Equal(t, model.StatusKilled, preparingStep.State)
+	assert.NotZero(t, preparingStep.Started)
+	assert.NotZero(t, preparingStep.Finished)
+	assert.Equal(t, model.StatusSuccess, successfulStep.State)
+	mockStore.AssertExpectations(t)
 }
 
 func TestFifoExpire(t *testing.T) {

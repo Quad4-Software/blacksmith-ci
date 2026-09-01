@@ -1,8 +1,8 @@
-import { describe, it, expect, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
+import type { PipelineStatus } from '~/lib/api/types';
+import { describe, expect, it, vi } from 'vitest';
 import { ref } from 'vue';
 import PipelineStatusIcon from './PipelineStatusIcon.vue';
-import type { PipelineStatus } from '~/lib/api/types';
 
 // Mock vue-i18n
 vi.mock('vue-i18n', () => ({
@@ -48,7 +48,17 @@ describe('pipelineStatusIcon', () => {
     });
   });
 
-  describe('running/started statuses', () => {
+  describe('active statuses', () => {
+    it('shows spinner for preparing status', () => {
+      const wrapper = mount(PipelineStatusIcon, {
+        props: { status: 'preparing' as PipelineStatus },
+      });
+
+      const spinner = wrapper.findComponent({ name: 'PipelineProgressSpinner' });
+      expect(spinner.exists()).toBe(true);
+      expect(spinner.element.parentElement?.classList.contains('text-blue-500')).toBe(true);
+    });
+
     it('shows spinner for running status', () => {
       const wrapper = mount(PipelineStatusIcon, {
         props: { status: 'running' as PipelineStatus },

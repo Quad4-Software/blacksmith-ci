@@ -19,6 +19,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -33,11 +34,12 @@ import (
 )
 
 type Runner struct {
-	client   rpc.Peer
-	filter   rpc.Filter
-	hostname string
-	counter  *State
-	backend  *backend.Backend
+	client     rpc.Peer
+	filter     rpc.Filter
+	hostname   string
+	counter    *State
+	backend    *backend.Backend
+	logWriters sync.Map
 }
 
 func NewRunner(workEngine rpc.Peer, f rpc.Filter, h string, state *State, backend *backend.Backend) Runner {
@@ -151,6 +153,7 @@ func (r *Runner) Run(runnerCtx, shutdownCtx context.Context) (bool, error) { //n
 		pipeline.WithContext(workflowCtx),
 		pipeline.WithTaskUUID(fmt.Sprint(workflow.ID)),
 		pipeline.WithLogger(r.createLogger(logger, workflow)),
+		pipeline.WithProgress(r.createProgressLogger(workflow)),
 		pipeline.WithTracer(r.createTracer(ctxMeta, logger, workflow)),
 		pipeline.WithBackend(*r.backend),
 		pipeline.WithDescription(map[string]string{
@@ -304,6 +307,7 @@ func (r *Runner) RunAdopted(runnerCtx, shutdownCtx context.Context, workflow *rp
 		pipeline.WithContext(workflowCtx),
 		pipeline.WithTaskUUID(taskUUID),
 		pipeline.WithLogger(r.createLogger(logger, workflow)),
+		pipeline.WithProgress(r.createProgressLogger(workflow)),
 		pipeline.WithTracer(r.createTracer(ctxMeta, logger, workflow)),
 		pipeline.WithBackend(*r.backend),
 		pipeline.WithDescription(map[string]string{

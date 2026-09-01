@@ -289,6 +289,9 @@
                       stepDupSuffix(group.workflows[0], node.step)
                     }}</span></span
                   >
+                  <span v-if="node.step.state === 'preparing'" class="shrink-0 text-xs text-blue-500">
+                    {{ $t('repo.pipeline.status.preparing') }}
+                  </span>
                   <!-- Multi-dependency tooltip -->
                   <TooltipProvider v-if="node.effectiveDeps.length > 1">
                     <Tooltip>
@@ -596,7 +599,7 @@ function isWorkflowCompleted(workflow: PipelineWorkflow) {
 }
 
 function isStepCompleted(step: PipelineStep) {
-  return step.state !== 'pending' && step.state !== 'running';
+  return step.state !== 'pending' && step.state !== 'preparing' && step.state !== 'running';
 }
 
 function stepAttempts(step: PipelineStep) {

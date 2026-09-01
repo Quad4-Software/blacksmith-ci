@@ -644,8 +644,8 @@ func DeleteStepLogs(ctx context.Context, input *DeleteStepLogsInput) (*struct{},
 	}
 
 	switch _step.State {
-	case model.StatusRunning, model.StatusPending:
-		return nil, huma.Error422UnprocessableEntity("Cannot delete logs for a pending or running step")
+	case model.StatusRunning, model.StatusPreparing, model.StatusPending:
+		return nil, huma.Error422UnprocessableEntity("Cannot delete logs for a pending, preparing, or running step")
 	}
 
 	err = server.Config.Services.LogStore.LogDelete(_step)
