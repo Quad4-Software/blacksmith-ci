@@ -592,7 +592,7 @@
                 v-if="row.kind === 'header'"
                 :type="row.foldable ? 'button' : undefined"
                 data-log-section
-                class="flex items-center gap-2 px-2 text-left font-mono"
+                class="flex items-start gap-2 px-2 text-left font-mono"
                 :class="[
                   hideTimestamps ? 'col-span-2' : 'col-span-3',
                   row.foldable
@@ -608,7 +608,7 @@
                   class="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform"
                   :class="{ '-rotate-90': collapsedSections.has(row.id) }"
                 />
-                <span class="min-w-0 flex-1 truncate text-foreground">{{ row.command }}</span>
+                <span class="min-w-0 flex-1 whitespace-pre-wrap wrap-anywhere text-foreground">{{ row.command }}</span>
                 <span v-if="row.foldable && collapsedSections.has(row.id)" class="shrink-0 text-muted-foreground">
                   {{ $t('repo.pipeline.folded_lines', { count: row.lineCount }) }}
                 </span>

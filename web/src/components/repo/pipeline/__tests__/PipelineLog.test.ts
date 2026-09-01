@@ -195,6 +195,21 @@ describe('pipeline log command folding', () => {
     wrapper.unmount();
   });
 
+  it('wraps long command headers instead of truncating them', async () => {
+    getLogs.mockResolvedValue([logEntry(0, `+ command ${'argument'.repeat(30)}`), logEntry(1, 'done')]);
+
+    const wrapper = mountLog('success');
+    await vi.advanceTimersByTimeAsync(600);
+    await nextTick();
+
+    const command = wrapper.find('[data-log-section] > span');
+    expect(command.classes()).toContain('whitespace-pre-wrap');
+    expect(command.classes()).toContain('wrap-anywhere');
+    expect(command.classes()).not.toContain('truncate');
+
+    wrapper.unmount();
+  });
+
   it('hides only the lines of the section that was collapsed', async () => {
     getLogs.mockResolvedValue([
       logEntry(0, 'cloning'),
