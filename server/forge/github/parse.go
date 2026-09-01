@@ -32,11 +32,13 @@ import (
 const (
 	hookField = "payload"
 
-	actionOpen     = "opened"
-	actionClose    = "closed"
-	actionSync     = "synchronize"
-	actionReleased = "released"
-	actionEdited   = "edited"
+	actionOpen      = "opened"
+	actionClose     = "closed"
+	actionSync      = "synchronize"
+	actionReleased  = "released"
+	actionEdited    = "edited"
+	actionLabeled   = "labeled"
+	actionUnlabeled = "unlabeled"
 
 	stateOpen  = "open"
 	stateClose = "closed"
@@ -196,7 +198,8 @@ func parseDeployHook(hook *github.DeploymentEvent) (*model.Repo, *model.Pipeline
 // parsePullHook parses a pull request hook and returns the Repo and Pipeline
 // details.
 func parsePullHook(hook *github.PullRequestEvent, merge bool) (*github.PullRequest, *model.Repo, *model.Pipeline) {
-	if hook.GetAction() != actionOpen && hook.GetAction() != actionSync && hook.GetAction() != actionClose && hook.GetAction() != actionEdited {
+	action := hook.GetAction()
+	if action != actionOpen && action != actionSync && action != actionClose && action != actionEdited && action != actionLabeled && action != actionUnlabeled {
 		return nil, nil, nil
 	}
 
@@ -209,7 +212,7 @@ func parsePullHook(hook *github.PullRequestEvent, merge bool) (*github.PullReque
 		}
 	}
 
-	if *hook.Action == actionEdited {
+	if action == actionEdited || action == actionLabeled || action == actionUnlabeled {
 		event = model.EventPullEdited
 	}
 

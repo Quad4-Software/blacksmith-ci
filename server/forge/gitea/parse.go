@@ -28,16 +28,19 @@ import (
 )
 
 const (
-	hookEvent       = "X-Gitea-Event"
-	hookPush        = "push"
-	hookCreated     = "create"
-	hookPullRequest = "pull_request"
-	hookRelease     = "release"
+	hookEvent            = "X-Gitea-Event"
+	hookPush             = "push"
+	hookCreated          = "create"
+	hookPullRequest      = "pull_request"
+	hookPullRequestLabel = "pull_request_label"
+	hookRelease          = "release"
 
-	actionOpen   = "opened"
-	actionSync   = "synchronized"
-	actionClose  = "closed"
-	actionEdited = "edited"
+	actionOpen         = "opened"
+	actionSync         = "synchronized"
+	actionClose        = "closed"
+	actionEdited       = "edited"
+	actionLabelUpdated = "label_updated"
+	actionLabelCleared = "label_cleared"
 
 	refBranch = "branch"
 	refTag    = "tag"
@@ -52,7 +55,7 @@ func parseHook(r *http.Request) (*model.Repo, *model.Pipeline, error) {
 		return parsePushHook(r.Body)
 	case hookCreated:
 		return parseCreatedHook(r.Body)
-	case hookPullRequest:
+	case hookPullRequest, hookPullRequestLabel:
 		return parsePullRequestHook(r.Body)
 	case hookRelease:
 		return parseReleaseHook(r.Body)
@@ -119,8 +122,8 @@ func parsePullRequestHook(payload io.Reader) (*model.Repo, *model.Pipeline, erro
 	}
 
 	// Only trigger pipelines for selected event types
-	if pr.Action != actionOpen && pr.Action != actionSync && pr.Action != actionClose && pr.Action != actionEdited {
-		log.Debug().Msgf("pull_request action is '%s'. Only 'open', 'sync' and 'edited' are supported", pr.Action)
+	if pr.Action != actionOpen && pr.Action != actionSync && pr.Action != actionClose && pr.Action != actionEdited && pr.Action != actionLabelUpdated && pr.Action != actionLabelCleared {
+		log.Debug().Msgf("pull_request action is '%s'. Only 'open', 'sync', 'edited' and label changes are supported", pr.Action)
 		return nil, nil, nil
 	}
 

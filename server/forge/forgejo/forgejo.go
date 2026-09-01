@@ -416,7 +416,7 @@ func (c *Forgejo) Activate(ctx context.Context, u *model.User, r *model.Repo, li
 	hook := forgejo.CreateHookOption{
 		Type:   forgejo.HookTypeForgejo,
 		Config: config,
-		Events: []string{"push", "create", "pull_request", "release"},
+		Events: []string{"push", "create", "pull_request", "pull_request_label", "release"},
 		Active: true,
 	}
 

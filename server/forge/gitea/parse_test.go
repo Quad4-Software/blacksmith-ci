@@ -18,6 +18,7 @@ package gitea
 import (
 	"bytes"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -416,6 +417,22 @@ func TestGiteaParser(t *testing.T) {
 				p.Timestamp = 0
 				assert.EqualValues(t, tc.pipe, p)
 			}
+		})
+	}
+}
+
+func TestPullRequestLabelEvents(t *testing.T) {
+	for _, action := range []string{actionLabelUpdated, actionLabelCleared} {
+		t.Run(action, func(t *testing.T) {
+			payload := strings.Replace(fixtures.HookPullRequestUpdated, `"action": "synchronized"`, `"action": "`+action+`"`, 1)
+			req, err := http.NewRequest(http.MethodPost, "/api/hook", strings.NewReader(payload))
+			assert.NoError(t, err)
+			req.Header.Set(hookEvent, hookPullRequestLabel)
+
+			_, pipeline, err := parseHook(req)
+			assert.NoError(t, err)
+			assert.Equal(t, model.EventPullEdited, pipeline.Event)
+			assert.Equal(t, []string{"Kind/Bug", "Kind/Security"}, []string(pipeline.PullRequestLabels))
 		})
 	}
 }
