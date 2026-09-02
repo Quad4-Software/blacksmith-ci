@@ -14,6 +14,8 @@ const TRAILING_NEWLINE_REGEX = /\r?\n$/;
 
 export interface FoldableLogLine {
   index: number;
+  /** 1-based position in the step's log, used as the gutter number and anchor. */
+  number: number;
   time?: number;
   /** Set when this line is the trace of a command, to the command it traced. */
   command?: string;
@@ -23,6 +25,7 @@ export type LogRow<T extends FoldableLogLine> =
   | {
       kind: 'header';
       id: number;
+      number: number;
       command: string;
       time?: number;
       duration?: number;
@@ -69,6 +72,9 @@ export function groupLogLines<T extends FoldableLogLine>(lines: T[], collapsed: 
       const header = {
         kind: 'header' as const,
         id: line.index,
+        // The header stands in for the trace line, so it keeps its number and
+        // the gutter runs without a gap where a command was folded away.
+        number: line.number,
         command: line.command,
         time: lastTime,
         duration: undefined as number | undefined,

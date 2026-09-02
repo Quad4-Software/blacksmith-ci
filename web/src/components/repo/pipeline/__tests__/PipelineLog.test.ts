@@ -195,6 +195,35 @@ describe('pipeline log command folding', () => {
     wrapper.unmount();
   });
 
+  it('numbers command headers so the gutter never skips a line', async () => {
+    getLogs.mockResolvedValue(tracedLogs);
+
+    const wrapper = mountLog('success');
+    await vi.advanceTimersByTimeAsync(600);
+    await nextTick();
+
+    const gutter = wrapper.findAll('a[id^="L"]');
+    expect(gutter.map((cell) => cell.text())).toEqual(['1', '2', '3', '4', '5']);
+    expect(gutter[1].attributes('id')).toBe('L2');
+    expect(gutter[1].attributes('href')).toBe('#L2');
+
+    wrapper.unmount();
+  });
+
+  it('lays command headers out on the same subgrid as their output', async () => {
+    getLogs.mockResolvedValue(tracedLogs);
+
+    const wrapper = mountLog('success');
+    await vi.advanceTimersByTimeAsync(600);
+    await nextTick();
+
+    const header = wrapper.findAll('[data-log-section]')[0].element.parentElement!;
+    expect(header.className).toContain('grid-cols-subgrid');
+    expect(header.className).toContain('col-span-3');
+
+    wrapper.unmount();
+  });
+
   it('wraps long command headers instead of truncating them', async () => {
     getLogs.mockResolvedValue([logEntry(0, `+ command ${'argument'.repeat(30)}`), logEntry(1, 'done')]);
 

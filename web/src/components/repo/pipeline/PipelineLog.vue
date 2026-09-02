@@ -587,35 +587,68 @@
             ]"
           >
             <template v-for="row in logRows" :key="row.kind === 'header' ? `s${row.id}` : row.line.index">
-              <component
-                :is="row.foldable ? 'button' : 'div'"
+              <!--
+                A header stands in for the `+ <command>` line it replaced, so it
+                shares the line rows' subgrid: its own number in the gutter, its
+                command where the output text starts, its duration in the time
+                column. The gutter therefore never skips a number.
+              -->
+              <div
                 v-if="row.kind === 'header'"
-                :type="row.foldable ? 'button' : undefined"
-                data-log-section
-                class="flex items-start gap-2 px-2 text-left font-mono"
+                class="grid grid-cols-subgrid font-mono"
                 :class="[
                   hideTimestamps ? 'col-span-2' : 'col-span-3',
-                  row.foldable
-                    ? 'my-0.5 rounded-md border border-border/60 bg-muted py-1 transition-colors hover:bg-accent'
-                    : 'py-0.5',
+                  // JetBrains Mono ships at a single weight, so a command is
+                  // marked by tinting its whole row rather than by bolding it.
+                  // Tinting with the foreground keeps the band visible in both
+                  // themes, which `bg-muted` is not against a dark background.
+                  row.foldable ? '' : 'bg-foreground/5',
                 ]"
-                :aria-expanded="row.foldable ? !collapsedSections.has(row.id) : undefined"
-                @click="row.foldable && toggleSection(row.id)"
               >
-                <Icon
-                  v-if="row.foldable"
-                  name="chevron-down"
-                  class="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform"
-                  :class="{ '-rotate-90': collapsedSections.has(row.id) }"
-                />
-                <span class="min-w-0 flex-1 whitespace-pre-wrap wrap-anywhere text-foreground">{{ row.command }}</span>
-                <span v-if="row.foldable && collapsedSections.has(row.id)" class="shrink-0 text-muted-foreground">
-                  {{ $t('repo.pipeline.folded_lines', { count: row.lineCount }) }}
-                </span>
-                <span v-if="!hideTimestamps && row.duration !== undefined" class="shrink-0 text-muted-foreground">
-                  {{ formatTime(row.duration) }}
-                </span>
-              </component>
+                <a
+                  :id="`L${row.number}`"
+                  :href="`#L${row.number}`"
+                  class="select-none whitespace-nowrap pl-2 pr-2 md:pr-6 text-right text-muted-foreground"
+                  :class="row.foldable ? 'py-1.5' : 'py-0.5'"
+                >
+                  {{ row.number }}
+                </a>
+                <component
+                  :is="row.foldable ? 'button' : 'div'"
+                  :type="row.foldable ? 'button' : undefined"
+                  data-log-section
+                  class="flex items-start gap-2 text-left"
+                  :class="[
+                    hideTimestamps ? '' : 'col-span-2',
+                    row.foldable
+                      ? 'my-0.5 rounded-md border border-border/60 bg-muted px-2 py-1 transition-colors hover:bg-accent'
+                      : 'py-0.5',
+                  ]"
+                  :aria-expanded="row.foldable ? !collapsedSections.has(row.id) : undefined"
+                  @click="row.foldable && toggleSection(row.id)"
+                >
+                  <Icon
+                    v-if="row.foldable"
+                    name="chevron-down"
+                    class="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform"
+                    :class="{ '-rotate-90': collapsedSections.has(row.id) }"
+                  />
+                  <span class="min-w-0 flex-1 whitespace-pre-wrap wrap-anywhere text-foreground">{{
+                    row.command
+                  }}</span>
+                  <span v-if="row.foldable && collapsedSections.has(row.id)" class="shrink-0 text-muted-foreground">
+                    {{ $t('repo.pipeline.folded_lines', { count: row.lineCount }) }}
+                  </span>
+                  <!-- Lines up with the line rows' timestamps, which sit in the same column. -->
+                  <span
+                    v-if="!hideTimestamps && row.duration !== undefined"
+                    class="shrink-0 text-muted-foreground"
+                    :class="row.foldable ? '' : 'pr-1'"
+                  >
+                    {{ formatTime(row.duration) }}
+                  </span>
+                </component>
+              </div>
               <div
                 v-else
                 class="grid grid-cols-subgrid font-mono"

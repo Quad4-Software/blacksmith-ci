@@ -3,11 +3,11 @@ import type { FoldableLogLine } from './log-folding';
 import { commandTrace, findSectionId, groupLogLines } from './log-folding';
 
 function line(index: number, opts: Partial<FoldableLogLine> = {}): FoldableLogLine {
-  return { index, ...opts };
+  return { index, number: index + 1, ...opts };
 }
 
 function command(index: number, cmd: string, time?: number): FoldableLogLine {
-  return { index, time, command: cmd };
+  return { index, number: index + 1, time, command: cmd };
 }
 
 describe('commandTrace', () => {
@@ -57,6 +57,15 @@ describe('groupLogLines', () => {
 
     expect(rows[0]).toMatchObject({ kind: 'header', id: 0, command: 'make' });
     expect(rows[1]).toMatchObject({ kind: 'line', sectionId: 0 });
+  });
+
+  it('carries the line number of the trace it replaced, so the gutter stays continuous', () => {
+    const rows = groupLogLines([line(0), command(1, 'make'), line(2)], new Set());
+
+    expect(rows[0]).toMatchObject({ kind: 'line' });
+    expect(rows[1]).toMatchObject({ kind: 'header', number: 2 });
+    expect(rows[2]).toMatchObject({ kind: 'line' });
+    expect(rows.map((row) => (row.kind === 'header' ? row.number : row.line.number))).toEqual([1, 2, 3]);
   });
 
   it('starts a new section at every traced command', () => {
