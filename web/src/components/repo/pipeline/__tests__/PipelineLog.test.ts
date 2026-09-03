@@ -218,8 +218,12 @@ describe('pipeline log command folding', () => {
     await nextTick();
 
     const header = wrapper.findAll('[data-log-section]')[0].element.parentElement!;
+    const grid = wrapper.find('.auto-rows-min');
     expect(header.className).toContain('grid-cols-subgrid');
     expect(header.className).toContain('col-span-3');
+    expect(grid.classes()).toContain('grid-cols-[3rem_minmax(0,1fr)_min-content]');
+    expect(grid.classes()).toContain('md:grid-cols-[4rem_minmax(0,1fr)_min-content]');
+    expect(wrapper.findAll('[data-log-section]')[0].classes()).toContain('min-w-0');
 
     wrapper.unmount();
   });

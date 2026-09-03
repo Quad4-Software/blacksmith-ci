@@ -582,8 +582,8 @@
             class="grid w-full auto-rows-min px-1 md:px-3 pt-2 pb-4 text-xs"
             :class="[
               hideTimestamps
-                ? 'grid-cols-[min-content_minmax(0,1fr)]'
-                : 'grid-cols-[min-content_minmax(0,1fr)_min-content]',
+                ? 'grid-cols-[3rem_minmax(0,1fr)] md:grid-cols-[4rem_minmax(0,1fr)]'
+                : 'grid-cols-[3rem_minmax(0,1fr)_min-content] md:grid-cols-[4rem_minmax(0,1fr)_min-content]',
             ]"
           >
             <template v-for="row in logRows" :key="row.kind === 'header' ? `s${row.id}` : row.line.index">
@@ -617,7 +617,7 @@
                   :is="row.foldable ? 'button' : 'div'"
                   :type="row.foldable ? 'button' : undefined"
                   data-log-section
-                  class="flex items-start gap-2 text-left"
+                  class="min-w-0 flex items-start gap-2 text-left"
                   :class="[
                     hideTimestamps ? '' : 'col-span-2',
                     row.foldable
