@@ -28,7 +28,7 @@ func generateScriptWindows(commands []string, workDir string) string {
 		"WorkDir": workDir,
 	}); err != nil {
 		// should never happen but well we have an error to trance
-		return fmt.Sprintf("echo 'failed to generate posix script from commands: %s'; exit 1", err.Error())
+		return fmt.Sprintf("echo 'failed to generate windows script from commands: %s'; exit 1", err.Error())
 	}
 
 	for _, command := range commands {

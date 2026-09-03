@@ -32,17 +32,26 @@ func TestNodeSelector(t *testing.T) {
 	tests := []struct {
 		name     string
 		platform string
+		wantOS   string // "" means no os label expected
 		wantArch string // "" means no arch label expected
 	}{
-		{name: "platform with os/arch", platform: "linux/amd64", wantArch: "amd64"},
-		{name: "platform without slash does not panic", platform: "linux", wantArch: ""},
-		{name: "empty platform", platform: "", wantArch: ""},
-		{name: "platform with variant keeps remainder as arch", platform: "linux/arm/v7", wantArch: "arm/v7"},
+		{name: "platform with os/arch", platform: "linux/amd64", wantOS: "linux", wantArch: "amd64"},
+		{name: "windows platform pins the os label", platform: "windows/amd64", wantOS: "windows", wantArch: "amd64"},
+		{name: "platform without slash does not panic", platform: "linux", wantOS: "", wantArch: ""},
+		{name: "empty platform", platform: "", wantOS: "", wantArch: ""},
+		{name: "platform with variant keeps remainder as arch", platform: "linux/arm/v7", wantOS: "linux", wantArch: "arm/v7"},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			selector := nodeSelector(nil, nil, tc.platform)
+			goos, ok := selector[v1.LabelOSStable]
+			if tc.wantOS == "" {
+				assert.False(t, ok, "expected no os node selector")
+			} else {
+				assert.True(t, ok)
+				assert.Equal(t, tc.wantOS, goos)
+			}
 			arch, ok := selector[v1.LabelArchStable]
 			if tc.wantArch == "" {
 				assert.False(t, ok, "expected no arch node selector")

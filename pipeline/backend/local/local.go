@@ -25,6 +25,7 @@ import (
 	"runtime"
 	"slices"
 	"sync"
+	"time"
 
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v3"
@@ -181,10 +182,13 @@ func (e *local) SetupWorkflow(_ context.Context, conf *types.Config, taskUUID st
 		return err
 	}
 
-	// Create common cache directories for build tools
-	cacheDir := filepath.Join(state.homeDir, "Library", "Caches")
-	if err := os.MkdirAll(cacheDir, 0o700); err != nil {
-		return err
+	// Create the cache directory macOS build tools expect below a home. Other
+	// platforms have no equivalent and would get a meaningless Library/Caches.
+	if e.os == "darwin" {
+		cacheDir := filepath.Join(state.homeDir, "Library", "Caches")
+		if err := os.MkdirAll(cacheDir, 0o700); err != nil {
+			return err
+		}
 	}
 
 	e.saveState(taskUUID, state)
@@ -224,6 +228,12 @@ func (e *local) StartStep(ctx context.Context, step *types.Step, taskUUID string
 	env = append(env, "USERPROFILE="+stepHome)
 	env = append(env, "CI_WORKSPACE="+state.workspaceDir)
 	env = append(env, "TMPDIR="+state.tmpDir)
+	if e.os == "windows" {
+		// Nothing on Windows reads TMPDIR; Go's os.TempDir and the Windows
+		// toolchains resolve TMP, then TEMP.
+		env = append(env, "TMP="+state.tmpDir)
+		env = append(env, "TEMP="+state.tmpDir)
+	}
 
 	switch step.Type {
 	case types.StepTypeClone:
@@ -247,7 +257,7 @@ func (e *local) StartStep(ctx context.Context, step *types.Step, taskUUID string
 func (e *local) execCommands(ctx context.Context, step *types.Step, state *workflowState, env []string) error {
 	// Prepare commands
 	// TODO: support `entrypoint` from pipeline config
-	args, err := e.genCmdByShell(step.Image, step.Commands)
+	args, err := genCmdByShell(step.Image, step.Commands, state.tmpDir)
 	if err != nil {
 		return fmt.Errorf("could not convert commands into args: %w", err)
 	}
@@ -257,31 +267,7 @@ func (e *local) execCommands(ctx context.Context, step *types.Step, state *workf
 	cmd.Env = env
 	cmd.Dir = state.workspaceDir
 
-	// Wrap with sandbox if enabled (BEFORE setting up pipes)
-	cmd, err = e.wrapCommandWithSandbox(ctx, cmd, state)
-	if err != nil {
-		return fmt.Errorf("could not wrap command with sandbox: %w", err)
-	}
-
-	// Capture stdout and stderr separately with stream tags (AFTER sandbox wrapping)
-	stdoutPipe, err := cmd.StdoutPipe()
-	if err != nil {
-		return fmt.Errorf("could not create stdout pipe: %w", err)
-	}
-	stderrPipe, err := cmd.StderrPipe()
-	if err != nil {
-		return fmt.Errorf("could not create stderr pipe: %w", err)
-	}
-
-	// Create merged output with stream tags
-	output := common.TaggedMergedPipe(stdoutPipe, stderrPipe, e.os == "windows")
-
-	state.stepCMDsMu.Lock()
-	state.stepCMDs[step.UUID] = cmd
-	state.stepOutputs[step.UUID] = output
-	state.stepCMDsMu.Unlock()
-
-	return cmd.Start()
+	return e.startStepCmd(ctx, cmd, step, state)
 }
 
 // execService use step.Image as shell and run the commands in it as a background service.
@@ -290,7 +276,7 @@ func (e *local) execService(ctx context.Context, step *types.Step, state *workfl
 	// They should start and keep running until the context is canceled
 
 	// Prepare commands
-	args, err := e.genCmdByShell(step.Image, step.Commands)
+	args, err := genCmdByShell(step.Image, step.Commands, state.tmpDir)
 	if err != nil {
 		return fmt.Errorf("could not convert commands into args: %w", err)
 	}
@@ -300,31 +286,7 @@ func (e *local) execService(ctx context.Context, step *types.Step, state *workfl
 	cmd.Env = env
 	cmd.Dir = state.workspaceDir
 
-	// Wrap with sandbox if enabled
-	cmd, err = e.wrapCommandWithSandbox(ctx, cmd, state)
-	if err != nil {
-		return fmt.Errorf("could not wrap command with sandbox: %w", err)
-	}
-
-	// Capture stdout and stderr separately with stream tags
-	stdoutPipe, err := cmd.StdoutPipe()
-	if err != nil {
-		return fmt.Errorf("could not create stdout pipe: %w", err)
-	}
-	stderrPipe, err := cmd.StderrPipe()
-	if err != nil {
-		return fmt.Errorf("could not create stderr pipe: %w", err)
-	}
-
-	// Create merged output with stream tags
-	output := common.TaggedMergedPipe(stdoutPipe, stderrPipe, e.os == "windows")
-
-	state.stepCMDsMu.Lock()
-	state.stepCMDs[step.UUID] = cmd
-	state.stepOutputs[step.UUID] = output
-	state.stepCMDsMu.Unlock()
-
-	return cmd.Start()
+	return e.startStepCmd(ctx, cmd, step, state)
 }
 
 // execPlugin use step.Image as exec binary.
@@ -338,13 +300,21 @@ func (e *local) execPlugin(ctx context.Context, step *types.Step, state *workflo
 	cmd.Env = env
 	cmd.Dir = state.workspaceDir
 
-	// Wrap with sandbox if enabled
-	cmd, err = e.wrapCommandWithSandbox(ctx, cmd, state)
+	return e.startStepCmd(ctx, cmd, step, state)
+}
+
+// startStepCmd wraps a step's command in the sandbox, captures its output,
+// records it in the workflow state and starts it.
+func (e *local) startStepCmd(ctx context.Context, cmd *exec.Cmd, step *types.Step, state *workflowState) error {
+	// Wrap with sandbox if enabled (BEFORE setting up pipes)
+	cmd, err := e.wrapCommandWithSandbox(ctx, cmd, state)
 	if err != nil {
 		return fmt.Errorf("could not wrap command with sandbox: %w", err)
 	}
 
-	// Capture stdout and stderr separately with stream tags
+	configureCancel(cmd)
+
+	// Capture stdout and stderr separately with stream tags (AFTER sandbox wrapping)
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
 		return fmt.Errorf("could not create stdout pipe: %w", err)
@@ -431,13 +401,31 @@ func (e *local) DestroyWorkflow(_ context.Context, _ *types.Config, taskUUID str
 		return err
 	}
 
-	err = os.RemoveAll(state.baseDir)
-	if err != nil {
+	if err := removeAllRetry(state.baseDir); err != nil {
 		return err
 	}
 
 	e.deleteState(taskUUID)
 
+	return nil
+}
+
+// removeAllRetry deletes a workflow directory, retrying for a short while.
+//
+// On Windows a file stays undeletable while any handle to it is open, and
+// right after a step exits there often still is one: an indexer or antivirus
+// scanning what the step just wrote, or a child process that outlived it by a
+// moment. The first attempt then fails with a sharing violation that clears
+// itself within a second.
+func removeAllRetry(dir string) error {
+	const attempts = 5
+	var err error
+	for i := range attempts {
+		if err = os.RemoveAll(dir); err == nil {
+			return nil
+		}
+		time.Sleep(time.Duration(i+1) * 200 * time.Millisecond)
+	}
 	return err
 }
 

@@ -27,6 +27,9 @@ var notAllowedEnvVarOverwrites = []string{
 	"CI_NETRC_PASSWORD",
 	"CI_SCRIPT",
 	"HOME",
+	// USERPROFILE is what Windows tools read instead of HOME; letting a step
+	// override it would escape the per-workflow home.
+	"USERPROFILE",
 	"SHELL",
 	"CI_WORKSPACE",
 	// The backend points TMPDIR at a directory inside the workflow's own base
@@ -34,6 +37,9 @@ var notAllowedEnvVarOverwrites = []string{
 	// it elsewhere would write outside what the profile allows and fail in a
 	// way that looks like a broken tool rather than a denied path.
 	"TMPDIR",
+	// TMP and TEMP are the Windows equivalents of TMPDIR.
+	"TMP",
+	"TEMP",
 }
 
 var (

@@ -338,6 +338,8 @@ release-cli:
     tar -cvzf {{ DIST_DIR }}/crow-cli_darwin_amd64.tar.gz  -C {{ DIST_DIR }}/cli/darwin_amd64  crow
     tar -cvzf {{ DIST_DIR }}/crow-cli_darwin_arm64.tar.gz  -C {{ DIST_DIR }}/cli/darwin_arm64  crow
     # zip binary files
+    rm -f {{ DIST_DIR }}/crow-cli_windows_amd64.zip
+    (cd {{ DIST_DIR }}/cli/windows_amd64 && zip ../../crow-cli_windows_amd64.zip crow.exe)
 
 # Build agent for all platforms: just release-agent
 # Build for specific platforms: env PLATFORMS='darwin' just release-agent

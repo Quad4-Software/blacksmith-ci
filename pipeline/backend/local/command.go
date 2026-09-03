@@ -24,7 +24,10 @@ import (
 	"al.essio.dev/pkg/shellescape"
 )
 
-func (e *local) genCmdByShell(shell string, cmdList []string) (args []string, err error) {
+// genCmdByShell turns the step commands into arguments for the shell named by
+// the step image. A shell that needs a script file gets it in scriptDir, which
+// belongs to the workflow so the file goes away with the workflow.
+func genCmdByShell(shell string, cmdList []string, scriptDir string) (args []string, err error) {
 	script := ""
 	for _, cmd := range cmdList {
 		script += fmt.Sprintf("echo %s\n%s\n", strings.TrimSpace(shellescape.Quote("+ "+cmd)), cmd)
@@ -39,7 +42,7 @@ func (e *local) genCmdByShell(shell string, cmdList []string) (args []string, er
 			script += fmt.Sprintf("@%s\n", cmd)
 			script += "@IF NOT %ERRORLEVEL% == 0 exit %ERRORLEVEL%\n"
 		}
-		cmd, err := os.CreateTemp(e.tempDir, "*.cmd")
+		cmd, err := os.CreateTemp(scriptDir, "*.cmd")
 		if err != nil {
 			return nil, err
 		}

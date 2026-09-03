@@ -274,6 +274,9 @@ func (e *docker) StartStep(ctx context.Context, step *backend.Step, taskUUID str
 	// the shared workspace volume mount like any other step.
 	if step.Type == backend.StepTypeClone && e.info.OSType == "windows" {
 		step.Image = appendImageTagSuffix(step.Image, windowsCloneTagSuffix)
+		// The rewritten tag is mutable, so a reused Windows VM must not keep
+		// serving a stale cached copy of the clone image.
+		step.Pull = true
 		log.Trace().Str("step", step.Name).Str("image", step.Image).Msg("routing Windows clone step to containerized plugin-clone")
 	}
 

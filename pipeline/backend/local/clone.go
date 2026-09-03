@@ -24,7 +24,6 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"codefloe.com/crowci/crow/v6/pipeline/backend/common"
 	"codefloe.com/crowci/crow/v6/pipeline/backend/common/clone"
 	"codefloe.com/crowci/crow/v6/pipeline/backend/types"
 )
@@ -80,15 +79,15 @@ func (e *local) execClone(ctx context.Context, step *types.Step, state *workflow
 	var cmd *exec.Cmd
 	if netrcPath != "" {
 		// Make sure the netrc is removed even if the clone fails.
-		rmCmd := fmt.Sprintf("rm %q", netrcPath)
 		if e.os == "windows" {
-			rmCmd = fmt.Sprintf("del %q", netrcPath)
-			pwsh, err := exec.LookPath("powershell.exe")
+			shell, err := lookupPowerShell()
 			if err != nil {
 				return err
 			}
-			cmd = exec.CommandContext(ctx, pwsh, "-Command", fmt.Sprintf("%s ; $code=$? ; %s ; if (!$code) {[Environment]::Exit(1)}", state.cloneBinary, rmCmd))
+			script := fmt.Sprintf("& %s ; $code=$LASTEXITCODE ; Remove-Item -Force %s ; exit $code", pwshQuote(state.cloneBinary), pwshQuote(netrcPath))
+			cmd = exec.CommandContext(ctx, shell, "-NoProfile", "-NonInteractive", "-Command", script)
 		} else {
+			rmCmd := fmt.Sprintf("rm %q", netrcPath)
 			cmd = exec.CommandContext(ctx, "/bin/sh", "-c", fmt.Sprintf("%s ; export code=$? ; %s ; exit $code", state.cloneBinary, rmCmd))
 		}
 	} else {
@@ -97,25 +96,21 @@ func (e *local) execClone(ctx context.Context, step *types.Step, state *workflow
 	cmd.Env = clone.Env(env, step.Environment)
 	cmd.Dir = state.workspaceDir
 
-	cmd, err = e.wrapCommandWithSandbox(ctx, cmd, state)
-	if err != nil {
-		return fmt.Errorf("could not wrap command with sandbox: %w", err)
-	}
+	return e.startStepCmd(ctx, cmd, step, state)
+}
 
-	stdoutPipe, err := cmd.StdoutPipe()
-	if err != nil {
-		return fmt.Errorf("could not create stdout pipe: %w", err)
+// lookupPowerShell finds the shell the clone wrapper runs in. PowerShell 7
+// (pwsh) is what the docker backend and the docs require, so it comes first;
+// Windows PowerShell 5.1 ships with every Windows and is the fallback.
+func lookupPowerShell() (string, error) {
+	pwsh, err := exec.LookPath("pwsh.exe")
+	if err == nil {
+		return pwsh, nil
 	}
-	stderrPipe, err := cmd.StderrPipe()
-	if err != nil {
-		return fmt.Errorf("could not create stderr pipe: %w", err)
-	}
-	output := common.TaggedMergedPipe(stdoutPipe, stderrPipe, e.os == "windows")
+	return exec.LookPath("powershell.exe")
+}
 
-	state.stepCMDsMu.Lock()
-	state.stepCMDs[step.UUID] = cmd
-	state.stepOutputs[step.UUID] = output
-	state.stepCMDsMu.Unlock()
-
-	return cmd.Start()
+// pwshQuote returns s as a single-quoted PowerShell string literal.
+func pwshQuote(s string) string {
+	return "'" + strings.ReplaceAll(s, "'", "''") + "'"
 }

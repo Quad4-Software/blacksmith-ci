@@ -11,6 +11,7 @@ Local backend configuration variables for agents.
 - Default: `$TMPDIR`
 
 Each workflow gets its own directory below this one, and steps run with `$TMPDIR` pointing inside it rather than at the shared temp directory.
+On Windows, `TMP` and `TEMP` point there as well.
 
 ## BACKEND_LOCAL_SANDBOX_LEVEL
 

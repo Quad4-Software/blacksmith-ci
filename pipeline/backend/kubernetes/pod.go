@@ -496,11 +496,15 @@ func nodeSelector(backendNodeSelector, configNodeSelector map[string]string, pla
 	nodeSelector := make(map[string]string)
 
 	if platform != "" {
-		if _, arch, ok := strings.Cut(platform, "/"); ok {
+		// The step script is generated for the agent's OS (see kube.goos), so a
+		// pod must not be scheduled onto a node running a different one: a
+		// POSIX script with a /bin/sh entrypoint cannot start on a Windows node.
+		if goos, arch, ok := strings.Cut(platform, "/"); ok {
+			nodeSelector[v1.LabelOSStable] = goos
 			nodeSelector[v1.LabelArchStable] = arch
 			log.Trace().Msgf("using the node selector from the Agent's platform: %v", nodeSelector)
 		} else {
-			log.Warn().Msgf("could not derive arch from platform %q, skipping arch node selector", platform)
+			log.Warn().Msgf("could not derive os/arch from platform %q, skipping platform node selector", platform)
 		}
 	}
 
