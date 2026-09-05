@@ -73,7 +73,10 @@ export default defineConfig({
           },
           content: `
             import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-            mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+            mermaid.initialize({ startOnLoad: false, theme: 'neutral' });
+            document.addEventListener('astro:page-load', () => {
+              void mermaid.run({ querySelector: '.mermaid' });
+            });
           `,
         },
       ],
