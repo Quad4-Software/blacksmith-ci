@@ -50,7 +50,7 @@
           </FormField>
 
           <!-- Scope Selection -->
-          <div v-if="!isEditing" class="space-y-4">
+          <div v-if="!isEditing && !lockScope" class="space-y-4">
             <!-- Global Checkbox (Admin only) -->
             <div v-if="user?.admin" class="flex items-center gap-2">
               <TooltipProvider>
@@ -398,9 +398,15 @@ const props = withDefaults(
     isSaving?: boolean;
     open?: boolean;
     hideTrigger?: boolean;
+    /**
+     * Hide the scope picker and keep the scope of the passed secret. The repo,
+     * org and admin settings views create secrets for exactly one scope.
+     */
+    lockScope?: boolean;
   }>(),
   {
     hideTrigger: false,
+    lockScope: false,
   },
 );
 
@@ -602,7 +608,7 @@ async function loadReposAndOrgs() {
 
 // Load data when dialog opens/closes
 watch(isOpen, (open) => {
-  if (open && !isEditing.value) {
+  if (open && !isEditing.value && !props.lockScope) {
     loadReposAndOrgs();
     const secretWithScope = props.secret as any;
     isGlobal.value = secretWithScope?.scope_type === 'global';
@@ -822,8 +828,8 @@ function onSubmit(values: any) {
     images: values.images || [],
     events: values.events || [],
     source: props.secret?.source || 'internal',
-    // Add scope information (only when creating, not editing)
-    ...(isEditing.value
+    // Add scope information (only when creating with a free choice of scope)
+    ...(isEditing.value || props.lockScope
       ? {}
       : {
           scope_type,

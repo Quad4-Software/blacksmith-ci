@@ -13,7 +13,7 @@
           />
 
           <!-- Scope Filter -->
-          <Popover :modal="false">
+          <Popover v-if="showScopeFilter" :modal="false">
             <PopoverTrigger as-child>
               <Button variant="outline" size="sm" class="h-8 border-dashed">
                 <Icon name="filter" class="mr-2 h-4 w-4" />
@@ -57,7 +57,7 @@
           </Popover>
 
           <!-- Owner Filter -->
-          <Popover :modal="false">
+          <Popover v-if="showOwnerFilter" :modal="false">
             <PopoverTrigger as-child>
               <Button variant="outline" size="sm" class="h-8 border-dashed">
                 <Icon name="filter" class="mr-2 h-4 w-4" />
@@ -101,7 +101,7 @@
           </Popover>
 
           <!-- Forge Filter (only shown when multiple forges configured) -->
-          <Popover v-if="showForgeColumn" :modal="false">
+          <Popover v-if="showForgeFilter" :modal="false">
             <PopoverTrigger as-child>
               <Button variant="outline" size="sm" class="h-8 border-dashed">
                 <Icon name="filter" class="mr-2 h-4 w-4" />
@@ -342,16 +342,29 @@ import useApiClient from '~/compositions/useApiClient';
 import useConfig from '~/compositions/useConfig';
 import { useForges } from '~/compositions/useForges';
 import useNotifications from '~/compositions/useNotifications';
+import type { SecretScopeContext } from '~/lib/secret-scope';
+import { canEditSecret } from '~/lib/secret-scope';
 import type { SecretWithOrg } from '~/lib/api/types';
 import { WebhookEvents } from '~/lib/api/types';
 import { computed, defineComponent, h, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-const props = defineProps<{
-  secrets: SecretWithOrg[] | null;
-  isDeleting: boolean;
-  searchTerm: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    secrets: SecretWithOrg[] | null;
+    isDeleting: boolean;
+    searchTerm: string;
+    /**
+     * The page this list is rendered on. `user` is the all-secrets view which
+     * mixes every scope; the settings views show a single scope and treat
+     * secrets inherited from broader scopes as read-only.
+     */
+    context?: SecretScopeContext;
+  }>(),
+  {
+    context: 'user',
+  },
+);
 
 const emit = defineEmits<{
   (event: 'edit', secret: SecretWithOrg): void;
@@ -367,8 +380,18 @@ const apiClient = useApiClient();
 const notifications = useNotifications();
 const { forges } = useForges();
 
+// The settings views list a single owner on a single forge, so the owner and
+// forge columns and their filters only carry information in the all-secrets view
+const isAllSecretsView = computed(() => props.context === 'user');
+
 // Show forge column only when multiple forges are configured
-const showForgeColumn = computed(() => forges.value.length > 1);
+const showForgeColumn = computed(() => isAllSecretsView.value && forges.value.length > 1);
+
+// A repo lists its own, its org's and the global secrets, so the scope filter
+// still applies there; the org and admin views only ever show one scope
+const showScopeFilter = computed(() => isAllSecretsView.value || props.context === 'repo');
+const showOwnerFilter = computed(() => isAllSecretsView.value);
+const showForgeFilter = computed(() => showForgeColumn.value);
 
 // Helper to check if a string is a valid URL
 function isValidUrl(str: string): boolean {
@@ -442,14 +465,28 @@ async function copySecretName(name: string) {
   }
 }
 
-const sorting = ref<SortingState>([
-  { id: 'owner', desc: false },
-  { id: 'name', desc: false },
-]);
+// The all-secrets view groups by owner; the repo view keeps the order it was
+// given (repo secrets first, then inherited ones); the single-scope views sort
+// by name
+const defaultSorting: Record<SecretScopeContext, SortingState> = {
+  user: [
+    { id: 'owner', desc: false },
+    { id: 'name', desc: false },
+  ],
+  repo: [],
+  org: [{ id: 'name', desc: false }],
+  admin: [{ id: 'name', desc: false }],
+};
+
+const sorting = ref<SortingState>(defaultSorting[props.context]);
 const columnFilters = ref<ColumnFiltersState>([]);
 
+// Each context shows a different set of columns and filters, so it keeps its own
+// persisted table state
+const storageSuffix = props.context === 'user' ? '' : `:${props.context}`;
+
 // Load column sizing from localStorage
-const COLUMN_SIZING_STORAGE_KEY = 'crow-secrets-table-column-sizing';
+const COLUMN_SIZING_STORAGE_KEY = `crow-secrets-table-column-sizing${storageSuffix}`;
 const loadColumnSizing = (): ColumnSizingState => {
   try {
     const saved = localStorage.getItem(COLUMN_SIZING_STORAGE_KEY);
@@ -475,9 +512,9 @@ watch(
 );
 
 const rowSelection = ref({});
-const selectedScopes = useStorage<string[]>('crow:secrets-filter-scopes', []);
-const selectedOwners = useStorage<string[]>('crow:secrets-filter-owners', []);
-const selectedForges = useStorage<string[]>('crow:secrets-filter-forges', []);
+const selectedScopes = useStorage<string[]>(`crow:secrets-filter-scopes${storageSuffix}`, []);
+const selectedOwners = useStorage<string[]>(`crow:secrets-filter-owners${storageSuffix}`, []);
+const selectedForges = useStorage<string[]>(`crow:secrets-filter-forges${storageSuffix}`, []);
 const columnVisibility = ref<ColumnVisibilityState>({
   source: false, // Hide source column by default
   created_at: false, // Hide added column by default
@@ -533,10 +570,7 @@ const allWebhookEvents = [
 ];
 
 function canEdit(secret: SecretWithOrg): boolean {
-  if (secret.scope_type === 'user') return true;
-  if (secret.scope_type === 'global') return user?.admin === true;
-  if (secret.scope_type === 'repo') return true; // Assume user has access if they can see it
-  return secret.scope_type === 'org';
+  return canEditSecret(secret, props.context, user?.admin === true);
 }
 
 function formatTimestamp(timestamp: number): string {
@@ -819,7 +853,7 @@ const SecretValueViewer = defineComponent({
   },
 });
 
-const columns: ColumnDef<typeof dataTableFeatures, SecretWithOrg>[] = [
+const allColumns: ColumnDef<typeof dataTableFeatures, SecretWithOrg>[] = [
   {
     id: 'select',
     header: ({ table }) =>
@@ -848,6 +882,10 @@ const columns: ColumnDef<typeof dataTableFeatures, SecretWithOrg>[] = [
   },
   {
     accessorKey: 'name',
+    filterFn: (row, id, value) => {
+      const name = row.getValue(id) as string;
+      return name.toLowerCase().includes(String(value).toLowerCase());
+    },
     header: ({ column }) => {
       return h(
         Button,
@@ -1180,6 +1218,22 @@ const columns: ColumnDef<typeof dataTableFeatures, SecretWithOrg>[] = [
   },
 ];
 
+// Owner and forge only vary in the all-secrets view, and the org and admin views
+// show a single scope, so those columns are dropped rather than merely hidden:
+// they would otherwise show up in the column visibility menu as dead options.
+// The context cannot change while the component is mounted.
+const hiddenColumnsByContext: Record<SecretScopeContext, string[]> = {
+  user: [],
+  repo: ['owner', 'forge'],
+  org: ['owner', 'forge', 'scope'],
+  admin: ['owner', 'forge', 'scope'],
+};
+
+const columns = allColumns.filter((column) => {
+  const id = column.id ?? ('accessorKey' in column ? String(column.accessorKey) : '');
+  return !hiddenColumnsByContext[props.context].includes(id);
+});
+
 const table = useTable({
   features: dataTableFeatures,
   get data() {
@@ -1223,6 +1277,17 @@ const table = useTable({
   },
 });
 
+// The all-secrets endpoint filters by name server-side, so that view passes the
+// term straight through. The scope-specific endpoints have no search parameter,
+// so those views filter the rows they have loaded.
+watch(
+  () => props.searchTerm,
+  (term) => {
+    if (isAllSecretsView.value) return;
+    table.getColumn('name')?.setFilterValue(term || undefined);
+  },
+);
+
 // Map scope types to display labels
 const scopeLabelMap: Record<string, string[]> = {
   Organization: ['user', 'org'],
@@ -1231,7 +1296,7 @@ const scopeLabelMap: Record<string, string[]> = {
 };
 
 // Array of selected labels (persisted to localStorage)
-const selectedScopeLabels = useStorage<string[]>('crow:secrets-filter-scope-labels', []);
+const selectedScopeLabels = useStorage<string[]>(`crow:secrets-filter-scope-labels${storageSuffix}`, []);
 
 // Reverse mapping: scope type to label
 const scopeToLabel: Record<string, string> = {
@@ -1361,6 +1426,11 @@ function clearForgeFilters() {
 
 // Apply persisted filters on mount
 onMounted(() => {
+  // Apply the initial search term in the views that filter client-side
+  if (!isAllSecretsView.value && props.searchTerm) {
+    table.getColumn('name')?.setFilterValue(props.searchTerm);
+  }
+
   // Apply scope filters
   if (selectedScopeLabels.value.length > 0) {
     const scopeTypes: string[] = [];
