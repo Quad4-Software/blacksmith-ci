@@ -1,0 +1,289 @@
+---
+title: 'Standalone Agent Binaries'
+sidebar:
+  badge:
+    text: Advanced
+    variant: caution
+---
+
+Crow publishes pre-built **agent** binaries for macOS, Linux and Windows.
+They exist for one purpose only: running an agent with the [`local` backend](/dev/configuration/env-vars/backend-local/), which executes pipeline commands directly on the host instead of in a container.
+
+:::danger[This is not a general installation method]
+Reach for a binary agent only if you own the host, control who can push to the repositories it builds, and understand the trade-offs below.
+For every other case, run the agent as a container: see [Docker Compose](/dev/installation/container/), [Helm](/dev/installation/helm/) or [Ansible](/dev/installation/ansible/).
+
+The `local` backend is not a container backend with a different name:
+
+- **No isolation from the host.**
+  Pipeline commands run as the agent's user, with that user's filesystem, network and credential access.
+  Outside the macOS sandbox, a pipeline can read the agent's own config and any secret on the host.
+- **No sandboxing outside macOS.**
+  `CROW_BACKEND_LOCAL_SANDBOX_LEVEL` is implemented with macOS `sandbox-exec` and is a no-op on Linux and Windows.
+  On those platforms there is no isolation at all, at any setting.
+- **No plugins.**
+  Plugins are container images, and the `local` backend resolves `image:` with a `PATH` lookup instead.
+  A plugin only runs if a binary of that name happens to be installed on the host.
+- **No service containers.**
+  `services:` are resolved the same way and need the service to already exist as a host binary.
+- **The host is the build environment.**
+  There is no per-pipeline clean slate: pipelines see whatever toolchain versions the host has, and leftovers from one pipeline are visible to the next.
+
+The server itself is container-only.
+These binaries do not let you run a Crow server outside of a container.
+:::
+
+## Installation
+
+The snippets below resolve the newest release through the forge API.
+Set `TAG` to something like `v6.4.0` instead to pin a specific release, and `ARCH` to your architecture.
+
+### macOS
+
+Available for `amd64` and `arm64`.
+
+```bash
+# resolve the latest release tag
+export TAG=$(curl -s https://codefloe.com/api/v1/repos/crowci/crow/releases/latest | jq -r .tag_name)
+export ARCH=arm64
+curl -LO https://codefloe.com/crowci/crow/releases/download/$TAG/crow-agent_darwin_$ARCH.tar.gz
+
+# Extract the archive
+tar -xzf crow-agent_darwin_*.tar.gz
+
+# Move to system path
+sudo mv crow-agent /usr/local/bin/
+sudo chmod +x /usr/local/bin/crow-agent
+
+# Verify installation
+crow-agent --version
+```
+
+### Linux
+
+Available for `amd64` and `arm64`.
+
+```bash
+# resolve the latest release tag
+export TAG=$(curl -s https://codefloe.com/api/v1/repos/crowci/crow/releases/latest | jq -r .tag_name)
+export ARCH=amd64
+curl -LO https://codefloe.com/crowci/crow/releases/download/$TAG/crow-agent_linux_$ARCH.tar.gz
+
+# Extract the archive
+tar -xzf crow-agent_linux_*.tar.gz
+
+# Move to system path
+sudo mv crow-agent /usr/local/bin/
+sudo chmod +x /usr/local/bin/crow-agent
+
+# Verify installation
+crow-agent --version
+```
+
+:::caution
+Read the box at the top of this page before running this agent on Linux.
+Nothing separates a pipeline from the rest of the machine, so treat every repository the agent builds as having shell access to that host.
+:::
+
+### Windows
+
+`crow-agent_windows_amd64.zip` is published for the same reasons, plus the autoscaler, which downloads it onto Windows VMs.
+Windows agents normally run the **docker** backend rather than the `local` one: see [Windows Agents](/dev/configuration/windows-agent/).
+
+## Why no systemd units, `.deb` or `.rpm` packages
+
+Only plain tarballs are published, and that is deliberate.
+
+Packaging the agent for a distribution, or shipping a ready-made `systemd` unit, presents host installation as an equally supported alternative to the container agent.
+It is not: everything in the box at the top of this page still applies, and the resulting agent is markedly less capable and less contained than a container one.
+Users who install from a distribution package reasonably expect the two to be interchangeable, and then hit the missing plugin and isolation guarantees later, in production.
+
+If you need the agent supervised on Linux, wire the binary into whatever service manager you already run.
+Give it its own unprivileged user, keep that user away from anything the pipelines should not reach, and do not run it as `root`.
+
+See [#1406](https://codefloe.com/crowci/crow/issues/1406) for the discussion behind this.
+
+## Running as a System Service
+
+### macOS (launchd)
+
+Running the agent as a system service on macOS uses `launchd` with a Launch Daemon or Launch Agent.
+
+Create the plist file using your preferred text editor:
+
+```bash
+sudo nano /Library/LaunchDaemons/crowci.agent.plist
+```
+
+Paste the following content (update `CROW_SERVER` and `CROW_AGENT_SECRET` with your values):
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>crowci.agent</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/crow-agent</string>
+    </array>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>CROW_SERVER</key>
+        <string>grpc.your-server.com:443</string>
+        <key>CROW_GRPC_SECURE</key>
+        <string>true</string>
+        <key>CROW_AGENT_SECRET</key>
+        <string>your-secret-token</string>
+        <key>CROW_BACKEND</key>
+        <string>local</string>
+        <key>CROW_BACKEND_LOCAL_SANDBOX_LEVEL</key>
+        <string>standard</string>
+        <key>CROW_AGENT_CONFIG_FILE</key>
+        <string>/usr/local/var/crow-agent/config.yml</string>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/usr/local/var/log/crow-agent.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/usr/local/var/log/crow-agent-error.log</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>WorkingDirectory</key>
+    <string>/usr/local/var/crow-agent</string>
+</dict>
+</plist>
+```
+
+:::note
+**For remote/public servers**: The example above assumes a secure gRPC connection (typical for remote agents).
+
+- `CROW_SERVER`: The gRPC endpoint as `<host>:<port>` (typically `:443` for a TLS-terminating proxy)
+- `CROW_GRPC_SECURE`: Set to `true` for TLS connections
+
+**For local servers**: If connecting to a server on the same network without TLS, use:
+
+```xml
+<key>CROW_SERVER</key>
+<string>your-server-ip:9000</string>
+```
+
+And remove the `CROW_GRPC_SECURE` key.
+:::
+
+:::caution
+`EnvironmentVariables` puts `CROW_AGENT_SECRET` into a world readable file.
+Prefer `CROW_AGENT_SECRET_FILE` pointing at a file owned by `root` with mode `0600`.
+Sandboxed steps are denied reading either of them, but only on macOS and only when the sandbox is enabled.
+:::
+
+After saving the file, validate it:
+
+```bash
+plutil -lint /Library/LaunchDaemons/crowci.agent.plist
+```
+
+Set up and start the service:
+
+```bash
+# Create working directories
+sudo mkdir -p /usr/local/var/crow-agent /usr/local/var/log
+
+# Set proper permissions on the plist file
+sudo chown root:wheel /Library/LaunchDaemons/crowci.agent.plist
+sudo chmod 644 /Library/LaunchDaemons/crowci.agent.plist
+
+# Load and start the service (bootstrap will start it automatically)
+sudo launchctl bootstrap system /Library/LaunchDaemons/crowci.agent.plist
+
+# Verify the service is running
+sudo launchctl list | grep crowci
+
+# View logs
+tail -f /usr/local/var/log/crow-agent.log
+tail -f /usr/local/var/log/crow-agent-error.log
+```
+
+#### Service Management (macOS)
+
+```bash
+# Stop the service
+sudo launchctl kickstart -k system/crowci.agent
+
+# Restart the service
+sudo launchctl kickstart -kp system/crowci.agent
+
+# Unload/remove the service
+sudo launchctl bootout system /Library/LaunchDaemons/crowci.agent.plist
+
+# Check service status
+sudo launchctl print system/crowci.agent
+```
+
+:::note
+When running the agent on macOS with the `local` backend, you should enable process isolation using the built-in `sandbox-exec` utility.
+:::
+
+### macOS Sandbox Security Levels
+
+The `CROW_BACKEND_LOCAL_SANDBOX_LEVEL` environment variable controls process isolation on macOS:
+
+#### `none`
+
+No sandboxing.
+Workflows run with full system access.
+Use only in trusted environments.
+
+#### `standard` (default)
+
+Balanced security profile suitable for most CI/CD workloads.
+
+Allowed:
+
+- ✅ Network access (for package downloads, git operations, API calls)
+- ✅ Reading system libraries, tools, and executables
+- ✅ Full read/write access to the workflow's own directories, which is where `$TMPDIR` points
+- ✅ Executing binaries, including ones the workflow just built
+- ✅ Process management (fork, signal, IPC)
+- ✅ Device file access (`/dev/null`, `/dev/random`, etc.)
+- ✅ The shared build caches (`~/.cargo`, `~/.rustup`, `~/.cache`, `~/.npm`, `~/Library/Caches`, `/Library/Caches`) and the account's own temp directory
+
+Denied:
+
+- ❌ Reading or writing another workflow's directories on the same agent
+- ❌ Reading sensitive system files (`/etc/passwd`, `/etc/sudoers`, etc.)
+- ❌ Reading the macOS user database (`/var/db/dslocal/nodes/Default/users/`)
+- ❌ Reading or writing user directories (Documents, Desktop, Pictures, Downloads)
+- ❌ Reading SSH private keys (`~/.ssh/id_*`)
+- ❌ Reading or writing the launchd job directories, where the agent's own credentials usually live
+- ❌ Privilege escalation (`sudo` cannot be executed)
+- ❌ Writing anywhere else on the host
+
+Steps also do not inherit the agent's own environment.
+Every variable named `CROW_*` or `WOODPECKER_*` is removed before a step starts, `CROW_AGENT_SECRET` among them: that token is enough to register as an agent and be handed other repositories' tasks.
+
+:::caution[`standard` hardens an agent, it does not partition one]
+The profile limits what a pipeline can reach on the host.
+It does not make a single agent safe to share between repositories that do not trust each other.
+
+Workflows on one agent still share the build caches and the account's temp directory, so one workflow can leave a poisoned `~/.cargo/bin` entry behind for the next.
+Execution is not restricted, network access is unrestricted, and `sandbox-exec` is a deprecated Apple utility whose profile language is not a supported security boundary.
+
+For a public instance, or anywhere pull requests from strangers build, give each job a fresh macOS VM and run an agent inside it.
+Set `CROW_AGENT_MAX_LIFETIME_WORKFLOWS=1` so the agent retires after that one job and the VM can be discarded with it, see [Single-Use Agents](/dev/configuration/agent/#single-use-agents).
+:::
+
+#### `strict`
+
+Maximum security with minimal permissions.
+Denies network access and restricts file operations to workflow directories only.
+Use for highly sensitive workloads requiring maximum isolation.

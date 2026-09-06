@@ -82,6 +82,14 @@ Core agent configuration variables.
 
 ---
 
+### AGENT_MAX_LIFETIME_WORKFLOWS
+
+- Name: `CROW_AGENT_MAX_LIFETIME_WORKFLOWS`
+- Description: Number of workflows the agent runs before it retires: it stops polling, drains what it is running, unregisters and exits with status 0. Agents registered with an individual token, such as those the autoscaler creates, stay on record and are removed by whoever created them. Use `1` for single-use agents that get a fresh machine per job, and make sure the supervisor does not restart the process. `0` disables the limit. See [Single-Use Agents](/dev/configuration/agent/#single-use-agents).
+- Default: `0`
+
+---
+
 ## Connection Settings
 
 ### GRPC_SECURE

@@ -119,6 +119,15 @@ Each forge connection has its own OAuth tokens:
 - Revoking access on one forge doesn't affect others
 - Token refresh happens independently per forge
 
+### Account Identity
+
+Accounts are matched per forge, never by username.
+Signing in through a forge only ever resolves to the Crow account that forge connection is linked to, so registering a matching username on another connected forge does not grant access to an existing account.
+
+Usernames are unique across the whole Crow instance.
+If you already have a Crow account and try to sign in through a forge where a *different* account uses your Crow username, the login is rejected with "This username is already used by an account from another forge".
+Join the two accounts by signing in with your original forge and linking the second one from **Settings > Linked Forges** instead.
+
 ### Access Control
 
 - You must authenticate with each forge to link it
