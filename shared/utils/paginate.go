@@ -14,13 +14,25 @@
 
 package utils
 
+import "fmt"
+
+// MaxPages bounds how many pages Paginate requests from a single endpoint.
+//
+// Paginate can only stop once a page comes back shorter than the first one, so
+// an endpoint that ignores the page parameter and keeps answering with the same
+// full page would loop forever while growing the result slice without bound.
+// Bitbucket Cloud's webhook collection does exactly that (issue #1487). The
+// limit is set far above any realistic collection so that it never truncates a
+// legitimate result, and only ever converts a runaway loop into an error.
+const MaxPages = 10000
+
 // Paginate iterates over a func call until it does not return new items and return it as list.
 func Paginate[T any](get func(page int) ([]T, error), limit int) ([]T, error) {
 	items := make([]T, 0, 10)
 	page := 1
 	lenFirstBatch := -1
 
-	for {
+	for page <= MaxPages {
 		// limit < 1 means get all results
 		remaining := 0
 		if limit > 0 {
@@ -52,6 +64,10 @@ func Paginate[T any](get func(page int) ([]T, error), limit int) ([]T, error) {
 		}
 
 		page++
+	}
+
+	if page > MaxPages {
+		return nil, fmt.Errorf("pagination did not terminate after %d pages, the endpoint likely ignores the page parameter", MaxPages)
 	}
 
 	return items, nil

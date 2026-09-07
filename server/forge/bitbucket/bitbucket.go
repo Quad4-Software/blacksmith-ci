@@ -32,14 +32,12 @@ import (
 	"codefloe.com/crowci/crow/v6/server/forge/common"
 	forge_types "codefloe.com/crowci/crow/v6/server/forge/types"
 	"codefloe.com/crowci/crow/v6/server/model"
-	shared_utils "codefloe.com/crowci/crow/v6/shared/utils"
 )
 
 // Bitbucket cloud endpoints.
 const (
 	DefaultAPI = "https://api.bitbucket.org"
 	DefaultURL = "https://bitbucket.org"
-	pageSize   = 100
 )
 
 // Opts are forge options for bitbucket.
@@ -135,17 +133,11 @@ func (c *config) Refresh(ctx context.Context, user *model.User) (bool, error) {
 
 // Teams returns a list of all team membership for the Bitbucket account.
 func (c *config) Teams(ctx context.Context, u *model.User) ([]*model.Team, error) {
-	return shared_utils.Paginate(func(page int) ([]*model.Team, error) {
-		opts := &internal.ListOpts{
-			PageLen: pageSize,
-			Page:    page,
-		}
-		resp, err := c.newClient(ctx, u).ListWorkspaces(opts)
-		if err != nil {
-			return nil, err
-		}
-		return convertWorkspaceList(extractWorkspaces(resp.Values)), nil
-	}, -1)
+	workspaceAccess, err := c.newClient(ctx, u).ListWorkspacesAll()
+	if err != nil {
+		return nil, err
+	}
+	return convertWorkspaceList(extractWorkspaces(workspaceAccess)), nil
 }
 
 func (c *config) TeamMemberships(_ context.Context, _ *model.User) ([]*model.TeamMembership, error) {
@@ -186,19 +178,11 @@ func (c *config) Repo(ctx context.Context, u *model.User, remoteID model.ForgeRe
 func (c *config) Repos(ctx context.Context, u *model.User) ([]*model.Repo, error) {
 	client := c.newClient(ctx, u)
 
-	workspaces, err := shared_utils.Paginate(func(page int) ([]*internal.Workspace, error) {
-		resp, err := client.ListWorkspaces(&internal.ListOpts{
-			Page:    page,
-			PageLen: pageSize,
-		})
-		if err != nil {
-			return nil, err
-		}
-		return extractWorkspaces(resp.Values), nil
-	}, -1)
+	workspaceAccess, err := client.ListWorkspacesAll()
 	if err != nil {
 		return nil, err
 	}
+	workspaces := extractWorkspaces(workspaceAccess)
 
 	var all []*model.Repo
 	for _, workspace := range workspaces {
@@ -335,15 +319,7 @@ func (c *config) Activate(ctx context.Context, u *model.User, r *model.Repo, lin
 func (c *config) Deactivate(ctx context.Context, u *model.User, r *model.Repo, link string) error {
 	client := c.newClient(ctx, u)
 
-	hooks, err := shared_utils.Paginate(func(page int) ([]*internal.Hook, error) {
-		hooks, err := client.ListHooks(r.Owner, r.Name, &internal.ListOpts{
-			Page: page,
-		})
-		if err != nil {
-			return nil, err
-		}
-		return hooks.Values, nil
-	}, -1)
+	hooks, err := client.ListHooksAll(r.Owner, r.Name)
 	if err != nil {
 		return err
 	}

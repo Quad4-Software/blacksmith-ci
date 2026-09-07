@@ -100,13 +100,31 @@ func getRepoHooks(c *gin.Context) {
 		c.String(http.StatusNotFound, "")
 	case "hook_empty":
 		c.String(http.StatusOK, "{}")
-	default:
+	case "repo_hooks_paginated":
+		// A properly paginating collection: the first page advertises a `next`
+		// link, the second one does not.
 		if c.Query("page") == "" || c.Query("page") == "1" {
-			c.String(http.StatusOK, repoHookPayload)
+			c.String(http.StatusOK, fmt.Sprintf(repoHookPageOnePayload, hostURL(c)))
 		} else {
-			c.String(http.StatusOK, "{\"values\":[]}")
+			c.String(http.StatusOK, repoHookPageTwoPayload)
 		}
+	default:
+		// Bitbucket Cloud ignores `page` on the hooks collection and answers
+		// every request with the same single page. Do not "fix" this into a
+		// cooperative paginator: reproducing the real behavior here is what
+		// keeps an endless pagination loop from shipping again (issue #1487).
+		c.String(http.StatusOK, repoHookPayload)
 	}
+}
+
+// hostURL rebuilds the absolute base URL the client used to reach the fixture,
+// so payloads can embed realistic `next` links.
+func hostURL(c *gin.Context) string {
+	scheme := "http"
+	if c.Request.TLS != nil {
+		scheme = "https"
+	}
+	return scheme + "://" + c.Request.Host
 }
 
 func getRepoFile(c *gin.Context) {
@@ -389,6 +407,35 @@ const repoHookPayload = `
 	],
 	"page": 1,
 	"size": 1
+}
+`
+
+const repoHookPageOnePayload = `
+{
+	"pagelen": 1,
+	"values": [
+		{
+			"uuid": "{afe61e14-2c5f-49e8-8b68-ad1fb55fc052}",
+			"url": "http://127.0.0.1"
+		}
+	],
+	"next": "%s/2.0/repositories/test_name/repo_hooks_paginated/hooks?page=2&pagelen=1",
+	"page": 1,
+	"size": 2
+}
+`
+
+const repoHookPageTwoPayload = `
+{
+	"pagelen": 1,
+	"values": [
+		{
+			"uuid": "{b9e0f2b1-3d0f-4a6e-9f0a-6f1f7c1f4a01}",
+			"url": "http://127.0.0.1/second"
+		}
+	],
+	"page": 2,
+	"size": 2
 }
 `
 

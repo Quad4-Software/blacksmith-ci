@@ -27,7 +27,6 @@ import (
 	"golang.org/x/oauth2/bitbucket"
 
 	"codefloe.com/crowci/crow/v6/shared/httputil"
-	shared_utils "codefloe.com/crowci/crow/v6/shared/utils"
 )
 
 const (
@@ -94,6 +93,17 @@ func (c *Client) ListWorkspaces(opts *ListOpts) (*WorkspacesResp, error) {
 	return out, err
 }
 
+// ListWorkspacesAll returns every workspace the authenticated user can access.
+func (c *Client) ListWorkspacesAll() ([]*WorkspaceAccess, error) {
+	return paginate(func(opts *ListOpts) ([]*WorkspaceAccess, string, error) {
+		resp, err := c.ListWorkspaces(opts)
+		if err != nil {
+			return nil, "", err
+		}
+		return resp.Values, resp.Next, nil
+	})
+}
+
 func (c *Client) FindRepo(owner, name string) (*Repo, error) {
 	out := new(Repo)
 	uri := fmt.Sprintf(pathRepo, c.base, owner, name)
@@ -109,13 +119,13 @@ func (c *Client) ListRepos(workspace string, opts *ListOpts) (*RepoResp, error) 
 }
 
 func (c *Client) ListReposAll(workspace string) ([]*Repo, error) {
-	return shared_utils.Paginate(func(page int) ([]*Repo, error) {
-		resp, err := c.ListRepos(workspace, &ListOpts{Page: page, PageLen: pageSize})
+	return paginate(func(opts *ListOpts) ([]*Repo, string, error) {
+		resp, err := c.ListRepos(workspace, opts)
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
-		return resp.Values, nil
-	}, -1)
+		return resp.Values, resp.Next, nil
+	})
 }
 
 func (c *Client) FindHook(owner, name, id string) (*Hook, error) {
@@ -130,6 +140,20 @@ func (c *Client) ListHooks(owner, name string, opts *ListOpts) (*HookResp, error
 	uri := fmt.Sprintf(pathHooks, c.base, owner, name, opts.Encode())
 	_, err := c.do(uri, http.MethodGet, nil, out)
 	return out, err
+}
+
+// ListHooksAll returns every webhook configured on the repository.
+//
+// The hooks collection ignores the `page` parameter, so this relies on the
+// `next` link to stop. See paginate.
+func (c *Client) ListHooksAll(owner, name string) ([]*Hook, error) {
+	return paginate(func(opts *ListOpts) ([]*Hook, string, error) {
+		resp, err := c.ListHooks(owner, name, opts)
+		if err != nil {
+			return nil, "", err
+		}
+		return resp.Values, resp.Next, nil
+	})
 }
 
 func (c *Client) CreateHook(owner, name string, hook *Hook) error {
@@ -177,13 +201,13 @@ func (c *Client) ListPermissions(workspace string, opts *ListOpts) (*RepoPermRes
 }
 
 func (c *Client) ListPermissionsAll(workspace string) ([]*RepoPerm, error) {
-	return shared_utils.Paginate(func(page int) ([]*RepoPerm, error) {
-		resp, err := c.ListPermissions(workspace, &ListOpts{Page: page, PageLen: pageSize})
+	return paginate(func(opts *ListOpts) ([]*RepoPerm, string, error) {
+		resp, err := c.ListPermissions(workspace, opts)
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
-		return resp.Values, nil
-	}, -1)
+		return resp.Values, resp.Next, nil
+	})
 }
 
 func (c *Client) ListBranches(owner, name string, opts *ListOpts) ([]*Branch, error) {

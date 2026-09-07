@@ -15,8 +15,13 @@
 package internal
 
 import (
+	"fmt"
+	"maps"
+	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -231,16 +236,37 @@ type Error struct {
 	Status int
 	Body   struct {
 		Message string `json:"message"`
+		// Detail and Fields carry Bitbucket's validation feedback. Without them
+		// a rejected request only ever surfaces as a bare "Bad request", which
+		// is not enough to tell what the API objected to (issue #1487).
+		Detail string              `json:"detail"`
+		Fields map[string][]string `json:"fields"`
 	} `json:"error"`
 }
 
 func (e Error) Error() string {
-	return e.Body.Message
+	msg := e.Body.Message
+	if msg == "" {
+		msg = http.StatusText(e.Status)
+	}
+	if e.Body.Detail != "" {
+		msg = fmt.Sprintf("%s: %s", msg, e.Body.Detail)
+	}
+	if len(e.Body.Fields) > 0 {
+		parts := make([]string, 0, len(e.Body.Fields))
+		for _, field := range slices.Sorted(maps.Keys(e.Body.Fields)) {
+			parts = append(parts, fmt.Sprintf("%s: %s", field, strings.Join(e.Body.Fields[field], ", ")))
+		}
+		msg = fmt.Sprintf("%s (%s)", msg, strings.Join(parts, "; "))
+	}
+	return msg
 }
 
 type RepoPermResp struct {
 	Page   int         `json:"page"`
 	Pages  int         `json:"pagelen"`
+	Size   int         `json:"size"`
+	Next   string      `json:"next"`
 	Values []*RepoPerm `json:"values"`
 }
 

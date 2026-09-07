@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPaginate(t *testing.T) {
@@ -89,4 +90,21 @@ func TestPaginate(t *testing.T) {
 			assert.EqualValues(t, tt.expected, result)
 		})
 	}
+}
+
+// TestPaginateNonAdvancingEndpoint guards against issue #1487: an endpoint that
+// ignores the page parameter and answers every request with the same full page
+// must produce an error rather than loop forever.
+func TestPaginateNonAdvancingEndpoint(t *testing.T) {
+	apiExec := 0
+
+	result, err := Paginate(func(_ int) ([]int, error) {
+		apiExec++
+		return []int{1, 2, 3}, nil
+	}, -1)
+
+	assert.Nil(t, result)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "ignores the page parameter")
+	assert.Equal(t, MaxPages, apiExec)
 }
