@@ -576,6 +576,8 @@
           </Alert>
         </Transition>
 
+        <LogIssueBar v-if="log" :lines="log" class="mx-1 mt-2 md:mx-3" @jump="jumpToLine" />
+
         <!-- Scrollable log container -->
         <div ref="logContainerRef" class="flex-1 min-h-0 w-full overflow-auto">
           <div
@@ -731,50 +733,6 @@
         </div>
       </CardContent>
 
-      <!-- Stderr Error Output Section -->
-      <div
-        v-if="stderrLines.length > 0"
-        data-stderr-section
-        class="border-t border-destructive bg-red-50 dark:bg-red-950/20"
-      >
-        <button
-          class="w-full flex items-center justify-between px-3 py-2 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
-          @click="stderrExpanded = !stderrExpanded"
-        >
-          <div class="flex items-center gap-2">
-            <Icon name="alert" class="w-4 h-4 text-destructive dark:text-red-500" />
-            <span class="text-sm font-semibold text-destructive dark:text-red-500">
-              {{ $t('repo.pipeline.actions.stderr_output') }}
-            </span>
-            <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-            <span class="text-sm font-semibold text-destructive dark:text-red-500">({{ stderrLines.length }})</span>
-          </div>
-          <Icon
-            :name="stderrExpanded ? 'chevron-up' : 'chevron-down'"
-            class="w-4 h-4 text-destructive dark:text-red-500"
-          />
-        </button>
-        <div v-show="stderrExpanded" class="relative px-3 pb-2">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            class="absolute top-2 right-5 text-destructive dark:text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 bg-white dark:bg-black/40"
-            @click="copyStderr"
-          >
-            <Icon v-if="stderrCopied" name="lucide:check" class="w-4 h-4" />
-            <Icon v-else name="lucide:copy" class="w-4 h-4" />
-          </Button>
-          <div class="max-h-96 overflow-y-auto">
-            <!-- eslint-disable vue/no-v-html -->
-            <pre
-              class="text-xs font-mono bg-white dark:bg-black/20 rounded px-2 py-2 pr-10 border border-red-200 dark:border-red-800 text-destructive dark:text-red-500 whitespace-pre-wrap wrap-break-word"
-              v-html="highlightSearchTerm(stderrLines.map((e) => e.text).join('\n'))"
-            />
-            <!-- eslint-enable vue/no-v-html -->
-          </div>
-        </div>
-      </div>
-
       <div v-if="step?.error" class="text-xs flex w-full items-center gap-2 border-t px-3 py-1.5 text-foreground">
         <span class="border border-destructive rounded-full px-2 py-0.5">{{ step.error }}</span>
       </div>
@@ -804,6 +762,7 @@
 import '~/style/console.css';
 import { useStorage } from '@vueuse/core';
 import Icon from '~/components/atomic/Icon.vue';
+import LogIssueBar from '~/components/repo/pipeline/LogIssueBar.vue';
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
 import {
@@ -842,6 +801,8 @@ import { requiredInject } from '~/compositions/useInjectProvide';
 import useNotifications from '~/compositions/useNotifications';
 import type { Pipeline, PipelineStep, PipelineWorkflow } from '~/lib/api/types';
 import { commandTrace, findSectionId, groupLogLines } from '~/lib/log-folding';
+import type { LogIssueSeverity } from '~/lib/log-issues';
+import { classifyLogLine } from '~/lib/log-issues';
 import { duplicateStepNameIndexes, getWorkflowAttempts } from '~/lib/pipeline-utils';
 import { AnsiUp } from 'ansi_up';
 import DOMPurify from 'dompurify';
@@ -877,19 +838,13 @@ const emit = defineEmits<{
 const HTML_TAG_REGEX = /<[^>]*>/g;
 const URL_REGEX = /https?:\/\/\S+/g;
 const SPECIAL_REGEX_CHARS = /[.*+?^${}()|[\]\\]/g;
-const WARNING_PATTERNS_REGEX = /\bwarn(?:ing)?s?\b|\[warn(?:ing)?\]/i;
-const SUCCESS_PATTERNS_REGEX =
-  /^\s*[v✓✔☑⋅·•›>+⟶→]\s|done\b|success|complete[ds]?\b|installed\b|built\b|packaged\b|updated\b|finished\b|passed\b|ok\b|\bgot\b/i;
-const INFO_PATTERNS_REGEX = /^\s*[i>+\-*•·]\s|^\s*\d+\s*(?:pkg|packages?|deps?)/i;
-const ERROR_PATTERNS_REGEX =
-  /\berror\b|\bfailed\b|\bfailure\b|\bfatal\b|\bcritical\b|\bexception\b|\bpanic\b|\baborted?\b/i;
 
 interface LogLine {
   index: number;
   number: number;
   text?: string;
   time?: number;
-  type: 'error' | 'warning' | null;
+  type: LogIssueSeverity | null;
   command?: string;
 }
 
@@ -1019,37 +974,25 @@ function revealLine(lineNumber: number) {
   collapsedSections.value = next;
 }
 
+/** Scrolls a line into view, unfolding whatever section hides it. */
+function jumpToLine(lineNumber: number) {
+  revealLine(lineNumber);
+  nextTick(() => {
+    document.getElementById(`L${lineNumber}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+}
+
 const mobileSettingsOpen = ref(false);
 const atTop = ref(true);
 const atBottom = ref(false);
 const isScrollable = ref(false);
 const isFullscreen = ref(false);
-const stderrExpanded = ref(true);
-const stderrCopied = ref(false);
 
 // Search state
 const searchOpen = ref(false);
 const searchTerm = ref('');
 const currentMatchIndex = ref(0);
 const searchInputRef = ref<HTMLInputElement | null>(null);
-
-// Extract stderr lines (error output) from logs
-const stderrLines = computed(() => {
-  if (!log.value || log.value.length === 0 || step.value?.exit_code === 0) {
-    return [];
-  }
-
-  // Filter lines that are marked as stderr (type === 'error')
-  const errors = log.value
-    .filter((line) => line.type === 'error')
-    .map((line) => ({
-      line: line.number,
-      text: (line.text?.replace(HTML_TAG_REGEX, '') || '').trim(), // Strip HTML
-    }))
-    .filter((error) => error.text.length > 0); // Remove empty lines
-
-  return errors;
-});
 
 // Search: find all matching line indices
 const searchMatches = computed(() => {
@@ -1058,7 +1001,7 @@ const searchMatches = computed(() => {
   }
 
   const term = searchTerm.value.toLowerCase();
-  const matches: { type: 'log' | 'stderr'; index: number; lineNumber: number }[] = [];
+  const matches: { index: number; lineNumber: number }[] = [];
 
   // Search main logs
   if (log.value) {
@@ -1066,16 +1009,7 @@ const searchMatches = computed(() => {
       // Strip HTML tags and check for match
       const plainText = (line.text?.replace(HTML_TAG_REGEX, '') || '').toLowerCase();
       if (plainText.includes(term)) {
-        matches.push({ type: 'log', index: idx, lineNumber: line.number });
-      }
-    });
-  }
-
-  // Search stderr lines (only if stderr section is expanded)
-  if (stderrExpanded.value && stderrLines.value.length > 0) {
-    stderrLines.value.forEach((line, idx) => {
-      if (line.text.toLowerCase().includes(term)) {
-        matches.push({ type: 'stderr', index: idx, lineNumber: line.line });
+        matches.push({ index: idx, lineNumber: line.number });
       }
     });
   }
@@ -1162,8 +1096,7 @@ function escapeRegExp(string: string): string {
 
 // Check if a log line is the current search match
 function isCurrentSearchMatch(line: LogLine): boolean {
-  if (!currentMatch.value || currentMatch.value.type !== 'log') return false;
-  return currentMatch.value.lineNumber === line.number;
+  return currentMatch.value?.lineNumber === line.number;
 }
 
 const logTheme = useStorage('crow:log-theme', 'auto');
@@ -1235,39 +1168,6 @@ function processText(text: string): string {
     (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" class="underline">${url}</a>`,
   );
   return txt;
-}
-
-/**
- * Classify a log line based on its content to determine highlighting.
- * Many CLI tools output informational messages to stderr, so we analyze
- * the actual content rather than relying solely on the stream type.
- */
-function classifyLogLine(text: string, isStderr: boolean): 'error' | 'warning' | null {
-  // Warning patterns - check first since warnings shouldn't be treated as errors
-  if (WARNING_PATTERNS_REGEX.test(text)) {
-    return 'warning';
-  }
-
-  // Success/info indicators - these should never be highlighted as errors
-  // Matches checkmarks (v, ✓, ✔), info symbols (i), progress indicators from common CLI tools
-  if (SUCCESS_PATTERNS_REGEX.test(text)) {
-    return null;
-  }
-
-  // Skip highlighting for info prefixes (i for info) and common progress indicators
-  // These are common in package managers and build tools
-  if (INFO_PATTERNS_REGEX.test(text)) {
-    return null;
-  }
-
-  // Error patterns - only highlight if it looks like an actual error
-  if (isStderr && ERROR_PATTERNS_REGEX.test(text)) {
-    return 'error';
-  }
-
-  // For stderr lines without explicit error patterns, don't highlight
-  // This prevents false positives from tools that use stderr for progress info
-  return null;
 }
 
 function writeLog(line: Partial<LogLine> & { logType?: number }) {
@@ -1604,24 +1504,6 @@ async function confirmDeleteLogs() {
   }
 }
 
-async function copyStderr() {
-  const text = stderrLines.value.map((e) => e.text).join('\n');
-  try {
-    await navigator.clipboard.writeText(text);
-    stderrCopied.value = true;
-    setTimeout(() => {
-      stderrCopied.value = false;
-    }, 2000);
-  } catch {
-    notifications.notify({
-      title: i18n.t('notify_title_error'),
-      text: 'Failed to copy to clipboard',
-      type: 'error',
-      duration: 3000,
-    });
-  }
-}
-
 function findStep(workflows: PipelineWorkflow[], pid: number): PipelineStep | undefined {
   return workflows.reduce(
     (prev, workflow) => {
@@ -1752,22 +1634,7 @@ function scrollToCurrentMatch() {
   const match = currentMatch.value;
   if (!match) return;
 
-  if (match.type === 'log') {
-    // A hit inside a folded section is only reachable once it is unfolded.
-    revealLine(match.lineNumber);
-    nextTick(() => {
-      document.getElementById(`L${match.lineNumber}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    });
-  } else if (match.type === 'stderr') {
-    // Ensure stderr is expanded and scroll into view
-    stderrExpanded.value = true;
-    nextTick(() => {
-      const stderrSection = document.querySelector('[data-stderr-section]');
-      if (stderrSection) {
-        stderrSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    });
-  }
+  jumpToLine(match.lineNumber);
 }
 
 onMounted(async () => {

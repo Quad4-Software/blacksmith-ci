@@ -242,6 +242,26 @@ Only the traces the step script emits on stdout start a section.
 Shell tracing you enable yourself with `set -x` writes to stderr and is left as plain output.
 :::
 
+### Jumping to warnings and errors
+
+Crow classifies each log line as it arrives, tinting warnings yellow and errors red.
+The bar above the log collects those lines into an index of the step's problems, so a warning buried thousands of lines down is one click away.
+
+The bar only appears when a step produced at least one warning or error.
+It shows how many of each the step has; click a count to hide that severity and narrow the list to the other one, which is how you get to errors only.
+A hidden severity is struck through, and the choice is remembered per browser, so "errors only" stays set as you move between steps.
+Switching off the last visible severity shows only that one rather than emptying the list.
+The up and down buttons step through the issues in log order, unfolding a section when the line it holds is folded away, and the copy button puts the whole list on the clipboard as `line`, severity and text.
+
+Expand the bar with the chevron to see the list itself.
+Each entry names the line number, the text, and the command whose section the line sits in.
+Consecutive lines of the same severity are collected into one entry with a `+n` badge, since a tool that reports one problem over several lines should not fill the list with it.
+
+:::note
+Classification is based on what a line says rather than which stream it came from, because many tools write progress and success notices to stderr.
+A line containing "warning" is treated as a warning even when it also mentions an error, and an error-shaped line on stdout is left plain.
+:::
+
 ## Skipping commits
 
 Commits can be prohibited from triggering a webhook by adding `[SKIP CI]` or `[CI SKIP]` (case-insensitive) to the commit message.

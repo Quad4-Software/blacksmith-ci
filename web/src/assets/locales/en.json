@@ -557,7 +557,6 @@
         "log_fullscreen": "Enter fullscreen",
         "log_exit_fullscreen": "Exit fullscreen",
         "canceled_by_user": "Canceled by user",
-        "stderr_output": "Error Output (stderr)",
         "rerun_workflow": "Rerun workflow",
         "rerun_step": "Rerun step",
         "notify_text_rerun_success": "Workflow rerun started",
@@ -714,6 +713,22 @@
         "branch": "Branch / PR",
         "all_branches": "All branches",
         "workflows": "Workflows"
+      },
+      "issues": {
+        "errors": "{count} error | {count} errors",
+        "warnings": "{count} warning | {count} warnings",
+        "position": "{current} / {total}",
+        "hide_errors": "Hide errors",
+        "show_errors": "Show errors",
+        "hide_warnings": "Hide warnings",
+        "show_warnings": "Show warnings",
+        "previous": "Previous issue",
+        "next": "Next issue",
+        "copy": "Copy all issues",
+        "expand": "Show issue list",
+        "collapse": "Hide issue list",
+        "more_lines": "+{count}",
+        "truncated": "Showing first {shown} of {total}"
       },
       "search": {
         "title": "Search logs (Ctrl+F)",
