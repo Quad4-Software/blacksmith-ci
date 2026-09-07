@@ -1174,3 +1174,35 @@ func TestFifoOrphanedTaskReclaimedDuringGracePeriod(t *testing.T) {
 	err = q.Done(ctx, "orphan-reclaim-1", model.StatusSuccess)
 	assert.NoError(t, err)
 }
+
+// TestFifoSetApprovalStateDeclinedHolds checks that a task whose gate was
+// declined or expired is held and never released to an agent. It is the
+// counterpart of TestFifoSetApprovalStateReleases and is mirrored by
+// TestDatabaseQueueSetApprovalStateDeclinedHolds for the DB-backed queue.
+func TestFifoSetApprovalStateDeclinedHolds(t *testing.T) {
+	for _, state := range []model.ApprovalState{model.ApprovalDeclined, model.ApprovalExpired} {
+		t.Run(string(state), func(t *testing.T) {
+			ctx, cancel := context.WithCancelCause(t.Context())
+			t.Cleanup(func() { cancel(nil) })
+
+			q, _ := NewMemoryQueue(ctx, nil).(*fifo)
+
+			gated := &model.Task{
+				ID:               "gated",
+				Data:             []byte("{}"),
+				RequiresApproval: true,
+				ApprovalState:    model.ApprovalPending,
+			}
+			assert.NoError(t, q.Push(ctx, gated))
+			waitForProcess()
+			assert.Equal(t, 1, q.Info(ctx).Stats.WaitingOnDeps)
+
+			assert.NoError(t, q.SetApprovalState(ctx, "gated", state))
+
+			waitForProcess()
+			info := q.Info(ctx)
+			assert.Empty(t, info.Pending, "a %s gate must not be released to agents", state)
+			assert.Equal(t, 1, info.Stats.WaitingOnDeps, "a %s gate must stay held", state)
+		})
+	}
+}

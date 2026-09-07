@@ -108,6 +108,7 @@ func TestDeclineWorkflowPublishesPipelineUpdate(t *testing.T) {
 	s.On("WorkflowApprovalEventCreate", mock.AnythingOfType("*model.WorkflowApprovalEvent")).
 		Return(nil)
 	q.On("SetApprovalState", mock.Anything, "42", model.ApprovalDeclined).Return(nil)
+	q.On("Evict", mock.Anything, "42").Return(nil)
 
 	// Cascade walks the tree from the pipeline (no dependents in this fixture
 	// so it's a no-op after the lookup).
@@ -164,6 +165,7 @@ func TestExpireWorkflowFallsBackToRepoOwnerForForgeAuth(t *testing.T) {
 		return e.UserID == 0 && e.Action == model.ApprovalActionExpired
 	})).Return(nil)
 	q.On("SetApprovalState", mock.Anything, "42", model.ApprovalExpired).Return(nil)
+	q.On("Evict", mock.Anything, "42").Return(nil)
 
 	// Cascade tree load.
 	s.On("GetPipeline", int64(99)).Return(pl, nil)

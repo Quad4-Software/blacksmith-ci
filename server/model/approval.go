@@ -45,3 +45,8 @@ func (s ApprovalState) Validate() error {
 func (s ApprovalState) Terminal() bool {
 	return s == ApprovalApproved || s == ApprovalDeclined || s == ApprovalExpired
 }
+
+// Granted reports whether the gate lets the workflow proceed.
+func (s ApprovalState) Granted() bool {
+	return s == ApprovalApproved
+}

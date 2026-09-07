@@ -35,6 +35,8 @@ func (s storage) TaskList() ([]*model.Task, error) {
 // must be preserved until ApproveWorkflow/DeclineWorkflow/ExpireWorkflow runs,
 // otherwise a server restart while a gate is pending would permanently lose
 // the task and the workflow would never dispatch.
+// Each task also carries its workflow's approval gate, which the tasks table
+// does not store.
 func (s storage) TaskListPending() ([]*model.Task, error) {
 	tasks := make([]*model.Task, 0, perPage)
 	// Join tasks with workflows to filter by workflow state.
@@ -44,6 +46,7 @@ func (s storage) TaskListPending() ([]*model.Task, error) {
 	// AS CHAR) produces a string with the connection default collation
 	// while the tasks.id column may use a different collation.
 	err := s.db.NewSelect().Model(&tasks).
+		ColumnExpr("?TableColumns, workflows.requires_approval, workflows.approval_state").
 		Join("INNER JOIN workflows ON workflows.id = "+s.castAsInteger("task.id")).
 		Where("workflows.state IN (?, ?, ?)", model.StatusPending, model.StatusRunning, model.StatusBlocked).
 		Scan(context.Background())

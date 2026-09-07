@@ -16,6 +16,7 @@ package datastore
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -123,37 +124,74 @@ func TestTaskListPending(t *testing.T) {
 	store, closer := newTestStore(t, new(model.Task), new(model.Workflow))
 	defer closer()
 
-	// Create workflows with different states
-	pendingWorkflow := &model.Workflow{ID: 10, PipelineID: 1, PID: 1, Name: "pending-wf", State: model.StatusPending}
-	runningWorkflow := &model.Workflow{ID: 20, PipelineID: 1, PID: 2, Name: "running-wf", State: model.StatusRunning}
-	successWorkflow := &model.Workflow{ID: 30, PipelineID: 1, PID: 3, Name: "success-wf", State: model.StatusSuccess}
-	blockedWorkflow := &model.Workflow{ID: 40, PipelineID: 1, PID: 4, Name: "blocked-wf", State: model.StatusBlocked}
+	// A task is reloaded on restart while its workflow is still alive and must
+	// carry the workflow's approval gate, because the tasks table has no
+	// approval columns. Tasks of finished workflows stay out.
+	cases := []struct {
+		name             string
+		id               int64
+		state            model.StatusValue
+		requiresApproval bool
+		approvalState    model.ApprovalState
+		reloaded         bool
+	}{
+		{name: "pending", id: 10, state: model.StatusPending, reloaded: true},
+		{name: "running", id: 20, state: model.StatusRunning, reloaded: true},
+		{name: "blocked", id: 30, state: model.StatusBlocked, requiresApproval: true, approvalState: model.ApprovalPending, reloaded: true},
+		{name: "gate-not-activated", id: 40, state: model.StatusPending, requiresApproval: true, reloaded: true},
+		{name: "gate-approved", id: 50, state: model.StatusPending, requiresApproval: true, approvalState: model.ApprovalApproved, reloaded: true},
+		{name: "success", id: 60, state: model.StatusSuccess},
+		{name: "failure", id: 70, state: model.StatusFailure},
+		{name: "error", id: 80, state: model.StatusError},
+		{name: "killed", id: 90, state: model.StatusKilled},
+		{name: "skipped", id: 100, state: model.StatusSkipped},
+		{name: "declined", id: 110, state: model.StatusDeclined, requiresApproval: true, approvalState: model.ApprovalDeclined},
+	}
 
-	workflows := []*model.Workflow{pendingWorkflow, runningWorkflow, successWorkflow, blockedWorkflow}
+	workflows := make([]*model.Workflow, 0, len(cases))
+	wantReloaded := 0
+	for i, c := range cases {
+		workflows = append(workflows, &model.Workflow{
+			ID:               c.id,
+			PipelineID:       1,
+			PID:              i + 1,
+			Name:             c.name,
+			State:            c.state,
+			RequiresApproval: c.requiresApproval,
+			ApprovalState:    c.approvalState,
+		})
+		if c.reloaded {
+			wantReloaded++
+		}
+	}
 	_, err := store.db.NewInsert().Model(&workflows).Exec(context.Background())
 	assert.NoError(t, err)
 
-	// Create tasks whose IDs match the workflow IDs (as strings)
-	assert.NoError(t, store.TaskInsert(&model.Task{ID: "10", Data: []byte("pending-task")}))
-	assert.NoError(t, store.TaskInsert(&model.Task{ID: "20", Data: []byte("running-task")}))
-	assert.NoError(t, store.TaskInsert(&model.Task{ID: "30", Data: []byte("completed-task")}))
-	assert.NoError(t, store.TaskInsert(&model.Task{ID: "40", Data: []byte("blocked-task")}))
+	for _, c := range cases {
+		assert.NoError(t, store.TaskInsert(&model.Task{ID: fmt.Sprint(c.id), Data: []byte(c.name)}))
+	}
 
-	// TaskListPending should return tasks for pending/running AND blocked workflows.
-	// Blocked workflows are paused awaiting human approval — their tasks must
-	// survive a server restart so dispatch can resume after ApproveWorkflow runs.
 	list, err := store.TaskListPending()
 	assert.NoError(t, err)
-	assert.Len(t, list, 3)
+	assert.Len(t, list, wantReloaded)
 
-	ids := make(map[string]bool)
+	byID := make(map[string]*model.Task, len(list))
 	for _, task := range list {
-		ids[task.ID] = true
+		byID[task.ID] = task
 	}
-	assert.True(t, ids["10"], "Should include task for pending workflow")
-	assert.True(t, ids["20"], "Should include task for running workflow")
-	assert.False(t, ids["30"], "Should exclude task for completed workflow")
-	assert.True(t, ids["40"], "Should include task for blocked workflow awaiting approval")
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			task, got := byID[fmt.Sprint(c.id)]
+			assert.Equal(t, c.reloaded, got, "reloaded on restart")
+			if !c.reloaded || !got {
+				return
+			}
+			assert.Equal(t, c.name, string(task.Data), "payload must survive the reload")
+			assert.Equal(t, c.requiresApproval, task.RequiresApproval, "task must carry the workflow's approval gate")
+			assert.Equal(t, c.approvalState, task.ApprovalState, "task must carry the workflow's approval state")
+		})
+	}
 }
 
 func TestTaskAtomicResetOrphan(t *testing.T) {
@@ -354,6 +392,9 @@ func TestTaskDeleteStale(t *testing.T) {
 		{ID: 40, PipelineID: 1, PID: 4, Name: "failure-wf", State: model.StatusFailure},
 		{ID: 50, PipelineID: 1, PID: 5, Name: "skipped-wf", State: model.StatusSkipped},
 		{ID: 60, PipelineID: 1, PID: 6, Name: "blocked-wf", State: model.StatusBlocked},
+		{ID: 70, PipelineID: 1, PID: 7, Name: "declined-wf", State: model.StatusDeclined},
+		{ID: 80, PipelineID: 1, PID: 8, Name: "killed-wf", State: model.StatusKilled},
+		{ID: 90, PipelineID: 1, PID: 9, Name: "error-wf", State: model.StatusError},
 	}
 	_, err := store.db.NewInsert().Model(&workflows).Exec(context.Background())
 	assert.NoError(t, err)
@@ -365,13 +406,16 @@ func TestTaskDeleteStale(t *testing.T) {
 	assert.NoError(t, store.TaskInsert(&model.Task{ID: "40", Data: []byte("failure-stale")}))
 	assert.NoError(t, store.TaskInsert(&model.Task{ID: "50", Data: []byte("skipped-stale")}))
 	assert.NoError(t, store.TaskInsert(&model.Task{ID: "60", Data: []byte("blocked-waiting-approval")}))
+	assert.NoError(t, store.TaskInsert(&model.Task{ID: "70", Data: []byte("declined-stale")}))
+	assert.NoError(t, store.TaskInsert(&model.Task{ID: "80", Data: []byte("killed-stale")}))
+	assert.NoError(t, store.TaskInsert(&model.Task{ID: "90", Data: []byte("error-stale")}))
 	assert.NoError(t, store.TaskInsert(&model.Task{ID: "999", Data: []byte("orphaned-no-workflow")}))
 
 	// Delete stale tasks. Blocked workflows are paused awaiting approval —
 	// their tasks must survive so dispatch can resume after ApproveWorkflow.
 	deleted, err := store.TaskDeleteStale()
 	assert.NoError(t, err)
-	assert.Equal(t, int64(4), deleted, "Should delete 4 stale tasks (success + failure + skipped + orphaned); blocked must be preserved")
+	assert.Equal(t, int64(7), deleted, "Should delete 7 stale tasks (success + failure + skipped + declined + killed + error + orphaned); blocked must be preserved")
 
 	// Pending, running, and blocked tasks should remain
 	list, err := store.TaskList()
@@ -385,4 +429,7 @@ func TestTaskDeleteStale(t *testing.T) {
 	assert.True(t, ids["10"], "Pending workflow task should remain")
 	assert.True(t, ids["20"], "Running workflow task should remain")
 	assert.True(t, ids["60"], "Blocked workflow task awaiting approval must NOT be deleted")
+	assert.False(t, ids["70"], "Declined gate task should be deleted")
+	assert.False(t, ids["80"], "Killed workflow task should be deleted")
+	assert.False(t, ids["90"], "Errored workflow task should be deleted")
 }

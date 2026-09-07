@@ -56,6 +56,7 @@ func TestSweepExpiredApprovalsCallsExpire(t *testing.T) {
 		return e.Action == model.ApprovalActionExpired && e.UserID == 0
 	})).Return(nil)
 	q.On("SetApprovalState", mock.Anything, "42", model.ApprovalExpired).Return(nil)
+	q.On("Evict", mock.Anything, "42").Return(nil)
 
 	// ExpireWorkflow → declineWorkflowInternal → cascadeSkipFromDeclined needs
 	// GetPipeline + WorkflowGetTree. For a single declined workflow with no

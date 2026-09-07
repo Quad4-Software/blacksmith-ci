@@ -207,6 +207,7 @@ func TestApprovalGate_DAG_Decline(t *testing.T) {
 			e.Reason == "no go"
 	})).Return(nil)
 	q.On("SetApprovalState", mock.Anything, "902", model.ApprovalDeclined).Return(nil)
+	q.On("Evict", mock.Anything, "902").Return(nil)
 
 	// Cascade walks the tree from the pipeline.
 	s.On("GetPipeline", d.pipeline.ID).Return(d.pipeline, nil)
@@ -316,6 +317,7 @@ func TestApprovalGate_DAG_Timeout(t *testing.T) {
 			e.Reason == "approval timed out"
 	})).Return(nil)
 	q.On("SetApprovalState", mock.Anything, "902", model.ApprovalExpired).Return(nil)
+	q.On("Evict", mock.Anything, "902").Return(nil)
 
 	// Cascade walks the tree from the pipeline.
 	s.On("GetPipeline", d.pipeline.ID).Return(d.pipeline, nil)

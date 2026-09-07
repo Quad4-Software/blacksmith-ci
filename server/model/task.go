@@ -33,8 +33,8 @@ type Task struct {
 	Labels           JSONMapStringString      `json:"labels"       bun:"labels,type:text"`
 	Dependencies     JSONSliceString          `json:"dependencies" bun:"dependencies,type:text"`
 	RunOn            JSONSliceString          `json:"run_on"       bun:"run_on,type:text"`
-	RequiresApproval bool                     `json:"requires_approval,omitempty" bun:"-"`
-	ApprovalState    ApprovalState            `json:"approval_state,omitempty"    bun:"-"`
+	RequiresApproval bool                     `json:"requires_approval,omitempty" bun:"requires_approval,scanonly"`
+	ApprovalState    ApprovalState            `json:"approval_state,omitempty"    bun:"approval_state,scanonly"`
 	DepStatus        JSONMapStringStatusValue `json:"dep_status"   bun:"dependencies_status,type:text"`
 	AgentID          int64                    `json:"agent_id"     bun:"agent_id"`
 	PipelineID       int64                    `json:"pipeline_id"  bun:"pipeline_id"`

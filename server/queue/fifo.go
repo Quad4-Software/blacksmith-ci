@@ -656,11 +656,7 @@ func (q *fifo) finalizeZombieWorkflow(taskID string) {
 // state before BlockOnApproval has flipped them to ApprovalPending) are also
 // held so they cannot leak past the gate before deps clear.
 func (q *fifo) awaitingApproval(task *model.Task) bool {
-	if !task.RequiresApproval {
-		return false
-	}
-	return task.ApprovalState == model.ApprovalPending ||
-		task.ApprovalState == model.ApprovalNone
+	return task.RequiresApproval && !task.ApprovalState.Granted()
 }
 
 func (q *fifo) depsInQueue(task *model.Task) bool {

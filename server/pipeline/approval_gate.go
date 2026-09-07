@@ -26,6 +26,7 @@ import (
 	"codefloe.com/crowci/crow/v6/server/model"
 	"codefloe.com/crowci/crow/v6/server/queue"
 	"codefloe.com/crowci/crow/v6/server/store"
+	"codefloe.com/crowci/crow/v6/server/store/types"
 )
 
 // ErrApprovalNotPending is returned when an approve/decline/expire action is
@@ -198,10 +199,24 @@ func declineWorkflowInternal(
 		CreatedAt:  time.Now().Unix(),
 	}
 	if err := s.WorkflowApprovalEventCreate(ev); err != nil {
-		return fmt.Errorf("audit insert: %w", err)
+		log.Error().Err(err).Int64("workflow_id", workflowID).
+			Msg("decline: failed to write approval audit event")
+		// fall through — the gate transition is already persisted and the
+		// task now holds indefinitely. Bailing out here would skip the evict
+		// and leave the task blocked forever, with retries rejected by the
+		// ApprovalPending guard above. Losing an audit row is the lesser evil.
 	}
 	if err := q.SetApprovalState(ctx, fmt.Sprint(workflowID), newState); err != nil {
 		return fmt.Errorf("queue notify: %w", err)
+	}
+	if err := q.Evict(ctx, fmt.Sprint(workflowID)); err != nil {
+		// A missing task is routine: the pipeline may already be canceled, or
+		// another HA instance won the race to sweep this gate.
+		if errors.Is(err, queue.ErrNotFound) || errors.Is(err, types.RecordNotExist) {
+			log.Debug().Err(err).Int64("workflow_id", workflowID).Msg("decline: gated task already gone")
+		} else {
+			log.Error().Err(err).Int64("workflow_id", workflowID).Msg("decline: failed to evict gated task")
+		}
 	}
 	// Trigger downstream skip cascade — implemented in Task 23.
 	if err := cascadeSkipFromDeclined(ctx, s, q, wf); err != nil {

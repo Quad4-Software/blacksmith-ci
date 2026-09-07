@@ -16,6 +16,7 @@ package pipeline
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -209,6 +210,7 @@ func TestDeclineWorkflowMarksDeclined(t *testing.T) {
 		return e.Action == model.ApprovalActionDeclined
 	})).Return(nil)
 	q.On("SetApprovalState", mock.Anything, "42", model.ApprovalDeclined).Return(nil)
+	q.On("Evict", mock.Anything, "42").Return(nil)
 	// cascadeSkipFromDeclined loads the parent pipeline and walks the tree.
 	// refreshAndPublishPipeline does the same — both reuse GetPipeline +
 	// WorkflowGetTree which are idempotent reads, so a single .On(...) is fine.
@@ -228,4 +230,41 @@ func TestDeclineWorkflowMarksDeclined(t *testing.T) {
 	err := DeclineWorkflow(context.Background(), s, q, user, 42, "no go")
 	assert.NoError(t, err)
 	mockForge.AssertExpectations(t)
+}
+
+func TestDeclineWorkflowEvictsWhenAuditInsertFails(t *testing.T) {
+	// Regression: a failing audit insert used to abort the decline after the
+	// workflow row was already flipped to Declined, so the gated task was
+	// never evicted. With the permanent hold that stranded the task forever
+	// and retries were rejected by the ApprovalPending guard.
+	// Cannot t.Parallel — manipulates server.Config.Services globals.
+	s := store_mocks.NewMockStore(t)
+	q := queue_mocks.NewMockQueue(t)
+	user := &model.User{ID: 7}
+	repo := &model.Repo{ID: 1, FullName: "test/repo", UserID: 7}
+	pipeline := &model.Pipeline{ID: 99, RepoID: 1, Status: model.StatusBlocked}
+	wf := &model.Workflow{
+		ID: 42, PipelineID: 99, State: model.StatusBlocked,
+		ApprovalState: model.ApprovalPending,
+	}
+
+	s.On("WorkflowLoad", int64(42)).Return(wf, nil)
+	s.On("WorkflowUpdate", mock.Anything).Return(nil)
+	s.On("StepListFromWorkflowFind", wf).Return([]*model.Step{}, nil)
+	s.On("WorkflowApprovalEventCreate", mock.Anything).Return(errors.New("audit table gone"))
+	q.On("SetApprovalState", mock.Anything, "42", model.ApprovalDeclined).Return(nil)
+	evicted := false
+	q.On("Evict", mock.Anything, "42").Run(func(mock.Arguments) { evicted = true }).Return(nil)
+	s.On("GetPipeline", int64(99)).Return(pipeline, nil)
+	s.On("WorkflowGetTree", pipeline).Return([]*model.Workflow{wf}, nil)
+	s.On("TaskListPending").Return([]*model.Task{}, nil)
+	s.On("GetRepo", int64(1)).Return(repo, nil)
+	s.On("UpdatePipeline", mock.Anything).Return(nil)
+
+	_, cleanup := withApprovalPublishServices(t, repo)
+	defer cleanup()
+
+	err := DeclineWorkflow(context.Background(), s, q, user, 42, "no go")
+	assert.NoError(t, err)
+	assert.True(t, evicted, "gated task must be evicted even when the audit insert fails")
 }

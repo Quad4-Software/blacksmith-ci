@@ -913,3 +913,55 @@ func TestDatabaseQueueActivateApprovalGateIdempotent(t *testing.T) {
 	assert.Equal(t, int32(1), hookCalls.Load(),
 		"hook should fire exactly once for the activation")
 }
+
+// TestDatabaseQueueSetApprovalStateDeclinedHolds checks that a task whose
+// gate was declined or expired is held and never assigned to an agent. It is
+// the counterpart of TestDatabaseQueueSetApprovalStateReleases and mirrors
+// TestFifoSetApprovalStateDeclinedHolds for the DB-backed queue.
+func TestDatabaseQueueSetApprovalStateDeclinedHolds(t *testing.T) {
+	for _, state := range []model.ApprovalState{model.ApprovalDeclined, model.ApprovalExpired} {
+		t.Run(string(state), func(t *testing.T) {
+			q, mockStore := newTestDatabaseQueue(t)
+
+			gated := &model.Task{
+				ID:               "gated",
+				Data:             []byte("{}"),
+				RequiresApproval: true,
+				ApprovalState:    model.ApprovalPending,
+			}
+			mockStore.EXPECT().TaskInsert(mock.AnythingOfType("*model.Task")).Return(nil)
+			assert.NoError(t, q.Push(t.Context(), gated))
+
+			mockStore.EXPECT().TaskList().Return([]*model.Task{gated}, nil)
+			assert.Equal(t, 1, q.Info(t.Context()).Stats.WaitingOnDeps)
+
+			assert.NoError(t, q.SetApprovalState(t.Context(), "gated", state))
+
+			responseChan := make(chan *model.Task, 1)
+			_, instCancel := testCancelCtx(t.Context())
+			defer instCancel()
+			q.pollingInstancesMu.Lock()
+			q.pollingInstances["test-inst"] = &pollingInstance{
+				instanceID: "test-inst",
+				agentID:    10,
+				filter:     filterFnTrue,
+				response:   responseChan,
+				pollTime:   time.Now(),
+				cancel:     instCancel,
+			}
+			q.pollingInstancesMu.Unlock()
+
+			// No TaskAtomicAssign expectation: assigning the gated task would
+			// fail the strict mock before it ever reached the response channel.
+			q.tryBatchAssignment()
+
+			select {
+			case got := <-responseChan:
+				t.Fatalf("a %s gate must not be assigned, got task %q", state, got.ID)
+			default:
+			}
+
+			assert.Equal(t, 1, q.Info(t.Context()).Stats.WaitingOnDeps, "a %s gate must stay held", state)
+		})
+	}
+}

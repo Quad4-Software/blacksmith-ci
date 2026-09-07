@@ -79,7 +79,8 @@ type DatabaseQueue struct {
 	cancelledTasksMu sync.RWMutex
 
 	// Approval gate cache. Task.RequiresApproval and Task.ApprovalState are
-	// bun:"-" so they are not persisted on the tasks row. We cache them in
+	// bun:"scanonly" so they are never written to the tasks row, but they are
+	// scanned back from the workflows join in TaskList. We cache them in
 	// memory keyed by task ID so the assignment loop can gate dispatch
 	// without re-querying the workflows table for every task on every pass.
 	// On a cache miss (e.g. tasks pushed by a different server instance, or
@@ -197,10 +198,11 @@ func (q *DatabaseQueue) PushAtOnce(ctx context.Context, tasks []*model.Task) err
 }
 
 // cacheApprovalGate records the in-memory approval gate for a task. The
-// task struct carries RequiresApproval/ApprovalState (bun:"-") at push time;
-// since these are not persisted on the tasks row, the queue needs an
+// task struct carries RequiresApproval/ApprovalState (bun:"scanonly") at push
+// time; since these are never written to the tasks row, the queue needs an
 // in-memory copy so subsequent assignment passes can gate dispatch without
-// a workflow lookup on every iteration.
+// a workflow lookup on every iteration. After a restart TaskList repopulates
+// them from the workflows join instead.
 func (q *DatabaseQueue) cacheApprovalGate(task *model.Task) {
 	q.approvalGatesMu.Lock()
 	q.approvalGates[task.ID] = approvalGate{
@@ -257,10 +259,7 @@ func (q *DatabaseQueue) awaitingApproval(task *model.Task) bool {
 		q.approvalGatesMu.Unlock()
 	}
 
-	if !gate.requires {
-		return false
-	}
-	return gate.state == model.ApprovalPending || gate.state == model.ApprovalNone
+	return gate.requires && !gate.state.Granted()
 }
 
 // shouldActivateApprovalGate reports whether the task is a gated task that

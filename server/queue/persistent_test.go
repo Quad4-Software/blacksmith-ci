@@ -168,3 +168,26 @@ func TestWithTaskStoreReconcilesStaleRowsAndLoadsPending(t *testing.T) {
 	assert.Len(t, inner.pushed, 1)
 	assert.Equal(t, []string{"a", "b"}, []string{inner.pushed[0][0].ID, inner.pushed[0][1].ID})
 }
+
+// TestWithTaskStoreHoldsReloadedGatedTask loads a gated task through the
+// restart path and checks the memory queue holds it instead of offering it
+// to agents.
+func TestWithTaskStoreHoldsReloadedGatedTask(t *testing.T) {
+	ctx, cancel := context.WithCancelCause(t.Context())
+	t.Cleanup(func() { cancel(nil) })
+
+	gated := &model.Task{
+		ID:               "gated",
+		Data:             []byte("{}"),
+		RequiresApproval: true,
+		ApprovalState:    model.ApprovalPending,
+	}
+	st := &recordingStore{pending: []*model.Task{gated}}
+
+	q := WithTaskStore(ctx, NewMemoryQueue(ctx, nil), st)
+
+	waitForProcess()
+	info := q.Info(ctx)
+	assert.Equal(t, 1, info.Stats.WaitingOnDeps, "reloaded gated task must be held")
+	assert.Empty(t, info.Pending, "reloaded gated task must not be offered to agents")
+}
