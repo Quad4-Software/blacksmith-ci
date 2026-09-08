@@ -814,12 +814,12 @@ var flags = append([]cli.Flag{
 	&cli.StringFlag{
 		Sources: cli.EnvVars("CROW_CI_QUOTA_URL"),
 		Name:    "ci-quota-url",
-		Usage:   "Forgejo base URL for external CI quota accounting",
+		Usage:   "Forgejo base URL for external CI quota checks and accounting",
 	},
 	&cli.StringFlag{
 		Sources: cli.EnvVars("CROW_CI_QUOTA_TOKEN"),
 		Name:    "ci-quota-token",
-		Usage:   "reporter token for Forgejo CI quota accounting",
+		Usage:   "reporter token for Forgejo CI quota checks and accounting",
 	},
 	//
 	// process log (proclog) flags

@@ -50,7 +50,13 @@ import (
 // updateAgentLastWorkDelay the delay before the LastWork info should be updated.
 const updateAgentLastWorkDelay = time.Minute
 
-const ciQuotaReportTimeout = 15 * time.Second
+const (
+	// Budget for one usage report to Forgejo.
+	ciQuotaReportTimeout = 15 * time.Second
+	// Budget for finishing a workflow the quota check refused, which runs on
+	// a context detached from the agent's poll.
+	ciQuotaFinishTimeout = 15 * time.Second
+)
 
 type RPC struct {
 	queue           queue.Queue
@@ -163,6 +169,29 @@ func (s *RPC) Next(c context.Context, agentFilter rpc.Filter) (*rpc.Workflow, er
 		}
 
 		if task.ShouldRun() {
+			if err := s.checkCIQuota(c, agent.ID, task); err != nil {
+				// A poll canceled mid-check produced no quota decision, so the
+				// workflow keeps its claim and the queue's usual handling for an
+				// undelivered task applies instead of a misleading quota failure.
+				if c.Err() != nil {
+					log.Debug().Err(err).Str("workflow_id", task.ID).Msg("poll canceled during CI quota check, keeping claim")
+					return nil, c.Err()
+				}
+				// Preserve agent metadata for Done's permission checks while
+				// bounding how long finishing the refused workflow may take.
+				finishCtx, cancel := context.WithTimeout(context.WithoutCancel(c), ciQuotaFinishTimeout)
+				doneErr := s.Done(finishCtx, task.ID, rpc.WorkflowState{
+					Error: err.Error(), Finished: time.Now().Unix(),
+				})
+				cancel()
+				if doneErr != nil {
+					return nil, fmt.Errorf("finish workflow refused by CI quota: %w", doneErr)
+				}
+				// Finish at most one refused workflow per poll RPC. The agent
+				// polls again immediately, and a quota outage cannot chain
+				// retry budgets inside a single long-lived Next call.
+				return nil, nil
+			}
 			workflow := new(rpc.Workflow)
 			err = json.Unmarshal(task.Data, workflow)
 			return workflow, err
@@ -483,11 +512,15 @@ func (s *RPC) Done(c context.Context, strWorkflowID string, state rpc.WorkflowSt
 
 	if currentPipeline.Status == model.StatusSuccess || currentPipeline.Status == model.StatusFailure {
 		s.metrics.PipelineCount.WithLabelValues(repo.FullName, currentPipeline.Branch, string(currentPipeline.Status), "total").Inc()
-		s.metrics.PipelineTime.WithLabelValues(repo.FullName, currentPipeline.Branch, string(currentPipeline.Status), "total").Set(float64(currentPipeline.Finished - currentPipeline.Started))
-		duration := float64(currentPipeline.Finished - currentPipeline.Started)
+		// Quota rejection can finish a pipeline before it ever starts.
+		duration := 0.0
+		if currentPipeline.Started > 0 {
+			duration = float64(currentPipeline.Finished - currentPipeline.Started)
+		}
+		s.metrics.PipelineTime.WithLabelValues(repo.FullName, currentPipeline.Branch, string(currentPipeline.Status), "total").Set(duration)
 		s.metrics.PipelineDuration.WithLabelValues(repo.FullName, currentPipeline.Branch, string(currentPipeline.Status)).Observe(duration)
 	}
-	if currentPipeline.IsMultiPipeline() {
+	if currentPipeline.IsMultiPipeline() && workflow.Started > 0 {
 		s.metrics.PipelineTime.WithLabelValues(repo.FullName, currentPipeline.Branch, string(workflow.State), workflow.Name).Set(float64(workflow.Finished - workflow.Started))
 	}
 

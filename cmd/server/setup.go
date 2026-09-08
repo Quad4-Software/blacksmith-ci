@@ -718,7 +718,7 @@ func setupEvilGlobals(ctx context.Context, c *cli.Command, s store.Store) (err e
 	}
 	if ciQuotaCfg.IsConfigured() {
 		server.Config.Services.CIQuotaReporter = ciquota.New(ciQuotaCfg)
-		log.Info().Str("url", ciQuotaCfg.URL).Msg("Forgejo CI quota accounting configured")
+		log.Info().Str("url", ciQuotaCfg.URL).Msg("Forgejo CI quota enforcement and accounting configured")
 	} else if ciQuotaCfg.URL != "" || ciQuotaCfg.Token != "" {
 		return fmt.Errorf("both CROW_CI_QUOTA_URL and CROW_CI_QUOTA_TOKEN are required")
 	}

@@ -1,10 +1,10 @@
 ---
-title: CI quota accounting
+title: CI quota enforcement and accounting
 ---
 
-Crow can report completed workflow runtime to the external CI quota reporter API provided by the CodeFloe Forgejo fork.
+Crow can check CI allowances before starting workflows and report completed workflow runtime to the external CI quota reporter API provided by the CodeFloe Forgejo fork.
 This API is a CodeFloe extension and is not available in upstream Forgejo.
-Both variables are required to enable reporting.
+Both variables are required to enable enforcement and reporting.
 
 ## CI_QUOTA_URL
 
@@ -21,3 +21,22 @@ Both variables are required to enable reporting.
 Crow reports each completed workflow separately, so parallel workflows consume their individual runner time.
 Queue time is excluded, and Linux, Windows, and macOS workflows are attributed to their respective runner classes.
 Reports use the workflow ID as an idempotency key and retry transient failures during the server process lifetime.
+
+## Workflow admission
+
+Before dispatching each workflow to an agent, Crow calls Forgejo's `/api/v1/quota/ci/check` endpoint with the repository name and the same runner class used for accounting.
+Both the owner's total allowance and any OS-specific cap apply.
+A denied workflow fails without running, with Forgejo's reason shown as its error.
+Other independent workflows are checked separately, so a macOS cap does not prevent Linux work that still has an allowance.
+Workflows depending on the denied workflow follow the usual dependency failure rules.
+
+Crow retries failed checks up to three attempts with a one-second delay between attempts, within a total budget of 20 seconds per workflow.
+Each agent poll finishes at most one refused workflow before the agent polls again, so an outage never holds a single poll open past reverse-proxy timeouts.
+If Forgejo remains unavailable, returns an authentication error, or sends an invalid response, the workflow fails without starting.
+After fixing the problem, restart the failed pipeline to try again.
+An agent that disconnects while its check is in progress does not fail the workflow; the queue treats it like any other task that was claimed but never delivered.
+Instances with neither quota variable configured continue to run without quota checks.
+The configured Forgejo instance must support both the usage and check endpoints.
+
+Checks do not reserve minutes or stop workflows already running.
+Concurrent workflows can exceed the remaining budget because their usage is reported on completion.

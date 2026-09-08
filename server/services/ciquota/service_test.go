@@ -72,3 +72,55 @@ func TestConfigIsConfigured(t *testing.T) {
 		})
 	}
 }
+
+func TestCheck(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		status    int
+		body      string
+		allowed   bool
+		reason    string
+		errorText string
+	}{
+		{name: "allowed", body: `{"allowed":true,"remaining_seconds":42}`, allowed: true},
+		{name: "denied", body: `{"allowed":false,"reason":"macOS allowance exhausted"}`, reason: "macOS allowance exhausted"},
+		{name: "unauthorized", status: 401, errorText: "401 Unauthorized"},
+		{name: "unavailable", status: 503, errorText: "503 Service Unavailable"},
+		{name: "missing decision", body: `{}`, errorText: "missing allowed"},
+		{name: "null decision", body: `{"allowed":null}`, errorText: "missing allowed"},
+		{name: "invalid response", body: `<html>`, errorText: "decode CI quota check"},
+		{name: "trailing response", body: `{"allowed":true} {}`, errorText: "trailing data"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, http.MethodGet, r.Method)
+				assert.Equal(t, "/forge"+checkPath, r.URL.Path)
+				assert.Equal(t, "org/repo with space", r.URL.Query().Get("repo"))
+				assert.Equal(t, "macos", r.URL.Query().Get("class"))
+				assert.Equal(t, "Bearer reporter-token", r.Header.Get("Authorization"))
+				if tc.status != 0 {
+					w.WriteHeader(tc.status)
+				}
+				_, _ = w.Write([]byte(tc.body))
+			}))
+			t.Cleanup(srv.Close)
+			result, err := New(Config{URL: srv.URL + "/forge/", Token: "reporter-token"}).Check(t.Context(), "org/repo with space", "macos")
+			if tc.errorText != "" {
+				require.ErrorContains(t, err, tc.errorText)
+				assert.Nil(t, result)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tc.allowed, result.Allowed)
+			assert.Equal(t, tc.reason, result.Reason)
+		})
+	}
+}
+
+func TestCheckCanceled(t *testing.T) {
+	ctx, cancel := context.WithCancelCause(t.Context())
+	cancel(nil)
+	result, err := New(Config{URL: "http://127.0.0.1:1", Token: "token"}).Check(ctx, "org/repo", "linux")
+	require.ErrorIs(t, err, context.Canceled)
+	assert.Nil(t, result)
+}

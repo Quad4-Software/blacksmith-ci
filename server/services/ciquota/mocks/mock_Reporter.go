@@ -38,6 +38,80 @@ func (_m *MockReporter) EXPECT() *MockReporter_Expecter {
 	return &MockReporter_Expecter{mock: &_m.Mock}
 }
 
+// Check provides a mock function for the type MockReporter
+func (_mock *MockReporter) Check(context1 context.Context, s string, s1 string) (*ciquota.Decision, error) {
+	ret := _mock.Called(context1, s, s1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Check")
+	}
+
+	var r0 *ciquota.Decision
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (*ciquota.Decision, error)); ok {
+		return returnFunc(context1, s, s1)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) *ciquota.Decision); ok {
+		r0 = returnFunc(context1, s, s1)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*ciquota.Decision)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = returnFunc(context1, s, s1)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockReporter_Check_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Check'
+type MockReporter_Check_Call struct {
+	*mock.Call
+}
+
+// Check is a helper method to define mock.On call
+//   - context1 context.Context
+//   - s string
+//   - s1 string
+func (_e *MockReporter_Expecter) Check(context1 any, s any, s1 any) *MockReporter_Check_Call {
+	return &MockReporter_Check_Call{Call: _e.mock.On("Check", context1, s, s1)}
+}
+
+func (_c *MockReporter_Check_Call) Run(run func(context1 context.Context, s string, s1 string)) *MockReporter_Check_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockReporter_Check_Call) Return(decision *ciquota.Decision, err error) *MockReporter_Check_Call {
+	_c.Call.Return(decision, err)
+	return _c
+}
+
+func (_c *MockReporter_Check_Call) RunAndReturn(run func(context1 context.Context, s string, s1 string) (*ciquota.Decision, error)) *MockReporter_Check_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Report provides a mock function for the type MockReporter
 func (_mock *MockReporter) Report(context1 context.Context, usage ciquota.Usage) error {
 	ret := _mock.Called(context1, usage)
