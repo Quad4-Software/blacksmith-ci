@@ -19,10 +19,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/api/types/network"
-	"github.com/docker/docker/api/types/volume"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/client"
 	"github.com/rs/zerolog/log"
 
 	backend "codefloe.com/crowci/crow/v6/pipeline/backend/types"
@@ -79,16 +77,14 @@ func (e *docker) CleanupStaleResources(ctx context.Context, staleThreshold time.
 // containers Docker considers active (running, restarting, paused), which is exactly
 // the set that proves a build is still executing.
 func (e *docker) addLiveTaskUUIDs(ctx context.Context, protected map[string]struct{}) error {
-	containers, err := e.client.ContainerList(ctx, container.ListOptions{
-		Filters: filters.NewArgs(
-			filters.Arg("label", LabelTaskUUID),
-		),
+	containers, err := e.client.ContainerList(ctx, client.ContainerListOptions{
+		Filters: client.Filters{}.Add("label", LabelTaskUUID),
 	})
 	if err != nil {
 		return err
 	}
 
-	for _, c := range containers {
+	for _, c := range containers.Items {
 		if uuid := c.Labels[LabelTaskUUID]; uuid != "" {
 			protected[uuid] = struct{}{}
 		}
@@ -124,7 +120,7 @@ func belongsToActiveBuild(taskUUID string, protectedTaskUUIDs map[string]struct{
 // being torn down (removing) is left alone, as is any unrecognized future state.
 // This prevents the reaper from ever killing a still-running pipeline, even one
 // that has been running longer than the stale threshold.
-func isReapableContainerState(state string) bool {
+func isReapableContainerState(state container.ContainerState) bool {
 	switch state {
 	case container.StateExited, container.StateDead, container.StateCreated:
 		return true
@@ -134,17 +130,15 @@ func isReapableContainerState(state string) bool {
 }
 
 func (e *docker) cleanupStaleContainers(ctx context.Context, cutoff time.Time, protectedTaskUUIDs map[string]struct{}, result *backend.CleanupResult) error {
-	containers, err := e.client.ContainerList(ctx, container.ListOptions{
-		All: true,
-		Filters: filters.NewArgs(
-			filters.Arg("label", LabelTaskUUID),
-		),
+	containers, err := e.client.ContainerList(ctx, client.ContainerListOptions{
+		All:     true,
+		Filters: client.Filters{}.Add("label", LabelTaskUUID),
 	})
 	if err != nil {
 		return err
 	}
 
-	for _, c := range containers {
+	for _, c := range containers.Items {
 		// Never touch containers belonging to a build that is still executing,
 		// regardless of age or state: a live build cycles its step containers
 		// through exited/created states between steps.
@@ -166,7 +160,7 @@ func (e *docker) cleanupStaleContainers(ctx context.Context, cutoff time.Time, p
 				Time("created", created).
 				Msg("removing stale container")
 
-			if err := e.client.ContainerRemove(ctx, c.ID, container.RemoveOptions{Force: true, RemoveVolumes: true}); err != nil {
+			if _, err := e.client.ContainerRemove(ctx, c.ID, client.ContainerRemoveOptions{Force: true, RemoveVolumes: true}); err != nil {
 				log.Warn().Err(err).Str("container", containerID).Msg("failed to remove stale container")
 			} else {
 				result.ContainersRemoved++
@@ -178,12 +172,12 @@ func (e *docker) cleanupStaleContainers(ctx context.Context, cutoff time.Time, p
 }
 
 func (e *docker) cleanupStaleNetworks(ctx context.Context, cutoff time.Time, protectedTaskUUIDs map[string]struct{}, result *backend.CleanupResult) error {
-	networks, err := e.client.NetworkList(ctx, network.ListOptions{})
+	networks, err := e.client.NetworkList(ctx, client.NetworkListOptions{})
 	if err != nil {
 		return err
 	}
 
-	for _, n := range networks {
+	for _, n := range networks.Items {
 		if !isCrowResource(n.Name) {
 			continue
 		}
@@ -204,8 +198,13 @@ func (e *docker) cleanupStaleNetworks(ctx context.Context, cutoff time.Time, pro
 			continue
 		}
 
-		// Only remove networks with zero connected containers
-		if len(n.Containers) > 0 {
+		// List summaries omit endpoints; inspect before removing a network.
+		inspection, err := e.client.NetworkInspect(ctx, n.ID, client.NetworkInspectOptions{})
+		if err != nil {
+			log.Warn().Err(err).Str("network", n.Name).Msg("could not inspect network for cleanup")
+			continue
+		}
+		if len(inspection.Network.Containers) > 0 {
 			continue
 		}
 
@@ -216,7 +215,7 @@ func (e *docker) cleanupStaleNetworks(ctx context.Context, cutoff time.Time, pro
 			Time("created", created).
 			Msg("removing stale network")
 
-		if err := e.client.NetworkRemove(ctx, n.ID); err != nil {
+		if _, err := e.client.NetworkRemove(ctx, n.ID, client.NetworkRemoveOptions{}); err != nil {
 			log.Warn().Err(err).Str("network", n.Name).Msg("failed to remove stale network")
 		} else {
 			result.NetworksRemoved++
@@ -227,12 +226,12 @@ func (e *docker) cleanupStaleNetworks(ctx context.Context, cutoff time.Time, pro
 }
 
 func (e *docker) cleanupStaleVolumes(ctx context.Context, cutoff time.Time, protectedTaskUUIDs map[string]struct{}, result *backend.CleanupResult) error {
-	volumes, err := e.client.VolumeList(ctx, volume.ListOptions{})
+	volumes, err := e.client.VolumeList(ctx, client.VolumeListOptions{})
 	if err != nil {
 		return err
 	}
 
-	for _, v := range volumes.Volumes {
+	for _, v := range volumes.Items {
 		if !isCrowResource(v.Name) && v.Labels[LabelTaskUUID] == "" {
 			continue
 		}
@@ -264,7 +263,7 @@ func (e *docker) cleanupStaleVolumes(ctx context.Context, cutoff time.Time, prot
 			Time("created", created).
 			Msg("removing stale volume")
 
-		if err := e.client.VolumeRemove(ctx, v.Name, true); err != nil {
+		if _, err := e.client.VolumeRemove(ctx, v.Name, client.VolumeRemoveOptions{Force: true}); err != nil {
 			log.Warn().Err(err).Str("volume", v.Name).Msg("failed to remove stale volume")
 		} else {
 			result.VolumesRemoved++

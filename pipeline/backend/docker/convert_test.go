@@ -16,14 +16,16 @@ package docker
 
 import (
 	"encoding/base64"
+	"net/netip"
 	"reflect"
 	"sort"
 	"strings"
 	"testing"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/system"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/system"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	backend "codefloe.com/crowci/crow/v6/pipeline/backend/types"
 )
@@ -487,5 +489,28 @@ Write-Output ('+ "go vet ./..."');
 go vet ./...
 if ($LASTEXITCODE -ne 0) {exit $LASTEXITCODE}
 `, string(ciScript))
+	}
+}
+
+func TestToHostConfigDNS(t *testing.T) {
+	for _, tt := range []struct {
+		name    string
+		dns     []string
+		want    []netip.Addr
+		invalid bool
+	}{
+		{name: "default"},
+		{name: "IPv4 and IPv6", dns: []string{"9.9.9.9", "2001:4860:4860::8888"}, want: []netip.Addr{netip.MustParseAddr("9.9.9.9"), netip.MustParseAddr("2001:4860:4860::8888")}},
+		{name: "invalid address", dns: []string{"dns.example.com"}, invalid: true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := toHostConfig(&backend.Step{DNS: tt.dns}, &config{})
+			if tt.invalid {
+				require.ErrorContains(t, err, "invalid DNS server")
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got.DNS)
+		})
 	}
 }

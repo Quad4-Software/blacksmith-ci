@@ -17,7 +17,6 @@ package types
 import (
 	"testing"
 
-	"github.com/docker/docker/api/types/strslice"
 	"github.com/stretchr/testify/assert"
 
 	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/constraint"
@@ -273,15 +272,15 @@ func stringsToInterface(val ...string) []any {
 func TestIsPlugin(t *testing.T) {
 	assert.True(t, (&Container{}).IsPlugin())
 	assert.True(t, (&Container{
-		Commands: base.StringOrSlice(strslice.StrSlice{}),
+		Commands: base.StringOrSlice{},
 	}).IsPlugin())
 	assert.False(t, (&Container{
-		Commands: base.StringOrSlice(strslice.StrSlice{"echo 'this is not a plugin'"}),
+		Commands: base.StringOrSlice{"echo 'this is not a plugin'"},
 	}).IsPlugin())
 	assert.True(t, (&Container{
-		Entrypoint: base.StringOrSlice(strslice.StrSlice{}),
+		Entrypoint: base.StringOrSlice{},
 	}).IsPlugin())
 	assert.False(t, (&Container{
-		Entrypoint: base.StringOrSlice(strslice.StrSlice{"echo 'this is not a plugin'"}),
+		Entrypoint: base.StringOrSlice{"echo 'this is not a plugin'"},
 	}).IsPlugin())
 }

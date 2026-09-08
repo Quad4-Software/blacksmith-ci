@@ -16,13 +16,13 @@ package docker
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/network"
-	"github.com/docker/docker/api/types/volume"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/network"
+	"github.com/moby/moby/client"
 	"github.com/stretchr/testify/assert"
 
 	backend "codefloe.com/crowci/crow/v6/pipeline/backend/types"
@@ -40,9 +40,9 @@ type fakeCleanupClient struct {
 // ContainerList mirrors Docker: with All left false only containers Docker
 // considers active (running, restarting, paused) are returned, which is what the
 // live-task detection relies on. With All set, every container is returned.
-func (f *fakeCleanupClient) ContainerList(_ context.Context, opts container.ListOptions) ([]container.Summary, error) {
+func (f *fakeCleanupClient) ContainerList(_ context.Context, opts client.ContainerListOptions) (client.ContainerListResult, error) {
 	if opts.All {
-		return f.listed, nil
+		return client.ContainerListResult{Items: f.listed}, nil
 	}
 	var running []container.Summary
 	for _, c := range f.listed {
@@ -51,22 +51,22 @@ func (f *fakeCleanupClient) ContainerList(_ context.Context, opts container.List
 			running = append(running, c)
 		}
 	}
-	return running, nil
+	return client.ContainerListResult{Items: running}, nil
 }
 
-func (f *fakeCleanupClient) ContainerRemove(_ context.Context, containerID string, _ container.RemoveOptions) error {
+func (f *fakeCleanupClient) ContainerRemove(_ context.Context, containerID string, _ client.ContainerRemoveOptions) (client.ContainerRemoveResult, error) {
 	f.removed = append(f.removed, containerID)
-	return nil
+	return client.ContainerRemoveResult{}, nil
 }
 
 // NetworkList and VolumeList let CleanupStaleResources run end-to-end; the reaper
 // only cares about containers in these tests, so both return nothing.
-func (f *fakeCleanupClient) NetworkList(_ context.Context, _ network.ListOptions) ([]network.Summary, error) {
-	return nil, nil
+func (f *fakeCleanupClient) NetworkList(_ context.Context, _ client.NetworkListOptions) (client.NetworkListResult, error) {
+	return client.NetworkListResult{}, nil
 }
 
-func (f *fakeCleanupClient) VolumeList(_ context.Context, _ volume.ListOptions) (volume.ListResponse, error) {
-	return volume.ListResponse{}, nil
+func (f *fakeCleanupClient) VolumeList(_ context.Context, _ client.VolumeListOptions) (client.VolumeListResult, error) {
+	return client.VolumeListResult{}, nil
 }
 
 func TestCleanupStaleContainersNeverRemovesActiveBuilds(t *testing.T) {
@@ -154,4 +154,51 @@ func TestCleanupStaleResourcesProtectsLiveButUntrackedTasks(t *testing.T) {
 	assert.ElementsMatch(t, []string{"gone_exited_0"}, fake.removed,
 		"a build with any running container must be fully protected even when the agent does not track it")
 	assert.Equal(t, int64(1), result.ContainersRemoved)
+}
+
+type fakeNetworkCleanupClient struct {
+	client.APIClient
+	inspection client.NetworkInspectResult
+	inspectErr error
+	removed    []string
+}
+
+func (f *fakeNetworkCleanupClient) NetworkList(context.Context, client.NetworkListOptions) (client.NetworkListResult, error) {
+	return client.NetworkListResult{Items: []network.Summary{{Network: network.Network{
+		ID: "network-id", Name: "crow_test_default", Created: time.Now().Add(-2 * time.Hour),
+	}}}}, nil
+}
+
+func (f *fakeNetworkCleanupClient) NetworkInspect(context.Context, string, client.NetworkInspectOptions) (client.NetworkInspectResult, error) {
+	return f.inspection, f.inspectErr
+}
+
+func (f *fakeNetworkCleanupClient) NetworkRemove(_ context.Context, id string, _ client.NetworkRemoveOptions) (client.NetworkRemoveResult, error) {
+	f.removed = append(f.removed, id)
+	return client.NetworkRemoveResult{}, nil
+}
+
+func TestCleanupStaleNetworksInspectsEndpoints(t *testing.T) {
+	for _, tt := range []struct {
+		name       string
+		endpoints  map[string]network.EndpointResource
+		inspectErr error
+		removed    int
+	}{
+		{name: "empty network", removed: 1},
+		{name: "attached container", endpoints: map[string]network.EndpointResource{"container-id": {}}},
+		{name: "inspection failed", inspectErr: errors.New("daemon unavailable")},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			fake := &fakeNetworkCleanupClient{
+				inspection: client.NetworkInspectResult{Network: network.Inspect{Containers: tt.endpoints}},
+				inspectErr: tt.inspectErr,
+			}
+			e := &docker{client: fake}
+			result := &backend.CleanupResult{}
+			assert.NoError(t, e.cleanupStaleNetworks(t.Context(), time.Now().Add(-time.Hour), nil, result))
+			assert.Len(t, fake.removed, tt.removed)
+			assert.Equal(t, int64(tt.removed), result.NetworksRemoved)
+		})
+	}
 }

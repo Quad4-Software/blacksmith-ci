@@ -19,12 +19,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
+	"net/netip"
 	"regexp"
 	"strconv"
 	"strings"
 	"unicode/utf8"
 
-	"github.com/docker/docker/api/types/container"
+	"github.com/moby/moby/api/types/container"
 
 	"codefloe.com/crowci/crow/v6/pipeline/backend/common"
 	"codefloe.com/crowci/crow/v6/pipeline/backend/types"
@@ -126,7 +127,7 @@ func sanitizeAndTruncateName(name string, maxLen int) string {
 }
 
 // returns a container host configuration.
-func toHostConfig(step *types.Step, conf *config) *container.HostConfig {
+func toHostConfig(step *types.Step, conf *config) (*container.HostConfig, error) {
 	config := &container.HostConfig{
 		Resources: container.Resources{
 			CPUQuota:   conf.resourceLimit.CPUQuota,
@@ -145,8 +146,12 @@ func toHostConfig(step *types.Step, conf *config) *container.HostConfig {
 	if len(step.NetworkMode) != 0 {
 		config.NetworkMode = container.NetworkMode(step.NetworkMode)
 	}
-	if len(step.DNS) != 0 {
-		config.DNS = step.DNS
+	for _, dns := range step.DNS {
+		addr, err := netip.ParseAddr(dns)
+		if err != nil {
+			return nil, fmt.Errorf("invalid DNS server %q: %w", dns, err)
+		}
+		config.DNS = append(config.DNS, addr)
 	}
 	if len(step.DNSSearch) != 0 {
 		config.DNSSearch = step.DNSSearch
@@ -166,7 +171,7 @@ func toHostConfig(step *types.Step, conf *config) *container.HostConfig {
 	}
 	config.Tmpfs = parseTmpfs(step.Tmpfs, conf.resourceLimit.MemLimit)
 
-	return config
+	return config, nil
 }
 
 // helper function that converts a slice of volume paths to a set of

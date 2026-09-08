@@ -20,8 +20,8 @@ import (
 	"io"
 
 	"github.com/containerd/errdefs"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/image"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/client"
 	"github.com/rs/zerolog/log"
 
 	"codefloe.com/crowci/crow/v6/pipeline/backend/common"
@@ -82,47 +82,47 @@ func (e *docker) initWorkspace(ctx context.Context, conf *backend.Config, taskUU
 }
 
 func (e *docker) runWorkspaceInitContainer(ctx context.Context, config *container.Config, hostConfig *container.HostConfig, name string) error {
-	_, err := e.client.ContainerCreate(ctx, config, hostConfig, nil, nil, name)
+	_, err := e.client.ContainerCreate(ctx, client.ContainerCreateOptions{Config: config, HostConfig: hostConfig, Name: name})
 	if errdefs.IsNotFound(err) {
 		if pullErr := e.pullImageSilently(ctx, config.Image); pullErr != nil {
 			return pullErr
 		}
-		_, err = e.client.ContainerCreate(ctx, config, hostConfig, nil, nil, name)
+		_, err = e.client.ContainerCreate(ctx, client.ContainerCreateOptions{Config: config, HostConfig: hostConfig, Name: name})
 	}
 	if err != nil {
 		return wrapDaemonError("create container", name, err)
 	}
 	defer func() {
-		if rmErr := e.client.ContainerRemove(ctx, name, removeOpts); rmErr != nil && !isErrContainerNotFoundOrNotRunning(rmErr) {
+		if _, rmErr := e.client.ContainerRemove(ctx, name, removeOpts); rmErr != nil && !isErrContainerNotFoundOrNotRunning(rmErr) {
 			log.Error().Err(rmErr).Msgf("could not remove workspace-init container '%s'", name)
 		}
 	}()
 
-	if err := e.client.ContainerStart(ctx, name, container.StartOptions{}); err != nil {
+	if _, err := e.client.ContainerStart(ctx, name, client.ContainerStartOptions{}); err != nil {
 		return wrapDaemonError("start container", name, err)
 	}
 
-	wait, errC := e.client.ContainerWait(ctx, name, "")
+	wait := e.client.ContainerWait(ctx, name, client.ContainerWaitOptions{})
 	select {
-	case <-wait:
-	case waitErr := <-errC:
+	case <-wait.Result:
+	case waitErr := <-wait.Error:
 		if waitErr != nil {
 			return wrapDaemonError("wait", name, waitErr)
 		}
 	}
 
-	info, err := e.client.ContainerInspect(ctx, name)
+	info, err := e.client.ContainerInspect(ctx, name, client.ContainerInspectOptions{})
 	if err != nil {
 		return wrapDaemonError("inspect", name, err)
 	}
-	if info.State != nil && info.State.ExitCode != 0 {
-		return fmt.Errorf("workspace-init container exited with code %d", info.State.ExitCode)
+	if info.Container.State != nil && info.Container.State.ExitCode != 0 {
+		return fmt.Errorf("workspace-init container exited with code %d", info.Container.State.ExitCode)
 	}
 	return nil
 }
 
 func (e *docker) pullImageSilently(ctx context.Context, ref string) error {
-	rc, err := e.client.ImagePull(ctx, ref, image.PullOptions{})
+	rc, err := e.client.ImagePull(ctx, ref, client.ImagePullOptions{})
 	if err != nil {
 		return err
 	}

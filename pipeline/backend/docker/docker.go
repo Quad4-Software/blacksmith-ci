@@ -27,15 +27,11 @@ import (
 	"time"
 
 	"github.com/containerd/errdefs"
-	"github.com/docker/docker/api/types/container"
-	dockerFilters "github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/api/types/image"
-	"github.com/docker/docker/api/types/network"
-	"github.com/docker/docker/api/types/system"
-	"github.com/docker/docker/api/types/volume"
-	"github.com/docker/docker/client"
 	tls_config "github.com/docker/go-connections/tlsconfig"
 	std_copy "github.com/moby/moby/api/pkg/stdcopy"
+	"github.com/moby/moby/api/types/network"
+	"github.com/moby/moby/api/types/system"
+	"github.com/moby/moby/client"
 	json_message "github.com/moby/moby/client/pkg/jsonmessage"
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v3"
@@ -99,14 +95,14 @@ func (e *docker) IsAvailable(ctx context.Context) bool {
 	// against the same path). Use a real client ping there — slower in the
 	// missing-daemon case but the only signal that's actually reliable.
 	if runtime.GOOS == "windows" {
-		cl, err := client.NewClientWithOpts(client.WithAPIVersionNegotiation())
+		cl, err := client.New()
 		if err != nil {
 			return false
 		}
 		defer cl.Close()
 		pingCtx, cancel := context.WithTimeout(ctx, isAvailableTimeout)
 		defer cancel()
-		_, err = cl.Ping(pingCtx)
+		_, err = cl.Ping(pingCtx, client.PingOptions{})
 		return err == nil
 	}
 	_, err := os.Stat(defaultDockerEndpoint())
@@ -122,7 +118,7 @@ func (e *docker) Ping(ctx context.Context) error {
 	if e.client == nil {
 		return errors.New("docker client not initialized")
 	}
-	_, err := e.client.Ping(ctx)
+	_, err := e.client.Ping(ctx, client.PingOptions{})
 	return err
 }
 
@@ -168,21 +164,21 @@ func (e *docker) Load(ctx context.Context) (*backend.BackendInfo, error) {
 		dockerClientOpts = append(dockerClientOpts, client.WithHost(dockerHost))
 	}
 	if dockerAPIVersion := c.String("backend-docker-api-version"); dockerAPIVersion != "" {
-		dockerClientOpts = append(dockerClientOpts, client.WithVersion(dockerAPIVersion))
-	} else {
-		dockerClientOpts = append(dockerClientOpts, client.WithAPIVersionNegotiation())
+		dockerClientOpts = append(dockerClientOpts, client.WithAPIVersion(dockerAPIVersion))
 	}
 
-	cl, err := client.NewClientWithOpts(dockerClientOpts...)
+	cl, err := client.New(dockerClientOpts...)
 	if err != nil {
 		return nil, err
 	}
 	e.client = cl
 
-	e.info, err = cl.Info(ctx)
+	info, err := cl.Info(ctx, client.InfoOptions{})
 	if err != nil {
 		return nil, err
 	}
+
+	e.info = info.Info
 
 	e.config, err = configFromCli(c)
 	if err != nil {
@@ -203,13 +199,13 @@ func (e *docker) SetupWorkflow(ctx context.Context, conf *backend.Config, taskUU
 	var createdVolumes []string
 	rollbackVolumes := func() {
 		for _, name := range createdVolumes {
-			if err := e.client.VolumeRemove(ctx, name, true); err != nil {
+			if _, err := e.client.VolumeRemove(ctx, name, client.VolumeRemoveOptions{Force: true}); err != nil {
 				log.Error().Err(err).Msgf("could not roll back volume '%s'", name)
 			}
 		}
 	}
 
-	_, err := e.client.VolumeCreate(ctx, volume.CreateOptions{
+	_, err := e.client.VolumeCreate(ctx, client.VolumeCreateOptions{
 		Name:   conf.Volume,
 		Driver: volumeDriver,
 		Labels: map[string]string{
@@ -229,7 +225,7 @@ func (e *docker) SetupWorkflow(ctx context.Context, conf *backend.Config, taskUU
 	}
 
 	for _, tempVolume := range conf.TempVolumes {
-		_, err := e.client.VolumeCreate(ctx, volume.CreateOptions{
+		_, err := e.client.VolumeCreate(ctx, client.VolumeCreateOptions{
 			Name:   tempVolume,
 			Driver: volumeDriver,
 			Labels: map[string]string{
@@ -247,7 +243,7 @@ func (e *docker) SetupWorkflow(ctx context.Context, conf *backend.Config, taskUU
 	if e.info.OSType == "windows" {
 		networkDriver = networkDriverNAT
 	}
-	_, err = e.client.NetworkCreate(ctx, conf.Network, network.CreateOptions{
+	_, err = e.client.NetworkCreate(ctx, conf.Network, client.NetworkCreateOptions{
 		Driver:     networkDriver,
 		EnableIPv6: &e.config.enableIPv6,
 		Labels: map[string]string{
@@ -288,11 +284,14 @@ func (e *docker) StartStep(ctx context.Context, step *backend.Step, taskUUID str
 	log.Trace().Str("taskUUID", taskUUID).Msgf("start step %s", step.Name)
 
 	config := e.toConfig(step, options, taskUUID)
-	hostConfig := toHostConfig(step, &e.config)
+	hostConfig, err := toHostConfig(step, &e.config)
+	if err != nil {
+		return err
+	}
 	containerName := toContainerName(step)
 
 	// create pull options with encoded authorization credentials.
-	pullOpts := image.PullOptions{}
+	pullOpts := client.ImagePullOptions{}
 	if step.AuthConfig.Username != "" && step.AuthConfig.Password != "" {
 		pullOpts.RegistryAuth, _ = encodeAuthToBase64(step.AuthConfig)
 	}
@@ -322,7 +321,7 @@ func (e *docker) StartStep(ctx context.Context, step *backend.Step, taskUUID str
 	hostConfig.Binds = utils.DeduplicateStrings(append(hostConfig.Binds, e.config.volumes...))
 
 	backend.ReportStepProgress(ctx, "Creating container")
-	_, err = e.client.ContainerCreate(ctx, config, hostConfig, nil, nil, containerName)
+	_, err = e.client.ContainerCreate(ctx, client.ContainerCreateOptions{Config: config, HostConfig: hostConfig, Name: containerName})
 	if errdefs.IsNotFound(err) {
 		// automatically pull and try to re-create the image if the
 		// failure is caused because the image does not exist.
@@ -339,7 +338,7 @@ func (e *docker) StartStep(ctx context.Context, step *backend.Step, taskUUID str
 		}
 		responseBody.Close()
 
-		_, err = e.client.ContainerCreate(ctx, config, hostConfig, nil, nil, containerName)
+		_, err = e.client.ContainerCreate(ctx, client.ContainerCreateOptions{Config: config, HostConfig: hostConfig, Name: containerName})
 	}
 	if err != nil {
 		return wrapDaemonError("create container", containerName, err)
@@ -348,8 +347,8 @@ func (e *docker) StartStep(ctx context.Context, step *backend.Step, taskUUID str
 	if len(step.NetworkMode) == 0 {
 		backend.ReportStepProgress(ctx, "Connecting container networks")
 		for _, net := range step.Networks {
-			err = e.client.NetworkConnect(ctx, net.Name, containerName, &network.EndpointSettings{
-				Aliases: net.Aliases,
+			_, err = e.client.NetworkConnect(ctx, net.Name, client.NetworkConnectOptions{
+				Container: containerName, EndpointConfig: &network.EndpointSettings{Aliases: net.Aliases},
 			})
 			if err != nil {
 				return wrapDaemonError("connect network", containerName, err)
@@ -358,7 +357,7 @@ func (e *docker) StartStep(ctx context.Context, step *backend.Step, taskUUID str
 
 		// join the container to an existing network
 		if e.config.network != "" {
-			err = e.client.NetworkConnect(ctx, e.config.network, containerName, &network.EndpointSettings{})
+			_, err = e.client.NetworkConnect(ctx, e.config.network, client.NetworkConnectOptions{Container: containerName, EndpointConfig: &network.EndpointSettings{}})
 			if err != nil {
 				return wrapDaemonError("connect network", containerName, err)
 			}
@@ -367,7 +366,8 @@ func (e *docker) StartStep(ctx context.Context, step *backend.Step, taskUUID str
 
 	backend.ReportStepProgress(ctx, "Starting container")
 
-	return wrapDaemonError("start container", containerName, e.client.ContainerStart(ctx, containerName, container.StartOptions{}))
+	_, err = e.client.ContainerStart(ctx, containerName, client.ContainerStartOptions{})
+	return wrapDaemonError("start container", containerName, err)
 }
 
 func (e *docker) WaitStep(ctx context.Context, step *backend.Step, taskUUID string) (*backend.State, error) {
@@ -375,14 +375,14 @@ func (e *docker) WaitStep(ctx context.Context, step *backend.Step, taskUUID stri
 
 	containerName := toContainerName(step)
 
-	wait, errC := e.client.ContainerWait(ctx, containerName, "")
+	wait := e.client.ContainerWait(ctx, containerName, client.ContainerWaitOptions{})
 	var waitErr error
 	select {
-	case <-wait:
-	case waitErr = <-errC:
+	case <-wait.Result:
+	case waitErr = <-wait.Error:
 	}
 
-	info, err := e.client.ContainerInspect(ctx, containerName)
+	info, err := e.client.ContainerInspect(ctx, containerName, client.ContainerInspectOptions{})
 	if err != nil {
 		// If both calls failed, the inspect error is usually the more
 		// informative one (it carries the actual transport failure), but we
@@ -396,8 +396,8 @@ func (e *docker) WaitStep(ctx context.Context, step *backend.Step, taskUUID stri
 
 	return &backend.State{
 		Exited:    true,
-		ExitCode:  info.State.ExitCode,
-		OOMKilled: info.State.OOMKilled,
+		ExitCode:  info.Container.State.ExitCode,
+		OOMKilled: info.Container.State.OOMKilled,
 	}, nil
 }
 
@@ -405,7 +405,7 @@ func (e *docker) TailStep(ctx context.Context, step *backend.Step, taskUUID stri
 	log.Trace().Str("taskUUID", taskUUID).Msgf("tail logs of step %s", step.Name)
 
 	containerName := toContainerName(step)
-	logs, err := e.client.ContainerLogs(ctx, containerName, container.LogsOptions{
+	logs, err := e.client.ContainerLogs(ctx, containerName, client.ContainerLogsOptions{
 		Follow:     true,
 		ShowStdout: true,
 		ShowStderr: true,
@@ -493,11 +493,11 @@ func (e *docker) DestroyStep(ctx context.Context, step *backend.Step, taskUUID s
 
 	containerName := toContainerName(step)
 
-	if err := e.client.ContainerKill(ctx, containerName, "9"); err != nil && !isErrContainerNotFoundOrNotRunning(err) {
+	if _, err := e.client.ContainerKill(ctx, containerName, client.ContainerKillOptions{Signal: "9"}); err != nil && !isErrContainerNotFoundOrNotRunning(err) {
 		return err
 	}
 
-	if err := e.client.ContainerRemove(ctx, containerName, removeOpts); err != nil && !isErrContainerNotFoundOrNotRunning(err) {
+	if _, err := e.client.ContainerRemove(ctx, containerName, removeOpts); err != nil && !isErrContainerNotFoundOrNotRunning(err) {
 		return err
 	}
 
@@ -510,23 +510,23 @@ func (e *docker) DestroyWorkflow(ctx context.Context, conf *backend.Config, task
 	for _, stage := range conf.Stages {
 		for _, step := range stage.Steps {
 			containerName := toContainerName(step)
-			if err := e.client.ContainerKill(ctx, containerName, "9"); err != nil && !isErrContainerNotFoundOrNotRunning(err) {
+			if _, err := e.client.ContainerKill(ctx, containerName, client.ContainerKillOptions{Signal: "9"}); err != nil && !isErrContainerNotFoundOrNotRunning(err) {
 				log.Error().Err(err).Msgf("could not kill container '%s'", step.Name)
 			}
-			if err := e.client.ContainerRemove(ctx, containerName, removeOpts); err != nil && !isErrContainerNotFoundOrNotRunning(err) {
+			if _, err := e.client.ContainerRemove(ctx, containerName, removeOpts); err != nil && !isErrContainerNotFoundOrNotRunning(err) {
 				log.Error().Err(err).Msgf("could not remove container '%s'", step.Name)
 			}
 		}
 	}
-	if err := e.client.VolumeRemove(ctx, conf.Volume, true); err != nil {
+	if _, err := e.client.VolumeRemove(ctx, conf.Volume, client.VolumeRemoveOptions{Force: true}); err != nil {
 		log.Error().Err(err).Msgf("could not remove volume '%s'", conf.Volume)
 	}
 	for _, tempVolume := range conf.TempVolumes {
-		if err := e.client.VolumeRemove(ctx, tempVolume, true); err != nil {
+		if _, err := e.client.VolumeRemove(ctx, tempVolume, client.VolumeRemoveOptions{Force: true}); err != nil {
 			log.Error().Err(err).Msgf("could not remove temp volume '%s'", tempVolume)
 		}
 	}
-	if err := e.client.NetworkRemove(ctx, conf.Network); err != nil {
+	if _, err := e.client.NetworkRemove(ctx, conf.Network, client.NetworkRemoveOptions{}); err != nil {
 		// Ignore "not found" errors as the network may have already been removed
 		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "No such network") {
 			log.Debug().Str("network", conf.Network).Msg("Network already removed or not found")
@@ -543,11 +543,8 @@ func (e *docker) DiscoverWorkflows(ctx context.Context) ([]*backend.DiscoveredWo
 	log.Trace().Msg("discovering orphaned workflows")
 
 	// List all running containers with our task UUID label
-	containers, err := e.client.ContainerList(ctx, container.ListOptions{
-		Filters: dockerFilters.NewArgs(
-			dockerFilters.Arg("label", LabelTaskUUID),
-			dockerFilters.Arg("status", "running"),
-		),
+	containers, err := e.client.ContainerList(ctx, client.ContainerListOptions{
+		Filters: client.Filters{}.Add("label", LabelTaskUUID).Add("status", "running"),
 	})
 	if err != nil {
 		return nil, err
@@ -555,7 +552,7 @@ func (e *docker) DiscoverWorkflows(ctx context.Context) ([]*backend.DiscoveredWo
 
 	// Group containers by task UUID
 	workflowMap := make(map[string]*backend.DiscoveredWorkflow)
-	for _, c := range containers {
+	for _, c := range containers.Items {
 		taskUUID := c.Labels[LabelTaskUUID]
 		if taskUUID == "" {
 			continue
@@ -594,17 +591,17 @@ func (e *docker) ResumeStep(ctx context.Context, step *backend.Step, taskUUID st
 	log.Trace().Str("taskUUID", taskUUID).Str("container", containerName).Msgf("resuming step %s", step.Name)
 
 	// Verify the container exists and is running
-	info, err := e.client.ContainerInspect(ctx, containerName)
+	info, err := e.client.ContainerInspect(ctx, containerName, client.ContainerInspectOptions{})
 	if err != nil {
 		return wrapDaemonError("inspect", containerName, err)
 	}
 
-	if !info.State.Running {
+	if !info.Container.State.Running {
 		// Container exists but is not running - it may have completed while we were restarting
 		log.Debug().
 			Str("container", containerName).
-			Str("status", info.State.Status).
-			Int("exit_code", info.State.ExitCode).
+			Str("status", string(info.Container.State.Status)).
+			Int("exit_code", info.Container.State.ExitCode).
 			Msg("container is not running, may have completed during agent restart")
 	}
 
@@ -623,7 +620,7 @@ func (e *docker) ResumeStep(ctx context.Context, step *backend.Step, taskUUID st
 // during an aborted/canceled build is still torn down, cascading its anonymous
 // volumes via RemoveVolumes. This mirrors the crow-scoped stale reaper in
 // cleanup.go and prevents container + anonymous-volume leaks on failed builds.
-var removeOpts = container.RemoveOptions{
+var removeOpts = client.ContainerRemoveOptions{
 	RemoveVolumes: true,
 	RemoveLinks:   false,
 	Force:         true,
