@@ -35,13 +35,14 @@ import (
 )
 
 type workflowState struct {
-	stepCMDs     map[string]*exec.Cmd
-	stepOutputs  map[string]io.ReadCloser
-	stepCMDsMu   sync.RWMutex
-	baseDir      string
-	homeDir      string
-	workspaceDir string
-	cloneBinary  string
+	processCleanups []func() error
+	stepCMDs        map[string]*exec.Cmd
+	stepOutputs     map[string]io.ReadCloser
+	stepCMDsMu      sync.RWMutex
+	baseDir         string
+	homeDir         string
+	workspaceDir    string
+	cloneBinary     string
 	// privateDir is always a directory this workflow owns, whatever homeDir
 	// points at. Anything the backend writes on a step's behalf belongs here
 	// rather than in an account's home: the clone step drops a .netrc and then
@@ -313,6 +314,7 @@ func (e *local) startStepCmd(ctx context.Context, cmd *exec.Cmd, step *types.Ste
 	}
 
 	configureCancel(cmd)
+	configureWorkflowProcess(cmd, state)
 
 	// Capture stdout and stderr separately with stream tags (AFTER sandbox wrapping)
 	stdoutPipe, err := cmd.StdoutPipe()
@@ -332,7 +334,7 @@ func (e *local) startStepCmd(ctx context.Context, cmd *exec.Cmd, step *types.Ste
 	state.stepOutputs[step.UUID] = output
 	state.stepCMDsMu.Unlock()
 
-	return cmd.Start()
+	return startWorkflowProcess(cmd, state)
 }
 
 // WaitStep for the pipeline step to complete and returns
@@ -399,6 +401,10 @@ func (e *local) DestroyWorkflow(_ context.Context, _ *types.Config, taskUUID str
 	state, err := e.getState(taskUUID)
 	if err != nil {
 		return err
+	}
+
+	if err := cleanupWorkflowProcesses(state); err != nil {
+		return fmt.Errorf("stop workflow processes: %w", err)
 	}
 
 	if err := removeAllRetry(state.baseDir); err != nil {
