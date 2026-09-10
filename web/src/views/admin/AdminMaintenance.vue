@@ -541,16 +541,30 @@
           </div>
         </CardHeader>
         <CardContent>
-          <div class="bg-muted/50 border rounded-lg p-4 max-h-96 overflow-y-auto">
-            <div v-if="actionLogs.length === 0" class="text-center text-muted-foreground py-8">
-              {{ $t('admin.settings.maintenance.no_action_logs') }}
-            </div>
-            <div v-else class="font-mono text-xs space-y-0.5">
-              <div v-for="(log, index) in actionLogs" :key="index" class="text-foreground/90">
-                {{ log }}
+          <Tabs v-model="activeActionTab" class="min-w-0">
+            <TabsList class="h-auto flex-wrap justify-start" :aria-label="$t('admin.settings.maintenance.action_log')">
+              <TabsTrigger
+                v-for="action in actionTypes"
+                :key="action"
+                :value="action"
+                class="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:font-semibold"
+              >
+                {{ actionTitles[action] }}
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent v-for="action in actionTypes" :key="action" :value="action">
+              <div class="bg-muted/50 border rounded-lg p-4 max-h-96 overflow-auto">
+                <div v-if="actionLogsByType[action].length === 0" class="text-center text-muted-foreground py-8">
+                  {{ $t('admin.settings.maintenance.no_action_logs') }}
+                </div>
+                <div v-else class="font-mono text-xs space-y-0.5 break-words">
+                  <div v-for="(log, index) in actionLogsByType[action]" :key="index" class="text-foreground/90">
+                    {{ log }}
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>
@@ -574,6 +588,7 @@ import { Checkbox } from '~/components/ui/checkbox';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import useApiClient from '~/compositions/useApiClient';
 import { useDate } from '~/compositions/useDate';
 import useNotifications from '~/compositions/useNotifications';
@@ -744,7 +759,24 @@ const isRunningStaleAgentCleanup = ref(false);
 const isSavingDocker = ref(false);
 const isRunningDockerCleanup = ref(false);
 const k8sCleanupDryRun = ref(false);
-const actionLogs = ref<string[]>([]);
+const actionTypes = ['vacuum', 'stale_agent', 'kubernetes', 'docker', 'orphaned_data'] as const;
+type ActionType = (typeof actionTypes)[number];
+const actionTitles = computed(() => ({
+  vacuum: t('admin.settings.maintenance.operations.vacuum_log_table'),
+  stale_agent: t('admin.settings.maintenance.operations.stale_agent_cleanup'),
+  kubernetes: t('admin.settings.maintenance.operations.kubernetes_cleanup'),
+  docker: t('admin.settings.maintenance.operations.docker_cleanup'),
+  orphaned_data: t('admin.settings.maintenance.operations.orphaned_data_cleanup'),
+}));
+const activeActionTab = ref<ActionType>('vacuum');
+const actionLogsByType = ref<Record<ActionType, string[]>>({
+  vacuum: [],
+  stale_agent: [],
+  kubernetes: [],
+  docker: [],
+  orphaned_data: [],
+});
+const actionLogs = computed(() => actionLogsByType.value[activeActionTab.value]);
 const isLoadingMore = ref(false);
 const logsLimit = ref(10);
 const hasMoreLogs = ref(true);
@@ -755,7 +787,7 @@ const staleAgentEnvVarsSet = ref(false);
 
 // Clear action logs
 const clearActionLogs = () => {
-  actionLogs.value = [];
+  actionLogsByType.value[activeActionTab.value] = [];
 };
 
 const formatLastRun = (lastRun: string) => {
@@ -771,7 +803,7 @@ const formatLastK8sCleanup = () => {
   return t('admin.settings.maintenance.never');
 };
 
-const getOperationName = (log: MaintenanceLog) => {
+const getOperationType = (log: MaintenanceLog): ActionType => {
   if (log.details) {
     // Check for various patterns that indicate Kubernetes cleanup
     if (
@@ -780,23 +812,25 @@ const getOperationName = (log: MaintenanceLog) => {
       log.details.includes('K8s cleanup') ||
       log.details.includes('kubernetes_cleanup')
     ) {
-      return t('admin.settings.maintenance.operations.kubernetes_cleanup');
+      return 'kubernetes';
     }
     // Check for stale agent cleanup
     if (log.details.includes('Stale agent cleanup') || log.details.includes('stale_agent_cleanup')) {
-      return t('admin.settings.maintenance.operations.stale_agent_cleanup');
+      return 'stale_agent';
     }
     // Check for Docker cleanup
     if (log.details.includes('Docker resource cleanup') || log.details.includes('docker_cleanup')) {
-      return t('admin.settings.maintenance.operations.docker_cleanup');
+      return 'docker';
     }
     // Check for orphaned data cleanup
     if (log.details.includes('Orphaned data cleanup') || log.details.includes('orphaned_data_cleanup')) {
-      return t('admin.settings.maintenance.operations.orphaned_data_cleanup');
+      return 'orphaned_data';
     }
   }
-  return t('admin.settings.maintenance.operations.vacuum_log_table');
+  return 'vacuum';
 };
+
+const getOperationName = (log: MaintenanceLog) => actionTitles.value[getOperationType(log)];
 
 const loadData = async (reset = false) => {
   try {
@@ -966,9 +1000,9 @@ const loadData = async (reset = false) => {
     } else if (reset && logsData && logsData.length > 0) {
       // Initial page load or manual refresh - generate action logs for recent logs
       // Clear existing action logs to avoid duplicates
-      actionLogs.value = [];
-      // Process last 5 logs to avoid spam, but reverse to maintain chronological order
-      logsToProcess = logsData.slice(0, 5).reverse();
+      for (const action of actionTypes) actionLogsByType.value[action] = [];
+      // Rebuild each action from the fetched history, oldest first.
+      logsToProcess = logsData.toReversed();
     }
 
     if (logsToProcess.length > 0) {
@@ -985,21 +1019,22 @@ const loadData = async (reset = false) => {
           second: '2-digit',
         });
         const jobTitle = getOperationName(newLog);
+        const operationLogs = actionLogsByType.value[getOperationType(newLog)];
 
         // Add divider for new scheduled run
-        if (actionLogs.value.length > 0) {
-          actionLogs.value.unshift(`[${year}/${month}/${day} ${time}] [${jobTitle}] ${'─'.repeat(30)}`);
+        if (operationLogs.length > 0) {
+          operationLogs.unshift(`[${year}/${month}/${day} ${time}] [${jobTitle}] ${'─'.repeat(30)}`);
         }
 
         // Determine if this was a manual or scheduled run
         const triggerType = newLog.details?.includes('Trigger: Manual') ? 'Manual' : 'Scheduled';
 
-        actionLogs.value.unshift(
+        operationLogs.unshift(
           `[${year}/${month}/${day} ${time}] [${jobTitle}] ${triggerType} maintenance execution detected`,
         );
 
         if (newLog.success) {
-          actionLogs.value.unshift(
+          operationLogs.unshift(
             `[${year}/${month}/${day} ${time}] [${jobTitle}] ✅ Operation completed in ${formatDuration(newLog.duration)}`,
           );
 
@@ -1017,7 +1052,7 @@ const loadData = async (reset = false) => {
             }
 
             if (operations.length > 0) {
-              actionLogs.value.unshift(
+              operationLogs.unshift(
                 `[${year}/${month}/${day} ${time}] [${jobTitle}] Operations performed: ${operations.join(', ')}`,
               );
             }
@@ -1028,18 +1063,18 @@ const loadData = async (reset = false) => {
             const savedMatch = newLog.details.match(SIZE_SAVED_REGEX);
 
             if (beforeMatch && afterMatch) {
-              actionLogs.value.unshift(
+              operationLogs.unshift(
                 `[${year}/${month}/${day} ${time}] [${jobTitle}] Table size before: ${beforeMatch[1]} MB`,
               );
-              actionLogs.value.unshift(
+              operationLogs.unshift(
                 `[${year}/${month}/${day} ${time}] [${jobTitle}] Table size after: ${afterMatch[1]} MB`,
               );
               if (savedMatch && Number.parseFloat(savedMatch[1]) > 0) {
-                actionLogs.value.unshift(
+                operationLogs.unshift(
                   `[${year}/${month}/${day} ${time}] [${jobTitle}] Space reclaimed: ${savedMatch[1]} MB`,
                 );
               } else {
-                actionLogs.value.unshift(`[${year}/${month}/${day} ${time}] [${jobTitle}] Space reclaimed: 0.00 MB`);
+                operationLogs.unshift(`[${year}/${month}/${day} ${time}] [${jobTitle}] Space reclaimed: 0.00 MB`);
               }
             }
 
@@ -1054,28 +1089,26 @@ const loadData = async (reset = false) => {
                 const staleFound = staleFoundMatch ? Number.parseInt(staleFoundMatch[1]) : 0;
                 const deleted = deletedMatch ? Number.parseInt(deletedMatch[1]) : 0;
 
-                actionLogs.value.unshift(
-                  `[${year}/${month}/${day} ${time}] [${jobTitle}] Total agents: ${totalAgents}`,
-                );
+                operationLogs.unshift(`[${year}/${month}/${day} ${time}] [${jobTitle}] Total agents: ${totalAgents}`);
 
                 if (staleFound === 0) {
-                  actionLogs.value.unshift(
+                  operationLogs.unshift(
                     `[${year}/${month}/${day} ${time}] [${jobTitle}] No stale agents found - all agents are active!`,
                   );
                 } else {
-                  actionLogs.value.unshift(
+                  operationLogs.unshift(
                     `[${year}/${month}/${day} ${time}] [${jobTitle}] Found ${staleFound} stale agents`,
                   );
 
                   if (deleted > 0) {
-                    actionLogs.value.unshift(
+                    operationLogs.unshift(
                       `[${year}/${month}/${day} ${time}] [${jobTitle}] Successfully deleted ${deleted} stale agents`,
                     );
                   }
 
                   if (staleFound > deleted) {
                     const failed = staleFound - deleted;
-                    actionLogs.value.unshift(
+                    operationLogs.unshift(
                       `[${year}/${month}/${day} ${time}] [${jobTitle}] Failed to delete ${failed} agents`,
                     );
                   }
@@ -1097,11 +1130,11 @@ const loadData = async (reset = false) => {
               if (volumesMatch) parts.push(`Volumes: ${volumesMatch[2]}/${volumesMatch[1]} removed`);
 
               if (parts.length > 0) {
-                actionLogs.value.unshift(
+                operationLogs.unshift(
                   `[${year}/${month}/${day} ${time}] [${jobTitle}] ${parts.join(', ')}${agentInfo}`,
                 );
               } else {
-                actionLogs.value.unshift(
+                operationLogs.unshift(
                   `[${year}/${month}/${day} ${time}] [${jobTitle}] No stale resources found${agentInfo}`,
                 );
               }
@@ -1118,7 +1151,7 @@ const loadData = async (reset = false) => {
               const wouldDeleteMatch = newLog.details.match(K8S_WOULD_DELETE_REGEX);
 
               if (newLog.details.includes('No stale resources found')) {
-                actionLogs.value.unshift(
+                operationLogs.unshift(
                   `[${year}/${month}/${day} ${time}] [${jobTitle}] No stale resources found - all clean!`,
                 );
               } else if (resourcesFoundMatch) {
@@ -1127,25 +1160,25 @@ const loadData = async (reset = false) => {
                 const pvcs = pvcsMatch ? Number.parseInt(pvcsMatch[1]) : 0;
                 const secrets = secretsMatch ? Number.parseInt(secretsMatch[1]) : 0;
 
-                actionLogs.value.unshift(
+                operationLogs.unshift(
                   `[${year}/${month}/${day} ${time}] [${jobTitle}] Found ${totalFound} stale resources: ${services} services, ${pvcs} PVCs, ${secrets} secrets`,
                 );
 
                 if (wouldDeleteMatch) {
                   const wouldDelete = Number.parseInt(wouldDeleteMatch[1]);
-                  actionLogs.value.unshift(
+                  operationLogs.unshift(
                     `[${year}/${month}/${day} ${time}] [${jobTitle}] Dry run - would delete ${wouldDelete} resources`,
                   );
                 } else if (deletedMatch) {
                   const deleted = Number.parseInt(deletedMatch[1]);
-                  actionLogs.value.unshift(
+                  operationLogs.unshift(
                     `[${year}/${month}/${day} ${time}] [${jobTitle}] Successfully deleted ${deleted} stale resources`,
                   );
 
                   if (failedMatch) {
                     const failed = Number.parseInt(failedMatch[1]);
                     if (failed > 0) {
-                      actionLogs.value.unshift(
+                      operationLogs.unshift(
                         `[${year}/${month}/${day} ${time}] [${jobTitle}] Failed to delete ${failed} resources`,
                       );
                     }
@@ -1155,17 +1188,17 @@ const loadData = async (reset = false) => {
             }
           }
         } else {
-          actionLogs.value.unshift(
+          operationLogs.unshift(
             `[${year}/${month}/${day} ${time}] [${jobTitle}] ❌ Operation failed after ${formatDuration(newLog.duration)}`,
           );
           if (newLog.error) {
-            actionLogs.value.unshift(`[${year}/${month}/${day} ${time}] [${jobTitle}] Error: ${newLog.error}`);
+            operationLogs.unshift(`[${year}/${month}/${day} ${time}] [${jobTitle}] Error: ${newLog.error}`);
           }
         }
 
         // Keep only the last 50 action log lines
-        if (actionLogs.value.length > 50) {
-          actionLogs.value = actionLogs.value.slice(0, 50);
+        if (operationLogs.length > 50) {
+          operationLogs.splice(50);
         }
       }
 
@@ -1206,7 +1239,7 @@ const loadMoreLogs = async () => {
   }
 };
 
-const addActionLog = (message: string, jobType: string = 'vacuum') => {
+const addActionLog = (message: string, jobType: ActionType = 'vacuum') => {
   const now = new Date();
   const year = now.getFullYear().toString();
   const month = (now.getMonth() + 1).toString();
@@ -1217,21 +1250,11 @@ const addActionLog = (message: string, jobType: string = 'vacuum') => {
     minute: '2-digit',
     second: '2-digit',
   });
-  let jobTitle = t('admin.settings.maintenance.operations.vacuum_log_table');
-  if (jobType === 'kubernetes') {
-    jobTitle = t('admin.settings.maintenance.operations.kubernetes_cleanup');
-  } else if (jobType === 'stale_agent') {
-    jobTitle = t('admin.settings.maintenance.operations.stale_agent_cleanup');
-  } else if (jobType === 'docker') {
-    jobTitle = t('admin.settings.maintenance.operations.docker_cleanup');
-  } else if (jobType === 'orphaned_data') {
-    jobTitle = t('admin.settings.maintenance.operations.orphaned_data_cleanup');
-  }
-  actionLogs.value.unshift(`[${year}/${month}/${day} ${time}] [${jobTitle}] ${message}`);
-  // Keep only the last 50 action log lines
-  if (actionLogs.value.length > 50) {
-    actionLogs.value = actionLogs.value.slice(0, 50);
-  }
+  const jobTitle = actionTitles.value[jobType];
+  const operationLogs = actionLogsByType.value[jobType];
+  operationLogs.unshift(`[${year}/${month}/${day} ${time}] [${jobTitle}] ${message}`);
+  // Keep only the last 50 lines for this action.
+  operationLogs.splice(50);
 };
 
 const saveStaleAgentConfig = async (silent = false) => {
@@ -1515,7 +1538,7 @@ const runNow = async () => {
   isRunning.value = true;
 
   // Add divider if there are existing logs
-  if (actionLogs.value.length > 0) {
+  if (actionLogsByType.value.vacuum.length > 0) {
     addActionLog('─'.repeat(50));
   }
 
@@ -1641,7 +1664,7 @@ const runStaleAgentCleanup = async () => {
   isRunningStaleAgentCleanup.value = true;
 
   // Add divider if there are existing logs
-  if (actionLogs.value.length > 0) {
+  if (actionLogsByType.value.stale_agent.length > 0) {
     addActionLog('─'.repeat(50), 'stale_agent');
   }
 
@@ -1770,7 +1793,7 @@ const runK8sCleanup = async () => {
   isRunningK8sCleanup.value = true;
 
   // Add divider if there are existing logs
-  if (actionLogs.value.length > 0) {
+  if (actionLogsByType.value.kubernetes.length > 0) {
     addActionLog('─'.repeat(50), 'kubernetes');
   }
 
