@@ -721,11 +721,36 @@ CROW_SMTP_AUTH_TYPE=LOGIN
 Once configured, notifications must be enabled per-repository in **Repository Settings > Notifications**.
 The SMTP configuration can be verified in **Admin Settings > Notifications**, which includes a test email button.
 
+## Forgejo CI quota enforcement and accounting
+
+Crow checks CI allowances before dispatching workflows and reports completed runtime to the external CI quota ledger provided by the CodeFloe Forgejo fork.
+Upstream Forgejo does not provide this API.
+Configure both values to enable enforcement and reporting:
+
+```shell
+CROW_CI_QUOTA_URL=https://code.example.com
+CROW_CI_QUOTA_TOKEN=secret-reporter-token
+```
+
+| Environment variable | Required | Default | Description |
+| --- | --- | --- | --- |
+| `CROW_CI_QUOTA_URL` | Yes | — | Base URL of the Forgejo instance that owns the quota ledger |
+| `CROW_CI_QUOTA_TOKEN` | Yes | — | Dedicated external CI reporter token configured in Forgejo |
+
+Quota denials fail the affected workflow before it starts, with the reason visible in its error.
+Failed quota checks are retried up to three attempts within 20 seconds; if the service remains unavailable, work does not start.
+See [CI quota enforcement and accounting](/dev/configuration/env-vars/ci-quota/) for runner-class limits and retry behavior.
+
+Each workflow is reported separately after it finishes, excluding queue time.
+Reports are idempotent and are classified as Linux, Windows, or macOS from the workflow platform.
+
 See [email notifications](/dev/usage/notifications/) for full usage documentation.
 
 ## Maintenance
 
 Built-in maintenance jobs accessible via Settings → Maintenance.
+The Action Log has a separate tab for each maintenance action, with up to 50 recent log lines per tab.
+Select a tab to view its logs or use **Wipe Log** to clear that tab from the current view.
 
 ![Maintenance Panel](img/maintenance-panel.png)
 

@@ -28,6 +28,40 @@ By default, agents execute one workflow at a time. Increase based on available r
 A pipeline often consists of multiple workflows. Match this setting to your environment's capacity.
 :::
 
+## Single-Use Agents
+
+```yaml
+CROW_AGENT_MAX_LIFETIME_WORKFLOWS=1
+```
+
+`CROW_MAX_WORKFLOWS` caps how many workflows an agent runs *at once*.
+`CROW_AGENT_MAX_LIFETIME_WORKFLOWS` caps how many it runs *in total*: once the budget is used up the agent stops polling, waits for what it is still running, unregisters and exits with status 0.
+The default of `0` keeps the usual behaviour, where an agent serves workflows until it is stopped.
+
+This is the ephemeral-runner model: a value of `1` gives every job a machine that has never run anyone else's pipeline.
+It is what a public instance needs, because an agent host is otherwise reused between workflows, and whatever a pull request from a stranger leaves behind — a poisoned build cache, a background process, a modified toolchain — is still there for the next repository's job.
+
+:::caution
+The supervisor must not restart the agent.
+The point of the setting is to discard the whole machine after the job, so run it in a VM or container that is created per job and thrown away afterwards, not under a `systemd` unit with `Restart=always` or a Docker `restart: unless-stopped` policy.
+:::
+
+Details worth knowing:
+
+- Waiting for work costs nothing: an agent that polls an empty queue for an hour still has its full budget when a workflow finally arrives.
+- `CROW_MAX_WORKFLOWS` is capped at the lifetime budget, since an agent that retires after one workflow can never use more than one slot.
+- A workflow adopted from a previous agent on the same machine is charged against the budget. Its containers already ran there, which is the contamination the budget is counting.
+
+Whether the agent disappears from the server on retirement depends on how it registered:
+
+| Registration                                                     | On retirement                                                                              |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Shared secret (`CROW_AGENT_SECRET`, a system agent)               | The server deletes the agent.                                                              |
+| Individual agent token, as created by the autoscaler or by an org | The server keeps the record; whoever created the agent is responsible for removing it.     |
+
+In both cases the process stops polling and exits 0.
+If the machines come from the [autoscaler](/dev/configuration/autoscaler/), pair the lifetime budget with a provider that gives each agent its own VM, and note that the autoscaler currently reclaims a retired agent only after `CROW_AGENT_IDLE_TIMEOUT` rather than as soon as it exits.
+
 ## Workflow Filtering
 
 Crow routes workflows to agents using two mechanisms:
@@ -47,7 +81,7 @@ Agents have built-in labels:
 
 | Label      | Description                                           |
 | ---------- | ----------------------------------------------------- |
-| `backend`  | Execution backend (docker, kubernetes, local, podman) |
+| `backend`  | Execution backend (docker, kubernetes, local, podman, tart) |
 | `type`     | Agent type                                            |
 | `platform` | OS/architecture                                       |
 | `agent`    | Agent identifier                                      |
@@ -195,8 +229,11 @@ Running agents on Windows hosts? See [Windows Agents](/dev/configuration/windows
 
 ### Local Backend Sandboxing
 
-:::note
-macOS only. Automatically disabled on other platforms.
+:::caution[macOS only]
+Sandboxing is implemented with the macOS `sandbox-exec` utility.
+On Linux and Windows it is a no-op: `CROW_BACKEND_LOCAL_SANDBOX_LEVEL` is accepted but has no effect, and pipeline commands run with the agent user's full access to the host at every level.
+
+Before running a `local` backend agent outside macOS, read the trade-offs on [Standalone Agent Binaries](/dev/installation/binary/).
 :::
 
 Enable process isolation using macOS `sandbox-exec`:
@@ -213,12 +250,21 @@ CROW_BACKEND_LOCAL_SANDBOX_LEVEL=standard
 
 **Standard level details:**
 
-| Allows                            | Denies                                   |
-| --------------------------------- | ---------------------------------------- |
-| Network access (npm, go get, pip) | Writing outside workflow dirs            |
-| System libraries and frameworks   | Sensitive user dirs (Documents, Desktop) |
-| Shell configs (.bashrc, .zshrc)   | SSH private keys                         |
-| Workflow temp directories         |                                          |
+| Allows                                              | Denies                                           |
+| --------------------------------------------------- | ------------------------------------------------ |
+| Network access (npm, go get, pip)                   | Another workflow's directories on the same agent |
+| System libraries and frameworks                     | Writing anywhere outside the allowed directories |
+| The workflow's own directories, including `$TMPDIR` | Sensitive user dirs (Documents, Desktop)         |
+| Shared build caches and the account's temp dir      | SSH private keys                                 |
+| Shell configs (.bashrc, .zshrc)                     | The agent's own environment and credentials      |
+
+:::caution
+`standard` hardens an agent against the pipelines it runs.
+It does not partition one agent between repositories that do not trust each other: the build caches and the account's temp directory stay shared between workflows.
+See [Standalone Agent Binaries](/dev/installation/binary/#standard-default) for what the profile does and does not cover.
+
+Where repositories genuinely do not trust each other, give each job its own machine with [Single-Use Agents](#single-use-agents).
+:::
 
 :::warning
 `none` runs processes without isolation. Only use with fully trusted code.

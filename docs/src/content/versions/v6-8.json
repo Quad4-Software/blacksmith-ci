@@ -20,7 +20,15 @@
       "items": [
         {
           "label": "Installation",
-          "autogenerate": { "directory": "installation" }
+          "items": [
+            "installation",
+            "installation/ansible",
+            "installation/container",
+            "installation/helm",
+            "installation/migration",
+            "installation/proxy",
+            "installation/binary"
+          ]
         },
         {
           "label": "Configuration",

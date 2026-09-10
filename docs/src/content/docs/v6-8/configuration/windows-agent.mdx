@@ -7,14 +7,15 @@ This page covers the architecture, host requirements, recommended images, and kn
 
 ## Backend Support
 
-| Backend      | Windows | Notes                                                         |
-| ------------ | ------- | ------------------------------------------------------------- |
-| `docker`     | ✅      | Container steps (incl. clone); see below                      |
-| `local`      | ⚠️      | Works if everything you run is a native Windows executable    |
-| `kubernetes` | ❌      | Pod scheduling onto Windows nodes is not implemented yet      |
-| `podman`     | ❌      | Podman doesn't run on Windows in the way Crow expects         |
+| Backend      | Windows | Notes                                                                                   |
+| ------------ | ------- | --------------------------------------------------------------------------------------- |
+| `docker`     | ✅      | Container steps (incl. clone); see below                                                |
+| `local`      | ⚠️      | Works if everything you run is a native Windows executable; see [Local backend](#local-backend) |
+| `kubernetes` | ❌      | Pods are pinned to nodes with the agent's OS; scheduling onto Windows nodes is not implemented |
+| `podman`     | ❌      | Podman doesn't run on Windows in the way Crow expects                                   |
+| `tart`       | ❌      | Tart only runs macOS and Linux guests on Apple silicon                                  |
 
-The rest of this page assumes the **docker backend**.
+The rest of this page assumes the **docker backend** unless a section says otherwise.
 
 ## Linux Docker vs Windows Docker
 
@@ -47,6 +48,7 @@ On a Windows agent the docker backend automatically rewrites the clone step's im
 | `codefloe.com/crow-plugins/clone:1.1.0`    | `codefloe.com/crow-plugins/clone:1.1.0-windows-ltsc2022`    |
 
 The rewrite appends `-windows-ltsc2022` to the existing tag (a digest-pinned reference is left unchanged) and forces a pull, so a reused agent VM never runs a stale cached image.
+The suffix is fixed: there is no option to select a different Windows build, so the host must be able to run `ltsc2022` containers.
 
 :::caution[Pin a clone image that has a Windows variant]
 The rewrite only works if the resulting `…-windows-ltsc2022` tag actually exists in the registry.
@@ -180,6 +182,45 @@ labels:
   agent: my-linux-host
 ```
 
+## Local backend
+
+The `local` backend runs every step as a process on the Windows host itself, with no container in between.
+It is the right choice when the toolchain cannot run in a Windows container, and the wrong one for anything you do not fully trust: a step has the same access to the host as the agent account.
+Select it with `CROW_BACKEND=local`; see [Backend: Local](/dev/configuration/env-vars/backend-local/) for its options.
+
+### Shell selection
+
+The step `image` names the shell that runs the `commands`, and it has to be on the agent's `PATH`:
+
+| `image`                    | How the commands run                                                                          |
+| -------------------------- | --------------------------------------------------------------------------------------------- |
+| `pwsh` or `powershell`     | One PowerShell session with `$ErrorActionPreference = "Stop"`, so the first failing command stops the step |
+| `cmd`                      | A generated `.cmd` script that exits on the first non-zero `%ERRORLEVEL%`                     |
+| `bash`, `sh`, …            | `<shell> -e -c`, for a POSIX shell such as the one Git for Windows installs                   |
+
+```yaml
+labels:
+  platform: windows/amd64
+
+steps:
+  build:
+    image: pwsh
+    commands:
+      - go build ./...
+      - go test ./...
+```
+
+A `plugin` step runs the image name as an executable from `PATH` instead.
+
+### Requirements and behavior
+
+- `git` must be installed on the host.
+  The `plugin-clone` binary is downloaded on first use if it is not on `PATH`.
+- PowerShell 7 (`pwsh`) is preferred for the clone step's credential cleanup, with Windows PowerShell 5.1 as the fallback.
+- Every workflow gets its own home and temp directory.
+  Steps see them as `HOME`, `USERPROFILE`, `TMP`, `TEMP` and `TMPDIR`, and cannot override these variables.
+- Cancelling a step terminates the whole process tree it started, not only the shell.
+
 ## Autoscaler Integration
 
 The Crow Autoscaler can provision Windows VMs on demand.
@@ -224,3 +265,10 @@ Subsequent runs on the same VM are instant.
 
 Because the Windows clone tag is mutable, the agent forces a pull of the clone image on every clone step so a reused VM can't run a stale copy.
 This adds the (cached after first use) pull cost per fresh VM.
+
+### Graceful shutdown and Windows services
+
+The agent finishes its running workflows before it exits when it receives Ctrl+C, a console close, a logoff or a system shutdown event.
+`docker stop` on the Windows agent image triggers the same path.
+Running the agent directly as a Windows service is not supported: the service control manager's stop request does not reach it, so a `Stop-Service` kills the agent mid-workflow.
+Use a wrapper such as [WinSW](https://github.com/winsw/winsw) or [NSSM](https://nssm.cc/) that stops the process with a console control event, or run the container image.

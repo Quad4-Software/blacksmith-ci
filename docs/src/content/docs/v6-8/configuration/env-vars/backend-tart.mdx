@@ -1,0 +1,161 @@
+---
+title: 'Backend: Tart (macOS)'
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+The tart backend gives every workflow its own throwaway macOS virtual machine, cloned from an image before the first step and deleted after the last one.
+
+The agent stays on the host, outside the VM.
+Steps reach the guest over vsock through the [Tart Guest Agent](https://github.com/cirruslabs/tart-guest-agent), so no guest networking and no SSH are involved.
+Pipeline code therefore never shares an operating system with the agent or its registration token, which is the main thing this backend offers over the [local backend](/dev/configuration/env-vars/backend-local/).
+
+<Aside type="note" title="How this backend is tested">
+The bulk of Crow's test suite runs on Linux, where tart does not exist, so the tests that run everywhere cover this backend's pure logic: script generation, option parsing, command construction and VM selection.
+Its end-to-end behavior is covered separately by an integration suite that drives a real VM on an Apple silicon CI agent, alongside a full pipeline run through the CLI.
+Run that suite yourself on any Mac with tart installed with `just test-tart-integration`.
+</Aside>
+
+## Host Requirements
+
+- macOS on Apple silicon, with [Tart](https://tart.run) 2.36.0 or newer resolvable on `PATH` or named by `CROW_BACKEND_TART_BINARY`.
+- Enough disk for one clone of the VM image per concurrent workflow.
+  Cloning itself is nearly free because APFS is copy-on-write, but a long-running workflow that writes a lot still grows its clone.
+
+Apple's macOS licence and Virtualization.framework both cap a host at two running guests.
+Pair one agent per Mac with `CROW_MAX_WORKFLOWS=2` to express that ceiling.
+No backend can lift it.
+
+## Image Requirements
+
+The image must run the Tart Guest Agent, which every non-vanilla Cirrus Labs image does, including `ghcr.io/cirruslabs/macos-tahoe-base`.
+Without it `tart exec` cannot reach the guest and every workflow fails to start.
+
+The image also supplies the toolchain, because there are no per-step container images.
+An image needs whatever your pipelines call, plus `git` if you clone.
+
+## Selecting the Backend
+
+Set `CROW_BACKEND=tart` on the agent.
+
+This backend is never chosen by auto-detection.
+The local backend is available on any host that is not a container and is tried first, so installing tart next to an existing local backend agent does not silently change how that agent runs pipelines.
+
+## Configuration
+
+### BACKEND_TART_IMAGE
+
+- Name: `CROW_BACKEND_TART_IMAGE`
+- Description: OCI reference of the macOS VM image cloned for each workflow
+- Default: none, required
+
+The agent refuses to start without it.
+There is no default because one would make a first pipeline run silently pull tens of gigabytes.
+
+---
+
+### BACKEND_TART_IMAGE_ALLOW_FROM_STEP
+
+- Name: `CROW_BACKEND_TART_IMAGE_ALLOW_FROM_STEP`
+- Description: Whether a pipeline may select the VM image through `backend_options.tart.image`
+- Default: `false`
+
+Leave this off on an instance that builds untrusted repositories.
+With it on, any repository can make this Mac pull and boot an image of its choosing.
+
+---
+
+### BACKEND_TART_CPU
+
+- Name: `CROW_BACKEND_TART_CPU`
+- Description: vCPUs given to each VM, and the maximum a step may request
+- Default: `0`, which keeps the image's own setting
+
+---
+
+### BACKEND_TART_MEMORY
+
+- Name: `CROW_BACKEND_TART_MEMORY`
+- Description: Memory given to each VM, and the maximum a step may request, for example `8Gi` or `512Mi`
+- Default: none, which keeps the image's own setting
+
+---
+
+### BACKEND_TART_NETWORK
+
+- Name: `CROW_BACKEND_TART_NETWORK`
+- Description: Guest networking mode, one of `shared`, `softnet` or `host`
+- Default: `shared`
+
+`shared` is tart's own NAT.
+`softnet` adds a userspace packet filter that stops a guest spoofing addresses or reaching other guests and the local network, which is worth enabling for untrusted repositories.
+`host` restricts the guest to a host-only network.
+
+---
+
+### BACKEND_TART_STARTUP_TIMEOUT
+
+- Name: `CROW_BACKEND_TART_STARTUP_TIMEOUT`
+- Description: How long to wait for a booted VM to answer `tart exec`
+- Default: `5m`
+
+A cold boot of the Cirrus Labs base image reaches a usable guest in roughly 26 seconds on an M4.
+The default is generous because a first pull of a multi-gigabyte image happens inside the same window.
+
+---
+
+### BACKEND_TART_STOP_TIMEOUT
+
+- Name: `CROW_BACKEND_TART_STOP_TIMEOUT`
+- Description: How long `tart stop` waits for a graceful shutdown before killing the VM
+- Default: `30s`
+
+---
+
+### BACKEND_TART_BINARY
+
+- Name: `CROW_BACKEND_TART_BINARY`
+- Description: Path to the tart binary, for installations that are not on `PATH`
+- Default: `tart`
+
+---
+
+### BACKEND_TART_HOME
+
+- Name: `CROW_BACKEND_TART_HOME`
+- Description: `TART_HOME` for tart child processes, which is where images and VMs are stored
+- Default: none, which uses tart's own default of `~/.tart`
+
+---
+
+## Backend Options
+
+```yaml
+steps:
+  - name: build
+    image: /bin/bash
+    backend_options:
+      tart:
+        image: ghcr.io/cirruslabs/macos-tahoe-xcode:latest
+        cpu: 6
+        memory: 12Gi
+    commands:
+      - xcodebuild -version
+```
+
+A step's `image:` names the **shell** it runs under, not a container image, exactly as in the local backend.
+Steps share one VM, so the VM image cannot be a per-step choice; it comes from `backend_options.tart.image` instead, and is honored only when `CROW_BACKEND_TART_IMAGE_ALLOW_FROM_STEP` is set.
+
+Because there is one VM per workflow, these are workflow-level values even though they are written on a step.
+The first step that sets a given value decides it for the whole workflow.
+
+`cpu` and `memory` are clamped to the agent's own settings when those are configured, so a step can ask for less than the agent allows but never more.
+
+## Limitations
+
+- A plugin is a binary on the guest's `PATH`, not a container image, as in the local backend.
+- A service is a process in the guest rather than a separate container.
+- A cancelled step's guest process keeps running until the workflow's VM is destroyed, because stopping the host-side `tart exec` does not propagate into the guest.
+  The VM's destruction collects it.
+- A VM does not survive an agent restart, so workflows are not adopted the way Docker and Kubernetes workflows are.
+  VMs left behind by an agent that was killed rather than shut down are reclaimed by the agent's stale-resource cleanup.

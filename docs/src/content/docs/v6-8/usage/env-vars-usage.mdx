@@ -67,6 +67,37 @@ The `variables:` block can also be used for YAML anchors and aliases as before â
 
 ## String Substitution
 
+Substitution runs over the raw YAML text before it is parsed, line by line.
+Comment lines are skipped: when the first non-whitespace character of a line is `#`, any `${...}` on that line is left untouched.
+
+```yaml
+steps:
+  - name: build
+    image: alpine
+    commands:
+      # ${CI_COMMIT_SHA} is not substituted here, this line is a comment
+      - echo "building ${CI_COMMIT_SHA}"
+```
+
+Because this is a text-level check and not YAML parsing, it also applies to `#`-leading lines that YAML treats as content rather than as a comment, such as a heredoc written by a step:
+
+```yaml
+steps:
+  - name: write-readme
+    image: alpine
+    commands:
+      - |
+        cat > README.md <<'EOF'
+        # Release ${CI_COMMIT_TAG}
+        EOF
+```
+
+`${CI_COMMIT_TAG}` is not substituted on that line and ends up in `README.md` verbatim.
+Move the value onto a non-comment line if you need it interpolated.
+
+A `${...}` that is not a valid substitution expression fails the pipeline with `variable substitution failed on line <n>`.
+Bash array syntax such as `${ARRAY[@]}` is the common case; escape the `$` as `$$` to pass it through literally.
+
 ## String Operations
 
 Bash string operations are supported to manipulate env vars.
