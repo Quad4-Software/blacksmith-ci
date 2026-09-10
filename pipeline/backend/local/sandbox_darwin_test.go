@@ -539,3 +539,42 @@ func TestSensitiveUserDirDenyComesLast(t *testing.T) {
 		}
 	}
 }
+
+// macOS account paths need not match the launchd job's HOME and TMPDIR.
+func TestStandardSandboxWithOverriddenAccountEnvironment(t *testing.T) {
+	accountHome, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The probe must live in the account cache, outside the workflow temp root.
+	//nolint:usetesting // t.TempDir cannot select this parent directory.
+	cacheDir, err := os.MkdirTemp(filepath.Join(accountHome, "Library", "Caches"), "crow-account-test-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(cacheDir) })
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("TMPDIR", t.TempDir())
+	engine := &local{tempDir: t.TempDir(), os: "darwin", sandboxLevel: sandboxLevelStandard}
+	ctx := context.Background()
+	if err := engine.SetupWorkflow(ctx, &types.Config{}, "task"); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = engine.DestroyWorkflow(ctx, &types.Config{}, "task") })
+	state, err := engine.getState("task")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, script := range map[string]string{
+		"account temp":       `dir=$(/usr/bin/getconf DARWIN_USER_TEMP_DIR) && file=$(/usr/bin/mktemp "${dir}crow-account-test.XXXXXX") && rm "$file"`,
+		"account cache":      `touch "` + filepath.Join(cacheDir, "probe") + `"`,
+		"Apple git launcher": `/usr/bin/git --version`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			out, err := runSandboxed(t, engine, state, script)
+			if err != nil || strings.Contains(string(out), "couldn't create cache file") {
+				t.Fatalf("%v: %s", err, out)
+			}
+		})
+	}
+}

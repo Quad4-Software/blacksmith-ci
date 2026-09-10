@@ -19,6 +19,9 @@ On Windows, `TMP` and `TEMP` point there as well.
 - Description: Process isolation level on macOS, one of `none`, `standard` or `strict`
 - Default: `standard`
 
+The standard macOS sandbox also permits the agent account’s system temporary directory and build caches, even when the agent starts with custom `HOME` or `TMPDIR` values.
+This lets Apple toolchain launchers such as `xcrun` and account-based tool installations write their caches while keeping other workflows’ directories isolated.
+
 Implemented with the macOS `sandbox-exec` utility, and a no-op on Linux and Windows.
 See [macOS Sandbox Security Levels](/dev/installation/binary/#macos-sandbox-security-levels) for what each level allows.
 

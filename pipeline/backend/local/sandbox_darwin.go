@@ -21,8 +21,10 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/rs/zerolog/log"
@@ -122,7 +124,15 @@ func sandboxSiblingDeny(baseDir string, extraRoots ...string) string {
 // directory is not writable. The workflow directories that live inside it are
 // denied separately, so this shares scratch space and not the checkouts.
 func sandboxSharedTempPaths() []string {
-	return []string{os.TempDir()}
+	paths := []string{os.TempDir()}
+	// os.TempDir only reads TMPDIR on Darwin. Query the account directory too,
+	// as xcrun does, even when launchd supplies a different temporary directory.
+	if out, err := exec.Command("/usr/bin/getconf", "DARWIN_USER_TEMP_DIR").Output(); err == nil {
+		if path := strings.TrimSpace(string(out)); filepath.IsAbs(path) {
+			paths = append(paths, path)
+		}
+	}
+	return paths
 }
 
 // sandboxCachePaths returns the build tool caches shared between workflows.
@@ -136,7 +146,15 @@ func sandboxCachePaths() []string {
 
 	// Tools that ask the account for its home rather than reading $HOME write
 	// here even when the workflow has a home of its own.
+	homes := []string{}
 	if home, err := os.UserHomeDir(); err == nil && home != "" {
+		homes = append(homes, home)
+	}
+	// UserHomeDir reads HOME; it does not look up the agent's account.
+	if account, err := user.LookupId(strconv.Itoa(os.Geteuid())); err == nil && filepath.IsAbs(account.HomeDir) {
+		homes = append(homes, account.HomeDir)
+	}
+	for _, home := range homes {
 		for _, dir := range []string{".cargo", ".rustup", ".cache", ".npm", "Library/Caches"} {
 			paths = append(paths, filepath.Join(home, dir))
 		}
