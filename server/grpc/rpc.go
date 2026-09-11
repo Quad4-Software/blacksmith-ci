@@ -169,7 +169,7 @@ func (s *RPC) Next(c context.Context, agentFilter rpc.Filter) (*rpc.Workflow, er
 		}
 
 		if task.ShouldRun() {
-			if err := s.checkCIQuota(c, agent.ID, task); err != nil {
+			if err := s.checkCIQuota(c, agent, task); err != nil {
 				// A poll canceled mid-check produced no quota decision, so the
 				// workflow keeps its claim and the queue's usual handling for an
 				// undelivered task applies instead of a misleading quota failure.
@@ -444,7 +444,7 @@ func (s *RPC) Done(c context.Context, strWorkflowID string, state rpc.WorkflowSt
 	if workflow, err = serverPipeline.UpdateWorkflowStatusToDone(s.store, *workflow, state); err != nil {
 		logger.Error().Err(err).Msgf("serverPipeline.UpdateWorkflowStatusToDone: cannot update workflow state: %s", err)
 	}
-	s.reportCIQuotaUsage(repo, workflow, logger) //nolint:contextcheck // reporting must outlive the completed agent RPC
+	s.reportCIQuotaUsage(repo, workflow, agent, logger) //nolint:contextcheck // reporting must outlive the completed agent RPC
 
 	var queueErr error
 	if workflow.Failing() {
@@ -528,13 +528,14 @@ func (s *RPC) Done(c context.Context, strWorkflowID string, state rpc.WorkflowSt
 	return s.updateAgentLastWork(agent)
 }
 
-func (s *RPC) reportCIQuotaUsage(repo *model.Repo, workflow *model.Workflow, logger zerolog.Logger) {
+func (s *RPC) reportCIQuotaUsage(repo *model.Repo, workflow *model.Workflow, agent *model.Agent, logger zerolog.Logger) {
 	reporter := server.Config.Services.CIQuotaReporter
-	if reporter == nil || workflow.Started <= 0 || workflow.Finished < workflow.Started {
+	if reporter == nil || !agent.IsGlobal() || workflow.Started <= 0 || workflow.Finished < workflow.Started {
 		return
 	}
 
 	usage := ciquota.Usage{
+		RunnerID:    agent.Name,
 		Repository:  repo.FullName,
 		ExternalRef: fmt.Sprintf("crow:workflow:%d", workflow.ID),
 		Started:     time.Unix(workflow.Started, 0).UTC(),

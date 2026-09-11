@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -50,18 +51,22 @@ func TestQuotaClass(t *testing.T) {
 	}
 }
 
-type quotaCheckerFunc func(context.Context, string, string) (*ciquota.Decision, error)
+type quotaCheckerFunc func(context.Context, string, string, string) (*ciquota.Decision, error)
 
 type quotaTestReporter struct {
-	t     *testing.T
-	check quotaCheckerFunc
+	t      *testing.T
+	check  quotaCheckerFunc
+	report func(ciquota.Usage) error
 }
 
-func (f quotaTestReporter) Check(ctx context.Context, repo, class string) (*ciquota.Decision, error) {
-	return f.check(ctx, repo, class)
+func (f quotaTestReporter) Check(ctx context.Context, repo, class, runnerID string) (*ciquota.Decision, error) {
+	return f.check(ctx, repo, class, runnerID)
 }
 
-func (f quotaTestReporter) Report(context.Context, ciquota.Usage) error {
+func (f quotaTestReporter) Report(_ context.Context, usage ciquota.Usage) error {
+	if f.report != nil {
+		return f.report(usage)
+	}
 	f.t.Error("unstarted workflows must not report usage")
 	return nil
 }
@@ -93,9 +98,10 @@ func TestCheckCIQuotaRetry(t *testing.T) {
 			ctx, cancel := context.WithCancelCause(t.Context())
 			defer cancel(nil)
 			attempts := 0
-			setQuotaChecker(t, quotaTestReporter{t: t, check: func(_ context.Context, repo, class string) (*ciquota.Decision, error) {
+			setQuotaChecker(t, quotaTestReporter{t: t, check: func(_ context.Context, repo, class, runnerID string) (*ciquota.Decision, error) {
 				attempts++
 				assert.Equal(t, "org/repo", repo)
+				assert.Equal(t, "public-agent", runnerID)
 				assert.Equal(t, "windows", class)
 				if tc.cancel {
 					cancel(nil)
@@ -105,7 +111,7 @@ func TestCheckCIQuotaRetry(t *testing.T) {
 				}
 				return nil, errors.New("503 Service Unavailable")
 			}})
-			err := s.checkCIQuota(ctx, 1, &model.Task{ID: "42", RepoID: 7})
+			err := s.checkCIQuota(ctx, &model.Agent{ID: 1, Name: "public-agent"}, &model.Task{ID: "42", RepoID: 7})
 			switch {
 			case tc.cancel:
 				require.ErrorIs(t, err, context.Canceled)
@@ -138,7 +144,7 @@ func TestNextCIQuotaDenial(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			db := new(store_mocks.MockStore)
 			q := new(queue_mocks.MockQueue)
-			agent := &model.Agent{ID: 1, LastWork: time.Now().Unix()}
+			agent := &model.Agent{ID: 1, Name: "public-agent", LastWork: time.Now().Unix()}
 			mac := &model.Workflow{ID: 42, PipelineID: 8, Name: "mac", Platform: "darwin/arm64", State: model.StatusPending}
 			linux := &model.Workflow{ID: 43, PipelineID: 8, Name: "linux", Platform: "linux/amd64", State: model.StatusPending}
 			pl := &model.Pipeline{ID: 8, RepoID: 7, Status: model.StatusPending}
@@ -179,8 +185,9 @@ func TestNextCIQuotaDenial(t *testing.T) {
 				}).Return(nil).Once()
 			}
 			classes := []string{}
-			setQuotaChecker(t, quotaTestReporter{t: t, check: func(_ context.Context, repo, class string) (*ciquota.Decision, error) {
+			setQuotaChecker(t, quotaTestReporter{t: t, check: func(_ context.Context, repo, class, runnerID string) (*ciquota.Decision, error) {
 				assert.Equal(t, "org/repo", repo)
+				assert.Equal(t, "public-agent", runnerID)
 				classes = append(classes, class)
 				if tc.checkFailure {
 					return nil, errors.New("quota service unavailable")
@@ -260,7 +267,7 @@ func TestNextCIQuotaCanceledPollKeepsClaim(t *testing.T) {
 	q.On("Poll", mock.Anything, int64(1), mock.Anything).Return(&model.Task{ID: "42", RepoID: 7, Data: data, RunOn: []string{"success"}}, nil).Once()
 	ctx, cancel := context.WithCancelCause(metadata.NewIncomingContext(t.Context(), metadata.Pairs("agent_id", "1")))
 	defer cancel(nil)
-	setQuotaChecker(t, quotaTestReporter{t: t, check: func(context.Context, string, string) (*ciquota.Decision, error) {
+	setQuotaChecker(t, quotaTestReporter{t: t, check: func(context.Context, string, string, string) (*ciquota.Decision, error) {
 		cancel(nil)
 		return nil, errors.New("connection reset")
 	}})
@@ -284,14 +291,14 @@ func TestCheckCIQuotaBoundsTotalTime(t *testing.T) {
 	db.On("GetRepo", int64(7)).Return(&model.Repo{FullName: "org/repo"}, nil)
 	q.On("Extend", mock.Anything, int64(1), "42").Return(nil)
 	started := time.Now()
-	setQuotaChecker(t, quotaTestReporter{t: t, check: func(ctx context.Context, _, _ string) (*ciquota.Decision, error) {
+	setQuotaChecker(t, quotaTestReporter{t: t, check: func(ctx context.Context, _, _, _ string) (*ciquota.Decision, error) {
 		deadline, ok := ctx.Deadline()
 		require.True(t, ok, "check context must carry a deadline")
 		assert.WithinDuration(t, started.Add(ciQuotaCheckTimeout), deadline, 2*time.Second)
 		assert.Less(t, ciQuotaCheckTimeout, 30*time.Second, "budget must stay below the queue poll timeout")
 		return &ciquota.Decision{Allowed: true}, nil
 	}})
-	require.NoError(t, s.checkCIQuota(t.Context(), 1, &model.Task{ID: "42", RepoID: 7}))
+	require.NoError(t, s.checkCIQuota(t.Context(), &model.Agent{ID: 1, Name: "public-agent"}, &model.Task{ID: "42", RepoID: 7}))
 }
 
 // A reporter that returns neither a decision nor an error is a protocol bug,
@@ -303,10 +310,73 @@ func TestCheckCIQuotaEmptyDecision(t *testing.T) {
 	db.On("WorkflowLoad", int64(42)).Return(&model.Workflow{Platform: "linux/amd64"}, nil)
 	db.On("GetRepo", int64(7)).Return(&model.Repo{FullName: "org/repo"}, nil)
 	q.On("Extend", mock.Anything, int64(1), "42").Return(nil)
-	setQuotaChecker(t, quotaTestReporter{t: t, check: func(context.Context, string, string) (*ciquota.Decision, error) {
+	setQuotaChecker(t, quotaTestReporter{t: t, check: func(context.Context, string, string, string) (*ciquota.Decision, error) {
 		return nil, nil
 	}})
-	err := s.checkCIQuota(t.Context(), 1, &model.Task{ID: "42", RepoID: 7})
+	err := s.checkCIQuota(t.Context(), &model.Agent{ID: 1, Name: "public-agent"}, &model.Task{ID: "42", RepoID: 7})
 	require.ErrorContains(t, err, "workflow not started")
 	require.ErrorContains(t, err, "empty decision")
+}
+
+func TestNextCIQuotaSelfHostedNameCollision(t *testing.T) {
+	setQuotaChecker(t, quotaTestReporter{t: t, check: func(context.Context, string, string, string) (*ciquota.Decision, error) {
+		t.Error("organization-scoped agents must not need platform quota")
+		return nil, errors.New("quota service unavailable")
+	}})
+	db := new(store_mocks.MockStore)
+	q := new(queue_mocks.MockQueue)
+	db.On("AgentFind", int64(1)).Return(&model.Agent{
+		ID: 1, Name: "public-agent", OrgIDs: model.JSONSliceInt64{7},
+	}, nil)
+	data, err := json.Marshal(&rpc.Workflow{ID: "42"})
+	require.NoError(t, err)
+	q.On("Poll", mock.Anything, int64(1), mock.Anything).Return(&model.Task{ID: "42", Data: data, RunOn: []string{"success"}}, nil)
+	s := RPC{store: db, queue: q}
+	ctx := metadata.NewIncomingContext(t.Context(), metadata.Pairs("agent_id", "1"))
+	wf, err := s.Next(ctx, rpc.Filter{Labels: map[string]string{}})
+	require.NoError(t, err)
+	require.NotNil(t, wf)
+	assert.Equal(t, "42", wf.ID)
+	db.AssertExpectations(t)
+	q.AssertExpectations(t)
+}
+
+func TestReportCIQuotaUsageAgentIdentity(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		orgIDs     model.JSONSliceInt64
+		started    int64
+		wantReport bool
+	}{
+		{name: "global agent", started: 1_700_000_000, wantReport: true},
+		{name: "organization agent with same name", orgIDs: model.JSONSliceInt64{7}, started: 1_700_000_000},
+		{name: "unstarted platform workflow"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			reports := make(chan ciquota.Usage, 1)
+			setQuotaChecker(t, quotaTestReporter{t: t, report: func(usage ciquota.Usage) error {
+				reports <- usage
+				return nil
+			}})
+			s := RPC{}
+			workflow := &model.Workflow{ID: 42, Platform: "darwin/arm64", Started: tc.started, Finished: tc.started + 90}
+			s.reportCIQuotaUsage(&model.Repo{FullName: "org/repo"}, workflow, &model.Agent{
+				ID: 123, Name: "public-agent", OrgIDs: tc.orgIDs,
+			}, zerolog.Nop())
+			if !tc.wantReport {
+				assert.Empty(t, reports)
+				return
+			}
+			select {
+			case usage := <-reports:
+				assert.Equal(t, ciquota.Usage{
+					RunnerID: "public-agent", Repository: "org/repo", ExternalRef: "crow:workflow:42",
+					Started: time.Unix(tc.started, 0).UTC(), Stopped: time.Unix(tc.started+90, 0).UTC(),
+					Seconds: 90, Class: "macos",
+				}, usage)
+			case <-time.After(5 * time.Second):
+				t.Fatal("workflow usage was not reported")
+			}
+		})
+	}
 }

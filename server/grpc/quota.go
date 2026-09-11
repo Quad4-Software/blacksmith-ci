@@ -32,9 +32,10 @@ const (
 // checkCIQuota runs after the queue claims the task but before any executable
 // workflow data reaches the agent. Retries keep the claim alive and never start
 // work while the quota service is unavailable.
-func (s *RPC) checkCIQuota(ctx context.Context, agentID int64, task *model.Task) error {
+func (s *RPC) checkCIQuota(ctx context.Context, agent *model.Agent, task *model.Task) error {
 	reporter := server.Config.Services.CIQuotaReporter
-	if reporter == nil {
+	// Organization-scoped names are tenant-controlled and cannot identify public runners.
+	if reporter == nil || !agent.IsGlobal() {
 		return nil
 	}
 	workflowID, err := strconv.ParseInt(task.ID, 10, 64)
@@ -59,10 +60,10 @@ func (s *RPC) checkCIQuota(ctx context.Context, agentID int64, task *model.Task)
 		if checkCtx.Err() != nil {
 			break
 		}
-		if err := s.queue.Extend(ctx, agentID, task.ID); err != nil {
+		if err := s.queue.Extend(ctx, agent.ID, task.ID); err != nil {
 			return fmt.Errorf("CI quota: retain workflow claim: %w", err)
 		}
-		decision, checkErr := reporter.Check(checkCtx, repo.FullName, class)
+		decision, checkErr := reporter.Check(checkCtx, repo.FullName, class, agent.Name)
 		if checkErr == nil && decision == nil {
 			checkErr = errors.New("CI quota check returned an empty decision")
 		}

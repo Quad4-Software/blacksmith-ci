@@ -39,8 +39,8 @@ func (_m *MockReporter) EXPECT() *MockReporter_Expecter {
 }
 
 // Check provides a mock function for the type MockReporter
-func (_mock *MockReporter) Check(context1 context.Context, s string, s1 string) (*ciquota.Decision, error) {
-	ret := _mock.Called(context1, s, s1)
+func (_mock *MockReporter) Check(context1 context.Context, s string, s1 string, s2 string) (*ciquota.Decision, error) {
+	ret := _mock.Called(context1, s, s1, s2)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Check")
@@ -48,18 +48,18 @@ func (_mock *MockReporter) Check(context1 context.Context, s string, s1 string) 
 
 	var r0 *ciquota.Decision
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (*ciquota.Decision, error)); ok {
-		return returnFunc(context1, s, s1)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) (*ciquota.Decision, error)); ok {
+		return returnFunc(context1, s, s1, s2)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) *ciquota.Decision); ok {
-		r0 = returnFunc(context1, s, s1)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) *ciquota.Decision); ok {
+		r0 = returnFunc(context1, s, s1, s2)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*ciquota.Decision)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = returnFunc(context1, s, s1)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, string) error); ok {
+		r1 = returnFunc(context1, s, s1, s2)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -75,11 +75,12 @@ type MockReporter_Check_Call struct {
 //   - context1 context.Context
 //   - s string
 //   - s1 string
-func (_e *MockReporter_Expecter) Check(context1 any, s any, s1 any) *MockReporter_Check_Call {
-	return &MockReporter_Check_Call{Call: _e.mock.On("Check", context1, s, s1)}
+//   - s2 string
+func (_e *MockReporter_Expecter) Check(context1 any, s any, s1 any, s2 any) *MockReporter_Check_Call {
+	return &MockReporter_Check_Call{Call: _e.mock.On("Check", context1, s, s1, s2)}
 }
 
-func (_c *MockReporter_Check_Call) Run(run func(context1 context.Context, s string, s1 string)) *MockReporter_Check_Call {
+func (_c *MockReporter_Check_Call) Run(run func(context1 context.Context, s string, s1 string, s2 string)) *MockReporter_Check_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -93,10 +94,15 @@ func (_c *MockReporter_Check_Call) Run(run func(context1 context.Context, s stri
 		if args[2] != nil {
 			arg2 = args[2].(string)
 		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
 		run(
 			arg0,
 			arg1,
 			arg2,
+			arg3,
 		)
 	})
 	return _c
@@ -107,7 +113,7 @@ func (_c *MockReporter_Check_Call) Return(decision *ciquota.Decision, err error)
 	return _c
 }
 
-func (_c *MockReporter_Check_Call) RunAndReturn(run func(context1 context.Context, s string, s1 string) (*ciquota.Decision, error)) *MockReporter_Check_Call {
+func (_c *MockReporter_Check_Call) RunAndReturn(run func(context1 context.Context, s string, s1 string, s2 string) (*ciquota.Decision, error)) *MockReporter_Check_Call {
 	_c.Call.Return(run)
 	return _c
 }

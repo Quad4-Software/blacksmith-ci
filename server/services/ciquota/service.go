@@ -31,7 +31,7 @@ const (
 // Reporter checks whether work may start and records completed CI workflow usage.
 type Reporter interface {
 	Report(context.Context, Usage) error
-	Check(context.Context, string, string) (*Decision, error)
+	Check(context.Context, string, string, string) (*Decision, error)
 }
 
 // Config configures a Forgejo CI quota reporter.
@@ -47,6 +47,8 @@ func (c Config) IsConfigured() bool {
 
 // Usage is one completed workflow's billable runtime.
 type Usage struct {
+	// RunnerID is the registered global agent name, matched against Forgejo configuration.
+	RunnerID    string    `json:"runner_id"`
 	Repository  string    `json:"repo"`
 	ExternalRef string    `json:"external_ref"`
 	Started     time.Time `json:"started"`
@@ -92,7 +94,7 @@ func (r *reporter) Report(ctx context.Context, usage Usage) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusNoContent {
 		return fmt.Errorf("report CI quota usage: Forgejo returned %s", resp.Status)
 	}
 	return nil
@@ -107,8 +109,8 @@ type Decision struct {
 
 // Check asks Forgejo whether a workflow may start. An invalid or unavailable
 // response is an error, never an implicit permission to run.
-func (r *reporter) Check(ctx context.Context, repository, class string) (*Decision, error) {
-	query := url.Values{"repo": {repository}, "class": {class}}
+func (r *reporter) Check(ctx context.Context, repository, class, runnerID string) (*Decision, error) {
+	query := url.Values{"repo": {repository}, "class": {class}, "runner_id": {runnerID}}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, r.url+checkPath+"?"+query.Encode(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("create CI quota check request: %w", err)

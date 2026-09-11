@@ -23,6 +23,7 @@ import (
 func TestReport(t *testing.T) {
 	started := time.Unix(1_700_000_000, 0).UTC()
 	usage := Usage{
+		RunnerID:    "public-linux-1",
 		Repository:  "octo/repo",
 		ExternalRef: "crow:workflow:42",
 		Started:     started,
@@ -97,6 +98,7 @@ func TestCheck(t *testing.T) {
 				assert.Equal(t, "/forge"+checkPath, r.URL.Path)
 				assert.Equal(t, "org/repo with space", r.URL.Query().Get("repo"))
 				assert.Equal(t, "macos", r.URL.Query().Get("class"))
+				assert.Equal(t, "public mac & arm", r.URL.Query().Get("runner_id"))
 				assert.Equal(t, "Bearer reporter-token", r.Header.Get("Authorization"))
 				if tc.status != 0 {
 					w.WriteHeader(tc.status)
@@ -104,7 +106,7 @@ func TestCheck(t *testing.T) {
 				_, _ = w.Write([]byte(tc.body))
 			}))
 			t.Cleanup(srv.Close)
-			result, err := New(Config{URL: srv.URL + "/forge/", Token: "reporter-token"}).Check(t.Context(), "org/repo with space", "macos")
+			result, err := New(Config{URL: srv.URL + "/forge/", Token: "reporter-token"}).Check(t.Context(), "org/repo with space", "macos", "public mac & arm")
 			if tc.errorText != "" {
 				require.ErrorContains(t, err, tc.errorText)
 				assert.Nil(t, result)
@@ -120,7 +122,19 @@ func TestCheck(t *testing.T) {
 func TestCheckCanceled(t *testing.T) {
 	ctx, cancel := context.WithCancelCause(t.Context())
 	cancel(nil)
-	result, err := New(Config{URL: "http://127.0.0.1:1", Token: "token"}).Check(ctx, "org/repo", "linux")
+	result, err := New(Config{URL: "http://127.0.0.1:1", Token: "token"}).Check(ctx, "org/repo", "linux", "public-linux-1")
 	require.ErrorIs(t, err, context.Canceled)
 	assert.Nil(t, result)
+}
+
+func TestReportAcceptsUnbilledAndDuplicateUsage(t *testing.T) {
+	for _, status := range []int{http.StatusNoContent, http.StatusOK} {
+		t.Run(http.StatusText(status), func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(status)
+			}))
+			t.Cleanup(srv.Close)
+			require.NoError(t, New(Config{URL: srv.URL, Token: "reporter-token"}).Report(t.Context(), Usage{RunnerID: "unlisted-agent"}))
+		})
+	}
 }

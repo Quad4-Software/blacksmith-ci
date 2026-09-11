@@ -22,9 +22,29 @@ Crow reports each completed workflow separately, so parallel workflows consume t
 Queue time is excluded, and Linux, Windows, and macOS workflows are attributed to their respective runner classes.
 Reports use the workflow ID as an idempotency key and retry transient failures during the server process lifetime.
 
+## Platform agents
+
+Crow sends the registered global agent name as `runner_id` in allowance checks and completed-workflow reports.
+Use those names in Forgejo's per-reporter allowlist:
+
+```ini
+[quota.ci.reporter.crow]
+TOKEN_HASH = <hex SHA-256 of the reporter token>
+PLATFORM_RUNNER_IDS = public-linux-1, public-macos-1
+```
+
+The names must match exactly and uniquely identify your public agents.
+You can inspect registered names with `crow admin agent ls`.
+Numeric Crow database IDs are not used by this integration.
+Only listed global agents count toward the CI quota; an empty allowlist excludes all agents.
+Organization-scoped agents bypass both quota checks and reports, even if their name matches a public agent, because organization administrators control those names.
+
+Forgejo accepts reports from unlisted global agents with HTTP 204 and omits them from the ledger.
+Crow treats this as successful processing and does not retry.
+
 ## Workflow admission
 
-Before dispatching each workflow to an agent, Crow calls Forgejo's `/api/v1/quota/ci/check` endpoint with the repository name and the same runner class used for accounting.
+Before dispatching each workflow to an agent, Crow calls Forgejo's `/api/v1/quota/ci/check` endpoint with the repository name, registered agent name as `runner_id`, and the same runner class used for accounting.
 Both the owner's total allowance and any OS-specific cap apply.
 A denied workflow fails without running, with Forgejo's reason shown as its error.
 Other independent workflows are checked separately, so a macOS cap does not prevent Linux work that still has an allowance.
