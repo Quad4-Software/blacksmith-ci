@@ -10,9 +10,9 @@
       :class="[logThemeClass, isFullscreen ? 'rounded-none border-0' : '']"
     >
       <!-- Desktop header - hidden on mobile since we have a mobile header in the parent -->
-      <CardHeader class="hidden md:flex flex-row items-center justify-between px-3 py-2 border-b space-y-0 gap-3">
+      <CardHeader class="hidden md:flex flex-row flex-wrap shrink-0 items-center px-3 py-2 border-b space-y-0 gap-3">
         <!-- Left: Navigation buttons -->
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 shrink-0">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger as-child>
@@ -46,9 +46,9 @@
         </div>
 
         <!-- Center: Step name, status, and exit code -->
-        <div class="flex items-center gap-2 flex-1 min-w-0">
+        <div class="flex flex-wrap items-center gap-2 flex-1 basis-48 min-w-0">
           <PipelineStatusIcon v-if="step" :status="step.state" class="h-4 w-4 shrink-0" />
-          <span class="text-sm font-semibold text-foreground truncate"
+          <span class="text-sm font-semibold text-foreground truncate min-w-0"
             >{{ step?.name }}<span class="font-normal text-muted-foreground">{{ stepNameSuffix }}</span></span
           >
           <span
@@ -85,7 +85,7 @@
         </div>
 
         <!-- Right: Action buttons -->
-        <div class="flex flex-row items-center gap-x-2 shrink-0">
+        <div class="flex flex-row flex-wrap items-center justify-end gap-2 ml-auto max-w-full shrink-0">
           <TooltipProvider v-if="hasPushPermission && currentWorkflow && step && isStepCompleted">
             <Tooltip>
               <TooltipTrigger as-child>
