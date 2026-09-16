@@ -16,9 +16,16 @@ package kubernetes
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes/fake"
+	ktesting "k8s.io/client-go/testing"
 
 	"codefloe.com/crowci/crow/v6/pipeline/backend/types"
 )
@@ -104,4 +111,44 @@ func TestGettingConfig(t *testing.T) {
 	assert.Len(t, engine.config.PodAnnotations, 1)
 	assert.Len(t, engine.config.ImagePullSecretNames, 1)
 	assert.False(t, engine.config.SecurityContext.RunAsNonRoot)
+}
+
+func TestDestroyWorkflowCleansSecrets(t *testing.T) {
+	for _, perOrg := range []bool{false, true} {
+		t.Run(fmt.Sprintf("perOrg=%t", perOrg), func(t *testing.T) {
+			client := fake.NewClientset()
+			engine := &kube{client: client, config: &config{Namespace: "crow", EnableNamespacePerOrg: perOrg}}
+			step := &types.Step{UUID: "test", Name: "build", OrgID: 42, Image: "alpine", SecretMapping: map[string]string{"TOKEN": "test"}}
+			step.AuthConfig.Username = "user"
+			step.AuthConfig.Password = "password"
+			ns := engine.config.GetNamespace(step.OrgID)
+			require.NoError(t, startStepSecret(t.Context(), engine, step))
+			require.NoError(t, startRegistrySecret(t.Context(), engine, step))
+			before, err := client.CoreV1().Secrets(ns).List(t.Context(), metav1.ListOptions{})
+			require.NoError(t, err)
+			require.Len(t, before.Items, 2)
+			conf := &types.Config{Volume: "workspace", Stages: []*types.Stage{{Steps: []*types.Step{step}}}}
+			// Teardown also covers a step whose pod was never created.
+			require.NoError(t, engine.DestroyWorkflow(t.Context(), conf, "task"))
+			after, err := client.CoreV1().Secrets(ns).List(t.Context(), metav1.ListOptions{})
+			require.NoError(t, err)
+			require.Empty(t, after.Items)
+			require.NoError(t, engine.DestroyWorkflow(t.Context(), conf, "task"))
+		})
+	}
+}
+
+func TestDestroyWorkflowContinuesAfterSecretDeleteError(t *testing.T) {
+	client := fake.NewClientset(&v1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{Name: "workspace", Namespace: "crow"}})
+	engine := &kube{client: client, config: &config{Namespace: "crow"}}
+	step := &types.Step{UUID: "test", SecretMapping: map[string]string{"TOKEN": "test"}}
+	require.NoError(t, startStepSecret(t.Context(), engine, step))
+	client.PrependReactor("delete", "secrets", func(ktesting.Action) (bool, runtime.Object, error) {
+		return true, nil, fmt.Errorf("secret deletion denied")
+	})
+	conf := &types.Config{Volume: "workspace", Stages: []*types.Stage{{Steps: []*types.Step{step}}}}
+	require.ErrorContains(t, engine.DestroyWorkflow(t.Context(), conf, "task"), "secret deletion denied")
+	pvcs, err := client.CoreV1().PersistentVolumeClaims("crow").List(t.Context(), metav1.ListOptions{})
+	require.NoError(t, err)
+	require.Empty(t, pvcs.Items)
 }

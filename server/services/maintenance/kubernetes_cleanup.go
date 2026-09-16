@@ -16,6 +16,7 @@ package maintenance
 
 import (
 	"context"
+	std_errors "errors"
 	"fmt"
 	"os"
 	"strings"
@@ -50,14 +51,13 @@ type KubernetesCleanupStats struct {
 }
 
 // NewKubernetesCleanupFunc creates a function to clean up stale Kubernetes resources.
-// It cleans up Services (crow-svc-*), PVCs (wp-*), and Secrets (wp-*, crow-*) that are older than the configured threshold.
+// It cleans up services, PVCs, and secrets labeled app.kubernetes.io/managed-by=crow
+// that are older than the configured threshold.
 //
 // Permission Requirements:
 // - If config.Namespaces is specified, requires permissions in those namespaces only
 // - If config.Namespaces is empty, only requires permissions in the current namespace
-// - No cluster-wide permissions required (no ClusterRole needed)
-//
-// This would allow more precise filtering and avoid potential false positives.
+// - No cluster-wide permissions required (no ClusterRole needed).
 func NewKubernetesCleanupFunc(config KubernetesCleanupConfig) func(ctx context.Context, dryRun bool) error {
 	return func(ctx context.Context, dryRun bool) error {
 		dynamicConfig := config
@@ -67,37 +67,43 @@ func NewKubernetesCleanupFunc(config KubernetesCleanupConfig) func(ctx context.C
 			return fmt.Errorf("failed to get Kubernetes client: %w", err)
 		}
 
-		namespaces := getNamespacesToCleanup(dynamicConfig)
-
-		var stats *KubernetesCleanupStats
-		if statsFromCtx := ctx.Value(cleanupStatsKey); statsFromCtx != nil {
-			if s, ok := statsFromCtx.(*KubernetesCleanupStats); ok {
-				stats = s
-			}
+		namespaces, err := getNamespacesToCleanup(dynamicConfig)
+		if err != nil {
+			return err
 		}
-
-		// Clean up services
-		servicesFound, servicesDeleted := cleanupServices(ctx, client, dynamicConfig, namespaces)
-		if stats != nil {
-			stats.ServicesFound = servicesFound
-			stats.ServicesDeleted = servicesDeleted
-		}
-
-		// Clean up PVCs
-		pvcsFound, pvcsDeleted := cleanupPVCs(ctx, client, dynamicConfig, namespaces)
-		if stats != nil {
-			stats.PVCsFound = pvcsFound
-			stats.PVCsDeleted = pvcsDeleted
-		}
-
-		// Clean up secrets
-		secretsFound, secretsDeleted := cleanupSecrets(ctx, client, dynamicConfig, namespaces)
-		if stats != nil {
-			stats.SecretsFound = secretsFound
-			stats.SecretsDeleted = secretsDeleted
-		}
-		return nil
+		return cleanupKubernetesResources(ctx, client, dynamicConfig, namespaces)
 	}
+}
+
+func cleanupKubernetesResources(ctx context.Context, client kubernetes.Interface, dynamicConfig KubernetesCleanupConfig, namespaces []string) error {
+	var stats *KubernetesCleanupStats
+	if statsFromCtx := ctx.Value(cleanupStatsKey); statsFromCtx != nil {
+		if s, ok := statsFromCtx.(*KubernetesCleanupStats); ok {
+			stats = s
+		}
+	}
+
+	// Clean up services
+	servicesFound, servicesDeleted, servicesErr := cleanupServices(ctx, client, dynamicConfig, namespaces)
+	if stats != nil {
+		stats.ServicesFound = servicesFound
+		stats.ServicesDeleted = servicesDeleted
+	}
+
+	// Clean up PVCs
+	pvcsFound, pvcsDeleted, pvcsErr := cleanupPVCs(ctx, client, dynamicConfig, namespaces)
+	if stats != nil {
+		stats.PVCsFound = pvcsFound
+		stats.PVCsDeleted = pvcsDeleted
+	}
+
+	// Clean up secrets
+	secretsFound, secretsDeleted, secretsErr := cleanupSecrets(ctx, client, dynamicConfig, namespaces)
+	if stats != nil {
+		stats.SecretsFound = secretsFound
+		stats.SecretsDeleted = secretsDeleted
+	}
+	return std_errors.Join(servicesErr, pvcsErr, secretsErr)
 }
 
 // getKubernetesClient returns a Kubernetes client.
@@ -120,30 +126,34 @@ func getKubernetesClient() (kubernetes.Interface, error) {
 
 // getNamespacesToCleanup returns the list of namespaces to clean up.
 // If config.Namespaces is specified, use those. Otherwise, try to get current namespace.
-func getNamespacesToCleanup(config KubernetesCleanupConfig) []string {
+func getNamespacesToCleanup(config KubernetesCleanupConfig) ([]string, error) {
 	if len(config.Namespaces) > 0 {
 		log.Info().Strs("namespaces", config.Namespaces).Msg("Using configured namespaces for cleanup")
-		return config.Namespaces
+		for _, namespace := range config.Namespaces {
+			if strings.TrimSpace(namespace) == "" {
+				return nil, fmt.Errorf("cleanup namespace must not be empty")
+			}
+		}
+		return config.Namespaces, nil
 	}
 
 	// Try to get current namespace from service account
 	currentNamespace, err := getCurrentNamespace()
 	if err != nil {
-		log.Warn().Err(err).Msg("Could not determine current namespace, defaulting to 'default'")
-		return []string{"default"}
+		return nil, fmt.Errorf("configure CROW_MAINTENANCE_KUBERNETES_CLEANUP_NAMESPACES: %w", err)
 	}
 
 	log.Info().Str("namespace", currentNamespace).Msg("Using current namespace for cleanup")
-	return []string{currentNamespace}
+	return []string{currentNamespace}, nil
 }
 
 // getCurrentNamespace returns the current namespace from the service account token.
 func getCurrentNamespace() (string, error) {
 	namespaceFile := "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
-	if data, err := os.ReadFile(namespaceFile); err == nil {
+	if data, err := os.ReadFile(namespaceFile); err == nil && strings.TrimSpace(string(data)) != "" {
 		return strings.TrimSpace(string(data)), nil
 	}
-	if ns := os.Getenv("KUBERNETES_NAMESPACE"); ns != "" {
+	if ns := strings.TrimSpace(os.Getenv("KUBERNETES_NAMESPACE")); ns != "" {
 		return ns, nil
 	}
 
@@ -151,9 +161,10 @@ func getCurrentNamespace() (string, error) {
 }
 
 // cleanupServices cleans up stale Crow services.
-func cleanupServices(ctx context.Context, client kubernetes.Interface, config KubernetesCleanupConfig, namespaces []string) (int, int) {
+func cleanupServices(ctx context.Context, client kubernetes.Interface, config KubernetesCleanupConfig, namespaces []string) (int, int, error) {
 	log.Info().Msg("Starting Kubernetes service cleanup")
 
+	var errs []error
 	totalDeleted := 0
 	totalFound := 0
 
@@ -164,6 +175,7 @@ func cleanupServices(ctx context.Context, client kubernetes.Interface, config Ku
 		})
 		if err != nil {
 			log.Warn().Err(err).Str("namespace", namespaceName).Msg("Failed to list services")
+			errs = append(errs, fmt.Errorf("list services in namespace %s: %w", namespaceName, err))
 			continue
 		}
 
@@ -185,6 +197,7 @@ func cleanupServices(ctx context.Context, client kubernetes.Interface, config Ku
 							Str("service", svc.Name).
 							Str("namespace", namespaceName).
 							Msg("Failed to delete service")
+						errs = append(errs, fmt.Errorf("delete service %s/%s: %w", namespaceName, svc.Name, err))
 					} else {
 						totalDeleted++
 						log.Info().
@@ -204,13 +217,14 @@ func cleanupServices(ctx context.Context, client kubernetes.Interface, config Ku
 		Bool("dry_run", config.DryRun).
 		Msg("Kubernetes service cleanup completed")
 
-	return totalFound, totalDeleted
+	return totalFound, totalDeleted, std_errors.Join(errs...)
 }
 
 // cleanupPVCs cleans up stale Crow PVCs.
-func cleanupPVCs(ctx context.Context, client kubernetes.Interface, config KubernetesCleanupConfig, namespaces []string) (int, int) {
+func cleanupPVCs(ctx context.Context, client kubernetes.Interface, config KubernetesCleanupConfig, namespaces []string) (int, int, error) {
 	log.Info().Msg("Starting Kubernetes PVC cleanup")
 
+	var errs []error
 	totalDeleted := 0
 	totalFound := 0
 
@@ -220,6 +234,7 @@ func cleanupPVCs(ctx context.Context, client kubernetes.Interface, config Kubern
 		})
 		if err != nil {
 			log.Warn().Err(err).Str("namespace", namespaceName).Msg("Failed to list PVCs")
+			errs = append(errs, fmt.Errorf("list PVCs in namespace %s: %w", namespaceName, err))
 			continue
 		}
 
@@ -242,6 +257,7 @@ func cleanupPVCs(ctx context.Context, client kubernetes.Interface, config Kubern
 							Str("pvc", pvc.Name).
 							Str("namespace", namespaceName).
 							Msg("Failed to delete PVC")
+						errs = append(errs, fmt.Errorf("delete PVC %s/%s: %w", namespaceName, pvc.Name, err))
 					} else {
 						totalDeleted++
 						log.Info().
@@ -261,13 +277,14 @@ func cleanupPVCs(ctx context.Context, client kubernetes.Interface, config Kubern
 		Bool("dry_run", config.DryRun).
 		Msg("Kubernetes PVC cleanup completed")
 
-	return totalFound, totalDeleted
+	return totalFound, totalDeleted, std_errors.Join(errs...)
 }
 
 // cleanupSecrets cleans up stale Crow secrets.
-func cleanupSecrets(ctx context.Context, client kubernetes.Interface, config KubernetesCleanupConfig, namespaces []string) (int, int) {
+func cleanupSecrets(ctx context.Context, client kubernetes.Interface, config KubernetesCleanupConfig, namespaces []string) (int, int, error) {
 	log.Info().Msg("Starting Kubernetes Secret cleanup")
 
+	var errs []error
 	totalDeleted := 0
 	totalFound := 0
 
@@ -277,6 +294,7 @@ func cleanupSecrets(ctx context.Context, client kubernetes.Interface, config Kub
 		})
 		if err != nil {
 			log.Warn().Err(err).Str("namespace", namespaceName).Msg("Failed to list secrets")
+			errs = append(errs, fmt.Errorf("list secrets in namespace %s: %w", namespaceName, err))
 			continue
 		}
 
@@ -299,6 +317,7 @@ func cleanupSecrets(ctx context.Context, client kubernetes.Interface, config Kub
 							Str("secret", secret.Name).
 							Str("namespace", namespaceName).
 							Msg("Failed to delete secret")
+						errs = append(errs, fmt.Errorf("delete secret %s/%s: %w", namespaceName, secret.Name, err))
 					} else {
 						totalDeleted++
 						log.Info().
@@ -318,5 +337,5 @@ func cleanupSecrets(ctx context.Context, client kubernetes.Interface, config Kub
 		Bool("dry_run", config.DryRun).
 		Msg("Kubernetes Secret cleanup completed")
 
-	return totalFound, totalDeleted
+	return totalFound, totalDeleted, std_errors.Join(errs...)
 }

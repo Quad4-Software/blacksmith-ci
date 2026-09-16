@@ -26,15 +26,18 @@ Maintenance and cleanup configuration variables.
 
 ### MAINTENANCE_KUBERNETES_CLEANUP_ENABLED
 
-- Name: `MAINTENANCE_KUBERNETES_CLEANUP_ENABLED`
+- Name: `CROW_MAINTENANCE_KUBERNETES_CLEANUP_ENABLED`
 - Description: Whether to enable Kubernetes resource cleanup.
-- Default: `none` (`true` when `CROW_BACKEND=kubernetes`)
+- Default: `false` (`true` when `CROW_BACKEND=kubernetes` is set on the server)
+
+Set this on the server to enable scheduled cleanup even when only the agents have `CROW_BACKEND=kubernetes`.
+When enabled without an explicit age, the threshold is `168h`.
 
 ---
 
 ### MAINTENANCE_KUBERNETES_CLEANUP_AGE
 
-- Name: `MAINTENANCE_KUBERNETES_CLEANUP_AGE`
+- Name: `CROW_MAINTENANCE_KUBERNETES_CLEANUP_AGE`
 - Description: The age threshold for Kubernetes resources to be cleaned up.
 - Default: `168h`
 
@@ -42,9 +45,14 @@ Maintenance and cleanup configuration variables.
 
 ### MAINTENANCE_KUBERNETES_CLEANUP_NAMESPACES
 
-- Name: `MAINTENANCE_KUBERNETES_CLEANUP_NAMESPACES`
+- Name: `CROW_MAINTENANCE_KUBERNETES_CLEANUP_NAMESPACES`
 - Description: Comma-separated list of namespaces to clean up.
 - Default: `none` (applies to current server namespace)
+
+Set this on the server to include every agent execution namespace, including namespaces created by namespace-per-organization mode.
+Crow does not automatically discover agent namespaces or remote agent clusters.
+Empty entries are rejected.
+If the server namespace cannot be determined, configure this variable explicitly.
 
 ---
 

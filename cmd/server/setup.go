@@ -476,100 +476,7 @@ func setupEvilGlobals(ctx context.Context, c *cli.Command, s store.Store) (err e
 		}
 	}
 
-	k8sCleanupAge := c.String("maintenance-kubernetes-cleanup-age")
-
-	// Auto-enable if using Kubernetes backend (detect via CROW_BACKEND environment variable)
-	backendType := os.Getenv("CROW_BACKEND")
-	if backendType == "" {
-		backendType = os.Getenv("WOODPECKER_BACKEND")
-	}
-	usingKubernetesBackend := backendType == "kubernetes"
-
-	if k8sCleanupAge != "" || usingKubernetesBackend {
-		if k8sCleanupAge == "" {
-			k8sCleanupAge = "168h" // Default to 7 days (168h)
-		}
-		ageDuration, err := time.ParseDuration(k8sCleanupAge)
-		if err != nil {
-			log.Error().Err(err).Str("age", k8sCleanupAge).Msg("Invalid Kubernetes cleanup age duration")
-		} else {
-			// Parse namespace configuration
-			var namespaces []string
-			namespacesStr := c.String("maintenance-kubernetes-cleanup-namespaces")
-			if namespacesStr != "" {
-				namespaces = strings.Split(namespacesStr, ",")
-				// Trim whitespace from each namespace
-				for i, ns := range namespaces {
-					namespaces[i] = strings.TrimSpace(ns)
-				}
-			}
-
-			k8sCleanupConfig := maintenance.KubernetesCleanupConfig{
-				ResourceAgeThreshold: ageDuration,
-				DryRun:               false, // Will be set per-request in the UI
-				Namespaces:           namespaces,
-			}
-			server.Config.Services.MaintenanceService.SetKubernetesCleanupFunc(
-				maintenance.NewKubernetesCleanupFunc(k8sCleanupConfig),
-			)
-
-			server.Config.Services.MaintenanceService.SetKubernetesCleanupEnabled(true)
-
-			enabled := c.Bool("maintenance-kubernetes-cleanup-enabled")
-
-			envEnabledVar := os.Getenv("CROW_MAINTENANCE_KUBERNETES_CLEANUP_ENABLED")
-			envEnabledVarWP := os.Getenv("WOODPECKER_MAINTENANCE_KUBERNETES_CLEANUP_ENABLED")
-			envVarExplicitlySet := envEnabledVar != "" || envEnabledVarWP != ""
-
-			// If using Kubernetes backend and no explicit env var is set, enable by default
-			if !envVarExplicitlySet && usingKubernetesBackend {
-				enabled = true
-			}
-			if envVarExplicitlySet {
-				enabled = c.Bool("maintenance-kubernetes-cleanup-enabled")
-			}
-
-			k8sActionConfig, err := server.Config.Services.MaintenanceService.GetMaintenanceConfigByAction("kubernetes_cleanup")
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to get kubernetes_cleanup action config")
-			} else {
-				log.Info().
-					Bool("current_k8s_enabled", k8sActionConfig.Enabled).
-					Str("current_k8s_schedule", k8sActionConfig.Schedule).
-					Bool("env_enabled", enabled).
-					Bool("auto_enabled", usingKubernetesBackend).
-					Msg("Checking Kubernetes cleanup action configuration")
-
-				needsUpdate := false
-
-				// Only update if schedule is empty (first time setup) or if explicitly enabled via env var
-				if k8sActionConfig.Schedule == "" {
-					k8sActionConfig.Schedule = "0 5 * * *" // Daily at 5 AM
-					needsUpdate = true
-				}
-
-				if k8sActionConfig.Enabled != enabled {
-					k8sActionConfig.Enabled = enabled
-					needsUpdate = true
-				}
-
-				if needsUpdate {
-					log.Info().
-						Bool("setting_enabled", k8sActionConfig.Enabled).
-						Str("setting_schedule", k8sActionConfig.Schedule).
-						Msg("Updating Kubernetes cleanup action configuration")
-
-					if err := server.Config.Services.MaintenanceService.UpdateMaintenanceConfigByAction("kubernetes_cleanup", k8sActionConfig); err != nil {
-						log.Error().Err(err).Msg("Failed to update Kubernetes cleanup action config")
-					} else {
-						log.Info().Msg("Updated Kubernetes cleanup action configuration in database")
-					}
-				} else {
-					log.Info().Msg("Kubernetes cleanup action configuration already set correctly, skipping")
-				}
-			}
-		}
-	}
+	setupKubernetesCleanup(c, server.Config.Services.MaintenanceService)
 
 	server.Config.Services.MaintenanceScheduler = maintenance.NewScheduler(server.Config.Services.MaintenanceService, s, lockService)
 	if err := server.Config.Services.MaintenanceScheduler.Start(); err != nil {
@@ -744,4 +651,101 @@ func setupEvilGlobals(ctx context.Context, c *cli.Command, s store.Store) (err e
 	server.Config.Permissions.Orgs = permissions.NewOrgs(c.StringSlice("orgs"))
 	server.Config.Permissions.OwnersAllowlist = permissions.NewOwnersAllowlist(c.StringSlice("repo-owners"))
 	return nil
+}
+
+func setupKubernetesCleanup(c *cli.Command, svc maintenance.Service) {
+	k8sCleanupAge := c.String("maintenance-kubernetes-cleanup-age")
+
+	// Auto-enable if using Kubernetes backend (detect via CROW_BACKEND environment variable)
+	backendType := os.Getenv("CROW_BACKEND")
+	if backendType == "" {
+		backendType = os.Getenv("WOODPECKER_BACKEND")
+	}
+	usingKubernetesBackend := backendType == "kubernetes"
+
+	if k8sCleanupAge != "" || usingKubernetesBackend || c.Bool("maintenance-kubernetes-cleanup-enabled") {
+		if k8sCleanupAge == "" {
+			k8sCleanupAge = "168h" // Default to 7 days (168h)
+		}
+		ageDuration, err := time.ParseDuration(k8sCleanupAge)
+		if err != nil {
+			log.Error().Err(err).Str("age", k8sCleanupAge).Msg("Invalid Kubernetes cleanup age duration")
+		} else {
+			// Parse namespace configuration
+			var namespaces []string
+			namespacesStr := c.String("maintenance-kubernetes-cleanup-namespaces")
+			if namespacesStr != "" {
+				namespaces = strings.Split(namespacesStr, ",")
+				// Trim whitespace from each namespace
+				for i, ns := range namespaces {
+					namespaces[i] = strings.TrimSpace(ns)
+				}
+			}
+
+			k8sCleanupConfig := maintenance.KubernetesCleanupConfig{
+				ResourceAgeThreshold: ageDuration,
+				DryRun:               false, // Will be set per-request in the UI
+				Namespaces:           namespaces,
+			}
+			svc.SetKubernetesCleanupFunc(
+				maintenance.NewKubernetesCleanupFunc(k8sCleanupConfig),
+			)
+
+			svc.SetKubernetesCleanupEnabled(true)
+
+			enabled := c.Bool("maintenance-kubernetes-cleanup-enabled")
+
+			envEnabledVar := os.Getenv("CROW_MAINTENANCE_KUBERNETES_CLEANUP_ENABLED")
+			envEnabledVarWP := os.Getenv("WOODPECKER_MAINTENANCE_KUBERNETES_CLEANUP_ENABLED")
+			envVarExplicitlySet := c.IsSet("maintenance-kubernetes-cleanup-enabled") || envEnabledVar != "" || envEnabledVarWP != ""
+
+			// If using Kubernetes backend and no explicit env var is set, enable by default
+			if !envVarExplicitlySet && usingKubernetesBackend {
+				enabled = true
+			}
+			if envVarExplicitlySet {
+				enabled = c.Bool("maintenance-kubernetes-cleanup-enabled")
+			}
+
+			k8sActionConfig, err := svc.GetMaintenanceConfigByAction("kubernetes_cleanup")
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to get kubernetes_cleanup action config")
+			} else {
+				log.Info().
+					Bool("current_k8s_enabled", k8sActionConfig.Enabled).
+					Str("current_k8s_schedule", k8sActionConfig.Schedule).
+					Bool("env_enabled", enabled).
+					Bool("auto_enabled", usingKubernetesBackend).
+					Msg("Checking Kubernetes cleanup action configuration")
+
+				needsUpdate := false
+
+				// Only update if schedule is empty (first time setup) or if explicitly enabled via env var
+				if k8sActionConfig.Schedule == "" {
+					k8sActionConfig.Schedule = "0 5 * * *" // Daily at 5 AM
+					needsUpdate = true
+				}
+
+				if k8sActionConfig.Enabled != enabled {
+					k8sActionConfig.Enabled = enabled
+					needsUpdate = true
+				}
+
+				if needsUpdate {
+					log.Info().
+						Bool("setting_enabled", k8sActionConfig.Enabled).
+						Str("setting_schedule", k8sActionConfig.Schedule).
+						Msg("Updating Kubernetes cleanup action configuration")
+
+					if err := svc.UpdateMaintenanceConfigByAction("kubernetes_cleanup", k8sActionConfig); err != nil {
+						log.Error().Err(err).Msg("Failed to update Kubernetes cleanup action config")
+					} else {
+						log.Info().Msg("Updated Kubernetes cleanup action configuration in database")
+					}
+				} else {
+					log.Info().Msg("Kubernetes cleanup action configuration already set correctly, skipping")
+				}
+			}
+		}
+	}
 }

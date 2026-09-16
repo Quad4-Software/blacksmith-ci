@@ -574,7 +574,7 @@ func (e *kube) DestroyWorkflow(ctx context.Context, conf *types.Config, taskUUID
 	var errs []error
 	for _, stage := range conf.Stages {
 		for _, step := range stage.Steps {
-			if err := stopPod(ctx, e, step, defaultDeleteOptions); err != nil {
+			if err := e.DestroyStep(ctx, step, taskUUID); err != nil {
 				errs = append(errs, err)
 			}
 

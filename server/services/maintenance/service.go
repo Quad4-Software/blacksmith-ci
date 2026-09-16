@@ -332,8 +332,7 @@ const cleanupStatsKey contextKey = "cleanup_stats"
 // RunKubernetesCleanup executes Kubernetes resource cleanup.
 func (s *service) RunKubernetesCleanup(ctx context.Context, dryRun bool) error {
 	if s.kubernetesCleanupFunc == nil {
-		log.Info().Msg("Kubernetes cleanup function not configured, skipping")
-		return nil
+		return fmt.Errorf("kubernetes cleanup function not configured; set CROW_MAINTENANCE_KUBERNETES_CLEANUP_ENABLED=true on the server")
 	}
 
 	// Update LastRun immediately to prevent duplicate runs (unless in dry-run mode)
@@ -369,7 +368,7 @@ func (s *service) RunKubernetesCleanup(ctx context.Context, dryRun bool) error {
 			}
 		}
 		details += resourceDetails
-	} else {
+	} else if err == nil {
 		details += ", No stale resources found"
 	}
 

@@ -17,6 +17,7 @@ package maintenance
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -157,7 +158,7 @@ func TestService_RunKubernetesCleanup(t *testing.T) {
 			name:              "no cleanup function configured",
 			setupCleanupFunc:  false,
 			dryRun:            false,
-			expectError:       false,
+			expectError:       true,
 			expectLogCreation: false,
 		},
 		{
@@ -201,7 +202,12 @@ func TestService_RunKubernetesCleanup(t *testing.T) {
 			}
 
 			if tt.expectLogCreation {
-				mockStore.On("MaintenanceLogCreate", mock.AnythingOfType("*model.MaintenanceLog")).Return(nil)
+				mockStore.On("MaintenanceLogCreate", mock.MatchedBy(func(entry *model.MaintenanceLog) bool {
+					if tt.cleanupFuncError != nil {
+						return !entry.Success && entry.Error == tt.cleanupFuncError.Error() && !strings.Contains(entry.Details, "No stale resources found")
+					}
+					return entry.Success && entry.Error == ""
+				})).Return(nil)
 				// Mock statistics tracking calls
 				mockConfig := &model.MaintenanceConfig{
 					ID:         1,
@@ -218,7 +224,11 @@ func TestService_RunKubernetesCleanup(t *testing.T) {
 
 			if tt.expectError {
 				assert.Error(t, err)
-				assert.Contains(t, err.Error(), "kubernetes resource cleanup failed")
+				if tt.setupCleanupFunc {
+					assert.Contains(t, err.Error(), "kubernetes resource cleanup failed")
+				} else {
+					assert.Contains(t, err.Error(), "not configured")
+				}
 			} else {
 				assert.NoError(t, err)
 			}
