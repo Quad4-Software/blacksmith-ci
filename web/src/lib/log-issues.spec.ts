@@ -11,6 +11,42 @@ function issue(index: number, type: 'error' | 'warning', text: string): IssueLog
 }
 
 describe('classifyLogLine', () => {
+  it('ignores command traces emitted by Crow on stdout', () => {
+    expect(classifyLogLine('+ echo warning', false)).toBeNull();
+  });
+
+  it.each(['"warning"', '> warning', '+ warning'])(
+    'does not interpret quoted text or console prompts on stderr: %s',
+    (text) => {
+      expect(classifyLogLine(text, true)).toBe('warning');
+    },
+  );
+
+  it.each([
+    '0 errors ✔ | 0 warnings ✔ | 0 notes ✔',
+    '0 warnings',
+    '\x1B[32m0\x1B[0m errors ✔ | \x1B[32m0\x1B[0m warnings ✔',
+    '0 errors, 0 failures, 0 failed',
+  ])('does not classify zero counts: %s', (text) => {
+    expect(classifyLogLine(text, false)).toBeNull();
+    expect(classifyLogLine(text, true)).toBeNull();
+  });
+
+  it.each([
+    '10 warnings',
+    '0 errors | 2 warnings',
+    '0 warnings, Warning: unable to access index for repository',
+    'Warning: unable to access index for repository',
+    '* checking package dependencies ...Warning: unable to access index for repository',
+    'Warning: argument must be "warning"',
+  ])('preserves real warnings: %s', (text) => {
+    expect(classifyLogLine(text, true)).toBe('warning');
+  });
+
+  it('preserves an error alongside a zero warning count', () => {
+    expect(classifyLogLine('Error: compilation failed, 0 warnings', true)).toBe('error');
+  });
+
   it('marks a line announcing a warning', () => {
     expect(classifyLogLine('WARN System dependency check skipped', false)).toBe('warning');
   });

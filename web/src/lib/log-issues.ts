@@ -10,6 +10,12 @@
  * as an error would tint most of a healthy log.
  */
 
+import { commandTrace } from './log-folding';
+
+// Strip terminal color codes before matching words and counts.
+// eslint-disable-next-line no-control-regex
+const ANSI_COLOR_REGEX = /\x1B\[[0-9;:]*m/g;
+const ZERO_COUNT_REGEX = /\b0\s+(?:warn(?:ing)?s?|errors?|failures?|failed)\b/gi;
 const WARNING_PATTERNS_REGEX = /\bwarn(?:ing)?s?\b|\[warn(?:ing)?\]/i;
 const SUCCESS_PATTERNS_REGEX =
   /^\s*[v✓✔☑⋅·•›>+⟶→]\s|done\b|success|complete[ds]?\b|installed\b|built\b|packaged\b|updated\b|finished\b|passed\b|ok\b|\bgot\b/i;
@@ -48,6 +54,12 @@ export interface LogIssue {
  * Classifies a log line for highlighting, or returns null to leave it plain.
  */
 export function classifyLogLine(text: string, isStderr: boolean): LogIssueSeverity | null {
+  text = text.replace(ANSI_COLOR_REGEX, '');
+  if (commandTrace(text, isStderr) !== undefined) return null;
+
+  // Ignore zero-count summaries without discarding another diagnostic on the same line.
+  text = text.replace(ZERO_COUNT_REGEX, '');
+
   // Checked first so a line that hedges an error as a warning stays a warning.
   if (WARNING_PATTERNS_REGEX.test(text)) {
     return 'warning';

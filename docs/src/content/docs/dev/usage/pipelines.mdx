@@ -250,7 +250,8 @@ The bar above the log collects those lines into an index of the step's problems,
 The bar only appears when a step produced at least one warning or error.
 It shows how many of each the step has; click a count to hide that severity and narrow the list to the other one, which is how you get to errors only.
 A hidden severity is struck through, and the choice is remembered per browser, so "errors only" stays set as you move between steps.
-Switching off the last visible severity shows only that one rather than emptying the list.
+You can hide both severities; the count buttons remain available to turn them back on.
+Hiding a severity also disables its line highlighting.
 The up and down buttons step through the issues in log order, unfolding a section when the line it holds is folded away, and the copy button puts the whole list on the clipboard as `line`, severity and text.
 
 Expand the bar with the chevron to see the list itself.
@@ -259,7 +260,10 @@ Consecutive lines of the same severity are collected into one entry with a `+n` 
 
 :::note
 Classification is based on what a line says rather than which stream it came from, because many tools write progress and success notices to stderr.
-A line containing "warning" is treated as a warning even when it also mentions an error, and an error-shaped line on stdout is left plain.
+Crow's command traces on stdout and zero counts such as `0 warnings` are ignored.
+Quoted words and language-specific console output receive no special handling.
+Other lines containing "warning" are treated as warnings even when they also mention an error, and an error-shaped line on stdout is left plain.
+The counts describe detected log entries, not a language-specific check result: a warning remains indexed even when a later line reports `OK`.
 :::
 
 ## Skipping commits

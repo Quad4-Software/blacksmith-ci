@@ -661,8 +661,9 @@
                   :href="`#L${row.line.number}`"
                   class="select-none whitespace-nowrap pl-2 pr-2 md:pr-6 text-right text-muted-foreground"
                   :class="{
-                    'bg-red-600/40 dark:bg-red-800/50': row.line.type === 'error',
-                    'bg-yellow-600/40 dark:bg-yellow-800/50': row.line.type === 'warning',
+                    'bg-red-600/40 dark:bg-red-800/50': row.line.type === 'error' && !mutedSeverities.includes('error'),
+                    'bg-yellow-600/40 dark:bg-yellow-800/50':
+                      row.line.type === 'warning' && !mutedSeverities.includes('warning'),
                     'bg-blue-600/30': isSelected(row.line),
                     underline: isSelected(row.line),
                   }"
@@ -673,8 +674,9 @@
                 <span
                   class="min-w-0 whitespace-pre-wrap wrap-anywhere align-top"
                   :class="{
-                    'bg-red-600/40 dark:bg-red-800/50': row.line.type === 'error',
-                    'bg-yellow-600/40 dark:bg-yellow-800/50': row.line.type === 'warning',
+                    'bg-red-600/40 dark:bg-red-800/50': row.line.type === 'error' && !mutedSeverities.includes('error'),
+                    'bg-yellow-600/40 dark:bg-yellow-800/50':
+                      row.line.type === 'warning' && !mutedSeverities.includes('warning'),
                     'bg-blue-600/30': isSelected(row.line),
                     'ring-2 ring-yellow-500 ring-offset-1': isCurrentSearchMatch(row.line),
                   }"
@@ -685,8 +687,10 @@
                   v-if="!hideTimestamps"
                   class="select-none whitespace-nowrap pr-1 text-right text-muted-foreground"
                   :class="{
-                    'bg-red-600 bg-opacity-40 dark:bg-red-800/50': row.line.type === 'error',
-                    'bg-yellow-600/40 dark:bg-yellow-800/50': row.line.type === 'warning',
+                    'bg-red-600 bg-opacity-40 dark:bg-red-800/50':
+                      row.line.type === 'error' && !mutedSeverities.includes('error'),
+                    'bg-yellow-600/40 dark:bg-yellow-800/50':
+                      row.line.type === 'warning' && !mutedSeverities.includes('warning'),
                     'bg-blue-600/30': isSelected(row.line),
                   }"
                   :title="formatAbsoluteTime(row.line.time)"
@@ -936,6 +940,7 @@ const isTruncated = ref(false);
 
 // Fold the output of each traced command into a collapsible section.
 const foldCommands = useStorage('crow:log-fold-commands', true);
+const mutedSeverities = useStorage<LogIssueSeverity[]>('crow:log-issue-severities', []);
 const collapsedSections = ref(new Set<number>());
 const logRows = computed(() => {
   const lines = log.value ?? [];

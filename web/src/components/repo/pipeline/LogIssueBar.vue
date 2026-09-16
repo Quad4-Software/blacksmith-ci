@@ -179,9 +179,7 @@ function toggleSeverity(severity: LogIssueSeverity) {
   const next = isSeverityMuted(severity)
     ? mutedSeverities.value.filter((muted) => muted !== severity)
     : [...mutedSeverities.value, severity];
-  // Hiding both would leave nothing to step through, so switching off the last
-  // visible severity reads as "show only the other one" instead.
-  mutedSeverities.value = next.length === 2 ? [severity] : next;
+  mutedSeverities.value = next;
   currentIssueIndex.value = 0;
 }
 

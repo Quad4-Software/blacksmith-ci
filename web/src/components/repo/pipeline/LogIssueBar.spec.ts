@@ -87,13 +87,18 @@ describe('logIssueBar', () => {
     expect(listedNumbers(wrapper)).toEqual(['1', '2']);
   });
 
-  it('shows only the severity you switched off last rather than emptying the list', async () => {
+  it('allows hiding both severities and restoring one', async () => {
     const wrapper = mountBar('error', 'warning');
     await wrapper.find('[aria-expanded]').trigger('click');
 
     await chip(wrapper, 'warning').trigger('click');
     await chip(wrapper, 'error').trigger('click');
 
+    expect(listedNumbers(wrapper)).toEqual([]);
+    expect(wrapper.find('[data-log-issue-next]').exists()).toBe(false);
+    expect(JSON.parse(localStorage.getItem('crow:log-issue-severities')!)).toEqual(['warning', 'error']);
+
+    await chip(wrapper, 'warning').trigger('click');
     expect(listedNumbers(wrapper)).toEqual(['2']);
   });
 
