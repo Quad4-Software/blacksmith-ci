@@ -49,5 +49,6 @@ func main() {
 
 	if err := app.Run(ctx, os.Args); err != nil {
 		log.Error().Err(err).Msgf("error running server")
+		os.Exit(1)
 	}
 }
