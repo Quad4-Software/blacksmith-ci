@@ -700,7 +700,7 @@ var flags = append([]cli.Flag{
 		Name:    "encryption-disable-flag",
 		Usage:   "Flag to decrypt all encrypted data and disable encryption on server",
 	},
-	&cli.Int64Flag{
+	&cli.StringFlag{
 		Sources: cli.EnvVars("WOODPECKER_DEFAULT_LOGS_KEEP_DURATION", "CROW_DEFAULT_LOGS_KEEP_DURATION"),
 		Name:    "logs-duration-keep",
 		Usage:   "The default time (as duration) for which pipeline logs of historic runs are preserved",
