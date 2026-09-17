@@ -44,12 +44,12 @@
             <div class="flex items-center gap-4 mb-2 text-xs text-muted-foreground">
               <!-- Created time -->
               <div v-if="task.pipeline_created" class="flex items-center gap-1">
-                <Icon name="lucide:clock" class="h-3 w-3" />
+                <Icon name="ph:clock" class="h-3 w-3" />
                 <span>{{ $t('admin.settings.queue.created') }} {{ timeAgo(task.pipeline_created * 1000) }}</span>
               </div>
               <!-- Running duration (for running tasks) -->
               <div v-if="task.status === 'running' && task.pipeline_started" class="flex items-center gap-1">
-                <Icon name="lucide:timer" class="h-3 w-3" />
+                <Icon name="ph:timer" class="h-3 w-3" />
                 <span
                   >{{ $t('admin.settings.queue.running_for') }}
                   {{ prettyDuration(Date.now() - task.pipeline_started * 1000) }}</span
@@ -57,7 +57,7 @@
               </div>
               <!-- Waiting duration (for pending/waiting tasks) -->
               <div v-else-if="task.pipeline_created" class="flex items-center gap-1">
-                <Icon name="lucide:hourglass" class="h-3 w-3" />
+                <Icon name="ph:hourglass" class="h-3 w-3" />
                 <span
                   >{{ $t('admin.settings.queue.waiting_since') }}
                   {{ prettyDuration(Date.now() - task.pipeline_created * 1000) }}</span

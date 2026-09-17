@@ -7,7 +7,7 @@
     "
   >
     <slot>
-      <Minus class="h-4 w-4" />
+      <PhMinus class="h-4 w-4" />
     </slot>
   </NumberFieldDecrement>
 </template>
@@ -16,7 +16,7 @@
 import type { NumberFieldDecrementProps } from 'reka-ui';
 import type { HTMLAttributes } from 'vue';
 import { reactiveOmit } from '@vueuse/core';
-import { Minus } from '@lucide/vue';
+import { PhMinus } from '@phosphor-icons/vue';
 import { NumberFieldDecrement, useForwardProps } from 'reka-ui';
 import { cn } from '~/lib/utils';
 

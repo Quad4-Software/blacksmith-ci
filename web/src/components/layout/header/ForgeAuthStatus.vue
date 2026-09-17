@@ -5,7 +5,7 @@
         class="flex items-center justify-center gap-1.5 px-2 py-1.5 mr-2 rounded-md transition-colors bg-destructive/10 hover:bg-destructive/20"
         :title="tooltipText"
       >
-        <Icon name="lucide:heart-pulse" class="size-4 text-destructive" />
+        <Icon name="ph:heartbeat" class="size-4 text-destructive" />
         <span class="text-xs font-semibold leading-none text-destructive tabular-nums">
           {{ expiredForges.length }}
         </span>
@@ -13,7 +13,7 @@
     </DropdownMenuTrigger>
     <DropdownMenuContent align="end" class="w-72">
       <DropdownMenuLabel class="flex items-center gap-2">
-        <Icon name="lucide:heart-pulse" class="size-4 text-destructive" />
+        <Icon name="ph:heartbeat" class="size-4 text-destructive" />
         {{ $t('navbar.forge_auth_expired') }}
       </DropdownMenuLabel>
       <DropdownMenuSeparator />
@@ -32,7 +32,7 @@
             </div>
             <Button as-child variant="outline" size="sm" class="shrink-0 h-7 text-xs">
               <a :href="getReconnectUrl(forge.forge_id)">
-                <Icon name="lucide:refresh-cw" class="size-3 mr-1" />
+                <Icon name="ph:arrow-clockwise" class="size-3 mr-1" />
                 {{ $t('user.settings.forges.reconnect') }}
               </a>
             </Button>

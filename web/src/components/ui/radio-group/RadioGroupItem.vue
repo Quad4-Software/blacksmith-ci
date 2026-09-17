@@ -10,7 +10,7 @@
     "
   >
     <RadioGroupIndicator data-slot="radio-group-indicator" class="relative flex items-center justify-center">
-      <CircleIcon class="fill-primary absolute top-1/2 left-1/2 size-2 -translate-x-1/2 -translate-y-1/2" />
+      <PhCircle weight="fill" class="fill-primary absolute top-1/2 left-1/2 size-2 -translate-x-1/2 -translate-y-1/2" />
     </RadioGroupIndicator>
   </RadioGroupItem>
 </template>
@@ -19,7 +19,7 @@
 import type { RadioGroupItemProps } from 'reka-ui';
 import type { HTMLAttributes } from 'vue';
 import { reactiveOmit } from '@vueuse/core';
-import { CircleIcon } from '@lucide/vue';
+import { PhCircle } from '@phosphor-icons/vue';
 import { RadioGroupIndicator, RadioGroupItem, useForwardProps } from 'reka-ui';
 import { cn } from '~/lib/utils';
 

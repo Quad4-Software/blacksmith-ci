@@ -19,7 +19,7 @@
       <DropdownMenu :modal="false">
         <DropdownMenuTrigger as-child>
           <Button variant="outline" size="sm" class="h-8">
-            <Icon name="lucide:server" class="mr-2 h-4 w-4" />
+            <Icon name="ph:hard-drives" class="mr-2 h-4 w-4" />
             <span v-if="selectedPlatforms.length === 0">{{ $t('admin.settings.agents.filter_platform') }}</span>
             <span v-else class="max-w-[120px] truncate">{{ selectedPlatforms.join(', ') }}</span>
             <template v-if="selectedPlatforms.length > 0">
@@ -53,7 +53,7 @@
       <DropdownMenu :modal="false">
         <DropdownMenuTrigger as-child>
           <Button variant="outline" size="sm" class="h-8">
-            <Icon name="lucide:box" class="mr-2 h-4 w-4" />
+            <Icon name="ph:cube" class="mr-2 h-4 w-4" />
             <span v-if="selectedBackends.length === 0">{{ $t('admin.settings.agents.filter_backend') }}</span>
             <span v-else class="max-w-[120px] truncate">{{ selectedBackends.join(', ') }}</span>
             <template v-if="selectedBackends.length > 0">
@@ -90,7 +90,7 @@
       <DropdownMenu :modal="false">
         <DropdownMenuTrigger as-child>
           <Button variant="outline" size="sm" class="h-8">
-            <Icon name="lucide:arrow-up-down" class="mr-2 h-4 w-4" />
+            <Icon name="ph:arrows-down-up" class="mr-2 h-4 w-4" />
             {{ $t('sort') }}
           </Button>
         </DropdownMenuTrigger>

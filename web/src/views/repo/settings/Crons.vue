@@ -55,7 +55,7 @@
                       <Tooltip>
                         <TooltipTrigger as-child>
                           <Icon
-                            :name="cron.disabled ? 'lucide:circle-x' : 'lucide:triangle-alert'"
+                            :name="cron.disabled ? 'ph:x-circle' : 'ph:warning'"
                             class="size-4 shrink-0"
                             :class="cron.disabled ? 'text-destructive' : 'text-amber-500'"
                           />
@@ -87,10 +87,7 @@
                             class="h-5 w-5 shrink-0"
                             @click.stop="copyField(cron.name, `name-${cron.id}`)"
                           >
-                            <Icon
-                              :name="copiedFields[`name-${cron.id}`] ? 'lucide:check' : 'lucide:copy'"
-                              class="h-3 w-3"
-                            />
+                            <Icon :name="copiedFields[`name-${cron.id}`] ? 'ph:check' : 'ph:copy'" class="h-3 w-3" />
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
@@ -251,7 +248,7 @@
                 rel="noopener noreferrer"
                 class="text-xs text-muted-foreground hover:text-foreground"
               >
-                <Icon name="lucide:external-link" class="h-3 w-3" />
+                <Icon name="ph:arrow-square-out" class="h-3 w-3" />
               </a>
             </div>
             <Input

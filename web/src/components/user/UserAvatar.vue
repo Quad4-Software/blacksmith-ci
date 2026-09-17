@@ -29,7 +29,7 @@
             {{ userData.description }}
           </p>
           <div v-if="userData?.timezone" class="flex items-center gap-1">
-            <Icon name="lucide:clock" class="h-3 w-3 opacity-70" />
+            <Icon name="ph:clock" class="h-3 w-3 opacity-70" />
             <span class="text-xs text-muted-foreground">{{ userData.timezone }}</span>
           </div>
           <div v-if="orgs && orgs.length > 0" class="flex flex-wrap gap-1 pt-1">

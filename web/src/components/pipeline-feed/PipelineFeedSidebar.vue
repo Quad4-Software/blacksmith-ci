@@ -24,7 +24,7 @@
             @click="close"
           >
             <div class="flex w-full gap-3 items-start text-foreground">
-              <Icon name="lucide:lock" class="size-4 shrink-0 mt-1 text-yellow-500" />
+              <Icon name="ph:lock" class="size-4 shrink-0 mt-1 text-yellow-500" />
               <div class="flex min-w-0 flex-col flex-1">
                 <span class="font-medium text-foreground truncate" :title="item.workflow.name">
                   {{ item.workflow.name }}

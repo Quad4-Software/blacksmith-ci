@@ -80,7 +80,7 @@
 
         <div v-if="isOwnedByCurrentUser(integration)" class="flex items-center gap-2 shrink-0">
           <Button variant="outline" size="sm" :disabled="isTesting" @click="$emit('test', integration)">
-            <Icon name="lucide:zap" class="mr-1 size-4" />
+            <Icon name="ph:lightning" class="mr-1 size-4" />
             {{ $t('integrations.test_connection') }}
           </Button>
           <Button variant="outline" size="sm" @click="$emit('edit', integration)">

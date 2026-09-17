@@ -58,7 +58,7 @@
                   class="hidden md:inline-flex h-5 w-5 mx-1 shrink-0"
                   @click.stop.prevent="copyPipelineNumber"
                 >
-                  <Icon :name="copiedPipelineNumber ? 'lucide:check' : 'lucide:copy'" class="h-3 w-3" />
+                  <Icon :name="copiedPipelineNumber ? 'ph:check' : 'ph:copy'" class="h-3 w-3" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -163,7 +163,7 @@
             <TooltipTrigger as-child>
               <Button variant="ghost" size="icon-sm" :disabled="isCanceling" @click="cancelPipeline">
                 <Icon v-if="isCanceling" name="spinner" size="0.875rem" class="animate-spin" />
-                <Icon v-else name="lucide:square" size="0.875rem" class="text-destructive" />
+                <Icon v-else name="ph:square" size="0.875rem" class="text-destructive" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -175,7 +175,7 @@
           <Tooltip>
             <TooltipTrigger as-child>
               <Button variant="ghost" size="icon-sm" :disabled="isRerunning" @click="rerunPipeline">
-                <Icon name="lucide:refresh-ccw" size="0.875rem" />
+                <Icon name="ph:arrow-counter-clockwise" size="0.875rem" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -187,7 +187,7 @@
           <Tooltip>
             <TooltipTrigger as-child>
               <Button variant="ghost" size="icon-sm" @click="isHidden ? unhidePipeline($event) : hidePipeline($event)">
-                <Icon :name="isHidden ? 'lucide:eye' : 'lucide:eye-off'" size="0.875rem" />
+                <Icon :name="isHidden ? 'ph:eye' : 'ph:eye-slash'" size="0.875rem" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>

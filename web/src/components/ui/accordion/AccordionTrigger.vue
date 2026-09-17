@@ -12,7 +12,7 @@
     >
       <slot />
       <slot name="icon">
-        <ChevronDown
+        <PhCaretDown
           class="text-muted-foreground pointer-events-none size-4 shrink-0 translate-y-0.5 transition-transform duration-200"
         />
       </slot>
@@ -24,7 +24,7 @@
 import type { AccordionTriggerProps } from 'reka-ui';
 import type { HTMLAttributes } from 'vue';
 import { reactiveOmit } from '@vueuse/core';
-import { ChevronDown } from '@lucide/vue';
+import { PhCaretDown } from '@phosphor-icons/vue';
 import { AccordionHeader, AccordionTrigger } from 'reka-ui';
 import { cn } from '~/lib/utils';
 

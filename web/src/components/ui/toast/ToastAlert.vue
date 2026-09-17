@@ -24,7 +24,7 @@
           :title="copied ? 'Copied!' : 'Copy'"
           @click.stop="copyToClipboard"
         >
-          <Icon :name="copied ? 'lucide:check' : 'lucide:copy'" class="size-3" />
+          <Icon :name="copied ? 'ph:check' : 'ph:copy'" class="size-3" />
         </button>
       </div>
     </div>

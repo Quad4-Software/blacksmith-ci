@@ -76,7 +76,7 @@
             {{ table.getFilteredSelectedRowModel().rows.length }} {{ $t('selected') }}
           </span>
           <Button variant="outline" size="sm" @click="handleBulkDisable">
-            <Icon name="lucide:power" class="h-4 w-4 mr-2" />
+            <Icon name="ph:power" class="h-4 w-4 mr-2" />
             {{ $t('admin.settings.repos.disable') }}
           </Button>
           <Button variant="destructive" size="sm" @click="handleBulkDelete">
@@ -208,7 +208,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ArrowUpDown, Check, Copy, MoreVertical } from '@lucide/vue';
+import { PhArrowsDownUp, PhCheck, PhCopy, PhDotsThreeVertical } from '@phosphor-icons/vue';
 import type {
   ColumnDef,
   ColumnFiltersState,
@@ -404,7 +404,7 @@ const columns: ColumnDef<typeof dataTableFeatures, Repo>[] = [
           class: 'pr-6',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => [t('admin.settings.repos.name'), h(ArrowUpDown, { class: 'ml-2 h-4 w-4' })],
+        () => [t('admin.settings.repos.name'), h(PhArrowsDownUp, { class: 'ml-2 h-4 w-4' })],
       );
     },
     cell: ({ row }) => {
@@ -434,7 +434,7 @@ const columns: ColumnDef<typeof dataTableFeatures, Repo>[] = [
               copyRepoName(fullName);
             },
           },
-          h(copiedRepos[fullName] ? Check : Copy, { class: 'h-3 w-3 text-muted-foreground' }),
+          h(copiedRepos[fullName] ? PhCheck : PhCopy, { class: 'h-3 w-3 text-muted-foreground' }),
         ),
       ]);
     },
@@ -451,7 +451,7 @@ const columns: ColumnDef<typeof dataTableFeatures, Repo>[] = [
           class: 'pr-6',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => [t('owner'), h(ArrowUpDown, { class: 'ml-2 h-4 w-4' })],
+        () => [t('owner'), h(PhArrowsDownUp, { class: 'ml-2 h-4 w-4' })],
       );
     },
     cell: ({ row }) => h('div', {}, row.getValue('owner')),
@@ -494,7 +494,7 @@ const columns: ColumnDef<typeof dataTableFeatures, Repo>[] = [
           class: 'pr-6',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => ['ID', h(ArrowUpDown, { class: 'ml-2 h-4 w-4' })],
+        () => ['ID', h(PhArrowsDownUp, { class: 'ml-2 h-4 w-4' })],
       );
     },
     cell: ({ row }) => h('div', {}, row.getValue('id')),
@@ -527,7 +527,10 @@ const columns: ColumnDef<typeof dataTableFeatures, Repo>[] = [
                         variant: 'ghost' as const,
                         class: 'h-8 w-8 p-0',
                       },
-                      () => [h('span', { class: 'sr-only' }, t('actions')), h(MoreVertical, { class: 'h-4 w-4' })],
+                      () => [
+                        h('span', { class: 'sr-only' }, t('actions')),
+                        h(PhDotsThreeVertical, { class: 'h-4 w-4' }),
+                      ],
                     ),
                 },
               ),

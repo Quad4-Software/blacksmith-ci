@@ -2,7 +2,7 @@
   <DropdownMenu :modal="false">
     <DropdownMenuTrigger as-child>
       <Button variant="outline" size="sm" class="h-8">
-        <Icon name="lucide:arrow-up-down" class="mr-2 h-4 w-4" />
+        <Icon name="ph:arrows-down-up" class="mr-2 h-4 w-4" />
         {{ $t('sort') }}
       </Button>
     </DropdownMenuTrigger>

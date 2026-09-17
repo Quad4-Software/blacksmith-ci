@@ -184,11 +184,11 @@ const currentThemeLabel = computed(() => {
 const themeIcon = computed(() => {
   switch (storeTheme.value) {
     case 'light':
-      return 'lucide:sun';
+      return 'ph:sun';
     case 'dark':
-      return 'lucide:moon';
+      return 'ph:moon';
     default:
-      return 'lucide:sun-moon';
+      return 'ph:circle-half';
   }
 });
 

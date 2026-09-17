@@ -27,11 +27,11 @@
           <!-- Time info -->
           <div class="flex items-center gap-4 text-xs text-muted-foreground">
             <div v-if="workflow.finished" class="flex items-center gap-1">
-              <Icon name="lucide:clock" class="h-3 w-3" />
+              <Icon name="ph:clock" class="h-3 w-3" />
               <span>{{ $t('admin.settings.agents.workflow_finished') }} {{ timeAgo(workflow.finished * 1000) }}</span>
             </div>
             <div v-if="workflow.started && workflow.finished" class="flex items-center gap-1">
-              <Icon name="lucide:timer" class="h-3 w-3" />
+              <Icon name="ph:timer" class="h-3 w-3" />
               <span>{{ prettyDuration((workflow.finished - workflow.started) * 1000) }}</span>
             </div>
           </div>

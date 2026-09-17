@@ -25,7 +25,7 @@
         :title="copied ? $t('proclog.copied') : $t('proclog.copy')"
         @click="copyLogs"
       >
-        <Icon :name="copied ? 'lucide:check' : 'lucide:copy'" class="h-4 w-4" />
+        <Icon :name="copied ? 'ph:check' : 'ph:copy'" class="h-4 w-4" />
       </Button>
       <Button
         variant="outline"

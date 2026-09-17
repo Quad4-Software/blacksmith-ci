@@ -8,7 +8,7 @@
             {{ placeholder }}
           </span>
           <span v-else class="truncate"> {{ selectedItems.length }} {{ $t('integrations.allowlist.selected') }} </span>
-          <Icon name="lucide:arrow-up-down" class="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <Icon name="ph:arrows-down-up" class="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent class="w-[400px] p-0" align="start">
@@ -40,7 +40,7 @@
       <Badge v-for="item in selectedItems" :key="item.id" variant="secondary" class="gap-1">
         {{ item.name }}
         <button type="button" class="ml-1 hover:text-destructive" @click="removeItem(item.id)">
-          <Icon name="lucide:x" class="h-3 w-3" />
+          <Icon name="ph:x" class="h-3 w-3" />
         </button>
       </Badge>
     </div>

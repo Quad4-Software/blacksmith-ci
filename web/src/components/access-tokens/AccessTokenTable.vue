@@ -126,7 +126,7 @@
 </template>
 
 <script lang="ts" setup>
-import { Check, Copy, MoreVertical } from '@lucide/vue';
+import { PhCheck, PhCopy, PhDotsThreeVertical } from '@phosphor-icons/vue';
 import type { ColumnDef, ColumnVisibilityState, SortingState } from '@tanstack/vue-table';
 import { FlexRender, useTable } from '@tanstack/vue-table';
 import AccessTokenEditDialog from '~/components/access-tokens/AccessTokenEditDialog.vue';
@@ -317,7 +317,7 @@ const columns: ColumnDef<typeof dataTableFeatures, AccessToken>[] = [
               copyTokenName(name);
             },
           },
-          h(copiedTokens[name] ? Check : Copy, { class: 'h-3 w-3 text-muted-foreground' }),
+          h(copiedTokens[name] ? PhCheck : PhCopy, { class: 'h-3 w-3 text-muted-foreground' }),
         ),
         expired
           ? h(Badge, { variant: 'destructive' }, () => t('access_tokens.expired'))
@@ -408,7 +408,10 @@ const columns: ColumnDef<typeof dataTableFeatures, AccessToken>[] = [
                         variant: 'ghost' as const,
                         class: 'h-8 w-8 p-0',
                       },
-                      () => [h('span', { class: 'sr-only' }, t('actions')), h(MoreVertical, { class: 'h-4 w-4' })],
+                      () => [
+                        h('span', { class: 'sr-only' }, t('actions')),
+                        h(PhDotsThreeVertical, { class: 'h-4 w-4' }),
+                      ],
                     ),
                 },
               ),

@@ -33,7 +33,7 @@
 
       <!-- Awaiting workflow-level approval indicator -->
       <div v-if="workflowApprovalCount > 0" class="flex items-center gap-1.5">
-        <Icon name="lucide:lock" class="size-4 text-yellow-500" />
+        <Icon name="ph:lock" class="size-4 text-yellow-500" />
         <span class="text-xs font-semibold leading-none text-yellow-600 tabular-nums">
           {{ workflowApprovalCount }}
         </span>

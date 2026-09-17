@@ -2,7 +2,7 @@
   <div class="flex flex-wrap items-center gap-3">
     <Button :disabled="isRepairingRepo" @click="repairRepo">
       <Icon v-if="isRepairingRepo" name="spinner" class="mr-0 h-4 w-4 animate-spin" />
-      <Icon v-else name="lucide:refresh-ccw" class="mr-0 h-4 w-4" />
+      <Icon v-else name="ph:arrow-counter-clockwise" class="mr-0 h-4 w-4" />
       {{ $t('repo.settings.actions.repair.repair') }}
     </Button>
     <Button v-if="isActive" :disabled="isDeactivatingRepo" @click="deactivateRepo">

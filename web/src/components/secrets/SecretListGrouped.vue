@@ -293,7 +293,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ArrowUpDown, Check, Copy, MoreVertical } from '@lucide/vue';
+import { PhArrowsDownUp, PhCheck, PhCopy, PhDotsThreeVertical } from '@phosphor-icons/vue';
 import type {
   ColumnDef,
   ColumnFiltersState,
@@ -846,7 +846,7 @@ const SecretValueViewer = defineComponent({
               },
               isLoading.value
                 ? h(Icon, { name: 'spinner', class: 'h-4 w-4 animate-spin' })
-                : h(Icon, { name: showValue.value ? 'lucide:eye-off' : 'lucide:eye', class: 'h-4 w-4' }),
+                : h(Icon, { name: showValue.value ? 'ph:eye-slash' : 'ph:eye', class: 'h-4 w-4' }),
             )
           : null,
       ]);
@@ -894,7 +894,7 @@ const allColumns: ColumnDef<typeof dataTableFeatures, SecretWithOrg>[] = [
           class: ' pr-6',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => ['Name', h(ArrowUpDown, { class: 'ml-2 h-4 w-4' })],
+        () => ['Name', h(PhArrowsDownUp, { class: 'ml-2 h-4 w-4' })],
       );
     },
     cell: ({ row }) => {
@@ -920,7 +920,7 @@ const allColumns: ColumnDef<typeof dataTableFeatures, SecretWithOrg>[] = [
               copySecretName(name);
             },
           },
-          h(copiedSecrets[name] ? Check : Copy, { class: 'h-3 w-3 text-muted-foreground' }),
+          h(copiedSecrets[name] ? PhCheck : PhCopy, { class: 'h-3 w-3 text-muted-foreground' }),
         ),
         // Shared badge
         secret.is_shared
@@ -981,7 +981,7 @@ const allColumns: ColumnDef<typeof dataTableFeatures, SecretWithOrg>[] = [
           class: ' pr-6',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => ['Owner', h(ArrowUpDown, { class: 'ml-2 h-4 w-4' })],
+        () => ['Owner', h(PhArrowsDownUp, { class: 'ml-2 h-4 w-4' })],
       );
     },
     cell: ({ row }) => {
@@ -1059,7 +1059,7 @@ const allColumns: ColumnDef<typeof dataTableFeatures, SecretWithOrg>[] = [
           class: ' pr-6',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => [t('scope_type'), h(ArrowUpDown, { class: 'ml-2 h-4 w-4' })],
+        () => [t('scope_type'), h(PhArrowsDownUp, { class: 'ml-2 h-4 w-4' })],
       );
     },
     cell: ({ row }) => {
@@ -1123,7 +1123,7 @@ const allColumns: ColumnDef<typeof dataTableFeatures, SecretWithOrg>[] = [
           class: ' pr-6',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => [t('secrets.added'), h(ArrowUpDown, { class: 'ml-2 h-4 w-4' })],
+        () => [t('secrets.added'), h(PhArrowsDownUp, { class: 'ml-2 h-4 w-4' })],
       );
     },
     cell: ({ row }) => {
@@ -1143,7 +1143,7 @@ const allColumns: ColumnDef<typeof dataTableFeatures, SecretWithOrg>[] = [
           class: ' pr-6',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => [t('secrets.last_edited'), h(ArrowUpDown, { class: 'ml-2 h-4 w-4' })],
+        () => [t('secrets.last_edited'), h(PhArrowsDownUp, { class: 'ml-2 h-4 w-4' })],
       );
     },
     cell: ({ row }) => {
@@ -1183,7 +1183,10 @@ const allColumns: ColumnDef<typeof dataTableFeatures, SecretWithOrg>[] = [
                         variant: 'ghost' as const,
                         class: 'h-8 w-8 p-0',
                       },
-                      () => [h('span', { class: 'sr-only' }, t('actions')), h(MoreVertical, { class: 'h-4 w-4' })],
+                      () => [
+                        h('span', { class: 'sr-only' }, t('actions')),
+                        h(PhDotsThreeVertical, { class: 'h-4 w-4' }),
+                      ],
                     ),
                 },
               ),

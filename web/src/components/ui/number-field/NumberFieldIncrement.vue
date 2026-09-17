@@ -7,7 +7,7 @@
     "
   >
     <slot>
-      <Plus class="h-4 w-4" />
+      <PhPlus class="h-4 w-4" />
     </slot>
   </NumberFieldIncrement>
 </template>
@@ -16,7 +16,7 @@
 import type { NumberFieldIncrementProps } from 'reka-ui';
 import type { HTMLAttributes } from 'vue';
 import { reactiveOmit } from '@vueuse/core';
-import { Plus } from '@lucide/vue';
+import { PhPlus } from '@phosphor-icons/vue';
 import { NumberFieldIncrement, useForwardProps } from 'reka-ui';
 import { cn } from '~/lib/utils';
 

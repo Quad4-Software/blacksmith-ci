@@ -12,7 +12,7 @@
   >
     <slot />
     <SelectIcon as-child>
-      <ChevronDown class="size-4 opacity-50" />
+      <PhCaretDown class="size-4 opacity-50" />
     </SelectIcon>
   </SelectTrigger>
 </template>
@@ -21,7 +21,7 @@
 import type { SelectTriggerProps } from 'reka-ui';
 import type { HTMLAttributes } from 'vue';
 import { reactiveOmit } from '@vueuse/core';
-import { ChevronDown } from '@lucide/vue';
+import { PhCaretDown } from '@phosphor-icons/vue';
 import { SelectIcon, SelectTrigger, useForwardProps } from 'reka-ui';
 import { cn } from '~/lib/utils';
 

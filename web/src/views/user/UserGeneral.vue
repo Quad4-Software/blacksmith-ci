@@ -233,7 +233,7 @@
               as="a"
               :href="getReconnectUrl(userForge.forge_id)"
             >
-              <Icon name="lucide:refresh-cw" class="mr-1.5 h-3 w-3" />
+              <Icon name="ph:arrow-clockwise" class="mr-1.5 h-3 w-3" />
               {{ $t('user.settings.forges.reconnect') }}
             </Button>
             <Button

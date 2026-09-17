@@ -11,7 +11,7 @@
   >
     <span class="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
       <DropdownMenuItemIndicator>
-        <Circle class="size-2 fill-current" />
+        <PhCircle weight="fill" class="size-2 fill-current" />
       </DropdownMenuItemIndicator>
     </span>
     <slot />
@@ -22,7 +22,7 @@
 import type { DropdownMenuRadioItemEmits, DropdownMenuRadioItemProps } from 'reka-ui';
 import type { HTMLAttributes } from 'vue';
 import { reactiveOmit } from '@vueuse/core';
-import { Circle } from '@lucide/vue';
+import { PhCircle } from '@phosphor-icons/vue';
 import { DropdownMenuItemIndicator, DropdownMenuRadioItem, useForwardPropsEmits } from 'reka-ui';
 import { cn } from '~/lib/utils';
 

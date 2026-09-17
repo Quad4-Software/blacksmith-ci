@@ -6,7 +6,7 @@
         <div
           class="drag-handle cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors"
         >
-          <Icon name="lucide:grip-vertical" class="h-5 w-5" />
+          <Icon name="ph:dots-six-vertical" class="h-5 w-5" />
         </div>
       </div>
 
@@ -22,7 +22,7 @@
             <Tooltip>
               <TooltipTrigger as-child>
                 <Button variant="ghost" size="icon-sm" :disabled="isRerunning" @click.prevent="rerunPipeline">
-                  <Icon name="lucide:refresh-ccw" size="1rem" />
+                  <Icon name="ph:arrow-counter-clockwise" size="1rem" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -42,7 +42,7 @@
             <TooltipProvider v-if="repo.visibility === RepoVisibility.Private">
               <Tooltip>
                 <TooltipTrigger as-child>
-                  <Icon name="lucide:lock" class="hidden lg:inline-flex h-3.5 w-3.5 shrink-0 text-destructive" />
+                  <Icon name="ph:lock" class="hidden lg:inline-flex h-3.5 w-3.5 shrink-0 text-destructive" />
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>{{ $t('repo.visibility.private.private') }}</p>
@@ -52,7 +52,7 @@
             <TooltipProvider v-else-if="repo.visibility === RepoVisibility.Internal">
               <Tooltip>
                 <TooltipTrigger as-child>
-                  <Icon name="lucide:lock" class="hidden lg:inline-flex h-3.5 w-3.5 shrink-0 text-chart-2" />
+                  <Icon name="ph:lock" class="hidden lg:inline-flex h-3.5 w-3.5 shrink-0 text-chart-2" />
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>{{ $t('repo.visibility.internal.internal') }}</p>
@@ -74,7 +74,7 @@
                       @click.prevent="emit('togglePin')"
                     >
                       <Icon
-                        :name="isPinned ? 'lucide:pin' : 'lucide:pin-off'"
+                        :name="isPinned ? 'ph:push-pin' : 'ph:push-pin-slash'"
                         class="h-4 w-4"
                         :class="{ 'text-muted-foreground': isPinned }"
                       />
@@ -171,7 +171,7 @@
             <Tooltip>
               <TooltipTrigger as-child>
                 <Button variant="ghost" size="icon-sm" :disabled="isUpdating" @click.prevent="toggleRepoActive(false)">
-                  <Icon name="lucide:power" class="h-4 w-4" />
+                  <Icon name="ph:power" class="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>

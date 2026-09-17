@@ -114,7 +114,7 @@
               <TooltipTrigger as-child>
                 <Button variant="ghost" size="icon-sm" :disabled="copyInProgress" @click="copyLogs">
                   <Icon v-if="copyInProgress" name="spinner" class="animate-spin" />
-                  <Icon v-else :name="logsCopied ? 'lucide:check' : 'lucide:copy'" />
+                  <Icon v-else :name="logsCopied ? 'ph:check' : 'ph:copy'" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -163,7 +163,7 @@
                   "
                   @click="toggleAllSections"
                 >
-                  <Icon :name="allSectionsCollapsed ? 'lucide:chevrons-up-down' : 'lucide:chevrons-down-up'" />
+                  <Icon :name="allSectionsCollapsed ? 'ph:arrows-out-line-vertical' : 'ph:arrows-in-line-vertical'" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -179,7 +179,7 @@
             <Tooltip>
               <TooltipTrigger as-child>
                 <Button variant="ghost" size="icon-sm" @click="openSearch">
-                  <Icon name="lucide:search" class="w-4 h-4" />
+                  <Icon name="ph:magnifying-glass" class="w-4 h-4" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>{{ $t('repo.pipeline.search.title') }}</TooltipContent>
@@ -189,7 +189,7 @@
             <Tooltip>
               <TooltipTrigger as-child>
                 <Button variant="ghost" size="icon-sm" @click="isFullscreen = !isFullscreen">
-                  <Icon :name="isFullscreen ? 'lucide:minimize' : 'lucide:maximize'" class="w-4 h-4" />
+                  <Icon :name="isFullscreen ? 'ph:corners-in' : 'ph:corners-out'" class="w-4 h-4" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -301,7 +301,7 @@
       <!-- Mobile action bar - inline between header and log content -->
       <div class="md:hidden flex items-center justify-end gap-1 px-2 py-1">
         <Button variant="ghost" size="icon-sm" @click="openSearch">
-          <Icon name="lucide:search" />
+          <Icon name="ph:magnifying-glass" />
         </Button>
         <Button variant="ghost" size="icon-sm" @click="mobileSettingsOpen = true">
           <Icon name="settings" class="w-4 h-4" />
@@ -392,7 +392,7 @@
             <div class="grid grid-cols-2 gap-2 pt-2 border-t">
               <Button v-if="foldCommands && hasSections" variant="outline" size="sm" @click="toggleAllSections">
                 <Icon
-                  :name="allSectionsCollapsed ? 'lucide:chevrons-up-down' : 'lucide:chevrons-down-up'"
+                  :name="allSectionsCollapsed ? 'ph:arrows-out-line-vertical' : 'ph:arrows-in-line-vertical'"
                   class="mr-2"
                 />
                 {{
@@ -403,7 +403,7 @@
               </Button>
               <Button v-if="hasLogs" variant="outline" size="sm" :disabled="copyInProgress" @click="copyLogs">
                 <Icon v-if="copyInProgress" name="spinner" class="animate-spin mr-2" />
-                <Icon v-else :name="logsCopied ? 'lucide:check' : 'lucide:copy'" class="mr-2" />
+                <Icon v-else :name="logsCopied ? 'ph:check' : 'ph:copy'" class="mr-2" />
                 {{ logsCopied ? $t('copied') : $t('repo.pipeline.actions.log_copy') }}
               </Button>
               <Button
@@ -457,7 +457,7 @@
             v-if="searchOpen"
             class="absolute top-2 left-2 right-2 z-30 flex items-center gap-2 rounded-lg border bg-background/95 backdrop-blur-sm px-3 py-2 shadow-lg"
           >
-            <Icon name="lucide:search" class="h-4 w-4 text-muted-foreground shrink-0" />
+            <Icon name="ph:magnifying-glass" class="h-4 w-4 text-muted-foreground shrink-0" />
             <Input
               ref="searchInputRef"
               v-model="searchTerm"
@@ -714,12 +714,12 @@
           class="flex flex-col items-center gap-3 text-center"
         >
           <template v-if="currentWorkflow?.autoscaler_provisioning_stale">
-            <Icon name="lucide:triangle-alert" class="w-10 h-10 text-destructive" />
+            <Icon name="ph:warning" class="w-10 h-10 text-destructive" />
             <span class="text-lg font-medium text-destructive">{{ $t('repo.pipeline.agent_provisioning_stale') }}</span>
             <span class="text-sm text-muted-foreground">{{ $t('repo.pipeline.agent_provisioning_stale_desc') }}</span>
           </template>
           <template v-else>
-            <Icon name="lucide:server" class="w-10 h-10 text-primary animate-pulse" />
+            <Icon name="ph:hard-drives" class="w-10 h-10 text-primary animate-pulse" />
             <span class="text-lg font-medium text-foreground">{{ $t('repo.pipeline.agent_provisioning') }}</span>
             <span class="text-sm text-muted-foreground">{{ $t('repo.pipeline.agent_provisioning_desc') }}</span>
           </template>

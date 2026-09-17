@@ -24,11 +24,11 @@ export const toastAlertVariants = cva(
 export type ToastAlertVariants = VariantProps<typeof toastAlertVariants>;
 
 export const toastIcons = {
-  success: 'lucide:circle-check',
-  error: 'lucide:circle-x',
-  warning: 'lucide:triangle-alert',
-  info: 'lucide:info',
-  default: 'lucide:info',
+  success: 'ph:check-circle',
+  error: 'ph:x-circle',
+  warning: 'ph:warning',
+  info: 'ph:info',
+  default: 'ph:info',
 } as const;
 
 export type ToastVariant = 'default' | 'success' | 'error' | 'warning' | 'info';

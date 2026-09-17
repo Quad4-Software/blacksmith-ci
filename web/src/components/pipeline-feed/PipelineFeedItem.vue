@@ -58,7 +58,7 @@
             @click.stop.prevent="cancelPipeline"
           >
             <Icon v-if="isCanceling" name="spinner" class="w-4 h-4 animate-spin" />
-            <Icon v-else name="lucide:square" class="w-4 h-4" />
+            <Icon v-else name="ph:square" class="w-4 h-4" />
           </button>
           <button
             v-else
@@ -68,7 +68,7 @@
             @click.stop.prevent="restartPipeline"
           >
             <Icon v-if="isRestarting" name="spinner" class="w-4 h-4 animate-spin" />
-            <Icon v-else name="lucide:refresh-cw" class="w-4 h-4" />
+            <Icon v-else name="ph:arrow-clockwise" class="w-4 h-4" />
           </button>
         </div>
       </div>

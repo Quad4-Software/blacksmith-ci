@@ -16,7 +16,7 @@
           <Tooltip>
             <TooltipTrigger as-child>
               <Button variant="ghost" size="icon-sm" class="h-6 w-6 shrink-0" @click.stop="copyRepoSlug">
-                <Icon :name="copiedRepoSlug ? 'lucide:check' : 'lucide:copy'" class="h-3 w-3" />
+                <Icon :name="copiedRepoSlug ? 'ph:check' : 'ph:copy'" class="h-3 w-3" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -152,7 +152,7 @@
           <Popover>
             <PopoverTrigger as-child>
               <Button variant="outline" size="sm" class="h-8 border-dashed">
-                <Icon name="lucide:calendar" class="mr-2 h-4 w-4" />
+                <Icon name="ph:calendar" class="mr-2 h-4 w-4" />
                 {{ $t('repo.pipeline.filter.date_range') }}
                 <template v-if="hasDateFilter">
                   <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->

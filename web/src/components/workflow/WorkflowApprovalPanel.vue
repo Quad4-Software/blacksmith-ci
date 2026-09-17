@@ -47,7 +47,7 @@
       <div v-if="expanded" class="flex flex-col gap-4">
         <!-- Deadline -->
         <div v-if="deadlineLabel" class="flex items-center gap-2 text-sm text-muted-foreground">
-          <Icon name="lucide:hourglass" size="1rem" class="size-4" />
+          <Icon name="ph:hourglass" size="1rem" class="size-4" />
           <span>{{ deadlineLabel }}</span>
         </div>
 
@@ -150,7 +150,7 @@ const headerIcon = computed<IconNames>(() => {
     case 'expired':
       return 'status-blocked';
     default:
-      return 'lucide:lock';
+      return 'ph:lock';
   }
 });
 

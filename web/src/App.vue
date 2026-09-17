@@ -104,7 +104,7 @@
                             }}</AvatarFallback>
                           </Avatar>
                           <span class="flex-1 truncate">{{ account.login }}</span>
-                          <Icon v-if="account.active" name="lucide:check" class="ml-2 size-4" />
+                          <Icon v-if="account.active" name="ph:check" class="ml-2 size-4" />
                         </a>
                       </DropdownMenuItem>
                     </template>
@@ -114,7 +114,7 @@
                         :to="{ name: 'login', query: { add: 'true' } }"
                         class="flex w-full cursor-pointer items-center"
                       >
-                        <Icon name="lucide:user-plus" class="mr-2 size-4" />
+                        <Icon name="ph:user-plus" class="mr-2 size-4" />
                         {{ $t('account_switch.add') }}
                       </router-link>
                     </DropdownMenuItem>
@@ -128,7 +128,7 @@
                         :title="$t('user.settings.general.theme.light')"
                         @click.prevent.stop="storeTheme = 'light'"
                       >
-                        <Icon name="lucide:sun" class="size-4" />
+                        <Icon name="ph:sun" class="size-4" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -138,7 +138,7 @@
                         :title="$t('user.settings.general.theme.dark')"
                         @click.prevent.stop="storeTheme = 'dark'"
                       >
-                        <Icon name="lucide:moon" class="size-4" />
+                        <Icon name="ph:moon" class="size-4" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -148,7 +148,7 @@
                         :title="$t('user.settings.general.theme.auto')"
                         @click.prevent.stop="storeTheme = 'auto'"
                       >
-                        <Icon name="lucide:sun-moon" class="size-4" />
+                        <Icon name="ph:circle-half" class="size-4" />
                       </Button>
                     </div>
                     <DropdownMenuSeparator />

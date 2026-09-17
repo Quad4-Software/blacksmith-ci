@@ -22,7 +22,7 @@
           <div class="flex gap-2">
             <Input :model-value="createdAgent.token" readonly class="font-mono text-xs" />
             <Button variant="outline" size="icon" :title="$t('copy')" @click="copyCreatedToken">
-              <Icon :name="copiedCreated ? 'lucide:check' : 'lucide:copy'" class="h-4 w-4" />
+              <Icon :name="copiedCreated ? 'ph:check' : 'ph:copy'" class="h-4 w-4" />
             </Button>
           </div>
         </div>
@@ -115,7 +115,7 @@
               <div class="flex gap-2">
                 <Input :model-value="agent.token" readonly class="font-mono text-xs" />
                 <Button type="button" variant="outline" size="icon" :title="$t('copy')" @click="copyAgentToken">
-                  <Icon :name="copiedAgent ? 'lucide:check' : 'lucide:copy'" class="h-4 w-4" />
+                  <Icon :name="copiedAgent ? 'ph:check' : 'ph:copy'" class="h-4 w-4" />
                 </Button>
               </div>
             </div>

@@ -105,7 +105,7 @@
                 >
                   {{ axis.key }}={{ val }}
                   <ComboboxItemIndicator class="ml-auto">
-                    <Icon name="lucide:check" class="h-3.5 w-3.5" />
+                    <Icon name="ph:check" class="h-3.5 w-3.5" />
                   </ComboboxItemIndicator>
                 </ComboboxItem>
               </ComboboxGroup>

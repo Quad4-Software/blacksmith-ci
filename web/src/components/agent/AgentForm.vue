@@ -35,7 +35,7 @@
             class="font-mono text-xs"
           />
           <Button type="button" variant="outline" size="icon" :title="$t('copy')" @click="copyToken">
-            <Icon :name="copied ? 'lucide:check' : 'lucide:copy'" class="h-4 w-4" />
+            <Icon :name="copied ? 'ph:check' : 'ph:copy'" class="h-4 w-4" />
           </Button>
         </div>
       </InputField>

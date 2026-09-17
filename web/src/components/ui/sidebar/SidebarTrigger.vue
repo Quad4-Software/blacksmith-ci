@@ -9,7 +9,7 @@
         :class="cn('h-8 w-8', props.class)"
         @click="toggleSidebar"
       >
-        <PanelLeft />
+        <PhSidebarSimple />
         <span class="sr-only" aria-hidden="true">Toggle Sidebar</span>
       </Button>
     </TooltipTrigger>
@@ -27,14 +27,14 @@
     :class="cn('h-8 w-8', props.class)"
     @click="toggleSidebar"
   >
-    <PanelLeft />
+    <PhSidebarSimple />
     <span class="sr-only" aria-hidden="true">Toggle Sidebar</span>
   </Button>
 </template>
 
 <script setup lang="ts">
 import type { HTMLAttributes } from 'vue';
-import { PanelLeft } from '@lucide/vue';
+import { PhSidebarSimple } from '@phosphor-icons/vue';
 import { cn } from '~/lib/utils';
 import { Button } from '~/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip';

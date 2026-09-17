@@ -42,7 +42,7 @@
                   <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
                   <span class="text-muted-foreground mx-1">@</span>
                   <span class="text-muted-foreground">{{ getForgeDisplayName(forge) }}</span>
-                  <Icon name="lucide:refresh-cw" class="ml-1.5 h-3 w-3" />
+                  <Icon name="ph:arrow-clockwise" class="ml-1.5 h-3 w-3" />
                 </Button>
               </div>
             </div>
@@ -246,7 +246,7 @@
                       <span>{{ repo.full_name }}</span>
                     </div>
                     <ComboboxItemIndicator class="ml-auto">
-                      <Icon name="lucide:check" class="h-4 w-4" />
+                      <Icon name="ph:check" class="h-4 w-4" />
                     </ComboboxItemIndicator>
                   </ComboboxItem>
                 </ComboboxViewport>

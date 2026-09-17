@@ -219,7 +219,7 @@
                   @click="toggleAbbreviatedValue"
                 >
                   <Icon v-if="isLoadingAbbreviatedValue" name="spinner" class="h-4 w-4 animate-spin mr-2" />
-                  <Icon v-else :name="showAbbreviatedValue ? 'lucide:eye-off' : 'lucide:eye'" class="h-4 w-4 mr-2" />
+                  <Icon v-else :name="showAbbreviatedValue ? 'ph:eye-slash' : 'ph:eye'" class="h-4 w-4 mr-2" />
                   {{ showAbbreviatedValue ? $t('secrets.hide_value') : $t('secrets.show_value') }}
                 </Button>
               </div>
@@ -269,7 +269,7 @@
                       <Tooltip>
                         <TooltipTrigger as-child>
                           <Button type="button" size="icon" variant="outline" @click="copyImage(image)">
-                            <Icon :name="copiedImages[image] ? 'lucide:check' : 'lucide:copy'" />
+                            <Icon :name="copiedImages[image] ? 'ph:check' : 'ph:copy'" />
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
@@ -290,7 +290,7 @@
                       @keydown.enter.prevent="addImage(componentField)"
                     />
                     <Button type="button" size="icon" @click="addImage(componentField)">
-                      <Icon name="lucide:corner-down-left" />
+                      <Icon name="ph:arrow-elbow-down-left" />
                     </Button>
                   </div>
                 </div>

@@ -29,7 +29,7 @@
                 />
                 <span class="truncate">{{ selectedRef?.name || $t('repo.manual_pipeline.select_ref') }}</span>
               </span>
-              <Icon name="lucide:arrow-up-down" class="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              <Icon name="ph:arrows-down-up" class="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
           <PopoverContent
@@ -50,7 +50,7 @@
                     @select="selectRef('branch', branch)"
                   >
                     <Icon
-                      name="lucide:check"
+                      name="ph:check"
                       class="mr-2 h-4 w-4"
                       :class="isSelected('branch', branch) ? 'opacity-100' : 'opacity-0'"
                     />
@@ -72,7 +72,7 @@
                     @select="selectRef('tag', tag)"
                   >
                     <Icon
-                      name="lucide:check"
+                      name="ph:check"
                       class="mr-2 h-4 w-4"
                       :class="isSelected('tag', tag) ? 'opacity-100' : 'opacity-0'"
                     />

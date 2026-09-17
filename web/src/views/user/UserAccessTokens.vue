@@ -26,7 +26,7 @@
     <div class="space-y-6 max-w-7xl mx-auto">
       <!-- Info Alert -->
       <Alert>
-        <Icon name="lucide:info" class="h-4 w-4" />
+        <Icon name="ph:info" class="h-4 w-4" />
         <AlertDescription>
           {{ $t('access_tokens.info') }}
         </AlertDescription>

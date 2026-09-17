@@ -14,7 +14,7 @@
   >
     <CheckboxIndicator data-slot="checkbox-indicator" class="grid place-content-center text-current transition-none">
       <slot>
-        <Check class="size-3.5" />
+        <PhCheck class="size-3.5" />
       </slot>
     </CheckboxIndicator>
   </CheckboxRoot>
@@ -22,7 +22,7 @@
 
 <script setup lang="ts">
 import type { HTMLAttributes } from 'vue';
-import { Check } from '@lucide/vue';
+import { PhCheck } from '@phosphor-icons/vue';
 import { CheckboxIndicator, CheckboxRoot } from 'reka-ui';
 import { cn } from '~/lib/utils';
 

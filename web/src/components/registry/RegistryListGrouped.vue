@@ -257,7 +257,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ArrowUpDown, Check, Copy, MoreVertical } from '@lucide/vue';
+import { PhArrowsDownUp, PhCheck, PhCopy, PhDotsThreeVertical } from '@phosphor-icons/vue';
 import type {
   ColumnDef,
   ColumnFiltersState,
@@ -543,7 +543,7 @@ const columns: ColumnDef<typeof dataTableFeatures, RegistryWithOrg>[] = [
           class: ' pr-6',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => ['Address', h(ArrowUpDown, { class: 'ml-2 h-4 w-4' })],
+        () => ['Address', h(PhArrowsDownUp, { class: 'ml-2 h-4 w-4' })],
       );
     },
     cell: ({ row }) => {
@@ -569,7 +569,7 @@ const columns: ColumnDef<typeof dataTableFeatures, RegistryWithOrg>[] = [
               copyAddress(address);
             },
           },
-          h(copiedAddresses[address] ? Check : Copy, { class: 'h-3 w-3 text-muted-foreground' }),
+          h(copiedAddresses[address] ? PhCheck : PhCopy, { class: 'h-3 w-3 text-muted-foreground' }),
         ),
       ]);
     },
@@ -586,7 +586,7 @@ const columns: ColumnDef<typeof dataTableFeatures, RegistryWithOrg>[] = [
           class: ' pr-6',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => ['Username', h(ArrowUpDown, { class: 'ml-2 h-4 w-4' })],
+        () => ['Username', h(PhArrowsDownUp, { class: 'ml-2 h-4 w-4' })],
       );
     },
     cell: ({ row }) => h('div', {}, row.getValue('username')),
@@ -606,7 +606,7 @@ const columns: ColumnDef<typeof dataTableFeatures, RegistryWithOrg>[] = [
           class: ' pr-6',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => ['Owner', h(ArrowUpDown, { class: 'ml-2 h-4 w-4' })],
+        () => ['Owner', h(PhArrowsDownUp, { class: 'ml-2 h-4 w-4' })],
       );
     },
     cell: ({ row }) => h('div', {}, row.getValue('owner')),
@@ -654,7 +654,7 @@ const columns: ColumnDef<typeof dataTableFeatures, RegistryWithOrg>[] = [
           class: ' pr-6',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => [t('scope_type'), h(ArrowUpDown, { class: 'ml-2 h-4 w-4' })],
+        () => [t('scope_type'), h(PhArrowsDownUp, { class: 'ml-2 h-4 w-4' })],
       );
     },
     cell: ({ row }) => {
@@ -682,7 +682,7 @@ const columns: ColumnDef<typeof dataTableFeatures, RegistryWithOrg>[] = [
           class: ' pr-6',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => [t('registries.added'), h(ArrowUpDown, { class: 'ml-2 h-4 w-4' })],
+        () => [t('registries.added'), h(PhArrowsDownUp, { class: 'ml-2 h-4 w-4' })],
       );
     },
     cell: ({ row }) => {
@@ -702,7 +702,7 @@ const columns: ColumnDef<typeof dataTableFeatures, RegistryWithOrg>[] = [
           class: ' pr-6',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => [t('registries.last_edited'), h(ArrowUpDown, { class: 'ml-2 h-4 w-4' })],
+        () => [t('registries.last_edited'), h(PhArrowsDownUp, { class: 'ml-2 h-4 w-4' })],
       );
     },
     cell: ({ row }) => {
@@ -742,7 +742,10 @@ const columns: ColumnDef<typeof dataTableFeatures, RegistryWithOrg>[] = [
                         variant: 'ghost' as const,
                         class: 'h-8 w-8 p-0',
                       },
-                      () => [h('span', { class: 'sr-only' }, t('actions')), h(MoreVertical, { class: 'h-4 w-4' })],
+                      () => [
+                        h('span', { class: 'sr-only' }, t('actions')),
+                        h(PhDotsThreeVertical, { class: 'h-4 w-4' }),
+                      ],
                     ),
                 },
               ),

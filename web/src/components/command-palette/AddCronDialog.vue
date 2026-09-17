@@ -109,7 +109,7 @@
               rel="noopener noreferrer"
               class="text-xs text-muted-foreground hover:text-foreground"
             >
-              <Icon name="lucide:external-link" class="h-3 w-3" />
+              <Icon name="ph:arrow-square-out" class="h-3 w-3" />
             </a>
           </div>
           <Input

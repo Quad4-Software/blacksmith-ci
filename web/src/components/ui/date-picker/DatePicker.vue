@@ -103,7 +103,7 @@ function handleYearChange(value: string) {
         variant="outline"
         :class="cn('w-full justify-start text-left font-normal', !modelValue && 'text-muted-foreground', props.class)"
       >
-        <Icon name="lucide:calendar" class="mr-2 h-4 w-4" />
+        <Icon name="ph:calendar" class="mr-2 h-4 w-4" />
         {{ displayValue }}
       </Button>
     </PopoverTrigger>

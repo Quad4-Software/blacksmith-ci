@@ -20,7 +20,7 @@
               :aria-pressed="!isSeverityMuted('error')"
               @click="toggleSeverity('error')"
             >
-              <Icon name="lucide:circle-x" class="h-3.5 w-3.5" />
+              <Icon name="ph:x-circle" class="h-3.5 w-3.5" />
               {{ $t('repo.pipeline.issues.errors', { count: errorCount }) }}
             </button>
           </TooltipTrigger>
@@ -45,7 +45,7 @@
               :aria-pressed="!isSeverityMuted('warning')"
               @click="toggleSeverity('warning')"
             >
-              <Icon name="lucide:triangle-alert" class="h-3.5 w-3.5" />
+              <Icon name="ph:warning" class="h-3.5 w-3.5" />
               {{ $t('repo.pipeline.issues.warnings', { count: warningCount }) }}
             </button>
           </TooltipTrigger>
@@ -87,7 +87,7 @@
           <Tooltip>
             <TooltipTrigger as-child>
               <Button variant="ghost" size="icon-sm" @click="copyIssues">
-                <Icon :name="issuesCopied ? 'lucide:check' : 'lucide:copy'" class="h-4 w-4" />
+                <Icon :name="issuesCopied ? 'ph:check' : 'ph:copy'" class="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>{{ issuesCopied ? $t('copied') : $t('repo.pipeline.issues.copy') }}</TooltipContent>

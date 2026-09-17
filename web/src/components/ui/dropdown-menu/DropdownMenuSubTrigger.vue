@@ -10,7 +10,7 @@
     "
   >
     <slot />
-    <ChevronRight class="ml-auto size-4" />
+    <PhCaretRight class="ml-auto size-4" />
   </DropdownMenuSubTrigger>
 </template>
 
@@ -18,7 +18,7 @@
 import type { DropdownMenuSubTriggerProps } from 'reka-ui';
 import type { HTMLAttributes } from 'vue';
 import { reactiveOmit } from '@vueuse/core';
-import { ChevronRight } from '@lucide/vue';
+import { PhCaretRight } from '@phosphor-icons/vue';
 import { DropdownMenuSubTrigger, useForwardProps } from 'reka-ui';
 import { cn } from '~/lib/utils';
 

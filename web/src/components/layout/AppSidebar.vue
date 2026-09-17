@@ -165,7 +165,7 @@
                     :is-active="isActive('user-crons')"
                   >
                     <router-link :to="{ name: 'user-crons' }">
-                      <Icon name="lucide:clock" class="size-4" />
+                      <Icon name="ph:clock" class="size-4" />
                       <span v-if="!isCollapsed">{{ $t('repo.settings.crons.crons') }}</span>
                       <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
                       <span v-if="!isMobile && !isCollapsed" class="ml-auto text-xs text-muted-foreground">Alt+C</span>
@@ -189,7 +189,7 @@
                     :is-active="isActive('user-integrations')"
                   >
                     <router-link :to="{ name: 'user-integrations' }">
-                      <Icon name="lucide:plug-2" class="size-4" />
+                      <Icon name="ph:plug" class="size-4" />
                       <span v-if="!isCollapsed">{{ $t('integrations.title') }}</span>
                       <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
                       <span v-if="!isMobile && !isCollapsed" class="ml-auto text-xs text-muted-foreground">Alt+I</span>
@@ -294,7 +294,7 @@
         <SidebarMenuItem>
           <SidebarMenuButton as-child :tooltip="$t('docs')">
             <a href="https://crowci.dev/" target="_blank">
-              <Icon name="lucide:book-open" class="size-4" />
+              <Icon name="ph:book-open" class="size-4" />
               <span v-if="!isCollapsed">{{ $t('docs') }}</span>
             </a>
           </SidebarMenuButton>
@@ -303,7 +303,7 @@
         <SidebarMenuItem v-if="enableSwagger">
           <SidebarMenuButton as-child :tooltip="$t('api')">
             <a :href="apiUrl" target="_blank">
-              <Icon name="lucide:code" class="size-4" />
+              <Icon name="ph:code" class="size-4" />
               <span v-if="!isCollapsed">{{ $t('api') }}</span>
             </a>
           </SidebarMenuButton>

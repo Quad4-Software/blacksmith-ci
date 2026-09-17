@@ -106,10 +106,7 @@
               class="h-8 text-muted-foreground text-xs sm:text-sm"
               @click="showHiddenPipelines = !showHiddenPipelines"
             >
-              <Icon
-                :name="showHiddenPipelines ? 'lucide:eye' : 'lucide:eye-off'"
-                class="mr-1 sm:mr-1.5 h-4 w-4 shrink-0"
-              />
+              <Icon :name="showHiddenPipelines ? 'ph:eye' : 'ph:eye-slash'" class="mr-1 sm:mr-1.5 h-4 w-4 shrink-0" />
               <span class="truncate">
                 {{
                   showHiddenPipelines
@@ -125,7 +122,7 @@
               class="h-8 text-muted-foreground text-xs sm:text-sm"
               @click="clearHiddenPipelines"
             >
-              <Icon name="lucide:x" class="mr-1 sm:mr-1.5 h-4 w-4 shrink-0" />
+              <Icon name="ph:x" class="mr-1 sm:mr-1.5 h-4 w-4 shrink-0" />
               <span class="truncate">{{ $t('repo.pipeline.unhide_all') }}</span>
             </ShadcnButton>
           </div>
@@ -164,7 +161,7 @@
             @click="showHiddenPipelines = true"
           >
             <div class="hidden sm:block flex-1 border-t border-dashed border-muted-foreground/30" />
-            <Icon name="lucide:eye-off" class="h-4 w-4 shrink-0" />
+            <Icon name="ph:eye-slash" class="h-4 w-4 shrink-0" />
             <span class="whitespace-nowrap">{{ $t('repo.pipeline.hidden_count', { count: item.count }) }}</span>
             <div class="hidden sm:block flex-1 border-t border-dashed border-muted-foreground/30" />
           </div>

@@ -94,7 +94,7 @@
         <DropdownMenu :modal="false">
           <DropdownMenuTrigger as-child>
             <Button variant="outline" size="sm" class="h-9 border-dashed">
-              <Icon name="lucide:clock" class="mr-2 h-4 w-4" />
+              <Icon name="ph:clock" class="mr-2 h-4 w-4" />
               {{ $t('repo.settings.crons.schedule.title') }}
               <template v-if="selectedScheduleTypes.length > 0">
                 <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
@@ -282,7 +282,7 @@
                     <Tooltip>
                       <TooltipTrigger as-child>
                         <Icon
-                          :name="cron.disabled ? 'lucide:circle-x' : 'lucide:triangle-alert'"
+                          :name="cron.disabled ? 'ph:x-circle' : 'ph:warning'"
                           class="size-4 shrink-0"
                           :class="cron.disabled ? 'text-destructive' : 'text-amber-500'"
                         />
@@ -310,10 +310,7 @@
                           class="h-5 w-5 shrink-0"
                           @click.stop="copyField(cron.name, `name-${cron.id}`)"
                         >
-                          <Icon
-                            :name="copiedFields[`name-${cron.id}`] ? 'lucide:check' : 'lucide:copy'"
-                            class="h-3 w-3"
-                          />
+                          <Icon :name="copiedFields[`name-${cron.id}`] ? 'ph:check' : 'ph:copy'" class="h-3 w-3" />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
@@ -335,10 +332,7 @@
                           class="h-5 w-5 shrink-0"
                           @click.stop="copyField(cron.repo_name, `repo-${cron.id}`)"
                         >
-                          <Icon
-                            :name="copiedFields[`repo-${cron.id}`] ? 'lucide:check' : 'lucide:copy'"
-                            class="h-3 w-3"
-                          />
+                          <Icon :name="copiedFields[`repo-${cron.id}`] ? 'ph:check' : 'ph:copy'" class="h-3 w-3" />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
@@ -504,7 +498,7 @@
                 rel="noopener noreferrer"
                 class="text-xs text-muted-foreground hover:text-foreground"
               >
-                <Icon name="lucide:external-link" class="h-3 w-3" />
+                <Icon name="ph:arrow-square-out" class="h-3 w-3" />
               </a>
             </div>
             <Input

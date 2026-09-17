@@ -186,7 +186,7 @@
             @click="tasksMode === 'running' ? loadTasks() : loadWorkflows(true)"
           >
             <Icon
-              name="lucide:refresh-cw"
+              name="ph:arrow-clockwise"
               class="h-4 w-4"
               :class="{ 'animate-spin': tasksMode === 'running' ? tasksLoading : workflowsLoading }"
             />

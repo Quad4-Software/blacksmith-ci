@@ -2,7 +2,7 @@
   <Popover v-if="names.length" v-model:open="open">
     <PopoverTrigger as-child>
       <Button variant="outline" size="sm" class="h-8 gap-2 border-dashed">
-        <Icon name="lucide:workflow" class="h-4 w-4" />
+        <Icon name="ph:flow-arrow" class="h-4 w-4" />
         {{ $t('repo.pipeline.filter.workflows') }}
         <Badge v-if="model.length" variant="secondary" class="rounded-sm px-1.5 font-normal">{{ model.length }}</Badge>
         <Icon name="chevron-down" class="h-3 w-3" />

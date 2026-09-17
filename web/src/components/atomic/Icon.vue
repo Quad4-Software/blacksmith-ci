@@ -1,6 +1,6 @@
 <!-- cSpell:ignore radiobox timelapse -->
 <template>
-  <Icon v-if="lucideIcon" :icon="`lucide:${lucideIcon}`" :width="size || '1em'" :height="size || '1em'" />
+  <component :is="phosphorIcon" v-if="phosphorIcon" :size="size || '1em'" />
   <Icon
     v-else-if="iconifyIcon"
     :icon="iconifyIcon"
@@ -47,6 +47,8 @@
 import { computed } from 'vue';
 import { Icon } from '@iconify/vue';
 
+import { phosphorIcons } from './phosphor-icons';
+
 import PipelineProgressSpinner from '~/components/repo/pipeline/PipelineProgressSpinner.vue';
 import { useTheme } from '~/compositions/useTheme';
 
@@ -73,89 +75,89 @@ const props = defineProps<{
 
 const { theme } = useTheme();
 
-// Mapping of icon names to Lucide icon names
-const iconMap: Record<string, string> = {
-  duration: 'timer',
-  startDate: 'clock',
-  branch: 'git-branch',
-  'pull-request': 'git-pull-request',
-  'pull-request-closed': 'git-pull-request-closed',
-  'pull-request-merged': 'git-merge',
-  'pull-request-edited': 'pencil',
-  'manual-pipeline': 'hand',
-  tag: 'tag',
-  deployment: 'package',
-  commit: 'git-commit',
-  back: 'arrow-left',
-  next: 'arrow-right',
-  repo: 'folder-code',
-  settings: 'settings',
-  settings2: 'settings-2',
-  'settings-outline': 'settings-2',
-  trash: 'trash-2',
-  'status-blocked': 'play',
-  'status-declined': 'square',
-  'status-killed': 'square',
-  folder: 'folder',
-  'folder-open': 'folder-open',
-  file: 'file',
-  filter: 'list-filter',
-  columns: 'columns-3',
-  'status-failure': 'x',
-  'status-error': 'x',
-  'status-skipped': 'minus',
-  'status-success': 'check',
-  'status-pending': 'circle',
-  pipelines: 'list-checks',
-  secret: 'key-round',
-  console: 'code',
-  agent: 'bot',
-  autoscaler: 'scale',
-  worker: 'hard-hat',
-  info: 'info',
-  'info-outline': 'info',
-  user: 'user',
-  org: 'users',
-  cron: 'calendar-clock',
-  toolbox: 'wrench',
-  alert: 'triangle-alert',
-  question: 'info',
-  plus: 'plus',
-  list: 'list',
-  heal: 'settings-2',
-  'turn-off': 'power',
-  'chevron-left': 'chevron-left',
-  'chevron-right': 'chevron-right',
-  'chevron-up': 'chevron-up',
-  'chevron-down': 'chevron-down',
-  'sort-ascending': 'arrow-up',
-  'sort-descending': 'arrow-down',
-  close: 'x',
-  edit: 'pencil',
-  'content-save-outline': 'save',
-  download: 'download',
-  stopwatch: 'alarm-clock',
-  'auto-scroll': 'eye',
-  'auto-scroll-off': 'eye-off',
-  pause: 'pause',
-  play: 'play',
-  'play-outline': 'play',
-  'progress-wrench-outline': 'wrench',
-  dots: 'more-vertical',
-  tasks: 'list-tree',
-  'file-cog-outline': 'file-code',
-  'file-edit-outline': 'file-pen-line',
-  'bug-outline': 'bug',
-  docker: 'package',
-  'visibility-private': 'lock',
-  'visibility-internal': 'lock-open',
-  dependency: 'git-merge',
-  'mdi-wind-power-outline': 'wind',
-  'email-outline': 'mail',
-  graph: 'chart-bar',
-  spinner: 'loader-2',
-  logout: 'log-out',
-  calendar: 'calendar',
+// Map semantic names to bundled Phosphor icons.
+const iconMap: Record<string, keyof typeof phosphorIcons> = {
+  duration: 'ph:timer',
+  startDate: 'ph:clock',
+  branch: 'ph:git-branch',
+  'pull-request': 'ph:git-pull-request',
+  'pull-request-closed': 'ph:git-pull-request',
+  'pull-request-merged': 'ph:git-merge',
+  'pull-request-edited': 'ph:pencil-simple',
+  'manual-pipeline': 'ph:hand',
+  tag: 'ph:tag',
+  deployment: 'ph:package',
+  commit: 'ph:git-commit',
+  back: 'ph:arrow-left',
+  next: 'ph:arrow-right',
+  repo: 'ph:folder-simple',
+  settings: 'ph:gear',
+  settings2: 'ph:sliders-horizontal',
+  'settings-outline': 'ph:sliders-horizontal',
+  trash: 'ph:trash',
+  'status-blocked': 'ph:play',
+  'status-declined': 'ph:square',
+  'status-killed': 'ph:square',
+  folder: 'ph:folder',
+  'folder-open': 'ph:folder-open',
+  file: 'ph:file',
+  filter: 'ph:funnel',
+  columns: 'ph:columns',
+  'status-failure': 'ph:x',
+  'status-error': 'ph:x',
+  'status-skipped': 'ph:minus',
+  'status-success': 'ph:check',
+  'status-pending': 'ph:circle',
+  pipelines: 'ph:list-checks',
+  secret: 'ph:key',
+  console: 'ph:code',
+  agent: 'ph:robot',
+  autoscaler: 'ph:scales',
+  worker: 'ph:hard-hat',
+  info: 'ph:info',
+  'info-outline': 'ph:info',
+  user: 'ph:user',
+  org: 'ph:users',
+  cron: 'ph:calendar-dots',
+  toolbox: 'ph:wrench',
+  alert: 'ph:warning',
+  question: 'ph:info',
+  plus: 'ph:plus',
+  list: 'ph:list',
+  heal: 'ph:sliders-horizontal',
+  'turn-off': 'ph:power',
+  'chevron-left': 'ph:caret-left',
+  'chevron-right': 'ph:caret-right',
+  'chevron-up': 'ph:caret-up',
+  'chevron-down': 'ph:caret-down',
+  'sort-ascending': 'ph:arrow-up',
+  'sort-descending': 'ph:arrow-down',
+  close: 'ph:x',
+  edit: 'ph:pencil-simple',
+  'content-save-outline': 'ph:floppy-disk',
+  download: 'ph:download',
+  stopwatch: 'ph:alarm',
+  'auto-scroll': 'ph:eye',
+  'auto-scroll-off': 'ph:eye-slash',
+  pause: 'ph:pause',
+  play: 'ph:play',
+  'play-outline': 'ph:play',
+  'progress-wrench-outline': 'ph:wrench',
+  dots: 'ph:dots-three-vertical',
+  tasks: 'ph:tree-structure',
+  'file-cog-outline': 'ph:file-code',
+  'file-edit-outline': 'ph:note-pencil',
+  'bug-outline': 'ph:bug',
+  docker: 'ph:package',
+  'visibility-private': 'ph:lock',
+  'visibility-internal': 'ph:lock-open',
+  dependency: 'ph:git-merge',
+  'mdi-wind-power-outline': 'ph:wind',
+  'email-outline': 'ph:envelope',
+  graph: 'ph:chart-bar',
+  spinner: 'ph:spinner-gap',
+  logout: 'ph:sign-out',
+  calendar: 'ph:calendar',
 };
 
 const forgeIcons = {
@@ -175,24 +177,15 @@ const iconifyForgeIcons: Record<string, string> = {
   gitea: 'devicon:gitea',
 };
 
-const lucideIcon = computed(() => {
-  if (props.name === 'status-running' || props.name === 'status-started' || props.name === 'blank') {
-    return null;
-  }
-  if (forgeIconNames.includes(props.name) || props.name in iconifyForgeIcons) {
-    return null;
-  }
-  // Handle direct lucide icon names
-  if (props.name.startsWith('lucide:')) {
-    return props.name.replace('lucide:', '');
-  }
-  return iconMap[props.name] || null;
+const phosphorIcon = computed(() => {
+  const name = iconMap[props.name] ?? props.name;
+  return phosphorIcons[name as keyof typeof phosphorIcons] ?? null;
 });
 
 const iconifyIcon = computed(() => {
   if (iconifyForgeIcons[props.name]) return iconifyForgeIcons[props.name];
   // Handle any iconify icon name with a colon prefix (e.g. "solar:restart-bold")
-  if (props.name.includes(':') && !props.name.startsWith('lucide:')) return props.name;
+  if (props.name.includes(':') && !props.name.startsWith('ph:')) return props.name;
   return null;
 });
 
