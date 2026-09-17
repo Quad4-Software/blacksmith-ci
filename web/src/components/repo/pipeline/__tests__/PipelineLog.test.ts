@@ -72,9 +72,9 @@ function logEntry(line: number, text = 'hi', type = 0): PipelineLogEntry {
   return { id: line, step_id: 100, time: 0, line, data: btoa(text), type };
 }
 
-function mountLog(state: string) {
+function mountLog(state: string, pipeline = buildPipeline(state)) {
   return mount(PipelineLog, {
-    props: { pipeline: buildPipeline(state), stepId: 1 },
+    props: { pipeline, stepId: 1 },
     shallow: true,
     global: {
       renderStubDefaultSlot: true,
@@ -96,6 +96,44 @@ describe('pipeline log empty state', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it('keeps completed logs accessible when a sibling workflow is declined', async () => {
+    const pipeline = buildPipeline('success');
+    pipeline.status = 'declined';
+    pipeline.workflows![0].children[0].name = 'test';
+    const deploy = buildPipeline('declined').workflows![0];
+    deploy.id = 20;
+    deploy.pid = 2;
+    deploy.children = [{ ...deploy.children[0], id: 200, pid: 2, name: 'deploy', state: 'skipped' }];
+    pipeline.workflows!.push(deploy);
+    getLogs.mockResolvedValue([logEntry(0, 'Test passed')]);
+
+    const wrapper = mountLog('success', pipeline);
+    await vi.advanceTimersByTimeAsync(600);
+    expect(getLogs).toHaveBeenCalled();
+    expect(wrapper.text()).not.toContain('repo.pipeline.protected.declined');
+
+    await wrapper.setProps({ stepId: 2 });
+    await vi.advanceTimersByTimeAsync(600);
+    expect(wrapper.text()).toContain('repo.pipeline.protected.declined');
+    expect(wrapper.text()).not.toContain('repo.pipeline.actions.canceled');
+
+    getLogs.mockClear();
+    await wrapper.setProps({ stepId: 1 });
+    await vi.advanceTimersByTimeAsync(600);
+    expect(getLogs).toHaveBeenCalled();
+    expect(wrapper.text()).not.toContain('repo.pipeline.protected.declined');
+    expect(wrapper.text()).not.toContain('repo.pipeline.loading');
+    wrapper.unmount();
+  });
+
+  it('shows pipeline-level rejection without requesting logs', async () => {
+    const wrapper = mountLog('declined');
+    await vi.advanceTimersByTimeAsync(600);
+    expect(wrapper.text()).toContain('repo.pipeline.protected.declined');
+    expect(getLogs).not.toHaveBeenCalled();
+    wrapper.unmount();
   });
 
   it('waits instead of reporting missing logs while the store is still empty', async () => {

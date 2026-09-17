@@ -77,7 +77,7 @@
                 </div>
               </Panel>
             </div>
-            <div v-else-if="isPipelineLevelBlocked" class="w-full mb-auto p-4">
+            <div v-else-if="showPipelineApprovalPanel" class="w-full mb-auto p-4">
               <Panel>
                 <div class="flex flex-col items-center gap-4">
                   <Icon name="status-blocked" size="1.5rem" class="h-16 w-16" />
@@ -114,7 +114,7 @@
                 </div>
               </Panel>
             </div>
-            <div v-else-if="pipeline!.status === 'declined'" class="w-full mb-auto p-4">
+            <div v-else-if="pipeline!.status === 'declined' && !pipeline!.workflows?.length" class="w-full mb-auto p-4">
               <Panel>
                 <div class="flex flex-col items-center gap-4">
                   <Icon name="status-declined" size="1.5rem" class="h-16 w-16 text-destructive" />
@@ -180,7 +180,7 @@
           </div>
         </Panel>
       </div>
-      <div v-else-if="isPipelineLevelBlocked" class="p-4 flex-1">
+      <div v-else-if="showPipelineApprovalPanel" class="p-4 flex-1">
         <Panel>
           <div class="flex flex-col items-center gap-4">
             <Icon name="status-blocked" size="1.5rem" class="h-16 w-16" />
@@ -212,7 +212,7 @@
           </div>
         </Panel>
       </div>
-      <div v-else-if="pipeline!.status === 'declined'" class="p-4 flex-1">
+      <div v-else-if="pipeline!.status === 'declined' && !pipeline!.workflows?.length" class="p-4 flex-1">
         <Panel>
           <div class="flex flex-col items-center gap-4">
             <Icon name="status-declined" size="1.5rem" class="h-16 w-16 text-destructive" />
@@ -262,6 +262,9 @@
         />
         <!-- Step Selection (when no step is selected) -->
         <div v-else class="h-full overflow-y-auto">
+          <Panel v-if="pipeline!.status === 'declined'" class="mb-4">
+            <p class="text-xl">{{ $t('repo.pipeline.protected.declined') }}</p>
+          </Panel>
           <div class="px-1 pb-20 pt-1">
             <div class="flex flex-col gap-y-2">
               <template v-for="group in mobileWorkflowGroups" :key="group.key">
@@ -455,16 +458,19 @@ watch(
   { immediate: true },
 );
 
-// True when the whole pipeline is blocked (e.g. fork PR approval) and no
-// individual workflow has its own approval gate. When a workflow-level gate
-// is also present, prefer the workflow approval panel — it still exposes
-// Approve / Decline buttons so the user can resolve the gate.
-const isPipelineLevelBlocked = computed(() => pipeline.value?.status === 'blocked' && !selectedWorkflowApproval.value);
+// Show whole-pipeline approval controls only when the selected workflow
+// is blocked without its own approval gate.
+const showPipelineApprovalPanel = computed(() => {
+  if (pipeline.value?.status !== 'blocked') return false;
+  const workflow = selectedWorkflow.value;
+  if (workflow) return workflow.state === 'blocked' && !hasGate(workflow);
+  return !pipeline.value.workflows?.some((w) => w.state === 'blocked' && hasGate(w));
+});
 
 async function onWorkflowApprovalUpdated(_updated: PipelineWorkflow) {
   if (!repo.value || !pipeline.value?.number) return;
   // Reload the pipeline so the store has fresh workflow + status data; the
-  // panel will disappear automatically as approval_state moves off 'pending'.
+  // panel will show the resolved approval state and its audit history.
   await pipelineStore.loadPipeline(repo.value.id, pipeline.value.number);
 }
 

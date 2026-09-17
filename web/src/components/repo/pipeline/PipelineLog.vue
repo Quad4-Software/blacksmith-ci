@@ -704,7 +704,11 @@
       </CardContent>
 
       <CardContent class="m-auto text-xl text-muted-foreground">
-        <span v-if="step?.state === 'skipped'">{{ $t('repo.pipeline.actions.canceled') }}</span>
+        <div v-if="currentWorkflow?.state === 'declined'" class="flex flex-col items-center gap-4 p-4">
+          <Icon name="status-declined" size="1.5rem" class="h-16 w-16 text-destructive" />
+          <p>{{ $t('repo.pipeline.protected.declined') }}</p>
+        </div>
+        <span v-else-if="step?.state === 'skipped'">{{ $t('repo.pipeline.actions.canceled') }}</span>
         <div
           v-else-if="!step?.started && currentWorkflow?.autoscaler_provisioning"
           class="flex flex-col items-center gap-3 text-center"
@@ -907,7 +911,11 @@ const loadedLogs = computed(() => !!log.value);
 const hasLogs = computed(
   () =>
     // we do not have logs for skipped steps
-    repo?.value && pipeline.value && step.value && step.value.state !== 'skipped',
+    repo?.value &&
+    pipeline.value &&
+    step.value &&
+    step.value.state !== 'skipped' &&
+    currentWorkflow.value?.state !== 'declined',
 );
 // A live step keeps producing output, so an empty log view is expected rather
 // than a sign that there is nothing to show.
@@ -1457,6 +1465,7 @@ async function loadLogs(force = false) {
   stream.value = undefined;
 
   if (!hasLogs.value || !step.value) {
+    loadedStepSlug.value = undefined;
     return;
   }
 
