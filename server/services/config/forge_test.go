@@ -15,6 +15,7 @@
 package config_test
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -23,6 +24,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
 	forge_mocks "codefloe.com/crowci/crow/v6/server/forge/mocks"
 	forge_types "codefloe.com/crowci/crow/v6/server/forge/types"
@@ -390,4 +392,38 @@ func TestFetch(t *testing.T) {
 			assert.ElementsMatch(t, tt.expectedFileNames, matchingFiles, "expected some other pipeline files")
 		})
 	}
+}
+
+func TestFetchCanceledContext(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithCancelCause(t.Context())
+	cancel(nil)
+	f := forge_mocks.NewMockForge(t)
+	f.On("Dir", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, context.Canceled).Maybe()
+	f.On("File", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, context.Canceled).Maybe()
+	_, err := config.NewForge(time.Second, 3).Fetch(ctx, f, &model.User{}, &model.Repo{}, &model.Pipeline{}, nil, false)
+	assert.ErrorIs(t, err, context.Canceled)
+	assert.Empty(t, f.Calls, "a canceled request must not make forge calls or retries")
+}
+
+func TestFetchRetriesWithFreshDeadline(t *testing.T) {
+	t.Parallel()
+	f := forge_mocks.NewMockForge(t)
+	f.On("Dir", mock.Anything, mock.Anything, mock.Anything, mock.Anything, ".crow").Run(func(args mock.Arguments) {
+		ctx, ok := args.Get(0).(context.Context)
+		require.True(t, ok)
+		<-ctx.Done()
+	}).Return(nil, context.DeadlineExceeded).Once()
+	files := []*forge_types.FileMeta{{Name: ".crow/build.yaml", Data: []byte("steps: []")}}
+	f.On("Dir", mock.Anything, mock.Anything, mock.Anything, mock.Anything, ".crow").Run(func(args mock.Arguments) {
+		ctx, ok := args.Get(0).(context.Context)
+		require.True(t, ok)
+		assert.NoError(t, ctx.Err())
+	}).Return(files, nil).Once()
+	f.On("Dir", mock.Anything, mock.Anything, mock.Anything, mock.Anything, ".woodpecker").Return(nil, context.DeadlineExceeded).Maybe()
+	f.On("File", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, context.DeadlineExceeded).Maybe()
+	got, err := config.NewForge(20*time.Millisecond, 3).Fetch(t.Context(), f, &model.User{}, &model.Repo{}, &model.Pipeline{}, nil, false)
+	assert.NoError(t, err)
+	assert.Equal(t, files, got)
+	assert.Len(t, f.Calls, 2, "an expired attempt must not probe fallback paths")
 }

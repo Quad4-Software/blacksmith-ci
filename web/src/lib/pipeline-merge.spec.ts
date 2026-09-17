@@ -415,3 +415,57 @@ describe('mergePipeline', () => {
     expect(attempts).toEqual([1, 2]);
   });
 });
+
+describe('approval snapshot ordering', () => {
+  it.each([false, true])('keeps regenerated pending rows, stale snapshot last: %s', (staleLast) => {
+    const blocked = pipeline({
+      number: 7,
+      status: 'blocked',
+      workflows: [
+        workflow({ id: 10, pid: 1, state: 'blocked', children: [step({ id: 100, pid: 2, state: 'blocked' })] }),
+      ],
+    });
+    const approved = pipeline({
+      number: 7,
+      status: 'pending',
+      reviewed: 100,
+      reviewed_by: 'maintainer',
+      workflows: [
+        workflow({ id: 20, pid: 1, state: 'pending', children: [step({ id: 200, pid: 2, state: 'pending' })] }),
+      ],
+    });
+    const merged = staleLast ? mergePipeline(approved, blocked) : mergePipeline(blocked, approved);
+    expect(merged.status).toBe('pending');
+    expect(merged.reviewed_by).toBe('maintainer');
+    expect(merged.workflows).toEqual(approved.workflows);
+  });
+
+  it.each([false, true])('keeps an approved gate pending dispatch, stale snapshot last: %s', (staleLast) => {
+    const blocked = pipeline({
+      number: 7,
+      status: 'running',
+      workflows: [
+        workflow({
+          id: 10,
+          state: 'blocked',
+          approval_state: 'pending',
+          children: [step({ id: 100, state: 'pending' })],
+        }),
+      ],
+    });
+    const approved = pipeline({
+      number: 7,
+      status: 'running',
+      workflows: [
+        workflow({
+          id: 10,
+          state: 'pending',
+          approval_state: 'approved',
+          children: [step({ id: 100, state: 'pending' })],
+        }),
+      ],
+    });
+    const merged = staleLast ? mergePipeline(approved, blocked) : mergePipeline(blocked, approved);
+    expect(merged.workflows).toEqual(approved.workflows);
+  });
+});

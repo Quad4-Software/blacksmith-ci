@@ -314,12 +314,12 @@ export default class CrowClient extends ApiClient {
     ) as Promise<Pipeline>;
   }
 
-  async approvePipeline(repoId: number, pipelineNumber: string): Promise<unknown> {
-    return this._post(`/api/v1/repos/${repoId}/pipelines/${pipelineNumber}/approve`);
+  async approvePipeline(repoId: number, pipelineNumber: string): Promise<Pipeline> {
+    return this._post(`/api/v1/repos/${repoId}/pipelines/${pipelineNumber}/approve`) as Promise<Pipeline>;
   }
 
-  async approveAlwaysPipeline(repoId: number, pipelineNumber: string): Promise<unknown> {
-    return this._post(`/api/v1/repos/${repoId}/pipelines/${pipelineNumber}/approve-always`);
+  async approveAlwaysPipeline(repoId: number, pipelineNumber: string): Promise<Pipeline> {
+    return this._post(`/api/v1/repos/${repoId}/pipelines/${pipelineNumber}/approve-always`) as Promise<Pipeline>;
   }
 
   async revokeAlwaysApproval(repoId: number, pipelineNumber: string): Promise<unknown> {

@@ -469,7 +469,8 @@ async function onWorkflowApprovalUpdated(_updated: PipelineWorkflow) {
 }
 
 const { doSubmit: approvePipeline, isLoading: isApprovingPipeline } = useAsyncAction(async () => {
-  await apiClient.approvePipeline(repo.value.id, `${pipeline.value.number}`);
+  const approved = await apiClient.approvePipeline(repo.value.id, `${pipeline.value.number}`);
+  pipelineStore.setPipeline(repo.value.id, approved);
   notifications.notify({
     title: i18n.t('notify_title_success'),
     text: i18n.t('repo.pipeline.protected.notify_text_approve_success'),
@@ -479,7 +480,8 @@ const { doSubmit: approvePipeline, isLoading: isApprovingPipeline } = useAsyncAc
 });
 
 const { doSubmit: approveAlwaysPipeline, isLoading: isApprovingAlways } = useAsyncAction(async () => {
-  await apiClient.approveAlwaysPipeline(repo.value.id, `${pipeline.value.number}`);
+  const approved = await apiClient.approveAlwaysPipeline(repo.value.id, `${pipeline.value.number}`);
+  pipelineStore.setPipeline(repo.value.id, approved);
   notifications.notify({
     title: i18n.t('notify_title_success'),
     text: i18n.t('repo.pipeline.protected.notify_text_approve_always_success'),

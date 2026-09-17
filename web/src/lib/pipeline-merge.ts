@@ -51,6 +51,8 @@ function entityKey(entity: { pid: number; attempt: number }): string {
 }
 
 function mergeStep(existing: PipelineStep, incoming: PipelineStep): PipelineStep {
+  // A replacement row starts a new lifecycle; never retain a deleted row's state.
+  if (existing.id !== incoming.id) return incoming.id > existing.id ? incoming : existing;
   return stateRank(incoming.state) >= stateRank(existing.state) ? incoming : existing;
 }
 
@@ -80,7 +82,23 @@ function mergeSteps(existing: PipelineStep[], incoming: PipelineStep[]): Pipelin
   return result;
 }
 
+function isApprovalResolved(workflow: PipelineWorkflow): boolean {
+  return (
+    workflow.approval_state === 'approved' ||
+    workflow.approval_state === 'declined' ||
+    workflow.approval_state === 'expired'
+  );
+}
+
 function mergeWorkflow(existing: PipelineWorkflow, incoming: PipelineWorkflow): PipelineWorkflow {
+  // IDs increase when approval replaces rows. Keep the entire newer generation,
+  // including its children, even when an older blocked snapshot arrives last.
+  if (existing.id !== incoming.id) return incoming.id > existing.id ? incoming : existing;
+
+  // Resolving a gate legitimately moves blocked back to pending for dispatch.
+  const existingResolved = isApprovalResolved(existing);
+  const incomingResolved = isApprovalResolved(incoming);
+  if (existingResolved !== incomingResolved) return incomingResolved ? incoming : existing;
   // Pick the snapshot of the workflow itself with the more advanced state for top-level
   // fields (agent_id, started, finished, ...).
   const winner = stateRank(incoming.state) >= stateRank(existing.state) ? incoming : existing;
@@ -139,7 +157,11 @@ function mergeWorkflows(existing: PipelineWorkflow[], incoming: PipelineWorkflow
 export function mergePipeline(existing: Pipeline | undefined, incoming: Pipeline): Pipeline {
   if (!existing) return incoming;
 
-  const incomingMoreAdvanced = stateRank(incoming.status) >= stateRank(existing.status);
+  // Review marks a new lifecycle: approval returns a blocked pipeline to pending.
+  const incomingMoreAdvanced =
+    existing.reviewed !== incoming.reviewed
+      ? incoming.reviewed > existing.reviewed
+      : stateRank(incoming.status) >= stateRank(existing.status);
   // When incoming is more advanced, its scalars (status, started, finished, errors, ...)
   // win. When it's stale, we keep existing's scalars but still let incoming fill in any
   // immutable metadata that happens to be unset locally.

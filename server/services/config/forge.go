@@ -57,6 +57,9 @@ func (f *forgeFetcher) Fetch(ctx context.Context, forge forge.Forge, user *model
 
 	// try to fetch multiple times
 	for i := 0; i < int(f.retryCount); i++ {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		files, err = ffc.fetch(ctx, strings.TrimSpace(repo.Config))
 		if err != nil {
 			// Don't retry if the error is ErrConfigNotFound - retrying won't help
@@ -154,6 +157,10 @@ func (f *forgeFetcherContext) checkPipelineFile(c context.Context, config string
 func (f *forgeFetcherContext) getFirstAvailableConfig(c context.Context, configs []string) ([]*types.FileMeta, error) {
 	var forgeErr []error
 	for _, fileOrFolder := range configs {
+		// An expired attempt cannot probe fallback paths; retry with a fresh deadline.
+		if err := c.Err(); err != nil {
+			return nil, err
+		}
 		log.Trace().Msgf("fetching %s from forge", fileOrFolder)
 		if strings.HasSuffix(fileOrFolder, "/") {
 			// config is a folder
