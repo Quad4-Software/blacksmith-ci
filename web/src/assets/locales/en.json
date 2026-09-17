@@ -183,6 +183,9 @@
   },
   "repo": {
     "manual_pipeline": {
+      "run_workflow": "Run {name} on {branch}",
+      "quick_run_menu": "Quick run workflow",
+      "uses_defaults": "Uses default variable values",
       "title": "Trigger a manual pipeline run",
       "desc": "Select workflows to run. Only workflows with the 'manual' event trigger are shown.",
       "trigger": "Run pipeline",

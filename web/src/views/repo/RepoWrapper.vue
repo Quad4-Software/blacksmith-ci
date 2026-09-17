@@ -42,9 +42,9 @@
       />
     </template>
     <template #tabActions>
-      <div class="flex flex-col gap-2 w-full pb-2 md:flex-row md:items-center md:justify-between">
+      <div class="flex flex-col gap-2 w-full pb-2 md:flex-row md:flex-wrap md:items-center md:justify-between">
         <!-- Action buttons -->
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <Button
             v-if="repoPermissions.push && (route.name === 'repo' || route.name === 'repo-pipeline')"
             variant="outline"
@@ -55,10 +55,12 @@
           >
             <Icon :name="isMultiselectMode ? 'close' : 'list'" class="h-4 w-4" />
           </Button>
-          <Button v-if="repoPermissions.push" size="sm" class="h-8" @click="showManualPipelinePopup = true">
-            <Icon name="play" class="mr-1 h-4 w-4" />
-            {{ $t('repo.manual_pipeline.trigger') }}
-          </Button>
+          <RunPipelineButton
+            :repo="repo"
+            :can-run="repoPermissions.push"
+            :branch="branchFilter || repo.default_branch"
+            @configure="showManualPipelinePopup = true"
+          />
         </div>
 
         <!-- Search (drops below the filters on mobile, sits between actions and filters on desktop) -->
@@ -70,6 +72,7 @@
 
         <!-- Filters -->
         <div class="flex items-center gap-2 flex-wrap">
+          <WorkflowFilterPopover v-if="route.name === 'repo'" v-model="workflowFilter" :repo="repo" />
           <!-- Event type filter (multi-select) -->
           <DropdownMenu :modal="false">
             <DropdownMenuTrigger as-child>
@@ -210,6 +213,8 @@ import type { IconNames } from '~/components/atomic/Icon.types';
 import Icon from '~/components/atomic/Icon.vue';
 import IconButton from '~/components/atomic/IconButton.vue';
 import ManualPipelinePopup from '~/components/layout/popups/ManualPipelinePopup.vue';
+import RunPipelineButton from '~/components/repo/pipeline/RunPipelineButton.vue';
+import WorkflowFilterPopover from '~/components/repo/pipeline/WorkflowFilterPopover.vue';
 import Scaffold from '~/components/layout/scaffold/Scaffold.vue';
 import { Badge } from '~/components/ui/badge';
 import { Button } from '~/components/ui/button';

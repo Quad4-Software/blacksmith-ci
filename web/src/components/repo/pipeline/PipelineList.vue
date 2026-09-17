@@ -71,57 +71,8 @@
       </div>
     </Transition>
 
-    <!-- Workflow filter sidebar + pipeline list -->
-    <div class="flex flex-col sm:flex-row gap-4">
-      <!-- Foldable workflow filter (folded by default) -->
-      <Card
-        v-if="workflowNames.length > 0"
-        class="self-start overflow-hidden p-0"
-        :class="workflowPanelOpen ? 'w-full sm:w-56' : 'w-fit sm:shrink-0'"
-        :style="!workflowPanelOpen && firstCardHeight ? { height: `${firstCardHeight}px` } : undefined"
-      >
-        <button
-          type="button"
-          class="flex w-full items-center gap-2 text-sm font-medium transition-colors hover:bg-accent/50"
-          :class="workflowPanelOpen ? 'h-9 px-3' : 'h-full flex-col justify-center px-2 py-3'"
-          :aria-expanded="workflowPanelOpen"
-          :title="t('repo.pipeline.filter.workflows')"
-          @click="workflowPanelOpen = !workflowPanelOpen"
-        >
-          <Icon name="lucide:workflow" class="shrink-0 opacity-70" :class="workflowPanelOpen ? 'h-4 w-4' : 'h-5 w-5'" />
-          <span v-if="workflowPanelOpen" class="flex-1 text-left">{{ t('repo.pipeline.filter.workflows') }}</span>
-          <Badge v-if="(workflowFilter?.length ?? 0) > 0" variant="secondary" class="rounded-sm px-1.5 font-normal">
-            {{ workflowFilter?.length }}
-          </Badge>
-          <Icon v-if="workflowPanelOpen" name="chevron-down" class="h-4 w-4 shrink-0 opacity-60" />
-        </button>
-        <div v-if="workflowPanelOpen" class="max-h-[60vh] overflow-y-auto border-t p-1">
-          <button
-            v-for="name in workflowNames"
-            :key="name"
-            type="button"
-            class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent"
-            :class="{ 'bg-accent/60': isWorkflowSelected(name) }"
-            @click="toggleWorkflowChip(name)"
-          >
-            <Checkbox :checked="isWorkflowSelected(name)" class="pointer-events-none shrink-0" />
-            <span class="truncate">{{ name }}</span>
-          </button>
-          <div v-if="(workflowFilter?.length ?? 0) > 0" class="mt-1 border-t pt-1">
-            <button
-              type="button"
-              class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-muted-foreground transition-colors hover:bg-accent"
-              @click="clearWorkflowFilter"
-            >
-              <Icon name="lucide:x" class="h-3.5 w-3.5 shrink-0" />
-              {{ t('clear') }}
-            </button>
-          </div>
-        </div>
-      </Card>
-
-      <!-- Main column -->
-      <div ref="pipelineListEl" class="min-w-0 flex-1 space-y-4">
+    <div>
+      <div class="min-w-0 space-y-4">
         <!-- Hidden pipelines toggle and multi-select header -->
         <div
           v-if="(isMultiselectMode && displayPipelines.length > 0 && repoPermissions?.push) || hiddenCount > 0"
@@ -241,11 +192,10 @@
 <script lang="ts" setup>
 import { useIntersectionObserver, useStorage } from '@vueuse/core';
 import type { Ref } from 'vue';
-import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, inject, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Icon from '~/components/atomic/Icon.vue';
-import { Badge } from '~/components/ui/badge';
 import Checkbox from '~/components/ui/checkbox/Checkbox.vue';
 import Panel from '~/components/layout/Panel.vue';
 import PipelineItem from '~/components/repo/pipeline/PipelineItem.vue';
@@ -322,39 +272,6 @@ const reactivePipelines =
 // Extract loading and hasMore from composable or use local defaults
 const loading = reactivePipelines?.loading ?? ref(false);
 const hasMore = reactivePipelines?.hasMore ?? computed(() => false);
-
-// Foldable workflow filter sidebar (folded by default)
-const workflowNames = ref<string[]>([]);
-const workflowPanelOpen = ref(false);
-
-if (props.repo) {
-  apiClient
-    .getWorkflowNames(props.repo.id, { silent: true })
-    .then((names) => {
-      workflowNames.value = Array.isArray(names) ? names : [];
-      return undefined;
-    })
-    .catch(() => {
-      workflowNames.value = [];
-    });
-}
-
-function isWorkflowSelected(name: string): boolean {
-  return workflowFilter?.value.includes(name) ?? false;
-}
-
-function toggleWorkflowChip(name: string) {
-  if (!workflowFilter) return;
-  if (workflowFilter.value.includes(name)) {
-    workflowFilter.value = workflowFilter.value.filter((n) => n !== name);
-  } else {
-    workflowFilter.value = [...workflowFilter.value, name];
-  }
-}
-
-function clearWorkflowFilter() {
-  if (workflowFilter) workflowFilter.value = [];
-}
 
 // Hidden pipelines state - stored per repo
 const storageKey = computed(() =>
@@ -466,26 +383,6 @@ const pipelineDisplayItems = computed<PipelineDisplayItem[]>(() => {
 const visiblePipelines = computed(() =>
   pipelineDisplayItems.value.filter((item) => item.type === 'pipeline').map((item) => (item as any).pipeline),
 );
-
-// Match the folded workflow sidebar's height to the first pipeline card.
-const pipelineListEl = ref<HTMLElement | null>(null);
-const firstCardHeight = ref<number | undefined>(undefined);
-let cardResizeObserver: ResizeObserver | null = null;
-
-function measureFirstCard() {
-  const card = pipelineListEl.value?.querySelector<HTMLElement>('[data-pipeline-card]');
-  firstCardHeight.value = card?.offsetHeight || undefined;
-}
-
-onMounted(() => {
-  cardResizeObserver = new ResizeObserver(() => measureFirstCard());
-  if (pipelineListEl.value) cardResizeObserver.observe(pipelineListEl.value);
-  measureFirstCard();
-});
-
-watch(pipelineDisplayItems, () => void nextTick(measureFirstCard));
-
-onBeforeUnmount(() => cardResizeObserver?.disconnect());
 
 // Multi-select state - use injected or local
 const localMultiselectMode = ref(false);

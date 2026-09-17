@@ -4,6 +4,15 @@ title: "Pipelines"
 
 ![Pipeline List View](img/pipeline-list-view.png)
 
+## Workflow shortcuts
+
+Open **Workflows** alongside the event, branch, and date filters to filter the pipeline list by workflow.
+The popover overlays the list and shows the selected filter count when closed.
+Users with push permission can open the chevron beside **Run pipeline** to choose a workflow from the **Quick run workflow** menu.
+Selecting a workflow starts it immediately on the branch shown in the menu: the selected branch, or the repository default branch when no branch filter is selected.
+Quick runs use the workflow’s default variable values and open the new pipeline.
+Use **Run pipeline** when you need to supply required variables or customize a run.
+
 ## Concepts
 
 Crow uses a three-level hierarchy: **pipeline > workflow > step**.
