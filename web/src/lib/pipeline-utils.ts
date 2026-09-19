@@ -277,7 +277,7 @@ export function aggregateWorkflowDuration(workflows: PipelineWorkflow[]): { star
  * Compute a variant key for a workflow: pipeline name + name + sorted environ entries.
  * This uniquely identifies a matrix variant regardless of original_workflow_id values.
  */
-function variantKey(wf: PipelineWorkflow): string {
+export function variantKey(wf: PipelineWorkflow): string {
   const identity = `${wf.pipeline_name || wf.name}|${wf.name}`;
   if (!wf.environ || Object.keys(wf.environ).length === 0) {
     return identity;
@@ -305,6 +305,64 @@ export function getLatestAttempts(workflows: PipelineWorkflow[]): PipelineWorkfl
   }
 
   return [...latest.values()];
+}
+
+/**
+ * Pick the attempt of each workflow variant that should be rendered.
+ *
+ * Defaults to the latest attempt, but the variant owning `selectedStepId` shows
+ * the attempt that step belongs to. Without this the step list is pinned to the
+ * latest attempt, so picking a previous run from the attempt dropdown (or
+ * deep-linking to a step of an older attempt) changes the URL and the log pane
+ * while the step list keeps showing the newest run.
+ */
+export function getDisplayedAttempts(
+  workflows: PipelineWorkflow[],
+  selectedStepId?: number | null,
+): PipelineWorkflow[] {
+  const displayed = new Map<string, PipelineWorkflow>();
+  const pinned = new Set<string>();
+
+  for (const wf of workflows) {
+    const key = variantKey(wf);
+    const ownsSelection = selectedStepId != null && wf.children.some((s) => s.pid === selectedStepId);
+
+    if (ownsSelection) {
+      displayed.set(key, wf);
+      pinned.add(key);
+      continue;
+    }
+
+    if (pinned.has(key)) {
+      continue;
+    }
+
+    const existing = displayed.get(key);
+    if (existing == null || wf.attempt > existing.attempt) {
+      displayed.set(key, wf);
+    }
+  }
+
+  return [...displayed.values()];
+}
+
+/**
+ * Pick the step to select when switching to another attempt of a workflow: the
+ * same step where the target attempt also ran it, otherwise its first step, so
+ * jumping between runs keeps the user on the step they were reading.
+ * Returns undefined when the target attempt has no steps.
+ */
+export function stepForAttemptSwitch(
+  targetAttempt: PipelineWorkflow,
+  currentStepName?: string,
+): PipelineStep | undefined {
+  if (currentStepName !== undefined) {
+    const sameStep = targetAttempt.children.find((s) => s.name === currentStepName);
+    if (sameStep) {
+      return sameStep;
+    }
+  }
+  return targetAttempt.children[0];
 }
 
 /**

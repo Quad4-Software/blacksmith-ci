@@ -386,12 +386,13 @@ import type { StepTreeNode } from '~/lib/pipeline-utils';
 import {
   buildStepTree,
   duplicateStepNameIndexes,
-  getLatestAttempts,
+  getDisplayedAttempts,
   getStepAttempts,
   getWorkflowAttempts,
   hasReruns,
   hasStepReruns,
   identifyMatrixGroups,
+  stepForAttemptSwitch,
 } from '~/lib/pipeline-utils';
 import { usePipelineStore } from '~/store/pipelines';
 import { computed, ref, toRef, watch } from 'vue';
@@ -417,7 +418,12 @@ const pipelineStore = usePipelineStore();
 const i18n = useI18n();
 
 const allWorkflows = computed(() => pipeline.value.workflows || []);
-const workflowGroups = computed(() => identifyMatrixGroups(getLatestAttempts(allWorkflows.value)));
+// Render the attempt the selected step belongs to, falling back to the latest
+// attempt. Pinning this to the latest attempt would make the attempt dropdown a
+// no-op for previous runs (#1520).
+const workflowGroups = computed(() =>
+  identifyMatrixGroups(getDisplayedAttempts(allWorkflows.value, selectedStepId.value)),
+);
 
 const treeView = ref(true);
 
@@ -633,11 +639,15 @@ async function rerunStep(workflowId: number, stepId: number) {
   }
 }
 
-function switchAttempt(_workflow: PipelineWorkflow, targetAttempt: PipelineWorkflow) {
-  // When switching to a different attempt, expand it and select the first step
+function switchAttempt(workflow: PipelineWorkflow, targetAttempt: PipelineWorkflow) {
+  // When switching to a different attempt, expand it and keep looking at the
+  // same step where the target attempt ran it too, so switching between runs of
+  // the same workflow stays on the step the user was reading.
   workflowsCollapsed.value[targetAttempt.id] = false;
-  if (targetAttempt.children.length > 0) {
-    selectStep(targetAttempt.children[0].pid);
+  const selectedName = workflow.children.find((s) => s.pid === selectedStepId.value)?.name;
+  const target = stepForAttemptSwitch(targetAttempt, selectedName);
+  if (target) {
+    selectStep(target.pid);
   }
 }
 

@@ -142,7 +142,7 @@
           <ScrollArea class="h-full">
             <div class="flex flex-col gap-y-2 pb-4">
               <div
-                v-for="workflow in latestWorkflows"
+                v-for="workflow in displayedWorkflows"
                 :key="workflow.id"
                 class="rounded-md border border-border bg-card p-2 shadow-xs"
               >
@@ -237,7 +237,7 @@ import IconButton from '~/components/atomic/IconButton.vue';
 import { requiredInject } from '~/compositions/useInjectProvide';
 import useApiClient from '~/compositions/useApiClient';
 import type { Pipeline, PipelineWorkflow } from '~/lib/api/types';
-import { getLatestAttempts, getWorkflowAttempts, hasReruns } from '~/lib/pipeline-utils';
+import { getDisplayedAttempts, getWorkflowAttempts, hasReruns, stepForAttemptSwitch } from '~/lib/pipeline-utils';
 
 const props = withDefaults(
   defineProps<{
@@ -281,7 +281,9 @@ const selectedStepIdLocal = computed({
 });
 
 const allWorkflows = computed(() => props.pipeline?.workflows || []);
-const latestWorkflows = computed(() => getLatestAttempts(allWorkflows.value));
+// Show the attempt the selected step belongs to, latest attempt otherwise, so
+// the sheet follows the run the log pane is showing (#1520).
+const displayedWorkflows = computed(() => getDisplayedAttempts(allWorkflows.value, props.stepId));
 
 const currentStep = computed(() => {
   if (!props.stepId) return null;
@@ -386,8 +388,9 @@ const isWorkflowCompleted = computed(() => {
 });
 
 function switchToAttempt(attempt: PipelineWorkflow) {
-  if (attempt.children.length > 0) {
-    emit('update:step-id', attempt.children[0].pid);
+  const target = stepForAttemptSwitch(attempt, currentStep.value?.name);
+  if (target) {
+    emit('update:step-id', target.pid);
   }
 }
 
@@ -405,8 +408,9 @@ function isSheetWorkflowCompleted(workflow: PipelineWorkflow) {
 
 function sheetSwitchAttempt(_workflow: PipelineWorkflow, targetAttempt: PipelineWorkflow) {
   workflowsCollapsed.value[targetAttempt.id] = false;
-  if (targetAttempt.children.length > 0) {
-    handleStepSelect(targetAttempt.children[0].pid);
+  const target = stepForAttemptSwitch(targetAttempt, currentStep.value?.name);
+  if (target) {
+    handleStepSelect(target.pid);
   }
 }
 

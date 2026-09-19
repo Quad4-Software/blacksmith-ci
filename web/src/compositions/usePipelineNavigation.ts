@@ -1,6 +1,7 @@
 import { useStorage } from '@vueuse/core';
 import type { Pipeline, PipelineStep, PipelineWorkflow } from '~/lib/api/types';
 import { StepType } from '~/lib/api/types';
+import { getLatestAttempts, stepForAttemptSwitch, variantKey } from '~/lib/pipeline-utils';
 import type { Ref } from 'vue';
 import { computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -45,6 +46,47 @@ export function getAutoFollowStepId(workflows: PipelineWorkflow[], currentStepId
     }
   }
   return null;
+}
+
+// Determine which step to select when a rerun produced a newer attempt of the
+// workflow that owns the current selection, so the user follows the run that
+// just started instead of staying on the finished one they re-ran. Returns null
+// when nothing new appeared for that workflow.
+//
+// `seenAttempts` maps a workflow variant to the highest attempt seen so far and
+// is updated in place; while it is empty (first call) nothing is followed, so
+// opening a link to a previous run does not jump to the latest attempt.
+export function getRerunFollowStepId(
+  workflows: PipelineWorkflow[],
+  currentStepId: number | null,
+  seenAttempts: Map<string, number>,
+): number | null {
+  const initialized = seenAttempts.size > 0;
+  const currentWorkflow =
+    currentStepId === null ? null : (workflows.find((w) => w.children?.some((s) => s.pid === currentStepId)) ?? null);
+  const currentStepName = currentWorkflow?.children.find((s) => s.pid === currentStepId)?.name;
+  const currentKey = currentWorkflow === null ? null : variantKey(currentWorkflow);
+
+  let followStepId: number | null = null;
+  for (const workflow of getLatestAttempts(workflows)) {
+    const key = variantKey(workflow);
+    const seen = seenAttempts.get(key);
+    seenAttempts.set(key, workflow.attempt);
+
+    if (!initialized || seen === undefined || workflow.attempt <= seen) {
+      continue;
+    }
+    if (key !== currentKey || workflow.id === currentWorkflow?.id) {
+      continue;
+    }
+
+    const target = stepForAttemptSwitch(workflow, currentStepName);
+    if (target) {
+      followStepId = target.pid;
+    }
+  }
+
+  return followStepId;
 }
 
 export function usePipelineNavigation({ pipeline, stepIdProp }: UsePipelineNavigationOptions) {
@@ -122,6 +164,24 @@ export function usePipelineNavigation({ pipeline, stepIdProp }: UsePipelineNavig
     }
     return null;
   });
+
+  // Follow reruns: the step list renders the attempt owning the selected step,
+  // so a rerun must move the selection into the new attempt to keep showing the
+  // run that just started.
+  const seenAttempts = new Map<string, number>();
+  watch(
+    () => pipeline.value?.workflows,
+    (workflows) => {
+      if (!workflows) {
+        return;
+      }
+      const followStepId = getRerunFollowStepId(workflows, selectedStepId.value, seenAttempts);
+      if (followStepId !== null) {
+        selectedStepId.value = followStepId;
+      }
+    },
+    { deep: true, immediate: true },
+  );
 
   // Auto-follow state with localStorage persistence
   const autoFollowEnabled = useStorage('crow:pipeline-auto-follow', false);

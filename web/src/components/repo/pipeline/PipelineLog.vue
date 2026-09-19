@@ -811,7 +811,7 @@ import type { Pipeline, PipelineStep, PipelineWorkflow } from '~/lib/api/types';
 import { commandTrace, findSectionId, groupLogLines } from '~/lib/log-folding';
 import type { LogIssueSeverity } from '~/lib/log-issues';
 import { classifyLogLine } from '~/lib/log-issues';
-import { duplicateStepNameIndexes, getWorkflowAttempts } from '~/lib/pipeline-utils';
+import { duplicateStepNameIndexes, getWorkflowAttempts, stepForAttemptSwitch } from '~/lib/pipeline-utils';
 import { AnsiUp } from 'ansi_up';
 import DOMPurify from 'dompurify';
 import type { Config as DOMPurifyConfig } from 'dompurify';
@@ -892,9 +892,10 @@ const stepNameSuffix = computed(() => {
 });
 
 function switchToAttempt(attempt: PipelineWorkflow) {
-  // Navigate to the first step of the selected attempt
-  if (attempt.children.length > 0) {
-    emit('update:step-id', attempt.children[0].pid);
+  // Stay on the same step in the selected attempt, falling back to its first step
+  const target = stepForAttemptSwitch(attempt, step.value?.name);
+  if (target) {
+    emit('update:step-id', target.pid);
   }
 }
 

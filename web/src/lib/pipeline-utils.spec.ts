@@ -3,9 +3,11 @@ import { describe, expect, it } from 'vitest';
 import {
   classifyMatrixAxes,
   duplicateStepNameIndexes,
+  getDisplayedAttempts,
   getLatestAttempts,
   getWorkflowAttempts,
   matrixValueColor,
+  stepForAttemptSwitch,
 } from './pipeline-utils';
 
 function step(pid: number, name: string): PipelineStep {
@@ -83,6 +85,60 @@ describe('workflow attempts', () => {
 
     expect(getLatestAttempts([amd64First, arm64, amd64Second])).toEqual([amd64Second, arm64]);
     expect(getWorkflowAttempts([amd64First, arm64, amd64Second], amd64Second)).toEqual([amd64First, amd64Second]);
+  });
+});
+
+function attempt(id: number, attemptNumber: number, steps: PipelineStep[], name = 'build-base'): PipelineWorkflow {
+  return {
+    id,
+    pid: id,
+    name,
+    pipeline_name: name,
+    attempt: attemptNumber,
+    children: steps,
+  } as unknown as PipelineWorkflow;
+}
+
+describe('getDisplayedAttempts', () => {
+  const first = attempt(1, 1, [step(2, 'clone'), step(3, 'build-ubuntu')]);
+  const second = attempt(4, 2, [step(5, 'clone'), step(6, 'build-ubuntu')]);
+
+  it('shows the latest attempt when no step is selected', () => {
+    expect(getDisplayedAttempts([first, second], null)).toEqual([second]);
+    expect(getDisplayedAttempts([first, second], undefined)).toEqual([second]);
+  });
+
+  it('shows the attempt owning the selected step', () => {
+    expect(getDisplayedAttempts([first, second], 3)).toEqual([first]);
+    expect(getDisplayedAttempts([first, second], 6)).toEqual([second]);
+  });
+
+  it('pins only the variant owning the selection', () => {
+    const other = attempt(7, 1, [step(8, 'lint')], 'lint');
+    const otherRerun = attempt(9, 2, [step(10, 'lint')], 'lint');
+
+    expect(getDisplayedAttempts([first, second, other, otherRerun], 3)).toEqual([first, otherRerun]);
+  });
+
+  it('falls back to the latest attempt for an unknown step id', () => {
+    expect(getDisplayedAttempts([first, second], 99)).toEqual([second]);
+  });
+});
+
+describe('stepForAttemptSwitch', () => {
+  const target = attempt(4, 2, [step(5, 'clone'), step(6, 'build-ubuntu')]);
+
+  it('keeps the same step across attempts', () => {
+    expect(stepForAttemptSwitch(target, 'build-ubuntu')?.pid).toBe(6);
+  });
+
+  it('falls back to the first step when the attempt did not run it', () => {
+    expect(stepForAttemptSwitch(target, 'deploy')?.pid).toBe(5);
+    expect(stepForAttemptSwitch(target, undefined)?.pid).toBe(5);
+  });
+
+  it('returns undefined for an attempt without steps', () => {
+    expect(stepForAttemptSwitch(attempt(7, 1, []), 'clone')).toBeUndefined();
   });
 });
 

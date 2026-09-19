@@ -173,7 +173,7 @@
                     v-for="attempt in workflowAttemptsList(workflow)"
                     :key="attempt.id"
                     class="flex items-center gap-2 text-xs"
-                    @click.stop="switchAttempt(attempt)"
+                    @click.stop="switchAttempt(workflow, attempt)"
                   >
                     <PipelineStatusIcon :status="attempt.state" class="h-3.5 w-3.5" />
                     #{{ attempt.attempt }}
@@ -382,6 +382,7 @@ import {
   getWorkflowAttempts,
   hasReruns,
   matrixValueColor,
+  stepForAttemptSwitch,
 } from '~/lib/pipeline-utils';
 import { computed, ref, watch } from 'vue';
 
@@ -635,10 +636,12 @@ function workflowAttemptsList(workflow: PipelineWorkflow): PipelineWorkflow[] {
   return getWorkflowAttempts(props.allWorkflows, workflow);
 }
 
-function switchAttempt(targetAttempt: PipelineWorkflow) {
-  // Select the first step of the target attempt's workflow
-  if (targetAttempt.children && targetAttempt.children.length > 0) {
-    emit('update:selectedStepId', targetAttempt.children[0].pid);
+function switchAttempt(workflow: PipelineWorkflow, targetAttempt: PipelineWorkflow) {
+  // Stay on the same step in the target attempt, falling back to its first step
+  const selectedName = workflow.children?.find((s) => s.pid === props.selectedStepId)?.name;
+  const target = stepForAttemptSwitch(targetAttempt, selectedName);
+  if (target) {
+    emit('update:selectedStepId', target.pid);
   }
 }
 
