@@ -1,5 +1,5 @@
 ---
-title: "Standalone Agent Binaries"
+title: 'Standalone Agent Binaries'
 sidebar:
   badge:
     text: Advanced
@@ -17,7 +17,7 @@ The `local` backend is not a container backend with a different name:
 
 - **No isolation from the host.**
   Pipeline commands run as the agent's user, with that user's filesystem, network and credential access.
-  A pipeline can read the agent's own config and any secret on the host.
+  Outside the macOS sandbox, a pipeline can read the agent's own config and any secret on the host.
 - **No sandboxing outside macOS.**
   `CROW_BACKEND_LOCAL_SANDBOX_LEVEL` is implemented with macOS `sandbox-exec` and is a no-op on Linux and Windows.
   On those platforms there is no isolation at all, at any setting.
@@ -180,6 +180,12 @@ Paste the following content (update `CROW_SERVER` and `CROW_AGENT_SECRET` with y
 And remove the `CROW_GRPC_SECURE` key.
 :::
 
+:::caution
+`EnvironmentVariables` puts `CROW_AGENT_SECRET` into a world readable file.
+Prefer `CROW_AGENT_SECRET_FILE` pointing at a file owned by `root` with mode `0600`.
+Sandboxed steps are denied reading either of them, but only on macOS and only when the sandbox is enabled.
+:::
+
 After saving the file, validate it:
 
 ```bash
@@ -231,41 +237,50 @@ When running the agent on macOS with the `local` backend, you should enable proc
 
 The `CROW_BACKEND_LOCAL_SANDBOX_LEVEL` environment variable controls process isolation on macOS:
 
-#### `none` (default)
+#### `none`
 
 No sandboxing.
 Workflows run with full system access.
 Use only in trusted environments.
 
-#### `standard` (recommended)
+#### `standard` (default)
 
 Balanced security profile suitable for most CI/CD workloads.
-This profile:
 
 Allowed:
 
 - ✅ Network access (for package downloads, git operations, API calls)
 - ✅ Reading system libraries, tools, and executables
-- ✅ Full read/write access to workflow directories (`/tmp/crow-local-*`)
-- ✅ Executing binaries from standard paths (`/usr/bin`, `/usr/local/bin`, etc.)
+- ✅ Full read/write access to the workflow's own directories, which is where `$TMPDIR` points
+- ✅ Executing binaries, including ones the workflow just built
 - ✅ Process management (fork, signal, IPC)
 - ✅ Device file access (`/dev/null`, `/dev/random`, etc.)
+- ✅ The shared build caches (`~/.cargo`, `~/.rustup`, `~/.cache`, `~/.npm`, `~/Library/Caches`, `/Library/Caches`) and the account's own temp directory
 
 Denied:
 
+- ❌ Reading or writing another workflow's directories on the same agent
 - ❌ Reading sensitive system files (`/etc/passwd`, `/etc/sudoers`, etc.)
-- ❌ Reading macOS user database (`/var/db/dslocal/nodes/Default/users/`)
-- ❌ Accessing user directories (Documents, Desktop, Pictures, Downloads)
+- ❌ Reading the macOS user database (`/var/db/dslocal/nodes/Default/users/`)
+- ❌ Reading or writing user directories (Documents, Desktop, Pictures, Downloads)
 - ❌ Reading SSH private keys (`~/.ssh/id_*`)
-- ❌ Privilege escalation (sudo is blocked)
-- ❌ Writing outside workflow directories
+- ❌ Reading or writing the launchd job directories, where the agent's own credentials usually live
+- ❌ Privilege escalation (`sudo` cannot be executed)
+- ❌ Writing anywhere else on the host
 
-This profile allows typical CI/CD operations (building, testing, deploying) while preventing:
+Steps also do not inherit the agent's own environment.
+Every variable named `CROW_*` or `WOODPECKER_*` is removed before a step starts, `CROW_AGENT_SECRET` among them: that token is enough to register as an agent and be handed other repositories' tasks.
 
-- Credential theft (SSH keys, passwords)
-- Privilege escalation
-- Access to personal files
-- System configuration changes
+:::caution[`standard` hardens an agent, it does not partition one]
+The profile limits what a pipeline can reach on the host.
+It does not make a single agent safe to share between repositories that do not trust each other.
+
+Workflows on one agent still share the build caches and the account's temp directory, so one workflow can leave a poisoned `~/.cargo/bin` entry behind for the next.
+Execution is not restricted, network access is unrestricted, and `sandbox-exec` is a deprecated Apple utility whose profile language is not a supported security boundary.
+
+For a public instance, or anywhere pull requests from strangers build, give each job a fresh macOS VM and run an agent inside it.
+Set `CROW_AGENT_MAX_LIFETIME_WORKFLOWS=1` so the agent retires after that one job and the VM can be discarded with it, see [Single-Use Agents](/dev/configuration/agent/#single-use-agents).
+:::
 
 #### `strict`
 
