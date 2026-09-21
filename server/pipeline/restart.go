@@ -47,7 +47,7 @@ func Restart(ctx context.Context, store store.Store, lastPipeline *model.Pipelin
 	}
 
 	// fetch the old pipeline config from the database
-	configs, err := store.ConfigsForPipeline(lastPipeline.ID)
+	configs, err := forgeConfigsForPipeline(store, lastPipeline.ID)
 	if err != nil {
 		log.Error().Err(err).Msgf("failure to get pipeline config for %s", repo.FullName)
 		return nil, &ErrNotFound{Msg: fmt.Sprintf("failure to get pipeline config for %s. %s", repo.FullName, err)}
@@ -159,7 +159,10 @@ func Restart(ctx context.Context, store store.Store, lastPipeline *model.Pipelin
 		}
 	}
 
-	newPipeline, pipelineItems, err := createPipelineItems(ctx, forge, store, newPipeline, user, repo, pipelineFiles, envs, workflowFilter)
+	newPipeline, pipelineItems, generatedConfigs, err := createPipelineItems(ctx, forge, store, newPipeline, user, repo, pipelineFiles, envs, workflowFilter)
+	if persistErr := persistGeneratedConfigs(store, newPipeline, generatedConfigs); persistErr != nil {
+		log.Error().Err(persistErr).Msgf("failed to persist generated pipeline configs for %s", repo.FullName)
+	}
 	if err != nil {
 		log.Error().Err(err).Msgf("failure to createPipelineItems for %s", repo.FullName)
 		return nil, err

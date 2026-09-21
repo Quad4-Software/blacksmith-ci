@@ -5,9 +5,30 @@
       :key="pipelineConfig.hash"
       :collapsable="pipelineConfigsDecoded && pipelineConfigsDecoded.length > 1"
       :open="isPanelOpen(pipelineConfig.name)"
-      :title="pipelineConfigsDecoded && pipelineConfigsDecoded.length > 1 ? pipelineConfig.name : ''"
+      :title="showTitles ? pipelineConfig.name : ''"
       @update:open="(value) => setPanelOpen(pipelineConfig.name, value)"
     >
+      <template v-if="showTitles" #title>
+        <span class="truncate font-mono text-sm">{{ pipelineConfig.name }}</span>
+        <span class="flex-1" />
+        <Badge v-if="pipelineConfig.generated_from" variant="default">
+          {{ $t('repo.pipeline.config_generated') }}
+        </Badge>
+        <Badge
+          v-if="pipelineConfig.generated_from"
+          variant="outline"
+          class="font-mono font-normal"
+          :title="$t('repo.pipeline.config_generated_from', { file: pipelineConfig.generated_from })"
+        >
+          {{ $t('repo.pipeline.config_generated_from_short', { file: baseName(pipelineConfig.generated_from) }) }}
+        </Badge>
+        <Badge v-else-if="isLibsonnet(pipelineConfig.name)" variant="outline">
+          {{ $t('repo.pipeline.config_import_only') }}
+        </Badge>
+        <Badge v-else-if="isJsonnet(pipelineConfig.name)" variant="outline">
+          {{ $t('repo.pipeline.config_source') }}
+        </Badge>
+      </template>
       <div class="overflow-auto">
         <table class="w-full border-collapse font-mono text-sm">
           <tbody>
@@ -43,6 +64,7 @@ import { useI18n } from 'vue-i18n';
 
 import SyntaxHighlight from '~/components/atomic/SyntaxHighlight';
 import Panel from '~/components/layout/Panel.vue';
+import { Badge } from '~/components/ui/badge';
 import { requiredInject } from '~/compositions/useInjectProvide';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
 
@@ -61,6 +83,21 @@ const pipelineConfigsDecoded = computed(
     })) ?? [],
 );
 
+const showTitles = computed(() => pipelineConfigsDecoded.value.length > 1);
+const hasGeneratedConfigs = computed(() => pipelineConfigsDecoded.value.some((c) => !!c.generated_from));
+
+function isJsonnet(fileName: string): boolean {
+  return fileName.endsWith('.jsonnet');
+}
+
+function isLibsonnet(fileName: string): boolean {
+  return fileName.endsWith('.libsonnet');
+}
+
+function baseName(filePath: string): string {
+  return filePath.split('/').pop() ?? filePath;
+}
+
 // Track open state for each panel - use reactive object for proper Vue reactivity
 const panelOpenState = ref<Record<string, boolean>>({});
 
@@ -78,6 +115,14 @@ function isTargetConfig(configName: string): boolean {
 
   // If only one config, it's always the target
   if (pipelineConfigsDecoded.value.length === 1) return true;
+
+  // Pipeline errors report the file the step builder worked on, which for a
+  // single-document Jsonnet is still the .jsonnet source. Send the link to the
+  // YAML generated from it instead — that is where the line number is valid.
+  const generatedFromTarget = pipelineConfigsDecoded.value.find((c) => c.generated_from === targetFile.value);
+  if (generatedFromTarget) {
+    return configName === generatedFromTarget.name;
+  }
 
   // If no file specified in query, target the first config as fallback
   if (!targetFile.value) {
@@ -138,10 +183,16 @@ function registerLineRef(fileName: string, lineNumber: number, el: HTMLElement |
   }
 }
 
-// Get panel open state
+// Get panel open state.
+// Jsonnet sources and libraries start collapsed while the YAML they evaluate to
+// starts expanded: when a repo generates its workflows, the generated document is
+// what you came to this tab to read.
 function isPanelOpen(configName: string): boolean {
   if (!(configName in panelOpenState.value)) {
-    return pipelineConfigsDecoded.value.length <= 1;
+    if (pipelineConfigsDecoded.value.length <= 1) {
+      return true;
+    }
+    return hasGeneratedConfigs.value && !isJsonnet(configName) && !isLibsonnet(configName);
   }
   return panelOpenState.value[configName];
 }

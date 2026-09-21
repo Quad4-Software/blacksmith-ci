@@ -697,10 +697,15 @@ func GetPipelineConfig(ctx context.Context, input *GetPipelineConfigInput) (*Get
 	// Filter configs to only include those with executed workflows
 	filteredConfigs := filterConfigsByExecutedWorkflows(configs, executedPipelineNames)
 
-	return &GetPipelineConfigOutput{Body: filteredConfigs}, nil
+	return &GetPipelineConfigOutput{Body: groupConfigsBySource(filteredConfigs)}, nil
 }
 
 // filterConfigsByExecutedWorkflows returns only configs that have corresponding executed workflows.
+//
+// Jsonnet sources and libraries are always kept: neither is a workflow in its own
+// right, so matching them against executed workflow names would only ever hide
+// them, and the point of showing a generated document is being able to read it
+// next to the source it came from.
 func filterConfigsByExecutedWorkflows(configs []*model.Config, executedPipelineNames map[string]struct{}) []*model.Config {
 	if len(executedPipelineNames) == 0 {
 		return configs // Return all configs if no workflow info available
@@ -708,6 +713,10 @@ func filterConfigsByExecutedWorkflows(configs []*model.Config, executedPipelineN
 
 	var filtered []*model.Config
 	for _, config := range configs {
+		if crow_jsonnet.IsJsonnetFile(config.Name) || crow_jsonnet.IsLibsonnetFile(config.Name) {
+			filtered = append(filtered, config)
+			continue
+		}
 		pipelineName := getConfigPipelineName(config)
 		if _, exists := executedPipelineNames[pipelineName]; exists {
 			filtered = append(filtered, config)
@@ -715,6 +724,43 @@ func filterConfigsByExecutedWorkflows(configs []*model.Config, executedPipelineN
 	}
 
 	return filtered
+}
+
+// groupConfigsBySource moves each generated config directly behind the config it
+// was generated from, so the UI can render the list in order without needing to
+// know how the two relate. Configs that are neither a source nor generated keep
+// their relative order.
+func groupConfigsBySource(configs []*model.Config) []*model.Config {
+	generatedBySource := make(map[string][]*model.Config)
+	for _, config := range configs {
+		if config.IsGenerated() {
+			generatedBySource[config.GeneratedFrom] = append(generatedBySource[config.GeneratedFrom], config)
+		}
+	}
+	if len(generatedBySource) == 0 {
+		return configs
+	}
+
+	grouped := make([]*model.Config, 0, len(configs))
+	for _, config := range configs {
+		if config.IsGenerated() {
+			// appended after its source below
+			continue
+		}
+		grouped = append(grouped, config)
+		grouped = append(grouped, generatedBySource[config.Name]...)
+		delete(generatedBySource, config.Name)
+	}
+
+	// Anything whose source is no longer around (filtered out, or the source row
+	// was pruned) still belongs in the response rather than silently vanishing.
+	for _, config := range configs {
+		if _, orphaned := generatedBySource[config.GeneratedFrom]; config.IsGenerated() && orphaned {
+			grouped = append(grouped, config)
+		}
+	}
+
+	return grouped
 }
 
 // getConfigPipelineName determines the pipeline name for a config.

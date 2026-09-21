@@ -276,3 +276,50 @@ func TestConstraintMatchManualFromJsonnet(t *testing.T) {
 	require.Len(t, parsed.When.Constraints, 1)
 	assert.Equal(t, yamlBaseTypes.StringOrSlice{"manual"}, parsed.When.Constraints[0].Event)
 }
+
+func TestGroupConfigsBySource(t *testing.T) {
+	t.Run("GeneratedDocumentsFollowTheirSource", func(t *testing.T) {
+		configs := []*model.Config{
+			{Name: ".crow/lib.libsonnet"},
+			{Name: ".crow/matrix.jsonnet"},
+			{Name: ".crow/release.yaml"},
+			{Name: ".crow/matrix-0.yaml", GeneratedFrom: ".crow/matrix.jsonnet"},
+			{Name: ".crow/matrix-1.yaml", GeneratedFrom: ".crow/matrix.jsonnet"},
+		}
+
+		// Sources are persisted before parsing and generated documents after, so
+		// without regrouping the evaluation would show up detached from its source.
+		assert.Equal(t, []string{
+			".crow/lib.libsonnet",
+			".crow/matrix.jsonnet",
+			".crow/matrix-0.yaml",
+			".crow/matrix-1.yaml",
+			".crow/release.yaml",
+		}, configNames(groupConfigsBySource(configs)))
+	})
+
+	t.Run("PlainConfigsKeepTheirOrder", func(t *testing.T) {
+		configs := []*model.Config{
+			{Name: ".crow/b.yaml"},
+			{Name: ".crow/a.yaml"},
+		}
+
+		assert.Equal(t, []string{".crow/b.yaml", ".crow/a.yaml"}, configNames(groupConfigsBySource(configs)))
+	})
+
+	t.Run("GeneratedConfigWithoutItsSourceIsKept", func(t *testing.T) {
+		configs := []*model.Config{
+			{Name: ".crow/matrix-0.yaml", GeneratedFrom: ".crow/gone.jsonnet"},
+		}
+
+		assert.Equal(t, []string{".crow/matrix-0.yaml"}, configNames(groupConfigsBySource(configs)))
+	})
+}
+
+func configNames(configs []*model.Config) []string {
+	names := make([]string, 0, len(configs))
+	for _, config := range configs {
+		names = append(names, config.Name)
+	}
+	return names
+}

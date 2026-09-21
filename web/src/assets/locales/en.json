@@ -492,6 +492,11 @@
         "loading": "Building workflow graph..."
       },
       "config": "Config",
+      "config_generated": "generated",
+      "config_generated_from": "generated from {file}",
+      "config_generated_from_short": "from {file}",
+      "config_source": "source",
+      "config_import_only": "import only",
       "files": "Changed files",
       "diff_unavailable": "Diff unavailable for this file.",
       "no_pipelines": "No pipelines have been started yet.",

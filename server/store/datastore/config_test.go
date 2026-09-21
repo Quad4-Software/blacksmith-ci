@@ -65,7 +65,7 @@ func TestConfig(t *testing.T) {
 		},
 	))
 
-	foundConfig, err := store.configFindIdentical(context.Background(), store.db, repo.ID, hash, name)
+	foundConfig, err := store.configFindIdentical(context.Background(), store.db, repo.ID, hash, name, "")
 	assert.NoError(t, err)
 	assert.EqualValues(t, config, foundConfig)
 
@@ -118,4 +118,105 @@ func TestConfigPersist(t *testing.T) {
 	count, err = store.db.NewSelect().Model((*model.Config)(nil)).Count(context.Background())
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, count)
+}
+
+// Generated configs round-trip through the store so the config view can tell a
+// rendered document apart from the Jsonnet source it was evaluated from.
+func TestConfigGeneratedFrom(t *testing.T) {
+	store, closer := newTestStore(t, new(model.Config), new(model.PipelineConfig), new(model.Pipeline), new(model.Repo))
+	defer closer()
+
+	repo := &model.Repo{
+		UserID:   1,
+		FullName: "crowci/crow",
+		Owner:    "crowci",
+		Name:     "crow",
+	}
+	assert.NoError(t, store.CreateRepo(repo))
+
+	pipeline := &model.Pipeline{
+		RepoID: repo.ID,
+		Status: model.StatusRunning,
+		Commit: "85f8c029b902ed9400bc600bac301a0aadb144ac",
+	}
+	assert.NoError(t, store.CreatePipeline(pipeline))
+
+	source, err := store.ConfigPersist(&model.Config{
+		RepoID: repo.ID,
+		Name:   ".crow/matrix.jsonnet",
+		Data:   []byte("[]"),
+	})
+	assert.NoError(t, err)
+
+	generated, err := store.ConfigPersist(&model.Config{
+		RepoID:        repo.ID,
+		Name:          ".crow/matrix-0.yaml",
+		Data:          []byte("name: build\n"),
+		GeneratedFrom: ".crow/matrix.jsonnet",
+	})
+	assert.NoError(t, err)
+
+	for _, config := range []*model.Config{source, generated} {
+		assert.NoError(t, store.PipelineConfigCreate(&model.PipelineConfig{
+			ConfigID:   config.ID,
+			PipelineID: pipeline.ID,
+		}))
+	}
+
+	loaded, err := store.ConfigsForPipeline(pipeline.ID)
+	assert.NoError(t, err)
+	assert.Len(t, loaded, 2)
+
+	byName := make(map[string]*model.Config, len(loaded))
+	for _, config := range loaded {
+		byName[config.Name] = config
+	}
+
+	assert.False(t, byName[".crow/matrix.jsonnet"].IsGenerated())
+	assert.Empty(t, byName[".crow/matrix.jsonnet"].GeneratedFrom)
+	assert.True(t, byName[".crow/matrix-0.yaml"].IsGenerated())
+	assert.Equal(t, ".crow/matrix.jsonnet", byName[".crow/matrix-0.yaml"].GeneratedFrom)
+}
+
+// A generated document and a forge file can share a name and be byte-identical,
+// e.g. a repo that moves from a hand-written .crow/build.yaml to a
+// .crow/build.jsonnet evaluating to the same YAML, or one that copies the
+// generated output back into the repo. They must not collapse onto one row: the
+// row's generated_from decides whether restart feeds it to the step builder.
+func TestConfigPersistKeepsGeneratedApartFromForgeConfig(t *testing.T) {
+	store, closer := newTestStore(t, new(model.Config))
+	defer closer()
+
+	forgeConfig, err := store.ConfigPersist(&model.Config{
+		RepoID: 2,
+		Name:   ".crow/build.yaml",
+		Data:   data,
+	})
+	assert.NoError(t, err)
+
+	generated, err := store.ConfigPersist(&model.Config{
+		RepoID:        2,
+		Name:          ".crow/build.yaml",
+		Data:          data,
+		GeneratedFrom: ".crow/build.jsonnet",
+	})
+	assert.NoError(t, err)
+	assert.NotEqual(t, forgeConfig.ID, generated.ID)
+	assert.Equal(t, ".crow/build.jsonnet", generated.GeneratedFrom)
+
+	count, err := store.db.NewSelect().Model((*model.Config)(nil)).Count(context.Background())
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, count)
+
+	// Each identity keeps resolving to its own row.
+	forgeAgain, err := store.ConfigPersist(&model.Config{RepoID: 2, Name: ".crow/build.yaml", Data: data})
+	assert.NoError(t, err)
+	assert.Equal(t, forgeConfig.ID, forgeAgain.ID)
+	assert.Empty(t, forgeAgain.GeneratedFrom)
+
+	generatedAgain, err := store.ConfigPersist(&model.Config{
+		RepoID: 2, Name: ".crow/build.yaml", Data: data, GeneratedFrom: ".crow/build.jsonnet",
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, generated.ID, generatedAgain.ID)
 }

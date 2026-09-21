@@ -26,7 +26,22 @@ type Config struct {
 	Hash   string `json:"hash" bun:"hash,unique:s"`
 	Name   string `json:"name" bun:"name,unique:s"`
 	Data   []byte `json:"data" bun:"data"`
+	// GeneratedFrom names the config this one was produced from, for configs that
+	// are not fetched from the forge but computed by the server. Currently this is
+	// the .jsonnet source a rendered YAML document was evaluated out of. Empty for
+	// configs that came from the forge verbatim.
+	//
+	// Generated configs exist so the evaluated pipeline can be inspected after the
+	// fact; they must never be fed back into the step builder, or the source would
+	// be evaluated a second time and every workflow would be built twice.
+	GeneratedFrom string `json:"generated_from,omitempty" bun:"generated_from"`
 } //	@name	Config
+
+// IsGenerated reports whether the config was produced by the server rather than
+// fetched from the forge.
+func (c Config) IsGenerated() bool {
+	return c.GeneratedFrom != ""
+}
 
 func (Config) TableName() string {
 	return "configs"

@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	backend_types "codefloe.com/crowci/crow/v6/pipeline/backend/types"
 	"codefloe.com/crowci/crow/v6/pipeline/errors"
@@ -1235,4 +1236,83 @@ steps:
 	}
 	assert.NotNil(t, testStep)
 	assert.Equal(t, "example.com/build:arm64", testStep.Image)
+}
+
+// Build must record every YAML document it evaluated out of a .jsonnet source, so
+// the server can persist the evaluation and the config view can show what was
+// actually parsed rather than only the Jsonnet that produced it.
+func TestStepBuilderRecordsGeneratedConfigs(t *testing.T) {
+	t.Parallel()
+
+	newBuilder := func(yamls []*forge_types.FileMeta) *StepBuilder {
+		return &StepBuilder{
+			Forge: getMockForge(),
+			Envs:  map[string]string{},
+			Repo:  &model.Repo{},
+			Curr:  &model.Pipeline{Event: model.EventPush},
+			Prev:  &model.Pipeline{},
+			Netrc: &model.Netrc{},
+			Secs:  []*model.Secret{},
+			Regs:  []*model.Registry{},
+			Yamls: yamls,
+		}
+	}
+
+	singleDoc := []byte(`{
+		when: { event: "push" },
+		steps: { build: { image: "alpine", commands: ["echo hi"] } },
+	}`)
+
+	multiDoc := []byte(`[
+		{
+			name: "build-" + os,
+			when: { event: "push" },
+			steps: { build: { image: "alpine", commands: ["echo " + os] } },
+		}
+		for os in ["linux", "darwin"]
+	]`)
+
+	t.Run("SingleDocumentIsNamedAfterItsContent", func(t *testing.T) {
+		t.Parallel()
+
+		b := newBuilder([]*forge_types.FileMeta{{Name: ".crow/build.jsonnet", Data: singleDoc}})
+		_, err := b.Build()
+		require.NoError(t, err)
+
+		require.Len(t, b.GeneratedConfigs, 1)
+		// The evaluated document is YAML, so it is recorded as such even though the
+		// FileMeta the builder works on keeps the .jsonnet name.
+		assert.Equal(t, ".crow/build.yaml", b.GeneratedConfigs[0].Name)
+		assert.Equal(t, ".crow/build.jsonnet", b.GeneratedConfigs[0].SourceName)
+		assert.Contains(t, string(b.GeneratedConfigs[0].Data), "image: alpine")
+	})
+
+	t.Run("ArrayYieldsOneRecordPerDocument", func(t *testing.T) {
+		t.Parallel()
+
+		b := newBuilder([]*forge_types.FileMeta{{Name: ".crow/matrix.jsonnet", Data: multiDoc}})
+		_, err := b.Build()
+		require.NoError(t, err)
+
+		require.Len(t, b.GeneratedConfigs, 2)
+		assert.Equal(t, ".crow/matrix-0.yaml", b.GeneratedConfigs[0].Name)
+		assert.Equal(t, ".crow/matrix-1.yaml", b.GeneratedConfigs[1].Name)
+		assert.Contains(t, string(b.GeneratedConfigs[0].Data), "build-linux")
+		assert.Contains(t, string(b.GeneratedConfigs[1].Data), "build-darwin")
+		for _, generated := range b.GeneratedConfigs {
+			assert.Equal(t, ".crow/matrix.jsonnet", generated.SourceName)
+		}
+	})
+
+	t.Run("PlainYAMLRecordsNothing", func(t *testing.T) {
+		t.Parallel()
+
+		b := newBuilder([]*forge_types.FileMeta{
+			{Name: ".crow/release.yaml", Data: []byte("when:\n  event: push\nsteps:\n  build:\n    image: alpine\n    commands:\n      - echo hi\n")},
+		})
+		_, err := b.Build()
+		require.NoError(t, err)
+
+		assert.Empty(t, b.GeneratedConfigs)
+	})
 }

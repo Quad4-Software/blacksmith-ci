@@ -613,10 +613,11 @@ func importPipelines(_store store.Store, sourceRepo, targetRepo *model.Repo) (in
 			for _, srcConfig := range srcConfigs {
 				// Create or reuse config in target repo
 				newConfig := &model.Config{
-					RepoID: targetRepo.ID,
-					Hash:   srcConfig.Hash,
-					Name:   srcConfig.Name,
-					Data:   srcConfig.Data,
+					RepoID:        targetRepo.ID,
+					Hash:          srcConfig.Hash,
+					Name:          srcConfig.Name,
+					Data:          srcConfig.Data,
+					GeneratedFrom: srcConfig.GeneratedFrom,
 				}
 				persistedConfig, err := _store.ConfigPersist(newConfig)
 				if err != nil {

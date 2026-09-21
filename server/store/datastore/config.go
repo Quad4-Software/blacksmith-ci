@@ -44,24 +44,41 @@ func (s storage) ConfigsForPipeline(pipelineID int64) ([]*model.Config, error) {
 	return configs, nil
 }
 
-func (s storage) configFindIdentical(ctx context.Context, db bun.IDB, repoID int64, hash, name string) (*model.Config, error) {
+func (s storage) configFindIdentical(ctx context.Context, db bun.IDB, repoID int64, hash, name, generatedFrom string) (*model.Config, error) {
 	conf := new(model.Config)
 	if err := wrapGet(db.NewSelect().Model(conf).
 		Where("repo_id = ?", repoID).
 		Where("hash = ?", hash).
 		Where("name = ?", name).
+		Where("generated_from = ?", generatedFrom).
 		Scan(ctx)); err != nil {
 		return nil, err
 	}
 	return conf, nil
 }
 
+// configHash is the content hash that, with repo_id and name, makes up the
+// unique key of a config. A config the server generated out of a source folds
+// that source's name into the hash, so a generated document never shares a row
+// with a byte-identical forge file of the same name. That keeps generated_from
+// out of the table's unique constraint (changing it would rebuild the table on
+// SQLite) while still making it part of the config's identity.
+func configHash(conf *model.Config) string {
+	h := sha256.New()
+	if conf.GeneratedFrom != "" {
+		h.Write([]byte(conf.GeneratedFrom))
+		h.Write([]byte{0})
+	}
+	h.Write(conf.Data)
+	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
 func (s storage) ConfigPersist(conf *model.Config) (*model.Config, error) {
-	conf.Hash = fmt.Sprintf("%x", sha256.Sum256(conf.Data))
+	conf.Hash = configHash(conf)
 
 	var result *model.Config
 	err := s.db.RunInTx(context.Background(), nil, func(ctx context.Context, tx bun.Tx) error {
-		existingConfig, err := s.configFindIdentical(ctx, tx, conf.RepoID, conf.Hash, conf.Name)
+		existingConfig, err := s.configFindIdentical(ctx, tx, conf.RepoID, conf.Hash, conf.Name, conf.GeneratedFrom)
 		if err != nil && !errors.Is(err, types.RecordNotExist) {
 			return err
 		}

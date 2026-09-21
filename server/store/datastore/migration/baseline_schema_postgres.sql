@@ -231,6 +231,7 @@ CREATE TABLE IF NOT EXISTS configs (
     hash TEXT,
     name TEXT,
     data BYTEA,
+    generated_from TEXT NOT NULL DEFAULT '',
     UNIQUE(repo_id, hash, name)
 );
 

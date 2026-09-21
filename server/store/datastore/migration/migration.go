@@ -123,6 +123,7 @@ func Migrate(_ context.Context, db *sql.DB, driver string, _ bool) error {
 		{ID: "crow-add-pipeline-org-identity", Migrate: addPipelineOrgIdentity(driver)},
 		{ID: "crow-backfill-workflow-agent-identity", Migrate: backfillWorkflowAgentIdentity(driver)},
 		{ID: "crow-add-agent-host-resources", Migrate: addAgentHostResources},
+		{ID: "crow-add-config-generated-from", Migrate: addConfigGeneratedFrom(driver)},
 	}
 
 	if len(newMigrations) > 0 {
@@ -266,6 +267,28 @@ func addTaskCancelledColumns(tx *sql.Tx) error {
 	}
 	addCanceledAt := addColumnIfNotExists("tasks", "canceled_at", "INTEGER DEFAULT 0")
 	return addCanceledAt(tx)
+}
+
+// addConfigGeneratedFrom adds the generated_from column to the configs table, which
+// names the .jsonnet source a stored YAML document was evaluated from (empty for
+// configs fetched from the forge verbatim).
+// Skips gracefully if the configs table doesn't exist (fresh databases get the
+// column from the baseline schema).
+func addConfigGeneratedFrom(driver string) func(tx *sql.Tx) error {
+	return func(tx *sql.Tx) error {
+		if !tableExists(tx, "configs") {
+			return nil
+		}
+
+		// MySQL before 8.0.13 rejects a DEFAULT on a TEXT column, so mirror the
+		// VARCHAR the MySQL baseline schema uses.
+		colType := "TEXT NOT NULL DEFAULT ''"
+		if driver == "mysql" {
+			colType = "VARCHAR(250) NOT NULL DEFAULT ''"
+		}
+
+		return addColumnIfNotExists("configs", "generated_from", colType)(tx)
+	}
 }
 
 // addStepRerunFields adds original_step_id and attempt columns to the steps table

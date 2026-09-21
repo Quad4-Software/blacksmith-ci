@@ -145,7 +145,14 @@ func Create(ctx context.Context, _store store.Store, repo *model.Repo, pipeline 
 		return nil, errors.New(msg)
 	}
 
-	pipelineItems, parseErr := parsePipeline(_forge, _store, pipeline, repoUser, repo, forgeYamlConfigs, nil, createOpts.WorkflowFilter) //nolint:contextcheck
+	pipelineItems, generatedConfigs, parseErr := parsePipeline(_forge, _store, pipeline, repoUser, repo, forgeYamlConfigs, nil, createOpts.WorkflowFilter) //nolint:contextcheck
+
+	// Persist the evaluated Jsonnet before acting on parseErr. A pipeline that
+	// fails to parse is precisely when the generated YAML needs to be readable.
+	if err := persistGeneratedConfigs(_store, pipeline, generatedConfigs); err != nil {
+		log.Error().Err(err).Str("repo", repo.FullName).Msg("failed to persist generated pipeline configs")
+	}
+
 	if pipeline_errors.HasBlockingErrors(parseErr) {
 		log.Debug().Str("repo", repo.FullName).Err(parseErr).Msg("failed to parse yaml")
 		return pipeline, updatePipelineWithErr(ctx, _forge, _store, pipeline, repo, repoUser, parseErr)

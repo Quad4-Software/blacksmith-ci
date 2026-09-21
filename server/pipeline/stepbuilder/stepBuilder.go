@@ -64,6 +64,23 @@ type StepBuilder struct {
 	ProxyOpts             compiler.ProxyOptions
 	ExternalSecretFetcher settings.ExternalSecretBatchFetcher
 	WorkflowFilter        []string // If set, only build workflows with these names
+
+	// GeneratedConfigs holds the YAML documents produced by evaluating the
+	// .jsonnet sources in Yamls. Populated by Build so callers can persist the
+	// evaluation next to its source; nil when the repo uses no Jsonnet.
+	GeneratedConfigs []*GeneratedConfig
+}
+
+// GeneratedConfig is a single YAML document produced by evaluating a Jsonnet
+// source, together with the name of that source.
+type GeneratedConfig struct {
+	// Name is the display name of the generated document. Jsonnet evaluating to
+	// a single object yields "<base>.yaml"; an array yields "<base>-<i>.yaml",
+	// matching the file names the step builder gives the expanded documents.
+	Name string
+	// SourceName is the .jsonnet file this document was evaluated from.
+	SourceName string
+	Data       []byte
 }
 
 type Item struct {
@@ -236,25 +253,39 @@ func (b *StepBuilder) preprocessJsonnet(files []*forge_types.FileMeta) ([]*forge
 			return nil, &errorTypes.PipelineError{Message: err.Error(), Type: errorTypes.PipelineErrorTypeCompiler}
 		}
 
+		baseName := strings.TrimSuffix(f.Name, ".jsonnet")
+
 		if len(evaluated) == 1 {
-			// Single document: replace the file data in-place
+			// Single document: replace the file data in-place. The name keeps the
+			// .jsonnet suffix so workflow naming and restarts behave as before;
+			// only the recorded copy is named after what it now contains.
 			result = append(result, &forge_types.FileMeta{
 				Name: f.Name,
 				Data: evaluated[0],
 			})
+			b.recordGenerated(baseName+".yaml", f.Name, evaluated[0])
 		} else {
 			// Multi-document: expand into separate entries
-			baseName := strings.TrimSuffix(f.Name, ".jsonnet")
 			for i, doc := range evaluated {
+				name := fmt.Sprintf("%s-%d.yaml", baseName, i)
 				result = append(result, &forge_types.FileMeta{
-					Name: fmt.Sprintf("%s-%d.yaml", baseName, i),
+					Name: name,
 					Data: doc,
 				})
+				b.recordGenerated(name, f.Name, doc)
 			}
 		}
 	}
 
 	return result, nil
+}
+
+func (b *StepBuilder) recordGenerated(name, sourceName string, data []byte) {
+	b.GeneratedConfigs = append(b.GeneratedConfigs, &GeneratedConfig{
+		Name:       name,
+		SourceName: sourceName,
+		Data:       data,
+	})
 }
 
 func (b *StepBuilder) genItemForWorkflow(workflow *model.Workflow, axis matrix.Axis, data string, originalFileName string) (item *Item, errorsAndWarnings error) {

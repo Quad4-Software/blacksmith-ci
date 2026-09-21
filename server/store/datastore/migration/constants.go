@@ -114,6 +114,7 @@ var newMigrationIDs = []string{
 	"crow-add-pipeline-org-identity",
 	"crow-backfill-workflow-agent-identity",
 	"crow-add-agent-host-resources",
+	"crow-add-config-generated-from",
 }
 
 // allKnownMigrations returns a combined list of all known migration IDs.

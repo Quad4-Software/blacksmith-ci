@@ -41,7 +41,7 @@ func Approve(ctx context.Context, store store.Store, currentPipeline *model.Pipe
 	}
 
 	// fetch the pipeline file from the database
-	configs, err := store.ConfigsForPipeline(currentPipeline.ID)
+	configs, err := forgeConfigsForPipeline(store, currentPipeline.ID)
 	if err != nil {
 		msg := fmt.Sprintf("failure to get pipeline config for %s", repo.FullName)
 		log.Error().Err(err).Msg(msg)
@@ -80,7 +80,10 @@ func Approve(ctx context.Context, store store.Store, currentPipeline *model.Pipe
 		}
 	}
 
-	currentPipeline, pipelineItems, err := createPipelineItems(ctx, forge, store, currentPipeline, user, repo, yamls, nil, nil)
+	currentPipeline, pipelineItems, generatedConfigs, err := createPipelineItems(ctx, forge, store, currentPipeline, user, repo, yamls, nil, nil)
+	if persistErr := persistGeneratedConfigs(store, currentPipeline, generatedConfigs); persistErr != nil {
+		log.Error().Err(persistErr).Msgf("failed to persist generated pipeline configs for %s", repo.FullName)
+	}
 	if err != nil {
 		log.Error().Err(err).Msgf("failure to createPipelineItems for %s", repo.FullName)
 		return nil, err

@@ -346,6 +346,23 @@ Jsonnet evaluation happens **before** all other pipeline processing steps:
 
 This means Jsonnet output can use all standard YAML features like `matrix:`, `when:`, `depends_on:`, `${VAR}` substitution, and everything else documented in the [workflow syntax reference](/dev/usage/workflow-syntax/).
 
+## Inspecting the generated workflows
+
+Because Jsonnet is evaluated before anything else, an error reported against a workflow refers to the YAML the evaluation produced, not to a line you wrote.
+Crow therefore stores that YAML alongside the source it came from and shows both under the **Config** tab of a pipeline.
+
+Each evaluated document appears as its own entry, marked `generated` and labelled with the `.jsonnet` file it was evaluated from.
+A file evaluating to a single object yields one entry named after it; a file evaluating to an array yields one entry per element, numbered in order (`matrix-0.yaml`, `matrix-1.yaml`, ...).
+The `.jsonnet` and `.libsonnet` sources stay in the list too, collapsed by default, so the input and the output can be compared side by side.
+
+This is the fastest way to diagnose a workflow that is valid on its own but wrong once evaluated, such as a `depends_on` pointing at a workflow that a `when:` filter removed.
+
+:::note
+The generated YAML is recorded per pipeline, because evaluation depends on pipeline metadata such as `CI_PIPELINE_NUMBER` and `CI_PIPELINE_FILES`.
+What the Config tab shows is what that pipeline actually parsed, not a fresh evaluation of the same source.
+Pipelines that ran before this feature was added only show their sources.
+:::
+
 ## CLI linting
 
 Jsonnet files can be linted using the CLI, just like YAML files:

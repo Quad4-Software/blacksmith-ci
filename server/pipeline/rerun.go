@@ -61,7 +61,7 @@ func RerunWorkflow(ctx context.Context, _forge forge.Forge, _store store.Store, 
 	}
 
 	// Fetch pipeline configs
-	configs, err := _store.ConfigsForPipeline(currentPipeline.ID)
+	configs, err := forgeConfigsForPipeline(_store, currentPipeline.ID)
 	if err != nil {
 		return &ErrNotFound{Msg: fmt.Sprintf("failure to get pipeline config for %s: %s", repo.FullName, err)}
 	}
@@ -81,7 +81,7 @@ func RerunWorkflow(ctx context.Context, _forge forge.Forge, _store store.Store, 
 		Msg("rerunning workflows")
 
 	// Parse the pipeline with the workflow filter to get only the relevant items
-	pipelineItems, err := parsePipeline(_forge, _store, currentPipeline, user, repo, pipelineFiles, nil, workflowFilter) //nolint:contextcheck
+	pipelineItems, _, err := parsePipeline(_forge, _store, currentPipeline, user, repo, pipelineFiles, nil, workflowFilter) //nolint:contextcheck
 	if err != nil {
 		return fmt.Errorf("failure to parse pipeline for rerun: %w", err)
 	}
@@ -395,7 +395,7 @@ func RerunStep(ctx context.Context, _forge forge.Forge, _store store.Store, curr
 	}
 
 	// Fetch pipeline configs
-	configs, err := _store.ConfigsForPipeline(currentPipeline.ID)
+	configs, err := forgeConfigsForPipeline(_store, currentPipeline.ID)
 	if err != nil {
 		return &ErrNotFound{Msg: fmt.Sprintf("failure to get pipeline config for %s: %s", repo.FullName, err)}
 	}
@@ -437,7 +437,7 @@ func RerunStep(ctx context.Context, _forge forge.Forge, _store store.Store, curr
 		Strs("workflow_filter", workflowFilter).
 		Msg("rerunning step")
 
-	pipelineItems, err := parsePipeline(_forge, _store, currentPipeline, user, repo, pipelineFiles, nil, workflowFilter) //nolint:contextcheck
+	pipelineItems, _, err := parsePipeline(_forge, _store, currentPipeline, user, repo, pipelineFiles, nil, workflowFilter) //nolint:contextcheck
 	if err != nil {
 		return fmt.Errorf("failure to parse pipeline for step rerun: %w", err)
 	}

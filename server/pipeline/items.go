@@ -32,7 +32,7 @@ import (
 	"codefloe.com/crowci/crow/v6/server/store"
 )
 
-func parsePipeline(forge forge.Forge, store store.Store, currentPipeline *model.Pipeline, user *model.User, repo *model.Repo, yamls []*forge_types.FileMeta, envs map[string]string, workflowFilter []string) ([]*stepbuilder.Item, error) {
+func parsePipeline(forge forge.Forge, store store.Store, currentPipeline *model.Pipeline, user *model.User, repo *model.Repo, yamls []*forge_types.FileMeta, envs map[string]string, workflowFilter []string) ([]*stepbuilder.Item, []*stepbuilder.GeneratedConfig, error) {
 	netrc, err := forge.Netrc(user, repo)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to generate netrc file")
@@ -147,14 +147,14 @@ func parsePipeline(forge forge.Forge, store store.Store, currentPipeline *model.
 		}
 	}
 
-	return items, err
+	return items, b.GeneratedConfigs, err
 }
 
 func createPipelineItems(c context.Context, forge forge.Forge, store store.Store,
 	currentPipeline *model.Pipeline, user *model.User, repo *model.Repo,
 	yamls []*forge_types.FileMeta, envs map[string]string, workflowFilter []string,
-) (*model.Pipeline, []*stepbuilder.Item, error) {
-	pipelineItems, err := parsePipeline(forge, store, currentPipeline, user, repo, yamls, envs, workflowFilter) //nolint:contextcheck
+) (*model.Pipeline, []*stepbuilder.Item, []*stepbuilder.GeneratedConfig, error) {
+	pipelineItems, generated, err := parsePipeline(forge, store, currentPipeline, user, repo, yamls, envs, workflowFilter) //nolint:contextcheck
 	if pipeline_errors.HasBlockingErrors(err) {
 		currentPipeline, uErr := UpdateToStatusError(store, *currentPipeline, err)
 		if uErr != nil {
@@ -163,7 +163,9 @@ func createPipelineItems(c context.Context, forge forge.Forge, store store.Store
 			updatePipelineStatus(c, forge, currentPipeline, repo, user)
 		}
 
-		return currentPipeline, nil, err
+		// generated is returned even on a blocking error: an invalid DAG is exactly
+		// the case where being able to read the evaluated YAML matters most.
+		return currentPipeline, nil, generated, err
 	} else if err != nil {
 		currentPipeline.Errors = pipeline_errors.GetPipelineErrors(err)
 		err = updatePipelinePending(c, forge, store, currentPipeline, repo, user)
@@ -171,7 +173,7 @@ func createPipelineItems(c context.Context, forge forge.Forge, store store.Store
 
 	currentPipeline = setPipelineStepsOnPipeline(currentPipeline, pipelineItems)
 
-	return currentPipeline, pipelineItems, err
+	return currentPipeline, pipelineItems, generated, err
 }
 
 // setPipelineStepsOnPipeline is the link between pipeline representation in "pipeline package" and server

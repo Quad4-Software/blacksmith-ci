@@ -293,6 +293,28 @@ func TestFilterConfigsByExecutedWorkflows(t *testing.T) {
 
 		assert.Empty(t, result)
 	})
+
+	// Neither a Jsonnet source nor a library is a workflow in its own right, so
+	// matching them against executed workflow names could only ever hide them —
+	// and a generated document is only useful next to the source it came from.
+	t.Run("always keeps jsonnet sources and libraries", func(t *testing.T) {
+		configs := []*model.Config{
+			{ID: 1, Name: ".crow/lib.libsonnet", Data: []byte("{ helper:: 1 }")},
+			{ID: 2, Name: ".crow/matrix.jsonnet", Data: []byte("[]")},
+			{ID: 3, Name: ".crow/matrix-0.yaml", Data: []byte("name: build-linux\n"), GeneratedFrom: ".crow/matrix.jsonnet"},
+			{ID: 4, Name: ".crow/matrix-1.yaml", Data: []byte("name: deploy\n"), GeneratedFrom: ".crow/matrix.jsonnet"},
+			{ID: 5, Name: ".crow/release.yaml", Data: []byte("name: release\n")},
+		}
+		executedPipelineNames := map[string]struct{}{"build-linux": {}}
+
+		result := filterConfigsByExecutedWorkflows(configs, executedPipelineNames)
+
+		assert.Equal(t, []string{
+			".crow/lib.libsonnet",
+			".crow/matrix.jsonnet",
+			".crow/matrix-0.yaml",
+		}, configNames(result))
+	})
 }
 
 func TestGetConfigPipelineName(t *testing.T) {

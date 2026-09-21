@@ -247,6 +247,7 @@ CREATE TABLE IF NOT EXISTS configs (
     hash VARCHAR(250),
     name VARCHAR(250),
     data BLOB,
+    generated_from VARCHAR(250) NOT NULL DEFAULT '',
     UNIQUE(repo_id, hash, name)
 );
 

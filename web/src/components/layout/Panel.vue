@@ -5,23 +5,26 @@
     class="w-full rounded-lg border border-border bg-card shadow-sm"
   >
     <CollapsibleTrigger
-      v-if="title"
+      v-if="title || $slots.title"
       class="flex w-full items-center gap-2 bg-muted/50 px-4 py-3 font-semibold text-card-foreground transition-colors hover:bg-muted/70"
     >
       <Icon
         name="chevron-right"
-        class="size-5 transition-transform duration-200"
+        class="size-5 shrink-0 transition-transform duration-200"
         :class="{ 'rotate-90 transform': isOpen }"
       />
-      {{ title }}
+      <slot name="title">{{ title }}</slot>
     </CollapsibleTrigger>
     <CollapsibleContent class="w-full p-4 text-card-foreground">
       <slot />
     </CollapsibleContent>
   </Collapsible>
   <div v-else class="w-full rounded-lg border border-border bg-card shadow-sm">
-    <div v-if="title" class="flex w-full gap-2 bg-muted/50 px-4 py-3 font-semibold text-card-foreground">
-      {{ title }}
+    <div
+      v-if="title || $slots.title"
+      class="flex w-full items-center gap-2 bg-muted/50 px-4 py-3 font-semibold text-card-foreground"
+    >
+      <slot name="title">{{ title }}</slot>
     </div>
     <div class="w-full p-4 text-card-foreground">
       <slot />
