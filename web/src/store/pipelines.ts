@@ -272,10 +272,21 @@ export const usePipelineStore = defineStore('pipelines', () => {
   async function loadPipelineFeed() {
     await repoStore.loadRepos();
 
+    // Capture before fetching so pipelines arriving over SSE during the request
+    // are not mistaken for stale entries missing from this snapshot.
+    const previouslyActive = [...activePipelines.value];
     const _pipelines = await apiClient.getPipelineFeed();
     _pipelines.forEach((pipeline) => {
       setPipeline(pipeline.repo_id, pipeline);
     });
+
+    // The feed is bounded: an old running pipeline may have completed and fallen
+    // out of it while this tab was asleep. Fetch its actual state separately.
+    await Promise.all(
+      previouslyActive
+        .filter((old) => !_pipelines.some((p) => p.repo_id === old.repo_id && p.number === old.number))
+        .map(async (old) => loadPipeline(old.repo_id, old.number)),
+    );
   }
 
   return {

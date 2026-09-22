@@ -1,6 +1,7 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ref } from 'vue';
+import { usePipelineStore } from '~/store/pipelines';
 import useReactivePipelines from './useReactivePipelines';
 
 // Stubbed to keep the toast component (and its theme/localStorage access at
@@ -56,5 +57,20 @@ describe('useReactivePipelines filter query params', () => {
     await vi.waitFor(() => expect(requestedUrls).toHaveLength(1));
 
     expect(lastQuery().has('event')).toBe(false);
+  });
+
+  it('reloads the current repository with its filters after recovery', async () => {
+    const list = useReactivePipelines({
+      repoId: ref(3),
+      filters: { events: ref(['push']), branch: ref('main') },
+    });
+    await vi.waitFor(() => expect(list.loading.value).toBe(false));
+
+    usePipelineStore().markSseReconnect();
+    await vi.waitFor(() => expect(requestedUrls).toHaveLength(2));
+
+    expect(lastQuery().get('event')).toBe('push');
+    expect(lastQuery().get('branch')).toBe('main');
+    expect(lastQuery().get('page')).toBe('1');
   });
 });

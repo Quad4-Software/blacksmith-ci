@@ -1,6 +1,7 @@
 import { debounce } from 'lodash';
 
 import usePipelineFeed from '~/compositions/usePipelineFeed';
+import { useAuthStore } from '~/store/auth';
 import { usePipelineStore } from '~/store/pipelines';
 import { useRepoStore } from '~/store/repos';
 import useApiClient from './useApiClient';
@@ -12,6 +13,7 @@ export default () => {
   if (initialized) {
     return;
   }
+  const authStore = useAuthStore();
   const repoStore = useRepoStore();
   const pipelineStore = usePipelineStore();
   const pipelineFeed = usePipelineFeed();
@@ -27,34 +29,67 @@ export default () => {
     void pipelineFeed.loadWorkflowApprovals();
   }, 1000);
 
-  const events = apiClient.on((data) => {
-    // contains repo update
-    if (!data.repo) {
-      return;
-    }
-    const { repo } = data;
-    repoStore.setRepo(repo);
+  const connect = () =>
+    apiClient.on((data) => {
+      // contains repo update
+      if (!data.repo) {
+        return;
+      }
+      const { repo } = data;
+      repoStore.setRepo(repo);
 
-    // contains pipeline update
-    if (!data.pipeline) {
-      return;
-    }
-    const { pipeline } = data;
-    pipelineStore.setPipeline(repo.id, pipeline);
+      // contains pipeline update
+      if (!data.pipeline) {
+        return;
+      }
+      const { pipeline } = data;
+      pipelineStore.setPipeline(repo.id, pipeline);
 
-    // Mark as SSE-delivered for deduplication with pagination
-    // This ensures the pipeline appears in the list even if pagination hasn't fetched it yet
-    pipelineStore.markAsSSEDelivered(repo.id, pipeline.number);
+      // Mark as SSE-delivered for deduplication with pagination
+      // This ensures the pipeline appears in the list even if pagination hasn't fetched it yet
+      pipelineStore.markAsSSEDelivered(repo.id, pipeline.number);
 
-    refreshApprovals();
-  });
+      refreshApprovals();
+    });
 
-  // Refetch on every SSE (re)connect because the server has no replay protocol — any
-  // Update events fired while the EventSource was still CONNECTING (initial mount) or
-  // while it was reconnecting after a transient failure are silently dropped. Bumping
-  // a generation counter signals to views rendering live pipeline state to refetch
-  // and catch up to the true server state.
-  events.addEventListener('open', () => {
+  // The server does not replay missed events. Refresh shared state as well as
+  // the current view on every connection, including the initial one.
+  const refresh = debounce(() => {
+    if (!authStore.isAuthenticated) return;
     pipelineStore.markSseReconnect();
-  });
+    void pipelineFeed.load().catch(console.error);
+  }, 250);
+
+  let events = connect();
+  events.addEventListener('open', refresh);
+
+  // A suspended tab can retain an apparently OPEN but dead connection. Replace
+  // it when returning to the tab or network instead of trusting readyState.
+  const resume = debounce(() => {
+    if (document.visibilityState === 'hidden' || !authStore.isAuthenticated) return;
+    events.removeEventListener('open', refresh);
+    events.close();
+    events = connect();
+    events.addEventListener('open', refresh);
+    // Recover the snapshot even if the streaming endpoint is unavailable.
+    refresh();
+  }, 250);
+
+  document.addEventListener('visibilitychange', resume);
+  window.addEventListener('focus', resume);
+  window.addEventListener('online', resume);
+  window.addEventListener('pageshow', resume);
+
+  return () => {
+    document.removeEventListener('visibilitychange', resume);
+    window.removeEventListener('focus', resume);
+    window.removeEventListener('online', resume);
+    window.removeEventListener('pageshow', resume);
+    resume.cancel();
+    refresh.cancel();
+    refreshApprovals.cancel();
+    events.removeEventListener('open', refresh);
+    events.close();
+    initialized = false;
+  };
 };

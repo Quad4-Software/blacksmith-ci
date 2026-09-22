@@ -229,6 +229,11 @@ export default function useReactivePipelines(options: UseReactivePipelinesOption
     );
   }
 
+  watch(
+    () => pipelineStore.sseConnectionId,
+    () => void reset(),
+  );
+
   // Watch for repoId changes (e.g., navigating to different repo)
   watch(repoId, (newValue, oldValue) => {
     // Only reset if repo actually changed (not on initial mount)
