@@ -26,4 +26,5 @@ indent_size = 1
 indent_style = tab
 
 [Justfile]
-indent_style = tab
+indent_style = space
+indent_size = 4

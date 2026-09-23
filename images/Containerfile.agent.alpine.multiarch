@@ -2,7 +2,6 @@ FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.27-alpine AS build
 
 WORKDIR /src
 ARG TARGETOS TARGETARCH CI_COMMIT_SHA CI_COMMIT_TAG
-ARG DOCKER_IMAGE_CREATED="unknown"
 
 ENV CI_COMMIT_SHA=$CI_COMMIT_SHA
 ENV CI_COMMIT_TAG=$CI_COMMIT_TAG
@@ -30,14 +29,6 @@ FROM docker.io/library/alpine:3.24
 
 ARG CI_COMMIT_SHA CI_COMMIT_TAG
 
-LABEL org.label-schema.license="Apache-2.0" \
-      org.label-schema.vcs-url="https://codefloe.com/crowci/crow" \
-      org.label-schema.vendor="Crow CI" \
-      org.opencontainers.image.created="${DOCKER_IMAGE_CREATED}" \
-      org.opencontainers.image.description="Crow CI agent (Alpine)" \
-      io.artifacthub.package.readme-url="https://codefloe.com/crowci/crow/raw/branch/main/README.md" \
-      maintainer="Crow Authors <admin@crowci.dev>"
-
 RUN apk add -U --no-cache ca-certificates tini logrotate su-exec && \
   addgroup -g 1000 -S crow && \
   adduser -u 1000 -G crow -S -s /bin/sh crow && \
@@ -60,3 +51,12 @@ RUN chmod +x /usr/local/bin/crow-entrypoint.sh
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 CMD ["/bin/crow-agent", "ping"]
 # Note: Agent runs as root (no user switch needed), pass empty string as user argument
 ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/crow-entrypoint.sh", "", "/bin/crow-agent"]
+
+ARG DOCKER_IMAGE_CREATED="unknown"
+LABEL org.label-schema.license="Apache-2.0" \
+      org.label-schema.vcs-url="https://codefloe.com/crowci/crow" \
+      org.label-schema.vendor="Crow CI" \
+      org.opencontainers.image.created="${DOCKER_IMAGE_CREATED}" \
+      org.opencontainers.image.description="Crow CI agent (Alpine)" \
+      io.artifacthub.package.readme-url="https://codefloe.com/crowci/crow/raw/branch/main/README.md" \
+      maintainer="Crow Authors <admin@crowci.dev>"

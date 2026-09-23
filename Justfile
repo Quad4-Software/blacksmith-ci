@@ -13,6 +13,7 @@ CI_COMMIT_TAG := env("CI_COMMIT_TAG", "")
 TAGS := "containers_image_openpgp exclude_graphdriver_btrfs exclude_graphdriver_devicemapper"
 STATIC_BUILD := "true"
 BUILD_DATE := `date -u +%Y-%m-%d`
+BUILD_DATE_REF := `date -Iseconds`
 
 # renovate: datasource=github-releases depName=protocolbuffers/protobuf versioning=loose extractVersion=^v(?<version>.+)$
 
@@ -390,44 +391,48 @@ release-agent:
 ## images
 # platforms must be handed over via this syntax for the underlying cross-compile-server step which applies some string splitting on a list of items
 
+registry-login REGISTRY_USER='crowci-bot' REGISTRY='codefloe.com':
+    if [ -n "${crowci_bot_token:-}" ]; then \
+        printf '%s\n' "$crowci_bot_token" | docker login {{ REGISTRY }} -u {{ REGISTRY_USER }} --password-stdin; \
+    else \
+        docker login {{ REGISTRY }} </dev/null; \
+    fi
+
 # env PLATFORMS='linux|amd64;linux|arm64' just image-server-alpine dev
 image-server-alpine TAG REGISTRY_USER='crowci-bot' REGISTRY='codefloe.com' IMAGE='crowci/crow-server':
     just build-ui
     just cross-compile-server
-    echo $crowci_bot_token | docker login {{ REGISTRY }} -u {{ REGISTRY_USER }} --password-stdin
+    just registry-login {{ REGISTRY_USER }} {{ REGISTRY }}
+
     FIXED_PLATFORMS=$(echo $PLATFORMS | sed "s/|/\//g; s/;/,/g") && \
     docker buildx build --platform $FIXED_PLATFORMS \
         --build-arg CACHE_BUST=$(date +%s) \
         --build-arg CI_COMMIT_SHA={{ CI_COMMIT_SHA }} \
         --build-arg CI_COMMIT_TAG={{ CI_COMMIT_TAG }} \
+        --build-arg DOCKER_IMAGE_CREATED="{{ BUILD_DATE_REF }}" \
         -t {{ REGISTRY }}/{{ IMAGE }}:{{ TAG }} \
         -t {{ REGISTRY }}/{{ IMAGE }}:{{ TAG }}-alpine \
         -f images/Containerfile.server.alpine.multiarch.rootless --push .
 
 # env PLATFORMS='linux/amd64,linux/arm64' just image-agent-alpine dev
 image-agent-alpine TAG REGISTRY_USER='crowci-bot' REGISTRY='codefloe.com' IMAGE='crowci/crow-agent':
-    echo $crowci_bot_token | docker login {{ REGISTRY }} -u {{ REGISTRY_USER }} --password-stdin
+    just registry-login {{ REGISTRY_USER }} {{ REGISTRY }}
+
     docker buildx build --platform $PLATFORMS \
         --build-arg CI_COMMIT_SHA={{ CI_COMMIT_SHA }} \
         --build-arg CI_COMMIT_TAG={{ CI_COMMIT_TAG }} \
+        --build-arg DOCKER_IMAGE_CREATED="{{ BUILD_DATE_REF }}" \
         -t {{ REGISTRY }}/{{ IMAGE }}:{{ TAG }} \
         -t {{ REGISTRY }}/{{ IMAGE }}:{{ TAG }}-alpine \
         -f images/Containerfile.agent.alpine.multiarch --push .
 
-# env PLATFORMS='linux/amd64,linux/arm64' just image-cli dev
-image-cli TAG REGISTRY_USER='crowci-bot' REGISTRY='codefloe.com' IMAGE='crowci/crow-cli':
-    echo $crowci_bot_token | docker login {{ REGISTRY }} -u {{ REGISTRY_USER }} --password-stdin
-    docker buildx build --platform $PLATFORMS \
-        --build-arg CI_COMMIT_SHA={{ CI_COMMIT_SHA }} \
-        --build-arg CI_COMMIT_TAG={{ CI_COMMIT_TAG }} \
-        -t {{ REGISTRY }}/{{ IMAGE }}:{{ TAG }} \
-        -f images/Containerfile.cli.multiarch.rootless --push .
-
 # env PLATFORMS='linux/amd64,linux/arm64' just image-cli-alpine dev
 image-cli-alpine TAG REGISTRY_USER='crowci-bot' REGISTRY='codefloe.com' IMAGE='crowci/crow-cli':
-    echo $crowci_bot_token | docker login {{ REGISTRY }} -u {{ REGISTRY_USER }} --password-stdin
+    just registry-login {{ REGISTRY_USER }} {{ REGISTRY }}
+
     docker buildx build --platform $PLATFORMS \
         --build-arg CI_COMMIT_SHA={{ CI_COMMIT_SHA }} \
         --build-arg CI_COMMIT_TAG={{ CI_COMMIT_TAG }} \
+        --build-arg DOCKER_IMAGE_CREATED="{{ BUILD_DATE_REF }}" \
         -t {{ REGISTRY }}/{{ IMAGE }}:{{ TAG }}-alpine \
         -f images/Containerfile.cli.alpine.multiarch.rootless --push .
