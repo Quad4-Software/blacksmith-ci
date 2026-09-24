@@ -17,8 +17,12 @@ package grpc
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"strings"
 
 	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"codefloe.com/crowci/crow/v6/pipeline/rpc"
 	"codefloe.com/crowci/crow/v6/pipeline/rpc/proto"
@@ -114,6 +118,16 @@ func (s *CrowServer) Done(c context.Context, req *proto.DoneRequest) (*proto.Emp
 func (s *CrowServer) Wait(c context.Context, req *proto.WaitRequest) (*proto.Empty, error) {
 	res := new(proto.Empty)
 	err := s.peer.Wait(c, req.GetId())
+	// Database failures are not cancellation signals. Classify transient
+	// PostgreSQL failures so existing agents retry with their normal backoff.
+	var sqlErr interface{ SQLState() string }
+	if errors.As(err, &sqlErr) {
+		code := sqlErr.SQLState()
+		if strings.HasPrefix(code, "08") || code == "53300" ||
+			code == "57P01" || code == "57P02" || code == "57P03" {
+			return res, status.Error(codes.Unavailable, err.Error())
+		}
+	}
 	return res, err
 }
 

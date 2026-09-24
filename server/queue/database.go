@@ -468,7 +468,10 @@ func (q *DatabaseQueue) Wait(ctx context.Context, taskID string) error {
 			// DB check — cross-instance source of truth
 			canceled, exists, err := q.store.TaskGetCancelled(taskID)
 			if err != nil {
-				return err
+				// A failed query tells us nothing about cancellation. Keep watching
+				// so a later DB result or local cancellation can resolve the wait.
+				log.Warn().Err(err).Str("taskID", taskID).Msg("Failed to check task cancellation; retrying")
+				continue
 			}
 
 			if !exists {

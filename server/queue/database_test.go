@@ -16,6 +16,7 @@ package queue
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -962,6 +963,44 @@ func TestDatabaseQueueSetApprovalStateDeclinedHolds(t *testing.T) {
 			}
 
 			assert.Equal(t, 1, q.Info(t.Context()).Stats.WaitingOnDeps, "a %s gate must stay held", state)
+		})
+	}
+}
+
+func TestDatabaseQueueWaitRecoversAfterQueryFailure(t *testing.T) {
+	for _, outcome := range []string{"cancel", "complete", "local cancel", "context canceled"} {
+		t.Run(outcome, func(t *testing.T) {
+			t.Parallel()
+			q, store := newTestDatabaseQueue(t)
+			ctx, cancel := context.WithCancelCause(t.Context())
+			defer cancel(nil)
+			first := store.EXPECT().TaskGetCancelled("task-1").
+				Return(false, false, errors.New("database connection unavailable")).Once().
+				Run(func(_ mock.Arguments) {
+					switch outcome {
+					case "local cancel":
+						q.cancelledTasksMu.Lock()
+						q.cancelledTasks["task-1"] = ErrCancel
+						q.cancelledTasksMu.Unlock()
+					case "context canceled":
+						cancel(nil)
+					}
+				})
+			switch outcome {
+			case "cancel":
+				store.EXPECT().TaskGetCancelled("task-1").Return(true, true, nil).Once().NotBefore(first)
+			case "complete":
+				store.EXPECT().TaskGetCancelled("task-1").Return(false, false, nil).Once().NotBefore(first)
+			}
+			err := q.Wait(ctx, "task-1")
+			switch outcome {
+			case "complete":
+				assert.NoError(t, err)
+			case "context canceled":
+				assert.ErrorIs(t, err, context.Canceled)
+			default:
+				assert.ErrorIs(t, err, ErrCancel)
+			}
 		})
 	}
 }
