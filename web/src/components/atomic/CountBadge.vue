@@ -1,6 +1,6 @@
 <template>
   <span
-    class="inline-block min-w-5 rounded-full bg-muted px-1.5 py-0.5 text-center text-xs font-bold leading-4 text-foreground"
+    class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-muted px-1.5 text-xs font-medium leading-none tabular-nums text-muted-foreground"
   >
     {{ value }}
   </span>
