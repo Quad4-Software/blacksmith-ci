@@ -6,12 +6,16 @@
       v-show="i < visibleCount"
       :key="chip.key"
       data-chip
-      class="inline-flex shrink-0 items-center rounded-none border border-border bg-muted/40 px-1 py-px font-mono leading-tight"
+      class="inline-flex max-w-full min-w-0 shrink-0 items-center rounded-none border border-border bg-muted/40 px-1 py-px font-mono leading-tight"
+      :title="chip.present ? `${chip.key}=${chip.value}` : undefined"
     >
-      <span class="text-[10px] text-muted-foreground/70">{{ chip.key }}=</span>
-      <span v-if="chip.present" class="text-[11px]" :style="{ color: matrixValueColor(String(chip.value)) }">{{
-        chip.value
-      }}</span>
+      <span class="shrink-0 text-[10px] text-muted-foreground/70">{{ chip.key }}=</span>
+      <span
+        v-if="chip.present"
+        class="min-w-0 truncate text-[11px]"
+        :style="{ color: matrixValueColor(String(chip.value)) }"
+        >{{ chip.value }}</span
+      >
       <span v-else class="text-[11px] text-muted-foreground/60 italic">&mdash;</span>
     </span>
     <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
