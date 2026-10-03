@@ -23,6 +23,7 @@ import (
 
 	pipelineErrors "codefloe.com/crowci/crow/v6/pipeline/errors"
 	errorTypes "codefloe.com/crowci/crow/v6/pipeline/errors/types"
+	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/constraint"
 	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/linter/schema"
 	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/types"
 	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/utils"
@@ -500,6 +501,14 @@ func (l *Linter) lintDeprecations(config *WorkflowConfig) (err error) {
 	return nil
 }
 
+const badHabitEventFilterMessage = "Every `when:` entry should include an `event:` filter, either on the workflow or on each step. Entries are OR'ed, so one without `event:` matches every event."
+
+// hasEventFilter reports whether a when entry restricts the pipeline event,
+// either via `event:` or via an `evaluate:` expression on CI_PIPELINE_EVENT.
+func hasEventFilter(c constraint.Constraint) bool {
+	return len(c.Event) > 0 || strings.Contains(c.Evaluate, "CI_PIPELINE_EVENT")
+}
+
 func (l *Linter) lintBadHabits(config *WorkflowConfig) (err error) {
 	parsed := new(types.Workflow)
 	err = yaml.Unmarshal([]byte(config.RawConfig), parsed)
@@ -509,7 +518,7 @@ func (l *Linter) lintBadHabits(config *WorkflowConfig) (err error) {
 
 	rootEventFilters := len(parsed.When.Constraints) > 0
 	for _, c := range parsed.When.Constraints {
-		if len(c.Event) == 0 {
+		if !hasEventFilter(c) {
 			rootEventFilters = false
 			break
 		}
@@ -523,7 +532,7 @@ func (l *Linter) lintBadHabits(config *WorkflowConfig) (err error) {
 			} else {
 				stepEventIndex := -1
 				for i, c := range step.When.Constraints {
-					if len(c.Event) == 0 {
+					if !hasEventFilter(c) {
 						stepEventIndex = i
 						break
 					}
@@ -535,11 +544,11 @@ func (l *Linter) lintBadHabits(config *WorkflowConfig) (err error) {
 			if field != "" {
 				err = errors.Join(err, &errorTypes.PipelineError{
 					Type:    errorTypes.PipelineErrorTypeBadHabit,
-					Message: "Either set an event filter (`when:`) for all individual steps or for the entire workflow.",
+					Message: badHabitEventFilterMessage,
 					Data: pipelineErrors.BadHabitErrorData{
 						File:  config.File,
 						Field: field,
-						Docs:  "https://crowci.dev/dev/usage/workflow-syntax/#when---conditional-execution",
+						Docs:  "https://crowci.dev/dev/usage/workflow-syntax/#event-filters-in-when",
 					},
 					IsWarning: true,
 				})

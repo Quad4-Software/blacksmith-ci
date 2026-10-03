@@ -24,6 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"codefloe.com/crowci/crow/v6/pipeline/errors"
+	errorTypes "codefloe.com/crowci/crow/v6/pipeline/errors/types"
 	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml"
 	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/linter"
 )
@@ -650,39 +651,74 @@ steps:
 }
 
 func TestBadHabits(t *testing.T) {
+	const msg = "Every `when:` entry should include an `event:` filter, either on the workflow or on each step. Entries are OR'ed, so one without `event:` matches every event."
+
 	testdata := []struct {
-		from string
-		want string
+		name      string
+		from      string
+		wantField string
 	}{
 		{
-			from: "steps: { build: { image: golang } }",
-			want: "Either set an event filter (`when:`) for all individual steps or for the entire workflow.",
+			name:      "no when at all",
+			from:      "steps: { build: { image: golang } }",
+			wantField: "steps.build",
 		},
 		{
-			from: "when: [{branch: xyz}, {event: push}]\nsteps: { build: { image: golang } }",
-			want: "Either set an event filter (`when:`) for all individual steps or for the entire workflow.",
+			name:      "root entry without event",
+			from:      "when: [{branch: xyz}, {event: push}]\nsteps: { build: { image: golang } }",
+			wantField: "steps.build",
+		},
+		{
+			name:      "step entry without event",
+			from:      "steps: { build: { image: golang, when: [{event: push}, {branch: main}] } }",
+			wantField: "steps.build.when[1]",
+		},
+		{
+			name:      "evaluate without event",
+			from:      "when: [{evaluate: 'CI_COMMIT_BRANCH == \"main\"'}]\nsteps: { build: { image: golang } }",
+			wantField: "steps.build",
+		},
+		{
+			name: "root event combined with branch",
+			from: "when: [{event: push, branch: main}]\nsteps: { build: { image: golang } }",
+		},
+		{
+			name: "root evaluate on pipeline event",
+			from: "when: [{evaluate: 'CI_PIPELINE_EVENT == \"push\" && CI_COMMIT_BRANCH == CI_REPO_DEFAULT_BRANCH'}]\nsteps: { build: { image: golang } }",
+		},
+		{
+			name: "step event filters only",
+			from: "steps: { build: { image: golang, when: [{event: push, branch: main}, {event: tag}] } }",
 		},
 	}
 
 	for _, test := range testdata {
-		conf, err := yaml.ParseString(test.from)
-		assert.NoError(t, err)
+		t.Run(test.name, func(t *testing.T) {
+			conf, err := yaml.ParseString(test.from)
+			assert.NoError(t, err)
 
-		lerr := linter.New().Lint([]*linter.WorkflowConfig{{
-			File:      test.from,
-			RawConfig: test.from,
-			Workflow:  conf,
-		}})
-		assert.Error(t, lerr, "expected lint error for configuration", test.from)
+			lerr := linter.New().Lint([]*linter.WorkflowConfig{{
+				File:      test.name,
+				RawConfig: test.from,
+				Workflow:  conf,
+			}})
 
-		lerrors := errors.GetPipelineErrors(lerr)
-		found := false
-		for _, lerr := range lerrors {
-			if lerr.Message == test.want {
-				found = true
-				break
+			var fields []string
+			for _, perr := range errors.GetPipelineErrors(lerr) {
+				if perr.Type != errorTypes.PipelineErrorTypeBadHabit {
+					continue
+				}
+				assert.Equal(t, msg, perr.Message)
+				data, ok := perr.Data.(errors.BadHabitErrorData)
+				assert.True(t, ok)
+				fields = append(fields, data.Field)
 			}
-		}
-		assert.True(t, found, "Expected error %q, got %q", test.want, lerrors)
+
+			if test.wantField == "" {
+				assert.Empty(t, fields)
+			} else {
+				assert.Equal(t, []string{test.wantField}, fields)
+			}
+		})
 	}
 }
