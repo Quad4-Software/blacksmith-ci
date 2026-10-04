@@ -50,10 +50,14 @@ variables:
   # the guest credentials below, and PowerShell 5.1 or newer.
   - &base_vhdx 'C:\crow-images\ws2022-golden.vhdx'
   - &vm_path 'C:\crow-vms'
+  # The Justfile's recipes and backtick variables are POSIX shell, and just
+  # runs them with `sh`. Git for Windows ships one, but its installer only puts
+  # git itself on PATH.
+  - &posix_path "$env:PATH = 'C:\\Program Files\\Git\\usr\\bin;' + $env:PATH"
 
 steps:
   unit:
-    image: pwsh
+    image: powershell
     failure: ignore
     commands:
       - go test ./pipeline/backend/hyperv/...
@@ -63,7 +67,7 @@ steps:
   integration:
     depends_on:
       - unit
-    image: pwsh
+    image: powershell
     failure: ignore
     environment:
       CROW_BACKEND_HYPERV_BASE_VHDX: *base_vhdx
@@ -77,6 +81,7 @@ steps:
       # lowers this to 1 for itself anyway.
       CROW_BACKEND_HYPERV_MAX_VMS: '2'
     commands:
+      - *posix_path
       - just test-hyperv-integration
 
   # The integration test drives the backend directly. This drives the whole
@@ -84,7 +89,7 @@ steps:
   crow-exec:
     depends_on:
       - integration
-    image: pwsh
+    image: powershell
     failure: ignore
     environment:
       CROW_BACKEND_HYPERV_BASE_VHDX: *base_vhdx
@@ -96,18 +101,23 @@ steps:
       CROW_BACKEND_HYPERV_MEMORY: 8Gi
       CROW_DISABLE_UPDATE_CHECK: 'true'
     commands:
+      - *posix_path
       - just build-cli
       - New-Item -ItemType Directory -Force -Path .hyperv-e2e | Out-Null
       - |
-        Set-Content -LiteralPath .hyperv-e2e\.crow.yaml -Encoding UTF8 -Value @'
+        Set-Content -LiteralPath .hyperv-e2e\.crow.yaml -Encoding ASCII -Value @'
         when:
           - event: manual
         steps:
+          # The hyperv backend runs every command step in the guest's
+          # PowerShell and ignores the image, but the linter requires one.
           - name: writes
+            image: powershell
             commands:
               - '[System.Environment]::OSVersion.Version.ToString()'
               - Set-Content -LiteralPath shared-file -Value marker
           - name: reads
+            image: powershell
             commands:
               - Get-Content -LiteralPath shared-file
         '@
@@ -120,7 +130,7 @@ steps:
   cleanup:
     depends_on:
       - crow-exec
-    image: pwsh
+    image: powershell
     when:
       - status: [success, failure]
     commands:
