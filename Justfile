@@ -184,6 +184,15 @@ test-lib:
 test-tart-integration:
     go test -tags 'tart_integration {{ TAGS }}' -timeout 30m -v codefloe.com/crowci/crow/v6/pipeline/backend/tart
 
+# Drive a real Hyper-V VM through the hyperv backend.
+#
+# Needs a Windows host with the Hyper-V role and a golden VHDX, run by an
+# account in Hyper-V Administrators. Skips itself when
+# CROW_BACKEND_HYPERV_BASE_VHDX is unset, so it is a no-op anywhere else.
+# The timeout is generous because each test cold-boots a Windows guest.
+test-hyperv-integration:
+    go test -tags 'hyperv_integration {{ TAGS }}' -timeout 60m -v codefloe.com/crowci/crow/v6/pipeline/backend/hyperv
+
 ## docs
 
 # Install docs dependencies

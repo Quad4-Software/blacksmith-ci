@@ -14,6 +14,7 @@ This page covers the architecture, host requirements, recommended images, and kn
 | `kubernetes` | ❌      | Pods are pinned to nodes with the agent's OS; scheduling onto Windows nodes is not implemented |
 | `podman`     | ❌      | Podman doesn't run on Windows in the way Crow expects                                   |
 | `tart`       | ❌      | Tart only runs macOS and Linux guests on Apple silicon                                  |
+| `hyperv`     | 🧪      | One throwaway Windows VM per workflow; see [Backend: Hyper-V](/dev/configuration/env-vars/backend-hyperv/). Not yet verified on real hardware |
 
 The rest of this page assumes the **docker backend** unless a section says otherwise.
 
@@ -121,6 +122,13 @@ Each isolated container also costs its own kernel in memory and several seconds 
 
 Isolation is a Windows-only concept.
 An agent that sets `CROW_BACKEND_DOCKER_ISOLATION` to `process` or `hyperv` while talking to a non-Windows daemon refuses to start, rather than silently running every step in the host kernel.
+
+### This is not a disposable environment
+
+Hyper-V isolation gives a step its own kernel, but everything around it stays shared and long-lived: one docker daemon serving every repo on the agent, a shared image and layer cache, a shared NAT network, and no per-job disk quota.
+That is defense in depth for a **trusted** Windows fleet, not an ephemeral environment for untrusted pull requests.
+
+For that, use the [Hyper-V backend](/dev/configuration/env-vars/backend-hyperv/), which gives each workflow a throwaway VM and keeps the agent outside it.
 
 ## Recommended Container Images
 

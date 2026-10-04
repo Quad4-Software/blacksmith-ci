@@ -1,0 +1,137 @@
+# Exercises the hyperv backend against real Hyper-V VMs.
+#
+# The rest of the test suite runs on Linux, where Hyper-V does not exist, so
+# this is the only place the backend's end-to-end behavior is checked. Nothing
+# below has ever run: the backend was written without access to a Windows host,
+# and this pipeline is how it gets validated the first time.
+#
+# It needs an agent on a Windows host with the Hyper-V role, running the
+# **local** backend, with a golden VHDX staged. The local backend and not the
+# hyperv backend, for the same reason the macOS job runs on a local-backend
+# agent: a workflow cannot drive the hypervisor from inside one of its own
+# guests without nested virtualization, and nesting would not be testing the
+# thing anyone runs.
+#
+# Manual-only until a matching agent exists.
+#
+# A workflow whose labels match no agent does not "skip": the scheduler cannot
+# place it and the whole pipeline is held, so making this run on every pull
+# request before the agent exists would block everyone else's work.
+#
+# The agent does not have to be a permanent machine. A second autoscaler
+# instance with CROW_FILTER_LABELS=group=windows-hyperv idles at zero agents
+# and provisions one only when this pipeline is triggered, which is the point
+# of keeping the trigger manual. It needs a host offering nested
+# virtualization: Azure Dv5/Ev5 or an AWS *.metal instance, never a B-series
+# or a Hetzner/Linode/Scaleway/Vultr VM. See the backend docs for the
+# provider matrix.
+#
+# The Azure side of that landed in crowci/autoscaler#181; the pool itself is
+# deployed from crowci/infrastructure#109. Neither installs the Hyper-V role
+# or stages the golden VHDX below, which are still host prerequisites.
+#
+# Once an agent is registered with `group=windows-hyperv`, this can move to
+# pull_request and pushes to the default branch. Keep it advisory even then,
+# with the `failure: ignore` already set on each step: one Windows host, whose
+# jobs each cold-boot a guest, should not be a single point of failure for the
+# pull request queue until it has proven stable. Cold boot is also why this is
+# a poor fit for every push regardless of stability.
+
+when:
+  - event: manual
+
+labels:
+  group: windows-hyperv
+
+variables:
+  # Staged on the agent. Building a Windows golden image takes an hour and
+  # tens of gigabytes, so it is a host prerequisite rather than something a
+  # pipeline step produces. It needs a local administrator account matching
+  # the guest credentials below, and PowerShell 5.1 or newer.
+  - &base_vhdx 'C:\crow-images\ws2022-golden.vhdx'
+  - &vm_path 'C:\crow-vms'
+
+steps:
+  unit:
+    image: pwsh
+    failure: ignore
+    commands:
+      - go test ./pipeline/backend/hyperv/...
+
+  # Everything below here is what the unit tests cannot reach: PowerShell
+  # Direct, the Hyper-V cmdlets and the VM lifecycle.
+  integration:
+    depends_on:
+      - unit
+    image: pwsh
+    failure: ignore
+    environment:
+      CROW_BACKEND_HYPERV_BASE_VHDX: *base_vhdx
+      CROW_BACKEND_HYPERV_VM_PATH: *vm_path
+      CROW_BACKEND_HYPERV_GUEST_USERNAME: crow
+      CROW_BACKEND_HYPERV_GUEST_PASSWORD:
+        from_secret: hyperv_guest_password
+      CROW_BACKEND_HYPERV_CPU: '4'
+      CROW_BACKEND_HYPERV_MEMORY: 8Gi
+      # One at a time: the host may be Standard-licensed, and the limit test
+      # lowers this to 1 for itself anyway.
+      CROW_BACKEND_HYPERV_MAX_VMS: '2'
+    commands:
+      - just test-hyperv-integration
+
+  # The integration test drives the backend directly. This drives the whole
+  # stack the way a user does, through the compiler and the pipeline runtime.
+  crow-exec:
+    depends_on:
+      - integration
+    image: pwsh
+    failure: ignore
+    environment:
+      CROW_BACKEND_HYPERV_BASE_VHDX: *base_vhdx
+      CROW_BACKEND_HYPERV_VM_PATH: *vm_path
+      CROW_BACKEND_HYPERV_GUEST_USERNAME: crow
+      CROW_BACKEND_HYPERV_GUEST_PASSWORD:
+        from_secret: hyperv_guest_password
+      CROW_BACKEND_HYPERV_CPU: '4'
+      CROW_BACKEND_HYPERV_MEMORY: 8Gi
+      CROW_DISABLE_UPDATE_CHECK: 'true'
+    commands:
+      - just build-cli
+      - New-Item -ItemType Directory -Force -Path .hyperv-e2e | Out-Null
+      - |
+        Set-Content -LiteralPath .hyperv-e2e\.crow.yaml -Encoding UTF8 -Value @'
+        when:
+          - event: manual
+        steps:
+          - name: writes
+            commands:
+              - '[System.Environment]::OSVersion.Version.ToString()'
+              - Set-Content -LiteralPath shared-file -Value marker
+          - name: reads
+            commands:
+              - Get-Content -LiteralPath shared-file
+        '@
+      - cd .hyperv-e2e
+      - ..\dist\crow.exe exec --backend-engine hyperv .crow.yaml
+
+  # A leaked VM holds a differencing disk and, because the cap is a license,
+  # one of the slots the host is allowed to run. A failing test that also
+  # leaves guests behind would quietly break every later run on this agent.
+  cleanup:
+    depends_on:
+      - crow-exec
+    image: pwsh
+    when:
+      - status: [success, failure]
+    commands:
+      - |
+        $leaked = @(Get-VM | Where-Object { $_.Name -like 'crow-*' })
+        foreach ($vm in $leaked) {
+          Write-Output "removing leaked VM $($vm.Name)"
+          Stop-VM -Name $vm.Name -TurnOff -Force -ErrorAction SilentlyContinue
+          Remove-VM -Name $vm.Name -Force -ErrorAction SilentlyContinue
+        }
+        Remove-Item -Path 'C:\crow-vms\crow-*.vhdx' -Force -ErrorAction SilentlyContinue
+        if ($leaked.Count -gt 0) {
+          throw "$($leaked.Count) VM(s) outlived the tests; the backend's teardown is not reclaiming them"
+        }
