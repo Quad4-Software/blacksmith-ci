@@ -38,6 +38,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -167,17 +168,92 @@ func (e *hyperv) hostMemTotal(ctx context.Context) int64 {
 	return mem
 }
 
+// stdinScriptRunner is the -Command that reads a whole script from stdin and
+// runs it as one script block.
+//
+// It is not "-Command -", which reads stdin a line at a time the way the
+// interactive prompt does: a statement spanning lines stays pending until a
+// blank line, and whatever is still pending at end of input is dropped. A
+// script whose last multi-line statement is not followed by a blank line is
+// discarded without an error, and PowerShell exits 0, so every step "passed"
+// in a second with no output. Reading to the end first takes the line
+// structure out of it.
+//
+// The stream is read as UTF-8 rather than through [Console]::In, which would
+// use the console's OEM code page.
+const stdinScriptRunner = "$crowIn = New-Object System.IO.StreamReader([Console]::OpenStandardInput(), (New-Object System.Text.UTF8Encoding $false)); " +
+	"& ([ScriptBlock]::Create($crowIn.ReadToEnd()))"
+
 // command builds a PowerShell invocation that reads its script from stdin.
 //
-// Nothing is passed in argv, because these scripts carry the guest password
-// and a step's environment: argv is readable by other processes on the host,
-// stdin is not. The agent's own environment is deliberately not inherited
-// either, since it holds CROW_AGENT_SECRET.
+// Nothing variable is passed in argv, because these scripts carry the guest
+// password and a step's environment: argv is readable by other processes on
+// the host, stdin is not. The agent's own environment is not inherited either,
+// since it holds CROW_AGENT_SECRET: only the system variables in
+// hostEnvAllowlist are.
 func (e *hyperv) command(ctx context.Context) *exec.Cmd {
 	cmd := exec.CommandContext(ctx, e.config.Binary,
-		"-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", "-")
-	cmd.Env = []string{}
+		"-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", stdinScriptRunner)
+	cmd.Env = hostEnv(os.Environ())
 	return cmd
+}
+
+// hostEnvAllowlist is the part of the agent's environment the host-side
+// PowerShell gets: what Windows itself sets for every process, and nothing an
+// operator or the agent configured.
+//
+// An empty environment is not an option. Every Hyper-V cmdlet resolves the
+// local host through COMPUTERNAME and, without it, fails with "Value cannot be
+// null. Parameter name: name" whatever its arguments; PowerShell also needs
+// PSModulePath to find the Hyper-V module at all, and temp paths to run.
+var hostEnvAllowlist = []string{
+	"ALLUSERSPROFILE",
+	"APPDATA",
+	"COMPUTERNAME",
+	"ComSpec",
+	"CommonProgramFiles",
+	"CommonProgramFiles(x86)",
+	"CommonProgramW6432",
+	"LOCALAPPDATA",
+	"NUMBER_OF_PROCESSORS",
+	"OS",
+	"PATH",
+	"PATHEXT",
+	"PROCESSOR_ARCHITECTURE",
+	"PSModulePath",
+	"ProgramData",
+	"ProgramFiles",
+	"ProgramFiles(x86)",
+	"ProgramW6432",
+	"SystemDrive",
+	"SystemRoot",
+	"TEMP",
+	"TMP",
+	"USERDOMAIN",
+	"USERNAME",
+	"USERPROFILE",
+	"windir",
+}
+
+// hostEnv filters environ down to hostEnvAllowlist. Windows environment
+// variable names are case-insensitive, so the match is too.
+func hostEnv(environ []string) []string {
+	env := make([]string, 0, len(hostEnvAllowlist))
+	for _, kv := range environ {
+		name, _, ok := strings.Cut(kv, "=")
+		if !ok || name == "" {
+			// Windows keeps per-drive working directories in variables named
+			// "=C:" and the like. They are not configuration.
+			continue
+		}
+		for _, allowed := range hostEnvAllowlist {
+			if strings.EqualFold(name, allowed) {
+				env = append(env, kv)
+				break
+			}
+		}
+	}
+	return env
 }
 
 // run executes a host-side script to completion and returns its combined

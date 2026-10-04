@@ -28,6 +28,7 @@ sequenceDiagram
 | Provider      | Configuration Reference                                                                             |
 | ------------- | --------------------------------------------------------------------------------------------------- |
 | AWS           | [flags.go](https://codefloe.com/crowci/autoscaler/src/branch/main/providers/aws/flags.go)           |
+| Azure         | [flags.go](https://codefloe.com/crowci/autoscaler/src/branch/main/providers/azure/flags.go)         |
 | Hetzner Cloud | [flags.go](https://codefloe.com/crowci/autoscaler/src/branch/main/providers/hetznercloud/flags.go)  |
 | Linode        | [flags.go](https://codefloe.com/crowci/autoscaler/src/branch/main/providers/linode/flags.go)        |
 | Scaleway      | [flags.go](https://codefloe.com/crowci/autoscaler/src/branch/main/providers/scaleway/flags.go)      |
@@ -52,7 +53,9 @@ Additional providers with a Go SDK can be added — contributions welcome!
 </Steps>
 
 :::tip
-Provisioning **Windows** VMs through the autoscaler? Set `CROW_OS_TYPE=windows`, and note that `CROW_AGENT_IMAGE` is then treated as a URL to a `crow-agent_windows_amd64.zip` artifact, not a container image. See [Windows Agents](/dev/configuration/windows-agent) for the full picture, including recommended container images for your steps.
+Provisioning **Windows** VMs through the autoscaler? Windows hosts are supported on AWS and Azure.
+Set `CROW_OS_TYPE=windows`, and note that `CROW_AGENT_IMAGE` is then treated as a URL to a `crow-agent_windows_amd64.zip` artifact, not a container image.
+See [Windows Agents](/dev/configuration/windows-agent) for the full picture, including what Windows hosts cost and recommended container images for your steps.
 
 A pool intended to run the [Hyper-V backend](/dev/configuration/env-vars/backend-hyperv/) additionally needs an instance type offering nested virtualization, which rules out most of them.
 :::

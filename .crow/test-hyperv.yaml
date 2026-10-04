@@ -1,9 +1,9 @@
 # Exercises the hyperv backend against real Hyper-V VMs.
 #
 # The rest of the test suite runs on Linux, where Hyper-V does not exist, so
-# this is the only place the backend's end-to-end behavior is checked. Nothing
-# below has ever run: the backend was written without access to a Windows host,
-# and this pipeline is how it gets validated the first time.
+# this is the only place the backend's end-to-end behavior is checked. The
+# backend was written without access to a Windows host, and its first run
+# here found bugs that no unit test could have caught.
 #
 # It needs an agent on a Windows host with the Hyper-V role, running the
 # **local** backend, with a golden VHDX staged. The local backend and not the
@@ -27,8 +27,9 @@
 # provider matrix.
 #
 # The Azure side of that landed in crowci/autoscaler#181; the pool itself is
-# deployed from crowci/infrastructure#109. Neither installs the Hyper-V role
-# or stages the golden VHDX below, which are still host prerequisites.
+# deployed from crowci/infrastructure#109, whose bootstrap installs the
+# Hyper-V role. Those hosts start empty, so the golden-image step below builds
+# the base VHDX on first use, which adds about 7 minutes to a cold start.
 #
 # Once an agent is registered with `group=windows-hyperv`, this can move to
 # pull_request and pushes to the default branch. Keep it advisory even then,
@@ -44,10 +45,8 @@ labels:
   group: windows-hyperv
 
 variables:
-  # Staged on the agent. Building a Windows golden image takes an hour and
-  # tens of gigabytes, so it is a host prerequisite rather than something a
-  # pipeline step produces. It needs a local administrator account matching
-  # the guest credentials below, and PowerShell 5.1 or newer.
+  # Built by the golden-image step when the host does not have it yet, with
+  # an administrator account matching the guest credentials below.
   - &base_vhdx 'C:\crow-images\ws2022-golden.vhdx'
   - &vm_path 'C:\crow-vms'
   # The Justfile's recipes and backtick variables are POSIX shell, and just
@@ -62,11 +61,30 @@ steps:
     commands:
       - go test ./pipeline/backend/hyperv/...
 
+  # A host that already has the image, such as a permanent one, keeps it.
+  # The step is not failure: ignore, since nothing after it can run without
+  # the image.
+  golden-image:
+    image: powershell
+    environment:
+      GOLDEN_VHDX: *base_vhdx
+      GUEST_PASSWORD:
+        from_secret: hyperv_guest_password
+    commands:
+      - |
+        if (Test-Path -LiteralPath $env:GOLDEN_VHDX) {
+          Write-Output "$env:GOLDEN_VHDX is already staged"
+        } else {
+          & .\contrib\hyperv\build-golden-image.ps1 -Path $env:GOLDEN_VHDX -Username crow `
+            -Password (ConvertTo-SecureString $env:GUEST_PASSWORD -AsPlainText -Force)
+        }
+
   # Everything below here is what the unit tests cannot reach: PowerShell
   # Direct, the Hyper-V cmdlets and the VM lifecycle.
   integration:
     depends_on:
       - unit
+      - golden-image
     image: powershell
     failure: ignore
     environment:

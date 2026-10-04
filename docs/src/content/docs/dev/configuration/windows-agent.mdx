@@ -2,21 +2,76 @@
 title: 'Windows Agents'
 ---
 
-Crow can execute pipelines on Windows hosts using the Docker backend in Windows-container mode.
-This page covers the architecture, host requirements, recommended images, and known caveats.
+Crow runs Windows jobs on a Windows agent, either a machine you keep running or a VM the [autoscaler](/dev/configuration/autoscaler) creates per demand.
+This page helps you choose how the agent runs those jobs, what that costs, and then covers the docker backend in detail.
 
-## Backend Support
+## Choosing How to Run Windows Jobs
+
+| Approach | What a job gets | Host needs | Use it for |
+| --- | --- | --- | --- |
+| [Docker backend](#how-it-works), process isolation | A Windows container sharing the host kernel and daemon | Windows Server 2022+ with Docker CE; any VM size | Trusted repositories whose toolchain fits in a Windows container |
+| [Docker backend](#isolation), Hyper-V isolation | A Windows container with its own kernel, still on a shared daemon | The above, plus the Hyper-V role and nested virtualization | Defense in depth on a trusted fleet |
+| [Hyper-V backend](/dev/configuration/env-vars/backend-hyperv/) | A throwaway Windows VM per workflow, deleted afterwards | The Hyper-V role, nested virtualization, and a golden image | Untrusted code, or toolchains that need a full Windows install |
+| [Local backend](#local-backend) | A process on the host, with the agent's access | The toolchain installed on the host | A single-tenant machine you fully trust |
 
 | Backend      | Windows | Notes                                                                                   |
 | ------------ | ------- | --------------------------------------------------------------------------------------- |
 | `docker`     | ✅      | Container steps (incl. clone); see below                                                |
+| `hyperv`     | ✅      | One throwaway Windows VM per workflow; see [Backend: Hyper-V](/dev/configuration/env-vars/backend-hyperv/) |
 | `local`      | ⚠️      | Works if everything you run is a native Windows executable; see [Local backend](#local-backend) |
 | `kubernetes` | ❌      | Pods are pinned to nodes with the agent's OS; scheduling onto Windows nodes is not implemented |
 | `podman`     | ❌      | Podman doesn't run on Windows in the way Crow expects                                   |
 | `tart`       | ❌      | Tart only runs macOS and Linux guests on Apple silicon                                  |
-| `hyperv`     | 🧪      | One throwaway Windows VM per workflow; see [Backend: Hyper-V](/dev/configuration/env-vars/backend-hyperv/). Not yet verified on real hardware |
 
-The rest of this page assumes the **docker backend** unless a section says otherwise.
+## What It Costs
+
+Crow itself costs nothing extra for Windows.
+What you pay for is the Windows host, and on a cloud provider the Windows license is part of its hourly price, which roughly doubles it compared to the same machine running Linux.
+
+On-demand prices in USD per hour, as listed by Azure's and AWS's pricing APIs in October 2026:
+
+| Machine | vCPU / RAM | Linux | Windows | Nested virtualization |
+| --- | --- | --- | --- | --- |
+| Azure `Standard_D2s_v5`, West Europe | 2 / 8 GB | $0.115 | $0.207 | ✅ |
+| Azure `Standard_D4s_v5`, West Europe | 4 / 16 GB | $0.230 | $0.414 | ✅ |
+| Azure `Standard_D4s_v5`, East US | 4 / 16 GB | $0.192 | $0.376 | ✅ |
+| Azure `Standard_D4s_v5` spot, East US | 4 / 16 GB | $0.041 | $0.079 | ✅ |
+| Azure `Standard_D8s_v5`, West Europe | 8 / 32 GB | $0.460 | $0.828 | ✅ |
+| AWS `m5.large`, Frankfurt | 2 / 8 GB | $0.115 | $0.207 | ❌ |
+| AWS `m5.xlarge`, Frankfurt | 4 / 16 GB | $0.230 | $0.414 | ❌ |
+| AWS `c5.metal`, Frankfurt | 96 / 192 GB | $4.656 | $9.072 | ✅ |
+
+Prices change and vary by region, so check your provider's calculator before budgeting.
+On Azure, a VM the autoscaler creates also has a 127 GB Standard SSD and a public IPv4 address, together about $0.02 per hour; both are deleted with the VM.
+
+Which row applies depends on the approach:
+
+- **Docker backend with process isolation** runs on any of them, so the cheapest Windows machine that fits your builds will do.
+- **Hyper-V isolation and the Hyper-V backend** need nested virtualization. On Azure that is the regular Dv5 and Ev5 sizes; on AWS it means a bare-metal instance, which costs twenty times as much. See [Provisioning a Host in the Cloud](/dev/configuration/env-vars/backend-hyperv/#provisioning-a-host-in-the-cloud).
+
+### Always-on versus autoscaled
+
+A Windows agent you keep running is billed around the clock: a `Standard_D4s_v5` in West Europe comes to about $300 a month.
+
+An autoscaled one is billed only while it exists, which is the job time plus some fixed overhead:
+
+- **Start-up.** A fresh Windows VM takes about 8 minutes from creation until its agent registers, including the reboot that installing Hyper-V needs.
+- **Golden image.** With the Hyper-V backend, a host that starts empty builds its golden image first, which takes about 7 minutes on a `Standard_D4s_v5`. After that, each workflow's VM boots in under a minute.
+- **Idle time.** After its last job a host waits `CROW_AGENT_IDLE_TIMEOUT` (30 minutes by default) before the autoscaler deletes it, in case more work arrives.
+
+A single Hyper-V backend run with 10 minutes of jobs on an on-demand `Standard_D4s_v5` in West Europe therefore costs about 55 minutes, or $0.40.
+Lowering the idle timeout to 5 minutes brings that to about 30 minutes, or $0.22, at the price of a cold start for the next run; spot pricing brings it to under $0.10.
+Spot VMs can be evicted at any time, which fails the running workflow, so they suit jobs that are cheap to retry.
+
+### Licensing
+
+On Azure and AWS, the hourly price includes the Windows Server license.
+Azure's Windows Server VMs are Datacenter-licensed, which also covers the nested VMs the Hyper-V backend creates.
+
+On your own hardware you need a Windows Server license for the host.
+Windows Server Standard allows two virtual machines per licensed host, which is why the Hyper-V backend caps itself at two by default; see [Licensing](/dev/configuration/env-vars/backend-hyperv/#licensing).
+
+The rest of this page covers the **docker backend** unless a section says otherwise.
 
 ## Linux Docker vs Windows Docker
 
@@ -272,13 +327,15 @@ A `plugin` step runs the image name as an executable from `PATH` instead.
 
 ## Autoscaler Integration
 
-The Crow Autoscaler can provision Windows VMs on demand.
+The Crow Autoscaler can provision Windows VMs on demand, on AWS and Azure.
 The configuration shape is identical to a Linux autoscaler with two key differences:
 
 | Setting             | Linux                                | Windows                                                                                            |
 | ------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------- |
 | `CROW_AGENT_IMAGE`  | Container image reference            | **URL to the `crow-agent_windows_amd64.zip` artifact** — the autoscaler downloads it onto the VM. |
-| Provider OS field   | `linux` (provider-default)           | Set the provider's Windows flag (e.g. `CROW_AWS_OS=windows`).                                      |
+| `CROW_OS_TYPE`      | `linux` (the default)                | `windows`. On AWS the older `CROW_AWS_OS=windows` still works and takes precedence when set.       |
+
+Every Crow release publishes the agent zip, so `https://codefloe.com/crowci/crow/releases/download/<version>/crow-agent_windows_amd64.zip` works as `CROW_AGENT_IMAGE`.
 
 Minimal AWS Windows-autoscaler config:
 
@@ -287,11 +344,12 @@ CROW_PROVIDER: aws
 CROW_AWS_REGION: eu-central-1
 CROW_AWS_INSTANCE_TYPE: m5.large
 CROW_AWS_AMI_ID: <Windows Server 2022 ECS-Optimized AMI>
-CROW_AWS_OS: windows
-CROW_AGENT_IMAGE: https://example.com/releases/crow-agent_windows_amd64.zip
+CROW_OS_TYPE: windows
+CROW_AGENT_IMAGE: https://codefloe.com/crowci/crow/releases/download/<version>/crow-agent_windows_amd64.zip
 CROW_AGENT_ENV: CROW_HEALTHCHECK=false,CROW_AGENT_LABELS=platform=windows/amd64
 ```
 
+For Azure, and for a pool running the Hyper-V backend, see [Provisioning a Host in the Cloud](/dev/configuration/env-vars/backend-hyperv/#provisioning-a-host-in-the-cloud).
 See [Autoscaler configuration](/dev/configuration/autoscaler) for the full surface.
 
 ## Caveats

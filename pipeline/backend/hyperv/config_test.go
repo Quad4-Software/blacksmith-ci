@@ -16,6 +16,8 @@ package hyperv
 
 import (
 	"context"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -26,6 +28,7 @@ import (
 // the defaults and env-var wiring rather than a hand-built config struct.
 func parseFlags(t *testing.T, args ...string) (config, error) {
 	t.Helper()
+	clearHypervEnv(t)
 
 	var (
 		cfg    config
@@ -42,6 +45,22 @@ func parseFlags(t *testing.T, args ...string) (config, error) {
 	err := cmd.Run(t.Context(), append([]string{"test"}, args...))
 	assert.NoError(t, err)
 	return cfg, cfgErr
+}
+
+// clearHypervEnv unsets every backend flag's environment variable for the
+// duration of the test. The flags read them, so on a host configured for the
+// backend, such as the one test-hyperv runs on, they would otherwise fill in
+// what a test deliberately leaves out.
+func clearHypervEnv(t *testing.T) {
+	t.Helper()
+	for _, kv := range os.Environ() {
+		name, _, _ := strings.Cut(kv, "=")
+		if strings.HasPrefix(strings.ToUpper(name), "CROW_BACKEND_HYPERV_") {
+			// t.Setenv records the old value and restores it afterwards.
+			t.Setenv(name, "")
+			assert.NoError(t, os.Unsetenv(name))
+		}
+	}
 }
 
 func TestConfigRequiresABaseDisk(t *testing.T) {

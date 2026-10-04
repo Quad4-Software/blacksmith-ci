@@ -282,6 +282,32 @@ func TestLaterCommandDoesNotMaskAnEarlierFailure(t *testing.T) {
 	assert.NotContains(t, out, "should-not-run")
 }
 
+// TestCommandsKeepPowerShellSemantics pins down what a step's commands share
+// and how they fail: a variable set by one command is visible to the next, and
+// a failing cmdlet stops the step before the command after it runs.
+func TestCommandsKeepPowerShellSemantics(t *testing.T) {
+	e, ctx := newIntegrationBackend(t)
+	const taskUUID = "01integrationsemantics0000"
+
+	conf := &types.Config{}
+	require.NoError(t, e.SetupWorkflow(ctx, conf, taskUUID))
+	t.Cleanup(func() { assert.NoError(t, e.DestroyWorkflow(ctx, conf, taskUUID)) })
+
+	out, code := runStep(t, e, ctx, &types.Step{
+		Name: "vars", UUID: "step-vars", Type: types.StepTypeCommands,
+		Commands: []string{"$crowTestValue = 'kept-across-commands'", "Write-Output $crowTestValue"},
+	}, taskUUID)
+	assert.Equal(t, 0, code, out)
+	assert.Contains(t, out, "kept-across-commands")
+
+	out, code = runStep(t, e, ctx, &types.Step{
+		Name: "cmdlet", UUID: "step-cmdlet", Type: types.StepTypeCommands,
+		Commands: []string{"Get-Content -LiteralPath does-not-exist", "Write-Output should-not-run"},
+	}, taskUUID)
+	assert.Equal(t, 1, code, out)
+	assert.NotContains(t, out, "should-not-run")
+}
+
 // TestGuestStderrReachesTheLog documents the merge rather than asserting a
 // separation the transport cannot provide: PowerShell Direct returns one
 // channel, so a step's stderr has to arrive in the log even though it cannot
@@ -296,15 +322,17 @@ func TestGuestStderrReachesTheLog(t *testing.T) {
 
 	out, code := runStep(t, e, ctx, &types.Step{
 		Name: "stderr", UUID: "step-stderr", Type: types.StepTypeCommands,
-		Commands: []string{"cmd.exe /c echo to-stderr 1>&2"},
+		// The redirection is inside cmd's argument: PowerShell 5.1 parses a
+		// bare 1>&2 itself and rejects it as reserved.
+		Commands: []string{`cmd.exe /c "echo to-stderr 1>&2"`},
 	}, taskUUID)
 
-	assert.Equal(t, 0, code)
+	assert.Equal(t, 0, code, out)
 	assert.Contains(t, out, "to-stderr")
 }
 
 // TestSetupRejectsAnUnusableGoldenDisk checks that a bad base disk fails the
-// workflow instead of leaving a half-built VM and a burned licence slot.
+// workflow instead of leaving a half-built VM and a burned license slot.
 func TestSetupRejectsAnUnusableGoldenDisk(t *testing.T) {
 	e, ctx := newIntegrationBackend(t)
 	e.config.BaseVHDX = `C:\definitely\not\a\real\disk.vhdx`

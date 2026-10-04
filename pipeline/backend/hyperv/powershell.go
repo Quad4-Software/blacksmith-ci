@@ -83,10 +83,14 @@ func execScript(vm, username, password, body string) string {
 // script is written into the guest, run with its output left to flow back
 // uncaptured, and its exit code parked in a file that a third call reads.
 //
-// The guest's stderr is merged into stdout by the 2>&1 redirection. A native
-// command's stderr arrives as PowerShell error records otherwise, which the
-// remote session would treat as a terminating error under the caller's
-// ErrorActionPreference and which would lose ordering against stdout anyway.
+// The guest's stderr is merged into stdout by the 2>&1 redirection, and every
+// record is then rendered as plain text. 2>&1 turns each stderr line of a
+// native command into an error record, and PowerShell formats an error record
+// with its position and category, so a step that wrote one line to stderr
+// would log five lines of "NativeCommandError" noise around it. Rendering
+// keeps it to the line itself. It also keeps error records from crossing back
+// over PowerShell Direct, where the host would report them separately from
+// the output they belong with.
 func runStepScript(vm, username, password, body, scriptPath, codePath string) string {
 	var b strings.Builder
 	b.WriteString(psPreamble)
@@ -110,7 +114,7 @@ func runStepScript(vm, username, password, body, scriptPath, codePath string) st
 	b.WriteString("Invoke-Command -VMName $crowVM -Credential $crowCred -ScriptBlock {\n" +
 		"  param($path, $codePath)\n" +
 		"  $ErrorActionPreference = 'Continue'\n" +
-		"  & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $path 2>&1\n" +
+		"  & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $path 2>&1 | ForEach-Object { \"$_\" }\n" +
 		"  Set-Content -LiteralPath $codePath -Value $LASTEXITCODE -Encoding ASCII\n" +
 		"} -ArgumentList $crowScript, $crowCode\n")
 

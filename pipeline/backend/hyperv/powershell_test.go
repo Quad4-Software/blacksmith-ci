@@ -72,8 +72,9 @@ func TestRunStepScriptStreamsThenCollectsExitCode(t *testing.T) {
 	assert.Positive(t, runIdx)
 	assert.NotContains(t, got[:runIdx], "$crowRun = Invoke-Command")
 
-	// Native stderr is merged so it cannot surface as a terminating error.
-	assert.Contains(t, got, "-File $path 2>&1")
+	// Native stderr is merged and rendered as text, so it reaches the log as
+	// the line itself rather than a formatted error record.
+	assert.Contains(t, got, `-File $path 2>&1 | ForEach-Object { "$_" }`)
 
 	// The exit code is read back and becomes this process's own, which is
 	// what lets WaitStep treat the step like any other child process.
