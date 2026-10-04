@@ -185,6 +185,10 @@ func (e *docker) Load(ctx context.Context) (*backend.BackendInfo, error) {
 		return nil, err
 	}
 
+	if err := validateIsolationForOS(e.info.OSType, e.config.isolation); err != nil {
+		return nil, err
+	}
+
 	return &backend.BackendInfo{
 		Platform: e.info.OSType + "/" + normalizeArchType(e.info.Architecture),
 		HostCPUs: int32(e.info.NCPU), //nolint:gosec // core count never overflows int32
@@ -284,7 +288,7 @@ func (e *docker) StartStep(ctx context.Context, step *backend.Step, taskUUID str
 	log.Trace().Str("taskUUID", taskUUID).Msgf("start step %s", step.Name)
 
 	config := e.toConfig(step, options, taskUUID)
-	hostConfig, err := toHostConfig(step, &e.config)
+	hostConfig, err := toHostConfig(step, options, &e.config, e.info.OSType)
 	if err != nil {
 		return err
 	}

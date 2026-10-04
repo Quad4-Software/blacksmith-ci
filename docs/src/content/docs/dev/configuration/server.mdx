@@ -225,6 +225,20 @@ steps:
         user: 10000:10000
 ```
 
+On a Windows agent a step can also ask for Hyper-V isolation, which runs it in its own kernel instead of sharing the host's:
+
+```yaml
+steps:
+  - name: test
+    image: mcr.microsoft.com/powershell:nanoserver-ltsc2022
+    backend_options:
+      docker:
+        isolation: hyperv
+```
+
+A step may only strengthen the agent's [`CROW_BACKEND_DOCKER_ISOLATION`](/dev/configuration/env-vars/backend-docker/#backend_docker_isolation), never relax it.
+Asking for `process` or `default` on an agent configured with `hyperv` fails the step, so a pipeline cannot opt out of the boundary the agent operator put in place.
+
 #### Housekeeping
 
 Crow doesn't auto-clean Docker images.

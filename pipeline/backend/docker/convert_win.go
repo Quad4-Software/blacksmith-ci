@@ -15,9 +15,12 @@
 package docker
 
 import (
+	"fmt"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/moby/moby/api/types/container"
 
 	"codefloe.com/crowci/crow/v6/pipeline/backend/types"
 )
@@ -110,4 +113,51 @@ func (e *docker) windowsPathPatch(step *types.Step) {
 			step.Environment["CI_WORKSPACE"] = filepath.Join(defaultWindowsDriverLetter, ciWorkspace)
 		}
 	}
+}
+
+// parseIsolation validates a Windows container isolation mode.
+//
+// The Windows daemon runs a container either in the host kernel ("process") or
+// in its own lightweight Hyper-V VM ("hyperv"). "default" defers to the daemon,
+// which means process isolation on Windows Server and Hyper-V on Windows
+// client. An empty value leaves HostConfig.Isolation unset, which the daemon
+// treats the same as "default".
+func parseIsolation(value string) (container.Isolation, error) {
+	isolation := container.Isolation(strings.ToLower(strings.TrimSpace(value)))
+	switch isolation {
+	case container.IsolationEmpty, container.IsolationDefault, container.IsolationProcess, container.IsolationHyperV:
+		return isolation, nil
+	default:
+		return container.IsolationEmpty, fmt.Errorf("invalid isolation %q, expected one of 'default', 'process', 'hyperv'", value)
+	}
+}
+
+// resolveIsolation decides the isolation mode of a single step's container.
+//
+// The agent's setting is a floor, not a suggestion. A step may raise itself to
+// Hyper-V isolation, which is strictly stronger than sharing the host kernel,
+// but it may not drop back to process isolation once the agent has asked for
+// Hyper-V: otherwise any pipeline could opt out of the boundary the agent
+// operator put there, which is the whole point of running untrusted steps in
+// their own kernel.
+func resolveIsolation(agent, step container.Isolation) (container.Isolation, error) {
+	if step == container.IsolationEmpty {
+		return agent, nil
+	}
+	if agent.IsHyperV() && !step.IsHyperV() {
+		return container.IsolationEmpty, fmt.Errorf("step requested %q isolation but the agent enforces 'hyperv'", step)
+	}
+	return step, nil
+}
+
+// validateIsolationForOS rejects a non-default isolation mode on a daemon that
+// is not Windows. Isolation is a Windows-only concept: the Linux daemon rejects
+// anything but "default", and silently dropping the setting would leave a
+// misconfigured agent running steps that share the host kernel while its
+// operator believes each one has its own.
+func validateIsolationForOS(osType string, isolation container.Isolation) error {
+	if isolation.IsDefault() || strings.ToLower(osType) == osTypeWindows {
+		return nil
+	}
+	return fmt.Errorf("isolation %q is only supported on a Windows docker daemon, but this agent talks to a %q daemon", isolation, osType)
 }

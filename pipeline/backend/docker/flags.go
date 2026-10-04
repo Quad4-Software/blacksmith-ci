@@ -57,6 +57,11 @@ var Flags = []cli.Flag{
 		Usage:   "backend docker volumes (comma-separated)",
 	},
 	&cli.StringFlag{
+		Sources: cli.EnvVars("WOODPECKER_BACKEND_DOCKER_ISOLATION", "CROW_BACKEND_DOCKER_ISOLATION"),
+		Name:    "backend-docker-isolation",
+		Usage:   "isolation mode for Windows containers: 'default', 'process' or 'hyperv' (leave empty to let the daemon decide)",
+	},
+	&cli.StringFlag{
 		Sources: cli.EnvVars("WOODPECKER_BACKEND_DOCKER_WORKSPACE_INIT_IMAGE", "CROW_BACKEND_DOCKER_WORKSPACE_INIT_IMAGE"),
 		Name:    "backend-docker-workspace-init-image",
 		Usage:   "image used to seed deterministic workspace ownership before the first step runs (set empty to disable)",

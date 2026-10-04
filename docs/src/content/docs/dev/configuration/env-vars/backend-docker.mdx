@@ -47,6 +47,19 @@ Pipeline `dns` entries must be IPv4 or IPv6 addresses; invalid addresses fail th
 
 ---
 
+## Isolation
+
+### BACKEND_DOCKER_ISOLATION
+
+- Name: `CROW_BACKEND_DOCKER_ISOLATION`
+- Description: Isolation mode for Windows containers.
+  `process` runs the container in the host kernel, `hyperv` gives it its own kernel inside a lightweight Hyper-V VM, and `default` leaves the choice to the daemon (process isolation on Windows Server, Hyper-V on Windows client).
+  Leave this empty to send no isolation mode at all, which the daemon also treats as `default`.
+  This is a Windows-only setting: an agent that sets `process` or `hyperv` while talking to a non-Windows daemon fails to start rather than silently running steps in the host kernel.
+- Default: none
+
+---
+
 ## Resource Limits
 
 ### BACKEND_DOCKER_LIMIT_MEM

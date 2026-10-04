@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/moby/moby/api/types/container"
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v3"
 )
@@ -27,6 +28,7 @@ type config struct {
 	network            string
 	volumes            []string
 	workspaceInitImage string
+	isolation          container.Isolation
 	resourceLimit      resourceLimit
 }
 
@@ -61,10 +63,16 @@ func configFromCli(c *cli.Command) (config, error) {
 		return config{}, fmt.Errorf("invalid CPU quota: %w", err)
 	}
 
+	isolation, err := parseIsolation(c.String("backend-docker-isolation"))
+	if err != nil {
+		return config{}, fmt.Errorf("invalid CROW_BACKEND_DOCKER_ISOLATION: %w", err)
+	}
+
 	conf := config{
 		enableIPv6:         c.Bool("backend-docker-ipv6"),
 		network:            c.String("backend-docker-network"),
 		workspaceInitImage: c.String("backend-docker-workspace-init-image"),
+		isolation:          isolation,
 		resourceLimit: resourceLimit{
 			MemSwapLimit: memSwap,
 			MemLimit:     memLimit,

@@ -127,7 +127,19 @@ func sanitizeAndTruncateName(name string, maxLen int) string {
 }
 
 // returns a container host configuration.
-func toHostConfig(step *types.Step, conf *config) (*container.HostConfig, error) {
+func toHostConfig(step *types.Step, options BackendOptions, conf *config, osType string) (*container.HostConfig, error) {
+	stepIsolation, err := parseIsolation(options.Isolation)
+	if err != nil {
+		return nil, fmt.Errorf("backend_options.docker.isolation: %w", err)
+	}
+	isolation, err := resolveIsolation(conf.isolation, stepIsolation)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateIsolationForOS(osType, isolation); err != nil {
+		return nil, err
+	}
+
 	config := &container.HostConfig{
 		Resources: container.Resources{
 			CPUQuota:   conf.resourceLimit.CPUQuota,
@@ -141,6 +153,7 @@ func toHostConfig(step *types.Step, conf *config) (*container.HostConfig, error)
 			Type: "json-file",
 		},
 		Privileged: step.Privileged,
+		Isolation:  isolation,
 	}
 
 	if len(step.NetworkMode) != 0 {

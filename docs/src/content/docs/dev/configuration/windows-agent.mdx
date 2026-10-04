@@ -81,6 +81,47 @@ The ECS-Optimized Windows AMI bundles the ECS agent, which logs harmless errors 
 You can stop or disable that service via user-data if it bothers you.
 :::
 
+## Isolation
+
+By default the Windows daemon runs containers with **process isolation**: every step shares the host kernel, exactly like a Linux container.
+That is fast, but it means a shared, long-lived daemon runs untrusted pipeline code next to the host kernel, and it requires the image's OS build to match the host's.
+
+**Hyper-V isolation** puts each step in its own lightweight VM with its own kernel.
+Set it as the agent default:
+
+```ini
+CROW_BACKEND_DOCKER_ISOLATION=hyperv
+```
+
+or per step:
+
+```yaml
+steps:
+  - name: test
+    image: mcr.microsoft.com/powershell:nanoserver-ltsc2022
+    backend_options:
+      docker:
+        isolation: hyperv
+```
+
+A step can only strengthen the agent's setting.
+On an agent configured with `hyperv`, a step asking for `process` or `default` fails instead of running, so a pipeline cannot opt out of the boundary the operator put in place.
+
+| Mode      | Kernel                    | Startup    | Image/host build match |
+| --------- | ------------------------- | ---------- | ---------------------- |
+| `process` | shared with the host      | fast       | required               |
+| `hyperv`  | own, per container        | slower     | not required           |
+| `default` | whatever the daemon picks | -          | -                      |
+
+:::caution
+Hyper-V isolation needs the Hyper-V feature installed on the host and hardware virtualization available to it.
+On a Windows Server VM that means nested virtualization must be enabled by the hypervisor underneath, which many cloud instance types do not offer.
+Each isolated container also costs its own kernel in memory and several seconds of extra startup, so budget agent memory and step timeouts accordingly.
+:::
+
+Isolation is a Windows-only concept.
+An agent that sets `CROW_BACKEND_DOCKER_ISOLATION` to `process` or `hyperv` while talking to a non-Windows daemon refuses to start, rather than silently running every step in the host kernel.
+
 ## Recommended Container Images
 
 Step images **must have `pwsh` (PowerShell 7+) on PATH**.

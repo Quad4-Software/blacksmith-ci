@@ -504,7 +504,7 @@ func TestToHostConfigDNS(t *testing.T) {
 		{name: "invalid address", dns: []string{"dns.example.com"}, invalid: true},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := toHostConfig(&backend.Step{DNS: tt.dns}, &config{})
+			got, err := toHostConfig(&backend.Step{DNS: tt.dns}, BackendOptions{}, &config{}, "linux")
 			if tt.invalid {
 				require.ErrorContains(t, err, "invalid DNS server")
 				return
