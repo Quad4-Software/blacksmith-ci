@@ -17,7 +17,7 @@ steps:
     environment:
       ISSUE_TOKEN:
         from_secret: crowci_bot_token
-    image: reg.devxy.io/docker.io/thegeeklab/git-sv:3.0.3
+    image: reg.devxy.io/docker.io/thegeeklab/git-sv:3.0.4
     commands: |
       apk add -q --no-cache curl jq sed
       git sv rn -o changelog.md
