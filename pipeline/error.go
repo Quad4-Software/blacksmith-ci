@@ -52,7 +52,7 @@ func (e *OomError) Error() string {
 	return fmt.Sprintf("uuid=%s: step container was OOM-killed (exit code %d). "+
 		"The step exceeded its memory limit. Increase the step's memory limit via "+
 		"backend_options.docker.mem_limit (or remove it). "+
-		"See https://crowci.dev/dev/troubleshooting/#step-container-oom-killed",
+		"See https://docs.crowci.com/dev/troubleshooting/#step-container-oom-killed",
 		e.UUID, e.Code)
 }
 
@@ -81,7 +81,7 @@ func (e *DaemonUnreachableError) Error() string {
 	}
 	return fmt.Sprintf(
 		"lost connection to the container backend while running %s on %s: %v. "+
-			"See https://crowci.dev/dev/troubleshooting/#agent-lost-backend-connection "+
+			"See https://docs.crowci.com/dev/troubleshooting/#agent-lost-backend-connection "+
 			"for diagnostic steps.",
 		e.Operation, target, e.Cause,
 	)

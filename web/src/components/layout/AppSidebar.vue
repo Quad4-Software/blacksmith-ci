@@ -293,7 +293,7 @@
       <SidebarMenu>
         <SidebarMenuItem>
           <SidebarMenuButton as-child :tooltip="$t('docs')">
-            <a href="https://crowci.dev/" target="_blank">
+            <a href="https://docs.crowci.com/" target="_blank">
               <Icon name="ph:book-open" class="size-4" />
               <span v-if="!isCollapsed">{{ $t('docs') }}</span>
             </a>

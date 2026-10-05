@@ -33,7 +33,7 @@ func (s *EnvironmentMap) UnmarshalYAML(unmarshal func(any) error) error {
 
 	var sliceType []any
 	if err := unmarshal(&sliceType); err == nil {
-		return fmt.Errorf("list syntax for 'environment' has been removed, use map syntax instead (https://crowci.dev/dev/usage/workflow-syntax/#environment)")
+		return fmt.Errorf("list syntax for 'environment' has been removed, use map syntax instead (https://docs.crowci.com/dev/usage/workflow-syntax/#environment)")
 	}
 
 	return err

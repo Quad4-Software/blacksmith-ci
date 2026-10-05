@@ -361,7 +361,7 @@ func (l *Linter) lintContainerDeprecations(config *WorkflowConfig, c *types.Cont
 			Data: pipelineErrors.DeprecationErrorData{
 				File:  config.File,
 				Field: fmt.Sprintf("%s.%s.secrets", field, c.Name),
-				Docs:  "https://crowci.dev/dev/usage/secrets/#defining-secrets",
+				Docs:  "https://docs.crowci.com/dev/usage/secrets/#defining-secrets",
 			},
 		})
 	}
@@ -548,7 +548,7 @@ func (l *Linter) lintBadHabits(config *WorkflowConfig) (err error) {
 					Data: pipelineErrors.BadHabitErrorData{
 						File:  config.File,
 						Field: field,
-						Docs:  "https://crowci.dev/dev/usage/workflow-syntax/#event-filters-in-when",
+						Docs:  "https://docs.crowci.com/dev/usage/workflow-syntax/#event-filters-in-when",
 					},
 					IsWarning: true,
 				})

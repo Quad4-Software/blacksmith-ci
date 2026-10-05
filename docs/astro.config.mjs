@@ -15,7 +15,7 @@ import { unified } from '@astrojs/markdown-remark';
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://crowci.dev',
+  site: 'https://docs.crowci.com',
   output: 'static',
   trailingSlash: 'ignore',
   integrations: [

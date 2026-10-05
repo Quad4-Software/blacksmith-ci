@@ -52,7 +52,7 @@ steps:
           git clean -ffdxq
 
           cp -r /tmp/docs-dist/* .
-          echo "crowci.dev" > .domains
+          echo "docs.crowci.com" > .domains
           git add -A
           git commit -m "[skip ci] Deploy docs ${CI_COMMIT_SHA:0:10}" || true
 

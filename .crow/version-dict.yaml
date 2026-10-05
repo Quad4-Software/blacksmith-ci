@@ -17,10 +17,10 @@ steps:
   - name: 'Update dev version hash'
     image: reg.devxy.io/docker.io/library/alpine:3.24
     commands:
-      - apk add --no-cache -q yq curl
+      - apk add --no-cache -q yq
       - |
-        # Fetch existing versions file, or create default if not found
-        if ! curl -sfL https://crowci.dev/crow-versions.json -o crow-versions.json; then
+        # Use the versions file from the pages checkout, or create a default if missing
+        if [ ! -f crow-versions.json ]; then
           echo '[{"latest": "", "dev": "", "rc": ""}]' > crow-versions.json
         fi
       - yq -iP '.[0].dev = "dev-${CI_COMMIT_SHA:0:10}"' crow-versions.json
@@ -72,3 +72,27 @@ steps:
       commit_message: '[skip ci] Update version.json ${CI_COMMIT_SHA}'
       author_name: crowci-bot
       author_email: admin@crowci.dev
+
+  # crowci.dev only redirects to docs.crowci.com, but released CLIs and web UIs
+  # still fetch the version files from it, so they are served there directly.
+  - name: 'Sync version files to crowci.dev'
+    image: reg.devxy.io/docker.io/library/alpine:3.24
+    environment:
+      crowci_bot_token:
+        from_secret: crowci_bot_token
+    commands:
+      - apk add --no-cache -q git
+      - |
+        set -e
+        git clone -q --depth 1 -b pages "https://crowci-bot:$${crowci_bot_token}@codefloe.com/crowci/crowci.dev.git" /tmp/crowci-dev
+        cp crow-versions.json versions.json /tmp/crowci-dev/
+        cd /tmp/crowci-dev
+        git config user.email "admin@crowci.dev"
+        git config user.name "crowci-bot"
+        git add crow-versions.json versions.json
+        if git diff --cached --quiet; then
+          echo "version files unchanged"
+        else
+          git commit -q -m "[skip ci] Sync version files ${CI_COMMIT_SHA:0:10}"
+          git push -q origin pages
+        fi

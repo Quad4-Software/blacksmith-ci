@@ -1,3 +1,3 @@
 <!-- markdownlint-disable MD041 -->
 
-See the [Crow "Development" docs](https://www.crowci.dev/dev/development/index.html).
+See the [Crow "Development" docs](https://docs.crowci.com/dev/development/).

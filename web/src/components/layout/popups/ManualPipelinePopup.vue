@@ -433,7 +433,7 @@ async function triggerManualPipeline() {
     emit('close');
 
     if (error instanceof PipelineFilteredError) {
-      const helpUrl = 'https://crowci.dev/dev/usage/workflow-syntax/#when-step';
+      const helpUrl = 'https://docs.crowci.com/dev/usage/workflow-syntax/#when-step';
       notifications.notify({
         title: i18n.t('notify_title_error'),
         type: 'error',

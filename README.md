@@ -33,7 +33,11 @@ A slim and self-hostable CI/CD engine with great extensibility.
 </p>
 
 <p align="center">
-  <a href="https://crowci.dev">
+  <a href="https://crowci.com">
+   🐦‍⬛ Website
+  </a>
+  |
+  <a href="https://docs.crowci.com">
    📖️ Documentation
   </a>
 </p>

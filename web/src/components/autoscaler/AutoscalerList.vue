@@ -335,7 +335,7 @@
       <p class="text-base">
         {{ $t('admin.settings.autoscalers.none') }}
         <a
-          href="https://crowci.dev/dev/configuration/autoscaler/"
+          href="https://docs.crowci.com/dev/configuration/autoscaler/"
           target="_blank"
           rel="noopener noreferrer"
           class="text-primary hover:text-primary/80 underline"
