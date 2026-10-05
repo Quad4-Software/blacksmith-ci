@@ -119,7 +119,7 @@ func (s storage) paginate(q *bun.SelectQuery, p *model.ListOptions) *bun.SelectQ
 	if p.Page < 1 {
 		p.Page = 1
 	}
-	return q.Limit(p.PerPage).Offset(p.PerPage * (p.Page - 1))
+	return q.Limit(int64(p.PerPage)).Offset(int64(p.PerPage * (p.Page - 1)))
 }
 
 func callerName(skip int) string {

@@ -59,7 +59,7 @@ func NewEngine(opts *store.Opts) (store.Store, error) {
 
 	// Add query logging hook
 	if opts.DB.Log || opts.DB.ShowSQL {
-		db.AddQueryHook(bundebug.NewQueryHook(
+		db = db.WithQueryHook(bundebug.NewQueryHook(
 			bundebug.WithEnabled(true),
 			bundebug.WithVerbose(zerolog.GlobalLevel() <= zerolog.DebugLevel),
 		))

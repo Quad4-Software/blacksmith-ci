@@ -156,12 +156,12 @@ func (s storage) GetActivePipelineList(repo *model.Repo) ([]*model.Pipeline, err
 
 func (s storage) GetPipelineCount() (int64, error) {
 	n, err := s.db.NewSelect().Model((*model.Pipeline)(nil)).Count(context.Background())
-	return int64(n), err
+	return n, err
 }
 
 func (s storage) GetPipelineCountByRepo(repoID int64) (int64, error) {
 	n, err := s.db.NewSelect().Model((*model.Pipeline)(nil)).Where("repo_id = ?", repoID).Count(context.Background())
-	return int64(n), err
+	return n, err
 }
 
 func (s storage) CreatePipeline(pipeline *model.Pipeline, stepList ...*model.Step) error {
@@ -292,11 +292,11 @@ func (s storage) GetPipelineListKeyset(repo *model.Repo, lastID int64, beforeDat
 		Where("created < ?", beforeDate).
 		Where("repo_id = ?", repo.ID).
 		Order("id DESC").
-		Limit(limit).
+		Limit(int64(limit)).
 		Scan(context.Background())
 }
 
 func (s storage) GetRepoSpecificPipelineCount(repo *model.Repo) (int64, error) {
 	n, err := s.db.NewSelect().Model((*model.Pipeline)(nil)).Where("repo_id = ?", repo.ID).Count(context.Background())
-	return int64(n), err
+	return n, err
 }

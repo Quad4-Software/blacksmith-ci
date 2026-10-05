@@ -56,7 +56,7 @@ func (s storage) CronListNextExecute(nextExec, limit int64) ([]*model.Cron, erro
 	return crons, s.db.NewSelect().Model(&crons).
 		Where("next_exec <= ?", nextExec).
 		Where("disabled = ?", false).
-		Limit(int(limit)).
+		Limit(limit).
 		Scan(context.Background())
 }
 

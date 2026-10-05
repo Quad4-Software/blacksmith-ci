@@ -321,7 +321,7 @@ func (s storage) MaintenanceLogList(limit int) ([]*model.MaintenanceLog, error) 
 	logs := make([]*model.MaintenanceLog, 0)
 	err := s.db.NewSelect().Model(&logs).
 		Order("run_time DESC").
-		Limit(limit).
+		Limit(int64(limit)).
 		Scan(context.Background())
 
 	return logs, err

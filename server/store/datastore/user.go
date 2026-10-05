@@ -89,7 +89,7 @@ func (s storage) GetUserList(p *model.ListOptions) ([]*model.User, error) {
 
 func (s storage) GetUserCount() (int64, error) {
 	n, err := s.db.NewSelect().Model((*model.User)(nil)).Count(context.Background())
-	return int64(n), err
+	return n, err
 }
 
 func (s storage) CreateUser(user *model.User) error {

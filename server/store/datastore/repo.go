@@ -99,7 +99,7 @@ func (s storage) getRepoName(ctx context.Context, db bun.IDB, fullName string) (
 
 func (s storage) GetRepoCount() (int64, error) {
 	n, err := s.db.NewSelect().Model((*model.Repo)(nil)).Where("active = ?", true).Count(context.Background())
-	return int64(n), err
+	return n, err
 }
 
 func (s storage) CreateRepo(repo *model.Repo) error {
@@ -188,7 +188,7 @@ func (s storage) deleteRepo(ctx context.Context, db bun.IDB, repo *model.Repo) e
 			ColumnExpr("id").
 			Where("repo_id = ?", repo.ID).
 			Limit(batchSize).
-			Offset(startPipelines).
+			Offset(int64(startPipelines)).
 			Scan(ctx, &pipelineIDs)
 		if err != nil {
 			return err

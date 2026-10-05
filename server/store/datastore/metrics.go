@@ -27,7 +27,7 @@ import (
 // GetOrgCount gets a count of all organizations in the system.
 func (s storage) GetOrgCount() (int64, error) {
 	n, err := s.db.NewSelect().Model((*model.Org)(nil)).Count(context.Background())
-	return int64(n), err
+	return n, err
 }
 
 // GetWorkflowCountByAgent gets a count of workflows executed by a specific agent with optional time filter.
@@ -42,7 +42,7 @@ func (s storage) GetWorkflowCountByAgent(agentID int64, after, before int64) (in
 	}
 
 	n, err := q.Count(context.Background())
-	return int64(n), err
+	return n, err
 }
 
 // GetPipelineCountByOrg gets a count of pipelines for a specific org with optional time filter.
@@ -60,7 +60,7 @@ func (s storage) GetPipelineCountByOrg(orgID int64, after, before int64) (int64,
 	}
 
 	n, err := q.Count(context.Background())
-	return int64(n), err
+	return n, err
 }
 
 // GetAveragePipelineDuration gets the average duration of pipelines with optional time and repo filter.

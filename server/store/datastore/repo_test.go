@@ -117,15 +117,15 @@ func TestDeleteRepoPreservesMetricsHistory(t *testing.T) {
 	assert.Error(t, err)
 	taskCount, err := store.db.NewSelect().Model((*model.Task)(nil)).Where("repo_id = ?", repo.ID).Count(context.Background())
 	assert.NoError(t, err)
-	assert.Equal(t, 0, taskCount)
+	assert.Equal(t, int64(0), taskCount)
 
 	// Pipelines and workflows survive so historic metrics still resolve.
 	pipeCount, err := store.db.NewSelect().Model((*model.Pipeline)(nil)).Where("repo_id = ?", repo.ID).Count(context.Background())
 	assert.NoError(t, err)
-	assert.Equal(t, 1, pipeCount)
+	assert.Equal(t, int64(1), pipeCount)
 	wfCount, err := store.db.NewSelect().Model((*model.Workflow)(nil)).Where("pipeline_id = ?", pipeline.ID).Count(context.Background())
 	assert.NoError(t, err)
-	assert.Equal(t, 1, wfCount)
+	assert.Equal(t, int64(1), wfCount)
 
 	// The org bar keeps its denormalized name even though the repo row is gone.
 	orgStats, err := store.GetPipelineCountsByOrg(0, 0, nil)
@@ -147,10 +147,10 @@ func TestDeleteRepoPurgesWhenPreserveDisabled(t *testing.T) {
 
 	pipeCount, err := store.db.NewSelect().Model((*model.Pipeline)(nil)).Where("repo_id = ?", repo.ID).Count(context.Background())
 	assert.NoError(t, err)
-	assert.Equal(t, 0, pipeCount)
+	assert.Equal(t, int64(0), pipeCount)
 	wfCount, err := store.db.NewSelect().Model((*model.Workflow)(nil)).Where("pipeline_id = ?", pipeline.ID).Count(context.Background())
 	assert.NoError(t, err)
-	assert.Equal(t, 0, wfCount)
+	assert.Equal(t, int64(0), wfCount)
 }
 
 func TestGetRepo(t *testing.T) {

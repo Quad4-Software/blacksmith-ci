@@ -246,7 +246,7 @@ func (s storage) workflowsDelete(ctx context.Context, db bun.IDB, pipelineID int
 			ColumnExpr("id").
 			Where("pipeline_id = ?", pipelineID).
 			Limit(perPage).
-			Offset(startSteps).
+			Offset(int64(startSteps)).
 			Scan(ctx, &stepIDs)
 		if err != nil {
 			return err
@@ -303,7 +303,7 @@ func (s storage) WorkflowListByAgent(agentID int64, p *model.ListOptions) ([]*mo
 		Where("w.agent_id = ?", agentID).
 		OrderExpr("w.finished DESC, w.started DESC, w.id DESC")
 	if !p.All {
-		q = q.Limit(p.PerPage).Offset(p.PerPage * (p.Page - 1))
+		q = q.Limit(int64(p.PerPage)).Offset(int64(p.PerPage * (p.Page - 1)))
 	}
 	if err := q.Scan(context.Background(), &list); err != nil {
 		return nil, err

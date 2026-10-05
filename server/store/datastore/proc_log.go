@@ -41,7 +41,7 @@ func (s storage) ProcLogTail(
 		Where("source_id = ?", sourceID).
 		Where("id > ?", sinceID).
 		OrderExpr("id ASC").
-		Limit(limit).
+		Limit(int64(limit)).
 		Scan(ctx)
 	return out, err
 }
@@ -55,7 +55,7 @@ func (s storage) ProcLogTailRecent(
 		Where("source_type = ?", sourceType).
 		Where("source_id = ?", sourceID).
 		OrderExpr("id DESC").
-		Limit(limit).
+		Limit(int64(limit)).
 		Scan(ctx)
 	if err != nil {
 		return nil, err
@@ -76,7 +76,7 @@ func (s storage) ProcLogTrim(
 		Where("source_type = ?", sourceType).
 		Where("source_id = ?", sourceID).
 		OrderExpr("id DESC").
-		Offset(keepLastN).
+		Offset(int64(keepLastN)).
 		Limit(1).
 		Scan(ctx, &cutoff)
 	if errors.Is(err, sql.ErrNoRows) {
