@@ -131,6 +131,9 @@ func TestStepProcessSeesNeitherSecretNorSharedTmpDir(t *testing.T) {
 	}
 
 	assert.NotContains(t, string(logs), "super-secret-token", "the step printed the agent secret out of its own environment")
-	assert.NotContains(t, string(logs), "CROW_AGENT_SECRET", "the step inherited the agent secret")
+	// The variable being set, not the name appearing anywhere: steps also see
+	// commit messages, as CI_COMMIT_MESSAGE and CI_PREV_COMMIT_MESSAGE, which
+	// may well mention it.
+	assert.NotRegexp(t, `(?m)^\x01?CROW_AGENT_SECRET=`, string(logs), "the step inherited the agent secret")
 	assert.Contains(t, string(logs), "TMPDIR="+state.tmpDir, "the step did not get the workflow's own TMPDIR")
 }
