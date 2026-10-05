@@ -63,6 +63,11 @@ steps:
   ###############
 
   build-ui:
+    # `go mod vendor` resolves the `//go:embed all:dist` pattern in web/web.go,
+    # so deleting dist while it runs makes vendor fail with a bogus
+    # "no required module provides package .../web/dist" error.
+    depends_on:
+      - vendor
     image: *node_image
     directory: web/
     commands:
