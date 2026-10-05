@@ -18,7 +18,7 @@ package github
 import (
 	"testing"
 
-	"github.com/google/go-github/v90/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/stretchr/testify/assert"
 
 	"codefloe.com/crowci/crow/v6/server/model"
@@ -45,19 +45,19 @@ func Test_convertDesc(t *testing.T) {
 func Test_convertRepoList(t *testing.T) {
 	from := []*github.Repository{
 		{
-			Private:  github.Ptr(false),
-			FullName: github.Ptr("octocat/hello-world"),
-			Name:     github.Ptr("hello-world"),
+			Private:  new(false),
+			FullName: new("octocat/hello-world"),
+			Name:     new("hello-world"),
 			Owner: &github.User{
-				AvatarURL: github.Ptr("http://..."),
-				Login:     github.Ptr("octocat"),
+				AvatarURL: new("http://..."),
+				Login:     new("octocat"),
 			},
-			HTMLURL:  github.Ptr("https://github.com/octocat/hello-world"),
-			CloneURL: github.Ptr("https://github.com/octocat/hello-world.git"),
+			HTMLURL:  new("https://github.com/octocat/hello-world"),
+			CloneURL: new("https://github.com/octocat/hello-world.git"),
 			Permissions: &github.RepositoryPermissions{
-				Push:  github.Ptr(true),
-				Pull:  github.Ptr(true),
-				Admin: github.Ptr(true),
+				Push:  new(true),
+				Pull:  new(true),
+				Admin: new(true),
 			},
 		},
 	}
@@ -71,20 +71,20 @@ func Test_convertRepoList(t *testing.T) {
 
 func Test_convertRepo(t *testing.T) {
 	from := github.Repository{
-		FullName:      github.Ptr("octocat/hello-world"),
-		Name:          github.Ptr("hello-world"),
-		HTMLURL:       github.Ptr("https://github.com/octocat/hello-world"),
-		CloneURL:      github.Ptr("https://github.com/octocat/hello-world.git"),
-		DefaultBranch: github.Ptr("develop"),
-		Private:       github.Ptr(true),
+		FullName:      new("octocat/hello-world"),
+		Name:          new("hello-world"),
+		HTMLURL:       new("https://github.com/octocat/hello-world"),
+		CloneURL:      new("https://github.com/octocat/hello-world.git"),
+		DefaultBranch: new("develop"),
+		Private:       new(true),
 		Owner: &github.User{
-			AvatarURL: github.Ptr("http://..."),
-			Login:     github.Ptr("octocat"),
+			AvatarURL: new("http://..."),
+			Login:     new("octocat"),
 		},
 		Permissions: &github.RepositoryPermissions{
-			Push:  github.Ptr(true),
-			Pull:  github.Ptr(true),
-			Admin: github.Ptr(true),
+			Push:  new(true),
+			Pull:  new(true),
+			Admin: new(true),
 		},
 	}
 
@@ -102,9 +102,9 @@ func Test_convertRepo(t *testing.T) {
 func Test_convertPerm(t *testing.T) {
 	from := &github.Repository{
 		Permissions: &github.RepositoryPermissions{
-			Admin: github.Ptr(true),
-			Push:  github.Ptr(true),
-			Pull:  github.Ptr(true),
+			Admin: new(true),
+			Push:  new(true),
+			Pull:  new(true),
 		},
 	}
 
@@ -116,8 +116,8 @@ func Test_convertPerm(t *testing.T) {
 
 func Test_convertTeam(t *testing.T) {
 	from := &github.Organization{
-		Login:     github.Ptr("octocat"),
-		AvatarURL: github.Ptr("http://..."),
+		Login:     new("octocat"),
+		AvatarURL: new("http://..."),
 	}
 	to := convertTeam(from)
 	assert.Equal(t, "octocat", to.Login)
@@ -127,8 +127,8 @@ func Test_convertTeam(t *testing.T) {
 func Test_convertTeamList(t *testing.T) {
 	from := []*github.Organization{
 		{
-			Login:     github.Ptr("octocat"),
-			AvatarURL: github.Ptr("http://..."),
+			Login:     new("octocat"),
+			AvatarURL: new("http://..."),
 		},
 	}
 	to := convertTeamList(from)
@@ -139,14 +139,14 @@ func Test_convertTeamList(t *testing.T) {
 func Test_convertRepoHook(t *testing.T) {
 	t.Run("should convert a repository from webhook", func(t *testing.T) {
 		from := &github.PushEventRepository{Owner: &github.User{}}
-		from.Owner.Login = github.Ptr("octocat")
-		from.Owner.Name = github.Ptr("octocat")
-		from.Name = github.Ptr("hello-world")
-		from.FullName = github.Ptr("octocat/hello-world")
-		from.Private = github.Ptr(true)
-		from.HTMLURL = github.Ptr("https://github.com/octocat/hello-world")
-		from.CloneURL = github.Ptr("https://github.com/octocat/hello-world.git")
-		from.DefaultBranch = github.Ptr("develop")
+		from.Owner.Login = new("octocat")
+		from.Owner.Name = new("octocat")
+		from.Name = new("hello-world")
+		from.FullName = new("octocat/hello-world")
+		from.Private = new(true)
+		from.HTMLURL = new("https://github.com/octocat/hello-world")
+		from.CloneURL = new("https://github.com/octocat/hello-world.git")
+		from.DefaultBranch = new("develop")
 
 		repo := convertRepoHook(from)
 		assert.Equal(t, *from.Owner.Login, repo.Owner)
@@ -161,28 +161,28 @@ func Test_convertRepoHook(t *testing.T) {
 
 func Test_parsePullHook(t *testing.T) {
 	from := &github.PullRequestEvent{
-		Action: github.Ptr(actionOpen),
+		Action: new(actionOpen),
 		PullRequest: &github.PullRequest{
-			State:   github.Ptr(stateOpen),
-			HTMLURL: github.Ptr("https://github.com/octocat/hello-world/pulls/42"),
-			Number:  github.Ptr(42),
-			Title:   github.Ptr("Updated README.md"),
+			State:   new(stateOpen),
+			HTMLURL: new("https://github.com/octocat/hello-world/pulls/42"),
+			Number:  new(42),
+			Title:   new("Updated README.md"),
 			Base: &github.PullRequestBranch{
-				Ref: github.Ptr("main"),
+				Ref: new("main"),
 			},
 			Head: &github.PullRequestBranch{
-				Ref: github.Ptr("changes"),
-				SHA: github.Ptr("f72fc19"),
+				Ref: new("changes"),
+				SHA: new("f72fc19"),
 				Repo: &github.Repository{
-					CloneURL: github.Ptr("https://github.com/octocat/hello-world-fork"),
+					CloneURL: new("https://github.com/octocat/hello-world-fork"),
 				},
 			},
 			User: &github.User{
-				Login:     github.Ptr("octocat"),
-				AvatarURL: github.Ptr("https://avatars1.githubusercontent.com/u/583231"),
+				Login:     new("octocat"),
+				AvatarURL: new("https://avatars1.githubusercontent.com/u/583231"),
 			},
 		}, Sender: &github.User{
-			Login: github.Ptr("octocat"),
+			Login: new("octocat"),
 		},
 	}
 	pull, _, pipeline := parsePullHook(from, true)
@@ -201,15 +201,15 @@ func Test_parsePullHook(t *testing.T) {
 
 func Test_parseDeployHook(t *testing.T) {
 	from := &github.DeploymentEvent{Deployment: &github.Deployment{}, Sender: &github.User{}}
-	from.Deployment.Description = github.Ptr(":shipit:")
-	from.Deployment.Environment = github.Ptr("production")
-	from.Deployment.Task = github.Ptr("deploy")
-	from.Deployment.ID = github.Ptr(int64(42))
-	from.Deployment.Ref = github.Ptr("main")
-	from.Deployment.SHA = github.Ptr("f72fc19")
-	from.Deployment.URL = github.Ptr("https://github.com/octocat/hello-world")
-	from.Sender.Login = github.Ptr("octocat")
-	from.Sender.AvatarURL = github.Ptr("https://avatars1.githubusercontent.com/u/583231")
+	from.Deployment.Description = new(":shipit:")
+	from.Deployment.Environment = new("production")
+	from.Deployment.Task = new("deploy")
+	from.Deployment.ID = new(int64(42))
+	from.Deployment.Ref = new("main")
+	from.Deployment.SHA = new("f72fc19")
+	from.Deployment.URL = new("https://github.com/octocat/hello-world")
+	from.Sender.Login = new("octocat")
+	from.Sender.AvatarURL = new("https://avatars1.githubusercontent.com/u/583231")
 
 	_, pipeline := parseDeployHook(from)
 	assert.Equal(t, model.EventDeploy, pipeline.Event)
@@ -225,14 +225,14 @@ func Test_parseDeployHook(t *testing.T) {
 func Test_parsePushHook(t *testing.T) {
 	t.Run("convert push from webhook", func(t *testing.T) {
 		from := &github.PushEvent{Sender: &github.User{}, Repo: &github.PushEventRepository{}, HeadCommit: &github.HeadCommit{Author: &github.CommitAuthor{}}}
-		from.Sender.Login = github.Ptr("octocat")
-		from.Sender.AvatarURL = github.Ptr("https://avatars1.githubusercontent.com/u/583231")
-		from.Repo.CloneURL = github.Ptr("https://github.com/octocat/hello-world.git")
-		from.HeadCommit.Author.Email = github.Ptr("github.Ptr(octocat@github.com")
-		from.HeadCommit.Message = github.Ptr("updated README.md")
-		from.HeadCommit.URL = github.Ptr("https://github.com/octocat/hello-world")
-		from.HeadCommit.ID = github.Ptr("f72fc19")
-		from.Ref = github.Ptr("refs/heads/main")
+		from.Sender.Login = new("octocat")
+		from.Sender.AvatarURL = new("https://avatars1.githubusercontent.com/u/583231")
+		from.Repo.CloneURL = new("https://github.com/octocat/hello-world.git")
+		from.HeadCommit.Author.Email = new("github.Ptr(octocat@github.com")
+		from.HeadCommit.Message = new("updated README.md")
+		from.HeadCommit.URL = new("https://github.com/octocat/hello-world")
+		from.HeadCommit.ID = new("f72fc19")
+		from.Ref = new("refs/heads/main")
 
 		_, pipeline, _, _ := parsePushHook(from)
 		assert.Equal(t, model.EventPush, pipeline.Event)
@@ -248,7 +248,7 @@ func Test_parsePushHook(t *testing.T) {
 
 	t.Run("convert tag from webhook", func(t *testing.T) {
 		from := &github.PushEvent{}
-		from.Ref = github.Ptr("refs/tags/v1.0.0")
+		from.Ref = new("refs/tags/v1.0.0")
 
 		_, pipeline, _, _ := parsePushHook(from)
 		assert.Equal(t, model.EventTag, pipeline.Event)
@@ -257,8 +257,8 @@ func Test_parsePushHook(t *testing.T) {
 
 	t.Run("convert tag's base branch to pipeline's branch ", func(t *testing.T) {
 		from := &github.PushEvent{}
-		from.Ref = github.Ptr("refs/tags/v1.0.0")
-		from.BaseRef = github.Ptr("refs/heads/main")
+		from.Ref = new("refs/tags/v1.0.0")
+		from.BaseRef = new("refs/heads/main")
 
 		_, pipeline, _, _ := parsePushHook(from)
 		assert.Equal(t, model.EventTag, pipeline.Event)
@@ -267,8 +267,8 @@ func Test_parsePushHook(t *testing.T) {
 
 	t.Run("not convert tag's base_ref from webhook if not prefixed with 'ref/heads/'", func(t *testing.T) {
 		from := &github.PushEvent{}
-		from.Ref = github.Ptr("refs/tags/v1.0.0")
-		from.BaseRef = github.Ptr("refs/refs/main")
+		from.Ref = new("refs/tags/v1.0.0")
+		from.BaseRef = new("refs/refs/main")
 
 		_, pipeline, _, _ := parsePushHook(from)
 		assert.Equal(t, model.EventTag, pipeline.Event)

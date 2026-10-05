@@ -26,7 +26,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v90/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
 
@@ -598,17 +598,17 @@ func (c *client) Status(ctx context.Context, user *model.User, repo *model.Repo,
 
 		_, _, err := client.Repositories.CreateDeploymentStatus(ctx, repo.Owner, repo.Name, int64(id), github.DeploymentStatusRequest{
 			State:       convertStatus(pipeline.Status),
-			Description: github.Ptr(common.GetPipelineStatusDescription(pipeline.Status)),
-			LogURL:      github.Ptr(common.GetPipelineStatusURL(repo, pipeline, nil)),
+			Description: new(common.GetPipelineStatusDescription(pipeline.Status)),
+			LogURL:      new(common.GetPipelineStatusURL(repo, pipeline, nil)),
 		})
 		return err
 	}
 
 	_, _, err := client.Repositories.CreateStatus(ctx, repo.Owner, repo.Name, pipeline.Commit, github.RepoStatus{
-		Context:     github.Ptr(common.GetPipelineStatusContext(repo, pipeline, workflow)),
-		State:       github.Ptr(convertStatus(workflow.State)),
-		Description: github.Ptr(common.GetPipelineStatusDescription(workflow.State)),
-		TargetURL:   github.Ptr(common.GetPipelineStatusURL(repo, pipeline, workflow)),
+		Context:     new(common.GetPipelineStatusContext(repo, pipeline, workflow)),
+		State:       new(convertStatus(workflow.State)),
+		Description: new(common.GetPipelineStatusDescription(workflow.State)),
+		TargetURL:   new(common.GetPipelineStatusURL(repo, pipeline, workflow)),
 	})
 	return err
 }
@@ -621,7 +621,7 @@ func (c *client) Activate(ctx context.Context, u *model.User, r *model.Repo, lin
 	}
 	client := c.newClientToken(ctx, u.AccessToken)
 	hook := &github.Hook{
-		Name: github.Ptr("web"),
+		Name: new("web"),
 		Events: []string{
 			"push",
 			"pull_request",
@@ -629,7 +629,7 @@ func (c *client) Activate(ctx context.Context, u *model.User, r *model.Repo, lin
 		},
 		Config: &github.HookConfig{
 			URL:         &link,
-			ContentType: github.Ptr("form"),
+			ContentType: new("form"),
 		},
 	}
 	_, _, err := client.Repositories.CreateHook(ctx, r.Owner, r.Name, hook)
