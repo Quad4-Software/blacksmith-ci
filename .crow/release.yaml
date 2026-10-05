@@ -73,7 +73,7 @@ steps:
       - cat CHANGELOG.md
 
   'Create release':
-    image: reg.devxy.io/docker.io/woodpeckerci/plugin-release:0.3.1
+    image: reg.devxy.io/docker.io/woodpeckerci/plugin-release:0.3.2
     settings:
       note: CHANGELOG.md
       api_key:
