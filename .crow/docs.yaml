@@ -74,7 +74,7 @@ steps:
       - event: pull_request
 
   - name: 'PR docs preview'
-    image: codefloe.com/crow-plugins/roost:v0.12.1
+    image: codefloe.com/crow-plugins/roost:0.12.1
     settings:
       server:
         from_secret: roost_server
