@@ -4,7 +4,6 @@ import starlight from '@astrojs/starlight';
 import starlightCelestiaTheme from 'starlight-theme-celestia';
 import markdoc from '@astrojs/markdoc';
 import starlightLinksValidator from 'starlight-links-validator';
-import starlightUtils from '@lorenzo_lewis/starlight-utils';
 import starlightScrollToTop from 'starlight-scroll-to-top';
 import starlightVersions from 'starlight-versions';
 import starlightImageZoom from 'starlight-image-zoom';
@@ -95,6 +94,9 @@ export default defineConfig({
         starlightImageZoom(),
         starlightCelestiaTheme({
           stylingSystem: 'css',
+          multiSidebar: {
+            switcherStyle: 'horizontalList',
+          },
           nav: [
             { label: 'CodeFloe', href: 'https://codefloe.com/crowci/crow' },
             { label: 'Donate', href: 'https://liberapay.com/crowci' },
@@ -112,11 +114,6 @@ export default defineConfig({
           ],
         }),
         starlightLinksValidator(),
-        starlightUtils({
-          multiSidebar: {
-            switcherStyle: 'horizontalList',
-          },
-        }),
         starlightScrollToTop(),
       ],
       social: [],

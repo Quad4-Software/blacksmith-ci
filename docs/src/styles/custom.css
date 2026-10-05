@@ -9,7 +9,7 @@
   filter: invert(1) brightness(0.3);
 }
 
-/* Restore multi-sidebar tab borders (tailwind preflight resets them) */
+/* Restore Starlight <Tabs> borders (tailwind preflight resets them) */
 .tab > [role="tab"] {
   border-bottom: 1px solid var(--sl-color-gray-5) !important;
 }
