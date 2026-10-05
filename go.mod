@@ -63,7 +63,7 @@ require (
 	github.com/urfave/cli/v3 v3.14.0
 	github.com/wneessen/go-mail v0.8.1
 	github.com/yaronf/httpsign v0.6.2
-	gitlab.com/gitlab-org/api/client-go/v2 v2.64.0
+	gitlab.com/gitlab-org/api/client-go/v3 v3.15.0
 	go.podman.io/common v0.69.2
 	go.podman.io/podman/v6 v6.1.3
 	golang.org/x/net v0.59.0

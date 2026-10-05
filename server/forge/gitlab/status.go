@@ -15,7 +15,7 @@
 package gitlab
 
 import (
-	gitlab "gitlab.com/gitlab-org/api/client-go/v2"
+	gitlab "gitlab.com/gitlab-org/api/client-go/v3"
 
 	"codefloe.com/crowci/crow/v6/server/model"
 )
