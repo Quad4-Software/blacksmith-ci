@@ -45,6 +45,12 @@ steps:
             git reset --hard
           fi
 
+          # Only the built site belongs on pages: drop the docs/ sources and
+          # node_modules that earlier deploys committed by accident, and any
+          # untracked build leftovers from the checkout we came from.
+          git rm -rq --cached --ignore-unmatch docs
+          git clean -ffdxq
+
           cp -r /tmp/docs-dist/* .
           echo "crowci.dev" > .domains
           git add -A
