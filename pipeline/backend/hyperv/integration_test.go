@@ -37,10 +37,13 @@ package hyperv
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"net"
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -306,6 +309,115 @@ func TestCommandsKeepPowerShellSemantics(t *testing.T) {
 	}, taskUUID)
 	assert.Equal(t, 1, code, out)
 	assert.NotContains(t, out, "should-not-run")
+}
+
+// cloneTestRepo is a small public repository and a commit in it that will not
+// move, for the clone test.
+const (
+	cloneTestRepo = "https://codefloe.com/crow-plugins/clone.git"
+	cloneTestSHA  = "07afbddcf15a420b5d0b4862fc149e4954ed24ff"
+)
+
+// TestCloneStepChecksOutTheCommit runs the real clone path: the plugin copied
+// in from the host, git in the guest, and the guest reaching the forge through
+// the switch. It needs a switch with outbound access and a golden image with
+// git, so it skips without CROW_BACKEND_HYPERV_SWITCH.
+func TestCloneStepChecksOutTheCommit(t *testing.T) {
+	e, ctx := newIntegrationBackend(t)
+	if e.config.SwitchName == "" {
+		t.Skip("set CROW_BACKEND_HYPERV_SWITCH to a switch with outbound access to run the clone test")
+	}
+	const taskUUID = "01integrationclone00000000"
+
+	conf := &types.Config{}
+	require.NoError(t, e.SetupWorkflow(ctx, conf, taskUUID))
+	t.Cleanup(func() { assert.NoError(t, e.DestroyWorkflow(ctx, conf, taskUUID)) })
+
+	out, code := runStep(t, e, ctx, &types.Step{
+		Name: "clone", UUID: "step-clone", Type: types.StepTypeClone,
+		Image: "codefloe.com/crow-plugins/clone:1.1.0",
+		Environment: map[string]string{
+			"CI_REPO_CLONE_URL": cloneTestRepo,
+			"CI_COMMIT_SHA":     cloneTestSHA,
+			"CI_PIPELINE_EVENT": "push",
+			"PLUGIN_DEPTH":      "1",
+		},
+	}, taskUUID)
+	require.Equal(t, 0, code, out)
+
+	out, code = runStep(t, e, ctx, &types.Step{
+		Name: "verify", UUID: "step-verify", Type: types.StepTypeCommands,
+		Commands: []string{"git rev-parse HEAD"},
+	}, taskUUID)
+	assert.Equal(t, 0, code, out)
+	assert.Contains(t, out, cloneTestSHA)
+}
+
+// azureWireServer is Azure's per-host platform endpoint, which the VM agent
+// talks to and which the default blocked networks include.
+const azureWireServer = "168.63.129.16:80"
+
+// guestTCPProbe is a step command that reports whether the guest can open a TCP
+// connection to address within three seconds, as "<address> open=True|False".
+func guestTCPProbe(address string) string {
+	host, port, _ := strings.Cut(address, ":")
+	return fmt.Sprintf("$c = New-Object Net.Sockets.TcpClient; $r = $c.BeginConnect(%s, %s, $null, $null); "+
+		"$ok = $r.AsyncWaitHandle.WaitOne(3000) -and $c.Connected; Write-Output \"%s open=$ok\"; $c.Close()",
+		psQuote(host), port, address)
+}
+
+// TestGuestIsKeptOffTheHostAndBlockedNetworks checks guest isolation from
+// inside a guest, against destinations a guest does reach when nothing blocks
+// them: every service on the host, at its NAT gateway address and at its own
+// addresses, and Azure's wire server. Ordinary egress must still work. It
+// expects the switch to have been set up by setup-nat-network.ps1, whose
+// firewall rules keep guests off the host, and skips without
+// CROW_BACKEND_HYPERV_SWITCH.
+func TestGuestIsKeptOffTheHostAndBlockedNetworks(t *testing.T) {
+	e, ctx := newIntegrationBackend(t)
+	if e.config.SwitchName == "" {
+		t.Skip("set CROW_BACKEND_HYPERV_SWITCH to a switch with outbound access to run the isolation test")
+	}
+
+	// RPC's endpoint mapper listens on every Windows host, so a closed port 135
+	// means blocked rather than nothing there.
+	var blocked []string
+	addrs, err := net.InterfaceAddrs()
+	require.NoError(t, err)
+	for _, addr := range addrs {
+		if ipNet, ok := addr.(*net.IPNet); ok && ipNet.IP.To4() != nil && !ipNet.IP.IsLoopback() {
+			blocked = append(blocked, net.JoinHostPort(ipNet.IP.String(), "135"))
+		}
+	}
+	// Only meaningful where the host itself reaches the wire server, on Azure.
+	if conn, err := net.DialTimeout("tcp", azureWireServer, 3*time.Second); err == nil {
+		conn.Close()
+		blocked = append(blocked, azureWireServer)
+	}
+
+	const taskUUID = "01integrationisolation0000"
+	conf := &types.Config{}
+	require.NoError(t, e.SetupWorkflow(ctx, conf, taskUUID))
+	t.Cleanup(func() { assert.NoError(t, e.DestroyWorkflow(ctx, conf, taskUUID)) })
+
+	commands := []string{
+		// The guest may still be waiting for its DHCP lease.
+		"Start-Sleep -Seconds 15",
+		guestTCPProbe("1.1.1.1:443"),
+	}
+	for _, address := range blocked {
+		commands = append(commands, guestTCPProbe(address))
+	}
+	out, code := runStep(t, e, ctx, &types.Step{
+		Name: "isolation", UUID: "step-isolation", Type: types.StepTypeCommands, Commands: commands,
+	}, taskUUID)
+	require.Equal(t, 0, code, out)
+	t.Log(out)
+
+	assert.Contains(t, out, "1.1.1.1:443 open=True", "egress must still work")
+	for _, address := range blocked {
+		assert.Contains(t, out, address+" open=False")
+	}
 }
 
 // TestGuestStderrReachesTheLog documents the merge rather than asserting a

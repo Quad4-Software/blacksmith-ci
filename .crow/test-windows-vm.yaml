@@ -1,0 +1,31 @@
+# Runs a workflow the way a user's would on the hyperv backend: inside a
+# throwaway Windows VM, scheduled by the server onto an autoscaled host.
+#
+# test-hyperv checks the backend from the host with the local backend. This
+# checks the production setup end to end: the autoscaler creating a host from
+# contrib/hyperv/autoscaler-bootstrap.ps1, the agent running the hyperv
+# backend, the clone step with real credentials, and steps in the guest. The
+# pool is crow-autoscaler-azure-hyperv in crowci/infrastructure.
+#
+# Manual only. A cold host takes about 16 minutes before its agent connects:
+# it reboots to activate Hyper-V and builds its golden image first.
+
+when:
+  - event: manual
+
+labels:
+  group: windows-vm
+
+steps:
+  guest:
+    # Ignored by the hyperv backend, which runs every step in the guest's own
+    # Windows PowerShell, but required by the linter.
+    image: powershell
+    commands:
+      - '[System.Environment]::OSVersion.Version.ToString()'
+      # The clone step put the commit under test here.
+      - git log -1 --format='%H %s'
+      - Test-Path -LiteralPath Justfile
+      # The guest is disposable, and these should say so.
+      - $env:COMPUTERNAME
+      - (Get-CimInstance Win32_ComputerSystem).Model

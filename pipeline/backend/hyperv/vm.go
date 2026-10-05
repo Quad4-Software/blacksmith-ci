@@ -81,6 +81,14 @@ func createVMScript(cfg config, vm, disk string) string {
 		// New-VM always attaches an adapter. An unconnected one would still
 		// give the guest a device to probe, so it is removed outright.
 		fmt.Fprintf(&b, "Get-VMNetworkAdapter -VMName %s | Remove-VMNetworkAdapter\n", psQuote(vm))
+	} else {
+		// Port ACLs, not a firewall in the guest: steps run as the guest's
+		// administrator and could turn that off, while these are enforced by
+		// the switch, outside the guest.
+		for _, network := range cfg.BlockedNetworks {
+			fmt.Fprintf(&b, "Add-VMNetworkAdapterAcl -VMName %s -RemoteIPAddress %s -Direction Both -Action Deny\n",
+				psQuote(vm), psQuote(network))
+		}
 	}
 	if cfg.CPU > 0 {
 		fmt.Fprintf(&b, "Set-VMProcessor -VMName %s -Count %d\n", psQuote(vm), cfg.CPU)

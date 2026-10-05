@@ -48,12 +48,25 @@ func TestCreateVMScriptUsesADifferencingChild(t *testing.T) {
 	assert.NotContains(t, got, "Remove-VMNetworkAdapter")
 }
 
+func TestCreateVMScriptBlocksNetworksOnTheSwitch(t *testing.T) {
+	cfg := config{BaseVHDX: `C:\g.vhdx`, Generation: 2, SwitchName: "crow-nat", BlockedNetworks: []string{"169.254.0.0/16", "10.0.0.0/8"}}
+	got := createVMScript(cfg, "crow-x", `C:\crow-x.vhdx`)
+	// Enforced by the switch in both directions, so neither a request out nor
+	// a reply back gets through.
+	assert.Contains(t, got, "Add-VMNetworkAdapterAcl -VMName 'crow-x' -RemoteIPAddress '169.254.0.0/16' -Direction Both -Action Deny\n")
+	assert.Contains(t, got, "Add-VMNetworkAdapterAcl -VMName 'crow-x' -RemoteIPAddress '10.0.0.0/8' -Direction Both -Action Deny\n")
+	// The ACLs belong to the adapter, so they have to come after New-VM made it.
+	assert.Less(t, strings.Index(got, "New-VM @crowNew"), strings.Index(got, "Add-VMNetworkAdapterAcl"))
+}
+
 func TestCreateVMScriptWithoutASwitchRemovesTheAdapter(t *testing.T) {
 	got := createVMScript(config{BaseVHDX: `C:\g.vhdx`, Generation: 2}, "crow-x", `C:\crow-x.vhdx`)
 	assert.NotContains(t, got, "SwitchName")
 	// New-VM attaches an adapter regardless, so an air-gapped guest needs it
 	// taken away rather than merely left disconnected.
 	assert.Contains(t, got, "Get-VMNetworkAdapter -VMName 'crow-x' | Remove-VMNetworkAdapter")
+	// Nothing to attach an ACL to.
+	assert.NotContains(t, got, "Add-VMNetworkAdapterAcl")
 }
 
 func TestCreateVMScriptOmitsUnsetSizing(t *testing.T) {

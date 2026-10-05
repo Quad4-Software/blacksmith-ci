@@ -46,9 +46,13 @@ labels:
 
 variables:
   # Built by the golden-image step when the host does not have it yet, with
-  # an administrator account matching the guest credentials below.
-  - &base_vhdx 'C:\crow-images\ws2022-golden.vhdx'
+  # git in it and an administrator account matching the guest credentials
+  # below.
+  - &base_vhdx 'C:\crow-images\golden.vhdx'
   - &vm_path 'C:\crow-vms'
+  # The NAT switch the network step creates, which gives guests outbound
+  # access for the image build and the clone test.
+  - &switch crow-nat
   # The Justfile's recipes and backtick variables are POSIX shell, and just
   # runs them with `sh`. Git for Windows ships one, but its installer only puts
   # git itself on PATH.
@@ -61,13 +65,45 @@ steps:
     commands:
       - go test ./pipeline/backend/hyperv/...
 
+  # Parses the contrib scripts with the PowerShell that runs them. The
+  # bootstrap is a Go template, so its template lines are replaced with a
+  # comment first; the remaining template expressions all sit inside string
+  # literals.
+  scripts:
+    image: powershell
+    commands:
+      - |
+        $failed = $false
+        foreach ($file in Get-ChildItem -Path contrib\hyperv -Filter *.ps1) {
+          $text = Get-Content -LiteralPath $file.FullName -Raw
+          $text = $text -replace '(?m)^\{\{.*\}\}\r?$', '# template line'
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseInput($text, [ref]$null, [ref]$errors) | Out-Null
+          foreach ($e in $errors) {
+            Write-Output "$($file.Name):$($e.Extent.StartLineNumber): $($e.Message)"
+            $failed = $true
+          }
+        }
+        if ($failed) { exit 1 }
+        Write-Output 'all contrib scripts parse'
+
+  # Idempotent, like everything the autoscaler bootstrap runs at boot, which
+  # uses the same script.
+  network:
+    image: powershell
+    commands:
+      - .\contrib\hyperv\setup-nat-network.ps1 -SwitchName crow-nat
+
   # A host that already has the image, such as a permanent one, keeps it.
   # The step is not failure: ignore, since nothing after it can run without
   # the image.
   golden-image:
+    depends_on:
+      - network
     image: powershell
     environment:
       GOLDEN_VHDX: *base_vhdx
+      GOLDEN_SWITCH: *switch
       GUEST_PASSWORD:
         from_secret: hyperv_guest_password
     commands:
@@ -76,7 +112,8 @@ steps:
           Write-Output "$env:GOLDEN_VHDX is already staged"
         } else {
           & .\contrib\hyperv\build-golden-image.ps1 -Path $env:GOLDEN_VHDX -Username crow `
-            -Password (ConvertTo-SecureString $env:GUEST_PASSWORD -AsPlainText -Force)
+            -Password (ConvertTo-SecureString $env:GUEST_PASSWORD -AsPlainText -Force) `
+            -SwitchName $env:GOLDEN_SWITCH -SetupScript .\contrib\hyperv\guest-setup-git.ps1
         }
 
   # Everything below here is what the unit tests cannot reach: PowerShell
@@ -93,6 +130,7 @@ steps:
       CROW_BACKEND_HYPERV_GUEST_USERNAME: crow
       CROW_BACKEND_HYPERV_GUEST_PASSWORD:
         from_secret: hyperv_guest_password
+      CROW_BACKEND_HYPERV_SWITCH: *switch
       CROW_BACKEND_HYPERV_CPU: '4'
       CROW_BACKEND_HYPERV_MEMORY: 8Gi
       # One at a time: the host may be Standard-licensed, and the limit test

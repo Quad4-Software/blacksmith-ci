@@ -79,6 +79,21 @@ Run it as an administrator on the host:
   -Password (Read-Host -AsSecureString 'guest password')
 ```
 
+To install your pipelines' toolchain, give the build VM network access with `-SwitchName` and run setup scripts in the guest with `-SetupScript`.
+`contrib/hyperv/guest-setup-git.ps1` installs Git for Windows, which the clone step needs, and is a template for your own:
+
+```powershell
+.\contrib\hyperv\build-golden-image.ps1 `
+  -Path C:\crow-images\golden.vhdx `
+  -Username crow `
+  -Password (Read-Host -AsSecureString 'guest password') `
+  -SwitchName crow-nat `
+  -SetupScript .\contrib\hyperv\guest-setup-git.ps1
+```
+
+The scripts run over PowerShell Direct as the guest administrator, after first-boot setup and before the image is sealed, and the build fails if one throws.
+The build VM gets the same blocked networks as workflow VMs.
+
 Then point the agent at the result:
 
 ```shell
@@ -87,8 +102,8 @@ CROW_BACKEND_HYPERV_GUEST_USERNAME=crow
 CROW_BACKEND_HYPERV_GUEST_PASSWORD=<the password you gave the script>
 ```
 
-A build takes about 7 minutes on a 4-vCPU Azure VM and needs about 20 GB free while it runs.
-The result is a Server Core image of about 6 GB with nothing but PowerShell in it; install your pipelines' toolchain into it before using it, or pass `-ImageName` to pick another edition from the ISO.
+A build takes about 7 minutes on a 4-vCPU Azure VM, plus the time your setup scripts take, and needs about 20 GB free while it runs.
+The result is a Server Core image of about 6 GB with nothing but PowerShell in it, or 6.2 GB with git; pass `-ImageName` to pick another edition from the ISO.
 
 The default ISO is the evaluation edition, whose license expires 180 days after the image is built.
 An expired guest shuts itself down every hour, so rebuild before then, or pass `-IsoPath` with your own licensed media.
@@ -102,18 +117,43 @@ Workflow disks are differencing children of the base VHDX, and changing a parent
 `CROW_BACKEND_HYPERV_SWITCH` names the virtual switch guests attach to.
 Leave it empty and the VM gets **no network adapter at all** — maximally isolated, but nothing in the pipeline can reach the network, including the clone step.
 
-For a guest that needs egress but must not see your LAN or the host's management interfaces, create an internal switch with NAT:
+For a guest that needs egress but must not see your LAN, use an internal switch with NAT.
+Hyper-V's NAT forwards traffic but does not hand out addresses, so the switch also needs a DHCP server, or a guest never gets an address.
+`contrib/hyperv/setup-nat-network.ps1` sets up both: an internal switch, a NAT for its subnet, and the DHCP Server role with a scope on it.
+It is idempotent, so it is safe to run at every boot:
 
 ```powershell
-# an internal switch has no uplink to a physical adapter
-New-VMSwitch -SwitchType Internal -Name crow-nat
-# give the host side of it an address
-New-NetIPAddress -IPAddress 192.168.176.1 -PrefixLength 24 -InterfaceAlias 'vEthernet (crow-nat)'
-# and NAT that subnet out
-New-NetNat -Name crow-nat -InternalIPInterfaceAddressPrefix 192.168.176.0/24
+# guests get 192.168.176.100-250, with 1.1.1.1 and 8.8.8.8 for DNS
+.\contrib\hyperv\setup-nat-network.ps1 -SwitchName crow-nat
 ```
 
-Then firewall the subnet so it can reach your forge and package registries and nothing else.
+The DHCP server only answers on interfaces with a static address, which the switch's host side is and a cloud VM's own adapter is not, so it stays off the host's network.
+
+### What guests cannot reach
+
+A guest's traffic leaves through the host, so without restrictions a workflow reaches whatever the host can.
+On an Azure `Standard_D4s_v5` behind a NAT switch, an unrestricted guest could open connections to Azure's wire server and to RDP, WinRM, SMB and RPC on the host itself, both at the NAT gateway address and at the host's own address on the virtual network.
+It could not reach the instance metadata service, which did not answer traffic through the NAT.
+
+Two layers close this off.
+
+`CROW_BACKEND_HYPERV_BLOCKED_NETWORKS` blocks these ranges by default:
+
+| Range | Why |
+| --- | --- |
+| `169.254.0.0/16` | Link-local, where every major cloud's metadata service lives, in case a setup forwards it |
+| `168.63.129.16/32` | Azure's wire server, which talks to the VM agent |
+| `10.0.0.0/8`, `172.16.0.0/12` | Private ranges, usually the cloud network or LAN the host is on |
+
+They are port ACLs on each guest's network adapter, enforced by the switch outside the guest, so a step running as the guest's administrator cannot lift them.
+`192.168.0.0/16` is not blocked by default, because that is where the NAT subnet and its DHCP server are; if your NAT subnet is elsewhere, make sure it is not inside a blocked range.
+Add the ranges of anything else guests must not reach, or set the variable to `none` to block nothing.
+
+The host's own address on the NAT subnet cannot be blocked that way, because it is the guests' gateway.
+`setup-nat-network.ps1` adds host firewall rules instead, which block every connection from the switch to the host except DHCP.
+If you set the network up some other way, add equivalent rules.
+
+The integration suite checks both from inside a guest: the host's services and Azure's wire server are unreachable, while the internet is not.
 
 ## Selecting the Backend
 
@@ -160,6 +200,14 @@ It is never auto-detected: the local backend is available on any Windows host th
 - Name: `CROW_BACKEND_HYPERV_SWITCH`
 - Description: Virtual switch guests attach to. Empty gives the guest no network adapter at all. See [Networking](#networking).
 - Default: none
+
+---
+
+### BACKEND_HYPERV_BLOCKED_NETWORKS
+
+- Name: `CROW_BACKEND_HYPERV_BLOCKED_NETWORKS`
+- Description: Comma-separated CIDR ranges a guest on a switch cannot reach, enforced by port ACLs on its adapter. `none` blocks nothing. See [What guests cannot reach](#what-guests-cannot-reach).
+- Default: `169.254.0.0/16,168.63.129.16/32,10.0.0.0/8,172.16.0.0/12`
 
 ---
 
@@ -233,9 +281,9 @@ It is never auto-detected: the local backend is available on any Windows host th
 
 1. Install the Hyper-V role and reboot, as shown below.
 
-2. Build a golden image as described in [Building a golden image](#building-a-golden-image), and install your pipelines' toolchain into it.
+2. Build a golden image as described in [Building a golden image](#building-a-golden-image), with git and the rest of your pipelines' toolchain in it.
 
-3. Optionally, create a NAT switch so steps can reach the network, as described in [Networking](#networking). Without one, steps run fully offline, which also rules out the clone step.
+3. Optionally, create a NAT switch with `setup-nat-network.ps1` so steps can reach the network, as described in [Networking](#networking). Without one, steps run fully offline, which also rules out the clone step.
 
 4. Install the agent from the [Windows agent zip](/dev/configuration/windows-agent/#autoscaler-integration) and configure it for this backend, as shown below.
 
@@ -311,7 +359,7 @@ AZURE_TENANT_ID=<tenant id>
 AZURE_CLIENT_ID=<service principal id>
 AZURE_CLIENT_SECRET_FILE=/run/secrets/azure_client_secret
 CROW_AGENT_IMAGE=https://codefloe.com/crowci/crow/releases/download/<version>/crow-agent_windows_amd64.zip
-CROW_PROVIDER_USERDATA_FILE=/etc/crow/windows-hyperv-bootstrap.ps1
+CROW_PROVIDER_USERDATA_FILE=/etc/crow/autoscaler-bootstrap.ps1
 # only count tasks that ask for this pool
 CROW_FILTER_LABELS=group=windows-hyperv
 CROW_AGENT_ENV=CROW_SERVER=grpc.crow.example.com:443,CROW_GRPC_SECURE=true,CROW_AGENT_LABELS=group=windows-hyperv
@@ -327,17 +375,23 @@ Every `CROW_AGENT_ENV` entry is set as a machine-wide environment variable on th
 ### The bootstrap
 
 The stock Windows bootstrap only downloads and starts the agent.
-A Hyper-V host also needs the role installed, a golden image, and the backend configured, so it needs a bootstrap of its own, passed with `CROW_PROVIDER_USERDATA_FILE`.
+A Hyper-V host also needs the role, guest networking, a golden image and the backend configured, so it needs the bootstrap Crow ships for it, `contrib/hyperv/autoscaler-bootstrap.ps1` in the Crow repository.
+Pass it with `CROW_PROVIDER_USERDATA_FILE`.
 
-It is a PowerShell script rendered as a Go template, in which `{{ .Image }}` is the agent zip URL and `{{ .Environment }}` the `CROW_AGENT_ENV` map.
-For this backend it has to:
+It installs the Hyper-V role without rebooting and schedules the reboot for after it has exited.
+After the reboot, a startup task runs `setup-nat-network.ps1`, builds the golden image with git in it if there is none yet, and starts the agent with `CROW_BACKEND=hyperv`.
+The task runs at every boot and skips what already exists, so an interrupted image build is retried.
 
-1. Install the Hyper-V role **without** rebooting, and schedule a reboot a minute out (see below).
-2. After the reboot, build the golden image with `build-golden-image.ps1` unless it already exists, which adds about 7 minutes to a cold start. Download the script from the Crow release you run, `https://codefloe.com/crowci/crow/raw/tag/<version>/contrib/hyperv/build-golden-image.ps1`, and give it the same password as `CROW_BACKEND_HYPERV_GUEST_PASSWORD`.
-3. Start the agent with `CROW_BACKEND=hyperv` and the `CROW_BACKEND_HYPERV_*` settings pointing at that image.
+It fills in sensible defaults for the backend, `CROW_BACKEND_HYPERV_SWITCH=crow-nat` among them, and generates a guest password on the host, which it uses for both the image and the agent; anything you set in `CROW_AGENT_ENV` takes precedence.
+It downloads the helper scripts from `CROW_HYPERV_SCRIPTS_URL`, which defaults to the Crow repository at the tag of the agent's own release, `https://codefloe.com/crowci/crow/raw/tag/v<version>/contrib/hyperv`.
+An agent that is not a release build has no tag, so the bootstrap then fails until you set the variable; it never fetches code from a moving branch, since that code runs as `SYSTEM`.
+Pin the bootstrap itself the same way: point `CROW_PROVIDER_USERDATA_FILE` at a copy taken from a release tag.
 
-The bootstrap Crow's own test pool uses, [`windows-hyperv-bootstrap.ps1`](https://codefloe.com/crowci/infrastructure/src/branch/main/files/windows-hyperv-bootstrap.ps1), handles the deferred reboot, the toolchain and the agent service, and is a good starting point.
-It starts the agent with the local backend, because that pool runs this backend's integration tests rather than user workflows; switch it to `CROW_BACKEND=hyperv` and add the golden image step for a production pool.
+The start task refuses to start the agent unless `CROW_BACKEND` is `hyperv`.
+The host exists to run workflows inside VMs, and an agent on it with another backend, or with the backend left to auto-detection, would run them on the host itself.
+
+A fresh host takes about 8 minutes to boot and reboot, and about 8 more to build the golden image, before its agent connects.
+That is within the autoscaler's default `CROW_AGENT_INACTIVITY_TIMEOUT` of 30 minutes; do not lower it below 20.
 
 <Aside type="caution" title="Do not reboot inside the bootstrap">
 On Azure the bootstrap runs as a `CustomScriptExtension`, and a reboot part-way through is reported as extension failure — which makes the provider delete the host it has just built.

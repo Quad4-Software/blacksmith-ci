@@ -92,6 +92,9 @@ func TestConfigDefaults(t *testing.T) {
 	assert.Equal(t, defaultStartupTimeout, cfg.StartupTimeout)
 	// No switch by default, so a guest starts with no network adapter at all.
 	assert.Empty(t, cfg.SwitchName)
+	// Once there is one, the cloud metadata service is out of reach.
+	assert.Contains(t, cfg.BlockedNetworks, "169.254.0.0/16")
+	assert.Contains(t, cfg.BlockedNetworks, "168.63.129.16/32")
 	assert.Zero(t, cfg.CPU)
 	assert.Zero(t, cfg.MemoryMB)
 }
@@ -122,4 +125,18 @@ func TestConfigRejectsBadValues(t *testing.T) {
 
 	_, err = parseFlags(t, append(base, "--backend-hyperv-memory", "not-a-size")...)
 	assert.ErrorContains(t, err, "backend-hyperv-memory")
+
+	_, err = parseFlags(t, append(base, "--backend-hyperv-blocked-networks", "10.0.0.0")...)
+	assert.ErrorContains(t, err, "backend-hyperv-blocked-networks")
+}
+
+func TestConfigBlockedNetworksCanBeTurnedOff(t *testing.T) {
+	cfg, err := parseFlags(t,
+		"--backend-hyperv-base-vhdx", `C:\g.vhdx`,
+		"--backend-hyperv-guest-username", "crow",
+		"--backend-hyperv-guest-password", "pw",
+		"--backend-hyperv-blocked-networks", "none",
+	)
+	assert.NoError(t, err)
+	assert.Empty(t, cfg.BlockedNetworks)
 }

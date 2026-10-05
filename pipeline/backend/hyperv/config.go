@@ -16,6 +16,7 @@ package hyperv
 
 import (
 	"fmt"
+	"net/netip"
 	"time"
 
 	"github.com/urfave/cli/v3"
@@ -45,6 +46,9 @@ type config struct {
 	// SwitchName is the virtual switch guests are attached to. Empty gives
 	// the guest no network adapter at all.
 	SwitchName string
+	// BlockedNetworks are CIDR ranges a guest on the switch cannot reach,
+	// enforced by port ACLs on its adapter.
+	BlockedNetworks []string
 	// CPU and MemoryMB are what each VM is created with. Zero keeps
 	// Hyper-V's own default.
 	CPU      int
@@ -92,6 +96,20 @@ func configFromCli(c *cli.Command) (config, error) {
 	case generationLegacy, defaultGeneration:
 	default:
 		return config{}, fmt.Errorf("backend-hyperv-generation: expected 1 or 2, got %d", cfg.Generation)
+	}
+
+	for _, network := range c.StringSlice("backend-hyperv-blocked-networks") {
+		// "none" is how the default is turned off: the CLI treats an empty
+		// variable as unset, which would keep the default.
+		if network == "" || network == blockNoNetworks {
+			continue
+		}
+		// Rejected here rather than by Hyper-V, which would fail every
+		// workflow's VM creation instead of the agent's start.
+		if _, err := netip.ParsePrefix(network); err != nil {
+			return config{}, fmt.Errorf("backend-hyperv-blocked-networks: %w", err)
+		}
+		cfg.BlockedNetworks = append(cfg.BlockedNetworks, network)
 	}
 
 	if cfg.MaxVMs < 0 {

@@ -42,6 +42,27 @@ const (
 )
 
 // Flags contains the CLI flags for the Hyper-V backend.
+// The value blockNoNetworks in CROW_BACKEND_HYPERV_BLOCKED_NETWORKS turns the
+// default off.
+const blockNoNetworks = "none"
+
+// defaultBlockedNetworks are what a guest on a switch is kept from by default.
+//
+// A guest reaches the outside through the host, so without these it reaches
+// what the host can. On an Azure host behind a NAT switch that was the wire
+// server and every service on the host's own network address, though not the
+// metadata service. Link-local still covers the metadata service of every
+// major cloud in case another setup forwards it, 168.63.129.16 is Azure's wire
+// server, and the two private ranges keep a guest off the cloud network or LAN
+// the host sits on. 192.168.0.0/16 is left out because that is where a NAT
+// switch's own subnet and DHCP server usually are.
+var defaultBlockedNetworks = []string{
+	"169.254.0.0/16",
+	"168.63.129.16/32",
+	"10.0.0.0/8",
+	"172.16.0.0/12",
+}
+
 var Flags = []cli.Flag{
 	&cli.StringFlag{
 		Sources: cli.EnvVars("CROW_BACKEND_HYPERV_BASE_VHDX"),
@@ -73,6 +94,12 @@ var Flags = []cli.Flag{
 		Sources: cli.EnvVars("CROW_BACKEND_HYPERV_SWITCH"),
 		Name:    "backend-hyperv-switch",
 		Usage:   "virtual switch guests are attached to; empty gives the guest no network adapter at all",
+	},
+	&cli.StringSliceFlag{
+		Sources: cli.EnvVars("CROW_BACKEND_HYPERV_BLOCKED_NETWORKS"),
+		Name:    "backend-hyperv-blocked-networks",
+		Usage:   "CIDR ranges a guest on a switch cannot reach, enforced by the switch; 'none' blocks nothing",
+		Value:   defaultBlockedNetworks,
 	},
 	&cli.IntFlag{
 		Sources: cli.EnvVars("CROW_BACKEND_HYPERV_CPU"),

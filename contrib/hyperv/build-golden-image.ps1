@@ -60,6 +60,23 @@
   The maximum size of the dynamically expanding disk. Workflow VMs write to
   their differencing child, so this caps what the guest's C: can grow to.
 
+.PARAMETER SetupScript
+  PowerShell scripts to run inside the guest, in order, once first-boot setup
+  is done and before the image is sealed. This is how the image gets the
+  toolchain your pipelines need, such as guest-setup-git.ps1 next to this
+  script. They run as the guest administrator, and a script that throws fails
+  the build.
+
+.PARAMETER SwitchName
+  A virtual switch to attach the build VM to, so that SetupScript can download
+  what it installs. Without it the build VM has no network adapter, as
+  workflow VMs have by default.
+
+.PARAMETER BlockedNetworks
+  CIDR ranges the build VM cannot reach when it is on a switch, enforced by
+  the switch. The default matches the backend's: the cloud metadata service,
+  Azure's wire server and the private 10/8 and 172.16/12 ranges.
+
 .EXAMPLE
   .\build-golden-image.ps1 -Path C:\crow-images\ws2022-golden.vhdx -Username crow -Password (Read-Host -AsSecureString)
 #>
@@ -80,7 +97,13 @@ param(
 
   [string]$ImageName = 'Windows Server 2022 Datacenter Evaluation',
 
-  [UInt64]$SizeBytes = 64GB
+  [UInt64]$SizeBytes = 64GB,
+
+  [string[]]$SetupScript = @(),
+
+  [string]$SwitchName,
+
+  [string[]]$BlockedNetworks = @('169.254.0.0/16', '168.63.129.16/32', '10.0.0.0/8', '172.16.0.0/12')
 )
 
 $ErrorActionPreference = 'Stop'
@@ -178,6 +201,13 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
 if (-not (Get-Command New-VM -ErrorAction SilentlyContinue)) {
   throw 'The Hyper-V PowerShell module is missing. Install the Hyper-V role first.'
 }
+$SetupScript = @($SetupScript | ForEach-Object {
+  if (-not (Test-Path -LiteralPath $_)) { throw "setup script $_ does not exist" }
+  (Resolve-Path -LiteralPath $_).ProviderPath
+})
+if ($SwitchName -and -not (Get-VMSwitch -Name $SwitchName -ErrorAction SilentlyContinue)) {
+  throw "virtual switch '$SwitchName' does not exist"
+}
 if (Test-Path -LiteralPath $Path) {
   throw "$Path already exists. Delete it first to rebuild; workflow VMs must not be running from it."
 }
@@ -265,9 +295,21 @@ try {
   Write-Step "first boot in $vmName"
   New-VM -Name $vmName -Generation 2 -VHDPath $partial -MemoryStartupBytes 4GB | Out-Null
   Set-VMProcessor -VMName $vmName -Count 2
-  # The same isolation the backend gives workflow VMs: nothing on the network
-  # can reach a guest whose administrator password was just in a file.
-  Get-VMNetworkAdapter -VMName $vmName | Remove-VMNetworkAdapter
+  if ($SwitchName) {
+    # Setup scripts need to download. The answer file holding the password is
+    # still on disk until setup has consumed it, so the switch should be an
+    # internal NAT one that nothing outside the host can reach.
+    Connect-VMNetworkAdapter -VMName $vmName -SwitchName $SwitchName
+    # A setup script is the operator's own, but it may run installers that
+    # fetch more; none of them has any business with the host's identity.
+    foreach ($network in $BlockedNetworks) {
+      Add-VMNetworkAdapterAcl -VMName $vmName -RemoteIPAddress $network -Direction Both -Action Deny
+    }
+  } else {
+    # The same isolation the backend gives workflow VMs: nothing on the network
+    # can reach a guest whose administrator password was just in a file.
+    Get-VMNetworkAdapter -VMName $vmName | Remove-VMNetworkAdapter
+  }
   Start-VM -Name $vmName
 
   # PowerShell Direct answers as soon as the account exists, which can be
@@ -302,6 +344,13 @@ try {
     # never depends on which account name the image was built with.
     New-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' `
       -Name LocalAccountTokenFilterPolicy -PropertyType DWord -Value 1 -Force | Out-Null
+  }
+
+  foreach ($setup in $SetupScript) {
+    Write-Step "running $setup in the guest"
+    # -FilePath sends the script's text over PowerShell Direct and runs it in
+    # the guest, so it needs no copy step and no network.
+    Invoke-Command -VMName $vmName -Credential $credential -ErrorAction Stop -FilePath $setup
   }
 
   Write-Step 'shutting down'
