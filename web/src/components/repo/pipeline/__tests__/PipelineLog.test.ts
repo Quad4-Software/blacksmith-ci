@@ -17,23 +17,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick, ref } from 'vue';
 import PipelineLog from '../PipelineLog.vue';
 
-// `localStorage` is not exposed as a bare global in this environment, but the
-// component (and its icon/theme helpers) read from it at import time, so this
-// has to run before the imports above (vi.hoisted is lifted to the top).
-vi.hoisted(() => {
-  const store = new Map<string, string>();
-  globalThis.localStorage = {
-    getItem: (key: string) => store.get(key) ?? null,
-    setItem: (key: string, value: string) => store.set(key, String(value)),
-    removeItem: (key: string) => store.delete(key),
-    clear: () => store.clear(),
-    key: (index: number) => [...store.keys()][index] ?? null,
-    get length() {
-      return store.size;
-    },
-  };
-});
-
 const getLogs = vi.fn();
 const streamLogs = vi.fn();
 
