@@ -48,9 +48,9 @@ export const crowCiTheme: ThemeDefinition = {
     destructive: '#dc2626',
     destructiveForeground: '#ffffff',
 
-    // Borders - slate-200, inputs slate-300
-    border: '#e2e8f0',
-    input: '#cbd5e1',
+    // Borders - slate-300, inputs and outline buttons slate-400 so both stand out on the page
+    border: '#cbd5e1',
+    input: '#94a3b8',
     ring: '#c2410c',
 
     // Charts - codefloe-tide accent palette
@@ -67,7 +67,7 @@ export const crowCiTheme: ThemeDefinition = {
     sidebarPrimaryForeground: '#ffffff',
     sidebarAccent: '#e2e8f0',
     sidebarAccentForeground: '#0f172a',
-    sidebarBorder: '#e2e8f0',
+    sidebarBorder: '#cbd5e1',
     sidebarRing: '#c2410c',
   },
 
@@ -104,8 +104,8 @@ export const crowCiTheme: ThemeDefinition = {
     destructive: '#ef4444',
     destructiveForeground: '#ffffff',
 
-    // Borders - gray-700, inputs gray-600
-    border: '#374151',
+    // Borders - gray-600 so they stand out on the page; inputs share it, since their fill is a tint of it
+    border: '#4b5563',
     input: '#4b5563',
     ring: '#fb923c',
 
@@ -123,7 +123,7 @@ export const crowCiTheme: ThemeDefinition = {
     sidebarPrimaryForeground: '#111827',
     sidebarAccent: '#374151',
     sidebarAccentForeground: '#f9fafb',
-    sidebarBorder: '#374151',
+    sidebarBorder: '#4b5563',
     sidebarRing: '#fb923c',
   },
 };
