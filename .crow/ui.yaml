@@ -14,6 +14,8 @@ variables:
       - 'web/**'
       # api source code
       - 'server/api/**'
+      # theme variables shared with the UI
+      - 'server/theme/**'
 
 labels:
   agent: thumper

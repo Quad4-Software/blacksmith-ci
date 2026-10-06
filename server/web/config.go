@@ -51,6 +51,7 @@ func Config(c *gin.Context) {
 		"enable_swagger":         server.Config.WebUI.EnableSwagger,
 		"user_registered_agents": !server.Config.Agent.DisableUserRegisteredAgentRegistration,
 		"scheduling_strategy":    server.Config.Queue.SchedulingStrategy,
+		"custom_themes":          server.Config.WebUI.CustomThemes,
 	}
 
 	// default func map with json parser.
@@ -88,4 +89,5 @@ window.CROW_ENABLE_SWAGGER = {{ .enable_swagger }};
 window.CROW_SKIP_VERSION_CHECK = {{ .skip_version_check }}
 window.CROW_USER_REGISTERED_AGENTS = {{ .user_registered_agents }}
 window.CROW_SCHEDULING_STRATEGY = {{ json .scheduling_strategy }};
+window.CROW_CUSTOM_THEMES = {{ json .custom_themes }};
 `

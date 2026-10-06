@@ -675,6 +675,17 @@ This applies to both single-instance and High Availability deployments.
 Pipelines carry a denormalized organization and repository name, so the metrics dashboard keeps showing the correct labels even after a repo or org is renamed or removed (no more "Unknown" bars).
 See [Metrics dashboard](/dev/usage/metrics) for the dashboard and the chart builder.
 
+## Custom UI themes
+
+Admins can ship their own UI themes, for example in corporate colors, by pointing `CROW_CUSTOM_THEMES` at one or more CSS or JSON files, given as paths or URLs.
+The themes appear in every user's theme selection under **Instance themes**.
+
+| Variable             | Default | Description                                   |
+| -------------------- | ------- | --------------------------------------------- |
+| `CROW_CUSTOM_THEMES` | none    | Comma-separated paths or URLs of theme files. |
+
+See [Admin-provided themes](/dev/usage/appearance/#admin-provided-themes) for the supported formats.
+
 ## High Availability
 
 Run multiple server instances with PostgreSQL or MySQL for HA.

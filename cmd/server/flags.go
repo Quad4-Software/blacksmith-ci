@@ -105,6 +105,11 @@ var flags = append([]cli.Flag{
 		Name:    "custom-js-file",
 		Usage:   "file path for the server to serve a custom .JS file, used for customizing the UI",
 	},
+	&cli.StringSliceFlag{
+		Sources: cli.EnvVars("CROW_CUSTOM_THEMES"),
+		Name:    "custom-themes",
+		Usage:   "file paths or http(s) URLs of JSON or CSS files with additional UI themes users can select",
+	},
 	&cli.StringFlag{
 		Sources: cli.EnvVars("WOODPECKER_GRPC_ADDR", "CROW_GRPC_ADDR"),
 		Name:    "grpc-addr",

@@ -1,4 +1,5 @@
 import type { SwitchAccount, User } from '~/lib/api/types';
+import type { CustomThemeConfig } from '~/lib/themes/custom';
 
 declare global {
   interface Window {
@@ -12,6 +13,7 @@ declare global {
     CROW_ENABLE_SWAGGER: boolean | undefined;
     CROW_USER_REGISTERED_AGENTS: boolean | undefined;
     CROW_SCHEDULING_STRATEGY: string | undefined;
+    CROW_CUSTOM_THEMES: CustomThemeConfig[] | null | undefined;
   }
 }
 

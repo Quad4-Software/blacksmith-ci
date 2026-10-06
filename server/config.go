@@ -30,6 +30,7 @@ import (
 	"codefloe.com/crowci/crow/v6/server/services/log"
 	"codefloe.com/crowci/crow/v6/server/services/notification"
 	"codefloe.com/crowci/crow/v6/server/services/permissions"
+	"codefloe.com/crowci/crow/v6/server/theme"
 )
 
 var Config = struct {
@@ -74,6 +75,7 @@ var Config = struct {
 	WebUI struct {
 		EnableSwagger    bool
 		SkipVersionCheck bool
+		CustomThemes     []theme.Theme // admin-provided themes, offered next to the bundled ones
 	}
 	Queue struct {
 		SchedulingStrategy string // active agent scheduling strategy, surfaced in the UI

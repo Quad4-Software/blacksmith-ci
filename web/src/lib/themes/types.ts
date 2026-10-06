@@ -87,6 +87,9 @@ export interface ThemeDefinition {
 
   /** Dark mode color variables */
   dark: ThemeColorVariables;
+
+  /** Whether the theme was provided by the instance admin */
+  custom?: boolean;
 }
 
 /**
@@ -96,4 +99,5 @@ export interface ThemeOption {
   id: string;
   name: string;
   description?: string;
+  custom?: boolean;
 }

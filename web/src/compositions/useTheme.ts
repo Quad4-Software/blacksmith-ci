@@ -2,7 +2,7 @@ import { useColorMode, useStorage } from '@vueuse/core';
 import { computed, watch } from 'vue';
 
 import type { ThemeColorVariables, ThemeOption } from '~/lib/themes';
-import { DEFAULT_THEME_ID, getTheme, THEME_OPTIONS } from '~/lib/themes';
+import { CSS_VAR_MAP, DEFAULT_THEME_ID, getTheme, parseThemeOverrides, THEME_OPTIONS } from '~/lib/themes';
 
 // Color mode (light/dark/auto)
 const {
@@ -68,46 +68,13 @@ const currentTheme = computed(() => {
   return getTheme(themeName);
 });
 
+// User-provided CSS overriding individual theme variables (empty = no overrides)
+const themeOverridesCss = useStorage<string>('crow:theme-overrides', '');
+
+const themeOverrides = computed(() => parseThemeOverrides(themeOverridesCss.value).overrides);
+
 // Available themes for UI
 const availableThemes = computed<ThemeOption[]>(() => THEME_OPTIONS);
-
-/**
- * Maps ThemeColorVariables keys to CSS custom property names
- */
-const CSS_VAR_MAP: Record<keyof ThemeColorVariables, string> = {
-  background: '--background',
-  foreground: '--foreground',
-  card: '--card',
-  cardForeground: '--card-foreground',
-  popover: '--popover',
-  popoverForeground: '--popover-foreground',
-  primary: '--primary',
-  primaryForeground: '--primary-foreground',
-  secondary: '--secondary',
-  secondaryForeground: '--secondary-foreground',
-  muted: '--muted',
-  mutedForeground: '--muted-foreground',
-  accent: '--accent',
-  accentForeground: '--accent-foreground',
-  destructive: '--destructive',
-  destructiveForeground: '--destructive-foreground',
-  border: '--border',
-  input: '--input',
-  ring: '--ring',
-  chart1: '--chart-1',
-  chart2: '--chart-2',
-  chart3: '--chart-3',
-  chart4: '--chart-4',
-  chart5: '--chart-5',
-  sidebar: '--sidebar',
-  sidebarForeground: '--sidebar-foreground',
-  sidebarPrimary: '--sidebar-primary',
-  sidebarPrimaryForeground: '--sidebar-primary-foreground',
-  sidebarAccent: '--sidebar-accent',
-  sidebarAccentForeground: '--sidebar-accent-foreground',
-  sidebarBorder: '--sidebar-border',
-  sidebarRing: '--sidebar-ring',
-};
 
 /**
  * Apply theme CSS variables to document root
@@ -149,16 +116,18 @@ function updateTheme() {
     document.querySelector('meta[name=theme-color]')?.setAttribute('content', '#369943');
   }
 
-  // Apply theme-specific CSS variables
-  const colors = mode === 'dark' ? theme.dark : theme.light;
-  applyThemeVariables(colors);
+  // Apply theme-specific CSS variables, with the user's overrides on top
+  const isDark = mode === 'dark';
+  const colors = isDark ? theme.dark : theme.light;
+  const overrides = isDark ? themeOverrides.value.dark : themeOverrides.value.light;
+  applyThemeVariables({ ...colors, ...overrides });
 
   // Apply font size
   applyFontSize(fontSize.value);
 }
 
 // Watch for theme or mode changes
-watch([storeTheme, systemTheme, lightThemeName, darkThemeName], updateTheme, { immediate: true });
+watch([storeTheme, systemTheme, lightThemeName, darkThemeName, themeOverrides], updateTheme, { immediate: true });
 
 // Watch for font size changes
 watch(fontSize, applyFontSize, { immediate: true });
@@ -182,6 +151,9 @@ export function useTheme() {
 
     /** Currently active theme definition */
     currentTheme,
+
+    /** User-provided CSS overriding variables of the selected themes */
+    themeOverridesCss,
 
     /** Available themes for UI selection */
     availableThemes,

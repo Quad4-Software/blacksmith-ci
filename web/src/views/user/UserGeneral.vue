@@ -68,30 +68,12 @@
       <div class="flex flex-col md:flex-row gap-6 flex-wrap">
         <div>
           <InputField v-slot="{ id }" :label="$t('user.settings.general.light_theme_label')">
-            <Select :id="id" v-model="lightThemeName">
-              <SelectTrigger class="w-full md:w-[200px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="theme in availableThemes" :key="theme.id" :value="theme.id">
-                  {{ theme.name }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <ThemeSelect :id="id" v-model="lightThemeName" :themes="availableThemes" />
           </InputField>
         </div>
         <div>
           <InputField v-slot="{ id }" :label="$t('user.settings.general.dark_theme_label')">
-            <Select :id="id" v-model="darkThemeName">
-              <SelectTrigger class="w-full md:w-[200px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="theme in availableThemes" :key="theme.id" :value="theme.id">
-                  {{ theme.name }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <ThemeSelect :id="id" v-model="darkThemeName" :themes="availableThemes" />
           </InputField>
         </div>
         <div>
@@ -123,6 +105,53 @@
           </InputField>
         </div>
       </div>
+      <InputField v-slot="{ id }" :label="$t('user.settings.general.theme_overrides')">
+        <p class="text-sm text-muted-foreground">
+          {{ $t('user.settings.general.theme_overrides_desc') }}
+        </p>
+        <Textarea
+          :id="id"
+          v-model="themeOverridesDraft"
+          :placeholder="themeOverridesPlaceholder"
+          rows="8"
+          spellcheck="false"
+          class="max-h-96 w-full font-mono text-xs"
+        />
+        <div class="space-y-1 text-sm">
+          <p v-if="themeOverridesDraft.trim() !== ''" class="text-muted-foreground">
+            {{
+              $t(
+                'user.settings.general.theme_overrides_applied',
+                { count: themeOverridesParsed.applied },
+                themeOverridesParsed.applied,
+              )
+            }}
+          </p>
+          <p v-if="themeOverridesParsed.ignoredSelectors.length > 0" class="text-destructive">
+            {{ $t('user.settings.general.theme_overrides_ignored_selectors') }}
+            <span class="font-mono">{{ themeOverridesParsed.ignoredSelectors.join(', ') }}</span>
+          </p>
+          <p v-if="themeOverridesParsed.ignoredProperties.length > 0" class="text-destructive">
+            {{ $t('user.settings.general.theme_overrides_ignored_properties') }}
+            <span class="font-mono">{{ themeOverridesParsed.ignoredProperties.join(', ') }}</span>
+          </p>
+          <p v-if="themeOverridesParsed.invalidValues.length > 0" class="text-destructive">
+            {{ $t('user.settings.general.theme_overrides_invalid_values') }}
+            <span class="font-mono">{{ themeOverridesParsed.invalidValues.join('; ') }}</span>
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <Button :disabled="!themeOverridesDirty" @click="applyThemeOverrides">
+            {{ $t('user.settings.general.theme_overrides_apply') }}
+          </Button>
+          <Button variant="outline" :disabled="!themeOverridesDirty" @click="revertThemeOverrides">
+            {{ $t('user.settings.general.theme_overrides_revert') }}
+          </Button>
+          <Button variant="outline" @click="insertCurrentTheme">
+            {{ $t('user.settings.general.theme_overrides_insert_current') }}
+          </Button>
+        </div>
+      </InputField>
     </div>
 
     <Separator class="my-6" />
@@ -364,6 +393,7 @@ import { Switch } from '~/components/ui/switch';
 import { Textarea } from '~/components/ui/textarea';
 import { Button } from '~/components/ui/button';
 import Settings from '~/components/layout/Settings.vue';
+import ThemeSelect from '~/components/user/ThemeSelect.vue';
 import { setI18nLanguage } from '~/compositions/useI18n';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
 import { FONT_SIZE_OPTIONS, useTheme } from '~/compositions/useTheme';
@@ -372,6 +402,7 @@ import useAuthentication from '~/compositions/useAuthentication';
 import useConfig from '~/compositions/useConfig';
 import useNotifications from '~/compositions/useNotifications';
 import type { AvailableForge, Repo, UserForge } from '~/lib/api/types';
+import { getTheme, parseThemeOverrides, themesToCss } from '~/lib/themes';
 
 const { locale, t } = useI18n();
 const apiClient = useApiClient();
@@ -551,7 +582,31 @@ function cancelUnlink() {
 }
 
 // Theme settings
-const { lightThemeName, darkThemeName, availableThemes, storeTheme, fontSize } = useTheme();
+const { lightThemeName, darkThemeName, availableThemes, storeTheme, fontSize, themeOverridesCss } = useTheme();
+
+// Theme overrides are edited as a draft and only stored on apply, so a
+// half-typed value never restyles the page.
+const themeOverridesDraft = ref(themeOverridesCss.value);
+const themeOverridesParsed = computed(() => parseThemeOverrides(themeOverridesDraft.value));
+const themeOverridesDirty = computed(() => themeOverridesDraft.value !== themeOverridesCss.value);
+const themeOverridesPlaceholder = ':root {\n  --primary: #c2410c;\n}\n\n.dark {\n  --primary: #fb923c;\n}';
+
+function applyThemeOverrides() {
+  themeOverridesCss.value = themeOverridesDraft.value.trim() === '' ? '' : themeOverridesDraft.value;
+  themeOverridesDraft.value = themeOverridesCss.value;
+  notifications.notify({
+    title: t('user.settings.general.theme_overrides_saved'),
+    type: 'success',
+  });
+}
+
+function revertThemeOverrides() {
+  themeOverridesDraft.value = themeOverridesCss.value;
+}
+
+function insertCurrentTheme() {
+  themeOverridesDraft.value = themesToCss(getTheme(lightThemeName.value), getTheme(darkThemeName.value));
+}
 
 const colorModeOptions = computed(() => [
   { value: 'light', text: t('user.settings.general.theme.light') },

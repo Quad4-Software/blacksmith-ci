@@ -57,6 +57,7 @@ import (
 	"codefloe.com/crowci/crow/v6/server/store"
 	"codefloe.com/crowci/crow/v6/server/store/datastore"
 	"codefloe.com/crowci/crow/v6/server/store/types"
+	"codefloe.com/crowci/crow/v6/server/theme"
 )
 
 const (
@@ -583,6 +584,12 @@ func setupEvilGlobals(ctx context.Context, c *cli.Command, s store.Store) (err e
 	server.Config.Pipeline.Volumes = c.StringSlice("volume")
 	server.Config.WebUI.EnableSwagger = c.Bool("enable-swagger")
 	server.Config.WebUI.SkipVersionCheck = c.Bool("skip-version-check")
+	if server.Config.WebUI.CustomThemes, err = theme.Load(ctx, c.StringSlice("custom-themes")); err != nil {
+		return err
+	}
+	if n := len(server.Config.WebUI.CustomThemes); n > 0 {
+		log.Info().Int("count", n).Msg("loaded custom UI themes")
+	}
 	server.Config.Pipeline.PrivilegedPlugins = c.StringSlice("plugins-privileged")
 	server.Config.Pipeline.PrivilegedPluginsMatchType = c.String("plugins-privileged-match-type")
 

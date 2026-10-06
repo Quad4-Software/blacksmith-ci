@@ -230,6 +230,17 @@ Core server configuration variables.
 
 ---
 
+## CUSTOM_THEMES
+
+- Name: `CROW_CUSTOM_THEMES`
+- Description: Comma-separated file paths or `http(s)://` URLs of CSS or JSON files with additional UI themes, offered to users next to the bundled themes.
+  A theme with the id of a bundled theme replaces it.
+  Sources are read and validated at startup, and the server refuses to start if one is invalid; URLs that cannot be fetched are skipped with an error log.
+  See [Admin-provided themes](/dev/usage/appearance/#admin-provided-themes) for the formats.
+- Default: none
+
+---
+
 ## WWW_PROXY
 
 - Name: `CROW_DEV_WWW_PROXY`
