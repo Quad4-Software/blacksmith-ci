@@ -225,6 +225,20 @@ steps:
         user: 10000:10000
 ```
 
+On a Windows agent a step can also ask for Hyper-V isolation, which runs it in its own kernel instead of sharing the host's:
+
+```yaml
+steps:
+  - name: test
+    image: mcr.microsoft.com/powershell:nanoserver-ltsc2022
+    backend_options:
+      docker:
+        isolation: hyperv
+```
+
+A step may only strengthen the agent's [`CROW_BACKEND_DOCKER_ISOLATION`](/dev/configuration/env-vars/backend-docker/#backend_docker_isolation), never relax it.
+Asking for `process` or `default` on an agent configured with `hyperv` fails the step, so a pipeline cannot opt out of the boundary the agent operator put in place.
+
 #### Housekeeping
 
 Crow doesn't auto-clean Docker images.
@@ -663,11 +677,6 @@ See [Metrics dashboard](/dev/usage/metrics) for the dashboard and the chart buil
 
 ## High Availability
 
-:::caution
-Experimental feature and known to be buggy.
-Don't use it in production yet!
-:::
-
 Run multiple server instances with PostgreSQL or MySQL for HA.
 The database coordinates queue processing and cron execution.
 
@@ -721,11 +730,36 @@ CROW_SMTP_AUTH_TYPE=LOGIN
 Once configured, notifications must be enabled per-repository in **Repository Settings > Notifications**.
 The SMTP configuration can be verified in **Admin Settings > Notifications**, which includes a test email button.
 
+## Forgejo CI quota enforcement and accounting
+
+Crow checks CI allowances before dispatching workflows and reports completed runtime to the external CI quota ledger provided by the CodeFloe Forgejo fork.
+Upstream Forgejo does not provide this API.
+Configure both values to enable enforcement and reporting:
+
+```shell
+CROW_CI_QUOTA_URL=https://code.example.com
+CROW_CI_QUOTA_TOKEN=secret-reporter-token
+```
+
+| Environment variable | Required | Default | Description |
+| --- | --- | --- | --- |
+| `CROW_CI_QUOTA_URL` | Yes | — | Base URL of the Forgejo instance that owns the quota ledger |
+| `CROW_CI_QUOTA_TOKEN` | Yes | — | Dedicated external CI reporter token configured in Forgejo |
+
+Quota denials fail the affected workflow before it starts, with the reason visible in its error.
+Failed quota checks are retried up to three attempts within 20 seconds; if the service remains unavailable, work does not start.
+See [CI quota enforcement and accounting](/dev/configuration/env-vars/ci-quota/) for runner-class limits and retry behavior.
+
+Each workflow is reported separately after it finishes, excluding queue time.
+Reports are idempotent and are classified as Linux, Windows, or macOS from the workflow platform.
+
 See [email notifications](/dev/usage/notifications/) for full usage documentation.
 
 ## Maintenance
 
 Built-in maintenance jobs accessible via Settings → Maintenance.
+The Action Log has a separate tab for each maintenance action, with up to 50 recent log lines per tab.
+Select a tab to view its logs or use **Wipe Log** to clear that tab from the current view.
 
 ![Maintenance Panel](img/maintenance-panel.png)
 
@@ -735,8 +769,23 @@ Reclaims database space after log deletion.
 
 ### Kubernetes Cleanup
 
-Removes orphaned resources (PVCs, secrets, services) older than 7 days.
+Removes Crow-labeled resources (PVCs, secrets, services) older than the configured age, which defaults to 7 days.
+Configure the following on the **server**, using the namespaces where agents create resources:
 
-```yaml
+```shell
+CROW_MAINTENANCE_KUBERNETES_CLEANUP_ENABLED=true
 CROW_MAINTENANCE_KUBERNETES_CLEANUP_AGE=168h
+CROW_MAINTENANCE_KUBERNETES_CLEANUP_NAMESPACES=git,crow-42
 ```
+
+Without an explicit namespace list, cleanup uses the server's namespace.
+The server's Kubernetes credentials must have `list` and `delete` permission for secrets, services, and PVCs in every configured namespace.
+Agents' permissions do not grant the server access, and cleanup does not discover other agent clusters.
+List or deletion errors mark the maintenance run as failed while cleanup continues for other resources and namespaces.
+Use the maintenance dry run to verify the selected resources before deleting old leftovers.
+
+Workflow teardown also deletes step and registry secrets after cancellation, setup failures, and detached steps.
+Scheduled cleanup handles leftovers from interruptions such as an agent crash.
+Only resources with `app.kubernetes.io/managed-by=crow` are eligible for scheduled cleanup.
+For unlabeled legacy secrets, verify ownership and that no running workflow needs them before explicitly labeling them for cleanup or deleting them manually.
+Names ending in `-step-secret` alone are not proof of ownership.

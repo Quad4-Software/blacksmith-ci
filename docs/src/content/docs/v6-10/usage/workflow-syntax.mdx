@@ -393,6 +393,29 @@ The above example would trigger the workflow
 
 For more information about the specific filter combinations, take a look at the [step-specific `when` filters](#when-1).
 
+### Event filters in `when`
+
+Entries in a `when:` list are combined with OR, so an entry without an `event:` filter matches every event, including `cron`, `manual` and `deployment`.
+The linter warns about this unless every entry sets `event:`, either in the workflow-level `when:` or in the `when:` of each step.
+An `evaluate:` expression that references `CI_PIPELINE_EVENT` counts as an event filter.
+
+To restrict an event to a branch, put both filters into the same entry:
+
+```yaml
+when:
+  # push events to main only
+  - event: push
+    branch: main
+```
+
+Splitting them into two entries triggers the workflow on every push and on every event for `main`:
+
+```yaml
+when:
+  - event: push
+  - branch: main
+```
+
 ## workspace
 
 The workspace defines the shared volume and working directory which is shared by all workflow steps.

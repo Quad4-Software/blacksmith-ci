@@ -4,6 +4,15 @@ title: "Pipelines"
 
 ![Pipeline List View](img/pipeline-list-view.png)
 
+## Workflow shortcuts
+
+Open **Workflows** alongside the event, branch, and date filters to filter the pipeline list by workflow.
+The popover overlays the list and shows the selected filter count when closed.
+Users with push permission can open the chevron beside **Run pipeline** to choose a workflow from the **Quick run workflow** menu.
+Selecting a workflow starts it immediately on the branch shown in the menu: the selected branch, or the repository default branch when no branch filter is selected.
+Quick runs use the workflow’s default variable values and open the new pipeline.
+Use **Run pipeline** when you need to supply required variables or customize a run.
+
 ## Concepts
 
 Crow uses a three-level hierarchy: **pipeline > workflow > step**.
@@ -38,6 +47,12 @@ By default, workflows do not have a dependency to each other and are executed in
 Steps within a workflow are executed sequentially by their order of definition.
 
 Both steps and workflows accept a `depends_on: []` key which can be used to specify an explicit execution order.
+
+### Step preparation
+
+A step enters the `preparing` state while its backend pulls or locates the image, creates the container, connects its networks, and starts it.
+The step changes to `running` only after the backend has successfully started the process, so the running duration does not include backend setup time.
+The step log shows preparation milestones such as image pulls and container creation as they happen.
 
 :::caution
 Each workflow is isolated from other workflows with respect to its working directory and file access.
@@ -218,6 +233,47 @@ services:
   :::tip
   For the kubernetes backend, architecture-specific pipelines should be controlled via the [`nodeSelector` backend option](/dev/configuration/server/#backend-options-1).
   :::
+
+## Reading step logs
+
+Each command a step runs is echoed into the log as a `+ <command>` line before it executes.
+The log view uses those markers to group a step's output into one collapsible section per command, so a long step reads as a list of commands rather than an undifferentiated wall of text.
+
+Click a section header to fold or unfold it.
+A folded header keeps showing the command, how many lines it hides, and how long the command ran.
+The toolbar button above the log folds or unfolds every section at once, and output produced before the first command (such as the clone) is never folded away.
+
+Sections are unfolded by default.
+Turn the grouping off entirely under **Log View Settings > Fold command output**; the choice is remembered per browser.
+
+:::note
+Only the traces the step script emits on stdout start a section.
+Shell tracing you enable yourself with `set -x` writes to stderr and is left as plain output.
+:::
+
+### Jumping to warnings and errors
+
+Crow classifies each log line as it arrives, tinting warnings yellow and errors red.
+The bar above the log collects those lines into an index of the step's problems, so a warning buried thousands of lines down is one click away.
+
+The bar only appears when a step produced at least one warning or error.
+It shows how many of each the step has; click a count to hide that severity and narrow the list to the other one, which is how you get to errors only.
+A hidden severity is struck through, and the choice is remembered per browser, so "errors only" stays set as you move between steps.
+You can hide both severities; the count buttons remain available to turn them back on.
+Hiding a severity also disables its line highlighting.
+The up and down buttons step through the issues in log order, unfolding a section when the line it holds is folded away, and the copy button puts the whole list on the clipboard as `line`, severity and text.
+
+Expand the bar with the chevron to see the list itself.
+Each entry names the line number, the text, and the command whose section the line sits in.
+Consecutive lines of the same severity are collected into one entry with a `+n` badge, since a tool that reports one problem over several lines should not fill the list with it.
+
+:::note
+Classification is based on what a line says rather than which stream it came from, because many tools write progress and success notices to stderr.
+Crow's command traces on stdout and zero counts such as `0 warnings` are ignored.
+Quoted words and language-specific console output receive no special handling.
+Other lines containing "warning" are treated as warnings even when they also mention an error, and an error-shaped line on stdout is left plain.
+The counts describe detected log entries, not a language-specific check result: a warning remains indexed even when a later line reports `OK`.
+:::
 
 ## Skipping commits
 

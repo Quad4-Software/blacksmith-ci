@@ -1,0 +1,415 @@
+---
+title: 'Backend: Hyper-V (Windows)'
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+
+The Hyper-V backend gives every workflow its own throwaway Windows virtual machine, created from a golden disk before the first step and deleted after the last one.
+
+The agent stays on the host, outside the VM.
+Steps reach the guest over [PowerShell Direct](https://learn.microsoft.com/en-us/virtualization/hyper-v-on-windows/user-guide/powershell-direct), which travels across the VMBus rather than the network, so a guest needs no network adapter for the agent to drive it.
+Pipeline code therefore never shares an operating system with the agent or its registration token.
+
+This is what the [docker backend](/dev/configuration/env-vars/backend-docker/) cannot offer on Windows.
+There, `backend_options.docker.isolation: hyperv` gives a step its own kernel, but the daemon, its image cache and its network stay shared and long-lived across every job on the host.
+Use the docker backend for a trusted Windows fleet, and this one when steps are untrusted.
+
+<Aside type="note" title="How this backend is tested">
+The bulk of Crow's test suite runs on Linux, where Hyper-V does not exist, so the tests that run everywhere cover this backend's pure logic: script generation, option parsing, VM naming and the slot cap.
+
+Its end-to-end behavior is covered by an integration suite that drives real VMs, together with a `crow exec` run through the backend.
+Both run from `.crow/test-hyperv.yaml` on an autoscaled Azure `Standard_D4s_v5`, triggered manually because each run cold-boots Windows guests.
+Run the suite yourself on any Hyper-V host with `just test-hyperv-integration`, with `CROW_BACKEND_HYPERV_BASE_VHDX` and the guest credentials set; it skips itself when they are not.
+
+That test agent runs the **local** backend, not this one: a workflow cannot drive the hypervisor from inside one of its own guests without nested virtualization.
+</Aside>
+
+## Host Requirements
+
+- Windows Server 2016 or newer (or Windows 10/11 Pro) with the **Hyper-V role** installed, including the Hyper-V PowerShell module.
+- Hardware virtualization available to the host. On a host that is itself a VM this means the hypervisor underneath must expose nested virtualization, which many cloud instance types do not.
+- The agent must run as a member of **Hyper-V Administrators** (or as `LocalSystem`), because PowerShell Direct and the Hyper-V cmdlets both require it.
+- Enough disk for one differencing disk per concurrent workflow, and enough RAM for one guest each.
+
+## Licensing
+
+Guest count is a licensing question, not a capacity one:
+
+| Edition | Guests per licensed host | Setting |
+| --- | --- | --- |
+| Windows Server Standard | 2 | `CROW_BACKEND_HYPERV_MAX_VMS=2` (the default) |
+| Windows Server Datacenter | unlimited | `CROW_BACKEND_HYPERV_MAX_VMS=0` |
+
+`CROW_BACKEND_HYPERV_MAX_VMS` defaults to `2` deliberately.
+Defaulting to unlimited would quietly put a Standard-licensed host out of compliance, so a Datacenter operator raises it as an explicit decision.
+
+Pair it with `CROW_MAX_WORKFLOWS`, which is what actually paces the agent.
+The backend's cap is a backstop: a workflow that arrives with every slot taken fails rather than queueing, on the grounds that a stall nobody can see is worse than a clear error.
+
+<Aside type="note" title="Public instances">
+Offering Windows builds to arbitrary contributors is a different licensing question again, and a more expensive one.
+See the discussion in the Crow issue tracker before planning a public Windows offering.
+</Aside>
+
+## Golden Image Requirements
+
+The base VHDX is never written to; each workflow gets a differencing child of it, which is why creating one is instant.
+
+The image needs:
+
+- A **local administrator account** whose username and password you give the agent. The VM is disposable and, by default, has no network adapter, so this is not a host credential.
+- **PowerShell 5.1 or newer** in the guest, which every supported Windows edition ships.
+- Whatever toolchain your pipelines call, plus `git` if you clone. There are no per-step container images, so the image is the environment.
+
+### Building a golden image
+
+Crow cannot ship a golden image: Windows licensing does not allow redistributing one.
+Instead, `contrib/hyperv/build-golden-image.ps1` in the Crow repository builds one from a Windows Server ISO on the Hyper-V host itself, with nothing to install beyond the Hyper-V role.
+
+It applies the edition from the ISO onto a fresh VHDX, adds an answer file that creates the administrator account, and boots the disk once so that first-boot setup has already run when a workflow VM starts.
+It does not run sysprep: workflow VMs are disposable clones, so a shared machine SID does not matter, and skipping it saves each clone a specialize pass on boot.
+
+Run it as an administrator on the host:
+
+```powershell
+# downloads the Windows Server 2022 evaluation ISO unless -IsoPath is given
+.\contrib\hyperv\build-golden-image.ps1 `
+  -Path C:\crow-images\ws2022-golden.vhdx `
+  -Username crow `
+  -Password (Read-Host -AsSecureString 'guest password')
+```
+
+To install your pipelines' toolchain, give the build VM network access with `-SwitchName` and run setup scripts in the guest with `-SetupScript`.
+`contrib/hyperv/guest-setup-git.ps1` installs Git for Windows, which the clone step needs, and is a template for your own:
+
+```powershell
+.\contrib\hyperv\build-golden-image.ps1 `
+  -Path C:\crow-images\golden.vhdx `
+  -Username crow `
+  -Password (Read-Host -AsSecureString 'guest password') `
+  -SwitchName crow-nat `
+  -SetupScript .\contrib\hyperv\guest-setup-git.ps1
+```
+
+The scripts run over PowerShell Direct as the guest administrator, after first-boot setup and before the image is sealed, and the build fails if one throws.
+The build VM gets the same blocked networks as workflow VMs.
+
+Then point the agent at the result:
+
+```shell
+CROW_BACKEND_HYPERV_BASE_VHDX=C:\crow-images\ws2022-golden.vhdx
+CROW_BACKEND_HYPERV_GUEST_USERNAME=crow
+CROW_BACKEND_HYPERV_GUEST_PASSWORD=<the password you gave the script>
+```
+
+A build takes about 7 minutes on a 4-vCPU Azure VM, plus the time your setup scripts take, and needs about 20 GB free while it runs.
+The result is a Server Core image of about 6 GB with nothing but PowerShell in it, or 6.2 GB with git; pass `-ImageName` to pick another edition from the ISO.
+
+The default ISO is the evaluation edition, whose license expires 180 days after the image is built.
+An expired guest shuts itself down every hour, so rebuild before then, or pass `-IsoPath` with your own licensed media.
+Rebuilding is also how the image gets Windows updates: workflow VMs write only to their differencing disks, so nothing they install persists.
+
+Stop the agent, or let its running workflows finish, before replacing the image.
+Workflow disks are differencing children of the base VHDX, and changing a parent invalidates every child still attached to it.
+
+## Networking
+
+`CROW_BACKEND_HYPERV_SWITCH` names the virtual switch guests attach to.
+Leave it empty and the VM gets **no network adapter at all** — maximally isolated, but nothing in the pipeline can reach the network, including the clone step.
+
+For a guest that needs egress but must not see your LAN, use an internal switch with NAT.
+Hyper-V's NAT forwards traffic but does not hand out addresses, so the switch also needs a DHCP server, or a guest never gets an address.
+`contrib/hyperv/setup-nat-network.ps1` sets up both: an internal switch, a NAT for its subnet, and the DHCP Server role with a scope on it.
+It is idempotent, so it is safe to run at every boot:
+
+```powershell
+# guests get 192.168.176.100-250, with 1.1.1.1 and 8.8.8.8 for DNS
+.\contrib\hyperv\setup-nat-network.ps1 -SwitchName crow-nat
+```
+
+The DHCP server only answers on interfaces with a static address, which the switch's host side is and a cloud VM's own adapter is not, so it stays off the host's network.
+
+### What guests cannot reach
+
+A guest's traffic leaves through the host, so without restrictions a workflow reaches whatever the host can.
+On an Azure `Standard_D4s_v5` behind a NAT switch, an unrestricted guest could open connections to Azure's wire server and to RDP, WinRM, SMB and RPC on the host itself, both at the NAT gateway address and at the host's own address on the virtual network.
+It could not reach the instance metadata service, which did not answer traffic through the NAT.
+
+Two layers close this off.
+
+`CROW_BACKEND_HYPERV_BLOCKED_NETWORKS` blocks these ranges by default:
+
+| Range | Why |
+| --- | --- |
+| `169.254.0.0/16` | Link-local, where every major cloud's metadata service lives, in case a setup forwards it |
+| `168.63.129.16/32` | Azure's wire server, which talks to the VM agent |
+| `10.0.0.0/8`, `172.16.0.0/12` | Private ranges, usually the cloud network or LAN the host is on |
+
+They are port ACLs on each guest's network adapter, enforced by the switch outside the guest, so a step running as the guest's administrator cannot lift them.
+`192.168.0.0/16` is not blocked by default, because that is where the NAT subnet and its DHCP server are; if your NAT subnet is elsewhere, make sure it is not inside a blocked range.
+Add the ranges of anything else guests must not reach, or set the variable to `none` to block nothing.
+
+The host's own address on the NAT subnet cannot be blocked that way, because it is the guests' gateway.
+`setup-nat-network.ps1` adds host firewall rules instead, which block every connection from the switch to the host except DHCP.
+If you set the network up some other way, add equivalent rules.
+
+The integration suite checks both from inside a guest: the host's services and Azure's wire server are unreachable, while the internet is not.
+
+## Selecting the Backend
+
+Set `CROW_BACKEND=hyperv` on the agent.
+It is never auto-detected: the local backend is available on any Windows host that is not a container, so installing the Hyper-V role must not silently change how an existing agent runs pipelines.
+
+## Configuration
+
+### BACKEND_HYPERV_BASE_VHDX
+
+- Name: `CROW_BACKEND_HYPERV_BASE_VHDX`
+- Description: Path to the golden VHDX each workflow's VM is a differencing child of. Required.
+- Default: none
+
+---
+
+### BACKEND_HYPERV_GUEST_USERNAME
+
+- Name: `CROW_BACKEND_HYPERV_GUEST_USERNAME`
+- Description: Local account in the golden image that PowerShell Direct authenticates as. Must be an administrator in the guest. Required.
+- Default: none
+
+---
+
+### BACKEND_HYPERV_GUEST_PASSWORD
+
+- Name: `CROW_BACKEND_HYPERV_GUEST_PASSWORD`
+- Description: Password for that account. Required.
+  It never appears in a command line: the agent passes every script to PowerShell on stdin, so the value is not visible to other processes on the host.
+- Default: none
+
+---
+
+### BACKEND_HYPERV_MAX_VMS
+
+- Name: `CROW_BACKEND_HYPERV_MAX_VMS`
+- Description: How many VMs may be alive at once. `0` means unlimited, for a Datacenter-licensed host. See [Licensing](#licensing).
+- Default: `2`
+
+---
+
+### BACKEND_HYPERV_SWITCH
+
+- Name: `CROW_BACKEND_HYPERV_SWITCH`
+- Description: Virtual switch guests attach to. Empty gives the guest no network adapter at all. See [Networking](#networking).
+- Default: none
+
+---
+
+### BACKEND_HYPERV_BLOCKED_NETWORKS
+
+- Name: `CROW_BACKEND_HYPERV_BLOCKED_NETWORKS`
+- Description: Comma-separated CIDR ranges a guest on a switch cannot reach, enforced by port ACLs on its adapter. `none` blocks nothing. See [What guests cannot reach](#what-guests-cannot-reach).
+- Default: `169.254.0.0/16,168.63.129.16/32,10.0.0.0/8,172.16.0.0/12`
+
+---
+
+### BACKEND_HYPERV_VM_PATH
+
+- Name: `CROW_BACKEND_HYPERV_VM_PATH`
+- Description: Directory the per-workflow differencing disks are created in. Empty uses the host's Hyper-V default.
+- Default: none
+
+---
+
+### BACKEND_HYPERV_GUEST_BASE
+
+- Name: `CROW_BACKEND_HYPERV_GUEST_BASE`
+- Description: Directory inside the guest holding the workspace, temp directory and home of a workflow.
+  It sits off the system drive rather than in a profile directory so it does not depend on which account the golden image was built with.
+- Default: `C:\crow`
+
+---
+
+### BACKEND_HYPERV_CPU
+
+- Name: `CROW_BACKEND_HYPERV_CPU`
+- Description: vCPUs given to each VM. `0` keeps Hyper-V's own default.
+- Default: `0`
+
+---
+
+### BACKEND_HYPERV_MEMORY
+
+- Name: `CROW_BACKEND_HYPERV_MEMORY`
+- Description: Memory given to each VM (e.g. `8Gi`, `4096Mi`). Empty keeps Hyper-V's own default.
+  When set, dynamic memory is turned off so a build cannot be throttled by the balloon driver mid-step.
+- Default: none
+
+---
+
+### BACKEND_HYPERV_GENERATION
+
+- Name: `CROW_BACKEND_HYPERV_GENERATION`
+- Description: Hyper-V VM generation, `1` or `2`. Generation 2 is right for anything from Windows Server 2012 R2 on; `1` exists for older golden images.
+- Default: `2`
+
+---
+
+### BACKEND_HYPERV_STARTUP_TIMEOUT
+
+- Name: `CROW_BACKEND_HYPERV_STARTUP_TIMEOUT`
+- Description: How long to wait for a booted VM to answer PowerShell Direct.
+- Default: `10m`
+
+---
+
+### BACKEND_HYPERV_POWERSHELL
+
+- Name: `CROW_BACKEND_HYPERV_POWERSHELL`
+- Description: PowerShell executable used to drive Hyper-V on the host.
+- Default: `powershell.exe`
+
+## Known Limitations
+
+- **Job start is a cold boot.** A Server Core guest on a `Standard_D4s_v5` takes about 30 seconds to reach a logged-on runspace, and each workflow pays that once. A warm pool of pre-booted VMs would make this near-instant and is not implemented.
+- **Output streams are merged.** PowerShell Direct carries the guest's stdout and stderr back interleaved on one channel, so unlike the tart backend there are not two streams to tag apart; everything is reported as stdout.
+- **Steps run in Windows PowerShell 5.1.** The `image` of a command step is ignored; every step runs in the guest's own PowerShell, so a step that needs PowerShell 7 or any other tool needs it installed in the golden image.
+- **No `temp_volumes`.** The VM is the isolation boundary; there is no host directory to mount into it.
+- **A killed agent leaves its guests running.** Unlike a tart VM, which is a child process, a Hyper-V VM is owned by the hypervisor. Stale-resource cleanup reclaims any `crow-` VM that does not belong to a build in flight.
+
+## Setting Up a Host
+
+<Steps>
+
+1. Install the Hyper-V role and reboot, as shown below.
+
+2. Build a golden image as described in [Building a golden image](#building-a-golden-image), with git and the rest of your pipelines' toolchain in it.
+
+3. Optionally, create a NAT switch with `setup-nat-network.ps1` so steps can reach the network, as described in [Networking](#networking). Without one, steps run fully offline, which also rules out the clone step.
+
+4. Install the agent from the [Windows agent zip](/dev/configuration/windows-agent/#autoscaler-integration) and configure it for this backend, as shown below.
+
+5. Run the agent as `LocalSystem` or as a member of **Hyper-V Administrators**, through a wrapper such as WinSW; see [Graceful shutdown and Windows services](/dev/configuration/windows-agent/#graceful-shutdown-and-windows-services) for why it cannot be a plain Windows service.
+
+</Steps>
+
+Installing the role:
+
+```powershell
+Install-WindowsFeature -Name Hyper-V -IncludeManagementTools -Restart
+```
+
+The agent's configuration:
+
+```shell
+CROW_SERVER=grpc.crow.example.com:443
+CROW_GRPC_SECURE=true
+CROW_AGENT_SECRET=<agent token>
+CROW_BACKEND=hyperv
+CROW_BACKEND_HYPERV_BASE_VHDX=C:\crow-images\ws2022-golden.vhdx
+CROW_BACKEND_HYPERV_VM_PATH=C:\crow-vms
+CROW_BACKEND_HYPERV_GUEST_USERNAME=crow
+CROW_BACKEND_HYPERV_GUEST_PASSWORD=<the golden image's password>
+CROW_BACKEND_HYPERV_SWITCH=crow-nat
+CROW_MAX_WORKFLOWS=2
+CROW_AGENT_LABELS=platform=windows/amd64
+```
+
+Then route workflows to it with `labels: platform: windows/amd64`.
+
+## Provisioning a Host in the Cloud
+
+A host for this backend must offer **nested virtualization**, because Hyper-V inside a cloud VM is itself a hypervisor inside a hypervisor.
+That rules out most instance types, and it is the constraint that decides the provider rather than price alone.
+
+| Provider | Nested virtualization | Notes |
+| --- | --- | --- |
+| Azure | Dv5/Dsv5, Ev3/Ev4/Ev5, Fsv2, AMD v6 (Dalsv6, Easv6) | No bare metal needed. A Windows `Standard_D4s_v5` is $0.38 to $0.41 an hour depending on region, license included. **B-series and A-series do not support it.** |
+| AWS | `*.metal` instance types only | Works, but a Windows `c5.metal` is about $9 an hour. |
+| Hetzner Cloud, Linode, Scaleway, Vultr | Not available | A Windows guest there cannot run Hyper-V at all. |
+
+Azure is the cheaper path by more than an order of magnitude; see [What It Costs](/dev/configuration/windows-agent/#what-it-costs) for prices and per-run estimates.
+
+### Autoscaling on Azure
+
+The autoscaler can create the host on demand and delete it when idle, so a pool that is rarely used costs little.
+Azure Windows hosts are supported from autoscaler v2.1.3.
+A bootstrap larger than about 3 KB, such as one that installs Hyper-V, also needs [autoscaler#186](https://codefloe.com/crowci/autoscaler/pulls/186), which passes it as custom data rather than on a command line limited to 8191 characters; until a release includes it, use the `crow-autoscaler:dev` image.
+
+The Azure side needs, once per subscription:
+
+- The `Microsoft.Compute` and `Microsoft.Network` resource providers registered.
+- vCPU quota for the VM family. New subscriptions often have a quota of 0 for DSv5, and creating the VM fails until it is raised.
+- A service principal with **Contributor** on the resource group the VMs go into.
+- A virtual network and subnet **in the same region** as the VMs.
+
+Run a dedicated autoscaler instance for the pool, so it idles at zero hosts and only scales for work labelled for it:
+
+```ini
+CROW_PROVIDER=azure
+CROW_OS_TYPE=windows
+CROW_AZURE_SUBSCRIPTION_ID=<subscription id>
+CROW_AZURE_RESOURCE_GROUP=crow
+CROW_AZURE_SUBNET_ID=/subscriptions/<id>/resourceGroups/crow/providers/Microsoft.Network/virtualNetworks/crow/subnets/default
+# append :spot for spot pricing
+CROW_AZURE_COMPUTE_SPECS=vm:westeurope:Standard_D4s_v5
+CROW_AZURE_VM_IMAGE=MicrosoftWindowsServer:WindowsServer:2022-datacenter-g2:latest
+CROW_AZURE_PUBLIC_IPV4_ENABLE=true
+# only if the subnet has no IPv6 range
+CROW_AZURE_PUBLIC_IPV6_ENABLE=false
+AZURE_TENANT_ID=<tenant id>
+AZURE_CLIENT_ID=<service principal id>
+AZURE_CLIENT_SECRET_FILE=/run/secrets/azure_client_secret
+CROW_AGENT_IMAGE=https://codefloe.com/crowci/crow/releases/download/<version>/crow-agent_windows_amd64.zip
+CROW_PROVIDER_USERDATA_FILE=/etc/crow/autoscaler-bootstrap.ps1
+# only count tasks that ask for this pool
+CROW_FILTER_LABELS=group=windows-hyperv
+CROW_AGENT_ENV=CROW_SERVER=grpc.crow.example.com:443,CROW_GRPC_SECURE=true,CROW_AGENT_LABELS=group=windows-hyperv
+CROW_MIN_AGENTS=0
+CROW_MAX_AGENTS=1
+# how long an idle host is kept before it is deleted
+CROW_AGENT_IDLE_TIMEOUT=10m
+```
+
+The autoscaler declines to scale up when its own agents' labels cannot serve the pending tasks, so a Windows pool and a Linux pool coexist without either spawning for the other's work.
+Every `CROW_AGENT_ENV` entry is set as a machine-wide environment variable on the agent host.
+
+### The bootstrap
+
+The stock Windows bootstrap only downloads and starts the agent.
+A Hyper-V host also needs the role, guest networking, a golden image and the backend configured, so it needs the bootstrap Crow ships for it, `contrib/hyperv/autoscaler-bootstrap.ps1` in the Crow repository.
+Pass it with `CROW_PROVIDER_USERDATA_FILE`.
+
+It installs the Hyper-V role without rebooting and schedules the reboot for after it has exited.
+After the reboot, a startup task runs `setup-nat-network.ps1`, builds the golden image with git in it if there is none yet, and starts the agent with `CROW_BACKEND=hyperv`.
+The task runs at every boot and skips what already exists, so an interrupted image build is retried.
+
+It fills in sensible defaults for the backend, `CROW_BACKEND_HYPERV_SWITCH=crow-nat` among them, and generates a guest password on the host, which it uses for both the image and the agent; anything you set in `CROW_AGENT_ENV` takes precedence.
+It downloads the helper scripts from `CROW_HYPERV_SCRIPTS_URL`, which defaults to the Crow repository at the tag of the agent's own release, `https://codefloe.com/crowci/crow/raw/tag/v<version>/contrib/hyperv`.
+An agent that is not a release build has no tag, so the bootstrap then fails until you set the variable; it never fetches code from a moving branch, since that code runs as `SYSTEM`.
+Pin the bootstrap itself the same way: point `CROW_PROVIDER_USERDATA_FILE` at a copy taken from a release tag.
+
+The start task refuses to start the agent unless `CROW_BACKEND` is `hyperv`.
+The host exists to run workflows inside VMs, and an agent on it with another backend, or with the backend left to auto-detection, would run them on the host itself.
+
+A fresh host takes about 8 minutes to boot and reboot, and about 8 more to build the golden image, before its agent connects.
+That is within the autoscaler's default `CROW_AGENT_INACTIVITY_TIMEOUT` of 30 minutes; do not lower it below 20.
+
+<Aside type="caution" title="Do not reboot inside the bootstrap">
+On Azure the bootstrap runs as a `CustomScriptExtension`, and a reboot part-way through is reported as extension failure — which makes the provider delete the host it has just built.
+`Install-WindowsFeature Hyper-V -Restart` therefore destroys the machine it was meant to prepare.
+Install the role without `-Restart`, register a scheduled task to finish the setup at startup, and schedule the reboot so the extension can exit successfully first.
+</Aside>
+
+### Guest licensing in the cloud
+
+The two-guest ceiling in [Licensing](#licensing) is a Windows Server **Standard** rule and does not automatically apply to a cloud host.
+
+Azure Windows Server VMs are Datacenter-licensed, so nested guests are covered by the host's compute cost — you pay per vCPU-hour and may use those cores for the host and its guests as you like.
+The exception is the **Windows Server Datacenter: Azure Edition** SKU, which does *not* include nested-guest licensing; pin a plain `MicrosoftWindowsServer:WindowsServer:2022-datacenter-g2:latest` instead.
+
+So on Azure the practical cap is memory, not licensing.
+A 16 GB `Standard_D4s_v5` comfortably holds two guests once the host has its own ~4 GB, which is why `CROW_BACKEND_HYPERV_MAX_VMS=2` remains a reasonable default there for entirely different reasons than on-premises.
+
+<Aside type="caution" title="Nested virtualization is not a production footing">
+Microsoft positions nested virtualization for validation, training and special-purpose scenarios rather than production workloads.
+That is fine for a CI test rig, and it is not a foundation to build a public Windows offering on.
+</Aside>
