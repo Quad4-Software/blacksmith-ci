@@ -98,6 +98,7 @@ export default defineConfig({
             switcherStyle: 'horizontalList',
           },
           nav: [
+            { label: 'Website', href: 'https://crowci.com' },
             { label: 'CodeFloe', href: 'https://codefloe.com/crowci/crow' },
             { label: 'Donate', href: 'https://liberapay.com/crowci' },
           ],
