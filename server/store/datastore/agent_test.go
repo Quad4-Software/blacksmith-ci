@@ -16,8 +16,10 @@ package datastore
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"codefloe.com/crowci/crow/v6/server/model"
 )
@@ -203,4 +205,42 @@ func TestAgentListForOrgMultiOrg(t *testing.T) {
 		names = append(names, a.Name)
 	}
 	assert.ElementsMatch(t, []string{"five", "shared"}, names)
+}
+
+// TestAgentTimestamps pins down what XORM's created and updated tags used to
+// do. The autoscaler times out an agent that never connects from its creation
+// time, so an agent stored without one was never cleaned up.
+func TestAgentTimestamps(t *testing.T) {
+	store, closer := newTestStore(t, new(model.Agent))
+	defer closer()
+
+	before := time.Now().Unix()
+	agent := &model.Agent{Name: "timestamps", Token: "timestamps-token", Capacity: 1}
+	require.NoError(t, store.AgentCreate(agent))
+
+	stored, err := store.AgentFind(agent.ID)
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, stored.Created, before)
+	assert.GreaterOrEqual(t, stored.Updated, before)
+
+	// An update moves Updated and leaves Created alone.
+	stored.Created = 1
+	stored.Updated = 1
+	stored.Name = "renamed"
+	require.NoError(t, store.AgentUpdate(stored))
+	updated, err := store.AgentFind(agent.ID)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), updated.Created)
+	assert.GreaterOrEqual(t, updated.Updated, before)
+}
+
+func TestAgentCreateKeepsAGivenCreationTime(t *testing.T) {
+	store, closer := newTestStore(t, new(model.Agent))
+	defer closer()
+
+	agent := &model.Agent{Name: "preset", Token: "preset-token", Created: 42}
+	require.NoError(t, store.AgentCreate(agent))
+	stored, err := store.AgentFind(agent.ID)
+	require.NoError(t, err)
+	assert.Equal(t, int64(42), stored.Created)
 }
