@@ -341,6 +341,12 @@ func TestCloneStepChecksOutTheCommit(t *testing.T) {
 			"CI_COMMIT_SHA":     cloneTestSHA,
 			"CI_PIPELINE_EVENT": "push",
 			"PLUGIN_DEPTH":      "1",
+			// A server-scheduled clone always carries credentials, which the
+			// step writes to a netrc first. For a host nothing resolves, so
+			// they are written but never sent to the forge.
+			"CI_NETRC_MACHINE":  "netrc.invalid",
+			"CI_NETRC_USERNAME": "crow",
+			"CI_NETRC_PASSWORD": "not-a-secret",
 		},
 	}, taskUUID)
 	require.Equal(t, 0, code, out)

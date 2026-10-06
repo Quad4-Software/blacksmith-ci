@@ -39,6 +39,9 @@ func TestPSDecodeRoundTrips(t *testing.T) {
 	decoded, err := base64.StdEncoding.DecodeString(got[start:end])
 	assert.NoError(t, err)
 	assert.Equal(t, secret, string(decoded))
+
+	// Parenthesized, so it is one value even as a bare command argument.
+	assert.True(t, strings.HasPrefix(got, "(") && strings.HasSuffix(got, ")"), got)
 }
 
 func TestCredentialScriptKeepsPasswordOutOfTheLiteral(t *testing.T) {

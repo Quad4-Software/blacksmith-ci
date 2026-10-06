@@ -40,9 +40,15 @@ func psQuote(s string) string {
 // Anything carrying a secret or a whole script body goes through this rather
 // than psQuote: base64 has no PowerShell metacharacters and no line structure,
 // so a value cannot terminate the literal that holds it however it is composed.
+//
+// The expression is parenthesized so it can stand anywhere a value can. As a
+// bare command argument, PowerShell would split it after GetString and hand
+// the command two arguments, the second a byte array: the clone step's netrc
+// write failed that way with "A positional parameter cannot be found that
+// accepts argument 'System.Byte[]'".
 func psDecode(s string) string {
 	encoded := base64.StdEncoding.EncodeToString([]byte(s))
-	return fmt.Sprintf("[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('%s'))", encoded)
+	return fmt.Sprintf("([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('%s')))", encoded)
 }
 
 // credentialScript builds the PSCredential that PowerShell Direct

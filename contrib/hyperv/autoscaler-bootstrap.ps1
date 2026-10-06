@@ -147,23 +147,55 @@ if ($env:CROW_BACKEND -ne 'hyperv') {
   throw "CROW_BACKEND is '$env:CROW_BACKEND', not 'hyperv'; refusing to start the agent"
 }
 
-$switch = $env:CROW_BACKEND_HYPERV_SWITCH
-# Only the default switch is managed here. One with any other name is the
-# operator's, set up in a custom image or by their own script.
-if ($switch -eq 'crow-nat') {
-  & 'C:\crow-agent\setup-nat-network.ps1' -SwitchName $switch -DnsServer ($env:CROW_HYPERV_GUEST_DNS -split ',')
+# The task starts early in boot, and on the first boot after the role was
+# installed Hyper-V's management service is still coming up: a Hyper-V cmdlet
+# run then fails with "could not access an expected WMI class". Wait for it.
+$deadline = (Get-Date).AddMinutes(15)
+while ($true) {
+  try {
+    Get-VMHost -ErrorAction Stop | Out-Null
+    break
+  } catch {
+    if ((Get-Date) -gt $deadline) { throw "Hyper-V did not become ready within 15 minutes: $_" }
+    Start-Sleep -Seconds 10
+  }
 }
 
-if (-not (Test-Path -LiteralPath $env:CROW_BACKEND_HYPERV_BASE_VHDX)) {
-  & 'C:\crow-agent\build-golden-image.ps1' -Path $env:CROW_BACKEND_HYPERV_BASE_VHDX `
-    -Username $env:CROW_BACKEND_HYPERV_GUEST_USERNAME `
-    -Password (ConvertTo-SecureString $env:CROW_BACKEND_HYPERV_GUEST_PASSWORD -AsPlainText -Force) `
-    -SwitchName $switch -SetupScript 'C:\crow-agent\guest-setup-git.ps1'
+# Retried here because the Task Scheduler will not: its restart-on-failure
+# setting covers a task that fails to launch, not one that exits non-zero.
+# Every step skips what already exists, so a retry resumes where the last
+# attempt failed.
+$switch = $env:CROW_BACKEND_HYPERV_SWITCH
+for ($attempt = 1; ; $attempt++) {
+  try {
+    # Only the default switch is managed here. One with any other name is the
+    # operator's, set up in a custom image or by their own script.
+    if ($switch -eq 'crow-nat') {
+      & 'C:\crow-agent\setup-nat-network.ps1' -SwitchName $switch -DnsServer ($env:CROW_HYPERV_GUEST_DNS -split ',')
+    }
+
+    if (-not (Test-Path -LiteralPath $env:CROW_BACKEND_HYPERV_BASE_VHDX)) {
+      & 'C:\crow-agent\build-golden-image.ps1' -Path $env:CROW_BACKEND_HYPERV_BASE_VHDX `
+        -Username $env:CROW_BACKEND_HYPERV_GUEST_USERNAME `
+        -Password (ConvertTo-SecureString $env:CROW_BACKEND_HYPERV_GUEST_PASSWORD -AsPlainText -Force) `
+        -SwitchName $switch -SetupScript 'C:\crow-agent\guest-setup-git.ps1'
+    }
+    break
+  } catch {
+    if ($attempt -ge 3) { throw }
+    Write-Output "host setup attempt $attempt failed, retrying in a minute: $_"
+    Start-Sleep -Seconds 60
+  }
 }
 
 Stop-Transcript | Out-Null
-& 'C:\crow-agent\crow-agent.exe'
-exit $LASTEXITCODE
+
+# Restarted here for the same reason: an agent that exits, with whatever code,
+# would otherwise leave the host without one until the next reboot.
+while ($true) {
+  & 'C:\crow-agent\crow-agent.exe'
+  Start-Sleep -Seconds 10
+}
 '@
 Set-Content -LiteralPath (Join-Path $agentDir 'start.ps1') -Value $startScript -Encoding UTF8
 
