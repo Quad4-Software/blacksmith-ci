@@ -7,11 +7,11 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* General Sans - self-hosted variable font */
+/* Asap - self-hosted variable font, tabular numbers by default */
 @font-face {
-  font-family: 'General Sans';
-  src: url('/fonts/GeneralSans-Variable.woff2') format('woff2-variations');
-  font-weight: 200 700;
+  font-family: 'Asap';
+  src: url('/fonts/Asap-Variable.woff2') format('woff2-variations');
+  font-weight: 100 900;
   font-display: swap;
   font-style: normal;
 }
@@ -26,7 +26,7 @@
 
   /* Sans-serif font for main UI */
   --font-sans:
-    'General Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'Noto Sans', sans-serif,
+    'Asap', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'Noto Sans', sans-serif,
     'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 
   /* Serif font */

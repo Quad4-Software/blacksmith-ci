@@ -93,3 +93,28 @@ func Test_custom_file_return_actual_content(t *testing.T) {
 		})
 	}
 }
+
+func Test_fileMimeType(t *testing.T) {
+	tests := []struct {
+		path   string
+		mime   string
+		binary bool
+	}{
+		{"/assets/index.js", "text/javascript", false},
+		{"/assets/index.css", "text/css", false},
+		{"/favicons/favicon-light-default.svg", "image/svg+xml", false},
+		{"/favicons/favicon.png", "image/png", true},
+		{"/fonts/Asap-Variable.woff2", "font/woff2", true},
+		{"/fonts/font.woff", "font/woff", true},
+		{"/fonts/font.ttf", "font/ttf", true},
+		{"/fonts/Asap-LICENSE.txt", "", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.path, func(t *testing.T) {
+			mime, binary := fileMimeType(tt.path)
+			assert.Equal(t, tt.mime, mime)
+			assert.Equal(t, tt.binary, binary)
+		})
+	}
+}

@@ -626,7 +626,7 @@ const downloadGraph = async () => {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0,0,0,0.8); color: white; z-index: 10000;
       display: flex; align-items: center; justify-content: center;
-      font-family: "General Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+      font-family: var(--font-sans);
     `;
 
     const content = document.createElement('div');

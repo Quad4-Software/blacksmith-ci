@@ -107,29 +107,40 @@ func serveFile(f *prefixFS) func(ctx *gin.Context) {
 			ctx.Status(http.StatusInternalServerError)
 			return
 		}
-		var mime string
-		switch {
-		case strings.HasSuffix(ctx.Request.URL.Path, ".js"):
-			mime = "text/javascript"
-		case strings.HasSuffix(ctx.Request.URL.Path, ".css"):
-			mime = "text/css"
-		case strings.HasSuffix(ctx.Request.URL.Path, ".png"):
-			mime = "image/png"
-		case strings.HasSuffix(ctx.Request.URL.Path, ".svg"):
-			mime = "image/svg+xml"
-		case strings.HasSuffix(ctx.Request.URL.Path, ".woff2"):
-			mime = "font/woff2"
-		case strings.HasSuffix(ctx.Request.URL.Path, ".woff"):
-			mime = "font/woff"
+		mime, binary := fileMimeType(ctx.Request.URL.Path)
+		if !binary {
+			data = replaceBytes(data)
 		}
 		ctx.Status(http.StatusOK)
 		ctx.Writer.Header().Set("Cache-Control", "public, max-age=31536000")
 		ctx.Writer.Header().Del("Expires")
 		ctx.Writer.Header().Set("Content-Type", mime)
-		if _, err := ctx.Writer.Write(replaceBytes(data)); err != nil {
+		if _, err := ctx.Writer.Write(data); err != nil {
 			log.Error().Err(err).Msgf("cannot write %s", ctx.Request.URL.Path)
 		}
 	}
+}
+
+// fileMimeType returns the content type for a static file and whether it is
+// binary, in which case it must be served as-is without the base path rewrite.
+func fileMimeType(path string) (mime string, binary bool) {
+	switch {
+	case strings.HasSuffix(path, ".js"):
+		return "text/javascript", false
+	case strings.HasSuffix(path, ".css"):
+		return "text/css", false
+	case strings.HasSuffix(path, ".svg"):
+		return "image/svg+xml", false
+	case strings.HasSuffix(path, ".png"):
+		return "image/png", true
+	case strings.HasSuffix(path, ".woff2"):
+		return "font/woff2", true
+	case strings.HasSuffix(path, ".woff"):
+		return "font/woff", true
+	case strings.HasSuffix(path, ".ttf"):
+		return "font/ttf", true
+	}
+	return "", false
 }
 
 // redirect return gin helper to redirect a request.
