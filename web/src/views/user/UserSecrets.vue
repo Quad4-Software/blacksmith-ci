@@ -40,7 +40,8 @@
 
 <script lang="ts" setup>
 import { cloneDeep } from 'lodash';
-import { computed, ref, watch } from 'vue';
+import { watchDebounced } from '@vueuse/core';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Icon from '~/components/atomic/Icon.vue';
@@ -86,9 +87,13 @@ async function loadSecrets(page: number) {
 const { resetPage, data: secrets } = usePagination(loadSecrets, () => true);
 
 // Reload when search changes
-watch(searchTerm, async () => {
-  await resetPage();
-});
+watchDebounced(
+  searchTerm,
+  async () => {
+    await resetPage();
+  },
+  { debounce: 300 },
+);
 
 const { doSubmit: createSecret, isLoading: isSaving } = useAsyncAction(
   async (secretData: Partial<SecretWithOrg>) => {

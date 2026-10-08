@@ -32,7 +32,8 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue';
+import { watchDebounced } from '@vueuse/core';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Icon from '~/components/atomic/Icon.vue';
@@ -61,9 +62,13 @@ const { page, data, hasMore, loading, nextPage, previousPage, resetPage } = useP
 });
 
 // Reload when search changes
-watch(searchTerm, async () => {
-  await resetPage();
-});
+watchDebounced(
+  searchTerm,
+  async () => {
+    await resetPage();
+  },
+  { debounce: 300 },
+);
 
 const { doSubmit: repairRepos, isLoading: isRepairingRepos } = useAsyncAction(async () => {
   await apiClient.repairAllRepos();

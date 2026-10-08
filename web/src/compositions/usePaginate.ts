@@ -38,6 +38,8 @@ export function usePagination<T, S = unknown>(
   const data = ref<T[]>([]) as Ref<T[]>;
   const loading = ref(false);
   const each = ref([...(_each ?? [])]);
+  // Bumped by resetPage so responses of requests started before a reset are discarded
+  let generation = 0;
 
   async function loadData() {
     if (loading.value === true || hasMore.value === false) {
@@ -45,7 +47,11 @@ export function usePagination<T, S = unknown>(
     }
 
     loading.value = true;
+    const requestGeneration = generation;
     const newData = (await _loadData(page.value, each.value?.[0] as S)) ?? [];
+    if (requestGeneration !== generation) {
+      return;
+    }
     hasMore.value = newData.length >= pageSize.value && newData.length > 0;
     if (newData.length > 0) {
       data.value = [...data.value, ...newData];
@@ -81,6 +87,7 @@ export function usePagination<T, S = unknown>(
   async function resetPage() {
     const _page = page.value;
 
+    generation += 1;
     page.value = 1;
     hasMore.value = true;
     data.value = [];
@@ -106,10 +113,17 @@ export function usePaginationWithPages<T>(
   const hasMore = ref(true);
   const data = ref<T[]>([]) as Ref<T[]>;
   const loading = ref(false);
+  // Bumped on every load so only the most recent request updates the data
+  let generation = 0;
 
   async function loadData() {
+    generation += 1;
+    const requestGeneration = generation;
     loading.value = true;
     const newData = (await _loadData(page.value)) ?? [];
+    if (requestGeneration !== generation) {
+      return;
+    }
     hasMore.value = newData.length >= pageSize.value && newData.length > 0;
     data.value = newData; // Replace data instead of appending
     loading.value = false;

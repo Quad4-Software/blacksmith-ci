@@ -155,4 +155,35 @@ describe('usePaginate', () => {
     expect(usePaginationComposition.hasMore.value).toBe(false);
     expect(usePaginationComposition.data.value.length).toBe(6);
   });
+
+  it('should discard responses of requests started before a reset', async () => {
+    const pending: ((value: { name: string }[]) => void)[] = [];
+    let usePaginationComposition = null as unknown as ReturnType<typeof usePagination>;
+    mountComposition(() => {
+      usePaginationComposition = usePagination<{ name: string }>(
+        async () =>
+          new Promise((resolve) => {
+            pending.push(resolve);
+          }),
+        () => true,
+        { pageSize: 3 },
+      );
+    });
+    await waitForState(usePaginationComposition.loading, true);
+
+    // Two resets while the initial request is still in flight, e.g. typing in a search box
+    void usePaginationComposition.resetPage();
+    void usePaginationComposition.resetPage();
+    expect(pending.length).toBe(3);
+
+    // Resolve the latest request first, then the stale ones
+    pending[2]([{ name: 'latest' }]);
+    await waitForState(usePaginationComposition.loading, false);
+    pending[0]([{ name: 'stale1' }]);
+    pending[1]([{ name: 'stale2' }]);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(usePaginationComposition.data.value).toStrictEqual([{ name: 'latest' }]);
+    expect(usePaginationComposition.loading.value).toBe(false);
+  });
 });

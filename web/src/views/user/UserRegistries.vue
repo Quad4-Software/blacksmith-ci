@@ -39,7 +39,8 @@
 
 <script lang="ts" setup>
 import { cloneDeep } from 'lodash';
-import { computed, ref, watch } from 'vue';
+import { watchDebounced } from '@vueuse/core';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Icon from '~/components/atomic/Icon.vue';
@@ -82,9 +83,13 @@ async function loadRegistries(page: number) {
 const { resetPage, data: registries } = usePagination(loadRegistries, () => true);
 
 // Reload when search changes
-watch(searchTerm, async () => {
-  await resetPage();
-});
+watchDebounced(
+  searchTerm,
+  async () => {
+    await resetPage();
+  },
+  { debounce: 300 },
+);
 
 const { doSubmit: createRegistry, isLoading: isSaving } = useAsyncAction(
   async (registryData: Partial<RegistryWithOrg>) => {
