@@ -7,10 +7,10 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Asap - self-hosted variable font, tabular numbers by default */
+/* Geist - self-hosted variable font, with serifed I (ss05) and tabular numbers baked in */
 @font-face {
-  font-family: 'Asap';
-  src: url('/fonts/Asap-Variable.woff2') format('woff2-variations');
+  font-family: 'Geist';
+  src: url('/fonts/Geist-Variable.woff2') format('woff2-variations');
   font-weight: 100 900;
   font-display: swap;
   font-style: normal;
@@ -26,7 +26,7 @@
 
   /* Sans-serif font for main UI */
   --font-sans:
-    'Asap', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'Noto Sans', sans-serif,
+    'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'Noto Sans', sans-serif,
     'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 
   /* Serif font */
