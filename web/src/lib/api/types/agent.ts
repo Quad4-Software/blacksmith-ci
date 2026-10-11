@@ -23,7 +23,6 @@ export interface Agent {
   name: string;
   owner_id: number;
   org_ids?: number[];
-  token: string;
   created: number;
   updated: number;
   last_contact: number;
@@ -43,4 +42,9 @@ export interface Agent {
   /** total memory in bytes of the machine running the workloads, 0 when unknown */
   host_mem: number;
   running_workflows: number;
+}
+
+// AgentWithToken is only returned when an agent is created; no other endpoint exposes the token.
+export interface AgentWithToken extends Agent {
+  token: string;
 }

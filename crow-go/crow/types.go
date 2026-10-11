@@ -270,7 +270,9 @@ type (
 		Variables map[string]string `json:"variables"`
 	}
 
-	// Agent is the JSON data for an agent.
+	// Agent is the JSON data for an agent. Token is only set in the
+	// response of AgentCreate and OrgAgentCreate; the server never returns it
+	// from any other endpoint.
 	Agent struct {
 		ID           int64             `json:"id"`
 		Created      int64             `json:"created"`
@@ -278,7 +280,7 @@ type (
 		Name         string            `json:"name"`
 		OwnerID      int64             `json:"owner_id"`
 		OrgID        int64             `json:"org_id"`
-		Token        string            `json:"token"`
+		Token        string            `json:"token,omitempty"`
 		LastContact  int64             `json:"last_contact"`
 		LastWork     int64             `json:"last_work"`
 		Platform     string            `json:"platform"`

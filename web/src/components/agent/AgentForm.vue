@@ -25,7 +25,8 @@
     </InputField>
 
     <template v-if="isEditingAgent">
-      <InputField v-slot="{ id }" :label="$t('admin.settings.agents.token')">
+      <!-- The token is only present right after creation; other API responses never include it. -->
+      <InputField v-if="agent.token" v-slot="{ id }" :label="$t('admin.settings.agents.token')">
         <div class="flex gap-2">
           <Input
             :id="id"
@@ -106,16 +107,16 @@ import InputField from '~/components/form/InputField.vue';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { useDate } from '~/compositions/useDate';
-import type { Agent } from '~/lib/api/types';
+import type { Agent, AgentWithToken } from '~/lib/api/types';
 
 const props = defineProps<{
-  modelValue: Partial<Agent>;
+  modelValue: Partial<AgentWithToken>;
   isEditingAgent: boolean;
   isSaving: boolean;
 }>();
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: Partial<Agent>): void;
+  (e: 'update:modelValue', value: Partial<AgentWithToken>): void;
   (e: 'save'): void;
   (e: 'cancel'): void;
 }>();

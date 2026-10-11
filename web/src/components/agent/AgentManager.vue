@@ -78,7 +78,7 @@ import {
 import { useAsyncAction } from '~/compositions/useAsyncAction';
 import useNotifications from '~/compositions/useNotifications';
 import { usePaginationWithPages } from '~/compositions/usePaginate';
-import type { Agent } from '~/lib/api/types';
+import type { Agent, AgentWithToken } from '~/lib/api/types';
 
 import AgentDialog from './AgentDialog.vue';
 import AgentList from './AgentList.vue';
@@ -86,7 +86,7 @@ import AgentList from './AgentList.vue';
 const props = defineProps<{
   description: string;
   loadAgents: (page: number) => Promise<Agent[] | null>;
-  createAgent: (agent: Partial<Agent>) => Promise<Agent>;
+  createAgent: (agent: Partial<Agent>) => Promise<AgentWithToken>;
   updateAgent: (agent: Agent) => Promise<Agent | void>;
   deleteAgent: (agent: Agent) => Promise<unknown>;
   agentFilters: {

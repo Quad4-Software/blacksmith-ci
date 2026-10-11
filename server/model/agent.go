@@ -37,7 +37,7 @@ type Agent struct {
 	Updated                int64               `json:"updated"       bun:",nullzero"`
 	Name                   string              `json:"name"          bun:"name"`
 	OwnerID                int64               `json:"owner_id"      bun:"owner_id"`
-	Token                  string              `json:"token"                     bun:"token"`
+	Token                  string              `json:"-"                         bun:"token"`
 	PersistentID           string              `json:"persistent_id"             bun:"persistent_id,type:varchar(64)"`
 	LastContact            int64               `json:"last_contact"              bun:"last_contact"`
 	WorkflowPollingHealthy bool                `json:"workflow_polling_healthy"  bun:"workflow_polling_healthy"`
@@ -68,6 +68,13 @@ type AgentWithStats struct {
 	Agent
 	RunningWorkflows int `json:"running_workflows"`
 }
+
+// AgentWithToken is used for API responses that include the token (only on creation).
+// Agent.Token is never serialized to JSON, so every other response omits it.
+type AgentWithToken struct {
+	Agent
+	Token string `json:"token"`
+} //	@name	AgentWithToken
 
 const (
 	IDNotSet = -1

@@ -87,7 +87,7 @@ import useConfig from '~/compositions/useConfig';
 import useNotifications from '~/compositions/useNotifications';
 import { usePaginationWithPages } from '~/compositions/usePaginate';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
-import type { Agent } from '~/lib/api/types';
+import type { Agent, AgentWithToken } from '~/lib/api/types';
 
 const apiClient = useApiClient();
 const notifications = useNotifications();
@@ -167,7 +167,7 @@ const { doSubmit: handleSave, isLoading: isSaving } = useAsyncAction(async (agen
     dialogOpen.value = false;
   } else {
     // Creating: admins create global agents, others create org-scoped
-    let createdAgent: Agent;
+    let createdAgent: AgentWithToken;
     if (isAdmin.value) {
       createdAgent = await apiClient.createAgent(agentData);
     } else {

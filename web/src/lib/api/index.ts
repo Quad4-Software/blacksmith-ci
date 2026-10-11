@@ -5,6 +5,7 @@ import type {
   AccessTokenWithSecret,
   AdminMetrics,
   Agent,
+  AgentWithToken,
   AgentWorkflow,
   Autoscaler,
   AutoscalerListOptions,
@@ -666,8 +667,8 @@ export default class CrowClient extends ApiClient {
     return this._get(`/api/v1/agents/${agentId}/workflows?${query}`) as Promise<AgentWorkflow[] | null>;
   }
 
-  async createAgent(agent: Partial<Agent>): Promise<Agent> {
-    return this._post('/api/v1/agents', agent) as Promise<Agent>;
+  async createAgent(agent: Partial<Agent>): Promise<AgentWithToken> {
+    return this._post('/api/v1/agents', agent) as Promise<AgentWithToken>;
   }
 
   async updateAgent(agent: Partial<Agent>): Promise<Agent> {
@@ -688,8 +689,8 @@ export default class CrowClient extends ApiClient {
     return this._get(`/api/v1/orgs/${orgId}/agents?${query}`) as Promise<Agent[] | null>;
   }
 
-  async createOrgAgent(orgId: number, agent: Partial<Agent>): Promise<Agent> {
-    return this._post(`/api/v1/orgs/${orgId}/agents`, agent) as Promise<Agent>;
+  async createOrgAgent(orgId: number, agent: Partial<Agent>): Promise<AgentWithToken> {
+    return this._post(`/api/v1/orgs/${orgId}/agents`, agent) as Promise<AgentWithToken>;
   }
 
   async updateOrgAgent(orgId: number, agentId: number, agent: Partial<Agent>): Promise<Agent> {

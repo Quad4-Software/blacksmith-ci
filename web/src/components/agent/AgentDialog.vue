@@ -109,17 +109,6 @@
 
           <!-- Read-only fields when editing -->
           <template v-if="isEditing && agent">
-            <!-- Token field for admins -->
-            <div v-if="isAdmin && agent.token" class="space-y-2">
-              <label class="text-sm font-medium">{{ $t('admin.settings.agents.token') }}</label>
-              <div class="flex gap-2">
-                <Input :model-value="agent.token" readonly class="font-mono text-xs" />
-                <Button type="button" variant="outline" size="icon" :title="$t('copy')" @click="copyAgentToken">
-                  <Icon :name="copiedAgent ? 'ph:check' : 'ph:copy'" class="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
             <div class="space-y-2">
               <label class="text-sm font-medium">{{ $t('admin.settings.agents.id') }}</label>
               <Input :model-value="agent.id?.toString()" disabled />
@@ -177,7 +166,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '~/components/ui/input';
 import useApiClient from '~/compositions/useApiClient';
 import { useDate } from '~/compositions/useDate';
-import type { Agent, Org } from '~/lib/api/types';
+import type { Agent, AgentWithToken, Org } from '~/lib/api/types';
 
 const props = withDefaults(
   defineProps<{
@@ -257,9 +246,8 @@ function toggleOrg(orgId: number, checked: boolean) {
   }
 }
 
-const createdAgent = ref<Agent | null>(null);
+const createdAgent = ref<AgentWithToken | null>(null);
 const copiedCreated = ref(false);
-const copiedAgent = ref(false);
 
 // Sync form with agent prop when editing
 watch(
@@ -288,7 +276,6 @@ watch(isOpen, (open) => {
   if (!open) {
     createdAgent.value = null;
     copiedCreated.value = false;
-    copiedAgent.value = false;
     form.value = {
       name: '',
       no_schedule: false,
@@ -335,22 +322,8 @@ async function copyCreatedToken() {
   }
 }
 
-async function copyAgentToken() {
-  if (!props.agent?.token) return;
-
-  try {
-    await navigator.clipboard.writeText(props.agent.token);
-    copiedAgent.value = true;
-    setTimeout(() => {
-      copiedAgent.value = false;
-    }, 2000);
-  } catch {
-    // Failed to copy
-  }
-}
-
 // Expose method to show created agent with token
-function showCreatedAgent(agent: Agent) {
+function showCreatedAgent(agent: AgentWithToken) {
   createdAgent.value = agent;
 }
 

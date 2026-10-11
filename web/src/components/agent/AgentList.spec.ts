@@ -39,7 +39,6 @@ const sampleAgent = {
   name: 'Test Agent',
   owner_id: 1,
   org_ids: [1],
-  token: '',
   created: 0,
   updated: 0,
   last_contact: 0,

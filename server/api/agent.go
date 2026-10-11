@@ -241,7 +241,7 @@ type PostAgentInput struct {
 }
 
 type PostAgentOutput struct {
-	Body *model.Agent
+	Body *model.AgentWithToken
 }
 
 func PostAgent(ctx context.Context, input *PostAgentInput) (*PostAgentOutput, error) {
@@ -265,7 +265,11 @@ func PostAgent(ctx context.Context, input *PostAgentInput) (*PostAgentOutput, er
 	if err := _store.AgentCreate(agent); err != nil {
 		return nil, huma.Error500InternalServerError(err.Error())
 	}
-	return &PostAgentOutput{Body: agent}, nil
+	// Return the token only on creation.
+	return &PostAgentOutput{Body: &model.AgentWithToken{
+		Agent: *agent,
+		Token: agent.Token,
+	}}, nil
 }
 
 type DeleteAgentInput struct {
@@ -323,7 +327,11 @@ func PostOrgAgent(ctx context.Context, input *PostOrgAgentInput) (*PostAgentOutp
 		return nil, huma.Error500InternalServerError(err.Error())
 	}
 
-	return &PostAgentOutput{Body: agent}, nil
+	// Return the token only on creation.
+	return &PostAgentOutput{Body: &model.AgentWithToken{
+		Agent: *agent,
+		Token: agent.Token,
+	}}, nil
 }
 
 type GetOrgAgentsInput struct {

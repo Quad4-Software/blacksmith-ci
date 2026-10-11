@@ -53,7 +53,7 @@ import useAuthentication from '~/compositions/useAuthentication';
 import useNotifications from '~/compositions/useNotifications';
 import { usePaginationWithPages } from '~/compositions/usePaginate';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
-import type { Agent } from '~/lib/api/types';
+import type { Agent, AgentWithToken } from '~/lib/api/types';
 
 const apiClient = useApiClient();
 const notifications = useNotifications();
@@ -64,7 +64,7 @@ if (!user) {
   throw new Error('Unexpected: User should be authenticated');
 }
 
-const selectedAgent = ref<Partial<Agent>>();
+const selectedAgent = ref<Partial<AgentWithToken>>();
 const isEditingAgent = computed(() => !!selectedAgent.value?.id);
 
 // Agent list filters
