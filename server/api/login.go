@@ -104,6 +104,21 @@ func HandleAuth(c *gin.Context) {
 
 		// Get custom redirect URL if set
 		redirectTo = stateToken.Get("redirect-to")
+
+		if linkingUserID == 0 && forgeSignInDisabled() {
+			c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/login?error=forge_login_disabled")
+			return
+		}
+
+		// A link must complete for the same user that started it, or a forge
+		// account could be attached to whoever started the flow.
+		if linkingUserID != 0 {
+			if current := session.User(c); current == nil || current.ID != linkingUserID {
+				log.Warn().Int64("linking_user_id", linkingUserID).Msg("forge link completed by a different session")
+				c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/login?error=invalid_state")
+				return
+			}
+		}
 	} else { // only generate a state token if not a callback
 		var err error
 
@@ -135,6 +150,11 @@ func HandleAuth(c *gin.Context) {
 			}
 		} else {
 			linkingUser = getLinkingUser(c)
+		}
+
+		if linkingUser == nil && forgeSignInDisabled() {
+			c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/login?error=forge_login_disabled")
+			return
 		}
 
 		// Check if this is a reconnect request (refreshing tokens for existing link)
@@ -226,6 +246,7 @@ func HandleAuth(c *gin.Context) {
 
 	// Handle linking mode: user is already authenticated and linking a new forge
 	if linkingUserID != 0 {
+		defer lockForgeLink(linkingUserID)()
 		user, err = _store.GetUser(linkingUserID)
 		if err != nil {
 			log.Error().Err(err).Msgf("cannot get linking user %d", linkingUserID)
@@ -265,6 +286,21 @@ func HandleAuth(c *gin.Context) {
 			}
 			log.Info().Msgf("user %s reconnected forge %d (%s)", user.Login, forgeID, userFromForge.Login)
 
+			// Finish a primary forge adoption that failed when the forge was linked.
+			adopt, err := needsPrimaryForgeAdoption(_store, user, existingUserForge)
+			if err != nil {
+				log.Error().Err(err).Msgf("cannot check primary forge of user %s", user.Login)
+			} else if adopt {
+				if err := adoptPrimaryForge(_store, user, existingUserForge, userFromForge); err != nil {
+					log.Error().Err(err).Msgf("cannot make forge %d the primary forge of user %s", forgeID, user.Login)
+					c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/user?error=internal_error")
+					return
+				}
+				if err := updateRepoPermissions(c, user, _store); err != nil {
+					log.Error().Err(err).Msgf("cannot update repo permissions for user %s", user.Login)
+				}
+			}
+
 			// Redirect back to custom URL or user settings
 			if redirectTo != "" {
 				c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+redirectTo)
@@ -274,12 +310,25 @@ func HandleAuth(c *gin.Context) {
 			return
 		}
 
-		// Create new UserForge entry for the linked forge
+		// A user who signed up through an identity provider has no forge yet: the
+		// first linked forge becomes their primary forge, like the forge a user
+		// originally registered with.
+		existingForges, err := _store.UserForgeList(user.ID)
+		if err != nil {
+			log.Error().Err(err).Msgf("cannot list forges of user %s", user.Login)
+			c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/user?error=internal_error")
+			return
+		}
+		// Users with a legacy forge identity in the users table (legacy or
+		// admin-created) may have no user_forges rows yet; linking another forge
+		// must not overwrite that identity.
+		isFirstForge := len(existingForges) == 0 && user.ForgeRemoteID == ""
+
 		userForge = &model.UserForge{
 			UserID:        user.ID,
 			ForgeID:       forgeID,
 			ForgeRemoteID: userFromForge.ForgeRemoteID,
-			IsPrimary:     false, // Linked forges are never primary
+			IsPrimary:     isFirstForge,
 			AccessToken:   userFromForge.AccessToken,
 			RefreshToken:  userFromForge.RefreshToken,
 			Expiry:        userFromForge.Expiry,
@@ -294,6 +343,17 @@ func HandleAuth(c *gin.Context) {
 			return
 		}
 		log.Info().Msgf("user %s linked forge %d (%s)", user.Login, forgeID, userFromForge.Login)
+
+		if isFirstForge {
+			if err := adoptPrimaryForge(_store, user, userForge, userFromForge); err != nil {
+				log.Error().Err(err).Msgf("cannot make forge %d the primary forge of user %s", forgeID, user.Login)
+				c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/user?error=internal_error")
+				return
+			}
+			if err := updateRepoPermissions(c, user, _store); err != nil {
+				log.Error().Err(err).Msgf("cannot update repo permissions for user %s", user.Login)
+			}
+		}
 
 		// Redirect back to custom URL or user settings
 		if redirectTo != "" {
@@ -434,52 +494,10 @@ func HandleAuth(c *gin.Context) {
 	}
 
 	// create or set the user's organization if it isn't linked yet
-	if user.OrgID == 0 {
-		// check if an org with the same name exists already and assign it to the user if it does
-		org, err := _store.OrgFindByName(user.Login, forgeID)
-		if err != nil && !errors.Is(err, types.RecordNotExist) {
-			log.Error().Err(err).Msgf("cannot get org for user %s", user.Login)
-			c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/login?error=internal_error")
-			return
-		}
-
-		// if an org with the same name exists => assign org to the user
-		if err == nil && org != nil {
-			org.IsUser = true
-			user.OrgID = org.ID
-
-			if err := _store.OrgUpdate(org); err != nil {
-				log.Error().Err(err).Msgf("cannot assign user %s to existing org %d", user.Login, org.ID)
-			}
-		}
-
-		// if still no org with the same name exists => create a new org
-		if user.OrgID == 0 || errors.Is(err, types.RecordNotExist) {
-			org := &model.Org{
-				Name:    user.Login,
-				IsUser:  true,
-				Private: false,
-				ForgeID: user.ForgeID,
-			}
-			if err := _store.OrgCreate(org); err != nil {
-				log.Error().Err(err).Msgf("cannot create org for user %s", user.Login)
-			}
-			user.OrgID = org.ID
-		}
-	} else {
-		// update org name if necessary
-		org, err := _store.OrgGet(user.OrgID)
-		if err != nil {
-			log.Error().Err(err).Msgf("cannot get org %d for user %s", user.OrgID, user.Login)
-			c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/login?error=internal_error")
-			return
-		}
-		if org != nil && org.Name != user.Login {
-			org.Name = user.Login
-			if err := _store.OrgUpdate(org); err != nil {
-				log.Error().Err(err).Msgf("cannot update org %d name to user name %s", org.ID, user.Login)
-			}
-		}
+	if err := ensureUserOrg(_store, user, forgeID); err != nil {
+		log.Error().Err(err).Msg("cannot set up personal org")
+		c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/login?error=internal_error")
+		return
 	}
 
 	// Update UserForge tokens if we have an existing UserForge
@@ -510,28 +528,9 @@ func HandleAuth(c *gin.Context) {
 		return
 	}
 
-	exp := time.Now().Add(server.Config.Server.SessionExpires).Unix()
-	_token := token.New(token.SessToken)
-	_token.Set("user-id", strconv.FormatInt(user.ID, 10))
-	tokenString, err := _token.SignExpires(user.Hash, exp)
-	if err != nil {
-		log.Error().Msgf("cannot create token for user %s", user.Login)
-		c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/login?error=internal_error")
+	if !issueSession(c, _store, user) {
 		return
 	}
-
-	err = updateRepoPermissions(c, user, _store)
-	if err != nil {
-		log.Error().Err(err).Msgf("cannot update repo permissions for user %s", user.Login)
-		c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/login?error=internal_error")
-		return
-	}
-
-	httputil.SetCookie(c.Writer, c.Request, "user_sess", tokenString)
-
-	// Remember this account so it can be quick-switched to later without a full
-	// logout/login cycle.
-	rememberAccount(c.Writer, c.Request, user.ID, tokenString)
 
 	c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/")
 }

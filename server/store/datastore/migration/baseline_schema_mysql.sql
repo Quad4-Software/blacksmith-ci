@@ -38,6 +38,21 @@ CREATE TABLE IF NOT EXISTS user_forges (
     INDEX idx_user_forges_forge_id (forge_id)
 );
 
+CREATE TABLE IF NOT EXISTS user_identities (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id INTEGER NOT NULL,
+    provider VARBINARY(50) NOT NULL,
+    issuer VARBINARY(255) NOT NULL DEFAULT '',
+    subject VARBINARY(255) NOT NULL,
+    email VARCHAR(500),
+    username VARCHAR(250),
+    idp_groups TEXT,
+    linked_at INTEGER NOT NULL,
+    last_login INTEGER,
+    UNIQUE(provider, issuer, subject),
+    INDEX idx_user_identities_user_id (user_id)
+);
+
 CREATE TABLE IF NOT EXISTS repos (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     user_id INTEGER,

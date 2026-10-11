@@ -22,6 +22,7 @@ import (
 	"codefloe.com/crowci/crow/v6/server/cache"
 	"codefloe.com/crowci/crow/v6/server/forge"
 	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/server/router/middleware/session"
 	"codefloe.com/crowci/crow/v6/server/store"
 )
 
@@ -72,7 +73,7 @@ func (a *SecretViewAuthorizer) CanViewOrgSecret(c context.Context, user *model.U
 	}
 
 	// Personal org: user can always view their own secrets
-	if org.Name == user.Login {
+	if session.IsPersonalOrgOwner(a.store, user, org) {
 		return true
 	}
 

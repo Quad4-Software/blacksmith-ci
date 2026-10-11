@@ -60,6 +60,7 @@ import type {
   UpdateAccessTokenRequest,
   User,
   UserForge,
+  UserIdentity,
   UserPendingApprovalsResponse,
   WorkflowApprovalState,
 } from './types';
@@ -615,6 +616,14 @@ export default class CrowClient extends ApiClient {
 
   async getUserForge(forgeId: number): Promise<UserForge> {
     return this._get(`/api/v1/user/forges/${forgeId}`) as Promise<UserForge>;
+  }
+
+  async getUserIdentities(): Promise<UserIdentity[] | null> {
+    return this._get('/api/v1/user/identities') as Promise<UserIdentity[] | null>;
+  }
+
+  async deleteUserIdentity(identityId: number): Promise<unknown> {
+    return this._delete(`/api/v1/user/identities/${identityId}`);
   }
 
   async getAvailableForges(): Promise<AvailableForge[]> {

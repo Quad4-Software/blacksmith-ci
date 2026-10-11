@@ -1239,6 +1239,23 @@
       "agents": {
         "desc": "All registered instance agents. You can only edit and delete agents that you own."
       },
+      "sso": {
+        "title": "Single Sign-On",
+        "desc": "Sign in to Crow through {name}.",
+        "link": "Link {name}",
+        "unlink": "Unlink",
+        "unlink_confirm_title": "Unlink single sign-on?",
+        "unlink_confirm_desc": "You will no longer be able to sign in to this account through single sign-on until you link it again.",
+        "link_success": "Single sign-on linked",
+        "unlink_success": "Single sign-on unlinked",
+        "unlink_failed": "Could not unlink single sign-on",
+        "unlink_needs_forge": "Link a forge account with forge sign-in enabled before unlinking single sign-on, or you could no longer sign in.",
+        "link_failed": "Could not link single sign-on. Try again or contact your administrator.",
+        "link_access_denied": "Your single sign-on account is not in a group that may use Crow, so it cannot be linked.",
+        "identity_taken": "This single sign-on account is already linked to another Crow user.",
+        "identity_already_linked": "Your account already has a single sign-on identity linked. Unlink it first.",
+        "forge_sign_in_required": "Sign out and sign in with your forge once before linking single sign-on."
+      },
       "forges": {
         "linked_forges": "Linked Forges",
         "linked_forges_desc": "Manage your connected forge accounts. Linked forges allow you to access repositories from multiple sources.",
@@ -1549,7 +1566,16 @@
   "no_search_results": "No results found",
   "welcome_to_crow": "Welcome to Crow CI",
   "login_oauth_message": "Sign in with OAuth",
+  "login_sso_message": "Sign in with your organization account",
   "link_forge_title": "Link Forge Account",
+  "oidc_error": "Error while signing in through single sign-on",
+  "oidc_access_denied": "Your single sign-on account is not in a group that may use Crow",
+  "oidc_login_taken": "An account with this username already exists. Sign in with your forge and link single sign-on from your user settings.",
+  "oidc_invalid_username": "Your single sign-on username cannot be used as a Crow login. Ask your administrator to configure a different username claim.",
+  "oidc_missing_username": "Your single sign-on account sent no username. Ask your administrator to configure the username claim.",
+  "forge_login_disabled": "Signing in with a forge is disabled on this instance. Use single sign-on instead.",
+  "sign_in_with": "Sign in with {name}",
+  "link_forge_required_message": "Link a forge account to start using Crow. Crow needs it to read your repositories and report pipeline status.",
   "link_forge_message": "Sign in to link this forge to your account",
   "disabled": "Disabled",
   "proclog": {

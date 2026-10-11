@@ -1,0 +1,92 @@
+---
+title: "OIDC"
+---
+
+Settings for sign-in through an OpenID Connect identity provider.
+See [Single Sign-On](/dev/configuration/oidc/) for a setup guide.
+
+## OIDC_ISSUER
+
+- Name: `CROW_OIDC_ISSUER`
+- Description: OpenID Connect issuer URL; enables sign-in through an identity provider.
+- Default: none
+
+---
+
+## OIDC_CLIENT_ID
+
+- Name: `CROW_OIDC_CLIENT_ID`
+- Description: OpenID Connect client ID.
+- Default: none
+
+---
+
+## OIDC_CLIENT_SECRET
+
+- Name: `CROW_OIDC_CLIENT_SECRET`
+- Description: OpenID Connect client secret.
+- Default: none
+
+---
+
+## OIDC_CLIENT_SECRET_FILE
+
+- Name: `CROW_OIDC_CLIENT_SECRET_FILE`
+- Description: Read the OpenID Connect client secret from this file.
+- Default: none
+
+---
+
+## OIDC_SCOPES
+
+- Name: `CROW_OIDC_SCOPES`
+- Description: OpenID Connect scopes to request; `openid` is always added.
+- Default: `openid,profile,email`
+
+---
+
+## OIDC_DISPLAY_NAME
+
+- Name: `CROW_OIDC_DISPLAY_NAME`
+- Description: Label of the single sign-on button on the login page.
+- Default: `Single sign-on`
+
+---
+
+## OIDC_USERNAME_CLAIM
+
+- Name: `CROW_OIDC_USERNAME_CLAIM`
+- Description: ID token claim used as the Crow login of new users.
+- Default: `preferred_username`
+
+---
+
+## OIDC_GROUPS_CLAIM
+
+- Name: `CROW_OIDC_GROUPS_CLAIM`
+- Description: ID token or userinfo claim holding group membership.
+- Default: `groups`
+
+---
+
+## OIDC_ALLOWED_GROUPS
+
+- Name: `CROW_OIDC_ALLOWED_GROUPS`
+- Description: Only members of these identity provider groups may sign in via OIDC.
+- Default: none
+
+---
+
+## OIDC_ADMIN_GROUPS
+
+- Name: `CROW_OIDC_ADMIN_GROUPS`
+- Description: Members of these identity provider groups are instance admins; evaluated at every OIDC sign-in.
+- Default: none
+
+---
+
+## OIDC_ONLY
+
+- Name: `CROW_OIDC_ONLY`
+- Description: Disable forge OAuth sign-in; forge accounts can still be linked.
+- Default: `false`

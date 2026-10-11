@@ -34,6 +34,7 @@ const (
 	AgentToken       Type = "agent"      // agent authentication token
 	AutoscalerToken  Type = "autoscaler" // autoscaler authentication token
 	OAuthStateToken  Type = "oauth-state"
+	OIDCStateToken   Type = "oidc-state"  // short-lived OIDC sign-in state, nonce and PKCE verifier
 	AccessToken      Type = "access"      // personal access token with scopes
 	UnsubscribeToken Type = "unsubscribe" // email unsubscribe token
 )

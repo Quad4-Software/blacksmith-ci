@@ -232,7 +232,7 @@ func MustOrgMember(admin bool) gin.HandlerFunc {
 		}
 
 		// User can access his own, admin can access all
-		if (org.Name == user.Login) || user.Admin {
+		if user.Admin || IsPersonalOrgOwner(store.FromContext(c), user, org) {
 			c.Next()
 			return
 		}

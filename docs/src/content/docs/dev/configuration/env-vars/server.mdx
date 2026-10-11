@@ -7,7 +7,7 @@ Core server configuration variables.
 ## ADMIN
 
 - Name: `CROW_ADMIN`
-- Description: List of admin users.
+- Description: List of admin users. Applies to forge sign-in only; single sign-on uses [`CROW_OIDC_ADMIN_GROUPS`](/dev/configuration/env-vars/oidc/).
 - Default: none
 
 ---
@@ -33,7 +33,7 @@ Core server configuration variables.
 ## OPEN
 
 - Name: `CROW_OPEN`
-- Description: Enable open user registration.
+- Description: Enable open user registration, through a forge or through [single sign-on](/dev/configuration/oidc/).
 - Default: `false`
 
 ---

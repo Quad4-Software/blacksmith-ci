@@ -124,6 +124,7 @@ func Migrate(_ context.Context, db *sql.DB, driver string, _ bool) error {
 		{ID: "crow-backfill-workflow-agent-identity", Migrate: backfillWorkflowAgentIdentity(driver)},
 		{ID: "crow-add-agent-host-resources", Migrate: addAgentHostResources},
 		{ID: "crow-add-config-generated-from", Migrate: addConfigGeneratedFrom(driver)},
+		{ID: "crow-add-user-identities", Migrate: createUserIdentities(driver)},
 	}
 
 	if len(newMigrations) > 0 {
@@ -417,6 +418,70 @@ func createWorkflowApprovalEvents(driver string) func(tx *sql.Tx) error {
 			return fmt.Errorf("create idx_workflow_approval_events_workflow_id: %w", err)
 		}
 		return nil
+	}
+}
+
+// createUserIdentities creates the user_identities table, which links Crow users
+// to accounts at an external identity provider (OIDC). The groups column is named
+// idp_groups because GROUPS is a reserved word in MySQL 8. On MySQL the identity
+// key columns are VARBINARY: every text collation ignores case or trailing
+// spaces, which would let two distinct subjects resolve to the same identity.
+func createUserIdentities(driver string) func(tx *sql.Tx) error {
+	return func(tx *sql.Tx) error {
+		var ddl string
+		switch driver {
+		case "postgres":
+			ddl = `CREATE TABLE IF NOT EXISTS user_identities (
+				id BIGSERIAL PRIMARY KEY,
+				user_id INTEGER NOT NULL,
+				provider VARCHAR(50) NOT NULL,
+				issuer VARCHAR(255) NOT NULL DEFAULT '',
+				subject VARCHAR(255) NOT NULL,
+				email VARCHAR(500),
+				username VARCHAR(250),
+				idp_groups TEXT,
+				linked_at INTEGER NOT NULL,
+				last_login INTEGER,
+				UNIQUE(provider, issuer, subject)
+			)`
+		case "mysql":
+			ddl = `CREATE TABLE IF NOT EXISTS user_identities (
+				id BIGINT PRIMARY KEY AUTO_INCREMENT,
+				user_id INTEGER NOT NULL,
+				provider VARBINARY(50) NOT NULL,
+				issuer VARBINARY(255) NOT NULL DEFAULT '',
+				subject VARBINARY(255) NOT NULL,
+				email VARCHAR(500),
+				username VARCHAR(250),
+				idp_groups TEXT,
+				linked_at INTEGER NOT NULL,
+				last_login INTEGER,
+				UNIQUE(provider, issuer, subject),
+				INDEX idx_user_identities_user_id (user_id)
+			)`
+		default:
+			ddl = `CREATE TABLE IF NOT EXISTS user_identities (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				user_id INTEGER NOT NULL,
+				provider VARCHAR(50) NOT NULL,
+				issuer VARCHAR(255) NOT NULL DEFAULT '',
+				subject VARCHAR(255) NOT NULL,
+				email VARCHAR(500),
+				username VARCHAR(250),
+				idp_groups TEXT,
+				linked_at INTEGER NOT NULL,
+				last_login INTEGER,
+				UNIQUE(provider, issuer, subject)
+			)`
+		}
+		if _, err := tx.Exec(ddl); err != nil {
+			return err
+		}
+		if driver == "mysql" {
+			return nil
+		}
+		_, err := tx.Exec(`CREATE INDEX IF NOT EXISTS idx_user_identities_user_id ON user_identities (user_id)`)
+		return err
 	}
 }
 

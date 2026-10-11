@@ -18,6 +18,14 @@ export default () => {
       return authStore.user;
     },
 
+    authenticateOIDC(url?: string) {
+      if (url !== undefined) {
+        const config = useUserConfig();
+        config.setUserConfig('redirectUrl', url);
+      }
+      window.location.href = `${useConfig().rootPath}/authorize/oidc`;
+    },
+
     authenticate(url?: string, forgeId?: number, link?: boolean, addAccount?: boolean) {
       if (url !== undefined) {
         const config = useUserConfig();

@@ -36,6 +36,20 @@ CREATE TABLE IF NOT EXISTS user_forges (
     UNIQUE(forge_id, forge_remote_id)
 );
 
+CREATE TABLE IF NOT EXISTS user_identities (
+    id BIGSERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    provider VARCHAR(50) NOT NULL,
+    issuer VARCHAR(255) NOT NULL DEFAULT '',
+    subject VARCHAR(255) NOT NULL,
+    email VARCHAR(500),
+    username VARCHAR(250),
+    idp_groups TEXT,
+    linked_at INTEGER NOT NULL,
+    last_login INTEGER,
+    UNIQUE(provider, issuer, subject)
+);
+
 CREATE TABLE IF NOT EXISTS repos (
     id BIGSERIAL PRIMARY KEY,
     user_id INTEGER,
@@ -530,6 +544,7 @@ CREATE INDEX IF NOT EXISTS idx_crons_creator_id ON crons (creator_id);
 
 CREATE INDEX IF NOT EXISTS idx_user_forges_user_id ON user_forges (user_id);
 CREATE INDEX IF NOT EXISTS idx_user_forges_forge_id ON user_forges (forge_id);
+CREATE INDEX IF NOT EXISTS idx_user_identities_user_id ON user_identities (user_id);
 
 CREATE INDEX IF NOT EXISTS idx_access_tokens_user_id ON access_tokens (user_id);
 CREATE INDEX IF NOT EXISTS idx_access_tokens_org_id ON access_tokens (org_id);

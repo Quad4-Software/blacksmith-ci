@@ -18,6 +18,7 @@ package server
 import (
 	"time"
 
+	"codefloe.com/crowci/crow/v6/server/auth/oidc"
 	"codefloe.com/crowci/crow/v6/server/cache"
 	"codefloe.com/crowci/crow/v6/server/logging"
 	"codefloe.com/crowci/crow/v6/server/model"
@@ -50,6 +51,8 @@ var Config = struct {
 		ProcLogReceiver      *proclog.Receiver
 		ProcLogStream        *proclog.Stream
 		ProcLogJanitor       *proclog.Janitor
+		// OIDC is the identity provider for single sign-on; nil when not configured.
+		OIDC *oidc.Provider
 	}
 	Server struct {
 		JWTSecret           string

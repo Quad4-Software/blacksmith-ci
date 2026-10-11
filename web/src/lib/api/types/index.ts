@@ -20,4 +20,5 @@ export * from './repo';
 export * from './secret';
 export * from './user';
 export * from './userForge';
+export * from './userIdentity';
 export * from './webhook';

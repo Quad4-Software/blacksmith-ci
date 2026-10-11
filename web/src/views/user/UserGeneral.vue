@@ -302,6 +302,10 @@
         </div>
       </div>
     </div>
+    <template v-if="config.auth.oidc.enabled">
+      <Separator class="my-6" />
+      <SsoIdentitySection />
+    </template>
   </Settings>
 
   <!-- Unlink Forge Confirmation Dialog -->
@@ -393,6 +397,7 @@ import { Switch } from '~/components/ui/switch';
 import { Textarea } from '~/components/ui/textarea';
 import { Button } from '~/components/ui/button';
 import Settings from '~/components/layout/Settings.vue';
+import SsoIdentitySection from '~/components/user/SsoIdentitySection.vue';
 import ThemeSelect from '~/components/user/ThemeSelect.vue';
 import { setI18nLanguage } from '~/compositions/useI18n';
 import { useCrowTitle } from '~/compositions/useCrowTitle';

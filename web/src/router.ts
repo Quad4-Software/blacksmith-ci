@@ -4,6 +4,7 @@ import type { RouteRecordRaw } from 'vue-router';
 
 import useConfig from '~/compositions/useConfig';
 import useUserConfig from '~/compositions/useUserConfig';
+import { needsForgeLink } from '~/lib/forgeLinkGuard';
 import { useAuthStore } from '~/store/auth';
 
 const { rootPath } = useConfig();
@@ -411,6 +412,20 @@ router.beforeEach(async (to, _, next) => {
   const authenticationRequired = to.matched.some((record) => record.meta.authentication === 'required');
   if (authenticationRequired && !authStore.isAuthenticated) {
     next({ name: 'login', query: { url: to.fullPath } });
+    return;
+  }
+
+  const appConfig = useConfig();
+  if (
+    needsForgeLink(
+      to.path,
+      appConfig.rootPath,
+      authStore.isAuthenticated,
+      appConfig.auth.forge_count,
+      appConfig.auth.oidc.enabled,
+    )
+  ) {
+    next({ name: 'login', query: { link: 'true', required: 'true' } });
     return;
   }
 

@@ -124,6 +124,19 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
 	}, api.DeleteUserForge)
 
+	// Identity provider accounts (single sign-on)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-user-identities", Method: http.MethodGet, Path: "/user/identities",
+		Summary: "Get the identity provider accounts linked to the current user", Tags: []string{"User"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.GetUserIdentities)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "delete-user-identity", Method: http.MethodDelete, Path: "/user/identities/{identity_id}",
+		Summary: "Unlink an identity provider account from the current user", Tags: []string{"User"},
+		DefaultStatus: http.StatusNoContent,
+		Security:      BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.DeleteUserIdentity)
+
 	// Integrations (external secret stores)
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "get-integrations", Method: http.MethodGet, Path: "/user/integrations",

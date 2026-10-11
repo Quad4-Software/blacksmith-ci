@@ -80,7 +80,7 @@ func GetOrgPermissions(ctx context.Context, input *GetOrgPermissionsInput) (*Get
 		return &GetOrgPermissionsOutput{Body: &model.OrgPerm{}}, nil
 	}
 
-	if (org.IsUser && org.Name == user.Login) || (user.Admin && !org.IsUser) {
+	if (org.IsUser && session.IsPersonalOrgOwner(store.FromContext(c), user, org)) || (user.Admin && !org.IsUser) {
 		return &GetOrgPermissionsOutput{Body: &model.OrgPerm{
 			Member: true,
 			Admin:  true,

@@ -58,6 +58,8 @@ func Load(noRouteHandler http.HandlerFunc, middleware ...gin.HandlerFunc) http.H
 		{
 			auth.GET("", api.HandleAuth)
 			auth.POST("", api.HandleAuth)
+			auth.GET("/oidc", api.HandleOIDCAuth)
+			auth.GET("/oidc/callback", api.HandleOIDCCallback)
 		}
 
 		base.GET("/metrics", metrics.PromHandler())

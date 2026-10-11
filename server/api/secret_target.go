@@ -119,7 +119,7 @@ func authorizeOrgSecretAccess(ctx context.Context, _store store.Store, user *mod
 	}
 
 	// User can always manage their own (personal) org secrets.
-	if org.Name == user.Login {
+	if session.IsPersonalOrgOwner(_store, user, org) {
 		return nil
 	}
 

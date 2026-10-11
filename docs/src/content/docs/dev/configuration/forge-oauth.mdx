@@ -16,6 +16,11 @@ https://<your-crow-domain>/authorize
 Replace `<your-crow-domain>` with your actual Crow instance URL (e.g., `ci.example.com`).
 For local development, use `http://localhost:8000/authorize`.
 
+:::tip
+To sign users in through an identity provider instead, see [Single Sign-On (OIDC)](/dev/configuration/oidc/).
+The forge OAuth application is still required in that case, because users link their forge accounts through it, even when `CROW_OIDC_ONLY=true` hides forge sign-in.
+:::
+
 :::note
 All API requests the server sends to a forge carry a `User-Agent` header of the form `crow-server/<version>` (e.g. `crow-server/v5.2.0`).
 This lets forge administrators identify Crow in their access logs and rate-limit dashboards.

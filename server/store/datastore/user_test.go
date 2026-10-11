@@ -19,13 +19,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"codefloe.com/crowci/crow/v6/server/model"
 	"codefloe.com/crowci/crow/v6/server/store/types"
 )
 
 func TestUsers(t *testing.T) {
-	store, closer := newTestStore(t, new(model.User), new(model.Org), new(model.Secret), new(model.Repo), new(model.Perm), new(model.UserForge))
+	store, closer := newTestStore(t, new(model.User), new(model.Org), new(model.Secret), new(model.Repo), new(model.Perm), new(model.UserForge), new(model.UserIdentity))
 	defer closer()
 
 	count, err := store.GetUserCount()
@@ -100,7 +101,7 @@ func TestUsers(t *testing.T) {
 // takeover: an account on forge B must never resolve to a user registered on
 // forge A, no matter how the two accounts collide.
 func TestGetUserByForgeRemoteIDIsForgeScoped(t *testing.T) {
-	store, closer := newTestStore(t, new(model.User), new(model.Org), new(model.Perm))
+	store, closer := newTestStore(t, new(model.User), new(model.Org), new(model.Perm), new(model.UserIdentity))
 	defer closer()
 
 	victim := &model.User{
@@ -152,6 +153,17 @@ func TestGetUserByForgeRemoteIDIsForgeScoped(t *testing.T) {
 		assert.Equal(t, ancient.ID, got.ID)
 
 		_, err = store.GetUserByForgeRemoteID(2, "5", "ancient")
+		assert.ErrorIs(t, err, types.RecordNotExist)
+	})
+
+	t.Run("identity provider user never matches by login", func(t *testing.T) {
+		// Users registered through single sign-on have no forge identity yet, and
+		// their login is not forge-verified: a forge account of that name must
+		// not sign in as them.
+		sso := &model.User{Login: "sso", Hash: "D"}
+		require.NoError(t, store.UserCreateWithIdentity(sso, &model.UserIdentity{Provider: "oidc", Issuer: "https://idp.example", Subject: "sub-sso"}))
+
+		_, err := store.GetUserByForgeRemoteID(1, "77", "sso")
 		assert.ErrorIs(t, err, types.RecordNotExist)
 	})
 }

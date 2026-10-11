@@ -53,6 +53,7 @@ var expectedBigSerialTables = []string{
 	"secrets",
 	"steps",
 	"user_forges",
+	"user_identities",
 	"users",
 	"workflow_approval_events",
 	"workflows",

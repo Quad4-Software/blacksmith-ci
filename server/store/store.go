@@ -63,6 +63,19 @@ type Store interface {
 	// UserForgeListAll returns all user forge connections (for encryption migration).
 	UserForgeListAll() ([]*model.UserForge, error)
 
+	// UserIdentityGetByProviderSubject finds an identity provider account by provider, issuer and subject.
+	UserIdentityGetByProviderSubject(provider, issuer, subject string) (*model.UserIdentity, error)
+	// UserIdentityList returns all identity provider accounts linked to a user.
+	UserIdentityList(userID int64) ([]*model.UserIdentity, error)
+	// UserIdentityCreate links an identity provider account to a user.
+	UserIdentityCreate(*model.UserIdentity) error
+	// UserIdentityUpdate updates an identity provider account.
+	UserIdentityUpdate(*model.UserIdentity) error
+	// UserIdentityDelete unlinks an identity provider account.
+	UserIdentityDelete(*model.UserIdentity) error
+	// UserCreateWithIdentity registers a user with a fresh personal org and an identity provider account in one transaction.
+	UserCreateWithIdentity(*model.User, *model.UserIdentity) error
+
 	// Repos
 	// GetRepo gets a repo by unique ID.
 	GetRepo(int64) (*model.Repo, error)

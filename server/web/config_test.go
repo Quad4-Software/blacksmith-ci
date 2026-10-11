@@ -17,6 +17,9 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"codefloe.com/crowci/crow/v6/server"
+	"codefloe.com/crowci/crow/v6/server/auth/oidc"
+	"codefloe.com/crowci/crow/v6/server/model"
+	store_mocks "codefloe.com/crowci/crow/v6/server/store/mocks"
 	"codefloe.com/crowci/crow/v6/server/theme"
 )
 
@@ -45,4 +48,32 @@ func TestConfigCustomThemes(t *testing.T) {
 	}}
 	assert.Contains(t, render(),
 		`window.CROW_CUSTOM_THEMES = [{"id":"acme","name":"\u003c/script\u003e","light":{"primary":"#7c3aed"}}];`)
+}
+
+func TestConfigAuth(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	render := func(user *model.User, forges []*model.UserForge) string {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest(http.MethodGet, "/web-config.js", nil)
+		if user != nil {
+			s := new(store_mocks.MockStore)
+			s.On("UserForgeList", user.ID).Return(forges, nil)
+			c.Set("store", s)
+			c.Set("user", user)
+		}
+		Config(c)
+		return w.Body.String()
+	}
+
+	t.Cleanup(func() { server.Config.Services.OIDC = nil })
+
+	server.Config.Services.OIDC = nil
+	assert.Contains(t, render(nil, nil),
+		`window.CROW_AUTH = {"oidc":{"enabled":false,"name":""},"forge_login":true,"forge_count":null};`)
+
+	server.Config.Services.OIDC = oidc.New(oidc.Config{Issuer: "https://idp.example", DisplayName: "Acme SSO", Only: true})
+	assert.Contains(t, render(&model.User{ID: 1, Hash: "h"}, []*model.UserForge{}),
+		`window.CROW_AUTH = {"oidc":{"enabled":true,"name":"Acme SSO"},"forge_login":false,"forge_count":0};`)
 }

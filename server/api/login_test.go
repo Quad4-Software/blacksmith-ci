@@ -15,6 +15,7 @@ import (
 
 	"codefloe.com/crowci/crow/v6/server"
 	"codefloe.com/crowci/crow/v6/server/api"
+	"codefloe.com/crowci/crow/v6/server/auth/oidc"
 	forge_mocks "codefloe.com/crowci/crow/v6/server/forge/mocks"
 	forge_types "codefloe.com/crowci/crow/v6/server/forge/types"
 	"codefloe.com/crowci/crow/v6/server/model"
@@ -455,5 +456,311 @@ func TestHandleAuth(t *testing.T) {
 		assert.Equal(t, http.StatusSeeOther, c.Writer.Status())
 		assert.Equal(t, "/", c.Writer.Header().Get("Location"))
 		assert.NotEmpty(t, c.Writer.Header().Get("Set-Cookie"))
+	})
+
+	t.Run("first linked forge becomes primary for a user without forges", func(t *testing.T) {
+		_manager := new(mocks_services.MockManager)
+		_forge := new(forge_mocks.MockForge)
+		_store := new(store_mocks.MockStore)
+		server.Config.Services.Manager = _manager
+		server.Config.Server.JWTSecret = "jwt-secret"
+		server.Config.Permissions.Orgs = permissions.NewOrgs(nil)
+		server.Config.Permissions.Admins = permissions.NewAdmins(nil)
+
+		ssoUser := &model.User{ID: 42, Login: "jane", Hash: "hash"}
+		state := token.New(token.OAuthStateToken)
+		state.Set("forge-id", "1")
+		state.Set("linking-user-id", "42")
+		signedState, _ := state.Sign("jwt-secret")
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Set("store", _store)
+		c.Set("user", ssoUser)
+		c.Request = &http.Request{Header: make(http.Header), URL: &url.URL{
+			Scheme:   "https",
+			RawQuery: url.Values{"code": {"code"}, "state": {signedState}}.Encode(),
+		}}
+
+		forgeUser := &model.User{Login: "jane-forge", ForgeRemoteID: "remote-42", AccessToken: "at", Email: "jane@forge.example", Avatar: "avatar"}
+		_manager.On("ForgeByID", int64(1)).Return(_forge, nil)
+		_forge.On("Login", mock.Anything, mock.Anything).Return(forgeUser, "", nil)
+		_store.On("GetUser", int64(42)).Return(ssoUser, nil)
+		_store.On("UserForgeGetByRemoteID", int64(1), forgeUser.ForgeRemoteID).Return(nil, types.RecordNotExist)
+		_store.On("UserForgeList", int64(42)).Return([]*model.UserForge{}, nil).Once()
+		_store.On("UserForgeCreate", mock.MatchedBy(func(uf *model.UserForge) bool { return uf.IsPrimary })).
+			Run(func(args mock.Arguments) {
+				if uf, ok := args.Get(0).(*model.UserForge); ok {
+					uf.ID = 9
+				}
+			}).Return(nil)
+		_store.On("OrgCreate", mock.Anything).Run(func(args mock.Arguments) {
+			if o, ok := args.Get(0).(*model.Org); ok {
+				o.ID = 5
+			}
+		}).Return(nil)
+		_store.On("UpdateUser", mock.MatchedBy(func(u *model.User) bool {
+			return u.PrimaryForgeID == 9 && u.ForgeID == 1 && u.ForgeRemoteID == "remote-42" && u.OrgID == 5 && u.AccessToken == "at"
+		})).Return(nil)
+		_store.On("UserForgeList", int64(42)).Return([]*model.UserForge{{ForgeID: 1, AccessToken: "at"}}, nil)
+		_forge.On("Repos", mock.Anything, mock.Anything).Return(nil, nil)
+
+		api.HandleAuth(c)
+
+		assert.Equal(t, "/user?forge_linked=true", c.Writer.Header().Get("Location"))
+		_store.AssertExpectations(t)
+	})
+
+	t.Run("first linked forge moves the SSO org onto the forge", func(t *testing.T) {
+		_manager := new(mocks_services.MockManager)
+		_forge := new(forge_mocks.MockForge)
+		_store := new(store_mocks.MockStore)
+		server.Config.Services.Manager = _manager
+		server.Config.Server.JWTSecret = "jwt-secret"
+		server.Config.Permissions.Orgs = permissions.NewOrgs(nil)
+		server.Config.Permissions.Admins = permissions.NewAdmins(nil)
+
+		ssoUser := &model.User{ID: 42, Login: "jane", Hash: "hash", OrgID: 5}
+		state := token.New(token.OAuthStateToken)
+		state.Set("forge-id", "1")
+		state.Set("linking-user-id", "42")
+		signedState, _ := state.Sign("jwt-secret")
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Set("store", _store)
+		c.Set("user", ssoUser)
+		c.Request = &http.Request{Header: make(http.Header), URL: &url.URL{
+			Scheme:   "https",
+			RawQuery: url.Values{"code": {"code"}, "state": {signedState}}.Encode(),
+		}}
+
+		forgeUser := &model.User{Login: "jane-forge", ForgeRemoteID: "remote-42", AccessToken: "at"}
+		_manager.On("ForgeByID", int64(1)).Return(_forge, nil)
+		_forge.On("Login", mock.Anything, mock.Anything).Return(forgeUser, "", nil)
+		_store.On("GetUser", int64(42)).Return(ssoUser, nil)
+		_store.On("UserForgeGetByRemoteID", int64(1), forgeUser.ForgeRemoteID).Return(nil, types.RecordNotExist)
+		_store.On("UserForgeList", int64(42)).Return([]*model.UserForge{}, nil).Once()
+		_store.On("UserForgeCreate", mock.Anything).Run(func(args mock.Arguments) {
+			if uf, ok := args.Get(0).(*model.UserForge); ok {
+				uf.ID = 9
+			}
+		}).Return(nil)
+		_store.On("OrgGet", int64(5)).Return(&model.Org{ID: 5, Name: "jane", IsUser: true}, nil)
+		_store.On("OrgFindByName", "jane-forge", int64(1)).Return(nil, types.RecordNotExist)
+		_store.On("OrgUpdate", mock.MatchedBy(func(o *model.Org) bool {
+			return o.ID == 5 && o.ForgeID == 1 && o.Name == "jane-forge"
+		})).Return(nil)
+		_store.On("UpdateUser", mock.MatchedBy(func(u *model.User) bool {
+			return u.PrimaryForgeID == 9 && u.ForgeID == 1 && u.OrgID == 5
+		})).Return(nil)
+		_store.On("UserForgeList", int64(42)).Return([]*model.UserForge{{ForgeID: 1, AccessToken: "at"}}, nil)
+		_forge.On("Repos", mock.Anything, mock.Anything).Return(nil, nil)
+
+		api.HandleAuth(c)
+
+		assert.Equal(t, "/user?forge_linked=true", c.Writer.Header().Get("Location"))
+		_store.AssertNotCalled(t, "OrgFindByName", "jane", mock.Anything)
+		_store.AssertNotCalled(t, "OrgCreate", mock.Anything)
+		_store.AssertNotCalled(t, "OrgDelete", mock.Anything)
+		_store.AssertExpectations(t)
+	})
+
+	t.Run("reconnecting finishes a failed primary forge adoption", func(t *testing.T) {
+		_manager := new(mocks_services.MockManager)
+		_forge := new(forge_mocks.MockForge)
+		_store := new(store_mocks.MockStore)
+		server.Config.Services.Manager = _manager
+		server.Config.Server.JWTSecret = "jwt-secret"
+		server.Config.Permissions.Orgs = permissions.NewOrgs(nil)
+		server.Config.Permissions.Admins = permissions.NewAdmins(nil)
+
+		// The primary forge link was stored, but adopting it failed, so the user
+		// still has no forge identity.
+		ssoUser := &model.User{ID: 42, Login: "jane", Hash: "hash"}
+		primary := &model.UserForge{ID: 9, UserID: 42, ForgeID: 1, ForgeRemoteID: "remote-42", IsPrimary: true}
+		state := token.New(token.OAuthStateToken)
+		state.Set("forge-id", "1")
+		state.Set("linking-user-id", "42")
+		state.Set("reconnect", "true")
+		signedState, _ := state.Sign("jwt-secret")
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Set("store", _store)
+		c.Set("user", ssoUser)
+		c.Request = &http.Request{Header: make(http.Header), URL: &url.URL{
+			Scheme:   "https",
+			RawQuery: url.Values{"code": {"code"}, "state": {signedState}}.Encode(),
+		}}
+
+		forgeUser := &model.User{Login: "jane-forge", ForgeRemoteID: "remote-42", AccessToken: "at"}
+		_manager.On("ForgeByID", int64(1)).Return(_forge, nil)
+		_forge.On("Login", mock.Anything, mock.Anything).Return(forgeUser, "", nil)
+		_store.On("GetUser", int64(42)).Return(ssoUser, nil)
+		_store.On("UserForgeGetByRemoteID", int64(1), forgeUser.ForgeRemoteID).Return(primary, nil)
+		_store.On("UserForgeGet", int64(42), int64(1)).Return(primary, nil)
+		_store.On("UserForgeUpdate", mock.Anything).Return(nil)
+		_store.On("UserIdentityList", int64(42)).Return([]*model.UserIdentity{{ID: 1, UserID: 42, Provider: "oidc"}}, nil)
+		_store.On("OrgCreate", mock.Anything).Run(func(args mock.Arguments) {
+			if o, ok := args.Get(0).(*model.Org); ok {
+				o.ID = 5
+			}
+		}).Return(nil)
+		_store.On("UpdateUser", mock.MatchedBy(func(u *model.User) bool {
+			return u.PrimaryForgeID == 9 && u.ForgeID == 1 && u.ForgeRemoteID == "remote-42" && u.OrgID == 5
+		})).Return(nil)
+		_store.On("UserForgeList", int64(42)).Return([]*model.UserForge{primary}, nil)
+		_forge.On("Repos", mock.Anything, mock.Anything).Return(nil, nil)
+
+		api.HandleAuth(c)
+
+		assert.Equal(t, "/user?forge_reconnected=true", c.Writer.Header().Get("Location"))
+		_store.AssertExpectations(t)
+	})
+
+	t.Run("rejects a forge link completed by a different session", func(t *testing.T) {
+		for name, sessionUser := range map[string]*model.User{"no session": nil, "other user": {ID: 43, Login: "eve"}} {
+			_manager := new(mocks_services.MockManager)
+			_forge := new(forge_mocks.MockForge)
+			_store := new(store_mocks.MockStore)
+			server.Config.Services.Manager = _manager
+			server.Config.Server.JWTSecret = "jwt-secret"
+
+			state := token.New(token.OAuthStateToken)
+			state.Set("forge-id", "1")
+			state.Set("linking-user-id", "42")
+			signedState, _ := state.Sign("jwt-secret")
+
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Set("store", _store)
+			if sessionUser != nil {
+				c.Set("user", sessionUser)
+			}
+			c.Request = &http.Request{Header: make(http.Header), URL: &url.URL{
+				Scheme:   "https",
+				RawQuery: url.Values{"code": {"code"}, "state": {signedState}}.Encode(),
+			}}
+
+			api.HandleAuth(c)
+
+			assert.Equal(t, "/login?error=invalid_state", c.Writer.Header().Get("Location"), name)
+			_manager.AssertNotCalled(t, "ForgeByID", mock.Anything)
+			_forge.AssertNotCalled(t, "Login", mock.Anything, mock.Anything)
+		}
+	})
+
+	t.Run("linking a second forge keeps the legacy forge identity of a user without user_forges", func(t *testing.T) {
+		_manager := new(mocks_services.MockManager)
+		_forge := new(forge_mocks.MockForge)
+		_store := new(store_mocks.MockStore)
+		server.Config.Services.Manager = _manager
+		server.Config.Server.JWTSecret = "jwt-secret"
+		server.Config.Permissions.Orgs = permissions.NewOrgs(nil)
+		server.Config.Permissions.Admins = permissions.NewAdmins(nil)
+
+		legacyUser := &model.User{ID: 42, Login: "jane", Hash: "hash", ForgeID: 1, ForgeRemoteID: "legacy-1", OrgID: 5}
+		state := token.New(token.OAuthStateToken)
+		state.Set("forge-id", "2")
+		state.Set("linking-user-id", "42")
+		signedState, _ := state.Sign("jwt-secret")
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Set("store", _store)
+		c.Set("user", legacyUser)
+		c.Request = &http.Request{Header: make(http.Header), URL: &url.URL{
+			Scheme:   "https",
+			RawQuery: url.Values{"code": {"code"}, "state": {signedState}}.Encode(),
+		}}
+
+		forgeUser := &model.User{Login: "jane-2", ForgeRemoteID: "remote-2", AccessToken: "at"}
+		_manager.On("ForgeByID", int64(2)).Return(_forge, nil)
+		_forge.On("Login", mock.Anything, mock.Anything).Return(forgeUser, "", nil)
+		_store.On("GetUser", int64(42)).Return(legacyUser, nil)
+		_store.On("UserForgeGetByRemoteID", int64(2), forgeUser.ForgeRemoteID).Return(nil, types.RecordNotExist)
+		_store.On("UserForgeList", int64(42)).Return([]*model.UserForge{}, nil)
+		_store.On("UserForgeCreate", mock.MatchedBy(func(uf *model.UserForge) bool { return !uf.IsPrimary })).Return(nil)
+
+		api.HandleAuth(c)
+
+		assert.Equal(t, "/user?forge_linked=true", c.Writer.Header().Get("Location"))
+		_store.AssertNotCalled(t, "UpdateUser", mock.Anything)
+		_store.AssertExpectations(t)
+	})
+
+	t.Run("blocks forge sign-in when OIDC only is set", func(t *testing.T) {
+		server.Config.Services.OIDC = oidc.New(oidc.Config{Issuer: "https://idp.example", Only: true})
+		t.Cleanup(func() { server.Config.Services.OIDC = nil })
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Set("store", new(store_mocks.MockStore))
+		c.Request = &http.Request{Header: make(http.Header), URL: &url.URL{Scheme: "https"}}
+
+		api.HandleAuth(c)
+
+		assert.Equal(t, "/login?error=forge_login_disabled", c.Writer.Header().Get("Location"))
+	})
+
+	t.Run("blocks add_account when forge sign-in is disabled", func(t *testing.T) {
+		server.Config.Services.OIDC = oidc.New(oidc.Config{Issuer: "https://idp.example", Only: true})
+		t.Cleanup(func() { server.Config.Services.OIDC = nil })
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Set("store", new(store_mocks.MockStore))
+		c.Set("user", &model.User{ID: 42, Login: "jane"})
+		c.Request = &http.Request{Header: make(http.Header), URL: &url.URL{Scheme: "https", RawQuery: "add_account=true"}}
+
+		api.HandleAuth(c)
+
+		assert.Equal(t, "/login?error=forge_login_disabled", c.Writer.Header().Get("Location"))
+	})
+
+	t.Run("blocks a forge sign-in callback when OIDC only is set", func(t *testing.T) {
+		server.Config.Services.OIDC = oidc.New(oidc.Config{Issuer: "https://idp.example", Only: true})
+		server.Config.Server.JWTSecret = "jwt-secret"
+		t.Cleanup(func() { server.Config.Services.OIDC = nil })
+
+		state := token.New(token.OAuthStateToken)
+		state.Set("forge-id", "1")
+		signedState, _ := state.Sign("jwt-secret")
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Set("store", new(store_mocks.MockStore))
+		c.Request = &http.Request{Header: make(http.Header), URL: &url.URL{
+			Scheme:   "https",
+			RawQuery: url.Values{"code": {"code"}, "state": {signedState}}.Encode(),
+		}}
+
+		api.HandleAuth(c)
+
+		assert.Equal(t, "/login?error=forge_login_disabled", c.Writer.Header().Get("Location"))
+	})
+
+	t.Run("still allows linking a forge when OIDC only is set", func(t *testing.T) {
+		server.Config.Services.OIDC = oidc.New(oidc.Config{Issuer: "https://idp.example", Only: true})
+		t.Cleanup(func() { server.Config.Services.OIDC = nil })
+		_manager := new(mocks_services.MockManager)
+		_forge := new(forge_mocks.MockForge)
+		_store := new(store_mocks.MockStore)
+		server.Config.Services.Manager = _manager
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Set("store", _store)
+		c.Set("user", &model.User{ID: 42, Login: "jane"})
+		c.Request = &http.Request{Header: make(http.Header), URL: &url.URL{Scheme: "https"}}
+
+		_store.On("UserForgeGet", int64(42), int64(1)).Return(nil, types.RecordNotExist)
+		_manager.On("ForgeByID", int64(1)).Return(_forge, nil)
+		_forge.On("Login", mock.Anything, mock.Anything).Return(nil, "https://forge.example/oauth", nil)
+
+		api.HandleAuth(c)
+
+		assert.Equal(t, "https://forge.example/oauth", c.Writer.Header().Get("Location"))
 	})
 }

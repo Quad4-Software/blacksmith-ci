@@ -816,6 +816,64 @@ var flags = append([]cli.Flag{
 		Usage:   "SMTP authentication mechanism: LOGIN, PLAIN, CRAM-MD5, AUTO (auto-discover), or NONE",
 		Value:   "LOGIN",
 	},
+	// OIDC sign-in flags
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_OIDC_ISSUER"),
+		Name:    "oidc-issuer",
+		Usage:   "OpenID Connect issuer URL; enables sign-in through an identity provider",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_OIDC_CLIENT_ID"),
+		Name:    "oidc-client-id",
+		Usage:   "OpenID Connect client ID",
+	},
+	&cli.StringFlag{
+		Sources: cli.NewValueSourceChain(
+			cli.File(os.Getenv("CROW_OIDC_CLIENT_SECRET_FILE")),
+			cli.EnvVar("CROW_OIDC_CLIENT_SECRET"),
+		),
+		Name:  "oidc-client-secret",
+		Usage: "OpenID Connect client secret",
+	},
+	&cli.StringSliceFlag{
+		Sources: cli.EnvVars("CROW_OIDC_SCOPES"),
+		Name:    "oidc-scopes",
+		Usage:   "OpenID Connect scopes to request; openid is always added",
+		Value:   []string{"openid", "profile", "email"},
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_OIDC_DISPLAY_NAME"),
+		Name:    "oidc-display-name",
+		Usage:   "label of the single sign-on button on the login page",
+		Value:   "Single sign-on",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_OIDC_USERNAME_CLAIM"),
+		Name:    "oidc-username-claim",
+		Usage:   "ID token claim used as the Crow login of new users",
+		Value:   "preferred_username",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_OIDC_GROUPS_CLAIM"),
+		Name:    "oidc-groups-claim",
+		Usage:   "ID token or userinfo claim holding group membership",
+		Value:   "groups",
+	},
+	&cli.StringSliceFlag{
+		Sources: cli.EnvVars("CROW_OIDC_ALLOWED_GROUPS"),
+		Name:    "oidc-allowed-groups",
+		Usage:   "only members of these identity provider groups may sign in via OIDC",
+	},
+	&cli.StringSliceFlag{
+		Sources: cli.EnvVars("CROW_OIDC_ADMIN_GROUPS"),
+		Name:    "oidc-admin-groups",
+		Usage:   "members of these identity provider groups are instance admins; evaluated at every OIDC sign-in",
+	},
+	&cli.BoolFlag{
+		Sources: cli.EnvVars("CROW_OIDC_ONLY"),
+		Name:    "oidc-only",
+		Usage:   "disable forge OAuth sign-in; forge accounts can still be linked",
+	},
 	&cli.StringFlag{
 		Sources: cli.EnvVars("CROW_CI_QUOTA_URL"),
 		Name:    "ci-quota-url",

@@ -14,6 +14,12 @@
 
 package types
 
-import "database/sql"
+import (
+	"database/sql"
+	"errors"
+)
 
 var RecordNotExist = sql.ErrNoRows
+
+// ErrNameTaken reports that a login or org name is already in use.
+var ErrNameTaken = errors.New("name already taken")

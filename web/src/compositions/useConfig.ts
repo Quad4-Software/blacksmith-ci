@@ -1,6 +1,12 @@
 import type { SwitchAccount, User } from '~/lib/api/types';
 import type { CustomThemeConfig } from '~/lib/themes/custom';
 
+export interface AuthConfig {
+  oidc: { enabled: boolean; name: string };
+  forge_login: boolean;
+  forge_count: number | null;
+}
+
 declare global {
   interface Window {
     CROW_USER: User | undefined;
@@ -13,6 +19,7 @@ declare global {
     CROW_ENABLE_SWAGGER: boolean | undefined;
     CROW_USER_REGISTERED_AGENTS: boolean | undefined;
     CROW_SCHEDULING_STRATEGY: string | undefined;
+    CROW_AUTH: AuthConfig | undefined;
     CROW_CUSTOM_THEMES: CustomThemeConfig[] | null | undefined;
   }
 }
@@ -28,4 +35,5 @@ export default () => ({
   enableSwagger: window.CROW_ENABLE_SWAGGER === true || false,
   userRegisteredAgents: window.CROW_USER_REGISTERED_AGENTS || false,
   schedulingStrategy: window.CROW_SCHEDULING_STRATEGY ?? '',
+  auth: window.CROW_AUTH ?? { oidc: { enabled: false, name: '' }, forge_login: true, forge_count: null },
 });

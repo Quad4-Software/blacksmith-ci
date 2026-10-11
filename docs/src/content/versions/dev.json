@@ -39,6 +39,7 @@
             "configuration/autoscaler",
             "configuration/windows-agent",
             "configuration/forge-oauth",
+            "configuration/oidc",
             {
               "label": "Environment Variables",
               "collapsed": true,

@@ -237,7 +237,7 @@ func migrateOrgDataForRepoActivation(
 	isDestOrgAdmin := err == nil && destOrgPerm != nil && destOrgPerm.Admin
 
 	// Personal org means they are admin
-	if destOrg.Name == user.Login {
+	if session.IsPersonalOrgOwner(_store, user, destOrg) {
 		isDestOrgAdmin = true
 	}
 

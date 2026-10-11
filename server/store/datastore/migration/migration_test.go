@@ -74,6 +74,7 @@ func TestMigrate_FreshDatabase_MultiDriver(t *testing.T) {
 		err := db.QueryRow("SELECT COUNT(*) FROM " + table).Scan(&count)
 		assert.NoError(t, err, "table %s should exist after fresh migration on %s", table, driver)
 	}
+	assertIdentitySubjectsByteExact(t, db)
 
 	var migrationCount int
 	err = db.QueryRow("SELECT COUNT(*) FROM migrations").Scan(&migrationCount)
@@ -88,7 +89,7 @@ func freshDatabaseTables() []string {
 		"registries", "perms", "agents", "autoscalers", "crons", "orgs", "forges",
 		"server_configs", "access_tokens", "integrations", "notification_configs",
 		"approved_pull_requests", "distributed_locks", "pubsub_messages",
-		"cache_entries", "maintenance_config", "user_forges", "redirections",
+		"cache_entries", "maintenance_config", "user_forges", "user_identities", "redirections",
 		"email_unsubscribes", "maintenance_operation_config",
 		"maintenance_stats", "maintenance_logs",
 	}
@@ -296,12 +297,40 @@ func TestMigrate_NewMigrations_PortableSQL(t *testing.T) {
 	err = db.QueryRow("SELECT COUNT(*) FROM secret_targets").Scan(&count)
 	assert.NoError(t, err, "secret_targets table should exist")
 
+	// Verify user_identities was created
+	err = db.QueryRow("SELECT COUNT(*) FROM user_identities").Scan(&count)
+	assert.NoError(t, err, "user_identities table should exist")
+	assertIdentitySubjectsByteExact(t, db)
+
 	// Verify pending_since column exists on autoscalers
 	rows, err := db.Query("SELECT pending_since FROM autoscalers LIMIT 1")
 	if assert.NoError(t, err, "pending_since column should exist on autoscalers") {
 		defer rows.Close()
 		_ = rows.Err()
 	}
+}
+
+// assertIdentitySubjectsByteExact guards against identity confusion: OIDC
+// subjects are compared byte by byte, so subjects that differ only in case or
+// in trailing spaces must be distinct identities, including under MySQL's
+// case-insensitive default collation and the PAD SPACE binary collations.
+func assertIdentitySubjectsByteExact(t *testing.T, db *sql.DB) {
+	t.Helper()
+	_, err := db.Exec(`INSERT INTO user_identities (user_id, provider, issuer, subject, linked_at) VALUES (1, 'oidc', 'https://idp.example', 'Alice', 1)`)
+	require.NoError(t, err)
+	_, err = db.Exec(`INSERT INTO user_identities (user_id, provider, issuer, subject, linked_at) VALUES (2, 'oidc', 'https://idp.example', 'alice', 1)`)
+	require.NoError(t, err, "subjects that differ only in case must not collide")
+	_, err = db.Exec(`INSERT INTO user_identities (user_id, provider, issuer, subject, linked_at) VALUES (3, 'oidc', 'https://idp.example', 'alice ', 1)`)
+	require.NoError(t, err, "subjects that differ only in trailing spaces must not collide")
+
+	var userID int64
+	require.NoError(t, db.QueryRow(`SELECT user_id FROM user_identities WHERE provider = 'oidc' AND issuer = 'https://idp.example' AND subject = 'alice'`).Scan(&userID))
+	assert.Equal(t, int64(2), userID)
+	require.NoError(t, db.QueryRow(`SELECT user_id FROM user_identities WHERE provider = 'oidc' AND issuer = 'https://idp.example' AND subject = 'alice '`).Scan(&userID))
+	assert.Equal(t, int64(3), userID)
+	var count int
+	require.NoError(t, db.QueryRow(`SELECT COUNT(*) FROM user_identities WHERE issuer = 'https://IDP.example'`).Scan(&count))
+	assert.Zero(t, count, "issuers must compare byte-exact")
 }
 
 // TestMigrate_RepairsBrokenMySQLAutoIncrement simulates the MySQL analog of

@@ -32,6 +32,7 @@ import (
 	"github.com/urfave/cli/v3"
 
 	"codefloe.com/crowci/crow/v6/server"
+	"codefloe.com/crowci/crow/v6/server/auth/oidc"
 	"codefloe.com/crowci/crow/v6/server/cache"
 	"codefloe.com/crowci/crow/v6/server/forge/setup"
 	"codefloe.com/crowci/crow/v6/server/integrations"
@@ -657,6 +658,31 @@ func setupEvilGlobals(ctx context.Context, c *cli.Command, s store.Store) (err e
 	server.Config.Permissions.Admins = permissions.NewAdmins(c.StringSlice("admin"))
 	server.Config.Permissions.Orgs = permissions.NewOrgs(c.StringSlice("orgs"))
 	server.Config.Permissions.OwnersAllowlist = permissions.NewOwnersAllowlist(c.StringSlice("repo-owners"))
+
+	oidcCfg := oidc.Config{
+		Issuer:        c.String("oidc-issuer"),
+		ClientID:      c.String("oidc-client-id"),
+		ClientSecret:  c.String("oidc-client-secret"),
+		RedirectURL:   server.Config.Server.OAuthHost + "/authorize/oidc/callback",
+		Scopes:        c.StringSlice("oidc-scopes"),
+		DisplayName:   c.String("oidc-display-name"),
+		UsernameClaim: c.String("oidc-username-claim"),
+		GroupsClaim:   c.String("oidc-groups-claim"),
+		AllowedGroups: c.StringSlice("oidc-allowed-groups"),
+		AdminGroups:   c.StringSlice("oidc-admin-groups"),
+		Only:          c.Bool("oidc-only"),
+	}
+	if err := oidcCfg.Validate(); err != nil {
+		return err
+	}
+	if oidcCfg.Enabled() {
+		provider := oidc.New(oidcCfg)
+		if err := provider.Init(ctx); err != nil {
+			log.Warn().Err(err).Msg("OIDC discovery failed, it is retried on the next sign-in")
+		}
+		server.Config.Services.OIDC = provider
+		log.Info().Str("issuer", oidcCfg.Issuer).Bool("forge_login", !oidcCfg.Only).Msg("OIDC sign-in enabled")
+	}
 	return nil
 }
 

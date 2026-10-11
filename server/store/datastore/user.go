@@ -56,11 +56,14 @@ func (s storage) GetUserByForgeRemoteID(forgeID int64, remoteID model.ForgeRemot
 	}
 
 	// Rows created before remote IDs were tracked have no forge_remote_id, so
-	// fall back to the login name for those only.
+	// fall back to the login name for those only. Users registered through an
+	// identity provider also have no forge_remote_id, but their login is not
+	// forge-verified: a forge account of the same name must never adopt them.
 	user = new(model.User)
 	return user, wrapGet(s.forgeScope(s.db.NewSelect().Model(user), forgeID).
 		Where("login = ?", login).
 		Where("(forge_remote_id IS NULL OR forge_remote_id = '')").
+		Where("NOT EXISTS (SELECT 1 FROM user_identities WHERE user_identities.user_id = ?TableAlias.id)").
 		Scan(context.Background()))
 }
 
@@ -151,6 +154,10 @@ func (s storage) DeleteUser(user *model.User) error {
 
 		if _, err := tx.NewDelete().Model((*model.UserForge)(nil)).Where("user_id = ?", user.ID).Exec(ctx); err != nil {
 			return fmt.Errorf("failed to delete user forges: %w", err)
+		}
+
+		if _, err := tx.NewDelete().Model((*model.UserIdentity)(nil)).Where("user_id = ?", user.ID).Exec(ctx); err != nil {
+			return fmt.Errorf("failed to delete user identities: %w", err)
 		}
 
 		return nil

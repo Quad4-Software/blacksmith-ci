@@ -25,10 +25,42 @@ import (
 
 	"codefloe.com/crowci/crow/v6/server"
 	"codefloe.com/crowci/crow/v6/server/api"
+	"codefloe.com/crowci/crow/v6/server/model"
 	"codefloe.com/crowci/crow/v6/server/router/middleware/session"
+	"codefloe.com/crowci/crow/v6/server/store"
 	"codefloe.com/crowci/crow/v6/shared/token"
 	"codefloe.com/crowci/crow/v6/version"
 )
+
+type webOIDCConfig struct {
+	Enabled bool   `json:"enabled"`
+	Name    string `json:"name"`
+}
+
+type webAuthConfig struct {
+	OIDC       webOIDCConfig `json:"oidc"`
+	ForgeLogin bool          `json:"forge_login"`
+	// ForgeCount is the number of forges linked by the signed-in user, nil when signed out.
+	ForgeCount *int `json:"forge_count"`
+}
+
+func authConfig(c *gin.Context, user *model.User) webAuthConfig {
+	cfg := webAuthConfig{ForgeLogin: true}
+	if p := server.Config.Services.OIDC; p != nil {
+		cfg.OIDC = webOIDCConfig{Enabled: true, Name: p.DisplayName()}
+		cfg.ForgeLogin = !p.ForgeLoginDisabled()
+	}
+	if user != nil {
+		forges, err := store.FromContext(c).UserForgeList(user.ID)
+		if err != nil {
+			log.Error().Err(err).Msgf("cannot count forges of %s", user.Login)
+		} else {
+			n := len(forges)
+			cfg.ForgeCount = &n
+		}
+	}
+	return cfg
+}
 
 func Config(c *gin.Context) {
 	user := session.User(c)
@@ -43,6 +75,7 @@ func Config(c *gin.Context) {
 	configData := map[string]any{
 		"user":                   user,
 		"accounts":               api.SwitchAccounts(c, user),
+		"auth":                   authConfig(c, user),
 		"csrf":                   csrf,
 		"version":                version.String(),
 		"build_date":             version.Date(),
@@ -90,4 +123,5 @@ window.CROW_SKIP_VERSION_CHECK = {{ .skip_version_check }}
 window.CROW_USER_REGISTERED_AGENTS = {{ .user_registered_agents }}
 window.CROW_SCHEDULING_STRATEGY = {{ json .scheduling_strategy }};
 window.CROW_CUSTOM_THEMES = {{ json .custom_themes }};
+window.CROW_AUTH = {{ json .auth }};
 `

@@ -20,11 +20,26 @@ Crow authenticates users via OAuth2 from a Git forge:
 | GitLab       | `CROW_GITLAB=true`    |
 | Bitbucket DC | `CROW_BITBUCKET=true` |
 
-There is no manual user registration - all users must authenticate via the forge.
+There is no manual user registration: users sign in through a forge or through single sign-on.
+
+### Single Sign-On (OIDC)
+
+Crow can also sign users in through an OpenID Connect identity provider such as Keycloak, Authentik, Microsoft Entra ID or Okta:
+
+```yaml
+CROW_OIDC_ISSUER=https://idp.example.com/realms/main
+CROW_OIDC_CLIENT_ID=crow
+CROW_OIDC_CLIENT_SECRET=your-client-secret
+```
+
+Users who sign in through single sign-on link a forge account afterwards, because Crow reads repositories through forge accounts.
+Group-based access and admin mapping are available through `CROW_OIDC_ALLOWED_GROUPS` and `CROW_OIDC_ADMIN_GROUPS`, and `CROW_OIDC_ONLY=true` turns off forge sign-in.
+See [Single Sign-On (OIDC)](/dev/configuration/oidc/) for the full guide.
 
 ### Registration
 
 Registration is closed by default (`CROW_OPEN=false`). When open, any forge user can register.
+With single sign-on, members of `CROW_OIDC_ALLOWED_GROUPS` can register even when registration is closed.
 
 :::caution
 Restrict access using `CROW_ORGS` to limit registration to organization members:
@@ -42,6 +57,7 @@ CROW_ADMIN=johnDoe,janeSmith
 ```
 
 Admins can also be promoted via UI: Settings → Users → Edit User.
+`CROW_ADMIN` applies to forge sign-in only; for single sign-on use `CROW_OIDC_ADMIN_GROUPS`.
 
 ### Admin Token Bootstrap
 

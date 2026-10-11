@@ -1098,6 +1098,32 @@ func (c *CompositeEncryptedStore) UserForgeListAll() ([]*model.UserForge, error)
 	return c.userForgeStore.UserForgeListAll()
 }
 
+// UserIdentity operations carry no secrets - passed through to baseStore.
+
+func (c *CompositeEncryptedStore) UserIdentityGetByProviderSubject(provider, issuer, subject string) (*model.UserIdentity, error) {
+	return c.baseStore.UserIdentityGetByProviderSubject(provider, issuer, subject)
+}
+
+func (c *CompositeEncryptedStore) UserIdentityList(userID int64) ([]*model.UserIdentity, error) {
+	return c.baseStore.UserIdentityList(userID)
+}
+
+func (c *CompositeEncryptedStore) UserIdentityCreate(identity *model.UserIdentity) error {
+	return c.baseStore.UserIdentityCreate(identity)
+}
+
+func (c *CompositeEncryptedStore) UserIdentityUpdate(identity *model.UserIdentity) error {
+	return c.baseStore.UserIdentityUpdate(identity)
+}
+
+func (c *CompositeEncryptedStore) UserIdentityDelete(identity *model.UserIdentity) error {
+	return c.baseStore.UserIdentityDelete(identity)
+}
+
+func (c *CompositeEncryptedStore) UserCreateWithIdentity(user *model.User, identity *model.UserIdentity) error {
+	return c.baseStore.UserCreateWithIdentity(user, identity)
+}
+
 // Notification Configs.
 func (c *CompositeEncryptedStore) NotificationConfigFind(repoID int64) (*model.NotificationConfig, error) {
 	return c.baseStore.NotificationConfigFind(repoID)

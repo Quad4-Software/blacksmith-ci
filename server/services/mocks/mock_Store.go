@@ -12720,6 +12720,63 @@ func (_c *MockStore_UpdateUser_Call) RunAndReturn(run func(user *model.User) err
 	return _c
 }
 
+// UserCreateWithIdentity provides a mock function for the type MockStore
+func (_mock *MockStore) UserCreateWithIdentity(user *model.User, userIdentity *model.UserIdentity) error {
+	ret := _mock.Called(user, userIdentity)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UserCreateWithIdentity")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(*model.User, *model.UserIdentity) error); ok {
+		r0 = returnFunc(user, userIdentity)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_UserCreateWithIdentity_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UserCreateWithIdentity'
+type MockStore_UserCreateWithIdentity_Call struct {
+	*mock.Call
+}
+
+// UserCreateWithIdentity is a helper method to define mock.On call
+//   - user *model.User
+//   - userIdentity *model.UserIdentity
+func (_e *MockStore_Expecter) UserCreateWithIdentity(user any, userIdentity any) *MockStore_UserCreateWithIdentity_Call {
+	return &MockStore_UserCreateWithIdentity_Call{Call: _e.mock.On("UserCreateWithIdentity", user, userIdentity)}
+}
+
+func (_c *MockStore_UserCreateWithIdentity_Call) Run(run func(user *model.User, userIdentity *model.UserIdentity)) *MockStore_UserCreateWithIdentity_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.User
+		if args[0] != nil {
+			arg0 = args[0].(*model.User)
+		}
+		var arg1 *model.UserIdentity
+		if args[1] != nil {
+			arg1 = args[1].(*model.UserIdentity)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_UserCreateWithIdentity_Call) Return(err error) *MockStore_UserCreateWithIdentity_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_UserCreateWithIdentity_Call) RunAndReturn(run func(user *model.User, userIdentity *model.UserIdentity) error) *MockStore_UserCreateWithIdentity_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // UserCronList provides a mock function for the type MockStore
 func (_mock *MockStore) UserCronList(repoIDs []int64, searchTerm string, p *model.ListOptions) ([]*model.Cron, error) {
 	ret := _mock.Called(repoIDs, searchTerm, p)
@@ -13320,6 +13377,295 @@ func (_c *MockStore_UserForgeUpdate_Call) Return(err error) *MockStore_UserForge
 }
 
 func (_c *MockStore_UserForgeUpdate_Call) RunAndReturn(run func(userForge *model.UserForge) error) *MockStore_UserForgeUpdate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UserIdentityCreate provides a mock function for the type MockStore
+func (_mock *MockStore) UserIdentityCreate(userIdentity *model.UserIdentity) error {
+	ret := _mock.Called(userIdentity)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UserIdentityCreate")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(*model.UserIdentity) error); ok {
+		r0 = returnFunc(userIdentity)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_UserIdentityCreate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UserIdentityCreate'
+type MockStore_UserIdentityCreate_Call struct {
+	*mock.Call
+}
+
+// UserIdentityCreate is a helper method to define mock.On call
+//   - userIdentity *model.UserIdentity
+func (_e *MockStore_Expecter) UserIdentityCreate(userIdentity any) *MockStore_UserIdentityCreate_Call {
+	return &MockStore_UserIdentityCreate_Call{Call: _e.mock.On("UserIdentityCreate", userIdentity)}
+}
+
+func (_c *MockStore_UserIdentityCreate_Call) Run(run func(userIdentity *model.UserIdentity)) *MockStore_UserIdentityCreate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.UserIdentity
+		if args[0] != nil {
+			arg0 = args[0].(*model.UserIdentity)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_UserIdentityCreate_Call) Return(err error) *MockStore_UserIdentityCreate_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_UserIdentityCreate_Call) RunAndReturn(run func(userIdentity *model.UserIdentity) error) *MockStore_UserIdentityCreate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UserIdentityDelete provides a mock function for the type MockStore
+func (_mock *MockStore) UserIdentityDelete(userIdentity *model.UserIdentity) error {
+	ret := _mock.Called(userIdentity)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UserIdentityDelete")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(*model.UserIdentity) error); ok {
+		r0 = returnFunc(userIdentity)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_UserIdentityDelete_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UserIdentityDelete'
+type MockStore_UserIdentityDelete_Call struct {
+	*mock.Call
+}
+
+// UserIdentityDelete is a helper method to define mock.On call
+//   - userIdentity *model.UserIdentity
+func (_e *MockStore_Expecter) UserIdentityDelete(userIdentity any) *MockStore_UserIdentityDelete_Call {
+	return &MockStore_UserIdentityDelete_Call{Call: _e.mock.On("UserIdentityDelete", userIdentity)}
+}
+
+func (_c *MockStore_UserIdentityDelete_Call) Run(run func(userIdentity *model.UserIdentity)) *MockStore_UserIdentityDelete_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.UserIdentity
+		if args[0] != nil {
+			arg0 = args[0].(*model.UserIdentity)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_UserIdentityDelete_Call) Return(err error) *MockStore_UserIdentityDelete_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_UserIdentityDelete_Call) RunAndReturn(run func(userIdentity *model.UserIdentity) error) *MockStore_UserIdentityDelete_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UserIdentityGetByProviderSubject provides a mock function for the type MockStore
+func (_mock *MockStore) UserIdentityGetByProviderSubject(provider string, issuer string, subject string) (*model.UserIdentity, error) {
+	ret := _mock.Called(provider, issuer, subject)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UserIdentityGetByProviderSubject")
+	}
+
+	var r0 *model.UserIdentity
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(string, string, string) (*model.UserIdentity, error)); ok {
+		return returnFunc(provider, issuer, subject)
+	}
+	if returnFunc, ok := ret.Get(0).(func(string, string, string) *model.UserIdentity); ok {
+		r0 = returnFunc(provider, issuer, subject)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.UserIdentity)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(string, string, string) error); ok {
+		r1 = returnFunc(provider, issuer, subject)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_UserIdentityGetByProviderSubject_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UserIdentityGetByProviderSubject'
+type MockStore_UserIdentityGetByProviderSubject_Call struct {
+	*mock.Call
+}
+
+// UserIdentityGetByProviderSubject is a helper method to define mock.On call
+//   - provider string
+//   - issuer string
+//   - subject string
+func (_e *MockStore_Expecter) UserIdentityGetByProviderSubject(provider any, issuer any, subject any) *MockStore_UserIdentityGetByProviderSubject_Call {
+	return &MockStore_UserIdentityGetByProviderSubject_Call{Call: _e.mock.On("UserIdentityGetByProviderSubject", provider, issuer, subject)}
+}
+
+func (_c *MockStore_UserIdentityGetByProviderSubject_Call) Run(run func(provider string, issuer string, subject string)) *MockStore_UserIdentityGetByProviderSubject_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_UserIdentityGetByProviderSubject_Call) Return(userIdentity *model.UserIdentity, err error) *MockStore_UserIdentityGetByProviderSubject_Call {
+	_c.Call.Return(userIdentity, err)
+	return _c
+}
+
+func (_c *MockStore_UserIdentityGetByProviderSubject_Call) RunAndReturn(run func(provider string, issuer string, subject string) (*model.UserIdentity, error)) *MockStore_UserIdentityGetByProviderSubject_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UserIdentityList provides a mock function for the type MockStore
+func (_mock *MockStore) UserIdentityList(userID int64) ([]*model.UserIdentity, error) {
+	ret := _mock.Called(userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UserIdentityList")
+	}
+
+	var r0 []*model.UserIdentity
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64) ([]*model.UserIdentity, error)); ok {
+		return returnFunc(userID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64) []*model.UserIdentity); ok {
+		r0 = returnFunc(userID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.UserIdentity)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64) error); ok {
+		r1 = returnFunc(userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_UserIdentityList_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UserIdentityList'
+type MockStore_UserIdentityList_Call struct {
+	*mock.Call
+}
+
+// UserIdentityList is a helper method to define mock.On call
+//   - userID int64
+func (_e *MockStore_Expecter) UserIdentityList(userID any) *MockStore_UserIdentityList_Call {
+	return &MockStore_UserIdentityList_Call{Call: _e.mock.On("UserIdentityList", userID)}
+}
+
+func (_c *MockStore_UserIdentityList_Call) Run(run func(userID int64)) *MockStore_UserIdentityList_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_UserIdentityList_Call) Return(userIdentitys []*model.UserIdentity, err error) *MockStore_UserIdentityList_Call {
+	_c.Call.Return(userIdentitys, err)
+	return _c
+}
+
+func (_c *MockStore_UserIdentityList_Call) RunAndReturn(run func(userID int64) ([]*model.UserIdentity, error)) *MockStore_UserIdentityList_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UserIdentityUpdate provides a mock function for the type MockStore
+func (_mock *MockStore) UserIdentityUpdate(userIdentity *model.UserIdentity) error {
+	ret := _mock.Called(userIdentity)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UserIdentityUpdate")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(*model.UserIdentity) error); ok {
+		r0 = returnFunc(userIdentity)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_UserIdentityUpdate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UserIdentityUpdate'
+type MockStore_UserIdentityUpdate_Call struct {
+	*mock.Call
+}
+
+// UserIdentityUpdate is a helper method to define mock.On call
+//   - userIdentity *model.UserIdentity
+func (_e *MockStore_Expecter) UserIdentityUpdate(userIdentity any) *MockStore_UserIdentityUpdate_Call {
+	return &MockStore_UserIdentityUpdate_Call{Call: _e.mock.On("UserIdentityUpdate", userIdentity)}
+}
+
+func (_c *MockStore_UserIdentityUpdate_Call) Run(run func(userIdentity *model.UserIdentity)) *MockStore_UserIdentityUpdate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *model.UserIdentity
+		if args[0] != nil {
+			arg0 = args[0].(*model.UserIdentity)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_UserIdentityUpdate_Call) Return(err error) *MockStore_UserIdentityUpdate_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_UserIdentityUpdate_Call) RunAndReturn(run func(userIdentity *model.UserIdentity) error) *MockStore_UserIdentityUpdate_Call {
 	_c.Call.Return(run)
 	return _c
 }

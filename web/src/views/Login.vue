@@ -7,7 +7,9 @@
       <!-- Different heading and message for linking mode -->
       <template v-if="isLinkingMode">
         <h1 class="text-3xl font-extrabold text-center">{{ $t('link_forge_title') }}</h1>
-        <p class="text-center text-lg mb-2">{{ $t('link_forge_message') }}</p>
+        <p class="text-center text-lg mb-2">
+          {{ isLinkRequired ? $t('link_forge_required_message') : $t('link_forge_message') }}
+        </p>
       </template>
       <template v-else-if="isAddAccountMode">
         <h1 class="text-3xl font-extrabold text-center">{{ $t('account_switch.add') }}</h1>
@@ -15,37 +17,51 @@
       </template>
       <template v-else>
         <h1 class="text-3xl font-extrabold text-center">{{ $t('welcome_to_crow') }}</h1>
-        <p class="text-center text-lg mb-2">{{ $t('login_oauth_message') }}</p>
+        <p class="text-center text-lg mb-2">
+          {{ appConfig.auth.forge_login ? $t('login_oauth_message') : $t('login_sso_message') }}
+        </p>
       </template>
       <div class="flex flex-col gap-2 w-full items-center">
-        <Button
-          v-for="(forge, idx) in displayedForges"
-          :key="forge.id"
-          :ref="(el) => (buttonRefs[idx] = el)"
-          variant="outline"
-          class="justify-center border-orange-400 hover:border-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/20 dark:bg-black! text-foreground"
-          :style="maxButtonWidth ? { width: `${maxButtonWidth}px` } : {}"
-          :disabled="loading === forge.id"
-          :aria-label="`${isLinkingMode ? $t('link_forge_message') : $t('login_oauth_message')} ${getHostFromUrl(forge)}`"
-          @click="doLogin(forge.id)"
-        >
-          <Icon v-if="loading === forge.id" name="spinner" class="h-5 w-5 animate-spin" aria-hidden="true" />
-          <span v-else class="flex items-center gap-2">
-            <Icon v-if="hasBuiltInIcon(forge)" :name="forge.type as IconNames" size="1.5rem" />
-            <img
-              v-else
-              :src="getFaviconUrl(forge)"
-              alt=""
-              class="h-6 w-6 rounded bg-white dark:bg-black object-contain"
-              :data-forge-id="forge.id"
-              @error="onFaviconError($event)"
-            />
-            {{ getHostFromUrl(forge) }}
-          </span>
+        <Button v-if="showOidcButton" class="justify-center w-full" :disabled="oidcLoading" @click="doOidcLogin">
+          <Icon v-if="oidcLoading" name="spinner" class="h-5 w-5 animate-spin" aria-hidden="true" />
+          <span v-else>{{ $t('sign_in_with', { name: appConfig.auth.oidc.name }) }}</span>
         </Button>
+        <template v-if="showForgeButtons">
+          <Button
+            v-for="(forge, idx) in displayedForges"
+            :key="forge.id"
+            :ref="(el) => (buttonRefs[idx] = el)"
+            variant="outline"
+            class="justify-center border-orange-400 hover:border-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/20 dark:bg-black! text-foreground"
+            :style="maxButtonWidth ? { width: `${maxButtonWidth}px` } : {}"
+            :disabled="loading === forge.id"
+            :aria-label="`${isLinkingMode ? $t('link_forge_message') : $t('login_oauth_message')} ${getHostFromUrl(forge)}`"
+            @click="doLogin(forge.id)"
+          >
+            <Icon v-if="loading === forge.id" name="spinner" class="h-5 w-5 animate-spin" aria-hidden="true" />
+            <span v-else class="flex items-center gap-2">
+              <Icon v-if="hasBuiltInIcon(forge)" :name="forge.type as IconNames" size="1.5rem" />
+              <img
+                v-else
+                :src="getFaviconUrl(forge)"
+                alt=""
+                class="h-6 w-6 rounded bg-white dark:bg-black object-contain"
+                :data-forge-id="forge.id"
+                @error="onFaviconError($event)"
+              />
+              {{ getHostFromUrl(forge) }}
+            </span>
+          </Button>
+        </template>
+      </div>
+      <!-- Logout link when linking a forge is mandatory -->
+      <div v-if="isLinkingMode && isLinkRequired" class="mt-2">
+        <a :href="`${appConfig.rootPath}/logout`" class="text-sm text-muted-foreground hover:underline">
+          {{ $t('logout') }}
+        </a>
       </div>
       <!-- Cancel link for linking mode -->
-      <div v-if="isLinkingMode" class="mt-2">
+      <div v-else-if="isLinkingMode" class="mt-2">
         <router-link :to="{ name: 'user' }" class="text-sm text-muted-foreground hover:underline">
           {{ $t('cancel') }}
         </router-link>
@@ -74,6 +90,7 @@ import Icon from '~/components/atomic/Icon.vue';
 import { Button } from '~/components/ui/button';
 import useApiClient from '~/compositions/useApiClient';
 import useAuthentication from '~/compositions/useAuthentication';
+import useConfig from '~/compositions/useConfig';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
 import { useTheme } from '~/compositions/useTheme';
 import type { Forge } from '~/lib/api/types';
@@ -90,6 +107,9 @@ const { theme } = useTheme();
 
 const isDark = computed(() => theme.value === 'dark');
 
+const appConfig = useConfig();
+const oidcLoading = ref(false);
+
 const forges = ref<Forge[]>([]);
 const loading = ref<number | null>(null);
 
@@ -97,6 +117,9 @@ const loading = ref<number | null>(null);
 const isLinkingMode = computed(() => route.query.link === 'true');
 // Add-account mode: when a logged-in user wants to add another account for quick-switching
 const isAddAccountMode = computed(() => route.query.add === 'true');
+const isLinkRequired = computed(() => route.query.required === 'true');
+const showForgeButtons = computed(() => appConfig.auth.forge_login || isLinkingMode.value);
+const showOidcButton = computed(() => appConfig.auth.oidc.enabled && !isLinkingMode.value && !isAddAccountMode.value);
 const linkForgeId = computed(() => {
   const id = route.query.forge_id;
   return id ? Number(id) : null;
@@ -190,6 +213,12 @@ function doLogin(forgeId?: number) {
   authentication.authenticate(url, forgeId, isLinkingMode.value, isAddAccountMode.value);
 }
 
+function doOidcLogin() {
+  oidcLoading.value = true;
+  const url = typeof route.query.url === 'string' ? route.query.url : '';
+  authentication.authenticateOIDC(url);
+}
+
 const authErrorMessages = {
   oauth_error: i18n.t('oauth_error'),
   internal_error: i18n.t('internal_error'),
@@ -198,6 +227,12 @@ const authErrorMessages = {
   invalid_state: i18n.t('invalid_state'),
   org_access_denied: i18n.t('org_access_denied'),
   login_taken: i18n.t('login_taken'),
+  oidc_error: i18n.t('oidc_error'),
+  oidc_access_denied: i18n.t('oidc_access_denied'),
+  oidc_login_taken: i18n.t('oidc_login_taken'),
+  oidc_invalid_username: i18n.t('oidc_invalid_username'),
+  oidc_missing_username: i18n.t('oidc_missing_username'),
+  forge_login_disabled: i18n.t('forge_login_disabled'),
 };
 
 const errorMessage = ref<string>();
