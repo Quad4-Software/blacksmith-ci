@@ -31,6 +31,12 @@ GCI_VERSION := "v0.14.0"
 
 MOCKERY_VERSION := "v3.8.0"
 
+# mockery is built against a newer x/tools than it pins, so it can read the
+# export data of the current Go toolchain.
+# renovate: datasource=go depName=golang.org/x/tools
+
+MOCKERY_XTOOLS_VERSION := "v0.51.0"
+
 # renovate: datasource=go depName=github.com/google/addlicense
 
 ADDLICENSE_VERSION := "v1.2.0"
@@ -107,9 +113,29 @@ install-dev-deps: install-protoc
         echo "Installing ${bin}@${ver}"
         go install "${mod}@${ver}"
     }
+    # Build mockery in a throwaway module so its x/tools dependency can be
+    # raised above the version mockery's own go.mod pins.
+    install_mockery() {
+        ver="$1"
+        xtools="$2"
+        bin_path="$(command -v mockery 2>/dev/null || true)"
+        if [ -n "$bin_path" ] && go version -m "$bin_path" 2>/dev/null | grep -qE "^\s+mod\s+\S+\s+${ver}\s" &&
+            go version -m "$bin_path" 2>/dev/null | grep -qE "^\s+dep\s+golang.org/x/tools\s+${xtools}\s"; then
+            return
+        fi
+        echo "Installing mockery@${ver} with golang.org/x/tools@${xtools}"
+        tmp="$(mktemp -d)"
+        (
+            cd "$tmp"
+            go mod init mockery-build >/dev/null 2>&1
+            go get "github.com/vektra/mockery/v3@${ver}" "golang.org/x/tools@${xtools}" >/dev/null
+            go install github.com/vektra/mockery/v3
+        )
+        rm -rf "$tmp"
+    }
     install_go_tool mvdan.cc/gofumpt                                    {{ GOFUMPT_VERSION }}              gofumpt
     install_go_tool github.com/daixiang0/gci                            {{ GCI_VERSION }}                  gci
-    install_go_tool github.com/vektra/mockery/v3                        {{ MOCKERY_VERSION }}              mockery
+    install_mockery {{ MOCKERY_VERSION }} {{ MOCKERY_XTOOLS_VERSION }}
     install_go_tool github.com/google/addlicense                        {{ ADDLICENSE_VERSION }}            addlicense
     install_go_tool google.golang.org/protobuf/cmd/protoc-gen-go        {{ PROTOC_GEN_GO_VERSION }}         protoc-gen-go
     install_go_tool google.golang.org/grpc/cmd/protoc-gen-go-grpc       {{ PROTOC_GEN_GO_GRPC_VERSION }}    protoc-gen-go-grpc
