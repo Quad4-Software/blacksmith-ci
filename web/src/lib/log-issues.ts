@@ -16,12 +16,29 @@ import { commandTrace } from './log-folding';
 // eslint-disable-next-line no-control-regex
 const ANSI_COLOR_REGEX = /\x1B\[[0-9;:]*m/g;
 const ZERO_COUNT_REGEX = /\b0\s+(?:warn(?:ing)?s?|errors?|failures?|failed)\b/gi;
-const WARNING_PATTERNS_REGEX = /\bwarn(?:ing)?s?\b|\[warn(?:ing)?\]/i;
 const SUCCESS_PATTERNS_REGEX =
   /^\s*[v✓✔☑⋅·•›>+⟶→]\s|done\b|success|complete[ds]?\b|installed\b|built\b|packaged\b|updated\b|finished\b|passed\b|ok\b|\bgot\b/i;
 const INFO_PATTERNS_REGEX = /^\s*[i>+\-*•·]\s|^\s*\d+\s*(?:pkg|packages?|deps?)/i;
-const ERROR_PATTERNS_REGEX =
-  /\berror\b|\bfailed\b|\bfailure\b|\bfatal\b|\bcritical\b|\bexception\b|\bpanic\b|\baborted?\b/i;
+// A run of characters that occur inside names: words joined by `.`, `-`, `/`, `\`,
+// `@` or `~` form one token, so a file, path, module or package such as
+// `chunks/error-banner.js`, `@sentry/error-utils` or `java.lang.NullPointerException`
+// stays whole and can never equal a bare keyword. Colons, brackets, quotes, `=` and
+// whitespace split tokens, so `Error:`, `error[E0308]` and `level=error` still match.
+const NAME_TOKEN_REGEX = /[\w.@/\\~-]+/g;
+// Sentence punctuation, ellipses and flag dashes around a word are not part of it.
+const NAME_EDGE_REGEX = /^[.~-]+|[.~-]+$/g;
+const WARNING_KEYWORDS = new Set(['warn', 'warns', 'warning', 'warnings']);
+const ERROR_KEYWORDS = new Set([
+  'error',
+  'failed',
+  'failure',
+  'fatal',
+  'critical',
+  'exception',
+  'panic',
+  'abort',
+  'aborted',
+]);
 const HTML_TAG_REGEX = /<[^>]*>/g;
 
 export type LogIssueSeverity = 'error' | 'warning';
@@ -61,7 +78,7 @@ export function classifyLogLine(text: string, isStderr: boolean): LogIssueSeveri
   text = text.replace(ZERO_COUNT_REGEX, '');
 
   // Checked first so a line that hedges an error as a warning stays a warning.
-  if (WARNING_PATTERNS_REGEX.test(text)) {
+  if (hasKeyword(text, WARNING_KEYWORDS)) {
     return 'warning';
   }
 
@@ -71,11 +88,22 @@ export function classifyLogLine(text: string, isStderr: boolean): LogIssueSeveri
     return null;
   }
 
-  if (isStderr && ERROR_PATTERNS_REGEX.test(text)) {
+  if (isStderr && hasKeyword(text, ERROR_KEYWORDS)) {
     return 'error';
   }
 
   return null;
+}
+
+/**
+ * Reports whether one of the keywords stands in the line as a word of its own
+ * rather than as part of a name.
+ */
+function hasKeyword(text: string, keywords: ReadonlySet<string>): boolean {
+  for (const [token] of text.matchAll(NAME_TOKEN_REGEX)) {
+    if (keywords.has(token.replace(NAME_EDGE_REGEX, '').toLowerCase())) return true;
+  }
+  return false;
 }
 
 /**

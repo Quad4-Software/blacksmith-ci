@@ -55,6 +55,33 @@ describe('classifyLogLine', () => {
     expect(classifyLogLine('Error: failed to build xml2', true)).toBe('error');
   });
 
+  it.each([
+    '#34 14.43 .svelte-kit/output/server/chunks/error-banner.js 0.87 kB | gzip: 0.50 kB',
+    'compiling src/errors/handler.go',
+    'copying assets/warning-icon.svg',
+    'loaded C:\\app\\fatal\\dump.log',
+    'tests/test_exception.py::test_parse PASSED',
+    'npm http fetch GET 200 https://registry.npmjs.org/@sentry/error-utils 12ms',
+    'Downloading error_stack_parser-2.1.4.tar.gz (10 kB)',
+    'go: downloading github.com/pkg/errors v0.9.1',
+    'Compiling panic-halt v0.2.0',
+    'at java.lang.NullPointerException.<init>(NullPointerException.java:59)',
+  ])('ignores keywords that are part of a file, module or package name: %s', (text) => {
+    expect(classifyLogLine(text, true)).toBeNull();
+  });
+
+  it.each([
+    'Build error.',
+    'panic: runtime error: index out of range',
+    'error: cannot open /tmp/error.log',
+    'error[E0308]: mismatched types',
+    'time=2026-10-11T20:00:00Z level=error msg="connection refused"',
+    'npm ERR! code ELIFECYCLE ... failed',
+    'FAILED tests/test_parse.py::test_empty',
+  ])('still marks a standalone keyword: %s', (text) => {
+    expect(classifyLogLine(text, true)).toBe('error');
+  });
+
   it('leaves an error-shaped line on stdout unmarked', () => {
     expect(classifyLogLine('Error: failed to build xml2', false)).toBeNull();
   });
