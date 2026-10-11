@@ -765,7 +765,6 @@
   },
   "admin": {
     "settings": {
-      "notify_text_not_allowed": "Missing permissions to access server settings",
       "settings": "Settings",
       "sidebar_title": "Admin Settings",
       "secrets": {
@@ -1009,7 +1008,6 @@
         }
       },
       "metrics": {
-        "metrics": "Metrics",
         "charts": {
           "workflows_by_agent": "Workflows by Agent",
           "pipelines_by_repo": "Top Repositories by Pipelines",
@@ -1109,7 +1107,6 @@
         "update": "available"
       },
       "users": {
-        "users": "Users",
         "login": "Login",
         "email": "Email",
         "avatar_url": "Avatar URL",
@@ -1122,10 +1119,19 @@
           "admin": "Admin",
           "placeholder": "User is an admin"
         },
-        "edit_user": "Edit user"
+        "edit_user": "Edit user",
+        "roles": "Roles",
+        "edit_roles": "Edit roles",
+        "role_operator": "Operator",
+        "role_operator_desc": "Manage agents, autoscalers and the queue",
+        "role_secrets_manager": "Secrets manager",
+        "role_secrets_manager_desc": "Manage global secrets and registries",
+        "role_auditor": "Auditor",
+        "role_auditor_desc": "Read-only access to the admin pages",
+        "role_managed": "Managed by your identity provider",
+        "roles_saved": "Roles saved"
       },
       "orgs": {
-        "orgs": "Orgs",
         "notify_text_deleted": "Organization deleted"
       },
       "entities": {

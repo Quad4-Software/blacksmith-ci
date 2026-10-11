@@ -51,8 +51,8 @@
 
           <!-- Scope Selection -->
           <div v-if="!isEditing && !lockScope" class="space-y-4">
-            <!-- Global Checkbox (Admin only) -->
-            <div v-if="user?.admin" class="flex items-center gap-2">
+            <!-- Global Checkbox (secrets:write only) -->
+            <div v-if="can('secrets:write')" class="flex items-center gap-2">
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger as-child>
@@ -384,7 +384,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from '~/components/ui/input';
 import { Textarea } from '~/components/ui/textarea';
 import useApiClient from '~/compositions/useApiClient';
-import useConfig from '~/compositions/useConfig';
+import usePermissions from '~/compositions/usePermissions';
 import { useForges } from '~/compositions/useForges';
 import useNotifications from '~/compositions/useNotifications';
 import { WebhookEvents } from '~/lib/api/types';
@@ -418,7 +418,8 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const apiClient = useApiClient();
-const { user } = useConfig();
+// Global secrets and registries are managed with secrets:write.
+const { can } = usePermissions();
 const notifications = useNotifications();
 const { forges, getForgeById } = useForges();
 

@@ -71,7 +71,10 @@
         </div>
 
         <!-- Bulk Actions -->
-        <div v-if="table.getFilteredSelectedRowModel().rows.length > 0" class="flex items-center gap-2">
+        <div
+          v-if="props.canManage && table.getFilteredSelectedRowModel().rows.length > 0"
+          class="flex items-center gap-2"
+        >
           <span class="text-sm text-muted-foreground">
             {{ table.getFilteredSelectedRowModel().rows.length }} {{ $t('selected') }}
           </span>
@@ -251,10 +254,15 @@ import { computed, h, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
-const props = defineProps<{
-  repos: Repo[] | null;
-  searchTerm: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    repos: Repo[] | null;
+    searchTerm: string;
+    // Whether the bulk disable and delete actions are shown.
+    canManage?: boolean;
+  }>(),
+  { canManage: true },
+);
 
 const emit = defineEmits<{
   (event: 'update:searchTerm', value: string): void;

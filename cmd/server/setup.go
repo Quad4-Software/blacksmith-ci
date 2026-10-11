@@ -670,7 +670,12 @@ func setupEvilGlobals(ctx context.Context, c *cli.Command, s store.Store) (err e
 		GroupsClaim:   c.String("oidc-groups-claim"),
 		AllowedGroups: c.StringSlice("oidc-allowed-groups"),
 		AdminGroups:   c.StringSlice("oidc-admin-groups"),
-		Only:          c.Bool("oidc-only"),
+		RoleGroups: map[string][]string{
+			string(model.RoleOperator):       c.StringSlice("oidc-operator-groups"),
+			string(model.RoleSecretsManager): c.StringSlice("oidc-secrets-manager-groups"),
+			string(model.RoleAuditor):        c.StringSlice("oidc-auditor-groups"),
+		},
+		Only: c.Bool("oidc-only"),
 	}
 	if err := oidcCfg.Validate(); err != nil {
 		return err

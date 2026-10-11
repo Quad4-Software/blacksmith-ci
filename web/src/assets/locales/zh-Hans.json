@@ -35,9 +35,6 @@
         "show": "显示 Agents",
         "token": "Token"
       },
-      "orgs": {
-        "orgs": "组织"
-      },
       "queue": {
         "desc": "正在等待 Agents 执行的任务",
         "pause": "暂停",
@@ -79,7 +76,6 @@
         "email": "Email",
         "login": "登录",
         "save": "保存用户",
-        "users": "用户",
         "notify_text_deleted": "用户已删除",
         "notify_text_created": "用户已创建"
       },

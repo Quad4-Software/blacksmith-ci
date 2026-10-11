@@ -14,6 +14,8 @@ export interface UserEntity extends BaseEntity {
   admin?: boolean;
   description?: string;
   timezone?: string;
+  // Instance roles besides admin.
+  roles?: string[];
 }
 
 export interface OrgEntity extends BaseEntity {

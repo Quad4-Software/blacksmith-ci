@@ -6,6 +6,8 @@
     :update-autoscaler="updateAutoscaler"
     :delete-autoscaler="deleteAutoscaler"
     :autoscaler-filters="autoscalerFilters"
+    :can-write="can('agents:write')"
+    :can-create="can('agents:register')"
     @update-filters="(filters) => Object.assign(autoscalerFilters, filters)"
   />
 </template>
@@ -17,9 +19,11 @@ import { useI18n } from 'vue-i18n';
 import AutoscalerManager from '~/components/autoscaler/AutoscalerManager.vue';
 import useApiClient from '~/compositions/useApiClient';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
+import usePermissions from '~/compositions/usePermissions';
 import type { Autoscaler } from '~/lib/api/types';
 
 const apiClient = useApiClient();
+const { can } = usePermissions();
 
 const autoscalerFilters = ref<{
   search: string;

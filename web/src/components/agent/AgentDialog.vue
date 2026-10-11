@@ -83,7 +83,7 @@
             <Input v-model.number="form.priority" type="number" min="0" max="2147483647" />
           </div>
 
-          <div v-if="scopeEditable" class="space-y-2">
+          <div v-if="canEditScope" class="space-y-2">
             <label class="text-sm font-medium">{{ $t('admin.settings.agents.scope.label') }}</label>
             <select v-model="scopeMode" class="w-full rounded-md border bg-background px-3 py-2 text-sm">
               <option value="global">{{ $t('admin.settings.agents.scope.global') }}</option>
@@ -166,6 +166,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '~/components/ui/input';
 import useApiClient from '~/compositions/useApiClient';
 import { useDate } from '~/compositions/useDate';
+import usePermissions from '~/compositions/usePermissions';
 import type { Agent, AgentWithToken, Org } from '~/lib/api/types';
 
 const props = withDefaults(
@@ -193,6 +194,11 @@ const emit = defineEmits<{
 }>();
 
 const date = useDate();
+const { can } = usePermissions();
+
+// Changing an agent's organizations can make it global, which needs agents:register like creating a global agent.
+// Without it the dialog sends the agent's current organizations unchanged.
+const canEditScope = computed(() => props.scopeEditable && can('agents:register'));
 const apiClient = useApiClient();
 
 const isOpen = computed({
@@ -213,7 +219,7 @@ const scopeMode = ref<'global' | 'orgs'>('global');
 const selectedOrgIds = ref<number[]>([]);
 
 onMounted(async () => {
-  if (props.scopeEditable) {
+  if (canEditScope.value) {
     const allOrgs: Org[] = [];
     let page = 1;
     let done = false;
@@ -287,7 +293,7 @@ watch(isOpen, (open) => {
 });
 
 function handleSave() {
-  const orgIds = props.scopeEditable
+  const orgIds = canEditScope.value
     ? scopeMode.value === 'orgs'
       ? [...selectedOrgIds.value]
       : []

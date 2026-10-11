@@ -4,7 +4,7 @@
       <Button v-if="selectedAutoscaler" @click="selectedAutoscaler = undefined">
         <Icon name="back" class="size-4 mr-1" />{{ $t('admin.settings.autoscalers.show') }}
       </Button>
-      <Button v-else @click="showAddAutoscaler">
+      <Button v-else-if="canCreate" @click="showAddAutoscaler">
         <Icon name="plus" class="size-4 mr-1" />{{ $t('admin.settings.autoscalers.add') }}
       </Button>
     </template>
@@ -45,6 +45,7 @@
       :current-page="page"
       :has-more="hasMore"
       :is-jumping-to-last="isJumpingToLast"
+      :can-write="canWrite"
       @update:current-page="goToPage"
       @jump-to-last="handleJumpToLast"
       @update-filters="(filters) => emit('updateFilters', filters)"
@@ -105,19 +106,26 @@ import type { Autoscaler, AutoscalerWithToken } from '~/lib/api/types';
 import AutoscalerForm from './AutoscalerForm.vue';
 import AutoscalerList from './AutoscalerList.vue';
 
-const props = defineProps<{
-  description: string;
-  loadAutoscalers: (page: number) => Promise<Autoscaler[] | null>;
-  createAutoscaler: (autoscaler: Partial<Autoscaler>) => Promise<AutoscalerWithToken>;
-  updateAutoscaler: (autoscaler: Autoscaler) => Promise<Autoscaler | void>;
-  deleteAutoscaler: (autoscaler: Autoscaler) => Promise<unknown>;
-  autoscalerFilters: {
-    search: string;
-    enabled?: string;
-    sort: string;
-    order: string;
-  };
-}>();
+const props = withDefaults(
+  defineProps<{
+    description: string;
+    // Whether the user may enable, disable and delete autoscalers (agents:write).
+    canWrite?: boolean;
+    // Whether the user may create autoscalers, which mints a token (agents:register).
+    canCreate?: boolean;
+    loadAutoscalers: (page: number) => Promise<Autoscaler[] | null>;
+    createAutoscaler: (autoscaler: Partial<Autoscaler>) => Promise<AutoscalerWithToken>;
+    updateAutoscaler: (autoscaler: Autoscaler) => Promise<Autoscaler | void>;
+    deleteAutoscaler: (autoscaler: Autoscaler) => Promise<unknown>;
+    autoscalerFilters: {
+      search: string;
+      enabled?: string;
+      sort: string;
+      order: string;
+    };
+  }>(),
+  { canWrite: true, canCreate: true },
+);
 
 const emit = defineEmits<{
   updateFilters: [filters: { search?: string; enabled?: string; sort?: string; order?: string }];

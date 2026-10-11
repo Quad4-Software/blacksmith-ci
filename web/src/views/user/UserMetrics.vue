@@ -49,7 +49,7 @@
         <DateRangeFilter v-model="dateRange" />
 
         <!-- Admin scope toggle -->
-        <div v-if="user?.admin" class="flex items-center gap-2 border-l pl-2 ml-1">
+        <div v-if="canSeeAll" class="flex items-center gap-2 border-l pl-2 ml-1">
           <Switch id="admin-scope" :checked="showAllInstance" @update:checked="toggleAdminScope" />
           <label for="admin-scope" class="text-sm cursor-pointer whitespace-nowrap">
             {{ $t('metrics.filter.show_all_instance') }}
@@ -192,11 +192,7 @@
 
       <!-- Chart Builder Tab Content -->
       <TabsContent value="builder">
-        <ChartBuilder
-          :date-range="dateRange"
-          :repo-ids="selectedRepoIds"
-          :show-all="showAllInstance && !!user?.admin"
-        />
+        <ChartBuilder :date-range="dateRange" :repo-ids="selectedRepoIds" :show-all="showAllInstance && canSeeAll" />
       </TabsContent>
     </Tabs>
   </Settings>
@@ -225,9 +221,9 @@ import {
 import { Switch } from '~/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import useApiClient from '~/compositions/useApiClient';
-import useAuthentication from '~/compositions/useAuthentication';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
 import { formatDuration } from '~/compositions/useMetricsCharts';
+import usePermissions from '~/compositions/usePermissions';
 import type { Metrics, Repo } from '~/lib/api/types';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -237,7 +233,9 @@ const apiClient = useApiClient();
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
-const { user } = useAuthentication();
+const { can } = usePermissions();
+// Instance-wide metrics need metrics:all, which admins, operators and auditors hold.
+const canSeeAll = computed(() => can('metrics:all'));
 
 const metrics = ref<Metrics>();
 const loading = ref(false);
@@ -329,7 +327,7 @@ async function loadMetrics() {
       ...dateRange.value,
     };
 
-    if (showAllInstance.value && user?.admin) {
+    if (showAllInstance.value && canSeeAll.value) {
       filter.all = true;
     } else if (selectedRepoIds.value.length > 0) {
       filter.repos = selectedRepoIds.value.join(',');

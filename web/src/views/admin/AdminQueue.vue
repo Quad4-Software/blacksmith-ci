@@ -2,11 +2,11 @@
   <Settings :title="$t('admin.settings.queue.queue')" :description="$t('admin.settings.queue.desc')">
     <template #headerActions>
       <div v-if="queueInfo" class="flex items-center gap-2">
-        <Button v-if="queueInfo.paused" variant="default" size="sm" @click="resumeQueue">
+        <Button v-if="queueInfo.paused && can('queue:write')" variant="default" size="sm" @click="resumeQueue">
           <Icon name="play" class="mr-2 h-4 w-4" />
           {{ $t('admin.settings.queue.resume') }}
         </Button>
-        <Button v-else variant="outline" size="sm" @click="pauseQueue">
+        <Button v-else-if="can('queue:write')" variant="outline" size="sm" @click="pauseQueue">
           <Icon name="pause" class="mr-2 h-4 w-4" />
           {{ $t('admin.settings.queue.pause') }}
         </Button>
@@ -88,7 +88,7 @@
               :get-status-badge-variant="getStatusBadgeVariant"
               :time-ago="timeAgo"
               :pretty-duration="prettyDuration"
-              cancelable
+              :cancelable="can('queue:write')"
               :canceling-task-id="cancelingTaskId"
               @cancel="taskToCancel = $event"
             />
@@ -193,11 +193,13 @@ import useApiClient from '~/compositions/useApiClient';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
 import { useDate } from '~/compositions/useDate';
 import useNotifications from '~/compositions/useNotifications';
+import usePermissions from '~/compositions/usePermissions';
 import type { QueueInfo, Task } from '~/lib/api/types';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const apiClient = useApiClient();
+const { can } = usePermissions();
 const notifications = useNotifications();
 const { timeAgo, prettyDuration } = useDate();
 const { t } = useI18n();

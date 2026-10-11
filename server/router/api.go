@@ -24,6 +24,7 @@ import (
 	"codefloe.com/crowci/crow/v6/server"
 	"codefloe.com/crowci/crow/v6/server/api"
 	"codefloe.com/crowci/crow/v6/server/api/debug"
+	"codefloe.com/crowci/crow/v6/server/model"
 	"codefloe.com/crowci/crow/v6/server/router/middleware/session"
 	"codefloe.com/crowci/crow/v6/server/router/middleware/token"
 )
@@ -227,27 +228,27 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "get-users", Method: http.MethodGet, Path: "/users",
 		Summary: "List users", Tags: []string{"Users"},
-		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermUsersRead)},
 	}, api.GetUsers)
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "post-user", Method: http.MethodPost, Path: "/users",
 		Summary: "Create a user", Tags: []string{"Users"},
-		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermUsersWrite)},
 	}, api.PostUser)
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "get-user", Method: http.MethodGet, Path: "/users/{login}",
 		Summary: "Get a user", Tags: []string{"Users"},
-		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermUsersRead)},
 	}, api.GetUser)
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "patch-user", Method: http.MethodPatch, Path: "/users/{login}",
 		Summary: "Update a user", Tags: []string{"Users"},
-		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermUsersWrite)},
 	}, api.PatchUser)
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "delete-user", Method: http.MethodDelete, Path: "/users/{login}",
 		Summary: "Delete a user", Tags: []string{"Users"},
-		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermUsersWrite)},
 	}, api.DeleteUser)
 
 	// ── Public endpoints ─────────────────────────────────────────────────
@@ -264,7 +265,7 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "get-orgs", Method: http.MethodGet, Path: "/orgs",
 		Summary: "List organizations", Tags: []string{"Organizations"},
-		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermOrgsRead)},
 	}, api.GetOrgs)
 	// LookupOrg uses a wildcard path param (org name may contain slashes)
 	apiBase.GET("/orgs/lookup/*org_full_name", api.LookupOrgGin)
@@ -281,7 +282,7 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "delete-org", Method: http.MethodDelete, Path: "/orgs/{org_id}",
 		Summary: "Delete an organization", Tags: []string{"Organizations"},
-		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin, hmSetOrg, hmMustOrg, hmMustOrgMember(true)},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermOrgsDelete), hmSetOrg, hmMustOrg, hmMustOrgMember(true)},
 	}, api.DeleteOrg)
 
 	// Org secrets
@@ -371,7 +372,7 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "get-entities", Method: http.MethodGet, Path: "/entities",
 		Summary: "List users and organizations", Tags: []string{"Admin"},
-		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermUsersRead)},
 	}, api.GetEntities)
 
 	// ── Metrics ──────────────────────────────────────────────────────────
@@ -401,12 +402,12 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "get-all-repos", Method: http.MethodGet, Path: "/repos",
 		Summary: "List all repositories (admin)", Tags: []string{"Repositories"},
-		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermReposRead)},
 	}, api.GetAllRepos)
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "repair-all-repos", Method: http.MethodPost, Path: "/repos/repair",
 		Summary: "Repair all repositories (admin)", Tags: []string{"Repositories"},
-		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermReposRepair)},
 	}, api.RepairAllRepos)
 
 	// Repo detail routes (require SetRepo + SetPerm)
@@ -746,18 +747,17 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "get-pipeline-queue", Method: http.MethodGet, Path: "/pipelines",
 		Summary: "Get the pipeline queue", Tags: []string{"Pipeline Queue"},
-		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermQueueRead)},
 	}, api.GetPipelineQueue)
 
 	// Queue management (gin - uses blocking/streaming patterns)
 	queue := apiBase.Group("/queue")
 	{
-		queue.Use(session.MustAdmin())
-		queue.GET("/info", api.GetQueueInfo)
-		queue.POST("/pause", api.PauseQueue)
-		queue.POST("/resume", api.ResumeQueue)
-		queue.POST("/tasks/:task_id/cancel", api.CancelQueueTask)
-		queue.GET("/norunningpipelines", api.BlockTilQueueHasRunningItem)
+		queue.GET("/info", session.MustPermission(model.PermQueueRead), api.GetQueueInfo)
+		queue.POST("/pause", session.MustPermission(model.PermQueueWrite), api.PauseQueue)
+		queue.POST("/resume", session.MustPermission(model.PermQueueWrite), api.ResumeQueue)
+		queue.POST("/tasks/:task_id/cancel", session.MustPermission(model.PermQueueWrite), api.CancelQueueTask)
+		queue.GET("/norunningpipelines", session.MustPermission(model.PermQueueRead), api.BlockTilQueueHasRunningItem)
 	}
 
 	// ── Global secrets ───────────────────────────────────────────────────
@@ -776,22 +776,22 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "get-global-secret-abbreviated", Method: http.MethodGet, Path: "/secrets/{secret}/abbreviated",
 		Summary: "Get an abbreviated global secret", Tags: []string{"Global Secrets"},
-		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermSecretsWrite)},
 	}, api.GetGlobalSecretAbbreviated)
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "post-global-secret", Method: http.MethodPost, Path: "/secrets",
 		Summary: "Create a global secret", Tags: []string{"Global Secrets"},
-		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermSecretsWrite)},
 	}, api.PostGlobalSecret)
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "patch-global-secret", Method: http.MethodPatch, Path: "/secrets/{secret}",
 		Summary: "Update a global secret", Tags: []string{"Global Secrets"},
-		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermSecretsWrite)},
 	}, api.PatchGlobalSecret)
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "delete-global-secret", Method: http.MethodDelete, Path: "/secrets/{secret}",
 		Summary: "Delete a global secret", Tags: []string{"Global Secrets"},
-		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermSecretsWrite)},
 	}, api.DeleteGlobalSecret)
 
 	// ── Secret targets ───────────────────────────────────────────────────
@@ -832,17 +832,17 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "post-global-registry", Method: http.MethodPost, Path: "/registries",
 		Summary: "Create a global registry", Tags: []string{"Global Registries"},
-		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermSecretsWrite)},
 	}, api.PostGlobalRegistry)
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "patch-global-registry", Method: http.MethodPatch, Path: "/registries/{registry}",
 		Summary: "Update a global registry", Tags: []string{"Global Registries"},
-		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermSecretsWrite)},
 	}, api.PatchGlobalRegistry)
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "delete-global-registry", Method: http.MethodDelete, Path: "/registries/{registry}",
 		Summary: "Delete a global registry", Tags: []string{"Global Registries"},
-		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermSecretsWrite)},
 	}, api.DeleteGlobalRegistry)
 
 	// ── Log level (admin) ────────────────────────────────────────────────
@@ -877,17 +877,17 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "post-agent", Method: http.MethodPost, Path: "/agents",
 		Summary: "Create a new agent", Tags: []string{"Agents"},
-		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermAgentsRegister)},
 	}, api.PostAgent)
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "patch-agent", Method: http.MethodPatch, Path: "/agents/{agent_id}",
 		Summary: "Update an agent", Tags: []string{"Agents"},
-		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermAgentsWrite)},
 	}, api.PatchAgent)
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "delete-agent", Method: http.MethodDelete, Path: "/agents/{agent_id}",
 		Summary: "Delete an agent", Tags: []string{"Agents"},
-		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermAgentsWrite)},
 	}, api.DeleteAgent)
 
 	// ── Autoscalers ──────────────────────────────────────────────────────
@@ -909,22 +909,22 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "post-autoscaler", Method: http.MethodPost, Path: "/autoscalers",
 		Summary: "Create an autoscaler", Tags: []string{"Autoscalers"},
-		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermAgentsRegister)},
 	}, api.PostAutoscaler)
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "patch-autoscaler", Method: http.MethodPatch, Path: "/autoscalers/{autoscaler_id}",
 		Summary: "Update an autoscaler", Tags: []string{"Autoscalers"},
-		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermAgentsWrite)},
 	}, api.PatchAutoscaler)
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "delete-autoscaler", Method: http.MethodDelete, Path: "/autoscalers/{autoscaler_id}",
 		Summary: "Delete an autoscaler", Tags: []string{"Autoscalers"},
-		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermAgentsWrite)},
 	}, api.DeleteAutoscaler)
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "post-autoscaler-token", Method: http.MethodPost, Path: "/autoscalers/{autoscaler_id}/token",
 		Summary: "Generate a new autoscaler token", Tags: []string{"Autoscalers"},
-		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermAgentsRegister)},
 	}, api.PostAutoscalerToken)
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "post-autoscaler-heartbeat", Method: http.MethodPost, Path: "/autoscalers/{autoscaler_id}/heartbeat",
@@ -938,10 +938,10 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 		api.PostAutoscalerLogs(server.Config.Services.ProcLogReceiver))
 	// SSE log streams use raw gin (not huma) — SSE is not compatible with huma's request/response model.
 	apiBase.GET("/agents/:agent_id/logs/stream",
-		session.MustAdmin(),
+		session.MustPermission(model.PermAgentsRead),
 		api.StreamAgentLogsSSE(server.Config.Services.ProcLogStream))
 	apiBase.GET("/autoscalers/:autoscaler_id/logs/stream",
-		session.MustAdmin(),
+		session.MustPermission(model.PermAgentsRead),
 		api.StreamAutoscalerLogsSSE(server.Config.Services.ProcLogStream))
 
 	// ── Forges ───────────────────────────────────────────────────────────
@@ -994,37 +994,37 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "get-maintenance-config", Method: http.MethodGet, Path: "/admin/maintenance/config",
 		Summary: "Get maintenance configuration", Tags: []string{"Admin Maintenance"},
-		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermMaintenanceRead)},
 	}, api.GetMaintenanceConfig)
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "update-maintenance-config", Method: http.MethodPut, Path: "/admin/maintenance/config",
 		Summary: "Update maintenance configuration", Tags: []string{"Admin Maintenance"},
-		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermMaintenanceWrite)},
 	}, api.UpdateMaintenanceConfig)
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "get-maintenance-config-by-action", Method: http.MethodGet, Path: "/admin/maintenance/config/{action}",
 		Summary: "Get maintenance configuration for a specific action", Tags: []string{"Admin Maintenance"},
-		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermMaintenanceRead)},
 	}, api.GetMaintenanceConfigByAction)
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "update-maintenance-config-by-action", Method: http.MethodPut, Path: "/admin/maintenance/config/{action}",
 		Summary: "Update maintenance configuration for a specific action", Tags: []string{"Admin Maintenance"},
-		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermMaintenanceWrite)},
 	}, api.UpdateMaintenanceConfigByAction)
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "get-maintenance-stats", Method: http.MethodGet, Path: "/admin/maintenance/stats",
 		Summary: "Get maintenance statistics", Tags: []string{"Admin Maintenance"},
-		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermMaintenanceRead)},
 	}, api.GetMaintenanceStats)
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "get-maintenance-logs", Method: http.MethodGet, Path: "/admin/maintenance/logs",
 		Summary: "Get maintenance logs", Tags: []string{"Admin Maintenance"},
-		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermMaintenanceRead)},
 	}, api.GetMaintenanceLogs)
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "run-maintenance-now", Method: http.MethodPost, Path: "/admin/maintenance/run",
 		Summary: "Run maintenance now", Tags: []string{"Admin Maintenance"},
-		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAdmin},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermMaintenanceWrite)},
 	}, api.RunMaintenanceNow)
 
 	// ── Admin Notifications ──────────────────────────────────────────────

@@ -211,7 +211,7 @@ func intersectRepoIDs(a, b []int64) []int64 {
 // (nil for admin instance-scope) so callers can reuse it without a second query.
 // IsAdminScope is true only when the caller sees instance-wide data.
 func resolveScopedRepoIDs(_store store.Store, user *model.User, all bool, reposCSV string) (repoIDs []int64, accessibleRepos []*model.Repo, isAdminScope bool, err error) {
-	showAll := all && user.Admin
+	showAll := all && user.Can(model.PermMetricsAll)
 	isAdminScope = showAll
 
 	if !showAll {

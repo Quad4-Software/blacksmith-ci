@@ -28,7 +28,10 @@ var userAddCmd = &cli.Command{
 	Name:      "add",
 	Usage:     "add a user",
 	ArgsUsage: "<username>",
-	Action:    userAdd,
+	Flags: []cli.Flag{
+		&cli.StringSliceFlag{Name: "role", Usage: "instance role (operator, secrets-manager, auditor); repeatable"},
+	},
+	Action: userAdd,
 }
 
 func userAdd(ctx context.Context, c *cli.Command) error {
@@ -39,7 +42,12 @@ func userAdd(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
-	user, err := client.UserPost(&crow.User{Login: login})
+	in := &crow.User{Login: login}
+	if c.IsSet("role") {
+		roles := c.StringSlice("role")
+		in.Roles = &roles
+	}
+	user, err := client.UserPost(in)
 	if err != nil {
 		return err
 	}

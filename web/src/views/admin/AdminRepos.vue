@@ -1,7 +1,7 @@
 <template>
   <Settings :title="$t('admin.settings.repos.repos')" :description="$t('admin.settings.repos.desc')">
     <template #headerActions>
-      <Button :disabled="isRepairingRepos" @click="repairRepos">
+      <Button v-if="can('repos:repair')" :disabled="isRepairingRepos" @click="repairRepos">
         {{ $t('admin.settings.repos.repair.repair') }}
       </Button>
     </template>
@@ -10,6 +10,7 @@
       <RepoTable
         :repos="data"
         :search-term="searchTerm"
+        :can-manage="isAdmin"
         @update:search-term="searchTerm = $event"
         @bulk-disable="handleBulkDisable"
         @bulk-delete="handleBulkDelete"
@@ -43,11 +44,14 @@ import { Button } from '~/components/ui/button';
 import useApiClient from '~/compositions/useApiClient';
 import { useAsyncAction } from '~/compositions/useAsyncAction';
 import useNotifications from '~/compositions/useNotifications';
+import usePermissions from '~/compositions/usePermissions';
 import { usePaginationWithPages } from '~/compositions/usePaginate';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
 import type { Repo } from '~/lib/api/types';
 
 const apiClient = useApiClient();
+// Disabling and deleting repos goes through the per-repo admin routes, which only instance admins pass for every repo.
+const { can, isAdmin } = usePermissions();
 const notifications = useNotifications();
 const { t } = useI18n();
 

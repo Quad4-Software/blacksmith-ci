@@ -88,7 +88,7 @@ func GetGlobalSecretAbbreviated(ctx context.Context, input *GetGlobalSecretAbbre
 	// Create authorizer and check admin permission
 	authorizer := NewSecretViewAuthorizerFromContext(c, server.Config.Services.Membership)
 	if !authorizer.CanViewGlobalSecret(user) {
-		return nil, huma.Error403Forbidden("Instance admin privileges required to view secret value")
+		return nil, huma.Error403Forbidden("Viewing a global secret requires the secrets:write permission")
 	}
 
 	return &GetGlobalSecretAbbreviatedOutput{Body: secret.CopyWithAbbreviatedValue()}, nil

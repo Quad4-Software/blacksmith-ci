@@ -206,7 +206,6 @@
       },
       "users": {
         "edit_user": "Editar usuário",
-        "users": "Usuários",
         "login": "Login",
         "email": "Email",
         "avatar_url": "URL do avatar",
@@ -216,9 +215,6 @@
           "admin": "Admin",
           "placeholder": "O usuário é um administrador"
         }
-      },
-      "orgs": {
-        "orgs": "Organizações"
       },
       "secrets": {
         "desc": "Os segredos globais podem ser transmitidos em tempo de execução como variáveis de ambiente para etapas individuais no pipeline de qualquer repositório.",

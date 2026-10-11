@@ -85,6 +85,7 @@ import { useAsyncAction } from '~/compositions/useAsyncAction';
 import useAuthentication from '~/compositions/useAuthentication';
 import useConfig from '~/compositions/useConfig';
 import useNotifications from '~/compositions/useNotifications';
+import usePermissions from '~/compositions/usePermissions';
 import { usePaginationWithPages } from '~/compositions/usePaginate';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
 import type { Agent, AgentWithToken } from '~/lib/api/types';
@@ -99,13 +100,20 @@ if (!user) {
   throw new Error('Unexpected: User should be authenticated');
 }
 
-const isAdmin = computed(() => !!user.admin);
+const { can, canAny } = usePermissions();
+
+// Managing any agent through the global endpoints needs agents:write.
+const isAdmin = computed(() => can('agents:write'));
+// Creating a global agent needs agents:register; without it the user creates an agent for their own org.
+const canRegister = computed(() => can('agents:register'));
 
 // Server-wide active scheduling strategy, surfaced from the injected config.
 const schedulingStrategy = useConfig().schedulingStrategy;
 
 // Description changes based on user role
-const description = computed(() => (isAdmin.value ? t('admin.settings.agents.desc') : t('user.settings.agents.desc')));
+const description = computed(() =>
+  canAny(['agents:read', 'agents:write']) ? t('admin.settings.agents.desc') : t('user.settings.agents.desc'),
+);
 
 const dialogOpen = ref(false);
 const selectedAgent = ref<Agent | null>(null);
@@ -166,9 +174,9 @@ const { doSubmit: handleSave, isLoading: isSaving } = useAsyncAction(async (agen
 
     dialogOpen.value = false;
   } else {
-    // Creating: admins create global agents, others create org-scoped
+    // Creating: users with agents:register create global agents, others create org-scoped
     let createdAgent: AgentWithToken;
-    if (isAdmin.value) {
+    if (canRegister.value) {
       createdAgent = await apiClient.createAgent(agentData);
     } else {
       createdAgent = await apiClient.createOrgAgent(user.org_id, agentData);

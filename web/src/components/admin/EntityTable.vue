@@ -83,15 +83,15 @@
         </div>
 
         <!-- Bulk Actions -->
-        <div v-if="table.getFilteredSelectedRowModel().rows.length > 0" class="flex items-center gap-2">
+        <div v-if="canSelect && table.getFilteredSelectedRowModel().rows.length > 0" class="flex items-center gap-2">
           <span class="text-sm text-muted-foreground">
             {{ table.getFilteredSelectedRowModel().rows.length }} {{ $t('selected') }}
           </span>
-          <Button v-if="hasSelectedUsers" variant="outline" size="sm" @click="handleBulkToggleAdmin">
+          <Button v-if="hasSelectedUsers && props.canWrite" variant="outline" size="sm" @click="handleBulkToggleAdmin">
             <Icon name="user" class="h-4 w-4 mr-2" />
             {{ $t('admin.settings.entities.toggle_admin') }}
           </Button>
-          <Button variant="destructive" size="sm" @click="handleBulkDelete">
+          <Button v-if="canDeleteSelection" variant="destructive" size="sm" @click="handleBulkDelete">
             <Icon name="trash" class="h-4 w-4 mr-2" />
             {{ $t('delete') }}
           </Button>
@@ -173,6 +173,13 @@
       </div>
     </div>
 
+    <UserRolesDialog
+      :open="rolesUser !== null"
+      :user="rolesUser"
+      @update:open="(open) => !open && (rolesUser = null)"
+      @saved="emit('rolesSaved')"
+    />
+
     <!-- Bulk Delete Confirmation Dialog -->
     <AlertDialog v-model:open="showBulkDeleteDialog">
       <AlertDialogContent>
@@ -226,6 +233,7 @@ import type {
 } from '@tanstack/vue-table';
 import { FlexRender, useTable } from '@tanstack/vue-table';
 import { useStorage } from '@vueuse/core';
+import UserRolesDialog from '~/components/admin/UserRolesDialog.vue';
 import type { IconNames } from '~/components/atomic/Icon.types';
 import Icon from '~/components/atomic/Icon.vue';
 import {
@@ -254,29 +262,49 @@ import { Switch } from '~/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
 import { dataTableFeatures } from '~/components/ui/table/features';
 import { useForges } from '~/compositions/useForges';
-import type { Entity, Forge } from '~/lib/api/types';
+import useRoleTexts from '~/compositions/useRoleTexts';
+import type { Entity, Forge, InstanceRole, UserEntity } from '~/lib/api/types';
 import { isUserEntity } from '~/lib/api/types';
 import { computed, h, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
-const props = defineProps<{
-  entities: Entity[] | null;
-  isDeleting: boolean;
-  searchTerm: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    entities: Entity[] | null;
+    isDeleting: boolean;
+    searchTerm: string;
+    // Whether users can be edited, deleted and get roles assigned (users:write).
+    canWrite?: boolean;
+    // Whether orgs can be deleted (orgs:delete).
+    canDeleteOrgs?: boolean;
+  }>(),
+  { canWrite: true, canDeleteOrgs: true },
+);
 
 const emit = defineEmits<{
   (event: 'editUser', entity: Entity): void;
   (event: 'delete', entity: Entity): void;
   (event: 'bulkDelete', entities: Entity[]): void;
   (event: 'bulkToggleAdmin', entities: Entity[]): void;
+  (event: 'rolesSaved'): void;
   (event: 'update:searchTerm', value: string): void;
 }>();
 
 const { t } = useI18n();
 const router = useRouter();
 const { primaryForge } = useForges();
+const roleTexts = useRoleTexts();
+
+// The user whose roles are being edited, null while the dialog is closed.
+const rolesUser = ref<UserEntity | null>(null);
+
+function canDeleteEntity(entity: Entity): boolean {
+  return entity.entity_type === 'user' ? props.canWrite : props.canDeleteOrgs;
+}
+
+// Selecting rows is only useful with a bulk action the user may run.
+const canSelect = computed(() => props.canWrite || props.canDeleteOrgs);
 
 // Track copied state for entity names
 const copiedNames = reactive<Record<string, boolean>>({});
@@ -388,21 +416,25 @@ const columns: ColumnDef<typeof dataTableFeatures, Entity>[] = [
   {
     id: 'select',
     header: ({ table }) =>
-      h(
-        'div',
-        { class: 'ml-3' },
-        h(Checkbox, {
-          modelValue: table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate'),
-          'onUpdate:modelValue': (value: boolean | 'indeterminate') => table.toggleAllPageRowsSelected(!!value),
-          ariaLabel: 'Select all',
-        }),
-      ),
+      canSelect.value
+        ? h(
+            'div',
+            { class: 'ml-3' },
+            h(Checkbox, {
+              modelValue: table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate'),
+              'onUpdate:modelValue': (value: boolean | 'indeterminate') => table.toggleAllPageRowsSelected(!!value),
+              ariaLabel: 'Select all',
+            }),
+          )
+        : null,
     cell: ({ row }) =>
-      h(Checkbox, {
-        modelValue: row.getIsSelected(),
-        'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
-        ariaLabel: 'Select row',
-      }),
+      canSelect.value
+        ? h(Checkbox, {
+            modelValue: row.getIsSelected(),
+            'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
+            ariaLabel: 'Select row',
+          })
+        : null,
     enableSorting: false,
     enableHiding: false,
     size: 20,
@@ -457,14 +489,16 @@ const columns: ColumnDef<typeof dataTableFeatures, Entity>[] = [
       } else {
         // User name as editable button with copy button
         return h('div', { class: 'flex items-center gap-1' }, [
-          h(
-            'button',
-            {
-              class: 'font-medium text-link hover:underline cursor-pointer',
-              onClick: () => emit('editUser', entity),
-            },
-            name,
-          ),
+          props.canWrite
+            ? h(
+                'button',
+                {
+                  class: 'font-medium text-link hover:underline cursor-pointer',
+                  onClick: () => emit('editUser', entity),
+                },
+                name,
+              )
+            : h('span', { class: 'font-medium' }, name),
           h(
             'button',
             {
@@ -530,6 +564,28 @@ const columns: ColumnDef<typeof dataTableFeatures, Entity>[] = [
     minSize: 80,
   },
   {
+    id: 'roles',
+    header: () => t('admin.settings.users.roles'),
+    cell: ({ row }) => {
+      const entity = row.original;
+      if (!isUserEntity(entity) || !entity.roles?.length) return '';
+      return h(
+        'div',
+        { class: 'flex flex-wrap gap-1' },
+        entity.roles.map((role) =>
+          h(
+            Badge,
+            { variant: 'outline', class: 'text-xs' },
+            () => roleTexts.value[role as InstanceRole]?.label ?? role,
+          ),
+        ),
+      );
+    },
+    enableSorting: false,
+    size: 180,
+    minSize: 100,
+  },
+  {
     id: 'forge',
     header: () => t('admin.settings.entities.forge'),
     cell: ({ row }) => {
@@ -574,6 +630,8 @@ const columns: ColumnDef<typeof dataTableFeatures, Entity>[] = [
     size: 10,
     cell: ({ row }) => {
       const entity = row.original;
+      // Without write access a user row has no actions; an org row can still be viewed.
+      if (entity.entity_type === 'user' && !props.canWrite) return '';
 
       return h(
         'div',
@@ -614,6 +672,18 @@ const columns: ColumnDef<typeof dataTableFeatures, Entity>[] = [
                           },
                           () => [h(Icon, { name: 'edit', class: 'mr-2 h-4 w-4' }), t('admin.settings.entities.edit')],
                         )
+                      : null,
+                    isUserEntity(entity)
+                      ? h(
+                          DropdownMenuItem,
+                          {
+                            onClick: () => (rolesUser.value = entity),
+                          },
+                          () => [
+                            h(Icon, { name: 'user', class: 'mr-2 h-4 w-4' }),
+                            t('admin.settings.users.edit_roles'),
+                          ],
+                        )
                       : h(
                           DropdownMenuItem,
                           {
@@ -624,14 +694,16 @@ const columns: ColumnDef<typeof dataTableFeatures, Entity>[] = [
                             t('admin.settings.entities.view'),
                           ],
                         ),
-                    h(
-                      DropdownMenuItem,
-                      {
-                        class: 'text-destructive',
-                        onClick: () => handleSingleDelete(entity),
-                      },
-                      () => [h(Icon, { name: 'trash', class: 'mr-2 h-4 w-4' }), t('delete')],
-                    ),
+                    canDeleteEntity(entity)
+                      ? h(
+                          DropdownMenuItem,
+                          {
+                            class: 'text-destructive',
+                            onClick: () => handleSingleDelete(entity),
+                          },
+                          () => [h(Icon, { name: 'trash', class: 'mr-2 h-4 w-4' }), t('delete')],
+                        )
+                      : null,
                   ],
                 },
               ),
@@ -699,6 +771,10 @@ function handleBulkToggleAdmin() {
   emit('bulkToggleAdmin', users);
   table.resetRowSelection();
 }
+
+const canDeleteSelection = computed(() =>
+  table.getFilteredSelectedRowModel().rows.every((row) => canDeleteEntity(row.original)),
+);
 
 const hasSelectedUsers = computed(() => {
   const selected = table.getFilteredSelectedRowModel().rows.map((row) => row.original);

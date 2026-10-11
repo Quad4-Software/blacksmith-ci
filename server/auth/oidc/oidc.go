@@ -57,6 +57,8 @@ type Config struct {
 	GroupsClaim   string
 	AllowedGroups []string
 	AdminGroups   []string
+	// RoleGroups maps an instance role name to the groups that grant it.
+	RoleGroups map[string][]string
 	// Only disables forge OAuth sign-in; forge OAuth linking keeps working.
 	Only bool
 }
@@ -199,7 +201,7 @@ func (p *Provider) Exchange(ctx context.Context, code, verifier, nonce string) (
 	}
 
 	groups, found := groupsClaim(raw, p.cfg.GroupsClaim)
-	if !found && (p.RestrictsGroups() || p.ManagesAdmin()) {
+	if !found && p.ManagesGroups() {
 		// Many providers only put groups into the userinfo response. Groups only
 		// matter for the allowed and admin group checks, so skip the extra request
 		// when neither is configured.
@@ -233,6 +235,34 @@ func (p *Provider) ManagesAdmin() bool { return len(p.cfg.AdminGroups) > 0 }
 
 // IsAdmin reports whether these groups grant instance admin.
 func (p *Provider) IsAdmin(groups []string) bool { return intersects(p.cfg.AdminGroups, groups) }
+
+// ManagesGroups reports whether any check needs the user's groups.
+func (p *Provider) ManagesGroups() bool {
+	return p.RestrictsGroups() || p.ManagesAdmin() || len(p.ManagedRoles()) > 0
+}
+
+// ManagedRoles returns the roles that CROW_OIDC_<ROLE>_GROUPS maps, sorted.
+func (p *Provider) ManagedRoles() []string {
+	roles := []string{}
+	for role, groups := range p.cfg.RoleGroups {
+		if len(groups) > 0 {
+			roles = append(roles, role)
+		}
+	}
+	slices.Sort(roles)
+	return roles
+}
+
+// RolesFor returns the managed roles these groups grant, sorted.
+func (p *Provider) RolesFor(groups []string) []string {
+	roles := []string{}
+	for _, role := range p.ManagedRoles() {
+		if intersects(p.cfg.RoleGroups[role], groups) {
+			roles = append(roles, role)
+		}
+	}
+	return roles
+}
 
 // Issuer is the configured issuer URL. Identities are keyed by issuer and
 // subject, because a subject is only unique within its issuer.

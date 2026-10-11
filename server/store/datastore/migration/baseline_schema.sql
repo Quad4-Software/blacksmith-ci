@@ -16,7 +16,8 @@ CREATE TABLE IF NOT EXISTS users (
     hash VARCHAR(500) UNIQUE,
     org_id INTEGER,
     description TEXT,
-    timezone VARCHAR(100)
+    timezone VARCHAR(100),
+    roles TEXT
 );
 
 CREATE TABLE IF NOT EXISTS user_forges (

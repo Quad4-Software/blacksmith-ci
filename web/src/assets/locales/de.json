@@ -39,9 +39,6 @@
           "custom_labels": "Benutzerdefinierte Labels"
         }
       },
-      "orgs": {
-        "orgs": "Organisationen"
-      },
       "queue": {
         "desc": "Aufgaben, die darauf warten, von Agenten ausgeführt zu werden",
         "pause": "Pausieren",
@@ -82,8 +79,7 @@
         "edit_user": "Benutzer bearbeiten",
         "email": "E-Mail",
         "login": "Benutzername",
-        "save": "Benutzer speichern",
-        "users": "Benutzer"
+        "save": "Benutzer speichern"
       },
       "registries": {
         "desc": "Globale Register-Zugangsdaten können hinzugefügt werden, um für private Images für alle Pipelines zu verwenden.",

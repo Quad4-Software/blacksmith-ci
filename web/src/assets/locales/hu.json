@@ -45,9 +45,6 @@
         "save": "Felhasználó mentése",
         "add": "Felhasználó hozzáadása",
         "edit_user": "Felhasználó szerkesztése"
-      },
-      "orgs": {
-        "orgs": "Szervezetek"
       }
     }
   },

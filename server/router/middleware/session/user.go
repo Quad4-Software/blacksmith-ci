@@ -170,21 +170,25 @@ func applyAccessToken(c *gin.Context, user *model.User, at *model.AccessToken) {
 	}(at.ID)
 }
 
-func MustAdmin() gin.HandlerFunc {
+// MustPermission aborts unless the signed-in user holds permission p.
+func MustPermission(p model.Permission) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		user := User(c)
 		switch {
 		case user == nil:
 			c.String(http.StatusUnauthorized, "User not authorized")
 			c.Abort()
-		case !user.Admin:
-			c.String(http.StatusForbidden, "Instance admin privileges required")
+		case !user.Can(p):
+			c.String(http.StatusForbidden, "Permission %s required", p)
 			c.Abort()
 		default:
 			c.Next()
 		}
 	}
 }
+
+// MustAdmin aborts unless the signed-in user is an instance admin.
+func MustAdmin() gin.HandlerFunc { return MustPermission(model.PermServerAdmin) }
 
 func MustRepoAdmin() gin.HandlerFunc {
 	return func(c *gin.Context) {

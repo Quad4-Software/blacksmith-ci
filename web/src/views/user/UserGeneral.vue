@@ -672,6 +672,9 @@ async function saveProfile() {
       ...user,
       description: userDescription.value,
       timezone: userTimezone.value,
+      // Omitted from the request, so the server keeps the user's roles as they are.
+      roles: undefined,
+      permissions: undefined,
     };
 
     await apiClient.updateUser(payload);

@@ -16,7 +16,7 @@
               <Input
                 v-model="vacuumLogTableConfig.schedule"
                 :placeholder="$t('admin.settings.maintenance.schedule_placeholder')"
-                :disabled="vacuumEnvVarsSet"
+                :disabled="!canWrite || vacuumEnvVarsSet"
               />
             </div>
 
@@ -26,12 +26,14 @@
               <div class="flex items-center h-9 space-x-2">
                 <Checkbox
                   :checked="vacuumLogTableConfig.enabled"
-                  :disabled="vacuumEnvVarsSet"
+                  :disabled="!canWrite || vacuumEnvVarsSet"
                   @update:checked="(v) => (vacuumLogTableConfig.enabled = v === true)"
                 />
                 <Label
                   class="cursor-pointer"
-                  @click="!vacuumEnvVarsSet && (vacuumLogTableConfig.enabled = !vacuumLogTableConfig.enabled)"
+                  @click="
+                    canWrite && !vacuumEnvVarsSet && (vacuumLogTableConfig.enabled = !vacuumLogTableConfig.enabled)
+                  "
                 >
                   {{ $t('admin.settings.maintenance.enabled') }}
                 </Label>
@@ -63,7 +65,7 @@
             </div>
 
             <!-- Actions -->
-            <div class="flex flex-col gap-2">
+            <div v-if="canWrite" class="flex flex-col gap-2">
               <Label>{{ $t('admin.settings.maintenance.actions') }}</Label>
               <div class="flex items-center h-9 space-x-2">
                 <Button
@@ -111,7 +113,7 @@
               <Input
                 v-model="staleAgentCleanupConfig.schedule"
                 :placeholder="$t('admin.settings.maintenance.schedule_placeholder')"
-                :disabled="staleAgentEnvVarsSet"
+                :disabled="!canWrite || staleAgentEnvVarsSet"
               />
             </div>
 
@@ -121,12 +123,16 @@
               <div class="flex items-center h-9 space-x-2">
                 <Checkbox
                   :checked="staleAgentCleanupConfig.enabled"
-                  :disabled="staleAgentEnvVarsSet"
+                  :disabled="!canWrite || staleAgentEnvVarsSet"
                   @update:checked="(v) => (staleAgentCleanupConfig.enabled = v === true)"
                 />
                 <Label
                   class="cursor-pointer"
-                  @click="!staleAgentEnvVarsSet && (staleAgentCleanupConfig.enabled = !staleAgentCleanupConfig.enabled)"
+                  @click="
+                    canWrite &&
+                    !staleAgentEnvVarsSet &&
+                    (staleAgentCleanupConfig.enabled = !staleAgentCleanupConfig.enabled)
+                  "
                 >
                   {{ $t('admin.settings.maintenance.enabled') }}
                 </Label>
@@ -160,7 +166,7 @@
             </div>
 
             <!-- Actions -->
-            <div class="flex flex-col gap-2">
+            <div v-if="canWrite" class="flex flex-col gap-2">
               <Label>{{ $t('admin.settings.maintenance.actions') }}</Label>
               <div class="flex items-center h-9 space-x-2">
                 <Button
@@ -208,7 +214,7 @@
               <Input
                 v-model="kubernetesCleanupConfig.schedule"
                 :placeholder="$t('admin.settings.maintenance.schedule_placeholder')"
-                :disabled="kubernetesEnvVarsSet"
+                :disabled="!canWrite || kubernetesEnvVarsSet"
               />
             </div>
 
@@ -218,12 +224,16 @@
               <div class="flex items-center h-9 space-x-2">
                 <Checkbox
                   :checked="kubernetesCleanupConfig.enabled"
-                  :disabled="kubernetesEnvVarsSet"
+                  :disabled="!canWrite || kubernetesEnvVarsSet"
                   @update:checked="(v) => (kubernetesCleanupConfig.enabled = v === true)"
                 />
                 <Label
                   class="cursor-pointer"
-                  @click="!kubernetesEnvVarsSet && (kubernetesCleanupConfig.enabled = !kubernetesCleanupConfig.enabled)"
+                  @click="
+                    canWrite &&
+                    !kubernetesEnvVarsSet &&
+                    (kubernetesCleanupConfig.enabled = !kubernetesCleanupConfig.enabled)
+                  "
                 >
                   {{ $t('admin.settings.maintenance.enabled') }}
                 </Label>
@@ -258,7 +268,7 @@
             </div>
 
             <!-- Actions -->
-            <div class="flex flex-col gap-2">
+            <div v-if="canWrite" class="flex flex-col gap-2">
               <Label>{{ $t('admin.settings.maintenance.actions') }}</Label>
               <div class="flex items-center h-9 space-x-2">
                 <Button
@@ -310,6 +320,7 @@
               <Input
                 v-model="dockerCleanupConfig.schedule"
                 :placeholder="$t('admin.settings.maintenance.schedule_placeholder')"
+                :disabled="!canWrite"
               />
             </div>
 
@@ -319,9 +330,13 @@
               <div class="flex items-center h-9 space-x-2">
                 <Checkbox
                   :checked="dockerCleanupConfig.enabled"
+                  :disabled="!canWrite"
                   @update:checked="(v) => (dockerCleanupConfig.enabled = v === true)"
                 />
-                <Label class="cursor-pointer" @click="dockerCleanupConfig.enabled = !dockerCleanupConfig.enabled">
+                <Label
+                  class="cursor-pointer"
+                  @click="canWrite && (dockerCleanupConfig.enabled = !dockerCleanupConfig.enabled)"
+                >
                   {{ $t('admin.settings.maintenance.enabled') }}
                 </Label>
               </div>
@@ -341,6 +356,7 @@
               <Input
                 v-model="dockerStaleThresholdDisplay"
                 placeholder="1h"
+                :disabled="!canWrite"
                 :title="$t('admin.settings.maintenance.stale_threshold_desc')"
               />
             </div>
@@ -354,7 +370,7 @@
             </div>
 
             <!-- Actions -->
-            <div class="flex flex-col gap-2">
+            <div v-if="canWrite" class="flex flex-col gap-2">
               <Label>{{ $t('admin.settings.maintenance.actions') }}</Label>
               <div class="flex items-center h-9 space-x-2">
                 <Button
@@ -399,7 +415,7 @@
               <Input
                 v-model="orphanedDataCleanupConfig.schedule"
                 :placeholder="$t('admin.settings.maintenance.schedule_placeholder')"
-                :disabled="orphanedDataEnvVarsSet"
+                :disabled="!canWrite || orphanedDataEnvVarsSet"
               />
             </div>
 
@@ -409,13 +425,15 @@
               <div class="flex items-center h-9 space-x-2">
                 <Checkbox
                   :checked="orphanedDataCleanupConfig.enabled"
-                  :disabled="orphanedDataEnvVarsSet"
+                  :disabled="!canWrite || orphanedDataEnvVarsSet"
                   @update:checked="(v) => (orphanedDataCleanupConfig.enabled = v === true)"
                 />
                 <Label
                   class="cursor-pointer"
                   @click="
-                    !orphanedDataEnvVarsSet && (orphanedDataCleanupConfig.enabled = !orphanedDataCleanupConfig.enabled)
+                    canWrite &&
+                    !orphanedDataEnvVarsSet &&
+                    (orphanedDataCleanupConfig.enabled = !orphanedDataCleanupConfig.enabled)
                   "
                 >
                   {{ $t('admin.settings.maintenance.enabled') }}
@@ -451,7 +469,7 @@
             </div>
 
             <!-- Actions -->
-            <div class="flex flex-col gap-2">
+            <div v-if="canWrite" class="flex flex-col gap-2">
               <Label>{{ $t('admin.settings.maintenance.actions') }}</Label>
               <div class="flex items-center h-9 space-x-2">
                 <Button
@@ -592,6 +610,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import useApiClient from '~/compositions/useApiClient';
 import { useDate } from '~/compositions/useDate';
 import useNotifications from '~/compositions/useNotifications';
+import usePermissions from '~/compositions/usePermissions';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
 import type { MaintenanceConfig, MaintenanceLog, MaintenanceOperationConfig, MaintenanceStats } from '~/lib/api/types';
 
@@ -615,6 +634,9 @@ const K8S_WOULD_DELETE_REGEX = /Would delete: (\d+)/;
 
 const apiClient = useApiClient();
 const notifications = useNotifications();
+// Saving the configuration and running an operation need maintenance:write; maintenance:read only shows the page.
+const { can } = usePermissions();
+const canWrite = computed(() => can('maintenance:write'));
 const { toLocaleString } = useDate();
 const { t } = useI18n();
 
@@ -1258,6 +1280,7 @@ const addActionLog = (message: string, jobType: ActionType = 'vacuum') => {
 };
 
 const saveStaleAgentConfig = async (silent = false) => {
+  if (!canWrite.value) return;
   isSavingStaleAgent.value = true;
   if (!silent) {
     addActionLog('Saving stale agent cleanup configuration...', 'stale_agent');
@@ -1321,6 +1344,7 @@ const saveStaleAgentConfig = async (silent = false) => {
 };
 
 const saveDockerConfig = async (silent = false) => {
+  if (!canWrite.value) return;
   isSavingDocker.value = true;
   if (!silent) {
     addActionLog('Saving Docker cleanup configuration...', 'docker');
@@ -1362,6 +1386,7 @@ const saveDockerConfig = async (silent = false) => {
 };
 
 const runDockerCleanup = async () => {
+  if (!canWrite.value) return;
   isRunningDockerCleanup.value = true;
   addActionLog('Triggering Docker resource cleanup...', 'docker');
 
@@ -1400,6 +1425,7 @@ const runDockerCleanup = async () => {
 };
 
 const saveK8sConfig = async (silent = false) => {
+  if (!canWrite.value) return;
   isSavingK8s.value = true;
   if (!silent) {
     addActionLog('Saving Kubernetes cleanup configuration...', 'kubernetes');
@@ -1471,6 +1497,7 @@ const saveK8sConfig = async (silent = false) => {
 };
 
 const saveConfig = async (silent = false) => {
+  if (!canWrite.value) return;
   isSaving.value = true;
   if (!silent) {
     addActionLog('Saving vacuum maintenance configuration...');
@@ -1535,6 +1562,7 @@ const saveConfig = async (silent = false) => {
 };
 
 const runNow = async () => {
+  if (!canWrite.value) return;
   isRunning.value = true;
 
   // Add divider if there are existing logs
@@ -1661,6 +1689,7 @@ const runNow = async () => {
 };
 
 const runStaleAgentCleanup = async () => {
+  if (!canWrite.value) return;
   isRunningStaleAgentCleanup.value = true;
 
   // Add divider if there are existing logs
@@ -1790,6 +1819,7 @@ const runStaleAgentCleanup = async () => {
 };
 
 const runK8sCleanup = async () => {
+  if (!canWrite.value) return;
   isRunningK8sCleanup.value = true;
 
   // Add divider if there are existing logs
@@ -1877,6 +1907,7 @@ const runK8sCleanup = async () => {
 };
 
 const saveOrphanedDataConfig = async (silent = false) => {
+  if (!canWrite.value) return;
   isSavingOrphanedData.value = true;
   if (!silent) {
     addActionLog('Saving orphaned data cleanup configuration...', 'orphaned_data');
@@ -1916,6 +1947,7 @@ const saveOrphanedDataConfig = async (silent = false) => {
 };
 
 const runOrphanedDataCleanup = async () => {
+  if (!canWrite.value) return;
   isRunningOrphanedData.value = true;
   addActionLog(`Starting orphaned data cleanup${orphanedDataDryRun.value ? ' (dry run)' : ''}...`, 'orphaned_data');
 

@@ -1,9 +1,9 @@
-import { shallowMount } from '@vue/test-utils';
+import { flushPromises, shallowMount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import { watch } from 'vue';
 import type { Ref } from 'vue';
 
-import { usePagination } from './usePaginate';
+import { usePagination, usePaginationWithPages } from './usePaginate';
 
 async function waitForState<T>(ref: Ref<T>, expected: T): Promise<void> {
   await new Promise<void>((resolve) => {
@@ -185,5 +185,32 @@ describe('usePaginate', () => {
 
     expect(usePaginationComposition.data.value).toStrictEqual([{ name: 'latest' }]);
     expect(usePaginationComposition.loading.value).toBe(false);
+  });
+});
+
+describe('usePaginationWithPages', () => {
+  it('reloads the current page without going back to the first', async () => {
+    const pages = [[{ name: 'a' }], [{ name: 'b' }]];
+    const loaded: number[] = [];
+    let pagination = null as unknown as ReturnType<typeof usePaginationWithPages<{ name: string }>>;
+    mountComposition(() => {
+      pagination = usePaginationWithPages<{ name: string }>(
+        async (page) => {
+          loaded.push(page);
+          return pages[page - 1];
+        },
+        { pageSize: 1 },
+      );
+    });
+    await flushPromises();
+    pagination.nextPage();
+    await flushPromises();
+
+    pages[1] = [{ name: 'b2' }];
+    await pagination.reload();
+
+    expect(pagination.page.value).toBe(2);
+    expect(pagination.data.value).toStrictEqual([{ name: 'b2' }]);
+    expect(loaded).toStrictEqual([1, 2, 2]);
   });
 });

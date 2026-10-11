@@ -208,3 +208,21 @@ func TestCreateUserWithExistingOrg(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "new-user", newOrg.Name)
 }
+
+func TestUserRolesRoundTrip(t *testing.T) {
+	store, closer := newTestStore(t, new(model.User), new(model.Org), new(model.Secret), new(model.Repo), new(model.Perm), new(model.UserForge), new(model.UserIdentity))
+	defer closer()
+
+	u := &model.User{Login: "roles", Hash: "h-roles", Roles: model.JSONSliceString{"auditor", "operator"}}
+	require.NoError(t, store.CreateUser(u))
+
+	got, err := store.GetUser(u.ID)
+	require.NoError(t, err)
+	assert.Equal(t, model.JSONSliceString{"auditor", "operator"}, got.Roles)
+
+	got.Roles = nil
+	require.NoError(t, store.UpdateUser(got))
+	got, err = store.GetUser(u.ID)
+	require.NoError(t, err)
+	assert.Empty(t, got.Roles)
+}

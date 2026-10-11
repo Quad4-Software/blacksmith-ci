@@ -35,9 +35,6 @@
         "show": "Mostrar agentes",
         "token": "Token"
       },
-      "orgs": {
-        "orgs": "Organizaciones"
-      },
       "queue": {
         "desc": "Tareas en espera de ejecución por los agentes",
         "pause": "Pausa",
@@ -78,8 +75,7 @@
         "edit_user": "Editar usuario",
         "email": "Email",
         "login": "Iniciar sesión",
-        "save": "Guardar usuario",
-        "users": "Usuarios"
+        "save": "Guardar usuario"
       }
     }
   },

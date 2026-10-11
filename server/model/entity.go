@@ -35,6 +35,8 @@ type Entity struct {
 	Admin       *bool   `json:"admin,omitempty"`
 	Description *string `json:"description,omitempty"`
 	Timezone    *string `json:"timezone,omitempty"`
+	// Instance roles besides admin, so the admin user list can show and edit them.
+	Roles []string `json:"roles,omitempty"`
 
 	// Org-specific fields (nil for users)
 	IsUser  *bool `json:"is_user,omitempty"`
@@ -53,6 +55,7 @@ func UserToEntity(user *User) *Entity {
 		Admin:       &user.Admin,
 		Description: &user.Description,
 		Timezone:    &user.Timezone,
+		Roles:       knownRoles(user.Roles),
 	}
 }
 

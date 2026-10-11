@@ -125,6 +125,7 @@ func Migrate(_ context.Context, db *sql.DB, driver string, _ bool) error {
 		{ID: "crow-add-agent-host-resources", Migrate: addAgentHostResources},
 		{ID: "crow-add-config-generated-from", Migrate: addConfigGeneratedFrom(driver)},
 		{ID: "crow-add-user-identities", Migrate: createUserIdentities(driver)},
+		{ID: "crow-add-user-roles", Migrate: addUserRoles},
 	}
 
 	if len(newMigrations) > 0 {
@@ -765,6 +766,16 @@ func addAgentHostResources(tx *sql.Tx) error {
 	}
 
 	return nil
+}
+
+// addUserRoles adds users.roles, the JSON list of instance roles besides admin.
+// The column is nullable because MySQL rejects a DEFAULT on TEXT; NULL reads
+// as no roles.
+func addUserRoles(tx *sql.Tx) error {
+	if !tableExists(tx, "users") {
+		return nil
+	}
+	return addColumnIfNotExists("users", "roles", "TEXT")(tx)
 }
 
 func addPipelineOrgIdentity(driver string) func(tx *sql.Tx) error {

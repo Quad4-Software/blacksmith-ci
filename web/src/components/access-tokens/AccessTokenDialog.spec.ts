@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { afterEach, describe, it, expect, vi, beforeEach } from 'vitest';
+import { flushPromises, mount } from '@vue/test-utils';
 import { ref } from 'vue';
 import AccessTokenDialog from './AccessTokenDialog.vue';
 
@@ -30,9 +30,23 @@ vi.mock('~/compositions/useAuthentication', () => ({
   }),
 }));
 
+// Permissions of the signed-in user, read by usePermissions
+let mockPermissions: string[] = [];
+
+vi.mock('~/compositions/usePermissions', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('~/compositions/usePermissions')>()),
+  default: () => ({ can: (p: string) => mockPermissions.includes(p) }),
+}));
+
+// The dialog content is teleported to the body, so read the rendered checkboxes from the document.
+function scopeIds() {
+  return [...document.querySelectorAll('[id^="scope-admin"]')].map((el) => el.id);
+}
+
 describe('accessTokenDialog', () => {
   beforeEach(() => {
     mockUser = { admin: false };
+    mockPermissions = [];
   });
 
   // Note: Dialog content is rendered via teleport to body, which makes it difficult
@@ -245,6 +259,37 @@ describe('accessTokenDialog', () => {
 
       // Component should mount successfully with admin user
       expect(wrapper.exists()).toBe(true);
+    });
+  });
+
+  describe('admin scopes by instance permission', async () => {
+    let wrapper: ReturnType<typeof mount> | undefined;
+
+    async function mountOpen() {
+      wrapper = mount(AccessTokenDialog, { props: { open: true, hideTrigger: true }, attachTo: document.body });
+      await flushPromises();
+    }
+
+    afterEach(() => {
+      wrapper?.unmount();
+      wrapper = undefined;
+    });
+
+    it('offers no admin scope to a plain user', async () => {
+      await mountOpen();
+      expect(scopeIds()).toStrictEqual([]);
+    });
+
+    it('offers admin:read to an auditor', async () => {
+      mockPermissions = ['users:read', 'queue:read', 'metrics:all'];
+      await mountOpen();
+      expect(scopeIds()).toStrictEqual(['scope-admin:read']);
+    });
+
+    it('offers both admin scopes to a secrets manager', async () => {
+      mockPermissions = ['secrets:write'];
+      await mountOpen();
+      expect(scopeIds()).toStrictEqual(['scope-admin:read', 'scope-admin:write']);
     });
   });
 });

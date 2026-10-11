@@ -202,9 +202,9 @@
         </SidebarGroup>
       </Collapsible>
 
-      <SidebarSeparator v-if="user?.admin" />
+      <SidebarSeparator v-if="canAny(adminAreaPermissions)" />
 
-      <Collapsible v-if="user?.admin" :default-open="true" class="group/collapsible">
+      <Collapsible v-if="canAny(adminAreaPermissions)" :default-open="true" class="group/collapsible">
         <SidebarGroup>
           <SidebarGroupLabel as-child>
             <CollapsibleTrigger>
@@ -218,7 +218,7 @@
           <CollapsibleContent>
             <SidebarGroupContent>
               <SidebarMenu>
-                <SidebarMenuItem>
+                <SidebarMenuItem v-if="canSee('admin-settings-maintenance')">
                   <SidebarMenuButton
                     as-child
                     :tooltip="$t('admin.settings.maintenance.maintenance')"
@@ -231,7 +231,33 @@
                   </SidebarMenuButton>
                 </SidebarMenuItem>
 
-                <SidebarMenuItem>
+                <SidebarMenuItem v-if="canSee('admin-settings-secrets')">
+                  <SidebarMenuButton
+                    as-child
+                    :tooltip="$t('secrets.secrets')"
+                    :is-active="isActive('admin-settings-secrets')"
+                  >
+                    <router-link :to="{ name: 'admin-settings-secrets' }">
+                      <Icon name="secret" class="size-4" />
+                      <span v-if="!isCollapsed">{{ $t('secrets.secrets') }}</span>
+                    </router-link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
+                <SidebarMenuItem v-if="canSee('admin-settings-registries')">
+                  <SidebarMenuButton
+                    as-child
+                    :tooltip="$t('registries.registries')"
+                    :is-active="isActive('admin-settings-registries')"
+                  >
+                    <router-link :to="{ name: 'admin-settings-registries' }">
+                      <Icon name="docker" class="size-4" />
+                      <span v-if="!isCollapsed">{{ $t('registries.registries') }}</span>
+                    </router-link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
+                <SidebarMenuItem v-if="canSee('admin-settings-repos')">
                   <SidebarMenuButton
                     as-child
                     :tooltip="$t('admin.settings.repos.repos')"
@@ -244,7 +270,7 @@
                   </SidebarMenuButton>
                 </SidebarMenuItem>
 
-                <SidebarMenuItem>
+                <SidebarMenuItem v-if="canSee('admin-settings-entities')">
                   <SidebarMenuButton
                     as-child
                     :tooltip="$t('admin.settings.entities.title')"
@@ -257,7 +283,7 @@
                   </SidebarMenuButton>
                 </SidebarMenuItem>
 
-                <SidebarMenuItem>
+                <SidebarMenuItem v-if="canSee('admin-settings-queue')">
                   <SidebarMenuButton
                     as-child
                     :tooltip="$t('admin.settings.queue.queue')"
@@ -270,7 +296,7 @@
                   </SidebarMenuButton>
                 </SidebarMenuItem>
 
-                <SidebarMenuItem>
+                <SidebarMenuItem v-if="canSee('admin-settings-notifications')">
                   <SidebarMenuButton
                     as-child
                     :tooltip="$t('admin.settings.notifications.notifications')"
@@ -358,10 +384,12 @@ import {
 import useAuthentication from '~/compositions/useAuthentication';
 import { useCommandPalette } from '~/compositions/useCommandPalette';
 import useConfig from '~/compositions/useConfig';
+import usePermissions, { adminAreaPermissions } from '~/compositions/usePermissions';
 import { useVersion } from '~/compositions/useVersion';
 
 const config = useConfig();
 const { user } = useAuthentication();
+const { canAny, canSee } = usePermissions();
 const versionInfo = useVersion();
 const { toggle: toggleCommandPalette } = useCommandPalette();
 const { isMobile, state, setOpenMobile } = useSidebar();

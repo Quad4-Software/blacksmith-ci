@@ -584,3 +584,34 @@ func TestBackfillWorkflowAgentIdentity(t *testing.T) {
 	require.NoError(t, db.QueryRow(`SELECT agent_name FROM workflows WHERE id = 3`).Scan(&name))
 	assert.Equal(t, "already", name)
 }
+
+func TestMigrate_FreshDatabaseHasUserRoles(t *testing.T) {
+	db := openSQLiteMemory(t)
+	require.NoError(t, Migrate(t.Context(), db, "sqlite3", true))
+
+	_, err := db.Exec(`SELECT roles FROM users LIMIT 1`)
+	assert.NoError(t, err, "users.roles should exist on a fresh database")
+}
+
+func TestAddUserRoles_ExistingUsersTable(t *testing.T) {
+	db, _ := testDB(t)
+
+	// Pre-migration users table: no roles column yet.
+	_, err := db.Exec(`CREATE TABLE users (id INTEGER PRIMARY KEY, login VARCHAR(250))`)
+	require.NoError(t, err)
+	t.Cleanup(func() { _, _ = db.Exec(`DROP TABLE users`) })
+	_, err = db.Exec(`INSERT INTO users (id, login) VALUES (1, 'alice')`)
+	require.NoError(t, err)
+
+	// Run twice to cover idempotency.
+	for range 2 {
+		tx, err := db.Begin()
+		require.NoError(t, err)
+		require.NoError(t, addUserRoles(tx))
+		require.NoError(t, tx.Commit())
+	}
+
+	var roles sql.NullString
+	require.NoError(t, db.QueryRow(`SELECT roles FROM users WHERE id = 1`).Scan(&roles))
+	assert.False(t, roles.Valid, "existing users get NULL roles")
+}

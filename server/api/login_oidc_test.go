@@ -18,6 +18,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -202,6 +203,21 @@ func TestHandleOIDC(t *testing.T) {
 			assert.Equal(t, "/", w.Header().Get("Location"))
 			_store.AssertExpectations(t)
 		}
+	})
+
+	t.Run("sets roles from role groups", func(t *testing.T) {
+		idp := setupOIDC(t, func(c *oidc.Config) { c.RoleGroups = map[string][]string{"auditor": {"audit"}} })
+		_store := new(store_mocks.MockStore)
+		_store.On("UserIdentityGetByProviderSubject", "oidc", idp.Issuer(), "sub-jane").Return(&model.UserIdentity{UserID: 42}, nil)
+		_store.On("GetUser", int64(42)).Return(&model.User{ID: 42, Login: "jane", Hash: "hash"}, nil)
+		_store.On("UserIdentityUpdate", mock.Anything).Return(nil)
+		_store.On("UpdateUser", mock.MatchedBy(func(u *model.User) bool {
+			return slices.Equal(u.Roles, model.JSONSliceString{"auditor"})
+		})).Return(nil).Once()
+		_store.On("UserForgeList", int64(42)).Return([]*model.UserForge{}, nil)
+		w := start(t, idp, nil).finish(_store, map[string]any{"sub": "sub-jane", "groups": []string{"audit"}}, nil, true)
+		assert.Equal(t, "/", w.Header().Get("Location"))
+		_store.AssertExpectations(t)
 	})
 
 	t.Run("does not register a CROW_ADMIN username when registration is closed", func(t *testing.T) {

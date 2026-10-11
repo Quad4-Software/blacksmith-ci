@@ -2,6 +2,7 @@ package crow
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -334,6 +335,41 @@ func TestClient_RepoList(t *testing.T) {
 
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expected, repos)
+		})
+	}
+}
+
+func TestClient_UserPatchRoles(t *testing.T) {
+	tests := []struct {
+		name     string
+		roles    *[]string
+		wantBody string
+	}{
+		{name: "roles are sent", roles: &[]string{"operator"}, wantBody: `"roles":["operator"]`},
+		{name: "empty roles clear assigned roles", roles: &[]string{}, wantBody: `"roles":[]`},
+		{name: "nil roles are omitted", roles: nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var body string
+			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				b, err := io.ReadAll(r.Body)
+				assert.NoError(t, err)
+				body = string(b)
+				_, err = fmt.Fprint(w, `{"id":1,"login":"u"}`)
+				assert.NoError(t, err)
+			}))
+			defer ts.Close()
+
+			client := NewClient(ts.URL, http.DefaultClient)
+			_, err := client.UserPatch(&User{ID: 1, Login: "u", Roles: tt.roles})
+			assert.NoError(t, err)
+			if tt.roles == nil {
+				assert.NotContains(t, body, `"roles"`)
+				return
+			}
+			assert.Contains(t, body, tt.wantBody)
 		})
 	}
 }

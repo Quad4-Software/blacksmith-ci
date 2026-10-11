@@ -158,6 +158,23 @@ describe('agentList', () => {
     });
   });
 
+  describe('instance roles', () => {
+    // Agents.vue passes is-admin = can('agents:write'), which an auditor lacks and an operator holds.
+    it('hides edit/delete buttons for an auditor on agents outside their org', () => {
+      const global = mountWithAgent({ ...sampleAgent, org_ids: [] }, { isAdmin: false, userOrgId: 1 });
+      const otherOrg = mountWithAgent({ ...sampleAgent, org_ids: [42] }, { isAdmin: false, userOrgId: 1 });
+      expect(hasManagementButtons(global)).toBe(false);
+      expect(hasManagementButtons(otherOrg)).toBe(false);
+    });
+
+    it('shows edit/delete buttons for an operator on every agent', () => {
+      const global = mountWithAgent({ ...sampleAgent, org_ids: [] }, { isAdmin: true, userOrgId: 1 });
+      const otherOrg = mountWithAgent({ ...sampleAgent, org_ids: [42] }, { isAdmin: true, userOrgId: 1 });
+      expect(hasManagementButtons(global)).toBe(true);
+      expect(hasManagementButtons(otherOrg)).toBe(true);
+    });
+  });
+
   describe('missing org_ids', () => {
     // Servers predating the empty-array normalization send org_ids: null for
     // global agents, which used to throw on `.length` and blank the whole list.

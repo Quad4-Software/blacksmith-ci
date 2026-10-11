@@ -90,6 +90,9 @@ type User struct {
 	// environment variable, this value will be set to true on login.
 	Admin bool `json:"admin,omitempty" bun:"admin"`
 
+	// Roles are the instance roles of the user besides admin, see role.go.
+	Roles JSONSliceString `json:"roles" bun:"roles,type:text"`
+
 	// Hash is a unique token used to sign tokens.
 	Hash string `json:"-" bun:"hash,unique,type:varchar(500)"`
 

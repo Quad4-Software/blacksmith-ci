@@ -35,6 +35,8 @@ import (
 type webOIDCConfig struct {
 	Enabled bool   `json:"enabled"`
 	Name    string `json:"name"`
+	// ManagedRoles are set from identity provider groups and cannot be assigned in the UI.
+	ManagedRoles []string `json:"managed_roles"`
 }
 
 type webAuthConfig struct {
@@ -45,9 +47,9 @@ type webAuthConfig struct {
 }
 
 func authConfig(c *gin.Context, user *model.User) webAuthConfig {
-	cfg := webAuthConfig{ForgeLogin: true}
+	cfg := webAuthConfig{ForgeLogin: true, OIDC: webOIDCConfig{ManagedRoles: []string{}}}
 	if p := server.Config.Services.OIDC; p != nil {
-		cfg.OIDC = webOIDCConfig{Enabled: true, Name: p.DisplayName()}
+		cfg.OIDC = webOIDCConfig{Enabled: true, Name: p.DisplayName(), ManagedRoles: p.ManagedRoles()}
 		cfg.ForgeLogin = !p.ForgeLoginDisabled()
 	}
 	if user != nil {

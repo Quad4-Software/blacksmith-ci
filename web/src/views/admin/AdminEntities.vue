@@ -1,7 +1,7 @@
 <template>
   <Settings :title="$t('admin.settings.entities.title')" :description="$t('admin.settings.entities.desc')">
     <template #headerActions>
-      <Button @click="showAddUser">
+      <Button v-if="can('users:write')" @click="showAddUser">
         <Icon name="plus" class="h-4 w-4 mr-2" />
         {{ $t('admin.settings.users.add') }}
       </Button>
@@ -12,10 +12,13 @@
         :entities="data"
         :is-deleting="isDeleting"
         :search-term="searchTerm"
+        :can-write="can('users:write')"
+        :can-delete-orgs="can('orgs:delete')"
         @edit-user="handleEditUser"
         @delete="handleDelete"
         @bulk-delete="handleBulkDelete"
         @bulk-toggle-admin="handleBulkToggleAdmin"
+        @roles-saved="reload"
         @update:search-term="searchTerm = $event"
       />
 
@@ -96,12 +99,14 @@ import { useAsyncAction } from '~/compositions/useAsyncAction';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
 import useNotifications from '~/compositions/useNotifications';
 import { usePaginationWithPages } from '~/compositions/usePaginate';
+import usePermissions from '~/compositions/usePermissions';
 import type { Entity, User } from '~/lib/api/types';
 import { isUserEntity } from '~/lib/api/types';
 
 const apiClient = useApiClient();
 const notifications = useNotifications();
 const { t } = useI18n();
+const { can } = usePermissions();
 
 const searchTerm = ref('');
 const isEditDialogOpen = ref(false);
@@ -116,9 +121,12 @@ async function loadEntities(page: number): Promise<Entity[] | null> {
   });
 }
 
-const { page, data, hasMore, loading, nextPage, previousPage, resetPage } = usePaginationWithPages(loadEntities, {
-  pageSize: 15,
-});
+const { page, data, hasMore, loading, nextPage, previousPage, resetPage, reload } = usePaginationWithPages(
+  loadEntities,
+  {
+    pageSize: 15,
+  },
+);
 
 // Reload when search changes
 watchDebounced(
@@ -139,6 +147,9 @@ function handleEditUser(entity: Entity) {
     avatar_url: entity.avatar || '',
     admin: entity.admin || false,
     forge_id: entity.forge_id,
+    // PATCH replaces these from the body, so carry the current values.
+    description: entity.description ?? '',
+    timezone: entity.timezone ?? '',
   };
   isEditDialogOpen.value = true;
 }
@@ -244,6 +255,8 @@ async function handleBulkToggleAdmin(entities: Entity[]) {
         email: entity.email,
         avatar_url: entity.avatar,
         admin: !entity.admin,
+        description: entity.description ?? '',
+        timezone: entity.timezone ?? '',
       });
       successCount++;
     } catch (error) {

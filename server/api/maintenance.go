@@ -35,7 +35,7 @@ type GetMaintenanceConfigOutput struct {
 func GetMaintenanceConfig(ctx context.Context, _ *GetMaintenanceConfigInput) (*GetMaintenanceConfigOutput, error) {
 	c := ginCtx(ctx)
 	user := session.User(c)
-	if !user.Admin {
+	if !user.Can(model.PermMaintenanceRead) {
 		return nil, huma.Error403Forbidden("Forbidden")
 	}
 
@@ -61,7 +61,7 @@ type UpdateMaintenanceConfigOutput struct {
 func UpdateMaintenanceConfig(ctx context.Context, input *UpdateMaintenanceConfigInput) (*UpdateMaintenanceConfigOutput, error) {
 	c := ginCtx(ctx)
 	user := session.User(c)
-	if !user.Admin {
+	if !user.Can(model.PermMaintenanceWrite) {
 		return nil, huma.Error403Forbidden("Forbidden")
 	}
 
@@ -101,7 +101,7 @@ type GetMaintenanceConfigByActionOutput struct {
 func GetMaintenanceConfigByAction(ctx context.Context, input *GetMaintenanceConfigByActionInput) (*GetMaintenanceConfigByActionOutput, error) {
 	c := ginCtx(ctx)
 	user := session.User(c)
-	if !user.Admin {
+	if !user.Can(model.PermMaintenanceRead) {
 		return nil, huma.Error403Forbidden("Forbidden")
 	}
 
@@ -148,7 +148,7 @@ type UpdateMaintenanceConfigByActionOutput struct {
 func UpdateMaintenanceConfigByAction(ctx context.Context, input *UpdateMaintenanceConfigByActionInput) (*UpdateMaintenanceConfigByActionOutput, error) {
 	c := ginCtx(ctx)
 	user := session.User(c)
-	if !user.Admin {
+	if !user.Can(model.PermMaintenanceWrite) {
 		return nil, huma.Error403Forbidden("Forbidden")
 	}
 
@@ -206,7 +206,7 @@ type GetMaintenanceStatsOutput struct {
 func GetMaintenanceStats(ctx context.Context, _ *GetMaintenanceStatsInput) (*GetMaintenanceStatsOutput, error) {
 	c := ginCtx(ctx)
 	user := session.User(c)
-	if !user.Admin {
+	if !user.Can(model.PermMaintenanceRead) {
 		return nil, huma.Error403Forbidden("Forbidden")
 	}
 
@@ -230,7 +230,7 @@ type GetMaintenanceLogsOutput struct {
 func GetMaintenanceLogs(ctx context.Context, input *GetMaintenanceLogsInput) (*GetMaintenanceLogsOutput, error) {
 	c := ginCtx(ctx)
 	user := session.User(c)
-	if !user.Admin {
+	if !user.Can(model.PermMaintenanceRead) {
 		return nil, huma.Error403Forbidden("Forbidden")
 	}
 
@@ -270,7 +270,7 @@ type RunMaintenanceNowOutput struct {
 func RunMaintenanceNow(ctx context.Context, input *RunMaintenanceNowInput) (*RunMaintenanceNowOutput, error) {
 	c := ginCtx(ctx)
 	user := session.User(c)
-	if !user.Admin {
+	if !user.Can(model.PermMaintenanceWrite) {
 		return nil, huma.Error403Forbidden("Forbidden")
 	}
 

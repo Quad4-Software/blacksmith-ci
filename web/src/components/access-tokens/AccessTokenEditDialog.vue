@@ -46,10 +46,10 @@
               </div>
             </div>
 
-            <!-- Admin Scopes (if admin) -->
-            <div v-if="user?.admin" class="space-y-3">
+            <!-- Admin Scopes (by instance permission) -->
+            <div v-if="adminScopes.length > 0" class="space-y-3">
               <p class="text-xs font-medium text-muted-foreground uppercase">{{ $t('access_tokens.admin_scopes') }}</p>
-              <div v-for="scope in ADMIN_SCOPES" :key="scope" class="flex items-start gap-3">
+              <div v-for="scope in adminScopes" :key="scope" class="flex items-start gap-3">
                 <Checkbox
                   :id="`edit-scope-${scope}`"
                   :checked="form.scopes.includes(scope)"
@@ -90,9 +90,9 @@ import { Button } from '~/components/ui/button';
 import { Checkbox } from '~/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Input } from '~/components/ui/input';
-import useAuthentication from '~/compositions/useAuthentication';
+import usePermissions, { adminScopesFor } from '~/compositions/usePermissions';
 import type { AccessToken, AccessTokenScope, UpdateAccessTokenRequest } from '~/lib/api/types';
-import { ADMIN_SCOPES, SCOPE_DESCRIPTIONS, USER_SCOPES } from '~/lib/api/types';
+import { SCOPE_DESCRIPTIONS, USER_SCOPES } from '~/lib/api/types';
 
 const props = withDefaults(
   defineProps<{
@@ -111,7 +111,10 @@ const emit = defineEmits<{
   (event: 'update:open', value: boolean): void;
 }>();
 
-const { user } = useAuthentication();
+const { can } = usePermissions();
+
+// The admin scopes follow the server's rule in GetAvailableScopes, not the admin flag.
+const adminScopes = computed(() => adminScopesFor(can));
 
 const isOpen = computed({
   get: () => props.open ?? false,
@@ -133,7 +136,7 @@ const isFormValid = computed(() => {
 });
 
 const availableScopes = computed(() => {
-  return user?.admin ? [...USER_SCOPES, ...ADMIN_SCOPES] : [...USER_SCOPES];
+  return [...USER_SCOPES, ...adminScopes.value];
 });
 
 const allScopesSelected = computed(() => {

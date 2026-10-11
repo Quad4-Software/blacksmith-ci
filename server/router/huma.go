@@ -25,6 +25,7 @@ import (
 
 	"codefloe.com/crowci/crow/v6/server"
 	"codefloe.com/crowci/crow/v6/server/api"
+	"codefloe.com/crowci/crow/v6/server/model"
 	"codefloe.com/crowci/crow/v6/server/router/middleware/session"
 )
 
@@ -159,6 +160,11 @@ var (
 	hmMustOrg        = wrapGinMiddleware(session.MustOrg())
 	hmMustAutoscaler = wrapGinMiddleware(session.MustAutoscaler())
 )
+
+// The hmMustPermission wrapper guards a huma operation by an instance permission.
+func hmMustPermission(p model.Permission) func(ctx huma.Context, next func(huma.Context)) {
+	return wrapGinMiddleware(session.MustPermission(p))
+}
 
 func hmMustOrgMember(admin bool) func(ctx huma.Context, next func(huma.Context)) {
 	return wrapGinMiddleware(session.MustOrgMember(admin))

@@ -93,6 +93,15 @@ func TestExchange(t *testing.T) {
 		assert.Equal(t, []string{"from-userinfo"}, claims.Groups)
 	})
 
+	t.Run("userinfo fallback for role mapping", func(t *testing.T) {
+		idp.UserInfo = map[string]any{"sub": "sub-1", "groups": []string{"audit"}}
+		t.Cleanup(func() { idp.UserInfo = nil })
+		p := newProvider(t, idp, func(c *oidc.Config) { c.RoleGroups = map[string][]string{"auditor": {"audit"}} })
+		claims, err := signIn(t, p, idp, map[string]any{"sub": "sub-1"})
+		require.NoError(t, err)
+		assert.Equal(t, []string{"audit"}, claims.Groups)
+	})
+
 	t.Run("skips userinfo when no group checks are configured", func(t *testing.T) {
 		idp.UserInfoStatus = http.StatusInternalServerError
 		t.Cleanup(func() { idp.UserInfoStatus = 0 })
@@ -194,4 +203,18 @@ func TestNormalizeUsername(t *testing.T) {
 		_, ok := oidc.NormalizeUsername(raw)
 		assert.False(t, ok, raw)
 	}
+}
+
+func TestProviderRoles(t *testing.T) {
+	p := oidc.New(oidc.Config{Issuer: "https://idp.example", RoleGroups: map[string][]string{
+		"operator":        {"ops", "sre"},
+		"auditor":         {"audit"},
+		"secrets-manager": nil,
+	}})
+	assert.Equal(t, []string{"auditor", "operator"}, p.ManagedRoles())
+	assert.Equal(t, []string{"operator"}, p.RolesFor([]string{"sre", "dev"}))
+	assert.Equal(t, []string{"auditor", "operator"}, p.RolesFor([]string{"audit", "ops"}))
+	assert.Empty(t, p.RolesFor(nil))
+	assert.True(t, p.ManagesGroups())
+	assert.False(t, oidc.New(oidc.Config{Issuer: "https://idp.example"}).ManagesGroups())
 }

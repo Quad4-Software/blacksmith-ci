@@ -137,7 +137,7 @@ func PostAccessToken(ctx context.Context, input *PostAccessTokenInput) (*PostAcc
 	}
 
 	// Validate (checks name, scopes, and admin scope permissions)
-	if err := accessToken.Validate(user.Admin); err != nil {
+	if err := accessToken.Validate(user); err != nil {
 		return nil, huma.Error400BadRequest("Validation error", err)
 	}
 
@@ -243,7 +243,7 @@ func PatchAccessToken(ctx context.Context, input *PatchAccessTokenInput) (*Patch
 	}
 
 	// Validate the updated token
-	if err := accessToken.Validate(user.Admin); err != nil {
+	if err := accessToken.Validate(user); err != nil {
 		return nil, huma.Error400BadRequest("Validation error", err)
 	}
 
@@ -303,8 +303,8 @@ func GetAvailableScopes(ctx context.Context, _ *GetAvailableScopesInput) (*GetAv
 	scopes := make(map[string][]model.AccessTokenScope)
 	scopes["user"] = model.AllUserScopes()
 
-	if user.Admin {
-		scopes["admin"] = model.AllAdminScopes()
+	if admin := user.AdminScopes(); len(admin) > 0 {
+		scopes["admin"] = admin
 	}
 
 	return &GetAvailableScopesOutput{Body: scopes}, nil

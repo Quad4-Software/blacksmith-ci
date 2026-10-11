@@ -292,7 +292,7 @@ import {
 import SearchInput from '~/components/ui/input/SearchInput.vue';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
 import { dataTableFeatures } from '~/components/ui/table/features';
-import useConfig from '~/compositions/useConfig';
+import usePermissions from '~/compositions/usePermissions';
 import { useForges } from '~/compositions/useForges';
 import type { RegistryWithOrg } from '~/lib/api/types';
 import { computed, h, reactive, ref, watch } from 'vue';
@@ -312,7 +312,8 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const { user } = useConfig();
+// Global secrets and registries are managed with secrets:write.
+const { can } = usePermissions();
 const { forges } = useForges();
 
 // Show forge column only when multiple forges are configured
@@ -470,7 +471,7 @@ function scopeLabel(scope: string) {
 
 function canEdit(registry: RegistryWithOrg): boolean {
   if (registry.scope_type === 'user') return true;
-  if (registry.scope_type === 'global') return user?.admin === true;
+  if (registry.scope_type === 'global') return can('secrets:write');
   return registry.scope_type === 'org';
 }
 

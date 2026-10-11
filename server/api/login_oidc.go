@@ -19,6 +19,7 @@ import (
 	"encoding/base32"
 	"errors"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -178,18 +179,26 @@ func HandleOIDCCallback(c *gin.Context) {
 		return
 	}
 
+	changed := false
 	if provider.ManagesAdmin() {
 		// OIDC sign-in never consults CROW_ADMIN because the username claim is not
 		// verified; admin via OIDC comes only from CROW_OIDC_ADMIN_GROUPS.
-		admin := provider.IsAdmin(claims.Groups)
-		if admin != user.Admin {
+		if admin := provider.IsAdmin(claims.Groups); admin != user.Admin {
 			user.Admin = admin
-			if err := _store.UpdateUser(user); err != nil {
-				log.Error().Err(err).Msgf("cannot update admin status of %s", user.Login)
-				oidcRedirect(c, "/login?error=internal_error")
-				return
-			}
+			changed = true
 			log.Info().Bool("admin", admin).Msgf("admin status of %s set from OIDC groups", user.Login)
+		}
+	}
+	oldRoles := strings.Join(user.Roles, ",")
+	if len(provider.ManagedRoles()) > 0 && applyOIDCRoles(user, provider, claims.Groups) {
+		changed = true
+		log.Info().Str("old", oldRoles).Str("new", strings.Join(user.Roles, ",")).Msgf("roles of %s set from OIDC groups", user.Login)
+	}
+	if changed {
+		if err := _store.UpdateUser(user); err != nil {
+			log.Error().Err(err).Msgf("cannot update admin status and roles of %s", user.Login)
+			oidcRedirect(c, "/login?error=internal_error")
+			return
 		}
 	}
 
@@ -197,6 +206,25 @@ func HandleOIDCCallback(c *gin.Context) {
 		return
 	}
 	oidcRedirect(c, "/")
+}
+
+// applyOIDCRoles sets every role the provider manages from the user's groups,
+// keeps the other valid roles, and drops unknown stored names. It reports
+// whether the roles changed.
+func applyOIDCRoles(user *model.User, provider *oidc.Provider, groups []string) bool {
+	managed := provider.ManagedRoles()
+	next := []string{}
+	for _, r := range user.Roles {
+		if model.Role(r).IsValid() && !slices.Contains(managed, r) {
+			next = append(next, r)
+		}
+	}
+	next = append(next, provider.RolesFor(groups)...)
+	slices.Sort(next)
+	next = slices.Compact(next)
+	changed := !slices.Equal(next, []string(user.Roles))
+	user.Roles = model.JSONSliceString(next)
+	return changed
 }
 
 // Column sizes of user_identities; longer claims are stored truncated, as they

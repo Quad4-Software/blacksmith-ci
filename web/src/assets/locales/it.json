@@ -23,7 +23,6 @@
           "placeholder": "L'utente è un amministratore"
         },
         "edit_user": "Modifica utente",
-        "users": "Utenti",
         "login": "Accesso",
         "email": "E-mail",
         "avatar_url": "URL Avatar",
@@ -66,9 +65,6 @@
           "custom_labels": "Etichette Personalizzate",
           "desc": "Le etichette personalizzate impostate dall'amministratore dell'agente all'avvio dell'agente."
         }
-      },
-      "orgs": {
-        "orgs": "Organizzazioni"
       },
       "secrets": {
         "warning": "Questi segreti saranno disponibili a tutti gli utenti.",

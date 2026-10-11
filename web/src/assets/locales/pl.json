@@ -65,11 +65,7 @@
         "edit_user": "Edytuj użytkownika",
         "email": "Email",
         "login": "Logowanie",
-        "save": "Zapisz użytkownika",
-        "users": "Użytkownicy"
-      },
-      "orgs": {
-        "orgs": "Organizacje"
+        "save": "Zapisz użytkownika"
       },
       "repos": {
         "repos": "Repozytoria"

@@ -339,7 +339,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
 import { dataTableFeatures } from '~/components/ui/table/features';
 import useApiClient from '~/compositions/useApiClient';
-import useConfig from '~/compositions/useConfig';
+import usePermissions from '~/compositions/usePermissions';
 import { useForges } from '~/compositions/useForges';
 import useNotifications from '~/compositions/useNotifications';
 import type { SecretScopeContext } from '~/lib/secret-scope';
@@ -375,7 +375,8 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const { user } = useConfig();
+// Global secrets and registries are managed with secrets:write.
+const { can } = usePermissions();
 const apiClient = useApiClient();
 const notifications = useNotifications();
 const { forges } = useForges();
@@ -570,7 +571,7 @@ const allWebhookEvents = [
 ];
 
 function canEdit(secret: SecretWithOrg): boolean {
-  return canEditSecret(secret, props.context, user?.admin === true);
+  return canEditSecret(secret, props.context, can('secrets:write'));
 }
 
 function formatTimestamp(timestamp: number): string {

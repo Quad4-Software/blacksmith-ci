@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"text/template"
 
 	"github.com/urfave/cli/v3"
@@ -35,6 +36,7 @@ var Command = &cli.Command{
 		userListCmd,
 		userRemoveCmd,
 		userShowCmd,
+		userUpdateCmd,
 	},
 }
 
@@ -65,7 +67,14 @@ func userOutput(c *cli.Command, users []*crow.User, fd ...io.Writer) error {
 		fallthrough
 	default:
 		table := output.NewTable(out)
-		cols := []string{"ID", "Login", "Email", "Admin"}
+		table.AddFieldFn("Roles", func(obj any) string {
+			u, ok := obj.(*crow.User)
+			if !ok || u.Roles == nil || len(*u.Roles) == 0 {
+				return "-"
+			}
+			return strings.Join(*u.Roles, ", ")
+		})
+		cols := []string{"ID", "Login", "Email", "Admin", "Roles"}
 		if len(outOpt) > 0 {
 			cols = outOpt
 		}

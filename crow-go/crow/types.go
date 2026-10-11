@@ -45,6 +45,11 @@ type (
 		Avatar string `json:"avatar_url"`
 		Active bool   `json:"active"`
 		Admin  bool   `json:"admin"`
+		// Description and Timezone must round-trip because PATCH replaces them.
+		Description string `json:"description,omitempty"`
+		Timezone    string `json:"timezone,omitempty"`
+		// Roles are the instance roles; nil means "do not send".
+		Roles *[]string `json:"roles,omitempty"`
 	}
 
 	TrustedConfiguration struct {

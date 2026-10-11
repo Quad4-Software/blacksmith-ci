@@ -114,7 +114,7 @@
           </div>
 
           <!-- Action Buttons -->
-          <div class="hidden md:flex items-center gap-1 shrink-0 ml-3">
+          <div v-if="props.canWrite" class="hidden md:flex items-center gap-1 shrink-0 ml-3">
             <IconButton
               :icon="autoscaler.enabled ? 'turn-off' : 'play'"
               :title="
@@ -287,7 +287,7 @@
         </div>
 
         <!-- Action Buttons (mobile only) -->
-        <div class="flex md:hidden justify-end gap-1 pt-3 border-t border-border mt-3">
+        <div v-if="props.canWrite" class="flex md:hidden justify-end gap-1 pt-3 border-t border-border mt-3">
           <IconButton
             :icon="autoscaler.enabled ? 'turn-off' : 'play'"
             :title="
@@ -377,20 +377,25 @@ import { useDate } from '~/compositions/useDate';
 import type { Autoscaler } from '~/lib/api/types';
 import type { SelectOption } from '~/components/form/form.types';
 
-const props = defineProps<{
-  autoscalers: Autoscaler[];
-  isDeleting: boolean;
-  loading: boolean;
-  autoscalerFilters: {
-    search: string;
-    enabled?: string;
-    sort: string;
-    order: string;
-  };
-  currentPage: number;
-  hasMore?: boolean;
-  isJumpingToLast?: boolean;
-}>();
+const props = withDefaults(
+  defineProps<{
+    autoscalers: Autoscaler[];
+    // Whether the enable, disable and delete actions are shown.
+    canWrite?: boolean;
+    isDeleting: boolean;
+    loading: boolean;
+    autoscalerFilters: {
+      search: string;
+      enabled?: string;
+      sort: string;
+      order: string;
+    };
+    currentPage: number;
+    hasMore?: boolean;
+    isJumpingToLast?: boolean;
+  }>(),
+  { canWrite: true, hasMore: false, isJumpingToLast: false },
+);
 
 const emit = defineEmits<{
   toggleEnabled: [autoscaler: Autoscaler];

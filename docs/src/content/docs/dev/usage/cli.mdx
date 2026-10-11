@@ -171,6 +171,7 @@ crow admin agent rm <agent-id>
 ### User Management
 
 Requires admin privileges.
+See [instance roles](/dev/configuration/roles/) for the available roles.
 
 ```sh
 # List all users
@@ -179,12 +180,19 @@ crow admin user ls
 # Show user details
 crow admin user show <username>
 
-# Add a new user
-crow admin user add <username>
+# Add a new user, optionally with instance roles (repeatable)
+crow admin user add <username> --role operator
+
+# Replace the instance roles of a user, or remove them
+crow admin user update <username> --role operator --role auditor
+crow admin user update <username> --no-roles
 
 # Remove a user
 crow admin user rm <username>
 ```
+
+`--role` replaces the user's roles, so a role mapped from the identity provider that is not listed is removed.
+A mapped role can only be listed when the user already holds it.
 
 ## Getting Help
 

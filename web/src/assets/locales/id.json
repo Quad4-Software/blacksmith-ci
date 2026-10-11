@@ -35,9 +35,6 @@
         "show": "Tampilkan agen",
         "token": "Token"
       },
-      "orgs": {
-        "orgs": "Organisasi"
-      },
       "queue": {
         "desc": "Tugas tertunda yang akan dilakukan oleh agen",
         "pause": "Jeda",
@@ -78,8 +75,7 @@
         "edit_user": "Sunting pengguna",
         "email": "Surel",
         "login": "Masuk",
-        "save": "Simpan pengguna",
-        "users": "Pengguna"
+        "save": "Simpan pengguna"
       }
     }
   },

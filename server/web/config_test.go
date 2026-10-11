@@ -71,9 +71,9 @@ func TestConfigAuth(t *testing.T) {
 
 	server.Config.Services.OIDC = nil
 	assert.Contains(t, render(nil, nil),
-		`window.CROW_AUTH = {"oidc":{"enabled":false,"name":""},"forge_login":true,"forge_count":null};`)
+		`window.CROW_AUTH = {"oidc":{"enabled":false,"name":"","managed_roles":[]},"forge_login":true,"forge_count":null};`)
 
-	server.Config.Services.OIDC = oidc.New(oidc.Config{Issuer: "https://idp.example", DisplayName: "Acme SSO", Only: true})
+	server.Config.Services.OIDC = oidc.New(oidc.Config{Issuer: "https://idp.example", DisplayName: "Acme SSO", Only: true, RoleGroups: map[string][]string{"auditor": {"a"}}})
 	assert.Contains(t, render(&model.User{ID: 1, Hash: "h"}, []*model.UserForge{}),
-		`window.CROW_AUTH = {"oidc":{"enabled":true,"name":"Acme SSO"},"forge_login":false,"forge_count":0};`)
+		`window.CROW_AUTH = {"oidc":{"enabled":true,"name":"Acme SSO","managed_roles":["auditor"]},"forge_login":false,"forge_count":0};`)
 }

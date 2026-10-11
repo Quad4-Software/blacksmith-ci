@@ -41,6 +41,14 @@ func validateOrgIDs(s store.Store, orgIDs []int64) error {
 // Global Agents.
 //
 
+// The org sets are the same when they hold the same ids in any order.
+func sameOrgSet(a, b []int64) bool {
+	x, y := slices.Clone(a), slices.Clone(b)
+	slices.Sort(x)
+	slices.Sort(y)
+	return slices.Equal(slices.Compact(x), slices.Compact(y))
+}
+
 type GetAgentsInput struct {
 	PaginationParams
 	Search   string `query:"search" doc:"search in name, platform, backend, custom labels, ID"`
@@ -185,7 +193,7 @@ type PatchAgentBody struct {
 	Name       string   `json:"name" doc:"name of the agent"`
 	NoSchedule bool     `json:"no_schedule" doc:"disable scheduling for this agent"`
 	Priority   int32    `json:"priority" doc:"agent priority"`
-	OrgIDs     *[]int64 `json:"org_ids,omitempty" doc:"organizations this agent is scoped to; empty means global. Admin only; ignored on org-scoped patch"`
+	OrgIDs     *[]int64 `json:"org_ids,omitempty" doc:"organizations this agent is scoped to; empty means global. Changing them requires agents:register; ignored on org-scoped patch"`
 }
 
 type PatchAgentInput struct {
@@ -214,7 +222,12 @@ func PatchAgent(ctx context.Context, input *PatchAgentInput) (*PatchAgentOutput,
 		server.Config.Services.Queue.KickAgentWorkers(agent.ID)
 	}
 
-	if input.Body.OrgIDs != nil {
+	if input.Body.OrgIDs != nil && !sameOrgSet(agent.OrgIDs, *input.Body.OrgIDs) {
+		// Changing the org scope can turn an agent global, so it needs the
+		// same permission as registering one.
+		if !session.User(c).Can(model.PermAgentsRegister) {
+			return nil, huma.Error403Forbidden("changing an agent's organizations requires the agents:register permission")
+		}
 		if err := validateOrgIDs(_store, *input.Body.OrgIDs); err != nil {
 			return nil, err
 		}

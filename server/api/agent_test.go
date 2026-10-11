@@ -19,6 +19,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"testing"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -481,4 +482,64 @@ func TestDeleteOrgAgentDescopes(t *testing.T) {
 		mockStore.AssertNotCalled(t, "AgentDelete", mock.Anything)
 		mockStore.AssertNotCalled(t, "AgentUpdate", mock.Anything)
 	})
+}
+
+func TestPatchAgentOrgScope(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	operator := &model.User{ID: 2, Login: "op", Roles: model.JSONSliceString{string(model.RoleOperator)}}
+	admin := &model.User{ID: 1, Login: "admin", Admin: true}
+	ids := func(i ...int64) *[]int64 { return &i }
+
+	tests := []struct {
+		name    string
+		user    *model.User
+		stored  model.JSONSliceInt64
+		orgIDs  *[]int64
+		want    model.JSONSliceInt64
+		wantErr int
+	}{
+		{"operator making an org agent global is forbidden", operator, model.JSONSliceInt64{5}, ids(), nil, http.StatusForbidden},
+		{"operator adding an org is forbidden", operator, model.JSONSliceInt64{5}, ids(5, 7), nil, http.StatusForbidden},
+		{"operator scoping a global agent is forbidden", operator, nil, ids(5), nil, http.StatusForbidden},
+		{"operator sending the unchanged org set succeeds", operator, model.JSONSliceInt64{5, 7}, ids(7, 5), model.JSONSliceInt64{5, 7}, 0},
+		{"operator sending an empty set for a global agent succeeds", operator, nil, ids(), nil, 0},
+		{"operator omitting org_ids keeps the scope", operator, model.JSONSliceInt64{5}, nil, model.JSONSliceInt64{5}, 0},
+		{"admin can make an agent global", admin, model.JSONSliceInt64{5}, ids(), model.JSONSliceInt64{}, 0},
+		{"admin can change the org set", admin, model.JSONSliceInt64{5}, ids(7), model.JSONSliceInt64{7}, 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			agent := &model.Agent{ID: 42, Name: "a", OwnerID: 1, OrgIDs: slices.Clone(tt.stored)}
+			mockStore := store_mocks.NewMockStore(t)
+			mockStore.On("AgentFind", int64(42)).Return(agent, nil)
+			if tt.wantErr == 0 {
+				mockStore.On("OrgGet", mock.Anything).Return(&model.Org{}, nil).Maybe()
+				mockStore.On("AgentUpdate", mock.AnythingOfType("*model.Agent")).Return(nil)
+			}
+
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Set("store", mockStore)
+			c.Set("user", tt.user)
+			c.Request, _ = http.NewRequest(http.MethodPatch, "/", nil)
+
+			output, err := PatchAgent(testCtx(c), &PatchAgentInput{
+				AgentID: 42,
+				Body:    PatchAgentBody{Name: "a", OrgIDs: tt.orgIDs},
+			})
+			if tt.wantErr != 0 {
+				var humaErr huma.StatusError
+				require.ErrorAs(t, err, &humaErr)
+				assert.Equal(t, tt.wantErr, humaErr.GetStatus())
+				return
+			}
+			require.NoError(t, err)
+			if len(tt.want) == 0 {
+				assert.Empty(t, output.Body.OrgIDs)
+			} else {
+				assert.Equal(t, tt.want, output.Body.OrgIDs)
+			}
+		})
+	}
 }

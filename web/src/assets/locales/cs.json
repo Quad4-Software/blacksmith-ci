@@ -35,9 +35,6 @@
         "show": "Ukázat agenty",
         "token": "Tokeny"
       },
-      "orgs": {
-        "orgs": "Organizace"
-      },
       "queue": {
         "desc": "Úlohy čekající na provedení agenty",
         "pause": "Pauza",
@@ -75,8 +72,7 @@
         "edit_user": "Upravit uživatele",
         "email": "E-mail",
         "login": "Přihlášení",
-        "save": "Uložit uživatele",
-        "users": "Uživatelé"
+        "save": "Uložit uživatele"
       }
     }
   },

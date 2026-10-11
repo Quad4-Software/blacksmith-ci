@@ -86,13 +86,13 @@ func (a *SecretViewAuthorizer) CanViewOrgSecret(c context.Context, user *model.U
 	return orgPerm.Admin
 }
 
-// CanViewGlobalSecret checks if user is an instance admin.
-// Only instance admins can view global secret values.
+// CanViewGlobalSecret checks if user holds the secrets:write permission.
+// Only users with secrets:write (instance admins included) can view global secret values.
 func (a *SecretViewAuthorizer) CanViewGlobalSecret(user *model.User) bool {
 	if user == nil {
 		return false
 	}
-	return user.Admin
+	return user.Can(model.PermSecretsWrite)
 }
 
 // NewSecretViewAuthorizerFromContext creates a SecretViewAuthorizer from gin context.

@@ -869,6 +869,21 @@ var flags = append([]cli.Flag{
 		Name:    "oidc-admin-groups",
 		Usage:   "members of these identity provider groups are instance admins; evaluated at every OIDC sign-in",
 	},
+	&cli.StringSliceFlag{
+		Sources: cli.EnvVars("CROW_OIDC_OPERATOR_GROUPS"),
+		Name:    "oidc-operator-groups",
+		Usage:   "members of these identity provider groups get the operator role; evaluated at every OIDC sign-in",
+	},
+	&cli.StringSliceFlag{
+		Sources: cli.EnvVars("CROW_OIDC_SECRETS_MANAGER_GROUPS"),
+		Name:    "oidc-secrets-manager-groups",
+		Usage:   "members of these identity provider groups get the secrets-manager role; evaluated at every OIDC sign-in",
+	},
+	&cli.StringSliceFlag{
+		Sources: cli.EnvVars("CROW_OIDC_AUDITOR_GROUPS"),
+		Name:    "oidc-auditor-groups",
+		Usage:   "members of these identity provider groups get the auditor role; evaluated at every OIDC sign-in",
+	},
 	&cli.BoolFlag{
 		Sources: cli.EnvVars("CROW_OIDC_ONLY"),
 		Name:    "oidc-only",

@@ -80,8 +80,8 @@ func authorizeSecretAccess(ctx context.Context, _store store.Store, secretID int
 	}
 
 	if secret.IsGlobal() {
-		if !user.Admin {
-			return huma.Error403Forbidden("admin access required")
+		if !user.Can(model.PermSecretsWrite) {
+			return huma.Error403Forbidden("secrets:write permission required")
 		}
 		return nil
 	}

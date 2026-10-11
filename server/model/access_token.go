@@ -17,6 +17,7 @@ package model
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -45,7 +46,7 @@ var (
 	ErrAccessTokenScopesInvalid = errors.New("invalid access token scopes")
 	ErrAccessTokenScopesEmpty   = errors.New("at least one scope is required")
 	ErrAccessTokenExpired       = errors.New("access token expired")
-	ErrAccessTokenAdminScope    = errors.New("admin scopes not allowed for non-admin users")
+	ErrAccessTokenAdminScope    = errors.New("admin scopes require an instance role that grants them")
 )
 
 const maxAccessTokenNameLen = 100
@@ -67,6 +68,19 @@ func AllAdminScopes() []AccessTokenScope {
 		ScopeAdminRead,
 		ScopeAdminWrite,
 	}
+}
+
+// AdminScopes returns the admin scopes the user may put on a token: admin:read
+// with any admin permission, and admin:write with any permission that changes state.
+func (u *User) AdminScopes() []AccessTokenScope {
+	scopes := []AccessTokenScope{}
+	if u.HasAnyReadPermission() || u.HasAnyWritePermission() {
+		scopes = append(scopes, ScopeAdminRead)
+	}
+	if u.HasAnyWritePermission() {
+		scopes = append(scopes, ScopeAdminWrite)
+	}
+	return scopes
 }
 
 // AllScopes returns all available scopes.
@@ -111,8 +125,8 @@ func (AccessToken) TableName() string {
 	return "access_tokens"
 }
 
-// Validate validates the access token fields.
-func (at *AccessToken) Validate(isAdmin bool) error {
+// Validate validates the access token fields for a token owned by user.
+func (at *AccessToken) Validate(user *User) error {
 	// Validate name
 	if strings.TrimSpace(at.Name) == "" {
 		return ErrAccessTokenNameInvalid
@@ -131,7 +145,7 @@ func (at *AccessToken) Validate(isAdmin bool) error {
 		if !scope.IsValid() {
 			return fmt.Errorf("%w: %s", ErrAccessTokenScopesInvalid, scopeStr)
 		}
-		if scope.IsAdminScope() && !isAdmin {
+		if scope.IsAdminScope() && !slices.Contains(user.AdminScopes(), scope) {
 			return ErrAccessTokenAdminScope
 		}
 	}

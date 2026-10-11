@@ -17,13 +17,45 @@ package api
 import (
 	"context"
 	"encoding/base32"
+	"fmt"
+	"slices"
+	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/rs/zerolog/log"
 	"github.com/tink-crypto/tink-go/v2/subtle/random"
 
+	"codefloe.com/crowci/crow/v6/server"
 	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/server/router/middleware/session"
 	"codefloe.com/crowci/crow/v6/server/store"
 )
+
+// The managed roles are the ones the identity provider sets at sign-in.
+func managedRoles() []string {
+	if p := server.Config.Services.OIDC; p != nil {
+		return p.ManagedRoles()
+	}
+	return nil
+}
+
+// Assignable roles are the requested roles after validation. The request is
+// authoritative, except that a role the identity provider manages can only be
+// kept or removed: adding one the user does not already hold is rejected, so
+// that an admin can still revoke a role assigned by hand before it was mapped.
+func assignableRoles(current model.JSONSliceString, requested []string) (model.JSONSliceString, error) {
+	roles, err := model.ParseRoles(requested)
+	if err != nil {
+		return nil, huma.Error400BadRequest(err.Error())
+	}
+	managed := managedRoles()
+	for _, r := range roles {
+		if slices.Contains(managed, string(r)) && !slices.Contains(current, string(r)) {
+			return nil, huma.Error400BadRequest(fmt.Sprintf("role %s is managed by the identity provider", r))
+		}
+	}
+	return model.RolesToStrings(roles), nil
+}
 
 type GetUsersInput struct {
 	PaginationParams
@@ -63,11 +95,12 @@ func GetUser(ctx context.Context, input *GetUserInput) (*GetUserOutput, error) {
 }
 
 type PatchUserBody struct {
-	Email       string `json:"email,omitempty" doc:"user email"`
-	Avatar      string `json:"avatar_url,omitempty" doc:"user avatar URL"`
-	Admin       bool   `json:"admin,omitempty" doc:"whether user is admin"`
-	Description string `json:"description,omitempty" doc:"user description"`
-	Timezone    string `json:"timezone,omitempty" doc:"user timezone"`
+	Email       string    `json:"email,omitempty" doc:"user email"`
+	Avatar      string    `json:"avatar_url,omitempty" doc:"user avatar URL"`
+	Admin       bool      `json:"admin,omitempty" doc:"whether user is admin"`
+	Description string    `json:"description,omitempty" doc:"user description"`
+	Timezone    string    `json:"timezone,omitempty" doc:"user timezone"`
+	Roles       *[]string `json:"roles,omitempty" doc:"instance roles besides admin; omit to keep the current roles"`
 }
 
 type PatchUserInput struct {
@@ -96,6 +129,21 @@ func PatchUser(ctx context.Context, input *PatchUserInput) (*PatchUserOutput, er
 	user.Description = input.Body.Description
 	user.Timezone = input.Body.Timezone
 
+	if input.Body.Roles != nil {
+		roles, err := assignableRoles(user.Roles, *input.Body.Roles)
+		if err != nil {
+			return nil, err
+		}
+		if !slices.Equal(roles, user.Roles) {
+			by := "unknown"
+			if admin := session.User(c); admin != nil {
+				by = admin.Login
+			}
+			log.Info().Str("old", strings.Join(user.Roles, ",")).Str("new", strings.Join(roles, ",")).Msgf("roles of %s changed by %s", user.Login, by)
+		}
+		user.Roles = roles
+	}
+
 	err = _store.UpdateUser(user)
 	if err != nil {
 		return nil, huma.Error409Conflict("conflict updating user")
@@ -105,9 +153,10 @@ func PatchUser(ctx context.Context, input *PatchUserInput) (*PatchUserOutput, er
 }
 
 type PostUserBody struct {
-	Login  string `json:"login" minLength:"1" doc:"user login name"`
-	Email  string `json:"email" doc:"user email"`
-	Avatar string `json:"avatar_url,omitempty" doc:"user avatar URL"`
+	Login  string   `json:"login" minLength:"1" doc:"user login name"`
+	Email  string   `json:"email" doc:"user email"`
+	Avatar string   `json:"avatar_url,omitempty" doc:"user avatar URL"`
+	Roles  []string `json:"roles,omitempty" doc:"instance roles besides admin"`
 }
 
 type PostUserInput struct {
@@ -130,6 +179,11 @@ func PostUser(ctx context.Context, input *PostUserInput) (*PostUserOutput, error
 		ForgeID:       1,                        // TODO: replace with forge id when multiple forges are supported
 		ForgeRemoteID: model.ForgeRemoteID("0"), // TODO: search for the user in the forge and get the remote id
 	}
+	roles, err := assignableRoles(nil, input.Body.Roles)
+	if err != nil {
+		return nil, err
+	}
+	user.Roles = roles
 	if err := user.Validate(); err != nil {
 		return nil, huma.Error400BadRequest(err.Error())
 	}

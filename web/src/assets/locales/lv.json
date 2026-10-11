@@ -35,9 +35,6 @@
         "show": "Parādīt aģentus",
         "token": "Drošības talons"
       },
-      "orgs": {
-        "orgs": "Organizācijas"
-      },
       "queue": {
         "desc": "Uzdevumi, kuri gaida izpildi",
         "pause": "Apturēt",
@@ -78,8 +75,7 @@
         "edit_user": "Labot lietotāju",
         "email": "E-pasta adrese",
         "login": "Lietotāja vārds",
-        "save": "Saglabāt lietotāju",
-        "users": "Lietotāji"
+        "save": "Saglabāt lietotāju"
       },
       "registries": {
         "warning": "Šie repozitorijas pilnvaras būs pieejamas visiem lietotājiem.",

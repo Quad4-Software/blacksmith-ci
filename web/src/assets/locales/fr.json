@@ -35,9 +35,6 @@
         "show": "Afficher les agents",
         "token": "Jeton"
       },
-      "orgs": {
-        "orgs": "Organisations"
-      },
       "queue": {
         "desc": "Tâches en attente d'exécution par des agents",
         "pause": "Mettre en pause",
@@ -78,8 +75,7 @@
         "edit_user": "Éditer le compte utilisateur",
         "email": "Courriel",
         "login": "Login",
-        "save": "Enregistrer le compte utilisateur",
-        "users": "Utilisateurs"
+        "save": "Enregistrer le compte utilisateur"
       },
       "registries": {
         "warning": "Ces codes d'accès au registre seront disponibles pour tout les utilisateurs.",

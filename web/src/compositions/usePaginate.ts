@@ -209,5 +209,8 @@ export function usePaginationWithPages<T>(
     }
   }
 
-  return { page, resetPage, goToPage, goToLastPage, nextPage, previousPage, data, hasMore, loading };
+  // Reload the current page in place, e.g. after editing one of its rows.
+  const reload = loadData;
+
+  return { page, resetPage, reload, goToPage, goToLastPage, nextPage, previousPage, data, hasMore, loading };
 }

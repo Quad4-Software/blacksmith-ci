@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import type { RouteRecordRaw } from 'vue-router';
 
 import useConfig from '~/compositions/useConfig';
+import { firstAdminRoute } from '~/compositions/usePermissions';
 import useUserConfig from '~/compositions/useUserConfig';
 import { needsForgeLink } from '~/lib/forgeLinkGuard';
 import { useAuthStore } from '~/store/auth';
@@ -293,7 +294,11 @@ const routes: RouteRecordRaw[] = [
       {
         path: '',
         name: 'admin-settings',
-        redirect: { name: 'admin-settings-maintenance' },
+        // Land on the first admin page the user can see, not on one that would answer 403.
+        // The initial navigation resolves this before Pinia is installed, so read the injected user directly.
+        redirect: () => ({
+          name: firstAdminRoute((p) => useConfig().user?.permissions?.includes(p) ?? false) ?? 'home',
+        }),
       },
       {
         path: 'secrets',

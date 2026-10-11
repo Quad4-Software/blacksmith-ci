@@ -31,8 +31,8 @@
 
         <!-- Scope Selection (only when creating) -->
         <div v-if="!isEditing" class="space-y-4">
-          <!-- Global Checkbox (Admin only) -->
-          <div v-if="user?.admin" class="flex items-center gap-2">
+          <!-- Global Checkbox (secrets:write only) -->
+          <div v-if="can('secrets:write')" class="flex items-center gap-2">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger as-child>
@@ -187,7 +187,7 @@ import { Label } from '~/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import useApiClient from '~/compositions/useApiClient';
-import useConfig from '~/compositions/useConfig';
+import usePermissions from '~/compositions/usePermissions';
 import { useForges } from '~/compositions/useForges';
 import useNotifications from '~/compositions/useNotifications';
 import type { IconNames } from '~/components/atomic/Icon.types';
@@ -213,7 +213,8 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const apiClient = useApiClient();
-const { user } = useConfig();
+// Global secrets and registries are managed with secrets:write.
+const { can } = usePermissions();
 const notifications = useNotifications();
 const { forges, getForgeById } = useForges();
 
