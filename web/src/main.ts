@@ -1,3 +1,7 @@
+// Source Serif 4 & JetBrains Mono are bundled so the UI works without access to a font CDN
+import '@fontsource/jetbrains-mono/400.css';
+import '@fontsource/source-serif-4/400.css';
+import '@fontsource/source-serif-4/600.css';
 import '~/compositions/useFavicon';
 import '~/tailwind.css';
 import '~/style.css';
