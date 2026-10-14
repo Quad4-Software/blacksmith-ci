@@ -52,7 +52,7 @@ const (
 	// Picked to prevent it from going over GRPC size limit (4 MiB) with a large safety margin.
 	maxLogBatchSize int = 1 * 1024 * 1024
 
-	// Maximum amount of time between sending consecutive batched log messages.
+	// Interval at which batched log messages are flushed, regardless of how often new entries arrive.
 	// Controls the delay between the CI job generating a log record, and web users receiving it.
 	maxLogFlushPeriod time.Duration = time.Second
 
@@ -812,6 +812,9 @@ func (c *client) processLogs(ctx context.Context) {
 	var entries []*proto.LogEntry
 	var bytes int
 
+	ticker := time.NewTicker(maxLogFlushPeriod)
+	defer ticker.Stop()
+
 	send := func() {
 		if len(entries) == 0 {
 			return
@@ -848,7 +851,7 @@ func (c *client) processLogs(ctx context.Context) {
 				send()
 			}
 
-		case <-time.After(maxLogFlushPeriod):
+		case <-ticker.C:
 			send()
 		}
 	}

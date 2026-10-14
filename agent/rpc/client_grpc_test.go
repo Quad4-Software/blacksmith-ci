@@ -17,6 +17,8 @@ package rpc
 import (
 	"context"
 	"testing"
+	"testing/synctest"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
@@ -56,4 +58,40 @@ func (c *waitRetryClient) Wait(_ context.Context, _ *proto.WaitRequest, _ ...grp
 		return nil, status.Error(codes.Unavailable, "too many connections")
 	}
 	return &proto.Empty{}, c.result
+}
+
+// TestProcessLogsFlushesUnderSteadyOutput guards against the flush timer being
+// restarted by every incoming entry, which starved it under steady log output.
+func TestProcessLogsFlushesUnderSteadyOutput(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		peer := &logRecordingClient{}
+		c := &client{
+			client:      peer,
+			logs:        make(chan *proto.LogEntry),
+			logsDrained: make(chan struct{}),
+		}
+		go c.processLogs(t.Context())
+
+		// Emit an entry every half period for three periods.
+		for range 6 {
+			c.logs <- &proto.LogEntry{Data: []byte("line")}
+			time.Sleep(maxLogFlushPeriod / 2)
+		}
+		synctest.Wait()
+
+		assert.GreaterOrEqual(t, peer.calls, 2)
+
+		close(c.logs)
+		<-c.logsDrained
+	})
+}
+
+type logRecordingClient struct {
+	proto.CrowClient
+	calls int
+}
+
+func (c *logRecordingClient) Log(_ context.Context, _ *proto.LogRequest, _ ...grpc.CallOption) (*proto.Empty, error) {
+	c.calls++
+	return &proto.Empty{}, nil
 }
