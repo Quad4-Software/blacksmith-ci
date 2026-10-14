@@ -30,7 +30,7 @@
     'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 
   /* Serif font */
-  --font-serif: 'Source Serif 4', Georgia, Cambria, 'Times New Roman', Times, serif;
+  --font-serif: Georgia, Cambria, 'Times New Roman', Times, serif;
 
   /* Monospace font for code and logs */
   --font-mono: 'JetBrains Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
