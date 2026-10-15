@@ -15,7 +15,9 @@
 package compiler
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -151,13 +153,80 @@ func TestDfsVisitUnknownDependency(t *testing.T) {
 		},
 	}
 
-	err := dfsVisit(steps, "step1", make(map[string]struct{}), []string{})
+	err := dfsVisit(steps, "step1", make(map[string]dfsColor), []string{})
 	assert.ErrorIs(t, err, &ErrStepMissingDependency{})
 
 	var missingErr *ErrStepMissingDependency
 	if assert.ErrorAs(t, err, &missingErr) {
 		assert.Equal(t, "step1", missingErr.name)
 		assert.Equal(t, "missing", missingErr.dep)
+	}
+}
+
+// TestConvertDAGToStagesDenseDependencies guards against exponential cycle
+// detection: with step i depending on steps i-1 and i-2, a DFS that does not
+// remember fully explored steps visits them fib(n) times and never finishes.
+func TestConvertDAGToStagesDenseDependencies(t *testing.T) {
+	const n = 60
+
+	steps := make(map[string]*dagCompilerStep, n)
+	for i := range n {
+		name := fmt.Sprintf("s%d", i)
+		var deps []string
+		for _, d := range []int{i - 1, i - 2} {
+			if d >= 0 {
+				deps = append(deps, fmt.Sprintf("s%d", d))
+			}
+		}
+		steps[name] = &dagCompilerStep{
+			name:      name,
+			position:  i,
+			step:      &backend_types.Step{Name: name},
+			dependsOn: deps,
+		}
+	}
+
+	done := make(chan struct{})
+	var stages []*backend_types.Stage
+	var err error
+	go func() {
+		defer close(done)
+		stages, err = convertDAGToStages(steps)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("convertDAGToStages did not finish: cycle detection is not linear")
+	}
+
+	assert.NoError(t, err)
+	assert.Len(t, stages, n)
+}
+
+// TestConvertDAGToStagesCyclePath checks that a cycle reached through an
+// already explored, cycle-free branch is still reported with its path.
+func TestConvertDAGToStagesCyclePath(t *testing.T) {
+	steps := map[string]*dagCompilerStep{
+		"a": {name: "a", step: &backend_types.Step{}, dependsOn: []string{"b"}},
+		"b": {name: "b", step: &backend_types.Step{}, dependsOn: []string{"a"}},
+	}
+	_, err := convertDAGToStages(steps)
+
+	var cycleErr *ErrStepDependencyCycle
+	if assert.ErrorAs(t, err, &cycleErr) {
+		assert.Len(t, cycleErr.path, 2)
+		assert.ElementsMatch(t, []string{"a", "b"}, cycleErr.path)
+	}
+
+	// A self-dependency is a cycle too.
+	steps = map[string]*dagCompilerStep{
+		"ok":   {name: "ok", step: &backend_types.Step{}},
+		"self": {name: "self", step: &backend_types.Step{}, dependsOn: []string{"ok", "self"}},
+	}
+	_, err = convertDAGToStages(steps)
+	if assert.ErrorAs(t, err, &cycleErr) {
+		assert.Equal(t, []string{"self"}, cycleErr.path)
 	}
 }
 

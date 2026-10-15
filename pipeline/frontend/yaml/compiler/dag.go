@@ -121,9 +121,29 @@ func (c dagCompiler) compileByDependsOn() ([]*backend_types.Stage, error) {
 	return convertDAGToStages(stepMap)
 }
 
-func dfsVisit(steps map[string]*dagCompilerStep, name string, visited map[string]struct{}, path []string) error {
-	if _, ok := visited[name]; ok {
+// dfsColor tracks the DFS state of a step during cycle detection.
+type dfsColor uint8
+
+const (
+	// White (the zero value) marks a step that has not been visited yet.
+	dfsWhite dfsColor = iota
+	// Grey marks a step on the current DFS path; reaching it again is a cycle.
+	dfsGrey
+	// Black marks a fully explored step that is known to be cycle-free.
+	dfsBlack
+)
+
+// dfsVisit walks the dependencies of the named step and reports a cycle when
+// it reaches a step that is still on the current path. Fully explored steps are
+// marked black and skipped on later visits, so sharing one color map across all
+// start nodes keeps the whole check linear in steps plus dependency edges.
+func dfsVisit(steps map[string]*dagCompilerStep, name string, colors map[string]dfsColor, path []string) error {
+	switch colors[name] {
+	case dfsGrey:
 		return &ErrStepDependencyCycle{path: path}
+	case dfsBlack:
+		return nil
+	case dfsWhite:
 	}
 
 	// Guard against an unknown dependency name. convertDAGToStages validates
@@ -139,16 +159,16 @@ func dfsVisit(steps map[string]*dagCompilerStep, name string, visited map[string
 		return &ErrStepMissingDependency{name: parent, dep: name}
 	}
 
-	visited[name] = struct{}{}
+	colors[name] = dfsGrey
 	path = append(path, name)
 
 	for _, dep := range step.dependsOn {
-		if err := dfsVisit(steps, dep, visited, path); err != nil {
+		if err := dfsVisit(steps, dep, colors, path); err != nil {
 			return err
 		}
 	}
 
-	delete(visited, name)
+	colors[name] = dfsBlack
 
 	return nil
 }
@@ -164,10 +184,12 @@ func convertDAGToStages(steps map[string]*dagCompilerStep) ([]*backend_types.Sta
 				return nil, &ErrStepMissingDependency{name: name, dep: dep}
 			}
 		}
+	}
 
-		// check if there are cycles
-		visited := make(map[string]struct{})
-		if err := dfsVisit(steps, name, visited, []string{}); err != nil {
+	// check if there are cycles, sharing the colors so each step is explored once
+	colors := make(map[string]dfsColor, len(steps))
+	for name := range steps {
+		if err := dfsVisit(steps, name, colors, []string{}); err != nil {
 			return nil, err
 		}
 	}

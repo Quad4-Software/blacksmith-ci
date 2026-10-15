@@ -28,59 +28,59 @@
       <Button
         variant="outline"
         class="border-orange-400 hover:border-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/20"
+        :disabled="loading"
         @click="sendToken(false)"
-        >{{ $t('login_to_cli') }}</Button
       >
-      <Button variant="destructive" @click="abortLogin">{{ $t('abort') }}</Button>
+        <Icon v-if="loading" name="spinner" class="h-5 w-5 animate-spin" aria-hidden="true" />
+        <span>{{ $t('login_to_cli') }}</span>
+      </Button>
+      <Button variant="destructive" :disabled="loading" @click="abortLogin">{{ $t('abort') }}</Button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 
 import CrowLogo from '~/assets/logo.svg?component';
+import Icon from '~/components/atomic/Icon.vue';
 import { Button } from '~/components/ui/button';
 import useApiClient from '~/compositions/useApiClient';
+import { cliTokenUrl, sendCliToken } from '~/lib/cli-auth';
 
 const apiClient = useApiClient();
 const route = useRoute();
-const { t } = useI18n();
 const state = ref<'confirm' | 'success' | 'failed' | 'denied'>('confirm');
+const loading = ref(false);
 
 async function sendToken(abort = false) {
-  const port = route.query.port as string;
-  if (!port) {
-    throw new Error('Unexpected: port not found');
-  }
-
-  const address = `http://localhost:${port}`;
-
-  const token = abort ? '' : await apiClient.getToken();
-
-  const resp = await fetch(`${address}/token`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ token }),
-  });
-
-  if (abort) {
-    state.value = 'denied';
-    window.close();
+  // Never send the token anywhere but a localhost port.
+  const url = cliTokenUrl(route.query.port);
+  if (!url) {
+    state.value = abort ? 'denied' : 'failed';
     return;
   }
 
-  const data = (await resp.json()) as { ok: string };
-  if (data.ok === 'true') {
-    state.value = 'success';
-  } else {
-    state.value = 'failed';
-    // eslint-disable-next-line no-alert
-    alert(t('cli_login_failed'));
+  loading.value = true;
+  try {
+    if (abort) {
+      await sendCliToken(url, '');
+      state.value = 'denied';
+      window.close();
+      return;
+    }
+
+    let token: string;
+    try {
+      token = await apiClient.getToken();
+    } catch {
+      state.value = 'failed';
+      return;
+    }
+    state.value = (await sendCliToken(url, token)) ? 'success' : 'failed';
+  } finally {
+    loading.value = false;
   }
 }
 
