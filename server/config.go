@@ -18,6 +18,7 @@ package server
 import (
 	"time"
 
+	"codefloe.com/crowci/crow/v6/server/auth/ldap"
 	"codefloe.com/crowci/crow/v6/server/auth/oidc"
 	"codefloe.com/crowci/crow/v6/server/cache"
 	"codefloe.com/crowci/crow/v6/server/logging"
@@ -53,6 +54,8 @@ var Config = struct {
 		ProcLogJanitor       *proclog.Janitor
 		// OIDC is the identity provider for single sign-on; nil when not configured.
 		OIDC *oidc.Provider
+		// LDAP is the directory for username and password sign-in; nil when not configured.
+		LDAP *ldap.Provider
 	}
 	Server struct {
 		JWTSecret           string
@@ -71,6 +74,11 @@ var Config = struct {
 		CustomCSSFile       string
 		CustomJsFile        string
 		InstanceID          string // Instance ID for HA deployments
+		// ForgeLoginDisabled switches off forge OAuth sign-in; forge accounts can still be linked.
+		ForgeLoginDisabled bool
+		// TrustedProxies are the IPs and CIDR ranges whose X-Forwarded-For and
+		// X-Real-IP headers set the client IP; empty trusts every peer.
+		TrustedProxies []string
 	}
 	Agent struct {
 		DisableUserRegisteredAgentRegistration bool

@@ -32,25 +32,31 @@ import (
 	"codefloe.com/crowci/crow/v6/version"
 )
 
-type webOIDCConfig struct {
+type webIdentityProviderConfig struct {
 	Enabled bool   `json:"enabled"`
 	Name    string `json:"name"`
-	// ManagedRoles are set from identity provider groups and cannot be assigned in the UI.
-	ManagedRoles []string `json:"managed_roles"`
 }
 
 type webAuthConfig struct {
-	OIDC       webOIDCConfig `json:"oidc"`
-	ForgeLogin bool          `json:"forge_login"`
+	OIDC webIdentityProviderConfig `json:"oidc"`
+	LDAP webIdentityProviderConfig `json:"ldap"`
+	// ManagedRoles are set from identity provider groups and cannot be assigned in the UI.
+	ManagedRoles []string `json:"managed_roles"`
+	ForgeLogin   bool     `json:"forge_login"`
 	// ForgeCount is the number of forges linked by the signed-in user, nil when signed out.
 	ForgeCount *int `json:"forge_count"`
 }
 
 func authConfig(c *gin.Context, user *model.User) webAuthConfig {
-	cfg := webAuthConfig{ForgeLogin: true, OIDC: webOIDCConfig{ManagedRoles: []string{}}}
+	cfg := webAuthConfig{
+		ManagedRoles: api.ManagedRoles(),
+		ForgeLogin:   !server.Config.Server.ForgeLoginDisabled,
+	}
 	if p := server.Config.Services.OIDC; p != nil {
-		cfg.OIDC = webOIDCConfig{Enabled: true, Name: p.DisplayName(), ManagedRoles: p.ManagedRoles()}
-		cfg.ForgeLogin = !p.ForgeLoginDisabled()
+		cfg.OIDC = webIdentityProviderConfig{Enabled: true, Name: p.DisplayName()}
+	}
+	if p := server.Config.Services.LDAP; p != nil {
+		cfg.LDAP = webIdentityProviderConfig{Enabled: true, Name: p.DisplayName()}
 	}
 	if user != nil {
 		forges, err := store.FromContext(c).UserForgeList(user.ID)

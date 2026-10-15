@@ -1,0 +1,187 @@
+---
+title: "LDAP"
+---
+
+Settings for sign-in with credentials from an LDAP directory.
+See [LDAP sign-in](/dev/configuration/ldap/) for a setup guide.
+
+## LDAP_URL
+
+- Name: `CROW_LDAP_URL`
+- Description: LDAP server URL (`ldap://` or `ldaps://`, at most 255 characters); enables sign-in with directory credentials.
+- Default: none
+
+---
+
+## LDAP_START_TLS
+
+- Name: `CROW_LDAP_START_TLS`
+- Description: Upgrade an `ldap://` connection with StartTLS.
+  Cannot be combined with an `ldaps://` URL.
+- Default: `false`
+
+---
+
+## LDAP_SKIP_VERIFY
+
+- Name: `CROW_LDAP_SKIP_VERIFY`
+- Description: Skip TLS certificate verification of the LDAP server.
+  Never enable in production.
+- Default: `false`
+
+---
+
+## LDAP_CA_CERT_FILE
+
+- Name: `CROW_LDAP_CA_CERT_FILE`
+- Description: PEM file with additional CA certificates to trust for the LDAP server.
+- Default: none
+
+---
+
+## LDAP_BIND_DN
+
+- Name: `CROW_LDAP_BIND_DN`
+- Description: DN of the service account that searches the directory; empty searches anonymously.
+  Requires a bind password.
+- Default: none
+
+---
+
+## LDAP_BIND_PASSWORD
+
+- Name: `CROW_LDAP_BIND_PASSWORD`
+- Description: Password of the LDAP service account.
+- Default: none
+
+---
+
+## LDAP_BIND_PASSWORD_FILE
+
+- Name: `CROW_LDAP_BIND_PASSWORD_FILE`
+- Description: Read the password of the LDAP service account from this file.
+- Default: none
+
+---
+
+## LDAP_USER_BASE_DN
+
+- Name: `CROW_LDAP_USER_BASE_DN`
+- Description: Base DN of the user search.
+  Required when `CROW_LDAP_URL` is set.
+- Default: none
+
+---
+
+## LDAP_USER_FILTER
+
+- Name: `CROW_LDAP_USER_FILTER`
+- Description: LDAP filter that finds the user entry; `{username}` is replaced by the escaped username and must be present.
+- Default: `(uid={username})`
+
+---
+
+## LDAP_USERNAME_ATTRIBUTE
+
+- Name: `CROW_LDAP_USERNAME_ATTRIBUTE`
+- Description: LDAP attribute used as the Crow login of new users.
+- Default: `uid`
+
+---
+
+## LDAP_EMAIL_ATTRIBUTE
+
+- Name: `CROW_LDAP_EMAIL_ATTRIBUTE`
+- Description: LDAP attribute holding the email address.
+- Default: `mail`
+
+---
+
+## LDAP_ID_ATTRIBUTE
+
+- Name: `CROW_LDAP_ID_ATTRIBUTE`
+- Description: LDAP attribute holding the stable user ID, for example `entryUUID` or `objectGUID`.
+- Default: `entryUUID`
+
+---
+
+## LDAP_GROUP_ATTRIBUTE
+
+- Name: `CROW_LDAP_GROUP_ATTRIBUTE`
+- Description: User entry attribute holding group DNs.
+- Default: `memberOf`
+
+---
+
+## LDAP_GROUP_BASE_DN
+
+- Name: `CROW_LDAP_GROUP_BASE_DN`
+- Description: Base DN of the group search; defaults to the user base DN.
+- Default: none
+
+---
+
+## LDAP_GROUP_SEARCH_FILTER
+
+- Name: `CROW_LDAP_GROUP_SEARCH_FILTER`
+- Description: LDAP filter that finds the groups of a user, for example `(member={dn})`; must contain `{dn}` or `{username}`.
+  Empty reads the group attribute instead.
+- Default: none
+
+---
+
+## LDAP_DISPLAY_NAME
+
+- Name: `CROW_LDAP_DISPLAY_NAME`
+- Description: Label of the LDAP sign-in form on the login page.
+- Default: `LDAP`
+
+---
+
+## LDAP_ALLOWED_GROUPS
+
+- Name: `CROW_LDAP_ALLOWED_GROUPS`
+- Description: Only members of these LDAP groups may sign in via LDAP.
+  Semicolon-separated; each entry is a full DN or a bare name.
+  A bare name matches a group of that name in any OU, so prefer full DNs, see [Groups, admins and roles](/dev/configuration/ldap/#groups-admins-and-roles).
+- Default: none
+
+---
+
+## LDAP_ADMIN_GROUPS
+
+- Name: `CROW_LDAP_ADMIN_GROUPS`
+- Description: Members of these LDAP groups are instance admins; evaluated at every LDAP sign-in.
+  Semicolon-separated; each entry is a full DN or a bare name.
+  A bare name matches a group of that name in any OU, so use full DNs here, see [Groups, admins and roles](/dev/configuration/ldap/#groups-admins-and-roles).
+- Default: none
+
+---
+
+## LDAP_OPERATOR_GROUPS
+
+- Name: `CROW_LDAP_OPERATOR_GROUPS`
+- Description: Members of these LDAP groups get the operator [instance role](/dev/configuration/roles/); evaluated at every LDAP sign-in.
+  Semicolon-separated; each entry is a full DN or a bare name.
+  A bare name matches a group of that name in any OU, so use full DNs here, see [Groups, admins and roles](/dev/configuration/ldap/#groups-admins-and-roles).
+- Default: none
+
+---
+
+## LDAP_SECRETS_MANAGER_GROUPS
+
+- Name: `CROW_LDAP_SECRETS_MANAGER_GROUPS`
+- Description: Members of these LDAP groups get the secrets-manager [instance role](/dev/configuration/roles/); evaluated at every LDAP sign-in.
+  Semicolon-separated; each entry is a full DN or a bare name.
+  A bare name matches a group of that name in any OU, so use full DNs here, see [Groups, admins and roles](/dev/configuration/ldap/#groups-admins-and-roles).
+- Default: none
+
+---
+
+## LDAP_AUDITOR_GROUPS
+
+- Name: `CROW_LDAP_AUDITOR_GROUPS`
+- Description: Members of these LDAP groups get the auditor [instance role](/dev/configuration/roles/); evaluated at every LDAP sign-in.
+  Semicolon-separated; each entry is a full DN or a bare name.
+  A bare name matches a group of that name in any OU, so use full DNs here, see [Groups, admins and roles](/dev/configuration/ldap/#groups-admins-and-roles).
+- Default: none

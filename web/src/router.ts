@@ -427,7 +427,7 @@ router.beforeEach(async (to, _, next) => {
       appConfig.rootPath,
       authStore.isAuthenticated,
       appConfig.auth.forge_count,
-      appConfig.auth.oidc.enabled,
+      appConfig.auth.oidc.enabled || appConfig.auth.ldap.enabled,
     )
   ) {
     next({ name: 'login', query: { link: 'true', required: 'true' } });

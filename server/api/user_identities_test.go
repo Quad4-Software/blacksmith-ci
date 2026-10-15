@@ -94,8 +94,12 @@ func TestUserIdentities(t *testing.T) {
 	})
 
 	t.Run("keeps the last identity when forge sign-in is disabled", func(t *testing.T) {
-		server.Config.Services.OIDC = oidc.New(oidc.Config{Issuer: "https://idp.example", Only: true})
-		t.Cleanup(func() { server.Config.Services.OIDC = nil })
+		server.Config.Services.OIDC = oidc.New(oidc.Config{Issuer: "https://idp.example"})
+		server.Config.Server.ForgeLoginDisabled = true
+		t.Cleanup(func() {
+			server.Config.Services.OIDC = nil
+			server.Config.Server.ForgeLoginDisabled = false
+		})
 		s := new(store_mocks.MockStore)
 		s.On("UserIdentityList", int64(42)).Return([]*model.UserIdentity{identity}, nil)
 		_, err := DeleteUserIdentity(testCtx(identityCtx(t, s)), &DeleteUserIdentityInput{ID: 3})

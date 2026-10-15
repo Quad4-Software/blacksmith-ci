@@ -137,6 +137,11 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 		DefaultStatus: http.StatusNoContent,
 		Security:      BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
 	}, api.DeleteUserIdentity)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "link-user-identity-ldap", Method: http.MethodPost, Path: "/user/identities/ldap",
+		Summary: "Link a directory account to the current user", Tags: []string{"User"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustUser},
+	}, api.LinkLDAPIdentity)
 
 	// Integrations (external secret stores)
 	huma.Register(humaAPI, huma.Operation{

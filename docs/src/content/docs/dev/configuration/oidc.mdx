@@ -27,7 +27,7 @@ Crow still reads repositories and reports pipeline status through forge accounts
     ```
 
     The issuer must match the `issuer` value the identity provider publishes exactly, including any trailing slash.
-    The server refuses to start when `CROW_OIDC_ISSUER` is set without `CROW_OIDC_CLIENT_ID` and a client secret, or when `CROW_OIDC_ONLY` is set without `CROW_OIDC_ISSUER`.
+    The server refuses to start when `CROW_OIDC_ISSUER` is set without `CROW_OIDC_CLIENT_ID` and a client secret, or when `CROW_FORGE_LOGIN_DISABLED` is set without OIDC or [LDAP](/dev/configuration/ldap/) sign-in.
 
 3. Optionally restrict sign-in and derive admins from groups:
 
@@ -40,14 +40,16 @@ Crow still reads repositories and reports pipeline status through forge accounts
 
 </Steps>
 
+To check passwords against a directory instead, or in addition, see [LDAP sign-in](/dev/configuration/ldap/).
+
 All variables are listed in the [OIDC environment variable reference](/dev/configuration/env-vars/oidc/).
 
 ## Signing in
 
 A user signing in for the first time gets a new Crow account named after the `preferred_username` claim.
 Crow uses the part of the claim before the `@`, so a value such as `jane@corp.example` becomes the login `jane`.
-If the result is not a valid Crow login (letters, digits, `-`, `_` and `.`), sign-in fails with `oidc_invalid_username`.
-If the claim is missing or empty, sign-in fails with `oidc_missing_username`.
+If the result is not a valid Crow login (letters, digits, `-`, `_` and `.`), sign-in fails with `idp_invalid_username`.
+If the claim is missing or empty, sign-in fails with `idp_missing_username`.
 In both cases set `CROW_OIDC_USERNAME_CLAIM` to another claim.
 A username already used by another Crow account is refused.
 A username is also refused when any org on any forge has that name, compared case-insensitively, so an identity provider username can never claim a forge org.
@@ -92,7 +94,7 @@ CROW_OIDC_AUDITOR_GROUPS=crow-auditors
 
 ## Disabling forge sign-in
 
-Set `CROW_OIDC_ONLY=true` to make the identity provider the only way to sign in.
+Set `CROW_FORGE_LOGIN_DISABLED=true` to make the identity provider, and [LDAP](/dev/configuration/ldap/) if configured, the only ways to sign in.
 Users can still link forge accounts while signed in.
 Nobody can become admin through `CROW_ADMIN` in this mode, so set `CROW_OIDC_ADMIN_GROUPS` to bootstrap the first admin.
 Users cannot unlink their last single sign-on identity while forge sign-in is disabled, and nobody can unlink it before linking a forge account.

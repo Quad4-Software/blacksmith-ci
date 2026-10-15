@@ -690,9 +690,13 @@ func TestHandleAuth(t *testing.T) {
 		_store.AssertExpectations(t)
 	})
 
-	t.Run("blocks forge sign-in when OIDC only is set", func(t *testing.T) {
-		server.Config.Services.OIDC = oidc.New(oidc.Config{Issuer: "https://idp.example", Only: true})
-		t.Cleanup(func() { server.Config.Services.OIDC = nil })
+	t.Run("blocks forge sign-in when it is disabled", func(t *testing.T) {
+		server.Config.Services.OIDC = oidc.New(oidc.Config{Issuer: "https://idp.example"})
+		server.Config.Server.ForgeLoginDisabled = true
+		t.Cleanup(func() {
+			server.Config.Services.OIDC = nil
+			server.Config.Server.ForgeLoginDisabled = false
+		})
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
@@ -705,8 +709,12 @@ func TestHandleAuth(t *testing.T) {
 	})
 
 	t.Run("blocks add_account when forge sign-in is disabled", func(t *testing.T) {
-		server.Config.Services.OIDC = oidc.New(oidc.Config{Issuer: "https://idp.example", Only: true})
-		t.Cleanup(func() { server.Config.Services.OIDC = nil })
+		server.Config.Services.OIDC = oidc.New(oidc.Config{Issuer: "https://idp.example"})
+		server.Config.Server.ForgeLoginDisabled = true
+		t.Cleanup(func() {
+			server.Config.Services.OIDC = nil
+			server.Config.Server.ForgeLoginDisabled = false
+		})
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
@@ -719,10 +727,14 @@ func TestHandleAuth(t *testing.T) {
 		assert.Equal(t, "/login?error=forge_login_disabled", c.Writer.Header().Get("Location"))
 	})
 
-	t.Run("blocks a forge sign-in callback when OIDC only is set", func(t *testing.T) {
-		server.Config.Services.OIDC = oidc.New(oidc.Config{Issuer: "https://idp.example", Only: true})
+	t.Run("blocks a forge sign-in callback when forge sign-in is disabled", func(t *testing.T) {
+		server.Config.Services.OIDC = oidc.New(oidc.Config{Issuer: "https://idp.example"})
+		server.Config.Server.ForgeLoginDisabled = true
 		server.Config.Server.JWTSecret = "jwt-secret"
-		t.Cleanup(func() { server.Config.Services.OIDC = nil })
+		t.Cleanup(func() {
+			server.Config.Services.OIDC = nil
+			server.Config.Server.ForgeLoginDisabled = false
+		})
 
 		state := token.New(token.OAuthStateToken)
 		state.Set("forge-id", "1")
@@ -741,9 +753,13 @@ func TestHandleAuth(t *testing.T) {
 		assert.Equal(t, "/login?error=forge_login_disabled", c.Writer.Header().Get("Location"))
 	})
 
-	t.Run("still allows linking a forge when OIDC only is set", func(t *testing.T) {
-		server.Config.Services.OIDC = oidc.New(oidc.Config{Issuer: "https://idp.example", Only: true})
-		t.Cleanup(func() { server.Config.Services.OIDC = nil })
+	t.Run("still allows linking a forge when forge sign-in is disabled", func(t *testing.T) {
+		server.Config.Services.OIDC = oidc.New(oidc.Config{Issuer: "https://idp.example"})
+		server.Config.Server.ForgeLoginDisabled = true
+		t.Cleanup(func() {
+			server.Config.Services.OIDC = nil
+			server.Config.Server.ForgeLoginDisabled = false
+		})
 		_manager := new(mocks_services.MockManager)
 		_forge := new(forge_mocks.MockForge)
 		_store := new(store_mocks.MockStore)

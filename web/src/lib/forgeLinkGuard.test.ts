@@ -9,7 +9,7 @@ describe('needsForgeLink', () => {
     expect(needsForgeLink('/repos', '', true, 1, true)).toBe(false);
   });
 
-  it('stays off when OIDC is disabled', () => {
+  it('stays off when no identity provider is enabled', () => {
     expect(needsForgeLink('/repos', '', true, 0, false)).toBe(false);
   });
 

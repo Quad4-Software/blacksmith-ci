@@ -623,6 +623,14 @@ export default class CrowClient extends ApiClient {
     return this._get('/api/v1/user/identities') as Promise<UserIdentity[] | null>;
   }
 
+  async linkLdapIdentity(username: string, password: string): Promise<UserIdentity> {
+    return this._post(
+      '/api/v1/user/identities/ldap',
+      { username, password },
+      { silent: true },
+    ) as Promise<UserIdentity>;
+  }
+
   async deleteUserIdentity(identityId: number): Promise<unknown> {
     return this._delete(`/api/v1/user/identities/${identityId}`);
   }

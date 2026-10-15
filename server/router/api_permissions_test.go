@@ -148,3 +148,31 @@ func TestRoutePermissionsAnonymous(t *testing.T) {
 		assert.Equal(t, http.StatusUnauthorized, w.Code, "%s %s", r.method, r.path)
 	}
 }
+
+// Routes that need only a signed-in user, and the status a signed-in user gets
+// from the guard engine, where no handler dependencies are configured.
+var userRoutes = []struct {
+	method, path string
+	status       int
+}{
+	// LDAP is not configured in the guard engine.
+	{http.MethodPost, "/api/v1/user/identities/ldap", http.StatusNotFound},
+}
+
+func TestUserRoutes(t *testing.T) {
+	for _, r := range userRoutes {
+		t.Run(r.method+" "+r.path, func(t *testing.T) {
+			for _, user := range []*model.User{nil, {ID: 1, Login: "user"}} {
+				req := httptest.NewRequest(r.method, r.path, strings.NewReader(`{"username":"jane","password":"pw"}`))
+				req.Header.Set("Content-Type", "application/json")
+				w := httptest.NewRecorder()
+				newGuardEngine(t, user).ServeHTTP(w, req)
+				if user == nil {
+					assert.Equal(t, http.StatusUnauthorized, w.Code, "anonymous")
+				} else {
+					assert.Equal(t, r.status, w.Code, "signed in")
+				}
+			}
+		})
+	}
+}

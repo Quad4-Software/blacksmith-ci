@@ -77,7 +77,7 @@ func DeleteUserIdentity(ctx context.Context, input *DeleteUserIdentityInput) (*D
 				return nil, huma.Error500InternalServerError("Error fetching forges", err)
 			}
 			if len(forges) == 0 {
-				return nil, huma.Error409Conflict("Link a forge account before unlinking single sign-on")
+				return nil, huma.Error409Conflict("Link a forge account before unlinking your last identity provider account")
 			}
 		}
 	}

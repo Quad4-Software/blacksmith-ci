@@ -59,30 +59,25 @@ func needsPrimaryForgeAdoption(_store store.Store, user *model.User, userForge *
 	return len(identities) > 0, nil
 }
 
-// forgeSignInDisabled reports whether CROW_OIDC_ONLY switched off forge OAuth
-// sign-in. Linking a forge to a signed-in user stays possible.
+// forgeSignInDisabled reports whether CROW_FORGE_LOGIN_DISABLED switched off
+// forge OAuth sign-in. Linking a forge to a signed-in user stays possible.
 func forgeSignInDisabled() bool {
-	return server.Config.Services.OIDC != nil && server.Config.Services.OIDC.ForgeLoginDisabled()
+	return server.Config.Server.ForgeLoginDisabled
 }
 
-// issueSession signs a session for user, refreshes their repo permissions and
-// sets the session cookies. On failure it redirects to the login page and
-// returns false.
-func issueSession(c *gin.Context, _store store.Store, user *model.User) bool {
+// createSession signs a session for user, refreshes their repo permissions and
+// sets the session cookies.
+func createSession(c *gin.Context, _store store.Store, user *model.User) error {
 	exp := time.Now().Add(server.Config.Server.SessionExpires).Unix()
 	_token := token.New(token.SessToken)
 	_token.Set("user-id", strconv.FormatInt(user.ID, 10))
 	tokenString, err := _token.SignExpires(user.Hash, exp)
 	if err != nil {
-		log.Error().Msgf("cannot create token for user %s", user.Login)
-		c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/login?error=internal_error")
-		return false
+		return fmt.Errorf("cannot create token for user %s: %w", user.Login, err)
 	}
 
 	if err := updateRepoPermissions(c, user, _store); err != nil {
-		log.Error().Err(err).Msgf("cannot update repo permissions for user %s", user.Login)
-		c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/login?error=internal_error")
-		return false
+		return fmt.Errorf("cannot update repo permissions for user %s: %w", user.Login, err)
 	}
 
 	httputil.SetCookie(c.Writer, c.Request, "user_sess", tokenString)
@@ -90,6 +85,17 @@ func issueSession(c *gin.Context, _store store.Store, user *model.User) bool {
 	// Remember this account so it can be quick-switched to later without a full
 	// logout/login cycle.
 	rememberAccount(c.Writer, c.Request, user.ID, tokenString)
+	return nil
+}
+
+// issueSession creates a session for user. On failure it redirects to the
+// login page and returns false.
+func issueSession(c *gin.Context, _store store.Store, user *model.User) bool {
+	if err := createSession(c, _store, user); err != nil {
+		log.Error().Err(err).Msg("cannot create session")
+		c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/login?error=internal_error")
+		return false
+	}
 	return true
 }
 

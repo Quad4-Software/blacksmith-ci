@@ -33,6 +33,13 @@ import (
 func Load(noRouteHandler http.HandlerFunc, middleware ...gin.HandlerFunc) http.Handler {
 	e := gin.New()
 	e.UseRawPath = true
+	// Without trusted proxies gin keeps trusting every peer's forwarding headers.
+	if proxies := server.Config.Server.TrustedProxies; len(proxies) > 0 {
+		// Setup validates the entries, so an error here is unexpected.
+		if err := e.SetTrustedProxies(proxies); err != nil {
+			log.Error().Err(err).Strs("proxies", proxies).Msg("cannot set trusted proxies")
+		}
+	}
 	e.Use(gin.Recovery())
 
 	e.Use(func(c *gin.Context) {
@@ -60,6 +67,7 @@ func Load(noRouteHandler http.HandlerFunc, middleware ...gin.HandlerFunc) http.H
 			auth.POST("", api.HandleAuth)
 			auth.GET("/oidc", api.HandleOIDCAuth)
 			auth.GET("/oidc/callback", api.HandleOIDCCallback)
+			auth.POST("/ldap", api.HandleLDAPLogin)
 		}
 
 		base.GET("/metrics", metrics.PromHandler())

@@ -23,7 +23,7 @@ import (
 	"codefloe.com/crowci/crow/v6/server/model"
 )
 
-func TestApplyOIDCRoles(t *testing.T) {
+func TestApplyProviderRoles(t *testing.T) {
 	p := oidc.New(oidc.Config{Issuer: "https://idp.example", RoleGroups: map[string][]string{
 		"operator": {"ops"},
 		"auditor":  {"audit"},
@@ -45,7 +45,7 @@ func TestApplyOIDCRoles(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			u := &model.User{Roles: tt.roles}
-			assert.Equal(t, tt.changed, applyOIDCRoles(u, p, tt.groups))
+			assert.Equal(t, tt.changed, applyProviderRoles(u, p, tt.groups))
 			assert.Equal(t, tt.want, u.Roles)
 		})
 	}

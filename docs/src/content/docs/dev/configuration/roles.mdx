@@ -55,19 +55,31 @@ An admin can assign roles in three ways.
 
 ## Roles from the identity provider
 
-With [single sign-on](/dev/configuration/oidc/), the identity provider can assign roles through group membership.
+With [single sign-on](/dev/configuration/oidc/) or [LDAP sign-in](/dev/configuration/ldap/), the identity provider or directory can assign roles through group membership.
 Set one or more of these variables to lists of group names, like [`CROW_OIDC_ADMIN_GROUPS`](/dev/configuration/env-vars/oidc/):
 
 - `CROW_OIDC_OPERATOR_GROUPS`
 - `CROW_OIDC_SECRETS_MANAGER_GROUPS`
 - `CROW_OIDC_AUDITOR_GROUPS`
 
-A mapped role is recalculated at every OIDC sign-in, so removing a user from the group revokes the role at their next sign-in.
+LDAP has the same variables with the `CROW_LDAP_` prefix, for example [`CROW_LDAP_ADMIN_GROUPS`](/dev/configuration/env-vars/ldap/):
+
+- `CROW_LDAP_OPERATOR_GROUPS`
+- `CROW_LDAP_SECRETS_MANAGER_GROUPS`
+- `CROW_LDAP_AUDITOR_GROUPS`
+
+The LDAP lists are separated by semicolons and take full group DNs, which [LDAP sign-in](/dev/configuration/ldap/#groups-admins-and-roles) recommends over bare names.
+
+A mapped role is recalculated at every OIDC or LDAP sign-in, so removing a user from the group revokes the role at their next sign-in.
 A mapped role cannot be newly assigned by hand in the UI, CLI or API.
 An admin can still remove one that a user holds, for example a role assigned by hand before the mapping existed.
 Forge sign-in never changes roles.
 
-When any of these variables is set and the ID token has no groups claim, Crow reads the groups from the userinfo endpoint.
+When any of the OIDC variables is set and the ID token has no groups claim, Crow reads the groups from the userinfo endpoint.
+LDAP reads the groups from the `memberOf` attribute or a group search, see [LDAP sign-in](/dev/configuration/ldap/#groups-admins-and-roles).
+
+When OIDC and LDAP are both enabled, each provider sets only the roles it maps, at its own sign-in.
+If both map the same role, the provider used for the last sign-in wins, so map each role in one place.
 
 ## Access tokens
 

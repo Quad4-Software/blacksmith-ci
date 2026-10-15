@@ -67,13 +67,17 @@ func TestConfigAuth(t *testing.T) {
 		return w.Body.String()
 	}
 
-	t.Cleanup(func() { server.Config.Services.OIDC = nil })
+	t.Cleanup(func() {
+		server.Config.Services.OIDC = nil
+		server.Config.Server.ForgeLoginDisabled = false
+	})
 
 	server.Config.Services.OIDC = nil
 	assert.Contains(t, render(nil, nil),
-		`window.CROW_AUTH = {"oidc":{"enabled":false,"name":"","managed_roles":[]},"forge_login":true,"forge_count":null};`)
+		`window.CROW_AUTH = {"oidc":{"enabled":false,"name":""},"ldap":{"enabled":false,"name":""},"managed_roles":[],"forge_login":true,"forge_count":null};`)
 
-	server.Config.Services.OIDC = oidc.New(oidc.Config{Issuer: "https://idp.example", DisplayName: "Acme SSO", Only: true, RoleGroups: map[string][]string{"auditor": {"a"}}})
+	server.Config.Services.OIDC = oidc.New(oidc.Config{Issuer: "https://idp.example", DisplayName: "Acme SSO", RoleGroups: map[string][]string{"auditor": {"a"}}})
+	server.Config.Server.ForgeLoginDisabled = true
 	assert.Contains(t, render(&model.User{ID: 1, Hash: "h"}, []*model.UserForge{}),
-		`window.CROW_AUTH = {"oidc":{"enabled":true,"name":"Acme SSO","managed_roles":["auditor"]},"forge_login":false,"forge_count":0};`)
+		`window.CROW_AUTH = {"oidc":{"enabled":true,"name":"Acme SSO"},"ldap":{"enabled":false,"name":""},"managed_roles":["auditor"],"forge_login":false,"forge_count":0};`)
 }

@@ -265,7 +265,7 @@ func TestHandleOIDC(t *testing.T) {
 		_store.On("UserIdentityGetByProviderSubject", "oidc", idp.Issuer(), "sub-jane").Return(nil, types.RecordNotExist)
 		_store.On("UserCreateWithIdentity", mock.Anything, mock.Anything).Return(types.ErrNameTaken)
 		w := start(t, idp, nil).finish(_store, jane, nil, true)
-		assert.Equal(t, "/login?error=oidc_login_taken", w.Header().Get("Location"))
+		assert.Equal(t, "/login?error=idp_login_taken", w.Header().Get("Location"))
 	})
 
 	t.Run("rejects a subject longer than the OIDC spec allows", func(t *testing.T) {
@@ -283,7 +283,7 @@ func TestHandleOIDC(t *testing.T) {
 		_store := new(store_mocks.MockStore)
 		_store.On("UserIdentityGetByProviderSubject", "oidc", idp.Issuer(), "sub-jane").Return(nil, types.RecordNotExist)
 		w := start(t, idp, nil).finish(_store, map[string]any{"sub": "sub-jane", "preferred_username": "Jane Doe"}, nil, true)
-		assert.Equal(t, "/login?error=oidc_invalid_username", w.Header().Get("Location"))
+		assert.Equal(t, "/login?error=idp_invalid_username", w.Header().Get("Location"))
 	})
 
 	t.Run("refuses a missing username", func(t *testing.T) {
@@ -296,7 +296,7 @@ func TestHandleOIDC(t *testing.T) {
 			_store := new(store_mocks.MockStore)
 			_store.On("UserIdentityGetByProviderSubject", "oidc", idp.Issuer(), "sub-jane").Return(nil, types.RecordNotExist)
 			w := start(t, idp, nil).finish(_store, claims, nil, true)
-			assert.Equal(t, "/login?error=oidc_missing_username", w.Header().Get("Location"))
+			assert.Equal(t, "/login?error=idp_missing_username", w.Header().Get("Location"))
 			_store.AssertNotCalled(t, "UserCreateWithIdentity", mock.Anything, mock.Anything)
 		}
 	})

@@ -55,9 +55,8 @@ func signIn(t *testing.T, p *oidc.Provider, idp *oidctest.Server, claims map[str
 
 func TestConfigValidate(t *testing.T) {
 	assert.NoError(t, oidc.Config{}.Validate())
-	assert.EqualError(t, oidc.Config{Only: true}.Validate(), "CROW_OIDC_ONLY requires CROW_OIDC_ISSUER")
 	assert.EqualError(t, oidc.Config{Issuer: "https://idp"}.Validate(), "CROW_OIDC_ISSUER requires CROW_OIDC_CLIENT_ID and CROW_OIDC_CLIENT_SECRET")
-	assert.NoError(t, oidc.Config{Issuer: "https://idp", ClientID: "id", ClientSecret: "secret", Only: true}.Validate())
+	assert.NoError(t, oidc.Config{Issuer: "https://idp", ClientID: "id", ClientSecret: "secret"}.Validate())
 	assert.EqualError(t, oidc.Config{Issuer: "https://idp/" + strings.Repeat("a", 250), ClientID: "id", ClientSecret: "secret"}.Validate(), "CROW_OIDC_ISSUER must not be longer than 255 characters")
 }
 

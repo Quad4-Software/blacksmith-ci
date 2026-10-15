@@ -30,6 +30,8 @@ import (
 
 	gooidc "github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
+
+	"codefloe.com/crowci/crow/v6/server/auth/groupmap"
 )
 
 // ProviderName is stored as user_identities.provider for OIDC identities.
@@ -59,8 +61,6 @@ type Config struct {
 	AdminGroups   []string
 	// RoleGroups maps an instance role name to the groups that grant it.
 	RoleGroups map[string][]string
-	// Only disables forge OAuth sign-in; forge OAuth linking keeps working.
-	Only bool
 }
 
 // Enabled reports whether OIDC sign-in is configured.
@@ -72,9 +72,6 @@ const maxIssuerLen = 255
 
 // Validate reports configuration errors that must stop the server from starting.
 func (c Config) Validate() error {
-	if c.Only && c.Issuer == "" {
-		return errors.New("CROW_OIDC_ONLY requires CROW_OIDC_ISSUER")
-	}
 	if c.Issuer != "" && (c.ClientID == "" || c.ClientSecret == "") {
 		return errors.New("CROW_OIDC_ISSUER requires CROW_OIDC_CLIENT_ID and CROW_OIDC_CLIENT_SECRET")
 	}
@@ -97,6 +94,7 @@ type Claims struct {
 // server start.
 type Provider struct {
 	cfg        Config
+	mapping    groupmap.Mapping
 	httpClient *http.Client
 
 	mu       sync.Mutex
@@ -117,7 +115,12 @@ func New(cfg Config) *Provider {
 	if cfg.GroupsClaim == "" {
 		cfg.GroupsClaim = defaultGroupsClaim
 	}
-	return &Provider{cfg: cfg, httpClient: &http.Client{Timeout: httpTimeout}}
+	mapping := groupmap.Mapping{
+		AllowedGroups: cfg.AllowedGroups,
+		AdminGroups:   cfg.AdminGroups,
+		RoleGroups:    cfg.RoleGroups,
+	}
+	return &Provider{cfg: cfg, mapping: mapping, httpClient: &http.Client{Timeout: httpTimeout}}
 }
 
 // Init runs discovery eagerly so configuration problems show up in the startup log.
@@ -223,46 +226,25 @@ func (p *Provider) Exchange(ctx context.Context, code, verifier, nonce string) (
 }
 
 // IsAllowed reports whether a user with these groups may sign in.
-func (p *Provider) IsAllowed(groups []string) bool {
-	return !p.RestrictsGroups() || intersects(p.cfg.AllowedGroups, groups)
-}
+func (p *Provider) IsAllowed(groups []string) bool { return p.mapping.IsAllowed(groups) }
 
 // RestrictsGroups reports whether sign-in is limited to CROW_OIDC_ALLOWED_GROUPS.
-func (p *Provider) RestrictsGroups() bool { return len(p.cfg.AllowedGroups) > 0 }
+func (p *Provider) RestrictsGroups() bool { return p.mapping.RestrictsGroups() }
 
 // ManagesAdmin reports whether admin status is derived from CROW_OIDC_ADMIN_GROUPS.
-func (p *Provider) ManagesAdmin() bool { return len(p.cfg.AdminGroups) > 0 }
+func (p *Provider) ManagesAdmin() bool { return p.mapping.ManagesAdmin() }
 
 // IsAdmin reports whether these groups grant instance admin.
-func (p *Provider) IsAdmin(groups []string) bool { return intersects(p.cfg.AdminGroups, groups) }
+func (p *Provider) IsAdmin(groups []string) bool { return p.mapping.IsAdmin(groups) }
 
 // ManagesGroups reports whether any check needs the user's groups.
-func (p *Provider) ManagesGroups() bool {
-	return p.RestrictsGroups() || p.ManagesAdmin() || len(p.ManagedRoles()) > 0
-}
+func (p *Provider) ManagesGroups() bool { return p.mapping.ManagesGroups() }
 
 // ManagedRoles returns the roles that CROW_OIDC_<ROLE>_GROUPS maps, sorted.
-func (p *Provider) ManagedRoles() []string {
-	roles := []string{}
-	for role, groups := range p.cfg.RoleGroups {
-		if len(groups) > 0 {
-			roles = append(roles, role)
-		}
-	}
-	slices.Sort(roles)
-	return roles
-}
+func (p *Provider) ManagedRoles() []string { return p.mapping.ManagedRoles() }
 
 // RolesFor returns the managed roles these groups grant, sorted.
-func (p *Provider) RolesFor(groups []string) []string {
-	roles := []string{}
-	for _, role := range p.ManagedRoles() {
-		if intersects(p.cfg.RoleGroups[role], groups) {
-			roles = append(roles, role)
-		}
-	}
-	return roles
-}
+func (p *Provider) RolesFor(groups []string) []string { return p.mapping.RolesFor(groups) }
 
 // Issuer is the configured issuer URL. Identities are keyed by issuer and
 // subject, because a subject is only unique within its issuer.
@@ -271,8 +253,8 @@ func (p *Provider) Issuer() string { return p.cfg.Issuer }
 // DisplayName is the label of the login button.
 func (p *Provider) DisplayName() string { return p.cfg.DisplayName }
 
-// ForgeLoginDisabled reports whether forge OAuth sign-in is switched off.
-func (p *Provider) ForgeLoginDisabled() bool { return p.cfg.Only }
+// Name is stored as user_identities.provider.
+func (p *Provider) Name() string { return ProviderName }
 
 // RandomString returns a URL-safe random value for state, nonce and PKCE verifiers.
 func RandomString() string { return oauth2.GenerateVerifier() }
@@ -313,8 +295,4 @@ func groupsClaim(raw map[string]any, name string) (groups []string, found bool) 
 	default:
 		return nil, true
 	}
-}
-
-func intersects(want, have []string) bool {
-	return slices.ContainsFunc(want, func(g string) bool { return slices.Contains(have, g) })
 }

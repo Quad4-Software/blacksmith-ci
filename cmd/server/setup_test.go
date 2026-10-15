@@ -88,3 +88,25 @@ func TestSetupKubernetesCleanup(t *testing.T) {
 		})
 	}
 }
+
+func TestSplitGroups(t *testing.T) {
+	tests := []struct {
+		in   string
+		want []string
+	}{
+		{in: "", want: nil},
+		{in: " ; ;", want: nil},
+		{in: "ops", want: []string{"ops"}},
+		{in: "ops;dev", want: []string{"ops", "dev"}},
+		{
+			in:   "cn=crow-admins,ou=groups,dc=example,dc=org; ops",
+			want: []string{"cn=crow-admins,ou=groups,dc=example,dc=org", "ops"},
+		},
+		{in: " ;cn=a, ou=g ;; b ; ", want: []string{"cn=a, ou=g", "b"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.in, func(t *testing.T) {
+			require.Equal(t, tt.want, splitGroups(tt.in))
+		})
+	}
+}

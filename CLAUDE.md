@@ -316,6 +316,7 @@ Crow's user-facing documentation lives in `docs/src/content/docs/dev/`. Key file
 - `configuration/forge-oauth.mdx` — Forge OAuth setup
 - `configuration/roles.mdx` — Instance roles (operator, secrets-manager, auditor), permissions and identity provider mapping
 - `configuration/oidc.mdx` — Single sign-on through an OpenID Connect provider, groups and admin mapping
+- `configuration/ldap.mdx` — Sign-in against an LDAP directory, group mapping and rate limiting
 - `configuration/env-vars/` — All environment variables by category
 
 ### Installation

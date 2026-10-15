@@ -79,6 +79,11 @@ var flags = append([]cli.Flag{
 		Usage:   "server address",
 		Value:   ":8000",
 	},
+	&cli.StringSliceFlag{
+		Sources: cli.EnvVars("CROW_TRUSTED_PROXIES"),
+		Name:    "trusted-proxies",
+		Usage:   "IP addresses or CIDR ranges of reverse proxies whose X-Forwarded-For and X-Real-IP headers are trusted for the client IP; unset trusts every peer",
+	},
 	&cli.StringFlag{
 		Sources: cli.EnvVars("WOODPECKER_SERVER_ADDR_TLS", "CROW_SERVER_ADDR_TLS"),
 		Name:    "server-addr-tls",
@@ -884,10 +889,120 @@ var flags = append([]cli.Flag{
 		Name:    "oidc-auditor-groups",
 		Usage:   "members of these identity provider groups get the auditor role; evaluated at every OIDC sign-in",
 	},
+	// LDAP sign-in flags
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_LDAP_URL"),
+		Name:    "ldap-url",
+		Usage:   "LDAP server URL (ldap:// or ldaps://); enables sign-in with directory credentials",
+	},
 	&cli.BoolFlag{
-		Sources: cli.EnvVars("CROW_OIDC_ONLY"),
-		Name:    "oidc-only",
-		Usage:   "disable forge OAuth sign-in; forge accounts can still be linked",
+		Sources: cli.EnvVars("CROW_LDAP_START_TLS"),
+		Name:    "ldap-start-tls",
+		Usage:   "upgrade an ldap:// connection with StartTLS",
+	},
+	&cli.BoolFlag{
+		Sources: cli.EnvVars("CROW_LDAP_SKIP_VERIFY"),
+		Name:    "ldap-skip-verify",
+		Usage:   "skip TLS certificate verification of the LDAP server",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_LDAP_CA_CERT_FILE"),
+		Name:    "ldap-ca-cert-file",
+		Usage:   "PEM file with additional CA certificates to trust for the LDAP server",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_LDAP_BIND_DN"),
+		Name:    "ldap-bind-dn",
+		Usage:   "DN of the service account that searches the directory; empty searches anonymously",
+	},
+	&cli.StringFlag{
+		Sources: cli.NewValueSourceChain(
+			cli.File(os.Getenv("CROW_LDAP_BIND_PASSWORD_FILE")),
+			cli.EnvVar("CROW_LDAP_BIND_PASSWORD"),
+		),
+		Name:  "ldap-bind-password",
+		Usage: "password of the LDAP service account",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_LDAP_USER_BASE_DN"),
+		Name:    "ldap-user-base-dn",
+		Usage:   "base DN of the user search",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_LDAP_USER_FILTER"),
+		Name:    "ldap-user-filter",
+		Usage:   "LDAP filter that finds the user entry; {username} is replaced by the escaped username",
+		Value:   "(uid={username})",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_LDAP_USERNAME_ATTRIBUTE"),
+		Name:    "ldap-username-attribute",
+		Usage:   "LDAP attribute used as the Crow login of new users",
+		Value:   "uid",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_LDAP_EMAIL_ATTRIBUTE"),
+		Name:    "ldap-email-attribute",
+		Usage:   "LDAP attribute holding the email address",
+		Value:   "mail",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_LDAP_ID_ATTRIBUTE"),
+		Name:    "ldap-id-attribute",
+		Usage:   "LDAP attribute holding the stable user ID, e.g. entryUUID or objectGUID",
+		Value:   "entryUUID",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_LDAP_GROUP_ATTRIBUTE"),
+		Name:    "ldap-group-attribute",
+		Usage:   "user entry attribute holding group DNs",
+		Value:   "memberOf",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_LDAP_GROUP_BASE_DN"),
+		Name:    "ldap-group-base-dn",
+		Usage:   "base DN of the group search; defaults to the user base DN",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_LDAP_GROUP_SEARCH_FILTER"),
+		Name:    "ldap-group-search-filter",
+		Usage:   "LDAP filter that finds the user's groups, e.g. (member={dn}); empty reads the group attribute",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_LDAP_DISPLAY_NAME"),
+		Name:    "ldap-display-name",
+		Usage:   "label of the LDAP sign-in form on the login page",
+		Value:   "LDAP",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_LDAP_ALLOWED_GROUPS"),
+		Name:    "ldap-allowed-groups",
+		Usage:   "semicolon-separated LDAP groups (full DNs or bare names) whose members may sign in via LDAP",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_LDAP_ADMIN_GROUPS"),
+		Name:    "ldap-admin-groups",
+		Usage:   "semicolon-separated LDAP groups (full DNs or bare names) whose members are instance admins; evaluated at every LDAP sign-in",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_LDAP_OPERATOR_GROUPS"),
+		Name:    "ldap-operator-groups",
+		Usage:   "semicolon-separated LDAP groups (full DNs or bare names) whose members get the operator role; evaluated at every LDAP sign-in",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_LDAP_SECRETS_MANAGER_GROUPS"),
+		Name:    "ldap-secrets-manager-groups",
+		Usage:   "semicolon-separated LDAP groups (full DNs or bare names) whose members get the secrets-manager role; evaluated at every LDAP sign-in",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_LDAP_AUDITOR_GROUPS"),
+		Name:    "ldap-auditor-groups",
+		Usage:   "semicolon-separated LDAP groups (full DNs or bare names) whose members get the auditor role; evaluated at every LDAP sign-in",
+	},
+	&cli.BoolFlag{
+		Sources: cli.EnvVars("CROW_FORGE_LOGIN_DISABLED"),
+		Name:    "forge-login-disabled",
+		Usage:   "disable forge OAuth sign-in when OIDC or LDAP sign-in is configured; forge accounts can still be linked",
 	},
 	&cli.StringFlag{
 		Sources: cli.EnvVars("CROW_CI_QUOTA_URL"),

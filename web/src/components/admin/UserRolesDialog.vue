@@ -78,9 +78,9 @@ const { t } = useI18n();
 const apiClient = useApiClient();
 const notifications = useNotifications();
 
-// Roles set by the identity provider cannot be newly assigned here.
+// Roles set by an identity provider cannot be newly assigned here.
 // One the user already holds can be kept or removed, so it stays editable.
-const managedRoles = useConfig().auth.oidc.managed_roles ?? [];
+const managedRoles = useConfig().auth.managed_roles ?? [];
 
 const roleTexts = useRoleTexts();
 

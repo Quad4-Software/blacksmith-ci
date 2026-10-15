@@ -302,7 +302,7 @@
         </div>
       </div>
     </div>
-    <template v-if="config.auth.oidc.enabled">
+    <template v-if="config.auth.oidc.enabled || config.auth.ldap.enabled">
       <Separator class="my-6" />
       <SsoIdentitySection />
     </template>

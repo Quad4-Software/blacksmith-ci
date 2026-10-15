@@ -10,6 +10,21 @@ export interface ApiError {
   };
 }
 
+// Thrown for a failed request: the message is the server's error text, status and
+// retryAfter (seconds, from the Retry-After header) let callers react to the cause.
+export class ApiRequestError extends Error {
+  status: number;
+
+  retryAfter?: number;
+
+  constructor(message: string, status: number, retryAfter?: number) {
+    super(message);
+    this.name = 'ApiRequestError';
+    this.status = status;
+    this.retryAfter = retryAfter;
+  }
+}
+
 // Thrown when a pipeline was not created because all steps were filtered out by `when` conditions
 export class PipelineFilteredError extends Error {
   constructor() {
@@ -134,14 +149,17 @@ export default class ApiClient {
           message.includes('TOKEN_REFRESH_FAILED') ||
           message.includes('authorization has expired') ||
           message.includes('could not be refreshed');
-        if (res.status === 401 && this.authStore?.isAuthenticated && !isStaleForgeToken) {
+        // A wrong directory password when linking LDAP is a 401 too, but the session is fine.
+        const isBadCredentials = message === 'invalid_credentials';
+        if (res.status === 401 && this.authStore?.isAuthenticated && !isStaleForgeToken && !isBadCredentials) {
           this.authStore.invalidateSession();
         }
 
         if (this.onerror && !opts?.silent) {
           this.onerror(error);
         }
-        throw new Error(message);
+        const retryAfter = Number.parseInt(res.headers.get('Retry-After') ?? '', 10);
+        throw new ApiRequestError(message, res.status, Number.isNaN(retryAfter) ? undefined : retryAfter);
       }
 
       // Check for Pipeline-Filtered response (204 No Content with header)
@@ -171,8 +189,8 @@ export default class ApiClient {
     return this._request('GET', path, undefined, opts);
   }
 
-  async _post(path: string, data?: unknown) {
-    return this._request('POST', path, data);
+  async _post(path: string, data?: unknown, opts?: RequestOptions) {
+    return this._request('POST', path, data, opts);
   }
 
   async _patch(path: string, data?: unknown) {

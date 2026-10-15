@@ -20,6 +20,7 @@ import (
 	"encoding/base32"
 	"errors"
 	"fmt"
+	"net"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -32,6 +33,7 @@ import (
 	"github.com/urfave/cli/v3"
 
 	"codefloe.com/crowci/crow/v6/server"
+	"codefloe.com/crowci/crow/v6/server/auth/ldap"
 	"codefloe.com/crowci/crow/v6/server/auth/oidc"
 	"codefloe.com/crowci/crow/v6/server/cache"
 	"codefloe.com/crowci/crow/v6/server/forge/setup"
@@ -659,6 +661,31 @@ func setupEvilGlobals(ctx context.Context, c *cli.Command, s store.Store) (err e
 	server.Config.Permissions.Orgs = permissions.NewOrgs(c.StringSlice("orgs"))
 	server.Config.Permissions.OwnersAllowlist = permissions.NewOwnersAllowlist(c.StringSlice("repo-owners"))
 
+	if err := setupTrustedProxies(c); err != nil {
+		return err
+	}
+
+	return setupIdentityProviders(ctx, c)
+}
+
+// setupTrustedProxies validates CROW_TRUSTED_PROXIES, so the router can apply
+// it without failing.
+func setupTrustedProxies(c *cli.Command) error {
+	proxies := c.StringSlice("trusted-proxies")
+	for _, entry := range proxies {
+		if _, _, err := net.ParseCIDR(entry); err == nil {
+			continue
+		}
+		if net.ParseIP(entry) == nil {
+			return fmt.Errorf("CROW_TRUSTED_PROXIES: invalid entry %q", entry)
+		}
+	}
+	server.Config.Server.TrustedProxies = proxies
+	return nil
+}
+
+// setupIdentityProviders configures OIDC sign-in and the forge sign-in switch.
+func setupIdentityProviders(ctx context.Context, c *cli.Command) error {
 	oidcCfg := oidc.Config{
 		Issuer:        c.String("oidc-issuer"),
 		ClientID:      c.String("oidc-client-id"),
@@ -675,7 +702,6 @@ func setupEvilGlobals(ctx context.Context, c *cli.Command, s store.Store) (err e
 			string(model.RoleSecretsManager): c.StringSlice("oidc-secrets-manager-groups"),
 			string(model.RoleAuditor):        c.StringSlice("oidc-auditor-groups"),
 		},
-		Only: c.Bool("oidc-only"),
 	}
 	if err := oidcCfg.Validate(); err != nil {
 		return err
@@ -686,7 +712,55 @@ func setupEvilGlobals(ctx context.Context, c *cli.Command, s store.Store) (err e
 			log.Warn().Err(err).Msg("OIDC discovery failed, it is retried on the next sign-in")
 		}
 		server.Config.Services.OIDC = provider
-		log.Info().Str("issuer", oidcCfg.Issuer).Bool("forge_login", !oidcCfg.Only).Msg("OIDC sign-in enabled")
+		log.Info().Str("issuer", oidcCfg.Issuer).Msg("OIDC sign-in enabled")
+	}
+
+	ldapCfg := ldap.Config{
+		URL:               c.String("ldap-url"),
+		StartTLS:          c.Bool("ldap-start-tls"),
+		SkipVerify:        c.Bool("ldap-skip-verify"),
+		CACertFile:        c.String("ldap-ca-cert-file"),
+		BindDN:            c.String("ldap-bind-dn"),
+		BindPassword:      c.String("ldap-bind-password"),
+		UserBaseDN:        c.String("ldap-user-base-dn"),
+		UserFilter:        c.String("ldap-user-filter"),
+		UsernameAttribute: c.String("ldap-username-attribute"),
+		EmailAttribute:    c.String("ldap-email-attribute"),
+		IDAttribute:       c.String("ldap-id-attribute"),
+		GroupAttribute:    c.String("ldap-group-attribute"),
+		GroupBaseDN:       c.String("ldap-group-base-dn"),
+		GroupSearchFilter: c.String("ldap-group-search-filter"),
+		DisplayName:       c.String("ldap-display-name"),
+		AllowedGroups:     splitGroups(c.String("ldap-allowed-groups")),
+		AdminGroups:       splitGroups(c.String("ldap-admin-groups")),
+		RoleGroups: map[string][]string{
+			string(model.RoleOperator):       splitGroups(c.String("ldap-operator-groups")),
+			string(model.RoleSecretsManager): splitGroups(c.String("ldap-secrets-manager-groups")),
+			string(model.RoleAuditor):        splitGroups(c.String("ldap-auditor-groups")),
+		},
+	}
+	if err := ldapCfg.Validate(); err != nil {
+		return err
+	}
+	if ldapCfg.Enabled() {
+		provider, err := ldap.New(ldapCfg)
+		if err != nil {
+			return err
+		}
+		server.Config.Services.LDAP = provider
+		log.Info().Str("url", ldapCfg.URL).Msg("LDAP sign-in enabled")
+		if len(server.Config.Server.TrustedProxies) == 0 {
+			log.Warn().Msg("CROW_TRUSTED_PROXIES is not set: the per-IP limit on LDAP sign-in trusts X-Forwarded-For from any client")
+		}
+	}
+
+	forgeLoginDisabled := c.Bool("forge-login-disabled")
+	if forgeLoginDisabled && server.Config.Services.OIDC == nil && server.Config.Services.LDAP == nil {
+		return errors.New("CROW_FORGE_LOGIN_DISABLED requires OIDC or LDAP sign-in")
+	}
+	server.Config.Server.ForgeLoginDisabled = forgeLoginDisabled
+	if forgeLoginDisabled {
+		log.Info().Msg("forge OAuth sign-in disabled")
 	}
 	return nil
 }
@@ -786,4 +860,17 @@ func setupKubernetesCleanup(c *cli.Command, svc maintenance.Service) {
 			}
 		}
 	}
+}
+
+// splitGroups parses a semicolon-separated list of LDAP groups. Semicolons
+// rather than commas separate the entries so that full DNs, which contain
+// commas, can be listed. Entries are trimmed and empty ones are dropped.
+func splitGroups(s string) []string {
+	var groups []string
+	for g := range strings.SplitSeq(s, ";") {
+		if g = strings.TrimSpace(g); g != "" {
+			groups = append(groups, g)
+		}
+	}
+	return groups
 }

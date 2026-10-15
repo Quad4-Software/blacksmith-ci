@@ -18,7 +18,13 @@ vi.mock('~/compositions/useNotifications', () => ({
 
 vi.mock('~/compositions/useConfig', () => ({
   default: () => ({
-    auth: { oidc: { enabled: true, name: 'SSO', managed_roles: ['auditor'] }, forge_login: true, forge_count: null },
+    auth: {
+      oidc: { enabled: true, name: 'SSO' },
+      ldap: { enabled: false, name: '' },
+      managed_roles: ['auditor'],
+      forge_login: true,
+      forge_count: null,
+    },
   }),
 }));
 

@@ -2,16 +2,17 @@
 const EXEMPT_PATHS = ['/user', '/admin', '/login', '/cli/auth'];
 
 // needsForgeLink reports whether a signed-in user without forges must be sent
-// to the forge linking screen before visiting `path`. Only single sign-on users
-// can be without a forge, so the guard is off unless OIDC is enabled.
+// to the forge linking screen before visiting `path`. Only users registered
+// through an identity provider can be without a forge, so the guard is off
+// unless an identity provider is enabled.
 export function needsForgeLink(
   path: string,
   rootPath: string,
   isAuthenticated: boolean,
   forgeCount: number | null,
-  oidcEnabled: boolean,
+  identityProviderEnabled: boolean,
 ): boolean {
-  if (!oidcEnabled || !isAuthenticated || forgeCount === null || forgeCount > 0) {
+  if (!identityProviderEnabled || !isAuthenticated || forgeCount === null || forgeCount > 0) {
     return false;
   }
   const relative = rootPath !== '' && path.startsWith(rootPath) ? path.slice(rootPath.length) : path;

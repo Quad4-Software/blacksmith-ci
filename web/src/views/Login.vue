@@ -26,6 +26,16 @@
           <Icon v-if="oidcLoading" name="spinner" class="h-5 w-5 animate-spin" aria-hidden="true" />
           <span v-else>{{ $t('sign_in_with', { name: appConfig.auth.oidc.name }) }}</span>
         </Button>
+        <div v-if="showOidcButton && showLdapForm" class="flex items-center gap-2 w-full text-xs text-muted-foreground">
+          <span class="h-px flex-1 bg-border" />{{ $t('login_or') }}<span class="h-px flex-1 bg-border" />
+        </div>
+        <LdapLoginForm v-if="showLdapForm" :name="appConfig.auth.ldap.name" />
+        <div
+          v-if="(showOidcButton || showLdapForm) && showForgeButtons"
+          class="flex items-center gap-2 w-full text-xs text-muted-foreground"
+        >
+          <span class="h-px flex-1 bg-border" />{{ $t('login_or') }}<span class="h-px flex-1 bg-border" />
+        </div>
         <template v-if="showForgeButtons">
           <Button
             v-for="(forge, idx) in displayedForges"
@@ -87,6 +97,7 @@ import CrowLogoDark from '~/assets/logo-dark.svg?component';
 import CrowLogo from '~/assets/logo.svg?component';
 import type { IconNames } from '~/components/atomic/Icon.types';
 import Icon from '~/components/atomic/Icon.vue';
+import LdapLoginForm from '~/components/login/LdapLoginForm.vue';
 import { Button } from '~/components/ui/button';
 import useApiClient from '~/compositions/useApiClient';
 import useAuthentication from '~/compositions/useAuthentication';
@@ -120,6 +131,7 @@ const isAddAccountMode = computed(() => route.query.add === 'true');
 const isLinkRequired = computed(() => route.query.required === 'true');
 const showForgeButtons = computed(() => appConfig.auth.forge_login || isLinkingMode.value);
 const showOidcButton = computed(() => appConfig.auth.oidc.enabled && !isLinkingMode.value && !isAddAccountMode.value);
+const showLdapForm = computed(() => appConfig.auth.ldap.enabled && !isLinkingMode.value && !isAddAccountMode.value);
 const linkForgeId = computed(() => {
   const id = route.query.forge_id;
   return id ? Number(id) : null;
@@ -229,9 +241,10 @@ const authErrorMessages = {
   login_taken: i18n.t('login_taken'),
   oidc_error: i18n.t('oidc_error'),
   oidc_access_denied: i18n.t('oidc_access_denied'),
-  oidc_login_taken: i18n.t('oidc_login_taken'),
-  oidc_invalid_username: i18n.t('oidc_invalid_username'),
-  oidc_missing_username: i18n.t('oidc_missing_username'),
+  ldap_access_denied: i18n.t('ldap.ldap_access_denied'),
+  idp_login_taken: i18n.t('idp_login_taken'),
+  idp_invalid_username: i18n.t('idp_invalid_username'),
+  idp_missing_username: i18n.t('idp_missing_username'),
   forge_login_disabled: i18n.t('forge_login_disabled'),
 };
 

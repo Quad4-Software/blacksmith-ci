@@ -25,19 +25,24 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/tink-crypto/tink-go/v2/subtle/random"
 
-	"codefloe.com/crowci/crow/v6/server"
 	"codefloe.com/crowci/crow/v6/server/model"
 	"codefloe.com/crowci/crow/v6/server/router/middleware/session"
 	"codefloe.com/crowci/crow/v6/server/store"
 )
 
-// The managed roles are the ones the identity provider sets at sign-in.
+// The managed roles are the ones the identity providers set at sign-in.
 func managedRoles() []string {
-	if p := server.Config.Services.OIDC; p != nil {
-		return p.ManagedRoles()
+	roles := []string{}
+	for _, p := range identityProviders() {
+		roles = append(roles, p.ManagedRoles()...)
 	}
-	return nil
+	slices.Sort(roles)
+	return slices.Compact(roles)
 }
+
+// ManagedRoles returns the roles set from identity provider groups, sorted and
+// never nil; the web UI cannot assign them.
+func ManagedRoles() []string { return managedRoles() }
 
 // Assignable roles are the requested roles after validation. The request is
 // authoritative, except that a role the identity provider manages can only be

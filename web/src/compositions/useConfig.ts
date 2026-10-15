@@ -2,8 +2,10 @@ import type { SwitchAccount, User } from '~/lib/api/types';
 import type { CustomThemeConfig } from '~/lib/themes/custom';
 
 export interface AuthConfig {
-  // Roles in managed_roles are set by the identity provider and cannot be assigned in the UI.
-  oidc: { enabled: boolean; name: string; managed_roles: string[] };
+  oidc: { enabled: boolean; name: string };
+  ldap: { enabled: boolean; name: string };
+  // Roles in managed_roles are set by an identity provider and cannot be assigned in the UI.
+  managed_roles: string[];
   forge_login: boolean;
   forge_count: number | null;
 }
@@ -37,7 +39,9 @@ export default () => ({
   userRegisteredAgents: window.CROW_USER_REGISTERED_AGENTS || false,
   schedulingStrategy: window.CROW_SCHEDULING_STRATEGY ?? '',
   auth: window.CROW_AUTH ?? {
-    oidc: { enabled: false, name: '', managed_roles: [] },
+    oidc: { enabled: false, name: '' },
+    ldap: { enabled: false, name: '' },
+    managed_roles: [],
     forge_login: true,
     forge_count: null,
   },

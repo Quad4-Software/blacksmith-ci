@@ -33,13 +33,28 @@ CROW_OIDC_CLIENT_SECRET=your-client-secret
 ```
 
 Users who sign in through single sign-on link a forge account afterwards, because Crow reads repositories through forge accounts.
-Group-based access and admin mapping are available through `CROW_OIDC_ALLOWED_GROUPS` and `CROW_OIDC_ADMIN_GROUPS`, and `CROW_OIDC_ONLY=true` turns off forge sign-in.
+Group-based access and admin mapping are available through `CROW_OIDC_ALLOWED_GROUPS` and `CROW_OIDC_ADMIN_GROUPS`, and `CROW_FORGE_LOGIN_DISABLED=true` turns off forge sign-in.
 See [Single Sign-On (OIDC)](/dev/configuration/oidc/) for the full guide.
+
+### LDAP
+
+Crow can also check usernames and passwords against an LDAP directory such as OpenLDAP or Active Directory:
+
+```yaml
+CROW_LDAP_URL=ldaps://ldap.example.com
+CROW_LDAP_BIND_DN=cn=crow,ou=services,dc=example,dc=com
+CROW_LDAP_BIND_PASSWORD_FILE=/run/secrets/crow-ldap
+CROW_LDAP_USER_BASE_DN=ou=people,dc=example,dc=com
+```
+
+LDAP and OIDC can be enabled together, and both use the same forge account linking.
+Set `CROW_TRUSTED_PROXIES` when Crow runs behind a reverse proxy, so the per-IP limit on failed sign-ins sees the real client address.
+See [LDAP sign-in](/dev/configuration/ldap/) for the full guide.
 
 ### Registration
 
 Registration is closed by default (`CROW_OPEN=false`). When open, any forge user can register.
-With single sign-on, members of `CROW_OIDC_ALLOWED_GROUPS` can register even when registration is closed.
+With single sign-on, members of `CROW_OIDC_ALLOWED_GROUPS` or `CROW_LDAP_ALLOWED_GROUPS` can register even when registration is closed.
 
 :::caution
 Restrict access using `CROW_ORGS` to limit registration to organization members:
@@ -57,7 +72,7 @@ CROW_ADMIN=johnDoe,janeSmith
 ```
 
 Admins can also be promoted via UI: Settings → Users → Edit User.
-`CROW_ADMIN` applies to forge sign-in only; for single sign-on use `CROW_OIDC_ADMIN_GROUPS`.
+`CROW_ADMIN` applies to forge sign-in only; for single sign-on use `CROW_OIDC_ADMIN_GROUPS` or `CROW_LDAP_ADMIN_GROUPS`.
 
 ### Admin Token Bootstrap
 

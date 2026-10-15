@@ -1,0 +1,261 @@
+---
+title: "LDAP sign-in"
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+Crow can sign users in with a username and password checked against an LDAP directory, such as OpenLDAP or Active Directory.
+Crow still reads repositories and reports pipeline status through forge accounts, so every user links at least one forge account after the first sign-in.
+LDAP sign-in works in the browser only; the CLI keeps using personal access tokens.
+
+LDAP and [OIDC](/dev/configuration/oidc/) can be enabled at the same time.
+Instances that set no `CROW_LDAP_*` variables see no change.
+
+## Setup
+
+<Steps>
+
+1. Create a read-only service account in the directory.
+    It needs to search the user entries, and to read the group attribute or search the groups.
+    It needs no write access and no other rights.
+
+2. Configure Crow with the directory URL, the service account and where the users live.
+    This is a minimal OpenLDAP example:
+
+    ```sh
+    CROW_LDAP_URL=ldaps://ldap.example.com
+    CROW_LDAP_BIND_DN=cn=crow,ou=services,dc=example,dc=com
+    CROW_LDAP_BIND_PASSWORD_FILE=/run/secrets/crow-ldap
+    CROW_LDAP_USER_BASE_DN=ou=people,dc=example,dc=com
+    ```
+
+    The defaults suit OpenLDAP: the user filter is `(uid={username})`, the login comes from `uid`, the email from `mail` and the stable user ID from `entryUUID`.
+    For Active Directory, change the filter and the attributes:
+
+    ```sh
+    CROW_LDAP_URL=ldaps://dc.corp.example
+    CROW_LDAP_BIND_DN=CN=crow,OU=Service Accounts,DC=corp,DC=example
+    CROW_LDAP_BIND_PASSWORD_FILE=/run/secrets/crow-ldap
+    CROW_LDAP_USER_BASE_DN=OU=Users,DC=corp,DC=example
+    CROW_LDAP_USER_FILTER=(sAMAccountName={username})
+    CROW_LDAP_USERNAME_ATTRIBUTE=sAMAccountName
+    CROW_LDAP_ID_ATTRIBUTE=objectGUID
+    ```
+
+    Without `CROW_LDAP_BIND_DN` Crow searches the directory anonymously.
+    The server refuses to start when `CROW_LDAP_URL` is set without `CROW_LDAP_USER_BASE_DN`, when `CROW_LDAP_BIND_DN` is set without a bind password, or when another LDAP setting is invalid (see [Validation](#validation)).
+
+3. Optionally restrict sign-in and derive admins from groups:
+
+    ```sh
+    CROW_LDAP_ALLOWED_GROUPS=crow-users
+    CROW_LDAP_ADMIN_GROUPS=cn=crow-admins,ou=groups,dc=example,dc=com
+    ```
+
+    Use the full DN for the admin group, see [Groups, admins and roles](#groups-admins-and-roles).
+
+4. Restart the server and use the LDAP form on the login page.
+
+</Steps>
+
+All variables are listed in the [LDAP environment variable reference](/dev/configuration/env-vars/ldap/).
+
+## How sign-in works
+
+Crow searches first and binds second.
+
+1. Crow binds as the service account, or skips the bind when `CROW_LDAP_BIND_DN` is empty.
+2. It searches `CROW_LDAP_USER_BASE_DN` with `CROW_LDAP_USER_FILTER`.
+    `{username}` is replaced by the escaped username, so filter characters such as `*` or `)` in a username cannot widen the search.
+3. Exactly one entry must match.
+    Zero or several matches are reported as invalid credentials.
+4. Crow binds as that entry with the password the user typed.
+5. Crow reads the user's groups and the attributes for the login, the email and the stable user ID.
+
+An empty password is rejected before any connection is made, because many directories treat a bind with an empty password as a successful anonymous bind.
+Passwords are never stored and never logged.
+
+A user is identified by the value of `CROW_LDAP_ID_ATTRIBUTE` together with the lower-cased hostname of `CROW_LDAP_URL`, not by the login, so renaming a user in the directory does not create a second Crow account.
+The attribute must exist on every user; a missing value is treated as a configuration error and sign-in fails with `ldap_unavailable`.
+For `objectGUID` Crow converts the 16 bytes to the usual GUID string; other binary values are hex-encoded.
+
+The scheme and the port are not part of the key, so moving from `ldap://dc.corp.example:389` to `ldaps://dc.corp.example:636` keeps every account.
+Changing the hostname or `CROW_LDAP_ID_ATTRIBUTE` unlinks every LDAP identity.
+At their next LDAP sign-in, Crow does not find the identity and tries to create a new account.
+That fails with `idp_login_taken` because the login already exists, or with `registration_closed` when the user may not register.
+Linking LDAP again is refused with `identity_already_linked` while the stale identity exists.
+Users who can sign in with their forge can unlink the stale identity under **User settings > Single Sign-On** and then link LDAP again.
+Users who only sign in with LDAP are locked out, and with `CROW_FORGE_LOGIN_DISABLED` the UI does not offer the unlink button to anyone.
+Point `CROW_LDAP_URL` at a stable DNS name, such as the domain name of an Active Directory or a load-balancer name, rather than a single server, and choose the ID attribute before the first users sign in.
+
+If the hostname has to change anyway, an admin can move the identities to the new hostname in the database before the users sign in again:
+
+```sql
+UPDATE user_identities SET issuer = 'ldap://ldap.new.example' WHERE provider = 'ldap' AND issuer = 'ldap://ldap.old.example';
+```
+
+There is no such shortcut for `CROW_LDAP_ID_ATTRIBUTE`, because every user then has a new subject.
+
+## Signing in
+
+A user signing in for the first time gets a new Crow account named after `CROW_LDAP_USERNAME_ATTRIBUTE`.
+Crow uses the part before the `@`, so `jane@corp.example` becomes the login `jane`.
+If the result is not a valid Crow login (letters, digits, `-`, `_` and `.`), sign-in fails with `idp_invalid_username`.
+If the attribute is missing or empty, Crow uses the username typed at sign-in instead.
+A username already used by another Crow account, or by any org on any forge, is refused with `idp_login_taken`.
+Those users sign in with their forge and link LDAP in their user settings.
+
+New accounts are created only when `CROW_OPEN` is set, when `CROW_LDAP_ALLOWED_GROUPS` is set and the user is in one of those groups, or when the user is in a `CROW_LDAP_ADMIN_GROUPS` group.
+Otherwise sign-in fails with `registration_closed`.
+
+After the first sign-in, Crow asks the user to link a forge account, exactly as for [single sign-on](/dev/configuration/oidc/#signing-in).
+
+Existing Crow users are never matched by username or email.
+They sign in with their forge as before and link LDAP under **User settings > Single Sign-On**.
+The **Link** button of the LDAP row opens a dialog that asks for the directory username and password.
+A user can link one LDAP identity, and an identity that belongs to another Crow account cannot be linked.
+
+## Groups, admins and roles
+
+By default Crow reads the group DNs from the `memberOf` attribute of the user entry.
+Set `CROW_LDAP_GROUP_ATTRIBUTE` to use another attribute.
+
+Directories without `memberOf` can use a group search instead.
+Set `CROW_LDAP_GROUP_SEARCH_FILTER` and Crow searches `CROW_LDAP_GROUP_BASE_DN` (the user base DN when unset) and collects the DN of each group found.
+`{dn}` in the filter is replaced by the escaped DN of the user and `{username}` by the escaped username.
+The filter must contain at least one of them.
+If a service account is configured, Crow binds as it again before the group search.
+
+```sh
+CROW_LDAP_GROUP_BASE_DN=ou=groups,dc=example,dc=com
+CROW_LDAP_GROUP_SEARCH_FILTER=(member={dn})
+```
+
+A configured group matches in two ways:
+
+- A full DN matches the group DN, ignoring case and the spaces after commas, so `CN=Crow-Admins, OU=Groups, DC=corp` equals `cn=crow-admins,ou=groups,dc=corp`.
+- A bare name matches the value of the first RDN of the group DN, ignoring case, so `crow-admins` matches `cn=crow-admins,ou=groups,dc=corp`.
+
+Every group variable takes a list separated by semicolons, and each entry can be a full DN or a bare name.
+Commas do not separate entries, because a full DN contains commas itself.
+Spaces around the entries are ignored.
+In a shell, quote a value with several entries, because `;` also ends a shell command:
+
+```sh
+CROW_LDAP_ALLOWED_GROUPS="cn=crow-users,ou=groups,dc=example,dc=com; cn=contractors,ou=groups,dc=example,dc=com"
+```
+
+Use full DNs for `CROW_LDAP_ADMIN_GROUPS` and the role groups.
+A bare name matches a group of that name in any OU, and with `memberOf` the group DNs can come from anywhere in the directory.
+Anyone who can create a group, such as a helpdesk with rights on one OU or a user in a directory with self-service groups, could otherwise create `cn=crow-admins` somewhere, join it and become a Crow admin.
+A full DN matches only that one group.
+
+`CROW_LDAP_ALLOWED_GROUPS` limits LDAP sign-in to members of at least one listed group.
+Valid credentials without a matching group fail with `ldap_access_denied`.
+
+When `CROW_LDAP_ADMIN_GROUPS` is set, admin status at LDAP sign-in comes only from those groups and is recalculated at every sign-in.
+Removing a user from the admin group revokes admin rights at their next sign-in.
+When `CROW_LDAP_ALLOWED_GROUPS` is also set, members of an admin group must be in an allowed group as well, or they cannot sign in at all.
+Group membership is only checked at sign-in, so changes take effect at the latest after `CROW_SESSION_EXPIRES`.
+
+Without `CROW_LDAP_ADMIN_GROUPS`, LDAP sign-in never changes admin status, and new LDAP users are not admins.
+`CROW_ADMIN` is never consulted for LDAP sign-in; it applies to forge sign-ins only.
+
+Groups can also grant [instance roles](/dev/configuration/roles/) with `CROW_LDAP_OPERATOR_GROUPS`, `CROW_LDAP_SECRETS_MANAGER_GROUPS` and `CROW_LDAP_AUDITOR_GROUPS`.
+A mapped role is recalculated at every sign-in, like admin status.
+
+```sh
+CROW_LDAP_OPERATOR_GROUPS=cn=crow-operators,ou=groups,dc=example,dc=com
+CROW_LDAP_AUDITOR_GROUPS=cn=crow-auditors,ou=groups,dc=example,dc=com
+```
+
+### Using LDAP and OIDC together
+
+Each provider sets only the admin flag and the roles it maps, at its own sign-in.
+If both map the same role, the provider used for the last sign-in wins.
+Map each role in one place to avoid surprises.
+
+## Rate limiting
+
+Crow counts failed LDAP sign-ins in memory and blocks further attempts:
+
+| Limit                       | Failures | Window     | Maximum block |
+| --------------------------- | -------- | ---------- | ------------- |
+| Per username and client IP  | 5        | 15 minutes | 15 minutes    |
+| Per username, any client IP | 50       | 15 minutes | 15 minutes    |
+| Per client IP               | 30       | 15 minutes | 15 minutes    |
+
+The username is lower-cased and trimmed first, so `Jane` and ` jane ` share one counter.
+IPv6 clients are counted per `/64` network, so rotating addresses within one network does not escape the per-IP limit.
+The strict limit is per username and client IP, so an attacker elsewhere cannot lock a user out with a few wrong passwords.
+The per-username limit across all addresses is the backstop against guessing one password from many addresses.
+After the limit is reached, every further failure doubles the block, up to the maximum.
+A counter expires only after a whole window passes without a failure, so an attacker who retries as soon as each block ends stays at the maximum block.
+A blocked request gets status `429` with the code `too_many_attempts` and a `Retry-After` header in seconds.
+Wrong passwords, unknown users and valid users outside the allowed groups count as failures.
+Directory errors such as an unreachable server do not.
+A successful sign-in resets the counters of the username.
+At most 10,000 keys are tracked per limit.
+When a limit is full, keys below their threshold are dropped first, and keys that reached it are kept until they expire.
+While a limit holds only keys that reached their threshold, attempts with a new key are refused with `429`.
+
+The state is process-local.
+A restart clears it, and several server replicas do not share it.
+
+### Trusted proxies
+
+Crow takes the client IP from `X-Forwarded-For` and `X-Real-IP`.
+Without `CROW_TRUSTED_PROXIES` it trusts those headers from any client, so an attacker can send a fresh fake address with every request and get around the per-IP limit.
+The limit of 50 per username across all addresses does not depend on the address and still applies.
+
+Set `CROW_TRUSTED_PROXIES` to the addresses or CIDR ranges of your [reverse proxies](/dev/installation/proxy/):
+
+```sh
+CROW_TRUSTED_PROXIES=10.0.0.0/8,192.168.1.10
+```
+
+The server logs a warning at startup when LDAP is enabled and `CROW_TRUSTED_PROXIES` is empty.
+
+## Security notes
+
+- Use `ldaps://`, or `ldap://` with `CROW_LDAP_START_TLS=true`.
+    Passwords travel to the directory in clear text otherwise.
+    The two options cannot be combined.
+- Add a private CA with `CROW_LDAP_CA_CERT_FILE`.
+    It is trusted in addition to the system certificates.
+- Never set `CROW_LDAP_SKIP_VERIFY=true` in production.
+    It disables certificate checks, so anyone on the network path can read the passwords.
+- Keep the service account read-only, and store its password in `CROW_LDAP_BIND_PASSWORD_FILE` rather than in the environment.
+- The login endpoint accepts only `application/json`, and a request with a foreign `Origin` header is refused, which blocks cross-site login attempts.
+
+## Disabling forge sign-in
+
+Set `CROW_FORGE_LOGIN_DISABLED=true` to make LDAP and OIDC the only ways to sign in.
+Users can still link forge accounts while signed in.
+Nobody can become admin through `CROW_ADMIN` in this mode, so set `CROW_LDAP_ADMIN_GROUPS` (or `CROW_OIDC_ADMIN_GROUPS`) to bootstrap the first admin.
+Users cannot unlink their last single sign-on identity while forge sign-in is disabled, and nobody can unlink it before linking a forge account.
+
+## Validation
+
+The server refuses to start in these cases:
+
+- `CROW_LDAP_URL requires CROW_LDAP_USER_BASE_DN`
+- `CROW_LDAP_URL must start with ldap:// or ldaps://`
+- `CROW_LDAP_START_TLS cannot be used with an ldaps:// URL`
+- `CROW_LDAP_USER_FILTER must contain {username}`
+- `CROW_LDAP_GROUP_SEARCH_FILTER must contain {dn} or {username}`
+- `CROW_LDAP_URL must not be longer than 255 characters`
+- `CROW_LDAP_BIND_DN requires CROW_LDAP_BIND_PASSWORD`
+- `CROW_FORGE_LOGIN_DISABLED requires OIDC or LDAP sign-in`
+- `CROW_TRUSTED_PROXIES: invalid entry`
+
+## Troubleshooting
+
+| Status | Code                    | Meaning                                                                    |
+| ------ | ----------------------- | -------------------------------------------------------------------------- |
+| 401    | `invalid_credentials`   | Unknown user, wrong password, ambiguous match or empty password            |
+| 403    | `ldap_access_denied`    | Valid credentials, but the user is in no allowed group                     |
+| 403    | `registration_closed`   | The user has no account and registration is closed                         |
+| 403    | `idp_login_taken`, `idp_invalid_username` | The login cannot be used for a new account |
+| 429    | `too_many_attempts`     | Rate limited, see the `Retry-After` header                                 |
+| 503    | `ldap_unavailable`      | The directory is unreachable or misconfigured, check the server log        |

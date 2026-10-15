@@ -17,8 +17,8 @@ Replace `<your-crow-domain>` with your actual Crow instance URL (e.g., `ci.examp
 For local development, use `http://localhost:8000/authorize`.
 
 :::tip
-To sign users in through an identity provider instead, see [Single Sign-On (OIDC)](/dev/configuration/oidc/).
-The forge OAuth application is still required in that case, because users link their forge accounts through it, even when `CROW_OIDC_ONLY=true` hides forge sign-in.
+To sign users in through an identity provider or a directory instead, see [Single Sign-On (OIDC)](/dev/configuration/oidc/) and [LDAP sign-in](/dev/configuration/ldap/).
+The forge OAuth application is still required in that case, because users link their forge accounts through it, even when `CROW_FORGE_LOGIN_DISABLED=true` hides forge sign-in.
 :::
 
 :::note

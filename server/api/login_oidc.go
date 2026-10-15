@@ -16,25 +16,17 @@ package api
 
 import (
 	"crypto/subtle"
-	"encoding/base32"
-	"errors"
 	"net/http"
-	"slices"
 	"strconv"
-	"strings"
 	"time"
-	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
-	"github.com/tink-crypto/tink-go/v2/subtle/random"
 
 	"codefloe.com/crowci/crow/v6/server"
 	"codefloe.com/crowci/crow/v6/server/auth/oidc"
-	"codefloe.com/crowci/crow/v6/server/model"
 	"codefloe.com/crowci/crow/v6/server/router/middleware/session"
 	"codefloe.com/crowci/crow/v6/server/store"
-	"codefloe.com/crowci/crow/v6/server/store/types"
 	"codefloe.com/crowci/crow/v6/shared/httputil"
 	"codefloe.com/crowci/crow/v6/shared/token"
 )
@@ -149,57 +141,20 @@ func HandleOIDCCallback(c *gin.Context) {
 	}
 
 	_store := store.FromContext(c)
+	idClaims := &idpClaims{Subject: claims.Subject, Email: claims.Email, Username: claims.Username, Groups: claims.Groups}
 	if linkingUserID != 0 {
-		linkOIDCIdentity(c, _store, provider, linkingUserID, claims)
+		linkOIDCIdentity(c, _store, provider, linkingUserID, idClaims)
 		return
 	}
 
-	identity, err := _store.UserIdentityGetByProviderSubject(oidc.ProviderName, provider.Issuer(), claims.Subject)
-	var user *model.User
-	switch {
-	case err == nil:
-		user, err = _store.GetUser(identity.UserID)
-		if err != nil {
-			log.Error().Err(err).Int64("user_id", identity.UserID).Msg("cannot get user of OIDC identity")
-			oidcRedirect(c, "/login?error=internal_error")
-			return
+	user, err := signInIdentity(_store, provider, idClaims)
+	if err != nil {
+		code := identityErrorCode(err)
+		if code == "internal_error" {
+			log.Error().Err(err).Msg("cannot complete OIDC sign-in")
 		}
-		refreshIdentity(identity, claims)
-		if err := _store.UserIdentityUpdate(identity); err != nil {
-			log.Error().Err(err).Msgf("cannot update OIDC identity of %s", user.Login)
-		}
-	case errors.Is(err, types.RecordNotExist):
-		var ok bool
-		if user, ok = registerOIDCUser(c, _store, provider, claims); !ok {
-			return
-		}
-	default:
-		log.Error().Err(err).Msg("cannot look up OIDC identity")
-		oidcRedirect(c, "/login?error=internal_error")
+		oidcRedirect(c, "/login?error="+code)
 		return
-	}
-
-	changed := false
-	if provider.ManagesAdmin() {
-		// OIDC sign-in never consults CROW_ADMIN because the username claim is not
-		// verified; admin via OIDC comes only from CROW_OIDC_ADMIN_GROUPS.
-		if admin := provider.IsAdmin(claims.Groups); admin != user.Admin {
-			user.Admin = admin
-			changed = true
-			log.Info().Bool("admin", admin).Msgf("admin status of %s set from OIDC groups", user.Login)
-		}
-	}
-	oldRoles := strings.Join(user.Roles, ",")
-	if len(provider.ManagedRoles()) > 0 && applyOIDCRoles(user, provider, claims.Groups) {
-		changed = true
-		log.Info().Str("old", oldRoles).Str("new", strings.Join(user.Roles, ",")).Msgf("roles of %s set from OIDC groups", user.Login)
-	}
-	if changed {
-		if err := _store.UpdateUser(user); err != nil {
-			log.Error().Err(err).Msgf("cannot update admin status and roles of %s", user.Login)
-			oidcRedirect(c, "/login?error=internal_error")
-			return
-		}
 	}
 
 	if !issueSession(c, _store, user) {
@@ -208,104 +163,8 @@ func HandleOIDCCallback(c *gin.Context) {
 	oidcRedirect(c, "/")
 }
 
-// applyOIDCRoles sets every role the provider manages from the user's groups,
-// keeps the other valid roles, and drops unknown stored names. It reports
-// whether the roles changed.
-func applyOIDCRoles(user *model.User, provider *oidc.Provider, groups []string) bool {
-	managed := provider.ManagedRoles()
-	next := []string{}
-	for _, r := range user.Roles {
-		if model.Role(r).IsValid() && !slices.Contains(managed, r) {
-			next = append(next, r)
-		}
-	}
-	next = append(next, provider.RolesFor(groups)...)
-	slices.Sort(next)
-	next = slices.Compact(next)
-	changed := !slices.Equal(next, []string(user.Roles))
-	user.Roles = model.JSONSliceString(next)
-	return changed
-}
-
-// Column sizes of user_identities; longer claims are stored truncated, as they
-// are informational only.
-const (
-	maxIdentityEmailLen    = 500
-	maxIdentityUsernameLen = 250
-	// The OIDC spec limits sub to 255 ASCII characters.
-	maxIdentitySubjectLen = 255
-)
-
-func truncateClaim(value string, maxLen int) string {
-	if len(value) <= maxLen {
-		return value
-	}
-	cut := maxLen
-	for cut > 0 && !utf8.RuneStart(value[cut]) {
-		cut--
-	}
-	return value[:cut]
-}
-
-func refreshIdentity(identity *model.UserIdentity, claims *oidc.Claims) {
-	identity.Email = truncateClaim(claims.Email, maxIdentityEmailLen)
-	identity.Username = truncateClaim(claims.Username, maxIdentityUsernameLen)
-	identity.Groups = claims.Groups
-	identity.LastLogin = time.Now().Unix()
-}
-
-// registerOIDCUser creates a user for an unknown identity. On failure it
-// redirects and returns false.
-func registerOIDCUser(c *gin.Context, _store store.Store, provider *oidc.Provider, claims *oidc.Claims) (*model.User, bool) {
-	login, valid := oidc.NormalizeUsername(claims.Username)
-
-	// OIDC sign-in never consults CROW_ADMIN because the username claim is not
-	// verified; admin via OIDC comes only from CROW_OIDC_ADMIN_GROUPS.
-	if !server.Config.Permissions.Open && !provider.RestrictsGroups() && !provider.IsAdmin(claims.Groups) {
-		log.Warn().Str("subject", claims.Subject).Msg("cannot register OIDC user, registration closed")
-		oidcRedirect(c, "/login?error=registration_closed")
-		return nil, false
-	}
-	if strings.TrimSpace(claims.Username) == "" {
-		log.Warn().Str("subject", claims.Subject).Msg("OIDC token has no username claim")
-		oidcRedirect(c, "/login?error=oidc_missing_username")
-		return nil, false
-	}
-	if !valid {
-		log.Warn().Str("username", claims.Username).Msg("OIDC username claim is not a valid Crow login")
-		oidcRedirect(c, "/login?error=oidc_invalid_username")
-		return nil, false
-	}
-
-	// Existing users must link their identity explicitly from user settings, so
-	// a matching login never signs anyone in. The username comes from the IdP
-	// and is not forge-verified, so it must not collide with any user or any org
-	// on any forge (case-insensitive): a forge org of that name would look like
-	// the user's personal namespace. The store checks this in the same
-	// transaction that creates the user, org and identity.
-	user := &model.User{
-		Login: login,
-		Email: truncateClaim(claims.Email, maxIdentityEmailLen),
-		Admin: false,
-		Hash:  base32.StdEncoding.EncodeToString(random.GetRandomBytes(32)),
-	}
-	identity := &model.UserIdentity{Provider: oidc.ProviderName, Issuer: provider.Issuer(), Subject: claims.Subject}
-	refreshIdentity(identity, claims)
-	if err := _store.UserCreateWithIdentity(user, identity); errors.Is(err, types.ErrNameTaken) {
-		log.Warn().Msgf("cannot register OIDC user %s: login or org name already taken", login)
-		oidcRedirect(c, "/login?error=oidc_login_taken")
-		return nil, false
-	} else if err != nil {
-		log.Error().Err(err).Msgf("cannot create OIDC user %s", login)
-		oidcRedirect(c, "/login?error=internal_error")
-		return nil, false
-	}
-	log.Info().Msgf("registered user %s through OIDC", login)
-	return user, true
-}
-
 // linkOIDCIdentity attaches the identity to the signed-in user.
-func linkOIDCIdentity(c *gin.Context, _store store.Store, provider *oidc.Provider, userID int64, claims *oidc.Claims) {
+func linkOIDCIdentity(c *gin.Context, _store store.Store, provider *oidc.Provider, userID int64, claims *idpClaims) {
 	user, err := _store.GetUser(userID)
 	if err != nil {
 		log.Error().Err(err).Int64("user_id", userID).Msg("cannot get linking user")
@@ -313,58 +172,12 @@ func linkOIDCIdentity(c *gin.Context, _store store.Store, provider *oidc.Provide
 		return
 	}
 
-	existing, err := _store.UserIdentityGetByProviderSubject(oidc.ProviderName, provider.Issuer(), claims.Subject)
-	switch {
-	case err == nil && existing.UserID != user.ID:
-		log.Warn().Msgf("OIDC identity %s is already linked to user %d", claims.Subject, existing.UserID)
-		oidcRedirect(c, "/user?error=identity_taken")
-		return
-	case err == nil:
-		refreshIdentity(existing, claims)
-		if err := _store.UserIdentityUpdate(existing); err != nil {
-			log.Error().Err(err).Msgf("cannot update OIDC identity of %s", user.Login)
-		}
-	case errors.Is(err, types.RecordNotExist):
-		identities, err := _store.UserIdentityList(user.ID)
-		if err != nil {
-			log.Error().Err(err).Msgf("cannot list identities of %s", user.Login)
-			oidcRedirect(c, "/user?error=internal_error")
-			return
-		}
-		for _, id := range identities {
-			if id.Provider == oidc.ProviderName {
-				oidcRedirect(c, "/user?error=identity_already_linked")
-				return
-			}
-		}
-		// A legacy forge user with neither a forge remote ID nor a forge link is
-		// only found at forge sign-in by login, and that lookup skips users with
-		// an identity. They must sign in with their forge once first, which
-		// records the forge link.
-		if len(identities) == 0 && user.ForgeRemoteID == "" {
-			forges, err := _store.UserForgeList(user.ID)
-			if err != nil {
-				log.Error().Err(err).Msgf("cannot list forges of %s", user.Login)
-				oidcRedirect(c, "/user?error=internal_error")
-				return
-			}
-			if len(forges) == 0 {
-				log.Warn().Msgf("user %s must sign in with their forge before linking an OIDC identity", user.Login)
-				oidcRedirect(c, "/user?error=forge_sign_in_required")
-				return
-			}
-		}
-		identity := &model.UserIdentity{UserID: user.ID, Provider: oidc.ProviderName, Issuer: provider.Issuer(), Subject: claims.Subject}
-		refreshIdentity(identity, claims)
-		if err := _store.UserIdentityCreate(identity); err != nil {
+	if _, err := linkIdentity(_store, provider, user, claims); err != nil {
+		code := identityErrorCode(err)
+		if code == "internal_error" {
 			log.Error().Err(err).Msgf("cannot link OIDC identity to %s", user.Login)
-			oidcRedirect(c, "/user?error=internal_error")
-			return
 		}
-		log.Info().Msgf("user %s linked an OIDC identity", user.Login)
-	default:
-		log.Error().Err(err).Msg("cannot look up OIDC identity")
-		oidcRedirect(c, "/user?error=internal_error")
+		oidcRedirect(c, "/user?error="+code)
 		return
 	}
 

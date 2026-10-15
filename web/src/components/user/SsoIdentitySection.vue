@@ -2,31 +2,55 @@
   <div class="space-y-4">
     <div>
       <h3 class="text-lg text-foreground">{{ $t('user.settings.sso.title') }}</h3>
-      <p class="text-sm text-muted-foreground">{{ $t('user.settings.sso.desc', { name: config.auth.oidc.name }) }}</p>
+      <p class="text-sm text-muted-foreground">{{ $t('user.settings.sso.desc') }}</p>
     </div>
     <div v-if="loading" class="flex items-center text-sm text-muted-foreground">
       <Icon name="spinner" class="h-4 w-4 animate-spin" />
     </div>
-    <div v-else-if="identity" class="flex items-center justify-between gap-4 rounded-md border border-border p-3">
-      <div class="text-sm">
-        <div class="font-medium text-foreground">{{ identity.username || identity.subject }}</div>
-        <div v-if="identity.email" class="text-muted-foreground">{{ identity.email }}</div>
-      </div>
-      <div class="flex flex-col items-end gap-1">
-        <Button variant="outline" size="sm" :disabled="unlinking || !canUnlink" @click="showUnlinkDialog = true">
-          {{ $t('user.settings.sso.unlink') }}
+    <template v-else>
+      <div v-for="provider in providers" :key="provider.key" :data-provider="provider.key">
+        <div
+          v-if="provider.identity"
+          class="flex items-center justify-between gap-4 rounded-md border border-border p-3"
+        >
+          <div class="text-sm">
+            <div class="text-xs text-muted-foreground">{{ provider.name }}</div>
+            <div class="font-medium text-foreground">{{ provider.identity.username || provider.identity.subject }}</div>
+            <div v-if="provider.identity.email" class="text-muted-foreground">{{ provider.identity.email }}</div>
+          </div>
+          <div class="flex flex-col items-end gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              :disabled="unlinking || !canUnlink"
+              @click="unlinkTarget = provider.identity"
+            >
+              {{ $t('user.settings.sso.unlink') }}
+            </Button>
+            <p v-if="!canUnlink" class="max-w-xs text-right text-xs text-muted-foreground">
+              {{ $t('user.settings.sso.unlink_needs_forge') }}
+            </p>
+          </div>
+        </div>
+        <Button
+          v-else-if="provider.key === 'oidc'"
+          variant="outline"
+          size="sm"
+          as="a"
+          :href="`${config.rootPath}/authorize/oidc`"
+        >
+          {{ $t('user.settings.sso.link', { name: provider.name }) }}
         </Button>
-        <p v-if="!canUnlink" class="max-w-xs text-right text-xs text-muted-foreground">
-          {{ $t('user.settings.sso.unlink_needs_forge') }}
-        </p>
+        <Button v-else variant="outline" size="sm" @click="showLdapDialog = true">
+          {{ $t('user.settings.sso.link', { name: provider.name }) }}
+        </Button>
       </div>
-    </div>
-    <Button v-else variant="outline" size="sm" as="a" :href="`${config.rootPath}/authorize/oidc`">
-      {{ $t('user.settings.sso.link', { name: config.auth.oidc.name }) }}
-    </Button>
+    </template>
   </div>
 
-  <AlertDialog v-model:open="showUnlinkDialog">
+  <LdapLinkDialog v-model:open="showLdapDialog" :name="config.auth.ldap.name" @linked="onLdapLinked" />
+
+  <AlertDialog :open="unlinkTarget !== null" @update:open="(value) => !value && (unlinkTarget = null)">
     <AlertDialogContent>
       <AlertDialogHeader>
         <AlertDialogTitle>{{ $t('user.settings.sso.unlink_confirm_title') }}</AlertDialogTitle>
@@ -60,6 +84,7 @@ import {
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog';
 import { Button } from '~/components/ui/button';
+import LdapLinkDialog from '~/components/user/LdapLinkDialog.vue';
 import useApiClient from '~/compositions/useApiClient';
 import useConfig from '~/compositions/useConfig';
 import useNotifications from '~/compositions/useNotifications';
@@ -73,10 +98,28 @@ const router = useRouter();
 const { t } = useI18n();
 
 const identities = ref<UserIdentity[]>([]);
-const identity = computed(() => identities.value.find((i) => i.provider === 'oidc'));
+const providers = computed(() => {
+  const list: { key: 'oidc' | 'ldap'; name: string; identity?: UserIdentity }[] = [];
+  if (config.auth.oidc.enabled) {
+    list.push({
+      key: 'oidc',
+      name: config.auth.oidc.name,
+      identity: identities.value.find((i) => i.provider === 'oidc'),
+    });
+  }
+  if (config.auth.ldap.enabled) {
+    list.push({
+      key: 'ldap',
+      name: config.auth.ldap.name,
+      identity: identities.value.find((i) => i.provider === 'ldap'),
+    });
+  }
+  return list;
+});
 const loading = ref(true);
 const unlinking = ref(false);
-const showUnlinkDialog = ref(false);
+const unlinkTarget = ref<UserIdentity | null>(null);
+const showLdapDialog = ref(false);
 // Unlinking single sign-on must leave a way to sign in: a linked forge that
 // forge sign-in is enabled for.
 const canUnlink = computed(() => config.auth.forge_count !== 0 && config.auth.forge_login);
@@ -99,17 +142,26 @@ async function load() {
   }
 }
 
+async function onLdapLinked() {
+  notifications.notify({
+    title: t('notify_title_success'),
+    text: t('user.settings.sso.link_success'),
+    type: 'success',
+  });
+  await load();
+}
+
 async function unlink() {
-  if (!identity.value) return;
+  if (!unlinkTarget.value) return;
   unlinking.value = true;
   try {
-    await apiClient.deleteUserIdentity(identity.value.id);
+    await apiClient.deleteUserIdentity(unlinkTarget.value.id);
     notifications.notify({
       title: t('notify_title_success'),
       text: t('user.settings.sso.unlink_success'),
       type: 'success',
     });
-    showUnlinkDialog.value = false;
+    unlinkTarget.value = null;
     await load();
   } catch (error) {
     notifications.notify({
