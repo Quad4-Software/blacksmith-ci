@@ -37,6 +37,11 @@ func (guardStore) UserForgeList(int64) ([]*model.UserForge, error) { return nil,
 
 func newGuardEngine(t *testing.T, user *model.User) *gin.Engine {
 	t.Helper()
+	return newGuardEngineWithAutoscaler(t, user, nil)
+}
+
+func newGuardEngineWithAutoscaler(t *testing.T, user *model.User, autoscaler *model.Autoscaler) *gin.Engine {
+	t.Helper()
 	// The /debug group is only registered at debug log level.
 	prev := zerolog.GlobalLevel()
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
@@ -49,6 +54,9 @@ func newGuardEngine(t *testing.T, user *model.User) *gin.Engine {
 		store.ToContext(c, guardStore{})
 		if user != nil {
 			c.Set("user", user)
+		}
+		if autoscaler != nil {
+			c.Set("autoscaler", autoscaler)
 		}
 		c.Next()
 	})
@@ -172,6 +180,41 @@ func TestUserRoutes(t *testing.T) {
 				} else {
 					assert.Equal(t, r.status, w.Code, "signed in")
 				}
+			}
+		})
+	}
+}
+
+// The heartbeat route must only accept the token of the autoscaler it reports
+// for, regardless of any user session on the request.
+func TestAutoscalerHeartbeatRequiresOwnToken(t *testing.T) {
+	const heartbeatBody = `{"active_agents":1,"pending_agents":0,"version":"v1","min_agents":0,"max_agents":5,` +
+		`"workflows_per_agent":1,"provider":"hetznercloud","instance_type":"cx22","region":"fsn1",` +
+		`"agent_labels":{},"limit_cpu_quota":"","limit_mem":""}`
+	tests := []struct {
+		name       string
+		user       *model.User
+		autoscaler *model.Autoscaler
+		denied     int
+	}{
+		{name: "anonymous", denied: http.StatusUnauthorized},
+		{name: "admin user without autoscaler token", user: &model.User{ID: 1, Admin: true}, denied: http.StatusUnauthorized},
+		{name: "token of another autoscaler", autoscaler: &model.Autoscaler{ID: 2}, denied: http.StatusForbidden},
+		{name: "own token", autoscaler: &model.Autoscaler{ID: 1}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := newGuardEngineWithAutoscaler(t, tt.user, tt.autoscaler)
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/autoscalers/1/heartbeat", strings.NewReader(heartbeatBody))
+			req.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+			e.ServeHTTP(w, req)
+			if tt.denied != 0 {
+				assert.Equal(t, tt.denied, w.Code)
+			} else {
+				// The guard store panics on AutoscalerFind, so reaching the
+				// handler's store lookup surfaces as a 500.
+				assert.Equal(t, http.StatusInternalServerError, w.Code)
 			}
 		})
 	}

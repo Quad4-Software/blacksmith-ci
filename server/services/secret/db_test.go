@@ -87,3 +87,11 @@ func TestSecretListPipeline(t *testing.T) {
 	assert.Len(t, s, 1)
 	assert.Equal(t, "value-global", s[0].Value)
 }
+
+func TestSecretTransferOwnerRejectsOrgAndRepo(t *testing.T) {
+	mockStore := store_mocks.NewMockStore(t)
+
+	err := secret.NewDB(mockStore).SecretTransferOwner(repoSecret.ID, 1, 1, false)
+	assert.Error(t, err)
+	mockStore.AssertNotCalled(t, "SecretUpdate", mock.Anything)
+}

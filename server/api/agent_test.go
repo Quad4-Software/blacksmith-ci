@@ -28,6 +28,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+	"codefloe.com/crowci/crow/v6/pipeline"
 	"codefloe.com/crowci/crow/v6/server"
 	"codefloe.com/crowci/crow/v6/server/model"
 	"codefloe.com/crowci/crow/v6/server/queue"
@@ -539,6 +540,45 @@ func TestPatchAgentOrgScope(t *testing.T) {
 				assert.Empty(t, output.Body.OrgIDs)
 			} else {
 				assert.Equal(t, tt.want, output.Body.OrgIDs)
+			}
+		})
+	}
+}
+
+func TestPostAgentRejectsReservedCustomLabels(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	tests := []struct {
+		name   string
+		labels map[string]string
+		reject bool
+	}{
+		{name: "no labels"},
+		{name: "regular labels", labels: map[string]string{"tier": "heavy"}},
+		{name: "reserved org-id", labels: map[string]string{"tier": "heavy", pipeline.LabelOrgID: "5"}, reject: true},
+		{name: "reserved repo-full-name", labels: map[string]string{pipeline.LabelRepoFullName: "org/repo"}, reject: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockStore := store_mocks.NewMockStore(t)
+			if !tt.reject {
+				mockStore.On("AgentCreate", mock.Anything).Return(nil).Twice()
+			}
+			c, _ := gin.CreateTestContext(httptest.NewRecorder())
+			c.Set("store", mockStore)
+			c.Set("user", &model.User{ID: 1, Admin: true})
+			body := PostAgentBody{Name: "agent", CustomLabels: tt.labels}
+
+			_, errGlobal := PostAgent(testCtx(c), &PostAgentInput{Body: body})
+			_, errOrg := PostOrgAgent(testCtx(c), &PostOrgAgentInput{OrgID: 3, Body: body})
+			for _, err := range []error{errGlobal, errOrg} {
+				if !tt.reject {
+					assert.NoError(t, err)
+					continue
+				}
+				var se huma.StatusError
+				require.True(t, errors.As(err, &se), "expected a huma status error, got %v", err)
+				assert.Equal(t, http.StatusUnprocessableEntity, se.GetStatus())
 			}
 		})
 	}

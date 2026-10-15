@@ -203,6 +203,10 @@ func (d *db) SecretTargetList(secretID int64) ([]*model.SecretTarget, error) {
 }
 
 func (d *db) SecretTransferOwner(secretID int64, newOrgID int64, newRepoID int64, keepOldOwnerAsTarget bool) error {
+	if newOrgID != 0 && newRepoID != 0 {
+		return fmt.Errorf("a secret cannot be owned by both an org and a repo")
+	}
+
 	secret, err := d.store.SecretFindByID(secretID)
 	if err != nil {
 		return fmt.Errorf("secret not found: %d", secretID)

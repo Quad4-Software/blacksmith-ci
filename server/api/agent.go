@@ -18,9 +18,11 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
 
+	"codefloe.com/crowci/crow/v6/pipeline"
 	"codefloe.com/crowci/crow/v6/server"
 	"codefloe.com/crowci/crow/v6/server/model"
 	"codefloe.com/crowci/crow/v6/server/router/middleware/session"
@@ -259,6 +261,9 @@ type PostAgentOutput struct {
 
 func PostAgent(ctx context.Context, input *PostAgentInput) (*PostAgentOutput, error) {
 	c := ginCtx(ctx)
+	if err := validateCustomLabels(input.Body.CustomLabels); err != nil {
+		return nil, err
+	}
 	user := session.User(c)
 	_store := store.FromContext(c)
 
@@ -324,6 +329,9 @@ type PostOrgAgentInput struct {
 
 func PostOrgAgent(ctx context.Context, input *PostOrgAgentInput) (*PostAgentOutput, error) {
 	c := ginCtx(ctx)
+	if err := validateCustomLabels(input.Body.CustomLabels); err != nil {
+		return nil, err
+	}
 	user := session.User(c)
 
 	agent := &model.Agent{
@@ -466,4 +474,14 @@ func DeleteOrgAgent(ctx context.Context, input *DeleteOrgAgentInput) (*struct{},
 	}
 
 	return nil, nil
+}
+
+// The validateCustomLabels check rejects custom labels with the reserved
+// crowci/ prefix, which the server uses for task metadata and agent scoping.
+func validateCustomLabels(labels map[string]string) error {
+	if _, dropped := model.StripReservedAgentLabels(labels); len(dropped) > 0 {
+		return huma.Error422UnprocessableEntity(fmt.Sprintf("custom labels must not use the reserved %s/ prefix: %s",
+			pipeline.InternalLabelPrefix, strings.Join(dropped, ", ")))
+	}
+	return nil
 }

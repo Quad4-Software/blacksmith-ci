@@ -328,6 +328,10 @@ func TestNextCIQuotaSelfHostedNameCollision(t *testing.T) {
 	db.On("AgentFind", int64(1)).Return(&model.Agent{
 		ID: 1, Name: "public-agent", OrgIDs: model.JSONSliceInt64{7},
 	}, nil)
+	// Next confirms an org-scoped agent may access the workflow's repo.
+	db.On("WorkflowLoad", int64(42)).Return(&model.Workflow{ID: 42, PipelineID: 8}, nil)
+	db.On("GetPipeline", int64(8)).Return(&model.Pipeline{ID: 8, RepoID: 3}, nil)
+	db.On("GetRepo", int64(3)).Return(&model.Repo{ID: 3, OrgID: 7, FullName: "org/repo"}, nil)
 	data, err := json.Marshal(&rpc.Workflow{ID: "42"})
 	require.NoError(t, err)
 	q.On("Poll", mock.Anything, int64(1), mock.Anything).Return(&model.Task{ID: "42", Data: data, RunOn: []string{"success"}}, nil)

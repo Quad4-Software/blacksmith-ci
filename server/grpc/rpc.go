@@ -168,6 +168,18 @@ func (s *RPC) Next(c context.Context, agentFilter rpc.Filter) (*rpc.Workflow, er
 			return nil, err
 		}
 
+		// Defense in depth: the filter already scopes org agents, but never
+		// hand an org-scoped agent a workflow of a repo it may not access.
+		// The claimed task is withheld rather than requeued; the queue treats
+		// it as orphaned once its deadline passes and finalizes it then.
+		if !agent.IsGlobal() {
+			if err := s.checkAgentPermissionByWorkflow(c, agent, task.ID, nil, nil); err != nil {
+				log.Error().Err(err).Str("workflow_id", task.ID).Int64("agent_id", agent.ID).
+					Msg("queue handed a workflow to an agent outside its scope, withholding it")
+				return nil, status.Error(codes.PermissionDenied, "agent is not allowed to run this workflow")
+			}
+		}
+
 		if task.ShouldRun() {
 			if err := s.checkCIQuota(c, agent, task); err != nil {
 				// A poll canceled mid-check produced no quota decision, so the
@@ -701,7 +713,14 @@ func (s *RPC) RegisterAgent(ctx context.Context, info rpc.AgentInfo) (int64, str
 	agent.Capacity = int32(info.Capacity)
 	agent.Version = info.Version
 	agent.BuildDate = info.BuildDate
-	agent.CustomLabels = info.CustomLabels
+	customLabels, dropped := model.StripReservedAgentLabels(info.CustomLabels)
+	if len(dropped) > 0 {
+		log.Warn().
+			Int64("agent_id", agent.ID).
+			Strs("labels", dropped).
+			Msgf("ignoring agent custom labels with the reserved %s/ prefix", pipeline.InternalLabelPrefix)
+	}
+	agent.CustomLabels = customLabels
 	// Priority is managed server-side via the API/UI and persisted in the DB.
 	// It is intentionally not taken from the agent here, so it survives re-registration.
 	agent.LimitMem = info.LimitMem

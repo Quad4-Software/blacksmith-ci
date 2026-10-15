@@ -212,7 +212,16 @@ func PostAutoscalerHeartbeat(ctx context.Context, input *PostAutoscalerHeartbeat
 	c := ginCtx(ctx)
 	_store := store.FromContext(c)
 
-	// Verify autoscaler exists and token matches
+	// The caller must authenticate with the token of the autoscaler it reports
+	// for; one autoscaler's token must never update another autoscaler.
+	caller := session.Autoscaler(c)
+	if caller == nil {
+		return nil, huma.Error401Unauthorized("invalid or missing autoscaler token")
+	}
+	if caller.ID != input.AutoscalerID {
+		return nil, huma.Error403Forbidden("autoscaler token does not belong to this autoscaler")
+	}
+
 	autoscaler, err := _store.AutoscalerFind(input.AutoscalerID)
 	if err != nil {
 		return nil, dbErr(err)

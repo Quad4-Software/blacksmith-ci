@@ -79,21 +79,31 @@ func authorizeSecretAccess(ctx context.Context, _store store.Store, secretID int
 		return huma.Error401Unauthorized("authentication required")
 	}
 
-	if secret.IsGlobal() {
+	return authorizeSecretScope(ctx, _store, user, secret.OrgID, secret.RepoID)
+}
+
+// authorizeSecretScope checks that the user may manage secrets owned by the
+// given scope: the global scope (both IDs zero), an org, or a repo. It requires
+// the same authority as creating a secret there through the scoped endpoints:
+// secrets:write for global, org admin for an org, and push access for a repo.
+func authorizeSecretScope(ctx context.Context, _store store.Store, user *model.User, orgID, repoID int64) error {
+	switch {
+	case orgID == 0 && repoID == 0:
 		if !user.Can(model.PermSecretsWrite) {
 			return huma.Error403Forbidden("secrets:write permission required")
 		}
 		return nil
-	}
-
-	if secret.IsOrganization() {
-		return authorizeOrgSecretAccess(ctx, _store, user, secret.OrgID)
-	}
-
-	if secret.IsRepository() {
-		repo, err := _store.GetRepo(secret.RepoID)
+	case orgID != 0 && repoID != 0:
+		return huma.Error422UnprocessableEntity("only one of org_id or repo_id may be set")
+	case orgID != 0:
+		return authorizeOrgSecretAccess(ctx, _store, user, orgID)
+	default:
+		repo, err := _store.GetRepo(repoID)
 		if err != nil {
 			return huma.Error404NotFound("repository not found")
+		}
+		if user.Admin {
+			return nil
 		}
 		perm, err := _store.PermFind(user, repo)
 		if err != nil || !perm.Push {
@@ -101,21 +111,19 @@ func authorizeSecretAccess(ctx context.Context, _store store.Store, secretID int
 		}
 		return nil
 	}
-
-	return huma.Error403Forbidden("access denied")
 }
 
 // authorizeOrgSecretAccess mirrors MustOrgMember(admin=true) semantics: the user
 // must be an instance admin, own the org (personal org), or be an org admin as
 // reported by the forge membership service.
 func authorizeOrgSecretAccess(ctx context.Context, _store store.Store, user *model.User, orgID int64) error {
-	if user.Admin {
-		return nil
-	}
-
 	org, err := _store.OrgGet(orgID)
 	if err != nil {
 		return huma.Error404NotFound("organization not found")
+	}
+
+	if user.Admin {
+		return nil
 	}
 
 	// User can always manage their own (personal) org secrets.
@@ -181,8 +189,10 @@ func PostSecretTarget(ctx context.Context, input *PostSecretTargetInput) (*PostS
 	if input.Body.OrgID == 0 && input.Body.RepoID == 0 {
 		return nil, huma.Error422UnprocessableEntity("either org_id or repo_id must be set")
 	}
-	if input.Body.OrgID != 0 && input.Body.RepoID != 0 {
-		return nil, huma.Error422UnprocessableEntity("only one of org_id or repo_id may be set")
+	// Sharing makes the secret available to the target's pipelines, so the
+	// caller needs the same authority over the target as over the owner.
+	if err := authorizeSecretScope(ctx, _store, session.User(c), input.Body.OrgID, input.Body.RepoID); err != nil {
+		return nil, err
 	}
 
 	secretService := server.Config.Services.Manager.SecretService()
@@ -241,6 +251,11 @@ func PatchSecretOwner(ctx context.Context, input *PatchSecretOwnerInput) (*struc
 	_store := store.FromContext(c)
 
 	if err := authorizeSecretAccess(ctx, _store, input.SecretID); err != nil {
+		return nil, err
+	}
+	// The new owner must be a scope the caller could create the secret in;
+	// moving to org_id=0, repo_id=0 makes it global and needs secrets:write.
+	if err := authorizeSecretScope(ctx, _store, session.User(c), input.Body.OrgID, input.Body.RepoID); err != nil {
 		return nil, err
 	}
 

@@ -59,7 +59,7 @@ Core agent configuration variables.
 ### AGENT_LABELS
 
 - Name: `CROW_AGENT_LABELS`
-- Description: Configures custom labels for the agent, to enable workflow filtering. Accepts a list of key-value pairs like `key=value,second-key=*`. Agents provide three additional labels `platform=os/arch`, `hostname=my-agent` and `repo=*` which can be overwritten if needed.
+- Description: Configures custom labels for the agent, to enable workflow filtering. Accepts a list of key-value pairs like `key=value,second-key=*`. Agents provide three additional labels `platform=os/arch`, `hostname=my-agent` and `repo=*` which can be overwritten if needed. Labels with the reserved `crowci/` prefix are ignored, because the server uses them for task metadata and for scoping agents to organizations.
 - Default: none
 
 ---

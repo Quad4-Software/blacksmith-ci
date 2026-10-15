@@ -100,6 +100,33 @@ func (a *Agent) IsSystemAgent() bool {
 }
 
 // IsGlobal reports whether the agent can process tasks from any organization.
+// IsReservedAgentLabel reports whether a label key uses the crowci/ prefix that
+// the server reserves for its own task metadata and agent scoping. Agents must
+// not advertise such labels as custom labels: a custom crowci/org-id would let an
+// org-scoped agent claim another org's tasks.
+func IsReservedAgentLabel(key string) bool {
+	return strings.HasPrefix(key, pipeline.InternalLabelPrefix+"/")
+}
+
+// StripReservedAgentLabels returns a copy of labels without reserved keys, and
+// the sorted keys that were removed.
+func StripReservedAgentLabels(labels map[string]string) (map[string]string, []string) {
+	if labels == nil {
+		return nil, nil
+	}
+	kept := make(map[string]string, len(labels))
+	var dropped []string
+	for k, v := range labels {
+		if IsReservedAgentLabel(k) {
+			dropped = append(dropped, k)
+			continue
+		}
+		kept[k] = v
+	}
+	slices.Sort(dropped)
+	return kept, dropped
+}
+
 func (a *Agent) IsGlobal() bool {
 	return len(a.OrgIDs) == 0
 }

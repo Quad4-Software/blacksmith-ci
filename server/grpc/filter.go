@@ -65,7 +65,10 @@ func createFilterFuncWithPriority(agentFilter rpc.Filter, customLabels map[strin
 			// Custom labels: if task has a custom label, agent MUST have it with matching value.
 			// The task value may list several accepted values (pipe-separated,
 			// e.g. `mylabel: [a, b]` -> "a|b"); the agent matches any of them.
-			if agentLabelValue, isCustom := customLabels[taskLabel]; isCustom {
+			// Reserved crowci/* labels are never matched against custom labels,
+			// so a custom crowci/org-id or crowci/repo-full-name cannot bypass
+			// the agent scoping checks below.
+			if agentLabelValue, isCustom := customLabels[taskLabel]; isCustom && !model.IsReservedAgentLabel(taskLabel) {
 				// Task has a custom label - agent must match one of the accepted values
 				if !slices.Contains(strings.Split(taskLabelValue, "|"), agentLabelValue) {
 					// Values don't match - task cannot be assigned to this agent
@@ -90,7 +93,7 @@ func createFilterFuncWithPriority(agentFilter rpc.Filter, customLabels map[strin
 			// Skip infrastructure labels (crowci/* prefix) - these are backend-specific metadata.
 			// LabelOrgID and LabelRepoFullName are excluded: they're used for agent scoping
 			// (org-/repo-scoped agents) and must be compared against the agent's filter labels.
-			if strings.HasPrefix(taskLabel, "crowci/") &&
+			if model.IsReservedAgentLabel(taskLabel) &&
 				taskLabel != pipeline.LabelOrgID &&
 				taskLabel != pipeline.LabelRepoFullName {
 				log.Debug().

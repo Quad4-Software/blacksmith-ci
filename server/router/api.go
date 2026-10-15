@@ -934,6 +934,7 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "post-autoscaler-heartbeat", Method: http.MethodPost, Path: "/autoscalers/{autoscaler_id}/heartbeat",
 		Summary: "Send an autoscaler heartbeat", Tags: []string{"Autoscalers"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustAutoscaler},
 	}, api.PostAutoscalerHeartbeat)
 	// NDJSON ingest uses raw gin (not huma) because it reads a streaming body.
 	// SetAutoscaler() is already applied globally on apiBase; MustAutoscaler()
