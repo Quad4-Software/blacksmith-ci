@@ -133,8 +133,9 @@
                   nodeProps.data?.step?.state === 'failure' || nodeProps.data?.step?.state === 'error',
                 'border-yellow-600/40 bg-yellow-50 dark:border-yellow-400 dark:bg-yellow-900/20':
                   nodeProps.data?.step?.state === 'running',
-                'border-gray-300 dark:border-gray-600':
-                  nodeProps.data?.step?.state === 'pending' || nodeProps.data?.step?.state === 'skipped',
+                'border-gray-300 dark:border-gray-600': nodeProps.data?.step?.state === 'pending',
+                'border-dashed border-gray-300 opacity-70 dark:border-gray-600':
+                  nodeProps.data?.step?.state === 'skipped',
                 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20':
                   nodeProps.data?.step?.state === 'killed',
                 'ring-2 ring-primary ring-opacity-50 scale-105': selectedNodeId === nodeProps.id,
@@ -162,7 +163,13 @@
                   }"
                 ></div>
               </div>
-              <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 wrap-break-word">
+              <div
+                v-if="skipReasonText(nodeProps.data?.step)"
+                class="text-xs italic text-gray-500 dark:text-gray-400 mt-1 wrap-break-word"
+              >
+                {{ skipReasonText(nodeProps.data?.step) }}
+              </div>
+              <div v-else class="text-xs text-gray-500 dark:text-gray-400 mt-1 wrap-break-word">
                 {{ formatExecutionTime(nodeProps.data?.step) }}
               </div>
               <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
@@ -324,6 +331,8 @@ import type { Edge, Node } from '@vue-flow/core';
 import { useLayout } from '~/compositions/useLayout';
 import type { Pipeline, PipelineStatus, PipelineStep, PipelineWorkflow } from '~/lib/api/types';
 import { getLatestAttempts, identifyMatrixGroupsMap, matrixValueColor } from '~/lib/pipeline-utils';
+import { isFailingStep, stepSkipReasons } from '~/lib/step-skip-reason';
+import type { SkipReason } from '~/lib/step-skip-reason';
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
@@ -395,6 +404,37 @@ const selectedNodeId = ref<string | null>(null);
 
 // Computed properties for filtering
 const workflows = computed(() => getLatestAttempts(props.pipeline.workflows || []));
+
+const skipReasons = computed(() => {
+  const reasons = new Map<number, SkipReason>();
+  for (const workflow of workflows.value) {
+    for (const [pid, reason] of stepSkipReasons(workflow, props.pipeline.status)) {
+      reasons.set(pid, reason);
+    }
+  }
+  return reasons;
+});
+
+function skipReasonText(step: PipelineStep | undefined): string {
+  const reason = step ? skipReasons.value.get(step.pid) : undefined;
+  if (!reason) {
+    return '';
+  }
+  switch (reason.kind) {
+    case 'dependency_failed':
+      return t('repo.pipeline.skip_reason.dependency_failed', { step: reason.dependency });
+    case 'cancelled':
+      return t('repo.pipeline.skip_reason.cancelled');
+    case 'workflow_skipped':
+      return t('repo.pipeline.skip_reason.workflow_skipped');
+    case 'workflow_declined':
+      return t('repo.pipeline.skip_reason.workflow_declined');
+    case 'workflow_stopped':
+      return t('repo.pipeline.skip_reason.workflow_stopped');
+    case 'only_on_failure':
+      return t('repo.pipeline.skip_reason.only_on_failure');
+  }
+}
 
 // Memoized filtered nodes and edges
 const filteredNodes = computed(() => {
@@ -964,6 +1004,14 @@ function createStepDependencyEdges(
     if (!nodesByName) {
       continue;
     }
+    const workflowSkipReasons = stepSkipReasons(workflow, props.pipeline.status);
+    const stepsByName = new Map((workflow.children ?? []).map((step) => [step.name, step]));
+    // A failure travels along an edge when it skips the target and comes from a
+    // failed step or from a step that the same failure skipped.
+    const carriesFailure = (source: PipelineStep | undefined, target: PipelineStep) =>
+      workflowSkipReasons.get(target.pid)?.kind === 'dependency_failed' &&
+      source !== undefined &&
+      (isFailingStep(source) || workflowSkipReasons.get(source.pid)?.kind === 'dependency_failed');
     for (const step of workflow.children ?? []) {
       const targetNode = nodesByName.get(step.name);
       if (!targetNode) {
@@ -974,6 +1022,7 @@ function createStepDependencyEdges(
         if (!sourceNode) {
           continue;
         }
+        const failurePath = carriesFailure(stepsByName.get(dependency), step);
         stepEdges.push({
           id: `edge-${sourceNode.id}-${targetNode.id}`,
           source: sourceNode.id,
@@ -982,9 +1031,11 @@ function createStepDependencyEdges(
           targetHandle: `${targetNode.id}-target`,
           type: 'smoothstep',
           animated: step.state === 'running',
+          // red-600, matching the border of a failed step
+          style: failurePath ? { stroke: '#dc2626', strokeDasharray: '6,4' } : undefined,
           markerEnd: {
             type: 'platform',
-            color: '#6b7280',
+            color: failurePath ? '#dc2626' : '#6b7280',
           } as any,
         });
       }

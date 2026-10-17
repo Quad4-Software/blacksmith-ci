@@ -418,4 +418,53 @@ describe('pipelineDAG', () => {
     await wrapper.vm.$nextTick();
     expect(edgeIds()).toEqual(['step-1->step-2']);
   });
+
+  it('marks the edges a failure travelled along to skip its dependents', async () => {
+    const step = (id: number, name: string, depends_on: string[], state: PipelineStatus) => ({
+      id,
+      uuid: `uuid-${id}`,
+      pipeline_id: 1,
+      pid: id,
+      ppid: 1,
+      name,
+      state,
+      exit_code: 0,
+      depends_on,
+      original_step_id: 0,
+      attempt: 1,
+    });
+    const pipeline = {
+      id: 1,
+      number: 1,
+      status: 'failure',
+      workflows: [
+        {
+          id: 1,
+          pipeline_id: 1,
+          pid: 1,
+          name: 'build',
+          pipeline_name: 'build',
+          state: 'failure',
+          original_workflow_id: 0,
+          attempt: 1,
+          children: [
+            step(1, 'clone', [], 'success'),
+            step(2, 'test', ['clone'], 'failure'),
+            step(3, 'package', ['test'], 'skipped'),
+            step(4, 'deploy', ['package'], 'skipped'),
+          ],
+        },
+      ],
+    } as unknown as Pipeline;
+
+    const wrapper = mount(PipelineDAG, { props: { pipeline } });
+    await wrapper.vm.$nextTick();
+
+    // @ts-expect-error edges is an internal shallowRef not on ComponentPublicInstance
+    const edges = wrapper.vm.edges as { source: string; target: string; style?: { stroke?: string } }[];
+    const failureEdges = edges
+      .filter((edge) => edge.style?.stroke !== undefined)
+      .map((edge) => `${edge.source}->${edge.target}`);
+    expect(failureEdges).toEqual(['step-2->step-3', 'step-3->step-4']);
+  });
 });

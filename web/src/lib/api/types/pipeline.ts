@@ -205,6 +205,8 @@ export interface PipelineStep {
   started?: number;
   finished?: number;
   error?: string;
+  // How a failure of the step is handled: 'fail' or 'ignore'.
+  failure?: string;
   type?: StepType;
   depends_on?: string[];
   original_step_id: number;

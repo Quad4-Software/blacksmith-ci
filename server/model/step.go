@@ -38,7 +38,7 @@ type Step struct {
 	Name           string          `json:"name"                 bun:"name"`
 	State          StatusValue     `json:"state"                bun:"state"`
 	Error          string          `json:"error,omitempty"      bun:"error,type:text"`
-	Failure        string          `json:"-"                    bun:"failure"`
+	Failure        string          `json:"failure,omitempty"    bun:"failure"`
 	ExitCode       int             `json:"exit_code"            bun:"exit_code"`
 	Started        int64           `json:"started,omitempty"    bun:"started"`
 	Finished       int64           `json:"finished,omitempty"   bun:"finished"`

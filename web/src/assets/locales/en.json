@@ -766,6 +766,14 @@
         "next": "Next match (Enter)",
         "match_count": "{current} / {total}",
         "close_hint": "(Esc)"
+      },
+      "skip_reason": {
+        "dependency_failed": "Skipped: {step} failed",
+        "cancelled": "Skipped: pipeline cancelled",
+        "workflow_skipped": "Skipped with its workflow",
+        "workflow_declined": "Skipped: approval declined",
+        "workflow_stopped": "Skipped: workflow stopped early",
+        "only_on_failure": "Skipped: runs only on failure"
       }
     }
   },
