@@ -20,7 +20,7 @@ describe('needsForgeLink', () => {
   });
 
   it('keeps user settings, admin, login and CLI auth reachable', () => {
-    for (const path of ['/user', '/user/access-tokens', '/admin', '/admin/repos', '/login', '/cli/auth']) {
+    for (const path of ['/user', '/user/access-tokens', '/admin', '/admin/repos', '/login']) {
       expect(needsForgeLink(path, '', true, 0, true)).toBe(false);
     }
     expect(needsForgeLink('/crow/user', '/crow', true, 0, true)).toBe(false);

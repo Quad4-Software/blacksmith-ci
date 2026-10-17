@@ -374,11 +374,6 @@ const routes: RouteRecordRaw[] = [
     meta: { blank: true },
     props: true,
   },
-  {
-    path: `${rootPath}/cli/auth`,
-    component: (): Component => import('~/views/cli/Auth.vue'),
-    meta: { authentication: 'required' },
-  },
 
   // TODO: deprecated routes => remove after some time
   {

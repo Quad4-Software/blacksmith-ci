@@ -1,5 +1,5 @@
 // Routes a user without any linked forge can still reach.
-const EXEMPT_PATHS = ['/user', '/admin', '/login', '/cli/auth'];
+const EXEMPT_PATHS = ['/user', '/admin', '/login'];
 
 // needsForgeLink reports whether a signed-in user without forges must be sent
 // to the forge linking screen before visiting `path`. Only users registered

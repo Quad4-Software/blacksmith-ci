@@ -358,13 +358,6 @@
   "access_denied": "Jums nav atļaujas piekļūt šai instancei",
   "invalid_state": "OAuth stāvoklis nav valīds",
   "org_level_secret": "organizācijas noslēpums",
-  "cli_login_success": "Autorizēšanās CLI veiksmīga",
-  "login_to_cli": "Autorizēties CLI",
-  "login_to_cli_description": "Turpinot, Jūs autorizēs iekš CLI.",
-  "abort": "Aborts",
-  "cli_login_failed": "Autorizešanās pie CLI neizdevās",
-  "return_to_cli": "Jūs varat aizvērt šo cilni un atgriezties pie CLI.",
   "settings": "Iestatījumi",
-  "global_level_secret": "globāls noslēpums",
-  "cli_login_denied": "Autorizešanās pie CLI liegta"
+  "global_level_secret": "globāls noslēpums"
 }

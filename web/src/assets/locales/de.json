@@ -365,13 +365,6 @@
     }
   },
   "username": "Benutzername",
-  "login_to_cli": "In CLI anmelden",
-  "login_to_cli_description": "Wenn du fortfährst, wirst du im CLI angemeldet.",
-  "abort": "Abbrechen",
-  "cli_login_success": "Anmelden im CLI erfolgreich",
-  "cli_login_failed": "Anmelden im CLI fehlgeschlagen",
-  "cli_login_denied": "Anmelden im CLI abgelehnt",
-  "return_to_cli": "Du kannst diesen Tab jetzt schließen und zur CLI zurückkehren.",
   "secrets": {
     "secrets": "Geheimnisse",
     "desc": "Geheimnisse können als Umgebungsvariablen an einzelne Pipelineschritte übergeben werden.",

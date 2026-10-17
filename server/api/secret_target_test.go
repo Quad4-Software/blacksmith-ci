@@ -185,3 +185,43 @@ func TestSecretTargetRequiresSourceAccess(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, se.GetStatus())
 	secretService.AssertNotCalled(t, "SecretTransferOwner", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 }
+
+// Listing and removing shares is the owner's call: it needs access to the
+// secret's owner, but not to the target, so an owner can always withdraw a
+// secret from a repo it no longer administers.
+func TestSecretTargetListAndDeleteFollowOwner(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	s, secretService := secretTargetFixture(t)
+	// Repo 2 is the one the developer lacks push on.
+	s.On("SecretFindByID", int64(8)).Return(&model.Secret{ID: 8, Name: "token", RepoID: 2}, nil)
+	target := &model.SecretTarget{ID: 5, SecretID: 7, RepoID: 2}
+	secretService.ExpectedCalls = nil
+	secretService.On("SecretTargetList", int64(7)).Return([]*model.SecretTarget{target}, nil)
+	s.On("SecretTargetDelete", target).Return(nil).Once()
+
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Set("store", s)
+	c.Set("user", &model.User{ID: 1, Login: "dev", OrgID: 10})
+	ctx := testCtx(c)
+
+	var se huma.StatusError
+	_, err := GetSecretTargetList(ctx, &GetSecretTargetListInput{SecretID: 8})
+	require.True(t, errors.As(err, &se))
+	assert.Equal(t, http.StatusForbidden, se.GetStatus())
+	_, err = DeleteSecretTarget(ctx, &DeleteSecretTargetInput{SecretID: 8, TargetID: 5})
+	require.True(t, errors.As(err, &se))
+	assert.Equal(t, http.StatusForbidden, se.GetStatus())
+
+	list, err := GetSecretTargetList(ctx, &GetSecretTargetListInput{SecretID: 7})
+	require.NoError(t, err)
+	assert.Equal(t, []*model.SecretTarget{target}, list.Body)
+
+	_, err = DeleteSecretTarget(ctx, &DeleteSecretTargetInput{SecretID: 7, TargetID: 5})
+	require.NoError(t, err)
+	s.AssertCalled(t, "SecretTargetDelete", target)
+
+	// A target ID from another secret is not found rather than deleted.
+	_, err = DeleteSecretTarget(ctx, &DeleteSecretTargetInput{SecretID: 7, TargetID: 6})
+	require.True(t, errors.As(err, &se))
+	assert.Equal(t, http.StatusNotFound, se.GetStatus())
+}
