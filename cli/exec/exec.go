@@ -88,7 +88,8 @@ func execDir(ctx context.Context, c *cli.Command, dir string) error {
 		repoPath = convertPathForWindows(repoPath)
 	}
 	// TODO: respect depends_on and do parallel runs with output to multiple _windows_ e.g. tmux like
-	return filepath.Walk(dir, func(path string, info os.FileInfo, e error) error {
+	var failed []string
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, e error) error {
 		if e != nil {
 			return e
 		}
@@ -96,13 +97,24 @@ func execDir(ctx context.Context, c *cli.Command, dir string) error {
 		// check if it is a regular file (not dir)
 		if info.Mode().IsRegular() && (strings.HasSuffix(info.Name(), ".yaml") || strings.HasSuffix(info.Name(), ".yml") || strings.HasSuffix(info.Name(), ".jsonnet")) {
 			fmt.Println("#", info.Name())
-			_ = runExec(ctx, c, path, repoPath, false) // TODO: should we drop errors or store them and report back?
+			// Keep running the other workflows, but report the failure in the exit code.
+			if err := runExec(ctx, c, path, repoPath, false); err != nil {
+				fmt.Fprintf(os.Stderr, "workflow %s failed: %v\n", info.Name(), err)
+				failed = append(failed, info.Name())
+			}
 			fmt.Println("")
 			return nil
 		}
 
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+	if len(failed) > 0 {
+		return fmt.Errorf("%d workflow(s) failed: %s", len(failed), strings.Join(failed, ", "))
+	}
+	return nil
 }
 
 func execFile(ctx context.Context, c *cli.Command, file string) error {

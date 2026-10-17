@@ -120,7 +120,7 @@ func (e *local) Load(ctx context.Context) (*types.BackendInfo, error) {
 
 	e.secretFiles = agentSecretFiles()
 
-	if e.sandboxLevel != sandboxLevelNone {
+	if e.os == "darwin" && e.sandboxLevel != sandboxLevelNone {
 		log.Info().
 			Str("level", string(e.sandboxLevel)).
 			Msg("macOS sandbox enabled for local backend")

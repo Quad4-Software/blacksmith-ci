@@ -214,3 +214,56 @@ func TestTailStepReturnsOnContextCancel(t *testing.T) {
 		t.Fatal("TailStep did not return after the context was canceled")
 	}
 }
+
+// A container killed for exceeding its memory limit must be reported as OOM
+// killed, so the step shows the reason instead of a bare exit code 137.
+func TestWaitStepReportsOOMKilled(t *testing.T) {
+	for _, tt := range []struct {
+		reason string
+		oom    bool
+	}{
+		{reason: "OOMKilled", oom: true},
+		{reason: "Error", oom: false},
+	} {
+		t.Run(tt.reason, func(t *testing.T) {
+			step := &types.Step{UUID: "abc123", Name: "build"}
+			podName, err := stepToPodName(step)
+			require.NoError(t, err)
+
+			engine, client := testEngine(runningPod(podName))
+
+			ctx, cancel := context.WithTimeout(context.Background(), waitStepTimeout)
+			defer cancel()
+
+			type result struct {
+				state *types.State
+				err   error
+			}
+			done := make(chan result, 1)
+			go func() {
+				state, err := engine.WaitStep(ctx, step, "task-uuid")
+				done <- result{state, err}
+			}()
+
+			// Let the informer sync so the transition arrives as an update event.
+			time.Sleep(500 * time.Millisecond)
+			pod, err := client.CoreV1().Pods("crow").Get(ctx, podName, meta_v1.GetOptions{})
+			require.NoError(t, err)
+			pod.Status.Phase = v1.PodFailed
+			pod.Status.ContainerStatuses[0].State = v1.ContainerState{
+				Terminated: &v1.ContainerStateTerminated{ExitCode: 137, Reason: tt.reason},
+			}
+			_, err = client.CoreV1().Pods("crow").UpdateStatus(ctx, pod, meta_v1.UpdateOptions{})
+			require.NoError(t, err)
+
+			select {
+			case res := <-done:
+				require.NoError(t, res.err)
+				assert.Equal(t, 137, res.state.ExitCode)
+				assert.Equal(t, tt.oom, res.state.OOMKilled)
+			case <-ctx.Done():
+				t.Fatal("WaitStep did not return after the container terminated")
+			}
+		})
+	}
+}

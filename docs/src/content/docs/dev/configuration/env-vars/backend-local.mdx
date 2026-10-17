@@ -34,11 +34,12 @@ See [macOS Sandbox Security Levels](/dev/installation/binary/#macos-sandbox-secu
 Needed by tools that resolve the home directory from the account rather than from `$HOME`, such as Xcode reading provisioning profiles and writing DerivedData.
 Trades home isolation between workflows for compatibility with them.
 
-## macOS process cleanup
+## Process cleanup
 
-The macOS local backend stops each step's process group on cancellation and stops remaining workflow process groups before deleting the workspace.
+On macOS and Linux, the local backend stops each step's process group on cancellation and stops remaining workflow process groups before deleting the workspace.
 It also assigns an inherited process marker to each step so detached tools such as sccache can be found after their launcher exits.
 Cleanup waits for processes to exit and reports errors before removing workflow directories.
+On Linux the marker is read from `/proc/<pid>/environ`, so it only finds processes running as the agent's user.
 Concurrent workflows have independent markers and process groups.
 
 This is cooperative cleanup, not a security boundary.

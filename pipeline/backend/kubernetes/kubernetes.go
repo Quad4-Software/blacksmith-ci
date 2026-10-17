@@ -331,6 +331,10 @@ func (e *kube) signalWhenPodGone(ctx context.Context, step *types.Step, podName 
 
 // WaitStep waits for the pipeline step to complete and returns
 // the completion results.
+// The kubelet reports oomKilledReason as the terminated reason when the
+// container exceeded its memory limit.
+const oomKilledReason = "OOMKilled"
+
 func (e *kube) WaitStep(ctx context.Context, step *types.Step, taskUUID string) (*types.State, error) {
 	podName, err := stepToPodName(step)
 	if err != nil {
@@ -433,7 +437,7 @@ func (e *kube) WaitStep(ctx context.Context, step *types.Step, taskUUID string) 
 	bs := &types.State{
 		ExitCode:  int(cs.State.Terminated.ExitCode),
 		Exited:    true,
-		OOMKilled: false,
+		OOMKilled: cs.State.Terminated.Reason == oomKilledReason,
 	}
 
 	return bs, nil
