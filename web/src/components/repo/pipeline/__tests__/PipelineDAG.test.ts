@@ -14,7 +14,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import PipelineDAG from '../PipelineDAG.vue';
-import type { Pipeline } from '~/lib/api/types';
+import type { Pipeline, PipelineStatus } from '~/lib/api/types';
 import { WebhookEvents } from '~/lib/api/types';
 
 // Mock the vue-flow components
@@ -365,5 +365,57 @@ describe('pipelineDAG', () => {
 
     expect(nodes).toHaveLength(2); // 1 step + 1 workflow group node
     expect(edges).toHaveLength(0); // No dependencies, so no edges
+  });
+
+  it('does not connect a step to a same-named step of another workflow', async () => {
+    const step = (id: number, ppid: number, name: string, depends_on: string[], state: PipelineStatus = 'success') => ({
+      id,
+      uuid: `uuid-${id}`,
+      pipeline_id: 1,
+      pid: id,
+      ppid,
+      name,
+      state,
+      exit_code: 0,
+      depends_on,
+      original_step_id: 0,
+      attempt: 1,
+    });
+    const workflow = (pid: number, name: string, children: ReturnType<typeof step>[]) => ({
+      id: pid,
+      pipeline_id: 1,
+      pid,
+      name,
+      pipeline_name: name,
+      state: 'success' as const,
+      original_workflow_id: 0,
+      attempt: 1,
+      children,
+    });
+    // A step rerun keeps the target step but drops the steps it depends on, so
+    // `publish` names a `compile` that only exists in the other workflow.
+    const pipelineWith = (publishState: PipelineStatus): Pipeline =>
+      ({
+        id: 1,
+        number: 1,
+        status: 'running',
+        workflows: [
+          workflow(1, 'build', [step(1, 1, 'clone', []), step(2, 1, 'compile', ['clone'])]),
+          workflow(2, 'release', [step(3, 2, 'publish', ['compile'], publishState)]),
+        ],
+      }) as unknown as Pipeline;
+
+    const wrapper = mount(PipelineDAG, { props: { pipeline: pipelineWith('pending') } });
+    await wrapper.vm.$nextTick();
+
+    const edgeIds = () =>
+      // @ts-expect-error edges is an internal shallowRef not on ComponentPublicInstance
+      (wrapper.vm.edges as { source: string; target: string }[]).map((edge) => `${edge.source}->${edge.target}`);
+    expect(edgeIds()).toEqual(['step-1->step-2']);
+
+    // A state change takes the updateNodeStates path, which rebuilds the edges.
+    await wrapper.setProps({ pipeline: pipelineWith('running') });
+    await wrapper.vm.$nextTick();
+    expect(edgeIds()).toEqual(['step-1->step-2']);
   });
 });

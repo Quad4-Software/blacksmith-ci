@@ -327,9 +327,7 @@ import { getLatestAttempts, identifyMatrixGroupsMap, matrixValueColor } from '~/
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
-const TRAILING_SEGMENT_REGEX = /-[^-]*$/;
 const MATRIX_SUFFIX_REGEX = /^(.+)-matrix-\d+$/;
-const WORKFLOW_PID_PREFIX_REGEX = /^(\d+)-/;
 
 interface Props {
   pipeline: Pipeline;
@@ -359,32 +357,23 @@ let isActive = true;
 const pendingTimers = new Set<ReturnType<typeof setTimeout>>();
 const pendingRafs = new Set<number>();
 
-// TEMP breadcrumb: confirm the unmount-race path fires in production. Remove once verified.
-function dagBreadcrumb(msg: string) {
-  console.warn(`[PipelineDAG guard] ${msg}`);
-}
-
-function trackedSetTimeout(fn: () => void, delay: number, label = 'timer') {
+function trackedSetTimeout(fn: () => void, delay: number) {
   if (!isActive) return;
   const id = setTimeout(() => {
     pendingTimers.delete(id);
     if (isActive) {
       fn();
-    } else {
-      dagBreadcrumb(`${label} fired after unmount (skipped)`);
     }
   }, delay);
   pendingTimers.add(id);
 }
 
-function trackedRaf(fn: () => void, label = 'raf') {
+function trackedRaf(fn: () => void) {
   if (!isActive) return;
   const id = requestAnimationFrame(() => {
     pendingRafs.delete(id);
     if (isActive) {
       fn();
-    } else {
-      dagBreadcrumb(`${label} fired after unmount (skipped)`);
     }
   });
   pendingRafs.add(id);
@@ -960,6 +949,50 @@ function applyFallbackLayout(direction: string) {
 }
 
 // Convert pipeline data to DAG nodes and edges
+// Connects each step to the steps it depends on. The compiler resolves
+// depends_on within a workflow, so a dependency is only looked up among the
+// steps of the same workflow. A name that is not there, such as a step that a
+// rerun left out, gets no edge rather than one to a same-named step of another
+// workflow.
+function createStepDependencyEdges(
+  stepWorkflows: PipelineWorkflow[],
+  stepNodesByWorkflow: Map<number, Map<string, Node>>,
+): Edge[] {
+  const stepEdges: Edge[] = [];
+  for (const workflow of stepWorkflows) {
+    const nodesByName = stepNodesByWorkflow.get(workflow.pid);
+    if (!nodesByName) {
+      continue;
+    }
+    for (const step of workflow.children ?? []) {
+      const targetNode = nodesByName.get(step.name);
+      if (!targetNode) {
+        continue;
+      }
+      for (const dependency of step.depends_on ?? []) {
+        const sourceNode = nodesByName.get(dependency);
+        if (!sourceNode) {
+          continue;
+        }
+        stepEdges.push({
+          id: `edge-${sourceNode.id}-${targetNode.id}`,
+          source: sourceNode.id,
+          target: targetNode.id,
+          sourceHandle: `${sourceNode.id}-source`,
+          targetHandle: `${targetNode.id}-target`,
+          type: 'smoothstep',
+          animated: step.state === 'running',
+          markerEnd: {
+            type: 'platform',
+            color: '#6b7280',
+          } as any,
+        });
+      }
+    }
+  }
+  return stepEdges;
+}
+
 function buildDAG() {
   if (!workflows.value) {
     return;
@@ -973,7 +1006,7 @@ function buildDAG() {
   try {
     const newNodes: Node[] = [];
     const newEdges: Edge[] = [];
-    const globalStepMap = new Map<string, Node>();
+    const stepNodesByWorkflow = new Map<number, Map<string, Node>>();
     const workflowSteps = new Map<number, Node[]>();
     const workflowMap = new Map<string, PipelineWorkflow>();
 
@@ -988,6 +1021,7 @@ function buildDAG() {
     // Create nodes for each step
     workflows.value.forEach((workflow) => {
       const stepNodes: Node[] = [];
+      const nodesByName = new Map<string, Node>();
 
       workflow.children?.forEach((step) => {
         const nodeId = `step-${step.pid}`;
@@ -1007,80 +1041,19 @@ function buildDAG() {
         };
         newNodes.push(node);
         stepNodes.push(node);
-
-        // Register step in global map with workflow prefix
-        globalStepMap.set(`${workflow.pid}-${step.name}`, node);
-        // Also register with workflow name for cross-workflow lookups
-        globalStepMap.set(`${workflow.name}-${step.name}`, node);
+        nodesByName.set(step.name, node);
       });
 
       if (stepNodes.length > 0) {
         workflowSteps.set(workflow.pid, stepNodes);
+        stepNodesByWorkflow.set(workflow.pid, nodesByName);
       }
     });
 
     // Create virtual workflow group nodes for matrix workflows (not added to main nodes)
     const virtualGroupNodes = createVirtualMatrixGroupNodes(matrixGroups, workflowSteps);
 
-    // Create edges for step-level dependencies
-    workflows.value.forEach((workflow) => {
-      workflow.children?.forEach((step) => {
-        const targetNode = globalStepMap.get(`${workflow.pid}-${step.name}`);
-        if (!targetNode) {
-          return;
-        }
-
-        // Use backend-provided depends_on field
-        if (step.depends_on && step.depends_on.length > 0) {
-          step.depends_on.forEach((dependency) => {
-            let sourceNode: Node | undefined;
-
-            // First, try to find dependency within the same workflow
-            sourceNode = globalStepMap.get(`${workflow.pid}-${dependency}`);
-
-            // If not found, try to find it in other workflows (cross-workflow dependency)
-            if (!sourceNode) {
-              // For matrix workflows, try to find clone step in other matrix variants
-              // Look for dependency in workflow with similar base name
-              const baseWorkflowName = workflow.name.replace(TRAILING_SEGMENT_REGEX, ''); // Remove matrix suffix
-              for (const [key, node] of globalStepMap.entries()) {
-                if (key.endsWith(`-${dependency}`) && key.includes(baseWorkflowName)) {
-                  sourceNode = node;
-                  break;
-                }
-              }
-            }
-
-            // If still not found, try global search across all workflows
-            if (!sourceNode) {
-              for (const [key, node] of globalStepMap.entries()) {
-                if (key.endsWith(`-${dependency}`)) {
-                  sourceNode = node;
-                  break;
-                }
-              }
-            }
-
-            if (sourceNode) {
-              const edge: Edge = {
-                id: `edge-${sourceNode.id}-${targetNode.id}`,
-                source: sourceNode.id,
-                target: targetNode.id,
-                sourceHandle: `${sourceNode.id}-source`,
-                targetHandle: `${targetNode.id}-target`,
-                type: 'smoothstep',
-                animated: step.state === 'running',
-                markerEnd: {
-                  type: 'platform',
-                  color: '#6b7280',
-                } as any,
-              };
-              newEdges.push(edge);
-            }
-          });
-        }
-      });
-    });
+    newEdges.push(...createStepDependencyEdges(workflows.value, stepNodesByWorkflow));
 
     // Create edges for workflow-level dependencies with matrix group awareness
     const workflowDependencyEdges = createWorkflowDependencyEdges(
@@ -1789,7 +1762,6 @@ function handleKeyDown(event: KeyboardEvent) {
     // Center the view on the selected node
     nextTick(() => {
       if (!isActive) {
-        dagBreadcrumb('keydown fitView skipped after unmount');
         return;
       }
       if (vueFlowRef.value) {
@@ -1965,102 +1937,27 @@ function updateNodeStates(pipeline: Pipeline) {
     return node;
   });
 
-  // Recreate edges to ensure they are preserved and updated
-  const newEdges: Edge[] = [];
-  const globalStepMap = new Map<string, Node>();
-
-  // Build step map from current nodes
-  nodes.value.forEach((node) => {
-    if (node.type === 'pipeline-step' && node.data?.workflow && node.data?.step) {
-      globalStepMap.set(`${node.data.workflow.pid}-${node.data.step.name}`, node);
+  // Rebuild the edges so that their animation follows the step states.
+  const stepNodesByWorkflow = new Map<number, Map<string, Node>>();
+  const workflowSteps = new Map<number, Node[]>();
+  for (const node of nodes.value) {
+    if (node.type !== 'pipeline-step' || !node.data?.workflow || !node.data?.step) {
+      continue;
     }
-  });
+    const workflowPid: number = node.data.workflow.pid;
+    if (!stepNodesByWorkflow.has(workflowPid)) {
+      stepNodesByWorkflow.set(workflowPid, new Map());
+      workflowSteps.set(workflowPid, []);
+    }
+    stepNodesByWorkflow.get(workflowPid)!.set(node.data.step.name, node);
+    workflowSteps.get(workflowPid)!.push(node);
+  }
 
-  // Recreate edges based on current pipeline data (same logic as buildDAG)
-  const workflowMap = new Map<string, PipelineWorkflow>();
-  latestWfs.forEach((workflow) => {
-    workflowMap.set(workflow.name, workflow);
-  });
-
-  // Identify matrix groups for edge creation
-  const matrixGroups = identifyMatrixGroupsMap(latestWfs);
-
-  // Step-level dependencies
-  latestWfs.forEach((workflow) => {
-    workflow.children?.forEach((step) => {
-      const targetNode = globalStepMap.get(`${workflow.pid}-${step.name}`);
-      if (!targetNode) return;
-
-      if (step.depends_on && step.depends_on.length > 0) {
-        step.depends_on.forEach((dependency) => {
-          let sourceNode: Node | undefined;
-
-          // First, try to find dependency within the same workflow
-          sourceNode = globalStepMap.get(`${workflow.pid}-${dependency}`);
-
-          // If not found, try enhanced search like in buildDAG
-          if (!sourceNode) {
-            const baseWorkflowName = workflow.name.replace(TRAILING_SEGMENT_REGEX, '');
-            for (const [key, node] of globalStepMap.entries()) {
-              if (key.endsWith(`-${dependency}`) && key.includes(baseWorkflowName)) {
-                sourceNode = node;
-                break;
-              }
-            }
-          }
-
-          if (!sourceNode) {
-            for (const [key, node] of globalStepMap.entries()) {
-              if (key.endsWith(`-${dependency}`)) {
-                sourceNode = node;
-                break;
-              }
-            }
-          }
-
-          if (sourceNode) {
-            const edge: Edge = {
-              id: `edge-${sourceNode.id}-${targetNode.id}`,
-              source: sourceNode.id,
-              target: targetNode.id,
-              sourceHandle: `${sourceNode.id}-source`,
-              targetHandle: `${targetNode.id}-target`,
-              type: 'smoothstep',
-              animated: step.state === 'running',
-              markerEnd: {
-                type: 'platform',
-                color: '#6b7280',
-              } as any,
-            };
-            newEdges.push(edge);
-          }
-        });
-      }
-    });
-  });
-
-  // Workflow-level dependencies with matrix awareness
-  const workflowDependencyEdges = createWorkflowDependencyEdges(
-    matrixGroups,
-    new Map(
-      [...globalStepMap.entries()].reduce((acc, [key, node]) => {
-        const match = key.match(WORKFLOW_PID_PREFIX_REGEX);
-        if (match) {
-          const workflowPid = Number.parseInt(match[1], 10);
-          if (!acc.has(workflowPid)) {
-            acc.set(workflowPid, []);
-          }
-          acc.get(workflowPid)!.push(node);
-        }
-        return acc;
-      }, new Map<number, Node[]>()),
-    ),
-    workflowMap,
-    [],
-  );
-  newEdges.push(...workflowDependencyEdges);
-
-  edges.value = newEdges;
+  const workflowMap = new Map(latestWfs.map((workflow) => [workflow.name, workflow]));
+  edges.value = [
+    ...createStepDependencyEdges(latestWfs, stepNodesByWorkflow),
+    ...createWorkflowDependencyEdges(identifyMatrixGroupsMap(latestWfs), workflowSteps, workflowMap, []),
+  ];
 }
 
 // Watch for workflow state changes to trigger layout (only for structural changes)
@@ -2082,7 +1979,6 @@ watch(
       debounceTimeout.value = setTimeout(() => {
         nextTick(() => {
           if (!isActive) {
-            dagBreadcrumb('workflow-change layout skipped after unmount');
             return;
           }
           const stepNodes = nodes.value.filter((node) => node.type === 'pipeline-step');
@@ -2121,12 +2017,6 @@ onBeforeUnmount(() => {
 
   if (debounceTimeout.value) {
     clearTimeout(debounceTimeout.value);
-  }
-
-  // TEMP breadcrumb: a non-zero count proves deferred layout/fitView work was
-  // still in flight at teardown — i.e. the source of the parentNode-null race.
-  if (pendingTimers.size > 0 || pendingRafs.size > 0) {
-    dagBreadcrumb(`unmount cancelled ${pendingTimers.size} timer(s), ${pendingRafs.size} rAF(s) in flight`);
   }
 
   pendingTimers.forEach((id) => clearTimeout(id));

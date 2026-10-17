@@ -17,19 +17,6 @@ import dagre from '@dagrejs/dagre';
 import { Position, useVueFlow } from '@vue-flow/core';
 import type { Node, Edge } from '@vue-flow/core';
 
-// Type for node data with optional step
-interface NodeDataWithStep {
-  step?: {
-    state?: string;
-  };
-}
-
-// Helper function to safely get step state from node data
-function getStepState(nodeData: unknown): string {
-  const data = nodeData as NodeDataWithStep;
-  return data?.step?.state ?? 'unknown';
-}
-
 /**
  * Composable to run the layout algorithm on the graph.
  * It uses the `dagre` library to calculate the layout of the nodes and edges.
@@ -40,9 +27,22 @@ const layoutCache = new Map<string, Node[]>();
 export function useLayout() {
   const { findNode } = useVueFlow('pipeline-dag');
 
+  // Returns the measured size of a node, or a default before it is rendered.
+  function nodeSize(id: string): { width: number; height: number } {
+    const graphNode = findNode(id);
+    const width =
+      graphNode?.dimensions?.width != null && graphNode.dimensions.width > 0 ? graphNode.dimensions.width : 240;
+    const height =
+      graphNode?.dimensions?.height != null && graphNode.dimensions.height > 0 ? graphNode.dimensions.height : 120;
+    return { width, height };
+  }
+
   function layout(nodes: Node[], edges: Edge[], direction: string = 'LR') {
-    // Create cache key based on nodes, edges, and direction
-    const cacheKey = `${nodes.map((n) => `${n.id}:${getStepState(n.data)}`).join(',')}-${edges.map((e) => `${e.source}-${e.target}`).join(',')}-${direction}`;
+    // Positions depend only on the graph and the node sizes, not on step
+    // states, so a state change that leaves the sizes alone reuses the layout.
+    const sizes = new Map(nodes.map((node) => [node.id, nodeSize(node.id)]));
+    const nodeKeys = [...sizes].map(([id, { width, height }]) => `${id}:${width}x${height}`);
+    const cacheKey = `${nodeKeys.join(',')}-${edges.map((e) => `${e.source}-${e.target}`).join(',')}-${direction}`;
 
     // Check cache first
     if (layoutCache.has(cacheKey)) {
@@ -68,18 +68,7 @@ export function useLayout() {
     });
 
     for (const node of nodes) {
-      const graphNode = findNode(node.id);
-
-      // Get actual dimensions or use reasonable defaults
-      const width =
-        graphNode?.dimensions?.width != null && graphNode.dimensions.width > 0 ? graphNode.dimensions.width : 240;
-      const height =
-        graphNode?.dimensions?.height != null && graphNode.dimensions.height > 0 ? graphNode.dimensions.height : 120;
-
-      (dagreGraph as any).setNode(node.id, {
-        width,
-        height,
-      });
+      (dagreGraph as any).setNode(node.id, sizes.get(node.id));
     }
 
     for (const edge of edges) {
