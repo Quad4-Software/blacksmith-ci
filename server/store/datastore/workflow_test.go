@@ -24,6 +24,7 @@ import (
 	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml"
 	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/matrix"
 	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/server/store/types"
 )
 
 func TestWorkflowLoad(t *testing.T) {
@@ -58,6 +59,28 @@ func TestWorkflowLoad(t *testing.T) {
 	assert.EqualValues(t, 1, workflowGet.PipelineID)
 	assert.Equal(t, 1, workflowGet.PID)
 	assert.Len(t, workflowGet.Children, 0)
+}
+
+func TestWorkflowByPID(t *testing.T) {
+	store, closer := newTestStore(t, new(model.Step), new(model.Pipeline), new(model.Workflow))
+	defer closer()
+
+	assert.NoError(t, store.WorkflowsCreate([]*model.Workflow{
+		{PipelineID: 1, PID: 1, Name: "build"},
+		{PipelineID: 1, PID: 2, Name: "test"},
+		{PipelineID: 2, PID: 1, Name: "other"},
+	}))
+
+	wf, err := store.WorkflowByPID(1, 2)
+	assert.NoError(t, err)
+	assert.Equal(t, "test", wf.Name)
+
+	wf, err = store.WorkflowByPID(2, 1)
+	assert.NoError(t, err)
+	assert.Equal(t, "other", wf.Name)
+
+	_, err = store.WorkflowByPID(2, 2)
+	assert.ErrorIs(t, err, types.RecordNotExist)
 }
 
 func TestWorkflowListByAgent(t *testing.T) {

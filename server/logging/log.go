@@ -143,8 +143,11 @@ func (l *log) Tail(c context.Context, stepID int64, receiver LogChan) error {
 }
 
 func (l *log) Close(_ context.Context, stepID int64) error {
+	// Remove the stream under the same lock that finds it, so only one of
+	// several concurrent Close calls closes done.
 	l.Lock()
 	s, ok := l.streams[stepID]
+	delete(l.streams, stepID)
 	l.Unlock()
 	if !ok {
 		// Stream doesn't exist, which is fine - it may have been already closed
@@ -155,9 +158,5 @@ func (l *log) Close(_ context.Context, stepID int64) error {
 	s.Lock()
 	close(s.done)
 	s.Unlock()
-
-	l.Lock()
-	delete(l.streams, stepID)
-	l.Unlock()
 	return nil
 }

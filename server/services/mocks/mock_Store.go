@@ -14625,6 +14625,74 @@ func (_c *MockStore_WorkflowApprovalEventsForWorkflow_Call) RunAndReturn(run fun
 	return _c
 }
 
+// WorkflowByPID provides a mock function for the type MockStore
+func (_mock *MockStore) WorkflowByPID(pipelineID int64, pid int) (*model.Workflow, error) {
+	ret := _mock.Called(pipelineID, pid)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WorkflowByPID")
+	}
+
+	var r0 *model.Workflow
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64, int) (*model.Workflow, error)); ok {
+		return returnFunc(pipelineID, pid)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64, int) *model.Workflow); ok {
+		r0 = returnFunc(pipelineID, pid)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.Workflow)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64, int) error); ok {
+		r1 = returnFunc(pipelineID, pid)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStore_WorkflowByPID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WorkflowByPID'
+type MockStore_WorkflowByPID_Call struct {
+	*mock.Call
+}
+
+// WorkflowByPID is a helper method to define mock.On call
+//   - pipelineID int64
+//   - pid int
+func (_e *MockStore_Expecter) WorkflowByPID(pipelineID any, pid any) *MockStore_WorkflowByPID_Call {
+	return &MockStore_WorkflowByPID_Call{Call: _e.mock.On("WorkflowByPID", pipelineID, pid)}
+}
+
+func (_c *MockStore_WorkflowByPID_Call) Run(run func(pipelineID int64, pid int)) *MockStore_WorkflowByPID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int
+		if args[1] != nil {
+			arg1 = args[1].(int)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_WorkflowByPID_Call) Return(workflow *model.Workflow, err error) *MockStore_WorkflowByPID_Call {
+	_c.Call.Return(workflow, err)
+	return _c
+}
+
+func (_c *MockStore_WorkflowByPID_Call) RunAndReturn(run func(pipelineID int64, pid int) (*model.Workflow, error)) *MockStore_WorkflowByPID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // WorkflowGetTree provides a mock function for the type MockStore
 func (_mock *MockStore) WorkflowGetTree(pipeline *model.Pipeline) ([]*model.Workflow, error) {
 	ret := _mock.Called(pipeline)

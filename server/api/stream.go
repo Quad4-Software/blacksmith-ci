@@ -241,7 +241,11 @@ func LogStreamSSE(c *gin.Context) {
 						} else {
 							// Normal log entry
 							if ee, err := json.Marshal(entry); err == nil {
-								logChan <- ee
+								select {
+								case logChan <- ee:
+								case <-ctx.Done():
+									return
+								}
 							} else {
 								log.Error().Err(err).Msg("unable to serialize log entry")
 							}
@@ -252,6 +256,9 @@ func LogStreamSSE(c *gin.Context) {
 		}()
 
 		err := server.Config.Services.Logs.Tail(ctx, step.ID, batches)
+		// Tail no longer sends once it returns, so closing ends the consumer
+		// goroutine instead of leaving it blocked on the channel.
+		close(batches)
 		if err != nil {
 			log.Error().Err(err).Msg("tail of logs failed")
 		}

@@ -387,6 +387,8 @@ type Store interface {
 	WorkflowsCreate([]*model.Workflow) error
 	WorkflowsReplace(*model.Pipeline, []*model.Workflow) error
 	WorkflowLoad(int64) (*model.Workflow, error)
+	// WorkflowByPID returns the workflow with the given PID within a pipeline.
+	WorkflowByPID(pipelineID int64, pid int) (*model.Workflow, error)
 	WorkflowUpdate(*model.Workflow) error
 	WorkflowNamesByRepo(repoID int64) ([]string, error)
 	// WorkflowListByAgent returns historic workflows processed by an agent,

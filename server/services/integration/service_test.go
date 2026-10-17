@@ -687,16 +687,14 @@ func TestTestConnection(t *testing.T) {
 
 		factory.EXPECT().Create(integration).Return(provider, nil)
 		provider.EXPECT().TestConnection(mock.Anything).Return(integrations.ErrAuthenticationFailed)
-		provider.EXPECT().Close().Return(nil) // Called when pool is closed
+		// A failed test must still close its provider rather than leave it cached.
+		provider.EXPECT().Close().Return(nil).Once()
 
 		svc := NewService(store, factory)
 		err := svc.TestConnection(integration)
 
 		assert.Error(t, err)
 		assert.Equal(t, integrations.ErrAuthenticationFailed, err)
-
-		// Clean up the pool - this will call Close() on cached providers
-		svc.Close()
 	})
 
 	t.Run("provider creation failure", func(t *testing.T) {

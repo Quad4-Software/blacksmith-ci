@@ -816,6 +816,10 @@ func (c *CompositeEncryptedStore) WorkflowLoad(id int64) (*model.Workflow, error
 	return c.baseStore.WorkflowLoad(id)
 }
 
+func (c *CompositeEncryptedStore) WorkflowByPID(pipelineID int64, pid int) (*model.Workflow, error) {
+	return c.baseStore.WorkflowByPID(pipelineID, pid)
+}
+
 func (c *CompositeEncryptedStore) WorkflowUpdate(workflow *model.Workflow) error {
 	return c.baseStore.WorkflowUpdate(workflow)
 }

@@ -82,6 +82,9 @@ func TestWaitAuthorizationAndQueueErrors(t *testing.T) {
 			if stage != "workflow" && stage != "pipeline" {
 				store.EXPECT().GetRepo(int64(4)).Return(&model.Repo{ID: 4}, stageError("repo")).Once()
 			}
+			if stage == "queue" || stage == "cancel" || stage == "complete" {
+				store.EXPECT().TaskGetAgentID("2", int64(1)).Return(true, nil).Once()
+			}
 			expected := codes.Unavailable
 			switch stage {
 			case "queue":

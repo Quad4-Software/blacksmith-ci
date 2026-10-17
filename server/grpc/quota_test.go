@@ -150,6 +150,7 @@ func TestNextCIQuotaDenial(t *testing.T) {
 			pl := &model.Pipeline{ID: 8, RepoID: 7, Status: model.StatusPending}
 			repo := &model.Repo{ID: 7, FullName: "org/repo"}
 			db.On("AgentFind", int64(1)).Return(agent, nil)
+			db.On("TaskGetAgentID", mock.Anything, int64(1)).Return(true, nil)
 			db.On("WorkflowLoad", int64(42)).Return(mac, nil)
 			db.On("WorkflowLoad", int64(43)).Return(linux, nil)
 			db.On("GetRepo", int64(7)).Return(repo, nil)

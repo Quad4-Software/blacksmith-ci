@@ -207,3 +207,21 @@ func TestLog_Integration_OpenWriteClose(t *testing.T) {
 	err = logger.Close(ctx, stepID)
 	assert.NoError(t, err)
 }
+
+// Concurrent Close calls for the same step must not close the stream twice.
+func TestLog_Close_Concurrent(t *testing.T) {
+	for range 2000 {
+		l := New()
+		assert.NoError(t, l.Open(t.Context(), 1))
+		start := make(chan struct{})
+		var wg sync.WaitGroup
+		for range 8 {
+			wg.Go(func() {
+				<-start
+				assert.NoError(t, l.Close(t.Context(), 1))
+			})
+		}
+		close(start)
+		wg.Wait()
+	}
+}

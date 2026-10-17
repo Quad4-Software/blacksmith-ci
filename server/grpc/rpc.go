@@ -275,6 +275,9 @@ func (s *RPC) Wait(c context.Context, workflowID string) error {
 	if err := s.checkAgentPermissionByWorkflow(c, agent, workflowID, nil, nil); err != nil {
 		return err
 	}
+	if err := s.checkAgentAssignedByID(agent, workflowID); err != nil {
+		return err
+	}
 
 	return s.queue.Wait(c, workflowID)
 }
@@ -292,6 +295,9 @@ func (s *RPC) Extend(c context.Context, workflowID string) error {
 	}
 
 	if err := s.checkAgentPermissionByWorkflow(c, agent, workflowID, nil, nil); err != nil {
+		return err
+	}
+	if err := s.checkAgentAssignedByID(agent, workflowID); err != nil {
 		return err
 	}
 
@@ -347,6 +353,9 @@ func (s *RPC) Update(c context.Context, strWorkflowID string, state rpc.StepStat
 	if err := s.checkAgentPermissionByWorkflow(c, agent, strWorkflowID, currentPipeline, repo); err != nil {
 		return err
 	}
+	if err := s.checkAgentAssigned(agent, workflow); err != nil {
+		return err
+	}
 
 	if err := serverPipeline.UpdateStepStatus(s.store, step, state); err != nil {
 		log.Error().Err(err).Msg("rpc.update: cannot update step")
@@ -389,10 +398,6 @@ func (s *RPC) Init(c context.Context, strWorkflowID string, state rpc.WorkflowSt
 		return err
 	}
 
-	workflow.AgentID = agent.ID
-	workflow.AgentPersistentID = agent.PersistentID
-	workflow.AgentName = agent.Name
-
 	currentPipeline, err := s.store.GetPipeline(workflow.PipelineID)
 	if err != nil {
 		log.Error().Err(err).Msgf("cannot find pipeline with id %d", workflow.PipelineID)
@@ -409,6 +414,13 @@ func (s *RPC) Init(c context.Context, strWorkflowID string, state rpc.WorkflowSt
 	if err := s.checkAgentPermissionByWorkflow(c, agent, strWorkflowID, currentPipeline, repo); err != nil {
 		return err
 	}
+	if err := s.checkAgentAssigned(agent, workflow); err != nil {
+		return err
+	}
+
+	workflow.AgentID = agent.ID
+	workflow.AgentPersistentID = agent.PersistentID
+	workflow.AgentName = agent.Name
 
 	if currentPipeline.Status == model.StatusPending {
 		if currentPipeline, err = serverPipeline.UpdateToStatusRunning(s.store, *currentPipeline, state.Started); err != nil {
@@ -486,6 +498,9 @@ func (s *RPC) Done(c context.Context, strWorkflowID string, state rpc.WorkflowSt
 
 	// check before agent can alter some state
 	if err := s.checkAgentPermissionByWorkflow(c, agent, strWorkflowID, currentPipeline, repo); err != nil {
+		return err
+	}
+	if err := s.checkAgentAssigned(agent, workflow); err != nil {
 		return err
 	}
 
@@ -651,6 +666,14 @@ func (s *RPC) Log(c context.Context, stepUUID string, rpcLogEntries []*rpc.LogEn
 
 	// check before agent can alter some state
 	if err := s.checkAgentPermissionByWorkflow(c, agent, "", currentPipeline, nil); err != nil {
+		return err
+	}
+	workflow, err := s.store.WorkflowByPID(currentPipeline.ID, step.PPID)
+	if err != nil {
+		log.Error().Err(err).Msgf("cannot find workflow %d of pipeline %d", step.PPID, currentPipeline.ID)
+		return err
+	}
+	if err := s.checkAgentAssigned(agent, workflow); err != nil {
 		return err
 	}
 
@@ -922,6 +945,61 @@ func (s *RPC) ClaimTask(ctx context.Context, taskID string) (*rpc.Workflow, erro
 		Msg("agent successfully claimed orphaned task")
 
 	return workflow, nil
+}
+
+// errAgentNotAssigned is returned when an agent reports on a workflow that was
+// handed to a different agent.
+var errAgentNotAssigned = errors.New("workflow is not assigned to this agent")
+
+func (s *RPC) checkAgentAssignedByID(agent *model.Agent, strWorkflowID string) error {
+	workflowID, err := strconv.ParseInt(strWorkflowID, 10, 64)
+	if err != nil {
+		return err
+	}
+	return s.checkAgentAssignment(agent, workflowID, func() (int64, error) {
+		workflow, err := s.store.WorkflowLoad(workflowID)
+		if err != nil {
+			return 0, err
+		}
+		return workflow.AgentID, nil
+	})
+}
+
+func (s *RPC) checkAgentAssigned(agent *model.Agent, workflow *model.Workflow) error {
+	return s.checkAgentAssignment(agent, workflow.ID, func() (int64, error) { return workflow.AgentID, nil })
+}
+
+// checkAgentAssignment rejects calls from an agent the workflow was not handed to.
+// Repo access alone is not enough: any agent able to run a repo's workflows
+// could otherwise rewrite the status and logs of a workflow another agent runs.
+// While the workflow is queued or running its task row is authoritative. Once
+// the row is gone, the agent recorded by Init is accepted, so log batches and
+// retries that arrive after Done still succeed.
+func (s *RPC) checkAgentAssignment(agent *model.Agent, workflowID int64, recordedAgent func() (int64, error)) error {
+	taskID := strconv.FormatInt(workflowID, 10)
+	assigned, err := s.store.TaskGetAgentID(taskID, agent.ID)
+	if err != nil {
+		return err
+	}
+	if assigned {
+		return nil
+	}
+	_, exists, err := s.store.TaskGetCancelled(taskID)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		recorded, err := recordedAgent()
+		if err != nil {
+			return err
+		}
+		if recorded != 0 && recorded == agent.ID {
+			return nil
+		}
+	}
+	log.Error().Int64("agent_id", agent.ID).Int64("workflow_id", workflowID).
+		Msg("agent reported on a workflow assigned to another agent")
+	return errAgentNotAssigned
 }
 
 func (s *RPC) checkAgentPermissionByWorkflow(_ context.Context, agent *model.Agent, strWorkflowID string, pipeline *model.Pipeline, repo *model.Repo) error {

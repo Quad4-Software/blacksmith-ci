@@ -575,6 +575,7 @@ func TestRPC_Update_PublishesPipelineWithUpdatedStepState(t *testing.T) {
 	mockStore.On("WorkflowLoad", workflowID).Return(workflow, nil)
 	mockStore.On("GetPipeline", pipelineID).Return(pipeline, nil)
 	mockStore.On("AgentFind", agentID).Return(agent, nil)
+	mockStore.On("TaskGetAgentID", "42", agentID).Return(true, nil)
 	mockStore.On("StepByUUID", stepUUID).Return(stepBefore, nil)
 	mockStore.On("GetRepo", repoID).Return(repo, nil)
 	// UpdateStepStatus persists the transition; the matcher proves we wrote

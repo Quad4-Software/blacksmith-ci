@@ -289,6 +289,14 @@ func (s storage) WorkflowLoad(id int64) (*model.Workflow, error) {
 	return workflow, wrapGet(s.db.NewSelect().Model(workflow).Where("id = ?", id).Scan(context.Background()))
 }
 
+func (s storage) WorkflowByPID(pipelineID int64, pid int) (*model.Workflow, error) {
+	workflow := new(model.Workflow)
+	return workflow, wrapGet(s.db.NewSelect().Model(workflow).
+		Where("pipeline_id = ?", pipelineID).
+		Where("pid = ?", pid).
+		Scan(context.Background()))
+}
+
 // WorkflowListByAgent returns historic workflows processed by the given agent,
 // most recently finished first, enriched with the owning pipeline's repo and
 // number for deep-linking.

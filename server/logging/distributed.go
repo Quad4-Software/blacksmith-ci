@@ -40,20 +40,28 @@ type distributedLog struct {
 	// Instance ID for this server
 	instanceID string
 
-	// Active streaming sessions
+	// Active streaming sessions. A step can be watched by several clients at
+	// once, so each Tail call gets its own session.
 	mu       sync.RWMutex
-	sessions map[int64]*streamSession
+	sessions map[int64]map[*streamSession]struct{}
 }
 
-// streamSession tracks a live streaming session for a step.
+// streamSession tracks one client tailing a step. Only the goroutine running
+// Tail sends to handler, so the handler is never written to after Tail returns.
 type streamSession struct {
 	stepID         int64
 	lastLogID      int64 // ID of last log entry we've seen
 	handler        LogChan
 	ctx            context.Context
-	cancel         context.CancelCauseFunc
-	notify         chan struct{} // Channel to notify of new logs
-	reloadSignaled atomic.Bool   // Track if we've already sent reload signal
+	notify         chan struct{} // Signals that new logs may be available
+	closed         chan struct{} // Closed when the step's log stream is closed
+	closeOnce      sync.Once
+	reloadSignaled atomic.Bool // Track if we've already sent reload signal
+}
+
+// markClosed tells the session that the step finished.
+func (s *streamSession) markClosed() {
+	s.closeOnce.Do(func() { close(s.closed) })
 }
 
 // NewDistributed returns a new distributed logger.
@@ -62,7 +70,7 @@ func NewDistributed(pubsub pubsub.Publisher, store store.Store, instanceID strin
 	return &distributedLog{
 		store:      store,
 		instanceID: instanceID,
-		sessions:   make(map[int64]*streamSession),
+		sessions:   make(map[int64]map[*streamSession]struct{}),
 	}
 }
 
@@ -111,115 +119,60 @@ func (d *distributedLog) Write(ctx context.Context, stepID int64, entries []*mod
 
 	logger.Debug().Int64("stepID", stepID).Int("entryCount", len(entries)).Str("instanceID", d.instanceID).Msg("distributed logger Write() called")
 
-	// Check if this is the first live log from an external agent for an active session
-	d.mu.RLock()
-	session, exists := d.sessions[stepID]
-	d.mu.RUnlock()
-
-	if exists && len(entries) > 0 && !session.reloadSignaled.Load() {
-		// This appears to be the first live log for this session
-		// Send a special reload signal to trigger page refresh
-		logger.Info().Int64("stepID", stepID).Str("instanceID", d.instanceID).Msg("first live log detected - sending page reload signal")
-
-		reloadEntry := &model.LogEntry{
-			ID:     -1, // Special ID to indicate this is a reload signal
-			StepID: stepID,
-			Time:   entries[0].Time,
-			Line:   -1,
-			Data:   []byte(`{"reload":true,"reason":"live_streaming_started"}`),
-			Type:   model.LogEntryMetadata,
-		}
-
-		// Send reload signal immediately
-		select {
-		case session.handler <- []*model.LogEntry{reloadEntry}:
-			logger.Debug().Int64("stepID", stepID).Str("instanceID", d.instanceID).Msg("sent reload signal to UI")
-			session.reloadSignaled.Store(true) // Mark that we've sent the reload signal
-		default:
-			// Channel full, skip reload signal
-		}
-	}
-
-	// Notify active sessions that new logs are available
-	// This triggers immediate polling instead of waiting for the next 100ms tick
+	// Wake the sessions so they poll now instead of on the next tick. Each
+	// session sends its own "live streaming started" reload signal when it
+	// picks up the first new entry, so Write never touches their channels.
 	d.notifyActiveSessions(stepID)
 
 	return nil
 }
 
 func (d *distributedLog) Tail(ctx context.Context, stepID int64, handler LogChan) error {
-	d.mu.Lock()
-
-	// Check if we already have an active session for this step
-	if session, exists := d.sessions[stepID]; exists {
-		// Cancel existing session
-		session.cancel(nil)
-		delete(d.sessions, stepID)
-	}
-
-	// Create a new streaming session
-	sessionCtx, cancel := context.WithCancelCause(ctx)
 	session := &streamSession{
-		stepID:    stepID,
-		lastLogID: 0,
-		handler:   handler,
-		ctx:       sessionCtx,
-		cancel:    cancel,
-		notify:    make(chan struct{}, 1), // Buffered to avoid blocking
+		stepID:  stepID,
+		handler: handler,
+		ctx:     ctx,
+		notify:  make(chan struct{}, 1), // Buffered to avoid blocking
+		closed:  make(chan struct{}),
 	}
-	d.sessions[stepID] = session
 
-	// Release the mutex before starting the goroutine and blocking
+	d.mu.Lock()
+	if d.sessions[stepID] == nil {
+		d.sessions[stepID] = make(map[*streamSession]struct{})
+	}
+	d.sessions[stepID][session] = struct{}{}
 	d.mu.Unlock()
 
-	// Start the streaming goroutine
-	go d.streamFromDatabase(session)
+	defer func() {
+		d.mu.Lock()
+		delete(d.sessions[stepID], session)
+		if len(d.sessions[stepID]) == 0 {
+			delete(d.sessions, stepID)
+		}
+		d.mu.Unlock()
+	}()
 
 	logger.Debug().Int64("stepID", stepID).Str("instanceID", d.instanceID).Msg("started database streaming session")
 
-	// Block until the context is canceled (like the original logger does)
-	// This prevents the API handler from closing the connection immediately
-	<-sessionCtx.Done()
+	// Stream on this goroutine and block until the client leaves or the step's
+	// stream is closed, like the in-memory logger does.
+	d.streamFromDatabase(session)
 
-	logger.Debug().Int64("stepID", stepID).Str("instanceID", d.instanceID).Err(sessionCtx.Err()).Msg("streaming session ended")
-	return sessionCtx.Err()
+	logger.Debug().Int64("stepID", stepID).Str("instanceID", d.instanceID).Err(ctx.Err()).Msg("streaming session ended")
+	return ctx.Err()
 }
 
-func (d *distributedLog) Close(ctx context.Context, stepID int64) error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
+func (d *distributedLog) Close(_ context.Context, stepID int64) error {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
 
-	// Send reload signal before closing to notify UI that workflow has ended
-	if session, exists := d.sessions[stepID]; exists {
-		// Send reload signal to trigger UI update for workflow completion
-		{ // Always send on close to update final status
-			logger.Debug().Int64("stepID", stepID).Str("instanceID", d.instanceID).Msg("workflow completed - sending reload signal")
-
-			reloadEntry := &model.LogEntry{
-				ID:     -1, // Special ID to indicate this is a reload signal
-				StepID: stepID,
-				Time:   time.Now().Unix(),
-				Line:   -1,
-				Data:   []byte(`{"reload":true,"reason":"workflow_completed"}`),
-				Type:   model.LogEntryMetadata,
-			}
-
-			// Try to send reload signal (non-blocking since we're closing anyway)
-			select {
-			case session.handler <- []*model.LogEntry{reloadEntry}:
-				logger.Debug().Int64("stepID", stepID).Str("instanceID", d.instanceID).Msg("sent reload signal for workflow completion")
-			default:
-				logger.Debug().Int64("stepID", stepID).Str("instanceID", d.instanceID).Msg("could not send reload signal - channel full or closed")
-			}
-
-			// Give a brief moment for the reload signal to be processed
-			time.Sleep(100 * time.Millisecond)
-		}
-
-		// Now cancel and remove the streaming session
-		session.cancel(nil)
-		delete(d.sessions, stepID)
-		logger.Debug().Int64("stepID", stepID).Str("instanceID", d.instanceID).Msg("closed database streaming session")
+	// Each session flushes its remaining logs and sends the completion reload
+	// signal on its own goroutine, so closing never blocks other steps.
+	for session := range d.sessions[stepID] {
+		session.markClosed()
+	}
+	if len(d.sessions[stepID]) > 0 {
+		logger.Debug().Int64("stepID", stepID).Str("instanceID", d.instanceID).Msg("closed database streaming sessions")
 	}
 
 	return nil
@@ -227,13 +180,6 @@ func (d *distributedLog) Close(ctx context.Context, stepID int64) error {
 
 // streamFromDatabase polls the database for new log entries and streams them.
 func (d *distributedLog) streamFromDatabase(session *streamSession) {
-	defer func() {
-		// Clean up session when goroutine exits
-		d.mu.Lock()
-		delete(d.sessions, session.stepID)
-		d.mu.Unlock()
-	}()
-
 	ticker := time.NewTicker(1 * time.Second) // Poll every 1 second (reduced from 100ms to lower DB load)
 	defer ticker.Stop()
 
@@ -314,9 +260,40 @@ func (d *distributedLog) streamFromDatabase(session *streamSession) {
 			case <-session.notify:
 			default:
 			}
+		case <-session.closed:
+			d.finishSession(session)
+			return
 		}
 	}
 }
+
+// finishSession sends the logs written since the last poll and then the reload
+// signal that tells the UI the step has completed.
+func (d *distributedLog) finishSession(session *streamSession) {
+	if err := d.pollNewLogs(session); err != nil {
+		logger.Error().Err(err).Int64("stepID", session.stepID).Msg("failed to poll final logs")
+	}
+
+	logger.Debug().Int64("stepID", session.stepID).Str("instanceID", d.instanceID).Msg("workflow completed - sending reload signal")
+	reloadEntry := &model.LogEntry{
+		ID:     -1, // Special ID to indicate this is a reload signal
+		StepID: session.stepID,
+		Time:   time.Now().Unix(),
+		Line:   -1,
+		Data:   []byte(`{"reload":true,"reason":"workflow_completed"}`),
+		Type:   model.LogEntryMetadata,
+	}
+	select {
+	case session.handler <- []*model.LogEntry{reloadEntry}:
+	case <-session.ctx.Done():
+	case <-time.After(closeSignalTimeout):
+		logger.Debug().Int64("stepID", session.stepID).Str("instanceID", d.instanceID).Msg("could not send reload signal - client is not reading")
+	}
+}
+
+// closeSignalTimeout bounds how long a closing session waits for a slow client
+// to accept the completion signal.
+const closeSignalTimeout = time.Second
 
 // sendHistoricalLogs sends all existing logs for the step.
 // Returns the number of logs sent and any error.
@@ -417,18 +394,13 @@ func (d *distributedLog) pollNewLogs(session *streamSession) error {
 // notifyActiveSessions notifies active streaming sessions that new logs may be available.
 func (d *distributedLog) notifyActiveSessions(stepID int64) {
 	d.mu.RLock()
-	session, exists := d.sessions[stepID]
-	d.mu.RUnlock()
+	defer d.mu.RUnlock()
 
-	if exists {
-		// Non-blocking send to notify channel
+	for session := range d.sessions[stepID] {
+		// Non-blocking send: a pending notification already triggers a poll.
 		select {
 		case session.notify <- struct{}{}:
-			logger.Debug().Int64("stepID", stepID).Str("instanceID", d.instanceID).Msg("notified active streaming session of new logs")
 		default:
-			logger.Debug().Int64("stepID", stepID).Str("instanceID", d.instanceID).Msg("notification channel full, already pending")
 		}
-	} else {
-		logger.Debug().Int64("stepID", stepID).Str("instanceID", d.instanceID).Msg("no active streaming session found for step")
 	}
 }

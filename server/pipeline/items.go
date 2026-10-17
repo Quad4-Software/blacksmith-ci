@@ -140,6 +140,11 @@ func parsePipeline(forge forge.Forge, store store.Store, currentPipeline *model.
 		},
 	}
 	items, err := b.Build()
+	// The external secrets are compiled into the workflows now, so drop the
+	// pipeline's cached providers instead of keeping the values in memory.
+	if integrationSvc := server.Config.Services.IntegrationService; integrationSvc != nil {
+		integrationSvc.ReleasePipeline(currentPipeline.ID)
+	}
 
 	// Propagate YAML notify override to the pipeline model.
 	// Use the first non-nil notify config found across workflows.

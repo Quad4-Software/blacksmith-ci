@@ -18,6 +18,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/rs/zerolog/log"
+
 	"codefloe.com/crowci/crow/v6/server/integrations"
 	"codefloe.com/crowci/crow/v6/server/integrations/cache"
 	"codefloe.com/crowci/crow/v6/server/model"
@@ -60,15 +62,17 @@ type ServiceFactory func(store model.IntegrationStore, factory integrations.Prov
 // NewService creates a new integration service with the given store and provider factory.
 func NewService(store model.IntegrationStore, factory integrations.ProviderFactory) Service {
 	return &service{
-		store: store,
-		pool:  cache.NewProviderPool(factory),
+		store:   store,
+		factory: factory,
+		pool:    cache.NewProviderPool(factory),
 	}
 }
 
 // service implements the Service interface.
 type service struct {
-	store model.IntegrationStore
-	pool  *cache.ProviderPool
+	store   model.IntegrationStore
+	factory integrations.ProviderFactory
+	pool    *cache.ProviderPool
 }
 
 // IntegrationFind finds an integration by ID, verifying the user owns it.
@@ -155,21 +159,19 @@ func (s *service) CheckAccess(integration *model.Integration, userID int64, orgI
 
 // TestConnection tests the connection to the integration's secret store.
 func (s *service) TestConnection(integration *model.Integration) error {
-	// Create a temporary provider just for testing
-	provider, err := s.pool.GetProvider(context.Background(), integration, 0)
+	// Use a throwaway provider rather than the pipeline pool, so concurrent
+	// tests cannot release each other's providers and a failed test leaks nothing.
+	provider, err := s.factory.Create(integration)
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if err := provider.Close(); err != nil {
+			log.Warn().Err(err).Int64("integration_id", integration.ID).Msg("could not close test provider")
+		}
+	}()
 
-	// Test the connection
-	if err := provider.TestConnection(context.Background()); err != nil {
-		return err
-	}
-
-	// Release the test provider immediately
-	s.pool.ReleasePipeline(0)
-
-	return nil
+	return provider.TestConnection(context.Background())
 }
 
 // GetProvider returns a cached provider for the given integration and pipeline.
