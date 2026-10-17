@@ -6,6 +6,7 @@ import useConfig from '~/compositions/useConfig';
 import { firstAdminRoute } from '~/compositions/usePermissions';
 import useUserConfig from '~/compositions/useUserConfig';
 import { needsForgeLink } from '~/lib/forgeLinkGuard';
+import { safeRedirectPath } from '~/lib/redirect';
 import { useAuthStore } from '~/store/auth';
 
 const { rootPath } = useConfig();
@@ -409,7 +410,9 @@ router.beforeEach(async (to, _, next) => {
 
     // Clear any existing notifications when redirecting after successful login
     window.dispatchEvent(new CustomEvent('clearNotifications'));
-    next(redirectUrl);
+    // The stored URL comes from the login page query, so only follow it to an
+    // in-app page that does not lead back into the sign-in flow.
+    next(safeRedirectPath(redirectUrl, rootPath) ?? `${rootPath}/`);
     return;
   }
 

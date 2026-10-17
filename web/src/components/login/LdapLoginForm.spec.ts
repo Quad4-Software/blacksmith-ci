@@ -54,17 +54,34 @@ describe('ldapLoginForm', () => {
 
   it('returns to the requested page after signing in', async () => {
     vi.stubGlobal('location', { href: '' });
-    routeQuery.url = '/repos/7/pipeline/3';
+    // Route paths include the root path, so the requested page does too.
+    routeQuery.url = '/root/repos/7/pipeline/3';
     ldapLogin.mockResolvedValue({ ok: true });
     const wrapper = mountForm();
 
     await fillAndSubmit(wrapper);
     await flushPromises();
 
-    expect(setUserConfig).toHaveBeenCalledWith('redirectUrl', '/repos/7/pipeline/3');
+    expect(setUserConfig).toHaveBeenCalledWith('redirectUrl', '/root/repos/7/pipeline/3');
     expect(window.location.href).toBe('/root/');
     expect(wrapper.find('button[type="submit"]').attributes('disabled')).toBeDefined();
   });
+
+  it.each(['/root/logout', '/root/login', '//evil.com', 'https://evil.com'])(
+    'ignores the unsafe requested page %s',
+    async (url) => {
+      vi.stubGlobal('location', { href: '' });
+      routeQuery.url = url;
+      ldapLogin.mockResolvedValue({ ok: true });
+      const wrapper = mountForm();
+
+      await fillAndSubmit(wrapper);
+      await flushPromises();
+
+      expect(setUserConfig).not.toHaveBeenCalled();
+      expect(window.location.href).toBe('/root/');
+    },
+  );
 
   it('goes to the home page without a requested page', async () => {
     vi.stubGlobal('location', { href: '' });

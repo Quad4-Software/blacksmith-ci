@@ -223,7 +223,7 @@ func TestHandleAuth(t *testing.T) {
 
 		assert.Equal(t, http.StatusSeeOther, c.Writer.Status())
 		assert.Equal(t, "/login?error=login_taken", c.Writer.Header().Get("Location"))
-		assert.Empty(t, c.Writer.Header().Get("Set-Cookie"), "no session may be issued")
+		assert.False(t, hasCookie(c.Writer.Header(), "user_sess"), "no session may be issued")
 		_store.AssertNotCalled(t, "CreateUser", mock.Anything)
 		_store.AssertNotCalled(t, "UserForgeCreate", mock.Anything)
 	})
@@ -471,7 +471,7 @@ func TestHandleAuth(t *testing.T) {
 		state := token.New(token.OAuthStateToken)
 		state.Set("forge-id", "1")
 		state.Set("linking-user-id", "42")
-		signedState, _ := state.Sign("jwt-secret")
+		signedState, stateCookie := signBoundState(t, state)
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
@@ -505,6 +505,8 @@ func TestHandleAuth(t *testing.T) {
 		_store.On("UserForgeList", int64(42)).Return([]*model.UserForge{{ForgeID: 1, AccessToken: "at"}}, nil)
 		_forge.On("Repos", mock.Anything, mock.Anything).Return(nil, nil)
 
+		c.Request.AddCookie(stateCookie)
+
 		api.HandleAuth(c)
 
 		assert.Equal(t, "/user?forge_linked=true", c.Writer.Header().Get("Location"))
@@ -524,7 +526,7 @@ func TestHandleAuth(t *testing.T) {
 		state := token.New(token.OAuthStateToken)
 		state.Set("forge-id", "1")
 		state.Set("linking-user-id", "42")
-		signedState, _ := state.Sign("jwt-secret")
+		signedState, stateCookie := signBoundState(t, state)
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
@@ -557,6 +559,8 @@ func TestHandleAuth(t *testing.T) {
 		_store.On("UserForgeList", int64(42)).Return([]*model.UserForge{{ForgeID: 1, AccessToken: "at"}}, nil)
 		_forge.On("Repos", mock.Anything, mock.Anything).Return(nil, nil)
 
+		c.Request.AddCookie(stateCookie)
+
 		api.HandleAuth(c)
 
 		assert.Equal(t, "/user?forge_linked=true", c.Writer.Header().Get("Location"))
@@ -583,7 +587,7 @@ func TestHandleAuth(t *testing.T) {
 		state.Set("forge-id", "1")
 		state.Set("linking-user-id", "42")
 		state.Set("reconnect", "true")
-		signedState, _ := state.Sign("jwt-secret")
+		signedState, stateCookie := signBoundState(t, state)
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
@@ -613,6 +617,8 @@ func TestHandleAuth(t *testing.T) {
 		_store.On("UserForgeList", int64(42)).Return([]*model.UserForge{primary}, nil)
 		_forge.On("Repos", mock.Anything, mock.Anything).Return(nil, nil)
 
+		c.Request.AddCookie(stateCookie)
+
 		api.HandleAuth(c)
 
 		assert.Equal(t, "/user?forge_reconnected=true", c.Writer.Header().Get("Location"))
@@ -630,7 +636,7 @@ func TestHandleAuth(t *testing.T) {
 			state := token.New(token.OAuthStateToken)
 			state.Set("forge-id", "1")
 			state.Set("linking-user-id", "42")
-			signedState, _ := state.Sign("jwt-secret")
+			signedState, stateCookie := signBoundState(t, state)
 
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
@@ -642,6 +648,8 @@ func TestHandleAuth(t *testing.T) {
 				Scheme:   "https",
 				RawQuery: url.Values{"code": {"code"}, "state": {signedState}}.Encode(),
 			}}
+
+			c.Request.AddCookie(stateCookie)
 
 			api.HandleAuth(c)
 
@@ -664,7 +672,7 @@ func TestHandleAuth(t *testing.T) {
 		state := token.New(token.OAuthStateToken)
 		state.Set("forge-id", "2")
 		state.Set("linking-user-id", "42")
-		signedState, _ := state.Sign("jwt-secret")
+		signedState, stateCookie := signBoundState(t, state)
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
@@ -682,6 +690,8 @@ func TestHandleAuth(t *testing.T) {
 		_store.On("UserForgeGetByRemoteID", int64(2), forgeUser.ForgeRemoteID).Return(nil, types.RecordNotExist)
 		_store.On("UserForgeList", int64(42)).Return([]*model.UserForge{}, nil)
 		_store.On("UserForgeCreate", mock.MatchedBy(func(uf *model.UserForge) bool { return !uf.IsPrimary })).Return(nil)
+
+		c.Request.AddCookie(stateCookie)
 
 		api.HandleAuth(c)
 
@@ -738,7 +748,7 @@ func TestHandleAuth(t *testing.T) {
 
 		state := token.New(token.OAuthStateToken)
 		state.Set("forge-id", "1")
-		signedState, _ := state.Sign("jwt-secret")
+		signedState, stateCookie := signBoundState(t, state)
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
@@ -747,6 +757,8 @@ func TestHandleAuth(t *testing.T) {
 			Scheme:   "https",
 			RawQuery: url.Values{"code": {"code"}, "state": {signedState}}.Encode(),
 		}}
+
+		c.Request.AddCookie(stateCookie)
 
 		api.HandleAuth(c)
 
@@ -778,5 +790,292 @@ func TestHandleAuth(t *testing.T) {
 		api.HandleAuth(c)
 
 		assert.Equal(t, "https://forge.example/oauth", c.Writer.Header().Get("Location"))
+	})
+
+	t.Run("ignores an off-site redirect_to when starting a forge link", func(t *testing.T) {
+		for _, redirectTo := range []string{"//evil.com", "/\\evil.com", "https://evil.com", "/%2F%2Fevil.com"} {
+			_manager := new(mocks_services.MockManager)
+			_forge := new(forge_mocks.MockForge)
+			_store := new(store_mocks.MockStore)
+			server.Config.Services.Manager = _manager
+			server.Config.Server.JWTSecret = "jwt-secret"
+
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Set("store", _store)
+			c.Set("user", &model.User{ID: 42, Login: "jane"})
+			c.Request = &http.Request{Header: make(http.Header), URL: &url.URL{
+				Scheme:   "https",
+				RawQuery: url.Values{"redirect_to": {redirectTo}}.Encode(),
+			}}
+
+			var gotState string
+			_store.On("UserForgeGet", int64(42), int64(1)).Return(nil, types.RecordNotExist)
+			_manager.On("ForgeByID", int64(1)).Return(_forge, nil)
+			_forge.On("Login", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+				if req, ok := args.Get(1).(*forge_types.OAuthRequest); ok {
+					gotState = req.State
+				}
+			}).Return(nil, "https://forge.example/oauth", nil)
+
+			api.HandleAuth(c)
+
+			parsed, err := token.Parse([]token.Type{token.OAuthStateToken}, gotState, func(_ *token.Token) (string, error) {
+				return "jwt-secret", nil
+			})
+			if assert.NoError(t, err, redirectTo) {
+				assert.Empty(t, parsed.Get("redirect-to"), redirectTo)
+			}
+		}
+	})
+
+	t.Run("redirects to the default page when the state carries an off-site redirect", func(t *testing.T) {
+		for redirectTo, want := range map[string]string{
+			"//evil.com":       "/user?forge_linked=true",
+			"https://evil.com": "/user?forge_linked=true",
+			"/\\evil.com":      "/user?forge_linked=true",
+			"/repos/7":         "/repos/7",
+		} {
+			_manager := new(mocks_services.MockManager)
+			_forge := new(forge_mocks.MockForge)
+			_store := new(store_mocks.MockStore)
+			server.Config.Services.Manager = _manager
+			server.Config.Server.JWTSecret = "jwt-secret"
+			server.Config.Permissions.Orgs = permissions.NewOrgs(nil)
+			server.Config.Permissions.Admins = permissions.NewAdmins(nil)
+
+			linkingUser := &model.User{ID: 42, Login: "jane", Hash: "hash", ForgeID: 1, ForgeRemoteID: "legacy-1", OrgID: 5}
+			state := token.New(token.OAuthStateToken)
+			state.Set("forge-id", "2")
+			state.Set("linking-user-id", "42")
+			state.Set("redirect-to", redirectTo)
+			signedState, stateCookie := signBoundState(t, state)
+
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Set("store", _store)
+			c.Set("user", linkingUser)
+			c.Request = &http.Request{Header: make(http.Header), URL: &url.URL{
+				Scheme:   "https",
+				RawQuery: url.Values{"code": {"code"}, "state": {signedState}}.Encode(),
+			}}
+
+			forgeUser := &model.User{Login: "jane-2", ForgeRemoteID: "remote-2", AccessToken: "at"}
+			_manager.On("ForgeByID", int64(2)).Return(_forge, nil)
+			_forge.On("Login", mock.Anything, mock.Anything).Return(forgeUser, "", nil)
+			_store.On("GetUser", int64(42)).Return(linkingUser, nil)
+			_store.On("UserForgeGetByRemoteID", int64(2), forgeUser.ForgeRemoteID).Return(nil, types.RecordNotExist)
+			_store.On("UserForgeList", int64(42)).Return([]*model.UserForge{}, nil)
+			_store.On("UserForgeCreate", mock.Anything).Return(nil)
+
+			c.Request.AddCookie(stateCookie)
+
+			api.HandleAuth(c)
+
+			assert.Equal(t, want, c.Writer.Header().Get("Location"), redirectTo)
+		}
+	})
+}
+
+// signBoundState signs a forge OAuth state token bound to a fresh browser
+// nonce and returns the cookie a browser that started the flow would send.
+func signBoundState(t *testing.T, state *token.Token) (string, *http.Cookie) {
+	t.Helper()
+	nonce := "test-nonce"
+	state.Set(api.ForgeOAuthNonceClaim, api.ForgeOAuthNonceHash(nonce))
+	signed, err := state.Sign("jwt-secret")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return signed, &http.Cookie{Name: api.ForgeOAuthCookie, Value: nonce}
+}
+
+// hasCookie reports whether the response sets a cookie with the given name.
+func hasCookie(h http.Header, name string) bool {
+	for _, ck := range (&http.Response{Header: h}).Cookies() {
+		if ck.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+// TestHandleAuthStateCookie covers binding the forge OAuth state to the browser
+// that started the flow, which prevents login CSRF.
+func TestHandleAuthStateCookie(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	server.Config.Server.SessionExpires = time.Hour
+	server.Config.Server.JWTSecret = "jwt-secret"
+	server.Config.Server.RootPath = "/crow"
+	server.Config.Server.Host = "https://ci.example/crow"
+	server.Config.Permissions.Open = true
+	server.Config.Permissions.Orgs = permissions.NewOrgs(nil)
+	server.Config.Permissions.Admins = permissions.NewAdmins(nil)
+	t.Cleanup(func() {
+		server.Config.Server.RootPath = ""
+		server.Config.Server.Host = ""
+	})
+
+	user := &model.User{ID: 1, OrgID: 1, ForgeID: 2, ForgeRemoteID: "remote-id-1", Login: "test", Hash: "hash"}
+
+	// start begins a forge sign-in on forge 2 and returns the state sent to the
+	// forge and the cookie set in the browser.
+	start := func(t *testing.T) (string, *http.Cookie) {
+		t.Helper()
+		_manager := new(mocks_services.MockManager)
+		_forge := new(forge_mocks.MockForge)
+		server.Config.Services.Manager = _manager
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Set("store", new(store_mocks.MockStore))
+		c.Request = &http.Request{Header: make(http.Header), URL: &url.URL{RawQuery: "forge_id=2"}}
+
+		var state string
+		_manager.On("ForgeByID", int64(2)).Return(_forge, nil)
+		_forge.On("Login", mock.Anything, mock.MatchedBy(func(req *forge_types.OAuthRequest) bool {
+			return req.Code == ""
+		})).Run(func(args mock.Arguments) {
+			if req, ok := args.Get(1).(*forge_types.OAuthRequest); ok {
+				state = req.State
+			}
+		}).Return(nil, "https://forge.example/oauth", nil)
+
+		api.HandleAuth(c)
+
+		assert.Equal(t, "https://forge.example/oauth", c.Writer.Header().Get("Location"))
+		var cookie *http.Cookie
+		for _, ck := range (&http.Response{Header: c.Writer.Header()}).Cookies() {
+			if ck.Name == api.ForgeOAuthCookie {
+				cookie = ck
+			}
+		}
+		if cookie == nil {
+			t.Fatal("forge OAuth cookie is not set")
+		}
+		return state, cookie
+	}
+
+	// callback completes the flow with the given cookie, expecting the forge
+	// to be contacted only when succeed is true.
+	callback := func(t *testing.T, state string, cookie *http.Cookie, succeed bool) *gin.Context {
+		t.Helper()
+		_manager := new(mocks_services.MockManager)
+		_forge := new(forge_mocks.MockForge)
+		_store := new(store_mocks.MockStore)
+		server.Config.Services.Manager = _manager
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Set("store", _store)
+		c.Request = &http.Request{Header: make(http.Header), URL: &url.URL{
+			RawQuery: url.Values{"code": {"code"}, "state": {state}}.Encode(),
+		}}
+		if cookie != nil {
+			c.Request.AddCookie(cookie)
+		}
+
+		if succeed {
+			_manager.On("ForgeByID", int64(2)).Return(_forge, nil)
+			_forge.On("Login", mock.Anything, mock.MatchedBy(func(req *forge_types.OAuthRequest) bool {
+				return req.Code == "code"
+			})).Return(user, "", nil)
+			_store.On("UserForgeGetByRemoteID", int64(2), user.ForgeRemoteID).
+				Return(&model.UserForge{ID: 1, UserID: user.ID, ForgeID: 2, ForgeRemoteID: user.ForgeRemoteID, IsPrimary: true}, nil)
+			_store.On("GetUser", user.ID).Return(user, nil)
+			_store.On("UserForgeUpdate", mock.Anything).Return(nil)
+			_store.On("OrgGet", user.OrgID).Return(&model.Org{ID: 1, Name: user.Login}, nil)
+			_store.On("UpdateUser", mock.Anything).Return(nil)
+			_store.On("UserForgeList", mock.Anything).Return([]*model.UserForge{{ForgeID: 2, AccessToken: "token"}}, nil)
+			_forge.On("Repos", mock.Anything, mock.Anything).Return(nil, nil)
+		}
+
+		api.HandleAuth(c)
+
+		if !succeed {
+			_manager.AssertNotCalled(t, "ForgeByID", mock.Anything)
+			_forge.AssertNotCalled(t, "Login", mock.Anything, mock.Anything)
+			assert.False(t, hasCookie(c.Writer.Header(), "user_sess"), "no session may be issued")
+		}
+		return c
+	}
+
+	t.Run("sets a short-lived HttpOnly Lax cookie scoped to the OAuth endpoint", func(t *testing.T) {
+		state, cookie := start(t)
+
+		assert.Equal(t, "/crow/authorize", cookie.Path)
+		assert.True(t, cookie.HttpOnly)
+		assert.True(t, cookie.Secure, "server URL is https")
+		assert.Equal(t, http.SameSiteLaxMode, cookie.SameSite)
+		assert.Positive(t, cookie.MaxAge)
+		assert.LessOrEqual(t, cookie.MaxAge, 300)
+		assert.NotEmpty(t, cookie.Value)
+
+		parsed, err := token.Parse([]token.Type{token.OAuthStateToken}, state, func(_ *token.Token) (string, error) {
+			return "jwt-secret", nil
+		})
+		if assert.NoError(t, err) {
+			assert.Equal(t, api.ForgeOAuthNonceHash(cookie.Value), parsed.Get(api.ForgeOAuthNonceClaim))
+			assert.NotContains(t, state, cookie.Value, "the raw nonce never travels through the forge")
+			assert.Equal(t, "2", parsed.Get("forge-id"))
+		}
+	})
+
+	t.Run("succeeds with the matching cookie and deletes it", func(t *testing.T) {
+		state, cookie := start(t)
+
+		c := callback(t, state, &http.Cookie{Name: cookie.Name, Value: cookie.Value}, true)
+
+		assert.Equal(t, "/crow/", c.Writer.Header().Get("Location"))
+		assert.True(t, hasCookie(c.Writer.Header(), "user_sess"))
+		for _, ck := range (&http.Response{Header: c.Writer.Header()}).Cookies() {
+			if ck.Name == api.ForgeOAuthCookie {
+				assert.Negative(t, ck.MaxAge, "state cookie is deleted")
+				assert.Equal(t, "/crow/authorize", ck.Path)
+			}
+		}
+	})
+
+	t.Run("fails without the cookie", func(t *testing.T) {
+		state, _ := start(t)
+
+		c := callback(t, state, nil, false)
+
+		assert.Equal(t, "/crow/login?error=invalid_state", c.Writer.Header().Get("Location"))
+	})
+
+	t.Run("fails with a cookie from another flow", func(t *testing.T) {
+		state, _ := start(t)
+		_, otherCookie := start(t)
+
+		c := callback(t, state, &http.Cookie{Name: otherCookie.Name, Value: otherCookie.Value}, false)
+
+		assert.Equal(t, "/crow/login?error=invalid_state", c.Writer.Header().Get("Location"))
+	})
+
+	t.Run("fails for a state without a nonce", func(t *testing.T) {
+		state := token.New(token.OAuthStateToken)
+		state.Set("forge-id", "2")
+		signed, _ := state.Sign("jwt-secret")
+
+		c := callback(t, signed, &http.Cookie{Name: api.ForgeOAuthCookie, Value: "anything"}, false)
+
+		assert.Equal(t, "/crow/login?error=invalid_state", c.Writer.Header().Get("Location"))
+	})
+
+	t.Run("refuses to exchange a code without a state", func(t *testing.T) {
+		_manager := new(mocks_services.MockManager)
+		server.Config.Services.Manager = _manager
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Set("store", new(store_mocks.MockStore))
+		c.Request = &http.Request{Header: make(http.Header), URL: &url.URL{RawQuery: "code=attacker-code"}}
+
+		api.HandleAuth(c)
+
+		assert.Equal(t, "/crow/login?error=invalid_state", c.Writer.Header().Get("Location"))
+		_manager.AssertNotCalled(t, "ForgeByID", mock.Anything)
 	})
 }

@@ -53,6 +53,7 @@ func HandleAuth(c *gin.Context) {
 
 	// redirect when getting oauth error from forge to login page
 	if err := c.Request.FormValue("error"); err != "" {
+		delForgeOAuthCookie(c.Writer, c.Request)
 		query := url.Values{}
 		query.Set("error", err)
 		if errorDescription := c.Request.FormValue("error_description"); errorDescription != "" {
@@ -70,6 +71,14 @@ func HandleAuth(c *gin.Context) {
 	code := c.Request.FormValue("code")
 	state := c.Request.FormValue("state")
 	isCallback := code != "" && state != ""
+	// A code is only exchanged together with a verified state. Without this, a
+	// bare "?code=" link would skip the state check and sign the visitor in
+	// with whatever account the code belongs to.
+	if code != "" && state == "" {
+		log.Warn().Msg("forge OAuth callback without state")
+		c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/login?error=invalid_state")
+		return
+	}
 	var forgeID int64
 	var linkingUserID int64 // non-zero if we're linking a new forge to an existing user
 
@@ -82,6 +91,17 @@ func HandleAuth(c *gin.Context) {
 		})
 		if err != nil {
 			log.Error().Err(err).Msg("cannot verify state token")
+			c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/login?error=invalid_state")
+			return
+		}
+
+		// The state must come back to the browser that started the flow, or an
+		// attacker could have a victim complete a sign-in into the attacker's
+		// account (login CSRF).
+		cookieMatches := forgeOAuthCookieMatches(c.Request, stateToken)
+		delForgeOAuthCookie(c.Writer, c.Request)
+		if !cookieMatches {
+			log.Warn().Msg("forge OAuth callback without a matching state cookie")
 			c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/login?error=invalid_state")
 			return
 		}
@@ -102,8 +122,11 @@ func HandleAuth(c *gin.Context) {
 		// Check if this is a reconnect request
 		isReconnect = stateToken.Get("reconnect") == "true"
 
-		// Get custom redirect URL if set
-		redirectTo = stateToken.Get("redirect-to")
+		// Get custom redirect URL if set. It is validated again here so a state
+		// token minted before validation existed cannot redirect off-site.
+		if rt := stateToken.Get("redirect-to"); safeRedirectPath(rt) {
+			redirectTo = rt
+		}
 
 		if linkingUserID == 0 && forgeSignInDisabled() {
 			c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/login?error=forge_login_disabled")
@@ -160,8 +183,15 @@ func HandleAuth(c *gin.Context) {
 		// Check if this is a reconnect request (refreshing tokens for existing link)
 		isReconnect = c.Request.FormValue("reconnect") == "true"
 
-		// Get custom redirect URL (for returning to current page after auth)
-		redirectTo = c.Request.FormValue("redirect_to")
+		// Get custom redirect URL (for returning to current page after auth).
+		// Only local paths are kept; anything else falls back to the default.
+		if rt := c.Request.FormValue("redirect_to"); rt != "" {
+			if safeRedirectPath(rt) {
+				redirectTo = rt
+			} else {
+				log.Warn().Str("redirect_to", rt).Msg("ignoring unsafe redirect_to")
+			}
+		}
 
 		jwtSecret := server.Config.Server.JWTSecret
 		exp := time.Now().Add(stateTokenDuration).Unix()
@@ -189,12 +219,16 @@ func HandleAuth(c *gin.Context) {
 			stateToken.Set("redirect-to", redirectTo)
 		}
 
+		nonce := newForgeOAuthNonce()
+		stateToken.Set(forgeOAuthNonceClaim, forgeOAuthNonceHash(nonce))
+
 		state, err = stateToken.SignExpires(jwtSecret, exp)
 		if err != nil {
 			log.Error().Err(err).Msg("cannot create state token")
 			c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/login?error=internal_error")
 			return
 		}
+		setForgeOAuthCookie(c.Writer, c.Request, nonce)
 	}
 
 	_forge, err := server.Config.Services.Manager.ForgeByID(forgeID)
@@ -205,8 +239,10 @@ func HandleAuth(c *gin.Context) {
 	}
 
 	oauthReq := &forge_types.OAuthRequest{
-		Code:  c.Request.FormValue("code"),
 		State: state,
+	}
+	if isCallback {
+		oauthReq.Code = code
 	}
 	// When adding another account, ask the forge to show its account picker so the
 	// user can sign in as a different account instead of being silently logged in
@@ -302,11 +338,7 @@ func HandleAuth(c *gin.Context) {
 			}
 
 			// Redirect back to custom URL or user settings
-			if redirectTo != "" {
-				c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+redirectTo)
-			} else {
-				c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/user?forge_reconnected=true")
-			}
+			c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+redirectPathOr(redirectTo, "/user?forge_reconnected=true"))
 			return
 		}
 
@@ -356,11 +388,7 @@ func HandleAuth(c *gin.Context) {
 		}
 
 		// Redirect back to custom URL or user settings
-		if redirectTo != "" {
-			c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+redirectTo)
-		} else {
-			c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+"/user?forge_linked=true")
-		}
+		c.Redirect(http.StatusSeeOther, server.Config.Server.RootPath+redirectPathOr(redirectTo, "/user?forge_linked=true"))
 		return
 	}
 

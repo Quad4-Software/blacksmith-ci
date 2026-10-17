@@ -28,3 +28,13 @@ func ResetLDAPLimiters() {
 
 // ClientIPKey exposes clientIPKey to the tests.
 var ClientIPKey = clientIPKey
+
+// ForgeOAuthCookie is the name of the cookie binding a forge OAuth flow to
+// the browser.
+const ForgeOAuthCookie = forgeOAuthCookie
+
+// ForgeOAuthNonceClaim is the state token claim holding the cookie nonce hash.
+const ForgeOAuthNonceClaim = forgeOAuthNonceClaim
+
+// ForgeOAuthNonceHash exposes forgeOAuthNonceHash to the tests.
+var ForgeOAuthNonceHash = forgeOAuthNonceHash

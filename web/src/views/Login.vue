@@ -105,6 +105,7 @@ import useConfig from '~/compositions/useConfig';
 import { useCrowTitle } from '~/compositions/useCrowTitle';
 import { useTheme } from '~/compositions/useTheme';
 import type { Forge } from '~/lib/api/types';
+import { safeRedirectPath } from '~/lib/redirect';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
@@ -220,14 +221,14 @@ function hasBuiltInIcon(forge: Forge) {
 
 function doLogin(forgeId?: number) {
   loading.value = forgeId ?? null;
-  const url = typeof route.query.url === 'string' ? route.query.url : '';
+  const url = safeRedirectPath(route.query.url, appConfig.rootPath) ?? '';
   // Pass link=true when in linking mode, add_account=true when adding an account
   authentication.authenticate(url, forgeId, isLinkingMode.value, isAddAccountMode.value);
 }
 
 function doOidcLogin() {
   oidcLoading.value = true;
-  const url = typeof route.query.url === 'string' ? route.query.url : '';
+  const url = safeRedirectPath(route.query.url, appConfig.rootPath) ?? '';
   authentication.authenticateOIDC(url);
 }
 

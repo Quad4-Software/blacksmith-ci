@@ -50,6 +50,7 @@ import { Label } from '~/components/ui/label';
 import useConfig from '~/compositions/useConfig';
 import useUserConfig from '~/compositions/useUserConfig';
 import { ldapErrorMessage, ldapLogin } from '~/lib/ldapLogin';
+import { safeRedirectPath } from '~/lib/redirect';
 
 defineProps<{ name: string }>();
 
@@ -72,8 +73,8 @@ async function submit() {
       // Like the forge and OIDC flows, return to the page that asked for sign-in
       // once the reload has picked up the session. The form stays disabled
       // until the page is gone.
-      const url = typeof route.query.url === 'string' ? route.query.url : '';
-      if (url) {
+      const url = safeRedirectPath(route.query.url, config.rootPath);
+      if (url !== undefined) {
         useUserConfig().setUserConfig('redirectUrl', url);
       }
       window.location.href = `${config.rootPath}/`;
