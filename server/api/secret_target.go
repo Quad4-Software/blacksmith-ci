@@ -87,14 +87,19 @@ func authorizeSecretAccess(ctx context.Context, _store store.Store, secretID int
 // the same authority as creating a secret there through the scoped endpoints:
 // secrets:write for global, org admin for an org, and push access for a repo.
 func authorizeSecretScope(ctx context.Context, _store store.Store, user *model.User, orgID, repoID int64) error {
+	if orgID != 0 && repoID != 0 {
+		return huma.Error422UnprocessableEntity("only one of org_id or repo_id may be set")
+	}
+	if err := authorizeAccessTokenSecretEntity(ctx, _store, orgID, repoID); err != nil {
+		return err
+	}
+
 	switch {
 	case orgID == 0 && repoID == 0:
 		if !user.Can(model.PermSecretsWrite) {
 			return huma.Error403Forbidden("secrets:write permission required")
 		}
 		return nil
-	case orgID != 0 && repoID != 0:
-		return huma.Error422UnprocessableEntity("only one of org_id or repo_id may be set")
 	case orgID != 0:
 		return authorizeOrgSecretAccess(ctx, _store, user, orgID)
 	default:
@@ -111,6 +116,41 @@ func authorizeSecretScope(ctx context.Context, _store store.Store, user *model.U
 		}
 		return nil
 	}
+}
+
+// authorizeAccessTokenSecretEntity checks that the access token the request
+// authenticated with, if any, reaches a secret owner or target: the repo when
+// repoID is set, else the org when orgID is set, else the instance, which needs
+// an unrestricted token with admin:write.
+func authorizeAccessTokenSecretEntity(ctx context.Context, _store store.Store, orgID, repoID int64) error {
+	c := ginCtx(ctx)
+	at := session.AccessToken(c)
+	if at == nil {
+		return nil
+	}
+	switch {
+	case repoID != 0:
+		repo, err := _store.GetRepo(repoID)
+		if err != nil {
+			return huma.Error404NotFound("repository not found")
+		}
+		if !at.AllowsRepo(repo) {
+			return huma.Error403Forbidden("access token is restricted to another repository")
+		}
+	case orgID != 0:
+		org, err := _store.OrgGet(orgID)
+		if err != nil {
+			return huma.Error404NotFound("organization not found")
+		}
+		if !session.AccessTokenAllowsOrg(c, org) {
+			return huma.Error403Forbidden("access token is restricted to another organization or repository")
+		}
+	default:
+		if !at.IsUserLevel() || !at.Allows(model.ScopeAdminWrite) {
+			return huma.Error403Forbidden("global secrets need an unrestricted access token with admin:write")
+		}
+	}
+	return nil
 }
 
 // authorizeOrgSecretAccess mirrors MustOrgMember(admin=true) semantics: the user

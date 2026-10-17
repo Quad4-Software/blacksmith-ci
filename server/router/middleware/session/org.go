@@ -67,6 +67,12 @@ func SetOrg() gin.HandlerFunc {
 			return
 		}
 
+		if !AccessTokenAllowsOrg(c, org) {
+			c.String(http.StatusForbidden, "Access token is restricted to another organization or repository")
+			c.Abort()
+			return
+		}
+
 		c.Set("org", org)
 		c.Next()
 	}

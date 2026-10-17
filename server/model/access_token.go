@@ -172,6 +172,58 @@ func (at *AccessToken) HasScope(required AccessTokenScope) bool {
 	return false
 }
 
+// scopeHierarchy lists every scope family from the weakest to the strongest
+// scope. A scope implies all scopes listed before it in its family.
+var scopeHierarchy = [][]AccessTokenScope{
+	{ScopeRepoRead, ScopeRepoWrite, ScopeRepoAdmin},
+	{ScopeUserRead, ScopeUserWrite},
+	{ScopeAdminRead, ScopeAdminWrite},
+}
+
+// scopeRank returns the family index and the rank of the scope within it, or
+// -1 for both when the scope is unknown.
+func (s AccessTokenScope) scopeRank() (int, int) {
+	for family, scopes := range scopeHierarchy {
+		if rank := slices.Index(scopes, s); rank >= 0 {
+			return family, rank
+		}
+	}
+	return -1, -1
+}
+
+// Satisfies reports whether holding scope s grants required. Within a family a
+// higher scope implies the lower ones: repo:admin includes repo:write and
+// repo:read, user:write includes user:read and admin:write includes admin:read.
+func (s AccessTokenScope) Satisfies(required AccessTokenScope) bool {
+	haveFamily, haveRank := s.scopeRank()
+	needFamily, needRank := required.scopeRank()
+	return haveFamily >= 0 && haveFamily == needFamily && haveRank >= needRank
+}
+
+// Allows reports whether any scope of the token satisfies required.
+func (at *AccessToken) Allows(required AccessTokenScope) bool {
+	for _, s := range at.Scopes {
+		if AccessTokenScope(s).Satisfies(required) {
+			return true
+		}
+	}
+	return false
+}
+
+// AllowsRepo reports whether the token's org/repo restriction admits repo.
+func (at *AccessToken) AllowsRepo(repo *Repo) bool {
+	if repo == nil {
+		return at.IsUserLevel()
+	}
+	if at.RepoID != 0 && repo.ID != at.RepoID {
+		return false
+	}
+	if at.OrgID != 0 && repo.OrgID != at.OrgID {
+		return false
+	}
+	return true
+}
+
 // IsExpired returns true if the token has expired.
 func (at *AccessToken) IsExpired() bool {
 	if at.ExpiresAt == 0 {

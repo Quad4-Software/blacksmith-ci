@@ -67,6 +67,11 @@ func SetRepo() gin.HandlerFunc {
 		}
 
 		if repo != nil && err == nil {
+			if !AccessTokenAllowsRepo(c, repo) {
+				c.String(http.StatusForbidden, "Access token is restricted to another repository")
+				c.Abort()
+				return
+			}
 			c.Set("repo", repo)
 			c.Next()
 			return

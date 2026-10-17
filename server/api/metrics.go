@@ -46,7 +46,7 @@ func GetMetrics(ctx context.Context, input *GetMetricsInput) (*GetMetricsOutput,
 	after := input.After
 	before := input.Before
 
-	repoIDs, accessibleRepos, isAdminScope, err := resolveScopedRepoIDs(_store, user, input.All, input.Repos)
+	repoIDs, accessibleRepos, isAdminScope, err := resolveScopedRepoIDs(_store, user, input.All && session.AccessTokenAllows(c, model.ScopeAdminRead), input.Repos)
 	if err != nil {
 		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error getting user repos: %s", err))
 	}
@@ -288,7 +288,7 @@ func GetMetricsQuery(ctx context.Context, input *GetMetricsQueryInput) (*GetMetr
 			fmt.Sprintf("metric %q is not available for dimension %q", input.Metric, input.Dimension))
 	}
 
-	repoIDs, _, isAdminScope, err := resolveScopedRepoIDs(_store, user, input.All, input.Repos)
+	repoIDs, _, isAdminScope, err := resolveScopedRepoIDs(_store, user, input.All && session.AccessTokenAllows(c, model.ScopeAdminRead), input.Repos)
 	if err != nil {
 		return nil, huma.Error500InternalServerError(fmt.Sprintf("Error getting user repos: %s", err))
 	}

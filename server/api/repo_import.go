@@ -77,6 +77,10 @@ func ImportSettings(ctx context.Context, input *ImportSettingsInput) (*ImportSet
 		return nil, huma.Error404NotFound("Source repository not found")
 	}
 
+	if !session.AccessTokenAllowsRepo(c, sourceRepo) {
+		return nil, huma.Error403Forbidden("Access token is restricted to another repository")
+	}
+
 	// Check user has admin access to source repo
 	sourcePerm, err := _store.PermFind(user, sourceRepo)
 	if err != nil || !sourcePerm.Admin {
@@ -281,7 +285,7 @@ func GetImportableRepos(ctx context.Context, input *GetImportableReposInput) (*G
 	// Filter to only repos where user is admin and exclude target repo
 	importableRepos := make([]*model.Repo, 0)
 	for _, repo := range repos {
-		if repo.ID == targetRepo.ID {
+		if repo.ID == targetRepo.ID || !session.AccessTokenAllowsRepo(c, repo) {
 			continue
 		}
 
@@ -329,6 +333,10 @@ func GetRepoForImport(ctx context.Context, input *GetRepoForImportInput) (*GetRe
 	sourceRepo, err := _store.GetRepo(input.SourceRepoID)
 	if err != nil {
 		return nil, huma.Error404NotFound("Source repository not found")
+	}
+
+	if !session.AccessTokenAllowsRepo(c, sourceRepo) {
+		return nil, huma.Error403Forbidden("Access token is restricted to another repository")
 	}
 
 	// Check user has admin access

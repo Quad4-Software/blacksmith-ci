@@ -88,3 +88,5 @@ Removing a role therefore takes effect immediately, even for tokens created earl
 
 - Creating a token with the `admin:read` scope needs any role.
 - Creating a token with the `admin:write` scope needs a role that can change something (`operator` or `secrets-manager`), or admin.
+
+The scopes limit what a token can reach on top of the roles, see [Access tokens](/dev/usage/access-tokens/) for the scope each endpoint needs.

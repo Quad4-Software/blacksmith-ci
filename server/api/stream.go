@@ -68,7 +68,10 @@ func EventStreamSSE(c *gin.Context) {
 	if user != nil {
 		repos, _ := store.FromContext(c).RepoList(user, false, true)
 		for _, r := range repos {
-			repo[r.FullName] = true
+			// An access token limited to an org or repo sees only those.
+			if session.AccessTokenAllowsRepo(c, r) {
+				repo[r.FullName] = true
+			}
 		}
 	}
 

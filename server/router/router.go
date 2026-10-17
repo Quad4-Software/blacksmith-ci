@@ -52,6 +52,7 @@ func Load(noRouteHandler http.HandlerFunc, middleware ...gin.HandlerFunc) http.H
 	e.Use(header.Secure)
 	e.Use(middleware...)
 	e.Use(session.SetUser())
+	e.Use(session.EnforceAccessTokenScopes(server.Config.Server.RootPath, resolveAccessTokenScope))
 
 	e.NoRoute(gin.WrapF(noRouteHandler))
 

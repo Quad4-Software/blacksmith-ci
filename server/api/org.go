@@ -203,6 +203,11 @@ func LookupOrgGin(c *gin.Context) {
 		return
 	}
 
+	if !session.AccessTokenAllowsOrg(c, org) {
+		c.String(http.StatusForbidden, "Access token is restricted to another organization or repository")
+		return
+	}
+
 	if org.Private {
 		if !user.Admin && org.Name != user.Login {
 			c.String(http.StatusNotFound, "not found")

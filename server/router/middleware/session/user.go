@@ -110,7 +110,8 @@ func SetUser() gin.HandlerFunc {
 		if err == nil {
 			c.Set("user", user)
 
-			// Store access token in context for scope checking
+			// Store the access token in the context; EnforceAccessTokenScopes
+			// applies its scopes and org/repo restriction.
 			if accessToken != nil {
 				applyAccessToken(c, user, accessToken)
 			}
@@ -161,10 +162,12 @@ func resolveOpaqueToken(c *gin.Context, raw string) (*model.User, *model.AccessT
 // and records the token's last-used timestamp asynchronously.
 func applyAccessToken(c *gin.Context, user *model.User, at *model.AccessToken) {
 	c.Set("user", user)
-	c.Set("access_token", at)
+	c.Set(accessTokenKey, at)
 
+	// Resolve the store now: gin recycles the context once the request ends.
+	_store := store.FromContext(c)
 	go func(tokenID int64) {
-		if err := store.FromContext(c).AccessTokenUpdateLastUsed(tokenID, time.Now().Unix()); err != nil {
+		if err := _store.AccessTokenUpdateLastUsed(tokenID, time.Now().Unix()); err != nil {
 			log.Debug().Err(err).Int64("token_id", tokenID).Msg("Failed to update access token last used")
 		}
 	}(at.ID)

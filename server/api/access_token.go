@@ -146,6 +146,11 @@ func PostAccessToken(ctx context.Context, input *PostAccessTokenInput) (*PostAcc
 		return nil, huma.Error403Forbidden("Permission denied", err)
 	}
 
+	// An access token must not mint a token broader than itself.
+	if !accessTokenCovers(c, accessToken) {
+		return nil, huma.Error403Forbidden(errAccessTokenBroader)
+	}
+
 	// Create in database
 	if err := _store.AccessTokenCreate(accessToken); err != nil {
 		return nil, huma.Error500InternalServerError("Error creating access token", err)
@@ -195,6 +200,10 @@ func DeleteAccessToken(ctx context.Context, input *DeleteAccessTokenInput) (*str
 		return nil, huma.Error404NotFound("not found")
 	}
 
+	if !accessTokenCovers(c, accessToken) {
+		return nil, huma.Error403Forbidden(errAccessTokenBroader)
+	}
+
 	if err := _store.AccessTokenDelete(accessToken); err != nil {
 		return nil, huma.Error500InternalServerError("Error deleting access token", err)
 	}
@@ -232,6 +241,10 @@ func PatchAccessToken(ctx context.Context, input *PatchAccessTokenInput) (*Patch
 		return nil, huma.Error404NotFound("not found")
 	}
 
+	if !accessTokenCovers(c, accessToken) {
+		return nil, huma.Error403Forbidden(errAccessTokenBroader)
+	}
+
 	req := input.Body
 
 	// Update fields if provided
@@ -245,6 +258,9 @@ func PatchAccessToken(ctx context.Context, input *PatchAccessTokenInput) (*Patch
 	// Validate the updated token
 	if err := accessToken.Validate(user); err != nil {
 		return nil, huma.Error400BadRequest("Validation error", err)
+	}
+	if !accessTokenCovers(c, accessToken) {
+		return nil, huma.Error403Forbidden(errAccessTokenBroader)
 	}
 
 	// Update in database
@@ -277,8 +293,8 @@ func DeleteAccessTokenBatch(ctx context.Context, input *DeleteAccessTokenBatchIn
 			continue
 		}
 
-		// Only delete tokens owned by the user
-		if accessToken.UserID != user.ID {
+		// Only delete tokens owned by the user and covered by the request's token
+		if accessToken.UserID != user.ID || !accessTokenCovers(c, accessToken) {
 			continue
 		}
 
@@ -366,4 +382,41 @@ func validateAccessTokenEntityScope(c *gin.Context, user *model.User, accessToke
 	}
 
 	return nil
+}
+
+const errAccessTokenBroader = "An access token cannot manage a token with scopes or an org/repo reach beyond its own"
+
+// accessTokenCovers reports whether the access token the request authenticated
+// with may manage target: target must not hold a scope the request's token
+// lacks and must stay within its org/repo restriction. It is true for requests
+// not authenticated with an access token.
+func accessTokenCovers(c *gin.Context, target *model.AccessToken) bool {
+	caller := session.AccessToken(c)
+	if caller == nil {
+		return true
+	}
+	for _, scope := range target.GetScopes() {
+		if !caller.Allows(scope) {
+			return false
+		}
+	}
+	if caller.IsUserLevel() {
+		return true
+	}
+	if target.IsUserLevel() {
+		return false
+	}
+	if caller.RepoID != 0 && target.RepoID != caller.RepoID {
+		return false
+	}
+	if caller.OrgID != 0 && target.OrgID != caller.OrgID {
+		if target.RepoID == 0 {
+			return false
+		}
+		repo, err := store.FromContext(c).GetRepo(target.RepoID)
+		if err != nil || repo.OrgID != caller.OrgID {
+			return false
+		}
+	}
+	return true
 }
