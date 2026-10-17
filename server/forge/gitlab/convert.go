@@ -112,15 +112,7 @@ func convertMergeRequestHook(hook *gitlab.MergeEvent, req *http.Request) (int64,
 		repo.Avatar = target.AvatarURL
 	}
 
-	pipeline.Event = model.EventPull
-	switch obj.State {
-	case "merged":
-		pipeline.Event = model.EventPullMerged
-	case "closed":
-		pipeline.Event = model.EventPullClosed
-	case "updated":
-		pipeline.Event = model.EventPullEdited
-	}
+	pipeline.Event, _ = mergeRequestEvent(hook)
 
 	lastCommit := obj.LastCommit
 
@@ -146,6 +138,45 @@ func convertMergeRequestHook(hook *gitlab.MergeEvent, req *http.Request) (int64,
 	pipeline.FromFork = target.PathWithNamespace != source.PathWithNamespace
 
 	return obj.IID, repo, pipeline, nil
+}
+
+// mergeRequestEvent maps a merge request hook to a pipeline event.
+// It returns false for actions that must not start a pipeline, such as approvals
+// or updates that only touch assignees, reviewers or the milestone.
+// https://docs.gitlab.com/user/project/integrations/webhook_events/#merge-request-events
+func mergeRequestEvent(hook *gitlab.MergeEvent) (model.WebhookEvent, bool) {
+	obj := hook.ObjectAttributes
+	switch obj.Action {
+	case "open":
+		return model.EventPull, true
+	case "close":
+		return model.EventPullClosed, true
+	case "merge":
+		return model.EventPullMerged, true
+	case "update":
+		// GitLab sets oldrev only when the update pushed new commits.
+		if obj.OldRev != "" {
+			return model.EventPull, true
+		}
+		if mergeRequestMetadataChanged(hook.Changes) {
+			return model.EventPullEdited, true
+		}
+	}
+	return "", false
+}
+
+// mergeRequestMetadataChanged reports whether an update changed the fields that
+// the other forges report as an edited pull request.
+func mergeRequestMetadataChanged(c gitlab.MergeEventChanges) bool {
+	return c.Title.Previous != c.Title.Current ||
+		c.Description.Previous != c.Description.Current ||
+		c.TargetBranch.Previous != c.TargetBranch.Current ||
+		len(c.Labels.Previous) != 0 || len(c.Labels.Current) != 0
+}
+
+// isZeroSHA reports whether sha is the all-zero object ID that forges send for a deleted ref.
+func isZeroSHA(sha string) bool {
+	return sha != "" && strings.Trim(sha, "0") == ""
 }
 
 func convertPushHook(hook *gitlab.PushEvent) (*model.Repo, *model.Pipeline, error) {
@@ -228,12 +259,16 @@ func convertTagHook(hook *gitlab.TagEvent) (*model.Repo, *model.Pipeline, error)
 	}
 
 	pipeline.Event = model.EventTag
-	pipeline.Commit = hook.After
+	// For an annotated tag, after is the tag object and checkout_sha is the commit it points to.
+	pipeline.Commit = hook.CheckoutSHA
+	if pipeline.Commit == "" {
+		pipeline.Commit = hook.After
+	}
 	pipeline.Branch = strings.TrimPrefix(hook.Ref, "refs/heads/")
 	pipeline.Ref = hook.Ref
 
 	for _, cm := range hook.Commits {
-		if hook.After == cm.ID {
+		if pipeline.Commit == cm.ID {
 			pipeline.Author = cm.Author.Name
 			pipeline.Email = cm.Author.Email
 			pipeline.Message = cm.Message

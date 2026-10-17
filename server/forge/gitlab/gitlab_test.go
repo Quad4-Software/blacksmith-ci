@@ -168,6 +168,64 @@ func Test_GitLab(t *testing.T) {
 		}
 	})
 
+	t.Run("tag push hook uses the commit an annotated tag points to", func(t *testing.T) {
+		req, _ := http.NewRequest(
+			testdata.ServiceHookMethod,
+			testdata.ServiceHookURL.String(),
+			bytes.NewReader(testdata.HookTag),
+		)
+		req.Header = testdata.ServiceHookHeaders
+
+		_, pipeline, err := client.Hook(ctx, req)
+		assert.NoError(t, err)
+		if assert.NotNil(t, pipeline) {
+			assert.Equal(t, "16862e368d8ab812e48833b741dad720d6e2cb7f", pipeline.Commit)
+		}
+	})
+
+	t.Run("ignore tag delete hook", func(t *testing.T) {
+		body := bytes.Replace(testdata.HookTag,
+			[]byte(`"after": "fabed3d94cd03e6c2b7958afa9569c18a24d301f"`),
+			[]byte(`"after": "0000000000000000000000000000000000000000"`), 1)
+		body = bytes.Replace(body,
+			[]byte(`"checkout_sha": "16862e368d8ab812e48833b741dad720d6e2cb7f"`),
+			[]byte(`"checkout_sha": null`), 1)
+		req, _ := http.NewRequest(
+			testdata.ServiceHookMethod,
+			testdata.ServiceHookURL.String(),
+			bytes.NewReader(body),
+		)
+		req.Header = testdata.ServiceHookHeaders
+
+		hookRepo, pipeline, err := client.Hook(ctx, req)
+		assert.Nil(t, hookRepo)
+		assert.Nil(t, pipeline)
+		assert.ErrorIs(t, err, &types.ErrIgnoreEvent{})
+	})
+
+	t.Run("ignore merge request update that only changes assignees", func(t *testing.T) {
+		body := bytes.Replace(testdata.HookPullRequestEdited,
+			[]byte(`"title": {
+			"previous": "Add a new file",
+			"current": "Add new file"
+		},`),
+			[]byte(`"assignees": {
+			"previous": [],
+			"current": [{"id": 1, "name": "Anbraten", "username": "anbraten"}]
+		},`), 1)
+		req, _ := http.NewRequest(
+			testdata.ServiceHookMethod,
+			testdata.ServiceHookURL.String(),
+			bytes.NewReader(body),
+		)
+		req.Header = testdata.ServiceHookHeaders
+
+		hookRepo, pipeline, err := client.Hook(ctx, req)
+		assert.Nil(t, hookRepo)
+		assert.Nil(t, pipeline)
+		assert.ErrorIs(t, err, &types.ErrIgnoreEvent{})
+	})
+
 	t.Run("merge request hook", func(t *testing.T) {
 		req, _ := http.NewRequest(
 			testdata.ServiceHookMethod,

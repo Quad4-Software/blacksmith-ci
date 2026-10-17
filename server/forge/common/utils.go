@@ -57,8 +57,13 @@ func UserToken(ctx context.Context, r *model.Repo, u *model.User) string {
 				return userForge.AccessToken
 			}
 		}
-		// Fall back to user's primary token if no UserForge entry found
-		return u.AccessToken
+		// Fall back to the user's primary token only when it was issued by the
+		// repo's forge. Sending it anywhere else would leak it to another forge.
+		if primaryTokenFitsForge(u, r.ForgeID) {
+			return u.AccessToken
+		}
+		log.Debug().Int64("user", u.ID).Int64("forge", r.ForgeID).Msg("user has no token for the repo's forge")
+		return ""
 	}
 
 	if u != nil {
@@ -95,9 +100,21 @@ func RepoUser(ctx context.Context, r *model.Repo) (*model.User, error) {
 		user.Expiry = userForge.Expiry
 		user.ForgeID = userForge.ForgeID
 		user.ForgeRemoteID = userForge.ForgeRemoteID
+	} else if !primaryTokenFitsForge(user, r.ForgeID) {
+		// The primary token belongs to another forge, so it must not be used here.
+		user.AccessToken = ""
+		user.RefreshToken = ""
+		user.Expiry = 0
 	}
 
 	return user, nil
+}
+
+// primaryTokenFitsForge reports whether the token stored on the user row may be
+// sent to the forge with the given ID. A ForgeID of 0 comes from accounts created
+// before multi-forge support, which only ever had one forge.
+func primaryTokenFitsForge(u *model.User, forgeID int64) bool {
+	return u.ForgeID == 0 || u.ForgeID == forgeID
 }
 
 func RepoUserForgeID(ctx context.Context, repoForgeID model.ForgeRemoteID) (*model.User, error) {

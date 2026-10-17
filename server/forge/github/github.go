@@ -752,7 +752,7 @@ func (c *client) Hook(ctx context.Context, r *http.Request) (*model.Repo, *model
 	}
 
 	if pipeline != nil && pipeline.Event == model.EventRelease && pipeline.Commit == "" {
-		tagName := strings.Split(pipeline.Ref, "/")[2]
+		tagName := strings.TrimPrefix(pipeline.Ref, "refs/tags/")
 		sha, err := c.getTagCommitSHA(ctx, repo, tagName)
 		if err != nil {
 			return nil, nil, err

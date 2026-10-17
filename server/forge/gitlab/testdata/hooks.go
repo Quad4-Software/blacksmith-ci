@@ -874,17 +874,17 @@ var HookPullRequestEdited = []byte(`
 		"assignee_ids": [],
 		"reviewer_ids": [],
 		"labels": [],
-		"state": "updated",
+		"state": "opened",
 		"blocking_discussions_resolved": true,
 		"first_contribution": false,
-		"detailed_merge_status": "not_open",
-		"action": "close"
+		"detailed_merge_status": "mergeable",
+		"action": "update"
 	},
 	"labels": [],
 	"changes": {
-		"state_id": {
-			"previous": 1,
-			"current": 2
+		"title": {
+			"previous": "Add a new file",
+			"current": "Add new file"
 		},
 		"updated_at": {
 			"previous": "2023-12-05 18:40:28 UTC",

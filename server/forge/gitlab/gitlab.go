@@ -810,8 +810,8 @@ func (g *GitLab) Hook(ctx context.Context, req *http.Request) (*model.Repo, *mod
 	switch event := parsed.(type) {
 	case *gitlab.MergeEvent:
 		// https://docs.gitlab.com/ee/user/project/integrations/webhook_events.html#merge-request-events
-		if event.ObjectAttributes.OldRev == "" && event.ObjectAttributes.Action != "open" && event.ObjectAttributes.Action != "close" && event.ObjectAttributes.Action != "merge" && event.ObjectAttributes.Action != "updated" {
-			return nil, nil, &forge_types.ErrIgnoreEvent{Event: string(eventType), Reason: "no code changes"}
+		if _, ok := mergeRequestEvent(event); !ok {
+			return nil, nil, &forge_types.ErrIgnoreEvent{Event: string(eventType), Reason: "no code or metadata changes"}
 		}
 		mergeIID, repo, pipeline, err := convertMergeRequestHook(event, req)
 		if err != nil {
@@ -829,6 +829,9 @@ func (g *GitLab) Hook(ctx context.Context, req *http.Request) (*model.Repo, *mod
 		}
 		return convertPushHook(event)
 	case *gitlab.TagEvent:
+		if isZeroSHA(event.After) {
+			return nil, nil, &forge_types.ErrIgnoreEvent{Event: string(eventType), Reason: "tag deleted"}
+		}
 		return convertTagHook(event)
 	case *gitlab.ReleaseEvent:
 		return convertReleaseHook(event)
