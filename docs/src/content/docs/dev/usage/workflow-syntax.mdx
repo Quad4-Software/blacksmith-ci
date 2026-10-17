@@ -557,6 +557,11 @@ steps:
 
 A name that matches no step at all still fails the workflow, so typos are reported.
 
+:::caution
+A dependent runs even when the step it depends on was filtered out.
+If that step acts as a gate, for example a security scan in front of `deploy`, give the dependent the same `when` so that both are skipped together.
+:::
+
 ### detach
 
 The `detach` options can be used to run steps in the background until a workflow has finished.
