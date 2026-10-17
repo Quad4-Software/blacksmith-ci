@@ -139,6 +139,12 @@ const routes: RouteRecordRaw[] = [
                 props: true,
               },
               {
+                path: 'caches',
+                name: 'repo-settings-caches',
+                component: (): Component => import('~/views/repo/settings/Caches.vue'),
+                props: true,
+              },
+              {
                 path: 'badge',
                 name: 'repo-settings-badge',
                 component: (): Component => import('~/views/repo/settings/Badge.vue'),

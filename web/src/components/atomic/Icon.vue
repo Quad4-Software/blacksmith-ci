@@ -158,6 +158,7 @@ const iconMap: Record<string, keyof typeof phosphorIcons> = {
   spinner: 'ph:spinner-gap',
   logout: 'ph:sign-out',
   calendar: 'ph:calendar',
+  cache: 'ph:database',
 };
 
 const forgeIcons = {

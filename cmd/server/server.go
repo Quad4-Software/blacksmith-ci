@@ -48,6 +48,8 @@ import (
 
 const (
 	shutdownTimeout = time.Second * 5
+	// How often expired build caches are removed.
+	buildCacheCleanupInterval = 15 * time.Minute
 )
 
 var (
@@ -159,6 +161,18 @@ func run(ctx context.Context, c *cli.Command) error {
 		log.Info().Msg("approval gate sweeper stopped")
 		return nil
 	})
+
+	// build cache cleanup: expires unused entries and abandoned uploads and
+	// enforces the total quota. Runs in every server instance; deleting an
+	// entry twice is harmless.
+	if cacheService := server.Config.Services.BuildCache; cacheService != nil {
+		serviceWaitingGroup.Go(func() error {
+			log.Info().Msg("starting build cache cleanup ...")
+			cacheService.RunCleanup(ctx, buildCacheCleanupInterval)
+			log.Info().Msg("build cache cleanup stopped")
+			return nil
+		})
+	}
 
 	// start maintenance scheduler shutdown watcher
 	serviceWaitingGroup.Go(func() error {

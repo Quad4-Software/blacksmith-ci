@@ -27,6 +27,7 @@ import (
 	"codefloe.com/crowci/crow/v6/server/pubsub"
 	"codefloe.com/crowci/crow/v6/server/queue"
 	"codefloe.com/crowci/crow/v6/server/services"
+	"codefloe.com/crowci/crow/v6/server/services/buildcache"
 	"codefloe.com/crowci/crow/v6/server/services/ciquota"
 	"codefloe.com/crowci/crow/v6/server/services/integration"
 	"codefloe.com/crowci/crow/v6/server/services/log"
@@ -56,6 +57,8 @@ var Config = struct {
 		OIDC *oidc.Provider
 		// LDAP is the directory for username and password sign-in; nil when not configured.
 		LDAP *ldap.Provider
+		// BuildCache stores workflow caches; nil when caching is disabled.
+		BuildCache *buildcache.Service
 	}
 	Server struct {
 		JWTSecret           string
@@ -101,6 +104,7 @@ var Config = struct {
 		DefaultApprovalMode                 model.ApprovalMode
 		DefaultWorkflowLabels               map[string]string
 		DefaultClonePlugin                  string
+		CachePlugin                         string
 		TrustedClonePlugins                 []string
 		Volumes                             []string
 		Networks                            []string

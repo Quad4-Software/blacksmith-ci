@@ -4380,6 +4380,176 @@ func (_c *MockClient_Repo_Call) RunAndReturn(run func(repoID int64) (*crow.Repo,
 	return _c
 }
 
+// RepoCacheDelete provides a mock function for the type MockClient
+func (_mock *MockClient) RepoCacheDelete(repoID int64, cacheID int64) error {
+	ret := _mock.Called(repoID, cacheID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RepoCacheDelete")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(int64, int64) error); ok {
+		r0 = returnFunc(repoID, cacheID)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockClient_RepoCacheDelete_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RepoCacheDelete'
+type MockClient_RepoCacheDelete_Call struct {
+	*mock.Call
+}
+
+// RepoCacheDelete is a helper method to define mock.On call
+//   - repoID int64
+//   - cacheID int64
+func (_e *MockClient_Expecter) RepoCacheDelete(repoID any, cacheID any) *MockClient_RepoCacheDelete_Call {
+	return &MockClient_RepoCacheDelete_Call{Call: _e.mock.On("RepoCacheDelete", repoID, cacheID)}
+}
+
+func (_c *MockClient_RepoCacheDelete_Call) Run(run func(repoID int64, cacheID int64)) *MockClient_RepoCacheDelete_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_RepoCacheDelete_Call) Return(err error) *MockClient_RepoCacheDelete_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockClient_RepoCacheDelete_Call) RunAndReturn(run func(repoID int64, cacheID int64) error) *MockClient_RepoCacheDelete_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// RepoCacheList provides a mock function for the type MockClient
+func (_mock *MockClient) RepoCacheList(repoID int64) (*crow.RepoCaches, error) {
+	ret := _mock.Called(repoID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RepoCacheList")
+	}
+
+	var r0 *crow.RepoCaches
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(int64) (*crow.RepoCaches, error)); ok {
+		return returnFunc(repoID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(int64) *crow.RepoCaches); ok {
+		r0 = returnFunc(repoID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*crow.RepoCaches)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(int64) error); ok {
+		r1 = returnFunc(repoID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClient_RepoCacheList_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RepoCacheList'
+type MockClient_RepoCacheList_Call struct {
+	*mock.Call
+}
+
+// RepoCacheList is a helper method to define mock.On call
+//   - repoID int64
+func (_e *MockClient_Expecter) RepoCacheList(repoID any) *MockClient_RepoCacheList_Call {
+	return &MockClient_RepoCacheList_Call{Call: _e.mock.On("RepoCacheList", repoID)}
+}
+
+func (_c *MockClient_RepoCacheList_Call) Run(run func(repoID int64)) *MockClient_RepoCacheList_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_RepoCacheList_Call) Return(repoCaches *crow.RepoCaches, err error) *MockClient_RepoCacheList_Call {
+	_c.Call.Return(repoCaches, err)
+	return _c
+}
+
+func (_c *MockClient_RepoCacheList_Call) RunAndReturn(run func(repoID int64) (*crow.RepoCaches, error)) *MockClient_RepoCacheList_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// RepoCachePurge provides a mock function for the type MockClient
+func (_mock *MockClient) RepoCachePurge(repoID int64) error {
+	ret := _mock.Called(repoID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RepoCachePurge")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(int64) error); ok {
+		r0 = returnFunc(repoID)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockClient_RepoCachePurge_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RepoCachePurge'
+type MockClient_RepoCachePurge_Call struct {
+	*mock.Call
+}
+
+// RepoCachePurge is a helper method to define mock.On call
+//   - repoID int64
+func (_e *MockClient_Expecter) RepoCachePurge(repoID any) *MockClient_RepoCachePurge_Call {
+	return &MockClient_RepoCachePurge_Call{Call: _e.mock.On("RepoCachePurge", repoID)}
+}
+
+func (_c *MockClient_RepoCachePurge_Call) Run(run func(repoID int64)) *MockClient_RepoCachePurge_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_RepoCachePurge_Call) Return(err error) *MockClient_RepoCachePurge_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockClient_RepoCachePurge_Call) RunAndReturn(run func(repoID int64) error) *MockClient_RepoCachePurge_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // RepoChown provides a mock function for the type MockClient
 func (_mock *MockClient) RepoChown(repoID int64) (*crow.Repo, error) {
 	ret := _mock.Called(repoID)

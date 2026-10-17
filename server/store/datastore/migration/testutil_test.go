@@ -84,7 +84,7 @@ func cleanupTestTables(db *sql.DB) {
 		"approved_pull_requests", "distributed_locks", "pubsub_messages",
 		"cache_entries", "maintenance_config", "maintenance_operation_config",
 		"maintenance_stats", "maintenance_logs",
-		"user_forges", "user_identities", "redirections",
+		"user_forges", "user_identities", "redirections", "build_caches",
 		"table_exists_probe",
 	}
 	for _, t := range tables {

@@ -1162,3 +1162,45 @@ func (c *CompositeEncryptedStore) ApprovedPullRequestCreate(apr *model.ApprovedP
 func (c *CompositeEncryptedStore) ApprovedPullRequestDelete(repoID int64, ref string) error {
 	return c.baseStore.ApprovedPullRequestDelete(repoID, ref)
 }
+
+// Build caches hold no secrets and pass through unchanged.
+
+func (c *CompositeEncryptedStore) BuildCacheCreate(entry *model.BuildCache) error {
+	return c.baseStore.BuildCacheCreate(entry)
+}
+
+func (c *CompositeEncryptedStore) BuildCacheGet(id int64) (*model.BuildCache, error) {
+	return c.baseStore.BuildCacheGet(id)
+}
+
+func (c *CompositeEncryptedStore) BuildCacheFind(repoID int64, scope, key string) (*model.BuildCache, error) {
+	return c.baseStore.BuildCacheFind(repoID, scope, key)
+}
+
+func (c *CompositeEncryptedStore) BuildCacheFindPrefix(repoID int64, scope, prefix string) (*model.BuildCache, error) {
+	return c.baseStore.BuildCacheFindPrefix(repoID, scope, prefix)
+}
+
+func (c *CompositeEncryptedStore) BuildCacheList(repoID int64) ([]*model.BuildCache, error) {
+	return c.baseStore.BuildCacheList(repoID)
+}
+
+func (c *CompositeEncryptedStore) BuildCacheListLRU(repoID int64, limit int) ([]*model.BuildCache, error) {
+	return c.baseStore.BuildCacheListLRU(repoID, limit)
+}
+
+func (c *CompositeEncryptedStore) BuildCacheListStale(lastUsedBefore, pendingBefore int64) ([]*model.BuildCache, error) {
+	return c.baseStore.BuildCacheListStale(lastUsedBefore, pendingBefore)
+}
+
+func (c *CompositeEncryptedStore) BuildCacheSize(repoID int64) (int64, error) {
+	return c.baseStore.BuildCacheSize(repoID)
+}
+
+func (c *CompositeEncryptedStore) BuildCacheUpdate(entry *model.BuildCache) error {
+	return c.baseStore.BuildCacheUpdate(entry)
+}
+
+func (c *CompositeEncryptedStore) BuildCacheDelete(id int64) error {
+	return c.baseStore.BuildCacheDelete(id)
+}

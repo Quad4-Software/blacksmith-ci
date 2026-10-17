@@ -31,6 +31,11 @@ const (
 	// DefaultClonePlugin can be changed by 'CROW_DEFAULT_CLONE_PLUGIN' at runtime.
 	// renovate: datasource=forgejo-releases depName=crow-plugins/clone registryUrl=https://codefloe.com extractVersion=^v(?<version>.*)$
 	DefaultClonePlugin = "codefloe.com/crow-plugins/clone:1.2.1"
+
+	// DefaultCachePlugin restores and saves build caches; it is built from
+	// cmd/cache-plugin and released with the server, so it tracks the major
+	// version. Can be changed by 'CROW_CACHE_PLUGIN' at runtime.
+	DefaultCachePlugin = "codefloe.com/crowci/crow-cache:v6"
 )
 
 // TrustedClonePlugins can be changed by 'CROW_PLUGINS_TRUSTED_CLONE' at runtime.

@@ -169,6 +169,14 @@ func WithDefaultClonePlugin(cloneImage string) Option {
 	}
 }
 
+// WithCachePlugin sets the image of the cache steps that restore and save the
+// workflow's `cache` entries; empty disables caching.
+func WithCachePlugin(image string) Option {
+	return func(compiler *Compiler) {
+		compiler.cachePlugin = image
+	}
+}
+
 func WithTrustedClonePlugins(images []string) Option {
 	return func(compiler *Compiler) {
 		compiler.trustedClonePlugins = images

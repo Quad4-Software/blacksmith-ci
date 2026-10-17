@@ -125,6 +125,8 @@ var scopeRules = []scopeRule{
 	publicRule(v1 + "/autoscaler"),
 	publicRule(v1 + "/autoscalers/:autoscaler_id/heartbeat"),
 	{methods: post, path: v1 + "/autoscalers/:autoscaler_id/logs", req: session.ScopeRequirement{Kind: session.ScopePublic}},
+	// Authenticated with the cache token of a running workflow, not with the user.
+	publicRule(v1 + "/cache/*"),
 
 	// User routes. The legacy API token is unscoped, so a scoped token must
 	// not mint one.
@@ -167,6 +169,7 @@ var scopeRules = []scopeRule{
 	fixedRule(del, v1+"/repos/:repo_id/pipelines/:number", model.ScopeRepoAdmin),
 	fixedRule(nil, v1+"/repos/:repo_id/secrets/*", model.ScopeRepoAdmin),
 	fixedRule(nil, v1+"/repos/:repo_id/registries/*", model.ScopeRepoAdmin),
+	fixedRule(nil, v1+"/repos/:repo_id/caches/*", model.ScopeRepoAdmin),
 	fixedRule(nil, v1+"/repos/:repo_id/notification", model.ScopeRepoAdmin),
 	fixedRule(nil, v1+"/repos/:repo_id/importable", model.ScopeRepoAdmin),
 	fixedRule(nil, v1+"/repos/:repo_id/import-preview/*", model.ScopeRepoAdmin),

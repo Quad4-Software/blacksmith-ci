@@ -76,6 +76,28 @@ type Store interface {
 	// UserCreateWithIdentity registers a user with a fresh personal org and an identity provider account in one transaction.
 	UserCreateWithIdentity(*model.User, *model.UserIdentity) error
 
+	// Build caches
+	// BuildCacheCreate inserts a cache entry; types.ErrConflict when the key already exists in its scope.
+	BuildCacheCreate(*model.BuildCache) error
+	// BuildCacheGet gets a cache entry by ID.
+	BuildCacheGet(id int64) (*model.BuildCache, error)
+	// BuildCacheFind gets the cache entry of a repo with exactly this scope and key.
+	BuildCacheFind(repoID int64, scope, key string) (*model.BuildCache, error)
+	// BuildCacheFindPrefix gets the most recently created committed entry of a scope whose key starts with prefix.
+	BuildCacheFindPrefix(repoID int64, scope, prefix string) (*model.BuildCache, error)
+	// BuildCacheList lists all cache entries of a repo, most recently used first.
+	BuildCacheList(repoID int64) ([]*model.BuildCache, error)
+	// BuildCacheListLRU lists entries least recently used first; repoID 0 lists entries of all repos.
+	BuildCacheListLRU(repoID int64, limit int) ([]*model.BuildCache, error)
+	// BuildCacheListStale lists committed entries last used before lastUsedBefore and pending entries created before pendingBefore.
+	BuildCacheListStale(lastUsedBefore, pendingBefore int64) ([]*model.BuildCache, error)
+	// BuildCacheSize sums the size of all entries, pending or committed; repoID 0 sums all repos.
+	BuildCacheSize(repoID int64) (int64, error)
+	// BuildCacheUpdate updates a cache entry.
+	BuildCacheUpdate(*model.BuildCache) error
+	// BuildCacheDelete deletes a cache entry.
+	BuildCacheDelete(id int64) error
+
 	// Repos
 	// GetRepo gets a repo by unique ID.
 	GetRepo(int64) (*model.Repo, error)

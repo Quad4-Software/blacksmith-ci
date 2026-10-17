@@ -604,6 +604,23 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 		Security: BearerSecurity, Middlewares: repoPushMW,
 	}, api.DeleteSecret)
 
+	// Repo build caches
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "get-repo-caches", Method: http.MethodGet, Path: "/repos/{repo_id}/caches",
+		Summary: "List repository build caches", Tags: []string{"Repository Caches"},
+		Security: BearerSecurity, Middlewares: repoAdminMW,
+	}, api.GetRepoCaches)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "delete-repo-caches", Method: http.MethodDelete, Path: "/repos/{repo_id}/caches",
+		Summary: "Delete all build caches of a repository", Tags: []string{"Repository Caches"},
+		Security: BearerSecurity, Middlewares: repoAdminMW,
+	}, api.DeleteRepoCaches)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "delete-repo-cache", Method: http.MethodDelete, Path: "/repos/{repo_id}/caches/{cache_id}",
+		Summary: "Delete a repository build cache", Tags: []string{"Repository Caches"},
+		Security: BearerSecurity, Middlewares: repoAdminMW,
+	}, api.DeleteRepoCache)
+
 	// Repo registries
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "get-repo-registries", Method: http.MethodGet, Path: "/repos/{repo_id}/registries",
@@ -756,6 +773,17 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 	}, api.GetPipelineQueue)
 
 	// Queue management (gin - uses blocking/streaming patterns)
+	// Build cache endpoints for cache steps, authenticated by the cache token
+	// of a running workflow rather than a user.
+	cache := apiBase.Group("/cache")
+	{
+		cache.POST("/restore", api.PostCacheRestore)
+		cache.POST("/reserve", api.PostCacheReserve)
+		cache.POST("/commit", api.PostCacheCommit)
+		cache.GET("/blobs/:id", api.GetCacheBlob)
+		cache.PUT("/blobs/:id", api.PutCacheBlob)
+	}
+
 	queue := apiBase.Group("/queue")
 	{
 		queue.GET("/info", session.MustPermission(model.PermQueueRead), api.GetQueueInfo)

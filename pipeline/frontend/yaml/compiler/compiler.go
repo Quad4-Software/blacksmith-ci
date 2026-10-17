@@ -130,6 +130,7 @@ type Compiler struct {
 	secrets                 map[string]Secret
 	defaultClonePlugin      string
 	trustedClonePlugins     []string
+	cachePlugin             string
 	securityTrustedPipeline bool
 	ContainerNameScheme     string // 'hash' or 'descriptive'
 	orgID                   int64
@@ -282,6 +283,19 @@ func (c *Compiler) Compile(conf *yaml_types.Workflow) (*backend_types.Config, er
 		}
 	}
 
+	// restore caches after clone and before the work steps
+	if c.cacheEnabled(conf) {
+		restore, err := c.cacheRestoreStep(conf)
+		if err != nil {
+			return nil, err
+		}
+		for _, s := range allSteps {
+			restore.dependsOn = append(restore.dependsOn, s.name)
+		}
+		restore.step.DependsOn = restore.dependsOn
+		allSteps = append(allSteps, restore)
+	}
+
 	// Names already used by clone steps. Work step names are deduplicated against
 	// this set so that every step in a workflow has a unique name. Uniqueness is
 	// required: the DAG compiler keys steps by name (see dag.go), so two steps
@@ -340,6 +354,19 @@ func (c *Compiler) Compile(conf *yaml_types.Workflow) (*backend_types.Config, er
 	if !hasWorkSteps(allSteps) {
 		log.Debug().Str("workflow", conf.Name).Msg("workflow has no steps to run after filtering, skipping")
 		return config, nil
+	}
+
+	// save caches once all work steps finished
+	if c.cacheEnabled(conf) {
+		saveSteps, err := c.cacheSaveSteps(conf)
+		if err != nil {
+			return nil, err
+		}
+		for _, save := range saveSteps {
+			save.name = uniqueStepName(save.name, usedStepNames)
+			save.step.Name = save.name
+			allSteps = append(allSteps, save)
+		}
 	}
 
 	// add services steps (only if we have work steps to run)

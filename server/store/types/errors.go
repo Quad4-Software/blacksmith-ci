@@ -23,3 +23,6 @@ var RecordNotExist = sql.ErrNoRows
 
 // ErrNameTaken reports that a login or org name is already in use.
 var ErrNameTaken = errors.New("name already taken")
+
+// ErrConflict reports that a record with the same unique key already exists.
+var ErrConflict = errors.New("record already exists")

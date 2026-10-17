@@ -746,6 +746,32 @@ The server applies the following defaults and bounds.
 
 See [Approval gates](/dev/usage/approvals/) for the feature overview.
 
+## Build cache
+
+Pipelines can restore and save workspace paths between runs with a `cache` section.
+Caching is disabled until a storage backend is set:
+
+```bash
+CROW_CACHE_BACKEND=s3
+CROW_CACHE_S3_ENDPOINT=minio.example.com:9000
+CROW_CACHE_S3_BUCKET=crow-cache
+CROW_CACHE_S3_ACCESS_KEY=crow
+CROW_CACHE_S3_SECRET_KEY=secret
+CROW_CACHE_S3_PATH_STYLE=true
+```
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `CROW_CACHE_BACKEND` | none | `local` or `s3`; empty disables caching |
+| `CROW_CACHE_LOCAL_PATH` | `/var/lib/crow/cache` | Directory for the `local` backend |
+| `CROW_CACHE_MAX_REPO_SIZE` | `10GiB` | Size limit per repository, `0` for unlimited |
+| `CROW_CACHE_MAX_TOTAL_SIZE` | `0` | Size limit across all repositories, `0` for unlimited |
+| `CROW_CACHE_TTL` | `168h` | Remove caches not restored for this long |
+
+Cache steps reach the server at `CROW_HOST`, so that URL must be reachable from pipeline steps.
+With `s3`, steps also transfer archives directly to the S3 endpoint via presigned URLs.
+See the [cache environment variables](/dev/configuration/env-vars/cache/) for all settings and [build caching](/dev/usage/caching/) for the pipeline syntax.
+
 ## Email Notifications
 
 Crow can send email notifications to commit authors when pipelines complete.

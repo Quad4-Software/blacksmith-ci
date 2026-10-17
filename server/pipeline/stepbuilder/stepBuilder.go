@@ -345,6 +345,15 @@ func (b *StepBuilder) genItemForWorkflow(workflow *model.Workflow, axis matrix.A
 		return nil, errorsAndWarnings
 	}
 
+	if len(parsed.Cache) > 0 && server.Config.Pipeline.CachePlugin == "" {
+		errorsAndWarnings = errors.Join(errorsAndWarnings, &errorTypes.PipelineError{
+			Type:      errorTypes.PipelineErrorTypeLinter,
+			Message:   "build caching is not enabled on this server, the `cache` section is ignored",
+			Data:      &pipeline_errors.LinterErrorData{File: workflow.Name, Field: "cache"},
+			IsWarning: true,
+		})
+	}
+
 	// checking if filtered.
 	if match, err := parsed.When.Match(workflowMetadata, true, environ); !match && err == nil {
 		log.Debug().Str("pipeline", workflow.Name).Msg(
@@ -633,6 +642,7 @@ func (b *StepBuilder) toInternalRepresentation(parsed *yaml_types.Workflow, envi
 			b.Repo.IsSCMPrivate || server.Config.Pipeline.AuthenticatePublicRepos,
 		),
 		compiler.WithDefaultClonePlugin(server.Config.Pipeline.DefaultClonePlugin),
+		compiler.WithCachePlugin(server.Config.Pipeline.CachePlugin),
 		compiler.WithTrustedClonePlugins(append(b.Repo.NetrcTrustedPlugins, server.Config.Pipeline.TrustedClonePlugins...)),
 		compiler.WithRegistry(registries...),
 		compiler.WithSecret(secrets...),

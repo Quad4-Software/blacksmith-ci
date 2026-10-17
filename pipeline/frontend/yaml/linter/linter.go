@@ -27,6 +27,7 @@ import (
 	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/linter/schema"
 	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/types"
 	"codefloe.com/crowci/crow/v6/pipeline/frontend/yaml/utils"
+	"codefloe.com/crowci/crow/v6/shared/cachekey"
 	"codefloe.com/crowci/crow/v6/shared/constant"
 	"codefloe.com/crowci/crow/v6/shared/yaml"
 )
@@ -123,7 +124,71 @@ func (l *Linter) lintFile(config *WorkflowConfig) error {
 	if err := l.lintApproval(config.File, config.Workflow.Approval); err != nil {
 		linterErr = errors.Join(linterErr, err)
 	}
+	if err := l.lintCache(config); err != nil {
+		linterErr = errors.Join(linterErr, err)
+	}
 
+	return linterErr
+}
+
+// maxCacheKeyLength matches the width of the cache key column on the server.
+const maxCacheKeyLength = 255
+
+func (l *Linter) lintCache(config *WorkflowConfig) error {
+	var linterErr error
+	addErr := func(field, message string) {
+		linterErr = errors.Join(linterErr, newLinterError(message, config.File, field, false))
+	}
+
+	keys := make(map[string]int, len(config.Workflow.Cache))
+	for i, cache := range config.Workflow.Cache {
+		field := fmt.Sprintf("cache[%d]", i)
+		if cache == nil {
+			addErr(field, "cache entry must not be empty")
+			continue
+		}
+
+		switch {
+		case cache.Key == "":
+			addErr(field+".key", "cache entry needs a `key`")
+		case len(cache.Key) > maxCacheKeyLength:
+			addErr(field+".key", fmt.Sprintf("cache key must not be longer than %d characters", maxCacheKeyLength))
+		default:
+			if err := cachekey.Parse(cache.Key); err != nil {
+				addErr(field+".key", fmt.Sprintf("invalid cache key template: %v", err))
+			}
+			if first, ok := keys[cache.Key]; ok {
+				addErr(field+".key", fmt.Sprintf("cache key is already used by cache[%d]", first))
+			} else {
+				keys[cache.Key] = i
+			}
+		}
+
+		for j, restoreKey := range cache.RestoreKeys {
+			restoreField := fmt.Sprintf("%s.restore_keys[%d]", field, j)
+			if restoreKey == "" {
+				addErr(restoreField, "restore key must not be empty")
+			} else if err := cachekey.Parse(restoreKey); err != nil {
+				addErr(restoreField, fmt.Sprintf("invalid restore key template: %v", err))
+			}
+		}
+
+		if len(cache.Paths) == 0 {
+			addErr(field+".paths", "cache entry needs at least one path")
+		}
+		for j, p := range cache.Paths {
+			if err := cachekey.ValidatePath(p); err != nil {
+				addErr(fmt.Sprintf("%s.paths[%d]", field, j), err.Error())
+			}
+		}
+
+		switch cache.Save {
+		case "", types.CacheSaveOnSuccess, types.CacheSaveAlways, types.CacheSaveNever:
+		default:
+			addErr(field+".save", fmt.Sprintf("invalid save policy %q, must be one of %q, %q or %q",
+				cache.Save, types.CacheSaveOnSuccess, types.CacheSaveAlways, types.CacheSaveNever))
+		}
+	}
 	return linterErr
 }
 

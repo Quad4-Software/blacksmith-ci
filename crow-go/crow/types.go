@@ -266,6 +266,26 @@ type (
 		Branch    string `json:"branch"`
 	}
 
+	// BuildCache is the JSON data of a build cache entry.
+	BuildCache struct {
+		ID        int64  `json:"id"`
+		RepoID    int64  `json:"repo_id"`
+		Scope     string `json:"scope"`
+		Key       string `json:"key"`
+		Size      int64  `json:"size"`
+		Committed bool   `json:"committed"`
+		Created   int64  `json:"created"`
+		LastUsed  int64  `json:"last_used"`
+	}
+
+	// RepoCaches is the JSON data of a repository's build caches.
+	// Enabled is false when build caching is disabled on the server.
+	RepoCaches struct {
+		Enabled bool          `json:"enabled"`
+		Size    int64         `json:"size"`
+		Entries []*BuildCache `json:"entries"`
+	}
+
 	// PipelineOptions is the JSON data for creating a new pipeline.
 	// Exactly one of Branch and Tag must be set; the server rejects an
 	// ambiguous pair. Both are omitempty so the unset one is never sent.

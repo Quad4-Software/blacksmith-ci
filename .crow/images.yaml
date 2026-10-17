@@ -23,6 +23,7 @@ variables:
   - &publish_repos_server 'codeberg.org/crowci/crow-server,codefloe.com/crowci/crow-server'
   - &publish_repos_agent 'codeberg.org/crowci/crow-agent,codefloe.com/crowci/crow-agent'
   - &publish_repos_cli 'codeberg.org/crowci/crow-cli,codefloe.com/crowci/crow-cli'
+  - &publish_repos_cache 'codeberg.org/crowci/crow-cache,codefloe.com/crowci/crow-cache'
   - path:
       # web source code
       &when_path
@@ -286,6 +287,49 @@ steps:
     settings:
       repo: *publish_repos_cli
       dockerfile: images/Containerfile.cli.alpine.multiarch.rootless
+      platforms: *platforms_alpine
+      tag: ['${CI_COMMIT_TAG%%.*}', '${CI_COMMIT_TAG%.*}', '${CI_COMMIT_TAG}']
+      logins: *publish_logins
+      build_args: *build_args
+    when: *when-release
+
+  #############
+  # C a c h e #
+  #############
+
+  build-cache-[pr]:
+    depends_on:
+      - vendor
+    image: *buildx_plugin
+    settings:
+      dry_run: true
+      repo: crowci/crow-cache
+      dockerfile: images/Containerfile.cache.alpine.multiarch
+      platforms: *platforms_pr
+      tag: pull_${CI_COMMIT_PULL_REQUEST}
+      build_args: *build_args
+    when: *when-dryrun
+
+  publish-cache-[dev]:
+    depends_on:
+      - vendor
+    image: *buildx_plugin
+    settings:
+      repo: *publish_repos_cache
+      dockerfile: images/Containerfile.cache.alpine.multiarch
+      platforms: *platforms_alpine
+      tag: [dev, 'dev-${CI_COMMIT_SHA:0:10}']
+      logins: *publish_logins
+      build_args: *build_args
+    when: *when-publish-dev
+
+  release-cache:
+    depends_on:
+      - vendor
+    image: *buildx_plugin
+    settings:
+      repo: *publish_repos_cache
+      dockerfile: images/Containerfile.cache.alpine.multiarch
       platforms: *platforms_alpine
       tag: ['${CI_COMMIT_TAG%%.*}', '${CI_COMMIT_TAG%.*}', '${CI_COMMIT_TAG}']
       logins: *publish_logins

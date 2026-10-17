@@ -20,6 +20,7 @@ import (
 	"encoding/base32"
 	"errors"
 	"fmt"
+	"math"
 	"net"
 	"net/url"
 	"os"
@@ -28,6 +29,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dustin/go-humanize"
 	"github.com/rs/zerolog/log"
 	"github.com/tink-crypto/tink-go/v2/subtle/random"
 	"github.com/urfave/cli/v3"
@@ -48,6 +50,7 @@ import (
 	"codefloe.com/crowci/crow/v6/server/pubsub"
 	"codefloe.com/crowci/crow/v6/server/queue"
 	"codefloe.com/crowci/crow/v6/server/services"
+	"codefloe.com/crowci/crow/v6/server/services/buildcache"
 	"codefloe.com/crowci/crow/v6/server/services/ciquota"
 	integrationService "codefloe.com/crowci/crow/v6/server/services/integration"
 	"codefloe.com/crowci/crow/v6/server/services/lock"
@@ -279,6 +282,81 @@ func setupLogStore(ctx context.Context, c *cli.Command, s store.Store) (logServi
 	default:
 		return nil, fmt.Errorf("unknown log store %q, must be 'database', 'file', or 's3'", c.String("log-store"))
 	}
+}
+
+const (
+	// How long a build cache upload may stay uncommitted.
+	buildCachePendingTTL = time.Hour
+	// The lifetime of presigned build cache storage URLs.
+	buildCacheURLExpiry = time.Hour
+)
+
+// setupBuildCache configures workflow build caches; they stay disabled while
+// CROW_CACHE_BACKEND is empty.
+func setupBuildCache(ctx context.Context, c *cli.Command, s store.Store) error {
+	backend := c.String("cache-backend")
+	if backend == "" {
+		return nil
+	}
+
+	var (
+		storage buildcache.Storage
+		err     error
+	)
+	switch backend {
+	case "local":
+		storage, err = buildcache.NewLocalStorage(c.String("cache-local-path"))
+	case "s3":
+		storage, err = buildcache.NewS3Storage(ctx, buildcache.S3Options{
+			Endpoint:  c.String("cache-s3-endpoint"),
+			Bucket:    c.String("cache-s3-bucket"),
+			Region:    c.String("cache-s3-region"),
+			AccessKey: c.String("cache-s3-access-key"),
+			SecretKey: c.String("cache-s3-secret-key"),
+			SSL:       c.Bool("cache-s3-ssl"),
+			PathStyle: c.Bool("cache-s3-path-style"),
+			Prefix:    c.String("cache-s3-prefix"),
+		})
+	default:
+		return fmt.Errorf("unknown cache backend %q, must be 'local' or 's3'", backend)
+	}
+	if err != nil {
+		return fmt.Errorf("could not setup build cache: %w", err)
+	}
+
+	maxRepoSize, err := parseByteSize(c.String("cache-max-repo-size"))
+	if err != nil {
+		return fmt.Errorf("CROW_CACHE_MAX_REPO_SIZE: %w", err)
+	}
+	maxTotalSize, err := parseByteSize(c.String("cache-max-total-size"))
+	if err != nil {
+		return fmt.Errorf("CROW_CACHE_MAX_TOTAL_SIZE: %w", err)
+	}
+
+	server.Config.Pipeline.CachePlugin = c.String("cache-plugin")
+	server.Config.Services.BuildCache = buildcache.New(s, storage, buildcache.Config{
+		BlobURL:      server.Config.Server.Host + "/api/v1/cache/blobs",
+		Secret:       server.Config.Server.JWTSecret,
+		MaxRepoSize:  maxRepoSize,
+		MaxTotalSize: maxTotalSize,
+		TTL:          c.Duration("cache-ttl"),
+		PendingTTL:   buildCachePendingTTL,
+		URLExpiry:    buildCacheURLExpiry,
+	})
+	log.Info().Str("backend", backend).Msg("build cache enabled")
+	return nil
+}
+
+// parseByteSize parses sizes such as "10GiB", "500MB" or "0".
+func parseByteSize(value string) (int64, error) {
+	size, err := humanize.ParseBytes(value)
+	if err != nil {
+		return 0, err
+	}
+	if size > math.MaxInt64 {
+		return 0, fmt.Errorf("size %q is too large", value)
+	}
+	return int64(size), nil
 }
 
 const jwtSecretID = "jwt-secret"
@@ -662,6 +740,10 @@ func setupEvilGlobals(ctx context.Context, c *cli.Command, s store.Store) (err e
 	server.Config.Permissions.OwnersAllowlist = permissions.NewOwnersAllowlist(c.StringSlice("repo-owners"))
 
 	if err := setupTrustedProxies(c); err != nil {
+		return err
+	}
+
+	if err := setupBuildCache(ctx, c, server.Config.Services.Manager.Store()); err != nil {
 		return err
 	}
 

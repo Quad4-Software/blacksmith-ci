@@ -82,9 +82,48 @@
     },
     "notify": {
       "$ref": "#/definitions/notify"
+    },
+    "cache": {
+      "description": "Workspace paths restored before the steps run and saved after them.",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/cache"
+      }
     }
   },
   "definitions": {
+    "cache": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "paths"],
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Key the paths are saved under. A template evaluated after clone, e.g. 'go-{{ checksum \"go.sum\" }}'."
+        },
+        "restore_keys": {
+          "description": "Key prefixes tried in order when the key has no cache yet; the newest matching cache is restored.",
+          "oneOf": [
+            { "type": "string", "minLength": 1 },
+            { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+          ]
+        },
+        "paths": {
+          "description": "Paths relative to the workspace to restore and save.",
+          "oneOf": [
+            { "type": "string", "minLength": 1 },
+            { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+          ]
+        },
+        "save": {
+          "description": "When to save the cache: after successful steps (default), always, or never.",
+          "type": "string",
+          "enum": ["on_success", "always", "never"],
+          "default": "on_success"
+        }
+      }
+    },
     "notify": {
       "description": "Overrides the repository-level email notification settings for this pipeline run.",
       "type": "object",

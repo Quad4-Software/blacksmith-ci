@@ -20,12 +20,24 @@ import (
 	backend_types "codefloe.com/crowci/crow/v6/pipeline/backend/types"
 )
 
+// stepRole marks the steps the compiler adds around the work steps.
+type stepRole uint8
+
+const (
+	roleDefault stepRole = iota
+	// The cache restore step runs after clone; every work step depends on it.
+	roleCacheRestore
+	// The cache save steps run after every work step.
+	roleCacheSave
+)
+
 type dagCompilerStep struct {
 	step                    *backend_types.Step
 	position                int
 	name                    string
 	dependsOn               []string
 	hasExplicitDependencies bool
+	role                    stepRole
 }
 
 type dagCompiler struct {
@@ -50,10 +62,34 @@ func (c dagCompiler) isDAG() bool {
 func (c dagCompiler) compile() ([]*backend_types.Stage, error) {
 	if c.isDAG() {
 		c.setDependenciesForDAG()
+		c.setCacheSaveDependencies()
 		return c.compileByDependsOn()
 	}
 	c.setDependenciesForSequence()
+	c.setCacheSaveDependencies()
 	return c.compileSequence()
+}
+
+// isWorkStep reports whether a step comes from the workflow's `steps`.
+func (s *dagCompilerStep) isWorkStep() bool {
+	return s.position >= 0 && s.role == roleDefault
+}
+
+// setCacheSaveDependencies makes the cache save steps wait for every work
+// step, so they run last and are skipped when a work step failed.
+func (c dagCompiler) setCacheSaveDependencies() {
+	var workStepNames []string
+	for _, step := range c.steps {
+		if step.isWorkStep() {
+			workStepNames = append(workStepNames, step.name)
+		}
+	}
+	for _, step := range c.steps {
+		if step.role == roleCacheSave {
+			step.dependsOn = workStepNames
+			step.step.DependsOn = workStepNames
+		}
+	}
 }
 
 func (c dagCompiler) setDependenciesForDAG() {
@@ -67,7 +103,7 @@ func (c dagCompiler) setDependenciesForDAG() {
 
 	// For DAG mode, set implicit clone dependencies for steps without explicit dependencies
 	for _, step := range c.steps {
-		if step.position >= 0 && (!step.hasExplicitDependencies || len(step.dependsOn) == 0) && len(cloneStepNames) > 0 {
+		if step.isWorkStep() && (!step.hasExplicitDependencies || len(step.dependsOn) == 0) && len(cloneStepNames) > 0 {
 			step.dependsOn = cloneStepNames
 			step.step.DependsOn = cloneStepNames
 		}
@@ -89,9 +125,15 @@ func (c dagCompiler) setDependenciesForSequence() {
 		// If there are clone steps, the first step depends on clone
 		previousStepName = cloneStepNames[0] // Use first clone step as dependency
 	}
+	for _, step := range c.steps {
+		// The cache restore step already depends on clone; work steps start after it.
+		if step.role == roleCacheRestore {
+			previousStepName = step.name
+		}
+	}
 
 	for _, step := range c.steps {
-		if step.position >= 0 && !step.hasExplicitDependencies {
+		if step.isWorkStep() && !step.hasExplicitDependencies {
 			if previousStepName != "" {
 				step.dependsOn = []string{previousStepName}
 				step.step.DependsOn = []string{previousStepName}

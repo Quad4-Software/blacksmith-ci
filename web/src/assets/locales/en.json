@@ -443,6 +443,26 @@
         "disabled_tooltip": "Disabled after {count} consecutive auth failures. Use \"Run\" to re-enable.",
         "failing_tooltip": "{count} consecutive auth failure(s). Will be disabled after 3."
       },
+      "caches": {
+        "caches": "Caches",
+        "desc": "Build caches are restored and saved by the cache entries declared in a workflow. They are stored per repository and scoped to the branch, tag or pull request that created them.",
+        "disabled_title": "Caching is disabled",
+        "disabled_desc": "Build caching is disabled on this server. An administrator can enable it by setting {0}.",
+        "none": "There are no caches stored for this repository.",
+        "total_size": "{count} cache(s) using {size}",
+        "key": "Key",
+        "scope": "Scope",
+        "size": "Size",
+        "last_used": "Last used",
+        "pending": "pending",
+        "pending_desc": "The upload of this cache is still in progress",
+        "delete": "Delete cache",
+        "delete_confirm": "Are you sure you want to delete the cache \"{key}\"? The next pipeline using it will start without a cache.",
+        "delete_all": "Delete all caches",
+        "delete_all_confirm": "Are you sure you want to delete all {count} cache(s) of this repository? This action cannot be undone.",
+        "notify_text_deleted": "Cache deleted",
+        "notify_text_all_deleted": "All caches deleted"
+      },
       "badge": {
         "badge": "Badge",
         "type": "Syntax",

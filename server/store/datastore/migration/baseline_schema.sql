@@ -51,6 +51,18 @@ CREATE TABLE IF NOT EXISTS user_identities (
     UNIQUE(provider, issuer, subject)
 );
 
+CREATE TABLE IF NOT EXISTS build_caches (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    repo_id INTEGER NOT NULL,
+    scope VARCHAR(255) NOT NULL,
+    cache_key VARCHAR(255) NOT NULL,
+    size INTEGER NOT NULL DEFAULT 0,
+    committed BOOLEAN NOT NULL DEFAULT false,
+    created INTEGER NOT NULL DEFAULT 0,
+    last_used INTEGER NOT NULL DEFAULT 0,
+    UNIQUE(repo_id, scope, cache_key)
+);
+
 CREATE TABLE IF NOT EXISTS repos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER,
@@ -548,6 +560,8 @@ CREATE INDEX IF NOT EXISTS idx_crons_creator_id ON crons (creator_id);
 CREATE INDEX IF NOT EXISTS idx_user_forges_user_id ON user_forges (user_id);
 CREATE INDEX IF NOT EXISTS idx_user_forges_forge_id ON user_forges (forge_id);
 CREATE INDEX IF NOT EXISTS idx_user_identities_user_id ON user_identities (user_id);
+
+CREATE INDEX IF NOT EXISTS idx_build_caches_last_used ON build_caches (last_used);
 
 CREATE INDEX IF NOT EXISTS idx_access_tokens_user_id ON access_tokens (user_id);
 CREATE INDEX IF NOT EXISTS idx_access_tokens_org_id ON access_tokens (org_id);

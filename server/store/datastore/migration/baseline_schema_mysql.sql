@@ -54,6 +54,19 @@ CREATE TABLE IF NOT EXISTS user_identities (
     INDEX idx_user_identities_user_id (user_id)
 );
 
+CREATE TABLE IF NOT EXISTS build_caches (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    repo_id BIGINT NOT NULL,
+    scope VARBINARY(255) NOT NULL,
+    cache_key VARBINARY(255) NOT NULL,
+    size BIGINT NOT NULL DEFAULT 0,
+    committed BOOLEAN NOT NULL DEFAULT false,
+    created BIGINT NOT NULL DEFAULT 0,
+    last_used BIGINT NOT NULL DEFAULT 0,
+    UNIQUE(repo_id, scope, cache_key),
+    INDEX idx_build_caches_last_used (last_used)
+);
+
 CREATE TABLE IF NOT EXISTS repos (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     user_id INTEGER,

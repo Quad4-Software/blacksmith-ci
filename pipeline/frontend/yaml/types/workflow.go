@@ -36,7 +36,20 @@ type (
 		SkipClone bool            `yaml:"skip_clone"`
 		Notify    *NotifyConfig   `yaml:"notify,omitempty"`
 		Approval  *ApprovalConfig `yaml:"approval,omitempty"`
+		Cache     []*Cache        `yaml:"cache,omitempty"`
 	}
+
+	// Cache declares workspace paths restored before the steps run and saved
+	// after them, under a key that may be built from file checksums.
+	Cache struct {
+		Key         string             `yaml:"key"`
+		RestoreKeys base.StringOrSlice `yaml:"restore_keys,omitempty"`
+		Paths       base.StringOrSlice `yaml:"paths"`
+		Save        CacheSavePolicy    `yaml:"save,omitempty"`
+	}
+
+	// CacheSavePolicy decides when a cache is saved.
+	CacheSavePolicy string
 
 	// Labels maps a label key to one or more values. Each value may be given
 	// as a scalar (`agent: name`) or a list (`agent: [a, b]`), the latter
@@ -70,6 +83,15 @@ type (
 		Base string
 		Path string
 	}
+)
+
+const (
+	// CacheSaveOnSuccess saves the cache only when every step succeeded (default).
+	CacheSaveOnSuccess CacheSavePolicy = "on_success"
+	// CacheSaveAlways saves the cache whether the steps succeeded or failed.
+	CacheSaveAlways CacheSavePolicy = "always"
+	// CacheSaveNever only restores the cache.
+	CacheSaveNever CacheSavePolicy = "never"
 )
 
 // Flatten converts the label map into the pipe-separated string encoding used

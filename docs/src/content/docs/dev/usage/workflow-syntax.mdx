@@ -47,6 +47,20 @@ clone:
 
 See the [default configuration of the clone plugin](https://woodpecker-ci.org/plugins/git-clone) to check for possible options to change.
 
+## cache
+
+The `cache` block restores and saves workspace paths between pipeline runs.
+It requires a cache backend on the server.
+
+```yaml
+cache:
+  - key: go-{{ checksum "go.sum" }}-{{ arch }}
+    restore_keys: [go-]
+    paths: [.cache/go]
+```
+
+See [build caching](/dev/usage/caching/) for all options, key templates and scoping rules.
+
 ## name
 
 The `name` field allows to set a custom name for a pipeline.

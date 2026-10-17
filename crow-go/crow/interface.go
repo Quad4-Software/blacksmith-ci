@@ -262,6 +262,15 @@ type Client interface {
 	// CronUpdate update an existing cron job of a repo.
 	CronUpdate(repoID int64, cron *Cron) (*Cron, error)
 
+	// RepoCacheList returns the build caches of a repo.
+	RepoCacheList(repoID int64) (*RepoCaches, error)
+
+	// RepoCacheDelete deletes a specific build cache entry of a repo by id.
+	RepoCacheDelete(repoID, cacheID int64) error
+
+	// RepoCachePurge deletes all build caches of a repo.
+	RepoCachePurge(repoID int64) error
+
 	// AgentList returns a list of all registered agents.
 	AgentList() ([]*Agent, error)
 

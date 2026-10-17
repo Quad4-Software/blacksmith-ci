@@ -31,6 +31,7 @@ var expectedBigSerialTables = []string{
 	"agents",
 	"approved_pull_requests",
 	"autoscalers",
+	"build_caches",
 	"configs",
 	"crons",
 	"distributed_locks",

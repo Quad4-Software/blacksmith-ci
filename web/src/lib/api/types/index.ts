@@ -1,6 +1,7 @@
 export * from './accessToken';
 export * from './agent';
 export * from './autoscaler';
+export * from './buildCache';
 export * from './cron';
 export * from './entity';
 export * from './forge';

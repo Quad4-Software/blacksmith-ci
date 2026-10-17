@@ -48,6 +48,7 @@ import type {
   Registry,
   RegistryWithOrg,
   Repo,
+  RepoCaches,
   RepoPermissions,
   RepoResponse,
   RepoSettings,
@@ -431,6 +432,18 @@ export default class CrowClient extends ApiClient {
 
   async deleteRegistry(repoId: number, registryAddress: string): Promise<unknown> {
     return this._delete(`/api/v1/repos/${repoId}/registries/${registryAddress}`);
+  }
+
+  async getRepoCaches(repoId: number): Promise<RepoCaches> {
+    return this._get(`/api/v1/repos/${repoId}/caches`) as Promise<RepoCaches>;
+  }
+
+  async deleteRepoCache(repoId: number, cacheId: number): Promise<unknown> {
+    return this._delete(`/api/v1/repos/${repoId}/caches/${cacheId}`);
+  }
+
+  async deleteRepoCaches(repoId: number): Promise<unknown> {
+    return this._delete(`/api/v1/repos/${repoId}/caches`);
   }
 
   async getOrgRegistryList(orgId: number, opts?: PaginationOptions): Promise<Registry[] | null> {

@@ -1,0 +1,161 @@
+---
+title: "Build Caching"
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+Crow can restore and save workspace paths between pipeline runs, for example dependency or compiler caches.
+The server owns storage, quota and cleanup, and steps never see storage credentials.
+
+## Setup
+
+<Steps>
+
+1. **Enable a cache backend on the server**
+
+    Caching is disabled until `CROW_CACHE_BACKEND` is set:
+
+    ```bash
+    CROW_CACHE_BACKEND=local
+    CROW_CACHE_LOCAL_PATH=/var/lib/crow/cache
+    ```
+
+    See the [cache environment variables](/dev/configuration/env-vars/cache/) for S3 storage, quotas and expiry.
+
+2. **Add a `cache` section to the workflow**
+
+    ```yaml
+    cache:
+      - key: go-{{ checksum "go.sum" }}-{{ arch }}
+        restore_keys: [go-]
+        paths: [.cache/go]
+        save: on_success
+
+    steps:
+      build:
+        image: golang:1.27
+        environment:
+          GOMODCACHE: ${CI_WORKSPACE}/.cache/go
+        commands: [go build ./...]
+    ```
+
+</Steps>
+
+Without a cache backend, a `cache` section produces a linter warning and is ignored.
+
+## Options
+
+| Option         | Required | Description                                                                                |
+| -------------- | -------- | ------------------------------------------------------------------------------------------ |
+| `key`          | Yes      | Cache key template of at most 255 characters, unique within the workflow                   |
+| `restore_keys` | No       | String or list of key prefixes tried when `key` has no cache                               |
+| `paths`        | Yes      | String or list of paths relative to the workspace                                         |
+| `save`         | No       | `on_success` (default), `always` (also after failed steps), or `never` (restore only)      |
+
+For `restore_keys`, the newest cache whose key starts with the prefix is restored.
+Absolute paths and `..` in `paths` are rejected.
+With `on_success`, the cache is saved only when all steps succeeded.
+
+Only the workspace is shared between steps, so point tool caches into it.
+Common variables are `GOMODCACHE`, `npm_config_cache`, `PIP_CACHE_DIR` and `CARGO_HOME`.
+
+## Key templates
+
+`key` and `restore_keys` are Go templates rendered in the cache step after the clone.
+The following functions are available:
+
+| Function                 | Description                                                                                         |
+| ------------------------ | --------------------------------------------------------------------------------------------------- |
+| `checksum "pattern" ...` | SHA-256 over the paths and contents of all files matching the glob patterns, relative to the workspace |
+| `os`                     | Operating system of the cache step container                                                        |
+| `arch`                   | Architecture of the cache step container                                                            |
+
+`checksum` supports `**` and fails when no file matches.
+A YAML value starting with `{{` must be quoted, for example `key: "{{ arch }}-build"`.
+`${VAR}` substitution of CI variables still happens at compile time, as everywhere else in the configuration.
+
+The key is rendered again when saving.
+If a step changes a checksummed file, the cache is saved under the new key.
+
+Keys are immutable.
+If the exact key already exists in any scope the run can read, saving is skipped.
+To replace a cache, use a new key, for example by bumping a `v1-` prefix.
+
+## Execution
+
+The compiler adds a `restore-cache` step after the clone, and all other steps wait for it.
+It adds a `save-cache` step after all steps, plus a `save-cache-always` step for entries with `save: always`.
+
+Cache steps never fail the workflow.
+Problems such as an exceeded quota are logged as warnings.
+Cancelled pipelines do not save.
+
+Archives are tar files compressed with zstd.
+Symlinks are stored as links, and restoring never writes outside the declared paths.
+
+## Scoping
+
+Every cache belongs to the git ref it was saved from: `refs/heads/<branch>`, `refs/tags/<tag>`, or the forge's pull request ref.
+A run restores from its own ref first, then from the pull request's target branch, then from the repository's default branch.
+A run saves only to its own ref.
+Pull requests from forks may restore but never save.
+This prevents a branch or pull request from poisoning the cache that the default branch restores.
+
+## Managing caches
+
+Repository admins can list and delete caches in the **Caches** tab of the repository settings.
+
+The CLI offers the same operations:
+
+```bash
+# list caches of a repository
+crow repo cache ls <repo>
+# delete a single cache
+crow repo cache rm <repo> <cache-id>
+# delete all caches of a repository
+crow repo cache purge <repo>
+```
+
+The API endpoints are `GET /api/v1/repos/{repo_id}/caches`, `DELETE /api/v1/repos/{repo_id}/caches` and `DELETE /api/v1/repos/{repo_id}/caches/{cache_id}`.
+
+## How it works
+
+When an agent picks up a workflow, the server mints a token for that workflow.
+It injects `CI_CACHE_URL` and `CI_CACHE_TOKEN` into the cache steps only, and masks the token in logs.
+The server accepts the token only while the workflow is running.
+
+```mermaid
+sequenceDiagram
+    participant Step as Cache step
+    participant Server as Crow server
+    participant Storage as Storage
+
+    Step->>Server: POST /api/v1/cache/restore
+    Server->>Step: 200 with download URL, or 404
+    Step->>Storage: GET archive
+    Note over Step: Pipeline steps run
+    Step->>Server: POST /api/v1/cache/reserve
+    Server->>Step: 201 with upload URL
+    Step->>Storage: PUT archive
+    Step->>Server: POST /api/v1/cache/commit
+```
+
+With the `local` backend, the storage URLs point to the server itself, which streams the archives.
+With `s3`, they are presigned S3 URLs valid for one hour, so the S3 endpoint must be reachable from pipeline steps.
+In both cases cache steps reach the server at `CROW_HOST`, which must be reachable from steps as well.
+
+The step-facing endpoints authenticate with `Authorization: Bearer $CI_CACHE_TOKEN`:
+
+| Request                                      | Body                    | Responses                                                                                         |
+| -------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------- |
+| `POST /api/v1/cache/restore`                 | `{key, restore_keys}`   | `200 {id, key, scope, size, exact, url}`, `404` on a miss                                          |
+| `POST /api/v1/cache/reserve`                 | `{key, size}`           | `201 {id, url}`, `409` key exists, `403` read-only (fork pull request), `507` quota exceeded       |
+| `PUT <url>`                                  | archive                 | Presigned S3 URL, or `/api/v1/cache/blobs/{id}` with the same Bearer token for local storage       |
+| `POST /api/v1/cache/commit`                  | `{id}`                  | Marks the upload as complete                                                                       |
+
+Only the built-in cache steps receive a token, other plugins do not.
+
+## Limitations
+
+- The local, Tart and Hyper-V backends do not run cache steps yet.
+- `crow exec` ignores the `cache` section.

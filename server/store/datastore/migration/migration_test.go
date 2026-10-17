@@ -89,7 +89,7 @@ func freshDatabaseTables() []string {
 		"registries", "perms", "agents", "autoscalers", "crons", "orgs", "forges",
 		"server_configs", "access_tokens", "integrations", "notification_configs",
 		"approved_pull_requests", "distributed_locks", "pubsub_messages",
-		"cache_entries", "maintenance_config", "user_forges", "user_identities", "redirections",
+		"cache_entries", "maintenance_config", "user_forges", "user_identities", "redirections", "build_caches",
 		"email_unsubscribes", "maintenance_operation_config",
 		"maintenance_stats", "maintenance_logs",
 	}

@@ -127,6 +127,7 @@ func Migrate(_ context.Context, db *sql.DB, driver string, _ bool) error {
 		{ID: "crow-add-user-identities", Migrate: createUserIdentities(driver)},
 		{ID: "crow-add-user-roles", Migrate: addUserRoles},
 		{ID: "crow-add-integration-secret-filters", Migrate: addIntegrationSecretFilters},
+		{ID: "crow-add-build-caches", Migrate: createBuildCaches(driver)},
 	}
 
 	if len(newMigrations) > 0 {
@@ -483,6 +484,63 @@ func createUserIdentities(driver string) func(tx *sql.Tx) error {
 			return nil
 		}
 		_, err := tx.Exec(`CREATE INDEX IF NOT EXISTS idx_user_identities_user_id ON user_identities (user_id)`)
+		return err
+	}
+}
+
+// createBuildCaches creates the build_caches table holding the metadata of
+// workflow cache archives. On MySQL scope and cache_key are VARBINARY: every
+// text collation ignores case or trailing spaces, which would make two distinct
+// cache keys collide.
+func createBuildCaches(driver string) func(tx *sql.Tx) error {
+	return func(tx *sql.Tx) error {
+		var ddl string
+		switch driver {
+		case "postgres":
+			ddl = `CREATE TABLE IF NOT EXISTS build_caches (
+				id BIGSERIAL PRIMARY KEY,
+				repo_id BIGINT NOT NULL,
+				scope VARCHAR(255) NOT NULL,
+				cache_key VARCHAR(255) NOT NULL,
+				size BIGINT NOT NULL DEFAULT 0,
+				committed BOOLEAN NOT NULL DEFAULT false,
+				created BIGINT NOT NULL DEFAULT 0,
+				last_used BIGINT NOT NULL DEFAULT 0,
+				UNIQUE(repo_id, scope, cache_key)
+			)`
+		case "mysql":
+			ddl = `CREATE TABLE IF NOT EXISTS build_caches (
+				id BIGINT PRIMARY KEY AUTO_INCREMENT,
+				repo_id BIGINT NOT NULL,
+				scope VARBINARY(255) NOT NULL,
+				cache_key VARBINARY(255) NOT NULL,
+				size BIGINT NOT NULL DEFAULT 0,
+				committed BOOLEAN NOT NULL DEFAULT false,
+				created BIGINT NOT NULL DEFAULT 0,
+				last_used BIGINT NOT NULL DEFAULT 0,
+				UNIQUE(repo_id, scope, cache_key),
+				INDEX idx_build_caches_last_used (last_used)
+			)`
+		default:
+			ddl = `CREATE TABLE IF NOT EXISTS build_caches (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				repo_id INTEGER NOT NULL,
+				scope VARCHAR(255) NOT NULL,
+				cache_key VARCHAR(255) NOT NULL,
+				size INTEGER NOT NULL DEFAULT 0,
+				committed BOOLEAN NOT NULL DEFAULT false,
+				created INTEGER NOT NULL DEFAULT 0,
+				last_used INTEGER NOT NULL DEFAULT 0,
+				UNIQUE(repo_id, scope, cache_key)
+			)`
+		}
+		if _, err := tx.Exec(ddl); err != nil {
+			return err
+		}
+		if driver == "mysql" {
+			return nil
+		}
+		_, err := tx.Exec(`CREATE INDEX IF NOT EXISTS idx_build_caches_last_used ON build_caches (last_used)`)
 		return err
 	}
 }

@@ -22,6 +22,8 @@ const (
 	pathRepoRegistry          = "%s/api/v1/repos/%d/registries/%s"
 	pathRepoCrons             = "%s/api/v1/repos/%d/cron"
 	pathRepoCron              = "%s/api/v1/repos/%d/cron/%d"
+	pathRepoCaches            = "%s/api/v1/repos/%d/caches"
+	pathRepoCache             = "%s/api/v1/repos/%d/caches/%d"
 	pathPipelines             = "%s/api/v1/repos/%d/pipelines"
 	pathPipeline              = "%s/api/v1/repos/%d/pipelines/%s"
 	pathPipelineID            = "%s/api/v1/repos/%d/pipelines/%d"
@@ -323,6 +325,25 @@ func (c *client) CronGet(repoID, cronID int64) (*Cron, error) {
 	out := new(Cron)
 	uri := fmt.Sprintf(pathRepoCron, c.addr, repoID, cronID)
 	return out, c.get(uri, out)
+}
+
+// RepoCacheList returns the build caches of the specified repository.
+func (c *client) RepoCacheList(repoID int64) (*RepoCaches, error) {
+	out := new(RepoCaches)
+	uri := fmt.Sprintf(pathRepoCaches, c.addr, repoID)
+	return out, c.get(uri, out)
+}
+
+// RepoCacheDelete deletes a build cache entry by cache-id for the specified repository.
+func (c *client) RepoCacheDelete(repoID, cacheID int64) error {
+	uri := fmt.Sprintf(pathRepoCache, c.addr, repoID, cacheID)
+	return c.delete(uri)
+}
+
+// RepoCachePurge deletes all build caches of the specified repository.
+func (c *client) RepoCachePurge(repoID int64) error {
+	uri := fmt.Sprintf(pathRepoCaches, c.addr, repoID)
+	return c.delete(uri)
 }
 
 // Pipeline returns a repository pipeline by pipeline-id.

@@ -255,6 +255,7 @@ func ImportSettings(ctx context.Context, input *ImportSettingsInput) (*ImportSet
 			// Don't fail the whole operation, just note that deletion failed
 		} else {
 			response.SourceDeleted = true
+			purgeBuildCaches(ctx, sourceRepo)
 		}
 	}
 

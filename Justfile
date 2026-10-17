@@ -287,6 +287,9 @@ build-agent:
 build-cli:
     CGO_ENABLED=0 GOOS={{ TARGETOS }} GOARCH={{ TARGETARCH }} go build -tags '{{ TAGS }}' -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/crow{{ BIN_SUFFIX }} codefloe.com/crowci/crow/v6/cmd/cli
 
+build-cache-plugin:
+    CGO_ENABLED=0 GOOS={{ TARGETOS }} GOARCH={{ TARGETARCH }} go build -ldflags '{{ LDFLAGS }}' -o {{ DIST_DIR }}/crow-cache{{ BIN_SUFFIX }} codefloe.com/crowci/crow/v6/cmd/cache-plugin
+
 install-cli-dev: build-cli
     mkdir -p ~/.local/bin
     cp {{ DIST_DIR }}/crow{{ BIN_SUFFIX }} ~/.local/bin/crow-dev{{ BIN_SUFFIX }}

@@ -24,6 +24,7 @@ import (
 	"github.com/urfave/cli/v3"
 
 	"codefloe.com/crowci/crow/v6/cli/output"
+	"codefloe.com/crowci/crow/v6/cli/repo/cache"
 	"codefloe.com/crowci/crow/v6/cli/repo/cron"
 	"codefloe.com/crowci/crow/v6/cli/repo/registry"
 	"codefloe.com/crowci/crow/v6/cli/repo/secret"
@@ -36,6 +37,7 @@ var Command = &cli.Command{
 	Usage: "manage repositories",
 	Commands: []*cli.Command{
 		repoAddCmd,
+		cache.Command,
 		repoChownCmd,
 		cron.Command,
 		repoListCmd,

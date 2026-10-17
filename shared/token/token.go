@@ -37,6 +37,7 @@ const (
 	OIDCStateToken   Type = "oidc-state"  // short-lived OIDC sign-in state, nonce and PKCE verifier
 	AccessToken      Type = "access"      // personal access token with scopes
 	UnsubscribeToken Type = "unsubscribe" // email unsubscribe token
+	CacheToken       Type = "cache"       // build cache access of one running workflow
 )
 
 // SignerAlgo id default algorithm used to sign JWT tokens.

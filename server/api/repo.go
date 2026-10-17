@@ -981,6 +981,7 @@ func DeleteRepo(ctx context.Context, input *DeleteRepoInput) (*DeleteRepoOutput,
 			log.Error().Err(err).Msg("Failed to delete repo")
 			return nil, dbErr(err)
 		}
+		purgeBuildCaches(ctx, repo)
 	} else {
 		repo.IsActive = false
 		repo.UserID = 0

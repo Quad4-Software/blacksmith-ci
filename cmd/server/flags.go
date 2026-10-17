@@ -447,6 +447,86 @@ var flags = append([]cli.Flag{
 		Value:   "logs",
 	},
 	//
+	// build cache
+	//
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_CACHE_BACKEND"),
+		Name:    "cache-backend",
+		Usage:   "storage for workflow build caches ('local' or 's3'); caching is disabled when empty",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_CACHE_LOCAL_PATH"),
+		Name:    "cache-local-path",
+		Usage:   "directory holding build caches when CROW_CACHE_BACKEND is 'local'",
+		Value:   "/var/lib/crow/cache",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_CACHE_S3_ENDPOINT"),
+		Name:    "cache-s3-endpoint",
+		Usage:   "S3-compatible endpoint for build caches (e.g. 's3.amazonaws.com' or 'minio.example.com:9000'); must be reachable from pipeline steps",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_CACHE_S3_BUCKET"),
+		Name:    "cache-s3-bucket",
+		Usage:   "S3 bucket name for build caches",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_CACHE_S3_REGION"),
+		Name:    "cache-s3-region",
+		Usage:   "S3 region of the build cache bucket",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_CACHE_S3_ACCESS_KEY"),
+		Name:    "cache-s3-access-key",
+		Usage:   "S3 access key for build caches",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_CACHE_S3_SECRET_KEY"),
+		Name:    "cache-s3-secret-key",
+		Usage:   "S3 secret key for build caches",
+	},
+	&cli.BoolFlag{
+		Sources: cli.EnvVars("CROW_CACHE_S3_SSL"),
+		Name:    "cache-s3-ssl",
+		Usage:   "use SSL for the build cache S3 connection",
+		Value:   true,
+	},
+	&cli.BoolFlag{
+		Sources: cli.EnvVars("CROW_CACHE_S3_PATH_STYLE"),
+		Name:    "cache-s3-path-style",
+		Usage:   "use path-style addressing for build cache S3 storage (required for MinIO and some S3-compatible providers)",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_CACHE_S3_PREFIX"),
+		Name:    "cache-s3-prefix",
+		Usage:   "key prefix for build cache objects in the S3 bucket",
+		Value:   "cache",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_CACHE_MAX_REPO_SIZE"),
+		Name:    "cache-max-repo-size",
+		Usage:   "maximum build cache size of one repository (e.g. '10GiB'); 0 means unlimited",
+		Value:   "10GiB",
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_CACHE_MAX_TOTAL_SIZE"),
+		Name:    "cache-max-total-size",
+		Usage:   "maximum build cache size of all repositories (e.g. '500GiB'); 0 means unlimited",
+		Value:   "0",
+	},
+	&cli.DurationFlag{
+		Sources: cli.EnvVars("CROW_CACHE_TTL"),
+		Name:    "cache-ttl",
+		Usage:   "remove build caches not restored for this long; 0 keeps them until evicted by size",
+		Value:   7 * 24 * time.Hour,
+	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_CACHE_PLUGIN"),
+		Name:    "cache-plugin",
+		Usage:   "image of the step that restores and saves build caches",
+		Value:   constant.DefaultCachePlugin,
+	},
+	//
 	// backend options for pipeline compiler
 	//
 	&cli.StringFlag{

@@ -294,6 +294,7 @@ Crow's user-facing documentation lives in `docs/src/content/docs/dev/`. Key file
 - `usage/volumes.mdx` — Volume management
 - `usage/advanced.mdx` — Advanced pipeline patterns
 - `usage/jsonnet.mdx` — Jsonnet pipeline generation
+- `usage/caching.mdx` — Build caching (`cache:` syntax, key templates, ref scoping, cache API)
 - `usage/notifications.mdx` — Email notification configuration and per-pipeline overrides
 - `usage/appearance.mdx` — UI themes, color mode, per-user theme overrides, and admin-provided themes (`CROW_CUSTOM_THEMES`)
 - `usage/metrics.mdx` — Metrics dashboard, chart builder, and historic-data preservation for removed repos/orgs

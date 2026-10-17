@@ -33,6 +33,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"codefloe.com/crowci/crow/v6/pipeline"
+	backend "codefloe.com/crowci/crow/v6/pipeline/backend/types"
 	"codefloe.com/crowci/crow/v6/pipeline/rpc"
 	"codefloe.com/crowci/crow/v6/pipeline/rpc/proto"
 	"codefloe.com/crowci/crow/v6/server"
@@ -205,8 +206,13 @@ func (s *RPC) Next(c context.Context, agentFilter rpc.Filter) (*rpc.Workflow, er
 				return nil, nil
 			}
 			workflow := new(rpc.Workflow)
-			err = json.Unmarshal(task.Data, workflow)
-			return workflow, err
+			if err := json.Unmarshal(task.Data, workflow); err != nil {
+				return nil, err
+			}
+			if err := injectCacheToken(workflow); err != nil {
+				return nil, err
+			}
+			return workflow, nil
 		}
 
 		// task should not run, so mark it as done
@@ -214,6 +220,49 @@ func (s *RPC) Next(c context.Context, agentFilter rpc.Filter) (*rpc.Workflow, er
 			log.Error().Err(err).Msgf("marking workflow task '%s' as done failed", task.ID)
 		}
 	}
+}
+
+// injectCacheToken hands the cache steps of a workflow the token and URL of
+// the build cache API. The token is minted when an agent picks the workflow up
+// rather than when the pipeline is compiled, and the server accepts it only
+// while the workflow runs. Only cache steps, whose image the admin configures,
+// receive it; it is masked in logs like a secret.
+func injectCacheToken(workflow *rpc.Workflow) error {
+	cacheService := server.Config.Services.BuildCache
+	if cacheService == nil || workflow.Config == nil {
+		return nil
+	}
+
+	var cacheSteps []*backend.Step
+	for _, stage := range workflow.Config.Stages {
+		for _, step := range stage.Steps {
+			if step.Type == backend.StepTypeCache {
+				cacheSteps = append(cacheSteps, step)
+			}
+		}
+	}
+	if len(cacheSteps) == 0 {
+		return nil
+	}
+
+	workflowID, err := strconv.ParseInt(workflow.ID, 10, 64)
+	if err != nil {
+		return fmt.Errorf("invalid workflow id %q: %w", workflow.ID, err)
+	}
+	cacheToken, err := cacheService.MintToken(workflowID)
+	if err != nil {
+		return fmt.Errorf("mint cache token: %w", err)
+	}
+
+	for _, step := range cacheSteps {
+		if step.Environment == nil {
+			step.Environment = map[string]string{}
+		}
+		step.Environment["CI_CACHE_URL"] = server.Config.Server.Host + "/api/v1/cache"
+		step.Environment["CI_CACHE_TOKEN"] = cacheToken
+	}
+	workflow.Config.Secrets = append(workflow.Config.Secrets, &backend.Secret{Name: "CI_CACHE_TOKEN", Value: cacheToken})
+	return nil
 }
 
 // Wait blocks until the workflow with the given ID is done.
