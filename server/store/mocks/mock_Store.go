@@ -9524,12 +9524,12 @@ func (_c *MockStore_PubSubMessageInsert_Call) RunAndReturn(run func(msg *model.D
 	return _c
 }
 
-// PubSubMessageListAfter provides a mock function for the type MockStore
-func (_mock *MockStore) PubSubMessageListAfter(timestamp int64) ([]*model.DistributedMessage, error) {
+// PubSubMessageListSince provides a mock function for the type MockStore
+func (_mock *MockStore) PubSubMessageListSince(timestamp int64) ([]*model.DistributedMessage, error) {
 	ret := _mock.Called(timestamp)
 
 	if len(ret) == 0 {
-		panic("no return value specified for PubSubMessageListAfter")
+		panic("no return value specified for PubSubMessageListSince")
 	}
 
 	var r0 []*model.DistributedMessage
@@ -9552,18 +9552,18 @@ func (_mock *MockStore) PubSubMessageListAfter(timestamp int64) ([]*model.Distri
 	return r0, r1
 }
 
-// MockStore_PubSubMessageListAfter_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PubSubMessageListAfter'
-type MockStore_PubSubMessageListAfter_Call struct {
+// MockStore_PubSubMessageListSince_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PubSubMessageListSince'
+type MockStore_PubSubMessageListSince_Call struct {
 	*mock.Call
 }
 
-// PubSubMessageListAfter is a helper method to define mock.On call
+// PubSubMessageListSince is a helper method to define mock.On call
 //   - timestamp int64
-func (_e *MockStore_Expecter) PubSubMessageListAfter(timestamp any) *MockStore_PubSubMessageListAfter_Call {
-	return &MockStore_PubSubMessageListAfter_Call{Call: _e.mock.On("PubSubMessageListAfter", timestamp)}
+func (_e *MockStore_Expecter) PubSubMessageListSince(timestamp any) *MockStore_PubSubMessageListSince_Call {
+	return &MockStore_PubSubMessageListSince_Call{Call: _e.mock.On("PubSubMessageListSince", timestamp)}
 }
 
-func (_c *MockStore_PubSubMessageListAfter_Call) Run(run func(timestamp int64)) *MockStore_PubSubMessageListAfter_Call {
+func (_c *MockStore_PubSubMessageListSince_Call) Run(run func(timestamp int64)) *MockStore_PubSubMessageListSince_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 int64
 		if args[0] != nil {
@@ -9576,12 +9576,12 @@ func (_c *MockStore_PubSubMessageListAfter_Call) Run(run func(timestamp int64)) 
 	return _c
 }
 
-func (_c *MockStore_PubSubMessageListAfter_Call) Return(distributedMessages []*model.DistributedMessage, err error) *MockStore_PubSubMessageListAfter_Call {
+func (_c *MockStore_PubSubMessageListSince_Call) Return(distributedMessages []*model.DistributedMessage, err error) *MockStore_PubSubMessageListSince_Call {
 	_c.Call.Return(distributedMessages, err)
 	return _c
 }
 
-func (_c *MockStore_PubSubMessageListAfter_Call) RunAndReturn(run func(timestamp int64) ([]*model.DistributedMessage, error)) *MockStore_PubSubMessageListAfter_Call {
+func (_c *MockStore_PubSubMessageListSince_Call) RunAndReturn(run func(timestamp int64) ([]*model.DistributedMessage, error)) *MockStore_PubSubMessageListSince_Call {
 	_c.Call.Return(run)
 	return _c
 }

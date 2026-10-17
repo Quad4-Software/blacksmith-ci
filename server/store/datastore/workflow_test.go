@@ -596,3 +596,28 @@ func TestSanitizePath(t *testing.T) {
 		})
 	}
 }
+
+func TestDeletePipelineRemovesMoreStepsThanOnePage(t *testing.T) {
+	store, closer := newTestStore(t, new(model.Pipeline), new(model.Workflow), new(model.Step),
+		new(model.LogEntry), new(model.PipelineConfig), new(model.Config), new(model.Task))
+	defer closer()
+
+	ctx := context.Background()
+	pipeline := &model.Pipeline{RepoID: 1, Number: 1}
+	_, err := store.db.NewInsert().Model(pipeline).Exec(ctx)
+	assert.NoError(t, err)
+
+	const total = 2*perPage + 7
+	steps := make([]*model.Step, 0, total)
+	for i := range total {
+		steps = append(steps, &model.Step{PipelineID: pipeline.ID, PID: i + 1, Name: "step"})
+	}
+	_, err = store.db.NewInsert().Model(&steps).Exec(ctx)
+	assert.NoError(t, err)
+
+	assert.NoError(t, store.DeletePipeline(pipeline))
+
+	count, err := store.db.NewSelect().Model((*model.Step)(nil)).Where("pipeline_id = ?", pipeline.ID).Count(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(0), count)
+}

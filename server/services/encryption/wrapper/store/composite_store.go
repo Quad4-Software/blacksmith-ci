@@ -978,8 +978,8 @@ func (c *CompositeEncryptedStore) PubSubMessageInsert(msg *model.DistributedMess
 	return c.baseStore.PubSubMessageInsert(msg)
 }
 
-func (c *CompositeEncryptedStore) PubSubMessageListAfter(timestamp int64) ([]*model.DistributedMessage, error) {
-	return c.baseStore.PubSubMessageListAfter(timestamp)
+func (c *CompositeEncryptedStore) PubSubMessageListSince(timestamp int64) ([]*model.DistributedMessage, error) {
+	return c.baseStore.PubSubMessageListSince(timestamp)
 }
 
 func (c *CompositeEncryptedStore) PubSubMessageCleanupOlderThan(timestamp int64) error {

@@ -299,7 +299,8 @@ There are two supported schemes:
     - This was previously the default (until 3.x) (as `wp_<hash>`), now updated to `crow_` for clarity.
 
 :::note
-Names are sanitized and truncated to 64 characters for Kubernetes compatibility.
+Names are sanitized and limited to 64 characters (63 for Kubernetes pods and services).
+Longer names are shortened and end in `-` plus the first 8 hex characters of a SHA-256 hash of the full name, so steps that share a long prefix still get distinct names.
 :::
 
 The naming scheme can be set via the server environment variable `CROW_CONTAINER_NAME_SCHEME`.

@@ -606,3 +606,26 @@ func TestGetRepoNameFallbackForgeScoped(t *testing.T) {
 	assert.Equal(t, repoALegacy.ID, got.ID)
 	assert.Equal(t, forgeAID, got.ForgeID)
 }
+
+func TestDeleteRepoPurgesMorePipelinesThanOneBatch(t *testing.T) {
+	store, closer := repoDeleteTestStore(t)
+	defer closer()
+	store.metricsPreserveDeleted = false
+
+	repo := &model.Repo{UserID: 1, FullName: "acme/many", Owner: "acme", Name: "many"}
+	assert.NoError(t, store.CreateRepo(repo))
+
+	const total = 2*perPage + 7
+	pipelines := make([]*model.Pipeline, 0, total)
+	for i := range total {
+		pipelines = append(pipelines, &model.Pipeline{RepoID: repo.ID, Number: int64(i + 1)})
+	}
+	_, err := store.db.NewInsert().Model(&pipelines).Exec(context.Background())
+	assert.NoError(t, err)
+
+	assert.NoError(t, store.DeleteRepo(repo))
+
+	pipeCount, err := store.db.NewSelect().Model((*model.Pipeline)(nil)).Where("repo_id = ?", repo.ID).Count(context.Background())
+	assert.NoError(t, err)
+	assert.Equal(t, int64(0), pipeCount)
+}

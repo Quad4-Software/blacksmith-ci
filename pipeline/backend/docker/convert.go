@@ -23,7 +23,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/moby/moby/api/types/container"
 
@@ -107,23 +106,10 @@ func toContainerName(step *types.Step) string {
 				// Fallback naming when workflow number is not available
 				name = owner + "-" + repo + "-" + pipeline + "-" + step.Name
 			}
-			return sanitizeAndTruncateName(name, maxContainerNameLength)
+			return common.SanitizeAndTruncateName(name, maxContainerNameLength)
 		}
 	}
 	return "crow_" + step.UUID
-}
-
-// sanitizeAndTruncateName makes a name safe for Docker/Kubernetes and truncates to maxLen.
-func sanitizeAndTruncateName(name string, maxLen int) string {
-	// Lowercase, replace invalid chars with '-', collapse multiple '-'.
-	name = strings.ToLower(name)
-	name = regexp.MustCompile(`[^a-z0-9\-]`).ReplaceAllString(name, "-")
-	name = regexp.MustCompile(`-+`).ReplaceAllString(name, "-")
-	if utf8.RuneCountInString(name) > maxLen {
-		runes := []rune(name)
-		name = string(runes[:maxLen])
-	}
-	return strings.Trim(name, "-")
 }
 
 // returns a container host configuration.

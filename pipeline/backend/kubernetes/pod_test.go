@@ -75,6 +75,38 @@ func TestPodName(t *testing.T) {
 	assert.ErrorIs(t, err, ErrDNSPatternInvalid)
 }
 
+func TestPodNameLongDescriptiveNamesStayDistinct(t *testing.T) {
+	longStep := func(stepName string) *types.Step {
+		return &types.Step{
+			Name:                stepName,
+			ContainerNameScheme: "descriptive",
+			Environment: map[string]string{
+				"CI_REPO_OWNER":      "some-organization-with-a-long-name",
+				"CI_REPO_NAME":       "a-repository-name",
+				"CI_PIPELINE_NUMBER": "123",
+				"CI_WORKFLOW_NUMBER": "1",
+			},
+		}
+	}
+
+	assets, err := podName(longStep("build-frontend-assets"))
+	assert.NoError(t, err)
+	tests, err := podName(longStep("build-frontend-tests"))
+	assert.NoError(t, err)
+	assert.NotEqual(t, assets, tests)
+
+	svcAssets, err := serviceName(longStep("build-frontend-assets"))
+	assert.NoError(t, err)
+	svcTests, err := serviceName(longStep("build-frontend-tests"))
+	assert.NoError(t, err)
+	assert.NotEqual(t, svcAssets, svcTests)
+
+	for _, n := range []string{assets, tests, svcAssets, svcTests} {
+		assert.LessOrEqual(t, len(n), 63)
+		assert.Regexp(t, `^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`, n)
+	}
+}
+
 func TestStepToPodName(t *testing.T) {
 	name, err := stepToPodName(&types.Step{UUID: "01he8bebctabr3kg", Name: "clone", Type: types.StepTypeClone})
 	assert.NoError(t, err)

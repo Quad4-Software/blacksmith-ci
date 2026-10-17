@@ -26,10 +26,12 @@ func (s storage) PubSubMessageInsert(msg *model.DistributedMessage) error {
 	return err
 }
 
-// PubSubMessageListAfter retrieves messages created after the given timestamp.
-func (s storage) PubSubMessageListAfter(timestamp int64) ([]*model.DistributedMessage, error) {
+// PubSubMessageListSince retrieves messages created at or after the given
+// timestamp. The bound is inclusive because created_at has one-second
+// resolution, so callers must deduplicate by message ID.
+func (s storage) PubSubMessageListSince(timestamp int64) ([]*model.DistributedMessage, error) {
 	messages := make([]*model.DistributedMessage, 0)
-	err := s.db.NewSelect().Model(&messages).Where("created_at > ?", timestamp).
+	err := s.db.NewSelect().Model(&messages).Where("created_at >= ?", timestamp).
 		Order("created_at ASC").
 		Scan(context.Background())
 	return messages, err

@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 	"maps"
-	"regexp"
 	"strings"
 
 	"github.com/rs/zerolog/log"
@@ -111,25 +110,13 @@ func podName(step *types.Step) (string, error) {
 				// Fallback naming when workflow number is not available
 				name = owner + "-" + repo + "-" + pipeline + "-" + step.Name
 			}
-			return dnsName(sanitizeAndTruncateName(name, maxK8sNameLength))
+			return dnsName(common.SanitizeAndTruncateName(name, maxK8sNameLength))
 		}
 	}
 	if isService(step) {
 		return dnsName(servicePodPrefix + step.UUID + "-" + step.Name)
 	}
 	return dnsName(podPrefix + step.UUID)
-}
-
-// sanitizeAndTruncateName makes a name safe for Kubernetes and truncates to maxLen.
-func sanitizeAndTruncateName(name string, maxLen int) string {
-	name = strings.ToLower(name)
-	name = regexp.MustCompile(`[^a-z0-9\-]`).ReplaceAllString(name, "-")
-	name = regexp.MustCompile(`-+`).ReplaceAllString(name, "-")
-	if len(name) > maxLen {
-		runes := []rune(name)
-		name = string(runes[:maxLen])
-	}
-	return strings.Trim(name, "-")
 }
 
 func podMeta(step *types.Step, config *config, options BackendOptions, podName string, taskUUID string) (meta_v1.ObjectMeta, error) {
@@ -768,7 +755,7 @@ func serviceName(step *types.Step) (string, error) {
 				// Fallback naming when workflow number is not available
 				name = owner + "-" + repo + "-" + pipeline + "-" + step.Name
 			}
-			return dnsName(sanitizeAndTruncateName(name, maxK8sNameLength))
+			return dnsName(common.SanitizeAndTruncateName(name, maxK8sNameLength))
 		}
 	}
 	return dnsName(servicePrefix + step.UUID + "-" + step.Name)

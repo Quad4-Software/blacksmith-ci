@@ -173,6 +173,25 @@ func TestToContainerName(t *testing.T) {
 	if len(name) > 64 {
 		t.Errorf("container name too long: %d chars", len(name))
 	}
+
+	// Steps whose names only differ past the truncation point must not collide.
+	longStep := func(stepName string) *backend.Step {
+		return &backend.Step{
+			Name:                stepName,
+			ContainerNameScheme: "descriptive",
+			Environment: map[string]string{
+				"CI_REPO_OWNER":      "some-organization-with-a-long-name",
+				"CI_REPO_NAME":       "a-repository-name",
+				"CI_PIPELINE_NUMBER": "123",
+				"CI_WORKFLOW_NUMBER": "1",
+			},
+		}
+	}
+	assets := toContainerName(longStep("build-frontend-assets"))
+	tests := toContainerName(longStep("build-frontend-tests"))
+	assert.NotEqual(t, assets, tests)
+	assert.LessOrEqual(t, len(assets), 64)
+	assert.LessOrEqual(t, len(tests), 64)
 }
 
 func TestStepToConfig(t *testing.T) {

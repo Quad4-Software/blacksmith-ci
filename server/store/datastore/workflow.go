@@ -238,15 +238,15 @@ func (s storage) WorkflowsReplace(pipeline *model.Pipeline, workflows []*model.W
 }
 
 func (s storage) workflowsDelete(ctx context.Context, db bun.IDB, pipelineID int64) error {
-	// delete related steps
-	for startSteps := 0; ; startSteps += perPage {
+	// delete related steps in batches; each batch is deleted before the next
+	// select, so always read from the start instead of advancing an offset
+	for {
 		stepIDs := make([]int64, 0, perPage)
 		err := db.NewSelect().
 			TableExpr("steps").
 			ColumnExpr("id").
 			Where("pipeline_id = ?", pipelineID).
 			Limit(perPage).
-			Offset(int64(startSteps)).
 			Scan(ctx, &stepIDs)
 		if err != nil {
 			return err

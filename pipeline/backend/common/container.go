@@ -15,9 +15,10 @@
 package common
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"regexp"
 	"strings"
-	"unicode/utf8"
 
 	"codefloe.com/crowci/crow/v6/pipeline/backend/types"
 )
@@ -65,17 +66,40 @@ func ToContainerName(step *types.Step) string {
 	return "crow_" + step.UUID
 }
 
-// SanitizeAndTruncateName makes a name safe for Docker/Kubernetes/Podman and truncates to maxLen.
+// nameHashLength is the number of hex characters of the name hash appended
+// to names that had to be truncated.
+const nameHashLength = 8
+
+var (
+	invalidNameChars = regexp.MustCompile(`[^a-z0-9-]`)
+	repeatedDashes   = regexp.MustCompile(`-+`)
+)
+
+// SanitizeAndTruncateName makes a name safe for Docker/Kubernetes/Podman and
+// limits it to maxLen characters. The result only contains [a-z0-9-] and
+// neither starts nor ends with '-'. Names that fit are returned unchanged;
+// longer names are cut and suffixed with '-' plus a short hash of the full
+// input, so names sharing a long prefix (e.g. two steps of a repo with a
+// long owner/name) stay distinct.
 func SanitizeAndTruncateName(name string, maxLen int) string {
-	// Lowercase, replace invalid chars with '-', collapse multiple '-'.
-	name = strings.ToLower(name)
-	name = regexp.MustCompile(`[^a-z0-9\-]`).ReplaceAllString(name, "-")
-	name = regexp.MustCompile(`-+`).ReplaceAllString(name, "-")
-	if utf8.RuneCountInString(name) > maxLen {
-		runes := []rune(name)
-		name = string(runes[:maxLen])
+	sanitized := strings.ToLower(name)
+	sanitized = invalidNameChars.ReplaceAllString(sanitized, "-")
+	sanitized = repeatedDashes.ReplaceAllString(sanitized, "-")
+	sanitized = strings.Trim(sanitized, "-")
+	if len(sanitized) <= maxLen {
+		return sanitized
 	}
-	return strings.Trim(name, "-")
+
+	sum := sha256.Sum256([]byte(name))
+	suffix := hex.EncodeToString(sum[:])[:nameHashLength]
+	if maxLen <= nameHashLength+1 {
+		return suffix[:max(maxLen, 0)]
+	}
+	prefix := strings.TrimRight(sanitized[:maxLen-nameHashLength-1], "-")
+	if prefix == "" {
+		return suffix
+	}
+	return prefix + "-" + suffix
 }
 
 // MakeLabels creates the standard container labels for workflow discovery.

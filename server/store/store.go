@@ -469,8 +469,8 @@ type Store interface {
 	// Distributed Pub/Sub (for HA log streaming and events)
 	// PubSubMessageInsert stores a message for distributed pub/sub
 	PubSubMessageInsert(msg *model.DistributedMessage) error
-	// PubSubMessageListAfter retrieves messages created after the given timestamp
-	PubSubMessageListAfter(timestamp int64) ([]*model.DistributedMessage, error)
+	// PubSubMessageListSince retrieves messages created at or after the given timestamp
+	PubSubMessageListSince(timestamp int64) ([]*model.DistributedMessage, error)
 	// PubSubMessageCleanupOlderThan removes messages older than the given timestamp
 	PubSubMessageCleanupOlderThan(timestamp int64) error
 

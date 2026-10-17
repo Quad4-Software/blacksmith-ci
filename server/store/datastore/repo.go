@@ -180,15 +180,15 @@ func (s storage) deleteRepo(ctx context.Context, db bun.IDB, repo *model.Repo) e
 		return err
 	}
 
-	// delete related pipelines
-	for startPipelines := 0; ; startPipelines += batchSize {
+	// delete related pipelines in batches; each batch is deleted before the
+	// next select, so always read from the start instead of advancing an offset
+	for {
 		pipelineIDs := make([]int64, 0, batchSize)
 		err := db.NewSelect().
 			TableExpr("pipelines").
 			ColumnExpr("id").
 			Where("repo_id = ?", repo.ID).
 			Limit(batchSize).
-			Offset(int64(startPipelines)).
 			Scan(ctx, &pipelineIDs)
 		if err != nil {
 			return err

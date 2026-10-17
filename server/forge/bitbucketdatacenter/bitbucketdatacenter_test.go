@@ -16,15 +16,19 @@ package bitbucketdatacenter
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"codefloe.com/crowci/crow/v6/server"
 	"codefloe.com/crowci/crow/v6/server/forge/bitbucketdatacenter/fixtures"
 	"codefloe.com/crowci/crow/v6/server/model"
+	"codefloe.com/crowci/crow/v6/server/store"
+	store_mocks "codefloe.com/crowci/crow/v6/server/store/mocks"
 )
 
 func TestNew(t *testing.T) {
@@ -134,4 +138,18 @@ func TestBitbucketDatacenterTeamMembershipsReturnsNil(t *testing.T) {
 	got, err := c.TeamMemberships(context.Background(), &model.User{})
 	assert.NoError(t, err)
 	assert.Nil(t, got)
+}
+
+func TestGetUserAndRepoUsesDriverForgeID(t *testing.T) {
+	errNotFound := errors.New("not found")
+	mockStore := store_mocks.NewMockStore(t)
+	// The webhook repo comes from convertRepo, which leaves ForgeID unset.
+	// The lookup must use the driver's forge ID instead.
+	mockStore.On("GetRepoByForgeAndRemoteID", int64(7), model.ForgeRemoteID("42")).Return(nil, errNotFound).Once()
+
+	c := &client{forgeID: 7}
+	ctx := store.InjectToContext(t.Context(), mockStore)
+
+	_, _, err := c.getUserAndRepo(ctx, &model.Repo{ForgeRemoteID: "42"})
+	require.ErrorIs(t, err, errNotFound)
 }

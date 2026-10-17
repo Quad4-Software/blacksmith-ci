@@ -39,6 +39,13 @@ const (
 
 	// Number of background goroutines started.
 	backgroundRoutines = 2
+
+	// Seconds before the newest seen created_at that each poll reads again.
+	// The created_at column has one-second resolution and is set before the
+	// row is committed, so a message can become visible after a newer one was
+	// already polled. Re-reading a short window and deduplicating by ID
+	// ensures such messages are still delivered exactly once.
+	pollLookback int64 = 5
 )
 
 // messageCounter is used to generate unique message IDs.
@@ -49,9 +56,18 @@ type DistributedPublisher struct {
 	store      store.Store
 	instanceID string
 
-	mu         sync.RWMutex
-	subs       map[*Receiver]context.Context
+	mu   sync.RWMutex
+	subs map[*Receiver]context.Context
+
+	// lastPolled is the newest created_at seen so far; it never moves backwards.
+	// It and seen are only accessed by the poller goroutine.
 	lastPolled int64
+	// startedAt bounds the poll window so messages published before this
+	// instance started are not delivered.
+	startedAt int64
+	// seen maps IDs of messages already handled to their created_at, so
+	// overlapping polls do not deliver a message twice.
+	seen map[string]int64
 
 	ctx    context.Context
 	cancel context.CancelCauseFunc
@@ -66,10 +82,10 @@ func NewDistributed(store store.Store, instanceID string) *DistributedPublisher 
 		store:      store,
 		instanceID: instanceID,
 		subs:       make(map[*Receiver]context.Context),
-		lastPolled: time.Now().Unix(),
 		ctx:        ctx,
 		cancel:     cancel,
 	}
+	p.resetPollState(time.Now().Unix())
 
 	log.Info().Str("instanceID", instanceID).Msg("Starting distributed pub/sub system")
 
@@ -154,6 +170,13 @@ func (p *DistributedPublisher) publishLocal(message Message) {
 	}
 }
 
+// resetPollState starts the poll cursor at now with an empty seen-set.
+func (p *DistributedPublisher) resetPollState(now int64) {
+	p.lastPolled = now
+	p.startedAt = now
+	p.seen = make(map[string]int64)
+}
+
 // messagePoller polls for new messages from other instances.
 func (p *DistributedPublisher) messagePoller() {
 	defer p.wg.Done()
@@ -176,20 +199,24 @@ func (p *DistributedPublisher) messagePoller() {
 
 // pollMessages retrieves and processes new messages from the database.
 func (p *DistributedPublisher) pollMessages() {
-	// Get messages created after our last poll
-	messages, err := p.getMessagesAfter(p.lastPolled)
+	since := max(p.lastPolled-pollLookback, p.startedAt)
+	messages, err := p.getMessagesSince(since)
 	if err != nil {
 		log.Error().Err(err).Str("instanceID", p.instanceID).Msg("Failed to poll pub/sub messages")
 		return
 	}
 
-	if len(messages) > 0 {
-		log.Debug().Str("instanceID", p.instanceID).Int("messageCount", len(messages)).Msg("Polled new distributed messages")
-	}
-
 	processedCount := 0
-	currentTime := time.Now().Unix()
 	for _, dbMsg := range messages {
+		if dbMsg.CreatedAt > p.lastPolled {
+			p.lastPolled = dbMsg.CreatedAt
+		}
+
+		if _, ok := p.seen[dbMsg.ID]; ok {
+			continue
+		}
+		p.seen[dbMsg.ID] = dbMsg.CreatedAt
+
 		// Skip messages from our own instance (already published locally)
 		if dbMsg.InstanceID == p.instanceID {
 			continue
@@ -211,8 +238,14 @@ func (p *DistributedPublisher) pollMessages() {
 		log.Debug().Str("instanceID", p.instanceID).Int("processedCount", processedCount).Msg("Processed distributed messages")
 	}
 
-	// Update last polled timestamp
-	p.lastPolled = currentTime
+	// Forget IDs that fall outside the next poll window; they cannot be
+	// returned again.
+	cutoff := max(p.lastPolled-pollLookback, p.startedAt)
+	for id, createdAt := range p.seen {
+		if createdAt < cutoff {
+			delete(p.seen, id)
+		}
+	}
 }
 
 // messageCleanup removes old messages from the database.
@@ -246,9 +279,9 @@ func (p *DistributedPublisher) storeMessage(msg *model.DistributedMessage) error
 	return p.store.PubSubMessageInsert(msg)
 }
 
-// getMessagesAfter retrieves messages created after the given timestamp.
-func (p *DistributedPublisher) getMessagesAfter(timestamp int64) ([]*model.DistributedMessage, error) {
-	return p.store.PubSubMessageListAfter(timestamp)
+// getMessagesSince retrieves messages created at or after the given timestamp.
+func (p *DistributedPublisher) getMessagesSince(timestamp int64) ([]*model.DistributedMessage, error) {
+	return p.store.PubSubMessageListSince(timestamp)
 }
 
 // cleanupMessagesOlderThan removes messages older than the given timestamp.
