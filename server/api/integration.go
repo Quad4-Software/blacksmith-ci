@@ -133,6 +133,8 @@ type PostIntegrationBody struct {
 	AllowedUserIDs []int64               `json:"allowed_user_ids,omitempty" doc:"allowed user IDs"`
 	AllowedOrgIDs  []int64               `json:"allowed_org_ids,omitempty" doc:"allowed org IDs"`
 	AllowedRepoIDs []int64               `json:"allowed_repo_ids,omitempty" doc:"allowed repo IDs"`
+	Events         []model.WebhookEvent  `json:"events,omitempty" doc:"pipeline events allowed to use secrets of this integration; empty means push, tag, release, deployment, cron and manual"`
+	Images         []string              `json:"images,omitempty" doc:"plugin images allowed to use secrets of this integration; empty means any step"`
 }
 
 type PatchIntegrationBody struct {
@@ -143,6 +145,9 @@ type PatchIntegrationBody struct {
 	AllowedUserIDs []int64 `json:"allowed_user_ids,omitempty" doc:"allowed user IDs"`
 	AllowedOrgIDs  []int64 `json:"allowed_org_ids,omitempty" doc:"allowed org IDs"`
 	AllowedRepoIDs []int64 `json:"allowed_repo_ids,omitempty" doc:"allowed repo IDs"`
+	// Events and Images are replaced when present; an empty list resets the filter.
+	Events []model.WebhookEvent `json:"events,omitempty" doc:"pipeline events allowed to use secrets of this integration; empty means push, tag, release, deployment, cron and manual"`
+	Images []string             `json:"images,omitempty" doc:"plugin images allowed to use secrets of this integration; empty means any step"`
 }
 
 type PostIntegrationInput struct {
@@ -166,6 +171,8 @@ func PostIntegration(ctx context.Context, input *PostIntegrationInput) (*PostInt
 		AllowedUserIDs: input.Body.AllowedUserIDs,
 		AllowedOrgIDs:  input.Body.AllowedOrgIDs,
 		AllowedRepoIDs: input.Body.AllowedRepoIDs,
+		Events:         input.Body.Events,
+		Images:         input.Body.Images,
 		IsActive:       true,
 	}
 
@@ -242,6 +249,12 @@ func PatchIntegration(ctx context.Context, input *PatchIntegrationInput) (*Patch
 	}
 	if input.Body.AllowedRepoIDs != nil {
 		integration.AllowedRepoIDs = input.Body.AllowedRepoIDs
+	}
+	if input.Body.Events != nil {
+		integration.Events = input.Body.Events
+	}
+	if input.Body.Images != nil {
+		integration.Images = input.Body.Images
 	}
 
 	log.Debug().

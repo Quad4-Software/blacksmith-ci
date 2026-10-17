@@ -45,7 +45,10 @@ type Service interface {
 
 	// Secret Fetching (high-level)
 	FetchSecret(ctx context.Context, ref *model.ExternalSecretRef, userID int64, orgID int64, repoID int64, pipelineID int64) (string, error)
-	FetchSecretsBatch(ctx context.Context, refs []*model.ExternalSecretRef, userID int64, orgID int64, repoID int64, pipelineID int64) (map[string]string, error)
+	// FetchSecretsBatch fetches refs for a pipeline triggered by event. Refs whose
+	// integration does not allow event are rejected before anything is fetched.
+	// Each value carries the events and images filters of its integration.
+	FetchSecretsBatch(ctx context.Context, refs []*model.ExternalSecretRef, userID int64, orgID int64, repoID int64, pipelineID int64, event model.WebhookEvent) (map[string]model.ExternalSecretValue, error)
 
 	// Lifecycle
 	Close()
@@ -246,9 +249,9 @@ func (s *service) resolveRefIntegration(ref *model.ExternalSecretRef, userID int
 	return nil, fmt.Errorf("%w: no accessible integration named %q", model.ErrIntegrationNotFound, ref.IntegrationName)
 }
 
-func (s *service) FetchSecretsBatch(ctx context.Context, refs []*model.ExternalSecretRef, userID int64, orgID int64, repoID int64, pipelineID int64) (map[string]string, error) {
+func (s *service) FetchSecretsBatch(ctx context.Context, refs []*model.ExternalSecretRef, userID int64, orgID int64, repoID int64, pipelineID int64, event model.WebhookEvent) (map[string]model.ExternalSecretValue, error) {
 	if len(refs) == 0 {
-		return make(map[string]string), nil
+		return make(map[string]model.ExternalSecretValue), nil
 	}
 
 	// Group refs by integration, resolving name-based references to an integration.
@@ -263,15 +266,23 @@ func (s *service) FetchSecretsBatch(ctx context.Context, refs []*model.ExternalS
 		integrationByID[integration.ID] = integration
 	}
 
-	results := make(map[string]string, len(refs))
+	// Check access and the event filter of every integration before fetching
+	// anything, so a denied pipeline never causes a request to a secret store.
+	for _, integration := range integrationByID {
+		if err := s.CheckAccess(integration, userID, orgID, repoID); err != nil {
+			return nil, err
+		}
+		if !integration.AllowsEvent(event) {
+			return nil, fmt.Errorf("%w: integration %q is not allowed to be used with pipeline event %q (allowed: %v)",
+				model.ErrIntegrationEventDenied, integration.Name, event, integration.AllowedEvents())
+		}
+	}
+
+	results := make(map[string]model.ExternalSecretValue, len(refs))
 
 	// Process each integration's secrets
 	for integrationID, integrationRefs := range byIntegration {
 		integration := integrationByID[integrationID]
-
-		if err := s.CheckAccess(integration, userID, orgID, repoID); err != nil {
-			return nil, err
-		}
 
 		// Get provider from pool
 		provider, err := s.pool.GetProvider(ctx, integration, pipelineID)
@@ -291,9 +302,14 @@ func (s *service) FetchSecretsBatch(ctx context.Context, refs []*model.ExternalS
 			return nil, err
 		}
 
-		// Merge results
+		// Merge results, attaching the integration's usage filters
+		events := integration.AllowedEvents()
 		for k, v := range fetched {
-			results[k] = v
+			results[k] = model.ExternalSecretValue{
+				Value:  v,
+				Events: events,
+				Images: integration.Images,
+			}
 		}
 	}
 

@@ -248,6 +248,42 @@
           />
         </div>
 
+        <!-- Usage filters (events and plugin images) -->
+        <div class="space-y-4 p-4 border rounded-lg">
+          <h4 class="font-medium">{{ $t('integrations.usage_filters') }}</h4>
+          <p class="text-sm text-muted-foreground">{{ $t('integrations.usage_filters_desc') }}</p>
+
+          <div class="space-y-2">
+            <Label>{{ $t('integrations.events') }}</Label>
+            <Alert v-if="form.events?.includes(WebhookEvents.PullRequest)" variant="destructive">
+              <AlertDescription>{{ $t('integrations.events_warning') }}</AlertDescription>
+            </Alert>
+            <div class="flex flex-col gap-2">
+              <div v-for="option in eventOptions" :key="option.value" class="flex items-start gap-3">
+                <Checkbox
+                  :id="`integration-event-${option.value}`"
+                  :checked="(form.events ?? []).includes(option.value)"
+                  @update:checked="
+                    (checked: boolean | 'indeterminate' | undefined) => toggleEvent(option.value, checked)
+                  "
+                />
+                <label
+                  :for="`integration-event-${option.value}`"
+                  class="text-sm font-normal leading-none cursor-pointer"
+                >
+                  {{ option.text }}
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <Label for="integration-images">{{ $t('integrations.images') }}</Label>
+            <Input id="integration-images" v-model="imagesInput" placeholder="codefloe.com/crowci/buildx" />
+            <p class="text-xs text-muted-foreground">{{ $t('integrations.images_help') }}</p>
+          </div>
+        </div>
+
         <div class="flex items-center space-x-2">
           <Checkbox id="is-active" v-model:checked="form.is_active" />
           <Label for="is-active" class="text-sm font-normal">
@@ -292,7 +328,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~
 import { Textarea } from '~/components/ui/textarea';
 import useApiClient from '~/compositions/useApiClient';
 import type { AzureKeyVaultConfig, InfisicalConfig, Integration, IntegrationType, VaultConfig } from '~/lib/api/types';
+import { defaultIntegrationEvents, WebhookEvents } from '~/lib/api/types';
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { AllowlistItem } from './AllowlistSelector.vue';
 import AllowlistSelector from './AllowlistSelector.vue';
 
@@ -310,6 +348,20 @@ const emit = defineEmits<{
 }>();
 
 const apiClient = useApiClient();
+const { t } = useI18n();
+
+const eventOptions = computed(() => [
+  { value: WebhookEvents.Push, text: t('repo.pipeline.event.push') },
+  { value: WebhookEvents.Tag, text: t('repo.pipeline.event.tag') },
+  { value: WebhookEvents.Release, text: t('repo.pipeline.event.release') },
+  { value: WebhookEvents.PullRequest, text: t('repo.pipeline.event.pr') },
+  { value: WebhookEvents.Deploy, text: t('repo.pipeline.event.deploy') },
+  { value: WebhookEvents.Cron, text: t('repo.pipeline.event.cron') },
+  { value: WebhookEvents.Manual, text: t('repo.pipeline.event.manual') },
+]);
+
+// Plugin image filter, edited as a comma-separated list
+const imagesInput = ref('');
 
 const localOpen = computed({
   get: () => props.open,
@@ -326,7 +378,15 @@ const form = ref<Partial<Integration>>({
   allowed_user_ids: [],
   allowed_org_ids: [],
   allowed_repo_ids: [],
+  events: [...defaultIntegrationEvents],
+  images: [],
 });
+
+function toggleEvent(event: WebhookEvents, checked: boolean | 'indeterminate' | undefined) {
+  const current = form.value.events ?? [];
+  form.value.events =
+    checked === true ? [...current.filter((e) => e !== event), event] : current.filter((e) => e !== event);
+}
 
 const vaultConfig = ref<VaultConfig>({
   address: '',
@@ -432,7 +492,11 @@ watch(
         allowed_user_ids: newIntegration.allowed_user_ids || [],
         allowed_org_ids: newIntegration.allowed_org_ids || [],
         allowed_repo_ids: newIntegration.allowed_repo_ids || [],
+        // An integration without an event filter uses the default events
+        events: newIntegration.events?.length ? [...newIntegration.events] : [...defaultIntegrationEvents],
+        images: newIntegration.images || [],
       };
+      imagesInput.value = (newIntegration.images || []).join(', ');
 
       // Parse existing config if available
       if (newIntegration.config && newIntegration.type === 'vault') {
@@ -537,7 +601,10 @@ function resetForm() {
     allowed_user_ids: [],
     allowed_org_ids: [],
     allowed_repo_ids: [],
+    events: [...defaultIntegrationEvents],
+    images: [],
   };
+  imagesInput.value = '';
   resetVaultConfig();
   resetAzureKeyVaultConfig();
   resetInfisicalConfig();
@@ -608,6 +675,10 @@ function handleSave() {
 
   emit('save', {
     ...form.value,
+    images: imagesInput.value
+      .split(',')
+      .map((image) => image.trim())
+      .filter((image) => image.length > 0),
     config,
   });
 }

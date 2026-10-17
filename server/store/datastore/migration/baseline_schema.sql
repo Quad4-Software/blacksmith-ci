@@ -407,6 +407,8 @@ CREATE TABLE IF NOT EXISTS integrations (
     allowed_user_ids TEXT,
     allowed_org_ids TEXT,
     allowed_repo_ids TEXT,
+    events TEXT,
+    images TEXT,
     is_active BOOLEAN DEFAULT true,
     created_at INTEGER,
     updated_at INTEGER

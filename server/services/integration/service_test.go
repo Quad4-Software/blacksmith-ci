@@ -21,6 +21,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
 	"codefloe.com/crowci/crow/v6/server/integrations"
 	intMocks "codefloe.com/crowci/crow/v6/server/integrations/mocks"
@@ -480,7 +481,7 @@ func TestFetchSecretsBatch(t *testing.T) {
 
 		svc := NewService(store, factory)
 
-		result, err := svc.FetchSecretsBatch(context.Background(), nil, 100, 0, 0, 1000)
+		result, err := svc.FetchSecretsBatch(context.Background(), nil, 100, 0, 0, 1000, model.EventPush)
 		assert.NoError(t, err)
 		assert.Empty(t, result)
 	})
@@ -504,7 +505,7 @@ func TestFetchSecretsBatch(t *testing.T) {
 			{IntegrationID: 1, Path: "secret/test", Key: "key1"},
 		}
 
-		_, err := svc.FetchSecretsBatch(context.Background(), refs, 200, 0, 0, 1000)
+		_, err := svc.FetchSecretsBatch(context.Background(), refs, 200, 0, 0, 1000, model.EventPush)
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, model.ErrIntegrationAccessDenied)
 	})
@@ -538,9 +539,10 @@ func TestFetchSecretsBatch(t *testing.T) {
 		svc := NewService(store, factory)
 		defer svc.Close()
 
-		result, err := svc.FetchSecretsBatch(context.Background(), []*model.ExternalSecretRef{ref}, 100, 0, 0, 1000)
+		result, err := svc.FetchSecretsBatch(context.Background(), []*model.ExternalSecretRef{ref}, 100, 0, 0, 1000, model.EventPush)
 		assert.NoError(t, err)
-		assert.Equal(t, "s3cr3t", result[ref.CacheKey()])
+		assert.Equal(t, "s3cr3t", result[ref.CacheKey()].Value)
+		assert.Equal(t, model.DefaultIntegrationEvents, result[ref.CacheKey()].Events)
 	})
 
 	t.Run("name-based reference not found", func(t *testing.T) {
@@ -556,10 +558,74 @@ func TestFetchSecretsBatch(t *testing.T) {
 			{IntegrationName: "missing", Path: "secret/test", Key: "value"},
 		}
 
-		_, err := svc.FetchSecretsBatch(context.Background(), refs, 100, 0, 0, 1000)
+		_, err := svc.FetchSecretsBatch(context.Background(), refs, 100, 0, 0, 1000, model.EventPush)
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, model.ErrIntegrationNotFound)
 	})
+}
+
+func TestFetchSecretsBatchEventFilter(t *testing.T) {
+	tests := []struct {
+		name    string
+		events  []model.WebhookEvent
+		images  []string
+		event   model.WebhookEvent
+		allowed bool
+	}{
+		{name: "default allows push", event: model.EventPush, allowed: true},
+		{name: "default allows manual", event: model.EventManual, allowed: true},
+		{name: "default denies pull_request", event: model.EventPull, allowed: false},
+		{name: "default denies pull_request_closed", event: model.EventPullClosed, allowed: false},
+		{name: "explicit pull_request allows pull_request", events: []model.WebhookEvent{model.EventPull}, event: model.EventPull, allowed: true},
+		{name: "explicit pull_request allows pull_request_merged", events: []model.WebhookEvent{model.EventPull}, event: model.EventPullMerged, allowed: true},
+		{name: "explicit list denies other event", events: []model.WebhookEvent{model.EventTag}, event: model.EventPush, allowed: false},
+		{name: "images are passed through", events: []model.WebhookEvent{model.EventPush}, images: []string{"plugins/s3"}, event: model.EventPush, allowed: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := modelMocks.NewMockIntegrationStore(t)
+			factory := intMocks.NewMockProviderFactory(t)
+
+			integration := &model.Integration{
+				ID:             1,
+				Name:           "vault",
+				UserID:         100,
+				Type:           model.IntegrationTypeVault,
+				Config:         validVaultConfig(),
+				IsActive:       true,
+				AllowedUserIDs: []int64{100},
+				Events:         tt.events,
+				Images:         tt.images,
+			}
+			ref := &model.ExternalSecretRef{IntegrationID: 1, Path: "secret/test", Key: "key"}
+
+			store.EXPECT().IntegrationFind(int64(1)).Return(integration, nil)
+			if tt.allowed {
+				provider := intMocks.NewMockProvider(t)
+				factory.EXPECT().Create(integration).Return(provider, nil)
+				provider.EXPECT().
+					GetSecretsBatch(mock.Anything, mock.Anything).
+					Return(map[string]string{ref.CacheKey(): "value"}, nil)
+				provider.EXPECT().Close().Return(nil)
+			}
+
+			svc := NewService(store, factory)
+			defer svc.Close()
+
+			result, err := svc.FetchSecretsBatch(context.Background(), []*model.ExternalSecretRef{ref}, 100, 0, 0, 1000, tt.event)
+			if !tt.allowed {
+				// The provider factory mock has no expectations, so reaching the
+				// secret store would fail the test as well.
+				assert.ErrorIs(t, err, model.ErrIntegrationEventDenied)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, "value", result[ref.CacheKey()].Value)
+			assert.Equal(t, integration.AllowedEvents(), result[ref.CacheKey()].Events)
+			assert.Equal(t, tt.images, result[ref.CacheKey()].Images)
+		})
+	}
 }
 
 func TestClose(t *testing.T) {

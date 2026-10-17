@@ -591,25 +591,7 @@ func (b *StepBuilder) environmentVariables(metadata metadata.Metadata, axis matr
 }
 
 func (b *StepBuilder) toInternalRepresentation(parsed *yaml_types.Workflow, environ map[string]string, metadata metadata.Metadata, workflowID int64, fileName string) (*backend_types.Config, error) {
-	// Handle external secrets if fetcher is configured
-	externalSecrets, err := b.injectExternalSecrets(parsed)
-	if err != nil {
-		return nil, pipeline_errors.NewCompilerError(
-			fmt.Errorf("### External Secrets Error\n\n%w", err),
-			fileName, "",
-		)
-	}
-
 	var secrets []compiler.Secret
-
-	// Add external secrets first so they get masked in logs.
-	// Each must have a unique name since compiler stores secrets in a map keyed by name.
-	for key, value := range externalSecrets {
-		secrets = append(secrets, compiler.Secret{
-			Name:  "external:" + key,
-			Value: value,
-		})
-	}
 	for _, sec := range b.Secs {
 		var events []string
 		for _, event := range sec.Events {
@@ -633,7 +615,7 @@ func (b *StepBuilder) toInternalRepresentation(parsed *yaml_types.Workflow, envi
 		})
 	}
 
-	return compiler.New(
+	c := compiler.New(
 		compiler.WithEnviron(environ),
 		compiler.WithEnviron(b.Envs),
 		compiler.WithFile(fileName),
@@ -667,38 +649,45 @@ func (b *StepBuilder) toInternalRepresentation(parsed *yaml_types.Workflow, envi
 		compiler.WithTrustedSecurity(b.Repo.Trusted.Security),
 		compiler.WithContainerNameScheme(server.Config.Pipeline.ContainerNameScheme),
 		compiler.WithOrgID(b.Repo.OrgID),
-	).Compile(parsed)
+	)
+
+	// Fetch external secrets for the containers that will run and replace their
+	// references with placeholders. They are registered as compiler secrets
+	// after the internal ones, so the compiler applies the integration's events
+	// and plugin filters per step, records them in the step's secret mapping and
+	// masks them in logs, exactly like internal secrets.
+	externalSecrets, err := b.injectExternalSecrets(parsed, c)
+	if err != nil {
+		return nil, pipeline_errors.NewCompilerError(
+			fmt.Errorf("### External Secrets Error\n\n%w", err),
+			fileName, "",
+		)
+	}
+	compiler.WithSecret(externalSecrets...)(c)
+
+	return c.Compile(parsed)
 }
 
-// injectExternalSecrets collects and injects external secrets into the workflow.
-// This is called before compilation to replace from_secret object references with actual values.
-// Returns a map of fetched secret values for log masking purposes.
-func (b *StepBuilder) injectExternalSecrets(workflow *yaml_types.Workflow) (map[string]string, error) {
+// injectExternalSecrets collects the external secret references of all
+// containers that will run, fetches them and replaces each reference with a
+// placeholder the compiler resolves. Containers skipped by their when filter
+// are left untouched, so their secrets are never fetched.
+// Returns the fetched secrets as compiler secrets, carrying the usage filters
+// of their integration.
+func (b *StepBuilder) injectExternalSecrets(workflow *yaml_types.Workflow, c *compiler.Compiler) ([]compiler.Secret, error) {
 	if b.ExternalSecretFetcher == nil {
 		// No fetcher configured, external secrets not supported
 		return nil, nil
 	}
 
-	// Collect all external secret references from all steps
+	containers := runningContainers(workflow, c)
+
+	// Collect all external secret references from the running containers
 	collected := settings.CollectedExternalSecrets{
 		Refs:      make([]settings.ExternalSecretRef, 0),
 		RefsByKey: make(map[string]settings.ExternalSecretRef),
 	}
-
-	// Scan all step containers
-	for _, container := range workflow.Steps.ContainerList {
-		b.collectFromMap(container.Settings, &collected)
-		b.collectFromMap(container.Environment, &collected)
-	}
-
-	// Scan clone containers
-	for _, container := range workflow.Clone.ContainerList {
-		b.collectFromMap(container.Settings, &collected)
-		b.collectFromMap(container.Environment, &collected)
-	}
-
-	// Scan service containers
-	for _, container := range workflow.Services.ContainerList {
+	for _, container := range containers {
 		b.collectFromMap(container.Settings, &collected)
 		b.collectFromMap(container.Environment, &collected)
 	}
@@ -720,26 +709,8 @@ func (b *StepBuilder) injectExternalSecrets(workflow *yaml_types.Workflow) (map[
 		return nil, err
 	}
 
-	// Inject fetched secrets back into the workflow
-	for _, container := range workflow.Steps.ContainerList {
-		if err := b.injectIntoMap(container.Settings, fetched); err != nil {
-			return nil, err
-		}
-		if err := b.injectIntoMap(container.Environment, fetched); err != nil {
-			return nil, err
-		}
-	}
-
-	for _, container := range workflow.Clone.ContainerList {
-		if err := b.injectIntoMap(container.Settings, fetched); err != nil {
-			return nil, err
-		}
-		if err := b.injectIntoMap(container.Environment, fetched); err != nil {
-			return nil, err
-		}
-	}
-
-	for _, container := range workflow.Services.ContainerList {
+	// Replace the references in the running containers with placeholders
+	for _, container := range containers {
 		if err := b.injectIntoMap(container.Settings, fetched); err != nil {
 			return nil, err
 		}
@@ -753,8 +724,52 @@ func (b *StepBuilder) injectExternalSecrets(workflow *yaml_types.Workflow) (map[
 		Int64("pipeline_id", b.Curr.ID).
 		Msg("Injected external secrets")
 
-	// Return the fetched secrets for log masking
-	return fetched.Secrets, nil
+	secrets := make([]compiler.Secret, 0, len(fetched.Secrets))
+	for key, secret := range fetched.Secrets {
+		secrets = append(secrets, compiler.Secret{
+			Name:           settings.ExternalSecretName(key),
+			Value:          secret.Value,
+			AllowedPlugins: secret.AllowedPlugins,
+			Events:         secret.Events,
+			External:       true,
+		})
+	}
+	return secrets, nil
+}
+
+// runningContainers returns the clone, step and service containers of workflow
+// that the compiler will keep, mirroring the filtering in Compiler.Compile.
+func runningContainers(workflow *yaml_types.Workflow, c *compiler.Compiler) []*yaml_types.Container {
+	var containers []*yaml_types.Container
+
+	if !workflow.SkipClone {
+		for _, container := range workflow.Clone.ContainerList {
+			if c.WillRun(container) {
+				containers = append(containers, container)
+			}
+		}
+	}
+
+	hasSteps := false
+	for _, container := range workflow.Steps.ContainerList {
+		if c.WillRun(container) {
+			containers = append(containers, container)
+			hasSteps = true
+		}
+	}
+
+	// Without any step to run the compiler skips the workflow, services included.
+	if !hasSteps {
+		return nil
+	}
+
+	for _, container := range workflow.Services.ContainerList {
+		if c.WillRun(container) {
+			containers = append(containers, container)
+		}
+	}
+
+	return containers
 }
 
 // collectFromMap collects external secret references from a map.

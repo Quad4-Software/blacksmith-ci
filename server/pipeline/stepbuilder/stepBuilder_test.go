@@ -1079,14 +1079,14 @@ func TestExternalSecretsMaskedInLogs(t *testing.T) {
 	// Simulate fetching multiple keys from the same integration/path.
 	// Before the fix, all external secrets were stored under the same compiler
 	// map key "external", so only the last value survived for log masking.
-	fetcher := func(_ context.Context, refs []settings.ExternalSecretRef) (map[settings.ExternalSecretRef]string, error) {
-		result := make(map[settings.ExternalSecretRef]string, len(refs))
+	fetcher := func(_ context.Context, refs []settings.ExternalSecretRef) (map[settings.ExternalSecretRef]settings.ExternalSecret, error) {
+		result := make(map[settings.ExternalSecretRef]settings.ExternalSecret, len(refs))
 		for _, ref := range refs {
 			switch ref.Key {
 			case "username":
-				result[ref] = "smtp-user@example.com"
+				result[ref] = settings.ExternalSecret{Value: "smtp-user@example.com"}
 			case "password":
-				result[ref] = "super-secret-password"
+				result[ref] = settings.ExternalSecret{Value: "super-secret-password"}
 			default:
 				return nil, fmt.Errorf("unknown key: %s", ref.Key)
 			}
@@ -1142,6 +1142,198 @@ steps:
 		"username secret should be masked in logs")
 	assert.True(t, maskedValues["super-secret-password"],
 		"password secret should be masked in logs")
+}
+
+func TestExternalSecretFilters(t *testing.T) {
+	t.Parallel()
+
+	const workflowWhen = `
+when:
+  event: [push, tag, pull_request, pull_request_closed]
+`
+	commandsStep := workflowWhen + `
+steps:
+  run:
+    image: alpine
+    commands: [env]
+    environment:
+      TOKEN:
+        from_secret:
+          integration: vault
+          path: app
+          key: token
+`
+	pluginStep := func(image string) string {
+		return workflowWhen + `
+steps:
+  publish:
+    image: ` + image + `
+    settings:
+      token:
+        from_secret:
+          integration: vault
+          path: app
+          key: token
+`
+	}
+
+	tests := []struct {
+		name           string
+		event          model.WebhookEvent
+		events         []string
+		plugins        []string
+		yaml           string
+		wantErr        string
+		wantStep       string
+		wantEnvKey     string
+		wantNoFetching bool
+	}{
+		{
+			name:       "no filters allow a commands step",
+			event:      model.EventPush,
+			yaml:       commandsStep,
+			wantStep:   "run",
+			wantEnvKey: "TOKEN",
+		},
+		{
+			name:       "event filter allows matching event",
+			event:      model.EventPush,
+			events:     []string{"push"},
+			yaml:       commandsStep,
+			wantStep:   "run",
+			wantEnvKey: "TOKEN",
+		},
+		{
+			name:    "event filter denies pull_request",
+			event:   model.EventPull,
+			events:  []string{"push", "tag"},
+			yaml:    commandsStep,
+			wantErr: `is not allowed to be used with pipeline event "pull_request"`,
+		},
+		{
+			name:       "event filter normalizes pull_request_closed",
+			event:      model.EventPullClosed,
+			events:     []string{"pull_request"},
+			yaml:       commandsStep,
+			wantStep:   "run",
+			wantEnvKey: "TOKEN",
+		},
+		{
+			name:    "plugin filter denies a commands step",
+			event:   model.EventPush,
+			plugins: []string{"plugins/s3"},
+			yaml:    commandsStep,
+			wantErr: "is only allowed to be used by plugins",
+		},
+		{
+			name:       "plugin filter allows a matching plugin",
+			event:      model.EventPush,
+			plugins:    []string{"plugins/s3"},
+			yaml:       pluginStep("plugins/s3"),
+			wantStep:   "publish",
+			wantEnvKey: "PLUGIN_TOKEN",
+		},
+		{
+			name:    "plugin filter denies another plugin",
+			event:   model.EventPush,
+			plugins: []string{"plugins/s3"},
+			yaml:    pluginStep("evil/exfiltrate"),
+			wantErr: `is not allowed to be used with image "evil/exfiltrate"`,
+		},
+		{
+			name:  "skipped step does not fetch",
+			event: model.EventPush,
+			yaml: workflowWhen + `
+steps:
+  build:
+    image: alpine
+    commands: ["true"]
+  deploy:
+    image: alpine
+    commands: [env]
+    when:
+      event: tag
+    environment:
+      TOKEN:
+        from_secret:
+          integration: vault
+          path: app
+          key: token
+`,
+			wantStep:       "build",
+			wantNoFetching: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var fetchedRefs []settings.ExternalSecretRef
+			fetcher := func(_ context.Context, refs []settings.ExternalSecretRef) (map[settings.ExternalSecretRef]settings.ExternalSecret, error) {
+				fetchedRefs = append(fetchedRefs, refs...)
+				result := make(map[settings.ExternalSecretRef]settings.ExternalSecret, len(refs))
+				for _, ref := range refs {
+					result[ref] = settings.ExternalSecret{
+						Value:          "external-token-value",
+						Events:         tt.events,
+						AllowedPlugins: tt.plugins,
+					}
+				}
+				return result, nil
+			}
+
+			b := StepBuilder{
+				Forge:                 getMockForge(),
+				Repo:                  &model.Repo{},
+				Curr:                  &model.Pipeline{Event: tt.event},
+				Prev:                  &model.Pipeline{},
+				Netrc:                 &model.Netrc{},
+				Secs:                  []*model.Secret{},
+				Regs:                  []*model.Registry{},
+				ExternalSecretFetcher: fetcher,
+				Yamls:                 []*forge_types.FileMeta{{Data: []byte(tt.yaml)}},
+			}
+
+			items, err := b.Build()
+			if tt.wantErr != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			require.Len(t, items, 1)
+
+			if tt.wantNoFetching {
+				assert.Empty(t, fetchedRefs, "secrets of skipped steps must not be fetched")
+				for _, secret := range items[0].Config.Secrets {
+					assert.NotEqual(t, "external-token-value", secret.Value)
+				}
+				return
+			}
+
+			var step *backend_types.Step
+			for _, stage := range items[0].Config.Stages {
+				for _, s := range stage.Steps {
+					if s.Name == tt.wantStep {
+						step = s
+					}
+				}
+			}
+			require.NotNil(t, step)
+			assert.Equal(t, "external-token-value", step.Environment[tt.wantEnvKey])
+			assert.Equal(t, "external-token-value", step.SecretMapping[tt.wantEnvKey],
+				"external secrets must be in the secret mapping so backends treat them as secrets")
+
+			masked := false
+			for _, secret := range items[0].Config.Secrets {
+				if secret.Value == "external-token-value" {
+					masked = true
+				}
+			}
+			assert.True(t, masked, "external secret must be registered for log masking")
+		})
+	}
 }
 
 func TestVariablesDoNotOverrideCIVars(t *testing.T) {

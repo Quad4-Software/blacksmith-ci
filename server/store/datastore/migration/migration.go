@@ -126,6 +126,7 @@ func Migrate(_ context.Context, db *sql.DB, driver string, _ bool) error {
 		{ID: "crow-add-config-generated-from", Migrate: addConfigGeneratedFrom(driver)},
 		{ID: "crow-add-user-identities", Migrate: createUserIdentities(driver)},
 		{ID: "crow-add-user-roles", Migrate: addUserRoles},
+		{ID: "crow-add-integration-secret-filters", Migrate: addIntegrationSecretFilters},
 	}
 
 	if len(newMigrations) > 0 {
@@ -776,6 +777,20 @@ func addUserRoles(tx *sql.Tx) error {
 		return nil
 	}
 	return addColumnIfNotExists("users", "roles", "TEXT")(tx)
+}
+
+// addIntegrationSecretFilters adds integrations.events and integrations.images,
+// the JSON events and images filters applied to secrets fetched through an
+// integration. The columns are nullable because MySQL rejects a DEFAULT on TEXT;
+// NULL events read as the default event set, NULL images as no image filter.
+func addIntegrationSecretFilters(tx *sql.Tx) error {
+	if !tableExists(tx, "integrations") {
+		return nil
+	}
+	if err := addColumnIfNotExists("integrations", "events", "TEXT")(tx); err != nil {
+		return err
+	}
+	return addColumnIfNotExists("integrations", "images", "TEXT")(tx)
 }
 
 func addPipelineOrgIdentity(driver string) func(tx *sql.Tx) error {

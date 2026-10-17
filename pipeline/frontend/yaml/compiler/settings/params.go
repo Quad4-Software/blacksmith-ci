@@ -39,10 +39,19 @@ type ExternalSecretRef struct {
 // prefer ExternalSecretBatchFetcher, which only authenticates against each integration once.
 type ExternalSecretFetcher func(ctx context.Context, ref ExternalSecretRef) (string, error)
 
+// ExternalSecret is a fetched external secret value together with the usage
+// filters of the integration it came from. The filters have the same meaning as
+// the Events and AllowedPlugins of an internal secret.
+type ExternalSecret struct {
+	Value          string
+	Events         []string
+	AllowedPlugins []string
+}
+
 // ExternalSecretBatchFetcher fetches a batch of external secrets in a single call.
 // The returned map MUST contain an entry for every input ref on success;
 // implementations should group by integration to share authentication and minimize round-trips.
-type ExternalSecretBatchFetcher func(ctx context.Context, refs []ExternalSecretRef) (map[ExternalSecretRef]string, error)
+type ExternalSecretBatchFetcher func(ctx context.Context, refs []ExternalSecretRef) (map[ExternalSecretRef]ExternalSecret, error)
 
 // ParamsToEnv uses reflection to convert a map[string]interface to a list
 // of environment variables.
@@ -100,6 +109,10 @@ func isComplex(t reflect.Kind) bool {
 
 // sanitizeParamValue returns the value of a setting as string prepared to be injected as environment variable.
 func sanitizeParamValue(v any, getSecretValue func(name string) (string, error)) (string, error) {
+	if p, ok := v.(externalSecretPlaceholder); ok {
+		return getSecretValue(p.name)
+	}
+
 	t := reflect.TypeOf(v)
 	vv := reflect.ValueOf(v)
 
@@ -148,8 +161,9 @@ func sanitizeParamValue(v any, getSecretValue func(name string) (string, error))
 			if el == nil {
 				continue
 			}
-			// If any element is complex, we must serialize the whole slice as JSON
-			if isComplex(reflect.TypeOf(el).Kind()) {
+			// If any element is complex, we must serialize the whole slice as JSON.
+			// An external secret placeholder resolves to a plain string.
+			if _, isPlaceholder := el.(externalSecretPlaceholder); !isPlaceholder && isComplex(reflect.TypeOf(el).Kind()) {
 				allPrimitive = false
 				break
 			}
@@ -310,6 +324,10 @@ func parseExternalSecretRef(v any) (ExternalSecretRef, error) {
 func injectSecretRecursive(v any, getSecretValue func(name string) (string, error)) (any, error) {
 	if v == nil {
 		return v, nil
+	}
+
+	if p, ok := v.(externalSecretPlaceholder); ok {
+		return getSecretValue(p.name)
 	}
 
 	t := reflect.TypeOf(v)

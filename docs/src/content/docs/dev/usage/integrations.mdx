@@ -294,6 +294,27 @@ Integrations use allowlists to control which pipelines can access secrets:
 If no allowlist is configured, no pipelines can use the integration. You must explicitly allow at least one user, organization, or repository.
 :::
 
+### Event and plugin filters
+
+Each integration has the same usage filters as an internal secret, and they apply to every secret fetched through it:
+
+- **Events**: the pipeline events that may use the integration's secrets.
+- **Plugin images**: when set, only plugin steps (steps without `commands`) using one of these images get the secrets.
+
+Set both in the integration dialog under **Usage Filters**, or through the `events` and `images` fields of the integration API.
+
+An integration without an event filter serves `push`, `tag`, `release`, `deployment`, `cron` and `manual` pipelines.
+Pull request pipelines (including closed, merged and edited pull requests) only get secrets from integrations that list `pull_request` explicitly.
+
+:::caution
+Pull request pipelines run code from the pull request author, who may not be a member of your project, for example on a pull request from a fork.
+Only allow `pull_request` on integrations whose secrets you are willing to expose to them, ideally combined with a plugin image filter.
+:::
+
+A pipeline that references a secret its integration does not allow for the current event, or from a step the plugin filter excludes, fails with a compiler error.
+When the event is not allowed, Crow does not contact the secret store at all.
+Secrets referenced only by steps or services that are skipped by their `when` filter are not fetched.
+
 ### Ownership and admin visibility
 
 Each integration is owned by the user who created it.
@@ -337,7 +358,8 @@ External secrets are fetched once at pipeline start and cached for the duration 
 ## Security Considerations
 
 :::tip
-External secrets are automatically masked in log output, just like native secrets. Any occurrence of the secret value will be replaced with `********`.
+External secrets are treated like internal secrets everywhere.
+Any occurrence of the secret value in log output is replaced with `********`, and the Kubernetes backend passes them to the pod through a Kubernetes Secret instead of a plain environment variable.
 :::
 
 Best practices:
@@ -345,6 +367,7 @@ Best practices:
 - Use dedicated AppRoles with minimal permissions
 - Enable secret rotation in your Vault instance
 - Limit integration access via allowlists
+- Keep `pull_request` out of an integration's event filter unless you need it, and add a plugin image filter when only a plugin needs the secret
 - Avoid logging secret values in pipeline output
 - Use TLS and verify certificates in production
 

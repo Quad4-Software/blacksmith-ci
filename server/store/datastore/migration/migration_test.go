@@ -615,3 +615,27 @@ func TestAddUserRoles_ExistingUsersTable(t *testing.T) {
 	require.NoError(t, db.QueryRow(`SELECT roles FROM users WHERE id = 1`).Scan(&roles))
 	assert.False(t, roles.Valid, "existing users get NULL roles")
 }
+
+func TestAddIntegrationSecretFilters_ExistingTable(t *testing.T) {
+	db, _ := testDB(t)
+
+	// Pre-migration integrations table: no events or images columns yet.
+	_, err := db.Exec(`CREATE TABLE integrations (id INTEGER PRIMARY KEY, name VARCHAR(255))`)
+	require.NoError(t, err)
+	t.Cleanup(func() { _, _ = db.Exec(`DROP TABLE integrations`) })
+	_, err = db.Exec(`INSERT INTO integrations (id, name) VALUES (1, 'vault')`)
+	require.NoError(t, err)
+
+	// Run twice to cover idempotency.
+	for range 2 {
+		tx, err := db.Begin()
+		require.NoError(t, err)
+		require.NoError(t, addIntegrationSecretFilters(tx))
+		require.NoError(t, tx.Commit())
+	}
+
+	var events, images sql.NullString
+	require.NoError(t, db.QueryRow(`SELECT events, images FROM integrations WHERE id = 1`).Scan(&events, &images))
+	assert.False(t, events.Valid, "existing integrations get NULL events")
+	assert.False(t, images.Valid, "existing integrations get NULL images")
+}

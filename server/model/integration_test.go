@@ -61,6 +61,39 @@ func TestIntegration_Validate(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "valid events and images",
+			integration: Integration{
+				Name:   "test-integration",
+				Type:   IntegrationTypeVault,
+				Config: validVaultConfig,
+				Events: JSONSliceWebhookEvent{EventPush, EventPull},
+				Images: JSONSliceString{"plugins/s3"},
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid event",
+			integration: Integration{
+				Name:   "test-integration",
+				Type:   IntegrationTypeVault,
+				Config: validVaultConfig,
+				Events: JSONSliceWebhookEvent{"nope"},
+			},
+			wantErr:     true,
+			errContains: "invalid webhook event",
+		},
+		{
+			name: "invalid image",
+			integration: Integration{
+				Name:   "test-integration",
+				Type:   IntegrationTypeVault,
+				Config: validVaultConfig,
+				Images: JSONSliceString{"not an image"},
+			},
+			wantErr:     true,
+			errContains: "invalid secret image",
+		},
+		{
 			name: "empty name",
 			integration: Integration{
 				Name:   "",
@@ -132,6 +165,35 @@ func TestIntegration_Validate(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
+		})
+	}
+}
+
+func TestIntegration_AllowsEvent(t *testing.T) {
+	tests := []struct {
+		name   string
+		events JSONSliceWebhookEvent
+		event  WebhookEvent
+		want   bool
+	}{
+		{name: "default allows push", event: EventPush, want: true},
+		{name: "default allows tag", event: EventTag, want: true},
+		{name: "default allows deployment", event: EventDeploy, want: true},
+		{name: "default allows cron", event: EventCron, want: true},
+		{name: "default allows manual", event: EventManual, want: true},
+		{name: "default allows release", event: EventRelease, want: true},
+		{name: "default denies pull_request", event: EventPull, want: false},
+		{name: "default denies pull_request_closed", event: EventPullClosed, want: false},
+		{name: "default denies pull_request_edited", event: EventPullEdited, want: false},
+		{name: "explicit pull_request", events: JSONSliceWebhookEvent{EventPull}, event: EventPull, want: true},
+		{name: "explicit pull_request covers merged", events: JSONSliceWebhookEvent{EventPull}, event: EventPullMerged, want: true},
+		{name: "explicit list excludes others", events: JSONSliceWebhookEvent{EventTag}, event: EventPush, want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			i := &Integration{Events: tt.events}
+			assert.Equal(t, tt.want, i.AllowsEvent(tt.event))
 		})
 	}
 }

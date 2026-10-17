@@ -45,6 +45,10 @@ type Secret struct {
 	Value          string
 	AllowedPlugins []string
 	Events         []string
+	// External marks a secret fetched through an integration. Its filters come
+	// from the integration, so the event error must not offer the quick fix that
+	// edits an internal secret of the same name.
+	External bool
 }
 
 type ErrSecretEventNotAllowed struct {
@@ -75,6 +79,9 @@ func (s *Secret) Available(event string, container *yaml_types.Container) error 
 	}
 
 	if !s.Match(event) {
+		if s.External {
+			return fmt.Errorf("Secret %q is not allowed to be used with pipeline event %q (the integration's event filter does not include it)", s.Name, normalizeSecretEvent(event))
+		}
 		return &ErrSecretEventNotAllowed{
 			SecretName: s.Name,
 			Event:      normalizeSecretEvent(event),
@@ -388,6 +395,19 @@ func uniqueStepName(name string, used map[string]struct{}) string {
 // hasWorkSteps checks if the step list contains at least one work step
 // (commands or plugin type). Clone and service steps are infrastructure
 // and don't constitute actual work to be done.
+// WillRun reports whether the when filter of container matches the compiler's
+// metadata and environment, i.e. whether Compile keeps the container. A filter
+// that fails to evaluate counts as not running (Compile rejects the workflow).
+// Callers use it to fetch resources, such as external secrets, only for
+// containers that will actually run.
+func (c *Compiler) WillRun(container *yaml_types.Container) bool {
+	if c.local && !container.When.IsLocal() {
+		return false
+	}
+	match, err := container.When.Match(c.metadata, false, c.env)
+	return match && err == nil
+}
+
 func hasWorkSteps(steps []*dagCompilerStep) bool {
 	for _, step := range steps {
 		if step.step.Type == backend_types.StepTypeCommands ||

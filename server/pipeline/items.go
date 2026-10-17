@@ -77,9 +77,9 @@ func parsePipeline(forge forge.Forge, store store.Store, currentPipeline *model.
 	// even when many secrets are referenced.
 	var externalSecretFetcher settings.ExternalSecretBatchFetcher
 	if integrationSvc := server.Config.Services.IntegrationService; integrationSvc != nil {
-		externalSecretFetcher = func(ctx context.Context, refs []settings.ExternalSecretRef) (map[settings.ExternalSecretRef]string, error) {
+		externalSecretFetcher = func(ctx context.Context, refs []settings.ExternalSecretRef) (map[settings.ExternalSecretRef]settings.ExternalSecret, error) {
 			if len(refs) == 0 {
-				return map[settings.ExternalSecretRef]string{}, nil
+				return map[settings.ExternalSecretRef]settings.ExternalSecret{}, nil
 			}
 
 			modelRefs := make([]*model.ExternalSecretRef, 0, len(refs))
@@ -96,15 +96,23 @@ func parsePipeline(forge forge.Forge, store store.Store, currentPipeline *model.
 				settingsRefByCacheKey[modelRef.CacheKey()] = ref
 			}
 
-			fetched, err := integrationSvc.FetchSecretsBatch(ctx, modelRefs, user.ID, repo.OrgID, repo.ID, currentPipeline.ID)
+			fetched, err := integrationSvc.FetchSecretsBatch(ctx, modelRefs, user.ID, repo.OrgID, repo.ID, currentPipeline.ID, currentPipeline.Event)
 			if err != nil {
 				return nil, err
 			}
 
-			result := make(map[settings.ExternalSecretRef]string, len(fetched))
+			result := make(map[settings.ExternalSecretRef]settings.ExternalSecret, len(fetched))
 			for cacheKey, value := range fetched {
 				if ref, ok := settingsRefByCacheKey[cacheKey]; ok {
-					result[ref] = value
+					events := make([]string, 0, len(value.Events))
+					for _, event := range value.Events {
+						events = append(events, string(event))
+					}
+					result[ref] = settings.ExternalSecret{
+						Value:          value.Value,
+						Events:         events,
+						AllowedPlugins: value.Images,
+					}
 				}
 			}
 			return result, nil

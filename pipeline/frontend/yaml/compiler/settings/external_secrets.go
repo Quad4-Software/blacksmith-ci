@@ -91,10 +91,27 @@ func externalSecretKey(ref ExternalSecretRef) string {
 	return fmt.Sprintf("id:%d:%s:%s:%d", ref.IntegrationID, ref.Path, ref.Key, ref.Version)
 }
 
+// externalSecretNamePrefix prefixes the compiler secret name of every external secret.
+const externalSecretNamePrefix = "external:"
+
+// ExternalSecretName returns the name under which the external secret with the
+// given unique key is registered as a compiler secret.
+func ExternalSecretName(key string) string {
+	return externalSecretNamePrefix + key
+}
+
+// externalSecretPlaceholder replaces an external secret reference in the parsed
+// workflow. The compiler resolves it through its secret lookup, like a
+// from_secret string, so the events and plugin filters apply and the value is
+// recorded in the step's secret mapping. It cannot be produced from YAML.
+type externalSecretPlaceholder struct {
+	name string
+}
+
 // FetchedExternalSecrets holds secrets that have been fetched from external stores.
 type FetchedExternalSecrets struct {
-	// Secrets maps the unique key to the fetched secret value
-	Secrets map[string]string
+	// Secrets maps the unique key to the fetched secret and its usage filters
+	Secrets map[string]ExternalSecret
 }
 
 // FetchExternalSecrets fetches all collected external secrets using the provided batch fetcher.
@@ -103,7 +120,7 @@ type FetchedExternalSecrets struct {
 // which avoids per-secret HTTP overhead when a workflow references many external secrets.
 func FetchExternalSecrets(ctx context.Context, collected *CollectedExternalSecrets, fetcher ExternalSecretBatchFetcher) (*FetchedExternalSecrets, error) {
 	fetched := &FetchedExternalSecrets{
-		Secrets: make(map[string]string, len(collected.Refs)),
+		Secrets: make(map[string]ExternalSecret, len(collected.Refs)),
 	}
 
 	if len(collected.Refs) == 0 {
@@ -140,7 +157,8 @@ func FetchExternalSecrets(ctx context.Context, collected *CollectedExternalSecre
 }
 
 // InjectExternalSecrets replaces external secret references (from_secret with object value)
-// with the actual fetched secret values.
+// with placeholders that the compiler resolves to the fetched values under the
+// name ExternalSecretName(key), applying the same checks as for internal secrets.
 func InjectExternalSecrets(v any, fetched *FetchedExternalSecrets) (any, error) {
 	return injectExternalSecretsRecursive(v, fetched)
 }
@@ -168,8 +186,7 @@ func injectExternalSecretsRecursive(v any, fetched *FetchedExternalSecrets) (any
 					}
 
 					key := externalSecretKey(ref)
-					value, ok := fetched.Secrets[key]
-					if !ok {
+					if _, ok := fetched.Secrets[key]; !ok {
 						integrationInfo := fmt.Sprintf("id=%d", ref.IntegrationID)
 						if ref.IntegrationName != "" {
 							integrationInfo = fmt.Sprintf("name=%s", ref.IntegrationName)
@@ -178,7 +195,7 @@ func injectExternalSecretsRecursive(v any, fetched *FetchedExternalSecrets) (any
 							integrationInfo, ref.Path, ref.Key)
 					}
 
-					return value, nil
+					return externalSecretPlaceholder{name: ExternalSecretName(key)}, nil
 				}
 			}
 

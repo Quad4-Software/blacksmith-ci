@@ -288,13 +288,13 @@ func TestFetchExternalSecrets(t *testing.T) {
 			collected.RefsByKey[externalSecretKey(ref)] = ref
 		}
 
-		fetcher := func(_ context.Context, refs []ExternalSecretRef) (map[ExternalSecretRef]string, error) {
-			result := make(map[ExternalSecretRef]string, len(refs))
+		fetcher := func(_ context.Context, refs []ExternalSecretRef) (map[ExternalSecretRef]ExternalSecret, error) {
+			result := make(map[ExternalSecretRef]ExternalSecret, len(refs))
 			for _, ref := range refs {
 				if ref.Key == "api_key" {
-					result[ref] = "key_value_123"
+					result[ref] = ExternalSecret{Value: "key_value_123"}
 				} else {
-					result[ref] = "secret_value_456"
+					result[ref] = ExternalSecret{Value: "secret_value_456"}
 				}
 			}
 			return result, nil
@@ -313,7 +313,7 @@ func TestFetchExternalSecrets(t *testing.T) {
 			RefsByKey: make(map[string]ExternalSecretRef),
 		}
 
-		fetcher := func(_ context.Context, _ []ExternalSecretRef) (map[ExternalSecretRef]string, error) {
+		fetcher := func(_ context.Context, _ []ExternalSecretRef) (map[ExternalSecretRef]ExternalSecret, error) {
 			return nil, fmt.Errorf("vault unreachable")
 		}
 
@@ -334,12 +334,12 @@ func TestFetchExternalSecrets(t *testing.T) {
 
 		var calls int
 		var receivedRefs []ExternalSecretRef
-		fetcher := func(_ context.Context, refs []ExternalSecretRef) (map[ExternalSecretRef]string, error) {
+		fetcher := func(_ context.Context, refs []ExternalSecretRef) (map[ExternalSecretRef]ExternalSecret, error) {
 			calls++
 			receivedRefs = refs
-			result := make(map[ExternalSecretRef]string, len(refs))
+			result := make(map[ExternalSecretRef]ExternalSecret, len(refs))
 			for _, ref := range refs {
-				result[ref] = "value-" + ref.Key
+				result[ref] = ExternalSecret{Value: "value-" + ref.Key}
 			}
 			return result, nil
 		}
@@ -360,11 +360,11 @@ func TestFetchExternalSecrets(t *testing.T) {
 			RefsByKey: make(map[string]ExternalSecretRef),
 		}
 
-		fetcher := func(_ context.Context, refs []ExternalSecretRef) (map[ExternalSecretRef]string, error) {
-			result := make(map[ExternalSecretRef]string)
+		fetcher := func(_ context.Context, refs []ExternalSecretRef) (map[ExternalSecretRef]ExternalSecret, error) {
+			result := make(map[ExternalSecretRef]ExternalSecret)
 			for _, ref := range refs {
 				if ref.Key == "present" {
-					result[ref] = "value"
+					result[ref] = ExternalSecret{Value: "value"}
 				}
 			}
 			return result, nil
@@ -379,14 +379,14 @@ func TestFetchExternalSecrets(t *testing.T) {
 
 func TestInjectExternalSecrets(t *testing.T) {
 	t.Run("nil input", func(t *testing.T) {
-		fetched := &FetchedExternalSecrets{Secrets: make(map[string]string)}
+		fetched := &FetchedExternalSecrets{Secrets: make(map[string]ExternalSecret)}
 		result, err := InjectExternalSecrets(nil, fetched)
 		assert.NoError(t, err)
 		assert.Nil(t, result)
 	})
 
 	t.Run("simple string passthrough", func(t *testing.T) {
-		fetched := &FetchedExternalSecrets{Secrets: make(map[string]string)}
+		fetched := &FetchedExternalSecrets{Secrets: make(map[string]ExternalSecret)}
 		result, err := InjectExternalSecrets("plain_value", fetched)
 		assert.NoError(t, err)
 		assert.Equal(t, "plain_value", result)
@@ -395,8 +395,8 @@ func TestInjectExternalSecrets(t *testing.T) {
 	t.Run("inject single external secret", func(t *testing.T) {
 		ref := ExternalSecretRef{IntegrationID: 1, Path: "secret/test", Key: "api_key"}
 		fetched := &FetchedExternalSecrets{
-			Secrets: map[string]string{
-				externalSecretKey(ref): "injected_value",
+			Secrets: map[string]ExternalSecret{
+				externalSecretKey(ref): {Value: "injected_value"},
 			},
 		}
 
@@ -415,14 +415,14 @@ func TestInjectExternalSecrets(t *testing.T) {
 
 		resultMap, ok := result.(map[string]any)
 		require.True(t, ok, "expected result to be map[string]any")
-		assert.Equal(t, "injected_value", resultMap["TEST_SECRET"])
+		assert.Equal(t, externalSecretPlaceholder{name: ExternalSecretName(externalSecretKey(ref))}, resultMap["TEST_SECRET"])
 	})
 
 	t.Run("inject external secret with name", func(t *testing.T) {
 		ref := ExternalSecretRef{IntegrationName: "vault-prod", Path: "secret/test", Key: "api_key"}
 		fetched := &FetchedExternalSecrets{
-			Secrets: map[string]string{
-				externalSecretKey(ref): "named_injected_value",
+			Secrets: map[string]ExternalSecret{
+				externalSecretKey(ref): {Value: "named_injected_value"},
 			},
 		}
 
@@ -441,11 +441,11 @@ func TestInjectExternalSecrets(t *testing.T) {
 
 		resultMap, ok := result.(map[string]any)
 		require.True(t, ok, "expected result to be map[string]any")
-		assert.Equal(t, "named_injected_value", resultMap["TEST_SECRET"])
+		assert.Equal(t, externalSecretPlaceholder{name: ExternalSecretName(externalSecretKey(ref))}, resultMap["TEST_SECRET"])
 	})
 
 	t.Run("internal secret passthrough", func(t *testing.T) {
-		fetched := &FetchedExternalSecrets{Secrets: make(map[string]string)}
+		fetched := &FetchedExternalSecrets{Secrets: make(map[string]ExternalSecret)}
 
 		input := map[string]any{
 			"INTERNAL_SECRET": map[string]any{
@@ -468,9 +468,9 @@ func TestInjectExternalSecrets(t *testing.T) {
 		ref1 := ExternalSecretRef{IntegrationID: 1, Path: "secret/test", Key: "key1"}
 		ref2 := ExternalSecretRef{IntegrationID: 1, Path: "secret/test", Key: "key2"}
 		fetched := &FetchedExternalSecrets{
-			Secrets: map[string]string{
-				externalSecretKey(ref1): "value1",
-				externalSecretKey(ref2): "value2",
+			Secrets: map[string]ExternalSecret{
+				externalSecretKey(ref1): {Value: "value1"},
+				externalSecretKey(ref2): {Value: "value2"},
 			},
 		}
 
@@ -497,14 +497,14 @@ func TestInjectExternalSecrets(t *testing.T) {
 
 		resultMap, ok := result.(map[string]any)
 		require.True(t, ok, "expected result to be map[string]any")
-		assert.Equal(t, "value1", resultMap["SECRET1"])
-		assert.Equal(t, "value2", resultMap["SECRET2"])
+		assert.Equal(t, externalSecretPlaceholder{name: ExternalSecretName(externalSecretKey(ref1))}, resultMap["SECRET1"])
+		assert.Equal(t, externalSecretPlaceholder{name: ExternalSecretName(externalSecretKey(ref2))}, resultMap["SECRET2"])
 		assert.Equal(t, "plain_value", resultMap["REGULAR"])
 	})
 
 	t.Run("missing secret", func(t *testing.T) {
 		fetched := &FetchedExternalSecrets{
-			Secrets: make(map[string]string), // empty
+			Secrets: make(map[string]ExternalSecret), // empty
 		}
 
 		input := map[string]any{
@@ -525,8 +525,8 @@ func TestInjectExternalSecrets(t *testing.T) {
 	t.Run("inject in array", func(t *testing.T) {
 		ref := ExternalSecretRef{IntegrationID: 1, Path: "secret/test", Key: "key"}
 		fetched := &FetchedExternalSecrets{
-			Secrets: map[string]string{
-				externalSecretKey(ref): "array_value",
+			Secrets: map[string]ExternalSecret{
+				externalSecretKey(ref): {Value: "array_value"},
 			},
 		}
 
@@ -547,7 +547,7 @@ func TestInjectExternalSecrets(t *testing.T) {
 		resultArr, ok := result.([]any)
 		require.True(t, ok, "expected result to be []any")
 		assert.Equal(t, "regular", resultArr[0])
-		assert.Equal(t, "array_value", resultArr[1])
+		assert.Equal(t, externalSecretPlaceholder{name: ExternalSecretName(externalSecretKey(ref))}, resultArr[1])
 	})
 }
 
@@ -593,6 +593,83 @@ func TestExternalSecretKey(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			key := externalSecretKey(tt.ref)
 			assert.Equal(t, tt.expected, key)
+		})
+	}
+}
+
+func TestInjectedExternalSecretsResolveAsSecrets(t *testing.T) {
+	ref := ExternalSecretRef{IntegrationID: 1, Path: "secret/test", Key: "token"}
+	name := ExternalSecretName(externalSecretKey(ref))
+	fetched := &FetchedExternalSecrets{
+		Secrets: map[string]ExternalSecret{externalSecretKey(ref): {Value: "s3cr3t"}},
+	}
+	extRef := func() map[string]any {
+		return map[string]any{"from_secret": map[string]any{
+			"integration": int64(1), "path": "secret/test", "key": "token",
+		}}
+	}
+
+	tests := []struct {
+		name       string
+		input      map[string]any
+		wantEnv    map[string]string
+		wantMapped []string
+	}{
+		{
+			name:       "top-level value",
+			input:      map[string]any{"TOKEN": extRef()},
+			wantEnv:    map[string]string{"TOKEN": "s3cr3t"},
+			wantMapped: []string{"TOKEN"},
+		},
+		{
+			name:       "list keeps comma-joined format",
+			input:      map[string]any{"LIST": []any{"plain", extRef()}},
+			wantEnv:    map[string]string{"LIST": "plain,s3cr3t"},
+			wantMapped: []string{"LIST"},
+		},
+		{
+			name:       "nested map is JSON encoded",
+			input:      map[string]any{"NESTED": map[string]any{"inner": extRef()}},
+			wantEnv:    map[string]string{"NESTED": `{"inner":"s3cr3t"}`},
+			wantMapped: []string{"NESTED"},
+		},
+		{
+			name:       "plain value is not mapped",
+			input:      map[string]any{"PLAIN": "value"},
+			wantEnv:    map[string]string{"PLAIN": "value"},
+			wantMapped: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			injected, err := InjectExternalSecrets(tt.input, fetched)
+			require.NoError(t, err)
+			injectedMap, ok := injected.(map[string]any)
+			require.True(t, ok)
+
+			var requested []string
+			getSecretValue := func(n string) (string, error) {
+				requested = append(requested, n)
+				if n != name {
+					return "", fmt.Errorf("secret %q not found", n)
+				}
+				return "s3cr3t", nil
+			}
+
+			env := map[string]string{}
+			mapping := map[string]string{}
+			require.NoError(t, ParamsToEnv(injectedMap, env, "", false, getSecretValue, mapping))
+			assert.Equal(t, tt.wantEnv, env)
+
+			var mapped []string
+			for k := range mapping {
+				mapped = append(mapped, k)
+			}
+			assert.ElementsMatch(t, tt.wantMapped, mapped)
+			if len(tt.wantMapped) > 0 {
+				assert.Contains(t, requested, name, "placeholder must resolve through the compiler secret lookup")
+			}
 		})
 	}
 }

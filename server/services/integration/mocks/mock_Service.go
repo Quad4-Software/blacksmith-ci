@@ -241,27 +241,27 @@ func (_c *MockService_FetchSecret_Call) RunAndReturn(run func(ctx context.Contex
 }
 
 // FetchSecretsBatch provides a mock function for the type MockService
-func (_mock *MockService) FetchSecretsBatch(ctx context.Context, refs []*model.ExternalSecretRef, userID int64, orgID int64, repoID int64, pipelineID int64) (map[string]string, error) {
-	ret := _mock.Called(ctx, refs, userID, orgID, repoID, pipelineID)
+func (_mock *MockService) FetchSecretsBatch(ctx context.Context, refs []*model.ExternalSecretRef, userID int64, orgID int64, repoID int64, pipelineID int64, event model.WebhookEvent) (map[string]model.ExternalSecretValue, error) {
+	ret := _mock.Called(ctx, refs, userID, orgID, repoID, pipelineID, event)
 
 	if len(ret) == 0 {
 		panic("no return value specified for FetchSecretsBatch")
 	}
 
-	var r0 map[string]string
+	var r0 map[string]model.ExternalSecretValue
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, []*model.ExternalSecretRef, int64, int64, int64, int64) (map[string]string, error)); ok {
-		return returnFunc(ctx, refs, userID, orgID, repoID, pipelineID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []*model.ExternalSecretRef, int64, int64, int64, int64, model.WebhookEvent) (map[string]model.ExternalSecretValue, error)); ok {
+		return returnFunc(ctx, refs, userID, orgID, repoID, pipelineID, event)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, []*model.ExternalSecretRef, int64, int64, int64, int64) map[string]string); ok {
-		r0 = returnFunc(ctx, refs, userID, orgID, repoID, pipelineID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []*model.ExternalSecretRef, int64, int64, int64, int64, model.WebhookEvent) map[string]model.ExternalSecretValue); ok {
+		r0 = returnFunc(ctx, refs, userID, orgID, repoID, pipelineID, event)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(map[string]string)
+			r0 = ret.Get(0).(map[string]model.ExternalSecretValue)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, []*model.ExternalSecretRef, int64, int64, int64, int64) error); ok {
-		r1 = returnFunc(ctx, refs, userID, orgID, repoID, pipelineID)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, []*model.ExternalSecretRef, int64, int64, int64, int64, model.WebhookEvent) error); ok {
+		r1 = returnFunc(ctx, refs, userID, orgID, repoID, pipelineID, event)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -280,11 +280,12 @@ type MockService_FetchSecretsBatch_Call struct {
 //   - orgID int64
 //   - repoID int64
 //   - pipelineID int64
-func (_e *MockService_Expecter) FetchSecretsBatch(ctx any, refs any, userID any, orgID any, repoID any, pipelineID any) *MockService_FetchSecretsBatch_Call {
-	return &MockService_FetchSecretsBatch_Call{Call: _e.mock.On("FetchSecretsBatch", ctx, refs, userID, orgID, repoID, pipelineID)}
+//   - event model.WebhookEvent
+func (_e *MockService_Expecter) FetchSecretsBatch(ctx any, refs any, userID any, orgID any, repoID any, pipelineID any, event any) *MockService_FetchSecretsBatch_Call {
+	return &MockService_FetchSecretsBatch_Call{Call: _e.mock.On("FetchSecretsBatch", ctx, refs, userID, orgID, repoID, pipelineID, event)}
 }
 
-func (_c *MockService_FetchSecretsBatch_Call) Run(run func(ctx context.Context, refs []*model.ExternalSecretRef, userID int64, orgID int64, repoID int64, pipelineID int64)) *MockService_FetchSecretsBatch_Call {
+func (_c *MockService_FetchSecretsBatch_Call) Run(run func(ctx context.Context, refs []*model.ExternalSecretRef, userID int64, orgID int64, repoID int64, pipelineID int64, event model.WebhookEvent)) *MockService_FetchSecretsBatch_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -310,6 +311,10 @@ func (_c *MockService_FetchSecretsBatch_Call) Run(run func(ctx context.Context, 
 		if args[5] != nil {
 			arg5 = args[5].(int64)
 		}
+		var arg6 model.WebhookEvent
+		if args[6] != nil {
+			arg6 = args[6].(model.WebhookEvent)
+		}
 		run(
 			arg0,
 			arg1,
@@ -317,17 +322,18 @@ func (_c *MockService_FetchSecretsBatch_Call) Run(run func(ctx context.Context, 
 			arg3,
 			arg4,
 			arg5,
+			arg6,
 		)
 	})
 	return _c
 }
 
-func (_c *MockService_FetchSecretsBatch_Call) Return(stringToString map[string]string, err error) *MockService_FetchSecretsBatch_Call {
-	_c.Call.Return(stringToString, err)
+func (_c *MockService_FetchSecretsBatch_Call) Return(stringToExternalSecretValue map[string]model.ExternalSecretValue, err error) *MockService_FetchSecretsBatch_Call {
+	_c.Call.Return(stringToExternalSecretValue, err)
 	return _c
 }
 
-func (_c *MockService_FetchSecretsBatch_Call) RunAndReturn(run func(ctx context.Context, refs []*model.ExternalSecretRef, userID int64, orgID int64, repoID int64, pipelineID int64) (map[string]string, error)) *MockService_FetchSecretsBatch_Call {
+func (_c *MockService_FetchSecretsBatch_Call) RunAndReturn(run func(ctx context.Context, refs []*model.ExternalSecretRef, userID int64, orgID int64, repoID int64, pipelineID int64, event model.WebhookEvent) (map[string]model.ExternalSecretValue, error)) *MockService_FetchSecretsBatch_Call {
 	_c.Call.Return(run)
 	return _c
 }

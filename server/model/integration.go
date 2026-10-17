@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"slices"
 	"strconv"
 	"time"
 
@@ -33,7 +34,21 @@ var (
 	ErrIntegrationAccessDenied  = errors.New("access denied to integration")
 	ErrIntegrationNotFound      = errors.New("integration not found")
 	ErrIntegrationInactive      = errors.New("integration is not active")
+	ErrIntegrationEventDenied   = errors.New("integration is not allowed for this pipeline event")
 )
+
+// DefaultIntegrationEvents are the pipeline events an integration serves secrets
+// to when it has no explicit event filter. Pull request events are left out on
+// purpose: pull request pipelines run code from the pull request author (possibly
+// from a fork), so serving them secrets has to be an explicit decision.
+var DefaultIntegrationEvents = []WebhookEvent{
+	EventPush,
+	EventTag,
+	EventRelease,
+	EventDeploy,
+	EventCron,
+	EventManual,
+}
 
 // IntegrationType represents the type of external integration.
 type IntegrationType string
@@ -101,6 +116,12 @@ type Integration struct {
 	AllowedOrgIDs  JSONSliceInt64 `json:"allowed_org_ids"  bun:"allowed_org_ids,type:text"`
 	AllowedRepoIDs JSONSliceInt64 `json:"allowed_repo_ids" bun:"allowed_repo_ids,type:text"`
 
+	// Usage filters applied to every secret fetched through this integration,
+	// equivalent to the events and images filters of internal secrets.
+	// Empty Events means DefaultIntegrationEvents; empty Images means any step.
+	Events JSONSliceWebhookEvent `json:"events" bun:"events,type:text"`
+	Images JSONSliceString       `json:"images" bun:"images,type:text"`
+
 	// Status
 	IsActive bool `json:"is_active" bun:"is_active,default:true"`
 
@@ -142,6 +163,21 @@ func (i *Integration) Validate() error {
 
 	if len(i.Config) == 0 {
 		return fmt.Errorf("%w: configuration is required", ErrIntegrationConfigInvalid)
+	}
+
+	for _, event := range i.Events {
+		if err := event.Validate(); err != nil {
+			return errors.Join(err, ErrSecretEventInvalid)
+		}
+	}
+
+	for _, image := range i.Images {
+		if len(image) == 0 {
+			return fmt.Errorf("%w: empty image in images", ErrSecretImageInvalid)
+		}
+		if !validDockerImageString.MatchString(image) {
+			return fmt.Errorf("%w: image '%s' do not match regexp '%s'", ErrSecretImageInvalid, image, validDockerImageString.String())
+		}
 	}
 
 	// Validate type-specific configuration
@@ -186,6 +222,8 @@ func (i *Integration) Copy() *Integration {
 		AllowedUserIDs: i.AllowedUserIDs,
 		AllowedOrgIDs:  i.AllowedOrgIDs,
 		AllowedRepoIDs: i.AllowedRepoIDs,
+		Events:         i.Events,
+		Images:         i.Images,
 		IsActive:       i.IsActive,
 		CreatedAt:      i.CreatedAt,
 		UpdatedAt:      i.UpdatedAt,
@@ -264,6 +302,25 @@ func (i *Integration) HasAccess(userID int64, orgID int64, repoID int64) bool {
 	}
 
 	return false
+}
+
+// AllowedEvents returns the pipeline events this integration serves secrets to.
+func (i *Integration) AllowedEvents() []WebhookEvent {
+	if len(i.Events) > 0 {
+		return i.Events
+	}
+	return slices.Clone(DefaultIntegrationEvents)
+}
+
+// AllowsEvent reports whether secrets of this integration may be used by a
+// pipeline triggered by event. Like internal secrets, the pull request close,
+// merge and edit events count as pull_request.
+func (i *Integration) AllowsEvent(event WebhookEvent) bool {
+	switch event {
+	case EventPullClosed, EventPullMerged, EventPullEdited:
+		event = EventPull
+	}
+	return slices.Contains(i.AllowedEvents(), event)
 }
 
 // GetVaultConfig parses and returns the Vault configuration.
@@ -606,6 +663,15 @@ type ExternalSecretRef struct {
 	Path            string `json:"path"             yaml:"path"`
 	Key             string `json:"key"              yaml:"key"`
 	Version         int    `json:"version"          yaml:"version,omitempty"`
+}
+
+// ExternalSecretValue is a secret fetched through an integration, together with
+// the usage filters of that integration, so the pipeline compiler can enforce
+// them per step like it does for internal secrets.
+type ExternalSecretValue struct {
+	Value  string
+	Events []WebhookEvent
+	Images []string
 }
 
 // Validate validates the external secret reference.
