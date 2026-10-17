@@ -12,102 +12,84 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/* eslint-disable ts/no-unsafe-assignment, ts/no-unsafe-call, ts/no-unsafe-member-access, ts/no-unnecessary-type-assertion */
-import dagre from '@dagrejs/dagre';
-import { Position, useVueFlow } from '@vue-flow/core';
-import type { Node, Edge } from '@vue-flow/core';
+import { useVueFlow } from '@vue-flow/core';
+import type { Edge, Node } from '@vue-flow/core';
+import { GROUP_NODE_TYPE, STEP_NODE_TYPE } from '~/lib/pipeline-dag-graph';
+import type { GroupNodeData, StepNodeData } from '~/lib/pipeline-dag-graph';
+import { layoutPipelineGraph } from '~/lib/pipeline-dag-layout';
+import type { GraphLayout, LayoutGroup } from '~/lib/pipeline-dag-layout';
+
+// Layouts of recently drawn graphs, so that switching back to a pipeline does
+// not lay it out again.
+const layoutCache = new Map<string, GraphLayout>();
+const LAYOUT_CACHE_SIZE = 50;
+
+// The group header holds the workflow name, a matrix count and a dependency
+// count, so its width is estimated from the name.
+function headerWidth(data: GroupNodeData): number {
+  return data.workflow.name.length * 9 + ((data.workflow.depends_on ?? []).length > 0 ? 260 : 120);
+}
 
 /**
- * Composable to run the layout algorithm on the graph.
- * It uses the `dagre` library to calculate the layout of the nodes and edges.
+ * Composable to position the nodes of the pipeline graph. Step nodes are
+ * measured once they are rendered; see layoutPipelineGraph for the algorithm.
  */
-// Layout cache for better performance
-const layoutCache = new Map<string, Node[]>();
-
 export function useLayout() {
   const { findNode } = useVueFlow('pipeline-dag');
 
   // Returns the measured size of a node, or a default before it is rendered.
   function nodeSize(id: string): { width: number; height: number } {
-    const graphNode = findNode(id);
-    const width =
-      graphNode?.dimensions?.width != null && graphNode.dimensions.width > 0 ? graphNode.dimensions.width : 240;
-    const height =
-      graphNode?.dimensions?.height != null && graphNode.dimensions.height > 0 ? graphNode.dimensions.height : 120;
-    return { width, height };
+    const dimensions = findNode(id)?.dimensions;
+    return {
+      width: dimensions && dimensions.width > 0 ? dimensions.width : 240,
+      height: dimensions && dimensions.height > 0 ? dimensions.height : 120,
+    };
   }
 
-  function layout(nodes: Node[], edges: Edge[], direction: string = 'LR') {
+  /** Returns the nodes with their layout positions, and the group nodes with their sizes. */
+  function layout(nodes: Node[], edges: Edge[]): Node[] {
+    const groups = new Map<string, LayoutGroup>();
+    for (const node of nodes) {
+      if (node.type === GROUP_NODE_TYPE) {
+        groups.set(node.id, { id: node.id, nodes: [], minWidth: headerWidth(node.data as GroupNodeData) });
+      }
+    }
+    for (const node of nodes) {
+      if (node.type === STEP_NODE_TYPE) {
+        groups.get((node.data as StepNodeData).groupId)?.nodes.push({ id: node.id, ...nodeSize(node.id) });
+      }
+    }
+    const isStepEdge = (edge: Edge) => !groups.has(edge.source);
+    const stepEdges = edges.filter(isStepEdge);
+    const groupEdges = edges.filter((edge) => !isStepEdge(edge));
+
     // Positions depend only on the graph and the node sizes, not on step
     // states, so a state change that leaves the sizes alone reuses the layout.
-    const sizes = new Map(nodes.map((node) => [node.id, nodeSize(node.id)]));
-    const nodeKeys = [...sizes].map(([id, { width, height }]) => `${id}:${width}x${height}`);
-    const cacheKey = `${nodeKeys.join(',')}-${edges.map((e) => `${e.source}-${e.target}`).join(',')}-${direction}`;
-
-    // Check cache first
-    if (layoutCache.has(cacheKey)) {
-      const cachedLayout = layoutCache.get(cacheKey)!;
-      // Return cached layout with updated node data
-      return cachedLayout.map((cachedNode) => {
-        const currentNode = nodes.find((n) => n.id === cachedNode.id);
-        return currentNode ? { ...currentNode, position: cachedNode.position } : cachedNode;
-      });
-    }
-    const dagreGraph = new (dagre as any).graphlib.Graph();
-
-    (dagreGraph as any).setDefaultEdgeLabel(() => ({}));
-
-    const isHorizontal = direction === 'LR';
-    // https://github.com/dagrejs/dagre/wiki#configuring-the-layout
-    (dagreGraph as any).setGraph({
-      rankdir: direction,
-      nodesep: isHorizontal ? 30 : 0, // Horizontal separation between nodes
-      ranksep: 20, // default: 50
-      acyclicer: 'greedy',
-      align: 'UL', // Align to upper-left for consistent positioning
-    });
-
-    for (const node of nodes) {
-      (dagreGraph as any).setNode(node.id, sizes.get(node.id));
-    }
-
-    for (const edge of edges) {
-      (dagreGraph as any).setEdge(edge.source, edge.target);
-    }
-
-    (dagre as any).layout(dagreGraph);
-
-    // set nodes with updated positions
-    const layoutedNodes = nodes.map((node) => {
-      const nodeWithPosition = (dagreGraph as any).node(node.id);
-
-      // Dagre positions are center-based, adjust for top-left positioning
-      const adjustedX = (nodeWithPosition as any).x - (nodeWithPosition as any).width / 2;
-      const adjustedY = (nodeWithPosition as any).y - (nodeWithPosition as any).height / 2;
-
-      return {
-        ...node,
-        targetPosition: isHorizontal ? Position.Left : Position.Top,
-        sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
-        position: {
-          x: Math.round(adjustedX),
-          y: Math.round(adjustedY),
-        },
-      };
-    });
-
-    // Cache the layout result
-    layoutCache.set(cacheKey, layoutedNodes);
-
-    // Limit cache size to prevent memory issues
-    if (layoutCache.size > 50) {
-      const firstKey = layoutCache.keys().next().value;
-      if (firstKey !== undefined) {
-        layoutCache.delete(firstKey);
+    const cacheKey = JSON.stringify([
+      [...groups.values()].map((group) => [group.id, group.minWidth, group.nodes]),
+      edges.map((edge) => [edge.source, edge.target]),
+    ]);
+    let graphLayout = layoutCache.get(cacheKey);
+    if (!graphLayout) {
+      graphLayout = layoutPipelineGraph([...groups.values()], stepEdges, groupEdges);
+      layoutCache.set(cacheKey, graphLayout);
+      if (layoutCache.size > LAYOUT_CACHE_SIZE) {
+        layoutCache.delete(layoutCache.keys().next().value!);
       }
     }
 
-    return layoutedNodes;
+    return nodes.map((node) => {
+      const box = graphLayout.groups.get(node.id);
+      if (box) {
+        return {
+          ...node,
+          position: { x: box.x, y: box.y },
+          data: { ...(node.data as GroupNodeData), width: box.width, height: box.height },
+        };
+      }
+      const position = graphLayout.nodes.get(node.id);
+      return position ? { ...node, position } : node;
+    });
   }
 
   return { layout };
