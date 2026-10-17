@@ -15,6 +15,7 @@
 package compiler
 
 import (
+	"slices"
 	"sort"
 
 	backend_types "codefloe.com/crowci/crow/v6/pipeline/backend/types"
@@ -107,6 +108,90 @@ func (c dagCompiler) setDependenciesForDAG() {
 			step.dependsOn = cloneStepNames
 			step.step.DependsOn = cloneStepNames
 		}
+	}
+
+	c.setCacheRestoreDependencies()
+}
+
+// setCacheRestoreDependencies makes every work step that does not wait on
+// another work step also wait for the cache restore step. A step with an
+// explicit `depends_on: [clone]` would otherwise read the workspace while the
+// caches are still being extracted into it. Steps further down the graph wait
+// for the restore through the steps they depend on.
+func (c dagCompiler) setCacheRestoreDependencies() {
+	restoreName := ""
+	workStepNames := make(map[string]struct{}, len(c.steps))
+	for _, step := range c.steps {
+		if step.role == roleCacheRestore {
+			restoreName = step.name
+		}
+		if step.isWorkStep() {
+			workStepNames[step.name] = struct{}{}
+		}
+	}
+	if restoreName == "" {
+		return
+	}
+
+	for _, step := range c.steps {
+		if !step.isWorkStep() || slices.Contains(step.dependsOn, restoreName) {
+			continue
+		}
+		waitsOnWorkStep := slices.ContainsFunc(step.dependsOn, func(dep string) bool {
+			_, ok := workStepNames[dep]
+			return ok
+		})
+		if waitsOnWorkStep {
+			continue
+		}
+		step.dependsOn = append(slices.Clone(step.dependsOn), restoreName)
+		step.step.DependsOn = step.dependsOn
+	}
+}
+
+// resolveFilteredDependencies replaces each dependency on a step that its
+// `when` filter removed from the workflow with the dependencies of that step,
+// so a dependent keeps its place in the graph instead of failing on an unknown
+// step. The filtered map holds the `depends_on` of each removed step. A name
+// that is neither present nor filtered is kept, so a typo still fails the
+// compilation with ErrStepMissingDependency.
+func resolveFilteredDependencies(steps []*dagCompilerStep, filtered map[string][]string) {
+	if len(filtered) == 0 {
+		return
+	}
+	present := make(map[string]struct{}, len(steps))
+	for _, step := range steps {
+		present[step.name] = struct{}{}
+	}
+
+	for _, step := range steps {
+		if len(step.dependsOn) == 0 {
+			continue
+		}
+		resolved := make([]string, 0, len(step.dependsOn))
+		// seen also stops the walk on a cycle among filtered steps.
+		seen := make(map[string]struct{}, len(step.dependsOn))
+		var resolve func(dep string)
+		resolve = func(dep string) {
+			if _, ok := seen[dep]; ok {
+				return
+			}
+			seen[dep] = struct{}{}
+			if _, ok := present[dep]; !ok {
+				if deps, ok := filtered[dep]; ok {
+					for _, d := range deps {
+						resolve(d)
+					}
+					return
+				}
+			}
+			resolved = append(resolved, dep)
+		}
+		for _, dep := range step.dependsOn {
+			resolve(dep)
+		}
+		step.dependsOn = resolved
+		step.step.DependsOn = resolved
 	}
 }
 

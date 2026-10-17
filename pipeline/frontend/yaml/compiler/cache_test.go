@@ -177,3 +177,21 @@ func TestCompileCacheStepNamesStayUnique(t *testing.T) {
 	assert.Equal(t, backend_types.StepTypeCache, steps["save-cache (2)"].Type)
 	assert.Equal(t, []string{"restore-cache (2)", "save-cache"}, steps["save-cache (2)"].DependsOn)
 }
+
+func TestCompileCacheDAGExplicitCloneDependency(t *testing.T) {
+	t.Parallel()
+
+	// A step that names clone explicitly still has to wait for the restored
+	// caches, otherwise it reads the workspace while they are being extracted.
+	config, err := cacheTestCompiler().Compile(cacheWorkflow([]*yaml_types.Cache{goCache},
+		commandStep("lint", "clone"),
+		commandStep("build"),
+		commandStep("test", "build"),
+	))
+	require.NoError(t, err)
+
+	_, steps := stepsByName(t, config)
+	assert.ElementsMatch(t, []string{"clone", "restore-cache"}, steps["lint"].DependsOn)
+	assert.ElementsMatch(t, []string{"clone", "restore-cache"}, steps["build"].DependsOn)
+	assert.Equal(t, []string{"build"}, steps["test"].DependsOn, "steps after another work step wait for the cache through it")
+}

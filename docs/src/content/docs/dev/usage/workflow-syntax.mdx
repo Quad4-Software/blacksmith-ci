@@ -529,6 +529,34 @@ When a step fails, the steps that depend on it are skipped, and so are the steps
 Steps in an unrelated part of the graph keep running, and the workflow as a whole is still reported as failed.
 To stop a step from running after an unrelated failure, make the dependency explicit via `depends_on`.
 
+A step that depends on a step removed by its [`when`](#when-1) filter waits for what the removed step depended on instead.
+If nothing is left, it starts after the clone.
+In the example below, `deploy` waits for `build` on a push, and for `build-tag` on a tag:
+
+```yaml
+steps:
+  - name: build
+    image: <image>
+    commands:
+      - go build
+
+  - name: build-tag
+    image: <image>
+    commands:
+      - go build -tags release
+    depends_on: [build]
+    when:
+      event: tag
+
+  - name: deploy
+    image: <image>
+    commands:
+      - ./deploy.sh
+    depends_on: [build-tag]
+```
+
+A name that matches no step at all still fails the workflow, so typos are reported.
+
 ### detach
 
 The `detach` options can be used to run steps in the background until a workflow has finished.

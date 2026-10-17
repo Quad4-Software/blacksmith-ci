@@ -195,6 +195,9 @@ func (c *Compiler) Compile(conf *yaml_types.Workflow) (*backend_types.Config, er
 
 	// Collect all steps for DAG compilation, including clone steps
 	allSteps := make([]*dagCompilerStep, 0)
+	// Steps removed by their when filter, mapped to their depends_on, so the
+	// steps depending on them can be rewired (see resolveFilteredDependencies).
+	filteredSteps := make(map[string][]string)
 
 	// add clone steps based on configuration
 	switch {
@@ -259,6 +262,7 @@ func (c *Compiler) Compile(conf *yaml_types.Workflow) (*backend_types.Config, er
 		// Custom clone containers
 		for pos, container := range conf.Clone.ContainerList {
 			if match, err := container.When.Match(c.metadata, false, c.env); !match && err == nil {
+				filteredSteps[container.Name] = container.DependsOn
 				continue
 			} else if err != nil {
 				return nil, err
@@ -310,10 +314,12 @@ func (c *Compiler) Compile(conf *yaml_types.Workflow) (*backend_types.Config, er
 	for pos, container := range conf.Steps.ContainerList {
 		// Skip if local and should not run local
 		if c.local && !container.When.IsLocal() {
+			filteredSteps[container.Name] = container.DependsOn
 			continue
 		}
 
 		if match, err := container.When.Match(c.metadata, false, c.env); !match && err == nil {
+			filteredSteps[container.Name] = container.DependsOn
 			continue
 		} else if err != nil {
 			return nil, err
@@ -389,6 +395,8 @@ func (c *Compiler) Compile(conf *yaml_types.Workflow) (*backend_types.Config, er
 		}
 		config.Stages = append(config.Stages, stage)
 	}
+
+	resolveFilteredDependencies(allSteps, filteredSteps)
 
 	// generate stages out of all steps (including clone steps)
 	allStages, err := newDAGCompiler(allSteps).compile()

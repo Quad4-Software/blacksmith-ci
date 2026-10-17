@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"codefloe.com/crowci/crow/v6/pipeline/backend/types"
 	"codefloe.com/crowci/crow/v6/pipeline/frontend/metadata"
@@ -1074,4 +1075,64 @@ func TestCompilerTempVolumesEnforcesCap(t *testing.T) {
 		}}},
 	})
 	assert.ErrorContains(t, err, "too many temp volumes")
+}
+
+func TestCompilerDependencyOnFilteredStep(t *testing.T) {
+	t.Parallel()
+
+	onTag := constraint.When{Constraints: []constraint.Constraint{{
+		Event: yaml_base_types.StringOrSlice{string(metadata.EventTag)},
+	}}}
+	step := func(name string, when constraint.When, dependsOn ...string) *yaml_types.Container {
+		return &yaml_types.Container{Name: name, Image: "alpine", Commands: []string{"true"}, When: when, DependsOn: dependsOn}
+	}
+	compile := func(steps ...*yaml_types.Container) (map[string]*types.Step, error) {
+		compiler := New(WithMetadata(metadata.Metadata{Curr: metadata.Pipeline{Event: metadata.EventPush}}))
+		config, err := compiler.Compile(&yaml_types.Workflow{Steps: yaml_types.ContainerList{ContainerList: steps}})
+		if err != nil {
+			return nil, err
+		}
+		byName := map[string]*types.Step{}
+		for _, stage := range config.Stages {
+			for _, s := range stage.Steps {
+				byName[s.Name] = s
+			}
+		}
+		return byName, nil
+	}
+
+	t.Run("dependents wait on what the filtered step waited on", func(t *testing.T) {
+		t.Parallel()
+		steps, err := compile(
+			step("build", constraint.When{}),
+			step("build-tag", onTag, "build"),
+			step("publish-tag", onTag, "build-tag"),
+			step("deploy", constraint.When{}, "build-tag", "publish-tag"),
+		)
+		require.NoError(t, err)
+		assert.NotContains(t, steps, "build-tag")
+		assert.NotContains(t, steps, "publish-tag")
+		assert.Equal(t, []string{"build"}, steps["deploy"].DependsOn)
+	})
+
+	t.Run("a step left without dependencies starts after clone", func(t *testing.T) {
+		t.Parallel()
+		steps, err := compile(
+			step("lint", constraint.When{}),
+			step("build-tag", onTag),
+			step("deploy", constraint.When{}, "build-tag"),
+		)
+		require.NoError(t, err)
+		assert.Equal(t, []string{"clone"}, steps["deploy"].DependsOn)
+	})
+
+	t.Run("an unknown dependency is still an error", func(t *testing.T) {
+		t.Parallel()
+		_, err := compile(
+			step("build-tag", onTag),
+			step("deploy", constraint.When{}, "biuld-tag"),
+		)
+		var missing *ErrStepMissingDependency
+		assert.ErrorAs(t, err, &missing)
+	})
 }
