@@ -134,3 +134,37 @@ func TestPipelineLogPurge(t *testing.T) {
 		})
 	}
 }
+
+// Without a duration and a positive minimum there is nothing to enforce, so no
+// pipeline may be purged.
+func TestPipelineLogPurgeWithoutLimit(t *testing.T) {
+	for _, keepMin := range []int64{0, -1} {
+		mockStore := store_mocks.NewMockStore(t)
+
+		err := pipelineLogPurge(mockStore, mockStore, &model.Repo{LogsPipelinesKeepMin: keepMin})
+
+		assert.NoError(t, err)
+		mockStore.AssertNotCalled(t, "LogDelete", mock.Anything)
+	}
+}
+
+// A pipeline that is still running keeps its logs even when it falls outside
+// the retention limit.
+func TestPipelineLogPurgeSkipsActivePipelines(t *testing.T) {
+	running := &model.Pipeline{ID: 1, Number: 1, Status: model.StatusRunning, Created: time.Now().Add(-48 * time.Hour).Unix()}
+	finished := &model.Pipeline{ID: 2, Number: 2, Status: model.StatusSuccess, Created: time.Now().Add(-47 * time.Hour).Unix()}
+
+	mockStore := store_mocks.NewMockStore(t)
+	mockStore.On("GetPipelineCountByRepo", mock.Anything).Return(int64(2), nil)
+	mockStore.On("GetPipelineListKeyset", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*model.Pipeline{finished, running}, nil).Once()
+	mockStore.On("GetPipelineLogPurged", finished).Return(false, nil)
+	mockStore.On("StepList", finished).Return([]*model.Step{{ID: 1}}, nil)
+	mockStore.On("LogDelete", mock.Anything).Return(nil).Once()
+	mockStore.On("SetPipelineLogPurged", finished).Return(nil)
+
+	err := pipelineLogPurge(mockStore, mockStore, &model.Repo{LogsDurationKeep: "24h", LogsPipelinesKeepMin: -1})
+
+	assert.NoError(t, err)
+	mockStore.AssertNotCalled(t, "StepList", running)
+	mockStore.AssertNotCalled(t, "SetPipelineLogPurged", running)
+}

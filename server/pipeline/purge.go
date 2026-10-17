@@ -16,36 +16,53 @@ import (
 func pipelineLogPurge(store store.Store, logStore logService.Service, repo *model.Repo) error {
 	olderThanDuration := getLogRetentionDuration(repo)
 
-	var pipelinesToPurge []*model.Pipeline
-	var err error
+	// Without a duration and a positive minimum there is no limit to enforce.
+	// Treating that as "keep zero pipelines" wiped the logs of every pipeline,
+	// including the ones still running.
+	if olderThanDuration <= 0 && repo.LogsPipelinesKeepMin <= 0 {
+		return nil
+	}
 
 	// Fetch pipelines based on retention settings
-	pipelinesToPurge, err = fetchFilteredPipelines(store, repo, olderThanDuration, repo.LogsPipelinesKeepMin)
+	pipelinesToPurge, err := fetchFilteredPipelines(store, repo, olderThanDuration, repo.LogsPipelinesKeepMin)
 	if err != nil {
 		return fmt.Errorf("failed to fetch pipelines for purging: %w", err)
 	}
 
 	for _, pipeline := range pipelinesToPurge {
+		// Logs of a pipeline that has not finished are still being written.
+		if isPipelineActive(pipeline) {
+			continue
+		}
 		// check if logs were already purged
 		logsPurged, err := store.GetPipelineLogPurged(pipeline)
-		log.Trace().Msgf("Logs for pipeline %d have already been purged.", pipeline.Number)
 		if err != nil {
 			return fmt.Errorf("failed to check if pipeline %d logs are purged: %w", pipeline.Number, err)
 		}
 		if logsPurged {
+			log.Trace().Msgf("Logs for pipeline %d have already been purged.", pipeline.Number)
 			continue
 		}
 		if err := purgePipelineLogs(store, logStore, pipeline); err != nil {
 			log.Error().Err(err).Msgf("Failed to purge logs for pipeline %d", pipeline.Number)
 		}
 		// prevents additional purge calls in the future
+		log.Trace().Msgf("Setting 'logs_purged' indicator for pipeline %d", pipeline.Number)
 		if err := store.SetPipelineLogPurged(pipeline); err != nil {
-			log.Trace().Msgf("Setting 'logs_purged' indicator for pipeline %d", pipeline.Number)
 			log.Error().Err(err).Msgf("Failed to mark pipeline %d logs as purged", pipeline.Number)
 		}
 	}
 
 	return nil
+}
+
+func isPipelineActive(pipeline *model.Pipeline) bool {
+	switch pipeline.Status {
+	case model.StatusCreated, model.StatusPending, model.StatusBlocked, model.StatusPreparing, model.StatusRunning:
+		return true
+	default:
+		return false
+	}
 }
 
 // getLogRetentionDuration extracts and validates log retention duration.

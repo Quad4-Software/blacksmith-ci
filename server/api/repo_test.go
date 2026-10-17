@@ -83,3 +83,55 @@ func TestDeleteRepo_ForgeDeactivateFailureStillRemoves(t *testing.T) {
 	assert.Equal(t, repo, out.Body)
 	mockStore.AssertCalled(t, "DeleteRepo", repo)
 }
+
+// A patch that does not name the log retention settings must leave them alone.
+// Resetting them to zero made every pipeline start purge the logs of all
+// earlier pipelines, including the ones still running.
+func TestPatchRepo_KeepsLogRetentionWhenOmitted(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	newRepo := func() *model.Repo {
+		return &model.Repo{ID: 1, LogsPipelinesKeepMin: 90, LogsDurationKeep: "720h"}
+	}
+	keepMin := int64(5)
+	duration := ""
+
+	tests := []struct {
+		name         string
+		patch        model.RepoPatch
+		wantKeepMin  int64
+		wantDuration string
+	}{
+		{
+			name:         "omitted",
+			patch:        model.RepoPatch{AllowManual: new(true)},
+			wantKeepMin:  90,
+			wantDuration: "720h",
+		},
+		{
+			name:         "set",
+			patch:        model.RepoPatch{LogsPipelinesKeepMin: &keepMin, LogsDurationKeep: &duration},
+			wantKeepMin:  5,
+			wantDuration: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := newRepo()
+			mockStore := store_mocks.NewMockStore(t)
+			mockStore.On("UpdateRepo", repo).Return(nil)
+
+			c, _ := gin.CreateTestContext(httptest.NewRecorder())
+			c.Set("store", mockStore)
+			c.Set("repo", repo)
+			c.Set("user", &model.User{ID: 1})
+
+			_, err := PatchRepo(testCtx(c), &PatchRepoInput{RepoID: 1, Body: tt.patch})
+			require.NoError(t, err)
+
+			assert.Equal(t, tt.wantKeepMin, repo.LogsPipelinesKeepMin)
+			assert.Equal(t, tt.wantDuration, repo.LogsDurationKeep)
+		})
+	}
+}

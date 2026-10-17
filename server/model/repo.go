@@ -145,8 +145,8 @@ type RepoPatch struct {
 	AllowManual                  *bool                      `json:"allow_manual,omitempty"`
 	DeployTeam                   *string                    `json:"deploy_team,omitempty"`
 	CancelPreviousPipelineEvents *[]WebhookEvent            `json:"cancel_previous_pipeline_events,omitempty"`
-	LogsPipelinesKeepMin         int64                      `json:"logs_keep_min,omitempty"`
-	LogsDurationKeep             string                     `json:"logs_keep_duration,omitempty"`
+	LogsPipelinesKeepMin         *int64                     `json:"logs_keep_min,omitempty"`
+	LogsDurationKeep             *string                    `json:"logs_keep_duration,omitempty"`
 	NetrcTrusted                 *[]string                  `json:"netrc_trusted,omitempty"`
 	Trusted                      *TrustedConfigurationPatch `json:"trusted,omitempty"`
 } //	@name	RepoPatch

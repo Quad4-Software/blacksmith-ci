@@ -160,6 +160,15 @@ func TestCreateNewOutOfOld(t *testing.T) {
 			},
 		},
 		{
+			name: "pipeline with purged logs",
+			old: &model.Pipeline{
+				ID:          300,
+				Number:      12,
+				Status:      model.StatusSuccess,
+				LogsDeleted: true,
+			},
+		},
+		{
 			name: "pipeline without title",
 			old: &model.Pipeline{
 				ID:     200,
@@ -181,6 +190,7 @@ func TestCreateNewOutOfOld(t *testing.T) {
 			assert.Equal(t, int64(0), newPipeline.Started)
 			assert.Equal(t, int64(0), newPipeline.Finished)
 			assert.Nil(t, newPipeline.Errors)
+			assert.False(t, newPipeline.LogsDeleted)
 
 			// Check that the title is preserved unchanged
 			assert.Equal(t, tt.old.Title, newPipeline.Title)

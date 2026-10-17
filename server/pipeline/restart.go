@@ -207,5 +207,6 @@ func createNewOutOfOld(old *model.Pipeline) *model.Pipeline {
 	newPipeline.Started = 0
 	newPipeline.Finished = 0
 	newPipeline.Errors = nil
+	newPipeline.LogsDeleted = false
 	return &newPipeline
 }

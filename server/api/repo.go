@@ -616,16 +616,19 @@ func PatchRepo(ctx context.Context, input *PatchRepoInput) (*PatchRepoOutput, er
 
 	in := &input.Body
 
-	valid, err := shared_utils.IsValidKeepMinValue(in.LogsPipelinesKeepMin)
-	if err != nil || !valid {
-		log.Error().Err(err).Msgf("The provided minimum pipeline log retention value is invalid")
-		return nil, huma.Error400BadRequest("The provided minimum pipeline log retention value is invalid")
+	if in.LogsPipelinesKeepMin != nil {
+		valid, err := shared_utils.IsValidKeepMinValue(*in.LogsPipelinesKeepMin)
+		if err != nil || !valid {
+			log.Error().Err(err).Msgf("The provided minimum pipeline log retention value is invalid")
+			return nil, huma.Error400BadRequest("The provided minimum pipeline log retention value is invalid")
+		}
 	}
 
-	err = shared_utils.ValidateDuration(in.LogsDurationKeep)
-	if err != nil {
-		log.Error().Err(err).Msgf("The provided maximum pipeline log duration retention value is invalid. Did you forget the unit indicator or use an invalid one?")
-		return nil, huma.Error400BadRequest("The provided maximum pipeline log duration retention value is invalid. Did you forget the unit indicator or use an invalid one?")
+	if in.LogsDurationKeep != nil {
+		if err := shared_utils.ValidateDuration(*in.LogsDurationKeep); err != nil {
+			log.Error().Err(err).Msgf("The provided maximum pipeline log duration retention value is invalid. Did you forget the unit indicator or use an invalid one?")
+			return nil, huma.Error400BadRequest("The provided maximum pipeline log duration retention value is invalid. Did you forget the unit indicator or use an invalid one?")
+		}
 	}
 
 	if in.Timeout != nil && *in.Timeout > server.Config.Pipeline.MaxTimeout {
@@ -698,11 +701,16 @@ func PatchRepo(ctx context.Context, input *PatchRepoInput) (*PatchRepoOutput, er
 		}
 	}
 
-	repo.LogsPipelinesKeepMin = in.LogsPipelinesKeepMin
-	repo.LogsDurationKeep = in.LogsDurationKeep
+	// Retention is only changed when the request names it, so a patch of another
+	// setting can't silently reset it and purge every pipeline's logs.
+	if in.LogsPipelinesKeepMin != nil {
+		repo.LogsPipelinesKeepMin = *in.LogsPipelinesKeepMin
+	}
+	if in.LogsDurationKeep != nil {
+		repo.LogsDurationKeep = *in.LogsDurationKeep
+	}
 
-	err = _store.UpdateRepo(repo)
-	if err != nil {
+	if err := _store.UpdateRepo(repo); err != nil {
 		log.Error().Err(err).Msg("Failed to update repo")
 		return nil, huma.Error500InternalServerError("Failed to update repo", err)
 	}

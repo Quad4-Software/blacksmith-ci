@@ -159,6 +159,8 @@ The purging is happening on each pipeline run and not on schedule.
 This means, if a pipeline has been run 95 days ago and there was no pipeline within the last 5 days, the logs are still there and will be purged at the start of the next run.
 
 If both options have valid values, they will be merged to determine which logs to purge.
+If the duration is empty and the minimum number of pipelines is `0` or `-1`, no logs are purged.
+Logs of pipelines that have not finished yet (pending, blocked or running) are never purged.
 
 Once logs are purged, an indicator is set on the corresponding pipeline, ensuring that the purge process will not run again unnecessarily in future executions.
 

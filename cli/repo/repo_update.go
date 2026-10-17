@@ -147,11 +147,11 @@ func repoUpdate(ctx context.Context, c *cli.Command) error {
 		v := int64(timeout / time.Minute)
 		patch.Timeout = &v
 	}
-	if c.IsSet("LogsPipelinesKeepMin") {
+	if c.IsSet("logs-pipelines-keep-min") {
 		v := int64(LogsPipelinesKeepMin)
 		patch.LogsPipelinesKeepMin = &v
 	}
-	if c.IsSet("LogsDurationKeep") {
+	if c.IsSet("logs-duration-keep") {
 		patch.LogsDurationKeep = &LogsDurationKeep
 	}
 	if c.IsSet("config") {
