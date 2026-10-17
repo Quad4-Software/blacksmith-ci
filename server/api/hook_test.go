@@ -52,6 +52,7 @@ func TestHook(t *testing.T) {
 	repo := &model.Repo{
 		ID:            123,
 		ForgeRemoteID: "123",
+		OrgID:         5,
 		Owner:         "owner",
 		Name:          "name",
 		IsActive:      true,
@@ -83,6 +84,7 @@ func TestHook(t *testing.T) {
 	_store.On("GetRepo", repo.ID).Return(repo, nil)
 	_store.On("GetUser", user.ID).Return(user, nil)
 	_store.On("UserForgeGet", user.ID, repo.ForgeID).Return(nil, nil)
+	_store.On("OrgGet", repo.OrgID).Return(&model.Org{ID: repo.OrgID, Name: repo.Owner}, nil)
 	_store.On("UpdateRepo", repo).Return(nil)
 	_store.On("CreatePipeline", mock.Anything).Return(nil)
 	_manager.On("ConfigServiceFromRepo", repo).Return(_configService)
@@ -133,6 +135,7 @@ func TestHookConfigFetchError(t *testing.T) {
 	repo := &model.Repo{
 		ID:            123,
 		ForgeRemoteID: "123",
+		OrgID:         5,
 		Owner:         "owner",
 		Name:          "name",
 		IsActive:      true,
@@ -162,6 +165,7 @@ func TestHookConfigFetchError(t *testing.T) {
 	_store.On("GetRepo", repo.ID).Return(repo, nil)
 	_store.On("GetUser", user.ID).Return(user, nil)
 	_store.On("UserForgeGet", user.ID, repo.ForgeID).Return(nil, nil)
+	_store.On("OrgGet", repo.OrgID).Return(&model.Org{ID: repo.OrgID, Name: repo.Owner}, nil)
 	_store.On("UpdateRepo", repo).Return(nil)
 	_store.On("CreatePipeline", mock.Anything).Return(nil)
 	_store.On("UpdatePipeline", mock.Anything).Return(nil)

@@ -347,6 +347,13 @@ func PostHook(c *gin.Context) {
 	}
 
 	repo.Update(repoFromForge)
+	// A repo transferred to another owner must leave its previous org, or its
+	// pipelines keep receiving that org's secrets and registries.
+	if err := syncRepoOrg(c, _store, _forge, user, repo); err != nil {
+		log.Error().Err(err).Str("repo", repo.FullName).Msg("failed to update repo organization")
+		c.String(http.StatusInternalServerError, "failed to update repo organization")
+		return
+	}
 	err = _store.UpdateRepo(repo)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())

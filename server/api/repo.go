@@ -459,30 +459,11 @@ func PostRepo(ctx context.Context, input *PostRepoInput) (*PostRepoOutput, error
 		)
 	}
 
-	// find org of repo
-	var org *model.Org
-	var newOrgCreated bool
-	org, err = _store.OrgFindByName(repo.Owner, forgeID)
-	if err != nil && !errors.Is(err, types.RecordNotExist) {
-		log.Error().Err(err).Msg("Unable to find organization")
-		return nil, huma.Error500InternalServerError("Unable to find organization")
-	}
-
-	// create an org if it doesn't exist yet
-	if errors.Is(err, types.RecordNotExist) {
-		org, err = _forge.Org(c, userWithCreds, repo.Owner)
-		if err != nil {
-			log.Error().Err(err).Msgf("Organization %s not found in DB. Attempting to create a new one.", repo.Owner)
-			return nil, huma.Error500InternalServerError(fmt.Sprintf("Organization %s not found in DB. Attempting to create a new one.", repo.Owner))
-		}
-
-		org.ForgeID = forgeID
-		err = _store.OrgCreate(org)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to create organization")
-			return nil, huma.Error500InternalServerError("Failed to create organization")
-		}
-		newOrgCreated = true
+	// find org of repo, creating it if it doesn't exist yet
+	org, newOrgCreated, err := findOrCreateOrg(c, _store, _forge, userWithCreds, repo.Owner, forgeID)
+	if err != nil {
+		log.Error().Err(err).Msg("Unable to find or create organization")
+		return nil, huma.Error500InternalServerError(fmt.Sprintf("Unable to find or create organization %s", repo.Owner))
 	}
 
 	repo.OrgID = org.ID
@@ -1079,6 +1060,10 @@ func MoveRepo(ctx context.Context, input *MoveRepoInput) (*struct{}, error) {
 	}
 
 	repo.Update(from)
+	if err := syncRepoOrg(c, _store, _forge, forgeUser, repo); err != nil {
+		log.Error().Err(err).Msg("Failed to update repo organization")
+		return nil, huma.Error500InternalServerError("Failed to update repo organization", err)
+	}
 	errStore := _store.UpdateRepo(repo)
 	if errStore != nil {
 		log.Error().Err(errStore).Msg("Failed to update repo")
@@ -1287,6 +1272,10 @@ func repairRepo(c *gin.Context, repo *model.Repo, withPerms, skipOnErr bool) err
 	}
 
 	repo.Update(from)
+	if err := syncRepoOrg(c, _store, _forge, user, repo); err != nil {
+		log.Error().Err(err).Msg("Failed to update repo organization")
+		return huma.Error500InternalServerError("Failed to update repo organization", err)
+	}
 	if err := _store.UpdateRepo(repo); err != nil {
 		log.Error().Err(err).Msg("Failed to update repo")
 		return huma.Error500InternalServerError("Failed to update repo", err)

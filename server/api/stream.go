@@ -92,9 +92,8 @@ func EventStreamSSE(c *gin.Context) {
 				obj := recover() // fix #2480 // TODO: check if it's still needed
 				log.Trace().Msgf("pubsub subscribe recover return: %v", obj)
 			}()
-			name := m.Labels["repo"]
-			priv := m.Labels["private"]
-			if repo[name] || priv == "false" {
+			name := m.Labels[pubsub.LabelRepo]
+			if repo[name] || pubsub.VisibleWithoutRepoPerm(m.Labels, user != nil) {
 				select {
 				case <-ctx.Done():
 					return

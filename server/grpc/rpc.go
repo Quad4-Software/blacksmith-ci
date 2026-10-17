@@ -308,10 +308,7 @@ func (s *RPC) Update(c context.Context, strWorkflowID string, state rpc.StepStat
 		return err
 	}
 	message := pubsub.Message{
-		Labels: map[string]string{
-			"repo":    repo.FullName,
-			"private": strconv.FormatBool(repo.IsSCMPrivate),
-		},
+		Labels: pubsub.RepoLabels(repo),
 	}
 	message.Data, err = json.Marshal(model.Event{
 		Repo:     *repo,
@@ -375,10 +372,7 @@ func (s *RPC) Init(c context.Context, strWorkflowID string, state rpc.WorkflowSt
 	defer func() {
 		currentPipeline.Workflows, _ = s.store.WorkflowGetTree(currentPipeline)
 		message := pubsub.Message{
-			Labels: map[string]string{
-				"repo":    repo.FullName,
-				"private": strconv.FormatBool(repo.IsSCMPrivate),
-			},
+			Labels: pubsub.RepoLabels(repo),
 		}
 		message.Data, err = json.Marshal(model.Event{
 			Repo:     *repo,
@@ -976,10 +970,7 @@ func (s *RPC) loadPreviousPipelineStatus(repo *model.Repo, pipeline *model.Pipel
 
 func (s *RPC) notify(repo *model.Repo, pipeline *model.Pipeline) (err error) {
 	message := pubsub.Message{
-		Labels: map[string]string{
-			"repo":    repo.FullName,
-			"private": strconv.FormatBool(repo.IsSCMPrivate),
-		},
+		Labels: pubsub.RepoLabels(repo),
 	}
 	message.Data, err = json.Marshal(model.Event{
 		Repo:     *repo,

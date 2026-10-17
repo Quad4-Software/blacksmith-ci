@@ -16,7 +16,6 @@ package pipeline
 
 import (
 	"encoding/json"
-	"strconv"
 
 	"github.com/rs/zerolog/log"
 
@@ -31,10 +30,7 @@ func publishToTopic(pipeline *model.Pipeline, repo *model.Repo) {
 	AnnotateAutoscalerProvisioning(server.Config.Services.Store, pipeline)
 
 	message := pubsub.Message{
-		Labels: map[string]string{
-			"repo":    repo.FullName,
-			"private": strconv.FormatBool(repo.IsSCMPrivate),
-		},
+		Labels: pubsub.RepoLabels(repo),
 	}
 	pipelineCopy := *pipeline
 
