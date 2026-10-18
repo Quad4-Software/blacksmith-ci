@@ -100,6 +100,7 @@ func TestRegisterAgent(t *testing.T) {
 				a.Backend == "backend" &&
 				a.Capacity == 2 &&
 				a.Version == "version" &&
+				a.ProtocolVersion == proto.LegacyVersion && // agents that send no protocol are legacy
 				a.NoSchedule == false &&
 				a.PersistentID != "" // PersistentID should be generated
 		})

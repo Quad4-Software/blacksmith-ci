@@ -58,6 +58,9 @@ type Agent struct {
 	// zero for backends that cannot determine them (e.g. Kubernetes).
 	HostCPUs int32 `json:"host_cpus" bun:"host_cpus"`
 	HostMem  int64 `json:"host_mem"  bun:"host_mem"`
+	// ProtocolVersion is the agent protocol version reported on registration.
+	// Zero means the agent has not registered since the server started recording it.
+	ProtocolVersion int32 `json:"protocol_version" bun:"protocol_version"`
 	// OrgIDs scopes the agent to one or more organizations. An empty list means
 	// the agent is global and can process tasks from any organization.
 	OrgIDs JSONSliceInt64 `json:"org_ids" bun:"org_ids,type:text"`

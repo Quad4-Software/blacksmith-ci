@@ -783,6 +783,7 @@ func (s *RPC) RegisterAgent(ctx context.Context, info rpc.AgentInfo) (int64, str
 	agent.Platform = info.Platform
 	agent.Capacity = int32(info.Capacity)
 	agent.Version = info.Version
+	agent.ProtocolVersion = proto.AgentProtocol(info.ProtocolVersion)
 	agent.BuildDate = info.BuildDate
 	customLabels, dropped := model.StripReservedAgentLabels(info.CustomLabels)
 	if len(dropped) > 0 {

@@ -20,6 +20,7 @@ vi.mock('~/compositions/useDate', () => ({
 vi.mock('~/compositions/useConfig', () => ({
   default: () => ({
     version: '1.0.0',
+    agentProtocol: { version: 21, min_agent: 20 },
   }),
 }));
 
@@ -55,6 +56,7 @@ const sampleAgent = {
   limit_cpu_quota: 0,
   host_cpus: 0,
   host_mem: 0,
+  protocol_version: 21,
   running_workflows: 2,
 };
 
@@ -128,6 +130,32 @@ describe('agentList', () => {
     it('omits the resource section when nothing is known', () => {
       const wrapper = mountWithAgent({ ...sampleAgent, backend: 'kubernetes' });
       expect(wrapper.text()).not.toContain('admin.settings.agents.resource_mem');
+    });
+  });
+
+  describe('version compatibility', () => {
+    function compatibility(wrapper: ReturnType<typeof mountWithAgent>) {
+      return wrapper.find('[data-testid="agent-compatibility"]');
+    }
+
+    it('shows nothing for an agent on the server release', () => {
+      expect(compatibility(mountWithAgent(sampleAgent)).exists()).toBe(false);
+    });
+
+    it('flags an agent on an older protocol as outdated', () => {
+      const icon = compatibility(mountWithAgent({ ...sampleAgent, version: '0.9.0', protocol_version: 20 }));
+      expect(icon.attributes('data-compatibility')).toBe('outdated');
+      expect(icon.attributes('title')).toBe('admin.settings.agents.version.outdated');
+    });
+
+    it('flags an agent below the server minimum as incompatible', () => {
+      const icon = compatibility(mountWithAgent({ ...sampleAgent, version: '0.8.0', protocol_version: 19 }));
+      expect(icon.attributes('data-compatibility')).toBe('incompatible');
+    });
+
+    it('marks a different release on the same protocol as informational', () => {
+      const icon = compatibility(mountWithAgent({ ...sampleAgent, version: '1.0.1' }));
+      expect(icon.attributes('data-compatibility')).toBe('release_differs');
     });
   });
 

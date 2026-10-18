@@ -253,20 +253,11 @@
               <span class="text-xs font-medium text-muted-foreground mb-1">{{
                 $t('admin.settings.agents.version.label')
               }}</span>
-              <span
-                v-if="agent.version"
-                class="text-sm font-mono text-foreground flex items-center gap-1"
-                :title="isVersionMismatch(agent.version) ? 'Version mismatch with server' : 'Version matches server'"
-              >
+              <span v-if="agent.version" class="text-sm font-mono text-foreground flex items-center gap-1">
                 {{ agent.version }}
                 <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
                 <span v-if="agent.build_date" class="text-muted-foreground">({{ agent.build_date }})</span>
-                <Icon
-                  v-if="isVersionMismatch(agent.version)"
-                  name="alert"
-                  class="h-4 w-4 text-yellow-500"
-                  :title="$t('admin.settings.agents.version.mismatch')"
-                />
+                <AgentCompatibilityIcon :agent="agent" />
               </span>
               <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
               <span v-else class="text-sm text-muted-foreground" aria-label="not available">—</span>
@@ -464,6 +455,7 @@ import { useI18n } from 'vue-i18n';
 import { watchDebounced } from '@vueuse/core';
 
 import AgentCardSkeleton from '~/components/agent/AgentCardSkeleton.vue';
+import AgentCompatibilityIcon from '~/components/agent/AgentCompatibilityIcon.vue';
 import Badge from '~/components/atomic/Badge.vue';
 import Icon from '~/components/atomic/Icon.vue';
 import Pagination from '~/components/atomic/Pagination.vue';
@@ -483,7 +475,6 @@ import {
 import SearchInput from '~/components/ui/input/SearchInput.vue';
 import { Separator } from '~/components/ui/separator';
 import { useDate } from '~/compositions/useDate';
-import useConfig from '~/compositions/useConfig';
 import type { Agent } from '~/lib/api/types';
 import {
   formatAgentCPU,
@@ -493,7 +484,6 @@ import {
   getAgentStatusColor,
   getAgentStatusTitle,
   hasAgentResources,
-  isAgentVersionMismatch,
 } from '~/lib/agent-utils';
 import type { SelectOption } from '~/components/form/form.types';
 
@@ -526,9 +516,7 @@ const emit = defineEmits<{
 
 const date = useDate();
 const { t } = useI18n();
-const config = useConfig();
 
-const isVersionMismatch = (agentVersion: string) => isAgentVersionMismatch(agentVersion, config.version);
 const getStatusColor = getAgentStatusColor;
 const getStatusAnimation = getAgentStatusAnimation;
 const getStatusTitle = (agent: Agent) => getAgentStatusTitle(agent, t);

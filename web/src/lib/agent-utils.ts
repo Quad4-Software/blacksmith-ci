@@ -1,3 +1,4 @@
+import type { AgentProtocol } from '~/compositions/useConfig';
 import type { Agent } from '~/lib/api/types';
 
 type Translator = (key: string) => string;
@@ -61,6 +62,26 @@ export function isAgentVersionMismatch(
   if (agentVersion == null || agentVersion === '') return false;
   if (serverVersion == null || serverVersion === '') return false;
   return agentVersion !== serverVersion;
+}
+
+// AgentCompatibility describes how an agent relates to the server it reports to:
+// - incompatible: the server rejects the agent until it is updated
+// - outdated: the agent works, but features added since its protocol are unavailable
+// - release_differs: a different Crow release, but nothing is missing
+// - current: same release as the server
+export type AgentCompatibility = 'incompatible' | 'outdated' | 'release_differs' | 'current';
+
+export function getAgentCompatibility(
+  agent: Pick<Agent, 'version' | 'protocol_version'>,
+  serverVersion: string | undefined | null,
+  serverProtocol: AgentProtocol | null,
+): AgentCompatibility {
+  // protocol_version is 0 until the agent registers with a server that records it.
+  if (agent.protocol_version > 0 && serverProtocol !== null) {
+    if (agent.protocol_version < serverProtocol.min_agent) return 'incompatible';
+    if (agent.protocol_version < serverProtocol.version) return 'outdated';
+  }
+  return isAgentVersionMismatch(agent.version, serverVersion) ? 'release_differs' : 'current';
 }
 
 export function getAgentStatusColor(agent: Agent): string {

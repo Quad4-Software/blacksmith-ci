@@ -41,6 +41,8 @@ export interface Agent {
   host_cpus: number;
   /** total memory in bytes of the machine running the workloads, 0 when unknown */
   host_mem: number;
+  /** agent protocol version reported on registration, 0 when unknown */
+  protocol_version: number;
   running_workflows: number;
 }
 

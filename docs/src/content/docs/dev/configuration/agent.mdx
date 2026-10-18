@@ -233,6 +233,17 @@ The agent refuses to start and logs which side to update when:
 The server only raises its minimum agent protocol for changes that older agents cannot read, so most server upgrades leave existing agents working.
 Agents released before Crow 6.12 still check for an exact protocol match, and the server keeps reporting the version they expect.
 
+The agent list and the agent detail page mark each agent next to its version:
+
+| Marker         | Meaning                                                                                       |
+| -------------- | --------------------------------------------------------------------------------------------- |
+| red warning    | Incompatible: the agent speaks a protocol older than the server accepts and cannot reconnect   |
+| yellow warning | Outdated: the agent works, but features added in newer protocols stay unavailable until update |
+| grey info      | A different Crow release than the server on a protocol with nothing missing                    |
+
+The detail page also shows the agent's protocol version.
+Agents report it when they register, so an agent that has not restarted since the server upgrade only shows the release comparison.
+
 ## Backend Options
 
 Configure backend-specific settings at the agent level. See [environment variables](/dev/configuration/env-vars/) for all `CROW_BACKEND_*` options.

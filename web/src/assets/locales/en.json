@@ -864,7 +864,10 @@
         },
         "version": {
           "label": "Version",
-          "mismatch": "Version differs from server"
+          "mismatch": "Different release than the server, fully compatible",
+          "outdated": "Outdated: the agent speaks protocol {agent} and the server {server}. Features added since then stay unavailable until the agent is updated.",
+          "incompatible": "Incompatible: the agent speaks protocol {agent} but the server requires at least {min}. Update the agent to reconnect.",
+          "protocol": "Protocol"
         },
         "last_contact": {
           "last_contact": "Last contact",

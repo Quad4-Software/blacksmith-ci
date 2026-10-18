@@ -89,14 +89,14 @@
               <MetadataField :label="$t('admin.settings.agents.version.label')">
                 <span class="inline-flex items-center gap-1 font-mono text-sm">
                   {{ agent.version || '—' }}
-                  <Icon
-                    v-if="agent.version && isAgentVersionMismatch(agent.version, config.version)"
-                    name="alert"
-                    class="h-4 w-4 text-yellow-500"
-                    :title="$t('admin.settings.agents.version.mismatch')"
-                  />
+                  <AgentCompatibilityIcon v-if="agent.version" :agent="agent" />
                 </span>
               </MetadataField>
+              <MetadataField
+                v-if="agent.protocol_version"
+                :label="$t('admin.settings.agents.version.protocol')"
+                :value="agent.protocol_version"
+              />
               <MetadataField
                 v-if="agent.build_date"
                 :label="$t('admin.settings.agents.build_date')"
@@ -251,6 +251,7 @@ import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 
 import AgentWorkflowList from '~/components/admin/settings/agent/AgentWorkflowList.vue';
+import AgentCompatibilityIcon from '~/components/agent/AgentCompatibilityIcon.vue';
 import QueueTaskList from '~/components/admin/settings/queue/QueueTaskList.vue';
 import Icon from '~/components/atomic/Icon.vue';
 import ProcLogViewer from '~/components/log/ProcLogViewer.vue';
@@ -263,7 +264,6 @@ import CardHeader from '~/components/ui/card/CardHeader.vue';
 import CardTitle from '~/components/ui/card/CardTitle.vue';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import useApiClient from '~/compositions/useApiClient';
-import useConfig from '~/compositions/useConfig';
 import { useDate } from '~/compositions/useDate';
 import useNotifications from '~/compositions/useNotifications';
 import {
@@ -275,13 +275,11 @@ import {
   getAgentStatusColor,
   getAgentStatusTitle,
   hasAgentResources,
-  isAgentVersionMismatch,
 } from '~/lib/agent-utils';
 import type { Agent, AgentWorkflow, Task } from '~/lib/api/types';
 
 const route = useRoute();
 const apiClient = useApiClient();
-const config = useConfig();
 const date = useDate();
 const notifications = useNotifications();
 const { t } = useI18n();

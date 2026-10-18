@@ -128,6 +128,7 @@ func Migrate(_ context.Context, db *sql.DB, driver string, _ bool) error {
 		{ID: "crow-add-user-roles", Migrate: addUserRoles},
 		{ID: "crow-add-integration-secret-filters", Migrate: addIntegrationSecretFilters},
 		{ID: "crow-add-build-caches", Migrate: createBuildCaches(driver)},
+		{ID: "crow-add-agent-protocol-version", Migrate: addAgentProtocolVersion},
 	}
 
 	if len(newMigrations) > 0 {
@@ -825,6 +826,15 @@ func addAgentHostResources(tx *sql.Tx) error {
 	}
 
 	return nil
+}
+
+// addAgentProtocolVersion adds agents.protocol_version, the agent protocol
+// version reported on registration, so the UI can flag outdated agents.
+func addAgentProtocolVersion(tx *sql.Tx) error {
+	if !tableExists(tx, "agents") {
+		return nil
+	}
+	return addColumnIfNotExists("agents", "protocol_version", "INTEGER")(tx)
 }
 
 // addUserRoles adds users.roles, the JSON list of instance roles besides admin.

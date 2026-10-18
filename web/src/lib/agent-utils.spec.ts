@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import type { Agent } from '~/lib/api/types';
 
-import { formatAgentCPU, formatAgentMemory, formatBytes, formatCPUQuota, hasAgentResources } from './agent-utils';
+import {
+  formatAgentCPU,
+  formatAgentMemory,
+  formatBytes,
+  formatCPUQuota,
+  getAgentCompatibility,
+  hasAgentResources,
+} from './agent-utils';
 
 // Identity translator: returns the key unchanged so we can assert on it.
 const t = (key: string): string => key;
@@ -111,5 +118,24 @@ describe('hasAgentResources', () => {
 
   it('is false for backends that report nothing', () => {
     expect(hasAgentResources(agentWith({ backend: 'kubernetes' }))).toBe(false);
+  });
+});
+
+describe('getAgentCompatibility', () => {
+  const server = { version: 22, min_agent: 20 };
+
+  it.each([
+    { name: 'same release and protocol', version: '6.12.0', protocol: 22, want: 'current' },
+    { name: 'newer agent protocol', version: '6.13.0', protocol: 23, want: 'release_differs' },
+    { name: 'older protocol within range', version: '6.11.0', protocol: 21, want: 'outdated' },
+    { name: 'protocol below the server minimum', version: '6.9.0', protocol: 19, want: 'incompatible' },
+    { name: 'unknown protocol with a different release', version: '6.10.0', protocol: 0, want: 'release_differs' },
+    { name: 'unknown protocol on the same release', version: '6.12.0', protocol: 0, want: 'current' },
+  ])('$name', ({ version, protocol, want }) => {
+    expect(getAgentCompatibility({ version, protocol_version: protocol }, '6.12.0', server)).toBe(want);
+  });
+
+  it('falls back to comparing releases when the server protocol is unknown', () => {
+    expect(getAgentCompatibility({ version: '6.11.0', protocol_version: 19 }, '6.12.0', null)).toBe('release_differs');
   });
 });

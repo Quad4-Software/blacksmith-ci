@@ -1,6 +1,13 @@
 import type { SwitchAccount, User } from '~/lib/api/types';
 import type { CustomThemeConfig } from '~/lib/themes/custom';
 
+// AgentProtocol is the agent protocol range of the server: the version it
+// speaks and the oldest agent version it accepts.
+export interface AgentProtocol {
+  version: number;
+  min_agent: number;
+}
+
 export interface AuthConfig {
   oidc: { enabled: boolean; name: string };
   ldap: { enabled: boolean; name: string };
@@ -24,6 +31,7 @@ declare global {
     CROW_SCHEDULING_STRATEGY: string | undefined;
     CROW_AUTH: AuthConfig | undefined;
     CROW_CUSTOM_THEMES: CustomThemeConfig[] | null | undefined;
+    CROW_AGENT_PROTOCOL: AgentProtocol | undefined;
   }
 }
 
@@ -38,6 +46,7 @@ export default () => ({
   enableSwagger: window.CROW_ENABLE_SWAGGER === true || false,
   userRegisteredAgents: window.CROW_USER_REGISTERED_AGENTS || false,
   schedulingStrategy: window.CROW_SCHEDULING_STRATEGY ?? '',
+  agentProtocol: window.CROW_AGENT_PROTOCOL ?? null,
   auth: window.CROW_AUTH ?? {
     oidc: { enabled: false, name: '' },
     ldap: { enabled: false, name: '' },

@@ -23,6 +23,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 
+	"codefloe.com/crowci/crow/v6/pipeline/rpc/proto"
 	"codefloe.com/crowci/crow/v6/server"
 	"codefloe.com/crowci/crow/v6/server/api"
 	"codefloe.com/crowci/crow/v6/server/model"
@@ -93,6 +94,10 @@ func Config(c *gin.Context) {
 		"user_registered_agents": !server.Config.Agent.DisableUserRegisteredAgentRegistration,
 		"scheduling_strategy":    server.Config.Queue.SchedulingStrategy,
 		"custom_themes":          server.Config.WebUI.CustomThemes,
+		"agent_protocol": map[string]int32{
+			"version":   proto.Version,
+			"min_agent": proto.MinAgentVersion,
+		},
 	}
 
 	// default func map with json parser.
@@ -131,5 +136,6 @@ window.CROW_SKIP_VERSION_CHECK = {{ .skip_version_check }}
 window.CROW_USER_REGISTERED_AGENTS = {{ .user_registered_agents }}
 window.CROW_SCHEDULING_STRATEGY = {{ json .scheduling_strategy }};
 window.CROW_CUSTOM_THEMES = {{ json .custom_themes }};
+window.CROW_AGENT_PROTOCOL = {{ json .agent_protocol }};
 window.CROW_AUTH = {{ json .auth }};
 `

@@ -360,7 +360,8 @@ CREATE TABLE IF NOT EXISTS agents (
     limit_cpu_quota INTEGER,
     host_cpus INTEGER,
     host_mem BIGINT,
-    org_ids TEXT
+    org_ids TEXT,
+    protocol_version INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS autoscalers (
