@@ -17,6 +17,8 @@ package buildcache
 import (
 	"context"
 	"io"
+	"os"
+	"path/filepath"
 	"slices"
 	"sort"
 	"strconv"
@@ -176,18 +178,21 @@ type fixture struct {
 	store   *memStore
 	service *Service
 	now     time.Time
+	// root holds the archives.
+	root string
 }
 
 func newFixture(t *testing.T, config Config) *fixture {
 	t.Helper()
-	storage, err := NewLocalStorage(t.TempDir())
+	root := t.TempDir()
+	storage, err := NewLocalStorage(root)
 	require.NoError(t, err)
 	config.BlobURL = "https://ci.example.com/api/v1/cache/blobs"
 	config.Secret = "secret"
 	if config.PendingTTL == 0 {
 		config.PendingTTL = time.Hour
 	}
-	f := &fixture{store: newMemStore(), now: time.Now().Truncate(time.Second)}
+	f := &fixture{store: newMemStore(), now: time.Now().Truncate(time.Second), root: root}
 	f.service = New(f.store, storage, config)
 	f.service.now = func() time.Time { return f.now }
 	return f
@@ -267,6 +272,28 @@ func TestRestorePrefersExactThenOwnScope(t *testing.T) {
 	assert.Equal(t, "go-2", hit.Entry.Key, "newest main entry")
 	_, _, err = f.service.OpenBlob(ctx, mainAccess, f.mustFind(t, "refs/heads/feature", "go-3").ID)
 	assert.ErrorIs(t, err, ErrNotFound)
+}
+
+func TestRestoreSkipsEntriesWithoutArchive(t *testing.T) {
+	f := newFixture(t, Config{})
+	ctx := context.Background()
+
+	older := f.save(ctx, t, mainAccess, "go-1", "older")
+	f.now = f.now.Add(time.Minute)
+	newer := f.save(ctx, t, mainAccess, "go-2", "newer")
+	require.NoError(t, os.Remove(filepath.Join(f.root, filepath.FromSlash(objectName(newer)))))
+
+	// The prefix match falls back to the older entry and drops the broken one.
+	hit, err := f.service.Restore(ctx, mainAccess, "go-9", []string{"go-"})
+	require.NoError(t, err)
+	assert.Equal(t, older.ID, hit.Entry.ID)
+	_, err = f.store.BuildCacheGet(newer.ID)
+	assert.ErrorIs(t, err, types.RecordNotExist)
+
+	// The key misses and can be saved again.
+	_, err = f.service.Restore(ctx, mainAccess, "go-2", nil)
+	assert.ErrorIs(t, err, ErrNotFound)
+	assert.Equal(t, "newer", f.read(t, mainAccess, f.save(ctx, t, mainAccess, "go-2", "newer").ID))
 }
 
 func (f *fixture) mustFind(t *testing.T, scope, key string) *model.BuildCache {

@@ -194,7 +194,7 @@ func (s *Service) Restore(ctx context.Context, access Access, key string, restor
 		}
 	}
 
-	hit, err := s.find(access, key, restoreKeys)
+	hit, err := s.findStored(ctx, access, key, restoreKeys)
 	if err != nil {
 		return nil, err
 	}
@@ -208,6 +208,30 @@ func (s *Service) Restore(ctx context.Context, access Access, key string, restor
 		return nil, err
 	}
 	return hit, nil
+}
+
+// findStored is find, skipping entries whose archive is gone from storage. Such
+// an entry is deleted, so the key can be saved again; otherwise it would never
+// restore and also block its key until it expires.
+func (s *Service) findStored(ctx context.Context, access Access, key string, restoreKeys []string) (*Hit, error) {
+	for {
+		hit, err := s.find(access, key, restoreKeys)
+		if err != nil {
+			return nil, err
+		}
+		_, err = s.storage.Size(ctx, objectName(hit.Entry))
+		if err == nil {
+			return hit, nil
+		}
+		if !errors.Is(err, ErrObjectNotFound) {
+			return nil, err
+		}
+		log.Warn().Int64("repo_id", hit.Entry.RepoID).Str("key", hit.Entry.Key).Str("scope", hit.Entry.Scope).
+			Msg("build cache archive is missing from storage, deleting its entry")
+		if err := s.delete(ctx, hit.Entry); err != nil {
+			return nil, err
+		}
+	}
 }
 
 func (s *Service) find(access Access, key string, restoreKeys []string) (*Hit, error) {

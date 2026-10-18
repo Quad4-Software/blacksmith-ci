@@ -90,6 +90,7 @@ It adds a `save-cache` step after all steps, plus a `save-cache-always` step for
 
 Cache steps never fail the workflow.
 Failed transfers and server errors are retried three times with backoff, and a restore that breaks off removes what it had extracted before starting over.
+An entry whose archive was removed from storage outside Crow, for example by a bucket lifecycle rule, is dropped on its next restore, and the save step of that pipeline stores it again.
 Problems that remain, such as an exceeded quota, are logged as warnings.
 Cancelled pipelines do not save.
 

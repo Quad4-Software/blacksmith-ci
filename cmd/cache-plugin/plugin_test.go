@@ -21,6 +21,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -66,6 +67,8 @@ type harness struct {
 	baseURL  string
 	token    string
 	workflow *model.Workflow
+	// storageRoot holds the archives.
+	storageRoot string
 }
 
 func newHarness(t *testing.T) *harness {
@@ -79,7 +82,8 @@ func newHarness(t *testing.T) *harness {
 	workflow := &model.Workflow{ID: 1, PipelineID: 2, State: model.StatusRunning}
 	s := &cacheStore{Store: engine, workflow: workflow}
 
-	storage, err := buildcache.NewLocalStorage(t.TempDir())
+	storageRoot := t.TempDir()
+	storage, err := buildcache.NewLocalStorage(storageRoot)
 	require.NoError(t, err)
 
 	gin.SetMode(gin.TestMode)
@@ -105,7 +109,7 @@ func newHarness(t *testing.T) *harness {
 
 	token, err := service.MintToken(workflow.ID)
 	require.NoError(t, err)
-	return &harness{service: service, store: s, baseURL: srv.URL + "/api/v1/cache", token: token, workflow: workflow}
+	return &harness{service: service, store: s, baseURL: srv.URL + "/api/v1/cache", token: token, workflow: workflow, storageRoot: storageRoot}
 }
 
 // run runs the plugin in mode on workspace and returns its output.
@@ -188,9 +192,29 @@ func TestFinishedWorkflowCannotUseCache(t *testing.T) {
 	writeFile(t, workspace, "a/file", "x")
 
 	h.workflow.State = model.StatusSuccess
-	out := h.run(t, "save", workspace, cacheSpec{Key: "k", Paths: []string{"a"}})
-	assert.Contains(t, out, "warning: k:")
+	out := h.run(t, "save", workspace, cacheSpec{Key: "k-{{ arch }}", Paths: []string{"a"}})
+	assert.Contains(t, out, "warning: k-"+runtime.GOARCH+":", "the warning names the rendered key")
 	assert.Contains(t, out, "cache token is not valid")
+}
+
+func TestEntryWithoutArchiveIsSavedAgain(t *testing.T) {
+	h := newHarness(t)
+	workspace := t.TempDir()
+	writeFile(t, workspace, "a/file", "v1")
+	spec := cacheSpec{Key: "k", Paths: []string{"a"}}
+	assert.Contains(t, h.run(t, "save", workspace, spec), "saved k")
+
+	// The archive vanishes from storage, e.g. deleted by a bucket lifecycle rule.
+	archives, err := filepath.Glob(filepath.Join(h.storageRoot, "*", "*.tar.zst"))
+	require.NoError(t, err)
+	require.Len(t, archives, 1)
+	require.NoError(t, os.Remove(archives[0]))
+
+	restored := t.TempDir()
+	assert.Contains(t, h.run(t, "restore", restored, spec), "cache miss for k")
+	assert.Contains(t, h.run(t, "save", workspace, spec), "saved k")
+	assert.Contains(t, h.run(t, "restore", restored, spec), "restored k (exact match")
+	assert.Equal(t, "v1", readFile(t, restored, "a/file"))
 }
 
 func TestCacheDisabled(t *testing.T) {

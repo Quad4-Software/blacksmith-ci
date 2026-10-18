@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"time"
@@ -30,6 +31,9 @@ import (
 // ErrObjectTooLarge is returned by Storage.Write when the stream is longer
 // than the limit it was given.
 var ErrObjectTooLarge = errors.New("cache archive exceeds its reserved size")
+
+// ErrObjectNotFound is returned by Storage.Size when the object does not exist.
+var ErrObjectNotFound = errors.New("cache archive does not exist")
 
 // Storage holds cache archives. Object names are built by the service from
 // entry IDs and never contain user input.
@@ -45,7 +49,7 @@ type Storage interface {
 	// Write stores an object streamed through the server, failing with
 	// ErrObjectTooLarge once more than limit bytes arrive.
 	Write(ctx context.Context, name string, r io.Reader, limit int64) (int64, error)
-	// Size returns the stored size of an object.
+	// Size returns the stored size of an object, or ErrObjectNotFound.
 	Size(ctx context.Context, name string) (int64, error)
 	// Delete removes an object; deleting a missing object is not an error.
 	Delete(ctx context.Context, name string) error
@@ -122,6 +126,9 @@ func (l *localStorage) Write(_ context.Context, name string, r io.Reader, limit 
 
 func (l *localStorage) Size(_ context.Context, name string) (int64, error) {
 	info, err := os.Stat(l.path(name))
+	if errors.Is(err, os.ErrNotExist) {
+		return 0, ErrObjectNotFound
+	}
 	if err != nil {
 		return 0, err
 	}
@@ -231,6 +238,9 @@ func (s *s3Storage) Write(ctx context.Context, name string, r io.Reader, limit i
 
 func (s *s3Storage) Size(ctx context.Context, name string) (int64, error) {
 	info, err := s.client.StatObject(ctx, s.bucket, s.key(name), minio.StatObjectOptions{})
+	if minio.ToErrorResponse(err).StatusCode == http.StatusNotFound {
+		return 0, ErrObjectNotFound
+	}
 	if err != nil {
 		return 0, err
 	}

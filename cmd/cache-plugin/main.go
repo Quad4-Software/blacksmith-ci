@@ -80,19 +80,23 @@ func run(ctx context.Context, getenv func(string) string, out io.Writer) {
 	}
 
 	mode := getenv("PLUGIN_MODE")
+	if mode != "restore" && mode != "save" {
+		fmt.Fprintf(out, "warning: unknown cache mode %q\n", mode)
+		return
+	}
 	for _, spec := range specs {
-		var err error
-		switch mode {
-		case "restore":
-			err = p.restore(ctx, spec)
-		case "save":
-			err = p.save(ctx, spec)
-		default:
-			fmt.Fprintf(out, "warning: unknown cache mode %q\n", mode)
-			return
-		}
+		key, restoreKeys, err := p.render(spec)
 		if err != nil {
 			fmt.Fprintf(out, "warning: %s: %v\n", spec.Key, err)
+			continue
+		}
+		if mode == "restore" {
+			err = p.restore(ctx, spec, key, restoreKeys)
+		} else {
+			err = p.save(ctx, spec, key)
+		}
+		if err != nil {
+			fmt.Fprintf(out, "warning: %s: %v\n", key, err)
 		}
 	}
 }
@@ -113,12 +117,7 @@ func (p *plugin) render(spec cacheSpec) (string, []string, error) {
 	return key, restoreKeys, nil
 }
 
-func (p *plugin) restore(ctx context.Context, spec cacheSpec) error {
-	key, restoreKeys, err := p.render(spec)
-	if err != nil {
-		return err
-	}
-
+func (p *plugin) restore(ctx context.Context, spec cacheSpec, key string, restoreKeys []string) error {
 	hit, err := p.client.restore(ctx, key, restoreKeys)
 	if errors.Is(err, errMiss) {
 		fmt.Fprintf(p.out, "cache miss for %s\n", key)
@@ -158,12 +157,7 @@ func (p *plugin) restore(ctx context.Context, spec cacheSpec) error {
 	return nil
 }
 
-func (p *plugin) save(ctx context.Context, spec cacheSpec) error {
-	key, _, err := p.render(spec)
-	if err != nil {
-		return err
-	}
-
+func (p *plugin) save(ctx context.Context, spec cacheSpec, key string) error {
 	// A key is saved once; an exact hit means there is nothing to upload.
 	if _, err := p.client.restore(ctx, key, nil); err == nil {
 		fmt.Fprintf(p.out, "%s is already cached, not saving\n", key)
