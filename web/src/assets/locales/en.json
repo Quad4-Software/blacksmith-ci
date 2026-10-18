@@ -594,6 +594,7 @@
         "depends_on_tooltip": "Depends on: {names}",
         "workflow_depends_on_tooltip": "Waiting on: {names}"
       },
+      "cache_step_tooltip": "Added by the cache section. Cache steps never fail the pipeline.",
       "matrix": {
         "filter_placeholder": "Filter variants…",
         "no_matches": "No matching variants",

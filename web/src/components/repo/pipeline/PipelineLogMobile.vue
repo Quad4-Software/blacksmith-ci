@@ -202,7 +202,10 @@
                     @click="handleStepSelect(step.pid)"
                   >
                     <PipelineStatusIcon :service="step.type === 'service'" :status="step.state" class="h-4 w-4" />
-                    <span class="flex-1 text-sm text-foreground">{{ step.name }}</span>
+                    <span class="flex-1 inline-flex items-center gap-1 min-w-0 text-sm text-foreground">
+                      <span class="truncate">{{ step.name }}</span>
+                      <PipelineCacheStepMarker v-if="step.type === 'cache'" />
+                    </span>
                     <PipelineStepDuration :step="step" class="text-xs text-muted-foreground" />
                   </div>
                 </div>
@@ -219,6 +222,7 @@
 import { computed, ref, watch, onMounted } from 'vue';
 import { useStorage } from '@vueuse/core';
 
+import PipelineCacheStepMarker from './PipelineCacheStepMarker.vue';
 import PipelineLog from './PipelineLog.vue';
 import PipelineStatusIcon from './PipelineStatusIcon.vue';
 import PipelineStepDuration from './PipelineStepDuration.vue';

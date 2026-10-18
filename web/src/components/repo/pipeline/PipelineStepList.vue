@@ -292,6 +292,7 @@
                   <span v-if="node.step.state === 'preparing'" class="shrink-0 text-xs text-blue-500">
                     {{ $t('repo.pipeline.status.preparing') }}
                   </span>
+                  <PipelineCacheStepMarker v-if="node.step.type === StepType.Cache" />
                   <!-- Multi-dependency tooltip -->
                   <TooltipProvider v-if="node.effectiveDeps.length > 1">
                     <Tooltip>
@@ -363,6 +364,7 @@ import Badge from '~/components/atomic/Badge.vue';
 import Icon from '~/components/atomic/Icon.vue';
 import IconButton from '~/components/atomic/IconButton.vue';
 import Panel from '~/components/layout/Panel.vue';
+import PipelineCacheStepMarker from '~/components/repo/pipeline/PipelineCacheStepMarker.vue';
 import PipelineMatrixGroup from '~/components/repo/pipeline/PipelineMatrixGroup.vue';
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
 import PipelineStepDuration from '~/components/repo/pipeline/PipelineStepDuration.vue';

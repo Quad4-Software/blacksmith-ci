@@ -160,7 +160,10 @@
               @click="$emit('selectStep', step.pid)"
             >
               <PipelineStatusIcon :service="step.type === 'service'" :status="step.state" class="h-4 w-4" />
-              <span class="flex-1 text-sm text-foreground">{{ step.name }}</span>
+              <span class="flex-1 inline-flex items-center gap-1 min-w-0 text-sm text-foreground">
+                <span class="truncate">{{ step.name }}</span>
+                <PipelineCacheStepMarker v-if="step.type === 'cache'" />
+              </span>
               <PipelineStepDuration :step="step" class="text-xs text-muted-foreground" />
             </div>
           </div>
@@ -184,6 +187,7 @@ import Icon from '~/components/atomic/Icon.vue';
 import IconButton from '~/components/atomic/IconButton.vue';
 import MatrixVariantChips from '~/components/repo/pipeline/MatrixVariantChips.vue';
 import type { MatrixChip } from '~/components/repo/pipeline/MatrixVariantChips.vue';
+import PipelineCacheStepMarker from '~/components/repo/pipeline/PipelineCacheStepMarker.vue';
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
 import PipelineStepDuration from '~/components/repo/pipeline/PipelineStepDuration.vue';
 import {

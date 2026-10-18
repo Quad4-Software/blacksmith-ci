@@ -334,7 +334,10 @@
                       @click="selectedStepId = step.pid"
                     >
                       <PipelineStatusIcon :service="step.type === 'service'" :status="step.state" class="h-4 w-4" />
-                      <span class="flex-1 text-sm text-foreground">{{ step.name }}</span>
+                      <span class="flex-1 inline-flex items-center gap-1 min-w-0 text-sm text-foreground">
+                        <span class="truncate">{{ step.name }}</span>
+                        <PipelineCacheStepMarker v-if="step.type === 'cache'" />
+                      </span>
                       <span v-if="step.state === 'preparing'" class="text-xs text-blue-500">
                         {{ $t('repo.pipeline.status.preparing') }}
                       </span>
@@ -357,6 +360,7 @@ import Icon from '~/components/atomic/Icon.vue';
 import IconButton from '~/components/atomic/IconButton.vue';
 import Container from '~/components/layout/Container.vue';
 import Panel from '~/components/layout/Panel.vue';
+import PipelineCacheStepMarker from '~/components/repo/pipeline/PipelineCacheStepMarker.vue';
 import PipelineLog from '~/components/repo/pipeline/PipelineLog.vue';
 import PipelineLogMobile from '~/components/repo/pipeline/PipelineLogMobile.vue';
 import PipelineMatrixGroupMobile from '~/components/repo/pipeline/PipelineMatrixGroupMobile.vue';

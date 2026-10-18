@@ -15,6 +15,7 @@
     <div class="flex items-start justify-between mb-2 gap-2">
       <div class="font-semibold text-gray-900 dark:text-gray-100 leading-tight wrap-break-word flex-1">
         {{ data.step.name }}
+        <PipelineCacheStepMarker v-if="data.step.type === StepType.Cache" class="align-middle ml-0.5" />
       </div>
       <div
         class="w-3 h-3 rounded-full"
@@ -51,7 +52,9 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import PipelineCacheStepMarker from './PipelineCacheStepMarker.vue';
 import PipelineDagHandle from './PipelineDagHandle.vue';
+import { StepType } from '~/lib/api/types';
 import type { StepNodeData } from '~/lib/pipeline-dag-graph';
 import { matrixValueColor } from '~/lib/pipeline-utils';
 

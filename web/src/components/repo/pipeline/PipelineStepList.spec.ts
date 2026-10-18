@@ -89,9 +89,9 @@ function pipelineWithTwoAttempts(): Pipeline {
   } as Pipeline;
 }
 
-function mountList(selectedStepId: number) {
+function mountList(selectedStepId: number, pipeline = pipelineWithTwoAttempts()) {
   return mount(PipelineStepList, {
-    props: { pipeline: pipelineWithTwoAttempts(), selectedStepId },
+    props: { pipeline, selectedStepId },
     global: {
       provide: {
         repo: ref({ id: 1, forge_id: 1 } as Repo),
@@ -156,5 +156,16 @@ describe('workflow attempt switching (issue #1520)', () => {
     const wrapper = mountList(2); // clone of attempt #1
     expect(wrapper.get('[data-test="attempt-trigger"]').text()).toContain('#1');
     expect(wrapper.findAll('.bg-accent').length).toBeGreaterThan(0);
+  });
+});
+
+describe('cache steps', () => {
+  it('marks only the steps added for the cache section', () => {
+    const pipeline = pipelineWithTwoAttempts();
+    pipeline.workflows![1].children.push(
+      step({ id: 104, pid: 7, ppid: 4, name: 'restore-cache', type: StepType.Cache }),
+    );
+    expect(mountList(6, pipeline).findAll('[data-testid="cache-step-marker"]')).toHaveLength(1);
+    expect(mountList(6).findAll('[data-testid="cache-step-marker"]')).toHaveLength(0);
   });
 });

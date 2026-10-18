@@ -296,6 +296,7 @@
                 >{{ node.step.name
                 }}<span class="text-muted-foreground">{{ stepDupSuffix(workflow, node.step) }}</span></span
               >
+              <PipelineCacheStepMarker v-if="node.step.type === StepType.Cache" />
               <!-- Multi-dependency tooltip -->
               <TooltipProvider v-if="node.effectiveDeps.length > 1">
                 <Tooltip>
@@ -348,6 +349,7 @@ import Icon from '~/components/atomic/Icon.vue';
 import IconButton from '~/components/atomic/IconButton.vue';
 import MatrixVariantChips from '~/components/repo/pipeline/MatrixVariantChips.vue';
 import type { MatrixChip } from '~/components/repo/pipeline/MatrixVariantChips.vue';
+import PipelineCacheStepMarker from '~/components/repo/pipeline/PipelineCacheStepMarker.vue';
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
 import PipelineStepDuration from '~/components/repo/pipeline/PipelineStepDuration.vue';
 import {
