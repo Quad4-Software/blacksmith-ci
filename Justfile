@@ -29,7 +29,7 @@ GCI_VERSION := "v0.14.0"
 
 # renovate: datasource=go depName=github.com/vektra/mockery/v3
 
-MOCKERY_VERSION := "v3.8.0"
+MOCKERY_VERSION := "v3.8.1"
 
 # mockery is built against a newer x/tools than it pins, so it can read the
 # export data of the current Go toolchain.
