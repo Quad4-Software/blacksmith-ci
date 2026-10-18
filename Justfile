@@ -35,7 +35,7 @@ MOCKERY_VERSION := "v3.8.1"
 # export data of the current Go toolchain.
 # renovate: datasource=go depName=golang.org/x/tools
 
-MOCKERY_XTOOLS_VERSION := "v0.51.0"
+MOCKERY_XTOOLS_VERSION := "v0.52.0"
 
 # renovate: datasource=go depName=github.com/google/addlicense
 
