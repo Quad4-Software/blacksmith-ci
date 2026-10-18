@@ -54,8 +54,8 @@ It requires a cache backend on the server.
 
 ```yaml
 cache:
-  - key: go-{{ checksum "go.sum" }}-{{ arch }}
-    restore_keys: [go-]
+  - key: go-{{ arch }}-{{ checksum "go.sum" }}
+    restore_keys: ['go-{{ arch }}-']
     paths: [.cache/go]
 ```
 

@@ -117,13 +117,32 @@ func addToArchive(tw *tar.Writer, workspace, file string, d fs.DirEntry) error {
 	return err
 }
 
+// extraction is what one extractArchive call wrote, so that a restore that
+// fails halfway can be undone.
+type extraction struct {
+	files int
+	// created lists the files, links and directories written, parents first.
+	created []string
+}
+
+// undo removes what the extraction wrote, children before their parents. A
+// directory that also holds files from elsewhere is left in place.
+func (e *extraction) undo() {
+	for i := len(e.created) - 1; i >= 0; i-- {
+		_ = os.Remove(e.created[i])
+	}
+	e.created, e.files = nil, 0
+}
+
 // extractArchive restores a zstd-compressed tar from r into workspace. Only
 // entries inside one of paths are written, and never through a symlink, so a
-// cache cannot write anywhere else, even one saved by a malicious step.
-func extractArchive(r io.Reader, workspace string, paths []string) (files int, err error) {
+// cache cannot write anywhere else, even one saved by a malicious step. On an
+// error the returned extraction holds what was written up to then.
+func extractArchive(r io.Reader, workspace string, paths []string) (*extraction, error) {
+	e := new(extraction)
 	zr, err := zstd.NewReader(r)
 	if err != nil {
-		return 0, err
+		return e, err
 	}
 	defer zr.Close()
 	tr := tar.NewReader(zr)
@@ -136,10 +155,10 @@ func extractArchive(r io.Reader, workspace string, paths []string) (files int, e
 	for {
 		header, err := tr.Next()
 		if errors.Is(err, io.EOF) {
-			return files, nil
+			return e, nil
 		}
 		if err != nil {
-			return files, err
+			return e, err
 		}
 
 		name := path.Clean(header.Name)
@@ -148,14 +167,14 @@ func extractArchive(r io.Reader, workspace string, paths []string) (files int, e
 		}
 		target := filepath.Join(workspace, filepath.FromSlash(name))
 		if err := checkNoSymlinkParents(workspace, name); err != nil {
-			return files, err
+			return e, err
 		}
 
-		if err := extractEntry(tr, header, target); err != nil {
-			return files, fmt.Errorf("extract %s: %w", name, err)
+		if err := e.extractEntry(tr, header, target); err != nil {
+			return e, fmt.Errorf("extract %s: %w", name, err)
 		}
 		if header.Typeflag == tar.TypeReg {
-			files++
+			e.files++
 		}
 	}
 }
@@ -193,7 +212,25 @@ func checkNoSymlinkParents(workspace, name string) error {
 	return nil
 }
 
-func extractEntry(tr *tar.Reader, header *tar.Header, target string) error {
+// mkdirAll creates dir and its missing parents and records them as created.
+func (e *extraction) mkdirAll(dir string) error {
+	var missing []string
+	for d := dir; ; d = filepath.Dir(d) {
+		if _, err := os.Lstat(d); !errors.Is(err, fs.ErrNotExist) || d == filepath.Dir(d) {
+			break
+		}
+		missing = append(missing, d)
+	}
+	if err := os.MkdirAll(dir, dirPerm); err != nil {
+		return err
+	}
+	for i := len(missing) - 1; i >= 0; i-- {
+		e.created = append(e.created, missing[i])
+	}
+	return nil
+}
+
+func (e *extraction) extractEntry(tr *tar.Reader, header *tar.Header, target string) error {
 	mode := fs.FileMode(header.Mode) & permBits
 
 	switch header.Typeflag {
@@ -204,12 +241,12 @@ func extractEntry(tr *tar.Reader, header *tar.Header, target string) error {
 				return err
 			}
 		}
-		if err := os.MkdirAll(target, dirPerm); err != nil {
+		if err := e.mkdirAll(target); err != nil {
 			return err
 		}
 		return os.Chmod(target, mode|0o700)
 	case tar.TypeReg:
-		if err := os.MkdirAll(filepath.Dir(target), dirPerm); err != nil {
+		if err := e.mkdirAll(filepath.Dir(target)); err != nil {
 			return err
 		}
 		// Remove first so an existing symlink at the target is replaced rather
@@ -221,6 +258,7 @@ func extractEntry(tr *tar.Reader, header *tar.Header, target string) error {
 		if err != nil {
 			return err
 		}
+		e.created = append(e.created, target)
 		if _, err := io.Copy(f, tr); err != nil {
 			f.Close()
 			return err
@@ -230,13 +268,17 @@ func extractEntry(tr *tar.Reader, header *tar.Header, target string) error {
 		}
 		return os.Chtimes(target, time.Now(), header.ModTime)
 	case tar.TypeSymlink:
-		if err := os.MkdirAll(filepath.Dir(target), dirPerm); err != nil {
+		if err := e.mkdirAll(filepath.Dir(target)); err != nil {
 			return err
 		}
 		if err := removeIfNotDir(target); err != nil {
 			return err
 		}
-		return os.Symlink(header.Linkname, target)
+		if err := os.Symlink(header.Linkname, target); err != nil {
+			return err
+		}
+		e.created = append(e.created, target)
+		return nil
 	default:
 		return nil
 	}

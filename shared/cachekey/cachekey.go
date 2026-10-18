@@ -16,7 +16,7 @@
 // the cache step after clone, because only then do the files exist whose
 // checksums the key is built from:
 //
-//	go-{{ checksum "go.sum" }}-{{ arch }}
+//	go-{{ arch }}-{{ checksum "go.sum" }}
 package cachekey
 
 import (

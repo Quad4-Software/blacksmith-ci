@@ -26,8 +26,8 @@ The server owns storage, quota and cleanup, and steps never see storage credenti
 
     ```yaml
     cache:
-      - key: go-{{ checksum "go.sum" }}-{{ arch }}
-        restore_keys: [go-]
+      - key: go-{{ arch }}-{{ checksum "go.sum" }}
+        restore_keys: ['go-{{ arch }}-']
         paths: [.cache/go]
         save: on_success
 
@@ -53,6 +53,7 @@ Without a cache backend, a `cache` section produces a linter warning and is igno
 | `save`         | No       | `on_success` (default), `always` (also after failed steps), or `never` (restore only)      |
 
 For `restore_keys`, the newest cache whose key starts with the prefix is restored.
+Put the parts a fallback must match, such as `{{ arch }}`, before the checksum: with `go-{{ checksum "go.sum" }}-{{ arch }}`, the prefix `go-` also matches caches of other architectures.
 Absolute paths and `..` in `paths` are rejected.
 With `on_success`, the cache is saved only when all steps succeeded.
 
@@ -79,6 +80,7 @@ If a step changes a checksummed file, the cache is saved under the new key.
 
 Keys are immutable.
 If the exact key already exists in any scope the run can read, saving is skipped.
+A key without a template, such as `key: build-cache`, is therefore saved once and never updated, with `save: always` too.
 To replace a cache, use a new key, for example by bumping a `v1-` prefix.
 
 ## Execution
@@ -87,7 +89,8 @@ The compiler adds a `restore-cache` step after the clone, and all other steps wa
 It adds a `save-cache` step after all steps, plus a `save-cache-always` step for entries with `save: always`.
 
 Cache steps never fail the workflow.
-Problems such as an exceeded quota are logged as warnings.
+Failed transfers and server errors are retried three times with backoff, and a restore that breaks off removes what it had extracted before starting over.
+Problems that remain, such as an exceeded quota, are logged as warnings.
 Cancelled pipelines do not save.
 
 Archives are tar files compressed with zstd.

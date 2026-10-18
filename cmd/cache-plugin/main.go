@@ -74,7 +74,7 @@ func run(ctx context.Context, getenv func(string) string, out io.Writer) {
 		workspace = "."
 	}
 	p := &plugin{
-		client:    &client{baseURL: baseURL, token: token, http: http.DefaultClient},
+		client:    &client{baseURL: baseURL, token: token, http: http.DefaultClient, out: out},
 		workspace: workspace,
 		out:       out,
 	}
@@ -128,14 +128,25 @@ func (p *plugin) restore(ctx context.Context, spec cacheSpec) error {
 		return err
 	}
 
-	body, err := p.client.download(ctx, hit.URL)
+	// Download and extraction are one attempt: a transfer that breaks off is
+	// started over, after removing what it had extracted so far.
+	var files int
+	err = withRetry(ctx, p.out, "restore of "+key, true, func() error {
+		body, err := p.client.download(ctx, hit.URL)
+		if err != nil {
+			return fmt.Errorf("download: %w", err)
+		}
+		defer body.Close()
+		extracted, err := extractArchive(body, p.workspace, spec.Paths)
+		if err != nil {
+			extracted.undo()
+			return fmt.Errorf("extract: %w", err)
+		}
+		files = extracted.files
+		return nil
+	})
 	if err != nil {
-		return fmt.Errorf("download: %w", err)
-	}
-	defer body.Close()
-	files, err := extractArchive(body, p.workspace, spec.Paths)
-	if err != nil {
-		return fmt.Errorf("extract: %w", err)
+		return err
 	}
 
 	match := "exact match"

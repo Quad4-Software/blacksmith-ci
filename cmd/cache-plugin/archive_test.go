@@ -104,9 +104,32 @@ func TestArchiveRoundTrip(t *testing.T) {
 	assert.Equal(t, []string{"nope"}, missing)
 
 	dst := t.TempDir()
-	files, err := extractArchive(&buf, dst, []string{"a", "b.txt"})
+	extracted, err := extractArchive(&buf, dst, []string{"a", "b.txt"})
 	require.NoError(t, err)
-	assert.Equal(t, 3, files)
+	assert.Equal(t, 3, extracted.files)
 	assert.Equal(t, "2", readFile(t, dst, "a/nested/two.txt"))
 	assert.Equal(t, "b", readFile(t, dst, "b.txt"))
+}
+
+func TestUndoRemovesWhatAFailedExtractionWrote(t *testing.T) {
+	parent := t.TempDir()
+	workspace := filepath.Join(parent, "workspace")
+	writeFile(t, workspace, "cache/kept.txt", "from the clone")
+
+	archive := craftArchive(t,
+		tarEntry{name: "cache/new/", typeflag: tar.TypeDir},
+		tarEntry{name: "cache/new/deep/file.txt", body: "x", typeflag: tar.TypeReg},
+		tarEntry{name: "cache/link", link: "kept.txt", typeflag: tar.TypeSymlink},
+		tarEntry{name: "cache/escape", link: parent, typeflag: tar.TypeSymlink},
+		tarEntry{name: "cache/escape/through-link.txt", body: "x", typeflag: tar.TypeReg},
+	)
+	extracted, err := extractArchive(archive, workspace, []string{"cache"})
+	require.Error(t, err)
+	assert.FileExists(t, filepath.Join(workspace, "cache/new/deep/file.txt"))
+
+	extracted.undo()
+	assert.NoDirExists(t, filepath.Join(workspace, "cache/new"))
+	assert.NoFileExists(t, filepath.Join(workspace, "cache/link"))
+	assert.NoFileExists(t, filepath.Join(workspace, "cache/escape"))
+	assert.Equal(t, "from the clone", readFile(t, workspace, "cache/kept.txt"))
 }

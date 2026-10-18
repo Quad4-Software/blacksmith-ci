@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -42,6 +43,8 @@ type client struct {
 	baseURL string
 	token   string
 	http    *http.Client
+	// out receives retry notices.
+	out io.Writer
 }
 
 type restoreResponse struct {
@@ -58,14 +61,23 @@ type reserveResponse struct {
 	URL string `json:"url"`
 }
 
+// call posts body to an API endpoint and decodes the answer into out. Failed
+// requests and server errors are retried; the API's own answers, such as a
+// miss, are returned as the matching sentinel error.
 func (c *client) call(ctx context.Context, endpoint string, body, out any) error {
-	ctx, cancel := context.WithTimeout(ctx, apiTimeout)
-	defer cancel()
-
 	payload, err := json.Marshal(body)
 	if err != nil {
 		return err
 	}
+	return withRetry(ctx, c.out, endpoint, false, func() error {
+		return c.callOnce(ctx, endpoint, payload, out)
+	})
+}
+
+func (c *client) callOnce(ctx context.Context, endpoint string, payload []byte, out any) error {
+	ctx, cancel := context.WithTimeout(ctx, apiTimeout)
+	defer cancel()
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+endpoint, bytes.NewReader(payload))
 	if err != nil {
 		return err
@@ -100,10 +112,11 @@ func responseError(resp *http.Response) error {
 		Error string `json:"error"`
 	}
 	raw, _ := io.ReadAll(io.LimitReader(resp.Body, 4096)) //nolint:mnd
+	msg := strings.TrimSpace(string(raw))
 	if json.Unmarshal(raw, &body) == nil && body.Error != "" {
-		return fmt.Errorf("server returned %s: %s", resp.Status, body.Error)
+		msg = body.Error
 	}
-	return fmt.Errorf("server returned %s: %s", resp.Status, strings.TrimSpace(string(raw)))
+	return &statusError{code: resp.StatusCode, msg: fmt.Sprintf("server returned %s: %s", resp.Status, msg)}
 }
 
 func (c *client) restore(ctx context.Context, key string, restoreKeys []string) (*restoreResponse, error) {
@@ -132,29 +145,57 @@ func (c *client) authorize(req *http.Request) {
 	}
 }
 
-// download opens the archive at url.
+// redactURL drops the query of the URL in a request error. Storage URLs are
+// presigned, and their signature must not end up in the step log, where
+// everyone who can read the pipeline could use it until it expires.
+func redactURL(err error) error {
+	var urlErr *url.Error
+	if !errors.As(err, &urlErr) {
+		return err
+	}
+	if u, parseErr := url.Parse(urlErr.URL); parseErr == nil {
+		u.RawQuery, u.Fragment, u.User = "", "", nil
+		urlErr.URL = u.String()
+	} else {
+		urlErr.URL = "<storage URL>"
+	}
+	return err
+}
+
+// download opens the archive at url. Read errors of the returned body are
+// tagged, so a connection that breaks off mid-transfer is retried.
 func (c *client) download(ctx context.Context, url string) (io.ReadCloser, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return nil, err
+		return nil, redactURL(err)
 	}
 	c.authorize(req)
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, redactURL(err)
 	}
 	if resp.StatusCode != http.StatusOK {
 		defer resp.Body.Close()
 		return nil, responseError(resp)
 	}
-	return resp.Body, nil
+	return bodyReader{resp.Body}, nil
 }
 
-// upload PUTs the archive file to url.
+// upload PUTs the archive file to url, retrying failed attempts from the start.
 func (c *client) upload(ctx context.Context, url string, f *os.File, size int64) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, f)
+	return withRetry(ctx, c.out, "upload", false, func() error {
+		if _, err := f.Seek(0, io.SeekStart); err != nil {
+			return err
+		}
+		return c.uploadOnce(ctx, url, f, size)
+	})
+}
+
+func (c *client) uploadOnce(ctx context.Context, url string, f *os.File, size int64) error {
+	// NopCloser keeps the client from closing the file between attempts.
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, io.NopCloser(f))
 	if err != nil {
-		return err
+		return redactURL(err)
 	}
 	// Presigned PUTs need the length up front, so the archive is not chunked.
 	req.ContentLength = size
@@ -162,7 +203,7 @@ func (c *client) upload(ctx context.Context, url string, f *os.File, size int64)
 	c.authorize(req)
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return err
+		return redactURL(err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
