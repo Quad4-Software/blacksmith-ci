@@ -1,0 +1,207 @@
+---
+title: "CLI"
+---
+
+The Crow CLI (`crow`) allows you to interact with Crow CI from the command line.
+You can manage repositories, pipelines, secrets, and more.
+
+## Installation
+
+### Binary Download
+
+Download the CLI from the project's [releases page](https://codefloe.com/crowci/crow/releases).
+Choose the appropriate binary for your platform: Linux and macOS builds ship as `crow-cli_<os>_<arch>.tar.gz`, the Windows build as `crow-cli_windows_amd64.zip`.
+
+:::note
+A homebrew tap for simplified installation on macOS is planned.
+:::
+
+### Container Image
+
+The CLI is also available as a container image:
+
+```sh
+docker run --pull always \
+  -e CROW_TOKEN=$CROW_TOKEN \
+  -e CROW_SERVER=$CROW_SERVER \
+  --rm -it codefloe.com/crowci/crow-cli:dev info
+```
+
+:::note
+The container image is named `crow-cli` to align with server and agent image naming. The executable inside is named `crow`.
+:::
+
+## Configuration
+
+The CLI requires two environment variables:
+
+| Variable | Description |
+| --- | --- |
+| `CROW_SERVER` | URL of your Crow CI server (e.g., `https://ci.example.com`) |
+| `CROW_TOKEN` | Personal access token from the Crow CI web interface |
+
+You can generate a token in the Crow CI web interface under **Settings > Personal Access Tokens**.
+A scoped token only reaches what its scopes allow, see [Access tokens](/dev/usage/access-tokens/).
+
+## Common Commands
+
+### Repository Management
+
+```sh
+# List repositories
+crow repo ls
+
+# Show repository info
+crow repo show owner/repo
+
+# Sync repositories from forge
+crow repo sync
+```
+
+### Pipeline Management
+
+```sh
+# List recent pipelines
+crow pipeline ls owner/repo
+
+# Show pipeline details
+crow pipeline info owner/repo <pipeline-id>
+
+# Trigger a new pipeline
+crow pipeline start owner/repo
+
+# Stop a running pipeline
+crow pipeline stop owner/repo <pipeline-id>
+```
+
+#### `pipeline workflow`
+
+Subcommands for managing workflows within a pipeline run.
+Currently used for [workflow-level approval gates](/dev/usage/approvals/).
+
+```sh
+# Approve a blocked workflow
+crow pipeline workflow approve <repo> <pipeline-number> <workflow-name> [--reason "..."]
+
+# Decline a blocked workflow
+crow pipeline workflow decline <repo> <pipeline-number> <workflow-name> [--reason "..."]
+```
+
+The workflow is resolved by name within the given pipeline.
+The caller must be in the workflow's `approvers` list, or hold push permission on the repo if no approvers are configured.
+An optional `--reason` is recorded in the audit trail.
+
+### Secrets Management
+
+```sh
+# List secrets
+crow secret ls owner/repo
+
+# Add a secret
+crow secret add owner/repo --name SECRET_NAME --value "secret-value"
+
+# Remove a secret
+crow secret rm owner/repo SECRET_NAME
+```
+
+### Local Pipeline Execution
+
+```sh
+# Run pipeline locally (requires Docker)
+crow exec
+
+# Run with specific workflow file
+crow exec --workflow .crow/build.yaml
+
+# Supply secrets inline as key=value pairs
+crow exec --secrets 'token=abc,api_key=xyz'
+
+# Supply secrets from a YAML file on disk
+crow exec --secrets-file ./secrets.yaml
+```
+
+`--secrets-file` reads a YAML map of `name: value` pairs and is also configurable via `CROW_SECRETS_FILE` (or `WOODPECKER_SECRETS_FILE`).
+
+### Linting
+
+`crow lint` validates **local** pipeline configuration files against the Crow schema — it does not fetch configuration from the server or forge.
+Point it at a single YAML/Jsonnet file or a directory containing workflow files.
+
+```sh
+# Lint a directory of workflow files
+crow lint .crow/
+
+# Lint a single workflow file
+crow lint .crow/build.yaml
+
+# Treat warnings as errors
+crow lint --strict .crow/
+```
+
+### Agent Management
+
+```sh
+# List organization agents
+crow org agent ls <org-name>
+
+# Add an organization agent
+crow org agent add <org-name> --name "my-agent"
+
+# Show agent details
+crow org agent show <org-name> --agent-id <agent-id>
+
+# Remove an organization agent
+crow org agent rm <org-name> --agent-id <agent-id>
+```
+
+### Global Agent Management
+
+Requires admin privileges.
+
+```sh
+# List all agents (admin only)
+crow admin agent ls
+
+# Show agent details (admin only)
+crow admin agent show <agent-id>
+
+# Remove an agent (admin only)
+crow admin agent rm <agent-id>
+```
+
+### User Management
+
+Requires admin privileges.
+See [instance roles](/dev/configuration/roles/) for the available roles.
+
+```sh
+# List all users
+crow admin user ls
+
+# Show user details
+crow admin user show <username>
+
+# Add a new user, optionally with instance roles (repeatable)
+crow admin user add <username> --role operator
+
+# Replace the instance roles of a user, or remove them
+crow admin user update <username> --role operator --role auditor
+crow admin user update <username> --no-roles
+
+# Remove a user
+crow admin user rm <username>
+```
+
+`--role` replaces the user's roles, so a role mapped from the identity provider that is not listed is removed.
+A mapped role can only be listed when the user already holds it.
+
+## Getting Help
+
+```sh
+# Show all commands
+crow --help
+
+# Show help for a specific command
+crow repo --help
+crow pipeline start --help
+```

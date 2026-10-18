@@ -1,0 +1,134 @@
+---
+title: "Build Cache"
+---
+
+Build cache storage, quota and expiry.
+Caching is disabled until `CROW_CACHE_BACKEND` is set.
+See [build caching](/dev/usage/caching/) for the pipeline syntax.
+
+## CACHE_BACKEND
+
+- Name: `CROW_CACHE_BACKEND`
+- Description: Cache storage backend (`local` or `s3`).
+  Empty disables caching.
+- Default: none
+
+---
+
+## CACHE_LOCAL_PATH
+
+- Name: `CROW_CACHE_LOCAL_PATH`
+- Description: Directory used by the `local` backend.
+  Archives are streamed through the server.
+- Default: `/var/lib/crow/cache`
+
+---
+
+## CACHE_S3_ENDPOINT
+
+- Name: `CROW_CACHE_S3_ENDPOINT`
+- Description: S3-compatible endpoint for cache storage (e.g. `s3.amazonaws.com` or `minio.example.com:9000`).
+  Cache steps up- and download directly via presigned URLs, so the endpoint must be reachable from pipeline steps.
+- Default: none
+
+---
+
+## CACHE_S3_BUCKET
+
+- Name: `CROW_CACHE_S3_BUCKET`
+- Description: S3 bucket name for cache storage.
+- Default: none
+
+---
+
+## CACHE_S3_REGION
+
+- Name: `CROW_CACHE_S3_REGION`
+- Description: S3 region of the cache bucket.
+- Default: none
+
+---
+
+## CACHE_S3_ACCESS_KEY
+
+- Name: `CROW_CACHE_S3_ACCESS_KEY`
+- Description: S3 access key for cache storage.
+  Stays on the server.
+- Default: none
+
+---
+
+## CACHE_S3_SECRET_KEY
+
+- Name: `CROW_CACHE_S3_SECRET_KEY`
+- Description: S3 secret key for cache storage.
+  Stays on the server.
+- Default: none
+
+---
+
+## CACHE_S3_SSL
+
+- Name: `CROW_CACHE_S3_SSL`
+- Description: Use SSL for the S3 cache storage connection.
+- Default: `true`
+
+---
+
+## CACHE_S3_PATH_STYLE
+
+- Name: `CROW_CACHE_S3_PATH_STYLE`
+- Description: Use path-style addressing for S3 cache storage (required for MinIO and some S3-compatible providers).
+- Default: `false`
+
+---
+
+## CACHE_S3_PREFIX
+
+- Name: `CROW_CACHE_S3_PREFIX`
+- Description: Key prefix for cache objects in the S3 bucket.
+- Default: `cache`
+
+---
+
+## CACHE_MAX_REPO_SIZE
+
+- Name: `CROW_CACHE_MAX_REPO_SIZE`
+- Description: Maximum total cache size per repository (e.g. `500MB`, `10GiB`).
+  `0` means unlimited.
+  When a save would exceed the limit, the least recently used caches are evicted; if it still does not fit, the save is skipped with a warning.
+- Default: `10GiB`
+
+---
+
+## CACHE_MAX_TOTAL_SIZE
+
+- Name: `CROW_CACHE_MAX_TOTAL_SIZE`
+- Description: Maximum total cache size across all repositories (e.g. `500GiB`).
+  `0` means unlimited.
+  Eviction works as for `CROW_CACHE_MAX_REPO_SIZE`.
+- Default: `0`
+
+---
+
+## CACHE_TTL
+
+- Name: `CROW_CACHE_TTL`
+- Description: Caches not restored for this long are removed.
+  `0` keeps them until they are evicted by size.
+  Cleanup runs every 15 minutes, and abandoned uploads are removed after one hour.
+- Default: `168h`
+
+---
+
+## CACHE_PLUGIN
+
+- Name: `CROW_CACHE_PLUGIN`
+- Description: Image of the `restore-cache` and `save-cache` steps.
+  It is built from `cmd/cache-plugin` and released with the server.
+  Cache steps always pull it, so agents pick up a new image under the same tag.
+- Default: `codefloe.com/crowci/crow-cache:v6`
+
+:::note
+With S3, an archive is uploaded with a single presigned PUT, which limits each archive to 5 GiB.
+:::

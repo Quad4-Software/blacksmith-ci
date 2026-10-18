@@ -1,0 +1,241 @@
+---
+title: "Agent Settings"
+---
+
+Core agent configuration variables.
+
+## Identity & Connection
+
+### AGENT_CONFIG_FILE
+
+- Name: `CROW_AGENT_CONFIG_FILE`
+- Description: Agent config file path. If set empty the agent will be stateless and unregister on termination.
+- Default: `/etc/crow/agent.conf`
+
+---
+
+### AGENT_SECRET
+
+- Name: `CROW_AGENT_SECRET`
+- Description: A shared secret used by server and agents to authenticate communication. A secret can be generated via `openssl rand -hex 32`.
+- Default: none
+
+---
+
+### AGENT_SECRET_FILE
+
+- Name: `CROW_AGENT_SECRET_FILE`
+- Description: Filepath containing the agent secret, e.g. `/etc/woodpecker/agent-secret.conf`
+- Default: none
+
+---
+
+### SERVER
+
+- Name: `CROW_SERVER`
+- Description: gRPC address of the server.
+- Default: `localhost:9000`
+
+---
+
+### USERNAME
+
+- Name: `CROW_USERNAME`
+- Description: gRPC username.
+- Default: `x-oauth-basic`
+
+---
+
+### HOSTNAME
+
+- Name: `CROW_HOSTNAME`
+- Description: Agent hostname. Used for workflow filtering via `labels: hostname:` and as the default agent name if not explicitly configured.
+- Default: none
+
+---
+
+## Labels & Priority
+
+### AGENT_LABELS
+
+- Name: `CROW_AGENT_LABELS`
+- Description: Configures custom labels for the agent, to enable workflow filtering. Accepts a list of key-value pairs like `key=value,second-key=*`. Agents provide three additional labels `platform=os/arch`, `hostname=my-agent` and `repo=*` which can be overwritten if needed. Labels with the reserved `crowci/` prefix are ignored, because the server uses them for task metadata and for scoping agents to organizations.
+- Default: none
+
+---
+
+## Execution
+
+### BACKEND
+
+- Name: `CROW_BACKEND`
+- Description: Crow backend to use. Possible values are `auto-detect`, `docker`, `local` or `kubernetes`.
+- Default: `auto-detect`
+
+---
+
+### MAX_WORKFLOWS
+
+- Name: `CROW_MAX_WORKFLOWS`
+- Description: Number of parallel workflows.
+- Default: `1`
+
+---
+
+### AGENT_MAX_LIFETIME_WORKFLOWS
+
+- Name: `CROW_AGENT_MAX_LIFETIME_WORKFLOWS`
+- Description: Number of workflows the agent runs before it retires: it stops polling, drains what it is running, unregisters and exits with status 0. Agents registered with an individual token, such as those the autoscaler creates, stay on record and are removed by whoever created them. Use `1` for single-use agents that get a fresh machine per job, and make sure the supervisor does not restart the process. `0` disables the limit. See [Single-Use Agents](/dev/configuration/agent/#single-use-agents).
+- Default: `0`
+
+---
+
+## Connection Settings
+
+### GRPC_SECURE
+
+- Name: `CROW_GRPC_SECURE`
+- Description: Whether the connection to `CROW_SERVER` should be made via SSL.
+- Default: `false`
+
+---
+
+### GRPC_VERIFY
+
+- Name: `CROW_GRPC_VERIFY`
+- Description: Whether the `grpc` server certificate should be verified. Only valid when `CROW_GRPC_SECURE=true`.
+- Default: `true`
+
+---
+
+### CONNECT_RETRY_COUNT
+
+- Name: `CROW_CONNECT_RETRY_COUNT`
+- Description: Number of times agent retries to connect to the server.
+- Default: `5`
+
+---
+
+### CONNECT_RETRY_DELAY
+
+- Name: `CROW_CONNECT_RETRY_DELAY`
+- Description: Delay between agent connection retries to the server.
+- Default: `2s`
+
+---
+
+### KEEPALIVE_TIME
+
+- Name: `CROW_KEEPALIVE_TIME`
+- Description: With no activity after this duration, the agent pings the server to check if the transport is still alive.
+- Default: none
+
+---
+
+### KEEPALIVE_TIMEOUT
+
+- Name: `CROW_KEEPALIVE_TIMEOUT`
+- Description: After pinging for a keepalive check, the agent waits for this duration before closing unresponsive connections.
+- Default: `20s`
+
+---
+
+### GRPC_MAX_ERROR_DURATION
+
+- Name: `CROW_GRPC_MAX_ERROR_DURATION`
+- Description: How long the agent keeps retrying gRPC calls to the server before giving up and exiting for a supervisor restart. Sized to outlast a normal server bounce (kernel auto-reboot, deploy, cert renewal) so transient outages do not cost the whole agent process. Each successful call resets the timer; only an uninterrupted error window beyond this duration triggers the exit.
+- Default: `5m`
+
+---
+
+## Health & Logging
+
+### HEALTHCHECK
+
+- Name: `CROW_HEALTHCHECK`
+- Description: Enable healthcheck endpoint.
+- Default: `true`
+
+`/healthz` returns `500` when the agent cannot process pipelines.
+That is the case when the backend engine has been unreachable, when a running workflow exceeded its timeout, or when the agent has lost all of its workflow runners.
+Supervisors (Docker, Kubernetes, systemd) should be configured to restart the agent on a failing healthcheck.
+
+---
+
+### HEALTHCHECK_ADDR
+
+- Name: `CROW_HEALTHCHECK_ADDR`
+- Description: Healthcheck endpoint address.
+- Default: `:3000`
+
+---
+
+### LOG_LEVEL
+
+- Name: `CROW_LOG_LEVEL`
+- Description: Logging level. Possible values are `trace`, `debug`, `info`, `warn`, `error`, `fatal`, `panic`, and `disabled`.
+- Default: none
+
+---
+
+### LOG_FILE
+
+- Name: `CROW_LOG_FILE`
+- Description: Output destination for logs. `stdout` and `stderr` can be used as special keywords.
+- Default: `stderr`
+
+---
+
+### DEBUG_NOCOLOR
+
+- Name: `CROW_DEBUG_NOCOLOR`
+- Description: Disable colored debug output.
+- Default: `true`
+
+---
+
+### DEBUG_PRETTY
+
+- Name: `CROW_DEBUG_PRETTY`
+- Description: Enable pretty-printed debug output.
+- Default: `false`
+
+## Process Logs
+
+### PROCLOG_SHIP_ENABLED
+
+- Name: `CROW_PROCLOG_SHIP_ENABLED`
+- Description: Tee the agent's zerolog output to the server for visibility in the Crow UI under **Admin → Agents → Logs**.
+- Default: `true`
+
+---
+
+### PROCLOG_LOCAL_BUFFER
+
+- Name: `CROW_PROCLOG_LOCAL_BUFFER`
+- Description: Local ring buffer size (lines) for outgoing process logs. Lines accumulated during a temporary gRPC outage are back-filled on reconnect.
+- Default: `500`
+
+---
+
+### PROCLOG_BATCH_INTERVAL
+
+- Name: `CROW_PROCLOG_BATCH_INTERVAL`
+- Description: Maximum interval between batch sends to the server, regardless of buffer fill level.
+- Default: `1s`
+
+---
+
+### PROCLOG_BATCH_SIZE
+
+- Name: `CROW_PROCLOG_BATCH_SIZE`
+- Description: Buffered-line count that triggers an immediate batch send to the server.
+- Default: `100`
+
+---
+
+### PROCLOG_RATE_LIMIT
+
+- Name: `CROW_PROCLOG_RATE_LIMIT`
+- Description: Token-bucket refill rate (lines/sec); bucket capacity is 2× this value. Lines exceeding the limit are collapsed into a single `"N dropped (rate limit)"` line per second.
+- Default: `100`

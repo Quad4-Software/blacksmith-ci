@@ -1,0 +1,79 @@
+---
+title: 'Access tokens'
+---
+
+Personal access tokens let scripts, the CLI and other tools call the Crow API on your behalf.
+Create them in the web interface under **API Tokens** in your user settings.
+
+Each token carries one or more scopes and can be limited to one organization or one repository.
+A request made with a token can do at most what both the token and your account allow: the scopes and the limit narrow your own permissions, they never extend them.
+
+## Scopes
+
+| Scope | Grants |
+| --- | --- |
+| `repo:read` | Read repositories, pipelines, logs, cron jobs and organizations, and follow pipeline events. |
+| `repo:write` | Everything in `repo:read`, plus start, cancel, approve and restart pipelines, manage cron jobs and delete logs. |
+| `repo:admin` | Everything in `repo:write`, plus repository settings, secrets, registries, notifications, activation, deletion, repair, ownership changes, moves and settings import, and organization secrets, registries and agents. |
+| `user:read` | Read your account: profile, feed, repository and organization lists, linked forges, identities, integrations and access tokens. Also instance-wide lists open to every user (agents, autoscalers, global secret and registry names, metrics, the signature public key). |
+| `user:write` | Everything in `user:read`, plus change your account: integrations, linked forges and identities, and access tokens. |
+| `admin:read` | Read instance administration: users, all repositories, organizations, the queue, maintenance, agent and autoscaler logs, forge details and instance-wide metrics. |
+| `admin:write` | Everything in `admin:read`, plus change it: users, forges, agents, autoscalers, global secrets and registries, the queue, maintenance, the log level and organization deletion. |
+
+A higher scope includes the lower ones of the same family: `repo:admin` includes `repo:write` and `repo:read`, `user:write` includes `user:read`, and `admin:write` includes `admin:read`.
+Scopes of different families never imply each other.
+
+The admin scopes are only available to users whose [roles](/dev/configuration/roles/#access-tokens) grant them, and still act with the owner's current roles.
+
+## Which scope an endpoint needs
+
+| Area | Read (`GET`) | Change (other methods) |
+| --- | --- | --- |
+| `/repos/{id}` pipelines, logs, branches, configs, cron jobs, approvals | `repo:read` | `repo:write` |
+| Repository settings, secrets, registries, notifications, import, chown, repair, move and deletion | `repo:admin` | `repo:admin` |
+| Deleting a pipeline | | `repo:admin` |
+| Activating a repository (`POST /repos`) | | `repo:admin` |
+| `/repos/lookup/...`, `/stream/logs/...`, `/stream/events` | `repo:read` | |
+| `/orgs/{id}`, `/orgs/lookup/...`, organization permissions | `repo:read` | |
+| Organization secrets, registries and agents | `repo:admin` | `repo:admin` |
+| `/secret-targets/...` | `repo:admin` | `repo:admin`, plus `admin:write` for global secrets |
+| `/user/...`, including `/user/access-tokens` | `user:read` | `user:write` |
+| `/agents`, `/autoscalers`, `/secrets`, `/registries` lists and details, `/metrics`, `/signature/public-key` | `user:read` | `admin:write` |
+| `/users`, `/entities`, `/orgs` list, `/repos` list, `/pipelines`, `/queue`, `/forges` changes, `/admin/...`, `/log-level`, `/debug/...`, agent and autoscaler log streams | `admin:read` | `admin:write` |
+
+Public endpoints such as badges, `/repos/public`, `/timezones`, `/version` and webhooks accept any token, but answer as for an anonymous visitor.
+`/forges` keeps the full forge details for a token with `admin:read`.
+
+Some endpoints never accept an access token:
+
+- `POST` and `DELETE /user/token` would issue or revoke an unscoped API token, so a scoped token cannot use them.
+- Every endpoint without an entry in the scope table is denied, so a new endpoint is never reachable with a token by accident.
+
+The full mapping lives in `server/router/access_token_scopes.go`.
+
+## Organization and repository limits
+
+A token limited to a repository can only reach that repository.
+Any request for another repository, its logs or its events stream returns `403`.
+It may read the organization that owns the repository, but not the organization's secrets, registries or agents.
+
+A token limited to an organization can only reach that organization and its repositories.
+
+The limit applies to endpoints that address a repository or an organization.
+Endpoints that need a `user` or `admin` scope act on your whole account or the instance, so a limited token cannot use them.
+The only exception is reading your own profile (`GET /user`), which a limited token with `user:read` may do.
+A limited token therefore cannot list your repositories, manage tokens, or read instance-wide lists such as agents.
+Activating a repository (`POST /repos`) needs a token without a limit.
+
+## Managing tokens with a token
+
+A token with `user:write` can create, change and delete access tokens, but only tokens that are no broader than itself.
+A new or changed token must not hold a scope the calling token lacks, and must stay within the calling token's organization or repository limit.
+The same applies to tokens it changes or deletes.
+
+## Other credentials
+
+Scopes apply to personal access tokens only.
+Browser sessions, the unscoped token shown under **CLI & API** in your user settings, and agent and autoscaler tokens are unaffected.
+
+The bootstrap token set through [`CROW_ADMIN_TOKEN`](/dev/configuration/server/) holds every scope without a limit, so it keeps full admin access.

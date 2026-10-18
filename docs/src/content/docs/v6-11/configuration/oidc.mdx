@@ -1,0 +1,125 @@
+---
+title: "Single Sign-On (OIDC)"
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+Crow can sign users in through any OpenID Connect identity provider, such as Keycloak, Authentik, Microsoft Entra ID or Okta.
+Crow still reads repositories and reports pipeline status through forge accounts, so every user links at least one forge account after the first sign-in.
+
+## Setup
+
+<Steps>
+
+1. Create an OIDC client (confidential, authorization code flow) at your identity provider.
+    Use this redirect URI:
+
+    ```
+    ${CROW_HOST}/authorize/oidc/callback
+    ```
+
+2. Configure Crow with the issuer and client credentials:
+
+    ```sh
+    CROW_OIDC_ISSUER=https://idp.example.com/realms/acme
+    CROW_OIDC_CLIENT_ID=crow
+    CROW_OIDC_CLIENT_SECRET_FILE=/run/secrets/crow-oidc
+    ```
+
+    The issuer must match the `issuer` value the identity provider publishes exactly, including any trailing slash.
+    The server refuses to start when `CROW_OIDC_ISSUER` is set without `CROW_OIDC_CLIENT_ID` and a client secret, or when `CROW_FORGE_LOGIN_DISABLED` is set without OIDC or [LDAP](/dev/configuration/ldap/) sign-in.
+
+3. Optionally restrict sign-in and derive admins from groups:
+
+    ```sh
+    CROW_OIDC_ALLOWED_GROUPS=crow-users
+    CROW_OIDC_ADMIN_GROUPS=crow-admins
+    ```
+
+4. Restart the server and use the "Single sign-on" button on the login page.
+
+</Steps>
+
+To check passwords against a directory instead, or in addition, see [LDAP sign-in](/dev/configuration/ldap/).
+
+All variables are listed in the [OIDC environment variable reference](/dev/configuration/env-vars/oidc/).
+
+## Signing in
+
+A user signing in for the first time gets a new Crow account named after the `preferred_username` claim.
+Crow uses the part of the claim before the `@`, so a value such as `jane@corp.example` becomes the login `jane`.
+If the result is not a valid Crow login (letters, digits, `-`, `_` and `.`), sign-in fails with `idp_invalid_username`.
+If the claim is missing or empty, sign-in fails with `idp_missing_username`.
+In both cases set `CROW_OIDC_USERNAME_CLAIM` to another claim.
+A username already used by another Crow account is refused.
+A username is also refused when any org on any forge has that name, compared case-insensitively, so an identity provider username can never claim a forge org.
+Those users sign in with their forge and link single sign-on in their user settings.
+
+New accounts are created only when `CROW_OPEN` is set, when `CROW_OIDC_ALLOWED_GROUPS` is set and the user is in one of those groups, or when the user is in a `CROW_OIDC_ADMIN_GROUPS` group.
+
+After the first sign-in, Crow asks the user to link a forge account.
+The first linked forge becomes the user's primary forge.
+Ideally the single sign-on username matches the forge username, because the personal org then keeps the same name on both sides.
+When the first forge is linked, the personal org moves to that forge under the forge username, and an existing org of that name on the forge takes over its org secrets and registries.
+
+Existing Crow users are never matched by username or email.
+They sign in with their forge as before and link single sign-on under **User settings > Single Sign-On**.
+
+## Groups, admins and roles
+
+`CROW_OIDC_ALLOWED_GROUPS` limits OIDC sign-in to members of at least one listed group.
+Groups are read from the ID token claim named by `CROW_OIDC_GROUPS_CLAIM`.
+When the ID token does not contain that claim and `CROW_OIDC_ALLOWED_GROUPS`, `CROW_OIDC_ADMIN_GROUPS` or a role mapping (`CROW_OIDC_OPERATOR_GROUPS`, `CROW_OIDC_SECRETS_MANAGER_GROUPS`, `CROW_OIDC_AUDITOR_GROUPS`) is set, Crow reads the groups from the userinfo endpoint.
+Without any of these variables, groups are not used and the userinfo endpoint is never requested.
+If that request fails, or its `sub` differs from the one in the ID token, sign-in fails with an error.
+
+When `CROW_OIDC_ADMIN_GROUPS` is set, admin status at OIDC sign-in comes only from those groups and is recalculated at every sign-in.
+Removing a user from the admin group revokes admin rights at their next sign-in.
+When `CROW_OIDC_ALLOWED_GROUPS` is also set, members of an admin group must be in an allowed group as well, or they cannot sign in at all.
+Group membership is only checked at sign-in, so changes take effect at the latest after `CROW_SESSION_EXPIRES`.
+
+`CROW_ADMIN` is never consulted for OIDC sign-in, because the username claim is user-editable at many identity providers.
+It applies to forge sign-ins only.
+An admin listed in `CROW_ADMIN` who is not in an admin group loses admin rights at OIDC sign-in, and the next forge sign-in grants them again.
+
+Without `CROW_OIDC_ADMIN_GROUPS`, OIDC sign-in never changes admin status, and new OIDC users are not admins.
+
+Groups can also grant [instance roles](/dev/configuration/roles/) with `CROW_OIDC_OPERATOR_GROUPS`, `CROW_OIDC_SECRETS_MANAGER_GROUPS` and `CROW_OIDC_AUDITOR_GROUPS`.
+A mapped role is recalculated at every sign-in, like admin status.
+
+```sh
+CROW_OIDC_OPERATOR_GROUPS=crow-operators
+CROW_OIDC_AUDITOR_GROUPS=crow-auditors
+```
+
+## Disabling forge sign-in
+
+Set `CROW_FORGE_LOGIN_DISABLED=true` to make the identity provider, and [LDAP](/dev/configuration/ldap/) if configured, the only ways to sign in.
+Users can still link forge accounts while signed in.
+Nobody can become admin through `CROW_ADMIN` in this mode, so set `CROW_OIDC_ADMIN_GROUPS` to bootstrap the first admin.
+Users cannot unlink their last single sign-on identity while forge sign-in is disabled, and nobody can unlink it before linking a forge account.
+
+## Provider notes
+
+### Keycloak
+
+Use the realm URL as issuer, e.g. `https://keycloak.example.com/realms/acme`.
+Add a "Group Membership" mapper with token claim name `groups` and "Full group path" turned off to the client's dedicated scope.
+
+### Authentik
+
+Use the provider's "OpenID Configuration Issuer", e.g. `https://authentik.example.com/application/o/crow/`.
+Keep the trailing slash: Authentik publishes the issuer with it, and a mismatch makes discovery or token verification fail.
+The default `profile` scope already includes `groups`.
+
+### Microsoft Entra ID
+
+Use `https://login.microsoftonline.com/<tenant-id>/v2.0` as issuer.
+Entra ID sends group object IDs in the `groups` claim once "groups claim" is enabled under **Token configuration**, so list object IDs in `CROW_OIDC_ALLOWED_GROUPS` and `CROW_OIDC_ADMIN_GROUPS`.
+A user in more than 200 groups gets no `groups` claim at all (group overage), which denies sign-in when allowed groups are set.
+Choose "Groups assigned to the application" for the groups claim and assign the Crow groups to the enterprise application to stay below that limit.
+
+### Okta
+
+Okta sends no groups by default.
+Add a `groups` claim to the authorization server or the app's OpenID Connect ID token settings, with a filter that matches the Crow groups.

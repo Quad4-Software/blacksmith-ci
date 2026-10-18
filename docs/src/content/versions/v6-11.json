@@ -1,0 +1,62 @@
+{
+  "sidebar": [
+    {
+      "label": "User",
+      "items": [
+        "index",
+        "quickstart",
+        {
+          "label": "Usage",
+          "autogenerate": { "directory": "usage" }
+        },
+        {
+          "label": "Plugins",
+          "autogenerate": { "directory": "plugins" }
+        }
+      ]
+    },
+    {
+      "label": "Admin",
+      "items": [
+        {
+          "label": "Installation",
+          "items": [
+            "installation",
+            "installation/ansible",
+            "installation/container",
+            "installation/helm",
+            "installation/migration",
+            "installation/proxy",
+            "installation/binary"
+          ]
+        },
+        {
+          "label": "Configuration",
+          "items": [
+            "configuration",
+            "configuration/server",
+            "configuration/agent",
+            "configuration/autoscaler",
+            "configuration/windows-agent",
+            "configuration/forge-oauth",
+            "configuration/oidc",
+            "configuration/ldap",
+            {
+              "label": "Environment Variables",
+              "collapsed": true,
+              "autogenerate": { "directory": "configuration/env-vars" }
+            }
+          ]
+        },
+        {
+          "label": "Ecosystem",
+          "autogenerate": { "directory": "ecosystem" }
+        },
+        {
+          "label": "Development",
+          "autogenerate": { "directory": "development" }
+        }
+      ]
+    }
+  ]
+}
