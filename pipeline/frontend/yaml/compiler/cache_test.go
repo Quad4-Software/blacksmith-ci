@@ -76,6 +76,7 @@ func TestCompileCacheSequence(t *testing.T) {
 	assert.Equal(t, testCachePlugin, restore.Image)
 	assert.Equal(t, []string{"clone"}, restore.DependsOn)
 	assert.Equal(t, "ignore", restore.Failure)
+	assert.True(t, restore.Pull, "the plugin tag moves, so every run pulls it")
 	assert.Equal(t, "restore", restore.Environment["PLUGIN_MODE"])
 	var specs []CacheSpec
 	require.NoError(t, json.Unmarshal([]byte(restore.Environment["PLUGIN_CACHES"]), &specs))
@@ -88,6 +89,7 @@ func TestCompileCacheSequence(t *testing.T) {
 	assert.Equal(t, "save", save.Environment["PLUGIN_MODE"])
 	assert.Equal(t, []string{"build", "test"}, save.DependsOn)
 	assert.True(t, save.OnSuccess)
+	assert.True(t, save.Pull)
 	assert.False(t, save.OnFailure, "on_success caches are not saved after a failure")
 	assert.NotContains(t, save.Environment, "CI_CACHE_TOKEN", "the token is only added when an agent picks the workflow up")
 }

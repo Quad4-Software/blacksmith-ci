@@ -126,6 +126,7 @@ See [build caching](/dev/usage/caching/) for the pipeline syntax.
 - Name: `CROW_CACHE_PLUGIN`
 - Description: Image of the `restore-cache` and `save-cache` steps.
   It is built from `cmd/cache-plugin` and released with the server.
+  Cache steps always pull it, so agents pick up a new image under the same tag.
 - Default: `codefloe.com/crowci/crow-cache:v6`
 
 :::note

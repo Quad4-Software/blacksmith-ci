@@ -72,6 +72,10 @@ func (c *Compiler) cacheStep(conf *yaml_types.Workflow, name, mode string, specs
 	container := &yaml_types.Container{
 		Name:  name,
 		Image: c.cachePlugin,
+		// The plugin runs under a moving tag such as v6. Without a pull, an
+		// agent keeps the first image it pulled and never gets plugin fixes. A
+		// failed pull only skips the cache, as cache steps never fail.
+		Pull: true,
 		Environment: map[string]any{
 			"PLUGIN_MODE":   mode,
 			"PLUGIN_CACHES": string(encoded),
