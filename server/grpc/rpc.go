@@ -758,6 +758,11 @@ func (s *RPC) RegisterAgent(ctx context.Context, info rpc.AgentInfo) (int64, str
 		return -1, "", err
 	}
 
+	if err := proto.CheckAgentCompatibility(info.ProtocolVersion, proto.MinAgentVersion); err != nil {
+		log.Warn().Err(err).Int64("agent_id", agent.ID).Str("agent_version", info.Version).Msg("rejecting incompatible agent")
+		return -1, "", status.Error(codes.FailedPrecondition, err.Error())
+	}
+
 	log.Debug().
 		Int64("agent_id", agent.ID).
 		Str("backend", info.Backend).

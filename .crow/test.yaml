@@ -67,6 +67,19 @@ steps:
       - '[ -n "$DIFF" ] && { echo "generated files not up to date, run just generate and commit"; echo "$DIFF"; exit 1; } || true'
     when: *when
 
+  check-proto-compat:
+    depends_on: []
+    image: *golang_image
+    commands:
+      - apk add --no-cache -q git curl
+      # renovate: datasource=github-releases depName=bufbuild/buf
+      - BUF_VERSION=v1.57.2
+      - curl -fsSL -o /usr/local/bin/buf "https://github.com/bufbuild/buf/releases/download/$${BUF_VERSION}/buf-Linux-$(uname -m)"
+      - chmod +x /usr/local/bin/buf
+      - git fetch -q --depth=1 "$${CI_REPO_CLONE_URL}" "$${CI_COMMIT_TARGET_BRANCH}"
+      - .crow/scripts/check-proto-compat.sh FETCH_HEAD
+    when: *when
+
   lint-license-header:
     depends_on: []
     image: *golang_image

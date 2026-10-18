@@ -33,6 +33,17 @@ Distributed pipeline execution workers.
 - **Connection**: gRPC to server
 - **Backends**: Docker, Kubernetes, Local (`/pipeline/backend/`)
 
+#### Agent protocol changes
+
+Agents are often run by third parties who upgrade later than the server, so `pipeline/rpc/proto/crow.proto` must stay readable by older agents.
+
+- Increase `Version` in `pipeline/rpc/proto/version.go` on every change to `crow.proto`, so each side can tell which fields and RPCs the other understands.
+- Keep changes additive: add fields and RPCs, and reserve the numbers of removed fields.
+- Raise `MinAgentVersion` only for a change older agents cannot read, such as removing a field or changing its type or meaning.
+- Never change `LegacyVersion`, since agents predating protocol negotiation compare it for an exact match.
+
+The `check-proto-compat` CI step runs `buf breaking` against the target branch and fails when a breaking change lands without raising `MinAgentVersion`.
+
 ### CLI
 
 Command-line interface for administration.

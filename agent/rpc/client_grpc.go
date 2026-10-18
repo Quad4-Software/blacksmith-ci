@@ -45,7 +45,7 @@ var ErrAgentRestartRequired = errors.New("agent unable to reach server for too l
 var ErrAgentShuttingDown = errors.New("agent is shutting down")
 
 const (
-	// Set grpc version on compile time to compare against server version response.
+	// ClientGrpcVersion is the protocol version the agent was built with.
 	ClientGrpcVersion int32 = proto.Version
 
 	// Maximum size of an outgoing log message.
@@ -281,9 +281,12 @@ func (c *client) Version(ctx context.Context) (*rpc.Version, error) {
 
 		res, err := c.client.Version(ctx, &proto.Empty{})
 		if err == nil {
+			protocolVersion, minAgent := proto.ServerProtocol(res)
 			return &rpc.Version{
-				GrpcVersion:   res.GrpcVersion,
-				ServerVersion: res.ServerVersion,
+				GrpcVersion:             res.GrpcVersion,
+				ServerVersion:           res.ServerVersion,
+				ProtocolVersion:         protocolVersion,
+				MinAgentProtocolVersion: minAgent,
 			}, nil
 		}
 
@@ -901,16 +904,17 @@ func (c *client) sendLogs(ctx context.Context, entries []*proto.LogEntry) error 
 func (c *client) RegisterAgent(ctx context.Context, info rpc.AgentInfo) (int64, string, error) {
 	req := new(proto.RegisterAgentRequest)
 	req.Info = &proto.AgentInfo{
-		Platform:      info.Platform,
-		Backend:       info.Backend,
-		Version:       info.Version,
-		BuildDate:     info.BuildDate,
-		Capacity:      int32(info.Capacity),
-		CustomLabels:  info.CustomLabels,
-		LimitMem:      info.LimitMem,
-		LimitCpuQuota: info.LimitCPUQuota,
-		HostCpus:      info.HostCPUs,
-		HostMem:       info.HostMem,
+		Platform:        info.Platform,
+		Backend:         info.Backend,
+		Version:         info.Version,
+		ProtocolVersion: info.ProtocolVersion,
+		BuildDate:       info.BuildDate,
+		Capacity:        int32(info.Capacity),
+		CustomLabels:    info.CustomLabels,
+		LimitMem:        info.LimitMem,
+		LimitCpuQuota:   info.LimitCPUQuota,
+		HostCpus:        info.HostCPUs,
+		HostMem:         info.HostMem,
 	}
 
 	res, err := c.client.RegisterAgent(ctx, req)

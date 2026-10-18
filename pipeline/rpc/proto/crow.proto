@@ -19,7 +19,9 @@ option go_package = "codefloe.com/crowci/crow/v6/pipeline/rpc/proto";
 package proto;
 
 // !IMPORTANT!
-// Increased Version in version.go by 1 if you change something here!
+// Increase Version in version.go by 1 if you change something here!
+// Keep changes additive (new fields, new RPCs) so older agents keep working.
+// Only raise MinAgentVersion in version.go when a change breaks older agents.
 // !IMPORTANT!
 
 // Crow Server Service
@@ -138,6 +140,8 @@ message AgentInfo {
   // total resources of the machine running the workloads, 0 when unknown
   int32 host_cpus = 10;
   int64 host_mem = 11;
+  // protocol version the agent was built with, 0 for agents predating protocol negotiation
+  int32 protocol_version = 12;
 }
 
 message RegisterAgentRequest {
@@ -149,8 +153,13 @@ message RegisterAgentRequest {
 //
 
 message VersionResponse {
+  // frozen at the last version agents compared for an exact match, see LegacyVersion in version.go
   int32  grpc_version   = 1;
   string server_version = 2;
+  // protocol version the server was built with, 0 for servers predating protocol negotiation
+  int32  protocol_version = 3;
+  // oldest agent protocol version the server still accepts
+  int32  min_agent_protocol_version = 4;
 }
 
 message NextResponse {

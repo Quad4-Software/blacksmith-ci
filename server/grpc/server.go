@@ -54,8 +54,10 @@ func NewCrowServer(queue queue.Queue, logger logging.Log, pubsub pubsub.Publishe
 
 func (s *CrowServer) Version(_ context.Context, _ *proto.Empty) (*proto.VersionResponse, error) {
 	return &proto.VersionResponse{
-		GrpcVersion:   proto.Version,
-		ServerVersion: version.String(),
+		GrpcVersion:             proto.LegacyVersion,
+		ServerVersion:           version.String(),
+		ProtocolVersion:         proto.Version,
+		MinAgentProtocolVersion: proto.MinAgentVersion,
 	}, nil
 }
 
@@ -178,16 +180,17 @@ func (s *CrowServer) RegisterAgent(c context.Context, req *proto.RegisterAgentRe
 	res := new(proto.RegisterAgentResponse)
 	agentInfo := req.GetInfo()
 	agentID, agentName, err := s.peer.RegisterAgent(c, rpc.AgentInfo{
-		Version:       agentInfo.GetVersion(),
-		BuildDate:     agentInfo.GetBuildDate(),
-		Platform:      agentInfo.GetPlatform(),
-		Backend:       agentInfo.GetBackend(),
-		Capacity:      int(agentInfo.GetCapacity()),
-		CustomLabels:  agentInfo.GetCustomLabels(),
-		LimitMem:      agentInfo.GetLimitMem(),
-		LimitCPUQuota: agentInfo.GetLimitCpuQuota(),
-		HostCPUs:      agentInfo.GetHostCpus(),
-		HostMem:       agentInfo.GetHostMem(),
+		Version:         agentInfo.GetVersion(),
+		ProtocolVersion: agentInfo.GetProtocolVersion(),
+		BuildDate:       agentInfo.GetBuildDate(),
+		Platform:        agentInfo.GetPlatform(),
+		Backend:         agentInfo.GetBackend(),
+		Capacity:        int(agentInfo.GetCapacity()),
+		CustomLabels:    agentInfo.GetCustomLabels(),
+		LimitMem:        agentInfo.GetLimitMem(),
+		LimitCPUQuota:   agentInfo.GetLimitCpuQuota(),
+		HostCPUs:        agentInfo.GetHostCpus(),
+		HostMem:         agentInfo.GetHostMem(),
 	})
 	res.AgentId = agentID
 	res.AgentName = agentName

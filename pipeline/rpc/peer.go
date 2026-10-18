@@ -78,6 +78,10 @@ type (
 	Version struct {
 		GrpcVersion   int32  `json:"grpc_version,omitempty"`
 		ServerVersion string `json:"server_version,omitempty"`
+		// ProtocolVersion and MinAgentProtocolVersion are normalized, so servers
+		// predating protocol negotiation report GrpcVersion for both.
+		ProtocolVersion         int32 `json:"protocol_version,omitempty"`
+		MinAgentProtocolVersion int32 `json:"min_agent_protocol_version,omitempty"`
 	}
 
 	// AgentInfo represents all the metadata that should be known about an agent.
@@ -95,6 +99,9 @@ type (
 		// agent talks to a remote Docker daemon). Zero means unknown.
 		HostCPUs int32 `json:"host_cpus"`
 		HostMem  int64 `json:"host_mem"`
+		// ProtocolVersion is the agent's protocol version, see proto.Version.
+		// Zero means an agent predating protocol negotiation.
+		ProtocolVersion int32 `json:"protocol_version"`
 	}
 )
 

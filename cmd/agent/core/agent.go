@@ -318,13 +318,18 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 		log.Error().Err(err).Msg("could not get grpc server version")
 		return err
 	}
-	if grpcServerVersion.GrpcVersion != agent_rpc.ClientGrpcVersion {
-		err := errors.New("GRPC version mismatch")
-		log.Error().Err(err).Msgf("server version %s does report grpc version %d but we only understand %d",
-			grpcServerVersion.ServerVersion,
-			grpcServerVersion.GrpcVersion,
-			agent_rpc.ClientGrpcVersion)
+	if err := proto.CheckServerCompatibility(
+		grpcServerVersion.ProtocolVersion,
+		grpcServerVersion.MinAgentProtocolVersion,
+		agent_rpc.ClientGrpcVersion,
+		proto.MinServerVersion,
+	); err != nil {
+		log.Error().Err(err).Msgf("agent %s is not compatible with server %s", version.String(), grpcServerVersion.ServerVersion)
 		return err
+	}
+	if grpcServerVersion.ProtocolVersion != agent_rpc.ClientGrpcVersion {
+		log.Info().Msgf("server %s speaks protocol %d and agent %s speaks %d, features only one side knows are disabled",
+			grpcServerVersion.ServerVersion, grpcServerVersion.ProtocolVersion, version.String(), agent_rpc.ClientGrpcVersion)
 	}
 
 	// new engine
@@ -399,16 +404,17 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 	}
 
 	agentConfig.AgentID, agentName, err = client.RegisterAgent(grpcCtx, rpc.AgentInfo{ //nolint:contextcheck
-		Version:       version.String(),
-		BuildDate:     version.Date(),
-		Backend:       backendEngine.Name(),
-		Platform:      engInfo.Platform,
-		Capacity:      maxWorkflows,
-		CustomLabels:  customLabels,
-		LimitMem:      limitMem,
-		LimitCPUQuota: limitCPUQuota,
-		HostCPUs:      engInfo.HostCPUs,
-		HostMem:       engInfo.HostMem,
+		Version:         version.String(),
+		ProtocolVersion: agent_rpc.ClientGrpcVersion,
+		BuildDate:       version.Date(),
+		Backend:         backendEngine.Name(),
+		Platform:        engInfo.Platform,
+		Capacity:        maxWorkflows,
+		CustomLabels:    customLabels,
+		LimitMem:        limitMem,
+		LimitCPUQuota:   limitCPUQuota,
+		HostCPUs:        engInfo.HostCPUs,
+		HostMem:         engInfo.HostMem,
 	})
 	if err != nil {
 		log.Error().Err(err).Msg("failed to register agent with server")
@@ -439,16 +445,17 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 
 		log.Info().Msg("re-registering agent with server")
 		newAgentID, newAgentName, err := client.RegisterAgent(ctx, rpc.AgentInfo{
-			Version:       version.String(),
-			BuildDate:     version.Date(),
-			Backend:       backendEngine.Name(),
-			Platform:      engInfo.Platform,
-			Capacity:      maxWorkflows,
-			CustomLabels:  customLabels,
-			LimitMem:      limitMem,
-			LimitCPUQuota: limitCPUQuota,
-			HostCPUs:      engInfo.HostCPUs,
-			HostMem:       engInfo.HostMem,
+			Version:         version.String(),
+			ProtocolVersion: agent_rpc.ClientGrpcVersion,
+			BuildDate:       version.Date(),
+			Backend:         backendEngine.Name(),
+			Platform:        engInfo.Platform,
+			Capacity:        maxWorkflows,
+			CustomLabels:    customLabels,
+			LimitMem:        limitMem,
+			LimitCPUQuota:   limitCPUQuota,
+			HostCPUs:        engInfo.HostCPUs,
+			HostMem:         engInfo.HostMem,
 		})
 		if err != nil {
 			log.Error().Err(err).Msg("failed to re-register agent")

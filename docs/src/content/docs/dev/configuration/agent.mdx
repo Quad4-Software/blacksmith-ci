@@ -219,6 +219,20 @@ An agent that drives a remote Docker daemon reports the daemon's machine.
 Values are read once when the agent starts and refreshed whenever it re-registers.
 Agents older than the server simply report nothing, and the totals stay hidden for them.
 
+## Version Compatibility
+
+Agents and the server do not need to run the same Crow version.
+Each side reports the protocol version it was built with and the oldest version it still accepts, and the agent connects whenever both fall within range.
+Fields that only one side knows are ignored, so features added in a newer release stay inactive until both sides support them.
+
+The agent refuses to start and logs which side to update when:
+
+- the server requires a newer agent protocol than the agent speaks
+- the agent requires a newer server protocol than the server speaks
+
+The server only raises its minimum agent protocol for changes that older agents cannot read, so most server upgrades leave existing agents working.
+Agents released before Crow 6.12 still check for an exact protocol match, and the server keeps reporting the version they expect.
+
 ## Backend Options
 
 Configure backend-specific settings at the agent level. See [environment variables](/dev/configuration/env-vars/) for all `CROW_BACKEND_*` options.

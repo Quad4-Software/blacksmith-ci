@@ -844,10 +844,12 @@ type AgentInfo struct {
 	LimitCpuQuota int64                  `protobuf:"varint,8,opt,name=limit_cpu_quota,json=limitCpuQuota,proto3" json:"limit_cpu_quota,omitempty"`
 	BuildDate     string                 `protobuf:"bytes,9,opt,name=build_date,json=buildDate,proto3" json:"build_date,omitempty"`
 	// total resources of the machine running the workloads, 0 when unknown
-	HostCpus      int32 `protobuf:"varint,10,opt,name=host_cpus,json=hostCpus,proto3" json:"host_cpus,omitempty"`
-	HostMem       int64 `protobuf:"varint,11,opt,name=host_mem,json=hostMem,proto3" json:"host_mem,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	HostCpus int32 `protobuf:"varint,10,opt,name=host_cpus,json=hostCpus,proto3" json:"host_cpus,omitempty"`
+	HostMem  int64 `protobuf:"varint,11,opt,name=host_mem,json=hostMem,proto3" json:"host_mem,omitempty"`
+	// protocol version the agent was built with, 0 for agents predating protocol negotiation
+	ProtocolVersion int32 `protobuf:"varint,12,opt,name=protocol_version,json=protocolVersion,proto3" json:"protocol_version,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *AgentInfo) Reset() {
@@ -957,6 +959,13 @@ func (x *AgentInfo) GetHostMem() int64 {
 	return 0
 }
 
+func (x *AgentInfo) GetProtocolVersion() int32 {
+	if x != nil {
+		return x.ProtocolVersion
+	}
+	return 0
+}
+
 type RegisterAgentRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Info          *AgentInfo             `protobuf:"bytes,1,opt,name=info,proto3" json:"info,omitempty"`
@@ -1002,11 +1011,16 @@ func (x *RegisterAgentRequest) GetInfo() *AgentInfo {
 }
 
 type VersionResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	GrpcVersion   int32                  `protobuf:"varint,1,opt,name=grpc_version,json=grpcVersion,proto3" json:"grpc_version,omitempty"`
-	ServerVersion string                 `protobuf:"bytes,2,opt,name=server_version,json=serverVersion,proto3" json:"server_version,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// frozen at the last version agents compared for an exact match, see LegacyVersion in version.go
+	GrpcVersion   int32  `protobuf:"varint,1,opt,name=grpc_version,json=grpcVersion,proto3" json:"grpc_version,omitempty"`
+	ServerVersion string `protobuf:"bytes,2,opt,name=server_version,json=serverVersion,proto3" json:"server_version,omitempty"`
+	// protocol version the server was built with, 0 for servers predating protocol negotiation
+	ProtocolVersion int32 `protobuf:"varint,3,opt,name=protocol_version,json=protocolVersion,proto3" json:"protocol_version,omitempty"`
+	// oldest agent protocol version the server still accepts
+	MinAgentProtocolVersion int32 `protobuf:"varint,4,opt,name=min_agent_protocol_version,json=minAgentProtocolVersion,proto3" json:"min_agent_protocol_version,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *VersionResponse) Reset() {
@@ -1051,6 +1065,20 @@ func (x *VersionResponse) GetServerVersion() string {
 		return x.ServerVersion
 	}
 	return ""
+}
+
+func (x *VersionResponse) GetProtocolVersion() int32 {
+	if x != nil {
+		return x.ProtocolVersion
+	}
+	return 0
+}
+
+func (x *VersionResponse) GetMinAgentProtocolVersion() int32 {
+	if x != nil {
+		return x.MinAgentProtocolVersion
+	}
+	return 0
 }
 
 type NextResponse struct {
@@ -1739,7 +1767,7 @@ const file_crow_proto_rawDesc = "" +
 	"\x06status\x18\x01 \x01(\tR\x06status\x128\n" +
 	"\x18workflow_polling_healthy\x18\x02 \x01(\bR\x16workflowPollingHealthy\"+\n" +
 	"\x10ClaimTaskRequest\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId\"\xb8\x03\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\"\xe3\x03\n" +
 	"\tAgentInfo\x12\x1a\n" +
 	"\bplatform\x18\x01 \x01(\tR\bplatform\x12\x1a\n" +
 	"\bcapacity\x18\x02 \x01(\x05R\bcapacity\x12\x18\n" +
@@ -1753,15 +1781,18 @@ const file_crow_proto_rawDesc = "" +
 	"build_date\x18\t \x01(\tR\tbuildDate\x12\x1b\n" +
 	"\thost_cpus\x18\n" +
 	" \x01(\x05R\bhostCpus\x12\x19\n" +
-	"\bhost_mem\x18\v \x01(\x03R\ahostMem\x1a?\n" +
+	"\bhost_mem\x18\v \x01(\x03R\ahostMem\x12)\n" +
+	"\x10protocol_version\x18\f \x01(\x05R\x0fprotocolVersion\x1a?\n" +
 	"\x11CustomLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"<\n" +
 	"\x14RegisterAgentRequest\x12$\n" +
-	"\x04info\x18\x01 \x01(\v2\x10.proto.AgentInfoR\x04info\"[\n" +
+	"\x04info\x18\x01 \x01(\v2\x10.proto.AgentInfoR\x04info\"\xc3\x01\n" +
 	"\x0fVersionResponse\x12!\n" +
 	"\fgrpc_version\x18\x01 \x01(\x05R\vgrpcVersion\x12%\n" +
-	"\x0eserver_version\x18\x02 \x01(\tR\rserverVersion\";\n" +
+	"\x0eserver_version\x18\x02 \x01(\tR\rserverVersion\x12)\n" +
+	"\x10protocol_version\x18\x03 \x01(\x05R\x0fprotocolVersion\x12;\n" +
+	"\x1amin_agent_protocol_version\x18\x04 \x01(\x05R\x17minAgentProtocolVersion\";\n" +
 	"\fNextResponse\x12+\n" +
 	"\bworkflow\x18\x01 \x01(\v2\x0f.proto.WorkflowR\bworkflow\"Q\n" +
 	"\x15RegisterAgentResponse\x12\x19\n" +

@@ -69,8 +69,10 @@ type fakeCrowServer struct {
 
 func (f *fakeCrowServer) Version(context.Context, *proto.Empty) (*proto.VersionResponse, error) {
 	return &proto.VersionResponse{
-		GrpcVersion:   agent_rpc.ClientGrpcVersion,
-		ServerVersion: version.String(),
+		GrpcVersion:             proto.LegacyVersion,
+		ServerVersion:           version.String(),
+		ProtocolVersion:         proto.Version,
+		MinAgentProtocolVersion: proto.MinAgentVersion,
 	}, nil
 }
 

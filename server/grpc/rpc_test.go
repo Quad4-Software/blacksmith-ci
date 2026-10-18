@@ -26,9 +26,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 
 	"codefloe.com/crowci/crow/v6/pipeline/rpc"
+	"codefloe.com/crowci/crow/v6/pipeline/rpc/proto"
 	"codefloe.com/crowci/crow/v6/server/logging"
 	"codefloe.com/crowci/crow/v6/server/model"
 	"codefloe.com/crowci/crow/v6/server/pubsub"
@@ -63,6 +66,27 @@ func newTestGRPCMetrics() *GRPCMetrics {
 
 func TestRegisterAgent(t *testing.T) {
 	metrics := newTestGRPCMetrics()
+
+	t.Run("When the agent protocol is below the minimum it should reject the agent", func(t *testing.T) {
+		store := new(store_mocks.MockStore)
+		storeAgent := new(model.Agent)
+		storeAgent.ID = 1337
+		store.On("AgentFind", int64(1337)).Once().Return(storeAgent, nil)
+		grpc := RPC{
+			store:   store,
+			metrics: metrics,
+		}
+		ctx := metadata.NewIncomingContext(
+			t.Context(),
+			metadata.Pairs("hostname", "hostname", "agent_id", "1337"),
+		)
+		_, _, err := grpc.RegisterAgent(ctx, rpc.AgentInfo{
+			Version:         "version",
+			ProtocolVersion: proto.MinAgentVersion - 1,
+		})
+		assert.Equal(t, codes.FailedPrecondition, status.Code(err))
+		store.AssertNotCalled(t, "AgentUpdate", mock.Anything)
+	})
 
 	t.Run("When existing agent Name is empty it should update Name with hostname from metadata", func(t *testing.T) {
 		store := new(store_mocks.MockStore)
