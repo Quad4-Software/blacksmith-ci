@@ -421,8 +421,10 @@ steps:
 		},
 	}
 
+	// The steps of myworkflow mix implicit and explicit ordering, which the
+	// linter reports as a warning.
 	pipelineItems, err := b.Build()
-	if err != nil {
+	if errors.HasBlockingErrors(err) {
 		t.Fatal(err)
 	}
 

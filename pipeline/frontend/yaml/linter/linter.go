@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -109,6 +110,10 @@ func (l *Linter) lintFile(config *WorkflowConfig) error {
 		linterErr = errors.Join(linterErr, err)
 	}
 	if err := l.lintContainers(config, "services"); err != nil {
+		linterErr = errors.Join(linterErr, err)
+	}
+
+	if err := l.lintStepOrder(config); err != nil {
 		linterErr = errors.Join(linterErr, err)
 	}
 
@@ -338,34 +343,68 @@ func (l *Linter) lintDependsOn(config *WorkflowConfig, c *types.Container, area 
 	if area != "steps" {
 		return nil
 	}
+	field := fmt.Sprintf("%s.%s.depends_on", area, c.Name)
 
 	// Valid dependency targets are all work steps plus the clone steps. The
 	// clone step is implicit (named "clone" by default) unless the user defines
 	// custom clone containers, so a `depends_on: [clone]` must not be flagged.
-	validDeps := make(map[string]struct{}, len(config.Workflow.Steps.ContainerList)+len(config.Workflow.Clone.ContainerList)+1)
+	// The count of each name finds dependencies on a name that several steps
+	// share.
+	nameCount := make(map[string]int, len(config.Workflow.Steps.ContainerList)+len(config.Workflow.Clone.ContainerList)+1)
 	for _, step := range config.Workflow.Steps.ContainerList {
-		validDeps[step.Name] = struct{}{}
+		nameCount[step.Name]++
 	}
-	if len(config.Workflow.Clone.ContainerList) > 0 {
+	switch {
+	case len(config.Workflow.Clone.ContainerList) > 0:
 		for _, clone := range config.Workflow.Clone.ContainerList {
-			validDeps[clone.Name] = struct{}{}
+			nameCount[clone.Name]++
 		}
-	} else {
+	case !config.Workflow.SkipClone:
 		// implicit default clone step
-		validDeps[defaultCloneName] = struct{}{}
+		nameCount[defaultCloneName]++
+	case nameCount[defaultCloneName] == 0:
+		// keep accepting `depends_on: [clone]` when the clone is skipped
+		nameCount[defaultCloneName] = 1
 	}
 
 	var linterErr error
 	for _, dep := range c.DependsOn {
-		if _, ok := validDeps[dep]; ok {
+		switch count := nameCount[dep]; {
+		case count == 0:
+			linterErr = errors.Join(linterErr, newLinterError(
+				"One or more of the specified step dependencies do not exist. Double-check for typos.",
+				config.File, field, false,
+			))
+		case count > 1:
+			linterErr = errors.Join(linterErr, newLinterError(
+				fmt.Sprintf("%d steps are named `%s`, so this step waits only for the first of them. The others are renamed `%s (2)` and so on. Give each step a unique name.", count, dep, dep),
+				config.File, field, true,
+			))
+		}
+	}
+	return linterErr
+}
+
+// lintStepOrder warns about steps that run in parallel without the author
+// asking for it. As soon as one step of a workflow sets `depends_on`, every
+// step without it starts right after the clone instead of after the step above
+// it. The first step is not flagged, since it starts right after the clone
+// either way, and `depends_on: []` states that a step should start right away.
+func (l *Linter) lintStepOrder(config *WorkflowConfig) error {
+	steps := config.Workflow.Steps.ContainerList
+	if !slices.ContainsFunc(steps, func(step *types.Container) bool { return step.DependsOn != nil }) {
+		return nil
+	}
+
+	var linterErr error
+	for _, step := range steps[1:] {
+		if step.DependsOn != nil {
 			continue
 		}
-		linterErr = errors.Join(linterErr,
-			newLinterError(
-				"One or more of the specified step dependencies do not exist. Double-check for typos.",
-				config.File, fmt.Sprintf("%s.%s.depends_on", area, c.Name), false,
-			),
-		)
+		linterErr = errors.Join(linterErr, newLinterError(
+			"This step has no `depends_on` while other steps of the workflow do, so it starts right after the clone instead of after the step above it. Add `depends_on` to wait for other steps, or `depends_on: []` to start it right away.",
+			config.File, fmt.Sprintf("steps.%s", step.Name), true,
+		))
 	}
 	return linterErr
 }

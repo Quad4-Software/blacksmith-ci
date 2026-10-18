@@ -210,6 +210,22 @@ totallyUnknown: 1
 			wantMessage: "Unknown property `totallyUnknown`.",
 		},
 		{
+			name: "top-level property used where it is not allowed",
+			yaml: `steps:
+  test:
+    image: alpine
+    commands: echo hi
+services:
+  db:
+    image: postgres
+    depends_on: [test]
+`,
+			// depends_on is a valid top-level key, so it must not suggest itself.
+			wantField:   "services.db.depends_on",
+			wantLine:    8,
+			wantMessage: "Unknown property `depends_on`.",
+		},
+		{
 			name: "missing required steps key",
 			yaml: `when:
   - event: push

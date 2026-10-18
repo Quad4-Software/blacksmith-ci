@@ -34,6 +34,7 @@ steps:
       - event: pull_request
 
   dummy-web:
+    depends_on: []
     image: *golang_image
     commands:
       - mkdir -p web/dist/
@@ -67,6 +68,7 @@ steps:
     when: *when
 
   lint-license-header:
+    depends_on: []
     image: *golang_image
     commands:
       - go install github.com/google/addlicense@v1.2.0 # cspell:words addlicense

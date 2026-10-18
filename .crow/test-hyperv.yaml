@@ -70,6 +70,7 @@ steps:
   # comment first; the remaining template expressions all sit inside string
   # literals.
   scripts:
+    depends_on: []
     image: powershell
     commands:
       - |
@@ -90,6 +91,7 @@ steps:
   # Idempotent, like everything the autoscaler bootstrap runs at boot, which
   # uses the same script.
   network:
+    depends_on: []
     image: powershell
     commands:
       - .\contrib\hyperv\setup-nat-network.ps1 -SwitchName crow-nat

@@ -23,6 +23,7 @@ steps:
       - bun web/node_modules/prettier/bin/prettier.cjs --check .
 
   - name: commitlint
+    depends_on: []
     when:
       - event: pull_request
       - event: pull_request_edited

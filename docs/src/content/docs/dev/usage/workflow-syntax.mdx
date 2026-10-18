@@ -457,6 +457,7 @@ The value of `path` must be relative and is combined with the `base` path.
 
 Step names must be unique within a workflow, since `depends_on` references steps by name.
 If two steps share the same name, the first keeps it and each later duplicate is given a numeric suffix (e.g. `deploy`, `deploy (2)`, `deploy (3)`).
+A `depends_on` on a shared name waits only for the first of these steps, so the linter warns about it.
 
 ### commands
 
@@ -511,8 +512,9 @@ steps:
       repo: foo/bar
     depends_on: [build, test] # deploy will be executed after 'build' and 'test' finished
 
-  - name: test # will be executed immediately as no dependencies are set
+  - name: test # will be executed immediately
     image: <image>
+    depends_on: []
     commands:
       - go test
 ```
@@ -521,6 +523,10 @@ steps:
 A step can be started immediately by using an empty `depends_on: []`.
 Doing so for a single step will cause all other steps to be executed immediately if no further dependencies are specified.
 :::
+
+A step without `depends_on` also starts right after the clone once another step of the workflow sets it, rather than after the step above it.
+The linter warns about every such step except the first, so that a step does not run in parallel by accident.
+Set `depends_on: []` on a step that should start right away.
 
 Each step starts as soon as the steps it depends on have finished, rather than waiting for every step at the same depth of the graph.
 In the example above, `deploy` waits for `build` and `test` only.

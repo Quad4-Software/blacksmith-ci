@@ -257,7 +257,9 @@ func describeKind(k jsonschema.ErrorKind) string {
 	case *kind.AdditionalProperties:
 		if len(k.Properties) == 1 {
 			name := k.Properties[0]
-			if suggestion := findSimilarProperty(name); suggestion != "" {
+			// The suggestions are top-level properties, so a key that is valid at
+			// the top level but not where it was used would suggest itself.
+			if suggestion := findSimilarProperty(name); suggestion != "" && suggestion != name {
 				return fmt.Sprintf("Unknown property `%s`. Did you mean `%s`?", name, suggestion)
 			}
 			return fmt.Sprintf("Unknown property `%s`.", name)

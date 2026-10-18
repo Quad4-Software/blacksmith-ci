@@ -561,6 +561,114 @@ steps:
 	}
 }
 
+func TestLintDependsOnWarnings(t *testing.T) {
+	cases := []struct {
+		name string
+		yaml string
+		// fields of the warnings, each as "field: start of the message"
+		want []string
+	}{
+		{
+			name: "sequential steps",
+			yaml: `
+steps:
+  - name: build
+    image: golang
+    commands: [go build]
+  - name: test
+    image: golang
+    commands: [go test]
+`,
+		},
+		{
+			name: "steps without depends_on in a DAG",
+			yaml: `
+steps:
+  - name: build
+    image: golang
+    commands: [go build]
+  - name: lint
+    image: golang
+    commands: [go vet]
+  - name: test
+    image: golang
+    depends_on: [build]
+    commands: [go test]
+  - name: docs
+    image: golang
+    depends_on: []
+    commands: [make docs]
+`,
+			want: []string{"steps.lint: This step has no `depends_on`"},
+		},
+		{
+			name: "dependency on a shared step name",
+			yaml: `
+steps:
+  - name: build
+    image: golang
+    commands: [go build]
+  - name: build
+    image: golang
+    depends_on: []
+    commands: [go build ./cmd/...]
+  - name: test
+    image: golang
+    depends_on: [build]
+    commands: [go test]
+`,
+			want: []string{"steps.test.depends_on: 2 steps are named `build`"},
+		},
+		{
+			name: "step sharing the name of the clone step",
+			yaml: `
+steps:
+  - name: clone
+    image: golang
+    commands: [git submodule update --init]
+  - name: test
+    image: golang
+    depends_on: [clone]
+    commands: [go test]
+`,
+			want: []string{"steps.test.depends_on: 2 steps are named `clone`"},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			conf, err := yaml.ParseString(c.yaml)
+			require.NoError(t, err)
+			lintErr := linter.New().Lint([]*linter.WorkflowConfig{{
+				File:      ".crow/test.yaml",
+				RawConfig: c.yaml,
+				Workflow:  conf,
+			}})
+
+			// got holds the expected warnings that were found, all the fields of
+			// every depends_on warning, so that extra warnings fail the test.
+			var got, all []string
+			for _, lerr := range errors.GetPipelineErrors(lintErr) {
+				data, ok := lerr.Data.(*errors.LinterErrorData)
+				if !ok || !lerr.IsWarning || lerr.Type != errorTypes.PipelineErrorTypeLinter {
+					continue
+				}
+				for _, want := range c.want {
+					field, message, _ := strings.Cut(want, ": ")
+					if data.Field == field && strings.HasPrefix(lerr.Message, message) {
+						got = append(got, want)
+					}
+				}
+				if strings.Contains(lerr.Message, "depends_on") || strings.Contains(lerr.Message, "steps are named") {
+					all = append(all, data.Field)
+				}
+			}
+			assert.ElementsMatch(t, c.want, got)
+			assert.Len(t, all, len(c.want))
+		})
+	}
+}
+
 func TestLintPluginRestrictions(t *testing.T) {
 	cases := []struct {
 		name    string
