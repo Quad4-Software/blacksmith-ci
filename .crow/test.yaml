@@ -73,7 +73,7 @@ steps:
     commands:
       - apk add --no-cache -q git curl
       # renovate: datasource=github-releases depName=bufbuild/buf
-      - BUF_VERSION=v1.57.2
+      - BUF_VERSION=v1.74.0
       - curl -fsSL -o /usr/local/bin/buf "https://github.com/bufbuild/buf/releases/download/$${BUF_VERSION}/buf-Linux-$(uname -m)"
       - chmod +x /usr/local/bin/buf
       - git fetch -q --depth=1 "$${CI_REPO_CLONE_URL}" "$${CI_COMMIT_TARGET_BRANCH}"
