@@ -142,6 +142,8 @@ message AgentInfo {
   int64 host_mem = 11;
   // protocol version the agent was built with, 0 for agents predating protocol negotiation
   int32 protocol_version = 12;
+  // how the agent reacts to a restart request from the server: "restart" or empty for off
+  string remote_update = 13;
 }
 
 message RegisterAgentRequest {
@@ -177,6 +179,8 @@ message ClaimTaskResponse {
 
 message ReportHealthResponse {
   DockerCleanupConfig docker_cleanup_config = 1;
+  // an admin asked the agent to finish its workflows and exit, so its supervisor restarts it on a newer release
+  bool restart_requested = 2;
 }
 
 message DockerCleanupConfig {

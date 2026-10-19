@@ -204,11 +204,12 @@ func (s *CrowServer) UnregisterAgent(ctx context.Context, _ *proto.Empty) (*prot
 
 func (s *CrowServer) ReportHealth(c context.Context, req *proto.ReportHealthRequest) (*proto.ReportHealthResponse, error) {
 	res := new(proto.ReportHealthResponse)
-	cleanupConfig, err := s.peer.ReportHealth(c, req.GetStatus(), req.GetWorkflowPollingHealthy())
+	health, err := s.peer.ReportHealth(c, req.GetStatus(), req.GetWorkflowPollingHealthy())
 	if err != nil {
 		return res, err
 	}
-	if cleanupConfig != nil {
+	res.RestartRequested = health.RestartRequested
+	if cleanupConfig := health.DockerCleanup; cleanupConfig != nil {
 		res.DockerCleanupConfig = &proto.DockerCleanupConfig{
 			Enabled:               cleanupConfig.Enabled,
 			StaleThresholdSeconds: cleanupConfig.StaleThresholdSeconds,

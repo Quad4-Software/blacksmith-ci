@@ -537,23 +537,23 @@ func (_c *MockPeer_ReportDockerCleanup_Call) RunAndReturn(run func(c context.Con
 }
 
 // ReportHealth provides a mock function for the type MockPeer
-func (_mock *MockPeer) ReportHealth(c context.Context) (*rpc.DockerCleanupConfig, error) {
+func (_mock *MockPeer) ReportHealth(c context.Context) (*rpc.HealthResponse, error) {
 	ret := _mock.Called(c)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ReportHealth")
 	}
 
-	var r0 *rpc.DockerCleanupConfig
+	var r0 *rpc.HealthResponse
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context) (*rpc.DockerCleanupConfig, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context) (*rpc.HealthResponse, error)); ok {
 		return returnFunc(c)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context) *rpc.DockerCleanupConfig); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context) *rpc.HealthResponse); ok {
 		r0 = returnFunc(c)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*rpc.DockerCleanupConfig)
+			r0 = ret.Get(0).(*rpc.HealthResponse)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context) error); ok {
@@ -588,12 +588,12 @@ func (_c *MockPeer_ReportHealth_Call) Run(run func(c context.Context)) *MockPeer
 	return _c
 }
 
-func (_c *MockPeer_ReportHealth_Call) Return(dockerCleanupConfig *rpc.DockerCleanupConfig, err error) *MockPeer_ReportHealth_Call {
-	_c.Call.Return(dockerCleanupConfig, err)
+func (_c *MockPeer_ReportHealth_Call) Return(healthResponse *rpc.HealthResponse, err error) *MockPeer_ReportHealth_Call {
+	_c.Call.Return(healthResponse, err)
 	return _c
 }
 
-func (_c *MockPeer_ReportHealth_Call) RunAndReturn(run func(c context.Context) (*rpc.DockerCleanupConfig, error)) *MockPeer_ReportHealth_Call {
+func (_c *MockPeer_ReportHealth_Call) RunAndReturn(run func(c context.Context) (*rpc.HealthResponse, error)) *MockPeer_ReportHealth_Call {
 	_c.Call.Return(run)
 	return _c
 }

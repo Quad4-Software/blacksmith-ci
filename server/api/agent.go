@@ -23,10 +23,13 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 
 	"codefloe.com/crowci/crow/v6/pipeline"
+	"codefloe.com/crowci/crow/v6/pipeline/rpc"
 	"codefloe.com/crowci/crow/v6/server"
 	"codefloe.com/crowci/crow/v6/server/model"
 	"codefloe.com/crowci/crow/v6/server/router/middleware/session"
+	"codefloe.com/crowci/crow/v6/server/services/agentrestart"
 	"codefloe.com/crowci/crow/v6/server/store"
+	"codefloe.com/crowci/crow/v6/version"
 )
 
 // validateOrgIDs ensures every referenced organization exists.
@@ -288,6 +291,81 @@ func PostAgent(ctx context.Context, input *PostAgentInput) (*PostAgentOutput, er
 		Agent: *agent,
 		Token: agent.Token,
 	}}, nil
+}
+
+type AgentRestartInput struct {
+	AgentID int64 `path:"agent_id" doc:"the agent's id"`
+}
+
+// PostAgentRestart asks an agent to restart onto a newer release. The server
+// stops handing the agent work at once, the agent finishes its running
+// workflows, exits, and its supervisor starts it again. The request is cleared
+// when the agent registers again.
+func PostAgentRestart(ctx context.Context, input *AgentRestartInput) (*PatchAgentOutput, error) {
+	return setAgentRestartRequested(ctx, input.AgentID, true)
+}
+
+// DeleteAgentRestart withdraws a restart request the agent has not acted on yet.
+func DeleteAgentRestart(ctx context.Context, input *AgentRestartInput) (*PatchAgentOutput, error) {
+	return setAgentRestartRequested(ctx, input.AgentID, false)
+}
+
+func setAgentRestartRequested(ctx context.Context, agentID int64, requested bool) (*PatchAgentOutput, error) {
+	c := ginCtx(ctx)
+	_store := store.FromContext(c)
+	agent, err := _store.AgentFind(agentID)
+	if err != nil {
+		return nil, dbErr(err)
+	}
+
+	if requested && agent.RemoteUpdate != rpc.RemoteUpdateRestart {
+		return nil, huma.Error409Conflict("the agent does not accept restart requests, set CROW_AGENT_REMOTE_UPDATE=restart on the agent to allow them")
+	}
+
+	if err := _store.AgentSetRestartRequested(agent.ID, requested); err != nil {
+		return nil, huma.Error500InternalServerError("Error updating agent", err)
+	}
+	agent.RestartRequested = requested
+	agent.RestartQueued = false
+	if requested {
+		// Release the agent's waiting polls so none of them picks up new work.
+		server.Config.Services.Queue.KickAgentWorkers(agent.ID)
+	}
+
+	return &PatchAgentOutput{Body: agent}, nil
+}
+
+type PostAgentRestartsOutput struct {
+	Body struct {
+		Queued int `json:"queued" doc:"number of agents queued for a restart"`
+	}
+}
+
+// PostAgentRestarts queues a restart for every agent that accepts restart
+// requests and runs a release other than the server's. The queued agents
+// restart a few at a time, limited by CROW_AGENT_AUTO_RESTART_MAX_PARALLEL, so
+// the instance keeps capacity while they update.
+func PostAgentRestarts(ctx context.Context, _ *struct{}) (*PostAgentRestartsOutput, error) {
+	c := ginCtx(ctx)
+	_store := store.FromContext(c)
+	agents, err := _store.AgentList(&model.AgentListOptions{ListOptions: model.ListOptions{All: true}})
+	if err != nil {
+		return nil, huma.Error500InternalServerError("Error listing agents", err)
+	}
+
+	out := &PostAgentRestartsOutput{}
+	serverVersion := version.String()
+	for _, agent := range agents {
+		if agent.RemoteUpdate != rpc.RemoteUpdateRestart || agent.RestartRequested || agent.RestartQueued ||
+			!agentrestart.ReleaseDiffers(agent, serverVersion) {
+			continue
+		}
+		if err := _store.AgentQueueRestart(agent.ID); err != nil {
+			return nil, huma.Error500InternalServerError("Error queueing agent restart", err)
+		}
+		out.Body.Queued++
+	}
+	return out, nil
 }
 
 type DeleteAgentInput struct {

@@ -36,6 +36,7 @@ import (
 	mocks_manager "codefloe.com/crowci/crow/v6/server/services/mocks"
 	store_mocks "codefloe.com/crowci/crow/v6/server/store/mocks"
 	"codefloe.com/crowci/crow/v6/server/store/types"
+	"codefloe.com/crowci/crow/v6/version"
 )
 
 var fakeAgent = &model.Agent{
@@ -582,4 +583,73 @@ func TestPostAgentRejectsReservedCustomLabels(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAgentRestart(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	newCtx := func(mockStore *store_mocks.MockStore) context.Context {
+		c, _ := gin.CreateTestContext(httptest.NewRecorder())
+		c.Set("store", mockStore)
+		c.Request, _ = http.NewRequest(http.MethodPost, "/", nil)
+		return testCtx(c)
+	}
+
+	t.Run("should request a restart and release the agent's polls", func(t *testing.T) {
+		mockStore := new(store_mocks.MockStore)
+		mockStore.On("AgentFind", int64(1)).Return(&model.Agent{ID: 1, RemoteUpdate: "restart"}, nil)
+		mockStore.On("AgentSetRestartRequested", int64(1), true).Return(nil)
+		mockQueue := new(queue_mocks.MockQueue)
+		mockQueue.On("KickAgentWorkers", int64(1)).Return()
+		server.Config.Services.Queue = mockQueue
+
+		out, err := PostAgentRestart(newCtx(mockStore), &AgentRestartInput{AgentID: 1})
+
+		assert.NoError(t, err)
+		assert.True(t, out.Body.RestartRequested)
+		mockStore.AssertCalled(t, "AgentSetRestartRequested", int64(1), true)
+		mockQueue.AssertCalled(t, "KickAgentWorkers", int64(1))
+	})
+
+	t.Run("should refuse agents that do not accept restart requests", func(t *testing.T) {
+		mockStore := new(store_mocks.MockStore)
+		mockStore.On("AgentFind", int64(1)).Return(&model.Agent{ID: 1}, nil)
+
+		_, err := PostAgentRestart(newCtx(mockStore), &AgentRestartInput{AgentID: 1})
+
+		var humaErr huma.StatusError
+		if assert.ErrorAs(t, err, &humaErr) {
+			assert.Equal(t, http.StatusConflict, humaErr.GetStatus())
+		}
+		mockStore.AssertNotCalled(t, "AgentSetRestartRequested", mock.Anything, mock.Anything)
+	})
+
+	t.Run("should withdraw a request for any agent", func(t *testing.T) {
+		mockStore := new(store_mocks.MockStore)
+		mockStore.On("AgentFind", int64(1)).Return(&model.Agent{ID: 1, RestartRequested: true}, nil)
+		mockStore.On("AgentSetRestartRequested", int64(1), false).Return(nil)
+
+		out, err := DeleteAgentRestart(newCtx(mockStore), &AgentRestartInput{AgentID: 1})
+
+		assert.NoError(t, err)
+		assert.False(t, out.Body.RestartRequested)
+	})
+
+	t.Run("should queue every opted-in agent on another release", func(t *testing.T) {
+		mockStore := new(store_mocks.MockStore)
+		mockStore.On("AgentList", mock.Anything).Return([]*model.Agent{
+			{ID: 1, RemoteUpdate: "restart", Version: "0.0.1"},
+			{ID: 2, RemoteUpdate: "restart", Version: version.String()},
+			{ID: 3, Version: "0.0.1"},
+			{ID: 4, RemoteUpdate: "restart", Version: "0.0.1", RestartRequested: true},
+			{ID: 5, RemoteUpdate: "restart", Version: "0.0.1", RestartQueued: true},
+		}, nil)
+		mockStore.On("AgentQueueRestart", int64(1)).Return(nil)
+
+		out, err := PostAgentRestarts(newCtx(mockStore), nil)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 1, out.Body.Queued)
+		mockStore.AssertNumberOfCalls(t, "AgentQueueRestart", 1)
+	})
 }

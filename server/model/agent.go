@@ -61,6 +61,23 @@ type Agent struct {
 	// ProtocolVersion is the agent protocol version reported on registration.
 	// Zero means the agent has not registered since the server started recording it.
 	ProtocolVersion int32 `json:"protocol_version" bun:"protocol_version"`
+	// RemoteUpdate is how the agent reacts to a restart request, "restart" or
+	// empty when it ignores them. Reported by the agent on registration.
+	RemoteUpdate string `json:"remote_update" bun:"remote_update,type:varchar(20)"`
+	// RestartRequested makes the server stop handing the agent work and ask it
+	// to exit once idle. Cleared when the agent registers again. Written only
+	// through AgentSetRestartRequested, so a concurrent AgentUpdate from a
+	// health report cannot undo a request.
+	RestartRequested bool `json:"restart_requested" bun:"restart_requested"`
+	// RestartQueued marks the agent for a restart that waits for a free slot
+	// under the parallel restart limit. Written only through the restart store
+	// methods, like RestartRequested.
+	RestartQueued bool `json:"restart_queued" bun:"restart_queued"`
+	// AutoRestartVersion is the server release under which the automatic
+	// restart policy last asked the agent to restart. The policy asks at most
+	// once per server release, so an agent that comes back on the same old
+	// release is not restarted in a loop.
+	AutoRestartVersion string `json:"-" bun:"auto_restart_version,type:varchar(255)"`
 	// OrgIDs scopes the agent to one or more organizations. An empty list means
 	// the agent is global and can process tasks from any organization.
 	OrgIDs JSONSliceInt64 `json:"org_ids" bun:"org_ids,type:text"`

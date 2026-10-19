@@ -82,6 +82,12 @@ var flags = []cli.Flag{
 		Usage:   "retire the agent after this many workflows: it stops polling, unregisters and exits 0. Requires a supervisor that does not restart it. 0 disables the limit",
 		Value:   0,
 	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_AGENT_REMOTE_UPDATE"),
+		Name:    "remote-update",
+		Usage:   "how the agent reacts when an admin requests an update: 'restart' finishes running workflows and exits non-zero so the supervisor restarts it on a newer image, 'off' ignores the request",
+		Value:   remoteUpdateOff,
+	},
 	&cli.BoolFlag{
 		Sources: cli.EnvVars("WOODPECKER_HEALTHCHECK", "CROW_HEALTHCHECK"),
 		Name:    "healthcheck",

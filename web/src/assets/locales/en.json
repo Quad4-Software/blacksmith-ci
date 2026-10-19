@@ -869,6 +869,22 @@
           "incompatible": "Incompatible: the agent speaks protocol {agent} but the server requires at least {min}. Update the agent to reconnect.",
           "protocol": "Protocol"
         },
+        "restart": {
+          "request": "Restart to update",
+          "cancel": "Cancel restart",
+          "pending": "Restarting after current workflows",
+          "not_accepted": "This agent ignores restart requests. Set CROW_AGENT_REMOTE_UPDATE=restart on the agent to allow them.",
+          "confirm_title": "Restart this agent?",
+          "confirm_text": "The agent stops taking new workflows, finishes the running ones and exits, so its supervisor starts it again on the configured image. It only picks up a newer release if the image tag points to one and the image is pulled on restart.",
+          "requested": "The agent restarts once its running workflows finish.",
+          "queued": "Restart queued",
+          "queued_hint": "Waits for another agent to finish restarting",
+          "all": "Restart outdated agents",
+          "all_confirm_title": "Restart all outdated agents?",
+          "all_confirm_text": "Every agent that accepts restart requests and runs a release other than {version} is queued. At most {count} drain at the same time, so the others keep taking workflows until it is their turn.",
+          "all_queued": "No agent to restart | One agent queued for a restart | {count} agents queued for a restart",
+          "auto": "Auto restart: {policy}"
+        },
         "last_contact": {
           "last_contact": "Last contact",
           "label": "Last Seen"

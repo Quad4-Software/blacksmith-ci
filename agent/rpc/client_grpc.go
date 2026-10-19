@@ -908,6 +908,7 @@ func (c *client) RegisterAgent(ctx context.Context, info rpc.AgentInfo) (int64, 
 		Backend:         info.Backend,
 		Version:         info.Version,
 		ProtocolVersion: info.ProtocolVersion,
+		RemoteUpdate:    info.RemoteUpdate,
 		BuildDate:       info.BuildDate,
 		Capacity:        int32(info.Capacity),
 		CustomLabels:    info.CustomLabels,
@@ -929,7 +930,7 @@ func (c *client) UnregisterAgent(ctx context.Context) error {
 	return err
 }
 
-func (c *client) ReportHealth(ctx context.Context) (cleanupConfig *rpc.DockerCleanupConfig, err error) {
+func (c *client) ReportHealth(ctx context.Context) (health *rpc.HealthResponse, err error) {
 	retry := c.newBackOff()
 	req := new(proto.ReportHealthRequest)
 	req.Status = "I am alive!"
@@ -959,17 +960,18 @@ func (c *client) ReportHealth(ctx context.Context) (cleanupConfig *rpc.DockerCle
 			}
 			operationalLogMutex.Unlock()
 
+			health = &rpc.HealthResponse{RestartRequested: res.GetRestartRequested()}
 			// Extract Docker cleanup config from response
 			if res.GetDockerCleanupConfig() != nil {
 				cfg := res.GetDockerCleanupConfig()
-				cleanupConfig = &rpc.DockerCleanupConfig{
+				health.DockerCleanup = &rpc.DockerCleanupConfig{
 					Enabled:               cfg.GetEnabled(),
 					StaleThresholdSeconds: cfg.GetStaleThresholdSeconds(),
 					IntervalSeconds:       cfg.GetIntervalSeconds(),
 					RunNow:                cfg.GetRunNow(),
 				}
 			}
-			return cleanupConfig, nil
+			return health, nil
 		}
 
 		// NOTE: Unlike workflow polling, "sql: no rows" is a REAL error for health reporting.

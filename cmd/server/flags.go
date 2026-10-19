@@ -292,6 +292,18 @@ var flags = append([]cli.Flag{
 		Name:    "disable-user-agent-registration",
 		Usage:   "Disable user registered agents",
 	},
+	&cli.StringFlag{
+		Sources: cli.EnvVars("CROW_AGENT_AUTO_RESTART"),
+		Name:    "agent-auto-restart",
+		Usage:   "restart agents that accept remote restarts without an admin asking: off, outdated (older protocol than the server) or release (any other release)",
+		Value:   "off",
+	},
+	&cli.IntFlag{
+		Sources: cli.EnvVars("CROW_AGENT_AUTO_RESTART_MAX_PARALLEL"),
+		Name:    "agent-auto-restart-max-parallel",
+		Usage:   "how many agents may drain for a queued or automatic restart at the same time",
+		Value:   1,
+	},
 	&cli.DurationFlag{
 		Sources: cli.EnvVars("WOODPECKER_KEEPALIVE_MIN_TIME", "CROW_KEEPALIVE_MIN_TIME"),
 		Name:    "keepalive-min-time",

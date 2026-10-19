@@ -93,6 +93,13 @@ func (s *State) ActiveTaskUUIDs() map[string]struct{} {
 	return active
 }
 
+// Idle reports whether no workflow is running.
+func (s *State) Idle() bool {
+	s.Lock()
+	defer s.Unlock()
+	return s.Running == 0
+}
+
 // RunnerStarted records that a workflow runner goroutine has started.
 func (s *State) RunnerStarted() {
 	s.Lock()

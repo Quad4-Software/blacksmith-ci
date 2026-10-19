@@ -922,6 +922,21 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 		Summary: "Delete an agent", Tags: []string{"Agents"},
 		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermAgentsWrite)},
 	}, api.DeleteAgent)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "post-agent-restart", Method: http.MethodPost, Path: "/agents/{agent_id}/restart",
+		Summary: "Ask an agent to restart onto a newer release once its workflows finish", Tags: []string{"Agents"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermAgentsWrite)},
+	}, api.PostAgentRestart)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "delete-agent-restart", Method: http.MethodDelete, Path: "/agents/{agent_id}/restart",
+		Summary: "Withdraw a pending agent restart request", Tags: []string{"Agents"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermAgentsWrite)},
+	}, api.DeleteAgentRestart)
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "post-agent-restarts", Method: http.MethodPost, Path: "/agents/restarts",
+		Summary: "Queue a restart for every agent on another release than the server", Tags: []string{"Agents"},
+		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermAgentsWrite)},
+	}, api.PostAgentRestarts)
 
 	// ── Autoscalers ──────────────────────────────────────────────────────
 	huma.Register(humaAPI, huma.Operation{

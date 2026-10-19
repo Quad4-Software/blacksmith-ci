@@ -705,6 +705,18 @@ export default class CrowClient extends ApiClient {
     return this._delete(`/api/v1/agents/${agent.id}`);
   }
 
+  async requestAgentRestart(agentId: Agent['id']): Promise<Agent> {
+    return this._post(`/api/v1/agents/${agentId}/restart`) as Promise<Agent>;
+  }
+
+  async cancelAgentRestart(agentId: Agent['id']): Promise<Agent> {
+    return this._delete(`/api/v1/agents/${agentId}/restart`) as Promise<Agent>;
+  }
+
+  async queueAgentRestarts(): Promise<{ queued: number }> {
+    return this._post('/api/v1/agents/restarts') as Promise<{ queued: number }>;
+  }
+
   async getOrgAgents(orgId: number, opts?: PaginationOptions): Promise<Agent[] | null> {
     const query = encodeQueryString(opts);
     return this._get(`/api/v1/orgs/${orgId}/agents?${query}`) as Promise<Agent[] | null>;

@@ -141,7 +141,37 @@ func (s storage) AgentCreate(agent *model.Agent) error {
 }
 
 func (s storage) AgentUpdate(agent *model.Agent) error {
-	_, err := s.db.NewUpdate().Model(agent).WherePK().Exec(context.Background())
+	_, err := s.db.NewUpdate().Model(agent).WherePK().
+		ExcludeColumn("restart_requested", "restart_queued", "auto_restart_version").
+		Exec(context.Background())
+	return err
+}
+
+func (s storage) AgentSetRestartRequested(agentID int64, requested bool) error {
+	_, err := s.db.NewUpdate().Model((*model.Agent)(nil)).
+		Set("restart_requested = ?", requested).
+		Set("restart_queued = ?", false).
+		Where("id = ?", agentID).
+		Exec(context.Background())
+	return err
+}
+
+func (s storage) AgentQueueRestart(agentID int64) error {
+	_, err := s.db.NewUpdate().Model((*model.Agent)(nil)).
+		Set("restart_queued = ?", true).
+		Where("id = ?", agentID).
+		Where("restart_requested IS NOT TRUE").
+		Exec(context.Background())
+	return err
+}
+
+func (s storage) AgentRequestAutoRestart(agentID int64, serverVersion string) error {
+	_, err := s.db.NewUpdate().Model((*model.Agent)(nil)).
+		Set("restart_requested = ?", true).
+		Set("restart_queued = ?", false).
+		Set("auto_restart_version = ?", serverVersion).
+		Where("id = ?", agentID).
+		Exec(context.Background())
 	return err
 }
 

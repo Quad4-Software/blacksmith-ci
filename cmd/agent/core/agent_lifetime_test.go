@@ -59,6 +59,11 @@ type fakeCrowServer struct {
 	// can stop the agent at a chosen point.
 	onDone func(workflowID string)
 
+	// restartRequested is returned from every health report.
+	restartRequested bool
+	// onHealth, when set, is called after every health report.
+	onHealth func()
+
 	mu           sync.Mutex
 	queue        []*proto.Workflow
 	nextCalls    int
@@ -88,7 +93,10 @@ func (f *fakeCrowServer) UnregisterAgent(context.Context, *proto.Empty) (*proto.
 }
 
 func (f *fakeCrowServer) ReportHealth(context.Context, *proto.ReportHealthRequest) (*proto.ReportHealthResponse, error) {
-	return &proto.ReportHealthResponse{}, nil
+	if f.onHealth != nil {
+		f.onHealth()
+	}
+	return &proto.ReportHealthResponse{RestartRequested: f.restartRequested}, nil
 }
 
 func (f *fakeCrowServer) Next(ctx context.Context, _ *proto.NextRequest) (*proto.NextResponse, error) {

@@ -8,6 +8,12 @@ export interface AgentProtocol {
   min_agent: number;
 }
 
+// AgentAutoRestart is how the server rolls restarts out to agents that accept them.
+export interface AgentAutoRestart {
+  policy: '' | 'off' | 'outdated' | 'release';
+  max_parallel: number;
+}
+
 export interface AuthConfig {
   oidc: { enabled: boolean; name: string };
   ldap: { enabled: boolean; name: string };
@@ -32,6 +38,7 @@ declare global {
     CROW_AUTH: AuthConfig | undefined;
     CROW_CUSTOM_THEMES: CustomThemeConfig[] | null | undefined;
     CROW_AGENT_PROTOCOL: AgentProtocol | undefined;
+    CROW_AGENT_AUTO_RESTART: AgentAutoRestart | undefined;
   }
 }
 
@@ -47,6 +54,7 @@ export default () => ({
   userRegisteredAgents: window.CROW_USER_REGISTERED_AGENTS || false,
   schedulingStrategy: window.CROW_SCHEDULING_STRATEGY ?? '',
   agentProtocol: window.CROW_AGENT_PROTOCOL ?? null,
+  agentAutoRestart: window.CROW_AGENT_AUTO_RESTART ?? null,
   auth: window.CROW_AUTH ?? {
     oidc: { enabled: false, name: '' },
     ldap: { enabled: false, name: '' },

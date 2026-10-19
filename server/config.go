@@ -27,6 +27,7 @@ import (
 	"codefloe.com/crowci/crow/v6/server/pubsub"
 	"codefloe.com/crowci/crow/v6/server/queue"
 	"codefloe.com/crowci/crow/v6/server/services"
+	"codefloe.com/crowci/crow/v6/server/services/agentrestart"
 	"codefloe.com/crowci/crow/v6/server/services/buildcache"
 	"codefloe.com/crowci/crow/v6/server/services/ciquota"
 	"codefloe.com/crowci/crow/v6/server/services/integration"
@@ -85,6 +86,10 @@ var Config = struct {
 	}
 	Agent struct {
 		DisableUserRegisteredAgentRegistration bool
+		// AutoRestart selects the agents restarted without an admin asking.
+		AutoRestart agentrestart.Policy
+		// AutoRestartMaxParallel caps how many agents drain for a restart at once.
+		AutoRestartMaxParallel int
 	}
 	WebUI struct {
 		EnableSwagger    bool

@@ -39,6 +39,7 @@ import (
 	"codefloe.com/crowci/crow/v6/server/cron"
 	"codefloe.com/crowci/crow/v6/server/router"
 	"codefloe.com/crowci/crow/v6/server/router/middleware"
+	"codefloe.com/crowci/crow/v6/server/services/agentrestart"
 	"codefloe.com/crowci/crow/v6/server/services/lock"
 	"codefloe.com/crowci/crow/v6/server/store"
 	"codefloe.com/crowci/crow/v6/server/web"
@@ -148,6 +149,21 @@ func run(ctx context.Context, c *cli.Command) error {
 			return err
 		}
 		log.Info().Msg("cron service stopped")
+		return nil
+	})
+
+	// agent restart rollout: promotes queued restarts and applies
+	// CROW_AGENT_AUTO_RESTART, keeping the number of draining agents within the
+	// limit. Runs on the instance holding the leader lock.
+	serviceWaitingGroup.Go(func() error {
+		log.Info().Str("policy", string(server.Config.Agent.AutoRestart)).Msg("starting agent restart rollout ...")
+		agentrestart.Run(ctx, _store, lock.NewService(_store, server.Config.Server.InstanceID), c.Duration("cron-lock-ttl"), agentrestart.Config{
+			Policy:        server.Config.Agent.AutoRestart,
+			MaxParallel:   server.Config.Agent.AutoRestartMaxParallel,
+			ServerVersion: version.String(),
+			Kick:          server.Config.Services.Queue.KickAgentWorkers,
+		})
+		log.Info().Msg("agent restart rollout stopped")
 		return nil
 	})
 

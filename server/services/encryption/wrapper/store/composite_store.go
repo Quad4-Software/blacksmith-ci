@@ -692,6 +692,18 @@ func (c *CompositeEncryptedStore) AgentUpdate(agent *model.Agent) error {
 	return c.baseStore.AgentUpdate(agent)
 }
 
+func (c *CompositeEncryptedStore) AgentSetRestartRequested(agentID int64, requested bool) error {
+	return c.baseStore.AgentSetRestartRequested(agentID, requested)
+}
+
+func (c *CompositeEncryptedStore) AgentQueueRestart(agentID int64) error {
+	return c.baseStore.AgentQueueRestart(agentID)
+}
+
+func (c *CompositeEncryptedStore) AgentRequestAutoRestart(agentID int64, serverVersion string) error {
+	return c.baseStore.AgentRequestAutoRestart(agentID, serverVersion)
+}
+
 func (c *CompositeEncryptedStore) AgentDelete(agent *model.Agent) error {
 	return c.baseStore.AgentDelete(agent)
 }

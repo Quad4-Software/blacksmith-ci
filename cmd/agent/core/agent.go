@@ -141,6 +141,10 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 	if err := validateGRPCConfig(c.String("server"), c.Bool("grpc-secure")); err != nil {
 		return err
 	}
+	remoteUpdate, err := validateRemoteUpdate(c.String("remote-update"))
+	if err != nil {
+		return err
+	}
 
 	agentCtx, ctxCancel := context.WithCancelCause(ctx)
 	// Guard the body with a Once rather than having stopAgentFunc overwrite
@@ -406,6 +410,7 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 	agentConfig.AgentID, agentName, err = client.RegisterAgent(grpcCtx, rpc.AgentInfo{ //nolint:contextcheck
 		Version:         version.String(),
 		ProtocolVersion: agent_rpc.ClientGrpcVersion,
+		RemoteUpdate:    remoteUpdate,
 		BuildDate:       version.Date(),
 		Backend:         backendEngine.Name(),
 		Platform:        engInfo.Platform,
@@ -447,6 +452,7 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 		newAgentID, newAgentName, err := client.RegisterAgent(ctx, rpc.AgentInfo{
 			Version:         version.String(),
 			ProtocolVersion: agent_rpc.ClientGrpcVersion,
+			RemoteUpdate:    remoteUpdate,
 			BuildDate:       version.Date(),
 			Backend:         backendEngine.Name(),
 			Platform:        engInfo.Platform,
@@ -543,10 +549,23 @@ func run(ctx context.Context, c *cli.Command, backends []types.Backend) error {
 	var dockerCleanupConfig atomic.Pointer[rpc.DockerCleanupConfig]
 	dockerCleanupRunNow := make(chan struct{}, 1) // signal channel for immediate cleanup
 
+	restart := &remoteRestart{
+		mode:  remoteUpdate,
+		state: counter,
+		start: func(drain func() error) { serviceWaitingGroup.Go(runWithRecover("remote-restart", drain)) },
+	}
+
 	serviceWaitingGroup.Go(runWithRecover("health-reporting", func() error {
 		log.Trace().Msg("health reporting goroutine started")
 		for {
-			cleanupCfg, err := client.ReportHealth(grpcCtx)
+			health, err := client.ReportHealth(grpcCtx)
+			if health != nil && health.RestartRequested {
+				restart.request(agentCtx)
+			}
+			var cleanupCfg *rpc.DockerCleanupConfig
+			if health != nil {
+				cleanupCfg = health.DockerCleanup
+			}
 			if cleanupCfg != nil {
 				dockerCleanupConfig.Store(cleanupCfg)
 				// Wake up cleanup goroutine immediately if RunNow is set

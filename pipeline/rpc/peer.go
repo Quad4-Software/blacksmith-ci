@@ -22,7 +22,20 @@ import (
 	backend "codefloe.com/crowci/crow/v6/pipeline/backend/types"
 )
 
+// RemoteUpdateRestart is the remote update mode in which the agent drains and
+// exits when the server asks it to restart.
+const RemoteUpdateRestart = "restart"
+
 type (
+	// HealthResponse is the server's answer to a health report.
+	HealthResponse struct {
+		// DockerCleanup is set for Docker agents only.
+		DockerCleanup *DockerCleanupConfig `json:"docker_cleanup,omitempty"`
+		// RestartRequested asks the agent to finish its workflows and exit so
+		// its supervisor restarts it, see AgentInfo.RemoteUpdate.
+		RestartRequested bool `json:"restart_requested,omitempty"`
+	}
+
 	// DockerCleanupConfig holds cleanup configuration sent from server to agent.
 	DockerCleanupConfig struct {
 		Enabled               bool  `json:"enabled"`
@@ -102,6 +115,9 @@ type (
 		// ProtocolVersion is the agent's protocol version, see proto.Version.
 		// Zero means an agent predating protocol negotiation.
 		ProtocolVersion int32 `json:"protocol_version"`
+		// RemoteUpdate is the agent's remote update mode, RemoteUpdateRestart
+		// or empty when the agent ignores restart requests.
+		RemoteUpdate string `json:"remote_update"`
 	}
 )
 
@@ -138,7 +154,7 @@ type Peer interface {
 	UnregisterAgent(ctx context.Context) error
 
 	// ReportHealth reports health status of the agent to the server and receives config
-	ReportHealth(c context.Context) (*DockerCleanupConfig, error)
+	ReportHealth(c context.Context) (*HealthResponse, error)
 
 	// ReportDockerCleanup sends Docker cleanup results to the server
 	ReportDockerCleanup(c context.Context, result DockerCleanupResult) error

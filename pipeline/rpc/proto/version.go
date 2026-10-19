@@ -20,7 +20,7 @@ import "fmt"
 // IMPORTANT: increase by 1 each time crow.proto changes.
 // Bumping it no longer disconnects older agents: it only lets each side tell
 // which fields and RPCs the other one understands.
-const Version int32 = 20
+const Version int32 = 21
 
 // MinAgentVersion is the oldest agent protocol version the server accepts.
 // Raise it only when a change breaks older agents, such as removing or

@@ -340,7 +340,11 @@ CREATE TABLE IF NOT EXISTS agents (
     host_cpus INTEGER,
     host_mem BIGINT,
     org_ids TEXT,
-    protocol_version INTEGER
+    protocol_version INTEGER,
+    remote_update VARCHAR(20),
+    restart_requested BOOLEAN,
+    restart_queued BOOLEAN,
+    auto_restart_version VARCHAR(255)
 );
 
 CREATE TABLE IF NOT EXISTS autoscalers (

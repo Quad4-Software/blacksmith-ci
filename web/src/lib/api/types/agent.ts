@@ -43,6 +43,12 @@ export interface Agent {
   host_mem: number;
   /** agent protocol version reported on registration, 0 when unknown */
   protocol_version: number;
+  /** "restart" when the agent drains and exits on a restart request, empty when it ignores them */
+  remote_update: string;
+  /** an admin asked the agent to restart once its running workflows finish */
+  restart_requested: boolean;
+  /** a restart waits for a free slot under the server's parallel restart limit */
+  restart_queued: boolean;
   running_workflows: number;
 }
 

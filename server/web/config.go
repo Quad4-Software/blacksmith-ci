@@ -98,6 +98,10 @@ func Config(c *gin.Context) {
 			"version":   proto.Version,
 			"min_agent": proto.MinAgentVersion,
 		},
+		"agent_auto_restart": map[string]any{
+			"policy":       server.Config.Agent.AutoRestart,
+			"max_parallel": server.Config.Agent.AutoRestartMaxParallel,
+		},
 	}
 
 	// default func map with json parser.
@@ -137,5 +141,6 @@ window.CROW_USER_REGISTERED_AGENTS = {{ .user_registered_agents }}
 window.CROW_SCHEDULING_STRATEGY = {{ json .scheduling_strategy }};
 window.CROW_CUSTOM_THEMES = {{ json .custom_themes }};
 window.CROW_AGENT_PROTOCOL = {{ json .agent_protocol }};
+window.CROW_AGENT_AUTO_RESTART = {{ json .agent_auto_restart }};
 window.CROW_AUTH = {{ json .auth }};
 `

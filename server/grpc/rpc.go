@@ -116,6 +116,11 @@ func (s *RPC) Next(c context.Context, agentFilter rpc.Filter) (*rpc.Workflow, er
 		time.Sleep(1 * time.Second)
 		return nil, nil
 	}
+	if agent.RestartRequested {
+		log.Debug().Str("agentName", agent.Name).Int64("agentID", agent.ID).Msg("Agent is draining for a requested restart, returning nil task")
+		time.Sleep(1 * time.Second)
+		return nil, nil
+	}
 
 	// Defense-in-depth capacity backstop: the agent self-limits to its capacity
 	// via a bounded runner pool, but if it ever over-spawns (e.g. after
@@ -806,10 +811,31 @@ func (s *RPC) RegisterAgent(ctx context.Context, info rpc.AgentInfo) (int64, str
 	// This allows metrics to track agents even after cleanup/reconnection
 	agent.PersistentID = model.GeneratePersistentID(agent.Token, agent.Name, agent.Platform, agent.Backend)
 
+	agent.RemoteUpdate = ""
+	if info.RemoteUpdate == rpc.RemoteUpdateRestart {
+		agent.RemoteUpdate = info.RemoteUpdate
+	}
+
 	err = s.store.AgentUpdate(agent)
 	if err != nil {
 		log.Error().Err(err).Int64("agent_id", agent.ID).Msg("failed to update agent in database")
 		return -1, "", err
+	}
+
+	// A registering agent is a fresh process, so a restart request it was
+	// draining for has been carried out, and a queued one is moot. Clearing it
+	// also stops an agent whose supervisor brought back the same release from
+	// restarting in a loop.
+	if agent.RestartRequested || agent.RestartQueued {
+		if err := s.store.AgentSetRestartRequested(agent.ID, false); err != nil {
+			log.Error().Err(err).Int64("agent_id", agent.ID).Msg("failed to clear the agent's restart request")
+			return -1, "", err
+		}
+		if agent.RestartRequested {
+			log.Info().Int64("agent_id", agent.ID).Str("version", agent.Version).Msg("agent re-registered after a requested restart")
+		}
+		agent.RestartRequested = false
+		agent.RestartQueued = false
 	}
 
 	s.metrics.AgentRegistrations.Inc()
@@ -849,7 +875,7 @@ func (s *RPC) UnregisterAgent(ctx context.Context) error {
 	return nil
 }
 
-func (s *RPC) ReportHealth(ctx context.Context, status string, workflowPollingHealthy bool) (*rpc.DockerCleanupConfig, error) {
+func (s *RPC) ReportHealth(ctx context.Context, status string, workflowPollingHealthy bool) (*rpc.HealthResponse, error) {
 	agent, err := s.getAgentFromContext(ctx)
 	if err != nil {
 		return nil, err
@@ -866,17 +892,18 @@ func (s *RPC) ReportHealth(ctx context.Context, status string, workflowPollingHe
 		return nil, err
 	}
 
+	health := &rpc.HealthResponse{RestartRequested: agent.RestartRequested}
+
 	// Return Docker cleanup config for Docker agents
 	if agent.Backend == "docker" && server.Config.Services.MaintenanceService != nil {
 		// Ensure availability flag is set (handles agents that registered before this feature)
 		if !server.Config.Services.MaintenanceService.IsDockerCleanupAvailable() {
 			server.Config.Services.MaintenanceService.SetDockerCleanupAvailable(true)
 		}
-		cleanupConfig := server.Config.Services.MaintenanceService.GetDockerCleanupConfigForAgent()
-		return cleanupConfig, nil
+		health.DockerCleanup = server.Config.Services.MaintenanceService.GetDockerCleanupConfigForAgent()
 	}
 
-	return nil, nil
+	return health, nil
 }
 
 func (s *RPC) ReportDockerCleanup(ctx context.Context, result rpc.DockerCleanupResult) error {

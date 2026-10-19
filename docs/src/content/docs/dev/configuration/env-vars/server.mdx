@@ -169,6 +169,22 @@ Core server configuration variables.
 
 ---
 
+## AGENT_AUTO_RESTART
+
+- Name: `CROW_AGENT_AUTO_RESTART`
+- Description: Restart agents that accept remote restarts (`CROW_AGENT_REMOTE_UPDATE=restart`) without an admin asking. One of `off`, `outdated` (agents on an older protocol version than the server) or `release` (agents on any other release). Each agent is asked at most once per server release. See [Rolling Restarts](/dev/configuration/agent#rolling-restarts).
+- Default: `off`
+
+---
+
+## AGENT_AUTO_RESTART_MAX_PARALLEL
+
+- Name: `CROW_AGENT_AUTO_RESTART_MAX_PARALLEL`
+- Description: How many agents may drain for a queued or automatic restart at the same time. Restarts an admin requests for a single agent are not limited.
+- Default: `1`
+
+---
+
 ## METRICS_PRESERVE_DELETED
 
 - Name: `CROW_METRICS_PRESERVE_DELETED`

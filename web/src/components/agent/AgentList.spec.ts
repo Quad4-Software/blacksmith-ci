@@ -57,6 +57,9 @@ const sampleAgent = {
   host_cpus: 0,
   host_mem: 0,
   protocol_version: 21,
+  remote_update: '',
+  restart_requested: false,
+  restart_queued: false,
   running_workflows: 2,
 };
 
@@ -151,6 +154,18 @@ describe('agentList', () => {
     it('flags an agent below the server minimum as incompatible', () => {
       const icon = compatibility(mountWithAgent({ ...sampleAgent, version: '0.8.0', protocol_version: 19 }));
       expect(icon.attributes('data-compatibility')).toBe('incompatible');
+    });
+
+    it('shows a pending restart', () => {
+      expect(mountWithAgent(sampleAgent).find('[data-testid="agent-restart-pending"]').exists()).toBe(false);
+      const wrapper = mountWithAgent({ ...sampleAgent, restart_requested: true });
+      expect(wrapper.find('[data-testid="agent-restart-pending"]').exists()).toBe(true);
+    });
+
+    it('shows a queued restart', () => {
+      expect(mountWithAgent(sampleAgent).find('[data-testid="agent-restart-queued"]').exists()).toBe(false);
+      const wrapper = mountWithAgent({ ...sampleAgent, restart_queued: true });
+      expect(wrapper.find('[data-testid="agent-restart-queued"]').exists()).toBe(true);
     });
 
     it('marks a different release on the same protocol as informational', () => {

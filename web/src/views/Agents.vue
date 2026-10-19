@@ -1,12 +1,16 @@
 <template>
   <div class="mx-auto w-full max-w-none overflow-y-auto">
     <Settings :title="$t('admin.settings.agents.agents')" :description="description">
-      <template v-if="schedulingStrategy" #titleBadge>
-        <Badge variant="secondary">
+      <template v-if="schedulingStrategy || autoRestartPolicy" #titleBadge>
+        <Badge v-if="schedulingStrategy" variant="secondary">
           {{ $t('admin.settings.agents.scheduling_strategy', { strategy: schedulingStrategy }) }}
+        </Badge>
+        <Badge v-if="autoRestartPolicy" variant="secondary" data-testid="agent-auto-restart-policy">
+          {{ $t('admin.settings.agents.restart.auto', { policy: autoRestartPolicy }) }}
         </Badge>
       </template>
       <template #headerActions>
+        <AgentRestartAllAction v-if="isAdmin" @queued="softResetPage" />
         <Button @click="showAddAgent">
           <Icon name="plus" class="size-4 mr-1" />{{ $t('admin.settings.agents.add') }}
         </Button>
@@ -70,6 +74,7 @@ import { Button } from '~/components/ui/button';
 import Settings from '~/components/layout/Settings.vue';
 import AgentDialog from '~/components/agent/AgentDialog.vue';
 import AgentList from '~/components/agent/AgentList.vue';
+import AgentRestartAllAction from '~/components/agent/AgentRestartAllAction.vue';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -109,6 +114,11 @@ const canRegister = computed(() => can('agents:register'));
 
 // Server-wide active scheduling strategy, surfaced from the injected config.
 const schedulingStrategy = useConfig().schedulingStrategy;
+// Automatic agent restart policy, shown only when the server restarts agents on its own.
+const autoRestartPolicy = computed(() => {
+  const policy = useConfig().agentAutoRestart?.policy;
+  return policy && policy !== 'off' ? policy : '';
+});
 
 // Description changes based on user role
 const description = computed(() =>

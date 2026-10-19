@@ -19,9 +19,21 @@
         />
         <h1 class="text-xl font-semibold truncate">{{ getAgentDisplayName(agent) }}</h1>
         <UiBadge v-if="agent.no_schedule" variant="secondary">{{ $t('disabled') }}</UiBadge>
+        <UiBadge v-if="agent.restart_requested" variant="secondary" data-testid="agent-restart-pending">
+          {{ $t('admin.settings.agents.restart.pending') }}
+        </UiBadge>
+        <UiBadge
+          v-else-if="agent.restart_queued"
+          variant="secondary"
+          :title="$t('admin.settings.agents.restart.queued_hint')"
+          data-testid="agent-restart-queued"
+        >
+          {{ $t('admin.settings.agents.restart.queued') }}
+        </UiBadge>
         <UiBadge v-if="!agent.org_ids?.length" variant="outline">
           {{ $t('admin.settings.agents.type.global') }}
         </UiBadge>
+        <AgentRestartAction v-if="can('agents:write')" :agent="agent" class="ml-auto" @updated="agent = $event" />
       </div>
       <div class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         <span>{{ $t('admin.settings.agents.detail_id', { id: agent.id }) }}</span>
@@ -252,6 +264,7 @@ import { useRoute } from 'vue-router';
 
 import AgentWorkflowList from '~/components/admin/settings/agent/AgentWorkflowList.vue';
 import AgentCompatibilityIcon from '~/components/agent/AgentCompatibilityIcon.vue';
+import AgentRestartAction from '~/components/agent/AgentRestartAction.vue';
 import QueueTaskList from '~/components/admin/settings/queue/QueueTaskList.vue';
 import Icon from '~/components/atomic/Icon.vue';
 import ProcLogViewer from '~/components/log/ProcLogViewer.vue';
@@ -266,6 +279,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import useApiClient from '~/compositions/useApiClient';
 import { useDate } from '~/compositions/useDate';
 import useNotifications from '~/compositions/useNotifications';
+import usePermissions from '~/compositions/usePermissions';
 import {
   formatBytes,
   formatCPUQuota,
@@ -282,6 +296,7 @@ const route = useRoute();
 const apiClient = useApiClient();
 const date = useDate();
 const notifications = useNotifications();
+const { can } = usePermissions();
 const { t } = useI18n();
 const id = Number(route.params.id);
 

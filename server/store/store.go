@@ -321,6 +321,15 @@ type Store interface {
 	AgentFindSystemByHostname(hostname string) (*model.Agent, error)
 	AgentList(opts *model.AgentListOptions) ([]*model.Agent, error)
 	AgentUpdate(*model.Agent) error
+	// AgentSetRestartRequested sets or clears the agent's restart request and
+	// drops a queued restart, without touching other columns. AgentUpdate never
+	// writes the restart columns.
+	AgentSetRestartRequested(agentID int64, requested bool) error
+	// AgentQueueRestart queues a restart for an agent that has none requested.
+	AgentQueueRestart(agentID int64) error
+	// AgentRequestAutoRestart requests a restart on behalf of the restart policy
+	// and records the server release it was requested under.
+	AgentRequestAutoRestart(agentID int64, serverVersion string) error
 	AgentDelete(*model.Agent) error
 	AgentListForOrg(orgID int64, opt *model.ListOptions) ([]*model.Agent, error)
 

@@ -848,8 +848,10 @@ type AgentInfo struct {
 	HostMem  int64 `protobuf:"varint,11,opt,name=host_mem,json=hostMem,proto3" json:"host_mem,omitempty"`
 	// protocol version the agent was built with, 0 for agents predating protocol negotiation
 	ProtocolVersion int32 `protobuf:"varint,12,opt,name=protocol_version,json=protocolVersion,proto3" json:"protocol_version,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// how the agent reacts to a restart request from the server: "restart" or empty for off
+	RemoteUpdate  string `protobuf:"bytes,13,opt,name=remote_update,json=remoteUpdate,proto3" json:"remote_update,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AgentInfo) Reset() {
@@ -964,6 +966,13 @@ func (x *AgentInfo) GetProtocolVersion() int32 {
 		return x.ProtocolVersion
 	}
 	return 0
+}
+
+func (x *AgentInfo) GetRemoteUpdate() string {
+	if x != nil {
+		return x.RemoteUpdate
+	}
+	return ""
 }
 
 type RegisterAgentRequest struct {
@@ -1224,8 +1233,10 @@ func (x *ClaimTaskResponse) GetWorkflow() *Workflow {
 type ReportHealthResponse struct {
 	state               protoimpl.MessageState `protogen:"open.v1"`
 	DockerCleanupConfig *DockerCleanupConfig   `protobuf:"bytes,1,opt,name=docker_cleanup_config,json=dockerCleanupConfig,proto3" json:"docker_cleanup_config,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// an admin asked the agent to finish its workflows and exit, so its supervisor restarts it on a newer release
+	RestartRequested bool `protobuf:"varint,2,opt,name=restart_requested,json=restartRequested,proto3" json:"restart_requested,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *ReportHealthResponse) Reset() {
@@ -1263,6 +1274,13 @@ func (x *ReportHealthResponse) GetDockerCleanupConfig() *DockerCleanupConfig {
 		return x.DockerCleanupConfig
 	}
 	return nil
+}
+
+func (x *ReportHealthResponse) GetRestartRequested() bool {
+	if x != nil {
+		return x.RestartRequested
+	}
+	return false
 }
 
 type DockerCleanupConfig struct {
@@ -1767,7 +1785,7 @@ const file_crow_proto_rawDesc = "" +
 	"\x06status\x18\x01 \x01(\tR\x06status\x128\n" +
 	"\x18workflow_polling_healthy\x18\x02 \x01(\bR\x16workflowPollingHealthy\"+\n" +
 	"\x10ClaimTaskRequest\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId\"\xe3\x03\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\"\x88\x04\n" +
 	"\tAgentInfo\x12\x1a\n" +
 	"\bplatform\x18\x01 \x01(\tR\bplatform\x12\x1a\n" +
 	"\bcapacity\x18\x02 \x01(\x05R\bcapacity\x12\x18\n" +
@@ -1782,7 +1800,8 @@ const file_crow_proto_rawDesc = "" +
 	"\thost_cpus\x18\n" +
 	" \x01(\x05R\bhostCpus\x12\x19\n" +
 	"\bhost_mem\x18\v \x01(\x03R\ahostMem\x12)\n" +
-	"\x10protocol_version\x18\f \x01(\x05R\x0fprotocolVersion\x1a?\n" +
+	"\x10protocol_version\x18\f \x01(\x05R\x0fprotocolVersion\x12#\n" +
+	"\rremote_update\x18\r \x01(\tR\fremoteUpdate\x1a?\n" +
 	"\x11CustomLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"<\n" +
@@ -1800,9 +1819,10 @@ const file_crow_proto_rawDesc = "" +
 	"\n" +
 	"agent_name\x18\x02 \x01(\tR\tagentName\"@\n" +
 	"\x11ClaimTaskResponse\x12+\n" +
-	"\bworkflow\x18\x01 \x01(\v2\x0f.proto.WorkflowR\bworkflow\"f\n" +
+	"\bworkflow\x18\x01 \x01(\v2\x0f.proto.WorkflowR\bworkflow\"\x93\x01\n" +
 	"\x14ReportHealthResponse\x12N\n" +
-	"\x15docker_cleanup_config\x18\x01 \x01(\v2\x1a.proto.DockerCleanupConfigR\x13dockerCleanupConfig\"\xab\x01\n" +
+	"\x15docker_cleanup_config\x18\x01 \x01(\v2\x1a.proto.DockerCleanupConfigR\x13dockerCleanupConfig\x12+\n" +
+	"\x11restart_requested\x18\x02 \x01(\bR\x10restartRequested\"\xab\x01\n" +
 	"\x13DockerCleanupConfig\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x126\n" +
 	"\x17stale_threshold_seconds\x18\x02 \x01(\x03R\x15staleThresholdSeconds\x12)\n" +

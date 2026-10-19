@@ -215,6 +215,19 @@
 
               <!-- Disabled Badge (if applicable) -->
               <Badge v-if="agent.no_schedule" :label="$t('disabled')" class="shrink-0" />
+              <Badge
+                v-if="agent.restart_requested"
+                :label="$t('admin.settings.agents.restart.pending')"
+                class="shrink-0"
+                data-testid="agent-restart-pending"
+              />
+              <Badge
+                v-else-if="agent.restart_queued"
+                :label="$t('admin.settings.agents.restart.queued')"
+                :title="$t('admin.settings.agents.restart.queued_hint')"
+                class="shrink-0"
+                data-testid="agent-restart-queued"
+              />
             </div>
 
             <!-- Action Buttons (desktop only - moved to bottom on mobile) -->

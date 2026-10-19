@@ -867,6 +867,171 @@ func (_c *MockStore_AgentListForOrg_Call) RunAndReturn(run func(orgID int64, opt
 	return _c
 }
 
+// AgentQueueRestart provides a mock function for the type MockStore
+func (_mock *MockStore) AgentQueueRestart(agentID int64) error {
+	ret := _mock.Called(agentID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AgentQueueRestart")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(int64) error); ok {
+		r0 = returnFunc(agentID)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_AgentQueueRestart_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AgentQueueRestart'
+type MockStore_AgentQueueRestart_Call struct {
+	*mock.Call
+}
+
+// AgentQueueRestart is a helper method to define mock.On call
+//   - agentID int64
+func (_e *MockStore_Expecter) AgentQueueRestart(agentID any) *MockStore_AgentQueueRestart_Call {
+	return &MockStore_AgentQueueRestart_Call{Call: _e.mock.On("AgentQueueRestart", agentID)}
+}
+
+func (_c *MockStore_AgentQueueRestart_Call) Run(run func(agentID int64)) *MockStore_AgentQueueRestart_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_AgentQueueRestart_Call) Return(err error) *MockStore_AgentQueueRestart_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_AgentQueueRestart_Call) RunAndReturn(run func(agentID int64) error) *MockStore_AgentQueueRestart_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AgentRequestAutoRestart provides a mock function for the type MockStore
+func (_mock *MockStore) AgentRequestAutoRestart(agentID int64, serverVersion string) error {
+	ret := _mock.Called(agentID, serverVersion)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AgentRequestAutoRestart")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(int64, string) error); ok {
+		r0 = returnFunc(agentID, serverVersion)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_AgentRequestAutoRestart_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AgentRequestAutoRestart'
+type MockStore_AgentRequestAutoRestart_Call struct {
+	*mock.Call
+}
+
+// AgentRequestAutoRestart is a helper method to define mock.On call
+//   - agentID int64
+//   - serverVersion string
+func (_e *MockStore_Expecter) AgentRequestAutoRestart(agentID any, serverVersion any) *MockStore_AgentRequestAutoRestart_Call {
+	return &MockStore_AgentRequestAutoRestart_Call{Call: _e.mock.On("AgentRequestAutoRestart", agentID, serverVersion)}
+}
+
+func (_c *MockStore_AgentRequestAutoRestart_Call) Run(run func(agentID int64, serverVersion string)) *MockStore_AgentRequestAutoRestart_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_AgentRequestAutoRestart_Call) Return(err error) *MockStore_AgentRequestAutoRestart_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_AgentRequestAutoRestart_Call) RunAndReturn(run func(agentID int64, serverVersion string) error) *MockStore_AgentRequestAutoRestart_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AgentSetRestartRequested provides a mock function for the type MockStore
+func (_mock *MockStore) AgentSetRestartRequested(agentID int64, requested bool) error {
+	ret := _mock.Called(agentID, requested)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AgentSetRestartRequested")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(int64, bool) error); ok {
+		r0 = returnFunc(agentID, requested)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStore_AgentSetRestartRequested_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AgentSetRestartRequested'
+type MockStore_AgentSetRestartRequested_Call struct {
+	*mock.Call
+}
+
+// AgentSetRestartRequested is a helper method to define mock.On call
+//   - agentID int64
+//   - requested bool
+func (_e *MockStore_Expecter) AgentSetRestartRequested(agentID any, requested any) *MockStore_AgentSetRestartRequested_Call {
+	return &MockStore_AgentSetRestartRequested_Call{Call: _e.mock.On("AgentSetRestartRequested", agentID, requested)}
+}
+
+func (_c *MockStore_AgentSetRestartRequested_Call) Run(run func(agentID int64, requested bool)) *MockStore_AgentSetRestartRequested_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int64
+		if args[0] != nil {
+			arg0 = args[0].(int64)
+		}
+		var arg1 bool
+		if args[1] != nil {
+			arg1 = args[1].(bool)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStore_AgentSetRestartRequested_Call) Return(err error) *MockStore_AgentSetRestartRequested_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStore_AgentSetRestartRequested_Call) RunAndReturn(run func(agentID int64, requested bool) error) *MockStore_AgentSetRestartRequested_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // AgentUpdate provides a mock function for the type MockStore
 func (_mock *MockStore) AgentUpdate(agent *model.Agent) error {
 	ret := _mock.Called(agent)

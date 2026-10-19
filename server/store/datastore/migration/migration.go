@@ -129,6 +129,7 @@ func Migrate(_ context.Context, db *sql.DB, driver string, _ bool) error {
 		{ID: "crow-add-integration-secret-filters", Migrate: addIntegrationSecretFilters},
 		{ID: "crow-add-build-caches", Migrate: createBuildCaches(driver)},
 		{ID: "crow-add-agent-protocol-version", Migrate: addAgentProtocolVersion},
+		{ID: "crow-add-agent-remote-update", Migrate: addAgentRemoteUpdate},
 	}
 
 	if len(newMigrations) > 0 {
@@ -835,6 +836,30 @@ func addAgentProtocolVersion(tx *sql.Tx) error {
 		return nil
 	}
 	return addColumnIfNotExists("agents", "protocol_version", "INTEGER")(tx)
+}
+
+// addAgentRemoteUpdate adds agents.remote_update, the agent's reported remote
+// update mode, agents.restart_requested, set when the agent is asked to
+// restart onto a newer release, agents.restart_queued, set while a restart
+// waits for a free slot, and agents.auto_restart_version, the server release
+// under which the automatic restart policy last asked.
+func addAgentRemoteUpdate(tx *sql.Tx) error {
+	if !tableExists(tx, "agents") {
+		return nil
+	}
+	if err := addColumnIfNotExists("agents", "remote_update", "VARCHAR(20)")(tx); err != nil {
+		return fmt.Errorf("add agents.remote_update: %w", err)
+	}
+	if err := addColumnIfNotExists("agents", "restart_requested", "BOOLEAN")(tx); err != nil {
+		return fmt.Errorf("add agents.restart_requested: %w", err)
+	}
+	if err := addColumnIfNotExists("agents", "restart_queued", "BOOLEAN")(tx); err != nil {
+		return fmt.Errorf("add agents.restart_queued: %w", err)
+	}
+	if err := addColumnIfNotExists("agents", "auto_restart_version", "VARCHAR(255)")(tx); err != nil {
+		return fmt.Errorf("add agents.auto_restart_version: %w", err)
+	}
+	return nil
 }
 
 // addUserRoles adds users.roles, the JSON list of instance roles besides admin.

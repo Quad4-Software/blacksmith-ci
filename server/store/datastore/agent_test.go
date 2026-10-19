@@ -244,3 +244,75 @@ func TestAgentCreateKeepsAGivenCreationTime(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, int64(42), stored.Created)
 }
+
+func TestAgentSetRestartRequested(t *testing.T) {
+	store, closer := newTestStore(t, new(model.Agent))
+	defer closer()
+
+	agent := &model.Agent{ID: 1, Name: "test", Token: "token"}
+	assert.NoError(t, store.AgentCreate(agent))
+
+	// a health report loaded the agent before the request was made
+	stale, err := store.AgentFind(agent.ID)
+	assert.NoError(t, err)
+
+	assert.NoError(t, store.AgentSetRestartRequested(agent.ID, true))
+
+	// writing the stale copy back must not withdraw the request
+	stale.LastContact = 42
+	assert.NoError(t, store.AgentUpdate(stale))
+
+	got, err := store.AgentFind(agent.ID)
+	assert.NoError(t, err)
+	assert.True(t, got.RestartRequested)
+	assert.EqualValues(t, 42, got.LastContact)
+
+	assert.NoError(t, store.AgentSetRestartRequested(agent.ID, false))
+	got, err = store.AgentFind(agent.ID)
+	assert.NoError(t, err)
+	assert.False(t, got.RestartRequested)
+}
+
+func TestAgentRestartQueue(t *testing.T) {
+	store, closer := newTestStore(t, new(model.Agent))
+	defer closer()
+
+	queued := &model.Agent{ID: 1, Name: "queued", Token: "token-1"}
+	requested := &model.Agent{ID: 2, Name: "requested", Token: "token-2"}
+	assert.NoError(t, store.AgentCreate(queued))
+	assert.NoError(t, store.AgentCreate(requested))
+	assert.NoError(t, store.AgentSetRestartRequested(requested.ID, true))
+
+	stale, err := store.AgentFind(queued.ID)
+	assert.NoError(t, err)
+
+	assert.NoError(t, store.AgentQueueRestart(queued.ID))
+	// an agent already draining is not queued again
+	assert.NoError(t, store.AgentQueueRestart(requested.ID))
+
+	// writing a stale copy back must not drop the queued restart
+	assert.NoError(t, store.AgentUpdate(stale))
+
+	got, err := store.AgentFind(queued.ID)
+	assert.NoError(t, err)
+	assert.True(t, got.RestartQueued)
+	got, err = store.AgentFind(requested.ID)
+	assert.NoError(t, err)
+	assert.False(t, got.RestartQueued)
+
+	assert.NoError(t, store.AgentRequestAutoRestart(queued.ID, "6.12.0"))
+	stale.LastContact = 7
+	assert.NoError(t, store.AgentUpdate(stale))
+	got, err = store.AgentFind(queued.ID)
+	assert.NoError(t, err)
+	assert.True(t, got.RestartRequested)
+	assert.False(t, got.RestartQueued)
+	assert.Equal(t, "6.12.0", got.AutoRestartVersion)
+
+	// clearing the request on re-registration keeps the release it was requested under
+	assert.NoError(t, store.AgentSetRestartRequested(queued.ID, false))
+	got, err = store.AgentFind(queued.ID)
+	assert.NoError(t, err)
+	assert.False(t, got.RestartRequested)
+	assert.Equal(t, "6.12.0", got.AutoRestartVersion)
+}

@@ -50,6 +50,7 @@ import (
 	"codefloe.com/crowci/crow/v6/server/pubsub"
 	"codefloe.com/crowci/crow/v6/server/queue"
 	"codefloe.com/crowci/crow/v6/server/services"
+	"codefloe.com/crowci/crow/v6/server/services/agentrestart"
 	"codefloe.com/crowci/crow/v6/server/services/buildcache"
 	"codefloe.com/crowci/crow/v6/server/services/ciquota"
 	integrationService "codefloe.com/crowci/crow/v6/server/services/integration"
@@ -567,6 +568,15 @@ func setupEvilGlobals(ctx context.Context, c *cli.Command, s store.Store) (err e
 
 	// agents
 	server.Config.Agent.DisableUserRegisteredAgentRegistration = c.Bool("disable-user-agent-registration")
+	autoRestart, err := agentrestart.ParsePolicy(c.String("agent-auto-restart"))
+	if err != nil {
+		return err
+	}
+	server.Config.Agent.AutoRestart = autoRestart
+	server.Config.Agent.AutoRestartMaxParallel = c.Int("agent-auto-restart-max-parallel")
+	if server.Config.Agent.AutoRestartMaxParallel < 1 {
+		return fmt.Errorf("CROW_AGENT_AUTO_RESTART_MAX_PARALLEL must be at least 1, got %d", server.Config.Agent.AutoRestartMaxParallel)
+	}
 
 	// authentication
 	server.Config.Pipeline.AuthenticatePublicRepos = c.Bool("authenticate-public-repos")
