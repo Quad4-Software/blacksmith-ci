@@ -73,7 +73,7 @@ fmt: install-dev-deps
     prettier -w .
     gofumpt -w .
     golangci-lint run --fix
-    gci write --skip-vendor --skip-generated -s standard -s default -s "prefix(codefloe.com/crowci/crow)" --custom-order .
+    git ls-files -z --cached --others --exclude-standard '*.go' | xargs -0 gci write --skip-vendor --skip-generated -s standard -s default -s "prefix(codefloe.com/crowci/crow)" --custom-order
 
 test: test-agent test-server test-server-datastore test-cli test-lib
 
@@ -90,8 +90,10 @@ generate: install-dev-deps
     # Generate protobuf
     cd pipeline/rpc/proto && go generate
     cd -
-    # Normalize imports
-    gci write --skip-vendor --skip-generated -s standard -s default -s "prefix(codefloe.com/crowci/crow)" --custom-order .
+    # Normalize imports. Pass the files git knows about instead of `.`: gci walks
+    # every directory, including CI's workspace caches in .cache/ such as the
+    # Go module cache.
+    git ls-files -z --cached --others --exclude-standard '*.go' | xargs -0 gci write --skip-vendor --skip-generated -s standard -s default -s "prefix(codefloe.com/crowci/crow)" --custom-order
 
 mockery: install-dev-deps
     mockery

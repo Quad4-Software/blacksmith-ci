@@ -2,6 +2,13 @@ variables:
   - &golang_image 'reg.devxy.io/docker.io/library/golang:1.27-alpine'
   - &when
     - event: pull_request
+  # Point the Go module, build and golangci-lint caches into the workspace so
+  # the parallel steps share them and the `cache` section can carry them over
+  # to the next run.
+  - go_cache_env: &go_cache_env
+      GOMODCACHE: ${CI_WORKSPACE}/.cache/go-mod
+      GOCACHE: ${CI_WORKSPACE}/.cache/go-build
+      GOLANGCI_LINT_CACHE: ${CI_WORKSPACE}/.cache/golangci-lint
 
 labels:
   agent: thumper
@@ -13,9 +20,21 @@ when:
       - ${CI_REPO_DEFAULT_BRANCH}
       - v4.*
 
+# Keys are immutable, so a new cache is saved only when go.sum changes.
+# Runs without an exact match start from the newest cache of their ref, the
+# pull request's target branch or the default branch.
+cache:
+  - key: go-{{ arch }}-v2-{{ checksum "go.sum" }}
+    restore_keys: ['go-{{ arch }}-v2-']
+    paths:
+      - .cache/go-mod
+      - .cache/go-build
+      - .cache/golangci-lint
+
 steps:
   vendor:
     image: *golang_image
+    environment: *go_cache_env
     commands:
       - go mod vendor
 
@@ -26,6 +45,7 @@ steps:
     commands:
       - go run codefloe.com/crowci/crow/v6/cmd/cli lint
     environment:
+      <<: *go_cache_env
       CROW_DISABLE_UPDATE_CHECK: true
       CROW_LINT_STRICT: true
       CROW_PLUGINS_TRUSTED_CLONE: reg.devxy.io/docker.io/woodpeckerci/plugin-git,codefloe.com/crow-plugins/clone
@@ -44,6 +64,7 @@ steps:
     depends_on:
       - vendor
     image: *golang_image
+    environment: *go_cache_env
     commands:
       - apk add --no-cache -q just git sqlite-dev libc-dev gcc g++ build-base musl-dev binutils binutils-gold linux-headers
       # using this instead of apk as it is always using the most recent go version - otherwise golangci-lint complains about a mismatch when a new go version is released
@@ -60,6 +81,7 @@ steps:
     depends_on:
       - vendor
     image: *golang_image
+    environment: *go_cache_env
     commands:
       - apk add --no-cache -q just git curl unzip
       - 'just generate'
@@ -83,6 +105,7 @@ steps:
   lint-license-header:
     depends_on: []
     image: *golang_image
+    environment: *go_cache_env
     commands:
       - go install github.com/google/addlicense@v1.2.0 # cspell:words addlicense
       - 'addlicense -check -ignore "vendor/**" **/*.go'
@@ -92,6 +115,7 @@ steps:
     depends_on:
       - vendor
     image: *golang_image
+    environment: *go_cache_env
     commands:
       - apk add --no-cache -q just git gcc musl-dev linux-headers
       - just test-agent
@@ -104,6 +128,7 @@ steps:
       - vendor
     image: *golang_image
     environment:
+      <<: *go_cache_env
       CROW_DATABASE_DRIVER: sqlite3
     commands:
       - apk add --no-cache -q just git gcc musl-dev
@@ -114,6 +139,7 @@ steps:
       - vendor
     image: *golang_image
     environment:
+      <<: *go_cache_env
       CROW_DATABASE_DRIVER: postgres
       CROW_DATABASE_DATASOURCE: 'host=svc-postgres user=postgres password=postgres dbname=postgres sslmode=disable' # cspell:disable-line
     commands:
@@ -126,6 +152,7 @@ steps:
       - vendor
     image: *golang_image
     environment:
+      <<: *go_cache_env
       CROW_DATABASE_DRIVER: mysql
       CROW_DATABASE_DATASOURCE: root@tcp(svc-mysql:3306)/test?parseTime=true
     commands:
