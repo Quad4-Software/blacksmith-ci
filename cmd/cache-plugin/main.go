@@ -28,7 +28,9 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
+	"time"
 
 	"github.com/dustin/go-humanize"
 
@@ -73,6 +75,7 @@ func run(ctx context.Context, getenv func(string) string, out io.Writer) {
 	if workspace == "" {
 		workspace = "."
 	}
+	out = &syncWriter{w: out}
 	p := &plugin{
 		client:    &client{baseURL: baseURL, token: token, http: http.DefaultClient, out: out},
 		workspace: workspace,
@@ -127,34 +130,45 @@ func (p *plugin) restore(ctx context.Context, spec cacheSpec, key string, restor
 		return err
 	}
 
-	// Download and extraction are one attempt: a transfer that breaks off is
-	// started over, after removing what it had extracted so far.
+	match := "exact match"
+	if !hit.Exact {
+		match = "restore key match " + hit.Key
+	}
+	fmt.Fprintf(p.out, "restoring %s (%s, %s from %s)\n", key, match, humanize.IBytes(uint64(max(hit.Size, 0))), hit.Scope)
+
+	// Download and extraction are one attempt: a transfer that breaks off or
+	// stalls is started over, after removing what it had extracted so far.
+	start := time.Now()
 	var files int
 	err = withRetry(ctx, p.out, "restore of "+key, true, func() error {
-		body, err := p.client.download(ctx, hit.URL)
-		if err != nil {
-			return fmt.Errorf("download: %w", err)
-		}
-		defer body.Close()
-		extracted, err := extractArchive(body, p.workspace, spec.Paths)
-		if err != nil {
-			extracted.undo()
-			return fmt.Errorf("extract: %w", err)
-		}
-		files = extracted.files
-		return nil
+		received := new(counter)
+		attemptCtx, stop := watch(ctx, p.out, received, true, transferLine("downloaded", hit.Size))
+		n, err := p.restoreOnce(attemptCtx, hit.URL, spec.Paths, received)
+		files = n
+		return stop(err)
 	})
 	if err != nil {
 		return err
 	}
 
-	match := "exact match"
-	if !hit.Exact {
-		match = "restore key match " + hit.Key
-	}
-	fmt.Fprintf(p.out, "restored %s (%s, %s from %s, %d files)\n",
-		key, match, humanize.IBytes(uint64(max(hit.Size, 0))), hit.Scope, files)
+	fmt.Fprintf(p.out, "restored %s (%d files in %s)\n", key, files, time.Since(start).Round(time.Second))
 	return nil
+}
+
+// restoreOnce downloads the archive at url and extracts it, counting the
+// downloaded bytes in received. A failed extraction is undone.
+func (p *plugin) restoreOnce(ctx context.Context, url string, paths []string, received *counter) (int, error) {
+	body, err := p.client.download(ctx, url)
+	if err != nil {
+		return 0, fmt.Errorf("download: %w", err)
+	}
+	defer body.Close()
+	extracted, err := extractArchive(received.reader(body), p.workspace, paths)
+	if err != nil {
+		extracted.undo()
+		return 0, fmt.Errorf("extract: %w", err)
+	}
+	return extracted.files, nil
 }
 
 func (p *plugin) save(ctx context.Context, spec cacheSpec, key string) error {
@@ -173,7 +187,14 @@ func (p *plugin) save(ctx context.Context, spec cacheSpec, key string) error {
 	defer os.Remove(archive.Name())
 	defer archive.Close()
 
-	missing, err := writeArchive(archive, p.workspace, spec.Paths)
+	fmt.Fprintf(p.out, "archiving %s for %s\n", strings.Join(spec.Paths, ", "), key)
+	start := time.Now()
+	archived := new(counter)
+	_, stop := watch(ctx, p.out, archived, false, func(done int64, elapsed time.Duration) string {
+		return fmt.Sprintf("archiving: %d files, %s read, %s", archived.files.Load(), humanize.IBytes(uint64(done)), rate(done, elapsed))
+	})
+	missing, err := writeArchive(archive, p.workspace, spec.Paths, archived)
+	_ = stop(nil)
 	if err != nil {
 		return fmt.Errorf("archive: %w", err)
 	}
@@ -192,6 +213,8 @@ func (p *plugin) save(ctx context.Context, spec cacheSpec, key string) error {
 	if _, err := archive.Seek(0, io.SeekStart); err != nil {
 		return err
 	}
+	fmt.Fprintf(p.out, "archived %d files (%s) into %s in %s\n", archived.files.Load(),
+		humanize.IBytes(uint64(archived.bytes.Load())), humanize.IBytes(uint64(size)), time.Since(start).Round(time.Second))
 
 	reservation, err := p.client.reserve(ctx, key, size)
 	switch {
@@ -204,12 +227,13 @@ func (p *plugin) save(ctx context.Context, spec cacheSpec, key string) error {
 		return err
 	}
 
-	if err := p.client.upload(ctx, reservation.URL, archive, size); err != nil {
+	start = time.Now()
+	if err := p.client.upload(ctx, reservation, archive, size); err != nil {
 		return fmt.Errorf("upload: %w", err)
 	}
-	if err := p.client.commit(ctx, reservation.ID); err != nil {
+	if err := p.client.commit(ctx, reservation.ID, reservation.UploadID); err != nil {
 		return fmt.Errorf("commit: %w", err)
 	}
-	fmt.Fprintf(p.out, "saved %s (%s)\n", key, humanize.IBytes(uint64(size)))
+	fmt.Fprintf(p.out, "saved %s (%s uploaded in %s)\n", key, humanize.IBytes(uint64(size)), time.Since(start).Round(time.Second))
 	return nil
 }

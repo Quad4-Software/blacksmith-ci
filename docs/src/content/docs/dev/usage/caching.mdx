@@ -90,6 +90,8 @@ It adds a `save-cache` step after all steps, plus a `save-cache-always` step for
 
 Cache steps never fail the workflow.
 Failed transfers and server errors are retried three times with backoff, and a restore that breaks off removes what it had extracted before starting over.
+A transfer that moves no data for a minute counts as failed and is retried the same way.
+While archiving, uploading or downloading, the step logs its progress every ten seconds, so a large cache shows how far it got and how fast it moves.
 An entry whose archive was removed from storage outside Crow, for example by a bucket lifecycle rule, is dropped on its next restore, and the save step of that pipeline stores it again.
 Problems that remain, such as an exceeded quota, are logged as warnings.
 Cancelled pipelines do not save.
@@ -146,6 +148,8 @@ sequenceDiagram
 
 With the `local` backend, the storage URLs point to the server itself, which streams the archives.
 With `s3`, they are presigned S3 URLs valid for one hour, so the S3 endpoint must be reachable from pipeline steps.
+An S3 archive larger than 16 MiB is uploaded as a multipart upload in 16 MiB parts, up to 32 at a time, because object stores accept only a few MB/s per connection.
+Incomplete multipart uploads of abandoned saves are aborted when their entry is cleaned up.
 In both cases cache steps reach the server at `CROW_HOST`, which must be reachable from steps as well.
 
 The step-facing endpoints authenticate with `Authorization: Bearer $CI_CACHE_TOKEN`:
@@ -153,10 +157,11 @@ The step-facing endpoints authenticate with `Authorization: Bearer $CI_CACHE_TOK
 | Request                                      | Body                    | Responses                                                                                         |
 | -------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------- |
 | `POST /api/v1/cache/restore`                 | `{key, restore_keys}`   | `200 {id, key, scope, size, exact, url}`, `404` on a miss                                          |
-| `POST /api/v1/cache/reserve`                 | `{key, size}`           | `201 {id, url}`, `409` key exists, `403` read-only (fork pull request), `507` quota exceeded       |
-| `PUT <url>`                                  | archive                 | Presigned S3 URL, or `/api/v1/cache/blobs/{id}` with the same Bearer token for local storage       |
-| `POST /api/v1/cache/commit`                  | `{id}`                  | Marks the upload as complete                                                                       |
+| `POST /api/v1/cache/reserve`                 | `{key, size, multipart}` | `201 {id, url, upload_id, part_size, part_urls}`, `409` key exists, `403` read-only (fork pull request), `507` quota exceeded |
+| `PUT <url>` or `PUT <part_urls[i]>`          | archive or part `i`     | Presigned S3 URL, or `/api/v1/cache/blobs/{id}` with the same Bearer token for local storage       |
+| `POST /api/v1/cache/commit`                  | `{id, upload_id}`       | Assembles the parts, if any, and marks the upload as complete                                      |
 
+With `multipart: true`, the server may answer with `part_urls` instead of a single upload: part `i` holds the archive bytes from `i * part_size` on, and the commit passes the `upload_id`.
 Only the built-in cache steps receive a token, other plugins do not.
 
 ## Limitations

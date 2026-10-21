@@ -99,7 +99,7 @@ func TestArchiveRoundTrip(t *testing.T) {
 	writeFile(t, src, "b.txt", "b")
 
 	var buf bytes.Buffer
-	missing, err := writeArchive(&buf, src, []string{"a", "b.txt", "nope"})
+	missing, err := writeArchive(&buf, src, []string{"a", "b.txt", "nope"}, new(counter))
 	require.NoError(t, err)
 	assert.Equal(t, []string{"nope"}, missing)
 

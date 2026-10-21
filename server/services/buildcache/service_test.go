@@ -210,7 +210,7 @@ func (f *fixture) save(ctx context.Context, t *testing.T, access Access, key, da
 	require.NoError(t, err)
 	assert.Equal(t, "https://ci.example.com/api/v1/cache/blobs/"+strconv.FormatInt(reservation.Entry.ID, 10), reservation.URL)
 	require.NoError(t, f.service.WriteBlob(ctx, access, reservation.Entry.ID, strings.NewReader(data)))
-	entry, err := f.service.Commit(ctx, access, reservation.Entry.ID)
+	entry, err := f.service.Commit(ctx, access, reservation.Entry.ID, "")
 	require.NoError(t, err)
 	return entry
 }
@@ -344,7 +344,7 @@ func TestReserveRules(t *testing.T) {
 		require.NoError(t, err)
 		err = f.service.WriteBlob(ctx, mainAccess, reservation.Entry.ID, strings.NewReader("too long"))
 		assert.ErrorIs(t, err, ErrObjectTooLarge)
-		_, err = f.service.Commit(ctx, mainAccess, reservation.Entry.ID)
+		_, err = f.service.Commit(ctx, mainAccess, reservation.Entry.ID, "")
 		assert.Error(t, err, "nothing was stored")
 	})
 
@@ -352,7 +352,7 @@ func TestReserveRules(t *testing.T) {
 		reservation, err := f.service.Reserve(ctx, mainAccess, "mine", 1)
 		require.NoError(t, err)
 		assert.ErrorIs(t, f.service.WriteBlob(ctx, featureAccess, reservation.Entry.ID, strings.NewReader("x")), ErrNotFound)
-		_, err = f.service.Commit(ctx, featureAccess, reservation.Entry.ID)
+		_, err = f.service.Commit(ctx, featureAccess, reservation.Entry.ID, "")
 		assert.ErrorIs(t, err, ErrNotFound)
 		otherRepo := Access{RepoID: 2, ReadScopes: mainAccess.ReadScopes, WriteScope: mainAccess.WriteScope}
 		assert.ErrorIs(t, f.service.WriteBlob(ctx, otherRepo, reservation.Entry.ID, strings.NewReader("x")), ErrNotFound)

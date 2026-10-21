@@ -56,11 +56,15 @@ func (b bodyReader) Read(p []byte) (int, error) {
 }
 
 // retryable reports whether another attempt may succeed: failed requests,
-// broken-off bodies, throttling and server errors. A 404 is retried too when
-// notFoundIsTransient is set: storage URLs point to an object the server knows
-// exists, so a 404 there means the store has not caught up. Everything else,
-// such as a cache miss or an archive entry refused on extraction, is final.
+// broken-off bodies, stalled transfers, throttling and server errors. A 404 is
+// retried too when notFoundIsTransient is set: storage URLs point to an object
+// the server knows exists, so a 404 there means the store has not caught up.
+// Everything else, such as a cache miss or an archive entry refused on
+// extraction, is final.
 func retryable(err error, notFoundIsTransient bool) bool {
+	if errors.Is(err, errStalled) {
+		return true
+	}
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 		return false
 	}

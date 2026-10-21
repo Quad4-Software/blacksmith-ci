@@ -25,11 +25,21 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 )
 
-// apiTimeout bounds the metadata calls; transfers are bounded by the step timeout.
-const apiTimeout = 30 * time.Second
+const (
+	// Metadata calls time out after this; transfers are bounded by
+	// stallTimeout and the step timeout.
+	apiTimeout = 30 * time.Second
+	// This many parts of an archive are uploaded at once. Object stores take
+	// a few MB/s per connection, so the throughput grows with the number of
+	// parallel parts.
+	uploadConcurrency = 32
+)
 
 var (
 	errMiss     = errors.New("no cache found")
@@ -43,8 +53,21 @@ type client struct {
 	baseURL string
 	token   string
 	http    *http.Client
-	// out receives retry notices.
+	// out receives retry notices. Parts upload in parallel, so it must be
+	// safe for concurrent use, see syncWriter.
 	out io.Writer
+}
+
+// syncWriter serializes writes to w.
+type syncWriter struct {
+	mu sync.Mutex
+	w  io.Writer
+}
+
+func (s *syncWriter) Write(p []byte) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.w.Write(p)
 }
 
 type restoreResponse struct {
@@ -56,9 +79,14 @@ type restoreResponse struct {
 	URL   string `json:"url"`
 }
 
+// reserveResponse is where to upload. Servers that can take the archive in
+// parts set PartURLs, and part i holds the bytes from i*PartSize.
 type reserveResponse struct {
-	ID  int64  `json:"id"`
-	URL string `json:"url"`
+	ID       int64    `json:"id"`
+	URL      string   `json:"url"`
+	UploadID string   `json:"upload_id"`
+	PartSize int64    `json:"part_size"`
+	PartURLs []string `json:"part_urls"`
 }
 
 // call posts body to an API endpoint and decodes the answer into out. Failed
@@ -127,13 +155,13 @@ func (c *client) restore(ctx context.Context, key string, restoreKeys []string) 
 
 func (c *client) reserve(ctx context.Context, key string, size int64) (*reserveResponse, error) {
 	out := new(reserveResponse)
-	err := c.call(ctx, "/reserve", map[string]any{"key": key, "size": size}, out)
+	err := c.call(ctx, "/reserve", map[string]any{"key": key, "size": size, "multipart": true}, out)
 	return out, err
 }
 
-func (c *client) commit(ctx context.Context, id int64) error {
+func (c *client) commit(ctx context.Context, id int64, uploadID string) error {
 	var out map[string]any
-	return c.call(ctx, "/commit", map[string]any{"id": id}, &out)
+	return c.call(ctx, "/commit", map[string]any{"id": id, "upload_id": uploadID}, &out)
 }
 
 // authorize adds the cache token to transfers to the server's own blob
@@ -181,19 +209,60 @@ func (c *client) download(ctx context.Context, url string) (io.ReadCloser, error
 	return bodyReader{resp.Body}, nil
 }
 
-// upload PUTs the archive file to url, retrying failed attempts from the start.
-func (c *client) upload(ctx context.Context, url string, f *os.File, size int64) error {
+// upload sends the archive file to where the reservation points, in parallel
+// parts if the server offers them.
+func (c *client) upload(ctx context.Context, res *reserveResponse, f *os.File, size int64) error {
+	if len(res.PartURLs) > 0 {
+		return c.uploadParts(ctx, res.PartURLs, res.PartSize, f, size)
+	}
+	return c.uploadWhole(ctx, res.URL, f, size)
+}
+
+// uploadParts PUTs part i of the archive file to urls[i], uploadConcurrency
+// parts at a time. Each part is retried on its own, and an attempt that stops
+// sending data for stallTimeout is aborted and retried.
+func (c *client) uploadParts(ctx context.Context, urls []string, partSize int64, f *os.File, size int64) error {
+	fmt.Fprintf(c.out, "uploading in %d parts, %d at a time\n", len(urls), min(len(urls), uploadConcurrency))
+	sent := new(counter)
+	_, stop := watch(ctx, c.out, sent, false, transferLine("uploaded", size))
+	group, groupCtx := errgroup.WithContext(ctx)
+	group.SetLimit(uploadConcurrency)
+	for i, url := range urls {
+		offset := int64(i) * partSize
+		length := min(partSize, size-offset)
+		group.Go(func() error {
+			return withRetry(groupCtx, c.out, fmt.Sprintf("upload of part %d", i+1), false, func() error {
+				part := new(counter)
+				attemptCtx, stopPart := watch(groupCtx, c.out, part, true, nil)
+				err := stopPart(c.uploadOnce(attemptCtx, url, sent.reader(part.reader(io.NewSectionReader(f, offset, length))), length))
+				if err != nil {
+					// The retry sends the part again.
+					sent.bytes.Add(-part.bytes.Load())
+				}
+				return err
+			})
+		})
+	}
+	return stop(group.Wait())
+}
+
+// uploadWhole PUTs the archive file to url, retrying failed attempts from the
+// start. An attempt that stops sending data for stallTimeout is aborted and
+// retried.
+func (c *client) uploadWhole(ctx context.Context, url string, f *os.File, size int64) error {
 	return withRetry(ctx, c.out, "upload", false, func() error {
 		if _, err := f.Seek(0, io.SeekStart); err != nil {
 			return err
 		}
-		return c.uploadOnce(ctx, url, f, size)
+		sent := new(counter)
+		attemptCtx, stop := watch(ctx, c.out, sent, true, transferLine("uploaded", size))
+		return stop(c.uploadOnce(attemptCtx, url, sent.reader(f), size))
 	})
 }
 
-func (c *client) uploadOnce(ctx context.Context, url string, f *os.File, size int64) error {
-	// NopCloser keeps the client from closing the file between attempts.
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, io.NopCloser(f))
+func (c *client) uploadOnce(ctx context.Context, url string, r io.Reader, size int64) error {
+	// r is no Closer, so the client cannot close the file between attempts.
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, r)
 	if err != nil {
 		return redactURL(err)
 	}

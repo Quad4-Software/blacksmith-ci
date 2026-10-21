@@ -71,7 +71,9 @@ type harness struct {
 	storageRoot string
 }
 
-func newHarness(t *testing.T) *harness {
+// newHarness serves the cache API from a local storage, which wrap may
+// replace.
+func newHarness(t *testing.T, wrap ...func(buildcache.Storage) buildcache.Storage) *harness {
 	t.Helper()
 
 	engine, err := datastore.NewEngine(&store.Opts{Driver: "sqlite3", Config: filepath.Join(t.TempDir(), "crow.sqlite")})
@@ -85,6 +87,9 @@ func newHarness(t *testing.T) *harness {
 	storageRoot := t.TempDir()
 	storage, err := buildcache.NewLocalStorage(storageRoot)
 	require.NoError(t, err)
+	for _, w := range wrap {
+		storage = w(storage)
+	}
 
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
@@ -213,7 +218,7 @@ func TestEntryWithoutArchiveIsSavedAgain(t *testing.T) {
 	restored := t.TempDir()
 	assert.Contains(t, h.run(t, "restore", restored, spec), "cache miss for k")
 	assert.Contains(t, h.run(t, "save", workspace, spec), "saved k")
-	assert.Contains(t, h.run(t, "restore", restored, spec), "restored k (exact match")
+	assert.Contains(t, h.run(t, "restore", restored, spec), "restoring k (exact match")
 	assert.Equal(t, "v1", readFile(t, restored, "a/file"))
 }
 

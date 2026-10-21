@@ -59,6 +59,11 @@ const (
 	tokenLifetime = 7 * 24 * time.Hour
 	// How many entries are loaded per eviction round.
 	evictBatch = 20
+	// Archives larger than this are uploaded in parts of this size, if the
+	// storage supports it.
+	partSize = 16 << 20
+	// S3 takes at most this many parts per upload.
+	maxParts = 10000
 )
 
 // Store is the subset of the datastore the service needs.
@@ -126,6 +131,11 @@ type Hit struct {
 type Reservation struct {
 	Entry *model.BuildCache
 	URL   string
+	// UploadID, PartSize and PartURLs are set by UploadInParts. Part i covers
+	// the bytes from i*PartSize, the last part may be shorter.
+	UploadID string
+	PartSize int64
+	PartURLs []string
 }
 
 // MintToken creates the cache token of a workflow. It is valid only while the
@@ -322,6 +332,24 @@ func (s *Service) Reserve(ctx context.Context, access Access, key string, size i
 	return &Reservation{Entry: entry, URL: url}, nil
 }
 
+// UploadInParts switches a reservation to an upload in parts, which the cache
+// step sends in parallel. It leaves the reservation alone when the storage
+// cannot take parts or the archive fits into one.
+func (s *Service) UploadInParts(ctx context.Context, r *Reservation) error {
+	storage, ok := s.storage.(MultipartStorage)
+	if !ok || r.Entry.Size <= partSize {
+		return nil
+	}
+	size := max(partSize, (r.Entry.Size+maxParts-1)/maxParts)
+	parts := int((r.Entry.Size + size - 1) / size)
+	uploadID, urls, err := storage.StartMultipart(ctx, objectName(r.Entry), parts, s.config.URLExpiry)
+	if err != nil {
+		return err
+	}
+	r.UploadID, r.PartSize, r.PartURLs = uploadID, size, urls
+	return nil
+}
+
 func (s *Service) abandoned(entry *model.BuildCache) bool {
 	return !entry.Committed && s.now().Sub(time.Unix(entry.Created, 0)) > s.config.PendingTTL
 }
@@ -377,10 +405,22 @@ func (s *Service) evictUntil(ctx context.Context, repoID, limit, extra int64) er
 }
 
 // Commit marks an uploaded entry as restorable, recording its stored size.
-func (s *Service) Commit(ctx context.Context, access Access, id int64) (*model.BuildCache, error) {
+// UploadID is set when the archive was uploaded in parts, which are assembled
+// first.
+func (s *Service) Commit(ctx context.Context, access Access, id int64, uploadID string) (*model.BuildCache, error) {
 	entry, err := s.writable(access, id)
 	if err != nil {
 		return nil, err
+	}
+
+	if uploadID != "" {
+		storage, ok := s.storage.(MultipartStorage)
+		if !ok {
+			return nil, ErrNotFound
+		}
+		if err := storage.CompleteMultipart(ctx, objectName(entry), uploadID); err != nil {
+			return nil, fmt.Errorf("cache archive was not uploaded: %w", err)
+		}
 	}
 
 	size, err := s.storage.Size(ctx, objectName(entry))
@@ -498,6 +538,13 @@ func (s *Service) Purge(ctx context.Context, repoID int64) error {
 // delete removes the archive before the row, so a failure leaves a row the
 // next cleanup retries rather than an archive nothing refers to.
 func (s *Service) delete(ctx context.Context, entry *model.BuildCache) error {
+	if storage, ok := s.storage.(MultipartStorage); ok && !entry.Committed {
+		// The parts of an upload that never finished are stored, and billed,
+		// until they are aborted.
+		if err := storage.AbortMultipart(ctx, objectName(entry)); err != nil {
+			log.Warn().Err(err).Int64("id", entry.ID).Msg("could not abort the unfinished upload of a build cache entry")
+		}
+	}
 	if err := s.storage.Delete(ctx, objectName(entry)); err != nil {
 		return fmt.Errorf("delete cache archive %d: %w", entry.ID, err)
 	}

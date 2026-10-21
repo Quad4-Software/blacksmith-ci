@@ -55,17 +55,26 @@ type CacheRestoreResponse struct {
 type CacheReserveRequest struct {
 	Key  string `json:"key"`
 	Size int64  `json:"size"`
+	// Multipart is set by cache steps that can upload in parts.
+	Multipart bool `json:"multipart,omitempty"`
 }
 
 // CacheReserveResponse is where to upload a reserved archive.
 type CacheReserveResponse struct {
 	ID  int64  `json:"id"`
 	URL string `json:"url"`
+	// UploadID, PartSize and PartURLs replace URL for an upload in parts:
+	// part i holds the bytes from i*PartSize and is PUT to PartURLs[i].
+	UploadID string   `json:"upload_id,omitempty"`
+	PartSize int64    `json:"part_size,omitempty"`
+	PartURLs []string `json:"part_urls,omitempty"`
 }
 
 // CacheCommitRequest finishes an upload.
 type CacheCommitRequest struct {
 	ID int64 `json:"id"`
+	// UploadID is the upload in parts to assemble, if any.
+	UploadID string `json:"upload_id,omitempty"`
 }
 
 // cacheAccess authorizes a cache step request, writing the error response and
@@ -153,7 +162,19 @@ func PostCacheReserve(c *gin.Context) {
 		cacheError(c, err)
 		return
 	}
-	c.JSON(http.StatusCreated, CacheReserveResponse{ID: reservation.Entry.ID, URL: reservation.URL})
+	if req.Multipart {
+		if err := service.UploadInParts(c, reservation); err != nil {
+			// The single upload URL still works.
+			log.Warn().Err(err).Int64("id", reservation.Entry.ID).Msg("could not start a build cache upload in parts")
+		}
+	}
+	c.JSON(http.StatusCreated, CacheReserveResponse{
+		ID:       reservation.Entry.ID,
+		URL:      reservation.URL,
+		UploadID: reservation.UploadID,
+		PartSize: reservation.PartSize,
+		PartURLs: reservation.PartURLs,
+	})
 }
 
 // PostCacheCommit makes an uploaded archive restorable.
@@ -167,7 +188,7 @@ func PostCacheCommit(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	entry, err := service.Commit(c, access, req.ID)
+	entry, err := service.Commit(c, access, req.ID, req.UploadID)
 	if err != nil {
 		cacheError(c, err)
 		return

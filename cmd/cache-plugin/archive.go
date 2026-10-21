@@ -38,8 +38,9 @@ const (
 
 // writeArchive writes the paths below workspace as a zstd-compressed tar to w.
 // Entry names are slash-separated and relative to the workspace. Symlinks are
-// stored as links and never followed. It returns the paths that do not exist.
-func writeArchive(w io.Writer, workspace string, paths []string) (missing []string, err error) {
+// stored as links and never followed. Archived files and their bytes are
+// counted in c. It returns the paths that do not exist.
+func writeArchive(w io.Writer, workspace string, paths []string, c *counter) (missing []string, err error) {
 	zw, err := zstd.NewWriter(w)
 	if err != nil {
 		return nil, err
@@ -56,7 +57,7 @@ func writeArchive(w io.Writer, workspace string, paths []string) (missing []stri
 			if err != nil {
 				return err
 			}
-			return addToArchive(tw, workspace, file, d)
+			return addToArchive(tw, workspace, file, d, c)
 		})
 		if err != nil {
 			return missing, err
@@ -69,7 +70,7 @@ func writeArchive(w io.Writer, workspace string, paths []string) (missing []stri
 	return missing, zw.Close()
 }
 
-func addToArchive(tw *tar.Writer, workspace, file string, d fs.DirEntry) error {
+func addToArchive(tw *tar.Writer, workspace, file string, d fs.DirEntry, c *counter) error {
 	info, err := d.Info()
 	if err != nil {
 		return err
@@ -113,7 +114,8 @@ func addToArchive(tw *tar.Writer, workspace, file string, d fs.DirEntry) error {
 		return err
 	}
 	defer f.Close()
-	_, err = io.Copy(tw, f)
+	c.files.Add(1)
+	_, err = io.Copy(tw, c.reader(f))
 	return err
 }
 

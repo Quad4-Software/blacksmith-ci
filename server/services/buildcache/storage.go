@@ -20,8 +20,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/minio/minio-go/v7"
@@ -53,6 +55,21 @@ type Storage interface {
 	Size(ctx context.Context, name string) (int64, error)
 	// Delete removes an object; deleting a missing object is not an error.
 	Delete(ctx context.Context, name string) error
+}
+
+// MultipartStorage is a Storage that also takes an object in parts, each
+// uploaded through its own presigned URL. Object stores accept a single upload
+// at a few MB/s per connection, so a large archive uploads many times faster
+// in parallel parts.
+type MultipartStorage interface {
+	Storage
+	// StartMultipart begins an upload of name in parts and returns its ID and
+	// one presigned PUT URL per part, in part order.
+	StartMultipart(ctx context.Context, name string, parts int, expiry time.Duration) (string, []string, error)
+	// CompleteMultipart assembles the uploaded parts of an upload into name.
+	CompleteMultipart(ctx context.Context, name, uploadID string) error
+	// AbortMultipart drops the unfinished uploads of name and their parts.
+	AbortMultipart(ctx context.Context, name string) error
 }
 
 // localStorage keeps archives in a directory on the server and streams them
@@ -164,7 +181,11 @@ type s3Storage struct {
 	prefix string
 }
 
-const s3CheckTimeout = 10 * time.Second
+const (
+	s3CheckTimeout = 10 * time.Second
+	// S3 lists at most this many parts of an upload per request.
+	s3MaxListParts = 1000
+)
 
 // NewS3Storage connects to the bucket and verifies that it exists.
 func NewS3Storage(ctx context.Context, opts S3Options) (Storage, error) {
@@ -223,6 +244,56 @@ func (s *s3Storage) UploadURL(ctx context.Context, name string, expiry time.Dura
 		return "", err
 	}
 	return u.String(), nil
+}
+
+func (s *s3Storage) StartMultipart(ctx context.Context, name string, parts int, expiry time.Duration) (string, []string, error) {
+	core := minio.Core{Client: s.client}
+	uploadID, err := core.NewMultipartUpload(ctx, s.bucket, s.key(name), minio.PutObjectOptions{ContentType: "application/zstd"})
+	if err != nil {
+		return "", nil, err
+	}
+	urls := make([]string, parts)
+	for i := range urls {
+		u, err := s.client.Presign(ctx, http.MethodPut, s.bucket, s.key(name), expiry, url.Values{
+			"partNumber": {strconv.Itoa(i + 1)},
+			"uploadId":   {uploadID},
+		})
+		if err != nil {
+			return "", nil, errors.Join(err, core.AbortMultipartUpload(ctx, s.bucket, s.key(name), uploadID))
+		}
+		urls[i] = u.String()
+	}
+	return uploadID, urls, nil
+}
+
+// CompleteMultipart assembles every part the store received. The cache step
+// does not report the parts' ETags, the store lists them.
+func (s *s3Storage) CompleteMultipart(ctx context.Context, name, uploadID string) error {
+	core := minio.Core{Client: s.client}
+	var parts []minio.CompletePart
+	marker := 0
+	for {
+		result, err := core.ListObjectParts(ctx, s.bucket, s.key(name), uploadID, marker, s3MaxListParts)
+		if err != nil {
+			return err
+		}
+		for _, part := range result.ObjectParts {
+			parts = append(parts, minio.CompletePart{PartNumber: part.PartNumber, ETag: part.ETag})
+		}
+		if !result.IsTruncated {
+			break
+		}
+		marker = result.NextPartNumberMarker
+	}
+	if len(parts) == 0 {
+		return ErrObjectNotFound
+	}
+	_, err := core.CompleteMultipartUpload(ctx, s.bucket, s.key(name), uploadID, parts, minio.PutObjectOptions{ContentType: "application/zstd"})
+	return err
+}
+
+func (s *s3Storage) AbortMultipart(ctx context.Context, name string) error {
+	return s.client.RemoveIncompleteUpload(ctx, s.bucket, s.key(name))
 }
 
 func (s *s3Storage) Open(ctx context.Context, name string) (io.ReadCloser, error) {

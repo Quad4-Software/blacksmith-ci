@@ -151,7 +151,8 @@ func TestTransientFailuresAreRetried(t *testing.T) {
 	out = h.run(t, "restore", second, spec)
 	assert.Contains(t, out, "restore of big failed, retrying")
 	assert.Contains(t, out, "connection reset by peer")
-	assert.Contains(t, out, "restored big (exact match")
+	assert.Contains(t, out, "restoring big (exact match")
+	assert.Contains(t, out, "restored big (")
 	assert.Equal(t, string(random), readFile(t, second, "cache/blob"))
 }
 
@@ -170,7 +171,7 @@ func TestTransferErrorsHideTheSignature(t *testing.T) {
 	archive, err := os.CreateTemp(t.TempDir(), "archive")
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = archive.Close() })
-	err = c.upload(context.Background(), signed, archive, 0)
+	err = c.uploadWhole(context.Background(), signed, archive, 0)
 	require.Error(t, err)
 
 	logged := out.String() + err.Error()
