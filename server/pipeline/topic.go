@@ -97,6 +97,7 @@ func AnnotateAutoscalerProvisioning(s store.Store, pipeline *model.Pipeline) {
 		taskLabels[taskKey{t.PipelineID, t.Name}] = t.Labels
 	}
 
+	agentsByAutoscaler := make(map[int64][]*model.ProvisioningAgent)
 	for _, wf := range pipeline.Workflows {
 		if wf.State != model.StatusPending {
 			continue
@@ -111,8 +112,35 @@ func AnnotateAutoscalerProvisioning(s store.Store, pipeline *model.Pipeline) {
 				if a.IsProvisioningStale() {
 					wf.AutoscalerProvisioningStale = true
 				}
+				wf.AutoscalerProvisioningSince = a.PendingSince
+				wf.AutoscalerProvisionTimeout = a.ProvisionTimeoutSeconds()
+				if _, ok := agentsByAutoscaler[a.ID]; !ok {
+					agentsByAutoscaler[a.ID] = provisioningAgents(s, a)
+				}
+				wf.ProvisioningAgents = agentsByAutoscaler[a.ID]
 				break
 			}
 		}
 	}
+}
+
+// provisioningAgents loads the agents an autoscaler reported as pending that
+// have not connected yet, with the phases their hosts reported.
+func provisioningAgents(s store.Store, a *model.Autoscaler) []*model.ProvisioningAgent {
+	var agents []*model.ProvisioningAgent
+	for _, id := range a.PendingAgentIDs {
+		agent, err := s.AgentFind(id)
+		if err != nil {
+			continue
+		}
+		if agent.LastContact > 0 {
+			continue
+		}
+		phases := make([]model.ProvisioningPhase, 0, len(agent.Provisioning))
+		for _, p := range agent.Provisioning {
+			phases = append(phases, model.ProvisioningPhase{Phase: p.Phase, Failed: p.Failed, At: p.At})
+		}
+		agents = append(agents, &model.ProvisioningAgent{ID: agent.ID, Name: agent.Name, Phases: phases})
+	}
+	return agents
 }

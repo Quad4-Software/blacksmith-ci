@@ -367,6 +367,8 @@ CROW_MIN_AGENTS=0
 CROW_MAX_AGENTS=1
 # how long an idle host is kept before it is deleted
 CROW_AGENT_IDLE_TIMEOUT=10m
+# how long a fresh host takes to connect, shown on the workflows waiting for it
+CROW_AGENT_PROVISION_TIMEOUT=25m
 ```
 
 The autoscaler declines to scale up when its own agents' labels cannot serve the pending tasks, so a Windows pool and a Linux pool coexist without either spawning for the other's work.
@@ -392,6 +394,10 @@ The host exists to run workflows inside VMs, and an agent on it with another bac
 
 A fresh host takes about 8 minutes to boot and reboot, and about 8 more to build the golden image, before its agent connects.
 That is within the autoscaler's default `CROW_AGENT_INACTIVITY_TIMEOUT` of 30 minutes; do not lower it below 20.
+
+While it works, the bootstrap reports each phase to the server: downloading the agent, installing Hyper-V, rebooting, waiting for Hyper-V, setting up the guest network, building the golden image and starting the agent.
+The workflows waiting for the host show these phases, so a slow start can be told apart from a stuck one, and a failed phase is shown as failed rather than as an agent that never connects.
+See [Provisioning Progress](/dev/configuration/autoscaler/#provisioning-progress) for how this works.
 
 <Aside type="caution" title="Do not reboot inside the bootstrap">
 On Azure the bootstrap runs as a `CustomScriptExtension`, and a reboot part-way through is reported as extension failure — which makes the provider delete the host it has just built.

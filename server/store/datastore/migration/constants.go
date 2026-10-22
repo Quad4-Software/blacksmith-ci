@@ -121,6 +121,7 @@ var newMigrationIDs = []string{
 	"crow-add-build-caches",
 	"crow-add-agent-protocol-version",
 	"crow-add-agent-remote-update",
+	"crow-add-provisioning-progress",
 }
 
 // allKnownMigrations returns a combined list of all known migration IDs.

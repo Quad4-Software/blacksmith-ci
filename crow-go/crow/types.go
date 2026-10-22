@@ -362,6 +362,8 @@ type (
 		ActiveAgents      int32             `json:"active_agents"`
 		PendingAgents     int32             `json:"pending_agents"`
 		PendingSince      int64             `json:"pending_since"`
+		PendingAgentIDs   []int64           `json:"pending_agent_ids"`
+		ProvisionTimeout  int64             `json:"provision_timeout"`
 	}
 
 	// AutoscalerHeartbeat is the JSON data for an autoscaler heartbeat.
@@ -378,5 +380,11 @@ type (
 		AgentLabels       map[string]string `json:"agent_labels"`
 		LimitCPUQuota     string            `json:"limit_cpu_quota"`
 		LimitMem          string            `json:"limit_mem"`
+		// PendingAgentIDs are the agents the autoscaler started that have not
+		// connected yet.
+		PendingAgentIDs []int64 `json:"pending_agent_ids,omitempty"`
+		// ProvisionTimeout is how long, in seconds, an agent is expected to
+		// take to connect.
+		ProvisionTimeout int64 `json:"provision_timeout,omitempty"`
 	}
 )

@@ -125,6 +125,8 @@ var scopeRules = []scopeRule{
 	publicRule(v1 + "/autoscaler"),
 	publicRule(v1 + "/autoscalers/:autoscaler_id/heartbeat"),
 	{methods: post, path: v1 + "/autoscalers/:autoscaler_id/logs", req: session.ScopeRequirement{Kind: session.ScopePublic}},
+	// Authenticated with the agent token the host being provisioned was given.
+	publicRule(v1 + "/agent/provisioning"),
 	// Authenticated with the cache token of a running workflow, not with the user.
 	publicRule(v1 + "/cache/*"),
 

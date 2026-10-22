@@ -709,21 +709,12 @@
           <p>{{ $t('repo.pipeline.protected.declined') }}</p>
         </div>
         <span v-else-if="step?.state === 'skipped'">{{ $t('repo.pipeline.actions.canceled') }}</span>
-        <div
-          v-else-if="!step?.started && currentWorkflow?.autoscaler_provisioning"
-          class="flex flex-col items-center gap-3 text-center"
-        >
-          <template v-if="currentWorkflow?.autoscaler_provisioning_stale">
-            <Icon name="ph:warning" class="w-10 h-10 text-destructive" />
-            <span class="text-lg font-medium text-destructive">{{ $t('repo.pipeline.agent_provisioning_stale') }}</span>
-            <span class="text-sm text-muted-foreground">{{ $t('repo.pipeline.agent_provisioning_stale_desc') }}</span>
-          </template>
-          <template v-else>
-            <Icon name="ph:hard-drives" class="w-10 h-10 text-primary animate-pulse" />
-            <span class="text-lg font-medium text-foreground">{{ $t('repo.pipeline.agent_provisioning') }}</span>
-            <span class="text-sm text-muted-foreground">{{ $t('repo.pipeline.agent_provisioning_desc') }}</span>
-          </template>
-        </div>
+        <AgentProvisioningStatus
+          v-else-if="!step?.started && currentWorkflow?.autoscaler_provisioning && repo"
+          :workflow="currentWorkflow"
+          :repo-id="repo.id"
+          :pipeline-number="pipeline.number"
+        />
         <span v-else-if="!step?.started">{{ $t('repo.pipeline.step_not_started') }}</span>
         <div v-else-if="!loadedLogs">{{ $t('repo.pipeline.loading') }}</div>
 
@@ -770,6 +761,7 @@
 import '~/style/console.css';
 import { useStorage } from '@vueuse/core';
 import Icon from '~/components/atomic/Icon.vue';
+import AgentProvisioningStatus from '~/components/repo/pipeline/AgentProvisioningStatus.vue';
 import LogIssueBar from '~/components/repo/pipeline/LogIssueBar.vue';
 import PipelineStatusIcon from '~/components/repo/pipeline/PipelineStatusIcon.vue';
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';

@@ -344,7 +344,8 @@ CREATE TABLE IF NOT EXISTS agents (
     remote_update VARCHAR(20),
     restart_requested BOOLEAN,
     restart_queued BOOLEAN,
-    auto_restart_version VARCHAR(255)
+    auto_restart_version VARCHAR(255),
+    provisioning TEXT
 );
 
 CREATE TABLE IF NOT EXISTS autoscalers (
@@ -369,6 +370,8 @@ CREATE TABLE IF NOT EXISTS autoscalers (
     active_agents INTEGER,
     pending_agents INTEGER,
     pending_since INTEGER,
+    pending_agent_ids TEXT,
+    provision_timeout BIGINT,
     org_id INTEGER
 );
 

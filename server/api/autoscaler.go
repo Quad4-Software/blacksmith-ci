@@ -192,6 +192,10 @@ type HeartbeatBody struct {
 	AgentLabels       map[string]string `json:"agent_labels"`
 	LimitCPUQuota     string            `json:"limit_cpu_quota"`
 	LimitMem          string            `json:"limit_mem"`
+	// PendingAgentIDs and ProvisionTimeout are optional so older autoscalers
+	// keep working.
+	PendingAgentIDs  []int64 `json:"pending_agent_ids,omitempty" doc:"agents started by the autoscaler that have not connected yet"`
+	ProvisionTimeout int64   `json:"provision_timeout,omitempty" minimum:"0" doc:"seconds an agent is expected to take to connect"`
 }
 
 type PostAutoscalerHeartbeatInput struct {
@@ -242,6 +246,8 @@ func PostAutoscalerHeartbeat(ctx context.Context, input *PostAutoscalerHeartbeat
 
 	autoscaler.ActiveAgents = input.Body.ActiveAgents
 	autoscaler.PendingAgents = input.Body.PendingAgents
+	autoscaler.PendingAgentIDs = input.Body.PendingAgentIDs
+	autoscaler.ProvisionTimeout = input.Body.ProvisionTimeout
 	autoscaler.Version = input.Body.Version
 	autoscaler.LastContact = now
 

@@ -130,6 +130,7 @@ func Migrate(_ context.Context, db *sql.DB, driver string, _ bool) error {
 		{ID: "crow-add-build-caches", Migrate: createBuildCaches(driver)},
 		{ID: "crow-add-agent-protocol-version", Migrate: addAgentProtocolVersion},
 		{ID: "crow-add-agent-remote-update", Migrate: addAgentRemoteUpdate},
+		{ID: "crow-add-provisioning-progress", Migrate: addProvisioningProgress},
 	}
 
 	if len(newMigrations) > 0 {
@@ -858,6 +859,26 @@ func addAgentRemoteUpdate(tx *sql.Tx) error {
 	}
 	if err := addColumnIfNotExists("agents", "auto_restart_version", "VARCHAR(255)")(tx); err != nil {
 		return fmt.Errorf("add agents.auto_restart_version: %w", err)
+	}
+	return nil
+}
+
+// addProvisioningProgress adds agents.provisioning, the phases a host reported
+// while being set up, and autoscalers.pending_agent_ids and
+// autoscalers.provision_timeout, reported in autoscaler heartbeats.
+func addProvisioningProgress(tx *sql.Tx) error {
+	if tableExists(tx, "agents") {
+		if err := addColumnIfNotExists("agents", "provisioning", "TEXT")(tx); err != nil {
+			return fmt.Errorf("add agents.provisioning: %w", err)
+		}
+	}
+	if tableExists(tx, "autoscalers") {
+		if err := addColumnIfNotExists("autoscalers", "pending_agent_ids", "TEXT")(tx); err != nil {
+			return fmt.Errorf("add autoscalers.pending_agent_ids: %w", err)
+		}
+		if err := addColumnIfNotExists("autoscalers", "provision_timeout", "BIGINT")(tx); err != nil {
+			return fmt.Errorf("add autoscalers.provision_timeout: %w", err)
+		}
 	}
 	return nil
 }

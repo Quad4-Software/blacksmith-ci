@@ -52,11 +52,17 @@ type Autoscaler struct {
 	PendingAgents     int32               `json:"pending_agents"        bun:"pending_agents"`
 	PendingSince      int64               `json:"pending_since"         bun:"pending_since"`
 	OrgID             int64               `json:"org_id"                bun:"org_id"`
+	// PendingAgentIDs are the agents the autoscaler has started that have not
+	// connected yet, as reported in its last heartbeat.
+	PendingAgentIDs JSONSliceInt64 `json:"pending_agent_ids" bun:"pending_agent_ids,type:text"`
+	// ProvisionTimeout is how long, in seconds, the autoscaler expects an agent
+	// to take to connect. Zero means DefaultProvisionTimeoutSeconds.
+	ProvisionTimeout int64 `json:"provision_timeout" bun:"provision_timeout"`
 } //	@name	Autoscaler
 
 const (
-	// DefaultProvisionTimeoutSeconds is the default time after which pending agents
-	// are considered stale (5 minutes).
+	// DefaultProvisionTimeoutSeconds is the time after which pending agents are
+	// considered stale (5 minutes), unless the autoscaler reports its own.
 	DefaultProvisionTimeoutSeconds = 300
 )
 
@@ -158,5 +164,14 @@ func (a *Autoscaler) IsProvisioningStale() bool {
 	if a.PendingAgents <= 0 || a.PendingSince <= 0 {
 		return false
 	}
-	return (time.Now().Unix() - a.PendingSince) >= DefaultProvisionTimeoutSeconds
+	return (time.Now().Unix() - a.PendingSince) >= a.ProvisionTimeoutSeconds()
+}
+
+// ProvisionTimeoutSeconds returns how long the autoscaler expects an agent to
+// take to connect.
+func (a *Autoscaler) ProvisionTimeoutSeconds() int64 {
+	if a.ProvisionTimeout > 0 {
+		return a.ProvisionTimeout
+	}
+	return DefaultProvisionTimeoutSeconds
 }

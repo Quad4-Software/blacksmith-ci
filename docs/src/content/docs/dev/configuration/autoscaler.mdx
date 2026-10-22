@@ -135,6 +135,7 @@ The optimal value depends on your instance type and workflow requirements.
 | -------------------------------------- | ------- | ------------------------------------ |
 | `CROW_AGENT_IDLE_TIMEOUT`              | `10m`   | Time before idle agent is terminated |
 | `CROW_AGENT_SERVER_CONNECTION_TIMEOUT` | `10m`   | Max time without server connection   |
+| `CROW_AGENT_PROVISION_TIMEOUT`         | `5m`    | How long a new agent usually takes to connect; see [Provisioning Progress](#provisioning-progress) |
 
 :::tip
 Match idle timeout to your provider's billing cycle.
@@ -194,6 +195,32 @@ A typical remote setup forwards the server endpoint and TLS flag:
 
 Note that the spawned agent reads `CROW_SERVER` as a gRPC address, not as the HTTP URL the autoscaler itself uses.
 The example above is the form the *agent* expects (host:port), passed through `CROW_AGENT_ENV`.
+
+## Provisioning Progress
+
+While an autoscaler starts an agent for a pending workflow, the workflow shows that an agent is being provisioned, how long that has taken so far, and how long it usually takes.
+The usual time is the autoscaler's `CROW_AGENT_PROVISION_TIMEOUT`.
+Set it to how long your hosts really take: a Linux VM is ready within a few minutes, while a Windows host that installs a hypervisor can take 20.
+Once that time has passed without the agent connecting, the workflow says provisioning appears stuck.
+
+The host can also report what it is doing, and the workflow lists those phases with the time each began.
+The autoscaler passes every host the URL to report to as `CROW_PROVISIONING_URL`, next to the agent's token in `CROW_AGENT_SECRET`.
+The [Hyper-V bootstrap](/dev/configuration/env-vars/backend-hyperv/#the-bootstrap) reports its phases this way, and a custom bootstrap can do the same:
+
+```sh
+# report a phase; add "failed": true and a "detail" when one fails
+curl -fsS -X POST "$CROW_PROVISIONING_URL" \
+  -H "Authorization: Bearer $CROW_AGENT_SECRET" \
+  -H 'Content-Type: application/json' \
+  -d '{"phase": "Installing Docker"}'
+```
+
+The request authenticates with the agent's own token, so a host can only report for its own agent.
+Reporting is best effort: a bootstrap should carry on when a report fails.
+
+Anyone who can view a pipeline sees the phase names on its waiting workflows, so keep them generic.
+The `detail` text, such as the error of a failed phase, is left off workflows and only returned with the agent by the agents API.
+The server keeps the last 20 phases per agent.
 
 ## gRPC Proxy Setup
 

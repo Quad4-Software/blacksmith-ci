@@ -147,6 +147,11 @@ export interface PipelineWorkflow {
   attempt: number;
   autoscaler_provisioning?: boolean;
   autoscaler_provisioning_stale?: boolean;
+  // Unix seconds the autoscaler started waiting for agents, and how many
+  // seconds it expects one to take to connect.
+  autoscaler_provisioning_since?: number;
+  autoscaler_provision_timeout?: number;
+  provisioning_agents?: ProvisioningAgent[];
   children: PipelineStep[];
   // Workflow approval gate fields (only set when the workflow declares one).
   requires_approval?: boolean;
@@ -154,6 +159,20 @@ export interface PipelineWorkflow {
   approval_teams?: string[];
   approval_state?: ApprovalState;
   approval_deadline?: number;
+}
+
+// ProvisioningAgent is an agent an autoscaler is starting for a pending
+// workflow, with the phases its host reported.
+export interface ProvisioningAgent {
+  id: number;
+  name: string;
+  phases: ProvisioningPhase[];
+}
+
+export interface ProvisioningPhase {
+  phase: string;
+  failed?: boolean;
+  at: number;
 }
 
 // ApprovalState describes the lifecycle of a workflow-level approval gate.

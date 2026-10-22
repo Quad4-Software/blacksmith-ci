@@ -17,6 +17,7 @@ package model
 import (
 	"maps"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -167,4 +168,12 @@ func TestAutoscalerCanProvision(t *testing.T) {
 			assert.Equal(t, tt.want, tt.autoscaler.CanProvision(tt.labels))
 		})
 	}
+}
+
+func TestAutoscalerIsProvisioningStaleUsesItsTimeout(t *testing.T) {
+	tenMinutesAgo := time.Now().Unix() - 600
+	assert.True(t, (&Autoscaler{PendingAgents: 1, PendingSince: tenMinutesAgo}).IsProvisioningStale(), "default timeout is 5 minutes")
+	assert.False(t, (&Autoscaler{PendingAgents: 1, PendingSince: tenMinutesAgo, ProvisionTimeout: 1800}).IsProvisioningStale())
+	assert.True(t, (&Autoscaler{PendingAgents: 1, PendingSince: tenMinutesAgo, ProvisionTimeout: 300}).IsProvisioningStale())
+	assert.False(t, (&Autoscaler{PendingSince: tenMinutesAgo}).IsProvisioningStale(), "nothing pending")
 }

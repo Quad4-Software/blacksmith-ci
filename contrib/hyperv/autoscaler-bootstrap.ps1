@@ -29,6 +29,10 @@
 #                                 branch, since it runs as SYSTEM.
 #   CROW_HYPERV_GUEST_DNS         DNS servers handed to guests by DHCP,
 #                                 comma-separated. Defaults to 1.1.1.1,8.8.8.8.
+#   CROW_PROVISIONING_URL         Where to report setup progress, which the
+#                                 server shows on the workflows waiting for this
+#                                 agent. The autoscaler sets it; without it
+#                                 nothing is reported.
 #
 # The guest password is generated on the host when
 # CROW_BACKEND_HYPERV_GUEST_PASSWORD is not set. The golden image is built on
@@ -51,6 +55,26 @@ foreach ($dir in @($agentDir, 'C:\crow-images', 'C:\crow-vms')) {
 # per attempt.
 netsh interface ipv6 set prefixpolicy ::ffff:0.0.0.0/96 100 4 | Out-Null
 
+# Progress reporting, defined once and used here and by the start script.
+$progressFunction = @'
+# Reports what the host is doing to the Crow server, authenticated with the
+# agent's own token. Best effort: a report that fails never fails the setup.
+function Send-Progress([string]$Phase, [string]$Detail = '', [switch]$Failed) {
+  $url = [Environment]::GetEnvironmentVariable('CROW_PROVISIONING_URL', 'Machine')
+  $token = [Environment]::GetEnvironmentVariable('CROW_AGENT_SECRET', 'Machine')
+  if (-not $url -or -not $token) { return }
+  if ($Detail.Length -gt 1000) { $Detail = $Detail.Substring(0, 1000) }
+  try {
+    $body = @{ phase = $Phase; detail = $Detail; failed = [bool]$Failed } | ConvertTo-Json -Compress
+    Invoke-RestMethod -Method Post -Uri $url -Headers @{ Authorization = "Bearer $token" } `
+      -ContentType 'application/json' -Body ([Text.Encoding]::UTF8.GetBytes($body)) -TimeoutSec 15 -UseBasicParsing | Out-Null
+  } catch {
+    Write-Output "reporting progress '$Phase' failed: $_"
+  }
+}
+'@
+. ([ScriptBlock]::Create($progressFunction))
+
 function Get-File([string]$Url, [string]$Destination) {
   & curl.exe --fail --location --silent --show-error --retry 3 --output $Destination $Url
   if ($LASTEXITCODE -ne 0) { throw "downloading $Url failed with curl exit code $LASTEXITCODE" }
@@ -60,17 +84,26 @@ function Get-File([string]$Url, [string]$Destination) {
 # Agent and its environment
 ########################################################################
 
+# Set first, so progress can be reported from here on.
+{{- range $key, $value := .Environment }}
+[Environment]::SetEnvironmentVariable('{{ $key }}', '{{ $value }}', 'Machine')
+{{- end }}
+
+# Report a failure of this script before it ends; break rethrows it.
+trap {
+  Send-Progress 'Bootstrap failed' -Detail "$_" -Failed
+  break
+}
+
 $agentExe = Join-Path $agentDir 'crow-agent.exe'
 if (-not (Test-Path -LiteralPath $agentExe)) {
+  Send-Progress 'Downloading the agent'
   $zip = Join-Path $env:TEMP 'crow-agent.zip'
   Get-File '{{ .Image }}' $zip
   Expand-Archive -Path $zip -DestinationPath $agentDir -Force
   Remove-Item -LiteralPath $zip -Force
 }
 
-{{- range $key, $value := .Environment }}
-[Environment]::SetEnvironmentVariable('{{ $key }}', '{{ $value }}', 'Machine')
-{{- end }}
 
 function Set-MachineDefault([string]$Name, [string]$Value) {
   if (-not [Environment]::GetEnvironmentVariable($Name, 'Machine')) {
@@ -129,7 +162,8 @@ foreach ($name in @('build-golden-image.ps1', 'guest-setup-git.ps1', 'setup-nat-
 # after the reboot, so they happen here rather than above. Running at every
 # boot, and skipping what already exists, also repairs a host whose image
 # build was interrupted.
-$startScript = @'
+$startScript = $progressFunction + @'
+
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 Start-Transcript -Path 'C:\crow-agent\start.log' -Append | Out-Null
@@ -150,13 +184,17 @@ if ($env:CROW_BACKEND -ne 'hyperv') {
 # The task starts early in boot, and on the first boot after the role was
 # installed Hyper-V's management service is still coming up: a Hyper-V cmdlet
 # run then fails with "could not access an expected WMI class". Wait for it.
+Send-Progress 'Waiting for Hyper-V'
 $deadline = (Get-Date).AddMinutes(15)
 while ($true) {
   try {
     Get-VMHost -ErrorAction Stop | Out-Null
     break
   } catch {
-    if ((Get-Date) -gt $deadline) { throw "Hyper-V did not become ready within 15 minutes: $_" }
+    if ((Get-Date) -gt $deadline) {
+      Send-Progress 'Hyper-V did not start' -Detail "$_" -Failed
+      throw "Hyper-V did not become ready within 15 minutes: $_"
+    }
     Start-Sleep -Seconds 10
   }
 }
@@ -171,10 +209,12 @@ for ($attempt = 1; ; $attempt++) {
     # Only the default switch is managed here. One with any other name is the
     # operator's, set up in a custom image or by their own script.
     if ($switch -eq 'crow-nat') {
+      Send-Progress 'Setting up the guest network'
       & 'C:\crow-agent\setup-nat-network.ps1' -SwitchName $switch -DnsServer ($env:CROW_HYPERV_GUEST_DNS -split ',')
     }
 
     if (-not (Test-Path -LiteralPath $env:CROW_BACKEND_HYPERV_BASE_VHDX)) {
+      Send-Progress 'Building the golden image'
       & 'C:\crow-agent\build-golden-image.ps1' -Path $env:CROW_BACKEND_HYPERV_BASE_VHDX `
         -Username $env:CROW_BACKEND_HYPERV_GUEST_USERNAME `
         -Password (ConvertTo-SecureString $env:CROW_BACKEND_HYPERV_GUEST_PASSWORD -AsPlainText -Force) `
@@ -182,12 +222,17 @@ for ($attempt = 1; ; $attempt++) {
     }
     break
   } catch {
-    if ($attempt -ge 3) { throw }
+    if ($attempt -ge 3) {
+      Send-Progress 'Host setup failed' -Detail "$_" -Failed
+      throw
+    }
     Write-Output "host setup attempt $attempt failed, retrying in a minute: $_"
+    Send-Progress "Host setup attempt $attempt failed, retrying" -Detail "$_" -Failed
     Start-Sleep -Seconds 60
   }
 }
 
+Send-Progress 'Starting the agent'
 Stop-Transcript | Out-Null
 
 # Restarted here for the same reason: an agent that exits, with whatever code,
@@ -205,6 +250,7 @@ Set-Content -LiteralPath (Join-Path $agentDir 'start.ps1') -Value $startScript -
 
 $needsReboot = $false
 if (-not (Get-WindowsFeature -Name Hyper-V).Installed) {
+  Send-Progress 'Installing Hyper-V'
   # No -Restart: see the note at the top.
   $result = Install-WindowsFeature -Name Hyper-V -IncludeManagementTools
   # RestartNeeded is No, Yes or Maybe; anything but No gets one.
@@ -233,6 +279,7 @@ if ($needsReboot) {
   # The task starts the agent after the reboot. The delay has to outlast this
   # script, or the extension running it is reported as failed.
   Write-Output 'roles installed; rebooting in 120 seconds to activate them'
+  Send-Progress 'Rebooting to activate Hyper-V'
   shutdown.exe /r /t 120 /c 'crow: activating Hyper-V'
 } else {
   Start-ScheduledTask -TaskName 'crow-agent'

@@ -58,3 +58,13 @@ func TestAgentCanAccessRepo(t *testing.T) {
 	assert.True(t, (&Agent{OrgIDs: JSONSliceInt64{5, 7}}).CanAccessRepo(repo))
 	assert.False(t, (&Agent{OrgIDs: JSONSliceInt64{5}}).CanAccessRepo(repo))
 }
+
+func TestAgentAddProvisioningPhaseKeepsTheNewest(t *testing.T) {
+	a := &Agent{}
+	for i := range MaxProvisioningPhases + 3 {
+		a.AddProvisioningPhase(ProvisioningPhase{Phase: "phase", At: int64(i)})
+	}
+	assert.Len(t, a.Provisioning, MaxProvisioningPhases)
+	assert.Equal(t, int64(3), a.Provisioning[0].At)
+	assert.Equal(t, int64(MaxProvisioningPhases+2), a.Provisioning[MaxProvisioningPhases-1].At)
+}

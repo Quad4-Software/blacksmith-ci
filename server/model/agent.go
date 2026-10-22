@@ -81,7 +81,34 @@ type Agent struct {
 	// OrgIDs scopes the agent to one or more organizations. An empty list means
 	// the agent is global and can process tasks from any organization.
 	OrgIDs JSONSliceInt64 `json:"org_ids" bun:"org_ids,type:text"`
+	// Provisioning is the progress the agent's host reported while it was being
+	// set up, oldest first, capped at MaxProvisioningPhases entries.
+	Provisioning JSONSliceProvisioningPhase `json:"provisioning,omitempty" bun:"provisioning,type:text"`
 } //	@name	Agent
+
+// MaxProvisioningPhases caps how many provisioning phases an agent keeps; the
+// oldest are dropped first.
+const MaxProvisioningPhases = 20
+
+// ProvisioningPhase is one step a host reported while being set up to run an
+// agent, such as installing a hypervisor or building a base image.
+type ProvisioningPhase struct {
+	Phase string `json:"phase"`
+	// Detail is free text from the host, for example the error of a failed
+	// phase. It is only returned with the agent, never with workflows.
+	Detail string `json:"detail,omitempty"`
+	Failed bool   `json:"failed,omitempty"`
+	At     int64  `json:"at"`
+} //	@name	ProvisioningPhase
+
+// AddProvisioningPhase appends a phase, dropping the oldest beyond
+// MaxProvisioningPhases.
+func (a *Agent) AddProvisioningPhase(phase ProvisioningPhase) {
+	a.Provisioning = append(a.Provisioning, phase)
+	if extra := len(a.Provisioning) - MaxProvisioningPhases; extra > 0 {
+		a.Provisioning = slices.Clone(a.Provisioning[extra:])
+	}
+}
 
 // AgentWithStats is used for API responses to include runtime stats.
 type AgentWithStats struct {

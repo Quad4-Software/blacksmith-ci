@@ -222,3 +222,27 @@ func TestAutoscalerHeartbeatRequiresOwnToken(t *testing.T) {
 		})
 	}
 }
+
+// A host being provisioned reports progress with its agent token; a user
+// session alone must not be enough.
+func TestAgentProvisioningRequiresAgentToken(t *testing.T) {
+	const body = `{"phase":"Installing Hyper-V"}`
+	for _, user := range []*model.User{nil, {ID: 1, Admin: true}} {
+		e := newGuardEngineWithAutoscaler(t, user, nil)
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/agent/provisioning", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		e.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+	}
+
+	// With a bearer token the handler looks the agent up; the guard store
+	// panics on any store call, which surfaces as a 500.
+	e := newGuardEngineWithAutoscaler(t, nil, nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/agent/provisioning", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer agent-token")
+	w := httptest.NewRecorder()
+	e.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}

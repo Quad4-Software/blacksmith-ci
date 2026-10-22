@@ -938,6 +938,14 @@ func apiRoutes(e *gin.RouterGroup, apiBase *gin.RouterGroup, humaAPI huma.API) {
 		Security: BearerSecurity, Middlewares: huma.Middlewares{hmMustPermission(model.PermAgentsWrite)},
 	}, api.PostAgentRestarts)
 
+	huma.Register(humaAPI, huma.Operation{
+		OperationID: "post-agent-provisioning", Method: http.MethodPost, Path: "/agent/provisioning",
+		Summary:     "Report a provisioning phase of the authenticated agent's host",
+		Description: "Authenticated with the agent's own token, which an autoscaler hands the host it provisions.",
+		Tags:        []string{"Agents"}, DefaultStatus: http.StatusNoContent,
+		Security: BearerSecurity,
+	}, api.PostAgentProvisioning)
+
 	// ── Autoscalers ──────────────────────────────────────────────────────
 	huma.Register(humaAPI, huma.Operation{
 		OperationID: "get-autoscaler-self", Method: http.MethodGet, Path: "/autoscaler",

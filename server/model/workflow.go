@@ -48,7 +48,24 @@ type Workflow struct {
 	Children                    []*Step             `json:"children,omitempty"                     bun:"-"`
 	AutoscalerProvisioning      bool                `json:"autoscaler_provisioning,omitempty"       bun:"-"`
 	AutoscalerProvisioningStale bool                `json:"autoscaler_provisioning_stale,omitempty" bun:"-"`
+	// AutoscalerProvisioningSince is when the autoscaler started waiting for
+	// agents, and AutoscalerProvisionTimeout how long, in seconds, it expects
+	// one to take to connect.
+	AutoscalerProvisioningSince int64 `json:"autoscaler_provisioning_since,omitempty" bun:"-"`
+	AutoscalerProvisionTimeout  int64 `json:"autoscaler_provision_timeout,omitempty"  bun:"-"`
+	// ProvisioningAgents are the agents the autoscaler is starting, with the
+	// phases their hosts reported.
+	ProvisioningAgents []*ProvisioningAgent `json:"provisioning_agents,omitempty" bun:"-"`
 }
+
+// ProvisioningAgent is an agent being provisioned for a pending workflow.
+// Phases leave out the hosts' free-text details, which are only returned with
+// the agent.
+type ProvisioningAgent struct {
+	ID     int64               `json:"id"`
+	Name   string              `json:"name"`
+	Phases []ProvisioningPhase `json:"phases"`
+} //	@name	ProvisioningAgent
 
 // TableName returns the database table name.
 func (Workflow) TableName() string {

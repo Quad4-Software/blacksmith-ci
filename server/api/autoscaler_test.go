@@ -48,7 +48,8 @@ func TestPostAutoscalerHeartbeatAuthorization(t *testing.T) {
 			if tt.wantStatus == 0 {
 				mockStore.On("AutoscalerFind", int64(1)).Return(&model.Autoscaler{ID: 1, Provider: "old"}, nil)
 				mockStore.On("AutoscalerUpdate", mock.MatchedBy(func(a *model.Autoscaler) bool {
-					return a.ID == 1 && a.Provider == "hetznercloud" && a.ActiveAgents == 3
+					return a.ID == 1 && a.Provider == "hetznercloud" && a.ActiveAgents == 3 &&
+						a.ProvisionTimeout == 1800 && len(a.PendingAgentIDs) == 1 && a.PendingAgentIDs[0] == 9
 				})).Return(nil)
 			}
 
@@ -60,7 +61,7 @@ func TestPostAutoscalerHeartbeatAuthorization(t *testing.T) {
 
 			out, err := PostAutoscalerHeartbeat(testCtx(c), &PostAutoscalerHeartbeatInput{
 				AutoscalerID: 1,
-				Body:         HeartbeatBody{ActiveAgents: 3, Provider: "hetznercloud"},
+				Body:         HeartbeatBody{ActiveAgents: 3, Provider: "hetznercloud", PendingAgentIDs: []int64{9}, ProvisionTimeout: 1800},
 			})
 			if tt.wantStatus != 0 {
 				var se huma.StatusError

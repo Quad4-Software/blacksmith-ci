@@ -316,3 +316,34 @@ func TestAgentRestartQueue(t *testing.T) {
 	assert.False(t, got.RestartRequested)
 	assert.Equal(t, "6.12.0", got.AutoRestartVersion)
 }
+
+func TestAgentProvisioningRoundTrip(t *testing.T) {
+	store, closer := newTestStore(t, new(model.Agent))
+	defer closer()
+
+	agent := &model.Agent{Name: "provisioning", Token: "provisioning-token"}
+	require.NoError(t, store.AgentCreate(agent))
+	agent.AddProvisioningPhase(model.ProvisioningPhase{Phase: "Installing Hyper-V", At: 10})
+	agent.AddProvisioningPhase(model.ProvisioningPhase{Phase: "Building the golden image", Detail: "DISM failed", Failed: true, At: 20})
+	require.NoError(t, store.AgentUpdate(agent))
+
+	stored, err := store.AgentFindByToken("provisioning-token")
+	require.NoError(t, err)
+	assert.Equal(t, agent.Provisioning, stored.Provisioning)
+}
+
+func TestAutoscalerProvisioningFieldsRoundTrip(t *testing.T) {
+	store, closer := newTestStore(t, new(model.Autoscaler))
+	defer closer()
+
+	autoscaler := &model.Autoscaler{Name: "hyperv", Token: "hyperv-token"}
+	require.NoError(t, store.AutoscalerCreate(autoscaler))
+	autoscaler.PendingAgentIDs = model.JSONSliceInt64{4, 5}
+	autoscaler.ProvisionTimeout = 1500
+	require.NoError(t, store.AutoscalerUpdate(autoscaler))
+
+	stored, err := store.AutoscalerFind(autoscaler.ID)
+	require.NoError(t, err)
+	assert.Equal(t, model.JSONSliceInt64{4, 5}, stored.PendingAgentIDs)
+	assert.Equal(t, int64(1500), stored.ProvisionTimeout)
+}

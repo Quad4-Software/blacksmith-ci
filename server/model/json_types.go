@@ -82,6 +82,13 @@ func (j JSONSliceInt64) Value() (driver.Value, error) { return jsonValueSlice(j)
 func (j *JSONSliceInt64) Scan(src any) error          { return jsonScan(src, j) }
 func (j JSONSliceInt64) MarshalJSON() ([]byte, error) { return jsonMarshalSlice(j) }
 
+// JSONSliceProvisioningPhase is a JSON-serialized []ProvisioningPhase.
+type JSONSliceProvisioningPhase []ProvisioningPhase
+
+func (j JSONSliceProvisioningPhase) Value() (driver.Value, error) { return jsonValueSlice(j) }
+func (j *JSONSliceProvisioningPhase) Scan(src any) error          { return jsonScan(src, j) }
+func (j JSONSliceProvisioningPhase) MarshalJSON() ([]byte, error) { return jsonMarshalSlice(j) }
+
 // JSONMapStringString is a map[string]string that serializes to/from JSON in the database.
 type JSONMapStringString map[string]string
 
