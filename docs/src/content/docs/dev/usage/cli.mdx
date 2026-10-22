@@ -138,6 +138,16 @@ crow lint .crow/build.yaml
 crow lint --strict .crow/
 ```
 
+### MCP Server for Coding Agents
+
+`crow mcp` serves pipeline status, step logs and waiting for results to coding agents over the Model Context Protocol.
+See [MCP Server for Coding Agents](/dev/usage/mcp/) for setup and the available tools.
+
+```sh
+# Register the server with Claude Code
+claude mcp add crow -- crow mcp
+```
+
 ### Agent Management
 
 ```sh

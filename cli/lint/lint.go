@@ -99,10 +99,87 @@ func lintDir(ctx context.Context, c *cli.Command, dir string) error {
 	return nil
 }
 
+// Options configures linting outside of the lint command.
+type Options struct {
+	Strict                     bool
+	PluginsPrivileged          []string
+	PluginsPrivilegedMatchType string
+	PluginsTrustedClone        []string
+	JsonnetExtVars             map[string]string
+}
+
+func optionsFromCommand(c *cli.Command) Options {
+	return Options{
+		Strict:                     c.Bool("strict"),
+		PluginsPrivileged:          c.StringSlice("plugins-privileged"),
+		PluginsPrivilegedMatchType: c.String("plugins-privileged-match-type"),
+		PluginsTrustedClone:        c.StringSlice("plugins-trusted-clone"),
+		JsonnetExtVars:             c.StringMap("jsonnet-ext-var"),
+	}
+}
+
+func isConfigFile(name string) bool {
+	return strings.HasSuffix(name, ".yaml") || strings.HasSuffix(name, ".yml") || strings.HasSuffix(name, ".jsonnet")
+}
+
+// LintPaths lints config files and directories and returns the report as
+// text instead of printing it. The error is non-nil if any file has errors.
+func LintPaths(_ context.Context, paths []string, opt Options) (string, error) {
+	var (
+		b      strings.Builder
+		failed []string
+	)
+	lintOne := func(file string) {
+		fmt.Fprintf(&b, "# %s\n", file)
+		report, err := lintFileReport(file, opt)
+		b.WriteString(report)
+		if err != nil {
+			if report == "" {
+				fmt.Fprintf(&b, "%s\n", err)
+			}
+			failed = append(failed, file)
+		}
+		b.WriteString("\n")
+	}
+
+	for _, p := range paths {
+		info, err := os.Stat(p)
+		if err != nil {
+			return b.String(), err
+		}
+		if !info.IsDir() {
+			lintOne(p)
+			continue
+		}
+		if err := filepath.Walk(p, func(path string, info os.FileInfo, e error) error {
+			if e != nil {
+				return e
+			}
+			if info.Mode().IsRegular() && isConfigFile(info.Name()) {
+				lintOne(path)
+			}
+			return nil
+		}); err != nil {
+			return b.String(), err
+		}
+	}
+
+	if len(failed) > 0 {
+		return b.String(), fmt.Errorf("config errors in %s", strings.Join(failed, ", "))
+	}
+	return b.String(), nil
+}
+
 func lintFile(_ context.Context, c *cli.Command, file string) error {
+	report, err := lintFileReport(file, optionsFromCommand(c))
+	fmt.Print(report)
+	return err
+}
+
+func lintFileReport(file string, opt Options) (string, error) {
 	buf, err := os.ReadFile(file)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	rawConfig := string(buf)
@@ -113,34 +190,37 @@ func lintFile(_ context.Context, c *cli.Command, file string) error {
 		dir := filepath.Dir(file)
 		siblings, err := common.LoadSiblingFiles(dir, file)
 		if err != nil {
-			return fmt.Errorf("failed to load sibling files for Jsonnet imports: %w", err)
+			return "", fmt.Errorf("failed to load sibling files for Jsonnet imports: %w", err)
 		}
 
-		evaluated, err := crow_jsonnet.Evaluate(file, buf, siblings, c.StringMap("jsonnet-ext-var"))
+		evaluated, err := crow_jsonnet.Evaluate(file, buf, siblings, opt.JsonnetExtVars)
 		if err != nil {
-			return err
+			return "", err
 		}
 
 		// Lint each evaluated document
+		var report strings.Builder
 		for i, doc := range evaluated {
 			docName := path.Base(file)
 			if len(evaluated) > 1 {
 				docName = fmt.Sprintf("%s[%d]", docName, i)
 			}
-			if err := lintYAMLConfig(c, docName, string(doc)); err != nil {
-				return err
+			str, err := lintYAMLConfig(opt, docName, string(doc))
+			report.WriteString(str)
+			if err != nil {
+				return report.String(), err
 			}
 		}
-		return nil
+		return report.String(), nil
 	}
 
-	return lintYAMLConfig(c, path.Base(file), rawConfig)
+	return lintYAMLConfig(opt, path.Base(file), rawConfig)
 }
 
-func lintYAMLConfig(c *cli.Command, name, rawConfig string) error {
+func lintYAMLConfig(opt Options, name, rawConfig string) (string, error) {
 	parsedConfig, err := yaml.ParseString(rawConfig)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	config := &linter.WorkflowConfig{
@@ -156,21 +236,14 @@ func lintYAMLConfig(c *cli.Command, name, rawConfig string) error {
 			Volumes:  true,
 			Security: true,
 		}),
-		linter.PrivilegedPluginsWithMatchType(c.StringSlice("plugins-privileged"), c.String("plugins-privileged-match-type")),
-		linter.WithTrustedClonePlugins(c.StringSlice("plugins-trusted-clone")),
+		linter.PrivilegedPluginsWithMatchType(opt.PluginsPrivileged, opt.PluginsPrivilegedMatchType),
+		linter.WithTrustedClonePlugins(opt.PluginsTrustedClone),
 		// CLI is for local dev; disable the per-gate timeout cap.
 		linter.WithApprovalTimeoutMax(0),
 	).Lint([]*linter.WorkflowConfig{config})
 	if err != nil {
-		str, err := FormatLintError(config.File, err, c.Bool("strict"))
-
-		if str != "" {
-			fmt.Print(str)
-		}
-
-		return err
+		return FormatLintError(config.File, err, opt.Strict)
 	}
 
-	fmt.Println("✅ Config is valid")
-	return nil
+	return "✅ Config is valid\n", nil
 }

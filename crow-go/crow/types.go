@@ -155,6 +155,10 @@ type (
 		Platform string            `json:"platform,omitempty"`
 		Environ  map[string]string `json:"environ,omitempty"`
 		Children []*Step           `json:"children,omitempty"`
+		// Attempt counts re-runs of a workflow; OriginalWorkflowID links a
+		// re-run to the first attempt (0 for the first attempt itself).
+		Attempt            int   `json:"attempt,omitempty"`
+		OriginalWorkflowID int64 `json:"original_workflow_id,omitempty"`
 	}
 
 	// Step represents a process in the pipeline.

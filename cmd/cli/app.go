@@ -22,6 +22,7 @@ import (
 	"codefloe.com/crowci/crow/v6/cli/exec"
 	"codefloe.com/crowci/crow/v6/cli/info"
 	"codefloe.com/crowci/crow/v6/cli/lint"
+	"codefloe.com/crowci/crow/v6/cli/mcp"
 	"codefloe.com/crowci/crow/v6/cli/org"
 	"codefloe.com/crowci/crow/v6/cli/pipeline"
 	"codefloe.com/crowci/crow/v6/cli/repo"
@@ -49,6 +50,7 @@ func newApp() *cli.Command {
 		exec.Command,
 		info.Command,
 		lint.Command,
+		mcp.Command,
 		org.Command,
 		pipeline.Command,
 		repo.Command,
