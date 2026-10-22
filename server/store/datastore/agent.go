@@ -53,11 +53,12 @@ func (s storage) AgentList(opts *model.AgentListOptions) (agents []*model.Agent,
 		q = q.Where("backend = ?", opts.Backend)
 	}
 
-	// Apply search across multiple fields
+	// Apply search across multiple fields.
+	// custom_labels is cast because databases migrated from Woodpecker store it as json, which has no LIKE operator on Postgres.
 	if opts.Search != "" {
 		searchPattern := "%" + opts.Search + "%"
 		q = q.Where(
-			"name LIKE ? OR platform LIKE ? OR backend LIKE ? OR custom_labels LIKE ? OR "+s.castAsText("id")+" LIKE ?",
+			"name LIKE ? OR platform LIKE ? OR backend LIKE ? OR "+s.castAsText("custom_labels")+" LIKE ? OR "+s.castAsText("id")+" LIKE ?",
 			searchPattern, searchPattern, searchPattern, searchPattern, searchPattern,
 		)
 	}
